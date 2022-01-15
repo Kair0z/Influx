@@ -106,7 +106,7 @@ namespace Influx
 		mpWindowSwapChain = mpRenderAPI->CreateSwapChain(swpDesc, mpGraphicsCommandQueue);
 
 		// LoadPipelineStateObjects();
-		LoadResources();
+		LoadRHIResources();
 	}
 
 	void RenderThread::LoadPipelineStateObjects()
@@ -121,13 +121,14 @@ namespace Influx
 		mpRenderAPI->CreateGraphicsPipeline(psoBuild);
 	}
 
-	void RenderThread::LoadResources()
+	void RenderThread::LoadRHIResources()
 	{
 		mGameView.GameRenderTarget = mpRenderAPI->CreateRenderTarget(GameView::StatGameResolution, ERHIFormat::RGBA_8_Unorm);
 		mGameView.GameDepthTarget = mpRenderAPI->CreateDepthStencilTarget(GameView::StatGameResolution, ERHIFormat::D_32_Float);
 
 #if WITH_EDITOR
-		EditorLocator::Get()->GetRenderer().LoadResources_RenderThread(mpRenderAPI);
+		// Load Editor RHIResources...
+		EditorLocator::Get()->GetRenderer().LoadResources_RenderThread(mpRenderAPI, mGameView.GameRenderTarget);
 #endif
 	}
 
