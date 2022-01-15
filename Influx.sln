@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Influx", "Engine\Influx.vcxproj", "{BBEB27BA-A78D-5290-9048-66E47C89D9E0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sandbox", "Sandbox\Sandbox.vcxproj", "{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DebugEditor|x64 = DebugEditor|x64
+		Debug|x64 = Debug|x64
+		ReleaseEditor|x64 = ReleaseEditor|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.DebugEditor|x64.ActiveCfg = DebugEditor|x64
+		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.DebugEditor|x64.Build.0 = DebugEditor|x64
+		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.Debug|x64.ActiveCfg = Debug|x64
+		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.Debug|x64.Build.0 = Debug|x64
+		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.ReleaseEditor|x64.ActiveCfg = ReleaseEditor|x64
+		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.ReleaseEditor|x64.Build.0 = ReleaseEditor|x64
+		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.Release|x64.ActiveCfg = Release|x64
+		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.Release|x64.Build.0 = Release|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x64.ActiveCfg = DebugEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x64.Build.0 = DebugEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x64.ActiveCfg = Debug|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x64.Build.0 = Debug|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x64.ActiveCfg = ReleaseEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x64.Build.0 = ReleaseEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x64.ActiveCfg = Release|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
