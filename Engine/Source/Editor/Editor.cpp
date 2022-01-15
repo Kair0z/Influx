@@ -17,7 +17,7 @@ namespace Influx
 	// [CRINGE] This should probably be inside Dx12 API...
 	size_t EditorRenderer::SRVDescriptorHandleIncrementSize = 0;
 
-	void EditorRenderer::LoadResources_RenderThread(const Ptr<RenderAPI> api)
+	void EditorRenderer::LoadResources_RenderThread(const Ptr<RenderAPI> api, const Ptr<RHIRenderTarget> gameRenderTarget)
 	{
 		D3D12API* d3d12API = Cast<D3D12API>(api);
 		ID3D12Device* device = d3d12API->GetDevice();
@@ -37,6 +37,8 @@ namespace Influx
 			desc.NumDescriptors = 2;
 			desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 			device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mpResourceDescriptorHeap));
+
+			Dx12CreateViewportSRVFromGameRenderTarget(api, gameRenderTarget);
 		}
 
 		// ImGui-Setup:

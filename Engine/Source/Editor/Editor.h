@@ -24,7 +24,7 @@ namespace Influx
 		using OnEditorRenderCallback = Function<void()>;
 
 	public:
-		void LoadResources_RenderThread(const Ptr<RenderAPI> RenderAPI);
+		void LoadResources_RenderThread(const Ptr<RenderAPI> RenderAPI, const Ptr<RHIRenderTarget> gameRenderTarget);
 		void Render_RenderThread(Ptr<RHIGraphicsCommandList> CmdList, Ptr<RHIRenderTarget> viewportRT) const;
 
 		void RenderViewportWindow() const;

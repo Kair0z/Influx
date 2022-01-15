@@ -84,7 +84,7 @@ namespace Influx
 	private:
 		void Initialize();
 		void LoadPipelineStateObjects();
-		void LoadResources();
+		void LoadRHIResources();
 
 		void Render(const Ptr<RenderFrame> frame);
 
