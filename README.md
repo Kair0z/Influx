@@ -1,2 +1,2 @@
 # Influx
- The Influx Engine [2022]
+ Influx Engine [2022]
