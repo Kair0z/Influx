@@ -128,18 +128,18 @@ namespace Influx
 
 		while (!mCommandAllocatorQueue.empty())
 		{
-			mCommandAllocatorQueue.front().alloc->Release();
+			D3D12API::SafeRelease(mCommandAllocatorQueue.front().alloc);
 			mCommandAllocatorQueue.pop();
 		}
 
 		while (!mCommandListQueue.empty())
 		{
-			mCommandListQueue.front()->GetD3D12CommandList()->Release();
+			D3D12API::SafeRelease(mCommandListQueue.front()->GetD3D12CommandList());
 			mCommandListQueue.pop();
 		}
 
-		mpD3D12CmdQueue->Release();
-		mpFence->Release();
+		D3D12API::SafeRelease(mpD3D12CmdQueue);
+		D3D12API::SafeRelease(mpFence);
 	}
 }
 

@@ -46,6 +46,11 @@ namespace Influx
 		RHIRenderTarget& operator=(const RHIRenderTarget&) = delete;
 		RHIRenderTarget& operator=(RHIRenderTarget&&) = delete;
 	};
+
+	class RHIRenderTargetView
+	{
+		
+	};
 }
 
 

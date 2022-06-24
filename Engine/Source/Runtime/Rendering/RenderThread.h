@@ -12,12 +12,12 @@ namespace Influx
 	class World;
 	class Renderer;
 	class Engine;
-	class RenderInterface;
 
 	class RenderAPI;
 	class RHICommandQueue;
 	class RHISwapChain;
 	class RHIRenderTarget;
+	class RHIGraphicsCommandList;
 
 	// [TODO] Create base Thread class along with ThreadManager
 	class RenderThread final
@@ -31,9 +31,6 @@ namespace Influx
 
 		/* Enqueue a new 'view' capturing the 'render-state' of the current world at the end of Game-thread */
 		void EnqueueFrame(const RenderFrame* view);
-
-		/* Registers a renderinterface class that hooks into renderthread */
-		void RegisterRenderInterface(RenderInterface* renderInterface);
 
 		float GetMs() const;
 		float GetStallMs() const;
@@ -79,14 +76,13 @@ namespace Influx
 		std::mutex mRenderViewMutex;
 		std::condition_variable mRenderViewCondition;
 
-		Vector<RenderInterface*> mpRenderInterfaces;
-
 	private:
 		void Initialize();
 		void LoadPipelineStateObjects();
 		void LoadRHIResources();
 
-		void Render(const Ptr<RenderFrame> frame);
+		const Ptr<RHIGraphicsCommandList> BuildRenderCommandList(const Ptr<RenderFrame> frame);
+		void SubmitRender(const Ptr<RHIGraphicsCommandList> renderCommandList);
 
 		void LogInfo(const float msBetweenFrames, const float msWaitForGT);
 		void OnWindowResize(const Vector2u& newSize);

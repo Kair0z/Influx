@@ -288,6 +288,7 @@
     <ClCompile Include="Source\Runtime\RHI\RenderAPI.cpp" />
     <ClCompile Include="Source\Runtime\Rendering\RenderFrame.cpp" />
     <ClCompile Include="Source\Runtime\Rendering\RenderThread.cpp" />
+    <ClCompile Include="Source\Runtime\RHI\SwapChain.cpp" />
     <ClCompile Include="Source\Runtime\Window\Window.cpp" />
     <ClCompile Include="Source\Runtime\World\GameObject.cpp" />
     <ClCompile Include="Source\Runtime\World\World.cpp" />

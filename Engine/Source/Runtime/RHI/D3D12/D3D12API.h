@@ -9,6 +9,7 @@
 #include <dxgi1_6.h>
 #include <d3dcompiler.h>
 #include "D3DX12/d3dx12.h"
+#include <dxgidebug.h>
 
 #include <chrono>
 
@@ -86,6 +87,23 @@ namespace Influx
 	/* API that encapsulates D3D12 Device & Maintains D3D12 globally */
 	class D3D12API final : public RenderAPI
 	{
+		/* Windows Advanced Rasterization Platform (WARP) ...*/
+		constexpr static bool sShouldUseWarp = true;
+
+		ID3D12Device2* DxDevice{};
+		IDXGIAdapter4* DxgiAdapter{};
+		IDXGIFactory4* DxgiFactory{};
+		
+		struct DescriptorInfo
+		{
+			size_t RtvDescriptorSize;
+			size_t SamplerDescriptorSize;
+			size_t SrvUavCbvDescriptorSize;
+			size_t DsvDescriptorSize;
+		};
+
+		DescriptorInfo CachedDescriptorInfo;
+
 	public:
 		//virtual Ptr<Buffer> CreateBuffer(const Buffer::Initializer& init) override;
 		//virtual Ptr<Buffer> CreateVertexBuffer(const Buffer::Initializer& init) override;
@@ -95,34 +113,37 @@ namespace Influx
 		virtual Ptr<RHIRenderTarget> CreateRenderTarget(const Vector2u& dimensions, const ERHIFormat format) override;
 		virtual Ptr<RHIRenderTarget> CreateDepthStencilTarget(const Vector2u& dimensions, const ERHIFormat format) override;
 		virtual Ptr<RHIGraphicsPipeline> CreateGraphicsPipeline(const GraphicsPipelineBuilder& desc) override;
-		virtual Ptr<RHISwapChain> CreateSwapChain(const SwapChainDesc& desc, const Ptr<RHICommandQueue> commandQueue) override;
+		virtual Ptr<RHISwapChain> CreateSwapChain(void* windowHandle, const Ptr<RHICommandQueue> commandQueue) override;
 		virtual Ptr<RHICommandQueue> CreateCommandQueue(const CommandQueueDesc& desc) override;
+		Ptr<D3D12RootSignature> CreateRootSignature(const struct D3D12RootSignatureDesc& desc);
 		virtual void SetupDebugLayer() override;
 
 		D3D12API() = default;
 		~D3D12API();
-
-		Ptr<D3D12RootSignature> CreateRootSignature(const struct D3D12RootSignatureDesc& desc);
 
 		virtual void Initialize() override final;
 
 		static constexpr bool GetShouldUseWarp() { return sShouldUseWarp; };
 		ID3D12Device2* GetDevice() const;
 
-	private:
-		/* Windows Advanced Rasterization Platform (WARP) ...*/
-		constexpr static bool sShouldUseWarp = true;
-		ID3D12Device2* mpDevice{};
-		IDXGIAdapter4* mpAdapter{};
-
 	public:
+
 #pragma region Statics
+		template <typename Obj>
+		inline static void SafeRelease(Obj* obj)
+		{
+			if (obj != nullptr)
+			{
+				obj->Release();
+			}
+		}
+
 		/*
 		*	[D3D12Statics]
 		*	Provides inline static functions involving creating D3D12 Objects & Resources & General functionality
 		*/
-		/* Query a compatible adapter */
-		inline static IDXGIAdapter4* GetAdapter(bool useWarp)
+
+		inline static IDXGIFactory4* CreateDxgiFactory()
 		{
 			/* Create Factory... */
 			IDXGIFactory4* dxgiFactory;
@@ -133,6 +154,12 @@ namespace Influx
 			/* TODO: Throw On Fail... */
 			CreateDXGIFactory2(flags, IID_PPV_ARGS(&dxgiFactory));
 
+			return dxgiFactory;
+		}
+
+		/* Query a compatible adapter */
+		inline static IDXGIAdapter4* GetAdapter4(IDXGIFactory4* dxgiFactory, bool useWarp)
+		{
 			/* Get Adapter ...*/
 			IDXGIAdapter1* dxgiAdapter1{};
 			IDXGIAdapter4* dxgiAdapter4{};
@@ -253,6 +280,7 @@ namespace Influx
 
 			return allowTearing;
 		}
+
 		inline static IDXGISwapChain4* CreateSwapChain(HWND hWnd, ID3D12CommandQueue* pCommandQueue, uint32_t w, uint32_t h, uint32_t bufferCount)
 		{
 			IDXGISwapChain4* dxgiSwapChain4;
@@ -282,6 +310,9 @@ namespace Influx
 			// Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
 			// will be handled manually.
 			dxgiFactory4->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
+
+			// Release Factory...
+			dxgiFactory4->Release();
 
 			dxgiSwapChain4 = (IDXGISwapChain4*)swapChain1;
 			return dxgiSwapChain4;
@@ -382,6 +413,13 @@ namespace Influx
 #endif
 		}
 
+		inline static void ReportLiveObjects()
+		{
+			IDXGIDebug* dxgiControler;
+			DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiControler));
+			dxgiControler->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+		}
+
 		/* Transition Resource */
 		inline static void TransitionResource(ID3D12GraphicsCommandList* commandList, ID3D12Resource* resource,
 			D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
@@ -401,18 +439,56 @@ namespace Influx
 		/* Resource View Sizes */
 		inline static size_t GetDescriptorHandleIncrementSize_CBV_SRV_UAV(ID3D12Device* pDevice)
 		{
-			static const size_t size = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			return size;
+			return pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
+		inline static size_t GetDescriptorHandleIncrementSize_Sampler(ID3D12Device* pDevice)
+		{
+			return pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		}
 		inline static size_t GetDescriptorHandleIncrementSize_DSV(ID3D12Device* pDevice)
 		{
-			static const size_t size = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-			return size;
+			return pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 		}
 		inline static size_t GetDescriptorHandleIncrementSize_RTV(ID3D12Device* pDevice)
 		{
-			static const size_t size = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			return size;
+			return pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		}
+
+		inline size_t GetDescriptorHandleIncrementSize_CBV_SRV_UAV()
+		{
+			if (CachedDescriptorInfo.SrvUavCbvDescriptorSize <= 0)
+			{
+				CachedDescriptorInfo.SrvUavCbvDescriptorSize = GetDescriptorHandleIncrementSize_CBV_SRV_UAV(GetDevice());
+			}
+
+			return CachedDescriptorInfo.SrvUavCbvDescriptorSize;
+		}
+		inline size_t GetDescriptorHandleIncrementSize_Sampler()
+		{
+			if (CachedDescriptorInfo.SamplerDescriptorSize <= 0)
+			{
+				CachedDescriptorInfo.SamplerDescriptorSize = GetDescriptorHandleIncrementSize_Sampler(GetDevice());
+			}
+
+			return CachedDescriptorInfo.SamplerDescriptorSize;
+		}
+		inline  size_t GetDescriptorHandleIncrementSize_RTV()
+		{
+			if (CachedDescriptorInfo.RtvDescriptorSize <= 0)
+			{
+				CachedDescriptorInfo.RtvDescriptorSize = GetDescriptorHandleIncrementSize_RTV(GetDevice());
+			}
+
+			return CachedDescriptorInfo.RtvDescriptorSize;
+		}
+		inline size_t GetDescriptorHandleIncrementSize_DSV()
+		{
+			if (CachedDescriptorInfo.DsvDescriptorSize <= 0)
+			{
+				CachedDescriptorInfo.DsvDescriptorSize = GetDescriptorHandleIncrementSize_DSV(GetDevice());
+			}
+
+			return CachedDescriptorInfo.DsvDescriptorSize;
 		}
 #pragma endregion
 	};

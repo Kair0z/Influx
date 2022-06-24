@@ -20,7 +20,7 @@ namespace Influx
 		}
 
 		template <typename T>
-		inline static T GetTimeBetween(const TimePoint& end, const TimePoint& start)
+		inline static T GetMillisecondsBetween(const TimePoint& end, const TimePoint& start)
 		{
 			return (T)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		}

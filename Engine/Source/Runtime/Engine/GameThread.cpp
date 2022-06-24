@@ -31,9 +31,9 @@ namespace Influx
 					const Time::TimePoint postUpdate = Time::Now();
 
 					// Update MS variables
-					DeltaTime = Time::GetTimeBetween<float>(preUpdate, lastTime) / 1000.0f;
-					Ms = Time::GetTimeBetween<float>(postUpdate, preUpdate);
-					StallMs = Time::GetTimeBetween<float>(preUpdate, preSync);
+					DeltaTime = Time::GetMillisecondsBetween<float>(preUpdate, lastTime) / 1000.0f;
+					Ms = Time::GetMillisecondsBetween<float>(postUpdate, preUpdate);
+					StallMs = Time::GetMillisecondsBetween<float>(preUpdate, preSync);
 
 					lastTime = preUpdate;
 

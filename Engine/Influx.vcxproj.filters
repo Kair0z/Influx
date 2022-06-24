@@ -385,5 +385,6 @@
     <ClCompile Include="Source\Runtime\RHI\D3D12\D3D12Device.cpp" />
     <ClCompile Include="Source\Runtime\RHI\RenderTarget.cpp" />
     <ClCompile Include="Source\Editor\EngineEditor.cpp" />
+    <ClCompile Include="Source\Runtime\RHI\SwapChain.cpp" />
   </ItemGroup>
 </Project>

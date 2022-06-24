@@ -51,14 +51,15 @@ namespace Influx
 				Time::TimePoint preRender = Time::Now();
 				if (frameToRender)
 				{
-					Render(frameToRender);
+					Ptr<RHIGraphicsCommandList> renderCmdList = BuildRenderCommandList(frameToRender);
+					SubmitRender(renderCmdList);
 				}
 				Time::TimePoint postRender = Time::Now();
 
 				++mCurrentFrame;
 
-				Ms = Time::GetTimeBetween<float>(postRender, preRender);
-				StallMs = Time::GetTimeBetween<float>(preRender, preSync);
+				Ms = Time::GetMillisecondsBetween<float>(postRender, preRender);
+				StallMs = Time::GetMillisecondsBetween<float>(preRender, preSync);
 				// LogInfo(Ms, StallMs);
 
 				// Signal one ::WaitForFrameFinish Candidate (Game Thread)
@@ -91,22 +92,15 @@ namespace Influx
 		mpRenderAPI->Initialize();
 
 		// Create Command Queue
-		CommandQueueDesc cmdQueueDesc{};
-		mpGraphicsCommandQueue = mpRenderAPI->CreateCommandQueue(cmdQueueDesc);
+		mpGraphicsCommandQueue = mpRenderAPI->CreateCommandQueue({ECommandQueueType::Graphics});
 
 		// Create Window-swapchain from Application Window handle
 		void* currentWindowHandle = ApplicationLocator::Get()->GetWindow()->GetWindowsHandle();
 		ASSERT(currentWindowHandle != nullptr);
-
-		Rectf winRect = WindowsPlatform::GetWindowClientRect((HWND)currentWindowHandle);
-		SwapChainDesc swpDesc{};
-		swpDesc.Height = (int)winRect.WH.y;
-		swpDesc.Width = (int)winRect.WH.x;
-		swpDesc.WindowHandle = currentWindowHandle;
-		mpWindowSwapChain = mpRenderAPI->CreateSwapChain(swpDesc, mpGraphicsCommandQueue);
+		mpWindowSwapChain = mpRenderAPI->CreateSwapChain(currentWindowHandle, mpGraphicsCommandQueue);
 
 		// LoadPipelineStateObjects();
-		LoadRHIResources();
+		// LoadRHIResources();
 	}
 
 	void RenderThread::LoadPipelineStateObjects()
@@ -132,7 +126,7 @@ namespace Influx
 #endif
 	}
 
-	void RenderThread::Render(const Ptr<RenderFrame> frame)
+	const Ptr<RHIGraphicsCommandList> RenderThread::BuildRenderCommandList(const Ptr<RenderFrame> frame)
 	{
 		/* Get a new Command List */
 		Ptr<RHIGraphicsCommandList> gfxCmdList = mpGraphicsCommandQueue->GetNewGraphicsCommandList(mpRenderAPI);
@@ -140,20 +134,16 @@ namespace Influx
 		/* [CRINGE] Transition Windows-swapchain RTV to Present. (Only D3D12) */
 		{
 			ID3D12GraphicsCommandList* d3d12List = Cast<D3D12GraphicsCommandList>(gfxCmdList)->GetD3D12CommandList();
-			auto buffer = Cast<D3D12SwapChain>(mpWindowSwapChain)->GetCurrentBackBufferResource();
+			D3D12SwapChain* dxSwapChain = Cast<D3D12SwapChain>(mpWindowSwapChain);
+			auto buffer = dxSwapChain->GetCurrentBackBufferResource();
 
 			/* Transition Window Rendertarget to Present... */
 			D3D12API::TransitionResource(d3d12List, buffer,
 				D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+			float color[4]{1.0f, 0.0f, 0.0f, 1.0f};
+			d3d12List->ClearRenderTargetView(dxSwapChain->GetCurrentRenderTargetViewHandle(), color, 0, nullptr);
 		}
-
-		/* Clear Window Swapchain Render Target */
-		gfxCmdList->ClearRenderTarget(mpWindowSwapChain->GetCurrentRenderTarget(), { 0.0f, 0.0f, 0.0f, 1.0f });
-		gfxCmdList->ClearDepthStencil(mpWindowSwapChain->GetDepthTarget(), 1.0f);
-
-		// Clear Game Render Target
-		gfxCmdList->ClearRenderTarget(mGameView.GameRenderTarget, { 1.0f, 1.0f, 0.0f, 1.0f });
-		gfxCmdList->ClearDepthStencil(mGameView.GameDepthTarget, 0.0f);
 
 #if WITH_EDITOR
 		/* [CRINGE] Transition Rts to copy over editor into final window... */
@@ -174,13 +164,13 @@ namespace Influx
 				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
 
 			// Copy Editor into window rendertarget
-			gfxCmdList->CopyRenderTarget(editorRenderer.GetRenderTarget(), 
+			gfxCmdList->CopyRenderTarget(editorRenderer.GetRenderTarget(),
 				mpWindowSwapChain->GetCurrentRenderTarget());
 
 			D3D12API::TransitionResource(d3d12List, editorRTBuffer,
 				D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		}
-		
+
 #endif
 
 		/* [CRINGE] Transition swapchain RTV to Present. (Only D3D12) */
@@ -190,17 +180,20 @@ namespace Influx
 
 			/* Transition Window Rendertarget to Present... */
 			D3D12API::TransitionResource(d3d12List, buffer,
-				D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
+				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 		}
 
+		return gfxCmdList;
+	}
+
+	void RenderThread::SubmitRender(const Ptr<RHIGraphicsCommandList> renderCmdList)
+	{
 		/* Execute the Graphics Command List */
-		mpGraphicsCommandQueue->ExecuteCommandList(gfxCmdList);
+		mpGraphicsCommandQueue->ExecuteCommandList(renderCmdList);
 
 		/* Present Window Swapchain */
 		mpWindowSwapChain->Present({ true });
 	}
-
-
 
 	void RenderThread::EnqueueFrame(const RenderFrame* view)
 	{
@@ -210,11 +203,6 @@ namespace Influx
 		std::lock_guard<std::mutex> lock(mRenderViewMutex);
 		mRenderFrameQueue.push(view);
 		mRenderViewCondition.notify_one();
-	}
-
-	void RenderThread::RegisterRenderInterface(RenderInterface* renderInterface)
-	{
-		mpRenderInterfaces.push_back(renderInterface);
 	}
 
 	float RenderThread::GetMs() const
@@ -260,11 +248,13 @@ namespace Influx
 		mThreadObject.join();
 
 		// Delete resources...
-		delete mpWindowSwapChain;
 		delete mpGraphicsCommandQueue;
-		delete mGameView.GameDepthTarget;
-		delete mGameView.GameRenderTarget;
+		delete mpWindowSwapChain;
+		//delete mGameView.GameDepthTarget;
+		//delete mGameView.GameRenderTarget;
 		delete mpRenderAPI;
+
+		D3D12API::ReportLiveObjects();
 	}
 
 	void RenderThread::LogInfo(const float msBetweenFrames, const float msWaitForGT)

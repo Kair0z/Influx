@@ -8,9 +8,9 @@ namespace Influx
 #pragma region ForwardDeclarations
 	class RHIGraphicsCommandList;
 	class RenderAPI;
+	struct CommandQueueDesc;
 #pragma endregion
 
-	struct CommandQueueDesc;
 	class RHICommandQueue
 	{
 	public:
@@ -19,6 +19,8 @@ namespace Influx
 		virtual Ptr<RHIGraphicsCommandList> GetNewGraphicsCommandList(const Ptr<RenderAPI> api) = 0;
 		virtual void ExecuteCommandList(Ptr<RHIGraphicsCommandList> list) = 0;
 		virtual void Flush() = 0;
+
+		virtual ~RHICommandQueue() = default;
 	};
 
 	struct CommandQueueDesc

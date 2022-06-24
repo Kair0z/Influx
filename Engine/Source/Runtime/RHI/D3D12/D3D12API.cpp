@@ -13,13 +13,14 @@ namespace Influx
 {
 	void D3D12API::Initialize()
 	{
-		mpAdapter = GetAdapter(GetShouldUseWarp());
-		mpDevice = D3D12API::CreateDevice(mpAdapter);
+		DxgiFactory = CreateDxgiFactory();
+		DxgiAdapter = GetAdapter4(DxgiFactory, GetShouldUseWarp());
+		DxDevice = D3D12API::CreateDevice(DxgiAdapter);
 	}
 
 	ID3D12Device2* D3D12API::GetDevice() const
 	{
-		return mpDevice;
+		return DxDevice;
 	}
 
 	/*Ptr<Buffer> D3D12API::CreateBuffer(const Buffer::Initializer& init)
@@ -114,9 +115,9 @@ namespace Influx
 		return D3D12GraphicsPipeline::Create(this, signature, desc);
 	}
 
-	Ptr<RHISwapChain> D3D12API::CreateSwapChain(const SwapChainDesc& desc, const Ptr<RHICommandQueue> commandQueue)
+	Ptr<RHISwapChain> D3D12API::CreateSwapChain(void* windowHandle, const Ptr<RHICommandQueue> commandQueue)
 	{
-		return D3D12SwapChain::Create(this, desc, Cast<D3D12CommandQueue>(commandQueue)->GetD3D12CommandQueue());
+		return D3D12SwapChain::Create(this, windowHandle, Cast<D3D12CommandQueue>(commandQueue)->GetD3D12CommandQueue());
 	}
 
 	Ptr<RHICommandQueue> D3D12API::CreateCommandQueue(const CommandQueueDesc& desc)
@@ -127,7 +128,6 @@ namespace Influx
 	void D3D12API::SetupDebugLayer()
 	{
 		D3D12API::EnableDebugLayer();
-		
 	}
 
 	Ptr<D3D12RootSignature> D3D12API::CreateRootSignature(const D3D12RootSignatureDesc& desc)
@@ -137,8 +137,9 @@ namespace Influx
 
 	D3D12API::~D3D12API()
 	{
-		mpAdapter->Release();
-		mpDevice->Release();
+		SafeRelease(DxgiAdapter);
+		SafeRelease(DxDevice);
+		SafeRelease(DxgiFactory);
 	}
 }
 

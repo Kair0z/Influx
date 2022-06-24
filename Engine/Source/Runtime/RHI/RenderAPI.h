@@ -28,7 +28,7 @@ namespace Influx
 
 		// Creating RHI Resources:
 		virtual Ptr<RHIGraphicsPipeline> CreateGraphicsPipeline(const GraphicsPipelineBuilder& desc) = 0;
-		virtual Ptr<RHISwapChain> CreateSwapChain(const SwapChainDesc& desc, const Ptr<RHICommandQueue> commandQueue) = 0;
+		virtual Ptr<RHISwapChain> CreateSwapChain(void* windowHandle, const Ptr<RHICommandQueue> commandQueue) = 0;
 		virtual Ptr<RHICommandQueue> CreateCommandQueue(const CommandQueueDesc& desc) = 0;
 		virtual Ptr<RHIRenderTarget> CreateRenderTarget(const Vector2u& dimensions, const ERHIFormat format) = 0;
 		virtual Ptr<RHIRenderTarget> CreateDepthStencilTarget(const Vector2u& dimensions, const ERHIFormat format) = 0;
