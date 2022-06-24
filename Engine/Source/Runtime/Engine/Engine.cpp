@@ -30,7 +30,9 @@ namespace Influx
 			mpApplication = WindowsApp::Create();
 			mpEditor = new Editor();
 
+#if WITH_EDITOR
 			mpEditor->RegisterOnEditorRenderCallback(std::bind(&Engine::OnEditorRender, this));
+#endif
 
 			/* Provide locators */
 			EventManagerLocator::Provide(mpEventManager);

@@ -36,6 +36,8 @@ namespace Influx
 		struct Rectf final
 		{
 			inline Rectf(float l, float b, float w, float h) : LB{l,b}, WH{w,h}{}
+			inline Rectf(int l, int b, int w, int h) : Rectf(float(l), float(b), float(w), float(h)) {}
+			inline Rectf(uint32_t l, uint32_t b, uint32_t w, uint32_t h) : Rectf(float(l), float(b), float(w), float(h)) {}
 
 			Vector2f LB{}; // Left-Bottom
 			Vector2f WH{}; // Width-Height

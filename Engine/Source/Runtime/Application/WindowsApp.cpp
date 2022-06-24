@@ -182,8 +182,8 @@ namespace Influx
 		case WM_EXITSIZEMOVE:
 		{
 			WindowResizeEvent windowEvent{};
-			windowEvent.NewHeight = WindowsPlatform::GetWindowClientRect().WH.x;
-			windowEvent.NewWidth = WindowsPlatform::GetWindowClientRect().WH.y;
+			windowEvent.NewHeight = (int)WindowsPlatform::GetWindowClientRect().WH.x;
+			windowEvent.NewWidth = (int)WindowsPlatform::GetWindowClientRect().WH.y;
 			if (windowEvent.NewHeight == 0 && windowEvent.NewWidth == 0) break;
 
 			EventManagerLocator::Get()->PingChannelImmediate<EventCategory::Window, WindowResizeEvent>(windowEvent);

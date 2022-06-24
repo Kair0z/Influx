@@ -92,7 +92,7 @@ namespace Influx
 
 	void D3D12GraphicsCommandList::ClearDepthStencil(const Ptr<RHIRenderTarget> renderTarget, const float depthClear, const float stencilClear) const
 	{
-		mpD3D12CommandList->ClearDepthStencilView(Cast<D3D12RenderTarget>(renderTarget)->GetViewCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, depthClear, stencilClear, 0, nullptr);
+		mpD3D12CommandList->ClearDepthStencilView(Cast<D3D12RenderTarget>(renderTarget)->GetViewCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, depthClear, (UINT8)stencilClear, 0, nullptr);
 	}
 
 	void D3D12GraphicsCommandList::SetViewport(const Math::Rectf& viewportRect) const
