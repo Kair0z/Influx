@@ -7,5 +7,6 @@
   <ItemGroup>
     <ClCompile Include="D3D12API.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="GraphicsAPI.cpp" />
   </ItemGroup>
 </Project>
