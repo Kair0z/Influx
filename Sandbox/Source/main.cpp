@@ -96,6 +96,15 @@ int main()
     // Setup Assets:
     RHIVertexBuffer* vertexBuffer = api.CreateVertexBuffer(&triangleVertices[0].Position[0], sizeof(triangleVertices), sizeof(Vertex));
 
+    float windowWidth = (float)swapchain->GetWidth();
+    float windowHeight = (float)swapchain->GetHeight();
+
+    RHITextureDescription textureDesc{};
+    textureDesc.Height = windowHeight;
+    textureDesc.Width = windowWidth;
+    textureDesc.OptimizedClearValue = { 1.0f, 0.0f, 0.0f, 1.0f };
+    RHITexture* gameRenderTexture = api.CreateTexture(textureDesc);
+
     MSG mssg;
     while (PeekMessageW(&mssg, hwnd, 0, 0, PM_REMOVE))
     {
@@ -105,18 +114,18 @@ int main()
         {
             /* Setup Command List*/
             RHICommandList* cmdList = cmdQueue->SetupNewCommandList(&api);
-
             cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::RenderTarget);
 
-            cmdList->ClearRTV(swapchain->GetCurrentRenderTargetView());
+            cmdList->ClearTextureAsRTV(gameRenderTexture, true);
 
-            cmdList->BindViewports(RHIViewport());
-            cmdList->BindScissorRect(RHIScissorRect());
+            cmdList->BindViewports(RHIViewport(windowWidth, windowHeight));
+            cmdList->BindScissorRect(RHIScissorRect(windowWidth, windowHeight));
 
             cmdList->SetPrimitiveTopology(ERHIPrimitiveTopology::TriangleList);
             cmdList->BindVertexBuffer(vertexBuffer);
             cmdList->DrawInstanced();
 
+            cmdList->CopyResource(gameRenderTexture->GetRHIResource(), swapchain->GetCurrentBackBufferResource(), true);
             cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::Present);
 
             /* Submit Command List */

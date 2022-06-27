@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include "Math/Math.h"
 
 namespace Influx::Graphics
 {
@@ -47,7 +48,7 @@ namespace Influx::Graphics
 		Invalid
 	};
 
-	enum class EDescriptorType
+	enum class ERHIDescriptorType
 	{
 		Resource,
 		DSV,
@@ -99,6 +100,10 @@ namespace Influx::Graphics
 	class RHIResource;
 	class RHIRenderTargetView;
 	class RHIVertexBuffer;
+	class RHITexture;
+	struct RHITextureDescription;
+	struct RHIScissorRect;
+	struct RHIViewport;
 
 	class GraphicsAPI
 	{
@@ -107,8 +112,11 @@ namespace Influx::Graphics
 		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const = 0;
 		virtual RHICommandQueue* CreateCommandQueue(const ECommandQueueType type) const = 0;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
+		virtual RHITexture* CreateTexture(const RHITextureDescription& constructionArgs) const = 0;
+
+		virtual RHIRenderTargetView* CreateRenderTargetView(RHITexture* texture) const = 0;
+		
 		virtual void CreateBuffer() const {};
-		virtual void CreateTexture() const {};
 		virtual void CreateShader() const {};
 		virtual void CreateSampler() const {};
 		virtual void CreatePipelineState() const {};
@@ -149,12 +157,14 @@ namespace Influx::Graphics
 
 		virtual void Dispatch() {};
 		virtual void DispatchIndirect() {};
-		virtual void CopyResource() {};
+		virtual void CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition = true) = 0;
 		virtual void CopyBuffer() {};
 		virtual void TransitionResource(RHIResource* resource, const ERHIResourceState newState) = 0;
 
+		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) = 0;
+		virtual void ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition) = 0;
 		virtual void ClearUAV() {};
-		virtual void ClearRTV(RHIRenderTargetView* renderTargetView) = 0;
+		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue) = 0;
 
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) = 0;
 
@@ -178,6 +188,7 @@ namespace Influx::Graphics
 	{
 	public:
 		ERHIResourceState GetCurrentState() const { return CurrentState; }
+		ERHIResourceState GetPreviousState() const { return PreviousState; }
 		void Transition(ERHIResourceState newState) { PreviousState = CurrentState; CurrentState = newState; }
 		virtual ~RHIResource() = default;
 
@@ -212,6 +223,40 @@ namespace Influx::Graphics
 		bool bIsTearingSupported = false;
 	};
 
+	struct RHITextureDescription
+	{
+		float Width;
+		float Height;
+
+		Math::Vector4f OptimizedClearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+		ERHIFormat Format = ERHIFormat::RGBA_8_Unorm;
+		UINT16 MipLevels = 1;
+
+		ERHIResourceState InitialResourceState = ERHIResourceState::RenderTarget;
+	};
+
+	class RHITexture
+	{
+	public:
+		virtual ~RHITexture() = default;
+
+		RHIResource* GetRHIResource() const { return Resource; }
+		RHIRenderTargetView* GetRenderTargetView() const { return RenderTargetView; }
+
+		float GetWidth() const { return ConstructionDescription.Width; }
+		float GetHeight() const { return ConstructionDescription.Height; }
+		ERHIFormat GetRHIFormat() const { return ConstructionDescription.Format; }
+		UINT16 GetMipLevels() const { return ConstructionDescription.MipLevels; }
+		const Math::Vector4f& GetOptimizedClearValue() const { return ConstructionDescription.OptimizedClearValue; }
+
+	protected:
+		RHITextureDescription ConstructionDescription;
+
+		RHIResource* Resource;
+		RHIRenderTargetView* RenderTargetView;
+	};
+
 	class RHIRenderTargetView
 	{
 	public:
@@ -234,12 +279,26 @@ namespace Influx::Graphics
 
 	struct RHIViewport
 	{
+		RHIViewport() = default;
+		RHIViewport(float width, float height, float left = 0.0f, float bottom = 0.0f) 
+			: Width{ width }, Height{ height }, Left{ left }, Bottom{ bottom }{}
 
+		float Width;
+		float Height;
+		float Bottom;
+		float Left;
 	};
 
 	struct RHIScissorRect
 	{
+		RHIScissorRect() = default;
+		RHIScissorRect(float width, float height, float left = 0.0f, float bottom = 0.0f)
+			: Width{ width }, Height{ height }, Left{ left }, Bottom{ bottom }{}
 
+		float Width;
+		float Height;
+		float Bottom;
+		float Left;
 	};
 }
 

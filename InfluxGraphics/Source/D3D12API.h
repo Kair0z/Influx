@@ -25,6 +25,7 @@
 #endif
 
 #include <queue>
+#include <list>
 
 namespace Influx::Graphics
 {
@@ -37,6 +38,20 @@ namespace Influx::Graphics
 			default:
 			case ECommandQueueType::Graphics:
 				return D3D12_COMMAND_LIST_TYPE_DIRECT;
+			}
+		}
+
+		constexpr D3D12_DESCRIPTOR_HEAP_TYPE ToDx12(ERHIDescriptorType type)
+		{
+			switch (type)
+			{
+			case ERHIDescriptorType::DSV: return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+			case ERHIDescriptorType::Resource: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			case ERHIDescriptorType::RTV: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+			case ERHIDescriptorType::Sampler: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+
+			default:
+			case ERHIDescriptorType::Invalid: return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 			}
 		}
 
@@ -60,6 +75,16 @@ namespace Influx::Graphics
 			case ERHIResourceState::NonPixelReadResource: return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 			case ERHIResourceState::PixelShaderResource: return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 			default: return D3D12_RESOURCE_STATE_COMMON;
+			}
+		}
+
+		constexpr DXGI_FORMAT ToDx12(ERHIFormat format)
+		{
+			switch (format) {
+			case ERHIFormat::D_32_Float: return DXGI_FORMAT_D32_FLOAT;
+			case ERHIFormat::RGBA_32_Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+			case ERHIFormat::RGBA_8_Unorm: return DXGI_FORMAT_R8G8B8A8_UNORM;
+			default: return DXGI_FORMAT_UNKNOWN;
 			}
 		}
 
@@ -90,6 +115,8 @@ namespace Influx::Graphics
 		virtual RHICommandQueue* CreateCommandQueue(const ECommandQueueType type) const override final;
 		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const override final;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
+		virtual RHITexture* CreateTexture(const RHITextureDescription& constructionArgs) const override final;
+		virtual RHIRenderTargetView* CreateRenderTargetView(RHITexture* texture) const override final;
 
 		ID3D12Device2* GetDxDevice() const;
 		IDXGIAdapter4* GetDxgiAdapter() const;
@@ -108,10 +135,17 @@ namespace Influx::Graphics
 		constexpr static bool bTearingSupported = false;
 		constexpr static bool bAdditionalShadingRatesSupported = false;
 
+		void CreateGlobalDescriptorHeaps();
 		size_t CachedRtvDescriptorSize = 0;
 		size_t CachedDsvDescriptorSize = 0;
 		size_t CachedResourceDescriptorSize = 0;
 		size_t CachedSamplerDescriptorSize = 0;
+
+		// Global Descriptor Heaps
+		class D3D12DescriptorHeap* RTVDescriptorHeap;
+		class D3D12DescriptorHeap* ResourceDescriptorHeap;
+		class D3D12DescriptorHeap* DSVDescriptorheap;
+		class D3D12DescriptorHeap* SamplerDescriptorHeap;
 
 	public:
 		/* D3D12 Static creation functions */
@@ -183,11 +217,14 @@ namespace Influx::Graphics
 
 		/* RHICommandList API: */
 		virtual void TransitionResource(RHIResource* resource, const ERHIResourceState newState) override final;
-		virtual void ClearRTV(RHIRenderTargetView* renderTargetView) override final;
+		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue) override final;
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) override final;
 		virtual void BindViewports(const RHIViewport& viewport) override final;
 		virtual void BindVertexBuffer(RHIVertexBuffer* vertexBuffer) override final;
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) override final;
+		virtual void CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition) override final;
+		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) override final;
+		virtual void ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition) override final;
 
 	private:
 		ID3D12GraphicsCommandList* DxCommandList;
@@ -240,6 +277,19 @@ namespace Influx::Graphics
 		friend class D3D12API;
 	};
 
+	class D3D12Texture final : public RHITexture
+	{
+	public:
+		~D3D12Texture() = default;
+
+	private:
+		ID3D12DescriptorHeap* DxDescriptorHeap;
+		int DescriptorHeapIndex;
+
+		D3D12Texture() = default;
+		friend class D3D12API;
+	};
+
 	class D3D12Resource final : public RHIResource
 	{
 	public:
@@ -249,6 +299,22 @@ namespace Influx::Graphics
 
 	private:
 		ID3D12Resource* DxResource;
+		friend class D3D12API;
+	};
+
+	class D3D12DescriptorHeap final
+	{
+	public:
+		D3D12DescriptorHeap(const ERHIDescriptorType type, UINT64 maxDescriptorNum);
+
+	private:
+		ID3D12DescriptorHeap* DxDescriptorHeap;
+		ERHIDescriptorType Type;
+		UINT64 MaxNumDescriptors;
+
+		std::list<UINT64> FreeIndices;
+		
+		D3D12DescriptorHeap() = default;
 		friend class D3D12API;
 	};
 
@@ -270,16 +336,6 @@ namespace Influx::Graphics
 
 		D3D12VertexBuffer() = default;
 		friend class D3D12API;
-	};
-
-	struct D3D12Viewport final : public RHIViewport
-	{
-		D3D12_VIEWPORT DxViewport;
-	};
-
-	struct D3D12ScissorRect final : public RHIScissorRect
-	{
-		D3D12_RECT DxRect;
 	};
 }
 

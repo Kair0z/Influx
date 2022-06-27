@@ -5,14 +5,13 @@ namespace Influx::Graphics
 	/* D3D12API */
 	D3D12API::D3D12API()
 	{
+		EnableDebugLayer();
+
 		DxgiFactory = D3D12API::CreateDxgiFactory();
 		DxgiAdapter = D3D12API::GetAdapter(DxgiFactory, true);
 		DxDevice = D3D12API::CreateDevice(DxgiAdapter);
 
-		CachedDsvDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		CachedResourceDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CachedSamplerDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		CachedRtvDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		CreateGlobalDescriptorHeaps();
 	}
 
 	D3D12API::~D3D12API()
@@ -41,6 +40,9 @@ namespace Influx::Graphics
 		{
 			int width = rect.right - rect.left;
 			int height = rect.bottom - rect.top;
+
+			result->Width = (float)width;
+			result->Height = (float)height;
 
 			result->DxgiSwapChain = CreateDxgiSwapChain(DxgiFactory, windowHandle, dxCommandQueue->DxCommandQueue, width, height, RHISwapChain::NumBackBuffers);
 			result->bIsTearingSupported = D3D12API::CheckDxgiTearingSupport();
@@ -131,6 +133,85 @@ namespace Influx::Graphics
 		return d3d12Buffer;
 	}
 
+	RHITexture* D3D12API::CreateTexture(const RHITextureDescription& constructionArgs) const
+	{
+		D3D12Texture* d3d12Texture = new D3D12Texture();
+		d3d12Texture->ConstructionDescription = constructionArgs;
+
+		// Create Buffer Resource
+		D3D12Resource* d3d12Resource = new D3D12Resource();
+		d3d12Texture->Resource = d3d12Resource;
+		d3d12Resource->CurrentState = d3d12Resource->PreviousState = constructionArgs.InitialResourceState;
+
+		D3D12_HEAP_PROPERTIES heapProps{};
+		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+		heapProps.CreationNodeMask = 1;
+		heapProps.VisibleNodeMask = 1;
+
+		D3D12_RESOURCE_DESC resourceDesc{};
+		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		resourceDesc.Alignment = 0;
+		resourceDesc.Width = (UINT64)constructionArgs.Width;
+		resourceDesc.Height = (UINT64)constructionArgs.Height;
+		resourceDesc.DepthOrArraySize = 1;
+		resourceDesc.MipLevels = constructionArgs.MipLevels;
+		resourceDesc.Format = Conversion::ToDx12(constructionArgs.Format);
+		resourceDesc.SampleDesc.Count = 1;
+		resourceDesc.SampleDesc.Quality = 0;
+		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; 
+
+		D3D12_CLEAR_VALUE optimizedClearValue{};
+		FLOAT clearColor[4] 
+			= { constructionArgs.OptimizedClearValue[0], constructionArgs.OptimizedClearValue[1], 
+			constructionArgs.OptimizedClearValue[2], constructionArgs.OptimizedClearValue[3] };
+
+		optimizedClearValue.Format = resourceDesc.Format;
+		memcpy(optimizedClearValue.Color, &constructionArgs.OptimizedClearValue, sizeof(optimizedClearValue.Color));
+
+		DxDevice->CreateCommittedResource(&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			&optimizedClearValue,
+			IID_PPV_ARGS(&d3d12Resource->DxResource));
+
+		// Todo: Upload Heap?
+
+		// Create RTV:
+		d3d12Texture->RenderTargetView = D3D12API::CreateRenderTargetView(d3d12Texture);
+
+		return d3d12Texture;
+	}
+
+	RHIRenderTargetView* D3D12API::CreateRenderTargetView(RHITexture* texture) const
+	{
+		// Todo: Find first free index & pop it off the list:
+		int freeIndex = *RTVDescriptorHeap->FreeIndices.begin();
+		RTVDescriptorHeap->FreeIndices.pop_front();
+
+		D3D12_CPU_DESCRIPTOR_HANDLE cpu_desc_handle = RTVDescriptorHeap->DxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		cpu_desc_handle.ptr += (GetRTVDescriptorSize() * freeIndex);
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_desc_handle = RTVDescriptorHeap->DxDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+		gpu_desc_handle.ptr += (GetRTVDescriptorSize() * freeIndex);
+
+		D3D12RenderTargetView* d3d12RTV = new D3D12RenderTargetView();
+
+		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+		rtvDesc.Format = Conversion::ToDx12(texture->GetRHIFormat());
+		rtvDesc.Texture2D.MipSlice = 0;
+		rtvDesc.Texture2D.PlaneSlice = 0;
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+		D3D12Resource* d3d12Resource = (D3D12Resource*)((D3D12Texture*)texture)->Resource;
+		DxDevice->CreateRenderTargetView(d3d12Resource->DxResource,
+			&rtvDesc, cpu_desc_handle);
+
+		d3d12RTV->DxCPUHandle = cpu_desc_handle;
+		d3d12RTV->DxGPUHandle = gpu_desc_handle;
+
+		return d3d12RTV;
+	}
+
 	ID3D12Device2* D3D12API::GetDxDevice() const
 	{
 		return DxDevice;
@@ -159,6 +240,39 @@ namespace Influx::Graphics
 	const size_t D3D12API::GetSamplerDescriptorSize() const
 	{
 		return CachedSamplerDescriptorSize;
+	}
+
+	void D3D12API::CreateGlobalDescriptorHeaps()
+	{
+		// Cache DescriptorSizes
+		CachedDsvDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		CachedResourceDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CachedSamplerDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		CachedRtvDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+		// Create Global Descriptor Heaps:
+		RTVDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::RTV, 64);
+		DSVDescriptorheap = new D3D12DescriptorHeap(ERHIDescriptorType::DSV, 64);
+		SamplerDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Sampler, 16);
+		ResourceDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Resource, 64);
+
+		for (D3D12DescriptorHeap* heap : { RTVDescriptorHeap, SamplerDescriptorHeap, DSVDescriptorheap, ResourceDescriptorHeap})
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			heapDesc.NodeMask = 1;
+			heapDesc.NumDescriptors = heap->MaxNumDescriptors;
+			heapDesc.Type = Conversion::ToDx12(heap->Type);
+
+			// Clear & create a Freelist:
+			heap->FreeIndices.clear();
+			for (UINT64 i = 0; i < heap->MaxNumDescriptors; ++i)
+			{
+				heap->FreeIndices.push_back(i);
+			}
+
+			DxDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap->DxDescriptorHeap));
+		}
 	}
 
 
@@ -393,6 +507,18 @@ namespace Influx::Graphics
 		DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiControler));
 		dxgiControler->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
 	}
+
+	void D3D12API::EnableDebugLayer()
+	{
+#if defined(_DEBUG)
+		// Always enable the debug layer before doing anything DX12 related
+		// so all possible errors generated while creating DX12 objects
+		// are caught by the debug layer.
+		ID3D12Debug* debugInterface;
+		D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
+		debugInterface->EnableDebugLayer();
+#endif
+	}
 #pragma endregion
 
 	/* D3D12CommandQueue */
@@ -518,33 +644,83 @@ namespace Influx::Graphics
 		DxCommandList->ResourceBarrier(1, &barrier);
 	}
 
-	void D3D12CommandList::ClearRTV(RHIRenderTargetView* renderTargetView)
+	void D3D12CommandList::ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue)
 	{
 		D3D12RenderTargetView* d3d12RTV = (D3D12RenderTargetView*)renderTargetView;
 
-		const FLOAT color[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+		const FLOAT color[4] = { clearValue[0], clearValue[1], clearValue[2], clearValue[3] };
 		DxCommandList->ClearRenderTargetView(d3d12RTV->DxCPUHandle, color, 0, nullptr);
 	}
 
 	void D3D12CommandList::BindScissorRect(const RHIScissorRect& scissorRect)
 	{
-		DxCommandList->RSSetScissorRects(1, &((D3D12ScissorRect*)&scissorRect)->DxRect);
+		D3D12_RECT dxRect{};
+		dxRect.left = scissorRect.Left;
+		dxRect.right = scissorRect.Left + scissorRect.Width;
+		dxRect.bottom = scissorRect.Bottom;
+		dxRect.top = scissorRect.Bottom + scissorRect.Height;
+		DxCommandList->RSSetScissorRects(1, &dxRect);
 	}
 
 	void D3D12CommandList::BindViewports(const RHIViewport& viewport)
 	{
-		DxCommandList->RSSetViewports(1, &((D3D12Viewport*)&viewport)->DxViewport);
+		D3D12_VIEWPORT dxViewport{};
+		dxViewport.TopLeftY = viewport.Bottom;
+		dxViewport.TopLeftX = viewport.Left;
+		dxViewport.Width = viewport.Width;
+		dxViewport.Height = viewport.Height;
+
+		DxCommandList->RSSetViewports(1, &dxViewport);
 	}
 
 	void D3D12CommandList::BindVertexBuffer(RHIVertexBuffer* vertexBuffer)
 	{
 		D3D12VertexBuffer* d3d12VertexBuffer = (D3D12VertexBuffer*)vertexBuffer;
-		DxCommandList->IASetVertexBuffers(0, 1, &d3d12VertexBuffer->GetDxVertexBufferView());
+		D3D12_VERTEX_BUFFER_VIEW vtBufferView = d3d12VertexBuffer->GetDxVertexBufferView();
+		DxCommandList->IASetVertexBuffers(0, 1, &vtBufferView);
 	}
 
 	void D3D12CommandList::SetPrimitiveTopology(ERHIPrimitiveTopology topology)
 	{
 		DxCommandList->IASetPrimitiveTopology(Conversion::ToDx12(topology));
+	}
+
+	void D3D12CommandList::CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition)
+	{
+		if (forceTransition)
+		{
+			TransitionResource(source, ERHIResourceState::CopySource);
+			TransitionResource(dest, ERHIResourceState::CopyDest);
+		}
+
+		DxCommandList->CopyResource(((D3D12Resource*)dest)->GetDxResource(), ((D3D12Resource*)source)->GetDxResource());
+		
+		// Force transition back
+		if (forceTransition)
+		{
+			TransitionResource(source, source->GetPreviousState());
+			TransitionResource(dest, dest->GetPreviousState());
+		}
+	}
+
+	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, bool forceTransition)
+	{
+		ClearTextureAsRTV(texture, texture->GetOptimizedClearValue(), forceTransition);
+	}
+
+	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition)
+	{
+		if (forceTransition)
+		{
+			TransitionResource(texture->GetRHIResource(), ERHIResourceState::RenderTarget);
+		}
+
+		ClearRTV(texture->GetRenderTargetView(), clearValue);
+
+		if (forceTransition)
+		{
+			TransitionResource(texture->GetRHIResource(), texture->GetRHIResource()->GetPreviousState());
+		}
 	}
 
 	/* D3D12Resource */
@@ -584,5 +760,12 @@ namespace Influx::Graphics
 	D3D12_VERTEX_BUFFER_VIEW D3D12VertexBuffer::GetDxVertexBufferView() const
 	{
 		return DxVertexBufferView;
+	}
+
+	D3D12DescriptorHeap::D3D12DescriptorHeap(const ERHIDescriptorType type, UINT64 maxDescriptorNum)
+		: Type{type}
+		, MaxNumDescriptors{maxDescriptorNum}
+	{
+		
 	}
 }
