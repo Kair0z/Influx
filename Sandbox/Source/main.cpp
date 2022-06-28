@@ -71,8 +71,15 @@ HWND CreateAWindow(bool andShowIt)
     return hwnd;
 }
 
+struct Camera
+{
+    Influx::Vector3f Position;
+    Influx::Vector3f Forward;
+    float Fov;
 
-Influx::Vertex triangleVertices[3] =
+} gCamera{};
+
+Influx::Vertex gTriangleVertices[3] =
 {
     Influx::Vertex{{-1.0f, 0.0f, 0.0f}, {}, {}},
     Influx::Vertex{{0.0f, 1.0f, 0.0f}, {}, {}},
@@ -93,7 +100,7 @@ int main()
     RHISwapChain* swapchain = api.CreateSwapChain(hwnd, cmdQueue);
 
     // Setup Assets:
-    RHIVertexBuffer* vertexBuffer = api.CreateVertexBuffer(&triangleVertices[0].Position[0], sizeof(triangleVertices), sizeof(Vertex));
+    RHIVertexBuffer* vertexBuffer = api.CreateVertexBuffer(&gTriangleVertices[0].Position[0], sizeof(gTriangleVertices), sizeof(Vertex));
 
     float windowWidth = (float)swapchain->GetWidth();
     float windowHeight = (float)swapchain->GetHeight();
@@ -106,16 +113,17 @@ int main()
 
     /* Create Graphics Pipeline Layout */
     RHIGraphicsPipelineLayoutDescription description{};
-    description.LayoutBindings.AddBinding<PipelineLayout::ConstantsBinding<4, 0>>();
+    description.LayoutBindings.AddBinding<PipelineLayout::ConstantsBinding<16 * sizeof(float), 0>>();
     description.LayoutBindings.AddBinding<PipelineLayout::SRVBinding<1, 1>>();
     RHIGraphicsPipelineLayout* renderPipelineLayout = api.CreateGraphicsPipelineLayout(description);
 
     /* Create Graphics Pipeline */
     RHIGraphicsPipelineDescription pipelineDesc{};
-    pipelineDesc.PixelShader = api.CreateRHIShader(L"Source/Shaders/DefaultPixelShader.hlsl", "main", ERHIShaderType::PixelShader);
-    pipelineDesc.VertexShader = api.CreateRHIShader(L"Source/Shaders/DefaultVertexShader.hlsl", "main", ERHIShaderType::VertexShader);
+    pipelineDesc.PixelShader = api.CreateRHIShader(L"Source/Shaders/DefaultLitShader.hlsl", "PixelMain", ERHIShaderType::PixelShader);
+    pipelineDesc.VertexShader = api.CreateRHIShader(L"Source/Shaders/DefaultLitShader.hlsl", "VertexMain", ERHIShaderType::VertexShader);
     pipelineDesc.RTVFormats = { ERHIFormat::RGBA_8_Unorm };
     pipelineDesc.PrimitiveTopologyType = ERHIPrimitiveTopologyType::Triangle;
+    pipelineDesc.bDepthEnabled = false;
     RHIGraphicsPipeline* renderPipeline = api.CreateGraphicsPipeline(pipelineDesc, renderPipelineLayout);
 
     MSG mssg;
@@ -143,9 +151,7 @@ int main()
             cmdList->DrawInstanced(3, 1);
 
             // Copy game RT -> Window RT
-            cmdList->TransitionResource(gameRenderTexture->GetRHIResource(), ERHIResourceState::CopySource);
-            cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::CopyDest);
-            cmdList->CopyResource(gameRenderTexture->GetRHIResource(), swapchain->GetCurrentBackBufferResource(), false);
+            cmdList->CopyResource(gameRenderTexture->GetRHIResource(), swapchain->GetCurrentBackBufferResource(), true);
 
             // Window RT - Ready to Present
             cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::Present);

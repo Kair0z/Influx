@@ -479,6 +479,7 @@ namespace Influx::Graphics
 			DEPTH_STENCIL_FORMAT DsvFormat;
 			RENDER_TARGET_FORMATS RtvFormats;
 			RASTERIZER Rasterizer;
+			DEPTH_STENCIL DepthStencil;
 
 		} PipelineStateStream{};
 #pragma warning(pop)

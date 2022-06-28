@@ -455,6 +455,10 @@ namespace Influx::Graphics
 		std::vector<ERHIFormat> RTVFormats;
 		ERHIFormat DSVFormat = ERHIFormat::INVALID;
 
+		// Depth
+		bool bDepthEnabled = true;
+		bool bStencilEnabled = false;
+
 		// Rasterizer
 		ERHICullMode RasterCullMode = ERHICullMode::BackFaceCull;
 		ERHIFillMode RasterFillMode = ERHIFillMode::Solid;			

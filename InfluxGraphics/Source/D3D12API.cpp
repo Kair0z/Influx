@@ -67,7 +67,7 @@ namespace Influx::Graphics
 				// Get the buffer resources
 				ID3D12Resource* dxBufferResource;
 				result->DxgiSwapChain->GetBuffer(i, IID_PPV_ARGS(&dxBufferResource));
-				result->BackBufferResources[i] = new D3D12Resource(dxBufferResource, ERHIResourceState::RenderTarget);
+				result->BackBufferResources[i] = new D3D12Resource(dxBufferResource, ERHIResourceState::Present);
 				
 				// Create the RenderTargetViews & store
 				DxDevice->CreateRenderTargetView(dxBufferResource, nullptr, rtv_cpu_handle);
@@ -336,6 +336,12 @@ namespace Influx::Graphics
 
 		// DSV Single Format
 		stateStream.DsvFormat = Conversion::ToDx12(constructionArgs.DSVFormat);
+
+		// Depth Stencil
+		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+		depthStencilDesc.DepthEnable = constructionArgs.bDepthEnabled;
+		depthStencilDesc.StencilEnable = constructionArgs.bStencilEnabled;
+		stateStream.DepthStencil = depthStencilDesc;
 
 		// Shaders:
 		for (RHIShader* shader : { constructionArgs.PixelShader, constructionArgs.VertexShader })
@@ -903,9 +909,9 @@ namespace Influx::Graphics
 	{
 		D3D12_RECT dxRect{};
 		dxRect.left = scissorRect.Left;
-		dxRect.right = scissorRect.Left + scissorRect.Width;
-		dxRect.bottom = scissorRect.Bottom;
-		dxRect.top = scissorRect.Bottom + scissorRect.Height;
+		dxRect.top = scissorRect.Bottom;
+		dxRect.right = scissorRect.Width;
+		dxRect.bottom = scissorRect.Height;
 		DxCommandList->RSSetScissorRects(1, &dxRect);
 	}
 
@@ -987,7 +993,7 @@ namespace Influx::Graphics
 	void D3D12CommandList::BindRenderTarget(RHIRenderTargetView* renderTargetView)
 	{
 		D3D12RenderTargetView* d3d12Rtv = (D3D12RenderTargetView*)renderTargetView;
-		DxCommandList->OMSetRenderTargets(1, &d3d12Rtv->DxCPUHandle, false, nullptr); // Todo DSV?
+		DxCommandList->OMSetRenderTargets(1, &d3d12Rtv->DxCPUHandle, true, nullptr); // Todo DSV?
 	}
 
 	void D3D12CommandList::DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation)
