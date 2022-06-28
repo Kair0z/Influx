@@ -359,6 +359,8 @@ namespace Influx::Graphics
 		rasterDesc.ConservativeRaster = (constructionArgs.bConservativeRaster) ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 		rasterDesc.DepthBias = constructionArgs.RasterDepthBias;
 		rasterDesc.DepthBiasClamp = constructionArgs.RasterMaxDepthBias;
+		rasterDesc.DepthClipEnable = constructionArgs.bRasterDepthClipEnable;
+		rasterDesc.AntialiasedLineEnable = constructionArgs.bAntialiasedLineEnable;
 		stateStream.Rasterizer = rasterDesc;
 
 		const D3D12_PIPELINE_STATE_STREAM_DESC streamDesc{ sizeof(D3D12GraphicsPipeline::StateStream), &d3d12Pipeline->PipelineStateStream };
