@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include "Math/Math.h"
 #include <vector>
+#include <string>
 
 namespace Influx::Graphics
 {
@@ -100,6 +101,12 @@ namespace Influx::Graphics
 	{
 		Graphics
 	};
+
+	// Supported Shader Models
+	enum class ERHIShaderModel 
+	{
+		SM_5_0
+	};
 #pragma endregion
 
 #pragma region ForwardDeclarations
@@ -134,6 +141,10 @@ namespace Influx::Graphics
 		virtual RHIGraphicsPipelineLayout* CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const = 0;
 		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const = 0;
 
+		virtual RHIShader* CreateRHIShader(const std::vector<uint8_t>& fromCompiledData) const = 0;
+		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const std::string& target) const = 0;
+		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const ERHIShaderType shaderType, const ERHIShaderModel shaderModel = ERHIShaderModel::SM_5_0) const = 0;
+
 		virtual void CreateBuffer() const {};
 		virtual void CreateShader() const {};
 		virtual void CreateSampler() const {};
@@ -142,6 +153,10 @@ namespace Influx::Graphics
 		virtual void CreateRaytracingAccelerationStructure() {};
 		virtual void CreateRaytracingPipelineState() {};
 
+		// Comment: ShaderAPI??
+		static std::string MakeShaderTargetString(const ERHIShaderType shaderType, const ERHIShaderModel shaderModel);
+		static bool ParseShaderTargetString(const std::string& targetString, ERHIShaderType& outShaderType, ERHIShaderModel& outShaderModel);
+		
 		virtual ~GraphicsAPI() = default;
 	};
 
@@ -430,7 +445,7 @@ namespace Influx::Graphics
 		
 		// RTV & DSV Info
 		std::vector<ERHIFormat> RTVFormats;
-		ERHIFormat DSVFormat;
+		ERHIFormat DSVFormat = ERHIFormat::INVALID;
 
 		// Shaders:
 		RHIShader* VertexShader;
@@ -468,6 +483,7 @@ namespace Influx::Graphics
 
 	protected:
 		ERHIShaderType Type;
+		ERHIShaderModel ShaderModel;
 	};
 
 	/* Viewport */

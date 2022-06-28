@@ -266,6 +266,7 @@ namespace Influx::Graphics
 		}
 
 		constexpr static D3D12_ROOT_SIGNATURE_FLAGS DefaultFlags =
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
@@ -301,6 +302,9 @@ namespace Influx::Graphics
 		d3d12Pipeline->ConstructionDescription = constructionArgs;
 
 		D3D12GraphicsPipeline::StateStream& stateStream = d3d12Pipeline->PipelineStateStream;
+
+		// Root Signature
+		stateStream.RootSignature = d3d12Layout->DxRootSignature;
 
 		// InputLayout
 		D3D12_INPUT_ELEMENT_DESC inputLayout[] =
@@ -356,6 +360,51 @@ namespace Influx::Graphics
 		}
 
 		return d3d12Pipeline;
+	}
+
+	RHIShader* D3D12API::CreateRHIShader(const std::vector<uint8_t>& fromCompiledData) const
+	{
+		return nullptr;
+	}
+
+	RHIShader* D3D12API::CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const std::string& target) const
+	{
+		D3D12Shader* d3d12Shader = new D3D12Shader();
+
+		ParseShaderTargetString(target, d3d12Shader->Type, d3d12Shader->ShaderModel);
+		
+		ID3DBlob* pError = nullptr;
+		const D3D_SHADER_MACRO* pDefines = nullptr;
+		ID3DInclude* pInclude = nullptr;
+		UINT flags1 = 0;
+		UINT flags2 = 0;
+
+		D3DCompileFromFile(fromFilePath.c_str(),
+			pDefines, pInclude, entryPoint.c_str(), target.c_str(), 
+			flags1, flags2, &d3d12Shader->DxShaderBlob, &pError);
+
+		return d3d12Shader;
+	}
+
+	RHIShader* D3D12API::CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const ERHIShaderType shaderType, const ERHIShaderModel shaderModel) const
+	{
+		D3D12Shader* d3d12Shader = new D3D12Shader();
+		d3d12Shader->Type = shaderType;
+		d3d12Shader->ShaderModel = shaderModel;
+
+		const std::string& targetString = MakeShaderTargetString(shaderType, shaderModel);
+
+		ID3DBlob* pError = nullptr;
+		const D3D_SHADER_MACRO* pDefines = nullptr;
+		ID3DInclude* pInclude = nullptr;
+		UINT flags1 = 0;
+		UINT flags2 = 0;
+
+		D3DCompileFromFile(fromFilePath.c_str(),
+			pDefines, pInclude, entryPoint.c_str(), targetString.c_str(),
+			flags1, flags2, &d3d12Shader->DxShaderBlob, &pError);
+
+		return d3d12Shader;
 	}
 
 	ID3D12Device2* D3D12API::GetDxDevice() const

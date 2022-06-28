@@ -36,7 +36,6 @@ LRESULT CALLBACK MainWndProc(
     return 0;
 }
 
-
 HWND CreateAWindow(bool andShowIt)
 {
     // Register the window class.
@@ -113,13 +112,13 @@ int main()
 
     /* Create Graphics Pipeline */
     RHIGraphicsPipelineDescription pipelineDesc{};
-    pipelineDesc.PixelShader;
-    pipelineDesc.VertexShader;
-    pipelineDesc.DSVFormat = ERHIFormat::D_32_Float;
+    pipelineDesc.PixelShader = api.CreateRHIShader(L"Source/Shaders/DefaultPixelShader.hlsl", "main", ERHIShaderType::PixelShader);
+    pipelineDesc.VertexShader = api.CreateRHIShader(L"Source/Shaders/DefaultVertexShader.hlsl", "main", ERHIShaderType::VertexShader);
     pipelineDesc.RTVFormats = { ERHIFormat::RGBA_8_Unorm };
     pipelineDesc.PrimitiveTopologyType = ERHIPrimitiveTopologyType::Triangle;
     RHIGraphicsPipeline* renderPipeline = api.CreateGraphicsPipeline(pipelineDesc, renderPipelineLayout);
 
+    
     MSG mssg;
     while (PeekMessageW(&mssg, hwnd, 0, 0, PM_REMOVE))
     {
@@ -130,6 +129,7 @@ int main()
             /* Setup Command List*/
             RHICommandList* cmdList = cmdQueue->SetupNewCommandList(&api);
             cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::RenderTarget);
+            cmdList->TransitionResource(gameRenderTexture->GetRHIResource(), ERHIResourceState::RenderTarget);
             cmdList->ClearTextureAsRTV(gameRenderTexture, true);
 
             cmdList->BindPipelineState(renderPipeline);
