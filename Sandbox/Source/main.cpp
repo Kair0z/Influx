@@ -74,9 +74,9 @@ HWND CreateAWindow(bool andShowIt)
 
 Influx::Vertex triangleVertices[3] =
 {
-    {},
-    {},
-    {}
+    Influx::Vertex{{-1.0f, 0.0f, 0.0f}, {}, {}},
+    Influx::Vertex{{0.0f, 1.0f, 0.0f}, {}, {}},
+    Influx::Vertex{{1.0f, 0.0f, 0.0f}, {}, {}}
 };
 
 int main()
@@ -101,7 +101,7 @@ int main()
     RHITextureDescription textureDesc{};
     textureDesc.Height = windowHeight;
     textureDesc.Width = windowWidth;
-    textureDesc.OptimizedClearValue = { 1.0f, 0.0f, 0.0f, 1.0f };
+    textureDesc.OptimizedClearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
     RHITexture* gameRenderTexture = api.CreateTexture(textureDesc);
 
     /* Create Graphics Pipeline Layout */
@@ -128,9 +128,10 @@ int main()
         {
             /* Setup Command List*/
             RHICommandList* cmdList = cmdQueue->SetupNewCommandList(&api);
+
             cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::RenderTarget);
             cmdList->TransitionResource(gameRenderTexture->GetRHIResource(), ERHIResourceState::RenderTarget);
-            cmdList->ClearTextureAsRTV(gameRenderTexture, true);
+            cmdList->ClearTextureAsRTV(gameRenderTexture, false);
 
             cmdList->BindPipelineState(renderPipeline);
             cmdList->BindPipelineLayout(renderPipelineLayout);
@@ -141,7 +142,12 @@ int main()
             cmdList->BindRenderTarget(gameRenderTexture->GetRenderTargetView());
             cmdList->DrawInstanced(3, 1);
 
-            cmdList->CopyResource(gameRenderTexture->GetRHIResource(), swapchain->GetCurrentBackBufferResource(), true);
+            // Copy game RT -> Window RT
+            cmdList->TransitionResource(gameRenderTexture->GetRHIResource(), ERHIResourceState::CopySource);
+            cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::CopyDest);
+            cmdList->CopyResource(gameRenderTexture->GetRHIResource(), swapchain->GetCurrentBackBufferResource(), false);
+
+            // Window RT - Ready to Present
             cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::Present);
 
             /* Submit Command List */

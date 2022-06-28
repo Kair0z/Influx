@@ -171,7 +171,7 @@ namespace Influx::Graphics
 		DxDevice->CreateCommittedResource(&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
+			Conversion::ToDx12(constructionArgs.InitialResourceState),
 			&optimizedClearValue,
 			IID_PPV_ARGS(&d3d12Resource->DxResource));
 
@@ -351,6 +351,12 @@ namespace Influx::Graphics
 				break;
 			}
 		}
+
+		// Rasterizer
+		D3D12_RASTERIZER_DESC rasterDesc{};
+		rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
+		rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
+		//stateStream.Rasterizer = rasterDesc;
 
 		const D3D12_PIPELINE_STATE_STREAM_DESC streamDesc{ sizeof(D3D12GraphicsPipeline::StateStream), &d3d12Pipeline->PipelineStateStream };
 		HRESULT res = DxDevice->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&d3d12Pipeline->DxPipelineState));
@@ -895,6 +901,8 @@ namespace Influx::Graphics
 		dxViewport.TopLeftX = viewport.Left;
 		dxViewport.Width = viewport.Width;
 		dxViewport.Height = viewport.Height;
+		dxViewport.MaxDepth = 1.0f;
+		dxViewport.MinDepth = 0.0f;
 
 		DxCommandList->RSSetViewports(1, &dxViewport);
 	}

@@ -450,6 +450,7 @@ namespace Influx::Graphics
 			PS PixelShader;
 			DEPTH_STENCIL_FORMAT DsvFormat;
 			RENDER_TARGET_FORMATS RtvFormats;
+			//RASTERIZER Rasterizer;
 
 		} PipelineStateStream{};
 #pragma warning(pop)
