@@ -1,12 +1,27 @@
 
 float4x4 gMatWorldViewProj;
 
-float4 VertexMain( float4 pos : POSITION ) : SV_POSITION
+struct VertexInput
 {
-	return pos;
+	float4 position : POSITION;
+	float4 color : COLOR;
+};
+
+struct PixelInput
+{
+	float4 position : SV_POSITION;
+	float4 color : COLOR;
+};
+
+PixelInput VertexMain(VertexInput input)
+{
+	PixelInput output = (PixelInput)0;
+	output.position = input.position;
+	output.color = input.color;
+	return output;
 }
 
-float4 PixelMain() : SV_TARGET
+float4 PixelMain(PixelInput input) : SV_TARGET
 {
-	return float4(1.0f, 1.0f, 1.0f, 1.0f);
+	return float4(input.color.rgb, 1.0f);
 }

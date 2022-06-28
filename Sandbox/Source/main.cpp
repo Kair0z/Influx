@@ -1,6 +1,8 @@
 #include "Geometry/Vertex.h"
 #include "D3D12API.h"
 
+constexpr Influx::Vector2u windowSize = {500, 500};
+
 LRESULT CALLBACK MainWndProc(
     HWND hwnd,        // handle to window
     UINT uMsg,        // message identifier
@@ -51,11 +53,11 @@ HWND CreateAWindow(bool andShowIt)
     HWND hwnd = CreateWindowEx(
         0,                              // Optional window styles.
         CLASS_NAME,                     // Window class
-        L"Learn to Program Windows",    // Window text
+        L"Dx12 Test",    // Window text
         WS_OVERLAPPEDWINDOW,            // Window style
 
         // Size and position
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        CW_USEDEFAULT, CW_USEDEFAULT, (int)windowSize.x, (int)windowSize.y,
 
         NULL,       // Parent window    
         NULL,       // Menu
@@ -79,11 +81,14 @@ struct Camera
 
 } gCamera{};
 
+
+const static float gAspectRatio = (float)windowSize.x / (float)windowSize.y;
+
 Influx::Vertex gTriangleVertices[3] =
 {
-    Influx::Vertex{{-1.0f, 0.0f, 0.0f}, {}, {}},
-    Influx::Vertex{{0.0f, 1.0f, 0.0f}, {}, {}},
-    Influx::Vertex{{1.0f, 0.0f, 0.0f}, {}, {}}
+    Influx::Vertex{{-0.25f, -0.15f * gAspectRatio, 0.0f}, {1.0f, 0.0f, 0.0f}, {}},
+    Influx::Vertex{{0.0f, 0.25f * gAspectRatio, 0.0f}, {0.0f, 1.0f, 0.0f}, {}},
+    Influx::Vertex{{0.25f, -0.15f * gAspectRatio, 0.0f}, {0.0f, 0.0f, 1.0f}, {}}
 };
 
 int main()
@@ -113,7 +118,7 @@ int main()
 
     /* Create Graphics Pipeline Layout */
     RHIGraphicsPipelineLayoutDescription description{};
-    description.LayoutBindings.AddBinding<PipelineLayout::ConstantsBinding<16 * sizeof(float), 0>>();
+    description.LayoutBindings.AddBinding<PipelineLayout::ConstantsBinding<16, 0>>();
     description.LayoutBindings.AddBinding<PipelineLayout::SRVBinding<1, 1>>();
     RHIGraphicsPipelineLayout* renderPipelineLayout = api.CreateGraphicsPipelineLayout(description);
 
