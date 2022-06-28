@@ -4,6 +4,7 @@
 #include "Math/Math.h"
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace Influx::Graphics
 {
@@ -261,7 +262,7 @@ namespace Influx::Graphics
 		RHISwapChain(RHISwapChain&&) = delete;
 		RHISwapChain& operator=(const RHISwapChain&) = delete;
 		RHISwapChain& operator=(RHISwapChain&&) = delete;
-		virtual ~RHISwapChain() = default;
+		virtual ~RHISwapChain();
 
 		constexpr static UINT8 NumBackBuffers = 3;
 
@@ -327,7 +328,7 @@ namespace Influx::Graphics
 		RHITexture(RHITexture&&) = delete;
 		RHITexture& operator=(const RHITexture&) = delete;
 		RHITexture& operator=(RHITexture&&) = delete;
-		virtual ~RHITexture() = default;
+		virtual ~RHITexture();
 
 	protected:
 		RHITextureDescription ConstructionDescription;
@@ -345,7 +346,7 @@ namespace Influx::Graphics
 		RHIVertexBuffer(RHIVertexBuffer&&) = delete;
 		RHIVertexBuffer& operator=(const RHIVertexBuffer&) = delete;
 		RHIVertexBuffer& operator=(RHIVertexBuffer&&) = delete;
-		virtual ~RHIVertexBuffer() = default;
+		virtual ~RHIVertexBuffer();
 
 	protected:
 		RHIResource* GpuResource;
@@ -410,27 +411,21 @@ namespace Influx::Graphics
 	struct RHIGraphicsPipelineLayoutBindings
 	{
 		RHIGraphicsPipelineLayoutBindings() = default;
-		virtual ~RHIGraphicsPipelineLayoutBindings()
-		{
-			for (Internal::BaseResourceBinding* binding : ResourceBindings)
-			{
-				delete binding;
-				binding = nullptr;
-			}
-		}
+		virtual ~RHIGraphicsPipelineLayoutBindings() = default;
 
 		/* Template only allows a class to be constructed if it derives from Internal::BaseResourceBinding */
 		template <class TBindingType, typename = std::enable_if<std::is_base_of<Internal::BaseResourceBinding, TBindingType>::value>::type>
 		void AddBinding()
 		{
-			ResourceBindings.push_back(new TBindingType());
+			ResourceBindings.push_back(std::make_shared<TBindingType>(TBindingType()));
 		}
 
-		std::vector<Internal::BaseResourceBinding*> ResourceBindings{};
+		std::vector<std::shared_ptr<Internal::BaseResourceBinding>> ResourceBindings{};
 	};
 	struct RHIGraphicsPipelineLayoutDescription
 	{
 		RHIGraphicsPipelineLayoutBindings LayoutBindings{};
+
 		// Todo: Static Samplers
 		// Todo: Flags
 	};

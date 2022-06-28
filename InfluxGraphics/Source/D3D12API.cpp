@@ -19,6 +19,13 @@ namespace Influx::Graphics
 		SafeRelease(DxgiAdapter);
 		SafeRelease(DxDevice);
 		SafeRelease(DxgiFactory);
+
+		delete RTVDescriptorHeap;
+		delete ResourceDescriptorHeap;
+		delete DSVDescriptorheap;
+		delete SamplerDescriptorHeap;
+
+		D3D12API::ReportLiveObjects();
 	}
 
 	RHICommandQueue* D3D12API::CreateCommandQueue(const ECommandQueueType type) const
@@ -235,8 +242,8 @@ namespace Influx::Graphics
 
 		std::vector<D3D12_ROOT_PARAMETER1> rootSigParams{};
 		std::vector<D3D12_STATIC_SAMPLER_DESC> rootSigStaticSamplers{};
-		const std::vector<Internal::BaseResourceBinding*>& rhiResourceBindings = constructionArgs.LayoutBindings.ResourceBindings;
-		for (const Internal::BaseResourceBinding* rhiBinding : rhiResourceBindings)
+		const std::vector<std::shared_ptr<Internal::BaseResourceBinding>>& rhiResourceBindings = constructionArgs.LayoutBindings.ResourceBindings;
+		for (const std::shared_ptr<Internal::BaseResourceBinding>& rhiBinding : rhiResourceBindings)
 		{
 			D3D12_ROOT_PARAMETER1 newDxParam{};
 			newDxParam.ParameterType = Conversion::ToDx12(rhiBinding->GetBindingType());
@@ -539,13 +546,14 @@ namespace Influx::Graphics
 		D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2));
 
 #ifdef _DEBUG
-		ID3D12InfoQueue* pInfoQueue;
-		if (pInfoQueue = (ID3D12InfoQueue*)d3d12Device2)
+		ID3D12InfoQueue1* pInfoQueue = nullptr;
+		d3d12Device2->QueryInterface(&pInfoQueue);
+		if (pInfoQueue != nullptr)
 		{
 			/* TODO: Why does this crash? */
-			/*pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
 			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
-			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);*/
 
 			// Suppress whole categories of messages
 			//D3D12_MESSAGE_CATEGORY Categories[] = {};
@@ -571,7 +579,9 @@ namespace Influx::Graphics
 			NewFilter.DenyList.NumIDs = _countof(DenyIds);
 			NewFilter.DenyList.pIDList = DenyIds;
 
-			//pInfoQueue->PushStorageFilter(&NewFilter);
+			pInfoQueue->PushStorageFilter(&NewFilter);
+
+			pInfoQueue->Release();
 		}
 #endif
 		return d3d12Device2;
@@ -994,6 +1004,11 @@ namespace Influx::Graphics
 		DxResource = dxResource;
 	}
 
+	D3D12Resource::~D3D12Resource()
+	{
+		D3D12API::SafeRelease(DxResource);
+	}
+
 	ID3D12Resource* D3D12Resource::GetDxResource() const
 	{
 		return DxResource;
@@ -1014,9 +1029,20 @@ namespace Influx::Graphics
 		commandQueue->Flush();
 	}
 
+	D3D12SwapChain::~D3D12SwapChain()
+	{
+		D3D12API::SafeRelease(DxgiSwapChain);
+		D3D12API::SafeRelease(DxRenderTargetDescriptorHeap);
+	}
+
 	D3D12VertexBuffer::D3D12VertexBuffer(D3D12Resource* gpuResource)
 	{
 		GpuResource = gpuResource;
+	}
+
+	D3D12VertexBuffer::~D3D12VertexBuffer()
+	{
+		
 	}
 
 	D3D12_VERTEX_BUFFER_VIEW D3D12VertexBuffer::GetDxVertexBufferView() const
@@ -1031,13 +1057,33 @@ namespace Influx::Graphics
 		
 	}
 
+	D3D12DescriptorHeap::~D3D12DescriptorHeap()
+	{
+		D3D12API::SafeRelease(DxDescriptorHeap);
+	}
+
 	ID3D12RootSignature* D3D12GraphicsPipelineLayout::GetDxRootSignature() const
 	{
 		return DxRootSignature;
 	}
 
+	D3D12GraphicsPipelineLayout::~D3D12GraphicsPipelineLayout()
+	{
+		D3D12API::SafeRelease(DxRootSignature);
+	}
+
+	D3D12GraphicsPipeline::~D3D12GraphicsPipeline()
+	{
+		D3D12API::SafeRelease(DxPipelineState);
+	}
+
 	ID3D12PipelineState* D3D12GraphicsPipeline::GetDxPipelineState() const
 	{
 		return DxPipelineState;
+	}
+
+	D3D12Shader::~D3D12Shader()
+	{
+		D3D12API::SafeRelease(DxShaderBlob);
 	}
 }

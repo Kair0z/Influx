@@ -63,5 +63,32 @@ namespace Influx::Graphics
 
 		return true;
 	}
+
+	RHISwapChain::~RHISwapChain()
+	{
+		for (int i = 0; i < NumBackBuffers; ++i)
+		{
+			delete BackBufferResources[i];
+			BackBufferResources[i] = nullptr;
+
+			delete BackBufferRTVs[i];
+			BackBufferRTVs[i] = nullptr;
+		}
+	}
+
+	RHITexture::~RHITexture()
+	{
+		delete Resource;
+		Resource = nullptr;
+
+		delete RenderTargetView;
+		RenderTargetView = nullptr;
+	}
+
+	RHIVertexBuffer::~RHIVertexBuffer()
+	{
+		delete GpuResource;
+		GpuResource = nullptr;
+	}
 }
 

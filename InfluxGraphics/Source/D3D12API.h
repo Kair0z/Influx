@@ -250,13 +250,12 @@ namespace Influx::Graphics
 
 	public:
 		template <typename Obj>
-		inline static void SafeRelease(Obj* obj)
+		inline static void SafeRelease(Obj*& obj)
 		{
-			if (obj != nullptr)
-			{
-				obj->Release();
-				obj = nullptr;
-			}
+			if (obj == nullptr) return;
+
+			obj->Release();
+			obj = nullptr;
 		}
 	};
 
@@ -325,9 +324,10 @@ namespace Influx::Graphics
 		virtual void Present(bool VSync) override final;
 		virtual void Resize(GraphicsAPI* api, RHICommandQueue* commandQueue, UINT newSizeX, UINT newSizeY) override final;
 
+		~D3D12SwapChain();
+
 	private:
 		IDXGISwapChain4* DxgiSwapChain;
-		ID3D12Resource* DxBackBufferResources[NumBackBuffers];
 		ID3D12DescriptorHeap* DxRenderTargetDescriptorHeap;
 
 		D3D12SwapChain() = default;
@@ -354,6 +354,8 @@ namespace Influx::Graphics
 		D3D12Resource(ID3D12Resource* dxResource, ERHIResourceState initialState);
 		ID3D12Resource* GetDxResource() const;
 
+		virtual ~D3D12Resource();
+
 	private:
 		ID3D12Resource* DxResource;
 		friend class D3D12API;
@@ -363,6 +365,7 @@ namespace Influx::Graphics
 	{
 	public:
 		D3D12DescriptorHeap(const ERHIDescriptorType type, UINT64 maxDescriptorNum);
+		virtual ~D3D12DescriptorHeap();
 
 	private:
 		ID3D12DescriptorHeap* DxDescriptorHeap;
@@ -389,6 +392,8 @@ namespace Influx::Graphics
 		D3D12VertexBuffer(D3D12Resource* gpuResource);
 		D3D12_VERTEX_BUFFER_VIEW GetDxVertexBufferView() const;
 
+		virtual ~D3D12VertexBuffer();
+
 	private:
 		D3D12_VERTEX_BUFFER_VIEW DxVertexBufferView;
 
@@ -400,7 +405,7 @@ namespace Influx::Graphics
 	{
 	public:
 		ID3D12RootSignature* GetDxRootSignature() const;
-		virtual ~D3D12GraphicsPipelineLayout() = default;
+		virtual ~D3D12GraphicsPipelineLayout();
 
 	private:
 		ID3D12RootSignature* DxRootSignature;
@@ -412,6 +417,8 @@ namespace Influx::Graphics
 	class D3D12GraphicsPipeline final : public RHIGraphicsPipeline
 	{
 	public:
+		virtual ~D3D12GraphicsPipeline();
+		
 		ID3D12PipelineState* GetDxPipelineState() const;
 
 	private:
@@ -483,6 +490,9 @@ namespace Influx::Graphics
 
 	class D3D12Shader final : public RHIShader
 	{
+	public:
+		virtual ~D3D12Shader();
+
 	private:
 		ID3DBlob* DxShaderBlob;
 

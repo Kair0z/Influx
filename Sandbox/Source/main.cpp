@@ -101,7 +101,7 @@ int main()
     RHITextureDescription textureDesc{};
     textureDesc.Height = windowHeight;
     textureDesc.Width = windowWidth;
-    textureDesc.OptimizedClearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
+    textureDesc.OptimizedClearValue = { 0.5f, 0.0f, 0.0f, 1.0f };
     RHITexture* gameRenderTexture = api.CreateTexture(textureDesc);
 
     /* Create Graphics Pipeline Layout */
@@ -118,9 +118,9 @@ int main()
     pipelineDesc.PrimitiveTopologyType = ERHIPrimitiveTopologyType::Triangle;
     RHIGraphicsPipeline* renderPipeline = api.CreateGraphicsPipeline(pipelineDesc, renderPipelineLayout);
 
-    
     MSG mssg;
-    while (PeekMessageW(&mssg, hwnd, 0, 0, PM_REMOVE))
+    bool isQuit = false;
+    while (!isQuit && PeekMessageW(&mssg, hwnd, 0, 0, PM_REMOVE))
     {
         TranslateMessage(&mssg);
         DispatchMessage(&mssg);
@@ -154,13 +154,14 @@ int main()
             cmdQueue->ExecuteCommmandList(cmdList);
             swapchain->Present(true);
         }
-
-        if (mssg.message == WM_QUIT)
-        {
-            return 0;
-        }
     }
 
-    D3D12API::ReportLiveObjects();
+    // Cleanup:
+    delete cmdQueue;
+    delete swapchain;
+    delete vertexBuffer;
+    delete gameRenderTexture;
+    delete renderPipelineLayout;
+    delete renderPipeline;
 }
 
