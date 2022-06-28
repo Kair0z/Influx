@@ -102,6 +102,19 @@ namespace Influx::Graphics
 		Graphics
 	};
 
+	enum class ERHICullMode
+	{
+		None,
+		BackFaceCull,
+		FrontFaceCull
+	};
+
+	enum class ERHIFillMode
+	{
+		Solid,
+		Wireframe
+	};
+
 	// Supported Shader Models
 	enum class ERHIShaderModel 
 	{
@@ -447,6 +460,15 @@ namespace Influx::Graphics
 		std::vector<ERHIFormat> RTVFormats;
 		ERHIFormat DSVFormat = ERHIFormat::INVALID;
 
+		// Rasterizer
+		ERHICullMode RasterCullMode = ERHICullMode::BackFaceCull;
+		ERHIFillMode RasterFillMode = ERHIFillMode::Solid;			
+		int RasterDepthBias = 0;									// Depth value added to a given pixel
+		float RasterMaxDepthBias = 1;								// Max Depth bias value of a pixel
+		bool bRasterDepthClipEnable = false;						// Specifies whether to enable clipping based on distance.
+		bool bConservativeRaster = false;							// Conservative Rasterization means that all pixels that are at least partially covered by a rendered primitive are rasterized
+		bool bAntialiasedLineEnable = false;						// Specifies whether to enable line antialiasing; only applies if doing line drawing
+		
 		// Shaders:
 		RHIShader* VertexShader;
 		RHIShader* PixelShader;

@@ -98,6 +98,27 @@ namespace Influx::Graphics
 			}
 		}
 
+		constexpr D3D12_CULL_MODE ToDx12(const ERHICullMode cullMode)
+		{
+			switch (cullMode)
+			{
+			default:
+			case ERHICullMode::None: return D3D12_CULL_MODE_NONE;
+			case ERHICullMode::BackFaceCull: return D3D12_CULL_MODE_BACK;
+			case ERHICullMode::FrontFaceCull: return D3D12_CULL_MODE_FRONT;
+			}
+		}
+
+		constexpr D3D12_FILL_MODE ToDx12(const ERHIFillMode fillMode)
+		{
+			switch (fillMode)
+			{
+			default:
+			case ERHIFillMode::Solid: return D3D12_FILL_MODE_SOLID;
+			case ERHIFillMode::Wireframe: return D3D12_FILL_MODE_WIREFRAME;
+			}
+		}
+
 		constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE ToDx12(const ERHIPrimitiveTopologyType topologyType)
 		{
 			switch (topologyType)
@@ -450,7 +471,7 @@ namespace Influx::Graphics
 			PS PixelShader;
 			DEPTH_STENCIL_FORMAT DsvFormat;
 			RENDER_TARGET_FORMATS RtvFormats;
-			//RASTERIZER Rasterizer;
+			RASTERIZER Rasterizer;
 
 		} PipelineStateStream{};
 #pragma warning(pop)

@@ -354,9 +354,12 @@ namespace Influx::Graphics
 
 		// Rasterizer
 		D3D12_RASTERIZER_DESC rasterDesc{};
-		rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
-		rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
-		//stateStream.Rasterizer = rasterDesc;
+		rasterDesc.CullMode = Conversion::ToDx12(constructionArgs.RasterCullMode);
+		rasterDesc.FillMode = Conversion::ToDx12(constructionArgs.RasterFillMode);
+		rasterDesc.ConservativeRaster = (constructionArgs.bConservativeRaster) ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+		rasterDesc.DepthBias = constructionArgs.RasterDepthBias;
+		rasterDesc.DepthBiasClamp = constructionArgs.RasterMaxDepthBias;
+		stateStream.Rasterizer = rasterDesc;
 
 		const D3D12_PIPELINE_STATE_STREAM_DESC streamDesc{ sizeof(D3D12GraphicsPipeline::StateStream), &d3d12Pipeline->PipelineStateStream };
 		HRESULT res = DxDevice->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&d3d12Pipeline->DxPipelineState));
