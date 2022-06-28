@@ -105,6 +105,21 @@ int main()
     textureDesc.OptimizedClearValue = { 1.0f, 0.0f, 0.0f, 1.0f };
     RHITexture* gameRenderTexture = api.CreateTexture(textureDesc);
 
+    /* Create Graphics Pipeline Layout */
+    RHIGraphicsPipelineLayoutDescription description{};
+    description.LayoutBindings.AddBinding<PipelineLayout::ConstantsBinding<4, 0>>();
+    description.LayoutBindings.AddBinding<PipelineLayout::SRVBinding<1, 1>>();
+    RHIGraphicsPipelineLayout* renderPipelineLayout = api.CreateGraphicsPipelineLayout(description);
+
+    /* Create Graphics Pipeline */
+    RHIGraphicsPipelineDescription pipelineDesc{};
+    pipelineDesc.PixelShader;
+    pipelineDesc.VertexShader;
+    pipelineDesc.DSVFormat = ERHIFormat::D_32_Float;
+    pipelineDesc.RTVFormats = { ERHIFormat::RGBA_8_Unorm };
+    pipelineDesc.PrimitiveTopologyType = ERHIPrimitiveTopologyType::Triangle;
+    RHIGraphicsPipeline* renderPipeline = api.CreateGraphicsPipeline(pipelineDesc, renderPipelineLayout);
+
     MSG mssg;
     while (PeekMessageW(&mssg, hwnd, 0, 0, PM_REMOVE))
     {
@@ -115,15 +130,16 @@ int main()
             /* Setup Command List*/
             RHICommandList* cmdList = cmdQueue->SetupNewCommandList(&api);
             cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::RenderTarget);
-
             cmdList->ClearTextureAsRTV(gameRenderTexture, true);
 
+            cmdList->BindPipelineState(renderPipeline);
+            cmdList->BindPipelineLayout(renderPipelineLayout);
             cmdList->BindViewports(RHIViewport(windowWidth, windowHeight));
             cmdList->BindScissorRect(RHIScissorRect(windowWidth, windowHeight));
-
-            cmdList->SetPrimitiveTopology(ERHIPrimitiveTopology::TriangleList);
             cmdList->BindVertexBuffer(vertexBuffer);
-            cmdList->DrawInstanced();
+            cmdList->SetPrimitiveTopology(ERHIPrimitiveTopology::TriangleList);
+            cmdList->BindRenderTarget(gameRenderTexture->GetRenderTargetView());
+            cmdList->DrawInstanced(3, 1);
 
             cmdList->CopyResource(gameRenderTexture->GetRHIResource(), swapchain->GetCurrentBackBufferResource(), true);
             cmdList->TransitionResource(swapchain->GetCurrentBackBufferResource(), ERHIResourceState::Present);

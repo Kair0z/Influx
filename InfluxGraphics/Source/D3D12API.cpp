@@ -212,6 +212,152 @@ namespace Influx::Graphics
 		return d3d12RTV;
 	}
 
+	RHIGraphicsPipelineLayout* D3D12API::CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const
+	{
+		D3D12GraphicsPipelineLayout* graphicsPipelineLayout = new D3D12GraphicsPipelineLayout();
+		graphicsPipelineLayout->ConstructionDescription = constructionArgs;
+
+		// Check for Root Signature Feature support...
+		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData{};
+		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+		if (FAILED(DxDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+		{
+			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+		}
+
+		// Allow input layout and deny unnecessary access to certain pipeline stages...
+		D3D12_ROOT_SIGNATURE_FLAGS flags = 
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+
+		std::vector<D3D12_ROOT_PARAMETER1> rootSigParams{};
+		std::vector<D3D12_STATIC_SAMPLER_DESC> rootSigStaticSamplers{};
+		const std::vector<Internal::BaseResourceBinding*>& rhiResourceBindings = constructionArgs.LayoutBindings.ResourceBindings;
+		for (const Internal::BaseResourceBinding* rhiBinding : rhiResourceBindings)
+		{
+			D3D12_ROOT_PARAMETER1 newDxParam{};
+			newDxParam.ParameterType = Conversion::ToDx12(rhiBinding->GetBindingType());
+			newDxParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // Todo: Not good!
+
+			switch (rhiBinding->GetBindingType())
+			{
+			case ERHIResourceBindingType::Constants:
+				newDxParam.Constants.Num32BitValues = rhiBinding->GetNum();
+				newDxParam.Constants.RegisterSpace = rhiBinding->GetBindingSpace();
+				newDxParam.Constants.ShaderRegister = 0; // Todo: ???
+				
+				break;
+
+			case ERHIResourceBindingType::CBV:
+			case ERHIResourceBindingType::SRV:
+			case ERHIResourceBindingType::UAV:
+				newDxParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+				newDxParam.Descriptor.RegisterSpace = rhiBinding->GetBindingSpace();
+				newDxParam.Descriptor.ShaderRegister = 0; // Todo: ???
+				break;
+
+			default: // Todo: Do we care? Is this possible? // !! Descriptor Tables !!
+				break;
+			}
+			rootSigParams.push_back(newDxParam);
+		}
+
+		constexpr static D3D12_ROOT_SIGNATURE_FLAGS DefaultFlags =
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS;
+
+		D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		rootSignatureDesc.Version = featureData.HighestVersion;
+		rootSignatureDesc.Desc_1_1.NumParameters = (uint32_t)rootSigParams.size();
+		rootSignatureDesc.Desc_1_1.pParameters = rootSigParams.data();
+		rootSignatureDesc.Desc_1_1.NumStaticSamplers = (uint32_t)rootSigStaticSamplers.size();
+		rootSignatureDesc.Desc_1_1.pStaticSamplers = rootSigStaticSamplers.data();
+		rootSignatureDesc.Desc_1_1.Flags = DefaultFlags;
+
+		ID3DBlob* rootSignatureBlob;
+		ID3DBlob* errorBlob;
+		D3D12API::SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &rootSignatureBlob, &errorBlob);
+		HRESULT res = DxDevice->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(), rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&graphicsPipelineLayout->DxRootSignature));
+		if (!SUCCEEDED(res))
+		{
+			assert(false);
+		}
+
+		return graphicsPipelineLayout;
+	}
+
+	RHIGraphicsPipeline* D3D12API::CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const
+	{
+		D3D12GraphicsPipeline* d3d12Pipeline = new D3D12GraphicsPipeline();
+		D3D12GraphicsPipelineLayout* d3d12Layout = (D3D12GraphicsPipelineLayout*)pipelineLayoutReference;
+		d3d12Pipeline->PipelinelayoutReference = d3d12Layout;
+		d3d12Pipeline->ConstructionDescription = constructionArgs;
+
+		D3D12GraphicsPipeline::StateStream& stateStream = d3d12Pipeline->PipelineStateStream;
+
+		// InputLayout
+		D3D12_INPUT_ELEMENT_DESC inputLayout[] =
+		{
+			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+			{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+			{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		};
+		stateStream.InputLayout = { inputLayout, _countof(inputLayout) };
+
+		// Primitive Topology Type
+		stateStream.PrimitiveTopologyType = Conversion::ToDx12(constructionArgs.PrimitiveTopologyType);
+
+		// RTV Formats
+		D3D12_RT_FORMAT_ARRAY rtvFormats{};
+		rtvFormats.NumRenderTargets = constructionArgs.RTVFormats.size();
+		for (size_t i = 0; i < rtvFormats.NumRenderTargets; ++i)
+		{
+			rtvFormats.RTFormats[i] = Conversion::ToDx12(constructionArgs.RTVFormats[i]);
+		}
+		stateStream.RtvFormats = rtvFormats;
+
+		// DSV Single Format
+		stateStream.DsvFormat = Conversion::ToDx12(constructionArgs.DSVFormat);
+
+		// Shaders:
+		for (RHIShader* shader : { constructionArgs.PixelShader, constructionArgs.VertexShader })
+		{
+			D3D12Shader* d3d12Shader = (D3D12Shader*)shader;
+			ID3DBlob* dxShaderBlob = d3d12Shader->DxShaderBlob;
+			D3D12_SHADER_BYTECODE shaderByteCode{};
+			shaderByteCode.BytecodeLength = dxShaderBlob->GetBufferSize();
+			shaderByteCode.pShaderBytecode = dxShaderBlob->GetBufferPointer();
+
+			switch (shader->GetType())
+			{
+			default:
+			case ERHIShaderType::PixelShader:
+				stateStream.PixelShader = shaderByteCode;
+				break;
+
+			case ERHIShaderType::VertexShader:
+				stateStream.VertexShader = shaderByteCode;
+				break;
+			}
+		}
+
+		const D3D12_PIPELINE_STATE_STREAM_DESC streamDesc{ sizeof(D3D12GraphicsPipeline::StateStream), &d3d12Pipeline->PipelineStateStream };
+		HRESULT res = DxDevice->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&d3d12Pipeline->DxPipelineState));
+		if (FAILED(res))
+		{
+			assert(false);
+		}
+
+		return d3d12Pipeline;
+	}
+
 	ID3D12Device2* D3D12API::GetDxDevice() const
 	{
 		return DxDevice;
@@ -501,6 +647,37 @@ namespace Influx::Graphics
 		WaitForFenceValue(fence, fenceValueForSignal, fenceEvent, FLT_MAX);
 	}
 
+	void D3D12API::SerializeVersionedRootSignature(const D3D12_VERSIONED_ROOT_SIGNATURE_DESC* pRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION maxVersion, ID3DBlob** ppOutBlob, ID3DBlob** ppErrorBlob) noexcept
+	{
+		if (ppErrorBlob != nullptr)
+		{
+			// Clear Error blob
+			*ppErrorBlob = nullptr;
+		}
+		
+		switch (maxVersion)
+		{
+		case D3D_ROOT_SIGNATURE_VERSION_1_1:
+			D3D12SerializeVersionedRootSignature(pRootSignatureDesc, ppOutBlob, ppErrorBlob);
+			break;
+
+		case D3D_ROOT_SIGNATURE_VERSION_1_0:
+			switch (pRootSignatureDesc->Version)
+			{
+			case D3D_ROOT_SIGNATURE_VERSION_1_0:
+				// If Max version is 1_0 but the rootSignature is also 1_0, there's no problem and we can just call the D3D12 provided function:
+				D3D12SerializeRootSignature(&pRootSignatureDesc->Desc_1_0, D3D_ROOT_SIGNATURE_VERSION_1, ppOutBlob, ppErrorBlob);
+				break;
+
+			case D3D_ROOT_SIGNATURE_VERSION_1_1:
+				// Else, we're gonna have to convert...
+				assert(false); // Todo: But that's a nice ol' todo ;)
+				break;
+			}
+			break;
+		}
+	}
+
 	void D3D12API::ReportLiveObjects()
 	{
 		IDXGIDebug* dxgiControler;
@@ -723,6 +900,29 @@ namespace Influx::Graphics
 		}
 	}
 
+	void D3D12CommandList::BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout)
+	{
+		D3D12GraphicsPipelineLayout* d3d12Layout = (D3D12GraphicsPipelineLayout*)pipelineLayout;
+		DxCommandList->SetGraphicsRootSignature(d3d12Layout->GetDxRootSignature());
+	}
+
+	void D3D12CommandList::BindPipelineState(RHIGraphicsPipeline* pipeline)
+	{
+		D3D12GraphicsPipeline* d3d12Pipeline = (D3D12GraphicsPipeline*)pipeline;
+		DxCommandList->SetPipelineState(d3d12Pipeline->GetDxPipelineState());
+	}
+
+	void D3D12CommandList::BindRenderTarget(RHIRenderTargetView* renderTargetView)
+	{
+		D3D12RenderTargetView* d3d12Rtv = (D3D12RenderTargetView*)renderTargetView;
+		DxCommandList->OMSetRenderTargets(1, &d3d12Rtv->DxCPUHandle, false, nullptr); // Todo DSV?
+	}
+
+	void D3D12CommandList::DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation)
+	{
+		DxCommandList->DrawInstanced(numVerticesPerInstance, numInstances, startVertexLocation, startInstanceLocation);
+	}
+
 	/* D3D12Resource */
 	D3D12Resource::D3D12Resource() : D3D12Resource(nullptr, ERHIResourceState::Invalid) {}
 
@@ -767,5 +967,15 @@ namespace Influx::Graphics
 		, MaxNumDescriptors{maxDescriptorNum}
 	{
 		
+	}
+
+	ID3D12RootSignature* D3D12GraphicsPipelineLayout::GetDxRootSignature() const
+	{
+		return DxRootSignature;
+	}
+
+	ID3D12PipelineState* D3D12GraphicsPipeline::GetDxPipelineState() const
+	{
+		return DxPipelineState;
 	}
 }

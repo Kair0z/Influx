@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include "Math/Math.h"
+#include <vector>
 
 namespace Influx::Graphics
 {
@@ -57,6 +58,12 @@ namespace Influx::Graphics
 		Invalid
 	};
 
+	enum class ERHIShaderType
+	{
+		VertexShader,
+		PixelShader
+	};
+
 	// [TODO]
 	enum class ERHIShaderStageFlags
 	{
@@ -95,6 +102,7 @@ namespace Influx::Graphics
 	};
 #pragma endregion
 
+#pragma region ForwardDeclarations
 	class RHISwapChain;
 	class RHICommandQueue;
 	class RHIResource;
@@ -104,7 +112,14 @@ namespace Influx::Graphics
 	struct RHITextureDescription;
 	struct RHIScissorRect;
 	struct RHIViewport;
+	class RHIGraphicsPipelineLayout;
+	struct RHIGraphicsPipelineLayoutDescription;
+	class RHIGraphicsPipeline;
+	struct RHIGraphicsPipelineDescription;
+	class RHIShader;
+#pragma endregion
 
+	/* Graphics API */
 	class GraphicsAPI
 	{
 	public:
@@ -116,6 +131,9 @@ namespace Influx::Graphics
 
 		virtual RHIRenderTargetView* CreateRenderTargetView(RHITexture* texture) const = 0;
 		
+		virtual RHIGraphicsPipelineLayout* CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const = 0;
+		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const = 0;
+
 		virtual void CreateBuffer() const {};
 		virtual void CreateShader() const {};
 		virtual void CreateSampler() const {};
@@ -127,6 +145,7 @@ namespace Influx::Graphics
 		virtual ~GraphicsAPI() = default;
 	};
 
+	/* Command List */
 	class RHICommandList
 	{
 	public:
@@ -144,11 +163,13 @@ namespace Influx::Graphics
 		virtual void BindStencilRef() {};
 		virtual void BindBlendFactor() {};
 		virtual void BindShadingRate() {};
-		virtual void BindPipelineState() {};
+		virtual void BindRenderTarget(RHIRenderTargetView* renderTargetView) = 0;
+		virtual void BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout) = 0;
+		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) = 0;
 		virtual void BindComputeShader() {};
 
 		virtual void DrawIndexed() {};
-		virtual void DrawInstanced() {};
+		virtual void DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation = 0, uint32_t startInstanceLocation = 0) = 0;
 		virtual void DrawIndexedInstanced() {};
 		virtual void DrawInstancedIndirect() {};
 		virtual void DrawIndexedInstancedIndirect() {};
@@ -168,9 +189,15 @@ namespace Influx::Graphics
 
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) = 0;
 
+		RHICommandList() = default;
+		RHICommandList(const RHICommandList&) = delete;
+		RHICommandList(RHICommandList&&) = delete;
+		RHICommandList& operator=(const RHICommandList&) = delete;
+		RHICommandList& operator=(RHICommandList&&) = delete;
 		virtual ~RHICommandList() = default;
 	};
 
+	/* Command Queue */
 	class RHICommandQueue
 	{
 	public:
@@ -178,25 +205,18 @@ namespace Influx::Graphics
 		virtual void ExecuteCommmandList(RHICommandList* commandList) = 0;
 		virtual void Flush() = 0;
 
+		RHICommandQueue() = default;
+		RHICommandQueue(const RHICommandQueue&) = delete;
+		RHICommandQueue(RHICommandQueue&&) = delete;
+		RHICommandQueue& operator=(const RHICommandQueue&) = delete;
+		RHICommandQueue& operator=(RHICommandQueue&&) = delete;
 		virtual ~RHICommandQueue() = default;
 
 	protected:
 		ECommandQueueType eType;
 	};
 
-	class RHIResource
-	{
-	public:
-		ERHIResourceState GetCurrentState() const { return CurrentState; }
-		ERHIResourceState GetPreviousState() const { return PreviousState; }
-		void Transition(ERHIResourceState newState) { PreviousState = CurrentState; CurrentState = newState; }
-		virtual ~RHIResource() = default;
-
-	protected:
-		ERHIResourceState PreviousState;
-		ERHIResourceState CurrentState;
-	};
-
+	/* Swapchain */
 	class RHISwapChain
 	{
 	public:
@@ -208,6 +228,11 @@ namespace Influx::Graphics
 		const UINT32 GetWidth() const { return Width; }
 		const UINT32 GetHeight() const { return Height; }
 
+		RHISwapChain() = default;
+		RHISwapChain(const RHISwapChain&) = delete;
+		RHISwapChain(RHISwapChain&&) = delete;
+		RHISwapChain& operator=(const RHISwapChain&) = delete;
+		RHISwapChain& operator=(RHISwapChain&&) = delete;
 		virtual ~RHISwapChain() = default;
 
 		constexpr static UINT8 NumBackBuffers = 3;
@@ -223,6 +248,27 @@ namespace Influx::Graphics
 		bool bIsTearingSupported = false;
 	};
 
+	/* GPU Resource */
+	class RHIResource
+	{
+	public:
+		ERHIResourceState GetCurrentState() const { return CurrentState; }
+		ERHIResourceState GetPreviousState() const { return PreviousState; }
+		void Transition(ERHIResourceState newState) { PreviousState = CurrentState; CurrentState = newState; }
+		
+		RHIResource() = default;
+		RHIResource(const RHIResource&) = delete;
+		RHIResource(RHIResource&&) = delete;
+		RHIResource& operator=(const RHIResource&) = delete;
+		RHIResource& operator=(RHIResource&&) = delete;
+		virtual ~RHIResource() = default;
+
+	protected:
+		ERHIResourceState PreviousState;
+		ERHIResourceState CurrentState;
+	};
+
+	/* Texture */
 	struct RHITextureDescription
 	{
 		float Width;
@@ -239,8 +285,6 @@ namespace Influx::Graphics
 	class RHITexture
 	{
 	public:
-		virtual ~RHITexture() = default;
-
 		RHIResource* GetRHIResource() const { return Resource; }
 		RHIRenderTargetView* GetRenderTargetView() const { return RenderTargetView; }
 
@@ -250,6 +294,13 @@ namespace Influx::Graphics
 		UINT16 GetMipLevels() const { return ConstructionDescription.MipLevels; }
 		const Math::Vector4f& GetOptimizedClearValue() const { return ConstructionDescription.OptimizedClearValue; }
 
+		RHITexture() = default;
+		RHITexture(const RHITexture&) = delete;
+		RHITexture(RHITexture&&) = delete;
+		RHITexture& operator=(const RHITexture&) = delete;
+		RHITexture& operator=(RHITexture&&) = delete;
+		virtual ~RHITexture() = default;
+
 	protected:
 		RHITextureDescription ConstructionDescription;
 
@@ -257,26 +308,169 @@ namespace Influx::Graphics
 		RHIRenderTargetView* RenderTargetView;
 	};
 
-	class RHIRenderTargetView
-	{
-	public:
-		virtual ~RHIRenderTargetView() = default;
-	};
-
+	/* Vertex Buffer */
 	class RHIVertexBuffer
 	{
 	public:
+		RHIVertexBuffer() = default;
+		RHIVertexBuffer(const RHIVertexBuffer&) = delete;
+		RHIVertexBuffer(RHIVertexBuffer&&) = delete;
+		RHIVertexBuffer& operator=(const RHIVertexBuffer&) = delete;
+		RHIVertexBuffer& operator=(RHIVertexBuffer&&) = delete;
 		virtual ~RHIVertexBuffer() = default;
 
 	protected:
 		RHIResource* GpuResource;
 	};
 
-	class RHIRootSignature
+	/* Render Target View */
+	class RHIRenderTargetView
 	{
-
+	public:
+		RHIRenderTargetView() = default;
+		RHIRenderTargetView(const RHIRenderTargetView&) = delete;
+		RHIRenderTargetView(RHIRenderTargetView&&) = delete;
+		RHIRenderTargetView& operator=(const RHIRenderTargetView&) = delete;
+		RHIRenderTargetView& operator=(RHIRenderTargetView&&) = delete;
+		virtual ~RHIRenderTargetView() = default;
 	};
 
+	/* Pipeline Stuff: */
+
+	namespace Internal
+	{
+		struct BaseResourceBinding
+		{
+			virtual const ERHIResourceBindingType GetBindingType() const noexcept = 0;
+			virtual const uint32_t GetBindingSpace() const noexcept = 0;
+			virtual const ERHIShaderStageFlags GetShaderStageFlags() const noexcept = 0;
+
+			virtual const uint32_t GetNum() const noexcept = 0;
+
+			virtual ~BaseResourceBinding() = default;
+		};
+	}
+
+	namespace PipelineLayout
+	{
+		template <ERHIResourceBindingType TBindingType, uint32_t TNum, uint32_t TBindingSpace, ERHIShaderStageFlags TShaderStageFlags = ERHIShaderStageFlags::Default>
+		struct ResourceBinding final : public Internal::BaseResourceBinding
+		{
+			virtual const ERHIResourceBindingType GetBindingType() const noexcept override { return TBindingType; }
+			virtual const uint32_t GetBindingSpace() const noexcept override { return TBindingSpace; }
+			virtual const ERHIShaderStageFlags GetShaderStageFlags() const noexcept override { return TShaderStageFlags; }
+			virtual const uint32_t GetNum() const noexcept override { return TNum; }
+			virtual ~ResourceBinding() = default;
+		};
+
+		template <uint32_t TNum32BitFloats, uint32_t TBindingSpace, ERHIShaderStageFlags TShaderStageFlags = ERHIShaderStageFlags::Default>
+		using ConstantsBinding = ResourceBinding<ERHIResourceBindingType::Constants, TNum32BitFloats, TBindingSpace, TShaderStageFlags>;
+
+		template <uint32_t TNum, uint32_t TBindingSpace, ERHIShaderStageFlags TShaderStageFlags = ERHIShaderStageFlags::Default>
+		using SRVBinding = ResourceBinding<ERHIResourceBindingType::SRV, TNum, TBindingSpace, TShaderStageFlags>;
+
+		template <uint32_t TNum, uint32_t TBindingSpace, ERHIShaderStageFlags TShaderStageFlags = ERHIShaderStageFlags::Default>
+		using UAVBinding = ResourceBinding<ERHIResourceBindingType::UAV, TNum, TBindingSpace, TShaderStageFlags>;
+
+		template <uint32_t TNum, uint32_t TBindingSpace, ERHIShaderStageFlags TShaderStageFlags = ERHIShaderStageFlags::Default>
+		using CBVBinding = ResourceBinding<ERHIResourceBindingType::CBV, TNum, TBindingSpace, TShaderStageFlags>;
+	}
+
+	/* Graphics Pipeline Layout */
+	// Dx12: RootSignature
+	// Vulkan: PipelineLayout
+	struct RHIGraphicsPipelineLayoutBindings
+	{
+		RHIGraphicsPipelineLayoutBindings() = default;
+		virtual ~RHIGraphicsPipelineLayoutBindings()
+		{
+			for (Internal::BaseResourceBinding* binding : ResourceBindings)
+			{
+				delete binding;
+				binding = nullptr;
+			}
+		}
+
+		/* Template only allows a class to be constructed if it derives from Internal::BaseResourceBinding */
+		template <class TBindingType, typename = std::enable_if<std::is_base_of<Internal::BaseResourceBinding, TBindingType>::value>::type>
+		void AddBinding()
+		{
+			ResourceBindings.push_back(new TBindingType());
+		}
+
+		std::vector<Internal::BaseResourceBinding*> ResourceBindings{};
+	};
+	struct RHIGraphicsPipelineLayoutDescription
+	{
+		RHIGraphicsPipelineLayoutBindings LayoutBindings{};
+		// Todo: Static Samplers
+		// Todo: Flags
+	};
+	class RHIGraphicsPipelineLayout
+	{
+	public:
+		RHIGraphicsPipelineLayout() = default;
+		RHIGraphicsPipelineLayout(const RHIGraphicsPipelineLayout&) = delete;
+		RHIGraphicsPipelineLayout(RHIGraphicsPipelineLayout&&) = delete;
+		RHIGraphicsPipelineLayout& operator=(const RHIGraphicsPipelineLayout&) = delete;
+		RHIGraphicsPipelineLayout& operator=(RHIGraphicsPipelineLayout&&) = delete;
+		virtual ~RHIGraphicsPipelineLayout() = default;
+
+	protected:
+		RHIGraphicsPipelineLayoutDescription ConstructionDescription{};
+	};
+
+	/* Graphics Pipeline Object */
+	struct RHIGraphicsPipelineDescription
+	{
+		// Input Layout
+
+		// Primitive Topology
+		ERHIPrimitiveTopologyType PrimitiveTopologyType;
+		
+		// RTV & DSV Info
+		std::vector<ERHIFormat> RTVFormats;
+		ERHIFormat DSVFormat;
+
+		// Shaders:
+		RHIShader* VertexShader;
+		RHIShader* PixelShader;
+		// ...
+	};
+
+	class RHIGraphicsPipeline
+	{
+	public:
+		RHIGraphicsPipeline() = default;
+		RHIGraphicsPipeline(const RHIGraphicsPipeline&) = delete;
+		RHIGraphicsPipeline(RHIGraphicsPipeline&&) = delete;
+		RHIGraphicsPipeline& operator=(const RHIGraphicsPipeline&) = delete;
+		RHIGraphicsPipeline& operator=(RHIGraphicsPipeline&&) = delete;
+		virtual ~RHIGraphicsPipeline() = default;
+
+	protected:
+		RHIGraphicsPipelineDescription ConstructionDescription;
+		RHIGraphicsPipelineLayout* PipelinelayoutReference;
+	};
+
+	/* Shader-Stuff */
+	class RHIShader
+	{
+	public:
+		ERHIShaderType GetType() const { return Type; }
+
+		RHIShader() = default;
+		RHIShader(const RHIGraphicsPipeline&) = delete;
+		RHIShader(RHIGraphicsPipeline&&) = delete;
+		RHIShader& operator=(const RHIShader&) = delete;
+		RHIShader& operator=(RHIShader&&) = delete;
+		virtual ~RHIShader() = default;
+
+	protected:
+		ERHIShaderType Type;
+	};
+
+	/* Viewport */
 	struct RHIViewport
 	{
 		RHIViewport() = default;
@@ -289,6 +483,7 @@ namespace Influx::Graphics
 		float Left;
 	};
 
+	/* ScissorRect */
 	struct RHIScissorRect
 	{
 		RHIScissorRect() = default;
