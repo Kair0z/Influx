@@ -1,5 +1,7 @@
 #include "Geometry/Vertex.h"
 #include "D3D12API.h"
+#include "RHIResource.h"
+#include "RHIPipeline.h"
 
 constexpr Influx::Vector2u windowSize = {500, 500};
 
@@ -119,8 +121,8 @@ int main()
     /* Create Graphics Pipeline Layout */
     RHIGraphicsPipelineLayoutDescription description{};
     description.LayoutBindings.AddBinding<PipelineLayout::ConstantsBinding<16, 0>>();
-    description.LayoutBindings.AddBinding<PipelineLayout::CBVBinding<1, 0>>();
-    description.LayoutBindings.AddBinding<PipelineLayout::SRVBinding<1, 1>>();
+    //description.LayoutBindings.AddBinding<PipelineLayout::CBVBinding<1, 0>>();
+    //description.LayoutBindings.AddBinding<PipelineLayout::SRVBinding<1, 1>>();
     RHIGraphicsPipelineLayout* renderPipelineLayout = api.CreateGraphicsPipelineLayout(description);
 
     /* Create Graphics Pipeline */

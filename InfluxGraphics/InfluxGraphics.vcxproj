@@ -19,16 +19,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GraphicsPipeline.cpp" />
-    <ClCompile Include="GraphicsResource.cpp" />
     <ClCompile Include="Source\D3D12API.cpp" />
+    <ClCompile Include="Source\D3D12Pipeline.cpp" />
+    <ClCompile Include="Source\D3D12Resource.cpp" />
     <ClCompile Include="Source\GraphicsAPI.cpp" />
+    <ClCompile Include="Source\RHIPipeline.cpp" />
+    <ClCompile Include="Source\RHIResource.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GraphicsPipeline.h" />
-    <ClInclude Include="GraphicsResource.h" />
     <ClInclude Include="Source\D3D12API.h" />
+    <ClInclude Include="Source\D3D12Conversion.h" />
+    <ClInclude Include="Source\D3D12Pipeline.h" />
+    <ClInclude Include="Source\D3D12Resource.h" />
     <ClInclude Include="Source\GraphicsAPI.h" />
+    <ClInclude Include="Source\RHIPipeline.h" />
+    <ClInclude Include="Source\RHIResource.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">

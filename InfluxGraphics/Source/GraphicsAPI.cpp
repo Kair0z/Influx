@@ -75,29 +75,5 @@ namespace Influx::Graphics
 			BackBufferRTVs[i] = nullptr;
 		}
 	}
-
-	RHITexture::~RHITexture()
-	{
-		delete Resource;
-		Resource = nullptr;
-
-		delete RenderTargetView;
-		RenderTargetView = nullptr;
-	}
-
-	RHIVertexBuffer::~RHIVertexBuffer()
-	{
-		delete GpuResource;
-		GpuResource = nullptr;
-	}
-
-	RHIConstantBuffer::~RHIConstantBuffer()
-	{
-		delete GpuResource;
-		GpuResource = nullptr;
-
-		delete ConstantBufferView;
-		ConstantBufferView = nullptr;
-	}
 }
 

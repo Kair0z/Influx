@@ -1,33 +1,12 @@
 #include "D3D12API.h"
+#include "D3D12Resource.h"
+#include "D3D12Pipeline.h"
+#include "D3D12Conversion.h"
 
 namespace Influx::Graphics
 {
-	/* D3D12API */
-	D3D12API::D3D12API()
-	{
-		EnableDebugLayer();
-
-		DxgiFactory = D3D12API::CreateDxgiFactory();
-		DxgiAdapter = D3D12API::GetAdapter(DxgiFactory, true);
-		DxDevice = D3D12API::CreateDevice(DxgiAdapter);
-
-		CreateGlobalDescriptorHeaps();
-	}
-
-	D3D12API::~D3D12API()
-	{
-		SafeRelease(DxgiAdapter);
-		SafeRelease(DxDevice);
-		SafeRelease(DxgiFactory);
-
-		delete RTVDescriptorHeap;
-		delete ResourceDescriptorHeap;
-		delete DSVDescriptorheap;
-		delete SamplerDescriptorHeap;
-
-		D3D12API::ReportLiveObjects();
-	}
-
+	/* API Create Functions */
+#pragma region APICreateFunctions
 	RHICommandQueue* D3D12API::CreateCommandQueue(const ECommandQueueType type) const
 	{
 		D3D12CommandQueue* result = new D3D12CommandQueue();
@@ -84,365 +63,7 @@ namespace Influx::Graphics
 
 		return result;
 	}
-
-	RHIVertexBuffer* D3D12API::CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT strideInBytes) const
-	{
-		D3D12Resource* d3d12Resource = new D3D12Resource();
-		D3D12VertexBuffer* d3d12Buffer = new D3D12VertexBuffer(d3d12Resource);
-		
-		if (initialData != nullptr && initialSizeInBytes > 0)
-		{
-			D3D12_HEAP_PROPERTIES heapProps{};
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-			
-			// Buffer Resource Desc.
-			D3D12_RESOURCE_DESC resourceDesc{};
-			resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			resourceDesc.Alignment = 0;
-			resourceDesc.Width = initialSizeInBytes;
-			resourceDesc.Height = 1;
-			resourceDesc.DepthOrArraySize = 1;
-			resourceDesc.MipLevels = 1;
-			resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-			resourceDesc.SampleDesc.Count = 1;
-			resourceDesc.SampleDesc.Quality = 0;
-			resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-			// Create Buffer Resource
-			DxDevice->CreateCommittedResource(&heapProps,
-				D3D12_HEAP_FLAG_NONE,
-				&resourceDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&d3d12Resource->DxResource));
-
-			ID3D12Resource* dxResource = d3d12Resource->DxResource;
-
-			// Copy triangle data to vxBuffer
-			UINT8* pDataBegin;
-			D3D12_RANGE cpuReadRange;
-			cpuReadRange.Begin = 0;
-			cpuReadRange.End = 0;
-
-			dxResource->Map(0, &cpuReadRange, reinterpret_cast<void**>(&pDataBegin));
-			memcpy(pDataBegin, initialData, initialSizeInBytes);
-			dxResource->Unmap(0, nullptr);
-
-			// Initialize VertexBufferView:
-			d3d12Buffer->DxVertexBufferView.BufferLocation = dxResource->GetGPUVirtualAddress();
-			d3d12Buffer->DxVertexBufferView.StrideInBytes = strideInBytes;
-			d3d12Buffer->DxVertexBufferView.SizeInBytes = initialSizeInBytes;
-		}
-
-		return d3d12Buffer;
-	}
-
-	RHIConstantBuffer* D3D12API::CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const
-	{
-		D3D12Resource* d3d12Resource = new D3D12Resource();
-		D3D12ConstantBuffer* d3d12Buffer = new D3D12ConstantBuffer(d3d12Resource);
-
-		if (initialData != nullptr && initialSizeInBytes > 0)
-		{
-			D3D12_HEAP_PROPERTIES heapProps{};
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			// Buffer Resource Desc.
-			D3D12_RESOURCE_DESC resourceDesc{};
-			resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			resourceDesc.Alignment = 0;
-			resourceDesc.Width = initialSizeInBytes;
-			resourceDesc.Height = 1;
-			resourceDesc.DepthOrArraySize = 1;
-			resourceDesc.MipLevels = 1;
-			resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-			resourceDesc.SampleDesc.Count = 1;
-			resourceDesc.SampleDesc.Quality = 0;
-			resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-			// Create Buffer Resource
-			DxDevice->CreateCommittedResource(&heapProps,
-				D3D12_HEAP_FLAG_NONE,
-				&resourceDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&d3d12Resource->DxResource));
-
-			ID3D12Resource* dxResource = d3d12Resource->DxResource;
-
-			// Describe and create a constant buffer view.
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.BufferLocation = dxResource->GetGPUVirtualAddress();
-			cbvDesc.SizeInBytes = initialSizeInBytes;
-			DxDevice->CreateConstantBufferView(&cbvDesc, 
-				ResourceDescriptorHeap->DxDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-			// Copy triangle data to vxBuffer
-			UINT8* pDataBegin;
-			D3D12_RANGE cpuReadRange;
-			cpuReadRange.Begin = 0;
-			cpuReadRange.End = 0;
-
-			dxResource->Map(0, &cpuReadRange, reinterpret_cast<void**>(&pDataBegin));
-			memcpy(pDataBegin, initialData, initialSizeInBytes);
-			dxResource->Unmap(0, nullptr);
-		}
-
-		return d3d12Buffer;
-	}
-
-	RHITexture* D3D12API::CreateTexture(const RHITextureDescription& constructionArgs) const
-	{
-		D3D12Texture* d3d12Texture = new D3D12Texture();
-		d3d12Texture->ConstructionDescription = constructionArgs;
-
-		// Create Buffer Resource
-		D3D12Resource* d3d12Resource = new D3D12Resource();
-		d3d12Texture->Resource = d3d12Resource;
-		d3d12Resource->CurrentState = d3d12Resource->PreviousState = constructionArgs.InitialResourceState;
-
-		D3D12_HEAP_PROPERTIES heapProps{};
-		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
-
-		D3D12_RESOURCE_DESC resourceDesc{};
-		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		resourceDesc.Alignment = 0;
-		resourceDesc.Width = (UINT64)constructionArgs.Width;
-		resourceDesc.Height = (UINT64)constructionArgs.Height;
-		resourceDesc.DepthOrArraySize = 1;
-		resourceDesc.MipLevels = constructionArgs.MipLevels;
-		resourceDesc.Format = Conversion::ToDx12(constructionArgs.Format);
-		resourceDesc.SampleDesc.Count = 1;
-		resourceDesc.SampleDesc.Quality = 0;
-		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; 
-
-		D3D12_CLEAR_VALUE optimizedClearValue{};
-		FLOAT clearColor[4] 
-			= { constructionArgs.OptimizedClearValue[0], constructionArgs.OptimizedClearValue[1], 
-			constructionArgs.OptimizedClearValue[2], constructionArgs.OptimizedClearValue[3] };
-
-		optimizedClearValue.Format = resourceDesc.Format;
-		memcpy(optimizedClearValue.Color, &constructionArgs.OptimizedClearValue, sizeof(optimizedClearValue.Color));
-
-		DxDevice->CreateCommittedResource(&heapProps,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			Conversion::ToDx12(constructionArgs.InitialResourceState),
-			&optimizedClearValue,
-			IID_PPV_ARGS(&d3d12Resource->DxResource));
-
-		// Todo: Upload Heap?
-
-		// Create RTV:
-		d3d12Texture->RenderTargetView = D3D12API::CreateRenderTargetView(d3d12Texture);
-
-		return d3d12Texture;
-	}
-
-	RHIRenderTargetView* D3D12API::CreateRenderTargetView(RHITexture* texture) const
-	{
-		// Todo: Find first free index & pop it off the list:
-		int freeIndex = *RTVDescriptorHeap->OccupiedSlotIndices.begin();
-		RTVDescriptorHeap->OccupiedSlotIndices.pop_front();
-
-		D3D12_CPU_DESCRIPTOR_HANDLE cpu_desc_handle = RTVDescriptorHeap->DxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		cpu_desc_handle.ptr += (GetRTVDescriptorSize() * freeIndex);
-		D3D12_GPU_DESCRIPTOR_HANDLE gpu_desc_handle = RTVDescriptorHeap->DxDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
-		gpu_desc_handle.ptr += (GetRTVDescriptorSize() * freeIndex);
-
-		D3D12RenderTargetView* d3d12RTV = new D3D12RenderTargetView();
-
-		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
-		rtvDesc.Format = Conversion::ToDx12(texture->GetRHIFormat());
-		rtvDesc.Texture2D.MipSlice = 0;
-		rtvDesc.Texture2D.PlaneSlice = 0;
-		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-
-		D3D12Resource* d3d12Resource = (D3D12Resource*)((D3D12Texture*)texture)->Resource;
-		DxDevice->CreateRenderTargetView(d3d12Resource->DxResource,
-			&rtvDesc, cpu_desc_handle);
-
-		d3d12RTV->DxCPUHandle = cpu_desc_handle;
-		d3d12RTV->DxGPUHandle = gpu_desc_handle;
-
-		return d3d12RTV;
-	}
-
-	RHIGraphicsPipelineLayout* D3D12API::CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const
-	{
-		D3D12GraphicsPipelineLayout* graphicsPipelineLayout = new D3D12GraphicsPipelineLayout();
-		graphicsPipelineLayout->ConstructionDescription = constructionArgs;
-
-		// Check for Root Signature Feature support...
-		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData{};
-		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-		if (FAILED(DxDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
-		{
-			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
-		}
-
-		// Allow input layout and deny unnecessary access to certain pipeline stages...
-		D3D12_ROOT_SIGNATURE_FLAGS flags = 
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-
-		std::vector<D3D12_ROOT_PARAMETER1> rootSigParams{};
-		std::vector<D3D12_STATIC_SAMPLER_DESC> rootSigStaticSamplers{};
-		const std::vector<std::shared_ptr<Internal::BaseResourceBinding>>& rhiResourceBindings = constructionArgs.LayoutBindings.ResourceBindings;
-		for (const std::shared_ptr<Internal::BaseResourceBinding>& rhiBinding : rhiResourceBindings)
-		{
-			D3D12_ROOT_PARAMETER1 newDxParam{};
-			newDxParam.ParameterType = Conversion::ToDx12(rhiBinding->GetBindingType());
-			newDxParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // Todo: Not good!
-
-			switch (rhiBinding->GetBindingType())
-			{
-			case ERHIResourceBindingType::Constants:
-				newDxParam.Constants.Num32BitValues = rhiBinding->GetNum();
-				newDxParam.Constants.RegisterSpace = rhiBinding->GetBindingSpace();
-				newDxParam.Constants.ShaderRegister = 0; // Todo: ???
-				
-				break;
-
-			case ERHIResourceBindingType::CBV:
-			case ERHIResourceBindingType::SRV:
-			case ERHIResourceBindingType::UAV:
-				newDxParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
-				newDxParam.Descriptor.RegisterSpace = rhiBinding->GetBindingSpace();
-				newDxParam.Descriptor.ShaderRegister = 0; // Todo: ???
-				break;
-
-			default: // Todo: Do we care? Is this possible? // !! Descriptor Tables !!
-				break;
-			}
-			rootSigParams.push_back(newDxParam);
-		}
-
-		constexpr static D3D12_ROOT_SIGNATURE_FLAGS DefaultFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS;
-
-		D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Version = featureData.HighestVersion;
-		rootSignatureDesc.Desc_1_1.NumParameters = (uint32_t)rootSigParams.size();
-		rootSignatureDesc.Desc_1_1.pParameters = rootSigParams.data();
-		rootSignatureDesc.Desc_1_1.NumStaticSamplers = (uint32_t)rootSigStaticSamplers.size();
-		rootSignatureDesc.Desc_1_1.pStaticSamplers = rootSigStaticSamplers.data();
-		rootSignatureDesc.Desc_1_1.Flags = DefaultFlags;
-
-		ID3DBlob* rootSignatureBlob;
-		ID3DBlob* errorBlob;
-		D3D12API::SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &rootSignatureBlob, &errorBlob);
-		HRESULT res = DxDevice->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(), rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&graphicsPipelineLayout->DxRootSignature));
-		if (!SUCCEEDED(res))
-		{
-			assert(false);
-		}
-
-		return graphicsPipelineLayout;
-	}
-
-	RHIGraphicsPipeline* D3D12API::CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const
-	{
-		D3D12GraphicsPipeline* d3d12Pipeline = new D3D12GraphicsPipeline();
-		D3D12GraphicsPipelineLayout* d3d12Layout = (D3D12GraphicsPipelineLayout*)pipelineLayoutReference;
-		d3d12Pipeline->PipelinelayoutReference = d3d12Layout;
-		d3d12Pipeline->ConstructionDescription = constructionArgs;
-
-		D3D12GraphicsPipeline::StateStream& stateStream = d3d12Pipeline->PipelineStateStream;
-
-		// Root Signature
-		stateStream.RootSignature = d3d12Layout->DxRootSignature;
-
-		// InputLayout
-		D3D12_INPUT_ELEMENT_DESC inputLayout[] =
-		{
-			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-			{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-			{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
-		};
-		stateStream.InputLayout = { inputLayout, _countof(inputLayout) };
-
-		// Primitive Topology Type
-		stateStream.PrimitiveTopologyType = Conversion::ToDx12(constructionArgs.PrimitiveTopologyType);
-
-		// RTV Formats
-		D3D12_RT_FORMAT_ARRAY rtvFormats{};
-		rtvFormats.NumRenderTargets = constructionArgs.RTVFormats.size();
-		for (size_t i = 0; i < rtvFormats.NumRenderTargets; ++i)
-		{
-			rtvFormats.RTFormats[i] = Conversion::ToDx12(constructionArgs.RTVFormats[i]);
-		}
-		stateStream.RtvFormats = rtvFormats;
-
-		// DSV Single Format
-		stateStream.DsvFormat = Conversion::ToDx12(constructionArgs.DSVFormat);
-
-		// Depth Stencil
-		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
-		depthStencilDesc.DepthEnable = constructionArgs.bDepthEnabled;
-		depthStencilDesc.StencilEnable = constructionArgs.bStencilEnabled;
-		stateStream.DepthStencil = depthStencilDesc;
-
-		// Shaders:
-		for (RHIShader* shader : { constructionArgs.PixelShader, constructionArgs.VertexShader })
-		{
-			D3D12Shader* d3d12Shader = (D3D12Shader*)shader;
-			ID3DBlob* dxShaderBlob = d3d12Shader->DxShaderBlob;
-			D3D12_SHADER_BYTECODE shaderByteCode{};
-			shaderByteCode.BytecodeLength = dxShaderBlob->GetBufferSize();
-			shaderByteCode.pShaderBytecode = dxShaderBlob->GetBufferPointer();
-
-			switch (shader->GetType())
-			{
-			default:
-			case ERHIShaderType::PixelShader:
-				stateStream.PixelShader = shaderByteCode;
-				break;
-
-			case ERHIShaderType::VertexShader:
-				stateStream.VertexShader = shaderByteCode;
-				break;
-			}
-		}
-
-		// Rasterizer
-		D3D12_RASTERIZER_DESC rasterDesc{};
-		rasterDesc.CullMode = Conversion::ToDx12(constructionArgs.RasterCullMode);
-		rasterDesc.FillMode = Conversion::ToDx12(constructionArgs.RasterFillMode);
-		rasterDesc.ConservativeRaster = (constructionArgs.bConservativeRaster) ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-		rasterDesc.DepthBias = constructionArgs.RasterDepthBias;
-		rasterDesc.DepthBiasClamp = constructionArgs.RasterMaxDepthBias;
-		rasterDesc.DepthClipEnable = constructionArgs.bRasterDepthClipEnable;
-		rasterDesc.AntialiasedLineEnable = constructionArgs.bAntialiasedLineEnable;
-		stateStream.Rasterizer = rasterDesc;
-
-		const D3D12_PIPELINE_STATE_STREAM_DESC streamDesc{ sizeof(D3D12GraphicsPipeline::StateStream), &d3d12Pipeline->PipelineStateStream };
-		HRESULT res = DxDevice->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&d3d12Pipeline->DxPipelineState));
-		if (FAILED(res))
-		{
-			assert(false);
-		}
-
-		return d3d12Pipeline;
-	}
-
+	
 	RHIShader* D3D12API::CreateRHIShader(const std::vector<uint8_t>& fromCompiledData) const
 	{
 		return nullptr;
@@ -486,6 +107,34 @@ namespace Influx::Graphics
 			flags1, flags2, &d3d12Shader->DxShaderBlob, &pError);
 
 		return d3d12Shader;
+	}
+#pragma endregion
+
+	/* API-Object Functions */
+#pragma region APIObjectFunctions
+	D3D12API::D3D12API()
+	{
+		EnableDebugLayer();
+
+		DxgiFactory = D3D12API::CreateDxgiFactory();
+		DxgiAdapter = D3D12API::GetAdapter(DxgiFactory, true);
+		DxDevice = D3D12API::CreateDevice(DxgiAdapter);
+
+		CreateGlobalDescriptorHeaps();
+	}
+
+	D3D12API::~D3D12API()
+	{
+		SafeRelease(DxgiAdapter);
+		SafeRelease(DxDevice);
+		SafeRelease(DxgiFactory);
+
+		delete RTVDescriptorHeap;
+		delete ResourceDescriptorHeap;
+		delete DSVDescriptorheap;
+		delete SamplerDescriptorHeap;
+
+		D3D12API::ReportLiveObjects();
 	}
 
 	ID3D12Device2* D3D12API::GetDxDevice() const
@@ -532,7 +181,7 @@ namespace Influx::Graphics
 		SamplerDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Sampler, 16, CachedSamplerDescriptorSize);
 		ResourceDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Resource, 64, CachedResourceDescriptorSize);
 
-		for (D3D12DescriptorHeap* heap : { RTVDescriptorHeap, SamplerDescriptorHeap, DSVDescriptorheap, ResourceDescriptorHeap})
+		for (D3D12DescriptorHeap* heap : { RTVDescriptorHeap, SamplerDescriptorHeap, DSVDescriptorheap, ResourceDescriptorHeap })
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
 			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -546,11 +195,12 @@ namespace Influx::Graphics
 
 	void D3D12API::CreateDescriptorOnGlobalHeap(ERHIDescriptorType type, size_t slot)
 	{
-		D3D12DescriptorHeap* heap;
+		D3D12DescriptorHeap* heap = nullptr;
 		size_t descriptorStride = 0;
 
 		switch (type)
 		{
+		default:
 		case ERHIDescriptorType::DSV:
 			heap = DSVDescriptorheap;
 			descriptorStride = CachedDsvDescriptorSize;
@@ -576,8 +226,135 @@ namespace Influx::Graphics
 
 		heap->OccupiedSlotIndices.push_back(freeSlot);
 	}
+#pragma endregion
 
-	/* Dx12 Statics: */
+	/* D3D12CommandList */
+#pragma region D3D12CommandList
+	void D3D12CommandList::TransitionResource(RHIResource* resource, const ERHIResourceState newState)
+	{
+		if (resource->GetCurrentState() == newState) return;
+
+		D3D12Resource* d3d12Resource = (D3D12Resource*)resource;
+		ID3D12Resource* dxResource = d3d12Resource->GetDxResource();
+
+		D3D12_RESOURCE_BARRIER barrier{};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource = dxResource;
+		barrier.Transition.StateBefore = Conversion::ToDx12(resource->GetCurrentState());
+		barrier.Transition.StateAfter = Conversion::ToDx12(newState);
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+		resource->Transition(newState);
+		DxCommandList->ResourceBarrier(1, &barrier);
+	}
+
+	void D3D12CommandList::ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue)
+	{
+		D3D12RenderTargetView* d3d12RTV = (D3D12RenderTargetView*)renderTargetView;
+
+		const FLOAT color[4] = { clearValue[0], clearValue[1], clearValue[2], clearValue[3] };
+		DxCommandList->ClearRenderTargetView(d3d12RTV->DxCPUHandle, color, 0, nullptr);
+	}
+
+	void D3D12CommandList::BindScissorRect(const RHIScissorRect& scissorRect)
+	{
+		D3D12_RECT dxRect{};
+		dxRect.left = scissorRect.Left;
+		dxRect.top = scissorRect.Bottom;
+		dxRect.right = scissorRect.Width;
+		dxRect.bottom = scissorRect.Height;
+		DxCommandList->RSSetScissorRects(1, &dxRect);
+	}
+
+	void D3D12CommandList::BindViewports(const RHIViewport& viewport)
+	{
+		D3D12_VIEWPORT dxViewport{};
+		dxViewport.TopLeftY = viewport.Bottom;
+		dxViewport.TopLeftX = viewport.Left;
+		dxViewport.Width = viewport.Width;
+		dxViewport.Height = viewport.Height;
+		dxViewport.MaxDepth = 1.0f;
+		dxViewport.MinDepth = 0.0f;
+
+		DxCommandList->RSSetViewports(1, &dxViewport);
+	}
+
+	void D3D12CommandList::BindVertexBuffer(RHIVertexBuffer* vertexBuffer)
+	{
+		D3D12VertexBuffer* d3d12VertexBuffer = (D3D12VertexBuffer*)vertexBuffer;
+		D3D12_VERTEX_BUFFER_VIEW vtBufferView = d3d12VertexBuffer->GetDxVertexBufferView();
+		DxCommandList->IASetVertexBuffers(0, 1, &vtBufferView);
+	}
+
+	void D3D12CommandList::SetPrimitiveTopology(ERHIPrimitiveTopology topology)
+	{
+		DxCommandList->IASetPrimitiveTopology(Conversion::ToDx12(topology));
+	}
+
+	void D3D12CommandList::CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition)
+	{
+		if (forceTransition)
+		{
+			TransitionResource(source, ERHIResourceState::CopySource);
+			TransitionResource(dest, ERHIResourceState::CopyDest);
+		}
+
+		DxCommandList->CopyResource(((D3D12Resource*)dest)->GetDxResource(), ((D3D12Resource*)source)->GetDxResource());
+
+		// Force transition back
+		if (forceTransition)
+		{
+			TransitionResource(source, source->GetPreviousState());
+			TransitionResource(dest, dest->GetPreviousState());
+		}
+	}
+
+	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, bool forceTransition)
+	{
+		ClearTextureAsRTV(texture, texture->GetOptimizedClearValue(), forceTransition);
+	}
+
+	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition)
+	{
+		if (forceTransition)
+		{
+			TransitionResource(texture->GetRHIResource(), ERHIResourceState::RenderTarget);
+		}
+
+		ClearRTV(texture->GetRenderTargetView(), clearValue);
+
+		if (forceTransition)
+		{
+			TransitionResource(texture->GetRHIResource(), texture->GetRHIResource()->GetPreviousState());
+		}
+	}
+
+	void D3D12CommandList::BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout)
+	{
+		D3D12GraphicsPipelineLayout* d3d12Layout = (D3D12GraphicsPipelineLayout*)pipelineLayout;
+		DxCommandList->SetGraphicsRootSignature(d3d12Layout->GetDxRootSignature());
+	}
+
+	void D3D12CommandList::BindPipelineState(RHIGraphicsPipeline* pipeline)
+	{
+		D3D12GraphicsPipeline* d3d12Pipeline = (D3D12GraphicsPipeline*)pipeline;
+		DxCommandList->SetPipelineState(d3d12Pipeline->GetDxPipelineState());
+	}
+
+	void D3D12CommandList::BindRenderTarget(RHIRenderTargetView* renderTargetView)
+	{
+		D3D12RenderTargetView* d3d12Rtv = (D3D12RenderTargetView*)renderTargetView;
+		DxCommandList->OMSetRenderTargets(1, &d3d12Rtv->DxCPUHandle, true, nullptr); // Todo DSV?
+	}
+
+	void D3D12CommandList::DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation)
+	{
+		DxCommandList->DrawInstanced(numVerticesPerInstance, numInstances, startVertexLocation, startInstanceLocation);
+	}
+#pragma endregion
+
+	/* D3D12 Static Wrappers: */
 #pragma region D3D12Statics
 	IDXGIFactory4* D3D12API::CreateDxgiFactory()
 	{
@@ -857,6 +634,7 @@ namespace Influx::Graphics
 #pragma endregion
 
 	/* D3D12CommandQueue */
+#pragma region D3D12CommandQueue
 	RHICommandList* D3D12CommandQueue::SetupNewCommandList(GraphicsAPI* api)
 	{
 		ID3D12CommandAllocator* dxCmdAllocator;
@@ -958,151 +736,10 @@ namespace Influx::Graphics
 	{
 		return DxFence->GetCompletedValue() >= completeValue;
 	}
-
-	/* D3D12CommandList */
-	void D3D12CommandList::TransitionResource(RHIResource* resource, const ERHIResourceState newState)
-	{
-		if (resource->GetCurrentState() == newState) return;
-
-		D3D12Resource* d3d12Resource = (D3D12Resource*)resource;
-		ID3D12Resource* dxResource = d3d12Resource->GetDxResource();
-
-		D3D12_RESOURCE_BARRIER barrier{};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource = dxResource;
-		barrier.Transition.StateBefore = Conversion::ToDx12(resource->GetCurrentState());
-		barrier.Transition.StateAfter = Conversion::ToDx12(newState);
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		
-		resource->Transition(newState);
-		DxCommandList->ResourceBarrier(1, &barrier);
-	}
-
-	void D3D12CommandList::ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue)
-	{
-		D3D12RenderTargetView* d3d12RTV = (D3D12RenderTargetView*)renderTargetView;
-
-		const FLOAT color[4] = { clearValue[0], clearValue[1], clearValue[2], clearValue[3] };
-		DxCommandList->ClearRenderTargetView(d3d12RTV->DxCPUHandle, color, 0, nullptr);
-	}
-
-	void D3D12CommandList::BindScissorRect(const RHIScissorRect& scissorRect)
-	{
-		D3D12_RECT dxRect{};
-		dxRect.left = scissorRect.Left;
-		dxRect.top = scissorRect.Bottom;
-		dxRect.right = scissorRect.Width;
-		dxRect.bottom = scissorRect.Height;
-		DxCommandList->RSSetScissorRects(1, &dxRect);
-	}
-
-	void D3D12CommandList::BindViewports(const RHIViewport& viewport)
-	{
-		D3D12_VIEWPORT dxViewport{};
-		dxViewport.TopLeftY = viewport.Bottom;
-		dxViewport.TopLeftX = viewport.Left;
-		dxViewport.Width = viewport.Width;
-		dxViewport.Height = viewport.Height;
-		dxViewport.MaxDepth = 1.0f;
-		dxViewport.MinDepth = 0.0f;
-
-		DxCommandList->RSSetViewports(1, &dxViewport);
-	}
-
-	void D3D12CommandList::BindVertexBuffer(RHIVertexBuffer* vertexBuffer)
-	{
-		D3D12VertexBuffer* d3d12VertexBuffer = (D3D12VertexBuffer*)vertexBuffer;
-		D3D12_VERTEX_BUFFER_VIEW vtBufferView = d3d12VertexBuffer->GetDxVertexBufferView();
-		DxCommandList->IASetVertexBuffers(0, 1, &vtBufferView);
-	}
-
-	void D3D12CommandList::SetPrimitiveTopology(ERHIPrimitiveTopology topology)
-	{
-		DxCommandList->IASetPrimitiveTopology(Conversion::ToDx12(topology));
-	}
-
-	void D3D12CommandList::CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition)
-	{
-		if (forceTransition)
-		{
-			TransitionResource(source, ERHIResourceState::CopySource);
-			TransitionResource(dest, ERHIResourceState::CopyDest);
-		}
-
-		DxCommandList->CopyResource(((D3D12Resource*)dest)->GetDxResource(), ((D3D12Resource*)source)->GetDxResource());
-		
-		// Force transition back
-		if (forceTransition)
-		{
-			TransitionResource(source, source->GetPreviousState());
-			TransitionResource(dest, dest->GetPreviousState());
-		}
-	}
-
-	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, bool forceTransition)
-	{
-		ClearTextureAsRTV(texture, texture->GetOptimizedClearValue(), forceTransition);
-	}
-
-	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition)
-	{
-		if (forceTransition)
-		{
-			TransitionResource(texture->GetRHIResource(), ERHIResourceState::RenderTarget);
-		}
-
-		ClearRTV(texture->GetRenderTargetView(), clearValue);
-
-		if (forceTransition)
-		{
-			TransitionResource(texture->GetRHIResource(), texture->GetRHIResource()->GetPreviousState());
-		}
-	}
-
-	void D3D12CommandList::BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout)
-	{
-		D3D12GraphicsPipelineLayout* d3d12Layout = (D3D12GraphicsPipelineLayout*)pipelineLayout;
-		DxCommandList->SetGraphicsRootSignature(d3d12Layout->GetDxRootSignature());
-	}
-
-	void D3D12CommandList::BindPipelineState(RHIGraphicsPipeline* pipeline)
-	{
-		D3D12GraphicsPipeline* d3d12Pipeline = (D3D12GraphicsPipeline*)pipeline;
-		DxCommandList->SetPipelineState(d3d12Pipeline->GetDxPipelineState());
-	}
-
-	void D3D12CommandList::BindRenderTarget(RHIRenderTargetView* renderTargetView)
-	{
-		D3D12RenderTargetView* d3d12Rtv = (D3D12RenderTargetView*)renderTargetView;
-		DxCommandList->OMSetRenderTargets(1, &d3d12Rtv->DxCPUHandle, true, nullptr); // Todo DSV?
-	}
-
-	void D3D12CommandList::DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation)
-	{
-		DxCommandList->DrawInstanced(numVerticesPerInstance, numInstances, startVertexLocation, startInstanceLocation);
-	}
-
-	/* D3D12Resource */
-	D3D12Resource::D3D12Resource() : D3D12Resource(nullptr, ERHIResourceState::Invalid) {}
-
-	D3D12Resource::D3D12Resource(ID3D12Resource* dxResource, ERHIResourceState initialState)
-	{
-		PreviousState = CurrentState = initialState;
-		DxResource = dxResource;
-	}
-
-	D3D12Resource::~D3D12Resource()
-	{
-		D3D12API::SafeRelease(DxResource);
-	}
-
-	ID3D12Resource* D3D12Resource::GetDxResource() const
-	{
-		return DxResource;
-	}
-
+#pragma endregion
+	
 	/* D3D12SwapChain */
+#pragma region D3D12SwapChain
 	void D3D12SwapChain::Present(bool VSync)
 	{
 		UINT syncIntv = VSync ? 1 : 0;
@@ -1122,17 +759,10 @@ namespace Influx::Graphics
 		D3D12API::SafeRelease(DxgiSwapChain);
 		D3D12API::SafeRelease(DxRenderTargetDescriptorHeap);
 	}
+#pragma endregion
 
-	D3D12VertexBuffer::D3D12VertexBuffer(D3D12Resource* gpuResource)
-	{
-		GpuResource = gpuResource;
-	}
-
-	D3D12_VERTEX_BUFFER_VIEW D3D12VertexBuffer::GetDxVertexBufferView() const
-	{
-		return DxVertexBufferView;
-	}
-
+	/* D3D12DescriptorHeap */
+#pragma region D3D12DescriptorHeap
 	D3D12DescriptorHeap::D3D12DescriptorHeap(const ERHIDescriptorType type, UINT64 maxDescriptorNum, uint32_t descriptorStride)
 		: Type{type}
 		, MaxNumDescriptors{maxDescriptorNum}
@@ -1169,29 +799,13 @@ namespace Influx::Graphics
 			if (IsSlotFree(i)) return i;
 		}
 	}
+#pragma endregion
 
-	ID3D12RootSignature* D3D12GraphicsPipelineLayout::GetDxRootSignature() const
-	{
-		return DxRootSignature;
-	}
-
-	D3D12GraphicsPipelineLayout::~D3D12GraphicsPipelineLayout()
-	{
-		D3D12API::SafeRelease(DxRootSignature);
-	}
-
-	D3D12GraphicsPipeline::~D3D12GraphicsPipeline()
-	{
-		D3D12API::SafeRelease(DxPipelineState);
-	}
-
-	ID3D12PipelineState* D3D12GraphicsPipeline::GetDxPipelineState() const
-	{
-		return DxPipelineState;
-	}
-
+	/* D3D12Shader */
+#pragma region D3D12Shader
 	D3D12Shader::~D3D12Shader()
 	{
 		D3D12API::SafeRelease(DxShaderBlob);
 	}
+#pragma endregion
 }

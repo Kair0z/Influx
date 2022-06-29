@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Source/GraphicsAPI.h"
+#include "GraphicsAPI.h"
 
 namespace Influx::Graphics
 {
