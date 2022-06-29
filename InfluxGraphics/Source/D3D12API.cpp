@@ -140,6 +140,63 @@ namespace Influx::Graphics
 		return d3d12Buffer;
 	}
 
+	RHIConstantBuffer* D3D12API::CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const
+	{
+		D3D12Resource* d3d12Resource = new D3D12Resource();
+		D3D12ConstantBuffer* d3d12Buffer = new D3D12ConstantBuffer(d3d12Resource);
+
+		if (initialData != nullptr && initialSizeInBytes > 0)
+		{
+			D3D12_HEAP_PROPERTIES heapProps{};
+			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+			heapProps.CreationNodeMask = 1;
+			heapProps.VisibleNodeMask = 1;
+
+			// Buffer Resource Desc.
+			D3D12_RESOURCE_DESC resourceDesc{};
+			resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+			resourceDesc.Alignment = 0;
+			resourceDesc.Width = initialSizeInBytes;
+			resourceDesc.Height = 1;
+			resourceDesc.DepthOrArraySize = 1;
+			resourceDesc.MipLevels = 1;
+			resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+			resourceDesc.SampleDesc.Count = 1;
+			resourceDesc.SampleDesc.Quality = 0;
+			resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+			resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+			// Create Buffer Resource
+			DxDevice->CreateCommittedResource(&heapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&resourceDesc,
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr,
+				IID_PPV_ARGS(&d3d12Resource->DxResource));
+
+			ID3D12Resource* dxResource = d3d12Resource->DxResource;
+
+			// Describe and create a constant buffer view.
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.BufferLocation = dxResource->GetGPUVirtualAddress();
+			cbvDesc.SizeInBytes = initialSizeInBytes;
+			DxDevice->CreateConstantBufferView(&cbvDesc, 
+				ResourceDescriptorHeap->DxDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+			// Copy triangle data to vxBuffer
+			UINT8* pDataBegin;
+			D3D12_RANGE cpuReadRange;
+			cpuReadRange.Begin = 0;
+			cpuReadRange.End = 0;
+
+			dxResource->Map(0, &cpuReadRange, reinterpret_cast<void**>(&pDataBegin));
+			memcpy(pDataBegin, initialData, initialSizeInBytes);
+			dxResource->Unmap(0, nullptr);
+		}
+
+		return d3d12Buffer;
+	}
+
 	RHITexture* D3D12API::CreateTexture(const RHITextureDescription& constructionArgs) const
 	{
 		D3D12Texture* d3d12Texture = new D3D12Texture();
@@ -193,8 +250,8 @@ namespace Influx::Graphics
 	RHIRenderTargetView* D3D12API::CreateRenderTargetView(RHITexture* texture) const
 	{
 		// Todo: Find first free index & pop it off the list:
-		int freeIndex = *RTVDescriptorHeap->FreeIndices.begin();
-		RTVDescriptorHeap->FreeIndices.pop_front();
+		int freeIndex = *RTVDescriptorHeap->OccupiedSlotIndices.begin();
+		RTVDescriptorHeap->OccupiedSlotIndices.pop_front();
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_desc_handle = RTVDescriptorHeap->DxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 		cpu_desc_handle.ptr += (GetRTVDescriptorSize() * freeIndex);
@@ -470,10 +527,10 @@ namespace Influx::Graphics
 		CachedRtvDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 		// Create Global Descriptor Heaps:
-		RTVDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::RTV, 64);
-		DSVDescriptorheap = new D3D12DescriptorHeap(ERHIDescriptorType::DSV, 64);
-		SamplerDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Sampler, 16);
-		ResourceDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Resource, 64);
+		RTVDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::RTV, 64, CachedRtvDescriptorSize);
+		DSVDescriptorheap = new D3D12DescriptorHeap(ERHIDescriptorType::DSV, 64, CachedDsvDescriptorSize);
+		SamplerDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Sampler, 16, CachedSamplerDescriptorSize);
+		ResourceDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Resource, 64, CachedResourceDescriptorSize);
 
 		for (D3D12DescriptorHeap* heap : { RTVDescriptorHeap, SamplerDescriptorHeap, DSVDescriptorheap, ResourceDescriptorHeap})
 		{
@@ -483,17 +540,42 @@ namespace Influx::Graphics
 			heapDesc.NumDescriptors = heap->MaxNumDescriptors;
 			heapDesc.Type = Conversion::ToDx12(heap->Type);
 
-			// Clear & create a Freelist:
-			heap->FreeIndices.clear();
-			for (UINT64 i = 0; i < heap->MaxNumDescriptors; ++i)
-			{
-				heap->FreeIndices.push_back(i);
-			}
-
 			DxDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap->DxDescriptorHeap));
 		}
 	}
 
+	void D3D12API::CreateDescriptorOnGlobalHeap(ERHIDescriptorType type, size_t slot)
+	{
+		D3D12DescriptorHeap* heap;
+		size_t descriptorStride = 0;
+
+		switch (type)
+		{
+		case ERHIDescriptorType::DSV:
+			heap = DSVDescriptorheap;
+			descriptorStride = CachedDsvDescriptorSize;
+			break;
+
+		case ERHIDescriptorType::Resource:
+			heap = ResourceDescriptorHeap;
+			descriptorStride = CachedResourceDescriptorSize;
+			break;
+
+		case ERHIDescriptorType::RTV:
+			heap = RTVDescriptorHeap;
+			descriptorStride = CachedRtvDescriptorSize;
+			break;
+
+		case ERHIDescriptorType::Sampler:
+			heap = SamplerDescriptorHeap;
+			descriptorStride = CachedSamplerDescriptorSize;
+			break;
+		}
+
+		size_t freeSlot = heap->GetFirstFreeSlot();
+
+		heap->OccupiedSlotIndices.push_back(freeSlot);
+	}
 
 	/* Dx12 Statics: */
 #pragma region D3D12Statics
@@ -1046,26 +1128,46 @@ namespace Influx::Graphics
 		GpuResource = gpuResource;
 	}
 
-	D3D12VertexBuffer::~D3D12VertexBuffer()
-	{
-		
-	}
-
 	D3D12_VERTEX_BUFFER_VIEW D3D12VertexBuffer::GetDxVertexBufferView() const
 	{
 		return DxVertexBufferView;
 	}
 
-	D3D12DescriptorHeap::D3D12DescriptorHeap(const ERHIDescriptorType type, UINT64 maxDescriptorNum)
+	D3D12DescriptorHeap::D3D12DescriptorHeap(const ERHIDescriptorType type, UINT64 maxDescriptorNum, uint32_t descriptorStride)
 		: Type{type}
 		, MaxNumDescriptors{maxDescriptorNum}
+		, DescriptorStride{descriptorStride}
 	{
-		
 	}
 
 	D3D12DescriptorHeap::~D3D12DescriptorHeap()
 	{
 		D3D12API::SafeRelease(DxDescriptorHeap);
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHeap::GetDescriptorHandle(size_t slot)
+	{
+		if (!IsSlotFree(slot))
+		{
+			// Slot is in the Freelist. Thus there's no descriptor here...
+			return NullDescriptorHandle;
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = DxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		handle.ptr += (slot * DescriptorStride);
+	}
+
+	bool D3D12DescriptorHeap::IsSlotFree(size_t slot) const
+	{
+		return std::find(OccupiedSlotIndices.cbegin(), OccupiedSlotIndices.cend(), slot) == OccupiedSlotIndices.cend();
+	}
+
+	size_t D3D12DescriptorHeap::GetFirstFreeSlot() const
+	{
+		for (int i = 0; i < MaxNumDescriptors; ++i)
+		{
+			if (IsSlotFree(i)) return i;
+		}
 	}
 
 	ID3D12RootSignature* D3D12GraphicsPipelineLayout::GetDxRootSignature() const

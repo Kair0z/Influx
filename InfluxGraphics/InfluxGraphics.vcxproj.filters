@@ -1,11 +1,24 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Source\D3D12API.cpp" />
     <ClCompile Include="Source\GraphicsAPI.cpp" />
+    <ClCompile Include="Source\D3D12API.cpp">
+      <Filter>D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsResource.cpp" />
+    <ClCompile Include="GraphicsPipeline.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\D3D12API.h" />
     <ClInclude Include="Source\GraphicsAPI.h" />
+    <ClInclude Include="Source\D3D12API.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsResource.h" />
+    <ClInclude Include="GraphicsPipeline.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="D3D12">
+      <UniqueIdentifier>{a99bff5f-d6df-4789-9c76-5df583bbec94}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

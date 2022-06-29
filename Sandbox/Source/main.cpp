@@ -119,6 +119,7 @@ int main()
     /* Create Graphics Pipeline Layout */
     RHIGraphicsPipelineLayoutDescription description{};
     description.LayoutBindings.AddBinding<PipelineLayout::ConstantsBinding<16, 0>>();
+    description.LayoutBindings.AddBinding<PipelineLayout::CBVBinding<1, 0>>();
     description.LayoutBindings.AddBinding<PipelineLayout::SRVBinding<1, 1>>();
     RHIGraphicsPipelineLayout* renderPipelineLayout = api.CreateGraphicsPipelineLayout(description);
 

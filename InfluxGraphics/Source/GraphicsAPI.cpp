@@ -90,5 +90,14 @@ namespace Influx::Graphics
 		delete GpuResource;
 		GpuResource = nullptr;
 	}
+
+	RHIConstantBuffer::~RHIConstantBuffer()
+	{
+		delete GpuResource;
+		GpuResource = nullptr;
+
+		delete ConstantBufferView;
+		ConstantBufferView = nullptr;
+	}
 }
 

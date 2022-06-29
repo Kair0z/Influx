@@ -63,6 +63,19 @@ namespace Influx
 			return (a < b) ? b : a;
 		}
 
+		template <typename T>
+		inline T Min(const T& a, const T& b)
+		{
+			return (a < b) ? a : b;
+		}
+
+		template <typename T>
+		T Clamp(const T& value, const T& min, const T& max)
+		{
+			const T t = Max(min, t);
+			return Min(max, t);
+		}
+
 		inline Vector3f HueToRGB(float hue) {
 			float r = abs(hue * 6 - 3) - 1; //red
 			float g = 2 - abs(hue * 6 - 2); //green

@@ -19,10 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GraphicsPipeline.cpp" />
+    <ClCompile Include="GraphicsResource.cpp" />
     <ClCompile Include="Source\D3D12API.cpp" />
     <ClCompile Include="Source\GraphicsAPI.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GraphicsPipeline.h" />
+    <ClInclude Include="GraphicsResource.h" />
     <ClInclude Include="Source\D3D12API.h" />
     <ClInclude Include="Source\GraphicsAPI.h" />
   </ItemGroup>

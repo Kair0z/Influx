@@ -138,6 +138,8 @@ namespace Influx::Graphics
 	class RHIGraphicsPipeline;
 	struct RHIGraphicsPipelineDescription;
 	class RHIShader;
+	class RHIConstantBuffer;
+	class RHIConstantBufferView;
 #pragma endregion
 
 	/* Graphics API */
@@ -148,10 +150,16 @@ namespace Influx::Graphics
 		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const = 0;
 		virtual RHICommandQueue* CreateCommandQueue(const ECommandQueueType type) const = 0;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
+		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
 		virtual RHITexture* CreateTexture(const RHITextureDescription& constructionArgs) const = 0;
 
 		virtual RHIRenderTargetView* CreateRenderTargetView(RHITexture* texture) const = 0;
-		
+		virtual RHIRenderTargetView* CreateRenderTargetView(RHIResource* resource) const = 0;
+		virtual RHIConstantBufferView* CreateConstantBufferView(RHIResource* resource) const = 0;
+		virtual RHIUnorderedAccessView* CreateUnorderedAccessView(RHIResource* resource) const = 0;
+		virtual RHIShaderResourceView* CreateShaderResourceView(RHIResource* resource) const = 0;
+		virtual RHIDepthStencilView* CreateDepthStencilView(RHIResource* resource) const = 0;
+
 		virtual RHIGraphicsPipelineLayout* CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const = 0;
 		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const = 0;
 
@@ -277,95 +285,9 @@ namespace Influx::Graphics
 		bool bIsTearingSupported = false;
 	};
 
-	/* GPU Resource */
-	class RHIResource
-	{
-	public:
-		ERHIResourceState GetCurrentState() const { return CurrentState; }
-		ERHIResourceState GetPreviousState() const { return PreviousState; }
-		void Transition(ERHIResourceState newState) { PreviousState = CurrentState; CurrentState = newState; }
-		
-		RHIResource() = default;
-		RHIResource(const RHIResource&) = delete;
-		RHIResource(RHIResource&&) = delete;
-		RHIResource& operator=(const RHIResource&) = delete;
-		RHIResource& operator=(RHIResource&&) = delete;
-		virtual ~RHIResource() = default;
 
-	protected:
-		ERHIResourceState PreviousState;
-		ERHIResourceState CurrentState;
-	};
-
-	/* Texture */
-	struct RHITextureDescription
-	{
-		float Width;
-		float Height;
-
-		Math::Vector4f OptimizedClearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-		ERHIFormat Format = ERHIFormat::RGBA_8_Unorm;
-		UINT16 MipLevels = 1;
-
-		ERHIResourceState InitialResourceState = ERHIResourceState::RenderTarget;
-	};
-
-	class RHITexture
-	{
-	public:
-		RHIResource* GetRHIResource() const { return Resource; }
-		RHIRenderTargetView* GetRenderTargetView() const { return RenderTargetView; }
-
-		float GetWidth() const { return ConstructionDescription.Width; }
-		float GetHeight() const { return ConstructionDescription.Height; }
-		ERHIFormat GetRHIFormat() const { return ConstructionDescription.Format; }
-		UINT16 GetMipLevels() const { return ConstructionDescription.MipLevels; }
-		const Math::Vector4f& GetOptimizedClearValue() const { return ConstructionDescription.OptimizedClearValue; }
-
-		RHITexture() = default;
-		RHITexture(const RHITexture&) = delete;
-		RHITexture(RHITexture&&) = delete;
-		RHITexture& operator=(const RHITexture&) = delete;
-		RHITexture& operator=(RHITexture&&) = delete;
-		virtual ~RHITexture();
-
-	protected:
-		RHITextureDescription ConstructionDescription;
-
-		RHIResource* Resource;
-		RHIRenderTargetView* RenderTargetView;
-	};
-
-	/* Vertex Buffer */
-	class RHIVertexBuffer
-	{
-	public:
-		RHIVertexBuffer() = default;
-		RHIVertexBuffer(const RHIVertexBuffer&) = delete;
-		RHIVertexBuffer(RHIVertexBuffer&&) = delete;
-		RHIVertexBuffer& operator=(const RHIVertexBuffer&) = delete;
-		RHIVertexBuffer& operator=(RHIVertexBuffer&&) = delete;
-		virtual ~RHIVertexBuffer();
-
-	protected:
-		RHIResource* GpuResource;
-	};
-
-	/* Render Target View */
-	class RHIRenderTargetView
-	{
-	public:
-		RHIRenderTargetView() = default;
-		RHIRenderTargetView(const RHIRenderTargetView&) = delete;
-		RHIRenderTargetView(RHIRenderTargetView&&) = delete;
-		RHIRenderTargetView& operator=(const RHIRenderTargetView&) = delete;
-		RHIRenderTargetView& operator=(RHIRenderTargetView&&) = delete;
-		virtual ~RHIRenderTargetView() = default;
-	};
-
+	
 	/* Pipeline Stuff: */
-
 	namespace Internal
 	{
 		struct BaseResourceBinding

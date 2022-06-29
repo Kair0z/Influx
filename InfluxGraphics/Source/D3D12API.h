@@ -158,6 +158,7 @@ namespace Influx::Graphics
 		virtual RHICommandQueue* CreateCommandQueue(const ECommandQueueType type) const override final;
 		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const override final;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
+		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
 		virtual RHITexture* CreateTexture(const RHITextureDescription& constructionArgs) const override final;
 		virtual RHIRenderTargetView* CreateRenderTargetView(RHITexture* texture) const override final;
 
@@ -196,6 +197,15 @@ namespace Influx::Graphics
 		class D3D12DescriptorHeap* ResourceDescriptorHeap;
 		class D3D12DescriptorHeap* DSVDescriptorheap;
 		class D3D12DescriptorHeap* SamplerDescriptorHeap;
+
+		void CreateDescriptorOnGlobalHeap(ERHIDescriptorType type, size_t slot);
+
+		void CreateRenderTargetViewOnGlobalHeap(size_t slot);
+		void CreateConstantBufferViewOnGlobalHeap(size_t slot);
+		void CreateShaderResourceViewOnGlobalHeap(size_t slot);
+		void CreateUnorderedAccessViewOnGlobalHeap(size_t slot);
+		void CreateSamplerOnGlobalHeap(size_t slot);
+		void CreateDepthStencilViewOnGlobalHeap(size_t slot);
 
 	public:
 		/* D3D12 Static creation functions */
@@ -364,18 +374,33 @@ namespace Influx::Graphics
 	class D3D12DescriptorHeap final
 	{
 	public:
-		D3D12DescriptorHeap(const ERHIDescriptorType type, UINT64 maxDescriptorNum);
+		D3D12DescriptorHeap(const ERHIDescriptorType type, size_t maxDescriptorNum, uint32_t descriptorStride);
 		virtual ~D3D12DescriptorHeap();
+
+		D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle(size_t slot);
+
+		bool IsSlotFree(size_t slot) const;
+		size_t GetFirstFreeSlot() const;
+
+		constexpr static D3D12_CPU_DESCRIPTOR_HANDLE NullDescriptorHandle{};
 
 	private:
 		ID3D12DescriptorHeap* DxDescriptorHeap;
 		ERHIDescriptorType Type;
-		UINT64 MaxNumDescriptors;
+		size_t MaxNumDescriptors;
 
-		std::list<UINT64> FreeIndices;
+		std::list<size_t> OccupiedSlotIndices;
 		
-		D3D12DescriptorHeap() = default;
+		const size_t DescriptorStride;
+
 		friend class D3D12API;
+	};
+
+	class D3D12ConstantBufferView final : public RHIConstantBufferView
+	{
+		D3D12ConstantBufferView() = default;
+		D3D12_CPU_DESCRIPTOR_HANDLE DxCPUHandle;
+		D3D12_GPU_DESCRIPTOR_HANDLE DxGPUHandle;
 	};
 
 	class D3D12RenderTargetView final : public RHIRenderTargetView
@@ -392,12 +417,22 @@ namespace Influx::Graphics
 		D3D12VertexBuffer(D3D12Resource* gpuResource);
 		D3D12_VERTEX_BUFFER_VIEW GetDxVertexBufferView() const;
 
-		virtual ~D3D12VertexBuffer();
+		virtual ~D3D12VertexBuffer() = default;
 
 	private:
 		D3D12_VERTEX_BUFFER_VIEW DxVertexBufferView;
 
 		D3D12VertexBuffer() = default;
+		friend class D3D12API;
+	};
+
+	class D3D12ConstantBuffer final : public RHIConstantBuffer
+	{
+	public:
+		D3D12ConstantBuffer(D3D12Resource* gpuResource);
+		
+	private:
+		D3D12ConstantBuffer() = default;
 		friend class D3D12API;
 	};
 
