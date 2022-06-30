@@ -13,6 +13,9 @@
     <ClCompile Include="Source\D3D12Pipeline.cpp">
       <Filter>D3D12</Filter>
     </ClCompile>
+    <ClCompile Include="Source\VulkanAPI.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GraphicsAPI.h" />
@@ -30,10 +33,16 @@
     <ClInclude Include="Source\D3D12Conversion.h">
       <Filter>D3D12</Filter>
     </ClInclude>
+    <ClInclude Include="Source\VulkanAPI.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D12">
       <UniqueIdentifier>{a99bff5f-d6df-4789-9c76-5df583bbec94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Vulkan">
+      <UniqueIdentifier>{7662fa14-ddb5-4db3-83c5-90f633d1de2a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

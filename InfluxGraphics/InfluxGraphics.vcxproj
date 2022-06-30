@@ -25,6 +25,7 @@
     <ClCompile Include="Source\GraphicsAPI.cpp" />
     <ClCompile Include="Source\RHIPipeline.cpp" />
     <ClCompile Include="Source\RHIResource.cpp" />
+    <ClCompile Include="Source\VulkanAPI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\D3D12API.h" />
@@ -34,6 +35,7 @@
     <ClInclude Include="Source\GraphicsAPI.h" />
     <ClInclude Include="Source\RHIPipeline.h" />
     <ClInclude Include="Source\RHIResource.h" />
+    <ClInclude Include="Source\VulkanAPI.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">
