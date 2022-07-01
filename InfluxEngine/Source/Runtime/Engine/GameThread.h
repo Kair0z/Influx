@@ -3,6 +3,7 @@
 #include <thread>
 #include <condition_variable>
 
+#include "Thread/Thread.h"
 #include "Memory/Reference.h"
 
 namespace Influx
@@ -11,9 +12,13 @@ namespace Influx
 	class Engine;
 	class RenderThread;
 
-	class GameThread final
+	class GameThread final : public Thread
 	{
 	public:
+		virtual void OnStart() override final;
+		virtual void OnTick() override final;
+		virtual void OnEnd() override final;
+
 		void Run(const Engine& engine, RenderThread& rt);
 
 		/* [STALL] Stall the calling thread until the gamethread reaches minvalue */

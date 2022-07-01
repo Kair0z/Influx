@@ -29,5 +29,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core.cpp" />
+    <ClCompile Include="Source\Thread\Thread.cpp" />
   </ItemGroup>
 </Project>

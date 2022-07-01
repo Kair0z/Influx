@@ -9,48 +9,50 @@
 
 namespace Influx
 {
+	void GameThread::OnStart()
+	{
+		mpCurrentWorld = World::Create();
+	}
+
+	void GameThread::OnTick()
+	{
+		const Time::TimePoint preSync = Time::Now();
+
+		// Game thread waits for the Renderthread to be at max [2] frames behind
+		rt.WaitForFrameFinish((mCurrentFrame > 2) ? uint64_t(mCurrentFrame) - 3 : 0);
+
+		const Time::TimePoint preUpdate = Time::Now();
+		DoUpdate(DeltaTime);
+		const Time::TimePoint postUpdate = Time::Now();
+
+		// Update MS variables
+		DeltaTime = Time::GetMillisecondsBetween<float>(preUpdate, lastTime) / 1000.0f;
+		Ms = Time::GetMillisecondsBetween<float>(postUpdate, preUpdate);
+		StallMs = Time::GetMillisecondsBetween<float>(preUpdate, preSync);
+
+		lastTime = preUpdate;
+
+		// Communicating with the Renderthread
+		{
+			RenderFrame* frame = RenderFrame::Create(mpCurrentWorld);
+			rt.EnqueueFrame(frame);
+		}
+
+		++mCurrentFrame;
+	}
+
+	void GameThread::OnEnd()
+	{
+	}
+
 	void GameThread::Run(const Engine& engine, RenderThread& rt)
 	{
 		mCurrentFrame = 0;
-
-		DoInitialize();
-
-		mThreadObject = std::thread([this, &engine, &rt]()
-			{
-				Time::TimePoint lastTime = Time::Now();
-
-				while (!engine.IsQuit())
-				{
-					const Time::TimePoint preSync = Time::Now();
-
-					// Game thread waits for the Renderthread to be at max [2] frames behind
-					rt.WaitForFrameFinish((mCurrentFrame > 2) ? uint64_t(mCurrentFrame) - 3 : 0);
-
-					const Time::TimePoint preUpdate = Time::Now();
-					DoUpdate(DeltaTime);
-					const Time::TimePoint postUpdate = Time::Now();
-
-					// Update MS variables
-					DeltaTime = Time::GetMillisecondsBetween<float>(preUpdate, lastTime) / 1000.0f;
-					Ms = Time::GetMillisecondsBetween<float>(postUpdate, preUpdate);
-					StallMs = Time::GetMillisecondsBetween<float>(preUpdate, preSync);
-
-					lastTime = preUpdate;
-
-					// Communicating with the Renderthread
-					{
-						RenderFrame* frame = RenderFrame::Create(mpCurrentWorld);
-						rt.EnqueueFrame(frame);
-					}
-					
-					++mCurrentFrame;
-				}
-			});
 	}
 
 	void GameThread::DoInitialize()
 	{
-		mpCurrentWorld = World::Create();
+		
 	}
 
 	void GameThread::DoUpdate(const float deltaTime)

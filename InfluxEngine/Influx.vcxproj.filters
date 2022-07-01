@@ -168,6 +168,7 @@
     <ClInclude Include="Source\ThirdParty\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Runtime\Application\WindowEvents.h" />
     <ClInclude Include="Source\Runtime\Rendering\Renderer.h" />
+    <ClInclude Include="Source\Runtime\Engine\Threads\ThreadManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Runtime\Application\WindowsApp.cpp">
@@ -229,5 +230,6 @@
     <ClCompile Include="Source\ThirdParty\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\ThirdParty\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Runtime\Rendering\Renderer.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Threads\ThreadManager.cpp" />
   </ItemGroup>
 </Project>

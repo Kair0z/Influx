@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Engine.h"
 
+#include "Runtime/Engine/Threads/ThreadManager.h"
 #include "Runtime/Events/EventManager.h"
 #include "Runtime/Assets/AssetManager.h"
 #include "Runtime/Application/WindowsApp.h"
@@ -23,6 +24,7 @@ namespace Influx
 			mpGameThread = new GameThread();
 			
 			// Create Managers:
+			ThreadManager = ThreadManager::Create();
 			mpAssetManager = AssetManager::Create();
 			mpEventManager = EventManager::Create();
 			mpApplication = WindowsApp::Create();
@@ -35,6 +37,9 @@ namespace Influx
 		Logger::Info("Engine::Init");
 		{
 			// Run Gamethread & Renderthread
+			ThreadManager->CreateAndLaunchThread<GameThread>();
+			ThreadManager->CreateAndLaunchThread<RenderThread>();
+
 			mpGameThread->Run(*this, *mpRenderThread);
 			mpRenderThread->Run(*this);
 

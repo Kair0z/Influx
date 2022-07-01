@@ -39,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core.cpp" />
+    <ClCompile Include="Source\Thread\Thread.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

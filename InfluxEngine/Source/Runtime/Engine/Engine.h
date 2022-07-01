@@ -14,6 +14,7 @@ namespace Influx
 	class GameThread;
 	class WindowsApp;
 	class World;
+	class ThreadManager;
 	
 	class Engine final
 	{
@@ -34,6 +35,8 @@ namespace Influx
 		
 		uint64_t mCurrentFrame{};
 		std::atomic_bool mIsEngineQuitAtomic{ false };
+
+		Ptr<ThreadManager> ThreadManager;
 
 		// ... MainThread
 		Ptr<RenderThread> mpRenderThread;
