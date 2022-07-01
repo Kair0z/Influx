@@ -7,7 +7,7 @@ namespace Influx::Graphics
 {
 	/* API Create Functions */
 #pragma region APICreateFunctions
-	RHICommandQueue* D3D12API::CreateCommandQueue(const ECommandQueueType type) const
+	RHICommandQueue* D3D12API::CreateCommandQueue(const ERHICommandQueueType type) const
 	{
 		D3D12CommandQueue* result = new D3D12CommandQueue();
 		result->eType = type;

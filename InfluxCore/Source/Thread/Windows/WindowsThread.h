@@ -1,6 +1,5 @@
 #pragma once
 
-#ifdef PLATFORM_WINDOWS
 #include "../../Platform/Windows/WindowsPlatform.h"
 #include "../BaseThread.h"
 
@@ -33,6 +32,5 @@ namespace Influx
 		}
 	};
 }
-#endif
 
 

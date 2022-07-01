@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Core">
+      <UniqueIdentifier>{2EB4837C-1AEB-840D-C3D7-6A10AFED000F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Assert">
+      <UniqueIdentifier>{0FBB976A-7B70-1060-0465-0A3770190764}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Container">
+      <UniqueIdentifier>{800D9E36-6CDB-913C-556F-026341DC6DA1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Function">
+      <UniqueIdentifier>{4359E39A-AF19-5FD1-7854-A84EE4D3A3AD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Geometry">
+      <UniqueIdentifier>{497583BA-B535-FFF0-7E70-486EEAEF43CD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Math">
+      <UniqueIdentifier>{C7E5BF15-3350-748C-7C8E-2532E83752E1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Math\DirectX">
+      <UniqueIdentifier>{899F5412-F5B5-52A8-3E2D-DEC9AA822330}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Memory">
+      <UniqueIdentifier>{D62B9585-42E1-0D7B-CBD5-0752378A047F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Memory\Allocators">
+      <UniqueIdentifier>{D9CF192C-C5C9-427E-AE36-D98E9ACFA8EA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Platform">
+      <UniqueIdentifier>{42848203-AE44-FE39-777F-47B7E3FE4216}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Platform\Windows">
+      <UniqueIdentifier>{7C50E91D-E8BC-A418-B1B0-3C761DDCC680}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Singleton">
+      <UniqueIdentifier>{F0064CD7-DCD4-3FDD-C568-B003B1D51B42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Thread">
+      <UniqueIdentifier>{D5222296-41D8-9A8B-CACC-94623681918F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Thread\Windows">
+      <UniqueIdentifier>{0FD2BB90-7B33-999E-04A1-DF507001D05D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Time">
+      <UniqueIdentifier>{8CDDC315-F847-788C-4186-2932AD2F56E1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Type">
+      <UniqueIdentifier>{FF21C415-6B8C-788C-B4CA-2932207456E1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime">
+      <UniqueIdentifier>{4995DAC4-B574-5960-BE8C-E4362AEBBFC1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Application">
+      <UniqueIdentifier>{8C06398F-F867-169D-81D5-5C4FED354D5C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Assets">
+      <UniqueIdentifier>{0BF038FD-F7BD-2C03-E051-9D29CCBE0868}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Components">
+      <UniqueIdentifier>{BEFA85C0-AADE-4616-133F-4169FF413198}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Engine">
+      <UniqueIdentifier>{AE932C06-9A61-200C-83F5-90326F62FC70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Entity">
+      <UniqueIdentifier>{75B53306-6183-270C-4A17-983236840371}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Events">
+      <UniqueIdentifier>{0D55BC06-F922-B00C-E2B6-2033CE238C71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Launch">
+      <UniqueIdentifier>{B3329D15-9F00-911B-8894-014274016D80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Logger">
+      <UniqueIdentifier>{F8BE9216-E48C-861C-CD20-F742B98D6281}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\RHI">
+      <UniqueIdentifier>{FB3D612F-67F3-D924-F0E7-D3FB5C9CD028}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\RHI\D3D12">
+      <UniqueIdentifier>{28A58200-94BB-8096-DD32-0CB84988511E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Rendering">
+      <UniqueIdentifier>{D64D3C62-4264-3AF8-8BDB-C519F7300B80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\Window">
+      <UniqueIdentifier>{10B6D22F-FC83-C635-E517-375CD184A29A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime\World">
+      <UniqueIdentifier>{C042198D-2C03-95C3-F53D-DE4061BDD99F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Influx.h" />
+    <ClInclude Include="Source\Runtime\Application\WindowsApp.h">
+      <Filter>Runtime\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Assets\AssetManager.h">
+      <Filter>Runtime\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Components\Component.h">
+      <Filter>Runtime\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Components\RenderComponent.h">
+      <Filter>Runtime\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Components\TagComponent.h">
+      <Filter>Runtime\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Components\TransformComponent.h">
+      <Filter>Runtime\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Engine.h">
+      <Filter>Runtime\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\EngineEvents.h">
+      <Filter>Runtime\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Entity\EntityManager.h">
+      <Filter>Runtime\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Events\Event.h">
+      <Filter>Runtime\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Events\EventManager.h">
+      <Filter>Runtime\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Launch\Launch.h">
+      <Filter>Runtime\Launch</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Launch\WindowsLaunch.h">
+      <Filter>Runtime\Launch</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Logger\Logger.h">
+      <Filter>Runtime\Logger</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Rendering\RenderFrame.h">
+      <Filter>Runtime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Rendering\RenderThread.h">
+      <Filter>Runtime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Window\Window.h">
+      <Filter>Runtime\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Window\WindowEvents.h">
+      <Filter>Runtime\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\World\GameObject.h">
+      <Filter>Runtime\World</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\World\World.h">
+      <Filter>Runtime\World</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\pch.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameThread.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imconfig.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imgui.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imgui_impl_dx12.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imgui_impl_win32.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imgui_internal.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imgui_single_file.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imgui_stdlib.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imstb_textedit.h" />
+    <ClInclude Include="Source\ThirdParty\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Source\Runtime\Application\WindowEvents.h" />
+    <ClInclude Include="Source\Runtime\Rendering\Renderer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\Runtime\Application\WindowsApp.cpp">
+      <Filter>Runtime\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Assets\AssetManager.cpp">
+      <Filter>Runtime\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Components\Component.cpp">
+      <Filter>Runtime\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Components\RenderComponent.cpp">
+      <Filter>Runtime\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Components\TagComponent.cpp">
+      <Filter>Runtime\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Components\TransformComponent.cpp">
+      <Filter>Runtime\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Engine.cpp">
+      <Filter>Runtime\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Entity\EntityManager.cpp">
+      <Filter>Runtime\Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Events\Event.cpp">
+      <Filter>Runtime\Events</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Events\EventManager.cpp">
+      <Filter>Runtime\Events</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Logger\Logger.cpp">
+      <Filter>Runtime\Logger</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Rendering\RenderFrame.cpp">
+      <Filter>Runtime\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Rendering\RenderThread.cpp">
+      <Filter>Runtime\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Window\Window.cpp">
+      <Filter>Runtime\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\World\GameObject.cpp">
+      <Filter>Runtime\World</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\World\World.cpp">
+      <Filter>Runtime\World</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\pch.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameThread.cpp" />
+    <ClCompile Include="Source\ThirdParty\ImGui\imgui.cpp" />
+    <ClCompile Include="Source\ThirdParty\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="Source\ThirdParty\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="Source\ThirdParty\ImGui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Source\ThirdParty\ImGui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Source\ThirdParty\ImGui\imgui_stdlib.cpp" />
+    <ClCompile Include="Source\ThirdParty\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="Source\ThirdParty\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Source\Runtime\Rendering\Renderer.cpp" />
+  </ItemGroup>
+</Project>

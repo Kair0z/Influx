@@ -44,7 +44,7 @@ namespace Influx::Graphics
 		}
 		virtual ~D3D12API();
 
-		virtual RHICommandQueue* CreateCommandQueue(const ECommandQueueType type) const override final;
+		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const override final;
 		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const override final;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
 		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;

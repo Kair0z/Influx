@@ -3,18 +3,13 @@
 #ifndef _WINDOWS_H_
 #define _WINDOWS_H_
 
-#ifdef PLATFORM_WINDOWS
-#include "../Platform.h"
-#include "../../Type/Type.h"
-#include "../../Math/Math.h"
+#include "Platform/Platform.h"
+#include "Math/Math.h"
 
 /* Include Windows header... */
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-
-#ifdef CreateWindow
 #undef CreateWindow
-#endif
 
 namespace Influx
 {
@@ -164,5 +159,4 @@ namespace Influx
 	};
 }
 
-#endif
 #endif
