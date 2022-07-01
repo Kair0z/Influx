@@ -5,11 +5,11 @@ VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Influx", "Engine\Influx.vcxproj", "{BBEB27BA-A78D-5290-9048-66E47C89D9E0}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sandbox", "Sandbox\Sandbox.vcxproj", "{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InfluxCore", "InfluxCore\InfluxCore.vcxproj", "{AAE8EF84-74C2-44F9-804E-6C08ABE0F35B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InfluxGraphics", "InfluxGraphics\InfluxGraphics.vcxproj", "{E1AAFA87-0B93-488E-B355-A649FF10D1DC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sandbox", "Sandbox\Sandbox.vcxproj", "{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,22 +39,6 @@ Global
 		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.ReleaseEditor|x64.Build.0 = ReleaseEditor|x64
 		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.ReleaseEditor|x86.ActiveCfg = ReleaseEditor|x64
 		{BBEB27BA-A78D-5290-9048-66E47C89D9E0}.ReleaseEditor|x86.Build.0 = ReleaseEditor|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x64.ActiveCfg = Debug|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x64.Build.0 = Debug|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x86.ActiveCfg = Debug|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x86.Build.0 = Debug|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x64.ActiveCfg = DebugEditor|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x64.Build.0 = DebugEditor|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x86.ActiveCfg = DebugEditor|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x86.Build.0 = DebugEditor|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x64.ActiveCfg = Release|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x64.Build.0 = Release|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x86.ActiveCfg = Release|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x86.Build.0 = Release|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x64.ActiveCfg = ReleaseEditor|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x64.Build.0 = ReleaseEditor|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x86.ActiveCfg = ReleaseEditor|x64
-		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x86.Build.0 = ReleaseEditor|x64
 		{AAE8EF84-74C2-44F9-804E-6C08ABE0F35B}.Debug|x64.ActiveCfg = Debug|x64
 		{AAE8EF84-74C2-44F9-804E-6C08ABE0F35B}.Debug|x64.Build.0 = Debug|x64
 		{AAE8EF84-74C2-44F9-804E-6C08ABE0F35B}.Debug|x86.ActiveCfg = Debug|Win32
@@ -87,6 +71,22 @@ Global
 		{E1AAFA87-0B93-488E-B355-A649FF10D1DC}.ReleaseEditor|x64.Build.0 = Release|x64
 		{E1AAFA87-0B93-488E-B355-A649FF10D1DC}.ReleaseEditor|x86.ActiveCfg = Release|Win32
 		{E1AAFA87-0B93-488E-B355-A649FF10D1DC}.ReleaseEditor|x86.Build.0 = Release|Win32
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x64.ActiveCfg = Debug|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x64.Build.0 = Debug|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x86.ActiveCfg = Debug|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Debug|x86.Build.0 = Debug|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x64.ActiveCfg = DebugEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x64.Build.0 = DebugEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x86.ActiveCfg = DebugEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.DebugEditor|x86.Build.0 = DebugEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x64.ActiveCfg = Release|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x64.Build.0 = Release|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x86.ActiveCfg = Release|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.Release|x86.Build.0 = Release|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x64.ActiveCfg = ReleaseEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x64.Build.0 = ReleaseEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x86.ActiveCfg = ReleaseEditor|x64
+		{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}.ReleaseEditor|x86.Build.0 = ReleaseEditor|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

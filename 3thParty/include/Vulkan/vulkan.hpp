@@ -39,7 +39,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 #if 17 <= VULKAN_HPP_CPP_VERSION
 #  include <string_view>
 #endif
@@ -108,7 +108,7 @@ extern "C" __declspec( dllimport ) FARPROC __stdcall GetProcAddress( HINSTANCE h
 #  define __has_include( x ) false
 #endif
 
-#if ( 201907 <= __cpp_lib_three_way_comparison ) && __has_include( <compare> ) && !defined( VULKAN_HPP_NO_SPACESHIP_OPERATOR )
+#if ( 201711 <= __cpp_impl_three_way_comparison ) && __has_include( <compare> ) && !defined( VULKAN_HPP_NO_SPACESHIP_OPERATOR )
 #  define VULKAN_HPP_HAS_SPACESHIP_OPERATOR
 #endif
 #if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )

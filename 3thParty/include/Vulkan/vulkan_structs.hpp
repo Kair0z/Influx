@@ -2611,10 +2611,10 @@ namespace VULKAN_HPP_NAMESPACE
 
   public:
     VULKAN_HPP_NAMESPACE::TransformMatrixKHR transform = {};
-    uint32_t                                 instanceCustomIndex                    : 24;
-    uint32_t                                 mask                                   : 8;
+    uint32_t                                 instanceCustomIndex : 24;
+    uint32_t                                 mask : 8;
     uint32_t                                 instanceShaderBindingTableRecordOffset : 24;
-    VkGeometryInstanceFlagsKHR               flags                                  : 8;
+    VkGeometryInstanceFlagsKHR               flags : 8;
     uint64_t                                 accelerationStructureReference = {};
   };
   VULKAN_HPP_STATIC_ASSERT( sizeof( VULKAN_HPP_NAMESPACE::AccelerationStructureInstanceKHR ) == sizeof( VkAccelerationStructureInstanceKHR ),
@@ -2763,10 +2763,10 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     VULKAN_HPP_NAMESPACE::TransformMatrixKHR transformT0 = {};
     VULKAN_HPP_NAMESPACE::TransformMatrixKHR transformT1 = {};
-    uint32_t                                 instanceCustomIndex                    : 24;
-    uint32_t                                 mask                                   : 8;
+    uint32_t                                 instanceCustomIndex : 24;
+    uint32_t                                 mask : 8;
     uint32_t                                 instanceShaderBindingTableRecordOffset : 24;
-    VkGeometryInstanceFlagsKHR               flags                                  : 8;
+    VkGeometryInstanceFlagsKHR               flags : 8;
     uint64_t                                 accelerationStructureReference = {};
   };
   VULKAN_HPP_STATIC_ASSERT( sizeof( VULKAN_HPP_NAMESPACE::AccelerationStructureMatrixMotionInstanceNV ) ==
@@ -3380,10 +3380,10 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     VULKAN_HPP_NAMESPACE::SRTDataNV transformT0 = {};
     VULKAN_HPP_NAMESPACE::SRTDataNV transformT1 = {};
-    uint32_t                        instanceCustomIndex                    : 24;
-    uint32_t                        mask                                   : 8;
+    uint32_t                        instanceCustomIndex : 24;
+    uint32_t                        mask : 8;
     uint32_t                        instanceShaderBindingTableRecordOffset : 24;
-    VkGeometryInstanceFlagsKHR      flags                                  : 8;
+    VkGeometryInstanceFlagsKHR      flags : 8;
     uint64_t                        accelerationStructureReference = {};
   };
   VULKAN_HPP_STATIC_ASSERT( sizeof( VULKAN_HPP_NAMESPACE::AccelerationStructureSRTMotionInstanceNV ) == sizeof( VkAccelerationStructureSRTMotionInstanceNV ),

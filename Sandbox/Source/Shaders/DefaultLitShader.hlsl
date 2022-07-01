@@ -1,6 +1,4 @@
 
-float4x4 gMatWorldViewProj;
-
 struct VertexInput
 {
 	float4 position : POSITION;
