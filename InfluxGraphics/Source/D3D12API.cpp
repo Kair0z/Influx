@@ -245,8 +245,9 @@ namespace Influx::Graphics
 		barrier.Transition.StateAfter = Conversion::ToDx12(newState);
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-		resource->Transition(newState);
 		DxCommandList->ResourceBarrier(1, &barrier);
+
+		resource->Transition(newState);
 	}
 
 	void D3D12CommandList::ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue)
@@ -323,11 +324,6 @@ namespace Influx::Graphics
 		}
 
 		ClearRTV(texture->GetRenderTargetView(), clearValue);
-
-		if (forceTransition)
-		{
-			TransitionResource(texture->GetRHIResource(), texture->GetRHIResource()->GetPreviousState());
-		}
 	}
 
 	void D3D12CommandList::BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout)

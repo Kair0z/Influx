@@ -92,7 +92,6 @@ namespace Influx
 		textureDescription.Height = GfxSwapChain->GetHeight();
 		textureDescription.Width = GfxSwapChain->GetWidth();
 		textureDescription.InitialResourceState = Graphics::ERHIResourceState::RenderTarget;
-		textureDescription.MipLevels = 0;
 		textureDescription.OptimizedClearValue = { 1.0f, 0.0f, 0.0f, 1.0f };
 		GameRenderTexture = GfxRenderAPI->CreateTexture(textureDescription);
 	}
@@ -175,14 +174,14 @@ namespace Influx
 		mRenderViewCondition.notify_one();
 		mThreadObject.join();
 
+		// Flush commandqueue
+		GfxCommandQueue->Flush();
+
 		// Delete resources...
 		delete SceneRenderer;
 		delete GameRenderTexture;
 		delete GfxCommandQueue;
 		delete GfxSwapChain;
-		delete GfxRenderAPI;
-
-		Graphics::D3D12API::ReportLiveObjects();
 	}
 
 	void RenderThread::LogInfo(const float msBetweenFrames, const float msWaitForGT)
