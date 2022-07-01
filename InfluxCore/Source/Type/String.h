@@ -2,9 +2,9 @@
 
 #include <string>
 #include <algorithm>
+
 namespace Influx
 {
-	// TODO: Make own string once that's necessary enough ;)
 	using String = std::string;
 	using WString = std::wstring;
 

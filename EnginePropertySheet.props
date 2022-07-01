@@ -5,7 +5,6 @@
   <PropertyGroup>
     <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Int\$(Platform)\$(Configuration)\</IntDir>
-    <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup />
   <ItemGroup />

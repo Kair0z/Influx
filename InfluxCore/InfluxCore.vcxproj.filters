@@ -27,4 +27,8 @@
     <ClInclude Include="Source\Type\Type.h" />
     <ClInclude Include="Source\Core.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Core.cpp" />
+    <ClCompile Include="Source\Thread\Thread.cpp" />
+  </ItemGroup>
 </Project>

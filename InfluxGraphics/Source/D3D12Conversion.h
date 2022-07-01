@@ -4,12 +4,12 @@
 
 namespace Influx::Graphics::Conversion
 {
-	constexpr D3D12_COMMAND_LIST_TYPE ToDx12(ECommandQueueType type)
+	constexpr D3D12_COMMAND_LIST_TYPE ToDx12(ERHICommandQueueType type)
 	{
 		switch (type)
 		{
 		default:
-		case ECommandQueueType::Graphics:
+		case ERHICommandQueueType::Graphics:
 			return D3D12_COMMAND_LIST_TYPE_DIRECT;
 		}
 	}

@@ -98,7 +98,7 @@ namespace Influx::Graphics
 		Triangle
 	};
 
-	enum class ECommandQueueType
+	enum class ERHICommandQueueType
 	{
 		Graphics
 	};
@@ -151,7 +151,7 @@ namespace Influx::Graphics
 	public:
 		/* Graphics API Interface: */
 		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const = 0;
-		virtual RHICommandQueue* CreateCommandQueue(const ECommandQueueType type) const = 0;
+		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const = 0;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
 		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
 		virtual RHITexture* CreateTexture(const RHITextureDescription& constructionArgs) const = 0;
@@ -253,7 +253,7 @@ namespace Influx::Graphics
 		virtual ~RHICommandQueue() = default;
 
 	protected:
-		ECommandQueueType eType;
+		ERHICommandQueueType eType;
 	};
 
 	/* Swapchain */
