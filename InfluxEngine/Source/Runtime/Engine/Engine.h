@@ -12,6 +12,7 @@ namespace Influx
 	class EventManager;
 	class RenderThread;
 	class GameThread;
+	class EventThread;
 	class WindowsApp;
 	class World;
 	class ThreadManager;
@@ -28,19 +29,19 @@ namespace Influx
 
 	private:
 		Ptr<AssetManager> mpAssetManager{};
-		Ptr<EventManager> mpEventManager{};
 
 		// [Platform] For now .. only Windows
 		Ptr<WindowsApp> mpApplication{};
 		
+		Ptr<ThreadManager> mpThreadManager;
+
 		uint64_t mCurrentFrame{};
 		std::atomic_bool mIsEngineQuitAtomic{ false };
 
-		Ptr<ThreadManager> ThreadManager;
-
-		// ... MainThread
+		// Thread References
 		Ptr<RenderThread> mpRenderThread;
 		Ptr<GameThread> mpGameThread;
+		Ptr<EventThread> mpEventThread;
 
 	private:
 		void OnEvent(const class Event* e);

@@ -12,17 +12,28 @@ Influx::Vertex gTriangleVertices[3] =
 
 namespace Influx
 {
-	Ptr<Renderer> Renderer::Create(const Graphics::GraphicsAPI* gfxApi)
+	void Renderer::InitializeRHI(const Graphics::GraphicsAPI* gfxApi)
 	{
-		Ptr<Renderer> newRenderer = new Renderer();
+		CreateShaders(gfxApi);
+		CreatePipelineObjects(gfxApi);
 
-		newRenderer->CreateShaders(gfxApi);
-		newRenderer->CreatePipelineObjects(gfxApi);
+		gfxApi->CreateVertexBuffer(&gTriangleVertices[0].Position[0], sizeof(gTriangleVertices), sizeof(Vertex));
+	}
 
-		// Scene Vertexbuffer...
-		newRenderer->GfxSceneVertexBuffer = gfxApi->CreateVertexBuffer(&gTriangleVertices[0].Position[0], sizeof(gTriangleVertices), sizeof(Vertex));
+	void Renderer::OnRender(Graphics::RHICommandList* cmdList, Graphics::RHITexture* gameRenderTexture)
+	{
+		GfxViewport = Graphics::RHIViewport(gameRenderTexture->GetWidth(), gameRenderTexture->GetHeight());
+		GfxScissorRect = Graphics::RHIScissorRect(gameRenderTexture->GetWidth(), gameRenderTexture->GetHeight());
 
-		return newRenderer;
+		cmdList->BindPipelineLayout(GfxPipelineLayout);
+		cmdList->BindPipelineState(GfxPipeline);
+		cmdList->BindViewports(GfxViewport);
+		cmdList->BindScissorRect(GfxScissorRect);
+
+		cmdList->BindVertexBuffer(GfxSceneVertexBuffer);
+		cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
+		cmdList->BindRenderTarget(gameRenderTexture->GetRenderTargetView());
+		cmdList->DrawInstanced(3, 1);
 	}
 
 	void Renderer::CreatePipelineObjects(const Graphics::GraphicsAPI* gfxApi)
@@ -54,22 +65,6 @@ namespace Influx
 	{
 		GfxVertexShader = gfxApi->CreateRHIShader(L"Source/Shaders/DefaultLitShader.hlsl", "VertexMain", Graphics::ERHIShaderType::VertexShader, Graphics::ERHIShaderModel::SM_5_0);
 		GfxPixelShader = gfxApi->CreateRHIShader(L"Source/Shaders/DefaultLitShader.hlsl", "PixelMain", Graphics::ERHIShaderType::PixelShader, Graphics::ERHIShaderModel::SM_5_0);
-	}
-
-	void Renderer::Render(Graphics::RHICommandList* cmdList, Graphics::RHITexture* targetRenderTexture)
-	{
-		GfxViewport = Graphics::RHIViewport(targetRenderTexture->GetWidth(), targetRenderTexture->GetHeight());
-		GfxScissorRect = Graphics::RHIScissorRect(targetRenderTexture->GetWidth(), targetRenderTexture->GetHeight());
-
-		cmdList->BindPipelineLayout(GfxPipelineLayout);
-		cmdList->BindPipelineState(GfxPipeline);
-		cmdList->BindViewports(GfxViewport);
-		cmdList->BindScissorRect(GfxScissorRect);
-
-		cmdList->BindVertexBuffer(GfxSceneVertexBuffer);
-		cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
-		cmdList->BindRenderTarget(targetRenderTexture->GetRenderTargetView());
-		cmdList->DrawInstanced(3, 1);
 	}
 
 	Renderer::~Renderer()

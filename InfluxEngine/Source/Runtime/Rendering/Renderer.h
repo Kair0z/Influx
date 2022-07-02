@@ -6,12 +6,18 @@
 
 namespace Influx
 {
-	class Renderer final
+	class RenderInterface
+	{
+		virtual void InitializeRHI(const Graphics::GraphicsAPI* gfxApi) = 0;
+		virtual void OnRender(Graphics::RHICommandList* cmdList, Graphics::RHITexture* gameRenderTexture) = 0;
+	};
+
+	class Renderer final : public RenderInterface
 	{
 	public:
-		static Ptr<Renderer> Create(const Graphics::GraphicsAPI* gfxApi);
-
-		virtual void Render(Graphics::RHICommandList* cmdList, Graphics::RHITexture* gameRenderTexture);
+		Renderer() = default;
+		virtual void InitializeRHI(const Graphics::GraphicsAPI* gfxApi) override final;
+		virtual void OnRender(Graphics::RHICommandList* cmdList, Graphics::RHITexture* gameRenderTexture) override final;
 
 		~Renderer();
 
@@ -29,8 +35,6 @@ namespace Influx
 
 		Graphics::RHIShader* GfxVertexShader;
 		Graphics::RHIShader* GfxPixelShader;
-
-		Renderer() = default;
 	};
 }
 

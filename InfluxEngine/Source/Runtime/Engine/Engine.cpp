@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "Engine.h"
 
-#include "Runtime/Engine/Threads/ThreadManager.h"
+#include "Runtime/Engine/ThreadManager.h"
 #include "Runtime/Events/EventManager.h"
 #include "Runtime/Assets/AssetManager.h"
 #include "Runtime/Application/WindowsApp.h"
 
 #include "Runtime/Rendering/RenderThread.h"
 #include "Runtime/Engine/GameThread.h"
+#include "Runtime/Events/EventThread.h"
 
 #include "EngineEvents.h"
 
@@ -24,52 +25,38 @@ namespace Influx
 			mpGameThread = new GameThread();
 			
 			// Create Managers:
-			ThreadManager = ThreadManager::Create();
+			mpThreadManager = ThreadManager::Create();
 			mpAssetManager = AssetManager::Create();
-			mpEventManager = EventManager::Create();
 			mpApplication = WindowsApp::Create();
 
 			/* Provide locators */
-			EventManagerLocator::Provide(mpEventManager);
 			ApplicationLocator::Provide(mpApplication);
 		}
 
 		Logger::Info("Engine::Init");
 		{
 			// Run Gamethread & Renderthread
-			ThreadManager->CreateAndLaunchThread<GameThread>();
-			ThreadManager->CreateAndLaunchThread<RenderThread>();
-
-			mpGameThread->Run(*this, *mpRenderThread);
-			mpRenderThread->Run(*this);
+			mpRenderThread = mpThreadManager->CreateAndLaunchThread<RenderThread, EThreads::RenderThread>();
+			mpGameThread = mpThreadManager->CreateAndLaunchThread<GameThread, EThreads::GameThread>();
+			mpGameThread->BindToRenderThread(mpRenderThread);
+			mpEventThread = mpThreadManager->CreateAndLaunchThread<EventThread, EThreads::EventThread>();
 
 			/* Subscribe to EventManager for Engine Events */
-			mpEventManager->SubscribeToChannel<EventCategory::Engine>([this](Event* e) { OnEvent(e); });
-			mpEventManager->SubscribeToChannel<EventCategory::Window>([this](Event* e) { mpRenderThread->OnEvent(e); });
+			EventManagerLocator::Get()->SubscribeToChannel<EventCategory::Engine>([this](Event* e) { OnEvent(e); });
+			EventManagerLocator::Get()->SubscribeToChannel<EventCategory::Window>([this](Event* e) { mpRenderThread->OnEvent(e); });
 		}
 
-		// Main-thread loop [For now events & Windows Events]
+		// Main-thread loop
 		while (!mIsEngineQuitAtomic)
 		{
-			// 'Eventthread'
-			{
-				// [Platform] Poll Windows Events
-				mpApplication->PollEvents();
-
-				// [TODO] put separate channel-flushing on separate threads?
-				mpEventManager->FlushAllChannels();
-			}
-
 			++mCurrentFrame;
 		}
 	}
 
 	Engine::~Engine()
 	{
-		delete mpRenderThread;
-		delete mpGameThread;
+		delete mpThreadManager;
 		delete mpAssetManager;
-		delete mpEventManager;
 		delete mpApplication;
 	}
 

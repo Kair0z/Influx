@@ -9,5 +9,16 @@ namespace Influx
 
 		return newThreadManager;
 	}
+
+	ThreadManager::~ThreadManager()
+	{
+		for (Thread*& thread : mThreads)
+		{
+			delete thread;
+			thread = nullptr;
+		}
+
+		mThreads.clear();
+	}
 }
 

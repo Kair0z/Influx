@@ -1,6 +1,10 @@
 #pragma once
 #include <thread>
 #include "../Time/Timer.h"
+#include "../Container/Vector.h"
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 
 namespace Influx
 {
@@ -12,7 +16,12 @@ namespace Influx
 		virtual void OnTick() {};
 		virtual void OnEnd() {};
 
-		const std::thread& GetInternalThreadObject();
+		const std::thread& GetInternalThreadObject() const;
+		uint64_t GetTickCount() const;
+		bool IsQuit() const;
+		float GetMsBetweenTicks() const;
+
+		virtual ~Thread();
 
 	private:
 		std::thread StdThread;
@@ -20,6 +29,7 @@ namespace Influx
 		uint64_t TickCount{};
 
 		Time::TimePoint LastTick;
-		float MsBetweenTicks{};
+		float TickMs{};
+		float StallMs{};
 	};
 }

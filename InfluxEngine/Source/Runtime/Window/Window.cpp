@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Window.h"
+#include "Platform/WindowsPlatform.h"
 
 #ifdef PLATFORM_WINDOWS
 

@@ -5,6 +5,7 @@
 #include "Runtime/Events/EventManager.h"
 #include "Runtime/Engine/EngineEvents.h"
 #include "Runtime/Application/WindowEvents.h"
+#include "Platform/WindowsPlatform.h"
 
 namespace Influx
 {

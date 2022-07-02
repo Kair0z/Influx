@@ -1,6 +1,7 @@
 #pragma once
 
 #ifdef PLATFORM_WINDOWS
+#include <Windows.h>
 
 namespace Influx
 {
