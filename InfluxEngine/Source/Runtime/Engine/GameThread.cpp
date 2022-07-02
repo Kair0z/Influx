@@ -11,104 +11,52 @@ namespace Influx
 {
 	void GameThread::OnStart()
 	{
-		mpCurrentWorld = World::Create();
+		CurrentWorld = World::Create();
 	}
 
 	void GameThread::OnTick()
 	{
 		const Time::TimePoint preSync = Time::Now();
 
-		// Game thread waits for the Renderthread to be at max [2] frames behind
-		rt.WaitForFrameFinish((mCurrentFrame > 2) ? uint64_t(mCurrentFrame) - 3 : 0);
-
-		const Time::TimePoint preUpdate = Time::Now();
-		DoUpdate(DeltaTime);
-		const Time::TimePoint postUpdate = Time::Now();
-
-		// Update MS variables
-		DeltaTime = Time::GetMillisecondsBetween<float>(preUpdate, lastTime) / 1000.0f;
-		Ms = Time::GetMillisecondsBetween<float>(postUpdate, preUpdate);
-		StallMs = Time::GetMillisecondsBetween<float>(preUpdate, preSync);
-
-		lastTime = preUpdate;
+		// Stall this thread until Renderthread is at max [2] frames behind...
+		if (BoundRenderThread)
+		{
+			BoundRenderThread->WaitForFrameFinish((GetTickCount() > 2) ? GetTickCount() - 3 : 0);
+		}
+		
+		DispatchUpdate(0.0f);
 
 		// Communicating with the Renderthread
+		if (BoundRenderThread)
 		{
-			RenderFrame* frame = RenderFrame::Create(mpCurrentWorld);
-			rt.EnqueueFrame(frame);
+			RenderFrame* frame = RenderFrame::Create(CurrentWorld);
+			BoundRenderThread->EnqueueFrame(frame);
 		}
-
-		++mCurrentFrame;
 	}
 
 	void GameThread::OnEnd()
 	{
 	}
 
-	void GameThread::Run(const Engine& engine, RenderThread& rt)
+	void GameThread::BindToRenderThread(RenderThread* renderThread)
 	{
-		mCurrentFrame = 0;
+		BoundRenderThread = renderThread;
 	}
 
-	void GameThread::DoInitialize()
+	void GameThread::DispatchInitialize()
 	{
 		
 	}
 
-	void GameThread::DoUpdate(const float deltaTime)
+	void GameThread::DispatchUpdate(const float deltaTime)
 	{
 		using namespace std::chrono_literals;
 		std::this_thread::sleep_for(50ms);
 	}
 
-	void GameThread::ShutDown()
-	{
-		delete mpCurrentWorld;
-	}
-
-	void GameThread::LogInfo(const float ms, const float msWait)
-	{
-		static float averageTime{};
-		static float averageWaitTime{};
-		constexpr static int updateTimeLogIntv = 1;
-		averageTime += ms;
-		averageWaitTime += msWait;
-
-		if (mCurrentFrame % updateTimeLogIntv == 0)
-		{
-			averageTime /= updateTimeLogIntv;
-			averageWaitTime /= updateTimeLogIntv;
-
-			Logger::Info("GameThread: [ms: {}][FPS: {}] - [Wait for RT: {}]", averageTime, 1.0f / averageTime * 1000.0f, averageWaitTime);
-			averageTime = 0.0f;
-			averageWaitTime = 0.0f;
-		}
-	}
-
-	uint64_t GameThread::WaitForFrameFinish(uint64_t minValue)
-	{
-		return mCurrentFrame;
-	}
-
-	float GameThread::GetDeltaTime() const
-	{
-		return DeltaTime;
-	}
-
-	float GameThread::GetMs() const
-	{
-		return Ms;
-	}
-
-	float GameThread::GetStallMs() const
-	{
-		return StallMs;
-	}
-
 	GameThread::~GameThread()
 	{
-		mThreadObject.join();
-		ShutDown();
+		delete CurrentWorld;
 	}
 }
 

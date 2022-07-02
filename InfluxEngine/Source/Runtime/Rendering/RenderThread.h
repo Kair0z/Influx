@@ -15,12 +15,16 @@ namespace Influx
 	class World;
 	class Renderer;
 	class Engine;
+	class EngineInspectorGUI;
 
-	class RenderThread final
+	class RenderThread final : public Thread
 	{
 	public:
-		void Run(const Engine& engine);
 		void OnEvent(const class Event* e);
+
+		virtual void OnStart() override final;
+		virtual void OnTick() override final;
+		virtual void OnEnd() override final;
 
 		/* [STALL] Stall the calling thread until the renderthread reaches minvalue */
 		uint64_t WaitForFrameFinish(uint64_t minValue);
@@ -28,17 +32,13 @@ namespace Influx
 		/* Enqueue a new 'view' capturing the 'render-state' of the current world at the end of Game-thread */
 		void EnqueueFrame(const RenderFrame* view);
 
-		float GetMs() const;
-		float GetStallMs() const;
-
 		RenderThread() = default;
 		RenderThread(const RenderThread&) = delete;
 		RenderThread(RenderThread&&) = delete;
 		RenderThread& operator=(const RenderThread&) = delete;
 		RenderThread& operator=(RenderThread&&) = delete;
-		inline ~RenderThread() { ShutDown(); }
+		virtual ~RenderThread();
 
-		// [CRINGE] TEmp
 		inline constexpr static const Vector2u& GetStatGameResolution() { return StatGameResolution; }
 
 	private:
@@ -53,15 +53,15 @@ namespace Influx
 		constexpr static Vector2u StatGameResolution = { 1920, 1080 };
 		class Graphics::RHITexture* GameRenderTexture;
 
-		float Ms{};
-		float StallMs{};
+		void Initialize();
+
+		Graphics::RHICommandList* BuildRenderCommandList(const Ptr<RenderFrame> frame);
+		void SubmitRender(Graphics::RHICommandList* renderCommandList);
+
+		void OnWindowResize(const Vector2u& newSize);
 
 	private:
-		// Synchronization Variables:
-		std::thread mThreadObject;
-
 		/* Frame Value Locks */
-		uint64_t mCurrentFrame;
 		std::mutex mFrameMutex;
 		std::condition_variable mFrameConditionVariable;
 
@@ -69,15 +69,6 @@ namespace Influx
 		Queue<const RenderFrame*> mRenderFrameQueue;
 		std::mutex mRenderViewMutex;
 		std::condition_variable mRenderViewCondition;
-
-	private:
-		void Initialize();
-
-		Graphics::RHICommandList* BuildRenderCommandList(const Ptr<RenderFrame> frame);
-		void SubmitRender(Graphics::RHICommandList* renderCommandList);
-
-		void LogInfo(const float msBetweenFrames, const float msWaitForGT);
-		void OnWindowResize(const Vector2u& newSize);
 
 	private:
 		void ShutDown();

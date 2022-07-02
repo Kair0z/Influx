@@ -19,37 +19,20 @@ namespace Influx
 		virtual void OnTick() override final;
 		virtual void OnEnd() override final;
 
-		void Run(const Engine& engine, RenderThread& rt);
-
-		/* [STALL] Stall the calling thread until the gamethread reaches minvalue */
-		uint64_t WaitForFrameFinish(uint64_t minValue);
-
-		float GetMs() const;
-		float GetStallMs() const;
-		float GetDeltaTime() const;
+		void BindToRenderThread(RenderThread* renderThread);
 
 		GameThread() = default;
-		~GameThread();
+		virtual ~GameThread();
 
 	private:
-		// Internal threadobject
-		std::thread mThreadObject;
-		std::atomic<uint64_t> mCurrentFrame{};
-
-		Ptr<World> mpCurrentWorld{};
-
-		float Ms{};
-		float StallMs{};
-
-		float DeltaTime{};
-
+		Ptr<World> CurrentWorld = nullptr;
+		Ptr<RenderThread> BoundRenderThread = nullptr;
 	private:
-		void DoInitialize();
-		void DoUpdate(const float deltaTime);
+		void DispatchInitialize();
+		void DispatchUpdate(const float deltaTime);
 
 	private:
 		void ShutDown();
-		void LogInfo(const float ms, const float msWait);
 	};
 }
 

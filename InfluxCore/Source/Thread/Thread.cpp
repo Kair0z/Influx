@@ -12,19 +12,44 @@ namespace Influx
 		StdThread = std::thread([&]
 			{
 				OnStart();
+				LastTick = Time::Now();
+
 				while (!bIsQuit)
 				{
+					StallMs = Time::GetMillisecondsBetween<float>(Time::Now(), LastTick);
 					LastTick = Time::Now();
 					OnTick();
-					MsBetweenTicks = Time::GetMillisecondsBetween<float>(Time::Now(), LastTick);
+					TickMs = Time::GetMillisecondsBetween<float>(Time::Now(), LastTick);
 				}
 				OnEnd();
+
+				++TickCount;
 			});
 	}
 
-	const std::thread& Thread::GetInternalThreadObject()
+	const std::thread& Thread::GetInternalThreadObject() const
 	{
 		return StdThread;
+	}
+
+	uint64_t Thread::GetTickCount() const
+	{
+		return TickCount;
+	}
+
+	bool Thread::IsQuit() const
+	{
+		return bIsQuit;
+	}
+
+	float Thread::GetMsBetweenTicks() const
+	{
+		return TickMs;
+	}
+
+	Thread::~Thread()
+	{
+		StdThread.join();
 	}
 }
 

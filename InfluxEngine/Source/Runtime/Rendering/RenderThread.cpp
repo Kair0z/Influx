@@ -17,41 +17,30 @@
 
 namespace Influx
 {
-	void RenderThread::Run(const Engine& engine)
+	void RenderThread::OnStart()
 	{
-		mCurrentFrame = 0;
-
-		// Initialize Render Resources 
 		Initialize();
 
-		mThreadObject = std::thread([this, &engine]()
+	}
+
+	void RenderThread::OnTick()
+	{
+		/* Stalls if no renderview is submitted on GameThread... */
+		const Ptr<RenderFrame> frameToRender = RenderThread_ConsumeFrame();
+		if (frameToRender)
 		{
-			while (!engine.IsQuit())
-			{
-				Time::TimePoint preSync = Time::Now();
+			// Render:
+			Graphics::RHICommandList* renderCmdList = BuildRenderCommandList(frameToRender);
+			SubmitRender(renderCmdList);
+		}
 
-				/* Stalls if no renderview is submitted on GameThread... */
-				const Ptr<RenderFrame> frameToRender = RenderThread_ConsumeFrame();
+		// Signal one ::WaitForFrameFinish Candidate (Game Thread)
+		mFrameConditionVariable.notify_one();
+	}
 
-				// Render
-				Time::TimePoint preRender = Time::Now();
-				if (frameToRender)
-				{
-					Graphics::RHICommandList* renderCmdList = BuildRenderCommandList(frameToRender);
-					SubmitRender(renderCmdList);
-				}
-				Time::TimePoint postRender = Time::Now();
-
-				++mCurrentFrame;
-
-				Ms = Time::GetMillisecondsBetween<float>(postRender, preRender);
-				StallMs = Time::GetMillisecondsBetween<float>(preRender, preSync);
-				// LogInfo(Ms, StallMs);
-
-				// Signal one ::WaitForFrameFinish Candidate (Game Thread)
-				mFrameConditionVariable.notify_one();
-			}
-		});
+	void RenderThread::OnEnd()
+	{
+		
 	}
 
 	void RenderThread::OnEvent(const Event* e)
@@ -73,18 +62,19 @@ namespace Influx
 #if DEBUG
 		Graphics::D3D12API::EnableDebugLayer();
 #endif
-		GfxRenderAPI = &Graphics::D3D12API::Get();
+		mpGfxRenderAPI = &Graphics::D3D12API::Get();
 
 		// Create Command Queue
-		GfxCommandQueue = GfxRenderAPI->CreateCommandQueue(Graphics::ERHICommandQueueType::Graphics);
+		GfxCommandQueue = mpGfxRenderAPI->CreateCommandQueue(Graphics::ERHICommandQueueType::Graphics);
 
 		// Create Window-swapchain from Application Window handle
 		void* currentWindowHandle = ApplicationLocator::Get()->GetWindow()->GetWindowsHandle();
 		ASSERT(currentWindowHandle != nullptr);
-		GfxSwapChain = GfxRenderAPI->CreateSwapChain((HWND)currentWindowHandle, GfxCommandQueue);
+		GfxSwapChain = mpGfxRenderAPI->CreateSwapChain((HWND)currentWindowHandle, GfxCommandQueue);
 
 		// Create Scene Renderer:
-		SceneRenderer = Renderer::Create(GfxRenderAPI);
+		mpSceneRenderer = new Renderer();
+		mpSceneRenderer->InitializeRHI(mpGfxRenderAPI);
 
 		// Create Game Render Target:
 		Graphics::RHITextureDescription textureDescription{};
@@ -93,19 +83,19 @@ namespace Influx
 		textureDescription.Width = GfxSwapChain->GetWidth();
 		textureDescription.InitialResourceState = Graphics::ERHIResourceState::RenderTarget;
 		textureDescription.OptimizedClearValue = { 1.0f, 0.0f, 0.0f, 1.0f };
-		GameRenderTexture = GfxRenderAPI->CreateTexture(textureDescription);
+		GameRenderTexture = mpGfxRenderAPI->CreateTexture(textureDescription);
 	}
 
 	Graphics::RHICommandList* RenderThread::BuildRenderCommandList(const Ptr<RenderFrame> frame)
 	{
 		/* Get a new Command List */
-		Ptr<Graphics::RHICommandList> gfxCmdList = GfxCommandQueue->SetupNewCommandList(GfxRenderAPI);
+		Ptr<Graphics::RHICommandList> gfxCmdList = GfxCommandQueue->SetupNewCommandList(mpGfxRenderAPI);
 
 		/* Clear Game Render Texture (And force transition the resource to RenderTarget) */
 		gfxCmdList->ClearTextureAsRTV(GameRenderTexture, true);
 
 		/* Render Scene to Command List */
-		SceneRenderer->Render(gfxCmdList, GameRenderTexture);
+		mpSceneRenderer->OnRender(gfxCmdList, GameRenderTexture);
 
 		/* Copy Game Render Texture into current Window-backbuffer (And force transitions on their respective resources) */
 		gfxCmdList->CopyResource(GameRenderTexture->GetRHIResource(), GfxSwapChain->GetCurrentBackBufferResource(), true);
@@ -132,16 +122,6 @@ namespace Influx
 		mRenderViewCondition.notify_one();
 	}
 
-	float RenderThread::GetMs() const
-	{
-		return Ms;
-	}
-
-	float RenderThread::GetStallMs() const
-	{
-		return StallMs;
-	}
-
 	const Ptr<RenderFrame> RenderThread::RenderThread_ConsumeFrame()
 	{
 		using namespace std::chrono_literals;
@@ -163,44 +143,24 @@ namespace Influx
 	{	
 		// mIsFrame's 'check-for-validness' only happens when the conditional variable gets notified in the Renderthread
 		std::unique_lock<std::mutex> lock(mFrameMutex);
-		auto isValid = [&minValue, this]{return mCurrentFrame >= minValue; };
+		auto isValid = [&minValue, this]{return GetTickCount() >= minValue; };
 		mFrameConditionVariable.wait(lock, isValid);
 
-		return mCurrentFrame;
+		return GetTickCount();
 	}
 
-	void RenderThread::ShutDown()
+	RenderThread::~RenderThread()
 	{
 		mRenderViewCondition.notify_one();
-		mThreadObject.join();
 
 		// Flush commandqueue
 		GfxCommandQueue->Flush();
 
 		// Delete resources...
-		delete SceneRenderer;
+		delete mpSceneRenderer;
 		delete GameRenderTexture;
 		delete GfxCommandQueue;
 		delete GfxSwapChain;
-	}
-
-	void RenderThread::LogInfo(const float msBetweenFrames, const float msWaitForGT)
-	{
-		static float averageTime{};
-		constexpr static int updateTimeLogIntv = 1;
-		averageTime += msBetweenFrames;
-
-		static float averageWaitTime{};
-		averageWaitTime += msWaitForGT;
-
-		if (mCurrentFrame % updateTimeLogIntv == 0)
-		{
-			averageTime /= updateTimeLogIntv;
-			averageWaitTime /= updateTimeLogIntv;
-			Logger::Info("RenderThread: [ms: {}][FPS: {}] - [Wait for GT: {}]", averageTime, 1.0f / averageTime * 1000.0f, averageWaitTime);
-			averageTime = 0.0f;
-			averageWaitTime = 0.0f;
-		}
 	}
 }
 

@@ -16,8 +16,7 @@
 
 #include "Container/Containers.h"
 
-#include "Thread/BaseThread.h"
-#include "Thread/Windows/WindowsThread.h"
+#include "Thread/Thread.h"
 
 #include "Math/Math.h"
 #include "Math/Random.h"

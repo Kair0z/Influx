@@ -15,7 +15,7 @@
     <ClInclude Include="Source\Memory\Allocators\Allocators.h" />
     <ClInclude Include="Source\Memory\Allocators\BaseAllocator.h" />
     <ClInclude Include="Source\Memory\Reference.h" />
-    <ClInclude Include="Source\Platform\Windows\WindowsPlatform.h" />
+    <ClInclude Include="Source\Platform\WindowsPlatform.h" />
     <ClInclude Include="Source\Platform\Platform.h" />
     <ClInclude Include="Source\Singleton\Locator.h" />
     <ClInclude Include="Source\Singleton\Singleton.h" />

@@ -3,8 +3,9 @@
 #ifndef _WINDOWS_H_
 #define _WINDOWS_H_
 
-#include "Platform/Platform.h"
+#include "Platform.h"
 #include "Math/Math.h"
+#include "Type/String.h"
 
 /* Include Windows header... */
 #define WIN32_LEAN_AND_MEAN
