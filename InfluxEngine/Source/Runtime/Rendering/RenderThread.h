@@ -43,11 +43,11 @@ namespace Influx
 
 	private:
 		// RHI Resources:
-		Graphics::GraphicsAPI* GfxRenderAPI;
-		Graphics::RHICommandQueue* GfxCommandQueue;
-		Graphics::RHISwapChain* GfxSwapChain;
+		Graphics::GraphicsAPI* mpGfxRenderAPI;
+		Graphics::RHICommandQueue* mpGfxCommandQueue;
+		Graphics::RHISwapChain* mpGfxSwapChain;
 
-		Renderer* SceneRenderer;
+		Renderer* mpSceneRenderer;
 
 		// Game Render Target:
 		constexpr static Vector2u StatGameResolution = { 1920, 1080 };
