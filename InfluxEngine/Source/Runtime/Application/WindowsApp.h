@@ -4,6 +4,10 @@
 #include "Runtime/Window/Window.h"
 #include "Runtime/Window/WindowEvents.h"
 
+#include "Singleton/Locator.h"
+#include "Container/Vector.h"
+#include "Type/Type.h"
+
 namespace Influx
 {
 	class WindowsApp final

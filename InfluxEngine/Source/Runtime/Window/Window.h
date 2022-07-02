@@ -2,6 +2,8 @@
 
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
+#include "Type/String.h"
+#include "Memory/Reference.h"
 
 namespace Influx
 {

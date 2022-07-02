@@ -76,6 +76,9 @@ namespace Influx
 		mpSceneRenderer = new Renderer();
 		mpSceneRenderer->InitializeRHI(mpGfxRenderAPI);
 
+		mpEditorRenderer = new Editor::D3D12EditorRenderer();
+		mpEditorRenderer->InitializeRHI(mpGfxRenderAPI);
+
 		// Create Game Render Target:
 		Graphics::RHITextureDescription textureDescription{};
 		textureDescription.Format = Graphics::ERHIFormat::RGBA_8_Unorm;
@@ -96,6 +99,7 @@ namespace Influx
 
 		/* Render Scene to Command List */
 		mpSceneRenderer->OnRender(gfxCmdList, GameRenderTexture);
+		mpEditorRenderer->OnRender(gfxCmdList, GameRenderTexture);
 
 		/* Copy Game Render Texture into current Window-backbuffer (And force transitions on their respective resources) */
 		gfxCmdList->CopyResource(GameRenderTexture->GetRHIResource(), mpGfxSwapChain->GetCurrentBackBufferResource(), true);

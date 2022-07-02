@@ -75,5 +75,14 @@ namespace Influx::Graphics
 			BackBufferRTVs[i] = nullptr;
 		}
 	}
+	const ERHIDescriptorType RHIDescriptorHeap::GetType() const
+	{
+		return HeapType;
+	}
+
+	bool RHIDescriptorHeap::IsShaderVisible() const
+	{
+		return bIsShaderVisible;
+	}
 }
 

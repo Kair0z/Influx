@@ -166,6 +166,9 @@
     <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">
       <Project>{aae8ef84-74c2-44f9-804e-6c08abe0f35b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\InfluxEditor\InfluxEditor.vcxproj">
+      <Project>{1ff67ea3-2e2c-4326-97c4-dccd81c75240}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\InfluxEngine\Influx.vcxproj">
       <Project>{bbeb27ba-a78d-5290-9048-66e47c89d9e0}</Project>
     </ProjectReference>

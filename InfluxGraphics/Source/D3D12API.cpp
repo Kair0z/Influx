@@ -108,6 +108,18 @@ namespace Influx::Graphics
 
 		return d3d12Shader;
 	}
+
+	RHIDescriptorHeap* D3D12API::CreateDescriptorHeap(const ERHIDescriptorType type, uint32_t numDescriptors, bool shaderVisible) const
+	{
+		D3D12DescriptorHeap* result = new D3D12DescriptorHeap();
+		result->DxDescriptorHeap = D3D12API::CreateDescriptorHeap(DxDevice, Conversion::ToDx12(type), numDescriptors, (shaderVisible) ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
+		result->bIsShaderVisible = shaderVisible;
+		result->DescriptorStride = GetDescriptorSize(type);
+		result->HeapType = type;
+		result->NumDescriptors = numDescriptors;
+		result->OccupiedSlotIndices = {};
+		return result;
+	}
 #pragma endregion
 
 	/* API-Object Functions */
@@ -167,6 +179,28 @@ namespace Influx::Graphics
 		return CachedSamplerDescriptorSize;
 	}
 
+	const size_t D3D12API::GetDescriptorSize(const ERHIDescriptorType type) const
+	{
+		switch (type)
+		{
+		default:
+		case ERHIDescriptorType::Invalid:
+			return 0;
+
+		case ERHIDescriptorType::DSV:
+			return GetDSVDescriptorSize();
+
+		case ERHIDescriptorType::Resource:
+			return GetResourceDescriptorSize();
+
+		case ERHIDescriptorType::RTV:
+			return GetRTVDescriptorSize();
+
+		case ERHIDescriptorType::Sampler:
+			return GetSamplerDescriptorSize();
+		}
+	}
+
 	void D3D12API::CreateGlobalDescriptorHeaps()
 	{
 		// Cache DescriptorSizes
@@ -176,21 +210,10 @@ namespace Influx::Graphics
 		CachedRtvDescriptorSize = DxDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 		// Create Global Descriptor Heaps:
-		RTVDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::RTV, 64, CachedRtvDescriptorSize);
-		DSVDescriptorheap = new D3D12DescriptorHeap(ERHIDescriptorType::DSV, 64, CachedDsvDescriptorSize);
-		SamplerDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Sampler, 16, CachedSamplerDescriptorSize);
-		ResourceDescriptorHeap = new D3D12DescriptorHeap(ERHIDescriptorType::Resource, 64, CachedResourceDescriptorSize);
-
-		for (D3D12DescriptorHeap* heap : { RTVDescriptorHeap, SamplerDescriptorHeap, DSVDescriptorheap, ResourceDescriptorHeap })
-		{
-			D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
-			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			heapDesc.NodeMask = 1;
-			heapDesc.NumDescriptors = heap->MaxNumDescriptors;
-			heapDesc.Type = Conversion::ToDx12(heap->Type);
-
-			DxDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap->DxDescriptorHeap));
-		}
+		RTVDescriptorHeap = (D3D12DescriptorHeap*)CreateDescriptorHeap(ERHIDescriptorType::RTV, 64);
+		DSVDescriptorheap = (D3D12DescriptorHeap*)CreateDescriptorHeap(ERHIDescriptorType::DSV, 64);
+		SamplerDescriptorHeap = (D3D12DescriptorHeap*)CreateDescriptorHeap(ERHIDescriptorType::Sampler, 16);
+		ResourceDescriptorHeap = (D3D12DescriptorHeap*)CreateDescriptorHeap(ERHIDescriptorType::Resource, 64);
 	}
 
 	void D3D12API::CreateDescriptorOnGlobalHeap(ERHIDescriptorType type, size_t slot)
@@ -347,6 +370,12 @@ namespace Influx::Graphics
 	void D3D12CommandList::DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation)
 	{
 		DxCommandList->DrawInstanced(numVerticesPerInstance, numInstances, startVertexLocation, startInstanceLocation);
+	}
+
+	void D3D12CommandList::BindDescriptorheap(RHIDescriptorHeap* descriptorHeap)
+	{
+		ID3D12DescriptorHeap* ppDescriptorHeaps[] = {((D3D12DescriptorHeap*)descriptorHeap)->GetDxDescriptorHeap()};
+		DxCommandList->SetDescriptorHeaps(1, ppDescriptorHeaps);
 	}
 #pragma endregion
 
@@ -518,14 +547,14 @@ namespace Influx::Graphics
 		return dxgiSwapChain4;
 	}
 
-	ID3D12DescriptorHeap* D3D12API::CreateDescriptorHeap(ID3D12Device2* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors)
+	ID3D12DescriptorHeap* D3D12API::CreateDescriptorHeap(ID3D12Device2* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
 	{
 		ID3D12DescriptorHeap* descHeap;
 
 		D3D12_DESCRIPTOR_HEAP_DESC desc{};
 		desc.NumDescriptors = numDescriptors;
 		desc.Type = type;
-		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		desc.Flags = flags;
 
 		pDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descHeap));
 		return descHeap;
@@ -759,13 +788,6 @@ namespace Influx::Graphics
 
 	/* D3D12DescriptorHeap */
 #pragma region D3D12DescriptorHeap
-	D3D12DescriptorHeap::D3D12DescriptorHeap(const ERHIDescriptorType type, UINT64 maxDescriptorNum, uint32_t descriptorStride)
-		: Type{type}
-		, MaxNumDescriptors{maxDescriptorNum}
-		, DescriptorStride{descriptorStride}
-	{
-	}
-
 	D3D12DescriptorHeap::~D3D12DescriptorHeap()
 	{
 		D3D12API::SafeRelease(DxDescriptorHeap);
@@ -783,6 +805,11 @@ namespace Influx::Graphics
 		handle.ptr += (slot * DescriptorStride);
 	}
 
+	ID3D12DescriptorHeap* D3D12DescriptorHeap::GetDxDescriptorHeap() const
+	{
+		return DxDescriptorHeap;
+	}
+
 	bool D3D12DescriptorHeap::IsSlotFree(size_t slot) const
 	{
 		return std::find(OccupiedSlotIndices.cbegin(), OccupiedSlotIndices.cend(), slot) == OccupiedSlotIndices.cend();
@@ -790,7 +817,7 @@ namespace Influx::Graphics
 
 	size_t D3D12DescriptorHeap::GetFirstFreeSlot() const
 	{
-		for (int i = 0; i < MaxNumDescriptors; ++i)
+		for (int i = 0; i < NumDescriptors; ++i)
 		{
 			if (IsSlotFree(i)) return i;
 		}

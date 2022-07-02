@@ -143,6 +143,7 @@ namespace Influx::Graphics
 	class RHIUnorderedAccessView;
 	class RHIShaderResourceView;
 	class RHIDepthStencilView;
+	class RHIDescriptorHeap;
 #pragma endregion
 
 	/* Graphics API */
@@ -163,6 +164,7 @@ namespace Influx::Graphics
 		virtual RHIShaderResourceView* CreateShaderResourceView(RHIResource* resource) const = 0;
 		virtual RHIDepthStencilView* CreateDepthStencilView(RHIResource* resource) const = 0;
 
+		virtual RHIDescriptorHeap* CreateDescriptorHeap(const ERHIDescriptorType type, uint32_t numDescriptors, bool shaderVisible = false) const = 0;
 		virtual RHIGraphicsPipelineLayout* CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const = 0;
 		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const = 0;
 
@@ -207,6 +209,7 @@ namespace Influx::Graphics
 		virtual void BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout) = 0;
 		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) = 0;
 		virtual void BindComputeShader() {};
+		virtual void BindDescriptorheap(RHIDescriptorHeap* descriptorHeap) {};
 
 		virtual void DrawIndexed() {};
 		virtual void DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation = 0, uint32_t startInstanceLocation = 0) = 0;
@@ -286,6 +289,21 @@ namespace Influx::Graphics
 		UINT32 Height = 0;
 
 		bool bIsTearingSupported = false;
+	};
+
+	/* DescriptorHeap */
+	class RHIDescriptorHeap
+	{
+	public:
+		RHIDescriptorHeap() = default;
+		virtual ~RHIDescriptorHeap() = default;
+		const ERHIDescriptorType GetType() const;
+		bool IsShaderVisible() const;
+
+	protected:
+		ERHIDescriptorType HeapType;
+		bool bIsShaderVisible;
+		size_t NumDescriptors;
 	};
 
 	/* Shader-Stuff */

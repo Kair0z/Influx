@@ -9,13 +9,14 @@
 #include <thread>
 #include <condition_variable>
 
+#include "EditorRenderer.h"
+
 namespace Influx
 {
 	class RenderFrame;
 	class World;
 	class Renderer;
 	class Engine;
-	class EngineInspectorGUI;
 
 	class RenderThread final : public Thread
 	{
@@ -48,6 +49,7 @@ namespace Influx
 		Graphics::RHISwapChain* mpGfxSwapChain;
 
 		Renderer* mpSceneRenderer;
+		Editor::D3D12EditorRenderer* mpEditorRenderer;
 
 		// Game Render Target:
 		constexpr static Vector2u StatGameResolution = { 1920, 1080 };

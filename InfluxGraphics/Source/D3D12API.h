@@ -57,6 +57,8 @@ namespace Influx::Graphics
 		virtual RHIShaderResourceView* CreateShaderResourceView(RHIResource* resource) const override final { return nullptr; };
 		virtual RHIDepthStencilView* CreateDepthStencilView(RHIResource* resource) const override final { return nullptr; };
 
+		virtual RHIDescriptorHeap* CreateDescriptorHeap(const ERHIDescriptorType type, uint32_t numDescriptors, bool shaderVisible = false) const override final;
+
 		virtual RHIGraphicsPipelineLayout* CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const override final;
 		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const override final;
 
@@ -72,6 +74,7 @@ namespace Influx::Graphics
 		const size_t GetDSVDescriptorSize() const;
 		const size_t GetResourceDescriptorSize() const; // CBVs, UAVs, ConstantBuffers...
 		const size_t GetSamplerDescriptorSize() const;
+		const size_t GetDescriptorSize(const ERHIDescriptorType type) const;
 
 	private:
 		IDXGIFactory4* DxgiFactory;
@@ -122,7 +125,7 @@ namespace Influx::Graphics
 		static IDXGISwapChain4* CreateDxgiSwapChain(IDXGIFactory4* dxgiFactory, HWND hWnd, ID3D12CommandQueue* pCommandQueue, UINT32 w, UINT32 h, UINT32 bufferCount);
 
 		/* Create Descriptor Heap */
-		static ID3D12DescriptorHeap* CreateDescriptorHeap(ID3D12Device2* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors);
+		static ID3D12DescriptorHeap* CreateDescriptorHeap(ID3D12Device2* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 
 		/* Create Command Allocator */
 		static ID3D12CommandAllocator* CreateCommandAllocator(ID3D12Device2* pDevice, D3D12_COMMAND_LIST_TYPE type);
@@ -189,6 +192,7 @@ namespace Influx::Graphics
 		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) override final;
 		virtual void BindRenderTarget(RHIRenderTargetView* renderTargetView) override final;
 		virtual void DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation) override final;
+		virtual void BindDescriptorheap(RHIDescriptorHeap* descriptorHeap) override final;
 
 	private:
 		ID3D12GraphicsCommandList* DxCommandList;
@@ -245,14 +249,15 @@ namespace Influx::Graphics
 	};
 
 	/* D3D12DescriptorHeap */
-	class D3D12DescriptorHeap final
+	class D3D12DescriptorHeap final : public RHIDescriptorHeap
 	{
 	public:
-		D3D12DescriptorHeap(const ERHIDescriptorType type, size_t maxDescriptorNum, uint32_t descriptorStride);
+		D3D12DescriptorHeap() = default;
 		virtual ~D3D12DescriptorHeap();
 
 		D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle(size_t slot);
 
+		ID3D12DescriptorHeap* GetDxDescriptorHeap() const;
 		bool IsSlotFree(size_t slot) const;
 		size_t GetFirstFreeSlot() const;
 
@@ -260,12 +265,8 @@ namespace Influx::Graphics
 
 	private:
 		ID3D12DescriptorHeap* DxDescriptorHeap;
-		ERHIDescriptorType Type;
-		size_t MaxNumDescriptors;
-
 		std::list<size_t> OccupiedSlotIndices;
-		
-		const size_t DescriptorStride;
+		size_t DescriptorStride;
 
 		friend class D3D12API;
 	};
