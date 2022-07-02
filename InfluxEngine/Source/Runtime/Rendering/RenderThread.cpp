@@ -65,12 +65,12 @@ namespace Influx
 		mpGfxRenderAPI = &Graphics::D3D12API::Get();
 
 		// Create Command Queue
-		GfxCommandQueue = mpGfxRenderAPI->CreateCommandQueue(Graphics::ERHICommandQueueType::Graphics);
+		mpGfxCommandQueue = mpGfxRenderAPI->CreateCommandQueue(Graphics::ERHICommandQueueType::Graphics);
 
 		// Create Window-swapchain from Application Window handle
 		void* currentWindowHandle = ApplicationLocator::Get()->GetWindow()->GetWindowsHandle();
 		ASSERT(currentWindowHandle != nullptr);
-		GfxSwapChain = mpGfxRenderAPI->CreateSwapChain((HWND)currentWindowHandle, GfxCommandQueue);
+		mpGfxSwapChain = mpGfxRenderAPI->CreateSwapChain((HWND)currentWindowHandle, mpGfxCommandQueue);
 
 		// Create Scene Renderer:
 		mpSceneRenderer = new Renderer();
@@ -79,8 +79,8 @@ namespace Influx
 		// Create Game Render Target:
 		Graphics::RHITextureDescription textureDescription{};
 		textureDescription.Format = Graphics::ERHIFormat::RGBA_8_Unorm;
-		textureDescription.Height = GfxSwapChain->GetHeight();
-		textureDescription.Width = GfxSwapChain->GetWidth();
+		textureDescription.Height = mpGfxSwapChain->GetHeight();
+		textureDescription.Width = mpGfxSwapChain->GetWidth();
 		textureDescription.InitialResourceState = Graphics::ERHIResourceState::RenderTarget;
 		textureDescription.OptimizedClearValue = { 1.0f, 0.0f, 0.0f, 1.0f };
 		GameRenderTexture = mpGfxRenderAPI->CreateTexture(textureDescription);
@@ -89,7 +89,7 @@ namespace Influx
 	Graphics::RHICommandList* RenderThread::BuildRenderCommandList(const Ptr<RenderFrame> frame)
 	{
 		/* Get a new Command List */
-		Ptr<Graphics::RHICommandList> gfxCmdList = GfxCommandQueue->SetupNewCommandList(mpGfxRenderAPI);
+		Ptr<Graphics::RHICommandList> gfxCmdList = mpGfxCommandQueue->SetupNewCommandList(mpGfxRenderAPI);
 
 		/* Clear Game Render Texture (And force transition the resource to RenderTarget) */
 		gfxCmdList->ClearTextureAsRTV(GameRenderTexture, true);
@@ -98,7 +98,7 @@ namespace Influx
 		mpSceneRenderer->OnRender(gfxCmdList, GameRenderTexture);
 
 		/* Copy Game Render Texture into current Window-backbuffer (And force transitions on their respective resources) */
-		gfxCmdList->CopyResource(GameRenderTexture->GetRHIResource(), GfxSwapChain->GetCurrentBackBufferResource(), true);
+		gfxCmdList->CopyResource(GameRenderTexture->GetRHIResource(), mpGfxSwapChain->GetCurrentBackBufferResource(), true);
 
 		return gfxCmdList;
 	}
@@ -106,10 +106,10 @@ namespace Influx
 	void RenderThread::SubmitRender(Graphics::RHICommandList* renderCmdList)
 	{
 		/* Execute the Graphics Command List */
-		GfxCommandQueue->ExecuteCommmandList(renderCmdList);
+		mpGfxCommandQueue->ExecuteCommmandList(renderCmdList);
 
 		/* Present Window Swapchain */
-		GfxSwapChain->Present({ true });
+		mpGfxSwapChain->Present({ true });
 	}
 
 	void RenderThread::EnqueueFrame(const RenderFrame* view)
@@ -154,13 +154,13 @@ namespace Influx
 		mRenderViewCondition.notify_one();
 
 		// Flush commandqueue
-		GfxCommandQueue->Flush();
+		mpGfxCommandQueue->Flush();
 
 		// Delete resources...
 		delete mpSceneRenderer;
 		delete GameRenderTexture;
-		delete GfxCommandQueue;
-		delete GfxSwapChain;
+		delete mpGfxCommandQueue;
+		delete mpGfxSwapChain;
 	}
 }
 
