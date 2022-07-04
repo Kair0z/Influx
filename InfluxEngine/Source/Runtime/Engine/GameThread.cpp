@@ -56,6 +56,9 @@ namespace Influx
 
 	GameThread::~GameThread()
 	{
+		bIsQuit = true;
+		StdThread.join();
+
 		delete CurrentWorld;
 	}
 }

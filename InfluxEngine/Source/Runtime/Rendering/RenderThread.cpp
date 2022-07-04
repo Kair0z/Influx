@@ -155,6 +155,9 @@ namespace Influx
 
 	RenderThread::~RenderThread()
 	{
+		bIsQuit = true;
+		StdThread.join();
+
 		mRenderViewCondition.notify_one();
 
 		// Flush commandqueue

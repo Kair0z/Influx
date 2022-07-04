@@ -102,6 +102,7 @@ namespace Influx::Graphics
 		UINT flags1 = 0;
 		UINT flags2 = 0;
 
+		HRESULT result = 
 		D3DCompileFromFile(fromFilePath.c_str(),
 			pDefines, pInclude, entryPoint.c_str(), targetString.c_str(),
 			flags1, flags2, &d3d12Shader->DxShaderBlob, &pError);

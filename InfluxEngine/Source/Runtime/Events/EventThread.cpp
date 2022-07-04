@@ -19,9 +19,6 @@ namespace Influx
 
 	void EventThread::OnTick()
 	{
-		// [Platform] Poll Application Events
-		ApplicationLocator::Get()->PollEvents();
-
 		// [TODO] put separate channel-flushing on separate threads?
 		mpEventManager->FlushAllChannels();
 	}

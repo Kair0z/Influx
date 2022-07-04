@@ -14,7 +14,7 @@ namespace Influx::Graphics
 	{
 		/* Private constructor -> Singleton */
 		VulkanAPI();
-		virtual RHICommandQueue* CreateCommandQueue(const ECommandQueueType type) const override final;
+		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const override final;
 		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const override final;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
 		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
@@ -26,6 +26,8 @@ namespace Influx::Graphics
 		virtual RHIUnorderedAccessView* CreateUnorderedAccessView(RHIResource* resource) const override final;
 		virtual RHIShaderResourceView* CreateShaderResourceView(RHIResource* resource) const override final;
 		virtual RHIDepthStencilView* CreateDepthStencilView(RHIResource* resource) const override final;
+
+		virtual RHIDescriptorHeap* CreateDescriptorHeap(const ERHIDescriptorType type, uint32_t numDescriptors, bool shaderVisible = false) const override final;
 
 		virtual RHIGraphicsPipelineLayout* CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const override final;
 		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const override final;

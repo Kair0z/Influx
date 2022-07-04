@@ -49,7 +49,7 @@ namespace Influx
 
 	Thread::~Thread()
 	{
-		StdThread.join();
+		
 	}
 }
 

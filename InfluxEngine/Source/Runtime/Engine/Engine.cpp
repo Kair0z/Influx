@@ -50,6 +50,9 @@ namespace Influx
 		while (!mIsEngineQuitAtomic)
 		{
 			++mCurrentFrame;
+
+			// [Platform] Poll Application Events
+			mpApplication->PollEvents();
 		}
 	}
 

@@ -23,11 +23,12 @@ namespace Influx
 
 		virtual ~Thread();
 
-	private:
+	protected:
 		std::thread StdThread;
-		bool bIsQuit = false;
-		uint64_t TickCount{};
+		std::atomic_bool bIsQuit = false;
 
+	private:
+		uint64_t TickCount{};
 		Time::TimePoint LastTick;
 		float TickMs{};
 		float StallMs{};
