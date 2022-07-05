@@ -31,4 +31,10 @@ namespace Influx
 	{
 		return mpEventManager;
 	}
+
+	EventThread::~EventThread()
+	{
+		bIsQuit = true;
+		StdThread.join();
+	}
 }

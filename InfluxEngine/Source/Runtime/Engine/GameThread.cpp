@@ -19,7 +19,7 @@ namespace Influx
 		const Time::TimePoint preSync = Time::Now();
 
 		// Stall this thread until Renderthread is at max [2] frames behind...
-		if (BoundRenderThread)
+		if (BoundRenderThread && !BoundRenderThread->IsQuit())
 		{
 			BoundRenderThread->WaitForFrameFinish((GetTickCount() > 2) ? GetTickCount() - 3 : 0);
 		}
@@ -27,7 +27,7 @@ namespace Influx
 		DispatchUpdate(0.0f);
 
 		// Communicating with the Renderthread
-		if (BoundRenderThread)
+		if (BoundRenderThread && !BoundRenderThread->IsQuit())
 		{
 			RenderFrame* frame = RenderFrame::Create(CurrentWorld);
 			BoundRenderThread->EnqueueFrame(frame);
@@ -51,7 +51,9 @@ namespace Influx
 	void GameThread::DispatchUpdate(const float deltaTime)
 	{
 		using namespace std::chrono_literals;
-		std::this_thread::sleep_for(50ms);
+		std::this_thread::sleep_for(32.666ms);
+
+		Logger::Info("GT{}, ms: {}", GetTickCount(), GetMsBetweenTicks());
 	}
 
 	GameThread::~GameThread()

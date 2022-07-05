@@ -20,10 +20,11 @@ namespace Influx
 					LastTick = Time::Now();
 					OnTick();
 					TickMs = Time::GetMillisecondsBetween<float>(Time::Now(), LastTick);
+					++TickCount;
 				}
 				OnEnd();
 
-				++TickCount;
+				
 			});
 	}
 

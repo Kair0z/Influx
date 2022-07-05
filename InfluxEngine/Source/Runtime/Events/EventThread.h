@@ -17,6 +17,8 @@ namespace Influx
 
 		Ptr<EventManager> GetEventManager() const;
 
+		virtual ~EventThread();
+
 	private:
 		
 		Ptr<EventManager> mpEventManager;

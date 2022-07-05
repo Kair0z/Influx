@@ -36,6 +36,8 @@ namespace Influx
 
 		// Signal one ::WaitForFrameFinish Candidate (Game Thread)
 		mFrameConditionVariable.notify_one();
+
+		Logger::Info("RT{}, ms: {}", GetTickCount(), GetMsBetweenTicks());
 	}
 
 	void RenderThread::OnEnd()
