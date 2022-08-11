@@ -23,7 +23,7 @@ namespace Influx
 		mpEventManager->FlushAllChannels();
 	}
 
-	void EventThread::OnEnd()
+	void EventThread::OnQuit()
 	{
 	}
 

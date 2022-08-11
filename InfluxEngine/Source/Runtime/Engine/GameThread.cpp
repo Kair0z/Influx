@@ -14,19 +14,20 @@ namespace Influx
 		CurrentWorld = World::Create();
 	}
 
-	void GameThread::OnTick()
+	void GameThread::OnPreTick()
 	{
-		const Time::TimePoint preSync = Time::Now();
-
 		// Stall this thread until Renderthread is at max [2] frames behind...
 		if (!BoundRenderThreadRef.expired() && !BoundRenderThreadRef.lock()->IsQuit())
 		{
 			BoundRenderThreadRef.lock()->WaitForFrameFinish((GetTickCount() > 2) ? GetTickCount() - 3 : 0);
 		}
-		
-		DispatchUpdate(0.0f);
+	}
 
-		// Communicating with the Renderthread
+	void GameThread::OnTick()
+	{
+		DispatchUpdate(GetMsSinceLastTick());
+
+		// Enqueue to  the Renderthread
 		if (!BoundRenderThreadRef.expired() && !BoundRenderThreadRef.lock()->IsQuit())
 		{
 			RenderFrame* frame = RenderFrame::Create(CurrentWorld);
@@ -34,7 +35,7 @@ namespace Influx
 		}
 	}
 
-	void GameThread::OnEnd()
+	void GameThread::OnQuit()
 	{
 		delete CurrentWorld;
 	}
@@ -52,7 +53,7 @@ namespace Influx
 	void GameThread::DispatchUpdate(const float deltaTime)
 	{
 		using namespace std::chrono_literals;
-		std::this_thread::sleep_for(32.666ms);
+		std::this_thread::sleep_for(5ms);
 
 		Logger::Info("GT{}, ms: {}", GetTickCount(), GetMsSinceLastTick());
 	}

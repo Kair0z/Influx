@@ -12,14 +12,22 @@ namespace Influx
 	{
 	public:
 		void Run();
+		
+		/* Called first and once in Run() */
 		virtual void OnStart() {};
+
+		/* Called right before Tick (to avoid stalling & synchronization messing up the TickMs) */
+		/* Contributes to StallMs */
+		virtual void OnPreTick() {};
+
+		/* Called */
 		virtual void OnTick() {};
-		virtual void OnEnd() {};
+		virtual void OnQuit() {};
 
 		const std::thread& GetInternalThreadObject() const;
 		uint64_t GetTickCount() const;
 		bool IsQuit() const;
-		float GetMsBetweenTicks() const;
+		float GetMsSinceLastTick() const;
 
 		void SetQuit();
 
@@ -30,7 +38,7 @@ namespace Influx
 		std::atomic_bool bIsQuit = false;
 
 	private:
-		uint64_t TickCount{};
+		std::atomic_int64_t TickCount{};
 		Time::TimePoint LastTick;
 		float TickMs{};
 		float StallMs{};

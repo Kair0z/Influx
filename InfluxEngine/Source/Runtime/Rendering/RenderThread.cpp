@@ -22,24 +22,28 @@ namespace Influx
 		Initialize();
 	}
 
-	void RenderThread::OnTick()
+	void RenderThread::OnPreTick()
 	{
 		/* Stalls if no renderview is submitted on GameThread... */
-		const Ptr<RenderFrame> frameToRender = RenderThread_ConsumeFrame();
-		if (frameToRender)
+		mpCurrentRenderFrame = RenderThread_ConsumeFrame();
+	}
+
+	void RenderThread::OnTick()
+	{
+		if (mpCurrentRenderFrame)
 		{
+			using namespace std::chrono_literals;
+			//std::this_thread::sleep_for(ms);
+
 			// Render:
-			Graphics::RHICommandList* renderCmdList = BuildRenderCommandList(frameToRender);
+			Graphics::RHICommandList* renderCmdList = BuildRenderCommandList(mpCurrentRenderFrame);
 			SubmitRender(renderCmdList);
 		}
 
-		// Signal one ::WaitForFrameFinish Candidate (Game Thread)
-		mFrameConditionVariable.notify_one();
-
-		Logger::Info("RT{}, ms: {}", GetTickCount(), GetMsBetweenTicks());
+		Logger::Info("RT{}, ms: {}", GetTickCount(), GetMsSinceLastTick());
 	}
 
-	void RenderThread::OnEnd()
+	void RenderThread::OnQuit()
 	{
 		mRenderViewCondition.notify_one();
 
@@ -157,9 +161,13 @@ namespace Influx
 	uint64_t RenderThread::WaitForFrameFinish(uint64_t minValue)
 	{	
 		// mIsFrame's 'check-for-validness' only happens when the conditional variable gets notified in the Renderthread
-		std::unique_lock<std::mutex> lock(mFrameMutex);
-		auto isValid = [&minValue, this]{return GetTickCount() >= minValue; };
-		mFrameConditionVariable.wait(lock, isValid);
+		while (GetTickCount() < minValue)
+		{
+			if (IsQuit()) return minValue;
+
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(0.1ms);
+		}
 
 		return GetTickCount();
 	}

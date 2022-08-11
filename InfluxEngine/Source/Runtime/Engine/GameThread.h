@@ -16,8 +16,9 @@ namespace Influx
 	{
 	public:
 		virtual void OnStart() override final;
+		virtual void OnPreTick() override final;
 		virtual void OnTick() override final;
-		virtual void OnEnd() override final;
+		virtual void OnQuit() override final;
 
 		void BindToRenderThread(WeakRef<RenderThread> renderThread);
 

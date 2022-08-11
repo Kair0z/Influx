@@ -12,13 +12,17 @@ namespace Influx
 		StdThread = std::thread([&]
 			{
 				OnStart();
-				LastTick = Time::Now();
 
+				LastTick = Time::Now();
 				while (!bIsQuit)
 				{
+					OnPreTick();
+					StallMs = Time::GetMillisecondsBetween<float>(Time::Now(), LastTick);
+
 					LastTick = Time::Now();
 					OnTick();
 					TickMs = Time::GetMillisecondsBetween<float>(Time::Now(), LastTick);
+
 					++TickCount;
 				}
 			});
@@ -47,7 +51,7 @@ namespace Influx
 	void Thread::SetQuit()
 	{
 		bIsQuit = true;
-		OnEnd();
+		OnQuit();
 	}
 
 	Thread::~Thread()

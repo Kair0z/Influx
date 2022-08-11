@@ -13,7 +13,7 @@ namespace Influx
 
 		virtual void OnStart() override final;
 		virtual void OnTick() override final;
-		virtual void OnEnd() override final;
+		virtual void OnQuit() override final;
 
 		Ptr<EventManager> GetEventManager() const;
 

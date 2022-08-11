@@ -47,8 +47,8 @@ namespace Influx
 		{
 			++mCurrentFrame;
 
-			// [Platform] Poll Application Events
 			mpApplication->PollEvents();
+			// [Platform] Poll Application Events
 		}
 	}
 

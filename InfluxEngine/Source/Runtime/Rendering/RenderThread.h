@@ -24,8 +24,9 @@ namespace Influx
 		void OnEvent(const class Event* e);
 
 		virtual void OnStart() override final;
+		virtual void OnPreTick() override final;
 		virtual void OnTick() override final;
-		virtual void OnEnd() override final;
+		virtual void OnQuit() override final;
 
 		/* [STALL] Stall the calling thread until the renderthread reaches minvalue */
 		uint64_t WaitForFrameFinish(uint64_t minValue);
@@ -50,6 +51,8 @@ namespace Influx
 		Renderer* mpSceneRenderer;
 		Editor::D3D12EditorRenderer* mpEditorRenderer;
 
+		RenderFrame* mpCurrentRenderFrame;
+
 		// Game Render Target:
 		constexpr static Vector2u StatGameResolution = { 1920, 1080 };
 		class Graphics::RHITexture* GameRenderTexture;
@@ -62,10 +65,6 @@ namespace Influx
 		void OnWindowResize(const Vector2u& newSize);
 
 	private:
-		/* Frame Value Locks */
-		std::mutex mFrameMutex;
-		std::condition_variable mFrameConditionVariable;
-
 		/* Renderframe Queue */
 		Queue<const RenderFrame*> mRenderFrameQueue;
 		std::mutex mRenderViewMutex;
