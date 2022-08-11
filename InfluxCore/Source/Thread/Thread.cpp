@@ -16,15 +16,11 @@ namespace Influx
 
 				while (!bIsQuit)
 				{
-					StallMs = Time::GetMillisecondsBetween<float>(Time::Now(), LastTick);
 					LastTick = Time::Now();
 					OnTick();
 					TickMs = Time::GetMillisecondsBetween<float>(Time::Now(), LastTick);
 					++TickCount;
 				}
-				OnEnd();
-
-				
 			});
 	}
 
@@ -43,14 +39,23 @@ namespace Influx
 		return bIsQuit;
 	}
 
-	float Thread::GetMsBetweenTicks() const
+	float Thread::GetMsSinceLastTick() const
 	{
 		return TickMs;
 	}
 
+	void Thread::SetQuit()
+	{
+		bIsQuit = true;
+		OnEnd();
+	}
+
 	Thread::~Thread()
 	{
-		
+		if (StdThread.joinable())
+		{
+			StdThread.join();
+		}
 	}
 }
 

@@ -12,10 +12,9 @@ namespace Influx
 
 	ThreadManager::~ThreadManager()
 	{
-		for (Thread*& thread : mThreads)
+		for (Ref<Thread> thread : mThreads)
 		{
-			delete thread;
-			thread = nullptr;
+			thread->SetQuit();
 		}
 
 		mThreads.clear();

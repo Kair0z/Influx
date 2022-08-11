@@ -20,7 +20,6 @@ namespace Influx
 	void RenderThread::OnStart()
 	{
 		Initialize();
-
 	}
 
 	void RenderThread::OnTick()
@@ -42,7 +41,16 @@ namespace Influx
 
 	void RenderThread::OnEnd()
 	{
-		
+		mRenderViewCondition.notify_one();
+
+		// Flush commandqueue
+		mpGfxCommandQueue->Flush();
+
+		// Delete resources...
+		delete mpSceneRenderer;
+		delete GameRenderTexture;
+		delete mpGfxCommandQueue;
+		delete mpGfxSwapChain;
 	}
 
 	void RenderThread::OnEvent(const Event* e)
@@ -120,6 +128,7 @@ namespace Influx
 
 	void RenderThread::EnqueueFrame(const RenderFrame* view)
 	{
+		if (IsQuit()) return;
 		if (!view) return;
 
 		/* Lock the Renderviewqueue mutex in order to write uninterrupted */
@@ -135,8 +144,8 @@ namespace Influx
 		std::unique_lock<std::mutex> lock(mRenderViewMutex);
 		while (mRenderFrameQueue.empty())
 		{
-			mRenderViewCondition.wait(lock);
-			std::this_thread::sleep_for(1ms);
+			mRenderViewCondition.wait_for(lock, 1ms);
+			if (IsQuit()) return nullptr;
 		}
 
 		const RenderFrame* frameToRender = mRenderFrameQueue.front();
@@ -153,23 +162,6 @@ namespace Influx
 		mFrameConditionVariable.wait(lock, isValid);
 
 		return GetTickCount();
-	}
-
-	RenderThread::~RenderThread()
-	{
-		bIsQuit = true;
-		StdThread.join();
-
-		mRenderViewCondition.notify_one();
-
-		// Flush commandqueue
-		mpGfxCommandQueue->Flush();
-
-		// Delete resources...
-		delete mpSceneRenderer;
-		delete GameRenderTexture;
-		delete mpGfxCommandQueue;
-		delete mpGfxSwapChain;
 	}
 }
 

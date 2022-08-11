@@ -38,7 +38,6 @@ namespace Influx
 		RenderThread(RenderThread&&) = delete;
 		RenderThread& operator=(const RenderThread&) = delete;
 		RenderThread& operator=(RenderThread&&) = delete;
-		virtual ~RenderThread();
 
 		inline constexpr static const Vector2u& GetStatGameResolution() { return StatGameResolution; }
 

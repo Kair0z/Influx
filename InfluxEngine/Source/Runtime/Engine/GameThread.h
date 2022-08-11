@@ -19,20 +19,17 @@ namespace Influx
 		virtual void OnTick() override final;
 		virtual void OnEnd() override final;
 
-		void BindToRenderThread(RenderThread* renderThread);
+		void BindToRenderThread(WeakRef<RenderThread> renderThread);
 
 		GameThread() = default;
-		virtual ~GameThread();
 
 	private:
 		Ptr<World> CurrentWorld = nullptr;
-		Ptr<RenderThread> BoundRenderThread = nullptr;
+		WeakRef<RenderThread> BoundRenderThreadRef;
+
 	private:
 		void DispatchInitialize();
 		void DispatchUpdate(const float deltaTime);
-
-	private:
-		void ShutDown();
 	};
 }
 

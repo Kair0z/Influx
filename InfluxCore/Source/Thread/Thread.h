@@ -21,6 +21,8 @@ namespace Influx
 		bool IsQuit() const;
 		float GetMsBetweenTicks() const;
 
+		void SetQuit();
+
 		virtual ~Thread();
 
 	protected:

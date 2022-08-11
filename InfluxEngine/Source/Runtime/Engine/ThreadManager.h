@@ -18,23 +18,22 @@ namespace Influx
 		static Ptr<ThreadManager> Create();
 
 		template <class TThreadClass, EThreads TThreadRole, typename = std::enable_if<std::is_base_of<Thread, TThreadClass>::value>::type>
-		TThreadClass* CreateAndLaunchThread();
+		WeakRef<TThreadClass> CreateAndLaunchThread();
 
 		~ThreadManager();
 
 	private:
-		Vector<Thread*> mThreads;
+		Vector<Ref<Thread>> mThreads;
 		
 		ThreadManager() = default;
 	};
 
 	template<class TThreadClass, EThreads TThreadRole, typename>
-	inline TThreadClass* ThreadManager::CreateAndLaunchThread()
+	inline WeakRef<TThreadClass> ThreadManager::CreateAndLaunchThread()
 	{
-		TThreadClass* newThread = new TThreadClass();
-		mThreads.push_back(newThread);
-		newThread->Run();
-		return newThread;
+		mThreads.emplace_back(std::make_shared<TThreadClass>());
+		mThreads.back()->Run();
+		return std::dynamic_pointer_cast<TThreadClass>(mThreads.back());
 	}
 }
 

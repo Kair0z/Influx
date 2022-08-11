@@ -20,10 +20,6 @@ namespace Influx
 	{
 		Logger::Info("Engine::Pre-Init");
 		{
-			// Creating Threads & immediately dispatching them:
-			mpRenderThread = new RenderThread();
-			mpGameThread = new GameThread();
-			
 			// Create Managers:
 			mpThreadManager = ThreadManager::Create();
 			mpAssetManager = AssetManager::Create();
@@ -38,12 +34,12 @@ namespace Influx
 			// Run Gamethread & Renderthread
 			mpRenderThread = mpThreadManager->CreateAndLaunchThread<RenderThread, EThreads::RenderThread>();
 			mpGameThread = mpThreadManager->CreateAndLaunchThread<GameThread, EThreads::GameThread>();
-			mpGameThread->BindToRenderThread(mpRenderThread);
+			if (!mpGameThread.expired()) mpGameThread.lock()->BindToRenderThread(mpRenderThread);
 			mpEventThread = mpThreadManager->CreateAndLaunchThread<EventThread, EThreads::EventThread>();
 
 			/* Subscribe to EventManager for Engine Events */
 			EventManagerLocator::Get()->SubscribeToChannel<EventCategory::Engine>([this](Event* e) { OnEvent(e); });
-			EventManagerLocator::Get()->SubscribeToChannel<EventCategory::Window>([this](Event* e) { mpRenderThread->OnEvent(e); });
+			EventManagerLocator::Get()->SubscribeToChannel<EventCategory::Window>([this](Event* e) { if (mpRenderThread.lock()) mpRenderThread.lock()->OnEvent(e); });
 		}
 
 		// Main-thread loop

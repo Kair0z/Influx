@@ -39,9 +39,9 @@ namespace Influx
 		std::atomic_bool mIsEngineQuitAtomic{ false };
 
 		// Thread References
-		Ptr<RenderThread> mpRenderThread;
-		Ptr<GameThread> mpGameThread;
-		Ptr<EventThread> mpEventThread;
+		WeakRef<RenderThread> mpRenderThread;
+		WeakRef<GameThread> mpGameThread;
+		WeakRef<EventThread> mpEventThread;
 
 	private:
 		void OnEvent(const class Event* e);
