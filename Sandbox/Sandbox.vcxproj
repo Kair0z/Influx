@@ -97,7 +97,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>InfluxEngine.lib;InfluxGraphics.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -118,7 +118,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>InfluxEngine.lib;InfluxGraphics.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">
@@ -135,7 +135,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>InfluxEngine.lib;InfluxGraphics.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">
@@ -156,7 +156,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>InfluxEngine.lib;InfluxGraphics.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

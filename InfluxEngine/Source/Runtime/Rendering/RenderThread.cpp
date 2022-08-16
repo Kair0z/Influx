@@ -8,7 +8,11 @@
 #include "Runtime/Rendering/Renderer.h"
 
 // RHI Includes:
+#if FLX_RENDERER_VULKAN
+#include "VulkanAPI.h"
+#elif FLX_RENDERER_D3D12
 #include "D3D12API.h"
+#endif
 
 // Misc Includes:
 #include "Runtime/Application/WindowEvents.h"
@@ -71,12 +75,17 @@ namespace Influx
 		//GfxSwapChain->Resize(GfxRenderAPI, GfxCommandQueue, newSize);
 	}
 
+
 	void RenderThread::Initialize()
 	{
+#if FLX_RENDERER_VULKAN
+		mpGfxRenderAPI = &Graphics::VulkanAPI::Get();
+#elif FLX_RENDERER_D3D12
 #if DEBUG
 		Graphics::D3D12API::EnableDebugLayer();
 #endif
 		mpGfxRenderAPI = &Graphics::D3D12API::Get();
+#endif
 
 		// Create Command Queue
 		mpGfxCommandQueue = mpGfxRenderAPI->CreateCommandQueue(Graphics::ERHICommandQueueType::Graphics);

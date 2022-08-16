@@ -176,6 +176,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\InfluxDefines.h" />
     <ClInclude Include="Source\Runtime\Events\EventThread.h" />
     <ClInclude Include="Source\Runtime\Rendering\Renderer.h" />
     <ClInclude Include="Source\Runtime\Application\WindowEvents.h" />

@@ -5,6 +5,8 @@
 
 #include "GraphicsAPI.h"
 
+#pragma comment(lib, "vulkan-1.lib")
+
 #include "Vulkan/vulkan.hpp"
 
 namespace Influx::Graphics
@@ -46,14 +48,98 @@ namespace Influx::Graphics
 		virtual ~VulkanAPI();
 
 	private:
+		// Wrapper for a physical device, its data & its created logical device
+		struct VulkanDevice final
+		{
+			VulkanDevice() = default;
+			VulkanDevice(vk::PhysicalDevice physicalDevice);
+			virtual ~VulkanDevice();
+
+			void CreateLogicalDevice(vk::PhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, bool useSwapChain = true, vk::QueueFlags requestedQueueTypes = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute);
+			uint32_t GetQueueFamilyIndex(vk::QueueFlags  queueFlags) const;
+
+			vk::Queue RequestDeviceQueue(vk::QueueFlagBits queueType, uint32_t queueIndex = 0);
+
+			vk::PhysicalDevice VkPhysicalDevice;
+			vk::Device VkLogicalDevice;
+
+			vk::PhysicalDeviceProperties VkProperties;
+			vk::PhysicalDeviceMemoryProperties VkMemoryProperties;
+			vk::PhysicalDeviceFeatures VkFeatures;
+			vk::PhysicalDeviceFeatures VkEnabledFeatures;
+			std::vector<vk::QueueFamilyProperties> VkQueueFamilyProperties;
+
+			struct
+			{
+				uint32_t Graphics;
+				uint32_t Compute;
+				uint32_t Transfer;
+			} QueueFamilyIndices;
+		};
+
 		vk::Instance VkInstance;
+		VulkanDevice MainDevice;
+
+		vk::PhysicalDevice PickFirstSuitablePhysicalDevice(const std::vector<vk::PhysicalDevice>& devices);
 
 	public:
 		/* Vulkan Static creation functions */
 		/* Provides inline static functions involving creating VulkanAPI Objects & Resources & General functionality */
-		static void CreateInstance(vk::Instance& outResult, const std::string& appName = "None");
+		static void CreateInstance(vk::Instance& outResult, bool validation, const std::string& appName = "None");
+
+		static std::vector<vk::PhysicalDevice> GetPhysicalDevices(const vk::Instance& instance);
+		
+		static vk::Device CreateLogicalDeviceAndQueues(vk::PhysicalDevice physicalDevice, std::vector<vk::Queue>& outQueues);
 
 		static bool CheckValidationLayerSupport(const std::vector<const char*>& validationLayerNames);
+	};
+
+	/* VulkanCommandList */
+	class VulkanCommandList final : public RHICommandList
+	{
+	public:
+		/* RHICommandList API: */
+		virtual void TransitionResource(RHIResource* resource, const ERHIResourceState newState) override final {}
+		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue) override final {}
+		virtual void BindScissorRect(const RHIScissorRect& scissorRect) override final {}
+		virtual void BindViewports(const RHIViewport& viewport) override final {}
+		virtual void BindVertexBuffer(RHIVertexBuffer* vertexBuffer) override final {}
+		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) override final {}
+		virtual void CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition) override final {}
+		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) override final {}
+		virtual void ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition) override final {}
+		virtual void BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout) override final {}
+		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) override final {}
+		virtual void BindRenderTarget(RHIRenderTargetView* renderTargetView) override final {}
+		virtual void DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation) override final {}
+		virtual void BindDescriptorheap(RHIDescriptorHeap* descriptorHeap) override final {}
+
+		vk::CommandBuffer GetVulkanCommandBuffer() const;
+
+	private:
+		vk::CommandBuffer VkCommandBuffer;
+		
+		VulkanCommandList() = default;
+		friend class VulkanCommandQueue;
+	};
+
+	/* VulkanCommandQueue */
+	class VulkanCommandQueue final : public RHICommandQueue
+	{
+	public:
+		virtual RHICommandList* SetupNewCommandList(GraphicsAPI* api) override final {}
+		virtual void ExecuteCommmandList(RHICommandList* commandList) override final {}
+		virtual void Flush() override final {}
+
+		vk::Queue GetVulkanQueue() const;
+
+		~VulkanCommandQueue();
+
+	private:
+		vk::Queue VkCommandQueue;
+
+		VulkanCommandQueue() = default;
+		friend class VulkanAPI;
 	};
 }
 

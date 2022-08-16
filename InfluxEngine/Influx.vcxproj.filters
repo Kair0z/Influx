@@ -170,6 +170,7 @@
     <ClInclude Include="Source\Runtime\Rendering\Renderer.h" />
     <ClInclude Include="Source\Runtime\Engine\ThreadManager.h" />
     <ClInclude Include="Source\Runtime\Events\EventThread.h" />
+    <ClInclude Include="Source\InfluxDefines.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Runtime\Application\WindowsApp.cpp">
