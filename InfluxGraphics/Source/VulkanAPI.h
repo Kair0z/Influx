@@ -8,6 +8,7 @@
 #pragma comment(lib, "vulkan-1.lib")
 
 #include "Vulkan/vulkan.hpp"
+#include "Vulkan/vulkan_win32.h"
 
 namespace Influx::Graphics
 {
@@ -17,26 +18,26 @@ namespace Influx::Graphics
 		/* Private constructor -> Singleton */
 		VulkanAPI();
 		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const override final;
-		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const override final;
-		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
-		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
-		virtual RHITexture* CreateTexture(const RHITextureDescription& constructionArgs) const override final;
+		virtual RHISwapChain* CreateSwapChain(HINSTANCE i, HWND windowHandle, RHICommandQueue* commandQueue) const override final;
+		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final { return nullptr; }
+		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final { return nullptr; }
+		virtual RHITexture* CreateTexture(const RHITextureDescription& constructionArgs) const override final { return nullptr; }
 
-		virtual RHIRenderTargetView* CreateRenderTargetView(RHITexture* texture) const override final;
-		virtual RHIRenderTargetView* CreateRenderTargetView(RHIResource* resource) const override final;
-		virtual RHIConstantBufferView* CreateConstantBufferView(RHIResource* resource) const override final;
-		virtual RHIUnorderedAccessView* CreateUnorderedAccessView(RHIResource* resource) const override final;
-		virtual RHIShaderResourceView* CreateShaderResourceView(RHIResource* resource) const override final;
-		virtual RHIDepthStencilView* CreateDepthStencilView(RHIResource* resource) const override final;
+		virtual RHIRenderTargetView* CreateRenderTargetView(RHITexture* texture) const override final { return nullptr; }
+		virtual RHIRenderTargetView* CreateRenderTargetView(RHIResource* resource) const override final { return nullptr; }
+		virtual RHIConstantBufferView* CreateConstantBufferView(RHIResource* resource) const override final { return nullptr; }
+		virtual RHIUnorderedAccessView* CreateUnorderedAccessView(RHIResource* resource) const override final { return nullptr; }
+		virtual RHIShaderResourceView* CreateShaderResourceView(RHIResource* resource) const override final { return nullptr; }
+		virtual RHIDepthStencilView* CreateDepthStencilView(RHIResource* resource) const override final { return nullptr; }
 
-		virtual RHIDescriptorHeap* CreateDescriptorHeap(const ERHIDescriptorType type, uint32_t numDescriptors, bool shaderVisible = false) const override final;
+		virtual RHIDescriptorHeap* CreateDescriptorHeap(const ERHIDescriptorType type, uint32_t numDescriptors, bool shaderVisible = false) const override final { return nullptr; }
 
-		virtual RHIGraphicsPipelineLayout* CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const override final;
-		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const override final;
+		virtual RHIGraphicsPipelineLayout* CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDescription& constructionArgs) const override final { return nullptr; }
+		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const override final { return nullptr; }
 
-		virtual RHIShader* CreateRHIShader(const std::vector<uint8_t>& fromCompiledData) const override final;
-		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const std::string& target) const override final;
-		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const ERHIShaderType shaderType, const ERHIShaderModel shaderModel = ERHIShaderModel::SM_5_0) const override final;
+		virtual RHIShader* CreateRHIShader(const std::vector<uint8_t>& fromCompiledData) const override final { return nullptr; }
+		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const std::string& target) const override final { return nullptr; }
+		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const ERHIShaderType shaderType, const ERHIShaderModel shaderModel = ERHIShaderModel::SM_5_0) const override final { return nullptr; }
 
 	public:
 		/* Singleton Object holding references to ID3D12Device, IDXGIFactory, ... */
@@ -46,6 +47,8 @@ namespace Influx::Graphics
 			return api;
 		}
 		virtual ~VulkanAPI();
+
+		vk::Instance GetInstance() { return VkInstance; }
 
 	private:
 		// Wrapper for a physical device, its data & its created logical device
@@ -58,7 +61,7 @@ namespace Influx::Graphics
 			void CreateLogicalDevice(vk::PhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, bool useSwapChain = true, vk::QueueFlags requestedQueueTypes = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute);
 			uint32_t GetQueueFamilyIndex(vk::QueueFlags  queueFlags) const;
 
-			vk::Queue RequestDeviceQueue(vk::QueueFlagBits queueType, uint32_t queueIndex = 0);
+			vk::Queue RequestDeviceQueue(vk::QueueFlagBits queueType, uint32_t queueIndex = 0) const;
 
 			vk::PhysicalDevice VkPhysicalDevice;
 			vk::Device VkLogicalDevice;
@@ -127,7 +130,7 @@ namespace Influx::Graphics
 	class VulkanCommandQueue final : public RHICommandQueue
 	{
 	public:
-		virtual RHICommandList* SetupNewCommandList(GraphicsAPI* api) override final {}
+		virtual RHICommandList* SetupNewCommandList(GraphicsAPI* api) override final;
 		virtual void ExecuteCommmandList(RHICommandList* commandList) override final {}
 		virtual void Flush() override final {}
 
@@ -139,6 +142,25 @@ namespace Influx::Graphics
 		vk::Queue VkCommandQueue;
 
 		VulkanCommandQueue() = default;
+		friend class VulkanAPI;
+	};
+
+	/* VulkanSwapChain */
+	class VulkanSwapChain final : public RHISwapChain
+	{
+	public:
+		virtual void Present(RHICommandQueue* commandQueue, bool VSync) override final;
+		virtual void Resize(GraphicsAPI* api, RHICommandQueue* commandQueue, UINT newSizeX, UINT newSizeY) override final;
+
+		~VulkanSwapChain();
+
+	private:
+		vk::SurfaceKHR VkSurface;
+		vk::SwapchainKHR VkSwapChain;
+
+		vk:: fpQueuePresentKHR;
+
+		VulkanSwapChain() = default;
 		friend class VulkanAPI;
 	};
 }

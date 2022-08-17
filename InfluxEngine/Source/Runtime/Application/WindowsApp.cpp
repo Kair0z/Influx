@@ -22,6 +22,7 @@ namespace Influx
 		desc.name = "App";
 		newApp->mpWindow = newApp->MakeWindow(desc);
 		newApp->mpWindow->Show();
+		newApp->mInstanceHandle = instance;
 
 		return newApp;
 	}
@@ -29,6 +30,11 @@ namespace Influx
 	Ptr<Window> WindowsApp::GetWindow() const
 	{
 		return mpWindow;
+	}
+
+	HINSTANCE WindowsApp::GetInstanceHandle() const
+	{
+		return mInstanceHandle;
 	}
 
 	void WindowsApp::PollEvents()

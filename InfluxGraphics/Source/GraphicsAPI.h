@@ -151,7 +151,7 @@ namespace Influx::Graphics
 	{
 	public:
 		/* Graphics API Interface: */
-		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const = 0;
+		virtual RHISwapChain* CreateSwapChain(HINSTANCE windowsInstance, HWND windowHandle, RHICommandQueue* commandQueue) const = 0;
 		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const = 0;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
 		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
@@ -263,7 +263,7 @@ namespace Influx::Graphics
 	class RHISwapChain
 	{
 	public:
-		virtual void Present(bool VSync) = 0;
+		virtual void Present(RHICommandQueue* commandQueue, bool VSync) = 0;
 		virtual void Resize(GraphicsAPI* api, RHICommandQueue* commandQueue, UINT newSizeX, UINT newSizeY) = 0;
 		RHIResource* GetCurrentBackBufferResource() { return BackBufferResources[GetCurrentBackBufferIndex()]; }
 		RHIRenderTargetView* GetCurrentRenderTargetView() { return BackBufferRTVs[GetCurrentBackBufferIndex()]; }

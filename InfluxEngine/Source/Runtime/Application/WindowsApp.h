@@ -18,9 +18,9 @@ namespace Influx
 		static Ptr<WindowsApp> Create(const HINSTANCE instance = NULL, const HICON icon = NULL);
 
 		Ptr<Window> GetWindow() const;
+		HINSTANCE GetInstanceHandle() const;
 
 		void PollEvents();
-
 		static void AddWindowEventProcHandler(WindowProcHandler handler);
 
 	private:

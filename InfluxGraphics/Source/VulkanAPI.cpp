@@ -1,4 +1,5 @@
 #include "VulkanAPI.h"
+#include "VulkanConversion.h"
 
 namespace Influx::Graphics
 {
@@ -8,6 +9,31 @@ namespace Influx::Graphics
 
 		MainDevice = VulkanDevice(PickFirstSuitablePhysicalDevice(VulkanAPI::GetPhysicalDevices(VkInstance)));
 		MainDevice.CreateLogicalDevice({}, {}, true);
+	}
+
+	RHICommandQueue* VulkanAPI::CreateCommandQueue(const ERHICommandQueueType type) const
+	{
+		VulkanCommandQueue* vulkanCmdQueue = new VulkanCommandQueue();
+		vulkanCmdQueue->eType = type;
+		vulkanCmdQueue->VkCommandQueue = MainDevice.RequestDeviceQueue(Conversion::ToVulkan(type));
+
+		return vulkanCmdQueue;
+	}
+
+	RHISwapChain* VulkanAPI::CreateSwapChain(HINSTANCE i, HWND windowHandle, RHICommandQueue* commandQueue) const
+	{
+		VulkanSwapChain* vulkanSwpChn = new VulkanSwapChain();
+		
+		VkWin32SurfaceCreateInfoKHR createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		createInfo.hwnd = windowHandle;
+		createInfo.hinstance = i;
+
+		VkSurfaceKHR vkTemp{};
+		vkCreateWin32SurfaceKHR(VkInstance, &createInfo, nullptr, &vkTemp);
+		vulkanSwpChn->VkSurface = vkTemp;
+
+		return vulkanSwpChn;
 	}
 
 	VulkanAPI::~VulkanAPI()
@@ -69,35 +95,24 @@ namespace Influx::Graphics
 		createInfo.enabledExtensionCount = extensionCount;
 		createInfo.ppEnabledExtensionNames = extensionNames;
 
-		// Validation Layers...
+		std::vector<const char*> layers{};
+
 #if _DEBUG
+		// Validation Layers...
 		if (validation)
 		{
-			const std::vector<const char*>& validationLayers =
-			{
-				// The VK_LAYER_KHRONOS_validation contains all current validation functionality.
-				// Note that on Android this layer requires at least NDK r20
-				"VK_LAYER_KHRONOS_validation"
-			};
+			// The VK_LAYER_KHRONOS_validation contains all current validation functionality.
+			// Note that on Android this layer requires at least NDK r20
+			layers.push_back("VK_LAYER_KHRONOS_validation");
 
-			if (!CheckValidationLayerSupport(validationLayers))
-			{
-				// One of the requested validationLayers is not available!...
-				assert(false);
-			}
-
-			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			createInfo.ppEnabledLayerNames = validationLayers.data();
+			// One of the requested validationLayers is not available!...
+			assert(CheckValidationLayerSupport(layers));
 		}
-		else
-		{
-			createInfo.enabledLayerCount = 0;
-			createInfo.ppEnabledLayerNames = nullptr;
-		}
-#else
-		createInfo.enabledLayerCount = 0;
 #endif
 		
+		createInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
+		createInfo.ppEnabledLayerNames = layers.data();
+
 		vk::Result result = vk::createInstance(&createInfo, nullptr, &outResult);
 
 		delete[] extensionNames;
@@ -162,12 +177,17 @@ namespace Influx::Graphics
 			}
 		}
 
-		return false;
+		return true;
 	}
 
 	vk::CommandBuffer VulkanCommandList::GetVulkanCommandBuffer() const
 	{
 		return VkCommandBuffer;
+	}
+
+	RHICommandList* VulkanCommandQueue::SetupNewCommandList(GraphicsAPI* api)
+	{
+		
 	}
 
 	vk::Queue VulkanCommandQueue::GetVulkanQueue() const
@@ -322,9 +342,33 @@ namespace Influx::Graphics
 		throw std::runtime_error("Could not find a matching queue family index");
 	}
 
-	vk::Queue VulkanAPI::VulkanDevice::RequestDeviceQueue(vk::QueueFlagBits queueType, uint32_t queueIndex)
+	vk::Queue VulkanAPI::VulkanDevice::RequestDeviceQueue(vk::QueueFlagBits queueType, uint32_t queueIndex) const
 	{
 		return VkLogicalDevice.getQueue(GetQueueFamilyIndex(queueType), queueIndex);
+	}
+
+	void VulkanSwapChain::Present(RHICommandQueue* commandQueue, bool VSync)
+	{
+		VulkanCommandQueue* vulkanCommandQueue = (VulkanCommandQueue*)commandQueue;
+
+		vk::PresentInfoKHR presentInfo{};
+		presentInfo.sType = vk::StructureType::ePresentInfoKHR;
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = &VkSwapChain;
+		presentInfo.pImageIndices = &CurrentBackBufferIndex;
+		
+		
+		vk::getDispatchLoaderStatic().vkQueuePresentKHR(vulkanCommandQueue->GetVulkanQueue(), &presentInfo);
+	}
+
+	void VulkanSwapChain::Resize(GraphicsAPI* api, RHICommandQueue* commandQueue, UINT newSizeX, UINT newSizeY)
+	{
+
+	}
+
+	VulkanSwapChain::~VulkanSwapChain()
+	{
+		vkDestroySurfaceKHR(VulkanAPI::Get().GetInstance(), VkSurface, nullptr);
 	}
 
 }

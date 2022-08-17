@@ -45,7 +45,7 @@ namespace Influx::Graphics
 		virtual ~D3D12API();
 
 		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const override final;
-		virtual RHISwapChain* CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const override final;
+		virtual RHISwapChain* CreateSwapChain(HINSTANCE windowsInstance, HWND windowHandle, RHICommandQueue* commandQueue) const override final;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
 		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
 		virtual RHITexture* CreateTexture(const RHITextureDescription& constructionArgs) const override final;
@@ -235,7 +235,7 @@ namespace Influx::Graphics
 	class D3D12SwapChain final : public RHISwapChain
 	{
 	public:
-		virtual void Present(bool VSync) override final;
+		virtual void Present(RHICommandQueue* commandQueue, bool VSync) override final;
 		virtual void Resize(GraphicsAPI* api, RHICommandQueue* commandQueue, UINT newSizeX, UINT newSizeY) override final;
 
 		~D3D12SwapChain();

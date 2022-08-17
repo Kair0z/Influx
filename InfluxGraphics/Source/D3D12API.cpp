@@ -16,7 +16,7 @@ namespace Influx::Graphics
 		return result;
 	}
 
-	RHISwapChain* D3D12API::CreateSwapChain(HWND windowHandle, RHICommandQueue* commandQueue) const
+	RHISwapChain* D3D12API::CreateSwapChain(HINSTANCE, HWND windowHandle, RHICommandQueue* commandQueue) const
 	{
 		D3D12SwapChain* result = new D3D12SwapChain();
 		D3D12CommandQueue* dxCommandQueue = (D3D12CommandQueue*)commandQueue;
@@ -766,7 +766,7 @@ namespace Influx::Graphics
 	
 	/* D3D12SwapChain */
 #pragma region D3D12SwapChain
-	void D3D12SwapChain::Present(bool VSync)
+	void D3D12SwapChain::Present(RHICommandQueue* commandQueue, bool VSync)
 	{
 		UINT syncIntv = VSync ? 1 : 0;
 		UINT flags = bIsTearingSupported && !VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
@@ -804,6 +804,8 @@ namespace Influx::Graphics
 
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = DxDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 		handle.ptr += (slot * DescriptorStride);
+
+		return handle;
 	}
 
 	ID3D12DescriptorHeap* D3D12DescriptorHeap::GetDxDescriptorHeap() const

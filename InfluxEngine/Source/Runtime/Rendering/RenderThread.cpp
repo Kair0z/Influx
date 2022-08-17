@@ -90,10 +90,14 @@ namespace Influx
 		// Create Command Queue
 		mpGfxCommandQueue = mpGfxRenderAPI->CreateCommandQueue(Graphics::ERHICommandQueueType::Graphics);
 
-		// Create Window-swapchain from Application Window handle
-		void* currentWindowHandle = ApplicationLocator::Get()->GetWindow()->GetWindowsHandle();
+		// Create Window-swapchain from Application Window handle & Instance
+		HWND currentWindowHandle = ApplicationLocator::Get()->GetWindow()->GetWindowsHandle();
+		HINSTANCE currentWindowsInstance = ApplicationLocator::Get()->GetInstanceHandle();
 		ASSERT(currentWindowHandle != nullptr);
-		mpGfxSwapChain = mpGfxRenderAPI->CreateSwapChain((HWND)currentWindowHandle, mpGfxCommandQueue);
+		ASSERT(currentWindowsInstance != nullptr);
+		mpGfxSwapChain = mpGfxRenderAPI->CreateSwapChain(currentWindowsInstance, currentWindowHandle, mpGfxCommandQueue);
+
+		return;
 
 		// Create Scene Renderer:
 		mpSceneRenderer = new Renderer();
@@ -102,7 +106,7 @@ namespace Influx
 		mpEditorRenderer = new Editor::D3D12EditorRenderer();
 		mpEditorRenderer->InitializeRHI(mpGfxRenderAPI);
 
-		// Create Game Render Target:
+		// Create Main Game Render Target:
 		Graphics::RHITextureDescription textureDescription{};
 		textureDescription.Format = Graphics::ERHIFormat::RGBA_8_Unorm;
 		textureDescription.Height = mpGfxSwapChain->GetHeight();
