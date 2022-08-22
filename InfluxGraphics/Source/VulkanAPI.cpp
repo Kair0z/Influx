@@ -3,79 +3,20 @@
 
 #include <iostream>
 
+PFN_vkCreateDebugUtilsMessengerEXT  pfnVkCreateDebugUtilsMessengerEXT = {};
+PFN_vkDestroyDebugUtilsMessengerEXT pfnVkDestroyDebugUtilsMessengerEXT = {};
+
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger)
+{
+	return pfnVkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pMessenger);
+}
+VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator)
+{
+	return pfnVkDestroyDebugUtilsMessengerEXT(instance, messenger, pAllocator);
+}
 
 namespace Influx::Graphics
 {
-	PFN_vkCreateDebugUtilsMessengerEXT  VulkanAPI::pfnVkCreateDebugUtilsMessengerEXT = {};
-	PFN_vkDestroyDebugUtilsMessengerEXT VulkanAPI::pfnVkDestroyDebugUtilsMessengerEXT = {};
-
-	VKAPI_ATTR VkResult VKAPI_CALL VulkanAPI::vkCreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger)
-	{
-		return pfnVkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pMessenger);
-	}
-
-	VKAPI_ATTR void VKAPI_CALL VulkanAPI::vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator)
-	{
-		return pfnVkDestroyDebugUtilsMessengerEXT(instance, messenger, pAllocator);
-	}
-
-	// Debug API call...
-	VKAPI_ATTR VkBool32 VKAPI_CALL VulkanAPI::debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*)
-	{
-		std::ostringstream message;
-		message << vk::to_string(static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity)) << ": "
-			<< vk::to_string(static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(messageTypes)) << ":\n";
-		message << "\t"
-			<< "messageIDName   = <" << pCallbackData->pMessageIdName << ">\n";
-		message << "\t"
-			<< "messageIdNumber = " << pCallbackData->messageIdNumber << "\n";
-		message << "\t"
-			<< "message         = <" << pCallbackData->pMessage << ">\n";
-		if (0 < pCallbackData->queueLabelCount)
-		{
-			message << "\t"
-				<< "Queue Labels:\n";
-			for (uint32_t i = 0; i < pCallbackData->queueLabelCount; i++)
-			{
-				message << "\t\t"
-					<< "labelName = <" << pCallbackData->pQueueLabels[i].pLabelName << ">\n";
-			}
-		}
-		if (0 < pCallbackData->cmdBufLabelCount)
-		{
-			message << "\t"
-				<< "CommandBuffer Labels:\n";
-			for (uint32_t i = 0; i < pCallbackData->cmdBufLabelCount; i++)
-			{
-				message << "\t\t"
-					<< "labelName = <" << pCallbackData->pCmdBufLabels[i].pLabelName << ">\n";
-			}
-		}
-		if (0 < pCallbackData->objectCount)
-		{
-			message << "\t"
-				<< "Objects:\n";
-			for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
-			{
-				message << "\t\t"
-					<< "Object " << i << "\n";
-				message << "\t\t\t"
-					<< "objectType   = " << vk::to_string(static_cast<vk::ObjectType>(pCallbackData->pObjects[i].objectType)) << "\n";
-				message << "\t\t\t"
-					<< "objectHandle = " << pCallbackData->pObjects[i].objectHandle << "\n";
-				if (pCallbackData->pObjects[i].pObjectName)
-				{
-					message << "\t\t\t"
-						<< "objectName   = <" << pCallbackData->pObjects[i].pObjectName << ">\n";
-				}
-			}
-		}
-
-		std::cout << message.str() << std::endl;
-
-		return false;
-	}
-
 	VulkanAPI::VulkanAPI()
 	{
 		CreateInstance(VulkInstance, "None");
@@ -120,7 +61,7 @@ namespace Influx::Graphics
 		createInfo.hinstance = i;
 
 		VkSurfaceKHR vkTemp{};
-		vkCreateWin32SurfaceKHR(VulkInstance, &createInfo, nullptr, &vkTemp);
+		VkResult result = vkCreateWin32SurfaceKHR(VulkInstance, &createInfo, nullptr, &vkTemp);
 		vulkanSwpChn->VkSurface = vkTemp;
 
 		// Create the VkSwapChain
@@ -167,18 +108,19 @@ namespace Influx::Graphics
 		vk::SwapchainCreateInfoKHR swpChnCreateInfo{};
 		swpChnCreateInfo.sType = vk::StructureType::eSwapchainCreateInfoKHR;
 		swpChnCreateInfo.surface = vulkanSwpChn->VkSurface;
-		swpChnCreateInfo.minImageCount = vulkanSwpChn->NumBackBuffers;
+		swpChnCreateInfo.minImageCount = surfaceCapabilities.minImageCount;
 		swpChnCreateInfo.imageFormat = chosenFormat.format;
 		swpChnCreateInfo.imageColorSpace = chosenFormat.colorSpace;
 		swpChnCreateInfo.imageExtent = chosenSwapExtent;
 		swpChnCreateInfo.imageArrayLayers = 1;
 		swpChnCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
-		swpChnCreateInfo.presentMode = chosenPresentMode;
+		swpChnCreateInfo.presentMode = vk::PresentModeKHR::eFifo;
 		swpChnCreateInfo.preTransform = surfaceCapabilities.currentTransform;
 		swpChnCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
 		swpChnCreateInfo.clipped = true;
 		swpChnCreateInfo.oldSwapchain = VK_NULL_HANDLE;
-
+		swpChnCreateInfo.flags = vk::SwapchainCreateFlagsKHR();
+		
 		vulkanSwpChn->VkSwapChain = MainDevice.VkLogicalDevice.createSwapchainKHR(swpChnCreateInfo, nullptr);
 
 		// Get Vulkan swapchain images:
@@ -258,7 +200,7 @@ namespace Influx::Graphics
 		}
 
 		std::vector<const char*> vExtensions(extensionNames, extensionNames + extensionCount);
-
+		
 		std::vector<const char*> layers{};
 #if _DEBUG
 		// VALIDATION LAYERS
@@ -291,30 +233,42 @@ namespace Influx::Graphics
 		return instance.enumeratePhysicalDevices();
 	}
 
-	vk::Device VulkanAPI::CreateLogicalDeviceAndQueues(vk::PhysicalDevice physicalDevice, std::vector<vk::Queue>& outQueues)
+	vk::Device VulkanAPI::CreateLogicalDeviceAndQueues(vk::PhysicalDevice physicalDevice, std::vector<uint32_t> queueFamilyIndices, std::vector<vk::Queue>& outQueues)
 	{
-		vk::DeviceQueueCreateInfo queueCreateInfo{};
-		queueCreateInfo.sType = vk::StructureType::eDeviceQueueCreateInfo;
-		queueCreateInfo.queueFamilyIndex = 0;
-		queueCreateInfo.queueCount = 1;
-		float queuePrio = 1.0f;
-		queueCreateInfo.pQueuePriorities = &queuePrio;
+		std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos{};
+		float priorities{ 1.0f };
+		for (size_t i = 0; i < queueFamilyIndices.size(); ++i)
+		{
+			vk::DeviceQueueCreateInfo queueCreateInfo{};
+			queueCreateInfo.sType = vk::StructureType::eDeviceQueueCreateInfo;
+			queueCreateInfo.pQueuePriorities = &priorities;
+			queueCreateInfo.queueFamilyIndex = queueFamilyIndices[i];
+			queueCreateInfo.queueCount = 1;
+			queueCreateInfos.push_back(queueCreateInfo);
+		}
 
 		// For now, no fancy features necessary...
 		vk::PhysicalDeviceFeatures deviceFeatures{};
 
 		vk::DeviceCreateInfo createInfo{};
 		createInfo.sType = vk::StructureType::eDeviceCreateInfo;
-		createInfo.pQueueCreateInfos = &queueCreateInfo;
-		createInfo.queueCreateInfoCount = 1;
+		createInfo.pQueueCreateInfos = queueCreateInfos.data();
+		createInfo.queueCreateInfoCount = (uint32_t)queueCreateInfos.size();
 		createInfo.pEnabledFeatures = &deviceFeatures;
 
-		createInfo.enabledExtensionCount = 0;
-		createInfo.enabledLayerCount = 0;
+		std::vector<const char*> enabledExtensions{};
+		enabledExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);			// Swapchain support.
+
+		createInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
+		createInfo.ppEnabledExtensionNames = enabledExtensions.data();
+
+		std::vector<const char*> enabledLayers{};
+
+		createInfo.enabledLayerCount = (uint32_t)enabledLayers.size();
+		createInfo.ppEnabledLayerNames = enabledLayers.data();
 
 		vk::Device result = physicalDevice.createDevice(createInfo);
 
-		result.getQueue(0, 0, &outQueues[0]);
 		return result;
 	}
 
@@ -404,10 +358,67 @@ namespace Influx::Graphics
 		createInfo.sType = vk::StructureType::eDebugUtilsMessengerCreateInfoEXT;
 		createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
 		createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
-		createInfo.pfnUserCallback = debugMessageFunc;
+		createInfo.pfnUserCallback = DebugMessageFunc;
 		createInfo.pUserData = nullptr; // Optional
 
 		return instance.createDebugUtilsMessengerEXT(createInfo);
+	}
+
+	// Debug API call...
+	VKAPI_ATTR VkBool32 VKAPI_CALL VulkanAPI::DebugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*)
+	{
+		std::ostringstream message;
+		message << vk::to_string(static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity)) << ": "
+			<< vk::to_string(static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(messageTypes)) << ":\n";
+		message << "\t"
+			<< "messageIDName   = <" << pCallbackData->pMessageIdName << ">\n";
+		message << "\t"
+			<< "messageIdNumber = " << pCallbackData->messageIdNumber << "\n";
+		message << "\t"
+			<< "message         = <" << pCallbackData->pMessage << ">\n";
+		if (0 < pCallbackData->queueLabelCount)
+		{
+			message << "\t"
+				<< "Queue Labels:\n";
+			for (uint32_t i = 0; i < pCallbackData->queueLabelCount; i++)
+			{
+				message << "\t\t"
+					<< "labelName = <" << pCallbackData->pQueueLabels[i].pLabelName << ">\n";
+			}
+		}
+		if (0 < pCallbackData->cmdBufLabelCount)
+		{
+			message << "\t"
+				<< "CommandBuffer Labels:\n";
+			for (uint32_t i = 0; i < pCallbackData->cmdBufLabelCount; i++)
+			{
+				message << "\t\t"
+					<< "labelName = <" << pCallbackData->pCmdBufLabels[i].pLabelName << ">\n";
+			}
+		}
+		if (0 < pCallbackData->objectCount)
+		{
+			message << "\t"
+				<< "Objects:\n";
+			for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
+			{
+				message << "\t\t"
+					<< "Object " << i << "\n";
+				message << "\t\t\t"
+					<< "objectType   = " << vk::to_string(static_cast<vk::ObjectType>(pCallbackData->pObjects[i].objectType)) << "\n";
+				message << "\t\t\t"
+					<< "objectHandle = " << pCallbackData->pObjects[i].objectHandle << "\n";
+				if (pCallbackData->pObjects[i].pObjectName)
+				{
+					message << "\t\t\t"
+						<< "objectName   = <" << pCallbackData->pObjects[i].pObjectName << ">\n";
+				}
+			}
+		}
+
+		std::cout << message.str() << std::endl;
+
+		return false;
 	}
 
 	vk::CommandBuffer VulkanCommandList::GetVulkanCommandBuffer() const
@@ -447,6 +458,12 @@ namespace Influx::Graphics
 		VkFeatures = physicalDevice.getFeatures();
 		VkMemoryProperties = physicalDevice.getMemoryProperties();
 		VkQueueFamilyProperties = physicalDevice.getQueueFamilyProperties();
+
+		std::vector<vk::Queue> outQueues;
+		VkLogicalDevice = VulkanAPI::CreateLogicalDeviceAndQueues(
+			physicalDevice, 
+			{GetQueueFamilyIndex(vk::QueueFlagBits::eGraphics)},
+			outQueues);
 	}
 
 	VulkanAPI::VulkanDevice::~VulkanDevice()

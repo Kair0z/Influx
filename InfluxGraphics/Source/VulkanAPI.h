@@ -17,6 +17,7 @@ namespace Influx::Graphics
 	{
 		/* Private constructor -> Singleton */
 		VulkanAPI();
+
 		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const override final;
 		virtual RHISwapChain* CreateSwapChain(HINSTANCE i, HWND windowHandle, RHICommandQueue* commandQueue) const override final;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final { return nullptr; }
@@ -99,7 +100,7 @@ namespace Influx::Graphics
 
 		static std::vector<vk::PhysicalDevice> GetPhysicalDevices(const vk::Instance& instance);
 		
-		static vk::Device CreateLogicalDeviceAndQueues(vk::PhysicalDevice physicalDevice, std::vector<vk::Queue>& outQueues);
+		static vk::Device CreateLogicalDeviceAndQueues(vk::PhysicalDevice physicalDevice, std::vector<uint32_t> queueFamilyIndices, std::vector<vk::Queue>& outQueues);
 
 		static bool CheckValidationLayerSupport(const std::vector<const char*>& validationLayerNames);
 
@@ -119,20 +120,10 @@ namespace Influx::Graphics
 		static vk::DebugUtilsMessengerEXT SetupDebugMessenger(const vk::Instance& instance);
 
 	private:
-		static VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(VkInstance                                 instance,
-			const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-			const VkAllocationCallbacks* pAllocator,
-			VkDebugUtilsMessengerEXT* pMessenger);
-
-		static VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator);
-
-		static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT       messageSeverity,
+		static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT       messageSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT              messageTypes,
 			VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
 			void* /*pUserData*/);
-
-		static PFN_vkCreateDebugUtilsMessengerEXT  pfnVkCreateDebugUtilsMessengerEXT;
-		static PFN_vkDestroyDebugUtilsMessengerEXT pfnVkDestroyDebugUtilsMessengerEXT;
 	};
 
 	/* VulkanCommandList */
