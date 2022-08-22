@@ -15,7 +15,7 @@ namespace Influx
 		typedef LRESULT(*WindowProcHandler)(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	public:
-		static Ptr<WindowsApp> Create(const HINSTANCE instance = NULL, const HICON icon = NULL);
+		static Ptr<WindowsApp> Create(const HINSTANCE instance = ::GetModuleHandle(NULL), const HICON icon = NULL);
 
 		Ptr<Window> GetWindow() const;
 		HINSTANCE GetInstanceHandle() const;

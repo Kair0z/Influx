@@ -140,7 +140,7 @@ namespace Influx
 		mpGfxCommandQueue->ExecuteCommmandList(renderCmdList);
 
 		/* Present Window Swapchain */
-		mpGfxSwapChain->Present({ true });
+		mpGfxSwapChain->Present(mpGfxCommandQueue, true);
 	}
 
 	void RenderThread::EnqueueFrame(const RenderFrame* view)

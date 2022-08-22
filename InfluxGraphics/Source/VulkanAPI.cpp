@@ -1,13 +1,21 @@
 #include "VulkanAPI.h"
 #include "VulkanConversion.h"
 
+#include <iostream>
+
 namespace Influx::Graphics
 {
+	// Debug API call...
+	VKAPI_ATTR VkBool32 VKAPI_CALL VulkanAPI::debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*)
+	{
+		return false;
+	}
+
 	VulkanAPI::VulkanAPI()
 	{
-		CreateInstance(VkInstance, "None");
+		CreateInstance(VulkInstance, "None");
 
-		MainDevice = VulkanDevice(PickFirstSuitablePhysicalDevice(VulkanAPI::GetPhysicalDevices(VkInstance)));
+		MainDevice = VulkanDevice(PickFirstSuitablePhysicalDevice(VulkanAPI::GetPhysicalDevices(VulkInstance)));
 		MainDevice.CreateLogicalDevice({}, {}, true);
 	}
 
@@ -16,6 +24,7 @@ namespace Influx::Graphics
 		VulkanCommandQueue* vulkanCmdQueue = new VulkanCommandQueue();
 		vulkanCmdQueue->eType = type;
 		vulkanCmdQueue->VkCommandQueue = MainDevice.RequestDeviceQueue(Conversion::ToVulkan(type));
+		vulkanCmdQueue->VkCommandPool = VulkanAPI::CreateCommandPool(MainDevice.VkLogicalDevice, MainDevice.QueueFamilyIndices.Graphics);
 
 		return vulkanCmdQueue;
 	}
@@ -24,21 +33,107 @@ namespace Influx::Graphics
 	{
 		VulkanSwapChain* vulkanSwpChn = new VulkanSwapChain();
 		
+		// Fill in RHISwapchain data
+		RECT rect;
+		if (GetWindowRect(windowHandle, &rect))
+		{
+			int width = rect.right - rect.left;
+			int height = rect.bottom - rect.top;
+
+			vulkanSwpChn->Width = (float)width;
+			vulkanSwpChn->Height = (float)height;
+		}
+
+		// Create the VkSurface
 		VkWin32SurfaceCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 		createInfo.hwnd = windowHandle;
 		createInfo.hinstance = i;
 
 		VkSurfaceKHR vkTemp{};
-		vkCreateWin32SurfaceKHR(VkInstance, &createInfo, nullptr, &vkTemp);
+		vkCreateWin32SurfaceKHR(VulkInstance, &createInfo, nullptr, &vkTemp);
 		vulkanSwpChn->VkSurface = vkTemp;
+
+		// Create the VkSwapChain
+		const SwapChainSupportDetails& swpChnSupportDetails = VulkanAPI::QuerySwapChainSupport(MainDevice.VkPhysicalDevice, vulkanSwpChn->VkSurface);
+		
+		// Choose surface format: (todo, arbitrary)
+		vk::SurfaceFormatKHR chosenFormat{};
+		for (const auto& availableFormat : swpChnSupportDetails.VkFormats)
+		{
+			if (availableFormat.format == vk::Format::eB8G8R8A8Srgb && availableFormat.colorSpace == vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear)
+			{
+				chosenFormat = availableFormat;
+				break;
+			}
+		}
+
+		// Choose Present mode: (todo, arbitrary)
+		vk::PresentModeKHR chosenPresentMode = vk::PresentModeKHR::eFifo; // default
+		for (const auto& availablePresentMode : swpChnSupportDetails.VkPresentModes)
+		{
+			if (availablePresentMode == vk::PresentModeKHR::eMailbox) 
+			{
+				chosenPresentMode = availablePresentMode;
+				break;
+			}
+		}
+		
+		// Setup Extent
+		vk::Extent2D chosenSwapExtent{};
+		const vk::SurfaceCapabilitiesKHR& surfaceCapabilities = swpChnSupportDetails.VkSurfaceCapabilities;
+		if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+		{
+			chosenSwapExtent = surfaceCapabilities.currentExtent;
+		}
+		else
+		{
+			int w, h;
+			vk::Extent2D actualExtent = { (uint32_t)vulkanSwpChn->Width, (uint32_t)vulkanSwpChn->Height };
+			actualExtent.width = std::clamp(actualExtent.width, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width);
+			actualExtent.height = std::clamp(actualExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
+			chosenSwapExtent = actualExtent;
+		}
+		
+		vk::SwapchainCreateInfoKHR swpChnCreateInfo{};
+		swpChnCreateInfo.sType = vk::StructureType::eSwapchainCreateInfoKHR;
+		swpChnCreateInfo.surface = vulkanSwpChn->VkSurface;
+		swpChnCreateInfo.minImageCount = vulkanSwpChn->NumBackBuffers;
+		swpChnCreateInfo.imageFormat = chosenFormat.format;
+		swpChnCreateInfo.imageColorSpace = chosenFormat.colorSpace;
+		swpChnCreateInfo.imageExtent = chosenSwapExtent;
+		swpChnCreateInfo.imageArrayLayers = 1;
+		swpChnCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+		swpChnCreateInfo.presentMode = chosenPresentMode;
+		swpChnCreateInfo.preTransform = surfaceCapabilities.currentTransform;
+		swpChnCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+		swpChnCreateInfo.clipped = true;
+		swpChnCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+
+		vulkanSwpChn->VkSwapChain = MainDevice.VkLogicalDevice.createSwapchainKHR(swpChnCreateInfo, nullptr);
+
+		// Get Vulkan swapchain images:
+		vulkanSwpChn->VkSwapChainImages = MainDevice.VkLogicalDevice.getSwapchainImagesKHR(vulkanSwpChn->VkSwapChain);
+		vulkanSwpChn->VkExtent = chosenSwapExtent;
+		vulkanSwpChn->VkImageFormat = chosenFormat.format;
+
+		// Create Image views:
+		vulkanSwpChn->VkImageViews = std::vector<vk::ImageView>{};
+		for (int i = 0; i < vulkanSwpChn->VkSwapChainImages.size(); ++i)
+			vulkanSwpChn->VkImageViews.push_back(VulkanAPI::CreateImageView(MainDevice.VkLogicalDevice, vulkanSwpChn->VkSwapChainImages[i], chosenFormat.format));
 
 		return vulkanSwpChn;
 	}
 
 	VulkanAPI::~VulkanAPI()
 	{
-		vkDestroyInstance(VkInstance, nullptr);
+		VulkInstance.destroyDebugUtilsMessengerEXT(debugMessageFunc);
+		vkDestroyInstance(VulkInstance, nullptr);
+	}
+
+	const VulkanAPI::VulkanDevice& VulkanAPI::GetDevice()
+	{
+		return MainDevice;
 	}
 
 	vk::PhysicalDevice VulkanAPI::PickFirstSuitablePhysicalDevice(const std::vector<vk::PhysicalDevice>& devices)
@@ -65,6 +160,7 @@ namespace Influx::Graphics
 		return result;
 	}
 
+	/* Statics */
 	void VulkanAPI::CreateInstance(vk::Instance& outResult, bool validation, const std::string& appName)
 	{
 		vk::Instance instance{};
@@ -81,24 +177,24 @@ namespace Influx::Graphics
 		createInfo.sType = vk::StructureType::eInstanceCreateInfo;
 		createInfo.pApplicationInfo = &appInfo;
 
-		// Additional Extensions...
+		// EXTENSIONS
 		uint32_t extensionCount = 0;
 		vk::enumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 		std::vector<vk::ExtensionProperties> extensions(extensionCount);
 		vk::enumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-
 		char** extensionNames = new char* [extensionCount] {};
 		for (int i = 0; i < extensionCount; ++i)
 		{
 			extensionNames[i] = extensions[i].extensionName;
 		}
-		createInfo.enabledExtensionCount = extensionCount;
-		createInfo.ppEnabledExtensionNames = extensionNames;
+
+		std::vector<const char*> vExtensions(extensionNames, extensionNames + extensionCount);
+
+		
 
 		std::vector<const char*> layers{};
-
 #if _DEBUG
-		// Validation Layers...
+		// VALIDATION LAYERS
 		if (validation)
 		{
 			// The VK_LAYER_KHRONOS_validation contains all current validation functionality.
@@ -107,11 +203,16 @@ namespace Influx::Graphics
 
 			// One of the requested validationLayers is not available!...
 			assert(CheckValidationLayerSupport(layers));
+
+			vExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
 #endif
 		
 		createInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
 		createInfo.ppEnabledLayerNames = layers.data();
+
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(vExtensions.size());
+		createInfo.ppEnabledExtensionNames = vExtensions.data();
 
 		vk::Result result = vk::createInstance(&createInfo, nullptr, &outResult);
 
@@ -180,16 +281,58 @@ namespace Influx::Graphics
 		return true;
 	}
 
+	vk::CommandPool VulkanAPI::CreateCommandPool(const vk::Device& device, uint32_t queueFamilyIndex)
+	{
+		vk::CommandPoolCreateInfo createInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, queueFamilyIndex);
+		return device.createCommandPool(createInfo);
+	}
+
+	VulkanAPI::SwapChainSupportDetails VulkanAPI::QuerySwapChainSupport(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface)
+	{
+		SwapChainSupportDetails details;
+
+		details.VkSurfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface);
+		details.VkFormats = physicalDevice.getSurfaceFormatsKHR(surface);
+		details.VkPresentModes = physicalDevice.getSurfacePresentModesKHR(surface);
+
+		return details;
+	}
+
+	vk::ImageView VulkanAPI::CreateImageView(const vk::Device& device, vk::Image image, vk::Format imageFormat, vk::ImageViewType viewType)
+	{
+		vk::ImageViewCreateInfo createInfo{};
+		createInfo.sType = vk::StructureType::eImageViewCreateInfo;
+		createInfo.image = image;
+		createInfo.viewType = viewType;
+		createInfo.format = imageFormat; // No, we cannot query this :(
+		createInfo.components = { vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity };
+		createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+
+		return device.createImageView(createInfo, nullptr);
+	}
+
 	vk::CommandBuffer VulkanCommandList::GetVulkanCommandBuffer() const
 	{
 		return VkCommandBuffer;
 	}
 
+	/* VulkanCommandQueue */
 	RHICommandList* VulkanCommandQueue::SetupNewCommandList(GraphicsAPI* api)
 	{
-		
-	}
+		VulkanCommandList* newVulkanCommandList = new VulkanCommandList();
+		VulkanAPI* vulkanApi = (VulkanAPI*)api;
 
+		/* Allocate a new command list */
+		newVulkanCommandList->VkCommandBuffer = 
+			vulkanApi->GetDevice().VkLogicalDevice.allocateCommandBuffers(vk::CommandBufferAllocateInfo(VkCommandPool, vk::CommandBufferLevel::ePrimary, 1)).front();
+
+		return newVulkanCommandList;
+	}
+	
 	vk::Queue VulkanCommandQueue::GetVulkanQueue() const
 	{
 		return VkCommandQueue;
@@ -200,6 +343,7 @@ namespace Influx::Graphics
 		
 	}
 	
+	/* Vulkan Device */
 	VulkanAPI::VulkanDevice::VulkanDevice(vk::PhysicalDevice physicalDevice)
 	{
 		VkPhysicalDevice = physicalDevice;
@@ -347,6 +491,7 @@ namespace Influx::Graphics
 		return VkLogicalDevice.getQueue(GetQueueFamilyIndex(queueType), queueIndex);
 	}
 
+	/* VulkanSwapchain */
 	void VulkanSwapChain::Present(RHICommandQueue* commandQueue, bool VSync)
 	{
 		VulkanCommandQueue* vulkanCommandQueue = (VulkanCommandQueue*)commandQueue;
@@ -357,8 +502,7 @@ namespace Influx::Graphics
 		presentInfo.pSwapchains = &VkSwapChain;
 		presentInfo.pImageIndices = &CurrentBackBufferIndex;
 		
-		
-		vk::getDispatchLoaderStatic().vkQueuePresentKHR(vulkanCommandQueue->GetVulkanQueue(), &presentInfo);
+		vulkanCommandQueue->GetVulkanQueue().presentKHR(&presentInfo);
 	}
 
 	void VulkanSwapChain::Resize(GraphicsAPI* api, RHICommandQueue* commandQueue, UINT newSizeX, UINT newSizeY)

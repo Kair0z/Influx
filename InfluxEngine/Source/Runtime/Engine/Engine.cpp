@@ -23,7 +23,7 @@ namespace Influx
 			// Create Managers:
 			mpThreadManager = ThreadManager::Create();
 			mpAssetManager = AssetManager::Create();
-			mpApplication = WindowsApp::Create();
+			mpApplication = WindowsApp::Create(::GetModuleHandle(NULL));
 
 			/* Provide locators */
 			ApplicationLocator::Provide(mpApplication);

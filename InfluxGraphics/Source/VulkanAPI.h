@@ -48,7 +48,7 @@ namespace Influx::Graphics
 		}
 		virtual ~VulkanAPI();
 
-		vk::Instance GetInstance() { return VkInstance; }
+		vk::Instance GetInstance() { return VulkInstance; }
 
 	private:
 		// Wrapper for a physical device, its data & its created logical device
@@ -79,13 +79,18 @@ namespace Influx::Graphics
 				uint32_t Transfer;
 			} QueueFamilyIndices;
 		};
+	public:
+		const VulkanDevice& GetDevice();
 
-		vk::Instance VkInstance;
+	private:
+		vk::Instance VulkInstance;
 		VulkanDevice MainDevice;
 
 		vk::PhysicalDevice PickFirstSuitablePhysicalDevice(const std::vector<vk::PhysicalDevice>& devices);
 
 	public:
+		
+
 		/* Vulkan Static creation functions */
 		/* Provides inline static functions involving creating VulkanAPI Objects & Resources & General functionality */
 		static void CreateInstance(vk::Instance& outResult, bool validation, const std::string& appName = "None");
@@ -95,6 +100,70 @@ namespace Influx::Graphics
 		static vk::Device CreateLogicalDeviceAndQueues(vk::PhysicalDevice physicalDevice, std::vector<vk::Queue>& outQueues);
 
 		static bool CheckValidationLayerSupport(const std::vector<const char*>& validationLayerNames);
+
+		static vk::CommandPool CreateCommandPool(const vk::Device& device, uint32_t queueFamilyIndex);
+
+		struct SwapChainSupportDetails
+		{
+			vk::SurfaceCapabilitiesKHR VkSurfaceCapabilities;
+			std::vector<vk::SurfaceFormatKHR> VkFormats;
+			std::vector<vk::PresentModeKHR> VkPresentModes;
+		};
+
+		static SwapChainSupportDetails QuerySwapChainSupport(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface);
+
+		static vk::ImageView CreateImageView(const vk::Device& device, vk::Image image, vk::Format imageFormat, vk::ImageViewType viewType = vk::ImageViewType::e2D);
+
+
+		static void SetupDebugMessenger(const vk::Instance& instance)
+		{
+			// Create-function ProcAddr...
+			pfnVkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(instance.getProcAddr("vkCreateDebugUtilsMessengerEXT"));
+			if (!pfnVkCreateDebugUtilsMessengerEXT)
+			{
+				std::cout << "GetInstanceProcAddr: Unable to find pfnVkCreateDebugUtilsMessengerEXT function." << std::endl;
+				// ... Todo
+			}
+
+			// Destroy-function ProcAddr...
+			pfnVkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(instance.getProcAddr("vkDestroyDebugUtilsMessengerEXT"));
+			if (!pfnVkDestroyDebugUtilsMessengerEXT)
+			{
+				std::cout << "GetInstanceProcAddr: Unable to find pfnVkDestroyDebugUtilsMessengerEXT function." << std::endl;
+				// ... Todo
+			}
+
+			vk::DebugUtilsMessengerCreateInfoEXT createInfo{};
+			createInfo.sType = vk::StructureType::eDebugUtilsMessengerCreateInfoEXT;
+			createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+			createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
+			createInfo.pfnUserCallback = debugMessageFunc;
+			createInfo.pUserData = nullptr; // Optional
+
+			instance.createDebugUtilsMessengerEXT(createInfo);
+		}
+
+	private:
+		static VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(VkInstance                                 instance,
+			const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+			const VkAllocationCallbacks* pAllocator,
+			VkDebugUtilsMessengerEXT* pMessenger)
+		{
+			return pfnVkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pMessenger);
+		}
+
+		static VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator)
+		{
+			return pfnVkDestroyDebugUtilsMessengerEXT(instance, messenger, pAllocator);
+		}
+
+		static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT       messageSeverity,
+			VkDebugUtilsMessageTypeFlagsEXT              messageTypes,
+			VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+			void* /*pUserData*/);
+
+		static PFN_vkCreateDebugUtilsMessengerEXT  pfnVkCreateDebugUtilsMessengerEXT;
+		static PFN_vkDestroyDebugUtilsMessengerEXT pfnVkDestroyDebugUtilsMessengerEXT;
 	};
 
 	/* VulkanCommandList */
@@ -140,6 +209,7 @@ namespace Influx::Graphics
 
 	private:
 		vk::Queue VkCommandQueue;
+		vk::CommandPool VkCommandPool;
 
 		VulkanCommandQueue() = default;
 		friend class VulkanAPI;
@@ -158,7 +228,11 @@ namespace Influx::Graphics
 		vk::SurfaceKHR VkSurface;
 		vk::SwapchainKHR VkSwapChain;
 
-		vk:: fpQueuePresentKHR;
+		std::vector<vk::Image> VkSwapChainImages;
+		vk::Format VkImageFormat;
+		vk::Extent2D VkExtent;
+
+		std::vector<vk::ImageView> VkImageViews;
 
 		VulkanSwapChain() = default;
 		friend class VulkanAPI;
