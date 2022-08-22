@@ -45,7 +45,7 @@ namespace Influx::Graphics
 		
 		// Fill in RHISwapchain data
 		RECT rect;
-		if (GetWindowRect(windowHandle, &rect))
+		if (::GetWindowRect(windowHandle, &rect))
 		{
 			int width = rect.right - rect.left;
 			int height = rect.bottom - rect.top;
@@ -55,14 +55,11 @@ namespace Influx::Graphics
 		}
 
 		// Create the VkSurface
-		VkWin32SurfaceCreateInfoKHR createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		vk::Win32SurfaceCreateInfoKHR createInfo{};
+		createInfo.sType = vk::StructureType::eWin32SurfaceCreateInfoKHR;
 		createInfo.hwnd = windowHandle;
 		createInfo.hinstance = i;
-
-		VkSurfaceKHR vkTemp{};
-		VkResult result = vkCreateWin32SurfaceKHR(VulkInstance, &createInfo, nullptr, &vkTemp);
-		vulkanSwpChn->VkSurface = vkTemp;
+		vulkanSwpChn->VkSurface = VulkInstance.createWin32SurfaceKHR(createInfo);
 
 		// Create the VkSwapChain
 		const SwapChainSupportDetails& swpChnSupportDetails = VulkanAPI::QuerySwapChainSupport(MainDevice.VkPhysicalDevice, vulkanSwpChn->VkSurface);
@@ -92,36 +89,44 @@ namespace Influx::Graphics
 		// Setup Extent
 		vk::Extent2D chosenSwapExtent{};
 		const vk::SurfaceCapabilitiesKHR& surfaceCapabilities = swpChnSupportDetails.VkSurfaceCapabilities;
-		if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+		if (surfaceCapabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
 		{
-			chosenSwapExtent = surfaceCapabilities.currentExtent;
-		}
-		else
-		{
-			int w, h;
 			vk::Extent2D actualExtent = { (uint32_t)vulkanSwpChn->Width, (uint32_t)vulkanSwpChn->Height };
 			actualExtent.width = std::clamp(actualExtent.width, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width);
 			actualExtent.height = std::clamp(actualExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
 			chosenSwapExtent = actualExtent;
 		}
+		else
+		{
+			chosenSwapExtent = surfaceCapabilities.currentExtent;
+		}
+		
+		bool gfxQueueSupportsPresent = MainDevice.VkPhysicalDevice.getSurfaceSupportKHR((uint32_t)MainDevice.GetQueueFamilyIndex(vk::QueueFlagBits::eGraphics), vulkanSwpChn->VkSurface);
 		
 		vk::SwapchainCreateInfoKHR swpChnCreateInfo{};
-		swpChnCreateInfo.sType = vk::StructureType::eSwapchainCreateInfoKHR;
 		swpChnCreateInfo.surface = vulkanSwpChn->VkSurface;
-		swpChnCreateInfo.minImageCount = surfaceCapabilities.minImageCount;
+		swpChnCreateInfo.minImageCount = surfaceCapabilities.minImageCount + 1;
 		swpChnCreateInfo.imageFormat = chosenFormat.format;
 		swpChnCreateInfo.imageColorSpace = chosenFormat.colorSpace;
 		swpChnCreateInfo.imageExtent = chosenSwapExtent;
-		swpChnCreateInfo.imageArrayLayers = 1;
 		swpChnCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
-		swpChnCreateInfo.presentMode = vk::PresentModeKHR::eFifo;
 		swpChnCreateInfo.preTransform = surfaceCapabilities.currentTransform;
-		swpChnCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-		swpChnCreateInfo.clipped = true;
+		swpChnCreateInfo.imageArrayLayers = 1;
+		swpChnCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
+		swpChnCreateInfo.queueFamilyIndexCount = 0;
+		swpChnCreateInfo.pQueueFamilyIndices = NULL;
+		swpChnCreateInfo.presentMode = chosenPresentMode;
 		swpChnCreateInfo.oldSwapchain = VK_NULL_HANDLE;
-		swpChnCreateInfo.flags = vk::SwapchainCreateFlagsKHR();
+		swpChnCreateInfo.clipped = VK_TRUE;
+		swpChnCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+		try
+		{
+			vulkanSwpChn->VkSwapChain = MainDevice.VkLogicalDevice.createSwapchainKHR(swpChnCreateInfo, nullptr);
+		}
+		catch (...)
+		{ 
+		}
 		
-		vulkanSwpChn->VkSwapChain = MainDevice.VkLogicalDevice.createSwapchainKHR(swpChnCreateInfo, nullptr);
 
 		// Get Vulkan swapchain images:
 		vulkanSwpChn->VkSwapChainImages = MainDevice.VkLogicalDevice.getSwapchainImagesKHR(vulkanSwpChn->VkSwapChain);
@@ -182,7 +187,7 @@ namespace Influx::Graphics
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "No Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_0;
+		appInfo.apiVersion = VK_API_VERSION_1_1;
 
 		vk::InstanceCreateInfo createInfo{};
 		createInfo.sType = vk::StructureType::eInstanceCreateInfo;
@@ -249,7 +254,7 @@ namespace Influx::Graphics
 
 		// For now, no fancy features necessary...
 		vk::PhysicalDeviceFeatures deviceFeatures{};
-
+		
 		vk::DeviceCreateInfo createInfo{};
 		createInfo.sType = vk::StructureType::eDeviceCreateInfo;
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -258,7 +263,7 @@ namespace Influx::Graphics
 
 		std::vector<const char*> enabledExtensions{};
 		enabledExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);			// Swapchain support.
-
+		
 		createInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
 		createInfo.ppEnabledExtensionNames = enabledExtensions.data();
 
@@ -356,7 +361,7 @@ namespace Influx::Graphics
 
 		vk::DebugUtilsMessengerCreateInfoEXT createInfo{};
 		createInfo.sType = vk::StructureType::eDebugUtilsMessengerCreateInfoEXT;
-		createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+		createInfo.messageSeverity = /*vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |*/ vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
 		createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
 		createInfo.pfnUserCallback = DebugMessageFunc;
 		createInfo.pUserData = nullptr; // Optional
@@ -367,57 +372,7 @@ namespace Influx::Graphics
 	// Debug API call...
 	VKAPI_ATTR VkBool32 VKAPI_CALL VulkanAPI::DebugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*)
 	{
-		std::ostringstream message;
-		message << vk::to_string(static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity)) << ": "
-			<< vk::to_string(static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(messageTypes)) << ":\n";
-		message << "\t"
-			<< "messageIDName   = <" << pCallbackData->pMessageIdName << ">\n";
-		message << "\t"
-			<< "messageIdNumber = " << pCallbackData->messageIdNumber << "\n";
-		message << "\t"
-			<< "message         = <" << pCallbackData->pMessage << ">\n";
-		if (0 < pCallbackData->queueLabelCount)
-		{
-			message << "\t"
-				<< "Queue Labels:\n";
-			for (uint32_t i = 0; i < pCallbackData->queueLabelCount; i++)
-			{
-				message << "\t\t"
-					<< "labelName = <" << pCallbackData->pQueueLabels[i].pLabelName << ">\n";
-			}
-		}
-		if (0 < pCallbackData->cmdBufLabelCount)
-		{
-			message << "\t"
-				<< "CommandBuffer Labels:\n";
-			for (uint32_t i = 0; i < pCallbackData->cmdBufLabelCount; i++)
-			{
-				message << "\t\t"
-					<< "labelName = <" << pCallbackData->pCmdBufLabels[i].pLabelName << ">\n";
-			}
-		}
-		if (0 < pCallbackData->objectCount)
-		{
-			message << "\t"
-				<< "Objects:\n";
-			for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
-			{
-				message << "\t\t"
-					<< "Object " << i << "\n";
-				message << "\t\t\t"
-					<< "objectType   = " << vk::to_string(static_cast<vk::ObjectType>(pCallbackData->pObjects[i].objectType)) << "\n";
-				message << "\t\t\t"
-					<< "objectHandle = " << pCallbackData->pObjects[i].objectHandle << "\n";
-				if (pCallbackData->pObjects[i].pObjectName)
-				{
-					message << "\t\t\t"
-						<< "objectName   = <" << pCallbackData->pObjects[i].pObjectName << ">\n";
-				}
-			}
-		}
-
-		std::cout << message.str() << std::endl;
-
+		std::cout << "validation layer: " << pCallbackData->pMessage << std::endl;
 		return false;
 	}
 

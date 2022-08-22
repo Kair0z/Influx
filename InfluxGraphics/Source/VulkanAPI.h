@@ -7,8 +7,11 @@
 
 #pragma comment(lib, "vulkan-1.lib")
 
+#if _WIN32
+#define VK_USE_PLATFORM_WIN32_KHR 
+#endif
+
 #include "Vulkan/vulkan.hpp"
-#include "Vulkan/vulkan_win32.h"
 
 namespace Influx::Graphics
 {
