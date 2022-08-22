@@ -88,6 +88,8 @@ namespace Influx::Graphics
 
 		vk::PhysicalDevice PickFirstSuitablePhysicalDevice(const std::vector<vk::PhysicalDevice>& devices);
 
+		vk::DebugUtilsMessengerEXT VkDebugMessenger;
+
 	public:
 		
 
@@ -114,48 +116,15 @@ namespace Influx::Graphics
 
 		static vk::ImageView CreateImageView(const vk::Device& device, vk::Image image, vk::Format imageFormat, vk::ImageViewType viewType = vk::ImageViewType::e2D);
 
-
-		static void SetupDebugMessenger(const vk::Instance& instance)
-		{
-			// Create-function ProcAddr...
-			pfnVkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(instance.getProcAddr("vkCreateDebugUtilsMessengerEXT"));
-			if (!pfnVkCreateDebugUtilsMessengerEXT)
-			{
-				std::cout << "GetInstanceProcAddr: Unable to find pfnVkCreateDebugUtilsMessengerEXT function." << std::endl;
-				// ... Todo
-			}
-
-			// Destroy-function ProcAddr...
-			pfnVkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(instance.getProcAddr("vkDestroyDebugUtilsMessengerEXT"));
-			if (!pfnVkDestroyDebugUtilsMessengerEXT)
-			{
-				std::cout << "GetInstanceProcAddr: Unable to find pfnVkDestroyDebugUtilsMessengerEXT function." << std::endl;
-				// ... Todo
-			}
-
-			vk::DebugUtilsMessengerCreateInfoEXT createInfo{};
-			createInfo.sType = vk::StructureType::eDebugUtilsMessengerCreateInfoEXT;
-			createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
-			createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
-			createInfo.pfnUserCallback = debugMessageFunc;
-			createInfo.pUserData = nullptr; // Optional
-
-			instance.createDebugUtilsMessengerEXT(createInfo);
-		}
+		static vk::DebugUtilsMessengerEXT SetupDebugMessenger(const vk::Instance& instance);
 
 	private:
 		static VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(VkInstance                                 instance,
 			const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 			const VkAllocationCallbacks* pAllocator,
-			VkDebugUtilsMessengerEXT* pMessenger)
-		{
-			return pfnVkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pMessenger);
-		}
+			VkDebugUtilsMessengerEXT* pMessenger);
 
-		static VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator)
-		{
-			return pfnVkDestroyDebugUtilsMessengerEXT(instance, messenger, pAllocator);
-		}
+		static VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator);
 
 		static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT       messageSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT              messageTypes,
