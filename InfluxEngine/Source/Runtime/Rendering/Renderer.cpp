@@ -14,11 +14,13 @@ namespace Influx
 {
 	void Renderer::InitializeRHI(const Graphics::GraphicsAPI* gfxApi)
 	{
-		CreateShaders(gfxApi);
+		CreateRenderPasses(gfxApi);
 		CreatePipelineObjects(gfxApi);
 
+		return;
+		CreateShaders(gfxApi);
+		
 		GfxSceneVertexBuffer = gfxApi->CreateVertexBuffer(&gTriangleVertices[0].Position[0], sizeof(gTriangleVertices), sizeof(Vertex));
-		mpGfxRenderPass = gfxApi->CreateRenderPass();
 	}
 
 	void Renderer::OnRender(Graphics::RHICommandList* cmdList, Graphics::RHITexture* gameRenderTexture)
@@ -43,6 +45,32 @@ namespace Influx
 			});
 	}
 
+	void Renderer::CreateRenderPasses(const Graphics::GraphicsAPI* gfxApi)
+	{
+		Graphics::RHIRenderPassAttachmentDesc attachment{};
+		attachment.LoadOperation	= Graphics::ERHIRenderPassLoadOp::Clear;
+		attachment.StoreOperation	= Graphics::ERHIRenderPassStoreOp::Store;
+		attachment.Format			= Graphics::ERHIFormat::RGBA_8_Unorm;
+		attachment.InitialState		= Graphics::ERHIResourceState::Common;
+		attachment.FinalState		= Graphics::ERHIResourceState::Present;
+		attachment.Samples			= Graphics::ERHISampleCount::_1;
+		attachment.Name				= "ColorBuffer";
+		attachment.ID				= 0;
+
+		Graphics::RHIRenderSubPassDesc subpass{};
+		subpass.PipelineBindPoint		= Graphics::ERHIPipelineBindPoint::Graphics;
+		// Reference to attachment at index 0, yes this is ugly ~o~
+		subpass.AttachmentReferences	= { 
+			Graphics::RHIRenderSubPassDesc::AttachmentRef(
+				Graphics::RHIRenderSubPassDesc::AttachmentRef::EType::Color
+				, 0
+				, Graphics::RHIRenderSubPassDesc::AttachmentRef::ELayout::ColorAttachmentOptimal) 
+		}; 
+
+		// No dependencies for now... please
+		mpGfxRenderPass = gfxApi->CreateRenderPass({ attachment }, { subpass }, {});
+	}
+
 	void Renderer::CreatePipelineObjects(const Graphics::GraphicsAPI* gfxApi)
 	{
 		// Create Pipeline Objects & Pipeline Layout:
@@ -65,6 +93,7 @@ namespace Influx
 		pipelineDescription.RasterMaxDepthBias;
 		pipelineDescription.VertexShader = GfxVertexShader;
 		pipelineDescription.PixelShader = GfxPixelShader;
+
 		GfxPipeline = gfxApi->CreateGraphicsPipeline(pipelineDescription, GfxPipelineLayout);
 	}
 

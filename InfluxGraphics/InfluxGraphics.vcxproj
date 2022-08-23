@@ -35,6 +35,7 @@
     <ClInclude Include="Source\RHIPipeline.h" />
     <ClInclude Include="Source\RHIResource.h" />
     <ClInclude Include="Source\VulkanAPI.h" />
+    <ClInclude Include="Source\VulkanConversion.h" />
     <ClInclude Include="Source\VulkanPipeline.h" />
     <ClInclude Include="Source\VulkanRenderPass.h" />
     <ClInclude Include="Source\VulkanResource.h" />

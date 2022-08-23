@@ -49,6 +49,7 @@ namespace Influx::Graphics
 		AllShaderResource,
 		NonPixelReadResource,
 		PixelShaderResource,
+		Undefined,
 		Invalid
 	};
 

@@ -12,11 +12,16 @@ namespace Influx::Graphics
 	public:
 		VulkanRenderPass(const std::vector<RHIRenderPassAttachmentDesc>& attachments,
 			const std::vector<RHIRenderSubPassDesc>& subpasses, const std::vector<RHIRenderSubPassDependency>& dependencies);
+
+		VulkanRenderPass(const VulkanRenderPass&) = delete;
+		VulkanRenderPass(VulkanRenderPass&&) = delete;
 		virtual ~VulkanRenderPass();
 
-		static vk::SubpassDescription FromRHI(const RHIRenderSubPassDesc& rhiSubpass);
+		static vk::SubpassDescription FromRHI(const RHIRenderSubPassDesc& rhiSubpass
+			, std::vector<vk::AttachmentReference>&, std::vector<vk::AttachmentReference>&, std::vector<vk::AttachmentReference>&, std::vector<vk::AttachmentReference>&);
 		static vk::AttachmentDescription FromRHI(const RHIRenderPassAttachmentDesc& rhiAttachment);
 		static vk::SubpassDependency FromRHI(const RHIRenderSubPassDependency& rhiDependency);
+		static vk::AttachmentReference FromRHI(const RHIRenderSubPassDesc::AttachmentRef& rhiAttachmentRef);
 		static vk::RenderPass FromRHI(const vk::Device& device, const std::vector<RHIRenderPassAttachmentDesc>& attachments,
 			const std::vector<RHIRenderSubPassDesc>& subpasses, const std::vector<RHIRenderSubPassDependency>& dependencies);
 

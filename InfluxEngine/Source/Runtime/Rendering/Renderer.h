@@ -23,6 +23,7 @@ namespace Influx
 		~Renderer();
 
 	private:
+		void CreateRenderPasses(const Graphics::GraphicsAPI* gfxApi);
 		void CreatePipelineObjects(const Graphics::GraphicsAPI* gfxApi);
 		void CreateShaders(const Graphics::GraphicsAPI* gfxApi);
 

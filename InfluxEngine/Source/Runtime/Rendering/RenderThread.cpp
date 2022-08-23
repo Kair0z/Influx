@@ -97,11 +97,11 @@ namespace Influx
 		ASSERT(currentWindowsInstance != nullptr);
 		mpGfxSwapChain = mpGfxRenderAPI->CreateSwapChain(currentWindowsInstance, currentWindowHandle, mpGfxCommandQueue);
 
-		return;
-
 		// Create Scene Renderer:
 		mpSceneRenderer = new Renderer();
 		mpSceneRenderer->InitializeRHI(mpGfxRenderAPI);
+
+		return;
 
 		mpEditorRenderer = new Editor::D3D12EditorRenderer();
 		mpEditorRenderer->InitializeRHI(mpGfxRenderAPI);

@@ -25,6 +25,8 @@ namespace Influx::Graphics
 
 	private:
 		vk::Pipeline VulkGfxPipeline;
+		vk::DynamicState VulkDynamicViewportState;
+		vk::DynamicState VulkDynamicScissorState;
 	};
 }
 
