@@ -18,22 +18,29 @@ namespace Influx
 		CreatePipelineObjects(gfxApi);
 
 		GfxSceneVertexBuffer = gfxApi->CreateVertexBuffer(&gTriangleVertices[0].Position[0], sizeof(gTriangleVertices), sizeof(Vertex));
+		mpGfxRenderPass = gfxApi->CreateRenderPass();
 	}
 
 	void Renderer::OnRender(Graphics::RHICommandList* cmdList, Graphics::RHITexture* gameRenderTexture)
 	{
+		// Update viewport & scissorrect
 		GfxViewport = Graphics::RHIViewport(gameRenderTexture->GetWidth(), gameRenderTexture->GetHeight());
 		GfxScissorRect = Graphics::RHIScissorRect(gameRenderTexture->GetWidth(), gameRenderTexture->GetHeight());
 
-		cmdList->BindPipelineLayout(GfxPipelineLayout);
-		cmdList->BindPipelineState(GfxPipeline);
-		cmdList->BindViewports(GfxViewport);
-		cmdList->BindScissorRect(GfxScissorRect);
+		// Record render pass
+		Graphics::RHIRenderPassBeginInfo beginInfo({}, {}, {});
+		cmdList->RecordRenderPass(mpGfxRenderPass, beginInfo, [&](Graphics::RHICommandList* cmdList)
+			{
+				cmdList->BindPipelineLayout(GfxPipelineLayout);
+				cmdList->BindPipelineState(GfxPipeline);
+				cmdList->BindViewports(GfxViewport);
+				cmdList->BindScissorRect(GfxScissorRect);
 
-		cmdList->BindVertexBuffer(GfxSceneVertexBuffer);
-		cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
-		cmdList->BindRenderTarget(gameRenderTexture->GetRenderTargetView());
-		cmdList->DrawInstanced(3, 1);
+				cmdList->BindVertexBuffer(GfxSceneVertexBuffer);
+				cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
+				cmdList->BindRenderTarget(gameRenderTexture->GetRenderTargetView());
+				cmdList->DrawInstanced(3, 1);
+			});
 	}
 
 	void Renderer::CreatePipelineObjects(const Graphics::GraphicsAPI* gfxApi)

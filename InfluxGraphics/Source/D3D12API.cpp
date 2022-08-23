@@ -254,6 +254,11 @@ namespace Influx::Graphics
 
 	/* D3D12CommandList */
 #pragma region D3D12CommandList
+	void D3D12CommandList::RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)>)
+	{
+		assert(false);
+	}
+
 	void D3D12CommandList::TransitionResource(RHIResource* resource, const ERHIResourceState newState)
 	{
 		if (resource->GetCurrentState() == newState) return;

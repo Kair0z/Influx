@@ -19,6 +19,16 @@
     <ClCompile Include="Source\VulkanPipeline.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="Source\RHIRenderPass.cpp" />
+    <ClCompile Include="Source\VulkanRenderPass.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\D3D12RenderPass.cpp">
+      <Filter>D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\VulkanResource.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GraphicsAPI.h" />
@@ -40,6 +50,16 @@
       <Filter>Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="Source\VulkanPipeline.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RHIRenderPass.h" />
+    <ClInclude Include="Source\VulkanRenderPass.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\D3D12RenderPass.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\VulkanResource.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
   </ItemGroup>

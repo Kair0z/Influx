@@ -3,6 +3,7 @@
 #include "GraphicsAPI.h"
 #include "RHIPipeline.h"
 #include "RHIResource.h"
+#include "RHIRenderPass.h"
 
 namespace Influx
 {
@@ -35,6 +36,8 @@ namespace Influx
 
 		Graphics::RHIShader* GfxVertexShader;
 		Graphics::RHIShader* GfxPixelShader;
+
+		Graphics::RHIRenderPass* mpGfxRenderPass;
 	};
 }
 

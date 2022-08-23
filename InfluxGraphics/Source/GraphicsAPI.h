@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include "Function/Function.h"
 
 namespace Influx::Graphics
 {
@@ -88,6 +89,17 @@ namespace Influx::Graphics
 		INVALID
 	};
 
+	enum class ERHISampleCount
+	{
+		_1,
+		_2,
+		_4,
+		_8,
+		_16,
+		_32,
+		_64
+	};
+
 	enum class ERHIPrimitiveTopology
 	{
 		TriangleList
@@ -116,10 +128,34 @@ namespace Influx::Graphics
 		Wireframe
 	};
 
+	enum class ERHIPipelineBindPoint
+	{
+		Graphics
+	};
+
 	// Supported Shader Models
 	enum class ERHIShaderModel 
 	{
 		SM_5_0
+	};
+
+	// RenderPass
+	enum class ERHIRenderPassAttachmentType
+	{
+		Color
+	};
+
+	enum class ERHIRenderPassLoadOp
+	{
+		Load,			// Preserve the existing contents of the attachment
+		Clear,			// Clear the values to a constant at the start
+		DontCare		// Existing contents are undefined; we don't care about them
+	};
+
+	enum class ERHIRenderPassStoreOp
+	{
+		Store,			// Rendered contents will be stored in memory and can be read later
+		DontCare		// Contents of the framebuffer will be undefined after the rendering operation
 	};
 #pragma endregion
 
@@ -144,6 +180,11 @@ namespace Influx::Graphics
 	class RHIShaderResourceView;
 	class RHIDepthStencilView;
 	class RHIDescriptorHeap;
+	class RHIRenderPass;
+	struct RHIRenderPassBeginInfo;
+	struct RHIRenderPassAttachmentDesc;
+	struct RHIRenderSubPassDesc;
+	struct RHIRenderSubPassDependency;
 #pragma endregion
 
 	/* Graphics API */
@@ -176,9 +217,12 @@ namespace Influx::Graphics
 		virtual void CreateShader() const {};
 		virtual void CreateSampler() const {};
 		virtual void CreatePipelineState() const {};
-		virtual void CreateRenderPass() const {};
 		virtual void CreateRaytracingAccelerationStructure() {};
 		virtual void CreateRaytracingPipelineState() {};
+
+		virtual RHIRenderPass* CreateRenderPass() const { return nullptr; };
+		virtual RHIRenderPass* CreateRenderPass(const std::vector<RHIRenderPassAttachmentDesc>& attachments,
+			const std::vector<RHIRenderSubPassDesc>& subpasses, const std::vector<RHIRenderSubPassDependency>& dependencies) const { return nullptr; };
 
 		// Comment: ShaderAPI??
 		static std::string MakeShaderTargetString(const ERHIShaderType shaderType, const ERHIShaderModel shaderModel);
@@ -192,8 +236,7 @@ namespace Influx::Graphics
 	{
 	public:
 		/* Graphics Commandlist Interface: */
-		virtual void BeginRenderPass() {};
-		virtual void EndRenderPass() {};
+		virtual void RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)>) = 0;
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) = 0;
 		virtual void BindViewports(const RHIViewport& viewport) = 0;
 		virtual void BindResources() {};

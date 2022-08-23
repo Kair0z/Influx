@@ -5,6 +5,8 @@
 
 #include "GraphicsAPI.h"
 
+#include "Math/Math.h"
+
 #pragma comment(lib, "vulkan-1.lib")
 
 #if _WIN32
@@ -43,6 +45,10 @@ namespace Influx::Graphics
 		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const std::string& target) const override final { return nullptr; }
 		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const ERHIShaderType shaderType, const ERHIShaderModel shaderModel = ERHIShaderModel::SM_5_0) const override final { return nullptr; }
 
+		virtual RHIRenderPass* CreateRenderPass() const override final;
+		virtual RHIRenderPass* CreateRenderPass(const std::vector<RHIRenderPassAttachmentDesc>& attachments,
+			const std::vector<RHIRenderSubPassDesc>& subpasses, const std::vector<RHIRenderSubPassDependency>& dependencies) const override final;
+	
 	public:
 		/* Singleton Object holding references to ID3D12Device, IDXGIFactory, ... */
 		static VulkanAPI& Get()
@@ -83,8 +89,15 @@ namespace Influx::Graphics
 				uint32_t Transfer;
 			} QueueFamilyIndices;
 		};
+
 	public:
 		const VulkanDevice& GetDevice();
+		const vk::Device& GetLogicalDevice();
+		const vk::PhysicalDevice& GetPhysicalDevice();
+
+		const VulkanDevice& GetDevice() const;
+		const vk::Device& GetLogicalDevice() const;
+		const vk::PhysicalDevice& GetPhysicalDevice() const;
 
 	private:
 		vk::Instance VulkInstance;
@@ -122,6 +135,35 @@ namespace Influx::Graphics
 
 		static vk::DebugUtilsMessengerEXT SetupDebugMessenger(const vk::Instance& instance);
 
+		static vk::Framebuffer CreateFrameBuffer(const vk::Device& device, const Math::Vector2u& dimensions, const vk::RenderPass& renderPass, const std::vector<vk::ImageView>& attachments)
+		{
+			vk::FramebufferCreateInfo createInfo{};
+			createInfo.sType = vk::StructureType::eFramebufferCreateInfo;
+			createInfo.renderPass = renderPass;
+			createInfo.attachmentCount = (uint32_t)attachments.size();
+			createInfo.pAttachments = attachments.data();
+			createInfo.width = dimensions.x;
+			createInfo.height = dimensions.y;
+			createInfo.layers = 1;
+
+			return device.createFramebuffer(createInfo, nullptr);
+		}
+
+		static vk::RenderPass CreateRenderPass(const vk::Device& device, const std::vector<vk::AttachmentDescription>& attachments, 
+			const std::vector<vk::SubpassDescription>& subpasses, const std::vector<vk::SubpassDependency>& subpassDependencies)
+		{
+			vk::RenderPassCreateInfo createInfo{};
+			createInfo.sType = vk::StructureType::eRenderPassCreateInfo;
+			createInfo.attachmentCount = (uint32_t)attachments.size();
+			createInfo.pAttachments = attachments.data();
+			createInfo.subpassCount = (uint32_t)subpasses.size();
+			createInfo.pSubpasses = subpasses.data();
+			createInfo.dependencyCount = (uint32_t)subpassDependencies.size();
+			createInfo.pDependencies = subpassDependencies.data();
+
+			device.createRenderPass(createInfo, nullptr);
+		}
+
 	private:
 		static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT       messageSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT              messageTypes,
@@ -134,6 +176,7 @@ namespace Influx::Graphics
 	{
 	public:
 		/* RHICommandList API: */
+		virtual void RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)>) override final;
 		virtual void TransitionResource(RHIResource* resource, const ERHIResourceState newState) override final {}
 		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue) override final {}
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) override final {}
@@ -141,8 +184,8 @@ namespace Influx::Graphics
 		virtual void BindVertexBuffer(RHIVertexBuffer* vertexBuffer) override final {}
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) override final {}
 		virtual void CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition) override final {}
-		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) override final {}
-		virtual void ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition) override final {}
+		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) override final;
+		virtual void ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition) override final;
 		virtual void BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout) override final {}
 		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) override final {}
 		virtual void BindRenderTarget(RHIRenderTargetView* renderTargetView) override final {}

@@ -1,5 +1,7 @@
 #include "VulkanAPI.h"
 #include "VulkanConversion.h"
+#include "VulkanRenderPass.h"
+#include "VulkanResource.h"
 
 #include <iostream>
 
@@ -135,15 +137,53 @@ namespace Influx::Graphics
 		return vulkanSwpChn;
 	}
 
+	RHIRenderPass* VulkanAPI::CreateRenderPass() const
+	{
+		return CreateRenderPass({}, {}, {});
+	}
+
+	RHIRenderPass* VulkanAPI::CreateRenderPass(const std::vector<RHIRenderPassAttachmentDesc>& attachments, 
+		const std::vector<RHIRenderSubPassDesc>& subpasses, const std::vector<RHIRenderSubPassDependency>& dependencies) const
+	{
+		VulkanRenderPass* newVulkanRenderPass = new VulkanRenderPass(attachments, subpasses, dependencies);
+		newVulkanRenderPass->ReconstructVulkanRenderPass(this);
+		return newVulkanRenderPass;
+	}
+
 	VulkanAPI::~VulkanAPI()
 	{
 		VulkInstance.destroyDebugUtilsMessengerEXT(VkDebugMessenger);
 		vkDestroyInstance(VulkInstance, nullptr);
 	}
 
-	const VulkanAPI::VulkanDevice& VulkanAPI::GetDevice()
+	const VulkanAPI::VulkanDevice& VulkanAPI::GetDevice() 
 	{
 		return MainDevice;
+	}
+
+	const vk::Device& VulkanAPI::GetLogicalDevice() 
+	{
+		return GetDevice().VkLogicalDevice;
+	}
+
+	const vk::PhysicalDevice& VulkanAPI::GetPhysicalDevice() 
+	{
+		return GetDevice().VkPhysicalDevice;
+	}
+
+	const VulkanAPI::VulkanDevice& VulkanAPI::GetDevice() const
+	{
+		return MainDevice;
+	}
+
+	const vk::Device& VulkanAPI::GetLogicalDevice() const
+	{
+		return GetDevice().VkLogicalDevice;
+	}
+
+	const vk::PhysicalDevice& VulkanAPI::GetPhysicalDevice() const
+	{
+		return GetDevice().VkPhysicalDevice;
 	}
 
 	vk::PhysicalDevice VulkanAPI::PickFirstSuitablePhysicalDevice(const std::vector<vk::PhysicalDevice>& devices)
@@ -171,6 +211,7 @@ namespace Influx::Graphics
 	}
 
 	/* Statics */
+#pragma region VulkanStatics
 	void VulkanAPI::CreateInstance(vk::Instance& outResult, bool validation, const std::string& appName)
 	{
 		vk::Instance instance{};
@@ -362,6 +403,7 @@ namespace Influx::Graphics
 
 		return instance.createDebugUtilsMessengerEXT(createInfo);
 	}
+#pragma endregion
 
 	// Debug API call...
 	VKAPI_ATTR VkBool32 VKAPI_CALL VulkanAPI::DebugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*)
@@ -370,12 +412,61 @@ namespace Influx::Graphics
 		return false;
 	}
 
+	/* VulkanCommandList */
+#pragma region VulkanCommandList
+	void VulkanCommandList::RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)> func)
+	{
+		VulkanRenderPass* vulkanRenderPass = (VulkanRenderPass*)renderPass;
+
+		std::vector<vk::ClearValue> clears(beginInfo.ClearValues.size());
+		for (size_t i = 0; i < beginInfo.ClearValues.size(); ++i)
+		{
+			//clears[i].color = beginInfo.ClearValues[i].r;
+		}
+
+		vk::RenderPassBeginInfo info{};
+		info.sType						= vk::StructureType::eDeviceGroupRenderPassBeginInfo;
+		info.renderPass					= vulkanRenderPass->GetVulkanRenderPass();
+		info.pNext						= nullptr;
+		info.renderArea.offset.x		= (uint32_t)beginInfo.RenderAreaOffset.x;
+		info.renderArea.offset.y		= (uint32_t)beginInfo.RenderAreaOffset.y;
+		info.renderArea.extent.width	= (uint32_t)beginInfo.RenderAreaExtent.x;
+		info.renderArea.extent.height	= (uint32_t)beginInfo.RenderAreaExtent.y;
+		info.clearValueCount			= (uint32_t)beginInfo.ClearValues.size();
+		info.pClearValues				= clears.data();
+
+		VkCommandBuffer.beginRenderPass(info, vk::SubpassContents::eInline);
+		{
+			func(this);
+		}
+		VkCommandBuffer.endRenderPass();
+	}
+
+	void VulkanCommandList::ClearTextureAsRTV(RHITexture* texture, bool forceTransition)
+	{
+		VulkanTexture* vulkanTexture = (VulkanTexture*)texture;
+
+		vk::ClearColorValue value{};
+		value.float32[0] = texture->GetOptimizedClearValue().r;
+		value.float32[1] = texture->GetOptimizedClearValue().g;
+		value.float32[2] = texture->GetOptimizedClearValue().b;
+		value.float32[3] = texture->GetOptimizedClearValue().a;
+
+		VkCommandBuffer.clearColorImage(vulkanTexture->GetVulkanImage(), Conversion::ToVulkan(vulkanTexture->GetRHIResource()->GetCurrentState()), value, {});
+	}
+
+	void VulkanCommandList::ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition)
+	{
+	}
+
 	vk::CommandBuffer VulkanCommandList::GetVulkanCommandBuffer() const
 	{
 		return VkCommandBuffer;
 	}
+#pragma endregion
 
 	/* VulkanCommandQueue */
+#pragma region VulkanCommandQueue
 	RHICommandList* VulkanCommandQueue::SetupNewCommandList(GraphicsAPI* api)
 	{
 		VulkanCommandList* newVulkanCommandList = new VulkanCommandList();
@@ -384,6 +475,12 @@ namespace Influx::Graphics
 		/* Allocate a new command list */
 		newVulkanCommandList->VkCommandBuffer = 
 			vulkanApi->GetDevice().VkLogicalDevice.allocateCommandBuffers(vk::CommandBufferAllocateInfo(VkCommandPool, vk::CommandBufferLevel::ePrimary, 1)).front();
+
+		// Begin the new commandlist:
+		vk::CommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = vk::StructureType::eCommandBufferBeginInfo;
+		beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		newVulkanCommandList->VkCommandBuffer.begin(beginInfo);
 
 		return newVulkanCommandList;
 	}
@@ -397,8 +494,10 @@ namespace Influx::Graphics
 	{
 		
 	}
+#pragma endregion
 	
 	/* Vulkan Device */
+#pragma region VulkanDevice
 	VulkanAPI::VulkanDevice::VulkanDevice(vk::PhysicalDevice physicalDevice)
 	{
 		VkPhysicalDevice = physicalDevice;
@@ -556,8 +655,10 @@ namespace Influx::Graphics
 	{
 		return VkLogicalDevice.getQueue(GetQueueFamilyIndex(queueType), queueIndex);
 	}
+#pragma endregion
 
 	/* VulkanSwapchain */
+#pragma region VulkanSwapChain
 	void VulkanSwapChain::Present(RHICommandQueue* commandQueue, bool VSync)
 	{
 		VulkanCommandQueue* vulkanCommandQueue = (VulkanCommandQueue*)commandQueue;
@@ -580,6 +681,6 @@ namespace Influx::Graphics
 	{
 		vkDestroySurfaceKHR(VulkanAPI::Get().GetInstance(), VkSurface, nullptr);
 	}
-
+#pragma endregion
 }
 

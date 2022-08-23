@@ -11,6 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\D3D12RenderPass.cpp" />
+    <ClCompile Include="Source\RHIRenderPass.cpp" />
     <ClCompile Include="Source\D3D12API.cpp" />
     <ClCompile Include="Source\D3D12Pipeline.cpp" />
     <ClCompile Include="Source\D3D12Resource.cpp" />
@@ -19,8 +21,12 @@
     <ClCompile Include="Source\RHIResource.cpp" />
     <ClCompile Include="Source\VulkanAPI.cpp" />
     <ClCompile Include="Source\VulkanPipeline.cpp" />
+    <ClCompile Include="Source\VulkanRenderPass.cpp" />
+    <ClCompile Include="Source\VulkanResource.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\D3D12RenderPass.h" />
+    <ClInclude Include="Source\RHIRenderPass.h" />
     <ClInclude Include="Source\D3D12API.h" />
     <ClInclude Include="Source\D3D12Conversion.h" />
     <ClInclude Include="Source\D3D12Pipeline.h" />
@@ -30,6 +36,8 @@
     <ClInclude Include="Source\RHIResource.h" />
     <ClInclude Include="Source\VulkanAPI.h" />
     <ClInclude Include="Source\VulkanPipeline.h" />
+    <ClInclude Include="Source\VulkanRenderPass.h" />
+    <ClInclude Include="Source\VulkanResource.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">

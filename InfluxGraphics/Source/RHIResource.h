@@ -119,7 +119,6 @@ namespace Influx::Graphics
 		RHIConstantBufferView& operator=(RHIConstantBufferView&&) = delete;
 		virtual ~RHIConstantBufferView() = default;
 	};
-
 }
 
 

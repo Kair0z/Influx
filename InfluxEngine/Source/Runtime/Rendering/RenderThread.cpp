@@ -125,8 +125,8 @@ namespace Influx
 		gfxCmdList->ClearTextureAsRTV(GameRenderTexture, true);
 
 		/* Render Scene to Command List */
-		mpSceneRenderer->OnRender(gfxCmdList, GameRenderTexture);
-		mpEditorRenderer->OnRender(gfxCmdList, GameRenderTexture);
+		//mpSceneRenderer->OnRender(gfxCmdList, GameRenderTexture);
+		//mpEditorRenderer->OnRender(gfxCmdList, GameRenderTexture);
 
 		/* Copy Game Render Texture into current Window-backbuffer (And force transitions on their respective resources) */
 		gfxCmdList->CopyResource(GameRenderTexture->GetRHIResource(), mpGfxSwapChain->GetCurrentBackBufferResource(), true);

@@ -179,6 +179,7 @@ namespace Influx::Graphics
 		}
 
 		/* RHICommandList API: */
+		virtual void RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)>) override final;
 		virtual void TransitionResource(RHIResource* resource, const ERHIResourceState newState) override final;
 		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue) override final;
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) override final;
