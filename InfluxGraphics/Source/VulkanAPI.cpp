@@ -105,7 +105,7 @@ namespace Influx::Graphics
 		
 		vk::SwapchainCreateInfoKHR swpChnCreateInfo{};
 		swpChnCreateInfo.surface = vulkanSwpChn->VkSurface;
-		swpChnCreateInfo.minImageCount = surfaceCapabilities.minImageCount + 1;
+		swpChnCreateInfo.minImageCount = VulkanSwapChain::NumBackBuffers;
 		swpChnCreateInfo.imageFormat = chosenFormat.format;
 		swpChnCreateInfo.imageColorSpace = chosenFormat.colorSpace;
 		swpChnCreateInfo.imageExtent = chosenSwapExtent;
@@ -119,15 +119,9 @@ namespace Influx::Graphics
 		swpChnCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 		swpChnCreateInfo.clipped = VK_TRUE;
 		swpChnCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-		try
-		{
-			vulkanSwpChn->VkSwapChain = MainDevice.VkLogicalDevice.createSwapchainKHR(swpChnCreateInfo, nullptr);
-		}
-		catch (...)
-		{ 
-		}
 		
-
+		vulkanSwpChn->VkSwapChain = MainDevice.VkLogicalDevice.createSwapchainKHR(swpChnCreateInfo, nullptr);
+		
 		// Get Vulkan swapchain images:
 		vulkanSwpChn->VkSwapChainImages = MainDevice.VkLogicalDevice.getSwapchainImagesKHR(vulkanSwpChn->VkSwapChain);
 		vulkanSwpChn->VkExtent = chosenSwapExtent;
@@ -493,6 +487,8 @@ namespace Influx::Graphics
 			QueueFamilyIndices.Transfer = QueueFamilyIndices.Graphics;
 		}
 
+
+		// DEVICE EXTENSIONS
 		std::vector<const char*> deviceExtensions(enabledExtensions);
 		if (useSwapChain)
 		{
@@ -505,6 +501,9 @@ namespace Influx::Graphics
 		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
 		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 		deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+		deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
+
 		VkEnabledFeatures = enabledFeatures;
 
 		VkLogicalDevice = VkPhysicalDevice.createDevice(deviceCreateInfo, nullptr);

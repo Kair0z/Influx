@@ -16,6 +16,9 @@
     <ClCompile Include="Source\VulkanAPI.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="Source\VulkanPipeline.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GraphicsAPI.h" />
@@ -34,6 +37,9 @@
       <Filter>D3D12</Filter>
     </ClInclude>
     <ClInclude Include="Source\VulkanAPI.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\VulkanPipeline.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
