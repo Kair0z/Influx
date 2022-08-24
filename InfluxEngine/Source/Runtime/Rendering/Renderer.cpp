@@ -94,7 +94,7 @@ namespace Influx
 		pipelineDescription.VertexShader = GfxVertexShader;
 		pipelineDescription.PixelShader = GfxPixelShader;
 
-		GfxPipeline = gfxApi->CreateGraphicsPipeline(pipelineDescription, GfxPipelineLayout);
+		GfxPipeline = gfxApi->CreateGraphicsPipeline(pipelineDescription, GfxPipelineLayout, mpGfxRenderPass);
 	}
 
 	void Renderer::CreateShaders(const Graphics::GraphicsAPI* gfxApi)

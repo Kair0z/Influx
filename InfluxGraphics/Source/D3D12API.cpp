@@ -2,6 +2,7 @@
 #include "D3D12Resource.h"
 #include "D3D12Pipeline.h"
 #include "D3D12Conversion.h"
+#include "D3D12RenderPass.h"
 
 namespace Influx::Graphics
 {
@@ -254,9 +255,31 @@ namespace Influx::Graphics
 
 	/* D3D12CommandList */
 #pragma region D3D12CommandList
-	void D3D12CommandList::RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)>)
+	void D3D12CommandList::RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)> func)
 	{
-		assert(false);
+		constexpr bool godKnowsWeShouldReallyNotShipThisUnfinishedMessYet = true;
+		ID3D12GraphicsCommandList4* commandList4 = (ID3D12GraphicsCommandList4*)DxCommandList;
+
+		// We run the command list recording as if nothing ever happened
+		if (commandList4 == nullptr || godKnowsWeShouldReallyNotShipThisUnfinishedMessYet) func(this); 
+
+		D3D12_CPU_DESCRIPTOR_HANDLE const& rtvCPUDescriptorHandle{};
+		D3D12_CPU_DESCRIPTOR_HANDLE const& dsvCPUDescriptorHandle{};
+
+		D3D12_RENDER_PASS_BEGINNING_ACCESS renderPassBeginningAccessClear{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR, { /*clearvalue*/ }};
+		D3D12_RENDER_PASS_ENDING_ACCESS renderPassEndingAccessPreserve{ D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE, {} };
+		D3D12_RENDER_PASS_RENDER_TARGET_DESC renderPassRenderTargetDesc{ rtvCPUDescriptorHandle, renderPassBeginningAccessClear, renderPassEndingAccessPreserve };
+
+		D3D12_RENDER_PASS_BEGINNING_ACCESS renderPassBeginningAccessNoAccess{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS, {} };
+		D3D12_RENDER_PASS_ENDING_ACCESS renderPassEndingAccessNoAccess{ D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS, {} };
+		D3D12_RENDER_PASS_DEPTH_STENCIL_DESC renderPassDepthStencilDesc{ dsvCPUDescriptorHandle, renderPassBeginningAccessNoAccess, renderPassBeginningAccessNoAccess, renderPassEndingAccessNoAccess, renderPassEndingAccessNoAccess };
+
+		
+		commandList4->BeginRenderPass(renderPass->GetAttachments().size(), &renderPassRenderTargetDesc, &renderPassDepthStencilDesc, D3D12_RENDER_PASS_FLAG_NONE);
+		{
+			func(this);
+		}
+		commandList4->EndRenderPass();
 	}
 
 	void D3D12CommandList::TransitionResource(RHIResource* resource, const ERHIResourceState newState)

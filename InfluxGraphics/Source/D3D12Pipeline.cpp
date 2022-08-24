@@ -171,6 +171,10 @@ namespace Influx::Graphics
 		return d3d12Pipeline;
 	}
 
+	RHIGraphicsPipeline* D3D12API::CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference, RHIRenderPass* renderPass) const
+	{
+		return CreateGraphicsPipeline(constructionArgs, pipelineLayoutReference); // D3D12 and my sanity is clearly not ready for RenderPass implementation :D
+	}
 
 	ID3D12RootSignature* D3D12GraphicsPipelineLayout::GetDxRootSignature() const
 	{

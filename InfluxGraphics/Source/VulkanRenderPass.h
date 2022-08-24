@@ -15,6 +15,8 @@ namespace Influx::Graphics
 
 		VulkanRenderPass(const VulkanRenderPass&) = delete;
 		VulkanRenderPass(VulkanRenderPass&&) = delete;
+		VulkanRenderPass& operator=(const VulkanRenderPass&) = delete;
+		VulkanRenderPass& operator=(VulkanRenderPass&&) = delete;
 		virtual ~VulkanRenderPass();
 
 		static vk::SubpassDescription FromRHI(const RHIRenderSubPassDesc& rhiSubpass
