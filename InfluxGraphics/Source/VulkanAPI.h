@@ -42,7 +42,7 @@ namespace Influx::Graphics
 		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const override final;
 		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference, RHIRenderPass* renderPass) const override final;
 
-		virtual RHIShader* CreateRHIShader(const std::vector<uint8_t>& fromCompiledData) const override final { return nullptr; }
+		virtual RHIShader* CreateRHIShader(const std::vector<uint8_t>& fromCompiledData) const override final;
 		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const std::string& target) const override final { return nullptr; }
 		virtual RHIShader* CreateRHIShader(const std::wstring& fromFilePath, const std::string& entryPoint, const ERHIShaderType shaderType, const ERHIShaderModel shaderModel = ERHIShaderModel::SM_5_0) const override final { return nullptr; }
 

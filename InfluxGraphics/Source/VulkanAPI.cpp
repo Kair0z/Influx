@@ -150,6 +150,12 @@ namespace Influx::Graphics
 		return newVulkanRenderPass;
 	}
 
+	RHIShader* VulkanAPI::CreateRHIShader(const std::vector<uint8_t>& fromCompiledData) const
+	{
+		assert(false);
+		return nullptr;
+	}
+
 	VulkanAPI::~VulkanAPI()
 	{
 		VulkInstance.destroyDebugUtilsMessengerEXT(VkDebugMessenger);

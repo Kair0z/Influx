@@ -67,6 +67,7 @@ namespace Influx::Graphics
 	
 	RHIShader* D3D12API::CreateRHIShader(const std::vector<uint8_t>& fromCompiledData) const
 	{
+		assert(false);
 		return nullptr;
 	}
 

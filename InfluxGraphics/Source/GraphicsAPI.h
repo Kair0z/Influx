@@ -193,6 +193,8 @@ namespace Influx::Graphics
 	{
 	public:
 		/* Graphics API Interface: */
+		/* Creating Resources & RHI Classes */
+#pragma region Graphics API Interface
 		virtual RHISwapChain* CreateSwapChain(HINSTANCE windowsInstance, HWND windowHandle, RHICommandQueue* commandQueue) const = 0;
 		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const = 0;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
@@ -225,11 +227,54 @@ namespace Influx::Graphics
 		virtual RHIRenderPass* CreateRenderPass() const { return nullptr; };
 		virtual RHIRenderPass* CreateRenderPass(const std::vector<RHIRenderPassAttachmentDesc>& attachments,
 			const std::vector<RHIRenderSubPassDesc>& subpasses, const std::vector<RHIRenderSubPassDependency>& dependencies) const { return nullptr; };
+#pragma endregion
+
+		/* Graphics Command List Indirect Interface */
+#pragma region RHICommandList Indirect Interface
+		virtual void CmdRecordRenderPass(RHICommandList* cmdList, RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)>) {};
+		virtual void CmdBindScissorRect(RHICommandList* cmdList, const RHIScissorRect& scissorRect) {};
+		virtual void CmdBindViewports(RHICommandList* cmdList, const RHIViewport& viewport) {};
+		virtual void CmdBindResources(RHICommandList* cmdList) {};
+		virtual void CmdBindUAVs(RHICommandList* cmdList) {};
+		virtual void CmdBindSampler(RHICommandList* cmdList) {};
+		virtual void CmdBindConstantBuffer(RHICommandList* cmdList) {};
+		virtual void CmdBindVertexBuffer(RHICommandList* cmdList, RHIVertexBuffer* vertexBuffer) {};
+		virtual void CmdBindIndexBuffer(RHICommandList* cmdList) {};
+		virtual void CmdBindStencilRef(RHICommandList* cmdList) {};
+		virtual void CmdBindBlendFactor(RHICommandList* cmdList) {};
+		virtual void CmdBindShadingRate(RHICommandList* cmdList) {};
+		virtual void CmdBindRenderTarget(RHICommandList* cmdList, RHIRenderTargetView* renderTargetView) {};
+		virtual void CmdBindPipelineLayout(RHICommandList* cmdList, RHIGraphicsPipelineLayout* pipelineLayout) {};
+		virtual void CmdBindPipelineState(RHICommandList* cmdList, RHIGraphicsPipeline* pipeline) {};
+		virtual void CmdBindComputeShader(RHICommandList* cmdList) {};
+		virtual void CmdBindDescriptorheap(RHICommandList* cmdList, RHIDescriptorHeap* descriptorHeap) {};
+		virtual void CmdDrawIndexed(RHICommandList* cmdList) {};
+		virtual void CmdDrawInstanced(RHICommandList* cmdList, uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation = 0, uint32_t startInstanceLocation = 0) {};
+		virtual void CmdDrawIndexedInstanced(RHICommandList* cmdList) {};
+		virtual void CmdDrawInstancedIndirect(RHICommandList* cmdList) {};
+		virtual void CmdDrawIndexedInstancedIndirect(RHICommandList* cmdList) {};
+		virtual void CmdDrawInstancedIndirectCount(RHICommandList* cmdList) {};
+		virtual void CmdDrawIndexedInstancedIndirectCount(RHICommandList* cmdList) {};
+		virtual void CmdDispatch(RHICommandList* cmdList) {};
+		virtual void CmdDispatchIndirect(RHICommandList* cmdList) {};
+		virtual void CmdCopyResource(RHICommandList* cmdList, RHIResource* source, RHIResource* dest, bool forceTransition = true) {};
+		virtual void CmdCopyBuffer(RHICommandList* cmdList) {};
+		virtual void CmdTransitionResource(RHICommandList* cmdList, RHIResource* resource, const ERHIResourceState newState) {};
+		virtual void CmdClearTextureAsRTV(RHICommandList* cmdList, RHITexture* texture, bool forceTransition) {};
+		virtual void CmdClearTextureAsRTV(RHICommandList* cmdList, RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition) {};
+		virtual void CmdClearUAV(RHICommandList* cmdList) {};
+		virtual void CmdClearRTV(RHICommandList* cmdList, RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue) {};
+		virtual void CmdSetPrimitiveTopology(RHICommandList* cmdList, ERHIPrimitiveTopology topology) {};
+#pragma endregion
 
 		// Comment: ShaderAPI??
 		static std::string MakeShaderTargetString(const ERHIShaderType shaderType, const ERHIShaderModel shaderModel);
 		static bool ParseShaderTargetString(const std::string& targetString, ERHIShaderType& outShaderType, ERHIShaderModel& outShaderModel);
 		
+		GraphicsAPI(const GraphicsAPI&) = delete;
+		GraphicsAPI(GraphicsAPI&&) = delete;
+		GraphicsAPI& operator=(const GraphicsAPI&) = delete;
+		GraphicsAPI& operator=(GraphicsAPI&&) = delete;
 		virtual ~GraphicsAPI() = default;
 	};
 
@@ -238,6 +283,7 @@ namespace Influx::Graphics
 	{
 	public:
 		/* Graphics Commandlist Interface: */
+#pragma region RHICommandList Interface
 		virtual void RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)>) = 0;
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) = 0;
 		virtual void BindViewports(const RHIViewport& viewport) = 0;
@@ -276,6 +322,7 @@ namespace Influx::Graphics
 		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue) = 0;
 
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) = 0;
+#pragma endregion
 
 		RHICommandList() = default;
 		RHICommandList(const RHICommandList&) = delete;
@@ -289,8 +336,13 @@ namespace Influx::Graphics
 	class RHICommandQueue
 	{
 	public:
+		/* Serves a new RHICommandList to record commands. */
 		virtual RHICommandList* SetupNewCommandList(GraphicsAPI* api) = 0;
+
+		/* Executes a recorded RHICommandList */
 		virtual void ExecuteCommmandList(RHICommandList* commandList) = 0;
+		
+		/* Flush all GPU work */
 		virtual void Flush() = 0;
 
 		RHICommandQueue() = default;
@@ -308,8 +360,13 @@ namespace Influx::Graphics
 	class RHISwapChain
 	{
 	public:
+		/* Flips & Presents the backbuffer to the front-buffer. */
+		// Also handles synchronization with the given RHICommandQueue
 		virtual void Present(RHICommandQueue* commandQueue, bool VSync) = 0;
+
+		/* Recreates RHISwapchain resources based on the new size */
 		virtual void Resize(GraphicsAPI* api, RHICommandQueue* commandQueue, UINT newSizeX, UINT newSizeY) = 0;
+		
 		RHIResource* GetCurrentBackBufferResource() { return BackBufferResources[GetCurrentBackBufferIndex()]; }
 		RHIRenderTargetView* GetCurrentRenderTargetView() { return BackBufferRTVs[GetCurrentBackBufferIndex()]; }
 		const UINT32 GetCurrentBackBufferIndex() const { return CurrentBackBufferIndex; }

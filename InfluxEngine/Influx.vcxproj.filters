@@ -171,6 +171,7 @@
     <ClInclude Include="Source\Runtime\Engine\ThreadManager.h" />
     <ClInclude Include="Source\Runtime\Events\EventThread.h" />
     <ClInclude Include="Source\InfluxDefines.h" />
+    <ClInclude Include="Source\Runtime\Shaders\Shader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Runtime\Application\WindowsApp.cpp">
@@ -234,5 +235,6 @@
     <ClCompile Include="Source\Runtime\Rendering\Renderer.cpp" />
     <ClCompile Include="Source\Runtime\Engine\ThreadManager.cpp" />
     <ClCompile Include="Source\Runtime\Events\EventThread.cpp" />
+    <ClCompile Include="Source\Runtime\Shaders\Shader.cpp" />
   </ItemGroup>
 </Project>
