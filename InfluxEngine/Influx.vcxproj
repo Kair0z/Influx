@@ -5,16 +5,12 @@
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Profile|x64">
+      <Configuration>Profile</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugEditor|x64">
-      <Configuration>DebugEditor</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseEditor|x64">
-      <Configuration>ReleaseEditor</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -39,13 +35,7 @@
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
@@ -62,11 +52,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\EnginePropertySheet.props" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\EnginePropertySheet.props" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\EnginePropertySheet.props" />
   </ImportGroup>
@@ -79,11 +65,7 @@
     <TargetName>InfluxEngine</TargetName>
     <TargetExt>.lib</TargetExt>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">
-    <TargetName>InfluxEngine</TargetName>
-    <TargetExt>.lib</TargetExt>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <TargetName>InfluxEngine</TargetName>
     <TargetExt>.lib</TargetExt>
   </PropertyGroup>
@@ -91,12 +73,16 @@
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>DEBUG;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;$(SolutionDir)InfluxGraphics\Source;Source\;$(SolutionDir)InfluxEditor\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <CallingConvention>FastCall</CallingConvention>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <SDLCheck>false</SDLCheck>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -111,15 +97,19 @@
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>RELEASE;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;$(SolutionDir)InfluxGraphics\Source;Source\;$(SolutionDir)InfluxEditor\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <CallingConvention>FastCall</CallingConvention>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <SDLCheck>false</SDLCheck>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -131,39 +121,23 @@
       <AdditionalOptions>-IGNORE:4006 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>DEBUG;WITH_EDITOR;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;$(SolutionDir)InfluxGraphics\Source;Source\;$(SolutionDir)InfluxEditor\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-    <Lib>
-      <AdditionalLibraryDirectories>3thParty\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-IGNORE:4006 %(AdditionalOptions)</AdditionalOptions>
-    </Lib>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>RELEASE;WITH_EDITOR;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;$(SolutionDir)InfluxGraphics\Source;Source\;$(SolutionDir)InfluxEditor\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>RELEASE;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <CallingConvention>FastCall</CallingConvention>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <SDLCheck>false</SDLCheck>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -176,122 +150,21 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Runtime\Shaders\Shader.h" />
-    <ClInclude Include="Source\InfluxDefines.h" />
-    <ClInclude Include="Source\Runtime\Events\EventThread.h" />
-    <ClInclude Include="Source\Runtime\Rendering\Renderer.h" />
-    <ClInclude Include="Source\Runtime\Application\WindowEvents.h" />
-    <ClInclude Include="Source\Runtime\Engine\GameThread.h" />
-    <ClInclude Include="Source\Influx.h" />
-    <ClInclude Include="Source\Runtime\Application\WindowsApp.h" />
-    <ClInclude Include="Source\Runtime\Assets\AssetManager.h" />
-    <ClInclude Include="Source\Runtime\Components\Component.h" />
-    <ClInclude Include="Source\Runtime\Components\RenderComponent.h" />
-    <ClInclude Include="Source\Runtime\Components\TagComponent.h" />
-    <ClInclude Include="Source\Runtime\Components\TransformComponent.h" />
-    <ClInclude Include="Source\Runtime\Engine\Engine.h" />
-    <ClInclude Include="Source\Runtime\Engine\EngineEvents.h" />
-    <ClInclude Include="Source\Runtime\Entity\EntityManager.h" />
-    <ClInclude Include="Source\Runtime\Events\Event.h" />
-    <ClInclude Include="Source\Runtime\Events\EventManager.h" />
-    <ClInclude Include="Source\Runtime\Launch\Launch.h" />
-    <ClInclude Include="Source\Runtime\Launch\WindowsLaunch.h" />
-    <ClInclude Include="Source\Runtime\Logger\Logger.h" />
-    <ClInclude Include="Source\Runtime\Rendering\RenderFrame.h" />
-    <ClInclude Include="Source\Runtime\Rendering\RenderThread.h" />
-    <ClInclude Include="Source\Runtime\Window\Window.h" />
-    <ClInclude Include="Source\Runtime\Window\WindowEvents.h" />
-    <ClInclude Include="Source\Runtime\World\GameObject.h" />
-    <ClInclude Include="Source\Runtime\World\World.h" />
+    <ClInclude Include="Source\Common\Common.h" />
+    <ClInclude Include="Source\Engine\Runtime\Rendering\SceneRenderer.h" />
+    <ClInclude Include="Source\Engine\Runtime\Engine\Engine.h" />
+    <ClInclude Include="Source\Engine\Runtime\Logger\Logger.h" />
+    <ClInclude Include="Source\Common\InfluxDefines.h" />
     <ClInclude Include="Source\pch.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imconfig.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imgui.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imgui_impl_dx12.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imgui_impl_win32.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imgui_internal.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imgui_single_file.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imgui_stdlib.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imstb_rectpack.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imstb_textedit.h" />
-    <ClInclude Include="Source\ThirdParty\ImGui\imstb_truetype.h" />
-    <ClInclude Include="Source\Runtime\Engine\ThreadManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Runtime\Shaders\Shader.cpp" />
-    <ClCompile Include="Source\Runtime\Events\EventThread.cpp" />
-    <ClCompile Include="Source\Runtime\Rendering\Renderer.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\GameThread.cpp" />
-    <ClCompile Include="Source\Runtime\Application\WindowsApp.cpp" />
-    <ClCompile Include="Source\Runtime\Assets\AssetManager.cpp" />
-    <ClCompile Include="Source\Runtime\Components\Component.cpp" />
-    <ClCompile Include="Source\Runtime\Components\RenderComponent.cpp" />
-    <ClCompile Include="Source\Runtime\Components\TagComponent.cpp" />
-    <ClCompile Include="Source\Runtime\Components\TransformComponent.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\Engine.cpp" />
-    <ClCompile Include="Source\Runtime\Entity\EntityManager.cpp" />
-    <ClCompile Include="Source\Runtime\Events\Event.cpp" />
-    <ClCompile Include="Source\Runtime\Events\EventManager.cpp" />
-    <ClCompile Include="Source\Runtime\Logger\Logger.cpp" />
-    <ClCompile Include="Source\Runtime\Rendering\RenderFrame.cpp" />
-    <ClCompile Include="Source\Runtime\Rendering\RenderThread.cpp" />
-    <ClCompile Include="Source\Runtime\Window\Window.cpp" />
-    <ClCompile Include="Source\Runtime\World\GameObject.cpp" />
-    <ClCompile Include="Source\Runtime\World\World.cpp" />
+    <ClCompile Include="Source\Engine\Runtime\Rendering\SceneRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Runtime\Engine\Engine.cpp" />
     <ClCompile Include="Source\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Source\ThirdParty\ImGui\imgui.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\ImGui\imgui_demo.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\ImGui\imgui_draw.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\ImGui\imgui_impl_dx12.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\ImGui\imgui_impl_win32.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\ImGui\imgui_stdlib.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\ImGui\imgui_tables.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\ImGui\imgui_widgets.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\Runtime\Engine\ThreadManager.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

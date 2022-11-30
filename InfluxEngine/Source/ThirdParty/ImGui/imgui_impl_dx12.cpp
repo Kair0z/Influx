@@ -144,8 +144,8 @@ static void ImGui_ImplDX12_SetupRenderState(ImDrawData* draw_data, ID3D12Graphic
     ctx->OMSetBlendFactor(blend_factor);
 }
 
-template<typename T>
-static inline void SafeRelease(T*& res)
+template<typename _T>
+static inline void SafeRelease(_T*& res)
 {
     if (res)
         res->Release();

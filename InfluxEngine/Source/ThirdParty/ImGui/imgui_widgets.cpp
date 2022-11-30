@@ -1130,8 +1130,8 @@ bool ImGui::Checkbox(const char* label, bool* v)
     return pressed;
 }
 
-template<typename T>
-bool ImGui::CheckboxFlagsT(const char* label, T* flags, T flags_value)
+template<typename _T>
+bool ImGui::CheckboxFlagsT(const char* label, _T* flags, _T flags_value)
 {
     bool all_on = (*flags & flags_value) == flags_value;
     bool any_on = (*flags & flags_value) != 0;
@@ -2088,8 +2088,8 @@ bool ImGui::DataTypeApplyOpFromText(const char* buf, const char* initial_value_b
     return memcmp(&data_backup, p_data, type_info->Size) != 0;
 }
 
-template<typename T>
-static int DataTypeCompareT(const T* lhs, const T* rhs)
+template<typename _T>
+static int DataTypeCompareT(const _T* lhs, const _T* rhs)
 {
     if (*lhs < *rhs) return -1;
     if (*lhs > *rhs) return +1;
@@ -2116,8 +2116,8 @@ int ImGui::DataTypeCompare(ImGuiDataType data_type, const void* arg_1, const voi
     return 0;
 }
 
-template<typename T>
-static bool DataTypeClampT(T* v, const T* v_min, const T* v_max)
+template<typename _T>
+static bool DataTypeClampT(_T* v, const _T* v_min, const _T* v_max)
 {
     // Clamp, both sides are optional, return true if modified
     if (v_min && *v < *v_min) { *v = *v_min; return true; }

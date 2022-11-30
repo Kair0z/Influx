@@ -1,0 +1,23 @@
+#pragma once
+
+#ifndef _CORE_H_
+#define _CORE_H_
+
+#include "Core/Time.h"
+#include "Core/Function.h"
+#include "Core/Procedure/Procedure.h"
+#include "Core/Pointer.h"
+#include "Core/String.h"
+#include "Core/Assert.h"
+
+#include "Core/Singleton/Locator.h"
+#include "Core/Singleton/Singleton.h"
+#include "Core/Allocators/Allocators.h"
+
+#include "Core/Container/Containers.h"
+
+#include "Core/Math/Math.h"
+#include "Core/Math/Random.h"
+
+
+#endif

@@ -1,0 +1,103 @@
+{
+  "format": 1,
+  "restore": {
+    "E:\\Git\\Influx\\InfluxEditor\\InfluxEditor.csproj": {}
+  },
+  "projects": {
+    "E:\\Git\\Influx\\InfluxEditor\\InfluxEditor.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "E:\\Git\\Influx\\InfluxEditor\\InfluxEditor.csproj",
+        "projectName": "InfluxEditor",
+        "projectPath": "E:\\Git\\Influx\\InfluxEditor\\InfluxEditor.csproj",
+        "packagesPath": "C:\\Users\\arnev\\.nuget\\packages\\",
+        "outputPath": "E:\\Git\\Influx\\InfluxEditor\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\arnev\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0-windows7.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0-windows7.0": {
+            "targetAlias": "net6.0-windows",
+            "projectReferences": {
+              "E:\\Git\\Influx\\InfluxEngineDLL\\InfluxEngineDLL.vcxproj": {
+                "projectPath": "E:\\Git\\Influx\\InfluxEngineDLL\\InfluxEngineDLL.vcxproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0-windows7.0": {
+          "targetAlias": "net6.0-windows",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            },
+            "Microsoft.WindowsDesktop.App.WPF": {
+              "privateAssets": "none"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.101\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\Git\\Influx\\InfluxEngineDLL\\InfluxEngineDLL.vcxproj": {
+      "restore": {
+        "projectUniqueName": "E:\\Git\\Influx\\InfluxEngineDLL\\InfluxEngineDLL.vcxproj",
+        "projectName": "InfluxEngineDLL",
+        "projectPath": "E:\\Git\\Influx\\InfluxEngineDLL\\InfluxEngineDLL.vcxproj",
+        "frameworks": {
+          "native": {
+            "projectReferences": {
+              "E:\\Git\\Influx\\InfluxEngine\\Influx.vcxproj": {
+                "projectPath": "E:\\Git\\Influx\\InfluxEngine\\Influx.vcxproj"
+              }
+            }
+          }
+        }
+      },
+      "frameworks": {
+        "native": {}
+      }
+    },
+    "E:\\Git\\Influx\\InfluxEngine\\Influx.vcxproj": {
+      "restore": {
+        "projectUniqueName": "E:\\Git\\Influx\\InfluxEngine\\Influx.vcxproj",
+        "projectName": "InfluxEngine",
+        "projectPath": "E:\\Git\\Influx\\InfluxEngine\\Influx.vcxproj",
+        "frameworks": {
+          "native": {
+            "projectReferences": {}
+          }
+        }
+      },
+      "frameworks": {
+        "native": {}
+      }
+    }
+  }
+}

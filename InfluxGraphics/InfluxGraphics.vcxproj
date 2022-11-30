@@ -1,8 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Profile|x64">
+      <Configuration>Profile</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
@@ -11,34 +15,48 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\D3D12Shader.cpp" />
     <ClCompile Include="Source\D3D12RenderPass.cpp" />
-    <ClCompile Include="Source\RHIRenderPass.cpp" />
+    <ClCompile Include="Source\D3D12\D3D12API.cpp" />
+    <ClCompile Include="Source\D3D12\D3D12Pipeline.cpp" />
+    <ClCompile Include="Source\D3D12\D3D12RenderPass.cpp" />
+    <ClCompile Include="Source\D3D12\D3D12Resource.cpp" />
     <ClCompile Include="Source\D3D12API.cpp" />
     <ClCompile Include="Source\D3D12Pipeline.cpp" />
     <ClCompile Include="Source\D3D12Resource.cpp" />
-    <ClCompile Include="Source\GraphicsAPI.cpp" />
-    <ClCompile Include="Source\RHIPipeline.cpp" />
-    <ClCompile Include="Source\RHIResource.cpp" />
     <ClCompile Include="Source\VulkanAPI.cpp" />
     <ClCompile Include="Source\VulkanPipeline.cpp" />
     <ClCompile Include="Source\VulkanRenderPass.cpp" />
     <ClCompile Include="Source\VulkanResource.cpp" />
+    <ClCompile Include="Source\VulkanShader.cpp" />
+    <ClCompile Include="Source\Vulkan\VulkanAPI.cpp" />
+    <ClCompile Include="Source\Vulkan\VulkanPipeline.cpp" />
+    <ClCompile Include="Source\Vulkan\VulkanRenderPass.cpp" />
+    <ClCompile Include="Source\Vulkan\VulkanResource.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\D3D12\D3D12API.h" />
+    <ClInclude Include="Source\D3D12\D3D12Conversion.h" />
+    <ClInclude Include="Source\D3D12\D3D12Pipeline.h" />
+    <ClInclude Include="Source\D3D12\D3D12RenderPass.h" />
+    <ClInclude Include="Source\D3D12\D3D12Resource.h" />
+    <ClInclude Include="Source\D3D12Shader.h" />
     <ClInclude Include="Source\D3D12RenderPass.h" />
-    <ClInclude Include="Source\RHIRenderPass.h" />
     <ClInclude Include="Source\D3D12API.h" />
     <ClInclude Include="Source\D3D12Conversion.h" />
     <ClInclude Include="Source\D3D12Pipeline.h" />
     <ClInclude Include="Source\D3D12Resource.h" />
-    <ClInclude Include="Source\GraphicsAPI.h" />
-    <ClInclude Include="Source\RHIPipeline.h" />
-    <ClInclude Include="Source\RHIResource.h" />
     <ClInclude Include="Source\VulkanAPI.h" />
     <ClInclude Include="Source\VulkanConversion.h" />
     <ClInclude Include="Source\VulkanPipeline.h" />
     <ClInclude Include="Source\VulkanRenderPass.h" />
     <ClInclude Include="Source\VulkanResource.h" />
+    <ClInclude Include="Source\VulkanShader.h" />
+    <ClInclude Include="Source\Vulkan\VulkanAPI.h" />
+    <ClInclude Include="Source\Vulkan\VulkanConversion.h" />
+    <ClInclude Include="Source\Vulkan\VulkanPipeline.h" />
+    <ClInclude Include="Source\Vulkan\VulkanRenderPass.h" />
+    <ClInclude Include="Source\Vulkan\VulkanResource.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">
@@ -66,6 +84,13 @@
     <CharacterSet>Unicode</CharacterSet>
     <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -79,11 +104,18 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\LibPropertySheet.props" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\LibPropertySheet.props" />
+  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -92,7 +124,8 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Source\;$(SolutionDir)3thParty\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Source;$(SolutionDir)3thParty\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -108,7 +141,27 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Source\;$(SolutionDir)3thParty\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Source;$(SolutionDir)3thParty\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Source;$(SolutionDir)3thParty\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>

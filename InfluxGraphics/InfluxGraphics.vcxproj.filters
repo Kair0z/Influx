@@ -1,15 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Source\GraphicsAPI.cpp" />
     <ClCompile Include="Source\D3D12API.cpp">
       <Filter>D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="Source\RHIResource.cpp" />
     <ClCompile Include="Source\D3D12Resource.cpp">
       <Filter>D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="Source\RHIPipeline.cpp" />
     <ClCompile Include="Source\D3D12Pipeline.cpp">
       <Filter>D3D12</Filter>
     </ClCompile>
@@ -19,7 +16,6 @@
     <ClCompile Include="Source\VulkanPipeline.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="Source\RHIRenderPass.cpp" />
     <ClCompile Include="Source\VulkanRenderPass.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
@@ -29,17 +25,28 @@
     <ClCompile Include="Source\VulkanResource.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="Source\VulkanShader.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\D3D12Shader.cpp">
+      <Filter>D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Vulkan\VulkanAPI.cpp" />
+    <ClCompile Include="Source\Vulkan\VulkanPipeline.cpp" />
+    <ClCompile Include="Source\Vulkan\VulkanRenderPass.cpp" />
+    <ClCompile Include="Source\Vulkan\VulkanResource.cpp" />
+    <ClCompile Include="Source\D3D12\D3D12API.cpp" />
+    <ClCompile Include="Source\D3D12\D3D12Pipeline.cpp" />
+    <ClCompile Include="Source\D3D12\D3D12RenderPass.cpp" />
+    <ClCompile Include="Source\D3D12\D3D12Resource.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\GraphicsAPI.h" />
     <ClInclude Include="Source\D3D12API.h">
       <Filter>D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="Source\RHIResource.h" />
     <ClInclude Include="Source\D3D12Resource.h">
       <Filter>D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="Source\RHIPipeline.h" />
     <ClInclude Include="Source\D3D12Pipeline.h">
       <Filter>D3D12</Filter>
     </ClInclude>
@@ -52,7 +59,6 @@
     <ClInclude Include="Source\VulkanPipeline.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="Source\RHIRenderPass.h" />
     <ClInclude Include="Source\VulkanRenderPass.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
@@ -65,6 +71,22 @@
     <ClInclude Include="Source\VulkanConversion.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Source\VulkanShader.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\D3D12Shader.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Vulkan\VulkanAPI.h" />
+    <ClInclude Include="Source\Vulkan\VulkanConversion.h" />
+    <ClInclude Include="Source\Vulkan\VulkanPipeline.h" />
+    <ClInclude Include="Source\Vulkan\VulkanRenderPass.h" />
+    <ClInclude Include="Source\Vulkan\VulkanResource.h" />
+    <ClInclude Include="Source\D3D12\D3D12API.h" />
+    <ClInclude Include="Source\D3D12\D3D12Conversion.h" />
+    <ClInclude Include="Source\D3D12\D3D12Pipeline.h" />
+    <ClInclude Include="Source\D3D12\D3D12RenderPass.h" />
+    <ClInclude Include="Source\D3D12\D3D12Resource.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D12">

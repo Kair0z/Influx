@@ -1,34 +1,46 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="Source\Assert\Assert.h" />
-    <ClInclude Include="Source\Container\Containers.h" />
-    <ClInclude Include="Source\Container\List.h" />
-    <ClInclude Include="Source\Container\Map.h" />
-    <ClInclude Include="Source\Container\Queue.h" />
-    <ClInclude Include="Source\Container\Vector.h" />
-    <ClInclude Include="Source\Function\Function.h" />
-    <ClInclude Include="Source\Geometry\Vertex.h" />
-    <ClInclude Include="Source\Math\DirectX\DxMath.h" />
-    <ClInclude Include="Source\Math\Math.h" />
-    <ClInclude Include="Source\Math\Random.h" />
-    <ClInclude Include="Source\Memory\Allocators\Allocators.h" />
-    <ClInclude Include="Source\Memory\Allocators\BaseAllocator.h" />
-    <ClInclude Include="Source\Memory\Reference.h" />
-    <ClInclude Include="Source\Platform\WindowsPlatform.h" />
-    <ClInclude Include="Source\Platform\Platform.h" />
-    <ClInclude Include="Source\Singleton\Locator.h" />
-    <ClInclude Include="Source\Singleton\Singleton.h" />
+    <ClInclude Include="Source\Core\Assert.h" />
+    <ClInclude Include="Source\Core\Container\Containers.h" />
+    <ClInclude Include="Source\Core\Container\List.h" />
+    <ClInclude Include="Source\Core\Container\Map.h" />
+    <ClInclude Include="Source\Core\Container\Queue.h" />
+    <ClInclude Include="Source\Core\Container\Vector.h" />
+    <ClInclude Include="Source\Core\Function.h" />
+    <ClInclude Include="Source\Core\Geometry\Vertex.h" />
+    <ClInclude Include="Source\Core\Math\Math.h" />
+    <ClInclude Include="Source\Core\Math\Random.h" />
+    <ClInclude Include="Source\Core\Allocators\Allocators.h" />
+    <ClInclude Include="Source\Core\Allocators\BaseAllocator.h" />
+    <ClInclude Include="Source\Core\Platform\WindowsPlatform.h" />
+    <ClInclude Include="Source\Core\Platform\Platform.h" />
+    <ClInclude Include="Source\Core\Singleton\Locator.h" />
+    <ClInclude Include="Source\Core\Singleton\Singleton.h" />
     <ClInclude Include="Source\Thread\Windows\WindowsThread.h" />
     <ClInclude Include="Source\Thread\BaseThread.h" />
-    <ClInclude Include="Source\Thread\Thread.h" />
-    <ClInclude Include="Source\Time\Timer.h" />
-    <ClInclude Include="Source\Type\String.h" />
-    <ClInclude Include="Source\Type\Type.h" />
-    <ClInclude Include="Source\Core.h" />
+    <ClInclude Include="Source\Core\Procedure\Procedure.h" />
+    <ClInclude Include="Source\Core\Time.h" />
+    <ClInclude Include="Source\Core\String.h" />
+    <ClInclude Include="Source\Core\Cast.h" />
+    <ClInclude Include="Source\InfluxCore.h" />
+    <ClInclude Include="Source\Core\Pointer.h" />
+    <ClInclude Include="Source\Core\Math\Vector.h" />
+    <ClInclude Include="Source\Core\Geometry\Rect.h" />
+    <ClInclude Include="Source\Core\Geometry\Transform.h" />
+    <ClInclude Include="Source\Core\Enum.h" />
+    <ClInclude Include="Source\Core\Geometry\Sphere.h" />
+    <ClInclude Include="Source\Core\Geometry\Plane.h" />
+    <ClInclude Include="Source\Core\Geometry\Camera.h" />
+    <ClInclude Include="Source\Core\Geometry\Ray.h" />
+    <ClInclude Include="Source\Core\Procedure\ThreadPool.h" />
+    <ClInclude Include="Source\Core\Math\Matrix.h" />
+    <ClInclude Include="Source\Core\BRDF\BRDF.h" />
+    <ClInclude Include="Source\Core\KDTree.h" />
+    <ClInclude Include="Source\Core\Math\Bounds.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core.cpp" />
-    <ClCompile Include="Source\Thread\Thread.cpp" />
+    <None Include="Source\Core\Math\Vector.inl" />
+    <None Include="Source\Core\Math\Matrix.inl" />
   </ItemGroup>
 </Project>
