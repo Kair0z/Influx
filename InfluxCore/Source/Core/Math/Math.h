@@ -28,6 +28,18 @@ namespace Influx
 		}
 
 		template <typename _T>
+		inline _T Cos(const _T& value)
+		{
+			return std::cos(value);
+		}
+
+		template <typename _T>
+		inline _T Sin(const _T& value)
+		{
+			return std::sin(value);
+		}
+
+		template <typename _T>
 		constexpr inline _T Abs(const _T& value)
 		{
 			return std::abs(value);
@@ -36,7 +48,29 @@ namespace Influx
 		template <typename _T>
 		constexpr inline _T Lerp(const _T& t, const _T& min, const _T& max)
 		{
-			return (max - min) * t;
+			return min + ((max - min) * t);
+		}
+
+		template <typename _T>
+		constexpr inline _T Remap(const _T& value, const _T& oldMin, const _T& oldMax, const _T& newMin, const _T& newMax)
+		{
+			if (oldMax - oldMin == (_T)0) return (_T)0;
+			return newMin + (value - oldMin) * (newMax - newMin) / (oldMax - oldMin);
+		}
+
+		template <typename _T>
+		constexpr inline _T PingPong(const _T& t, const _T& range)
+		{
+			_T range2 = range * 2;
+			_T mod = std::fmod(t, range2);
+			if (mod < range)
+			{
+				return mod;
+			}
+			else
+			{
+				return range2 - mod;
+			}
 		}
 
 		template <typename _T>
@@ -50,10 +84,10 @@ namespace Influx
 		template <typename _T>
 		constexpr inline _T Max(const _T& a, const _T& b, const bool chooseAWhenEqual = true)
 		{
-			if constexpr (a == b && chooseAWhenEqual) return a;
+			if (a == b && chooseAWhenEqual) return a;
 			else return b;
 
-			if constexpr (a < b) return b;
+			if (a < b) return b;
 			else return b;
 		}
 

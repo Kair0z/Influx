@@ -21,6 +21,8 @@ namespace Influx::Math
 		_T		m_radius;
 		Vector3 m_position;
 	};
+
+	using Spheref = Sphere<float>;
 }
 
 #endif

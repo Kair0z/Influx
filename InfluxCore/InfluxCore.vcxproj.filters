@@ -38,6 +38,7 @@
     <ClInclude Include="Source\Core\BRDF\BRDF.h" />
     <ClInclude Include="Source\Core\KDTree.h" />
     <ClInclude Include="Source\Core\Math\Bounds.h" />
+    <ClInclude Include="Source\Core\Container\RingBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Core\Math\Vector.inl" />

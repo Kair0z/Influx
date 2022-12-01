@@ -35,7 +35,7 @@ namespace Influx
 		}
 
 		template <typename _T>
-		inline static _T GetMillisecondsBetween(const TimePoint& end, const TimePoint& start) noexcept
+		inline static _T MsBetween(const TimePoint& end, const TimePoint& start) noexcept
 		{
 			return static_cast<_T>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
 		}

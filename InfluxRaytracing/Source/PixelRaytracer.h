@@ -10,7 +10,7 @@ namespace Influx
 	public:
 		PixelRaytracer() = default;
 
-		virtual PixelColour RenderPixel(const std::vector<Math::Sphere<float>>& spheres, const Math::Vectorf2& uv, const float ar) const override;
+		virtual PixelOutput RenderPixel(const RenderScene& scene, const Math::Vectorf2& uv, const float ar) const override;
 
 	private:
 		struct HitRecord

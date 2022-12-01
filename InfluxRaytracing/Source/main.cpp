@@ -9,6 +9,7 @@
 
 #include "SDL/SDL.h"
 #include <iostream>
+#include <array>
 
 #ifdef main
 #undef main
@@ -19,12 +20,23 @@
 #include "Core/Procedure/ThreadPool.h"
 #include "Core/Math/Random.h"
 #include "Core/KDTree.h"
+#include "Core/Platform/WindowsPlatform.h"
 
-constexpr size_t  gWindowWidth = 1920;
-constexpr size_t  gWindowHeight = 1080;
+constexpr size_t  gWindowWidth = 640;
+constexpr size_t  gWindowHeight = 480;
 constexpr size_t  gNumPixels = gWindowWidth * gWindowHeight;
 constexpr float     gAspectRatio = static_cast<float>(gWindowWidth) / static_cast<float>(gWindowHeight);
-constexpr uint32_t  gNumFramesPerLog = 60;
+constexpr uint32_t  gNumFramesPerLog = 10;
+constexpr uint32_t  gNumFramesPerAverage = 60;
+
+// Setup scene:
+constexpr uint32_t gNumSpheres = 25;
+constexpr float gSpheresMin = -100.0f;
+constexpr float gSpheresMax = 100.0f;
+constexpr float gSpheresMinSize = 5.0f;
+constexpr float gSpheresMaxSize = 10.0f;
+constexpr float gSpheresMinDepth = 80.0f;
+constexpr float gSpheresMaxDepth = 100.0f;
 
 #define THREADED_RENDERING 1
 #if THREADED_RENDERING
@@ -33,6 +45,87 @@ const size_t gThreadRange = (size_t)std::ceil(static_cast<double>(gNumPixels) / 
 #endif
 
 #include "PixelRaytracer.h"
+
+struct Time final
+{
+    float DeltaTime;
+    float Time;
+};
+
+struct Stats final
+{
+    enum class EStat
+    {
+        Render,
+        Update,
+        Present,
+        Frame,
+        Max
+    };
+
+    constexpr static size_t k_EnumSize = static_cast<size_t>(EStat::Max);
+    static constexpr char const* k_StatToNames[k_EnumSize]
+    {
+        "Render",
+        "Update",
+        "Present",
+        "Frame",
+    };
+
+    
+    std::array<double, k_EnumSize> Values{};
+    std::array<double, k_EnumSize> ValueSums{};
+    std::array<size_t, k_EnumSize> AverageCounter{};
+
+    template <EStat _S>
+    void AddValue(const double value)
+    {
+        constexpr size_t idx = static_cast<size_t>(_S);
+        ++AverageCounter[idx];
+        Values[idx] = value;
+        ValueSums[idx] += value;
+    }
+
+    template <EStat _S>
+    double GetValue() const
+    {
+        constexpr size_t idx = static_cast<size_t>(_S);
+        return Values[idx];
+    }
+
+    template <EStat _S>
+    double GetAverage() const
+    {
+        constexpr size_t idx = static_cast<size_t>(_S);
+        size_t averageCounter = AverageCounter[idx];
+
+        if (averageCounter == 0u) return 0.0;
+        return ValueSums[idx] / averageCounter;
+    }
+
+    void Reset()
+    {
+        Values = {};
+        ValueSums = {};
+        AverageCounter = {};
+    }
+};
+
+void UpdateScene(const Time& sceneTime, Influx::RenderScene& scene)
+{
+    float pingPong{};
+
+    for (size_t i = 0; i < scene.Spheres.size(); ++i)
+    {
+        Influx::Math::Sphere<float>& sphere = scene.Spheres[i];
+        pingPong = Influx::Math::PingPong(sceneTime.Time + scene.Randoms[i], 1.0f);
+        sphere.m_radius = Influx::Math::Lerp(pingPong, gSpheresMinSize, gSpheresMaxSize);
+
+        sphere.m_position.x = Influx::Math::Cos(pingPong) * gSpheresMax * scene.Randoms[i];
+        sphere.m_position.y = Influx::Math::Sin(pingPong) * gSpheresMax * scene.Randoms[i];
+        sphere.m_position.z = Influx::Math::Lerp(pingPong, gSpheresMinDepth, gSpheresMaxDepth);
+    }
+}
 
 int main()
 {
@@ -66,51 +159,56 @@ int main()
 
     // Create a backbuffer to blit into our window...
     SDL_Surface* backbuffer_surface = SDL_DuplicateSurface(window_surface);
+    float* depthBufferPixels = new float[gNumPixels]{};
+    float averageScreenDepth = 0.0f;
     unsigned char* backbufferPixels = (unsigned char*)backbuffer_surface->pixels;
 #pragma endregion
-
-    double msRender = 0.0f;
-    double msPresent = 0.0f;
-    double sumFPS = 0.0f;
+    
     uint64_t currentFrame{};
 
+    Influx::Time::TimePoint beforeFrame = Influx::Time::Now();
+    Influx::Time::TimePoint beforeUpdate = Influx::Time::Now();
     Influx::Time::TimePoint beforeRender = Influx::Time::Now();
     Influx::Time::TimePoint beforePresent = Influx::Time::Now();
 
+    // Seed our random:
     Influx::Random::SeedRandom();
 
-    float min = -50.0f;
-    float max = 50.0f;
-    float minSize = 10.0f;
-    float maxSize = 25.0f;
-    float depth = 100.0f;
-
-    std::vector<Influx::Math::Sphere<float>> scene_spheres
-    {
-        Influx::Random::Sphere::RandomSpherefs<1200>({min, min, depth}, {max, max, depth}, {minSize, maxSize})
-    };
+    Influx::RenderScene scene{};
+    scene.Spheres = Influx::Random::Sphere::RandomSpherefs<gNumSpheres>({gSpheresMin, gSpheresMin, gSpheresMinDepth}, {gSpheresMax, gSpheresMax, gSpheresMaxDepth}, {gSpheresMinSize, gSpheresMaxSize});
+    scene.Randoms = Influx::Random::Randoms<float, gNumSpheres>(0.0f, 1.0f);
+    scene.MainLight.Colour = Vectorf3::One();
+    scene.MainLight.Direction = { 0.33f, -0.33f, -0.33f };
+    scene.MainLight.Direction.Normalize();
 
     Influx::KDTree<3u> tree = Influx::KDTree<3u>(
         Influx::Random::Vector::Random3fs<23u>( Vectorf3{1.0f, 1.0f, 1.0f}, Vectorf3{2.0f, 2.0f, 2.0f} ));
 
     tree.Build();
 
+    // Setup Renderer & Camera:
     Influx::PixelRaytracer raytracer = Influx::PixelRaytracer();
     raytracer.SetCameraFieldOfView(90.0f);
     raytracer.SetCameraPosition({});
     raytracer.SetCameraForward({ 0.0f, 0.0f, 1.0f });
+
+    raytracer.GetRenderSettings().RenderDepthMinMax.y = 500.0f;
 
 #if THREADED_RENDERING
     Influx::ThreadPool<gNumThreads>* renderJobPool = new Influx::ThreadPool<gNumThreads>();
 #else
     float uvx{};
     float uvy{};
-    Influx::PixelRenderer::PixelColour pxColour{};
 #endif
+
+    Time sceneTime{};
+    Stats stats{};
 
     bool isQuit = false;
     while (!isQuit)
     {
+        beforeFrame = Influx::Time::Now();
+
         SDL_Event e;
         while (SDL_PollEvent(&e) > 0)
         {
@@ -122,89 +220,116 @@ int main()
             }
         }
 
+        // UPDATE:
+        beforeUpdate = Influx::Time::Now();
+        UpdateScene(sceneTime, scene);
+        stats.AddValue<Stats::EStat::Update>(Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeUpdate));
+        
         // RENDER
         beforeRender = Influx::Time::Now();
 
-        {
-#ifdef PROFILE
-            PIXScopedEvent(0, "Raytrace Frame");
-#endif
 #if THREADED_RENDERING
-            for (size_t i = 0, jobOffset = 0; i < gNumThreads; ++i)
-            {
-                jobOffset = i * gThreadRange;
+        for (size_t i = 0, jobOffset = 0; i < gNumThreads; ++i)
+        {
+            jobOffset = i * gThreadRange;
 
-                renderJobPool->QueueJob([i, jobOffset, &backbufferPixels, &raytracer, &scene_spheres]()
+            renderJobPool->QueueJob([i, jobOffset, &backbufferPixels, &raytracer, &scene, &depthBufferPixels, &averageScreenDepth]()
+                {
+                    for (size_t p = jobOffset; p < jobOffset + gThreadRange; ++p)
                     {
-                        for (size_t p = jobOffset; p < jobOffset + gThreadRange; ++p)
-                        {
-                            float uvx = float(p % gWindowWidth) / float(gWindowWidth);
-                            float uvy = float(p / gWindowWidth) / float(gWindowHeight);
+                        float uvx = float(p % gWindowWidth) / float(gWindowWidth);
+                        float uvy = float(p / gWindowWidth) / float(gWindowHeight);
 
-                            Influx::PixelRenderer::PixelColour pxColour =
-                                raytracer.RenderPixel(scene_spheres, { uvx, uvy }, gAspectRatio);
+                        Influx::PixelRenderer::PixelOutput pixelResult =
+                            raytracer.RenderPixel(scene, { uvx, uvy }, gAspectRatio);
 
-                            const size_t pixelBaseIdx = p * 4u;
+                        const size_t pixelBaseIdx = p * 4u;
 
-                            backbufferPixels[pixelBaseIdx] = pxColour.b; // B
-                            backbufferPixels[pixelBaseIdx + 1u] = pxColour.g; // G
-                            backbufferPixels[pixelBaseIdx + 2u] = pxColour.r; // R
-                            backbufferPixels[pixelBaseIdx + 3u] = pxColour.a; // A
-                        }
-                    });
-            }
+                        backbufferPixels[pixelBaseIdx]      = 255.0f * pixelResult.RGBA.b; // B
+                        backbufferPixels[pixelBaseIdx + 1u] = 255.0f * pixelResult.RGBA.g; // G
+                        backbufferPixels[pixelBaseIdx + 2u] = 255.0f * pixelResult.RGBA.r; // R
+                        backbufferPixels[pixelBaseIdx + 3u] = 255.0f * pixelResult.RGBA.a; // A
 
-            renderJobPool->WaitUntilFinished();
+                        depthBufferPixels[p] = pixelResult.Depth;
+                    }
+                });
+        }
+        renderJobPool->WaitUntilFinished();
 
 #else
-            for (size_t i = 0; i < gNumPixels; ++i)
-            {
-                uvx = float(i % gWindowWidth) / float(gWindowWidth);
-                uvy = float(i / gWindowWidth) / float(gWindowHeight);
+        for (size_t i = 0; i < gNumPixels; ++i)
+        {
+            uvx = float(i % gWindowWidth) / float(gWindowWidth);
+            uvy = float(i / gWindowWidth) / float(gWindowHeight);
 
-                pxColour = raytracer.RenderPixel(scene_spheres, { uvx, uvy }, gAspectRatio);
+            auto pxResult = raytracer.RenderPixel(scene, { uvx, uvy }, gAspectRatio);
 
-                const size_t pixelBaseIdx = i * 4u;
+            const size_t pixelBaseIdx = i * 4u;
 
-                backbufferPixels[pixelBaseIdx] = pxColour.b; // B
-                backbufferPixels[pixelBaseIdx + 1u] = pxColour.g; // G
-                backbufferPixels[pixelBaseIdx + 2u] = pxColour.r; // R
-                backbufferPixels[pixelBaseIdx + 3u] = pxColour.a; // A
-            }
-#endif
+            backbufferPixels[pixelBaseIdx]      = 255.0f * pxResult.RGBA.b; // B
+            backbufferPixels[pixelBaseIdx + 1u] = 255.0f * pxResult.RGBA.g; // G
+            backbufferPixels[pixelBaseIdx + 2u] = 255.0f * pxResult.RGBA.r; // R
+            backbufferPixels[pixelBaseIdx + 3u] = 255.0f * pxResult.RGBA.a; // A
+
+            depthBufferPixels[i] = pxResult.Depth;
         }
-
-        msRender += Influx::Time::GetMillisecondsBetween<double>(Influx::Time::Now(), beforeRender) * (1.0 / gNumFramesPerLog);
+#endif
+        stats.AddValue<Stats::EStat::Render>(Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeRender));
 
         beforePresent = Influx::Time::Now();
         SDL_BlitSurface(backbuffer_surface, NULL, window_surface, NULL);
         SDL_UpdateWindowSurface(window);
-        msPresent += Influx::Time::GetMillisecondsBetween<double>(Influx::Time::Now(), beforePresent) * (1.0 / gNumFramesPerLog);
-
+        stats.AddValue<Stats::EStat::Present>(Influx::Time::MsBetween<double>(Influx::Time::Now(), beforePresent));
+        
+        // Finalize frame-time
+        double thisFrame = Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeFrame);
+        stats.AddValue<Stats::EStat::Frame>(thisFrame);
+        sceneTime.DeltaTime = thisFrame / 1000;
+        sceneTime.Time += sceneTime.DeltaTime;
+        
+        // LOG
         if (currentFrame > 0 && currentFrame % gNumFramesPerLog == 0)
         {
-            printf("\x1b[1F");
-            printf("\x1b[1F");
-            printf("\x1b[1F");
-            printf("\x1b[1F");
-            printf("\x1b[1F");
+            std::cout << "\x1B[2J\x1B[H";
 
-            const double totalAverageTime = msPresent + msRender;
-            const double fps = (1 / totalAverageTime * 1000);
-            const uint64_t numFPSSamples = (currentFrame / gNumFramesPerLog) + 1;
-            sumFPS += fps;
-
+            double msFrame = stats.GetValue<Stats::EStat::Frame>();
+            double fps = (1 / msFrame * 1000);
+            
             std::cout << "-- FPS: " << fps << " \n";
-            std::cout << "Ms Total: " << totalAverageTime << "\n";
-            std::cout << "Ms Render: " << msRender << "\n";
-            std::cout << "Ms Present: " << msPresent << "\n";
-            std::cout << "-- Avg FPS: " << sumFPS / numFPSSamples << " \n";
+            using ValueAndIndex = std::pair<double, size_t>;
+            std::array<ValueAndIndex, Stats::k_EnumSize> sortedStats{};
+            for (size_t i = 0; i < Stats::k_EnumSize; ++i)
+            {
+                sortedStats[i] = { stats.Values[i], i };
+            }
+            std::sort(sortedStats.begin(), sortedStats.end(), [](const ValueAndIndex& a, const ValueAndIndex& b) -> bool
+                {
+                    bool aIsBigger = a.first > b.first;
+                    if (aIsBigger && ((Stats::EStat)b.second == Stats::EStat::Frame)) return !aIsBigger;
+                    return aIsBigger;
+                });
 
-            // Reset average timers...
-            msPresent = 0.0f;
-            msRender = 0.0f;
+            for (size_t i = 0; i < Stats::k_EnumSize; ++i)
+            {
+                using namespace Influx::WindowsPlatform;
+                double value = sortedStats[i].first;
+                if (value > 16.0) SetConsoleColourTextAttribute<EConsoleColour::Red>();
+                else SetConsoleColourTextAttribute<EConsoleColour::Green>();
+
+                std::cout << "Ms " << Stats::k_StatToNames[sortedStats[i].second] << ": " << value << "\n";
+            }
+
+            double avg_msFrame = stats.GetAverage<Stats::EStat::Frame>();
+            double avg_fps = (1 / avg_msFrame * 1000);
+            
+            std::cout << "\n-- Avg FPS: " << avg_fps << " \n";
+            std::cout << "Avg Ms Total: " << avg_msFrame << " \n";
         }
-
+        
+        // Reset stats & counters
+        if (currentFrame > 0 && currentFrame % gNumFramesPerAverage == 0)
+            stats.Reset();
+        
         ++currentFrame;
     }
 
@@ -212,6 +337,8 @@ int main()
     delete renderJobPool;
     renderJobPool = nullptr;
 #endif
+
+    delete[] depthBufferPixels;
 
     SDL_FreeSurface(backbuffer_surface);
 }

@@ -60,35 +60,30 @@ namespace Influx::BRDF
 		}
 	}
 
-	struct LambertSettings
-	{
-		float DiffuseReflectance;
-		Colour BaseDiffuse;
-	};
-
-	inline Colour Lambert(const LambertSettings& settings)
-	{
-		return settings.BaseDiffuse * settings.DiffuseReflectance / Math::PIf;
-	}
-
 	struct PhongSettings
 	{
-		float SpecularReflectance;
+		Colour DiffuseColour;
+
+		float Specular;
+		float Diffuse;
 		float PhongExponent;
 	};
 
 	inline Colour Phong(const PhongSettings& settings,
 		const Math::Vectorf3& fromLight,
+		const Math::Vectorf3& lightIntensity,
 		const Math::Vectorf3& toView,
 		const Math::Vectorf3& hitNormal)
 	{
+		float normalDotFromLight = Math::Vectorf3::Dot(hitNormal, fromLight);
+
 		// normal must be normalized here!
-		Math::Vectorf3 reflectVector{ -fromLight + 2 * Math::Vectorf3::Dot(hitNormal, fromLight) * hitNormal };
+		Math::Vectorf3 reflectVector{ -fromLight + 2 * normalDotFromLight * hitNormal };
 
-		Colour result{ settings.SpecularReflectance, settings.SpecularReflectance, settings.SpecularReflectance };
-		result *= powf(Math::Vectorf3::Dot(reflectVector, toView), settings.PhongExponent);
+		Colour diffuse = settings.DiffuseColour * lightIntensity * Math::Clamp(normalDotFromLight, 0.0f, 1.0f);
+		Colour specular = Math::Vectorf3::One() * lightIntensity * powf(Math::Clamp(Math::Vectorf3::Dot(reflectVector, toView), 0.0f, 1.0f), settings.PhongExponent);
 
-		return result;
+		return (settings.Diffuse * diffuse) + (settings.Specular * specular);
 	}
 
 	struct CookTorranceSettings

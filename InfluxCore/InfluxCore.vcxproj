@@ -21,6 +21,7 @@
     <ClInclude Include="Source\Core\Container\List.h" />
     <ClInclude Include="Source\Core\Container\Map.h" />
     <ClInclude Include="Source\Core\Container\Queue.h" />
+    <ClInclude Include="Source\Core\Container\RingBuffer.h" />
     <ClInclude Include="Source\Core\Container\Vector.h" />
     <ClInclude Include="Source\Core\Enum.h" />
     <ClInclude Include="Source\Core\Geometry\Camera.h" />

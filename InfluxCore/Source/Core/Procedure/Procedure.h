@@ -52,7 +52,7 @@ namespace Influx
 		{
 			Time::TimePoint startStart = Time::Now();
 			OnStart();
-			m_startMsDuration = Time::GetMillisecondsBetween<double>(Time::Now(), startStart);
+			m_startMsDuration = Time::MsBetween<double>(Time::Now(), startStart);
 		}
 
 		m_lastTick = Time::Now();
@@ -60,7 +60,7 @@ namespace Influx
 		{
 			Time::TimePoint tickStart = Time::Now();
 			OnTick();
-			m_tickMsDuration = Time::GetMillisecondsBetween<double>(Time::Now(), tickStart);
+			m_tickMsDuration = Time::MsBetween<double>(Time::Now(), tickStart);
 
 			++m_tickCount;
 		}

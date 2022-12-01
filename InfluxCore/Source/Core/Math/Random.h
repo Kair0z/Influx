@@ -35,11 +35,11 @@ namespace Influx::Random
 	}
 
 	template <typename _T, size_t _N>
-	inline std::vector<_T> Randoms()
+	inline std::vector<_T> Randoms(const _T& min = std::numeric_limits<_T>::min(), const _T& max = std::numeric_limits<_T>::max())
 	{
 		Vector<_T> randoms(_N);
 		for (size_t i = 0; i < _N; ++i)
-			randoms[i] = Random<_T>();
+			randoms[i] = Random<_T>(min, max);
 
 		return randoms;
 	}

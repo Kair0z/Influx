@@ -196,6 +196,23 @@ namespace Influx::WindowsPlatform
 	{
 		return ::IsWindowVisible(handle);
 	}
+
+
+	enum class EConsoleColour
+	{
+		Green	= 2,
+		Red		= 4,
+		Purple	= 5
+	};
+
+	template <EConsoleColour _C>
+	void SetConsoleColourTextAttribute(bool backgroundVersion = false)
+	{
+		constexpr size_t value = static_cast<size_t>(_C);
+
+		HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+		SetConsoleTextAttribute(hConsole, backgroundVersion ? value + 10u : value);
+	}
 }
 
 #endif

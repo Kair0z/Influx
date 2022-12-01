@@ -162,6 +162,7 @@ namespace Influx::Math
 
 		// Zero:
 		static Vector Zero();
+		static Vector One();
 		bool IsZero() const;
 		static bool IsZero(const Vector& v);
 

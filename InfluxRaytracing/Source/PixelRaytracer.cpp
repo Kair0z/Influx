@@ -8,38 +8,74 @@
 
 namespace Influx
 {
-	PixelRenderer::PixelColour Influx::PixelRaytracer::RenderPixel(
-		const std::vector<Math::Sphere<float>>& spheres, const Math::Vectorf2& uv, const float ar) const
+	PixelRenderer::PixelOutput Influx::PixelRaytracer::RenderPixel(
+		const RenderScene& scene, const Math::Vectorf2& uv, const float ar) const
 	{
-#ifdef PROFILE
-		PIXScopedEvent(0, "PixelRaytracer::RenderPixel");
-#endif
 		Math::Ray ray = CreateViewRay(uv, ar);
 
-		float depth = FLT_MAX;
+		float depth = GetRenderSettings().RenderDepthMinMax.y;
 		bool anyHit = false;
 		HitRecord record{};
 
 		// For each object:
-		for (size_t i = 0; i < spheres.size(); ++i)
+		size_t sphereHitIdx = 0;
+		for (size_t i = 0; i < scene.Spheres.size(); ++i)
 		{
-			const Math::Sphere<float>& sphere = spheres[i];
+			const Math::Sphere<float>& sphere = scene.Spheres[i];
 
-			anyHit = anyHit || TraceSphere(sphere, ray, record, depth);
+			if (TraceSphere(sphere, ray, record, depth))
+			{
+				anyHit = true;
+				sphereHitIdx = i;
+			}
 		}
+
+		PixelOutput pixelResult{};
+		pixelResult.Depth = record.T;
+		pixelResult.AnythingRendered = anyHit;
 
 		if (anyHit)
 		{
-			// Material:
-			BRDF::PhongSettings settings{};
-			settings.PhongExponent = 1.0f;
-			settings.SpecularReflectance = 0.5f;
+			switch (GetRenderMode())
+			{
+			default:
+			case ERenderMode::Material:
+			{
+				BRDF::PhongSettings settings{};
+				settings.PhongExponent = 100.0f;
+				settings.Specular = 0.7f;
+				settings.DiffuseColour = { 0.8f, 0.4f, 0.7f };
+				settings.Diffuse = 0.6f;
 
-			auto result = BRDF::Phong(settings, Math::Vectorf3{ -0.3, -0.3, 0.3f }, record.ToView, record.Normal);
-			return PixelColour{result.r * 255.0f, result.g * 255.0f, result.b * 255.0f, 255.0f };
+				settings.DiffuseColour *= scene.Randoms[sphereHitIdx];
+
+				auto result = BRDF::Phong(settings, scene.MainLight.Direction, scene.MainLight.Colour, record.ToView, record.Normal);
+
+				pixelResult.RGBA = { result.r, result.g, result.b, 1.0f };
+				break;
+			}
+
+			case ERenderMode::Normals:
+			{
+				Math::Vectorf3 colouredNormal = record.Normal;
+				colouredNormal += Math::Vectorf3{ 1.0f, 1.0f, 1.0f };
+				colouredNormal *= 0.5f;
+
+				pixelResult.RGBA = { colouredNormal.r, colouredNormal.g, colouredNormal.b, 1.0f };
+				break;
+			}
+
+			case ERenderMode::Depth:
+			{
+				float colouredDepth = RemapDepth(record.T);
+				pixelResult.RGBA = { colouredDepth, colouredDepth, colouredDepth, 1.0f };
+				break;
+			}
+
+			}
 		}
 
-		return PixelColour{};
+		return pixelResult;
 	}
 
 	Math::Ray PixelRaytracer::CreateViewRay(const Math::Vectorf2& uv, const float ar, float sampleRandStrength) const
@@ -61,8 +97,8 @@ namespace Influx
 			worldOrigin.y += (ndc.y) * GetCamera().GetFieldOfView();
 		}
 
-		float min = 0.0f;
-		float max = FLT_MAX;
+		float min = GetRenderSettings().RenderDepthMinMax.x;
+		float max = GetRenderSettings().RenderDepthMinMax.y;
 
 		return Math::Ray(worldOrigin, worldDirection, min, max);
 	}
@@ -108,4 +144,3 @@ namespace Influx
 		return true;
 	}
 }
-

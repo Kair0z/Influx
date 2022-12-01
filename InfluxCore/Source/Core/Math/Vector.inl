@@ -304,6 +304,16 @@ namespace Influx::Math
 	{
 		return Vector<_T, _N>();
 	}
+	template<typename _T, VectorSizeType _N>
+	inline Vector<_T, _N> Vector<_T, _N>::One()
+	{
+		Vector<_T, _N> result{};
+
+		for (size_t i{}; i < _N; ++i)
+			result[i] = static_cast<_T>(1);
+
+		return result;
+	}
 #pragma endregion
 
 	// Comparison:
