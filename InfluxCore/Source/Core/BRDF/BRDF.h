@@ -24,7 +24,7 @@ namespace Influx::BRDF
 			float c1{ powf(Math::Vectorf3::Dot(hitNormal, halfVector), 2) };
 			float c2{ roughness_2_2 - 1 };
 
-			result = roughness_2_2 / (float(Math::PIf) * powf(c1 * c2 + 1, 2.f));
+			result = roughness_2_2 / (float(Math::k_PI) * powf(c1 * c2 + 1, 2.f));
 
 			return result;
 		}
@@ -117,8 +117,6 @@ namespace Influx::BRDF
 
 		return (fresnel * geometry * normalDistribution) / (4 * (Math::Vectorf3::Dot(toView, hitNormal) * (Math::Vectorf3::Dot(fromLight, hitNormal))));
 	}
-
-	
 }
 
 #endif

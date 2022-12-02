@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _CORE_PROCEDURE_H_
-#define _CORE_PROCEDURE_H_
+#ifndef _CORE_THREADPOOL_H_
+#define _CORE_THREADPOOL_H_
 
 #define __CORE_PROCEDURE_USECORE_ 1
 
@@ -39,8 +39,8 @@ namespace Influx
         std::mutex m_queueMutex;                  // Prevents data races to the job queue
         std::condition_variable m_muCondition;    // Allows threads to wait on new jobs or termination 
 
-        uint64_t m_currentLabel;    
-        std::atomic<uint64_t> m_finishedLabel;   
+        uint64_t m_currentLabel;
+        std::atomic<uint64_t> m_finishedLabel;
 
     public:
         ThreadPool();
