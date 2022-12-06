@@ -6,7 +6,7 @@
 namespace Influx
 {
 	template <class _T>
-	class Singleton final
+	class Singleton
 	{
 	public:
 		inline static _T& Get()

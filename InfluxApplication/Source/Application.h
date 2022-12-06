@@ -2,8 +2,7 @@
 
 #include "../ImGui/imgui.h"
 
-#include "Core/String.h"
-#include "Core/Math/Vector.h"
+#include "Common.h"
 
 namespace Influx
 {
@@ -49,6 +48,13 @@ namespace Influx
 		ApplicationDescription m_initDescription;
 
 		bool AreRequiredCallbacksRegistered() const;
+		void InitializeRenderer();
+
+		void OnWindowResize();
+
+#if PLATFORM_WINDOWS
+		HWND m_windowHandle;
+#endif
 	};
 }
 

@@ -1,12 +1,6 @@
 #pragma once
 
-#include <Windows.h>
-#include "Math/Math.h"
-#include <vector>
-#include <string>
-#include <memory>
-#include "Function/Function.h"
-
+#include "Types.h"
 #include "GraphicsTypes.h"
 
 namespace Influx::Graphics
@@ -45,13 +39,12 @@ namespace Influx::Graphics
 	class GraphicsAPI
 	{
 	public:
-		/* Graphics API Interface: */
 		/* Creating Resources & RHI Classes */
 #pragma region Graphics API Interface
 		virtual RHISwapChain* CreateSwapChain(HINSTANCE windowsInstance, HWND windowHandle, RHICommandQueue* commandQueue) const = 0;
 		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const = 0;
-		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
-		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const = 0;
+		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, uint64 initialSizeInBytes, uint64 initialStrideInBytes) const = 0;
+		virtual RHIConstantBuffer* CreateConstantBuffer(float* initialData, uint64 initialSizeInBytes, uint64 initialStrideInBytes) const = 0;
 		virtual RHITexture* CreateTexture(const RHITextureDescription& constructionArgs) const = 0;
 
 		virtual RHIRenderTargetView* CreateRenderTargetView(RHITexture* texture) const = 0;
@@ -66,7 +59,7 @@ namespace Influx::Graphics
 		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference) const = 0;
 		virtual RHIGraphicsPipeline* CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& constructionArgs, RHIGraphicsPipelineLayout* pipelineLayoutReference, RHIRenderPass* renderPass) const = 0;
 
-		virtual RHIShader* CreateRHIShader(const std::vector<uint8_t>& compiledData, ERHIShaderType shaderType, ERHIShaderModel shaderModel) const = 0;
+		virtual RHIShader* CreateRHIShader(const Vector<uint8>& compiledData, ERHIShaderType shaderType, ERHIShaderModel shaderModel) const = 0;
 
 		virtual void CreateBuffer() const {};
 		virtual void CreateShader() const {};
@@ -120,10 +113,6 @@ namespace Influx::Graphics
 		virtual void CmdSetPrimitiveTopology(RHICommandList* cmdList, ERHIPrimitiveTopology topology) {};
 #pragma endregion
 
-		// Comment: ShaderAPI??
-		static std::string MakeShaderTargetString(const ERHIShaderType shaderType, const ERHIShaderModel shaderModel);
-		static bool ParseShaderTargetString(const std::string& targetString, ERHIShaderType& outShaderType, ERHIShaderModel& outShaderModel);
-		
 		GraphicsAPI() = default;
 		GraphicsAPI(const GraphicsAPI&) = delete;
 		GraphicsAPI(GraphicsAPI&&) = delete;

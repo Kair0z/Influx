@@ -1,49 +1,16 @@
 #pragma once
 
-#ifndef _D3D12_API_H_
-#define _D3D12_API_H_
+#ifndef _GR_D3D12_API_H_
+#define _GR_D3D12_API_H_
 
 #include "../GraphicsAPI.h"
-
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <dxgi1_6.h>
-#include <d3dcompiler.h>
-#include <dxgidebug.h>
-
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "dxguid.lib")
-#pragma comment(lib, "D3DCompiler.lib")
-
-#ifdef max
-#undef max
-#endif
-
-#ifdef min
-#undef min
-#endif
-
-#include <queue>
-#include <list>
+#include "D3D12.h"
 
 namespace Influx::Graphics
 {
-	/* D3D12API -> RHI */
-	class D3D12API final : public GraphicsAPI
+	class D3D12API final : public Singleton<D3D12API>, public GraphicsAPI
 	{
-		/* Private constructor -> Singleton */
-		D3D12API();
-
 	public:
-		/* Singleton Object holding references to ID3D12Device, IDXGIFactory, ... */
-		static D3D12API& Get()
-		{
-			static D3D12API api{};
-			return api;
-		}
-		virtual ~D3D12API();
-
 		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const override final;
 		virtual RHISwapChain* CreateSwapChain(HINSTANCE windowsInstance, HWND windowHandle, RHICommandQueue* commandQueue) const override final;
 		virtual RHIVertexBuffer* CreateVertexBuffer(float* initialData, UINT initialSizeInBytes, UINT initialStrideInBytes) const override final;
@@ -105,42 +72,6 @@ namespace Influx::Graphics
 		void CreateDepthStencilViewOnGlobalHeap(size_t slot);
 
 	public:
-#pragma region D3D12StaticWrappers
-		static IDXGIFactory4* CreateDxgiFactory();
-		static IDXGIAdapter4* GetAdapter(IDXGIFactory4* dxgiFactory, bool useWarp);
-		static ID3D12Device2* CreateDevice(IDXGIAdapter4* pAdapter);
-		static ID3D12CommandQueue* CreateDxCommandQueue(ID3D12Device2* pDevice, D3D12_COMMAND_LIST_TYPE type);
-
-		static bool CheckDxgiTearingSupport();
-		static IDXGISwapChain4* CreateDxgiSwapChain(IDXGIFactory4* dxgiFactory, HWND hWnd, ID3D12CommandQueue* pCommandQueue, UINT32 w, UINT32 h, UINT32 bufferCount);
-		static ID3D12DescriptorHeap* CreateDescriptorHeap(ID3D12Device2* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
-		static ID3D12CommandAllocator* CreateCommandAllocator(ID3D12Device2* pDevice, D3D12_COMMAND_LIST_TYPE type);
-		static ID3D12GraphicsCommandList* CreateCommandList(ID3D12Device2* pDevice, ID3D12CommandAllocator* cmdAllocator, D3D12_COMMAND_LIST_TYPE type);
-		static ID3D12Fence* CreateDxFence(ID3D12Device2* pDevice);
-
-		/* An OS event handle is used to block the CPU thread until the fence has been signaled */
-		static HANDLE CreateEventHandle();
-
-		/* Signal the fence from [GPU]. At execution, the GPU will only signal this once all earlier commands are executed...*/
-		static UINT64 Signal(ID3D12CommandQueue* commandQueue, ID3D12Fence* fence, UINT64& fenceValue);
-
-		/* Stalls the CPU thread when waiting for a fence-value to be completed. */
-		static void WaitForFenceValue(ID3D12Fence* fence, UINT64 fenceValue, HANDLE fenceEvent, float durationInMs);
-
-		/* The Flush function is used to ensure that any commands previously executed on the GPU have finished executing before the CPU thread is allowed to continue processing. */
-		static void FlushCommandQueue(ID3D12CommandQueue* commandQueue, ID3D12Fence* fence, UINT64& fenceValue, HANDLE fenceEvent);
-
-		/* Serialize A Versioned Root Signature. */
-		static void SerializeVersionedRootSignature(const D3D12_VERSIONED_ROOT_SIGNATURE_DESC* pRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION maxVersion, ID3DBlob** ppOutBlob, ID3DBlob** ppErrorBlob) noexcept;
-
-		/* Debug Layer */
-		/* This should be enabled only BEFORE creating the device */
-		static void EnableDebugLayer();
-
-		static void ReportLiveObjects();
-#pragma endregion
-
-	public:
 		template <typename Obj>
 		inline static void SafeRelease(Obj*& obj)
 		{
@@ -163,14 +94,14 @@ namespace Influx::Graphics
 		/* RHICommandList API: */
 		virtual void RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList* cmdList)>) override final;
 		virtual void TransitionResource(RHIResource* resource, const ERHIResourceState newState) override final;
-		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vector4f& clearValue) override final;
+		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vectorf4& clearValue) override final;
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) override final;
 		virtual void BindViewports(const RHIViewport& viewport) override final;
 		virtual void BindVertexBuffer(RHIVertexBuffer* vertexBuffer) override final;
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) override final;
 		virtual void CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition) override final;
 		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) override final;
-		virtual void ClearTextureAsRTV(RHITexture* texture, const Math::Vector4f& clearValue, bool forceTransition) override final;
+		virtual void ClearTextureAsRTV(RHITexture* texture, const Math::Vectorf4& clearValue, bool forceTransition) override final;
 		virtual void BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout) override final;
 		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) override final;
 		virtual void BindRenderTarget(RHIRenderTargetView* renderTargetView) override final;

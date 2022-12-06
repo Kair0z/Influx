@@ -46,6 +46,10 @@
     <ClInclude Include="Source\D3D12Conversion.h" />
     <ClInclude Include="Source\D3D12Pipeline.h" />
     <ClInclude Include="Source\D3D12Resource.h" />
+    <ClInclude Include="Source\InfluxGraphics\D3D12\D3D12.h" />
+    <ClInclude Include="Source\InfluxGraphics\D3D12\D3D12API.h" />
+    <ClInclude Include="Source\InfluxGraphics\GraphicsTypes.h" />
+    <ClInclude Include="Source\InfluxGraphics\Types.h" />
     <ClInclude Include="Source\VulkanAPI.h" />
     <ClInclude Include="Source\VulkanConversion.h" />
     <ClInclude Include="Source\VulkanPipeline.h" />
