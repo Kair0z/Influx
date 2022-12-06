@@ -21,6 +21,17 @@ namespace Influx
 {
 	namespace Math
 	{
+		constexpr float k_E			= 2.718281828459045f;
+		constexpr float k_PI		= 3.1415926535897932384626433832795f;
+		constexpr double k_dPI		= 3.141592653589793238462643383279502884197169399375105820974944592307816406286;
+		constexpr float k_PIDouble	= 6.283185307179586476925286766559f;
+		constexpr float k_PIonTwo	= 1.5707963267948966192313216916398f;
+		constexpr float k_PIonFour	= 0.78539816339744830961566084581988f;
+		constexpr float k_PIonSix	= 0.52359877559829887307710723054658f;
+	}
+
+	namespace Math
+	{
 		template <typename _T, typename _F>
 		constexpr inline _T Round(const _F& fValue)
 		{
@@ -30,19 +41,19 @@ namespace Influx
 		template <typename _T>
 		inline _T Cos(const _T& value)
 		{
-			return std::cos(value);
+			return static_cast<_T>(std::cos(value));
 		}
 
 		template <typename _T>
 		inline _T Sin(const _T& value)
 		{
-			return std::sin(value);
+			return static_cast<_T>(std::sin(value));
 		}
 
 		template <typename _T>
 		constexpr inline _T Abs(const _T& value)
 		{
-			return std::abs(value);
+			return static_cast<_T>(std::abs(value));
 		}
 
 		template <typename _T>
@@ -179,8 +190,6 @@ namespace Influx
 		{
 			return degrees * (_T)(3.1415 / 180);
 		}
-
-		constexpr inline float PIf = 3.1415f;
 	}
 }
 #endif
