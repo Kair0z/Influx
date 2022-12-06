@@ -21,12 +21,16 @@ namespace Influx
 
 	class Application final
 	{
-		using OnUIRenderCallback = void (*)();
+		typedef void (*OnUpdateCallback)(Application&);
+		typedef void (*OnUIRenderCallback)(const Application&);
 
 	public:
 		Application(int argc, char** argv, const ApplicationDescription& desc);
 		
-		void Run(OnUIRenderCallback onUIRender);
+		void SetUIRenderCallback(OnUIRenderCallback newClb);
+		void SetUpdateCallback(OnUpdateCallback newClb);
+
+		void Run();
 		void Quit();
 
 		Application(const Application&) = delete;
@@ -38,6 +42,13 @@ namespace Influx
 	private:
 		bool m_hasStarted;
 		bool m_shouldQuit;
+
+		OnUIRenderCallback	m_uiRenderClb;
+		OnUpdateCallback	m_updateClb;
+
+		ApplicationDescription m_initDescription;
+
+		bool AreRequiredCallbacksRegistered() const;
 	};
 }
 

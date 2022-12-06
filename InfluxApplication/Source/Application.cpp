@@ -21,6 +21,9 @@ inline LRESULT CALLBACK WndProc(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPA
 namespace Influx
 {
 	Application::Application(int argc, char** argv, const ApplicationDescription& desc)
+        : m_hasStarted{false}
+        , m_shouldQuit{false}
+        , m_initDescription{desc}
 	{
         WindowsPlatform::CreateWindow(
             static_cast<int>(desc.InitWindowSize.x),
@@ -28,13 +31,40 @@ namespace Influx
             Influx::ToWString(desc.Name), WndProc);
 	}
 
-    void Application::Run(OnUIRenderCallback onUIRender)
+    void Application::SetUIRenderCallback(OnUIRenderCallback newClb)
+    {
+        m_uiRenderClb = newClb;
+    }
+
+    void Application::SetUpdateCallback(OnUpdateCallback newClb)
+    {
+        m_updateClb = newClb;
+    }
+
+    void Application::Run()
     {
         m_hasStarted = true;
 
-        while (!m_shouldQuit)
+        if (!AreRequiredCallbacksRegistered())
         {
-            onUIRender();
+            Quit();
+        }
+
+        MSG msg;
+        while (GetMessage(&msg, NULL, 0, 0) > 0)
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+
+            if (m_updateClb != nullptr)
+            {
+                m_updateClb(*this);
+            }
+
+            if (m_uiRenderClb != nullptr)
+            {
+                m_uiRenderClb(*this);
+            }
         }
     }
 
@@ -47,5 +77,14 @@ namespace Influx
 	{
 
 	}
+
+    bool Application::AreRequiredCallbacksRegistered() const
+    {
+        if (m_initDescription.Type == EApplicationType::Default)
+        {
+            // For this type, we require both callbacks to be registered!
+            if (m_uiRenderClb != nullptr && m_updateClb != nullptr) return true;
+        }
+    }
 }
 
