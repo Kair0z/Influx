@@ -197,13 +197,13 @@ namespace Influx::Math
 
 #pragma region Aliases
 	template <VectorSizeType _N>
-	using Vectoru8 = Vector<VectorSizeType, _N>;
+	using Vectoru8 = Vector<uint8_t, _N>;
 
 	template <VectorSizeType _N>
-	using Vectoru32 = Vector<VectorSizeType, _N>;
+	using Vectoru32 = Vector<uint32_t, _N>;
 
 	template <VectorSizeType _N>
-	using Vectoru64 = Vector<VectorSizeType, _N>;
+	using Vectoru64 = Vector<uint64_t, _N>;
 
 	template <VectorSizeType _N>
 	using Vectori = Vector<int, _N>;

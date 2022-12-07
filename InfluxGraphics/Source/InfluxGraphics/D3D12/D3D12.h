@@ -82,7 +82,7 @@ namespace Influx::Graphics::D3D12
 		D3D12CreateDevice(adapter4, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2));
 
 #ifdef _DEBUG
-		ID3D12InfoQueue1* pInfoQueue = nullptr;
+		ID3D12InfoQueue* pInfoQueue = nullptr;
 		d3d12Device2->QueryInterface(&pInfoQueue);
 		if (pInfoQueue != nullptr)
 		{
@@ -164,7 +164,7 @@ namespace Influx::Graphics::D3D12
 		return allowTearing;
 	}
 
-	inline IDXGISwapChain4* CreateDxgiSwapChain(IDXGIFactory4* dxgiFactory, HWND hWnd, ID3D12CommandQueue* pCommandQueue, UINT32 w, UINT32 h, UINT32 bufferCount)
+	inline IDXGISwapChain4* CreateDxgiSwapChain(IDXGIFactory4* dxgiFactory, HWND hWnd, ID3D12CommandQueue* pCommandQueue, uint32 w, uint32 h, uint8 bufferCount)
 	{
 		IDXGISwapChain4* dxgiSwapChain4;
 		UINT flags = 0;

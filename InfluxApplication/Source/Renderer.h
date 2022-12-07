@@ -7,6 +7,7 @@
 
 constexpr uint8_t k_numFramesInFlight = 3u;
 constexpr bool k_useWarp = true;
+constexpr bool k_useVSync = true;
 
 #if PLATFORM_WINDOWS
 #include "../ImGui/imgui_impl_win32.h"

@@ -17,6 +17,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Core\Assert.h" />
     <ClInclude Include="Source\Core\BRDF\BRDF.h" />
+    <ClInclude Include="Source\Core\Container\Array.h" />
     <ClInclude Include="Source\Core\Container\Containers.h" />
     <ClInclude Include="Source\Core\Container\List.h" />
     <ClInclude Include="Source\Core\Container\Map.h" />
