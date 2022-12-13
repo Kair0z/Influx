@@ -99,8 +99,10 @@ namespace Influx::Math
 		// Accessing data:
 		_T& operator[](VectorSizeType i);
 		const _T& operator[](VectorSizeType i) const;
-		_T& Data(VectorSizeType i);
-		const _T& Data(VectorSizeType i) const;
+		_T& At(VectorSizeType i);
+		const _T& At(VectorSizeType i) const;
+
+		const _T* Data() const;
 
 		// Normalizing:
 		Vector Normalized() const;

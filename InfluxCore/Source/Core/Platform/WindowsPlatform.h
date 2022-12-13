@@ -3,7 +3,6 @@
 #ifndef _CORE_PLATFORM_WINDOWS_H_
 #define _CORE_PLATFORM_WINDOWS_H_
 
-#include "Platform.h"
 #include "Core/Geometry/Rect.h"
 #include "Core/String.h"
 #include "Core/Cast.h"
@@ -37,23 +36,39 @@ namespace Influx::WindowsPlatform
 		return ::GetModuleHandleW(NULL);
 	}
 
-	inline LRESULT CALLBACK DefaultWindowsProcedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
+	inline void Quit(int quitMessageId)
 	{
-		switch (uMsg)
-		{
-		case WM_CLOSE:
-			::DestroyWindow(hWnd);
-			break;
-		case WM_DESTROY:
-			::PostQuitMessage(0);
-			break;
-		default:
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-		}
-		return 0;
+		::PostQuitMessage(quitMessageId);
 	}
 
-	inline ::HWND CreateWindow(int w, int h, const WString& name, ::WNDPROC winProc = DefaultWindowsProcedure, ::HINSTANCE i = GetCurrentInstance())
+	struct DefaultWindowsProcedure final
+	{
+		using OnDestroyWindowClb = void(*)();
+		using OnCloseWindowClb = void(*)(::HWND);
+
+		static OnDestroyWindowClb s_onDestroyWindow;
+		static OnCloseWindowClb s_onCloseWindow;
+		static inline LRESULT CALLBACK Procedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
+		{
+			switch (uMsg)
+			{
+			case WM_CLOSE:
+				if (s_onCloseWindow != nullptr) s_onDestroyWindow();
+				break;
+			case WM_DESTROY:
+				if (s_onDestroyWindow != nullptr) s_onCloseWindow(hWnd);
+				break;
+			default:
+				return DefWindowProc(hWnd, uMsg, wParam, lParam);
+			}
+			return 0;
+		}
+	};
+	
+	inline DefaultWindowsProcedure::OnCloseWindowClb DefaultWindowsProcedure::s_onCloseWindow = nullptr;
+	inline DefaultWindowsProcedure::OnDestroyWindowClb DefaultWindowsProcedure::s_onDestroyWindow = nullptr;
+
+	inline ::HWND CreateWindow(int w, int h, const WString& name, ::WNDPROC winProc = DefaultWindowsProcedure::Procedure, ::HINSTANCE i = GetCurrentInstance())
 	{
 		// prepare window class
 		WNDCLASSEXW wc;
@@ -197,6 +212,10 @@ namespace Influx::WindowsPlatform
 		return ::IsWindowVisible(handle);
 	}
 
+	inline void DestroyWindow(::HWND handle)
+	{
+		::DestroyWindow(handle);
+	}
 
 	enum class EConsoleColour
 	{

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -17,6 +17,8 @@
   <ItemGroup>
     <ClInclude Include="Source\Core\Assert.h" />
     <ClInclude Include="Source\Core\BRDF\BRDF.h" />
+    <ClInclude Include="Source\Core\Common\CommonHeaders.h" />
+    <ClInclude Include="Source\Core\Common\CommonTypes.h" />
     <ClInclude Include="Source\Core\Container\Array.h" />
     <ClInclude Include="Source\Core\Container\Containers.h" />
     <ClInclude Include="Source\Core\Container\List.h" />
@@ -35,6 +37,7 @@
     <ClInclude Include="Source\Core\Math\Bounds.h" />
     <ClInclude Include="Source\Core\Math\Matrix.h" />
     <ClInclude Include="Source\Core\Math\Vector.h" />
+    <ClInclude Include="Source\Core\Modular\Modular.h" />
     <ClInclude Include="Source\Core\Procedure\ThreadPool.h" />
     <ClInclude Include="Source\InfluxCore.h" />
     <ClInclude Include="Source\Core\Function.h" />

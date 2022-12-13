@@ -63,16 +63,21 @@ namespace Influx::Math
 		return this->data[i];
 	}
 	template<typename _T, VectorSizeType _N>
-	inline _T& Vector<_T, _N>::Data(VectorSizeType i)
+	inline _T& Vector<_T, _N>::At(VectorSizeType i)
 	{
 		FLX_ASSERT(i < _N);
 		return (*this)[i];
 	}
 	template<typename _T, VectorSizeType _N>
-	inline const _T& Vector<_T, _N>::Data(VectorSizeType i) const
+	inline const _T& Vector<_T, _N>::At(VectorSizeType i) const
 	{
 		FLX_ASSERT(i < _N);
 		return (*this)[i];
+	}
+	template<typename _T, VectorSizeType _N>
+	const _T* Vector<_T, _N>::Data() const
+	{
+		return this->data;
 	}
 #pragma endregion
 
@@ -322,7 +327,7 @@ namespace Influx::Math
 	inline bool Vector<_T, _N>::operator==(const Vector& other) const
 	{
 		bool same = true;
-		for (VectorSizeType i{}; i < _N; ++i) same = same && (Data(i) == other.Data(i));
+		for (VectorSizeType i{}; i < _N; ++i) same = same && (At(i) == other.At(i));
 
 		return same;
 	}

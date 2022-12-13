@@ -12,9 +12,10 @@ namespace Influx
 
 	};
 
-	// Adding Modules
+	// Thoughts on modules:
+	// - Can we assume Modules should always be unique?
+	// - Dependencies???
 	// - Set 'activestate', defer allocating data...
-	// - Dependencies... 
 
 	template <size_t _C>
 	class IModuleRegister final
@@ -26,6 +27,8 @@ namespace Influx
 		void AddModule();
 		void RemoveModule();
 		void HasModule();
+
+		void GetModuleDependencies();
 
 	private:
 	};

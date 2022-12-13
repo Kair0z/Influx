@@ -2,6 +2,7 @@
 
 #include "../ImGui/imgui.h"
 
+#include "Renderer.h"
 #include "Common.h"
 
 namespace Influx::Application
@@ -88,7 +89,7 @@ namespace Influx::Application
 		{
 			EApplicationType Type = EApplicationType::Minimal;
 			String Name = "InfluxApp";
-			Math::Vectoru2 InitWindowSize = { 640u, 480u };
+			Math::Vectoru2 WindowDimensions = { 640u, 480u };
 		};
 
 		Application(int argc, char** argv, const Settings& creationSettings);
@@ -97,7 +98,7 @@ namespace Influx::Application
 		void Quit();
 
 		virtual void OnUpdate() {};
-		virtual void OnUIRender() {};
+		virtual void OnUIRender();
 		virtual void OnResize() {};
 
 		Application(const Application&) = delete;
@@ -108,20 +109,29 @@ namespace Influx::Application
 
 		bool GetHasStarted() const;
 		bool GetShouldQuit() const;
+		bool GetHasWindow() const;
+		bool GetHasUIRenderer() const;
+
 		const Settings& GetSettings() const;
 		const Settings& GetCreationSettings() const;
 
 		const TimeStats& GetTimeStats() const;
 
 	private:
+		bool m_isInitialized;
 		bool m_hasStarted;
 		bool m_shouldQuit;
 
 		const Settings m_creationSettings;
 		Settings m_currentSettings;
 		
-		void InitializeDx12ImGuiRenderer();
-		void ResizeWindow();
+		void Initialize();
+		void Update();
+
+		void UIRender();
+		void UIRender_ApplicationUI();
+		
+		void CreateWindow();
 
 		uint64_t m_frame;
 		float m_time;
@@ -134,8 +144,12 @@ namespace Influx::Application
 		Time::TimePoint m_beforeUIRender = Influx::Time::Now();
 		Time::TimePoint m_beforePresent = Influx::Time::Now();
 
+		class ImGuiRendererDx12* mp_renderer{};
+
 #if PLATFORM_WINDOWS
 		HWND m_windowHandle;
+		static LRESULT CALLBACK WindowsProcedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam);
+		static Application* sp_currentApplicationInstance;
 #endif
 	};
 }

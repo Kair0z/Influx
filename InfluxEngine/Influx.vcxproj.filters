@@ -7,10 +7,12 @@
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Engine\Runtime\Rendering\SceneRenderer.h" />
     <ClInclude Include="Source\Common\Common.h" />
+    <ClInclude Include="Source\Engine\Runtime\Profiling\Profiler.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Engine\Runtime\Engine\Engine.cpp" />
     <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Engine\Runtime\Rendering\SceneRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Runtime\Profiling\Profiler.cpp" />
   </ItemGroup>
 </Project>
