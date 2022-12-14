@@ -8,6 +8,7 @@
     <ClInclude Include="Source\Engine\Runtime\Rendering\SceneRenderer.h" />
     <ClInclude Include="Source\Common\Common.h" />
     <ClInclude Include="Source\Engine\Runtime\Profiling\Profiler.h" />
+    <ClInclude Include="Source\Engine\Runtime\Memory\Memory.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Engine\Runtime\Engine\Engine.cpp" />

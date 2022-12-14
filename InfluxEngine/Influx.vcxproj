@@ -150,6 +150,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Runtime\Memory\Memory.h" />
     <ClInclude Include="Source\Engine\Runtime\Profiling\Profiler.h" />
     <ClInclude Include="Source\Common\Common.h" />
     <ClInclude Include="Source\Engine\Runtime\Rendering\SceneRenderer.h" />

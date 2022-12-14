@@ -1,22 +1,17 @@
 #pragma once
 
-#include <thread>
-#include <atomic>
+#ifndef __ENGINE_COMMON_H_
+#define __ENGINE_COMMON_H_
 
 namespace Influx
 {
-	class SceneRenderer;
+	class Logger;
+	class Profiler;
+	class Memory;
 
 	class Engine final
 	{
 	public:
-		void Run();
-		void Quit();
-
-		bool IsQuit() const;
-
-		void AttachRenderer(SceneRenderer* sceneRenderer);
-
 		Engine() = default;
 		Engine(const Engine&) = delete;
 		Engine(Engine&&) = delete;
@@ -24,30 +19,27 @@ namespace Influx
 		Engine& operator=(Engine&&) = delete;
 		~Engine();
 
-		bool IsSceneRendererAttached() const;
-
-		enum class EOptionalAttachment
+		struct Global final
 		{
-			SceneRenderer,
-			Application
+			static const Logger* GetLogger();
+			static const Profiler* GetProfiler();
+
+		private:
+			Global() = delete;
+
+			static Logger* mp_logger;
+			static Profiler* mp_profiler;
+
+			friend class Engine;
 		};
 
 	private:
-		SceneRenderer* mp_sceneRenderer;
+		Logger* mp_logger;
+		Profiler* mp_profiler;
+		Memory* mp_memory;
 
-		uint64_t m_frame{};
-		std::atomic_int64_t m_atomic_rtFrame{};
-		std::atomic_bool mb_atomic_isQuit{ false };
-
-	private:
-		// Threads:
-		std::thread m_renderThread;
-
-	private:
-		void GameThread_Tick();
-		void RenderThread_Tick();
-		void PresentToSwapchain();
+		void Initialize();
 	};
 }
 
-
+#endif
