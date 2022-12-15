@@ -19,5 +19,4 @@
 #include "Core/Math/Math.h"
 #include "Core/Math/Random.h"
 
-
 #endif

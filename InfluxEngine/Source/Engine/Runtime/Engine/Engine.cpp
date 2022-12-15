@@ -9,9 +9,6 @@ namespace Influx
 {
 	void Engine::Initialize()
 	{
-		Global::mp_logger = mp_logger = new Logger();
-		Global::mp_profiler = mp_profiler = new Profiler();
-		
 		mp_memory = new Memory();
 	}
 }

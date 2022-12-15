@@ -5,6 +5,8 @@
 
 #if PLATFORM_WINDOWS
 #include "WindowsPlatform.h"
+#elif PLATFORM_TESTNULL
+#include "NullPlatform.h"
 #endif
 
 #endif

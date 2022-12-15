@@ -182,7 +182,7 @@ namespace Influx
 
 	ImGuiRendererDx12::FrameContext* ImGuiRendererDx12::WaitForNextFrameResources()
 	{
-		UINT nextFrameIndex = m_frame + 1;
+		uint64 nextFrameIndex = m_frame + 1;
 		m_frame = nextFrameIndex;
 
 		HANDLE waitableObjects[] = { m_swapchainWaitableObject, NULL };

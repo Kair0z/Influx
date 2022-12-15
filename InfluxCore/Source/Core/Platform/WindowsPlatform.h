@@ -7,7 +7,6 @@
 #include "Core/String.h"
 #include "Core/Cast.h"
 
-/* Include Windows header... */
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
@@ -15,14 +14,18 @@
 #undef CreateWindow
 #endif
 
-namespace Influx::WindowsPlatform
+namespace Influx::Platform
 {
 	namespace Internal
 	{
 		template <typename _T>
 		Math::Rect<_T> Cast(const ::RECT& rect)
 		{
-			return Math::Rect(Cast<_T>(rect.left), Cast<_T>(rect.bottom), Cast<_T>(rect.right - rect.left), Cast<_T>(rect.bottom - rect.top));
+			return Math::Rect(
+				Cast<_T>(rect.left),
+				Cast<_T>(rect.bottom),
+				Cast<_T>(rect.right - rect.left),
+				Cast<_T>(rect.bottom - rect.top));
 		}
 	}
 

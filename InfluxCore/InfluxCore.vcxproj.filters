@@ -43,6 +43,7 @@
     <ClInclude Include="Source\Core\Modular\Modular.h" />
     <ClInclude Include="Source\Core\Common\CommonTypes.h" />
     <ClInclude Include="Source\Core\Common\CommonHeaders.h" />
+    <ClInclude Include="Source\Core\Platform\NullPlatform.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Core\Math\Vector.inl" />

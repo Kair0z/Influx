@@ -38,6 +38,7 @@
     <ClInclude Include="Source\Core\Math\Matrix.h" />
     <ClInclude Include="Source\Core\Math\Vector.h" />
     <ClInclude Include="Source\Core\Modular\Modular.h" />
+    <ClInclude Include="Source\Core\Platform\NullPlatform.h" />
     <ClInclude Include="Source\Core\Procedure\ThreadPool.h" />
     <ClInclude Include="Source\InfluxCore.h" />
     <ClInclude Include="Source\Core\Function.h" />

@@ -1,7 +1,8 @@
 #include "Application.h"
 
-#include "Core/Platform/WindowsPlatform.h"
+#include "../ImGui/imgui.h"
 #include "Renderer.h"
+#include "Engine/Runtime/Engine/Engine.h"
 
 namespace Influx::Application
 {
@@ -27,24 +28,27 @@ namespace Influx::Application
             break;
 
         case WM_DESTROY:
-            WindowsPlatform::Quit(0);
+            currentAppInstance->Quit();
             break;
         }
 
         return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
 
-	Application::Application(int argc, char** argv, const Settings& desc)
+	Application::Application(const Settings& desc)
         : m_hasStarted{false}
         , m_shouldQuit{false}
         , m_creationSettings{desc}
         , m_currentSettings{desc}
 	{
-        sp_currentApplicationInstance = this;
+        
 	}
 
-    void Application::Run()
+    void Application::Run(int argc, char** argv)
     {
+        ShutdownOtherApplication();
+
+        m_engine.Initialize();
         Initialize();
 
         m_hasStarted = true;
@@ -52,20 +56,7 @@ namespace Influx::Application
         {
             if (GetHasWindow())
             {
-                // [POLL Windows Messages]
-#if PLATFORM_WINDOWS
-                MSG msg;
-                while (::PeekMessage(&msg, NULL, 0u, 0u, PM_REMOVE))
-                {
-                    ::TranslateMessage(&msg);
-                    ::DispatchMessage(&msg);
-
-                    if (msg.message == WM_QUIT)
-                    {
-                        m_shouldQuit = true;
-                    }
-                }
-#endif
+                PollWindowEvents();
             }
 
             {
@@ -80,11 +71,15 @@ namespace Influx::Application
 
             ++m_frame;
         }
+
+        Cleanup();
     }
 
     void Application::Initialize()
     {
         if (m_isInitialized) return;
+
+        sp_currentApplicationInstance = this;
 
         if (GetHasWindow())
         {
@@ -97,6 +92,28 @@ namespace Influx::Application
         }
 
         m_isInitialized = true;
+    }
+
+    void Application::Cleanup()
+    {
+        sp_currentApplicationInstance = nullptr;
+    }
+
+    void Application::PollWindowEvents()
+    {
+#if PLATFORM_WINDOWS
+        MSG msg;
+        while (::PeekMessage(&msg, NULL, 0u, 0u, PM_REMOVE))
+        {
+            ::TranslateMessage(&msg);
+            ::DispatchMessage(&msg);
+
+            if (msg.message == WM_QUIT)
+            {
+                m_shouldQuit = true;
+            }
+        }
+#endif
     }
 
     void Application::Update()
@@ -121,11 +138,19 @@ namespace Influx::Application
     void Application::CreateWindow()
     {
 #if PLATFORM_WINDOWS
-        m_windowHandle = WindowsPlatform::CreateWindow(
+        m_windowHandle = Platform::CreateWindow(
             static_cast<int>(m_currentSettings.WindowDimensions.x),
             static_cast<int>(m_currentSettings.WindowDimensions.y),
             Influx::ToWString(m_currentSettings.Name), Application::WindowsProcedure);
 #endif
+    }
+
+    void Application::ShutdownOtherApplication()
+    {
+        if (sp_currentApplicationInstance != nullptr)
+        {
+            sp_currentApplicationInstance->Quit();
+        }
     }
 
     void Application::UIRender_ApplicationUI()
@@ -231,11 +256,6 @@ namespace Influx::Application
     const Application::Settings& Application::GetCreationSettings() const
     {
         return m_creationSettings;
-    }
-
-    const Application::TimeStats& Application::GetTimeStats() const
-    {
-        return m_timeStats;
     }
 }
 
