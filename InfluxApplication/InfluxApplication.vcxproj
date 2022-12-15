@@ -161,6 +161,8 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Application.h" />
     <ClInclude Include="Source\Common.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiLogView.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiWidgets.h" />
     <ClInclude Include="Source\Renderer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -172,6 +174,7 @@
     <ClCompile Include="ImGui\imgui_tables.cpp" />
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Application.cpp" />
+    <ClCompile Include="Source\ImGuiTools\ImGuiLogView.cpp" />
     <ClCompile Include="Source\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>

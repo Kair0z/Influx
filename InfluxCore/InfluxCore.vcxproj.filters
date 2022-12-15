@@ -40,7 +40,6 @@
     <ClInclude Include="Source\Core\Math\Bounds.h" />
     <ClInclude Include="Source\Core\Container\RingBuffer.h" />
     <ClInclude Include="Source\Core\Container\Array.h" />
-    <ClInclude Include="Source\Core\Modular\Modular.h" />
     <ClInclude Include="Source\Core\Common\CommonTypes.h" />
     <ClInclude Include="Source\Core\Common\CommonHeaders.h" />
     <ClInclude Include="Source\Core\Platform\NullPlatform.h" />

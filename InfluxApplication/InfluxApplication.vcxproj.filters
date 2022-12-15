@@ -12,6 +12,8 @@
     <ClInclude Include="ImGui\imgui_impl_dx12.h" />
     <ClInclude Include="ImGui\imgui_impl_win32.h" />
     <ClInclude Include="Source\Renderer.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiLogView.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiWidgets.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Application.cpp" />
@@ -23,5 +25,6 @@
     <ClCompile Include="ImGui\imgui_tables.cpp" />
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Renderer.cpp" />
+    <ClCompile Include="Source\ImGuiTools\ImGuiLogView.cpp" />
   </ItemGroup>
 </Project>

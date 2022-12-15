@@ -5,6 +5,8 @@
 
 #include "Engine/Runtime/Engine/Engine.h"
 
+#include "ImGuiTools/ImGuiWidgets.h"
+
 namespace Influx::Application
 {
 	enum class EApplicationType : uint8_t
@@ -89,6 +91,9 @@ namespace Influx::Application
 		void ShutdownOtherApplication();
 
 		static Application* sp_currentApplicationInstance;
+
+	private:
+		ImGuiLogView m_widget_logView;
 
 #if PLATFORM_WINDOWS
 		::HWND m_windowHandle;
