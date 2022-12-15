@@ -21,11 +21,11 @@ namespace Influx::Platform
 		template <typename _T>
 		Math::Rect<_T> Cast(const ::RECT& rect)
 		{
-			return Math::Rect(
-				Cast<_T>(rect.left),
-				Cast<_T>(rect.bottom),
-				Cast<_T>(rect.right - rect.left),
-				Cast<_T>(rect.bottom - rect.top));
+			return Math::Rect<_T>(
+				StaticCast<_T>(rect.left),
+				StaticCast<_T>(rect.bottom),
+				StaticCast<_T>(rect.right - rect.left),
+				StaticCast<_T>(rect.bottom - rect.top));
 		}
 	}
 
@@ -202,7 +202,7 @@ namespace Influx::Platform
 		::RECT res{};
 		::GetClientRect(handle, &res);
 
-		return Internal::Cast(res);
+		return Internal::Cast<_T>(res);
 	}
 
 	inline ::HWND GetCurrentWindowHandle()

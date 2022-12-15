@@ -7,11 +7,19 @@
 
 namespace Influx::Application
 {
-	enum class EApplicationType
+	enum class EApplicationType : uint8_t
 	{
 		Minimal,		// Only has an Update loop
 		Windowed,		// Only has an Update loop + Window & events
-		ImGuiApp		// Only has an Update loop + Window & events + Imgui hooks
+		ImGuiApp,		// Only has an Update loop + Window & events + Imgui hooks
+		Max
+	};
+
+	constexpr char const* k_eApplicationTypeStrings[static_cast<uint8_t>(EApplicationType::Max)] =
+	{
+		"Minimal",
+		"Windowed",
+		"ImGuiApp"
 	};
 
 	class Application final
@@ -71,7 +79,12 @@ namespace Influx::Application
 
 		void UIRender();
 		void UIRender_ApplicationUI();
-		
+		void UIRender_AppUI_FileMenu();
+		void UIRender_AppUI_AppInfo();
+		void UIRender_AppUI_EngineLog();
+
+		void UIElement(const Settings& settings);
+
 		void CreateWindow();
 		void ShutdownOtherApplication();
 

@@ -27,6 +27,14 @@ namespace Influx::Application
 
             break;
 
+        case WM_SIZE:
+        {
+            Math::Rectu newRect = Platform::GetWindowClientRect<uint32_t>(hWnd);
+            currentAppInstance->m_currentSettings.WindowDimensions.x = newRect.m_widthHeigth.x;
+            currentAppInstance->m_currentSettings.WindowDimensions.y = newRect.m_widthHeigth.y;
+        }
+            break;
+
         case WM_DESTROY:
             currentAppInstance->Quit();
             break;
@@ -160,7 +168,15 @@ namespace Influx::Application
             ImGui::DockSpaceOverViewport();
         }
 
+        UIRender_AppUI_FileMenu();
+        UIRender_AppUI_AppInfo();
+        UIRender_AppUI_EngineLog();
 
+        ImGui::ShowDemoWindow();
+    }
+
+    void Application::UIRender_AppUI_FileMenu()
+    {
         if (ImGui::BeginMainMenuBar())
         {
             if (ImGui::BeginMenu("File"))
@@ -184,29 +200,45 @@ namespace Influx::Application
 
             ImGui::EndMainMenuBar();
         }
+    }
 
-        {
-            static float f = 0.0f;
-            static int counter = 0;
+    void Application::UIRender_AppUI_AppInfo()
+    {
+        ImGui::Begin("App Info");
 
-            ImGui::Begin("Log");                          // Create a window called "Hello, world!" and append into it.
+        ImGui::Text("Settings");
+        UIElement(m_currentSettings);
 
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            //ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            //ImGui::Checkbox("Another Window", &show_another_window);
+        ImGui::End();
+    }
 
-            
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
+    void Application::UIRender_AppUI_EngineLog()
+    {
+        static float f = 0.0f;
+        static int counter = 0;
 
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        ImGui::Begin("Log");                          // Create a window called "Hello, world!" and append into it.
 
-        ImGui::ShowDemoWindow();
+        ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+        //ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+        //ImGui::Checkbox("Another Window", &show_another_window);
+
+
+        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+        if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+            counter++;
+        ImGui::SameLine();
+        ImGui::Text("counter = %d", counter);
+
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        ImGui::End();
+    }
+
+    void Application::UIElement(const Settings& settings)
+    {
+        ImGui::Text("[Type] %s", k_eApplicationTypeStrings[static_cast<uint8_t>(settings.Type)]);
+        ImGui::Text("[Name] %s", settings.Name.data());
+        ImGui::Text("[Window Size] %i, %i", settings.WindowDimensions.x, settings.WindowDimensions.y);
     }
 
     void Application::Quit()

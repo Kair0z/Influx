@@ -20,6 +20,11 @@ namespace Influx::Math
 		Vector2 m_leftBottom{};
 		Vector2 m_widthHeigth{};
 	};
+
+	using Rectf = Rect<float>;
+	using Rectu = Rect<uint32_t>;
+	using Recti = Rect<int>;
+	using Rectd = Rect<double>;
 }
 
 #endif
