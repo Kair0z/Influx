@@ -36,7 +36,7 @@ namespace Influx::Application
             break;
 
         case WM_DESTROY:
-            currentAppInstance->Quit();
+            currentAppInstance->SetQuit();
             break;
         }
 
@@ -56,7 +56,6 @@ namespace Influx::Application
     {
         ShutdownOtherApplication();
 
-        m_engine.Initialize();
         Initialize();
 
         m_hasStarted = true;
@@ -89,6 +88,8 @@ namespace Influx::Application
 
         sp_currentApplicationInstance = this;
 
+        m_engine.Initialize();
+
         if (GetHasWindow())
         {
             CreateWindow();
@@ -104,6 +105,8 @@ namespace Influx::Application
 
     void Application::Cleanup()
     {
+        m_engine.Cleanup();
+
         sp_currentApplicationInstance = nullptr;
     }
 
@@ -158,10 +161,11 @@ namespace Influx::Application
     {
         if (sp_currentApplicationInstance != nullptr)
         {
-            sp_currentApplicationInstance->Quit();
+            sp_currentApplicationInstance->SetQuit();
         }
     }
 
+#pragma region UIRendering
     void Application::UIRender_ApplicationUI()
     {
         // [MAIN VIEWPORT]
@@ -224,15 +228,11 @@ namespace Influx::Application
         ImGui::Text("[Name] %s", settings.Name.data());
         ImGui::Text("[Window Size] %i, %i", settings.WindowDimensions.x, settings.WindowDimensions.y);
     }
+#pragma endregion
 
-    void Application::Quit()
+    void Application::SetQuit()
     {
         m_shouldQuit = true;
-    }
-
-    void Application::OnUIRender()
-    {
-        
     }
 
 	Application::~Application()

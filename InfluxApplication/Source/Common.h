@@ -16,10 +16,12 @@
 #define FLX_APP_RENDERER_DEBUG _DEBUG
 #define FLX_APP_KEEP_TIMING_STATS 0
 
+#include "Core/BasicTypes.h"
 #include "Core/String.h"
 #include "Core/Math/Vector.h"
 #include "Core/Container/List.h"
 #include "Core/Container/Vector.h"
 #include "Core/Container/Array.h"
 #include "Core/Time.h"
+
 #endif

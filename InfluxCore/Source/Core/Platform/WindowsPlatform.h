@@ -29,6 +29,18 @@ namespace Influx::Platform
 		}
 	}
 
+	template <typename _T>
+	inline _T* Allocate(const size_t numBytes)
+	{
+		return static_cast<_T*>(std::malloc(numBytes));
+	}
+
+	template <typename _T>
+	inline void Free(_T* address)
+	{
+		std::free(address);
+	}
+
 	inline ::HANDLE GetCurrentProcess()
 	{
 		return ::GetCurrentProcess();

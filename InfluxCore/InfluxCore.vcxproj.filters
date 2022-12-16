@@ -11,8 +11,7 @@
     <ClInclude Include="Source\Core\Geometry\Vertex.h" />
     <ClInclude Include="Source\Core\Math\Math.h" />
     <ClInclude Include="Source\Core\Math\Random.h" />
-    <ClInclude Include="Source\Core\Allocators\Allocators.h" />
-    <ClInclude Include="Source\Core\Allocators\BaseAllocator.h" />
+    <ClInclude Include="Source\Core\Allocators\Allocator.h" />
     <ClInclude Include="Source\Core\Platform\WindowsPlatform.h" />
     <ClInclude Include="Source\Core\Platform\Platform.h" />
     <ClInclude Include="Source\Core\Singleton\Locator.h" />
@@ -40,9 +39,9 @@
     <ClInclude Include="Source\Core\Math\Bounds.h" />
     <ClInclude Include="Source\Core\Container\RingBuffer.h" />
     <ClInclude Include="Source\Core\Container\Array.h" />
-    <ClInclude Include="Source\Core\Common\CommonTypes.h" />
-    <ClInclude Include="Source\Core\Common\CommonHeaders.h" />
     <ClInclude Include="Source\Core\Platform\NullPlatform.h" />
+    <ClInclude Include="Source\Core\BasicTypes.h" />
+    <ClInclude Include="Source\Core\Cleanup.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Core\Math\Vector.inl" />

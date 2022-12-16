@@ -74,7 +74,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>DEBUG;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS PLATFORM_WINDOWS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
@@ -98,7 +98,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>RELEASE;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RELEASE;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS PLATFORM_WINDOWS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -126,7 +126,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>RELEASE;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RELEASE;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS PLATFORM_WINDOWS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -153,7 +153,6 @@
     <ClInclude Include="Source\Engine\Runtime\Memory\Memory.h" />
     <ClInclude Include="Source\Engine\Runtime\Profiling\Profiler.h" />
     <ClInclude Include="Source\Common\Common.h" />
-    <ClInclude Include="Source\Engine\Runtime\Rendering\SceneRenderer.h" />
     <ClInclude Include="Source\Engine\Runtime\Engine\Engine.h" />
     <ClInclude Include="Source\Engine\Runtime\Logger\Logger.h" />
     <ClInclude Include="Source\Common\InfluxDefines.h" />
@@ -161,7 +160,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Engine\Runtime\Profiling\Profiler.cpp" />
-    <ClCompile Include="Source\Engine\Runtime\Rendering\SceneRenderer.cpp" />
     <ClCompile Include="Source\Engine\Runtime\Engine\Engine.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

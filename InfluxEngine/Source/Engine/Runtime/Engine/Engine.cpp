@@ -10,6 +10,15 @@ namespace Influx
 	void Engine::Initialize()
 	{
 		mp_memory = new Memory();
+		mp_logger = new Logger();
+		mp_profiler = new Profiler();
+	}
+
+	void Engine::Cleanup()
+	{
+		SafeDelete(mp_memory);
+		SafeDelete(mp_logger);
+		SafeDelete(mp_profiler);
 	}
 }
 

@@ -25,6 +25,7 @@ namespace Influx
 
 	public:
 		void Initialize();
+		void Cleanup();
 	};
 }
 

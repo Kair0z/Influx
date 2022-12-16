@@ -9,7 +9,7 @@
 
 namespace Influx::Application
 {
-	enum class EApplicationType : uint8_t
+	enum class EApplicationType : uint8
 	{
 		Minimal,		// Only has an Update loop
 		Windowed,		// Only has an Update loop + Window & events
@@ -17,7 +17,7 @@ namespace Influx::Application
 		Max
 	};
 
-	constexpr char const* k_eApplicationTypeStrings[static_cast<uint8_t>(EApplicationType::Max)] =
+	constexpr char const* k_eApplicationTypeStrings[static_cast<uint8>(EApplicationType::Max)] =
 	{
 		"Minimal",
 		"Windowed",
@@ -39,7 +39,7 @@ namespace Influx::Application
 		bool m_hasStarted;
 		bool m_shouldQuit;
 
-		uint64_t m_frame;
+		uint64 m_frame;
 		float m_time;
 		float m_deltaTime;
 
@@ -53,10 +53,10 @@ namespace Influx::Application
 		Application(const Settings& creationSettings);
 		
 		void Run(int argc, char** argv);
-		void Quit();
+		void SetQuit();
 
 		virtual void OnUpdate() {};
-		virtual void OnUIRender();
+		virtual void OnUIRender() {};
 		virtual void OnResize() {};
 
 		Application(const Application&) = delete;
