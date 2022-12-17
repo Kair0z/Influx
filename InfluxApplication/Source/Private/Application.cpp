@@ -1,13 +1,10 @@
 #include "Application.h"
 
-#include "../ImGui/imgui.h"
 #include "Renderer.h"
-#include "Engine/Runtime/Engine/Engine.h"
+#include "Engine.h"
 
 namespace Influx::Application
 {
-    inline Application* Application::sp_currentApplicationInstance = nullptr;
-
     LRESULT Application::WindowsProcedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
     {
         Application* currentAppInstance = sp_currentApplicationInstance;
@@ -29,14 +26,14 @@ namespace Influx::Application
 
         case WM_SIZE:
         {
-            Math::Rectu newRect = Platform::GetWindowClientRect<uint32_t>(hWnd);
+            Math::Rectu newRect = Platform::Window::GetClientRect<uint32_t>(hWnd);
             currentAppInstance->m_currentSettings.WindowDimensions.x = newRect.m_widthHeigth.x;
             currentAppInstance->m_currentSettings.WindowDimensions.y = newRect.m_widthHeigth.y;
         }
             break;
 
         case WM_DESTROY:
-            currentAppInstance->SetQuit();
+            
             break;
         }
 
@@ -88,8 +85,6 @@ namespace Influx::Application
 
         sp_currentApplicationInstance = this;
 
-        m_engine.Initialize();
-
         if (GetHasWindow())
         {
             CreateWindow();
@@ -105,8 +100,6 @@ namespace Influx::Application
 
     void Application::Cleanup()
     {
-        m_engine.Cleanup();
-
         sp_currentApplicationInstance = nullptr;
     }
 

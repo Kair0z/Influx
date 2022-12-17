@@ -1,30 +1,30 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="Source\Application.h" />
-    <ClInclude Include="ImGui\imgui.h" />
-    <ClInclude Include="ImGui\imgui_internal.h" />
-    <ClInclude Include="ImGui\imstb_rectpack.h" />
-    <ClInclude Include="ImGui\imstb_truetype.h" />
-    <ClInclude Include="ImGui\imstb_textedit.h" />
-    <ClInclude Include="ImGui\imconfig.h" />
-    <ClInclude Include="Source\Common.h" />
-    <ClInclude Include="ImGui\imgui_impl_dx12.h" />
-    <ClInclude Include="ImGui\imgui_impl_win32.h" />
-    <ClInclude Include="Source\Renderer.h" />
-    <ClInclude Include="Source\ImGuiTools\ImGuiLogView.h" />
-    <ClInclude Include="Source\ImGuiTools\ImGuiWidgets.h" />
+    <ClInclude Include="Source\Public\Application.h" />
+    <ClInclude Include="Source\Private\ImGui\imgui.h" />
+    <ClInclude Include="Source\Private\ImGui\imgui_internal.h" />
+    <ClInclude Include="Source\Private\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="Source\Private\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Source\Private\ImGui\imstb_textedit.h" />
+    <ClInclude Include="Source\Private\ImGui\imconfig.h" />
+    <ClInclude Include="Source\Common\Common.h" />
+    <ClInclude Include="Source\Private\ImGui\imgui_impl_dx12.h" />
+    <ClInclude Include="Source\Private\ImGui\imgui_impl_win32.h" />
+    <ClInclude Include="Source\Private\Renderer.h" />
+    <ClInclude Include="Source\Private\ImGuiTools\ImGuiLogView.h" />
+    <ClInclude Include="Source\Private\ImGuiTools\ImGuiWidgets.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Application.cpp" />
-    <ClCompile Include="ImGui\imgui.cpp" />
-    <ClCompile Include="ImGui\imgui_impl_dx12.cpp" />
-    <ClCompile Include="ImGui\imgui_impl_win32.cpp" />
-    <ClCompile Include="ImGui\imgui_demo.cpp" />
-    <ClCompile Include="ImGui\imgui_draw.cpp" />
-    <ClCompile Include="ImGui\imgui_tables.cpp" />
-    <ClCompile Include="ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Renderer.cpp" />
-    <ClCompile Include="Source\ImGuiTools\ImGuiLogView.cpp" />
+    <ClCompile Include="Source\Private\Application.cpp" />
+    <ClCompile Include="Source\Private\ImGui\imgui.cpp" />
+    <ClCompile Include="Source\Private\ImGui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Source\Private\ImGui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Source\Private\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="Source\Private\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="Source\Private\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="Source\Private\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Source\Private\Renderer.cpp" />
+    <ClCompile Include="Source\Private\ImGuiTools\ImGuiLogView.cpp" />
   </ItemGroup>
 </Project>

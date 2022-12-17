@@ -80,7 +80,7 @@ namespace Influx::Math
 	}
 
 	template <typename _T, VectorSizeType _N>
-	class Vector : public Internal::VectorBase<_T, _N>
+	class Vector final : public Internal::VectorBase<_T, _N>
 	{
 	public:
 		// Constructors:

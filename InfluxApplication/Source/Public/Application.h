@@ -1,11 +1,5 @@
 #pragma once
-
-#include "Renderer.h"
 #include "Common.h"
-
-#include "Engine/Runtime/Engine/Engine.h"
-
-#include "ImGuiTools/ImGuiWidgets.h"
 
 namespace Influx::Application
 {
@@ -47,7 +41,6 @@ namespace Influx::Application
 		Settings m_currentSettings;
 
 		class ImGuiRendererDx12* mp_renderer{};
-		Engine m_engine{};
 
 	public:
 		Application(const Settings& creationSettings);
@@ -93,8 +86,6 @@ namespace Influx::Application
 		static Application* sp_currentApplicationInstance;
 
 	private:
-		ImGuiLogView m_widget_logView;
-
 #if PLATFORM_WINDOWS
 		::HWND m_windowHandle;
 		static LRESULT CALLBACK WindowsProcedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam);

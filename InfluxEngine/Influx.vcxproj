@@ -71,11 +71,12 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>DEBUG;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS PLATFORM_WINDOWS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\Common;Source\Private;Source\Public;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -95,11 +96,12 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>RELEASE;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS PLATFORM_WINDOWS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\Common;Source\Private;Source\Public;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -123,11 +125,12 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>RELEASE;PLATFORM_WINDOWS;%(PreprocessorDefinitions);PLATFORM_WINDOWS PLATFORM_WINDOWS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)3thParty\include;$(SolutionDir)InfluxCore\Source;Source\Common;Source\Private;Source\Public;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -150,22 +153,16 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Engine\Runtime\Memory\Memory.h" />
-    <ClInclude Include="Source\Engine\Runtime\Profiling\Profiler.h" />
+    <ClInclude Include="Source\Private\Memory.h" />
+    <ClInclude Include="Source\Private\Profiler.h" />
     <ClInclude Include="Source\Common\Common.h" />
-    <ClInclude Include="Source\Engine\Runtime\Engine\Engine.h" />
-    <ClInclude Include="Source\Engine\Runtime\Logger\Logger.h" />
-    <ClInclude Include="Source\Common\InfluxDefines.h" />
-    <ClInclude Include="Source\pch.h" />
+    <ClInclude Include="Source\Public\Engine.h" />
+    <ClInclude Include="Source\Private\Logger.h" />
+    <ClInclude Include="Source\Common\Defines.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Engine\Runtime\Profiling\Profiler.cpp" />
-    <ClCompile Include="Source\Engine\Runtime\Engine\Engine.cpp" />
-    <ClCompile Include="Source\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Create</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="Source\Private\Profiler.cpp" />
+    <ClCompile Include="Source\Private\Engine.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
