@@ -3,7 +3,7 @@
 #ifndef __GR_D3D12_H_
 #define __GR_D3D12_H_
 
-#include "../Types.h"
+#include "InfluxGraphics/Types.h"
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -30,7 +30,7 @@ namespace Influx::Graphics::D3D12
 	{
 		/* Create Factory... */
 		IDXGIFactory4* dxgiFactory;
-		uint flags = 0;
+		uint8 flags = 0;
 
 #ifdef _DEBUG
 		flags = DXGI_CREATE_FACTORY_DEBUG;

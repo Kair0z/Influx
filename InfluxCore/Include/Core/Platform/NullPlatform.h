@@ -9,7 +9,7 @@ namespace Influx::Platform
 {
 	// Memory 
 	template <typename _T>
-	_T* Allocate(const uint64)
+	_T* Allocate()
 	{
 		// ...
 		return nullptr;

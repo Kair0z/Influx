@@ -93,7 +93,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Source;$(SolutionDir)InfluxGraphics\Source;$(SolutionDir)InfluxEngine\Source\Public;Source\Common;Source\Public;Source\Private</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Source;Include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,7 +109,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Source;$(SolutionDir)InfluxGraphics\Source;$(SolutionDir)InfluxEngine\Source\Public;Source\Common;Source\Public;Source\Private</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Source;Include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,7 +125,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Source;$(SolutionDir)InfluxGraphics\Source;$(SolutionDir)InfluxEngine\Source\Public;Source\Common;Source\Public;Source\Private</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Source;Include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,7 +141,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Source;$(SolutionDir)InfluxGraphics\Source;$(SolutionDir)InfluxEngine\Source\Public;Source\Common;Source\Public;Source\Private</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Source;Include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -151,31 +151,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Private\ImGui\imconfig.h" />
-    <ClInclude Include="Source\Private\ImGui\imgui.h" />
-    <ClInclude Include="Source\Private\ImGui\imgui_impl_dx12.h" />
-    <ClInclude Include="Source\Private\ImGui\imgui_impl_win32.h" />
-    <ClInclude Include="Source\Private\ImGui\imgui_internal.h" />
-    <ClInclude Include="Source\Private\ImGui\imstb_rectpack.h" />
-    <ClInclude Include="Source\Private\ImGui\imstb_textedit.h" />
-    <ClInclude Include="Source\Private\ImGui\imstb_truetype.h" />
-    <ClInclude Include="Source\Public\Application.h" />
-    <ClInclude Include="Source\Common\Common.h" />
-    <ClInclude Include="Source\Private\ImGuiTools\ImGuiLogView.h" />
-    <ClInclude Include="Source\Private\ImGuiTools\ImGuiWidgets.h" />
-    <ClInclude Include="Source\Private\Renderer.h" />
+    <ClInclude Include="Source\ImGui\imconfig.h" />
+    <ClInclude Include="Source\ImGui\imgui.h" />
+    <ClInclude Include="Source\ImGui\imgui_impl_dx12.h" />
+    <ClInclude Include="Source\ImGui\imgui_impl_win32.h" />
+    <ClInclude Include="Source\ImGui\imgui_internal.h" />
+    <ClInclude Include="Source\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="Source\ImGui\imstb_textedit.h" />
+    <ClInclude Include="Source\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Include\Application.h" />
+    <ClInclude Include="Include\Common.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiLogView.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiWidgets.h" />
+    <ClInclude Include="Source\Renderer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Private\ImGui\imgui.cpp" />
-    <ClCompile Include="Source\Private\ImGui\imgui_demo.cpp" />
-    <ClCompile Include="Source\Private\ImGui\imgui_draw.cpp" />
-    <ClCompile Include="Source\Private\ImGui\imgui_impl_dx12.cpp" />
-    <ClCompile Include="Source\Private\ImGui\imgui_impl_win32.cpp" />
-    <ClCompile Include="Source\Private\ImGui\imgui_tables.cpp" />
-    <ClCompile Include="Source\Private\ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Private\Application.cpp" />
-    <ClCompile Include="Source\Private\ImGuiTools\ImGuiLogView.cpp" />
-    <ClCompile Include="Source\Private\Renderer.cpp" />
+    <ClCompile Include="Source\ImGui\imgui.cpp" />
+    <ClCompile Include="Source\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="Source\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="Source\ImGui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Source\ImGui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Source\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Source\Application.cpp" />
+    <ClCompile Include="Source\ImGuiTools\ImGuiLogView.cpp" />
+    <ClCompile Include="Source\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">

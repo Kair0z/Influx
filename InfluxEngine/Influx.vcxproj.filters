@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="Source\Public\Engine.h" />
-    <ClInclude Include="Source\Private\Logger.h" />
-    <ClInclude Include="Source\Common\Defines.h" />
-    <ClInclude Include="Source\Common\Common.h" />
-    <ClInclude Include="Source\Private\Profiler.h" />
-    <ClInclude Include="Source\Private\Memory.h" />
+    <ClInclude Include="Include\Engine.h" />
+    <ClInclude Include="Source\Logger.h" />
+    <ClInclude Include="Source\Defines.h" />
+    <ClInclude Include="Source\Common.h" />
+    <ClInclude Include="Source\Profiler.h" />
+    <ClInclude Include="Source\Memory.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Private\Engine.cpp" />
-    <ClCompile Include="Source\Private\Profiler.cpp" />
+    <ClCompile Include="Source\Engine.cpp" />
+    <ClCompile Include="Source\Profiler.cpp" />
   </ItemGroup>
 </Project>

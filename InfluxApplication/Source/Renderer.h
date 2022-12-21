@@ -5,10 +5,6 @@
 
 #include "Common.h"
 
-#if PLATFORM_WINDOWS 
-#include "Core/Platform/WindowsPlatform.h"
-#endif
-
 #if PLATFORM_WINDOWS && FLX_APP_RENDERER_D3D12
 #include "InfluxGraphics/D3D12/D3D12.h"
 #endif

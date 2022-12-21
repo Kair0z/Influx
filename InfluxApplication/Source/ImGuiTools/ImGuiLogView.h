@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../ImGui/imgui.h"
+#include "ImGui/imgui.h"
 #include <vadefs.h>
 
 namespace Influx::Application

@@ -1,10 +1,10 @@
 #include "Renderer.h"
 
 #if PLATFORM_WINDOWS && FLX_APP_RENDERER_D3D12
-#include "../ImGui/imgui_impl_win32.h"
+#include "ImGui/imgui_impl_win32.h"
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-#include "../ImGui/imgui_impl_dx12.h"
+#include "ImGui/imgui_impl_dx12.h"
 #endif
 
 namespace Influx
@@ -38,7 +38,7 @@ namespace Influx
 		// Wait for next Frame Resources:
 		auto frameCtx = WaitForNextFrameResources();
 
-		uint backbufferIndex = mp_dxgiSwapchain->GetCurrentBackBufferIndex();
+		uint8 backbufferIndex = mp_dxgiSwapchain->GetCurrentBackBufferIndex();
 		frameCtx->CommandAllocator->Reset();
 
 		D3D12_RESOURCE_BARRIER barrier = {};
