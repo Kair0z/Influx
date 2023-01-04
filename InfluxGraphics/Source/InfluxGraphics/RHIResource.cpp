@@ -1,35 +1,30 @@
-#include "RHIResource.h"
+#include "InfluxGraphics/RHIResource.h"
 
 namespace Influx::Graphics
 {
-	RHITexture::~RHITexture()
-	{
-		delete Resource;
-		Resource = nullptr;
-
-		delete RenderTargetView;
-		RenderTargetView = nullptr;
-	}
-
-	RHITextureDescription::RHITextureDescription(uint32_t w, uint32_t h, ERHIFormat format, uint16_t numMips,
-		const Math::Vector4f& optimizedClearValue, ERHIResourceState initialResourceState)
-		: Width{w}, Height{h}, Format{format}, MipLevels{numMips}, OptimizedClearValue{optimizedClearValue}, InitialResourceState{initialResourceState}
+	RHIResource::RHIResource(ERHIResourceState initialState)
+		: m_previousState{initialState}
+		, m_currentState{initialState}
 	{
 
 	}
 
-	RHIVertexBuffer::~RHIVertexBuffer()
+	void RHIResource::TransitionState(const ERHIResourceState newState)
 	{
-		delete GpuResource;
-		GpuResource = nullptr;
+		m_previousState = GetCurrentState();
+		m_currentState = newState;
+
+		OnTransitionState(GetPreviousState(), GetCurrentState());
 	}
 
-	RHIConstantBuffer::~RHIConstantBuffer()
+	ERHIResourceState RHIResource::GetCurrentState() const
 	{
-		delete GpuResource;
-		GpuResource = nullptr;
+		return m_currentState;
+	}
 
-		delete ConstantBufferView;
-		ConstantBufferView = nullptr;
+	ERHIResourceState RHIResource::GetPreviousState() const
+	{
+		return m_previousState;
 	}
 }
+

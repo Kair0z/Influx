@@ -24,6 +24,12 @@ namespace Influx::Platform
 		return static_cast<_T*>(std::malloc(sizeof(_T)));
 	}
 
+	template <typename _T, typename ..._Args>
+	inline _T* New(_Args&&... args)
+	{
+		return new _T(args...);
+	}
+
 	template <typename _T>
 	inline void Free(_T* address)
 	{

@@ -19,5 +19,6 @@
 #include "Core/Container/Vector.h"
 #include "Core/Container/Array.h"
 #include "Core/Time.h"
+#include "Core/Pointer.h"
 
 #endif

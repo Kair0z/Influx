@@ -1,6 +1,7 @@
 #pragma once
 
-#include "D3D12API.h"
+#include "InfluxGraphics/RHITypes.h"
+#include "D3D12.h"
 
 namespace Influx::Graphics::Conversion
 {
@@ -44,7 +45,6 @@ namespace Influx::Graphics::Conversion
 		case ERHIResourceState::CopyDest: return D3D12_RESOURCE_STATE_COPY_DEST;
 		case ERHIResourceState::CopySource: return D3D12_RESOURCE_STATE_COPY_SOURCE;
 		case ERHIResourceState::GenericRead: return D3D12_RESOURCE_STATE_GENERIC_READ;
-		case ERHIResourceState::AllShaderResource: return D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
 		case ERHIResourceState::NonPixelReadResource: return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 		case ERHIResourceState::PixelShaderResource: return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		default: return D3D12_RESOURCE_STATE_COMMON;

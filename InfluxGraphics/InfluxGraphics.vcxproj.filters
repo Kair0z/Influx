@@ -39,6 +39,13 @@
     <ClCompile Include="Source\D3D12\D3D12Pipeline.cpp" />
     <ClCompile Include="Source\D3D12\D3D12RenderPass.cpp" />
     <ClCompile Include="Source\D3D12\D3D12Resource.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIDevice.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Device.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Swapchain.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandQueue.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHICommandQueue.cpp" />
+    <ClCompile Include="D3D12Resource.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIResource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\D3D12API.h">
@@ -88,9 +95,20 @@
     <ClInclude Include="Source\D3D12\D3D12RenderPass.h" />
     <ClInclude Include="Source\D3D12\D3D12Resource.h" />
     <ClInclude Include="Include\InfluxGraphics\Types.h" />
-    <ClInclude Include="Source\InfluxGraphics\GraphicsTypes.h" />
-    <ClInclude Include="Source\InfluxGraphics\D3D12\D3D12API.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHITypes.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIDevice.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHISwapchain.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Device.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Conversion.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Swapchain.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHICommandQueue.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHICommandList.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIDescriptorHeap.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12CommandQueue.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12DescriptorHeap.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResource.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Resource.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D12">

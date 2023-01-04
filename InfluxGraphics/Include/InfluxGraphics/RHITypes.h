@@ -1,3 +1,7 @@
+#pragma once
+
+#ifndef __GR_RHI_TYPES_H_
+#define __GR_RHI_TYPES_H_
 
 namespace Influx::Graphics
 {
@@ -150,3 +154,5 @@ namespace Influx::Graphics
 		DontCare		// Contents of the framebuffer will be undefined after the rendering operation
 	};
 }
+
+#endif

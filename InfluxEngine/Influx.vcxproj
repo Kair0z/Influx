@@ -153,15 +153,12 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Memory.h" />
-    <ClInclude Include="Source\Profiler.h" />
     <ClInclude Include="Source\Common.h" />
-    <ClInclude Include="Include\Engine.h" />
+    <ClInclude Include="Include\InfluxEngine\Engine.h" />
     <ClInclude Include="Source\Logger.h" />
     <ClInclude Include="Source\Defines.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Profiler.cpp" />
     <ClCompile Include="Source\Engine.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

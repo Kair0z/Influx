@@ -8,29 +8,34 @@ namespace Influx
 	class Engine final
 	{
 	public:
+		using Ptr = Engine*;
+
 		struct ConstructArgs final
 		{
 
 		};
 
+		static Ptr Create(const ConstructArgs& args);
+		static void Destroy(Ptr engine);
+
+		void Tick();
+
+	private:
 		Engine() = default;
 		Engine(const ConstructArgs& args);
-		virtual ~Engine();
 
 		Engine(const Engine&) = delete;
 		Engine(Engine&&) = delete;
 		Engine& operator=(const Engine&) = delete;
 		Engine& operator=(Engine&&) = delete;
-
-	private:
-		class Logger* mp_logger;
-		class Profiler* mp_profiler;
-		class Memory* mp_memory;
+		virtual ~Engine();
 
 		const ConstructArgs m_constructionArguments;
 
 		void Initialize();
 		void Cleanup();
+
+		uint64 m_frame;
 	};
 }
 

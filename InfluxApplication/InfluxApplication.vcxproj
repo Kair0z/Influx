@@ -151,6 +151,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Rendering\Renderer.h" />
+    <ClInclude Include="Source\ImGuiEditor.h" />
     <ClInclude Include="Source\ImGui\imconfig.h" />
     <ClInclude Include="Source\ImGui\imgui.h" />
     <ClInclude Include="Source\ImGui\imgui_impl_dx12.h" />
@@ -163,9 +165,11 @@
     <ClInclude Include="Include\Common.h" />
     <ClInclude Include="Source\ImGuiTools\ImGuiLogView.h" />
     <ClInclude Include="Source\ImGuiTools\ImGuiWidgets.h" />
-    <ClInclude Include="Source\Renderer.h" />
+    <ClInclude Include="Source\Rendering\ApplicationRenderer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Rendering\Renderer.cpp" />
+    <ClCompile Include="Source\ImGuiEditor.cpp" />
     <ClCompile Include="Source\ImGui\imgui.cpp" />
     <ClCompile Include="Source\ImGui\imgui_demo.cpp" />
     <ClCompile Include="Source\ImGui\imgui_draw.cpp" />
@@ -175,7 +179,7 @@
     <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Application.cpp" />
     <ClCompile Include="Source\ImGuiTools\ImGuiLogView.cpp" />
-    <ClCompile Include="Source\Renderer.cpp" />
+    <ClCompile Include="Source\Rendering\ApplicationRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">
