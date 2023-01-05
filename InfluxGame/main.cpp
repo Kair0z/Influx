@@ -14,6 +14,7 @@
 #include "Core/Math/Vector.h"
 #include "Core/String.h"
 #include "Core/Container/Array.h"
+
 using namespace Influx;
 
 #pragma region SDL

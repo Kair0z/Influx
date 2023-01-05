@@ -1,17 +1,21 @@
 #pragma once
 
-#ifndef __APP_IRENDERER_H_
-#define __APP_IRENDERER_H_
+#ifndef __APP_RENDERER_H_
+#define __APP_RENDERER_H_
 
 #include "Common.h"
-#include "InfluxGraphics/RHIDevice.h"
+
+namespace Influx::Graphics
+{
+	class RHIDevice;
+}
 
 namespace Influx
 {
 	class IRenderer
 	{
 	protected:
-		using RHIDevicePtr = SharedPtr<Graphics::RHIDevice>;
+		using RHIDevicePtr = Ptr<Influx::Graphics::RHIDevice>;
 		RHIDevicePtr mp_deviceRef;
 
 	public:

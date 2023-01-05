@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _INFLUX_GRAPHICS_TYPES_H_
-#define _INFLUX_GRAPHICS_TYPES_H_
+#ifndef __GR_TYPES_H_
+#define __GR_TYPES_H_
 
 #define USE_INFLUX_CORE 1
 

@@ -26,6 +26,7 @@ namespace Influx::Graphics
 
 		RHIResource* GetCurrentBackBufferResource();
 		RHIRenderTargetView* GetCurrentRenderTargetView();
+
 		const uint32 GetCurrentBackBufferIndex() const { return m_currentBackBufferIndex; }
 		const uint32 GetWidth() const { return m_width; }
 		const uint32 GetHeight() const { return m_height; }
@@ -50,24 +51,6 @@ namespace Influx::Graphics
 
 		virtual ~RHISwapchain() = default;
 	};
-
-	RHISwapchain::RHISwapchain(uint32 width, uint32 height, bool isTearingSupported)
-		: m_width{width}
-		, m_height{height}
-		, m_isTearingSupported{isTearingSupported}
-	{
-
-	}
-
-	RHIResource* RHISwapchain::GetCurrentBackBufferResource()
-	{
-		return mp_backBufferResources[GetCurrentBackBufferIndex()];
-	}
-
-	RHIRenderTargetView* RHISwapchain::GetCurrentRenderTargetView()
-	{
-		return mp_backBufferRTVs[GetCurrentBackBufferIndex()];
-	}
 }
 
 #endif

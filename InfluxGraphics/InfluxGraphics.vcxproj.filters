@@ -1,121 +1,35 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Source\D3D12API.cpp">
-      <Filter>D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\D3D12Resource.cpp">
-      <Filter>D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\D3D12Pipeline.cpp">
-      <Filter>D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\VulkanAPI.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\VulkanPipeline.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\VulkanRenderPass.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\D3D12RenderPass.cpp">
-      <Filter>D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\VulkanResource.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\VulkanShader.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\D3D12Shader.cpp">
-      <Filter>D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Vulkan\VulkanAPI.cpp" />
-    <ClCompile Include="Source\Vulkan\VulkanPipeline.cpp" />
-    <ClCompile Include="Source\Vulkan\VulkanRenderPass.cpp" />
-    <ClCompile Include="Source\Vulkan\VulkanResource.cpp" />
-    <ClCompile Include="Source\D3D12\D3D12API.cpp" />
-    <ClCompile Include="Source\D3D12\D3D12Pipeline.cpp" />
-    <ClCompile Include="Source\D3D12\D3D12RenderPass.cpp" />
-    <ClCompile Include="Source\D3D12\D3D12Resource.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHIDevice.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Device.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Swapchain.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandQueue.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHICommandQueue.cpp" />
-    <ClCompile Include="D3D12Resource.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHIResource.cpp" />
+    <ClCompile Include="Include\InfluxGraphics\RHICommandList.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandList.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandQueue.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12DescriptorHeap.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Device.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Resource.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Swapchain.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHICommandQueue.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIDescriptorHeap.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIDevice.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\D3D12API.h">
-      <Filter>D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\D3D12Resource.h">
-      <Filter>D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\D3D12Pipeline.h">
-      <Filter>D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\D3D12Conversion.h">
-      <Filter>D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\VulkanAPI.h">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\VulkanPipeline.h">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\VulkanRenderPass.h">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\D3D12RenderPass.h">
-      <Filter>D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\VulkanResource.h">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\VulkanConversion.h">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\VulkanShader.h">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\D3D12Shader.h">
-      <Filter>D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Vulkan\VulkanAPI.h" />
-    <ClInclude Include="Source\Vulkan\VulkanConversion.h" />
-    <ClInclude Include="Source\Vulkan\VulkanPipeline.h" />
-    <ClInclude Include="Source\Vulkan\VulkanRenderPass.h" />
-    <ClInclude Include="Source\Vulkan\VulkanResource.h" />
-    <ClInclude Include="Source\D3D12\D3D12API.h" />
-    <ClInclude Include="Source\D3D12\D3D12Conversion.h" />
-    <ClInclude Include="Source\D3D12\D3D12Pipeline.h" />
-    <ClInclude Include="Source\D3D12\D3D12RenderPass.h" />
-    <ClInclude Include="Source\D3D12\D3D12Resource.h" />
-    <ClInclude Include="Include\InfluxGraphics\Types.h" />
-    <ClInclude Include="Include\InfluxGraphics\RHITypes.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12.h" />
-    <ClInclude Include="Include\InfluxGraphics\RHIDevice.h" />
-    <ClInclude Include="Include\InfluxGraphics\RHISwapchain.h" />
-    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Device.h" />
-    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Conversion.h" />
-    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Swapchain.h" />
-    <ClInclude Include="Include\InfluxGraphics\RHICommandQueue.h" />
-    <ClInclude Include="Include\InfluxGraphics\RHICommandList.h" />
-    <ClInclude Include="Include\InfluxGraphics\RHIDescriptorHeap.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12CommandList.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12CommandQueue.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Conversion.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12DescriptorHeap.h" />
-    <ClInclude Include="Include\InfluxGraphics\RHIResource.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Device.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Resource.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="D3D12">
-      <UniqueIdentifier>{a99bff5f-d6df-4789-9c76-5df583bbec94}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Vulkan">
-      <UniqueIdentifier>{7662fa14-ddb5-4db3-83c5-90f633d1de2a}</UniqueIdentifier>
-    </Filter>
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Swapchain.h" />
+    <ClInclude Include="Include\InfluxGraphics\Common.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHICommandList.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHICommandQueue.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIDescriptorHeap.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIDevice.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResource.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHISwapchain.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHITypes.h" />
+    <ClInclude Include="Include\InfluxGraphics\Types.h" />
   </ItemGroup>
 </Project>

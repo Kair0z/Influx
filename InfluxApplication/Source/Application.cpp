@@ -19,6 +19,7 @@ namespace Influx::Application
         , m_hasCleanedUp{false}
         , mp_engine{nullptr}
         , mp_rhiDevice{nullptr}
+        , mp_appRenderer{nullptr}
 	{
         
 	}
@@ -109,7 +110,7 @@ namespace Influx::Application
             return;
         }
 
-        static Vector<Platform::Window::Event> events{};
+        static Vector<Platform::WindowEvent> events{};
         m_shouldQuit = Platform::PollWindowEvents(events);
     }
 
@@ -143,12 +144,14 @@ namespace Influx::Application
             return;
         }
 
-        Platform::Window::Settings windowSettings{};
+        Platform::WindowSettings windowSettings{};
         windowSettings.Width    = GetSettings().WindowDimensions.x;
         windowSettings.Heigth   = GetSettings().WindowDimensions.y;
         windowSettings.Name     = GetSettings().Name;
 
-        m_windowHandle = Platform::Window::Create(windowSettings);
+        const bool shouldOpen = true;
+        m_windowHandle = Platform::CreateWindow(windowSettings, shouldOpen);
+
         m_hasCreatedWindow = true;
     }
 
@@ -172,6 +175,9 @@ namespace Influx::Application
         }
 
 #if FLX_APP_RENDERER_D3D12
+#if FLX_APP_RENDERER_DEBUG
+        mp_rhiDevice->SetDebugLayerEnabled(true);
+#endif
         mp_rhiDevice = Platform::New<Graphics::D3D12Device>();
 #endif
     }
@@ -183,7 +189,11 @@ namespace Influx::Application
             return;
         }
 
-        mp_appRenderer = Platform::New<ApplicationRenderer>(mp_rhiDevice, m_windowHandle);
+        ApplicationRenderer::WindowInfo windowInfo{};
+        windowInfo.WindowDimensions = GetSettings().WindowDimensions;
+        windowInfo.WindowHandle     = m_windowHandle;
+
+        mp_appRenderer = Platform::New<ApplicationRenderer>(mp_rhiDevice, windowInfo);
     }
 
     void Application::SetQuit()

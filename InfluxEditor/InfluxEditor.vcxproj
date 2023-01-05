@@ -98,8 +98,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;InfluxGraphics.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -118,8 +118,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;InfluxGraphics.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -134,8 +134,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;InfluxGraphics.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -154,8 +154,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;InfluxGraphics.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

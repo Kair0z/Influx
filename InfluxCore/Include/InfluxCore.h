@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _CORE_H_
-#define _CORE_H_
+#ifndef __CORE_H_
+#define __CORE_H_
 
 #include "Core/Time.h"
 #include "Core/Function.h"

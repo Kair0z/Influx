@@ -36,5 +36,15 @@ namespace Influx
 	{
 		Cleanup();
 	}
+
+	void Engine::Initialize()
+	{
+
+	}
+
+	void Engine::Cleanup()
+	{
+
+	}
 }
 

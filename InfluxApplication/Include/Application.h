@@ -1,10 +1,26 @@
 #pragma once
 #include "Common.h"
 
+namespace Influx
+{
+	class Engine;
+}
+
+namespace Influx::Graphics
+{
+	class RHIDevice;
+}
+
 namespace Influx::Application
 {
+	class ApplicationRenderer;
+
 	class Application final
 	{
+		using RHIDevicePtr		= Ptr<Influx::Graphics::RHIDevice>;
+		using EnginePtr			= Ptr<Influx::Engine>;
+		using AppRendererPtr	= Ptr<ApplicationRenderer>;
+
 	public:
 		struct Settings final
 		{
@@ -19,6 +35,20 @@ namespace Influx::Application
 		};
 
 	private:
+		/* Platform Data */
+		Platform::WindowHandle m_windowHandle;
+		Platform::InstanceHandle m_appInstanceHandle;
+		Platform::ProcessHandle m_processHandle;
+
+		/* InfluxEngine */
+		EnginePtr mp_engine;
+
+		/* RHI Graphics Device */
+		RHIDevicePtr mp_rhiDevice;
+
+		/* Main App Renderer */
+		AppRendererPtr mp_appRenderer;
+
 		bool m_isInitialized;
 		bool m_hasStarted;
 		bool m_shouldQuit;
@@ -31,15 +61,6 @@ namespace Influx::Application
 
 		const Settings& m_creationSettings;
 		Settings m_currentSettings;
-
-		Platform::WindowHandle m_windowHandle;
-		Platform::InstanceHandle m_appInstanceHandle;
-		Platform::ProcessHandle m_processHandle;
-
-		class Influx::Engine* mp_engine;
-		class Influx::Graphics::RHIDevice* mp_rhiDevice;
-
-		class Influx::Application::ApplicationRenderer* mp_appRenderer;
 
 	public:
 		Application(const Settings& creationSettings);

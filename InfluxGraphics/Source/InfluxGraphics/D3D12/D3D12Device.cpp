@@ -3,6 +3,7 @@
 #include "InfluxGraphics/D3D12/D3D12CommandQueue.h"
 #include "InfluxGraphics/D3D12/D3D12Swapchain.h"
 #include "InfluxGraphics/D3D12/D3D12Resource.h"
+#include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
 
 namespace Influx::Graphics
 {
@@ -81,9 +82,72 @@ namespace Influx::Graphics
 		return result;
 	}
 
+	RHIResource* D3D12Device::CreateResource() const
+	{
+		return nullptr;
+	}
+
 	void D3D12Device::SetDebugLayerEnabled(bool setDebugLayerEnabled)
 	{
+		if (setDebugLayerEnabled)
+		{
+			D3D12::EnableDxDebugLayer();
+		}
+		else
+		{
+			D3D12::DisableDxDebugLayer();
+		}
+	}
 
+	ID3D12Device2* D3D12Device::GetDxDevice() const
+	{
+		return mp_dxDevice;
+	}
+
+	IDXGIAdapter4* D3D12Device::GetDxgiAdapter() const
+	{
+		return mp_dxgiAdapter;
+	}
+
+	IDXGIFactory4* D3D12Device::GetDxgiFactory() const
+	{
+		return mp_dxgiFactory;
+	}
+
+	const uint64 D3D12Device::GetRTVDescriptorSize() const
+	{
+		return m_cachedRtvDescriptorSize;
+	}
+
+	const uint64 D3D12Device::GetDSVDescriptorSize() const
+	{
+		return m_cachedDsvDescriptorSize;
+	}
+
+	const uint64 D3D12Device::GetResourceDescriptorSize() const
+	{
+		return m_cachedResourceDescriptorSize;
+	}
+
+	const uint64 D3D12Device::GetSamplerDescriptorSize() const
+	{
+		return m_cachedSamplerDescriptorSize;
+	}
+
+	const uint64 D3D12Device::GetDescriptorSize(const ERHIDescriptorType type) const
+	{
+		switch (type)
+		{
+		case ERHIDescriptorType::Resource:	return GetResourceDescriptorSize();
+		case ERHIDescriptorType::DSV:		return GetDSVDescriptorSize();
+		case ERHIDescriptorType::RTV:		return GetRTVDescriptorSize();
+		case ERHIDescriptorType::Sampler:	return GetSamplerDescriptorSize();
+
+		default:
+		case ERHIDescriptorType::Invalid:	return 0u;
+		}
+
+		return 0u;
 	}
 
 	void D3D12Device::Initialize()
@@ -109,63 +173,10 @@ namespace Influx::Graphics
 		m_cachedRtvDescriptorSize			= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 		// Create Global Descriptor Heaps:
-		mp_RTVDescriptorHeap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::RTV, 64u, true));
-		mp_DSVDescriptorheap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::DSV, 64u, true));
-		mp_samplerDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::Sampler, 16u, true));
-		mp_resourceDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::Resource, 64u, true));
+		mp_RTVDescriptorHeap		= static_cast<D3D12DescriptorHeap*>(this->CreateDescriptorHeap(ERHIDescriptorType::RTV, 64u, true));
+		mp_DSVDescriptorheap		= static_cast<D3D12DescriptorHeap*>(this->CreateDescriptorHeap(ERHIDescriptorType::DSV, 64u, true));
+		mp_samplerDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(this->CreateDescriptorHeap(ERHIDescriptorType::Sampler, 16u, true));
+		mp_resourceDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(this->CreateDescriptorHeap(ERHIDescriptorType::Resource, 64u, true));
 	}
-
-	/* D3D12DescriptorHeap */
-#pragma region D3D12DescriptorHeap
-	D3D12DescriptorHeap::D3D12DescriptorHeap(const ERHIDescriptorType type, uint64 numDescriptors, bool isShaderVisible)
-		: RHIDescriptorHeap(type, numDescriptors, isShaderVisible)
-	{
-
-	}
-
-	D3D12DescriptorHeap::~D3D12DescriptorHeap()
-	{
-		//D3D12API::SafeRelease(DxDescriptorHeap);
-	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHeap::GetDescriptorHandle(uint64 slot)
-	{
-		if (!IsSlotFree(slot))
-		{
-			// Slot is in the Freelist. Thus there's no descriptor here...
-			return NullDescriptorHandle();
-		}
-
-		D3D12_CPU_DESCRIPTOR_HANDLE handle = GetDxDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
-		handle.ptr += (slot * m_descriptorStride);
-
-		return handle;
-	}
-
-	ID3D12DescriptorHeap* D3D12DescriptorHeap::GetDxDescriptorHeap() const
-	{
-		return mp_dxDescriptorHeap;
-	}
-
-	bool D3D12DescriptorHeap::IsSlotFree(uint64 slot) const
-	{
-		return std::find(m_occupiedSlotIndices.cbegin(), m_occupiedSlotIndices.cend(), slot) == m_occupiedSlotIndices.cend();
-	}
-
-	size_t D3D12DescriptorHeap::GetFirstFreeSlot() const
-	{
-		for (uint64 i = 0; i < GetNumDescriptors(); ++i)
-		{
-			if (IsSlotFree(i)) return i;
-		}
-
-		assert(false); // no free slots?
-		return std::numeric_limits<size_t>::max();
-	}
-	bool D3D12DescriptorHeap::IsShaderVisible() const
-	{
-		return false;
-	}
-#pragma endregion
 }
 

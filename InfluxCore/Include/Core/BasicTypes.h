@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _CORE_BASIC_TYPES_H_
-#define _CORE_BASIC_TYPES_H_
+#ifndef __CORE_BASIC_TYPES_H_
+#define __CORE_BASIC_TYPES_H_
 
 namespace Influx
 {

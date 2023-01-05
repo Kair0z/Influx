@@ -35,7 +35,7 @@ namespace Influx::Math
 	template<typename _T, VectorSizeType _N> // Sizecast constructor
 	template <VectorSizeType _D> inline Vector<_T, _N>::Vector(const Vector<_T, _D>& other)
 	{
-		for (uint8_t i{}; i < _N; ++i)
+		for (VectorSizeType i{}; i < _N; ++i)
 			this->data[i] = (i < _D) ? other[i] : static_cast<_T>(0);
 
 		// If smaller, copy all data

@@ -3,13 +3,13 @@
 #ifndef _CORE_MATH_VECTOR_H_
 #define _CORE_MATH_VECTOR_H_
 
-#include <stdint.h>
+#include "Core/BasicTypes.h"
 
 #pragma warning(disable : 4201) // Union warning...
 
 namespace Influx::Math
 {
-	using VectorSizeType = size_t;
+	using VectorSizeType = uint8;
 
 	namespace Internal
 	{
@@ -199,13 +199,13 @@ namespace Influx::Math
 
 #pragma region Aliases
 	template <VectorSizeType _N>
-	using Vectoru8 = Vector<uint8_t, _N>;
+	using Vectoru8 = Vector<uint8, _N>;
 
 	template <VectorSizeType _N>
-	using Vectoru32 = Vector<uint32_t, _N>;
+	using Vectoru32 = Vector<uint32, _N>;
 
 	template <VectorSizeType _N>
-	using Vectoru64 = Vector<uint64_t, _N>;
+	using Vectoru64 = Vector<uint64, _N>;
 
 	template <VectorSizeType _N>
 	using Vectori = Vector<int, _N>;

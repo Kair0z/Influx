@@ -1,9 +1,13 @@
 #pragma once
 
-#ifndef _CORE_PLATFORM_WINDOWS_H_
-#define _CORE_PLATFORM_WINDOWS_H_
-#if PLATFORM_WINDOWS
+#ifndef __CORE_WINDOWSPLATFORM_H_
+#define __CORE_WINDOWSPLATFORM_H_
 
+#if !PLATFORM_WINDOWS
+static_assert(false, "[ERROR][CORE] We're manually including WindowsPlatform.h, but PLATFORM_WINDOWS is not defined 1!");
+#else
+
+#include "Core/BasicTypes.h"
 #include "Core/Cast.h"
 #include "Core/Container/Vector.h"
 
@@ -11,17 +15,79 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+// We don't like UNICODE steered macros! 
+// We will always use the UNICODE A versions of these functions!
 #ifdef CreateWindow
 #undef CreateWindow
 #endif
 
+#ifdef MessageBox
+#undef MessageBox
+#endif
+
 namespace Influx::Platform
 {
-	// Memory 
+	namespace
+	{
+		constexpr WindowEvent TranslateEvent(const uint8 value)
+		{
+			switch (value)
+			{
+			default:
+			case WM_NULL:		return WindowEvent::Unknown;
+			case WM_QUIT:		return WindowEvent::Quit;
+			case WM_ACTIVATE:	return WindowEvent::Activate;
+			}
+		}
+
+		using WindowsProcedure = ::WNDPROC;
+
+		inline LRESULT DefaultWindowsProcedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
+		{
+			switch (uMsg)
+			{
+			case WM_DESTROY:
+			{
+				PostQuitMessage(0);
+				return 0;
+			}
+
+			default:
+				return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
+			}
+
+			return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
+		}
+
+		template <typename _T>
+		inline Math::Rect<_T> Cast(const ::RECT& rect)
+		{
+			return Math::Rect<_T>(
+				StaticCast<_T>(rect.left),
+				StaticCast<_T>(rect.bottom),
+				StaticCast<_T>(rect.right - rect.left),
+				StaticCast<_T>(rect.bottom - rect.top));
+		}
+	}
+
+	// [MEMORY]
+	inline void* Allocate(const uint64 size)
+	{
+		if (size == 0)
+		{
+			// https://stackoverflow.com/questions/2022335/whats-the-point-of-malloc0
+			return malloc(1u);
+		}
+		else
+		{
+			return malloc(size);
+		}
+	}
+
 	template <typename _T>
 	inline _T* Allocate()
 	{
-		return static_cast<_T*>(std::malloc(sizeof(_T)));
+		return static_cast<_T*>(Allocate(sizeof(_T)));
 	}
 
 	template <typename _T, typename ..._Args>
@@ -36,7 +102,7 @@ namespace Influx::Platform
 		std::free(address);
 	}
 
-	// Process & Window
+	// [APPLICATION]
 	inline ProcessHandle GetCurrentProcess()
 	{
 		return ::GetCurrentProcess();
@@ -57,26 +123,9 @@ namespace Influx::Platform
 		::PostQuitMessage(0);
 	}
 
-	namespace
-	{
-		constexpr Window::Event TranslateEvent(uint8 value)
-		{
-			switch (value)
-			{
-			default:
-			case WM_NULL: return Window::Event::Unknown;
-			case WM_QUIT: return Window::Event::Quit;
-			case WM_ACTIVATE: return Window::Event::Activate;
-			}
-		}
-	}
 
-	/// <summary>
-	/// Returns 'HasQuitMessage'
-	/// </summary>
-	/// <param name="handle"></param>
-	/// <param name=""></param>
-	inline bool PollWindowEvents(Vector<Window::Event>& out_events, WindowHandle handle = GetCurrentWindowHandle())
+	// [WINDOW]
+	inline bool PollWindowEvents(Vector<WindowEvent>& out_events, WindowHandle handle = GetCurrentWindowHandle())
 	{
 		// http://www.directxtutorial.com/Lesson.aspx?lessonid=9-1-4
 
@@ -88,10 +137,10 @@ namespace Influx::Platform
 		// process ALL windows event message
 		while (::PeekMessage(&msg, (::HWND)handle, 0, 0, PM_REMOVE))
 		{
-			Window::Event translatedEvent = TranslateEvent(msg.message);
+			WindowEvent translatedEvent = TranslateEvent(msg.message);
 			out_events.push_back(translatedEvent);
 
-			if (translatedEvent == Window::Event::Quit)
+			if (translatedEvent == WindowEvent::Quit)
 			{
 				hasQuitEvent = true;
 			}
@@ -105,196 +154,204 @@ namespace Influx::Platform
 		return hasQuitEvent;
 	}
 
-	namespace Window
+	inline WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen, WindowsProcedure windowsProcedureOverride)
 	{
-		namespace
+		::HINSTANCE instance = (::HINSTANCE)GetCurrentInstance();
+
+		// REGISTER WINDOW CLASS
 		{
-			using WindowsProcedure = ::WNDPROC;
-			inline LRESULT DefaultWindowsProcedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
+			// https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes
+			::UINT windowClassStyle{};
+			::HBRUSH classBackgroundBrush = ::CreateSolidBrush(0x00000000);
+
+			::WNDCLASSEXA windowClassExtended;
+			windowClassExtended.cbSize			= sizeof(WNDCLASSEX);
+			windowClassExtended.style			= windowClassStyle;
+			windowClassExtended.lpfnWndProc		= DefaultWindowsProcedure;
+			windowClassExtended.cbClsExtra		= 0;
+			windowClassExtended.cbWndExtra		= 0;
+			windowClassExtended.hInstance		= instance;
+			windowClassExtended.hIcon			= NULL;
+			windowClassExtended.hCursor			= ::LoadCursor(NULL, IDC_ARROW);
+			windowClassExtended.hbrBackground	= classBackgroundBrush;
+			windowClassExtended.lpszMenuName	= NULL;
+			windowClassExtended.lpszClassName	= settings.Name.c_str();
+			windowClassExtended.hIconSm			= ::LoadIcon(NULL, IDI_APPLICATION);
+
+			if (!::RegisterClassExA(&windowClassExtended))
 			{
-				switch (uMsg)
-				{
-					case WM_DESTROY:
-					{
-						PostQuitMessage(0);
-						return 0;
-					}
-
-					default:
-					return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
-				}
-
-				return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
+				ErrorMessageBox("Fatal Error!", "Cannot Register Class", nullptr);
+				return nullptr;
 			}
 		}
 
-		inline void ErrorBox(const String& errorString, const String& errorCaption, WindowHandle windowsProcedure)
+		// CREATE WINDOW CLASS
+		::HWND newWindowHandle = NULL;
 		{
-			::MessageBox((::HWND)windowsProcedure, ToWString(errorString).c_str(), ToWString(errorCaption).c_str(),
-				MB_ICONEXCLAMATION | MB_OK);
+			// https://learn.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
+			::DWORD extendedWindowStyle{};
+			::DWORD windowStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+			// Window-Frameless
+			// style = WS_POPUP | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_CAPTION; 
+			//style = style & (~WS_SIZEBOX);
+			windowStyle &= ~WS_VISIBLE;
+
+			// Middle of screen
+			int xPos = (::GetSystemMetrics(SM_CXSCREEN) / 2) - (settings.Width / 2);
+			int yPos = (::GetSystemMetrics(SM_CYSCREEN) / 2) - (settings.Heigth / 2);
+
+			RECT clientArea;
+			clientArea.left		= xPos;
+			clientArea.top		= yPos;
+			clientArea.right	= xPos + settings.Width;
+			clientArea.bottom	= yPos + settings.Heigth;
+			::AdjustWindowRect(&clientArea, windowStyle, FALSE);
+
+			::HWND parentWindow = NULL;
+			::HMENU parentMenu = NULL;
+
+			newWindowHandle = ::CreateWindowExA(
+				extendedWindowStyle,
+				settings.Name.c_str(),
+				settings.Name.c_str(),
+				windowStyle,
+				xPos, yPos, settings.Width, settings.Heigth,
+				parentWindow, parentMenu, instance, NULL);
+
+			if (newWindowHandle == NULL)
+			{
+				ErrorMessageBox("Fatal Error", "Failed Creating Window!", NULL);
+				return nullptr;
+			}
 		}
 
-		inline WindowHandle Create(const Settings& settings, WindowsProcedure windowsProcedureOverride)
+		if (shouldOpen)
 		{
-			// prepare window class
-			::HINSTANCE instance = (::HINSTANCE)GetCurrentInstance();
-			auto nameWString = ToWString(settings.Name);
+			SetWindowVisibility(newWindowHandle, EWindowVisibility::ShowDefault);
+		}
+		else
+		{
+			SetWindowVisibility(newWindowHandle, EWindowVisibility::Minimize);
+		}
 
-			// REGISTER WINDOW CLASS
+		// Get Screen Refresh Rate
+		{
+			::DEVMODE lpDevMode;
+			memset(&lpDevMode, 0, sizeof(::DEVMODE));
+			lpDevMode.dmSize = sizeof(::DEVMODE);
+			lpDevMode.dmDriverExtra = 0;
+
+			if (::EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &lpDevMode))
 			{
-				// https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes
-				::UINT windowClassStyle{};
-				::HBRUSH classBackgroundBrush = ::CreateSolidBrush(0x00000000);
-
-				WNDCLASSEX windowClassExtended;
-				windowClassExtended.cbSize			= sizeof(WNDCLASSEX);
-				windowClassExtended.style			= windowClassStyle;
-				windowClassExtended.lpfnWndProc		= DefaultWindowsProcedure;
-				windowClassExtended.cbClsExtra		= 0;
-				windowClassExtended.cbWndExtra		= 0;
-				windowClassExtended.hInstance		= instance;
-				windowClassExtended.hIcon			= NULL;
-				windowClassExtended.hCursor			= ::LoadCursor(NULL, IDC_ARROW);
-				windowClassExtended.hbrBackground	= classBackgroundBrush;
-				windowClassExtended.lpszMenuName	= NULL;
-				windowClassExtended.lpszClassName	= nameWString.c_str();
-				windowClassExtended.hIconSm			= ::LoadIcon(NULL, IDI_APPLICATION);
-
-				if (!::RegisterClassEx(&windowClassExtended))
-				{
-					ErrorBox("Cannot Register Class", "Fatal Error!", NULL);
-					return nullptr;
-				}
+				float displayFrequency = static_cast<float>(lpDevMode.dmDisplayFrequency);
+				///printf("Display Refresh Rate is %.2f Hz, setting fps_max to %i.\n\n", displayFrequency, (int)displayFrequency);
 			}
+		}
+
+		// Initialize raw input
+		{
+			RAWINPUTDEVICE Rid[1];
+			Rid[0].usUsagePage = ((USHORT)0x01);
+			Rid[0].usUsage = ((USHORT)0x02);
+			Rid[0].dwFlags = /*RIDEV_INPUTSINK | RIDEV_DEVNOTIFY*/0;
+			Rid[0].hwndTarget = newWindowHandle;
+			if (RegisterRawInputDevices(Rid, 1, sizeof(Rid[0])) == FALSE)
+			{
+				WarningMessageBox("Warning", "Failed RegisterRawInputDevices()!", nullptr);
+			}
+		}
+
+		return newWindowHandle;
+	}
+
+	inline WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen)
+	{
+		return CreateWindow(settings, shouldOpen, DefaultWindowsProcedure);
+	}
+
+	inline void DestroyWindow(const WindowHandle handle)
+	{
+		::DestroyWindow((::HWND)handle);
+	}
+
+	inline bool SetWindowVisibility(const WindowHandle windowHandle, const EWindowVisibility command)
+	{
+		::HWND hwnd = (::HWND)windowHandle;
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow
+		switch (command)
+		{
+		default:
+			return false;
 			
-			// CREATE WINDOW CLASS
-			::HWND newWindow = NULL;
-			{
-				// https://learn.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
-				::DWORD extendedWindowStyle{};
-				::DWORD windowStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
-				// Window-Frameless
-				// style = WS_POPUP | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_CAPTION; 
-				//style = style & (~WS_SIZEBOX);
-				windowStyle &= ~WS_VISIBLE;
+		case EWindowVisibility::Minimize:
+			return ::CloseWindow(hwnd);
+			break;
 
-				// Middle of screen
-				int xPos = (::GetSystemMetrics(SM_CXSCREEN) / 2) - (settings.Width / 2);
-				int yPos = (::GetSystemMetrics(SM_CYSCREEN) / 2) - (settings.Heigth / 2);
+		case EWindowVisibility::ShowDefault:
+			return ::ShowWindow(hwnd, SW_SHOWNORMAL);
+			break;
 
-				RECT clientArea;
-				clientArea.left		= xPos;
-				clientArea.top		= yPos;
-				clientArea.right	= xPos + settings.Width;
-				clientArea.bottom	= yPos + settings.Heigth;
-				::AdjustWindowRect(&clientArea, windowStyle, FALSE);
-
-				::HWND parentWindow = NULL;
-				::HMENU parentMenu = NULL;
-
-				newWindow = ::CreateWindowEx(
-					extendedWindowStyle,
-					nameWString.c_str(),
-					nameWString.c_str(),
-					windowStyle,
-					xPos, yPos, settings.Width, settings.Heigth,
-					parentWindow, parentMenu, instance, NULL);
-
-				if (newWindow == NULL)
-				{
-					ErrorBox("Failed Creating Window!", "Fatal Error", NULL);
-					return nullptr;
-				}
-			}
-			ShowWindow(newWindow, SW_RESTORE);
-
-			// Get Screen Refresh Rate
-			{
-				DEVMODE lpDevMode;
-				memset(&lpDevMode, 0, sizeof(DEVMODE));
-				lpDevMode.dmSize = sizeof(DEVMODE);
-				lpDevMode.dmDriverExtra = 0;
-
-				if (::EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &lpDevMode))
-				{
-					float displayFrequency = static_cast<float>(lpDevMode.dmDisplayFrequency);
-					///printf("Display Refresh Rate is %.2f Hz, setting fps_max to %i.\n\n", displayFrequency, (int)displayFrequency);
-				}
-			}
-
-			// Initialize raw input
-			{
-				RAWINPUTDEVICE Rid[1];
-				Rid[0].usUsagePage = ((USHORT)0x01);
-				Rid[0].usUsage = ((USHORT)0x02);
-				Rid[0].dwFlags = /*RIDEV_INPUTSINK | RIDEV_DEVNOTIFY*/0;
-				Rid[0].hwndTarget = newWindow;
-				if (RegisterRawInputDevices(Rid, 1, sizeof(Rid[0])) == FALSE)
-				{
-					MessageBox(NULL, L"Couldn't RegisterRawInputDevices()!", L"Warning", MB_ICONEXCLAMATION | MB_OK);
-				}
-			}
-
-			return newWindow;
-		}
-
-		inline WindowHandle Create(const Settings& settings)
-		{
-			return Create(settings, DefaultWindowsProcedure);
-		}
-
-		inline void Destroy(WindowHandle handle)
-		{
-			::DestroyWindow((::HWND)handle);
-		}
-
-		namespace // Cast a ::RECT -> Math::Rect<_T>
-		{
-			template <typename _T>
-			inline Math::Rect<_T> Cast(const ::RECT& rect)
-			{
-				return Math::Rect<_T>(
-					StaticCast<_T>(rect.left),
-					StaticCast<_T>(rect.bottom),
-					StaticCast<_T>(rect.right - rect.left),
-					StaticCast<_T>(rect.bottom - rect.top));
-			}
-		}
-
-		template <typename _T>
-		inline Math::Rect<_T> GetFullRect(WindowHandle handle)
-		{
-			::RECT res{};
-			::GetWindowRect((::HWND)handle, &res);
-
-			return Cast<_T>(res);
-		}
-
-		template <typename _T>
-		inline Math::Rect<_T> GetClientRect(WindowHandle handle)
-		{
-			::RECT res{};
-			::GetClientRect((::HWND)handle, &res);
-
-			return Cast<_T>(res);
-		}
-
-		inline bool IsVisible(WindowHandle handle)
-		{
-			return ::IsWindowVisible((::HWND)handle);
+		case EWindowVisibility::Maximize:
+			return ::ShowWindow(hwnd, SW_SHOWMAXIMIZED);
+			break;
 		}
 	}
-	
-	namespace Console
-	{
-		template <EColourAttribute _A>
-		inline void SetColourAttribute()
-		{
-			constexpr int value = static_cast<int>(_A);
 
-			HANDLE hConsole = ::GetStdHandle(STD_OUTPUT_HANDLE);
-			::SetConsoleTextAttribute(hConsole, value);
+	template <typename _T>
+	inline Math::Rect<_T> GetFullWindowRect(const WindowHandle windowHandle)
+	{
+		::RECT res{};
+		::GetWindowRect((::HWND)windowHandle, &res);
+
+		return Cast<_T>(res);
+	}
+
+	template <typename _T>
+	inline Math::Rect<_T> GetClientWindowRect(const WindowHandle windowHandle)
+	{
+		::RECT res{};
+		::GetClientRect((::HWND)windowHandle, &res);
+
+		return Cast<_T>(res);
+	}
+
+	inline bool IsWindowVisible(const WindowHandle windowHandle)
+	{
+		return ::IsWindowVisible((::HWND)windowHandle);
+	}
+
+	// [MISC]
+	template <EMessageBoxType _T>
+	inline void MessageBox(const String& caption, const String& message, const WindowHandle windowHandle)
+	{
+		uint8 type = 0u;
+		switch (_T)
+		{
+		default:
+		case EMessageBoxType::Info:
+			type = MB_ICONINFORMATION | MB_OK;
+			break;
+
+		case EMessageBoxType::Warning:
+			type = MB_ICONWARNING | MB_OK;
+			break;
+
+		case EMessageBoxType::Error:
+			type = MB_ICONEXCLAMATION | MB_OK;
+			break;
 		}
+		
+		::MessageBoxA((::HWND)windowHandle, message.c_str(), caption.c_str(), type);
+	}
+
+	template <EConsoleColour _C>
+	inline void SetConsoleColourAttribute()
+	{
+		constexpr int value = static_cast<int>(_C);
+
+		HANDLE hConsole = ::GetStdHandle(STD_OUTPUT_HANDLE);
+		::SetConsoleTextAttribute(hConsole, value);
 	}
 }
 

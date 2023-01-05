@@ -26,6 +26,18 @@
 
 namespace Influx::Graphics::D3D12
 {
+	template <typename _T>
+	inline void SafeRelease(_T*& object)
+	{
+		if (object == nullptr)
+		{
+			return;
+		}
+
+		object->Release();
+		object = nullptr;
+	}
+
 	inline IDXGIFactory4* CreateDxgiFactory4()
 	{
 		/* Create Factory... */
@@ -299,6 +311,11 @@ namespace Influx::Graphics::D3D12
 		ID3D12Debug* debugInterface;
 		D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
 		debugInterface->EnableDebugLayer();
+	}
+
+	inline void DisableDxDebugLayer()
+	{
+		// Todo...
 	}
 
 	inline void ReportLiveObjects()

@@ -185,6 +185,9 @@
     <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">
       <Project>{aae8ef84-74c2-44f9-804e-6c08abe0f35b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\InfluxGraphics\InfluxGraphics.vcxproj">
+      <Project>{804ebbd1-c037-46ef-b607-dd8dad7d5922}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

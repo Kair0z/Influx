@@ -4,8 +4,6 @@
 #define __APP_COMMON_H_
 
 #define PLATFORM_WINDOWS 1
-#define PLATFORM_TESTNULL 0
-
 #include "Core/Platform/Platform.h"
 
 #define FLX_APP_RENDERER_D3D12 PLATFORM_WINDOWS

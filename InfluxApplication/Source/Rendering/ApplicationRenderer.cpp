@@ -8,7 +8,12 @@ namespace Influx::Application
 		: IRenderer(device)
 		, m_initialWindowInfo{windowInfo}
 	{
+		Initialize(device);
+	}
 
+	ApplicationRenderer::~ApplicationRenderer()
+	{
+		Cleanup(mp_deviceRef);
 	}
 
 	void ApplicationRenderer::Initialize(const IRenderer::RHIDevicePtr devicePtr)

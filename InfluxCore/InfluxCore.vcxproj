@@ -37,7 +37,6 @@
     <ClInclude Include="Include\Core\Math\Bounds.h" />
     <ClInclude Include="Include\Core\Math\Matrix.h" />
     <ClInclude Include="Include\Core\Math\Vector.h" />
-    <ClInclude Include="Include\Core\Platform\NullPlatform.h" />
     <ClInclude Include="Include\Core\Procedure\ThreadPool.h" />
     <ClInclude Include="Include\InfluxCore.h" />
     <ClInclude Include="Include\Core\Function.h" />

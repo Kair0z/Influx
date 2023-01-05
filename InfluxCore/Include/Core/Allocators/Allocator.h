@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/BasicTypes.h"
-#include "Core/Platform/Platform.h"
 
 namespace Influx
 {
@@ -34,12 +33,12 @@ namespace Influx
 
 		virtual _T* Allocate(const t_numBytes numBytes) override final
 		{
-			Platform::Allocate(numBytes);
+			//Platform::Allocate(numBytes);
 		}
 
 		virtual void Free(_T* address) override final
 		{
-			Platform::Free(address);
+			//Platform::Free(address);
 		}
 
 		virtual void Clear() override final

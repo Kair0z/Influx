@@ -1,5 +1,9 @@
 #pragma once
-#include "GraphicsAPI.h"
+
+#ifndef __GR_RHI_PIPELINE_H_
+#define __GR_RHI_PIPELINE_H_
+
+#include "InfluxGraphics/Common.h"
 
 namespace Influx::Graphics
 {
@@ -55,10 +59,10 @@ namespace Influx::Graphics
 		template <class TBindingType, typename = std::enable_if<std::is_base_of<Internal::BaseResourceBinding, TBindingType>::value>::type>
 		void AddBinding()
 		{
-			ResourceBindings.push_back(std::make_shared<TBindingType>(TBindingType()));
+			m_resourceBindings.push_back(std::make_shared<TBindingType>(TBindingType()));
 		}
 
-		std::vector<std::shared_ptr<Internal::BaseResourceBinding>> ResourceBindings{};
+		Vector<SharedPtr<Internal::BaseResourceBinding>> m_resourceBindings{};
 	};
 	struct RHIGraphicsPipelineLayoutDescription
 	{
@@ -80,7 +84,7 @@ namespace Influx::Graphics
 		virtual ~RHIGraphicsPipelineLayout() = default;
 
 	protected:
-		RHIGraphicsPipelineLayoutDescription ConstructionDescription{};
+		RHIGraphicsPipelineLayoutDescription m_constructionDescription{};
 	};
 
 	/* Graphics Pipeline Object */
@@ -109,8 +113,7 @@ namespace Influx::Graphics
 		bool bAntialiasedLineEnable = false;						// Specifies whether to enable line antialiasing; only applies if doing line drawing
 
 		// Shaders:
-		RHIShader* VertexShader;
-		RHIShader* PixelShader;
+		// ...
 		// ...
 	};
 
@@ -125,9 +128,9 @@ namespace Influx::Graphics
 		virtual ~RHIGraphicsPipeline() = default;
 
 	protected:
-		RHIGraphicsPipelineDescription ConstructionDescription;
-		RHIGraphicsPipelineLayout* PipelinelayoutReference;
+		RHIGraphicsPipelineDescription m_constructionDescription;
+		RHIGraphicsPipelineLayout* m_pipelinelayoutReference;
 	};
 }
 
-
+#endif

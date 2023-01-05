@@ -1,7 +1,7 @@
 #pragma once
 
-#include "D3D12API.h"
-#include "../RHIPipeline.h"
+#include "InfluxGraphics/RHIPipeline.h"
+#include "D3D12.h"
 
 namespace Influx::Graphics
 {

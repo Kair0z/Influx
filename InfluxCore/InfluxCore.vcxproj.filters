@@ -39,7 +39,6 @@
     <ClInclude Include="Include\Core\Math\Bounds.h" />
     <ClInclude Include="Include\Core\Container\RingBuffer.h" />
     <ClInclude Include="Include\Core\Container\Array.h" />
-    <ClInclude Include="Include\Core\Platform\NullPlatform.h" />
     <ClInclude Include="Include\Core\BasicTypes.h" />
     <ClInclude Include="Include\Core\Cleanup.h" />
   </ItemGroup>

@@ -1,6 +1,10 @@
 #pragma once
 
+#ifndef __GR_D3D12_DEVICE_H_
+#define __GR_D3D12_DEVICE_H_
+
 #include "InfluxGraphics/RHIDevice.h"
+
 #include "D3D12.h"
 #include "D3D12Conversion.h"
 
@@ -14,13 +18,17 @@ namespace Influx::Graphics
 		D3D12Device();
 		virtual ~D3D12Device();
 
-		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const override final;
-		virtual RHISwapchain* CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, RHICommandQueue* commandQueue) const override final;
-		virtual RHIDescriptorHeap* CreateDescriptorHeap(const ERHIDescriptorType type, uint32 numDescriptors, bool isShaderVisible) const override final;
+		/* Creating API objects & Resources */
+		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const override;
 
-		virtual RHIResource* CreateResource() const override final;
+		virtual RHISwapchain* CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, RHICommandQueue* commandQueue) const override;
 
-		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) override final;
+		virtual RHIDescriptorHeap* CreateDescriptorHeap(const ERHIDescriptorType type, uint32 numDescriptors, bool isShaderVisible) const override;
+
+		virtual RHIResource* CreateResource() const override;
+
+		/* Debug Layer*/
+		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) override;
 
 		ID3D12Device2* GetDxDevice() const;
 		IDXGIAdapter4* GetDxgiAdapter() const;
@@ -64,3 +72,5 @@ namespace Influx::Graphics
 		void CreateDepthStencilViewOnGlobalHeap(uint64 slot);
 	};
 }
+
+#endif

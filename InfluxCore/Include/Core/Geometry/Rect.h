@@ -22,7 +22,7 @@ namespace Influx::Math
 	};
 
 	using Rectf = Rect<float>;
-	using Rectu = Rect<uint32_t>;
+	using Rectu = Rect<uint32>;
 	using Recti = Rect<int>;
 	using Rectd = Rect<double>;
 }

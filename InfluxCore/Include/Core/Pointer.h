@@ -1,12 +1,16 @@
 #pragma once
 
-#ifndef _CORE_POINTER_H_
-#define _CORE_POINTER_H_
+#ifndef __CORE_POINTER_H_
+#define __CORE_POINTER_H_
 
 #include <memory.h>
 
 namespace Influx
 {
+	/* We define a Ptr alias, primarily for easy renaming-edits */
+	template <typename _T>
+	using Ptr = _T*;
+
 	template <typename _T>
 	using SharedPtr = std::shared_ptr<_T>;
 
