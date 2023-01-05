@@ -7,8 +7,13 @@
 
 namespace Influx::Graphics
 {
-	D3D12Device::D3D12Device() : RHIDevice()
+	D3D12Device::D3D12Device(bool enableDebug) : RHIDevice()
 	{
+		if (enableDebug)
+		{
+			SetDebugLayerEnabled(true);
+		}
+
 		Initialize();
 	}
 
@@ -73,8 +78,8 @@ namespace Influx::Graphics
 	{
 		D3D12DescriptorHeap* result = new D3D12DescriptorHeap(type, numDescriptors, isShaderVisible);
 
-		result->mp_dxDescriptorHeap = D3D12::CreateDxDescriptorHeap(GetDxDevice(), Conversion::ToDx12(type), numDescriptors,
-			(isShaderVisible) ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
+		D3D12_DESCRIPTOR_HEAP_FLAGS flags = isShaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		result->mp_dxDescriptorHeap = D3D12::CreateDxDescriptorHeap(GetDxDevice(), Conversion::ToDx12(type), numDescriptors, flags);
 
 		result->m_descriptorStride = GetDescriptorSize(type);
 		result->m_occupiedSlotIndices = {};
@@ -173,10 +178,10 @@ namespace Influx::Graphics
 		m_cachedRtvDescriptorSize			= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 		// Create Global Descriptor Heaps:
-		mp_RTVDescriptorHeap		= static_cast<D3D12DescriptorHeap*>(this->CreateDescriptorHeap(ERHIDescriptorType::RTV, 64u, true));
-		mp_DSVDescriptorheap		= static_cast<D3D12DescriptorHeap*>(this->CreateDescriptorHeap(ERHIDescriptorType::DSV, 64u, true));
-		mp_samplerDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(this->CreateDescriptorHeap(ERHIDescriptorType::Sampler, 16u, true));
-		mp_resourceDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(this->CreateDescriptorHeap(ERHIDescriptorType::Resource, 64u, true));
+		mp_samplerDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::Sampler, 16u, true));
+		mp_resourceDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::Resource, 64u, true));
+		mp_RTVDescriptorHeap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::RTV, 64u, false));
+		mp_DSVDescriptorheap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::DSV, 64u, false));
 	}
 }
 

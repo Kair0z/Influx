@@ -1,5 +1,7 @@
 #include "InfluxGraphics/Common.h"
 #include "InfluxGraphics/D3D12/D3D12CommandList.h"
+#include "InfluxGraphics/D3D12/D3D12Resource.h"
+#include "InfluxGraphics/D3D12/D3D12Conversion.h"
 
 namespace Influx::Graphics
 {
@@ -20,13 +22,41 @@ namespace Influx::Graphics
 	}
 	void D3D12CommandList::RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList*)>)
 	{
+	
 	}
+
 	void D3D12CommandList::TransitionResource(RHIResource* resource, const ERHIResourceState newState)
 	{
+		if (resource->GetCurrentState() == newState)
+		{
+			return;
+		}
+
+		D3D12Resource* d3d12Resource = (D3D12Resource*)resource;
+		ID3D12Resource* dxResource = d3d12Resource->GetDxResource();
+
+		D3D12_RESOURCE_BARRIER barrier{};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource = dxResource;
+		barrier.Transition.StateBefore = Conversion::ToDx12(resource->GetCurrentState());
+		barrier.Transition.StateAfter = Conversion::ToDx12(newState);
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+		GetDxCommandList()->ResourceBarrier(1, &barrier);
+
+		// Keep the RHI up to date...
+		resource->TransitionState(newState);
 	}
+
 	void D3D12CommandList::ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vectorf4& clearValue)
 	{
+		D3D12RenderTargetView* dxRtv = (D3D12RenderTargetView*)renderTargetView;
+
+		const FLOAT color[4] = { clearValue[0], clearValue[1], clearValue[2], clearValue[3] };
+		GetDxCommandList()->ClearRenderTargetView(dxRtv->GetDxCPUHandle(), color, 0u, nullptr);
 	}
+
 	void D3D12CommandList::BindScissorRect(const RHIScissorRect& scissorRect)
 	{
 	}

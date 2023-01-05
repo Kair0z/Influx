@@ -32,6 +32,9 @@ namespace Influx::Graphics
 		D3D12_GPU_DESCRIPTOR_HANDLE m_dxGpuHandle;
 
 	public:
+		D3D12_CPU_DESCRIPTOR_HANDLE GetDxCPUHandle() const;
+		D3D12_GPU_DESCRIPTOR_HANDLE GetDxGPUHandle() const;
+
 		virtual ~D3D12RenderTargetView() = default;
 	};
 }

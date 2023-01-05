@@ -19,4 +19,9 @@ namespace Influx::Graphics
 	{
 		return mp_backBufferRTVs[GetCurrentBackBufferIndex()];
 	}
+
+	bool RHISwapchain::GetIsTearingSupported() const
+	{
+		return m_isTearingSupported;
+	}
 }

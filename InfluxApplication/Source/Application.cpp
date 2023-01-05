@@ -126,7 +126,12 @@ namespace Influx::Application
             return;
         }
 
+        if (!GetHasCreatedGraphics() || !GetHasCreatedWindow())
+        {
+            return;
+        }
 
+        mp_appRenderer->OnRender();
     }
 
     void Application::UIRender()
@@ -176,9 +181,10 @@ namespace Influx::Application
 
 #if FLX_APP_RENDERER_D3D12
 #if FLX_APP_RENDERER_DEBUG
-        mp_rhiDevice->SetDebugLayerEnabled(true);
+        mp_rhiDevice = Platform::New<Graphics::D3D12Device>(true);
+#else
+        mp_rhiDevice = Platform::New<Graphics::D3D12Device>(false);
 #endif
-        mp_rhiDevice = Platform::New<Graphics::D3D12Device>();
 #endif
     }
 

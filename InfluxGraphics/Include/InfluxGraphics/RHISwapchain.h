@@ -31,6 +31,8 @@ namespace Influx::Graphics
 		const uint32 GetWidth() const { return m_width; }
 		const uint32 GetHeight() const { return m_height; }
 
+		bool GetIsTearingSupported() const;
+
 		constexpr static uint8 k_numBackBuffers = 3;
 
 	protected:

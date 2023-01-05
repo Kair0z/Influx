@@ -1,6 +1,9 @@
 #include "ApplicationRenderer.h"
 
 #include "InfluxGraphics/RHIDevice.h"
+#include "InfluxGraphics/RHICommandQueue.h"
+#include "InfluxGraphics/RHICommandList.h"
+#include "InfluxGraphics/RHISwapchain.h"
 
 namespace Influx::Application
 {
@@ -26,7 +29,16 @@ namespace Influx::Application
 
 	void ApplicationRenderer::OnRender() const
 	{
+		Graphics::RHICommandList* cmdList = mp_commandQueue->SetupNewCommandList(GetDeviceReference());
 		
+		cmdList->TransitionResource(mp_swapChain->GetCurrentBackBufferResource(), Graphics::ERHIResourceState::RenderTarget);
+
+		cmdList->ClearRTV(mp_swapChain->GetCurrentRenderTargetView(), { 1.0f, 0.0f, 0.0f, 1.0f });
+
+		cmdList->TransitionResource(mp_swapChain->GetCurrentBackBufferResource(), Graphics::ERHIResourceState::Present);
+
+		mp_commandQueue->ExecuteCommmandList(cmdList);
+		mp_swapChain->Present(mp_commandQueue, true);
 	}
 
 	void ApplicationRenderer::Cleanup(const IRenderer::RHIDevicePtr devicePtr)

@@ -25,7 +25,8 @@ namespace Influx::Graphics
 		/* Recreates RHISwapchain resources based on the new size */
 		virtual void Resize(RHIDevice* device, RHICommandQueue* commandQueue, const Math::Vectoru2& newDimensions) override final;
 
-		ID3D12DescriptorHeap* GetDxRtvDescriptorHeap() const;
+		ID3D12DescriptorHeap*	GetDxRtvDescriptorHeap() const;
+		IDXGISwapChain4*		GetDxgiSwapchain() const;
 
 		virtual ~D3D12Swapchain();
 	};

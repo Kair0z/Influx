@@ -15,7 +15,7 @@ namespace Influx::Graphics
 	class D3D12Device final : public RHIDevice
 	{
 	public:
-		D3D12Device();
+		D3D12Device(bool enableDebug = false);
 		virtual ~D3D12Device();
 
 		/* Creating API objects & Resources */
