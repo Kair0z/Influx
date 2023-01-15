@@ -176,23 +176,23 @@ namespace Influx::Graphics::D3D12
 		return allowTearing;
 	}
 
-	inline IDXGISwapChain4* CreateDxgiSwapChain(IDXGIFactory4* dxgiFactory, HWND hWnd, ID3D12CommandQueue* pCommandQueue, uint32 w, uint32 h, uint8 bufferCount)
+	inline IDXGISwapChain4* CreateDxgiSwapChain(IDXGIFactory4* dxgiFactory, ::HWND hWnd, ID3D12CommandQueue* pCommandQueue, uint32 w, uint32 h, uint8 numBuffers)
 	{
 		IDXGISwapChain4* dxgiSwapChain4;
 		UINT flags = 0;
 
 		DXGI_SWAP_CHAIN_DESC1 desc{};
-		desc.Width = w;
-		desc.Height = h;
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		desc.Stereo = false;
-		desc.SampleDesc = { 1, 0 };
-		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		desc.BufferCount = bufferCount;
-		desc.Scaling = DXGI_SCALING_STRETCH;
-		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-		desc.Flags = CheckDxgiTearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+		desc.Width			= w;
+		desc.Height			= h;
+		desc.Format			= DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.Stereo			= false;
+		desc.SampleDesc		= { 1, 0 };
+		desc.BufferUsage	= DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		desc.BufferCount	= numBuffers;
+		desc.Scaling		= DXGI_SCALING_STRETCH;
+		desc.SwapEffect		= DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		desc.AlphaMode		= DXGI_ALPHA_MODE_UNSPECIFIED;
+		desc.Flags			= CheckDxgiTearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
 		IDXGISwapChain1* swapChain1;
 		dxgiFactory->CreateSwapChainForHwnd(pCommandQueue, hWnd, &desc, nullptr, nullptr, &swapChain1);

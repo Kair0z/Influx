@@ -3,9 +3,7 @@
 #ifndef __CORE_WINDOWSPLATFORM_H_
 #define __CORE_WINDOWSPLATFORM_H_
 
-#if !PLATFORM_WINDOWS
-static_assert(false, "[ERROR][CORE] We're manually including WindowsPlatform.h, but PLATFORM_WINDOWS is not defined 1!");
-#else
+#include "Platform.h"
 
 #include "Core/BasicTypes.h"
 #include "Core/Cast.h"
@@ -70,7 +68,7 @@ namespace Influx::Platform
 		}
 	}
 
-	// [MEMORY]
+	// [ MEMORY ]
 	inline void* Allocate(const uint64 size)
 	{
 		if (size == 0)
@@ -102,7 +100,8 @@ namespace Influx::Platform
 		std::free(address);
 	}
 
-	// [APPLICATION]
+
+	// [ APPLICATION ]
 	inline ProcessHandle GetCurrentProcess()
 	{
 		return ::GetCurrentProcess();
@@ -118,18 +117,30 @@ namespace Influx::Platform
 		return ::GetActiveWindow();
 	}
 
+	inline bool IsWindowValid(WindowHandle handle)
+	{
+		return ::IsWindow((::HWND)handle);
+	}
+
 	inline void QuitCurrentInstance()
 	{
 		::PostQuitMessage(0);
 	}
 
 
-	// [WINDOW]
+	// [ WINDOW ]
+	/* Returns false if a quit-event was polled! */
 	inline bool PollWindowEvents(Vector<WindowEvent>& out_events, WindowHandle handle = GetCurrentWindowHandle())
 	{
 		// http://www.directxtutorial.com/Lesson.aspx?lessonid=9-1-4
 
 		MSG msg;
+		
+		if (!IsWindowValid(handle))
+		{
+			// quit
+			return false;
+		}
 		
 		bool hasQuitEvent = false;
 		out_events.clear();
@@ -143,6 +154,7 @@ namespace Influx::Platform
 			if (translatedEvent == WindowEvent::Quit)
 			{
 				hasQuitEvent = true;
+				break;
 			}
 
 			::TranslateMessage(&msg);
@@ -151,21 +163,31 @@ namespace Influx::Platform
 			::DispatchMessage(&msg);
 		}
 
-		return hasQuitEvent;
+		return !hasQuitEvent;
+	}
+
+	/* Returns false if a quit-event was polled! */
+	inline bool PollWindowEvents(WindowHandle handle = GetCurrentWindowHandle())
+	{
+		Vector<WindowEvent> out_events{};
+		return PollWindowEvents(out_events, handle);
 	}
 
 	inline WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen, WindowsProcedure windowsProcedureOverride)
 	{
 		::HINSTANCE instance = (::HINSTANCE)GetCurrentInstance();
 
-		// REGISTER WINDOW CLASS
+		WString nameWstring = ToWString(settings.Name);
+		const String& nameString = settings.Name;
+
+		// [ REGISTER WINDOW CLASS ]
 		{
 			// https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes
 			::UINT windowClassStyle{};
 			::HBRUSH classBackgroundBrush = ::CreateSolidBrush(0x00000000);
 
-			::WNDCLASSEXA windowClassExtended;
-			windowClassExtended.cbSize			= sizeof(WNDCLASSEX);
+			::WNDCLASSEXW windowClassExtended;
+			windowClassExtended.cbSize			= sizeof(WNDCLASSEXW);
 			windowClassExtended.style			= windowClassStyle;
 			windowClassExtended.lpfnWndProc		= DefaultWindowsProcedure;
 			windowClassExtended.cbClsExtra		= 0;
@@ -175,17 +197,17 @@ namespace Influx::Platform
 			windowClassExtended.hCursor			= ::LoadCursor(NULL, IDC_ARROW);
 			windowClassExtended.hbrBackground	= classBackgroundBrush;
 			windowClassExtended.lpszMenuName	= NULL;
-			windowClassExtended.lpszClassName	= settings.Name.c_str();
+			windowClassExtended.lpszClassName	= nameWstring.c_str();
 			windowClassExtended.hIconSm			= ::LoadIcon(NULL, IDI_APPLICATION);
 
-			if (!::RegisterClassExA(&windowClassExtended))
+			if (!::RegisterClassExW(&windowClassExtended))
 			{
 				ErrorMessageBox("Fatal Error!", "Cannot Register Class", nullptr);
 				return nullptr;
 			}
 		}
 
-		// CREATE WINDOW CLASS
+		// [ CREATE WINDOW CLASS ]
 		::HWND newWindowHandle = NULL;
 		{
 			// https://learn.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
@@ -210,10 +232,10 @@ namespace Influx::Platform
 			::HWND parentWindow = NULL;
 			::HMENU parentMenu = NULL;
 
-			newWindowHandle = ::CreateWindowExA(
+			newWindowHandle = ::CreateWindowExW(
 				extendedWindowStyle,
-				settings.Name.c_str(),
-				settings.Name.c_str(),
+				nameWstring.c_str(),
+				nameWstring.c_str(),
 				windowStyle,
 				xPos, yPos, settings.Width, settings.Heigth,
 				parentWindow, parentMenu, instance, NULL);
@@ -321,7 +343,7 @@ namespace Influx::Platform
 		return ::IsWindowVisible((::HWND)windowHandle);
 	}
 
-	// [MISC]
+	// [ MISC ]
 	template <EMessageBoxType _T>
 	inline void MessageBox(const String& caption, const String& message, const WindowHandle windowHandle)
 	{
@@ -356,4 +378,3 @@ namespace Influx::Platform
 }
 
 #endif // PLATFORM_WINDOWS
-#endif

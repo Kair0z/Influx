@@ -135,10 +135,4 @@ namespace Influx::Platform
 	void SetConsoleColourAttribute();
 }
 
-#if PLATFORM_WINDOWS
-#include "WindowsPlatform.h"
-#else
-static_assert(false, "[ERROR][CORE] No or an unsupported Platform has been defined! (Supported Platforms: PLATFORM_WINDOWS)");
-#endif
-
 #endif // _CORE_PLATFORM_H_

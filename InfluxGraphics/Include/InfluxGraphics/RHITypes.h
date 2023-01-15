@@ -7,6 +7,14 @@
 
 namespace Influx::Graphics
 {
+	/* Graphics APIs */
+	enum class EGraphicsAPI
+	{
+		D3D12,
+		Max,
+		NotSupported = Max
+	};
+
 	// Types of resources bindable to a Pipeline
 	enum class ERHIResourceBindingType
 	{

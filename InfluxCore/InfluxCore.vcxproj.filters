@@ -41,6 +41,7 @@
     <ClInclude Include="Include\Core\Container\Array.h" />
     <ClInclude Include="Include\Core\BasicTypes.h" />
     <ClInclude Include="Include\Core\Cleanup.h" />
+    <ClInclude Include="Include\Core\Sync\Semaphore.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\Core\Math\Vector.inl" />

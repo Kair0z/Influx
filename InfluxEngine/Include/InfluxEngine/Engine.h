@@ -1,28 +1,32 @@
 #pragma once
 
-#include "Common.h"
-
 #ifndef __ENGINE_ENGINE_H_
 #define __ENGINE_ENGINE_H_
 
+#include "InfluxEngine/Common.h"
+
+#include "InfluxEngine/Memory/Object.h"
+
 namespace Influx
 {
-	class Engine final
+	class MemoryManager;
+
+	class Engine final : public IObject
 	{
-	public:
 		using Ptr = Engine*;
 
-		struct ConstructArgs final
-		{
-
-		};
-
+	public:
+		struct ConstructArgs final {};
 		static Ptr Create(const ConstructArgs& args);
 		static void Destroy(Ptr engine);
+
+		static MemoryManager* GetMemoryManager();
 
 		void Tick();
 
 	private:
+		MemoryManager* mp_mainMemory;
+
 		Engine() = default;
 		Engine(const ConstructArgs& args);
 
@@ -39,6 +43,8 @@ namespace Influx
 
 		uint64 m_frame;
 	};
+
+	using EngineLocator = Locator<Engine>;
 }
 
 #endif

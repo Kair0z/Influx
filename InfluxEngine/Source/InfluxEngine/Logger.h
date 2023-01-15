@@ -4,7 +4,6 @@
 #define _H_LOGGER_
 
 #include "spdlog/spdlog.h"
-#include "Core/String.h"
 
 namespace Influx
 {

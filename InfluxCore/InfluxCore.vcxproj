@@ -38,6 +38,7 @@
     <ClInclude Include="Include\Core\Math\Matrix.h" />
     <ClInclude Include="Include\Core\Math\Vector.h" />
     <ClInclude Include="Include\Core\Procedure\ThreadPool.h" />
+    <ClInclude Include="Include\Core\Sync\Semaphore.h" />
     <ClInclude Include="Include\InfluxCore.h" />
     <ClInclude Include="Include\Core\Function.h" />
     <ClInclude Include="Include\Core\Geometry\Vertex.h" />

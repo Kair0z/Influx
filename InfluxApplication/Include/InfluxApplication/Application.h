@@ -1,25 +1,18 @@
 #pragma once
-#include "Common.h"
+
+#include "InfluxApplication/Common.h"
+#include "InfluxRenderer/Renderer.h"
 
 namespace Influx
 {
 	class Engine;
 }
 
-namespace Influx::Graphics
-{
-	class RHIDevice;
-}
-
 namespace Influx::Application
 {
-	class ApplicationRenderer;
-
 	class Application final
 	{
-		using RHIDevicePtr		= Ptr<Influx::Graphics::RHIDevice>;
 		using EnginePtr			= Ptr<Influx::Engine>;
-		using AppRendererPtr	= Ptr<ApplicationRenderer>;
 
 	public:
 		struct Settings final
@@ -34,6 +27,27 @@ namespace Influx::Application
 			bool HasSceneRender = false;
 		};
 
+		Application(const Settings& creationSettings);
+
+		/* Runs the Application, this will only return with SetQuit(); */
+		void Run(int argc, char** argv);
+
+		/* Requests the Application to quit running. */
+		void SetQuit();
+
+		bool GetHasStarted() const;
+		bool GetShouldQuit() const;
+		bool GetShouldHaveWindow() const;
+		bool GetShouldHaveUI() const;
+		bool GetShouldRenderScene() const;
+		bool GetHasUpdate() const;
+		bool GetHasCleanedUp() const;
+		bool GetHasCreatedWindow() const;
+		bool GetHasCreatedEngine() const;
+
+		const Settings& GetSettings() const;
+		const Settings& GetCreationSettings() const;
+
 	private:
 		/* Platform Data */
 		Platform::WindowHandle m_windowHandle;
@@ -43,11 +57,8 @@ namespace Influx::Application
 		/* InfluxEngine */
 		EnginePtr mp_engine;
 
-		/* RHI Graphics Device */
-		RHIDevicePtr mp_rhiDevice;
-
 		/* Main App Renderer */
-		AppRendererPtr mp_appRenderer;
+		Renderer::RootRenderer m_appRenderer;
 
 		bool m_isInitialized;
 		bool m_hasStarted;
@@ -63,25 +74,6 @@ namespace Influx::Application
 		Settings m_currentSettings;
 
 	public:
-		Application(const Settings& creationSettings);
-		
-		void Run(int argc, char** argv);
-		void SetQuit();
-
-		bool GetHasStarted() const;
-		bool GetShouldQuit() const;
-		bool GetShouldHaveWindow() const;
-		bool GetShouldHaveUI() const;
-		bool GetShouldRenderScene() const;
-		bool GetHasUpdate() const;
-		bool GetHasCleanedUp() const;
-		bool GetHasCreatedWindow() const;
-		bool GetHasCreatedEngine() const;
-		bool GetHasCreatedGraphics() const;
-
-		const Settings& GetSettings() const;
-		const Settings& GetCreationSettings() const;
-
 		Application(const Application&) = delete;
 		Application(Application&&) = delete;
 		Application& operator=(const Application&) = delete;
@@ -99,7 +91,6 @@ namespace Influx::Application
 
 		void CreateWindow();
 		void CreateEngine();
-		void CreateGraphics();
 		void CreateRenderer();
 	};
 }

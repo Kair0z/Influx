@@ -1,3 +1,4 @@
+#include "app_pch.h"
 #include "ImGuiLogView.h"
 
 #include <vadefs.h>

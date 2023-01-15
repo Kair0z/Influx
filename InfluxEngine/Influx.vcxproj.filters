@@ -2,11 +2,17 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="Include\InfluxEngine\Engine.h" />
-    <ClInclude Include="Source\Logger.h" />
-    <ClInclude Include="Source\Defines.h" />
-    <ClInclude Include="Source\Common.h" />
+    <ClInclude Include="Source\InfluxEngine\Logger.h" />
+    <ClInclude Include="Source\InfluxEngine\Defines.h" />
+    <ClInclude Include="Include\InfluxEngine\Common.h" />
+    <ClInclude Include="Include\InfluxEngine\Memory\MemoryManager.h" />
+    <ClInclude Include="Include\InfluxEngine\Memory\Object.h" />
+    <ClInclude Include="Source\engine_pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Engine.cpp" />
+    <ClCompile Include="Source\InfluxEngine\Engine.cpp" />
+    <ClCompile Include="Source\InfluxEngine\Memory\MemoryManager.cpp" />
+    <ClCompile Include="Source\engine_pch.cpp" />
+    <ClCompile Include="Source\InfluxEngine\Memory\Object.cpp" />
   </ItemGroup>
 </Project>

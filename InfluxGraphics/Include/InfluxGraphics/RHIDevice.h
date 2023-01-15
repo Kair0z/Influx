@@ -4,6 +4,7 @@
 #define __GR_RHI_DEVICE_H_
 
 #include "RHITypes.h"
+#include "Core/Pointer.h"
 #include "Core/Platform/Platform.h"
 
 namespace Influx::Graphics
@@ -16,21 +17,26 @@ namespace Influx::Graphics
 
 	class RHIDevice
 	{
+		using CommandQueuePtr	= Ptr<RHICommandQueue>;
+		using SwapchainPtr		= Ptr<RHISwapchain>;
+		using DescriptorHeapPtr = Ptr<RHIDescriptorHeap>;
+		using ResourcePtr		= Ptr<RHIResource>;
+
 	public:
 		/* Creating API objects & Resources */
-		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const = 0;
+		virtual CommandQueuePtr CreateCommandQueue(const ERHICommandQueueType type) const = 0;
 
-		virtual RHISwapchain* CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, RHICommandQueue* commandQueue) const = 0;
+		virtual SwapchainPtr CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, CommandQueuePtr commandQueue) const = 0;
 
-		virtual RHIDescriptorHeap* CreateDescriptorHeap(const ERHIDescriptorType type, uint32 numDescriptors, bool isShaderVisible) const = 0;
+		virtual DescriptorHeapPtr CreateDescriptorHeap(const ERHIDescriptorType type, uint32 numDescriptors, bool isShaderVisible) const = 0;
 
-		virtual RHIResource* CreateResource() const = 0;
+		virtual ResourcePtr CreateResource() const = 0;
 
 		/* Debug Layer*/
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) = 0;
 
 		bool GetIsDebugLayerEnabled() const;
-
+		
 	protected:
 		RHIDevice() = default;
 		RHIDevice(const RHIDevice&) = delete;

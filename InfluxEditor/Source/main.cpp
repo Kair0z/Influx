@@ -1,5 +1,5 @@
 
-#include "Application.h"
+#include "InfluxApplication/Application.h"
 
 int main()
 {
@@ -8,10 +8,10 @@ int main()
 	Application::Settings appSettings{};
 	appSettings.Name				= "InfluxEditor v.0.0";
 	appSettings.HasWindow			= true;
-	appSettings.WindowDimensions	= { 1600, 900u };
+	appSettings.WindowDimensions	= { 640u, 480u };
 	appSettings.HasUI				= false;
 	appSettings.HasSceneRender		= true;
 	
-	Application* editorApp = new Application(appSettings);
-	editorApp->Run(0, nullptr);
+	Application editorApp{ appSettings };
+	editorApp.Run(0, nullptr);
 }

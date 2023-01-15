@@ -3,7 +3,7 @@
 #ifndef __CORE_POINTER_H_
 #define __CORE_POINTER_H_
 
-#include <memory.h>
+#include <memory>
 
 namespace Influx
 {

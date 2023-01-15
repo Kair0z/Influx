@@ -1,9 +1,7 @@
-#include "Application.h"
+#include "app_pch.h"
 
+#include "InfluxApplication/Application.h"
 #include "InfluxEngine/Engine.h"
-#include "InfluxGraphics/D3D12/D3D12Device.h"
-
-#include "Rendering/ApplicationRenderer.h"
 
 namespace Influx::Application
 {
@@ -18,8 +16,7 @@ namespace Influx::Application
         , m_time{}
         , m_hasCleanedUp{false}
         , mp_engine{nullptr}
-        , mp_rhiDevice{nullptr}
-        , mp_appRenderer{nullptr}
+        , m_appRenderer{}
 	{
         
 	}
@@ -70,7 +67,6 @@ namespace Influx::Application
         if (GetShouldHaveWindow())
         {
             CreateWindow();
-            CreateGraphics();
             CreateRenderer();
         }
 
@@ -110,12 +106,16 @@ namespace Influx::Application
             return;
         }
 
-        static Vector<Platform::WindowEvent> events{};
-        m_shouldQuit = Platform::PollWindowEvents(events);
+        m_shouldQuit = Platform::PollWindowEvents(m_windowHandle);
     }
 
     void Application::Update()
     {
+        if (!GetHasCreatedEngine())
+        {
+            return;
+        }
+
         mp_engine->Tick();
     }
 
@@ -126,12 +126,13 @@ namespace Influx::Application
             return;
         }
 
-        if (!GetHasCreatedGraphics() || !GetHasCreatedWindow())
+        if (!GetHasCreatedWindow())
         {
             return;
         }
 
-        mp_appRenderer->OnRender();
+        m_appRenderer.Render();
+        m_appRenderer.Present(true);
     }
 
     void Application::UIRender()
@@ -172,34 +173,15 @@ namespace Influx::Application
         mp_engine = Engine::Create(constrArgs);
     }
 
-    void Application::CreateGraphics()
-    {
-        if (GetHasCreatedGraphics())
-        {
-            return;
-        }
-
-#if FLX_APP_RENDERER_D3D12
-#if FLX_APP_RENDERER_DEBUG
-        mp_rhiDevice = Platform::New<Graphics::D3D12Device>(true);
-#else
-        mp_rhiDevice = Platform::New<Graphics::D3D12Device>(false);
-#endif
-#endif
-    }
-
     void Application::CreateRenderer()
     {
-        if (!GetShouldHaveWindow() || !GetHasCreatedGraphics() || !GetHasCreatedWindow())
+        if (!GetShouldHaveWindow() || !GetHasCreatedWindow())
         {
             return;
         }
 
-        ApplicationRenderer::WindowInfo windowInfo{};
-        windowInfo.WindowDimensions = GetSettings().WindowDimensions;
-        windowInfo.WindowHandle     = m_windowHandle;
-
-        mp_appRenderer = Platform::New<ApplicationRenderer>(mp_rhiDevice, windowInfo);
+        m_appRenderer.Initialize(Graphics::EGraphicsAPI::D3D12);
+        m_appRenderer.AttachToWindow(m_windowHandle);
     }
 
     void Application::SetQuit()
@@ -255,11 +237,6 @@ namespace Influx::Application
     bool Application::GetHasCreatedEngine() const
     {
         return mp_engine != nullptr;
-    }
-
-    bool Application::GetHasCreatedGraphics() const
-    {
-        return mp_rhiDevice != nullptr;
     }
 
     const Application::Settings& Application::GetSettings() const
