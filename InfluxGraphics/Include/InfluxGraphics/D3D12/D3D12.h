@@ -176,7 +176,9 @@ namespace Influx::Graphics::D3D12
 		return allowTearing;
 	}
 
-	inline IDXGISwapChain4* CreateDxgiSwapChain(IDXGIFactory4* dxgiFactory, ::HWND hWnd, ID3D12CommandQueue* pCommandQueue, uint32 w, uint32 h, uint8 numBuffers)
+	inline IDXGISwapChain4* CreateDxgiSwapChain(
+		IDXGIFactory4* dxgiFactory, ::HWND hWnd, ID3D12CommandQueue* pCommandQueue, 
+		uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
 	{
 		IDXGISwapChain4* dxgiSwapChain4;
 		UINT flags = 0;
@@ -184,7 +186,7 @@ namespace Influx::Graphics::D3D12
 		DXGI_SWAP_CHAIN_DESC1 desc{};
 		desc.Width			= w;
 		desc.Height			= h;
-		desc.Format			= DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.Format			= format;
 		desc.Stereo			= false;
 		desc.SampleDesc		= { 1, 0 };
 		desc.BufferUsage	= DXGI_USAGE_RENDER_TARGET_OUTPUT;

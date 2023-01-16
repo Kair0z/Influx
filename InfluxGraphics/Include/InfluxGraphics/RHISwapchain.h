@@ -4,7 +4,10 @@
 #define __GR_RHI_SWAPCHAIN_H_
 
 #include "Types.h"
+#include "RHITypes.h"
 #include "Core/Math/Vector.h"
+
+#include "Core/Platform/Platform.h"
 
 namespace Influx::Graphics
 {
@@ -31,19 +34,28 @@ namespace Influx::Graphics
 		const uint32 GetWidth() const { return m_width; }
 		const uint32 GetHeight() const { return m_height; }
 
+		Platform::WindowHandle GetWindowHandle() const;
+
 		bool GetIsTearingSupported() const;
 
+		ERHIFormat GetRenderTargetFormat() const;
+
 		constexpr static uint8 k_numBackBuffers = 3;
+		constexpr static uint8 GetNumBackBuffers() { return k_numBackBuffers; }
 
 	protected:
 		RHIResource* mp_backBufferResources[k_numBackBuffers];
 		RHIRenderTargetView* mp_backBufferRTVs[k_numBackBuffers];
+
+		ERHIFormat m_renderTargetFormat = ERHIFormat::INVALID;
 
 		uint32 m_currentBackBufferIndex = 0;
 		uint32 m_width = 0;
 		uint32 m_height = 0;
 
 		bool m_isTearingSupported = false;
+
+		Platform::WindowHandle m_windowHandle;
 
 		RHISwapchain(uint32 width, uint32 height, bool isTearingSupported);
 		RHISwapchain(const RHISwapchain&) = delete;

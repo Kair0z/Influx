@@ -24,4 +24,14 @@ namespace Influx::Graphics
 	{
 		return m_isTearingSupported;
 	}
+
+	Platform::WindowHandle RHISwapchain::GetWindowHandle() const
+	{
+		return m_windowHandle;
+	}
+
+	ERHIFormat RHISwapchain::GetRenderTargetFormat() const
+	{
+		return m_renderTargetFormat;
+	}
 }

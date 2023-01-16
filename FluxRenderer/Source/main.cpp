@@ -1,33 +1,15 @@
 
 #define PLATFORM_WINDOWS 1
 #include "Core/Platform/WindowsPlatform.h"
+
 #include "InfluxRenderer/Renderer.h"
 
 #include "InfluxGraphics/RHISwapchain.h"
 #include "InfluxGraphics/RHICommandList.h"
 
+#include "Renderer/GUIRenderer.h"
+
 using namespace Influx;
-
-class SceneRenderer final : public Renderer::IRenderer
-{
-	/* Initializing RHI Resources */
-	virtual void Initialize(const RHIDevicePtr device) override
-	{
-
-	}
-
-	/* Submitting work onto a passed RHICommandList */
-	virtual void OnRender(RHICommandListPtr commandList) const override
-	{
-
-	}
-
-	/* Cleaning up RHI Resources */
-	virtual void Cleanup(const RHIDevicePtr device) override
-	{
-
-	}
-};
 
 int main()
 {
@@ -40,17 +22,18 @@ int main()
 	const bool vsync = true;
 
 	{
+		GUI::GUIRenderer guiRenderer{};
+
 		Renderer::RootRenderer rootRenderer{};
 		rootRenderer.SetGraphicsAPI(Graphics::EGraphicsAPI::D3D12);
 		rootRenderer.AttachToWindow(wndHandle);
 
+		// Add GUI renderer
+		rootRenderer.GetChildRendererList().push_back(&guiRenderer);
+
 		while (Platform::PollWindowEvents(wndHandle))
 		{
-			rootRenderer.Render([](Graphics::RHICommandList* cmdList)
-			{
-				// use cmdList...
-			});
-
+			rootRenderer.Render();
 			rootRenderer.Present(vsync);
 		}
 	}

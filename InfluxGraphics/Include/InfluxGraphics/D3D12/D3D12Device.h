@@ -40,6 +40,16 @@ namespace Influx::Graphics
 		const uint64 GetSamplerDescriptorSize() const;
 		const uint64 GetDescriptorSize(const ERHIDescriptorType type) const;
 
+		template <typename _T>
+		void Release(_T*& pointer)
+		{
+			if (pointer != nullptr)
+			{
+				pointer->Release();
+				pointer = nullptr;
+			}
+		}
+
 	private:
 		void Initialize();
 		void Cleanup();

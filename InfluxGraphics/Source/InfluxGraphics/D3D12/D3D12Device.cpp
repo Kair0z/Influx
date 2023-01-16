@@ -37,8 +37,9 @@ namespace Influx::Graphics
 		D3D12Swapchain* result = new D3D12Swapchain(dimensions.x, dimensions.y, D3D12::CheckDxgiTearingSupport());
 		D3D12CommandQueue* dxCommandQueue = static_cast<D3D12CommandQueue*>(commandQueue);
 
+		result->m_renderTargetFormat = ERHIFormat::RGBA_8_Unorm;
 		result->mp_dxgiSwapchain = D3D12::CreateDxgiSwapChain(mp_dxgiFactory, (::HWND)windowHandle, dxCommandQueue->GetDxCommandQueue(),
-			dimensions.x, dimensions.y, RHISwapchain::k_numBackBuffers);
+			dimensions.x, dimensions.y, RHISwapchain::k_numBackBuffers, Conversion::ToDx12(result->m_renderTargetFormat));
 
 		ID3D12DescriptorHeap* newRtvDescriptorHeap 
 			= result->mp_dxRenderTargetDescriptorHeap 
@@ -46,7 +47,8 @@ namespace Influx::Graphics
 			RHISwapchain::k_numBackBuffers, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 
 		result->m_currentBackBufferIndex		= result->mp_dxgiSwapchain->GetCurrentBackBufferIndex();
-		
+		result->m_windowHandle = windowHandle;
+
 		// Gather Backbuffers & RTVs
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv_cpu_handle(newRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 		D3D12_GPU_DESCRIPTOR_HANDLE rtv_gpu_handle = newRtvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
