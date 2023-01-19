@@ -107,6 +107,8 @@ namespace Influx::GUI
 
 		ImGui::Render();
 
+		cmdList->BindRenderTarget(GetCurrentRenderTarget());
+
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList->GetDxCommandList());
 	}
 

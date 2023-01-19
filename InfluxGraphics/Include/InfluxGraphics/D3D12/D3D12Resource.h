@@ -13,6 +13,8 @@ namespace Influx::Graphics
 		friend class D3D12Device;	// Only the device can create these...
 		D3D12Resource(const ERHIResourceState initialState) : RHIResource(initialState) {}
 
+		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const override;
+
 		virtual void OnTransitionState(const ERHIResourceState before, const ERHIResourceState after) override final;
 
 		ID3D12Resource* mp_dxResource;

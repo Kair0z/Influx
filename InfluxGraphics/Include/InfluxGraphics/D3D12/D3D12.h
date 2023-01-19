@@ -26,6 +26,105 @@
 
 namespace Influx::Graphics::D3D12
 {
+	namespace HelperStructs
+	{
+		struct CommittedResourceDesc final
+		{
+		private:
+			CommittedResourceDesc() = default;
+			D3D12_HEAP_PROPERTIES m_heapProperties;
+			D3D12_HEAP_FLAGS m_heapFlags;
+			D3D12_RESOURCE_DESC m_resourceDesc;
+			D3D12_CLEAR_VALUE m_optimizedClearValue;
+
+		public:
+			static CommittedResourceDesc AsTexture(const DXGI_FORMAT format, uint64_t width, uint64_t height, uint16_t numMipLevels)
+			{
+				CommittedResourceDesc desc{};
+
+				desc.m_heapProperties = GetDefaultHeapProperties();
+				desc.m_heapFlags = D3D12_HEAP_FLAG_NONE;
+				desc.m_resourceDesc = GetTextureDesc(format, width, height, numMipLevels);
+				desc.m_optimizedClearValue = GetOptimizedClearValue(format);
+
+				return desc;
+			}
+
+			static D3D12_HEAP_PROPERTIES GetDefaultHeapProperties()
+			{
+				D3D12_HEAP_PROPERTIES defaultProperties;
+				defaultProperties.Type					= D3D12_HEAP_TYPE_DEFAULT;
+				defaultProperties.CPUPageProperty		= D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+				defaultProperties.MemoryPoolPreference	= D3D12_MEMORY_POOL_UNKNOWN;
+				defaultProperties.CreationNodeMask		= 0;
+				defaultProperties.VisibleNodeMask		= 0;
+				return defaultProperties;
+			}
+
+			static D3D12_CLEAR_VALUE GetOptimizedClearValue(const DXGI_FORMAT format)
+			{
+				D3D12_CLEAR_VALUE optimizedClearValue{};
+				optimizedClearValue.Color[0] = 0.0f;
+				optimizedClearValue.Color[1] = 0.0f;
+				optimizedClearValue.Color[2] = 0.0f;
+				optimizedClearValue.Color[3] = 1.0f;
+
+				D3D12_DEPTH_STENCIL_VALUE dsValue{};
+				dsValue.Depth = 0.0f;
+				dsValue.Stencil = 0u;
+
+				optimizedClearValue.DepthStencil = dsValue;
+				optimizedClearValue.Format = format;
+				return optimizedClearValue;
+			}
+
+			static D3D12_RESOURCE_DESC GetTextureDesc(const DXGI_FORMAT format, uint64_t width, uint64_t height, uint16_t numMipLevels)
+			{
+				D3D12_RESOURCE_DESC textureDesc{};
+
+				textureDesc.Format				= format;
+				textureDesc.Width				= width;
+				textureDesc.Height				= height;
+				textureDesc.Flags				= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+				textureDesc.DepthOrArraySize	= 1;
+				textureDesc.MipLevels			= numMipLevels;
+				textureDesc.SampleDesc.Count	= 1;
+				textureDesc.SampleDesc.Quality	= 0;
+				textureDesc.Dimension			= D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+				textureDesc.Layout				= D3D12_TEXTURE_LAYOUT_UNKNOWN;
+				textureDesc.Alignment			= 0;
+
+				return textureDesc;
+			}
+
+			D3D12_HEAP_PROPERTIES GetHeapProperties() const
+			{
+				return m_heapProperties;
+			}
+
+			D3D12_HEAP_FLAGS GetHeapFlags() const
+			{
+				return m_heapFlags;
+			}
+
+			D3D12_RESOURCE_DESC GetResourceDesc() const
+			{
+				return m_resourceDesc;
+			}
+
+			D3D12_CLEAR_VALUE GetOptimizedClearValue() const
+			{
+				return m_optimizedClearValue;
+			}
+
+			bool IsValid()
+			{
+				// Todo...
+				return true;
+			}
+		};
+	}
+
 	template <typename _T>
 	inline void SafeRelease(_T*& object)
 	{
@@ -244,6 +343,22 @@ namespace Influx::Graphics::D3D12
 		pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 
 		return fence;
+	}
+
+	/* ID3D12Device::CreateCommittedResource */
+	/* Creates both a resource and an implicit heap, such that the heap is big enough to contain the entire resource, and the resource is mapped to the heap. */
+	inline ID3D12Resource* CreateCommittedResource(ID3D12Device2* device, const HelperStructs::CommittedResourceDesc& desc, D3D12_RESOURCE_STATES initialState)
+	{
+		D3D12_HEAP_PROPERTIES heapProperties	= desc.GetHeapProperties();
+		D3D12_HEAP_FLAGS heapFlags				= desc.GetHeapFlags();
+		D3D12_RESOURCE_DESC resourceDesc		= desc.GetResourceDesc();
+
+		D3D12_CLEAR_VALUE optimizedClearValue	= desc.GetOptimizedClearValue();
+
+		ID3D12Resource* committedResource;
+		device->CreateCommittedResource(&heapProperties, heapFlags, &resourceDesc, initialState, &optimizedClearValue, IID_PPV_ARGS(&committedResource));
+
+		return committedResource;
 	}
 
 	/* Signal the fence from [GPU]. At execution, the GPU will only signal this once all earlier commands are executed...*/

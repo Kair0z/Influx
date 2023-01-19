@@ -35,7 +35,8 @@ namespace Influx::Graphics
 
 		virtual RenderTargetViewPtr CreateRenderTargetView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const = 0;
 
-		virtual ResourcePtr CreateResource() const = 0;
+		virtual ResourcePtr CreateResource(const ERHIResourceState initialState) const = 0;
+		virtual ResourcePtr CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const = 0;
 
 		/* Debug Layer*/
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) = 0;

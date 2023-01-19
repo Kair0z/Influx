@@ -39,7 +39,7 @@ namespace Influx::Graphics
 		virtual void BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout) = 0;
 		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) = 0;
 		virtual void BindComputeShader() {};
-		virtual void BindDescriptorheap(RHIDescriptorHeap* descriptorHeap) {};
+		virtual void BindDescriptorheap(RHIDescriptorHeap* descriptorHeap) = 0;
 
 		virtual void DrawIndexed() {};
 		virtual void DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation = 0, uint32_t startInstanceLocation = 0) = 0;

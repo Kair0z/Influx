@@ -5,8 +5,10 @@
 #include "InfluxGraphics/RHIDescriptorHeap.h"
 #include "InfluxGraphics/RHISwapchain.h"
 #include "InfluxGraphics/RHICommandList.h"
+#include "InfluxGraphics/RHIResource.h"
 
 #include "InfluxGraphics/D3D12/D3D12Device.h"
+#include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
 #include "Core/Platform/WindowsPlatform.h"
 
 #include "Renderer/GUIRenderer.h"
@@ -30,8 +32,13 @@ int main()
 	{
 		GUI::GUIRenderer guiRenderer{};
 
+		Graphics::RHIResource* sceneColourBuffer = device->CreateTextureResource(
+			Graphics::ERHIResourceState::RenderTarget, Graphics::ERHIFormat::RGBA_8_Unorm, Math::Vectoru2{windowSettings.Width, windowSettings.Heigth}, 1);
+
+		Graphics::RHIRenderTargetView* sceneColourRenderTarget = sceneColourBuffer->CreateRenderTargetView(device);
+
 		guiRenderer.Initialize(device);
-		guiRenderer.AttachToRenderTarget(device, swapchain->GetCurrentRenderTargetView());
+		guiRenderer.AttachToRenderTarget(device, sceneColourRenderTarget);
 
 		while (Platform::PollWindowEvents(wndHandle))
 		{
@@ -40,12 +47,16 @@ int main()
 
 			Graphics::RHICommandList* cmdList = cmdQueue->SetupNewCommandList(device);
 
+			// Bind global device descriptorHeaps...
+			cmdList->BindDescriptorheap(device->GetResourceDescriptorHeap());
+			
 			cmdList->TransitionResource(swapchainCurrentBuffer, Graphics::ERHIResourceState::RenderTarget);
 			cmdList->ClearRTV(swapchainCurrentRtv, {1.0f, 0.0f, 0.0f, 1.0f});
-
-			cmdList->BindRenderTarget(swapchainCurrentRtv);
-
+			
 			guiRenderer.Render(cmdList);
+
+			// Copy sceneColour into Swapchain...
+			cmdList->CopyResource(sceneColourBuffer, swapchainCurrentBuffer);
 
 			cmdList->TransitionResource(swapchainCurrentBuffer, Graphics::ERHIResourceState::Present);
 

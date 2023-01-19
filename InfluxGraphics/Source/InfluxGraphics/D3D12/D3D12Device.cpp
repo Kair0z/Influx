@@ -97,9 +97,24 @@ namespace Influx::Graphics
 		return nullptr;
 	}
 
-	RHIResource* D3D12Device::CreateResource() const
+	RHIDevice::ResourcePtr D3D12Device::CreateResource(const ERHIResourceState initialState) const
 	{
-		return nullptr;
+		D3D12Resource* result = new D3D12Resource(initialState);
+
+		return result;
+	}
+
+	RHIDevice::ResourcePtr D3D12Device::CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const
+	{
+		D3D12Resource* result = new D3D12Resource(initialState);
+
+		using namespace D3D12::HelperStructs;
+		CommittedResourceDesc textureResourceDesc =
+			CommittedResourceDesc::AsTexture(Conversion::ToDx12(format), dimensions.x, dimensions.y, numMips);
+
+		result->mp_dxResource = D3D12::CreateCommittedResource(GetDxDevice(), textureResourceDesc, Conversion::ToDx12(initialState));
+
+		return result;
 	}
 
 	void D3D12Device::SetDebugLayerEnabled(bool setDebugLayerEnabled)

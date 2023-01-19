@@ -50,6 +50,8 @@ namespace Influx::Renderer
 		bool IsInitialized() const;
 		bool IsAttachedToRenderTarget() const;
 
+		const RenderTargetPtr GetCurrentRenderTarget() const;
+
 	private:		
 		virtual void OnInitialize(const DevicePtr) = 0;
 		virtual void OnRender(const CommandListPtr) const = 0;
@@ -66,6 +68,7 @@ namespace Influx::Renderer
 		};
 
 		State m_currentState;
+		RenderTargetPtr mp_currentlyBoundRenderTarget;
 
 	public:
 		IRenderer(const IRenderer&) = delete;

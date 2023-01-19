@@ -42,8 +42,10 @@ namespace Influx::Renderer
 			return;
 		}
 
-		OnAttachToRenderTarget(device, newRenderTarget);
+		mp_currentlyBoundRenderTarget = newRenderTarget;
 		m_currentState.IsAttachedToRenderTarget = true;
+
+		OnAttachToRenderTarget(device, newRenderTarget);
 	}
 
 	void IRenderer::ResizeRenderTarget(const DevicePtr)
@@ -61,8 +63,15 @@ namespace Influx::Renderer
 			return;
 		}
 
-		OnDetachFromRenderTarget(device);
+		mp_currentlyBoundRenderTarget = nullptr;
 		m_currentState.IsAttachedToRenderTarget = false;
+
+		OnDetachFromRenderTarget(device);
+	}
+
+	const IRenderer::RenderTargetPtr IRenderer::GetCurrentRenderTarget() const
+	{
+		return mp_currentlyBoundRenderTarget;
 	}
 
 	bool IRenderer::IsInitialized() const
@@ -72,6 +81,6 @@ namespace Influx::Renderer
 
 	bool IRenderer::IsAttachedToRenderTarget() const
 	{
-		return m_currentState.IsAttachedToRenderTarget;
+		return m_currentState.IsAttachedToRenderTarget && GetCurrentRenderTarget() != nullptr;
 	}
 }

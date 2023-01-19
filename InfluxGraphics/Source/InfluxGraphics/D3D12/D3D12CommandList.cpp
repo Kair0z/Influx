@@ -3,6 +3,7 @@
 #include "InfluxGraphics/D3D12/D3D12CommandList.h"
 #include "InfluxGraphics/D3D12/D3D12Resource.h"
 #include "InfluxGraphics/D3D12/D3D12Conversion.h"
+#include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
 
 #include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
 
@@ -72,9 +73,12 @@ namespace Influx::Graphics
 	void D3D12CommandList::SetPrimitiveTopology(ERHIPrimitiveTopology topology)
 	{
 	}
+
 	void D3D12CommandList::CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition)
 	{
+
 	}
+
 	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, bool forceTransition)
 	{
 	}
@@ -99,8 +103,13 @@ namespace Influx::Graphics
 	void D3D12CommandList::DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation)
 	{
 	}
+
 	void D3D12CommandList::BindDescriptorheap(RHIDescriptorHeap* descriptorHeap)
 	{
+		D3D12DescriptorHeap* d3d12DescriptorHeap = (D3D12DescriptorHeap*)descriptorHeap;
+
+		ID3D12DescriptorHeap* dxDescriptorHeaps[]{ d3d12DescriptorHeap->GetDxDescriptorHeap() };
+		GetDxCommandList()->SetDescriptorHeaps(1u, dxDescriptorHeaps);
 	}
 }
 
