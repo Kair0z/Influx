@@ -58,6 +58,7 @@ namespace Influx::Graphics
 		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) = 0;
 		virtual void ClearTextureAsRTV(RHITexture* texture, const Math::Vectorf4& clearValue, bool forceTransition) = 0;
 		virtual void ClearUAV() {};
+		virtual void ClearRTV(RHIRenderTargetView* renderTargetView) = 0;
 		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vectorf4& clearValue) = 0;
 
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) = 0;

@@ -50,16 +50,15 @@ int main()
 			// Bind global device descriptorHeaps...
 			cmdList->BindDescriptorheap(device->GetResourceDescriptorHeap());
 			
-			cmdList->TransitionResource(swapchainCurrentBuffer, Graphics::ERHIResourceState::RenderTarget);
-			cmdList->ClearRTV(swapchainCurrentRtv, {1.0f, 0.0f, 0.0f, 1.0f});
-			
+			cmdList->ClearRTV(sceneColourRenderTarget);
+
 			guiRenderer.Render(cmdList);
 
 			// Copy sceneColour into Swapchain...
 			cmdList->CopyResource(sceneColourBuffer, swapchainCurrentBuffer);
 
 			cmdList->TransitionResource(swapchainCurrentBuffer, Graphics::ERHIResourceState::Present);
-
+			
 			cmdQueue->ExecuteCommmandList(cmdList);
 
 			swapchain->Present(cmdQueue, vsync);

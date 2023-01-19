@@ -7,6 +7,7 @@
 #include "RHITypes.h"
 
 #include "Core/Pointer.h"
+#include "Core/Math/Vector.h"
 
 namespace Influx::Graphics
 {
@@ -17,23 +18,27 @@ namespace Influx::Graphics
 	class RHIResource
 	{
 	protected:
-		RHIResource(ERHIResourceState initialState);
-		using DevicePtr				= Ptr<RHIDevice>;
-		using RenderTargetViewPtr	= Ptr<RHIRenderTargetView>;
+		using DevicePtr = Ptr<RHIDevice>;
+		using RenderTargetViewPtr = Ptr<RHIRenderTargetView>;
+
+		RHIResource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue);
 
 	public:
-		ERHIResourceState GetCurrentState() const;
-		ERHIResourceState GetPreviousState() const;
-
 		void TransitionState(const ERHIResourceState newState);
 
 		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const = 0;
+
+		ERHIResourceState GetCurrentState() const;
+		ERHIResourceState GetPreviousState() const;
+		const RHIClearValue& GetOptimizedClearValue() const;
 
 	private:
 		virtual void OnTransitionState(const ERHIResourceState before, const ERHIResourceState after) = 0;
 
 		ERHIResourceState m_previousState;
 		ERHIResourceState m_currentState;
+
+		RHIClearValue m_optimizedClearValue;
 
 	public:
 		RHIResource(const RHIResource&) = delete;

@@ -51,7 +51,7 @@ namespace Influx::Graphics
 		for (uint8 i = 0; i < RHISwapchain::GetNumBackBuffers(); ++i)
 		{
 			// Get the buffer resources
-			D3D12Resource* dxBufferResource = new D3D12Resource(ERHIResourceState::Present);
+			D3D12Resource* dxBufferResource = new D3D12Resource(ERHIResourceState::Present, RHIClearValue::Default());
 			result->mp_dxgiSwapchain->GetBuffer(i, IID_PPV_ARGS(&dxBufferResource->mp_dxResource));
 			result->mp_backBufferResources[i] = dxBufferResource;
 
@@ -87,7 +87,7 @@ namespace Influx::Graphics
 		D3D12_RENDER_TARGET_VIEW_DESC desc{};
 		desc.Format = Conversion::ToDx12(temp_format);
 		
-		D3D12RenderTargetView* result = new D3D12RenderTargetView(temp_format);
+		D3D12RenderTargetView* result = new D3D12RenderTargetView(temp_format, viewedResource->GetOptimizedClearValue());
 		if (GetRTVDescriptorHeap()->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
 		{
 			GetDxDevice()->CreateRenderTargetView(viewedResource->GetDxResource(), nullptr, result->GetDxCPUHandle());
@@ -99,18 +99,24 @@ namespace Influx::Graphics
 
 	RHIDevice::ResourcePtr D3D12Device::CreateResource(const ERHIResourceState initialState) const
 	{
-		D3D12Resource* result = new D3D12Resource(initialState);
+		D3D12Resource* result = new D3D12Resource(initialState, {});
 
 		return result;
 	}
 
 	RHIDevice::ResourcePtr D3D12Device::CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const
 	{
-		D3D12Resource* result = new D3D12Resource(initialState);
-
 		using namespace D3D12::HelperStructs;
 		CommittedResourceDesc textureResourceDesc =
 			CommittedResourceDesc::AsTexture(Conversion::ToDx12(format), dimensions.x, dimensions.y, numMips);
+
+		RHIClearValue optimizedClearValue{};
+		for (uint8 i = 0; i < 4u; ++i)
+		{
+			optimizedClearValue.Colour[i] = textureResourceDesc.GetOptimizedClearValue().Color[i];
+		}
+		
+		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue);
 
 		result->mp_dxResource = D3D12::CreateCommittedResource(GetDxDevice(), textureResourceDesc, Conversion::ToDx12(initialState));
 

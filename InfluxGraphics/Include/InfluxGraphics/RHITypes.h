@@ -4,6 +4,7 @@
 #define __GR_RHI_TYPES_H_
 
 #include "Core/BasicTypes.h"
+#include "Core/Math/Vector.h"
 
 namespace Influx::Graphics
 {
@@ -167,6 +168,18 @@ namespace Influx::Graphics
 	{
 		Store,			// Rendered contents will be stored in memory and can be read later
 		DontCare		// Contents of the framebuffer will be undefined after the rendering operation
+	};
+
+	struct RHIClearValue final
+	{
+		static RHIClearValue Default()
+		{
+			RHIClearValue result{};
+			result.Colour = {};
+			return result;
+		}
+
+		Math::Vectorf4 Colour;
 	};
 
 	/* Viewport */

@@ -2,11 +2,11 @@
 
 namespace Influx::Graphics
 {
-	RHIResource::RHIResource(ERHIResourceState initialState)
-		: m_previousState{initialState}
-		, m_currentState{initialState}
+	RHIResource::RHIResource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue)
+		: m_previousState{ initialState }
+		, m_currentState{ initialState }
+		, m_optimizedClearValue{ optimizedClearValue }
 	{
-
 	}
 
 	void RHIResource::TransitionState(const ERHIResourceState newState)
@@ -25,6 +25,11 @@ namespace Influx::Graphics
 	ERHIResourceState RHIResource::GetPreviousState() const
 	{
 		return m_previousState;
+	}
+
+	const RHIClearValue& RHIResource::GetOptimizedClearValue() const
+	{
+		return m_optimizedClearValue;
 	}
 }
 

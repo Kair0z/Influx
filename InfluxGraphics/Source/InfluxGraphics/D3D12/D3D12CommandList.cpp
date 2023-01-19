@@ -53,6 +53,11 @@ namespace Influx::Graphics
 		resource->TransitionState(newState);
 	}
 
+	void D3D12CommandList::ClearRTV(RHIRenderTargetView* renderTargetView)
+	{
+		ClearRTV(renderTargetView, renderTargetView->GetOptimizedClearValue().Colour);
+	}
+
 	void D3D12CommandList::ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vectorf4& clearValue)
 	{
 		D3D12RenderTargetView* dxRtv = (D3D12RenderTargetView*)renderTargetView;
@@ -76,7 +81,16 @@ namespace Influx::Graphics
 
 	void D3D12CommandList::CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition)
 	{
+		TransitionResource(source, ERHIResourceState::CopySource);
+		TransitionResource(dest, ERHIResourceState::CopyDest);
 
+		D3D12Resource* d3d12Dest	= (D3D12Resource*)dest;
+		D3D12Resource* d3d12Src		= (D3D12Resource*)source;
+
+		GetDxCommandList()->CopyResource(d3d12Dest->GetDxResource(), d3d12Src->GetDxResource());
+
+		TransitionResource(source, source->GetPreviousState());
+		TransitionResource(dest, dest->GetPreviousState());
 	}
 
 	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, bool forceTransition)

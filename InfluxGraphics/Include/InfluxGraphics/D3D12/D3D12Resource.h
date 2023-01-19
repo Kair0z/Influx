@@ -11,7 +11,7 @@ namespace Influx::Graphics
 	class D3D12Resource final : public RHIResource
 	{
 		friend class D3D12Device;	// Only the device can create these...
-		D3D12Resource(const ERHIResourceState initialState) : RHIResource(initialState) {}
+		D3D12Resource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue) : RHIResource(initialState, optimizedClearValue) {}
 
 		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const override;
 
