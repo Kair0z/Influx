@@ -12,6 +12,12 @@ namespace Influx
 	using Ptr = _T*;
 
 	template <typename _T>
+	constexpr bool IsNull(const Ptr<_T> p)
+	{
+		return (p == nullptr);
+	}
+
+	template <typename _T>
 	using SharedPtr = std::shared_ptr<_T>;
 
 	template <typename _T>

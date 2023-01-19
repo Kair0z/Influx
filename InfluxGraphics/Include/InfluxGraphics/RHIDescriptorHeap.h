@@ -12,12 +12,12 @@ namespace Influx::Graphics
 	class RHIDescriptorHeap
 	{
 	private:
-		ERHIDescriptorType m_type;
+		ERHIResourceViewType m_type;
 		bool m_isShaderVisible;
 		uint64 m_numDescriptors;
 
 	protected:
-		RHIDescriptorHeap(const ERHIDescriptorType type, uint64 numDescriptors, bool isShaderVisible)
+		RHIDescriptorHeap(const ERHIResourceViewType type, uint64 numDescriptors, bool isShaderVisible)
 			: m_type{ type }
 			, m_isShaderVisible{ isShaderVisible }
 			, m_numDescriptors{ numDescriptors }
@@ -26,7 +26,7 @@ namespace Influx::Graphics
 		virtual ~RHIDescriptorHeap() = default;
 
 	public:
-		const ERHIDescriptorType GetType() const;
+		const ERHIResourceViewType GetType() const;
 
 		const uint64 GetNumDescriptors() const;
 

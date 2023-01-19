@@ -58,14 +58,19 @@ namespace Influx::Graphics
 		Invalid
 	};
 
-	enum class ERHIDescriptorType
+	enum class ERHIResourceViewType
 	{
 		Resource,
+		CBV = Resource,
+		UAV = Resource,
+		SRV = Resource,
 		DSV,
 		RTV,
 		Sampler,
-		Invalid
+		Max,
+		Invalid = Max
 	};
+	using ERHIDescriptorType = ERHIResourceViewType;
 
 	enum class ERHIShaderType
 	{

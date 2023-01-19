@@ -2,6 +2,8 @@
 
 #include "Renderer/GUIRenderer.h"
 
+
+
 #include "InfluxGraphics/RHICommandQueue.h"
 #include "InfluxGraphics/RHIDescriptorHeap.h"
 #include "InfluxGraphics/RHISwapchain.h"
@@ -12,37 +14,22 @@
 #include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
 #include "InfluxGraphics/D3D12/D3D12CommandList.h"
 
+#include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
+
 #include "ImGui/imgui_impl_win32.h"
+#include "Core/Platform/WindowsPlatform.h"
+
 #include "ImGui/imgui_impl_dx12.h"
 
 namespace Influx::GUI
 {
-	/* Initializing RHI Resources */
-	void GUIRenderer::Initialize(const RHIDevicePtr device)
+	void GUIRenderer::OnInitialize(const DevicePtr)
 	{
-		// ...
 	}
 
-	void GUIRenderer::OnAttachToWindow(const RHIDevicePtr device, const RHISwapchainPtr swapchain)
+	void GUIRenderer::OnRender(const CommandListPtr commandList) const
 	{
-		using namespace Graphics;
-		D3D12Device* d3d12Device = (D3D12Device*)device;
-		D3D12Swapchain* d3d12Swapchain = (D3D12Swapchain*)swapchain;
-
-		InitializeDx12(d3d12Device, d3d12Swapchain);
-	}
-
-	/* Resizing the bound window swapchain */
-	void GUIRenderer::OnSwapchainResize(const RHIDevicePtr device, const RHISwapchainPtr swapchain,
-		const Math::Vectoru2& prevSize, const Math::Vectoru2& newSize)
-	{
-		
-	}
-
-	/* Submitting work onto a passed RHICommandList */
-	void GUIRenderer::OnRender(RHICommandListPtr commandList) const
-	{
-		if (NeedsSwapchainUpdate())
+		if (!IsAttachedToRenderTarget())
 		{
 			return;
 		}
@@ -52,47 +39,54 @@ namespace Influx::GUI
 		RenderDx12(d3d12CmdList);
 	}
 
-	void GUIRenderer::OnDetachFromWindow(const RHIDevicePtr device)
-	{
-		using namespace Graphics;
-		D3D12Device* d3d12Device = (D3D12Device*)device;
-		CleanupDx12(d3d12Device);
-	}
-
-	/* Cleaning up RHI Resources */
-	void GUIRenderer::Cleanup(const RHIDevicePtr device)
+	void GUIRenderer::OnCleanup(const DevicePtr)
 	{
 		// ...
 	}
 
-	void GUIRenderer::InitializeDx12(Graphics::D3D12Device* devicePtr, Graphics::D3D12Swapchain* swapchainPtr)
+	void GUIRenderer::OnAttachToRenderTarget(const DevicePtr device, const RenderTargetPtr newRenderTarget)
 	{
 		using namespace Graphics;
-		mp_fontDescriptorHeap = devicePtr->CreateDescriptorHeap(ERHIDescriptorType::Resource, 1u, true);
-		
-		D3D12DescriptorHeap* d3d12FontDescHeap = (D3D12DescriptorHeap*)mp_fontDescriptorHeap;
+		D3D12Device* d3d12Device		= (D3D12Device*)device;
+		D3D12RenderTargetView* d3d12Rtv = (D3D12RenderTargetView*)newRenderTarget;
 
-		const uint64 firstFreeSlot = d3d12FontDescHeap->GetFirstFreeSlot();
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
-		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
-		if (!d3d12FontDescHeap->GetHandles(cpuHandle, gpuHandle))
-		{
-			FLX_ASSERT(false);
-		}
+		InitializeDx12(d3d12Device, d3d12Rtv);
+	}
+
+	void GUIRenderer::OnRenderTargetResize(const DevicePtr)
+	{
+	}
+
+	void GUIRenderer::OnDetachFromRenderTarget(const DevicePtr)
+	{
+		CleanupDx12();
+	}
+
+
+	void GUIRenderer::InitializeDx12(Graphics::D3D12Device* devicePtr, Graphics::D3D12RenderTargetView* renderTargetView)
+	{
+		using namespace Graphics;
 
 		ImGui::CreateContext();
 		ImGui::GetIO();
 
-		bool success = ImGui_ImplWin32_Init((void*)swapchainPtr->GetWindowHandle());
+		bool success = ImGui_ImplWin32_Init(Platform::GetCurrentWindowHandle());
 		if (!success)
 		{
 			FLX_ASSERT(false);
 		}
-		
+
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle{};
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle{};
+		if (!devicePtr->GetResourceDescriptorHeap()->GetHandles(cpuHandle, gpuHandle))
+		{
+			FLX_ASSERT(false);
+		}
+
 		success = ImGui_ImplDX12_Init(devicePtr->GetDxDevice(),
-			(int)swapchainPtr->GetNumBackBuffers(), 
-			Conversion::ToDx12(swapchainPtr->GetRenderTargetFormat()),
-			d3d12FontDescHeap->GetDxDescriptorHeap(), cpuHandle, gpuHandle);
+			(int)RHISwapchain::GetNumBackBuffers(),
+			Conversion::ToDx12(renderTargetView->GetFormat()),
+			nullptr, cpuHandle, gpuHandle);
 
 		if (!success)
 		{
@@ -102,6 +96,8 @@ namespace Influx::GUI
 
 	void GUIRenderer::RenderDx12(Graphics::D3D12CommandList* cmdList) const
 	{
+		// Set render target?
+
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 
@@ -114,7 +110,7 @@ namespace Influx::GUI
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList->GetDxCommandList());
 	}
 
-	void GUIRenderer::CleanupDx12(Graphics::D3D12Device*)
+	void GUIRenderer::CleanupDx12()
 	{
 		ImGui_ImplDX12_Shutdown();
 		ImGui_ImplWin32_Shutdown();

@@ -13,14 +13,17 @@ namespace Influx::Graphics
 	class RHIDescriptorHeap;
 	class RHISwapchain;
 	class RHICommandQueue;
+	class RHIRenderTargetView;
 	class RHIResource;
 
 	class RHIDevice
 	{
-		using CommandQueuePtr	= Ptr<RHICommandQueue>;
-		using SwapchainPtr		= Ptr<RHISwapchain>;
-		using DescriptorHeapPtr = Ptr<RHIDescriptorHeap>;
-		using ResourcePtr		= Ptr<RHIResource>;
+	protected:
+		using CommandQueuePtr		= Ptr<RHICommandQueue>;
+		using SwapchainPtr			= Ptr<RHISwapchain>;
+		using DescriptorHeapPtr		= Ptr<RHIDescriptorHeap>;
+		using RenderTargetViewPtr	= Ptr<RHIRenderTargetView>;
+		using ResourcePtr			= Ptr<RHIResource>;
 
 	public:
 		/* Creating API objects & Resources */
@@ -28,7 +31,9 @@ namespace Influx::Graphics
 
 		virtual SwapchainPtr CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, CommandQueuePtr commandQueue) const = 0;
 
-		virtual DescriptorHeapPtr CreateDescriptorHeap(const ERHIDescriptorType type, uint32 numDescriptors, bool isShaderVisible) const = 0;
+		virtual DescriptorHeapPtr CreateDescriptorHeap(const ERHIResourceViewType type, uint32 numDescriptors, bool isShaderVisible) const = 0;
+
+		virtual RenderTargetViewPtr CreateRenderTargetView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const = 0;
 
 		virtual ResourcePtr CreateResource() const = 0;
 

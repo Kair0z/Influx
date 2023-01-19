@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -151,6 +151,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIObject.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIResourceViews\RHIResourceView.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIResourceViews\RHIRenderTargetView.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHICommandList.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandList.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandQueue.cpp" />
@@ -165,6 +169,7 @@
     <ClCompile Include="Source\InfluxGraphics\RHISwapchain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Include\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.h" />
     <ClInclude Include="Include\InfluxGraphics\Common.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12CommandList.h" />
@@ -182,6 +187,9 @@
     <ClInclude Include="Include\InfluxGraphics\RHISwapchain.h" />
     <ClInclude Include="Include\InfluxGraphics\RHITypes.h" />
     <ClInclude Include="Include\InfluxGraphics\Types.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIRenderTargetView.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIResourceView.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIObject.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -2,7 +2,7 @@
 
 namespace Influx::Graphics
 {
-	const ERHIDescriptorType RHIDescriptorHeap::GetType() const
+	const ERHIResourceViewType RHIDescriptorHeap::GetType() const
 	{
 		return m_type;
 	}

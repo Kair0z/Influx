@@ -8,47 +8,30 @@
 
 namespace Influx::Graphics
 {
-	/* Resource */
+	/* RHIResource */
 	class RHIResource
 	{
-		friend class RHIDevice;
-
 	public:
 		ERHIResourceState GetCurrentState() const;
 		ERHIResourceState GetPreviousState() const;
 
 		void TransitionState(const ERHIResourceState newState);
 
-		virtual ~RHIResource() = default;
-
-	protected:
+	private:
 		virtual void OnTransitionState(const ERHIResourceState before, const ERHIResourceState after) = 0;
 
 		ERHIResourceState m_previousState;
 		ERHIResourceState m_currentState;
 
+	protected:
 		RHIResource(ERHIResourceState initialState);
 
+	public:
 		RHIResource(const RHIResource&) = delete;
 		RHIResource(RHIResource&&) = delete;
 		RHIResource& operator=(const RHIResource&) = delete;
 		RHIResource& operator=(RHIResource&&) = delete;
-	};
-
-	class RHIRenderTargetView
-	{
-		friend class RHIDevice;
-
-	public:
-		
-	protected:
-		RHIRenderTargetView() = default;
-		virtual ~RHIRenderTargetView() = default;
-
-		RHIRenderTargetView(const RHIRenderTargetView&) = delete;
-		RHIRenderTargetView(RHIRenderTargetView&&) = delete;
-		RHIRenderTargetView& operator=(const RHIRenderTargetView&) = delete;
-		RHIRenderTargetView& operator=(RHIRenderTargetView&&) = delete;
+		virtual ~RHIResource() = default;
 	};
 }
 

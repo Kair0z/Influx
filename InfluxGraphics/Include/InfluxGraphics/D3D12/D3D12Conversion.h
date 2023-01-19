@@ -15,17 +15,17 @@ namespace Influx::Graphics::Conversion
 		}
 	}
 
-	constexpr D3D12_DESCRIPTOR_HEAP_TYPE ToDx12(ERHIDescriptorType type)
+	constexpr D3D12_DESCRIPTOR_HEAP_TYPE ToDx12(ERHIResourceViewType type)
 	{
 		switch (type)
 		{
-		case ERHIDescriptorType::DSV: return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		case ERHIDescriptorType::Resource: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		case ERHIDescriptorType::RTV: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		case ERHIDescriptorType::Sampler: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+		case ERHIResourceViewType::DSV: return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		case ERHIResourceViewType::Resource: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		case ERHIResourceViewType::RTV: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		case ERHIResourceViewType::Sampler: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
 		default:
-		case ERHIDescriptorType::Invalid: return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
+		case ERHIResourceViewType::Invalid: return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 		}
 	}
 

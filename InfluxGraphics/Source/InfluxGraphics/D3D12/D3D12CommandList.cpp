@@ -1,7 +1,10 @@
 #include "InfluxGraphics/Common.h"
+
 #include "InfluxGraphics/D3D12/D3D12CommandList.h"
 #include "InfluxGraphics/D3D12/D3D12Resource.h"
 #include "InfluxGraphics/D3D12/D3D12Conversion.h"
+
+#include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
 
 namespace Influx::Graphics
 {
@@ -84,9 +87,15 @@ namespace Influx::Graphics
 	void D3D12CommandList::BindPipelineState(RHIGraphicsPipeline* pipeline)
 	{
 	}
+
 	void D3D12CommandList::BindRenderTarget(RHIRenderTargetView* renderTargetView)
 	{
+		D3D12RenderTargetView* dxRtv = (D3D12RenderTargetView*)renderTargetView;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = dxRtv->GetDxCPUHandle();
+		GetDxCommandList()->OMSetRenderTargets(1u, &cpuHandle, TRUE, nullptr);
 	}
+
 	void D3D12CommandList::DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation)
 	{
 	}

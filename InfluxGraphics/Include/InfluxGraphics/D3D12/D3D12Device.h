@@ -11,7 +11,9 @@
 namespace Influx::Graphics
 {
 	class D3D12DescriptorHeap;
-	
+	class D3D12RenderTargetView;
+	class D3D12Resource;
+
 	class D3D12Device final : public RHIDevice
 	{
 	public:
@@ -19,13 +21,15 @@ namespace Influx::Graphics
 		virtual ~D3D12Device();
 
 		/* Creating API objects & Resources */
-		virtual RHICommandQueue* CreateCommandQueue(const ERHICommandQueueType type) const override;
+		virtual CommandQueuePtr CreateCommandQueue(const ERHICommandQueueType type) const override;
 
-		virtual RHISwapchain* CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, RHICommandQueue* commandQueue) const override;
+		virtual SwapchainPtr CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, CommandQueuePtr commandQueue) const override;
 
-		virtual RHIDescriptorHeap* CreateDescriptorHeap(const ERHIDescriptorType type, uint32 numDescriptors, bool isShaderVisible) const override;
+		virtual DescriptorHeapPtr CreateDescriptorHeap(const ERHIResourceViewType type, uint32 numDescriptors, bool isShaderVisible) const override;
 
-		virtual RHIResource* CreateResource() const override;
+		virtual RenderTargetViewPtr CreateRenderTargetView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const override;
+
+		virtual ResourcePtr CreateResource() const override;
 
 		/* Debug Layer*/
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) override;
@@ -34,11 +38,19 @@ namespace Influx::Graphics
 		IDXGIAdapter4* GetDxgiAdapter() const;
 		IDXGIFactory4* GetDxgiFactory() const;
 
+		D3D12DescriptorHeap* GetRTVDescriptorHeap() const;
+		D3D12DescriptorHeap* GetDSVDescriptorHeap() const;
+		D3D12DescriptorHeap* GetResourceDescriptorHeap() const;
+		D3D12DescriptorHeap* GetSamplerDescriptorHeap() const;
+
+		/* Using GetRTVDescriptorHeap() */
+		D3D12RenderTargetView* CreateRenderTargetView(const D3D12Resource* viewedResource) const;
+
 		const uint64 GetRTVDescriptorSize() const;
 		const uint64 GetDSVDescriptorSize() const;
 		const uint64 GetResourceDescriptorSize() const; // CBVs, UAVs, ConstantBuffers...
 		const uint64 GetSamplerDescriptorSize() const;
-		const uint64 GetDescriptorSize(const ERHIDescriptorType type) const;
+		const uint64 GetDescriptorSize(const ERHIResourceViewType type) const;
 
 		template <typename _T>
 		void Release(_T*& pointer)
@@ -73,7 +85,7 @@ namespace Influx::Graphics
 		D3D12DescriptorHeap* mp_DSVDescriptorheap;
 		D3D12DescriptorHeap* mp_samplerDescriptorHeap;
 
-		void CreateDescriptorOnGlobalHeap(ERHIDescriptorType type, uint64 slot);
+		void CreateDescriptorOnGlobalHeap(ERHIResourceViewType type, uint64 slot);
 		void CreateRenderTargetViewOnGlobalHeap(uint64 slot);
 		void CreateConstantBufferViewOnGlobalHeap(uint64 slot);
 		void CreateShaderResourceViewOnGlobalHeap(uint64 slot);

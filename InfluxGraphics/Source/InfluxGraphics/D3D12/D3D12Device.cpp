@@ -5,6 +5,8 @@
 #include "InfluxGraphics/D3D12/D3D12Resource.h"
 #include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
 
+#include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
+
 namespace Influx::Graphics
 {
 	D3D12Device::D3D12Device(bool enableDebug) : RHIDevice()
@@ -32,29 +34,21 @@ namespace Influx::Graphics
 		return result;
 	}
 
-	RHISwapchain* D3D12Device::CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, RHICommandQueue* commandQueue) const
+	RHIDevice::SwapchainPtr D3D12Device::CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, CommandQueuePtr commandQueue) const
 	{
 		D3D12Swapchain* result = new D3D12Swapchain(dimensions.x, dimensions.y, D3D12::CheckDxgiTearingSupport());
 		D3D12CommandQueue* dxCommandQueue = static_cast<D3D12CommandQueue*>(commandQueue);
 
 		result->m_renderTargetFormat = ERHIFormat::RGBA_8_Unorm;
 		result->mp_dxgiSwapchain = D3D12::CreateDxgiSwapChain(mp_dxgiFactory, (::HWND)windowHandle, dxCommandQueue->GetDxCommandQueue(),
-			dimensions.x, dimensions.y, RHISwapchain::k_numBackBuffers, Conversion::ToDx12(result->m_renderTargetFormat));
+			dimensions.x, dimensions.y, RHISwapchain::GetNumBackBuffers(), Conversion::ToDx12(result->m_renderTargetFormat));
 
-		ID3D12DescriptorHeap* newRtvDescriptorHeap 
-			= result->mp_dxRenderTargetDescriptorHeap 
-			= D3D12::CreateDxDescriptorHeap(GetDxDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-			RHISwapchain::k_numBackBuffers, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
-
-		result->m_currentBackBufferIndex		= result->mp_dxgiSwapchain->GetCurrentBackBufferIndex();
+		result->m_currentBackBufferIndex = result->mp_dxgiSwapchain->GetCurrentBackBufferIndex();
 		result->m_windowHandle = windowHandle;
 
-		// Gather Backbuffers & RTVs
-		D3D12_CPU_DESCRIPTOR_HANDLE rtv_cpu_handle(newRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-		D3D12_GPU_DESCRIPTOR_HANDLE rtv_gpu_handle = newRtvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
-
+		// Gather Backbuffer Resources & RTVs
 		uint64 offsetSize = GetRTVDescriptorSize();
-		for (uint8 i = 0; i < RHISwapchain::k_numBackBuffers; ++i)
+		for (uint8 i = 0; i < RHISwapchain::GetNumBackBuffers(); ++i)
 		{
 			// Get the buffer resources
 			D3D12Resource* dxBufferResource = new D3D12Resource(ERHIResourceState::Present);
@@ -62,21 +56,13 @@ namespace Influx::Graphics
 			result->mp_backBufferResources[i] = dxBufferResource;
 
 			// Create the RenderTargetViews & store
-			D3D12RenderTargetView* dxRenderTargetView = new D3D12RenderTargetView();
-			GetDxDevice()->CreateRenderTargetView(dxBufferResource->GetDxResource(), nullptr, rtv_cpu_handle);
-			dxRenderTargetView->m_dxCpuHandle = rtv_cpu_handle;
-			dxRenderTargetView->m_dxGpuHandle = rtv_gpu_handle;
-			result->mp_backBufferRTVs[i] = dxRenderTargetView;
-
-			// Offset
-			rtv_cpu_handle.ptr = rtv_cpu_handle.ptr + SIZE_T(offsetSize);
-			rtv_gpu_handle.ptr = rtv_gpu_handle.ptr + SIZE_T(offsetSize);
+			result->mp_backBufferRTVs[i] = CreateRenderTargetView(GetRTVDescriptorHeap(), dxBufferResource);
 		}
 
 		return result;
 	}
 
-	RHIDescriptorHeap* D3D12Device::CreateDescriptorHeap(const ERHIDescriptorType type, uint32 numDescriptors, bool isShaderVisible) const
+	RHIDescriptorHeap* D3D12Device::CreateDescriptorHeap(const ERHIResourceViewType type, uint32 numDescriptors, bool isShaderVisible) const
 	{
 		D3D12DescriptorHeap* result = new D3D12DescriptorHeap(type, numDescriptors, isShaderVisible);
 
@@ -84,9 +70,31 @@ namespace Influx::Graphics
 		result->mp_dxDescriptorHeap = D3D12::CreateDxDescriptorHeap(GetDxDevice(), Conversion::ToDx12(type), numDescriptors, flags);
 
 		result->m_descriptorStride = GetDescriptorSize(type);
-		result->m_occupiedSlotIndices = {};
 
 		return result;
+	}
+
+	RHIDevice::RenderTargetViewPtr D3D12Device::CreateRenderTargetView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const
+	{
+		D3D12Resource* d3d12Resource = (D3D12Resource*)viewedResource;
+
+		return CreateRenderTargetView(d3d12Resource);
+	}
+
+	D3D12RenderTargetView* D3D12Device::CreateRenderTargetView(const D3D12Resource* viewedResource) const
+	{
+		constexpr ERHIFormat temp_format = ERHIFormat::RGBA_8_Unorm;
+		D3D12_RENDER_TARGET_VIEW_DESC desc{};
+		desc.Format = Conversion::ToDx12(temp_format);
+		
+		D3D12RenderTargetView* result = new D3D12RenderTargetView(temp_format);
+		if (GetRTVDescriptorHeap()->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
+		{
+			GetDxDevice()->CreateRenderTargetView(viewedResource->GetDxResource(), nullptr, result->GetDxCPUHandle());
+			return result;
+		}
+
+		return nullptr;
 	}
 
 	RHIResource* D3D12Device::CreateResource() const
@@ -121,6 +129,26 @@ namespace Influx::Graphics
 		return mp_dxgiFactory;
 	}
 
+	D3D12DescriptorHeap* D3D12Device::GetRTVDescriptorHeap() const
+	{
+		return mp_RTVDescriptorHeap;
+	}
+
+	D3D12DescriptorHeap* D3D12Device::GetDSVDescriptorHeap() const
+	{
+		return mp_DSVDescriptorheap;
+	}
+
+	D3D12DescriptorHeap* D3D12Device::GetResourceDescriptorHeap() const
+	{
+		return mp_resourceDescriptorHeap;
+	}
+
+	D3D12DescriptorHeap* D3D12Device::GetSamplerDescriptorHeap() const
+	{
+		return mp_samplerDescriptorHeap;
+	}
+
 	const uint64 D3D12Device::GetRTVDescriptorSize() const
 	{
 		return m_cachedRtvDescriptorSize;
@@ -141,17 +169,17 @@ namespace Influx::Graphics
 		return m_cachedSamplerDescriptorSize;
 	}
 
-	const uint64 D3D12Device::GetDescriptorSize(const ERHIDescriptorType type) const
+	const uint64 D3D12Device::GetDescriptorSize(const ERHIResourceViewType type) const
 	{
 		switch (type)
 		{
-		case ERHIDescriptorType::Resource:	return GetResourceDescriptorSize();
-		case ERHIDescriptorType::DSV:		return GetDSVDescriptorSize();
-		case ERHIDescriptorType::RTV:		return GetRTVDescriptorSize();
-		case ERHIDescriptorType::Sampler:	return GetSamplerDescriptorSize();
+		case ERHIResourceViewType::Resource:	return GetResourceDescriptorSize();
+		case ERHIResourceViewType::DSV:		return GetDSVDescriptorSize();
+		case ERHIResourceViewType::RTV:		return GetRTVDescriptorSize();
+		case ERHIResourceViewType::Sampler:	return GetSamplerDescriptorSize();
 
 		default:
-		case ERHIDescriptorType::Invalid:	return 0u;
+		case ERHIResourceViewType::Invalid:	return 0u;
 		}
 
 		return 0u;
@@ -180,10 +208,10 @@ namespace Influx::Graphics
 		m_cachedRtvDescriptorSize			= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 		// Create Global Descriptor Heaps:
-		mp_samplerDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::Sampler, 16u, true));
-		mp_resourceDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::Resource, 64u, true));
-		mp_RTVDescriptorHeap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::RTV, 64u, false));
-		mp_DSVDescriptorheap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIDescriptorType::DSV, 64u, false));
+		mp_samplerDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIResourceViewType::Sampler, 16u, true));
+		mp_resourceDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIResourceViewType::Resource, 64u, true));
+		mp_RTVDescriptorHeap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIResourceViewType::RTV, 64u, false));
+		mp_DSVDescriptorheap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIResourceViewType::DSV, 64u, false));
 	}
 }
 

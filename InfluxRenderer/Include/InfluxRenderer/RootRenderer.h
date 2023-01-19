@@ -1,7 +1,8 @@
 #pragma once
 
-#ifndef __RENDERER_RENDERER_H_
-#define __RENDERER_RENDERER_H_
+
+#ifndef __RENDERER_ROOT_RENDERER_H_
+#define __RENDERER_ROOT_RENDERER_H_
 
 #include "Core/BasicTypes.h"
 #include "Core/Pointer.h"
@@ -9,6 +10,8 @@
 #include "Core/Platform/Platform.h"
 
 #include "InfluxGraphics/RHITypes.h"
+
+#include "IRenderer.h"
 
 namespace Influx::Graphics
 {
@@ -21,56 +24,6 @@ namespace Influx::Graphics
 
 namespace Influx::Renderer
 {
-	class IRenderer
-	{
-	protected:
-		using RHIDevicePtr		= Ptr<Influx::Graphics::RHIDevice>;
-		using RHICommandListPtr = Ptr<Influx::Graphics::RHICommandList>;
-		using RHISwapchainPtr	= Ptr<Influx::Graphics::RHISwapchain>;
-
-	public:
-		/* Submitting work onto a passed RHICommandList */
-		virtual void OnRender(RHICommandListPtr commandList) const = 0;
-
-		/* On attaching to a Window */
-		virtual void OnAttachToWindow(const RHIDevicePtr, const RHISwapchainPtr) {};
-
-		/* Submitting work onto a passed RHICommandList  */
-		/* Resizing the bound window swapchain */
-		virtual void OnSwapchainResize(const RHIDevicePtr, const RHISwapchainPtr, 
-			const Math::Vectoru2& prevSize, const Math::Vectoru2& newSize) {};
-
-		/* Initializing RHI Resources */
-		virtual void Initialize(const RHIDevicePtr) = 0;
-
-		/* On detaching from a Window */
-		virtual void OnDetachFromWindow(const RHIDevicePtr) {};
-
-		/* Cleaning up RHI Resources */
-		virtual void Cleanup(const RHIDevicePtr) = 0;
-
-		bool IsInitialized() const;
-		bool NeedsSwapchainUpdate() const;
-		bool IsAttachedToSwapchain() const;
-
-	protected:
-		IRenderer() = default;
-
-	private:
-		bool m_isInitialized = false;
-		bool m_hasOutdatedSwapchain = true;
-		bool m_isAttachedToSwapchain = false;
-
-		friend class RootRenderer;
-
-	public:
-		IRenderer(const IRenderer&) = delete;
-		IRenderer(IRenderer&&) = delete;
-		IRenderer& operator=(const IRenderer&) = delete;
-		IRenderer& operator=(IRenderer&&) = delete;
-		virtual ~IRenderer() = default;
-	};
-
 	class RootRenderer final
 	{
 		using IRendererList = List<IRenderer*>;
@@ -126,7 +79,7 @@ namespace Influx::Renderer
 			Math::Vectoru2 m_updatedSize;
 			bool m_isDirty = true;
 		};
-		
+
 		SwapchainTarget* mp_windowSwapchain = nullptr;
 
 		uint64 m_frame;

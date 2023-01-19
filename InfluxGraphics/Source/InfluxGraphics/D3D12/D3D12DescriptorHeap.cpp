@@ -4,7 +4,7 @@
 
 namespace Influx::Graphics
 {
-	D3D12DescriptorHeap::D3D12DescriptorHeap(const ERHIDescriptorType type, uint64 numDescriptors, bool isShaderVisible)
+	D3D12DescriptorHeap::D3D12DescriptorHeap(const ERHIResourceViewType type, uint64 numDescriptors, bool isShaderVisible)
 		: RHIDescriptorHeap(type, numDescriptors, isShaderVisible)
 	{
 
@@ -17,11 +17,13 @@ namespace Influx::Graphics
 
 	D3D12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHeap::GetCPUHandle(uint64 slot)
 	{
-		if (!IsSlotFree(slot))
+		if (!IsSlotFreeGPU(slot))
 		{
 			// Slot is in the Freelist. Thus there's no descriptor here...
 			return NullCPUHandle();
 		}
+
+		m_slotHolder_cpu.SetSlotOccupied(slot);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = GetDxDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
 		handle.ptr += (slot * m_descriptorStride);
@@ -31,11 +33,13 @@ namespace Influx::Graphics
 
 	D3D12_GPU_DESCRIPTOR_HANDLE D3D12DescriptorHeap::GetGPUHandle(uint64 slot)
 	{
-		if (!IsSlotFree(slot))
+		if (!IsSlotFreeGPU(slot))
 		{
 			// Slot is in the Freelist. Thus there's no descriptor here...
 			return NullGPUHandle();
 		}
+
+		m_slotHolder_gpu.SetSlotOccupied(slot);
 
 		D3D12_GPU_DESCRIPTOR_HANDLE handle = GetDxDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
 		handle.ptr += (slot * m_descriptorStride);
@@ -45,35 +49,27 @@ namespace Influx::Graphics
 
 	D3D12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHeap::GetCPUHandle()
 	{
-		return GetCPUHandle(GetFirstFreeSlot());
+		return GetCPUHandle(GetFirstFreeSlotCPU());
 	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE D3D12DescriptorHeap::GetGPUHandle()
 	{
-		return GetGPUHandle(GetFirstFreeSlot());
-	}
-
-	bool D3D12DescriptorHeap::GetHandles(uint64 slot, D3D12_CPU_DESCRIPTOR_HANDLE& out_cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE& out_gpuHandle)
-	{
-		if (!IsSlotFree(slot))
-		{
-			// Slot is in the Freelist. Thus there's no descriptor here...
-			out_cpuHandle = NullCPUHandle();
-			out_gpuHandle = NullGPUHandle();
-			return false;
-		}
-
-		out_cpuHandle = GetDxDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
-		out_gpuHandle = GetDxDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
-		out_cpuHandle.ptr += (slot * m_descriptorStride);
-		out_gpuHandle.ptr += (slot * m_descriptorStride);
-
-		return true;
+		return GetGPUHandle(GetFirstFreeSlotGPU());
 	}
 
 	bool D3D12DescriptorHeap::GetHandles(D3D12_CPU_DESCRIPTOR_HANDLE& out_cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE& out_gpuHandle)
 	{
-		return GetHandles(GetFirstFreeSlot(), out_cpuHandle, out_gpuHandle);
+		out_cpuHandle = GetCPUHandle();
+		out_gpuHandle = GetGPUHandle();
+
+		if (out_gpuHandle.ptr == NullGPUHandle().ptr|| out_cpuHandle.ptr == NullCPUHandle().ptr)
+		{
+			return false;
+		}
+		else
+		{
+			return true;
+		}
 	}
 
 	ID3D12DescriptorHeap* D3D12DescriptorHeap::GetDxDescriptorHeap() const
@@ -81,19 +77,23 @@ namespace Influx::Graphics
 		return mp_dxDescriptorHeap;
 	}
 
-	bool D3D12DescriptorHeap::IsSlotFree(uint64 slot) const
+	bool D3D12DescriptorHeap::IsSlotFreeCPU(uint64 slot) const
 	{
-		return std::find(m_occupiedSlotIndices.cbegin(), m_occupiedSlotIndices.cend(), slot) == m_occupiedSlotIndices.cend();
+		return m_slotHolder_cpu.IsSlotFree(slot);
 	}
 
-	uint64 D3D12DescriptorHeap::GetFirstFreeSlot() const
+	bool D3D12DescriptorHeap::IsSlotFreeGPU(uint64 slot) const
 	{
-		for (uint64 i = 0; i < GetNumDescriptors(); ++i)
-		{
-			if (IsSlotFree(i)) return i;
-		}
+		return m_slotHolder_gpu.IsSlotFree(slot);
+	}
 
-		FLX_ASSERT(false); // no free slots?
-		return std::numeric_limits<size_t>::max();
+	uint64 D3D12DescriptorHeap::GetFirstFreeSlotCPU() const
+	{
+		return m_slotHolder_cpu.GetFirstFreeSlot(GetNumDescriptors());
+	}
+
+	uint64 D3D12DescriptorHeap::GetFirstFreeSlotGPU() const
+	{
+		return m_slotHolder_gpu.GetFirstFreeSlot(GetNumDescriptors());
 	}
 }

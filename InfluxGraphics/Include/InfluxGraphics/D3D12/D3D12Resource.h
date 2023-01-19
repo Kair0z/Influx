@@ -22,21 +22,6 @@ namespace Influx::Graphics
 
 		virtual ~D3D12Resource();
 	};
-
-	class D3D12RenderTargetView final : public RHIRenderTargetView
-	{
-		friend class D3D12Device;
-		D3D12RenderTargetView() : RHIRenderTargetView() {}
-
-		D3D12_CPU_DESCRIPTOR_HANDLE m_dxCpuHandle;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_dxGpuHandle;
-
-	public:
-		D3D12_CPU_DESCRIPTOR_HANDLE GetDxCPUHandle() const;
-		D3D12_GPU_DESCRIPTOR_HANDLE GetDxGPUHandle() const;
-
-		virtual ~D3D12RenderTargetView() = default;
-	};
 }
 
 #endif

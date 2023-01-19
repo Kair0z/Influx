@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Source\InfluxGraphics\RHIResource.cpp" />
-    <ClCompile Include="Include\InfluxGraphics\RHICommandList.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandList.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandQueue.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12DescriptorHeap.cpp" />
@@ -12,6 +11,12 @@
     <ClCompile Include="Source\InfluxGraphics\RHICommandQueue.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHIDescriptorHeap.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHIDevice.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIResourceViews\RHIResourceView.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIResourceViews\RHIRenderTargetView.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHICommandList.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHISwapchain.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHIObject.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12.h" />
@@ -31,5 +36,9 @@
     <ClInclude Include="Include\InfluxGraphics\RHISwapchain.h" />
     <ClInclude Include="Include\InfluxGraphics\RHITypes.h" />
     <ClInclude Include="Include\InfluxGraphics\Types.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIRenderTargetView.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIResourceView.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIObject.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.h" />
   </ItemGroup>
 </Project>

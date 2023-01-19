@@ -1,5 +1,5 @@
 #include "renderer_pch.h"
-#include "InfluxRenderer/Renderer.h"
+#include "InfluxRenderer/RootRenderer.h"
 
 #include "InfluxGraphics/RHICommandQueue.h"
 #include "InfluxGraphics/RHIDescriptorHeap.h"
@@ -95,7 +95,7 @@ namespace Influx::Renderer
 			{
 				if (renderer->IsInitialized())
 				{
-					renderer->OnRender(cmdList);
+					renderer->Render(cmdList);
 				}
 			}
 
@@ -178,7 +178,6 @@ namespace Influx::Renderer
 			}
 
 			renderer->Initialize(GetDevice());
-			renderer->m_isInitialized = true;
 		}
 	}
 
@@ -191,13 +190,7 @@ namespace Influx::Renderer
 
 		for (IRenderer* renderer : GetChildRendererList())
 		{
-			if (!renderer->m_isAttachedToSwapchain)
-			{
-				renderer->OnAttachToWindow(GetDevice(), mp_windowSwapchain->mp_rhiSwapchain);
-				renderer->OnSwapchainResize(GetDevice(), mp_windowSwapchain->mp_rhiSwapchain, mp_windowSwapchain->m_previousSize, mp_windowSwapchain->m_updatedSize);
-				renderer->m_hasOutdatedSwapchain = false;
-				renderer->m_isAttachedToSwapchain = true;
-			}
+			renderer->AttachToRenderTarget(nullptr, nullptr);
 		}
 	}
 
@@ -210,10 +203,9 @@ namespace Influx::Renderer
 
 		for (IRenderer* renderer : GetChildRendererList())
 		{
-			if (!renderer->m_isAttachedToSwapchain)
+			if (renderer->IsAttachedToRenderTarget())
 			{
-				renderer->OnDetachFromWindow(GetDevice());
-				renderer->m_isAttachedToSwapchain = false;
+				renderer->DetachFromRenderTarget(nullptr);
 			}
 		}
 	}
@@ -225,7 +217,7 @@ namespace Influx::Renderer
 			// >:(
 			return;
 		}
-		
+
 		DetachFromCurrentWindow();
 
 		for (IRenderer* renderer : GetChildRendererList())
@@ -236,7 +228,6 @@ namespace Influx::Renderer
 			}
 
 			renderer->Cleanup(GetDevice());
-			renderer->m_isInitialized = false;
 		}
 	}
 
@@ -254,10 +245,9 @@ namespace Influx::Renderer
 
 		for (IRenderer* renderer : GetChildRendererList())
 		{
-			if (renderer->m_hasOutdatedSwapchain)
+			if (renderer->IsAttachedToRenderTarget())
 			{
-				renderer->OnSwapchainResize(GetDevice(), mp_windowSwapchain->mp_rhiSwapchain, mp_windowSwapchain->m_previousSize, mp_windowSwapchain->m_updatedSize);
-				renderer->m_hasOutdatedSwapchain = false;
+				renderer->ResizeRenderTarget(nullptr);
 			}
 		}
 	}
@@ -287,7 +277,7 @@ namespace Influx::Renderer
 
 		for (IRenderer* renderer : GetChildRendererList())
 		{
-			renderer->OnAttachToWindow(GetDevice(), mp_windowSwapchain->mp_rhiSwapchain);
+			renderer->AttachToRenderTarget(nullptr, nullptr);
 		}
 
 		OnWindowResize(windowRect.m_widthHeigth);
@@ -301,7 +291,7 @@ namespace Influx::Renderer
 		{
 			return true;
 		}
-		
+
 		DetachChildRenderersToSwapchain();
 
 		// ToDelete...
@@ -326,11 +316,6 @@ namespace Influx::Renderer
 		mp_windowSwapchain->m_isDirty = true;
 		mp_windowSwapchain->m_previousSize = mp_windowSwapchain->m_updatedSize;
 		mp_windowSwapchain->m_updatedSize = newSize;
-
-		for (IRenderer* renderer : GetChildRendererList())
-		{
-			renderer->m_hasOutdatedSwapchain = true;
-		}
 	}
 
 	bool RootRenderer::DoesSwapchainNeedResize() const
@@ -376,20 +361,5 @@ namespace Influx::Renderer
 	RootRenderer::IRendererList& RootRenderer::GetChildRendererList()
 	{
 		return mp_childRenderers;
-	}
-
-	bool IRenderer::IsInitialized() const
-	{
-		return m_isInitialized;
-	}
-
-	bool IRenderer::NeedsSwapchainUpdate() const
-	{
-		return m_hasOutdatedSwapchain || !IsAttachedToSwapchain();
-	}
-
-	bool IRenderer::IsAttachedToSwapchain() const
-	{
-		return m_isAttachedToSwapchain;
 	}
 }

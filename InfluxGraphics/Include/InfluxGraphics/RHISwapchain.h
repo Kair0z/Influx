@@ -19,6 +19,24 @@ namespace Influx::Graphics
 	/* Swapchain */
 	class RHISwapchain
 	{
+		constexpr static uint8 k_numBackBuffers = 3;
+
+	protected:
+		RHISwapchain(uint32 width, uint32 height, bool isTearingSupported);
+
+		RHIResource* mp_backBufferResources[k_numBackBuffers];
+		RHIRenderTargetView* mp_backBufferRTVs[k_numBackBuffers];
+
+		ERHIFormat m_renderTargetFormat = ERHIFormat::INVALID;
+
+		uint32 m_currentBackBufferIndex = 0;
+		uint32 m_width = 0;
+		uint32 m_height = 0;
+
+		bool m_isTearingSupported = false;
+
+		Platform::WindowHandle m_windowHandle;
+
 	public:
 		/* Flips & Presents the backbuffer to the front-buffer. */
 		// Also handles synchronization with the given RHICommandQueue
@@ -40,29 +58,13 @@ namespace Influx::Graphics
 
 		ERHIFormat GetRenderTargetFormat() const;
 
-		constexpr static uint8 k_numBackBuffers = 3;
 		constexpr static uint8 GetNumBackBuffers() { return k_numBackBuffers; }
 
-	protected:
-		RHIResource* mp_backBufferResources[k_numBackBuffers];
-		RHIRenderTargetView* mp_backBufferRTVs[k_numBackBuffers];
-
-		ERHIFormat m_renderTargetFormat = ERHIFormat::INVALID;
-
-		uint32 m_currentBackBufferIndex = 0;
-		uint32 m_width = 0;
-		uint32 m_height = 0;
-
-		bool m_isTearingSupported = false;
-
-		Platform::WindowHandle m_windowHandle;
-
-		RHISwapchain(uint32 width, uint32 height, bool isTearingSupported);
+	public:
 		RHISwapchain(const RHISwapchain&) = delete;
 		RHISwapchain(RHISwapchain&&) = delete;
 		RHISwapchain& operator=(const RHISwapchain&) = delete;
 		RHISwapchain& operator=(RHISwapchain&&) = delete;
-
 		virtual ~RHISwapchain() = default;
 	};
 }
