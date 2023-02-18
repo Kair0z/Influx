@@ -2,9 +2,10 @@
 
 namespace Influx::Graphics
 {
-    RHIRenderTargetView::RHIRenderTargetView(ERHIFormat rtvFormat, const RHIClearValue resourceClearValue)
+    RHIRenderTargetView::RHIRenderTargetView(ERHIFormat rtvFormat, const Math::Vectoru2& dimensions, const RHIClearValue resourceClearValue)
         : m_format{ rtvFormat }
         , m_resourceClearValue{ resourceClearValue }
+        , m_resourceDimensions{dimensions}
     {
     }
 
@@ -16,5 +17,10 @@ namespace Influx::Graphics
     const RHIClearValue& RHIRenderTargetView::GetOptimizedClearValue() const
     {
         return m_resourceClearValue;
+    }
+
+    const Math::Vectoru2& RHIRenderTargetView::GetDimensions() const
+    {
+        return m_resourceDimensions;
     }
 }

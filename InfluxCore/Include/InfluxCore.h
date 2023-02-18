@@ -5,7 +5,6 @@
 
 #include "Core/Time.h"
 #include "Core/Function.h"
-#include "Core/Procedure/Procedure.h"
 #include "Core/Pointer.h"
 #include "Core/String.h"
 #include "Core/Assert.h"

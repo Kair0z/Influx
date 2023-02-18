@@ -11,7 +11,8 @@ namespace Influx::Graphics
 	class D3D12RenderTargetView final : public RHIRenderTargetView
 	{
 		friend class D3D12Device;
-		D3D12RenderTargetView(ERHIFormat rtvFormat, const RHIClearValue resourceClearValue) : RHIRenderTargetView(rtvFormat, resourceClearValue) {}
+		D3D12RenderTargetView(ERHIFormat rtvFormat, const Math::Vectoru2& dimensions, const RHIClearValue resourceClearValue) 
+			: RHIRenderTargetView(rtvFormat, dimensions, resourceClearValue) {}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE m_dxCpuHandle{};
 		D3D12_GPU_DESCRIPTOR_HANDLE m_dxGpuHandle{};

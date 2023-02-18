@@ -6,10 +6,10 @@
 
 namespace Influx::Graphics
 {
-	class RHIRenderTargetView : public Internal::RHIResourceView<ERHIResourceViewType::RTV>
+	class RHIShaderResourceView : public Internal::RHIResourceView<ERHIResourceViewType::SRV>
 	{
 	protected:
-		RHIRenderTargetView(ERHIFormat rtvFormat, const Math::Vectoru2& dimensions, const RHIClearValue resourceClearValue);
+		RHIShaderResourceView(ERHIFormat rtvFormat, const Math::Vectoru2& dimensions, const RHIClearValue resourceClearValue);
 
 	public:
 		ERHIFormat GetFormat() const;
@@ -22,5 +22,3 @@ namespace Influx::Graphics
 		const Math::Vectoru2 m_resourceDimensions;
 	};
 }
-
-

@@ -4,8 +4,11 @@
 #include "InfluxGraphics/D3D12/D3D12Swapchain.h"
 #include "InfluxGraphics/D3D12/D3D12Resource.h"
 #include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
+#include "InfluxGraphics/D3D12/D3D12RootSignature.h"
+#include "InfluxGraphics/D3D12/D3D12Pipeline.h"
 
 #include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
+#include "InfluxGraphics/D3D12/ResourceViews/D3D12ShaderResourceView.h"
 
 namespace Influx::Graphics
 {
@@ -81,16 +84,45 @@ namespace Influx::Graphics
 		return CreateRenderTargetView(d3d12Resource);
 	}
 
+	RHIDevice::ShaderResourceViewPtr D3D12Device::CreateShaderResourceView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const
+	{
+		D3D12Resource* d3d12Resource = (D3D12Resource*)viewedResource;
+
+		return CreateShaderResourceView(d3d12Resource);
+	}
+
 	D3D12RenderTargetView* D3D12Device::CreateRenderTargetView(const D3D12Resource* viewedResource) const
 	{
 		constexpr ERHIFormat temp_format = ERHIFormat::RGBA_8_Unorm;
 		D3D12_RENDER_TARGET_VIEW_DESC desc{};
 		desc.Format = Conversion::ToDx12(temp_format);
-		
-		D3D12RenderTargetView* result = new D3D12RenderTargetView(temp_format, viewedResource->GetOptimizedClearValue());
+
+		const D3D12_RESOURCE_DESC& resource_desc = viewedResource->GetDxResource()->GetDesc();
+		const Math::Vectoru2 resource_dimensions = { (uint32)resource_desc.Width, (uint32)resource_desc.Height };
+
+		D3D12RenderTargetView* result = new D3D12RenderTargetView(temp_format, resource_dimensions, viewedResource->GetOptimizedClearValue());
 		if (GetRTVDescriptorHeap()->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
 		{
 			GetDxDevice()->CreateRenderTargetView(viewedResource->GetDxResource(), nullptr, result->GetDxCPUHandle());
+			return result;
+		}
+
+		return nullptr;
+	}
+
+	D3D12ShaderResourceView* D3D12Device::CreateShaderResourceView(const D3D12Resource* viewedResource) const
+	{
+		constexpr ERHIFormat temp_format = ERHIFormat::RGBA_8_Unorm;
+		D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
+		desc.Format = Conversion::ToDx12(temp_format);
+
+		const D3D12_RESOURCE_DESC& resource_desc = viewedResource->GetDxResource()->GetDesc();
+		const Math::Vectoru2 resource_dimensions = { (uint32)resource_desc.Width, (uint32)resource_desc.Height };
+
+		D3D12ShaderResourceView* result = new D3D12ShaderResourceView(temp_format, resource_dimensions, viewedResource->GetOptimizedClearValue());
+		if (GetResourceDescriptorHeap()->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
+		{
+			GetDxDevice()->CreateShaderResourceView(viewedResource->GetDxResource(), nullptr, result->GetDxCPUHandle());
 			return result;
 		}
 
@@ -118,9 +150,71 @@ namespace Influx::Graphics
 		
 		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue);
 
-		result->mp_dxResource = D3D12::CreateCommittedResource(GetDxDevice(), textureResourceDesc, Conversion::ToDx12(initialState));
+		result->mp_dxResource = D3D12::CreateDxCommittedResource(GetDxDevice(), textureResourceDesc, Conversion::ToDx12(initialState));
 
 		return result;
+	}
+
+	RHIDevice::RootSignaturePtr D3D12Device::CreateGraphicsRootSignature() const
+	{
+		D3D12RootSignature* d3d12RootSignature = new D3D12RootSignature();
+
+		D3D12::HelperStructs::RootSignatureDesc rootSigDesc{};
+		rootSigDesc.FeatureData;
+		rootSigDesc.Flags;
+		rootSigDesc.MaxVersion;
+		rootSigDesc.StaticSamplers;
+		
+		d3d12RootSignature->mp_dxRootSignature = D3D12::CreateDxSerializedRootSignature(rootSigDesc, GetDxDevice());
+
+		return d3d12RootSignature;
+	}
+
+	RHIDevice::PipelinePtr D3D12Device::CreateGraphicsPipeline(const RHIPipelineDescription& desc, RootSignaturePtr rootSignature) const
+	{
+		D3D12Pipeline* d3d12Pipeline = new D3D12Pipeline(desc);
+		D3D12RootSignature* d3d12RootSignature = (D3D12RootSignature*)rootSignature;
+
+		D3D12::HelperStructs::GraphicsPipelineStateDesc pipelineDesc{};
+		
+		pipelineDesc.InputElements;
+
+		pipelineDesc.VertexShaderBytecode;
+		pipelineDesc.PixelShaderByteCode;
+
+		pipelineDesc.PrimitiveTopologyType;
+		pipelineDesc.RasterizerState.AntialiasedLineEnable = desc.RasterizerState.bEnableLineAA;
+		pipelineDesc.RasterizerState.ConservativeRaster = desc.RasterizerState.bEnableConservativeRaster ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+		pipelineDesc.RasterizerState.CullMode;
+		pipelineDesc.RasterizerState.DepthBias = desc.RasterizerState.DepthBias;
+		pipelineDesc.RasterizerState.DepthBiasClamp = desc.RasterizerState.DepthBiasClamp;
+		pipelineDesc.RasterizerState.DepthClipEnable;
+		pipelineDesc.RasterizerState.FillMode;
+		pipelineDesc.RasterizerState.ForcedSampleCount;
+		pipelineDesc.RasterizerState.FrontCounterClockwise = desc.RasterizerState.bFrontCounterClockwise;
+		pipelineDesc.RasterizerState.MultisampleEnable = desc.RasterizerState.bEnableMultisample;
+		pipelineDesc.RasterizerState.SlopeScaledDepthBias = desc.RasterizerState.SlopeScaledDepthBias;
+
+		pipelineDesc.BlendState.AlphaToCoverageEnable = desc.BlendState.bEnableAlphaToCoverage;
+		pipelineDesc.BlendState.IndependentBlendEnable = desc.BlendState.bEnableIndependentBlend;
+
+		pipelineDesc.DepthStencilState.DepthEnable = desc.DepthStencilState.bEnableDepth;
+		pipelineDesc.DepthStencilState.StencilEnable = desc.DepthStencilState.bEnableStencil;
+
+		pipelineDesc.SampleDesc.Count = desc.SampleCount;
+		pipelineDesc.SampleDesc.Quality = desc.SampleQuality;
+		pipelineDesc.SampleMask = desc.SampleMask;
+
+		for (uint8 i = 0; i < 8u; ++i)
+		{
+			pipelineDesc.BlendState.RenderTarget[i].BlendEnable = desc.RenderTargets[i].bEnableBlend;
+			pipelineDesc.BlendState.RenderTarget[i].LogicOpEnable = desc.RenderTargets[i].bEnableLogicOp;
+			pipelineDesc.RenderTargetFormats[i] = Conversion::ToDx12(desc.RenderTargets[i].Format);
+		}
+
+		d3d12Pipeline->mp_dxPipelineState = D3D12::CreateDxGraphicsPipelineState(pipelineDesc, d3d12RootSignature->mp_dxRootSignature, GetDxDevice());
+
+		return d3d12Pipeline;
 	}
 
 	void D3D12Device::SetDebugLayerEnabled(bool setDebugLayerEnabled)
@@ -148,6 +242,16 @@ namespace Influx::Graphics
 	IDXGIFactory4* D3D12Device::GetDxgiFactory() const
 	{
 		return mp_dxgiFactory;
+	}
+
+	D3D12CommandQueue* D3D12Device::GetGlobalGraphicsCommandQueue() const
+	{
+		return mp_graphicsQueue;
+	}
+
+	D3D12CommandQueue* D3D12Device::GetGlobalComputeCommandQueue() const
+	{
+		return mp_computeQueue;
 	}
 
 	D3D12DescriptorHeap* D3D12Device::GetRTVDescriptorHeap() const
@@ -212,12 +316,19 @@ namespace Influx::Graphics
 		mp_dxgiAdapter	= D3D12::GetDxgiAdapter4(mp_dxgiFactory, true);
 		mp_dxDevice		= D3D12::CreateDxDevice2(mp_dxgiAdapter);
 
+		CreateGlobalQueues();
 		CreateGlobalDescriptorHeaps();
 	}
 
 	void D3D12Device::Cleanup()
 	{
 
+	}
+
+	void D3D12Device::CreateGlobalQueues()
+	{
+		mp_graphicsQueue	= static_cast<D3D12CommandQueue*>(CreateCommandQueue(ERHICommandQueueType::Graphics));
+		mp_computeQueue		= static_cast<D3D12CommandQueue*>(CreateCommandQueue(ERHICommandQueueType::Compute));
 	}
 
 	void D3D12Device::CreateGlobalDescriptorHeaps()

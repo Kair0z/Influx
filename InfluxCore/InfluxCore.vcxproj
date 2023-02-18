@@ -29,16 +29,18 @@
     <ClInclude Include="Include\Core\Container\Vector.h" />
     <ClInclude Include="Include\Core\Enum.h" />
     <ClInclude Include="Include\Core\Geometry\Camera.h" />
+    <ClInclude Include="Include\Core\Geometry\Mesh.h" />
     <ClInclude Include="Include\Core\Geometry\Plane.h" />
     <ClInclude Include="Include\Core\Geometry\Ray.h" />
     <ClInclude Include="Include\Core\Geometry\Rect.h" />
     <ClInclude Include="Include\Core\Geometry\Sphere.h" />
     <ClInclude Include="Include\Core\Geometry\Transform.h" />
+    <ClInclude Include="Include\Core\Geometry\Triangle.h" />
     <ClInclude Include="Include\Core\KDTree.h" />
     <ClInclude Include="Include\Core\Math\Bounds.h" />
     <ClInclude Include="Include\Core\Math\Matrix.h" />
     <ClInclude Include="Include\Core\Math\Vector.h" />
-    <ClInclude Include="Include\Core\Procedure\ThreadPool.h" />
+    <ClInclude Include="Include\Core\Threading\ThreadPool.h" />
     <ClInclude Include="Include\Core\Sync\Semaphore.h" />
     <ClInclude Include="Include\InfluxCore.h" />
     <ClInclude Include="Include\Core\Function.h" />
@@ -52,7 +54,6 @@
     <ClInclude Include="Include\Core\Singleton\Locator.h" />
     <ClInclude Include="Include\Core\Singleton\Singleton.h" />
     <ClInclude Include="Source\Thread\BaseThread.h" />
-    <ClInclude Include="Include\Core\Procedure\Procedure.h" />
     <ClInclude Include="Source\Thread\Windows\WindowsThread.h" />
     <ClInclude Include="Include\Core\Time.h" />
     <ClInclude Include="Include\Core\String.h" />

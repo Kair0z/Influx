@@ -2,14 +2,12 @@
 
 namespace Influx::GUI
 {
-	namespace Internal
+	class IWidget
 	{
-		class IWidget
-		{
-		public:
-			virtual void Render() const = 0;
-		};
-	}
+	public:
+		virtual void Update() {};
+		virtual void Render() const = 0;
+	};
 }
 
 

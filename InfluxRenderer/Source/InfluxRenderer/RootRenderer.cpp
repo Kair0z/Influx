@@ -299,6 +299,7 @@ namespace Influx::Renderer
 
 		delete mp_windowSwapchain;
 		mp_windowSwapchain = nullptr;
+		return true;
 	}
 
 	bool RootRenderer::IsAttachedToWindow() const
@@ -316,6 +317,8 @@ namespace Influx::Renderer
 		mp_windowSwapchain->m_isDirty = true;
 		mp_windowSwapchain->m_previousSize = mp_windowSwapchain->m_updatedSize;
 		mp_windowSwapchain->m_updatedSize = newSize;
+
+		return true;
 	}
 
 	bool RootRenderer::DoesSwapchainNeedResize() const

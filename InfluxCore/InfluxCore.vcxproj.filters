@@ -18,7 +18,6 @@
     <ClInclude Include="Include\Core\Singleton\Singleton.h" />
     <ClInclude Include="Source\Thread\Windows\WindowsThread.h" />
     <ClInclude Include="Source\Thread\BaseThread.h" />
-    <ClInclude Include="Include\Core\Procedure\Procedure.h" />
     <ClInclude Include="Include\Core\Time.h" />
     <ClInclude Include="Include\Core\String.h" />
     <ClInclude Include="Include\Core\Cast.h" />
@@ -32,7 +31,7 @@
     <ClInclude Include="Include\Core\Geometry\Plane.h" />
     <ClInclude Include="Include\Core\Geometry\Camera.h" />
     <ClInclude Include="Include\Core\Geometry\Ray.h" />
-    <ClInclude Include="Include\Core\Procedure\ThreadPool.h" />
+    <ClInclude Include="Include\Core\Threading\ThreadPool.h" />
     <ClInclude Include="Include\Core\Math\Matrix.h" />
     <ClInclude Include="Include\Core\BRDF\BRDF.h" />
     <ClInclude Include="Include\Core\KDTree.h" />
@@ -42,6 +41,9 @@
     <ClInclude Include="Include\Core\BasicTypes.h" />
     <ClInclude Include="Include\Core\Cleanup.h" />
     <ClInclude Include="Include\Core\Sync\Semaphore.h" />
+    <ClInclude Include="Include\Core\CheckSafety.h" />
+    <ClInclude Include="Include\Core\Geometry\Triangle.h" />
+    <ClInclude Include="Include\Core\Geometry\Mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\Core\Math\Vector.inl" />

@@ -13,6 +13,7 @@ namespace Influx::Graphics
 {
 	class RHIDevice;
 	class RHIRenderTargetView;
+	class RHIShaderResourceView;
 
 	/* RHIResource */
 	class RHIResource
@@ -20,6 +21,7 @@ namespace Influx::Graphics
 	protected:
 		using DevicePtr = Ptr<RHIDevice>;
 		using RenderTargetViewPtr = Ptr<RHIRenderTargetView>;
+		using ShaderResourceViewPtr = Ptr<RHIShaderResourceView>;
 
 		RHIResource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue);
 
@@ -27,6 +29,7 @@ namespace Influx::Graphics
 		void TransitionState(const ERHIResourceState newState);
 
 		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const = 0;
+		virtual ShaderResourceViewPtr CreateShaderResourceView(const DevicePtr device) const = 0;
 
 		ERHIResourceState GetCurrentState() const;
 		ERHIResourceState GetPreviousState() const;

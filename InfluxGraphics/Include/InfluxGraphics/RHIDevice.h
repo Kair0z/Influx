@@ -14,7 +14,11 @@ namespace Influx::Graphics
 	class RHISwapchain;
 	class RHICommandQueue;
 	class RHIRenderTargetView;
+	class RHIShaderResourceView;
 	class RHIResource;
+	class RHIRootSignature;
+	struct RHIPipelineDescription;
+	class RHIPipeline;
 
 	class RHIDevice
 	{
@@ -23,7 +27,10 @@ namespace Influx::Graphics
 		using SwapchainPtr			= Ptr<RHISwapchain>;
 		using DescriptorHeapPtr		= Ptr<RHIDescriptorHeap>;
 		using RenderTargetViewPtr	= Ptr<RHIRenderTargetView>;
+		using ShaderResourceViewPtr = Ptr<RHIShaderResourceView>;
 		using ResourcePtr			= Ptr<RHIResource>;
+		using RootSignaturePtr		= Ptr<RHIRootSignature>;
+		using PipelinePtr			= Ptr<RHIPipeline>;
 
 	public:
 		/* Creating API objects & Resources */
@@ -34,9 +41,13 @@ namespace Influx::Graphics
 		virtual DescriptorHeapPtr CreateDescriptorHeap(const ERHIResourceViewType type, uint32 numDescriptors, bool isShaderVisible) const = 0;
 
 		virtual RenderTargetViewPtr CreateRenderTargetView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const = 0;
+		virtual ShaderResourceViewPtr CreateShaderResourceView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const = 0;
 
 		virtual ResourcePtr CreateResource(const ERHIResourceState initialState) const = 0;
 		virtual ResourcePtr CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const = 0;
+
+		virtual RootSignaturePtr CreateGraphicsRootSignature() const = 0;
+		virtual PipelinePtr CreateGraphicsPipeline(const RHIPipelineDescription& desc, RootSignaturePtr rootSignature) const = 0;
 
 		/* Debug Layer*/
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) = 0;

@@ -188,7 +188,7 @@ namespace Influx
 		template <typename _T>
 		constexpr inline _T DegreesToRadians(_T degrees)
 		{
-			return degrees * (_T)(3.1415 / 180);
+			return degrees * (_T)(k_PI / 180);
 		}
 	}
 }

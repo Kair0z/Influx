@@ -3,9 +3,11 @@
 #ifndef __GR_TYPES_H_
 #define __GR_TYPES_H_
 
-#define USE_INFLUX_CORE 1
+#define __USE_INFLUX_CORE 1
 
-#if USE_INFLUX_CORE
+#include "RHITypes.h"
+
+#if __USE_INFLUX_CORE
 #include "Core/BasicTypes.h"
 #include "Core/String.h"
 #include "Core/Container/Vector.h"
@@ -24,7 +26,7 @@
 
 namespace Influx
 {
-#if !USE_INFLUX_CORE
+#if !__USE_INFLUX_CORE
 	using uint = unsigned int;
 	using uint8 = uint8_t;
 	using uint16 = uint16_t;

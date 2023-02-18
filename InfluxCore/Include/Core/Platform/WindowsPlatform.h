@@ -7,7 +7,7 @@
 
 #include "Core/BasicTypes.h"
 #include "Core/Cast.h"
-#include "Core/Container/Vector.h"
+#include "Core/Container/Containers.h"
 
 // Include Windows
 #define WIN32_LEAN_AND_MEAN
@@ -25,8 +25,13 @@
 
 namespace Influx::Platform
 {
-	namespace
+	using WindowsProcedure = ::WNDPROC;
+
+	namespace Internal
 	{
+		static List<WindowHandle>		gWindowHandles{};
+		static List<WindowsProcedure>	gWindowsProcedureCallbacklist{};
+
 		constexpr WindowEvent TranslateEvent(const uint8 value)
 		{
 			switch (value)
@@ -38,10 +43,13 @@ namespace Influx::Platform
 			}
 		}
 
-		using WindowsProcedure = ::WNDPROC;
-
 		inline LRESULT DefaultWindowsProcedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
 		{
+			for (const WindowsProcedure& proc : gWindowsProcedureCallbacklist)
+			{
+				proc(hWnd, uMsg, wParam, lParam);
+			}
+
 			switch (uMsg)
 			{
 			case WM_DESTROY:
@@ -127,6 +135,15 @@ namespace Influx::Platform
 		::PostQuitMessage(0);
 	}
 
+	inline void AddWindowsProcedureCallback(WindowsProcedure callback)
+	{
+		Internal::gWindowsProcedureCallbacklist.push_back(callback);
+	}
+
+	inline void RemoveWindowsProcedureCallback(WindowsProcedure callback)
+	{
+		Internal::gWindowsProcedureCallbacklist.remove(callback);
+	}
 
 	// [ WINDOW ]
 	/* Returns false if a quit-event was polled! */
@@ -135,20 +152,19 @@ namespace Influx::Platform
 		// http://www.directxtutorial.com/Lesson.aspx?lessonid=9-1-4
 
 		MSG msg;
-		
 		if (!IsWindowValid(handle))
 		{
-			// quit
 			return false;
 		}
 		
 		bool hasQuitEvent = false;
 		out_events.clear();
+		out_events.reserve(16u); // how many could this really be xD?
 
 		// process ALL windows event message
-		while (::PeekMessage(&msg, (::HWND)handle, 0, 0, PM_REMOVE))
+		while (::PeekMessage(&msg, (::HWND)handle, 0u, 0u, PM_REMOVE))
 		{
-			WindowEvent translatedEvent = TranslateEvent(msg.message);
+			WindowEvent translatedEvent = Internal::TranslateEvent(msg.message);
 			out_events.push_back(translatedEvent);
 
 			if (translatedEvent == WindowEvent::Quit)
@@ -189,7 +205,7 @@ namespace Influx::Platform
 			::WNDCLASSEXW windowClassExtended;
 			windowClassExtended.cbSize			= sizeof(WNDCLASSEXW);
 			windowClassExtended.style			= windowClassStyle;
-			windowClassExtended.lpfnWndProc		= DefaultWindowsProcedure;
+			windowClassExtended.lpfnWndProc		= Internal::DefaultWindowsProcedure;
 			windowClassExtended.cbClsExtra		= 0;
 			windowClassExtended.cbWndExtra		= 0;
 			windowClassExtended.hInstance		= instance;
@@ -288,7 +304,7 @@ namespace Influx::Platform
 
 	inline WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen)
 	{
-		return CreateWindow(settings, shouldOpen, DefaultWindowsProcedure);
+		return CreateWindow(settings, shouldOpen, Internal::DefaultWindowsProcedure);
 	}
 
 	inline void DestroyWindow(const WindowHandle handle)
@@ -335,7 +351,7 @@ namespace Influx::Platform
 		::RECT res{};
 		::GetClientRect((::HWND)windowHandle, &res);
 
-		return Cast<_T>(res);
+		return Internal::Cast<_T>(res);
 	}
 
 	inline bool IsWindowVisible(const WindowHandle windowHandle)

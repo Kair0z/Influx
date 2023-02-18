@@ -14,6 +14,7 @@ namespace Influx::Graphics
 		D3D12Resource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue) : RHIResource(initialState, optimizedClearValue) {}
 
 		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const override;
+		virtual ShaderResourceViewPtr CreateShaderResourceView(const DevicePtr device) const override;
 
 		virtual void OnTransitionState(const ERHIResourceState before, const ERHIResourceState after) override final;
 

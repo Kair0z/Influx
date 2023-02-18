@@ -8,6 +8,7 @@
 #include "Core/Geometry/Rect.h"
 #include "Core/String.h"
 #include "Core/Function.h"
+#include "Core/Singleton/Singleton.h"
 
 #ifdef CreateWindow
 #undef CreateWindow
@@ -19,6 +20,13 @@ namespace Influx::Platform
 	using ProcessHandle = void*;
 	using InstanceHandle = void*;
 	using WindowHandle = void*;
+
+	// [IO]
+	typedef void(*WindowEventCallback)();
+	typedef void(*WindowEvent_MousePos)(const float x, const float y);
+	typedef void(*WindowEvent_MouseButton)(int button, bool isDown);
+	typedef void(*WindowEvent_MouseWheel)(const float w_x, const float w_y);
+	typedef void(*WindowEvent_Focus)(bool isFocussed);
 
 	struct WindowSettings final
 	{
@@ -110,6 +118,8 @@ namespace Influx::Platform
 	Math::Rect<_T> GetClientWindowRect(const WindowHandle windowHandle);
 
 	bool IsWindowVisible(const WindowHandle windowHandle);
+
+	// [IO]
 
 
 	// [MISC]

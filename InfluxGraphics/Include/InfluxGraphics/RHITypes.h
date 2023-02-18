@@ -79,7 +79,6 @@ namespace Influx::Graphics
 		PixelShader
 	};
 
-	// [TODO]
 	enum class ERHIShaderStageFlags
 	{
 		Default
@@ -124,7 +123,9 @@ namespace Influx::Graphics
 
 	enum class ERHICommandQueueType
 	{
-		Graphics
+		Graphics,
+		Compute,
+		Max
 	};
 
 	enum class ERHICullMode
@@ -145,10 +146,21 @@ namespace Influx::Graphics
 		Graphics
 	};
 
-	// Supported Shader Models
 	enum class ERHIShaderModel
 	{
 		SM_5_0
+	};
+
+	enum class ERHIComparisonFunc
+	{
+		Never = 1,
+		Less = 2,
+		Equal = 3,
+		LessEq = 4,
+		Greater = 5,
+		NotEqual = 6,
+		GreaterEq = 7,
+		Always = 8
 	};
 
 	// RenderPass
@@ -206,6 +218,40 @@ namespace Influx::Graphics
 		uint32 Height;
 		uint32 Bottom;
 		uint32 Left;
+	};
+
+	// Pipeline:
+	/* Pipeline: Rasterizer State */
+	struct RHIRasterizerState final
+	{
+		ERHIFillMode Fillmode;
+		ERHICullMode Cullmode;
+		bool bFrontCounterClockwise;
+		int DepthBias;
+		float DepthBiasClamp;
+		float SlopeScaledDepthBias;
+		bool bEnableDepthClip;
+		bool bEnableMultisample;
+		bool bEnableLineAA;
+		bool bEnableConservativeRaster;
+		uint8 ForcedSampleCount;
+	};
+
+	/* Pipeline: Depth & Stencil State */
+	struct RHIDepthStencilState final
+	{
+		bool bEnableDepth;
+		bool bEnableStencil;
+		ERHIComparisonFunc DepthFunc;
+		
+		uint8 StencilReadMask;
+		uint8 StencilWriteMask;
+	};
+
+	struct RHIBlendState final
+	{
+		bool bEnableAlphaToCoverage;
+		bool bEnableIndependentBlend;
 	};
 }
 

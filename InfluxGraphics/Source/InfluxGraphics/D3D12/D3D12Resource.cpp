@@ -1,7 +1,8 @@
 #include "InfluxGraphics/Common.h"
 #include "InfluxGraphics/D3D12/D3D12Resource.h"
 #include "InfluxGraphics/D3D12/D3D12Device.h"
-#include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
+
+#include "InfluxGraphics/D3D12/ResourceViews/D3D12Views.h"
 
 namespace Influx::Graphics
 {
@@ -9,6 +10,12 @@ namespace Influx::Graphics
 	{
 		D3D12Device* d3d12Device = (D3D12Device*)device;
 		return d3d12Device->CreateRenderTargetView(this);
+	}
+
+	RHIResource::ShaderResourceViewPtr D3D12Resource::CreateShaderResourceView(const DevicePtr device) const
+	{
+		D3D12Device* d3d12Device = (D3D12Device*)device;
+		return d3d12Device->CreateShaderResourceView(this);
 	}
 
 	void D3D12Resource::OnTransitionState(const ERHIResourceState before, const ERHIResourceState after)

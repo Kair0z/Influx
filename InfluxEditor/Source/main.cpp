@@ -13,5 +13,6 @@ int main()
 	appSettings.HasSceneRender		= true;
 	
 	Application editorApp{ appSettings };
+
 	editorApp.Run(0, nullptr);
 }
