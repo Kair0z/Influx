@@ -47,7 +47,15 @@ namespace InfluxCoreTests
 		}
 		TEST_METHOD(Function)
 		{
+			using namespace Influx;
 
+			Influx::Function<void()> a = []() { int i = 0; ++i; };
+			Influx::Function<void()> b = []() { int z = 1; ++z; };
+			Influx::Function<void()> c = []() {  };
+
+			Influx::FunctionList<void()> functions{ []() {}, []() {}, []() {} };
+
+			functions();
 		}
 		TEST_METHOD(KDTree)
 		{
