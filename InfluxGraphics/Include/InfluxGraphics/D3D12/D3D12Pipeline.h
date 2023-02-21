@@ -9,10 +9,10 @@
 namespace Influx::Graphics
 {
 	/* D3D12Pipeline */
-	class D3D12Pipeline final : public RHIPipeline
+	class D3D12GraphicsPipeline final : public RHIGraphicsPipeline
 	{
 		friend class D3D12Device;
-		D3D12Pipeline(const RHIPipelineDescription& desc) : RHIPipeline(desc) {}
+		D3D12GraphicsPipeline(const RHIGraphicsPipelineDescription& desc) : RHIGraphicsPipeline(desc) {}
 
 		ID3D12PipelineState* mp_dxPipelineState;
 	};

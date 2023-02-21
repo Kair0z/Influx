@@ -4,12 +4,30 @@
 #define __GR_RHI_PIPELINE_H_
 
 #include "Types.h"
+#include "Core/Container/Containers.h"
 
 namespace Influx::Graphics
 {
-	struct RHIPipelineDescription final
+	struct RHIGraphicsPipelineDescription final
 	{
-		using ShaderCodePtr = void*;
+		using CompiledShaderData = Vector<uint8>;
+
+		struct InputElement final
+		{
+			InputElement(const String& name, uint8 semanticIndex, ERHIFormat format, uint8 inputSlot, uint8 alignedByteOffset, bool dataPerVertexNotPerInstance, uint8 instanceDataStepRate)
+				: SemanticName{ name }, SemanticIndex{ semanticIndex }, Format{ format }, InputSlot{ inputSlot }, AlignedByteOffset{ alignedByteOffset }
+				, bDataPerVertexNotPerInstance{ dataPerVertexNotPerInstance }, InstanceDataStepRate{ instanceDataStepRate } {}
+
+			String SemanticName;
+			uint8 SemanticIndex;
+			ERHIFormat Format;
+			uint8 InputSlot;
+			uint8 AlignedByteOffset;
+			bool bDataPerVertexNotPerInstance;
+			uint8 InstanceDataStepRate;
+		};
+		
+		Vector<InputElement> InputElements;
 
 		RHIRasterizerState RasterizerState;
 		RHIBlendState BlendState;
@@ -17,43 +35,42 @@ namespace Influx::Graphics
 
 		ERHIPrimitiveTopologyType PrimitiveTopologyType;
 
-		ShaderCodePtr VS;
-		ShaderCodePtr PS;
-		ShaderCodePtr DS;
-		ShaderCodePtr HS;
-		ShaderCodePtr GS;
+		CompiledShaderData VS;
+		CompiledShaderData PS;
+		CompiledShaderData DS;
+		CompiledShaderData HS;
+		CompiledShaderData GS;
 
 		uint8 SampleCount;
 		uint8 SampleQuality;
 		uint8 SampleMask;
 		uint8 NodeMask;
 
-		// Input Elements...
-
 		struct
 		{
-			ERHIFormat Format;
+			ERHIFormat Format = ERHIFormat::INVALID;
 
 			bool bEnableBlend;
 			bool bEnableLogicOp;
+
 		} RenderTargets[8];
 	};
 
-	/* RHIPipeline */
-	class RHIPipeline
+	/* RHIGraphicsPipeline */
+	class RHIGraphicsPipeline
 	{
 	protected:
-		RHIPipeline(const RHIPipelineDescription& desc);
+		RHIGraphicsPipeline(const RHIGraphicsPipelineDescription& desc);
 
 	public:
-		RHIPipeline(const RHIPipeline&) = delete;
-		RHIPipeline(RHIPipeline&&) = delete;
-		RHIPipeline& operator=(const RHIPipeline&) = delete;
-		RHIPipeline& operator=(RHIPipeline&&) = delete;
-		virtual ~RHIPipeline() = default;
+		RHIGraphicsPipeline(const RHIGraphicsPipeline&) = delete;
+		RHIGraphicsPipeline(RHIGraphicsPipeline&&) = delete;
+		RHIGraphicsPipeline& operator=(const RHIGraphicsPipeline&) = delete;
+		RHIGraphicsPipeline& operator=(RHIGraphicsPipeline&&) = delete;
+		virtual ~RHIGraphicsPipeline() = default;
 
 	private:
-		RHIPipelineDescription m_pipelineDescription;
+		RHIGraphicsPipelineDescription m_pipelineDescription;
 	};
 }
 

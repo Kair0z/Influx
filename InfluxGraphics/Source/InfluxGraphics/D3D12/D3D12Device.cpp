@@ -155,9 +155,9 @@ namespace Influx::Graphics
 		return result;
 	}
 
-	RHIDevice::RootSignaturePtr D3D12Device::CreateGraphicsRootSignature() const
+	RHIDevice::GraphicsPipelineLayoutPtr D3D12Device::CreateGraphicsPipelineLayout() const
 	{
-		D3D12RootSignature* d3d12RootSignature = new D3D12RootSignature();
+		D3D12GraphicsPipelineLayout* d3d12RootSignature = new D3D12GraphicsPipelineLayout();
 
 		D3D12::HelperStructs::RootSignatureDesc rootSigDesc{};
 		rootSigDesc.FeatureData;
@@ -170,30 +170,42 @@ namespace Influx::Graphics
 		return d3d12RootSignature;
 	}
 
-	RHIDevice::PipelinePtr D3D12Device::CreateGraphicsPipeline(const RHIPipelineDescription& desc, RootSignaturePtr rootSignature) const
+	RHIDevice::GraphicsPipelinePtr D3D12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& desc, GraphicsPipelineLayoutPtr rootSignature) const
 	{
-		D3D12Pipeline* d3d12Pipeline = new D3D12Pipeline(desc);
-		D3D12RootSignature* d3d12RootSignature = (D3D12RootSignature*)rootSignature;
+		D3D12GraphicsPipeline* d3d12Pipeline = new D3D12GraphicsPipeline(desc);
+		D3D12GraphicsPipelineLayout* d3d12RootSignature = (D3D12GraphicsPipelineLayout*)rootSignature;
 
 		D3D12::HelperStructs::GraphicsPipelineStateDesc pipelineDesc{};
 		
-		pipelineDesc.InputElements;
+		for (const RHIGraphicsPipelineDescription::InputElement& e : desc.InputElements)
+		{
+			pipelineDesc.AddInputElement(e.SemanticName.c_str(), e.SemanticIndex, Conversion::ToDx12(e.Format), e.InputSlot, e.AlignedByteOffset,
+				e.bDataPerVertexNotPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA : D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, e.InstanceDataStepRate);
+		}
 
-		pipelineDesc.VertexShaderBytecode;
-		pipelineDesc.PixelShaderByteCode;
+		pipelineDesc.VertexShaderBytecode.BytecodeLength	= desc.VS.size() * sizeof(byte);
+		pipelineDesc.VertexShaderBytecode.pShaderBytecode	= desc.VS.data();
+		pipelineDesc.PixelShaderByteCode.BytecodeLength		= desc.PS.size() * sizeof(byte);
+		pipelineDesc.PixelShaderByteCode.pShaderBytecode	= desc.PS.data();
+		pipelineDesc.DomainShaderByteCode.BytecodeLength	= desc.DS.size() * sizeof(byte);
+		pipelineDesc.DomainShaderByteCode.pShaderBytecode	= desc.DS.data();
+		pipelineDesc.HullShaderByteCode.BytecodeLength		= desc.HS.size() * sizeof(byte);
+		pipelineDesc.HullShaderByteCode.pShaderBytecode		= desc.HS.data();
+		pipelineDesc.GeometryShaderByteCode.BytecodeLength	= desc.GS.size() * sizeof(byte);
+		pipelineDesc.GeometryShaderByteCode.pShaderBytecode	= desc.GS.data();
 
-		pipelineDesc.PrimitiveTopologyType;
-		pipelineDesc.RasterizerState.AntialiasedLineEnable = desc.RasterizerState.bEnableLineAA;
-		pipelineDesc.RasterizerState.ConservativeRaster = desc.RasterizerState.bEnableConservativeRaster ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-		pipelineDesc.RasterizerState.CullMode;
-		pipelineDesc.RasterizerState.DepthBias = desc.RasterizerState.DepthBias;
-		pipelineDesc.RasterizerState.DepthBiasClamp = desc.RasterizerState.DepthBiasClamp;
-		pipelineDesc.RasterizerState.DepthClipEnable;
-		pipelineDesc.RasterizerState.FillMode;
-		pipelineDesc.RasterizerState.ForcedSampleCount;
-		pipelineDesc.RasterizerState.FrontCounterClockwise = desc.RasterizerState.bFrontCounterClockwise;
-		pipelineDesc.RasterizerState.MultisampleEnable = desc.RasterizerState.bEnableMultisample;
-		pipelineDesc.RasterizerState.SlopeScaledDepthBias = desc.RasterizerState.SlopeScaledDepthBias;
+		pipelineDesc.PrimitiveTopologyType					= Conversion::ToDx12(desc.PrimitiveTopologyType);
+		pipelineDesc.RasterizerState.AntialiasedLineEnable	= desc.RasterizerState.bEnableLineAA;
+		pipelineDesc.RasterizerState.ConservativeRaster		= desc.RasterizerState.bEnableConservativeRaster ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+		pipelineDesc.RasterizerState.CullMode				= Conversion::ToDx12(desc.RasterizerState.Cullmode);
+		pipelineDesc.RasterizerState.DepthBias				= desc.RasterizerState.DepthBias;
+		pipelineDesc.RasterizerState.DepthBiasClamp			= desc.RasterizerState.DepthBiasClamp;
+		pipelineDesc.RasterizerState.DepthClipEnable		= desc.RasterizerState.bEnableDepthClip;
+		pipelineDesc.RasterizerState.FillMode				= Conversion::ToDx12(desc.RasterizerState.Fillmode);
+		pipelineDesc.RasterizerState.ForcedSampleCount		= desc.RasterizerState.ForcedSampleCount;
+		pipelineDesc.RasterizerState.FrontCounterClockwise	= desc.RasterizerState.bFrontCounterClockwise;
+		pipelineDesc.RasterizerState.MultisampleEnable		= desc.RasterizerState.bEnableMultisample;
+		pipelineDesc.RasterizerState.SlopeScaledDepthBias	= desc.RasterizerState.SlopeScaledDepthBias;
 
 		pipelineDesc.BlendState.AlphaToCoverageEnable = desc.BlendState.bEnableAlphaToCoverage;
 		pipelineDesc.BlendState.IndependentBlendEnable = desc.BlendState.bEnableIndependentBlend;
@@ -207,9 +219,12 @@ namespace Influx::Graphics
 
 		for (uint8 i = 0; i < 8u; ++i)
 		{
-			pipelineDesc.BlendState.RenderTarget[i].BlendEnable = desc.RenderTargets[i].bEnableBlend;
-			pipelineDesc.BlendState.RenderTarget[i].LogicOpEnable = desc.RenderTargets[i].bEnableLogicOp;
-			pipelineDesc.RenderTargetFormats[i] = Conversion::ToDx12(desc.RenderTargets[i].Format);
+			if (desc.RenderTargets[i].Format != ERHIFormat::INVALID)
+			{
+				pipelineDesc.BlendState.RenderTarget[i].BlendEnable = desc.RenderTargets[i].bEnableBlend;
+				pipelineDesc.BlendState.RenderTarget[i].LogicOpEnable = desc.RenderTargets[i].bEnableLogicOp;
+				pipelineDesc.RenderTargetFormats.push_back(Conversion::ToDx12(desc.RenderTargets[i].Format));
+			}
 		}
 
 		d3d12Pipeline->mp_dxPipelineState = D3D12::CreateDxGraphicsPipelineState(pipelineDesc, d3d12RootSignature->mp_dxRootSignature, GetDxDevice());

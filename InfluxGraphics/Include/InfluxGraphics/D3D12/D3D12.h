@@ -224,8 +224,13 @@ namespace Influx::Graphics::D3D12
 		struct GraphicsPipelineStateDesc final
 		{
 			Vector<D3D12_INPUT_ELEMENT_DESC> InputElements;
+
 			D3D12_SHADER_BYTECODE VertexShaderBytecode;
 			D3D12_SHADER_BYTECODE PixelShaderByteCode;
+			D3D12_SHADER_BYTECODE DomainShaderByteCode;
+			D3D12_SHADER_BYTECODE HullShaderByteCode;
+			D3D12_SHADER_BYTECODE GeometryShaderByteCode;
+
 			D3D12_RASTERIZER_DESC RasterizerState;
 			D3D12_BLEND_DESC BlendState;
 			D3D12_DEPTH_STENCIL_DESC DepthStencilState;
@@ -600,6 +605,9 @@ namespace Influx::Graphics::D3D12
 
 		psoDesc.VS = pipelineStateDesc.VertexShaderBytecode;
 		psoDesc.PS = pipelineStateDesc.PixelShaderByteCode;
+		psoDesc.DS = pipelineStateDesc.DomainShaderByteCode;
+		psoDesc.HS = pipelineStateDesc.HullShaderByteCode;
+		psoDesc.GS = pipelineStateDesc.GeometryShaderByteCode;
 
 		psoDesc.RasterizerState			= pipelineStateDesc.RasterizerState;
 		psoDesc.BlendState				= pipelineStateDesc.BlendState;
@@ -607,8 +615,12 @@ namespace Influx::Graphics::D3D12
 		psoDesc.SampleMask				= pipelineStateDesc.SampleMask;
 		psoDesc.PrimitiveTopologyType	= pipelineStateDesc.PrimitiveTopologyType;
 		psoDesc.NumRenderTargets		= (UINT)pipelineStateDesc.RenderTargetFormats.size();
-		//psoDesc.RTVFormats			= pipelineStateDesc.RenderTargetFormats.data();
 		psoDesc.SampleDesc				= pipelineStateDesc.SampleDesc;
+
+		for (uint8 rt = 0u; rt < pipelineStateDesc.RenderTargetFormats.size(); ++rt)
+		{
+			psoDesc.RTVFormats[rt] = pipelineStateDesc.RenderTargetFormats[rt];
+		}
 
 		result = pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&outPipelineState));
 

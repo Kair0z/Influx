@@ -4,6 +4,8 @@
 #include "InfluxGraphics/D3D12/D3D12Resource.h"
 #include "InfluxGraphics/D3D12/D3D12Conversion.h"
 #include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
+#include "InfluxGraphics/D3D12/D3D12Pipeline.h"
+#include "InfluxGraphics/D3D12/D3D12PipelineLayout.h"
 
 #include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
 
@@ -68,15 +70,24 @@ namespace Influx::Graphics
 
 	void D3D12CommandList::BindScissorRect(const RHIScissorRect& scissorRect)
 	{
+		D3D12_RECT rect{scissorRect.Left, scissorRect.Bottom, scissorRect.Width, scissorRect.Height};
+		GetDxCommandList()->RSSetScissorRects(1u, &rect);
 	}
+
 	void D3D12CommandList::BindViewports(const RHIViewport& viewport)
 	{
+		D3D12_VIEWPORT d3d12Viewport{viewport.Left, viewport.Bottom, viewport.Width, viewport.Height};
+		GetDxCommandList()->RSSetViewports(1u, &d3d12Viewport);
 	}
+
 	void D3D12CommandList::BindVertexBuffer(RHIVertexBuffer* vertexBuffer)
 	{
+
 	}
+
 	void D3D12CommandList::SetPrimitiveTopology(ERHIPrimitiveTopology topology)
 	{
+		GetDxCommandList()->IASetPrimitiveTopology(Conversion::ToDx12(topology));
 	}
 
 	void D3D12CommandList::CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition)
@@ -99,9 +110,13 @@ namespace Influx::Graphics
 	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, const Math::Vectorf4& clearValue, bool forceTransition)
 	{
 	}
+
 	void D3D12CommandList::BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout)
 	{
+		D3D12GraphicsPipelineLayout* d3d12Layout = (D3D12GraphicsPipelineLayout*)pipelineLayout;
+		GetDxCommandList()->SetGraphicsRootSignature(d3d12Layout->GetDxRootSignature());
 	}
+
 	void D3D12CommandList::BindPipelineState(RHIGraphicsPipeline* pipeline)
 	{
 	}

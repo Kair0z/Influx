@@ -2,7 +2,7 @@
 
 namespace Influx::Graphics
 {
-	RHIPipeline::RHIPipeline(const RHIPipelineDescription& desc)
+	RHIGraphicsPipeline::RHIGraphicsPipeline(const RHIGraphicsPipelineDescription& desc)
 		: m_pipelineDescription{desc}
 	{
 

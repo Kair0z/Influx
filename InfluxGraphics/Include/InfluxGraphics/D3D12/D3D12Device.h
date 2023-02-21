@@ -15,8 +15,8 @@ namespace Influx::Graphics
 	class D3D12RenderTargetView;
 	class D3D12ShaderResourceView;
 	class D3D12Resource;
-	class D3D12RootSignature;
-	class D3D12Pipeline;
+	class D3D12GraphicsPipelineLayout;
+	class D3D12GraphicsPipeline;
 
 	class D3D12Device final : public RHIDevice
 	{
@@ -36,9 +36,10 @@ namespace Influx::Graphics
 
 		virtual ResourcePtr CreateResource(const ERHIResourceState initialState) const override;
 		virtual ResourcePtr CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const override;
+		virtual ResourcePtr CreateVertexBufferResource(const ERHIResourceState initialState, const ERHIFormat format);
 
-		virtual RootSignaturePtr CreateGraphicsRootSignature() const override;
-		virtual PipelinePtr CreateGraphicsPipeline(const RHIPipelineDescription& desc, RootSignaturePtr rootSignature) const override;
+		virtual GraphicsPipelineLayoutPtr CreateGraphicsPipelineLayout() const override;
+		virtual GraphicsPipelinePtr CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& desc, GraphicsPipelineLayoutPtr rootSignature) const override;
 
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) override;
 

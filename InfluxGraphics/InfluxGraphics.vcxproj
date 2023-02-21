@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12PipelineLayout.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHIPipeline.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12ShaderResourceView.cpp" />
@@ -174,7 +175,7 @@
   <ItemGroup>
     <ClInclude Include="Include\InfluxGraphics.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Pipeline.h" />
-    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12RootSignature.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12PipelineLayout.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.h" />
     <ClInclude Include="Include\InfluxGraphics\Common.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12.h" />
@@ -195,7 +196,7 @@
     <ClInclude Include="Include\InfluxGraphics\RHIResource.h" />
     <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIShaderResourceView.h" />
     <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIViews.h" />
-    <ClInclude Include="Include\InfluxGraphics\RHIRootSignature.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIPipelineLayout.h" />
     <ClInclude Include="Include\InfluxGraphics\RHISwapchain.h" />
     <ClInclude Include="Include\InfluxGraphics\RHITypes.h" />
     <ClInclude Include="Include\InfluxGraphics\Types.h" />

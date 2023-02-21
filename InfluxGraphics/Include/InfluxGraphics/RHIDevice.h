@@ -16,21 +16,21 @@ namespace Influx::Graphics
 	class RHIRenderTargetView;
 	class RHIShaderResourceView;
 	class RHIResource;
-	class RHIRootSignature;
-	struct RHIPipelineDescription;
-	class RHIPipeline;
+	class RHIGraphicsPipelineLayout;
+	struct RHIGraphicsPipelineDescription;
+	class RHIGraphicsPipeline;
 
 	class RHIDevice
 	{
 	protected:
-		using CommandQueuePtr		= Ptr<RHICommandQueue>;
-		using SwapchainPtr			= Ptr<RHISwapchain>;
-		using DescriptorHeapPtr		= Ptr<RHIDescriptorHeap>;
-		using RenderTargetViewPtr	= Ptr<RHIRenderTargetView>;
-		using ShaderResourceViewPtr = Ptr<RHIShaderResourceView>;
-		using ResourcePtr			= Ptr<RHIResource>;
-		using RootSignaturePtr		= Ptr<RHIRootSignature>;
-		using PipelinePtr			= Ptr<RHIPipeline>;
+		using CommandQueuePtr				= Ptr<RHICommandQueue>;
+		using SwapchainPtr					= Ptr<RHISwapchain>;
+		using DescriptorHeapPtr				= Ptr<RHIDescriptorHeap>;
+		using RenderTargetViewPtr			= Ptr<RHIRenderTargetView>;
+		using ShaderResourceViewPtr			= Ptr<RHIShaderResourceView>;
+		using ResourcePtr					= Ptr<RHIResource>;
+		using GraphicsPipelineLayoutPtr		= Ptr<RHIGraphicsPipelineLayout>;
+		using GraphicsPipelinePtr			= Ptr<RHIGraphicsPipeline>;
 
 	public:
 		/* Creating API objects & Resources */
@@ -46,8 +46,8 @@ namespace Influx::Graphics
 		virtual ResourcePtr CreateResource(const ERHIResourceState initialState) const = 0;
 		virtual ResourcePtr CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const = 0;
 
-		virtual RootSignaturePtr CreateGraphicsRootSignature() const = 0;
-		virtual PipelinePtr CreateGraphicsPipeline(const RHIPipelineDescription& desc, RootSignaturePtr rootSignature) const = 0;
+		virtual GraphicsPipelineLayoutPtr CreateGraphicsPipelineLayout() const = 0;
+		virtual GraphicsPipelinePtr CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& desc, GraphicsPipelineLayoutPtr rootSignature) const = 0;
 
 		/* Debug Layer*/
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) = 0;

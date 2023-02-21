@@ -20,6 +20,7 @@
     <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12ShaderResourceView.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHIResourceViews\RHIShaderResourceView.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHIPipeline.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12PipelineLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12.h" />
@@ -50,7 +51,7 @@
     <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIViews.h" />
     <ClInclude Include="Include\InfluxGraphics\RHIPipeline.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Pipeline.h" />
-    <ClInclude Include="Include\InfluxGraphics\RHIRootSignature.h" />
-    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12RootSignature.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIPipelineLayout.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12PipelineLayout.h" />
   </ItemGroup>
 </Project>

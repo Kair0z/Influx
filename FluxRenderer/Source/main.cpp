@@ -6,7 +6,7 @@
 #include "InfluxGraphics/RHISwapchain.h"
 #include "InfluxGraphics/RHICommandList.h"
 #include "InfluxGraphics/RHIResource.h"
-#include "InfluxGraphics/RHIRootSignature.h"
+#include "InfluxGraphics/RHIPipelineLayout.h"
 #include "InfluxGraphics/RHIPipeline.h"
 
 #include "InfluxGraphics/D3D12/D3D12Device.h"
@@ -27,6 +27,35 @@ namespace Settings
 
 int main()
 {
+	// [Compile Shaders]
+	Vector<byte> compiledVertexShader{};
+	Vector<byte> compiledPixelShader{};
+	{
+#if defined(_DEBUG)
+		// Enable better shader debugging with the graphics debugging tools.
+		UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+		UINT compileFlags = 0;
+#endif
+
+		ID3DBlob* vertexShader;
+		ID3DBlob* pixelShader;
+
+		HRESULT result{};
+		result = D3DCompileFromFile(L"E:/Git/Influx/FluxRenderer/Shaders/shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr);
+		result = D3DCompileFromFile(L"E:/Git/Influx/FluxRenderer/Shaders/shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr);
+
+		for (uint32 i = 0; i < vertexShader->GetBufferSize(); ++i)
+		{
+			compiledVertexShader.push_back(reinterpret_cast<uint8*>(vertexShader->GetBufferPointer())[i]);
+		}
+
+		for (uint32 i = 0; i < pixelShader->GetBufferSize(); ++i)
+		{
+			compiledPixelShader.push_back(reinterpret_cast<uint8*>(pixelShader->GetBufferPointer())[i]);
+		}
+	}
+
 	// [Create Window]
 	Platform::WindowSettings windowSettings({ 640u, 480u }, "Flux Renderer");
 	Platform::WindowHandle wndHandle = Platform::CreateWindow(windowSettings, true);
@@ -39,20 +68,33 @@ int main()
 	Graphics::RHISwapchain* swapchain	= device->CreateSwapchain({ windowSettings.Width, windowSettings.Heigth }, wndHandle, cmdQueue);
 
 	// [Create InputLayout & RenderPipeline]
-	Graphics::RHIRootSignature* rootSignature = device->CreateGraphicsRootSignature();
+	Graphics::RHIGraphicsPipelineLayout* pipelineLayout = device->CreateGraphicsPipelineLayout();
+	Graphics::RHIGraphicsPipeline* graphicsPipeline = nullptr;
+	{
+		Graphics::RHIGraphicsPipelineDescription pipelineDesc{};
+		pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 0u, true, 0u });
+		pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR", 0u, Graphics::ERHIFormat::RGBA_32_Float, 0u, 12u, true, 0u });
 
-	Graphics::RHIPipelineDescription pipelineDesc{};
-	pipelineDesc.BlendState;
-	pipelineDesc.DepthStencilState;
-	pipelineDesc.VS;
-	pipelineDesc.PS;
-	pipelineDesc.PrimitiveTopologyType;
-	pipelineDesc.RasterizerState;
-	pipelineDesc.RenderTargets[0].bEnableBlend = false;
-	pipelineDesc.RenderTargets[0].bEnableLogicOp = false;
-	pipelineDesc.RenderTargets[0].Format = Graphics::ERHIFormat::RGBA_8_Unorm;
+		pipelineDesc.BlendState;
+		pipelineDesc.DepthStencilState;
+		pipelineDesc.VS = compiledVertexShader;
+		pipelineDesc.PS = compiledPixelShader;
+		pipelineDesc.PrimitiveTopologyType = Graphics::ERHIPrimitiveTopologyType::Triangle;
 
-	Graphics::RHIPipeline* graphicsPipeline = device->CreateGraphicsPipeline(pipelineDesc, rootSignature);
+		pipelineDesc.RasterizerState	= Graphics::RHIRasterizerState::GetDefault();
+		pipelineDesc.DepthStencilState	= Graphics::RHIDepthStencilState::GetDefault();
+
+		pipelineDesc.RenderTargets[0].bEnableBlend = false;
+		pipelineDesc.RenderTargets[0].bEnableLogicOp = false;
+		pipelineDesc.RenderTargets[0].Format = Graphics::ERHIFormat::RGBA_8_Unorm;
+
+		pipelineDesc.SampleCount = 1u;
+
+		graphicsPipeline = device->CreateGraphicsPipeline(pipelineDesc, pipelineLayout);
+	}
+	
+	// [Create Triangle Buffer To Render]
+	Graphics::RHIResource* vertexBuffer;
 
 	{
 		// [Create Separate Scene Buffer]

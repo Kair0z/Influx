@@ -224,6 +224,23 @@ namespace Influx::Graphics
 	/* Pipeline: Rasterizer State */
 	struct RHIRasterizerState final
 	{
+		constexpr static RHIRasterizerState GetDefault()
+		{
+			RHIRasterizerState def{};
+			def.Fillmode = ERHIFillMode::Solid;
+			def.Cullmode = ERHICullMode::BackFaceCull;
+			def.bFrontCounterClockwise = false;
+			def.DepthBias = 0.0f;
+			def.DepthBiasClamp = 0.0f;
+			def.SlopeScaledDepthBias = 0.0f;
+			def.bEnableDepthClip = true;
+			def.bEnableMultisample = false;
+			def.bEnableLineAA = false;
+			def.ForcedSampleCount = 0u;
+			def.bEnableConservativeRaster = false;
+			return def;
+		}
+
 		ERHIFillMode Fillmode;
 		ERHICullMode Cullmode;
 		bool bFrontCounterClockwise;
@@ -240,6 +257,14 @@ namespace Influx::Graphics
 	/* Pipeline: Depth & Stencil State */
 	struct RHIDepthStencilState final
 	{
+		constexpr static RHIDepthStencilState GetDefault()
+		{
+			RHIDepthStencilState def{};
+			def.bEnableDepth = false;
+			def.bEnableStencil = false;
+			return def;
+		}
+
 		bool bEnableDepth;
 		bool bEnableStencil;
 		ERHIComparisonFunc DepthFunc;
@@ -250,8 +275,8 @@ namespace Influx::Graphics
 
 	struct RHIBlendState final
 	{
-		bool bEnableAlphaToCoverage;
-		bool bEnableIndependentBlend;
+		bool bEnableAlphaToCoverage		= false;
+		bool bEnableIndependentBlend	= false;
 	};
 }
 
