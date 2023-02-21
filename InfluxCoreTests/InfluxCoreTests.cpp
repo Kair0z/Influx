@@ -53,6 +53,10 @@ namespace InfluxCoreTests
 			Influx::Function<void()> b = []() { int z = 1; ++z; };
 			Influx::Function<void()> c = []() {  };
 
+			Influx::SlimFunction<void()> d = []() {};
+
+			d();
+
 			Influx::FunctionList<void()> functions{ []() {}, []() {}, []() {} };
 
 			functions();
