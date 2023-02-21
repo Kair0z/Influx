@@ -4,9 +4,12 @@
 #define __CORE_H_
 
 #include "Core/Time.h"
-#include "Core/Function.h"
-#include "Core/Pointer.h"
 #include "Core/String.h"
+#include "Core/Pointer.h"
+#include "Core/KDTree.h"
+#include "Core/Function.h"
+#include "Core/Enum.h"
+
 #include "Core/Assert.h"
 
 #include "Core/Singleton/Locator.h"

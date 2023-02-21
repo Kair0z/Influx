@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _CORE_KDTREE_H_
-#define _CORE_KDTREE_H_
+#ifndef __CORE_KDTREE_H_
+#define __CORE_KDTREE_H_
 
 #include "Math/Math.h"
 #include "Math/Vector.h"

@@ -1,10 +1,16 @@
 #pragma once
 
-#ifndef _CORE_TIME_H_
-#define _CORE_TIME_H_
+#ifndef __CORE_TIME_H_
+#define __CORE_TIME_H_
 
-#define __CORE_TIME_USECORE_ 1
-#if __CORE_TIME_USECORE_
+// Dependencies:
+#ifdef __USECORE_
+#undef __USECORE_
+#endif
+
+#define __USECORE_ 1
+
+#if		__USECORE_
 #include "Core/Cast.h"
 #else
 template <typename _Dest, typename _T>
@@ -19,7 +25,9 @@ inline const _Dest* StaticCast(const _T* p)
 	return static_cast<const _Dest*>(p);
 }
 #endif
+#undef __USECORE_
 
+// STL:
 #include <chrono>
 
 namespace Influx

@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _CORE_MATH_H_
-#define _CORE_MATH_H_
+#ifndef __CORE_MATH_H_
+#define __CORE_MATH_H_
 
 #ifdef max
 #undef max

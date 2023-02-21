@@ -3,16 +3,12 @@
 // Based on:
 // https://gist.github.com/HertzDevil/43e8acbe5d73aba7610dcc1e79f17f3d
 
-#ifndef _CORE_ENUM_H_
-#define _CORE_ENUM_H_
+#ifndef __CORE_ENUM_H_
+#define __CORE_ENUM_H_
 
-#define __CORE_ENUM_USECORE_ 0
 #define __CORE_ENUM_NAME_MAX	Max
 #define __CORE_ENUM_NAME_MIN	Min
 #define __CORE_ENUM_NAME_NONE	Default
-
-#include <type_traits>
-#include <limits>
 
 // Dictionary:
 // _E:		The enum value-type
@@ -23,9 +19,17 @@
 // E-max:	Maximum given value of the enum
 // E-none:	None assigned value of the enum
 
-#if __CORE_ENUM_USECORE_
+// Dependencies:
+#ifdef __USECORE_
+#undef __USECORE_
+#endif
+
+#define __USECORE_ 1
+
+#if __USECORE_
 #include "Core/Math/Math.h"
 #else
+#ifndef __CORE_MATH_H_
 #include <algorithm>
 namespace Influx::Math
 {
@@ -75,9 +79,12 @@ namespace Influx::Math
 		return Internal::DoMin(a, rest...);
 	}
 }
-
-
 #endif
+#endif
+
+// STL:
+#include <type_traits>
+#include <limits>
 
 namespace Influx::Enum
 {
@@ -113,7 +120,7 @@ namespace Influx::Enum
 		constexpr bool isScopedEnum_f(std::true_type) noexcept { return !std::is_convertible_v<_E, std::underlying_type_t<_E>>; }
 
 		template <typename _E>
-		struct isScopedEnum : std::integral_constant<bool, isScopedEnum_f<_E>(std::is_enum<_E>()) {};
+		struct isScopedEnum : public std::integral_constant<bool, isScopedEnum_f<_E>(std::is_enum<_E>())> {};
 
 		template <typename _E>
 		inline constexpr bool isScopedEnum_v = isScopedEnum<_E>::value;
@@ -471,7 +478,7 @@ namespace Influx::Enum
 			constexpr auto xnone = Internal::value_cast_impl(GetNone<_E>());
 			constexpr auto xmin = Internal::value_cast_impl(GetMin<_E>());
 			constexpr auto xmax = Internal::value_cast_impl(GetMax<_E>());
-			return static_cast<_E>(x == Influx::Math::Clamp(x, xmin, xmax) ? x : none);
+			return static_cast<_E>(x == Influx::Math::Clamp(x, xmin, xmax) ? x : xnone);
 		}
 	};
 
@@ -568,6 +575,7 @@ namespace Influx::Enum
 #pragma endregion
 }
 
+// MACROS
 #define FLX_ENUM_CLASS_WITH_CATEGORY(NAME, TYPE, CATEGORY, XNON, ...) \
 enum class NAME : TYPE; \
 template<> \
@@ -578,7 +586,6 @@ enum class NAME : TYPE { \
 	__CORE_ENUM_NAME_MIN	= Influx::Math::Min(__VA_ARGS__), \
 	__CORE_ENUM_NAME_NONE	= Influx::Math::Clamp(static_cast<TYPE>(XNON), static_cast<TYPE>(Influx::Math::Min(__VA_ARGS__)), static_cast<TYPE>(Influx::Math::Max(__VA_ARGS__))) \
 	 };
-
 
 #define FLX_ENUM_CLASS_STANDARD(NAME, TYPE, XNON, ...) FLX_ENUM_CLASS_WITH_CATEGORY(NAME, TYPE, Influx::Enum::EnumStandard,	XNON, __VA_ARGS__)
 #define FLX_ENUM_CLASS_LINEAR(NAME, TYPE, XNON, ...)	FLX_ENUM_CLASS_WITH_CATEGORY(NAME, TYPE, Influx::Enum::EnumLinear,		XNON, __VA_ARGS__)

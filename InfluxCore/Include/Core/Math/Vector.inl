@@ -22,8 +22,11 @@ namespace Influx::Math
 {
 	// Constructors:
 	template<typename _T, VectorSizeType _N> // Initializer list...
-	template<typename ...V> inline Vector<_T, _N>::Vector(const V& ...components)
-		: Internal::VectorBase<_T, _N>(static_cast<_T>(components) ...) {}
+	template<typename ..._V> inline Vector<_T, _N>::Vector(const _V& ...components)
+		: Internal::VectorBase<_T, _N>(static_cast<_T>(components) ...) 
+	{
+
+	}
 
 	template<typename _T, VectorSizeType _N> // Typecast...
 	template <typename _U> inline Vector<_T, _N>::Vector(const Vector<_U, _N>& other)
@@ -43,7 +46,7 @@ namespace Influx::Math
 	}
 
 	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N>::VectorSizeType Size()
+	constexpr VectorSizeType Vector<_T, _N>::Size()
 	{
 		return _N;
 	}
@@ -304,11 +307,31 @@ namespace Influx::Math
 
 		return true;
 	}
+
+	template<typename _T, VectorSizeType _N>
+	inline constexpr Vector<_T, 3u> Vector<_T, _N>::Up()
+	{
+		return Vector<_T, 3u>(static_cast<_T>(0), static_cast<_T>(1), static_cast<_T>(0));
+	}
+
+	template<typename _T, VectorSizeType _N>
+	inline constexpr Vector<_T, 3u> Vector<_T, _N>::Forward()
+	{
+		return Vector<_T, 3u>(static_cast<_T>(0), static_cast<_T>(0), static_cast<_T>(1));
+	}
+
+	template<typename _T, VectorSizeType _N>
+	inline constexpr Vector<_T, 3u> Vector<_T, _N>::Right()
+	{
+		return Vector<_T, 3u>(static_cast<_T>(1), static_cast<_T>(0), static_cast<_T>(0));
+	}
+
 	template<typename _T, VectorSizeType _N>
 	inline Vector<_T, _N> Vector<_T, _N>::Zero()
 	{
 		return Vector<_T, _N>();
 	}
+
 	template<typename _T, VectorSizeType _N>
 	inline Vector<_T, _N> Vector<_T, _N>::One()
 	{

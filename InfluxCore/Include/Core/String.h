@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _CORE_STRING_H_
-#define _CORE_STRING_H_
+#ifndef __CORE_STRING_H_
+#define __CORE_STRING_H_
 
 #include <string>
 #include <algorithm>

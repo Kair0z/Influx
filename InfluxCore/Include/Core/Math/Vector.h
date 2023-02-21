@@ -24,7 +24,11 @@ namespace Influx::Math
 			};
 
 			template <typename... _V>
-			VectorBase(const _V&... components);
+			VectorBase(const _V&... components)
+				: data{components...}
+			{
+
+			}
 		};
 
 		template <typename _T>
@@ -82,6 +86,8 @@ namespace Influx::Math
 	template <typename _T, VectorSizeType _N>
 	class Vector final : public Internal::VectorBase<_T, _N>
 	{
+		static_assert(_N != 0u, "Influx::Vector<_T, _N> ¬ Cannot instantiate zero-sized Vector (_N == 0)! ");
+
 	public:
 		// Constructors:
 		Vector() = default;
@@ -167,6 +173,11 @@ namespace Influx::Math
 		static Vector One();
 		bool IsZero() const;
 		static bool IsZero(const Vector& v);
+
+		// 3D:
+		constexpr static Vector<_T, 3u> Up();
+		constexpr static Vector<_T, 3u> Forward();
+		constexpr static Vector<_T, 3u> Right();
 
 		// Arithmatics:
 		Vector& operator+=(const Vector& other);

@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _CORE_FUNCTION_H_
-#define _CORE_FUNCTION_H_
+#ifndef __CORE_FUNCTION_H_
+#define __CORE_FUNCTION_H_
 
 #include <functional>
 #include "Core/Container/Containers.h"
