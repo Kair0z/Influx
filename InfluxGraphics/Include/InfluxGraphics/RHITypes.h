@@ -97,6 +97,7 @@ namespace Influx::Graphics
 		R_16_Uint,
 		D_32_Float,
 
+		Unknown,
 		INVALID
 	};
 
@@ -161,6 +162,59 @@ namespace Influx::Graphics
 		NotEqual = 6,
 		GreaterEq = 7,
 		Always = 8
+	};
+
+	enum class ERHIBlend
+	{
+		Zero			= 1,
+		One				= 2,
+		SrcColour		= 3,
+		InvSrcColour	= 4,
+		SrcAlpha		= 5,
+		InvSrcAlpha		= 6,
+		DestAlpha		= 7,
+		InvDestAlpha	= 8,
+		DestColour		= 9,
+		InvDestColour	= 10,
+		SrcAlphaSat		= 11,
+		BlendFactor		= 14,
+		InvBlendFactor	= 15,
+		Src1Colour		= 16,
+		InvSrc1Colour	= 17,
+		Src1Alpha		= 18,
+		InvSrc1Alpha	= 19,
+		Max
+	};
+
+	enum class ERHIBlendOperation
+	{
+		OpAdd		= 1,
+		OpSub		= 2,
+		OpRevSub	= 3,
+		OpMin		= 4,
+		OpMax		= 5,
+		Max
+	};
+
+	enum class ERHILogicOperation
+	{
+		Clear	= 0,
+		Set		= (Clear + 1),
+		Copy	= (Set + 1),
+		CopyInv = (Copy + 1),
+		NoOp	= (CopyInv + 1),
+		Invert	= (NoOp + 1),
+		And		= (Invert + 1),
+		Nand	= (And + 1),
+		Or		= (Nand + 1),
+		Nor		= (Or + 1),
+		Xor		= (Nor + 1),
+		Equiv	= (Xor + 1),
+		RevAnd	= (Equiv + 1),
+		InvAnd	= (RevAnd + 1),
+		RevOr	= (InvAnd + 1),
+		InvOr	= (RevOr + 1),
+		Max
 	};
 
 	// RenderPass
@@ -228,9 +282,9 @@ namespace Influx::Graphics
 		{
 			RHIRasterizerState def{};
 			def.Fillmode = ERHIFillMode::Solid;
-			def.Cullmode = ERHICullMode::BackFaceCull;
+			def.Cullmode = ERHICullMode::None;
 			def.bFrontCounterClockwise = false;
-			def.DepthBias = 0.0f;
+			def.DepthBias = 0;
 			def.DepthBiasClamp = 0.0f;
 			def.SlopeScaledDepthBias = 0.0f;
 			def.bEnableDepthClip = true;

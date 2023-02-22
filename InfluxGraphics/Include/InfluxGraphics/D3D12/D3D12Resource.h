@@ -13,6 +13,10 @@ namespace Influx::Graphics
 		friend class D3D12Device;	// Only the device can create these...
 		D3D12Resource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue) : RHIResource(initialState, optimizedClearValue) {}
 
+		virtual void* Map() const override;
+		virtual void ScopedMap(Function<void(void*)> mapFunction) const override;
+		virtual void Unmap() const override;
+
 		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const override;
 		virtual ShaderResourceViewPtr CreateShaderResourceView(const DevicePtr device) const override;
 

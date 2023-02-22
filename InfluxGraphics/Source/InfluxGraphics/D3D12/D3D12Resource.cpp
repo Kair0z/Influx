@@ -6,6 +6,31 @@
 
 namespace Influx::Graphics
 {
+	void* D3D12Resource::Map() const
+	{
+		uint32 subResourceIndex = 0u;
+		const D3D12_RANGE readRange{};
+
+		void* handle = nullptr;
+		GetDxResource()->Map(subResourceIndex, &readRange, &handle);
+
+		return handle;
+	}
+
+	void D3D12Resource::ScopedMap(Function<void(void*)> mapFunction) const
+	{
+		void* handle = Map();
+		mapFunction(handle);
+		Unmap();
+	}
+
+	void D3D12Resource::Unmap() const
+	{
+		uint32 subResourceIndex = 0u;
+		const D3D12_RANGE writtenRange{};
+		GetDxResource()->Unmap(subResourceIndex, &writtenRange);
+	}
+
 	RHIResource::RenderTargetViewPtr D3D12Resource::CreateRenderTargetView(const DevicePtr device) const
 	{
 		D3D12Device* d3d12Device = (D3D12Device*)device;

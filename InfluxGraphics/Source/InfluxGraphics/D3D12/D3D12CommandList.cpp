@@ -70,19 +70,44 @@ namespace Influx::Graphics
 
 	void D3D12CommandList::BindScissorRect(const RHIScissorRect& scissorRect)
 	{
-		D3D12_RECT rect{scissorRect.Left, scissorRect.Bottom, scissorRect.Width, scissorRect.Height};
+		D3D12_RECT rect{
+			sCast<LONG>(scissorRect.Left), 
+			sCast<LONG>(scissorRect.Bottom), 
+			sCast<LONG>(scissorRect.Width), 
+			sCast<LONG>(scissorRect.Height)};
+
 		GetDxCommandList()->RSSetScissorRects(1u, &rect);
 	}
 
 	void D3D12CommandList::BindViewports(const RHIViewport& viewport)
 	{
-		D3D12_VIEWPORT d3d12Viewport{viewport.Left, viewport.Bottom, viewport.Width, viewport.Height};
+		const float minDepth = 0.0f;
+		const float maxDepth = 1.0f;
+
+		D3D12_VIEWPORT d3d12Viewport{
+			sCast<float>(viewport.Left), 
+			sCast<float>(viewport.Bottom), 
+			sCast<float>(viewport.Width), 
+			sCast<float>(viewport.Height),
+			minDepth,
+			maxDepth};
+
 		GetDxCommandList()->RSSetViewports(1u, &d3d12Viewport);
 	}
 
-	void D3D12CommandList::BindVertexBuffer(RHIVertexBuffer* vertexBuffer)
+	void D3D12CommandList::BindVertexBuffer(RHIResource* vertexBufferResource, uint32 bufferSizeInBytes, uint32 vertexStrideInBytes)
 	{
+		D3D12Resource* d3d12Resource = (D3D12Resource*)vertexBufferResource;
 
+		D3D12_VERTEX_BUFFER_VIEW vtbView{};
+		vtbView.BufferLocation = d3d12Resource->GetDxResource()->GetGPUVirtualAddress();
+		vtbView.StrideInBytes = vertexStrideInBytes;
+		vtbView.SizeInBytes = bufferSizeInBytes;
+
+		const uint32 startSlot = 0u;
+		const uint32 numVertexBuffers = 1u;
+
+		GetDxCommandList()->IASetVertexBuffers(startSlot, numVertexBuffers, &vtbView);
 	}
 
 	void D3D12CommandList::SetPrimitiveTopology(ERHIPrimitiveTopology topology)
@@ -119,6 +144,8 @@ namespace Influx::Graphics
 
 	void D3D12CommandList::BindPipelineState(RHIGraphicsPipeline* pipeline)
 	{
+		D3D12GraphicsPipeline* d3d12Pipeline = (D3D12GraphicsPipeline*)pipeline;
+		GetDxCommandList()->SetPipelineState(d3d12Pipeline->GetDxPipelineState());
 	}
 
 	void D3D12CommandList::BindRenderTarget(RHIRenderTargetView* renderTargetView)
@@ -129,8 +156,9 @@ namespace Influx::Graphics
 		GetDxCommandList()->OMSetRenderTargets(1u, &cpuHandle, TRUE, nullptr);
 	}
 
-	void D3D12CommandList::DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation)
+	void D3D12CommandList::DrawInstanced(uint32 numVerticesPerInstance, uint32 numInstances, uint32 startVertexLocation, uint32 startInstanceLocation)
 	{
+		GetDxCommandList()->DrawInstanced(numVerticesPerInstance, numInstances, startVertexLocation, startInstanceLocation);
 	}
 
 	void D3D12CommandList::BindDescriptorheap(RHIDescriptorHeap* descriptorHeap)

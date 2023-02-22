@@ -21,7 +21,7 @@ namespace Influx::Graphics
 		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vectorf4& clearValue) override final;
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) override final;
 		virtual void BindViewports(const RHIViewport& viewport) override final;
-		virtual void BindVertexBuffer(RHIVertexBuffer* vertexBuffer) override final;
+		virtual void BindVertexBuffer(RHIResource* vertexBufferResource, uint32 bufferSizeInBytes, uint32 vertexStrideInBytes) override final;
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) override final;
 		virtual void CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition) override final;
 		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) override final;
@@ -29,7 +29,7 @@ namespace Influx::Graphics
 		virtual void BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout) override final;
 		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) override final;
 		virtual void BindRenderTarget(RHIRenderTargetView* renderTargetView) override final;
-		virtual void DrawInstanced(uint32_t numVerticesPerInstance, uint32_t numInstances, uint32_t startVertexLocation, uint32_t startInstanceLocation) override final;
+		virtual void DrawInstanced(uint32 numVerticesPerInstance, uint32 numInstances, uint32 startVertexLocation, uint32 startInstanceLocation) override final;
 		virtual void BindDescriptorheap(RHIDescriptorHeap* descriptorHeap) override final;
 
 		ID3D12GraphicsCommandList* GetDxCommandList() const;

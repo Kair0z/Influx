@@ -38,16 +38,30 @@ namespace Influx::Graphics::D3D12
 			D3D12_HEAP_FLAGS m_heapFlags;
 			D3D12_RESOURCE_DESC m_resourceDesc;
 			D3D12_CLEAR_VALUE m_optimizedClearValue;
+			bool m_allowOptimizedClearValue = false;
 
 		public:
 			static CommittedResourceDesc AsTexture(const DXGI_FORMAT format, uint64_t width, uint64_t height, uint16_t numMipLevels)
 			{
 				CommittedResourceDesc desc{};
 
-				desc.m_heapProperties = GetDefaultHeapProperties();
-				desc.m_heapFlags = D3D12_HEAP_FLAG_NONE;
-				desc.m_resourceDesc = GetTextureDesc(format, width, height, numMipLevels);
-				desc.m_optimizedClearValue = GetOptimizedClearValue(format);
+				desc.m_heapProperties		= GetDefaultHeapProperties();
+				desc.m_heapFlags			= D3D12_HEAP_FLAG_NONE;
+				desc.m_resourceDesc			= GetTextureDesc(format, width, height, numMipLevels);
+				desc.m_optimizedClearValue	= GetOptimizedClearValue(format);
+				desc.m_allowOptimizedClearValue = true;
+
+				return desc;
+			}
+
+			static CommittedResourceDesc AsBuffer(bool useUploadHeap, uint64 totalBufferSizeInBytes, uint64_t alignment)
+			{
+				CommittedResourceDesc desc{};
+
+				desc.m_heapProperties			= useUploadHeap ? GetUploadHeapProperties() : GetDefaultHeapProperties();
+				desc.m_heapFlags				= D3D12_HEAP_FLAG_NONE;
+				desc.m_resourceDesc				= GetBufferDesc(totalBufferSizeInBytes, alignment);
+				desc.m_allowOptimizedClearValue	= false;
 
 				return desc;
 			}
@@ -60,6 +74,17 @@ namespace Influx::Graphics::D3D12
 				defaultProperties.MemoryPoolPreference	= D3D12_MEMORY_POOL_UNKNOWN;
 				defaultProperties.CreationNodeMask		= 0;
 				defaultProperties.VisibleNodeMask		= 0;
+				return defaultProperties;
+			}
+
+			static D3D12_HEAP_PROPERTIES GetUploadHeapProperties()
+			{
+				D3D12_HEAP_PROPERTIES defaultProperties;
+				defaultProperties.Type					= D3D12_HEAP_TYPE_UPLOAD;
+				defaultProperties.CPUPageProperty		= D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+				defaultProperties.MemoryPoolPreference	= D3D12_MEMORY_POOL_UNKNOWN;
+				defaultProperties.CreationNodeMask		= 1;
+				defaultProperties.VisibleNodeMask		= 1;
 				return defaultProperties;
 			}
 
@@ -85,8 +110,8 @@ namespace Influx::Graphics::D3D12
 				D3D12_RESOURCE_DESC textureDesc{};
 
 				textureDesc.Format				= format;
-				textureDesc.Width				= (uint32_t)width;
-				textureDesc.Height				= (uint32_t)height;
+				textureDesc.Width				= width;
+				textureDesc.Height				= (UINT)height;
 				textureDesc.Flags				= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 				textureDesc.DepthOrArraySize	= 1;
 				textureDesc.MipLevels			= numMipLevels;
@@ -97,6 +122,25 @@ namespace Influx::Graphics::D3D12
 				textureDesc.Alignment			= 0;
 
 				return textureDesc;
+			}
+
+			static D3D12_RESOURCE_DESC GetBufferDesc(uint64_t width, uint64_t alignment = 0u)
+			{
+				D3D12_RESOURCE_DESC bufferDesc{};
+
+				bufferDesc.Dimension			= D3D12_RESOURCE_DIMENSION_BUFFER;
+				bufferDesc.Format				= DXGI_FORMAT_UNKNOWN;
+				bufferDesc.Width				= width;
+				bufferDesc.Height				= 1u;
+				bufferDesc.Flags				= D3D12_RESOURCE_FLAG_NONE;
+				bufferDesc.DepthOrArraySize		= 1u;
+				bufferDesc.MipLevels			= 1u;
+				bufferDesc.SampleDesc.Count		= 1u;
+				bufferDesc.SampleDesc.Quality	= 0u;
+				bufferDesc.Layout				= D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+				bufferDesc.Alignment			= alignment;
+
+				return bufferDesc;
 			}
 
 			D3D12_HEAP_PROPERTIES GetHeapProperties() const
@@ -117,6 +161,11 @@ namespace Influx::Graphics::D3D12
 			D3D12_CLEAR_VALUE GetOptimizedClearValue() const
 			{
 				return m_optimizedClearValue;
+			}
+
+			bool AllowOptimizedClearValue() const
+			{
+				return m_allowOptimizedClearValue;
 			}
 
 			bool IsValid()
@@ -493,7 +542,8 @@ namespace Influx::Graphics::D3D12
 		D3D12_CLEAR_VALUE optimizedClearValue	= desc.GetOptimizedClearValue();
 
 		ID3D12Resource* committedResource;
-		device->CreateCommittedResource(&heapProperties, heapFlags, &resourceDesc, initialState, &optimizedClearValue, IID_PPV_ARGS(&committedResource));
+		device->CreateCommittedResource(&heapProperties, heapFlags, &resourceDesc, initialState, 
+			desc.AllowOptimizedClearValue() ? &optimizedClearValue : nullptr, IID_PPV_ARGS(&committedResource));
 
 		return committedResource;
 	}

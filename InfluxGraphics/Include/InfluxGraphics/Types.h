@@ -16,6 +16,7 @@
 #include "Core/Singleton/Singleton.h"
 #include "Core/Function.h"
 #include "Core/Math/Vector.h"
+#include "Core/Cast.h"
 #else
 #include <string>
 #include <vector>

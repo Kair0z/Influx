@@ -8,6 +8,7 @@
 
 #include "Core/Pointer.h"
 #include "Core/Math/Vector.h"
+#include "Core/Function.h"
 
 namespace Influx::Graphics
 {
@@ -27,6 +28,11 @@ namespace Influx::Graphics
 
 	public:
 		void TransitionState(const ERHIResourceState newState);
+		
+		// Get a CPU handle to the GPU resource to write onto...
+		virtual void* Map() const = 0;
+		virtual void ScopedMap(Function<void(void*)> mapFunction)const = 0;
+		virtual void Unmap() const = 0;
 
 		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const = 0;
 		virtual ShaderResourceViewPtr CreateShaderResourceView(const DevicePtr device) const = 0;

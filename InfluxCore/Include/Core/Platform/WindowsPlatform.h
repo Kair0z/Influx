@@ -69,10 +69,10 @@ namespace Influx::Platform
 		inline Math::Rect<_T> Cast(const ::RECT& rect)
 		{
 			return Math::Rect<_T>(
-				StaticCast<_T>(rect.left),
-				StaticCast<_T>(rect.bottom),
-				StaticCast<_T>(rect.right - rect.left),
-				StaticCast<_T>(rect.bottom - rect.top));
+				sCast<_T>(rect.left),
+				sCast<_T>(rect.bottom),
+				sCast<_T>(rect.right - rect.left),
+				sCast<_T>(rect.bottom - rect.top));
 		}
 	}
 

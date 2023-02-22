@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Pipeline.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12PipelineLayout.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHIPipeline.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.cpp" />

@@ -50,8 +50,24 @@ namespace Influx::Graphics
 		{
 			ERHIFormat Format = ERHIFormat::INVALID;
 
-			bool bEnableBlend;
-			bool bEnableLogicOp;
+			struct
+			{
+				bool bEnableBlend = false;
+				bool bEnableLogicOp = false;
+
+				ERHIBlend SrcBlend						= ERHIBlend::One;
+				ERHIBlend DestBlend						= ERHIBlend::Zero;
+				ERHIBlendOperation BlendOperation		= ERHIBlendOperation::OpAdd;
+
+				ERHIBlend SrcBlendAlpha					= ERHIBlend::One;
+				ERHIBlend DestBlendAlpha				= ERHIBlend::Zero;
+				ERHIBlendOperation BlendOperationAlpha	= ERHIBlendOperation::OpAdd;
+
+				ERHILogicOperation LogicOperation = ERHILogicOperation::NoOp;
+
+				uint8 RenderTargetWriteMask = 15u;
+
+			} BlendDesc;
 
 		} RenderTargets[8];
 	};

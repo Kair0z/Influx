@@ -4,7 +4,7 @@
 #include "InfluxGraphics/D3D12/D3D12Swapchain.h"
 #include "InfluxGraphics/D3D12/D3D12Resource.h"
 #include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
-#include "InfluxGraphics/D3D12/D3D12RootSignature.h"
+#include "InfluxGraphics/D3D12/D3D12PipelineLayout.h"
 #include "InfluxGraphics/D3D12/D3D12Pipeline.h"
 
 #include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
@@ -139,8 +139,7 @@ namespace Influx::Graphics
 	RHIDevice::ResourcePtr D3D12Device::CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const
 	{
 		using namespace D3D12::HelperStructs;
-		CommittedResourceDesc textureResourceDesc =
-			CommittedResourceDesc::AsTexture(Conversion::ToDx12(format), dimensions.x, dimensions.y, numMips);
+		CommittedResourceDesc textureResourceDesc = CommittedResourceDesc::AsTexture(Conversion::ToDx12(format), dimensions.x, dimensions.y, numMips);
 
 		RHIClearValue optimizedClearValue{};
 		for (uint8 i = 0; i < 4u; ++i)
@@ -151,6 +150,21 @@ namespace Influx::Graphics
 		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue);
 
 		result->mp_dxResource = D3D12::CreateDxCommittedResource(GetDxDevice(), textureResourceDesc, Conversion::ToDx12(initialState));
+
+		return result;
+	}
+
+	RHIDevice::ResourcePtr D3D12Device::CreateVertexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const
+	{
+		const bool useUploadHeap = true;
+		const uint64 alignment = 0u;
+		const RHIClearValue optimizedClearValue = {};
+
+		using namespace D3D12::HelperStructs;
+		CommittedResourceDesc bufferResourceDesc = CommittedResourceDesc::AsBuffer(useUploadHeap, numBytesInBuffer, alignment);
+
+		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue);
+		result->mp_dxResource = D3D12::CreateDxCommittedResource(GetDxDevice(), bufferResourceDesc, Conversion::ToDx12(initialState));
 
 		return result;
 	}
@@ -221,8 +235,19 @@ namespace Influx::Graphics
 		{
 			if (desc.RenderTargets[i].Format != ERHIFormat::INVALID)
 			{
-				pipelineDesc.BlendState.RenderTarget[i].BlendEnable = desc.RenderTargets[i].bEnableBlend;
-				pipelineDesc.BlendState.RenderTarget[i].LogicOpEnable = desc.RenderTargets[i].bEnableLogicOp;
+				D3D12_RENDER_TARGET_BLEND_DESC& blendDesc = pipelineDesc.BlendState.RenderTarget[i];
+				
+				blendDesc.BlendEnable			= desc.RenderTargets[i].BlendDesc.bEnableBlend;
+				blendDesc.LogicOpEnable			= desc.RenderTargets[i].BlendDesc.bEnableLogicOp;
+				blendDesc.SrcBlend				= Conversion::ToDx12(desc.RenderTargets[i].BlendDesc.SrcBlend);
+				blendDesc.DestBlend				= Conversion::ToDx12(desc.RenderTargets[i].BlendDesc.DestBlend);
+				blendDesc.BlendOp				= Conversion::ToDx12(desc.RenderTargets[i].BlendDesc.BlendOperation);
+				blendDesc.SrcBlendAlpha			= Conversion::ToDx12(desc.RenderTargets[i].BlendDesc.SrcBlendAlpha);
+				blendDesc.DestBlendAlpha		= Conversion::ToDx12(desc.RenderTargets[i].BlendDesc.DestBlendAlpha);
+				blendDesc.BlendOpAlpha			= Conversion::ToDx12(desc.RenderTargets[i].BlendDesc.BlendOperationAlpha);
+				blendDesc.LogicOp				= Conversion::ToDx12(desc.RenderTargets[i].BlendDesc.LogicOperation);
+				blendDesc.RenderTargetWriteMask = desc.RenderTargets[i].BlendDesc.RenderTargetWriteMask;
+
 				pipelineDesc.RenderTargetFormats.push_back(Conversion::ToDx12(desc.RenderTargets[i].Format));
 			}
 		}

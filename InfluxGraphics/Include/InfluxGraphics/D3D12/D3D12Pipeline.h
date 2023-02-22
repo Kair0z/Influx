@@ -14,7 +14,10 @@ namespace Influx::Graphics
 		friend class D3D12Device;
 		D3D12GraphicsPipeline(const RHIGraphicsPipelineDescription& desc) : RHIGraphicsPipeline(desc) {}
 
-		ID3D12PipelineState* mp_dxPipelineState;
+		ID3D12PipelineState* mp_dxPipelineState = nullptr;
+
+	public:
+		ID3D12PipelineState* GetDxPipelineState() const;
 	};
 }
 

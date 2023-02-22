@@ -14,6 +14,7 @@
 #include "InfluxGraphics/D3D12/D3D12CommandQueue.h"
 
 #include "Core/Platform/WindowsPlatform.h"
+#include "Core/Geometry/Vertex.h"
 
 #include "Renderer/GUIRenderer.h"
 #include "Widgets/ViewportWidget.h"
@@ -56,10 +57,13 @@ int main()
 		}
 	}
 
+	
+
 	// [Create Window]
 	Platform::WindowSettings windowSettings({ 640u, 480u }, "Flux Renderer");
 	Platform::WindowHandle wndHandle = Platform::CreateWindow(windowSettings, true);
-	
+	const float aspectRatio = (float)windowSettings.Width / (float)windowSettings.Heigth;
+
 	// [Create Graphics Interface + Swapchain]
 	Graphics::D3D12Device* device		= new Graphics::D3D12Device(true);
 	Graphics::RHICommandQueue* cmdQueue = device->GetGlobalGraphicsCommandQueue();
@@ -84,8 +88,8 @@ int main()
 		pipelineDesc.RasterizerState	= Graphics::RHIRasterizerState::GetDefault();
 		pipelineDesc.DepthStencilState	= Graphics::RHIDepthStencilState::GetDefault();
 
-		pipelineDesc.RenderTargets[0].bEnableBlend = false;
-		pipelineDesc.RenderTargets[0].bEnableLogicOp = false;
+		pipelineDesc.RenderTargets[0].BlendDesc.bEnableBlend = false;
+		pipelineDesc.RenderTargets[0].BlendDesc.bEnableLogicOp = false;
 		pipelineDesc.RenderTargets[0].Format = Graphics::ERHIFormat::RGBA_8_Unorm;
 
 		pipelineDesc.SampleCount = 1u;
@@ -93,8 +97,23 @@ int main()
 		graphicsPipeline = device->CreateGraphicsPipeline(pipelineDesc, pipelineLayout);
 	}
 	
+	// [Get Vertex Buffers]
+	Influx::Math::Vertex triangle[3u]
+	{
+		{{0.0f, 0.25f * aspectRatio, 0.0f},		{1.0f, 0.0f, 0.0f, 1.0f}},
+		{{0.25f, -0.25f * aspectRatio, 0.0f},	{0.0f, 1.0f, 0.0f, 1.0f}},
+		{{-0.25f, -0.25f * aspectRatio, 0.0f},	{0.0f, 0.0f, 1.0f, 1.0f}}
+	};
+
+	const uint64 vertexBufferSize = sizeof(triangle);
+	const uint64 vertexSize = sizeof(Influx::Math::Vertex);
+
 	// [Create Triangle Buffer To Render]
-	Graphics::RHIResource* vertexBuffer;
+	Graphics::RHIResource* vertexBuffer = device->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
+	vertexBuffer->ScopedMap([&triangle](void* cpuHandle)
+	{
+		memcpy(cpuHandle, triangle, sizeof(triangle));
+	});
 
 	{
 		// [Create Separate Scene Buffer]
@@ -102,6 +121,8 @@ int main()
 			Graphics::ERHIResourceState::RenderTarget, Graphics::ERHIFormat::RGBA_8_Unorm, Math::Vectoru2{windowSettings.Width, windowSettings.Heigth}, 1u);
 		
 		Graphics::RHIRenderTargetView*	sceneColourRenderTarget = sceneColourBuffer->CreateRenderTargetView(device);
+		Graphics::RHIViewport sceneColourViewport{(float)windowSettings.Width, (float)windowSettings.Heigth};
+		Graphics::RHIScissorRect sceneColourScissorRect{(uint32)windowSettings.Width, (uint32)windowSettings.Heigth};
 
 		while (Platform::PollWindowEvents(wndHandle))
 		{
@@ -112,9 +133,21 @@ int main()
 			// Bind global device descriptorHeaps...
 			cmdList->BindDescriptorheap(device->GetResourceDescriptorHeap());
 
+			cmdList->TransitionResource(sceneColourBuffer, Graphics::ERHIResourceState::RenderTarget);
+
 			// Clear Scene colour:
 			cmdList->ClearRTV(sceneColourRenderTarget, {1.0f, 0.0f, 0.0f, 1.0f });
 			
+			cmdList->BindPipelineLayout(pipelineLayout);
+			cmdList->BindPipelineState(graphicsPipeline);
+			cmdList->BindRenderTarget(sceneColourRenderTarget);
+			cmdList->BindViewports(sceneColourViewport);
+			cmdList->BindScissorRect(sceneColourScissorRect);
+
+			cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
+			cmdList->BindVertexBuffer(vertexBuffer, vertexBufferSize, vertexSize);
+			cmdList->DrawInstanced(3u, 1u);
+
 			cmdList->CopyResource(sceneColourBuffer, swapchainCurrentBuffer);
 
 			cmdList->TransitionResource(swapchainCurrentBuffer, Graphics::ERHIResourceState::Present);

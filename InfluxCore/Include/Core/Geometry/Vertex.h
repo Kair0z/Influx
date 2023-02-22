@@ -10,8 +10,7 @@ namespace Influx::Math
 	struct Vertex
 	{
 		Vectorf3 Position{};
-		Vectorf3 Color{};
-		Vectorf3 Normal{};
+		Vectorf4 Color{};
 	};
 }
 

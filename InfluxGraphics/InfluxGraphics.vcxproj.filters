@@ -21,6 +21,7 @@
     <ClCompile Include="Source\InfluxGraphics\RHIResourceViews\RHIShaderResourceView.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHIPipeline.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12PipelineLayout.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Pipeline.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12.h" />

@@ -22,10 +22,10 @@ namespace Influx
 	template <typename _R, typename ..._Args>
 	struct SlimFunction<_R(_Args...)> final
 	{
-		using Dispatch = _R(*)(void*, _Args...);
+		using Dispatcher = _R(*)(void*, _Args...);
 		using TargetFunctionRef = _R(_Args...);
 
-		Dispatch m_dispatch;
+		Dispatcher m_dispatch;
 		void* mp_target;
 
 		_R operator()(_Args... args) const
@@ -56,12 +56,15 @@ namespace Influx
 			static_assert(sizeof(void*) == sizeof target,
 				"It will not be possible to pass functions by reference on this platform. "
 				"Please use explicit function pointers i.e. foo(target) -> foo(&target)");
-			m_Target = (void*)target;
+
+			mp_target = (void*)target;
 		}
 	};
 
 #pragma endregion
 
+	// FunctionList:
+#pragma region FunctionList
 	template <typename>
 	class FunctionList; // intentionally not defined
 
@@ -115,6 +118,7 @@ namespace Influx
 		FunctionList& operator=(FunctionList&&) = default;
 		virtual ~FunctionList() = default;
 	};
+#pragma endregion
 }
 
 #endif
