@@ -189,6 +189,7 @@
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Swapchain.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\ResourceViews\D3D12ShaderResourceView.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\ResourceViews\D3D12Views.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHI.h" />
     <ClInclude Include="Include\InfluxGraphics\RHICommandList.h" />
     <ClInclude Include="Include\InfluxGraphics\RHICommandQueue.h" />
     <ClInclude Include="Include\InfluxGraphics\RHIDescriptorHeap.h" />

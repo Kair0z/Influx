@@ -1,23 +1,14 @@
 
-#include "InfluxRenderer/IRenderer.h"
+#include "InfluxGraphics/RHI.h"
 
-#include "InfluxGraphics/RHICommandQueue.h"
-#include "InfluxGraphics/RHIDescriptorHeap.h"
-#include "InfluxGraphics/RHISwapchain.h"
-#include "InfluxGraphics/RHICommandList.h"
-#include "InfluxGraphics/RHIResource.h"
-#include "InfluxGraphics/RHIPipelineLayout.h"
-#include "InfluxGraphics/RHIPipeline.h"
-
-#include "InfluxGraphics/D3D12/D3D12Device.h"
-#include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
-#include "InfluxGraphics/D3D12/D3D12CommandQueue.h"
+// Todo... Get rid of these ugly includes :(
+#include "InfluxGraphics/D3D12/D3D12Device.h"			// <- We need this to specify Graphics-API...
+#include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"	// <- We need this because 'GetResourceDescriptorHeap()' is D3D12Device specific...
+#include "InfluxGraphics/D3D12/D3D12CommandQueue.h"		// <- We need this because 'GetGlobalGraphicsCommandQueue()' is D3D12Device specific...
 
 #include "Core/Platform/WindowsPlatform.h"
-#include "Core/Geometry/Vertex.h"
 
-#include "Renderer/GUIRenderer.h"
-#include "Widgets/ViewportWidget.h"
+#include "Core/Geometry/Vertex.h"
 
 using namespace Influx;
 
@@ -79,18 +70,16 @@ int main()
 		pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 0u, true, 0u });
 		pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR", 0u, Graphics::ERHIFormat::RGBA_32_Float, 0u, 12u, true, 0u });
 
-		pipelineDesc.BlendState;
-		pipelineDesc.DepthStencilState;
 		pipelineDesc.VS = compiledVertexShader;
 		pipelineDesc.PS = compiledPixelShader;
+
 		pipelineDesc.PrimitiveTopologyType = Graphics::ERHIPrimitiveTopologyType::Triangle;
 
+		pipelineDesc.BlendState			= Graphics::RHIBlendState::GetDefault();
 		pipelineDesc.RasterizerState	= Graphics::RHIRasterizerState::GetDefault();
 		pipelineDesc.DepthStencilState	= Graphics::RHIDepthStencilState::GetDefault();
 
 		pipelineDesc.RenderTargets[0].Format = Graphics::ERHIFormat::RGBA_8_Unorm;
-
-		pipelineDesc.SampleCount = 1u;
 
 		graphicsPipeline = device->CreateGraphicsPipeline(pipelineDesc, pipelineLayout);
 	}
@@ -103,17 +92,17 @@ int main()
 		{{-0.25f, -0.25f * aspectRatio, 0.0f},	{0.0f, 0.0f, 1.0f, 1.0f}}
 	};
 
-	const uint64 vertexBufferSize = sizeof(triangle);
-	const uint64 vertexSize = sizeof(Influx::Math::Vertex);
+	constexpr uint64 vertexBufferSize = sizeof(triangle);
+	constexpr uint64 vertexSize = sizeof(Influx::Math::Vertex);
 
 	// [Create Triangle Buffer To Render]
 	Graphics::RHIResource* vertexBuffer = device->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
-	vertexBuffer->ScopedMap([&triangle](void* cpuHandle)
+	vertexBuffer->ScopedMap([&triangle](void* cpuHandle) // Copy data to GPU buffer...
 	{
 		memcpy(cpuHandle, triangle, sizeof(triangle));
 	});
 
-	// [Create Separate Scene Colour Texture]
+	// [Create - Separate - Scene Colour Texture]
 	struct SceneColour final
 	{
 		Graphics::RHIResource* Resource;
@@ -121,12 +110,12 @@ int main()
 		Graphics::RHIViewport Viewport;
 		Graphics::RHIScissorRect ScissorRect;
 	} sceneColour;
-
 	sceneColour.Resource = device->CreateTextureResource(Graphics::ERHIResourceState::RenderTarget, Graphics::ERHIFormat::RGBA_8_Unorm, Math::Vectoru2{ windowSettings.Width, windowSettings.Heigth }, 1u);
 	sceneColour.RTV = sceneColour.Resource->CreateRenderTargetView(device);
 	sceneColour.Viewport = { (float)windowSettings.Width, (float)windowSettings.Heigth };
 	sceneColour.ScissorRect = { (uint32)windowSettings.Width, (uint32)windowSettings.Heigth };
 
+	// [MAIN LOOP]
 	while (Platform::PollWindowEvents(wndHandle))
 	{
 		Graphics::RHIResource*	swapchainCurrentBuffer = swapchain->GetCurrentBackBufferResource();
@@ -157,6 +146,7 @@ int main()
 		cmdList->CopyResource(sceneColour.Resource, swapchainCurrentBuffer);
 
 		cmdList->TransitionResource(swapchainCurrentBuffer, Graphics::ERHIResourceState::Present);
+
 		cmdQueue->ExecuteCommmandList(cmdList);
 
 		swapchain->Present(cmdQueue, Settings::g_vsync);

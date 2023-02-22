@@ -329,6 +329,14 @@ namespace Influx::Graphics
 
 	struct RHIBlendState final
 	{
+		constexpr static RHIBlendState GetDefault()
+		{
+			RHIBlendState def{};
+			def.bEnableAlphaToCoverage	= false;
+			def.bEnableIndependentBlend = false;
+			return def;
+		}
+
 		bool bEnableAlphaToCoverage		= false;
 		bool bEnableIndependentBlend	= false;
 	};

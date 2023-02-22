@@ -54,5 +54,6 @@
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Pipeline.h" />
     <ClInclude Include="Include\InfluxGraphics\RHIPipelineLayout.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12PipelineLayout.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHI.h" />
   </ItemGroup>
 </Project>
