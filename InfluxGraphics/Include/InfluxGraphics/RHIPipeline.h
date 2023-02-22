@@ -41,10 +41,10 @@ namespace Influx::Graphics
 		CompiledShaderData HS;
 		CompiledShaderData GS;
 
-		uint8 SampleCount;
-		uint8 SampleQuality;
-		uint8 SampleMask;
-		uint8 NodeMask;
+		uint8 SampleCount		= 1u;
+		uint8 SampleQuality		= 0u;
+		uint8 SampleMask		= 255u;
+		uint8 NodeMask			= 0u;
 
 		struct
 		{

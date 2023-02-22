@@ -27,6 +27,21 @@ namespace Influx::Graphics
 		Cleanup();
 	}
 
+	void D3D12Device::Initialize()
+	{
+		mp_dxgiFactory = D3D12::CreateDxgiFactory4();
+		mp_dxgiAdapter = D3D12::GetDxgiAdapter4(mp_dxgiFactory, true);
+		mp_dxDevice = D3D12::CreateDxDevice2(mp_dxgiAdapter);
+
+		CreateGlobalQueues();
+		CreateGlobalDescriptorHeaps();
+	}
+
+	void D3D12Device::Cleanup()
+	{
+		
+	}
+
 	RHICommandQueue* D3D12Device::CreateCommandQueue(const ERHICommandQueueType type) const
 	{
 		D3D12CommandQueue* result = new D3D12CommandQueue(type);
@@ -227,9 +242,9 @@ namespace Influx::Graphics
 		pipelineDesc.DepthStencilState.DepthEnable = desc.DepthStencilState.bEnableDepth;
 		pipelineDesc.DepthStencilState.StencilEnable = desc.DepthStencilState.bEnableStencil;
 
-		pipelineDesc.SampleDesc.Count = desc.SampleCount;
+		pipelineDesc.SampleDesc.Count	= desc.SampleCount;
 		pipelineDesc.SampleDesc.Quality = desc.SampleQuality;
-		pipelineDesc.SampleMask = desc.SampleMask;
+		pipelineDesc.SampleMask			= desc.SampleMask;
 
 		for (uint8 i = 0; i < 8u; ++i)
 		{
@@ -348,21 +363,6 @@ namespace Influx::Graphics
 		}
 
 		return 0u;
-	}
-
-	void D3D12Device::Initialize()
-	{
-		mp_dxgiFactory	= D3D12::CreateDxgiFactory4();
-		mp_dxgiAdapter	= D3D12::GetDxgiAdapter4(mp_dxgiFactory, true);
-		mp_dxDevice		= D3D12::CreateDxDevice2(mp_dxgiAdapter);
-
-		CreateGlobalQueues();
-		CreateGlobalDescriptorHeaps();
-	}
-
-	void D3D12Device::Cleanup()
-	{
-
 	}
 
 	void D3D12Device::CreateGlobalQueues()

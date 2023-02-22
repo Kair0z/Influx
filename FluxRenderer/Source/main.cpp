@@ -24,6 +24,8 @@ using namespace Influx;
 namespace Settings
 {
 	bool g_vsync = true;
+
+	const Influx::Math::Vectoru2 WindowDimensions{ 640u, 480u };
 }
 
 int main()
@@ -57,10 +59,8 @@ int main()
 		}
 	}
 
-	
-
 	// [Create Window]
-	Platform::WindowSettings windowSettings({ 640u, 480u }, "Flux Renderer");
+	Platform::WindowSettings windowSettings(Settings::WindowDimensions, "Flux Renderer");
 	Platform::WindowHandle wndHandle = Platform::CreateWindow(windowSettings, true);
 	const float aspectRatio = (float)windowSettings.Width / (float)windowSettings.Heigth;
 
@@ -88,8 +88,6 @@ int main()
 		pipelineDesc.RasterizerState	= Graphics::RHIRasterizerState::GetDefault();
 		pipelineDesc.DepthStencilState	= Graphics::RHIDepthStencilState::GetDefault();
 
-		pipelineDesc.RenderTargets[0].BlendDesc.bEnableBlend = false;
-		pipelineDesc.RenderTargets[0].BlendDesc.bEnableLogicOp = false;
 		pipelineDesc.RenderTargets[0].Format = Graphics::ERHIFormat::RGBA_8_Unorm;
 
 		pipelineDesc.SampleCount = 1u;
@@ -98,7 +96,7 @@ int main()
 	}
 	
 	// [Get Vertex Buffers]
-	Influx::Math::Vertex triangle[3u]
+	const Influx::Math::Vertex triangle[3u]
 	{
 		{{0.0f, 0.25f * aspectRatio, 0.0f},		{1.0f, 0.0f, 0.0f, 1.0f}},
 		{{0.25f, -0.25f * aspectRatio, 0.0f},	{0.0f, 1.0f, 0.0f, 1.0f}},
@@ -115,47 +113,52 @@ int main()
 		memcpy(cpuHandle, triangle, sizeof(triangle));
 	});
 
+	// [Create Separate Scene Colour Texture]
+	struct SceneColour final
 	{
-		// [Create Separate Scene Buffer]
-		Graphics::RHIResource* sceneColourBuffer = device->CreateTextureResource(
-			Graphics::ERHIResourceState::RenderTarget, Graphics::ERHIFormat::RGBA_8_Unorm, Math::Vectoru2{windowSettings.Width, windowSettings.Heigth}, 1u);
-		
-		Graphics::RHIRenderTargetView*	sceneColourRenderTarget = sceneColourBuffer->CreateRenderTargetView(device);
-		Graphics::RHIViewport sceneColourViewport{(float)windowSettings.Width, (float)windowSettings.Heigth};
-		Graphics::RHIScissorRect sceneColourScissorRect{(uint32)windowSettings.Width, (uint32)windowSettings.Heigth};
+		Graphics::RHIResource* Resource;
+		Graphics::RHIRenderTargetView* RTV;
+		Graphics::RHIViewport Viewport;
+		Graphics::RHIScissorRect ScissorRect;
+	} sceneColour;
 
-		while (Platform::PollWindowEvents(wndHandle))
+	sceneColour.Resource = device->CreateTextureResource(Graphics::ERHIResourceState::RenderTarget, Graphics::ERHIFormat::RGBA_8_Unorm, Math::Vectoru2{ windowSettings.Width, windowSettings.Heigth }, 1u);
+	sceneColour.RTV = sceneColour.Resource->CreateRenderTargetView(device);
+	sceneColour.Viewport = { (float)windowSettings.Width, (float)windowSettings.Heigth };
+	sceneColour.ScissorRect = { (uint32)windowSettings.Width, (uint32)windowSettings.Heigth };
+
+	while (Platform::PollWindowEvents(wndHandle))
+	{
+		Graphics::RHIResource*	swapchainCurrentBuffer = swapchain->GetCurrentBackBufferResource();
+		Graphics::RHIRenderTargetView* swapchainCurrentRtv = swapchain->GetCurrentRenderTargetView();
+
+		Graphics::RHICommandList* cmdList = cmdQueue->SetupNewCommandList(device);
+
+		// Bind global device descriptorHeaps...
+		cmdList->BindDescriptorheap(device->GetResourceDescriptorHeap());
+
+		// Clear Scene colour:
+		cmdList->ClearRTV(sceneColour.RTV, { 1.0f, 0.0f, 0.0f, 1.0f });
+
+		// Draw Triangle:
 		{
-			Graphics::RHIResource* swapchainCurrentBuffer		= swapchain->GetCurrentBackBufferResource();
-			Graphics::RHIRenderTargetView* swapchainCurrentRtv	= swapchain->GetCurrentRenderTargetView();
-			Graphics::RHICommandList* cmdList = cmdQueue->SetupNewCommandList(device);
-			
-			// Bind global device descriptorHeaps...
-			cmdList->BindDescriptorheap(device->GetResourceDescriptorHeap());
-
-			cmdList->TransitionResource(sceneColourBuffer, Graphics::ERHIResourceState::RenderTarget);
-
-			// Clear Scene colour:
-			cmdList->ClearRTV(sceneColourRenderTarget, {1.0f, 0.0f, 0.0f, 1.0f });
-			
 			cmdList->BindPipelineLayout(pipelineLayout);
 			cmdList->BindPipelineState(graphicsPipeline);
-			cmdList->BindRenderTarget(sceneColourRenderTarget);
-			cmdList->BindViewports(sceneColourViewport);
-			cmdList->BindScissorRect(sceneColourScissorRect);
+			cmdList->BindRenderTarget(sceneColour.RTV);
+			cmdList->BindViewports(sceneColour.Viewport);
+			cmdList->BindScissorRect(sceneColour.ScissorRect);
 
 			cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
 			cmdList->BindVertexBuffer(vertexBuffer, vertexBufferSize, vertexSize);
 			cmdList->DrawInstanced(3u, 1u);
-
-			cmdList->CopyResource(sceneColourBuffer, swapchainCurrentBuffer);
-
-			cmdList->TransitionResource(swapchainCurrentBuffer, Graphics::ERHIResourceState::Present);
-			cmdQueue->ExecuteCommmandList(cmdList);
-			
-			swapchain->Present(cmdQueue, Settings::g_vsync);
 		}
+		
+		// Copy Scene Colour -> swapchainBackbuffer
+		cmdList->CopyResource(sceneColour.Resource, swapchainCurrentBuffer);
 
-		//guiRenderer.Cleanup(device);
+		cmdList->TransitionResource(swapchainCurrentBuffer, Graphics::ERHIResourceState::Present);
+		cmdQueue->ExecuteCommmandList(cmdList);
+
+		swapchain->Present(cmdQueue, Settings::g_vsync);
 	}
 }
