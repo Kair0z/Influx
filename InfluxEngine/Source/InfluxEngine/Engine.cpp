@@ -27,7 +27,7 @@ namespace Influx
 		Cleanup();
 	}
 
-	void Engine::Destroy(Engine::Ptr engine)
+	void Engine::Destroy(Engine::Ptr& engine)
 	{
 		if (engine != nullptr)
 		{

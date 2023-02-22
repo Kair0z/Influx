@@ -27,7 +27,7 @@ namespace Influx::Renderer
 	class RootRenderer final
 	{
 		using IRendererList = List<IRenderer*>;
-		IRendererList mp_childRenderers;
+		using Ptr = RootRenderer*;
 
 	public:
 		typedef void (*OnRenderClb)(Graphics::RHICommandList* cmdList);
@@ -60,9 +60,14 @@ namespace Influx::Renderer
 		RootRenderer() = default;
 		RootRenderer(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
 
+		static Ptr Create(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
+		static void Destroy(Ptr& renderer);
+
 		virtual ~RootRenderer();
 
 	private:
+		IRendererList mp_childRenderers;
+
 		/* RHI Graphics Device */
 		Graphics::RHIDevice* mp_rhiDevice;
 		Graphics::EGraphicsAPI m_currentGraphicsAPI = Graphics::EGraphicsAPI::NotSupported;

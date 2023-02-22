@@ -1,11 +1,15 @@
 #pragma once
 
 #include "InfluxApplication/Common.h"
-#include "InfluxRenderer/Renderer.h"
 
 namespace Influx
 {
 	class Engine;
+}
+
+namespace Influx::Renderer
+{
+	class RootRenderer;
 }
 
 namespace Influx::Application
@@ -13,6 +17,7 @@ namespace Influx::Application
 	class Application final
 	{
 		using EnginePtr			= Ptr<Influx::Engine>;
+		using RendererPtr		= Ptr<Influx::Renderer::RootRenderer>;
 
 	public:
 		struct Settings final
@@ -33,16 +38,17 @@ namespace Influx::Application
 		void Run(int argc, char** argv);
 
 		/* Requests the Application to quit running. */
-		void SetQuit();
+		void SignalQuit();
 
 		bool GetHasStarted() const;
-		bool GetShouldQuit() const;
+		bool GetHasRecievedQuit() const;
 		bool GetShouldHaveWindow() const;
-		bool GetShouldHaveUI() const;
+		bool GetShouldHaveImgui() const;
 		bool GetShouldRenderScene() const;
-		bool GetHasUpdate() const;
+		bool GetShouldHaveUpdate() const;
 		bool GetHasCleanedUp() const;
 		bool GetHasCreatedWindow() const;
+		bool GetHasCreatedRenderer() const;
 		bool GetHasCreatedEngine() const;
 
 		const Settings& GetSettings() const;
@@ -58,11 +64,11 @@ namespace Influx::Application
 		EnginePtr mp_engine;
 
 		/* Main App Renderer */
-		Renderer::RootRenderer m_appRenderer;
+		RendererPtr mp_appRenderer;
 
 		bool m_isInitialized;
 		bool m_hasStarted;
-		bool m_shouldQuit;
+		bool m_recievedQuit;
 		bool m_hasCreatedWindow;
 		bool m_hasCleanedUp;
 
@@ -87,7 +93,7 @@ namespace Influx::Application
 		void PollWindowEvents();
 		void Update();
 		void SceneRender();
-		void UIRender();
+		void ImguiRender();
 
 		void CreateWindow();
 		void CreateEngine();

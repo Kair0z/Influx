@@ -20,9 +20,23 @@ namespace Influx::Renderer
 		AttachToWindow(windowHandle);
 	}
 
+	RootRenderer::Ptr RootRenderer::Create(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle)
+	{
+		return new RootRenderer(api, windowHandle);
+	}
+
 	RootRenderer::~RootRenderer()
 	{
 		Cleanup();
+	}
+
+	void RootRenderer::Destroy(Ptr& renderer)
+	{
+		if (renderer != nullptr)
+		{
+			delete renderer;
+			renderer = nullptr;
+		}
 	}
 
 

@@ -4,7 +4,6 @@
 #define __ENGINE_ENGINE_H_
 
 #include "InfluxEngine/Common.h"
-
 #include "InfluxEngine/Memory/Object.h"
 
 namespace Influx
@@ -18,7 +17,7 @@ namespace Influx
 	public:
 		struct ConstructArgs final {};
 		static Ptr Create(const ConstructArgs& args);
-		static void Destroy(Ptr engine);
+		static void Destroy(Ptr& engine);
 
 		static MemoryManager* GetMemoryManager();
 

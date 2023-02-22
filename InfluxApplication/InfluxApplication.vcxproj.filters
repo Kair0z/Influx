@@ -3,13 +3,10 @@
   <ItemGroup>
     <ClInclude Include="Include\InfluxApplication\Application.h" />
     <ClInclude Include="Include\InfluxApplication\Common.h" />
-    <ClInclude Include="Source\InfluxApplication\ImGuiTools\ImGuiLogView.h" />
-    <ClInclude Include="Source\InfluxApplication\ImGuiTools\ImGuiWidgets.h" />
     <ClInclude Include="Source\app_pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\InfluxApplication\Application.cpp" />
-    <ClCompile Include="Source\InfluxApplication\ImGuiTools\ImGuiLogView.cpp" />
     <ClCompile Include="Source\app_pch.cpp" />
   </ItemGroup>
 </Project>

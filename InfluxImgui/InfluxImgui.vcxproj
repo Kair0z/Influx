@@ -160,6 +160,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Include\Renderer\GUIRenderer.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiLogView.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiWidgets.h" />
     <ClInclude Include="Source\imgui_pch.h" />
     <ClInclude Include="Include\Widgets\ImguiWidget.h" />
     <ClInclude Include="Include\ImGui\imconfig.h" />
@@ -173,6 +175,7 @@
     <ClInclude Include="Include\Widgets\ViewportWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\ImGuiTools\ImGuiLogView.cpp" />
     <ClCompile Include="Source\Renderer\GUIRenderer.cpp" />
     <ClCompile Include="Source\imgui_pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

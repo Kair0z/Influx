@@ -3,14 +3,11 @@
 #ifndef __ENGINE_COMMON_H_
 #define __ENGINE_COMMON_H_
 
-#define PLATFORM_WINDOWS 1
+#include "InfluxCore.h"
 
-#include "Core/Singleton/Locator.h"
-#include "Core/BasicTypes.h"
-#include "Core/Pointer.h"
-#include "Core/String.h"
-#include "Core/Cleanup.h"
+#if 1 // PLATFORM_WINDOWS 1
+#include "Core/Platform/WindowsPlatform.h"
+#else
 
-
-#include "Core/Platform/Platform.h"
+#endif
 #endif

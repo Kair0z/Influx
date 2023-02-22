@@ -13,6 +13,8 @@
     <ClInclude Include="Source\imgui_pch.h" />
     <ClInclude Include="Include\Renderer\GUIRenderer.h" />
     <ClInclude Include="Include\Widgets\ViewportWidget.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiLogView.h" />
+    <ClInclude Include="Source\ImGuiTools\ImGuiWidgets.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\ImGui\imgui.cpp" />
@@ -26,5 +28,6 @@
     <ClCompile Include="Source\imgui_pch.cpp" />
     <ClCompile Include="Source\Renderer\GUIRenderer.cpp" />
     <ClCompile Include="Source\Widgets\ViewportWidget.cpp" />
+    <ClCompile Include="Source\ImGuiTools\ImGuiLogView.cpp" />
   </ItemGroup>
 </Project>

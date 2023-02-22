@@ -2,12 +2,13 @@
 
 #include "InfluxApplication/Application.h"
 #include "InfluxEngine/Engine.h"
+#include "InfluxRenderer/RootRenderer.h"
 
 namespace Influx::Application
 {
 	Application::Application(const Settings& desc)
         : m_hasStarted{false}
-        , m_shouldQuit{false}
+        , m_recievedQuit{false}
         , m_creationSettings{desc}
         , m_currentSettings{desc}
         , m_deltaTime{}
@@ -16,10 +17,19 @@ namespace Influx::Application
         , m_time{}
         , m_hasCleanedUp{false}
         , mp_engine{nullptr}
-        , m_appRenderer{}
+        , mp_appRenderer{}
+        , m_windowHandle{nullptr}
+        , m_processHandle{nullptr}
+        , m_appInstanceHandle{nullptr}
+        , m_hasCreatedWindow{false}
 	{
         
 	}
+
+    Application::~Application()
+    {
+        Cleanup();
+    }
 
     void Application::Run(int argc, char** argv)
     {
@@ -27,14 +37,14 @@ namespace Influx::Application
 
         Start();
 
-        while (!GetShouldQuit())
+        while (!GetHasRecievedQuit())
         {
             if (GetShouldHaveWindow())
             {
                 PollWindowEvents();
             }
 
-            if (GetHasUpdate())
+            if (GetShouldHaveUpdate())
             {
                 Update();
             }
@@ -44,9 +54,9 @@ namespace Influx::Application
                 SceneRender();
             }
 
-            if (GetShouldHaveUI())
+            if (GetShouldHaveImgui())
             {
-                UIRender();
+                ImguiRender();
             }
 
             ++m_frame;
@@ -59,7 +69,7 @@ namespace Influx::Application
     {
         if (m_isInitialized) return;
 
-        m_processHandle = Platform::GetCurrentProcess();
+        m_processHandle     = Platform::GetCurrentProcess();
         m_appInstanceHandle = Platform::GetCurrentInstance();
 
         CreateEngine();
@@ -70,12 +80,32 @@ namespace Influx::Application
             CreateRenderer();
         }
 
-        if (GetShouldHaveUI())
+        if (GetShouldHaveImgui())
         {
             // Todo...
         }
 
         m_isInitialized = true;
+    }
+
+    void Application::Cleanup()
+    {
+        if (GetHasCreatedWindow())
+        {
+            Platform::DestroyWindow(m_windowHandle);
+        }
+
+        if (GetHasCreatedRenderer())
+        {
+            Renderer::RootRenderer::Destroy(mp_appRenderer);
+        }
+
+        if (GetHasCreatedEngine())
+        {
+            Engine::Destroy(mp_engine);
+        }
+
+        m_hasCleanedUp = true;
     }
 
     void Application::Start()
@@ -88,30 +118,30 @@ namespace Influx::Application
         m_hasStarted = true;
     }
 
-    void Application::Cleanup()
-    {
-        Engine::Destroy(mp_engine);
-
-    }
-
     void Application::PollWindowEvents()
     {
-        if (!GetShouldHaveWindow())
+        const bool shouldHaveWindow = GetShouldHaveWindow();
+        const bool hasCreatedWindow = GetHasCreatedWindow();
+
+        if (!shouldHaveWindow || !hasCreatedWindow)
         {
             return;
         }
 
-        if (!GetHasCreatedWindow())
-        {
-            return;
-        }
+        const bool hasRecievedQuit = GetHasRecievedQuit();
 
-        m_shouldQuit = Platform::PollWindowEvents(m_windowHandle);
+        if (!hasRecievedQuit)
+        {
+            bool hasQuit = !Platform::PollWindowEvents(m_windowHandle);
+            m_recievedQuit = hasQuit;
+        }
     }
 
     void Application::Update()
     {
-        if (!GetHasCreatedEngine())
+        const bool hasCreatedEngine = GetHasCreatedEngine();
+
+        if (!hasCreatedEngine)
         {
             return;
         }
@@ -121,23 +151,22 @@ namespace Influx::Application
 
     void Application::SceneRender()
     {
-        if (!GetShouldRenderScene())
+        const bool shouldRenderScene = GetShouldRenderScene();
+        const bool hasCreatedWindow = GetHasCreatedWindow();
+        const bool hasCreatedRenderer = GetHasCreatedRenderer();
+
+        if (!shouldRenderScene || !hasCreatedWindow || !hasCreatedRenderer)
         {
             return;
         }
 
-        if (!GetHasCreatedWindow())
-        {
-            return;
-        }
-
-        m_appRenderer.Render();
-        m_appRenderer.Present(true);
+        mp_appRenderer->Render();
+        mp_appRenderer->Present(true);
     }
 
-    void Application::UIRender()
+    void Application::ImguiRender()
     {
-        if (!GetShouldHaveUI())
+        if (!GetShouldHaveImgui())
         {
             return;
         }
@@ -145,7 +174,9 @@ namespace Influx::Application
 
     void Application::CreateWindow()
     {
-        if (!GetSettings().HasWindow)
+        const bool shouldHaveWindow = GetSettings().HasWindow;
+        
+        if (!shouldHaveWindow)
         {
             return;
         }
@@ -169,7 +200,7 @@ namespace Influx::Application
         }
 
         Engine::ConstructArgs constrArgs{};
-
+        
         mp_engine = Engine::Create(constrArgs);
     }
 
@@ -180,28 +211,23 @@ namespace Influx::Application
             return;
         }
 
-        m_appRenderer.Initialize(Graphics::EGraphicsAPI::D3D12);
-        m_appRenderer.AttachToWindow(m_windowHandle);
+        mp_appRenderer = Renderer::RootRenderer::Create(Graphics::EGraphicsAPI::D3D12, m_windowHandle);
     }
 
-    void Application::SetQuit()
+    void Application::SignalQuit()
     {
-        m_shouldQuit = true;
+        m_recievedQuit = true;
     }
 
-	Application::~Application()
-	{
-
-	}
 
     bool Application::GetHasStarted() const
     {
         return m_hasStarted;
     }
 
-    bool Application::GetShouldQuit() const
+    bool Application::GetHasRecievedQuit() const
     {
-        return m_shouldQuit;
+        return m_recievedQuit;
     }
 
     bool Application::GetShouldHaveWindow() const
@@ -209,7 +235,7 @@ namespace Influx::Application
         return GetSettings().HasWindow;
     }
 
-    bool Application::GetShouldHaveUI() const
+    bool Application::GetShouldHaveImgui() const
     {
         return GetSettings().HasUI && GetShouldHaveWindow();
     }
@@ -219,7 +245,7 @@ namespace Influx::Application
         return GetSettings().HasSceneRender && GetShouldHaveWindow();
     }
 
-    bool Application::GetHasUpdate() const
+    bool Application::GetShouldHaveUpdate() const
     {
         return GetSettings().HasUpdate;
     }
@@ -231,7 +257,12 @@ namespace Influx::Application
 
     bool Application::GetHasCreatedWindow() const
     {
-        return m_hasCreatedWindow;
+        return m_hasCreatedWindow && m_windowHandle != nullptr;
+    }
+
+    bool Application::GetHasCreatedRenderer() const
+    {
+        return mp_appRenderer != nullptr;
     }
 
     bool Application::GetHasCreatedEngine() const

@@ -6,15 +6,16 @@ int main(int argc, char** argv)
 	using namespace Influx::Application;
 
 	Application::Settings appSettings{};
-	appSettings.Name = "InfluxEditor v.0.0";
 	appSettings.HasWindow = true;
 	appSettings.WindowDimensions = { 640u, 480u };
-	appSettings.HasUI = false;
 	appSettings.HasSceneRender = true;
+	appSettings.HasUI = false;
+	appSettings.HasUpdate = true;
+	appSettings.Name = "Flux Game 0.0";
 
-	{
-		Application editorApp{ appSettings };
+	Application* gameApp = new Application(appSettings);
 
-		editorApp.Run(argc, argv);
-	}
+	gameApp->Run(argc, argv);
+
+	delete gameApp;
 }
