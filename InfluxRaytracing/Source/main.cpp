@@ -17,7 +17,7 @@
 
 #include "Core/Math/Vector.h"
 #include "Core/Time.h"
-#include "Core/Procedure/ThreadPool.h"
+#include "Core/Threading/ThreadPool.h"
 #include "Core/Math/Random.h"
 #include "Core/KDTree.h"
 #include "Core/Platform/WindowsPlatform.h"
@@ -311,10 +311,10 @@ int main()
 
             for (size_t i = 0; i < Stats::k_EnumSize; ++i)
             {
-                using namespace Influx::WindowsPlatform;
+                using namespace Influx::Platform;
                 double value = sortedStats[i].first;
-                if (value > 16.0) SetConsoleColourTextAttribute<EConsoleColour::Red>();
-                else SetConsoleColourTextAttribute<EConsoleColour::Green>();
+                if (value > 16.0) SetConsoleColourAttribute<EConsoleColour::Red>();
+                else SetConsoleColourAttribute<EConsoleColour::Green>();
 
                 std::cout << "Ms " << Stats::k_StatToNames[sortedStats[i].second] << ": " << value << "\n";
             }
