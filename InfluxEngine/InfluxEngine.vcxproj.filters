@@ -13,6 +13,5 @@
     <ClCompile Include="Source\InfluxEngine\Engine.cpp" />
     <ClCompile Include="Source\InfluxEngine\Memory\MemoryManager.cpp" />
     <ClCompile Include="Source\engine_pch.cpp" />
-    <ClCompile Include="Source\InfluxEngine\Memory\Object.cpp" />
   </ItemGroup>
 </Project>

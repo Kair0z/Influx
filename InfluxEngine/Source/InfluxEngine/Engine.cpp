@@ -1,21 +1,10 @@
 #include "engine_pch.h"
 #include "InfluxEngine/Engine.h"
 
+#include "InfluxEngine/Memory/MemoryManager.h"
+
 namespace Influx
 {
-	Engine::Ptr Engine::Create(const Engine::ConstructArgs& args)
-	{
-		if (EngineLocator::Get() != nullptr)
-		{
-			return EngineLocator::Get();
-		}
-
-		uint64 si = sizeof(Engine);
-		EngineLocator::Provide(new Engine(args));
-
-		return EngineLocator::Get();
-	}
-
 	Engine::Engine(const Engine::ConstructArgs& args)
 		: m_constructionArguments{ args }
 	{
@@ -27,6 +16,11 @@ namespace Influx
 		Cleanup();
 	}
 
+	Engine::Ptr Engine::Create(const Engine::ConstructArgs& args)
+	{
+		return new Engine(args);
+	}
+
 	void Engine::Destroy(Engine::Ptr& engine)
 	{
 		if (engine != nullptr)
@@ -36,32 +30,30 @@ namespace Influx
 		}
 	}
 
-	MemoryManager* Engine::GetMemoryManager()
-	{
-		if (EngineLocator::Get() == nullptr)
-		{
-			return nullptr;
-		}
-
-		return EngineLocator::Get()->mp_mainMemory;
-	}
-
-	void Engine::Tick()
-	{
-
-		++m_frame;
-	}
-
-	
-
 	void Engine::Initialize()
 	{
-
+		mp_mainMemory = new MemoryManager();
+		mp_taskThreadPool = new TaskThreadPool();
 	}
 
 	void Engine::Cleanup()
 	{
 
+	}
+
+	void Engine::Tick()
+	{
+		++m_frame;
+	}
+
+	MemoryManager& Engine::GetMemoryManager()
+	{
+		return *mp_mainMemory;
+	}
+
+	Engine::TaskThreadPool& Engine::GetTaskThreadPool()
+	{
+		return *mp_taskThreadPool;
 	}
 }
 

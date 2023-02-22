@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include "InfluxEngine/Memory/Object.h"
-
 namespace Influx
 {
 	// https://developer.ibm.com/tutorials/au-memorymanager/

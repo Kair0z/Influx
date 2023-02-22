@@ -4,46 +4,47 @@
 #define __ENGINE_ENGINE_H_
 
 #include "InfluxEngine/Common.h"
-#include "InfluxEngine/Memory/Object.h"
 
 namespace Influx
 {
 	class MemoryManager;
 
-	class Engine final : public IObject
+	class Engine final
 	{
 		using Ptr = Engine*;
+		using TaskThreadPool = ThreadPool<INFLUX_ENGINE_NUM_TASK_THREADS>;
 
 	public:
 		struct ConstructArgs final {};
+
+		Engine() = default;
+		Engine(const ConstructArgs& args);
+		virtual ~Engine();
 		static Ptr Create(const ConstructArgs& args);
 		static void Destroy(Ptr& engine);
 
-		static MemoryManager* GetMemoryManager();
+		MemoryManager& GetMemoryManager();
+		TaskThreadPool& GetTaskThreadPool();
 
 		void Tick();
 
 	private:
+		uint64 m_frame;
+
 		MemoryManager* mp_mainMemory;
-
-		Engine() = default;
-		Engine(const ConstructArgs& args);
-
-		Engine(const Engine&) = delete;
-		Engine(Engine&&) = delete;
-		Engine& operator=(const Engine&) = delete;
-		Engine& operator=(Engine&&) = delete;
-		virtual ~Engine();
+		TaskThreadPool* mp_taskThreadPool;
 
 		const ConstructArgs m_constructionArguments;
 
 		void Initialize();
 		void Cleanup();
 
-		uint64 m_frame;
+	public:
+		Engine(const Engine&) = delete;
+		Engine(Engine&&) = delete;
+		Engine& operator=(const Engine&) = delete;
+		Engine& operator=(Engine&&) = delete;
 	};
-
-	using EngineLocator = Locator<Engine>;
 }
 
 #endif

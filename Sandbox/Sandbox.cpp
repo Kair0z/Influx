@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "Core\Platform\Platform.h"
+#include "Core/Platform/WindowsPlatform.h"
 
 struct Data
 {

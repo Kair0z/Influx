@@ -10,6 +10,7 @@
 #include "Core/Function.h"
 #include "Core/Enum.h"
 
+#include "Core/Threading/ThreadPool.h"
 #include "Core/Assert.h"
 
 #include "Core/Singleton/Locator.h"
