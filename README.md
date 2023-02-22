@@ -1,10 +1,10 @@
 # Influx
 
 1. Apps
-- FluxRenderer: Minimalist Renderer showcasing the [InfluxGraphics] project-library
-- InfluxEditor: Editor application hosting the [InfluxEngine] project-library
-- InfluxGame: Game application hosting the [InfluxEngine] project-library
-- InfluxRayTracing: Standalone CPU-Raytracer application using [InfluxCore]
+- [FluxRenderer]: Minimalist Renderer showcasing the [InfluxGraphics] project-library
+- [InfluxEditor]: Editor application hosting the [InfluxEngine] project-library
+- [InfluxGame]: Game application hosting the [InfluxEngine] project-library
+- [InfluxRayTracing]: Standalone CPU-Raytracer application using [InfluxCore]
 
 2. Libraries
 - [InfluxCore]: Header-only central library providing various basic-types, math-& utility-functions 
