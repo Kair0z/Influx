@@ -15,6 +15,7 @@
 - [InfluxEngine]: ...
 - [InfluxGraphics]: RHI-library (similar to Unreal Engine) providing an abstraction layer of Graphics APIs (Dx12/Vulkan)
 - [InfluxRenderer]: Library providing a Renderer interface using [InfluxGraphics]
+- [InfluxAssets]: Library providing asset-loading functionality (PNGs, FBXs, OBJs, ...)
 - ...
 
 ¬ Getting up and running
@@ -31,5 +32,5 @@ To install the correct components some graphics-related code, make sure the **Ga
 
 4. Build 1 or any other of the Application.
 
-Branches
+¬ Branches
 --------

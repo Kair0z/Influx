@@ -1,6 +1,5 @@
 #pragma once
 
-
 #ifndef __RENDERER_ROOT_RENDERER_H_
 #define __RENDERER_ROOT_RENDERER_H_
 
@@ -10,8 +9,6 @@
 #include "Core/Platform/Platform.h"
 
 #include "InfluxGraphics/RHITypes.h"
-
-#include "IRenderer.h"
 
 namespace Influx::Graphics
 {
@@ -26,48 +23,38 @@ namespace Influx::Renderer
 {
 	class RootRenderer final
 	{
-		using IRendererList = List<IRenderer*>;
 		using Ptr = RootRenderer*;
 
 	public:
-		typedef void (*OnRenderClb)(Graphics::RHICommandList* cmdList);
+		typedef void (*OnBuildCommandList)(Graphics::RHICommandList* cmdList);
+		typedef void (*OnWindowResize)(const Math::Vectoru2& newSize);
+		
+		RootRenderer(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
+		static Ptr Create(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
+		static void Destroy(Ptr& renderer);
+		virtual ~RootRenderer();
 
 		void Render();
-		void Render(OnRenderClb internalRenderClb);
+		void Render(OnBuildCommandList internalRenderClb);
 		void Present(bool vsync);
-
-		void Initialize(const Graphics::EGraphicsAPI api);
 
 		bool AttachToWindow(Platform::WindowHandle windowHandle);
 		bool DetachFromCurrentWindow();
-
-		bool OnWindowResize(const Math::Vectoru2& newSize);
-		bool DoesSwapchainNeedResize() const;
-
 		bool IsAttachedToWindow() const;
 
+		bool SignalWindowResize(const Math::Vectoru2& newSize);
+		bool DoesSwapchainNeedResize() const;
+
 		void SetGraphicsAPI(const Graphics::EGraphicsAPI api);
-		Graphics::EGraphicsAPI GetGraphicsAPI() const;
+		Graphics::EGraphicsAPI GetCurrentGraphicsAPI() const;
+
+		static bool IsGraphicsAPISupported(const Graphics::EGraphicsAPI api);
 
 		uint64 GetFrame() const;
 
 		Graphics::RHIDevice* GetDevice() const;
 
-		const IRendererList& GetChildRendererList() const;
-		IRendererList& GetChildRendererList();
-
-	public:
-		RootRenderer() = default;
-		RootRenderer(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
-
-		static Ptr Create(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
-		static void Destroy(Ptr& renderer);
-
-		virtual ~RootRenderer();
-
 	private:
-		IRendererList mp_childRenderers;
-
 		/* RHI Graphics Device */
 		Graphics::RHIDevice* mp_rhiDevice;
 		Graphics::EGraphicsAPI m_currentGraphicsAPI = Graphics::EGraphicsAPI::NotSupported;
@@ -89,25 +76,16 @@ namespace Influx::Renderer
 
 		uint64 m_frame;
 
-		void StartRender(Graphics::RHICommandList* cmdList) const;
-		void FinishRender(Graphics::RHICommandList* cmdList) const;
-
-		/* Initializes the GraphicsDevice object based on the passed EGraphicsAPI */
-		void InitializeDevice(const Graphics::EGraphicsAPI api);
-
 		/* Is Renderer initialized on this specific EGraphicsAPI? */
-		bool IsGraphicsInitialized(const Graphics::EGraphicsAPI api) const;
+		bool IsGraphicsAPIInitialized(const Graphics::EGraphicsAPI api) const;
+		bool IsGraphicsAPIInitialized() const;
 
-		/* Cleans up currently initialized GraphicsDevice object */
+		/* Initializes GraphicsDevice object */
+		void InitializeGraphicsAPI(const Graphics::EGraphicsAPI api);
+
+		/* Cleans up an initialized GraphicsDevice object */
+		void CleanupGraphicsAPI(const Graphics::EGraphicsAPI api);
 		void Cleanup();
-
-		/* Initialize resources of child renderers */
-		void InitializeChildRenderers();
-		void AttachChildRenderersToSwapchain();
-		void DetachChildRenderersToSwapchain();
-
-		/* Cleanup resources of child renderers */
-		void CleanupChildRenderers(bool forceAllCleanup);
 
 		void UpdateSwapchain();
 	};

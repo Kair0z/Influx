@@ -14,20 +14,20 @@ namespace Influx::Renderer
 {
 	using namespace Influx::Graphics;
 
-	RootRenderer::RootRenderer(const EGraphicsAPI api, Platform::WindowHandle windowHandle)
+	RootRenderer::RootRenderer(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle)
 	{
-		Initialize(api);
+		InitializeGraphicsAPI(api);
 		AttachToWindow(windowHandle);
+	}
+	
+	RootRenderer::~RootRenderer()
+	{
+		Cleanup();
 	}
 
 	RootRenderer::Ptr RootRenderer::Create(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle)
 	{
 		return new RootRenderer(api, windowHandle);
-	}
-
-	RootRenderer::~RootRenderer()
-	{
-		Cleanup();
 	}
 
 	void RootRenderer::Destroy(Ptr& renderer)
@@ -39,28 +39,18 @@ namespace Influx::Renderer
 		}
 	}
 
-
-	void RootRenderer::Initialize(const Graphics::EGraphicsAPI api)
+	void RootRenderer::InitializeGraphicsAPI(const Graphics::EGraphicsAPI api)
 	{
-		if (api == Graphics::EGraphicsAPI::NotSupported)
+		const bool isAPISupported = IsGraphicsAPISupported(api);
+		const bool isAPIAlreadyInitialized = IsGraphicsAPIInitialized(api);
+
+		if (!isAPISupported || isAPIAlreadyInitialized)
 		{
 			return;
 		}
 
-		if (IsGraphicsInitialized(api))
-		{
-			return;
-		}
-
-		InitializeDevice(api);
-
-		mp_gfxCommandQueue = GetDevice()->CreateCommandQueue(ERHICommandQueueType::Graphics);
-	}
-
-	void RootRenderer::InitializeDevice(const Graphics::EGraphicsAPI api)
-	{
-		m_initializedDeviceAPI = api;
-
+		// Create Graphics API Device:
+		SetGraphicsAPI(api);
 		switch (api)
 		{
 		case EGraphicsAPI::D3D12:
@@ -70,95 +60,18 @@ namespace Influx::Renderer
 		case EGraphicsAPI::NotSupported:
 		default:
 			Cleanup();
-			break;
-		}
-
-		SetGraphicsAPI(api);
-	}
-
-	void RootRenderer::Render()
-	{
-		Render(nullptr);
-	}
-
-	void RootRenderer::Render(OnRenderClb internalRenderClb)
-	{
-		if (!IsGraphicsInitialized(GetGraphicsAPI()))
-		{
-			Initialize(GetGraphicsAPI());
 			return;
 		}
 
-		InitializeChildRenderers();
-
-		if (IsAttachedToWindow())
-		{
-			AttachChildRenderersToSwapchain();
-		}
-
-		UpdateSwapchain();
-
-		/* Create a commandlist */
-		RHICommandList* cmdList = mp_gfxCommandQueue->SetupNewCommandList(GetDevice());
-
-		StartRender(cmdList);
-
-		{
-			/* First, render the child-render-list */
-			for (const IRenderer* renderer : GetChildRendererList())
-			{
-				if (renderer->IsInitialized())
-				{
-					renderer->Render(cmdList);
-				}
-			}
-
-			/* Then, command the optional extra lambda passed... */
-			if (internalRenderClb != nullptr)
-			{
-				internalRenderClb(cmdList);
-			}
-		}
-
-		FinishRender(cmdList);
-
-		mp_gfxCommandQueue->ExecuteCommmandList(cmdList);
-
-		++m_frame;
+		// Initialize Graphics Command Queue:
+		mp_gfxCommandQueue = GetDevice()->CreateCommandQueue(ERHICommandQueueType::Graphics);
 	}
 
-	void RootRenderer::StartRender(Graphics::RHICommandList* cmdList) const
+	void RootRenderer::CleanupGraphicsAPI(const Graphics::EGraphicsAPI api)
 	{
-		if (IsAttachedToWindow())
-		{
-			cmdList->TransitionResource(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentBackBufferResource(), Graphics::ERHIResourceState::RenderTarget);
+		const bool isCurrentAPIInitialized		= IsGraphicsAPIInitialized(api);
 
-			// [ TEMP ]
-			cmdList->ClearRTV(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentRenderTargetView(), { 0.2f, 0.0f, 0.2f, 1.0f });
-		}
-	}
-
-	void RootRenderer::FinishRender(Graphics::RHICommandList* cmdList) const
-	{
-		if (IsAttachedToWindow())
-		{
-			cmdList->TransitionResource(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentBackBufferResource(), Graphics::ERHIResourceState::Present);
-		}
-	}
-
-	void RootRenderer::Present(bool vsync)
-	{
-		if (!IsAttachedToWindow())
-		{
-			return;
-		}
-
-		mp_windowSwapchain->mp_rhiSwapchain->Present(mp_gfxCommandQueue, vsync);
-	}
-
-	void RootRenderer::Cleanup()
-	{
-		if (!IsGraphicsInitialized(GetGraphicsAPI()))
+		if (!isCurrentAPIInitialized)
 		{
 			return;
 		}
@@ -177,100 +90,63 @@ namespace Influx::Renderer
 		mp_gfxCommandQueue->Flush();
 	}
 
-	void RootRenderer::InitializeChildRenderers()
+	void RootRenderer::Cleanup()
 	{
-		if (!IsGraphicsInitialized(GetGraphicsAPI()))
-		{
-			return;
-		}
-
-		for (IRenderer* renderer : GetChildRendererList())
-		{
-			if (renderer->IsInitialized())
-			{
-				continue;
-			}
-
-			renderer->Initialize(GetDevice());
-		}
-	}
-
-	void RootRenderer::AttachChildRenderersToSwapchain()
-	{
-		if (!IsAttachedToWindow())
-		{
-			return;
-		}
-
-		for (IRenderer* renderer : GetChildRendererList())
-		{
-			renderer->AttachToRenderTarget(nullptr, nullptr);
-		}
-	}
-
-	void RootRenderer::DetachChildRenderersToSwapchain()
-	{
-		if (!IsAttachedToWindow())
-		{
-			return;
-		}
-
-		for (IRenderer* renderer : GetChildRendererList())
-		{
-			if (renderer->IsAttachedToRenderTarget())
-			{
-				renderer->DetachFromRenderTarget(nullptr);
-			}
-		}
-	}
-
-	void RootRenderer::CleanupChildRenderers(bool)
-	{
-		if (!IsGraphicsInitialized(GetGraphicsAPI()))
-		{
-			// >:(
-			return;
-		}
-
-		DetachFromCurrentWindow();
-
-		for (IRenderer* renderer : GetChildRendererList())
-		{
-			if (!renderer->IsInitialized())
-			{
-				continue;
-			}
-
-			renderer->Cleanup(GetDevice());
-		}
+		CleanupGraphicsAPI(GetCurrentGraphicsAPI());
 	}
 
 	void RootRenderer::UpdateSwapchain()
 	{
+
+	}
+
+	void RootRenderer::Render()
+	{
+		Render(nullptr);
+	}
+
+	void RootRenderer::Render(OnBuildCommandList internalRenderClb)
+	{
+		UpdateSwapchain();
+
+		if (IsAttachedToWindow())
+		{
+			RHICommandList* cmdList = mp_gfxCommandQueue->SetupNewCommandList(GetDevice());
+
+			cmdList->TransitionResource(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentBackBufferResource(), Graphics::ERHIResourceState::RenderTarget);
+
+			cmdList->ClearRTV(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentRenderTargetView(), { 0.2f, 0.0f, 0.2f, 1.0f });
+
+			if (internalRenderClb != nullptr)
+			{
+				internalRenderClb(cmdList);
+			}
+
+			cmdList->TransitionResource(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentBackBufferResource(), Graphics::ERHIResourceState::Present);
+
+			mp_gfxCommandQueue->ExecuteCommmandList(cmdList);
+		}
+
+		++m_frame;
+	}
+
+	void RootRenderer::Present(bool vsync)
+	{
 		if (!IsAttachedToWindow())
 		{
 			return;
 		}
 
-		if (!mp_windowSwapchain->m_isDirty)
-		{
-			return;
-		}
-
-		for (IRenderer* renderer : GetChildRendererList())
-		{
-			if (renderer->IsAttachedToRenderTarget())
-			{
-				renderer->ResizeRenderTarget(nullptr);
-			}
-		}
+		mp_windowSwapchain->mp_rhiSwapchain->Present(mp_gfxCommandQueue, vsync);
 	}
 
 	bool RootRenderer::AttachToWindow(Platform::WindowHandle windowHandle)
 	{
-		if (!IsGraphicsInitialized(GetGraphicsAPI()))
+		const bool isAPIInitialized = IsGraphicsAPIInitialized();
+
+		if (!isAPIInitialized)
 		{
-			Initialize(GetGraphicsAPI());
+			return false;
 		}
 
 		if (windowHandle == nullptr)
@@ -278,7 +154,8 @@ namespace Influx::Renderer
 			return false;
 		}
 
-		if (IsAttachedToWindow())
+		const bool isAlreadyAttachedToWindow = IsAttachedToWindow();
+		if (isAlreadyAttachedToWindow)
 		{
 			// Todo... Reattach?
 			return false;
@@ -289,12 +166,7 @@ namespace Influx::Renderer
 		mp_windowSwapchain = new RootRenderer::SwapchainTarget();
 		mp_windowSwapchain->mp_rhiSwapchain = GetDevice()->CreateSwapchain(windowRect.m_widthHeigth, windowHandle, mp_gfxCommandQueue);
 
-		for (IRenderer* renderer : GetChildRendererList())
-		{
-			renderer->AttachToRenderTarget(nullptr, nullptr);
-		}
-
-		OnWindowResize(windowRect.m_widthHeigth);
+		SignalWindowResize(windowRect.m_widthHeigth);
 
 		return IsAttachedToWindow();
 	}
@@ -306,13 +178,12 @@ namespace Influx::Renderer
 			return true;
 		}
 
-		DetachChildRenderersToSwapchain();
-
-		// ToDelete...
-		//mp_windowSwapchain->mp_rhiSwapchain;
-
-		delete mp_windowSwapchain;
-		mp_windowSwapchain = nullptr;
+		if (mp_windowSwapchain)
+		{
+			delete mp_windowSwapchain;
+			mp_windowSwapchain = nullptr;
+		}
+		
 		return true;
 	}
 
@@ -321,9 +192,10 @@ namespace Influx::Renderer
 		return mp_windowSwapchain != nullptr && mp_windowSwapchain->mp_rhiSwapchain != nullptr;
 	}
 
-	bool RootRenderer::OnWindowResize(const Math::Vectoru2& newSize)
+	bool RootRenderer::SignalWindowResize(const Math::Vectoru2& newSize)
 	{
-		if (!IsAttachedToWindow())
+		const bool isAttachedToWindow = IsAttachedToWindow();
+		if (!isAttachedToWindow)
 		{
 			return false;
 		}
@@ -350,9 +222,14 @@ namespace Influx::Renderer
 		m_currentGraphicsAPI = api;
 	}
 
-	Graphics::EGraphicsAPI RootRenderer::GetGraphicsAPI() const
+	Graphics::EGraphicsAPI RootRenderer::GetCurrentGraphicsAPI() const
 	{
 		return m_currentGraphicsAPI;
+	}
+
+	bool RootRenderer::IsGraphicsAPISupported(const Graphics::EGraphicsAPI api)
+	{
+		return (api < EGraphicsAPI::NotSupported);
 	}
 
 	uint64 RootRenderer::GetFrame() const
@@ -360,23 +237,25 @@ namespace Influx::Renderer
 		return m_frame;
 	}
 
-	bool RootRenderer::IsGraphicsInitialized(const Graphics::EGraphicsAPI api) const
+	bool RootRenderer::IsGraphicsAPIInitialized(const Graphics::EGraphicsAPI api) const
 	{
-		return (m_initializedDeviceAPI == api) && (m_initializedDeviceAPI != Graphics::EGraphicsAPI::NotSupported);
+		const bool isAPISupported = IsGraphicsAPISupported(api);
+
+		if (!isAPISupported)
+		{
+			return false;
+		}
+
+		return (m_initializedDeviceAPI == api);
+	}
+
+	bool RootRenderer::IsGraphicsAPIInitialized() const
+	{
+		return IsGraphicsAPIInitialized(GetCurrentGraphicsAPI());
 	}
 
 	Graphics::RHIDevice* RootRenderer::GetDevice() const
 	{
 		return mp_rhiDevice;
-	}
-
-	const RootRenderer::IRendererList& RootRenderer::GetChildRendererList() const
-	{
-		return mp_childRenderers;
-	}
-
-	RootRenderer::IRendererList& RootRenderer::GetChildRendererList()
-	{
-		return mp_childRenderers;
 	}
 }

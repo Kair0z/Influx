@@ -1,13 +1,16 @@
+
+#include "InfluxAssets/InfluxAssets.h"
+
+#pragma comment(lib, "InfluxAssets.lib")
+
 #include <iostream>
 
-#include "Core/Platform/WindowsPlatform.h"
-
-struct Data
-{
-	float x;
-};
 int main()
 {
-	Data* pData = Influx::Platform::Allocate<Data>();
-	Influx::Platform::Free(pData);
+	using namespace Influx::Assets;
+
+	Mesh mesh{};
+	bool success = LoadMesh("E:/Git/Influx/Resources/Meshes/CafeLeBlanc.fbx", mesh);
+
+	std::cin.get();
 }

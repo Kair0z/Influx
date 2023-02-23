@@ -51,8 +51,8 @@ int main()
 	}
 
 	// [Create Window]
-	Platform::WindowSettings windowSettings(Settings::WindowDimensions, "Flux Renderer");
-	Platform::WindowHandle wndHandle = Platform::CreateWindow(windowSettings, true);
+	Platform::WindowSettings	windowSettings(Settings::WindowDimensions, "Flux Renderer");
+	Platform::WindowHandle		wndHandle = Platform::CreateWindow(windowSettings, true);
 	const float aspectRatio = (float)windowSettings.Width / (float)windowSettings.Heigth;
 
 	// [Create Graphics Interface + Swapchain]

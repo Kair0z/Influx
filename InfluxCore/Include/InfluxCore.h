@@ -21,6 +21,8 @@
 #include "Core/Math/Math.h"
 #include "Core/Math/Random.h"
 
+#include "Core/Scene/Scene.h"
+
 #include "Core/Cleanup.h"
 
 #endif

@@ -44,6 +44,7 @@
     <ClInclude Include="Include\Core\CheckSafety.h" />
     <ClInclude Include="Include\Core\Geometry\Triangle.h" />
     <ClInclude Include="Include\Core\Geometry\Mesh.h" />
+    <ClInclude Include="Include\Core\Scene\Scene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\Core\Math\Vector.inl" />
