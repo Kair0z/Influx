@@ -1,12 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Source\InfluxAssets\LoadMesh.cpp" />
-    <ClCompile Include="Source\InfluxAssets\Cache\Cache.cpp" />
+    <ClCompile Include="Source\InfluxAssets\Scene\SceneLoader.cpp" />
+    <ClCompile Include="Source\InfluxAssets\Image\ImageLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\InfluxAssets\InfluxAssets.h" />
     <ClInclude Include="Include\InfluxAssets\Common.h" />
-    <ClInclude Include="Source\InfluxAssets\Cache\Cache.h" />
+    <ClInclude Include="Source\InfluxAssets\Scene\SceneLoader.h" />
+    <ClInclude Include="Include\InfluxAssets\Scene\Scene.h" />
+    <ClInclude Include="Include\InfluxAssets\Image\Image.h" />
+    <ClInclude Include="Source\InfluxAssets\Image\ImageLoader.h" />
   </ItemGroup>
 </Project>

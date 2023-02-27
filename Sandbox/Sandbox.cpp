@@ -1,16 +1,12 @@
 
 #include "InfluxAssets/InfluxAssets.h"
 
-#pragma comment(lib, "InfluxAssets.lib")
-
-#include <iostream>
-
 int main()
 {
-	using namespace Influx::Assets;
+	using namespace Influx;
 
-	Mesh mesh{};
-	bool success = LoadMesh("E:/Git/Influx/Resources/Meshes/CafeLeBlanc.fbx", mesh);
+	Assets::Scene scene{};
+	Assets::SceneCache sceneCache{};
 
-	std::cin.get();
+	bool loadSuccesful = Assets::LoadScene("Path", scene, &sceneCache);
 }

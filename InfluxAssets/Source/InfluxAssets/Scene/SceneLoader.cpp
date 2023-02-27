@@ -1,14 +1,13 @@
+#include "SceneLoader.h"
 
 #include "InfluxAssets/InfluxAssets.h"
-
-#include "InfluxAssets/Cache/Cache.h"
 
 #include "assimp/Importer.hpp"	// C++ importer interface
 #include "assimp/scene.h"		// Output data structure
 #include "assimp/postprocess.h"	// Post processing flags
 
-#include "Core/Math/Math.h"
 #include "Core/Scene/Scene.h"
+#include "Core/Math/Math.h"
 
 namespace Influx::Assets
 {
@@ -59,21 +58,21 @@ namespace Influx::Assets
 			Mesh result(pMesh->mNumVertices);
 			constexpr uint32 vColChannel = 0u;
 
-			const bool meshHasPositions		= pMesh->HasPositions();
-			const bool meshHasNormals		= pMesh->HasNormals();
-			const bool meshHasVertexColors	= pMesh->HasVertexColors(vColChannel);
-			
-			bool collectPositions		= true && meshHasPositions;
-			bool collectNormals			= true && meshHasNormals;
-			bool collectVertexColors	= true && meshHasVertexColors;
+			const bool meshHasPositions = pMesh->HasPositions();
+			const bool meshHasNormals = pMesh->HasNormals();
+			const bool meshHasVertexColors = pMesh->HasVertexColors(vColChannel);
+
+			bool collectPositions = true && meshHasPositions;
+			bool collectNormals = true && meshHasNormals;
+			bool collectVertexColors = true && meshHasVertexColors;
 
 			for (uint32 v = 0u; v < pMesh->mNumVertices; ++v)
 			{
 				Mesh::Vertex vertex{};
 
 				if (collectPositions)	 vertex.Position = FromAssimp(pMesh->mVertices[v]);
-				if (collectNormals)		 vertex.Normal	 = FromAssimp(pMesh->mNormals[v]);
-				if (collectVertexColors) vertex.Color	 = FromAssimp(pMesh->mColors[v][vColChannel]);
+				if (collectNormals)		 vertex.Normal = FromAssimp(pMesh->mNormals[v]);
+				if (collectVertexColors) vertex.Color = FromAssimp(pMesh->mColors[v][vColChannel]);
 
 				result.Vertices.push_back(vertex);
 			}
@@ -81,7 +80,7 @@ namespace Influx::Assets
 			for (uint32 f = 0u; f < pMesh->mNumFaces; ++f)
 			{
 				Mesh::Face face{};
-				
+
 				for (uint32 i = 0u; i < pMesh->mFaces[f].mNumIndices; ++i)
 				{
 					Mesh::Index index = pMesh->mFaces[f].mIndices[i];
@@ -100,14 +99,14 @@ namespace Influx::Assets
 		Scene::Camera FromAssimp(const aiCamera* pCamera)
 		{
 			Scene::Camera result{};
-			
-			result.AspectRatio	= pCamera->mAspect;
-			result.Position		= FromAssimp(pCamera->mPosition);
-			result.NearZ		= pCamera->mClipPlaneNear;
-			result.FarZ			= pCamera->mClipPlaneFar;
-			result.Forward		= FromAssimp(pCamera->mLookAt);
-			result.Up			= FromAssimp(pCamera->mUp);
-			result.Name			= FromAssimp(pCamera->mName);
+
+			result.AspectRatio = pCamera->mAspect;
+			result.Position = FromAssimp(pCamera->mPosition);
+			result.NearZ = pCamera->mClipPlaneNear;
+			result.FarZ = pCamera->mClipPlaneFar;
+			result.Forward = FromAssimp(pCamera->mLookAt);
+			result.Up = FromAssimp(pCamera->mUp);
+			result.Name = FromAssimp(pCamera->mName);
 			result.OrthographicWidth = pCamera->mOrthographicWidth * 2.0f; // "Half horizontal orthographic width, in scene units"
 			result.HorizontalFov = pCamera->mHorizontalFOV;
 			result.bIsOrthoGraphic = pCamera->mOrthographicWidth != 0.0f;
@@ -134,9 +133,9 @@ namespace Influx::Assets
 			result.AttenuationConstant = pLight->mAttenuationConstant;
 			result.AttenuationLinear = pLight->mAttenuationLinear;
 			result.AttenuationQuadratic = pLight->mAttenuationQuadratic;
-			result.ColorDiffuse		= FromAssimp(pLight->mColorDiffuse);
-			result.ColorSpecular	= FromAssimp(pLight->mColorSpecular);
-			result.ColorAmbient		= FromAssimp(pLight->mColorAmbient);
+			result.ColorDiffuse = FromAssimp(pLight->mColorDiffuse);
+			result.ColorSpecular = FromAssimp(pLight->mColorSpecular);
+			result.ColorAmbient = FromAssimp(pLight->mColorAmbient);
 			result.AngleInnerCone = pLight->mAngleInnerCone;
 			result.AngleOuterCone = pLight->mAngleOuterCone;
 			result.AreaSize = FromAssimp(pLight->mSize);
@@ -180,87 +179,15 @@ namespace Influx::Assets
 		}
 	}
 
-	bool LoadMesh(const std::string& filepath, Mesh& out_ref, CachePtr pCache, const SceneLoadDesc& loadDesc)
-	{
-		// Get the first mesh in the scene
-		return LoadMesh(filepath, 0u, out_ref, pCache, loadDesc);
-	}
-
-	bool LoadMesh(const std::string& filepath, uint32 meshIndex, Mesh& out_ref, CachePtr pCache, const SceneLoadDesc& loadDesc)
-	{
-		Vector<Mesh> meshes{};
-		bool success = LoadMeshes(filepath, meshes, pCache, loadDesc);
-
-		const bool isMeshIndexTooBig = meshIndex >= meshes.size();
-		if (!success || isMeshIndexTooBig)
-		{
-			// Something went wrong loading the meshes!
-			return false;
-		}
-
-		// Copy!
-		out_ref = meshes[meshIndex];
-		return true;
-	}
-
-	bool LoadMesh(const std::string& filepath, const String& meshName, Mesh& out_ref, CachePtr pCache, const SceneLoadDesc& loadDesc)
-	{
-		Vector<Mesh> meshes{};
-		bool success = LoadMeshes(filepath, meshes, pCache, loadDesc);
-		if (!success)
-		{
-			return false;
-		}
-
-		auto foundMeshWithName = std::find_if(meshes.cbegin(), meshes.cend(), [meshName](const Mesh& mesh){ return mesh.Name == meshName; });
-		const bool foundMesh = (foundMeshWithName != meshes.cend());
-		if (!foundMesh)
-		{
-			return false;
-		}
-
-		// Copy!
-		out_ref = *foundMeshWithName;
-		return true;
-	}
-
-	bool LoadMeshes(const String& filepath, Vector<Mesh>& out_meshes, CachePtr pCache, const SceneLoadDesc& loadDesc)
-	{
-		// Try to find our meshes in the Cache::MeshMap before re-loading the whole scene!
-		if (pCache)
-		{
-			Cache::MeshMap& loadedMeshMap = pCache->GetLoadedMeshMap();
-			if (loadedMeshMap.contains(filepath))
-			{
-				out_meshes = loadedMeshMap[filepath];
-				return true;
-			}
-		}
-
-		// Load scene
-		Scene scene{};
-		bool success = LoadScene(filepath, scene, pCache, loadDesc);
-
-		if (!success)
-		{
-			// Something went wrong loading the scene!
-			return false;
-		}
-
-		// Copy!
-		out_meshes = scene.Meshes;
-		return true;
-	}
-
-	bool LoadScene(const String& filepath, Scene& out_scene, CachePtr pCache, const SceneLoadDesc& loadDesc)
+	bool LoadScene(const String& filepath, Scene& out_scene, SceneCachePtr pCache, const SceneLoadDesc& loadDesc)
 	{
 		// Try to find the loaded scene in the provided cache...
 		if (pCache)
 		{
-			if (pCache->GetLoadedSceneMap().contains(filepath))
+			if (pCache->Contains(filepath, loadDesc))
 			{
 				// Copy!
-				out_scene = pCache->GetLoadedSceneMap()[filepath];
+				out_scene = *pCache->Get(filepath, loadDesc);
 				return true;
 			}
 		}
@@ -290,16 +217,10 @@ namespace Influx::Assets
 		// Cache loaded scene result:
 		if (pCache)
 		{
-			Cache::SceneMap& loadedSceneMap = pCache->GetLoadedSceneMap();
-			if (!loadedSceneMap.contains(filepath))
+			if (!pCache->Contains(filepath, loadDesc))
 			{
 				// Copy sceneData into scene-cache!
-				loadedSceneMap[filepath] = sceneData;
-
-				// Copy scene-child-data into their separate caches!
-				pCache->GetLoadedMeshMap()[filepath] = sceneData.Meshes;
-				pCache->GetLoadedSceneCameraMap()[filepath] = sceneData.Cameras;
-				pCache->GetLoadedSceneLightMap()[filepath] = sceneData.Lights;
+				pCache->Add(filepath, sceneData, loadDesc);
 			}
 		}
 

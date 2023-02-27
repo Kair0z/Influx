@@ -18,6 +18,7 @@
     <ClInclude Include="Include\Core\Assert.h" />
     <ClInclude Include="Include\Core\BasicTypes.h" />
     <ClInclude Include="Include\Core\BRDF\BRDF.h" />
+    <ClInclude Include="Include\Core\Cache.h" />
     <ClInclude Include="Include\Core\CheckSafety.h" />
     <ClInclude Include="Include\Core\Cleanup.h" />
     <ClInclude Include="Include\Core\Container\Array.h" />
