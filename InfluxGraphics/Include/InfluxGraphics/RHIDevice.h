@@ -19,6 +19,9 @@ namespace Influx::Graphics
 	class RHIGraphicsPipelineLayout;
 	struct RHIGraphicsPipelineDescription;
 	class RHIGraphicsPipeline;
+	class RHITexture;
+
+	struct RHITextureDesc;
 
 	class RHIDevice
 	{
@@ -31,6 +34,7 @@ namespace Influx::Graphics
 		using ResourcePtr					= Ptr<RHIResource>;
 		using GraphicsPipelineLayoutPtr		= Ptr<RHIGraphicsPipelineLayout>;
 		using GraphicsPipelinePtr			= Ptr<RHIGraphicsPipeline>;
+		using TexturePtr					= Ptr<RHITexture>;
 
 	public:
 		/* Creating API objects & Resources */
@@ -46,6 +50,7 @@ namespace Influx::Graphics
 		virtual ResourcePtr CreateResource(const ERHIResourceState initialState) const = 0;
 		virtual ResourcePtr CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const = 0;
 		virtual ResourcePtr CreateVertexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const = 0;
+		virtual ResourcePtr CreateIndexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const = 0;
 
 		virtual GraphicsPipelineLayoutPtr CreateGraphicsPipelineLayout() const = 0;
 		virtual GraphicsPipelinePtr CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& desc, GraphicsPipelineLayoutPtr rootSignature) const = 0;
@@ -54,7 +59,27 @@ namespace Influx::Graphics
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) = 0;
 
 		bool GetIsDebugLayerEnabled() const;
+
+		virtual TexturePtr CreateTexture(const ERHIResourceState initialState, const RHITextureDesc& desc) const;
 		
+	public:
+		CommandQueuePtr GetGlobalGraphicsCommandQueue() const;
+		CommandQueuePtr GetGlobalComputeCommandQueue() const;
+
+		DescriptorHeapPtr GetRTVDescriptorHeap() const;
+		DescriptorHeapPtr GetDSVDescriptorHeap() const;
+		DescriptorHeapPtr GetResourceDescriptorHeap() const;
+		DescriptorHeapPtr GetSamplerDescriptorHeap() const;
+
+		RHIRenderTargetView* CreateRenderTargetView(const ResourcePtr viewedResource) const;
+		RHIShaderResourceView* CreateShaderResourceView(const ResourcePtr viewedResource) const;
+
+		const uint64 GetRTVDescriptorSize() const;
+		const uint64 GetDSVDescriptorSize() const;
+		const uint64 GetResourceDescriptorSize() const; // CBVs, UAVs, ConstantBuffers...
+		const uint64 GetSamplerDescriptorSize() const;
+		const uint64 GetDescriptorSize(const ERHIResourceViewType type) const;
+
 	protected:
 		RHIDevice() = default;
 		RHIDevice(const RHIDevice&) = delete;
@@ -63,8 +88,26 @@ namespace Influx::Graphics
 		RHIDevice& operator=(RHIDevice&&) = delete;
 		virtual ~RHIDevice() = default;
 
-	private:
+	protected:
 		bool m_isDebugLayerEnabled = false;
+
+		// Global Command Queues:
+		void CreateGlobalQueues();
+		RHICommandQueue* mp_graphicsQueue;
+		RHICommandQueue* mp_computeQueue;
+
+		// Global Descriptor Heaps:
+		void CreateGlobalDescriptorHeaps();
+		uint64 m_cachedRtvDescriptorSize = 0;
+		uint64 m_cachedDsvDescriptorSize = 0;
+		uint64 m_cachedResourceDescriptorSize = 0;
+		uint64 m_cachedSamplerDescriptorSize = 0;
+
+		// Global Descriptor Heaps
+		RHIDescriptorHeap* mp_RTVDescriptorHeap;
+		RHIDescriptorHeap* mp_resourceDescriptorHeap;
+		RHIDescriptorHeap* mp_DSVDescriptorheap;
+		RHIDescriptorHeap* mp_samplerDescriptorHeap;
 	};
 }
 

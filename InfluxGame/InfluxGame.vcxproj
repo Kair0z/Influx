@@ -91,9 +91,6 @@
     <ClCompile Include="Source\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FluxRenderer\FluxRenderer.vcxproj">
-      <Project>{3ec074f7-5fad-4e5e-8912-f8ecf5cfad77}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\InfluxApplication\InfluxApplication.vcxproj">
       <Project>{22e6b704-82d5-42f4-a8ab-f1f1843b8cdf}</Project>
     </ProjectReference>

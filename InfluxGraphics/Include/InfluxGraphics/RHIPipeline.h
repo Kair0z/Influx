@@ -5,6 +5,7 @@
 
 #include "Types.h"
 #include "Core/Container/Containers.h"
+#include "Core/Container/Map.h"
 
 namespace Influx::Graphics
 {
@@ -70,6 +71,12 @@ namespace Influx::Graphics
 			} BlendDesc;
 
 		} RenderTargets[8];
+
+		// Making this comparable
+		bool operator==(const RHIGraphicsPipelineDescription& other) const
+		{
+			return SampleCount == other.SampleCount;
+		}
 	};
 
 	/* RHIGraphicsPipeline */
@@ -90,4 +97,16 @@ namespace Influx::Graphics
 	};
 }
 
+// Define Hash function:
+namespace std
+{
+	template <>
+	struct std::hash<Influx::Graphics::RHIGraphicsPipelineDescription>
+	{
+		std::size_t operator()(const Influx::Graphics::RHIGraphicsPipelineDescription& desc) const noexcept
+		{
+			return 0u;
+		}
+	};
+}
 #endif

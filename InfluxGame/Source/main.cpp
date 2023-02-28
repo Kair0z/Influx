@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 	appSettings.HasWindow = true;
 	appSettings.WindowDimensions = { 640u, 480u };
 	appSettings.HasSceneRender = true;
-	appSettings.HasUI = false;
+	appSettings.HasImGUI = false;
 	appSettings.HasUpdate = true;
 	appSettings.Name = "Flux Game 0.0";
 

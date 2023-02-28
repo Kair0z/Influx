@@ -22,6 +22,7 @@
     <ClCompile Include="Source\InfluxGraphics\RHIPipeline.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12PipelineLayout.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Pipeline.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHITexture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12.h" />
@@ -55,5 +56,6 @@
     <ClInclude Include="Include\InfluxGraphics\RHIPipelineLayout.h" />
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12PipelineLayout.h" />
     <ClInclude Include="Include\InfluxGraphics\RHI.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHITexture.h" />
   </ItemGroup>
 </Project>

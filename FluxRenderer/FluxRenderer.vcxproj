@@ -93,13 +93,13 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxImgui\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxAssets\Include;$(SolutionDir)3thParty\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxImgui\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>InfluxRenderer.lib;InfluxGraphics.lib;InfluxImgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAssets\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>InfluxRenderer.lib;InfluxGraphics.lib;InfluxAssets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -111,15 +111,15 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxImgui\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxAssets\Include;$(SolutionDir)3thParty\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxImgui\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>InfluxRenderer.lib;InfluxGraphics.lib;InfluxImgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAssets\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>InfluxRenderer.lib;InfluxGraphics.lib;InfluxAssets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -129,13 +129,13 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxImgui\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxAssets\Include;$(SolutionDir)3thParty\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxImgui\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>InfluxRenderer.lib;InfluxGraphics.lib;InfluxImgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAssets\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>InfluxRenderer.lib;InfluxGraphics.lib;InfluxAssets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -147,33 +147,19 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxImgui\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxAssets\Include;$(SolutionDir)3thParty\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxImgui\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>InfluxRenderer.lib;InfluxGraphics.lib;InfluxImgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAssets\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>InfluxRenderer.lib;InfluxGraphics.lib;InfluxAssets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">
-      <Project>{aae8ef84-74c2-44f9-804e-6c08abe0f35b}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\InfluxGraphics\InfluxGraphics.vcxproj">
-      <Project>{804ebbd1-c037-46ef-b607-dd8dad7d5922}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\InfluxImgui\InfluxImgui.vcxproj">
-      <Project>{5a07469d-0645-4649-abab-4d2229d326ac}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\InfluxRenderer\InfluxRenderer.vcxproj">
-      <Project>{5d2be527-24b8-4162-95f7-254e9dd330e4}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

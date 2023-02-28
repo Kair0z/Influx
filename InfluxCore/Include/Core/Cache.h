@@ -43,6 +43,9 @@ namespace Influx
 		/* Marking K2 as optional... */
 		_T* Get(const Key1& k1, const Key2& k2 = Key2()) const;
 
+		/* Marking K2 as optional... */
+		_T* GetAndOrAdd(const Key1& k1, Data data, const Key2& k2 = Key2());
+
 	private:
 		DataMap m_dataMap;
 		DataContainer m_data;
@@ -61,7 +64,7 @@ namespace Influx
 		{
 			// Copy...
 			m_data.push_back(data);
-			m_dataMap.at({ k1, k2 }) = &m_data.back();
+			m_dataMap[{ k1, k2 }] = &m_data.back();
 			return true;
 		}
 
@@ -111,6 +114,17 @@ namespace Influx
 		if (!Contains(k1, k2))
 		{
 			return nullptr;
+		}
+
+		return m_dataMap.at({ k1, k2 });
+	}
+
+	template<typename _T, typename _K1, typename _K2>
+	_T* Cache<_T, _K1, _K2>::GetAndOrAdd(const Key1& k1, Data data, const Key2& k2)
+	{
+		if (!Contains(k1, k2))
+		{
+			Add(k1, data, k2);
 		}
 
 		return m_dataMap.at({ k1, k2 });

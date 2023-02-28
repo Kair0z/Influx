@@ -103,11 +103,23 @@ namespace Influx::Graphics
 		vtbView.BufferLocation = d3d12Resource->GetDxResource()->GetGPUVirtualAddress();
 		vtbView.StrideInBytes = vertexStrideInBytes;
 		vtbView.SizeInBytes = bufferSizeInBytes;
-
+		
 		const uint32 startSlot = 0u;
 		const uint32 numVertexBuffers = 1u;
-
+		
 		GetDxCommandList()->IASetVertexBuffers(startSlot, numVertexBuffers, &vtbView);
+	}
+
+	void D3D12CommandList::BindIndexBuffer(RHIResource* indexBufferResource, uint32 bufferSizeInBytes)
+	{
+		D3D12Resource* d3d12Resource = (D3D12Resource*)indexBufferResource;
+
+		D3D12_INDEX_BUFFER_VIEW view{};
+		view.BufferLocation = d3d12Resource->GetDxResource()->GetGPUVirtualAddress();
+		view.Format = DXGI_FORMAT_R32_UINT;
+		view.SizeInBytes = bufferSizeInBytes;
+
+		GetDxCommandList()->IASetIndexBuffer(&view);
 	}
 
 	void D3D12CommandList::SetPrimitiveTopology(ERHIPrimitiveTopology topology)
@@ -159,6 +171,11 @@ namespace Influx::Graphics
 	void D3D12CommandList::DrawInstanced(uint32 numVerticesPerInstance, uint32 numInstances, uint32 startVertexLocation, uint32 startInstanceLocation)
 	{
 		GetDxCommandList()->DrawInstanced(numVerticesPerInstance, numInstances, startVertexLocation, startInstanceLocation);
+	}
+
+	void D3D12CommandList::DrawIndexedInstanced(uint32 numIndicesPerInstance, uint32 numInstances, uint32 startIndexLocation, uint32 startVertexLocation, uint32 startInstanceLocation)
+	{
+		GetDxCommandList()->DrawIndexedInstanced(numIndicesPerInstance, numInstances, startIndexLocation, startVertexLocation, startInstanceLocation);
 	}
 
 	void D3D12CommandList::BindDescriptorheap(RHIDescriptorHeap* descriptorHeap)

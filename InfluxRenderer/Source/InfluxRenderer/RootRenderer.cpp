@@ -55,10 +55,12 @@ namespace Influx::Renderer
 		{
 		case EGraphicsAPI::D3D12:
 			mp_rhiDevice = new D3D12Device();
+			m_initializedDeviceAPI = api;
 			break;
 
 		case EGraphicsAPI::NotSupported:
 		default:
+			m_initializedDeviceAPI = EGraphicsAPI::NotSupported;
 			Cleanup();
 			return;
 		}
@@ -97,7 +99,15 @@ namespace Influx::Renderer
 
 	void RootRenderer::UpdateSwapchain()
 	{
+		const bool isAttachedToWindow = IsAttachedToWindow();
+		if (!isAttachedToWindow)
+		{
+			return;
+		}
 
+		mp_windowSwapchain->m_isDirty = false;
+		mp_windowSwapchain->m_previousSize = mp_windowSwapchain->m_updatedSize;
+		mp_windowSwapchain->m_updatedSize = mp_windowSwapchain->m_previousSize;
 	}
 
 	void RootRenderer::Render()
@@ -230,6 +240,54 @@ namespace Influx::Renderer
 	bool RootRenderer::IsGraphicsAPISupported(const Graphics::EGraphicsAPI api)
 	{
 		return (api < EGraphicsAPI::NotSupported);
+	}
+
+	RootRenderer::GraphicsPipelinePtr RootRenderer::GetAndOrCreateGraphicsPipeline(const GfxPipelineKey& key, const GfxPipelineLayoutKey& pipelineLayoutKey)
+	{
+		GraphicsPipelineLayoutPtr pipelineLayout = GetAndOrCreateGraphicsPipelineLayout(pipelineLayoutKey);
+
+		if (!mp_graphicsPipelineCache.Contains(key))
+		{
+			// Create new RHI Graphics Pipeline
+			GraphicsPipelinePtr newPipeline = mp_rhiDevice->CreateGraphicsPipeline(key, pipelineLayout);
+			mp_graphicsPipelineCache.Add(key, newPipeline);
+		}
+		
+		return *mp_graphicsPipelineCache.Get(key);
+	}
+
+	RootRenderer::GraphicsPipelineLayoutPtr RootRenderer::GetAndOrCreateGraphicsPipelineLayout(const GfxPipelineLayoutKey& key)
+	{
+		if (!mp_graphicsPipelineLayoutCache.Contains(key))
+		{
+			// Create new RHI Graphics Pipeline Layout
+			GraphicsPipelineLayoutPtr newPipelineLayout = mp_rhiDevice->CreateGraphicsPipelineLayout();
+			mp_graphicsPipelineLayoutCache.Add(key, newPipelineLayout);
+		}
+		
+		return *mp_graphicsPipelineLayoutCache.Get(key);
+	}
+
+	RootRenderer::TexturePtr RootRenderer::GetAndOrCreateTexture(const String& key, const Graphics::RHITextureDesc& desc)
+	{
+		if (!mp_textureCache.Contains(key))
+		{
+			// Create new RHI Texture
+			TexturePtr newTexture = mp_rhiDevice->CreateTexture(Graphics::ERHIResourceState::GenericRead, desc);
+			mp_textureCache.Add(key, newTexture);
+		}
+
+		return *mp_textureCache.Get(key);
+	}
+
+	RootRenderer::SwapchainPtr RootRenderer::GetWindowSwapchain() const
+	{
+		return mp_windowSwapchain->mp_rhiSwapchain;
+	}
+
+	const Math::Vectoru2& RootRenderer::GetWindowSwapchainDimensions() const
+	{
+		return (mp_windowSwapchain->m_isDirty) ? mp_windowSwapchain->m_previousSize : mp_windowSwapchain->m_updatedSize;
 	}
 
 	uint64 RootRenderer::GetFrame() const

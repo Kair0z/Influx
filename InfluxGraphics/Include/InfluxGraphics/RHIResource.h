@@ -34,8 +34,8 @@ namespace Influx::Graphics
 		virtual void ScopedMap(Function<void(void*)> mapFunction)const = 0;
 		virtual void Unmap() const = 0;
 
-		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const = 0;
-		virtual ShaderResourceViewPtr CreateShaderResourceView(const DevicePtr device) const = 0;
+		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const;
+		virtual ShaderResourceViewPtr CreateShaderResourceView(const DevicePtr device) const;
 
 		ERHIResourceState GetCurrentState() const;
 		ERHIResourceState GetPreviousState() const;

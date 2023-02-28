@@ -31,18 +31,6 @@ namespace Influx::Graphics
 		GetDxResource()->Unmap(subResourceIndex, &writtenRange);
 	}
 
-	RHIResource::RenderTargetViewPtr D3D12Resource::CreateRenderTargetView(const DevicePtr device) const
-	{
-		D3D12Device* d3d12Device = (D3D12Device*)device;
-		return d3d12Device->CreateRenderTargetView(this);
-	}
-
-	RHIResource::ShaderResourceViewPtr D3D12Resource::CreateShaderResourceView(const DevicePtr device) const
-	{
-		D3D12Device* d3d12Device = (D3D12Device*)device;
-		return d3d12Device->CreateShaderResourceView(this);
-	}
-
 	void D3D12Resource::OnTransitionState(const ERHIResourceState before, const ERHIResourceState after)
 	{
 

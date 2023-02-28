@@ -31,7 +31,7 @@ namespace Influx::Graphics
 		virtual void BindSampler() {};
 		virtual void BindConstantBuffer() {};
 		virtual void BindVertexBuffer(RHIResource* vertexBufferResource, uint32 bufferSizeInBytes, uint32 vertexStrideInBytes) = 0;
-		virtual void BindIndexBuffer() {};
+		virtual void BindIndexBuffer(RHIResource* indexBufferResource, uint32 bufferSizeInBytes) = 0;
 		virtual void BindStencilRef() {};
 		virtual void BindBlendFactor() {};
 		virtual void BindShadingRate() {};
@@ -43,7 +43,7 @@ namespace Influx::Graphics
 
 		virtual void DrawIndexed() {};
 		virtual void DrawInstanced(uint32 numVerticesPerInstance, uint32 numInstances, uint32 startVertexLocation = 0, uint32 startInstanceLocation = 0) = 0;
-		virtual void DrawIndexedInstanced() {};
+		virtual void DrawIndexedInstanced(uint32 numIndicesPerInstance, uint32 numInstances, uint32 startIndexLocation, uint32 startVertexLocation, uint32 startInstanceLocation) = 0;
 		virtual void DrawInstancedIndirect() {};
 		virtual void DrawIndexedInstancedIndirect() {};
 		virtual void DrawInstancedIndirectCount() {};

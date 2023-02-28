@@ -85,6 +85,9 @@ namespace Influx::Graphics::Conversion
 		switch (topology)
 		{
 		case ERHIPrimitiveTopology::TriangleList: return D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		case ERHIPrimitiveTopology::TriangleListAdj: return D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+		case ERHIPrimitiveTopology::TriangleStrip: return D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+		case ERHIPrimitiveTopology::TriangleStripAdj: return D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
 		default:
 			assert(false); // Todo...
 		}

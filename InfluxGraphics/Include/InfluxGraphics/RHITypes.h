@@ -114,7 +114,11 @@ namespace Influx::Graphics
 
 	enum class ERHIPrimitiveTopology
 	{
-		TriangleList
+		TriangleList,
+		TriangleListAdj,
+		TriangleStrip,
+		TriangleStripAdj,
+		Max
 	};
 
 	enum class ERHIPrimitiveTopologyType

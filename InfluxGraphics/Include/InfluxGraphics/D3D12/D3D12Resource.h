@@ -17,9 +17,6 @@ namespace Influx::Graphics
 		virtual void ScopedMap(Function<void(void*)> mapFunction) const override;
 		virtual void Unmap() const override;
 
-		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const override;
-		virtual ShaderResourceViewPtr CreateShaderResourceView(const DevicePtr device) const override;
-
 		virtual void OnTransitionState(const ERHIResourceState before, const ERHIResourceState after) override final;
 
 		ID3D12Resource* mp_dxResource;

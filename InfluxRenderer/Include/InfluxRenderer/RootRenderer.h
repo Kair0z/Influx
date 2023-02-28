@@ -7,8 +7,13 @@
 #include "Core/Pointer.h"
 #include "Core/Container/List.h"
 #include "Core/Platform/Platform.h"
+#include "Core/Cache.h"
+#include "Core/Function.h"
 
 #include "InfluxGraphics/RHITypes.h"
+
+#include "InfluxGraphics/RHIPipeline.h"
+#include "InfluxGraphics/RHIPipelineLayout.h"
 
 namespace Influx::Graphics
 {
@@ -17,6 +22,13 @@ namespace Influx::Graphics
 	class RHICommandQueue;
 	class RHIDescriptorHeap;
 	class RHISwapchain;
+	class RHIGraphicsPipeline;
+	class RHIGraphicsPipelineLayout;
+	class RHIResource;
+	class RHITexture;
+	struct RHITextureDesc;
+	struct RHIGraphicsPipelineDescription;
+	struct RHIGraphicsPipelineLayoutDescription;
 }
 
 namespace Influx::Renderer
@@ -24,9 +36,20 @@ namespace Influx::Renderer
 	class RootRenderer final
 	{
 		using Ptr = RootRenderer*;
+		using SwapchainPtr = Graphics::RHISwapchain*;
+		using GraphicsPipelinePtr = Graphics::RHIGraphicsPipeline*;
+		using GraphicsPipelineLayoutPtr = Graphics::RHIGraphicsPipelineLayout*;
+		using TexturePtr = Graphics::RHITexture*;
+
+		using GfxPipelineKey = Graphics::RHIGraphicsPipelineDescription;
+		using GfxPipelineLayoutKey = Graphics::RHIGraphicsPipelineLayoutDescription;
+
+		using TextureCache = Cache<TexturePtr, String>;
+		using GfxPipelineCache = Cache<GraphicsPipelinePtr, GfxPipelineKey, GfxPipelineLayoutKey>;
+		using GfxPipelineLayoutCache = Cache<GraphicsPipelineLayoutPtr, GfxPipelineLayoutKey>;
 
 	public:
-		typedef void (*OnBuildCommandList)(Graphics::RHICommandList* cmdList);
+		using OnBuildCommandList = Function<void(Graphics::RHICommandList*)>;
 		typedef void (*OnWindowResize)(const Math::Vectoru2& newSize);
 		
 		RootRenderer(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
@@ -50,6 +73,13 @@ namespace Influx::Renderer
 
 		static bool IsGraphicsAPISupported(const Graphics::EGraphicsAPI api);
 
+		GraphicsPipelinePtr GetAndOrCreateGraphicsPipeline(const GfxPipelineKey& key, const GfxPipelineLayoutKey& pipelineLayoutKey);
+		GraphicsPipelineLayoutPtr GetAndOrCreateGraphicsPipelineLayout(const GfxPipelineLayoutKey& key);
+		TexturePtr GetAndOrCreateTexture(const String& key, const Graphics::RHITextureDesc& desc);
+
+		SwapchainPtr GetWindowSwapchain() const;
+		const Math::Vectoru2& GetWindowSwapchainDimensions() const;
+
 		uint64 GetFrame() const;
 
 		Graphics::RHIDevice* GetDevice() const;
@@ -63,6 +93,10 @@ namespace Influx::Renderer
 		Graphics::RHIDescriptorHeap* mp_rtvDescriptorHeap;
 		Graphics::RHICommandQueue* mp_gfxCommandQueue;
 		Graphics::RHICommandList* mp_commandList;
+
+		GfxPipelineCache mp_graphicsPipelineCache;
+		GfxPipelineLayoutCache mp_graphicsPipelineLayoutCache;
+		TextureCache mp_textureCache;
 
 		struct SwapchainTarget final
 		{

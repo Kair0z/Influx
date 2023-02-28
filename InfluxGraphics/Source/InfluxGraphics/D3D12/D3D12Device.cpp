@@ -33,6 +33,12 @@ namespace Influx::Graphics
 		mp_dxgiAdapter = D3D12::GetDxgiAdapter4(mp_dxgiFactory, true);
 		mp_dxDevice = D3D12::CreateDxDevice2(mp_dxgiAdapter);
 
+		// Cache DescriptorSizes
+		m_cachedDsvDescriptorSize		= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		m_cachedResourceDescriptorSize	= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		m_cachedSamplerDescriptorSize	= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		m_cachedRtvDescriptorSize		= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
 		CreateGlobalQueues();
 		CreateGlobalDescriptorHeaps();
 	}
@@ -95,49 +101,41 @@ namespace Influx::Graphics
 	RHIDevice::RenderTargetViewPtr D3D12Device::CreateRenderTargetView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const
 	{
 		D3D12Resource* d3d12Resource = (D3D12Resource*)viewedResource;
+		D3D12DescriptorHeap* d3d12DescriptorHeap = (D3D12DescriptorHeap*)descriptorHeap;
 
-		return CreateRenderTargetView(d3d12Resource);
-	}
-
-	RHIDevice::ShaderResourceViewPtr D3D12Device::CreateShaderResourceView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const
-	{
-		D3D12Resource* d3d12Resource = (D3D12Resource*)viewedResource;
-
-		return CreateShaderResourceView(d3d12Resource);
-	}
-
-	D3D12RenderTargetView* D3D12Device::CreateRenderTargetView(const D3D12Resource* viewedResource) const
-	{
 		constexpr ERHIFormat temp_format = ERHIFormat::RGBA_8_Unorm;
 		D3D12_RENDER_TARGET_VIEW_DESC desc{};
 		desc.Format = Conversion::ToDx12(temp_format);
 
-		const D3D12_RESOURCE_DESC& resource_desc = viewedResource->GetDxResource()->GetDesc();
+		const D3D12_RESOURCE_DESC& resource_desc = d3d12Resource->GetDxResource()->GetDesc();
 		const Math::Vectoru2 resource_dimensions = { (uint32)resource_desc.Width, (uint32)resource_desc.Height };
 
 		D3D12RenderTargetView* result = new D3D12RenderTargetView(temp_format, resource_dimensions, viewedResource->GetOptimizedClearValue());
-		if (GetRTVDescriptorHeap()->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
+		if (d3d12DescriptorHeap->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
 		{
-			GetDxDevice()->CreateRenderTargetView(viewedResource->GetDxResource(), nullptr, result->GetDxCPUHandle());
+			GetDxDevice()->CreateRenderTargetView(d3d12Resource->GetDxResource(), nullptr, result->GetDxCPUHandle());
 			return result;
 		}
 
 		return nullptr;
 	}
 
-	D3D12ShaderResourceView* D3D12Device::CreateShaderResourceView(const D3D12Resource* viewedResource) const
+	RHIDevice::ShaderResourceViewPtr D3D12Device::CreateShaderResourceView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const
 	{
+		D3D12Resource* d3d12Resource = (D3D12Resource*)viewedResource;
+		D3D12DescriptorHeap* d3d12DescriptorHeap = (D3D12DescriptorHeap*)descriptorHeap;
+
 		constexpr ERHIFormat temp_format = ERHIFormat::RGBA_8_Unorm;
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
 		desc.Format = Conversion::ToDx12(temp_format);
 
-		const D3D12_RESOURCE_DESC& resource_desc = viewedResource->GetDxResource()->GetDesc();
+		const D3D12_RESOURCE_DESC& resource_desc = d3d12Resource->GetDxResource()->GetDesc();
 		const Math::Vectoru2 resource_dimensions = { (uint32)resource_desc.Width, (uint32)resource_desc.Height };
 
 		D3D12ShaderResourceView* result = new D3D12ShaderResourceView(temp_format, resource_dimensions, viewedResource->GetOptimizedClearValue());
-		if (GetResourceDescriptorHeap()->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
+		if (d3d12DescriptorHeap->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
 		{
-			GetDxDevice()->CreateShaderResourceView(viewedResource->GetDxResource(), nullptr, result->GetDxCPUHandle());
+			GetDxDevice()->CreateShaderResourceView(d3d12Resource->GetDxResource(), nullptr, result->GetDxCPUHandle());
 			return result;
 		}
 
@@ -170,6 +168,21 @@ namespace Influx::Graphics
 	}
 
 	RHIDevice::ResourcePtr D3D12Device::CreateVertexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const
+	{
+		const bool useUploadHeap = true;
+		const uint64 alignment = 0u;
+		const RHIClearValue optimizedClearValue = {};
+
+		using namespace D3D12::HelperStructs;
+		CommittedResourceDesc bufferResourceDesc = CommittedResourceDesc::AsBuffer(useUploadHeap, numBytesInBuffer, alignment);
+
+		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue);
+		result->mp_dxResource = D3D12::CreateDxCommittedResource(GetDxDevice(), bufferResourceDesc, Conversion::ToDx12(initialState));
+
+		return result;
+	}
+
+	RHIDevice::ResourcePtr D3D12Device::CreateIndexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const
 	{
 		const bool useUploadHeap = true;
 		const uint64 alignment = 0u;
@@ -297,93 +310,6 @@ namespace Influx::Graphics
 	IDXGIFactory4* D3D12Device::GetDxgiFactory() const
 	{
 		return mp_dxgiFactory;
-	}
-
-	D3D12CommandQueue* D3D12Device::GetGlobalGraphicsCommandQueue() const
-	{
-		return mp_graphicsQueue;
-	}
-
-	D3D12CommandQueue* D3D12Device::GetGlobalComputeCommandQueue() const
-	{
-		return mp_computeQueue;
-	}
-
-	D3D12DescriptorHeap* D3D12Device::GetRTVDescriptorHeap() const
-	{
-		return mp_RTVDescriptorHeap;
-	}
-
-	D3D12DescriptorHeap* D3D12Device::GetDSVDescriptorHeap() const
-	{
-		return mp_DSVDescriptorheap;
-	}
-
-	D3D12DescriptorHeap* D3D12Device::GetResourceDescriptorHeap() const
-	{
-		return mp_resourceDescriptorHeap;
-	}
-
-	D3D12DescriptorHeap* D3D12Device::GetSamplerDescriptorHeap() const
-	{
-		return mp_samplerDescriptorHeap;
-	}
-
-	const uint64 D3D12Device::GetRTVDescriptorSize() const
-	{
-		return m_cachedRtvDescriptorSize;
-	}
-
-	const uint64 D3D12Device::GetDSVDescriptorSize() const
-	{
-		return m_cachedDsvDescriptorSize;
-	}
-
-	const uint64 D3D12Device::GetResourceDescriptorSize() const
-	{
-		return m_cachedResourceDescriptorSize;
-	}
-
-	const uint64 D3D12Device::GetSamplerDescriptorSize() const
-	{
-		return m_cachedSamplerDescriptorSize;
-	}
-
-	const uint64 D3D12Device::GetDescriptorSize(const ERHIResourceViewType type) const
-	{
-		switch (type)
-		{
-		case ERHIResourceViewType::Resource:	return GetResourceDescriptorSize();
-		case ERHIResourceViewType::DSV:		return GetDSVDescriptorSize();
-		case ERHIResourceViewType::RTV:		return GetRTVDescriptorSize();
-		case ERHIResourceViewType::Sampler:	return GetSamplerDescriptorSize();
-
-		default:
-		case ERHIResourceViewType::Invalid:	return 0u;
-		}
-
-		return 0u;
-	}
-
-	void D3D12Device::CreateGlobalQueues()
-	{
-		mp_graphicsQueue	= static_cast<D3D12CommandQueue*>(CreateCommandQueue(ERHICommandQueueType::Graphics));
-		mp_computeQueue		= static_cast<D3D12CommandQueue*>(CreateCommandQueue(ERHICommandQueueType::Compute));
-	}
-
-	void D3D12Device::CreateGlobalDescriptorHeaps()
-	{
-		// Cache DescriptorSizes
-		m_cachedDsvDescriptorSize			= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		m_cachedResourceDescriptorSize		= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		m_cachedSamplerDescriptorSize		= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		m_cachedRtvDescriptorSize			= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-		// Create Global Descriptor Heaps:
-		mp_samplerDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIResourceViewType::Sampler, 16u, true));
-		mp_resourceDescriptorHeap	= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIResourceViewType::Resource, 64u, true));
-		mp_RTVDescriptorHeap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIResourceViewType::RTV, 64u, false));
-		mp_DSVDescriptorheap		= static_cast<D3D12DescriptorHeap*>(CreateDescriptorHeap(ERHIResourceViewType::DSV, 64u, false));
 	}
 }
 

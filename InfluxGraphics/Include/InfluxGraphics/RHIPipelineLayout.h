@@ -5,8 +5,21 @@
 
 #include "Types.h"
 
+#include "Core/Container/Map.h"
+
 namespace Influx::Graphics
 {
+	struct RHIGraphicsPipelineLayoutDescription final
+	{
+		uint32 ID = 0u;
+
+		// Making this comparable
+		bool operator==(const RHIGraphicsPipelineLayoutDescription& other) const
+		{
+			return ID == other.ID;
+		}
+	};
+
 	/* 
 	* RHIPipelineLayout
 	* RHIRootSignature 
@@ -25,4 +38,16 @@ namespace Influx::Graphics
 	};
 }
 
+// Define Hash function:
+namespace std
+{
+	template <>
+	struct std::hash<Influx::Graphics::RHIGraphicsPipelineLayoutDescription>
+	{
+		std::size_t operator()(const Influx::Graphics::RHIGraphicsPipelineLayoutDescription& desc) const noexcept
+		{
+			return desc.ID;
+		}
+	};
+}
 #endif

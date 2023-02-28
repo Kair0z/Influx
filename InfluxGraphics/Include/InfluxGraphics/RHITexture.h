@@ -1,0 +1,46 @@
+#pragma once
+
+#ifndef __GR_RHI_TEXTURE_H_
+#define __GR_RHI_TEXTURE_H_
+
+#include "InfluxGraphics/RHITypes.h"
+
+namespace Influx::Graphics
+{
+	class RHIResource;
+	class RHIRenderTargetView;
+	class RHIShaderResourceView;
+	class RHIDevice;
+
+	struct RHITextureDesc final
+	{
+		Math::Vectoru2 Dimensions;
+		uint16 NumMips;
+		ERHIFormat Format;
+	};
+
+	class RHITexture final
+	{
+	private:
+		RHITexture() = default;
+		friend class RHIDevice;
+
+		RHIResource* mp_resource;
+		RHIRenderTargetView* mp_renderTargetView;
+		RHIShaderResourceView* mp_shaderResourceView;
+
+	public:
+		RHIRenderTargetView* GetAndOrCreateRenderTargetView(const RHIDevice* device);
+		RHIShaderResourceView* GetAndOrCreateShaderResourceView(const RHIDevice* device);
+		RHIResource* GetResource() const;
+
+	public:
+		RHITexture(const RHITexture&) = delete;
+		RHITexture(RHITexture&&) = delete;
+		RHITexture& operator=(const RHITexture&) = delete;
+		RHITexture& operator=(RHITexture&&) = delete;
+		virtual ~RHITexture() = default;
+	};
+}
+
+#endif

@@ -37,6 +37,7 @@ namespace Influx::Graphics
 		virtual ResourcePtr CreateResource(const ERHIResourceState initialState) const override;
 		virtual ResourcePtr CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const override;
 		virtual ResourcePtr CreateVertexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const override;
+		virtual ResourcePtr CreateIndexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const override;
 
 		virtual GraphicsPipelineLayoutPtr CreateGraphicsPipelineLayout() const override;
 		virtual GraphicsPipelinePtr CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& desc, GraphicsPipelineLayoutPtr rootSignature) const override;
@@ -47,26 +48,6 @@ namespace Influx::Graphics
 		ID3D12Device2* GetDxDevice() const;
 		IDXGIAdapter4* GetDxgiAdapter() const;
 		IDXGIFactory4* GetDxgiFactory() const;
-
-		D3D12CommandQueue* GetGlobalGraphicsCommandQueue() const;
-		D3D12CommandQueue* GetGlobalComputeCommandQueue() const;
-
-		D3D12DescriptorHeap* GetRTVDescriptorHeap() const;
-		D3D12DescriptorHeap* GetDSVDescriptorHeap() const;
-		D3D12DescriptorHeap* GetResourceDescriptorHeap() const;
-		D3D12DescriptorHeap* GetSamplerDescriptorHeap() const;
-
-		/* Using GetRTVDescriptorHeap() */
-		D3D12RenderTargetView* CreateRenderTargetView(const D3D12Resource* viewedResource) const;
-		
-		/* Using GetSRVDescriptorHeap() */
-		D3D12ShaderResourceView* CreateShaderResourceView(const D3D12Resource* viewedResource) const;
-
-		const uint64 GetRTVDescriptorSize() const;
-		const uint64 GetDSVDescriptorSize() const;
-		const uint64 GetResourceDescriptorSize() const; // CBVs, UAVs, ConstantBuffers...
-		const uint64 GetSamplerDescriptorSize() const;
-		const uint64 GetDescriptorSize(const ERHIResourceViewType type) const;
 
 		template <typename _T>
 		void Release(_T*& pointer)
@@ -88,32 +69,6 @@ namespace Influx::Graphics
 
 		constexpr static bool bTearingSupported = false;
 		constexpr static bool bAdditionalShadingRatesSupported = false;
-
-		// Global Command Queues:
-		void CreateGlobalQueues();
-		D3D12CommandQueue* mp_graphicsQueue;
-		D3D12CommandQueue* mp_computeQueue;
-
-		// Global Descriptor Heaps:
-		void CreateGlobalDescriptorHeaps();
-		uint64 m_cachedRtvDescriptorSize = 0;
-		uint64 m_cachedDsvDescriptorSize = 0;
-		uint64 m_cachedResourceDescriptorSize = 0;
-		uint64 m_cachedSamplerDescriptorSize = 0;
-
-		// Global Descriptor Heaps
-		D3D12DescriptorHeap* mp_RTVDescriptorHeap;
-		D3D12DescriptorHeap* mp_resourceDescriptorHeap;
-		D3D12DescriptorHeap* mp_DSVDescriptorheap;
-		D3D12DescriptorHeap* mp_samplerDescriptorHeap;
-
-		void CreateDescriptorOnGlobalHeap(ERHIResourceViewType type, uint64 slot);
-		void CreateRenderTargetViewOnGlobalHeap(uint64 slot);
-		void CreateConstantBufferViewOnGlobalHeap(uint64 slot);
-		void CreateShaderResourceViewOnGlobalHeap(uint64 slot);
-		void CreateUnorderedAccessViewOnGlobalHeap(uint64 slot);
-		void CreateSamplerOnGlobalHeap(uint64 slot);
-		void CreateDepthStencilViewOnGlobalHeap(uint64 slot);
 	};
 }
 

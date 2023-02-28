@@ -1,5 +1,7 @@
 #include "InfluxGraphics/RHIResource.h"
 
+#include "InfluxGraphics/RHIDevice.h"
+
 namespace Influx::Graphics
 {
 	RHIResource::RHIResource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue)
@@ -15,6 +17,16 @@ namespace Influx::Graphics
 		m_currentState = newState;
 
 		OnTransitionState(GetPreviousState(), GetCurrentState());
+	}
+
+	RHIResource::RenderTargetViewPtr RHIResource::CreateRenderTargetView(const DevicePtr device) const
+	{
+		return device->CreateRenderTargetView((RHIResource*)this);
+	}
+
+	RHIResource::ShaderResourceViewPtr RHIResource::CreateShaderResourceView(const DevicePtr device) const
+	{
+		return device->CreateShaderResourceView((RHIResource*)this);
 	}
 
 	ERHIResourceState RHIResource::GetCurrentState() const

@@ -1,6 +1,8 @@
 
 #include "InfluxGraphics/RHI.h"
 
+#include "InfluxAssets/InfluxAssets.h"
+
 // Todo... Get rid of these ugly includes :(
 #include "InfluxGraphics/D3D12/D3D12Device.h"			// <- We need this to specify Graphics-API...
 #include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"	// <- We need this because 'GetResourceDescriptorHeap()' is D3D12Device specific...
@@ -17,6 +19,7 @@ namespace Settings
 	bool g_vsync = true;
 
 	const Influx::Math::Vectoru2 WindowDimensions{ 640u, 480u };
+	const float AspectRatio = (float)WindowDimensions.x / (float)WindowDimensions.y;
 }
 
 int main()
@@ -50,6 +53,37 @@ int main()
 		}
 	}
 
+	// [Get Vertex Buffers]
+	Assets::Scene leblancScene{};
+	bool sceneLoaded = Assets::LoadScene("E:/Git/Influx/Resources/Meshes/box.fbx", leblancScene);
+
+	Vector<Math::Vertex> vertices{};
+	Vector<uint64> indices{};
+	{
+		for (uint64 s = 0; s < leblancScene.Meshes.size(); ++s)
+		{
+			const Assets::Mesh& mesh = leblancScene.Meshes[s];
+			for (uint64 i = 0; i < mesh.Vertices.size(); ++i)
+			{
+				Math::Vertex newVertex{};
+				newVertex.Color[i % 3]	= 1.0f;
+				newVertex.Position		= mesh.Vertices[i].Position;
+				vertices.push_back(newVertex);
+			}
+
+			for (uint64 i = 0; i < mesh.Indices.size(); ++i)
+			{
+				indices.push_back(mesh.Indices[i]);
+			}
+		}
+	}
+
+	const uint64 vertexSize			= sizeof(Influx::Math::Vertex);
+	const uint64 numVertices		= vertices.size();
+	const uint64 numIndices			= indices.size();
+	const uint64 vertexBufferSize	= numVertices * vertexSize;
+	const uint64 indexBufferSize	= numIndices * sizeof(uint64);
+	
 	// [Create Window]
 	Platform::WindowSettings	windowSettings(Settings::WindowDimensions, "Flux Renderer");
 	Platform::WindowHandle		wndHandle = Platform::CreateWindow(windowSettings, true);
@@ -83,23 +117,17 @@ int main()
 
 		graphicsPipeline = device->CreateGraphicsPipeline(pipelineDesc, pipelineLayout);
 	}
-	
-	// [Get Vertex Buffers]
-	const Influx::Math::Vertex triangle[3u]
-	{
-		{{0.0f, 0.25f * aspectRatio, 0.0f},		{1.0f, 0.0f, 0.0f, 1.0f}},
-		{{0.25f, -0.25f * aspectRatio, 0.0f},	{0.0f, 1.0f, 0.0f, 1.0f}},
-		{{-0.25f, -0.25f * aspectRatio, 0.0f},	{0.0f, 0.0f, 1.0f, 1.0f}}
-	};
-
-	constexpr uint64 vertexBufferSize = sizeof(triangle);
-	constexpr uint64 vertexSize = sizeof(Influx::Math::Vertex);
 
 	// [Create Triangle Buffer To Render]
 	Graphics::RHIResource* vertexBuffer = device->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
-	vertexBuffer->ScopedMap([&triangle](void* cpuHandle) // Copy data to GPU buffer...
+	Graphics::RHIResource* indexBuffer = device->CreateIndexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, indexBufferSize);
+	vertexBuffer->ScopedMap([&vertices, vertexBufferSize](void* cpuHandle) // Copy data to GPU buffer...
 	{
-		memcpy(cpuHandle, triangle, sizeof(triangle));
+		memcpy(cpuHandle, vertices.data(), vertexBufferSize);
+	});
+	indexBuffer->ScopedMap([&indices, indexBufferSize](void* cpuHandle)
+	{
+		memcpy(cpuHandle, indices.data(), indexBufferSize);
 	});
 
 	// [Create - Separate - Scene Colour Texture]
@@ -110,6 +138,7 @@ int main()
 		Graphics::RHIViewport Viewport;
 		Graphics::RHIScissorRect ScissorRect;
 	} sceneColour;
+
 	sceneColour.Resource = device->CreateTextureResource(Graphics::ERHIResourceState::RenderTarget, Graphics::ERHIFormat::RGBA_8_Unorm, Math::Vectoru2{ windowSettings.Width, windowSettings.Heigth }, 1u);
 	sceneColour.RTV = sceneColour.Resource->CreateRenderTargetView(device);
 	sceneColour.Viewport = { (float)windowSettings.Width, (float)windowSettings.Heigth };
@@ -138,8 +167,9 @@ int main()
 			cmdList->BindScissorRect(sceneColour.ScissorRect);
 
 			cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
+			cmdList->BindIndexBuffer(indexBuffer, indexBufferSize);
 			cmdList->BindVertexBuffer(vertexBuffer, vertexBufferSize, vertexSize);
-			cmdList->DrawInstanced(3u, 1u);
+			cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
 		}
 		
 		// Copy Scene Colour -> swapchainBackbuffer

@@ -27,7 +27,7 @@ namespace Influx::Application
 			bool HasWindow = false;
 			Math::Vectoru2 WindowDimensions = { 640u, 480u };
 
-			bool HasUI = false;
+			bool HasImGUI = false;
 			bool HasUpdate = false;
 			bool HasSceneRender = false;
 		};
@@ -92,7 +92,7 @@ namespace Influx::Application
 		void Cleanup();
 		void PollWindowEvents();
 		void Update();
-		void SceneRender();
+		void Render();
 		void ImguiRender();
 
 		void CreateWindow();

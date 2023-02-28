@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Pipeline.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12PipelineLayout.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\RHITexture.cpp" />
     <ClCompile Include="Source\InfluxGraphics\RHIPipeline.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.cpp" />
     <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12ShaderResourceView.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIViews.h" />
     <ClInclude Include="Include\InfluxGraphics\RHIPipelineLayout.h" />
     <ClInclude Include="Include\InfluxGraphics\RHISwapchain.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHITexture.h" />
     <ClInclude Include="Include\InfluxGraphics\RHITypes.h" />
     <ClInclude Include="Include\InfluxGraphics\Types.h" />
     <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIRenderTargetView.h" />
