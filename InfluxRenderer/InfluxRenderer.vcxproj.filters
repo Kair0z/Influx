@@ -3,21 +3,11 @@
   <ItemGroup>
     <ClInclude Include="Include\InfluxRenderer\Renderer.h" />
     <ClInclude Include="Source\renderer_pch.h" />
-    <ClInclude Include="Include\InfluxRenderer\IRenderer.h" />
-    <ClInclude Include="Include\InfluxRenderer\RenderContext.h" />
     <ClInclude Include="Source\InfluxRenderer\RootRenderer.h" />
-    <ClInclude Include="Source\InfluxRenderer\RenderGraph\Nodes.h" />
-    <ClInclude Include="Source\InfluxRenderer\RenderGraph\Pass.h" />
-    <ClInclude Include="Source\InfluxRenderer\RenderGraph\RenderGraph.h" />
     <ClInclude Include="Include\InfluxRenderer\RootRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\renderer_pch.cpp" />
-    <ClCompile Include="Source\InfluxRenderer\IRenderer.cpp" />
-    <ClCompile Include="Source\InfluxRenderer\RenderContext.cpp" />
     <ClCompile Include="Source\InfluxRenderer\RootRenderer.cpp" />
-    <ClCompile Include="Source\InfluxRenderer\RenderGraph\Nodes.cpp" />
-    <ClCompile Include="Source\InfluxRenderer\RenderGraph\Pass.cpp" />
-    <ClCompile Include="Source\InfluxRenderer\RenderGraph\RenderGraph.cpp" />
   </ItemGroup>
 </Project>

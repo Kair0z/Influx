@@ -20,10 +20,12 @@ namespace Influx::Graphics
 		}
 
 		Initialize();
+		PostInitialize();
 	}
 
 	D3D12Device::~D3D12Device()
 	{
+		PreCleanup();
 		Cleanup();
 	}
 
@@ -38,14 +40,13 @@ namespace Influx::Graphics
 		m_cachedResourceDescriptorSize	= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		m_cachedSamplerDescriptorSize	= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		m_cachedRtvDescriptorSize		= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-		CreateGlobalQueues();
-		CreateGlobalDescriptorHeaps();
 	}
 
 	void D3D12Device::Cleanup()
 	{
-		
+		Release(mp_dxDevice);
+		Release(mp_dxgiAdapter);
+		Release(mp_dxgiFactory);
 	}
 
 	RHICommandQueue* D3D12Device::CreateCommandQueue(const ERHICommandQueueType type) const
@@ -295,6 +296,11 @@ namespace Influx::Graphics
 		{
 			D3D12::DisableDxDebugLayer();
 		}
+	}
+
+	EGraphicsAPI D3D12Device::GetGraphicsAPI() const
+	{
+		return EGraphicsAPI::D3D12;
 	}
 
 	ID3D12Device2* D3D12Device::GetDxDevice() const

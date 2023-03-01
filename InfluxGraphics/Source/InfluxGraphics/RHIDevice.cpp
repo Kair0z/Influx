@@ -4,6 +4,33 @@
 
 namespace Influx::Graphics
 {
+	void RHIDevice::PostInitialize()
+	{
+		if (m_isInitialized && m_isCleanedUp)
+		{
+			return;
+		}
+
+		CreateGlobalQueues();
+		CreateGlobalDescriptorHeaps();
+
+		m_isInitialized = true;
+		m_isCleanedUp = false;
+	}
+
+	void RHIDevice::PreCleanup()
+	{
+		if (!m_isInitialized || !m_isCleanedUp)
+		{
+			return;
+		}
+
+		// Todo ...
+
+		m_isInitialized = false;
+		m_isCleanedUp = true;
+	}
+
 	bool RHIDevice::GetIsDebugLayerEnabled() const
 	{
 		return m_isDebugLayerEnabled;
@@ -28,10 +55,10 @@ namespace Influx::Graphics
 
 	void RHIDevice::CreateGlobalDescriptorHeaps()
 	{
-		mp_samplerDescriptorHeap	= CreateDescriptorHeap(ERHIResourceViewType::Sampler, 16u, true);
-		mp_resourceDescriptorHeap	= CreateDescriptorHeap(ERHIResourceViewType::Resource, 64u, true);
-		mp_RTVDescriptorHeap		= CreateDescriptorHeap(ERHIResourceViewType::RTV, 64u, false);
-		mp_DSVDescriptorheap		= CreateDescriptorHeap(ERHIResourceViewType::DSV, 64u, false);
+		mp_samplerDescriptorHeap	= CreateDescriptorHeap(ERHIResourceViewType::Sampler, k_maxNumSamplerDescriptorsPerHeap, true);
+		mp_resourceDescriptorHeap	= CreateDescriptorHeap(ERHIResourceViewType::Resource, k_maxNumResourceDescriptorsPerHeap, true);
+		mp_RTVDescriptorHeap		= CreateDescriptorHeap(ERHIResourceViewType::RTV, k_maxNumRtvDescriptorsPerHeap, false);
+		mp_DSVDescriptorheap		= CreateDescriptorHeap(ERHIResourceViewType::DSV, k_maxNumDsvDescriptorsPerHeap, false);
 	}
 
 	RHICommandQueue* RHIDevice::GetGlobalGraphicsCommandQueue() const

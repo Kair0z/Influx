@@ -44,6 +44,8 @@ namespace Influx::Graphics
 
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) override;
 
+		virtual EGraphicsAPI GetGraphicsAPI() const override;
+
 		/* D3D12 API */
 		ID3D12Device2* GetDxDevice() const;
 		IDXGIAdapter4* GetDxgiAdapter() const;

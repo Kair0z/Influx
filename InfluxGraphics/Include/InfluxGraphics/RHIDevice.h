@@ -57,11 +57,13 @@ namespace Influx::Graphics
 
 		/* Debug Layer*/
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) = 0;
-
 		bool GetIsDebugLayerEnabled() const;
 
+		virtual EGraphicsAPI GetGraphicsAPI() const = 0;
+
+		/* API agnostic RHI implementations */
 		virtual TexturePtr CreateTexture(const ERHIResourceState initialState, const RHITextureDesc& desc) const;
-		
+
 	public:
 		CommandQueuePtr GetGlobalGraphicsCommandQueue() const;
 		CommandQueuePtr GetGlobalComputeCommandQueue() const;
@@ -89,6 +91,12 @@ namespace Influx::Graphics
 		virtual ~RHIDevice() = default;
 
 	protected:
+		/* RHIDevice Implementation creates the global Device objects AFTER the API gets created */
+		void PostInitialize();
+
+		/* RHIDevice Implementation destroys the global Device objects BEFORE the API gets destroyed */
+		void PreCleanup();
+
 		bool m_isDebugLayerEnabled = false;
 
 		// Global Command Queues:
@@ -108,6 +116,15 @@ namespace Influx::Graphics
 		RHIDescriptorHeap* mp_resourceDescriptorHeap;
 		RHIDescriptorHeap* mp_DSVDescriptorheap;
 		RHIDescriptorHeap* mp_samplerDescriptorHeap;
+
+		bool m_isInitialized = false;
+		bool m_isCleanedUp = false;
+
+
+		constexpr static uint8 k_maxNumSamplerDescriptorsPerHeap = 16u;
+		constexpr static uint8 k_maxNumResourceDescriptorsPerHeap = 64u;
+		constexpr static uint8 k_maxNumRtvDescriptorsPerHeap = 64u;
+		constexpr static uint8 k_maxNumDsvDescriptorsPerHeap = 64u;
 	};
 }
 

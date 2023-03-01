@@ -33,8 +33,14 @@ namespace Influx::Graphics
 
 namespace Influx::Renderer
 {
+	/* 
+	* Root Renderer
+	* 
+	*/
 	class RootRenderer final
 	{
+	public:
+#pragma region TypeAliases
 		using Ptr = RootRenderer*;
 		using SwapchainPtr = Graphics::RHISwapchain*;
 		using GraphicsPipelinePtr = Graphics::RHIGraphicsPipeline*;
@@ -48,33 +54,43 @@ namespace Influx::Renderer
 		using GfxPipelineCache = Cache<GraphicsPipelinePtr, GfxPipelineKey, GfxPipelineLayoutKey>;
 		using GfxPipelineLayoutCache = Cache<GraphicsPipelineLayoutPtr, GfxPipelineLayoutKey>;
 
-	public:
 		using OnBuildCommandList = Function<void(Graphics::RHICommandList*)>;
 		typedef void (*OnWindowResize)(const Math::Vectoru2& newSize);
-		
+#pragma endregion
+
 		RootRenderer(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
 		static Ptr Create(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
 		static void Destroy(Ptr& renderer);
 		virtual ~RootRenderer();
 
+		/* Runs Command Queues */
 		void Render();
+
+		/* Runs Command Queues and schedules the passed CommandList to be built */
 		void Render(OnBuildCommandList internalRenderClb);
+
+		/* Present Swapchain */
 		void Present(bool vsync);
 
+		/* Attach to Window and create a Swapchain */
 		bool AttachToWindow(Platform::WindowHandle windowHandle);
 		bool DetachFromCurrentWindow();
 		bool IsAttachedToWindow() const;
 
+		/* Signal Window to be resized */
 		bool SignalWindowResize(const Math::Vectoru2& newSize);
 		bool DoesSwapchainNeedResize() const;
 
+		/* Set Dynamic Graphics API */
 		void SetGraphicsAPI(const Graphics::EGraphicsAPI api);
 		Graphics::EGraphicsAPI GetCurrentGraphicsAPI() const;
-
 		static bool IsGraphicsAPISupported(const Graphics::EGraphicsAPI api);
 
+		/* Creating Graphics PSO */
 		GraphicsPipelinePtr GetAndOrCreateGraphicsPipeline(const GfxPipelineKey& key, const GfxPipelineLayoutKey& pipelineLayoutKey);
 		GraphicsPipelineLayoutPtr GetAndOrCreateGraphicsPipelineLayout(const GfxPipelineLayoutKey& key);
+		
+		/* Creating Textures */
 		TexturePtr GetAndOrCreateTexture(const String& key, const Graphics::RHITextureDesc& desc);
 
 		SwapchainPtr GetWindowSwapchain() const;
@@ -94,10 +110,14 @@ namespace Influx::Renderer
 		Graphics::RHICommandQueue* mp_gfxCommandQueue;
 		Graphics::RHICommandList* mp_commandList;
 
+		/* Cached Graphics Pipelines */
 		GfxPipelineCache mp_graphicsPipelineCache;
 		GfxPipelineLayoutCache mp_graphicsPipelineLayoutCache;
+		
+		/* Cached Textures */
 		TextureCache mp_textureCache;
 
+		/* Swapchain */
 		struct SwapchainTarget final
 		{
 			Graphics::RHISwapchain* mp_rhiSwapchain;
@@ -105,7 +125,6 @@ namespace Influx::Renderer
 			Math::Vectoru2 m_updatedSize;
 			bool m_isDirty = true;
 		};
-
 		SwapchainTarget* mp_windowSwapchain = nullptr;
 
 		uint64 m_frame;
