@@ -47,9 +47,9 @@ namespace Influx::Graphics
 		virtual EGraphicsAPI GetGraphicsAPI() const override;
 
 		/* D3D12 API */
-		ID3D12Device2* GetDxDevice() const;
-		IDXGIAdapter4* GetDxgiAdapter() const;
-		IDXGIFactory4* GetDxgiFactory() const;
+		ID3D12Device* GetDxDevice() const;
+		IDXGIAdapter* GetDxgiAdapter() const;
+		IDXGIFactory2* GetDxgiFactory() const;
 
 		template <typename _T>
 		void Release(_T*& pointer)
@@ -65,9 +65,10 @@ namespace Influx::Graphics
 		void Initialize();
 		void Cleanup();
 
-		IDXGIFactory4* mp_dxgiFactory;
-		IDXGIAdapter4* mp_dxgiAdapter;
-		ID3D12Device2* mp_dxDevice;
+		IDXGIFactory2* mp_dxgiFactory2;
+		Vector<IDXGIAdapter*> mp_dxgiAdapters;
+		Vector<ID3D12Device*> mp_dxDevices;
+		uint32 m_mainAdapterIdx;
 
 		constexpr static bool bTearingSupported = false;
 		constexpr static bool bAdditionalShadingRatesSupported = false;

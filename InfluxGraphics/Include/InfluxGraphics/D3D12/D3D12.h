@@ -3,7 +3,10 @@
 #ifndef __GR_D3D12_H_
 #define __GR_D3D12_H_
 
-#include "InfluxGraphics/Types.h"
+// Using Core...
+#include "Core/BasicTypes.h"
+#include "Core/String.h"
+#include "Core/Container/Vector.h"
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -26,7 +29,348 @@
 
 namespace Influx::Graphics::D3D12
 {
-	using DevicePtr = ID3D12Device2*;
+	using FactoryPtr = IDXGIFactory*;
+	using AdapterPtr = IDXGIAdapter*;
+	using DevicePtr = ID3D12Device*;
+	using GraphicsCommandListPtr = ID3D12GraphicsCommandList*;
+	using SwapchainPtr = IDXGISwapChain*;
+	using CommandQueuePtr = ID3D12CommandQueue*;
+
+	namespace GraphicsCommandList
+	{
+		enum class ETier : uint8
+		{
+			_0,		// ID3D12GraphicsCommandList
+			_1,		// ID3D12GraphicsCommandList1
+			_2,		// ID3D12GraphicsCommandList2
+			_3,		// ID3D12GraphicsCommandList3
+			_4,		// ID3D12GraphicsCommandList4
+			_5,		// ID3D12GraphicsCommandList5
+			// _6,	// ...
+			_7,		// ID3D12GraphicsCommandList7
+			Max
+		};
+
+		inline bool IsTierSupported(const GraphicsCommandListPtr cmdList, const ETier tier)
+		{
+			switch (tier)
+			{
+			case ETier::_0:	return (static_cast<ID3D12GraphicsCommandList*>(cmdList) != nullptr);
+			case ETier::_1:	return (static_cast<ID3D12GraphicsCommandList1*>(cmdList) != nullptr);
+			case ETier::_2:	return (static_cast<ID3D12GraphicsCommandList2*>(cmdList) != nullptr);
+			case ETier::_3:	return (static_cast<ID3D12GraphicsCommandList3*>(cmdList) != nullptr);
+			case ETier::_4:	return (static_cast<ID3D12GraphicsCommandList4*>(cmdList) != nullptr);
+			case ETier::_5:	return (static_cast<ID3D12GraphicsCommandList5*>(cmdList) != nullptr);
+			case ETier::_7:	return (static_cast<ID3D12GraphicsCommandList6*>(cmdList) != nullptr);
+			}
+
+			return false;
+		}
+
+		inline ETier GetMaxSupportedTier(const GraphicsCommandListPtr cmdList)
+		{
+			for (int t = static_cast<int>(ETier::Max); t >= 0; --t)
+			{
+				const ETier tier = static_cast<ETier>(t);
+				if (IsTierSupported(cmdList, tier))
+				{
+					return tier;
+				}
+			}
+		}
+	}
+
+	namespace Device
+	{
+		enum class ETier : uint8
+		{
+			_0,		// ID3D12Device
+			_1,		// ID3D12Device1: CreatePipelineLibary() | SetEventOnMultipleFenceCompletion() | SetResidencyPriority()
+			_2,		// ID3D12Device2: CreatePipelineState()
+			_3,		// ID3D12Device3: EnqueueMakeResident() | OpenExistingHeapFromAddress() | OpenExistingHeapFromFileMapping()
+			_4,		// ID3D12Device4: CreateCommandList1() | CreateCommittedResource1() | CreateHeap1() | CreateReservedResource1() | GetResourceAllocationInfo1() | CreateProtectedResourceSession()
+			_5,		// ID3D12Device5
+			_6,		// ID3D12Device6
+			_7,		// ID3D12Device7
+			_8,		// ID3D12Device8
+			_9,		// ID3D12Device9
+			Max,
+
+			_10,		// ID3D12Device10
+		};
+
+		inline bool IsTierSupported(const DevicePtr device, const ETier tier)
+		{
+			switch (tier)
+			{
+			case ETier::_0:	return (static_cast<ID3D12Device*>(device) != nullptr);
+			case ETier::_1:	return (static_cast<ID3D12Device1*>(device) != nullptr);
+			case ETier::_2:	return (static_cast<ID3D12Device2*>(device) != nullptr);
+			case ETier::_3:	return (static_cast<ID3D12Device3*>(device) != nullptr);
+			case ETier::_4:	return (static_cast<ID3D12Device4*>(device) != nullptr);
+			case ETier::_5:	return (static_cast<ID3D12Device5*>(device) != nullptr);
+			case ETier::_6:	return (static_cast<ID3D12Device6*>(device) != nullptr);
+			case ETier::_7:	return (static_cast<ID3D12Device7*>(device) != nullptr);
+			case ETier::_8:	return (static_cast<ID3D12Device8*>(device) != nullptr);
+			case ETier::_9:	return (static_cast<ID3D12Device9*>(device) != nullptr);
+				// case ETier::_10:	return (static_cast<ID3D12Device10*>(device) != nullptr);
+			}
+
+			return false;
+		}
+
+		inline ETier GetMaxSupportedTier(const DevicePtr device)
+		{
+			for (int t = static_cast<int>(ETier::Max); t >= 0; --t)
+			{
+				const ETier tier = static_cast<ETier>(t);
+				if (IsTierSupported(device, tier))
+				{
+					return tier;
+				}
+			}
+		}
+
+		inline DevicePtr Create(const AdapterPtr adapter, bool enableDebug)
+		{
+			DevicePtr device{};
+			HRESULT result = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
+			
+			if (enableDebug)
+			{
+				ID3D12InfoQueue* pInfoQueue = nullptr;
+				device->QueryInterface(&pInfoQueue);
+				if (pInfoQueue != nullptr)
+				{
+					/* TODO: Why does this crash? */
+					pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+					pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+					pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+
+					// Suppress whole categories of messages
+					//D3D12_MESSAGE_CATEGORY Categories[] = {};
+
+					// Suppress messages based on their severity level
+					D3D12_MESSAGE_SEVERITY Severities[] =
+					{
+						D3D12_MESSAGE_SEVERITY_INFO
+					};
+
+					// Suppress individual messages by their ID
+					D3D12_MESSAGE_ID DenyIds[] = {
+						D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,   // I'm really not sure how to avoid this message.
+						D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,                         // This warning occurs when using capture frame while graphics debugging.
+						D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,                       // This warning occurs when using capture frame while graphics debugging.
+					};
+
+					D3D12_INFO_QUEUE_FILTER NewFilter = {};
+					//NewFilter.DenyList.NumCategories = _countof(Categories);
+					//NewFilter.DenyList.pCategoryList = Categories;
+					NewFilter.DenyList.NumSeverities = _countof(Severities);
+					NewFilter.DenyList.pSeverityList = Severities;
+					NewFilter.DenyList.NumIDs = _countof(DenyIds);
+					NewFilter.DenyList.pIDList = DenyIds;
+
+					pInfoQueue->PushStorageFilter(&NewFilter);
+
+					pInfoQueue->Release();
+				}
+			}
+			
+			return device;
+		}
+	}
+	
+	namespace Adapter
+	{
+		enum class ETier : uint8
+		{
+			_0,
+			_1,
+			Max
+		};
+
+		inline bool IsTierSupported(const AdapterPtr adapter, const ETier tier)
+		{
+			switch (tier)
+			{
+			case ETier::_0:	return (static_cast<IDXGIAdapter*>(adapter) != nullptr);
+			case ETier::_1:	return (static_cast<IDXGIAdapter1*>(adapter) != nullptr);
+			}
+
+			return false;
+		}
+
+		inline ETier GetMaxSupportedTier(const AdapterPtr adapter)
+		{
+			for (int t = static_cast<int>(ETier::Max); t >= 0; --t)
+			{
+				const ETier tier = static_cast<ETier>(t);
+				if (IsTierSupported(adapter, tier))
+				{
+					return tier;
+				}
+			}
+		}
+
+		inline Vector<AdapterPtr> SelectAll(const FactoryPtr factory)
+		{
+			Vector<AdapterPtr> list{};
+			AdapterPtr temp{};
+
+			for (UINT i = 0; factory->EnumAdapters(i, &temp) != DXGI_ERROR_NOT_FOUND; ++i)
+			{
+				list.push_back(temp);
+			}
+		}
+
+		inline AdapterPtr Select(const FactoryPtr factory, uint8 adapterIndex = 0u)
+		{
+			AdapterPtr result{};
+
+			Vector<AdapterPtr> allAdapters = SelectAll(factory);
+
+			if (adapterIndex < allAdapters.size())
+			{
+				return allAdapters[adapterIndex];
+			}
+			else
+			{
+				return nullptr;
+			}
+		}
+	}
+
+	namespace Factory
+	{
+		enum class ETier : uint8
+		{
+			_0,
+			_1,
+			Max
+		};
+
+		inline bool IsTierSupported(const FactoryPtr obj, const ETier tier)
+		{
+			switch (tier)
+			{
+			case ETier::_0:	return (static_cast<IDXGIFactory*>(obj) != nullptr);
+			case ETier::_1:	return (static_cast<IDXGIFactory1*>(obj) != nullptr);
+			}
+
+			return false;
+		}
+
+		inline ETier GetMaxSupportedTier(const FactoryPtr obj)
+		{
+			for (int t = static_cast<int>(ETier::Max); t >= 0; --t)
+			{
+				const ETier tier = static_cast<ETier>(t);
+				if (IsTierSupported(obj, tier))
+				{
+					return tier;
+				}
+			}
+		}
+
+		inline FactoryPtr Create()
+		{
+			FactoryPtr result = nullptr;
+			::CreateDXGIFactory(IID_PPV_ARGS(&result));
+			return result;
+		}
+
+		inline IDXGIFactory2* CreateTier2(bool debug)
+		{
+			IDXGIFactory2* result = nullptr;
+			UINT flags = (debug) ? DXGI_CREATE_FACTORY_DEBUG : 0u;
+
+			::CreateDXGIFactory2(flags, IID_PPV_ARGS(&result));
+			return result;
+		}
+	}
+
+	namespace Swapchain
+	{
+		enum class ETier : uint8
+		{
+			_0,
+			_1,
+			Max
+		};
+
+		inline bool IsTierSupported(const SwapchainPtr obj, const ETier tier)
+		{
+			switch (tier)
+			{
+			case ETier::_0:	return (static_cast<IDXGISwapChain*>(obj) != nullptr);
+			case ETier::_1:	return (static_cast<IDXGISwapChain1*>(obj) != nullptr);
+			}
+
+			return false;
+		}
+
+		inline ETier GetMaxSupportedTier(const SwapchainPtr obj)
+		{
+			for (int t = static_cast<int>(ETier::Max); t >= 0; --t)
+			{
+				const ETier tier = static_cast<ETier>(t);
+				if (IsTierSupported(obj, tier))
+				{
+					return tier;
+				}
+			}
+		}
+
+		/*
+		* REQUIRES
+		* IDXGISwapChain1
+		* IDXGIFactory2
+		* 
+		* USES:
+		* IDXGIFactory2::CreateSwapChainForHwnd
+		* IDXGIFactory2::MakeWindowAssociation
+		* DXGI_SWAP_CHAIN_DESC1
+		*/
+		inline IDXGISwapChain1* CreateTier1(IDXGIFactory2* dxgiFactory, ::HWND hWnd, CommandQueuePtr pCommandQueue,
+			uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
+		{
+			IDXGISwapChain1* dxgiSwapChain1;
+			UINT flags = 0;
+
+			DXGI_SWAP_CHAIN_DESC1 desc{};
+			desc.Width = w;
+			desc.Height = h;
+			desc.Format = format;
+			desc.Stereo = false;
+			desc.SampleDesc = { 1, 0 };
+			desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+			desc.BufferCount = numBuffers;
+			desc.Scaling = DXGI_SCALING_STRETCH;
+			desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+			desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+			desc.Flags = Query::SupportsTearing() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+
+			dxgiFactory->CreateSwapChainForHwnd(pCommandQueue, hWnd, &desc, nullptr, nullptr, &dxgiSwapChain1);
+
+			// Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
+			// will be handled manually.
+			dxgiFactory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
+			return dxgiSwapChain1;
+		}
+
+		inline IDXGISwapChain2* CreateTier2(IDXGIFactory2* dxgiFactory, ::HWND hWnd, CommandQueuePtr pCommandQueue,
+			uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
+		{
+			return static_cast<IDXGISwapChain2*>(CreateTier1(dxgiFactory, hWnd, pCommandQueue, w, h, numBuffers, format));
+		}
+
+		inline IDXGISwapChain3* CreateTier3(IDXGIFactory2* dxgiFactory, ::HWND hWnd, CommandQueuePtr pCommandQueue,
+			uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
+		{
+			return static_cast<IDXGISwapChain3*>(CreateTier1(dxgiFactory, hWnd, pCommandQueue, w, h, numBuffers, format));
+		}
+	}
 
 	namespace HelperStructs
 	{
@@ -303,6 +647,42 @@ namespace Influx::Graphics::D3D12
 		};
 	}
 
+	namespace Query
+	{
+		// GraphicsCommandList >= ETier::_4
+		inline bool SupportsRenderPasses(const GraphicsCommandListPtr commandList)
+		{
+			using namespace GraphicsCommandList;
+			return IsTierSupported(commandList, ETier::_4);
+		}
+
+		inline bool SupportsTearing()
+		{
+			bool allowTearing = false;
+
+			// Rather than create the DXGI 1.5 factory interface directly, we create the
+			// DXGI 1.4 interface and query for the 1.5 interface. This is to enable the 
+			// graphics debugging tools which will not support the 1.5 factory interface 
+			// until a future update.
+			IDXGIFactory4* factory4;
+			if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4))))
+			{
+				IDXGIFactory5* factory5;
+				if (factory5 = (IDXGIFactory5*)factory4)
+				{
+					if (FAILED(factory5->CheckFeatureSupport(
+						DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+						&allowTearing, sizeof(allowTearing))))
+					{
+						allowTearing = false;
+					}
+				}
+			}
+
+			return allowTearing;
+		}
+	}
+
 	template <typename _T>
 	inline void SafeRelease(_T*& object)
 	{
@@ -313,103 +693,6 @@ namespace Influx::Graphics::D3D12
 
 		object->Release();
 		object = nullptr;
-	}
-
-	inline IDXGIFactory4* CreateDxgiFactory4()
-	{
-		/* Create Factory... */
-		IDXGIFactory4* dxgiFactory;
-		uint8 flags = 0;
-
-#ifdef _DEBUG
-		flags = DXGI_CREATE_FACTORY_DEBUG;
-#endif
-		/* TODO: Throw On Fail... */
-		CreateDXGIFactory2(flags, IID_PPV_ARGS(&dxgiFactory));
-
-		return dxgiFactory;
-	}
-
-	inline IDXGIAdapter4* GetDxgiAdapter4(IDXGIFactory4* dxgiFactory4, bool useWarp)
-	{
-		/* Get sufficient Adapter ...*/
-		IDXGIAdapter1* dxgiAdapter1{};
-		IDXGIAdapter4* dxgiAdapter4{};
-		if (useWarp)
-		{
-			dxgiFactory4->EnumWarpAdapter(IID_PPV_ARGS(&dxgiAdapter1));
-			dxgiAdapter4 = (IDXGIAdapter4*)dxgiAdapter1;
-		}
-		else
-		{
-			SIZE_T maxDedicatedVideoMemory = 0;
-			for (UINT i = 0; dxgiFactory4->EnumAdapters1(i, &dxgiAdapter1) != DXGI_ERROR_NOT_FOUND; ++i)
-			{
-				DXGI_ADAPTER_DESC1 dxgiAdapterDesc1;
-				dxgiAdapter1->GetDesc1(&dxgiAdapterDesc1);
-
-				// Check to see if the adapter can create a D3D12 device without actually 
-				// creating it. The adapter with the largest dedicated video memory
-				// is favored.
-				if ((dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 &&
-					SUCCEEDED(D3D12CreateDevice(dxgiAdapter1,
-						D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)) &&
-					dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory)
-				{
-					maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
-					dxgiAdapter4 = (IDXGIAdapter4*)dxgiAdapter1;
-				}
-			}
-		}
-
-		return dxgiAdapter4;
-	}
-
-	inline DevicePtr CreateDxDevice2(IDXGIAdapter4* adapter4)
-	{
-		DevicePtr d3d12Device2{};
-		D3D12CreateDevice(adapter4, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2));
-
-#ifdef _DEBUG
-		ID3D12InfoQueue* pInfoQueue = nullptr;
-		d3d12Device2->QueryInterface(&pInfoQueue);
-		if (pInfoQueue != nullptr)
-		{
-			/* TODO: Why does this crash? */
-			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
-			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
-			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
-
-			// Suppress whole categories of messages
-			//D3D12_MESSAGE_CATEGORY Categories[] = {};
-
-			// Suppress messages based on their severity level
-			D3D12_MESSAGE_SEVERITY Severities[] =
-			{
-				D3D12_MESSAGE_SEVERITY_INFO
-			};
-
-			// Suppress individual messages by their ID
-			D3D12_MESSAGE_ID DenyIds[] = {
-				D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,   // I'm really not sure how to avoid this message.
-				D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,                         // This warning occurs when using capture frame while graphics debugging.
-				D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,                       // This warning occurs when using capture frame while graphics debugging.
-			};
-
-			D3D12_INFO_QUEUE_FILTER NewFilter = {};
-			//NewFilter.DenyList.NumCategories = _countof(Categories);
-			//NewFilter.DenyList.pCategoryList = Categories;
-			NewFilter.DenyList.NumSeverities = _countof(Severities);
-			NewFilter.DenyList.pSeverityList = Severities;
-			NewFilter.DenyList.NumIDs = _countof(DenyIds);
-			NewFilter.DenyList.pIDList = DenyIds;
-
-			pInfoQueue->PushStorageFilter(&NewFilter);
-
-			pInfoQueue->Release();
-		}
-#endif
-		return d3d12Device2;
 	}
 
 	inline ID3D12CommandQueue* CreateDxCommandQueue(DevicePtr pDevice, D3D12_COMMAND_LIST_TYPE type)
@@ -425,67 +708,6 @@ namespace Influx::Graphics::D3D12
 		pDevice->CreateCommandQueue(&desc, IID_PPV_ARGS(&d3d12CommandQueue));
 
 		return d3d12CommandQueue;
-	}
-
-	inline bool CheckDxgiTearingSupport()
-	{
-		bool allowTearing = false;
-
-		// Rather than create the DXGI 1.5 factory interface directly, we create the
-		// DXGI 1.4 interface and query for the 1.5 interface. This is to enable the 
-		// graphics debugging tools which will not support the 1.5 factory interface 
-		// until a future update.
-		IDXGIFactory4* factory4;
-		if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4))))
-		{
-			IDXGIFactory5* factory5;
-			if (factory5 = (IDXGIFactory5*)factory4)
-			{
-				if (FAILED(factory5->CheckFeatureSupport(
-					DXGI_FEATURE_PRESENT_ALLOW_TEARING,
-					&allowTearing, sizeof(allowTearing))))
-				{
-					allowTearing = false;
-				}
-			}
-		}
-
-		return allowTearing;
-	}
-
-	/*
-	* ID3D12Device::CreateSwapChainForHwnd
-	* ID3D12Device::MakeWindowAssociation
-	*/
-	inline IDXGISwapChain4* CreateDxgiSwapChain(
-		IDXGIFactory4* dxgiFactory, ::HWND hWnd, ID3D12CommandQueue* pCommandQueue, 
-		uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
-	{
-		IDXGISwapChain4* dxgiSwapChain4;
-		UINT flags = 0;
-
-		DXGI_SWAP_CHAIN_DESC1 desc{};
-		desc.Width			= w;
-		desc.Height			= h;
-		desc.Format			= format;
-		desc.Stereo			= false;
-		desc.SampleDesc		= { 1, 0 };
-		desc.BufferUsage	= DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		desc.BufferCount	= numBuffers;
-		desc.Scaling		= DXGI_SCALING_STRETCH;
-		desc.SwapEffect		= DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		desc.AlphaMode		= DXGI_ALPHA_MODE_UNSPECIFIED;
-		desc.Flags			= CheckDxgiTearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
-
-		IDXGISwapChain1* swapChain1;
-		dxgiFactory->CreateSwapChainForHwnd(pCommandQueue, hWnd, &desc, nullptr, nullptr, &swapChain1);
-
-		// Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
-		// will be handled manually.
-		dxgiFactory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
-
-		dxgiSwapChain4 = (IDXGISwapChain4*)swapChain1;
-		return dxgiSwapChain4;
 	}
 
 	/* ID3D12Device::CreateDescriptorHeap */

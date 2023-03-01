@@ -26,9 +26,23 @@ namespace Influx::Graphics
 	{
 		return mp_dxCommandList;
 	}
-	void D3D12CommandList::RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList*)>)
+
+	void D3D12CommandList::RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList*)> func)
 	{
-	
+		if (SupportsRenderPasses())
+		{
+			ID3D12GraphicsCommandList4* commandList4 = static_cast<ID3D12GraphicsCommandList4*>(GetDxCommandList());
+
+			Vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> renderTargetDescs;
+			Vector<D3D12_RENDER_PASS_DEPTH_STENCIL_DESC> depthStencilDescs;
+			D3D12_RENDER_PASS_FLAGS flags = D3D12_RENDER_PASS_FLAGS::D3D12_RENDER_PASS_FLAG_NONE;
+
+			commandList4->BeginRenderPass(renderTargetDescs.size(), renderTargetDescs.data(), depthStencilDescs.data(), flags);
+			
+			func(this);
+
+			commandList4->EndRenderPass();
+		}
 	}
 
 	void D3D12CommandList::TransitionResource(RHIResource* resource, const ERHIResourceState newState)
@@ -144,6 +158,7 @@ namespace Influx::Graphics
 	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, bool forceTransition)
 	{
 	}
+
 	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, const Math::Vectorf4& clearValue, bool forceTransition)
 	{
 	}
@@ -184,6 +199,11 @@ namespace Influx::Graphics
 
 		ID3D12DescriptorHeap* dxDescriptorHeaps[]{ d3d12DescriptorHeap->GetDxDescriptorHeap() };
 		GetDxCommandList()->SetDescriptorHeaps(1u, dxDescriptorHeaps);
+	}
+
+	bool D3D12CommandList::SupportsRenderPasses() const
+	{
+		return D3D12::Query::SupportsRenderPasses(GetDxCommandList());
 	}
 }
 

@@ -31,9 +31,22 @@ namespace Influx::Graphics
 
 	void D3D12Device::Initialize()
 	{
-		mp_dxgiFactory = D3D12::CreateDxgiFactory4();
-		mp_dxgiAdapter = D3D12::GetDxgiAdapter4(mp_dxgiFactory, true);
-		mp_dxDevice = D3D12::CreateDxDevice2(mp_dxgiAdapter);
+		mp_dxgiFactory2 = D3D12::Factory::CreateTier2(m_isDebugLayerEnabled);
+
+		mp_dxgiAdapters = D3D12::Adapter::SelectAll(mp_dxgiFactory2);
+		m_mainAdapterIdx = 0u; // Temp...
+
+		for (size_t i = 0u; i < mp_dxgiAdapters.size(); ++i)
+		{
+			if (i == m_mainAdapterIdx)
+			{
+				mp_dxDevices[i] = D3D12::Device::Create(mp_dxgiAdapters[i], m_isDebugLayerEnabled);
+			}
+			else
+			{
+				mp_dxDevices[i] = nullptr;
+			}
+		}
 
 		// Cache DescriptorSizes
 		m_cachedDsvDescriptorSize		= GetDxDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
@@ -44,9 +57,17 @@ namespace Influx::Graphics
 
 	void D3D12Device::Cleanup()
 	{
-		Release(mp_dxDevice);
-		Release(mp_dxgiAdapter);
-		Release(mp_dxgiFactory);
+		for (ID3D12Device* device : mp_dxDevices)
+		{
+			Release(device);
+		}
+
+		for (IDXGIAdapter* adapter : mp_dxgiAdapters)
+		{
+			Release(adapter);
+		}
+
+		Release(mp_dxgiFactory2);
 	}
 
 	RHICommandQueue* D3D12Device::CreateCommandQueue(const ERHICommandQueueType type) const
@@ -61,14 +82,14 @@ namespace Influx::Graphics
 
 	RHIDevice::SwapchainPtr D3D12Device::CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, CommandQueuePtr commandQueue) const
 	{
-		D3D12Swapchain* result = new D3D12Swapchain(dimensions.x, dimensions.y, D3D12::CheckDxgiTearingSupport());
+		D3D12Swapchain* result = new D3D12Swapchain(dimensions.x, dimensions.y, D3D12::Query::SupportsTearing());
 		D3D12CommandQueue* dxCommandQueue = static_cast<D3D12CommandQueue*>(commandQueue);
 
-		result->m_renderTargetFormat = ERHIFormat::RGBA_8_Unorm;
-		result->mp_dxgiSwapchain = D3D12::CreateDxgiSwapChain(mp_dxgiFactory, (::HWND)windowHandle, dxCommandQueue->GetDxCommandQueue(),
+		result->mp_dxgiSwapchain3 = D3D12::Swapchain::CreateTier3(mp_dxgiFactory2, (::HWND)windowHandle, dxCommandQueue->GetDxCommandQueue(),
 			dimensions.x, dimensions.y, RHISwapchain::GetNumBackBuffers(), Conversion::ToDx12(result->m_renderTargetFormat));
 
-		result->m_currentBackBufferIndex = result->mp_dxgiSwapchain->GetCurrentBackBufferIndex();
+		result->m_renderTargetFormat = ERHIFormat::RGBA_8_Unorm;
+		result->m_currentBackBufferIndex = result->mp_dxgiSwapchain3->GetCurrentBackBufferIndex();
 		result->m_windowHandle = windowHandle;
 
 		// Gather Backbuffer Resources & RTVs
@@ -77,7 +98,7 @@ namespace Influx::Graphics
 		{
 			// Get the buffer resources
 			D3D12Resource* dxBufferResource = new D3D12Resource(ERHIResourceState::Present, RHIClearValue::Default());
-			result->mp_dxgiSwapchain->GetBuffer(i, IID_PPV_ARGS(&dxBufferResource->mp_dxResource));
+			result->mp_dxgiSwapchain3->GetBuffer(i, IID_PPV_ARGS(&dxBufferResource->mp_dxResource));
 			result->mp_backBufferResources[i] = dxBufferResource;
 
 			// Create the RenderTargetViews & store
@@ -288,6 +309,8 @@ namespace Influx::Graphics
 
 	void D3D12Device::SetDebugLayerEnabled(bool setDebugLayerEnabled)
 	{
+		m_isDebugLayerEnabled = setDebugLayerEnabled;
+
 		if (setDebugLayerEnabled)
 		{
 			D3D12::EnableDxDebugLayer();
@@ -303,19 +326,19 @@ namespace Influx::Graphics
 		return EGraphicsAPI::D3D12;
 	}
 
-	ID3D12Device2* D3D12Device::GetDxDevice() const
+	ID3D12Device* D3D12Device::GetDxDevice() const
 	{
-		return mp_dxDevice;
+		return mp_dxDevices[m_mainAdapterIdx];
 	}
 
-	IDXGIAdapter4* D3D12Device::GetDxgiAdapter() const
+	IDXGIAdapter* D3D12Device::GetDxgiAdapter() const
 	{
-		return mp_dxgiAdapter;
+		return mp_dxgiAdapters[m_mainAdapterIdx];
 	}
 
-	IDXGIFactory4* D3D12Device::GetDxgiFactory() const
+	IDXGIFactory2* D3D12Device::GetDxgiFactory() const
 	{
-		return mp_dxgiFactory;
+		return mp_dxgiFactory2;
 	}
 }
 

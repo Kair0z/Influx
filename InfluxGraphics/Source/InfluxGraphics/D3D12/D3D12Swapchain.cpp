@@ -28,13 +28,13 @@ namespace Influx::Graphics
 		return mp_dxRenderTargetDescriptorHeap;
 	}
 
-	IDXGISwapChain4* D3D12Swapchain::GetDxgiSwapchain() const
+	IDXGISwapChain3* D3D12Swapchain::GetDxgiSwapchain() const
 	{
-		return mp_dxgiSwapchain;
+		return mp_dxgiSwapchain3;
 	}
 
 	D3D12Swapchain::~D3D12Swapchain()
 	{
-		D3D12::SafeRelease(mp_dxgiSwapchain);
+		D3D12::SafeRelease(mp_dxgiSwapchain3);
 	}
 }

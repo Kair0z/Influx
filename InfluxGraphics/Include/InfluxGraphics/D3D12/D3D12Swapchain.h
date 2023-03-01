@@ -14,8 +14,9 @@ namespace Influx::Graphics
 		friend class D3D12Device;
 		D3D12Swapchain(uint32 width, uint32 height, bool isTearingSupported);
 
-		IDXGISwapChain4* mp_dxgiSwapchain;
+		IDXGISwapChain3* mp_dxgiSwapchain3;
 		ID3D12DescriptorHeap* mp_dxRenderTargetDescriptorHeap;
+		D3D12::Swapchain::ETier m_tier;
 
 	public:
 		/* Flips & Presents the backbuffer to the front-buffer. */
@@ -26,7 +27,7 @@ namespace Influx::Graphics
 		virtual void Resize(RHIDevice* device, RHICommandQueue* commandQueue, const Math::Vectoru2& newDimensions) override final;
 
 		ID3D12DescriptorHeap*	GetDxRtvDescriptorHeap() const;
-		IDXGISwapChain4*		GetDxgiSwapchain() const;
+		IDXGISwapChain3*			GetDxgiSwapchain() const;
 
 		virtual ~D3D12Swapchain();
 	};

@@ -34,6 +34,8 @@ namespace Influx::Graphics
 		virtual void DrawIndexedInstanced(uint32 numIndicesPerInstance, uint32 numInstances, uint32 startIndexLocation, uint32 startVertexLocation, uint32 startInstanceLocation) override final;
 		virtual void BindDescriptorheap(RHIDescriptorHeap* descriptorHeap) override final;
 
+		virtual bool SupportsRenderPasses() const override final;
+
 		ID3D12GraphicsCommandList* GetDxCommandList() const;
 
 		virtual ~D3D12CommandList();
