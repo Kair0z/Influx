@@ -4,6 +4,7 @@
 #define __GR_RHI_PIPELINE_H_
 
 #include "Types.h"
+
 #include "Core/Container/Containers.h"
 #include "Core/Container/Map.h"
 

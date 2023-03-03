@@ -10,10 +10,11 @@
 #include "Core/Cache.h"
 #include "Core/Function.h"
 
+#include <type_traits>
+
 #include "InfluxGraphics/RHITypes.h"
 
-#include "InfluxGraphics/RHIPipeline.h"
-#include "InfluxGraphics/RHIPipelineLayout.h"
+#include "InfluxRenderer/IRenderer.h"
 
 namespace Influx::Graphics
 {
@@ -53,11 +54,16 @@ namespace Influx::Renderer
 		using TextureCache = Cache<TexturePtr, String>;
 		using GfxPipelineCache = Cache<GraphicsPipelinePtr, GfxPipelineKey, GfxPipelineLayoutKey>;
 		using GfxPipelineLayoutCache = Cache<GraphicsPipelineLayoutPtr, GfxPipelineLayoutKey>;
+	
+		using IRendererList = Vector<IRenderer*>;
 
+		using OnPostInitializeAPI = Function<void(const Graphics::EGraphicsAPI eApi, Graphics::RHIDevice*)>;
 		using OnBuildCommandList = Function<void(Graphics::RHICommandList*)>;
-		typedef void (*OnWindowResize)(const Math::Vectoru2& newSize);
+		using OnWindowResize = Function<void(const Math::Vectoru2& newSize)>;
+		using OnPreCleanupAPI = Function<void(const Graphics::EGraphicsAPI eApi, Graphics::RHIDevice*)>;
 #pragma endregion
 
+	public:
 		RootRenderer(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
 		static Ptr Create(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
 		static void Destroy(Ptr& renderer);
@@ -71,6 +77,17 @@ namespace Influx::Renderer
 
 		/* Present Swapchain */
 		void Present(bool vsync);
+
+		/* Adding child IRenderers as callbacks */
+		template <class _R, class ...Args>
+		_R* AddRenderer(Args&&... args)
+		{
+			static_assert(std::is_base_of<IRenderer, _R>::value, "_R must derive from IRenderer interface!");
+			
+			_R* newRenderer = new _R(args...);
+			mp_childRenderers.push_back(newRenderer);
+			return newRenderer;
+		}
 
 		/* Attach to Window and create a Swapchain */
 		bool AttachToWindow(Platform::WindowHandle windowHandle);
@@ -109,6 +126,8 @@ namespace Influx::Renderer
 		Graphics::RHIDescriptorHeap* mp_rtvDescriptorHeap;
 		Graphics::RHICommandQueue* mp_gfxCommandQueue;
 		Graphics::RHICommandList* mp_commandList;
+
+		IRendererList mp_childRenderers;
 
 		/* Cached Graphics Pipelines */
 		GfxPipelineCache mp_graphicsPipelineCache;

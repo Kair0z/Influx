@@ -29,12 +29,20 @@
 
 namespace Influx::Graphics::D3D12
 {
+	
+
 	using FactoryPtr = IDXGIFactory*;
 	using AdapterPtr = IDXGIAdapter*;
 	using DevicePtr = ID3D12Device*;
 	using GraphicsCommandListPtr = ID3D12GraphicsCommandList*;
 	using SwapchainPtr = IDXGISwapChain*;
 	using CommandQueuePtr = ID3D12CommandQueue*;
+
+	namespace Query
+	{
+		inline bool SupportsRenderPasses(const GraphicsCommandListPtr commandList);
+		inline bool SupportsTearing();
+	}
 
 	namespace GraphicsCommandList
 	{
@@ -222,6 +230,8 @@ namespace Influx::Graphics::D3D12
 			{
 				list.push_back(temp);
 			}
+
+			return list;
 		}
 
 		inline AdapterPtr Select(const FactoryPtr factory, uint8 adapterIndex = 0u)
@@ -650,13 +660,13 @@ namespace Influx::Graphics::D3D12
 	namespace Query
 	{
 		// GraphicsCommandList >= ETier::_4
-		inline bool SupportsRenderPasses(const GraphicsCommandListPtr commandList)
+		bool SupportsRenderPasses(const GraphicsCommandListPtr commandList)
 		{
 			using namespace GraphicsCommandList;
 			return IsTierSupported(commandList, ETier::_4);
 		}
 
-		inline bool SupportsTearing()
+		bool SupportsTearing()
 		{
 			bool allowTearing = false;
 

@@ -5,6 +5,7 @@
     <ClInclude Include="Source\renderer_pch.h" />
     <ClInclude Include="Source\InfluxRenderer\RootRenderer.h" />
     <ClInclude Include="Include\InfluxRenderer\RootRenderer.h" />
+    <ClInclude Include="Include\InfluxRenderer\IRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\renderer_pch.cpp" />

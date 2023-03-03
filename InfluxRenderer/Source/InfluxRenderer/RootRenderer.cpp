@@ -1,11 +1,7 @@
 #include "renderer_pch.h"
 #include "InfluxRenderer/RootRenderer.h"
 
-#include "InfluxGraphics/RHICommandQueue.h"
-#include "InfluxGraphics/RHIDescriptorHeap.h"
-#include "InfluxGraphics/RHISwapchain.h"
-#include "InfluxGraphics/RHICommandList.h"
-
+#include "InfluxGraphics/RHI.h"
 #include "InfluxGraphics/D3D12/D3D12Device.h"
 
 #include "Core/Platform/WindowsPlatform.h"
@@ -95,6 +91,12 @@ namespace Influx::Renderer
 	void RootRenderer::Cleanup()
 	{
 		CleanupGraphicsAPI(GetCurrentGraphicsAPI());
+
+		for (IRenderer* renderer : mp_childRenderers)
+		{
+			delete renderer;
+			renderer = nullptr;
+		}
 	}
 
 	void RootRenderer::UpdateSwapchain()

@@ -4,9 +4,7 @@
 #include "InfluxEngine/Engine.h"
 #include "InfluxRenderer/RootRenderer.h"
 
-#include "InfluxGraphics/RHICommandList.h"
-#include "InfluxGraphics/RHITexture.h"
-#include "InfluxGraphics/RHISwapchain.h"
+#include "InfluxGraphics/RHI.h"
 
 namespace Influx::Application
 {
@@ -43,25 +41,10 @@ namespace Influx::Application
 
         while (!GetHasRecievedQuit())
         {
-            if (GetShouldHaveWindow())
-            {
-                PollWindowEvents();
-            }
-
-            if (GetShouldHaveUpdate())
-            {
-                Update();
-            }
-
-            if (GetShouldRenderScene())
-            {
-                Render();
-            }
-
-            if (GetShouldHaveImgui())
-            {
-                ImguiRender();
-            }
+            PollWindowEvents();
+            Update();
+            Render();
+            ImguiRender();
 
             ++m_frame;
         }
@@ -145,8 +128,6 @@ namespace Influx::Application
             pipelineDesc.RenderTargets[0].Format = Graphics::ERHIFormat::RGBA_8_Unorm;
         }
         Graphics::RHIGraphicsPipelineLayoutDescription layoutDesc{};
-
-        
 
         m_hasStarted = true;
     }

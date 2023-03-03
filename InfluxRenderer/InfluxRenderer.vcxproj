@@ -159,6 +159,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Include\InfluxRenderer\IRenderer.h" />
     <ClInclude Include="Include\InfluxRenderer\Renderer.h" />
     <ClInclude Include="Include\InfluxRenderer\RootRenderer.h" />
     <ClInclude Include="Source\InfluxRenderer\RootRenderer.h" />

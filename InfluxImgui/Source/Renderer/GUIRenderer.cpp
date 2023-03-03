@@ -1,35 +1,18 @@
 #include "imgui_pch.h"
-
 #include "Renderer/GUIRenderer.h"
+
 #include "Widgets/ImguiWidget.h"
 
-#include "InfluxGraphics/RHICommandQueue.h"
-#include "InfluxGraphics/RHIDescriptorHeap.h"
-#include "InfluxGraphics/RHISwapchain.h"
-#include "InfluxGraphics/RHICommandList.h"
-
-#include "InfluxGraphics/D3D12/D3D12Device.h"
-#include "InfluxGraphics/D3D12/D3D12Swapchain.h"
-#include "InfluxGraphics/D3D12/D3D12DescriptorHeap.h"
-#include "InfluxGraphics/D3D12/D3D12CommandList.h"
-
-#include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
-
-#include "ImGui/imgui_impl_win32.h"
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#include "InfluxGraphics/RHI.h"
 
 #include "Core/Platform/WindowsPlatform.h"
 
-#include "ImGui/imgui_impl_dx12.h"
+// Imgui Win32
+#include "ImGui/imgui_impl_win32.h"
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Influx::GUI
 {
-	GUIRenderer::GUIRenderer(Platform::WindowHandle windowHandle)
-		: GUIRenderer()
-	{
-		AttachToWin32Backend(windowHandle);
-	}
-
 	void GUIRenderer::AddWidget(WidgetPtr widget, bool allowDuplicate)
 	{
 		if (HasWidget(widget) && !allowDuplicate)
@@ -50,108 +33,55 @@ namespace Influx::GUI
 		return std::find(m_widgetList.cbegin(), m_widgetList.cend(), widget) != m_widgetList.cend();
 	}
 
-	void GUIRenderer::OnInitialize(const DevicePtr)
+
+	// IRenderer Interface:
+	void GUIRenderer::OnPostInitializeAPI(const Graphics::EGraphicsAPI api, Graphics::RHIDevice* device)
 	{
-
-	}
-
-	void GUIRenderer::OnRender(const CommandListPtr commandList) const
-	{
-		if (!IsAttachedToRenderTarget())
-		{
-			return;
-		}
-
 		using namespace Graphics;
-		D3D12CommandList* d3d12CmdList = (D3D12CommandList*)commandList;
-		RenderDx12(d3d12CmdList);
+
+		// ImGui_ImplDX12_Init
+		{
+			using namespace Graphics;
+			// Todo...
+		}
 	}
 
-	void GUIRenderer::OnCleanup(const DevicePtr)
+	void GUIRenderer::OnBuildRenderCommandList(const Renderer::RenderContext& context, Graphics::RHICommandList* cmdList)
+	{
+		using namespace Graphics;
+
+		ImGui::NewFrame();
+		{
+			ImGui::ShowDemoWindow();
+
+			for (const WidgetPtr widget : m_widgetList)
+			{
+				widget->Render();
+			}
+		}
+		ImGui::Render();
+
+		// ImGui_ImplDX12_RenderDrawData
+		{
+
+		}
+	}
+
+	void GUIRenderer::OnWindowResize(const Renderer::RenderContext& context, const Math::Vectoru2& oldSize, const Math::Vectoru2& newSize)
 	{
 		// ...
 	}
 
-	void GUIRenderer::OnAttachToRenderTarget(const DevicePtr device, const RenderTargetPtr newRenderTarget)
+	void GUIRenderer::OnPreCleanupAPI(const Graphics::EGraphicsAPI api, Graphics::RHIDevice* device)
 	{
-		using namespace Graphics;
-		D3D12Device* d3d12Device		= (D3D12Device*)device;
-		D3D12RenderTargetView* d3d12Rtv = (D3D12RenderTargetView*)newRenderTarget;
-
-		InitializeDx12(d3d12Device, d3d12Rtv);
-	}
-
-	void GUIRenderer::OnRenderTargetResize(const DevicePtr)
-	{
-	}
-
-	void GUIRenderer::OnDetachFromRenderTarget(const DevicePtr)
-	{
-		CleanupDx12();
-	}
-
-
-	void GUIRenderer::InitializeDx12(Graphics::D3D12Device* devicePtr, Graphics::D3D12RenderTargetView* renderTargetView)
-	{
-		using namespace Graphics;
-		
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle{};
-		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle{};
-		if (!devicePtr->GetResourceDescriptorHeap()->GetHandles(cpuHandle, gpuHandle))
+		// ImGui_ImplDX12_Shutdown
 		{
-			FLX_ASSERT(false);
+
 		}
 
-		ImGui_ImplDX12_Init(devicePtr->GetDxDevice(),
-			(int)RHISwapchain::GetNumBackBuffers(),
-			Conversion::ToDx12(renderTargetView->GetFormat()),
-			nullptr, cpuHandle, gpuHandle);
-	}
-
-	
-	void GUIRenderer::RenderDx12(Graphics::D3D12CommandList* cmdList) const
-	{
-		if (!IsAttachedToRenderTarget())
-		{
-			return;
-		}
-
-		// Manually set up display size (every frame to accommodate for window resizing)
-		Math::Vectorf2 displaySize = IRenderer::GetCurrentRenderTarget()->GetDimensions();
-		ImGui::GetIO().DisplaySize.x = displaySize.x;
-		ImGui::GetIO().DisplaySize.y = displaySize.y;
-
-		ImGuiNewFrame();
-
-		//ImGui::ShowDemoWindow();
-
-		for (const WidgetPtr widget : m_widgetList)
-		{
-			widget->Render();
-		}
-
-		ImGuiEndFrame();
-
-		cmdList->BindRenderTarget(GetCurrentRenderTarget());
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList->GetDxCommandList());
-	}
-
-	void GUIRenderer::CleanupDx12()
-	{
-		ImGui_ImplDX12_Shutdown();
 		ImGui::DestroyContext();
 	}
 
-	void GUIRenderer::ImGuiNewFrame() const
-	{
-		ImGui_ImplDX12_NewFrame();
-		ImGui::NewFrame();
-	}
-
-	void GUIRenderer::ImGuiEndFrame() const
-	{
-		ImGui::Render();
-	}
 
 	void GUIRenderer::AttachToWin32Backend(Platform::WindowHandle windowHandle)
 	{
