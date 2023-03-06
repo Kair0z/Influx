@@ -59,6 +59,9 @@ namespace Influx::Graphics
 
 		bool GetHandles(D3D12_CPU_DESCRIPTOR_HANDLE& out_cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE& out_gpuHandle);
 
+		bool GetCPUHandle(D3D12_CPU_DESCRIPTOR_HANDLE& out_handle);
+		bool GetGPUHandle(D3D12_GPU_DESCRIPTOR_HANDLE& out_handle);
+
 		bool IsSlotFreeCPU(uint64 slot) const;
 		bool IsSlotFreeGPU(uint64 slot) const;
 

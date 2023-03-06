@@ -28,4 +28,24 @@ namespace Influx::Graphics
 	{
 		return mp_resource;
 	}
+
+	const RHITextureDesc& RHITexture::GetDesc() const
+	{
+		return m_desc;
+	}
+
+	const Math::Vectoru2& RHITexture::GetDimensions() const
+	{
+		return GetDesc().Dimensions;
+	}
+
+	const uint16 RHITexture::GetNumMips() const
+	{
+		return GetDesc().NumMips;
+	}
+
+	const ERHIFormat RHITexture::GetFormat() const
+	{
+		return GetDesc().Format;
+	}
 }

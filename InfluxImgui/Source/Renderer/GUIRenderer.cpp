@@ -42,7 +42,33 @@ namespace Influx::GUI
 		// ImGui_ImplDX12_Init
 		{
 			using namespace Graphics;
-			// Todo...
+			
+			ImGuiIO& io = ImGui::GetIO();
+
+			// Setup backend capabilities flags:
+			// io.BackendRendererUserData = (void*)bd;
+			io.BackendRendererName = "imgui_impl_dx12";
+			io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;  // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+
+			// Create fonts texture:
+			{
+				unsigned char* pixels;
+				int width, height;
+				io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+				Graphics::RHITextureDesc texDesc{};
+				texDesc.Dimensions.x = static_cast<uint32>(width);
+				texDesc.Dimensions.y = static_cast<uint32>(height);
+				texDesc.Format = Graphics::ERHIFormat::RGBA_8_Unorm;
+				texDesc.NumMips = 1u;
+
+				mp_fontTexture = device->CreateTexture(Graphics::ERHIResourceState::CopyDest, texDesc);
+			}
+			
+			// Setup vertex & index buffers:
+			{
+
+			}
 		}
 	}
 
@@ -76,7 +102,7 @@ namespace Influx::GUI
 	{
 		// ImGui_ImplDX12_Shutdown
 		{
-
+			// Release our vertex & indexbuffers...
 		}
 
 		ImGui::DestroyContext();

@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 	appSettings.Name = "InfluxEditor v.0.0";
 	appSettings.HasWindow = true;
 	appSettings.WindowDimensions = { 640u, 480u };
-	appSettings.HasUI = false;
+	appSettings.HasImGUI = false;
 	appSettings.HasSceneRender = true;
 
 	{

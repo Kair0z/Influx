@@ -23,11 +23,6 @@ namespace Influx::Graphics
 		commandQueue->Flush();
 	}
 
-	ID3D12DescriptorHeap* D3D12Swapchain::GetDxRtvDescriptorHeap() const
-	{
-		return mp_dxRenderTargetDescriptorHeap;
-	}
-
 	IDXGISwapChain3* D3D12Swapchain::GetDxgiSwapchain() const
 	{
 		return mp_dxgiSwapchain3;

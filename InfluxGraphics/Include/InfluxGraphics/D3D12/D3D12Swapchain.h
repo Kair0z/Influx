@@ -15,7 +15,6 @@ namespace Influx::Graphics
 		D3D12Swapchain(uint32 width, uint32 height, bool isTearingSupported);
 
 		IDXGISwapChain3* mp_dxgiSwapchain3;
-		ID3D12DescriptorHeap* mp_dxRenderTargetDescriptorHeap;
 		D3D12::Swapchain::ETier m_tier;
 
 	public:
@@ -26,7 +25,6 @@ namespace Influx::Graphics
 		/* Recreates RHISwapchain resources based on the new size */
 		virtual void Resize(RHIDevice* device, RHICommandQueue* commandQueue, const Math::Vectoru2& newDimensions) override final;
 
-		ID3D12DescriptorHeap*	GetDxRtvDescriptorHeap() const;
 		IDXGISwapChain3*			GetDxgiSwapchain() const;
 
 		virtual ~D3D12Swapchain();

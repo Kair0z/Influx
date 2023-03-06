@@ -168,12 +168,6 @@
     <ProjectReference Include="..\InfluxApplication\InfluxApplication.vcxproj">
       <Project>{22e6b704-82d5-42f4-a8ab-f1f1843b8cdf}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">
-      <Project>{aae8ef84-74c2-44f9-804e-6c08abe0f35b}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\InfluxEngine\InfluxEngine.vcxproj">
-      <Project>{bbeb27ba-a78d-5290-9048-66e47c89d9e0}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\InfluxRenderer\InfluxRenderer.vcxproj">
       <Project>{5d2be527-24b8-4162-95f7-254e9dd330e4}</Project>
     </ProjectReference>

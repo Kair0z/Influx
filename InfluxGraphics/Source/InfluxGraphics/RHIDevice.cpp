@@ -40,6 +40,7 @@ namespace Influx::Graphics
 	{
 		TexturePtr result = new RHITexture();
 
+		result->m_desc = desc;
 		result->mp_resource = CreateTextureResource(initialState, desc.Format, desc.Dimensions, desc.NumMips);
 		result->mp_renderTargetView = CreateRenderTargetView(result->mp_resource);
 		result->mp_shaderResourceView = CreateShaderResourceView(result->mp_resource);

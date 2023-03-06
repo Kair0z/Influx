@@ -55,6 +55,8 @@ namespace Influx::Graphics
 		virtual GraphicsPipelineLayoutPtr CreateGraphicsPipelineLayout() const = 0;
 		virtual GraphicsPipelinePtr CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& desc, GraphicsPipelineLayoutPtr rootSignature) const = 0;
 
+		virtual bool UploadDataToTexture(byte* pData, TexturePtr texture) const = 0;
+
 		/* Debug Layer*/
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) = 0;
 		bool GetIsDebugLayerEnabled() const;

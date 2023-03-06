@@ -3,6 +3,7 @@
 #ifndef __GR_RHI_H_
 #define __GR_RHI_H_
 
+#include "InfluxGraphics/RHIDevice.h"
 #include "InfluxGraphics/RHICommandQueue.h"
 #include "InfluxGraphics/RHIDescriptorHeap.h"
 #include "InfluxGraphics/RHISwapchain.h"

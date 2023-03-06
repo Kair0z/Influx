@@ -80,6 +80,24 @@ namespace Influx::Graphics::Conversion
 		return {};
 	}
 
+	constexpr ERHIFormat FromDx12(DXGI_FORMAT format)
+	{
+		switch (format)
+		{
+		case DXGI_FORMAT_D32_FLOAT:				return ERHIFormat::D_32_Float;
+		case DXGI_FORMAT_R32G32B32_FLOAT:		return ERHIFormat::RGB_32_Float;
+		case DXGI_FORMAT_R32G32B32A32_FLOAT:	return ERHIFormat::RGBA_32_Float;
+		case DXGI_FORMAT_R8G8B8A8_UNORM:		return ERHIFormat::RGBA_8_Unorm;
+		case DXGI_FORMAT_UNKNOWN:				return ERHIFormat::Unknown;
+
+		default:
+			assert(false);
+			return ERHIFormat::Unknown;
+		}
+
+		return {};
+	}
+
 	constexpr D3D12_PRIMITIVE_TOPOLOGY ToDx12(const ERHIPrimitiveTopology topology)
 	{
 		switch (topology)

@@ -5,6 +5,7 @@
 #include "InfluxRenderer/RootRenderer.h"
 
 #include "InfluxGraphics/RHI.h"
+#include "Renderer/GUIRenderer.h"
 
 namespace Influx::Application
 {
@@ -282,6 +283,8 @@ namespace Influx::Application
         }
 
         mp_appRenderer = Renderer::RootRenderer::Create(Graphics::EGraphicsAPI::D3D12, m_windowHandle);
+
+        mp_appRenderer->AddRenderer<GUI::GUIRenderer>();
     }
 
     void Application::SignalQuit()

@@ -33,6 +33,11 @@ namespace Influx::Graphics
 
 	D3D12_GPU_DESCRIPTOR_HANDLE D3D12DescriptorHeap::GetGPUHandle(uint64 slot)
 	{
+		if (!IsShaderVisible())
+		{
+			return NullGPUHandle();
+		}
+
 		if (!IsSlotFreeGPU(slot))
 		{
 			// Slot is in the Freelist. Thus there's no descriptor here...
@@ -57,19 +62,53 @@ namespace Influx::Graphics
 		return GetGPUHandle(GetFirstFreeSlotGPU());
 	}
 
+	// Shader !Visible Heaps don't have GPU handles!
 	bool D3D12DescriptorHeap::GetHandles(D3D12_CPU_DESCRIPTOR_HANDLE& out_cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE& out_gpuHandle)
 	{
 		out_cpuHandle = GetCPUHandle();
 		out_gpuHandle = GetGPUHandle();
 
-		if (out_gpuHandle.ptr == NullGPUHandle().ptr|| out_cpuHandle.ptr == NullCPUHandle().ptr)
+		// Shader Invisible Heaps don't have GPU handles!
+		if (!IsShaderVisible())
 		{
-			return false;
+			if (out_cpuHandle.ptr == NullCPUHandle().ptr)
+			{
+				return false;
+			}
 		}
 		else
 		{
-			return true;
+			if (out_gpuHandle.ptr == NullGPUHandle().ptr || out_cpuHandle.ptr == NullCPUHandle().ptr)
+			{
+				return false;
+			}
 		}
+
+		return true;
+	}
+
+	bool D3D12DescriptorHeap::GetCPUHandle(D3D12_CPU_DESCRIPTOR_HANDLE& out_handle)
+	{
+		out_handle = GetCPUHandle();
+
+		if (out_handle.ptr == NullCPUHandle().ptr)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	bool D3D12DescriptorHeap::GetGPUHandle(D3D12_GPU_DESCRIPTOR_HANDLE& out_handle)
+	{
+		out_handle = GetGPUHandle();
+
+		if (out_handle.ptr == NullGPUHandle().ptr)
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	ID3D12DescriptorHeap* D3D12DescriptorHeap::GetDxDescriptorHeap() const

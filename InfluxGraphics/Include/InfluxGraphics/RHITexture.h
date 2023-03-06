@@ -29,10 +29,17 @@ namespace Influx::Graphics
 		RHIRenderTargetView* mp_renderTargetView;
 		RHIShaderResourceView* mp_shaderResourceView;
 
+		RHITextureDesc m_desc;
+
 	public:
 		RHIRenderTargetView* GetAndOrCreateRenderTargetView(const RHIDevice* device);
 		RHIShaderResourceView* GetAndOrCreateShaderResourceView(const RHIDevice* device);
 		RHIResource* GetResource() const;
+
+		const RHITextureDesc& GetDesc() const;
+		const Math::Vectoru2& GetDimensions() const;
+		const uint16 GetNumMips() const;
+		const ERHIFormat GetFormat() const;
 
 	public:
 		RHITexture(const RHITexture&) = delete;

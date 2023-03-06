@@ -7,6 +7,8 @@
 #include "InfluxGraphics/D3D12/D3D12PipelineLayout.h"
 #include "InfluxGraphics/D3D12/D3D12Pipeline.h"
 
+#include "InfluxGraphics/RHITexture.h"
+
 #include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
 #include "InfluxGraphics/D3D12/ResourceViews/D3D12ShaderResourceView.h"
 
@@ -40,11 +42,11 @@ namespace Influx::Graphics
 		{
 			if (i == m_mainAdapterIdx)
 			{
-				mp_dxDevices[i] = D3D12::Device::Create(mp_dxgiAdapters[i], m_isDebugLayerEnabled);
+				mp_dxDevices.push_back(D3D12::Device::Create(mp_dxgiAdapters[i], m_isDebugLayerEnabled));
 			}
 			else
 			{
-				mp_dxDevices[i] = nullptr;
+				mp_dxDevices.push_back(nullptr);
 			}
 		}
 
@@ -85,12 +87,13 @@ namespace Influx::Graphics
 		D3D12Swapchain* result = new D3D12Swapchain(dimensions.x, dimensions.y, D3D12::Query::SupportsTearing());
 		D3D12CommandQueue* dxCommandQueue = static_cast<D3D12CommandQueue*>(commandQueue);
 
+		result->m_renderTargetFormat = ERHIFormat::RGBA_8_Unorm;
+		result->m_windowHandle = windowHandle;
+
 		result->mp_dxgiSwapchain3 = D3D12::Swapchain::CreateTier3(mp_dxgiFactory2, (::HWND)windowHandle, dxCommandQueue->GetDxCommandQueue(),
 			dimensions.x, dimensions.y, RHISwapchain::GetNumBackBuffers(), Conversion::ToDx12(result->m_renderTargetFormat));
-
-		result->m_renderTargetFormat = ERHIFormat::RGBA_8_Unorm;
+		
 		result->m_currentBackBufferIndex = result->mp_dxgiSwapchain3->GetCurrentBackBufferIndex();
-		result->m_windowHandle = windowHandle;
 
 		// Gather Backbuffer Resources & RTVs
 		uint64 offsetSize = GetRTVDescriptorSize();
@@ -133,7 +136,7 @@ namespace Influx::Graphics
 		const Math::Vectoru2 resource_dimensions = { (uint32)resource_desc.Width, (uint32)resource_desc.Height };
 
 		D3D12RenderTargetView* result = new D3D12RenderTargetView(temp_format, resource_dimensions, viewedResource->GetOptimizedClearValue());
-		if (d3d12DescriptorHeap->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
+		if (d3d12DescriptorHeap->GetCPUHandle(result->m_dxCpuHandle))
 		{
 			GetDxDevice()->CreateRenderTargetView(d3d12Resource->GetDxResource(), nullptr, result->GetDxCPUHandle());
 			return result;
@@ -147,14 +150,17 @@ namespace Influx::Graphics
 		D3D12Resource* d3d12Resource = (D3D12Resource*)viewedResource;
 		D3D12DescriptorHeap* d3d12DescriptorHeap = (D3D12DescriptorHeap*)descriptorHeap;
 
-		constexpr ERHIFormat temp_format = ERHIFormat::RGBA_8_Unorm;
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
-		desc.Format = Conversion::ToDx12(temp_format);
-
+		desc.Format = d3d12Resource->GetDxResource()->GetDesc().Format;
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		desc.Texture2D.MipLevels = d3d12Resource->GetDxResource()->GetDesc().MipLevels;
+		desc.Texture2D.MostDetailedMip = 0;
+		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		
 		const D3D12_RESOURCE_DESC& resource_desc = d3d12Resource->GetDxResource()->GetDesc();
 		const Math::Vectoru2 resource_dimensions = { (uint32)resource_desc.Width, (uint32)resource_desc.Height };
 
-		D3D12ShaderResourceView* result = new D3D12ShaderResourceView(temp_format, resource_dimensions, viewedResource->GetOptimizedClearValue());
+		D3D12ShaderResourceView* result = new D3D12ShaderResourceView(Conversion::FromDx12(desc.Format), resource_dimensions, viewedResource->GetOptimizedClearValue());
 		if (d3d12DescriptorHeap->GetHandles(result->m_dxCpuHandle, result->m_dxGpuHandle) != false)
 		{
 			GetDxDevice()->CreateShaderResourceView(d3d12Resource->GetDxResource(), nullptr, result->GetDxCPUHandle());
@@ -305,6 +311,130 @@ namespace Influx::Graphics
 		d3d12Pipeline->mp_dxPipelineState = D3D12::CreateDxGraphicsPipelineState(pipelineDesc, d3d12RootSignature->mp_dxRootSignature, GetDxDevice());
 
 		return d3d12Pipeline;
+	}
+
+	bool D3D12Device::UploadDataToTexture(byte* pData, TexturePtr texture) const
+	{
+		if (pData == nullptr)
+		{
+			return false;
+		}
+
+		if (texture == nullptr)
+		{
+			return false;
+		}
+
+		D3D12Resource* d3d12Resource = (D3D12Resource*)texture->GetResource();
+		if (d3d12Resource == nullptr)
+		{
+			return false;
+		}
+
+		uint32 width = texture->GetDimensions().x;
+		uint32 height = texture->GetDimensions().y;
+
+		UINT uploadPitch = (width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u);
+		UINT uploadSize = height * uploadPitch;
+		
+		D3D12_RESOURCE_DESC desc{};
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		desc.Alignment = 0;
+		desc.Width = uploadSize;
+		desc.Height = 1;
+		desc.DepthOrArraySize = 1;
+		desc.MipLevels = 1;
+		desc.Format = DXGI_FORMAT_UNKNOWN;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+		D3D12_HEAP_PROPERTIES props{};
+		props.Type = D3D12_HEAP_TYPE_UPLOAD;
+		props.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		props.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+
+		ID3D12Resource* uploadBuffer = nullptr;
+		HRESULT hr = GetDxDevice()->CreateCommittedResource(&props, D3D12_HEAP_FLAG_NONE, &desc,
+			D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&uploadBuffer));
+		if (!SUCCEEDED(hr))
+		{
+			return false;
+		}
+
+		void* mapped = nullptr;
+		D3D12_RANGE range = { 0, uploadSize };
+
+		hr = uploadBuffer->Map(0, &range, &mapped);
+
+		for (int y = 0; y < height; y++)
+			memcpy((void*)((uintptr_t)mapped + y * uploadPitch), pData + y * width * 4, width * 4);
+
+		uploadBuffer->Unmap(0, &range);
+
+		D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+		srcLocation.pResource = uploadBuffer;
+		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		srcLocation.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		srcLocation.PlacedFootprint.Footprint.Width = width;
+		srcLocation.PlacedFootprint.Footprint.Height = height;
+		srcLocation.PlacedFootprint.Footprint.Depth = 1;
+		srcLocation.PlacedFootprint.Footprint.RowPitch = uploadPitch;
+
+		D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+		dstLocation.pResource = d3d12Resource->GetDxResource();
+		dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		dstLocation.SubresourceIndex = 0;
+
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource = d3d12Resource->GetDxResource();
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+		{
+			ID3D12Fence* fence = nullptr;
+			hr = GetDxDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+
+			HANDLE event = ::CreateEvent(0, 0, 0, 0);
+
+			D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+			queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+			queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+			queueDesc.NodeMask = 1;
+
+			ID3D12CommandQueue* cmdQueue = nullptr;
+			hr = GetDxDevice()->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&cmdQueue));
+
+			ID3D12CommandAllocator* cmdAlloc = nullptr;
+			hr = GetDxDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAlloc));
+
+			ID3D12GraphicsCommandList* cmdList = nullptr;
+			hr = GetDxDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAlloc, nullptr, IID_PPV_ARGS(&cmdList));
+
+			cmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+			cmdList->ResourceBarrier(1, &barrier);
+
+			hr = cmdList->Close();
+
+			cmdQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&cmdList);
+			hr = cmdQueue->Signal(fence, 1);
+
+			fence->SetEventOnCompletion(1, event);
+			::WaitForSingleObject(event, INFINITE);
+
+			cmdList->Release();
+			cmdAlloc->Release();
+			cmdQueue->Release();
+			::CloseHandle(event);
+			fence->Release();
+			uploadBuffer->Release();
+		}
+
+		return true;
 	}
 
 	void D3D12Device::SetDebugLayerEnabled(bool setDebugLayerEnabled)

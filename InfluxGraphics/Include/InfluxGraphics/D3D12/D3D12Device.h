@@ -42,6 +42,8 @@ namespace Influx::Graphics
 		virtual GraphicsPipelineLayoutPtr CreateGraphicsPipelineLayout() const override;
 		virtual GraphicsPipelinePtr CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& desc, GraphicsPipelineLayoutPtr rootSignature) const override;
 
+		virtual bool UploadDataToTexture(byte* pData, TexturePtr texture) const override;
+
 		virtual void SetDebugLayerEnabled(bool setDebugLayerEnabled) override;
 
 		virtual EGraphicsAPI GetGraphicsAPI() const override;
