@@ -29,7 +29,7 @@
     <ClInclude Include="Include\Core\Enum.h" />
     <ClInclude Include="Include\Core\Geometry\Sphere.h" />
     <ClInclude Include="Include\Core\Geometry\Plane.h" />
-    <ClInclude Include="Include\Core\Geometry\Camera.h" />
+    <ClInclude Include="Include\Core\Scene\Camera.h" />
     <ClInclude Include="Include\Core\Geometry\Ray.h" />
     <ClInclude Include="Include\Core\Threading\ThreadPool.h" />
     <ClInclude Include="Include\Core\Math\Matrix.h" />
@@ -43,9 +43,10 @@
     <ClInclude Include="Include\Core\Sync\Semaphore.h" />
     <ClInclude Include="Include\Core\CheckSafety.h" />
     <ClInclude Include="Include\Core\Geometry\Triangle.h" />
-    <ClInclude Include="Include\Core\Geometry\Mesh.h" />
+    <ClInclude Include="Include\Core\Scene\Mesh.h" />
     <ClInclude Include="Include\Core\Scene\Scene.h" />
     <ClInclude Include="Include\Core\Cache.h" />
+    <ClInclude Include="Include\Core\Scene\Light.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\Core\Math\Vector.inl" />

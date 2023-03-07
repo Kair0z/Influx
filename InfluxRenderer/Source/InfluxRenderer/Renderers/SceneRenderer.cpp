@@ -11,6 +11,16 @@
 
 namespace Influx::Renderer
 {
+	void SceneRenderer::SetSceneToRender(const Influx::Scene::Scene& scene)
+	{
+		m_scene = scene;
+	}
+
+	const Influx::Scene::Scene& SceneRenderer::GetSceneToRender() const
+	{
+		return m_scene;
+	}
+
 	void SceneRenderer::OnPostInitializeAPI(const Graphics::EGraphicsAPI api, Graphics::RHIDevice* device)
 	{
 		{
@@ -73,8 +83,44 @@ namespace Influx::Renderer
 		mp_pipeline			= context.GetAndOrCreateGraphicsPipeline(pipelineDesc, layoutDesc);
 
 		mp_sceneColourTexture = context.GetAndOrCreateTexture("SceneColour", sceneColourDesc);
-		
 		Graphics::RHIRenderTargetView* sceneColourRTV = mp_sceneColourTexture->GetAndOrCreateRenderTargetView(context.GetDevice());
+
+		// Vertex data:
+		Vector<Math::Vertex> vertices{};
+		Vector<uint64> indices{};
+		{
+			const Vector<Scene::Mesh>& meshes = m_scene.GetMeshes();
+
+			for (const Scene::Mesh& mesh : meshes)
+			{
+				for (const Math::Vertex& vertex : mesh.GetVertices())
+				{
+					vertices.push_back(vertex);
+				}
+
+				for (const Scene::Mesh::Index& index : mesh.GetIndices())
+				{
+					indices.push_back(index);
+				}
+			}
+		}
+
+		const uint64 vertexSize			= sizeof(Influx::Math::Vertex);
+		const uint64 numVertices		= vertices.size();
+		const uint64 numIndices			= indices.size();
+		const uint64 vertexBufferSize	= numVertices * vertexSize;
+		const uint64 indexBufferSize	= numIndices * sizeof(uint64);
+
+		Graphics::RHIResource* vertexBuffer = context.GetDevice()->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
+		Graphics::RHIResource* indexBuffer = context.GetDevice()->CreateIndexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, indexBufferSize);
+		vertexBuffer->ScopedMap([&vertices, vertexBufferSize](void* cpuHandle) // Copy data to GPU buffer...
+			{
+				memcpy(cpuHandle, vertices.data(), vertexBufferSize);
+			});
+		indexBuffer->ScopedMap([&indices, indexBufferSize](void* cpuHandle)
+			{
+				memcpy(cpuHandle, indices.data(), indexBufferSize);
+			});
 
 		// The actual rendering...
 		{
@@ -92,9 +138,9 @@ namespace Influx::Renderer
 				 
 				cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
 
-				//cmdList->BindIndexBuffer(indexBuffer, indexBufferSize);
-				//cmdList->BindVertexBuffer(vertexBuffer, vertexBufferSize, vertexSize);
-				//cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
+				cmdList->BindIndexBuffer(indexBuffer, indexBufferSize);
+				cmdList->BindVertexBuffer(vertexBuffer, vertexBufferSize, vertexSize);
+				cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
 			}
 
 			context.CopyTextureIntoSwapchain(mp_sceneColourTexture, cmdList);

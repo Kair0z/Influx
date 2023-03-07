@@ -1,11 +1,11 @@
 #pragma once
 
-#ifndef _CORE_GEOMETRY_CAMERA_H_
-#define _CORE_GEOMETRY_CAMERA_H_
+#ifndef _CORE_SCENE_CAMERA_H_
+#define _CORE_SCENE_CAMERA_H_
 
-#include "../Math/Vector.h"
+#include "Core/Math/Vector.h"
 
-namespace Influx::Math
+namespace Influx::Scene
 {
 	class Camera final
 	{

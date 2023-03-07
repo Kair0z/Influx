@@ -2,11 +2,15 @@
 
 #include "InfluxRenderer/IRenderer.h"
 
+#include "Core/Scene/Scene.h"
+
 namespace Influx::Renderer
 {
 	class SceneRenderer final : public Renderer::IRenderer
 	{
 	public:
+		void SetSceneToRender(const Influx::Scene::Scene& scene);
+		const Influx::Scene::Scene& GetSceneToRender() const;
 
 	private:
 		/* After initializing the RHI API Device */
@@ -37,6 +41,8 @@ namespace Influx::Renderer
 
 		Vector<byte> m_compiledVertexShader{};
 		Vector<byte> m_compiledPixelShader{};
+
+		Influx::Scene::Scene& m_scene;
 	};
 }
 

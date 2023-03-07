@@ -29,8 +29,9 @@
     <ClInclude Include="Include\Core\Container\RingBuffer.h" />
     <ClInclude Include="Include\Core\Container\Vector.h" />
     <ClInclude Include="Include\Core\Enum.h" />
-    <ClInclude Include="Include\Core\Geometry\Camera.h" />
-    <ClInclude Include="Include\Core\Geometry\Mesh.h" />
+    <ClInclude Include="Include\Core\Scene\Camera.h" />
+    <ClInclude Include="Include\Core\Scene\Light.h" />
+    <ClInclude Include="Include\Core\Scene\Mesh.h" />
     <ClInclude Include="Include\Core\Geometry\Plane.h" />
     <ClInclude Include="Include\Core\Geometry\Ray.h" />
     <ClInclude Include="Include\Core\Geometry\Rect.h" />
