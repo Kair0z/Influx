@@ -42,7 +42,7 @@ namespace Influx::Renderer
 		Vector<byte> m_compiledVertexShader{};
 		Vector<byte> m_compiledPixelShader{};
 
-		Influx::Scene::Scene& m_scene;
+		Influx::Scene::Scene m_scene;
 	};
 }
 

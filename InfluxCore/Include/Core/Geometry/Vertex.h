@@ -3,7 +3,7 @@
 #ifndef __CORE_GEOMETRY_VERTEX_H_
 #define __CORE_GEOMETRY_VERTEX_H_
 
-#include "../Math/Vector.h"
+#include "Core/Math/Vector.h"
 
 namespace Influx::Math
 {

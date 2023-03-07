@@ -111,16 +111,25 @@ namespace Influx::Renderer
 		const uint64 vertexBufferSize	= numVertices * vertexSize;
 		const uint64 indexBufferSize	= numIndices * sizeof(uint64);
 
-		Graphics::RHIResource* vertexBuffer = context.GetDevice()->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
-		Graphics::RHIResource* indexBuffer = context.GetDevice()->CreateIndexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, indexBufferSize);
-		vertexBuffer->ScopedMap([&vertices, vertexBufferSize](void* cpuHandle) // Copy data to GPU buffer...
+		Graphics::RHIResource* vertexBuffer = nullptr;
+		if (vertexBufferSize > 0)
+		{
+			vertexBuffer = context.GetDevice()->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
+			vertexBuffer->ScopedMap([&vertices, vertexBufferSize](void* cpuHandle) // Copy data to GPU buffer...
 			{
 				memcpy(cpuHandle, vertices.data(), vertexBufferSize);
 			});
-		indexBuffer->ScopedMap([&indices, indexBufferSize](void* cpuHandle)
+		}
+		
+		Graphics::RHIResource* indexBuffer = nullptr;
+		if (indexBufferSize > 0)
+		{
+			indexBuffer = context.GetDevice()->CreateIndexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, indexBufferSize);
+			indexBuffer->ScopedMap([&indices, indexBufferSize](void* cpuHandle)
 			{
 				memcpy(cpuHandle, indices.data(), indexBufferSize);
 			});
+		}
 
 		// The actual rendering...
 		{
@@ -138,9 +147,9 @@ namespace Influx::Renderer
 				 
 				cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
 
-				cmdList->BindIndexBuffer(indexBuffer, indexBufferSize);
-				cmdList->BindVertexBuffer(vertexBuffer, vertexBufferSize, vertexSize);
-				cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
+				if (indexBuffer) cmdList->BindIndexBuffer(indexBuffer, indexBufferSize);
+				if (vertexBuffer) cmdList->BindVertexBuffer(vertexBuffer, vertexBufferSize, vertexSize);
+				if (indexBuffer) cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
 			}
 
 			context.CopyTextureIntoSwapchain(mp_sceneColourTexture, cmdList);
