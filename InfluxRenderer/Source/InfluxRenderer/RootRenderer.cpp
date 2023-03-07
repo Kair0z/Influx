@@ -47,6 +47,7 @@ namespace Influx::Renderer
 
 		// Create Graphics API Device:
 		SetGraphicsAPI(api);
+
 		switch (api)
 		{
 		case EGraphicsAPI::D3D12:
@@ -59,6 +60,12 @@ namespace Influx::Renderer
 			m_initializedDeviceAPI = EGraphicsAPI::NotSupported;
 			Cleanup();
 			return;
+		}
+
+		// Run Child Renderers:
+		for (IRenderer* renderer : mp_childRenderers)
+		{
+			renderer->OnPostInitializeAPI(m_initializedDeviceAPI, GetDevice());
 		}
 
 		// Initialize Graphics Command Queue:
@@ -90,13 +97,13 @@ namespace Influx::Renderer
 
 	void RootRenderer::Cleanup()
 	{
-		CleanupGraphicsAPI(GetCurrentGraphicsAPI());
-
+		// Run Child Renderers:
 		for (IRenderer* renderer : mp_childRenderers)
 		{
-			delete renderer;
-			renderer = nullptr;
+			renderer->OnPreCleanupAPI(GetCurrentGraphicsAPI(), GetDevice());
 		}
+
+		CleanupGraphicsAPI(GetCurrentGraphicsAPI());
 	}
 
 	void RootRenderer::UpdateSwapchain()
@@ -107,9 +114,23 @@ namespace Influx::Renderer
 			return;
 		}
 
+		// Run Child Renderers:
+		for (IRenderer* renderer : mp_childRenderers)
+		{
+			renderer->OnWindowResize(GetRenderContext(), 
+				mp_windowSwapchain->m_previousSize, 
+				mp_windowSwapchain->m_updatedSize);
+		}
+
 		mp_windowSwapchain->m_isDirty = false;
 		mp_windowSwapchain->m_previousSize = mp_windowSwapchain->m_updatedSize;
 		mp_windowSwapchain->m_updatedSize = mp_windowSwapchain->m_previousSize;
+	}
+
+	const RenderContext& RootRenderer::GetRenderContext()
+	{
+		m_renderContext.mp_rootRendererPtr = this;
+		return m_renderContext;
 	}
 
 	void RootRenderer::Render()
@@ -119,27 +140,36 @@ namespace Influx::Renderer
 
 	void RootRenderer::Render(OnBuildCommandList internalRenderClb)
 	{
-		UpdateSwapchain();
-
 		if (IsAttachedToWindow())
 		{
+			UpdateSwapchain();
+
 			RHICommandList* cmdList = mp_gfxCommandQueue->SetupNewCommandList(GetDevice());
 
 			cmdList->TransitionResource(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentBackBufferResource(), Graphics::ERHIResourceState::RenderTarget);
-
-			cmdList->ClearRTV(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentRenderTargetView(), { 0.2f, 0.0f, 0.2f, 1.0f });
-
-			if (internalRenderClb != nullptr)
 			{
-				internalRenderClb(cmdList);
-			}
+				cmdList->ClearRTV(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentRenderTargetView(), { 0.2f, 0.0f, 0.2f, 1.0f });
 
+				if (internalRenderClb != nullptr)
+				{
+					// Run an internal Render Clb passed...
+					internalRenderClb(cmdList);
+				}
+				else
+				{
+					// Run Child Renderers...
+					for (IRenderer* renderer : mp_childRenderers)
+					{
+						renderer->OnBuildRenderCommandList(GetRenderContext(), cmdList);
+					}
+				}
+			}
 			cmdList->TransitionResource(mp_windowSwapchain->mp_rhiSwapchain->GetCurrentBackBufferResource(), Graphics::ERHIResourceState::Present);
 
 			mp_gfxCommandQueue->ExecuteCommmandList(cmdList);
-		}
 
-		++m_frame;
+			++m_frame;
+		}
 	}
 
 	void RootRenderer::Present(bool vsync)
@@ -318,4 +348,37 @@ namespace Influx::Renderer
 	{
 		return mp_rhiDevice;
 	}
+
+#pragma region RenderContext
+	const Graphics::RHIDevice* RenderContext::GetDevice() const
+	{
+		return mp_rootRendererPtr->GetDevice();
+	}
+
+	Graphics::RHITexture* RenderContext::GetAndOrCreateTexture(const String& key, const Graphics::RHITextureDesc& desc) const
+	{
+		return mp_rootRendererPtr->GetAndOrCreateTexture(key, desc);
+	}
+
+	Graphics::RHIGraphicsPipeline* RenderContext::GetAndOrCreateGraphicsPipeline(const Graphics::RHIGraphicsPipelineDescription& key, const Graphics::RHIGraphicsPipelineLayoutDescription& pipelineLayoutKey) const
+	{
+		return mp_rootRendererPtr->GetAndOrCreateGraphicsPipeline(key, pipelineLayoutKey);
+	}
+
+	Graphics::RHIGraphicsPipelineLayout* RenderContext::GetAndOrCreateGraphicsPipelineLayout(const Graphics::RHIGraphicsPipelineLayoutDescription& key) const
+	{
+		return mp_rootRendererPtr->GetAndOrCreateGraphicsPipelineLayout(key);
+	}
+
+	bool RenderContext::CopyTextureIntoSwapchain(Graphics::RHITexture* texture, Graphics::RHICommandList* cmdList) const
+	{
+		cmdList->CopyResource(texture->GetResource(), GetSwapchain()->GetCurrentBackBufferResource());
+		return true;
+	}
+
+	Graphics::RHISwapchain* RenderContext::GetSwapchain() const
+	{
+		return mp_rootRendererPtr->GetWindowSwapchain();
+	}
+#pragma endregion
 }

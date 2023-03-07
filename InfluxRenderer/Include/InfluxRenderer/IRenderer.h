@@ -9,6 +9,11 @@ namespace Influx::Graphics
 {
 	class RHIDevice;
 	class RHICommandList;
+	class RHIGraphicsPipelineLayout;
+	class RHIGraphicsPipeline;
+	class RHIDescriptorHeap;
+	class RHITexture;
+	class RHIResource;
 }
 
 namespace Influx::Renderer

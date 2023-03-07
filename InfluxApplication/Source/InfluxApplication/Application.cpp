@@ -5,6 +5,7 @@
 #include "InfluxRenderer/RootRenderer.h"
 
 #include "InfluxGraphics/RHI.h"
+#include "InfluxRenderer/Renderers/SceneRenderer.h"
 #include "Renderer/GUIRenderer.h"
 
 namespace Influx::Application
@@ -176,71 +177,13 @@ namespace Influx::Application
             return;
         }
 
-        Graphics::RHIGraphicsPipelineDescription pipelineDesc{};
-        {
-            pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 0u, true, 0u });
-            pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR", 0u, Graphics::ERHIFormat::RGBA_32_Float, 0u, 12u, true, 0u });
-
-            //pipelineDesc.VS = compiledVertexShader;
-            //pipelineDesc.PS = compiledPixelShader;
-
-            pipelineDesc.PrimitiveTopologyType = Graphics::ERHIPrimitiveTopologyType::Triangle;
-
-            pipelineDesc.BlendState         = Graphics::RHIBlendState::GetDefault();
-            pipelineDesc.RasterizerState    = Graphics::RHIRasterizerState::GetDefault();
-            pipelineDesc.DepthStencilState  = Graphics::RHIDepthStencilState::GetDefault();
-
-            pipelineDesc.RenderTargets[0].Format = Graphics::ERHIFormat::RGBA_8_Unorm;
-        }
-        Graphics::RHIGraphicsPipelineLayoutDescription layoutDesc{};
-
-        mp_appRenderer->Render([this, pipelineDesc, layoutDesc](Graphics::RHICommandList* cmdList)
-            {
-                using namespace Influx::Graphics;
-                RHIResource* currentSwapchainResource = mp_appRenderer->GetWindowSwapchain()->GetCurrentBackBufferResource();
-                
-                RHITextureDesc sceneColourDesc{};
-                sceneColourDesc.Dimensions = mp_appRenderer->GetWindowSwapchainDimensions();
-                sceneColourDesc.Format = Graphics::ERHIFormat::RGBA_8_Unorm;
-                sceneColourDesc.NumMips = 1;
-
-                RHITexture* sceneColour = mp_appRenderer->GetAndOrCreateTexture("SceneColour", sceneColourDesc);
-                RHIRenderTargetView* sceneColourRTV = sceneColour->GetAndOrCreateRenderTargetView(mp_appRenderer->GetDevice());
-
-                RHIViewport viewport{};
-                RHIScissorRect scissorRect{};
-
-		        // Clear Scene colour:
-		        cmdList->ClearRTV(sceneColourRTV, {1.0f, 0.0f, 0.0f, 1.0f});
-                
-		        // Draw Triangle:
-		        {
-                    // cmdList->BindPipelineLayout(mp_appRenderer->GetAndOrCreateGraphicsPipelineLayout(layoutDesc));
-                    // cmdList->BindPipelineState(mp_appRenderer->GetAndOrCreateGraphicsPipeline(pipelineDesc, layoutDesc));
-                    // 
-		        	// cmdList->BindRenderTarget(sceneColourRTV);
-		        	// cmdList->BindViewports(viewport);
-		        	// cmdList->BindScissorRect(scissorRect);
-                    // 
-		        	// cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
-
-		        	//cmdList->BindIndexBuffer(indexBuffer, indexBufferSize);
-		        	//cmdList->BindVertexBuffer(vertexBuffer, vertexBufferSize, vertexSize);
-		        	//cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
-		        }
-		        
-		        // Copy Scene Colour -> swapchainBackbuffer
-		        cmdList->CopyResource(sceneColour->GetResource(), currentSwapchainResource);
-            });
-
+        mp_appRenderer->Render();
         mp_appRenderer->Present(true);
     }
 
     void Application::ImguiRender()
     {
-       
 
-        
     }
 
     void Application::CreateWindow()
@@ -283,8 +226,8 @@ namespace Influx::Application
         }
 
         mp_appRenderer = Renderer::RootRenderer::Create(Graphics::EGraphicsAPI::D3D12, m_windowHandle);
-
-        mp_appRenderer->AddRenderer<GUI::GUIRenderer>();
+        mp_appRenderer->AddRenderer<Renderer::SceneRenderer>();
+        // mp_appRenderer->AddRenderer<GUI::GUIRenderer>();
     }
 
     void Application::SignalQuit()

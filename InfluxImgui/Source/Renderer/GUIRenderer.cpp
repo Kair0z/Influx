@@ -89,7 +89,14 @@ namespace Influx::GUI
 
 		// ImGui_ImplDX12_RenderDrawData
 		{
+			if (mp_vertexBufferResource == nullptr)
+			{
+				
+			}
+			if (mp_indexBufferResource == nullptr)
+			{
 
+			}
 		}
 	}
 

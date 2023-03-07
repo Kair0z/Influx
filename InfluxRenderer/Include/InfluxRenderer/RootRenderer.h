@@ -34,6 +34,35 @@ namespace Influx::Graphics
 
 namespace Influx::Renderer
 {
+	class RootRenderer;
+
+	class RenderContext final
+	{
+	public:
+		const Graphics::RHIDevice* GetDevice() const;
+
+		/* Creating Textures */
+		Graphics::RHITexture* GetAndOrCreateTexture(const String& key, const Graphics::RHITextureDesc& desc) const;
+
+		/* Creating Graphics PSO */
+		Graphics::RHIGraphicsPipeline* GetAndOrCreateGraphicsPipeline(const Graphics::RHIGraphicsPipelineDescription& key, const Graphics::RHIGraphicsPipelineLayoutDescription& pipelineLayoutKey) const;
+		
+		/* Creating Graphics PSO Layout */
+		Graphics::RHIGraphicsPipelineLayout* GetAndOrCreateGraphicsPipelineLayout(const Graphics::RHIGraphicsPipelineLayoutDescription& key) const;
+
+		/* Copying a texture into our current Swapchain */
+		bool CopyTextureIntoSwapchain(Graphics::RHITexture* texture, Graphics::RHICommandList* cmdList) const;
+
+		/* Accessing the window swapchain */
+		Graphics::RHISwapchain* GetSwapchain() const;
+
+	private:
+		RootRenderer* mp_rootRendererPtr = nullptr;
+
+		RenderContext() = default;
+		friend class RootRenderer;
+	};
+
 	/* 
 	* Root Renderer
 	* 
@@ -43,6 +72,7 @@ namespace Influx::Renderer
 	public:
 #pragma region TypeAliases
 		using Ptr = RootRenderer*;
+		using DevicePtr = Graphics::RHIDevice*;
 		using SwapchainPtr = Graphics::RHISwapchain*;
 		using GraphicsPipelinePtr = Graphics::RHIGraphicsPipeline*;
 		using GraphicsPipelineLayoutPtr = Graphics::RHIGraphicsPipelineLayout*;
@@ -86,6 +116,13 @@ namespace Influx::Renderer
 			
 			_R* newRenderer = new _R(args...);
 			mp_childRenderers.push_back(newRenderer);
+
+			// Initialize to API
+			if (IsGraphicsAPIInitialized(GetCurrentGraphicsAPI()))
+			{
+				mp_childRenderers.back()->OnPostInitializeAPI(GetCurrentGraphicsAPI(), GetDevice());
+			}
+
 			return newRenderer;
 		}
 
@@ -116,6 +153,7 @@ namespace Influx::Renderer
 		uint64 GetFrame() const;
 
 		Graphics::RHIDevice* GetDevice() const;
+		const RenderContext& GetRenderContext();
 
 	private:
 		/* RHI Graphics Device */
@@ -160,7 +198,10 @@ namespace Influx::Renderer
 		void Cleanup();
 
 		void UpdateSwapchain();
+
+		RenderContext m_renderContext;
 	};
+
 }
 
 #endif
