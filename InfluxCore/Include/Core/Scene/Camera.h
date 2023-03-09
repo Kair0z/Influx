@@ -3,81 +3,27 @@
 #ifndef __CORE_SCENE_CAMERA_H_
 #define __CORE_SCENE_CAMERA_H_
 
-#include "Core/Math/Vector.h"
+#include "Core/Math/Transform.h"
 
 namespace Influx::Scene
 {
 	class Camera final
 	{
 	public:
-		inline Camera() = default;
-		inline Camera(const Math::Vectorf3& position, const Math::Vectorf3& forward, const Math::Vectorf3& up = Math::Vectorf3{ 0.0f, 1.0f, 0.0f })
-			: m_position{position}
-			, m_forward{forward}
-			, m_up{up}
-		{
-			RecalculateTransform();
-		}
+		Camera() = default;
 
-		inline void SetFieldOfView(float newFov)
+		void SetFieldOfView(float newFov)
 		{
 			m_fieldOfView = newFov;
 		}
 
-		inline float GetFieldOfView() const
+		float GetFieldOfView() const
 		{
 			return m_fieldOfView;
 		}
 
-		inline void SetPosition(const Math::Vectorf3& newPosition)
-		{
-			m_position = newPosition;
-		}
-
-		inline void SetForward(const Math::Vectorf3& newForward)
-		{
-			m_forward = newForward.Normalized();
-			RecalculateTransform();
-		}
-
-		inline Math::Vectorf3 GetPosition() const
-		{
-			return m_position;
-		}
-
-		inline Math::Vectorf3 GetForward() const
-		{
-			return m_forward;
-		}
-
-		inline Math::Vectorf3 GetRight() const
-		{
-			return m_right;
-		}
-
-		inline Math::Vectorf3 GetUp() const
-		{
-			return m_up;
-		}
-
 	private:
-		Math::Vectorf3 m_forward;
-		Math::Vectorf3 m_right;
-		Math::Vectorf3 m_up;
-		Math::Vectorf3 m_position;
-
 		float m_fieldOfView;
-
-	private:
-		inline void RecalculateTransform()
-		{
-			m_right = Math::Vectorf3::Cross(m_forward, m_up);
-
-			//m_worldViewProjection =
-			//	Matrix4x4f::MakeTransformMatrixRH(m_position, m_forward, m_up) * 
-			//	Matrix4x4f::MakeViewMatrixRH(m_position, m_forward, m_up) * 
-			//	Matrix4x4f::MakeProjectionMatrixRH(90.0f, 1.0f, 0.0f, 100.0f);
-		}
 	};
 }
 

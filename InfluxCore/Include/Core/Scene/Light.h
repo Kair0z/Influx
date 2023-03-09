@@ -14,10 +14,26 @@ namespace Influx::Scene
 		Max
 	};
 
-	class Light final
+	class Light
 	{
+	public:
+
+	private:
 
 	};
+
+	namespace Internal
+	{
+		template <ELightType _E>
+		class TLight final : public Light
+		{
+
+		};
+	}
+
+	using DirectionalLight = Internal::TLight<ELightType::Directional>;
+	using PointLight = Internal::TLight<ELightType::Point>;
+	using SpotLight = Internal::TLight<ELightType::Spot>;
 }
 
 #endif

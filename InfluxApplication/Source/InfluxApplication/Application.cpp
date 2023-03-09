@@ -76,9 +76,7 @@ namespace Influx::Application
 
         // Create Scene:
         Scene::Camera camera{};
-        
         Scene::Light light{};
-
         Scene::Mesh mesh{};
 
         m_scene.AddCamera(camera);

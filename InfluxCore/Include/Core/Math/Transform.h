@@ -35,6 +35,59 @@ namespace Influx::Math
 		Transformf3D(const Math::Vectorf3& position, const Math::Rotation& rotation, const Math::Vectorf3& scale)
 			: m_position{ position }, m_rotation{ rotation }, m_scale { scale } {}
 		
+		// Position
+		void SetPosition(const Vectorf3& position)
+		{
+			m_position = position;
+		}
+
+		Vectorf3 GetPosition() const
+		{
+			return m_position;
+		}
+		
+		// Rotation
+		Math::Vectorf3 GetForward() const
+		{
+			return m_rotation.GetForward();
+		}
+
+		Math::Vectorf3 GetRight() const
+		{
+			return m_rotation.GetRight();
+		}
+
+		Math::Vectorf3 GetUp() const
+		{
+			return m_rotation.GetUp();
+		}
+
+		void SetForward(const Vectorf3& newForward)
+		{
+			m_rotation.SetForward(newForward);
+		}
+
+		void SetRight(const Vectorf3& newRight)
+		{
+			m_rotation.SetForward(newRight);
+		}
+
+		void SetUp(const Vectorf3& newUp)
+		{
+			m_rotation.SetForward(newUp);
+		}
+
+		// Scale
+		void SetScale(const Vectorf3& scale)
+		{
+			m_scale = scale;
+		}
+
+		Vectorf3 GetScale() const
+		{
+			return m_scale;
+		}
+
 		Transformf3D(const Transformf3D&) = default;
 		Transformf3D(Transformf3D&&) = default;
 		Transformf3D& operator=(const Transformf3D&) = default;
