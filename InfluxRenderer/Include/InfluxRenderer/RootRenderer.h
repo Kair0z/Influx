@@ -201,7 +201,6 @@ namespace Influx::Renderer
 
 		RenderContext m_renderContext;
 	};
-
 }
 
 #endif

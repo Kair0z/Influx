@@ -66,6 +66,8 @@ namespace Influx::Application
 		/* Main App Renderer */
 		RendererPtr mp_appRenderer;
 
+		Scene::Scene m_scene;
+
 		bool m_isInitialized;
 		bool m_hasStarted;
 		bool m_recievedQuit;

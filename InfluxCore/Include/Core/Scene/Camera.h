@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _CORE_SCENE_CAMERA_H_
-#define _CORE_SCENE_CAMERA_H_
+#ifndef __CORE_SCENE_CAMERA_H_
+#define __CORE_SCENE_CAMERA_H_
 
 #include "Core/Math/Vector.h"
 

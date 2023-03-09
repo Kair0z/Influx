@@ -85,7 +85,7 @@ namespace Influx::Renderer
 		mp_sceneColourTexture = context.GetAndOrCreateTexture("SceneColour", sceneColourDesc);
 		Graphics::RHIRenderTargetView* sceneColourRTV = mp_sceneColourTexture->GetAndOrCreateRenderTargetView(context.GetDevice());
 
-		// Vertex data:
+		// Copy Scene Vertex Data into buffer:
 		Vector<Math::Vertex> vertices{};
 		Vector<uint64> indices{};
 		{

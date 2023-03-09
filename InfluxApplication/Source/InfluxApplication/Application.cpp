@@ -58,7 +58,7 @@ namespace Influx::Application
     {
         if (m_isInitialized) return;
 
-        m_processHandle     = Platform::GetCurrentProcess();
+        m_processHandle = Platform::GetCurrentProcess();
         m_appInstanceHandle = Platform::GetCurrentInstance();
 
         CreateEngine();
@@ -73,6 +73,17 @@ namespace Influx::Application
                 // Todo...
             }
         }
+
+        // Create Scene:
+        Scene::Camera camera{};
+        
+        Scene::Light light{};
+
+        Scene::Mesh mesh{};
+
+        m_scene.AddCamera(camera);
+        m_scene.AddLight(light);
+        m_scene.AddMesh(mesh);
 
         m_isInitialized = true;
     }

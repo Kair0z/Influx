@@ -29,8 +29,6 @@
 
 namespace Influx::Graphics::D3D12
 {
-	
-
 	using FactoryPtr = IDXGIFactory*;
 	using AdapterPtr = IDXGIAdapter*;
 	using DevicePtr = ID3D12Device*;

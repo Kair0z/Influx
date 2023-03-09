@@ -18,5 +18,6 @@
 #include "Core/Container/Array.h"
 #include "Core/Time.h"
 #include "Core/Pointer.h"
+#include "Core/Scene/Scene.h"
 
 #endif

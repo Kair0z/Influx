@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _CORE_RANDOM_H_
-#define _CORE_RANDOM_H_
+#ifndef __CORE_RANDOM_H_
+#define __CORE_RANDOM_H_
 
 #include "Core/Container/Vector.h"
 #include "Core/Math/Vector.h"

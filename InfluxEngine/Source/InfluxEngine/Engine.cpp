@@ -3,8 +3,11 @@
 
 #include "InfluxEngine/Memory/MemoryManager.h"
 
+#include "Core/Scene/Scene.h"
+
 namespace Influx
 {
+
 	Engine::Engine(const Engine::ConstructArgs& args)
 		: m_constructionArguments{ args }
 	{
