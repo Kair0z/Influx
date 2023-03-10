@@ -29,6 +29,9 @@
     <ClInclude Include="Include\Core\Container\RingBuffer.h" />
     <ClInclude Include="Include\Core\Container\Vector.h" />
     <ClInclude Include="Include\Core\Enum.h" />
+    <ClInclude Include="Include\Core\Graph\Hierarchy.h" />
+    <ClInclude Include="Include\Core\Math\Quaternion.h" />
+    <ClInclude Include="Include\Core\Math\Transform.h" />
     <ClInclude Include="Include\Core\Scene\Camera.h" />
     <ClInclude Include="Include\Core\Scene\Light.h" />
     <ClInclude Include="Include\Core\Scene\Mesh.h" />
@@ -36,7 +39,6 @@
     <ClInclude Include="Include\Core\Geometry\Ray.h" />
     <ClInclude Include="Include\Core\Geometry\Rect.h" />
     <ClInclude Include="Include\Core\Geometry\Sphere.h" />
-    <ClInclude Include="Include\Core\Geometry\Transform.h" />
     <ClInclude Include="Include\Core\Geometry\Triangle.h" />
     <ClInclude Include="Include\Core\KDTree.h" />
     <ClInclude Include="Include\Core\Math\Bounds.h" />

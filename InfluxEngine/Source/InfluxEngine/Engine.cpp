@@ -3,8 +3,6 @@
 
 #include "InfluxEngine/Memory/MemoryManager.h"
 
-#include "Core/Scene/Scene.h"
-
 namespace Influx
 {
 

@@ -8,6 +8,7 @@
 #include "Mesh.h"
 
 #include "Core/Container/Vector.h"
+#include "Core/Math/Transform.h"
 
 namespace Influx::Scene
 {
@@ -48,6 +49,8 @@ namespace Influx::Scene
 		Vector<Camera> m_cameras;
 		Vector<Light> m_lights;
 		Vector<Mesh> m_meshes;
+
+		Math::TransformGraph m_transformGraph;
 	};
 }
 

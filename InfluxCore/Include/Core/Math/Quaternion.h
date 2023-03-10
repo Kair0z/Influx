@@ -11,6 +11,12 @@ namespace Influx::Math
 		Quaternion() = default;
 		virtual ~Quaternion() = default;
 
+		const static Quaternion Identity()
+		{
+			static Quaternion q{};
+			return q;
+		}
+
 		Math::Vectorf3 GetForward() const
 		{
 			return m_forward;

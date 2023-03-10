@@ -7,6 +7,8 @@
 #include "Core/Math/Matrix.h"
 #include "Core/Math/Quaternion.h"
 
+#include "Core/Graph/Hierarchy.h"
+
 namespace Influx::Math
 {
 	class Transformf2D final
@@ -28,6 +30,9 @@ namespace Influx::Math
 		float m_rotation;
 	};
 
+	class Transformf3D;
+	using Transform3D = Transformf3D;
+
 	class Transformf3D final
 	{
 	public:
@@ -35,6 +40,12 @@ namespace Influx::Math
 		Transformf3D(const Math::Vectorf3& position, const Math::Rotation& rotation, const Math::Vectorf3& scale)
 			: m_position{ position }, m_rotation{ rotation }, m_scale { scale } {}
 		
+		const static Transform3D Identity()
+		{
+			const static Transform3D identity{ Vectorf3::Zero(), Math::Rotation::Identity(), Vectorf3::One()};
+			return identity;
+		}
+
 		// Position
 		void SetPosition(const Vectorf3& position)
 		{
@@ -100,6 +111,17 @@ namespace Influx::Math
 		Math::Rotation m_rotation;
 		
 		Matrix4x4f m_orthoNormalBasis;
+	};
+
+	// https://alexsabourindev.wordpress.com/2019/04/14/creating-an-optimized-transform-hierarchy/
+	class TransformGraph final
+	{
+		using Transform = Transform3D;
+
+	public:
+
+	private:
+		Hierarchy<Transform> m_hierarchy;
 	};
 }
 

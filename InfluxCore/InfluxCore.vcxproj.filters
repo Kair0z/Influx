@@ -25,7 +25,6 @@
     <ClInclude Include="Include\Core\Pointer.h" />
     <ClInclude Include="Include\Core\Math\Vector.h" />
     <ClInclude Include="Include\Core\Geometry\Rect.h" />
-    <ClInclude Include="Include\Core\Geometry\Transform.h" />
     <ClInclude Include="Include\Core\Enum.h" />
     <ClInclude Include="Include\Core\Geometry\Sphere.h" />
     <ClInclude Include="Include\Core\Geometry\Plane.h" />
@@ -47,6 +46,9 @@
     <ClInclude Include="Include\Core\Scene\Scene.h" />
     <ClInclude Include="Include\Core\Cache.h" />
     <ClInclude Include="Include\Core\Scene\Light.h" />
+    <ClInclude Include="Include\Core\Math\Transform.h" />
+    <ClInclude Include="Include\Core\Math\Quaternion.h" />
+    <ClInclude Include="Include\Core\Graph\Hierarchy.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\Core\Math\Vector.inl" />

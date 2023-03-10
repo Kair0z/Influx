@@ -74,15 +74,6 @@ namespace Influx::Application
             }
         }
 
-        // Create Scene:
-        Scene::Camera camera{};
-        Scene::Light light{};
-        Scene::Mesh mesh{};
-
-        m_scene.AddCamera(camera);
-        m_scene.AddLight(light);
-        m_scene.AddMesh(mesh);
-
         m_isInitialized = true;
     }
 
@@ -235,7 +226,27 @@ namespace Influx::Application
         }
 
         mp_appRenderer = Renderer::RootRenderer::Create(Graphics::EGraphicsAPI::D3D12, m_windowHandle);
-        mp_appRenderer->AddRenderer<Renderer::SceneRenderer>();
+
+        // Create Scene:
+        Scene::Camera camera{};
+        camera.SetFieldOfView(90.0f);
+
+        Scene::Light light{};
+        Scene::Mesh mesh{};
+        mesh.AddTriangle
+        (
+            Scene::Mesh::Vertex{ {-1.0f, 0.0f, 0.0f }, {1,0,0,1}, {0,0,-1}, {0,0} },
+            Scene::Mesh::Vertex{ {0.0f, 0.5f, 0.0f }, {0,1,0,1}, {0,0,-1}, {0,0} },
+            Scene::Mesh::Vertex{ {1.0f, 0.0f, 0.0f }, {0,0,1,1}, {0,0,-1}, {0,0} }
+        );
+
+        m_scene.AddCamera(camera);
+        m_scene.AddLight(light);
+        m_scene.AddMesh(mesh);
+
+        Renderer::SceneRenderer* sceneRenderer = mp_appRenderer->AddRenderer<Renderer::SceneRenderer>();
+        sceneRenderer->SetSceneToRender(m_scene);
+
         // mp_appRenderer->AddRenderer<GUI::GUIRenderer>();
     }
 
