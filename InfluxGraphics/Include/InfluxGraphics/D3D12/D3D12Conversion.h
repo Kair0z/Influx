@@ -66,6 +66,7 @@ namespace Influx::Graphics::Conversion
 		switch (format) 
 		{
 			case ERHIFormat::D_32_Float:	return DXGI_FORMAT_D32_FLOAT;
+			case ERHIFormat::RG_32_Float:	return DXGI_FORMAT_R32G32_FLOAT;
 			case ERHIFormat::RGB_32_Float:	return DXGI_FORMAT_R32G32B32_FLOAT;
 			case ERHIFormat::RGBA_32_Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 			case ERHIFormat::RGBA_8_Unorm:	return DXGI_FORMAT_R8G8B8A8_UNORM;

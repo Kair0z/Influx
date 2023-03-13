@@ -93,6 +93,9 @@ namespace Influx::Graphics
 		/* 3 */
 		RGB_32_Float,
 
+		/* 2 */
+		RG_32_Float,
+
 		/* 1 */
 		R_16_Uint,
 		D_32_Float,

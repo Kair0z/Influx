@@ -4,10 +4,11 @@
 
 namespace Influx::Graphics
 {
-	RHIResource::RHIResource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue)
+	RHIResource::RHIResource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue, const uint64& numBytes)
 		: m_previousState{ initialState }
 		, m_currentState{ initialState }
 		, m_optimizedClearValue{ optimizedClearValue }
+		, m_numBytesInResource{numBytes}
 	{
 	}
 
@@ -42,6 +43,10 @@ namespace Influx::Graphics
 	const RHIClearValue& RHIResource::GetOptimizedClearValue() const
 	{
 		return m_optimizedClearValue;
+	}
+	const uint64& RHIResource::GetNumBytes() const
+	{
+		return m_numBytesInResource;
 	}
 }
 

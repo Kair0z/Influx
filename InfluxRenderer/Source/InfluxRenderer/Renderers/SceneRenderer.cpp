@@ -11,15 +11,27 @@
 
 namespace Influx::Renderer
 {
-	void SceneRenderer::SetSceneToRender(const Influx::Scene::Scene& scene)
+#pragma region SceneData
+	void SceneRenderer::SetCamera(const CameraData& cameraData)
 	{
-		m_scene = scene;
+		m_cameraData = cameraData;
 	}
 
-	const Influx::Scene::Scene& SceneRenderer::GetSceneToRender() const
+	void SceneRenderer::AddLight(const LightData& lightData)
 	{
-		return m_scene;
+		m_lights.push_back(lightData);
 	}
+
+	void SceneRenderer::AddMesh(const MeshData& meshData)
+	{
+		m_meshes.push_back(meshData);
+	}
+
+	void SceneRenderer::AddMaterial(const MaterialData& material)
+	{
+		m_materials.push_back(material);
+	}
+#pragma endregion
 
 	void SceneRenderer::OnPostInitializeAPI(const Graphics::EGraphicsAPI api, Graphics::RHIDevice* device)
 	{
@@ -55,7 +67,9 @@ namespace Influx::Renderer
 		Graphics::RHIGraphicsPipelineDescription pipelineDesc{};
 		{
 			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 0u, true, 0u });
-			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR", 0u, Graphics::ERHIFormat::RGBA_32_Float, 0u, 12u, true, 0u });
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR",	0u, Graphics::ERHIFormat::RGBA_32_Float, 0u, 12u, true, 0u });
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "NORMAL", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 28u, true, 0u });
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "UV",	0u, Graphics::ERHIFormat::RG_32_Float,	0u, 40u, true, 0u });
 
 			pipelineDesc.VS = m_compiledVertexShader;
 			pipelineDesc.PS = m_compiledPixelShader;
@@ -77,7 +91,12 @@ namespace Influx::Renderer
 		sceneColourDesc.NumMips = 1;
 
 		Graphics::RHIViewport viewport{};
+		viewport.Width =	(float)context.GetSwapchain()->GetWidth();
+		viewport.Height =	(float)context.GetSwapchain()->GetHeight();
+
 		Graphics::RHIScissorRect scissorRect{};
+		scissorRect.Width = context.GetSwapchain()->GetWidth();
+		scissorRect.Height = context.GetSwapchain()->GetHeight();
 
 		mp_pipelineLayout	= context.GetAndOrCreateGraphicsPipelineLayout(layoutDesc);
 		mp_pipeline			= context.GetAndOrCreateGraphicsPipeline(pipelineDesc, layoutDesc);
@@ -89,16 +108,14 @@ namespace Influx::Renderer
 		Vector<Math::Vertex> vertices{};
 		Vector<uint64> indices{};
 		{
-			const Vector<Scene::Mesh>& meshes = m_scene.GetMeshes();
-
-			for (const Scene::Mesh& mesh : meshes)
+			for (const MeshData& mesh : m_meshes)
 			{
-				for (const Math::Vertex& vertex : mesh.GetVertices())
+				for (const Math::Vertex& vertex : mesh.m_meshData.GetVertices())
 				{
 					vertices.push_back(vertex);
 				}
 
-				for (const Scene::Mesh::Index& index : mesh.GetIndices())
+				for (const Scene::Mesh::Index& index : mesh.m_meshData.GetIndices())
 				{
 					indices.push_back(index);
 				}
@@ -111,21 +128,19 @@ namespace Influx::Renderer
 		const uint64 vertexBufferSize	= numVertices * vertexSize;
 		const uint64 indexBufferSize	= numIndices * sizeof(uint64);
 
-		Graphics::RHIResource* vertexBuffer = nullptr;
-		if (vertexBufferSize > 0)
+		if (mp_vertexBufferResource == nullptr || mp_vertexBufferResource->GetNumBytes() < vertexBufferSize)
 		{
-			vertexBuffer = context.GetDevice()->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
-			vertexBuffer->ScopedMap([&vertices, vertexBufferSize](void* cpuHandle) // Copy data to GPU buffer...
+			mp_vertexBufferResource = context.GetDevice()->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
+			mp_vertexBufferResource->ScopedMap([&vertices, vertexBufferSize](void* cpuHandle) // Copy data to GPU buffer...
 			{
 				memcpy(cpuHandle, vertices.data(), vertexBufferSize);
 			});
 		}
 		
-		Graphics::RHIResource* indexBuffer = nullptr;
-		if (indexBufferSize > 0)
+		if (mp_indexBufferResource == nullptr || mp_indexBufferResource->GetNumBytes() < indexBufferSize)
 		{
-			indexBuffer = context.GetDevice()->CreateIndexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, indexBufferSize);
-			indexBuffer->ScopedMap([&indices, indexBufferSize](void* cpuHandle)
+			mp_indexBufferResource = context.GetDevice()->CreateIndexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, indexBufferSize);
+			mp_indexBufferResource->ScopedMap([&indices, indexBufferSize](void* cpuHandle)
 			{
 				memcpy(cpuHandle, indices.data(), indexBufferSize);
 			});
@@ -147,9 +162,16 @@ namespace Influx::Renderer
 				 
 				cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
 
-				if (indexBuffer) cmdList->BindIndexBuffer(indexBuffer, indexBufferSize);
-				if (vertexBuffer) cmdList->BindVertexBuffer(vertexBuffer, vertexBufferSize, vertexSize);
-				if (indexBuffer) cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
+				if (mp_vertexBufferResource != nullptr)
+				{
+					cmdList->BindVertexBuffer(mp_vertexBufferResource, vertexBufferSize, vertexSize);
+				}
+
+				if (mp_indexBufferResource != nullptr)
+				{
+					cmdList->BindIndexBuffer(mp_indexBufferResource, indexBufferSize);
+					cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
+				}
 			}
 
 			context.CopyTextureIntoSwapchain(mp_sceneColourTexture, cmdList);

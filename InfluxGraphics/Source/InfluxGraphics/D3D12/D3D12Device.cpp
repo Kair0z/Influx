@@ -100,7 +100,7 @@ namespace Influx::Graphics
 		for (uint8 i = 0; i < RHISwapchain::GetNumBackBuffers(); ++i)
 		{
 			// Get the buffer resources
-			D3D12Resource* dxBufferResource = new D3D12Resource(ERHIResourceState::Present, RHIClearValue::Default());
+			D3D12Resource* dxBufferResource = new D3D12Resource(ERHIResourceState::Present, RHIClearValue::Default(), 0u);
 			result->mp_dxgiSwapchain3->GetBuffer(i, IID_PPV_ARGS(&dxBufferResource->mp_dxResource));
 			result->mp_backBufferResources[i] = dxBufferResource;
 
@@ -172,7 +172,7 @@ namespace Influx::Graphics
 
 	RHIDevice::ResourcePtr D3D12Device::CreateResource(const ERHIResourceState initialState) const
 	{
-		D3D12Resource* result = new D3D12Resource(initialState, {});
+		D3D12Resource* result = new D3D12Resource(initialState, {}, 0u);
 
 		return result;
 	}
@@ -188,7 +188,9 @@ namespace Influx::Graphics
 			optimizedClearValue.Colour[i] = textureResourceDesc.GetOptimizedClearValue().Color[i];
 		}
 		
-		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue);
+		// Todo...
+		const uint64 sizeInBytes = dimensions.x * dimensions.y * 4 * sizeof(float);
+		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue, sizeInBytes);
 
 		result->mp_dxResource = D3D12::CreateDxCommittedResource(GetDxDevice(), textureResourceDesc, Conversion::ToDx12(initialState));
 
@@ -204,7 +206,7 @@ namespace Influx::Graphics
 		using namespace D3D12::HelperStructs;
 		CommittedResourceDesc bufferResourceDesc = CommittedResourceDesc::AsBuffer(useUploadHeap, numBytesInBuffer, alignment);
 
-		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue);
+		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue, numBytesInBuffer);
 		result->mp_dxResource = D3D12::CreateDxCommittedResource(GetDxDevice(), bufferResourceDesc, Conversion::ToDx12(initialState));
 
 		return result;
@@ -219,7 +221,7 @@ namespace Influx::Graphics
 		using namespace D3D12::HelperStructs;
 		CommittedResourceDesc bufferResourceDesc = CommittedResourceDesc::AsBuffer(useUploadHeap, numBytesInBuffer, alignment);
 
-		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue);
+		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue, numBytesInBuffer);
 		result->mp_dxResource = D3D12::CreateDxCommittedResource(GetDxDevice(), bufferResourceDesc, Conversion::ToDx12(initialState));
 
 		return result;

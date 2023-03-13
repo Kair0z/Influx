@@ -9,8 +9,47 @@ namespace Influx::Renderer
 	class SceneRenderer final : public Renderer::IRenderer
 	{
 	public:
-		void SetSceneToRender(const Influx::Scene::Scene& scene);
-		const Influx::Scene::Scene& GetSceneToRender() const;
+		struct CameraData final
+		{
+			CameraData() = default;
+			CameraData(const Math::Vectorf3& position, const Math::Vectorf3& forward, float fov)
+				: Position{ position }, Forward{ forward }, Fov{ fov } {};
+
+			float Fov;
+			Math::Vectorf3 Position;
+			Math::Vectorf3 Forward;
+		};
+		void SetCamera(const CameraData& cameraData);
+
+		struct LightData final
+		{
+			LightData() = default;
+			LightData(const Math::Vectorf3& position, const Math::Vectorf3& forward, const Math::Vectorf3& colour, float intensity)
+				: Position{ position }, Forward{ forward }, Colour{ colour }, Intensity{ intensity } {};
+
+			Math::Vectorf3 Position;
+			Math::Vectorf3 Forward;
+			
+			Math::Vectorf3 Colour;
+			float Intensity;
+		};
+		void AddLight(const LightData& lightData);
+
+		struct MeshData final
+		{
+			MeshData() = default;
+			MeshData(Scene::Mesh data)
+				: m_meshData{ data } {}
+
+			Scene::Mesh m_meshData;
+		};
+		void AddMesh(const MeshData& meshData);
+
+		struct MaterialData final
+		{
+
+		};
+		void AddMaterial(const MaterialData& material);
 
 	private:
 		/* After initializing the RHI API Device */
@@ -42,7 +81,10 @@ namespace Influx::Renderer
 		Vector<byte> m_compiledVertexShader{};
 		Vector<byte> m_compiledPixelShader{};
 
-		Influx::Scene::Scene m_scene;
+		CameraData m_cameraData;
+		Vector<LightData> m_lights;
+		Vector<MeshData> m_meshes;
+		Vector<MaterialData> m_materials;
 	};
 }
 

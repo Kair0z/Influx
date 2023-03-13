@@ -24,7 +24,7 @@ namespace Influx::Graphics
 		using RenderTargetViewPtr = Ptr<RHIRenderTargetView>;
 		using ShaderResourceViewPtr = Ptr<RHIShaderResourceView>;
 
-		RHIResource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue);
+		RHIResource(ERHIResourceState initialState, const RHIClearValue& optimizedClearValue, const uint64& numBytes);
 
 	public:
 		void TransitionState(const ERHIResourceState newState);
@@ -40,6 +40,7 @@ namespace Influx::Graphics
 		ERHIResourceState GetCurrentState() const;
 		ERHIResourceState GetPreviousState() const;
 		const RHIClearValue& GetOptimizedClearValue() const;
+		const uint64& GetNumBytes() const;
 
 	private:
 		virtual void OnTransitionState(const ERHIResourceState before, const ERHIResourceState after) = 0;
@@ -48,6 +49,8 @@ namespace Influx::Graphics
 		ERHIResourceState m_currentState;
 
 		RHIClearValue m_optimizedClearValue;
+
+		uint64 m_numBytesInResource = 0u;
 
 	public:
 		RHIResource(const RHIResource&) = delete;

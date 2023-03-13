@@ -49,8 +49,6 @@ namespace Influx::Scene
 		Vector<Camera> m_cameras;
 		Vector<Light> m_lights;
 		Vector<Mesh> m_meshes;
-
-		Math::TransformGraph m_transformGraph;
 	};
 }
 

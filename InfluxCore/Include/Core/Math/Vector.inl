@@ -337,7 +337,7 @@ namespace Influx::Math
 	{
 		Vector<_T, _N> result{};
 
-		for (size_t i{}; i < _N; ++i)
+		for (VectorSizeType i{}; i < _N; ++i)
 			result[i] = static_cast<_T>(1);
 
 		return result;

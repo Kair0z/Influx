@@ -110,8 +110,8 @@ namespace Influx::Math
 		static Matrix<_T, 4u, 4u> MakeTransformMatrixRH(const Vector<_T, 3u>& pos, const Vector<_T, 3u>& forward, const Vector<_T, 3u>& up);
 		static Matrix<_T, 4u, 4u> MakeViewMatrixLH(const Vector<_T, 3u>& pos, const Vector<_T, 3u>& forward, const Vector<_T, 3u>& up);
 		static Matrix<_T, 4u, 4u> MakeViewMatrixRH(const Vector<_T, 3u>& pos, const Vector<_T, 3u>& forward, const Vector<_T, 3u>& up);
-		static Matrix<_T, 4u, 4u> MakeProjectionMatrixLH(const float fov, const float ar, const float near, const float far);
-		static Matrix<_T, 4u, 4u> MakeProjectionMatrixRH(const float fov, const float ar, const float near, const float far); // Todo: [Orthographic vs Perspective]
+		static Matrix<_T, 4u, 4u> MakeProjectionMatrixLH(const float fov, const float ar, const float n, const float f);
+		static Matrix<_T, 4u, 4u> MakeProjectionMatrixRH(const float fov, const float ar, const float n, const float f); // Todo: [Orthographic vs Perspective]
 
 		void ForEachElement(std::function<void(_T&)> operation);
 		void ForEachElement(std::function<void(_T&, MatrixSizeType idx)> operation);

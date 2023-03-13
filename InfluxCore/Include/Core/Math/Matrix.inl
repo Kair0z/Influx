@@ -573,35 +573,36 @@ namespace Influx::Math
 	{
 		return MakeTransformMatrixRH(pos, forward, up).Inverted();
 	}
+
 	template<typename _T, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_T, 4u, 4u> Matrix<_T, _C, _R>::MakeProjectionMatrixRH(const float fov, const float ar, const float near, const float far)
+	inline Matrix<_T, 4u, 4u> Matrix<_T, _C, _R>::MakeProjectionMatrixRH(const float fov, const float ar, const float n, const float f)
 	{
 		float y = 1.0f / tanf(Influx::Math::DegreesToRadians(fov) / 2.f);
 		float x = y / ar;
-		float intv = near - far;
+		float intv = n - f;
 
 		return
 		{
 			(_T)x, (_T)0, (_T)0, (_T)0,
 			(_T)0, (_T)y, (_T)0, (_T)0,
-			(_T)0, (_T)0, (_T)far / intv, (_T)-1,
-			(_T)0, (_T)0, (_T)(far * near) / intv,	(_T)0
+			(_T)0, (_T)0, (_T)f / intv, (_T)-1,
+			(_T)0, (_T)0, (_T)(f * n) / intv,	(_T)0
 		};
 	}
 
 	template<typename _T, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_T, 4u, 4u> Matrix<_T, _C, _R>::MakeProjectionMatrixLH(const float fov, const float ar, const float near, const float far)
+	inline Matrix<_T, 4u, 4u> Matrix<_T, _C, _R>::MakeProjectionMatrixLH(const float fov, const float ar, const float n, const float f)
 	{
 		float y = 1.0f / tanf(Influx::Math::DegreesToRadians(fov) / 2.f);
 		float x = y / ar;
-		float intv = far - near;
+		float intv = f - n;
 
 		return
 		{
 			(_T)x, (_T)0, (_T)0, (_T)0,
 			(_T)0, (_T)y, (_T)0, (_T)0,
-			(_T)0, (_T)0, (_T)far / intv, (_T)1,
-			(_T)0, (_T)0, static_cast<_T>(-(far * near) / intv), (_T)0
+			(_T)0, (_T)0, (_T)f / intv, (_T)1,
+			(_T)0, (_T)0, static_cast<_T>(-(f * n) / intv), (_T)0
 		};
 	}
 
