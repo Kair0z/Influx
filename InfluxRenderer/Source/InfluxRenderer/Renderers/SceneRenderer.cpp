@@ -64,6 +64,7 @@ namespace Influx::Renderer
 
 	void SceneRenderer::OnBuildRenderCommandList(const Renderer::RenderContext& context, Graphics::RHICommandList* cmdList)
 	{
+		// Pipeline & Layout:
 		Graphics::RHIGraphicsPipelineDescription pipelineDesc{};
 		{
 			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 0u, true, 0u });
@@ -85,28 +86,34 @@ namespace Influx::Renderer
 
 		Graphics::RHIGraphicsPipelineLayoutDescription layoutDesc{};
 
+		mp_pipelineLayout = context.GetAndOrCreateGraphicsPipelineLayout(layoutDesc);
+		mp_pipeline = context.GetAndOrCreateGraphicsPipeline(pipelineDesc, layoutDesc);
+
+
+		// Setup SceneColour Texture:
+		const Math::Vectoru2 swapchainDimensions = { context.GetSwapchain()->GetWidth(), context.GetSwapchain()->GetHeight() };
+
 		Graphics::RHITextureDesc sceneColourDesc{};
-		sceneColourDesc.Dimensions = { context.GetSwapchain()->GetWidth(), context.GetSwapchain()->GetHeight() };
+		sceneColourDesc.Dimensions = swapchainDimensions;
 		sceneColourDesc.Format = Graphics::ERHIFormat::RGBA_8_Unorm;
 		sceneColourDesc.NumMips = 1;
 
 		Graphics::RHIViewport viewport{};
-		viewport.Width =	(float)context.GetSwapchain()->GetWidth();
-		viewport.Height =	(float)context.GetSwapchain()->GetHeight();
+		viewport.Width =	(float)swapchainDimensions.x;
+		viewport.Height =	(float)swapchainDimensions.y;
 
 		Graphics::RHIScissorRect scissorRect{};
-		scissorRect.Width = context.GetSwapchain()->GetWidth();
-		scissorRect.Height = context.GetSwapchain()->GetHeight();
-
-		mp_pipelineLayout	= context.GetAndOrCreateGraphicsPipelineLayout(layoutDesc);
-		mp_pipeline			= context.GetAndOrCreateGraphicsPipeline(pipelineDesc, layoutDesc);
+		scissorRect.Width = swapchainDimensions.x;
+		scissorRect.Height = swapchainDimensions.y;
 
 		mp_sceneColourTexture = context.GetAndOrCreateTexture("SceneColour", sceneColourDesc);
 		Graphics::RHIRenderTargetView* sceneColourRTV = mp_sceneColourTexture->GetAndOrCreateRenderTargetView(context.GetDevice());
 
+
 		// Copy Scene Vertex Data into buffer:
+#pragma region Vertex & Index Buffer
 		Vector<Math::Vertex> vertices{};
-		Vector<uint64> indices{};
+		Vector<uint32> indices{};
 		{
 			for (const MeshData& mesh : m_meshes)
 			{
@@ -126,7 +133,7 @@ namespace Influx::Renderer
 		const uint64 numVertices		= vertices.size();
 		const uint64 numIndices			= indices.size();
 		const uint64 vertexBufferSize	= numVertices * vertexSize;
-		const uint64 indexBufferSize	= numIndices * sizeof(uint64);
+		const uint64 indexBufferSize	= numIndices * sizeof(uint32);
 
 		if (mp_vertexBufferResource == nullptr || mp_vertexBufferResource->GetNumBytes() < vertexBufferSize)
 		{
@@ -145,37 +152,32 @@ namespace Influx::Renderer
 				memcpy(cpuHandle, indices.data(), indexBufferSize);
 			});
 		}
+#pragma endregion
 
 		// The actual rendering...
+		cmdList->ClearRTV(sceneColourRTV, { 1.0f, 0.0f, 0.0f, 1.0f });
 		{
-			// Clear Scene colour:
-			cmdList->ClearRTV(sceneColourRTV, { 1.0f, 0.0f, 0.0f, 1.0f });
+			cmdList->BindPipelineLayout(mp_pipelineLayout);
+			cmdList->BindPipelineState(mp_pipeline);
 
-			// Draw Triangle:
+			cmdList->BindRenderTarget(sceneColourRTV);
+			cmdList->BindViewports(viewport);
+			cmdList->BindScissorRect(scissorRect);
+
+			cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
+
+			if (mp_vertexBufferResource != nullptr)
 			{
-				cmdList->BindPipelineLayout(mp_pipelineLayout);
-				cmdList->BindPipelineState(mp_pipeline);
-
-				cmdList->BindRenderTarget(sceneColourRTV);
-				cmdList->BindViewports(viewport);
-				cmdList->BindScissorRect(scissorRect);
-				 
-				cmdList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
-
-				if (mp_vertexBufferResource != nullptr)
-				{
-					cmdList->BindVertexBuffer(mp_vertexBufferResource, vertexBufferSize, vertexSize);
-				}
-
-				if (mp_indexBufferResource != nullptr)
-				{
-					cmdList->BindIndexBuffer(mp_indexBufferResource, indexBufferSize);
-					cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
-				}
+				cmdList->BindVertexBuffer(mp_vertexBufferResource, vertexBufferSize, vertexSize);
 			}
 
-			context.CopyTextureIntoSwapchain(mp_sceneColourTexture, cmdList);
+			if (mp_indexBufferResource != nullptr)
+			{
+				cmdList->BindIndexBuffer(mp_indexBufferResource, indexBufferSize);
+				cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
+			}
 		}
+		context.CopyTextureIntoSwapchain(mp_sceneColourTexture, cmdList);
 	}
 
 	void SceneRenderer::OnWindowResize(const Renderer::RenderContext& context, const Math::Vectoru2& oldSize, const Math::Vectoru2& newSize)

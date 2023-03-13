@@ -8,6 +8,8 @@
 #include "InfluxRenderer/Renderers/SceneRenderer.h"
 #include "Renderer/GUIRenderer.h"
 
+#include "InfluxAssets/InfluxAssets.h"
+
 namespace Influx::Application
 {
 	Application::Application(const Settings& desc)
@@ -232,14 +234,33 @@ namespace Influx::Application
         sceneRenderer->AddLight(Renderer::SceneRenderer::LightData{ {}, {}, {1,1,1}, 1.0f });
         sceneRenderer->SetCamera(Renderer::SceneRenderer::CameraData{ {}, {}, 90.0f });
 
-        Scene::Mesh mesh{};
-        mesh.AddTriangle
-        (
-            Scene::Mesh::Vertex{ {-1.0f, 0.0f, 0.0f }, {1,0,0,1}, {0,0,-1}, {0,0} },
-            Scene::Mesh::Vertex{ {0.0f, 0.5f, 0.0f }, {0,1,0,1}, {0,0,-1}, {0,0} },
-            Scene::Mesh::Vertex{ {1.0f, 0.0f, 0.0f }, {0,0,1,1}, {0,0,-1}, {0,0} }
-        );
-        sceneRenderer->AddMesh(mesh);
+        Assets::Scene out_scene{};
+        Assets::LoadScene("D:/Git/Influx/Resources/Meshes/box.fbx", out_scene, nullptr, Assets::SceneLoadDesc{});
+        
+        for (uint64 i = 0u; i < out_scene.Meshes.size(); ++i)
+        {
+            const Assets::Mesh& mesh = out_scene.Meshes[i];
+            Renderer::SceneRenderer::MeshData meshData{};
+
+            // For each face in the mesh...
+            for (uint64 f = 0u; f < mesh.Faces.size(); ++f)
+            {
+                // Copy the triangle and add to mesh-data...
+                Scene::Mesh::Triangle triangle{};
+                for (uint8 t = 0u; t < 3u; ++t)
+                {
+                    const Assets::Mesh::Vertex& vertex = mesh.Vertices[mesh.Faces[f][t]];
+                    triangle[t].Colour = vertex.Color;
+                    triangle[t].Normal = vertex.Normal;
+                    triangle[t].Position = vertex.Position;
+                    triangle[t].UV = {};
+                }
+
+                meshData.m_meshData.AddTriangle(triangle);
+            }
+
+            sceneRenderer->AddMesh(meshData);
+        }
     }
 
     void Application::SignalQuit()

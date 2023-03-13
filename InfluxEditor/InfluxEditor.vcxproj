@@ -99,7 +99,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;InfluxGraphics.lib;InfluxRenderer.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAssets\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -119,7 +119,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;InfluxGraphics.lib;InfluxRenderer.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAssets\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -135,7 +135,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;InfluxGraphics.lib;InfluxRenderer.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAssets\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -155,7 +155,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;InfluxGraphics.lib;InfluxRenderer.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxGraphics\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAssets\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

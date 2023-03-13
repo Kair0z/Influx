@@ -2,6 +2,10 @@
 
 #include "InfluxAssets/InfluxAssets.h"
 
+#ifdef epsilon
+#undef epsilon
+#endif
+
 #include "assimp/Importer.hpp"	// C++ importer interface
 #include "assimp/scene.h"		// Output data structure
 #include "assimp/postprocess.h"	// Post processing flags
