@@ -143,8 +143,10 @@
   <ItemGroup>
     <ClCompile Include="Source\InfluxAssets\Image\ImageLoader.cpp" />
     <ClCompile Include="Source\InfluxAssets\Scene\SceneLoader.cpp" />
+    <ClCompile Include="Source\InfluxAssets\Shader\ShaderLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Include\InfluxAssets\Shader\Shader.h" />
     <ClInclude Include="Source\InfluxAssets\Image\ImageLoader.h" />
     <ClInclude Include="Include\InfluxAssets\Image\Image.h" />
     <ClInclude Include="Include\InfluxAssets\Scene\Scene.h" />
