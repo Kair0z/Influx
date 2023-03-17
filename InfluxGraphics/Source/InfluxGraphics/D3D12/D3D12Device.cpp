@@ -297,11 +297,11 @@ namespace Influx::Graphics
 		pipelineDesc.RasterizerState.MultisampleEnable		= desc.RasterizerState.bEnableMultisample;
 		pipelineDesc.RasterizerState.SlopeScaledDepthBias	= desc.RasterizerState.SlopeScaledDepthBias;
 
-		pipelineDesc.BlendState.AlphaToCoverageEnable = desc.BlendState.bEnableAlphaToCoverage;
-		pipelineDesc.BlendState.IndependentBlendEnable = desc.BlendState.bEnableIndependentBlend;
+		pipelineDesc.BlendState.AlphaToCoverageEnable		= desc.BlendState.bEnableAlphaToCoverage;
+		pipelineDesc.BlendState.IndependentBlendEnable		= desc.BlendState.bEnableIndependentBlend;
 
-		pipelineDesc.DepthStencilState.DepthEnable = desc.DepthStencilState.bEnableDepth;
-		pipelineDesc.DepthStencilState.StencilEnable = desc.DepthStencilState.bEnableStencil;
+		pipelineDesc.DepthStencilState.DepthEnable			= desc.DepthStencilState.bEnableDepth;
+		pipelineDesc.DepthStencilState.StencilEnable		= desc.DepthStencilState.bEnableStencil;
 
 		pipelineDesc.SampleDesc.Count	= desc.SampleCount;
 		pipelineDesc.SampleDesc.Quality = desc.SampleQuality;
