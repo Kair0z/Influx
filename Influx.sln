@@ -35,6 +35,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InfluxCore", "InfluxCore\In
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InfluxEngine", "InfluxEngine\InfluxEngine.vcxproj", "{BBEB27BA-A78D-5290-9048-66E47C89D9E0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Resources", "Resources", "{A6415712-8E56-4D8C-8E55-74995F6ABA68}"
+	ProjectSection(SolutionItems) = preProject
+		Resources\Meshes\box.fbx = Resources\Meshes\box.fbx
+		Resources\Meshes\CafeLeBlanc.fbx = Resources\Meshes\CafeLeBlanc.fbx
+		Resources\Shaders\shaders.hlsl = Resources\Shaders\shaders.hlsl
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

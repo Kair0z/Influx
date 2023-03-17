@@ -85,6 +85,8 @@ namespace Influx::Renderer
 		Vector<LightData> m_lights;
 		Vector<MeshData> m_meshes;
 		Vector<MaterialData> m_materials;
+
+		void CompileShaders();
 	};
 }
 

@@ -236,6 +236,24 @@ namespace Influx::Graphics
 		rootSigDesc.Flags;
 		rootSigDesc.MaxVersion;
 		rootSigDesc.StaticSamplers;
+
+		// Per Scene CB
+		rootSigDesc.AddConstantBufferView(D3D12_SHADER_VISIBILITY_ALL, 0u, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_NONE);
+
+		// Per Draw CB
+		rootSigDesc.AddConstantBufferView(D3D12_SHADER_VISIBILITY_ALL, 0u, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_NONE);
+
+		// https://alextardif.com/Bindless.html
+		// Add a Texture2D DescriptorTable
+		D3D12_DESCRIPTOR_RANGE1 texture2DRange{};
+		texture2DRange.BaseShaderRegister = 0;
+		texture2DRange.NumDescriptors = 16u; // HARDCODED!
+		texture2DRange.OffsetInDescriptorsFromTableStart = 0;
+		texture2DRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		texture2DRange.RegisterSpace = 0u; // HARDCODED!
+		texture2DRange.Flags;
+
+		rootSigDesc.AddRootDescriptorTable(D3D12_SHADER_VISIBILITY_ALL, &texture2DRange, 1u);
 		
 		d3d12RootSignature->mp_dxRootSignature = D3D12::CreateDxSerializedRootSignature(rootSigDesc, GetDxDevice());
 
