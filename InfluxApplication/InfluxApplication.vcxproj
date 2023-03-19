@@ -93,7 +93,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxImgui\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,7 +109,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxImgui\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,7 +125,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxImgui\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>app_pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -143,7 +143,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxImgui\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>app_pch.h</PrecompiledHeaderFile>
     </ClCompile>

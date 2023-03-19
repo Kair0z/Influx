@@ -4,8 +4,8 @@
 
 #include "Core/Math/Vector.h"
 #include "Core/Container/List.h" //  List<WidgetPtr>;
-
 #include "Core/Platform/Platform.h"
+#include "Core/Pointer.h"
 
 #pragma region Predeclarations
 namespace Influx::Graphics

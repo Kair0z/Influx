@@ -1,7 +1,7 @@
-#include "imgui_pch.h"
-#include "Renderer/GUIRenderer.h"
+#include "renderer_pch.h"
+#include "InfluxRenderer/Renderers/GUIRenderer.h"
 
-#include "Widgets/ImguiWidget.h"
+#include "ImGuiTools/ImGuiWidgets.h"
 
 #include "InfluxGraphics/RHI.h"
 

@@ -30,7 +30,7 @@ namespace Influx::GUI
 		};
 
 	private:
-		using SrvPtr = Ptr<Influx::Graphics::RHIShaderResourceView>;
+		using SrvPtr = Influx::Graphics::RHIShaderResourceView*;
 		SrvPtr m_pTargetSrv;
 		
 		Settings m_currentSettings;

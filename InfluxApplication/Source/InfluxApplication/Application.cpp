@@ -1,14 +1,16 @@
 #include "app_pch.h"
 
 #include "InfluxApplication/Application.h"
+
 #include "InfluxEngine/Engine.h"
-#include "InfluxRenderer/RootRenderer.h"
 
 #include "InfluxGraphics/RHI.h"
-#include "InfluxRenderer/Renderers/SceneRenderer.h"
-#include "Renderer/GUIRenderer.h"
 
 #include "InfluxAssets/InfluxAssets.h"
+
+#include "InfluxRenderer/RootRenderer.h"
+#include "InfluxRenderer/Renderers/SceneRenderer.h"
+#include "InfluxRenderer/Renderers/GUIRenderer.h"
 
 namespace Influx::Application
 {
