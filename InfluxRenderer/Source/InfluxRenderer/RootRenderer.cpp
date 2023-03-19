@@ -51,7 +51,7 @@ namespace Influx::Renderer
 		switch (api)
 		{
 		case EGraphicsAPI::D3D12:
-			mp_rhiDevice = new D3D12Device();
+			mp_rhiDevice = new D3D12Device(_DEBUG);
 			m_initializedDeviceAPI = api;
 			break;
 

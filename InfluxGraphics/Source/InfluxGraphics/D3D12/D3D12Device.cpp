@@ -241,7 +241,7 @@ namespace Influx::Graphics
 		rootSigDesc.AddConstantBufferView(D3D12_SHADER_VISIBILITY_ALL, 0u, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_NONE);
 
 		// Per Draw CB
-		rootSigDesc.AddConstantBufferView(D3D12_SHADER_VISIBILITY_ALL, 0u, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_NONE);
+		rootSigDesc.AddConstantBufferView(D3D12_SHADER_VISIBILITY_ALL, 0u, 1u, D3D12_ROOT_DESCRIPTOR_FLAG_NONE);
 
 		// https://alextardif.com/Bindless.html
 		// Add a Texture2D DescriptorTable

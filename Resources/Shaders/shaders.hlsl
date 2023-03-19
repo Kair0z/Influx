@@ -12,15 +12,6 @@ Texture2D   _Texture2DTable[]  : register(t0, _myTex2DSpace);
 #define _bufferSpace space2
 ByteAddressBuffer _BufferTable[] : register(t0, _bufferSpace);
 
-struct Vertex
-{
-    float4 position : SV_POSITION;
-    float4 color : COLOR;
-    float3 normal : NORMAL;
-    float2 uv : UV;
-}
-
-// CONSTANTS:
 cbuffer _ConstantsPerScene
 {
     float4x4    WVP;
@@ -37,15 +28,24 @@ cbuffer _ConstantsPerDraw
 }
 #endif
 
-struct PSInput
+struct Vertex
 {
-    float4 position : SV_POSITION;
+    float3 position : SV_POSITION;
     float4 color : COLOR;
     float3 normal : NORMAL;
     float2 uv : UV;
 };
 
-PSInput VSMain(float3 position : POSITION, float4 color : COLOR, float3 normal : NORMAL, float2 uv : UV)
+struct PSInput
+{
+    float4 position : SV_POSITION;
+    float4 color : COLOR0;
+    float3 normal : NORMAL;
+    float2 uv : UV;
+};
+
+[shader("vertex")]
+PSInput VSMain(Vertex vertex)
 {
     //uint index = _ConstantsPerDraw.vertexBufferIndex;
     //uint offset = _ConstantsPerDraw.vertexOffset;
@@ -53,19 +53,20 @@ PSInput VSMain(float3 position : POSITION, float4 color : COLOR, float3 normal :
     //Vertex vertex = _BufferTable[index].Load<MyVertexStructure>((vertexOffset + vertexId) * sizeof(MyVertexStructure));
 
     PSInput result;
-
-    result.position = float4(position, 1.0f);
-    result.color = color;
-    result.normal = normal;
-    result.uv = uv;
+    result.position = float4(vertex.position, 1.0f);
+    result.color = vertex.color;
+    result.normal = vertex.normal;
+    result.uv = vertex.uv;
 
     return result;
 }
 
+[shader("pixel")]
 float4 PSMain(PSInput input) : SV_TARGET
 {
     // uint textureIndex = _ConstantsPerDraw.textureIndex;
     // 
     // float4 s = Texture2DTable[textureIndex].Sample(AlbedoSampler, uv0);
-    return input.color;
+
+    return float4(1,1,1,1);
 }

@@ -51,10 +51,18 @@ namespace Influx::Renderer
 		// Pipeline & Layout:
 		Graphics::RHIGraphicsPipelineDescription pipelineDesc{};
 		{
-			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 0u, true, 0u });
-			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR",	0u, Graphics::ERHIFormat::RGBA_32_Float, 0u, 12u, true, 0u });
-			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "NORMAL", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 28u, true, 0u });
-			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "UV",	0u, Graphics::ERHIFormat::RG_32_Float,	0u, 40u, true, 0u });
+			struct V
+			{
+				Math::Vectorf3 position;
+				Math::Vectorf4 color;
+				Math::Vectorf3 normal;
+				Math::Vectorf2 uv;
+			};
+
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "SV_POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, offsetof(V, position), true, 0u});
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR",	1u, Graphics::ERHIFormat::RGBA_32_Float, 0u, offsetof(V, color), true, 0u });
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "NORMAL", 2u, Graphics::ERHIFormat::RGB_32_Float, 0u, offsetof(V, normal), true, 0u });
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "UV",	3u, Graphics::ERHIFormat::RG_32_Float,	0u, offsetof(V, uv), true, 0u });
 
 			pipelineDesc.VS = m_compiledVertexShader;
 			pipelineDesc.PS = m_compiledPixelShader;
@@ -116,8 +124,9 @@ namespace Influx::Renderer
 		const uint64 numIndices			= indices.size();
 		const uint64 vertexBufferSize	= numVertices * vertexSize;
 		const uint64 indexBufferSize	= numIndices * sizeof(uint32);
-
-		if (mp_vertexBufferResource == nullptr || mp_vertexBufferResource->GetNumBytes() < vertexBufferSize)
+		
+		const bool isVertexBufferNullOrTooSmall = mp_vertexBufferResource == nullptr || mp_vertexBufferResource->GetNumBytes() < vertexBufferSize;
+		if (isVertexBufferNullOrTooSmall && vertexBufferSize != 0u)
 		{
 			mp_vertexBufferResource = context.GetDevice()->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
 			mp_vertexBufferResource->ScopedMap([&vertices, vertexBufferSize](void* cpuHandle) // Copy data to GPU buffer...
@@ -126,7 +135,8 @@ namespace Influx::Renderer
 			});
 		}
 		
-		if (mp_indexBufferResource == nullptr || mp_indexBufferResource->GetNumBytes() < indexBufferSize)
+		const bool isIndexBufferNullOrTooSmall = mp_indexBufferResource == nullptr || mp_indexBufferResource->GetNumBytes() < indexBufferSize;
+		if (isIndexBufferNullOrTooSmall && indexBufferSize != 0u)
 		{
 			mp_indexBufferResource = context.GetDevice()->CreateIndexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, indexBufferSize);
 			mp_indexBufferResource->ScopedMap([&indices, indexBufferSize](void* cpuHandle)
@@ -262,6 +272,8 @@ namespace Influx::Renderer
 			}
 			arguments.push_back(shaderModelString.c_str());
 
+			arguments.push_back(L"dxc -help | findstr Version");
+
 			// Strip reflection data and pdbs (see later)
 			// "The compiler will strip both the shader PDBs and reflection data from the Object part"
 			// "it will STILL be in the compile result and can be extracted using DXC_OUT_PDB and DXC_OUT_REFLECTION"!!
@@ -270,6 +282,7 @@ namespace Influx::Renderer
 
 			// arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS); //-WX
 			if (desc.bDebug) arguments.push_back(DXC_ARG_DEBUG); //-Zi
+			arguments.push_back(DXC_ARG_SKIP_VALIDATION);
 			arguments.push_back(DXC_ARG_PACK_MATRIX_ROW_MAJOR); //-Zp
 
 			for (const WString& define : desc.Defines)

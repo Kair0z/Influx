@@ -36,4 +36,7 @@
     <ClCompile Include="Source\InfluxRenderer\Renderers\GUIRenderer.cpp" />
     <ClCompile Include="Source\ImGuiTools\ViewportWidget.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\Resources\Shaders\shaders.hlsl" />
+  </ItemGroup>
 </Project>
