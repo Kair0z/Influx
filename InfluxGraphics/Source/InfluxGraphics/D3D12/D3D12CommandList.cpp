@@ -96,7 +96,7 @@ namespace Influx::Graphics
 	void D3D12CommandList::BindViewports(const RHIViewport& viewport)
 	{
 		const float minDepth = 0.0f;
-		const float maxDepth = 1.0f;
+		const float maxDepth = 100.0f;
 
 		D3D12_VIEWPORT d3d12Viewport{
 			sCast<float>(viewport.Left), 

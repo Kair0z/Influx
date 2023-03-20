@@ -13,7 +13,7 @@
 
 #pragma comment (lib, "dxcompiler.lib")
 
-#define __SHADERS_FILEPATH L"D:/Git/Influx/Resources/Shaders/shaders.hlsl"
+#define __SHADERS_FILEPATH L"E:/Git/Influx/Resources/Shaders/shaders.hlsl"
 
 #define __SHADERS_PS_ENTRY L"PSMain"
 #define __SHADERS_VS_ENTRY L"VSMain"
@@ -149,9 +149,11 @@ namespace Influx::Renderer
 
 		const float AR = (float)swapchainDimensions.x / (float)swapchainDimensions.y;
 		m_perDrawBuffer.m_transform = Math::Matrix4x4f::Identity();
-		m_perSceneBuffer.m_wvp =
-			Math::Matrix4x4f::MakeProjectionMatrixRH(m_cameraData.Fov, AR, 0.001f, 10000.0f) *
-			Math::Matrix4x4f::MakeViewMatrixRH(m_cameraData.Position, m_cameraData.Forward, Math::Vectorf3::Up());
+
+		auto proj = Math::Matrix4x4f::MakeProjectionMatrixRH(m_cameraData.Fov, AR, 0.001f, 1000.0f);
+		auto view = Math::Matrix4x4f::MakeViewMatrixRH(m_cameraData.Position, m_cameraData.Forward, Math::Vectorf3::Up());
+		
+		m_perSceneBuffer.m_wvp = proj * view;
 
 #pragma region Constant buffers
 		if (mp_drawBufferResource == nullptr)

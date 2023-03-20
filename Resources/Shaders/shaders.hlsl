@@ -50,7 +50,8 @@ PSInput VSMain(Vertex vertex)
     //Vertex vertex = _BufferTable[index].Load<MyVertexStructure>((vertexOffset + vertexId) * sizeof(MyVertexStructure));
 
     PSInput result;
-    result.position = mul(float4(vertex.position, 1.0f), WVP);
+    result.position = mul(float4(vertex.position.xyz, 1.0f), WVP);
+
     result.color = vertex.color;
     result.normal = vertex.normal;
     result.uv = vertex.uv;

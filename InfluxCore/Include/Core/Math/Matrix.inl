@@ -496,16 +496,22 @@ namespace Influx::Math
 
 		return result;
 	}
+
 	template <typename _T, MatrixSizeType _C, MatrixSizeType _R, MatrixSizeType _OC, MatrixSizeType _OR>
 	inline Matrix<_T, _R, _OR> operator*(const Matrix<_T, _C, _R>& a, const Matrix<_T, _OC, _OR>& b)
 	{
-		FLX_ASSERT(_C == _OR); // Amount of collumns must be equal
+		FLX_ASSERT(_C == _OR);
+
 		Matrix<_T, _R, _OC> result{};
 
 		for (MatrixSizeType r{}; r < _R; ++r)
 			for (MatrixSizeType c{}; c < _OC; ++c)
-				result[r][c] = Vector<_T, _OC>::Dot(a.Row(r), b.Collumn(c));
-
+			{
+				for (MatrixSizeType i = 0; i < _OR; ++i)
+				{
+					result[r][c] += a[r][i] * b[i][c];
+				}
+			}
 
 		return result;
 	}
@@ -587,7 +593,7 @@ namespace Influx::Math
 		{
 			(_T)x, (_T)0, (_T)0, (_T)0,
 			(_T)0, (_T)y, (_T)0, (_T)0,
-			(_T)0, (_T)0, (_T)f / intv, (_T)-1,
+			(_T)0, (_T)0, (_T)f / intv,			(_T)-1,
 			(_T)0, (_T)0, (_T)(f * n) / intv,	(_T)0
 		};
 	}

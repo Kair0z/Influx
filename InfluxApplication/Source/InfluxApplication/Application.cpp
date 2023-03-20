@@ -234,10 +234,10 @@ namespace Influx::Application
         // Create Scene:
         Renderer::SceneRenderer* sceneRenderer = mp_appRenderer->AddRenderer<Renderer::SceneRenderer>();
         sceneRenderer->AddLight(Renderer::SceneRenderer::LightData{ {}, {}, {1,1,1}, 1.0f });
-        sceneRenderer->SetCamera(Renderer::SceneRenderer::CameraData{ { 0, 0, -10.0f }, {0, 0, 1}, 90.0f });
+        sceneRenderer->SetCamera(Renderer::SceneRenderer::CameraData{ { 0, 0, 50.0f }, {0, 0, -1}, 90.0f });
 
         Assets::Scene out_scene{};
-        Assets::LoadScene("D:/Git/Influx/Resources/Meshes/box.fbx", out_scene, nullptr, Assets::SceneLoadDesc{});
+        Assets::LoadScene("E:/Git/Influx/Resources/Meshes/box.fbx", out_scene, nullptr, Assets::SceneLoadDesc{});
         
         for (uint64 i = 0u; i < out_scene.Meshes.size(); ++i)
         {
