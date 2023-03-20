@@ -14,6 +14,7 @@ namespace Influx::Graphics
 	class RHIDescriptorHeap;
 	class RHITexture;
 	class RHIResource;
+	class RHIConstantBufferView;
 }
 
 namespace Influx::Renderer

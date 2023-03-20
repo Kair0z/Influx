@@ -21,8 +21,9 @@ namespace Influx::Graphics
 		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vectorf4& clearValue) override final;
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) override final;
 		virtual void BindViewports(const RHIViewport& viewport) override final;
-		virtual void BindVertexBuffer(RHIResource* vertexBufferResource, uint32 bufferSizeInBytes, uint32 vertexStrideInBytes) override final;
-		virtual void BindIndexBuffer(RHIResource* indexBufferResource, uint32 bufferSizeInBytes) override final;
+		virtual void BindConstantBuffer(RHIResource* constantBufferResource, uint32 rootParameterIndex = 0u) override final;
+		virtual void BindVertexBuffer(RHIResource* vertexBufferResource, uint64 bufferSizeInBytes, uint64 vertexStrideInBytes) override final;
+		virtual void BindIndexBuffer(RHIResource* indexBufferResource, uint64 bufferSizeInBytes) override final;
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) override final;
 		virtual void CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition) override final;
 		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) override final;

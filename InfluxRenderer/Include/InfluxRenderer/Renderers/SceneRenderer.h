@@ -78,6 +78,19 @@ namespace Influx::Renderer
 		Graphics::RHIResource* mp_vertexBufferResource;
 		Graphics::RHIResource* mp_indexBufferResource;
 
+		Graphics::RHIResource* mp_sceneBufferResource;
+		Graphics::RHIResource* mp_drawBufferResource;
+
+		struct
+		{
+			Math::Matrix4x4f m_wvp;
+		} m_perSceneBuffer;
+
+		struct
+		{
+			Math::Matrix4x4f m_transform;
+		} m_perDrawBuffer;
+
 		Vector<byte> m_compiledVertexShader{};
 		Vector<byte> m_compiledPixelShader{};
 

@@ -8,7 +8,7 @@ namespace Influx
 	template <typename _D, typename _T>
 	constexpr _D sCast(_T v)
 	{
-		return static_cast<_T>(v);
+		return static_cast<_D>(v);
 	}
 
 	template <typename _D, typename _T>

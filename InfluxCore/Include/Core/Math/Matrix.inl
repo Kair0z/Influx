@@ -563,11 +563,13 @@ namespace Influx::Math
 			pos.x, pos.y, pos.z, 1
 		};
 	}
+
 	template<typename _T, MatrixSizeType _C, MatrixSizeType _R>
 	inline Matrix<_T, 4u, 4u> Matrix<_T, _C, _R>::MakeViewMatrixLH(const Vector<_T, 3u>& pos, const Vector<_T, 3u>& forward, const Vector<_T, 3u>& up)
 	{
 		return MakeTransformMatrixLH(pos, forward, up).Inverted();
 	}
+
 	template<typename _T, MatrixSizeType _C, MatrixSizeType _R>
 	inline Matrix<_T, 4u, 4u> Matrix<_T, _C, _R>::MakeViewMatrixRH(const Vector<_T, 3u>& pos, const Vector<_T, 3u>& forward, const Vector<_T, 3u>& up)
 	{

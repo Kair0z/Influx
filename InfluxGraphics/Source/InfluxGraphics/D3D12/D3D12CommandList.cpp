@@ -109,29 +109,38 @@ namespace Influx::Graphics
 		GetDxCommandList()->RSSetViewports(1u, &d3d12Viewport);
 	}
 
-	void D3D12CommandList::BindVertexBuffer(RHIResource* vertexBufferResource, uint32 bufferSizeInBytes, uint32 vertexStrideInBytes)
+	void D3D12CommandList::BindConstantBuffer(RHIResource* constantBufferResource, uint32 rootParameterIndex)
+	{
+		D3D12Resource* d3d12Resource = (D3D12Resource*)constantBufferResource;
+
+		GetDxCommandList()->SetGraphicsRootConstantBufferView(rootParameterIndex, 
+			d3d12Resource->GetDxResource()->GetGPUVirtualAddress());
+	}
+
+	void D3D12CommandList::BindVertexBuffer(RHIResource* vertexBufferResource, uint64 bufferSizeInBytes, uint64 vertexStrideInBytes)
 	{
 		D3D12Resource* d3d12Resource = (D3D12Resource*)vertexBufferResource;
 
 		D3D12_VERTEX_BUFFER_VIEW vtbView{};
 		vtbView.BufferLocation = d3d12Resource->GetDxResource()->GetGPUVirtualAddress();
-		vtbView.StrideInBytes = vertexStrideInBytes;
-		vtbView.SizeInBytes = bufferSizeInBytes;
+		vtbView.StrideInBytes = sCast<uint32>(vertexStrideInBytes);
+		vtbView.SizeInBytes = sCast<uint32>(bufferSizeInBytes);
 		
 		const uint32 startSlot = 0u;
 		const uint32 numVertexBuffers = 1u;
 		
+		// GetDxCommandList()->SetGraphicsRootConstantBufferView();
 		GetDxCommandList()->IASetVertexBuffers(startSlot, numVertexBuffers, &vtbView);
 	}
 
-	void D3D12CommandList::BindIndexBuffer(RHIResource* indexBufferResource, uint32 bufferSizeInBytes)
+	void D3D12CommandList::BindIndexBuffer(RHIResource* indexBufferResource, uint64 bufferSizeInBytes)
 	{
 		D3D12Resource* d3d12Resource = (D3D12Resource*)indexBufferResource;
 
 		D3D12_INDEX_BUFFER_VIEW view{};
 		view.BufferLocation = d3d12Resource->GetDxResource()->GetGPUVirtualAddress();
 		view.Format = DXGI_FORMAT_R32_UINT;
-		view.SizeInBytes = bufferSizeInBytes;
+		view.SizeInBytes = sCast<uint32>(bufferSizeInBytes);
 
 		GetDxCommandList()->IASetIndexBuffer(&view);
 	}

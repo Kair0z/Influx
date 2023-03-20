@@ -12,21 +12,18 @@ Texture2D   _Texture2DTable[]  : register(t0, _myTex2DSpace);
 #define _bufferSpace space2
 ByteAddressBuffer _BufferTable[] : register(t0, _bufferSpace);
 
-cbuffer _ConstantsPerScene
+
+#endif
+
+cbuffer _ConstantsPerScene : register(b0)
 {
     float4x4    WVP;
 };
 
-cbuffer _ConstantsPerDraw
+cbuffer _ConstantsPerDraw : register(b1)
 {
     float4x4    transform;
-    uint        textureIndex; // can index into _Texture2DTable
-
-    // Vertex buffer indexing:
-    uint vertexBufferOffset;
-    uint vertexBufferIndex;
 }
-#endif
 
 struct Vertex
 {
@@ -53,7 +50,7 @@ PSInput VSMain(Vertex vertex)
     //Vertex vertex = _BufferTable[index].Load<MyVertexStructure>((vertexOffset + vertexId) * sizeof(MyVertexStructure));
 
     PSInput result;
-    result.position = float4(vertex.position, 1.0f);
+    result.position = mul(float4(vertex.position, 1.0f), WVP);
     result.color = vertex.color;
     result.normal = vertex.normal;
     result.uv = vertex.uv;
@@ -68,5 +65,5 @@ float4 PSMain(PSInput input) : SV_TARGET
     // 
     // float4 s = Texture2DTable[textureIndex].Sample(AlbedoSampler, uv0);
 
-    return float4(1,1,1,1);
+    return input.color;
 }

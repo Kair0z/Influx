@@ -9,8 +9,7 @@
 
 #include "InfluxGraphics/RHITexture.h"
 
-#include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
-#include "InfluxGraphics/D3D12/ResourceViews/D3D12ShaderResourceView.h"
+#include "InfluxGraphics/D3D12/ResourceViews/D3D12Views.h"
 
 namespace Influx::Graphics
 {
@@ -213,6 +212,21 @@ namespace Influx::Graphics
 	}
 
 	RHIDevice::ResourcePtr D3D12Device::CreateIndexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const
+	{
+		const bool useUploadHeap = true;
+		const uint64 alignment = 0u;
+		const RHIClearValue optimizedClearValue = {};
+
+		using namespace D3D12::HelperStructs;
+		CommittedResourceDesc bufferResourceDesc = CommittedResourceDesc::AsBuffer(useUploadHeap, numBytesInBuffer, alignment);
+
+		D3D12Resource* result = new D3D12Resource(initialState, optimizedClearValue, numBytesInBuffer);
+		result->mp_dxResource = D3D12::CreateDxCommittedResource(GetDxDevice(), bufferResourceDesc, Conversion::ToDx12(initialState));
+
+		return result;
+	}
+
+	RHIDevice::ResourcePtr D3D12Device::CreateConstantBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const
 	{
 		const bool useUploadHeap = true;
 		const uint64 alignment = 0u;

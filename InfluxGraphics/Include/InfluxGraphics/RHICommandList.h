@@ -28,8 +28,9 @@ namespace Influx::Graphics
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) = 0;
 		virtual void BindViewports(const RHIViewport& viewport) = 0;
 
-		virtual void BindVertexBuffer(RHIResource* vertexBufferResource, uint32 bufferSizeInBytes, uint32 vertexStrideInBytes) = 0;
-		virtual void BindIndexBuffer(RHIResource* indexBufferResource, uint32 bufferSizeInBytes) = 0;
+		virtual void BindConstantBuffer(RHIResource* constantBufferResource, uint32 rootParameterIndex = 0u) = 0;
+		virtual void BindVertexBuffer(RHIResource* vertexBufferResource, uint64 bufferSizeInBytes, uint64 vertexStrideInBytes) = 0;
+		virtual void BindIndexBuffer(RHIResource* indexBufferResource, uint64 bufferSizeInBytes) = 0;
 		virtual void BindRenderTarget(RHIRenderTargetView* renderTargetView) = 0;
 		virtual void BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout) = 0;
 		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) = 0;

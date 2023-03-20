@@ -126,17 +126,17 @@ namespace Influx::Platform
 	template <EMessageBoxType _T>
 	void MessageBox(const String& caption, const String& message, const WindowHandle windowHandle);
 
-	inline void ErrorMessageBox(const String& caption, const String& message, const WindowHandle windowHandle)
+	inline void ErrorMessageBox(const String& caption, const String& message, const WindowHandle windowHandle = GetCurrentWindowHandle())
 	{
 		MessageBox<EMessageBoxType::Error>(caption, message, windowHandle);
 	}
 
-	inline void InfoMessageBox(const String& caption, const String& message, const WindowHandle windowHandle)
+	inline void InfoMessageBox(const String& caption, const String& message, const WindowHandle windowHandle = GetCurrentWindowHandle())
 	{
 		MessageBox<EMessageBoxType::Info>(caption, message, windowHandle);
 	}
 
-	inline void WarningMessageBox(const String& caption, const String& message, const WindowHandle windowHandle)
+	inline void WarningMessageBox(const String& caption, const String& message, const WindowHandle windowHandle = GetCurrentWindowHandle())
 	{
 		MessageBox<EMessageBoxType::Warning>(caption, message, windowHandle);
 	}

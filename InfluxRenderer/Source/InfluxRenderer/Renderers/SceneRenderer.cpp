@@ -6,13 +6,14 @@
 #include "InfluxGraphics/RHI.h"
 
 #include "Core/Geometry/Vertex.h"
+#include "Core/Platform/WindowsPlatform.h"
 
 #include <d3dcompiler.h>
 #include <dxcapi.h>
 
 #pragma comment (lib, "dxcompiler.lib")
 
-#define __SHADERS_FILEPATH L"E:/Git/Influx/Resources/Shaders/shaders.hlsl"
+#define __SHADERS_FILEPATH L"D:/Git/Influx/Resources/Shaders/shaders.hlsl"
 
 #define __SHADERS_PS_ENTRY L"PSMain"
 #define __SHADERS_VS_ENTRY L"VSMain"
@@ -60,9 +61,9 @@ namespace Influx::Renderer
 			};
 
 			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "SV_POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, offsetof(V, position), true, 0u});
-			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR",	1u, Graphics::ERHIFormat::RGBA_32_Float, 0u, offsetof(V, color), true, 0u });
-			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "NORMAL", 2u, Graphics::ERHIFormat::RGB_32_Float, 0u, offsetof(V, normal), true, 0u });
-			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "UV",	3u, Graphics::ERHIFormat::RG_32_Float,	0u, offsetof(V, uv), true, 0u });
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR",	0u, Graphics::ERHIFormat::RGBA_32_Float, 0u, offsetof(V, color), true, 0u });
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "NORMAL", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, offsetof(V, normal), true, 0u });
+			pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "UV",	0u, Graphics::ERHIFormat::RG_32_Float,	0u, offsetof(V, uv), true, 0u });
 
 			pipelineDesc.VS = m_compiledVertexShader;
 			pipelineDesc.PS = m_compiledPixelShader;
@@ -121,7 +122,7 @@ namespace Influx::Renderer
 
 		const uint64 vertexSize			= sizeof(Influx::Math::Vertex);
 		const uint64 numVertices		= vertices.size();
-		const uint64 numIndices			= indices.size();
+		const uint32 numIndices			= sCast<uint32>(indices.size());
 		const uint64 vertexBufferSize	= numVertices * vertexSize;
 		const uint64 indexBufferSize	= numIndices * sizeof(uint32);
 		
@@ -146,11 +147,52 @@ namespace Influx::Renderer
 		}
 #pragma endregion
 
+		const float AR = (float)swapchainDimensions.x / (float)swapchainDimensions.y;
+		m_perDrawBuffer.m_transform = Math::Matrix4x4f::Identity();
+		m_perSceneBuffer.m_wvp =
+			Math::Matrix4x4f::MakeProjectionMatrixRH(m_cameraData.Fov, AR, 0.001f, 10000.0f) *
+			Math::Matrix4x4f::MakeViewMatrixRH(m_cameraData.Position, m_cameraData.Forward, Math::Vectorf3::Up());
+
+#pragma region Constant buffers
+		if (mp_drawBufferResource == nullptr)
+		{
+			mp_drawBufferResource = context.GetDevice()->CreateConstantBufferResource(Graphics::ERHIResourceState::GenericRead,
+				Graphics::ERHIFormat::Unknown, sizeof(m_perDrawBuffer));
+		}
+		
+		if (mp_sceneBufferResource == nullptr)
+		{
+			mp_sceneBufferResource = context.GetDevice()->CreateConstantBufferResource(Graphics::ERHIResourceState::GenericRead, 
+				Graphics::ERHIFormat::Unknown, sizeof(m_perSceneBuffer));
+		}
+
+		mp_drawBufferResource->ScopedMap([this](void* cpuHandle)
+			{
+				memcpy(cpuHandle, &m_perDrawBuffer, sizeof(m_perDrawBuffer));
+			});
+
+		mp_sceneBufferResource->ScopedMap([this](void* cpuHandle)
+			{
+				memcpy(cpuHandle, &m_perSceneBuffer, sizeof(m_perSceneBuffer));
+			});
+#pragma endregion
+
 		// The actual rendering...
+		cmdList->TransitionResource(mp_sceneColourTexture->GetResource(), Graphics::ERHIResourceState::RenderTarget);
 		cmdList->ClearRTV(sceneColourRTV, { 1.0f, 0.0f, 0.0f, 1.0f });
+		
 		{
 			cmdList->BindPipelineLayout(mp_pipelineLayout);
 			cmdList->BindPipelineState(mp_pipeline);
+
+			if (mp_sceneBufferResource)
+			{
+				cmdList->BindConstantBuffer(mp_sceneBufferResource, 0u);
+			}
+			if (mp_drawBufferResource)
+			{
+				cmdList->BindConstantBuffer(mp_drawBufferResource, 1u);
+			}
 
 			cmdList->BindRenderTarget(sceneColourRTV);
 			cmdList->BindViewports(viewport);
@@ -169,6 +211,7 @@ namespace Influx::Renderer
 				cmdList->DrawIndexedInstanced(numIndices, 1u, 0u, 0u, 0u);
 			}
 		}
+
 		context.CopyTextureIntoSwapchain(mp_sceneColourTexture, cmdList);
 	}
 
@@ -221,7 +264,7 @@ namespace Influx::Renderer
 		ShaderDesc ps_desc{ __SHADERS_FILEPATH, __SHADERS_PS_ENTRY,
 			ShaderDesc::EType::PS, ShaderDesc::EProfile::_6_2 };
 
-		auto compile = [](const ShaderDesc& desc) -> Vector<byte>
+		auto compile = [](const ShaderDesc& desc, Function<void(char*)> onError = nullptr) -> Vector<byte>
 		{
 			Vector<byte> outResult{};
 
@@ -282,7 +325,7 @@ namespace Influx::Renderer
 
 			// arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS); //-WX
 			if (desc.bDebug) arguments.push_back(DXC_ARG_DEBUG); //-Zi
-			arguments.push_back(DXC_ARG_SKIP_VALIDATION);
+			// arguments.push_back(DXC_ARG_SKIP_VALIDATION);
 			arguments.push_back(DXC_ARG_PACK_MATRIX_ROW_MAJOR); //-Zp
 
 			for (const WString& define : desc.Defines)
@@ -303,10 +346,9 @@ namespace Influx::Renderer
 			// Extracting compile errors...
 			IDxcBlobUtf8* pErrors = nullptr;
 			result = pCompileResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
-			if (pErrors && pErrors->GetStringLength() > 0)
+			if (pErrors && pErrors->GetStringLength() > 0 && onError != nullptr)
 			{
-				// Compile failed!
-				printf((char*)pErrors->GetBufferPointer());
+				onError((char*)pErrors->GetBufferPointer());
 			}
 
 			// Extracting Debug info...
@@ -340,7 +382,7 @@ namespace Influx::Renderer
 			// Extracting resulting shader byte code...
 			IDxcBlob* pResultData = nullptr;
 			IDxcBlobUtf16* pResultOutputName = nullptr;
-			result = pCompileResult->GetOutput(pCompileResult->PrimaryOutput(), IID_PPV_ARGS(&pResultData), &pResultOutputName);
+			result = pCompileResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pResultData), &pResultOutputName);
 			if (pResultData)
 			{
 
@@ -353,8 +395,15 @@ namespace Influx::Renderer
 			return outResult;
 		};
 
-		m_compiledVertexShader = compile(vs_desc);
-		m_compiledPixelShader = compile(ps_desc);
+		m_compiledVertexShader = compile(vs_desc, [](char* errorString)
+			{
+				Platform::ErrorMessageBox("Shader Compile Error!", errorString, Platform::GetCurrentWindowHandle());
+			});
+
+		m_compiledPixelShader = compile(ps_desc, [](char* errorString)
+			{
+				Platform::ErrorMessageBox("Shader Compile Error!", errorString, Platform::GetCurrentWindowHandle());
+			});
 	}
 }
 

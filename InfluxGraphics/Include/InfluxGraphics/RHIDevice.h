@@ -15,12 +15,13 @@ namespace Influx::Graphics
 	class RHICommandQueue;
 	class RHIRenderTargetView;
 	class RHIShaderResourceView;
+	class RHIConstantBufferView;
 	class RHIResource;
 	class RHIGraphicsPipelineLayout;
 	struct RHIGraphicsPipelineDescription;
 	class RHIGraphicsPipeline;
 	class RHITexture;
-
+	
 	struct RHITextureDesc;
 
 	class RHIDevice
@@ -51,6 +52,7 @@ namespace Influx::Graphics
 		virtual ResourcePtr CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const = 0;
 		virtual ResourcePtr CreateVertexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const = 0;
 		virtual ResourcePtr CreateIndexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const = 0;
+		virtual ResourcePtr CreateConstantBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const = 0;
 
 		virtual GraphicsPipelineLayoutPtr CreateGraphicsPipelineLayout() const = 0;
 		virtual GraphicsPipelinePtr CreateGraphicsPipeline(const RHIGraphicsPipelineDescription& desc, GraphicsPipelineLayoutPtr rootSignature) const = 0;
