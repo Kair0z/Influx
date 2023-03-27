@@ -4,6 +4,7 @@
 #define __CORE_SCENE_CAMERA_H_
 
 #include "Core/Math/Transform.h"
+#include "Core/Macros.h"
 
 namespace Influx::Scene
 {
@@ -12,18 +13,9 @@ namespace Influx::Scene
 	public:
 		Camera() = default;
 
-		void SetFieldOfView(float newFov)
-		{
-			m_fieldOfView = newFov;
-		}
-
-		float GetFieldOfView() const
-		{
-			return m_fieldOfView;
-		}
-
-	private:
-		float m_fieldOfView;
+		FLX_CORE_GET_SET(float, Fov);
+		FLX_CORE_GET_SET(float, NearPlane);
+		FLX_CORE_GET_SET(float, FarPlane);
 	};
 }
 

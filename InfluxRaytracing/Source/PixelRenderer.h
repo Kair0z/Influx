@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Math/Math.h"
-#include "Core/Geometry/Camera.h"
+#include "Core/Scene/Camera.h"
 #include "Core/Geometry/Sphere.h"
 #include "Core/Geometry/Plane.h"
 
@@ -54,7 +54,7 @@ namespace Influx
 		inline void SetCameraForward(const Math::Vectorf3& newForward) { m_camera.SetForward(newForward); }
 		inline void SetRenderMode(const ERenderMode renderMode) { m_renderMode = renderMode; }
 		
-		const Math::Camera& GetCamera() const { return m_camera; }
+		const Scene::Camera& GetCamera() const { return m_camera; }
 		const ERenderMode GetRenderMode() const { return m_renderMode; }
 
 		RenderSettings& GetRenderSettings() { return m_renderSettings; }
@@ -69,7 +69,7 @@ namespace Influx
 		}
 
 	private:
-		Math::Camera m_camera;
+		Scene::Camera m_camera;
 		ERenderMode m_renderMode;
 		RenderSettings m_renderSettings;
 

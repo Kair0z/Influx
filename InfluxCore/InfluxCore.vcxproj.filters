@@ -49,6 +49,7 @@
     <ClInclude Include="Include\Core\Math\Transform.h" />
     <ClInclude Include="Include\Core\Math\Quaternion.h" />
     <ClInclude Include="Include\Core\Graph\Hierarchy.h" />
+    <ClInclude Include="Include\Core\Macros.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\Core\Math\Vector.inl" />

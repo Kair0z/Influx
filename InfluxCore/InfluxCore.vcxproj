@@ -30,6 +30,7 @@
     <ClInclude Include="Include\Core\Container\Vector.h" />
     <ClInclude Include="Include\Core\Enum.h" />
     <ClInclude Include="Include\Core\Graph\Hierarchy.h" />
+    <ClInclude Include="Include\Core\Macros.h" />
     <ClInclude Include="Include\Core\Math\Quaternion.h" />
     <ClInclude Include="Include\Core\Math\Transform.h" />
     <ClInclude Include="Include\Core\Scene\Camera.h" />
