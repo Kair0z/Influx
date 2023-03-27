@@ -151,28 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Pipeline.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12PipelineLayout.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHITexture.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHIPipeline.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\ResourceViews\D3D12ShaderResourceView.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHIObject.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHIResourceViews\RHIResourceView.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHIResourceViews\RHIRenderTargetView.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHICommandList.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandList.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12CommandQueue.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12DescriptorHeap.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Device.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Resource.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\D3D12\D3D12Swapchain.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHICommandQueue.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHIDescriptorHeap.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHIDevice.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHIResource.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHIResourceViews\RHIShaderResourceView.cpp" />
-    <ClCompile Include="Source\InfluxGraphics\RHISwapchain.cpp" />
+    <ClCompile Include="Source\InfluxGraphics\InfluxGraphics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\InfluxGraphics.h" />
