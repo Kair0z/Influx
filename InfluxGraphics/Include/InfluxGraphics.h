@@ -5,17 +5,18 @@
 
 // Defines
 #pragma region Defines
-#define INFLUX_GRAPHICS_USE_CORE	1
-#define INFLUX_GRAPHICS_USE_STL		1
+#define INFLUX_GRAPHICS_USE_CORE		1
+#define INFLUX_GRAPHICS_USE_STL			1
 
 #define INFLUX_GRAPHICS_INCLUDE_DX12	1
 #define INFLUX_GRAPHICS_INCLUDE_VULKAN	0
 
-#define INFLUX_GRAPHICS_DEBUG _DEBUG
+#define INFLUX_GRAPHICS_DEBUG			_DEBUG
 #pragma endregion
 
 // RHI types
 #pragma region RHI Types
+
 #pragma region RHI Types - Core
 #if INFLUX_GRAPHICS_USE_CORE
 #include "Core/BasicTypes.h"
@@ -584,6 +585,7 @@ namespace Influx::Graphics
 	};
 }
 #pragma endregion
+
 #pragma endregion
 
 namespace Influx::Graphics
