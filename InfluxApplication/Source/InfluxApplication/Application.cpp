@@ -19,10 +19,9 @@ namespace Influx::Application
         , m_recievedQuit{false}
         , m_creationSettings{desc}
         , m_currentSettings{desc}
-        , m_deltaTime{}
+        , m_time{}
         , m_frame{}
         , m_isInitialized{false}
-        , m_time{}
         , m_hasCleanedUp{false}
         , mp_engine{nullptr}
         , mp_appRenderer{}
@@ -41,6 +40,13 @@ namespace Influx::Application
 
     void Application::Run(int argc, char** argv)
     {
+        if (IsRunning())
+        {
+            return;
+        }
+
+        m_isRunning = true;
+
         Initialize();
 
         Start();
@@ -55,7 +61,8 @@ namespace Influx::Application
             ++m_frame;
         }
 
-        Cleanup();
+
+        m_isRunning = false;
     }
 
     void Application::Initialize()
@@ -241,7 +248,7 @@ namespace Influx::Application
         
         for (uint64 i = 0u; i < out_scene.Meshes.size(); ++i)
         {
-            const Assets::Mesh& mesh = out_scene.Meshes[i];
+            const Assets::Scene::Mesh& mesh = out_scene.Meshes[i];
             Renderer::SceneRenderer::MeshData meshData{};
 
             // For each face in the mesh...
@@ -251,7 +258,7 @@ namespace Influx::Application
                 Scene::Mesh::Triangle triangle{};
                 for (uint8 t = 0u; t < 3u; ++t)
                 {
-                    const Assets::Mesh::Vertex& vertex = mesh.Vertices[mesh.Faces[f][t]];
+                    const Assets::Scene::Mesh::Vertex& vertex = mesh.Vertices[mesh.Faces[f][t]];
                     triangle[t].Colour = vertex.Color;
                     triangle[t].Normal = vertex.Normal;
                     triangle[t].Position = vertex.Position;
@@ -274,6 +281,11 @@ namespace Influx::Application
     bool Application::GetHasStarted() const
     {
         return m_hasStarted;
+    }
+
+    bool Application::IsRunning() const
+    {
+        return m_isRunning;
     }
 
     bool Application::GetHasRecievedQuit() const
@@ -319,6 +331,21 @@ namespace Influx::Application
     bool Application::GetHasCreatedEngine() const
     {
         return mp_engine != nullptr;
+    }
+
+    const Application::Time& Application::GetTime() const
+    {
+        return m_time;
+    }
+
+    float Application::GetTimeSinceCreation() const
+    {
+        return m_time.TimeSinceCreation;
+    }
+
+    float Application::GetTimeSinceRun() const
+    {
+        return m_time.TimeSinceRun;
     }
 
     const Application::Settings& Application::GetSettings() const

@@ -2,6 +2,7 @@
 
 #include "InfluxApplication/Common.h"
 
+#pragma region Predeclarations
 namespace Influx
 {
 	class Engine;
@@ -11,13 +12,14 @@ namespace Influx::Renderer
 {
 	class RootRenderer;
 }
+#pragma endregion
 
 namespace Influx::Application
 {
 	class Application final
 	{
-		using EnginePtr			= Ptr<Influx::Engine>;
-		using RendererPtr		= Ptr<Influx::Renderer::RootRenderer>;
+		using EnginePtr			= Influx::Engine*;
+		using RendererPtr		= Influx::Renderer::RootRenderer*;
 
 	public:
 		struct Settings final
@@ -32,15 +34,24 @@ namespace Influx::Application
 			bool HasSceneRender = false;
 		};
 
-		Application(const Settings& creationSettings);
+		struct Time final
+		{
+			float DeltaTime;
+			float TimeSinceCreation;
+			float TimeSinceRun;
+		};
 
-		/* Runs the Application, this will only return with SetQuit(); */
+		/* Creates the Application, this will initialize base-necessary components */
+		explicit Application(const Settings& creationSettings);
+
+		/* Runs the Application, the calling thread will only return when SignalQuit(); gets called */
 		void Run(int argc, char** argv);
 
 		/* Requests the Application to quit running. */
 		void SignalQuit();
 
 		bool GetHasStarted() const;
+		bool IsRunning() const;
 		bool GetHasRecievedQuit() const;
 		bool GetShouldHaveWindow() const;
 		bool GetShouldHaveImgui() const;
@@ -51,32 +62,37 @@ namespace Influx::Application
 		bool GetHasCreatedRenderer() const;
 		bool GetHasCreatedEngine() const;
 
+		const Time& GetTime() const;
+		float GetTimeSinceCreation() const;
+		float GetTimeSinceRun() const;
+
 		const Settings& GetSettings() const;
 		const Settings& GetCreationSettings() const;
 
 	private:
-		/* Platform Data */
-		Platform::WindowHandle m_windowHandle;
-		Platform::InstanceHandle m_appInstanceHandle;
-		Platform::ProcessHandle m_processHandle;
+		/* Platform Application-Data */
+		Platform::WindowHandle		m_windowHandle;
+		Platform::InstanceHandle	m_appInstanceHandle;
+		Platform::ProcessHandle		m_processHandle;
 
-		/* InfluxEngine */
+		/* Underlying Engine */
 		EnginePtr mp_engine;
 
-		/* Main App Renderer */
+		/* Renderer */
 		RendererPtr mp_appRenderer;
 
+		/* Current scene */
 		Scene::Scene m_scene;
 
 		bool m_isInitialized;
 		bool m_hasStarted;
+		bool m_isRunning;
 		bool m_recievedQuit;
 		bool m_hasCreatedWindow;
 		bool m_hasCleanedUp;
 
+		Time m_time;
 		uint64 m_frame;
-		float m_time;
-		float m_deltaTime;
 
 		const Settings& m_creationSettings;
 		Settings m_currentSettings;
