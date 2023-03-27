@@ -1,4 +1,3 @@
-
 #include "InfluxAssets/InfluxAssets.h"
 
 namespace Influx::Assets

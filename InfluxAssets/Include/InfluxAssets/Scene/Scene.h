@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Core/Scene/Scene.h"
 #include "Core/Container/Vector.h"
 #include "Core/Math/Vector.h"
 #include "Core/Cache.h"
+
+#include "Core/Scene/Scene.h" // Influx::Scene::ELightType
 
 namespace Influx::Assets
 {
@@ -18,36 +19,37 @@ namespace Influx::Assets
 		}
 	};
 
-	struct Mesh final
-	{
-		using Index = uint32;
-		using Face = Vector<Index>;
-
-		Mesh() = default;
-		Mesh(uint32 numVertices)
-		{
-			Vertices.reserve(numVertices);
-		}
-
-		struct Vertex final
-		{
-			Math::Vectorf3 Position;
-			Math::Vectorf3 Normal;
-			Math::Vectorf4 Color;
-		};
-
-		Vector<Vertex> Vertices;
-		Vector<Face> Faces;
-		Vector<Index> Indices;
-
-		String Name;
-	};
-
 	struct Scene final
 	{
+		struct Mesh final
+		{
+			using Index = uint32;
+			using Face = Vector<Index>;
+
+			Mesh() = default;
+			Mesh(uint32 numVertices)
+			{
+				Vertices.reserve(numVertices);
+			}
+
+			struct Vertex final
+			{
+				Math::Vectorf3 Position;
+				Math::Vectorf3 Normal;
+				Math::Vectorf4 Color;
+			};
+
+			Vector<Vertex> Vertices;
+			Vector<Face> Faces;
+			Vector<Index> Indices;
+
+			String Name;
+		};
+
 		struct Light final
 		{
 			String Name;
+
 			Influx::Scene::ELightType LightType;
 			Math::Vectorf3 Position;
 			Math::Vectorf3 Direction;
@@ -71,6 +73,7 @@ namespace Influx::Assets
 		struct Camera final
 		{
 			String Name;
+
 			Math::Vectorf3 Position;
 			Math::Vectorf3 Up;
 			Math::Vectorf3 Forward;

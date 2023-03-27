@@ -1,5 +1,3 @@
-#include "SceneLoader.h"
-
 #include "InfluxAssets/InfluxAssets.h"
 
 #ifdef epsilon
@@ -9,9 +7,6 @@
 #include "assimp/Importer.hpp"	// C++ importer interface
 #include "assimp/scene.h"		// Output data structure
 #include "assimp/postprocess.h"	// Post processing flags
-
-#include "Core/Scene/Scene.h"
-#include "Core/Math/Math.h"
 
 namespace Influx::Assets
 {
@@ -57,9 +52,9 @@ namespace Influx::Assets
 		}
 
 		// Todo... There's multiple colour channels!
-		Mesh FromAssimp(const aiMesh* pMesh)
+		Scene::Mesh FromAssimp(const aiMesh* pMesh)
 		{
-			Mesh result(pMesh->mNumVertices);
+			Scene::Mesh result(pMesh->mNumVertices);
 			constexpr uint32 vColChannel = 0u;
 
 			const bool meshHasPositions = pMesh->HasPositions();
@@ -72,7 +67,7 @@ namespace Influx::Assets
 
 			for (uint32 v = 0u; v < pMesh->mNumVertices; ++v)
 			{
-				Mesh::Vertex vertex{};
+				Scene::Mesh::Vertex vertex{};
 
 				if (collectPositions)	 vertex.Position = FromAssimp(pMesh->mVertices[v]);
 				if (collectNormals)		 vertex.Normal = FromAssimp(pMesh->mNormals[v]);
@@ -83,11 +78,11 @@ namespace Influx::Assets
 
 			for (uint32 f = 0u; f < pMesh->mNumFaces; ++f)
 			{
-				Mesh::Face face{};
+				Scene::Mesh::Face face{};
 
 				for (uint32 i = 0u; i < pMesh->mFaces[f].mNumIndices; ++i)
 				{
-					Mesh::Index index = pMesh->mFaces[f].mIndices[i];
+					Scene::Mesh::Index index = pMesh->mFaces[f].mIndices[i];
 					face.push_back(index);
 					result.Indices.push_back(index);
 				}

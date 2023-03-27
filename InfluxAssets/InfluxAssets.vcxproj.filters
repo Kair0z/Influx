@@ -7,11 +7,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\InfluxAssets\InfluxAssets.h" />
-    <ClInclude Include="Include\InfluxAssets\Common.h" />
-    <ClInclude Include="Source\InfluxAssets\Scene\SceneLoader.h" />
     <ClInclude Include="Include\InfluxAssets\Scene\Scene.h" />
     <ClInclude Include="Include\InfluxAssets\Image\Image.h" />
-    <ClInclude Include="Source\InfluxAssets\Image\ImageLoader.h" />
     <ClInclude Include="Include\InfluxAssets\Shader\Shader.h" />
   </ItemGroup>
 </Project>
