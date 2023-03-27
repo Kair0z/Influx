@@ -28,6 +28,7 @@ namespace Influx::Graphics
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) = 0;
 		virtual void BindViewports(const RHIViewport& viewport) = 0;
 
+		virtual void BindConstants(const uint32 num32BitConstantsToSet, const float* pData, uint32 rootParameterIndex = 0u) = 0;
 		virtual void BindConstantBuffer(RHIResource* constantBufferResource, uint32 rootParameterIndex = 0u) = 0;
 		virtual void BindVertexBuffer(RHIResource* vertexBufferResource, uint64 bufferSizeInBytes, uint64 vertexStrideInBytes) = 0;
 		virtual void BindIndexBuffer(RHIResource* indexBufferResource, uint64 bufferSizeInBytes) = 0;
@@ -49,6 +50,7 @@ namespace Influx::Graphics
 		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vectorf4& clearValue) = 0;
 
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) = 0;
+		virtual void SetBlendFactor(const Math::Vectorf4& blendFactor) = 0;
 
 		virtual bool SupportsRenderPasses() const = 0;
 

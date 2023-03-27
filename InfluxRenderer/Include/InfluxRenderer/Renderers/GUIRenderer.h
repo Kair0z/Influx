@@ -51,6 +51,9 @@ namespace Influx::GUI
 			const Renderer::RenderContext& context, 
 			Graphics::RHICommandList* cmdList) override;
 
+		virtual void OnAttachToWindow(const Renderer::RenderContext& context) override;
+		virtual void OnDetachFromWindow(const Renderer::RenderContext& context) override;
+
 		/* */
 		virtual void OnWindowResize(
 			const Renderer::RenderContext& context, 
@@ -61,6 +64,8 @@ namespace Influx::GUI
 		virtual void OnPreCleanupAPI(const Graphics::EGraphicsAPI api, Graphics::RHIDevice* device) override;
 
 	private:
+		GUIRenderer();
+
 		using WidgetList = List<WidgetPtr>;
 		WidgetList m_widgetList{};
 

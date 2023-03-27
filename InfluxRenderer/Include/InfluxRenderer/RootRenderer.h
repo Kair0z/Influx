@@ -112,13 +112,13 @@ namespace Influx::Renderer
 		template <class _R, class ...Args>
 		_R* AddRenderer(Args&&... args)
 		{
-			static_assert(std::is_base_of<IRenderer, _R>::value, "_R must derive from IRenderer interface!");
+			static_assert(std::is_base_of<IRenderer, _R>::value, "RootRenderer::AddRenderer() argument must be castable to IRenderer interface!");
 			
 			_R* newRenderer = new _R(args...);
 			mp_childRenderers.push_back(newRenderer);
 
 			// Initialize to API
-			if (IsGraphicsAPIInitialized(GetCurrentGraphicsAPI()))
+			if (IsGraphicsAPIInitialized())
 			{
 				mp_childRenderers.back()->OnPostInitializeAPI(GetCurrentGraphicsAPI(), GetDevice());
 			}

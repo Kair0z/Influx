@@ -10,7 +10,6 @@
 
 #include "InfluxRenderer/RootRenderer.h"
 #include "InfluxRenderer/Renderers/SceneRenderer.h"
-#include "InfluxRenderer/Renderers/GUIRenderer.h"
 
 namespace Influx::Application
 {
@@ -69,7 +68,7 @@ namespace Influx::Application
     {
         if (m_isInitialized) return;
 
-        m_processHandle = Platform::GetCurrentProcess();
+        m_processHandle     = Platform::GetCurrentProcess();
         m_appInstanceHandle = Platform::GetCurrentInstance();
 
         CreateEngine();
@@ -78,11 +77,6 @@ namespace Influx::Application
         {
             CreateWindow();
             CreateRenderer();
-
-            if (GetShouldHaveImgui())
-            {
-                // Todo...
-            }
         }
 
         m_isInitialized = true;
@@ -238,7 +232,7 @@ namespace Influx::Application
 
         mp_appRenderer = Renderer::RootRenderer::Create(Graphics::EGraphicsAPI::D3D12, m_windowHandle);
 
-        // Create Scene:
+        // Create SceneRenderer:
         Renderer::SceneRenderer* sceneRenderer = mp_appRenderer->AddRenderer<Renderer::SceneRenderer>();
         sceneRenderer->AddLight(Renderer::SceneRenderer::LightData{ {}, {}, {1,1,1}, 1.0f });
         sceneRenderer->SetCamera(Renderer::SceneRenderer::CameraData{ { 0, 0, 50.0f }, {0, 0, -1}, 90.0f });

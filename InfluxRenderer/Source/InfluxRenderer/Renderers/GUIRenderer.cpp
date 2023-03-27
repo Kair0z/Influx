@@ -1,14 +1,17 @@
 #include "renderer_pch.h"
 #include "InfluxRenderer/Renderers/GUIRenderer.h"
+#include "InfluxRenderer/RootRenderer.h"
 
 #include "ImGuiTools/ImGuiWidgets.h"
 
 #include "InfluxGraphics/RHI.h"
+#include "InfluxGraphics/D3D12/D3D12CommandList.h"
 
 #include "Core/Platform/WindowsPlatform.h"
 
 // Imgui Win32
 #include "ImGui/imgui_impl_win32.h"
+#include "ImGui/imgui_impl_dx12.h"
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Influx::GUI
@@ -34,42 +37,9 @@ namespace Influx::GUI
 	}
 
 
-	// IRenderer Interface:
 	void GUIRenderer::OnPostInitializeAPI(const Graphics::EGraphicsAPI api, Graphics::RHIDevice* device)
 	{
-		using namespace Graphics;
-
-		// ImGui_ImplDX12_Init
-		{
-			using namespace Graphics;
-			
-			ImGuiIO& io = ImGui::GetIO();
-
-			// Setup backend capabilities flags:
-			// io.BackendRendererUserData = (void*)bd;
-			io.BackendRendererName = "imgui_impl_dx12";
-			io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;  // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
-
-			// Create fonts texture:
-			{
-				unsigned char* pixels;
-				int width, height;
-				io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
-				Graphics::RHITextureDesc texDesc{};
-				texDesc.Dimensions.x = static_cast<uint32>(width);
-				texDesc.Dimensions.y = static_cast<uint32>(height);
-				texDesc.Format = Graphics::ERHIFormat::RGBA_8_Unorm;
-				texDesc.NumMips = 1u;
-
-				mp_fontTexture = device->CreateTexture(Graphics::ERHIResourceState::CopyDest, texDesc);
-			}
-			
-			// Setup vertex & index buffers:
-			{
-
-			}
-		}
+		// ...
 	}
 
 	void GUIRenderer::OnBuildRenderCommandList(const Renderer::RenderContext& context, Graphics::RHICommandList* cmdList)
@@ -87,17 +57,17 @@ namespace Influx::GUI
 		}
 		ImGui::Render();
 
-		// ImGui_ImplDX12_RenderDrawData
-		{
-			if (mp_vertexBufferResource == nullptr)
-			{
-				
-			}
-			if (mp_indexBufferResource == nullptr)
-			{
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ((D3D12CommandList*)cmdList)->GetDxCommandList());
+	}
 
-			}
-		}
+	void GUIRenderer::OnAttachToWindow(const Renderer::RenderContext& context)
+	{
+		AttachToWin32Backend(context.GetSwapchain()->GetWindowHandle());
+	}
+
+	void GUIRenderer::OnDetachFromWindow(const Renderer::RenderContext& context)
+	{
+		DetachFromWin32Backend();
 	}
 
 	void GUIRenderer::OnWindowResize(const Renderer::RenderContext& context, const Math::Vectoru2& oldSize, const Math::Vectoru2& newSize)
@@ -128,7 +98,10 @@ namespace Influx::GUI
 
 	void GUIRenderer::DetachFromWin32Backend()
 	{
-		ImGui_ImplWin32_Shutdown();
+		if (IsAttachedToWin32Backend())
+		{
+			ImGui_ImplWin32_Shutdown();
+		}
 	}
 
 	bool GUIRenderer::IsAttachedToWin32Backend()

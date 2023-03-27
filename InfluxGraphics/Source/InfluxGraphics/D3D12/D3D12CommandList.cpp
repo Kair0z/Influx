@@ -109,6 +109,11 @@ namespace Influx::Graphics
 		GetDxCommandList()->RSSetViewports(1u, &d3d12Viewport);
 	}
 
+	void D3D12CommandList::BindConstants(const uint32 num32BitConstantsToSet, const float* pData, uint32 rootParameterIndex)
+	{
+		GetDxCommandList()->SetGraphicsRoot32BitConstants(rootParameterIndex, num32BitConstantsToSet, pData, 0);
+	}
+
 	void D3D12CommandList::BindConstantBuffer(RHIResource* constantBufferResource, uint32 rootParameterIndex)
 	{
 		D3D12Resource* d3d12Resource = (D3D12Resource*)constantBufferResource;
@@ -150,6 +155,11 @@ namespace Influx::Graphics
 		GetDxCommandList()->IASetPrimitiveTopology(Conversion::ToDx12(topology));
 	}
 
+	void D3D12CommandList::SetBlendFactor(const Math::Vectorf4& blendFactor)
+	{
+		GetDxCommandList()->OMSetBlendFactor(blendFactor.data);
+	}
+
 	void D3D12CommandList::CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition)
 	{
 		TransitionResource(source, ERHIResourceState::CopySource);
@@ -166,10 +176,12 @@ namespace Influx::Graphics
 
 	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, bool forceTransition)
 	{
+
 	}
 
 	void D3D12CommandList::ClearTextureAsRTV(RHITexture* texture, const Math::Vectorf4& clearValue, bool forceTransition)
 	{
+
 	}
 
 	void D3D12CommandList::BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout)

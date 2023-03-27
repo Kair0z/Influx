@@ -39,6 +39,10 @@ namespace Influx::Renderer
 			Graphics::RHICommandList* cmdList) {};
 
 		/* */
+		virtual void OnAttachToWindow(const Renderer::RenderContext& context) {};
+		virtual void OnDetachFromWindow(const Renderer::RenderContext& context) {};
+
+		/* */
 		virtual void OnWindowResize(const Renderer::RenderContext& context, 
 			const Math::Vectoru2& oldSize, const Math::Vectoru2& newSize) {};
 
