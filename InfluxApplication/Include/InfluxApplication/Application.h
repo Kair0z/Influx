@@ -32,6 +32,7 @@ namespace Influx::Application
 			bool HasImGUI = false;
 			bool HasUpdate = false;
 			bool HasSceneRender = false;
+			bool VSync = false;
 		};
 
 		struct Time final
@@ -111,7 +112,6 @@ namespace Influx::Application
 		void PollWindowEvents();
 		void Update();
 		void Render();
-		void ImguiRender();
 
 		void CreateWindow();
 		void CreateEngine();
