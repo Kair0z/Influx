@@ -3,8 +3,15 @@
 #ifndef __INFLUX_GRAPHICS_H_
 #define __INFLUX_GRAPHICS_H_
 
+#pragma comment (lib, "InfluxGraphics.lib")
+
 // Defines
 #pragma region Defines
+
+#ifndef INFLUX_GRAPHICS_API
+#define INFLUX_GRAPHICS_API
+#endif
+
 #define INFLUX_GRAPHICS_USE_CORE		1
 #define INFLUX_GRAPHICS_USE_STL			1
 
@@ -12,6 +19,15 @@
 #define INFLUX_GRAPHICS_INCLUDE_VULKAN	0
 
 #define INFLUX_GRAPHICS_DEBUG			_DEBUG
+
+#ifndef INFLUX_GRAPHICS_TODO
+#if INFLUX_GRAPHICS_DEBUG
+#define INFLUX_GRAPHICS_TODO __debugbreak();
+#else
+#define INFLUX_GRAPHICS_TODO;
+#endif
+#endif // INFLUX_GRAPHICS_TODO
+
 #pragma endregion
 
 // RHI types
@@ -26,13 +42,13 @@
 #include "Core/Container/Array.h"
 #include "Core/String.h"
 #include "Core/Function.h"
-#endif
+#endif // INFLUX_GRAPHICS_USE_CORE
 
 #if INFLUX_GRAPHICS_USE_STL
 #include <vector>
 #include <array>
 #include <string>
-#endif
+#endif // INFLUX_GRAPHICS_USE_STL
 
 namespace Influx::Graphics
 {
@@ -106,7 +122,7 @@ namespace Influx::Graphics
 
 	using String = std::string;
 #endif
-#endif
+#endif // INFLUX_GRAPHICS_USE_CORE
 }
 #pragma endregion
 
@@ -476,8 +492,11 @@ namespace Influx::Graphics
 	// RHIGraphicsCommandList
 	using RHIGraphicsCommandListHandle = void*;
 
-	// RHI Graphics Command Queue
+	// RHIGraphics Command Queue
 	using RHIGraphicsCommandQueueHandle = void*;
+
+	// RHIGraphics Command Queue
+	using RHIGraphicsCommandBufferHandle = void*;
 
 	// RHIPipeline
 	using RHIGraphicsPipelineHandle = void*;
@@ -570,6 +589,15 @@ namespace Influx::Graphics
 
 	struct RHISwapchainDesc final
 	{
+		enum class EBuffering
+		{
+			Single = 1,
+			Double = 2,
+			Triple = 3,
+			Max
+		} Buffering;
+
+		Math::Vectoru2 Dimensions;
 		bool bIsTearingSupported;
 	};
 
@@ -616,67 +644,51 @@ namespace Influx::Graphics
 	const static EResult FailError		= EResult(false, EResult::EMessageLevel::Error);
 }
 
+// [API]
 namespace Influx::Graphics
 {
 	/* Initialize resources for a given EGraphicsAPI */
-	static EResult Initialize(EGraphicsAPI api);
+	INFLUX_GRAPHICS_API EResult Initialize(EGraphicsAPI api);
 
 	/* Clean up resources that are tied to the currently initialized EGraphicsAPI */
-	static EResult Cleanup();
-
-	/* Returns the currently initialized Graphics API */
-	static EGraphicsAPI GetInitializedGraphicsAPI();
-
-	/* */
-	static EResult SetDebugLayerEnabled();
-
-	/* */
-	static bool IsDebugLayerEnabled();
+	INFLUX_GRAPHICS_API EResult Cleanup();
 
 	/* Create a scope in which 'internalFunc' gets executed */
 	/* Within the scope the given 'api' is initialized, outside of the scope, we clean it up */
-	static EResult Create(EGraphicsAPI api, Function<void()> internalFunc)
-	{
-		EResult result = EResult();
+	INFLUX_GRAPHICS_API EResult Create(EGraphicsAPI api, Function<void()> internalFunc);
 
-		if (internalFunc != nullptr)
-		{
-			if (!(result = Initialize(api)))
-			{
-				return result;
-			}
+	/* Returns the currently initialized Graphics API */
+	INFLUX_GRAPHICS_API EGraphicsAPI GetInitializedGraphicsAPI();
 
-			internalFunc();
+	/* */
+	INFLUX_GRAPHICS_API EResult SetDebugLayerEnabled();
 
-			if (!(result = Cleanup()))
-			{
-				return result;
-			}
-		}
-
-		return result;
-	}
+	/* */
+	INFLUX_GRAPHICS_API bool IsDebugLayerEnabled();
 	
 	/* */
-	static EResult CreateGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle);
+	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle);
 
 	/* */
-	static EResult CreateGraphicsCommandList(RHIGraphicsCommandListHandle& out_handle);
+	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
 
 	/* */
-	static EResult CreateSwapchain(RHISwapchainHandle& out_handle);
+	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandList(RHIGraphicsCommandListHandle& out_handle);
 
 	/* */
-	static EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);
+	INFLUX_GRAPHICS_API EResult CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle);
 
 	/* */
-	static EResult CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& desc, RHIGraphicsPipelineHandle& out_handle);
+	INFLUX_GRAPHICS_API EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);
 
 	/* */
-	static EResult CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDesc& desc, RHIGraphicsPipelineLayoutHandle& out_handle);
+	INFLUX_GRAPHICS_API EResult CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& desc, RHIGraphicsPipelineHandle& out_handle);
 
 	/* */
-	static EResult CreateBuffer(const RHIBufferDesc& desc, RHIBufferHandle& out_handle);
+	INFLUX_GRAPHICS_API EResult CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDesc& desc, RHIGraphicsPipelineLayoutHandle& out_handle);
+
+	/* */
+	INFLUX_GRAPHICS_API EResult CreateBuffer(const RHIBufferDesc& desc, RHIBufferHandle& out_handle);
 }
 
 #endif

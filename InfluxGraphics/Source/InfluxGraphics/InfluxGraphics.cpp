@@ -12,7 +12,7 @@ namespace Influx::Graphics
 {
     struct
     {
-        EGraphicsAPI CurrentInitializedAPI;
+        EGraphicsAPI CurrentInitializedAPI = EGraphicsAPI::NotSupported;
         bool IsDebugLayerActive;
 
         bool HasInitializedGraphicsAPI() const
@@ -154,6 +154,25 @@ namespace Influx::Graphics
         return EResult();
     }
 
+    EResult Create(EGraphicsAPI api, Function<void()> internalFunc)
+    {
+        EResult result{};
+
+        if (!(result = Initialize(api)))
+        {
+            return result;
+        }
+
+        internalFunc();
+
+        if (!(result = Cleanup()))
+        {
+            return result;
+        }
+
+        return result;
+    }
+
     EGraphicsAPI GetInitializedGraphicsAPI()
     {
         return s_GlobalState.CurrentInitializedAPI;
@@ -162,6 +181,8 @@ namespace Influx::Graphics
     EResult SetDebugLayerEnabled()
     {
         s_GlobalState.IsDebugLayerActive = true;
+
+        return EResult{};
     }
 
     bool IsDebugLayerEnabled()
@@ -175,7 +196,25 @@ namespace Influx::Graphics
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
+
             out_handle = D3D12::CreateDxCommandQueue(s_GlobalState.GetDevice(), D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+
+            return EResult(true);
+#endif
+        }
+
+        return EResult(false);
+    }
+
+    EResult CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle)
+    {
+        switch (GetInitializedGraphicsAPI())
+        {
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+        case EGraphicsAPI::D3D12:
+
+            out_handle = D3D12::CreateDxCommandAllocator(s_GlobalState.GetDevice(), D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+
             return EResult(true);
 #endif
         }
@@ -194,6 +233,32 @@ namespace Influx::Graphics
                 D3D12::CreateDxCommandAllocator(s_GlobalState.GetDevice(), D3D12_COMMAND_LIST_TYPE_DIRECT), D3D12_COMMAND_LIST_TYPE_DIRECT);
 
             return EResult(true);
+#endif
+        }
+
+        return EResult(false);
+    }
+
+    EResult CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle)
+    {
+        switch (GetInitializedGraphicsAPI())
+        {
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+        case EGraphicsAPI::D3D12:
+
+            uint8 numBuffers = 0u;
+            switch (desc.Buffering)
+            {
+            case RHISwapchainDesc::EBuffering::Single: numBuffers = 1u; break;
+            case RHISwapchainDesc::EBuffering::Double: numBuffers = 2u; break;
+            case RHISwapchainDesc::EBuffering::Triple: numBuffers = 3u; break;
+            }
+
+            // out_handle = D3D12::Swapchain::CreateTier3(s_GlobalState.DxgiFactory2, (::HWND)desc, dxCommandQueue->GetDxCommandQueue(),
+            //     desc.Dimensions.x, desc.Dimensions.y, numBuffers, Conversion::ToDx12(result->m_renderTargetFormat));
+
+            INFLUX_GRAPHICS_TODO;
+            return EResult(false);
 #endif
         }
 
