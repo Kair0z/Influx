@@ -32,5 +32,8 @@ To install the correct components some graphics-related code, make sure the **Ga
 
 4. Build 1 or any other of the Application.
 
-¬ Branches
---------
+¬ Active Branches
+------------
+1. main: Should always be properly compiling!
+2. graphics-project-rework: Currently working on approaching the RHI-wrapper functionality of [InfluxGraphics] in a more minimal way.
+3. app-cpu-renderer: General work on [FluxRayTracing]
