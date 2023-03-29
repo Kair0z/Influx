@@ -62,11 +62,11 @@ int main()
 	{
 		for (uint64 s = 0; s < leblancScene.Meshes.size(); ++s)
 		{
-			const Assets::Mesh& mesh = leblancScene.Meshes[s];
+			const Assets::Scene::Mesh& mesh = leblancScene.Meshes[s];
 			for (uint64 i = 0; i < mesh.Vertices.size(); ++i)
 			{
 				Math::Vertex newVertex{};
-				newVertex.Color[i % 3]	= 1.0f;
+				newVertex.Colour[i % 3]	= 1.0f;
 				newVertex.Position		= mesh.Vertices[i].Position;
 				vertices.push_back(newVertex);
 			}

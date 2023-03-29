@@ -56,8 +56,6 @@ namespace Influx::Application
             Update();
             
             Render();
-            
-            ImguiRender();
 
             ++m_frame;
         }
