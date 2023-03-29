@@ -22,6 +22,8 @@ int main()
 {
 	using namespace Influx;
 
+	Graphics::SetDebugLayerEnabled();
+
 	Graphics::Create(Graphics::EGraphicsAPI::D3D12, []()
 	{
 		uint64 CurrentFrame = 0u;

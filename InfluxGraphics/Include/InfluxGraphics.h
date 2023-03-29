@@ -479,7 +479,7 @@ namespace Influx::Graphics
 #pragma region RHI Types - Classes
 namespace Influx::Graphics
 {
-	enum class ERHIObject
+	enum class ERHIObject : uint8
 	{
 		CommandQueue,
 		CommandList,
@@ -488,6 +488,26 @@ namespace Influx::Graphics
 		GraphicsPipeline,
 		GraphicsPipelineLayout,
 		Max
+	};
+
+	constexpr uint8 k_numRHIObjectTypes = static_cast<uint8>(ERHIObject::Max);
+	constexpr uint8 k_maxNumRHIObjectsPerType[k_numRHIObjectTypes]
+	{
+		1u,
+		16u,
+		16u,
+		1u,
+		64,
+		64,
+	};
+	constexpr const char* k_RHIObjectsNameStrings[k_numRHIObjectTypes]
+	{
+		"CommandQueue",
+		"CommandList",
+		"CommandAllocator",
+		"Swapchain",
+		"GraphicsPipeline",
+		"GraphicsPipelineLayout",
 	};
 
 	struct IRHIObject
@@ -520,6 +540,8 @@ namespace Influx::Graphics
 	{
 		RHIObject() = default;
 		RHIObject(void* internalPointer) : IRHIObject(internalPointer) {}
+
+		constexpr static ERHIObject GetType() { return _E; }
 	};
 
 	// RHITexture

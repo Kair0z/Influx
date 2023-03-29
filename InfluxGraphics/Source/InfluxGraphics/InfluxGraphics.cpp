@@ -35,11 +35,41 @@ namespace Influx::Graphics
             m_isDebugLayerActive = isActive;
         }
 
+        using ObjectContainer = Vector<IRHIObject*>;
+        
+        template <class _E>
+        bool CanRegisterRHIObject()
+        {
+            constexpr uint8 idx = static_cast<uint8>(_E::GetType());
+
+            return m_objectLists[idx].size() < k_maxNumRHIObjectsPerType[idx];
+        }
+
+        template <class _E>
+        _E* RegisterRHIObject(_E* object)
+        {
+            if (!CanRegisterRHIObject<_E>())
+            {
+                return nullptr;
+            }
+
+            constexpr uint8 idx = static_cast<uint8>(_E::GetType());
+            m_objectLists[idx].push_back(object);
+
+            return object;
+        }
+
+        template <class _E>
+        const ObjectContainer& GetRHIObjectsOfType() const
+        {
+            return m_objectLists[static_cast<uint8>(_E::GetType())];
+        }
+
     private:
         EGraphicsAPI m_currentInitializedAPI = EGraphicsAPI::NotSupported;
         bool m_isDebugLayerActive = false;
 
-        Vector<RHIGraphicsCommandQueueHandle> m_graphicsCommandQueues;
+        Array<ObjectContainer, static_cast<uint8>(ERHIObject::Max)> m_objectLists;
 
 #if INFLUX_GRAPHICS_INCLUDE_DX12
     private:
@@ -64,7 +94,7 @@ namespace Influx::Graphics
         {
             m_currentInitializedAPI = EGraphicsAPI::D3D12;
 
-            DxgiFactory2 = D3D12::Factory::CreateTier2(INFLUX_GRAPHICS_DEBUG);
+            DxgiFactory2 = D3D12::Factory::CreateTier2(m_isDebugLayerActive);
             DxgiPhysicalDevices = D3D12::Adapter::SelectAll(DxgiFactory2);
             MainAdapterIndex = 0u; // Temp...
 
@@ -72,7 +102,7 @@ namespace Influx::Graphics
             {
                 if (i == MainAdapterIndex)
                 {
-                    DxLogicalDevices.push_back(D3D12::Device::Create(DxgiPhysicalDevices[i], INFLUX_GRAPHICS_DEBUG));
+                    DxLogicalDevices.push_back(D3D12::Device::Create(DxgiPhysicalDevices[i], m_isDebugLayerActive));
                 }
                 else
                 {
@@ -185,6 +215,9 @@ namespace Influx::Graphics
     {
         GlobalState::Get().SetDebugLayerActive(true);
 
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+        D3D12::EnableDxDebugLayer();
+#endif
         return EResult{};
     }
 
@@ -200,14 +233,21 @@ namespace Influx::Graphics
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
 
-            out_handle = D3D12::CreateDxCommandQueue(GlobalState::Get().GetDevice(), 
-                D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+            if (GlobalState().Get().CanRegisterRHIObject<RHIGraphicsCommandQueueHandle>())
+            {
+                out_handle = D3D12::CreateDxCommandQueue(GlobalState::Get().GetDevice(),
+                    D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-            return EResult(true);
+                GlobalState().Get().RegisterRHIObject(&out_handle);
+            }
+            else
+            {
+                return EResult(false);
+            }
 #endif
         }
 
-        return EResult(false);
+        return EResult();
     }
 
     EResult CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle)
