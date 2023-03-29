@@ -22,6 +22,8 @@
 #include "Core/KDTree.h"
 #include "Core/Platform/WindowsPlatform.h"
 
+using uint8 = unsigned char;
+
 constexpr size_t  gWindowWidth = 640;
 constexpr size_t  gWindowHeight = 480;
 constexpr size_t  gNumPixels = gWindowWidth * gWindowHeight;
@@ -245,10 +247,10 @@ int main()
 
                         const size_t pixelBaseIdx = p * 4u;
 
-                        backbufferPixels[pixelBaseIdx]      = 255.0f * pixelResult.RGBA.b; // B
-                        backbufferPixels[pixelBaseIdx + 1u] = 255.0f * pixelResult.RGBA.g; // G
-                        backbufferPixels[pixelBaseIdx + 2u] = 255.0f * pixelResult.RGBA.r; // R
-                        backbufferPixels[pixelBaseIdx + 3u] = 255.0f * pixelResult.RGBA.a; // A
+                        backbufferPixels[pixelBaseIdx]      = static_cast<uint8>(255.0f * pixelResult.RGBA.b); // B
+                        backbufferPixels[pixelBaseIdx + 1u] = static_cast<uint8>(255.0f * pixelResult.RGBA.g); // G
+                        backbufferPixels[pixelBaseIdx + 2u] = static_cast<uint8>(255.0f * pixelResult.RGBA.r); // R
+                        backbufferPixels[pixelBaseIdx + 3u] = static_cast<uint8>(255.0f * pixelResult.RGBA.a); // A
 
                         depthBufferPixels[p] = pixelResult.Depth;
                     }
@@ -284,7 +286,7 @@ int main()
         // Finalize frame-time
         double thisFrame = Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeFrame);
         stats.AddValue<Stats::EStat::Frame>(thisFrame);
-        sceneTime.DeltaTime = thisFrame / 1000;
+        sceneTime.DeltaTime = static_cast<float>(thisFrame / 1000);
         sceneTime.Time += sceneTime.DeltaTime;
         
         // LOG
