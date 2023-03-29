@@ -128,8 +128,6 @@ namespace Influx::Graphics
 		D3D12DescriptorHeap* d3d12DescriptorHeap = (D3D12DescriptorHeap*)descriptorHeap;
 
 		constexpr ERHIFormat temp_format = ERHIFormat::RGBA_8_Unorm;
-		D3D12_RENDER_TARGET_VIEW_DESC desc{};
-		desc.Format = Conversion::ToDx12(temp_format);
 
 		const D3D12_RESOURCE_DESC& resource_desc = d3d12Resource->GetDxResource()->GetDesc();
 		const Math::Vectoru2 resource_dimensions = { (uint32)resource_desc.Width, (uint32)resource_desc.Height };

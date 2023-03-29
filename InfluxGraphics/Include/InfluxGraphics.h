@@ -22,9 +22,14 @@
 
 #ifndef INFLUX_GRAPHICS_TODO
 #if INFLUX_GRAPHICS_DEBUG
+#include <cassert>
+
 #define INFLUX_GRAPHICS_TODO __debugbreak();
+#define INFLUX_GRAPHICS_ASSERT(x) assert(x);
+
 #else
 #define INFLUX_GRAPHICS_TODO;
+#define INFLUX_GRAPHICS_ASSERT;
 #endif
 #endif // INFLUX_GRAPHICS_TODO
 
@@ -487,6 +492,8 @@ namespace Influx::Graphics
 		Swapchain,
 		GraphicsPipeline,
 		GraphicsPipelineLayout,
+		Texture,
+		Buffer,
 		Max
 	};
 
@@ -510,12 +517,18 @@ namespace Influx::Graphics
 		"GraphicsPipelineLayout",
 	};
 
-	struct IRHIObject
+	class IRHIObjectHandle
 	{
-		IRHIObject() = default;
-		IRHIObject(void* internalPointer) : mp_internal{ internalPointer } {}
-
 	public:
+		IRHIObjectHandle() = default;
+		IRHIObjectHandle(void* internalPointer) : mp_internal{ internalPointer } {}
+
+#if INFLUX_GRAPHICS_DEBUG
+		virtual const char* GetDebugName() const { return "IRHIObject"; };
+#endif
+
+		virtual ERHIObject GetType() const { return ERHIObject::Max; };
+
 		operator bool() const
 		{
 			return IsValid();
@@ -531,21 +544,33 @@ namespace Influx::Graphics
 			return mp_internal;
 		}
 
+		template <class _T>
+		_T* GetInternal() const
+		{
+			return (_T*)GetInternal();
+		}
+
 	private:
 		void* mp_internal = nullptr;
 	};
 
 	template <ERHIObject _E>
-	struct RHIObject : public IRHIObject 
+	struct RHIObjectHandle : public IRHIObjectHandle 
 	{
-		RHIObject() = default;
-		RHIObject(void* internalPointer) : IRHIObject(internalPointer) {}
+		RHIObjectHandle() = default;
+		RHIObjectHandle(void* internalPointer) : IRHIObjectHandle(internalPointer) {}
 
-		constexpr static ERHIObject GetType() { return _E; }
+#if INFLUX_GRAPHICS_DEBUG
+		virtual const char* GetDebugName() const override final { return k_RHIObjectsNameStrings[static_cast<uint8>(_E)]; };
+#endif
+
+		virtual ERHIObject GetType() const override final { return GetStaticType(); };
+
+		constexpr static ERHIObject GetStaticType() { return _E; }
 	};
 
 	// RHITexture
-	using RHITextureHandle = void*;
+	using RHITextureHandle = RHIObjectHandle<ERHIObject::Texture>;
 
 	struct RHITextureDesc final
 	{
@@ -555,16 +580,16 @@ namespace Influx::Graphics
 	};
 
 	// RHIGraphicsCommandList
-	using RHIGraphicsCommandListHandle = RHIObject<ERHIObject::CommandList>;
+	using RHIGraphicsCommandListHandle = RHIObjectHandle<ERHIObject::CommandList>;
 
 	// RHIGraphics Command Queue
-	using RHIGraphicsCommandQueueHandle = RHIObject<ERHIObject::CommandQueue>;
+	using RHIGraphicsCommandQueueHandle = RHIObjectHandle<ERHIObject::CommandQueue>;
 
 	// RHIGraphics Command Queue
-	using RHIGraphicsCommandBufferHandle = RHIObject<ERHIObject::CommandAllocator>;
+	using RHIGraphicsCommandBufferHandle = RHIObjectHandle<ERHIObject::CommandAllocator>;
 
 	// RHIPipeline
-	using RHIGraphicsPipelineHandle = RHIObject<ERHIObject::GraphicsPipeline>;
+	using RHIGraphicsPipelineHandle = RHIObjectHandle<ERHIObject::GraphicsPipeline>;
 
 	struct RHIGraphicsPipelineDesc final
 	{
@@ -632,7 +657,7 @@ namespace Influx::Graphics
 	};
 
 	// RHIPipeline Layout
-	using RHIGraphicsPipelineLayoutHandle = RHIObject<ERHIObject::GraphicsPipelineLayout>;
+	using RHIGraphicsPipelineLayoutHandle = RHIObjectHandle<ERHIObject::GraphicsPipelineLayout>;
 
 	struct RHIGraphicsPipelineLayoutDesc final
 	{
@@ -640,7 +665,7 @@ namespace Influx::Graphics
 	};
 
 	// RHIBuffer 
-	using RHIBufferHandle = void*;
+	using RHIBufferHandle = RHIObjectHandle<ERHIObject::Buffer>;
 
 	struct RHIBufferDesc final
 	{
@@ -650,7 +675,7 @@ namespace Influx::Graphics
 	};
 
 	// RHISwapchain
-	using RHISwapchainHandle = void*;
+	using RHISwapchainHandle = RHIObjectHandle<ERHIObject::Swapchain>;
 
 	struct RHISwapchainDesc final
 	{
@@ -662,6 +687,7 @@ namespace Influx::Graphics
 			Max
 		} Buffering;
 
+		void* WindowHandle;
 		Math::Vectoru2 Dimensions;
 		bool bIsTearingSupported;
 	};
@@ -681,6 +707,7 @@ namespace Influx::Graphics
 
 #pragma endregion
 
+// EResult
 namespace Influx::Graphics
 {
 	struct EResult final
@@ -738,13 +765,19 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandList(RHIGraphicsCommandListHandle& out_handle);
+	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandList(RHIGraphicsCommandBufferHandle& out_existingCommandBuffer, RHIGraphicsCommandListHandle& out_handle);
+
+	/* */
+	INFLUX_GRAPHICS_API EResult ResetGraphicsCommandlist(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandBufferHandle& commandbufferHandle);
+	
+	/* */
+	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommandList(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle);
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult DispatchSwapchainPresent();
+	INFLUX_GRAPHICS_API EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain);
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);
@@ -759,10 +792,13 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API EResult CreateBuffer(const RHIBufferDesc& desc, RHIBufferHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommands(Function<void()> commands);
+	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommands(Function<void(const RHIGraphicsCommandListHandle&)> commands);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult GraphicsCmd_ClearRenderTargetView();
+	INFLUX_GRAPHICS_API EResult Cmd_ClearRenderTargetView(const RHIGraphicsCommandListHandle& cmdListHandle);
+
+	/* */
+	INFLUX_GRAPHICS_API EResult Cmd_ClearSwapchainBackBuffer(const RHIGraphicsCommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour);
 }
 
 #endif
