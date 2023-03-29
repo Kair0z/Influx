@@ -80,21 +80,21 @@ namespace Influx
 
 	Math::Ray PixelRaytracer::CreateViewRay(const Math::Vectorf2& uv, const float ar, float sampleRandStrength) const
 	{
-		Math::Vectorf3 worldOrigin = GetCamera().GetPosition();
-		Math::Vectorf3 worldDirection = GetCamera().GetForward();
+		Math::Vectorf3 worldOrigin = GetCameraPosition();
+		Math::Vectorf3 worldDirection = GetCameraForward();
 
 		Math::Vectorf2 ndc = (2 * uv) - Math::Vectorf2(1.0f, 1.0f); // [uv:0,1] => [ndc:-1,1]
 
 		if (sampleRandStrength > 0.0f)
 		{
 			// Apply a random pixel-offset
-			worldOrigin.x += (ndc.x + (sampleRandStrength * Random::TentRandom<float>() * ar)) * GetCamera().GetFieldOfView() * ar;
-			worldOrigin.y += (ndc.y + (sampleRandStrength * Random::TentRandom<float>())) * GetCamera().GetFieldOfView();
+			worldOrigin.x += (ndc.x + (sampleRandStrength * Random::TentRandom<float>() * ar)) * GetCamera().GetFov() * ar;
+			worldOrigin.y += (ndc.y + (sampleRandStrength * Random::TentRandom<float>())) * GetCamera().GetFov();
 		}
 		else
 		{
-			worldOrigin.x += (ndc.x) * GetCamera().GetFieldOfView() * ar;
-			worldOrigin.y += (ndc.y) * GetCamera().GetFieldOfView();
+			worldOrigin.x += (ndc.x) * GetCamera().GetFov() * ar;
+			worldOrigin.y += (ndc.y) * GetCamera().GetFov();
 		}
 
 		float min = GetRenderSettings().RenderDepthMinMax.x;

@@ -23,7 +23,6 @@ int main()
 				if (Graphics::RHISwapchainHandle swapchainHandle; 
 					Graphics::CreateSwapchain(swapchainDesc, swapchainHandle))
 				{
-
 					// Dispatch work to GPU
 					Graphics::DispatchGraphicsCommands([swapchainHandle](const Graphics::RHIGraphicsCommandListHandle& cmdList)
 					{
