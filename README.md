@@ -10,9 +10,9 @@
 - [InfluxRayTracing]: Standalone CPU-Raytracer application using [InfluxCore]
 
 2. Libraries
-- [InfluxCore]: Header-only central library providing various basic-types, math-& utility-functions 
-- [InfluxApplication]: Library providing an Application interface that hosts [InfluxEngine]
-- [InfluxEngine]: ...
+- [InfluxCore]: Header-only library providing various basic-types, math-& utility-functions 
+- [InfluxApplication]: Library providing a Windowed Application interface that hosts [InfluxEngine]
+- [InfluxEngine]: ... Honestly not quite sure yet what functionality will reside in this centralized unit...
 - [InfluxGraphics]: RHI-library (similar to Unreal Engine) providing an abstraction layer of Graphics APIs (Dx12/Vulkan)
 - [InfluxRenderer]: Library providing a Renderer interface using [InfluxGraphics]
 - [InfluxAssets]: Library providing asset-loading functionality (PNGs, FBXs, OBJs, ...)
