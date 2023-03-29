@@ -23,40 +23,23 @@ int main()
 	using namespace Influx;
 
 	Graphics::Create(Graphics::EGraphicsAPI::D3D12, []()
+	{
+		uint64 CurrentFrame = 0u;
+
+		while (true)
 		{
-			struct FrameBuffer final
+			// Dispatch work to GPU
+			Graphics::DispatchGraphicsCommands([]()
 			{
-				uint64 Index;
-				Graphics::RHIGraphicsCommandBufferHandle CommandBuffer;
+				Graphics::GraphicsCmd_ClearRenderTargetView();
+				
+			});
 
-				bool IsInFlight()
-				{
-					return (CommandBuffer != nullptr) && (CommandBuffer);
-				}
-			}
-			FrameBuffers[static_cast<uint8>(Settings::Buffering)];
+			// Dispatch Swapchain to present
+			Graphics::DispatchSwapchainPresent();
 
-			uint64 CurrentFrame = 0u;
-
-			if (Graphics::RHIGraphicsCommandQueueHandle graphicsQueue; Graphics::CreateGraphicsCommandQueue(graphicsQueue))
-			{
-				while (true)
-				{
-					FrameBuffer& fb = FrameBuffers[CurrentFrame % 3u];
-
-					while (fb.IsInFlight()) { /* Wait... */ }
-
-					fb.Index = CurrentFrame;
-					
-					// Get a commandBuffer
-					if (Graphics::RHIGraphicsCommandBufferHandle commandBuffer; Graphics::CreateGraphicsCommandBuffer(fb.CommandBuffer))
-					{
-						
-					}
-
-					++CurrentFrame;
-				}
-			}
-			
-		});
+			++CurrentFrame;
+		}
+		
+	});
 }

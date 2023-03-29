@@ -479,6 +479,49 @@ namespace Influx::Graphics
 #pragma region RHI Types - Classes
 namespace Influx::Graphics
 {
+	enum class ERHIObject
+	{
+		CommandQueue,
+		CommandList,
+		CommandAllocator,
+		Swapchain,
+		GraphicsPipeline,
+		GraphicsPipelineLayout,
+		Max
+	};
+
+	struct IRHIObject
+	{
+		IRHIObject() = default;
+		IRHIObject(void* internalPointer) : mp_internal{ internalPointer } {}
+
+	public:
+		operator bool() const
+		{
+			return IsValid();
+		}
+
+		bool IsValid() const
+		{
+			return mp_internal != nullptr;
+		}
+
+		void* GetInternal() const
+		{
+			return mp_internal;
+		}
+
+	private:
+		void* mp_internal = nullptr;
+	};
+
+	template <ERHIObject _E>
+	struct RHIObject : public IRHIObject 
+	{
+		RHIObject() = default;
+		RHIObject(void* internalPointer) : IRHIObject(internalPointer) {}
+	};
+
 	// RHITexture
 	using RHITextureHandle = void*;
 
@@ -490,16 +533,16 @@ namespace Influx::Graphics
 	};
 
 	// RHIGraphicsCommandList
-	using RHIGraphicsCommandListHandle = void*;
+	using RHIGraphicsCommandListHandle = RHIObject<ERHIObject::CommandList>;
 
 	// RHIGraphics Command Queue
-	using RHIGraphicsCommandQueueHandle = void*;
+	using RHIGraphicsCommandQueueHandle = RHIObject<ERHIObject::CommandQueue>;
 
 	// RHIGraphics Command Queue
-	using RHIGraphicsCommandBufferHandle = void*;
+	using RHIGraphicsCommandBufferHandle = RHIObject<ERHIObject::CommandAllocator>;
 
 	// RHIPipeline
-	using RHIGraphicsPipelineHandle = void*;
+	using RHIGraphicsPipelineHandle = RHIObject<ERHIObject::GraphicsPipeline>;
 
 	struct RHIGraphicsPipelineDesc final
 	{
@@ -567,7 +610,7 @@ namespace Influx::Graphics
 	};
 
 	// RHIPipeline Layout
-	using RHIGraphicsPipelineLayoutHandle = void*;
+	using RHIGraphicsPipelineLayoutHandle = RHIObject<ERHIObject::GraphicsPipelineLayout>;
 
 	struct RHIGraphicsPipelineLayoutDesc final
 	{
@@ -679,6 +722,9 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API EResult CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle);
 
 	/* */
+	INFLUX_GRAPHICS_API EResult DispatchSwapchainPresent();
+
+	/* */
 	INFLUX_GRAPHICS_API EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);
 
 	/* */
@@ -689,6 +735,12 @@ namespace Influx::Graphics
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateBuffer(const RHIBufferDesc& desc, RHIBufferHandle& out_handle);
+
+	/* */
+	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommands(Function<void()> commands);
+
+	/* */
+	INFLUX_GRAPHICS_API EResult GraphicsCmd_ClearRenderTargetView();
 }
 
 #endif
