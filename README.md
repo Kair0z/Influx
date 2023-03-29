@@ -30,7 +30,12 @@ To install the correct components some graphics-related code, make sure the **Ga
 
 3. Open the existing solution (.sln) file [Influx/Influx.sln]
 
-4. Build 1 or any other of the Application.
+4. Have fun compiling :)
+- !!! [InfluxGame & InfluxEditor] will currently crash because
+= these projects still expect us to manually copy over dependency-runtime-libraries into the output folder... (residing in 3thParty/lib/(platform)/(configuration)/...)
+= there's no localized paths to shader-assets we're loading in.
+- The Application-projects are grouped together and serve as runnable entrypoints into the various Library-Projects (.exe)
+
 
 ¬ Active Branches
 ------------
