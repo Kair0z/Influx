@@ -60,9 +60,35 @@ namespace Influx::Graphics
         }
 
         template <class _E>
+        _E TryRegisterRHIObject(Function<_E()> creationCallback)
+        {
+            if (CanRegisterRHIObject<_E>())
+            {
+                _E created = creationCallback();
+                constexpr uint8 idx = static_cast<uint8>(_E::GetType());
+                m_objectLists[idx].push_back(&created);
+
+                return created;
+            }
+
+            return {};
+        }
+
+        template <class _E>
         const ObjectContainer& GetRHIObjectsOfType() const
         {
             return m_objectLists[static_cast<uint8>(_E::GetType())];
+        }
+
+        template <class _E>
+        const IRHIObject* GetRHIObjectOfType(uint8 idx) const
+        {
+            if (idx < GetRHIObjectsOfType<_E>().size())
+            {
+                return m_objectLists[static_cast<uint8>(_E::GetType())][idx];
+            }
+            
+            return nullptr;
         }
 
     private:
@@ -233,17 +259,12 @@ namespace Influx::Graphics
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
 
-            if (GlobalState().Get().CanRegisterRHIObject<RHIGraphicsCommandQueueHandle>())
+            out_handle = GlobalState().Get().TryRegisterRHIObject<RHIGraphicsCommandQueueHandle>([]()
             {
-                out_handle = D3D12::CreateDxCommandQueue(GlobalState::Get().GetDevice(),
-                    D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
-
-                GlobalState().Get().RegisterRHIObject(&out_handle);
-            }
-            else
-            {
-                return EResult(false);
-            }
+                return D3D12::CreateDxCommandQueue(GlobalState::Get().GetDevice(), D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+            });
+            
+            return EResult();
 #endif
         }
 
@@ -257,8 +278,11 @@ namespace Influx::Graphics
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
 
-            out_handle = D3D12::CreateDxCommandAllocator(GlobalState::Get().GetDevice(),
-                D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+            out_handle = GlobalState().Get().TryRegisterRHIObject<RHIGraphicsCommandBufferHandle>([]()
+            {
+                return D3D12::CreateDxCommandAllocator(GlobalState::Get().GetDevice(),
+                    D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+            });
 
             return EResult(true);
 #endif
@@ -321,7 +345,6 @@ namespace Influx::Graphics
         {
             if (RHIGraphicsCommandListHandle commandList; CreateGraphicsCommandList(commandList))
             {
-
                 commands();
             }
         }

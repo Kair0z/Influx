@@ -493,12 +493,12 @@ namespace Influx::Graphics
 	constexpr uint8 k_numRHIObjectTypes = static_cast<uint8>(ERHIObject::Max);
 	constexpr uint8 k_maxNumRHIObjectsPerType[k_numRHIObjectTypes]
 	{
-		1u,
-		16u,
-		16u,
-		1u,
-		64,
-		64,
+		1u,		// CommandQueue
+		16u,	// CommandList
+		16u,	// CommandAllocator
+		1u,		// Swapchain
+		64,		// GraphicsPipeline
+		64,		// GraphicsPipelineLayout
 	};
 	constexpr const char* k_RHIObjectsNameStrings[k_numRHIObjectTypes]
 	{
