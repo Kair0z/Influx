@@ -765,6 +765,9 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle);
 
 	/* */
+	INFLUX_GRAPHICS_API EResult WaitForGraphicsCommandQueueToFinish(const RHIGraphicsCommandQueueHandle& commandQueueHandle);
+
+	/* */
 	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
 
 	/* */
@@ -774,7 +777,7 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API EResult ResetGraphicsCommandlist(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandBufferHandle& commandbufferHandle);
 	
 	/* */
-	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommandList(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle);
+	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommandListToGpu(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle);
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle);
@@ -800,11 +803,14 @@ namespace Influx::Graphics
 	/* */
 	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommands(Function<void(const RHIGraphicsCommandListHandle&)> commands);
 
-	/* */
-	INFLUX_GRAPHICS_API EResult Cmd_ClearRenderTargetView(const RHIGraphicsCommandListHandle& cmdListHandle);
+	namespace Commands
+	{
+		/* */
+		INFLUX_GRAPHICS_API EResult ClearRenderTargetView(const RHIGraphicsCommandListHandle& cmdListHandle);
 
-	/* */
-	INFLUX_GRAPHICS_API EResult Cmd_ClearSwapchainBackBuffer(const RHIGraphicsCommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour);
+		/* */
+		INFLUX_GRAPHICS_API EResult ClearSwapchainBackBuffer(const RHIGraphicsCommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour);
+	}
 }
 
 #endif

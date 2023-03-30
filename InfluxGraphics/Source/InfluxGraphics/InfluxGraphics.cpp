@@ -304,6 +304,20 @@ namespace Influx::Graphics
         return EResult(true);
     }
 
+    EResult WaitForGraphicsCommandQueueToFinish(const RHIGraphicsCommandQueueHandle& commandQueueHandle)
+    {
+        switch (GetInitializedGraphicsAPI())
+        {
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+        case EGraphicsAPI::D3D12:
+            INFLUX_GRAPHICS_TODO;
+            break;
+#endif
+        }
+        
+        return EResult(true);
+    }
+
     EResult CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle)
     {
         switch (GetInitializedGraphicsAPI())
@@ -377,7 +391,7 @@ namespace Influx::Graphics
         return { false };
     }
 
-    EResult DispatchGraphicsCommandList(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle)
+    EResult DispatchGraphicsCommandListToGpu(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle)
     {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         if (ID3D12GraphicsCommandList* d3d12GfxCmdList = commandListHandle.GetInternal<ID3D12GraphicsCommandList>())
@@ -509,7 +523,10 @@ namespace Influx::Graphics
             CreateGraphicsCommandQueue(cmdQueueHandle);
         }
 
+        // List of commands we'll pass on for the entire 'frame'
         RHIGraphicsCommandListHandle cmdListHandle;
+
+        // Memory allocator for the whole 'frame'
         RHIGraphicsCommandBufferHandle cmdBufferHandle;
 
         if (CreateGraphicsCommandList(cmdBufferHandle, cmdListHandle))
@@ -517,48 +534,50 @@ namespace Influx::Graphics
             // Record commands...
             commands(cmdListHandle);
 
-            // Dispatch to GPU...
-            DispatchGraphicsCommandList(cmdListHandle, cmdQueueHandle);
+            DispatchGraphicsCommandListToGpu(cmdListHandle, cmdQueueHandle);
         }
         
         return EResult();
     }
 
-    EResult Cmd_ClearRenderTargetView(const RHIGraphicsCommandListHandle& cmdListHandle)
+    namespace Commands
     {
-#if INFLUX_GRAPHICS_INCLUDE_DX12
-        if (ID3D12GraphicsCommandList* d3d12CmdList = cmdListHandle.GetInternal<ID3D12GraphicsCommandList>())
+        EResult ClearRenderTargetView(const RHIGraphicsCommandListHandle& cmdListHandle, const Math::Vectorf4& colour)
         {
-            // d3d12CmdList->ClearRenderTargetView()
-        }
-#endif
-
-        return { true };
-    }
-
-    EResult Cmd_ClearSwapchainBackBuffer(const RHIGraphicsCommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour)
-    {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
-        if (ID3D12GraphicsCommandList* gfxCmdList = cmdListHandle.GetInternal<ID3D12GraphicsCommandList>())
-        {
-            if (IDXGISwapChain3* swapchain = swapchainHandle.GetInternal<IDXGISwapChain3>())
+            if (ID3D12GraphicsCommandList* d3d12CmdList = cmdListHandle.GetInternal<ID3D12GraphicsCommandList>())
             {
-                ID3D12Resource* bufferResource;
-                swapchain->GetBuffer(swapchain->GetCurrentBackBufferIndex(), IID_PPV_ARGS(&bufferResource));
-
-                D3D12_CPU_DESCRIPTOR_HANDLE resultRenderTargetView{};
-
-                // Create the rendertargetview for buffer
-                GlobalState::GetDevice()->CreateRenderTargetView(bufferResource, nullptr, resultRenderTargetView);
-
-                gfxCmdList->ClearRenderTargetView(resultRenderTargetView, colour.data, 0u, nullptr);
-
-                // Do we need to?
-                bufferResource->Release();
+                // d3d12CmdList->ClearRenderTargetView()
             }
-        }
 #endif
 
-        return { true };
+            return { true };
+        }
+
+        EResult ClearSwapchainBackBuffer(const RHIGraphicsCommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour)
+        {
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+            if (ID3D12GraphicsCommandList* gfxCmdList = cmdListHandle.GetInternal<ID3D12GraphicsCommandList>())
+            {
+                if (IDXGISwapChain3* swapchain = swapchainHandle.GetInternal<IDXGISwapChain3>())
+                {
+                    ID3D12Resource* bufferResource;
+                    swapchain->GetBuffer(swapchain->GetCurrentBackBufferIndex(), IID_PPV_ARGS(&bufferResource));
+
+                    D3D12_CPU_DESCRIPTOR_HANDLE resultRenderTargetView{};
+
+                    // Create the rendertargetview for buffer
+                    GlobalState::GetDevice()->CreateRenderTargetView(bufferResource, nullptr, resultRenderTargetView);
+
+                    gfxCmdList->ClearRenderTargetView(resultRenderTargetView, colour.data, 0u, nullptr);
+
+                    // Do we need to?
+                    bufferResource->Release();
+                }
+            }
+#endif
+
+            return { true };
+        }
     }
 }

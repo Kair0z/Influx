@@ -26,7 +26,7 @@ int main()
 					// Dispatch work to GPU
 					Graphics::DispatchGraphicsCommands([swapchainHandle](const Graphics::RHIGraphicsCommandListHandle& cmdList)
 					{
-						Graphics::Cmd_ClearSwapchainBackBuffer(cmdList, swapchainHandle, { 1,0,0,1 });
+						Graphics::Commands::Cmd_ClearSwapchainBackBuffer(cmdList, swapchainHandle, { 1,0,0,1 });
 					});
 
 
