@@ -494,6 +494,8 @@ namespace Influx::Graphics
 		GraphicsPipelineLayout,
 		Texture,
 		Buffer,
+		DescriptorHeap,
+		Descriptor,
 		Max
 	};
 
@@ -693,7 +695,8 @@ namespace Influx::Graphics
 	};
 
 	// RHIDescriptorHeap
-	using RHIDescriptorHeapHandle = void*;
+	using RHIDescriptorHeapHandle = RHIObjectHandle<ERHIObject::DescriptorHeap>;
+	using RHIDescriptorHandle = RHIObjectHandle<ERHIObject::Descriptor>;
 
 	struct RHIDescriptorHeapDesc final
 	{
@@ -781,6 +784,9 @@ namespace Influx::Graphics
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);
+
+	/* */
+	INFLUX_GRAPHICS_API EResult CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap);
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& desc, RHIGraphicsPipelineHandle& out_handle);

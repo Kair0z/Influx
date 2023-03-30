@@ -32,7 +32,7 @@ int main()
 
 					// Present the swapchain back-buffer
 					Graphics::DispatchSwapchainPresent(swapchainHandle);
-				
-			}});
+				}
+			});
 	}
 }
