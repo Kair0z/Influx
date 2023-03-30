@@ -556,6 +556,12 @@ namespace Influx::Graphics
 		void* mp_internal = nullptr;
 	};
 
+	template <class _I>
+	_I* GetInternalType(IRHIObjectHandle objectHandle)
+	{
+		return (_I)objectHandle.GetInternal();
+	}
+
 	template <ERHIObject _E>
 	struct RHIObjectHandle : public IRHIObjectHandle 
 	{
@@ -779,7 +785,11 @@ namespace Influx::Graphics
 	/* */
 	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommandListToGpu(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle);
 
-	/* */
+	/* Create an RHI swapchain 
+	* Implicitly creates/uses a RHICommandQueue
+	* Implicitly creates RHIBuffer(s) x num-buffers
+	* Implicitly creates RHIRenderTargetView(s) x num-buffers
+	*/
 	INFLUX_GRAPHICS_API EResult CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle);
 
 	/* */

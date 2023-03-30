@@ -101,6 +101,12 @@ namespace Influx::Graphics
             return GetRHIObjectsOfType<_E::GetStaticType()>();
         }
 
+        template <ERHIObject _E>
+        static bool HasObjectOfType()
+        {
+            return GetRHIObjectsOfType<_E>().size() != 0u;
+        }
+
         /* GetRHIObjectsOfType[idx]*/
         template <class _E>
         static _E GetRHIObjectOfType(uint8 idx)
@@ -114,6 +120,17 @@ namespace Influx::Graphics
             }
             
             return _E{ nullptr };
+        }
+
+        /* GetAndOrCreateDescriptor */
+        static RHIDescriptorHandle GetAndOrCreateDescriptor(const RHIBufferHandle& bufferHandle)
+        {
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+            RHIDescriptorHandle descriptor;
+            
+            return descriptor;
+#endif
+            return {};
         }
 
     private:
@@ -368,21 +385,17 @@ namespace Influx::Graphics
 
     EResult ResetGraphicsCommandlist(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandBufferHandle& commandbufferHandle)
     {
+        INFLUX_GRAPHICS_ASSERT(commandListHandle);
+        INFLUX_GRAPHICS_ASSERT(commandbufferHandle);
+
         switch (GetInitializedGraphicsAPI())
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
 
-            if (ID3D12GraphicsCommandList* d3d12CmdList = commandListHandle.GetInternal<ID3D12GraphicsCommandList>())
-            {
-                if (ID3D12CommandAllocator* d3d12Allocator = commandbufferHandle.GetInternal<ID3D12CommandAllocator>())
-                {
-                    d3d12CmdList->Close();
-                    d3d12CmdList->Reset(d3d12Allocator, nullptr);
-                }
-                else INFLUX_GRAPHICS_ASSERT(false);
-            }
-            else INFLUX_GRAPHICS_ASSERT(false);
+            GetInternalType<ID3D12GraphicsCommandList>(commandListHandle)->Close();
+            GetInternalType<ID3D12GraphicsCommandList>(commandListHandle)->Reset(commandbufferHandle.GetInternal<ID3D12CommandAllocator>(), nullptr);
+
             break;
 #endif
         }
@@ -429,19 +442,34 @@ namespace Influx::Graphics
             CreateGraphicsCommandQueue(cmdQueueHandle);
         }
 
+        INFLUX_GRAPHICS_ASSERT(cmdQueueHandle.IsValid());
+
         switch (GetInitializedGraphicsAPI())
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
 
-            if (ID3D12CommandQueue* d3d12CmdQueue = cmdQueueHandle.GetInternal<ID3D12CommandQueue>())
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHISwapchainHandle>([&desc, &cmdQueueHandle, numBuffers]()
+                {
+                    return D3D12::Swapchain::CreateTier3(GlobalState::GetFactory2(), (::HWND)desc.WindowHandle, cmdQueueHandle.GetInternal<ID3D12CommandQueue>(),
+                        desc.Dimensions.x, desc.Dimensions.y, numBuffers);
+                });
+
+            INFLUX_GRAPHICS_ASSERT(out_handle.IsValid());
+
+            // Register buffer-resources to RHI:
+            for (uint8 i = 0; i < numBuffers; ++i)
             {
-                out_handle = GlobalState::CreateAndRegisterRHIObject<RHISwapchainHandle>([&desc, &d3d12CmdQueue, numBuffers]()
-                    {
-                        return D3D12::Swapchain::CreateTier3(GlobalState::GetFactory2(), (::HWND)desc.WindowHandle, d3d12CmdQueue,
-                            desc.Dimensions.x, desc.Dimensions.y, numBuffers);
-                    });
+                ID3D12Resource* resource;
+                if (out_handle.GetInternal<IDXGISwapChain3>()->GetBuffer(i, IID_PPV_ARGS(&resource)))
+                {
+                    GlobalState::RegisterRHIObject<RHIBufferHandle>(resource);
+                }
+                else INFLUX_GRAPHICS_ASSERT(false);
+
+
             }
+
             break;
 #endif
         }
@@ -531,6 +559,10 @@ namespace Influx::Graphics
 
         if (CreateGraphicsCommandList(cmdBufferHandle, cmdListHandle))
         {
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+            // ...
+#endif
+
             // Record commands...
             commands(cmdListHandle);
 
