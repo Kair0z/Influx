@@ -16,7 +16,7 @@ namespace Influx
 		// [Setup Graphics]
 		InitializeDevice();
 		InitializeCommandQueue();
-#
+
 		// Setup GraphicsPipeline & Layout
 		InitializeRenderPipeline();
 
