@@ -22,11 +22,28 @@ namespace Settings
 	const float AspectRatio = (float)WindowDimensions.x / (float)WindowDimensions.y;
 }
 
+struct Shaders final
+{
+	using ByteCode = Vector<byte>;
+
+	ByteCode VertexShader;
+	ByteCode PixelShader;
+};
+
+struct SceneData final
+{
+	using Index = uint64;
+	using VertexBuffer = Vector<Math::Vertex>;
+	using IndexBuffer = Vector<Index>;
+
+	VertexBuffer VertexBuffer;
+	IndexBuffer IndexBuffer;
+};
+
 int main()
 {
 	// [Compile Shaders]
-	Vector<byte> compiledVertexShader{};
-	Vector<byte> compiledPixelShader{};
+	Shaders shaders{};
 	{
 #if defined(_DEBUG)
 		// Enable better shader debugging with the graphics debugging tools.
@@ -44,21 +61,18 @@ int main()
 
 		for (uint32 i = 0; i < vertexShader->GetBufferSize(); ++i)
 		{
-			compiledVertexShader.push_back(reinterpret_cast<uint8*>(vertexShader->GetBufferPointer())[i]);
+			shaders.VertexShader.push_back(reinterpret_cast<uint8*>(vertexShader->GetBufferPointer())[i]);
 		}
 
 		for (uint32 i = 0; i < pixelShader->GetBufferSize(); ++i)
 		{
-			compiledPixelShader.push_back(reinterpret_cast<uint8*>(pixelShader->GetBufferPointer())[i]);
+			shaders.PixelShader.push_back(reinterpret_cast<uint8*>(pixelShader->GetBufferPointer())[i]);
 		}
 	}
 
-	// [Get Vertex Buffers]
-	Assets::Scene leblancScene{};
-	bool sceneLoaded = Assets::LoadScene("E:/Git/Influx/Resources/Meshes/box.fbx", leblancScene);
-
-	Vector<Math::Vertex> vertices{};
-	Vector<uint64> indices{};
+	// [Get Scene Data]
+	SceneData sceneData{};
+	if (Assets::Scene leblancScene{}; Assets::LoadScene("E:/Git/Influx/Resources/Meshes/box.fbx", leblancScene))
 	{
 		for (uint64 s = 0; s < leblancScene.Meshes.size(); ++s)
 		{
@@ -68,19 +82,19 @@ int main()
 				Math::Vertex newVertex{};
 				newVertex.Colour[i % 3]	= 1.0f;
 				newVertex.Position		= mesh.Vertices[i].Position;
-				vertices.push_back(newVertex);
+				sceneData.VertexBuffer.push_back(newVertex);
 			}
 
 			for (uint64 i = 0; i < mesh.Indices.size(); ++i)
 			{
-				indices.push_back(mesh.Indices[i]);
+				sceneData.IndexBuffer.push_back(mesh.Indices[i]);
 			}
 		}
 	}
 
 	const uint64 vertexSize			= sizeof(Influx::Math::Vertex);
-	const uint64 numVertices		= vertices.size();
-	const uint64 numIndices			= indices.size();
+	const uint64 numVertices		= sceneData.VertexBuffer.size();
+	const uint64 numIndices			= sceneData.IndexBuffer.size();
 	const uint64 vertexBufferSize	= numVertices * vertexSize;
 	const uint64 indexBufferSize	= numIndices * sizeof(uint64);
 	
@@ -89,23 +103,21 @@ int main()
 	Platform::WindowHandle		wndHandle = Platform::CreateWindow(windowSettings, true);
 	const float aspectRatio = (float)windowSettings.Width / (float)windowSettings.Heigth;
 
-	// [Create Graphics Interface + Swapchain]
+	// [Setup Graphics]
 	Graphics::D3D12Device* device		= new Graphics::D3D12Device(true);
 	Graphics::RHICommandQueue* cmdQueue = device->GetGlobalGraphicsCommandQueue();
-
-	// [Create Window Swapchain]
 	Graphics::RHISwapchain* swapchain	= device->CreateSwapchain({ windowSettings.Width, windowSettings.Heigth }, wndHandle, cmdQueue);
 
 	// [Create InputLayout & RenderPipeline]
-	Graphics::RHIGraphicsPipelineLayout* pipelineLayout = device->CreateGraphicsPipelineLayout();
-	Graphics::RHIGraphicsPipeline* graphicsPipeline = nullptr;
+	Graphics::RHIGraphicsPipelineLayout* pipelineLayout = device->CreateGraphicsPipelineLayout(); // For now, default no-inputs pipeline-layout...
+	Graphics::RHIGraphicsPipeline* graphicsPipeline		= nullptr;
 	{
 		Graphics::RHIGraphicsPipelineDescription pipelineDesc{};
 		pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 0u, true, 0u });
 		pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "COLOR", 0u, Graphics::ERHIFormat::RGBA_32_Float, 0u, 12u, true, 0u });
 
-		pipelineDesc.VS = compiledVertexShader;
-		pipelineDesc.PS = compiledPixelShader;
+		pipelineDesc.VS = shaders.VertexShader;
+		pipelineDesc.PS = shaders.PixelShader;
 
 		pipelineDesc.PrimitiveTopologyType = Graphics::ERHIPrimitiveTopologyType::Triangle;
 
@@ -121,13 +133,13 @@ int main()
 	// [Create Triangle Buffer To Render]
 	Graphics::RHIResource* vertexBuffer = device->CreateVertexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, vertexBufferSize);
 	Graphics::RHIResource* indexBuffer = device->CreateIndexBufferResource(Graphics::ERHIResourceState::GenericRead, Graphics::ERHIFormat::Unknown, indexBufferSize);
-	vertexBuffer->ScopedMap([&vertices, vertexBufferSize](void* cpuHandle) // Copy data to GPU buffer...
+	vertexBuffer->ScopedMap([&sceneData, vertexBufferSize](void* cpuHandle) // Copy data to GPU buffer...
 	{
-		memcpy(cpuHandle, vertices.data(), vertexBufferSize);
+		memcpy(cpuHandle, sceneData.VertexBuffer.data(), vertexBufferSize);
 	});
-	indexBuffer->ScopedMap([&indices, indexBufferSize](void* cpuHandle)
+	indexBuffer->ScopedMap([&sceneData, indexBufferSize](void* cpuHandle)
 	{
-		memcpy(cpuHandle, indices.data(), indexBufferSize);
+		memcpy(cpuHandle, sceneData.IndexBuffer.data(), indexBufferSize);
 	});
 
 	// [Create - Separate - Scene Colour Texture]
