@@ -168,7 +168,7 @@ namespace Influx::Assets
 		}
 	}
 
-	bool LoadScene(const String& filepath, Scene& out_scene, SceneCachePtr pCache, const SceneLoadDesc& loadDesc)
+	bool LoadSceneFile(const String& filepath, Scene& out_scene, SceneCachePtr pCache, const SceneLoadDesc& loadDesc)
 	{
 		// Try to find the loaded scene in the provided cache...
 		if (pCache)

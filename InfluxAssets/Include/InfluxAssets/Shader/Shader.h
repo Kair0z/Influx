@@ -18,17 +18,21 @@ namespace Influx::Assets
 		}
 	};
 
-	struct Shader final
+	struct ShaderData final
 	{
+		using CompiledShader = Vector<byte>;
 
-		bool operator==(const Shader& scene) const
+		CompiledShader VertexShader;
+		CompiledShader PixelShader;
+
+		bool operator==(const ShaderData& shaderData) const
 		{
 			// Todo...
 			return true;
 		}
 	};
 
-	using ShaderCache = Influx::Cache<Shader, String, ShaderLoadDesc>;
+	using ShaderCache = Influx::Cache<ShaderData, String, ShaderLoadDesc>;
 }
 
 // Define SceneLoadDesc Hash function...

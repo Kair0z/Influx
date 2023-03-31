@@ -234,7 +234,7 @@ namespace Influx::Application
 
         // Parse a scene-file and upload resulting mesh-data into sceneRenderer
         Assets::Scene out_scene{};
-        Assets::LoadScene("E:/Git/Influx/Resources/Meshes/box.fbx", out_scene, nullptr, Assets::SceneLoadDesc{});
+        Assets::LoadSceneFile("E:/Git/Influx/Resources/Meshes/box.fbx", out_scene, nullptr, Assets::SceneLoadDesc{});
         
         for (uint64 i = 0u; i < out_scene.Meshes.size(); ++i)
         {
