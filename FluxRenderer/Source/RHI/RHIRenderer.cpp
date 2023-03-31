@@ -23,25 +23,12 @@ namespace Influx
 		// Setup Vertex & indexbuffer
 		UpdateSceneBufferData();
 
-		// [Create - Separate - Scene Colour Texture]
-		struct SceneColour final
-		{
-			Graphics::RHIResource* Resource;
-			Graphics::RHIRenderTargetView* RTV;
-			Graphics::RHIViewport Viewport;
-			Graphics::RHIScissorRect ScissorRect;
-		} sceneColour;
 
 		Platform::WindowSettings settings = Platform::GetWindowSettings(windowHandle);
-
-		sceneColour.Resource	= mp_device->CreateTextureResource(Graphics::ERHIResourceState::RenderTarget, Graphics::ERHIFormat::RGBA_8_Unorm, Math::Vectoru2{ settings.Width, settings.Heigth }, 1u);
-		sceneColour.RTV			= sceneColour.Resource->CreateRenderTargetView(mp_device);
-		sceneColour.Viewport	= { (float)settings.Width, (float)settings.Heigth };
-		sceneColour.ScissorRect = { (uint32)settings.Width, (uint32)settings.Heigth };
-
 		Graphics::RHIResource* swapchainCurrentBuffer		= mp_swapchain->GetCurrentBackBufferResource();
 		Graphics::RHIRenderTargetView* swapchainCurrentRtv	= mp_swapchain->GetCurrentRenderTargetView();
-
+		Graphics::RHIViewport viewport = { (float)settings.Width, (float)settings.Heigth };
+		Graphics::RHIScissorRect scissorRect = { (uint32)settings.Width, (uint32)settings.Heigth };
 
 		// New command list...
 		mp_commandList = mp_commandQueue->SetupNewCommandList(mp_device);
@@ -52,15 +39,15 @@ namespace Influx
 
 
 		// Clear Scene colour:
-		mp_commandList->ClearRTV(sceneColour.RTV, { 1.0f, 0.0f, 0.0f, 1.0f });
+		mp_commandList->ClearRTV(mp_sceneColourRtv, { 1.0f, 0.0f, 0.0f, 1.0f });
 
 		// Draw Triangle:
 		{
 			mp_commandList->BindPipelineLayout(mp_pipelineLayout);
 			mp_commandList->BindPipelineState(mp_pipeline);
-			mp_commandList->BindRenderTarget(sceneColour.RTV);
-			mp_commandList->BindViewports(sceneColour.Viewport);
-			mp_commandList->BindScissorRect(sceneColour.ScissorRect);
+			mp_commandList->BindRenderTarget(mp_sceneColourRtv);
+			mp_commandList->BindViewports(viewport);
+			mp_commandList->BindScissorRect(scissorRect);
 
 			mp_commandList->SetPrimitiveTopology(Graphics::ERHIPrimitiveTopology::TriangleList);
 			mp_commandList->BindIndexBuffer(mp_indexBuffer, mp_indexBuffer->GetNumBytes());
@@ -71,7 +58,7 @@ namespace Influx
 		}
 
 		// Copy Scene Colour -> swapchainBackbuffer
-		mp_commandList->CopyResource(sceneColour.Resource, swapchainCurrentBuffer);
+		mp_commandList->CopyResource(mp_sceneColour, swapchainCurrentBuffer);
 		mp_commandList->TransitionResource(swapchainCurrentBuffer, Graphics::ERHIResourceState::Present);
 	}
 
@@ -103,10 +90,20 @@ namespace Influx
 
 	void RHIRenderer::InitializeSwapchain(Platform::WindowHandle windowHandle)
 	{
+		Platform::WindowSettings settings = Platform::GetWindowSettings(windowHandle);
+
 		if (mp_device != nullptr && mp_swapchain == nullptr && mp_commandQueue != nullptr)
 		{
-			Platform::WindowSettings settings = Platform::GetWindowSettings(windowHandle);
 			mp_swapchain = mp_device->CreateSwapchain({ settings.Width, settings.Heigth }, windowHandle, mp_commandQueue);
+		}
+
+		// Create scene resource buffer.
+		if (mp_swapchain && mp_sceneColour == nullptr)
+		{
+			mp_sceneColour = mp_device->CreateTextureResource(Graphics::ERHIResourceState::RenderTarget, Graphics::ERHIFormat::RGBA_8_Unorm, 
+				Math::Vectoru2{ settings.Width, settings.Heigth }, 1u);
+
+			mp_sceneColourRtv = mp_sceneColour->CreateRenderTargetView(mp_device);
 		}
 	}
 

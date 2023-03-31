@@ -15,6 +15,8 @@ namespace Influx
 		class RHIGraphicsPipeline;
 
 		class RHIResource;
+
+		class RHIRenderTargetView;
 	}
 
 	class RHIRenderer : public IFluxRenderer
@@ -39,6 +41,9 @@ namespace Influx
 
 		Graphics::RHIResource* mp_indexBuffer;
 		Graphics::RHIResource* mp_vertexBuffer;
+
+		Graphics::RHIResource* mp_sceneColour;
+		Graphics::RHIRenderTargetView* mp_sceneColourRtv;
 
 		void InitializeDevice();
 		void InitializeCommandQueue();
