@@ -103,19 +103,15 @@ namespace Influx
 		// Signal and increment the fence value.
 		const UINT64 value = m_fenceValue;
 		mp_commandQueue->Signal(mp_fence, value);
+
 		m_fenceValue++;
 
 		// Wait until the previous frame is finished.
 		if (mp_fence->GetCompletedValue() < value)
 		{
 			mp_fence->SetEventOnCompletion(value, m_fenceEvent);
+
 			WaitForSingleObject(m_fenceEvent, INFINITE);
-		}
-		
-		if (mp_swapchain)
-		{
-			m_frameIndex++;
-			m_currentSwapchainBufferIndex = mp_swapchain->GetCurrentBackBufferIndex();
 		}
 	}
 

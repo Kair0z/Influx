@@ -17,7 +17,6 @@ int main()
 	const float AspectRatio = (float)WindowDimensions.x / (float)WindowDimensions.y;
 	constexpr uint64 NumFrames = 6000u;
 	
-
 	IFluxRenderer* renderer = new Dx12Renderer();
 
 	// [Compile Shaders]
