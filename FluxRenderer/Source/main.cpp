@@ -1,6 +1,7 @@
 
 #include "InfluxAssets/InfluxAssets.h"
-#include "RHI/RHIRenderer.h"
+#include "Dx12/Dx12Renderer.h"
+
 #include "Core/Platform/WindowsPlatform.h"
 
 int main()
@@ -13,16 +14,16 @@ int main()
 	const float AspectRatio = (float)WindowDimensions.x / (float)WindowDimensions.y;
 	uint64 NumFrames = 4096 * 4096;
 
-	IFluxRenderer* renderer = new RHIRenderer();
+	IFluxRenderer* renderer = new Dx12Renderer();
 
 	// [Compile Shaders]
-	if (Assets::ShaderData shaderData{}; Assets::LoadShaderFile("E:/Git/Influx/FluxRenderer/Shaders/shaders.hlsl", shaderData))
+	if (Assets::ShaderData shaderData{}; Assets::LoadShaderFile("E:/Git/Influx/Resources/Shaders/shaders.hlsl", shaderData))
 	{
 		renderer->SetMaterial({ shaderData.VertexShader, shaderData.PixelShader });
 	}
 
 	// [Get Scene Data]
-	if (Assets::Scene leblancScene{}; Assets::LoadSceneFile("E:/Git/Influx/Resources/Meshes/box.fbx", leblancScene))
+	if (Assets::Scene leblancScene{}; Assets::LoadSceneFile("Resources/Meshes/box.fbx", leblancScene))
 	{
 		for (uint64 s = 0; s < leblancScene.Meshes.size(); ++s)
 		{

@@ -159,7 +159,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source\RHI\RHIRenderer.cpp" />
     <ClCompile Include="Source\Dx12\Dx12Renderer.cpp" />
     <ClCompile Include="Source\main.cpp" />
   </ItemGroup>
@@ -167,6 +166,11 @@
     <ClInclude Include="Source\RHI\RHIRenderer.h" />
     <ClInclude Include="Source\Dx12\Dx12Renderer.h" />
     <ClInclude Include="Source\Renderer\IFluxRenderer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\InfluxAssets\InfluxAssets.vcxproj">
+      <Project>{cf67ac42-c302-449f-9650-5869570af694}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

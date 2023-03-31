@@ -4,6 +4,13 @@
 #undef epsilon
 #endif
 
+// We're using Assimp libary for loading .FBX files...
+#if _DEBUG
+#pragma comment(lib, "assimp-vc142-mtd.lib")
+#else
+#pragma comment(lib, "assimp-vc142-mt.lib")
+#endif
+
 #include "assimp/Importer.hpp"	// C++ importer interface
 #include "assimp/scene.h"		// Output data structure
 #include "assimp/postprocess.h"	// Post processing flags

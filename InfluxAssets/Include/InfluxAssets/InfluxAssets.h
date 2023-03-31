@@ -1,11 +1,6 @@
 #pragma once
 
-// We're using Assimp libary for loading .FBX files...
-#if _DEBUG
-#pragma comment(lib, "assimp-vc142-mtd.lib")
-#else
-#pragma comment(lib, "assimp-vc142-mt.lib")
-#endif
+#pragma comment(lib, "InfluxAssets.lib")
 
 #define INFLUX_ASSETS_USE_CORE 1
 

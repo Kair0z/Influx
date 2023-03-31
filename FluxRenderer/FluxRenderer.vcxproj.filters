@@ -3,7 +3,6 @@
   <ItemGroup>
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Dx12\Dx12Renderer.cpp" />
-    <ClCompile Include="Source\RHI\RHIRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Renderer\IFluxRenderer.h" />
