@@ -307,6 +307,13 @@ namespace Influx::Platform
 		return CreateWindow(settings, shouldOpen, Internal::DefaultWindowsProcedure);
 	}
 
+	inline WindowSettings GetWindowSettings(const WindowHandle handle)
+	{
+		WindowSettings settings{};
+		__debugbreak();
+		return settings;
+	}
+
 	inline void DestroyWindow(const WindowHandle handle)
 	{
 		::DestroyWindow((::HWND)handle);

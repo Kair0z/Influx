@@ -12,6 +12,8 @@ namespace Influx::Scene
 	{
 	public:
 		Camera() = default;
+		Camera(float fov, float near, float far)
+			: Fov{ fov }, NearPlane{ near }, FarPlane{ far } {}
 
 		FLX_CORE_GET_SET(float, Fov);
 		FLX_CORE_GET_SET(float, NearPlane);

@@ -159,7 +159,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\RHI\RHIRenderer.cpp" />
+    <ClCompile Include="Source\Dx12\Dx12Renderer.cpp" />
     <ClCompile Include="Source\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\RHI\RHIRenderer.h" />
+    <ClInclude Include="Source\Dx12\Dx12Renderer.h" />
+    <ClInclude Include="Source\Renderer\IFluxRenderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

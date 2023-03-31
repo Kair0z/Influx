@@ -106,6 +106,8 @@ namespace Influx::Platform
 	// [WINDOW]
 	WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen);
 
+	WindowSettings GetWindowSettings(const WindowHandle handle);
+
 	void DestroyWindow(const WindowHandle handle);
 
 	/* Returns true if window is as a result visible */

@@ -7,6 +7,8 @@
 #pragma comment(lib, "assimp-vc142-mt.lib")
 #endif
 
+#define INFLUX_ASSETS_USE_CORE 1
+
 // Types...
 #include "InfluxAssets/Scene/Scene.h"
 #include "InfluxAssets/Shader/Shader.h"

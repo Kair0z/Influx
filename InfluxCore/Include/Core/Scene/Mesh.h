@@ -3,8 +3,11 @@
 #ifndef __CORE_SCENE_MESH_H_
 #define __CORE_SCENE_MESH_H_
 
+#define CORE_SCENE_MESH_DEBUG 1
+
 #include "Core/Geometry/Vertex.h"
 #include "Core/Container/Containers.h"
+#include "Core/String.h"
 
 namespace Influx::Scene
 {
@@ -22,7 +25,6 @@ namespace Influx::Scene
 			, m_indices{indices}
 		{
 		}
-
 		inline Mesh(const Vector<Triangle>& triangles)
 		{
 			m_vertices.reserve(triangles.size() * 3u);
@@ -41,14 +43,24 @@ namespace Influx::Scene
 
 		inline void AddTriangle(const Vertex& a, const Vertex& b, const Vertex& c)
 		{
-			m_vertices.push_back(a);
-			m_indices.push_back((Index)m_vertices.size() - 1u);
+			AddVertex(a);
+			AddIndex((Index)m_vertices.size() - 1u);
 
-			m_vertices.push_back(b);
-			m_indices.push_back((Index)m_vertices.size() - 1u);
+			AddVertex(b);
+			AddIndex((Index)m_vertices.size() - 1u);
 
-			m_vertices.push_back(c);
-			m_indices.push_back((Index)m_vertices.size() - 1u);
+			AddVertex(c);
+			AddIndex((Index)m_vertices.size() - 1u);
+		}
+
+		inline void AddVertex(const Vertex& v)
+		{
+			m_vertices.push_back(v);
+		}
+
+		inline void AddIndex(const Index& i)
+		{
+			m_indices.push_back(i);
 		}
 
 		const Vector<Vertex>& GetVertices() const
@@ -64,6 +76,22 @@ namespace Influx::Scene
 	private:
 		Vector<Vertex> m_vertices;
 		Vector<Index> m_indices;
+
+#if CORE_SCENE_MESH_DEBUG
+	public:
+		inline void SetName(const String& name)
+		{
+			m_name = name;
+		}
+
+		inline const String& GetName() const
+		{
+			return m_name;
+		}
+
+	private:
+		String m_name = "";
+#endif
 	};
 }
 
