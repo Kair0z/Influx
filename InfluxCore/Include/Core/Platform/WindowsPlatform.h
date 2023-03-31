@@ -310,7 +310,12 @@ namespace Influx::Platform
 	inline WindowSettings GetWindowSettings(const WindowHandle handle)
 	{
 		WindowSettings settings{};
-		__debugbreak();
+		
+		const Math::Recti& clientRect = GetClientWindowRect<int>(handle);
+		settings.Width = clientRect.m_widthHeigth.x;
+		settings.Heigth = clientRect.m_widthHeigth.y;
+		// Todo... name?
+
 		return settings;
 	}
 

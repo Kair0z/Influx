@@ -3,6 +3,9 @@
 #include "Dx12/Dx12Renderer.h"
 
 #include "Core/Platform/WindowsPlatform.h"
+#include "Core/Time.h"
+
+#include <iostream>
 
 int main()
 {
@@ -12,7 +15,8 @@ int main()
 	constexpr bool Vsync = true;
 	const Influx::Math::Vectoru2 WindowDimensions{ 640u, 480u };
 	const float AspectRatio = (float)WindowDimensions.x / (float)WindowDimensions.y;
-	uint64 NumFrames = 4096 * 4096;
+	constexpr uint64 NumFrames = 6000u;
+	
 
 	IFluxRenderer* renderer = new Dx12Renderer();
 
@@ -23,7 +27,7 @@ int main()
 	}
 
 	// [Get Scene Data]
-	if (Assets::Scene leblancScene{}; Assets::LoadSceneFile("Resources/Meshes/box.fbx", leblancScene))
+	if (Assets::Scene leblancScene{}; Assets::LoadSceneFile("E:/Git/Influx/Resources/Meshes/box.fbx", leblancScene))
 	{
 		for (uint64 s = 0; s < leblancScene.Meshes.size(); ++s)
 		{
@@ -39,13 +43,24 @@ int main()
 	Platform::WindowSettings	windowSettings(WindowDimensions, "Flux Renderer");
 	Platform::WindowHandle		wndHandle = Platform::CreateWindow(windowSettings, true);
 
-	while ((NumFrames--) != 0u)
-	{
-		/* We should be able to build render-work once... */
-		renderer->BuildRenderWork(wndHandle);
+	/* We should be able to build render-work once... */
+	renderer->BuildRenderWork(wndHandle);
 
+	auto before = Time::Now();
+
+	uint64 frameIndex = NumFrames;
+	while ((frameIndex--) != 0u)
+	{
 		renderer->PresentToWindow(wndHandle);
 	}
 
+	float totalMs = Time::MsBetween<float>(Time::Now(), before);
+	float fps = (NumFrames) / (totalMs * 0.001f);
+
+	std::cout << "Num Ms to render " << NumFrames << " frames: " << totalMs << "\n";
+	std::cout << "FPS: " << fps << "\n";
+
+	std::cin.get();
+	
 	delete renderer;
 }

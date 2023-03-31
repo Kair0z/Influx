@@ -64,8 +64,8 @@ namespace Influx
 		ID3D12Resource* mp_swapchainBufferResources[k_numSwapchainBuffers];
 		uint64 m_currentSwapchainBufferIndex;
 
-		ID3D12CommandAllocator* mp_commandAllocator;
-		ID3D12GraphicsCommandList* mp_gfxCommandList;
+		ID3D12CommandAllocator* mp_commandAllocators[k_numSwapchainBuffers];
+		ID3D12GraphicsCommandList* mp_gfxCommandLists[k_numSwapchainBuffers];
 
 		ID3D12DescriptorHeap* mp_rtvDescriptorHeap;
 		ID3D12DescriptorHeap* mp_dsvDescriptorHeap;

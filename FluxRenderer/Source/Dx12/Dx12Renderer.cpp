@@ -9,58 +9,88 @@ namespace Influx
 	void Dx12Renderer::BuildRenderWork(Platform::WindowHandle windowHandle)
 	{
 		Initialize();
+		InitializeSwapchain(windowHandle);
 
-		// Command list allocators can only be reset when the associated 
-		// command lists have finished execution on the GPU; apps should use 
-		// fences to determine GPU execution progress.
-		mp_commandAllocator->Reset();
+		// We build a command-list for  this frame and the next!
+		for (uint8 i = 0u; i < k_numSwapchainBuffers; ++i)
+		{
+			ID3D12GraphicsCommandList* gfxCommandList = mp_gfxCommandLists[i];
+			ID3D12CommandAllocator* commandAllocator = mp_commandAllocators[i];
 
-		// However, when ExecuteCommandList() is called on a particular command 
-		// list, that command list can then be reset at any time and must be before 
-		// re-recording.
-		mp_gfxCommandList->Reset(mp_commandAllocator, mp_pipelineState);
+			uint8 swapchainBufferIndex = i;
 
+			// Command list allocators can only be reset when the associated 
+			// command lists have finished execution on the GPU; apps should use 
+			// fences to determine GPU execution progress.
+			commandAllocator->Reset();
 
-		mp_gfxCommandList->SetGraphicsRootSignature(mp_rootSignature);
-		mp_gfxCommandList->RSSetViewports(1u, nullptr);
-		mp_gfxCommandList->RSSetScissorRects(1u, nullptr);
-		
-		Graphics::D3D12::TransitionResource(mp_gfxCommandList, mp_swapchainBufferResources[m_currentSwapchainBufferIndex], 
-			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			// However, when ExecuteCommandList() is called on a particular command 
+			// list, that command list can then be reset at any time and must be before 
+			// re-recording.
+			gfxCommandList->Reset(commandAllocator, mp_pipelineState);
 
-		// Get the handle off the rtv-heap, and set...
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = Graphics::D3D12::GetDescriptorCpuHandle(mp_rtvDescriptorHeap, m_currentSwapchainBufferIndex, m_rtvDescriptorSize);
-		mp_gfxCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+			Platform::WindowSettings windowSettings = Platform::GetWindowSettings(windowHandle);
 
-		// Record commands.
-		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-		mp_gfxCommandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		mp_gfxCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			D3D12_VIEWPORT viewport{};
+			viewport.Width = static_cast<float>(windowSettings.Width);
+			viewport.Height = static_cast<float>(windowSettings.Heigth);
+			viewport.MinDepth = 0.0f;
+			viewport.MaxDepth = 1.0f;
 
-		D3D12_VERTEX_BUFFER_VIEW vtbView{};
-		vtbView.BufferLocation = mp_vertexBufferResource->GetGPUVirtualAddress();
-		vtbView.StrideInBytes = sizeof(Scene::Mesh::Vertex);
-		vtbView.SizeInBytes = static_cast<uint32>(GetVertexBufferSize());
+			D3D12_RECT scissorRect{};
+			scissorRect.left = 0u;
+			scissorRect.bottom = 0u;
+			scissorRect.right = scissorRect.left + static_cast<LONG>(windowSettings.Width);
+			scissorRect.top = scissorRect.bottom + static_cast<LONG>(windowSettings.Heigth);
 
-		mp_gfxCommandList->IASetVertexBuffers(0, 1, &vtbView);
-		mp_gfxCommandList->DrawInstanced(3, 1, 0, 0);
+			gfxCommandList->SetGraphicsRootSignature(mp_rootSignature);
+			gfxCommandList->RSSetViewports(1u, &viewport);
+			gfxCommandList->RSSetScissorRects(1u, &scissorRect);
 
-		Graphics::D3D12::TransitionResource(mp_gfxCommandList, mp_swapchainBufferResources[m_currentSwapchainBufferIndex],
-			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+			ID3D12Resource* swapchainBufferResource = mp_swapchainBufferResources[swapchainBufferIndex];
+			Graphics::D3D12::TransitionResource(gfxCommandList, swapchainBufferResource,
+				D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		mp_gfxCommandList->Close();
+			// Get the handle off the rtv-heap, and set...
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = Graphics::D3D12::GetDescriptorCpuHandle(mp_rtvDescriptorHeap, swapchainBufferIndex, m_rtvDescriptorSize);
+			gfxCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
+			// Record commands.
+			const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+			gfxCommandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+			gfxCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+			if (mp_vertexBufferResource && mp_indexBufferResource)
+			{
+				D3D12_VERTEX_BUFFER_VIEW vtbView{};
+				vtbView.BufferLocation = mp_vertexBufferResource->GetGPUVirtualAddress();
+				vtbView.StrideInBytes = sizeof(Scene::Mesh::Vertex);
+				vtbView.SizeInBytes = static_cast<uint32>(GetVertexBufferSize());
+
+				gfxCommandList->IASetVertexBuffers(0, 1, &vtbView);
+				gfxCommandList->DrawInstanced(3, 1, 0, 0);
+			}
+
+			Graphics::D3D12::TransitionResource(gfxCommandList, swapchainBufferResource,
+				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+			gfxCommandList->Close();
+		}
 	}
 
 	void Dx12Renderer::PresentToWindow(Platform::WindowHandle windowHandle)
 	{
 		InitializeSwapchain(windowHandle);
 
-		ID3D12CommandList* commandLists[] = { mp_gfxCommandList };
-		mp_commandQueue->ExecuteCommandLists(1u, commandLists);
+		for (uint8 i = 0; i < k_numSwapchainBuffers; ++i)
+		{
+			ID3D12CommandList* commandLists[] = { mp_gfxCommandLists[i] };
+			mp_commandQueue->ExecuteCommandLists(1u, commandLists);
 
-		mp_swapchain->Present(1, 0);
+			mp_swapchain->Present(0, 0);
 
-		WaitForPreviousFrame();
+			WaitForPreviousFrame();
+		}
 	}
 
 	void Dx12Renderer::WaitForPreviousFrame()
@@ -81,8 +111,12 @@ namespace Influx
 			mp_fence->SetEventOnCompletion(value, m_fenceEvent);
 			WaitForSingleObject(m_fenceEvent, INFINITE);
 		}
-
-		m_frameIndex = mp_swapchain->GetCurrentBackBufferIndex();
+		
+		if (mp_swapchain)
+		{
+			m_frameIndex++;
+			m_currentSwapchainBufferIndex = mp_swapchain->GetCurrentBackBufferIndex();
+		}
 	}
 
 
@@ -174,16 +208,18 @@ namespace Influx
 
 	void Dx12Renderer::InitializeCommandList()
 	{
-		if (mp_commandAllocator != nullptr)
+		if (mp_commandAllocators[0u] != nullptr)
 			return;
 
-		mp_commandAllocator = Graphics::D3D12::CreateDxCommandAllocator(mp_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
-
-		if (mp_gfxCommandList != nullptr)
+		if (mp_gfxCommandLists[0u] != nullptr)
 			return;
 
-		mp_gfxCommandList = Graphics::D3D12::CreateDxCommandList(mp_device, mp_commandAllocator, D3D12_COMMAND_LIST_TYPE_DIRECT);
-		mp_gfxCommandList->Close();
+		for (uint8 i = 0u; i < k_numSwapchainBuffers; ++i)
+		{
+			mp_commandAllocators[i] = Graphics::D3D12::CreateDxCommandAllocator(mp_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+			mp_gfxCommandLists[i] = Graphics::D3D12::CreateDxCommandList(mp_device, mp_commandAllocators[i], D3D12_COMMAND_LIST_TYPE_DIRECT);
+			mp_gfxCommandLists[i]->Close();
+		}
 	}
 
 	void Dx12Renderer::InitializePipeline()
@@ -193,10 +229,12 @@ namespace Influx
 		mp_rootSignature = Graphics::D3D12::CreateDxSerializedRootSignature(rootSigDesc, mp_device);
 
 		Graphics::D3D12::HelperStructs::GraphicsPipelineStateDesc pipelineDesc{};
-		pipelineDesc.AddInputElement("POSITION", 0u, DXGI_FORMAT_R32G32B32_FLOAT, 0u, 0u, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u);
+		pipelineDesc.AddInputElement("SV_POSITION", 0u, DXGI_FORMAT_R32G32B32_FLOAT, 0u, 0u, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u);
 		pipelineDesc.AddInputElement("COLOR", 0u, DXGI_FORMAT_R32G32B32A32_FLOAT, 0u, 12u, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u);
 		pipelineDesc.VertexShaderBytecode = GetMaterial().VertexShader;
 		pipelineDesc.PixelShaderByteCode = GetMaterial().PixelShader;
+		pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
 		pipelineDesc.DepthStencilState.DepthEnable = false;
 		pipelineDesc.DepthStencilState.StencilEnable = false;
 		pipelineDesc.SampleMask = 255u;
@@ -246,6 +284,9 @@ namespace Influx
 			for (const Scene::Mesh::Index& index : mesh.GetIndices())
 				allIndices.push_back(index);
 		}
+
+		if (allVertices.size() == 0u || allIndices.size() == 0u)
+			return;
 		
 		auto bufferDesc = Graphics::D3D12::HelperStructs::CommittedResourceDesc::AsBuffer(useUploadHeap, GetVertexBufferSize(), 0u);
 		mp_vertexBufferResource = Graphics::D3D12::CreateDxCommittedResource(mp_device, bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ);

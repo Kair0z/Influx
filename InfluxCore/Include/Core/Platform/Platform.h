@@ -36,6 +36,7 @@ namespace Influx::Platform
 
 		int Width;
 		int Heigth;
+		
 		Influx::String Name;
 	};
 
