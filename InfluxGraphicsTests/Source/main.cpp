@@ -29,9 +29,9 @@ int main()
 						Graphics::Commands::ClearSwapchainBackBuffer(cmdList, swapchainHandle, { 1,0,0,1 });
 					});
 
-
 					// Present the swapchain back-buffer
-					Graphics::DispatchSwapchainPresent(swapchainHandle);
+					constexpr static bool Vsync = true;
+					Graphics::DispatchSwapchainPresent(swapchainHandle, { Vsync });
 				}
 			});
 	}
