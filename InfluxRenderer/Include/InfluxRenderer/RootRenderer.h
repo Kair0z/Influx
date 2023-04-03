@@ -163,8 +163,7 @@ namespace Influx::Renderer
 
 		Graphics::RHIDescriptorHeap* mp_rtvDescriptorHeap;
 		Graphics::RHICommandQueue* mp_gfxCommandQueue;
-		Graphics::RHICommandList* mp_commandList;
-
+		
 		IRendererList mp_childRenderers;
 
 		/* Cached Graphics Pipelines */
@@ -183,6 +182,12 @@ namespace Influx::Renderer
 			bool m_isDirty = true;
 		};
 		SwapchainTarget* mp_windowSwapchain = nullptr;
+
+		struct PerFrameContext final
+		{
+			Graphics::RHICommandList* CommandList;
+
+		} PerFrameContext;
 
 		uint64 m_frame;
 

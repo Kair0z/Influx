@@ -1,7 +1,9 @@
 #pragma once
 
+#if INFLUX_ASSETS_USE_CORE
 #include "Core/Cache.h"
 #include "Core/Container/Map.h"
+#endif
 
 namespace Influx::Assets
 {

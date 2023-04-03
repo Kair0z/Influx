@@ -53,6 +53,9 @@ namespace Influx
 		inline void SetCameraPosition(const Math::Vectorf3& newPosition) { m_cameraPosition = newPosition; }
 		inline void SetCameraForward(const Math::Vectorf3& newForward) { m_cameraForward = newForward; }
 		inline void SetRenderMode(const ERenderMode renderMode) { m_renderMode = renderMode; }
+
+		const Math::Vectorf3& GetCameraPosition() const { return m_cameraPosition; }
+		const Math::Vectorf3& GetCameraForward() const { return m_cameraForward; }
 		
 		const Math::Vectorf3& GetCameraPosition() const { return m_cameraPosition; }
 		const Math::Vectorf3& GetCameraForward() const { return m_cameraForward; }

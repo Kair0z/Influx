@@ -10,9 +10,9 @@
 - [InfluxRayTracing]: Standalone CPU-Raytracer application using [InfluxCore]
 
 2. Libraries
-- [InfluxCore]: Header-only central library providing various basic-types, math-& utility-functions 
-- [InfluxApplication]: Library providing an Application interface that hosts [InfluxEngine]
-- [InfluxEngine]: ...
+- [InfluxCore]: Header-only library providing various basic-types, math-& utility-functions 
+- [InfluxApplication]: Library providing a Windowed Application interface that hosts [InfluxEngine]
+- [InfluxEngine]: ... Honestly not quite sure yet what functionality will reside in this centralized unit...
 - [InfluxGraphics]: RHI-library (similar to Unreal Engine) providing an abstraction layer of Graphics APIs (Dx12/Vulkan)
 - [InfluxRenderer]: Library providing a Renderer interface using [InfluxGraphics]
 - [InfluxAssets]: Library providing asset-loading functionality (PNGs, FBXs, OBJs, ...)
@@ -30,7 +30,15 @@ To install the correct components some graphics-related code, make sure the **Ga
 
 3. Open the existing solution (.sln) file [Influx/Influx.sln]
 
-4. Build 1 or any other of the Application.
+4. Have fun compiling :)
+- !!! [InfluxGame & InfluxEditor] will currently crash because
+= these projects still expect us to manually copy over dependency-runtime-libraries into the output folder... (residing in 3thParty/lib/(platform)/(configuration)/...)
+= there's no localized paths to shader-assets we're loading in.
+- The Application-projects are grouped together and serve as runnable entrypoints into the various Library-Projects (.exe)
 
-¬ Branches
---------
+
+¬ Active Branches
+------------
+1. main: Should always be properly compiling!
+2. graphics-project-rework: Currently working on approaching the RHI-wrapper functionality of [InfluxGraphics] in a more minimal way.
+3. app-cpu-renderer: General work on [FluxRayTracing]

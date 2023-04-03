@@ -252,7 +252,7 @@ namespace Influx::Renderer
 
 			bool bStripPBD = true;
 			bool bStripReflection = true;
-			bool bDebug = _DEBUG;
+			bool bDebug = true;
 
 			EType Type;
 			EProfile Profile;

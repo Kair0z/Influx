@@ -340,6 +340,8 @@ namespace Influx::Graphics::D3D12
 		* IDXGIFactory2::MakeWindowAssociation
 		* DXGI_SWAP_CHAIN_DESC1
 		*/
+
+		// Swap chain needs the queue so that it can force a flush on it.
 		inline IDXGISwapChain1* CreateTier1(IDXGIFactory2* dxgiFactory, ::HWND hWnd, CommandQueuePtr pCommandQueue,
 			uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
 		{
@@ -367,12 +369,14 @@ namespace Influx::Graphics::D3D12
 			return dxgiSwapChain1;
 		}
 
+		// Swap chain needs the queue so that it can force a flush on it.
 		inline IDXGISwapChain2* CreateTier2(IDXGIFactory2* dxgiFactory, ::HWND hWnd, CommandQueuePtr pCommandQueue,
 			uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
 		{
 			return static_cast<IDXGISwapChain2*>(CreateTier1(dxgiFactory, hWnd, pCommandQueue, w, h, numBuffers, format));
 		}
 
+		// Swap chain needs the queue so that it can force a flush on it.
 		inline IDXGISwapChain3* CreateTier3(IDXGIFactory2* dxgiFactory, ::HWND hWnd, CommandQueuePtr pCommandQueue,
 			uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
 		{
@@ -626,11 +630,13 @@ namespace Influx::Graphics::D3D12
 		{
 			Vector<D3D12_INPUT_ELEMENT_DESC> InputElements;
 
-			D3D12_SHADER_BYTECODE VertexShaderBytecode;
-			D3D12_SHADER_BYTECODE PixelShaderByteCode;
-			D3D12_SHADER_BYTECODE DomainShaderByteCode;
-			D3D12_SHADER_BYTECODE HullShaderByteCode;
-			D3D12_SHADER_BYTECODE GeometryShaderByteCode;
+			using ShaderByteCode = Vector<byte>;
+
+			ShaderByteCode VertexShaderBytecode;
+			ShaderByteCode PixelShaderByteCode;
+			ShaderByteCode DomainShaderByteCode;
+			ShaderByteCode HullShaderByteCode;
+			ShaderByteCode GeometryShaderByteCode;
 
 			D3D12_RASTERIZER_DESC RasterizerState;
 			D3D12_BLEND_DESC BlendState;
@@ -653,6 +659,19 @@ namespace Influx::Graphics::D3D12
 				InputElements.push_back(newElement);
 			}
 		};
+
+		inline D3D12_RESOURCE_BARRIER MakeTransitionBarrier(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter,
+			uint32 subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE)
+		{
+			D3D12_RESOURCE_BARRIER barrier{};
+			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			barrier.Flags = flags;
+			barrier.Transition.pResource = resource;
+			barrier.Transition.StateBefore = stateBefore;
+			barrier.Transition.StateAfter = stateAfter;
+			barrier.Transition.Subresource = subResource;
+			return barrier;
+		}
 	}
 
 	namespace Query
@@ -883,11 +902,11 @@ namespace Influx::Graphics::D3D12
 		inputLayoutDesc.pInputElementDescs = pipelineStateDesc.InputElements.data();
 		psoDesc.InputLayout = inputLayoutDesc;
 
-		psoDesc.VS = pipelineStateDesc.VertexShaderBytecode;
-		psoDesc.PS = pipelineStateDesc.PixelShaderByteCode;
-		psoDesc.DS = pipelineStateDesc.DomainShaderByteCode;
-		psoDesc.HS = pipelineStateDesc.HullShaderByteCode;
-		psoDesc.GS = pipelineStateDesc.GeometryShaderByteCode;
+		psoDesc.VS = { pipelineStateDesc.VertexShaderBytecode.data()  , pipelineStateDesc.VertexShaderBytecode.size() * sizeof(byte)};
+		psoDesc.PS = { pipelineStateDesc.PixelShaderByteCode.data()	  , pipelineStateDesc.PixelShaderByteCode.size() * sizeof(byte)};
+		psoDesc.DS = { pipelineStateDesc.DomainShaderByteCode.data()  , pipelineStateDesc.DomainShaderByteCode.size() * sizeof(byte)};
+		psoDesc.HS = { pipelineStateDesc.HullShaderByteCode.data()	  , pipelineStateDesc.HullShaderByteCode.size() * sizeof(byte)};
+		psoDesc.GS = { pipelineStateDesc.GeometryShaderByteCode.data(), pipelineStateDesc.GeometryShaderByteCode.size() * sizeof(byte)};
 
 		psoDesc.RasterizerState			= pipelineStateDesc.RasterizerState;
 		psoDesc.BlendState				= pipelineStateDesc.BlendState;
@@ -905,6 +924,43 @@ namespace Influx::Graphics::D3D12
 		result = pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&outPipelineState));
 
 		return outPipelineState;
+	}
+
+	inline void TransitionResource(ID3D12GraphicsCommandList* commandList, ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
+	{
+		D3D12_RESOURCE_BARRIER barrier = HelperStructs::MakeTransitionBarrier(resource, before, after);
+		commandList->ResourceBarrier(1u, &barrier);
+	}
+
+	inline D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorCpuHandle(ID3D12DescriptorHeap* descriptorHeap, uint64 slot, uint64 descriptorSize)
+	{
+		return static_cast<D3D12_CPU_DESCRIPTOR_HANDLE>(descriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + (slot * descriptorSize));
+	}
+
+	inline void* ResourceMap(ID3D12Resource* resource)
+	{
+		uint32 subResourceIndex = 0u;
+		const D3D12_RANGE readRange{};
+
+		void* handle = nullptr;
+		resource->Map(subResourceIndex, &readRange, &handle);
+
+		return handle;
+	}
+
+	inline void ResourceUnmap(ID3D12Resource* resource)
+	{
+		uint32 subResourceIndex = 0u;
+		const D3D12_RANGE writtenRange{};
+
+		resource->Unmap(subResourceIndex, &writtenRange);
+	}
+
+	inline void ResourceScopedMap(ID3D12Resource* resource, Function<void(void*)> mapFunction)
+	{
+		void* handle = ResourceMap(resource);
+		mapFunction(handle);
+		ResourceUnmap(resource);
 	}
 
 	/* Debug Layer */

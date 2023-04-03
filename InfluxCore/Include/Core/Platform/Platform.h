@@ -36,6 +36,7 @@ namespace Influx::Platform
 
 		int Width;
 		int Heigth;
+		
 		Influx::String Name;
 	};
 
@@ -105,6 +106,8 @@ namespace Influx::Platform
 
 	// [WINDOW]
 	WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen);
+
+	WindowSettings GetWindowSettings(const WindowHandle handle);
 
 	void DestroyWindow(const WindowHandle handle);
 

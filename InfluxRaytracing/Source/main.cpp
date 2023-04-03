@@ -42,7 +42,7 @@ constexpr float gSpheresMaxDepth = 100.0f;
 
 #define THREADED_RENDERING 1
 #if THREADED_RENDERING
-constexpr uint8_t gNumThreads = 8;
+constexpr uint8_t gNumThreads = 8u;
 const size_t gThreadRange = (size_t)std::ceil(static_cast<double>(gNumPixels) / static_cast<double>(gNumThreads));
 #endif
 
@@ -165,17 +165,12 @@ int main()
     float averageScreenDepth = 0.0f;
     unsigned char* backbufferPixels = (unsigned char*)backbuffer_surface->pixels;
 #pragma endregion
-    
-    uint64_t currentFrame{};
-
-    Influx::Time::TimePoint beforeFrame = Influx::Time::Now();
-    Influx::Time::TimePoint beforeUpdate = Influx::Time::Now();
-    Influx::Time::TimePoint beforeRender = Influx::Time::Now();
-    Influx::Time::TimePoint beforePresent = Influx::Time::Now();
 
     // Seed our random:
     Influx::Random::SeedRandom();
 
+
+    // Setup Renderscane:
     Influx::RenderScene scene{};
     scene.Spheres = Influx::Random::Sphere::RandomSpherefs<gNumSpheres>({gSpheresMin, gSpheresMin, gSpheresMinDepth}, {gSpheresMax, gSpheresMax, gSpheresMaxDepth}, {gSpheresMinSize, gSpheresMaxSize});
     scene.Randoms = Influx::Random::Randoms<float, gNumSpheres>(0.0f, 1.0f);
@@ -183,18 +178,14 @@ int main()
     scene.MainLight.Direction = { 0.33f, -0.33f, -0.33f };
     scene.MainLight.Direction.Normalize();
 
-    Influx::KDTree<3u> tree = Influx::KDTree<3u>(
-        Influx::Random::Vector::Random3fs<23u>( Vectorf3{1.0f, 1.0f, 1.0f}, Vectorf3{2.0f, 2.0f, 2.0f} ));
-
-    tree.Build();
 
     // Setup Renderer & Camera:
-    Influx::PixelRaytracer raytracer = Influx::PixelRaytracer();
-    raytracer.SetCameraFieldOfView(90.0f);
-    raytracer.SetCameraPosition({});
-    raytracer.SetCameraForward({ 0.0f, 0.0f, 1.0f });
+    Influx::PixelRaytracer renderer = Influx::PixelRaytracer();
 
-    raytracer.GetRenderSettings().RenderDepthMinMax.y = 500.0f;
+    renderer.SetCameraFieldOfView(90.0f);
+    renderer.SetCameraPosition({});
+    renderer.SetCameraForward({ 0.0f, 0.0f, 1.0f });
+    renderer.GetRenderSettings().RenderDepthMinMax.y = 500.0f;
 
 #if THREADED_RENDERING
     Influx::ThreadPool<gNumThreads>* renderJobPool = new Influx::ThreadPool<gNumThreads>();
@@ -203,14 +194,22 @@ int main()
     float uvy{};
 #endif
 
+    // Setup timers:
+    Influx::Time::TimePoint beforeFrame = Influx::Time::Now();
+    Influx::Time::TimePoint beforeUpdate = Influx::Time::Now();
+    Influx::Time::TimePoint beforeRender = Influx::Time::Now();
+    Influx::Time::TimePoint beforePresent = Influx::Time::Now();
+
+    uint64_t currentFrame{};
     Time sceneTime{};
     Stats stats{};
-
     bool isQuit = false;
+
     while (!isQuit)
     {
         beforeFrame = Influx::Time::Now();
 
+        // ¬ POLL SDL WINDOW EVENTS
         SDL_Event e;
         while (SDL_PollEvent(&e) > 0)
         {
@@ -222,20 +221,19 @@ int main()
             }
         }
 
-        // UPDATE:
+        // ¬ UPDATE:
         beforeUpdate = Influx::Time::Now();
         UpdateScene(sceneTime, scene);
         stats.AddValue<Stats::EStat::Update>(Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeUpdate));
         
-        // RENDER
+        // ¬ RENDER
         beforeRender = Influx::Time::Now();
-
 #if THREADED_RENDERING
         for (size_t i = 0, jobOffset = 0; i < gNumThreads; ++i)
         {
             jobOffset = i * gThreadRange;
 
-            renderJobPool->QueueJob([i, jobOffset, &backbufferPixels, &raytracer, &scene, &depthBufferPixels, &averageScreenDepth]()
+            renderJobPool->QueueJob([i, jobOffset, &backbufferPixels, &renderer, &scene, &depthBufferPixels, &averageScreenDepth]()
                 {
                     for (size_t p = jobOffset; p < jobOffset + gThreadRange; ++p)
                     {
@@ -243,7 +241,7 @@ int main()
                         float uvy = float(p / gWindowWidth) / float(gWindowHeight);
 
                         Influx::PixelRenderer::PixelOutput pixelResult =
-                            raytracer.RenderPixel(scene, { uvx, uvy }, gAspectRatio);
+                            renderer.RenderPixel(scene, { uvx, uvy }, gAspectRatio);
 
                         const size_t pixelBaseIdx = p * 4u;
 
@@ -278,19 +276,19 @@ int main()
 #endif
         stats.AddValue<Stats::EStat::Render>(Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeRender));
 
-        // PRESENT
+        // ¬ PRESENT
         beforePresent = Influx::Time::Now();
         SDL_BlitSurface(backbuffer_surface, NULL, window_surface, NULL);
         SDL_UpdateWindowSurface(window);
         stats.AddValue<Stats::EStat::Present>(Influx::Time::MsBetween<double>(Influx::Time::Now(), beforePresent));
         
-        // Finalize frame-time
+        // ¬ COMPILE FRAMETIME
         double thisFrame = Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeFrame);
         stats.AddValue<Stats::EStat::Frame>(thisFrame);
         sceneTime.DeltaTime = static_cast<float>(thisFrame / 1000);
         sceneTime.Time += sceneTime.DeltaTime;
         
-        // LOG
+        // ¬ LOG
         if (currentFrame > 0 && currentFrame % gNumFramesPerLog == 0)
         {
             std::cout << "\x1B[2J\x1B[H";
@@ -329,7 +327,7 @@ int main()
             std::cout << "Avg Ms Total: " << avg_msFrame << " \n";
         }
         
-        // Reset stats & counters
+        // ¬ Reset stats & counters
         if (currentFrame > 0 && currentFrame % gNumFramesPerAverage == 0)
             stats.Reset();
         

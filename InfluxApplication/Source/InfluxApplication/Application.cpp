@@ -41,6 +41,7 @@ namespace Influx::Application
     {
         if (IsRunning())
         {
+            // Cannot re-run. Call SignalQuit() instead!
             return;
         }
 
@@ -50,16 +51,16 @@ namespace Influx::Application
 
         Start();
 
-        while (!GetHasRecievedQuit())
+        while (GetHasRecievedQuit() == false)
         {
             PollWindowEvents();
+
             Update();
+            
             Render();
-            ImguiRender();
 
             ++m_frame;
         }
-
 
         m_isRunning = false;
     }
@@ -76,6 +77,7 @@ namespace Influx::Application
         if (GetShouldHaveWindow())
         {
             CreateWindow();
+
             CreateRenderer();
         }
 
@@ -106,13 +108,15 @@ namespace Influx::Application
     {
         if (m_hasStarted)
         {
+            // Don't restart!
             return;
         }
 
-        const bool shouldRenderScene = GetShouldRenderScene();
-        const bool hasCreatedWindow = GetHasCreatedWindow();
-        const bool hasCreatedRenderer = GetHasCreatedRenderer();
-        const bool shouldRenderImGui = GetShouldHaveImgui();
+        const bool shouldRenderScene    = GetShouldRenderScene();
+        const bool hasCreatedWindow     = GetHasCreatedWindow();
+        const bool hasCreatedRenderer   = GetHasCreatedRenderer();
+        const bool shouldRenderImGui    = GetShouldHaveImgui();
+
         if (!shouldRenderScene || !hasCreatedWindow || !hasCreatedRenderer)
         {
             return;
@@ -134,6 +138,7 @@ namespace Influx::Application
 
             pipelineDesc.RenderTargets[0].Format = Graphics::ERHIFormat::RGBA_8_Unorm;
         }
+
         Graphics::RHIGraphicsPipelineLayoutDescription layoutDesc{};
 
         m_hasStarted = true;
@@ -172,10 +177,9 @@ namespace Influx::Application
 
     void Application::Render()
     {
-        const bool shouldRenderScene = GetShouldRenderScene();
-        const bool hasCreatedWindow = GetHasCreatedWindow();
-        const bool hasCreatedRenderer = GetHasCreatedRenderer();
-        const bool shouldRenderImGui = GetShouldHaveImgui();
+        const bool shouldRenderScene    = GetShouldRenderScene();
+        const bool hasCreatedWindow     = GetHasCreatedWindow();
+        const bool hasCreatedRenderer   = GetHasCreatedRenderer();
 
         if (!shouldRenderScene || !hasCreatedWindow || !hasCreatedRenderer)
         {
@@ -183,12 +187,8 @@ namespace Influx::Application
         }
 
         mp_appRenderer->Render();
-        mp_appRenderer->Present(true);
-    }
 
-    void Application::ImguiRender()
-    {
-
+        mp_appRenderer->Present(GetSettings().VSync);
     }
 
     void Application::CreateWindow()
@@ -230,37 +230,23 @@ namespace Influx::Application
             return;
         }
 
+        // Create a D3D12 renderer interface
         mp_appRenderer = Renderer::RootRenderer::Create(Graphics::EGraphicsAPI::D3D12, m_windowHandle);
 
-        // Create SceneRenderer:
+        // Create Scene-renderer:
         Renderer::SceneRenderer* sceneRenderer = mp_appRenderer->AddRenderer<Renderer::SceneRenderer>();
+
         sceneRenderer->AddLight(Renderer::SceneRenderer::LightData{ {}, {}, {1,1,1}, 1.0f });
         sceneRenderer->SetCamera(Renderer::SceneRenderer::CameraData{ { 0, 0, 50.0f }, {0, 0, -1}, 90.0f });
 
+        // Parse a scene-file and upload resulting mesh-data into sceneRenderer
         Assets::Scene out_scene{};
-        Assets::LoadScene("E:/Git/Influx/Resources/Meshes/box.fbx", out_scene, nullptr, Assets::SceneLoadDesc{});
+        Assets::LoadSceneFile("E:/Git/Influx/Resources/Meshes/box.fbx", out_scene, nullptr, Assets::SceneLoadDesc{});
         
         for (uint64 i = 0u; i < out_scene.Meshes.size(); ++i)
         {
-            const Assets::Scene::Mesh& mesh = out_scene.Meshes[i];
-            Renderer::SceneRenderer::MeshData meshData{};
-
-            // For each face in the mesh...
-            for (uint64 f = 0u; f < mesh.Faces.size(); ++f)
-            {
-                // Copy the triangle and add to mesh-data...
-                Scene::Mesh::Triangle triangle{};
-                for (uint8 t = 0u; t < 3u; ++t)
-                {
-                    const Assets::Scene::Mesh::Vertex& vertex = mesh.Vertices[mesh.Faces[f][t]];
-                    triangle[t].Colour = vertex.Color;
-                    triangle[t].Normal = vertex.Normal;
-                    triangle[t].Position = vertex.Position;
-                    triangle[t].UV = {};
-                }
-
-                meshData.m_meshData.AddTriangle(triangle);
-            }
+            const Scene::Mesh& mesh = out_scene.Meshes[i];
+            Renderer::SceneRenderer::MeshData meshData = mesh;
 
             sceneRenderer->AddMesh(meshData);
         }
@@ -270,7 +256,6 @@ namespace Influx::Application
     {
         m_recievedQuit = true;
     }
-
 
     bool Application::GetHasStarted() const
     {
@@ -300,11 +285,6 @@ namespace Influx::Application
     bool Application::GetShouldRenderScene() const
     {
         return GetSettings().HasSceneRender && GetShouldHaveWindow();
-    }
-
-    bool Application::GetShouldHaveUpdate() const
-    {
-        return GetSettings().HasUpdate;
     }
 
     bool Application::GetHasCleanedUp() const

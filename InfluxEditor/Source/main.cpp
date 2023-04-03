@@ -1,6 +1,12 @@
 
 #include "InfluxApplication/Application.h"
 
+/*
+*	[INFLUX EDITOR]
+* 
+* 
+*/
+
 int main(int argc, char** argv)
 {
 	using namespace Influx::Application;

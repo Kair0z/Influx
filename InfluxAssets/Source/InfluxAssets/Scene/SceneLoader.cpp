@@ -4,6 +4,13 @@
 #undef epsilon
 #endif
 
+// We're using Assimp libary for loading .FBX files...
+#if _DEBUG
+#pragma comment(lib, "assimp-vc142-mtd.lib")
+#else
+#pragma comment(lib, "assimp-vc142-mt.lib")
+#endif
+
 #include "assimp/Importer.hpp"	// C++ importer interface
 #include "assimp/scene.h"		// Output data structure
 #include "assimp/postprocess.h"	// Post processing flags
@@ -52,9 +59,9 @@ namespace Influx::Assets
 		}
 
 		// Todo... There's multiple colour channels!
-		Scene::Mesh FromAssimp(const aiMesh* pMesh)
+		Influx::Scene::Mesh FromAssimp(const aiMesh* pMesh)
 		{
-			Scene::Mesh result(pMesh->mNumVertices);
+			Influx::Scene::Mesh result{};
 			constexpr uint32 vColChannel = 0u;
 
 			const bool meshHasPositions = pMesh->HasPositions();
@@ -67,77 +74,67 @@ namespace Influx::Assets
 
 			for (uint32 v = 0u; v < pMesh->mNumVertices; ++v)
 			{
-				Scene::Mesh::Vertex vertex{};
+				Influx::Scene::Mesh::Vertex vertex{};
 
 				if (collectPositions)	 vertex.Position = FromAssimp(pMesh->mVertices[v]);
 				if (collectNormals)		 vertex.Normal = FromAssimp(pMesh->mNormals[v]);
-				if (collectVertexColors) vertex.Color = FromAssimp(pMesh->mColors[v][vColChannel]);
+				if (collectVertexColors) vertex.Colour = FromAssimp(pMesh->mColors[v][vColChannel]);
 
-				result.Vertices.push_back(vertex);
+				result.AddVertex(vertex);
 			}
 
 			for (uint32 f = 0u; f < pMesh->mNumFaces; ++f)
 			{
-				Scene::Mesh::Face face{};
-
 				for (uint32 i = 0u; i < pMesh->mFaces[f].mNumIndices; ++i)
 				{
-					Scene::Mesh::Index index = pMesh->mFaces[f].mIndices[i];
-					face.push_back(index);
-					result.Indices.push_back(index);
+					Influx::Scene::Mesh::Index index = pMesh->mFaces[f].mIndices[i];
+					result.AddIndex(index);
 				}
-
-				result.Faces.push_back(face);
 			}
 
-			result.Name = FromAssimp(pMesh->mName);
+#if CORE_SCENE_MESH_DEBUG
+			result.SetName( FromAssimp(pMesh->mName) );
+#endif
 
 			return result;
 		}
 
-		Scene::Camera FromAssimp(const aiCamera* pCamera)
+		Influx::Scene::Camera FromAssimp(const aiCamera* pCamera)
 		{
-			Scene::Camera result{};
+			Influx::Scene::Camera result{};
 
-			result.AspectRatio = pCamera->mAspect;
-			result.Position = FromAssimp(pCamera->mPosition);
-			result.NearZ = pCamera->mClipPlaneNear;
-			result.FarZ = pCamera->mClipPlaneFar;
-			result.Forward = FromAssimp(pCamera->mLookAt);
-			result.Up = FromAssimp(pCamera->mUp);
-			result.Name = FromAssimp(pCamera->mName);
-			result.OrthographicWidth = pCamera->mOrthographicWidth * 2.0f; // "Half horizontal orthographic width, in scene units"
-			result.HorizontalFov = pCamera->mHorizontalFOV;
-			result.bIsOrthoGraphic = pCamera->mOrthographicWidth != 0.0f;
+			// result.AspectRatio = pCamera->mAspect;
+			// result.Position = FromAssimp(pCamera->mPosition);
+			// result.NearZ = pCamera->mClipPlaneNear;
+			// result.FarZ = pCamera->mClipPlaneFar;
+			// result.Forward = FromAssimp(pCamera->mLookAt);
+			// result.Up = FromAssimp(pCamera->mUp);
+			// result.Name = FromAssimp(pCamera->mName);
+			// result.OrthographicWidth = pCamera->mOrthographicWidth * 2.0f; // "Half horizontal orthographic width, in scene units"
+			// result.HorizontalFov = pCamera->mHorizontalFOV;
+			// result.bIsOrthoGraphic = pCamera->mOrthographicWidth != 0.0f;
 
 			return result;
 		}
 
-		// Todo... Completely!
-		Scene::Material FromAssimp(const aiMaterial* pMaterial)
+		Influx::Scene::Light FromAssimp(const aiLight* pLight)
 		{
-			Scene::Material result{};
-			return result;
-		}
+			Influx::Scene::Light result{};
 
-		Scene::Light FromAssimp(const aiLight* pLight)
-		{
-			Scene::Light result{};
-
-			result.Name = FromAssimp(pLight->mName);
-			result.LightType = FromAssimp(pLight->mType);
-			result.Position = FromAssimp(pLight->mPosition);
-			result.Direction = FromAssimp(pLight->mDirection);
-			result.Up = FromAssimp(pLight->mUp);
-			result.AttenuationConstant = pLight->mAttenuationConstant;
-			result.AttenuationLinear = pLight->mAttenuationLinear;
-			result.AttenuationQuadratic = pLight->mAttenuationQuadratic;
-			result.ColorDiffuse = FromAssimp(pLight->mColorDiffuse);
-			result.ColorSpecular = FromAssimp(pLight->mColorSpecular);
-			result.ColorAmbient = FromAssimp(pLight->mColorAmbient);
-			result.AngleInnerCone = pLight->mAngleInnerCone;
-			result.AngleOuterCone = pLight->mAngleOuterCone;
-			result.AreaSize = FromAssimp(pLight->mSize);
+			// result.Name = FromAssimp(pLight->mName);
+			// result.LightType = FromAssimp(pLight->mType);
+			// result.Position = FromAssimp(pLight->mPosition);
+			// result.Direction = FromAssimp(pLight->mDirection);
+			// result.Up = FromAssimp(pLight->mUp);
+			// result.AttenuationConstant = pLight->mAttenuationConstant;
+			// result.AttenuationLinear = pLight->mAttenuationLinear;
+			// result.AttenuationQuadratic = pLight->mAttenuationQuadratic;
+			// result.ColorDiffuse = FromAssimp(pLight->mColorDiffuse);
+			// result.ColorSpecular = FromAssimp(pLight->mColorSpecular);
+			// result.ColorAmbient = FromAssimp(pLight->mColorAmbient);
+			// result.AngleInnerCone = pLight->mAngleInnerCone;
+			// result.AngleOuterCone = pLight->mAngleOuterCone;
+			// result.AreaSize = FromAssimp(pLight->mSize);
 
 			return result;
 		}
@@ -164,7 +161,7 @@ namespace Influx::Assets
 			for (uint32 i = 0u; i < pScene->mNumMaterials; ++i)
 			{
 				const aiMaterial* material = pScene->mMaterials[i];
-				result.Materials.push_back(AssimpHelpers::FromAssimp(material));
+				// result.Materials.push_back(AssimpHelpers::FromAssimp(material));
 			}
 
 			// Get Lights...
@@ -178,7 +175,7 @@ namespace Influx::Assets
 		}
 	}
 
-	bool LoadScene(const String& filepath, Scene& out_scene, SceneCachePtr pCache, const SceneLoadDesc& loadDesc)
+	bool LoadSceneFile(const String& filepath, Scene& out_scene, SceneCachePtr pCache, const SceneLoadDesc& loadDesc)
 	{
 		// Try to find the loaded scene in the provided cache...
 		if (pCache)

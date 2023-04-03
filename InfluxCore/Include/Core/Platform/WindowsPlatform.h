@@ -307,6 +307,18 @@ namespace Influx::Platform
 		return CreateWindow(settings, shouldOpen, Internal::DefaultWindowsProcedure);
 	}
 
+	inline WindowSettings GetWindowSettings(const WindowHandle handle)
+	{
+		WindowSettings settings{};
+		
+		const Math::Recti& clientRect = GetClientWindowRect<int>(handle);
+		settings.Width = clientRect.m_widthHeigth.x;
+		settings.Heigth = clientRect.m_widthHeigth.y;
+		// Todo... name?
+
+		return settings;
+	}
+
 	inline void DestroyWindow(const WindowHandle handle)
 	{
 		::DestroyWindow((::HWND)handle);
