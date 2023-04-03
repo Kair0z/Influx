@@ -36,5 +36,6 @@
     <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12PipelineLayout.h" />
     <ClInclude Include="Include\InfluxGraphics\RHI.h" />
     <ClInclude Include="Include\InfluxGraphics\RHITexture.h" />
+    <ClInclude Include="Include\InfluxGraphics\Vulkan\Vulkan.h" />
   </ItemGroup>
 </Project>

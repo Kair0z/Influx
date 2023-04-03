@@ -122,17 +122,6 @@ namespace Influx::Graphics
             return _E{ nullptr };
         }
 
-        /* GetAndOrCreateDescriptor */
-        static RHIDescriptorHandle GetAndOrCreateDescriptor(const RHIBufferHandle& bufferHandle)
-        {
-#if INFLUX_GRAPHICS_INCLUDE_DX12
-            RHIDescriptorHandle descriptor;
-            
-            return descriptor;
-#endif
-            return {};
-        }
-
     private:
         EGraphicsAPI m_currentInitializedAPI = EGraphicsAPI::NotSupported;
         bool m_isDebugLayerActive = false;
@@ -216,6 +205,10 @@ namespace Influx::Graphics
         constexpr static uint8 k_dxMaxNumResourceDescriptorsPerHeap = 64u;
         constexpr static uint8 k_dxMaxNumRtvDescriptorsPerHeap = 64u;
         constexpr static uint8 k_dxMaxNumDsvDescriptorsPerHeap = 64u;
+#endif
+
+#if INFLUX_GRAPHICS_INCLUDE_VULKAN
+
 #endif
     };
 

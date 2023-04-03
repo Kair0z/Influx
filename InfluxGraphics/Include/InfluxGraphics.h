@@ -135,7 +135,7 @@ namespace Influx::Graphics
 namespace Influx::Graphics
 {
 	/* Graphics APIs */
-	enum class EGraphicsAPI
+	enum class EGraphicsAPI : uint8
 	{
 #if INFLUX_GRAPHICS_INCLUDE_DX12
 		D3D12,
