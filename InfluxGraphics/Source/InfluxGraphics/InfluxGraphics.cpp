@@ -132,6 +132,58 @@ namespace Influx::Graphics
             return _E{ nullptr };
         }
 
+        template <ERHIChild _E>
+        static Child* GetChildFromHandle(const RHIObjectHandle<_E>& handle)
+        {
+#if INFLUX_GRAPHICS_USE_STL
+            ChildContainer& containerToSearch = Get().m_childLists[static_cast<uint8>(_E)];
+            auto found = std::find(containerToSearch.begin(), containerToSearch.end(), handle);
+            if (found != containerToSearch.end())
+            {
+                return &(*found);
+            }
+#endif
+            return nullptr;
+        }
+
+        static Child* GetChildFromHandle(const IRHIObjectHandle& handle)
+        {
+            Child* pointerToChild = nullptr;
+            for (uint8 c = 0u; c < k_numRHIObjectTypes; ++c)
+            {
+#if INFLUX_GRAPHICS_USE_STL
+                ChildContainer& containerToSearch = Get().m_childLists[c];
+                auto found = std::find(containerToSearch.begin(), containerToSearch.end(), handle);
+                if (found != containerToSearch.end())
+                {
+                    return &(*found);
+                }
+#endif
+            }
+
+            return pointerToChild;
+        }
+
+        template <ERHIChild _E>
+        static void SetRHIState(const RHIObjectHandle<_E>& handle, const RHIState<_E>& newState)
+        {
+            if (Child* child = GetChildFromHandle<_E>(handle))
+            {
+                child->State = newState;
+            }
+        }
+
+        template <ERHIChild _E>
+        static const RHIState<_E>* GetRHIState(const RHIObjectHandle<_E>& handle)
+        {
+            if (const Child* child = GetChildFromHandle<_E>(handle))
+            {
+                return &child->State;
+            }
+
+            return nullptr;
+        }
+
     private:
         EGraphicsAPI m_currentInitializedAPI = EGraphicsAPI::NotSupported;
         bool m_isDebugLayerActive = false;
@@ -493,6 +545,8 @@ namespace Influx::Graphics
 
     EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain, const PresentDescription& present)
     {
+        GlobalState::GetRHIState(swapchain);
+
         switch (GetInitializedGraphicsAPI())
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
