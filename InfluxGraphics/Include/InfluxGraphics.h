@@ -35,6 +35,10 @@
 
 #pragma endregion
 
+#pragma region Predeclarations
+
+#pragma endregion
+
 // RHI types
 #pragma region RHI Types
 
@@ -196,12 +200,15 @@ namespace Influx::Graphics
 		CBV = Resource,
 		UAV = Resource,
 		SRV = Resource,
+
 		DSV,
 		RTV,
 		Sampler,
+
 		Max,
 		Invalid = Max
 	};
+
 	using ERHIDescriptorType = ERHIResourceViewType;
 
 	enum class ERHIShaderType
@@ -484,7 +491,7 @@ namespace Influx::Graphics
 #pragma region RHI Types - Classes
 namespace Influx::Graphics
 {
-	enum class ERHIObject : uint8
+	enum class ERHIChild : uint8
 	{
 		CommandQueue,
 		CommandList,
@@ -499,7 +506,7 @@ namespace Influx::Graphics
 		Max
 	};
 
-	constexpr uint8 k_numRHIObjectTypes = static_cast<uint8>(ERHIObject::Max);
+	constexpr uint8 k_numRHIObjectTypes = static_cast<uint8>(ERHIChild::Max);
 	constexpr uint8 k_maxNumRHIObjectsPerType[k_numRHIObjectTypes]
 	{
 		1u,		// CommandQueue
@@ -509,6 +516,7 @@ namespace Influx::Graphics
 		64,		// GraphicsPipeline
 		64,		// GraphicsPipelineLayout
 	};
+
 	constexpr const char* k_RHIObjectsNameStrings[k_numRHIObjectTypes]
 	{
 		"CommandQueue",
@@ -519,17 +527,11 @@ namespace Influx::Graphics
 		"GraphicsPipelineLayout",
 	};
 
+	// Handles: pointer wrappers that allow us to point to device-children and access their data.
 	class IRHIObjectHandle
 	{
 	public:
-		IRHIObjectHandle() = default;
-		IRHIObjectHandle(void* internalPointer) : mp_internal{ internalPointer } {}
-
-#if INFLUX_GRAPHICS_DEBUG
-		virtual const char* GetDebugName() const { return "IRHIObject"; };
-#endif
-
-		virtual ERHIObject GetType() const { return ERHIObject::Max; };
+		virtual ERHIChild GetType() const { return ERHIChild::Max; };
 
 		operator bool() const
 		{
@@ -552,54 +554,91 @@ namespace Influx::Graphics
 			return (_T*)GetInternal();
 		}
 
+		template <class _T>
+		_T* As() const
+		{
+			return GetInternal<_T>();
+		}
+
+#if INFLUX_GRAPHICS_DEBUG
+		virtual const char* GetDebugName() const { return "IRHIObject"; };
+#endif
+
+	protected:
+		IRHIObjectHandle() = default;
+		IRHIObjectHandle(void* internalPointer) : mp_internal{ internalPointer } {}
+
 	private:
 		void* mp_internal = nullptr;
 	};
 
-	template <class _I>
-	_I* GetInternalType(IRHIObjectHandle objectHandle)
-	{
-		return (_I)objectHandle.GetInternal();
-	}
-
-	template <ERHIObject _E>
+	template <ERHIChild _E>
 	struct RHIObjectHandle : public IRHIObjectHandle 
 	{
+		// We can publicly create invalid handles.
 		RHIObjectHandle() = default;
-		RHIObjectHandle(void* internalPointer) : IRHIObjectHandle(internalPointer) {}
 
 #if INFLUX_GRAPHICS_DEBUG
 		virtual const char* GetDebugName() const override final { return k_RHIObjectsNameStrings[static_cast<uint8>(_E)]; };
 #endif
 
-		virtual ERHIObject GetType() const override final { return GetStaticType(); };
+		virtual ERHIChild GetType() const override final { return GetStaticType(); };
 
-		constexpr static ERHIObject GetStaticType() { return _E; }
+		constexpr static ERHIChild GetStaticType() { return _E; }
+
+	protected:
+		RHIObjectHandle(void* internalPointer) 
+			: IRHIObjectHandle(internalPointer) {}
+
+		friend class GlobalState;
 	};
 
-	// RHITexture
-	using RHITextureHandle = RHIObjectHandle<ERHIObject::Texture>;
+	using RHITextureHandle					= RHIObjectHandle<ERHIChild::Texture>;
+	using RHIGraphicsCommandListHandle		= RHIObjectHandle<ERHIChild::CommandList>;
+	using RHIGraphicsCommandQueueHandle		= RHIObjectHandle<ERHIChild::CommandQueue>;
+	using RHIGraphicsCommandBufferHandle	= RHIObjectHandle<ERHIChild::CommandAllocator>;
+	using RHIGraphicsPipelineHandle			= RHIObjectHandle<ERHIChild::GraphicsPipeline>;
+	using RHIGraphicsPipelineLayoutHandle	= RHIObjectHandle<ERHIChild::GraphicsPipelineLayout>;
+	using RHIBufferHandle					= RHIObjectHandle<ERHIChild::Buffer>;
+	using RHIDescriptorHeapHandle			= RHIObjectHandle<ERHIChild::DescriptorHeap>;
+	using RHIDescriptorHandle				= RHIObjectHandle<ERHIChild::Descriptor>;
+	using RHISwapchainHandle				= RHIObjectHandle<ERHIChild::Swapchain>;
 
-	struct RHITextureDesc final
+	// Descriptors: describe construction & creation of resources
+	struct IRHIDesc
+	{
+	public:
+		IRHIDesc() = default;
+
+#if INFLUX_GRAPHICS_DEBUG
+		virtual const char* GetDebugName() const { return "IRHIDesc"; };
+#endif
+
+		virtual ERHIChild GetType() const { return ERHIChild::Max; }
+	};
+
+	template <ERHIChild _E>
+	struct RHIDesc : public IRHIDesc
+	{
+		RHIDesc() = default;
+
+#if INFLUX_GRAPHICS_DEBUG
+		constexpr static const char* GetStaticDebugName() { return k_RHIObjectsNameStrings[static_cast<uint8>(_E)]; }
+		virtual const char* GetDebugName() const override final { return GetStaticDebugName(); };
+#endif
+
+		constexpr static ERHIChild GetStaticType() { return _E; }
+		virtual ERHIChild GetType() const override final { return GetStaticType(); };
+	};
+
+	struct RHITextureDesc final : public RHIDesc<ERHIChild::Texture>
 	{
 		Vectoru2	Dimensions;
 		uint16		Mips;
 		ERHIFormat	Format;
 	};
 
-	// RHIGraphicsCommandList
-	using RHIGraphicsCommandListHandle = RHIObjectHandle<ERHIObject::CommandList>;
-
-	// RHIGraphics Command Queue
-	using RHIGraphicsCommandQueueHandle = RHIObjectHandle<ERHIObject::CommandQueue>;
-
-	// RHIGraphics Command Queue
-	using RHIGraphicsCommandBufferHandle = RHIObjectHandle<ERHIObject::CommandAllocator>;
-
-	// RHIPipeline
-	using RHIGraphicsPipelineHandle = RHIObjectHandle<ERHIObject::GraphicsPipeline>;
-
-	struct RHIGraphicsPipelineDesc final
+	struct RHIGraphicsPipelineDesc final : public RHIDesc<ERHIChild::GraphicsPipeline>
 	{
 		using CompiledShaderData = Vector<uint8>;
 
@@ -664,52 +703,75 @@ namespace Influx::Graphics
 		} RenderTargets[k_maxBoundRenderTargets];
 	};
 
-	// RHIPipeline Layout
-	using RHIGraphicsPipelineLayoutHandle = RHIObjectHandle<ERHIObject::GraphicsPipelineLayout>;
-
-	struct RHIGraphicsPipelineLayoutDesc final
+	struct RHIGraphicsPipelineLayoutDesc final : public RHIDesc<ERHIChild::GraphicsPipelineLayout>
 	{
 
 	};
 
-	// RHIBuffer 
-	using RHIBufferHandle = RHIObjectHandle<ERHIObject::Buffer>;
-
-	struct RHIBufferDesc final
+	struct RHIBufferDesc final : public RHIDesc<ERHIChild::Buffer>
 	{
 		ERHIResourceState State;
 		RHIClearValue ClearValue;
 		uint64 SizeInBytes;
 	};
 
-	// RHISwapchain
-	using RHISwapchainHandle = RHIObjectHandle<ERHIObject::Swapchain>;
-
-	struct RHISwapchainDesc final
+	struct RHISwapchainDesc final : public RHIDesc<ERHIChild::Swapchain>
 	{
-		enum class EBuffering
+		enum class EBuffering : uint8
 		{
 			Single = 1,
 			Double = 2,
 			Triple = 3,
 			Max
-		} Buffering;
+		};
+
+		uint8 GetNumBuffers() const
+		{
+			switch (Buffering)
+			{
+			case EBuffering::Single: return 1u;
+			case EBuffering::Double: return 2u;
+			case EBuffering::Triple: return 3u;
+
+			default:
+				return 0u;
+			}
+		}
+		
+		EBuffering Buffering;
 
 		void* WindowHandle;
+
 		Math::Vectoru2 Dimensions;
+
 		bool bIsTearingSupported;
+
+		ERHIFormat RenderTargetFormat;
 	};
 
-	// RHIDescriptorHeap
-	using RHIDescriptorHeapHandle = RHIObjectHandle<ERHIObject::DescriptorHeap>;
-	using RHIDescriptorHandle = RHIObjectHandle<ERHIObject::Descriptor>;
-
-	struct RHIDescriptorHeapDesc final
+	struct RHIDescriptorHeapDesc final : public RHIDesc<ERHIChild::DescriptorHeap>
 	{
 		ERHIResourceViewType Type;
 		bool bIsShaderVisible;
 		uint64 TotalNumDescriptors;
 		uint64 NumDescriptorsOccupied;
+	};
+
+	// State: describe state of data, accessible
+	struct IRHIState
+	{
+	protected:
+		IRHIState() = default;
+	};
+
+	template <ERHIChild _E>
+	struct RHIState : public IRHIState
+	{
+		using Descriptor = RHIDesc<_E>;
+
+		explicit RHIState(const Descriptor& desc) : CreationDescriptor{ desc } {}
+
+		Descriptor CreationDescriptor;
 	};
 }
 #pragma endregion
@@ -745,9 +807,11 @@ namespace Influx::Graphics
 	const static EResult FailError		= EResult(false, EResult::EMessageLevel::Error);
 }
 
-// [API]
+// [MAIN API]
 namespace Influx::Graphics
 {
+	INFLUX_GRAPHICS_API EResult RegisterNative(EGraphicsAPI api, ERHIChild type, void* ptr);
+
 	/* Initialize resources for a given EGraphicsAPI */
 	INFLUX_GRAPHICS_API EResult Initialize(EGraphicsAPI api);
 

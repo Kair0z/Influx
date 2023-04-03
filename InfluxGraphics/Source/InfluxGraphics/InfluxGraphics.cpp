@@ -17,14 +17,19 @@ namespace Influx::Graphics
     class GlobalState final 
         : public Singleton<GlobalState>
     {
-        using ObjectContainer = Vector<IRHIObjectHandle>;
+        struct Child final
+        {
+            IRHIObjectHandle    Handle;
+            IRHIState           State;
+        };
+
+        using ChildContainer = Vector<Child>;
 
     public:
         static EGraphicsAPI GetCurrentInitializedAPI()
         {
             return Get().m_currentInitializedAPI;
         }
-
         static bool HasInitializedGraphicsAPI()
         {
             return Get().GetCurrentInitializedAPI() != EGraphicsAPI::Max;
@@ -34,17 +39,16 @@ namespace Influx::Graphics
         {
             return Get().m_isDebugLayerActive;
         }
-
         static void SetDebugLayerActive(bool isActive)
         {
             Get().m_isDebugLayerActive = isActive;
         }
         
-        template <ERHIObject _E>
+        template <ERHIChild _E>
         static bool CanRegisterRHIObject()
         {
             constexpr uint8 idx = static_cast<uint8>(_E);
-            return Get().m_objectLists[idx].size() < k_maxNumRHIObjectsPerType[idx];
+            return Get().m_childLists[idx].size() < k_maxNumRHIObjectsPerType[idx];
         }
 
         template <class _E>
@@ -55,7 +59,7 @@ namespace Influx::Graphics
 
         /* Register a raw-object pointer as an RHI object */
         template <class _E>
-        static _E RegisterRHIObject(void* rawObjectPointer)
+        static _E TryRegisterRHIObject(void* rawObjectPointer)
         {
             static_assert(std::is_base_of_v<IRHIObjectHandle, _E> == true, "RegisterRHIObject [_E] must derive from IRHIObjectHandle!");
 
@@ -67,8 +71,14 @@ namespace Influx::Graphics
             constexpr uint8 idx = static_cast<uint8>(_E::GetStaticType());
 
             // the constructor of _E takes in a void*...
-            Get().m_objectLists[idx].push_back(_E(rawObjectPointer));
+            Get().m_childLists[idx].push_back(_E(rawObjectPointer));
             return _E(rawObjectPointer);
+        }
+
+        template <ERHIChild _E>
+        static RHIObjectHandle<_E> TryRegisterRHIObject(void* rawObjectPointer)
+        {
+            return TryRegisterRHIObject<RHIObjectHandle<_E>>(rawObjectPointer);
         }
 
         /* Pass a raw-object-creating function that after creation will Register it as an RHI object*/
@@ -82,26 +92,26 @@ namespace Influx::Graphics
                 return _E{ nullptr };
             }
 
-            return RegisterRHIObject<_E>(creationCallback());
+            return TryRegisterRHIObject<_E>(creationCallback());
         }
 
         /* Get all RHI Objects registered based on the ERHIObject enum */
-        template <ERHIObject _E>
-        static const ObjectContainer& GetRHIObjectsOfType()
+        template <ERHIChild _E>
+        static const ChildContainer& GetRHIObjectsOfType()
         {
-            return Get().m_objectLists[static_cast<uint8>(_E)];
+            return Get().m_childLists[static_cast<uint8>(_E)];
         }
 
         /* Get all RHI Objects based on their type */
         template <class _E>
-        static const ObjectContainer& GetRHIObjectsOfType()
+        static const ChildContainer& GetRHIObjectsOfType()
         {
             static_assert(std::is_base_of_v<IRHIObjectHandle, _E> == true, "GetRHIObjectsOfType [_E] must derive from IRHIObjectHandle!");
 
             return GetRHIObjectsOfType<_E::GetStaticType()>();
         }
 
-        template <ERHIObject _E>
+        template <ERHIChild _E>
         static bool HasObjectOfType()
         {
             return GetRHIObjectsOfType<_E>().size() != 0u;
@@ -115,7 +125,7 @@ namespace Influx::Graphics
 
             if (idx < GetRHIObjectsOfType<_E>().size())
             {
-                const IRHIObjectHandle& handle = Get().m_objectLists[static_cast<uint8>(_E::GetStaticType())][idx];
+                const IRHIObjectHandle& handle = Get().m_childLists[static_cast<uint8>(_E::GetStaticType())][idx];
                 return _E{ handle.GetInternal() };
             }
             
@@ -126,7 +136,7 @@ namespace Influx::Graphics
         EGraphicsAPI m_currentInitializedAPI = EGraphicsAPI::NotSupported;
         bool m_isDebugLayerActive = false;
 
-        Array<ObjectContainer, static_cast<uint8>(ERHIObject::Max)> m_objectLists;
+        Array<ChildContainer, static_cast<uint8>(ERHIChild::Max)> m_childLists;
 
 #if INFLUX_GRAPHICS_INCLUDE_DX12
     private:
@@ -212,6 +222,25 @@ namespace Influx::Graphics
 #endif
     };
 
+
+    EResult RegisterNative(EGraphicsAPI api, ERHIChild type, void* ptr)
+    {
+        switch (type)
+        {
+            case ERHIChild::CommandQueue:           GlobalState::TryRegisterRHIObject<ERHIChild::CommandQueue>(ptr); break;
+            case ERHIChild::CommandList:            GlobalState::TryRegisterRHIObject<ERHIChild::CommandList>(ptr); break;
+            case ERHIChild::CommandAllocator:       GlobalState::TryRegisterRHIObject<ERHIChild::CommandAllocator>(ptr); break;
+            case ERHIChild::Swapchain:              GlobalState::TryRegisterRHIObject<ERHIChild::Swapchain>(ptr); break;
+            case ERHIChild::GraphicsPipeline:       GlobalState::TryRegisterRHIObject<ERHIChild::GraphicsPipeline>(ptr); break;
+            case ERHIChild::GraphicsPipelineLayout: GlobalState::TryRegisterRHIObject<ERHIChild::GraphicsPipelineLayout>(ptr); break;
+            case ERHIChild::Texture:                GlobalState::TryRegisterRHIObject<ERHIChild::Texture>(ptr); break;
+            case ERHIChild::Buffer:                 GlobalState::TryRegisterRHIObject<ERHIChild::Buffer>(ptr); break;
+            case ERHIChild::DescriptorHeap:         GlobalState::TryRegisterRHIObject<ERHIChild::DescriptorHeap>(ptr); break;
+            case ERHIChild::Descriptor:             GlobalState::TryRegisterRHIObject<ERHIChild::Descriptor>(ptr); break;
+        }
+
+        return { true };
+    }
 
     EResult Initialize(EGraphicsAPI api)
     {
@@ -386,8 +415,8 @@ namespace Influx::Graphics
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
 
-            GetInternalType<ID3D12GraphicsCommandList>(commandListHandle)->Close();
-            GetInternalType<ID3D12GraphicsCommandList>(commandListHandle)->Reset(commandbufferHandle.GetInternal<ID3D12CommandAllocator>(), nullptr);
+            commandListHandle.As<ID3D12GraphicsCommandList>()->Close();
+            commandListHandle.As<ID3D12GraphicsCommandList>()->Reset(commandbufferHandle.As<ID3D12CommandAllocator>(), nullptr);
 
             break;
 #endif
@@ -400,9 +429,9 @@ namespace Influx::Graphics
     EResult DispatchGraphicsCommandListToGpu(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle)
     {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
-        if (ID3D12GraphicsCommandList* d3d12GfxCmdList = commandListHandle.GetInternal<ID3D12GraphicsCommandList>())
+        if (ID3D12GraphicsCommandList* d3d12GfxCmdList = commandListHandle.As<ID3D12GraphicsCommandList>())
         {
-            if (ID3D12CommandQueue* d3d12CommandQueue = commandQueueHandle.GetInternal<ID3D12CommandQueue>())
+            if (ID3D12CommandQueue* d3d12CommandQueue = commandQueueHandle.As<ID3D12CommandQueue>())
             {
                 d3d12GfxCmdList->Close();
 
@@ -420,13 +449,7 @@ namespace Influx::Graphics
 
     EResult CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle)
     {
-        uint8 numBuffers = 0u;
-        switch (desc.Buffering)
-        {
-        case RHISwapchainDesc::EBuffering::Single: numBuffers = 1u; break;
-        case RHISwapchainDesc::EBuffering::Double: numBuffers = 2u; break;
-        case RHISwapchainDesc::EBuffering::Triple: numBuffers = 3u; break;
-        }
+        uint8 numBuffers = desc.GetNumBuffers();
 
         // Get an existing, or create a new graphics command queue...
         RHIGraphicsCommandQueueHandle cmdQueueHandle = GlobalState::GetRHIObjectOfType<RHIGraphicsCommandQueueHandle>(0u);
@@ -456,11 +479,9 @@ namespace Influx::Graphics
                 ID3D12Resource* resource;
                 if (out_handle.GetInternal<IDXGISwapChain3>()->GetBuffer(i, IID_PPV_ARGS(&resource)))
                 {
-                    GlobalState::RegisterRHIObject<RHIBufferHandle>(resource);
+                    GlobalState::TryRegisterRHIObject<RHIBufferHandle>(resource);
                 }
                 else INFLUX_GRAPHICS_ASSERT(false);
-
-
             }
 
             break;
@@ -472,7 +493,16 @@ namespace Influx::Graphics
 
     EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain)
     {
-        return EResult();
+        switch (GetInitializedGraphicsAPI())
+        {
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+            case EGraphicsAPI::D3D12:
+                swapchain.As<IDXGISwapChain>()->Present(1u, 0);
+                break;
+#endif
+        }
+
+        return { false };
     }
 
     EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "InfluxGraphics/RHITypes.h"
+#include "InfluxGraphics.h"
 #include "D3D12.h"
 
 namespace Influx::Graphics::Conversion
