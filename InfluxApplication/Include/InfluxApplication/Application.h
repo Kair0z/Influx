@@ -1,6 +1,56 @@
 #pragma once
 
-#include "InfluxApplication/Common.h"
+#pragma once
+
+#ifndef __INFLUX_APPLICATION_H_
+#define __INFLUX_APPLICATION_H_
+
+#ifdef _DEBUG
+#define INFLUX_APPLICATION_DEBUG 1
+#else
+#define INFLUX_APPLICATION_DEBUG 0
+#endif
+
+#define INFLUX_APPLICATION_PLATFORM_WINDOWS 1
+#include "Core/Platform/WindowsPlatform.h"
+
+#define INFLUX_APPLICATION_USE_CORE 1
+
+#define INFLUX_APPLICATION_RENDER_D3D12		INFLUX_APPLICATION_PLATFORM_WINDOWS
+#define INFLUX_APPLICATION_RENDER_VULKAN	!INFLUX_APPLICATION_RENDER_D3D12
+
+#define FLX_APP_KEEP_TIMING_STATS	0
+
+#define INFLUX_APPLICATION_USE_CORE 1
+
+#if INFLUX_APPLICATION_USE_CORE
+#include "Core/BasicTypes.h"
+#include "Core/String.h"
+#include "Core/Math/Vector.h"
+#include "Core/Container/List.h"
+#include "Core/Container/Vector.h"
+#include "Core/Container/Array.h"
+#include "Core/Time.h"
+#include "Core/Pointer.h"
+#include "Core/Scene/Scene.h"
+#else
+static_assert(false, "Error: Application requires using the Influx Core-header-library! ")
+#endif
+
+#if INFLUX_APPLICATION_DEBUG
+// INFLUX_APPLICATION_TODO
+#define INFLUX_APPLICATION_TODO __debugbreak();
+
+// INFLUX_APPLICATION_ASSERT
+#if INFLUX_APPLICATION_USE_CORE
+#include "Core/Assert.h"
+#define INFLUX_APPLICATION_ASSERT(x) FLX_ASSERT(x); 
+#else
+#include <cassert>
+#define INFLUX_APPLICATION_ASSERT(x) assert(x);
+#endif
+
+#endif
 
 #pragma region Predeclarations
 namespace Influx
@@ -30,7 +80,6 @@ namespace Influx::Application
 			Math::Vectoru2 WindowDimensions = { 640u, 480u };
 
 			bool HasImGUI = false;
-			bool HasUpdate = false;
 			bool HasSceneRender = false;
 			bool VSync = false;
 		};
@@ -46,28 +95,48 @@ namespace Influx::Application
 		explicit Application(const Settings& creationSettings);
 
 		/* Runs the Application, the calling thread will only return when SignalQuit(); gets called */
-		void Run(int argc, char** argv);
+		void Run(int argc = 0, char** argv = nullptr);
 
 		/* Requests the Application to quit running. */
 		void SignalQuit();
 
-		bool GetHasStarted() const;
+		// Run();
 		bool IsRunning() const;
+
+		// Run() > Start();
+		bool GetHasStarted() const;
+
+		// SignalQuit();
 		bool GetHasRecievedQuit() const;
+
+		// Settings::HasWindow
 		bool GetShouldHaveWindow() const;
+
+		// Settings::HasImGUI
 		bool GetShouldHaveImgui() const;
+
+		// Settings::HasWindow && Settings::HasSceneRender
 		bool GetShouldRenderScene() const;
-		bool GetShouldHaveUpdate() const;
+
+		// Run() > Cleanup();
 		bool GetHasCleanedUp() const;
+
 		bool GetHasCreatedWindow() const;
+
 		bool GetHasCreatedRenderer() const;
+
 		bool GetHasCreatedEngine() const;
 
+
 		const Time& GetTime() const;
+
 		float GetTimeSinceCreation() const;
+
 		float GetTimeSinceRun() const;
 
+
 		const Settings& GetSettings() const;
+
 		const Settings& GetCreationSettings() const;
 
 	private:
@@ -119,4 +188,4 @@ namespace Influx::Application
 	};
 }
 
-
+#endif

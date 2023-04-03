@@ -41,12 +41,14 @@ namespace Influx::Application
     {
         if (IsRunning())
         {
+            // Cannot re-run. Call SignalQuit() instead!
             return;
         }
 
         m_isRunning = true;
 
         Initialize();
+
         Start();
 
         while (GetHasRecievedQuit() == false)
@@ -75,6 +77,7 @@ namespace Influx::Application
         if (GetShouldHaveWindow())
         {
             CreateWindow();
+
             CreateRenderer();
         }
 
@@ -105,13 +108,15 @@ namespace Influx::Application
     {
         if (m_hasStarted)
         {
+            // Don't restart!
             return;
         }
 
-        const bool shouldRenderScene = GetShouldRenderScene();
-        const bool hasCreatedWindow = GetHasCreatedWindow();
-        const bool hasCreatedRenderer = GetHasCreatedRenderer();
-        const bool shouldRenderImGui = GetShouldHaveImgui();
+        const bool shouldRenderScene    = GetShouldRenderScene();
+        const bool hasCreatedWindow     = GetHasCreatedWindow();
+        const bool hasCreatedRenderer   = GetHasCreatedRenderer();
+        const bool shouldRenderImGui    = GetShouldHaveImgui();
+
         if (!shouldRenderScene || !hasCreatedWindow || !hasCreatedRenderer)
         {
             return;
@@ -133,6 +138,7 @@ namespace Influx::Application
 
             pipelineDesc.RenderTargets[0].Format = Graphics::ERHIFormat::RGBA_8_Unorm;
         }
+
         Graphics::RHIGraphicsPipelineLayoutDescription layoutDesc{};
 
         m_hasStarted = true;
@@ -181,6 +187,7 @@ namespace Influx::Application
         }
 
         mp_appRenderer->Render();
+
         mp_appRenderer->Present(GetSettings().VSync);
     }
 
@@ -238,25 +245,8 @@ namespace Influx::Application
         
         for (uint64 i = 0u; i < out_scene.Meshes.size(); ++i)
         {
-            const Assets::Scene::Mesh& mesh = out_scene.Meshes[i];
-            Renderer::SceneRenderer::MeshData meshData{};
-
-            // For each face in the mesh...
-            for (uint64 f = 0u; f < mesh.Faces.size(); ++f)
-            {
-                // Copy the triangle and add to mesh-data...
-                Scene::Mesh::Triangle triangle{};
-                for (uint8 t = 0u; t < 3u; ++t)
-                {
-                    const Assets::Scene::Mesh::Vertex& vertex = mesh.Vertices[mesh.Faces[f][t]];
-                    triangle[t].Colour = vertex.Color;
-                    triangle[t].Normal = vertex.Normal;
-                    triangle[t].Position = vertex.Position;
-                    triangle[t].UV = {};
-                }
-
-                meshData.m_meshData.AddTriangle(triangle);
-            }
+            const Scene::Mesh& mesh = out_scene.Meshes[i];
+            Renderer::SceneRenderer::MeshData meshData = mesh;
 
             sceneRenderer->AddMesh(meshData);
         }
@@ -295,11 +285,6 @@ namespace Influx::Application
     bool Application::GetShouldRenderScene() const
     {
         return GetSettings().HasSceneRender && GetShouldHaveWindow();
-    }
-
-    bool Application::GetShouldHaveUpdate() const
-    {
-        return GetSettings().HasUpdate;
     }
 
     bool Application::GetHasCleanedUp() const

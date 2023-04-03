@@ -16,28 +16,18 @@ namespace Influx::Graphics
 	class RHIResource;
 	class RHIRenderTargetView;
 
-	/* Swapchain */
-	class RHISwapchain
+	class IRHISwapchain final
 	{
-		constexpr static uint8 k_numBackBuffers = 3;
-
-	protected:
-		RHISwapchain(uint32 width, uint32 height, bool isTearingSupported);
-
-		RHIResource* mp_backBufferResources[k_numBackBuffers];
-		RHIRenderTargetView* mp_backBufferRTVs[k_numBackBuffers];
-
-		ERHIFormat m_renderTargetFormat = ERHIFormat::INVALID;
-
-		uint32 m_currentBackBufferIndex = 0;
-		uint32 m_width = 0;
-		uint32 m_height = 0;
-
-		bool m_isTearingSupported = false;
-
-		Platform::WindowHandle m_windowHandle;
-
 	public:
+		/* Number of buffers to use in the swapchain */
+		enum class EFrameBuffering : uint8
+		{
+			Single = 1,
+			Double = 2,
+			Triple = 3,
+			Max
+		};
+
 		/* Flips & Presents the backbuffer to the front-buffer. */
 		// Also handles synchronization with the given RHICommandQueue
 		virtual void Present(RHICommandQueue* commandQueue, bool VSync) = 0;
@@ -49,8 +39,9 @@ namespace Influx::Graphics
 		RHIRenderTargetView* GetCurrentRenderTargetView();
 
 		const uint32 GetCurrentBackBufferIndex() const { return m_currentBackBufferIndex; }
-		const uint32 GetWidth() const { return m_width; }
-		const uint32 GetHeight() const { return m_height; }
+		const uint32 GetWidth() const;
+		const uint32 GetHeight() const;
+		const Math::Vectoru2& GetDimensions() const;
 
 		Platform::WindowHandle GetWindowHandle() const;
 
@@ -58,14 +49,41 @@ namespace Influx::Graphics
 
 		ERHIFormat GetRenderTargetFormat() const;
 
-		constexpr static uint8 GetNumBackBuffers() { return k_numBackBuffers; }
+	protected:
+
+	private:
+		IRHISwapchain(uint32 width, uint32 height, bool isTearingSupported);
+		IRHISwapchain(const IRHISwapchain&) = delete;
+		IRHISwapchain(IRHISwapchain&&) = delete;
+		IRHISwapchain& operator=(const IRHISwapchain&) = delete;
+		IRHISwapchain& operator=(IRHISwapchain&&) = delete;
+		virtual ~IRHISwapchain() = default;
+
+		ERHIFormat m_renderTargetFormat = ERHIFormat::INVALID;
+
+		uint32 m_currentBackBufferIndex = 0;
+		Math::Vectoru2 m_dimensions;
+
+		uint32 m_width = 0;
+		uint32 m_height = 0;
+
+		bool m_isTearingSupported = false;
+
+		Platform::WindowHandle m_windowHandle;
+	};
+
+	/* Swapchain */
+	template <IRHISwapchain::EFrameBuffering _F>
+	class RHISwapchain : public IRHISwapchain
+	{
+	public:
+		constexpr static uint8 GetNumBackBuffers() { return static_cast<uint8>(_F); }
+
+		RHIResource* mp_backBufferResources[GetNumBackBuffers()];
+		RHIRenderTargetView* mp_backBufferRTVs[GetNumBackBuffers()];
 
 	public:
-		RHISwapchain(const RHISwapchain&) = delete;
-		RHISwapchain(RHISwapchain&&) = delete;
-		RHISwapchain& operator=(const RHISwapchain&) = delete;
-		RHISwapchain& operator=(RHISwapchain&&) = delete;
-		virtual ~RHISwapchain() = default;
+		
 	};
 }
 

@@ -7,11 +7,7 @@
 
 namespace Influx
 {
-#if _DEBUG
-#define FLX_ASSERT(expr) assert(expr)
-#else
-#define FLX_ASSERT(expr);
-#endif
+#define FLX_ASSERT(x) assert(x);
 }
 
 #endif

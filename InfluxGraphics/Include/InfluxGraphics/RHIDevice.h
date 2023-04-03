@@ -11,7 +11,7 @@ namespace Influx::Graphics
 {
 	class RHICommandList;
 	class RHIDescriptorHeap;
-	class RHISwapchain;
+	class IRHISwapchain;
 	class RHICommandQueue;
 	class RHIRenderTargetView;
 	class RHIShaderResourceView;
@@ -28,7 +28,7 @@ namespace Influx::Graphics
 	{
 	protected:
 		using CommandQueuePtr				= Ptr<RHICommandQueue>;
-		using SwapchainPtr					= Ptr<RHISwapchain>;
+		using SwapchainPtr					= Ptr<IRHISwapchain>;
 		using DescriptorHeapPtr				= Ptr<RHIDescriptorHeap>;
 		using RenderTargetViewPtr			= Ptr<RHIRenderTargetView>;
 		using ShaderResourceViewPtr			= Ptr<RHIShaderResourceView>;

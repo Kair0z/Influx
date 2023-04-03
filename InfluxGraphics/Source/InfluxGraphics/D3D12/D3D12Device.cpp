@@ -287,16 +287,11 @@ namespace Influx::Graphics
 				e.bDataPerVertexNotPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA : D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, e.InstanceDataStepRate);
 		}
 
-		pipelineDesc.VertexShaderBytecode.BytecodeLength	= desc.VS.size() * sizeof(byte);
-		pipelineDesc.VertexShaderBytecode.pShaderBytecode	= desc.VS.data();
-		pipelineDesc.PixelShaderByteCode.BytecodeLength		= desc.PS.size() * sizeof(byte);
-		pipelineDesc.PixelShaderByteCode.pShaderBytecode	= desc.PS.data();
-		pipelineDesc.DomainShaderByteCode.BytecodeLength	= desc.DS.size() * sizeof(byte);
-		pipelineDesc.DomainShaderByteCode.pShaderBytecode	= desc.DS.data();
-		pipelineDesc.HullShaderByteCode.BytecodeLength		= desc.HS.size() * sizeof(byte);
-		pipelineDesc.HullShaderByteCode.pShaderBytecode		= desc.HS.data();
-		pipelineDesc.GeometryShaderByteCode.BytecodeLength	= desc.GS.size() * sizeof(byte);
-		pipelineDesc.GeometryShaderByteCode.pShaderBytecode	= desc.GS.data();
+		pipelineDesc.VertexShaderBytecode = desc.VS;
+		pipelineDesc.PixelShaderByteCode = desc.PS;
+		pipelineDesc.DomainShaderByteCode = desc.DS;
+		pipelineDesc.HullShaderByteCode = desc.HS;
+		pipelineDesc.GeometryShaderByteCode = desc.GS;
 
 		pipelineDesc.PrimitiveTopologyType					= Conversion::ToDx12(desc.PrimitiveTopologyType);
 		pipelineDesc.RasterizerState.AntialiasedLineEnable	= desc.RasterizerState.bEnableLineAA;

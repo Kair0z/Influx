@@ -52,7 +52,7 @@ namespace Influx
 			Triple = 3u,
 			Max
 		};
-		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Double;
+		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Triple;
 		constexpr static uint8 k_numSwapchainBuffers = static_cast<uint8>(k_swapchainBuffering);
 
 		IDXGIFactory2* mp_dxgiFactory2;

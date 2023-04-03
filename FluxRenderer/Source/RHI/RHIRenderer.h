@@ -6,7 +6,7 @@ namespace Influx
 {
 	namespace Graphics
 	{
-		class D3D12Device;
+		class RHIDevice;
 		class RHICommandQueue;
 		class RHICommandList;
 		class RHISwapchain;
@@ -30,11 +30,11 @@ namespace Influx
 		virtual void PresentToWindow(Platform::WindowHandle windowHandle) override final;
 
 	private:
-		Graphics::D3D12Device* mp_device;
-		Graphics::RHICommandQueue* mp_commandQueue;
-		Graphics::RHISwapchain* mp_swapchain;
+		Graphics::RHIDevice*		mp_device;
+		Graphics::RHICommandQueue*	mp_commandQueue;
+		Graphics::RHISwapchain*		mp_swapchain;
 
-		Graphics::RHICommandList* mp_commandList;
+		Graphics::RHICommandList*	mp_commandList;
 
 		Graphics::RHIGraphicsPipeline* mp_pipeline;
 		Graphics::RHIGraphicsPipelineLayout* mp_pipelineLayout;
