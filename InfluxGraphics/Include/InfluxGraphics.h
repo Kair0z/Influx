@@ -857,7 +857,12 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API EResult CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain);
+	struct PresentDescription final
+	{
+		bool Vsync = false;
+	};
+
+	INFLUX_GRAPHICS_API EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain, const PresentDescription& present);
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);

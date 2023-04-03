@@ -491,14 +491,14 @@ namespace Influx::Graphics
         return EResult(true);
     }
 
-    EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain)
+    EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain, const PresentDescription& present)
     {
         switch (GetInitializedGraphicsAPI())
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
-            case EGraphicsAPI::D3D12:
-                swapchain.As<IDXGISwapChain>()->Present(1u, 0);
-                break;
+        case EGraphicsAPI::D3D12:
+            swapchain.As<IDXGISwapChain>()->Present(present.Vsync ? 1u : 0u, 0);
+            break;
 #endif
         }
 
