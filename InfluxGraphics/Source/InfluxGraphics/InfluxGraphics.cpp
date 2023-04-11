@@ -237,6 +237,11 @@ namespace Influx::Graphics
 
         uint32 MainAdapterIndex;
 
+        struct DescriptorHeap
+        {
+            RHIDescriptorHeapHandle RHIHandle;
+        };
+
     public:
         EResult InitializeDx12()
         {
@@ -263,6 +268,20 @@ namespace Influx::Graphics
             DxCachedResourceDescriptorSize  = GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
             DxCachedSamplerDescriptorSize   = GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
             DxCachedRtvDescriptorSize       = GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+            RHIDescriptorHeapDesc desc{};
+
+            desc.Type = ERHIResourceViewType::RTV;
+            CreateDescriptorHeap(desc, m_globalRtvDescriptorHeap);
+
+            desc.Type = ERHIResourceViewType::DSV;
+            CreateDescriptorHeap(desc, m_globalDsvDescriptorHeap);
+
+            desc.Type = ERHIResourceViewType::Sampler;
+            CreateDescriptorHeap(desc, m_globalSamplerDescriptorHeap);
+
+            desc.Type = ERHIResourceViewType::Resource;
+            CreateDescriptorHeap(desc, m_globalResDescriptorHeap);
 
             return EResult(true);
         }
@@ -297,6 +316,11 @@ namespace Influx::Graphics
             return Get().DxgiFactory2;
         }
 
+        static const RHIDescriptorHeapHandle& GetGlobalRtvHeap()
+        {
+            return Get().m_globalRtvDescriptorHeap;
+        }
+
         uint64 DxCachedRtvDescriptorSize = 0;
         uint64 DxCachedDsvDescriptorSize = 0;
         uint64 DxCachedResourceDescriptorSize = 0;
@@ -306,6 +330,11 @@ namespace Influx::Graphics
         constexpr static uint8 k_dxMaxNumResourceDescriptorsPerHeap = 64u;
         constexpr static uint8 k_dxMaxNumRtvDescriptorsPerHeap = 64u;
         constexpr static uint8 k_dxMaxNumDsvDescriptorsPerHeap = 64u;
+
+        RHIDescriptorHeapHandle m_globalRtvDescriptorHeap;
+        RHIDescriptorHeapHandle m_globalDsvDescriptorHeap;
+        RHIDescriptorHeapHandle m_globalResDescriptorHeap;
+        RHIDescriptorHeapHandle m_globalSamplerDescriptorHeap;
 #endif
 
 #if INFLUX_GRAPHICS_INCLUDE_VULKAN
@@ -648,9 +677,31 @@ namespace Influx::Graphics
         return EResult(true);
     }
 
-    EResult CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap)
+    EResult CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap, const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle)
     {
-        return EResult();
+        switch (GetInitializedGraphicsAPI())
+        {
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+        case EGraphicsAPI::D3D12:
+
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIDescriptorHandle>([&bufferHandle, &descriptorHeap]()
+            {
+                ID3D12Resource* d3d12Resource             = bufferHandle.As<ID3D12Resource>();
+                ID3D12DescriptorHeap* d3d12DescriptorHeap = descriptorHeap.As<ID3D12DescriptorHeap>();
+
+                const uint64 offsetInHeap = 0u;
+                D3D12_CPU_DESCRIPTOR_HANDLE offsettedCpuHandle = D3D12_CPU_DESCRIPTOR_HANDLE(d3d12DescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + offsetInHeap);
+
+                GlobalState::GetDevice()->CreateRenderTargetView(d3d12Resource, nullptr, offsettedCpuHandle);
+
+                return reinterpret_cast<void*>(offsettedCpuHandle.ptr);
+            });
+
+            break;
+#endif
+        }
+
+        return EResult(true);
     }
 
     EResult DispatchGraphicsCommands(Function<void(const RHIGraphicsCommandListHandle&)> commands)
@@ -711,13 +762,13 @@ namespace Influx::Graphics
                 {
                     ID3D12Resource* bufferResource;
                     swapchain->GetBuffer(swapchain->GetCurrentBackBufferIndex(), IID_PPV_ARGS(&bufferResource));
+                    RHIBufferHandle bufferRHIHandle = GlobalState::TryRegisterRHIObject<RHIBufferHandle>(bufferResource);
 
-                    D3D12_CPU_DESCRIPTOR_HANDLE resultRenderTargetView{};
+                    const RHIDescriptorHandle& rtvRHIHandle{};
+                    CreateRenderTargetView(GlobalState::GetGlobalRtvHeap(), bufferRHIHandle, rtvRHIHandle);
 
-                    // Create the rendertargetview for buffer
-                    GlobalState::GetDevice()->CreateRenderTargetView(bufferResource, nullptr, resultRenderTargetView);
-
-                    gfxCmdList->ClearRenderTargetView(resultRenderTargetView, colour.data, 0u, nullptr);
+                    ClearRenderTargetView()
+                    gfxCmdList->ClearRenderTargetView(rtvRHIHandle, colour.data, 0u, nullptr);
 
                     // Do we need to?
                     bufferResource->Release();

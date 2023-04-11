@@ -28,8 +28,8 @@
 #define INFLUX_GRAPHICS_ASSERT(x) assert(x);
 
 #else
-#define INFLUX_GRAPHICS_TODO;
-#define INFLUX_GRAPHICS_ASSERT;
+#define INFLUX_GRAPHICS_TODO
+#define INFLUX_GRAPHICS_ASSERT
 #endif
 #endif // INFLUX_GRAPHICS_TODO
 
@@ -882,7 +882,7 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap);
+	INFLUX_GRAPHICS_API EResult CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap, const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle);
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& desc, RHIGraphicsPipelineHandle& out_handle);
