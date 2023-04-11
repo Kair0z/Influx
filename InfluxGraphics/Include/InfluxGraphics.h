@@ -509,12 +509,16 @@ namespace Influx::Graphics
 	constexpr uint8 k_numRHIObjectTypes = static_cast<uint8>(ERHIChild::Max);
 	constexpr uint8 k_maxNumRHIObjectsPerType[k_numRHIObjectTypes]
 	{
-		1u,		// CommandQueue
-		16u,	// CommandList
-		16u,	// CommandAllocator
-		1u,		// Swapchain
-		64,		// GraphicsPipeline
-		64,		// GraphicsPipelineLayout
+		1u,				// CommandQueue
+		16u,			// CommandList
+		16u,			// CommandAllocator
+		1u,				// Swapchain
+		64,				// GraphicsPipeline
+		64,				// GraphicsPipelineLayout
+		64,				// Texture
+		64,				// Buffer
+		4,				// DescriptorHeap
+		64 + 64 + 16u	// Descriptor
 	};
 
 	constexpr const char* k_RHIObjectsNameStrings[k_numRHIObjectTypes]
@@ -525,6 +529,10 @@ namespace Influx::Graphics
 		"Swapchain",
 		"GraphicsPipeline",
 		"GraphicsPipelineLayout",
+		"Texture",
+		"Buffer",
+		"DescriptorHeap",
+		"Descriptor"
 	};
 
 	// Handles: pointer wrappers that allow us to point to device-children and access their data.
@@ -585,6 +593,11 @@ namespace Influx::Graphics
 		virtual ERHIChild GetType() const override final { return GetStaticType(); };
 
 		constexpr static ERHIChild GetStaticType() { return _E; }
+
+		constexpr static RHIObjectHandle<_E> GetInvalid()
+		{
+			return RHIObjectHandle(nullptr);
+		}
 
 	protected:
 		RHIObjectHandle(void* internalPointer) 
@@ -769,6 +782,7 @@ namespace Influx::Graphics
 	{
 		using Descriptor = RHIDesc<_E>;
 
+		RHIState() = default;
 		explicit RHIState(const Descriptor& desc) : CreationDescriptor{ desc } {}
 
 		Descriptor CreationDescriptor;

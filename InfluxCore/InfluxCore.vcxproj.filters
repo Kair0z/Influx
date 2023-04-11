@@ -50,6 +50,7 @@
     <ClInclude Include="Include\Core\Math\Quaternion.h" />
     <ClInclude Include="Include\Core\Graph\Hierarchy.h" />
     <ClInclude Include="Include\Core\Macros.h" />
+    <ClInclude Include="Include\Core\Registry.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\Core\Math\Vector.inl" />

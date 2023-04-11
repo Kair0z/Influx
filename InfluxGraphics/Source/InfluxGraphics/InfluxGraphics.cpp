@@ -19,8 +19,10 @@ namespace Influx::Graphics
     {
         struct Child final
         {
-            IRHIObjectHandle    Handle;
-            IRHIState           State;
+            IRHIObjectHandle*       pHandle = nullptr;
+            IRHIState*              pState = nullptr;
+
+            friend class GlobalState;
         };
 
         using ChildContainer = Vector<Child>;
@@ -44,6 +46,7 @@ namespace Influx::Graphics
             Get().m_isDebugLayerActive = isActive;
         }
         
+        /* Check if there's any slots left for given ERHIChild */
         template <ERHIChild _E>
         static bool CanRegisterRHIObject()
         {
@@ -57,43 +60,55 @@ namespace Influx::Graphics
             return CanRegisterRHIObject<_E::GetStaticType()>();
         }
 
+
         /* Register a raw-object pointer as an RHI object */
-        template <class _E>
-        static _E TryRegisterRHIObject(void* rawObjectPointer)
-        {
-            static_assert(std::is_base_of_v<IRHIObjectHandle, _E> == true, "RegisterRHIObject [_E] must derive from IRHIObjectHandle!");
-
-            if (!CanRegisterRHIObject<_E>())
-            {
-                return nullptr;
-            }
-
-            constexpr uint8 idx = static_cast<uint8>(_E::GetStaticType());
-
-            // the constructor of _E takes in a void*...
-            Get().m_childLists[idx].push_back(_E(rawObjectPointer));
-            return _E(rawObjectPointer);
-        }
-
         template <ERHIChild _E>
         static RHIObjectHandle<_E> TryRegisterRHIObject(void* rawObjectPointer)
         {
-            return TryRegisterRHIObject<RHIObjectHandle<_E>>(rawObjectPointer);
-        }
-
-        /* Pass a raw-object-creating function that after creation will Register it as an RHI object*/
-        template <class _E>
-        static _E CreateAndRegisterRHIObject(Function<void*()> creationCallback)
-        {
-            static_assert(std::is_base_of_v<IRHIObjectHandle, _E> == true, "CreateAndRegisterRHIObject [_E] must derive from IRHIObjectHandle!");
-
             if (!CanRegisterRHIObject<_E>())
             {
-                return _E{ nullptr };
+                INFLUX_GRAPHICS_ASSERT(false);
+                return nullptr;
             }
 
-            return TryRegisterRHIObject<_E>(creationCallback());
+            constexpr uint8 idx = static_cast<uint8>(_E);
+
+            // Create a new child with handle & null-state
+            Child newChild{};
+            RHIObjectHandle<_E>* newHandle = new RHIObjectHandle<_E>(rawObjectPointer);
+            newChild.pHandle    = newHandle;
+            newChild.pState     = new RHIState<_E>{}; // Null...
+
+            Get().m_childLists[idx].push_back(newChild);
+
+            return *newHandle;
         }
+
+        template <class _E>
+        static _E TryRegisterRHIObject(void* rawObjectPointer)
+        {
+            return TryRegisterRHIObject<_E::GetStaticType()>(rawObjectPointer);
+        }
+
+        
+        /* Pass a raw-object-creator function and register the result */
+        template <ERHIChild _E>
+        static RHIObjectHandle<_E> CreateAndRegisterRHIObject(Function<void*()> creator)
+        {
+            if (!CanRegisterRHIObject<_E>())
+            {
+                return RHIObjectHandle<_E>{};
+            }
+
+            return TryRegisterRHIObject<_E>(creator());
+        }
+
+        template <class _E>
+        static _E CreateAndRegisterRHIObject(Function<void*()> creator)
+        {
+            return CreateAndRegisterRHIObject<_E::GetStaticType()>(creator);
+        }
+
 
         /* Get all RHI Objects registered based on the ERHIObject enum */
         template <ERHIChild _E>
@@ -111,33 +126,55 @@ namespace Influx::Graphics
             return GetRHIObjectsOfType<_E::GetStaticType()>();
         }
 
+
+        /* Has a single RHIObject of type _E */
         template <ERHIChild _E>
         static bool HasObjectOfType()
         {
             return GetRHIObjectsOfType<_E>().size() != 0u;
         }
 
-        /* GetRHIObjectsOfType[idx]*/
         template <class _E>
-        static _E GetRHIObjectOfType(uint8 idx)
+        static bool HasObjectOfType()
         {
-            static_assert(std::is_base_of_v<IRHIObjectHandle, _E> == true, "GetRHIObjectOfType [_E] must derive from IRHIObjectHandle!");
-
-            if (idx < GetRHIObjectsOfType<_E>().size())
-            {
-                const IRHIObjectHandle& handle = Get().m_childLists[static_cast<uint8>(_E::GetStaticType())][idx];
-                return _E{ handle.GetInternal() };
-            }
-            
-            return _E{ nullptr };
+            return HasObjectOfType<_E::GetStaticType()>();
         }
 
+
+        /* GetRHIObjectsOfType[idx]*/
         template <ERHIChild _E>
-        static Child* GetChildFromHandle(const RHIObjectHandle<_E>& handle)
+        static RHIObjectHandle<_E> GetRHIObjectOfType(uint64 atIndex)
+        {
+            if (atIndex >= GetRHIObjectsOfType<_E>().size())
+            {
+                return RHIObjectHandle<_E>::GetInvalid();
+            }
+
+            constexpr uint64 typeIndex = static_cast<uint8>(_E);
+            const IRHIObjectHandle* handle = Get().m_childLists[typeIndex][atIndex].pHandle;
+
+            // Copy over the raw-pointer.
+            return RHIObjectHandle<_E>{handle->GetInternal()};
+        }
+
+        template <class _E>
+        static _E GetRHIObjectOfType(uint64 atIndex)
+        {
+            return GetRHIObjectOfType<_E::GetStaticType()>(atIndex);
+        }
+
+        /* Get Child (handle + state) */
+        template <ERHIChild _E>
+        static Child* FindChildFromHandle(const RHIObjectHandle<_E>& handle)
         {
 #if INFLUX_GRAPHICS_USE_STL
             ChildContainer& containerToSearch = Get().m_childLists[static_cast<uint8>(_E)];
-            auto found = std::find(containerToSearch.begin(), containerToSearch.end(), handle);
+            auto found = std::find_if(containerToSearch.begin(), containerToSearch.end(), 
+            [&handle](const Child& child) -> bool
+            {
+                return child.pHandle->GetInternal() == handle.GetInternal();
+            });
+
             if (found != containerToSearch.end())
             {
                 return &(*found);
@@ -146,24 +183,26 @@ namespace Influx::Graphics
             return nullptr;
         }
 
-        static Child* GetChildFromHandle(const IRHIObjectHandle& handle)
+        static Child* FindChildFromHandle(const IRHIObjectHandle& handle)
         {
             Child* pointerToChild = nullptr;
             for (uint8 c = 0u; c < k_numRHIObjectTypes; ++c)
             {
 #if INFLUX_GRAPHICS_USE_STL
                 ChildContainer& containerToSearch = Get().m_childLists[c];
-                auto found = std::find(containerToSearch.begin(), containerToSearch.end(), handle);
-                if (found != containerToSearch.end())
+                auto found = std::find_if(containerToSearch.begin(), containerToSearch.end(),
+                [&handle](const Child& child) -> bool
                 {
-                    return &(*found);
-                }
+                    return child.pHandle->GetInternal() == handle.GetInternal();
+                });
 #endif
             }
 
             return pointerToChild;
         }
 
+
+        /* Get & set RHI State */
         template <ERHIChild _E>
         static void SetRHIState(const RHIObjectHandle<_E>& handle, const RHIState<_E>& newState)
         {
@@ -470,6 +509,7 @@ namespace Influx::Graphics
             commandListHandle.As<ID3D12GraphicsCommandList>()->Close();
             commandListHandle.As<ID3D12GraphicsCommandList>()->Reset(commandbufferHandle.As<ID3D12CommandAllocator>(), nullptr);
 
+            return { true };
             break;
 #endif
         }
@@ -518,10 +558,10 @@ namespace Influx::Graphics
         case EGraphicsAPI::D3D12:
 
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHISwapchainHandle>([&desc, &cmdQueueHandle, numBuffers]()
-                {
-                    return D3D12::Swapchain::CreateTier3(GlobalState::GetFactory2(), (::HWND)desc.WindowHandle, cmdQueueHandle.GetInternal<ID3D12CommandQueue>(),
-                        desc.Dimensions.x, desc.Dimensions.y, numBuffers);
-                });
+            {
+                return D3D12::Swapchain::CreateTier3(GlobalState::GetFactory2(), (::HWND)desc.WindowHandle, cmdQueueHandle.GetInternal<ID3D12CommandQueue>(),
+                    desc.Dimensions.x, desc.Dimensions.y, numBuffers);
+            });
 
             INFLUX_GRAPHICS_ASSERT(out_handle.IsValid());
 
@@ -529,7 +569,8 @@ namespace Influx::Graphics
             for (uint8 i = 0; i < numBuffers; ++i)
             {
                 ID3D12Resource* resource;
-                if (out_handle.GetInternal<IDXGISwapChain3>()->GetBuffer(i, IID_PPV_ARGS(&resource)))
+                out_handle.GetInternal<IDXGISwapChain3>()->GetBuffer(i, IID_PPV_ARGS(&resource));
+                if (resource != nullptr)
                 {
                     GlobalState::TryRegisterRHIObject<RHIBufferHandle>(resource);
                 }
@@ -545,8 +586,6 @@ namespace Influx::Graphics
 
     EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain, const PresentDescription& present)
     {
-        GlobalState::GetRHIState(swapchain);
-
         switch (GetInitializedGraphicsAPI())
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
