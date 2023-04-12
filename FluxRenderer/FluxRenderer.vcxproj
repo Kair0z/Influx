@@ -161,11 +161,13 @@
   <ItemGroup>
     <ClCompile Include="Source\Dx12\Dx12Renderer.cpp" />
     <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\Vulkan\VulkanRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\RHI\RHIRenderer.h" />
     <ClInclude Include="Source\Dx12\Dx12Renderer.h" />
     <ClInclude Include="Source\Renderer\IFluxRenderer.h" />
+    <ClInclude Include="Source\Vulkan\VulkanRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InfluxAssets\InfluxAssets.vcxproj">

@@ -207,6 +207,7 @@
     <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIRenderTargetView.h" />
     <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIResourceView.h" />
     <ClInclude Include="Include\InfluxGraphics\RHIObject.h" />
+    <ClInclude Include="Include\InfluxGraphics\Vulkan\Vulkan.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

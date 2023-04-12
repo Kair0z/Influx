@@ -93,13 +93,12 @@ namespace Influx
 		}
 	}
 
+	// WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
+	// This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
+	// sample illustrates how to use fences for efficient resource usage and to
+	// maximize GPU utilization.
 	void Dx12Renderer::WaitForPreviousFrame()
 	{
-		// WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
-		// This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
-		// sample illustrates how to use fences for efficient resource usage and to
-		// maximize GPU utilization.
-
 		// Signal and increment the fence value.
 		const UINT64 value = m_fenceValue;
 		mp_commandQueue->Signal(mp_fence, value);
