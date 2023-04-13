@@ -45,16 +45,6 @@ namespace Influx
 
 		void InitializeSwapchain(Platform::WindowHandle windowHandle);
 
-		enum class ESwapchainBuffering : uint8
-		{
-			Single = 1u,
-			Double = 2u,
-			Triple = 3u,
-			Max
-		};
-		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Triple;
-		constexpr static uint8 k_numSwapchainBuffers = static_cast<uint8>(k_swapchainBuffering);
-
 		IDXGIFactory2* mp_dxgiFactory2;
 		IDXGIAdapter* mp_dxgiHardwareAdapter;
 		ID3D12Device* mp_device;

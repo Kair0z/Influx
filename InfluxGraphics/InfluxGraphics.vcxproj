@@ -93,7 +93,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions) PLATFORM_WINDOWS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;$(SolutionDir)3thParty\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,7 +109,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions) PLATFORM_WINDOWS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;$(SolutionDir)3thParty\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,7 +125,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions) PLATFORM_WINDOWS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;$(SolutionDir)3thParty\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,7 +141,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions) PLATFORM_WINDOWS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;$(SolutionDir)3thParty\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

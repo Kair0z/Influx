@@ -14,6 +14,17 @@ namespace Influx
 	protected:
 		IFluxRenderer() = default;
 
+		enum class ESwapchainBuffering : uint8
+		{
+			Single = 1u,
+			Double = 2u,
+			Triple = 3u,
+			Max
+		};
+		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Triple;
+		constexpr static uint8 k_numSwapchainBuffers = static_cast<uint8>(k_swapchainBuffering);
+
+
 	public:
 		struct MaterialData final
 		{
