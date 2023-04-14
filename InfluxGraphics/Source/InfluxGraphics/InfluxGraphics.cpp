@@ -332,6 +332,11 @@ namespace Influx::Graphics
         {
             RHIGraphicsCommandBufferHandle Handle;
             uint64 FenceValue;
+            
+            bool GetIsInUse(uint64 fenceValue)
+            {
+                return this->FenceValue >= fenceValue;
+            }
         };
 
         // Call this when 1 or more command lists with this command allocator get submitted onto the gpu.
@@ -344,8 +349,8 @@ namespace Influx::Graphics
 
             Get().m_commandAllocatorList.push_back(newEntry);
         }
-
-        Vector<CommandAllocatorEntry> m_commandAllocatorList;
+        constexpr static uint32 k_maxNumCommandAllocators = k_maxNumRHIObjectsPerType[static_cast<uint32>(ERHIChild::CommandAllocator)];
+        CommandAllocatorEntry m_allCommandAllocators[k_maxNumCommandAllocators];
 #endif
 
 #if INFLUX_GRAPHICS_INCLUDE_VULKAN
@@ -540,9 +545,22 @@ namespace Influx::Graphics
 
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandListHandle>([&out_existingCommandBuffer]()
             {
-                return D3D12::CreateDxCommandList(GlobalState::GetDevice(), 
-                    out_existingCommandBuffer.GetInternal<ID3D12CommandAllocator>(),
+                ID3D12CommandAllocator* cmdAllocator = out_existingCommandBuffer.As<ID3D12CommandAllocator>();
+
+                ID3D12GraphicsCommandList* gfxCommandList = D3D12::CreateDxCommandList(
+                    GlobalState::GetDevice(), 
+                    cmdAllocator,
                     D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+
+                // So we can query the allocator from the command list ;)
+                gfxCommandList->SetPrivateDataInterface(__uuidof(ID3D12CommandAllocator), cmdAllocator);
+
+                /* Get the private held Command Allocator */
+                ID3D12CommandAllocator* cmdAllocator;
+                UINT dataSize = sizeof(cmdAllocator);
+                dxCmdList->GetPrivateData(__uuidof(ID3D12CommandAllocator), &dataSize, &cmdAllocator);
+
+                return gfxCommandList;
             });
 
             break;
