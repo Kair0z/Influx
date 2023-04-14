@@ -514,8 +514,8 @@ namespace Influx::Graphics
 	constexpr uint8 k_maxNumRHIObjectsPerType[k_numRHIObjectTypes]
 	{
 		1u,				// CommandQueue
-		16u,			// CommandList
-		16u,			// CommandAllocator
+		64u,			// CommandList
+		16u,			// CommandBuffer
 		1u,				// Swapchain
 		64,				// GraphicsPipeline
 		64,				// GraphicsPipelineLayout
@@ -858,6 +858,9 @@ namespace Influx::Graphics
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
+
+	/* Creates a Graphics command buffer OR gets one that is no longer in use */
+	INFLUX_GRAPHICS_API EResult GetGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandList(RHIGraphicsCommandBufferHandle& out_existingCommandBuffer, RHIGraphicsCommandListHandle& out_handle);

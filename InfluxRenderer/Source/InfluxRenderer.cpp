@@ -53,13 +53,14 @@ namespace Influx::Renderer
 	{
 		// Dispatch work to GPU...
 		Graphics::DispatchGraphicsCommands([](const Graphics::RHIGraphicsCommandListHandle& cmdList)
+		{
+			if (IsAttachedToWindow(nullptr))
 			{
-				if (IsAttachedToWindow(nullptr))
-				{
-					const Vectorf4 clearColour = { 1,0,0,1 };
-					Graphics::Commands::ClearSwapchainBackBuffer(cmdList, GlobalState::GetAttachedSwapchain(), clearColour);
-				}
-			});
+				const Vectorf4 clearColour = { 1,0,0,1 };
+
+				Graphics::Commands::ClearSwapchainBackBuffer(cmdList, GlobalState::GetAttachedSwapchain(), clearColour);
+			}
+		});
 
 		return Result{};
 	}

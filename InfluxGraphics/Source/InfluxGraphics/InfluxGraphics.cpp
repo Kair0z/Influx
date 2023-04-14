@@ -55,13 +55,11 @@ namespace Influx::Graphics
             constexpr uint8 idx = static_cast<uint8>(_E);
             return Get().m_childLists[idx].size() < k_maxNumRHIObjectsPerType[idx];
         }
-
         template <class _E>
         static bool CanRegisterRHIObject()
         {
             return CanRegisterRHIObject<_E::GetStaticType()>();
         }
-
 
         /* Register a raw-object pointer as an RHI object */
         template <ERHIChild _E>
@@ -85,14 +83,12 @@ namespace Influx::Graphics
 
             return *newHandle;
         }
-
         template <class _E>
         static _E TryRegisterRHIObject(void* rawObjectPointer)
         {
             return TryRegisterRHIObject<_E::GetStaticType()>(rawObjectPointer);
         }
 
-        
         /* Pass a raw-object-creator function and register the result */
         template <ERHIChild _E>
         static RHIObjectHandle<_E> CreateAndRegisterRHIObject(Function<void*()> creator)
@@ -108,13 +104,11 @@ namespace Influx::Graphics
 
             return TryRegisterRHIObject<_E>(creator());
         }
-
         template <class _E>
         static _E CreateAndRegisterRHIObject(Function<void*()> creator)
         {
             return CreateAndRegisterRHIObject<_E::GetStaticType()>(creator);
         }
-
 
         /* Get all RHI Objects registered based on the ERHIObject enum */
         template <ERHIChild _E>
@@ -122,7 +116,6 @@ namespace Influx::Graphics
         {
             return Get().m_childLists[static_cast<uint8>(_E)];
         }
-
         /* Get all RHI Objects based on their type */
         template <class _E>
         static const ChildContainer& GetRHIObjectsOfType()
@@ -132,20 +125,17 @@ namespace Influx::Graphics
             return GetRHIObjectsOfType<_E::GetStaticType()>();
         }
 
-
         /* Has a single RHIObject of type _E */
         template <ERHIChild _E>
         static bool HasObjectOfType()
         {
             return GetRHIObjectsOfType<_E>().size() != 0u;
         }
-
         template <class _E>
         static bool HasObjectOfType()
         {
             return HasObjectOfType<_E::GetStaticType()>();
         }
-
 
         /* GetRHIObjectsOfType[idx]*/
         template <ERHIChild _E>
@@ -162,7 +152,6 @@ namespace Influx::Graphics
             // Copy over the raw-pointer.
             return RHIObjectHandle<_E>{handle->GetInternal()};
         }
-
         template <class _E>
         static _E GetRHIObjectOfType(uint64 atIndex)
         {
@@ -188,7 +177,6 @@ namespace Influx::Graphics
 #endif
             return nullptr;
         }
-
         static Child* FindChildFromHandle(const IRHIObjectHandle& handle)
         {
             Child* pointerToChild = nullptr;
@@ -207,7 +195,6 @@ namespace Influx::Graphics
             return pointerToChild;
         }
 
-
         /* Get & set RHI State */
         template <ERHIChild _E>
         static void SetRHIState(const RHIObjectHandle<_E>& handle, const RHIState<_E>& newState)
@@ -217,7 +204,6 @@ namespace Influx::Graphics
                 child->State = newState;
             }
         }
-
         template <ERHIChild _E>
         static const RHIState<_E>* GetRHIState(const RHIObjectHandle<_E>& handle)
         {
@@ -341,6 +327,25 @@ namespace Influx::Graphics
         RHIDescriptorHeapHandle m_globalDsvDescriptorHeap;
         RHIDescriptorHeapHandle m_globalResDescriptorHeap;
         RHIDescriptorHeapHandle m_globalSamplerDescriptorHeap;
+
+        struct CommandAllocatorEntry final
+        {
+            RHIGraphicsCommandBufferHandle Handle;
+            uint64 FenceValue;
+        };
+
+        // Call this when 1 or more command lists with this command allocator get submitted onto the gpu.
+        static void OnLaunchCommandAllocator(RHIGraphicsCommandBufferHandle handle, uint64 fenceValue)
+        {
+            CommandAllocatorEntry newEntry{};
+
+            newEntry.FenceValue = fenceValue;
+            newEntry.Handle = handle;
+
+            Get().m_commandAllocatorList.push_back(newEntry);
+        }
+
+        Vector<CommandAllocatorEntry> m_commandAllocatorList;
 #endif
 
 #if INFLUX_GRAPHICS_INCLUDE_VULKAN
@@ -503,6 +508,27 @@ namespace Influx::Graphics
         return EResult(true);
     }
 
+    /* Creates a Graphics command buffer OR gets one that is no longer in use */
+    EResult GetGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle)
+    {
+        switch (GetInitializedGraphicsAPI())
+        {
+#if INFLUX_GRAPHICS_INCLUDE_DX12
+        case EGraphicsAPI::D3D12:
+
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandBufferHandle>([]()
+            {
+                return D3D12::CreateDxCommandAllocator(GlobalState::GetDevice(),
+                    D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+            });
+
+            break;
+#endif
+        }
+
+        return EResult(true);
+    }
+
     EResult CreateGraphicsCommandList(RHIGraphicsCommandBufferHandle& out_existingCommandBuffer, RHIGraphicsCommandListHandle& out_handle)
     {
         INFLUX_GRAPHICS_ASSERT(out_existingCommandBuffer.IsValid());
@@ -564,10 +590,12 @@ namespace Influx::Graphics
             ID3D12CommandQueue* d3d12CommandQueue = commandQueueHandle.As<ID3D12CommandQueue>();
             INFLUX_GRAPHICS_ASSERT(d3d12CommandQueue != nullptr);
 
+            // Close the command list...
             d3d12GfxCmdList->Close();
-            ID3D12CommandList* d3d12CmdLists[1u]{ d3d12GfxCmdList };
 
+            ID3D12CommandList* d3d12CmdLists[1u]{ d3d12GfxCmdList };
             d3d12CommandQueue->ExecuteCommandLists(1u, d3d12CmdLists);
+
             return {};
 
             break;
@@ -728,22 +756,22 @@ namespace Influx::Graphics
             CreateGraphicsCommandQueue(cmdQueueHandle);
         }
 
-        // Memory allocator for the whole 'frame'
+        // Memory allocator for all the commands...
         RHIGraphicsCommandBufferHandle cmdBufferHandle;
-        CreateGraphicsCommandBuffer(cmdBufferHandle);
-
+        GetGraphicsCommandBuffer(cmdBufferHandle);
         INFLUX_GRAPHICS_ASSERT(cmdBufferHandle);
 
         // List of commands we'll pass on for the entire 'frame'
         RHIGraphicsCommandListHandle cmdListHandle;
         CreateGraphicsCommandList(cmdBufferHandle, cmdListHandle);
-
         INFLUX_GRAPHICS_ASSERT(cmdListHandle);
         
-        if (cmdListHandle && cmdBufferHandle)
+        if (cmdListHandle.IsValid() && cmdBufferHandle.IsValid())
         {
             // Record commands...
             commands(cmdListHandle);
+
+            GlobalState::OnLaunchCommandAllocator(cmdBufferHandle, 0u);
 
             DispatchGraphicsCommandListToGpu(cmdListHandle, cmdQueueHandle);
         }

@@ -11,18 +11,17 @@ namespace Influx
 		Initialize();
 		InitializeSwapchain(windowHandle);
 
+		// Command list allocators can only be reset when the associated 
+		// command lists have finished execution on the GPU; apps should use 
+		// fences to determine GPU execution progress.
+		ID3D12CommandAllocator* commandAllocator = mp_commandAllocators[0u];
+		commandAllocator->Reset();
+
 		// We build a command-list for  this frame and the next!
 		for (uint8 i = 0u; i < k_numSwapchainBuffers; ++i)
 		{
 			ID3D12GraphicsCommandList* gfxCommandList = mp_gfxCommandLists[i];
-			ID3D12CommandAllocator* commandAllocator = mp_commandAllocators[i];
-
 			uint8 swapchainBufferIndex = i;
-
-			// Command list allocators can only be reset when the associated 
-			// command lists have finished execution on the GPU; apps should use 
-			// fences to determine GPU execution progress.
-			commandAllocator->Reset();
 
 			// However, when ExecuteCommandList() is called on a particular command 
 			// list, that command list can then be reset at any time and must be before 
@@ -82,15 +81,14 @@ namespace Influx
 	{
 		InitializeSwapchain(windowHandle);
 
-		for (uint8 i = 0; i < k_numSwapchainBuffers; ++i)
+		for (uint32 i = 0u; i < k_numSwapchainBuffers; ++i)
 		{
 			ID3D12CommandList* commandLists[] = { mp_gfxCommandLists[i] };
-			mp_commandQueue->ExecuteCommandLists(1u, commandLists);
-
+			mp_commandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 			mp_swapchain->Present(0, 0);
-
-			WaitForPreviousFrame();
 		}
+		
+		WaitForPreviousFrame();
 	}
 
 	// WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
@@ -103,7 +101,7 @@ namespace Influx
 		const UINT64 value = m_fenceValue;
 		mp_commandQueue->Signal(mp_fence, value);
 
-		m_fenceValue++;
+		m_fenceValue += 3u;
 
 		// Wait until the previous frame is finished.
 		if (mp_fence->GetCompletedValue() < value)
@@ -209,10 +207,11 @@ namespace Influx
 		if (mp_gfxCommandLists[0u] != nullptr)
 			return;
 
+		mp_commandAllocators[0u] = Graphics::D3D12::CreateDxCommandAllocator(mp_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+
 		for (uint8 i = 0u; i < k_numSwapchainBuffers; ++i)
 		{
-			mp_commandAllocators[i] = Graphics::D3D12::CreateDxCommandAllocator(mp_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
-			mp_gfxCommandLists[i] = Graphics::D3D12::CreateDxCommandList(mp_device, mp_commandAllocators[i], D3D12_COMMAND_LIST_TYPE_DIRECT);
+			mp_gfxCommandLists[i] = Graphics::D3D12::CreateDxCommandList(mp_device, mp_commandAllocators[0u], D3D12_COMMAND_LIST_TYPE_DIRECT);
 			mp_gfxCommandLists[i]->Close();
 		}
 	}
