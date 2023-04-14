@@ -349,6 +349,7 @@ namespace Influx::Graphics
 
             Get().m_commandAllocatorList.push_back(newEntry);
         }
+
         constexpr static uint32 k_maxNumCommandAllocators = k_maxNumRHIObjectsPerType[static_cast<uint32>(ERHIChild::CommandAllocator)];
         CommandAllocatorEntry m_allCommandAllocators[k_maxNumCommandAllocators];
 #endif
@@ -583,8 +584,12 @@ namespace Influx::Graphics
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
 
-            commandListHandle.As<ID3D12GraphicsCommandList>()->Close();
-            commandListHandle.As<ID3D12GraphicsCommandList>()->Reset(commandbufferHandle.As<ID3D12CommandAllocator>(), nullptr);
+            ID3D12GraphicsCommandList* d3d12CommandList = commandListHandle.As<ID3D12GraphicsCommandList>();
+            ID3D12CommandAllocator* d3d12Allocator = commandbufferHandle.As<ID3D12CommandAllocator>();
+
+            d3d12CommandList->Close();
+
+            d3d12CommandList->Reset(d3d12Allocator, nullptr);
 
             return { true };
             break;
