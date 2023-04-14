@@ -1,64 +1,54 @@
 #pragma once
 
-#ifndef __GR_VULKAN_H_
-#define __GR_VULKAN_H_
+#ifndef __GR_D3D12_H_
+#define __GR_D3D12_H_
 
-// Using Core...
-#include "Core/BasicTypes.h"
 #include "Core/Container/Vector.h"
+
+// https://github.com/SaschaWillems/Vulkan/blob/master/examples/triangle/triangle.cpp
 
 #include "Vulkan/vulkan.hpp"
 
+// Set to "true" to enable Vulkan's validation layers (see vulkandebug.cpp for details)
+#define ENABLE_VALIDATION false
+
+// Set to "true" to use staging buffers for uploading vertex and index data to device local memory
+// See "prepareVertices" for details on what's staging and on why to use it
+#define USE_STAGING true
+
 namespace Influx::Graphics::Vulkan
 {
-	inline Vector<String> GetBestExtensions(
-		const Vector<vk::ExtensionProperties>& installed,
-		const Vector<String>& wanted)
+	inline vk::Instance CreateVkInstance(const vk::InstanceCreateInfo& info)
 	{
-		Vector<String> out_result{};
+		return vk::createInstance(info);
+	}
 
-		for (const String& w : wanted)
+	inline Vector<vk::PhysicalDevice> GetAllVkPhysicalDevices(const vk::Instance& instance)
+	{
+		uint32_t numPhysicalDevices = 0u;
+		instance.enumeratePhysicalDevices(&numPhysicalDevices, nullptr);
+
+		if (numPhysicalDevices > 0u)
 		{
-			for (vk::ExtensionProperties const& i : installed)
-			{
-				if (String(i.extensionName).compare(w) == 0)
-				{
-					out_result.emplace_back(w);
-					break;
-				}
-			}
+			Vector<vk::PhysicalDevice> devices(numPhysicalDevices);
+			instance.enumeratePhysicalDevices(&numPhysicalDevices, devices.data());
+			return devices;
 		}
-
-		return out_result;
+		else
+		{
+			return {};
+		}
 	}
 
-	inline vk::Instance CreateVkInstance(const vk::InstanceCreateInfo& createInfo)
+	inline vk::Device CreateVkDevice(const vk::PhysicalDevice& parentDevice, const vk::DeviceCreateInfo& info)
 	{
-		return vk::createInstance(createInfo);
+		return parentDevice.createDevice(info);
 	}
 
-	inline Vector<vk::PhysicalDevice> GetAllVkPhysicalDevices(const vk::Instance instance)
+	inline vk::Queue CreateVkGraphicsQueue(const vk::Device& parentDevice)
 	{
-		Vector<vk::PhysicalDevice> out_devices{};
-		
-		// std::vector -> Influx::Vector
-		out_devices = instance.enumeratePhysicalDevices();
-
-		return out_devices;
-	}
-
-	inline vk::Device CreateVkLogicalDevice(
-		const vk::PhysicalDevice& physDevice,
-		const Vector<String>& wantedDeviceExtensions)
-	{
-		Vector<vk::ExtensionProperties> installedDeviceExtensions =
-			physDevice.enumerateDeviceExtensionProperties();
-
-		Vector<String> deviceExtensions 
-			= GetBestExtensions(installedDeviceExtensions, wantedDeviceExtensions);
-
-		vk::DeviceCreateInfo dinfo = { {}, queueCreateInfos, deviceExtensions };
-		return physDevice.createDevice()
+		vk::DeviceQueueCreateInfo queueInfo{};
+		return {};
 	}
 }
 

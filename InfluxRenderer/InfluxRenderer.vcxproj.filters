@@ -20,11 +20,10 @@
     <ClInclude Include="Source\ImGuiTools\ImguiWidget.h" />
     <ClInclude Include="Source\ImGuiTools\ViewportWidget.h" />
     <ClInclude Include="Include\InfluxRenderer\Renderers\GUIRenderer.h" />
+    <ClInclude Include="Include\InfluxRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\renderer_pch.cpp" />
-    <ClCompile Include="Source\InfluxRenderer\RootRenderer.cpp" />
-    <ClCompile Include="Source\InfluxRenderer\Renderers\SceneRenderer.cpp" />
     <ClCompile Include="Source\ImGui\imgui.cpp" />
     <ClCompile Include="Source\ImGui\imgui_demo.cpp" />
     <ClCompile Include="Source\ImGui\imgui_draw.cpp" />
@@ -32,9 +31,7 @@
     <ClCompile Include="Source\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\ImGuiTools\ImGuiLogView.cpp" />
-    <ClCompile Include="Source\InfluxRenderer\Renderers\GUIRenderer.cpp" />
-    <ClCompile Include="Source\ImGuiTools\ViewportWidget.cpp" />
+    <ClCompile Include="Source\InfluxRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\Resources\Shaders\shaders.hlsl" />

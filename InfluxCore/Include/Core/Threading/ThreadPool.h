@@ -5,10 +5,16 @@
 #define __CORE_THREADPOOL_USECORE_ 1
 
 #if __CORE_THREADPOOL_USECORE_
+#include "Core/BasicTypes.h"
 #include "Core/Function.h"
 #include "Core/Container/RingBuffer.h"
 #include <mutex>
 #else
+namespace Influx
+{
+    using uint8 = unsigned char;
+}
+
 #include <functional>
 #include <mutex>
 #include <queue>
@@ -156,5 +162,25 @@ namespace Influx
         uint64_t m_currentLabel;
         std::atomic<uint64_t> m_finishedLabel;
     };
+
+    /* For-loop using ThreadPool<_N>::QueueJob() for each iteration */
+    /* STALLS the calling thread untill all jobs are finished! */
+    template <uint8 _N>
+    void AsyncFor(Function<void()> function)
+    {
+        if (function == nullptr)
+        {
+            return;
+        }
+
+        ThreadPool<_N> threadPool{};
+
+        for (uint8 i = 0; i < _N; ++i)
+        {
+            threadPool.QueueJob(function);
+        }
+
+        threadPool.WaitUntilFinished();
+    }
 }
 #endif

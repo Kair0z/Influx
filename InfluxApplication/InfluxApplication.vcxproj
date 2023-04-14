@@ -157,7 +157,6 @@
   <ItemGroup>
     <ClInclude Include="Source\app_pch.h" />
     <ClInclude Include="Include\InfluxApplication\Application.h" />
-    <ClInclude Include="Include\InfluxApplication\Common.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\app_pch.cpp">

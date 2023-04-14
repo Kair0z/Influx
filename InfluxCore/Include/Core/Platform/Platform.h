@@ -105,7 +105,7 @@ namespace Influx::Platform
 
 
 	// [WINDOW]
-	WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen);
+	WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen = true);
 
 	WindowSettings GetWindowSettings(const WindowHandle handle);
 

@@ -366,6 +366,12 @@ namespace Influx::Platform
 		return Internal::Cast<_T>(res);
 	}
 
+	template <typename _T>
+	inline Math::Vector<_T, 2u> GetClientWindowDimensions(const WindowHandle windowHandle)
+	{
+		return GetClientWindowRect<_T>(windowHandle).GetDimensions();
+	}
+
 	inline bool IsWindowVisible(const WindowHandle windowHandle)
 	{
 		return ::IsWindowVisible((::HWND)windowHandle);

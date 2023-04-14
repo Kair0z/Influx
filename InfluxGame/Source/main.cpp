@@ -16,7 +16,6 @@ int main(int argc, char** argv)
 	appSettings.WindowDimensions = { 640u, 480u };
 	appSettings.HasSceneRender = true;
 	appSettings.HasImGUI = false;
-	appSettings.HasUpdate = true;
 	appSettings.Name = "Flux Game 0.0";
 
 	Application* gameApp = new Application(appSettings);

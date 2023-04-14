@@ -57,6 +57,9 @@ namespace Influx
 		const Math::Vectorf3& GetCameraPosition() const { return m_cameraPosition; }
 		const Math::Vectorf3& GetCameraForward() const { return m_cameraForward; }
 		
+		const Math::Vectorf3& GetCameraPosition() const { return m_cameraPosition; }
+		const Math::Vectorf3& GetCameraForward() const { return m_cameraForward; }
+
 		const Scene::Camera& GetCamera() const { return m_camera; }
 		const ERenderMode GetRenderMode() const { return m_renderMode; }
 

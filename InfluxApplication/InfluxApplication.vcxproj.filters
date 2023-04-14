@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="Include\InfluxApplication\Application.h" />
-    <ClInclude Include="Include\InfluxApplication\Common.h" />
     <ClInclude Include="Source\app_pch.h" />
   </ItemGroup>
   <ItemGroup>

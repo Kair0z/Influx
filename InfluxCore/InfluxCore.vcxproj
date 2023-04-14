@@ -33,6 +33,7 @@
     <ClInclude Include="Include\Core\Macros.h" />
     <ClInclude Include="Include\Core\Math\Quaternion.h" />
     <ClInclude Include="Include\Core\Math\Transform.h" />
+    <ClInclude Include="Include\Core\Registry.h" />
     <ClInclude Include="Include\Core\Scene\Camera.h" />
     <ClInclude Include="Include\Core\Scene\Light.h" />
     <ClInclude Include="Include\Core\Scene\Mesh.h" />

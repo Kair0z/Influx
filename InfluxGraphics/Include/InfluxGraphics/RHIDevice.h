@@ -124,7 +124,6 @@ namespace Influx::Graphics
 		bool m_isInitialized = false;
 		bool m_isCleanedUp = false;
 
-
 		constexpr static uint8 k_maxNumSamplerDescriptorsPerHeap = 16u;
 		constexpr static uint8 k_maxNumResourceDescriptorsPerHeap = 64u;
 		constexpr static uint8 k_maxNumRtvDescriptorsPerHeap = 64u;

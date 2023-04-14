@@ -5,6 +5,8 @@
 #ifndef __INFLUX_APPLICATION_H_
 #define __INFLUX_APPLICATION_H_
 
+// Defines
+#pragma region Defines
 #ifdef _DEBUG
 #define INFLUX_APPLICATION_DEBUG 1
 #else
@@ -51,6 +53,7 @@ static_assert(false, "Error: Application requires using the Influx Core-header-l
 #endif
 
 #endif
+#pragma endregion
 
 #pragma region Predeclarations
 namespace Influx
