@@ -17,6 +17,11 @@ namespace Influx::Math
 		inline Rect(_T l, _T b, _T w, _T h) : m_leftBottom{ l,b }, m_widthHeigth{ w,h }{}
 		inline Rect(const Vector2& lb, const Vector2& wh) : m_leftBottom{ lb }, m_widthHeigth{ wh }{}
 
+		const Vector2& GetDimensions() const
+		{
+			return m_widthHeigth;
+		}
+
 		Vector2 m_leftBottom{};
 		Vector2 m_widthHeigth{};
 	};

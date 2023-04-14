@@ -503,6 +503,10 @@ namespace Influx::Graphics
 		Buffer,
 		DescriptorHeap,
 		Descriptor,
+		RenderTargetView,
+		DepthStencilView,
+		SamplerView,
+		ResourceView,
 		Max
 	};
 
@@ -519,6 +523,7 @@ namespace Influx::Graphics
 		64,				// Buffer
 		4,				// DescriptorHeap
 		64 + 64 + 16u	// Descriptor
+		
 	};
 
 	constexpr const char* k_RHIObjectsNameStrings[k_numRHIObjectTypes]

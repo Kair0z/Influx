@@ -3,13 +3,8 @@
 #include "InfluxApplication/Application.h"
 
 #include "InfluxEngine/Engine.h"
-
-#include "InfluxGraphics/RHI.h"
-
 #include "InfluxAssets/InfluxAssets.h"
-
-#include "InfluxRenderer/RootRenderer.h"
-#include "InfluxRenderer/Renderers/SceneRenderer.h"
+#include "InfluxRenderer.h"
 
 namespace Influx::Application
 {
@@ -93,7 +88,7 @@ namespace Influx::Application
 
         if (GetHasCreatedRenderer())
         {
-            Renderer::RootRenderer::Destroy(mp_appRenderer);
+            Influx::Renderer::Cleanup();
         }
 
         if (GetHasCreatedEngine())
@@ -122,6 +117,8 @@ namespace Influx::Application
             return;
         }
 
+        // LEGACY
+#if 0
         Graphics::RHIGraphicsPipelineDescription pipelineDesc{};
         {
             pipelineDesc.InputElements.push_back(Graphics::RHIGraphicsPipelineDescription::InputElement{ "POSITION", 0u, Graphics::ERHIFormat::RGB_32_Float, 0u, 0u, true, 0u });
@@ -140,6 +137,7 @@ namespace Influx::Application
         }
 
         Graphics::RHIGraphicsPipelineLayoutDescription layoutDesc{};
+#endif
 
         m_hasStarted = true;
     }
@@ -186,9 +184,9 @@ namespace Influx::Application
             return;
         }
 
-        mp_appRenderer->Render();
+        Influx::Renderer::Render();
 
-        mp_appRenderer->Present(GetSettings().VSync);
+        Influx::Renderer::Present();
     }
 
     void Application::CreateWindow()
@@ -230,6 +228,13 @@ namespace Influx::Application
             return;
         }
 
+        Influx::Renderer::Initialize();
+
+        // Creates a swapchain...
+        Influx::Renderer::AttachToWindow(m_windowHandle);
+
+        // LEGACY
+#if 0
         // Create a D3D12 renderer interface
         mp_appRenderer = Renderer::RootRenderer::Create(Graphics::EGraphicsAPI::D3D12, m_windowHandle);
 
@@ -250,6 +255,8 @@ namespace Influx::Application
 
             sceneRenderer->AddMesh(meshData);
         }
+
+#endif
     }
 
     void Application::SignalQuit()
@@ -299,7 +306,7 @@ namespace Influx::Application
 
     bool Application::GetHasCreatedRenderer() const
     {
-        return mp_appRenderer != nullptr;
+        return Influx::Renderer::IsInitialized();
     }
 
     bool Application::GetHasCreatedEngine() const
