@@ -738,6 +738,12 @@ namespace Influx::Graphics
         return EResult(true);
     }
 
+    /* Create a Descriptor heap OR gets on that has been created of ERHIDescriptorType */
+    EResult GetDescriptorHeap(const ERHIDescriptorType type, RHIDescriptorHeapHandle& out_handle)
+    {
+
+    }
+
     EResult CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap, const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle)
     {
         switch (GetInitializedGraphicsAPI())
@@ -761,6 +767,18 @@ namespace Influx::Graphics
             break;
 #endif
         }
+
+        return EResult(true);
+    }
+
+    /* Uses GetDescriptorHeap() for convenience */
+    EResult CreateRenderTargetView(const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle)
+    {
+        RHIDescriptorHeapHandle descriptorHeap;
+        GetDescriptorHeap(ERHIDescriptorType::RTV, descriptorHeap);
+        INFLUX_GRAPHICS_ASSERT(descriptorHeap.IsValid());
+
+        CreateRenderTargetView(descriptorHeap, bufferHandle, out_handle);
 
         return EResult(true);
     }

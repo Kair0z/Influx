@@ -850,6 +850,7 @@ namespace Influx::Graphics
 	/* */
 	INFLUX_GRAPHICS_API bool IsDebugLayerEnabled();
 	
+
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle);
 
@@ -869,7 +870,11 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API EResult ResetGraphicsCommandlist(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandBufferHandle& commandbufferHandle);
 	
 	/* */
+	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommands(Function<void(const RHIGraphicsCommandListHandle&)> commands);
+
+	/* */
 	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommandListToGpu(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle);
+
 
 	/* Create an RHI swapchain 
 	* Implicitly creates/uses a RHICommandQueue
@@ -886,11 +891,19 @@ namespace Influx::Graphics
 
 	INFLUX_GRAPHICS_API EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain, const PresentDescription& present);
 
+
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);
 
+	/* Create a Descriptor heap OR gets on that has been created of ERHIDescriptorType */
+	INFLUX_GRAPHICS_API EResult GetDescriptorHeap(const ERHIDescriptorType type, RHIDescriptorHeapHandle& out_handle);
+
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap, const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle);
+
+	/* Uses GetDescriptorHeap() for convenience */
+	INFLUX_GRAPHICS_API EResult CreateRenderTargetView(const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle);
+
 
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& desc, RHIGraphicsPipelineHandle& out_handle);
@@ -901,8 +914,6 @@ namespace Influx::Graphics
 	/* */
 	INFLUX_GRAPHICS_API EResult CreateBuffer(const RHIBufferDesc& desc, RHIBufferHandle& out_handle);
 
-	/* */
-	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommands(Function<void(const RHIGraphicsCommandListHandle&)> commands);
 
 	namespace Commands
 	{
