@@ -102,7 +102,10 @@ namespace Influx::Graphics
                 return RHIObjectHandle<_E>{};
             }
 
-            return TryRegisterRHIObject<_E>(creator());
+            void* creationResult = creator();
+            INFLUX_GRAPHICS_ASSERT(creationResult != nullptr);
+
+            return TryRegisterRHIObject<_E>(creationResult);
         }
         template <class _E>
         static _E CreateAndRegisterRHIObject(Function<void*()> creator)
@@ -229,11 +232,6 @@ namespace Influx::Graphics
 
         uint32 MainAdapterIndex;
 
-        struct DescriptorHeap
-        {
-            RHIDescriptorHeapHandle RHIHandle;
-        };
-
     public:
         EResult InitializeDx12()
         {
@@ -264,37 +262,37 @@ namespace Influx::Graphics
             RHIDescriptorHeapDesc desc{};
 
             desc.Type = ERHIResourceViewType::RTV;
-            CreateDescriptorHeap(desc, m_globalRtvDescriptorHeap);
+            CreateDescriptorHeap(desc, m_globalRtvDescriptorHeap.Handle);
 
             desc.Type = ERHIResourceViewType::DSV;
-            CreateDescriptorHeap(desc, m_globalDsvDescriptorHeap);
+            CreateDescriptorHeap(desc, m_globalDsvDescriptorHeap.Handle);
 
             desc.Type = ERHIResourceViewType::Sampler;
-            CreateDescriptorHeap(desc, m_globalSamplerDescriptorHeap);
+            CreateDescriptorHeap(desc, m_globalSamplerDescriptorHeap.Handle);
 
             desc.Type = ERHIResourceViewType::Resource;
-            CreateDescriptorHeap(desc, m_globalResDescriptorHeap);
+            CreateDescriptorHeap(desc, m_globalResDescriptorHeap.Handle);
 
             return EResult(true);
         }
 
-        EResult CleanupDx12()
+        static EResult CleanupDx12()
         {
-            for (uint64 i = 0u; i < DxgiPhysicalDevices.size(); ++i)
+            for (uint64 i = 0u; i < Get().DxgiPhysicalDevices.size(); ++i)
             {
-                if (DxLogicalDevices[i] != nullptr)
+                if (Get().DxLogicalDevices[i] != nullptr)
                 {
-                    DxLogicalDevices[i]->Release();
-                    DxLogicalDevices[i] = nullptr;
+                    Get().DxLogicalDevices[i]->Release();
+                    Get().DxLogicalDevices[i] = nullptr;
                 }
-                if (DxgiPhysicalDevices[i] != nullptr)
+                if (Get().DxgiPhysicalDevices[i] != nullptr)
                 {
-                    DxgiPhysicalDevices[i]->Release();
-                    DxgiPhysicalDevices[i] = nullptr;
+                    Get().DxgiPhysicalDevices[i]->Release();
+                    Get().DxgiPhysicalDevices[i] = nullptr;
                 }
             }
 
-            DxgiFactory2->Release();
+            Get().DxgiFactory2->Release();
             return EResult(true);
         }
 
@@ -313,20 +311,20 @@ namespace Influx::Graphics
             return Get().m_globalRtvDescriptorHeap;
         }
 
-        uint64 DxCachedRtvDescriptorSize = 0;
-        uint64 DxCachedDsvDescriptorSize = 0;
-        uint64 DxCachedResourceDescriptorSize = 0;
-        uint64 DxCachedSamplerDescriptorSize = 0;
+        uint64 DxCachedRtvDescriptorSize        = 0;
+        uint64 DxCachedDsvDescriptorSize        = 0;
+        uint64 DxCachedResourceDescriptorSize   = 0;
+        uint64 DxCachedSamplerDescriptorSize    = 0;
 
         constexpr static uint8 k_dxMaxNumSamplerDescriptorsPerHeap = 16u;
         constexpr static uint8 k_dxMaxNumResourceDescriptorsPerHeap = 64u;
         constexpr static uint8 k_dxMaxNumRtvDescriptorsPerHeap = 64u;
         constexpr static uint8 k_dxMaxNumDsvDescriptorsPerHeap = 64u;
 
-        RHIDescriptorHeapHandle m_globalRtvDescriptorHeap;
-        RHIDescriptorHeapHandle m_globalDsvDescriptorHeap;
-        RHIDescriptorHeapHandle m_globalResDescriptorHeap;
-        RHIDescriptorHeapHandle m_globalSamplerDescriptorHeap;
+        struct DescriptorHeapEntry final
+        {
+            RHIDescriptorHeapHandle Handle;
+        };
 
         struct CommandAllocatorEntry final
         {
@@ -339,19 +337,12 @@ namespace Influx::Graphics
             }
         };
 
-        // Call this when 1 or more command lists with this command allocator get submitted onto the gpu.
-        static void OnLaunchCommandAllocator(RHIGraphicsCommandBufferHandle handle, uint64 fenceValue)
-        {
-            CommandAllocatorEntry newEntry{};
+        DescriptorHeapEntry m_globalRtvDescriptorHeap;
+        DescriptorHeapEntry m_globalDsvDescriptorHeap;
+        DescriptorHeapEntry m_globalResDescriptorHeap;
+        DescriptorHeapEntry m_globalSamplerDescriptorHeap;
 
-            newEntry.FenceValue = fenceValue;
-            newEntry.Handle = handle;
-
-            Get().m_commandAllocatorList.push_back(newEntry);
-        }
-
-        constexpr static uint32 k_maxNumCommandAllocators = k_maxNumRHIObjectsPerType[static_cast<uint32>(ERHIChild::CommandAllocator)];
-        CommandAllocatorEntry m_allCommandAllocators[k_maxNumCommandAllocators];
+        CommandAllocatorEntry m_allCommandAllocators[GetMaxNumOfObjects(ERHIChild::CommandAllocator)];
 #endif
 
 #if INFLUX_GRAPHICS_INCLUDE_VULKAN
@@ -474,6 +465,15 @@ namespace Influx::Graphics
                 });
 
             break;
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphicsAPI::Vulkan:
+
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandQueueHandle>([]()
+                {
+                    return nullptr;
+                });
+
+            break;
 #endif
         }
 
@@ -486,6 +486,11 @@ namespace Influx::Graphics
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
+            INFLUX_GRAPHICS_TODO;
+            break;
+
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphicsAPI::Vulkan:
             INFLUX_GRAPHICS_TODO;
             break;
 #endif
@@ -505,6 +510,16 @@ namespace Influx::Graphics
             {
                 return D3D12::CreateDxCommandAllocator(GlobalState::GetDevice(),
                     D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+            });
+
+            break;
+
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphics::Vulkan:
+
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandBufferHandle>([]()
+            {
+                return nullptr;
             });
 
             break;
@@ -649,8 +664,12 @@ namespace Influx::Graphics
 
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHISwapchainHandle>([&desc, &cmdQueueHandle, numBuffers]()
             {
-                return D3D12::Swapchain::CreateTier3(GlobalState::GetFactory2(), (::HWND)desc.WindowHandle, cmdQueueHandle.GetInternal<ID3D12CommandQueue>(),
-                    desc.Dimensions.x, desc.Dimensions.y, numBuffers);
+                return D3D12::Swapchain::CreateTier3(
+                    GlobalState::GetFactory2(), 
+                    (::HWND)desc.WindowHandle, 
+                    cmdQueueHandle.GetInternal<ID3D12CommandQueue>(),
+                    desc.Dimensions.x, desc.Dimensions.y, 
+                    numBuffers);
             });
 
             INFLUX_GRAPHICS_ASSERT(out_handle.IsValid());
@@ -660,6 +679,7 @@ namespace Influx::Graphics
             {
                 ID3D12Resource* resource;
                 out_handle.GetInternal<IDXGISwapChain3>()->GetBuffer(i, IID_PPV_ARGS(&resource));
+
                 if (resource != nullptr)
                 {
                     GlobalState::TryRegisterRHIObject<RHIBufferHandle>(resource);
@@ -681,6 +701,11 @@ namespace Influx::Graphics
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
             swapchain.As<IDXGISwapChain>()->Present(present.Vsync ? 1u : 0u, 0);
+            break;
+
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphicsAPI::Vulkan:
+
             break;
 #endif
         }
@@ -732,6 +757,9 @@ namespace Influx::Graphics
                 });
 
             break;
+
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+
 #endif
         }
 

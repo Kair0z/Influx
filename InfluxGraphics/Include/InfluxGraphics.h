@@ -16,7 +16,7 @@
 #define INFLUX_GRAPHICS_USE_STL			1
 
 #define INFLUX_GRAPHICS_INCLUDE_DX12	1
-#define INFLUX_GRAPHICS_INCLUDE_VULKAN	0
+#define INFLUX_GRAPHICS_INCLUDE_VULKAN	1
 
 #define INFLUX_GRAPHICS_DEBUG			_DEBUG
 
@@ -511,6 +511,7 @@ namespace Influx::Graphics
 	};
 
 	constexpr uint8 k_numRHIObjectTypes = static_cast<uint8>(ERHIChild::Max);
+	
 	constexpr uint8 k_maxNumRHIObjectsPerType[k_numRHIObjectTypes]
 	{
 		1u,				// CommandQueue
@@ -523,8 +524,12 @@ namespace Influx::Graphics
 		64,				// Buffer
 		4,				// DescriptorHeap
 		64 + 64 + 16u	// Descriptor
-		
 	};
+
+	constexpr uint8 GetMaxNumOfObjects(const ERHIChild child)
+	{
+		return static_cast<uint8>(child);
+	}
 
 	constexpr const char* k_RHIObjectsNameStrings[k_numRHIObjectTypes]
 	{
