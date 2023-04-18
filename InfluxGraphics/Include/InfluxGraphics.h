@@ -545,6 +545,11 @@ namespace Influx::Graphics
 		"Descriptor"
 	};
 
+	constexpr static uint8 k_maxNumSamplerDescriptorsPerHeap	= 16u;
+	constexpr static uint8 k_maxNumResourceDescriptorsPerHeap	= 64u;
+	constexpr static uint8 k_maxNumRtvDescriptorsPerHeap		= 64u;
+	constexpr static uint8 k_maxNumDsvDescriptorsPerHeap		= 64u;
+
 	// Handles: pointer wrappers that allow us to point to device-children and access their data.
 	class IRHIObjectHandle
 	{
@@ -589,7 +594,6 @@ namespace Influx::Graphics
 	private:
 		void* mp_internal = nullptr;
 	};
-
 	template <ERHIChild _E>
 	struct RHIObjectHandle : public IRHIObjectHandle 
 	{
@@ -639,7 +643,6 @@ namespace Influx::Graphics
 
 		virtual ERHIChild GetType() const { return ERHIChild::Max; }
 	};
-
 	template <ERHIChild _E>
 	struct RHIDesc : public IRHIDesc
 	{

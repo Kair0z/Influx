@@ -13,6 +13,10 @@
 #include "InfluxGraphics/Vulkan/Vulkan.h"
 #endif
 
+#ifndef __TODO 
+#define __TODO INFLUX_GRAPHICS_TODO
+#endif
+
 namespace Influx::Graphics
 {
     // [Global State]
@@ -28,6 +32,22 @@ namespace Influx::Graphics
         };
 
         using ChildContainer = Vector<Child>;
+
+        struct DescriptorHeapEntry final
+        {
+            RHIDescriptorHeapHandle Handle;
+        };
+
+        struct CommandAllocatorEntry final
+        {
+            RHIGraphicsCommandBufferHandle Handle;
+            uint64 FenceValue;
+
+            bool GetIsInUse(uint64 fenceValue)
+            {
+                return this->FenceValue >= fenceValue;
+            }
+        };
 
     public:
         static EGraphicsAPI GetCurrentInitializedAPI()
@@ -224,13 +244,25 @@ namespace Influx::Graphics
 
         Array<ChildContainer, static_cast<uint8>(ERHIChild::Max)> m_childLists;
 
+        uint32 m_mainAdapterIndex;
+
+        DescriptorHeapEntry m_globalRtvDescriptorHeap;
+        DescriptorHeapEntry m_globalDsvDescriptorHeap;
+        DescriptorHeapEntry m_globalResDescriptorHeap;
+        DescriptorHeapEntry m_globalSamplerDescriptorHeap;
+
+        CommandAllocatorEntry m_allCommandAllocators[GetMaxNumOfObjects(ERHIChild::CommandAllocator)];
+
+        static const RHIDescriptorHeapHandle& GetGlobalRtvHeap()
+        {
+            return Get().m_globalRtvDescriptorHeap.Handle;
+        }
+
 #if INFLUX_GRAPHICS_INCLUDE_DX12
     private:
         Vector<ID3D12Device*> DxLogicalDevices;
         Vector<IDXGIAdapter*> DxgiPhysicalDevices;
         IDXGIFactory2* DxgiFactory2;
-
-        uint32 MainAdapterIndex;
 
     public:
         EResult InitializeDx12()
@@ -239,11 +271,11 @@ namespace Influx::Graphics
 
             DxgiFactory2 = D3D12::Factory::CreateTier2(m_isDebugLayerActive);
             DxgiPhysicalDevices = D3D12::Adapter::SelectAll(DxgiFactory2);
-            MainAdapterIndex = 0u; // Temp...
+            m_mainAdapterIndex = 0u; // Temp...
 
             for (uint64 i = 0u; i < DxgiPhysicalDevices.size(); ++i)
             {
-                if (i == MainAdapterIndex)
+                if (i == m_mainAdapterIndex)
                 {
                     DxLogicalDevices.push_back(D3D12::Device::Create(DxgiPhysicalDevices[i], m_isDebugLayerActive));
                 }
@@ -298,7 +330,7 @@ namespace Influx::Graphics
 
         static ID3D12Device* GetDevice()
         {
-            return Get().DxLogicalDevices[Get().MainAdapterIndex];
+            return Get().DxLogicalDevices[Get().m_mainAdapterIndex];
         }
 
         static IDXGIFactory2* GetFactory2()
@@ -306,47 +338,25 @@ namespace Influx::Graphics
             return Get().DxgiFactory2;
         }
 
-        static const RHIDescriptorHeapHandle& GetGlobalRtvHeap()
-        {
-            return Get().m_globalRtvDescriptorHeap;
-        }
-
         uint64 DxCachedRtvDescriptorSize        = 0;
         uint64 DxCachedDsvDescriptorSize        = 0;
         uint64 DxCachedResourceDescriptorSize   = 0;
         uint64 DxCachedSamplerDescriptorSize    = 0;
-
-        constexpr static uint8 k_dxMaxNumSamplerDescriptorsPerHeap = 16u;
-        constexpr static uint8 k_dxMaxNumResourceDescriptorsPerHeap = 64u;
-        constexpr static uint8 k_dxMaxNumRtvDescriptorsPerHeap = 64u;
-        constexpr static uint8 k_dxMaxNumDsvDescriptorsPerHeap = 64u;
-
-        struct DescriptorHeapEntry final
-        {
-            RHIDescriptorHeapHandle Handle;
-        };
-
-        struct CommandAllocatorEntry final
-        {
-            RHIGraphicsCommandBufferHandle Handle;
-            uint64 FenceValue;
-            
-            bool GetIsInUse(uint64 fenceValue)
-            {
-                return this->FenceValue >= fenceValue;
-            }
-        };
-
-        DescriptorHeapEntry m_globalRtvDescriptorHeap;
-        DescriptorHeapEntry m_globalDsvDescriptorHeap;
-        DescriptorHeapEntry m_globalResDescriptorHeap;
-        DescriptorHeapEntry m_globalSamplerDescriptorHeap;
-
-        CommandAllocatorEntry m_allCommandAllocators[GetMaxNumOfObjects(ERHIChild::CommandAllocator)];
 #endif
 
 #if INFLUX_GRAPHICS_INCLUDE_VULKAN
 
+        EResult InitializeVulkan()
+        {
+            INFLUX_GRAPHICS_TODO;
+            return EResult{ false };
+        }
+
+        EResult CleanupVulkan()
+        {
+            INFLUX_GRAPHICS_TODO;
+            return EResult{ false };
+        }
 #endif
     };
 
@@ -384,6 +394,12 @@ namespace Influx::Graphics
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
             result = GlobalState::Get().InitializeDx12();
+            break;
+
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphicsAPI::Vulkan:
+            result = GlobalState::Get().InitializeVulkan();
+            break;
 #endif
         }
 
@@ -405,7 +421,7 @@ namespace Influx::Graphics
 #endif
 #if INFLUX_GRAPHICS_INCLUDE_VULKAN
         case EGraphicsAPI::Vulkan:
-            return CleanupVulkan();
+            return GlobalState::Get().CleanupVulkan();
 #endif
         }
 
@@ -454,22 +470,27 @@ namespace Influx::Graphics
 
     EResult CreateGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle)
     {
+        if (!GlobalState::CanRegisterRHIObject<RHIGraphicsCommandQueueHandle>())
+        {
+            INFLUX_GRAPHICS_ASSERT(false);
+            return EResult{ false };
+        }
+        
         switch (GetInitializedGraphicsAPI())
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
-
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandQueueHandle>([]()
-                {
-                    return D3D12::CreateDxCommandQueue(GlobalState::GetDevice(), D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
-                });
+            {
+                return D3D12::CreateDxCommandQueue(GlobalState::GetDevice(), D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+            });
 
             break;
 #elif INFLUX_GRAPHICS_INCLUDE_VULKAN
         case EGraphicsAPI::Vulkan:
-
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandQueueHandle>([]()
                 {
+                    __TODO;
                     return nullptr;
                 });
 
@@ -501,6 +522,12 @@ namespace Influx::Graphics
 
     EResult CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle)
     {
+        if (!GlobalState::CanRegisterRHIObject<RHIGraphicsCommandBufferHandle>())
+        {
+            INFLUX_GRAPHICS_ASSERT(false);
+            return EResult(false);
+        }
+
         switch (GetInitializedGraphicsAPI())
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
@@ -519,6 +546,7 @@ namespace Influx::Graphics
 
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandBufferHandle>([]()
             {
+                __TODO;
                 return nullptr;
             });
 
@@ -536,11 +564,19 @@ namespace Influx::Graphics
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
-
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandBufferHandle>([]()
             {
                 return D3D12::CreateDxCommandAllocator(GlobalState::GetDevice(),
                     D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+            });
+
+            break;
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphicsAPI::Vulkan:
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandBufferHandle>([]()
+            {
+                __TODO;
+                return nullptr;
             });
 
             break;
@@ -554,11 +590,16 @@ namespace Influx::Graphics
     {
         INFLUX_GRAPHICS_ASSERT(out_existingCommandBuffer.IsValid());
 
+        if (!GlobalState::CanRegisterRHIObject<RHIGraphicsCommandListHandle>())
+        {
+            INFLUX_GRAPHICS_ASSERT(false);
+            return EResult(false);
+        }
+
         switch (GetInitializedGraphicsAPI())
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
-
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandListHandle>([&out_existingCommandBuffer]()
             {
                 ID3D12CommandAllocator* cmdAllocator = out_existingCommandBuffer.As<ID3D12CommandAllocator>();
@@ -574,11 +615,19 @@ namespace Influx::Graphics
                 /* Get the private held Command Allocator */
                 ID3D12CommandAllocator* cmdAllocator;
                 UINT dataSize = sizeof(cmdAllocator);
-                dxCmdList->GetPrivateData(__uuidof(ID3D12CommandAllocator), &dataSize, &cmdAllocator);
+                gfxCommandList->GetPrivateData(__uuidof(ID3D12CommandAllocator), &dataSize, &cmdAllocator);
 
                 return gfxCommandList;
             });
 
+            break;
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphicsAPI::Vulkan:
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandListHandle>([&out_existingCommandBuffer]()
+            {
+                __TODO;
+                return nullptr;
+            });
             break;
 #endif
         }
@@ -608,6 +657,10 @@ namespace Influx::Graphics
 
             return { true };
             break;
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphicsAPI::Vulkan:
+
+            break;
 #endif
         }
 
@@ -635,6 +688,10 @@ namespace Influx::Graphics
             d3d12CommandQueue->ExecuteCommandLists(1u, d3d12CmdLists);
 
             return {};
+
+            break;
+#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphicsAPI::Vulkan:
 
             break;
 #endif
@@ -715,51 +772,58 @@ namespace Influx::Graphics
 
     EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle)
     {
+        D3D12_DESCRIPTOR_HEAP_TYPE type{};
+        uint8 numDescriptors{};
+        bool isShaderVisible = false;
+        switch (desc.Type)
+        {
+        case ERHIResourceViewType::Resource:
+            type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            numDescriptors = k_maxNumResourceDescriptorsPerHeap;
+            isShaderVisible = true;
+            break;
+
+        case ERHIResourceViewType::DSV:
+            type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+            numDescriptors = k_maxNumDsvDescriptorsPerHeap;
+            isShaderVisible = false;
+            break;
+
+        case ERHIResourceViewType::RTV:
+            type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+            numDescriptors = k_maxNumRtvDescriptorsPerHeap;
+            isShaderVisible = false;
+            break;
+
+        case ERHIResourceViewType::Sampler:
+            type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+            numDescriptors = k_maxNumSamplerDescriptorsPerHeap;
+            isShaderVisible = true;
+            break;
+        }
+
         switch (GetInitializedGraphicsAPI())
         {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
         case EGraphicsAPI::D3D12:
 
-            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIDescriptorHeapHandle>([&desc]()
-                {
-                    D3D12_DESCRIPTOR_HEAP_TYPE type{};
-                    uint8 numDescriptors{};
-                    bool isShaderVisible = false;
-                    switch (desc.Type)
-                    {
-                    case ERHIResourceViewType::Resource:
-                        type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-                        numDescriptors = GlobalState::k_dxMaxNumResourceDescriptorsPerHeap;
-                        isShaderVisible = true;
-                        break;
-
-                    case ERHIResourceViewType::DSV:
-                        type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-                        numDescriptors = GlobalState::k_dxMaxNumDsvDescriptorsPerHeap;
-                        isShaderVisible = false;
-                        break;
-
-                    case ERHIResourceViewType::RTV:
-                        type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-                        numDescriptors = GlobalState::k_dxMaxNumRtvDescriptorsPerHeap;
-                        isShaderVisible = false;
-                        break;
-
-                    case ERHIResourceViewType::Sampler:
-                        type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-                        numDescriptors = GlobalState::k_dxMaxNumSamplerDescriptorsPerHeap;
-                        isShaderVisible = true;
-                        break;
-                    }
-
-                    return D3D12::CreateDxDescriptorHeap(GlobalState::GetDevice(), type, numDescriptors,
-                        isShaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
-                });
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIDescriptorHeapHandle>([&desc, type, numDescriptors, isShaderVisible]()
+            {
+                return D3D12::CreateDxDescriptorHeap(GlobalState::GetDevice(), type, numDescriptors,
+                    isShaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
+            });
 
             break;
 
 #elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+        case EGraphicsAPI::Vulkan:
 
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIDescriptorHeapHandle>([&desc, type, numDescriptors, isShaderVisible]()
+            {
+                return nullptr;
+            });
+
+            break;
 #endif
         }
 
