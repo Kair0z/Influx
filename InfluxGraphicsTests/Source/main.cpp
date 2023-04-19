@@ -3,7 +3,6 @@
 
 #include "Core/BasicTypes.h"
 #include "Core/Platform/WindowsPlatform.h"
-
 #include "Core/Registry.h"
 
 namespace Influx

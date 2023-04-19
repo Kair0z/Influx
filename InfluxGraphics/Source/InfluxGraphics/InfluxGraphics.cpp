@@ -197,6 +197,8 @@ namespace Influx::Graphics
             {
                 return &(*found);
             }
+#else
+            static_assert(false, "FindChildFromHandle() no implementation withtout STL library...");
 #endif
             return nullptr;
         }
@@ -207,11 +209,14 @@ namespace Influx::Graphics
             {
 #if INFLUX_GRAPHICS_USE_STL
                 ChildContainer& containerToSearch = Get().m_childLists[c];
+
                 auto found = std::find_if(containerToSearch.begin(), containerToSearch.end(),
                 [&handle](const Child& child) -> bool
                 {
                     return child.pHandle->GetInternal() == handle.GetInternal();
                 });
+#else
+                static_assert(false, "FindChildFromHandle() no implementation withtout STL library...");
 #endif
             }
 

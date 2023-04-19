@@ -36,6 +36,7 @@ namespace Influx
 		vk::Queue			m_commandQueue;
 		vk::SwapchainKHR	m_swapchain;
 		vk::SurfaceKHR		m_windowSurface;
+
 		uint32 m_currentSwapchainBuffer;
 		vk::Image m_swapchainImages[k_numSwapchainBuffers];
 

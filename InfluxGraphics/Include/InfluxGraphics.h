@@ -491,6 +491,7 @@ namespace Influx::Graphics
 #pragma region RHI Types - Classes
 namespace Influx::Graphics
 {
+	/* Every type of object created by the RHI */
 	enum class ERHIChild : uint8
 	{
 		CommandQueue,
@@ -545,12 +546,31 @@ namespace Influx::Graphics
 		"Descriptor"
 	};
 
+	constexpr const char* GetRHIObjectTypeString(const ERHIChild child)
+	{
+		return k_RHIObjectsNameStrings[static_cast<uint8>(child)];
+	}
+
 	constexpr static uint8 k_maxNumSamplerDescriptorsPerHeap	= 16u;
 	constexpr static uint8 k_maxNumResourceDescriptorsPerHeap	= 64u;
 	constexpr static uint8 k_maxNumRtvDescriptorsPerHeap		= 64u;
 	constexpr static uint8 k_maxNumDsvDescriptorsPerHeap		= 64u;
 
-	// Handles: pointer wrappers that allow us to point to device-children and access their data.
+	constexpr uint8 GetMaxNumDescriptorsPerHeap(const ERHIDescriptorType descriptorHeapType)
+	{
+		switch (descriptorHeapType)
+		{
+		case ERHIDescriptorType::Resource:	return k_maxNumResourceDescriptorsPerHeap;
+		case ERHIDescriptorType::Sampler:	return k_maxNumSamplerDescriptorsPerHeap;
+		case ERHIDescriptorType::RTV:		return k_maxNumRtvDescriptorsPerHeap;
+		case ERHIDescriptorType::DSV:		return k_maxNumDsvDescriptorsPerHeap;
+		}
+
+		return 0u;
+	}
+
+	// Handles: 
+	// Wrappers that keep a raw void* pointing pointing to the created API-specific object
 	class IRHIObjectHandle
 	{
 	public:
@@ -631,7 +651,8 @@ namespace Influx::Graphics
 	using RHIDescriptorHandle				= RHIObjectHandle<ERHIChild::Descriptor>;
 	using RHISwapchainHandle				= RHIObjectHandle<ERHIChild::Swapchain>;
 
-	// Descriptors: describe construction & creation of resources
+	// Descriptors: 
+	// describe construction & creation of RHI-objects
 	struct IRHIDesc
 	{
 	public:
@@ -783,13 +804,13 @@ namespace Influx::Graphics
 		uint64 NumDescriptorsOccupied;
 	};
 
-	// State: describe state of data, accessible
+	// State: 
+	// describe state of data, kept inside internal GlobalState
 	struct IRHIState
 	{
 	protected:
 		IRHIState() = default;
 	};
-
 	template <ERHIChild _E>
 	struct RHIState : public IRHIState
 	{
@@ -808,7 +829,7 @@ namespace Influx::Graphics
 // EResult
 namespace Influx::Graphics
 {
-	struct EResult final
+	struct Result final
 	{
 		enum class EMessageLevel
 		{
@@ -818,7 +839,17 @@ namespace Influx::Graphics
 			Max
 		};
 
-		EResult(bool success = true, EMessageLevel messageLevel = EMessageLevel::Info) 
+		static Result Success()
+		{
+			return Result(true);
+		}
+
+		static Result Fail()
+		{
+			return Result(false);
+		}
+
+		Result(bool success = true, EMessageLevel messageLevel = EMessageLevel::Info) 
 			: bSuccess{ success } {}
 
 		operator bool() const
@@ -829,59 +860,56 @@ namespace Influx::Graphics
 		bool bSuccess = true;
 		EMessageLevel MessageLevel = EMessageLevel::Info;
 	};
-
-	const static EResult FailWarning	= EResult(false, EResult::EMessageLevel::Warning);
-	const static EResult FailError		= EResult(false, EResult::EMessageLevel::Error);
 }
 
 // [MAIN API]
 namespace Influx::Graphics
 {
-	INFLUX_GRAPHICS_API EResult RegisterNative(EGraphicsAPI api, ERHIChild type, void* ptr);
+	INFLUX_GRAPHICS_API Result RegisterNative(EGraphicsAPI api, ERHIChild type, void* ptr);
 
 	/* Initialize resources for a given EGraphicsAPI */
-	INFLUX_GRAPHICS_API EResult Initialize(EGraphicsAPI api);
+	INFLUX_GRAPHICS_API Result Initialize(EGraphicsAPI api);
 
 	/* Clean up resources that are tied to the currently initialized EGraphicsAPI */
-	INFLUX_GRAPHICS_API EResult Cleanup();
+	INFLUX_GRAPHICS_API Result Cleanup();
 
 	/* Create a scope in which 'internalFunc' gets executed */
 	/* Within the scope the given 'api' is initialized, outside of the scope, we clean it up */
-	INFLUX_GRAPHICS_API EResult Create(EGraphicsAPI api, Function<void()> internalFunc);
+	INFLUX_GRAPHICS_API Result Create(EGraphicsAPI api, Function<void()> internalFunc);
 
 	/* Returns the currently initialized Graphics API */
 	INFLUX_GRAPHICS_API EGraphicsAPI GetInitializedGraphicsAPI();
 
 	/* */
-	INFLUX_GRAPHICS_API EResult SetDebugLayerEnabled();
+	INFLUX_GRAPHICS_API Result SetDebugLayerEnabled();
 
 	/* */
 	INFLUX_GRAPHICS_API bool IsDebugLayerEnabled();
 	
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult WaitForGraphicsCommandQueueToFinish(const RHIGraphicsCommandQueueHandle& commandQueueHandle);
+	INFLUX_GRAPHICS_API Result WaitForGraphicsCommandQueueToFinish(const RHIGraphicsCommandQueueHandle& commandQueueHandle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
 
 	/* Creates a Graphics command buffer OR gets one that is no longer in use */
-	INFLUX_GRAPHICS_API EResult GetGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
+	INFLUX_GRAPHICS_API Result GetGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateGraphicsCommandList(RHIGraphicsCommandBufferHandle& out_existingCommandBuffer, RHIGraphicsCommandListHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateGraphicsCommandList(RHIGraphicsCommandBufferHandle& out_existingCommandBuffer, RHIGraphicsCommandListHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult ResetGraphicsCommandlist(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandBufferHandle& commandbufferHandle);
+	INFLUX_GRAPHICS_API Result ResetGraphicsCommandlist(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandBufferHandle& commandbufferHandle);
 	
 	/* */
-	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommands(Function<void(const RHIGraphicsCommandListHandle&)> commands);
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommands(Function<void(const RHIGraphicsCommandListHandle&)> commands);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult DispatchGraphicsCommandListToGpu(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle);
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommandListToGpu(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle);
 
 
 	/* Create an RHI swapchain 
@@ -889,7 +917,7 @@ namespace Influx::Graphics
 	* Implicitly creates RHIBuffer(s) x num-buffers
 	* Implicitly creates RHIRenderTargetView(s) x num-buffers
 	*/
-	INFLUX_GRAPHICS_API EResult CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateSwapchain(const RHISwapchainDesc& desc, RHISwapchainHandle& out_handle);
 
 	/* */
 	struct PresentDescription final
@@ -897,39 +925,39 @@ namespace Influx::Graphics
 		bool Vsync = false;
 	};
 
-	INFLUX_GRAPHICS_API EResult DispatchSwapchainPresent(const RHISwapchainHandle& swapchain, const PresentDescription& present);
+	INFLUX_GRAPHICS_API Result DispatchSwapchainPresent(const RHISwapchainHandle& swapchain, const PresentDescription& present);
 
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateDescriptorHeap(const RHIDescriptorHeapDesc& desc, RHIDescriptorHeapHandle& out_handle);
 
 	/* Create a Descriptor heap OR gets on that has been created of ERHIDescriptorType */
-	INFLUX_GRAPHICS_API EResult GetDescriptorHeap(const ERHIDescriptorType type, RHIDescriptorHeapHandle& out_handle);
+	INFLUX_GRAPHICS_API Result GetDescriptorHeap(const ERHIDescriptorType type, RHIDescriptorHeapHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap, const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap, const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle);
 
 	/* Uses GetDescriptorHeap() for convenience */
-	INFLUX_GRAPHICS_API EResult CreateRenderTargetView(const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateRenderTargetView(const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle);
 
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& desc, RHIGraphicsPipelineHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& desc, RHIGraphicsPipelineHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDesc& desc, RHIGraphicsPipelineLayoutHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDesc& desc, RHIGraphicsPipelineLayoutHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API EResult CreateBuffer(const RHIBufferDesc& desc, RHIBufferHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateBuffer(const RHIBufferDesc& desc, RHIBufferHandle& out_handle);
 
 
 	namespace Commands
 	{
 		/* */
-		INFLUX_GRAPHICS_API EResult ClearRenderTargetView(const RHIGraphicsCommandListHandle& cmdListHandle);
+		INFLUX_GRAPHICS_API Result ClearRenderTargetView(const RHIGraphicsCommandListHandle& cmdListHandle);
 
 		/* */
-		INFLUX_GRAPHICS_API EResult ClearSwapchainBackBuffer(const RHIGraphicsCommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour);
+		INFLUX_GRAPHICS_API Result ClearSwapchainBackBuffer(const RHIGraphicsCommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour);
 	}
 }
 
