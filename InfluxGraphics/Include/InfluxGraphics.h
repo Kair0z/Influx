@@ -214,12 +214,14 @@ namespace Influx::Graphics
 	enum class ERHIShaderType
 	{
 		VertexShader,
-		PixelShader
+		PixelShader,
+		Max
 	};
 
 	enum class ERHIShaderStageFlags
 	{
-		Default
+		Default,
+		Max
 	};
 
 	enum class ERHIFormat
@@ -244,13 +246,14 @@ namespace Influx::Graphics
 
 	enum class ERHISampleCount
 	{
-		_1,
-		_2,
-		_4,
-		_8,
-		_16,
-		_32,
-		_64
+		_1	= 1u,
+		_2	= 2u,
+		_4	= 4u,
+		_8	= 8u,
+		_16	= 16u,
+		_32	= 32u,
+		_64	= 64u,
+		Max
 	};
 
 	enum class ERHIPrimitiveTopology
@@ -264,7 +267,8 @@ namespace Influx::Graphics
 
 	enum class ERHIPrimitiveTopologyType
 	{
-		Triangle
+		Triangle,
+		Max
 	};
 
 	enum class ERHICommandQueueType
@@ -278,35 +282,40 @@ namespace Influx::Graphics
 	{
 		None,
 		BackFaceCull,
-		FrontFaceCull
+		FrontFaceCull,
+		Max
 	};
 
 	enum class ERHIFillMode
 	{
 		Solid,
-		Wireframe
+		Wireframe,
+		Max
 	};
 
 	enum class ERHIPipelineBindPoint
 	{
-		Graphics
+		Graphics,
+		Max
 	};
 
 	enum class ERHIShaderModel
 	{
-		SM_5_0
+		SM_5_0,
+		Max
 	};
 
 	enum class ERHIComparisonFunc
 	{
-		Never = 1,
-		Less = 2,
-		Equal = 3,
-		LessEq = 4,
-		Greater = 5,
-		NotEqual = 6,
-		GreaterEq = 7,
-		Always = 8
+		Never		= 1u,
+		Less		= 2u,
+		Equal		= 3u,
+		LessEq		= 4u,
+		Greater		= 5u,
+		NotEqual	= 6u,
+		GreaterEq	= 7u,
+		Always		= 8u,
+		Max
 	};
 
 	enum class ERHIBlend
@@ -365,20 +374,23 @@ namespace Influx::Graphics
 	// RenderPass
 	enum class ERHIRenderPassAttachmentType
 	{
-		Color
+		Color,
+		Max
 	};
 
 	enum class ERHIRenderPassLoadOp
 	{
 		Load,			// Preserve the existing contents of the attachment
 		Clear,			// Clear the values to a constant at the start
-		DontCare		// Existing contents are undefined; we don't care about them
+		DontCare,		// Existing contents are undefined; we don't care about them
+		Max
 	};
 
 	enum class ERHIRenderPassStoreOp
 	{
 		Store,			// Rendered contents will be stored in memory and can be read later
-		DontCare		// Contents of the framebuffer will be undefined after the rendering operation
+		DontCare,		// Contents of the framebuffer will be undefined after the rendering operation
+		Max
 	};
 
 	struct RHIClearValue final
@@ -386,11 +398,11 @@ namespace Influx::Graphics
 		static RHIClearValue Default()
 		{
 			RHIClearValue result{};
-			result.Colour = {};
 			return result;
 		}
 
 		Math::Vectorf4 Colour;
+		float Depth;
 	};
 
 	/* Viewport */
@@ -826,7 +838,7 @@ namespace Influx::Graphics
 
 #pragma endregion
 
-// EResult
+// Result
 namespace Influx::Graphics
 {
 	struct Result final
