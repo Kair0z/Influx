@@ -108,6 +108,11 @@ namespace Influx::Platform
 		std::free(address);
 	}
 
+	// [ THREADING ]
+	namespace Thread
+	{
+
+	}
 
 	// [ APPLICATION ]
 	inline ProcessHandle GetCurrentProcess()

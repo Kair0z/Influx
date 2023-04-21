@@ -35,6 +35,7 @@
 #include "Core/Time.h"
 #include "Core/Pointer.h"
 #include "Core/Scene/Scene.h"
+#include "Core/Function.h"
 #else
 static_assert(false, "Error: Application requires using the Influx Core-header-library! ")
 #endif
@@ -147,6 +148,12 @@ namespace Influx::Application
 		Platform::WindowHandle		m_windowHandle;
 		Platform::InstanceHandle	m_appInstanceHandle;
 		Platform::ProcessHandle		m_processHandle;
+
+		FunctionList<void()> m_onWindowSizeChanged;
+		FunctionList<void()> m_onKey;
+		FunctionList<void()> m_onMouse;
+		FunctionList<void()> m_onMouseButton;
+		FunctionList<void()> m_
 
 		/* Underlying Engine */
 		EnginePtr mp_engine;

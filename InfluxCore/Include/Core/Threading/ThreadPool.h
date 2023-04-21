@@ -2,37 +2,55 @@
 
 #ifndef __CORE_THREADPOOL_H_
 #define __CORE_THREADPOOL_H_
+
 #define __CORE_THREADPOOL_USECORE_ 1
+#define __CORE_THREADPOOL_USESTL_ 1
+#define __CORE_THREADPOOL_USEWINDOWS_ _WIN32
+
+#define __CORE_TODO_ __debugbreak();
 
 #if __CORE_THREADPOOL_USECORE_
 #include "Core/BasicTypes.h"
 #include "Core/Function.h"
 #include "Core/Container/RingBuffer.h"
-#include <mutex>
 #else
-namespace Influx
-{
-    using uint8 = unsigned char;
-}
-
-#include <functional>
-#include <mutex>
-#include <queue>
+static_assert(false, "Core_Threadpool UseCore is required...");
 #endif
 
-#define _CORE_THREADPOOL_USEWINDOWS _WIN32
-#if _CORE_THREADPOOL_USEWINDOWS
+#if __CORE_THREADPOOL_USESTL_
+#include <mutex>
+#include <functional>
+#include <queue>
+#else
+static_assert(false, "Core_Threadpool UseSTL is required...");
+#endif
+
+#if __CORE_THREADPOOL_USEWINDOWS_
 #define NOMINMAX
 #include <Windows.h>
+#else
+static_assert(false, "Core_Threadpool UseWindows is required... (for now)");
 #endif
 
 namespace Influx
 {
-    template <uint8_t _N>
+    static uint32 GetTotalNumSystemThreads() noexcept
+    {
+#if __CORE_THREADPOOL_USESTL_
+        // https://en.cppreference.com/w/cpp/thread/thread/hardware_concurrency
+        return std::thread::hardware_concurrency();
+#else
+        static_assert(false, "NoImpl!");
+#endif
+    }
+
+    template <uint8 _N>
     class ThreadPool final
     {
     public:
         using Job = std::function<void()>;
+        
+        constexpr static uint8  k_numThreads = _N;
         constexpr static size_t k_jobCapacity = 256u;
 
     public:
@@ -40,37 +58,37 @@ namespace Influx
         {
             m_finishedLabel.store(0);
 
-            const uint32_t max_num = std::thread::hardware_concurrency();
-            if (_N <= max_num)
+            const uint32_t max_num = GetTotalNumSystemThreads();
+            if (k_numThreads <= max_num)
             {
-                for (uint8_t i = 0; i < _N; ++i)
+                for (uint8_t i = 0; i < k_numThreads; ++i)
                 {
                     m_threads[i] = std::thread([this]()
-                        {
-                            Job job;
-                    while (!m_shouldTerminate)
                     {
-                        if (m_jobs.PopFront(job))
+                        Job job;
+                        while (!m_shouldTerminate)
                         {
-                            job();
-                            m_finishedLabel.fetch_add(1);
+                            if (m_jobs.PopFront(job))
+                            {
+                                job();
+                                m_finishedLabel.fetch_add(1);
+                            }
+                            else
+                            {
+                                // no job, put thread to sleep
+                                std::unique_lock<std::mutex> lock(m_queueMutex);
+                                m_muCondition.wait(lock);
+                            }
                         }
-                        else
-                        {
-                            // no job, put thread to sleep
-                            std::unique_lock<std::mutex> lock(m_queueMutex);
-                            m_muCondition.wait(lock);
-                        }
-                    }
-                        });
+                    });
 
-#ifdef _CORE_THREADPOOL_USEWINDOWS
+#ifdef __CORE_THREADPOOL_USEWINDOWS_
                     // Windows specific-thread setup:
-                    HANDLE handle = (HANDLE)m_threads[i].native_handle();
+                    ::HANDLE handle = (::HANDLE)m_threads[i].native_handle();
 
                     // Put each thread on to dedicated core
-                    DWORD_PTR affinityMask = 1ull << i;
-                    DWORD_PTR affinity_result = SetThreadAffinityMask(handle, affinityMask);
+                    ::DWORD_PTR affinityMask = 1ull << i;
+                    ::DWORD_PTR affinity_result = ::SetThreadAffinityMask(handle, affinityMask);
                     assert(affinity_result > 0);
 
                     //// Increase thread priority:
@@ -79,8 +97,9 @@ namespace Influx
 
                     // Name the thread:
                     std::wstringstream wss;
+
                     wss << "InfluxThreadPool_" << i;
-                    HRESULT hr = SetThreadDescription(handle, wss.str().c_str());
+                    ::HRESULT hr = SetThreadDescription(handle, wss.str().c_str());
                     assert(SUCCEEDED(hr));
 #endif
 
@@ -111,6 +130,7 @@ namespace Influx
             return m_finishedLabel.load() < m_currentLabel;
         }
         
+        // STALLS the calling thread untill all jobs are finished.
         void WaitUntilFinished()
         {
             while (!IsFinished()) 
@@ -125,6 +145,7 @@ namespace Influx
             std::this_thread::yield();
         }
 
+        // STALLS the calling thread and terminates all jobs.
         void Terminate()
         {
             {
@@ -140,15 +161,43 @@ namespace Influx
             }
         }
 
-        virtual ~ThreadPool()
+        uint8 GetNumThreadsWorking()
         {
-            Terminate();
+            __CORE_TODO_;
+            return 0u;
+        }
+
+        /* For-loop using ThreadPool<_N>::QueueJob() for each iteration */
+        /* STALLS the calling thread untill all jobs are finished! */
+        static void AsyncFor(Job it_job)
+        {
+            ThreadPool pool{};
+            pool.AsyncFor(it_job);
+        }
+
+        void AsyncFor(Job it_job)
+        {
+            if (it_job == nullptr)
+            {
+                return;
+            }
+
+            for (uint8 i = 0; i < _N; ++i)
+            {
+                QueueJob(it_job);
+            }
+
+            WaitUntilFinished();
         }
 
         ThreadPool(const ThreadPool&) = delete;
         ThreadPool(ThreadPool&&) = delete;
         ThreadPool& operator=(const ThreadPool&) = delete;
         ThreadPool& operator=(ThreadPool&&) = delete;
+        virtual ~ThreadPool()
+        {
+            Terminate();
+        }
 
     private:
         bool m_shouldTerminate = false;           // Tells threads to stop looking for jobs
@@ -162,25 +211,5 @@ namespace Influx
         uint64_t m_currentLabel;
         std::atomic<uint64_t> m_finishedLabel;
     };
-
-    /* For-loop using ThreadPool<_N>::QueueJob() for each iteration */
-    /* STALLS the calling thread untill all jobs are finished! */
-    template <uint8 _N>
-    void AsyncFor(Function<void()> function)
-    {
-        if (function == nullptr)
-        {
-            return;
-        }
-
-        ThreadPool<_N> threadPool{};
-
-        for (uint8 i = 0; i < _N; ++i)
-        {
-            threadPool.QueueJob(function);
-        }
-
-        threadPool.WaitUntilFinished();
-    }
 }
 #endif
