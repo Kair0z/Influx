@@ -44,8 +44,16 @@ namespace Influx
 #endif
     }
 
+    namespace Internal
+    {
+        class IThreadPool
+        {
+
+        };
+    }
+
     template <uint8 _N>
-    class ThreadPool final
+    class ThreadPool final : public Internal::IThreadPool
     {
     public:
         using Job = std::function<void()>;
@@ -108,7 +116,7 @@ namespace Influx
             }
             else
             {
-
+                __CORE_TODO_;
             }
         }
 
