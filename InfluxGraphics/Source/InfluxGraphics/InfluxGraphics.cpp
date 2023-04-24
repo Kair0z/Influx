@@ -897,16 +897,18 @@ namespace Influx::Graphics
 
     Result DispatchGraphicsCommands(Function<void(const RHIGraphicsCommandListHandle&)> commands)
     {
+        Result result = Result(false);
+
         if (commands == nullptr)
         {
-            return { false };
+            return result;
         }
 
         // Get an existing, or create a new graphics command queue...
         RHIGraphicsCommandQueueHandle cmdQueueHandle = GlobalState::GetRHIObjectOfType<RHIGraphicsCommandQueueHandle>(0u);
         if (!cmdQueueHandle.IsValid())
         {
-            CreateGraphicsCommandQueue(cmdQueueHandle);
+            result = CreateGraphicsCommandQueue(cmdQueueHandle);
         }
 
         // Memory allocator for all the commands...
