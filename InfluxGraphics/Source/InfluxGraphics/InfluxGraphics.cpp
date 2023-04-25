@@ -955,8 +955,6 @@ namespace Influx::Graphics
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHISwapchainHandle>([&desc, &cmdQueueHandle, numBuffers]()
             {
                 ID3D12CommandQueue* d3d12CommandQueue = cmdQueueHandle.As<ID3D12CommandQueue>();
-                uint64 out_freq;
-                d3d12CommandQueue->GetTimestampFrequency(&out_freq);
 
                 return D3D12::Swapchain::CreateTier3(
                     GlobalState::GetFactory2(), 

@@ -759,16 +759,25 @@ namespace Influx::Graphics::D3D12
 		return cmdAllocator;
 	}
 
-	/* ID3D12Device::CreateCommandList */
+	/* ID3D12Device::CreateCommandList -> ID3D12CommandList */
 	inline ID3D12CommandList* CreateDxCommandList(DevicePtr pDevice, ID3D12CommandAllocator* cmdAllocator, D3D12_COMMAND_LIST_TYPE type)
 	{
-		ID3D12GraphicsCommandList* commandList;
+		ID3D12CommandList* commandList;
 		pDevice->CreateCommandList(0, type, cmdAllocator, nullptr, IID_PPV_ARGS(&commandList));
 
-		commandList->Close();
-		commandList->Reset(cmdAllocator, nullptr);
-
 		return commandList;
+	}
+
+	/* ID3D12Device::CreateCommandList(... D3D12_COMMAND_LIST_TYPE_DIRECT) -> ID3D12GraphicsCommandList*/
+	inline ID3D12GraphicsCommandList* CreateDxGraphicsCommandList(DevicePtr pDevice, ID3D12CommandAllocator* cmdAllocator)
+	{
+		ID3D12GraphicsCommandList* d3d12gfxCmdList;
+		pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAllocator, nullptr, IID_PPV_ARGS(&d3d12gfxCmdList));
+
+		d3d12gfxCmdList->Close();
+		d3d12gfxCmdList->Reset(cmdAllocator, nullptr);
+
+		return d3d12gfxCmdList;
 	}
 
 	/* ID3D12Device::CreateFence */

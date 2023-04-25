@@ -13,6 +13,7 @@
 #include "Core/BasicTypes.h"
 #include "Core/Function.h"
 #include "Core/Container/RingBuffer.h"
+#include "Core/Container/Vector.h"
 #else
 static_assert(false, "Core_Threadpool UseCore is required...");
 #endif
@@ -221,5 +222,21 @@ namespace Influx
         pool.AsyncFor(it_job);
     }
 
+    /* Executes the list of jobs spread across _N threads */
+    /* STALLS the calling thread untill all jobs are finished! */
+    template <uint8 _N>
+    static void RunAsync(const Vector<Internal::IThreadPool::Job>& jobs)
+    {
+        const uint64 numJobs = jobs.size();
+
+        ThreadPool<_N> pool{};
+
+        for (uint64 i = 0u; i < numJobs; ++i)
+        {
+            pool.QueueJob(jobs[i]);
+        }
+
+        pool.WaitUntilFinished();
+    }
 }
 #endif

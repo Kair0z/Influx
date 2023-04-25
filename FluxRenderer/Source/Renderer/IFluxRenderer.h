@@ -4,7 +4,6 @@
 #include "Core/Scene/Mesh.h"
 #include "Core/Scene/Camera.h"
 #include "Core/Container/Vector.h"
-
 #include "Core/Platform/Platform.h"
 
 namespace Influx
@@ -12,7 +11,10 @@ namespace Influx
 	class IFluxRenderer
 	{
 	protected:
-		IFluxRenderer() = default;
+		IFluxRenderer()
+		{
+			Initialize();
+		}
 
 		enum class ESwapchainBuffering : uint8
 		{
@@ -23,7 +25,6 @@ namespace Influx
 		};
 		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Triple;
 		constexpr static uint8 k_numSwapchainBuffers = static_cast<uint8>(k_swapchainBuffering);
-
 
 	public:
 		struct MaterialData final
@@ -39,6 +40,10 @@ namespace Influx
 		virtual void BuildRenderWork(Platform::WindowHandle windowHandle) = 0;
 
 		virtual void PresentToWindow(Platform::WindowHandle windowHandle) = 0;
+
+		virtual void Initialize() {};
+
+		virtual void Cleanup() {};
 
 		void SetMaterial(const MaterialData& material)
 		{
@@ -96,6 +101,11 @@ namespace Influx
 		const MaterialData& GetMaterial() const
 		{
 			return m_material;
+		}
+
+		virtual ~IFluxRenderer()
+		{
+			Cleanup();
 		}
 
 	private:
