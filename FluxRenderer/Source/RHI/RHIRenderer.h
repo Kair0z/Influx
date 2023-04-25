@@ -12,9 +12,9 @@ namespace Influx
 
 		virtual void PresentToWindow(Platform::WindowHandle windowHandle) override final;
 
-		virtual void Initialize() override final;
-
-		virtual void Cleanup() override final;
+	public:
+		RHIRenderer();
+		virtual ~RHIRenderer();
 
 	private:
 		Graphics::RHISwapchainHandle m_swapchain;

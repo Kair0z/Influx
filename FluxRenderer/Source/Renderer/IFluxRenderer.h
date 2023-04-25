@@ -11,10 +11,7 @@ namespace Influx
 	class IFluxRenderer
 	{
 	protected:
-		IFluxRenderer()
-		{
-			Initialize();
-		}
+		IFluxRenderer() = default;
 
 		enum class ESwapchainBuffering : uint8
 		{
@@ -40,10 +37,6 @@ namespace Influx
 		virtual void BuildRenderWork(Platform::WindowHandle windowHandle) = 0;
 
 		virtual void PresentToWindow(Platform::WindowHandle windowHandle) = 0;
-
-		virtual void Initialize() {};
-
-		virtual void Cleanup() {};
 
 		void SetMaterial(const MaterialData& material)
 		{
@@ -103,10 +96,7 @@ namespace Influx
 			return m_material;
 		}
 
-		virtual ~IFluxRenderer()
-		{
-			Cleanup();
-		}
+		virtual ~IFluxRenderer() = default;
 
 	private:
 		Scene::Camera m_cameraData;

@@ -370,7 +370,7 @@ namespace Influx::Graphics
                 result = CreateGraphicsCommandBuffer(m_allCommandBuffers[i].Handle);
             }
             
-            return Result(true);
+            return result;
         }
 
         static Result CleanupDx12()
@@ -593,8 +593,7 @@ namespace Influx::Graphics
         case EGraphicsAPI::D3D12:
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHICommandQueueHandle>([]()
             {
-                ID3D12CommandQueue* resultCommandQueue = D3D12::CreateDxCommandQueue(GlobalState::GetDevice(), D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);;
-                return resultCommandQueue;
+                return D3D12::CreateDxCommandQueue(GlobalState::GetDevice(), D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
             });
             break;
 #endif
@@ -1196,27 +1195,41 @@ namespace Influx::Graphics
 
         Result ClearSwapchainBackBuffer(const RHICommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour)
         {
+            Result result{};
+
+            switch (GetInitializedGraphicsAPI())
+            {
 #if INFLUX_GRAPHICS_INCLUDE_DX12
-            ID3D12GraphicsCommandList* gfxCmdList = cmdListHandle.As<ID3D12GraphicsCommandList>();
-            INFLUX_GRAPHICS_ASSERT(gfxCmdList);
+                case EGraphicsAPI::D3D12:
+                {
+                    ID3D12GraphicsCommandList* gfxCmdList = cmdListHandle.As<ID3D12GraphicsCommandList>();
+                    INFLUX_GRAPHICS_ASSERT(gfxCmdList);
 
-            IDXGISwapChain3* swapchain = swapchainHandle.As<IDXGISwapChain3>();
-            INFLUX_GRAPHICS_ASSERT(swapchain);
-            
-            ID3D12Resource* bufferResource;
-            swapchain->GetBuffer(swapchain->GetCurrentBackBufferIndex(), IID_PPV_ARGS(&bufferResource));
-            RHIResourceHandle bufferRHIHandle = GlobalState::TryRegisterRHIObject<RHIResourceHandle>(bufferResource);
+                    IDXGISwapChain3* swapchain = swapchainHandle.As<IDXGISwapChain3>();
+                    INFLUX_GRAPHICS_ASSERT(swapchain);
 
-            const RHIDescriptorHandle& rtvRHIHandle{};
-            // CreateRenderTargetView(GlobalState::GetGlobalRtvHeap(), bufferRHIHandle, rtvRHIHandle);
+                    ID3D12Resource* bufferResource;
+                    swapchain->GetBuffer(swapchain->GetCurrentBackBufferIndex(), IID_PPV_ARGS(&bufferResource));
+                    RHIResourceHandle bufferRHIHandle = GlobalState::TryRegisterRHIObject<RHIResourceHandle>(bufferResource);
 
-            // gfxCmdList->ClearRenderTargetView(rtvRHIHandle.As<, colour.data, 0u, nullptr);
+                    const RHIDescriptorHandle& rtvRHIHandle{};
+                    // CreateRenderTargetView(GlobalState::GetGlobalRtvHeap(), bufferRHIHandle, rtvRHIHandle);
 
-            // Do we need to?
-            bufferResource->Release();
+                    // gfxCmdList->ClearRenderTargetView(rtvRHIHandle.As<, colour.data, 0u, nullptr);
+
+                    // Do we need to?
+                    bufferResource->Release();
+                }
+                break;
 #endif
-
-            return { true };
+#if INFLUX_GRAPHICS_INCLUDE_VULKAN
+                case EGraphicsAPI::Vulkan:
+                    __TODO;
+                    break;
+#endif
+            }
+            
+            return result;
         }
     }
 }

@@ -22,10 +22,12 @@ namespace Influx
 			{
 				Graphics::Commands::ClearSwapchainBackBuffer(commandList, m_swapchain, { 1, 0, 0, 1 });
 			});
+
+			Graphics::DispatchSwapchainPresent(m_swapchain, {});
 		}
 	}
 
-	void RHIRenderer::Initialize()
+	RHIRenderer::RHIRenderer()
 	{
 		if (Graphics::GetInitializedGraphicsAPI() == Graphics::EGraphicsAPI::Max)
 		{
@@ -33,7 +35,7 @@ namespace Influx
 		}
 	}
 
-	void RHIRenderer::Cleanup()
+	RHIRenderer::~RHIRenderer()
 	{
 		Graphics::Cleanup();
 	}

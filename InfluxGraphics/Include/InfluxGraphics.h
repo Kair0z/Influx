@@ -618,13 +618,10 @@ namespace Influx::Graphics
 
 	protected:
 		IRHIObjectHandle() = default;
-		IRHIObjectHandle(void* internalPointer) : mp_internal{ internalPointer } {}
-		IRHIObjectHandle(const IRHIObjectHandle& other) : mp_internal{ other.mp_internal } {}
-		IRHIObjectHandle& operator=(const IRHIObjectHandle& other) { mp_internal = other.mp_internal; return *this; }
-
+		IRHIObjectHandle(void* pInternal) : mp_internal{ pInternal } {}
 	private:
+		uint32 a = 2u;
 		void* mp_internal = nullptr;
-		uint32 a;
 	};
 	template <ERHIChild _E>
 	struct RHIObjectHandle : public IRHIObjectHandle 
