@@ -211,7 +211,6 @@ namespace Influx
         }
     };
 
-
     /* For-loop using ThreadPool<_N>::QueueJob() for each iteration */
     /* STALLS the calling thread untill all jobs are finished! */
     template <uint8 _N>

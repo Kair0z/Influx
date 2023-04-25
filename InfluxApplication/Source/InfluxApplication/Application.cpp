@@ -338,5 +338,10 @@ namespace Influx::Application
     {
         return m_creationSettings;
     }
+
+    Application::TaskThreadPool& Application::GetTaskThreadPool()
+    {
+        return m_taskThreadPool;
+    }
 }
 

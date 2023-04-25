@@ -34,6 +34,7 @@
 #include "Core/Pointer.h"
 #include "Core/Scene/Scene.h"
 #include "Core/Function.h"
+#include "Core/Threading/ThreadPool.h"
 #else
 static_assert(false, "Error: Application requires using the Influx Core-header-library! ")
 #endif
@@ -68,8 +69,12 @@ namespace Influx::Renderer
 
 namespace Influx::Application
 {
+	constexpr static uint8 k_numWorkerThreads = 8u;
+
 	class Application final
 	{
+		using TaskThreadPool = Influx::ThreadPool<k_numWorkerThreads>;
+
 	public:
 		struct Settings final
 		{
@@ -138,6 +143,8 @@ namespace Influx::Application
 
 		const Settings& GetCreationSettings() const;
 
+		TaskThreadPool& GetTaskThreadPool();
+
 	private:
 		/* Platform Application-Data */
 		Platform::WindowHandle		m_windowHandle;
@@ -154,6 +161,8 @@ namespace Influx::Application
 
 		/* Renderer */
 		Influx::Renderer::RootRenderer* mp_appRenderer;
+
+		TaskThreadPool m_taskThreadPool;
 
 		/* Current scene */
 		Scene::Scene m_scene;
