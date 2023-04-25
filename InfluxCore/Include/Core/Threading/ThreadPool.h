@@ -3,9 +3,9 @@
 #ifndef __CORE_THREADPOOL_H_
 #define __CORE_THREADPOOL_H_
 
-#define __CORE_THREADPOOL_USECORE_ 1
-#define __CORE_THREADPOOL_USESTL_ 1
-#define __CORE_THREADPOOL_USEWINDOWS_ _WIN32
+#define __CORE_THREADPOOL_USECORE_      1
+#define __CORE_THREADPOOL_USESTL_       1
+#define __CORE_THREADPOOL_USEWINDOWS_   _WIN32
 
 #define __CORE_TODO_ __debugbreak();
 
@@ -48,7 +48,8 @@ namespace Influx
     {
         class IThreadPool
         {
-
+        public:
+            using Job = std::function<void()>;
         };
     }
 
@@ -56,10 +57,20 @@ namespace Influx
     class ThreadPool final : public Internal::IThreadPool
     {
     public:
-        using Job = std::function<void()>;
-        
         constexpr static uint8  k_numThreads = _N;
         constexpr static size_t k_jobCapacity = 256u;
+
+    private:
+        bool m_shouldTerminate = false;           // Tells threads to stop looking for jobs
+
+        std::thread m_threads[_N]{};
+        Influx::RingBuffer<Job, k_jobCapacity> m_jobs;
+
+        std::mutex m_queueMutex;                  // Prevents data races to the job queue
+        std::condition_variable m_muCondition;    // Allows threads to wait on new jobs or termination 
+
+        uint64_t m_currentLabel;
+        std::atomic<uint64_t> m_finishedLabel;
 
     public:
         ThreadPool()
@@ -175,14 +186,6 @@ namespace Influx
             return 0u;
         }
 
-        /* For-loop using ThreadPool<_N>::QueueJob() for each iteration */
-        /* STALLS the calling thread untill all jobs are finished! */
-        static void AsyncFor(Job it_job)
-        {
-            ThreadPool pool{};
-            pool.AsyncFor(it_job);
-        }
-
         void AsyncFor(Job it_job)
         {
             if (it_job == nullptr)
@@ -190,7 +193,7 @@ namespace Influx
                 return;
             }
 
-            for (uint8 i = 0; i < _N; ++i)
+            for (uint8 i = 0; i < k_numThreads; ++i)
             {
                 QueueJob(it_job);
             }
@@ -206,18 +209,18 @@ namespace Influx
         {
             Terminate();
         }
-
-    private:
-        bool m_shouldTerminate = false;           // Tells threads to stop looking for jobs
-
-        std::thread m_threads[_N]{};
-        Influx::RingBuffer<Job, k_jobCapacity> m_jobs;
-
-        std::mutex m_queueMutex;                  // Prevents data races to the job queue
-        std::condition_variable m_muCondition;    // Allows threads to wait on new jobs or termination 
-
-        uint64_t m_currentLabel;
-        std::atomic<uint64_t> m_finishedLabel;
     };
+
+
+    /* For-loop using ThreadPool<_N>::QueueJob() for each iteration */
+    /* STALLS the calling thread untill all jobs are finished! */
+    template <uint8 _N>
+    static void AsyncFor(Internal::IThreadPool::Job it_job)
+    {
+        ThreadPool<_N> pool{};
+
+        pool.AsyncFor(it_job);
+    }
+
 }
 #endif

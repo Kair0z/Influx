@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma once
-
 #ifndef __INFLUX_APPLICATION_H_
 #define __INFLUX_APPLICATION_H_
 
@@ -72,9 +70,6 @@ namespace Influx::Application
 {
 	class Application final
 	{
-		using EnginePtr			= Influx::Engine*;
-		using RendererPtr		= Influx::Renderer::RootRenderer*;
-
 	public:
 		struct Settings final
 		{
@@ -153,13 +148,12 @@ namespace Influx::Application
 		FunctionList<void()> m_onKey;
 		FunctionList<void()> m_onMouse;
 		FunctionList<void()> m_onMouseButton;
-		FunctionList<void()> m_
 
 		/* Underlying Engine */
-		EnginePtr mp_engine;
+		Influx::Engine* mp_engine;
 
 		/* Renderer */
-		RendererPtr mp_appRenderer;
+		Influx::Renderer::RootRenderer* mp_appRenderer;
 
 		/* Current scene */
 		Scene::Scene m_scene;

@@ -521,18 +521,24 @@ namespace Influx::Graphics
 
 	constexpr uint8 k_numRHIObjectTypes = static_cast<uint8>(ERHIChild::Max);
 	
+	constexpr static uint8 k_maxNumSamplerDescriptorsPerHeap = 16u;
+	constexpr static uint8 k_maxNumResourceDescriptorsPerHeap = 64u;
+	constexpr static uint8 k_maxNumRtvDescriptorsPerHeap = 64u;
+	constexpr static uint8 k_maxNumDsvDescriptorsPerHeap = 64u;
+	constexpr static uint8 k_maxNumDescriptors = k_maxNumSamplerDescriptorsPerHeap + k_maxNumResourceDescriptorsPerHeap + k_maxNumRtvDescriptorsPerHeap + k_maxNumDsvDescriptorsPerHeap;
+
 	constexpr uint8 k_maxNumRHIObjectsPerType[k_numRHIObjectTypes]
 	{
-		3u,				// CommandQueue
-		64u,			// CommandList
-		16u,			// CommandBuffer
-		1u,				// Swapchain
-		64u,			// GraphicsPipeline
-		64u,			// GraphicsPipelineLayout
-		255u,			// Resource
-		4u,				// DescriptorHeap
-		64 + 64 + 16u,	// Descriptor
-		64u				// Fence
+		3u,						// CommandQueue
+		64u,					// CommandList
+		16u,					// CommandBuffer
+		1u,						// Swapchain
+		64u,					// GraphicsPipeline
+		64u,					// GraphicsPipelineLayout
+		255u,					// Resource
+		4u,						// DescriptorHeap
+		k_maxNumDescriptors,	// Descriptor
+		64u						// Fence
 	};
 
 	constexpr uint8 GetMaxNumOfObjects(const ERHIChild child)
@@ -558,11 +564,6 @@ namespace Influx::Graphics
 	{
 		return k_RHIObjectsNameStrings[static_cast<uint8>(child)];
 	}
-
-	constexpr static uint8 k_maxNumSamplerDescriptorsPerHeap	= 16u;
-	constexpr static uint8 k_maxNumResourceDescriptorsPerHeap	= 64u;
-	constexpr static uint8 k_maxNumRtvDescriptorsPerHeap		= 64u;
-	constexpr static uint8 k_maxNumDsvDescriptorsPerHeap		= 64u;
 
 	constexpr uint8 GetMaxNumDescriptorsPerHeap(const ERHIDescriptorType descriptorHeapType)
 	{
@@ -681,7 +682,7 @@ namespace Influx::Graphics
 		RHIDesc() = default;
 
 #if INFLUX_GRAPHICS_DEBUG
-		constexpr static const char* GetStaticDebugName() { return k_RHIObjectsNameStrings[static_cast<uint8>(_E)]; }
+		constexpr static const char* GetStaticDebugName() { return GetRHIObjectTypeString(_E); }
 		virtual const char* GetDebugName() const override final { return GetStaticDebugName(); };
 #endif
 
