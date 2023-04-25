@@ -52,7 +52,7 @@ namespace Influx::Renderer
 	Result Render()
 	{
 		// Dispatch work to GPU...
-		Graphics::DispatchGraphicsCommands([](const Graphics::RHIGraphicsCommandListHandle& cmdList)
+		Graphics::DispatchGraphicsCommands([](const Graphics::RHICommandListHandle& cmdList)
 		{
 			if (IsAttachedToWindow(nullptr))
 			{

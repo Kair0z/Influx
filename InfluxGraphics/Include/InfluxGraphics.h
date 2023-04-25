@@ -508,18 +508,14 @@ namespace Influx::Graphics
 	{
 		CommandQueue,
 		CommandList,
-		CommandAllocator,
+		CommandBuffer,
 		Swapchain,
 		GraphicsPipeline,
 		GraphicsPipelineLayout,
-		Texture,
-		Buffer,
+		Resource,
 		DescriptorHeap,
 		Descriptor,
-		RenderTargetView,
-		DepthStencilView,
-		SamplerView,
-		ResourceView,
+		Fence,
 		Max
 	};
 
@@ -527,16 +523,16 @@ namespace Influx::Graphics
 	
 	constexpr uint8 k_maxNumRHIObjectsPerType[k_numRHIObjectTypes]
 	{
-		1u,				// CommandQueue
+		3u,				// CommandQueue
 		64u,			// CommandList
 		16u,			// CommandBuffer
 		1u,				// Swapchain
-		64,				// GraphicsPipeline
-		64,				// GraphicsPipelineLayout
-		64,				// Texture
-		64,				// Buffer
-		4,				// DescriptorHeap
-		64 + 64 + 16u	// Descriptor
+		64u,			// GraphicsPipeline
+		64u,			// GraphicsPipelineLayout
+		255u,			// Resource
+		4u,				// DescriptorHeap
+		64 + 64 + 16u,	// Descriptor
+		64u				// Fence
 	};
 
 	constexpr uint8 GetMaxNumOfObjects(const ERHIChild child)
@@ -548,14 +544,14 @@ namespace Influx::Graphics
 	{
 		"CommandQueue",
 		"CommandList",
-		"CommandAllocator",
+		"CommandBuffer",
 		"Swapchain",
 		"GraphicsPipeline",
 		"GraphicsPipelineLayout",
-		"Texture",
-		"Buffer",
+		"Resource",
 		"DescriptorHeap",
-		"Descriptor"
+		"Descriptor",
+		"Fence"
 	};
 
 	constexpr const char* GetRHIObjectTypeString(const ERHIChild child)
@@ -652,16 +648,16 @@ namespace Influx::Graphics
 		friend class GlobalState;
 	};
 
-	using RHITextureHandle					= RHIObjectHandle<ERHIChild::Texture>;
-	using RHIGraphicsCommandListHandle		= RHIObjectHandle<ERHIChild::CommandList>;
-	using RHIGraphicsCommandQueueHandle		= RHIObjectHandle<ERHIChild::CommandQueue>;
-	using RHIGraphicsCommandBufferHandle	= RHIObjectHandle<ERHIChild::CommandAllocator>;
+	using RHICommandListHandle		= RHIObjectHandle<ERHIChild::CommandList>;
+	using RHICommandQueueHandle		= RHIObjectHandle<ERHIChild::CommandQueue>;
+	using RHICommandBufferHandle	= RHIObjectHandle<ERHIChild::CommandBuffer>;
 	using RHIGraphicsPipelineHandle			= RHIObjectHandle<ERHIChild::GraphicsPipeline>;
 	using RHIGraphicsPipelineLayoutHandle	= RHIObjectHandle<ERHIChild::GraphicsPipelineLayout>;
-	using RHIBufferHandle					= RHIObjectHandle<ERHIChild::Buffer>;
+	using RHIResourceHandle					= RHIObjectHandle<ERHIChild::Resource>;
 	using RHIDescriptorHeapHandle			= RHIObjectHandle<ERHIChild::DescriptorHeap>;
 	using RHIDescriptorHandle				= RHIObjectHandle<ERHIChild::Descriptor>;
 	using RHISwapchainHandle				= RHIObjectHandle<ERHIChild::Swapchain>;
+	using RHIFenceHandle					= RHIObjectHandle<ERHIChild::Fence>;
 
 	// Descriptors: 
 	// describe construction & creation of RHI-objects
@@ -688,13 +684,6 @@ namespace Influx::Graphics
 
 		constexpr static ERHIChild GetStaticType() { return _E; }
 		virtual ERHIChild GetType() const override final { return GetStaticType(); };
-	};
-
-	struct RHITextureDesc final : public RHIDesc<ERHIChild::Texture>
-	{
-		Vectoru2	Dimensions;
-		uint16		Mips;
-		ERHIFormat	Format;
 	};
 
 	struct RHIGraphicsPipelineDesc final : public RHIDesc<ERHIChild::GraphicsPipeline>
@@ -767,7 +756,7 @@ namespace Influx::Graphics
 
 	};
 
-	struct RHIBufferDesc final : public RHIDesc<ERHIChild::Buffer>
+	struct RHIBufferDesc final : public RHIDesc<ERHIChild::Resource>
 	{
 		ERHIResourceState State;
 		RHIClearValue ClearValue;
@@ -814,24 +803,6 @@ namespace Influx::Graphics
 		bool bIsShaderVisible;
 		uint64 TotalNumDescriptors;
 		uint64 NumDescriptorsOccupied;
-	};
-
-	// State: 
-	// describe state of data, kept inside internal GlobalState
-	struct IRHIState
-	{
-	protected:
-		IRHIState() = default;
-	};
-	template <ERHIChild _E>
-	struct RHIState : public IRHIState
-	{
-		using Descriptor = RHIDesc<_E>;
-
-		RHIState() = default;
-		explicit RHIState(const Descriptor& desc) : CreationDescriptor{ desc } {}
-
-		Descriptor CreationDescriptor;
 	};
 }
 #pragma endregion
@@ -899,29 +870,50 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API bool IsDebugLayerEnabled();
 	
 
-	/* */
-	INFLUX_GRAPHICS_API Result CreateGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle);
+	/* Creates a Compute command queue OR gets an existing one */
+	INFLUX_GRAPHICS_API Result GetComputeCommandQueue(RHICommandQueueHandle& out_handle);
+
+	/* Creates a Graphics command queue OR gets an existing one */
+	INFLUX_GRAPHICS_API Result GetGraphicsCommandQueue(RHICommandQueueHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API Result WaitForGraphicsCommandQueueToFinish(const RHIGraphicsCommandQueueHandle& commandQueueHandle);
+	INFLUX_GRAPHICS_API Result CreateComputeCommandQueue(RHICommandQueueHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API Result CreateGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
-
-	/* Creates a Graphics command buffer OR gets one that is no longer in use */
-	INFLUX_GRAPHICS_API Result GetGraphicsCommandBuffer(RHIGraphicsCommandBufferHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateGraphicsCommandQueue(RHICommandQueueHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API Result CreateGraphicsCommandList(RHIGraphicsCommandBufferHandle& out_existingCommandBuffer, RHIGraphicsCommandListHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateComputeCommandBuffer(RHICommandBufferHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API Result ResetGraphicsCommandlist(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandBufferHandle& commandbufferHandle);
+	INFLUX_GRAPHICS_API Result CreateGraphicsCommandBuffer(RHICommandBufferHandle& out_handle);
+
+	/* */
+	INFLUX_GRAPHICS_API Result CreateComputeCommandList(RHICommandBufferHandle& out_existingCommandBuffer, RHICommandListHandle& out_handle);
+
+	/* */
+	INFLUX_GRAPHICS_API Result CreateGraphicsCommandList(RHICommandBufferHandle& out_existingCommandBuffer, RHICommandListHandle& out_handle);
+
+	/* */
+	INFLUX_GRAPHICS_API Result ResetGraphicsCommandlist(const RHICommandListHandle& commandListHandle, const RHICommandBufferHandle& commandbufferHandle);
 	
-	/* */
-	INFLUX_GRAPHICS_API Result DispatchGraphicsCommands(Function<void(const RHIGraphicsCommandListHandle&)> commands);
+	/* Waits for the global graphics command queue to reach signal-value */
+	INFLUX_GRAPHICS_API Result WaitForGraphicsQueueSignal(const RHICommandQueueHandle& commandQueue, uint64 valueToWaitFor);
+
+	/* Waits for the global graphics command queue to finish ALL work */
+	INFLUX_GRAPHICS_API Result WaitForAllGraphicsCommandsFinished();
 
 	/* */
-	INFLUX_GRAPHICS_API Result DispatchGraphicsCommandListToGpu(const RHIGraphicsCommandListHandle& commandListHandle, const RHIGraphicsCommandQueueHandle& commandQueueHandle);
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands);
+
+	/* */
+	INFLUX_GRAPHICS_API Result DispatchComputeCommands(Function<void(const RHICommandListHandle&)> commands);
+
+	/* */
+	INFLUX_GRAPHICS_API Result DispatchComputeCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle);
+
+	/* */
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle);
 
 
 	/* Create an RHI swapchain 
@@ -947,10 +939,10 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API Result GetDescriptorHeap(const ERHIDescriptorType type, RHIDescriptorHeapHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API Result CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap, const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateRenderTargetView(const RHIDescriptorHeapHandle& descriptorHeap, const RHIResourceHandle& bufferHandle, RHIDescriptorHandle& out_handle);
 
 	/* Uses GetDescriptorHeap() for convenience */
-	INFLUX_GRAPHICS_API Result CreateRenderTargetView(const RHIBufferHandle& bufferHandle, RHIDescriptorHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateRenderTargetView(const RHIResourceHandle& bufferHandle, RHIDescriptorHandle& out_handle);
 
 
 	/* */
@@ -960,16 +952,21 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API Result CreateGraphicsPipelineLayout(const RHIGraphicsPipelineLayoutDesc& desc, RHIGraphicsPipelineLayoutHandle& out_handle);
 
 	/* */
-	INFLUX_GRAPHICS_API Result CreateBuffer(const RHIBufferDesc& desc, RHIBufferHandle& out_handle);
+	INFLUX_GRAPHICS_API Result CreateBuffer(const RHIBufferDesc& desc, RHIResourceHandle& out_handle);
 
 
 	namespace Commands
 	{
 		/* */
-		INFLUX_GRAPHICS_API Result ClearRenderTargetView(const RHIGraphicsCommandListHandle& cmdListHandle);
+		INFLUX_GRAPHICS_API Result ClearRenderTargetView(const RHICommandListHandle& cmdListHandle);
 
 		/* */
-		INFLUX_GRAPHICS_API Result ClearSwapchainBackBuffer(const RHIGraphicsCommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour);
+		INFLUX_GRAPHICS_API Result ClearSwapchainBackBuffer(const RHICommandListHandle& cmdListHandle, const RHISwapchainHandle& swapchainHandle, const Math::Vectorf4& colour);
+
+		namespace Compute
+		{
+			
+		}
 	}
 }
 

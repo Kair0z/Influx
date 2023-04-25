@@ -334,14 +334,14 @@ namespace Influx::Graphics::D3D12
 		* REQUIRES
 		* IDXGISwapChain1
 		* IDXGIFactory2
-		* 
+		* ID3D12CommandQueue: Swap chain needs the queue so that it can force a flush on it.
 		* USES:
 		* IDXGIFactory2::CreateSwapChainForHwnd
 		* IDXGIFactory2::MakeWindowAssociation
 		* DXGI_SWAP_CHAIN_DESC1
 		*/
 
-		// Swap chain needs the queue so that it can force a flush on it.
+		
 		inline IDXGISwapChain1* CreateTier1(IDXGIFactory2* dxgiFactory, ::HWND hWnd, CommandQueuePtr pCommandQueue,
 			uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
 		{
@@ -760,7 +760,7 @@ namespace Influx::Graphics::D3D12
 	}
 
 	/* ID3D12Device::CreateCommandList */
-	inline ID3D12GraphicsCommandList* CreateDxCommandList(DevicePtr pDevice, ID3D12CommandAllocator* cmdAllocator, D3D12_COMMAND_LIST_TYPE type)
+	inline ID3D12CommandList* CreateDxCommandList(DevicePtr pDevice, ID3D12CommandAllocator* cmdAllocator, D3D12_COMMAND_LIST_TYPE type)
 	{
 		ID3D12GraphicsCommandList* commandList;
 		pDevice->CreateCommandList(0, type, cmdAllocator, nullptr, IID_PPV_ARGS(&commandList));

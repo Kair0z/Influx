@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __GR_D3D12_H_
-#define __GR_D3D12_H_
+#ifndef __GR_VULKAN_H_
+#define __GR_VULKAN_H_
 
 #include "Core/Container/Vector.h"
 
@@ -26,12 +26,12 @@ namespace Influx::Graphics::Vulkan
 	inline Vector<vk::PhysicalDevice> GetAllVkPhysicalDevices(const vk::Instance& instance)
 	{
 		uint32_t numPhysicalDevices = 0u;
-		instance.enumeratePhysicalDevices(&numPhysicalDevices, nullptr);
+		auto result = instance.enumeratePhysicalDevices(&numPhysicalDevices, nullptr);
 
 		if (numPhysicalDevices > 0u)
 		{
 			Vector<vk::PhysicalDevice> devices(numPhysicalDevices);
-			instance.enumeratePhysicalDevices(&numPhysicalDevices, devices.data());
+			auto result = instance.enumeratePhysicalDevices(&numPhysicalDevices, devices.data());
 			return devices;
 		}
 		else
