@@ -537,7 +537,7 @@ namespace Influx::Graphics
 
 	constexpr uint8 GetMaxNumOfObjects(const ERHIChild child)
 	{
-		return static_cast<uint8>(child);
+		return k_maxNumRHIObjectsPerType[static_cast<uint8>(child)];
 	}
 
 	constexpr const char* k_RHIObjectsNameStrings[k_numRHIObjectTypes]
@@ -602,13 +602,13 @@ namespace Influx::Graphics
 		template <class _T>
 		_T* GetInternal() const
 		{
-			return (_T*)GetInternal();
+			return static_cast<_T*>(mp_internal);
 		}
 
 		template <class _T>
 		_T* As() const
 		{
-			return GetInternal<_T>();
+			return static_cast<_T*>(mp_internal);
 		}
 
 #if INFLUX_GRAPHICS_DEBUG
@@ -618,16 +618,19 @@ namespace Influx::Graphics
 	protected:
 		IRHIObjectHandle() = default;
 		IRHIObjectHandle(void* internalPointer) : mp_internal{ internalPointer } {}
+		IRHIObjectHandle(const IRHIObjectHandle& other) : mp_internal{ other.mp_internal } {}
+		IRHIObjectHandle& operator=(const IRHIObjectHandle& other) { mp_internal = other.mp_internal; return *this; }
 
 	private:
 		void* mp_internal = nullptr;
+		uint32 a;
 	};
 	template <ERHIChild _E>
 	struct RHIObjectHandle : public IRHIObjectHandle 
 	{
 		// We can publicly create invalid handles.
 		RHIObjectHandle() = default;
-
+		
 #if INFLUX_GRAPHICS_DEBUG
 		virtual const char* GetDebugName() const override final { return k_RHIObjectsNameStrings[static_cast<uint8>(_E)]; };
 #endif
@@ -648,9 +651,9 @@ namespace Influx::Graphics
 		friend class GlobalState;
 	};
 
-	using RHICommandListHandle		= RHIObjectHandle<ERHIChild::CommandList>;
-	using RHICommandQueueHandle		= RHIObjectHandle<ERHIChild::CommandQueue>;
-	using RHICommandBufferHandle	= RHIObjectHandle<ERHIChild::CommandBuffer>;
+	using RHICommandListHandle				= RHIObjectHandle<ERHIChild::CommandList>;
+	using RHICommandQueueHandle				= RHIObjectHandle<ERHIChild::CommandQueue>;
+	using RHICommandBufferHandle			= RHIObjectHandle<ERHIChild::CommandBuffer>;
 	using RHIGraphicsPipelineHandle			= RHIObjectHandle<ERHIChild::GraphicsPipeline>;
 	using RHIGraphicsPipelineLayoutHandle	= RHIObjectHandle<ERHIChild::GraphicsPipelineLayout>;
 	using RHIResourceHandle					= RHIObjectHandle<ERHIChild::Resource>;
@@ -881,6 +884,12 @@ namespace Influx::Graphics
 
 	/* */
 	INFLUX_GRAPHICS_API Result CreateGraphicsCommandQueue(RHICommandQueueHandle& out_handle);
+
+	/* */
+	INFLUX_GRAPHICS_API Result GetGraphicsCommandBuffer(RHICommandBufferHandle& out_handle, uint64 fenceValue);
+
+	/* */
+	INFLUX_GRAPHICS_API Result GetComputeCommandBuffer(RHICommandBufferHandle& out_handle, uint64 fenceValue);
 
 	/* */
 	INFLUX_GRAPHICS_API Result CreateComputeCommandBuffer(RHICommandBufferHandle& out_handle);

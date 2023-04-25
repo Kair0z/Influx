@@ -45,10 +45,16 @@ int main()
 
 		Graphics::Initialize(Graphics::EGraphicsAPI::D3D12);
 
-		Graphics::DispatchComputeCommands([](const Graphics::RHICommandListHandle& cmdList)
+		if (Graphics::RHISwapchainHandle swapchain; Graphics::CreateSwapchain(swapchainDesc, swapchain))
 		{
-
-		});
+			for (uint64 i = 0u; i < Settings::NumFrames; ++i)
+			{
+				Graphics::DispatchGraphicsCommands([&swapchain](const Graphics::RHICommandListHandle& cmdList)
+				{
+					Graphics::Commands::ClearSwapchainBackBuffer(cmdList, swapchain, {1, 0, 0, 1});
+				});
+			}
+		}
 
 		Graphics::Cleanup();
 	}
