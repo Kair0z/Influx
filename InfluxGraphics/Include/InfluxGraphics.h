@@ -914,8 +914,7 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands, uint64& out_valueWhenFinished);
 
 	/* */
-	INFLUX_GRAPHICS_API Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle, uint64& out_valueWhenFinished);
-
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, uint64& out_valueWhenFinished);
 
 	// [ RHI SWAPCHAIN ]
 	/* Create an RHI swapchain 

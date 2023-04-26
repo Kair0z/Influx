@@ -547,7 +547,8 @@ namespace Influx::Graphics
         case EGraphicsAPI::D3D12:
             out_handle = GlobalState::CreateAndRegisterRHIObject<RHICommandQueueHandle>([]()
             {
-                return D3D12::CreateDxCommandQueue(GlobalState::GetDevice(), D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE);
+                ID3D12CommandQueue* commandQueue = D3D12::CreateDxCommandQueue(GlobalState::GetDevice(), D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE);
+                return commandQueue;
             });
 
             break;
@@ -855,16 +856,9 @@ namespace Influx::Graphics
             return result;
         }
 
-        uint64 fenceValue = 0u;
-
-        // Get an existing, or create a new graphics command queue...
-        RHICommandQueueHandle cmdQueueHandle;
-        result = GetGraphicsCommandQueue(cmdQueueHandle);
-        INFLUX_GRAPHICS_ASSERT(cmdQueueHandle.IsValid());
-
         // Memory allocator for all the commands...
         RHICommandBufferHandle cmdBufferHandle;
-        result = GetGraphicsCommandBuffer(cmdBufferHandle, fenceValue);
+        result = GetGraphicsCommandBuffer(cmdBufferHandle, out_valueWhenFinished);
         INFLUX_GRAPHICS_ASSERT(cmdBufferHandle.IsValid());
 
         // List of commands we'll pass on for the entire 'frame'
@@ -875,7 +869,7 @@ namespace Influx::Graphics
         // Record commands...
         commands(cmdListHandle);
 
-        result = DispatchGraphicsCommandListToGpu(cmdListHandle, cmdQueueHandle);
+        result = DispatchGraphicsCommandListToGpu(cmdListHandle, out_valueWhenFinished);
 
         return Result();
     }
@@ -916,9 +910,14 @@ namespace Influx::Graphics
         return result;
     }
 
-    Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle, uint64& out_valueWhenFinished)
+    Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, uint64& out_valueWhenFinished)
     {
         Result result{};
+
+        // Get an existing, or create a new graphics command queue...
+        RHICommandQueueHandle cmdQueueHandle;
+        result = GetGraphicsCommandQueue(cmdQueueHandle);
+        INFLUX_GRAPHICS_ASSERT(cmdQueueHandle.IsValid());
 
         switch (GetInitializedGraphicsAPI())
         {
@@ -928,7 +927,7 @@ namespace Influx::Graphics
             ID3D12GraphicsCommandList* d3d12GfxCmdList = commandListHandle.As<ID3D12GraphicsCommandList>();
             INFLUX_GRAPHICS_ASSERT(d3d12GfxCmdList != nullptr);
 
-            ID3D12CommandQueue* d3d12CommandQueue = commandQueueHandle.As<ID3D12CommandQueue>();
+            ID3D12CommandQueue* d3d12CommandQueue = cmdQueueHandle.As<ID3D12CommandQueue>();
             INFLUX_GRAPHICS_ASSERT(d3d12CommandQueue != nullptr);
 
             // Close the command list...
