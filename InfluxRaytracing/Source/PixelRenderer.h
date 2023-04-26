@@ -49,17 +49,14 @@ namespace Influx
 	public:
 		virtual PixelOutput RenderPixel(const RenderScene& scene, const Math::Vectorf2& uv, const float ar) const = 0;
 
-		inline void SetCameraFieldOfView(const float newFov) { m_camera.SetFov(newFov); }
-		inline void SetCameraPosition(const Math::Vectorf3& newPosition) { m_cameraPosition = newPosition; }
-		inline void SetCameraForward(const Math::Vectorf3& newForward) { m_cameraForward = newForward; }
-		inline void SetRenderMode(const ERenderMode renderMode) { m_renderMode = renderMode; }
+		void SetCameraFieldOfView(const float newFov) { m_camera.SetFov(newFov); }
+		void SetCameraPosition(const Math::Vectorf3& newPosition) { m_cameraPosition = newPosition; }
+		void SetCameraForward(const Math::Vectorf3& newForward) { m_cameraForward = newForward; }
+		void SetRenderMode(const ERenderMode renderMode) { m_renderMode = renderMode; }
 
 		const Math::Vectorf3& GetCameraPosition() const { return m_cameraPosition; }
 		const Math::Vectorf3& GetCameraForward() const { return m_cameraForward; }
 		
-		const Math::Vectorf3& GetCameraPosition() const { return m_cameraPosition; }
-		const Math::Vectorf3& GetCameraForward() const { return m_cameraForward; }
-
 		const Scene::Camera& GetCamera() const { return m_camera; }
 		const ERenderMode GetRenderMode() const { return m_renderMode; }
 
