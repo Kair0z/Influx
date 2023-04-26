@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma once
-
 #ifndef __INFLUX_APPLICATION_H_
 #define __INFLUX_APPLICATION_H_
 
@@ -14,16 +12,16 @@
 #endif
 
 #define INFLUX_APPLICATION_PLATFORM_WINDOWS 1
-#include "Core/Platform/WindowsPlatform.h"
-
 #define INFLUX_APPLICATION_USE_CORE 1
-
 #define INFLUX_APPLICATION_RENDER_D3D12		INFLUX_APPLICATION_PLATFORM_WINDOWS
 #define INFLUX_APPLICATION_RENDER_VULKAN	!INFLUX_APPLICATION_RENDER_D3D12
+#define INFLUX_APPLICATION_KEEP_TIMING_STATS	0
 
-#define FLX_APP_KEEP_TIMING_STATS	0
-
-#define INFLUX_APPLICATION_USE_CORE 1
+#if INFLUX_APPLICATION_PLATFORM_WINDOWS
+#include "Core/Platform/WindowsPlatform.h"
+#else
+static_assert(false, "Error: Application requires windows-platform!");
+#endif
 
 #if INFLUX_APPLICATION_USE_CORE
 #include "Core/BasicTypes.h"
@@ -36,24 +34,19 @@
 #include "Core/Pointer.h"
 #include "Core/Scene/Scene.h"
 #include "Core/Function.h"
+#include "Core/Threading/ThreadPool.h"
 #else
-static_assert(false, "Error: Application requires using the Influx Core-header-library! ")
+static_assert(false, "Error: Application requires using the Influx Core-header-library!");
 #endif
 
 #if INFLUX_APPLICATION_DEBUG
-// INFLUX_APPLICATION_TODO
 #define INFLUX_APPLICATION_TODO __debugbreak();
 
-// INFLUX_APPLICATION_ASSERT
-#if INFLUX_APPLICATION_USE_CORE
 #include "Core/Assert.h"
 #define INFLUX_APPLICATION_ASSERT(x) FLX_ASSERT(x); 
-#else
-#include <cassert>
-#define INFLUX_APPLICATION_ASSERT(x) assert(x);
-#endif
 
-#endif
+#endif // INFLUX_APPLICATION_DEBUG
+
 #pragma endregion
 
 #pragma region Predeclarations
@@ -70,10 +63,11 @@ namespace Influx::Renderer
 
 namespace Influx::Application
 {
+	constexpr static uint8 k_numWorkerThreads = 8u;
+
 	class Application final
 	{
-		using EnginePtr			= Influx::Engine*;
-		using RendererPtr		= Influx::Renderer::RootRenderer*;
+		using TaskThreadPool = Influx::ThreadPool<k_numWorkerThreads>;
 
 	public:
 		struct Settings final
@@ -143,6 +137,8 @@ namespace Influx::Application
 
 		const Settings& GetCreationSettings() const;
 
+		TaskThreadPool& GetTaskThreadPool();
+
 	private:
 		/* Platform Application-Data */
 		Platform::WindowHandle		m_windowHandle;
@@ -153,13 +149,14 @@ namespace Influx::Application
 		FunctionList<void()> m_onKey;
 		FunctionList<void()> m_onMouse;
 		FunctionList<void()> m_onMouseButton;
-		FunctionList<void()> m_
 
 		/* Underlying Engine */
-		EnginePtr mp_engine;
+		Influx::Engine* mp_engine;
 
 		/* Renderer */
-		RendererPtr mp_appRenderer;
+		Influx::Renderer::RootRenderer* mp_appRenderer;
+
+		TaskThreadPool m_taskThreadPool;
 
 		/* Current scene */
 		Scene::Scene m_scene;

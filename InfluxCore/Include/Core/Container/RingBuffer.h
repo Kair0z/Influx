@@ -7,12 +7,12 @@
 
 namespace Influx
 {
-	namespace
+	namespace Internal
 	{
 		using capacity_t = size_t;
 	}
 
-	template <typename _T, capacity_t _C>
+	template <typename _T, Internal::capacity_t _C>
 	class RingBuffer
 	{
 	public:
@@ -21,18 +21,18 @@ namespace Influx
 
 	private:
 		_T m_data[_C];
-		capacity_t m_head = 0;
-		capacity_t m_tail = 0;
+		Internal::capacity_t m_head = 0;
+		Internal::capacity_t m_tail = 0;
 		std::mutex m_lock;
 	};
 
-	template<typename _T, capacity_t _C>
+	template<typename _T, Internal::capacity_t _C>
 	inline bool RingBuffer<_T, _C>::PushBack(const _T& value)
 	{
 		bool result = false;
 
 		m_lock.lock();
-		capacity_t next = (m_head + 1) % _C;
+		Internal::capacity_t next = (m_head + 1) % _C;
 
 		if (next != m_tail)
 		{
@@ -46,7 +46,7 @@ namespace Influx
 		return result;
 	}
 
-	template<typename _T, capacity_t _C>
+	template<typename _T, Internal::capacity_t _C>
 	inline bool RingBuffer<_T, _C>::PopFront(_T& value)
 	{
 		bool result = false;

@@ -185,7 +185,6 @@ namespace Influx::Application
         }
 
         Influx::Renderer::Render();
-
         Influx::Renderer::Present();
     }
 
@@ -337,6 +336,11 @@ namespace Influx::Application
     const Application::Settings& Application::GetCreationSettings() const
     {
         return m_creationSettings;
+    }
+
+    Application::TaskThreadPool& Application::GetTaskThreadPool()
+    {
+        return m_taskThreadPool;
     }
 }
 

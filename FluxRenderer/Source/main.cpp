@@ -1,10 +1,13 @@
 
-#include "InfluxAssets/InfluxAssets.h"
+
+#include "RHI/RHIRenderer.h"
 #include "Dx12/Dx12Renderer.h"
+#include "Vulkan/VulkanRenderer.h"
 
 #include "Core/Platform/WindowsPlatform.h"
 #include "Core/Time.h"
-
+#include "InfluxAssets/InfluxAssets.h"
+#include "Core/Threading/ThreadPool.h"
 #include <iostream>
 
 #define _SHADERS_RESOURCE_PATH	"E:/Git/Influx/Resources/Shaders/shaders.hlsl"
@@ -20,21 +23,25 @@ int main()
 	const float AspectRatio							= (float)WindowDimensions.x / (float)WindowDimensions.y;
 	constexpr uint64 NumFrames						= 6000u;
 	
-	IFluxRenderer* renderer = new Dx12Renderer();
+	IFluxRenderer* renderer = new RHIRenderer();
 
-	// [Compile Shaders]
-	if (Assets::ShaderData shaderData{}; Assets::LoadShaderFile(_SHADERS_RESOURCE_PATH, shaderData))
-	{
-		renderer->SetMaterial({ shaderData.VertexShader, shaderData.PixelShader });
-	}
+	Assets::ShaderData shaderData{};
+	Assets::Scene leblancScene{};
 
-	// [Get Scene Data]
-	if (Assets::Scene leblancScene{}; Assets::LoadSceneFile(_GEOMETRY_RESOURCE_PATH, leblancScene))
+	Influx::RunAsync<2u>
+	({
+		// [Compile Shaders]
+		[&shaderData](){ Assets::LoadShaderFile("D:/Git/Influx/Resources/Shaders/shaders.hlsl", shaderData); },
+
+		// [Get Scene Data]
+		[&leblancScene](){ Assets::LoadSceneFile("D:/Git/Influx/Resources/Meshes/box.fbx", leblancScene); }
+	});
+
+	renderer->SetMaterial({});
+
+	for (uint64 s = 0; s < leblancScene.Meshes.size(); ++s)
 	{
-		for (uint64 s = 0; s < leblancScene.Meshes.size(); ++s)
-		{
-			renderer->AddMesh(leblancScene.Meshes[s]);
-		}
+		renderer->AddMesh(leblancScene.Meshes[s]);
 	}
 
 	// [Setup hardcoded Camera]

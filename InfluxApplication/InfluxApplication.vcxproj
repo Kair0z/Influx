@@ -175,9 +175,6 @@
     <ProjectReference Include="..\InfluxGraphics\InfluxGraphics.vcxproj">
       <Project>{804ebbd1-c037-46ef-b607-dd8dad7d5922}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\InfluxImgui\InfluxImgui.vcxproj">
-      <Project>{5a07469d-0645-4649-abab-4d2229d326ac}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\InfluxRenderer\InfluxRenderer.vcxproj">
       <Project>{5d2be527-24b8-4162-95f7-254e9dd330e4}</Project>
     </ProjectReference>

@@ -10,8 +10,8 @@ namespace Influx
 	struct Settings final
 	{
 		constexpr static uint32 NumFrames = 4096u * 4096u;
-		constexpr static uint32 WindowWidth = 1920u;
-		constexpr static uint32 WindowHeight = 1080u;
+		constexpr static uint32 WindowWidth = 640u;
+		constexpr static uint32 WindowHeight = 480u;
 
 		constexpr static const char* WindowName = "Window";
 
@@ -29,7 +29,9 @@ int main()
 {
 	using namespace Influx;
 
+#ifdef _DEBUG
 	Graphics::SetDebugLayerEnabled();
+#endif
 
 	const Math::Vectoru2 dimensions { Settings::WindowWidth, Settings::WindowHeight };
 
@@ -41,25 +43,19 @@ int main()
 		swapchainDesc.Dimensions	= dimensions;
 		swapchainDesc.WindowHandle	= windowHandle;
 
-		// Create Influx Graphics...
-		Graphics::Create(Graphics::EGraphicsAPI::D3D12, [swapchainDesc]()
-		{
-			// Create Swapchain attachment to window...
-			if (Graphics::RHISwapchainHandle swapchainHandle; Graphics::CreateSwapchain(swapchainDesc, swapchainHandle))
-			{
-				for (uint32 f = 0u; f < Settings::NumFrames; ++f)
-				{
-					// Dispatch work to GPU...
-					Graphics::DispatchGraphicsCommands([swapchainHandle](const Graphics::RHIGraphicsCommandListHandle& cmdList)
-					{
-						Graphics::Commands::ClearSwapchainBackBuffer(cmdList, swapchainHandle, { 1,0,0,1 });
-					});
+		Graphics::Initialize(Graphics::EGraphicsAPI::D3D12);
 
-					// Present the swapchain back-buffer
-					constexpr static bool Vsync = true;
-					Graphics::DispatchSwapchainPresent(swapchainHandle, { Vsync });
-				}
+		if (Graphics::RHISwapchainHandle swapchain; Graphics::CreateSwapchain(swapchainDesc, swapchain))
+		{
+			for (uint64 i = 0u; i < Settings::NumFrames; ++i)
+			{
+				Graphics::DispatchGraphicsCommands([&swapchain](const Graphics::RHICommandListHandle& cmdList)
+				{
+					Graphics::Commands::ClearSwapchainBackBuffer(cmdList, swapchain, {1, 0, 0, 1});
+				});
 			}
-		});
+		}
+
+		Graphics::Cleanup();
 	}
 }

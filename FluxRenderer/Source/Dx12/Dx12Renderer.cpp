@@ -1,7 +1,6 @@
 #include "Dx12Renderer.h"
 
 #include "InfluxGraphics/D3D12/D3D12.h"
-
 #include "Core/Platform/WindowsPlatform.h"
 
 namespace Influx
@@ -211,7 +210,7 @@ namespace Influx
 
 		for (uint8 i = 0u; i < k_numSwapchainBuffers; ++i)
 		{
-			mp_gfxCommandLists[i] = Graphics::D3D12::CreateDxCommandList(mp_device, mp_commandAllocators[0u], D3D12_COMMAND_LIST_TYPE_DIRECT);
+			mp_gfxCommandLists[i] = Graphics::D3D12::CreateDxGraphicsCommandList(mp_device, mp_commandAllocators[0u]);
 			mp_gfxCommandLists[i]->Close();
 		}
 	}

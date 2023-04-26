@@ -4,7 +4,6 @@
 #include "Core/Scene/Mesh.h"
 #include "Core/Scene/Camera.h"
 #include "Core/Container/Vector.h"
-
 #include "Core/Platform/Platform.h"
 
 namespace Influx
@@ -23,7 +22,6 @@ namespace Influx
 		};
 		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Triple;
 		constexpr static uint8 k_numSwapchainBuffers = static_cast<uint8>(k_swapchainBuffering);
-
 
 	public:
 		struct MaterialData final
@@ -97,6 +95,8 @@ namespace Influx
 		{
 			return m_material;
 		}
+
+		virtual ~IFluxRenderer() = default;
 
 	private:
 		Scene::Camera m_cameraData;

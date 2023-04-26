@@ -334,14 +334,14 @@ namespace Influx::Graphics::D3D12
 		* REQUIRES
 		* IDXGISwapChain1
 		* IDXGIFactory2
-		* 
+		* ID3D12CommandQueue: Swap chain needs the queue so that it can force a flush on it.
 		* USES:
 		* IDXGIFactory2::CreateSwapChainForHwnd
 		* IDXGIFactory2::MakeWindowAssociation
 		* DXGI_SWAP_CHAIN_DESC1
 		*/
 
-		// Swap chain needs the queue so that it can force a flush on it.
+		
 		inline IDXGISwapChain1* CreateTier1(IDXGIFactory2* dxgiFactory, ::HWND hWnd, CommandQueuePtr pCommandQueue,
 			uint32 w, uint32 h, uint8 numBuffers, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
 		{
@@ -759,16 +759,25 @@ namespace Influx::Graphics::D3D12
 		return cmdAllocator;
 	}
 
-	/* ID3D12Device::CreateCommandList */
-	inline ID3D12GraphicsCommandList* CreateDxCommandList(DevicePtr pDevice, ID3D12CommandAllocator* cmdAllocator, D3D12_COMMAND_LIST_TYPE type)
+	/* ID3D12Device::CreateCommandList -> ID3D12CommandList */
+	inline ID3D12CommandList* CreateDxCommandList(DevicePtr pDevice, ID3D12CommandAllocator* cmdAllocator, D3D12_COMMAND_LIST_TYPE type)
 	{
-		ID3D12GraphicsCommandList* commandList;
+		ID3D12CommandList* commandList;
 		pDevice->CreateCommandList(0, type, cmdAllocator, nullptr, IID_PPV_ARGS(&commandList));
 
-		commandList->Close();
-		commandList->Reset(cmdAllocator, nullptr);
-
 		return commandList;
+	}
+
+	/* ID3D12Device::CreateCommandList(... D3D12_COMMAND_LIST_TYPE_DIRECT) -> ID3D12GraphicsCommandList*/
+	inline ID3D12GraphicsCommandList* CreateDxGraphicsCommandList(DevicePtr pDevice, ID3D12CommandAllocator* cmdAllocator)
+	{
+		ID3D12GraphicsCommandList* d3d12gfxCmdList;
+		pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAllocator, nullptr, IID_PPV_ARGS(&d3d12gfxCmdList));
+
+		d3d12gfxCmdList->Close();
+		d3d12gfxCmdList->Reset(cmdAllocator, nullptr);
+
+		return d3d12gfxCmdList;
 	}
 
 	/* ID3D12Device::CreateFence */
