@@ -42,7 +42,7 @@ int main()
 		swapchainDesc.WindowHandle	= windowHandle;
 
 		// Create Influx Graphics...
-		Graphics::Create(Graphics::EGraphicsAPI::Vulkan, [swapchainDesc]()
+		Graphics::Create(Graphics::EGraphicsAPI::D3D12, [swapchainDesc]()
 		{
 			// Create Swapchain attachment to window...
 			if (Graphics::RHISwapchainHandle swapchainHandle; Graphics::CreateSwapchain(swapchainDesc, swapchainHandle))

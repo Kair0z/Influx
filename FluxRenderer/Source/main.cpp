@@ -7,26 +7,29 @@
 
 #include <iostream>
 
+#define _SHADERS_RESOURCE_PATH	"E:/Git/Influx/Resources/Shaders/shaders.hlsl"
+#define _GEOMETRY_RESOURCE_PATH "E:/Git/Influx/Resources/Meshes/box.fbx"
+
 int main()
 {
 	using namespace Influx;
 
 	// [SETTINGS]
-	constexpr bool Vsync = true;
-	const Influx::Math::Vectoru2 WindowDimensions{ 640u, 480u };
-	const float AspectRatio = (float)WindowDimensions.x / (float)WindowDimensions.y;
-	constexpr uint64 NumFrames = 6000u;
+	constexpr bool Vsync							= true;
+	const Influx::Math::Vectoru2 WindowDimensions	= { 640u, 480u };
+	const float AspectRatio							= (float)WindowDimensions.x / (float)WindowDimensions.y;
+	constexpr uint64 NumFrames						= 6000u;
 	
 	IFluxRenderer* renderer = new Dx12Renderer();
 
 	// [Compile Shaders]
-	if (Assets::ShaderData shaderData{}; Assets::LoadShaderFile("D:/Git/Influx/Resources/Shaders/shaders.hlsl", shaderData))
+	if (Assets::ShaderData shaderData{}; Assets::LoadShaderFile(_SHADERS_RESOURCE_PATH, shaderData))
 	{
 		renderer->SetMaterial({ shaderData.VertexShader, shaderData.PixelShader });
 	}
 
 	// [Get Scene Data]
-	if (Assets::Scene leblancScene{}; Assets::LoadSceneFile("D:/Git/Influx/Resources/Meshes/box.fbx", leblancScene))
+	if (Assets::Scene leblancScene{}; Assets::LoadSceneFile(_GEOMETRY_RESOURCE_PATH, leblancScene))
 	{
 		for (uint64 s = 0; s < leblancScene.Meshes.size(); ++s)
 		{

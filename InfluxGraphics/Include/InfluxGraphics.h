@@ -902,6 +902,9 @@ namespace Influx::Graphics
 	/* */
 	INFLUX_GRAPHICS_API Result CreateGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle);
 
+	/* Creates a Graphics command queue OR gets one that has been created before */
+	INFLUX_GRAPHICS_API EResult GetGraphicsCommandQueue(RHIGraphicsCommandQueueHandle& out_handle);
+
 	/* */
 	INFLUX_GRAPHICS_API Result WaitForGraphicsCommandQueueToFinish(const RHIGraphicsCommandQueueHandle& commandQueueHandle);
 
