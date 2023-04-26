@@ -911,18 +911,13 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API Result WaitForAllGraphicsCommandsFinished();
 
 	/* */
-	INFLUX_GRAPHICS_API Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands);
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands, uint64& out_valueWhenFinished);
 
 	/* */
-	INFLUX_GRAPHICS_API Result DispatchComputeCommands(Function<void(const RHICommandListHandle&)> commands);
-
-	/* */
-	INFLUX_GRAPHICS_API Result DispatchComputeCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle);
-
-	/* */
-	INFLUX_GRAPHICS_API Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle);
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle, uint64& out_valueWhenFinished);
 
 
+	// [ RHI SWAPCHAIN ]
 	/* Create an RHI swapchain 
 	* Implicitly creates/uses a RHICommandQueue
 	* Implicitly creates RHIBuffer(s) x num-buffers

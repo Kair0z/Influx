@@ -108,17 +108,6 @@ namespace Influx::Graphics
             Child newChild{};
             newChild.pHandle    = newHandle;
 
-            // Handle special cases.
-            switch (_E)
-            {
-            case ERHIChild::DescriptorHeap:
-                break;
-
-            case ERHIChild::CommandQueue:
-                OnRegisterCommandQueue(newHandle);
-                break;
-            }
-
             // Add child to list.
             Get().m_childLists[idx].push_back(newChild);
 
@@ -303,12 +292,7 @@ namespace Influx::Graphics
 
             return out_handle;
         }
-    private:
-        static void OnRegisterCommandQueue(const RHICommandQueueHandle& handle)
-        {
-           Get().m_globalGraphicsCommandQueue.Handle = handle;
-        }
-
+    
 #if INFLUX_GRAPHICS_INCLUDE_DX12
     private:
         Vector<ID3D12Device*>   DxLogicalDevices;
@@ -364,7 +348,7 @@ namespace Influx::Graphics
             result = CreateComputeCommandQueue(m_globalComputeCommandQueue.Handle);
 
             // Create global command buffers...
-            for (uint8 i = 0u; i < GetMaxNumOfObjects(Graphics::ERHIChild::CommandBuffer); ++i)
+            for (uint8 i = 0u; i < k_numCommandBuffers; ++i)
             {
                 m_allCommandBuffers[i].FenceValue = 0u;
                 result = CreateGraphicsCommandBuffer(m_allCommandBuffers[i].Handle);
@@ -634,7 +618,6 @@ namespace Influx::Graphics
 #endif
         }
 
-
         return result;
     }
 
@@ -736,13 +719,9 @@ namespace Influx::Graphics
 
     Result CreateGraphicsCommandList(RHICommandBufferHandle& out_existingCommandBuffer, RHICommandListHandle& out_handle)
     {
-        INFLUX_GRAPHICS_ASSERT(out_existingCommandBuffer.IsValid());
+        Result result{};
 
-        if (!GlobalState::CanRegisterRHIObject<RHICommandListHandle>())
-        {
-            INFLUX_GRAPHICS_ASSERT(false);
-            return Result(false);
-        }
+        INFLUX_GRAPHICS_ASSERT(out_existingCommandBuffer.IsValid());
 
         switch (GetInitializedGraphicsAPI())
         {
@@ -753,7 +732,7 @@ namespace Influx::Graphics
                 ID3D12CommandAllocator* cmdAllocator = out_existingCommandBuffer.As<ID3D12CommandAllocator>();
 
                 ID3D12CommandList* gfxCommandList = D3D12::CreateDxCommandList(
-                    GlobalState::GetDevice(), 
+                    GlobalState::GetDevice(),
                     cmdAllocator,
                     D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
 
@@ -768,9 +747,10 @@ namespace Influx::Graphics
             });
 
             break;
-#elif INFLUX_GRAPHICS_INCLUDE_VULKAN
+#endif
+#if INFLUX_GRAPHICS_INCLUDE_VULKAN
         case EGraphicsAPI::Vulkan:
-            out_handle = GlobalState::CreateAndRegisterRHIObject<RHIGraphicsCommandListHandle>([&out_existingCommandBuffer]()
+            out_handle = GlobalState::CreateAndRegisterRHIObject<RHICommandListHandle>([&out_existingCommandBuffer]()
             {
                 __TODO;
                 return nullptr;
@@ -780,9 +760,9 @@ namespace Influx::Graphics
         }
 
         // Reset Graphics Command List with the associated Command Buffer...
-        ResetGraphicsCommandlist(out_handle, out_existingCommandBuffer);
+        result = ResetGraphicsCommandlist(out_handle, out_existingCommandBuffer);
 
-        return Result(true);
+        return result;
     }
 
     Result ResetGraphicsCommandlist(const RHICommandListHandle& commandListHandle, const RHICommandBufferHandle& commandbufferHandle)
@@ -866,6 +846,40 @@ namespace Influx::Graphics
         return result;
     }
 
+    Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands, uint64& out_valueWhenFinished)
+    {
+        Result result{};
+
+        if (commands == nullptr)
+        {
+            return result;
+        }
+
+        uint64 fenceValue = 0u;
+
+        // Get an existing, or create a new graphics command queue...
+        RHICommandQueueHandle cmdQueueHandle;
+        result = GetGraphicsCommandQueue(cmdQueueHandle);
+        INFLUX_GRAPHICS_ASSERT(cmdQueueHandle.IsValid());
+
+        // Memory allocator for all the commands...
+        RHICommandBufferHandle cmdBufferHandle;
+        result = GetGraphicsCommandBuffer(cmdBufferHandle, fenceValue);
+        INFLUX_GRAPHICS_ASSERT(cmdBufferHandle.IsValid());
+
+        // List of commands we'll pass on for the entire 'frame'
+        RHICommandListHandle cmdListHandle;
+        result = CreateGraphicsCommandList(cmdBufferHandle, cmdListHandle);
+        INFLUX_GRAPHICS_ASSERT(cmdListHandle.IsValid());
+
+        // Record commands...
+        commands(cmdListHandle);
+
+        result = DispatchGraphicsCommandListToGpu(cmdListHandle, cmdQueueHandle);
+
+        return Result();
+    }
+
     Result DispatchComputeCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle)
     {
         Result result{};
@@ -902,7 +916,7 @@ namespace Influx::Graphics
         return result;
     }
 
-    Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle)
+    Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, const RHICommandQueueHandle& commandQueueHandle, uint64& out_valueWhenFinished)
     {
         Result result{};
 
@@ -917,13 +931,13 @@ namespace Influx::Graphics
             ID3D12CommandQueue* d3d12CommandQueue = commandQueueHandle.As<ID3D12CommandQueue>();
             INFLUX_GRAPHICS_ASSERT(d3d12CommandQueue != nullptr);
 
-            d3d12GfxCmdList->RSSetViewports(0u, nullptr);
-
             // Close the command list...
             d3d12GfxCmdList->Close();
 
             ID3D12CommandList* d3d12CmdLists[1u]{ d3d12GfxCmdList };
             d3d12CommandQueue->ExecuteCommandLists(1u, d3d12CmdLists);
+
+            // d3d12CommandQueue->Signal()
             break;
         }
 #endif
@@ -1115,68 +1129,6 @@ namespace Influx::Graphics
         INFLUX_GRAPHICS_ASSERT(out_handle.IsValid());
 
         return Result(true);
-    }
-
-    Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands)
-    {
-        Result result{};
-
-        if (commands == nullptr)
-        {
-            return result;
-        }
-
-        // Get an existing, or create a new graphics command queue...
-        RHICommandQueueHandle cmdQueueHandle;
-        result = GetGraphicsCommandQueue(cmdQueueHandle);
-        INFLUX_GRAPHICS_ASSERT(cmdQueueHandle.IsValid());
-
-        // Memory allocator for all the commands...
-        RHICommandBufferHandle cmdBufferHandle;
-        result = GetGraphicsCommandBuffer(cmdBufferHandle, 0u);
-        INFLUX_GRAPHICS_ASSERT(cmdBufferHandle.IsValid());
-
-        // List of commands we'll pass on for the entire 'frame'
-        RHICommandListHandle cmdListHandle;
-        result = CreateGraphicsCommandList(cmdBufferHandle, cmdListHandle);
-        INFLUX_GRAPHICS_ASSERT(cmdListHandle.IsValid());
-        
-        // Record commands...
-        commands(cmdListHandle);
-
-        result = DispatchGraphicsCommandListToGpu(cmdListHandle, cmdQueueHandle);
-        
-        return Result();
-    }
-
-    Result DispatchComputeCommands(Function<void(const RHICommandListHandle&)> commands)
-    {
-        Result result{};
-
-        if (commands == nullptr)
-        {
-            return result;
-        }
-
-        RHICommandQueueHandle cmdQueueHandle;
-        result = GetComputeCommandQueue(cmdQueueHandle);
-        INFLUX_GRAPHICS_ASSERT(cmdQueueHandle.IsValid());
-
-        // Memory allocator for all the commands...
-        RHICommandBufferHandle cmdBufferHandle;
-        result = CreateComputeCommandBuffer(cmdBufferHandle);
-        INFLUX_GRAPHICS_ASSERT(cmdBufferHandle.IsValid());
-
-        RHICommandListHandle cmdListHandle;
-        result = CreateComputeCommandList(cmdBufferHandle, cmdListHandle);
-        INFLUX_GRAPHICS_ASSERT(cmdListHandle);
-
-        // Record commands...
-        commands(cmdListHandle);
-
-        result = DispatchComputeCommandListToGpu(cmdListHandle, cmdQueueHandle);
-
-        return result;
     }
 
     namespace Commands
