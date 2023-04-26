@@ -44,17 +44,25 @@ namespace Influx::Renderer
 			return Get().m_attachedSwapchain;
 		}
 
+		static uint64& GetFrameIndexReference()
+		{
+			return Get().m_frameIndex;
+		}
+
 	private:
 		Graphics::RHISwapchainHandle m_attachedSwapchain;
+		Graphics::RHICommandQueueHandle m_graphicsCommandQueue;
+
 		bool m_isInitialized;
+
+		uint64 m_frameIndex = 0u;
 	};
 
 	Result Render()
 	{
 		Result result{};
 
-		// Dispatch work to GPU...
-		Graphics::DispatchGraphicsCommands([](const Graphics::RHICommandListHandle& cmdList)
+		auto graphicsCommands = [](const Graphics::RHICommandListHandle& cmdList)
 		{
 			if (IsAttachedToWindow(nullptr))
 			{
@@ -62,7 +70,10 @@ namespace Influx::Renderer
 
 				Graphics::Commands::ClearSwapchainBackBuffer(cmdList, GlobalState::GetAttachedSwapchain(), clearColour);
 			}
-		});
+		};
+
+		// Dispatch work to GPU...
+		Graphics::Result gfxResult = Graphics::DispatchGraphicsCommands(graphicsCommands, GlobalState::GetFrameIndexReference());
 
 		return result;
 	}
