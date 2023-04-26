@@ -12,16 +12,16 @@
 #endif
 
 #define INFLUX_APPLICATION_PLATFORM_WINDOWS 1
-#include "Core/Platform/WindowsPlatform.h"
-
 #define INFLUX_APPLICATION_USE_CORE 1
-
 #define INFLUX_APPLICATION_RENDER_D3D12		INFLUX_APPLICATION_PLATFORM_WINDOWS
 #define INFLUX_APPLICATION_RENDER_VULKAN	!INFLUX_APPLICATION_RENDER_D3D12
+#define INFLUX_APPLICATION_KEEP_TIMING_STATS	0
 
-#define FLX_APP_KEEP_TIMING_STATS	0
-
-#define INFLUX_APPLICATION_USE_CORE 1
+#if INFLUX_APPLICATION_PLATFORM_WINDOWS
+#include "Core/Platform/WindowsPlatform.h"
+#else
+static_assert(false, "Error: Application requires windows-platform!");
+#endif
 
 #if INFLUX_APPLICATION_USE_CORE
 #include "Core/BasicTypes.h"
@@ -36,23 +36,17 @@
 #include "Core/Function.h"
 #include "Core/Threading/ThreadPool.h"
 #else
-static_assert(false, "Error: Application requires using the Influx Core-header-library! ")
+static_assert(false, "Error: Application requires using the Influx Core-header-library!");
 #endif
 
 #if INFLUX_APPLICATION_DEBUG
-// INFLUX_APPLICATION_TODO
 #define INFLUX_APPLICATION_TODO __debugbreak();
 
-// INFLUX_APPLICATION_ASSERT
-#if INFLUX_APPLICATION_USE_CORE
 #include "Core/Assert.h"
 #define INFLUX_APPLICATION_ASSERT(x) FLX_ASSERT(x); 
-#else
-#include <cassert>
-#define INFLUX_APPLICATION_ASSERT(x) assert(x);
-#endif
 
-#endif
+#endif // INFLUX_APPLICATION_DEBUG
+
 #pragma endregion
 
 #pragma region Predeclarations

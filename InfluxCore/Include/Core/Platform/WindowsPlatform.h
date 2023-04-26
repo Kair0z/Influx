@@ -32,7 +32,7 @@ namespace Influx::Platform
 		static List<WindowHandle>		gWindowHandles{};
 		static List<WindowsProcedure>	gWindowsProcedureCallbacklist{};
 
-		constexpr WindowEvent TranslateEvent(const uint8 value)
+		constexpr WindowEvent TranslateEvent(const uint32 value)
 		{
 			switch (value)
 			{
@@ -198,8 +198,7 @@ namespace Influx::Platform
 	{
 		::HINSTANCE instance = (::HINSTANCE)GetCurrentInstance();
 
-		WString nameWstring = ToWString(settings.Name);
-		const String& nameString = settings.Name;
+		const WString nameWstring = ToWString(settings.Name);
 
 		// [ REGISTER WINDOW CLASS ]
 		{
@@ -286,7 +285,7 @@ namespace Influx::Platform
 
 			if (::EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &lpDevMode))
 			{
-				float displayFrequency = static_cast<float>(lpDevMode.dmDisplayFrequency);
+				// float displayFrequency = static_cast<float>(lpDevMode.dmDisplayFrequency);
 				///printf("Display Refresh Rate is %.2f Hz, setting fps_max to %i.\n\n", displayFrequency, (int)displayFrequency);
 			}
 		}
