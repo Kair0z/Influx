@@ -16,7 +16,7 @@
 #define INFLUX_RENDERER_USE_STL			1
 
 #define INFLUX_RENDERER_INCLUDE_DX12	1
-#define INFLUX_RENDERER_INCLUDE_VULKAN	0
+#define INFLUX_RENDERER_INCLUDE_VULKAN	1
 
 // Defining Debug
 #ifdef _DEBUG
@@ -26,7 +26,7 @@
 #endif
 
 // Defining Assert & Todo
-#if INFLUX_GRAPHICS_DEBUG
+#if INFLUX_RENDERER_DEBUG
 #include <cassert>
 
 #define INFLUX_GRAPHICS_TODO __debugbreak();

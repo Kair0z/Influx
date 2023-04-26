@@ -5,6 +5,8 @@
 
 #if INFLUX_RENDERER_USE_CORE
 #include "Core/Singleton/Singleton.h"
+#else
+static_assert(false);
 #endif
 
 // Graphics...
@@ -12,7 +14,8 @@
 
 namespace Influx::Renderer
 {
-	struct GlobalState final 
+	// [GLOBAL STATE]
+	struct GlobalState final
 		: Singleton<GlobalState>
 	{
 	public:
@@ -45,12 +48,11 @@ namespace Influx::Renderer
 		Graphics::RHISwapchainHandle m_attachedSwapchain;
 		bool m_isInitialized;
 	};
-}
 
-namespace Influx::Renderer
-{
 	Result Render()
 	{
+		Result result{};
+
 		// Dispatch work to GPU...
 		Graphics::DispatchGraphicsCommands([](const Graphics::RHICommandListHandle& cmdList)
 		{
@@ -62,23 +64,22 @@ namespace Influx::Renderer
 			}
 		});
 
-		return Result{};
+		return result;
 	}
 
 	Result Present()
 	{
-		// Cannot present if we're not attached to a window...
+		Result result{};
+
 		if (!IsAttachedToWindow(nullptr))
 		{
 			return Result{};
 		}
 
-		// Present the swapchain back-buffer
 		constexpr static bool Vsync = true;
-
 		Graphics::DispatchSwapchainPresent(GlobalState::GetAttachedSwapchain(), { Vsync });
 
-		return Result();
+		return result;
 	}
 
 	Result Initialize()
@@ -107,17 +108,21 @@ namespace Influx::Renderer
 
 	Result AttachToWindow(Platform::WindowHandle window)
 	{
+		Result result{};
+
+		Graphics::Result gfxResult{};
+
 		Graphics::RHISwapchainDesc swapchainDesc{};
 		swapchainDesc.Buffering		= Graphics::RHISwapchainDesc::EBuffering::Triple;
 		swapchainDesc.Dimensions	= Platform::GetClientWindowDimensions<uint32>(window);
 		swapchainDesc.WindowHandle	= window;
 
 		Graphics::RHISwapchainHandle out_handle;
-		Graphics::CreateSwapchain(swapchainDesc, out_handle);
+		gfxResult = Graphics::CreateSwapchain(swapchainDesc, out_handle);
 
 		GlobalState::SetAttachedSwapchain(out_handle);
 
-		return Result();
+		return result;
 	}
 
 	bool IsAttachedToWindow(Platform::WindowHandle window)

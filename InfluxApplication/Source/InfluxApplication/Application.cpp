@@ -185,7 +185,6 @@ namespace Influx::Application
         }
 
         Influx::Renderer::Render();
-
         Influx::Renderer::Present();
     }
 
