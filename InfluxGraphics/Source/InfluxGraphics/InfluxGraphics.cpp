@@ -862,6 +862,8 @@ namespace Influx::Graphics
         INFLUX_GRAPHICS_ASSERT(cmdListHandle.IsValid());
 
         result = DispatchGraphicsCommands(commands, cmdListHandle, valueToSignalWhenFinished);
+
+        return result;
     }
 
     Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands, const RHICommandListHandle& commandList, const uint64 valueToSignalWhenFinished)

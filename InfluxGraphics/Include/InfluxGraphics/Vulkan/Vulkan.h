@@ -40,7 +40,7 @@ namespace Influx::Graphics::Vulkan
 		}
 	}
 
-	inline vk::Device CreateVkDevice(const vk::PhysicalDevice& parentDevice, const vk::DeviceCreateInfo& info)
+	inline vk::Device CreateVkLogicalDevice(const vk::PhysicalDevice& parentDevice, const vk::DeviceCreateInfo& info)
 	{
 		return parentDevice.createDevice(info);
 	}

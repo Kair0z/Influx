@@ -23,7 +23,7 @@ int main()
 	const float AspectRatio							= (float)WindowDimensions.x / (float)WindowDimensions.y;
 	constexpr uint64 NumFrames						= 6000u;
 	
-	IFluxRenderer* renderer = new RHIRenderer();
+	IFluxRenderer* renderer = new VulkanRenderer();
 
 	Assets::ShaderData shaderData{};
 	Assets::Scene leblancScene{};
