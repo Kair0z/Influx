@@ -37,12 +37,13 @@ namespace Influx::Application
         if (IsRunning())
         {
             // Cannot re-run. Call SignalQuit() instead!
+            INFLUX_APPLICATION_ASSERT(!IsRunning());
             return;
         }
 
-        m_isRunning = true;
-
         Initialize();
+
+        m_isRunning = true;
 
         Start();
 
@@ -72,7 +73,6 @@ namespace Influx::Application
         if (GetShouldHaveWindow())
         {
             CreateWindow();
-
             CreateRenderer();
         }
 
@@ -184,8 +184,11 @@ namespace Influx::Application
             return;
         }
 
-        Influx::Renderer::Render();
-        Influx::Renderer::Present();
+        Renderer::Result result{};
+
+        result = Influx::Renderer::Render();
+
+        result = Influx::Renderer::Present();
     }
 
     void Application::CreateWindow()
@@ -227,10 +230,13 @@ namespace Influx::Application
             return;
         }
 
-        Influx::Renderer::Initialize();
+        Renderer::Result result{};
 
-        // Creates a swapchain...
-        Influx::Renderer::AttachToWindow(m_windowHandle);
+        // Creates the renderer...
+        result = Influx::Renderer::Initialize();
+
+        // Attaches the renderer to a window
+        result = Influx::Renderer::AttachToWindow(m_windowHandle);
 
         // LEGACY
 #if 0

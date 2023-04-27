@@ -905,16 +905,17 @@ namespace Influx::Graphics
 	INFLUX_GRAPHICS_API Result ResetGraphicsCommandlist(const RHICommandListHandle& commandListHandle, const RHICommandBufferHandle& commandbufferHandle);
 	
 	/* Waits for the global graphics command queue to reach signal-value */
-	INFLUX_GRAPHICS_API Result WaitForGraphicsQueueSignal(const RHICommandQueueHandle& commandQueue, uint64 valueToWaitFor);
+	INFLUX_GRAPHICS_API Result WaitForGraphicsQueueSignal(uint64 valueToWaitFor);
 
 	/* Waits for the global graphics command queue to finish ALL work */
 	INFLUX_GRAPHICS_API Result WaitForAllGraphicsCommandsFinished();
 
 	/* */
-	INFLUX_GRAPHICS_API Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands, uint64& out_valueWhenFinished);
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands, const uint64 valueToSignalWhenFinished);
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommands(Function<void(const RHICommandListHandle&)> commands, const RHICommandListHandle& commandList, const uint64 valueToSignalWhenFinished);
 
 	/* */
-	INFLUX_GRAPHICS_API Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, uint64& out_valueWhenFinished);
+	INFLUX_GRAPHICS_API Result DispatchGraphicsCommandListToGpu(const RHICommandListHandle& commandListHandle, const uint64 valueToSignalWhenFinished);
 
 	// [ RHI SWAPCHAIN ]
 	/* Create an RHI swapchain 

@@ -23,7 +23,6 @@ namespace Influx::Renderer
 		{
 			Get().m_isInitialized = initialized;
 		}
-
 		static bool IsInitialized()
 		{
 			return Get().m_isInitialized;
@@ -33,12 +32,10 @@ namespace Influx::Renderer
 		{
 			Get().m_attachedSwapchain = handle;
 		}
-
 		static bool HasAttachedSwapchain()
 		{
 			return Get().m_attachedSwapchain.IsValid();
 		}
-
 		static Graphics::RHISwapchainHandle GetAttachedSwapchain()
 		{
 			return Get().m_attachedSwapchain;
@@ -49,9 +46,16 @@ namespace Influx::Renderer
 			return Get().m_frameIndex;
 		}
 
+		static Graphics::RHICommandListHandle& GetCommandListHandle()
+		{
+			return Get().m_commandList;
+		}
+
 	private:
 		Graphics::RHISwapchainHandle m_attachedSwapchain;
 		Graphics::RHICommandQueueHandle m_graphicsCommandQueue;
+
+		Graphics::RHICommandListHandle m_commandList;
 
 		bool m_isInitialized;
 
@@ -62,7 +66,13 @@ namespace Influx::Renderer
 	{
 		Result result{};
 
-		auto graphicsCommands = [](const Graphics::RHICommandListHandle& cmdList)
+		Graphics::Result gfxResult{};
+
+		// Wait until the Graphics queue finished LAST frame
+		const uint64 previousFrame = (GlobalState::GetFrameIndexReference() != 0u) ? GlobalState::GetFrameIndexReference() - 1u : 0u;
+		gfxResult = Graphics::WaitForGraphicsQueueSignal(previousFrame);
+
+		gfxResult = Graphics::DispatchGraphicsCommands([](const Graphics::RHICommandListHandle& cmdList)
 		{
 			if (IsAttachedToWindow(nullptr))
 			{
@@ -70,10 +80,11 @@ namespace Influx::Renderer
 
 				Graphics::Commands::ClearSwapchainBackBuffer(cmdList, GlobalState::GetAttachedSwapchain(), clearColour);
 			}
-		};
+		}
+		, previousFrame + 1u);
 
-		// Dispatch work to GPU...
-		Graphics::Result gfxResult = Graphics::DispatchGraphicsCommands(graphicsCommands, GlobalState::GetFrameIndexReference());
+		// Increase frame value...
+		++GlobalState::GetFrameIndexReference();
 
 		return result;
 	}
@@ -95,12 +106,12 @@ namespace Influx::Renderer
 
 	Result Initialize()
 	{
-		// Dx12
-		Graphics::Initialize(Graphics::EGraphicsAPI::D3D12);
+		Result result{};
 
+		Graphics::Initialize(Graphics::EGraphicsAPI::D3D12);
 		GlobalState::SetInitialized(true);
 
-		return Result{};
+		return result;
 	}
 
 	bool IsInitialized()
@@ -110,24 +121,24 @@ namespace Influx::Renderer
 
 	Result Cleanup()
 	{
-		Graphics::Cleanup();
+		Result result{};
 
+		Graphics::Cleanup();
 		GlobalState::SetInitialized(false);
 		
-		return Result{};
+		return result;
 	}
 
 	Result AttachToWindow(Platform::WindowHandle window)
 	{
 		Result result{};
 
-		Graphics::Result gfxResult{};
-
 		Graphics::RHISwapchainDesc swapchainDesc{};
 		swapchainDesc.Buffering		= Graphics::RHISwapchainDesc::EBuffering::Triple;
 		swapchainDesc.Dimensions	= Platform::GetClientWindowDimensions<uint32>(window);
 		swapchainDesc.WindowHandle	= window;
 
+		Graphics::Result gfxResult{};
 		Graphics::RHISwapchainHandle out_handle;
 		gfxResult = Graphics::CreateSwapchain(swapchainDesc, out_handle);
 
