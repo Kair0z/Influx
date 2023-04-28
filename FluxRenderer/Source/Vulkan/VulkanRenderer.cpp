@@ -50,15 +50,49 @@ namespace Influx
 
 	void VulkanRenderer::InitializeDevice()
 	{
-		vk::InstanceCreateInfo instanceInfo{};
-		m_instance = Graphics::Vulkan::CreateVkInstance(instanceInfo);
+		vk::ApplicationInfo appInfo;
+		appInfo = { .pApplicationName = "Renderer",
+					.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+					.pEngineName = "RenderEngine l.o.l.",
+					.engineVersion = VK_MAKE_VERSION(1, 0, 0),
+					.apiVersion = VK_API_VERSION_1_2 };
 
+		// Create the Vulkan instance
+		m_instance = Graphics::Vulkan::CreateVkInstance(appInfo, 
+			// wantedExtensions
+			{
+				VK_KHR_SURFACE_EXTENSION_NAME
+				// VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+			},
+			
+			// wantedLayers
+			{
+#ifdef _DEBUG
+				"VK_LAYER_LUNARG_standard_validation"
+#endif
+			} 
+		);
+
+		// Get the first available Physical device:
 		m_physicalDevice = Graphics::Vulkan::GetAllVkPhysicalDevices(m_instance)[0u];
 
+		// Create a logical device from the Physical Device:
 		m_logicalDevice = Graphics::Vulkan::CreateVkLogicalDevice(m_physicalDevice,
-			{ 
-				"" 
-			});
+			// queues to create
+			{
+				vk::DeviceQueueCreateInfo()
+			},
+
+			// wantedExtensions
+			{
+				VK_KHR_SWAPCHAIN_EXTENSION_NAME
+			},
+
+			// wantedLayers
+			{
+				//...
+			}
+		);
 	}
 
 	void VulkanRenderer::InitializeCommandQueue()

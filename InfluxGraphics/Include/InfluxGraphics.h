@@ -117,10 +117,10 @@ namespace Influx::Graphics
 	using f32		= float;
 	using f64		= double;
 
-	constexpr uint64 u64_max = { 0xffff'ffff'ffff'ffffui64 };
-	constexpr uint32 u32_max = { 0xffff'ffffui32 };
-	constexpr uint16 u16_max = { 0xffffui16 };
-	constexpr uint8  u8_max = { 0xffui8 };
+	constexpr uint64 u64_max	=	{ 0xffff'ffff'ffff'ffffui64 };
+	constexpr uint32 u32_max	=	{ 0xffff'ffffui32 };
+	constexpr uint16 u16_max	=	{ 0xffffui16 };
+	constexpr uint8  u8_max		=	{ 0xffui8 };
 
 #if INFLUX_GRAPHICS_USE_STL
 	template <typename _T>

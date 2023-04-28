@@ -18,10 +18,10 @@ namespace Influx
 
 		if (m_swapchain.IsValid() || Graphics::CreateSwapchain(desc, m_swapchain))
 		{
-			Graphics::DispatchGraphicsCommands([this](const Graphics::RHICommandListHandle& commandList)
-			{
-				Graphics::Commands::ClearSwapchainBackBuffer(commandList, m_swapchain, { 1, 0, 0, 1 });
-			});
+			// Graphics::DispatchGraphicsCommands([this](const Graphics::RHICommandListHandle& commandList)
+			// {
+			// 	Graphics::Commands::ClearSwapchainBackBuffer(commandList, m_swapchain, { 1, 0, 0, 1 });
+			// });
 
 			Graphics::DispatchSwapchainPresent(m_swapchain, {});
 		}
