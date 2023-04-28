@@ -29,7 +29,7 @@ namespace Influx::Graphics::Vulkan
 		{
 			for (const vk::ExtensionProperties& i : installed)
 			{
-				if (String(i.extensionName).compare(w) == 0)
+				if (std::string(i.extensionName.data()).compare(w) == 0)
 				{
 					out.push_back(w);
 					break;
@@ -50,7 +50,7 @@ namespace Influx::Graphics::Vulkan
 		{
 			for (const vk::LayerProperties& i : installed)
 			{
-				if (String(i.layerName).compare(w) == 0)
+				if (std::string(i.layerName.data()).compare(w) == 0)
 				{
 					out.push_back(w);
 					break;
