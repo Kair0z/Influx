@@ -12,7 +12,7 @@ namespace Influx
 		VulkanRenderer() = default;
 
 	private:
-		virtual void BuildRenderWork(Platform::WindowHandle windowHandle) override final;
+		virtual void RecordRenderCommands(Platform::WindowHandle windowHandle) override final;
 
 		virtual void PresentToWindow(Platform::WindowHandle windowHandle) override final;
 
@@ -38,7 +38,7 @@ namespace Influx
 		vk::SurfaceKHR		m_windowSurface;
 
 		uint32 m_currentSwapchainBuffer;
-		vk::Image m_swapchainImages[k_numSwapchainBuffers];
+		vk::Image m_swapchainImages[GetNumSwapchainBuffers()];
 
 		vk::DescriptorPool m_descriptorPool;
 
@@ -49,7 +49,7 @@ namespace Influx
 
 		// Pool of buffers...
 		vk::CommandPool m_commandPool;
-		vk::CommandBuffer m_commandBuffers[k_numSwapchainBuffers];
+		vk::CommandBuffer m_commandBuffers[GetNumSwapchainBuffers()];
 
 		vk::Rect2D	 m_renderArea;
 		vk::Extent2D m_surfaceSize;
@@ -58,7 +58,7 @@ namespace Influx
 		vk::Semaphore m_presentCompleteSemaphore;
 		vk::Semaphore m_renderCompleteSemaphore;
 
-		vk::Fence m_waitFences[k_numSwapchainBuffers];
+		vk::Fence m_waitFences[GetNumSwapchainBuffers()];
 	};
 }
 

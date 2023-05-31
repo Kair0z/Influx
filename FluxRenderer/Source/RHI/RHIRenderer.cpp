@@ -5,7 +5,7 @@
 
 namespace Influx
 {
-	void RHIRenderer::BuildRenderWork(Platform::WindowHandle windowHandle)
+	void RHIRenderer::RecordRenderCommands(Platform::WindowHandle windowHandle)
 	{
 		
 	}

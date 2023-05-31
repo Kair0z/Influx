@@ -13,6 +13,7 @@ namespace Influx
 	protected:
 		IFluxRenderer() = default;
 
+	public:
 		enum class ESwapchainBuffering : uint8
 		{
 			Single = 1u,
@@ -20,10 +21,7 @@ namespace Influx
 			Triple = 3u,
 			Max
 		};
-		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Triple;
-		constexpr static uint8 k_numSwapchainBuffers = static_cast<uint8>(k_swapchainBuffering);
 
-	public:
 		struct MaterialData final
 		{
 			MaterialData() = default;
@@ -34,7 +32,7 @@ namespace Influx
 			Vector<byte> PixelShader;
 		};
 
-		virtual void BuildRenderWork(Platform::WindowHandle windowHandle) = 0;
+		virtual void RecordRenderCommands(Platform::WindowHandle windowHandle) = 0;
 
 		virtual void PresentToWindow(Platform::WindowHandle windowHandle) = 0;
 
@@ -112,8 +110,12 @@ namespace Influx
 		Vector<Scene::Mesh> m_meshes;
 
 	protected:
+		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Triple;
+
 		constexpr static uint64 GetVertexSize() { return sizeof(Scene::Mesh::Vertex); }
 		constexpr static uint64 GetIndexSize() { return sizeof(Scene::Mesh::Index); }
+
+		constexpr static uint8 GetNumSwapchainBuffers() { return static_cast<uint8>(k_swapchainBuffering); }
 
 		uint64 GetIndexBufferSize() const
 		{

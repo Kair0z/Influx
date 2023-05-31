@@ -5,7 +5,7 @@
 
 namespace Influx
 {
-	void Dx12Renderer::BuildRenderWork(Platform::WindowHandle windowHandle)
+	void Dx12Renderer::RecordRenderCommands(Platform::WindowHandle windowHandle)
 	{
 		Initialize();
 		InitializeSwapchain(windowHandle);
@@ -17,7 +17,7 @@ namespace Influx
 		commandAllocator->Reset();
 
 		// We build a command-list for  this frame and the next!
-		for (uint8 i = 0u; i < k_numSwapchainBuffers; ++i)
+		for (uint8 i = 0u; i < GetNumSwapchainBuffers(); ++i)
 		{
 			ID3D12GraphicsCommandList* gfxCommandList = mp_gfxCommandLists[i];
 			uint8 swapchainBufferIndex = i;
@@ -80,7 +80,7 @@ namespace Influx
 	{
 		InitializeSwapchain(windowHandle);
 
-		for (uint32 i = 0u; i < k_numSwapchainBuffers; ++i)
+		for (uint32 i = 0u; i < GetNumSwapchainBuffers(); ++i)
 		{
 			ID3D12CommandList* commandLists[] = { mp_gfxCommandLists[i] };
 			mp_commandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
@@ -126,21 +126,23 @@ namespace Influx
 	void Dx12Renderer::InitializeDevice()
 	{
 		if (mp_dxgiFactory2 || mp_dxgiHardwareAdapter || mp_device)
+		{
 			return;
+		}
 
 		const bool debug = true;
-
 		if (debug)
 		{
 			Graphics::D3D12::EnableDxDebugLayer();
 		}
-		else Graphics::D3D12::DisableDxDebugLayer();
+		else
+		{
+			Graphics::D3D12::DisableDxDebugLayer();
+		}
 		
-		mp_dxgiFactory2			= Graphics::D3D12::Factory::CreateTier2(debug);
-		mp_dxgiHardwareAdapter	= Graphics::D3D12::Adapter::Select(mp_dxgiFactory2, 0u);
-
-		mp_device				= Graphics::D3D12::Device::Create(mp_dxgiHardwareAdapter, debug);
-
+		mp_dxgiFactory2	= Graphics::D3D12::Factory::CreateTier2(debug);
+		mp_dxgiHardwareAdapter = Graphics::D3D12::Adapter::Select(mp_dxgiFactory2, 0u);
+		mp_device = Graphics::D3D12::Device::Create(mp_dxgiHardwareAdapter, debug);
 		m_dsvDescriptorSize = mp_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 		m_rtvDescriptorSize = mp_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		m_resDescriptorSize = mp_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -150,7 +152,9 @@ namespace Influx
 	void Dx12Renderer::InitializeCommandQueue()
 	{
 		if (mp_commandQueue)
+		{
 			return;
+		}
 
 		mp_commandQueue = Graphics::D3D12::CreateDxCommandQueue(mp_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	}
@@ -158,16 +162,18 @@ namespace Influx
 	void Dx12Renderer::InitializeSwapchain(Platform::WindowHandle windowHandle)
 	{
 		if (mp_swapchain != nullptr)
+		{
 			return;
+		}
 
 		Platform::WindowSettings settings = Platform::GetWindowSettings(windowHandle);
 
 		mp_swapchain = Graphics::D3D12::Swapchain::CreateTier3(mp_dxgiFactory2, (::HWND)windowHandle, mp_commandQueue,
-			settings.Width, settings.Heigth, k_numSwapchainBuffers, DXGI_FORMAT_R8G8B8A8_UNORM);
+			settings.Width, settings.Heigth, GetNumSwapchainBuffers(), DXGI_FORMAT_R8G8B8A8_UNORM);
 
 		m_currentSwapchainBufferIndex = mp_swapchain->GetCurrentBackBufferIndex();
 		
-		for (uint8 i = 0u; i < k_numSwapchainBuffers; ++i)
+		for (uint8 i = 0u; i < GetNumSwapchainBuffers(); ++i)
 		{
 			mp_swapchain->GetBuffer(i, IID_PPV_ARGS(&mp_swapchainBufferResources[i]));
 			mp_device->CreateRenderTargetView(mp_swapchainBufferResources[i], nullptr, 
@@ -208,7 +214,7 @@ namespace Influx
 
 		mp_commandAllocators[0u] = Graphics::D3D12::CreateDxCommandAllocator(mp_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-		for (uint8 i = 0u; i < k_numSwapchainBuffers; ++i)
+		for (uint8 i = 0u; i < GetNumSwapchainBuffers(); ++i)
 		{
 			mp_gfxCommandLists[i] = Graphics::D3D12::CreateDxGraphicsCommandList(mp_device, mp_commandAllocators[0u]);
 			mp_gfxCommandLists[i]->Close();
@@ -234,6 +240,7 @@ namespace Influx
 		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		pipelineDesc.RenderTargetFormats.push_back( DXGI_FORMAT_R8G8B8A8_UNORM );
 		pipelineDesc.SampleDesc.Count = 1u;
+
 		mp_pipelineState = Graphics::D3D12::CreateDxGraphicsPipelineState(pipelineDesc, mp_rootSignature, mp_device);
 	}
 

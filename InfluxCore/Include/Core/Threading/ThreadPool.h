@@ -70,8 +70,8 @@ namespace Influx
         std::mutex m_queueMutex;                  // Prevents data races to the job queue
         std::condition_variable m_muCondition;    // Allows threads to wait on new jobs or termination 
 
-        uint64_t m_currentLabel;
-        std::atomic<uint64_t> m_finishedLabel;
+        uint64 m_targetLabel = 0u;
+        std::atomic<uint64> m_finishedLabel;
 
     public:
         ThreadPool()
@@ -134,7 +134,7 @@ namespace Influx
 
         void QueueJob(const Job& job)
         {
-            ++m_currentLabel;
+            ++m_targetLabel;
 
             while (!m_jobs.PushBack(job))
             {
@@ -147,7 +147,7 @@ namespace Influx
         bool IsFinished() const
         {
             // Whenever the main thread label is not reached by the workers, it indicates that some worker is still alive
-            return m_finishedLabel.load() < m_currentLabel;
+            return m_finishedLabel.load() >= m_targetLabel;
         }
         
         // STALLS the calling thread untill all jobs are finished.

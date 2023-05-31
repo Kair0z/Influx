@@ -24,7 +24,7 @@ namespace Influx
 		Dx12Renderer() = default;
 
 	private:
-		virtual void BuildRenderWork(Platform::WindowHandle windowHandle) override final;
+		virtual void RecordRenderCommands(Platform::WindowHandle windowHandle) override final;
 
 		virtual void PresentToWindow(Platform::WindowHandle windowHandle) override final;
 
@@ -51,11 +51,11 @@ namespace Influx
 
 		ID3D12CommandQueue* mp_commandQueue;
 		IDXGISwapChain3* mp_swapchain;
-		ID3D12Resource* mp_swapchainBufferResources[k_numSwapchainBuffers];
+		ID3D12Resource* mp_swapchainBufferResources[GetNumSwapchainBuffers()];
 		uint64 m_currentSwapchainBufferIndex;
 
-		ID3D12CommandAllocator* mp_commandAllocators[k_numSwapchainBuffers];
-		ID3D12GraphicsCommandList* mp_gfxCommandLists[k_numSwapchainBuffers];
+		ID3D12CommandAllocator* mp_commandAllocators[GetNumSwapchainBuffers()];
+		ID3D12GraphicsCommandList* mp_gfxCommandLists[GetNumSwapchainBuffers()];
 
 		ID3D12DescriptorHeap* mp_rtvDescriptorHeap;
 		ID3D12DescriptorHeap* mp_dsvDescriptorHeap;
