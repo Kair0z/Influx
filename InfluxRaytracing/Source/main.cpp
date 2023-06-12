@@ -222,10 +222,11 @@ int main()
         }
 
         // ¬ UPDATE:
-        beforeUpdate = Influx::Time::Now();
-        UpdateScene(sceneTime, scene);
-        stats.AddValue<Stats::EStat::Update>(Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeUpdate));
-        
+        stats.AddValue<Stats::EStat::Update>(Influx::Time::GetTimeInMs<double>([&sceneTime, &scene]()
+        {
+            UpdateScene(sceneTime, scene);
+        }));
+
         // ¬ RENDER
         beforeRender = Influx::Time::Now();
 #if THREADED_RENDERING

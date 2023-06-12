@@ -12,6 +12,7 @@
 
 #if		__USECORE_
 #include "Core/Cast.h"
+#include "Core/Function.h"
 #else
 template <typename _Dest, typename _T>
 inline _Dest* StaticCast(_T* p)
@@ -37,15 +38,23 @@ namespace Influx
 	public:
 		using TimePoint = std::chrono::system_clock::time_point;
 
-		inline static TimePoint Now() noexcept
+		static TimePoint Now() noexcept
 		{
 			return std::chrono::system_clock::now();
 		}
 
 		template <typename _T>
-		inline static _T MsBetween(const TimePoint& end, const TimePoint& start) noexcept
+		static _T MsBetween(const TimePoint& end, const TimePoint& start) noexcept
 		{
 			return static_cast<_T>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+		}
+
+		template <typename _T>
+		static _T GetTimeInMs(const Function<void()>& function)
+		{
+			TimePoint before = Now();
+			function();
+			return MsBetween<_T>(Now(), before);
 		}
 	};
 }
