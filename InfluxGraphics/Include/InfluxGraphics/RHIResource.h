@@ -10,7 +10,7 @@
 #include "Core/Math/Vector.h"
 #include "Core/Function.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHIDevice;
 	class RHIRenderTargetView;
@@ -31,7 +31,7 @@ namespace Influx::Graphics
 		
 		// Get a CPU handle to the GPU resource to write onto...
 		virtual void* Map() const = 0;
-		virtual void ScopedMap(Function<void(void*)> mapFunction)const = 0;
+		virtual void ScopedMap(function<void(void*)> mapFunction)const = 0;
 		virtual void Unmap() const = 0;
 
 		virtual RenderTargetViewPtr CreateRenderTargetView(const DevicePtr device) const;

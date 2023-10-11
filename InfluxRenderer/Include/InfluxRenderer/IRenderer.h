@@ -5,7 +5,7 @@
 
 #include "InfluxGraphics/RHITypes.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHIDevice;
 	class RHICommandList;
@@ -17,7 +17,7 @@ namespace Influx::Graphics
 	class RHIConstantBufferView;
 }
 
-namespace Influx::Renderer
+namespace influx::Renderer
 {
 	class RenderContext;
 

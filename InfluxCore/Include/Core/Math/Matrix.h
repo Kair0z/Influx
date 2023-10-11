@@ -1,156 +1,155 @@
 #pragma once
 
+#include "core/math/vector.h"
 #include <functional>
-
-#include "Vector.h"
 
 #pragma warning(disable : 4201)
 
-namespace Influx::Math
+namespace influx::math
 {
-	using MatrixSizeType = size_t;
+	using matrix_dim_t = size_t;
 
-	namespace Internal
+	namespace detail
 	{
-		template <typename _T, MatrixSizeType _C, MatrixSizeType _R>
-		struct MatrixBase
+		template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
+		struct base_matrix
 		{
-			constexpr MatrixSizeType GetNumCollumns() { return _C; };
-			constexpr MatrixSizeType GetNumRows() { return _R; };
+			constexpr matrix_dim_t get_num_collumns() { return _C; };
+			constexpr matrix_dim_t get_num_rows() { return _R; };
 
 			union
 			{
-				struct { _T data[_C * _R]; };
-				struct { Vector<_T, _C> rows[_R]; };
+				struct { _t m_data[_C * _R]; };
+				struct { math::vector<_t, _C> m_rows[_R]; };
 			};
 
 
 			template <class... _Init>
-			MatrixBase(_Init...values) : data{ static_cast<_T>(values)... } {}
+			base_matrix(_Init...values) : m_data{ static_cast<_t>(values)... } {}
 		};
 	}
 
-	template <typename _T, MatrixSizeType _C, MatrixSizeType _R>
-	struct Matrix : public Internal::MatrixBase<_T, _C, _R>
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	struct matrix : public detail::base_matrix<_t, _C, _R>
 	{
 	public:
-		Matrix() = default;
-		Matrix(const Matrix& other) = default;
-		Matrix(Matrix && other) = default;
-		Matrix& operator=(const Matrix & other) = default;
-		Matrix& operator=(Matrix && other) = default;
+		matrix() = default;
+		matrix(const matrix& other) = default;
+		matrix(matrix && other) = default;
+		matrix& operator=(const matrix & other) = default;
+		matrix& operator=(matrix && other) = default;
 
-		template <class... _I>	Matrix(_I... values) : Internal::MatrixBase<_T, _C, _R>(values...) {} // Initializer list
-		template <typename _D>	Matrix(const Matrix<_D, _C, _R>& other); // Typecasting
-		template <typename _D>	Matrix(Matrix<_D, _C, _R>&& other); // Typecasting
+		template <class... _I>	matrix(_I... values) : detail::base_matrix<_t, _C, _R>(values...) {} // Initializer list
+		template <typename _D>	matrix(const matrix<_D, _C, _R>& other); // Typecasting
+		template <typename _D>	matrix(matrix<_D, _C, _R>&& other); // Typecasting
 
 		// Data Access:
-		const Vector<_T, _C>& operator[](MatrixSizeType r) const;
-		const Vector<_T, _C>& Row(MatrixSizeType r) const;
-		Vector<_T, _R> Collumn(MatrixSizeType c) const;
+		const vector<_t, _C>& operator[](matrix_dim_t r) const;
+		const vector<_t, _C>& get_row(matrix_dim_t r) const;
+		vector<_t, _R> get_collumn(matrix_dim_t c) const;
 
-		Vector<_T, _C>& operator[](MatrixSizeType r);
-		Vector<_T, _C>& Row(MatrixSizeType r);
+		vector<_t, _C>& operator[](matrix_dim_t r);
+		vector<_t, _C>& get_row(matrix_dim_t r);
 
-		_T& Element(MatrixSizeType c, MatrixSizeType r);
-		_T& Element(MatrixSizeType idx);
+		_t& get_element(matrix_dim_t c, matrix_dim_t r);
+		_t& get_element(matrix_dim_t idx);
 
-		const _T& Element(MatrixSizeType c, MatrixSizeType r) const;
-		const _T& Element(MatrixSizeType idx) const;
+		const _t& get_element(matrix_dim_t c, matrix_dim_t r) const;
+		const _t& get_element(matrix_dim_t idx) const;
 
 		// Basic Operations:
-		Matrix& operator*=(const float scalar);
-		Matrix& operator/=(const float scalar);
-		Matrix& operator+=(const Matrix& other);
-		Matrix& operator-=(const Matrix& other);
+		matrix& operator*=(const float scalar);
+		matrix& operator/=(const float scalar);
+		matrix& operator+=(const matrix& other);
+		matrix& operator-=(const matrix& other);
 
-		Matrix& MemberMultiply(const Matrix& other);
-		static Matrix MemberMultiply(const Matrix& a, const Matrix& b);
+		matrix& member_multiply(const matrix& other);
+		static matrix member_multiply(const matrix& a, const matrix& b);
 
 		// Transpose:
-		Matrix& Transpose();
-		Matrix Transposed() const;
-		static void Transpose(Matrix& matrix);
-		static Matrix Transposed(const Matrix& matrix);
+		matrix& transpose();
+		matrix transposed() const;
+		static void transpose(matrix& matrix);
+		static matrix transposed(const matrix& matrix);
 
 		// Determinant:
-		static float Determinant(const Matrix<_T, 2u, 2u>& m);
-		static float Determinant(const Matrix<_T, 3u, 3u>& m);
-		static float Determinant(const Matrix<_T, 4u, 4u>& m);
-		float Determinant() const;
+		static float determinant(const matrix<_t, 2u, 2u>& m);
+		static float determinant(const matrix<_t, 3u, 3u>& m);
+		static float determinant(const matrix<_t, 4u, 4u>& m);
+		float determinant() const;
 
 		// Inverse:
-		static Matrix<_T, 4u, 4u> Inverse(const Matrix<_T, 4u, 4u>& m);
-		static float Invert(Matrix<_T, 4u, 4u>& m);
-		static Matrix<_T, 3u, 3u> Inverse(const Matrix<_T, 3u, 3u>& m);
-		static float Invert(Matrix<_T, 3u, 3u>& m);
-		Matrix<_T, 4u, 4u> Inverted() const;
-		float Invert();
+		static matrix<_t, 4u, 4u> inverse(const matrix<_t, 4u, 4u>& m);
+		static float invert(matrix<_t, 4u, 4u>& m);
+		static matrix<_t, 3u, 3u> inverse(const matrix<_t, 3u, 3u>& m);
+		static float invert(matrix<_t, 3u, 3u>& m);
+		matrix<_t, 4u, 4u> inverted() const;
+		float invert();
 
 		// Summation:
-		_T Sum() const;
-		static _T Sum(const Matrix& matrix);
+		_t get_sum() const;
+		static _t get_sum(const matrix& matrix);
 
 		// IsNull:
-		bool IsNull() const;
-		static bool IsNull(const Matrix& matrix);
+		bool is_null() const;
+		static bool is_null(const matrix& matrix);
 
-		static Matrix Identity();
+		static matrix identity();
 
 		// Transformation:
-		static Matrix<_T, 3u, 3u> MakeRotation(float angle);
-		static Matrix<_T, 4u, 4u> MakeRotation(const Vector<_T, 3u>& axis, float angle);
-		static Matrix<_T, 3u, 3u> MakeTranslation(const Vector<_T, 2u>& translation);
-		static Matrix<_T, 4u, 4u> MakeTranslation(const Vector<_T, 3u>& translation);
-		static Matrix<_T, 3u, 3u> MakeScale(const Vector<_T, 2u>& scale);
-		static Matrix<_T, 4u, 4u> MakeScale(const Vector<_T, 3u>& scale);
+		static matrix<_t, 3u, 3u> make_rotation(float angle);
+		static matrix<_t, 4u, 4u> make_rotation(const vector<_t, 3u>& axis, float angle);
+		static matrix<_t, 3u, 3u> make_translation(const vector<_t, 2u>& translation);
+		static matrix<_t, 4u, 4u> make_translation(const vector<_t, 3u>& translation);
+		static matrix<_t, 3u, 3u> make_scale(const vector<_t, 2u>& scale);
+		static matrix<_t, 4u, 4u> make_scale(const vector<_t, 3u>& scale);
 
 		// More...
-		static Matrix<_T, 4u, 4u> MakeTransformMatrixLH(const Vector<_T, 3u>& pos, const Vector<_T, 3u>& forward, const Vector<_T, 3u>& up);
-		static Matrix<_T, 4u, 4u> MakeTransformMatrixRH(const Vector<_T, 3u>& pos, const Vector<_T, 3u>& forward, const Vector<_T, 3u>& up);
-		static Matrix<_T, 4u, 4u> MakeViewMatrixLH(const Vector<_T, 3u>& pos, const Vector<_T, 3u>& forward, const Vector<_T, 3u>& up);
-		static Matrix<_T, 4u, 4u> MakeViewMatrixRH(const Vector<_T, 3u>& pos, const Vector<_T, 3u>& forward, const Vector<_T, 3u>& up);
-		static Matrix<_T, 4u, 4u> MakeProjectionMatrixLH(const float fov, const float ar, const float n, const float f);
-		static Matrix<_T, 4u, 4u> MakeProjectionMatrixRH(const float fov, const float ar, const float n, const float f); // Todo: [Orthographic vs Perspective]
+		static matrix<_t, 4u, 4u> make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up);
+		static matrix<_t, 4u, 4u> make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up);
+		static matrix<_t, 4u, 4u> make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up);
+		static matrix<_t, 4u, 4u> make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up);
+		static matrix<_t, 4u, 4u> make_projection_LH(const float fov, const float ar, const float n, const float f);
+		static matrix<_t, 4u, 4u> make_projection_RH(const float fov, const float ar, const float n, const float f); // Todo: [Orthographic vs Perspective]
 
-		void ForEachElement(std::function<void(_T&)> operation);
-		void ForEachElement(std::function<void(_T&, MatrixSizeType idx)> operation);
-		void ForEachElement(std::function<void(const _T&)> operation) const;
-		void ForEachElement(std::function<void(const _T&, MatrixSizeType idx)> operation) const;
+		void for_each_element(std::function<void(_t&)> operation);
+		void for_each_element(std::function<void(_t&, matrix_dim_t idx)> operation);
+		void for_each_element(std::function<void(const _t&)> operation) const;
+		void for_each_element(std::function<void(const _t&, matrix_dim_t idx)> operation) const;
 	};
 
 	// Matrix - Matrix
-	template <typename _T, MatrixSizeType _C, MatrixSizeType _R> Matrix<_T, _C, _R> operator+(const Matrix<_T, _C, _R>& a, const Matrix<_T, _C, _R>& b);
-	template <typename _T, MatrixSizeType _C, MatrixSizeType _R> Matrix<_T, _C, _R> operator-(const Matrix<_T, _C, _R>& a, const Matrix<_T, _C, _R>& b);
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _R> operator+(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b);
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _R> operator-(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b);
 
-	template <typename _T, MatrixSizeType _C, MatrixSizeType _R, MatrixSizeType _OC, MatrixSizeType _OR>
-	Matrix<_T, _R, _OR> operator*(const Matrix<_T, _C, _R>& a, const Matrix<_T, _OC, _OR>& b);
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R, matrix_dim_t _OC, matrix_dim_t _OR>
+	matrix<_t, _R, _OR> operator*(const matrix<_t, _C, _R>& a, const matrix<_t, _OC, _OR>& b);
 
 	// Matrix - Vector
-	template<typename _T> Vector<_T, 2u> operator*(const Matrix<_T, 3u, 3u>& mat, const Vector<_T, 2u>& v);
-	template<typename _T> Vector<_T, 3u> operator*(const Matrix<_T, 4u, 4u>& mat, const Vector<_T, 3u>& v);
+	template<typename _t> math::vector<_t, 2u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 2u>& v);
+	template<typename _t> math::vector<_t, 3u> operator*(const matrix<_t, 4u, 4u>& mat, const vector<_t, 3u>& v);
 
 	// Matrix - scalar
-	template <typename _T, MatrixSizeType _C, MatrixSizeType _R> Matrix<_T, _C, _C> operator*(const Matrix<_T, _C, _R>& a, float b);
-	template <typename _T, MatrixSizeType _C, MatrixSizeType _R> Matrix<_T, _C, _C> operator/(const Matrix<_T, _C, _R>& a, float b);
-	template <typename _T, MatrixSizeType _C, MatrixSizeType _R> Matrix<_T, _C, _C> operator*(float a, const Matrix<_T, _C, _R>& b);
-	template <typename _T, MatrixSizeType _C, MatrixSizeType _R> Matrix<_T, _C, _C> operator/(float a, const Matrix<_T, _C, _R>& b);
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator*(const matrix<_t, _C, _R>& a, float b);
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator/(const matrix<_t, _C, _R>& a, float b);
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator*(float a, const matrix<_t, _C, _R>& b);
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator/(float a, const matrix<_t, _C, _R>& b);
 
 	// Aliases:
-	using Matrix2x2f = Matrix<float, 2u, 2u>;
-	using Matrix2x2d = Matrix<double, 2u, 2u>;
-	using Matrix2x2i = Matrix<int, 2u, 2u>;
-	using Matrix2x2ui = Matrix<uint32_t, 2u, 2u>;
+	using Matrix2x2f = matrix<float, 2u, 2u>;
+	using Matrix2x2d = matrix<double, 2u, 2u>;
+	using Matrix2x2i = matrix<int, 2u, 2u>;
+	using Matrix2x2ui = matrix<uint32_t, 2u, 2u>;
 
-	using Matrix3x3f = Matrix<float, 3u, 3u>;
-	using Matrix3x3d = Matrix<double, 3u, 3u>;
-	using Matrix3x3i = Matrix<int, 3u, 3u>;
-	using Matrix3x3ui = Matrix<uint32_t, 3u, 3u>;
+	using Matrix3x3f = matrix<float, 3u, 3u>;
+	using Matrix3x3d = matrix<double, 3u, 3u>;
+	using Matrix3x3i = matrix<int, 3u, 3u>;
+	using Matrix3x3ui = matrix<uint32_t, 3u, 3u>;
 
-	using Matrix4x4f = Matrix<float, 4u, 4u>;
-	using Matrix4x4d = Matrix<double, 4u, 4u>;
-	using Matrix4x4i = Matrix<int, 4u, 4u>;
-	using Matrix4x4ui = Matrix<uint32_t, 4u, 4u>;
+	using Matrix4x4f = matrix<float, 4u, 4u>;
+	using Matrix4x4d = matrix<double, 4u, 4u>;
+	using Matrix4x4i = matrix<int, 4u, 4u>;
+	using Matrix4x4ui = matrix<uint32_t, 4u, 4u>;
 }
 
 #include "Matrix.inl"

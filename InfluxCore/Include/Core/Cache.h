@@ -1,69 +1,61 @@
 #pragma once
 
-#include "Core/Container/Map.h"
-#include "Core/Container/Vector.h"
-#include "Core/String.h"
+#include "core/container/map.h"
+#include "core/container/vector.h"
+#include "core/string.h"
 
-namespace Influx
+namespace influx
 {
-	namespace Internal
+	namespace detail
 	{
-		class ICache
+		class i_cache
 		{
 
 		};
 	}
 
 	/* 
-	* Cache containing _T data [Container (vector) & UMap(pointers to data)]
-	* UMap does bookkeeping along a combined hash of 2 keys
+	* cache containing _type data [Container (vector) & umap(pointers to data)]
+	* umap does bookkeeping along a combined hash of 2 keys
 	* In loading assets, the first key ideally serves as a filepath 
 	* and the second as an optional 'initializer' to allow for multiple variations of loading the same file at path.
 	*/
-	template <typename _T, typename _K1 = String, typename _K2 = int>
-	class Cache final : public Internal::ICache
+	template <typename _type, typename _key1 = string, typename _key2 = int>
+	class cache final : public detail::i_cache
 	{
 	public:
-		using Key1 = _K1;
-		using Key2 = _K2;
-		using CombinedHash = PairHash<_K1, _K2>;
-		using Data = _T;
-		using DataMap = UMap<std::pair<Key1, Key2>, Data*, CombinedHash>;
-		using DataContainer = Vector<Data>;
+		using combined_hash = pair_hash<_key1, _key2>;
+		using data_map = umap<std::pair<_key1, _key2>, _type*, combined_hash>;
+		using data_container = vector<_type>;
 
-		/* Marking K2 as optional... */
-		bool Contains(const Key1& k1, const Key2& k2 = Key2()) const;
+		bool contains(const _key1& k1, const _key2& k2 = _key2()) const;
 
-		/* Marking K2 as optional... */
-		bool Add(const Key1& k1, Data data, const Key2& k2 = Key2());
+		bool add(const _key1& k1, _type m_data, const _key2& k2 = _key2());
 		
-		/* Marking K2 as optional... */
-		bool Remove(const Key1& k1, const Key2& k2 = Key2());
+		bool remove(const _key1& k1, const _key2& k2 = _key2());
 
-		/* Marking K2 as optional... */
-		_T* Get(const Key1& k1, const Key2& k2 = Key2()) const;
+		_type* get(const _key1& k1, const _key2& k2 = _key2()) const;
 
-		/* Marking K2 as optional... */
-		_T* GetAndOrAdd(const Key1& k1, Data data, const Key2& k2 = Key2());
+		_type* get_and_or_add(const _key1& k1, _type m_data, const _key2& k2 = _key2());
 
 	private:
-		DataMap m_dataMap;
-		DataContainer m_data;
+		data_map m_dataMap;
+		data_container m_data;
 	};
 
-	template<typename _T, typename _K1, typename _K2>
-	inline bool Cache<_T, _K1, _K2>::Contains(const Key1& k1, const Key2& k2) const
+	template<typename _type, typename _key1, typename _key2>
+	inline bool cache<_type, _key1, _key2>::contains(const _key1& k1, const _key2& k2) const
 	{
 		return m_dataMap.contains({ k1, k2 });
 	}
 
-	template<typename _T, typename _K1, typename _K2>
-	inline bool Cache<_T, _K1, _K2>::Add(const Key1& k1, Data data, const Key2& k2)
+	template<typename _type, typename _key1, typename _key2>
+	inline bool cache<_type, _key1, _key2>::add(const _key1& k1, _type m_data, const _key2& k2)
 	{
-		if (!Contains(k1, k2))
+		if (!contains(k1, k2))
 		{
 			// Copy...
-			m_data.push_back(data);
+			m_data.push_back(m_data);
 			m_dataMap[{ k1, k2 }] = &m_data.back();
 			return true;
 		}
@@ -71,47 +63,47 @@ namespace Influx
 		return false;
 	}
 
-	template<typename _T, typename _K1, typename _K2>
-	inline bool Cache<_T, _K1, _K2>::Remove(const Key1& k1, const Key2& k2)
+	template<typename _type, typename _key1, typename _key2>
+	inline bool cache<_type, _key1, _key2>::remove(const _key1& k1, const _key2& k2)
 	{
-		bool wasSuccesfullyRemovedFromMap = false;
-		bool wasSuccesfullyRemovedFromContainer = false;
+		bool was_removed_from_map = false;
+		bool was_removed_from_container = false;
 
-		const bool isDataMapEmpty = m_dataMap.empty();
-		const bool isDataContainerEmpty = m_data.empty();
+		const bool is_map_empty = m_dataMap.empty();
+		const bool is_container_empty = m_data.empty();
 
-		Data* data = nullptr; 
-		if (!Contains(k1, k2) || isDataMapEmpty)
+		_type* m_data = nullptr; 
+		if (!contains(k1, k2) || is_map_empty)
 		{
-			wasSuccesfullyRemovedFromMap = false;
+			was_removed_from_map = false;
 		}
 		else
 		{
-			data = Get(k1, k2);
+			m_data = get(k1, k2);
 			m_dataMap.erase({ k1, k2 });
 
-			wasSuccesfullyRemovedFromMap = true;
+			was_removed_from_map = true;
 		}
 		
-		if (isDataContainerEmpty)
+		if (is_container_empty)
 		{
-			auto dataFoundInContainer = std::find(m_data.begin(), m_data.end(), *data);
-			if (dataFoundInContainer != m_data.cend())
+			auto data_found_in_container = std::find(m_data.begin(), m_data.end(), *m_data);
+			if (data_found_in_container != m_data.cend())
 			{
-				std::iter_swap(dataFoundInContainer, m_data.end() - 1u);
+				std::iter_swap(data_found_in_container, m_data.end() - 1u);
 				m_data.pop_back();
 
-				wasSuccesfullyRemovedFromContainer = true;
+				was_removed_from_container = true;
 			}
 		}
 
-		return wasSuccesfullyRemovedFromContainer && wasSuccesfullyRemovedFromMap;
+		return was_removed_from_container && was_removed_from_map;
 	}
 	
-	template<typename _T, typename _K1, typename _K2>
-	inline _T* Cache<_T, _K1, _K2>::Get(const Key1& k1, const Key2& k2) const
+	template<typename _type, typename _key1, typename _key2>
+	inline _type* cache<_type, _key1, _key2>::get(const _key1& k1, const _key2& k2) const
 	{
-		if (!Contains(k1, k2))
+		if (!contains(k1, k2))
 		{
 			return nullptr;
 		}
@@ -119,12 +111,12 @@ namespace Influx
 		return m_dataMap.at({ k1, k2 });
 	}
 
-	template<typename _T, typename _K1, typename _K2>
-	_T* Cache<_T, _K1, _K2>::GetAndOrAdd(const Key1& k1, Data data, const Key2& k2)
+	template<typename _type, typename _key1, typename _key2>
+	_type* cache<_type, _key1, _key2>::get_and_or_add(const _key1& k1, _type m_data, const _key2& k2)
 	{
-		if (!Contains(k1, k2))
+		if (!contains(k1, k2))
 		{
-			Add(k1, data, k2);
+			add(k1, m_data, k2);
 		}
 
 		return m_dataMap.at({ k1, k2 });

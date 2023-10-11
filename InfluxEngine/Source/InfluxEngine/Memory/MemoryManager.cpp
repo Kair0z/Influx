@@ -1,15 +1,15 @@
 #include "engine_pch.h"
 #include "InfluxEngine/Memory/MemoryManager.h"
 
-namespace Influx
+namespace influx
 {
-	void* MemoryManager::Allocate(uint64 size)
+	void* MemoryManager::Allocate(uint64 dimension)
 	{
-		return Platform::Allocate(size);
+		return platform::Allocate(dimension);
 	}
 
 	void MemoryManager::Free(void* pointer)
 	{
-		return Platform::Free(pointer);
+		return platform::Free(pointer);
 	}
 }

@@ -6,7 +6,7 @@
 #include "Core/Container/Vector.h"
 #include "Core/Platform/Platform.h"
 
-namespace Influx
+namespace influx
 {
 	class IFluxRenderer
 	{
@@ -25,16 +25,16 @@ namespace Influx
 		struct MaterialData final
 		{
 			MaterialData() = default;
-			MaterialData(const Vector<byte>& vs, const Vector<byte>& ps) 
+			MaterialData(const vector<byte>& vs, const vector<byte>& ps) 
 				: VertexShader{ vs }, PixelShader{ ps } {}
 
-			Vector<byte> VertexShader;
-			Vector<byte> PixelShader;
+			vector<byte> VertexShader;
+			vector<byte> PixelShader;
 		};
 
-		virtual void RecordRenderCommands(Platform::WindowHandle windowHandle) = 0;
+		virtual void RecordRenderCommands(platform::window_handle windowHandle) = 0;
 
-		virtual void PresentToWindow(Platform::WindowHandle windowHandle) = 0;
+		virtual void PresentToWindow(platform::window_handle windowHandle) = 0;
 
 		void SetMaterial(const MaterialData& material)
 		{
@@ -50,8 +50,8 @@ namespace Influx
 
 			for (const Scene::Mesh& mesh : m_meshes)
 			{
-				m_numVertices += mesh.GetVertices().size();
-				m_numIndices += mesh.GetIndices().size();
+				m_numVertices += mesh.GetVertices().dimension();
+				m_numIndices += mesh.GetIndices().dimension();
 			}
 
 			m_vertexBufferSize = m_numVertices * GetVertexSize();
@@ -69,7 +69,7 @@ namespace Influx
 			m_cameraData = cameraData;
 		}
 
-		const Vector<Scene::Mesh>& GetMeshes() const
+		const vector<Scene::Mesh>& GetMeshes() const
 		{
 			return m_meshes;
 		}
@@ -107,7 +107,7 @@ namespace Influx
 		uint64 m_vertexBufferSize;
 		uint64 m_indexBufferSize;
 
-		Vector<Scene::Mesh> m_meshes;
+		vector<Scene::Mesh> m_meshes;
 
 	protected:
 		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Triple;

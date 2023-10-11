@@ -3,96 +3,89 @@
 #ifndef __CORE_SCENE_MESH_H_
 #define __CORE_SCENE_MESH_H_
 
-#define CORE_SCENE_MESH_DEBUG 1
+#include "core/basetypes.h"
+#include "core/geometry/vertex.h"
+#include "core/container/vector.h"
+#include "core/string.h"
 
-#include "Core/Geometry/Vertex.h"
-#include "Core/Container/Containers.h"
-#include "Core/String.h"
-
-namespace Influx::Scene
+namespace influx::scene
 {
-	struct Mesh final
+	namespace detail
 	{
-		using Index = uint32;
-		using Vertex = Math::Vertex;
-		using Triangle = Vertex[3u];
-
-	public:
-		Mesh() = default;
-
-		inline Mesh(const Vector<Vertex>& vertices, const Vector<Index>& indices)
-			: m_vertices{vertices}
-			, m_indices{indices}
+		struct i_mesh
 		{
-		}
-		inline Mesh(const Vector<Triangle>& triangles)
-		{
-			m_vertices.reserve(triangles.size() * 3u);
-			m_indices.reserve(triangles.size() * 3u);
 
-			for (size_t i = 0; i < triangles.size(); ++i)
+		};
+
+		template <class _vertex_t, class _index_t = uint32>
+		struct mesh final
+		{
+			using triangle = vertex_t[3u];
+
+		public:
+			mesh() = default;
+
+			inline mesh(const vector<_vertex_t>& vertices, const vector<_index_t>& indices)
+				: m_vertices{ vertices }
+				, m_indices{ indices }
 			{
-				AddTriangle(triangles[i]);
 			}
-		}
 
-		inline void AddTriangle(const Triangle& triangle)
-		{
-			AddTriangle(triangle[0], triangle[1], triangle[2]);
-		}
+			inline mesh(const vector<triangle>& triangles)
+			{
+				m_vertices.reserve(triangles.dimension() * 3u);
+				m_indices.reserve(triangles.dimension() * 3u);
 
-		inline void AddTriangle(const Vertex& a, const Vertex& b, const Vertex& c)
-		{
-			AddVertex(a);
-			AddIndex((Index)m_vertices.size() - 1u);
+				for (size_t i = 0; i < triangles.dimension(); ++i)
+				{
+					add_triangle(triangles[i]);
+				}
+			}
 
-			AddVertex(b);
-			AddIndex((Index)m_vertices.size() - 1u);
+			inline void add_triangle(const triangle& triangle)
+			{
+				add_triangle(triangle[0], triangle[1], triangle[2]);
+			}
 
-			AddVertex(c);
-			AddIndex((Index)m_vertices.size() - 1u);
-		}
+			inline void add_triangle(const _vertex_t& a, const _vertex_t& b, const _vertex_t& c)
+			{
+				add_vertex(a);
+				add_index((_index_t)m_vertices.dimension() - 1u);
 
-		inline void AddVertex(const Vertex& v)
-		{
-			m_vertices.push_back(v);
-		}
+				add_vertex(b);
+				add_index((_index_t)m_vertices.dimension() - 1u);
 
-		inline void AddIndex(const Index& i)
-		{
-			m_indices.push_back(i);
-		}
+				add_vertex(c);
+				add_index((_index_t)m_vertices.dimension() - 1u);
+			}
 
-		const Vector<Vertex>& GetVertices() const
-		{
-			return m_vertices;
-		}
+			inline void add_vertex(const _vertex_t& v)
+			{
+				m_vertices.push_back(v);
+			}
 
-		const Vector<Index>& GetIndices() const
-		{
-			return m_indices;
-		}
+			inline void add_index(const _index_t& i)
+			{
+				m_indices.push_back(i);
+			}
 
-	private:
-		Vector<Vertex> m_vertices;
-		Vector<Index> m_indices;
+			const vector<_vertex_t>& get_vertices() const
+			{
+				return m_vertices;
+			}
 
-#if CORE_SCENE_MESH_DEBUG
-	public:
-		inline void SetName(const String& name)
-		{
-			m_name = name;
-		}
+			const vector<_index_t>& get_indices() const
+			{
+				return m_indices;
+			}
 
-		inline const String& GetName() const
-		{
-			return m_name;
-		}
-
-	private:
-		String m_name = "";
-#endif
-	};
+		private:
+			vector<_vertex_t> m_vertices;
+			vector<_index_t> m_indices;
+		};
+	}
+	
+	
 }
 
 #endif

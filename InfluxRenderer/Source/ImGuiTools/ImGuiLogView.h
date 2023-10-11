@@ -4,7 +4,7 @@
 
 #include <vadefs.h>
 
-namespace Influx::Application
+namespace influx::Application
 {
 	class ImGuiLogView final
 	{

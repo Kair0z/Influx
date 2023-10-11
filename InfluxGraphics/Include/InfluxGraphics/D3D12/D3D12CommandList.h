@@ -8,17 +8,17 @@
 
 #include "D3D12CommandQueue.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	/* D3D12CommandList */
 	class D3D12CommandList final : public RHICommandList
 	{
 	public:
 		/* Graphics Commandlist Interface: */
-		virtual void RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList*)>) override final;
+		virtual void RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, function<void(RHICommandList*)>) override final;
 		virtual void TransitionResource(RHIResource* resource, const ERHIResourceState newState) override final;
 		virtual void ClearRTV(RHIRenderTargetView* renderTargetView) override final;
-		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const Math::Vectorf4& clearValue) override final;
+		virtual void ClearRTV(RHIRenderTargetView* renderTargetView, const math::Vectorf4& clearValue) override final;
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) override final;
 		virtual void BindViewports(const RHIViewport& viewport) override final;
 		virtual void BindConstants(const uint32 num32BitConstantsToSet, const float* pData, uint32 rootParameterIndex = 0u) override final;
@@ -26,10 +26,10 @@ namespace Influx::Graphics
 		virtual void BindVertexBuffer(RHIResource* vertexBufferResource, uint64 bufferSizeInBytes, uint64 vertexStrideInBytes) override final;
 		virtual void BindIndexBuffer(RHIResource* indexBufferResource, uint64 bufferSizeInBytes) override final;
 		virtual void SetPrimitiveTopology(ERHIPrimitiveTopology topology) override final;
-		virtual void SetBlendFactor(const Math::Vectorf4& blendFactor) override final;
+		virtual void SetBlendFactor(const math::Vectorf4& blendFactor) override final;
 		virtual void CopyResource(RHIResource* source, RHIResource* dest, bool forceTransition) override final;
 		virtual void ClearTextureAsRTV(RHITexture* texture, bool forceTransition) override final;
-		virtual void ClearTextureAsRTV(RHITexture* texture, const Math::Vectorf4& clearValue, bool forceTransition) override final;
+		virtual void ClearTextureAsRTV(RHITexture* texture, const math::Vectorf4& clearValue, bool forceTransition) override final;
 		virtual void BindPipelineLayout(RHIGraphicsPipelineLayout* pipelineLayout) override final;
 		virtual void BindPipelineState(RHIGraphicsPipeline* pipeline) override final;
 		virtual void BindRenderTarget(RHIRenderTargetView* renderTargetView) override final;

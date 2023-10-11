@@ -6,12 +6,12 @@
 #include "InfluxGraphics/RHIResourceViews/RHIShaderResourceView.h"
 #include "D3D12.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class D3D12ShaderResourceView final : public RHIShaderResourceView
 	{
 		friend class D3D12Device;
-		D3D12ShaderResourceView(ERHIFormat rtvFormat, const Math::Vectoru2& dimensions, const RHIClearValue resourceClearValue)
+		D3D12ShaderResourceView(ERHIFormat rtvFormat, const math::Vectoru2& dimensions, const RHIClearValue resourceClearValue)
 			: RHIShaderResourceView(rtvFormat, dimensions, resourceClearValue) {}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE m_dxCpuHandle{};

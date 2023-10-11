@@ -5,12 +5,12 @@
 
 #include "ImGui/imgui.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHIShaderResourceView;
 }
 
-namespace Influx::GUI
+namespace influx::GUI
 {
 	class ViewportWidget final : public IWidget
 	{
@@ -30,7 +30,7 @@ namespace Influx::GUI
 		};
 
 	private:
-		using SrvPtr = Influx::Graphics::RHIShaderResourceView*;
+		using SrvPtr = influx::Graphics::RHIShaderResourceView*;
 		SrvPtr m_pTargetSrv;
 		
 		Settings m_currentSettings;

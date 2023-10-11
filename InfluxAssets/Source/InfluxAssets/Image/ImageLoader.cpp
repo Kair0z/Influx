@@ -1,9 +1,9 @@
 #include "InfluxAssets/InfluxAssets.h"
 
-namespace Influx::Assets
+namespace influx::Assets
 {
 	/* Loads an 2D-image (.png, .jpeg) */
-	bool LoadImageFile(const String& filepath, Image& out_image, ImageCachePtr pCache, const ImageLoadDesc& loadDesc)
+	bool LoadImageFile(const string& filepath, Image& out_image, ImageCachePtr pCache, const ImageLoadDesc& loadDesc)
 	{
 		// Try to find the loaded scene in the provided cache...
 		if (pCache)

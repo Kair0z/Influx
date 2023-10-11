@@ -3,37 +3,37 @@
 #ifndef __CORE_SCENE_LIGHT_H_
 #define __CORE_SCENE_LIGHT_H_
 
-namespace Influx::Scene
+namespace influx::scene
 {
-	enum class ELightType
+	enum class e_light_type
 	{
-		Unknown,
-		Directional,
-		Point,
-		Spot,
-		Max
+		directional,
+		point,
+		spot,
+		maximum
 	};
 
-	class Light
+	namespace detail
 	{
-	public:
+		class i_light
+		{
+		public:
 
-	private:
+		private:
 
-	};
+		};
 
-	namespace Internal
-	{
-		template <ELightType _E>
-		class TLight final : public Light
+		template <e_light_type _E>
+		class light final : public i_light
 		{
 
 		};
 	}
 
-	using DirectionalLight = Internal::TLight<ELightType::Directional>;
-	using PointLight = Internal::TLight<ELightType::Point>;
-	using SpotLight = Internal::TLight<ELightType::Spot>;
+	using light = detail::i_light;
+	using DirectionalLight = detail::light<e_light_type::directional>;
+	using PointLight = detail::light<e_light_type::point>;
+	using SpotLight = detail::light<e_light_type::spot>;
 }
 
 #endif

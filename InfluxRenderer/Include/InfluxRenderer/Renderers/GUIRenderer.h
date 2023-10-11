@@ -8,7 +8,7 @@
 #include "Core/Pointer.h"
 
 #pragma region Predeclarations
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHIGraphicsPipelineLayout;
 	class RHIGraphicsPipeline;
@@ -17,18 +17,18 @@ namespace Influx::Graphics
 	class RHIResource;
 }
 
-namespace Influx::GUI
+namespace influx::GUI
 {
 	class IWidget;
 }
 
-namespace Influx::Renderer
+namespace influx::Renderer
 {
 	class RenderContext;
 }
 #pragma endregion
 
-namespace Influx::GUI
+namespace influx::GUI
 {
 	class GUIRenderer final : public Renderer::IRenderer
 	{
@@ -77,7 +77,7 @@ namespace Influx::GUI
 		Graphics::RHIResource* mp_indexBufferResource;
 
 		/* Imgui keeps this state */
-		static void AttachToWin32Backend(Platform::WindowHandle windowHandle);
+		static void AttachToWin32Backend(platform::window_handle windowHandle);
 		static void DetachFromWin32Backend();
 		static bool IsAttachedToWin32Backend();
 	};

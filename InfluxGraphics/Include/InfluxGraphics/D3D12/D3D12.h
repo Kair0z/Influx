@@ -27,7 +27,7 @@
 #undef min
 #endif
 
-namespace Influx::Graphics::D3D12
+namespace influx::Graphics::D3D12
 {
 	using FactoryPtr = IDXGIFactory*;
 	using AdapterPtr = IDXGIAdapter*;
@@ -219,9 +219,9 @@ namespace Influx::Graphics::D3D12
 			}
 		}
 
-		inline Vector<AdapterPtr> SelectAll(const FactoryPtr factory)
+		inline vector<AdapterPtr> SelectAll(const FactoryPtr factory)
 		{
-			Vector<AdapterPtr> list{};
+			vector<AdapterPtr> list{};
 			AdapterPtr temp{};
 
 			for (UINT i = 0; factory->EnumAdapters(i, &temp) != DXGI_ERROR_NOT_FOUND; ++i)
@@ -236,9 +236,9 @@ namespace Influx::Graphics::D3D12
 		{
 			AdapterPtr result{};
 
-			Vector<AdapterPtr> allAdapters = SelectAll(factory);
+			vector<AdapterPtr> allAdapters = SelectAll(factory);
 
-			if (adapterIndex < allAdapters.size())
+			if (adapterIndex < allAdapters.dimension())
 			{
 				return allAdapters[adapterIndex];
 			}
@@ -544,9 +544,9 @@ namespace Influx::Graphics::D3D12
 				D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
 				D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-			Vector<D3D12_ROOT_PARAMETER1>		RootParameters1{};
-			Vector<D3D12_ROOT_PARAMETER>		RootParameters{};
-			Vector<D3D12_STATIC_SAMPLER_DESC>	StaticSamplers{};
+			vector<D3D12_ROOT_PARAMETER1>		RootParameters1{};
+			vector<D3D12_ROOT_PARAMETER>		RootParameters{};
+			vector<D3D12_STATIC_SAMPLER_DESC>	StaticSamplers{};
 			D3D12_ROOT_SIGNATURE_FLAGS			Flags{ D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT };
 			D3D12_FEATURE_DATA_ROOT_SIGNATURE	FeatureData;
 			D3D_ROOT_SIGNATURE_VERSION			MaxVersion	= D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -628,9 +628,9 @@ namespace Influx::Graphics::D3D12
 
 		struct GraphicsPipelineStateDesc final
 		{
-			Vector<D3D12_INPUT_ELEMENT_DESC> InputElements;
+			vector<D3D12_INPUT_ELEMENT_DESC> InputElements;
 
-			using ShaderByteCode = Vector<byte>;
+			using ShaderByteCode = vector<byte>;
 
 			ShaderByteCode VertexShaderBytecode;
 			ShaderByteCode PixelShaderByteCode;
@@ -643,7 +643,7 @@ namespace Influx::Graphics::D3D12
 			D3D12_DEPTH_STENCIL_DESC DepthStencilState;
 			uint8 SampleMask;
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
-			Vector<DXGI_FORMAT> RenderTargetFormats; // Implies NumRenderTargets...
+			vector<DXGI_FORMAT> RenderTargetFormats; // Implies NumRenderTargets...
 			DXGI_SAMPLE_DESC SampleDesc;
 
 			void AddInputElement(const char* semanticName, uint8 semanticIndex, DXGI_FORMAT format, uint8 inputSlot, uint8 alignedByteOffset, D3D12_INPUT_CLASSIFICATION inputSlotClass, uint8 instanceDataStepRate)
@@ -710,8 +710,8 @@ namespace Influx::Graphics::D3D12
 		}
 	}
 
-	template <typename _T>
-	inline void SafeRelease(_T*& object)
+	template <typename _t>
+	inline void SafeRelease(_t*& object)
 	{
 		if (object == nullptr)
 		{
@@ -846,17 +846,17 @@ namespace Influx::Graphics::D3D12
 
 		D3D12_ROOT_SIGNATURE_DESC desc{};
 		desc.Flags				= rootSignatureDesc.Flags;
-		desc.NumParameters		= (UINT)rootSignatureDesc.RootParameters.size();
-		desc.NumStaticSamplers	= (UINT)rootSignatureDesc.StaticSamplers.size();
-		desc.pParameters		= rootSignatureDesc.RootParameters.data();
-		desc.pStaticSamplers	= rootSignatureDesc.StaticSamplers.data();
+		desc.NumParameters		= (UINT)rootSignatureDesc.RootParameters.dimension();
+		desc.NumStaticSamplers	= (UINT)rootSignatureDesc.StaticSamplers.dimension();
+		desc.pParameters		= rootSignatureDesc.RootParameters.m_data();
+		desc.pStaticSamplers	= rootSignatureDesc.StaticSamplers.m_data();
 
 		D3D12_ROOT_SIGNATURE_DESC1 desc1{};
 		desc1.Flags				= rootSignatureDesc.Flags;
-		desc1.NumParameters		= (UINT)rootSignatureDesc.RootParameters1.size();
-		desc1.NumStaticSamplers	= (UINT)rootSignatureDesc.StaticSamplers.size();
-		desc1.pParameters		= rootSignatureDesc.RootParameters1.data();
-		desc1.pStaticSamplers	= rootSignatureDesc.StaticSamplers.data();
+		desc1.NumParameters		= (UINT)rootSignatureDesc.RootParameters1.dimension();
+		desc1.NumStaticSamplers	= (UINT)rootSignatureDesc.StaticSamplers.dimension();
+		desc1.pParameters		= rootSignatureDesc.RootParameters1.m_data();
+		desc1.pStaticSamplers	= rootSignatureDesc.StaticSamplers.m_data();
 
 		D3D12_VERSIONED_ROOT_SIGNATURE_DESC serializedDesc{};
 		serializedDesc.Desc_1_0 = desc;
@@ -907,25 +907,25 @@ namespace Influx::Graphics::D3D12
 		psoDesc.pRootSignature = rootSignature;
 
 		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
-		inputLayoutDesc.NumElements = (UINT)pipelineStateDesc.InputElements.size();
-		inputLayoutDesc.pInputElementDescs = pipelineStateDesc.InputElements.data();
+		inputLayoutDesc.NumElements = (UINT)pipelineStateDesc.InputElements.dimension();
+		inputLayoutDesc.pInputElementDescs = pipelineStateDesc.InputElements.m_data();
 		psoDesc.InputLayout = inputLayoutDesc;
 
-		psoDesc.VS = { pipelineStateDesc.VertexShaderBytecode.data()  , pipelineStateDesc.VertexShaderBytecode.size() * sizeof(byte)};
-		psoDesc.PS = { pipelineStateDesc.PixelShaderByteCode.data()	  , pipelineStateDesc.PixelShaderByteCode.size() * sizeof(byte)};
-		psoDesc.DS = { pipelineStateDesc.DomainShaderByteCode.data()  , pipelineStateDesc.DomainShaderByteCode.size() * sizeof(byte)};
-		psoDesc.HS = { pipelineStateDesc.HullShaderByteCode.data()	  , pipelineStateDesc.HullShaderByteCode.size() * sizeof(byte)};
-		psoDesc.GS = { pipelineStateDesc.GeometryShaderByteCode.data(), pipelineStateDesc.GeometryShaderByteCode.size() * sizeof(byte)};
+		psoDesc.VS = { pipelineStateDesc.VertexShaderBytecode.m_data()  , pipelineStateDesc.VertexShaderBytecode.dimension() * sizeof(byte)};
+		psoDesc.PS = { pipelineStateDesc.PixelShaderByteCode.m_data()	  , pipelineStateDesc.PixelShaderByteCode.dimension() * sizeof(byte)};
+		psoDesc.DS = { pipelineStateDesc.DomainShaderByteCode.m_data()  , pipelineStateDesc.DomainShaderByteCode.dimension() * sizeof(byte)};
+		psoDesc.HS = { pipelineStateDesc.HullShaderByteCode.m_data()	  , pipelineStateDesc.HullShaderByteCode.dimension() * sizeof(byte)};
+		psoDesc.GS = { pipelineStateDesc.GeometryShaderByteCode.m_data(), pipelineStateDesc.GeometryShaderByteCode.dimension() * sizeof(byte)};
 
 		psoDesc.RasterizerState			= pipelineStateDesc.RasterizerState;
 		psoDesc.BlendState				= pipelineStateDesc.BlendState;
 		psoDesc.DepthStencilState		= pipelineStateDesc.DepthStencilState;
 		psoDesc.SampleMask				= pipelineStateDesc.SampleMask;
 		psoDesc.PrimitiveTopologyType	= pipelineStateDesc.PrimitiveTopologyType;
-		psoDesc.NumRenderTargets		= (UINT)pipelineStateDesc.RenderTargetFormats.size();
+		psoDesc.NumRenderTargets		= (UINT)pipelineStateDesc.RenderTargetFormats.dimension();
 		psoDesc.SampleDesc				= pipelineStateDesc.SampleDesc;
 
-		for (uint8 rt = 0u; rt < pipelineStateDesc.RenderTargetFormats.size(); ++rt)
+		for (uint8 rt = 0u; rt < pipelineStateDesc.RenderTargetFormats.dimension(); ++rt)
 		{
 			psoDesc.RTVFormats[rt] = pipelineStateDesc.RenderTargetFormats[rt];
 		}

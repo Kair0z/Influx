@@ -3,21 +3,21 @@
 #ifndef _CORE_GEOMETRY_PLANE_H_
 #define _CORE_GEOMETRY_PLANE_H_
 
-#include "../Math/Vector.h"
+#include "core/math/vector.h"
 
-namespace Influx::Math
+namespace influx::math
 {
-	template <typename _T>
-	struct Plane final
+	template <typename _t>
+	struct plane final
 	{
 	private:
-		using Vector3 = Vector<_T, 3u>;
+		using vector3 = math::vector<_t, 3u>;
 
 	public:
-		inline Plane(const Vector3& normal, float offset) : m_normal{ normal }, m_offset{ offset }{}
+		inline plane(const vector3& normal, float offset) : m_normal{ normal }, m_offset{ offset }{}
 
-		Vector3 m_normal;
-		_T m_offset;
+		vector3 m_normal;
+		_t m_offset;
 	};
 }
 

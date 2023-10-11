@@ -3,13 +3,16 @@
 #ifndef _CORE_CLEANUP_H_
 #define _CORE_CLEANUP_H_
 
-namespace Influx
+namespace influx
 {
-	template <typename _T>
-	void SafeDelete(_T*& p)
+	template <typename _type>
+	void safe_delete(_type*& p)
 	{
-		delete p;
-		p = nullptr;
+		if (p != nullptr)
+		{
+			delete p;
+			p = nullptr;
+		}
 	}
 }
 

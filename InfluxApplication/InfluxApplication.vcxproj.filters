@@ -3,9 +3,11 @@
   <ItemGroup>
     <ClInclude Include="Include\InfluxApplication\Application.h" />
     <ClInclude Include="Source\app_pch.h" />
+    <ClInclude Include="Include\application\influx_application.h" />
+    <ClInclude Include="Source\application\application.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\InfluxApplication\Application.cpp" />
     <ClCompile Include="Source\app_pch.cpp" />
+    <ClCompile Include="Source\application\application.cpp" />
   </ItemGroup>
 </Project>

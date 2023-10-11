@@ -25,7 +25,7 @@
 #include <functional>
 #endif
 
-namespace Influx
+namespace influx
 {
 #if !__USE_INFLUX_CORE
 	using uint = unsigned int;
@@ -37,26 +37,26 @@ namespace Influx
 	using String	= std::string;
 	using WString	= std::wstring;
 
-	template <typename _T> using Vector		= std::vector<_T>;
-	template <typename _T> using List		= std::list<_T>;
-	template <typename _T> using Queue		= std::queue<_T>;
-	template <typename _T> using Function	= std::function<_T>;
+	template <typename _t> using Vector		= std::vector<_t>;
+	template <typename _t> using List		= std::list<_t>;
+	template <typename _t> using Queue		= std::queue<_t>;
+	template <typename _t> using Function	= std::function<_t>;
 
-	template <class _T>
+	template <class _t>
 	class Singleton
 	{
 	public:
-		inline static _T& Get()
+		inline static _t& Get()
 		{
 			return s_instance;
 		}
 
 	private:
-		static _T s_instance;
+		static _t s_instance;
 	};
 
-	template <class _T>
-	_T Singleton<_T>::s_instance = _T{};
+	template <class _t>
+	_t Singleton<_t>::s_instance = _t{};
 #endif
 }
 

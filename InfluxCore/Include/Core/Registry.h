@@ -3,74 +3,74 @@
 #ifndef __CORE_REGISTRY_H_
 #define __CORE_REGISTRY_H_
 
-#include <memory>
-
 #define __CORE_REGISTRY_USE_CORE 1
+
 #if __CORE_REGISTRY_USE_CORE
-#include "Core/Container/Array.h"
-#include "Core/Container/Vector.h"
-#include "Core/BasicTypes.h"
+#include "core/container/array.h"
+#include "core/container/vector.h"
+#include "core/basetypes.h"
 #else
 #endif
 
-namespace Influx
+#include <memory>
+
+namespace influx
 {
-	namespace Internal
+	namespace detail
 	{
-		class IRegistry
+		class i_registry
 		{
 
 		};
 	}
 
 	template <class _B, class _Enum>
-	class Registry final : public Internal::IRegistry
+	class registry final : public detail::i_registry
 	{
 	private:
-		using BaseClass = _B;
-		using Enum = _Enum;
+		using base_class = _B;
 
-		constexpr static uint64 k_EnumMaxValue = static_cast<uint64>(Enum::Max);
+		constexpr static uint64 k_enum_max = static_cast<uint64>(_Enum::maximum);
 
 		struct Child final
 		{
-			BaseClass* pObjectPointer;
+			base_class* pObjectPointer;
 		};
 
-		using Container = Vector<Child>;
+		using Container = vector<Child>;
 		
 	public:
-		template <Enum _E>
+		template <_Enum _E>
 		bool CanRegisterObject() const
 		{
 			return true;
 		}
 
-		template <Enum _E>
-		BaseClass* CreateObject()
+		template <_Enum _E>
+		base_class* CreateObject()
 		{
 			Child newChild{};
 
-			newChild.pObjectPointer = new BaseClass();
+			newChild.pObjectPointer = new base_class();
 
 			constexpr uint64 index = static_cast<uint64>(_E);
 			mp_childMap[index].push_back(newChild);
 		}
 
-		template <Enum _E>
+		template <_Enum _E>
 		const Container& GetObjectsOfType() const
 		{
 			constexpr uint64 index = static_cast<uint64>(_E);
 			return mp_childMap[index];
 		}
 
-		template <Enum _E>
+		template <_Enum _E>
 		uint64 GetNumObjectsOfType()
 		{
-			return GetObjectsOfType().size();
+			return GetObjectsOfType().dimension();
 		}
 
-		template <Enum _E>
+		template <_Enum _E>
 		bool HasObjectOfType() const
 		{
 			return GetNumObjectsOfType() != 0u;

@@ -5,7 +5,7 @@
 #include "Core/Platform/WindowsPlatform.h"
 #include "Core/Registry.h"
 
-namespace Influx
+namespace influx
 {
 	struct Settings final
 	{
@@ -27,7 +27,7 @@ namespace Influx
 
 int main()
 {
-	using namespace Influx;
+	using namespace influx;
 
 #ifdef _DEBUG
 	Graphics::SetDebugLayerEnabled();
@@ -36,7 +36,7 @@ int main()
 	const Math::Vectoru2 dimensions { Settings::WindowWidth, Settings::WindowHeight };
 
 	// Create Platform window...
-	if (Platform::WindowHandle windowHandle = Platform::CreateWindow({ dimensions, Settings::WindowName }))
+	if (platform::window_handle windowHandle = platform::CreateWindow({ dimensions, Settings::WindowName }))
 	{
 		Graphics::RHISwapchainDesc swapchainDesc{};
 		swapchainDesc.Buffering		= Settings::SwapchainBuffering;

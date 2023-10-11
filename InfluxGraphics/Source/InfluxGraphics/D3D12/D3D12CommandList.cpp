@@ -9,7 +9,7 @@
 
 #include "InfluxGraphics/D3D12/ResourceViews/D3D12RenderTargetView.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	D3D12CommandList::D3D12CommandList(const ERHICommandQueueType type)
 		: RHICommandList(type)

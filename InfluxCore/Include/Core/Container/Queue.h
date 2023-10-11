@@ -5,10 +5,10 @@
 
 #include <queue>
 
-namespace Influx
+namespace influx
 {
-	template <typename _T>
-	using Queue = std::queue<_T>;
+	template <typename _t>
+	using queue = std::queue<_t>;
 }
 
 #endif

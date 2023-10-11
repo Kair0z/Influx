@@ -6,7 +6,7 @@
 #include "InfluxGraphics/RHIPipeline.h"
 #include "D3D12.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	/* D3D12Pipeline */
 	class D3D12GraphicsPipeline final : public RHIGraphicsPipeline

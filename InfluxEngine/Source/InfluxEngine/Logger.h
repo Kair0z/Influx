@@ -5,7 +5,7 @@
 
 #include "spdlog/spdlog.h"
 
-namespace Influx
+namespace influx
 {
 	class Logger final
 	{

@@ -3,7 +3,7 @@
 
 #include "InfluxEngine/Memory/MemoryManager.h"
 
-namespace Influx
+namespace influx
 {
 
 	Engine::Engine(const Engine::ConstructArgs& args)

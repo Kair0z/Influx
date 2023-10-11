@@ -3,33 +3,33 @@
 #ifndef _CORE_LOCATOR_H_
 #define _CORE_LOCATOR_H_
 
-namespace Influx
+namespace influx
 {
-	template <class _T>
-	class Locator final
+	template <class _type>
+	class locator final
 	{
 	public:
-		inline static _T* Get()
+		inline static _type* get()
 		{
 			return mp_service;
 		}
 
-		inline static void Provide(_T* newService)
+		inline static void provide(_type* newService)
 		{
 			mp_service = newService;
 		}
 
-		inline static void Unset()
+		inline static void unset()
 		{
-			Provide(nullptr);
+			provide(nullptr);
 		}
 
 	private:
-		static _T* mp_service;
+		static _type* mp_service;
 	};
 
-	template<class _T>
-	_T* Locator<_T>::mp_service = nullptr;
+	template<class _type>
+	_type* locator<_type>::mp_service = nullptr;
 }
 
 #endif

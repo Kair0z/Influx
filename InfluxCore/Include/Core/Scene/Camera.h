@@ -3,21 +3,22 @@
 #ifndef __CORE_SCENE_CAMERA_H_
 #define __CORE_SCENE_CAMERA_H_
 
-#include "Core/Math/Transform.h"
-#include "Core/Macros.h"
+#include "core/math/transform.h"
+#include "core/macros.h"
 
-namespace Influx::Scene
+namespace influx::scene
 {
-	class Camera final
+	class camera final
 	{
 	public:
-		Camera() = default;
-		Camera(float fov, float near, float far)
-			: Fov{ fov }, NearPlane{ near }, FarPlane{ far } {}
+		camera() = default;
+		camera(float fov, float nearp = 0.0f, float farp = 1.0f)
+			: m_fov{ fov }, m_nearplane{ nearp }, m_farplane{ farp } {}
 
-		FLX_CORE_GET_SET(float, Fov);
-		FLX_CORE_GET_SET(float, NearPlane);
-		FLX_CORE_GET_SET(float, FarPlane);
+	private:
+		FLX_CORE_GET_SET(float, fov);
+		FLX_CORE_GET_SET(float, nearplane);
+		FLX_CORE_GET_SET(float, farplane);
 	};
 }
 

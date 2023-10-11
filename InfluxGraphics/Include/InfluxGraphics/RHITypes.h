@@ -6,7 +6,7 @@
 #include "Core/BasicTypes.h"
 #include "Core/Math/Vector.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	/* Graphics APIs */
 	enum class EGraphicsAPI

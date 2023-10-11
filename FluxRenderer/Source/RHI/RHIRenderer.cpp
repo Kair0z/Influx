@@ -3,18 +3,18 @@
 #include "InfluxGraphics.h"
 #include "Core/Platform/WindowsPlatform.h"
 
-namespace Influx
+namespace influx
 {
-	void RHIRenderer::RecordRenderCommands(Platform::WindowHandle windowHandle)
+	void RHIRenderer::RecordRenderCommands(platform::window_handle windowHandle)
 	{
 		
 	}
 
-	void RHIRenderer::PresentToWindow(Platform::WindowHandle windowHandle)
+	void RHIRenderer::PresentToWindow(platform::window_handle windowHandle)
 	{
 		Graphics::RHISwapchainDesc desc{};
 		desc.Buffering = Graphics::RHISwapchainDesc::EBuffering::Triple;
-		desc.Dimensions = Platform::GetClientWindowDimensions<uint32>(windowHandle);
+		desc.Dimensions = platform::GetClientWindowDimensions<uint32>(windowHandle);
 
 		if (m_swapchain.IsValid() || Graphics::CreateSwapchain(desc, m_swapchain))
 		{

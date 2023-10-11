@@ -5,26 +5,26 @@
 
 #define FLX_CORE_GET(Type, Name) \
 		private: \
-			Type Name; \
+			Type m_##Name; \
 		public: \
-			const Type& Get##Name() const \
+			const Type& get_##Name() const \
 			{ \
-				return Name; \
+				return m_##Name; \
 			} \
 		private: // default to private...
 
 #define FLX_CORE_GET_SET(Type, Name) \
 		private: \
-			Type Name; \
+			Type m_##Name; \
 		public: \
-			const Type& Get##Name() const \
+			const Type& get_##Name() const \
 			{ \
-				return Name; \
+				return m_##Name; \
 			} \
 			\
-			void Set##Name(const Type& newValue) \
+			void set_##Name(const Type& new_value) \
 			{ \
-				Name = newValue; \
+				m_##Name = new_value; \
 			} \
 		private: // default to private...
 

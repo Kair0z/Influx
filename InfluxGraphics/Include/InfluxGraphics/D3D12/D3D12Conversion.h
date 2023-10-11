@@ -3,7 +3,7 @@
 #include "InfluxGraphics.h"
 #include "D3D12.h"
 
-namespace Influx::Graphics::Conversion
+namespace influx::Graphics::Conversion
 {
 	constexpr D3D12_COMMAND_LIST_TYPE ToDx12(ERHICommandQueueType type)
 	{

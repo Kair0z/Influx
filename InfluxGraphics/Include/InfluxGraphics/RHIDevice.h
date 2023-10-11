@@ -7,7 +7,7 @@
 #include "Core/Pointer.h"
 #include "Core/Platform/Platform.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHICommandList;
 	class RHIDescriptorHeap;
@@ -41,7 +41,7 @@ namespace Influx::Graphics
 		/* Creating API objects & Resources */
 		virtual CommandQueuePtr CreateCommandQueue(const ERHICommandQueueType type) const = 0;
 
-		virtual SwapchainPtr CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, CommandQueuePtr commandQueue) const = 0;
+		virtual SwapchainPtr CreateSwapchain(const Math::Vectoru2& dimensions, platform::window_handle windowHandle, CommandQueuePtr commandQueue) const = 0;
 
 		virtual DescriptorHeapPtr CreateDescriptorHeap(const ERHIResourceViewType type, uint32 numDescriptors, bool isShaderVisible) const = 0;
 

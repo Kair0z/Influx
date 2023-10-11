@@ -5,7 +5,7 @@
 
 #include "InfluxEngine/Common.h"
 
-namespace Influx
+namespace influx
 {
 	class MemoryManager;
 

@@ -4,7 +4,7 @@
 
 #include "InfluxGraphics/RHIResource.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHIRenderTargetView : public Internal::RHIResourceView<ERHIResourceViewType::RTV>
 	{

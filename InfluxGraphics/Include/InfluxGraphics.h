@@ -59,48 +59,48 @@
 #include <string>
 #endif // INFLUX_GRAPHICS_USE_STL
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 #if INFLUX_GRAPHICS_USE_CORE
-	using uint8		= Influx::uint8;
-	using byte		= Influx::byte;
-	using uint16	= Influx::uint16;
-	using uint32	= Influx::uint32;
-	using uint64	= Influx::uint64;
+	using uint8		= influx::uint8;
+	using byte		= influx::byte;
+	using uint16	= influx::uint16;
+	using uint32	= influx::uint32;
+	using uint64	= influx::uint64;
 
-	using int8		= Influx::int8;
-	using int16		= Influx::int16;
-	using int32		= Influx::int32;
-	using int64		= Influx::int64;
+	using int8		= influx::int8;
+	using int16		= influx::int16;
+	using int32		= influx::int32;
+	using int64		= influx::int64;
 
-	using f32		= Influx::f32;
-	using f64		= Influx::f64;
+	using f32		= influx::f32;
+	using f64		= influx::f64;
 
-	constexpr uint64 u64_max	= Influx::u64_max;
-	constexpr uint32 u32_max	= Influx::u32_max;
-	constexpr uint16 u16_max	= Influx::u16_max;
-	constexpr uint8  u8_max		= Influx::u8_max;
+	constexpr uint64 u64_max	= influx::u64_max;
+	constexpr uint32 u32_max	= influx::u32_max;
+	constexpr uint16 u16_max	= influx::u16_max;
+	constexpr uint8  u8_max		= influx::u8_max;
 
-	using Vectorf2 = Influx::Math::Vectorf2;
-	using Vectorf3 = Influx::Math::Vectorf3;
-	using Vectorf4 = Influx::Math::Vectorf4;
+	using Vectorf2 = influx::Math::Vectorf2;
+	using Vectorf3 = influx::Math::Vectorf3;
+	using Vectorf4 = influx::Math::Vectorf4;
 
-	using Vectoru2 = Influx::Math::Vectoru2;
-	using Vectoru3 = Influx::Math::Vectoru3;
-	using Vectoru4 = Influx::Math::Vectoru4;
+	using Vectoru2 = influx::Math::Vectoru2;
+	using Vectoru3 = influx::Math::Vectoru3;
+	using Vectoru4 = influx::Math::Vectoru4;
 
-	using Matrix4x4f = Influx::Math::Matrix4x4f;
+	using Matrix4x4f = influx::Math::Matrix4x4f;
 
-	template <typename _T>
-	using Vector	= Influx::Vector<_T>;
+	template <typename _t>
+	using vector	= influx::vector<_t>;
 
-	template <typename _T, uint64 _N>
-	using Array		= Influx::Array<_T, _N>;
+	template <typename _t, uint64 _dim>
+	using Array		= influx::Array<_t, _dim>;
 
-	using String = Influx::String;
+	using String = influx::string;
 
-	template <typename _F>
-	using Function = Influx::Function<_F>;
+	template <typename _func>
+	using Function = influx::function<_func>;
 
 #else
 	using uint8		= unsigned char;
@@ -123,11 +123,11 @@ namespace Influx::Graphics
 	constexpr uint8  u8_max		=	{ 0xffui8 };
 
 #if INFLUX_GRAPHICS_USE_STL
-	template <typename _T>
-	using Vector = std::vector<_T>;
+	template <typename _t>
+	using Vector = std::vector<_t>;
 
-	template <typename _T, uint64 _N>
-	using Array = std::array<_T, _N>;
+	template <typename _t, uint64 _N>
+	using Array = std::array<_t, _N>;
 
 	using String = std::string;
 #endif
@@ -136,7 +136,7 @@ namespace Influx::Graphics
 #pragma endregion
 
 #pragma region RHI Types - Enum
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	/* Graphics APIs */
 	enum class EGraphicsAPI : uint8
@@ -501,7 +501,7 @@ namespace Influx::Graphics
 #pragma endregion
 
 #pragma region RHI Types - Classes
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	/* Every type of object created by the RHI */
 	enum class ERHIChild : uint8
@@ -600,16 +600,16 @@ namespace Influx::Graphics
 			return mp_internal;
 		}
 
-		template <class _T>
-		_T* GetInternal() const
+		template <class _t>
+		_t* GetInternal() const
 		{
-			return static_cast<_T*>(mp_internal);
+			return static_cast<_t*>(mp_internal);
 		}
 
-		template <class _T>
-		_T* As() const
+		template <class _t>
+		_t* As() const
 		{
-			return static_cast<_T*>(mp_internal);
+			return static_cast<_t*>(mp_internal);
 		}
 
 #if INFLUX_GRAPHICS_DEBUG
@@ -689,7 +689,7 @@ namespace Influx::Graphics
 
 	struct RHIGraphicsPipelineDesc final : public RHIDesc<ERHIChild::GraphicsPipeline>
 	{
-		using CompiledShaderData = Vector<uint8>;
+		using CompiledShaderData = vector<uint8>;
 
 		constexpr static uint8 k_maxNumInputElements = 8u;
 		constexpr static uint8 k_maxBoundRenderTargets = 8u;
@@ -811,7 +811,7 @@ namespace Influx::Graphics
 #pragma endregion
 
 // Result
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	struct Result final
 	{
@@ -847,7 +847,7 @@ namespace Influx::Graphics
 }
 
 // [MAIN API]
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	INFLUX_GRAPHICS_API Result RegisterNative(EGraphicsAPI api, ERHIChild type, void* ptr);
 

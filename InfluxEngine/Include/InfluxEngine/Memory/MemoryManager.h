@@ -3,14 +3,14 @@
 
 #pragma once
 
-namespace Influx
+namespace influx
 {
 	// https://developer.ibm.com/tutorials/au-memorymanager/
 
 	class MemoryManager final
 	{
 	public:
-		void* Allocate(uint64 size);
+		void* Allocate(uint64 dimension);
 		void Free(void* pointer);
 	};
 }

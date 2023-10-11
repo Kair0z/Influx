@@ -3,7 +3,7 @@
 #ifndef __CORE_BASIC_TYPES_H_
 #define __CORE_BASIC_TYPES_H_
 
-namespace Influx
+namespace influx
 {
 	using uint8 = unsigned char;
 	using byte = unsigned char;

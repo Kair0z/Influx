@@ -3,7 +3,7 @@
 #if INFLUX_GRAPHICS_USE_CORE
 #include "Core/Singleton/Singleton.h"
 #else
-static_assert(false, "No Singleton Implementation without Influx::Core...");
+static_assert(false, "No Singleton Implementation without influx::Core...");
 #endif
 
 #if INFLUX_GRAPHICS_INCLUDE_DX12
@@ -19,7 +19,7 @@ static_assert(false, "No Singleton Implementation without Influx::Core...");
 #define __TODO INFLUX_GRAPHICS_TODO
 #endif
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
     // [Global State]
     class GlobalState final 
@@ -30,7 +30,7 @@ namespace Influx::Graphics
             IRHIObjectHandle*       pHandle = nullptr;
         };
 
-        using ChildContainer = Vector<Child>;
+        using ChildContainer = vector<Child>;
 
         struct CommandQueueEntry final
         {
@@ -82,7 +82,7 @@ namespace Influx::Graphics
         static bool CanRegisterRHIObject()
         {
             constexpr uint8 idx = static_cast<uint8>(_E);
-            return Get().m_childLists[idx].size() < k_maxNumRHIObjectsPerType[idx];
+            return Get().m_childLists[idx].dimension() < k_maxNumRHIObjectsPerType[idx];
         }
         template <class _E>
         static bool CanRegisterRHIObject()
@@ -162,7 +162,7 @@ namespace Influx::Graphics
         template <ERHIChild _E>
         static bool HasObjectOfType()
         {
-            return GetRHIObjectsOfType<_E>().size() != 0u;
+            return GetRHIObjectsOfType<_E>().dimension() != 0u;
         }
         template <class _E>
         static bool HasObjectOfType()
@@ -174,7 +174,7 @@ namespace Influx::Graphics
         template <ERHIChild _E>
         static RHIObjectHandle<_E> GetRHIObjectOfType(uint64 atIndex)
         {
-            if (atIndex >= GetRHIObjectsOfType<_E>().size())
+            if (atIndex >= GetRHIObjectsOfType<_E>().dimension())
             {
                 return RHIObjectHandle<_E>::GetInvalid();
             }
@@ -295,8 +295,8 @@ namespace Influx::Graphics
     
 #if INFLUX_GRAPHICS_INCLUDE_DX12
     private:
-        Vector<ID3D12Device*>   DxLogicalDevices;
-        Vector<IDXGIAdapter*>   DxgiPhysicalDevices;
+        vector<ID3D12Device*>   DxLogicalDevices;
+        vector<IDXGIAdapter*>   DxgiPhysicalDevices;
         IDXGIFactory2*          DxgiFactory2;
 
     public:
@@ -308,7 +308,7 @@ namespace Influx::Graphics
             DxgiPhysicalDevices = D3D12::Adapter::SelectAll(DxgiFactory2);
             m_mainAdapterIndex = 0u; // Temp...
 
-            for (uint64 i = 0u; i < DxgiPhysicalDevices.size(); ++i)
+            for (uint64 i = 0u; i < DxgiPhysicalDevices.dimension(); ++i)
             {
                 if (i == m_mainAdapterIndex)
                 {
@@ -359,7 +359,7 @@ namespace Influx::Graphics
 
         static Result CleanupDx12()
         {
-            for (uint64 i = 0u; i < Get().DxgiPhysicalDevices.size(); ++i)
+            for (uint64 i = 0u; i < Get().DxgiPhysicalDevices.dimension(); ++i)
             {
                 if (Get().DxLogicalDevices[i] != nullptr)
                 {

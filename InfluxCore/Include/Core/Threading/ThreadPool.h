@@ -33,7 +33,7 @@ static_assert(false, "Core_Threadpool UseSTL is required...");
 static_assert(false, "Core_Threadpool UseWindows is required... (for now)");
 #endif
 
-namespace Influx
+namespace influx
 {
     static uint32 GetTotalNumSystemThreads() noexcept
     {
@@ -45,7 +45,7 @@ namespace Influx
 #endif
     }
 
-    namespace Internal
+    namespace detail
     {
         class IThreadPool
         {
@@ -54,18 +54,18 @@ namespace Influx
         };
     }
 
-    template <uint8 _N>
-    class ThreadPool final : public Internal::IThreadPool
+    template <uint8 _dim>
+    class ThreadPool final : public detail::IThreadPool
     {
     public:
-        constexpr static uint8  k_numThreads = _N;
+        constexpr static uint8  k_numThreads = _dim;
         constexpr static size_t k_jobCapacity = 256u;
 
     private:
         bool m_shouldTerminate = false;           // Tells threads to stop looking for jobs
 
-        std::thread m_threads[_N]{};
-        Influx::RingBuffer<Job, k_jobCapacity> m_jobs;
+        std::thread m_threads[_dim]{};
+        influx::ringbuffer<Job, k_jobCapacity> m_jobs;
 
         std::mutex m_queueMutex;                  // Prevents data races to the job queue
         std::condition_variable m_muCondition;    // Allows threads to wait on new jobs or termination 
@@ -88,7 +88,7 @@ namespace Influx
                         Job job;
                         while (!m_shouldTerminate)
                         {
-                            if (m_jobs.PopFront(job))
+                            if (m_jobs.pop(job))
                             {
                                 job();
                                 m_finishedLabel.fetch_add(1);
@@ -136,7 +136,7 @@ namespace Influx
         {
             ++m_targetLabel;
 
-            while (!m_jobs.PushBack(job))
+            while (!m_jobs.push(job))
             {
                 Poll();
             }
@@ -175,7 +175,7 @@ namespace Influx
 
             m_muCondition.notify_all();
 
-            for (uint8_t i = 0; i < _N; ++i)
+            for (uint8_t i = 0; i < _dim; ++i)
             {
                 m_threads[i].join();
             }
@@ -214,22 +214,22 @@ namespace Influx
 
     /* For-loop using ThreadPool<_N>::QueueJob() for each iteration */
     /* STALLS the calling thread untill all jobs are finished! */
-    template <uint8 _N>
-    static void AsyncFor(Internal::IThreadPool::Job it_job)
+    template <uint8 _dim>
+    static void AsyncFor(detail::IThreadPool::Job it_job)
     {
-        ThreadPool<_N> pool{};
+        ThreadPool<_dim> pool{};
 
         pool.AsyncFor(it_job);
     }
 
     /* Executes the list of jobs spread across _N threads */
     /* STALLS the calling thread untill all jobs are finished! */
-    template <uint8 _N>
-    static void RunAsync(const Vector<Internal::IThreadPool::Job>& jobs)
+    template <uint8 _dim>
+    static void RunAsync(const vector<detail::IThreadPool::Job>& jobs)
     {
-        const uint64 numJobs = jobs.size();
+        const uint64 numJobs = jobs.dimension();
 
-        ThreadPool<_N> pool{};
+        ThreadPool<_dim> pool{};
 
         for (uint64 i = 0u; i < numJobs; ++i)
         {

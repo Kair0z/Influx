@@ -11,50 +11,37 @@
 #define __USECORE_ 1
 
 #if		__USECORE_
-#include "Core/Cast.h"
-#include "Core/Function.h"
-#else
-template <typename _Dest, typename _T>
-inline _Dest* StaticCast(_T* p)
-{
-	return static_cast<_Dest*>(p);
-}
-
-template <typename _Dest, typename _T>
-inline const _Dest* StaticCast(const _T* p)
-{
-	return static_cast<const _Dest*>(p);
-}
-#endif
+#include "core/cast.h"
+#include "core/function.h"
 #undef __USECORE_
 
 // STL:
 #include <chrono>
 
-namespace Influx
+namespace influx
 {
-	class Time final
+	class time final
 	{
 	public:
-		using TimePoint = std::chrono::system_clock::time_point;
+		using point = std::chrono::system_clock::time_point;
 
-		static TimePoint Now() noexcept
+		static point get_now() noexcept
 		{
 			return std::chrono::system_clock::now();
 		}
 
-		template <typename _T>
-		static _T MsBetween(const TimePoint& end, const TimePoint& start) noexcept
+		template <typename _t>
+		static _t get_ms_between(const point& end, const point& start) noexcept
 		{
-			return static_cast<_T>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+			return static_cast<_t>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
 		}
 
-		template <typename _T>
-		static _T GetTimeInMs(const Function<void()>& function)
+		template <typename _t>
+		static _t measure_ms(const function<void()>& function)
 		{
-			TimePoint before = Now();
+			point before = get_now();
 			function();
-			return MsBetween<_T>(Now(), before);
+			return get_ms_between<_t>(get_now(), before);
 		}
 	};
 }

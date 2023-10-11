@@ -1,6 +1,6 @@
 #include "InfluxGraphics/D3D12/ResourceViews/D3D12ShaderResourceView.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE D3D12ShaderResourceView::GetDxCPUHandle() const
 	{

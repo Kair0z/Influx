@@ -6,7 +6,7 @@
 #include "InfluxGraphics/RHIResource.h"
 #include "D3D12.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class D3D12Resource final : public RHIResource
 	{
@@ -15,7 +15,7 @@ namespace Influx::Graphics
 			: RHIResource(initialState, optimizedClearValue, numBytes) {}
 
 		virtual void* Map() const override;
-		virtual void ScopedMap(Function<void(void*)> mapFunction) const override;
+		virtual void ScopedMap(function<void(void*)> mapFunction) const override;
 		virtual void Unmap() const override;
 
 		virtual void OnTransitionState(const ERHIResourceState before, const ERHIResourceState after) override final;

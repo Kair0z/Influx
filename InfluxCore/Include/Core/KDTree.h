@@ -3,157 +3,157 @@
 #ifndef __CORE_KDTREE_H_
 #define __CORE_KDTREE_H_
 
-#include "Math/Math.h"
-#include "Math/Vector.h"
+#include "math/math.h"
+#include "math/vector.h"
 
 #include <vector>
 #include <algorithm>
 
-namespace Influx
+namespace influx
 {	
-	enum class EResult
+	enum class e_result
 	{
 		Success
 	};
 
-	struct Result
+	struct result
 	{
-		EResult eResult = EResult::Success;
+		e_result eResult = e_result::Success;
 	};
 
 	namespace
 	{
-		using KDimension_t = unsigned char;
+		using kdimension_t = unsigned char;
 	}
 	
-	template <KDimension_t _K, typename _T = float>
-	class KDTree final
+	template <kdimension_t _K, typename _t = float>
+	class kdtree final
 	{
 	public:
-		using KDepth_t = uint16_t;
-		using NodeIndex_t = size_t;
-		using DataIndex_t = size_t;
+		using kdepth_t = uint16_t;
+		using node_index_t = size_t;
+		using data_index_t = size_t;
 
-		using Data = Influx::Math::Vector<_T, _K>;
+		using m_data = influx::math::vector<_t, _K>;
 
-		KDTree() = default;
-		KDTree(const std::vector<Data>& points)
+		kdtree() = default;
+		kdtree(const std::vector<m_data>& points)
 		{
-			m_data.resize(points.size());
-			for (size_t i = 0; i < m_data.size(); ++i) m_data[i] = points[i];
+			m_data.resize(points.dimension());
+			for (size_t i = 0; i < m_data.dimension(); ++i) m_data[i] = points[i];
 		}
 		
-		virtual ~KDTree() = default;
+		virtual ~kdtree() = default;
 
 	private:
-		struct Node final
+		struct node final
 		{
-			bool IsLeafNode() const
+			bool is_leaf_node() const
 			{
 				return mp_left == nullptr && mp_right == nullptr;
 			}
 
-			Node* mp_left;
-			Node* mp_right;
-			DataIndex_t m_dataIdx;
-			_T m_split;
+			node* mp_left;
+			node* mp_right;
+			data_index_t m_dataIdx;
+			_t m_split;
 		};
 
-		std::vector<Data> m_data;
-		std::vector<Node> m_nodes;
+		std::vector<m_data> m_data;
+		std::vector<node> m_nodes;
 
-		NodeIndex_t m_numNodes;
-		Node* mp_root;
+		node_index_t m_numNodes;
+		node* mp_root;
 
 	public:
-		Result Build()
+		result build()
 		{
 			m_numNodes = 0;
 			m_nodes.clear();
 			mp_root = nullptr;
 
-			for (size_t i = 0; i < m_data.size(); ++i)
+			for (size_t i = 0; i < m_data.dimension(); ++i)
 			{
-				m_nodes.push_back(Node());
+				m_nodes.push_back(node());
 				m_nodes[i].m_dataIdx = i;
 			}
 
-			if (m_nodes.size() <= 0u) return Result();
+			if (m_nodes.dimension() <= 0u) return result();
 
 			// Call recursive build_tree method...
-			mp_root = Internal_BuildKD(0, m_nodes.size() - 1, 0);
+			mp_root = build_kd_internal(0, m_nodes.dimension() - 1, 0);
 
-			return Result();
+			return result();
 		}
 
-		inline bool IsLeafNode(const Node* node) const
+		inline bool is_leaf_node(const node* node) const
 		{
-			return node->IsLeafNode();
+			return node->is_leaf_node();
 		}
 
-		Result AddDataPoint(const Data& data)
-		{
-
-		}
-
-		Result RemoveDataPoint(const Data& data)
+		result add_data(const m_data& m_data)
 		{
 
 		}
 
-		const Data& GetData(const DataIndex_t idx)
+		result remove_data(const m_data& m_data)
 		{
-			FLX_ASSERT(idx < m_data.size());
+
+		}
+
+		const m_data& get_data(const data_index_t idx)
+		{
+			FLX_ASSERT(idx < m_data.dimension());
 			return m_data[idx];
 		}
 
 		
 	private:
-		Node* Internal_BuildKD(NodeIndex_t nodeIdx_first, NodeIndex_t nodeIdx_last, KDimension_t depth)
+		node* build_kd_internal(node_index_t nodeIdx_first, node_index_t nodeIdx_last, kdimension_t depth)
 		{
-			const KDimension_t axis = depth % _K;
-			const NodeIndex_t num = nodeIdx_last - nodeIdx_first;
-			const NodeIndex_t mid = nodeIdx_first + ((nodeIdx_last - nodeIdx_first) / 2);
+			const kdimension_t axis = depth % _K;
+			const node_index_t num = nodeIdx_last - nodeIdx_first;
+			const node_index_t mid = nodeIdx_first + ((nodeIdx_last - nodeIdx_first) / 2);
 
 			if (num == 0) return nullptr;
-			if (num == 1) return GetNewLeafNode();
+			if (num == 1) return new_leaf_node();
 
 			// Sort to find median point...
 			std::sort(
 				m_nodes.begin() + nodeIdx_first,
 				m_nodes.begin() + nodeIdx_first + num,
-				[this, axis](const Node& a, const Node& b)
+				[this, axis](const node& a, const node& b)
 				{
-					return GetData(a.m_dataIdx)[axis] > GetData(b.m_dataIdx)[axis];
+					return get_data(a.m_dataIdx)[axis] > get_data(b.m_dataIdx)[axis];
 				});
 
-			const Data& midPoint = GetData(m_nodes[mid].m_dataIdx);
-			_T split = midPoint[axis];
+			const m_data& midPoint = get_data(m_nodes[mid].m_dataIdx);
+			_t split = midPoint[axis];
 
 			// Recursively build a tree for the left and right planes 
-			Node* branchNode = GetNewBranchNode(split);
-			branchNode->mp_left = Internal_BuildKD(nodeIdx_first, mid, depth + 1);
-			branchNode->mp_right = Internal_BuildKD(mid + 1, nodeIdx_last, depth + 1);
+			node* branchNode = new_branch_node(split);
+			branchNode->mp_left = build_kd_internal(nodeIdx_first, mid, depth + 1);
+			branchNode->mp_right = build_kd_internal(mid + 1, nodeIdx_last, depth + 1);
 
 			return branchNode;
 		}
 		
-		Node* GetNewNode()
+		node* new_node()
 		{
-			FLX_ASSERT(m_numNodes <= m_nodes.size());
+			FLX_ASSERT(m_numNodes <= m_nodes.dimension());
 			return &m_nodes[m_numNodes++];
 		}
 
-		Node* GetNewBranchNode(const _T split)
+		node* new_branch_node(const _t split)
 		{
-			Node* newNode = GetNewNode();
+			node* newNode = new_node();
 			newNode->m_split = split;
 			return newNode;
 		}
 
-		Node* GetNewLeafNode()
+		node* new_leaf_node()
 		{
-			Node* newNode = GetNewNode();
+			node* newNode = new_node();
 			newNode->mp_left = nullptr;
 			newNode->mp_right = nullptr;
 			return newNode;

@@ -5,34 +5,34 @@
 
 #include <mutex>
 
-namespace Influx
+namespace influx
 {
-	namespace Internal
+	namespace detail
 	{
 		using capacity_t = size_t;
 	}
 
-	template <typename _T, Internal::capacity_t _C>
-	class RingBuffer
+	template <typename _t, detail::capacity_t _C>
+	class ringbuffer
 	{
 	public:
-		bool PushBack(const _T& value);
-		bool PopFront(_T& value);
+		bool push(const _t& value);
+		bool pop(_t& value);
 
 	private:
-		_T m_data[_C];
-		Internal::capacity_t m_head = 0;
-		Internal::capacity_t m_tail = 0;
+		_t m_data[_C];
+		detail::capacity_t m_head = 0;
+		detail::capacity_t m_tail = 0;
 		std::mutex m_lock;
 	};
 
-	template<typename _T, Internal::capacity_t _C>
-	inline bool RingBuffer<_T, _C>::PushBack(const _T& value)
+	template<typename _t, detail::capacity_t _C>
+	inline bool ringbuffer<_t, _C>::push(const _t& value)
 	{
 		bool result = false;
 
 		m_lock.lock();
-		Internal::capacity_t next = (m_head + 1) % _C;
+		detail::capacity_t next = (m_head + 1) % _C;
 
 		if (next != m_tail)
 		{
@@ -46,8 +46,8 @@ namespace Influx
 		return result;
 	}
 
-	template<typename _T, Internal::capacity_t _C>
-	inline bool RingBuffer<_T, _C>::PopFront(_T& value)
+	template<typename _t, detail::capacity_t _C>
+	inline bool ringbuffer<_t, _C>::pop(_t& value)
 	{
 		bool result = false;
 

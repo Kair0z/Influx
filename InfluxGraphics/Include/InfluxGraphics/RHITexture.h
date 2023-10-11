@@ -5,7 +5,7 @@
 
 #include "InfluxGraphics/RHITypes.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHIResource;
 	class RHIRenderTargetView;

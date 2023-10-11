@@ -3,33 +3,33 @@
 #ifndef _CORE_GEOMETRY_RECT_H_
 #define _CORE_GEOMETRY_RECT_H_
 
-#include "../Math/Vector.h"
+#include "core/math/vector.h"
 
-namespace Influx::Math
+namespace influx::math
 {
-	template <typename _T>
-	struct Rect final
+	template <typename _t>
+	struct rect final
 	{
 	private:
-		using Vector2 = Vector<_T, 2u>;
+		using vector2 = math::vector<_t, 2u>;
 
 	public:
-		inline Rect(_T l, _T b, _T w, _T h) : m_leftBottom{ l,b }, m_widthHeigth{ w,h }{}
-		inline Rect(const Vector2& lb, const Vector2& wh) : m_leftBottom{ lb }, m_widthHeigth{ wh }{}
+		inline rect(_t l, _t b, _t w, _t h) : m_leftBottom{ l,b }, m_width_height{ w,h }{}
+		inline rect(const vector2& lb, const vector2& wh) : m_leftBottom{ lb }, m_width_height{ wh }{}
 
-		const Vector2& GetDimensions() const
+		const vector2& get_dimensions() const
 		{
-			return m_widthHeigth;
+			return m_width_height;
 		}
 
-		Vector2 m_leftBottom{};
-		Vector2 m_widthHeigth{};
+		vector2 m_leftBottom{};
+		vector2 m_width_height{};
 	};
 
-	using Rectf = Rect<float>;
-	using Rectu = Rect<uint32>;
-	using Recti = Rect<int>;
-	using Rectd = Rect<double>;
+	using rectf = rect<float>;
+	using rectu = rect<uint32>;
+	using recti = rect<int>;
+	using rectd = rect<double>;
 }
 
 #endif

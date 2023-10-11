@@ -4,7 +4,7 @@
 
 #include "Core/Scene/Scene.h"
 
-namespace Influx::Renderer
+namespace influx::Renderer
 {
 	class SceneRenderer final : public Renderer::IRenderer
 	{
@@ -38,8 +38,8 @@ namespace Influx::Renderer
 		struct MeshData final
 		{
 			MeshData() = default;
-			MeshData(Scene::Mesh data)
-				: m_meshData{ data } {}
+			MeshData(Scene::Mesh m_data)
+				: m_meshData{ m_data } {}
 
 			Scene::Mesh m_meshData;
 		};

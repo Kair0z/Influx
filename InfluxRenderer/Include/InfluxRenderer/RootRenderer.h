@@ -16,7 +16,7 @@
 
 #include "InfluxRenderer/IRenderer.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHIDevice;
 	class RHICommandList;
@@ -32,7 +32,7 @@ namespace Influx::Graphics
 	struct RHIGraphicsPipelineLayoutDescription;
 }
 
-namespace Influx::Renderer
+namespace influx::Renderer
 {
 	class RootRenderer;
 
@@ -42,7 +42,7 @@ namespace Influx::Renderer
 		const Graphics::RHIDevice* GetDevice() const;
 
 		/* Creating Textures */
-		Graphics::RHITexture* GetAndOrCreateTexture(const String& key, const Graphics::RHITextureDesc& desc) const;
+		Graphics::RHITexture* GetAndOrCreateTexture(const string& key, const Graphics::RHITextureDesc& desc) const;
 
 		/* Creating Graphics PSO */
 		Graphics::RHIGraphicsPipeline* GetAndOrCreateGraphicsPipeline(const Graphics::RHIGraphicsPipelineDescription& key, const Graphics::RHIGraphicsPipelineLayoutDescription& pipelineLayoutKey) const;
@@ -81,21 +81,21 @@ namespace Influx::Renderer
 		using GfxPipelineKey = Graphics::RHIGraphicsPipelineDescription;
 		using GfxPipelineLayoutKey = Graphics::RHIGraphicsPipelineLayoutDescription;
 
-		using TextureCache = Cache<TexturePtr, String>;
+		using TextureCache = Cache<TexturePtr, string>;
 		using GfxPipelineCache = Cache<GraphicsPipelinePtr, GfxPipelineKey, GfxPipelineLayoutKey>;
 		using GfxPipelineLayoutCache = Cache<GraphicsPipelineLayoutPtr, GfxPipelineLayoutKey>;
 	
-		using IRendererList = Vector<IRenderer*>;
+		using IRendererList = vector<IRenderer*>;
 
-		using OnPostInitializeAPI = Function<void(const Graphics::EGraphicsAPI eApi, Graphics::RHIDevice*)>;
-		using OnBuildCommandList = Function<void(Graphics::RHICommandList*)>;
-		using OnWindowResize = Function<void(const Math::Vectoru2& newSize)>;
-		using OnPreCleanupAPI = Function<void(const Graphics::EGraphicsAPI eApi, Graphics::RHIDevice*)>;
+		using OnPostInitializeAPI = function<void(const Graphics::EGraphicsAPI eApi, Graphics::RHIDevice*)>;
+		using OnBuildCommandList = function<void(Graphics::RHICommandList*)>;
+		using OnWindowResize = function<void(const Math::Vectoru2& newSize)>;
+		using OnPreCleanupAPI = function<void(const Graphics::EGraphicsAPI eApi, Graphics::RHIDevice*)>;
 #pragma endregion
 
 	public:
-		RootRenderer(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
-		static Ptr Create(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle = nullptr);
+		RootRenderer(const Graphics::EGraphicsAPI api, platform::window_handle windowHandle = nullptr);
+		static Ptr Create(const Graphics::EGraphicsAPI api, platform::window_handle windowHandle = nullptr);
 		static void Destroy(Ptr& renderer);
 		virtual ~RootRenderer();
 
@@ -109,12 +109,12 @@ namespace Influx::Renderer
 		void Present(bool vsync);
 
 		/* Adding child IRenderers as callbacks */
-		template <class _R, class ...Args>
-		_R* AddRenderer(Args&&... args)
+		template <class _ret, class ...Args>
+		_ret* AddRenderer(Args&&... args)
 		{
-			static_assert(std::is_base_of<IRenderer, _R>::value, "RootRenderer::AddRenderer() argument must be castable to IRenderer interface!");
+			static_assert(std::is_base_of<IRenderer, _ret>::value, "RootRenderer::AddRenderer() argument must be castable to IRenderer interface!");
 			
-			_R* newRenderer = new _R(args...);
+			_ret* newRenderer = new _ret(args...);
 			mp_childRenderers.push_back(newRenderer);
 
 			// Initialize to API
@@ -127,7 +127,7 @@ namespace Influx::Renderer
 		}
 
 		/* Attach to Window and create a Swapchain */
-		bool AttachToWindow(Platform::WindowHandle windowHandle);
+		bool AttachToWindow(platform::window_handle windowHandle);
 		bool DetachFromCurrentWindow();
 		bool IsAttachedToWindow() const;
 
@@ -145,7 +145,7 @@ namespace Influx::Renderer
 		GraphicsPipelineLayoutPtr GetAndOrCreateGraphicsPipelineLayout(const GfxPipelineLayoutKey& key);
 		
 		/* Creating Textures */
-		TexturePtr GetAndOrCreateTexture(const String& key, const Graphics::RHITextureDesc& desc);
+		TexturePtr GetAndOrCreateTexture(const string& key, const Graphics::RHITextureDesc& desc);
 
 		SwapchainPtr GetWindowSwapchain() const;
 		const Math::Vectoru2& GetWindowSwapchainDimensions() const;

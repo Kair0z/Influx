@@ -27,26 +27,26 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -93,7 +93,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Include;Source</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,7 +109,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Include;Source</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,7 +125,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Include;Source</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>app_pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -143,7 +143,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxEngine\Include;Include;Source;$(SolutionDir)InfluxRenderer\Include;$(SolutionDir)InfluxAssets\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Include;Source</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>app_pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -155,28 +155,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\application\application.h" />
+    <ClInclude Include="Include\application\influx_application.h" />
     <ClInclude Include="Source\app_pch.h" />
     <ClInclude Include="Include\InfluxApplication\Application.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\application\application.cpp" />
     <ClCompile Include="Source\app_pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Source\InfluxApplication\Application.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\InfluxAssets\InfluxAssets.vcxproj">
-      <Project>{cf67ac42-c302-449f-9650-5869570af694}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">
       <Project>{aae8ef84-74c2-44f9-804e-6c08abe0f35b}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\InfluxGraphics\InfluxGraphics.vcxproj">
-      <Project>{804ebbd1-c037-46ef-b607-dd8dad7d5922}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\InfluxRenderer\InfluxRenderer.vcxproj">
-      <Project>{5d2be527-24b8-4162-95f7-254e9dd330e4}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

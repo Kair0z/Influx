@@ -5,10 +5,10 @@
 
 #pragma comment (lib, "dxcompiler.lib")
 
-namespace Influx::Assets
+namespace influx::Assets
 {
 	/* Loads a Shader file (.hlsl) */
-	bool LoadShaderFile(const String& filepath, ShaderData& out_shaderData, ShaderCachePtr pCache, const ShaderLoadDesc& loadDesc)
+	bool LoadShaderFile(const string& filepath, ShaderData& out_shaderData, ShaderCachePtr pCache, const ShaderLoadDesc& loadDesc)
 	{
 		// Try to find the loaded scene in the provided cache...
 		if (pCache)
@@ -38,9 +38,9 @@ namespace Influx::Assets
 				Unsupported = Max
 			} ShaderTarget;
 
-			static WString GetShaderTypeString(EShaderType type, EShaderTarget target)
+			static wstring GetShaderTypeString(EShaderType type, EShaderTarget target)
 			{
-				WString result{};
+				wstring result{};
 
 				switch (type)
 				{
@@ -59,15 +59,15 @@ namespace Influx::Assets
 				return result;
 			}
 
-			WString GetShaderTypeString() const
+			wstring GetShaderTypeString() const
 			{
 				return GetShaderTypeString(ShaderType, ShaderTarget);
 			}
 
-			WString Filepath = L"";
-			WString Entrypoint = L"";
+			wstring Filepath = L"";
+			wstring Entrypoint = L"";
 
-			Vector<WString> Defines{};
+			Vector<wstring> Defines{};
 
 			bool bCompileDebug;
 			bool bStripReflection;
@@ -100,7 +100,7 @@ namespace Influx::Assets
 			//-T for the target profile (eg. ps_6_2)
 			arguments.push_back(L"-T");
 
-			WString targetProfile = desc.GetShaderTypeString();
+			wstring targetProfile = desc.GetShaderTypeString();
 			arguments.push_back(targetProfile.c_str());
 			arguments.push_back(L"dxc -help | findstr Version");
 
@@ -114,7 +114,7 @@ namespace Influx::Assets
 			// arguments.push_back(DXC_ARG_SKIP_VALIDATION);
 			arguments.push_back(DXC_ARG_PACK_MATRIX_ROW_MAJOR); //-Zp
 
-			for (const WString& define : desc.Defines)
+			for (const wstring& define : desc.Defines)
 			{
 				arguments.push_back(L"-D");
 				arguments.push_back(define.c_str());
@@ -123,12 +123,12 @@ namespace Influx::Assets
 
 			DxcBuffer sourceBuffer;
 			sourceBuffer.Ptr = pShaderSourceFile->GetBufferPointer();
-			sourceBuffer.Size = pShaderSourceFile->GetBufferSize();
+			sourceBuffer.dimension = pShaderSourceFile->GetBufferSize();
 			sourceBuffer.Encoding = 0;
 
 			// COMPILE
 			IDxcResult* pCompileResult;
-			result = pCompiler->Compile(&sourceBuffer, arguments.data(), (uint32)arguments.size(), nullptr, IID_PPV_ARGS(&pCompileResult));
+			result = pCompiler->Compile(&sourceBuffer, arguments.m_data(), (uint32)arguments.dimension(), nullptr, IID_PPV_ARGS(&pCompileResult));
 
 			// [OUTPUT: COMPILE ERRORS]
 			IDxcBlobUtf8* pErrors = nullptr;
@@ -160,7 +160,7 @@ namespace Influx::Assets
 			{
 				DxcBuffer reflectionBuffer;
 				reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
-				reflectionBuffer.Size = pReflectionData->GetBufferSize();
+				reflectionBuffer.dimension = pReflectionData->GetBufferSize();
 				reflectionBuffer.Encoding = 0;
 
 				result = pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&pShaderReflection));

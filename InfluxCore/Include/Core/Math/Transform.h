@@ -3,125 +3,109 @@
 #ifndef __CORE_MATH_TRANSFORM_H_
 #define __CORE_MATH_TRANSFORM_H_
 
-#include "Core/Math/Vector.h"
-#include "Core/Math/Matrix.h"
-#include "Core/Math/Quaternion.h"
+#include "core/math/vector.h"
+#include "core/math/matrix.h"
+#include "core/math/quaternion.h"
 
-#include "Core/Graph/Hierarchy.h"
-
-namespace Influx::Math
+namespace influx::math
 {
-	class Transformf2D final
+	class transform2D final
 	{
 	public:
-		Transformf2D() = default;
-		Transformf2D(const Math::Vectorf2& position, float rotation, const Math::Vectorf2& scale)
+		transform2D() = default;
+		transform2D(const math::vectorf2& position, float rotation, const math::vectorf2& scale)
 			: m_position{ position }, m_rotation{ rotation }, m_scale{ scale } {}
 
-		Transformf2D(const Transformf2D&) = default;
-		Transformf2D(Transformf2D&&) = default;
-		Transformf2D& operator=(const Transformf2D&) = default;
-		Transformf2D& operator=(Transformf2D&&) = default;
-		virtual ~Transformf2D() = default;
+		transform2D(const transform2D&) = default;
+		transform2D(transform2D&&) = default;
+		transform2D& operator=(const transform2D&) = default;
+		transform2D& operator=(transform2D&&) = default;
+		virtual ~transform2D() = default;
 
 	private:
-		Math::Vectorf2 m_position;
-		Math::Vectorf2 m_scale;
+		math::vectorf2 m_position;
+		math::vectorf2 m_scale;
 		float m_rotation;
 	};
 
-	class Transformf3D;
-	using Transform3D = Transformf3D;
-
-	class Transformf3D final
+	class transform3D final
 	{
 	public:
-		Transformf3D() = default;
-		Transformf3D(const Math::Vectorf3& position, const Math::Rotation& rotation, const Math::Vectorf3& scale)
+		transform3D() = default;
+		transform3D(const math::vectorf3& position, const math::rotation& rotation, const math::vectorf3& scale)
 			: m_position{ position }, m_rotation{ rotation }, m_scale { scale } {}
 		
-		const static Transform3D Identity()
+		const static transform3D identity()
 		{
-			const static Transform3D identity{ Vectorf3::Zero(), Math::Rotation::Identity(), Vectorf3::One()};
+			const static transform3D identity{ math::vectorf3::zero(), math::rotation::identity(), math::vectorf3::one()};
 			return identity;
 		}
 
 		// Position
-		void SetPosition(const Vectorf3& position)
+		void SetPosition(const vectorf3& position)
 		{
 			m_position = position;
 		}
 
-		Vectorf3 GetPosition() const
+		vectorf3 get_position() const
 		{
 			return m_position;
 		}
 		
 		// Rotation
-		Math::Vectorf3 GetForward() const
+		vectorf3 get_forward() const
 		{
-			return m_rotation.GetForward();
+			return m_rotation.get_forward();
 		}
 
-		Math::Vectorf3 GetRight() const
+		vectorf3 get_right() const
 		{
-			return m_rotation.GetRight();
+			return m_rotation.get_right();
 		}
 
-		Math::Vectorf3 GetUp() const
+		vectorf3 get_up() const
 		{
-			return m_rotation.GetUp();
+			return m_rotation.get_up();
 		}
 
-		void SetForward(const Vectorf3& newForward)
+		void set_forward(const vectorf3& newForward)
 		{
-			m_rotation.SetForward(newForward);
+			m_rotation.set_forward(newForward);
 		}
 
-		void SetRight(const Vectorf3& newRight)
+		void set_right(const vectorf3& newRight)
 		{
-			m_rotation.SetForward(newRight);
+			m_rotation.set_forward(newRight);
 		}
 
-		void SetUp(const Vectorf3& newUp)
+		void set_up(const vectorf3& newUp)
 		{
-			m_rotation.SetForward(newUp);
+			m_rotation.set_forward(newUp);
 		}
 
 		// Scale
-		void SetScale(const Vectorf3& scale)
+		void set_scale(const vectorf3& scale)
 		{
 			m_scale = scale;
 		}
 
-		Vectorf3 GetScale() const
+		vectorf3 get_scale() const
 		{
 			return m_scale;
 		}
 
-		Transformf3D(const Transformf3D&) = default;
-		Transformf3D(Transformf3D&&) = default;
-		Transformf3D& operator=(const Transformf3D&) = default;
-		Transformf3D& operator=(Transformf3D&&) = default;
-		virtual ~Transformf3D() = default;
+		transform3D(const transform3D&) = default;
+		transform3D(transform3D&&) = default;
+		transform3D& operator=(const transform3D&) = default;
+		transform3D& operator=(transform3D&&) = default;
+		virtual ~transform3D() = default;
 
 	private:
-		Math::Vectorf3 m_position;
-		Math::Vectorf3 m_scale;
-		Math::Rotation m_rotation;
+		vectorf3 m_position;
+		vectorf3 m_scale;
+		math::rotation m_rotation;
 		
-		Matrix4x4f m_orthoNormalBasis;
-	};
-
-	// https://alexsabourindev.wordpress.com/2019/04/14/creating-an-optimized-transform-hierarchy/
-	class TransformGraph final
-	{
-		using Transform = Transform3D;
-
-	public:
-
-	private:
-		Hierarchy<Transform> m_hierarchy;
+		matrix4x4f m_orthoNormalBasis;
 	};
 }
 

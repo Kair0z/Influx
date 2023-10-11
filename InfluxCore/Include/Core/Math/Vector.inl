@@ -1,8 +1,9 @@
-#include "Vector.h"
+#include "core/math/vector.h"
 
 #define __CORE_VECTOR_USECORE_ 1
+
 #if __CORE_VECTOR_USECORE_
-#include "Core/Assert.h"
+#include "core/assert.h"
 #else
 #include <cassert>
 #define FLX_ASSERT(expr) assert(expr)
@@ -18,99 +19,97 @@
 
 #include <cmath>
 
-namespace Influx::Math
+namespace influx::math
 {
 	// Constructors:
-	template<typename _T, VectorSizeType _N> // Initializer list...
-	template<typename ..._V> inline Vector<_T, _N>::Vector(const _V& ...components)
-		: Internal::VectorBase<_T, _N>(static_cast<_T>(components) ...) 
+	template<typename _t, _vector_dim_t _dim> // Initializer list...
+	template<typename ..._V> inline vector<_t, _dim>::vector(const _V& ...components)
+		: detail::base_vector<_t, _dim>(static_cast<_t>(components) ...) 
 	{
 
 	}
 
-	template<typename _T, VectorSizeType _N> // Typecast...
-	template <typename _U> inline Vector<_T, _N>::Vector(const Vector<_U, _N>& other)
+	template<typename _t, _vector_dim_t _dim> // Typecast...
+	template <typename _U> inline vector<_t, _dim>::vector(const vector<_U, _dim>& other)
 	{
-		for (size_t i{}; i < _N; ++i)
-			this->data[i] = other.data[i];
+		for (size_t i{}; i < _dim; ++i)
+			this->m_data[i] = other.m_data[i];
 	}
 
-	template<typename _T, VectorSizeType _N> // Sizecast constructor
-	template <VectorSizeType _D> inline Vector<_T, _N>::Vector(const Vector<_T, _D>& other)
+	template<typename _t, _vector_dim_t _dim> // Sizecast constructor
+	template <_vector_dim_t _D> inline vector<_t, _dim>::vector(const vector<_t, _D>& other)
 	{
-		for (VectorSizeType i{}; i < _N; ++i)
-			this->data[i] = (i < _D) ? other[i] : static_cast<_T>(0);
+		for (_vector_dim_t i{}; i < _dim; ++i)
+			this->m_data[i] = (i < _D) ? other[i] : static_cast<_t>(0);
 
 		// If smaller, copy all data
 		// If bigger, copy data & init 0 leftover...
 	}
 
-	template<typename _T, VectorSizeType _N>
-	constexpr VectorSizeType Vector<_T, _N>::Size()
+	template<typename _t, _vector_dim_t _dim>
+	constexpr _vector_dim_t vector<_t, _dim>::dimension()
 	{
-		return _N;
+		return _dim;
 	}
 
 	// Data
-#pragma region Data Access
-	template<typename _T, VectorSizeType _N>
-	inline _T& Vector<_T, _N>::operator[](VectorSizeType i)
+#pragma region data Access
+	template<typename _t, _vector_dim_t _dim>
+	inline _t& vector<_t, _dim>::operator[](_vector_dim_t i)
 	{
-		FLX_ASSERT(i < _N);
-		return this->data[i];
+		FLX_ASSERT(i < _dim);
+		return this->m_data[i];
 	}
-	template<typename _T, VectorSizeType _N>
-	inline const _T& Vector<_T, _N>::operator[](VectorSizeType i) const
+	template<typename _t, _vector_dim_t _dim>
+	inline const _t& vector<_t, _dim>::operator[](_vector_dim_t i) const
 	{
-		FLX_ASSERT(i < _N);
-		return this->data[i];
+		FLX_ASSERT(i < _dim);
+		return this->m_data[i];
 	}
-	template<typename _T, VectorSizeType _N>
-	inline _T& Vector<_T, _N>::At(VectorSizeType i)
+	template<typename _t, _vector_dim_t _dim>
+	inline _t& vector<_t, _dim>::at(_vector_dim_t i)
 	{
-		FLX_ASSERT(i < _N);
+		FLX_ASSERT(i < _dim);
 		return (*this)[i];
 	}
-	template<typename _T, VectorSizeType _N>
-	inline const _T& Vector<_T, _N>::At(VectorSizeType i) const
+	template<typename _t, _vector_dim_t _dim>
+	inline const _t& vector<_t, _dim>::at(_vector_dim_t i) const
 	{
-		FLX_ASSERT(i < _N);
+		FLX_ASSERT(i < _dim);
 		return (*this)[i];
 	}
-	template<typename _T, VectorSizeType _N>
-	const _T* Vector<_T, _N>::Data() const
+	template<typename _t, _vector_dim_t _dim>
+	const _t* vector<_t, _dim>::data() const
 	{
-		return this->data;
+		return this->m_data;
 	}
 #pragma endregion
 
 	// Normalize:
 #pragma region Normalize
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N> Vector<_T, _N>::Normalized() const { return Vector<_T, _N>::Normalized(*this); }
-	template<typename _T, VectorSizeType _N>
-	inline void Vector<_T, _N>::Normalize() { Normalize(*this); }
-	template<typename _T, VectorSizeType _N>
-	inline void Vector<_T, _N>::Normalize(Vector& vec) { vec = Normalized(vec); }
-
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N> Vector<_T, _N>::Normalized(const Vector<_T, _N>& vec)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::normalized() const { return vector<_t, _dim>::normalized(*this); }
+	template<typename _t, _vector_dim_t _dim>
+	inline void vector<_t, _dim>::normalize() { normalize(*this); }
+	template<typename _t, _vector_dim_t _dim>
+	inline void vector<_t, _dim>::normalize(vector& vec) { vec = normalized(vec); }
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::normalized(const vector<_t, _dim>& vec)
 	{
-		return vec / vec.Magnitude();
+		return vec / vec.magnitude();
 	}
 #pragma endregion
 
 	// Clamp:
-#pragma region Clamp
-	template<typename _T, VectorSizeType _N>
-	Vector<_T, _N> Clamped(float min, float max) { return Vector<_T, _N>::Clamped(*this, min, max); }
-	template<typename _T, VectorSizeType _N>
-	void Clamp(float min, float max) { return Clamp(*this, min, max); }
-	template<typename _T, VectorSizeType _N>
-	static void Clamp(Vector<_T, _N>& vec, float min, float max) { vec = Clamped(vec); }
-
-	template<typename _T, VectorSizeType _N>
-	static Vector<_T, _N> Clamped(const Vector<_T, _N>& vec, float min, float max)
+#pragma region clamp
+	template<typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> clamped(float min, float max) { return vector<_t, _dim>::clamped(*this, min, max); }
+	template<typename _t, _vector_dim_t _dim>
+	void clamp(float min, float max) { return clamp(*this, min, max); }
+	template<typename _t, _vector_dim_t _dim>
+	static void clamp(vector<_t, _dim>& vec, float min, float max) { vec = clamped(vec); }
+	template<typename _t, _vector_dim_t _dim>
+	static vector<_t, _dim> clamped(const vector<_t, _dim>& vec, float min, float max)
 	{
 		FLX_ASSERT(false); // Noimpl
 	}
@@ -118,14 +117,14 @@ namespace Influx::Math
 
 	// Angle:
 #pragma region Angle
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::RadiansBetween(const Vector& other) const { return AngleBetween(*this, other); }
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::radians_between(const vector& other) const { return angle_between(*this, other); }
 
-	template <typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::RadiansBetween(const Vector<_T, _N>& a, const Vector<_T, _N>& b)
+	template <typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::radians_between(const vector<_t, _dim>& a, const vector<_t, _dim>& b)
 	{
-		float magA = Magnitude(a);
-		float magB = Magnitude(b);
+		float magA = magnitude(a);
+		float magB = magnitude(b);
 		if (magA == 0.0f || magB == 0.0f) return 0.0f;
 
 		return std::acosf(Dot(a, b) / (magA * magB));
@@ -134,89 +133,86 @@ namespace Influx::Math
 
 	// Magnitude:
 #pragma region Magnitude
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::Magnitude() const { return Magnitude(*this); }
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::SqrMagnitude() const { return SqrMagnitude(*this); }
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::Magnitude(const Vector& other) { return sqrtf(SqrMagnitude(other)); }
-
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::SqrMagnitude(const Vector& other) 
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::magnitude() const { return magnitude(*this); }
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::sqr_magnitude() const { return sqr_magnitude(*this); }
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::magnitude(const vector& other) { return sqrtf(sqr_magnitude(other)); }
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::sqr_magnitude(const vector& other) 
 	{ 
 		return Dot(other, other); 
 	}
-
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::Distance(const Vector& a, const Vector& b)
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::distance(const vector& a, const vector& b)
 	{
-		return Magnitude(a - b);
+		return magnitude(a - b);
 	}
-
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::SqrDistance(const Vector& a, const Vector& b)
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::sqr_distance(const vector& a, const vector& b)
 	{
-		return SqrMagnitude(a - b);
+		return sqr_magnitude(a - b);
 	}
 #pragma endregion
 
 	// Scaling
 #pragma region Scaling
-	template<typename _T, VectorSizeType _N>
-	inline void Vector<_T, _N>::Scale(float mag)
+	template<typename _t, _vector_dim_t _dim>
+	inline void vector<_t, _dim>::scale(float mag)
 	{
-		Scale(*this, mag);
+		scale(*this, mag);
 	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N> Vector<_T, _N>::Scaled(float mag) const
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::scaled(float mag) const
 	{
-		return Scaled(*this, mag);
+		return scaled(*this, mag);
 	}
-	template<typename _T, VectorSizeType _N>
-	inline void Vector<_T, _N>::Scale(Vector& vec, float mag)
+	template<typename _t, _vector_dim_t _dim>
+	inline void vector<_t, _dim>::scale(vector& vec, float mag)
 	{
-		vec = vec.Normalized() * mag;
+		vec = vec.normalized() * mag;
 	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N> Vector<_T, _N>::Scaled(const Vector& vec, float mag)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::scaled(const vector& vec, float mag)
 	{
-		Vector<_T, _N> res = vec;
-		Scale(res, mag);
+		vector<_t, _dim> res = vec;
+		scale(res, mag);
 		return res;
 	}
 #pragma endregion
 	
 	// Dot & Cross
 #pragma region Dot & Cross
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::Dot(const Vector& other) const
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::dot(const vector& other) const
 	{
-		return Dot(*this, other);
+		return dot(*this, other);
 	}
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::Dot(const Vector& a, const Vector& b)
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::dot(const vector& a, const vector& b)
 	{
 		float result{};
-		for (VectorSizeType i{}; i < _N; ++i) result += a[i] * b[i];
+		for (_vector_dim_t i{}; i < _dim; ++i) result += a[i] * b[i];
 		return result;
 	}
-	template<typename _T, VectorSizeType _N>
-	inline float Vector<_T, _N>::Cross(const Vector<_T, 2>& other) const
+	template<typename _t, _vector_dim_t _dim>
+	inline float vector<_t, _dim>::cross(const vector<_t, 2>& other) const
 	{
-		return Cross(*this, other);
+		return cross(*this, other);
 	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, 3> Vector<_T, _N>::Cross(const Vector<_T, 3>& other) const
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, 3> vector<_t, _dim>::cross(const vector<_t, 3>& other) const
 	{
-		return Cross(*this, other);
+		return cross(*this, other);
 	}
-	template<typename _T, VectorSizeType _N> // 2D
-	inline float Vector<_T, _N>::Cross(const Vector<_T, 2>& a, const Vector<_T, 2>& b)
+	template<typename _t, _vector_dim_t _dim> // 2D
+	inline float vector<_t, _dim>::cross(const vector<_t, 2>& a, const vector<_t, 2>& b)
 	{
 		return { a.x * b.y - a.y * b.x };
 	}
-	template<typename _T, VectorSizeType _N> // 3D
-	inline Vector<_T, 3> Vector<_T, _N>::Cross(const Vector<_T, 3>& a, const Vector<_T, 3>& b)
+	template<typename _t, _vector_dim_t _dim> // 3D
+	inline vector<_t, 3> vector<_t, _dim>::cross(const vector<_t, 3>& a, const vector<_t, 3>& b)
 	{
 		return
 		{
@@ -229,26 +225,26 @@ namespace Influx::Math
 
 	// Inversion
 #pragma region Inversion
-	template<typename _T, VectorSizeType _N>
-	inline const Vector<_T, _N>& Vector<_T, _N>::Inverted() const
+	template<typename _t, _vector_dim_t _dim>
+	inline const vector<_t, _dim>& vector<_t, _dim>::inverted() const
 	{
-		return Inverted(*this);
+		return inverted(*this);
 	}
-	template<typename _T, VectorSizeType _N>
-	inline void Vector<_T, _N>::Inverse()
+	template<typename _t, _vector_dim_t _dim>
+	inline void vector<_t, _dim>::inverse()
 	{
-		Inverse(*this);
+		inverse(*this);
 	}
-	template<typename _T, VectorSizeType _N>
-	inline void Vector<_T, _N>::Inverse(Vector& vec)
+	template<typename _t, _vector_dim_t _dim>
+	inline void vector<_t, _dim>::inverse(vector& vec)
 	{
-		vec = Inverted(vec);
+		vec = inverted(vec);
 	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N> Vector<_T, _N>::Inverted(const Vector& vec)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::inverted(const vector& vec)
 	{
-		Vector<_T, _N> res = vec;
-		for (VectorSizeType i{}; i < _N; ++i)
+		vector<_t, _dim> res = vec;
+		for (_vector_dim_t i{}; i < _dim; ++i)
 		{
 			res[i] = -res[i];
 		}
@@ -259,34 +255,33 @@ namespace Influx::Math
 
 	// Reflection
 #pragma region Reflection
-	template<typename _T, VectorSizeType _N>
-	inline const Vector<_T, 2>& Vector<_T, _N>::Reflected(const Vector<_T, 2>& hitNormal) const
+	template<typename _t, _vector_dim_t _dim>
+	inline const vector<_t, 2u>& vector<_t, _dim>::reflected(const vector<_t, 2u>& hitNormal) const
 	{
-		return Reflection(*this, hitNormal);
+		return reflection(*this, hitNormal);
+	}
+	template<typename _t, _vector_dim_t _dim>
+	inline const vector<_t, 3u>& vector<_t, _dim>::reflected(const vector<_t, 3u>& hitNormal) const
+	{
+		return reflection(*this, hitNormal);
+	}
+	template<typename _t, _vector_dim_t _dim>
 
-	}
-	template<typename _T, VectorSizeType _N>
-	inline const Vector<_T, 3>& Vector<_T, _N>::Reflected(const Vector<_T, 3>& hitNormal) const
+	inline vector<_t, 2u> vector<_t, _dim>::reflection(const vector<_t, 2u>& vec, const vector<_t, 2u>& hitNormal)
 	{
-		return Reflection(*this, hitNormal);
+		return vector - 2.0f * (dot(vector, hitNormal)) * hitNormal;
 	}
-
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, 2> Vector<_T, _N>::Reflection(const Vector<_T, 2>& vector, const Vector<_T, 2>& hitNormal)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, 3u> vector<_t, _dim>::reflection(const vector<_t, 3u>& vec, const vector<_t, 3u>& hitNormal)
 	{
-		return vector - 2 * (Dot(vector, hitNormal)) * hitNormal;
-	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, 3> Vector<_T, _N>::Reflection(const Vector<_T, 3>& vector, const Vector<_T, 3>& hitNormal)
-	{
-		return vector - 2 * (Dot(vector, hitNormal)) * hitNormal;
+		return vector - 2.0f * (dot(vector, hitNormal)) * hitNormal;
 	}
 #pragma endregion
 
 	// Lerp:
-#pragma region Lerp
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N> Vector<_T, _N>::Lerp(const Vector& a, const Vector& b, const float t)
+#pragma region lerp
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::lerp(const vector& a, const vector& b, const float t)
 	{
 		return a * t + b * (1.0f - t);
 	}
@@ -294,68 +289,73 @@ namespace Influx::Math
 
 	// Zero:
 #pragma region Null
-	template<typename _T, VectorSizeType _N>
-	inline bool Vector<_T, _N>::IsZero() const
+	template<typename _t, _vector_dim_t _dim>
+	inline bool vector<_t, _dim>::is_zero() const
 	{
-		return IsNull(*this);
+		return is_null(*this);
 	}
-	template<typename _T, VectorSizeType _N>
-	inline bool Vector<_T, _N>::IsZero(const Vector& v)
+	template<typename _t, _vector_dim_t _dim>
+	inline bool vector<_t, _dim>::is_zero(const vector& v)
 	{
-		for (size_t i{}; i < _N; ++i)
-			if (v[i] != static_cast<_T>(0)) return false;
+		for (size_t i{}; i < _dim; ++i)
+			if (v[i] != static_cast<_t>(0)) return false;
 
 		return true;
 	}
-
-	template<typename _T, VectorSizeType _N>
-	inline constexpr Vector<_T, 3u> Vector<_T, _N>::Up()
+	template<typename _t, _vector_dim_t _dim>
+	inline constexpr vector<_t, 3u> vector<_t, _dim>::up()
 	{
-		return Vector<_T, 3u>(static_cast<_T>(0), static_cast<_T>(1), static_cast<_T>(0));
+		return vector<_t, 3u>(static_cast<_t>(0), static_cast<_t>(1), static_cast<_t>(0));
 	}
-
-	template<typename _T, VectorSizeType _N>
-	inline constexpr Vector<_T, 3u> Vector<_T, _N>::Forward()
+	template<typename _t, _vector_dim_t _dim>
+	inline constexpr vector<_t, 3u> vector<_t, _dim>::forward()
 	{
-		return Vector<_T, 3u>(static_cast<_T>(0), static_cast<_T>(0), static_cast<_T>(1));
+		return vector<_t, 3u>(static_cast<_t>(0), static_cast<_t>(0), static_cast<_t>(1));
 	}
-
-	template<typename _T, VectorSizeType _N>
-	inline constexpr Vector<_T, 3u> Vector<_T, _N>::Right()
+	template<typename _t, _vector_dim_t _dim>
+	inline constexpr vector<_t, 3u> vector<_t, _dim>::right()
 	{
-		return Vector<_T, 3u>(static_cast<_T>(1), static_cast<_T>(0), static_cast<_T>(0));
+		return vector<_t, 3u>(static_cast<_t>(1), static_cast<_t>(0), static_cast<_t>(0));
 	}
-
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N> Vector<_T, _N>::Zero()
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::zero()
 	{
-		return Vector<_T, _N>();
+		return vector<_t, _dim>();
 	}
-
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N> Vector<_T, _N>::One()
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::one()
 	{
-		Vector<_T, _N> result{};
-
-		for (VectorSizeType i{}; i < _N; ++i)
-			result[i] = static_cast<_T>(1);
-
+		vector<_t, _dim> result{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
+		{
+			result[i] = static_cast<_t>(1);
+		}
+		return result;
+	}
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::max()
+	{
+		vector<_t, _dim> result{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
+		{
+			result[i] = static_cast<_t>(std::numeric_limits<_t>::max());
+		}
 		return result;
 	}
 #pragma endregion
 
 	// Comparison:
 #pragma region Comparison
-	template<typename _T, VectorSizeType _N>
-	inline bool Vector<_T, _N>::operator==(const Vector& other) const
+	template<typename _t, _vector_dim_t _dim>
+	inline bool vector<_t, _dim>::operator==(const vector& other) const
 	{
 		bool same = true;
-		for (VectorSizeType i{}; i < _N; ++i) same = same && (At(i) == other.At(i));
+		for (_vector_dim_t i{}; i < _dim; ++i) same = same && (at(i) == other.at(i));
 
 		return same;
 	}
-	template<typename _T, VectorSizeType _N>
-	inline bool Vector<_T, _N>::operator!=(const Vector& other) const
+	template<typename _t, _vector_dim_t _dim>
+	inline bool vector<_t, _dim>::operator!=(const vector& other) const
 	{
 		return !(*this == other);
 	}
@@ -363,108 +363,108 @@ namespace Influx::Math
 
 	// Arithmatic:
 #pragma region Arithmetic
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N>& Vector<_T, _N>::operator+=(const Vector& other)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim>& vector<_t, _dim>::operator+=(const vector& other)
 	{
 		return *this = *this + other;
 	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N>& Vector<_T, _N>::operator-=(const Vector& other)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim>& vector<_t, _dim>::operator-=(const vector& other)
 	{
 		return *this = *this - other;
 	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N>& Vector<_T, _N>::operator*=(const Vector& other)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim>& vector<_t, _dim>::operator*=(const vector& other)
 	{
 		return *this = *this * other;
 	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N>& Vector<_T, _N>::operator*=(const float scalar)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim>& vector<_t, _dim>::operator*=(const float scalar)
 	{
 		return *this = *this * scalar;
 	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N>& Vector<_T, _N>::operator/=(const Vector& other)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim>& vector<_t, _dim>::operator/=(const vector& other)
 	{
 		return *this = *this / other;
 	}
-	template<typename _T, VectorSizeType _N>
-	inline Vector<_T, _N>& Vector<_T, _N>::operator/=(const float scalar)
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim>& vector<_t, _dim>::operator/=(const float scalar)
 	{
-		assert(scalar != static_cast<_T>(0));
+		assert(scalar != static_cast<_t>(0));
 
 		return *this = *this / scalar;
 	}
-	template<typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator+(const Vector<_T, _N>& a, const Vector<_T, _N>& b)
+	template<typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator+(const vector<_t, _dim>& a, const vector<_t, _dim>& b)
 	{
-		Vector<_T, _N> res{};
-		for (VectorSizeType i{}; i < _N; ++i)
+		vector<_t, _dim> res{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			res[i] = a[i] + b[i];
 
 		return res;
 	}
-	template<typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator-(const Vector<_T, _N>& a, const Vector<_T, _N>& b)
+	template<typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator-(const vector<_t, _dim>& a, const vector<_t, _dim>& b)
 	{
-		Vector<_T, _N> res{};
-		for (VectorSizeType i{}; i < _N; ++i)
+		vector<_t, _dim> res{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			res[i] = a[i] - b[i];
 
 		return res;
 	}
-	template<typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator*(const Vector<_T, _N>& a, const Vector<_T, _N>& b)
+	template<typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator*(const vector<_t, _dim>& a, const vector<_t, _dim>& b)
 	{
-		Vector<_T, _N> res{};
-		for (VectorSizeType i{}; i < _N; ++i)
+		vector<_t, _dim> res{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			res[i] = a[i] * b[i];
 
 		return res;
 	}
-	template<typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator/(const Vector<_T, _N>& a, const Vector<_T, _N>& b)
+	template<typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator/(const vector<_t, _dim>& a, const vector<_t, _dim>& b)
 	{
-		FLX_ASSERT(b.x != static_cast<_T>(0) && b.y != static_cast<_T>(0) && b.z != static_cast<_T>(0));
+		FLX_ASSERT(b.x != static_cast<_t>(0) && b.y != static_cast<_t>(0) && b.z != static_cast<_t>(0));
 
-		Vector<_T, _N> res{};
-		for (VectorSizeType i{}; i < _N; ++i)
+		vector<_t, _dim> res{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			res[i] = a[i] / b[i];
 
 		return res;
 	}
-	template<typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator*(const Vector<_T, _N>& a, const float b)
+	template<typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator*(const vector<_t, _dim>& a, const float b)
 	{
-		Vector<_T, _N> res{};
-		for (VectorSizeType i{}; i < _N; ++i)
+		vector<_t, _dim> res{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			res[i] = a[i] * b;
 
 		return res;
 	}
-	template<typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator/(const Vector<_T, _N>& a, const float b)
+	template<typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator/(const vector<_t, _dim>& a, const float b)
 	{
-		Vector<_T, _N> res{};
-		for (VectorSizeType i{}; i < _N; ++i)
+		vector<_t, _dim> res{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			res[i] = a[i] / b;
 
 		return res;
 	}
-	template<typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator*(const float a, const Vector<_T, _N>& b)
+	template<typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator*(const float a, const vector<_t, _dim>& b)
 	{
-		Vector<_T, _N> res{};
-		for (VectorSizeType i{}; i < _N; ++i)
+		vector<_t, _dim> res{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			res[i] = a * b[i];
 
 		return res;
 	}
-	template<typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator-(const Vector<_T, _N>& v)
+	template<typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator-(const vector<_t, _dim>& v)
 	{
-		Vector<_T, _N> res{};
-		for (VectorSizeType i{}; i < _N; ++i)
+		vector<_t, _dim> res{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			res[i] = -v[i];
 
 		return res;

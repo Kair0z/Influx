@@ -5,22 +5,20 @@
 *
 */
 
-#include "InfluxApplication/Application.h"
+#include <iostream>
+
+#include "application/influx_application.h"
+#pragma comment(lib, "InfluxApplication")
 
 int main(int argc, char** argv)
 {
-	using namespace Influx::Application;
+	influx::application::run_args arguments{};
+	arguments.m_name = "Influx Game";
 
-	Application::Settings appSettings{};
-	appSettings.HasWindow = true;
-	appSettings.WindowDimensions = { 640u, 480u };
-	appSettings.HasSceneRender = true;
-	appSettings.HasImGUI = false;
-	appSettings.Name = "Flux Game 0.0";
+	influx::application::run(arguments);
 
-	Application* gameApp = new Application(appSettings);
-
-	gameApp->Run(argc, argv);
-
-	delete gameApp;
+	if (std::cin.get())
+	{
+		influx::application::quit();
+	}
 }

@@ -5,7 +5,7 @@
 
 #include "Types.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	struct RHIRenderPassBeginInfo final
 	{

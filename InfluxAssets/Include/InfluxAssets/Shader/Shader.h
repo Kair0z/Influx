@@ -5,7 +5,7 @@
 #include "Core/Container/Map.h"
 #endif
 
-namespace Influx::Assets
+namespace influx::Assets
 {
 	struct ShaderLoadDesc final
 	{
@@ -32,16 +32,16 @@ namespace Influx::Assets
 		}
 	};
 
-	using ShaderCache = Influx::Cache<ShaderData, String, ShaderLoadDesc>;
+	using ShaderCache = influx::Cache<ShaderData, string, ShaderLoadDesc>;
 }
 
 // Define SceneLoadDesc Hash function...
 namespace std
 {
 	template <>
-	struct std::hash<Influx::Assets::ShaderLoadDesc>
+	struct std::hash<influx::Assets::ShaderLoadDesc>
 	{
-		size_t operator()(const Influx::Assets::ShaderLoadDesc& key) const noexcept
+		size_t operator()(const influx::Assets::ShaderLoadDesc& key) const noexcept
 		{
 			return 0u;
 		}

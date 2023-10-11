@@ -6,7 +6,7 @@
 #include "InfluxGraphics/RHICommandQueue.h"
 #include "D3D12.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class D3D12CommandList;
 

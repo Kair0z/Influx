@@ -13,12 +13,12 @@
 
 #pragma comment (lib, "dxcompiler.lib")
 
-#define __SHADERS_FILEPATH L"E:/Git/Influx/Resources/Shaders/shaders.hlsl"
+#define __SHADERS_FILEPATH L"E:/Git/influx/Resources/Shaders/shaders.hlsl"
 
 #define __SHADERS_PS_ENTRY L"PSMain"
 #define __SHADERS_VS_ENTRY L"VSMain"
 
-namespace Influx::Renderer
+namespace influx::Renderer
 {
 #pragma region SceneData
 	void SceneRenderer::SetCamera(const CameraData& cameraData)
@@ -120,7 +120,7 @@ namespace Influx::Renderer
 			}
 		}
 
-		const uint64 vertexSize			= sizeof(Influx::Math::Vertex);
+		const uint64 vertexSize			= sizeof(influx::Math::Vertex);
 		const uint64 numVertices		= vertices.size();
 		const uint32 numIndices			= sCast<uint32>(indices.size());
 		const uint64 vertexBufferSize	= numVertices * vertexSize;

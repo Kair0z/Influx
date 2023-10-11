@@ -3,14 +3,14 @@
 #include "../Renderer/IFluxRenderer.h"
 #include "InfluxGraphics.h"
 
-namespace Influx
+namespace influx
 {
 	class RHIRenderer final : public IFluxRenderer
 	{
 	private:
-		virtual void RecordRenderCommands(Platform::WindowHandle windowHandle) override final;
+		virtual void RecordRenderCommands(platform::window_handle windowHandle) override final;
 
-		virtual void PresentToWindow(Platform::WindowHandle windowHandle) override final;
+		virtual void PresentToWindow(platform::window_handle windowHandle) override final;
 
 	public:
 		RHIRenderer();

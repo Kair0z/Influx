@@ -3,23 +3,22 @@
 #ifndef __CORE_PLATFORM_H_
 #define __CORE_PLATFORM_H_
 
-#include "Core/BasicTypes.h"
-#include "Core/Math/Vector.h"
-#include "Core/Geometry/Rect.h"
-#include "Core/String.h"
-#include "Core/Function.h"
-#include "Core/Singleton/Singleton.h"
+#include "core/basetypes.h"
+#include "core/math/vector.h"
+#include "core/geometry/rect.h"
+#include "core/string.h"
+#include "core/function.h"
+#include "core/singleton/singleton.h"
 
 #ifdef CreateWindow
 #undef CreateWindow
 #endif
 
-// [TYPES]
-namespace Influx::Platform
+namespace influx::platform
 {
-	using ProcessHandle = void*;
-	using InstanceHandle = void*;
-	using WindowHandle = void*;
+	using process_handle = void*;
+	using instance_handle = void*;
+	using window_handle = void*;
 
 	// [IO]
 	typedef void(*WindowEventCallback)();
@@ -28,35 +27,35 @@ namespace Influx::Platform
 	typedef void(*WindowEvent_MouseWheel)(const float w_x, const float w_y);
 	typedef void(*WindowEvent_Focus)(bool isFocussed);
 
-	struct WindowSettings final
+	struct create_window_args final
 	{
-		WindowSettings() = default;
-		WindowSettings(const Math::Vectori2& dimensions, const Influx::String& name) 
-			: Width{ dimensions.x }, Heigth{ dimensions.y }, Name{ name } {}
+		create_window_args() = default;
+		create_window_args(const math::vectori2& dimensions, const influx::string& name) 
+			: m_width{ dimensions.x }, m_height{ dimensions.y }, m_name{ name } {}
 
-		int Width;
-		int Heigth;
+		int m_width;
+		int m_height;
 		
-		Influx::String Name;
+		influx::string m_name;
 	};
 
-	enum class WindowEvent
+	enum class e_windowevent
 	{
-		Activate,
-		Quit,
-		Max,
-		Unknown = Max
+		activate,
+		quit,
+		max,
+		unknown = max
 	};
 
-	enum class EMessageBoxType : uint8
+	enum class e_messagebox : uint8
 	{
-		Info,
-		Warning,
-		Error,
-		Max
+		info,
+		warning,
+		error,
+		max
 	};
 	
-	enum class EConsoleColour : uint16
+	enum class e_console_colour : uint16
 	{
 		Green = 2,
 		Red = 4,
@@ -64,10 +63,10 @@ namespace Influx::Platform
 		BG_Green = 12,
 		BG_Red = 14,
 		BG_Purple = 15,
-		Max
+		maximum
 	};
 
-	enum class EWindowVisibility : uint8
+	enum class e_window_visibility : uint8
 	{
 		Minimize,
 		ShowDefault,
@@ -76,76 +75,78 @@ namespace Influx::Platform
 }
 
 // [INTERFACE DECLARATIONS]
-namespace Influx::Platform
+namespace influx::platform
 {
 	// [MEMORY]
-	void* Allocate(const uint64 size);
+	void* allocate(const uint64 dimension);
 
-	/* Allocates memory for an object of sizeof(_T) */
-	template <typename _T>
-	_T* Allocate();
+	/* Allocates memory for an object of sizeof(_t) */
+	template <typename _t>
+	_t* allocate();
 	
-	/* Allocates memory for an object of _T and calls _T() */
-	template <typename _T, typename ..._Args>
-	_T* New(_Args&&... args);
+	/* Allocates memory for an object of _t and calls _t() */
+	template <typename _t, typename ..._args>
+	_t* anew(_args&&... args);
 
-	/* Frees memory for an object of sizeof(_T) */
-	template <typename _T>
-	void Free(_T* address);
+	/* Frees memory for an object of sizeof(_t) */
+	template <typename _t>
+	void free(_t* address);
 
 
 	// [APPLICATION]
-	ProcessHandle GetCurrentProcess();
+#pragma region application
+	process_handle get_current_process();
 
-	InstanceHandle GetCurrentInstance();
+	instance_handle get_current_instance();
 
-	WindowHandle GetCurrentWindowHandle();
+	window_handle get_current_window();
 
-	void QuitCurrentInstance();
+	bool is_window_valid(window_handle handle);
 
+	void quit();
+#pragma endregion
 
 	// [WINDOW]
-	WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen = true);
+#pragma region window
+	window_handle create_window(const create_window_args& args, bool make_open = true);
 
-	WindowSettings GetWindowSettings(const WindowHandle handle);
-
-	void DestroyWindow(const WindowHandle handle);
+	void destroy_window(const window_handle handle);
 
 	/* Returns true if window is as a result visible */
-	bool SetWindowVisibility(const WindowHandle windowHandle, const EWindowVisibility command);
+	bool set_window_visible(const window_handle windowHandle, const e_window_visibility command);
 
-	template <typename _T>
-	Math::Rect<_T> GetFullWindowRect(const WindowHandle windowHandle);
+	template <typename _t>
+	math::rect<_t> get_windowrect_full(const window_handle windowHandle);
 
-	template <typename _T>
-	Math::Rect<_T> GetClientWindowRect(const WindowHandle windowHandle);
+	template <typename _t>
+	math::rect<_t> get_windowrect_client(const window_handle windowHandle);
 
-	bool IsWindowVisible(const WindowHandle windowHandle);
-
-	// [IO]
-
+	bool is_window_visible(const window_handle windowHandle);
+#pragma endregion
 
 	// [MISC]
-	template <EMessageBoxType _T>
-	void MessageBox(const String& caption, const String& message, const WindowHandle windowHandle);
+#pragma region miscelaneous
+	template <e_messagebox _t>
+	void messagebox(const string& caption, const string& message, const window_handle windowHandle);
 
-	inline void ErrorMessageBox(const String& caption, const String& message, const WindowHandle windowHandle = GetCurrentWindowHandle())
+	inline void messagebox_error(const string& caption, const string& message, const window_handle windowHandle = get_current_window())
 	{
-		MessageBox<EMessageBoxType::Error>(caption, message, windowHandle);
+		messagebox<e_messagebox::error>(caption, message, windowHandle);
 	}
 
-	inline void InfoMessageBox(const String& caption, const String& message, const WindowHandle windowHandle = GetCurrentWindowHandle())
+	inline void messagebox_info(const string& caption, const string& message, const window_handle windowHandle = get_current_window())
 	{
-		MessageBox<EMessageBoxType::Info>(caption, message, windowHandle);
+		messagebox<e_messagebox::info>(caption, message, windowHandle);
 	}
 
-	inline void WarningMessageBox(const String& caption, const String& message, const WindowHandle windowHandle = GetCurrentWindowHandle())
+	inline void messagebox_warning(const string& caption, const string& message, const window_handle windowHandle = get_current_window())
 	{
-		MessageBox<EMessageBoxType::Warning>(caption, message, windowHandle);
+		messagebox<e_messagebox::warning>(caption, message, windowHandle);
 	}
 
-	template <EConsoleColour _C>
-	void SetConsoleColourAttribute();
+	template <e_console_colour _C>
+	void set_console_colour_attribute();
+#pragma endregion
 }
 
 #endif // _CORE_PLATFORM_H_

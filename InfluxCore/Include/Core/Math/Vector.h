@@ -3,245 +3,251 @@
 #ifndef _CORE_MATH_VECTOR_H_
 #define _CORE_MATH_VECTOR_H_
 
-#include "Core/BasicTypes.h"
+#include "core/basetypes.h"
 
 #pragma warning(disable : 4201) // Union warning...
 
-namespace Influx::Math
+namespace influx::math
 {
-	using VectorSizeType = uint8;
+	using _vector_dim_t = uint8;
 
-	namespace Internal
+	namespace detail
 	{
-		template <typename _T, VectorSizeType _N>
-		struct VectorBase
+		template <typename _t, _vector_dim_t _dim>
+		struct base_vector
 		{
 			union
 			{
-				struct { _T x, y, z, w; };
-				struct { _T r, g, b, a; };
-				_T data[_N];
+				struct { _t x, y, z, w; };
+				struct { _t r, g, b, a; };
+				_t m_data[_dim];
 			};
 
 			template <typename... _V>
-			VectorBase(const _V&... components)
-				: data{components...}
+			base_vector(const _V&... components)
+				: m_data{components...}
 			{
 
 			}
 		};
 
-		template <typename _T>
-		struct VectorBase<_T, 1u>
+		template <typename _t>
+		struct base_vector<_t, 1u>
 		{
 			union
 			{
-				struct { _T x; };
-				struct { _T r; };
-				_T data[1];
+				struct { _t x; };
+				struct { _t r; };
+				_t m_data[1];
 			};
-			VectorBase<_T, 1u>(const _T _x = 0) : x{ _x } {}
+			base_vector<_t, 1u>(const _t _x = 0) : x{ _x } {}
 		};
 
-		template <typename _T>
-		struct VectorBase<_T, 2u>
+		template <typename _t>
+		struct base_vector<_t, 2u>
 		{
 			union
 			{
-				struct { _T x, y; };
-				struct { _T r, g; };
-				_T data[2];
+				struct { _t x, y; };
+				struct { _t r, g; };
+				_t m_data[2];
 			};
 
-			VectorBase<_T, 2u>(const _T _x = 0, const _T _y = 0) : x{ _x }, y{ _y } {}
+			base_vector<_t, 2u>(const _t _x = 0, const _t _y = 0) : x{ _x }, y{ _y } {}
 		};
 
-		template <typename _T>
-		struct VectorBase<_T, 3u>
+		template <typename _t>
+		struct base_vector<_t, 3u>
 		{
 			union
 			{
-				struct { _T x, y, z; };
-				struct { _T r, g, b; };
-				_T data[3];
+				struct { _t x, y, z; };
+				struct { _t r, g, b; };
+				_t m_data[3];
 			};
 
-			VectorBase<_T, 3u>(const _T _x = 0, const _T _y = 0, const _T _z = 0) : x{ _x }, y{ _y }, z{ _z } {}
+			base_vector<_t, 3u>(const _t _x = 0, const _t _y = 0, const _t _z = 0) : x{ _x }, y{ _y }, z{ _z } {}
 		};
 
-		template <typename _T>
-		struct VectorBase<_T, 4u>
+		template <typename _t>
+		struct base_vector<_t, 4u>
 		{
 			union
 			{
-				struct { _T x, y, z, w; };
-				struct { _T r, g, b, a; };
-				_T data[4];
+				struct { _t x, y, z, w; };
+				struct { _t r, g, b, a; };
+				_t m_data[4];
 			};
 
-			VectorBase<_T, 4u>(const _T _x = 0, const _T _y = 0, const _T _z = 0, const _T _w = 0) : x{ _x }, y{ _y }, z{ _z }, w{ _w } {}
+			base_vector<_t, 4u>(const _t _x = 0, const _t _y = 0, const _t _z = 0, const _t _w = 0) : x{ _x }, y{ _y }, z{ _z }, w{ _w } {}
 		};
 	}
 
-	template <typename _T, VectorSizeType _N>
-	class Vector final : public Internal::VectorBase<_T, _N>
+	template <typename _t, _vector_dim_t _dim>
+	class vector final : public detail::base_vector<_t, _dim>
 	{
-		static_assert(_N != 0u, "Influx::Vector<_T, _N> ¬ Cannot instantiate zero-sized Vector (_N == 0)! ");
+		static_assert(_dim != 0u, "influx::vector<_t, _dim> ¬ Cannot instantiate zero-sized vector (_dim == 0)! ");
 
 	public:
 		// Constructors:
-		Vector() = default;
-		Vector(const Vector& other) = default;
-		Vector(Vector && other) = default;
-		Vector& operator=(const Vector & other) = default;
-		Vector& operator=(Vector && other) = default;
+		vector() = default;
+		vector(const vector& other) = default;
+		vector(vector&& other) = default;
+		vector& operator=(const vector& other) = default;
+		vector& operator=(vector&& other) = default;
 
-		template <typename... _V>		Vector(const _V&... components);		// Initializer list
-		template <typename _U>			Vector(const Vector<_U, _N>& other);	// Typecasting
-		template <VectorSizeType _D>	Vector(const Vector<_T, _D>& other);	// Sizecasting
+		template <typename... _V>		vector(const _V&... components);		// Initializer list
+		template <typename _U>			vector(const vector<_U, _dim>& other);	// Typecasting
+		template <_vector_dim_t _D>		vector(const vector<_t, _D>& other);	// Sizecasting
 
-		constexpr static VectorSizeType Size();
+		constexpr static _vector_dim_t dimension();
 
 		// Accessing data:
-		_T& operator[](VectorSizeType i);
-		const _T& operator[](VectorSizeType i) const;
-		_T& At(VectorSizeType i);
-		const _T& At(VectorSizeType i) const;
+		_t& operator[](_vector_dim_t i);
+		const _t& operator[](_vector_dim_t i) const;
+		_t& at(_vector_dim_t i);
+		const _t& at(_vector_dim_t i) const;
 
-		const _T* Data() const;
+		const _t* data() const;
 
 		// Normalizing:
-		Vector Normalized() const;
-		void Normalize();
-		static void Normalize(Vector& vec);
-		static Vector Normalized(const Vector& vec);
+		vector normalized() const;
+		void normalize();
+		static void normalize(vector& vec);
+		static vector normalized(const vector& vec);
 
 		// Clamp:
-		Vector Clamped(float min, float max);
-		void Clamp(float min, float max);
-		static void Clamp(Vector& vec, float min, float max);
-		static Vector Clamped(const Vector& vec, float min, float max);
+		vector clamped(float min, float max);
+		void clamp(float min, float max);
+		static void clamp(vector& vec, float min, float max);
+		static vector clamped(const vector& vec, float min, float max);
 
 		// Angle:
-		float RadiansBetween(const Vector& other) const;
-		static float RadiansBetween(const Vector& a, const Vector& b);
+		float radians_between(const vector& other) const;
+		static float radians_between(const vector& a, const vector& b);
 
 		// Magnitude:
-		float Magnitude() const;
-		float SqrMagnitude() const;
-		static float Magnitude(const Vector& other);
-		static float SqrMagnitude(const Vector& other);
-		static float Distance(const Vector& a, const Vector& b);
-		static float SqrDistance(const Vector& a, const Vector& b);
+		float magnitude() const;
+		float sqr_magnitude() const;
+		static float magnitude(const vector& other);
+		static float sqr_magnitude(const vector& other);
+		static float distance(const vector& a, const vector& b);
+		static float sqr_distance(const vector& a, const vector& b);
 
 		// Scaling:
-		void Scale(float mag);
-		Vector Scaled(float mag) const;
-		static void Scale(Vector& vec, float mag);
-		static Vector Scaled(const Vector& vec, float mag);
+		void scale(float mag);
+		vector scaled(float mag) const;
+		static void scale(vector& vec, float mag);
+		static vector scaled(const vector& vec, float mag);
 
 		// Cross & dot:
-		float Dot(const Vector& other) const;
-		static float Dot(const Vector& a, const Vector& b);
+		float dot(const vector& other) const;
+		static float dot(const vector& a, const vector& b);
 
-		float Cross(const Vector<_T, 2u>& other) const;
-		Vector<_T, 3u> Cross(const Vector<_T, 3u>& other) const;
-		static float Cross(const Vector<_T, 2u>& a, const Vector<_T, 2u>& b);
-		static Vector<_T, 3u> Cross(const Vector<_T, 3u>& a, const Vector<_T, 3u>& b);
+		float cross(const vector<_t, 2u>& other) const;
+		vector<_t, 3u> cross(const vector<_t, 3u>& other) const;
+		static float cross(const vector<_t, 2u>& a, const vector<_t, 2u>& b);
+		static vector<_t, 3u> cross(const vector<_t, 3u>& a, const vector<_t, 3u>& b);
 
 		// Comparison
-		bool operator==(const Vector& other) const;
-		bool operator!=(const Vector& other) const;
+		bool operator==(const vector& other) const;
+		bool operator!=(const vector& other) const;
 
 		// Inverting:
-		const Vector& Inverted() const;
-		void Inverse();
-		static void Inverse(Vector& vec);
-		static Vector Inverted(const Vector& vec);
+		const vector& inverted() const;
+		void inverse();
+		static void inverse(vector& vec);
+		static vector inverted(const vector& vec);
 
 		// Reflect:
-		const	Vector<_T, 2u>&	Reflected(const Vector<_T, 2u>& hitNormal) const;
-		static	Vector<_T, 2u>	Reflection(const Vector<_T, 2u>& vector, const Vector<_T, 2>& hitNormal);
-		const	Vector<_T, 3u>&	Reflected(const Vector<_T, 3u>& hitNormal) const;
-		static	Vector<_T, 3u>	Reflection(const Vector<_T, 3u>& vector, const Vector<_T, 3>& hitNormal);
+		const	vector<_t, 2u>&	reflected(const vector<_t, 2u>& hitNormal) const;
+		const	vector<_t, 3u>& reflected(const vector<_t, 3u>& hitNormal) const;
+		static	vector<_t, 2u>	reflection(const vector<_t, 2u>& vec, const vector<_t, 2u>& hitNormal);
+		static	vector<_t, 3u>	reflection(const vector<_t, 3u>& vec, const vector<_t, 3u>& hitNormal);
 
 		// Lerp:
-		static Vector Lerp(const Vector& a, const Vector& b, const float t);
+		static vector lerp(const vector& a, const vector& b, const float t);
 
 		// Zero:
-		static Vector Zero();
-		static Vector One();
-		bool IsZero() const;
-		static bool IsZero(const Vector& v);
+		static vector zero();
+		static vector one();
+		static vector max();
+		bool is_zero() const;
+		static bool is_zero(const vector& v);
 
 		// 3D:
-		constexpr static Vector<_T, 3u> Up();
-		constexpr static Vector<_T, 3u> Forward();
-		constexpr static Vector<_T, 3u> Right();
+		constexpr static vector<_t, 3u> up();
+		constexpr static vector<_t, 3u> forward();
+		constexpr static vector<_t, 3u> right();
 
 		// Arithmatics:
-		Vector& operator+=(const Vector& other);
-		Vector& operator-=(const Vector& other);
-		Vector& operator*=(const Vector& other);
-		Vector& operator*=(const float scalar);
-		Vector& operator/=(const Vector& other);
-		Vector& operator/=(const float scalar);
+		vector& operator+=(const vector& other);
+		vector& operator-=(const vector& other);
+		vector& operator*=(const vector& other);
+		vector& operator*=(const float scalar);
+		vector& operator/=(const vector& other);
+		vector& operator/=(const float scalar);
 	};
 
 	// Per-Component operators:
-	template <typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator+(const Vector<_T, _N>& a, const Vector<_T, _N>& b);
-	template <typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator-(const Vector<_T, _N>& a, const Vector<_T, _N>& b);
-	template <typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator*(const Vector<_T, _N>& a, const Vector<_T, _N>& b);
-	template <typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator/(const Vector<_T, _N>& a, const Vector<_T, _N>& b);
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator+(const vector<_t, _dim>& a, const vector<_t, _dim>& b);
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator-(const vector<_t, _dim>& a, const vector<_t, _dim>& b);
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator*(const vector<_t, _dim>& a, const vector<_t, _dim>& b);
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator/(const vector<_t, _dim>& a, const vector<_t, _dim>& b);
 
 	// Scalar operators:
-	template <typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator*(const Vector<_T, _N>& a, const float b);
-	template <typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator/(const Vector<_T, _N>& a, const float b);
-	template <typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator*(const float a, const Vector<_T, _N>& b);
-	template <typename _T, VectorSizeType _N>
-	Vector<_T, _N> operator-(const Vector<_T, _N>& v);
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator*(const vector<_t, _dim>& a, const float b);
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator/(const vector<_t, _dim>& a, const float b);
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator*(const float a, const vector<_t, _dim>& b);
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator-(const vector<_t, _dim>& v);
 
 #pragma region Aliases
-	template <VectorSizeType _N>
-	using Vectoru8 = Vector<uint8, _N>;
+	template <_vector_dim_t _dim>
+	using vectoru8 = vector<uint8, _dim>;
 
-	template <VectorSizeType _N>
-	using Vectoru32 = Vector<uint32, _N>;
+	template <_vector_dim_t _dim>
+	using vectoru32 = vector<uint32, _dim>;
 
-	template <VectorSizeType _N>
-	using Vectoru64 = Vector<uint64, _N>;
+	template <_vector_dim_t _dim>
+	using vectoru64 = vector<uint64, _dim>;
 
-	template <VectorSizeType _N>
-	using Vectori = Vector<int, _N>;
+	template <_vector_dim_t _dim>
+	using vectori = vector<int, _dim>;
 
-	template <VectorSizeType _N>
-	using Vectorf = Vector<float, _N>;
+	template <_vector_dim_t _dim>
+	using vectorf = vector<float, _dim>;
 
-	template <VectorSizeType _N>
-	using Vectorl = Vector<long, _N>;
+	template <_vector_dim_t _dim>
+	using vectorl = vector<long, _dim>;
 
-	using Vectorf2 = Vectorf<2u>;
-	using Vectorf3 = Vectorf<3u>;
-	using Vectorf4 = Vectorf<4u>;
+	using vectorf2 = vectorf<2u>;
+	using vectorf3 = vectorf<3u>;
+	using vectorf4 = vectorf<4u>;
 
-	using Vectoru2 = Vectoru32<2u>;
-	using Vectoru3 = Vectoru32<3u>;
-	using Vectoru4 = Vectoru32<4u>;
+	using vectoru2 = vectoru32<2u>;
+	using vectoru3 = vectoru32<3u>;
+	using vectoru4 = vectoru32<4u>;
 
-	using Vectori2 = Vectori<2u>;
-	using Vectori3 = Vectori<3u>;
-	using Vectori4 = Vectori<4u>;
+	using vectori2 = vectori<2u>;
+	using vectori3 = vectori<3u>;
+	using vectori4 = vectori<4u>;
+
+	using float2 = vectorf2;
+	using float3 = vectorf3;
+	using float4 = vectorf4;
 #pragma endregion
+
 }
 
-#include "Vector.inl"
+#include "vector.inl"
 
 #pragma warning(default : 4201)
 

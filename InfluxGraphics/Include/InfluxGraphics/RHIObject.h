@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHIObject
 	{

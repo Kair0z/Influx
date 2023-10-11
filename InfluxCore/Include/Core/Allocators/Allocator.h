@@ -1,49 +1,26 @@
 #pragma once
 
-#include "Core/BasicTypes.h"
+#include "core/basetypes.h"
 
 namespace Influx
 {
 	namespace Internal
 	{
-		class IAllocator
+		class i_allocator
 		{
 		public:
-			using t_numBytes = uint64;
+			using t_numBytes = size_t;
 			using t_address = void*;
 
-			virtual void* Allocate(const t_numBytes numBytes) = 0;
-			virtual void Free(t_address address) = 0;
-			virtual void Clear() = 0;
+			virtual void* allocate(const t_numBytes numBytes) = 0;
+			virtual void free(t_address address) = 0;
+			virtual void clear() = 0;
 
-			IAllocator(const IAllocator&) = delete;
-			IAllocator(IAllocator&&) = delete;
-			IAllocator& operator=(const IAllocator&) = delete;
-			IAllocator& operator=(IAllocator&&) = delete;
-			virtual ~IAllocator() = default;
+			i_allocator(const i_allocator&) = delete;
+			i_allocator(i_allocator&&) = delete;
+			i_allocator& operator=(const i_allocator&) = delete;
+			i_allocator& operator=(i_allocator&&) = delete;
+			virtual ~i_allocator() = default;
 		};
 	}
-
-	template <typename _T>
-	class Allocator final : Internal::IAllocator
-	{
-	public:
-		Allocator() = default;
-		template <class _U> Allocator(const Allocator<_U>&) = default;
-
-		virtual _T* Allocate(const t_numBytes numBytes) override final
-		{
-			//Platform::Allocate(numBytes);
-		}
-
-		virtual void Free(_T* address) override final
-		{
-			//Platform::Free(address);
-		}
-
-		virtual void Clear() override final
-		{
-
-		}
-	};
 }

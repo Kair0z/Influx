@@ -5,10 +5,10 @@
 
 #include <list>
 
-namespace Influx
+namespace influx
 {
 	template <typename _T>
-	using List = std::list<_T>;
+	using list = std::list<_T>;
 }
 
 #endif

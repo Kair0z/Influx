@@ -13,7 +13,7 @@
 #include "InfluxGraphics/RHIPipeline.h"
 #include "InfluxGraphics/RHITexture.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 
 }

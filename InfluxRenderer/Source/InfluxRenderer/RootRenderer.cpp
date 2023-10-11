@@ -6,9 +6,9 @@
 
 #include "Core/Platform/WindowsPlatform.h"
 
-namespace Influx::Renderer
+namespace influx::Renderer
 {
-	using namespace Influx::Graphics;
+	using namespace influx::Graphics;
 
 	RootRenderer::RootRenderer(const Graphics::EGraphicsAPI api, Platform::WindowHandle windowHandle)
 	{

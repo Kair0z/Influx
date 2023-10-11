@@ -5,10 +5,10 @@
 
 #include <array>
 
-namespace Influx
+namespace influx
 {
 	template <typename _T, size_t _N>
-	using Array = std::array<_T, _N>;
+	using array = std::array<_T, _N>;
 }
 
 #endif

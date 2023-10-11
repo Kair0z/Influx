@@ -3,14 +3,14 @@
 #ifndef __CORE_SEMAPHORE_H_
 #define __CORE_SEMAPHORE_H_
 
-#include "Core/BasicTypes.h"
+#include "core/basetypes.h"
 
 #include <semaphore>
 
-namespace Influx
+namespace influx
 {
-	template <uint8 _N>
-	using Semaphore = std::counting_semaphore<_N>;
+	template <uint8 _n>
+	using Semaphore = std::counting_semaphore<_dim>;
 
 	using Semaphore = std::binary_semaphore;
 }

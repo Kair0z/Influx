@@ -5,7 +5,7 @@
 #include "Core/Container/Map.h"
 #endif
 
-namespace Influx::Assets
+namespace influx::Assets
 {
 	struct ImageLoadDesc final
 	{
@@ -27,16 +27,16 @@ namespace Influx::Assets
 		}
 	};
 
-	using ImageCache = Influx::Cache<Image, String, ImageLoadDesc>;
+	using ImageCache = influx::Cache<Image, string, ImageLoadDesc>;
 }
 
 // Define ImageLoadDesc Hash function...
 namespace std
 {
 	template <>
-	struct std::hash<Influx::Assets::ImageLoadDesc>
+	struct std::hash<influx::Assets::ImageLoadDesc>
 	{
-		size_t operator()(const Influx::Assets::ImageLoadDesc& key) const noexcept
+		size_t operator()(const influx::Assets::ImageLoadDesc& key) const noexcept
 		{
 			return 0u;
 		}

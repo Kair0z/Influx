@@ -6,21 +6,21 @@
 #include <string>
 #include <algorithm>
 
-namespace Influx
+namespace influx
 {
-	using String = std::string;
-	using WString = std::wstring;
+	using string = std::string;
+	using wstring = std::wstring;
 
 #pragma warning (push)
 #pragma warning (disable : 4244)
-	inline String ToString(const WString& wstring)
+	inline string to_string(const wstring& wstring)
 	{
 		std::string res(wstring.length(), ' ');
 		std::copy(wstring.cbegin(), wstring.cend(), res.begin());
 		return res;
 	}
 
-	inline WString ToWString(const String& string)
+	inline wstring to_wstring(const string& string)
 	{
 		std::wstring res(string.length(), L' ');
 		std::copy(string.cbegin(), string.cend(), res.begin());

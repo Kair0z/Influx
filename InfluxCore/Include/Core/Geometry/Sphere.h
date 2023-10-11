@@ -3,26 +3,26 @@
 #ifndef _CORE_GEOMETRY_SPHERE_H_
 #define _CORE_GEOMETRY_SPHERE_H_
 
-#include "../Math/Vector.h"
+#include "core/math/vector.h"
 
-namespace Influx::Math
+namespace influx::math
 {
-	template <typename _T>
-	struct Sphere final
+	template <typename _t>
+	struct sphere final
 	{
 	private:
-		using Vector3 = Vector<_T, 3u>;
+		using vector3 = math::vector<_t, 3u>;
 
 	public:
-		inline Sphere() = default;
-		inline Sphere(const Vector3& position, const _T radius)
+		inline sphere() = default;
+		inline sphere(const vector3& position, const _t radius)
 			: m_radius{ radius }, m_position{ position }{}
 
-		_T		m_radius;
-		Vector3 m_position;
+		_t		m_radius;
+		vector3 m_position;
 	};
 
-	using Spheref = Sphere<float>;
+	using spheref = sphere<float>;
 }
 
 #endif

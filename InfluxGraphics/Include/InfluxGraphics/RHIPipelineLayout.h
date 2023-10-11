@@ -7,7 +7,7 @@
 
 #include "Core/Container/Map.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	struct RHIGraphicsPipelineLayoutDescription final
 	{
@@ -42,9 +42,9 @@ namespace Influx::Graphics
 namespace std
 {
 	template <>
-	struct std::hash<Influx::Graphics::RHIGraphicsPipelineLayoutDescription>
+	struct std::hash<influx::Graphics::RHIGraphicsPipelineLayoutDescription>
 	{
-		std::size_t operator()(const Influx::Graphics::RHIGraphicsPipelineLayoutDescription& desc) const noexcept
+		std::size_t operator()(const influx::Graphics::RHIGraphicsPipelineLayoutDescription& desc) const noexcept
 		{
 			return desc.ID;
 		}

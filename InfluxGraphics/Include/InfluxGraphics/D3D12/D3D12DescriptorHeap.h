@@ -8,7 +8,7 @@
 #include "InfluxGraphics/RHIDescriptorHeap.h"
 #include "D3D12.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	/* D3D12DescriptorHeap */
 	class D3D12DescriptorHeap final : public RHIDescriptorHeap

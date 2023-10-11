@@ -113,25 +113,25 @@ struct Stats final
     }
 };
 
-void UpdateScene(const Time& sceneTime, Influx::RenderScene& scene)
+void UpdateScene(const Time& sceneTime, influx::RenderScene& scene)
 {
     float pingPong{};
 
-    for (size_t i = 0; i < scene.Spheres.size(); ++i)
+    for (size_t i = 0; i < scene.Spheres.dimension(); ++i)
     {
-        Influx::Math::Sphere<float>& sphere = scene.Spheres[i];
-        pingPong = Influx::Math::PingPong(sceneTime.Time + scene.Randoms[i], 1.0f);
-        sphere.m_radius = Influx::Math::Lerp(pingPong, gSpheresMinSize, gSpheresMaxSize);
+        influx::Math::Sphere<float>& sphere = scene.Spheres[i];
+        pingPong = influx::Math::PingPong(sceneTime.Time + scene.Randoms[i], 1.0f);
+        sphere.m_radius = influx::Math::Lerp(pingPong, gSpheresMinSize, gSpheresMaxSize);
 
-        sphere.m_position.x = Influx::Math::Cos(pingPong) * gSpheresMax * scene.Randoms[i];
-        sphere.m_position.y = Influx::Math::Sin(pingPong) * gSpheresMax * scene.Randoms[i];
-        sphere.m_position.z = Influx::Math::Lerp(pingPong, gSpheresMinDepth, gSpheresMaxDepth);
+        sphere.m_position.x = influx::Math::Cos(pingPong) * gSpheresMax * scene.Randoms[i];
+        sphere.m_position.y = influx::Math::Sin(pingPong) * gSpheresMax * scene.Randoms[i];
+        sphere.m_position.z = influx::Math::Lerp(pingPong, gSpheresMinDepth, gSpheresMaxDepth);
     }
 }
 
 int main()
 {
-    using namespace Influx::Math;
+    using namespace influx::Math;
 
 #pragma region Setup
     int a = 0;
@@ -167,38 +167,38 @@ int main()
 #pragma endregion
 
     // Seed our random:
-    Influx::Random::SeedRandom();
-
+    influx::Random::SeedRandom();
 
     // Setup Renderscane:
-    Influx::RenderScene scene{};
-    scene.Spheres = Influx::Random::Sphere::RandomSpherefs<gNumSpheres>({gSpheresMin, gSpheresMin, gSpheresMinDepth}, {gSpheresMax, gSpheresMax, gSpheresMaxDepth}, {gSpheresMinSize, gSpheresMaxSize});
-    scene.Randoms = Influx::Random::Randoms<float, gNumSpheres>(0.0f, 1.0f);
-    scene.MainLight.Colour = Vectorf3::One();
-    scene.MainLight.Direction = { 0.33f, -0.33f, -0.33f };
-    scene.MainLight.Direction.Normalize();
+    influx::RenderScene scene{};
+    scene.Spheres               = influx::Random::Sphere::RandomSpherefs<gNumSpheres>(
+                                    {gSpheresMin, gSpheresMin, gSpheresMinDepth}, 
+                                    {gSpheresMax, gSpheresMax, gSpheresMaxDepth}, 
+                                    {gSpheresMinSize, gSpheresMaxSize});
 
+    scene.Randoms               = influx::Random::Randoms<float, gNumSpheres>(0.0f, 1.0f);
+    scene.MainLight.Colour      = Vectorf3::One();
+    scene.MainLight.Direction   = Vectorf3::Normalized({ 0.33f, -0.33f, -0.33f });
 
     // Setup Renderer & Camera:
-    Influx::PixelRaytracer renderer = Influx::PixelRaytracer();
-
+    influx::PixelRaytracer renderer = influx::PixelRaytracer();
     renderer.SetCameraFieldOfView(90.0f);
     renderer.SetCameraPosition({});
     renderer.SetCameraForward({ 0.0f, 0.0f, 1.0f });
     renderer.GetRenderSettings().RenderDepthMinMax.y = 500.0f;
 
 #if THREADED_RENDERING
-    Influx::ThreadPool<gNumThreads>* renderJobPool = new Influx::ThreadPool<gNumThreads>();
+    influx::ThreadPool<gNumThreads>* renderJobPool = new influx::ThreadPool<gNumThreads>();
 #else
     float uvx{};
     float uvy{};
 #endif
 
     // Setup timers:
-    Influx::Time::TimePoint beforeFrame = Influx::Time::Now();
-    Influx::Time::TimePoint beforeUpdate = Influx::Time::Now();
-    Influx::Time::TimePoint beforeRender = Influx::Time::Now();
-    Influx::Time::TimePoint beforePresent = Influx::Time::Now();
+    influx::time::point beforeFrame = influx::time::get_now();
+    influx::time::point beforeUpdate = influx::time::get_now();
+    influx::time::point beforeRender = influx::time::get_now();
+    influx::time::point beforePresent = influx::time::get_now();
 
     uint64_t currentFrame{};
     Time sceneTime{};
@@ -207,7 +207,7 @@ int main()
 
     while (!isQuit)
     {
-        beforeFrame = Influx::Time::Now();
+        beforeFrame = influx::time::get_now();
 
         // ¬ POLL SDL WINDOW EVENTS
         SDL_Event e;
@@ -222,13 +222,13 @@ int main()
         }
 
         // ¬ UPDATE:
-        stats.AddValue<Stats::EStat::Update>(Influx::Time::GetTimeInMs<double>([&sceneTime, &scene]()
+        stats.AddValue<Stats::EStat::Update>(influx::time::measure_ms<double>([&sceneTime, &scene]()
         {
             UpdateScene(sceneTime, scene);
         }));
 
         // ¬ RENDER
-        beforeRender = Influx::Time::Now();
+        beforeRender = influx::time::get_now();
 #if THREADED_RENDERING
         for (size_t i = 0, jobOffset = 0; i < gNumThreads; ++i)
         {
@@ -241,7 +241,7 @@ int main()
                         float uvx = float(p % gWindowWidth) / float(gWindowWidth);
                         float uvy = float(p / gWindowWidth) / float(gWindowHeight);
 
-                        Influx::PixelRenderer::PixelOutput pixelResult =
+                        influx::PixelRenderer::PixelOutput pixelResult =
                             renderer.RenderPixel(scene, { uvx, uvy }, gAspectRatio);
 
                         const size_t pixelBaseIdx = p * 4u;
@@ -275,16 +275,16 @@ int main()
             depthBufferPixels[i] = pxResult.Depth;
         }
 #endif
-        stats.AddValue<Stats::EStat::Render>(Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeRender));
+        stats.AddValue<Stats::EStat::Render>(influx::time::get_ms_between<double>(influx::time::get_now(), beforeRender));
 
         // ¬ PRESENT
-        beforePresent = Influx::Time::Now();
+        beforePresent = influx::time::get_now();
         SDL_BlitSurface(backbuffer_surface, NULL, window_surface, NULL);
         SDL_UpdateWindowSurface(window);
-        stats.AddValue<Stats::EStat::Present>(Influx::Time::MsBetween<double>(Influx::Time::Now(), beforePresent));
+        stats.AddValue<Stats::EStat::Present>(influx::time::get_ms_between<double>(influx::time::get_now(), beforePresent));
         
         // ¬ COMPILE FRAMETIME
-        double thisFrame = Influx::Time::MsBetween<double>(Influx::Time::Now(), beforeFrame);
+        double thisFrame = influx::time::get_ms_between<double>(influx::time::get_now(), beforeFrame);
         stats.AddValue<Stats::EStat::Frame>(thisFrame);
         sceneTime.DeltaTime = static_cast<float>(thisFrame / 1000);
         sceneTime.Time += sceneTime.DeltaTime;
@@ -313,10 +313,10 @@ int main()
 
             for (size_t i = 0; i < Stats::k_EnumSize; ++i)
             {
-                using namespace Influx::Platform;
+                using namespace influx::platform;
                 double value = sortedStats[i].first;
-                if (value > 16.0) SetConsoleColourAttribute<EConsoleColour::Red>();
-                else SetConsoleColourAttribute<EConsoleColour::Green>();
+                if (value > 16.0) set_console_colour_attribute<e_console_colour::Red>();
+                else set_console_colour_attribute<e_console_colour::Green>();
 
                 std::cout << "Ms " << Stats::k_StatToNames[sortedStats[i].second] << ": " << value << "\n";
             }

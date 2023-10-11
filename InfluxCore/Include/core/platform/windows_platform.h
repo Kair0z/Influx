@@ -3,11 +3,10 @@
 #ifndef __CORE_WINDOWSPLATFORM_H_
 #define __CORE_WINDOWSPLATFORM_H_
 
-#include "Platform.h"
-
-#include "Core/BasicTypes.h"
-#include "Core/Cast.h"
-#include "Core/Container/Containers.h"
+#include "core/platform/platform.h"
+#include "core/basetypes.h"
+#include "core/cast.h"
+#include "core/container/containers.h"
 
 // Include Windows
 #define WIN32_LEAN_AND_MEAN
@@ -19,33 +18,33 @@
 #undef CreateWindow
 #endif
 
-#ifdef MessageBox
-#undef MessageBox
+#ifdef messagebox
+#undef message_box
 #endif
 
-namespace Influx::Platform
+namespace influx::platform
 {
-	using WindowsProcedure = ::WNDPROC;
+	using windows_procedure = ::WNDPROC;
 
-	namespace Internal
+	namespace detail
 	{
-		static List<WindowHandle>		gWindowHandles{};
-		static List<WindowsProcedure>	gWindowsProcedureCallbacklist{};
+		static list<window_handle>		gWindowHandles{};
+		static list<windows_procedure>	gWindowsProcedureCallbacklist{};
 
-		constexpr WindowEvent TranslateEvent(const uint32 value)
+		constexpr e_windowevent translate_event(const uint32 value)
 		{
 			switch (value)
 			{
 			default:
-			case WM_NULL:		return WindowEvent::Unknown;
-			case WM_QUIT:		return WindowEvent::Quit;
-			case WM_ACTIVATE:	return WindowEvent::Activate;
+			case WM_NULL:		return e_windowevent::unknown;
+			case WM_QUIT:		return e_windowevent::quit;
+			case WM_ACTIVATE:	return e_windowevent::activate;
 			}
 		}
 
-		inline LRESULT DefaultWindowsProcedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
+		inline LRESULT default_windows_procedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
 		{
-			for (const WindowsProcedure& proc : gWindowsProcedureCallbacklist)
+			for (const windows_procedure& proc : gWindowsProcedureCallbacklist)
 			{
 				proc(hWnd, uMsg, wParam, lParam);
 			}
@@ -54,7 +53,7 @@ namespace Influx::Platform
 			{
 			case WM_DESTROY:
 			{
-				PostQuitMessage(0);
+				::PostQuitMessage(0);
 				return 0;
 			}
 
@@ -65,19 +64,19 @@ namespace Influx::Platform
 			return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
 
-		template <typename _T>
-		inline Math::Rect<_T> Cast(const ::RECT& rect)
+		template <typename _t>
+		inline math::rect<_t> cast(const ::RECT& rect)
 		{
-			return Math::Rect<_T>(
-				sCast<_T>(rect.left),
-				sCast<_T>(rect.bottom),
-				sCast<_T>(rect.right - rect.left),
-				sCast<_T>(rect.bottom - rect.top));
+			return math::rect<_t>(
+				stat_cast<_t>(rect.left),
+				stat_cast<_t>(rect.bottom),
+				stat_cast<_t>(rect.right - rect.left),
+				stat_cast<_t>(rect.bottom - rect.top));
 		}
 	}
 
 	// [ MEMORY ]
-	inline void* Allocate(const uint64 size)
+	inline void* allocate(const uint64 size)
 	{
 		if (size == 0)
 		{
@@ -90,91 +89,79 @@ namespace Influx::Platform
 		}
 	}
 
-	template <typename _T>
-	inline _T* Allocate()
+	template <typename _t>
+	inline _t* allocate()
 	{
-		return static_cast<_T*>(Allocate(sizeof(_T)));
+		return static_cast<_t*>(allocate(sizeof(_t)));
 	}
 
-	template <typename _T, typename ..._Args>
-	inline _T* New(_Args&&... args)
+	template <typename _t, typename ..._args>
+	inline _t* anew(_args&&... args)
 	{
-		return new _T(args...);
+		return new _t(args...);
 	}
 
-	template <typename _T>
-	inline void Free(_T* address)
+	template <typename _t>
+	inline void free(_t* address)
 	{
 		std::free(address);
 	}
 
-	// [ THREADING ]
-	namespace Thread
-	{
-
-	}
-
 	// [ APPLICATION ]
-	inline ProcessHandle GetCurrentProcess()
+#pragma region application
+	inline process_handle get_current_process()
 	{
 		return ::GetCurrentProcess();
 	}
 
-	inline InstanceHandle GetCurrentInstance()
+	inline instance_handle get_current_instance()
 	{
 		return ::GetModuleHandleW(NULL);
 	}
 
-	inline WindowHandle GetCurrentWindowHandle()
+	inline window_handle get_current_window()
 	{
 		return ::GetActiveWindow();
 	}
 
-	inline bool IsWindowValid(WindowHandle handle)
+	inline bool is_window_valid(window_handle handle)
 	{
 		return ::IsWindow((::HWND)handle);
 	}
 
-	inline void QuitCurrentInstance()
+	inline void quit()
 	{
 		::PostQuitMessage(0);
 	}
-
-	inline void AddWindowsProcedureCallback(WindowsProcedure callback)
-	{
-		Internal::gWindowsProcedureCallbacklist.push_back(callback);
-	}
-
-	inline void RemoveWindowsProcedureCallback(WindowsProcedure callback)
-	{
-		Internal::gWindowsProcedureCallbacklist.remove(callback);
-	}
+#pragma endregion
 
 	// [ WINDOW ]
+#pragma region window
+
 	/* Returns false if a quit-event was polled! */
-	inline bool PollWindowEvents(Vector<WindowEvent>& out_events, WindowHandle handle = GetCurrentWindowHandle())
+	inline bool poll_window_events(vector<e_windowevent>& out_events, window_handle handle = get_current_window())
 	{
 		// http://www.directxtutorial.com/Lesson.aspx?lessonid=9-1-4
 
 		MSG msg;
-		if (!IsWindowValid(handle))
+		if (!is_window_valid(handle))
 		{
 			return false;
 		}
 		
-		bool hasQuitEvent = false;
+		bool found_quit_event = false;
 		out_events.clear();
 		out_events.reserve(16u); // how many could this really be xD?
 
 		// process ALL windows event message
 		while (::PeekMessage(&msg, (::HWND)handle, 0u, 0u, PM_REMOVE))
 		{
-			WindowEvent translatedEvent = Internal::TranslateEvent(msg.message);
+			e_windowevent translatedEvent = detail::translate_event(msg.message);
 			out_events.push_back(translatedEvent);
 
-			if (translatedEvent == WindowEvent::Quit)
+			if (translatedEvent == e_windowevent::quit)
 			{
-				hasQuitEvent = true;
+				found_quit_event = true;
 				break;
 			}
 
@@ -184,21 +171,20 @@ namespace Influx::Platform
 			::DispatchMessage(&msg);
 		}
 
-		return !hasQuitEvent;
+		return !found_quit_event;
 	}
 
 	/* Returns false if a quit-event was polled! */
-	inline bool PollWindowEvents(WindowHandle handle = GetCurrentWindowHandle())
+	inline bool poll_window_events(window_handle handle = get_current_window())
 	{
-		Vector<WindowEvent> out_events{};
-		return PollWindowEvents(out_events, handle);
+		vector<e_windowevent> out_events{};
+		return poll_window_events(out_events, handle);
 	}
 
-	inline WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen, WindowsProcedure windowsProcedureOverride)
+	inline window_handle create_window(const create_window_args& args, bool make_open, windows_procedure procedure_override = detail::default_windows_procedure)
 	{
-		::HINSTANCE instance = (::HINSTANCE)GetCurrentInstance();
-
-		const WString nameWstring = ToWString(settings.Name);
+		::HINSTANCE instance = (::HINSTANCE)get_current_instance();
+		const wstring nameWstring = to_wstring(args.m_name);
 
 		// [ REGISTER WINDOW CLASS ]
 		{
@@ -209,7 +195,7 @@ namespace Influx::Platform
 			::WNDCLASSEXW windowClassExtended;
 			windowClassExtended.cbSize			= sizeof(WNDCLASSEXW);
 			windowClassExtended.style			= windowClassStyle;
-			windowClassExtended.lpfnWndProc		= Internal::DefaultWindowsProcedure;
+			windowClassExtended.lpfnWndProc		= procedure_override;
 			windowClassExtended.cbClsExtra		= 0;
 			windowClassExtended.cbWndExtra		= 0;
 			windowClassExtended.hInstance		= instance;
@@ -222,7 +208,7 @@ namespace Influx::Platform
 
 			if (!::RegisterClassExW(&windowClassExtended))
 			{
-				ErrorMessageBox("Fatal Error!", "Cannot Register Class", nullptr);
+				messagebox_error("Fatal Error!", "Cannot Register Class", nullptr);
 				return nullptr;
 			}
 		}
@@ -239,14 +225,14 @@ namespace Influx::Platform
 			windowStyle &= ~WS_VISIBLE;
 
 			// Middle of screen
-			int xPos = (::GetSystemMetrics(SM_CXSCREEN) / 2) - (settings.Width / 2);
-			int yPos = (::GetSystemMetrics(SM_CYSCREEN) / 2) - (settings.Heigth / 2);
+			int xPos = (::GetSystemMetrics(SM_CXSCREEN) / 2) - (args.m_width / 2);
+			int yPos = (::GetSystemMetrics(SM_CYSCREEN) / 2) - (args.m_height / 2);
 
 			RECT clientArea;
 			clientArea.left		= xPos;
 			clientArea.top		= yPos;
-			clientArea.right	= xPos + settings.Width;
-			clientArea.bottom	= yPos + settings.Heigth;
+			clientArea.right	= xPos + args.m_width;
+			clientArea.bottom	= yPos + args.m_height;
 			::AdjustWindowRect(&clientArea, windowStyle, FALSE);
 
 			::HWND parentWindow = NULL;
@@ -257,23 +243,23 @@ namespace Influx::Platform
 				nameWstring.c_str(),
 				nameWstring.c_str(),
 				windowStyle,
-				xPos, yPos, settings.Width, settings.Heigth,
+				xPos, yPos, args.m_width, args.m_height,
 				parentWindow, parentMenu, instance, NULL);
 
 			if (newWindowHandle == NULL)
 			{
-				ErrorMessageBox("Fatal Error", "Failed Creating Window!", NULL);
+				messagebox_error("Fatal Error", "Failed Creating Window!", NULL);
 				return nullptr;
 			}
 		}
 
-		if (shouldOpen)
+		if (make_open)
 		{
-			SetWindowVisibility(newWindowHandle, EWindowVisibility::ShowDefault);
+			set_window_visible(newWindowHandle, e_window_visibility::ShowDefault);
 		}
 		else
 		{
-			SetWindowVisibility(newWindowHandle, EWindowVisibility::Minimize);
+			set_window_visible(newWindowHandle, e_window_visibility::Minimize);
 		}
 
 		// Get Screen Refresh Rate
@@ -299,36 +285,24 @@ namespace Influx::Platform
 			Rid[0].hwndTarget = newWindowHandle;
 			if (RegisterRawInputDevices(Rid, 1, sizeof(Rid[0])) == FALSE)
 			{
-				WarningMessageBox("Warning", "Failed RegisterRawInputDevices()!", nullptr);
+				messagebox_warning("Warning", "Failed RegisterRawInputDevices()!", nullptr);
 			}
 		}
 
 		return newWindowHandle;
 	}
 
-	inline WindowHandle CreateWindow(const WindowSettings& settings, bool shouldOpen)
+	inline window_handle create_window(const create_window_args& args, bool make_open)
 	{
-		return CreateWindow(settings, shouldOpen, Internal::DefaultWindowsProcedure);
+		return create_window(args, make_open, detail::default_windows_procedure);
 	}
 
-	inline WindowSettings GetWindowSettings(const WindowHandle handle)
-	{
-		WindowSettings settings{};
-		
-		const Math::Recti& clientRect = GetClientWindowRect<int>(handle);
-		settings.Width = clientRect.m_widthHeigth.x;
-		settings.Heigth = clientRect.m_widthHeigth.y;
-		// Todo... name?
-
-		return settings;
-	}
-
-	inline void DestroyWindow(const WindowHandle handle)
+	inline void destroy_window(const window_handle handle)
 	{
 		::DestroyWindow((::HWND)handle);
 	}
 
-	inline bool SetWindowVisibility(const WindowHandle windowHandle, const EWindowVisibility command)
+	inline bool set_window_visible(const window_handle windowHandle, const e_window_visibility command)
 	{
 		::HWND hwnd = (::HWND)windowHandle;
 
@@ -338,66 +312,67 @@ namespace Influx::Platform
 		default:
 			return false;
 			
-		case EWindowVisibility::Minimize:
+		case e_window_visibility::Minimize:
 			return ::CloseWindow(hwnd);
 			break;
 
-		case EWindowVisibility::ShowDefault:
+		case e_window_visibility::ShowDefault:
 			return ::ShowWindow(hwnd, SW_SHOWNORMAL);
 			break;
 
-		case EWindowVisibility::Maximize:
+		case e_window_visibility::Maximize:
 			return ::ShowWindow(hwnd, SW_SHOWMAXIMIZED);
 			break;
 		}
 	}
 
-	template <typename _T>
-	inline Math::Rect<_T> GetFullWindowRect(const WindowHandle windowHandle)
+	template <typename _t>
+	inline math::rect<_t> get_windowrect_full(const window_handle windowHandle)
 	{
 		::RECT res{};
 		::GetWindowRect((::HWND)windowHandle, &res);
 
-		return Cast<_T>(res);
+		return detail::cast<_t>(res);
 	}
 
-	template <typename _T>
-	inline Math::Rect<_T> GetClientWindowRect(const WindowHandle windowHandle)
+	template <typename _t>
+	inline math::rect<_t> get_windowrect_client(const window_handle windowHandle)
 	{
 		::RECT res{};
 		::GetClientRect((::HWND)windowHandle, &res);
 
-		return Internal::Cast<_T>(res);
+		return detail::cast<_t>(res);
 	}
 
-	template <typename _T>
-	inline Math::Vector<_T, 2u> GetClientWindowDimensions(const WindowHandle windowHandle)
+	template <typename _t>
+	inline math::vector<_t, 2u> get_windowrect_client(const window_handle windowHandle)
 	{
-		return GetClientWindowRect<_T>(windowHandle).GetDimensions();
+		return get_windowrect_client<_t>(windowHandle).get_dimensions();
 	}
 
-	inline bool IsWindowVisible(const WindowHandle windowHandle)
+	inline bool is_window_visible(const window_handle windowHandle)
 	{
 		return ::IsWindowVisible((::HWND)windowHandle);
 	}
+#pragma endregion
 
 	// [ MISC ]
-	template <EMessageBoxType _T>
-	inline void MessageBox(const String& caption, const String& message, const WindowHandle windowHandle)
+	template <e_messagebox _t>
+	inline void messagebox(const string& caption, const string& message, const window_handle windowHandle)
 	{
 		uint8 type = 0u;
-		switch (_T)
+		switch (_t)
 		{
 		default:
-		case EMessageBoxType::Info:
+		case e_messagebox::info:
 			type = MB_ICONINFORMATION | MB_OK;
 			break;
 
-		case EMessageBoxType::Warning:
+		case e_messagebox::warning:
 			type = MB_ICONWARNING | MB_OK;
 			break;
 
-		case EMessageBoxType::Error:
+		case e_messagebox::error:
 			type = MB_ICONEXCLAMATION | MB_OK;
 			break;
 		}
@@ -405,8 +380,8 @@ namespace Influx::Platform
 		::MessageBoxA((::HWND)windowHandle, message.c_str(), caption.c_str(), type);
 	}
 
-	template <EConsoleColour _C>
-	inline void SetConsoleColourAttribute()
+	template <e_console_colour _C>
+	inline void set_console_colour_attribute()
 	{
 		constexpr int value = static_cast<int>(_C);
 

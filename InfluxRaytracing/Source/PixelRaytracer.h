@@ -3,7 +3,7 @@
 
 #include "Core/Geometry/Ray.h"
 
-namespace Influx
+namespace influx
 {
 	class PixelRaytracer : public PixelRenderer
 	{

@@ -15,7 +15,7 @@
 #include "assimp/scene.h"		// Output data structure
 #include "assimp/postprocess.h"	// Post processing flags
 
-namespace Influx::Assets
+namespace influx::Assets
 {
 	namespace AssimpHelpers
 	{
@@ -39,29 +39,29 @@ namespace Influx::Assets
 			return Math::Vectorf4{ vector.r, vector.g, vector.b, vector.a };
 		}
 
-		String FromAssimp(const aiString& string)
+		string FromAssimp(const aiString& string)
 		{
-			String result{ string.C_Str() };
+			string result{ string.C_Str() };
 			return result;
 		}
 
-		constexpr Influx::Scene::ELightType FromAssimp(const aiLightSourceType& lightType)
+		constexpr influx::Scene::ELightType FromAssimp(const aiLightSourceType& lightType)
 		{
 			switch (lightType)
 			{
-			case aiLightSource_DIRECTIONAL: return Influx::Scene::ELightType::Directional;
-			case aiLightSource_POINT:		return Influx::Scene::ELightType::Point;
-			case aiLightSource_SPOT:		return Influx::Scene::ELightType::Spot;
+			case aiLightSource_DIRECTIONAL: return influx::Scene::ELightType::Directional;
+			case aiLightSource_POINT:		return influx::Scene::ELightType::Point;
+			case aiLightSource_SPOT:		return influx::Scene::ELightType::Spot;
 			default:
 			case aiLightSource_UNDEFINED:
-				return Influx::Scene::ELightType::Unknown;
+				return influx::Scene::ELightType::Unknown;
 			}
 		}
 
 		// Todo... There's multiple colour channels!
-		Influx::Scene::Mesh FromAssimp(const aiMesh* pMesh)
+		influx::Scene::Mesh FromAssimp(const aiMesh* pMesh)
 		{
-			Influx::Scene::Mesh result{};
+			influx::Scene::Mesh result{};
 			constexpr uint32 vColChannel = 0u;
 
 			const bool meshHasPositions = pMesh->HasPositions();
@@ -74,7 +74,7 @@ namespace Influx::Assets
 
 			for (uint32 v = 0u; v < pMesh->mNumVertices; ++v)
 			{
-				Influx::Scene::Mesh::Vertex vertex{};
+				influx::Scene::Mesh::Vertex vertex{};
 
 				if (collectPositions)	 vertex.Position = FromAssimp(pMesh->mVertices[v]);
 				if (collectNormals)		 vertex.Normal = FromAssimp(pMesh->mNormals[v]);
@@ -87,7 +87,7 @@ namespace Influx::Assets
 			{
 				for (uint32 i = 0u; i < pMesh->mFaces[f].mNumIndices; ++i)
 				{
-					Influx::Scene::Mesh::Index index = pMesh->mFaces[f].mIndices[i];
+					influx::Scene::Mesh::Index index = pMesh->mFaces[f].mIndices[i];
 					result.AddIndex(index);
 				}
 			}
@@ -99,9 +99,9 @@ namespace Influx::Assets
 			return result;
 		}
 
-		Influx::Scene::Camera FromAssimp(const aiCamera* pCamera)
+		influx::Scene::Camera FromAssimp(const aiCamera* pCamera)
 		{
-			Influx::Scene::Camera result{};
+			influx::Scene::Camera result{};
 
 			// result.AspectRatio = pCamera->mAspect;
 			// result.Position = FromAssimp(pCamera->mPosition);
@@ -117,9 +117,9 @@ namespace Influx::Assets
 			return result;
 		}
 
-		Influx::Scene::Light FromAssimp(const aiLight* pLight)
+		influx::Scene::Light FromAssimp(const aiLight* pLight)
 		{
-			Influx::Scene::Light result{};
+			influx::Scene::Light result{};
 
 			// result.Name = FromAssimp(pLight->mName);
 			// result.LightType = FromAssimp(pLight->mType);
@@ -175,7 +175,7 @@ namespace Influx::Assets
 		}
 	}
 
-	bool LoadSceneFile(const String& filepath, Scene& out_scene, SceneCachePtr pCache, const SceneLoadDesc& loadDesc)
+	bool LoadSceneFile(const string& filepath, Scene& out_scene, SceneCachePtr pCache, const SceneLoadDesc& loadDesc)
 	{
 		// Try to find the loaded scene in the provided cache...
 		if (pCache)

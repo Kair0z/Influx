@@ -6,7 +6,7 @@
 #include "Types.h"
 #include "RHITypes.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 #if 0
 	struct NewWrapper {};

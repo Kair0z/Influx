@@ -3,181 +3,183 @@
 #ifndef _CORE_MATH_BOUNDS_H_
 #define _CORE_MATH_BOUNDS_H_
 
-#include "Core/BasicTypes.h"
-#include "Core/Math/Math.h"
-#include "Core/Math/Vector.h"
-#include "Core/Container/Vector.h"
+#include "core/basetypes.h"
+#include "core/math/math.h"
+#include "core/math/vector.h"
+#include "core/container/vector.h"
 
-namespace Influx::Math
+namespace influx::math
 {
-	namespace Internal
+	namespace detail
 	{
 		using dim_t = size_t;
 	}
 
-	template <typename _T, Internal::dim_t _N>
-	class Bounds final
+	template <typename _t, detail::dim_t _dim>
+	class bounds final
 	{
 	public:
-		using Point = Math::Vector<_T, _N>;
-		Bounds(const Influx::Vector<Point>& points);
+		using point = math::vector<_t, _dim>;
+		bounds(const influx::vector<point>& points);
 
 	private:
-		Point m_min;
-		Point m_max;
+		point m_min;
+		point m_max;
 
 	public:
-		const Point GetMid() const;
-		const Point& GetMin() const;
-		const Point& GetMax() const;
+		const point get_middle() const;
+		const point& get_minimum() const;
+		const point& get_maximum() const;
 
-		void Reset();
-		void GrowTo(const Point& point);
-		void ShrinkTo(const Point& point);
+		// sets to zero volume
+		void reset();
 
-		bool Contains(const Point& point) const;
-		bool Contains(const Point& point, Math::Vector<bool, _N>& out_isContained) const;
+		void grow_to_contain(const point& point);
+		void shrink_to_contain(const point& point);
 
-		enum class ContainState : uint8 { Less, Contained, More, Max };
-		bool Contains(const Point& point, Math::Vector<ContainState, _N>& out_results) const;
+		bool contains(const point& point) const;
+		bool contains(const point& point, math::vector<bool, _dim>& out_isContained) const;
 
-		Bounds() = default;
-		Bounds(const Bounds&) = default;
-		Bounds(Bounds&&) = default;
-		Bounds& operator=(const Bounds&) = default;
-		Bounds& operator=(Bounds&&) = default;
-		virtual ~Bounds() = default;
+		enum class e_contain_status : uint8 { less, contained, more, max };
+		bool contains(const point& point, math::vector<e_contain_status, _dim>& out_results) const;
+
+		bounds() = default;
+		bounds(const bounds&) = default;
+		bounds(bounds&&) = default;
+		bounds& operator=(const bounds&) = default;
+		bounds& operator=(bounds&&) = default;
+		virtual ~bounds() = default;
 	};
 
-	template <typename _T>
-	using Rect  = Bounds<_T, 2u>;
-	using Rectf = Rect<float>;
-	using Recti = Rect<int>;
-	using Rectu = Rect<uint32>;
+	template <typename _t>
+	using rect  = bounds<_t, 2u>;
+	using rectf = rect<float>;
+	using recti = rect<int>;
+	using rectu = rect<uint32>;
 
-	template <typename _T>
-	using Box	= Bounds<_T, 3u>;
-	using Boxf	= Box<float>;
-	using Boxi  = Box<float>;
-	using Boxu  = Box<uint32>;
+	template <typename _t>
+	using box	= bounds<_t, 3u>;
+	using boxf	= box<float>;
+	using boxi  = box<float>;
+	using boxu  = box<uint32>;
 
-	template<typename _T, Internal::dim_t _N>
-	inline Bounds<_T, _N>::Bounds(const Influx::Vector<Bounds<_T, _N>::Point>& points)
+	template<typename _t, detail::dim_t _dim>
+	inline bounds<_t, _dim>::bounds(const influx::vector<bounds<_t, _dim>::point>& points)
 	{
-		for (Internal::dim_t i = 0; i < points.size(); ++i)
-			GrowTo(points[i]);
+		for (detail::dim_t i = 0; i < points.dimension(); ++i)
+			grow_to_contain(points[i]);
 	}
 
-	template<typename _T, Internal::dim_t _N>
-	inline const Bounds<_T, _N>::Point Bounds<_T, _N>::GetMid() const
+	template<typename _t, detail::dim_t _dim>
+	inline const bounds<_t, _dim>::point bounds<_t, _dim>::get_middle() const
 	{
 		return (m_max - m_min) / 2.0f;
 	}
 
-	template<typename _T, Internal::dim_t _N>
-	inline const Bounds<_T, _N>::Point& Bounds<_T, _N>::GetMin() const
+	template<typename _t, detail::dim_t _dim>
+	inline const bounds<_t, _dim>::point& bounds<_t, _dim>::get_minimum() const
 	{
 		return m_min;
 	}
 
-	template<typename _T, Internal::dim_t _N>
-	inline const Bounds<_T, _N>::Point& Bounds<_T, _N>::GetMax() const
+	template<typename _t, detail::dim_t _dim>
+	inline const bounds<_t, _dim>::point& bounds<_t, _dim>::get_maximum() const
 	{
 		return m_max;
 	}
 
-	template<typename _T, Internal::dim_t _N>
-	inline void Bounds<_T, _N>::Reset()
+	template<typename _t, detail::dim_t _dim>
+	inline void bounds<_t, _dim>::reset()
 	{
-		m_min = m_max = Influx::Math::Vector<_T, _N>{};
+		m_min = m_max = influx::math::vector<_t, _dim>{};
 	}
 
-	template<typename _T, Internal::dim_t _N>
-	inline void Bounds<_T, _N>::GrowTo(const Bounds<_T, _N>::Point& point)
+	template<typename _t, detail::dim_t _dim>
+	inline void bounds<_t, _dim>::grow_to_contain(const bounds<_t, _dim>::point& point)
 	{
-		Math::Vector<ContainState, _N> contained_results{};
-		if (Contains(point, contained_results))
+		math::vector<e_contain_status, _dim> contained_results{};
+		if (contains(point, contained_results))
 		{
 			return;
 		}
 
-		for (Internal::dim_t d = 0; d < _N; ++d)
+		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			if (contained_results[d] == ContainState::Less)
+			if (contained_results[d] == e_contain_status::less)
 			{
 				m_max[d] = point[d];
 			}
 		}
 	}
 
-	template<typename _T, Internal::dim_t _N>
-	inline void Bounds<_T, _N>::ShrinkTo(const Bounds<_T, _N>::Point& point)
+	template<typename _t, detail::dim_t _dim>
+	inline void bounds<_t, _dim>::shrink_to_contain(const bounds<_t, _dim>::point& point)
 	{
-		Math::Vector<ContainState, _N> contained_results{};
-		if (!Contains(point, contained_results))
+		math::vector<e_contain_status, _dim> contained_results{};
+		if (!contains(point, contained_results))
 		{
 			return;
 		}
 
-		for (Internal::dim_t d = 0; d < _N; ++d)
+		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			if (contained_results[d] == ContainState::More)
+			if (contained_results[d] == e_contain_status::more)
 			{
 				m_max[d] = point[d];
 			}
 		}
 	}
 
-	template<typename _T, Internal::dim_t _N>
-	inline bool Bounds<_T, _N>::Contains(const Point& point) const
+	template<typename _t, detail::dim_t _dim>
+	inline bool bounds<_t, _dim>::contains(const point& point) const
 	{
-		Math::Vector<bool, _N>& out_isContained{};
-		return Contains(point, out_isContained);
+		math::vector<bool, _dim>& out_isContained{};
+		return contains(point, out_isContained);
 	}
 
-	template<typename _T, Internal::dim_t _N>
-	inline bool Bounds<_T, _N>::Contains(const Point& point, Math::Vector<bool, _N>& out_isContained) const
+	template<typename _t, detail::dim_t _dim>
+	inline bool bounds<_t, _dim>::contains(const point& point, math::vector<bool, _dim>& out_isContained) const
 	{
-		Math::Vector<ContainState, _N>& results{};
-		const bool isContained = Contains(point, results);
+		math::vector<e_contain_status, _dim>& results{};
+		const bool isContained = contains(point, results);
 
-		for (Internal::dim_t d = 0; d < _N; ++d)
+		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			out_isContained[d] = (results[d] == ContainState::Contained);
+			out_isContained[d] = (results[d] == e_contain_status::contained);
 		}
 
 		return isContained;
 	}
 
-	template<typename _T, Internal::dim_t _N>
-	inline bool Bounds<_T, _N>::Contains(const Point& point, Math::Vector<Bounds<_T, _N>::ContainState, _N>& out_results) const
+	template<typename _t, detail::dim_t _dim>
+	inline bool bounds<_t, _dim>::contains(const point& point, math::vector<bounds<_t, _dim>::e_contain_status, _dim>& out_results) const
 	{
-		for (Internal::dim_t d = 0; d < _N; ++d)
+		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			out_results[d] = ContainState::Contained;
+			out_results[d] = e_contain_status::contained;
 		}
 
 		bool isBiggerThanMin = true;
-		for (Internal::dim_t d = 0; d < _N; ++d)
+		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
 			const bool isDimBiggerThanMin = (point[d] >= m_min[d]);
 			
 			if (!isDimBiggerThanMin)
 			{
-				out_results[d] = ContainState::Less;
+				out_results[d] = e_contain_status::less;
 			}
 
 			isBiggerThanMin &= isDimBiggerThanMin;
 		}
 
 		bool isSmallerThanMax = true;
-		for (Internal::dim_t d = 0; d < _N; ++d)
+		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
 			const bool isDimSmallerThanMax = (point[d] >= m_min[d]);
 			
 			if (!isDimSmallerThanMax)
 			{
-				out_results[d] = ContainState::More;
+				out_results[d] = e_contain_status::more;
 			}
 
 			isSmallerThanMax &= isDimSmallerThanMax;

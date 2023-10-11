@@ -3,127 +3,99 @@
 #ifndef __CORE_RANDOM_H_
 #define __CORE_RANDOM_H_
 
-#include "Core/Container/Vector.h"
-#include "Core/Math/Vector.h"
-#include "Core/Geometry/Sphere.h"
+#include "core/container/vector.h"
+#include "core/math/vector.h"
+#include "core/geometry/sphere.h"
 
 #include <time.h>
 
-namespace Influx::Random
+namespace influx::random
 {
-	template <typename _T>
-	constexpr inline _T TentRandom()
+	template <typename _t>
+	constexpr inline _t get_tent_random()
 	{
 		float r = 2 * (float)rand() / RAND_MAX;
 		return (r < 1) ? sqrt(r) - 1 : 1 - sqrt(2 - r);
 	}
 
-	inline void SeedRandom()
+	inline void seed_random()
 	{
-		std::srand(unsigned int(time(nullptr)));
+		std::srand(unsigned int(std::time(nullptr)));
 	}
 
-	inline void SeedRandom(unsigned int seed)
+	inline void seed_random(unsigned int seed)
 	{
 		std::srand(seed);
 	}
 
-	template <typename _T>
-	inline _T Random(const _T& min = std::numeric_limits<_T>::min(), const _T& max = std::numeric_limits<_T>::max())
+	template <typename _t>
+	inline _t get_random(const _t& min = std::numeric_limits<_t>::min(), const _t& max = std::numeric_limits<_t>::max())
 	{
-		return static_cast<_T>(min + (std::rand() / (RAND_MAX / (max - min))));
+		return static_cast<_t>(min + (std::rand() / (RAND_MAX / (max - min))));
 	}
 
-	template <typename _T, size_t _N>
-	inline std::vector<_T> Randoms(const _T& min = std::numeric_limits<_T>::min(), const _T& max = std::numeric_limits<_T>::max())
+	template <typename _t, size_t _N>
+	inline vector<_t> get_randoms(const _t& min = std::numeric_limits<_t>::min(), const _t& max = std::numeric_limits<_t>::max())
 	{
-		Vector<_T> randoms(_N);
+		vector<_t> randoms(_N);
 		for (size_t i = 0; i < _N; ++i)
-			randoms[i] = Random<_T>(min, max);
+			randoms[i] = get_random<_t>(min, max);
 
 		return randoms;
 	}
 
-	namespace Vector
+#pragma region math vector
+	inline math::vector<float, 3u> get_random_unit_vectorf3()
 	{
-		template <typename _T, Math::VectorSizeType _N>
-		inline Math::Vector<_T, _N> Random()
-		{
-			Math::Vector<_T, _N> result{};
-			for (Math::VectorSizeType i = 0; i < _N; ++i)
-				result[i] = Random<_T>();
+		math::vector<float, 3u> result{1.0f, 0.0f};
+		float phi = get_random<float>(0.0f, math::k_PIDouble);
+		float costheta = get_random<float>(-1.0f, 1.0f);
+		float theta = std::acosf(costheta);
 
-			return result;
-		}
-
-		template <typename _T, Math::VectorSizeType _N>
-		inline Math::Vector<_T, _N> Random(const Math::Vector<_T, _N>& min, const Math::Vector<_T, _N>& max)
-		{
-			Math::Vector<_T, _N> result{};
-			for (Math::VectorSizeType i = 0; i < _N; ++i)
-				result[i] = Influx::Random::Random<_T>(min[i], max[i]);
-
-			return result;
-		}
-
-		template <size_t _N, typename _T, Math::VectorSizeType _NN>
-		inline std::vector<Math::Vector<_T, _NN>> Randoms(const Math::Vector<_T, _NN>& min, const Math::Vector<_T, _NN>& max)
-		{
-			using vector_type = Math::Vector<_T, _NN>;
-
-			Influx::Vector<vector_type> randoms(_N);
-			for (size_t i = 0; i < _N; ++i)
-				randoms[i] = Random<_T, _NN>(min, max);
-
-			return randoms;
-		}
-
-		template <size_t _N, typename _T, Math::VectorSizeType _NN>
-		inline std::vector<Math::Vector<_T, _NN>> Randoms()
-		{
-			using vector_type = Math::Vector<_T, _NN>;
-
-			constexpr _T numeric_max = std::numeric_limits<_T>::max();
-			constexpr _T numeric_min = std::numeric_limits<_T>::min();
-
-			return Randoms<_N, _T, _NN>(
-				vector_type{ numeric_min, numeric_min, numeric_min }, 
-				vector_type{ numeric_max, numeric_max, numeric_max });
-		}
-
-		template <size_t _N>
-		inline std::vector<Math::Vector<float, 3u>> Random3fs(const Math::Vector<float, 3u>& min, const Math::Vector<float, 3u>& max)
-		{
-			return Randoms<_N, float, 3u>(min, max);
-		}
-
-		template <size_t _N>
-		inline std::vector<Math::Vector<float, 2u>> Random2fs(const Math::Vector<float, 2u>& min, const Math::Vector<float, 2u>& max)
-		{
-			return Randoms<_N, float, 2u>(min, max);
-		}
+		result.x = std::sinf( theta) * std::cosf( phi );
+		result.y = std::sinf( theta) * std::sinf( phi );
+		result.z = std::cosf( theta );
+		
+		return result;
 	}
+
+	template <size_t _n>
+	inline vector<math::vector<float, 3u>> get_random_unit_vectorf3s()
+	{
+		vector<math::vector<float, 3u>> result{};
+		for (size_t i = 0u; i < _n; ++i)
+		{
+			result.push_back(get_random_unit_vectorf3());
+		}
+		return result;
+	}
+#pragma endregion
 	
-	namespace Sphere
+#pragma region spheres
+	inline math::spheref get_random_spheref(
+		const math::vectorf2& minMaxDistance,
+		const math::vectorf2& minMaxRadius)
 	{
-		template <size_t _N>
-		inline std::vector<Math::Sphere<float>> RandomSpherefs(
-			const Math::Vectorf3& minPosition, 
-			const Math::Vectorf3& maxPosition, 
-			const Math::Vectorf2& minMaxRadius)
-		{
-			using sphere_type = Math::Sphere<float>;
-
-			Influx::Vector<sphere_type> randoms(_N);
-			for (size_t i = 0; i < _N; ++i)
-			{
-				randoms[i].m_position = Random::Vector::Random<float, 3u>(minPosition, maxPosition);
-				randoms[i].m_radius = Random::Random(minMaxRadius.x, minMaxRadius.y);
-			}
-
-			return randoms;
-		}
+		math::spheref sphere{};
+		sphere.m_position = get_random_unit_vectorf3() * get_random<float>(minMaxDistance.x, minMaxDistance.y);
+		sphere.m_radius = get_random(minMaxRadius.x, minMaxRadius.y);
+		return sphere;
 	}
+
+	template <size_t _N>
+	inline vector<math::spheref> get_random_spherefs(
+		const math::vectorf2& minMaxDistance,
+		const math::vectorf2& minMaxRadius)
+	{
+		influx::vector<sphere_type> randoms(_N);
+		for (size_t i = 0; i < _N; ++i)
+		{
+			randoms.push_back(get_random_spheref(minPosition, maxPosition, minMaxRadius));
+		}
+
+		return randoms;
+	}
+#pragma endregion
 }
 
 #endif

@@ -19,7 +19,7 @@ namespace InfluxCoreTests
 	public:
 		TEST_METHOD(Time)
 		{
-			using namespace Influx;
+			using namespace influx;
 
 			Time::TimePoint before = Time::Now();
 
@@ -33,9 +33,9 @@ namespace InfluxCoreTests
 		}
 		TEST_METHOD(String)
 		{
-			using namespace Influx;
+			using namespace influx;
 
-			Influx::String string = "Arne";
+			influx::string string = "Arne";
 		}
 		TEST_METHOD(Pointer)
 		{
@@ -47,17 +47,17 @@ namespace InfluxCoreTests
 		}
 		TEST_METHOD(Function)
 		{
-			using namespace Influx;
+			using namespace influx;
 
-			Influx::Function<void()> a = []() { int i = 0; ++i; };
-			Influx::Function<void()> b = []() { int z = 1; ++z; };
-			Influx::Function<void()> c = []() {  };
+			influx::Function<void()> a = []() { int i = 0; ++i; };
+			influx::Function<void()> b = []() { int z = 1; ++z; };
+			influx::Function<void()> c = []() {  };
 
-			Influx::SlimFunction<void()> d = []() {};
+			influx::SlimFunction<void()> d = []() {};
 
 			d();
 
-			Influx::FunctionList<void()> functions{ []() {}, []() {}, []() {} };
+			influx::FunctionList<void()> functions{ []() {}, []() {}, []() {} };
 
 			functions();
 		}
@@ -65,83 +65,83 @@ namespace InfluxCoreTests
 		{
 
 		}
-		TEST_METHOD(Vector)
+		TEST_METHOD(vector)
 		{
-			using namespace Influx;
+			using namespace influx;
 
 			// Sizing
 			{
 				// Negative Size -> Overflow size!
-				Math::Vector<bool, -1>		vb_min	{ 1, 0, 2, 0, 5 }; // Size >> 255
+				Math::vector<bool, -1>		vb_min	{ 1, 0, 2, 0, 5 }; // Size >> 255
 
 				// Extralarge Size -> Overflows size!
 				// warning C4309: 'specialization': truncation of constant value
-				Math::Vector<bool, 358u>	vb_358	{ 1, 0, 2, 0, 5 }; // Size >> 358 - 256 == 102
+				Math::vector<bool, 358u>	vb_358	{ 1, 0, 2, 0, 5 }; // Size >> 358 - 256 == 102
 
 				// Oversized Initializing -> Error!
-				Math::Vector<bool, 4u>		vb_4	{ 1, 0, 2, 0 }; // Size >> 4
+				Math::vector<bool, 4u>		vb_4	{ 1, 0, 2, 0 }; // Size >> 4
 
-				Assert::AreEqual(vb_min.Size(), static_cast<Math::VectorSizeType>(-1));
-				Assert::AreEqual(vb_358.Size(), static_cast<Math::VectorSizeType>(358u));
-				Assert::AreEqual(vb_4.Size(),	static_cast<Math::VectorSizeType>(4u));
+				Assert::AreEqual(vb_min.dimension(), static_cast<Math::_vector_dim_t>(-1));
+				Assert::AreEqual(vb_358.dimension(), static_cast<Math::_vector_dim_t>(358u));
+				Assert::AreEqual(vb_4.dimension(),	static_cast<Math::_vector_dim_t>(4u));
 			}
 			
 			// Unsigned
 			{
 				// Math::Vector<uint8_t, 0u>		vu_8_0{ 1 };
-				Math::Vector<uint8_t, 1u>		vu_8_1{ 2 };
-				Math::Vector<uint16_t, 2u>		vu_16_2{ -1, -2 };
-				Math::Vector<uint32_t, 3u>		vu_32_3{ 1, 2, 3 };
-				Math::Vector<uint64_t, 4u>		vu_64_4{ 1, 2, 3, 4 };
+				Math::vector<uint8_t, 1u>		vu_8_1{ 2 };
+				Math::vector<uint16_t, 2u>		vu_16_2{ -1, -2 };
+				Math::vector<uint32_t, 3u>		vu_32_3{ 1, 2, 3 };
+				Math::vector<uint64_t, 4u>		vu_64_4{ 1, 2, 3, 4 };
 			}
 
 			// Signed
 			{
 				// Math::Vector<int8_t, 0u>		vs_8_0{ 1 };
-				Math::Vector<int8_t, 1u>		vs_8_1{ 2 };
-				Math::Vector<int16_t, 2u>		vs_16_2{ -1, 2 };
-				Math::Vector<int32_t, 3u>		vs_32_3{ 1, 2, 3 };
-				Math::Vector<int64_t, 4u>		vs_64_4{ 1 };
+				Math::vector<int8_t, 1u>		vs_8_1{ 2 };
+				Math::vector<int16_t, 2u>		vs_16_2{ -1, 2 };
+				Math::vector<int32_t, 3u>		vs_32_3{ 1, 2, 3 };
+				Math::vector<int64_t, 4u>		vs_64_4{ 1 };
 			}
 			
 			// Float & Double
 			{
-				Math::Vector<float, 2u>		vf_2{};
-				Math::Vector<double, 3u>		vd_3{};
-				Math::Vector<long double, 4u>		vld_4{};
+				Math::vector<float, 2u>		vf_2{};
+				Math::vector<double, 3u>		vd_3{};
+				Math::vector<long double, 4u>		vld_4{};
 			}
 
-			Math::Vector<float, 2u>		vf_2{};
-			Math::Vector<float, 3u>		vf_3{};
-			Math::Vector<float, 4u>		vf_4{};
+			Math::vector<float, 2u>		vf_2{};
+			Math::vector<float, 3u>		vf_3{};
+			Math::vector<float, 4u>		vf_4{};
 
-			Math::Vector<float,	2u>		vb_2{};
-			Math::Vector<float,	3u>		vb_3{};
-			Math::Vector<float,	4u>		vb_4{};
+			Math::vector<float,	2u>		vb_2{};
+			Math::vector<float,	3u>		vb_3{};
+			Math::vector<float,	4u>		vb_4{};
 
 			// Copy Constructor
 			{
-				Math::Vector<float, 3u>		c_vf_3{ vf_3 };	// copy ctr (default)						(Vfloat3 -> Vfloat3)
-				Math::Vector<float, 3u>		c_vf_2{ vf_2 }; // copy ctr + size-up-cast					(Vfloat2 -> Vfloat3)
-				Math::Vector<float, 3u>		c_vf_4{ vf_4 }; // copy ctr + size-downcast					(Vfloat4 -> Vfloat3)
+				Math::vector<float, 3u>		c_vf_3{ vf_3 };	// copy ctr (default)						(Vfloat3 -> Vfloat3)
+				Math::vector<float, 3u>		c_vf_2{ vf_2 }; // copy ctr + size-up-cast					(Vfloat2 -> Vfloat3)
+				Math::vector<float, 3u>		c_vf_4{ vf_4 }; // copy ctr + size-downcast					(Vfloat4 -> Vfloat3)
 
-				Math::Vector<float, 3u>		c_vb_3{ vb_3 }; // copy ctr + type-cast						(Vbool3 -> Vfloat3)
-				Math::Vector<float, 3u>		c_vb_2{ vb_2 };	// copy ctr + type-cast + size-upcast		(Vbool2 -> Vfloat3)
-				Math::Vector<float, 3u>		c_vb_4{ vb_4 }; // copy ctr + type-cast + size-downcast		(Vbool4 -> Vfloat3)
+				Math::vector<float, 3u>		c_vb_3{ vb_3 }; // copy ctr + type-cast						(Vbool3 -> Vfloat3)
+				Math::vector<float, 3u>		c_vb_2{ vb_2 };	// copy ctr + type-cast + size-upcast		(Vbool2 -> Vfloat3)
+				Math::vector<float, 3u>		c_vb_4{ vb_4 }; // copy ctr + type-cast + size-downcast		(Vbool4 -> Vfloat3)
 
-				Math::Vector<float, 3u>		m_vf_3{ Math::Vector<float, 3u>{} };
-				Math::Vector<float, 3u>		m_vf_2{ Math::Vector<float, 2u>{} }; // move-count-down-cast
-				Math::Vector<float, 3u>		m_vf_4{ Math::Vector<float, 4u>{} }; // move-count-up-cast
+				Math::vector<float, 3u>		m_vf_3{ Math::vector<float, 3u>{} };
+				Math::vector<float, 3u>		m_vf_2{ Math::vector<float, 2u>{} }; // move-count-down-cast
+				Math::vector<float, 3u>		m_vf_4{ Math::vector<float, 4u>{} }; // move-count-up-cast
 
-				Math::Vector<float, 3u>		m_vb_3{ Math::Vector<float, 3u>{} }; // move-type-cast
-				Math::Vector<float, 3u>		m_vb_2{ Math::Vector<float, 2u>{} };	// move-type-count-down-cast
-				Math::Vector<float, 3u>		m_vb_4{ Math::Vector<float, 4u>{} }; // move-type-count-up-cast
+				Math::vector<float, 3u>		m_vb_3{ Math::vector<float, 3u>{} }; // move-type-cast
+				Math::vector<float, 3u>		m_vb_2{ Math::vector<float, 2u>{} };	// move-type-count-down-cast
+				Math::vector<float, 3u>		m_vb_4{ Math::vector<float, 4u>{} }; // move-type-count-up-cast
 			}
 			
 			// Assignement
 			{
-				Math::Vector<float, 2u>		c_vf_2 = vf_2;
-				Math::Vector<float, 2u>		m_vf_2 = Math::Vector<float, 2u>{5.0f, 10.0f};
+				Math::vector<float, 2u>		c_vf_2 = vf_2;
+				Math::vector<float, 2u>		m_vf_2 = Math::vector<float, 2u>{5.0f, 10.0f};
 			}
 		}
 	};

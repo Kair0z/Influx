@@ -11,15 +11,15 @@
 #undef min
 #endif
 
-#include "Vector.h"
+#include "core/math/vector.h"
 
 #include <algorithm>
 #include <type_traits>
 #include <limits>
 
-namespace Influx
+namespace influx
 {
-	namespace Math
+	namespace math
 	{
 		constexpr float k_E			= 2.718281828459045f;
 		constexpr float k_PI		= 3.1415926535897932384626433832795f;
@@ -30,50 +30,50 @@ namespace Influx
 		constexpr float k_PIonSix	= 0.52359877559829887307710723054658f;
 	}
 
-	namespace Math
+	namespace math
 	{
-		template <typename _T, typename _F>
-		constexpr inline _T Round(const _F& fValue)
+		template <typename _t, typename _F>
+		constexpr inline _t round(const _F& fValue)
 		{
-			return static_cast<_T>(std::round(fValue));
+			return static_cast<_t>(std::round(fValue));
 		}
 
-		template <typename _T>
-		inline _T Cos(const _T& value)
+		template <typename _t>
+		inline _t cos(const _t& value)
 		{
-			return static_cast<_T>(std::cos(value));
+			return static_cast<_t>(std::cos(value));
 		}
 
-		template <typename _T>
-		inline _T Sin(const _T& value)
+		template <typename _t>
+		inline _t sin(const _t& value)
 		{
-			return static_cast<_T>(std::sin(value));
+			return static_cast<_t>(std::sin(value));
 		}
 
-		template <typename _T>
-		constexpr inline _T Abs(const _T& value)
+		template <typename _t>
+		constexpr inline _t abs(const _t& value)
 		{
-			return static_cast<_T>(std::abs(value));
+			return static_cast<_t>(std::abs(value));
 		}
 
-		template <typename _T>
-		constexpr inline _T Lerp(const _T& t, const _T& min, const _T& max)
+		template <typename _t>
+		constexpr inline _t lerp(const _t& t, const _t& min, const _t& max)
 		{
 			return min + ((max - min) * t);
 		}
 
-		template <typename _T>
-		constexpr inline _T Remap(const _T& value, const _T& oldMin, const _T& oldMax, const _T& newMin, const _T& newMax)
+		template <typename _t>
+		constexpr inline _t remap(const _t& value, const _t& oldMin, const _t& oldMax, const _t& newMin, const _t& newMax)
 		{
-			if (oldMax - oldMin == (_T)0) return (_T)0;
+			if (oldMax - oldMin == (_t)0) return (_t)0;
 			return newMin + (value - oldMin) * (newMax - newMin) / (oldMax - oldMin);
 		}
 
-		template <typename _T>
-		constexpr inline _T PingPong(const _T& t, const _T& range)
+		template <typename _t>
+		constexpr inline _t pingpong(const _t& t, const _t& range)
 		{
-			_T range2 = range * 2;
-			_T mod = std::fmod(t, range2);
+			_t range2 = range * 2;
+			_t mod = std::fmod(t, range2);
 			if (mod < range)
 			{
 				return mod;
@@ -84,16 +84,16 @@ namespace Influx
 			}
 		}
 
-		template <typename _T>
-		constexpr inline _T IsZero(const _T& value)
+		template <typename _t>
+		constexpr inline _t is_zero(const _t& value)
 		{
 #define epsilon 0.00001f;
-			return Abs(value) < epsilon;
+			return abs(value) < epsilon;
 		}
 
 #pragma region MinMax
-		template <typename _T>
-		constexpr inline _T Max(const _T& a, const _T& b, const bool chooseAWhenEqual = true)
+		template <typename _t>
+		constexpr inline _t maximum(const _t& a, const _t& b, const bool chooseAWhenEqual = true)
 		{
 			if (a == b && chooseAWhenEqual) return a;
 			else return b;
@@ -102,8 +102,8 @@ namespace Influx
 			else return b;
 		}
 
-		template <typename _T>
-		constexpr inline _T Min(const _T& a, const _T& b, const bool chooseAWhenEqual = true)
+		template <typename _t>
+		constexpr inline _t minimum(const _t& a, const _t& b, const bool chooseAWhenEqual = true)
 		{
 			if constexpr (a == b && chooseAWhenEqual) return a;
 			else return b;
@@ -112,58 +112,58 @@ namespace Influx
 			else return b;
 		}
 
-		template <typename _T>
-		constexpr inline _T Max(std::initializer_list<_T> list)
+		template <typename _t>
+		constexpr inline _t maximum(std::initializer_list<_t> list)
 		{
 			return std::max(list);
 		}
 
-		template <typename _T>
-		constexpr inline _T Min(std::initializer_list<_T> list)
+		template <typename _t>
+		constexpr inline _t minimum(std::initializer_list<_t> list)
 		{
 			return std::min(list);
 		}
 
-		namespace Internal
+		namespace detail
 		{
-			template <typename _T>
-			constexpr _T const& DoMax(_T const& v) { return v; }
+			template <typename _t>
+			constexpr _t const& do_maximum(_t const& v) { return v; }
 
-			template <typename _T, class... _R>
-			constexpr _T const& DoMax(_T const& v0, _T const& v1, _R const&... rest)
+			template <typename _t, class... _R>
+			constexpr _t const& do_maximum(_t const& v0, _t const& v1, _R const&... rest)
 			{
-				return DoMax(v0 < v1 ? v1 : v0, rest...);
+				return do_maximum(v0 < v1 ? v1 : v0, rest...);
 			}
 
-			template <typename _T>
-			constexpr _T const& DoMin(_T const& v) { return v; }
+			template <typename _t>
+			constexpr _t const& do_minimum(_t const& v) { return v; }
 
-			template <typename _T, class... _R>
-			constexpr _T const& DoMin(_T const& v0, _T const& v1, _R const&... rest)
+			template <typename _t, class... _R>
+			constexpr _t const& do_minimum(_t const& v0, _t const& v1, _R const&... rest)
 			{
-				return DoMin(v0 < v1 ? v0 : v1, rest...);
+				return do_minimum(v0 < v1 ? v0 : v1, rest...);
 			}
 		}
 		
-		template <typename _T, class... _R>
-		inline constexpr _T const& Max(_T const& a, _R const&... rest)
+		template <typename _t, class... _R>
+		inline constexpr _t const& maximum(_t const& a, _R const&... rest)
 		{
-			return Internal::DoMax(a, rest...);
+			return detail::DoMax(a, rest...);
 		}
 
-		template <typename _T, class... _R>
-		inline constexpr _T const& Min(_T const& a, _R const&... rest)
+		template <typename _t, class... _R>
+		inline constexpr _t const& minimum(_t const& a, _R const&... rest)
 		{
-			return Internal::DoMin(a, rest...);
+			return detail::DoMin(a, rest...);
 		}
 
 #pragma endregion
 
-		template <typename _T>
-		constexpr inline _T MiddleOfThree(const _T& a, const _T& b, const _T& c, const bool chooseMinWhenEqual = true)
+		template <typename _t>
+		constexpr inline _t mid_of_three(const _t& a, const _t& b, const _t& c, const bool chooseMinWhenEqual = true)
 		{
-			constexpr _T min = Min(a, b, c);
-			constexpr _T max = Max(a, b, c);
+			constexpr _t min = minimum(a, b, c);
+			constexpr _t max = maximum(a, b, c);
 
 			if constexpr (a != min && a != max) return a;
 			if constexpr (b != min && b != max) return b;
@@ -173,22 +173,22 @@ namespace Influx
 			return min;
 		}
 
-		template <typename _T>
-		constexpr _T Clamp(const _T& x, const _T& lo, const _T& hi) noexcept
+		template <typename _t>
+		constexpr _t clamp(const _t& x, const _t& lo, const _t& hi) noexcept
 		{
 			return x < lo ? lo : (x > hi ? hi : x);
 		}
 
-		template <typename _T, typename = std::enable_if_t<std::is_unsigned_v<std::decay_t<_T>>>>
-		constexpr _T ClampBitwise(_T x, _T lo, _T hi) noexcept
+		template <typename _t, typename = std::enable_if_t<std::is_unsigned_v<std::decay_t<_t>>>>
+		constexpr _t bitwise_clamp(_t x, _t lo, _t hi) noexcept
 		{
 			return (x & hi) | lo;
 		}
 
-		template <typename _T>
-		constexpr inline _T DegreesToRadians(_T degrees)
+		template <typename _t>
+		constexpr inline _t degrees_to_radians(_t degrees)
 		{
-			return degrees * (_T)(k_PI / 180);
+			return degrees * (_t)(k_PI / 180);
 		}
 	}
 }

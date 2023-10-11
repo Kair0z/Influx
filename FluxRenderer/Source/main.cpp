@@ -10,23 +10,23 @@
 #include "Core/Threading/ThreadPool.h"
 #include <iostream>
 
-#define _SHADERS_RESOURCE_PATH	"E:/Git/Influx/Resources/Shaders/shaders.hlsl"
-#define _GEOMETRY_RESOURCE_PATH "E:/Git/Influx/Resources/Meshes/box.fbx"
+#define _SHADERS_RESOURCE_PATH	"E:/Git/influx/Resources/Shaders/shaders.hlsl"
+#define _GEOMETRY_RESOURCE_PATH "E:/Git/influx/Resources/Meshes/box.fbx"
 
 int main()
 {
-	using namespace Influx;
+	using namespace influx;
 
 	// [SETTINGS]
 	constexpr bool Vsync							= true;
-	const Influx::Math::Vectoru2 WindowDimensions	= { 640u, 480u };
+	const influx::Math::Vectoru2 WindowDimensions	= { 640u, 480u };
 	const float AspectRatio							= (float)WindowDimensions.x / (float)WindowDimensions.y;
 	constexpr uint64 NumFrames						= 6000u;
 
 	Assets::ShaderData shaderData{};
 	Assets::Scene sceneData{};
 
-	Influx::RunAsync<2u>
+	influx::RunAsync<2u>
 	({
 		// [Compile Shaders]
 		[&shaderData]()
@@ -43,7 +43,7 @@ int main()
 
 	IFluxRenderer* renderer = new Dx12Renderer();
 
-	for (uint64 s = 0; s < sceneData.Meshes.size(); ++s)
+	for (uint64 s = 0; s < sceneData.Meshes.dimension(); ++s)
 	{
 		renderer->AddMesh(sceneData.Meshes[s]);
 	}
@@ -57,20 +57,20 @@ int main()
 	renderer->SetCameraTransform(cameraPosition, cameraForward);
 
 	// [Create Window]
-	Platform::WindowSettings	windowSettings(WindowDimensions, "Flux Renderer");
-	Platform::WindowHandle		wndHandle = Platform::CreateWindow(windowSettings, true);
+	platform::create_window_args	windowSettings(WindowDimensions, "Flux Renderer");
+	platform::window_handle		wndHandle = platform::CreateWindow(windowSettings, true);
 
 	/* We should be able to build render-work once... */
 	renderer->RecordRenderCommands(wndHandle);
 
-	auto before = Time::Now();
+	auto before = time::get_now();
 	uint64 frameIndex = NumFrames;
 	while ((frameIndex--) != 0u)
 	{
 		renderer->PresentToWindow(wndHandle);
 	}
 
-	const float totalMs = Time::MsBetween<float>(Time::Now(), before);
+	const float totalMs = time::get_ms_between<float>(time::get_now(), before);
 	const float fps = (NumFrames) / (totalMs * 0.001f);
 
 	std::cout << "Num Ms to render " << NumFrames << " frames: " << totalMs << "\n";

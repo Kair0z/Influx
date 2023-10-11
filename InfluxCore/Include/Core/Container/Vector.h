@@ -5,10 +5,10 @@
 
 #include <vector>
 
-namespace Influx
+namespace influx
 {
-	template <typename _T>
-	using Vector = std::vector<_T>;
+	template <typename _t>
+	using vector = std::vector<_t>;
 }
 
 #endif

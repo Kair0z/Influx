@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Influx::GUI
+namespace influx::GUI
 {
 	class IWidget
 	{

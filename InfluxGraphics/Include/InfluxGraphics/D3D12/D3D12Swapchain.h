@@ -6,7 +6,7 @@
 #include "InfluxGraphics/RHISwapchain.h"
 #include "D3D12.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class D3D12Swapchain final : public RHISwapchain
 	{
@@ -23,7 +23,7 @@ namespace Influx::Graphics
 		virtual void Present(RHICommandQueue* commandQueue, bool VSync) override final;
 
 		/* Recreates RHISwapchain resources based on the new size */
-		virtual void Resize(RHIDevice* device, RHICommandQueue* commandQueue, const Math::Vectoru2& newDimensions) override final;
+		virtual void Resize(RHIDevice* device, RHICommandQueue* commandQueue, const math::Vectoru2& newDimensions) override final;
 
 		IDXGISwapChain3*			GetDxgiSwapchain() const;
 

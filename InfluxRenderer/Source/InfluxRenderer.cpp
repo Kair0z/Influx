@@ -12,7 +12,7 @@ static_assert(false);
 // Graphics...
 #include "InfluxGraphics.h"
 
-namespace Influx::Renderer
+namespace influx::Renderer
 {
 	// [GLOBAL STATE]
 	struct GlobalState final
@@ -129,13 +129,13 @@ namespace Influx::Renderer
 		return result;
 	}
 
-	Result AttachToWindow(Platform::WindowHandle window)
+	Result AttachToWindow(platform::window_handle window)
 	{
 		Result result{};
 
 		Graphics::RHISwapchainDesc swapchainDesc{};
 		swapchainDesc.Buffering		= Graphics::RHISwapchainDesc::EBuffering::Triple;
-		swapchainDesc.Dimensions	= Platform::GetClientWindowDimensions<uint32>(window);
+		swapchainDesc.Dimensions	= platform::GetClientWindowDimensions<uint32>(window);
 		swapchainDesc.WindowHandle	= window;
 
 		Graphics::Result gfxResult{};
@@ -147,7 +147,7 @@ namespace Influx::Renderer
 		return result;
 	}
 
-	bool IsAttachedToWindow(Platform::WindowHandle window)
+	bool IsAttachedToWindow(platform::window_handle window)
 	{
 		return GlobalState::HasAttachedSwapchain();
 	}

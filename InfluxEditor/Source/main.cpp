@@ -9,7 +9,7 @@
 
 int main(int argc, char** argv)
 {
-	using namespace Influx::Application;
+	using namespace influx::Application;
 
 	Application::Settings appSettings{};
 	appSettings.Name = "InfluxEditor v.0.0";

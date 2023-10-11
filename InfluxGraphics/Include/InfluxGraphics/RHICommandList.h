@@ -6,7 +6,7 @@
 #include "Types.h"
 #include "RHITypes.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHIRenderPass;
 	struct RHIRenderPassBeginInfo;
@@ -23,7 +23,7 @@ namespace Influx::Graphics
 	{
 	public:
 		/* Graphics Commandlist Interface: */
-		virtual void RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, Function<void(RHICommandList*)>) = 0;
+		virtual void RecordRenderPass(RHIRenderPass* renderPass, const RHIRenderPassBeginInfo& beginInfo, function<void(RHICommandList*)>) = 0;
 
 		virtual void BindScissorRect(const RHIScissorRect& scissorRect) = 0;
 		virtual void BindViewports(const RHIViewport& viewport) = 0;

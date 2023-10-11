@@ -4,7 +4,7 @@
 
 #include "Vulkan/vulkan.hpp"
 
-namespace Influx
+namespace influx
 {
 	class VulkanRenderer : public IFluxRenderer
 	{
@@ -12,9 +12,9 @@ namespace Influx
 		VulkanRenderer() = default;
 
 	private:
-		virtual void RecordRenderCommands(Platform::WindowHandle windowHandle) override final;
+		virtual void RecordRenderCommands(platform::window_handle windowHandle) override final;
 
-		virtual void PresentToWindow(Platform::WindowHandle windowHandle) override final;
+		virtual void PresentToWindow(platform::window_handle windowHandle) override final;
 
 		void WaitForPreviousFrame();
 
@@ -27,7 +27,7 @@ namespace Influx
 		void InitializeCommandList();
 		void InitializeSynchronization();
 		void InitializeRenderPass();
-		void InitializeSwapchain(Platform::WindowHandle windowHandle);
+		void InitializeSwapchain(platform::window_handle windowHandle);
 
 		vk::Instance		m_instance;
 		vk::PhysicalDevice	m_physicalDevice;

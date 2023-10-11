@@ -16,7 +16,7 @@
 // See "prepareVertices" for details on what's staging and on why to use it
 #define USE_STAGING true
 
-namespace Influx::Graphics::Vulkan
+namespace influx::Graphics::Vulkan
 {
 	// [HELPERS]
 	inline Vector<const char*> FilterWantedAndInstalledExtensions(
@@ -29,7 +29,7 @@ namespace Influx::Graphics::Vulkan
 		{
 			for (const vk::ExtensionProperties& i : installed)
 			{
-				if (std::string(i.extensionName.data()).compare(w) == 0)
+				if (std::string(i.extensionName.m_data()).compare(w) == 0)
 				{
 					out.push_back(w);
 					break;
@@ -50,7 +50,7 @@ namespace Influx::Graphics::Vulkan
 		{
 			for (const vk::LayerProperties& i : installed)
 			{
-				if (std::string(i.layerName.data()).compare(w) == 0)
+				if (std::string(i.layerName.m_data()).compare(w) == 0)
 				{
 					out.push_back(w);
 					break;
@@ -66,7 +66,7 @@ namespace Influx::Graphics::Vulkan
 		Vector<vk::QueueFamilyProperties> queueProps =
 			physicalDevice.getQueueFamilyProperties();
 
-		for (uint64 i = 0; i < queueProps.size(); ++i)
+		for (uint64 i = 0; i < queueProps.dimension(); ++i)
 		{
 			if (queueProps[i].queueFlags & flags)
 			{
@@ -128,7 +128,7 @@ namespace Influx::Graphics::Vulkan
 		if (numPhysicalDevices > 0u)
 		{
 			Vector<vk::PhysicalDevice> devices(numPhysicalDevices);
-			auto result = instance.enumeratePhysicalDevices(&numPhysicalDevices, devices.data());
+			auto result = instance.enumeratePhysicalDevices(&numPhysicalDevices, devices.m_data());
 			return devices;
 		}
 		else

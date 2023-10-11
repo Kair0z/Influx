@@ -6,25 +6,25 @@
 #include "Core/Math/Math.h"
 #include "Core/Math/Vector.h"
 
-namespace Influx::BRDF
+namespace influx::BRDF
 {
-	using Colour = Math::Vectorf3;
+	using Colour = math::Vectorf3;
 
 	namespace NormalDistribution
 	{
 		inline float TrowbridgeReitz(
-			const Math::Vectorf3& hitNormal,
-			const Math::Vectorf3& halfVector,
+			const math::Vectorf3& hitNormal,
+			const math::Vectorf3& halfVector,
 			float roughness_2)
 		{
 			float result{};
 
 			float roughness_2_2{ powf(roughness_2, 2.f) };
 
-			float c1{ powf(Math::Vectorf3::Dot(hitNormal, halfVector), 2) };
+			float c1{ powf(math::Vectorf3::Dot(hitNormal, halfVector), 2) };
 			float c2{ roughness_2_2 - 1 };
 
-			result = roughness_2_2 / (float(Math::k_PI) * powf(c1 * c2 + 1, 2.f));
+			result = roughness_2_2 / (float(math::k_PI) * powf(c1 * c2 + 1, 2.f));
 
 			return result;
 		}
@@ -33,8 +33,8 @@ namespace Influx::BRDF
 	namespace Fresnel
 	{
 		inline Colour Schlick(
-			const Math::Vectorf3& halfVector,
-			const Math::Vectorf3& toView,
+			const math::Vectorf3& halfVector,
+			const math::Vectorf3& toView,
 			const Colour& albedo,
 			bool isMetal)
 		{
@@ -43,7 +43,7 @@ namespace Influx::BRDF
 			if (!isMetal) F0 = Colour{ 0.4f, 0.4f, 0.4f };
 
 			Colour c1{ Colour{ 1.f, 1.f, 1.f } - F0 };
-			float c2{ powf(1 - (Math::Vectorf3::Dot(halfVector, toView)), 5.f) };
+			float c2{ powf(1 - (math::Vectorf3::Dot(halfVector, toView)), 5.f) };
 
 			return F0 + c1 * c2;
 		}
@@ -52,11 +52,11 @@ namespace Influx::BRDF
 	namespace GeometryFunction
 	{
 		inline float Schlick(
-			const Math::Vectorf3& hitNormal,
-			const Math::Vectorf3& toView,
+			const math::Vectorf3& hitNormal,
+			const math::Vectorf3& toView,
 			float k)
 		{
-			return Math::Vectorf3::Dot(hitNormal, toView) / (Math::Vectorf3::Dot(hitNormal, toView) * (1 - k) + k);
+			return math::Vectorf3::Dot(hitNormal, toView) / (math::Vectorf3::Dot(hitNormal, toView) * (1 - k) + k);
 		}
 	}
 
@@ -70,18 +70,18 @@ namespace Influx::BRDF
 	};
 
 	inline Colour Phong(const PhongSettings& settings,
-		const Math::Vectorf3& fromLight,
-		const Math::Vectorf3& lightIntensity,
-		const Math::Vectorf3& toView,
-		const Math::Vectorf3& hitNormal)
+		const math::Vectorf3& fromLight,
+		const math::Vectorf3& lightIntensity,
+		const math::Vectorf3& toView,
+		const math::Vectorf3& hitNormal)
 	{
-		float normalDotFromLight = Math::Vectorf3::Dot(hitNormal, fromLight);
+		float normalDotFromLight = math::Vectorf3::Dot(hitNormal, fromLight);
 
 		// normal must be normalized here!
-		Math::Vectorf3 reflectVector{ -fromLight + 2 * normalDotFromLight * hitNormal };
+		math::Vectorf3 reflectVector{ -fromLight + 2 * normalDotFromLight * hitNormal };
 
-		Colour diffuse = settings.DiffuseColour * lightIntensity * Math::Clamp(normalDotFromLight, 0.0f, 1.0f);
-		Colour specular = Math::Vectorf3::One() * lightIntensity * powf(Math::Clamp(Math::Vectorf3::Dot(reflectVector, toView), 0.0f, 1.0f), settings.PhongExponent);
+		Colour diffuse = settings.DiffuseColour * lightIntensity * math::clamp(normalDotFromLight, 0.0f, 1.0f);
+		Colour specular = math::Vectorf3::One() * lightIntensity * powf(math::clamp(math::Vectorf3::Dot(reflectVector, toView), 0.0f, 1.0f), settings.PhongExponent);
 
 		return (settings.Diffuse * diffuse) + (settings.Specular * specular);
 	}
@@ -95,12 +95,12 @@ namespace Influx::BRDF
 	};
 
 	inline Colour CookTorrance(const CookTorranceSettings& settings,
-		const Math::Vectorf3& toView,
-		const Math::Vectorf3& fromLight,
-		const Math::Vectorf3& hitNormal)
+		const math::Vectorf3& toView,
+		const math::Vectorf3& fromLight,
+		const math::Vectorf3& hitNormal)
 	{
-		Math::Vectorf3 halfVector{ toView + fromLight };
-		Math::Vectorf3::Normalize(halfVector);
+		math::Vectorf3 halfVector{ toView + fromLight };
+		math::Vectorf3::Normalize(halfVector);
 		// angle between either & halfvector can't be bigger than 90° (PI / 2)
 
 		float remappedRoughness{};
@@ -115,7 +115,7 @@ namespace Influx::BRDF
 		Colour fresnel{ Fresnel::Schlick(halfVector, toView, settings.Albedo, settings.IsMetal) };
 		float geometry{ GeometryFunction::Schlick(hitNormal, toView, remappedRoughness) * GeometryFunction::Schlick(hitNormal, fromLight, remappedRoughness) };
 
-		return (fresnel * geometry * normalDistribution) / (4 * (Math::Vectorf3::Dot(toView, hitNormal) * (Math::Vectorf3::Dot(fromLight, hitNormal))));
+		return (fresnel * geometry * normalDistribution) / (4 * (math::Vectorf3::Dot(toView, hitNormal) * (math::Vectorf3::Dot(fromLight, hitNormal))));
 	}
 }
 

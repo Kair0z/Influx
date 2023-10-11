@@ -66,6 +66,9 @@
       <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\InfluxApplication.dll" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -86,6 +89,9 @@
       <AdditionalLibraryDirectories>$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)3thParty\lib\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxEngine\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>InfluxApplication.lib;InfluxEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\InfluxApplication.dll" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp" />

@@ -8,7 +8,7 @@
 #include "D3D12.h"
 #include "D3D12Conversion.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class D3D12CommandQueue;
 	class D3D12DescriptorHeap;
@@ -27,7 +27,7 @@ namespace Influx::Graphics
 		/* RHIDevice API */
 		virtual CommandQueuePtr CreateCommandQueue(const ERHICommandQueueType type) const override;
 
-		virtual SwapchainPtr CreateSwapchain(const Math::Vectoru2& dimensions, Platform::WindowHandle windowHandle, CommandQueuePtr commandQueue) const override;
+		virtual SwapchainPtr CreateSwapchain(const math::Vectoru2& dimensions, platform::window_handle windowHandle, CommandQueuePtr commandQueue) const override;
 
 		virtual DescriptorHeapPtr CreateDescriptorHeap(const ERHIResourceViewType type, uint32 numDescriptors, bool isShaderVisible) const override;
 
@@ -35,7 +35,7 @@ namespace Influx::Graphics
 		virtual ShaderResourceViewPtr CreateShaderResourceView(const DescriptorHeapPtr descriptorHeap, const ResourcePtr viewedResource) const override;
 
 		virtual ResourcePtr CreateResource(const ERHIResourceState initialState) const override;
-		virtual ResourcePtr CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const Math::Vectoru2& dimensions, const uint16 numMips) const override;
+		virtual ResourcePtr CreateTextureResource(const ERHIResourceState initialState, const ERHIFormat format, const math::Vectoru2& dimensions, const uint16 numMips) const override;
 		virtual ResourcePtr CreateVertexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const override;
 		virtual ResourcePtr CreateIndexBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const override;
 		virtual ResourcePtr CreateConstantBufferResource(const ERHIResourceState initialState, const ERHIFormat format, const uint64 numBytesInBuffer) const override;
@@ -54,8 +54,8 @@ namespace Influx::Graphics
 		IDXGIAdapter* GetDxgiAdapter() const;
 		IDXGIFactory2* GetDxgiFactory() const;
 
-		template <typename _T>
-		void Release(_T*& pointer)
+		template <typename _t>
+		void Release(_t*& pointer)
 		{
 			if (pointer != nullptr)
 			{
@@ -69,8 +69,8 @@ namespace Influx::Graphics
 		void Cleanup();
 
 		IDXGIFactory2* mp_dxgiFactory2;
-		Vector<IDXGIAdapter*> mp_dxgiAdapters;
-		Vector<ID3D12Device*> mp_dxDevices;
+		vector<IDXGIAdapter*> mp_dxgiAdapters;
+		vector<ID3D12Device*> mp_dxDevices;
 		uint32 m_mainAdapterIdx;
 
 		constexpr static bool bTearingSupported = false;

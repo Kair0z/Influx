@@ -8,19 +8,19 @@
 #include "Core/Container/Containers.h"
 #include "Core/Container/Map.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	struct RHIGraphicsPipelineDescription final
 	{
-		using CompiledShaderData = Vector<uint8>;
+		using CompiledShaderData = vector<uint8>;
 
 		struct InputElement final
 		{
-			InputElement(const String& name, uint8 semanticIndex, ERHIFormat format, uint8 inputSlot, uint8 alignedByteOffset, bool dataPerVertexNotPerInstance, uint8 instanceDataStepRate)
+			InputElement(const string& name, uint8 semanticIndex, ERHIFormat format, uint8 inputSlot, uint8 alignedByteOffset, bool dataPerVertexNotPerInstance, uint8 instanceDataStepRate)
 				: SemanticName{ name }, SemanticIndex{ semanticIndex }, Format{ format }, InputSlot{ inputSlot }, AlignedByteOffset{ alignedByteOffset }
 				, bDataPerVertexNotPerInstance{ dataPerVertexNotPerInstance }, InstanceDataStepRate{ instanceDataStepRate } {}
 
-			String SemanticName;
+			string SemanticName;
 			uint8 SemanticIndex;
 			ERHIFormat Format;
 			uint8 InputSlot;
@@ -29,7 +29,7 @@ namespace Influx::Graphics
 			uint8 InstanceDataStepRate;
 		};
 		
-		Vector<InputElement> InputElements;
+		vector<InputElement> InputElements;
 
 		RHIRasterizerState RasterizerState;
 		RHIBlendState BlendState;
@@ -102,9 +102,9 @@ namespace Influx::Graphics
 namespace std
 {
 	template <>
-	struct std::hash<Influx::Graphics::RHIGraphicsPipelineDescription>
+	struct std::hash<influx::Graphics::RHIGraphicsPipelineDescription>
 	{
-		std::size_t operator()(const Influx::Graphics::RHIGraphicsPipelineDescription& desc) const noexcept
+		std::size_t operator()(const influx::Graphics::RHIGraphicsPipelineDescription& desc) const noexcept
 		{
 			return 0u;
 		}

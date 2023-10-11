@@ -9,7 +9,7 @@
 
 #include "Core/Platform/Platform.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	class RHICommandQueue;
 	class RHIDevice;
@@ -43,7 +43,7 @@ namespace Influx::Graphics
 		const uint32 GetHeight() const;
 		const Math::Vectoru2& GetDimensions() const;
 
-		Platform::WindowHandle GetWindowHandle() const;
+		platform::window_handle GetWindowHandle() const;
 
 		bool GetIsTearingSupported() const;
 
@@ -69,7 +69,7 @@ namespace Influx::Graphics
 
 		bool m_isTearingSupported = false;
 
-		Platform::WindowHandle m_windowHandle;
+		platform::window_handle m_windowHandle;
 	};
 
 	/* Swapchain */

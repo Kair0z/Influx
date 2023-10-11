@@ -6,9 +6,9 @@
 
 #include "PixEvents.h"
 
-namespace Influx
+namespace influx
 {
-	PixelRenderer::PixelOutput Influx::PixelRaytracer::RenderPixel(
+	PixelRenderer::PixelOutput influx::PixelRaytracer::RenderPixel(
 		const RenderScene& scene, const Math::Vectorf2& uv, const float ar) const
 	{
 		Math::Ray ray = CreateViewRay(uv, ar);
@@ -19,7 +19,7 @@ namespace Influx
 
 		// For each object:
 		size_t sphereHitIdx = 0;
-		for (size_t i = 0; i < scene.Spheres.size(); ++i)
+		for (size_t i = 0; i < scene.Spheres.dimension(); ++i)
 		{
 			const Math::Sphere<float>& sphere = scene.Spheres[i];
 

@@ -16,7 +16,7 @@ struct ID3D12RootSignature;
 struct ID3D12PipelineState;
 struct ID3D12Fence;
 
-namespace Influx
+namespace influx
 {
 	class Dx12Renderer final : public IFluxRenderer
 	{
@@ -24,9 +24,9 @@ namespace Influx
 		Dx12Renderer() = default;
 
 	private:
-		virtual void RecordRenderCommands(Platform::WindowHandle windowHandle) override final;
+		virtual void RecordRenderCommands(platform::window_handle windowHandle) override final;
 
-		virtual void PresentToWindow(Platform::WindowHandle windowHandle) override final;
+		virtual void PresentToWindow(platform::window_handle windowHandle) override final;
 
 		void WaitForPreviousFrame();
 
@@ -43,7 +43,7 @@ namespace Influx
 		void InitializeLights();
 		void InitializeSynchronization();
 
-		void InitializeSwapchain(Platform::WindowHandle windowHandle);
+		void InitializeSwapchain(platform::window_handle windowHandle);
 
 		IDXGIFactory2* mp_dxgiFactory2;
 		IDXGIAdapter* mp_dxgiHardwareAdapter;

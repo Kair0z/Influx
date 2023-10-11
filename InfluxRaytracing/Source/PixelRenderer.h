@@ -7,11 +7,11 @@
 
 #include <vector>
 
-namespace Influx
+namespace influx
 {
 	struct RenderScene
 	{
-		using Spheref = Influx::Math::Sphere<float>;
+		using Spheref = influx::Math::Sphere<float>;
 		std::vector<float> Randoms;
 		std::vector<Spheref> Spheres;
 
@@ -29,7 +29,7 @@ namespace Influx
 	public:
 		struct PixelOutput
 		{
-			Influx::Math::Vector<float, 4u> RGBA;
+			influx::Math::vector<float, 4u> RGBA;
 			float Depth;
 			bool AnythingRendered;
 		};
@@ -43,7 +43,7 @@ namespace Influx
 
 		struct RenderSettings
 		{
-			Influx::Math::Vector<float, 2u> RenderDepthMinMax = {0.0f, FLT_MAX};
+			influx::Math::vector<float, 2u> RenderDepthMinMax = {0.0f, FLT_MAX};
 		};
 
 	public:
@@ -66,7 +66,7 @@ namespace Influx
 	protected:
 		inline float RemapDepth(float depthValue) const
 		{
-			return Influx::Math::Remap(depthValue,
+			return influx::Math::Remap(depthValue,
 				m_renderSettings.RenderDepthMinMax.x, m_renderSettings.RenderDepthMinMax.y,
 				0.0f, 1.0f);
 		}

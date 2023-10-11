@@ -3,53 +3,53 @@
 #ifndef _CORE_GEOMETRY_TRIANGLE_H_
 #define _CORE_GEOMETRY_TRIANGLE_H_
 
-#include "Core/Math/Vector.h"
+#include "core/math/vector.h"
 
-namespace Influx::Math
+namespace influx::math
 {
-	namespace Internal
+	namespace detail
 	{
 		using dim_t = uint8;
 	}
 
-	template <typename _T, Internal::dim_t _N = 3u>
-	struct Triangle final
+	template <typename _t, detail::dim_t _dim = 3u>
+	struct triangle final
 	{
 	private:
-		using Point = Vector<_T, _N>;
+		using point = vector<_t, _dim>;
 
 	public:
-		inline Triangle() = default;
-		inline Triangle(const Point& p0, const Point& p1, const Point& p2)
+		inline triangle() = default;
+		inline triangle(const point& p0, const point& p1, const point& p2)
 		{
-			A = p0;
-			B = p1;
-			C = p2;
+			m_a = p0;
+			m_b = p1;
+			m_c = p2;
 		}
 
 		union
 		{
-			Point Points[3u];
+			point m_points[3u];
 
-			Point A;
-			Point B;
-			Point C;
+			point m_a;
+			point m_b;
+			point m_c;
 		};
 	};
 
-	template <typename _T>
-	using Triangle2D	= Triangle<_T, 2u>;
-	using Triangle2Df	= Triangle2D<float>;
-	using Triangle2Dd	= Triangle2D<double>;
-	using Triangle2Di	= Triangle2D<int>;
-	using Triangle2Du	= Triangle2D<uint32>;
+	template <typename _t>
+	using triangle2D	= triangle<_t, 2u>;
+	using triangle2Df	= triangle2D<float>;
+	using triangle2Dd	= triangle2D<double>;
+	using triangle2Di	= triangle2D<int>;
+	using triangle2Du	= triangle2D<uint32>;
 
-	template <typename _T>
-	using Triangle3D = Triangle<_T, 3u>;
-	using Trianglef  = Triangle3D<float>;
-	using Triangled  = Triangle3D<double>;
-	using Trianglei  = Triangle3D<int>;
-	using Triangleu  = Triangle3D<uint32>;
+	template <typename _t>
+	using triangle3D = triangle<_t, 3u>;
+	using trianglef  = triangle3D<float>;
+	using triangled  = triangle3D<double>;
+	using trianglei  = triangle3D<int>;
+	using triangleu  = triangle3D<uint32>;
 }
 
 #endif

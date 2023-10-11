@@ -3,9 +3,9 @@
 #include "InfluxGraphics/D3D12/D3D12.h"
 #include "Core/Platform/WindowsPlatform.h"
 
-namespace Influx
+namespace influx
 {
-	void Dx12Renderer::RecordRenderCommands(Platform::WindowHandle windowHandle)
+	void Dx12Renderer::RecordRenderCommands(platform::window_handle windowHandle)
 	{
 		Initialize();
 		InitializeSwapchain(windowHandle);
@@ -27,19 +27,19 @@ namespace Influx
 			// re-recording.
 			gfxCommandList->Reset(commandAllocator, mp_pipelineState);
 
-			Platform::WindowSettings windowSettings = Platform::GetWindowSettings(windowHandle);
+			platform::create_window_args windowSettings = platform::get_window_settings(windowHandle);
 
 			D3D12_VIEWPORT viewport{};
-			viewport.Width = static_cast<float>(windowSettings.Width);
-			viewport.Height = static_cast<float>(windowSettings.Heigth);
+			viewport.Width = static_cast<float>(windowSettings.m_width);
+			viewport.Height = static_cast<float>(windowSettings.m_height);
 			viewport.MinDepth = 0.0f;
 			viewport.MaxDepth = 1.0f;
 
 			D3D12_RECT scissorRect{};
 			scissorRect.left = 0u;
 			scissorRect.bottom = 0u;
-			scissorRect.right = scissorRect.left + static_cast<LONG>(windowSettings.Width);
-			scissorRect.top = scissorRect.bottom + static_cast<LONG>(windowSettings.Heigth);
+			scissorRect.right = scissorRect.left + static_cast<LONG>(windowSettings.m_width);
+			scissorRect.top = scissorRect.bottom + static_cast<LONG>(windowSettings.m_height);
 
 			gfxCommandList->SetGraphicsRootSignature(mp_rootSignature);
 			gfxCommandList->RSSetViewports(1u, &viewport);
@@ -76,7 +76,7 @@ namespace Influx
 		}
 	}
 
-	void Dx12Renderer::PresentToWindow(Platform::WindowHandle windowHandle)
+	void Dx12Renderer::PresentToWindow(platform::window_handle windowHandle)
 	{
 		InitializeSwapchain(windowHandle);
 
@@ -159,17 +159,17 @@ namespace Influx
 		mp_commandQueue = Graphics::D3D12::CreateDxCommandQueue(mp_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	}
 
-	void Dx12Renderer::InitializeSwapchain(Platform::WindowHandle windowHandle)
+	void Dx12Renderer::InitializeSwapchain(platform::window_handle windowHandle)
 	{
 		if (mp_swapchain != nullptr)
 		{
 			return;
 		}
 
-		Platform::WindowSettings settings = Platform::GetWindowSettings(windowHandle);
+		platform::create_window_args settings = platform::get_window_settings(windowHandle);
 
 		mp_swapchain = Graphics::D3D12::Swapchain::CreateTier3(mp_dxgiFactory2, (::HWND)windowHandle, mp_commandQueue,
-			settings.Width, settings.Heigth, GetNumSwapchainBuffers(), DXGI_FORMAT_R8G8B8A8_UNORM);
+			settings.m_width, settings.m_height, GetNumSwapchainBuffers(), DXGI_FORMAT_R8G8B8A8_UNORM);
 
 		m_currentSwapchainBufferIndex = mp_swapchain->GetCurrentBackBufferIndex();
 		
@@ -273,8 +273,8 @@ namespace Influx
 		// code simplicity and because there are very few verts to actually transfer.
 		constexpr bool useUploadHeap = true;
 
-		Vector<Scene::Mesh::Vertex> allVertices{};
-		Vector<Scene::Mesh::Index> allIndices{};
+		vector<Scene::Mesh::Vertex> allVertices{};
+		vector<Scene::Mesh::Index> allIndices{};
 
 		for (const Scene::Mesh& mesh : GetMeshes())
 		{
@@ -285,7 +285,7 @@ namespace Influx
 				allIndices.push_back(index);
 		}
 
-		if (allVertices.size() == 0u || allIndices.size() == 0u)
+		if (allVertices.dimension() == 0u || allIndices.dimension() == 0u)
 			return;
 		
 		auto bufferDesc = Graphics::D3D12::HelperStructs::CommittedResourceDesc::AsBuffer(useUploadHeap, GetVertexBufferSize(), 0u);
@@ -296,12 +296,12 @@ namespace Influx
 
 		Graphics::D3D12::ResourceScopedMap(mp_vertexBufferResource, [&allVertices](void* handle)
 			{
-				memcpy(handle, allVertices.data(), allVertices.size() * sizeof(Scene::Mesh::Vertex));
+				memcpy(handle, allVertices.m_data(), allVertices.dimension() * sizeof(Scene::Mesh::Vertex));
 			});
 
 		Graphics::D3D12::ResourceScopedMap(mp_indexBufferResource, [&allIndices](void* handle)
 			{
-				memcpy(handle, allIndices.data(), allIndices.size() * sizeof(Scene::Mesh::Index));
+				memcpy(handle, allIndices.m_data(), allIndices.dimension() * sizeof(Scene::Mesh::Index));
 			});
 	}
 

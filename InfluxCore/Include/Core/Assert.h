@@ -5,7 +5,7 @@
 
 #include <cassert>
 
-namespace Influx
+namespace influx
 {
 #define FLX_ASSERT(x) assert(x);
 }

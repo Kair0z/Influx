@@ -4,10 +4,10 @@
 #include "Core/Container/Vector.h"
 #include "Core/Math/Vector.h"
 #include "Core/Cache.h"
-#include "Core/Scene/Scene.h" // Influx::Scene::ELightType
+#include "Core/Scene/Scene.h" // influx::Scene::ELightType
 #endif
 
-namespace Influx::Assets
+namespace influx::Assets
 {
 	struct SceneLoadDesc final
 	{
@@ -22,9 +22,9 @@ namespace Influx::Assets
 
 	struct Scene final
 	{
-		Vector<Influx::Scene::Mesh> Meshes{};
-		Vector<Influx::Scene::Light> Lights{};
-		Vector<Influx::Scene::Camera> Cameras{};
+		vector<influx::Scene::Mesh> Meshes{};
+		vector<influx::Scene::Light> Lights{};
+		vector<influx::Scene::Camera> Cameras{};
 
 		bool operator==(const Scene& scene) const
 		{
@@ -34,16 +34,16 @@ namespace Influx::Assets
 
 		const uint64 GetTotalNumMeshes() const
 		{
-			return Meshes.size();
+			return Meshes.dimension();
 		}
 
 		const uint64 GetTotalNumVertices() const
 		{
 			uint64 result{};
 
-			for (uint64 m = 0u; m < Meshes.size(); ++m)
+			for (uint64 m = 0u; m < Meshes.dimension(); ++m)
 			{
-				result += Meshes[m].GetVertices().size();
+				result += Meshes[m].GetVertices().dimension();
 			}
 			
 			return result;
@@ -51,16 +51,16 @@ namespace Influx::Assets
 
 		const uint64 GetVertexDataSizeInBytes() const
 		{
-			return GetTotalNumVertices() * sizeof(Influx::Scene::Mesh::Vertex);
+			return GetTotalNumVertices() * sizeof(influx::Scene::Mesh::Vertex);
 		}
 
 		const uint64 GetIndexDataSizeInBytes() const
 		{
 			uint64 result{};
 
-			for (uint64 m = 0; m < Meshes.size(); ++m)
+			for (uint64 m = 0; m < Meshes.dimension(); ++m)
 			{
-				for (uint64 i = 0; i < Meshes[m].GetIndices().size(); ++i)
+				for (uint64 i = 0; i < Meshes[m].GetIndices().dimension(); ++i)
 				{
 					result += sizeof(Meshes[m].GetIndices()[i]);
 				}
@@ -70,16 +70,16 @@ namespace Influx::Assets
 		}
 	};
 
-	using SceneCache = Influx::Cache<Scene, String, SceneLoadDesc>;
+	using SceneCache = influx::Cache<Scene, string, SceneLoadDesc>;
 }
 
 // Define SceneLoadDesc Hash function...
 namespace std
 {
 	template <>
-	struct std::hash<Influx::Assets::SceneLoadDesc>
+	struct std::hash<influx::Assets::SceneLoadDesc>
 	{
-		size_t operator()(const Influx::Assets::SceneLoadDesc& key) const noexcept
+		size_t operator()(const influx::Assets::SceneLoadDesc& key) const noexcept
 		{
 			return 0u;
 		}

@@ -2,7 +2,7 @@
 
 #include "InfluxGraphics/RHITypes.h"
 
-namespace Influx::Graphics
+namespace influx::Graphics
 {
 	namespace Internal
 	{
@@ -11,7 +11,7 @@ namespace Influx::Graphics
 
 		};
 
-		template <ERHIResourceViewType _T>
+		template <ERHIResourceViewType _t>
 		class RHIResourceView : public IRHIResourceView
 		{
 		protected:

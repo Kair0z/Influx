@@ -6,7 +6,7 @@
 
 // https://alain.xyz/blog/raw-vulkan
 
-namespace Influx
+namespace influx
 {
 	void VulkanRenderer::BuildRenderWork(Platform::WindowHandle windowHandle)
 	{
