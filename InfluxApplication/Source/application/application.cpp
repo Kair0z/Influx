@@ -8,21 +8,10 @@
 #endif
 
 #pragma comment(lib, "InfluxRenderer.lib")
+#pragma comment(lib, "InfluxAsync.lib")
 
 namespace influx::application
 {
-#pragma region apifunctions
-	void run(const run_args& args)
-	{
-		application::get_instance().run(args);
-	}
-
-	void quit()
-	{
-		application::get_instance().request_quit();
-	}
-#pragma endregion
-
 	void application::run(const run_args& args)
 	{
 		// initialize
@@ -76,7 +65,6 @@ namespace influx::application
 
 	void application::run_renderthread()
 	{
-		// initialize renderer
 		renderer::init_args args{};
 		args.m_api_type = renderer::e_render_api::dx12;
 		renderer::initialize(args);
@@ -92,4 +80,16 @@ namespace influx::application
 
 		renderer::cleanup();
 	}
+
+#pragma region apifunctions
+	void run(const run_args& args)
+	{
+		application::get_instance().run(args);
+	}
+
+	void quit()
+	{
+		application::get_instance().request_quit();
+	}
+#pragma endregion
 }

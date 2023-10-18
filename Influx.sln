@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.32014.148
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32126.315
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InfluxCoreTests", "InfluxCoreTests\InfluxCoreTests.vcxproj", "{A0F0664D-3922-47EB-BEC4-673BF0DF6383}"
 EndProject
@@ -41,6 +41,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Resources", "Resources", "{
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InfluxGraphicsTests", "InfluxGraphicsTests\InfluxGraphicsTests.vcxproj", "{2A2A02C3-88D5-4F93-A43B-ED79E3A13B95}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InfluxAsync", "InfluxAsync\InfluxAsync.vcxproj", "{AD33EAE9-11D8-4F65-BEDB-8863068DA762}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -289,6 +291,22 @@ Global
 		{2A2A02C3-88D5-4F93-A43B-ED79E3A13B95}.Release|x64.Build.0 = Release|x64
 		{2A2A02C3-88D5-4F93-A43B-ED79E3A13B95}.Release|x86.ActiveCfg = Release|Win32
 		{2A2A02C3-88D5-4F93-A43B-ED79E3A13B95}.Release|x86.Build.0 = Release|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Debug|x64.ActiveCfg = Debug|x64
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Debug|x64.Build.0 = Debug|x64
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Debug|x86.ActiveCfg = Debug|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Debug|x86.Build.0 = Debug|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Profile|Any CPU.ActiveCfg = Debug|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Profile|Any CPU.Build.0 = Debug|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Profile|x64.ActiveCfg = Debug|x64
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Profile|x64.Build.0 = Debug|x64
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Profile|x86.ActiveCfg = Debug|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Profile|x86.Build.0 = Debug|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Release|Any CPU.ActiveCfg = Release|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Release|x64.ActiveCfg = Release|x64
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Release|x64.Build.0 = Release|x64
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Release|x86.ActiveCfg = Release|Win32
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -307,6 +325,7 @@ Global
 		{AAE8EF84-74C2-44F9-804E-6C08ABE0F35B} = {7751F812-74DF-499A-BCB4-E44F6407F410}
 		{BBEB27BA-A78D-5290-9048-66E47C89D9E0} = {7751F812-74DF-499A-BCB4-E44F6407F410}
 		{2A2A02C3-88D5-4F93-A43B-ED79E3A13B95} = {B04DCF51-EE81-4ABD-9227-0000D0AF9A6D}
+		{AD33EAE9-11D8-4F65-BEDB-8863068DA762} = {7751F812-74DF-499A-BCB4-E44F6407F410}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {59E0F641-2396-48AD-8B46-4B294047C9C4}

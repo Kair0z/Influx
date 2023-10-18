@@ -5,11 +5,17 @@
     <ClInclude Include="Source\app_pch.h" />
     <ClInclude Include="Include\influx_application.h" />
     <ClInclude Include="Source\application\application.h" />
-    <ClInclude Include="Source\async\async.h" />
+    <ClInclude Include="Source\editor\editor_rendersystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\app_pch.cpp" />
     <ClCompile Include="Source\application\application.cpp" />
-    <ClCompile Include="Source\async\async.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Source\editor\editor_rendersystem.cpp" />
   </ItemGroup>
 </Project>

@@ -50,7 +50,13 @@ namespace influx::renderer
 	class INFLUX_RENDER_API command_list final
 	{
 	public:
+		void foo()
+		{
 
+		}
+
+	private:
+		int i = 0;
 	};
 
 
