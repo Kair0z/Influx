@@ -148,13 +148,13 @@ namespace influx
 		template <typename _t, class... _R>
 		inline constexpr _t const& maximum(_t const& a, _R const&... rest)
 		{
-			return detail::DoMax(a, rest...);
+			return detail::do_maximum(a, rest...);
 		}
 
 		template <typename _t, class... _R>
 		inline constexpr _t const& minimum(_t const& a, _R const&... rest)
 		{
-			return detail::DoMin(a, rest...);
+			return detail::do_minimum(a, rest...);
 		}
 
 #pragma endregion

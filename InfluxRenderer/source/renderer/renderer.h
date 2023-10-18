@@ -1,39 +1,81 @@
 #pragma once
 
-#ifndef __RENDERER_ROOT_RENDERER_H_
-#define __RENDERER_ROOT_RENDERER_H_
+#include "core/singleton/singleton.h"
+#include "Core/Container/Vector.h"
 
-#include "Core/BasicTypes.h"
-#include "Core/Pointer.h"
-#include "Core/Container/List.h"
-#include "Core/Platform/Platform.h"
-#include "Core/Cache.h"
-#include "Core/Function.h"
+struct IDXGIFactory1;
+struct IDXGIAdapter1;
+struct ID3D12Device;
+struct ID3D12CommandQueue;
+struct ID3D12DescriptorHeap;
+struct IDXGISwapChain4;
+struct ID3D12CommandAllocator;
+struct ID3D12Resource;
+struct ID3D12Fence;
+struct ID3D12GraphicsCommandList;
+struct D3D12_CPU_DESCRIPTOR_HANDLE;
+struct ID3D12RootSignature;
+struct ID3D12PipelineState;
+struct IDXGIFactory4;
 
-#include <type_traits>
-
-#include "InfluxGraphics/RHITypes.h"
-
-#include "InfluxRenderer/IRenderer.h"
-
-namespace influx::Graphics
+namespace influx::renderer
 {
-	class RHIDevice;
-	class RHICommandList;
-	class RHICommandQueue;
-	class RHIDescriptorHeap;
-	class RHISwapchain;
-	class RHIGraphicsPipeline;
-	class RHIGraphicsPipelineLayout;
-	class RHIResource;
-	class RHITexture;
-	struct RHITextureDesc;
-	struct RHIGraphicsPipelineDescription;
-	struct RHIGraphicsPipelineLayoutDescription;
-}
+	class renderer_state final
+		: public singleton<renderer_state>
+	{
+	public:
+		void initialize(const init_args& args);
+		void start_frame();
+		void submit_frame();
+		void present_to_window(platform::window_handle window_handle, const present_args& args);
+		bool is_initialized() const;
+		void cleanup();
 
-namespace influx::Renderer
-{
+		struct context final
+		{
+			context() = default;
+			context(ID3D12Device* device, ID3D12DescriptorHeap* srvheap)
+				: mp_device{ device }, mp_srvheap{ srvheap }{}
+			ID3D12Device* mp_device = nullptr;
+			ID3D12DescriptorHeap* mp_srvheap = nullptr;
+		};
+
+		struct per_frame_context final
+		{
+			uint64 m_frame = 0u;
+			ID3D12CommandAllocator* mpdx_commandAllocator = nullptr;
+			ID3D12GraphicsCommandList* mpdx_commandList = nullptr;
+			::HANDLE m_complete_event = NULL;
+		};
+
+	private:
+		IDXGIFactory4* mpdx_factory = nullptr;
+		ID3D12Device* mpdx_device = nullptr;
+		ID3D12CommandQueue* mpdx_commandQueue = nullptr;
+		IDXGISwapChain4* mpdx_swapchain = nullptr;
+		ID3D12DescriptorHeap* mpdx_rendertargetHeap = nullptr;
+		ID3D12DescriptorHeap* mpdx_srvheap = nullptr;
+		ID3D12RootSignature* mpdx_rootsignature = nullptr;
+		ID3D12PipelineState* mpdx_pipeline = nullptr;
+		ID3D12Resource* mpdx_vertexbuffer = nullptr;
+
+		vector<ID3D12CommandAllocator*> mpdx_commandAllocators{};
+		vector<ID3D12GraphicsCommandList*> mpdx_commandLists{};
+		ID3D12Fence* mpdx_fence = nullptr;
+		vector<ID3D12Resource*> mpdx_backbufferResources{};
+		uint32 m_swapchainBufferIndex = 0u;
+		uint32 m_rtvDescriptorSize = 0u;
+		uint32 m_srvDescriptorSize = 0u;
+
+		uint64 m_frame = 0u;
+
+		void recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle);
+
+	private:
+		bool m_is_initialized = false;
+	};
+
+#if 0
 	class RootRenderer;
 
 	class RenderContext final
@@ -206,6 +248,5 @@ namespace influx::Renderer
 
 		RenderContext m_renderContext;
 	};
-}
-
 #endif
+}

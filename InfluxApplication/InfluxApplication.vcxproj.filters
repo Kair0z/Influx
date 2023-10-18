@@ -3,7 +3,7 @@
   <ItemGroup>
     <ClInclude Include="Include\InfluxApplication\Application.h" />
     <ClInclude Include="Source\app_pch.h" />
-    <ClInclude Include="Include\application\influx_application.h" />
+    <ClInclude Include="Include\influx_application.h" />
     <ClInclude Include="Source\application\application.h" />
   </ItemGroup>
   <ItemGroup>

@@ -18,6 +18,7 @@ namespace influx::application
 		void request_quit();
 
 	private:
+		void run_mainthread();
 		void run_gamethread();
 		void run_renderthread();
 

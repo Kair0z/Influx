@@ -13,8 +13,8 @@
     <ClInclude Include="Include\core\allocators\allocator.h" />
     <ClInclude Include="Include\core\platform\windows_platform.h" />
     <ClInclude Include="Include\core\platform\platform.h" />
-    <ClInclude Include="Include\core\singleton\locator.h" />
-    <ClInclude Include="Include\core\singleton\singleton.h" />
+    <ClInclude Include="Include\Core\singleton\locator.h" />
+    <ClInclude Include="Include\Core\singleton\singleton.h" />
     <ClInclude Include="Source\Thread\Windows\WindowsThread.h" />
     <ClInclude Include="Source\Thread\BaseThread.h" />
     <ClInclude Include="Include\core\time.h" />

@@ -2,36 +2,29 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="Include\InfluxRenderer\Renderer.h" />
-    <ClInclude Include="Source\renderer_pch.h" />
+    <ClInclude Include="source\renderer_pch.h" />
     <ClInclude Include="Source\InfluxRenderer\RootRenderer.h" />
-    <ClInclude Include="Include\InfluxRenderer\RootRenderer.h" />
-    <ClInclude Include="Include\InfluxRenderer\IRenderer.h" />
-    <ClInclude Include="Include\InfluxRenderer\Renderers\SceneRenderer.h" />
-    <ClInclude Include="Source\ImGuiTools\ImGuiLogView.h" />
-    <ClInclude Include="Source\ImGuiTools\ImGuiWidgets.h" />
-    <ClInclude Include="Source\ImGui\imconfig.h" />
-    <ClInclude Include="Source\ImGui\imgui.h" />
-    <ClInclude Include="Source\ImGui\imgui_impl_dx12.h" />
-    <ClInclude Include="Source\ImGui\imgui_impl_win32.h" />
-    <ClInclude Include="Source\ImGui\imgui_internal.h" />
-    <ClInclude Include="Source\ImGui\imstb_rectpack.h" />
-    <ClInclude Include="Source\ImGui\imstb_textedit.h" />
-    <ClInclude Include="Source\ImGui\imstb_truetype.h" />
-    <ClInclude Include="Source\ImGuiTools\ImguiWidget.h" />
-    <ClInclude Include="Source\ImGuiTools\ViewportWidget.h" />
-    <ClInclude Include="Include\InfluxRenderer\Renderers\GUIRenderer.h" />
-    <ClInclude Include="Include\InfluxRenderer.h" />
+    <ClInclude Include="source\renderer\renderer.h" />
+    <ClInclude Include="source\renderer\rendersystem\IRenderer.h" />
+    <ClInclude Include="source\renderer\rendersystem\SceneRenderer.h" />
+    <ClInclude Include="source\ImGuiTools\ImGuiLogView.h" />
+    <ClInclude Include="source\ImGuiTools\ImGuiWidgets.h" />
+    <ClInclude Include="source\ImGui\imconfig.h" />
+    <ClInclude Include="source\ImGui\imgui.h" />
+    <ClInclude Include="source\ImGui\imgui_impl_dx12.h" />
+    <ClInclude Include="source\ImGui\imgui_impl_win32.h" />
+    <ClInclude Include="source\ImGui\imgui_internal.h" />
+    <ClInclude Include="source\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="source\ImGui\imstb_textedit.h" />
+    <ClInclude Include="source\ImGui\imstb_truetype.h" />
+    <ClInclude Include="source\ImGuiTools\ImguiWidget.h" />
+    <ClInclude Include="source\ImGuiTools\ViewportWidget.h" />
+    <ClInclude Include="source\renderer\rendersystem\GUIRenderer.h" />
+    <ClInclude Include="Include\influx_renderer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\renderer_pch.cpp" />
-    <ClCompile Include="Source\ImGui\imgui.cpp" />
-    <ClCompile Include="Source\ImGui\imgui_demo.cpp" />
-    <ClCompile Include="Source\ImGui\imgui_draw.cpp" />
-    <ClCompile Include="Source\ImGui\imgui_impl_dx12.cpp" />
-    <ClCompile Include="Source\ImGui\imgui_impl_win32.cpp" />
-    <ClCompile Include="Source\ImGui\imgui_tables.cpp" />
-    <ClCompile Include="Source\ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\InfluxRenderer.cpp" />
+    <ClCompile Include="source\renderer_pch.cpp" />
+    <ClCompile Include="source\renderer\renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\Resources\Shaders\shaders.hlsl" />

@@ -5,10 +5,8 @@
 *
 */
 
-#include <iostream>
-
-#include "application/influx_application.h"
-#pragma comment(lib, "InfluxApplication")
+#include "influx_application.h"
+#pragma comment(lib, "InfluxApplication.lib")
 
 int main(int argc, char** argv)
 {
@@ -16,9 +14,4 @@ int main(int argc, char** argv)
 	arguments.m_name = "Influx Game";
 
 	influx::application::run(arguments);
-
-	if (std::cin.get())
-	{
-		influx::application::quit();
-	}
 }
