@@ -25,14 +25,13 @@ namespace influx::renderer
 	{
 	public:
 		void initialize(const init_args& args);
-		void start_frame();
-		void submit_frame();
+		command_list* record();
+		void record_async(const function<void(command_list*)>& record_func, const function<void(command_list*)>& on_finish_func);
+		void submit(const command_list* list);
+		void submit(const vector<command_list*> lists);
 		void present_to_window(platform::window_handle window_handle, const present_args& args);
 		bool is_initialized() const;
 		void cleanup();
-
-		command_list* record_commands();
-		void submit_commands(const command_list* list);
 
 		struct context final
 		{

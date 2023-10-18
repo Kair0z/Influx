@@ -10,6 +10,7 @@
 #endif
 
 #include "Core/basetypes.h"
+#include "Core/Function.h"
 #include "Core/Platform/Platform.h"
 
 namespace influx::renderer
@@ -54,13 +55,15 @@ namespace influx::renderer
 
 	INFLUX_RENDER_API void initialize(const init_args& args);
 
-	INFLUX_RENDER_API command_list* record_commands();
+	INFLUX_RENDER_API command_list* record();
 
-	INFLUX_RENDER_API void submit_commands(const command_list* list);
+	INFLUX_RENDER_API void record_async(
+		const function<void(command_list*)>& record_func, 
+		const function<void(command_list*)>& on_finish_func);
 
-	INFLUX_RENDER_API void start_frame();
+	INFLUX_RENDER_API void submit(const command_list* list);
 
-	INFLUX_RENDER_API void submit_frame();
+	INFLUX_RENDER_API void submit(const vector<command_list*>& lists);
 
 	INFLUX_RENDER_API void present_to_window(platform::window_handle window_handle, const present_args& args);
 

@@ -93,7 +93,7 @@ namespace influx::application
 			{
 				if (editor_render_command != nullptr) continue;
 
-				renderer::command_list* list = renderer::record_commands();
+				renderer::command_list* list = renderer::record();
 
 				editor_render_command = list;
 			}
@@ -104,7 +104,7 @@ namespace influx::application
 			{
 				if (game_render_command != nullptr) continue;
 
-				renderer::command_list* list = renderer::record_commands();
+				renderer::command_list* list = renderer::record();
 
 				game_render_command = list;
 			}
@@ -118,8 +118,7 @@ namespace influx::application
 		{
 			if (game_render_command != nullptr && editor_render_command != nullptr)
 			{
-				renderer::submit_commands(game_render_command);
-				renderer::submit_commands(editor_render_command);
+				renderer::submit({ game_render_command, editor_render_command });
 				renderer::present_to_window(m_windowhandle, present_args);
 				++m_renderthread_frame;
 

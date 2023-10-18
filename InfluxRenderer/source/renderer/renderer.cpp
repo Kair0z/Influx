@@ -9,6 +9,8 @@
 #pragma comment (lib, "D3DCompiler.lib")
 #include "foreign/d3dx12.h"
 
+#include <thread>
+
 namespace influx::renderer
 {
     // Helper function for acquiring the first available hardware adapter that supports Direct3D 12.
@@ -130,16 +132,6 @@ namespace influx::renderer
 		m_is_initialized = true;
 	}
 
-	void renderer_state::start_frame()
-	{
-		
-	}
-
-	void renderer_state::submit_frame()
-	{
-
-	}
-
 	void renderer_state::present_to_window(platform::window_handle window_handle, const present_args& args)
 	{
         // recreate if necessary
@@ -161,18 +153,35 @@ namespace influx::renderer
 		m_is_initialized = false;
 	}
 
-    command_list* renderer_state::record_commands()
+    command_list* renderer_state::record()
     {
         return nullptr;
     }
 
-    void renderer_state::submit_commands(const command_list* list)
+    void renderer_state::record_async(const function<void(command_list*)>& record_func, const function<void(command_list*)>& on_finish_func)
+    {
+        std::thread thread = std::thread([this, &record_func, &on_finish_func]()
+        {
+            command_list* record_list = record();
+            record_func(record_list);
+            on_finish_func(record_list);
+        });
+
+        thread.detach();
+    }
+
+    void renderer_state::submit(const command_list* list)
+    {
+        submit({ list });
+    }
+
+    void renderer_state::submit(const vector<command_list*> lists)
     {
         if (mpdx_commandQueue == nullptr)
         {
             return;
         }
-        
+
         mpdx_commandQueue->ExecuteCommandLists(1u, nullptr);
     }
 
@@ -212,14 +221,24 @@ namespace influx::renderer
         renderer_state::get_instance().initialize(args);
     }
 
-    void start_frame()
+    command_list* record()
     {
-        renderer_state::get_instance().start_frame();
+        return renderer_state::get_instance().record();
     }
 
-    void submit_frame()
+    void record_async(const function<void(command_list*)>& record_func, const function<void(command_list*)>& on_finish_func)
     {
-        renderer_state::get_instance().submit_frame();
+        renderer_state::get_instance().record_async(record_func, on_finish_func);
+    }
+
+    void submit(const command_list* list)
+    {
+        renderer_state::get_instance().submit(list);
+    }
+
+    void submit(const vector<command_list*>& lists)
+    {
+        renderer_state::get_instance().submit(lists);
     }
 
     void present_to_window(platform::window_handle window_handle, const present_args& args)
@@ -235,16 +254,6 @@ namespace influx::renderer
     void cleanup()
     {
         renderer_state::get_instance().cleanup();
-    }
-
-    command_list* record_commands()
-    {
-        return renderer_state::get_instance().record_commands();
-    }
-
-    void submit_commands(const command_list* list)
-    {
-        renderer_state::get_instance().submit_commands(list);
     }
 #pragma endregion
 
