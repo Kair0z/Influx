@@ -53,13 +53,10 @@ namespace influx::renderer
 
 	};
 
+
 	INFLUX_RENDER_API void initialize(const init_args& args);
 
 	INFLUX_RENDER_API command_list* record();
-
-	INFLUX_RENDER_API void record_async(
-		const function<void(command_list*)>& record_func, 
-		const function<void(command_list*)>& on_finish_func);
 
 	INFLUX_RENDER_API void submit(const command_list* list);
 

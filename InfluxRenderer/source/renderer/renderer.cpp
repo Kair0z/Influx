@@ -158,18 +158,6 @@ namespace influx::renderer
         return nullptr;
     }
 
-    void renderer_state::record_async(const function<void(command_list*)>& record_func, const function<void(command_list*)>& on_finish_func)
-    {
-        std::thread thread = std::thread([this, &record_func, &on_finish_func]()
-        {
-            command_list* record_list = record();
-            record_func(record_list);
-            on_finish_func(record_list);
-        });
-
-        thread.detach();
-    }
-
     void renderer_state::submit(const command_list* list)
     {
         submit({ list });
@@ -224,11 +212,6 @@ namespace influx::renderer
     command_list* record()
     {
         return renderer_state::get_instance().record();
-    }
-
-    void record_async(const function<void(command_list*)>& record_func, const function<void(command_list*)>& on_finish_func)
-    {
-        renderer_state::get_instance().record_async(record_func, on_finish_func);
     }
 
     void submit(const command_list* list)

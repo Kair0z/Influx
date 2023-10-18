@@ -159,12 +159,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\async\async.h" />
     <ClInclude Include="Source\application\application.h" />
     <ClInclude Include="Include\influx_application.h" />
     <ClInclude Include="Source\app_pch.h" />
     <ClInclude Include="Include\InfluxApplication\Application.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\async\async.cpp" />
     <ClCompile Include="Source\application\application.cpp" />
     <ClCompile Include="Source\app_pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

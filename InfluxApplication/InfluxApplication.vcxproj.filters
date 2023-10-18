@@ -5,9 +5,11 @@
     <ClInclude Include="Source\app_pch.h" />
     <ClInclude Include="Include\influx_application.h" />
     <ClInclude Include="Source\application\application.h" />
+    <ClInclude Include="Source\async\async.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\app_pch.cpp" />
     <ClCompile Include="Source\application\application.cpp" />
+    <ClCompile Include="Source\async\async.cpp" />
   </ItemGroup>
 </Project>
