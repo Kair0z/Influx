@@ -76,19 +76,60 @@ namespace influx::application
 
 	void application::run_renderthread()
 	{
+		// initialize renderer
 		renderer::init_args args{};
 		args.m_api_type = renderer::e_render_api::dx12;
 		renderer::initialize(args);
 
+		renderer::command_list* game_render_command = nullptr;
+		renderer::command_list* editor_render_command = nullptr;
+
+		// now this! is threaded rendering!
+		std::thread render_editor_command_thread{};
+		std::thread render_game_command_thread{};
+		render_editor_command_thread = std::thread([this, &editor_render_command]()
+		{
+			while (!m_is_quit_requested)
+			{
+				if (editor_render_command != nullptr) continue;
+
+				renderer::command_list* list = renderer::record_commands();
+
+				editor_render_command = list;
+			}
+		});
+		render_game_command_thread = std::thread([this, &game_render_command]()
+		{
+			while (!m_is_quit_requested)
+			{
+				if (game_render_command != nullptr) continue;
+
+				renderer::command_list* list = renderer::record_commands();
+
+				game_render_command = list;
+			}
+		});
+
+		// main render thread
+		// wait for editor & game commandlist to finish
+		// then submit
 		renderer::present_args present_args{};
 		while (!m_is_quit_requested)
 		{
-			renderer::start_frame();
-			renderer::submit_frame();
-			renderer::present_to_window(m_windowhandle, present_args);
-			++m_renderthread_frame;
+			if (game_render_command != nullptr && editor_render_command != nullptr)
+			{
+				renderer::submit_commands(game_render_command);
+				renderer::submit_commands(editor_render_command);
+				renderer::present_to_window(m_windowhandle, present_args);
+				++m_renderthread_frame;
+
+				editor_render_command = nullptr;
+				game_render_command = nullptr;
+			}
 		}
 
+		if (render_game_command_thread.joinable()) render_game_command_thread.join();
+		if (render_editor_command_thread.joinable()) render_editor_command_thread.join();
 		renderer::cleanup();
 	}
 }

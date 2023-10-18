@@ -31,6 +31,9 @@ namespace influx::renderer
 		bool is_initialized() const;
 		void cleanup();
 
+		command_list* record_commands();
+		void submit_commands(const command_list* list);
+
 		struct context final
 		{
 			context() = default;
@@ -63,7 +66,7 @@ namespace influx::renderer
 		vector<ID3D12GraphicsCommandList*> mpdx_commandLists{};
 		ID3D12Fence* mpdx_fence = nullptr;
 		vector<ID3D12Resource*> mpdx_backbufferResources{};
-		uint32 m_swapchainBufferIndex = 0u;
+		uint32 m_swapchain_buffer_idx = 0u;
 		uint32 m_rtvDescriptorSize = 0u;
 		uint32 m_srvDescriptorSize = 0u;
 

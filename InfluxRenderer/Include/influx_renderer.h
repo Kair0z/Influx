@@ -46,7 +46,17 @@ namespace influx::renderer
 		bool m_vsync = true;
 	};
 
+	class INFLUX_RENDER_API command_list final
+	{
+	public:
+
+	};
+
 	INFLUX_RENDER_API void initialize(const init_args& args);
+
+	INFLUX_RENDER_API command_list* record_commands();
+
+	INFLUX_RENDER_API void submit_commands(const command_list* list);
 
 	INFLUX_RENDER_API void start_frame();
 

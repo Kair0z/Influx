@@ -11,38 +11,6 @@
 
 namespace influx::renderer
 {
-#pragma region frontend_api
-	void initialize(const init_args& args)
-	{
-		renderer_state::get_instance().initialize(args);
-	}
-
-	void start_frame()
-	{
-		renderer_state::get_instance().start_frame();
-	}
-
-	void submit_frame()
-	{
-		renderer_state::get_instance().submit_frame();
-	}
-
-	void present_to_window(platform::window_handle window_handle, const present_args& args)
-	{
-		renderer_state::get_instance().present_to_window(window_handle, args);
-	}
-
-	bool is_initialized()
-	{
-		return renderer_state::get_instance().is_initialized();
-	}
-
-	void cleanup()
-	{
-		renderer_state::get_instance().cleanup();
-	}
-#pragma endregion
-
     // Helper function for acquiring the first available hardware adapter that supports Direct3D 12.
     // If no such adapter can be found, *ppAdapter will be set to nullptr.
     inline void get_hardware_adapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter)
@@ -193,6 +161,21 @@ namespace influx::renderer
 		m_is_initialized = false;
 	}
 
+    command_list* renderer_state::record_commands()
+    {
+        return nullptr;
+    }
+
+    void renderer_state::submit_commands(const command_list* list)
+    {
+        if (mpdx_commandQueue == nullptr)
+        {
+            return;
+        }
+        
+        mpdx_commandQueue->ExecuteCommandLists(1u, nullptr);
+    }
+
     void renderer_state::recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle)
     {
         math::rectu window_rect = platform::get_windowrect_client<uint32>(handle);
@@ -221,6 +204,49 @@ namespace influx::renderer
         mpdx_swapchain = (IDXGISwapChain4*)swapChain;
         m_swapchain_buffer_idx = mpdx_swapchain->GetCurrentBackBufferIndex();
     }
+
+
+#pragma region frontend_api
+    void initialize(const init_args& args)
+    {
+        renderer_state::get_instance().initialize(args);
+    }
+
+    void start_frame()
+    {
+        renderer_state::get_instance().start_frame();
+    }
+
+    void submit_frame()
+    {
+        renderer_state::get_instance().submit_frame();
+    }
+
+    void present_to_window(platform::window_handle window_handle, const present_args& args)
+    {
+        renderer_state::get_instance().present_to_window(window_handle, args);
+    }
+
+    bool is_initialized()
+    {
+        return renderer_state::get_instance().is_initialized();
+    }
+
+    void cleanup()
+    {
+        renderer_state::get_instance().cleanup();
+    }
+
+    command_list* record_commands()
+    {
+        return renderer_state::get_instance().record_commands();
+    }
+
+    void submit_commands(const command_list* list)
+    {
+        renderer_state::get_instance().submit_commands(list);
+    }
+#pragma endregion
 
 #if 0
 	Result Render()
