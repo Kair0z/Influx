@@ -46,6 +46,7 @@
     <ClInclude Include="Include\core\graph\hierarchy.h" />
     <ClInclude Include="Include\core\macros.h" />
     <ClInclude Include="Include\core\registry.h" />
+    <ClInclude Include="Include\core\container\pool.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\core\math\vector.inl" />

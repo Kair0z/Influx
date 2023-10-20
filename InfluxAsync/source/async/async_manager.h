@@ -1,52 +1,57 @@
 #pragma once
 #include "influx_async.h"
+
 #include "core/singleton/Singleton.h"
 #include "core/container/queue.h"
 #include "core/container/vector.h"
 #include "core/container/list.h"
 #include "core/container/pool.h"
-
+#include "core/container/ringBuffer.h"
+#include "Core/Time.h"
 #include <thread>
+#include <mutex>
 
 namespace influx::async
 {
+	struct task_data final
+	{
+		task_data() = default;
+		task_data(const task_args& args)
+			: m_args{ args }
+		{
+		}
+
+		task_handle m_handle{};
+		e_task_state m_state{};
+		task_args m_args{};
+		task_stats m_stats{};
+
+		time::point m_time_created = time::get_now();
+		time::point m_time_started = time::get_now();
+		time::point m_time_finished = time::get_now();
+	};
+
 	class async_manager final 
 		: public singleton<async_manager>
 	{
 	public:
-		enum class e_task_state
-		{
-			pending,
-			running,
-			finished,
-			max
-		};
+		// the pool of task_data memory which we use as our allocator
+		using task_pool = pool<task_data, k_max_num_tasks_in_flight>;
 
-		struct task_data final
-		{
-			task_data(const task_args& args)
-				: m_args{args}
-			{
-			}
-
-			task_handle m_handle{};
-			e_task_state m_state{};
-			task_args m_args{};
-		};
-
-		using task_pool = pool<task_data, 256u>;
-
+		// threadsafe ringbuffer for pushing & popping tasks
 		struct work_queue final
 		{
-			queue<task_handle> m_queued_tasks{};
+			work_queue() = default;
+			ringbuffer<task_data*, k_max_num_tasks_in_flight> m_tasks{};
 		};
 
+		// state of a worker thread
 		class worker_state final
 		{
 		public:
-			worker_state(const uint64 id) : m_worker_id{ id } {}
+			worker_state() = default;
+			worker_state(const uint64 id) : m_worker_id{ id }{}
 			const uint64 m_worker_id = 0u;
-			work_queue m_my_queue{};
 		};
 
 	public:
@@ -59,6 +64,8 @@ namespace influx::async
 		void wait_for(const task_handle& handle, const wait_args& args = {});
 
 		work_queue& get_global_queue();
+		work_queue& get_global_cleanup_queue();
+
 		task_data* get_task_data_from_handle(const task_handle& handle);
 
 	private:
@@ -69,12 +76,18 @@ namespace influx::async
 		task_pool m_taskpool{};
 		vector<task_data*> mp_taskdatas{};
 
+		bool try_cleanup_a_task();
+		bool try_process_a_task();
 		void cleanup_task(const task_handle& handle);
+		void process_task(task_data* data);
 		void cleanup_task(task_data* data);
 
 		static void worker_thread_method(worker_state& state);
 
 		work_queue m_global_queue{};
+		work_queue m_global_cleanup_queue{};
+
+		std::mutex m_cleanup_mutex{};
 	};
 }
 

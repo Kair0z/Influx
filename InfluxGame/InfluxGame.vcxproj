@@ -22,14 +22,14 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -68,7 +68,8 @@
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\InfluxApplication.dll" "$(TargetDir)"
-copy /Y "$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\InfluxRenderer.dll" "$(TargetDir)"</Command>
+copy /Y "$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\InfluxRenderer.dll" "$(TargetDir)"
+copy /Y "$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\InfluxAsync.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -92,7 +93,8 @@ copy /Y "$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\InfluxRen
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(SolutionDir)InfluxApplication\Bin\$(Platform)\$(Configuration)\InfluxApplication.dll" "$(TargetDir)"
-copy /Y "$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\InfluxRenderer.dll" "$(TargetDir)"</Command>
+copy /Y "$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\InfluxRenderer.dll" "$(TargetDir)"
+copy /Y "$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\InfluxAsync.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

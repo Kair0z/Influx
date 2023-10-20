@@ -6,8 +6,15 @@
 #include "core/container/vector.h"
 #include "core/math/vector.h"
 #include "core/geometry/sphere.h"
-
+#include "Core/Math/Math.h"
 #include <ctime>
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 
 namespace influx::random
 {

@@ -8,10 +8,12 @@
 #include "core/platform/windows_platform.h"
 #endif
 
+#include "Core/Math/Random.h"
+
 #pragma comment(lib, "InfluxRenderer.lib")
 #pragma comment(lib, "InfluxAsync.lib")
 
-#include "foreign/spdlog/logger.h"
+#include <iostream>
 
 namespace influx::application
 {
@@ -52,16 +54,60 @@ namespace influx::application
 	void application::run_mainthread()
 	{
 		async::init_args args{};
-		args.m_num_workers = 2u;
+		args.m_num_workers = 8u;
 		async::initialize(args);
 
+		uint64 static_num_bytes = async::get_static_num_bytes();
+
+		random::seed_random();
+		vector<int> randoms = random::get_randoms<int, 640u>(0, 150);
+
+		const uint32 num_tasks = randoms.size() / 1u;
+		vector<async::task_handle> tasks{};
+
+		auto base_lambda = [&randoms, num_tasks](uint32 base_idx)
+		{
+			uint32 range = math::ceil<uint32>((float)randoms.size() / num_tasks);
+
+			for (uint32 i = 0u; i < range; ++i)
+			{
+				randoms[(base_idx * range) + i] += 3u;
+			}
+		};
+		
 		while (!m_is_quit_requested)
 		{
-			for (uint32 i = 0u; i < 512u; ++i)
+			for (uint32 i = 0u; i < num_tasks; ++i)
 			{
+				async::task_args args{[i, &base_lambda]() 
+				{
+					base_lambda(i);
+				}};
 
+				tasks.push_back(async::create_task(args));
 			}
+
+			for (const async::task_handle& handle : tasks)
+			{
+				async::dispatch(handle);
+			}
+
+			for (const async::task_handle& handle : tasks)
+			{
+				handle.wait();
+			}
+
+			int total = 0u;
+			for (const int& i : randoms)
+			{
+				total += i;
+			}
+
+			std::cout << "Total: " << total << "\n";
+			tasks.clear();
 		}
+
+		async::shutdown();
 	}
 
 	void application::run_gamethread()

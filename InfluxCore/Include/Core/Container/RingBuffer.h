@@ -16,14 +16,15 @@ namespace influx
 	class ringbuffer
 	{
 	public:
+		ringbuffer() = default;
 		bool push(const _t& value);
 		bool pop(_t& value);
 
 	private:
-		_t m_data[_C];
+		_t m_data[_C]{};
 		detail::capacity_t m_head = 0;
 		detail::capacity_t m_tail = 0;
-		std::mutex m_lock;
+		std::mutex m_lock{};
 	};
 
 	template<typename _t, detail::capacity_t _C>

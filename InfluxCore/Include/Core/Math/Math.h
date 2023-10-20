@@ -38,6 +38,11 @@ namespace influx
 			return static_cast<_t>(std::round(fValue));
 		}
 
+		template <typename _t, typename _f>
+		constexpr inline _t ceil(const _f& fvalue)
+		{
+			return static_cast<_t>(std::ceil(fvalue));
+		}
 		template <typename _t>
 		inline _t cos(const _t& value)
 		{

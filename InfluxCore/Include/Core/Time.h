@@ -14,6 +14,7 @@
 #include "core/cast.h"
 #include "core/function.h"
 #undef __USECORE_
+#endif
 
 // STL:
 #include <chrono>

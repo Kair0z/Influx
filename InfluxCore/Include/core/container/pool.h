@@ -22,17 +22,18 @@ namespace influx
 	private:
 		struct node final
 		{
+			node() = default;
 			_t mp_data{};
 			std::atomic<node*> mp_next = nullptr;
 		};
 
 	public:
-		pool()
+		inline pool()
 		{
 			reset();
 		}
 
-		_t* try_acquire()
+		inline _t* try_acquire()
 		{
 			node* current_head = m_head.load(std::memory_order_acquire);
 			node* new_head = nullptr;
@@ -52,7 +53,7 @@ namespace influx
 			return nullptr;
 		}
 
-		bool try_release(_t* ptr)
+		inline bool try_release(_t* ptr)
 		{
 			// Check that the given pointer points inside the pool and lies along an item
 			auto ptr_delta = reinterpret_cast<node*>(ptr) - reinterpret_cast<node*>(&m_nodes[0u].mp_data);
@@ -75,7 +76,7 @@ namespace influx
 			return true;
 		}
 
-		void reset()
+		inline void reset()
 		{
 			m_head.store(&m_nodes[0u], std::memory_order_relaxed);
 
@@ -91,8 +92,13 @@ namespace influx
 			std::atomic_thread_fence(std::memory_order_release);
 		}
 
+		inline constexpr static pool_size_t get_capacity()
+		{
+			return _c;
+		}
+
 	private:
-		node[_c] m_nodes{};
+		node m_nodes[_c]{};
 		std::atomic<node*> m_head = nullptr;
 
 		pool_size_t m_num_in_flight = 0;
