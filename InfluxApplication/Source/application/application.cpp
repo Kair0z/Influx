@@ -2,6 +2,7 @@
 
 #include "application/application.h"
 #include "influx_renderer.h"
+#include "influx_async.h"
 
 #if INFLUX_APP_USES_WINDOWS
 #include "core/platform/windows_platform.h"
@@ -9,6 +10,8 @@
 
 #pragma comment(lib, "InfluxRenderer.lib")
 #pragma comment(lib, "InfluxAsync.lib")
+
+#include "foreign/spdlog/logger.h"
 
 namespace influx::application
 {
@@ -48,9 +51,16 @@ namespace influx::application
 
 	void application::run_mainthread()
 	{
+		async::init_args args{};
+		args.m_num_workers = 2u;
+		async::initialize(args);
+
 		while (!m_is_quit_requested)
 		{
+			for (uint32 i = 0u; i < 512u; ++i)
+			{
 
+			}
 		}
 	}
 

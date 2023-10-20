@@ -11,6 +11,7 @@
 int main(int argc, char** argv)
 {
 	influx::application::run_args arguments{};
+	arguments.m_commandlet = true;
 	arguments.m_name = "Influx Game";
 
 	influx::application::run(arguments);

@@ -19,6 +19,7 @@ namespace influx::platform
 	using process_handle = void*;
 	using instance_handle = void*;
 	using window_handle = void*;
+	using event_handle = void*;
 
 	// [IO]
 	typedef void(*WindowEventCallback)();

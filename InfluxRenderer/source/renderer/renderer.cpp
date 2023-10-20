@@ -9,6 +9,8 @@
 #pragma comment (lib, "D3DCompiler.lib")
 #include "foreign/d3dx12.h"
 
+#include "core/platform/windows_platform.h"
+
 #include <thread>
 
 namespace influx::renderer
@@ -160,7 +162,7 @@ namespace influx::renderer
 
     void renderer_state::submit(const command_list* list)
     {
-        submit({ list });
+        
     }
 
     void renderer_state::submit(const vector<command_list*> lists)

@@ -344,12 +344,6 @@ namespace influx::platform
 		return detail::cast<_t>(res);
 	}
 
-	template <typename _t>
-	inline math::vector<_t, 2u> get_windowrect_client(const window_handle windowHandle)
-	{
-		return get_windowrect_client<_t>(windowHandle).get_dimensions();
-	}
-
 	inline bool is_window_visible(const window_handle windowHandle)
 	{
 		return ::IsWindowVisible((::HWND)windowHandle);

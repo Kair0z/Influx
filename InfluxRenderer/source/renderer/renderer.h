@@ -20,6 +20,8 @@ struct IDXGIFactory4;
 
 namespace influx::renderer
 {
+	class command_list;
+
 	class renderer_state final
 		: public singleton<renderer_state>
 	{
@@ -46,7 +48,7 @@ namespace influx::renderer
 			uint64 m_frame = 0u;
 			ID3D12CommandAllocator* mpdx_commandAllocator = nullptr;
 			ID3D12GraphicsCommandList* mpdx_commandList = nullptr;
-			::HANDLE m_complete_event = NULL;
+			platform::event_handle m_complete_event = NULL;
 		};
 
 	private:
