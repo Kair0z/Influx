@@ -8,124 +8,122 @@
 
 namespace influx
 {
-	class IFluxRenderer
+	class base_flux_renderer
 	{
 	protected:
-		IFluxRenderer() = default;
+		base_flux_renderer() = default;
 
 	public:
-		enum class ESwapchainBuffering : uint8
+		enum class e_swapchain_buffering : uint8
 		{
-			Single = 1u,
-			Double = 2u,
-			Triple = 3u,
-			Max
+			single = 1u,
+			dubble = 2u,
+			tripple = 3u,
+			max
 		};
 
-		struct MaterialData final
+		struct material_data final
 		{
-			MaterialData() = default;
-			MaterialData(const vector<byte>& vs, const vector<byte>& ps) 
-				: VertexShader{ vs }, PixelShader{ ps } {}
+			material_data() = default;
+			material_data(const vector<byte>& vs, const vector<byte>& ps)
+				: m_vertexShader{ vs }, m_pixelShader{ ps } {}
 
-			vector<byte> VertexShader;
-			vector<byte> PixelShader;
+			vector<byte> m_vertexShader;
+			vector<byte> m_pixelShader;
 		};
 
-		virtual void RecordRenderCommands(platform::window_handle windowHandle) = 0;
+		struct vertex final
+		{
+			math::vectorf3 m_position{};
+		};
 
-		virtual void PresentToWindow(platform::window_handle windowHandle) = 0;
+		using index = uint32;
 
-		void SetMaterial(const MaterialData& material)
+		struct mesh_data final
+		{
+			vector<vertex> m_vertices{};
+		};
+
+		virtual void record_commands(platform::window_handle windowHandle) = 0;
+
+		virtual void present_to_window(platform::window_handle windowHandle) = 0;
+
+		void set_material(const material_data& material)
 		{
 			m_material = material;
 		}
 
-		void AddMesh(const Scene::Mesh& mesh)
+		void add_mesh(const mesh_data& mesh)
 		{
 			m_meshes.push_back(mesh);
-
-			m_numVertices = 0u;
-			m_numIndices = 0u;
-
-			for (const Scene::Mesh& mesh : m_meshes)
-			{
-				m_numVertices += mesh.GetVertices().dimension();
-				m_numIndices += mesh.GetIndices().dimension();
-			}
-
-			m_vertexBufferSize = m_numVertices * GetVertexSize();
-			m_indexBufferSize = m_numIndices * GetIndexSize();
 		}
 		
-		void SetCameraTransform(const Math::Vectorf3& position, const Math::Vectorf3& forward)
+		void set_camera_transform(const math::vectorf3& position, const math::vectorf3& forward)
 		{
 			m_cameraPosition = position;
 			m_cameraForward = forward;
 		}
 
-		void SetCameraData(const Scene::Camera& cameraData)
+		void set_camera_data(const scene::camera& cameraData)
 		{
-			m_cameraData = cameraData;
+			m_camera_data = cameraData;
 		}
 
-		const vector<Scene::Mesh>& GetMeshes() const
+		const vector<mesh_data>& GetMeshes() const
 		{
 			return m_meshes;
 		}
 
-		const Scene::Camera& GetCameraData() const
+		const scene::camera& GetCameraData() const
 		{
-			return m_cameraData;
+			return m_camera_data;
 		}
 
-		const Math::Vectorf3& GetCameraPosition() const
+		const math::vectorf3& get_camera_position() const
 		{
-			return m_cameraPosition;
+			return m_camera_position;
 		}
 
-		const Math::Vectorf3& GetCameraForward() const
+		const math::vectorf3& get_camera_forward() const
 		{
-			return m_cameraForward;
+			return m_camera_forward;
 		}
 
-		const MaterialData& GetMaterial() const
+		const material_data& GetMaterial() const
 		{
 			return m_material;
 		}
 
-		virtual ~IFluxRenderer() = default;
+		virtual ~base_flux_renderer() = default;
 
 	private:
-		Scene::Camera m_cameraData;
-		Math::Vectorf3 m_cameraPosition;
-		Math::Vectorf3 m_cameraForward;
-		MaterialData m_material;
+		scene::camera m_camera_data;
+		math::vectorf3 m_camera_position;
+		math::vectorf3 m_camera_forward;
+		material_data m_material;
 
-		uint64 m_numVertices;
-		uint64 m_numIndices;
-		uint64 m_vertexBufferSize;
-		uint64 m_indexBufferSize;
+		uint64 m_num_vertices;
+		uint64 m_num_indices;
 
-		vector<Scene::Mesh> m_meshes;
+		vector<mesh_data> m_meshes;
 
 	protected:
-		constexpr static ESwapchainBuffering k_swapchainBuffering = ESwapchainBuffering::Triple;
+		constexpr static e_swapchain_buffering k_swapchain_buffering = e_swapchain_buffering::tripple;
 
-		constexpr static uint64 GetVertexSize() { return sizeof(Scene::Mesh::Vertex); }
-		constexpr static uint64 GetIndexSize() { return sizeof(Scene::Mesh::Index); }
+		constexpr static uint64 get_vertex_size() { return sizeof(vertex); }
+		constexpr static uint64 get_index_size() { return sizeof(index); }
 
-		constexpr static uint8 GetNumSwapchainBuffers() { return static_cast<uint8>(k_swapchainBuffering); }
-
-		uint64 GetIndexBufferSize() const
+		const uint64 get_vertex_buffer_size() const
 		{
-			return m_indexBufferSize;
+			return m_num_vertices * get_vertex_size();
 		}
 
-		uint64 GetVertexBufferSize() const
+		const uint64 get_index_buffer_size() const
 		{
-			return m_vertexBufferSize;
+			return m_num_indices * get_index_size();
 		}
+
+		constexpr static uint8 get_num_swapchain_buffers() { return static_cast<uint8>(k_swapchain_buffering); }
 	};
 }
 

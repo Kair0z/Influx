@@ -8,7 +8,7 @@
 
 #define INFLUX_APP_USES_WINDOWS 1
 
-#include <cstdint>
+#include "Core/basetypes.h"
 
 namespace influx::application
 {
@@ -24,14 +24,15 @@ namespace influx::application
 		bool m_commandlet = false;
 		bool m_enable_scenerender = false;
 		bool m_enable_editor = false;
+		bool m_vsync = false;
 
-		uint32_t m_window_width = 640u;
-		uint32_t m_window_height = 480u;
+		uint32 m_window_width = 640u;
+		uint32 m_window_height = 480u;
 	};
 
 	void INFLUX_APP_API run(const run_args& args);
 
-	void run(int argc = 0, char** argv = nullptr)
+	inline void run(int argc = 0, char** argv = nullptr)
 	{
 		run(run_args{ argc, argv });
 	}

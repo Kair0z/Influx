@@ -93,7 +93,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Include;Source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -110,7 +110,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Include;Source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,7 +127,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Include;Source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>app_pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -146,7 +146,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Include;Source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>app_pch.h</PrecompiledHeaderFile>
     </ClCompile>

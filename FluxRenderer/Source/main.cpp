@@ -1,17 +1,21 @@
 
-
-#include "RHI/RHIRenderer.h"
-#include "Dx12/Dx12Renderer.h"
-#include "Vulkan/VulkanRenderer.h"
-
-#include "Core/Platform/WindowsPlatform.h"
-#include "Core/Time.h"
+// influx assets
 #include "InfluxAssets/InfluxAssets.h"
+
+// core
+#include "Core/Platform/windows_platform.h"
+#include "Core/Time.h"
 #include "Core/Threading/ThreadPool.h"
+
+// stl
 #include <iostream>
 
 #define _SHADERS_RESOURCE_PATH	"E:/Git/influx/Resources/Shaders/shaders.hlsl"
 #define _GEOMETRY_RESOURCE_PATH "E:/Git/influx/Resources/Meshes/box.fbx"
+
+#include "RHI/RHIRenderer.h"
+#include "Dx12/Dx12Renderer.h"
+#include "Vulkan/VulkanRenderer.h"
 
 int main()
 {
@@ -19,7 +23,7 @@ int main()
 
 	// [SETTINGS]
 	constexpr bool Vsync							= true;
-	const influx::Math::Vectoru2 WindowDimensions	= { 640u, 480u };
+	const influx::math::vectoru2 WindowDimensions	= { 640u, 480u };
 	const float AspectRatio							= (float)WindowDimensions.x / (float)WindowDimensions.y;
 	constexpr uint64 NumFrames						= 6000u;
 

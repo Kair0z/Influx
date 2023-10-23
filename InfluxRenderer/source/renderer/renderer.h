@@ -1,7 +1,18 @@
 #pragma once
 
+#include "influx_renderer.h"
+
 #include "core/singleton/singleton.h"
 #include "Core/Container/Vector.h"
+#include "Core/Container/RingBuffer.h"
+#include "Core/Container/List.h"
+#include "Core/Container/Queue.h"
+#include "Core/Geometry/Rect.h"
+#include "Core/Time.h"
+
+#include <d3d12.h>
+#include <dxgi1_6.h>
+#include <D3Dcompiler.h>
 
 struct IDXGIFactory1;
 struct IDXGIAdapter1;
@@ -20,35 +31,28 @@ struct IDXGIFactory4;
 
 namespace influx::renderer
 {
-	class command_list;
-
 	class renderer_state final
 		: public singleton<renderer_state>
 	{
 	public:
 		void initialize(const init_args& args);
-		command_list* record();
-		void submit(const command_list* list);
-		void submit(const vector<command_list*> lists);
-		void present_to_window(platform::window_handle window_handle, const present_args& args);
+		void render_to_window(const render_args& render_args, platform::window_handle window, const present_args& present);
+		vector<frame_stats> get_frame_stats(const uint32 over_num_frames);
 		bool is_initialized() const;
 		void cleanup();
 
-		struct context final
-		{
-			context() = default;
-			context(ID3D12Device* device, ID3D12DescriptorHeap* srvheap)
-				: mp_device{ device }, mp_srvheap{ srvheap }{}
-			ID3D12Device* mp_device = nullptr;
-			ID3D12DescriptorHeap* mp_srvheap = nullptr;
-		};
-
+		using frame_id = uint64;
 		struct per_frame_context final
 		{
-			uint64 m_frame = 0u;
+			frame_id m_frame = 0u;
 			ID3D12CommandAllocator* mpdx_commandAllocator = nullptr;
 			ID3D12GraphicsCommandList* mpdx_commandList = nullptr;
+			ID3D12Resource* mpdx_backbuffer = nullptr;
+			D3D12_CPU_DESCRIPTOR_HANDLE* mpdx_rtv_handle;
 			platform::event_handle m_complete_event = NULL;
+			frame_stats m_stats{};
+
+			time::point m_timepoint_created = time::get_now();
 		};
 
 	private:
@@ -56,200 +60,66 @@ namespace influx::renderer
 		ID3D12Device* mpdx_device = nullptr;
 		ID3D12CommandQueue* mpdx_commandQueue = nullptr;
 		IDXGISwapChain4* mpdx_swapchain = nullptr;
-		ID3D12DescriptorHeap* mpdx_rendertargetHeap = nullptr;
+		ID3D12DescriptorHeap* mpdx_rtv_heap = nullptr;
 		ID3D12DescriptorHeap* mpdx_srvheap = nullptr;
 		ID3D12RootSignature* mpdx_rootsignature = nullptr;
 		ID3D12PipelineState* mpdx_pipeline = nullptr;
-		ID3D12Resource* mpdx_vertexbuffer = nullptr;
+		ID3D12Resource* mpdx_scene_vertexbuffer = nullptr;
+		ID3D12Resource* mpdx_scene_indexbuffer = nullptr;
+		D3D12_VERTEX_BUFFER_VIEW mdx_vertexbuffer_view{};
+		D3D12_INDEX_BUFFER_VIEW mdx_indexbuffer_view{};
 
 		vector<ID3D12CommandAllocator*> mpdx_commandAllocators{};
 		vector<ID3D12GraphicsCommandList*> mpdx_commandLists{};
 		ID3D12Fence* mpdx_fence = nullptr;
 		vector<ID3D12Resource*> mpdx_backbufferResources{};
+		vector<D3D12_CPU_DESCRIPTOR_HANDLE> mpdx_backbuffer_rtvs{};
 		uint32 m_swapchain_buffer_idx = 0u;
 		uint32 m_rtvDescriptorSize = 0u;
 		uint32 m_srvDescriptorSize = 0u;
 
-		uint64 m_frame = 0u;
+		frame_id m_frame = 0u;
 
+		// recreates the swapchain resources when it's dirty
 		void recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle);
+		void update_scene_buffers(const scene_proxy const* proxy);
 
+		// stalls if num_frames_in_flight > k_max_frames_in_flight
+		per_frame_context acquire_next_frame();
+
+		void on_frame_finished(const per_frame_context& ctx);
+
+		// submit frame to queue
+		void submit_to_queue(const per_frame_context& ctx);
+
+		bool get_swapchain_buffer_and_rtv(const frame_id for_frame, ID3D12Resource*& out_buffer, D3D12_CPU_DESCRIPTOR_HANDLE*& out_rtv);
+
+		struct swapchain_state final
+		{
+			math::rectu m_window_rect{};
+		};
+		swapchain_state m_previous_swapchain_state{};
+		bool is_swapchain_dirty(const swapchain_state& new_swapchain) const;
+
+		struct scene_geometry_info final
+		{
+			uint64 m_vertexbuffersize	= 0u;
+			uint64 m_indexbuffersize	= 0u;
+		};
+		scene_geometry_info m_previous_scene_geometry{};
+
+		template <class _t>
+		void safe_release(_t*& ptr)
+		{
+			if (ptr != nullptr)
+			{
+				ptr->Release();
+				ptr = nullptr;
+			}
+		}
 	private:
 		bool m_is_initialized = false;
+		queue<per_frame_context> m_frames_in_flight{};
+		ringbuffer<frame_stats, k_max_stat_frames> m_frame_stats{};
 	};
-
-#if 0
-	class RootRenderer;
-
-	class RenderContext final
-	{
-	public:
-		const Graphics::RHIDevice* GetDevice() const;
-
-		/* Creating Textures */
-		Graphics::RHITexture* GetAndOrCreateTexture(const string& key, const Graphics::RHITextureDesc& desc) const;
-
-		/* Creating Graphics PSO */
-		Graphics::RHIGraphicsPipeline* GetAndOrCreateGraphicsPipeline(const Graphics::RHIGraphicsPipelineDescription& key, const Graphics::RHIGraphicsPipelineLayoutDescription& pipelineLayoutKey) const;
-		
-		/* Creating Graphics PSO Layout */
-		Graphics::RHIGraphicsPipelineLayout* GetAndOrCreateGraphicsPipelineLayout(const Graphics::RHIGraphicsPipelineLayoutDescription& key) const;
-
-		/* Copying a texture into our current Swapchain */
-		bool CopyTextureIntoSwapchain(Graphics::RHITexture* texture, Graphics::RHICommandList* cmdList) const;
-
-		/* Accessing the window swapchain */
-		Graphics::RHISwapchain* GetSwapchain() const;
-
-	private:
-		RootRenderer* mp_rootRendererPtr = nullptr;
-
-		RenderContext() = default;
-		friend class RootRenderer;
-	};
-
-	/* 
-	* Root Renderer
-	* 
-	*/
-	class RootRenderer final
-	{
-	public:
-#pragma region TypeAliases
-		using Ptr = RootRenderer*;
-		using DevicePtr = Graphics::RHIDevice*;
-		using SwapchainPtr = Graphics::RHISwapchain*;
-		using GraphicsPipelinePtr = Graphics::RHIGraphicsPipeline*;
-		using GraphicsPipelineLayoutPtr = Graphics::RHIGraphicsPipelineLayout*;
-		using TexturePtr = Graphics::RHITexture*;
-
-		using GfxPipelineKey = Graphics::RHIGraphicsPipelineDescription;
-		using GfxPipelineLayoutKey = Graphics::RHIGraphicsPipelineLayoutDescription;
-
-		using TextureCache = Cache<TexturePtr, string>;
-		using GfxPipelineCache = Cache<GraphicsPipelinePtr, GfxPipelineKey, GfxPipelineLayoutKey>;
-		using GfxPipelineLayoutCache = Cache<GraphicsPipelineLayoutPtr, GfxPipelineLayoutKey>;
-	
-		using IRendererList = vector<IRenderer*>;
-
-		using OnPostInitializeAPI = function<void(const Graphics::EGraphicsAPI eApi, Graphics::RHIDevice*)>;
-		using OnBuildCommandList = function<void(Graphics::RHICommandList*)>;
-		using OnWindowResize = function<void(const Math::Vectoru2& newSize)>;
-		using OnPreCleanupAPI = function<void(const Graphics::EGraphicsAPI eApi, Graphics::RHIDevice*)>;
-#pragma endregion
-
-	public:
-		RootRenderer(const Graphics::EGraphicsAPI api, platform::window_handle windowHandle = nullptr);
-		static Ptr Create(const Graphics::EGraphicsAPI api, platform::window_handle windowHandle = nullptr);
-		static void Destroy(Ptr& renderer);
-		virtual ~RootRenderer();
-
-		/* Runs Command Queues */
-		void Render();
-
-		/* Runs Command Queues and schedules the passed CommandList to be built */
-		void Render(OnBuildCommandList internalRenderClb);
-
-		/* Present Swapchain */
-		void Present(bool vsync);
-
-		/* Adding child IRenderers as callbacks */
-		template <class _ret, class ...Args>
-		_ret* AddRenderer(Args&&... args)
-		{
-			static_assert(std::is_base_of<IRenderer, _ret>::value, "RootRenderer::AddRenderer() argument must be castable to IRenderer interface!");
-			
-			_ret* newRenderer = new _ret(args...);
-			mp_childRenderers.push_back(newRenderer);
-
-			// Initialize to API
-			if (IsGraphicsAPIInitialized())
-			{
-				mp_childRenderers.back()->OnPostInitializeAPI(GetCurrentGraphicsAPI(), GetDevice());
-			}
-
-			return newRenderer;
-		}
-
-		/* Attach to Window and create a Swapchain */
-		bool AttachToWindow(platform::window_handle windowHandle);
-		bool DetachFromCurrentWindow();
-		bool IsAttachedToWindow() const;
-
-		/* Signal Window to be resized */
-		bool SignalWindowResize(const Math::Vectoru2& newSize);
-		bool DoesSwapchainNeedResize() const;
-
-		/* Set Dynamic Graphics API */
-		void SetGraphicsAPI(const Graphics::EGraphicsAPI api);
-		Graphics::EGraphicsAPI GetCurrentGraphicsAPI() const;
-		static bool IsGraphicsAPISupported(const Graphics::EGraphicsAPI api);
-
-		/* Creating Graphics PSO */
-		GraphicsPipelinePtr GetAndOrCreateGraphicsPipeline(const GfxPipelineKey& key, const GfxPipelineLayoutKey& pipelineLayoutKey);
-		GraphicsPipelineLayoutPtr GetAndOrCreateGraphicsPipelineLayout(const GfxPipelineLayoutKey& key);
-		
-		/* Creating Textures */
-		TexturePtr GetAndOrCreateTexture(const string& key, const Graphics::RHITextureDesc& desc);
-
-		SwapchainPtr GetWindowSwapchain() const;
-		const Math::Vectoru2& GetWindowSwapchainDimensions() const;
-
-		uint64 GetFrame() const;
-
-		Graphics::RHIDevice* GetDevice() const;
-		const RenderContext& GetRenderContext();
-
-	private:
-		/* RHI Graphics Device */
-		Graphics::RHIDevice* mp_rhiDevice;
-		Graphics::EGraphicsAPI m_currentGraphicsAPI = Graphics::EGraphicsAPI::NotSupported;
-		Graphics::EGraphicsAPI m_initializedDeviceAPI = Graphics::EGraphicsAPI::NotSupported;
-
-		Graphics::RHIDescriptorHeap* mp_rtvDescriptorHeap;
-		Graphics::RHICommandQueue* mp_gfxCommandQueue;
-		
-		IRendererList mp_childRenderers;
-
-		/* Cached Graphics Pipelines */
-		GfxPipelineCache mp_graphicsPipelineCache;
-		GfxPipelineLayoutCache mp_graphicsPipelineLayoutCache;
-		
-		/* Cached Textures */
-		TextureCache mp_textureCache;
-
-		/* Swapchain */
-		struct SwapchainTarget final
-		{
-			Graphics::RHISwapchain* mp_rhiSwapchain;
-			Math::Vectoru2 m_previousSize;
-			Math::Vectoru2 m_updatedSize;
-			bool m_isDirty = true;
-		};
-		SwapchainTarget* mp_windowSwapchain = nullptr;
-
-		struct PerFrameContext final
-		{
-			Graphics::RHICommandList* CommandList;
-
-		} PerFrameContext;
-
-		uint64 m_frame;
-
-		/* Is Renderer initialized on this specific EGraphicsAPI? */
-		bool IsGraphicsAPIInitialized(const Graphics::EGraphicsAPI api) const;
-		bool IsGraphicsAPIInitialized() const;
-
-		/* Initializes GraphicsDevice object */
-		void InitializeGraphicsAPI(const Graphics::EGraphicsAPI api);
-
-		/* Cleans up an initialized GraphicsDevice object */
-		void CleanupGraphicsAPI(const Graphics::EGraphicsAPI api);
-		void Cleanup();
-
-		void UpdateSwapchain();
-
-		RenderContext m_renderContext;
-	};
-#endif
 }

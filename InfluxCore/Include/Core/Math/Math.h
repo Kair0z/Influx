@@ -97,6 +97,7 @@ namespace influx
 		}
 
 #pragma region MinMax
+#if 0
 		template <typename _t>
 		constexpr inline _t maximum(const _t& a, const _t& b, const bool chooseAWhenEqual = true)
 		{
@@ -116,7 +117,7 @@ namespace influx
 			if constexpr (a < b) return a;
 			else return b;
 		}
-
+#endif
 		template <typename _t>
 		constexpr inline _t maximum(std::initializer_list<_t> list)
 		{
@@ -129,6 +130,7 @@ namespace influx
 			return std::min(list);
 		}
 
+#if 0
 		namespace detail
 		{
 			template <typename _t>
@@ -161,7 +163,7 @@ namespace influx
 		{
 			return detail::do_minimum(a, rest...);
 		}
-
+#endif
 #pragma endregion
 
 		template <typename _t>

@@ -18,17 +18,17 @@ struct ID3D12Fence;
 
 namespace influx
 {
-	class Dx12Renderer final : public IFluxRenderer
+	class dx12_renderer final : public base_flux_renderer
 	{
 	public:
-		Dx12Renderer() = default;
+		dx12_renderer() = default;
 
 	private:
-		virtual void RecordRenderCommands(platform::window_handle windowHandle) override final;
+		virtual void record_commands(platform::window_handle windowHandle) override final;
 
-		virtual void PresentToWindow(platform::window_handle windowHandle) override final;
+		virtual void present_to_window(platform::window_handle windowHandle) override final;
 
-		void WaitForPreviousFrame();
+		void wait_for_previous_frame();
 
 	private:
 		void Initialize();

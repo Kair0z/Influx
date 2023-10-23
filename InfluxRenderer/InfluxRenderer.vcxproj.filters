@@ -5,8 +5,6 @@
     <ClInclude Include="source\renderer_pch.h" />
     <ClInclude Include="Source\InfluxRenderer\RootRenderer.h" />
     <ClInclude Include="source\renderer\renderer.h" />
-    <ClInclude Include="source\renderer\rendersystem\IRenderer.h" />
-    <ClInclude Include="source\renderer\rendersystem\SceneRenderer.h" />
     <ClInclude Include="source\ImGuiTools\ImGuiLogView.h" />
     <ClInclude Include="source\ImGuiTools\ImGuiWidgets.h" />
     <ClInclude Include="source\ImGui\imconfig.h" />
@@ -19,7 +17,6 @@
     <ClInclude Include="source\ImGui\imstb_truetype.h" />
     <ClInclude Include="source\ImGuiTools\ImguiWidget.h" />
     <ClInclude Include="source\ImGuiTools\ViewportWidget.h" />
-    <ClInclude Include="source\renderer\rendersystem\GUIRenderer.h" />
     <ClInclude Include="Include\influx_renderer.h" />
   </ItemGroup>
   <ItemGroup>

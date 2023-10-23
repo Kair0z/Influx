@@ -3,7 +3,6 @@
 #ifndef __CORE_SCENE_CAMERA_H_
 #define __CORE_SCENE_CAMERA_H_
 
-#include "core/math/transform.h"
 #include "core/macros.h"
 
 namespace influx::scene

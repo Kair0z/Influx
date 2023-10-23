@@ -1,15 +1,13 @@
 #include "renderer_pch.h"
 #include "renderer.h"
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <D3Dcompiler.h>
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "DXGI.lib")
 #pragma comment (lib, "D3DCompiler.lib")
 #include "foreign/d3dx12.h"
 
 #include "core/platform/windows_platform.h"
+#include "Core/Time.h"
 
 #include <thread>
 
@@ -131,19 +129,161 @@ namespace influx::renderer
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
         mpdx_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mpdx_commandQueue));
 
+        // create some commandlist & commandallocators
+        mpdx_commandAllocators.resize(k_max_num_frames_in_flight);
+        mpdx_commandLists.resize(k_max_num_frames_in_flight);
+        for (uint8 i = 0u; i < k_max_num_frames_in_flight; ++i)
+        {
+            auto type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+            mpdx_device->CreateCommandAllocator(type, IID_PPV_ARGS(&mpdx_commandAllocators[i]));
+            mpdx_device->CreateCommandList(0u, type, mpdx_commandAllocators[i], nullptr, IID_PPV_ARGS(&mpdx_commandLists[i]));
+            ((ID3D12GraphicsCommandList*)mpdx_commandLists[i])->Close();
+        }
+
+        // create main fence
+        mpdx_device->CreateFence(0u, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mpdx_fence));
+
+        // describe and create the rtv heap
+        D3D12_DESCRIPTOR_HEAP_DESC desc_heap_desc{};
+        desc_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+        desc_heap_desc.NumDescriptors = k_max_swapchain_buffers;
+        desc_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        mpdx_device->CreateDescriptorHeap(&desc_heap_desc, IID_PPV_ARGS(&mpdx_rtv_heap));
+        m_rtvDescriptorSize = mpdx_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+        // Create the pipeline state, which includes compiling and loading shaders.
+        {
+            // Create an empty root signature.
+            CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+            rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+            ID3DBlob* signature;
+            ID3DBlob* error;
+            D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
+            mpdx_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&mpdx_rootsignature));
+
+            ID3DBlob* vertexShader;
+            ID3DBlob* pixelShader;
+
+#if defined(_DEBUG)
+            // Enable better shader debugging with the graphics debugging tools.
+            UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+            UINT compileFlags = 0;
+#endif
+
+            ::D3DCompileFromFile(L"", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr);
+            ::D3DCompileFromFile(L"", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr);
+
+            // Define the vertex input layout.
+            D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+            {
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,    0,                  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,    0 + 12,             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+                { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,      0 + 12 + 16,        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,       0 + 12 + 16 + 12,   D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+            };
+
+            // Describe and create the graphics pipeline state object (PSO).
+            D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+            psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+            psoDesc.pRootSignature = mpdx_rootsignature;
+            psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader);
+            psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader);
+            psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+            psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+            psoDesc.DepthStencilState.DepthEnable = FALSE;
+            psoDesc.DepthStencilState.StencilEnable = FALSE;
+            psoDesc.SampleMask = UINT_MAX;
+            psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+            psoDesc.NumRenderTargets = 1;
+            psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+            psoDesc.SampleDesc.Count = 1;
+            mpdx_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mpdx_pipeline));
+        }
+
 		m_is_initialized = true;
 	}
 
-	void renderer_state::present_to_window(platform::window_handle window_handle, const present_args& args)
-	{
-        // recreate if necessary
-        recreate_swapchain_from_window(e_buffering::tripple, window_handle);
-
-        if (mpdx_swapchain != nullptr)
+    void renderer_state::render_to_window(const render_args& render_args, platform::window_handle window, const present_args& present)
+    {
+        if (mpdx_commandQueue == nullptr)
         {
-            mpdx_swapchain->Present(args.m_vsync ? 1u : 0u, 0u);
+            return;
         }
-	}
+
+        // recreate swapchain first if necessary
+        recreate_swapchain_from_window(k_default_buffering, window);
+
+        if (render_args.mp_scene_proxy != nullptr)
+        {
+            update_scene_buffers(render_args.mp_scene_proxy);
+        }
+
+        // open a new frame_context that's not in flight
+        per_frame_context new_frame_ctx{};
+        {
+            time::point start = time::get_now();
+            new_frame_ctx = acquire_next_frame();
+            new_frame_ctx.m_stats.m_ms_acquire = time::get_ms_between<float>(time::get_now(), start);
+        }
+        
+        // record commands
+        {
+            time::point start = time::get_now();
+
+            ID3D12GraphicsCommandList* cmdlist = new_frame_ctx.mpdx_commandList;
+            ID3D12Resource* backbuffer = new_frame_ctx.mpdx_backbuffer;
+            const D3D12_CPU_DESCRIPTOR_HANDLE& backbuffer_rtv = *new_frame_ctx.mpdx_rtv_handle;
+            cmdlist->Reset(new_frame_ctx.mpdx_commandAllocator, nullptr);
+
+            CD3DX12_RESOURCE_BARRIER barrier_to_render_target = CD3DX12_RESOURCE_BARRIER::Transition(backbuffer,
+                D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            cmdlist->ResourceBarrier(1u, &barrier_to_render_target);
+
+            const ::FLOAT rgba[]{ 1,0,0,1 };
+            cmdlist->OMSetRenderTargets(1u, &backbuffer_rtv, false, nullptr);
+            cmdlist->ClearRenderTargetView(backbuffer_rtv, rgba, 0u, nullptr);
+
+            if (render_args.mp_scene_proxy != nullptr)
+            {
+                cmdlist->IASetVertexBuffers(0u, 1u, &mdx_vertexbuffer_view);
+                cmdlist->IASetIndexBuffer(&mdx_indexbuffer_view);
+            }
+            
+            CD3DX12_RESOURCE_BARRIER barrier_to_present = CD3DX12_RESOURCE_BARRIER::Transition(backbuffer,
+                D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+            cmdlist->ResourceBarrier(1u, &barrier_to_present);
+
+            cmdlist->Close();
+            new_frame_ctx.m_stats.m_ms_build = time::get_ms_between<float>(time::get_now(), start);
+        }
+
+        // submit to command queue
+        submit_to_queue(new_frame_ctx);
+
+        // present swapchain
+        mpdx_swapchain->Present(present.m_vsync ? 1u : 0u, 0u);
+    }
+
+    vector<frame_stats> renderer_state::get_frame_stats(const uint32 over_num_frames)
+    {
+        vector<frame_stats> stats{};
+
+#ifdef min
+#undef min
+#endif
+
+        uint32 num = std::min(over_num_frames, (uint32)m_frame_stats.size());
+        stats.resize(num);
+
+        for (uint32 i = 0u; i < num; ++i)
+        {
+            m_frame_stats.peak(i, stats[i]);
+        }
+
+        return stats;
+    }
 
 	bool renderer_state::is_initialized() const
 	{
@@ -155,29 +295,16 @@ namespace influx::renderer
 		m_is_initialized = false;
 	}
 
-    command_list* renderer_state::record()
-    {
-        return nullptr;
-    }
-
-    void renderer_state::submit(const command_list* list)
-    {
-        
-    }
-
-    void renderer_state::submit(const vector<command_list*> lists)
-    {
-        if (mpdx_commandQueue == nullptr)
-        {
-            return;
-        }
-
-        mpdx_commandQueue->ExecuteCommandLists(1u, nullptr);
-    }
-
     void renderer_state::recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle)
     {
         math::rectu window_rect = platform::get_windowrect_client<uint32>(handle);
+        swapchain_state new_state{};
+        new_state.m_window_rect = window_rect;
+
+        if (!is_swapchain_dirty(new_state))
+        {
+            return;
+        }
 
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
         swapChainDesc.BufferCount = ::UINT(buffering);
@@ -202,8 +329,155 @@ namespace influx::renderer
 
         mpdx_swapchain = (IDXGISwapChain4*)swapChain;
         m_swapchain_buffer_idx = mpdx_swapchain->GetCurrentBackBufferIndex();
+
+        // setup render targets:
+        const uint8 num_buffers = static_cast<uint8>(buffering);
+        mpdx_backbufferResources.resize(num_buffers);
+        mpdx_backbuffer_rtvs.resize(num_buffers);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(mpdx_rtv_heap->GetCPUDescriptorHandleForHeapStart());
+        for (uint8 i = 0u; i < num_buffers; ++i)
+        {
+            mpdx_swapchain->GetBuffer(i, IID_PPV_ARGS(&mpdx_backbufferResources[i]));
+            mpdx_device->CreateRenderTargetView(mpdx_backbufferResources[i], nullptr, rtv_handle);
+            mpdx_backbuffer_rtvs[i] = rtv_handle;
+            rtv_handle.Offset(1u, m_rtvDescriptorSize);
+        }
+
+        // update state
+        m_previous_swapchain_state = new_state;
     }
 
+    void renderer_state::update_scene_buffers(const scene_proxy const* proxy)
+    {
+        uint64 indexbuffersize = 0u;
+        uint64 vertexbuffersize = 0u;
+        uint64 num_vertices = 0u;
+        uint64 num_indices = 0u;
+        vector<vertex_proxy> vertices{};
+        vector<mesh_proxy::index> indices{};
+
+        for (const mesh_proxy& mesh : proxy->m_meshes)
+        {
+            vertexbuffersize += mesh.m_vertices.size() * sizeof(vertex_proxy);
+            indexbuffersize += mesh.m_indices.size() * sizeof(mesh_proxy::index);
+
+            for (const auto& vertex : mesh.m_vertices)
+                vertices.push_back(vertex);
+
+            for (const auto& index : mesh.m_indices)
+                indices.push_back(index);
+        }
+
+        // (re)create buffers
+        if (m_previous_scene_geometry.m_indexbuffersize < indexbuffersize)
+        {
+            safe_release(mpdx_scene_indexbuffer);
+
+            D3D12_HEAP_PROPERTIES heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+            D3D12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(indexbuffersize);
+
+            mpdx_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
+                D3D12_RESOURCE_STATE_INDEX_BUFFER, nullptr, IID_PPV_ARGS(&mpdx_scene_indexbuffer));
+        }
+        if (m_previous_scene_geometry.m_vertexbuffersize < vertexbuffersize)
+        {
+            safe_release(mpdx_scene_vertexbuffer);
+
+            D3D12_HEAP_PROPERTIES heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+            D3D12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(vertexbuffersize);
+
+            mpdx_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
+                D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&mpdx_scene_vertexbuffer));
+        }
+
+        // map data
+        {
+            // Copy the triangle data to the vertex buffer.
+            UINT8* p_data_begin;
+            CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+            mpdx_scene_vertexbuffer->Map(0, &readRange, reinterpret_cast<void**>(&p_data_begin));
+            memcpy(p_data_begin, vertices.data(), vertexbuffersize);
+            mpdx_scene_vertexbuffer->Unmap(0, nullptr);
+        }
+        {
+            // Copy the index data to the index buffer.
+            UINT8* p_data_begin;
+            CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+            mpdx_scene_indexbuffer->Map(0, &readRange, reinterpret_cast<void**>(&p_data_begin));
+            memcpy(p_data_begin, indices.data(), indexbuffersize);
+            mpdx_scene_indexbuffer->Unmap(0, nullptr);
+        }
+
+        // ready views
+        {
+            mdx_vertexbuffer_view.BufferLocation = mpdx_scene_vertexbuffer->GetGPUVirtualAddress();
+            mdx_vertexbuffer_view.StrideInBytes = sizeof(vertex_proxy);
+            mdx_vertexbuffer_view.SizeInBytes = vertexbuffersize;
+
+            mdx_indexbuffer_view.BufferLocation = mpdx_scene_indexbuffer->GetGPUVirtualAddress();
+            mdx_indexbuffer_view.Format = DXGI_FORMAT_R32_UINT;
+            mdx_indexbuffer_view.SizeInBytes = indexbuffersize;
+        }
+
+        m_previous_scene_geometry.m_indexbuffersize = indexbuffersize;
+        m_previous_scene_geometry.m_vertexbuffersize = vertexbuffersize;
+    }
+
+    renderer_state::per_frame_context renderer_state::acquire_next_frame()
+    {
+        // wait for the oldest submitted frame to be signalled finished
+        if (m_frames_in_flight.size() >= k_max_num_frames_in_flight)
+        {
+            auto& frame_to_wait = m_frames_in_flight.front();
+
+            // wait for front of the queue finish
+            ::WaitForSingleObject(frame_to_wait.m_complete_event, INFINITE);
+
+            on_frame_finished(frame_to_wait);
+            m_frames_in_flight.pop();
+        }
+
+        const uint8 frame_idx = m_frame % k_max_num_frames_in_flight;
+
+        per_frame_context new_context{};
+        new_context.m_frame = m_frame;
+        new_context.mpdx_commandList = mpdx_commandLists[frame_idx];
+        new_context.mpdx_commandAllocator = mpdx_commandAllocators[frame_idx];
+        get_swapchain_buffer_and_rtv(m_frame, new_context.mpdx_backbuffer, new_context.mpdx_rtv_handle);
+        return new_context;
+    }
+
+    void renderer_state::on_frame_finished(const per_frame_context& ctx)
+    {
+        frame_stats stats = ctx.m_stats;
+        stats.m_ms_frame = time::get_ms_between<float>(time::get_now(), ctx.m_timepoint_created);
+        m_frame_stats.push(stats);
+    }
+
+    void renderer_state::submit_to_queue(const per_frame_context& ctx)
+    {
+        m_frames_in_flight.push(ctx);
+
+        ID3D12CommandList* gfx_cmdlists[] = { ctx.mpdx_commandList };
+        mpdx_commandQueue->ExecuteCommandLists(_countof(gfx_cmdlists), gfx_cmdlists);
+        mpdx_commandQueue->Signal(mpdx_fence, ctx.m_frame);
+        mpdx_fence->SetEventOnCompletion(ctx.m_frame, (::HANDLE)ctx.m_complete_event);
+
+        ++m_frame;
+    }
+
+    bool renderer_state::is_swapchain_dirty(const swapchain_state& new_swapchain) const
+    {
+        return m_previous_swapchain_state.m_window_rect != new_swapchain.m_window_rect;
+    }
+
+    bool renderer_state::get_swapchain_buffer_and_rtv(const frame_id for_frame, ID3D12Resource*& out_buffer, D3D12_CPU_DESCRIPTOR_HANDLE*& out_rtv)
+    {
+        uint8 frame_idx = for_frame % k_max_num_frames_in_flight;
+        out_buffer = mpdx_backbufferResources[frame_idx];
+        out_rtv = &mpdx_backbuffer_rtvs[frame_idx];
+        return true;
+    }
 
 #pragma region frontend_api
     void initialize(const init_args& args)
@@ -211,24 +485,14 @@ namespace influx::renderer
         renderer_state::get_instance().initialize(args);
     }
 
-    command_list* record()
+    void render_to_window(const render_args& render_args, platform::window_handle window, const present_args& present)
     {
-        return renderer_state::get_instance().record();
+        renderer_state::get_instance().render_to_window(render_args, window, present);
     }
 
-    void submit(const command_list* list)
+    vector<frame_stats> get_frame_stats(const uint32 over_num_frames)
     {
-        renderer_state::get_instance().submit(list);
-    }
-
-    void submit(const vector<command_list*>& lists)
-    {
-        renderer_state::get_instance().submit(lists);
-    }
-
-    void present_to_window(platform::window_handle window_handle, const present_args& args)
-    {
-        renderer_state::get_instance().present_to_window(window_handle, args);
+        return renderer_state::get_instance().get_frame_stats(over_num_frames);
     }
 
     bool is_initialized()

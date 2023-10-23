@@ -19,6 +19,9 @@ namespace influx
 		ringbuffer() = default;
 		bool push(const _t& value);
 		bool pop(_t& value);
+		bool peak(detail::capacity_t i, _t& value);
+
+		detail::capacity_t size() const;
 
 	private:
 		_t m_data[_C]{};
@@ -62,6 +65,27 @@ namespace influx
 		m_lock.unlock();
 
 		return result;
+	}
+
+	template<typename _t, detail::capacity_t _C>
+	bool ringbuffer<_t, _C>::peak(detail::capacity_t i, _t& value)
+	{
+		if (i >= size())
+		{
+			return false;
+		}
+
+		m_lock.lock();
+		value = m_data[(m_tail + i) % _C];
+		m_lock.unlock();
+
+		return true;
+	}
+
+	template<typename _t, detail::capacity_t _C>
+	inline detail::capacity_t ringbuffer<_t, _C>::size() const
+	{
+		return (m_head - m_tail) % _C;
 	}
 }
 

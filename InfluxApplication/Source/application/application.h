@@ -1,5 +1,7 @@
 #pragma once
 
+#include "influx_application.h"
+
 #include "core/singleton/singleton.h"
 #include "core/platform/platform.h"
 
@@ -8,8 +10,6 @@
 
 namespace influx::application
 {
-	struct run_args;
-
 	class application final 
 		: public singleton<application>
 	{
@@ -19,7 +19,6 @@ namespace influx::application
 
 	private:
 		void run_mainthread();
-		void run_gamethread();
 		void run_renderthread();
 
 		platform::window_handle m_windowhandle = nullptr;
@@ -27,10 +26,12 @@ namespace influx::application
 
 		std::atomic_bool m_is_quit_requested = false;
 
-		std::thread m_gamethread;
+		std::thread m_mainthread;
 		std::thread m_renderthread;
 		uint64 m_gamethread_frame = 0u;
 		uint64 m_renderthread_frame = 0u;
+		
+		run_args m_run_args{};
 	};
 }
 

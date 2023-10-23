@@ -142,7 +142,6 @@ namespace influx::platform
 	inline bool poll_window_events(vector<e_windowevent>& out_events, window_handle handle = get_current_window())
 	{
 		// http://www.directxtutorial.com/Lesson.aspx?lessonid=9-1-4
-
 		MSG msg;
 		if (!is_window_valid(handle))
 		{

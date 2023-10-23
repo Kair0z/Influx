@@ -12,20 +12,29 @@
 #include "Core/basetypes.h"
 #include "Core/Function.h"
 #include "Core/Platform/Platform.h"
+#include "Core/Container/Vector.h"
+#include "Core/String.h"
+
+#include "Core/Math/Vector.h"
 
 namespace influx::renderer
 {
-#pragma region konstants
-	constexpr static bool	k_useWarp = true;
-	constexpr static uint8	k_max_srvs = 64u;
-#pragma endregion
-
 	enum class INFLUX_RENDER_API e_buffering
 	{
 		dubble = 2,
 		tripple = 3,
 		max
 	};
+
+#pragma region konstants
+	constexpr static bool	k_useWarp = true;
+	constexpr static uint8	k_max_srvs = 64u;
+	constexpr static e_buffering k_default_buffering = e_buffering::dubble;
+	constexpr static uint8 k_max_swapchain_buffers = static_cast<uint8>(e_buffering::max) - 1u;
+	constexpr static uint8 k_default_num_swapchain_buffers = static_cast<uint8>(k_default_buffering);
+	constexpr static uint8 k_max_num_frames_in_flight = k_default_num_swapchain_buffers;
+	constexpr static uint32 k_max_stat_frames = 2048u;
+#pragma endregion
 
 	enum class INFLUX_RENDER_API e_render_api
 	{
@@ -37,6 +46,42 @@ namespace influx::renderer
 		max
 	};
 
+	struct INFLUX_RENDER_API frame_stats final
+	{
+		float m_ms_acquire = 0.0f; // percentage of total spent on acquire
+		float m_ms_build = 0.0f; // time spent on generating the cmdlist
+		float m_ms_frame = 0.0f; // time spend on a frame
+
+		frame_stats& operator+=(const frame_stats& stats)
+		{
+			m_ms_acquire += stats.m_ms_acquire;
+			m_ms_build += stats.m_ms_build;
+			m_ms_frame += stats.m_ms_frame;
+			return *this;
+		}
+
+		frame_stats& operator/=(float val)
+		{
+			m_ms_acquire /= val;
+			m_ms_build /= val;
+			m_ms_frame /= val;
+			return *this;
+		}
+
+		static frame_stats average(const vector<frame_stats>& stats)
+		{
+			frame_stats result{};
+			uint64 num = stats.size();
+			for (uint64 i = 0u; i < num; ++i)
+			{
+				result += stats[i];
+			}
+
+			result /= (float)num;
+			return result;
+		}
+	};
+
 	struct INFLUX_RENDER_API init_args final
 	{
 		e_render_api m_api_type = e_render_api::dx12;
@@ -44,31 +89,50 @@ namespace influx::renderer
 
 	struct INFLUX_RENDER_API present_args final
 	{
-		bool m_vsync = true;
+		bool m_vsync = false;
 	};
-
-	class INFLUX_RENDER_API command_list final
+	
+#pragma region scene proxy
+	struct INFLUX_RENDER_API camera_proxy final
 	{
-	public:
-		void foo()
-		{
-
-		}
-
-	private:
-		int i = 0;
+		float m_fov = 90.0f;
+		float m_near_plane = 0.01f;
+		float m_far_plane = 100.0f;
 	};
 
+	struct INFLUX_RENDER_API vertex_proxy final
+	{
+		math::vectorf3 m_world_position = {};
+		math::vectorf4 m_colour = {};
+		math::vectorf3 m_normal = {};
+		math::vectorf2 m_uv = {};
+	};
+
+	struct INFLUX_RENDER_API mesh_proxy final
+	{
+		using index = uint32;
+		vector<vertex_proxy> m_vertices{};
+		vector<index> m_indices{};
+	};
+
+	struct INFLUX_RENDER_API scene_proxy final
+	{
+		vector<mesh_proxy> m_meshes = {};
+		vector<camera_proxy> m_cameras = {};
+		// lightproxy ...
+	};
+#pragma endregion
+
+	struct INFLUX_RENDER_API render_args final
+	{
+		scene_proxy* mp_scene_proxy = nullptr;
+	};
 
 	INFLUX_RENDER_API void initialize(const init_args& args);
 
-	INFLUX_RENDER_API command_list* record();
+	INFLUX_RENDER_API void render_to_window(const render_args& render_args, platform::window_handle window, const present_args& present = {});
 
-	INFLUX_RENDER_API void submit(const command_list* list);
-
-	INFLUX_RENDER_API void submit(const vector<command_list*>& lists);
-
-	INFLUX_RENDER_API void present_to_window(platform::window_handle window_handle, const present_args& args);
+	INFLUX_RENDER_API vector<frame_stats> get_frame_stats(const uint32 over_num_frames = 1u);
 
 	INFLUX_RENDER_API bool is_initialized();
 

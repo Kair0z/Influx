@@ -1,11 +1,11 @@
 #include "Dx12Renderer.h"
 
 #include "InfluxGraphics/D3D12/D3D12.h"
-#include "Core/Platform/WindowsPlatform.h"
+#include "Core/Platform/windows_platform.h"
 
 namespace influx
 {
-	void Dx12Renderer::RecordRenderCommands(platform::window_handle windowHandle)
+	void dx12_renderer::record_commands(platform::window_handle windowHandle)
 	{
 		Initialize();
 		InitializeSwapchain(windowHandle);
@@ -62,8 +62,8 @@ namespace influx
 			{
 				D3D12_VERTEX_BUFFER_VIEW vtbView{};
 				vtbView.BufferLocation = mp_vertexBufferResource->GetGPUVirtualAddress();
-				vtbView.StrideInBytes = sizeof(Scene::Mesh::Vertex);
-				vtbView.SizeInBytes = static_cast<uint32>(GetVertexBufferSize());
+				vtbView.StrideInBytes = static_cast<uint32>(get_vertex_size());
+				vtbView.SizeInBytes = static_cast<uint32>(get_vertex_buffer_size());
 
 				gfxCommandList->IASetVertexBuffers(0, 1, &vtbView);
 				gfxCommandList->DrawInstanced(3, 1, 0, 0);
@@ -76,7 +76,7 @@ namespace influx
 		}
 	}
 
-	void Dx12Renderer::PresentToWindow(platform::window_handle windowHandle)
+	void dx12_renderer::present_to_window(platform::window_handle windowHandle)
 	{
 		InitializeSwapchain(windowHandle);
 
@@ -87,14 +87,14 @@ namespace influx
 			mp_swapchain->Present(0, 0);
 		}
 		
-		WaitForPreviousFrame();
+		wait_for_previous_frame();
 	}
 
 	// WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
 	// This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
 	// sample illustrates how to use fences for efficient resource usage and to
 	// maximize GPU utilization.
-	void Dx12Renderer::WaitForPreviousFrame()
+	void dx12_renderer::wait_for_previous_frame()
 	{
 		// Signal and increment the fence value.
 		const UINT64 value = m_fenceValue;
@@ -112,7 +112,7 @@ namespace influx
 	}
 
 
-	void Dx12Renderer::Initialize()
+	void dx12_renderer::Initialize()
 	{
 		InitializeDevice();
 		InitializeCommandQueue();
@@ -123,7 +123,7 @@ namespace influx
 		InitializeSynchronization();
 	}
 
-	void Dx12Renderer::InitializeDevice()
+	void dx12_renderer::InitializeDevice()
 	{
 		if (mp_dxgiFactory2 || mp_dxgiHardwareAdapter || mp_device)
 		{
@@ -149,7 +149,7 @@ namespace influx
 		m_samplerDescriptorSize = mp_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	}
 
-	void Dx12Renderer::InitializeCommandQueue()
+	void dx12_renderer::InitializeCommandQueue()
 	{
 		if (mp_commandQueue)
 		{
@@ -159,7 +159,7 @@ namespace influx
 		mp_commandQueue = Graphics::D3D12::CreateDxCommandQueue(mp_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	}
 
-	void Dx12Renderer::InitializeSwapchain(platform::window_handle windowHandle)
+	void dx12_renderer::InitializeSwapchain(platform::window_handle windowHandle)
 	{
 		if (mp_swapchain != nullptr)
 		{
@@ -181,7 +181,7 @@ namespace influx
 		}
 	}
 
-	void Dx12Renderer::InitializeDescriptorHeaps()
+	void dx12_renderer::InitializeDescriptorHeaps()
 	{
 		if (mp_dsvDescriptorHeap == nullptr)
 		{
@@ -204,7 +204,7 @@ namespace influx
 		}
 	}
 
-	void Dx12Renderer::InitializeCommandList()
+	void dx12_renderer::InitializeCommandList()
 	{
 		if (mp_commandAllocators[0u] != nullptr)
 			return;
@@ -221,7 +221,7 @@ namespace influx
 		}
 	}
 
-	void Dx12Renderer::InitializePipeline()
+	void dx12_renderer::InitializePipeline()
 	{
 		Graphics::D3D12::HelperStructs::RootSignatureDesc rootSigDesc{};
 		// Default empty...
@@ -244,7 +244,7 @@ namespace influx
 		mp_pipelineState = Graphics::D3D12::CreateDxGraphicsPipelineState(pipelineDesc, mp_rootSignature, mp_device);
 	}
 
-	void Dx12Renderer::InitializeSynchronization()
+	void dx12_renderer::InitializeSynchronization()
 	{
 		if (mp_fence != nullptr)
 			return;
@@ -262,7 +262,7 @@ namespace influx
 		WaitForPreviousFrame();
 	}
 
-	void Dx12Renderer::InitializeSceneDataBuffers()
+	void dx12_renderer::InitializeSceneDataBuffers()
 	{
 		if (mp_vertexBufferResource != nullptr || mp_indexBufferResource != nullptr)
 			return;
@@ -305,15 +305,15 @@ namespace influx
 			});
 	}
 
-	void Dx12Renderer::InitializeShaderResourceDataBuffers()
+	void dx12_renderer::InitializeShaderResourceDataBuffers()
 	{
 	}
 
-	void Dx12Renderer::InitializeSamplers()
+	void dx12_renderer::InitializeSamplers()
 	{
 	}
 
-	void Dx12Renderer::InitializeLights()
+	void dx12_renderer::InitializeLights()
 	{
 	}
 }
