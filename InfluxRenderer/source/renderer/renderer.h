@@ -36,7 +36,7 @@ namespace influx::renderer
 	{
 	public:
 		void initialize(const init_args& args);
-		void render_to_window(const render_args& render_args, platform::window_handle window, const present_args& present);
+		void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present);
 		vector<frame_stats> get_frame_stats(const uint32 over_num_frames);
 		bool is_initialized() const;
 		void cleanup();
@@ -82,7 +82,7 @@ namespace influx::renderer
 
 		// recreates the swapchain resources when it's dirty
 		void recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle);
-		void update_scene_buffers(const scene_proxy const* proxy);
+		void update_scene_buffers(const scene_proxy* proxy);
 
 		// stalls if num_frames_in_flight > k_max_frames_in_flight
 		per_frame_context acquire_next_frame();
@@ -103,8 +103,8 @@ namespace influx::renderer
 
 		struct scene_geometry_info final
 		{
-			uint64 m_vertexbuffersize	= 0u;
-			uint64 m_indexbuffersize	= 0u;
+			uint32 m_vertexbuffersize	= 0u;
+			uint32 m_indexbuffersize	= 0u;
 		};
 		scene_geometry_info m_previous_scene_geometry{};
 

@@ -172,8 +172,8 @@ namespace influx::renderer
             UINT compileFlags = 0;
 #endif
 
-            ::D3DCompileFromFile(L"", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr);
-            ::D3DCompileFromFile(L"", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr);
+            ::D3DCompileFromFile(L"D:/Git/Influx/Resources/Shaders/shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr);
+            ::D3DCompileFromFile(L"D:/Git/Influx/Resources/Shaders/shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr);
 
             // Define the vertex input layout.
             D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
@@ -205,7 +205,7 @@ namespace influx::renderer
 		m_is_initialized = true;
 	}
 
-    void renderer_state::render_to_window(const render_args& render_args, platform::window_handle window, const present_args& present)
+    void renderer_state::render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present)
     {
         if (mpdx_commandQueue == nullptr)
         {
@@ -215,9 +215,9 @@ namespace influx::renderer
         // recreate swapchain first if necessary
         recreate_swapchain_from_window(k_default_buffering, window);
 
-        if (render_args.mp_scene_proxy != nullptr)
+        if (scene_proxy != nullptr)
         {
-            update_scene_buffers(render_args.mp_scene_proxy);
+            update_scene_buffers(scene_proxy);
         }
 
         // open a new frame_context that's not in flight
@@ -245,7 +245,7 @@ namespace influx::renderer
             cmdlist->OMSetRenderTargets(1u, &backbuffer_rtv, false, nullptr);
             cmdlist->ClearRenderTargetView(backbuffer_rtv, rgba, 0u, nullptr);
 
-            if (render_args.mp_scene_proxy != nullptr)
+            if (scene_proxy != nullptr)
             {
                 cmdlist->IASetVertexBuffers(0u, 1u, &mdx_vertexbuffer_view);
                 cmdlist->IASetIndexBuffer(&mdx_indexbuffer_view);
@@ -347,19 +347,19 @@ namespace influx::renderer
         m_previous_swapchain_state = new_state;
     }
 
-    void renderer_state::update_scene_buffers(const scene_proxy const* proxy)
+    void renderer_state::update_scene_buffers(const scene_proxy* proxy)
     {
-        uint64 indexbuffersize = 0u;
-        uint64 vertexbuffersize = 0u;
-        uint64 num_vertices = 0u;
-        uint64 num_indices = 0u;
+        uint32 indexbuffersize = 0u;
+        uint32 vertexbuffersize = 0u;
+        uint32 num_vertices = 0u;
+        uint32 num_indices = 0u;
         vector<vertex_proxy> vertices{};
         vector<mesh_proxy::index> indices{};
 
         for (const mesh_proxy& mesh : proxy->m_meshes)
         {
-            vertexbuffersize += mesh.m_vertices.size() * sizeof(vertex_proxy);
-            indexbuffersize += mesh.m_indices.size() * sizeof(mesh_proxy::index);
+            vertexbuffersize    += static_cast<uint32>(mesh.m_vertices.size() * sizeof(vertex_proxy));
+            indexbuffersize     += static_cast<uint32>(mesh.m_indices.size() * sizeof(mesh_proxy::index));
 
             for (const auto& vertex : mesh.m_vertices)
                 vertices.push_back(vertex);
@@ -485,9 +485,9 @@ namespace influx::renderer
         renderer_state::get_instance().initialize(args);
     }
 
-    void render_to_window(const render_args& render_args, platform::window_handle window, const present_args& present)
+    void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present)
     {
-        renderer_state::get_instance().render_to_window(render_args, window, present);
+        renderer_state::get_instance().render_to_window(scene_proxy, render_args, window, present);
     }
 
     vector<frame_stats> get_frame_stats(const uint32 over_num_frames)

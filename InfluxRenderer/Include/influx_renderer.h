@@ -93,14 +93,14 @@ namespace influx::renderer
 	};
 	
 #pragma region scene proxy
-	struct INFLUX_RENDER_API camera_proxy final
+	struct camera_proxy final
 	{
 		float m_fov = 90.0f;
 		float m_near_plane = 0.01f;
 		float m_far_plane = 100.0f;
 	};
 
-	struct INFLUX_RENDER_API vertex_proxy final
+	struct vertex_proxy final
 	{
 		math::vectorf3 m_world_position = {};
 		math::vectorf4 m_colour = {};
@@ -108,14 +108,14 @@ namespace influx::renderer
 		math::vectorf2 m_uv = {};
 	};
 
-	struct INFLUX_RENDER_API mesh_proxy final
+	struct mesh_proxy final
 	{
 		using index = uint32;
 		vector<vertex_proxy> m_vertices{};
 		vector<index> m_indices{};
 	};
 
-	struct INFLUX_RENDER_API scene_proxy final
+	struct scene_proxy final
 	{
 		vector<mesh_proxy> m_meshes = {};
 		vector<camera_proxy> m_cameras = {};
@@ -125,12 +125,12 @@ namespace influx::renderer
 
 	struct INFLUX_RENDER_API render_args final
 	{
-		scene_proxy* mp_scene_proxy = nullptr;
+		int a{};
 	};
 
 	INFLUX_RENDER_API void initialize(const init_args& args);
 
-	INFLUX_RENDER_API void render_to_window(const render_args& render_args, platform::window_handle window, const present_args& present = {});
+	INFLUX_RENDER_API void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present = {});
 
 	INFLUX_RENDER_API vector<frame_stats> get_frame_stats(const uint32 over_num_frames = 1u);
 
