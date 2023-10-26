@@ -26,6 +26,11 @@ namespace influx::application
 			uint64 m_id = 0u;
 		};
 
+		struct thread_state
+		{
+
+		};
+
 	public:
 		void run(const run_args& args);
 		void request_quit();

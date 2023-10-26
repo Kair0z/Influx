@@ -28,6 +28,8 @@ namespace influx
 		constexpr float k_PIonTwo	= 1.5707963267948966192313216916398f;
 		constexpr float k_PIonFour	= 0.78539816339744830961566084581988f;
 		constexpr float k_PIonSix	= 0.52359877559829887307710723054658f;
+
+		constexpr float k_epsilon = 0.00001f;
 	}
 
 	namespace math
@@ -92,8 +94,7 @@ namespace influx
 		template <typename _t>
 		constexpr inline _t is_zero(const _t& value)
 		{
-#define epsilon 0.00001f;
-			return abs(value) < epsilon;
+			return abs(value) < k_epsilon;
 		}
 
 #pragma region MinMax
@@ -128,6 +129,12 @@ namespace influx
 		constexpr inline _t minimum(std::initializer_list<_t> list)
 		{
 			return std::min(list);
+		}
+
+		template <typename _t>
+		constexpr inline _t minimum(const _t& a, const _t& b)
+		{
+			return std::min(a, b);
 		}
 
 #if 0

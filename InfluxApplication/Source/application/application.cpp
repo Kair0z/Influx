@@ -89,17 +89,24 @@ namespace influx::application
 			if (!platform::poll_window_events(out_events, m_windowhandle))
 			{
 				request_quit();
+				return;
 			}
-			else
+			
+			// handle events
+			for (platform::e_windowevent e : out_events)
 			{
-				for (platform::e_windowevent e : out_events)
+				switch (e)
 				{
-					switch (e)
-					{
-					default:
-						break;
-					}
+				default:
+					break;
 				}
+			}
+
+			// log
+			if (m_renderthread_frame % 360u == 0u && m_renderthread_frame != 0u)
+			{
+				renderer::frame_stats stats = renderer::frame_stats::average(renderer::get_frame_stats(640u));
+				std::cout << "FPS: " << 1.0f / (stats.m_ms_frame * 0.001f) << "\n";
 			}
 		}
 	}
@@ -108,7 +115,7 @@ namespace influx::application
 	{
 		while (!m_is_quit_requested)
 		{
-			const uint64 frame_to_reach = math::minimum(static_cast<uint64>(m_gamethread_frame - m_run_args.m_max_thread_frame_difference), uint64(0u));
+			const uint64 frame_to_reach = math::minimum<uint64>(static_cast<uint64>(m_gamethread_frame - m_run_args.m_max_thread_frame_difference), 0u);
 			wait_for_renderthread_reaching(frame_to_reach);
 
 			for (entity& entity : m_entities)
@@ -118,34 +125,6 @@ namespace influx::application
 			}
 
 			++m_gamethread_frame;
-		}
-	}
-
-	void application::wait_for_renderthread_reaching(const uint64 frame_to_reach, const wait_args& args)
-	{
-		time::point before_wait = time::get_now();
-		while (m_renderthread_frame < frame_to_reach)
-		{
-			// wait...
-		}
-
-		if (args.mp_out_seconds_waited != nullptr)
-		{
-			(*args.mp_out_seconds_waited) = time::get_ms_between<float>(time::get_now(), before_wait) * 0.001f;
-		}
-	}
-
-	void application::wait_for_gamethread_reaching(const uint64 frame_to_reach, const wait_args& args)
-	{
-		time::point before_wait = time::get_now();
-		while (m_gamethread_frame < frame_to_reach)
-		{
-			// wait...
-		}
-
-		if (args.mp_out_seconds_waited != nullptr)
-		{
-			(*args.mp_out_seconds_waited) = time::get_ms_between<float>(time::get_now(), before_wait) * 0.001f;
 		}
 	}
 
@@ -175,18 +154,41 @@ namespace influx::application
 				// renderer::application
 				// renderer::render_to_window(render_args, m_windowhandle, present_args);
 			}
-			
-			if (m_renderthread_frame % 360u == 0u && m_renderthread_frame != 0u)
-			{
-				renderer::frame_stats stats = renderer::frame_stats::average(renderer::get_frame_stats(640u));
-				std::cout << "FPS: " << 1.0f / (stats.m_ms_frame * 0.001f) << "\n";
-			}
+
 			++m_renderthread_frame;
 		}
 
 		renderer::cleanup();
 	}
 
+	void application::wait_for_renderthread_reaching(const uint64 frame_to_reach, const wait_args& args)
+	{
+		time::point before_wait = time::get_now();
+		while (m_renderthread_frame < frame_to_reach)
+		{
+			// wait...
+		}
+
+		if (args.mp_out_seconds_waited != nullptr)
+		{
+			(*args.mp_out_seconds_waited) = time::get_ms_between<float>(time::get_now(), before_wait) * 0.001f;
+		}
+	}
+
+	void application::wait_for_gamethread_reaching(const uint64 frame_to_reach, const wait_args& args)
+	{
+		time::point before_wait = time::get_now();
+		while (m_gamethread_frame < frame_to_reach)
+		{
+			// wait...
+		}
+
+		if (args.mp_out_seconds_waited != nullptr)
+		{
+			(*args.mp_out_seconds_waited) = time::get_ms_between<float>(time::get_now(), before_wait) * 0.001f;
+		}
+	}
+	
 #pragma region apifunctions
 	void run(const run_args& args)
 	{
