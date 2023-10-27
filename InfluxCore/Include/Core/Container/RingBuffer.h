@@ -4,6 +4,7 @@
 #define _CORE_RINGBUFFER_H_
 
 #include <mutex>
+#include "Core/Math/Math.h"
 
 namespace influx
 {
@@ -22,6 +23,8 @@ namespace influx
 		bool peak(detail::capacity_t i, _t& value);
 
 		detail::capacity_t size() const;
+
+		_t get_average_value(const detail::capacity_t num_elements = _c);
 
 	private:
 		_t m_data[_C]{};
@@ -86,6 +89,24 @@ namespace influx
 	inline detail::capacity_t ringbuffer<_t, _C>::size() const
 	{
 		return (m_head - m_tail) % _C;
+	}
+
+	template<typename _t, detail::capacity_t _c>
+	inline _t ringbuffer<_t, _c>::get_average_value(const detail::capacity_t num_elements)
+	{
+		_t result{};
+
+		detail::capacity_t num = math::minimum(num_elements, size());
+
+		m_lock.lock();
+		for (detail::capacity_t i = m_head; i > (m_head - num); i = (i - 1u) % _c)
+		{
+			result += m_data[i];
+		}
+		m_lock.unlock();
+
+		result /= static_cast<float>(num);
+		return result;
 	}
 }
 

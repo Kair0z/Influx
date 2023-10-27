@@ -137,6 +137,12 @@ namespace influx
 			return std::min(a, b);
 		}
 
+		template <typename _t>
+		constexpr inline _t maximum(const _t& a, const _t& b)
+		{
+			return std::max(a, b);
+		}
+
 #if 0
 		namespace detail
 		{

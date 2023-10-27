@@ -5,6 +5,7 @@
 #include "core/singleton/singleton.h"
 #include "core/platform/platform.h"
 #include "Core/Container/Vector.h"
+#include "Core/Container/RingBuffer.h"
 
 #include <atomic>
 #include <thread>
@@ -16,6 +17,8 @@ namespace influx::application
 	{
 		struct wait_args final
 		{
+			wait_args() = default;
+			wait_args(float* out_seconds_waited) : mp_out_seconds_waited{ out_seconds_waited } {}
 			float* mp_out_seconds_waited = nullptr;
 		};
 
@@ -26,9 +29,29 @@ namespace influx::application
 			uint64 m_id = 0u;
 		};
 
-		struct thread_state
+		struct frame_stats final
 		{
+			float m_pc_sync = 0.0f;
+			float m_ms_total = 0.0f;
 
+			frame_stats& operator+=(const frame_stats& other)
+			{
+				m_pc_sync += other.m_pc_sync;
+				m_ms_total += other.m_ms_total;
+				return *this;
+			}
+
+			frame_stats& operator/=(const float& div)
+			{
+				m_pc_sync	/= div;
+				m_ms_total	/= div;
+				return *this;
+			}
+		};
+
+		struct thread_state final
+		{
+			ringbuffer<frame_stats, 256u> m_stats{};
 		};
 
 	public:
@@ -51,6 +74,10 @@ namespace influx::application
 		std::thread m_mainthread;
 		std::thread m_renderthread;
 		std::thread m_gamethread;
+
+		thread_state m_gamethread_state{};
+		thread_state m_renderthread_state{};
+
 		uint64 m_gamethread_frame = 0u;
 		uint64 m_renderthread_frame = 0u;
 

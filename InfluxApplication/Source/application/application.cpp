@@ -82,6 +82,7 @@ namespace influx::application
 
 	void application::run_mainthread()
 	{
+		uint64 mainthread_frame = 0u;
 		vector<platform::e_windowevent> out_events{};
 		while (!m_is_quit_requested)
 		{
@@ -89,7 +90,7 @@ namespace influx::application
 			if (!platform::poll_window_events(out_events, m_windowhandle))
 			{
 				request_quit();
-				return;
+				break;
 			}
 			
 			// handle events
@@ -103,20 +104,32 @@ namespace influx::application
 			}
 
 			// log
-			if (m_renderthread_frame % 360u == 0u && m_renderthread_frame != 0u)
+			if (mainthread_frame % (512 * 512) == 0u && mainthread_frame != 0u)
 			{
-				renderer::frame_stats stats = renderer::frame_stats::average(renderer::get_frame_stats(640u));
-				std::cout << "FPS: " << 1.0f / (stats.m_ms_frame * 0.001f) << "\n";
+				system("cls");
+				frame_stats game_stats = m_gamethread_state.m_stats.get_average_value(64u);
+				frame_stats render_stats = m_renderthread_state.m_stats.get_average_value(64u);
+
+				std::cout << "[Game]  \tFPS: " << 1.0f / (game_stats.m_ms_total * 0.001f)	<< "\t| ms: " << game_stats.m_ms_total	<< "\t| " << "Sync: "	<< 100.0f * game_stats.m_pc_sync << "%\n";
+				std::cout << "[Render]\tFPS: " << 1.0f / (render_stats.m_ms_total * 0.001f) << "\t| ms: " << render_stats.m_ms_total << "\t| " << "Sync: "	<< 100.0f * render_stats.m_pc_sync << "%\n";
 			}
+
+			++mainthread_frame;
 		}
 	}
 
 	void application::run_gamethread()
 	{
+		frame_stats this_frame_stat{};
+		float seconds_synced = 0.0f;
+		time::point frame_start = time::get_now();
+
 		while (!m_is_quit_requested)
 		{
+			frame_start = time::get_now();
+
 			const uint64 frame_to_reach = math::minimum<uint64>(static_cast<uint64>(m_gamethread_frame - m_run_args.m_max_thread_frame_difference), 0u);
-			wait_for_renderthread_reaching(frame_to_reach);
+			wait_for_renderthread_reaching(frame_to_reach, wait_args{ &seconds_synced });
 
 			for (entity& entity : m_entities)
 			{
@@ -124,6 +137,9 @@ namespace influx::application
 				entity.m_id++;
 			}
 
+			this_frame_stat.m_ms_total = math::maximum(math::k_epsilon, time::get_ms_between<float>(time::get_now(), frame_start));
+			this_frame_stat.m_pc_sync = math::is_zero(this_frame_stat.m_ms_total) ? 0.0f : (seconds_synced * 1000.0f) / this_frame_stat.m_ms_total;
+			m_gamethread_state.m_stats.push(this_frame_stat);
 			++m_gamethread_frame;
 		}
 	}
@@ -142,19 +158,29 @@ namespace influx::application
 		present_args.m_vsync = m_run_args.m_vsync;
 		// ...
 
+		frame_stats this_frame_stats{};
+		float seconds_synced = 0.0f;
+		time::point frame_start = time::get_now();
 		while (!m_is_quit_requested)
 		{
-			// also don't 
+			frame_start = time::get_now();
+
+			// make sure this frame's been simulated
+			wait_for_gamethread_reaching(m_renderthread_frame + 1u, wait_args{ &seconds_synced });
+
+			// do something to the entities
+			for (entity& entity : m_entities)
 			{
-				// make sure this frame's been simulated
-				wait_for_gamethread_reaching(m_renderthread_frame + 1u);
-
-				// renderer::start_render
-
-				// renderer::application
-				// renderer::render_to_window(render_args, m_windowhandle, present_args);
+				// update
+				entity.m_id++;
 			}
 
+			// render them
+			renderer::render_to_window(nullptr, render_args, m_windowhandle, present_args);
+
+			this_frame_stats.m_ms_total = math::maximum(math::k_epsilon, time::get_ms_between<float>(time::get_now(), frame_start));
+			this_frame_stats.m_pc_sync = math::is_zero(this_frame_stats.m_ms_total) ? 0.0f : (seconds_synced * 1000.0f) / this_frame_stats.m_ms_total;
+			m_renderthread_state.m_stats.push(this_frame_stats);
 			++m_renderthread_frame;
 		}
 
