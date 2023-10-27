@@ -235,7 +235,7 @@ namespace influx::renderer
             ID3D12GraphicsCommandList* cmdlist = new_frame_ctx.mpdx_commandList;
             ID3D12Resource* backbuffer = new_frame_ctx.mpdx_backbuffer;
             const D3D12_CPU_DESCRIPTOR_HANDLE& backbuffer_rtv = *new_frame_ctx.mpdx_rtv_handle;
-            cmdlist->Reset(new_frame_ctx.mpdx_commandAllocator, nullptr);
+            cmdlist->Reset(new_frame_ctx.mpdx_commandAllocator, mpdx_pipeline);
 
             CD3DX12_RESOURCE_BARRIER barrier_to_render_target = CD3DX12_RESOURCE_BARRIER::Transition(backbuffer,
                 D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -247,8 +247,11 @@ namespace influx::renderer
 
             if (scene_proxy != nullptr)
             {
+                cmdlist->SetGraphicsRootSignature(mpdx_rootsignature);
+                cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                 cmdlist->IASetVertexBuffers(0u, 1u, &mdx_vertexbuffer_view);
                 cmdlist->IASetIndexBuffer(&mdx_indexbuffer_view);
+                // cmdlist->DrawInstanced()
             }
             
             CD3DX12_RESOURCE_BARRIER barrier_to_present = CD3DX12_RESOURCE_BARRIER::Transition(backbuffer,
@@ -294,6 +297,22 @@ namespace influx::renderer
 	{
 		m_is_initialized = false;
 	}
+
+    void renderer_state::load(const string& title, const mesh_data& data)
+    {
+        // make a copy
+
+        // store in map:
+        m_meshdata_map[title] = data;
+    }
+
+    void renderer_state::load(const string& title, const texture_data& data)
+    {
+        // make a copy
+
+        // store in map:
+        m_texturedata_map[title] = data;
+    }
 
     void renderer_state::recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle)
     {
@@ -483,6 +502,16 @@ namespace influx::renderer
     void initialize(const init_args& args)
     {
         renderer_state::get_instance().initialize(args);
+    }
+
+    void load(const string& title, const mesh_data& data)
+    {
+        renderer_state::get_instance().load(title, data);
+    }
+
+    void load(const string& title, const texture_data& data)
+    {
+        renderer_state::get_instance().load(title, data);
     }
 
     void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present)

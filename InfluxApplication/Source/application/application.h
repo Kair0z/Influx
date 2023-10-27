@@ -66,6 +66,8 @@ namespace influx::application
 		void wait_for_renderthread_reaching(const uint64 frame_to_reach, const wait_args& args = {});
 		void wait_for_gamethread_reaching(const uint64 frame_to_reach, const wait_args& args = {});
 
+		void mainthread_log();
+
 		platform::window_handle m_windowhandle = nullptr;
 		platform::instance_handle m_instancehandle = nullptr;
 
@@ -82,7 +84,6 @@ namespace influx::application
 		uint64 m_renderthread_frame = 0u;
 
 		vector<entity> m_entities{};
-		
 		run_args m_run_args{};
 	};
 }

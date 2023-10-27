@@ -9,6 +9,8 @@
 #include "Core/Container/Queue.h"
 #include "Core/Geometry/Rect.h"
 #include "Core/Time.h"
+#include "Core/Math/Vector.h"
+#include "Core/Container/Map.h"
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -40,6 +42,9 @@ namespace influx::renderer
 		vector<frame_stats> get_frame_stats(const uint32 over_num_frames);
 		bool is_initialized() const;
 		void cleanup();
+
+		void load(const string& title, const mesh_data& data);
+		void load(const string& title, const texture_data& data);
 
 		using frame_id = uint64;
 		struct per_frame_context final
@@ -77,6 +82,9 @@ namespace influx::renderer
 		uint32 m_swapchain_buffer_idx = 0u;
 		uint32 m_rtvDescriptorSize = 0u;
 		uint32 m_srvDescriptorSize = 0u;
+
+		umap<string, mesh_data> m_meshdata_map{};
+		umap<string, texture_data> m_texturedata_map{};
 
 		frame_id m_frame = 0u;
 

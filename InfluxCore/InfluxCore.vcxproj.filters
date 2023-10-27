@@ -47,6 +47,7 @@
     <ClInclude Include="Include\core\macros.h" />
     <ClInclude Include="Include\core\registry.h" />
     <ClInclude Include="Include\core\container\pool.h" />
+    <ClInclude Include="Include\Core\Math\colour.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\core\math\vector.inl" />

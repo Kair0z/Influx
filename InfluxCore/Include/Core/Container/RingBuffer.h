@@ -21,6 +21,9 @@ namespace influx
 		bool push(const _t& value);
 		bool pop(_t& value);
 		bool peak(detail::capacity_t i, _t& value);
+		
+		// push, if full, pop
+		_t* pop_to_push(const _t& value);
 
 		detail::capacity_t size() const;
 
@@ -39,8 +42,8 @@ namespace influx
 		bool result = false;
 
 		m_lock.lock();
-		detail::capacity_t next = (m_head + 1) % _C;
 
+		detail::capacity_t next = (m_head + 1) % _C;
 		if (next != m_tail)
 		{
 			m_data[m_head] = value;
@@ -86,6 +89,36 @@ namespace influx
 	}
 
 	template<typename _t, detail::capacity_t _C>
+	_t* ringbuffer<_t, _C>::pop_to_push(const _t& value)
+	{
+		_t* result = nullptr;
+
+		// try push
+		if (!push(value))
+		{
+			m_lock.lock();
+			detail::capacity_t next = (m_head + 1) % _C;
+			if (next != m_tail)
+			{
+				m_data[m_head] = value;
+				m_head = next;
+				result = nullptr;
+			}
+			else
+			{
+				result = &m_data[m_tail];
+				m_tail = (m_tail + 1u) % _C;
+				m_head = (m_head + 1u) % _C;
+			}
+			m_lock.unlock();
+
+			return result;
+		}
+
+		return nullptr;
+	}
+
+	template<typename _t, detail::capacity_t _C>
 	inline detail::capacity_t ringbuffer<_t, _C>::size() const
 	{
 		return (m_head - m_tail) % _C;
@@ -99,7 +132,7 @@ namespace influx
 		detail::capacity_t num = math::minimum(num_elements, size());
 
 		m_lock.lock();
-		for (detail::capacity_t i = m_head; i > (m_head - num); i = (i - 1u) % _c)
+		for (detail::capacity_t i = m_head; i != (m_head - num) % _c; i = (i - 1u) % _c)
 		{
 			result += m_data[i];
 		}

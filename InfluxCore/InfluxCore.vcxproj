@@ -29,6 +29,7 @@
     <ClInclude Include="Include\core\container\vector.h" />
     <ClInclude Include="Include\core\graph\hierarchy.h" />
     <ClInclude Include="Include\core\macros.h" />
+    <ClInclude Include="Include\Core\Math\colour.h" />
     <ClInclude Include="Include\core\math\quaternion.h" />
     <ClInclude Include="Include\core\math\transform.h" />
     <ClInclude Include="Include\core\registry.h" />

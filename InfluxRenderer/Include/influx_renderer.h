@@ -36,7 +36,7 @@ namespace influx::renderer
 	constexpr static uint32 k_max_stat_frames = 2048u;
 #pragma endregion
 
-	enum class INFLUX_RENDER_API e_render_api
+	enum class e_render_api
 	{
 		dx12,
 
@@ -46,7 +46,7 @@ namespace influx::renderer
 		max
 	};
 
-	struct INFLUX_RENDER_API frame_stats final
+	struct frame_stats final
 	{
 		float m_ms_acquire = 0.0f; // percentage of total spent on acquire
 		float m_ms_build = 0.0f; // time spent on generating the cmdlist
@@ -82,16 +82,21 @@ namespace influx::renderer
 		}
 	};
 
-	struct INFLUX_RENDER_API init_args final
+	struct init_args final
 	{
 		e_render_api m_api_type = e_render_api::dx12;
 	};
 
-	struct INFLUX_RENDER_API present_args final
+	struct present_args final
 	{
 		bool m_vsync = false;
 	};
 	
+	struct render_args final
+	{
+		int a{};
+	};
+
 #pragma region scene proxy
 	struct camera_proxy final
 	{
@@ -123,12 +128,20 @@ namespace influx::renderer
 	};
 #pragma endregion
 
-	struct INFLUX_RENDER_API render_args final
+	struct mesh_data final
 	{
-		int a{};
+		bool is_valid() const;
+	};
+
+	struct texture_data final
+	{
+		bool is_valid() const;
 	};
 
 	INFLUX_RENDER_API void initialize(const init_args& args);
+
+	INFLUX_RENDER_API void load(const string& title, const mesh_data& data);
+	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
 
 	INFLUX_RENDER_API void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present = {});
 
