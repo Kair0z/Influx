@@ -9,10 +9,11 @@
 #define INFLUX_APP_USES_WINDOWS 1
 
 #include "Core/basetypes.h"
+#include "Core/String.h"
 
 namespace influx::application
 {
-	struct INFLUX_APP_API run_args final
+	struct run_args final
 	{
 		run_args(int argc = 0, char** argv = nullptr)
 		{
@@ -20,6 +21,7 @@ namespace influx::application
 		}
 
 		const char* m_name = "";
+		string m_resources_dir = "D:/Git/Influx/Resources/";
 
 		bool m_commandlet = false;
 		bool m_enable_scenerender = false;

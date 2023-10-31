@@ -1,37 +1,20 @@
-#include "Matrix.h"
+#include "core/Math/Matrix.h"
 
-#define ___CORE_MATRIX_USE_CORE_ 1
-#if ___CORE_MATRIX_USE_CORE_
 #include "Core/Assert.h"
 #include "Core/Math/Math.h"
-#else
-#include <cassert>
-#define FLX_ASSERT(expr) assert(expr)
-
-namespace influx::Math
-{
-	template <typename _t>
-	constexpr inline _t DegreesToRadians(_t degrees)
-	{
-		return degrees * (3.1415 / 180);
-	}
-}
-
-
-#endif
 
 #include <cmath>
 
-namespace influx::Math
+namespace influx::math
 {
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline float Matrix<_t, _C, _R>::Determinant(const Matrix<_t, 2, 2>& m)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline float matrix<_t, _C, _R>::determinant(const matrix<_t, 2, 2>& m)
 	{
 		return m[0][0] * m[1][1] - m[0][1] * m[1][0];
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline float Matrix<_t, _C, _R>::Determinant(const Matrix<_t, 3, 3>& m)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline float matrix<_t, _C, _R>::determinant(const matrix<_t, 3, 3>& m)
 	{
 		// From wikipedia
 		return m[0][0] * m[1][1] * m[2][2] +
@@ -41,31 +24,31 @@ namespace influx::Math
 			m[0][1] * m[1][0] * m[2][2] -
 			m[0][0] * m[1][2] * m[2][1];
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline float Matrix<_t, _C, _R>::Determinant(const Matrix<_t, 4, 4>& m)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline float matrix<_t, _C, _R>::determinant(const matrix<_t, 4, 4>& m)
 	{
-
+		return 0.0f;
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline float Matrix<_t, _C, _R>::Determinant() const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline float matrix<_t, _C, _R>::determinant() const
 	{
-		return Determinant(*this);
+		return determinant(*this);
 	}
 
 #pragma region Inversion
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4, 4> Matrix<_t, _C, _R>::Inverse(const Matrix<_t, 4, 4>& m)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::inverse(const matrix<_t, 4, 4>& m)
 	{
-		Matrix<_t, 4, 4> cpy = m;
-		Invert(cpy);
+		matrix<_t, 4, 4> cpy = m;
+		invert(cpy);
 		return cpy;
 	}
 	// _The real one ;)
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline float Matrix<_t, _C, _R>::Invert(Matrix<_t, 4, 4>& m)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline float matrix<_t, _C, _R>::invert(matrix<_t, 4, 4>& m)
 	{
-		Matrix<_t, 4, 4> inverse{};
+		matrix<_t, 4, 4> inverse{};
 		float det{};
 
 		inverse.m_data[0] = m.m_data[5] * m.m_data[10] * m.m_data[15] -
@@ -183,64 +166,64 @@ namespace influx::Math
 		det = m.m_data[0] * inverse.m_data[0] + m.m_data[1] * inverse.m_data[4] + m.m_data[2] * inverse.m_data[8] + m.m_data[3] * inverse.m_data[12];
 		det = 1.0f / det;
 
-		for (MatrixSizeType i = 0; i < 16; i++)
+		for (matrix_dim_t i = 0; i < 16; i++)
 			m.m_data[i] = inverse.m_data[i] * det;
 
 		return det;
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4, 4> Matrix<_t, _C, _R>::Inverted() const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::inverted() const
 	{
-		return Inverse(*this);
+		return inverse(*this);
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline float Matrix<_t, _C, _R>::Invert()
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline float matrix<_t, _C, _R>::invert()
 	{
-		return Invert(*this);
+		return invert(*this);
 	}
 #pragma endregion
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline _t Matrix<_t, _C, _R>::Sum() const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline _t matrix<_t, _C, _R>::get_sum() const
 	{
 		_t sum{};
-		OnEachElement([&sum](const _t& element)
-			{
-				sum += element;
-			});
+		for_each_element([&sum](const _t& element)
+		{
+			sum += element;
+		});
 
 		return sum;
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline _t Matrix<_t, _C, _R>::Sum(const Matrix& matrix)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline _t matrix<_t, _C, _R>::get_sum(const matrix& matrix)
 	{
-		return matrix.Sum();
+		return matrix.get_sum();
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline bool Matrix<_t, _C, _R>::IsNull() const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline bool matrix<_t, _C, _R>::is_null() const
 	{
-		for (MatrixSizeType r{}; r < _R; ++r)
-			for (MatrixSizeType c{}; c < _C; ++c)
+		for (matrix_dim_t r{}; r < _R; ++r)
+			for (matrix_dim_t c{}; c < _C; ++c)
 			{
-				if (Element(c, r) != (_t)0)
+				if (get_element(c, r) != (_t)0)
 					return false;
 			}
 
 		return true;
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline bool Matrix<_t, _C, _R>::IsNull(const Matrix& matrix)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline bool matrix<_t, _C, _R>::is_null(const matrix& matrix)
 	{
-		return matrix.IsNull();
+		return matrix.is_null();
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R> Matrix<_t, _C, _R>::Identity()
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R> matrix<_t, _C, _R>::identity()
 	{
-		Matrix<_t, _C, _R> result{};
-		for (MatrixSizeType r{}; r < _R; ++r)
-			for (MatrixSizeType c{}; c < _C; ++c)
+		matrix<_t, _C, _R> result{};
+		for (matrix_dim_t r{}; r < _R; ++r)
+			for (matrix_dim_t c{}; c < _C; ++c)
 			{
-				MatrixSizeType i = c + (_C * r);
+				matrix_dim_t i = c + (_C * r);
 				if (r == c) result.m_data[i] = (_t)1;
 			}
 
@@ -249,8 +232,8 @@ namespace influx::Math
 
 #pragma region _Transformation
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 3, 3> Matrix<_t, _C, _R>::MakeTranslation(const vector<_t, 2>& t)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 3, 3> matrix<_t, _C, _R>::make_translation(const vector<_t, 2>& t)
 	{
 		return
 		{
@@ -259,8 +242,8 @@ namespace influx::Math
 			t.x, t.y, 1
 		};
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4, 4> Matrix<_t, _C, _R>::MakeTranslation(const vector<_t, 3>& t)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_translation(const vector<_t, 3>& t)
 	{
 		return
 		{
@@ -270,8 +253,8 @@ namespace influx::Math
 			t.x, t.y, t.z, 1
 		};
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 3, 3> Matrix<_t, _C, _R>::MakeRotation(float angle)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 3, 3> matrix<_t, _C, _R>::make_rotation(float angle)
 	{
 		return
 		{
@@ -280,8 +263,8 @@ namespace influx::Math
 			0, 0, 1
 		};
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4, 4> Matrix<_t, _C, _R>::MakeRotation(const vector<_t, 3>& axis, float angle)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_rotation(const vector<_t, 3>& axis, float angle)
 	{
 		// http://www.fastgraph.com/makegames/3drotation/3dsrce.html
 
@@ -300,8 +283,8 @@ namespace influx::Math
 			0, 0, 0, 1
 		};
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 3, 3> Matrix<_t, _C, _R>::MakeScale(const vector<_t, 2>& s)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 3, 3> matrix<_t, _C, _R>::make_scale(const vector<_t, 2>& s)
 	{
 		return
 		{
@@ -310,8 +293,8 @@ namespace influx::Math
 			0, 0, 1
 		};
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4, 4> Matrix<_t, _C, _R>::MakeScale(const vector<_t, 3>& s)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_scale(const vector<_t, 3>& s)
 	{
 		return
 		{
@@ -324,223 +307,221 @@ namespace influx::Math
 
 #pragma endregion
 	// _Constructor:
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	template <typename Other_T>
-	Matrix<_t, _C, _R>::Matrix(const Matrix<Other_T, _C, _R>& other)
+	matrix<_t, _C, _R>::matrix(const matrix<Other_T, _C, _R>& other)
 	{
-		OnEachElement([&other](_t& element, MatrixSizeType idx) { element = static_cast<_t>(other.Element(idx)); });
+		for_each_element([&other](_t& element, matrix_dim_t idx) { element = static_cast<_t>(other.get_element(idx)); });
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	template <typename Other_T>
-	Matrix<_t, _C, _R>::Matrix(Matrix<Other_T, _C, _R>&& other)
+	matrix<_t, _C, _R>::matrix(matrix<Other_T, _C, _R>&& other)
 	{
-		OnEachElement([&other](_t& element, MatrixSizeType idx) { element = static_cast<_t>(other.Element(idx)); });
+		for_each_element([&other](_t& element, matrix_dim_t idx) { element = static_cast<_t>(other.get_element(idx)); });
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline const vector<_t, _C>& Matrix<_t, _C, _R>::operator[](MatrixSizeType r) const
-	{
-		FLX_ASSERT(r < _R);
-		return this->rows[r];
-	}
-
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline vector<_t, _C>& Matrix<_t, _C, _R>::operator[](MatrixSizeType r)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline const vector<_t, _C>& matrix<_t, _C, _R>::operator[](matrix_dim_t r) const
 	{
 		FLX_ASSERT(r < _R);
-		return this->rows[r];
+		return this->m_rows[r];
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline const vector<_t, _C>& Matrix<_t, _C, _R>::Row(MatrixSizeType r) const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline vector<_t, _C>& matrix<_t, _C, _R>::operator[](matrix_dim_t r)
 	{
 		FLX_ASSERT(r < _R);
-		return this->rows[r];
+		return this->m_rows[r];
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline vector<_t, _C>& Matrix<_t, _C, _R>::Row(MatrixSizeType r)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline const vector<_t, _C>& matrix<_t, _C, _R>::get_row(matrix_dim_t r) const
 	{
 		FLX_ASSERT(r < _R);
-		return this->rows[r];
+		return this->m_rows[r];
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline vector<_t, _R> Matrix<_t, _C, _R>::Collumn(MatrixSizeType c) const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline vector<_t, _C>& matrix<_t, _C, _R>::get_row(matrix_dim_t r)
+	{
+		FLX_ASSERT(r < _R);
+		return this->m_rows[r];
+	}
+
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline vector<_t, _R> matrix<_t, _C, _R>::get_collumn(matrix_dim_t c) const
 	{
 		FLX_ASSERT(c < _C);
 		vector<_t, _R> collumn{};
-		for (MatrixSizeType r{}; r < _R; ++r)
+		for (matrix_dim_t r{}; r < _R; ++r)
 			collumn[r] = this->rows[r][c];
 
 		return collumn;
 	}
 
 	// Data Access:
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline _t& Matrix<_t, _C, _R>::Element(MatrixSizeType c, MatrixSizeType r)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline _t& matrix<_t, _C, _R>::get_element(matrix_dim_t c, matrix_dim_t r)
 	{
 		FLX_ASSERT(r < _R&& c < _C);
 		return (*this)[r][c];
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline const _t& Matrix<_t, _C, _R>::Element(MatrixSizeType c, MatrixSizeType r) const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline const _t& matrix<_t, _C, _R>::get_element(matrix_dim_t c, matrix_dim_t r) const
 	{
 		FLX_ASSERT(r < _R&& c < _C);
 		return (*this)[r][c];
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline _t& Matrix<_t, _C, _R>::Element(MatrixSizeType idx)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline _t& matrix<_t, _C, _R>::get_element(matrix_dim_t idx)
 	{
 		FLX_ASSERT(idx < _C* _R);
-		return Element(idx % _C, idx / _R);
+		return get_element(idx % _C, idx / _R);
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline const _t& Matrix<_t, _C, _R>::Element(MatrixSizeType idx) const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline const _t& matrix<_t, _C, _R>::get_element(matrix_dim_t idx) const
 	{
 		FLX_ASSERT(idx < _C* _R);
-		return Element(idx % _C, idx / _R);
+		return get_element(idx % _C, idx / _R);
 	}
 
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R>& Matrix<_t, _C, _R>::operator*=(const float scalar)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::operator*=(const float scalar)
 	{
-		OnEachElement([](_t& element)
-			{
-				element *= scalar;
-			});
+		for_each_element([](_t& element)
+		{
+			element *= scalar;
+		});
 
 		return *this;
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R>& Matrix<_t, _C, _R>::operator/=(const float scalar)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::operator/=(const float scalar)
 	{
-		OnEachElement([](_t& element)
-			{
-				element /= scalar;
-			});
+		for_each_element([](_t& element)
+		{
+			element /= scalar;
+		});
 
 		return *this;
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R>& Matrix<_t, _C, _R>::MemberMultiply(const Matrix<_t, _C, _R>& other)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::member_multiply(const matrix<_t, _C, _R>& other)
 	{
-		for (MatrixSizeType i{}; i < _R * _C; ++i)
+		for (matrix_dim_t i{}; i < _R * _C; ++i)
 			this->m_data[i] = other.m_data[i];
 
 		return *this;
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R> Matrix<_t, _C, _R>::MemberMultiply(const Matrix<_t, _C, _R>& a, const Matrix<_t, _C, _R>& b)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R> matrix<_t, _C, _R>::member_multiply(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b)
 	{
-		Matrix<_t, _C, _R> res = a;
-		res.MemberMultiply(b);
+		matrix<_t, _C, _R> res = a;
+		res.member_multiply(b);
 		return res;
 	}
 
 
-	// Operations: Matrix - Scalar
-	template <typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R> operator*(const Matrix<_t, _C, _R>& a, float b)
+	// Operations: matrix - Scalar
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R> operator*(const matrix<_t, _C, _R>& a, float b)
 	{
-		Matrix<_t, _C, _R> result = a;
-		result.ForEachElement([](_t& el) { el *= b; });
+		matrix<_t, _C, _R> result = a;
+		result.for_each_element([](_t& el) { el *= b; });
 		return result;
 	}
-	template <typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R> operator/(const Matrix<_t, _C, _R>& a, float b)
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R> operator/(const matrix<_t, _C, _R>& a, float b)
 	{
-		Matrix<_t, _C, _R> result = a;
-		result.ForEachElement([](_t& el) { el /= b; });
+		matrix<_t, _C, _R> result = a;
+		result.for_each_element([](_t& el) { el /= b; });
 		return result;
 	}
-	template <typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R> operator*(float a, const Matrix<_t, _C, _R>& b)
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R> operator*(float a, const matrix<_t, _C, _R>& b)
 	{
-		Matrix<_t, _C, _R> result = b;
-		result.ForEachElement([](_t& el) { el *= a; });
+		matrix<_t, _C, _R> result = b;
+		result.for_each_element([](_t& el) { el *= a; });
 		return result;
 	}
-	template <typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R> operator/(float a, const Matrix<_t, _C, _R>& b)
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R> operator/(float a, const matrix<_t, _C, _R>& b)
 	{
-		Matrix<_t, _C, _R> result = b;
-		result.ForEachElement([](_t& el) { el /= a; });
-		return result;
-	}
-
-
-	// Operations: Matrix - Matrix
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R> operator+(const Matrix<_t, _C, _R>& a, const Matrix<_t, _C, _R>& b)
-	{
-		Matrix<_t, _C, _R> result = a;
-		result.ForEachElement([=, &result](_t& element, MatrixSizeType idx)
-			{
-				result.Element(idx) += b.Element(idx);
-			});
-
-		return result;
-	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, _C, _R> operator-(const Matrix<_t, _C, _R>& a, const Matrix<_t, _C, _R>& b)
-	{
-		Matrix<_t, _C, _R> result = a;
-		result.ForEachElement([=, &result](_t& element, MatrixSizeType idx)
-			{
-				result.Element(idx) -= b.Element(idx);
-			});
-
+		matrix<_t, _C, _R> result = b;
+		result.for_each_element([](_t& el) { el /= a; });
 		return result;
 	}
 
-	template <typename _t, MatrixSizeType _C, MatrixSizeType _R, MatrixSizeType _OC, MatrixSizeType _OR>
-	inline Matrix<_t, _R, _OR> operator*(const Matrix<_t, _C, _R>& a, const Matrix<_t, _OC, _OR>& b)
+
+	// Operations: matrix - matrix
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R> operator+(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b)
+	{
+		matrix<_t, _C, _R> result = a;
+		result.for_each_element([=, &result](_t& element, matrix_dim_t idx)
+		{
+			result.get_element(idx) += b.get_element(idx);
+		});
+
+		return result;
+	}
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R> operator-(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b)
+	{
+		matrix<_t, _C, _R> result = a;
+		result.for_each_element([=, &result](_t& element, matrix_dim_t idx)
+		{
+			result.get_element(idx) -= b.get_element(idx);
+		});
+
+		return result;
+	}
+
+	template <typename _t, matrix_dim_t _C, matrix_dim_t _R, matrix_dim_t _OC, matrix_dim_t _OR>
+	inline matrix<_t, _R, _OR> operator*(const matrix<_t, _C, _R>& a, const matrix<_t, _OC, _OR>& b)
 	{
 		FLX_ASSERT(_C == _OR);
 
-		Matrix<_t, _R, _OC> result{};
+		matrix<_t, _R, _OC> result{};
 
-		for (MatrixSizeType r{}; r < _R; ++r)
-			for (MatrixSizeType c{}; c < _OC; ++c)
-			{
-				for (MatrixSizeType i = 0; i < _OR; ++i)
+		for (matrix_dim_t r{}; r < _R; ++r)
+			for (matrix_dim_t c{}; c < _OC; ++c)
+				for (matrix_dim_t i = 0; i < _OR; ++i)
 				{
 					result[r][c] += a[r][i] * b[i][c];
 				}
-			}
 
 		return result;
 	}
 
-	// Operations: Matrix - Vector
+	// Operations: matrix - Vector
 	template<typename _t>
-	inline vector<_t, 2> operator*(const Matrix<_t, 3, 3>& mat, const vector<_t, 2>& v)
+	inline vector<_t, 2> operator*(const matrix<_t, 3, 3>& mat, const vector<_t, 2>& v)
 	{
 		vector<_t, 3> result{ v.x, v.y, 1.f };
-		for (MatrixSizeType c{}; c < 3; ++c)
+		for (matrix_dim_t c{}; c < 3; ++c)
 		{
-			for (MatrixSizeType r{}; r < 3; ++r)
+			for (matrix_dim_t r{}; r < 3; ++r)
 				result[c] += mat[r][c] * result[c];
 		}
 		return { result.x, result.y };
 	}
 	template<typename _t>
-	inline vector<_t, 3u> operator*(const Matrix<_t, 4u, 4u>& mat, const vector<_t, 3u>& v)
+	inline vector<_t, 3u> operator*(const matrix<_t, 4u, 4u>& mat, const vector<_t, 3u>& v)
 	{
 		vector<_t, 4u> cpy = { v.x, v.y, v.z, 1.f };
 		vector<_t, 4u> res{};
-		for (MatrixSizeType c{}; c < 4u; ++c)
-			res[c] = vector<_t, 4u>::Dot(mat.Collumn(c), cpy);
+		for (matrix_dim_t c{}; c < 4u; ++c)
+			res[c] = vector<_t, 4u>::dot(mat.Collumn(c), cpy);
 
 		return { res.x, res.y, res.z };
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4, 4> Matrix<_t, _C, _R>::MakeTransformMatrixLH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
 		vector<_t, 3u> lRight = vector<_t, 3u>::Cross(up, forward);
 		vector<_t, 3u> lUp = vector<_t, 3u>::Cross(forward, lRight);
@@ -554,8 +535,8 @@ namespace influx::Math
 			pos.x, pos.y, pos.z, 1
 		};
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4, 4> Matrix<_t, _C, _R>::MakeTransformMatrixRH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
 		vector<_t, 3u> lRight = vector<_t, 3u>::Cross(forward, up);
 		vector<_t, 3u> lUp = vector<_t, 3u>::Cross(lRight, forward);
@@ -570,22 +551,22 @@ namespace influx::Math
 		};
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4u, 4u> Matrix<_t, _C, _R>::MakeViewMatrixLH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		return MakeTransformMatrixLH(pos, forward, up).Inverted();
+		return make_transform_LH(pos, forward, up).Inverted();
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4u, 4u> Matrix<_t, _C, _R>::MakeViewMatrixRH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		return MakeTransformMatrixRH(pos, forward, up).Inverted();
+		return make_transform_RH(pos, forward, up).Inverted();
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4u, 4u> Matrix<_t, _C, _R>::MakeProjectionMatrixRH(const float fov, const float ar, const float n, const float f)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_projection_RH(const float fov, const float ar, const float n, const float f)
 	{
-		float y = 1.0f / tanf(influx::Math::DegreesToRadians(fov) / 2.f);
+		float y = 1.0f / tanf(math::degrees_to_radians(fov) / 2.f);
 		float x = y / ar;
 		float intv = n - f;
 
@@ -598,10 +579,10 @@ namespace influx::Math
 		};
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline Matrix<_t, 4u, 4u> Matrix<_t, _C, _R>::MakeProjectionMatrixLH(const float fov, const float ar, const float n, const float f)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_projection_LH(const float fov, const float ar, const float n, const float f)
 	{
-		float y = 1.0f / tanf(influx::Math::DegreesToRadians(fov) / 2.f);
+		float y = 1.0f / tanf(math::degrees_to_radians(fov) / 2.f);
 		float x = y / ar;
 		float intv = f - n;
 
@@ -614,43 +595,43 @@ namespace influx::Math
 		};
 	}
 
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline void Matrix<_t, _C, _R>::ForEachElement(std::function<void(_t&)> operation)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline void matrix<_t, _C, _R>::for_each_element(std::function<void(_t&)> operation)
 	{
-		for (MatrixSizeType r{}; r < _R; ++r)
-			for (MatrixSizeType c{}; c < _C; ++c)
+		for (matrix_dim_t r{}; r < _R; ++r)
+			for (matrix_dim_t c{}; c < _C; ++c)
 			{
-				MatrixSizeType i = c + (_C * r);
+				matrix_dim_t i = c + (_C * r);
 				operation(this->m_data[i]);
 			}
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline void Matrix<_t, _C, _R>::ForEachElement(std::function<void(_t&, MatrixSizeType idx)> operation)
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline void matrix<_t, _C, _R>::for_each_element(std::function<void(_t&, matrix_dim_t idx)> operation)
 	{
-		for (MatrixSizeType r{}; r < _R; ++r)
-			for (MatrixSizeType c{}; c < _C; ++c)
+		for (matrix_dim_t r{}; r < _R; ++r)
+			for (matrix_dim_t c{}; c < _C; ++c)
 			{
-				MatrixSizeType i = c + (_C * r);
+				matrix_dim_t i = c + (_C * r);
 				operation(this->m_data[i], i);
 			}
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline void Matrix<_t, _C, _R>::ForEachElement(std::function<void(const _t&)> operation) const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline void matrix<_t, _C, _R>::for_each_element(std::function<void(const _t&)> operation) const
 	{
-		for (MatrixSizeType r{}; r < _R; ++r)
-			for (MatrixSizeType c{}; c < _C; ++c)
+		for (matrix_dim_t r{}; r < _R; ++r)
+			for (matrix_dim_t c{}; c < _C; ++c)
 			{
-				MatrixSizeType i = c + (_C * r);
+				matrix_dim_t i = c + (_C * r);
 				operation(this->m_data[i]);
 			}
 	}
-	template<typename _t, MatrixSizeType _C, MatrixSizeType _R>
-	inline void Matrix<_t, _C, _R>::ForEachElement(std::function<void(const _t&, MatrixSizeType idx)> operation) const
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline void matrix<_t, _C, _R>::for_each_element(std::function<void(const _t&, matrix_dim_t idx)> operation) const
 	{
-		for (MatrixSizeType r{}; r < _R; ++r)
-			for (MatrixSizeType c{}; c < _C; ++c)
+		for (matrix_dim_t r{}; r < _R; ++r)
+			for (matrix_dim_t c{}; c < _C; ++c)
 			{
-				MatrixSizeType i = c + (_C * r);
+				matrix_dim_t i = c + (_C * r);
 				operation(this->m_data[i], i);
 			}
 	}

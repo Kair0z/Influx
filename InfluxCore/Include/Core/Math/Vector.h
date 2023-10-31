@@ -180,6 +180,8 @@ namespace influx::math
 		constexpr static vector<_t, 3u> forward();
 		constexpr static vector<_t, 3u> right();
 
+		vector<_t, 2u> get_xy() const;
+		
 		// Arithmatics:
 		vector& operator+=(const vector& other);
 		vector& operator-=(const vector& other);

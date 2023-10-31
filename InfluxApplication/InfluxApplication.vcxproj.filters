@@ -6,6 +6,7 @@
     <ClInclude Include="Include\influx_application.h" />
     <ClInclude Include="Source\application\application.h" />
     <ClInclude Include="Source\editor\editor_rendersystem.h" />
+    <ClInclude Include="Source\foreign\assimp\assimp_helpers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\app_pch.cpp" />

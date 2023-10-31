@@ -23,6 +23,11 @@ namespace influx::math
 			return m_width_height;
 		}
 
+		const float get_aspect_ratio() const
+		{
+			return static_cast<float>(m_width_height.x) / static_cast<float>(m_width_height.y);
+		}
+
 		inline bool operator==(const rect& other) const
 		{
 			return m_leftBottom == other.m_leftBottom && m_width_height == other.m_width_height;

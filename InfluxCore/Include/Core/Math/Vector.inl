@@ -142,7 +142,7 @@ namespace influx::math
 	template<typename _t, _vector_dim_t _dim>
 	inline float vector<_t, _dim>::sqr_magnitude(const vector& other) 
 	{ 
-		return Dot(other, other); 
+		return dot(other, other); 
 	}
 	template<typename _t, _vector_dim_t _dim>
 	inline float vector<_t, _dim>::distance(const vector& a, const vector& b)
@@ -317,6 +317,13 @@ namespace influx::math
 	{
 		return vector<_t, 3u>(static_cast<_t>(1), static_cast<_t>(0), static_cast<_t>(0));
 	}
+
+	template <typename _t, _vector_dim_t _dim>
+	inline vector<_t, 2u> vector<_t, _dim>::get_xy() const
+	{
+		return vector<_t, 2u>{ this->x, this->y };
+	}
+
 	template<typename _t, _vector_dim_t _dim>
 	inline vector<_t, _dim> vector<_t, _dim>::zero()
 	{

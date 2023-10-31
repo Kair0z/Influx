@@ -14,6 +14,14 @@
 #pragma comment(lib, "InfluxRenderer.lib")
 #pragma comment(lib, "InfluxAsync.lib")
 
+// We're using Assimp libary for loading .FBX files...
+#include "foreign/assimp/assimp_helpers.h"
+#if _DEBUG
+#pragma comment(lib, "assimp-vc142-mtd.lib")
+#else
+#pragma comment(lib, "assimp-vc142-mt.lib")
+#endif
+
 #include <iostream>
 
 namespace influx::application
@@ -44,14 +52,12 @@ namespace influx::application
 		// initialize
 		{
 			// temp: create entities
-			constexpr uint64 k_num_entities = 4096u * 512u;
+			constexpr uint64 k_num_entities = 14u;
 			m_entities.reserve(k_num_entities);
 			for (uint64 i = 0u; i < k_num_entities; ++i)
 			{
 				m_entities.push_back(i);
 			}
-
-			// temp: load a cube mesh
 
 			m_instancehandle = platform::get_current_instance();
 			
@@ -98,11 +104,6 @@ namespace influx::application
 			// handle events
 			for (platform::e_windowevent e : out_events)
 			{
-				switch (e)
-				{
-				default:
-					break;
-				}
 			}
 
 			// log
@@ -144,6 +145,130 @@ namespace influx::application
 		}
 	}
 
+	inline renderer::mesh_data create_cube_mesh_data(float size = 1.0f)
+	{
+		renderer::mesh_data data{};
+		math::vectorf3 positions[8u] =
+		{
+			{ -size, -size, -size },
+			{ -size, +size, -size },
+			{ +size, +size, -size },
+			{ +size, -size, -size },
+			{ -size, -size, +size },
+			{ -size, +size, +size },
+			{ +size, +size, +size },
+			{ +size, -size, +size },
+		};
+
+		math::vectorf3 normals[8u] =
+		{
+			positions[0u].normalized(),
+			positions[1u].normalized(),
+			positions[2u].normalized(),
+			positions[3u].normalized(),
+			positions[4u].normalized(),
+			positions[5u].normalized(),
+			positions[6u].normalized(),
+			positions[7u].normalized(),
+		};
+
+		math::vectorf4 colours[8u] =
+		{
+			{ 1.0f, 0.0f, 0.0f, 1.0f },
+			{ 1.0f, 0.0f, 0.0f, 1.0f },
+			{ 1.0f, 0.0f, 0.0f, 1.0f },
+			{ 1.0f, 0.0f, 0.0f, 1.0f },
+			{ 1.0f, 0.0f, 0.0f, 1.0f },
+			{ 1.0f, 0.0f, 0.0f, 1.0f },
+			{ 1.0f, 0.0f, 0.0f, 1.0f },
+			{ 1.0f, 0.0f, 0.0f, 1.0f },
+		};
+
+		math::vectorf2 texcoords[8u] =
+		{
+			{ 0.0f, 0.0f },
+			{ 0.0f, 1.0f },
+			{ 1.0f, 1.0f },
+			{ 1.0f, 0.0f },
+			{ 0.0f, 0.0f },
+			{ 0.0f, 1.0f },
+			{ 1.0f, 1.0f },
+			{ 1.0f, 0.0f },
+		};
+
+		renderer::vertex_data vertex{};
+		for (uint8 i = 0u; i < 8u; ++i)
+		{
+			vertex.m_colour = colours[i];
+			vertex.m_normal = normals[i];
+			vertex.m_position = positions[i];
+			vertex.m_texcoords = texcoords[i];
+
+			data.m_vertices.push_back(vertex);
+		}
+
+		{
+			// front
+			{
+				data.m_indices.push_back(0u);
+				data.m_indices.push_back(1u);
+				data.m_indices.push_back(2u);
+				data.m_indices.push_back(2u);
+				data.m_indices.push_back(3u);
+				data.m_indices.push_back(0u);
+			}
+			
+			// left
+			{
+
+			}
+
+			// bottom
+			{
+
+			}
+
+			// top
+			{
+
+			}
+
+			// right
+			{
+
+			}
+		}
+		
+
+		return data;
+	}
+
+	inline renderer::mesh_data load_mesh_from_assimp(const string& filepath, uint8 mesh_index = 0u)
+	{
+		renderer::mesh_data result_data{};
+		const aiMesh* mesh = assimp_helpers::mesh_from_file(filepath, mesh_index);
+
+		renderer::vertex_data vertex{};
+		for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
+		{
+			vertex.m_position = assimp_helpers::from_assimp(mesh->mVertices[i]);
+			vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
+			vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
+			vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
+			result_data.m_vertices.push_back(vertex);
+		}
+
+		for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
+		{
+			for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
+			{
+				result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
+			}
+		}
+
+		return result_data;
+	}
+
 	void application::run_renderthread()
 	{
 		renderer::init_args args{};
@@ -151,11 +276,18 @@ namespace influx::application
 		// ...
 		renderer::initialize(args);
 
-		renderer::mesh_data cube_mesh_data{};
-		renderer::load("cube_mesh", cube_mesh_data);
+		// load assets
+		{
+			assimp_helpers::initialize();
 
-		renderer::texture_data tex_data{};
-		renderer::load("default_texture", tex_data);
+			renderer::mesh_data cube_mesh_data = load_mesh_from_assimp(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx", 0u);
+			renderer::load("duolingo_mesh", cube_mesh_data);
+
+			renderer::texture_data tex_data{};
+			renderer::load("default_texture", tex_data);
+
+			assimp_helpers::cleanup();
+		}
 
 		renderer::render_args render_args{};
 		// ...
@@ -180,15 +312,15 @@ namespace influx::application
 
 			// update render proxy
 			{
-				scene_proxy.m_meshes.resize(m_entities.size());
-
 				scene_proxy.m_cameras[0].m_fov = 90.0f;
 				scene_proxy.m_cameras[0].m_near_plane = 0.01f;
 				scene_proxy.m_cameras[0].m_far_plane = 1.0f;
 
+				scene_proxy.m_meshes.resize(m_entities.size());
 				for (uint64 i = 0u; i < m_entities.size(); ++i)
 				{
 					renderer::mesh_proxy mesh{};
+					mesh.m_name = "duolingo_mesh";
 					scene_proxy.m_meshes[i] = mesh;
 				}
 			}

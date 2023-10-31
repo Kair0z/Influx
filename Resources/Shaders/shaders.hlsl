@@ -1,4 +1,8 @@
 
+cbuffer view_constant_buffer : register(b0)
+{
+    float4x4 mat_wvp;
+};
 
 struct Vertex
 {
@@ -19,10 +23,10 @@ struct PSInput
 [shader("vertex")]
 PSInput VSMain(Vertex vertex)
 {
-    PSInput result;
-    result.position = float4(vertex.position.xyz, 1.0f);
-    result.color = vertex.color;
-    return result;
+    PSInput output;
+    output.position = mul(vertex.position, mat_wvp);
+    output.color = vertex.color;
+    return output;
 }
 
 [shader("pixel")]

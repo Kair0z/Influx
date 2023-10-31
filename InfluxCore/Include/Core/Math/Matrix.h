@@ -136,20 +136,20 @@ namespace influx::math
 	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator/(float a, const matrix<_t, _C, _R>& b);
 
 	// Aliases:
-	using Matrix2x2f = matrix<float, 2u, 2u>;
-	using Matrix2x2d = matrix<double, 2u, 2u>;
-	using Matrix2x2i = matrix<int, 2u, 2u>;
-	using Matrix2x2ui = matrix<uint32_t, 2u, 2u>;
+	using matrix2x2f = matrix<float, 2u, 2u>;
+	using matrix2x2d = matrix<double, 2u, 2u>;
+	using matrix2x2i = matrix<int, 2u, 2u>;
+	using matrix2x2ui = matrix<uint32_t, 2u, 2u>;
 
-	using Matrix3x3f = matrix<float, 3u, 3u>;
-	using Matrix3x3d = matrix<double, 3u, 3u>;
-	using Matrix3x3i = matrix<int, 3u, 3u>;
-	using Matrix3x3ui = matrix<uint32_t, 3u, 3u>;
+	using matrix3x3f = matrix<float, 3u, 3u>;
+	using matrix3x3d = matrix<double, 3u, 3u>;
+	using matrix3x3i = matrix<int, 3u, 3u>;
+	using matrix3x3ui = matrix<uint32_t, 3u, 3u>;
 
-	using Matrix4x4f = matrix<float, 4u, 4u>;
-	using Matrix4x4d = matrix<double, 4u, 4u>;
-	using Matrix4x4i = matrix<int, 4u, 4u>;
-	using Matrix4x4ui = matrix<uint32_t, 4u, 4u>;
+	using matrix4x4f = matrix<float, 4u, 4u>;
+	using matrix4x4d = matrix<double, 4u, 4u>;
+	using matrix4x4i = matrix<int, 4u, 4u>;
+	using matrix4x4ui = matrix<uint32_t, 4u, 4u>;
 }
 
 #include "Matrix.inl"

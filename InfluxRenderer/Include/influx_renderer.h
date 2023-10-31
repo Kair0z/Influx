@@ -16,6 +16,7 @@
 #include "Core/String.h"
 
 #include "Core/Math/Vector.h"
+#include "Core/Math/Matrix.h"
 
 namespace influx::renderer
 {
@@ -103,21 +104,15 @@ namespace influx::renderer
 		float m_fov = 90.0f;
 		float m_near_plane = 0.01f;
 		float m_far_plane = 100.0f;
-	};
 
-	struct vertex_proxy final
-	{
-		math::vectorf3 m_world_position = {};
-		math::vectorf4 m_colour = {};
-		math::vectorf3 m_normal = {};
-		math::vectorf2 m_uv = {};
+		math::matrix4x4f m_transform = math::matrix4x4f::identity();
 	};
 
 	struct mesh_proxy final
 	{
-		using index = uint32;
-		vector<vertex_proxy> m_vertices{};
-		vector<index> m_indices{};
+		string m_name = "";
+
+		math::matrix4x4f m_transform = math::matrix4x4f::identity();
 	};
 
 	struct scene_proxy final
@@ -126,10 +121,24 @@ namespace influx::renderer
 		vector<camera_proxy> m_cameras = {};
 		// lightproxy ...
 	};
+
 #pragma endregion
+
+	using index = uint32;
+
+	struct vertex_data final
+	{
+		math::vectorf3 m_position{};
+		math::vectorf4 m_colour{};
+		math::vectorf3 m_normal{};
+		math::vectorf2 m_texcoords{};
+	};
 
 	struct mesh_data final
 	{
+		vector<vertex_data> m_vertices{};
+		vector<index> m_indices{};
+
 		bool is_valid() const;
 	};
 

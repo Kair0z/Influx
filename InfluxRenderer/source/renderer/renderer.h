@@ -15,6 +15,7 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
+#include "foreign/d3dx12.h"
 
 struct IDXGIFactory1;
 struct IDXGIAdapter1;
@@ -69,10 +70,9 @@ namespace influx::renderer
 		ID3D12DescriptorHeap* mpdx_srvheap = nullptr;
 		ID3D12RootSignature* mpdx_rootsignature = nullptr;
 		ID3D12PipelineState* mpdx_pipeline = nullptr;
-		ID3D12Resource* mpdx_scene_vertexbuffer = nullptr;
-		ID3D12Resource* mpdx_scene_indexbuffer = nullptr;
-		D3D12_VERTEX_BUFFER_VIEW mdx_vertexbuffer_view{};
-		D3D12_INDEX_BUFFER_VIEW mdx_indexbuffer_view{};
+		CD3DX12_RECT m_rect{};
+		CD3DX12_VIEWPORT m_viewport{};
+		float m_aspect_ratio{};
 
 		vector<ID3D12CommandAllocator*> mpdx_commandAllocators{};
 		vector<ID3D12GraphicsCommandList*> mpdx_commandLists{};
@@ -83,7 +83,18 @@ namespace influx::renderer
 		uint32 m_rtvDescriptorSize = 0u;
 		uint32 m_srvDescriptorSize = 0u;
 
-		umap<string, mesh_data> m_meshdata_map{};
+		struct mesh_data_entry final
+		{
+			mesh_data m_data{};
+			ID3D12Resource* mp_vertexbuffer = nullptr;
+			ID3D12Resource* mp_indexbuffer = nullptr;
+			D3D12_VERTEX_BUFFER_VIEW mdx_vertexbuffer_view{};
+			D3D12_INDEX_BUFFER_VIEW mdx_indexbuffer_view{};
+			uint32 m_vertexbuffer_size = 0u;
+			uint32 m_indexbuffer_size = 0u;
+		};
+
+		umap<string, mesh_data_entry> m_meshdata_map{};
 		umap<string, texture_data> m_texturedata_map{};
 
 		frame_id m_frame = 0u;
@@ -109,12 +120,11 @@ namespace influx::renderer
 		swapchain_state m_previous_swapchain_state{};
 		bool is_swapchain_dirty(const swapchain_state& new_swapchain) const;
 
-		struct scene_geometry_info final
+		struct view_constant_buffer final
 		{
-			uint32 m_vertexbuffersize	= 0u;
-			uint32 m_indexbuffersize	= 0u;
+			math::matrix4x4f m_wvp{};
 		};
-		scene_geometry_info m_previous_scene_geometry{};
+		view_constant_buffer m_view_constant_buffer{};
 
 		template <class _t>
 		void safe_release(_t*& ptr)

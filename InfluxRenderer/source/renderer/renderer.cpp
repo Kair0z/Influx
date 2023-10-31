@@ -4,7 +4,6 @@
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "DXGI.lib")
 #pragma comment (lib, "D3DCompiler.lib")
-#include "foreign/d3dx12.h"
 
 #include "core/platform/windows_platform.h"
 #include "Core/Time.h"
@@ -153,15 +152,43 @@ namespace influx::renderer
 
         // Create the pipeline state, which includes compiling and loading shaders.
         {
-            // Create an empty root signature.
-            CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-            rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+            // Create a root signature consisting of a descriptor table with a single CBV.
+            {
+                D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+                // This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
+                featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+                if (FAILED(mpdx_device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+                {
+                    featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+                }
 
-            ID3DBlob* signature;
-            ID3DBlob* error;
-            D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
-            mpdx_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&mpdx_rootsignature));
+                CD3DX12_ROOT_PARAMETER1 rootParameters[1];
 
+                // view_constant_buffer root constants
+                rootParameters[0].InitAsConstants(sizeof(view_constant_buffer) / sizeof(float), 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX);
+
+                // 1 constant buffer
+                //CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
+                //ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+                //rootParameters[1].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
+
+                // Allow input layout and deny uneccessary access to certain pipeline stages.
+                D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+                    D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+                    D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+                    D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+                    D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+                    D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+
+                CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+                rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
+
+                ID3DBlob* signature;
+                ID3DBlob* error;
+                D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
+                mpdx_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&mpdx_rootsignature));
+            }
+            
             ID3DBlob* vertexShader;
             ID3DBlob* pixelShader;
 
@@ -178,7 +205,7 @@ namespace influx::renderer
             // Define the vertex input layout.
             D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
             {
-                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,    0,                  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+                { "SV_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,    0,                  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
                 { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,    0 + 12,             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
                 { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,      0 + 12 + 16,        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
                 { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,       0 + 12 + 16 + 12,   D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
@@ -215,11 +242,6 @@ namespace influx::renderer
         // recreate swapchain first if necessary
         recreate_swapchain_from_window(k_default_buffering, window);
 
-        if (scene_proxy != nullptr)
-        {
-            update_scene_buffers(scene_proxy);
-        }
-
         // open a new frame_context that's not in flight
         per_frame_context new_frame_ctx{};
         {
@@ -247,13 +269,26 @@ namespace influx::renderer
 
             if (scene_proxy != nullptr)
             {
+                update_scene_buffers(scene_proxy);
+
                 cmdlist->SetGraphicsRootSignature(mpdx_rootsignature);
                 cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                cmdlist->IASetVertexBuffers(0u, 1u, &mdx_vertexbuffer_view);
-                cmdlist->IASetIndexBuffer(&mdx_indexbuffer_view);
-                // cmdlist->DrawInstanced()
+                cmdlist->RSSetViewports(1, &m_viewport);
+                cmdlist->RSSetScissorRects(1, &m_rect);
+                cmdlist->SetGraphicsRoot32BitConstants(0u, sizeof(view_constant_buffer) / sizeof(float), &m_view_constant_buffer, 0u);
+
+                // draw meshes
+                for (const mesh_proxy& mesh : scene_proxy->m_meshes)
+                {
+                    if (m_meshdata_map.contains(mesh.m_name.c_str()))
+                    {
+                        cmdlist->IASetVertexBuffers(0u, 1u, &m_meshdata_map[mesh.m_name].mdx_vertexbuffer_view);
+                        cmdlist->IASetIndexBuffer(&m_meshdata_map[mesh.m_name].mdx_indexbuffer_view);
+                        cmdlist->DrawIndexedInstanced((uint32)m_meshdata_map[mesh.m_name].m_data.m_indices.size(), 1u, 0u, 0u, 0u);
+                    }
+                }
             }
-            
+
             CD3DX12_RESOURCE_BARRIER barrier_to_present = CD3DX12_RESOURCE_BARRIER::Transition(backbuffer,
                 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
             cmdlist->ResourceBarrier(1u, &barrier_to_present);
@@ -300,16 +335,72 @@ namespace influx::renderer
 
     void renderer_state::load(const string& title, const mesh_data& data)
     {
-        // make a copy
-
         // store in map:
-        m_meshdata_map[title] = data;
+        m_meshdata_map[title].m_data = data; // COPY
+
+        mesh_data& my_data = m_meshdata_map[title].m_data;
+        ID3D12Resource*& vertexbuffer_resource = m_meshdata_map[title].mp_vertexbuffer;
+        ID3D12Resource*& indexbuffer_resource = m_meshdata_map[title].mp_indexbuffer;
+
+        uint32 vertexbuffer_size = static_cast<uint32>(data.m_vertices.size() * sizeof(vertex_data));
+        uint32 indexbuffer_size = static_cast<uint32>(data.m_indices.size() * sizeof(index));
+
+        // (re)create buffers
+        if (m_meshdata_map[title].m_indexbuffer_size < indexbuffer_size)
+        {
+            safe_release(indexbuffer_resource);
+
+            D3D12_HEAP_PROPERTIES heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+            D3D12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(indexbuffer_size);
+            mpdx_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
+                D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&indexbuffer_resource));
+
+            m_meshdata_map[title].m_indexbuffer_size = indexbuffer_size;
+        }
+        if (m_meshdata_map[title].m_vertexbuffer_size < vertexbuffer_size)
+        {
+            safe_release(vertexbuffer_resource);
+
+            D3D12_HEAP_PROPERTIES heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+            D3D12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(vertexbuffer_size);
+            mpdx_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
+                D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertexbuffer_resource));
+
+            m_meshdata_map[title].m_vertexbuffer_size = vertexbuffer_size;
+        }
+
+        // map data
+        {
+            // Copy the triangle data to the vertex buffer.
+            UINT8* p_data_begin;
+            CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+            vertexbuffer_resource->Map(0, &readRange, reinterpret_cast<void**>(&p_data_begin));
+            memcpy(p_data_begin, my_data.m_vertices.data(), vertexbuffer_size);
+            vertexbuffer_resource->Unmap(0, nullptr);
+        }
+        {
+            // Copy the index data to the index buffer.
+            UINT8* p_data_begin;
+            CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+            indexbuffer_resource->Map(0, &readRange, reinterpret_cast<void**>(&p_data_begin));
+            memcpy(p_data_begin, my_data.m_indices.data(), indexbuffer_size);
+            indexbuffer_resource->Unmap(0, nullptr);
+        }
+
+        // ready views
+        {
+            m_meshdata_map[title].mdx_vertexbuffer_view.BufferLocation = vertexbuffer_resource->GetGPUVirtualAddress();
+            m_meshdata_map[title].mdx_vertexbuffer_view.StrideInBytes = sizeof(vertex_data);
+            m_meshdata_map[title].mdx_vertexbuffer_view.SizeInBytes = vertexbuffer_size;
+
+            m_meshdata_map[title].mdx_indexbuffer_view.BufferLocation = indexbuffer_resource->GetGPUVirtualAddress();
+            m_meshdata_map[title].mdx_indexbuffer_view.Format = DXGI_FORMAT_R32_UINT;
+            m_meshdata_map[title].mdx_indexbuffer_view.SizeInBytes = indexbuffer_size;
+        }
     }
 
     void renderer_state::load(const string& title, const texture_data& data)
     {
-        // make a copy
-
         // store in map:
         m_texturedata_map[title] = data;
     }
@@ -320,6 +411,13 @@ namespace influx::renderer
         swapchain_state new_state{};
         new_state.m_window_rect = window_rect;
 
+        // viewport & scissor rect
+        {
+            m_viewport = { 0.0f, 0.0f, static_cast<float>(window_rect.m_width_height.x), static_cast<float>(window_rect.m_width_height.y) };
+            m_rect = { 0, 0, static_cast<::LONG>(window_rect.m_width_height.x), static_cast<::LONG>(window_rect.m_width_height.y) };
+            m_aspect_ratio = static_cast<float>(window_rect.get_aspect_ratio());
+        }
+        
         if (!is_swapchain_dirty(new_state))
         {
             return;
@@ -368,78 +466,9 @@ namespace influx::renderer
 
     void renderer_state::update_scene_buffers(const scene_proxy* proxy)
     {
-        uint32 indexbuffersize = 0u;
-        uint32 vertexbuffersize = 0u;
-        uint32 num_vertices = 0u;
-        uint32 num_indices = 0u;
-        vector<vertex_proxy> vertices{};
-        vector<mesh_proxy::index> indices{};
-
-        for (const mesh_proxy& mesh : proxy->m_meshes)
-        {
-            vertexbuffersize    += static_cast<uint32>(mesh.m_vertices.size() * sizeof(vertex_proxy));
-            indexbuffersize     += static_cast<uint32>(mesh.m_indices.size() * sizeof(mesh_proxy::index));
-
-            for (const auto& vertex : mesh.m_vertices)
-                vertices.push_back(vertex);
-
-            for (const auto& index : mesh.m_indices)
-                indices.push_back(index);
-        }
-
-        // (re)create buffers
-        if (m_previous_scene_geometry.m_indexbuffersize < indexbuffersize)
-        {
-            safe_release(mpdx_scene_indexbuffer);
-
-            D3D12_HEAP_PROPERTIES heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-            D3D12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(indexbuffersize);
-
-            mpdx_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
-                D3D12_RESOURCE_STATE_INDEX_BUFFER, nullptr, IID_PPV_ARGS(&mpdx_scene_indexbuffer));
-        }
-        if (m_previous_scene_geometry.m_vertexbuffersize < vertexbuffersize)
-        {
-            safe_release(mpdx_scene_vertexbuffer);
-
-            D3D12_HEAP_PROPERTIES heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-            D3D12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(vertexbuffersize);
-
-            mpdx_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
-                D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&mpdx_scene_vertexbuffer));
-        }
-
-        // map data
-        {
-            // Copy the triangle data to the vertex buffer.
-            UINT8* p_data_begin;
-            CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
-            mpdx_scene_vertexbuffer->Map(0, &readRange, reinterpret_cast<void**>(&p_data_begin));
-            memcpy(p_data_begin, vertices.data(), vertexbuffersize);
-            mpdx_scene_vertexbuffer->Unmap(0, nullptr);
-        }
-        {
-            // Copy the index data to the index buffer.
-            UINT8* p_data_begin;
-            CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
-            mpdx_scene_indexbuffer->Map(0, &readRange, reinterpret_cast<void**>(&p_data_begin));
-            memcpy(p_data_begin, indices.data(), indexbuffersize);
-            mpdx_scene_indexbuffer->Unmap(0, nullptr);
-        }
-
-        // ready views
-        {
-            mdx_vertexbuffer_view.BufferLocation = mpdx_scene_vertexbuffer->GetGPUVirtualAddress();
-            mdx_vertexbuffer_view.StrideInBytes = sizeof(vertex_proxy);
-            mdx_vertexbuffer_view.SizeInBytes = vertexbuffersize;
-
-            mdx_indexbuffer_view.BufferLocation = mpdx_scene_indexbuffer->GetGPUVirtualAddress();
-            mdx_indexbuffer_view.Format = DXGI_FORMAT_R32_UINT;
-            mdx_indexbuffer_view.SizeInBytes = indexbuffersize;
-        }
-
-        m_previous_scene_geometry.m_indexbuffersize = indexbuffersize;
-        m_previous_scene_geometry.m_vertexbuffersize = vertexbuffersize;
+        auto& camera = proxy->m_cameras[0u];
+        m_view_constant_buffer.m_wvp = camera.m_transform * math::matrix4x4f::identity() *
+            math::matrix4x4f::make_projection_RH(camera.m_fov, m_aspect_ratio, camera.m_near_plane, camera.m_far_plane);
     }
 
     renderer_state::per_frame_context renderer_state::acquire_next_frame()

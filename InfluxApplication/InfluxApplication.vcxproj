@@ -93,12 +93,12 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include;$(SolutionDir)foreign\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)foreign\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -110,14 +110,14 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include;$(SolutionDir)foreign\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)foreign\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -127,14 +127,14 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include;$(SolutionDir)foreign\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>app_pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)foreign\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -146,7 +146,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;include;source;$(SolutionDir)InfluxRenderer\include;$(SolutionDir)InfluxAsync\include;$(SolutionDir)foreign\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>app_pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -155,7 +155,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)InfluxRenderer\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)InfluxAsync\Bin\$(Platform)\$(Configuration)\;$(SolutionDir)foreign\lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -164,6 +164,7 @@
     <ClInclude Include="Include\influx_application.h" />
     <ClInclude Include="Source\app_pch.h" />
     <ClInclude Include="Include\InfluxApplication\Application.h" />
+    <ClInclude Include="Source\foreign\assimp\assimp_helpers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\editor\editor_rendersystem.cpp" />
