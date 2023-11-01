@@ -109,6 +109,11 @@ namespace influx::renderer
 		math::vectorf3 m_position = {};
 		math::vectorf3 m_forward = -math::vectorf3::forward();
 		math::matrix4x4f m_transform = math::matrix4x4f::identity();
+
+		inline void look_at(const math::vectorf3& at)
+		{
+			m_forward = (at - m_position).normalized();
+		}
 	};
 
 	struct mesh_proxy final

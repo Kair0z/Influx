@@ -180,6 +180,9 @@ namespace influx::math
 		constexpr static vector<_t, 3u> forward();
 		constexpr static vector<_t, 3u> right();
 
+		static vector<_t, 2u> get_look_at(const vector<_t, 2u>& from, const vector<_t, 2u>& to);
+		static vector<_t, 3u> get_look_at(const vector<_t, 3u>& from, const vector<_t, 3u>& to);
+
 		vector<_t, 2u> get_xy() const;
 		
 		// Arithmatics:

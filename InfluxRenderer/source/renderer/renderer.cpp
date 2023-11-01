@@ -162,16 +162,13 @@ namespace influx::renderer
                     featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
                 }
 
-                CD3DX12_ROOT_PARAMETER1 rootParameters[2];
+                CD3DX12_ROOT_PARAMETER1 rootParameters[2]{};
 
                 // view_constant_buffer root constants
                 rootParameters[0].InitAsConstants(sizeof(view_constant_buffer) / sizeof(float), 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX);
-                rootParameters[1].InitAsConstants(sizeof(draw_constant_buffer) / sizeof(float), 1u, 0u, D3D12_SHADER_VISIBILITY_VERTEX);
 
                 // 1 constant buffer
-                //CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-                //ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
-                //rootParameters[1].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
+                rootParameters[1].InitAsConstantBufferView(2u, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_VERTEX);
 
                 // Allow input layout and deny uneccessary access to certain pipeline stages.
                 D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -200,8 +197,9 @@ namespace influx::renderer
             UINT compileFlags = 0;
 #endif
             wstring w_resource_dir = to_wstring(args.m_resource_dir);
-            ::D3DCompileFromFile((w_resource_dir + L"Shaders/shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr);
-            ::D3DCompileFromFile((w_resource_dir + L"Shaders/shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr);
+            wstring shader_filepath = w_resource_dir + L"Shaders/shaders.hlsl";
+            ::D3DCompileFromFile(shader_filepath.c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr);
+            ::D3DCompileFromFile(shader_filepath.c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr);
 
             // Define the vertex input layout.
             D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
@@ -282,17 +280,30 @@ namespace influx::renderer
                 cmdlist->RSSetScissorRects(1, &m_rect);
                 cmdlist->SetGraphicsRoot32BitConstants(0u, sizeof(view_constant_buffer) / sizeof(float), &m_view_constant_buffer, 0u);
 
-                // draw meshes
+                // make an instance map
+                umap<string, vector<instance_data>> instance_map{};
                 for (const mesh_proxy& mesh : scene_proxy->m_meshes)
                 {
                     if (m_meshdata_map.contains(mesh.m_name.c_str()))
                     {
-                        draw_constant_buffer draw_cb = { mesh.m_transform };
-                        cmdlist->SetGraphicsRoot32BitConstants(1u, sizeof(draw_constant_buffer) / sizeof(float), &draw_cb, 0u);
-                        cmdlist->IASetVertexBuffers(0u, 1u, &m_meshdata_map[mesh.m_name].mdx_vertexbuffer_view);
-                        cmdlist->IASetIndexBuffer(&m_meshdata_map[mesh.m_name].mdx_indexbuffer_view);
-                        cmdlist->DrawIndexedInstanced((uint32)m_meshdata_map[mesh.m_name].m_data.m_indices.size(), 1u, 0u, 0u, 0u);
+                        instance_map[mesh.m_name].push_back({ mesh.m_transform });
                     }
+                }
+
+                // update instance buffers
+                update_instance_buffers(instance_map);
+
+                // draw instanced
+                for (auto pair : instance_map)
+                {
+                    if (pair.second.empty()) continue;
+
+                    const uint32 num_instances = pair.second.size();
+
+                    cmdlist->SetGraphicsRootConstantBufferView(1u, m_meshdata_map[pair.first].mp_instancedata_buffer->GetGPUVirtualAddress());
+                    cmdlist->IASetVertexBuffers(0u, 1u, &m_meshdata_map[pair.first].mdx_vertexbuffer_view);
+                    cmdlist->IASetIndexBuffer(&m_meshdata_map[pair.first].mdx_indexbuffer_view);
+                    cmdlist->DrawIndexedInstanced((uint32)m_meshdata_map[pair.first].m_data.m_indices.size(), num_instances, 0u, 0u, 0u);
                 }
             }
 
@@ -478,6 +489,41 @@ namespace influx::renderer
         auto view = math::matrix4x4f::make_view_RH(camera.m_position, camera.m_forward);
         auto proj = math::matrix4x4f::make_projection_RH(camera.m_fov, m_aspect_ratio, camera.m_near_plane, camera.m_far_plane);
         m_view_constant_buffer.m_wvp = view * proj;
+    }
+
+    void renderer_state::update_instance_buffers(const umap<string, vector<instance_data>>& map)
+    {
+        for (auto pair : map)
+        {
+            if (pair.second.empty()) continue;
+            if (!m_meshdata_map.contains(pair.first)) continue;
+
+            const uint32 num_instances = pair.second.size();
+            const uint32 new_buffer_size = num_instances * sizeof(instance_data);
+
+            mesh_data_entry& entry = m_meshdata_map[pair.first];
+            if (entry.m_instancebuffer_size < new_buffer_size)
+            {
+                // recreate buffer resource
+                safe_release(entry.mp_instancedata_buffer);
+
+                D3D12_HEAP_PROPERTIES heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+                D3D12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(new_buffer_size);
+                mpdx_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
+                    D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&entry.mp_instancedata_buffer));
+
+                entry.m_instancebuffer_size = new_buffer_size;
+            }
+
+            // map data
+            {
+                UINT8* p_data_begin;
+                CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU.
+                entry.mp_instancedata_buffer->Map(0, &readRange, reinterpret_cast<void**>(&p_data_begin));
+                memcpy(p_data_begin, pair.second.data(), new_buffer_size);
+                entry.mp_instancedata_buffer->Unmap(0, nullptr);
+            }
+        }
     }
 
     renderer_state::per_frame_context renderer_state::acquire_next_frame()

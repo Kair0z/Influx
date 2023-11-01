@@ -319,6 +319,18 @@ namespace influx::math
 	}
 
 	template <typename _t, _vector_dim_t _dim>
+	inline vector<_t, 2u> get_look_at(const vector<_t, 2u>& from, const vector<_t, 2u>& to)
+	{
+		return (to - from).normalized();
+	}
+
+	template <typename _t, _vector_dim_t _dim>
+	inline vector<_t, 3u> get_look_at(const vector<_t, 3u>& from, const vector<_t, 3u>& to)
+	{
+		return (to - from).normalized();
+	}
+
+	template <typename _t, _vector_dim_t _dim>
 	inline vector<_t, 2u> vector<_t, _dim>::get_xy() const
 	{
 		return vector<_t, 2u>{ this->x, this->y };

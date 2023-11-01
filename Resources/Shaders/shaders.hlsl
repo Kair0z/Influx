@@ -4,10 +4,12 @@ cbuffer view_constant_buffer : register(b0)
     float4x4 mat_wvp;
 };
 
-cbuffer draw_constant_buffer : register(b1)
+struct per_instance_data
 {
     float4x4 mat_transform;
 };
+
+StructuredBuffer<per_instance_data> instance_data;
 
 struct Vertex
 {
@@ -26,10 +28,11 @@ struct PSInput
 };
 
 [shader("vertex")]
-PSInput VSMain(Vertex vertex)
+PSInput VSMain(Vertex vertex, uint instanceID : SV_InstanceID)
 {
     PSInput output;
-    float4x4 wvp = mul(mat_wvp, mat_transform);
+    float4x4 transform = instance_data[instanceID].mat_transform;
+    float4x4 wvp = mul(transform, mat_wvp);
     output.position =  mul(float4(vertex.position, 1.0f), wvp);
     output.color = vertex.color;
     return output;

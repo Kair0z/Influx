@@ -205,6 +205,11 @@ namespace influx::application
 		renderer::scene_proxy scene_proxy{};
 		renderer::camera_proxy camera_proxy{};
 		scene_proxy.m_cameras.push_back(camera_proxy);
+		scene_proxy.m_cameras[0].m_fov = 90.0f;
+		scene_proxy.m_cameras[0].m_near_plane = 0.01f;
+		scene_proxy.m_cameras[0].m_far_plane = 1.0f;
+		scene_proxy.m_cameras[0].m_position = { 10.0f, 0.0f, 0.0f };
+		scene_proxy.m_cameras[0].look_at({});
 
 		frame_stats this_frame_stats{};
 		float seconds_synced = 0.0f;
@@ -216,19 +221,14 @@ namespace influx::application
 			// make sure this frame's been simulated
 			wait_for_gamethread_reaching(m_renderthread_frame + 1u, wait_args{ &seconds_synced });
 
-			// update render proxy
+			// update render proxies
+			scene_proxy.m_meshes.resize(m_entities.size());
+			for (uint64 i = 0u; i < m_entities.size(); ++i)
 			{
-				scene_proxy.m_cameras[0].m_fov = 90.0f;
-				scene_proxy.m_cameras[0].m_near_plane = 0.01f;
-				scene_proxy.m_cameras[0].m_far_plane = 1.0f;
-
-				scene_proxy.m_meshes.resize(m_entities.size());
-				for (uint64 i = 0u; i < m_entities.size(); ++i)
-				{
-					renderer::mesh_proxy mesh{};
-					mesh.m_name = "duolingo_mesh";
-					scene_proxy.m_meshes[i] = mesh;
-				}
+				renderer::mesh_proxy mesh{};
+				mesh.m_name = "duolingo_mesh";
+				mesh.m_transform;
+				scene_proxy.m_meshes[i] = mesh;
 			}
 			
 			// render

@@ -83,15 +83,22 @@ namespace influx::renderer
 		uint32 m_rtvDescriptorSize = 0u;
 		uint32 m_srvDescriptorSize = 0u;
 
+		struct instance_data final
+		{
+			math::matrix4x4f m_transform{};
+		};
+
 		struct mesh_data_entry final
 		{
 			mesh_data m_data{};
 			ID3D12Resource* mp_vertexbuffer = nullptr;
 			ID3D12Resource* mp_indexbuffer = nullptr;
+			ID3D12Resource* mp_instancedata_buffer = nullptr;
 			D3D12_VERTEX_BUFFER_VIEW mdx_vertexbuffer_view{};
 			D3D12_INDEX_BUFFER_VIEW mdx_indexbuffer_view{};
 			uint32 m_vertexbuffer_size = 0u;
 			uint32 m_indexbuffer_size = 0u;
+			uint32 m_instancebuffer_size = 0u;
 		};
 
 		umap<string, mesh_data_entry> m_meshdata_map{};
@@ -102,6 +109,7 @@ namespace influx::renderer
 		// recreates the swapchain resources when it's dirty
 		void recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle);
 		void update_scene_buffers(const scene_proxy* proxy);
+		void update_instance_buffers(const umap<string, vector<instance_data>>& map);
 
 		// stalls if num_frames_in_flight > k_max_frames_in_flight
 		per_frame_context acquire_next_frame();
@@ -124,14 +132,10 @@ namespace influx::renderer
 		{
 			math::matrix4x4f m_wvp{};
 		};
-		struct draw_constant_buffer final
-		{
-			math::matrix4x4f m_transform{};
-		};
 		view_constant_buffer m_view_constant_buffer{};
 
 		template <class _t>
-		void safe_release(_t*& ptr)
+		static void safe_release(_t*& ptr)
 		{
 			if (ptr != nullptr)
 			{
@@ -139,6 +143,7 @@ namespace influx::renderer
 				ptr = nullptr;
 			}
 		}
+
 	private:
 		bool m_is_initialized = false;
 		queue<per_frame_context> m_frames_in_flight{};
