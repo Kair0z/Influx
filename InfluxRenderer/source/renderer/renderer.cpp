@@ -168,7 +168,7 @@ namespace influx::renderer
                 rootParameters[0].InitAsConstants(sizeof(view_constant_buffer) / sizeof(float), 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX);
 
                 // 1 constant buffer
-                rootParameters[1].InitAsConstantBufferView(2u, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_VERTEX);
+                rootParameters[1].InitAsConstantBufferView(1u, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_VERTEX);
 
                 // Allow input layout and deny uneccessary access to certain pipeline stages.
                 D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =

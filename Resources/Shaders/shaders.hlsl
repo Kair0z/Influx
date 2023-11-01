@@ -9,7 +9,7 @@ struct per_instance_data
     float4x4 mat_transform;
 };
 
-StructuredBuffer<per_instance_data> instance_data;
+StructuredBuffer<per_instance_data> instance_data : register(t1);
 
 struct Vertex
 {
