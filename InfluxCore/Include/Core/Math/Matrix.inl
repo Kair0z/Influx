@@ -523,8 +523,8 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		vector<_t, 3u> lRight = vector<_t, 3u>::Cross(up, forward);
-		vector<_t, 3u> lUp = vector<_t, 3u>::Cross(forward, lRight);
+		vector<_t, 3u> lRight = vector<_t, 3u>::cross(up, forward);
+		vector<_t, 3u> lUp = vector<_t, 3u>::cross(forward, lRight);
 		vector<_t, 3u> lForward = forward;
 
 		return
@@ -538,8 +538,8 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		vector<_t, 3u> lRight = vector<_t, 3u>::Cross(forward, up);
-		vector<_t, 3u> lUp = vector<_t, 3u>::Cross(lRight, forward);
+		vector<_t, 3u> lRight = vector<_t, 3u>::cross(forward, up);
+		vector<_t, 3u> lUp = vector<_t, 3u>::cross(lRight, forward);
 		vector<_t, 3u> lForward = forward;
 
 		return
@@ -554,13 +554,13 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		return make_transform_LH(pos, forward, up).Inverted();
+		return make_transform_LH(pos, forward, up).inverted();
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		return make_transform_RH(pos, forward, up).Inverted();
+		return make_transform_RH(pos, forward, up).inverted();
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>

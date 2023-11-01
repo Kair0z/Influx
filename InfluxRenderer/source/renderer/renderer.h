@@ -124,6 +124,10 @@ namespace influx::renderer
 		{
 			math::matrix4x4f m_wvp{};
 		};
+		struct draw_constant_buffer final
+		{
+			math::matrix4x4f m_transform{};
+		};
 		view_constant_buffer m_view_constant_buffer{};
 
 		template <class _t>

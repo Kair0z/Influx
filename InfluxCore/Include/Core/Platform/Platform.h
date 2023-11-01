@@ -148,6 +148,12 @@ namespace influx::platform
 	template <e_console_colour _C>
 	void set_console_colour_attribute();
 #pragma endregion
+
+#pragma region files
+	string get_current_directory();
+
+	void set_current_directory(const string& path);
+#pragma endregion
 }
 
 #endif // _CORE_PLATFORM_H_

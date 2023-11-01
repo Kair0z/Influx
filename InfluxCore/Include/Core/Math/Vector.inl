@@ -310,7 +310,7 @@ namespace influx::math
 	template<typename _t, _vector_dim_t _dim>
 	inline constexpr vector<_t, 3u> vector<_t, _dim>::forward()
 	{
-		return vector<_t, 3u>(static_cast<_t>(0), static_cast<_t>(0), static_cast<_t>(1));
+		return vector<_t, 3u>(static_cast<_t>(0), static_cast<_t>(0), static_cast<_t>(1.0f));
 	}
 	template<typename _t, _vector_dim_t _dim>
 	inline constexpr vector<_t, 3u> vector<_t, _dim>::right()

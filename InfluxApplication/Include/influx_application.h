@@ -21,7 +21,7 @@ namespace influx::application
 		}
 
 		const char* m_name = "";
-		string m_resources_dir = "D:/Git/Influx/Resources/";
+		string m_resources_dir = "";
 
 		bool m_commandlet = false;
 		bool m_enable_scenerender = false;

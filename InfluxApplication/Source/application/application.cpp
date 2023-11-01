@@ -26,6 +26,32 @@
 
 namespace influx::application
 {
+	renderer::mesh_data load_mesh_from_assimp(const string& filepath, uint8 mesh_index = 0u)
+	{
+		renderer::mesh_data result_data{};
+		const aiMesh* mesh = assimp_helpers::mesh_from_file(filepath, mesh_index);
+
+		renderer::vertex_data vertex{};
+		for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
+		{
+			vertex.m_position = assimp_helpers::from_assimp(mesh->mVertices[i]);
+			vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
+			vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
+			vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
+			result_data.m_vertices.push_back(vertex);
+		}
+
+		for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
+		{
+			for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
+			{
+				result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
+			}
+		}
+
+		return result_data;
+	}
+
 	#if INFLUX_APP_USES_WINDOWS
 	inline static ::LRESULT windows_procedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
 	{
@@ -48,6 +74,10 @@ namespace influx::application
 	void application::run(const run_args& args)
 	{
 		m_run_args = args;
+		if (m_run_args.m_resources_dir.empty())
+		{
+			m_run_args.m_resources_dir = platform::get_current_directory() + "/Resources/";
+		}
 
 		// initialize
 		{
@@ -145,135 +175,11 @@ namespace influx::application
 		}
 	}
 
-	inline renderer::mesh_data create_cube_mesh_data(float size = 1.0f)
-	{
-		renderer::mesh_data data{};
-		math::vectorf3 positions[8u] =
-		{
-			{ -size, -size, -size },
-			{ -size, +size, -size },
-			{ +size, +size, -size },
-			{ +size, -size, -size },
-			{ -size, -size, +size },
-			{ -size, +size, +size },
-			{ +size, +size, +size },
-			{ +size, -size, +size },
-		};
-
-		math::vectorf3 normals[8u] =
-		{
-			positions[0u].normalized(),
-			positions[1u].normalized(),
-			positions[2u].normalized(),
-			positions[3u].normalized(),
-			positions[4u].normalized(),
-			positions[5u].normalized(),
-			positions[6u].normalized(),
-			positions[7u].normalized(),
-		};
-
-		math::vectorf4 colours[8u] =
-		{
-			{ 1.0f, 0.0f, 0.0f, 1.0f },
-			{ 1.0f, 0.0f, 0.0f, 1.0f },
-			{ 1.0f, 0.0f, 0.0f, 1.0f },
-			{ 1.0f, 0.0f, 0.0f, 1.0f },
-			{ 1.0f, 0.0f, 0.0f, 1.0f },
-			{ 1.0f, 0.0f, 0.0f, 1.0f },
-			{ 1.0f, 0.0f, 0.0f, 1.0f },
-			{ 1.0f, 0.0f, 0.0f, 1.0f },
-		};
-
-		math::vectorf2 texcoords[8u] =
-		{
-			{ 0.0f, 0.0f },
-			{ 0.0f, 1.0f },
-			{ 1.0f, 1.0f },
-			{ 1.0f, 0.0f },
-			{ 0.0f, 0.0f },
-			{ 0.0f, 1.0f },
-			{ 1.0f, 1.0f },
-			{ 1.0f, 0.0f },
-		};
-
-		renderer::vertex_data vertex{};
-		for (uint8 i = 0u; i < 8u; ++i)
-		{
-			vertex.m_colour = colours[i];
-			vertex.m_normal = normals[i];
-			vertex.m_position = positions[i];
-			vertex.m_texcoords = texcoords[i];
-
-			data.m_vertices.push_back(vertex);
-		}
-
-		{
-			// front
-			{
-				data.m_indices.push_back(0u);
-				data.m_indices.push_back(1u);
-				data.m_indices.push_back(2u);
-				data.m_indices.push_back(2u);
-				data.m_indices.push_back(3u);
-				data.m_indices.push_back(0u);
-			}
-			
-			// left
-			{
-
-			}
-
-			// bottom
-			{
-
-			}
-
-			// top
-			{
-
-			}
-
-			// right
-			{
-
-			}
-		}
-		
-
-		return data;
-	}
-
-	inline renderer::mesh_data load_mesh_from_assimp(const string& filepath, uint8 mesh_index = 0u)
-	{
-		renderer::mesh_data result_data{};
-		const aiMesh* mesh = assimp_helpers::mesh_from_file(filepath, mesh_index);
-
-		renderer::vertex_data vertex{};
-		for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
-		{
-			vertex.m_position = assimp_helpers::from_assimp(mesh->mVertices[i]);
-			vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
-			vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
-			vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
-			result_data.m_vertices.push_back(vertex);
-		}
-
-		for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
-		{
-			for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
-			{
-				result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
-			}
-		}
-
-		return result_data;
-	}
-
 	void application::run_renderthread()
 	{
 		renderer::init_args args{};
 		args.m_api_type = renderer::e_render_api::dx12;
-		// ...
+		args.m_resource_dir = m_run_args.m_resources_dir;
 		renderer::initialize(args);
 
 		// load assets

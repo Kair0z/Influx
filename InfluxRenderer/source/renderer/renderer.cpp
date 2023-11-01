@@ -162,10 +162,11 @@ namespace influx::renderer
                     featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
                 }
 
-                CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+                CD3DX12_ROOT_PARAMETER1 rootParameters[2];
 
                 // view_constant_buffer root constants
                 rootParameters[0].InitAsConstants(sizeof(view_constant_buffer) / sizeof(float), 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX);
+                rootParameters[1].InitAsConstants(sizeof(draw_constant_buffer) / sizeof(float), 1u, 0u, D3D12_SHADER_VISIBILITY_VERTEX);
 
                 // 1 constant buffer
                 //CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
@@ -198,14 +199,14 @@ namespace influx::renderer
 #else
             UINT compileFlags = 0;
 #endif
-
-            ::D3DCompileFromFile(L"D:/Git/Influx/Resources/Shaders/shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr);
-            ::D3DCompileFromFile(L"D:/Git/Influx/Resources/Shaders/shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr);
+            wstring w_resource_dir = to_wstring(args.m_resource_dir);
+            ::D3DCompileFromFile((w_resource_dir + L"Shaders/shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr);
+            ::D3DCompileFromFile((w_resource_dir + L"Shaders/shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr);
 
             // Define the vertex input layout.
             D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
             {
-                { "SV_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,    0,                  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,    0,                  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
                 { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,    0 + 12,             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
                 { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,      0 + 12 + 16,        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
                 { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,       0 + 12 + 16 + 12,   D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
@@ -218,10 +219,13 @@ namespace influx::renderer
             psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader);
             psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader);
             psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+            psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+            psoDesc.RasterizerState.DepthClipEnable = false;
+            psoDesc.RasterizerState.FrontCounterClockwise = true;
             psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
             psoDesc.DepthStencilState.DepthEnable = FALSE;
             psoDesc.DepthStencilState.StencilEnable = FALSE;
-            psoDesc.SampleMask = UINT_MAX;
+            psoDesc.SampleMask = 0u;
             psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
             psoDesc.NumRenderTargets = 1;
             psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -257,13 +261,14 @@ namespace influx::renderer
             ID3D12GraphicsCommandList* cmdlist = new_frame_ctx.mpdx_commandList;
             ID3D12Resource* backbuffer = new_frame_ctx.mpdx_backbuffer;
             const D3D12_CPU_DESCRIPTOR_HANDLE& backbuffer_rtv = *new_frame_ctx.mpdx_rtv_handle;
+            new_frame_ctx.mpdx_commandAllocator->Reset();
             cmdlist->Reset(new_frame_ctx.mpdx_commandAllocator, mpdx_pipeline);
 
             CD3DX12_RESOURCE_BARRIER barrier_to_render_target = CD3DX12_RESOURCE_BARRIER::Transition(backbuffer,
                 D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
             cmdlist->ResourceBarrier(1u, &barrier_to_render_target);
 
-            const ::FLOAT rgba[]{ 1,0,0,1 };
+            const ::FLOAT rgba[]{ 0,0,0,0 };
             cmdlist->OMSetRenderTargets(1u, &backbuffer_rtv, false, nullptr);
             cmdlist->ClearRenderTargetView(backbuffer_rtv, rgba, 0u, nullptr);
 
@@ -282,6 +287,8 @@ namespace influx::renderer
                 {
                     if (m_meshdata_map.contains(mesh.m_name.c_str()))
                     {
+                        draw_constant_buffer draw_cb = { mesh.m_transform };
+                        cmdlist->SetGraphicsRoot32BitConstants(1u, sizeof(draw_constant_buffer) / sizeof(float), &draw_cb, 0u);
                         cmdlist->IASetVertexBuffers(0u, 1u, &m_meshdata_map[mesh.m_name].mdx_vertexbuffer_view);
                         cmdlist->IASetIndexBuffer(&m_meshdata_map[mesh.m_name].mdx_indexbuffer_view);
                         cmdlist->DrawIndexedInstanced((uint32)m_meshdata_map[mesh.m_name].m_data.m_indices.size(), 1u, 0u, 0u, 0u);
@@ -413,8 +420,8 @@ namespace influx::renderer
 
         // viewport & scissor rect
         {
-            m_viewport = { 0.0f, 0.0f, static_cast<float>(window_rect.m_width_height.x), static_cast<float>(window_rect.m_width_height.y) };
-            m_rect = { 0, 0, static_cast<::LONG>(window_rect.m_width_height.x), static_cast<::LONG>(window_rect.m_width_height.y) };
+            m_viewport = CD3DX12_VIEWPORT{ 0.0f, 0.0f, static_cast<float>(window_rect.m_width_height.x), static_cast<float>(window_rect.m_width_height.y) };
+            m_rect = CD3DX12_RECT{ 0, 0, static_cast<::LONG>(window_rect.m_width_height.x), static_cast<::LONG>(window_rect.m_width_height.y) };
             m_aspect_ratio = static_cast<float>(window_rect.get_aspect_ratio());
         }
         
@@ -422,6 +429,8 @@ namespace influx::renderer
         {
             return;
         }
+
+        safe_release(mpdx_swapchain);
 
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
         swapChainDesc.BufferCount = ::UINT(buffering);
@@ -443,7 +452,6 @@ namespace influx::renderer
 
         // does not support fullscreen transitions.
         mpdx_factory->MakeWindowAssociation((::HWND)handle, DXGI_MWA_NO_ALT_ENTER);
-
         mpdx_swapchain = (IDXGISwapChain4*)swapChain;
         m_swapchain_buffer_idx = mpdx_swapchain->GetCurrentBackBufferIndex();
 
@@ -467,8 +475,9 @@ namespace influx::renderer
     void renderer_state::update_scene_buffers(const scene_proxy* proxy)
     {
         auto& camera = proxy->m_cameras[0u];
-        m_view_constant_buffer.m_wvp = camera.m_transform * math::matrix4x4f::identity() *
-            math::matrix4x4f::make_projection_RH(camera.m_fov, m_aspect_ratio, camera.m_near_plane, camera.m_far_plane);
+        auto view = math::matrix4x4f::make_view_RH(camera.m_position, camera.m_forward);
+        auto proj = math::matrix4x4f::make_projection_RH(camera.m_fov, m_aspect_ratio, camera.m_near_plane, camera.m_far_plane);
+        m_view_constant_buffer.m_wvp = view * proj;
     }
 
     renderer_state::per_frame_context renderer_state::acquire_next_frame()

@@ -86,6 +86,7 @@ namespace influx::renderer
 	struct init_args final
 	{
 		e_render_api m_api_type = e_render_api::dx12;
+		string m_resource_dir = "";
 	};
 
 	struct present_args final
@@ -102,9 +103,11 @@ namespace influx::renderer
 	struct camera_proxy final
 	{
 		float m_fov = 90.0f;
-		float m_near_plane = 0.01f;
+		float m_near_plane = 0.0001f;
 		float m_far_plane = 100.0f;
 
+		math::vectorf3 m_position = {};
+		math::vectorf3 m_forward = -math::vectorf3::forward();
 		math::matrix4x4f m_transform = math::matrix4x4f::identity();
 	};
 
