@@ -128,6 +128,9 @@ namespace influx::renderer
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
         mpdx_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mpdx_commandQueue));
 
+        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+        mpdx_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mpdx_copy_queue));
+
         // create some commandlist & commandallocators
         mpdx_commandAllocators.resize(k_max_num_frames_in_flight);
         mpdx_commandLists.resize(k_max_num_frames_in_flight);
@@ -141,6 +144,7 @@ namespace influx::renderer
 
         // create main fence
         mpdx_device->CreateFence(0u, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mpdx_fence));
+        mpdx_device->CreateFence(0u, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mpdx_copy_fence));
 
         // describe and create the rtv heap
         D3D12_DESCRIPTOR_HEAP_DESC desc_heap_desc{};
@@ -162,13 +166,10 @@ namespace influx::renderer
                     featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
                 }
 
-                CD3DX12_ROOT_PARAMETER1 rootParameters[2]{};
+                CD3DX12_ROOT_PARAMETER1 rootParameters[1]{};
 
                 // view_constant_buffer root constants
                 rootParameters[0].InitAsConstants(sizeof(view_constant_buffer) / sizeof(float), 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX);
-
-                // 1 constant buffer
-                rootParameters[1].InitAsConstantBufferView(1u, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_VERTEX);
 
                 // Allow input layout and deny uneccessary access to certain pipeline stages.
                 D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -204,10 +205,16 @@ namespace influx::renderer
             // Define the vertex input layout.
             D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
             {
-                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,    0,                  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,    0 + 12,             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-                { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,      0 + 12 + 16,        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,       0 + 12 + 16 + 12,   D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,    D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,    D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+                { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,      D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,       D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+
+                // instance data
+                { "INSTANCE_DATA", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,                            D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+                { "INSTANCE_DATA", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+                { "INSTANCE_DATA", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+                { "INSTANCE_DATA", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
             };
 
             // Describe and create the graphics pipeline state object (PSO).
@@ -272,8 +279,8 @@ namespace influx::renderer
 
             if (scene_proxy != nullptr)
             {
+                // scene general stuff
                 update_scene_buffers(scene_proxy);
-
                 cmdlist->SetGraphicsRootSignature(mpdx_rootsignature);
                 cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                 cmdlist->RSSetViewports(1, &m_viewport);
@@ -297,11 +304,10 @@ namespace influx::renderer
                 for (auto pair : instance_map)
                 {
                     if (pair.second.empty()) continue;
-
                     const uint32 num_instances = pair.second.size();
 
-                    cmdlist->SetGraphicsRootConstantBufferView(1u, m_meshdata_map[pair.first].mp_instancedata_buffer->GetGPUVirtualAddress());
                     cmdlist->IASetVertexBuffers(0u, 1u, &m_meshdata_map[pair.first].mdx_vertexbuffer_view);
+                    cmdlist->IASetVertexBuffers(1u, 1u, &m_meshdata_map[pair.first].mdx_instancebuffer_view);
                     cmdlist->IASetIndexBuffer(&m_meshdata_map[pair.first].mdx_indexbuffer_view);
                     cmdlist->DrawIndexedInstanced((uint32)m_meshdata_map[pair.first].m_data.m_indices.size(), num_instances, 0u, 0u, 0u);
                 }
@@ -505,12 +511,19 @@ namespace influx::renderer
             if (entry.m_instancebuffer_size < new_buffer_size)
             {
                 // recreate buffer resource
-                safe_release(entry.mp_instancedata_buffer);
+                safe_release(entry.mp_instancebuffer);
 
-                D3D12_HEAP_PROPERTIES heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-                D3D12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(new_buffer_size);
-                mpdx_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
-                    D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&entry.mp_instancedata_buffer));
+                CD3DX12_RESOURCE_DESC instanceBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(new_buffer_size);
+
+                // create resource on the uploadheap
+                D3D12_HEAP_PROPERTIES upload_heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+                mpdx_device->CreateCommittedResource(
+                    &upload_heap_props,
+                    D3D12_HEAP_FLAG_NONE,
+                    &instanceBufferDesc,
+                    D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_COPY_SOURCE,
+                    nullptr,
+                    IID_PPV_ARGS(&entry.mp_instancebuffer));
 
                 entry.m_instancebuffer_size = new_buffer_size;
             }
@@ -519,10 +532,14 @@ namespace influx::renderer
             {
                 UINT8* p_data_begin;
                 CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU.
-                entry.mp_instancedata_buffer->Map(0, &readRange, reinterpret_cast<void**>(&p_data_begin));
+                entry.mp_instancebuffer->Map(0, &readRange, reinterpret_cast<void**>(&p_data_begin));
                 memcpy(p_data_begin, pair.second.data(), new_buffer_size);
-                entry.mp_instancedata_buffer->Unmap(0, nullptr);
+                entry.mp_instancebuffer->Unmap(0, nullptr);
             }
+
+            entry.mdx_instancebuffer_view.BufferLocation = entry.mp_instancebuffer->GetGPUVirtualAddress();
+            entry.mdx_instancebuffer_view.StrideInBytes = sizeof(instance_data);
+            entry.mdx_instancebuffer_view.SizeInBytes = new_buffer_size;
         }
     }
 

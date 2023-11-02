@@ -5,6 +5,7 @@
 #include "core/singleton/singleton.h"
 #include "core/platform/platform.h"
 #include "Core/Container/Vector.h"
+#include "core/Math/Matrix.h"
 #include "Core/Container/RingBuffer.h"
 
 #include <atomic>
@@ -27,6 +28,7 @@ namespace influx::application
 			entity() = default;
 			entity(uint64 id) : m_id{ id } {}
 			uint64 m_id = 0u;
+			math::matrix4x4f m_transform = math::matrix4x4f::identity();
 		};
 
 		struct frame_stats final

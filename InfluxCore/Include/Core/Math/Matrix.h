@@ -105,8 +105,8 @@ namespace influx::math
 		static matrix<_t, 4u, 4u> make_scale(const vector<_t, 3u>& scale);
 
 		// More...
-		static matrix<_t, 4u, 4u> make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up);
-		static matrix<_t, 4u, 4u> make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up);
+		static matrix<_t, 4u, 4u> make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::up());
+		static matrix<_t, 4u, 4u> make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::up());
 		static matrix<_t, 4u, 4u> make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::up());
 		static matrix<_t, 4u, 4u> make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::up());
 		static matrix<_t, 4u, 4u> make_projection_LH(const float fov, const float ar, const float n, const float f);

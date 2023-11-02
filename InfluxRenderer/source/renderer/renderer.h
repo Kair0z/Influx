@@ -65,6 +65,7 @@ namespace influx::renderer
 		IDXGIFactory4* mpdx_factory = nullptr;
 		ID3D12Device* mpdx_device = nullptr;
 		ID3D12CommandQueue* mpdx_commandQueue = nullptr;
+		ID3D12CommandQueue* mpdx_copy_queue = nullptr;
 		IDXGISwapChain4* mpdx_swapchain = nullptr;
 		ID3D12DescriptorHeap* mpdx_rtv_heap = nullptr;
 		ID3D12DescriptorHeap* mpdx_srvheap = nullptr;
@@ -77,6 +78,8 @@ namespace influx::renderer
 		vector<ID3D12CommandAllocator*> mpdx_commandAllocators{};
 		vector<ID3D12GraphicsCommandList*> mpdx_commandLists{};
 		ID3D12Fence* mpdx_fence = nullptr;
+		ID3D12Fence* mpdx_copy_fence = nullptr;
+		uint64 m_copy_fence_value = 0u;
 		vector<ID3D12Resource*> mpdx_backbufferResources{};
 		vector<D3D12_CPU_DESCRIPTOR_HANDLE> mpdx_backbuffer_rtvs{};
 		uint32 m_swapchain_buffer_idx = 0u;
@@ -93,8 +96,9 @@ namespace influx::renderer
 			mesh_data m_data{};
 			ID3D12Resource* mp_vertexbuffer = nullptr;
 			ID3D12Resource* mp_indexbuffer = nullptr;
-			ID3D12Resource* mp_instancedata_buffer = nullptr;
+			ID3D12Resource* mp_instancebuffer = nullptr;
 			D3D12_VERTEX_BUFFER_VIEW mdx_vertexbuffer_view{};
+			D3D12_VERTEX_BUFFER_VIEW mdx_instancebuffer_view{};
 			D3D12_INDEX_BUFFER_VIEW mdx_indexbuffer_view{};
 			uint32 m_vertexbuffer_size = 0u;
 			uint32 m_indexbuffer_size = 0u;
