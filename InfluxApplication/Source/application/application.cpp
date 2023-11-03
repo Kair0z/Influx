@@ -167,7 +167,7 @@ namespace influx::application
 				// update
 				entity.m_id++;
 				entity.m_transform = math::matrix4x4f::make_transform_RH(
-					random::get_random_unit_vectorf3(), math::vectorf3::forward());
+					random::get_random_unit_vectorf3() * 5.0f, math::vectorf3::forward());
 			}
 
 			this_frame_stat.m_ms_total = math::maximum(math::k_epsilon, time::get_ms_between<float>(time::get_now(), frame_start));

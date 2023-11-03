@@ -65,7 +65,6 @@ namespace influx::renderer
 		IDXGIFactory4* mpdx_factory = nullptr;
 		ID3D12Device* mpdx_device = nullptr;
 		ID3D12CommandQueue* mpdx_commandQueue = nullptr;
-		ID3D12CommandQueue* mpdx_copy_queue = nullptr;
 		IDXGISwapChain4* mpdx_swapchain = nullptr;
 		ID3D12DescriptorHeap* mpdx_rtv_heap = nullptr;
 		ID3D12DescriptorHeap* mpdx_srvheap = nullptr;
@@ -86,10 +85,28 @@ namespace influx::renderer
 		uint32 m_rtvDescriptorSize = 0u;
 		uint32 m_srvDescriptorSize = 0u;
 
+		class copy_queue final
+		{
+		public:
+			copy_queue(ID3D12Device* device);
+			~copy_queue();
+
+			void queue(const function<void(ID3D12GraphicsCommandList*)>& func);
+
+		private:
+			ID3D12CommandQueue* mpdx_copy_queue = nullptr;
+			ID3D12GraphicsCommandList* mpdx_cmdlist = nullptr;
+			ID3D12CommandAllocator* mpdx_allocator = nullptr;
+			ID3D12Fence* mpdx_fence = nullptr;
+			uint64 m_counter = 0u;
+		};
+		copy_queue* mp_copyqueue = nullptr;
+
 		struct instance_data final
 		{
 			math::matrix4x4f m_transform{};
 		};
+		umap<string, vector<instance_data>> m_instance_map{};
 
 		struct mesh_data_entry final
 		{
@@ -103,6 +120,8 @@ namespace influx::renderer
 			uint32 m_vertexbuffer_size = 0u;
 			uint32 m_indexbuffer_size = 0u;
 			uint32 m_instancebuffer_size = 0u;
+
+			uint32 m_num_instances_this_frame = 0u;
 		};
 
 		umap<string, mesh_data_entry> m_meshdata_map{};
@@ -112,8 +131,8 @@ namespace influx::renderer
 
 		// recreates the swapchain resources when it's dirty
 		void recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle);
-		void update_scene_buffers(const scene_proxy* proxy);
-		void update_instance_buffers(const umap<string, vector<instance_data>>& map);
+		void update_view_constant_buffer(const scene_proxy* proxy);
+		void update_instance_buffers(const scene_proxy* proxy);
 
 		// stalls if num_frames_in_flight > k_max_frames_in_flight
 		per_frame_context acquire_next_frame();
@@ -124,6 +143,7 @@ namespace influx::renderer
 		void submit_to_queue(const per_frame_context& ctx);
 
 		bool get_swapchain_buffer_and_rtv(const frame_id for_frame, ID3D12Resource*& out_buffer, D3D12_CPU_DESCRIPTOR_HANDLE*& out_rtv);
+		void transition_resource(ID3D12GraphicsCommandList* cmdlist, ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 
 		struct swapchain_state final
 		{

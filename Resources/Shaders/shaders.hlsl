@@ -1,7 +1,7 @@
 
 cbuffer view_constant_buffer : register(b0)
 {
-    float4x4 mat_wvp;
+    float4x4 mat_vp;
 };
 
 struct Vertex
@@ -11,7 +11,7 @@ struct Vertex
     float3 normal : NORMAL;
     float2 uv : TEXCOORD;
 
-    row_major float4x4 inst_mat : INSTANCE_DATA;
+    row_major float4x4 instance_transform : INSTANCE_DATA;
 };
 
 struct PSInput
@@ -26,8 +26,7 @@ struct PSInput
 PSInput VSMain(Vertex vertex)
 {
     PSInput output;
-    float4x4 transform = vertex.inst_mat;
-    float4x4 wvp = mul(transform, mat_wvp);
+    float4x4 wvp = vertex.instance_transform * mat_vp;
     output.position =  mul(float4(vertex.position, 1.0f), wvp);
     output.color = vertex.color;
     return output;

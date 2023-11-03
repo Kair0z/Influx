@@ -128,9 +128,6 @@ namespace influx::renderer
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
         mpdx_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mpdx_commandQueue));
 
-        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-        mpdx_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mpdx_copy_queue));
-
         // create some commandlist & commandallocators
         mpdx_commandAllocators.resize(k_max_num_frames_in_flight);
         mpdx_commandLists.resize(k_max_num_frames_in_flight);
@@ -144,7 +141,6 @@ namespace influx::renderer
 
         // create main fence
         mpdx_device->CreateFence(0u, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mpdx_fence));
-        mpdx_device->CreateFence(0u, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mpdx_copy_fence));
 
         // describe and create the rtv heap
         D3D12_DESCRIPTOR_HEAP_DESC desc_heap_desc{};
@@ -251,6 +247,11 @@ namespace influx::renderer
         // recreate swapchain first if necessary
         recreate_swapchain_from_window(k_default_buffering, window);
 
+        if (scene_proxy != nullptr)
+        {
+            update_instance_buffers(scene_proxy);
+        }
+
         // open a new frame_context that's not in flight
         per_frame_context new_frame_ctx{};
         {
@@ -269,9 +270,7 @@ namespace influx::renderer
             new_frame_ctx.mpdx_commandAllocator->Reset();
             cmdlist->Reset(new_frame_ctx.mpdx_commandAllocator, mpdx_pipeline);
 
-            CD3DX12_RESOURCE_BARRIER barrier_to_render_target = CD3DX12_RESOURCE_BARRIER::Transition(backbuffer,
-                D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            cmdlist->ResourceBarrier(1u, &barrier_to_render_target);
+            transition_resource(cmdlist, backbuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
             const ::FLOAT rgba[]{ 0,0,0,0 };
             cmdlist->OMSetRenderTargets(1u, &backbuffer_rtv, false, nullptr);
@@ -280,31 +279,18 @@ namespace influx::renderer
             if (scene_proxy != nullptr)
             {
                 // scene general stuff
-                update_scene_buffers(scene_proxy);
+                update_view_constant_buffer(scene_proxy);
                 cmdlist->SetGraphicsRootSignature(mpdx_rootsignature);
                 cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                 cmdlist->RSSetViewports(1, &m_viewport);
                 cmdlist->RSSetScissorRects(1, &m_rect);
                 cmdlist->SetGraphicsRoot32BitConstants(0u, sizeof(view_constant_buffer) / sizeof(float), &m_view_constant_buffer, 0u);
 
-                // make an instance map
-                umap<string, vector<instance_data>> instance_map{};
-                for (const mesh_proxy& mesh : scene_proxy->m_meshes)
-                {
-                    if (m_meshdata_map.contains(mesh.m_name.c_str()))
-                    {
-                        instance_map[mesh.m_name].push_back({ mesh.m_transform });
-                    }
-                }
-
-                // update instance buffers
-                update_instance_buffers(instance_map);
-
                 // draw instanced
-                for (auto pair : instance_map)
+                for (auto pair : m_instance_map)
                 {
                     if (pair.second.empty()) continue;
-                    const uint32 num_instances = pair.second.size();
+                    const uint32 num_instances = static_cast<uint32>(pair.second.size());
 
                     cmdlist->IASetVertexBuffers(0u, 1u, &m_meshdata_map[pair.first].mdx_vertexbuffer_view);
                     cmdlist->IASetVertexBuffers(1u, 1u, &m_meshdata_map[pair.first].mdx_instancebuffer_view);
@@ -313,9 +299,7 @@ namespace influx::renderer
                 }
             }
 
-            CD3DX12_RESOURCE_BARRIER barrier_to_present = CD3DX12_RESOURCE_BARRIER::Transition(backbuffer,
-                D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-            cmdlist->ResourceBarrier(1u, &barrier_to_present);
+            transition_resource(cmdlist, backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
             cmdlist->Close();
             new_frame_ctx.m_stats.m_ms_build = time::get_ms_between<float>(time::get_now(), start);
@@ -327,6 +311,7 @@ namespace influx::renderer
         // present swapchain
         mpdx_swapchain->Present(present.m_vsync ? 1u : 0u, 0u);
     }
+
 
     vector<frame_stats> renderer_state::get_frame_stats(const uint32 over_num_frames)
     {
@@ -489,7 +474,7 @@ namespace influx::renderer
         m_previous_swapchain_state = new_state;
     }
 
-    void renderer_state::update_scene_buffers(const scene_proxy* proxy)
+    void renderer_state::update_view_constant_buffer(const scene_proxy* proxy)
     {
         auto& camera = proxy->m_cameras[0u];
         auto view = math::matrix4x4f::make_view_RH(camera.m_position, camera.m_forward);
@@ -497,14 +482,24 @@ namespace influx::renderer
         m_view_constant_buffer.m_wvp = view * proj;
     }
 
-    void renderer_state::update_instance_buffers(const umap<string, vector<instance_data>>& map)
+    void renderer_state::update_instance_buffers(const scene_proxy* proxy)
     {
-        for (auto pair : map)
+        // remake our instance map
+        m_instance_map.clear();
+        for (const mesh_proxy& mesh : proxy->m_meshes)
+        {
+            if (m_meshdata_map.contains(mesh.m_name.c_str()))
+            {
+                m_instance_map[mesh.m_name].push_back({ mesh.m_transform });
+            }
+        }
+
+        for (auto pair : m_instance_map)
         {
             if (pair.second.empty()) continue;
             if (!m_meshdata_map.contains(pair.first)) continue;
 
-            const uint32 num_instances = pair.second.size();
+            const uint32 num_instances = static_cast<uint32>(pair.second.size());
             const uint32 new_buffer_size = num_instances * sizeof(instance_data);
 
             mesh_data_entry& entry = m_meshdata_map[pair.first];
@@ -521,7 +516,7 @@ namespace influx::renderer
                     &upload_heap_props,
                     D3D12_HEAP_FLAG_NONE,
                     &instanceBufferDesc,
-                    D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_COPY_SOURCE,
+                    D3D12_RESOURCE_STATE_GENERIC_READ,
                     nullptr,
                     IID_PPV_ARGS(&entry.mp_instancebuffer));
 
@@ -597,6 +592,12 @@ namespace influx::renderer
         out_buffer = mpdx_backbufferResources[frame_idx];
         out_rtv = &mpdx_backbuffer_rtvs[frame_idx];
         return true;
+    }
+
+    void renderer_state::transition_resource(ID3D12GraphicsCommandList* cmdlist, ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
+    {
+        CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource, before, after);
+        cmdlist->ResourceBarrier(1u, &barrier);
     }
 
 #pragma region frontend_api
@@ -727,5 +728,37 @@ namespace influx::renderer
 		return GlobalState::HasAttachedSwapchain();
 	}
 #endif
+
+    renderer_state::copy_queue::copy_queue(ID3D12Device* device)
+    {
+        D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+        device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mpdx_copy_queue));
+
+        // create some commandlist & commandallocators
+        auto type = D3D12_COMMAND_LIST_TYPE_COPY;
+        device->CreateCommandAllocator(type, IID_PPV_ARGS(&mpdx_allocator));
+        device->CreateCommandList(0u, type, mpdx_allocator, nullptr, IID_PPV_ARGS(&mpdx_cmdlist));
+        mpdx_cmdlist->Close();
+    }
+
+    renderer_state::copy_queue::~copy_queue()
+    {
+
+    }
+
+    void renderer_state::copy_queue::queue(const function<void(ID3D12GraphicsCommandList*)>& func)
+    {
+        mpdx_cmdlist->Reset(mpdx_allocator, nullptr);
+        func(mpdx_cmdlist);
+        mpdx_cmdlist->Close();
+
+        ID3D12CommandList* cmdlists[]{ mpdx_cmdlist };
+        mpdx_copy_queue->ExecuteCommandLists(1u, cmdlists);
+        mpdx_copy_queue->Signal(mpdx_fence, m_counter);
+
+        ++m_counter;
+    }
 }
 
