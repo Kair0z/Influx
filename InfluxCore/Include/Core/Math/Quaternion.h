@@ -11,6 +11,13 @@ namespace influx::math
 	{
 	public:
 		quaternion() = default;
+		quaternion(const vectorf3& forward, const vectorf3& up = vectorf3::up())
+		{
+			m_forward = forward.normalized();
+			m_right = vectorf3::cross(up, m_forward);
+			m_up = vectorf3::cross(m_right, m_forward);
+		}
+
 		virtual ~quaternion() = default;
 
 		const static quaternion identity()
@@ -19,17 +26,17 @@ namespace influx::math
 			return q;
 		}
 
-		vectorf3 GetForward() const
+		vectorf3 get_forward() const
 		{
 			return m_forward;
 		}
 
-		vectorf3 GetRight() const
+		vectorf3 get_right() const
 		{
 			return m_right;
 		}
 
-		vectorf3 GetUp() const
+		vectorf3 get_up() const
 		{
 			return m_up;
 		}
@@ -55,8 +62,8 @@ namespace influx::math
 		vectorf3 m_up;
 	};
 
-	// Temp... Might make this a standalone-class someday..
-	using Rotation = quaternion;
+	// Temp... might / should make this a standalone-class someday..
+	using rotation = quaternion;
 }
 
 #endif

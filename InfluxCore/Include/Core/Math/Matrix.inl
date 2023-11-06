@@ -385,7 +385,6 @@ namespace influx::math
 		return get_element(idx % _C, idx / _R);
 	}
 
-
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::operator*=(const float scalar)
 	{
@@ -415,7 +414,6 @@ namespace influx::math
 
 		return *this;
 	}
-
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, _C, _R> matrix<_t, _C, _R>::member_multiply(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b)
 	{
@@ -423,7 +421,6 @@ namespace influx::math
 		res.member_multiply(b);
 		return res;
 	}
-
 
 	// Operations: matrix - Scalar
 	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
@@ -454,7 +451,6 @@ namespace influx::math
 		result.for_each_element([](_t& el) { el /= a; });
 		return result;
 	}
-
 
 	// Operations: matrix - matrix
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>

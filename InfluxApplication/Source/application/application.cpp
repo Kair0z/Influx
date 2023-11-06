@@ -81,14 +81,6 @@ namespace influx::application
 
 		// initialize
 		{
-			// temp: create entities
-			constexpr uint64 k_num_entities = 14u;
-			m_entities.reserve(k_num_entities);
-			for (uint64 i = 0u; i < k_num_entities; ++i)
-			{
-				m_entities.push_back(i);
-			}
-
 			m_instancehandle = platform::get_current_instance();
 			
 			if (!args.m_commandlet)
@@ -105,6 +97,10 @@ namespace influx::application
 
 				// run main thread
 				run_mainthread();
+
+				// cleanup
+				if (m_renderthread.joinable()) m_renderthread.join();
+				if (m_mainthread.joinable()) m_mainthread.join();
 			}
 		}
 	}
@@ -112,10 +108,6 @@ namespace influx::application
 	void application::request_quit()
 	{
 		m_is_quit_requested = true;
-
-		// cleanup
-		if (m_renderthread.joinable()) m_renderthread.join();
-		if (m_mainthread.joinable()) m_mainthread.join();
 	}
 
 	void application::run_mainthread()
@@ -136,7 +128,7 @@ namespace influx::application
 			{
 			}
 
-			// log
+			// log stats
 			if (mainthread_frame % (512 * 512) == 0u && mainthread_frame != 0u)
 			{
 				mainthread_log();
@@ -144,6 +136,9 @@ namespace influx::application
 
 			++mainthread_frame;
 		}
+
+		int a = 0; 
+		a++;
 	}
 
 	void application::run_gamethread()
@@ -152,6 +147,15 @@ namespace influx::application
 		float seconds_synced = 0.0f;
 		time::point frame_start = time::get_now();
 		const uint64 frame_diff = m_run_args.m_max_thread_frame_difference;
+
+		// start
+		// temp: create entities
+		constexpr uint64 k_num_entities = 14u;
+		m_entities.reserve(k_num_entities);
+		for (uint64 i = 0u; i < k_num_entities; ++i)
+		{
+			m_entities.push_back(i);
+		}
 
 		while (!m_is_quit_requested)
 		{
@@ -166,8 +170,10 @@ namespace influx::application
 			{
 				// update
 				entity.m_id++;
-				entity.m_transform = math::matrix4x4f::make_transform_RH(
-					random::get_random_unit_vectorf3() * 5.0f, math::vectorf3::forward());
+				entity.m_transform = math::transform3D(
+					random::get_random_unit_vectorf3() * 5.0f,
+					math::quaternion::identity(),
+					math::vectorf3::one());
 			}
 
 			this_frame_stat.m_ms_total = math::maximum(math::k_epsilon, time::get_ms_between<float>(time::get_now(), frame_start));
@@ -198,11 +204,8 @@ namespace influx::application
 		}
 
 		renderer::render_args render_args{};
-		// ...
-
 		renderer::present_args present_args{};
 		present_args.m_vsync = m_run_args.m_vsync;
-		// ...
 
 		renderer::scene_proxy scene_proxy{};
 		renderer::camera_proxy camera_proxy{};
@@ -210,8 +213,8 @@ namespace influx::application
 		scene_proxy.m_cameras[0].m_fov = 90.0f;
 		scene_proxy.m_cameras[0].m_near_plane = 0.01f;
 		scene_proxy.m_cameras[0].m_far_plane = 1.0f;
-		scene_proxy.m_cameras[0].m_position = { 10.0f, 0.0f, 0.0f };
-		scene_proxy.m_cameras[0].look_at({});
+		scene_proxy.m_cameras[0].m_position = m_camera_entity.m_transform.get_position();
+		scene_proxy.m_cameras[0].look_at( math::vectorf3::zero() );
 
 		frame_stats this_frame_stats{};
 		float seconds_synced = 0.0f;
@@ -229,7 +232,7 @@ namespace influx::application
 			{
 				renderer::mesh_proxy mesh{};
 				mesh.m_name = "duolingo_mesh";
-				mesh.m_transform = m_entities[i].m_transform;
+				mesh.m_transform = m_entities[i].m_transform.get_matrix();
 				scene_proxy.m_meshes[i] = mesh;
 			}
 			
@@ -244,6 +247,7 @@ namespace influx::application
 
 		renderer::cleanup();
 	}
+
 
 	void application::wait_for_renderthread_reaching(const uint64 frame_to_reach, const wait_args& args)
 	{

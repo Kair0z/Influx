@@ -152,6 +152,7 @@ namespace influx::renderer
 
 	struct texture_data final
 	{
+		vector<math::vectorf4> m_pixels{};
 		bool is_valid() const;
 	};
 

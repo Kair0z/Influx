@@ -27,7 +27,7 @@ PSInput VSMain(Vertex vertex)
 {
     PSInput output;
     float4x4 wvp = vertex.instance_transform * mat_vp;
-    output.position =  mul(float4(vertex.position, 1.0f), wvp);
+    output.position = float4(vertex.position, 1.0f); // mul(float4(vertex.position, 1.0f), wvp);
     output.color = vertex.color;
     return output;
 }

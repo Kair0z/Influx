@@ -32,6 +32,9 @@ namespace influx::math
 	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	struct matrix : public detail::base_matrix<_t, _C, _R>
 	{
+		using vector3 = vector<_t, 3u>;
+		using vector4 = vector<_t, 4u>;
+
 	public:
 		matrix() = default;
 		matrix(const matrix& other) = default;
@@ -105,10 +108,10 @@ namespace influx::math
 		static matrix<_t, 4u, 4u> make_scale(const vector<_t, 3u>& scale);
 
 		// More...
-		static matrix<_t, 4u, 4u> make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::up());
-		static matrix<_t, 4u, 4u> make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::up());
-		static matrix<_t, 4u, 4u> make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::up());
-		static matrix<_t, 4u, 4u> make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::up());
+		static matrix<_t, 4u, 4u> make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector3& up = vector3::up());
+		static matrix<_t, 4u, 4u> make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector3::up());
+		static matrix<_t, 4u, 4u> make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector3::up());
+		static matrix<_t, 4u, 4u> make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector3::up());
 		static matrix<_t, 4u, 4u> make_projection_LH(const float fov, const float ar, const float n, const float f);
 		static matrix<_t, 4u, 4u> make_projection_RH(const float fov, const float ar, const float n, const float f); // Todo: [Orthographic vs Perspective]
 

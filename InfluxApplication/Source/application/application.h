@@ -6,6 +6,7 @@
 #include "core/platform/platform.h"
 #include "Core/Container/Vector.h"
 #include "core/Math/Matrix.h"
+#include "Core/Math/Transform.h"
 #include "Core/Container/RingBuffer.h"
 
 #include <atomic>
@@ -27,8 +28,9 @@ namespace influx::application
 		{
 			entity() = default;
 			entity(uint64 id) : m_id{ id } {}
+
 			uint64 m_id = 0u;
-			math::matrix4x4f m_transform = math::matrix4x4f::identity();
+			math::transform3D m_transform = math::transform3D::identity();
 		};
 
 		struct frame_stats final
@@ -86,6 +88,8 @@ namespace influx::application
 		uint64 m_renderthread_frame = 0u;
 
 		vector<entity> m_entities{};
+		entity m_camera_entity{};
+
 		run_args m_run_args{};
 	};
 }
