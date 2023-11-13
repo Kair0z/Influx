@@ -7,7 +7,11 @@
 
 namespace influx
 {
+#if _DEBUG
 #define FLX_ASSERT(x) assert(x);
+#else
+#define FLX_ASSERT(x);
+#endif
 }
 
 #endif

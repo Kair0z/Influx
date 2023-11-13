@@ -26,30 +26,11 @@
 
 namespace influx::application
 {
-	renderer::mesh_data load_mesh_from_assimp(const string& filepath, uint8 mesh_index = 0u)
+	renderer::texture_data load_texture_from(const string& filepath)
 	{
-		renderer::mesh_data result_data{};
-		const aiMesh* mesh = assimp_helpers::mesh_from_file(filepath, mesh_index);
+		renderer::texture_data data{};
 
-		renderer::vertex_data vertex{};
-		for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
-		{
-			vertex.m_position = assimp_helpers::from_assimp(mesh->mVertices[i]);
-			vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
-			vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
-			vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
-			result_data.m_vertices.push_back(vertex);
-		}
-
-		for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
-		{
-			for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
-			{
-				result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
-			}
-		}
-
-		return result_data;
+		return data;
 	}
 
 	#if INFLUX_APP_USES_WINDOWS
@@ -190,15 +171,39 @@ namespace influx::application
 		args.m_resource_dir = m_run_args.m_resources_dir;
 		renderer::initialize(args);
 
+		uint32 num_submeshes = 0u;
+
 		// load assets
 		{
 			assimp_helpers::initialize();
 
-			renderer::mesh_data cube_mesh_data = load_mesh_from_assimp(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx", 0u);
-			renderer::load("duolingo_mesh", cube_mesh_data);
+			assimp_helpers::for_each_mesh_in(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx", [&num_submeshes](const aiMesh* mesh, uint32 idx)
+			{
+				renderer::mesh_data result_data{};
+				renderer::vertex_data vertex{};
+				for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
+				{
+					vertex.m_position = assimp_helpers::from_assimp(mesh->mVertices[i]);
+					vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
+					vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
+					vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
+					result_data.m_vertices.push_back(vertex);
+				}
 
-			renderer::texture_data tex_data{};
-			renderer::load("default_texture", tex_data);
+				for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
+				{
+					for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
+					{
+						result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
+					}
+				}
+
+				renderer::load(string("duolingo_mesh_" + std::to_string(idx)).c_str(), result_data);
+
+				++num_submeshes;
+			});
+
+			renderer::load("default_texture", load_texture_from(m_run_args.m_resources_dir + "/Textures/Duolingo.png"));
 
 			assimp_helpers::cleanup();
 		}
@@ -227,13 +232,16 @@ namespace influx::application
 			wait_for_gamethread_reaching(m_renderthread_frame + 1u, wait_args{ &seconds_synced });
 
 			// update render proxies
-			scene_proxy.m_meshes.resize(m_entities.size());
+			scene_proxy.m_meshes.resize(m_entities.size() * num_submeshes);
 			for (uint64 i = 0u; i < m_entities.size(); ++i)
 			{
-				renderer::mesh_proxy mesh{};
-				mesh.m_name = "duolingo_mesh";
-				mesh.m_transform = m_entities[i].m_transform.get_matrix();
-				scene_proxy.m_meshes[i] = mesh;
+				for (uint32 s = 0u; s < num_submeshes; ++s)
+				{
+					renderer::mesh_proxy mesh{};
+					mesh.m_name = "duolingo_mesh_" + std::to_string(s);
+					mesh.m_transform = m_entities[i].m_transform.get_matrix();
+					scene_proxy.m_meshes[(i * num_submeshes) + s] = mesh;
+				}
 			}
 			
 			// render

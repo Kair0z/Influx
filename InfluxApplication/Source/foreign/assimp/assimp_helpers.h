@@ -155,7 +155,7 @@ namespace influx::assimp_helpers
 		return scene->mMeshes[index];
 	}
 
-	inline void for_each_mesh_in(const string& filepath, const function<void(const aiMesh*)>& func)
+	inline void for_each_mesh_in(const string& filepath, const function<void(const aiMesh*, uint32 idx)>& func)
 	{
 		const aiScene* scene = scene_from_file(filepath);
 		if (scene == nullptr)
@@ -165,7 +165,7 @@ namespace influx::assimp_helpers
 
 		for (uint32 i = 0u; i < scene->mNumMeshes; ++i)
 		{
-			func(scene->mMeshes[i]);
+			func(scene->mMeshes[i], i);
 		}
 	}
 

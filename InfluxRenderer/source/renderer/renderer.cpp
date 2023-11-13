@@ -124,8 +124,6 @@ namespace influx::renderer
                 IID_PPV_ARGS(&mpdx_device));
         }
 
-        api::logical_device device{};
-
         // Describe and create the command queue.
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};
         queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
