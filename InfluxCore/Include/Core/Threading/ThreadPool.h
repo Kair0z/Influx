@@ -10,7 +10,7 @@
 #define __CORE_TODO_ __debugbreak();
 
 #if __CORE_THREADPOOL_USECORE_
-#include "Core/BasicTypes.h"
+#include "Core/basetypes.h"
 #include "Core/Function.h"
 #include "Core/Container/RingBuffer.h"
 #include "Core/Container/Vector.h"
@@ -55,7 +55,7 @@ namespace influx
     }
 
     template <uint8 _dim>
-    class ThreadPool final : public detail::IThreadPool
+    class threadpool final : public detail::IThreadPool
     {
     public:
         constexpr static uint8  k_numThreads = _dim;
@@ -74,7 +74,7 @@ namespace influx
         std::atomic<uint64> m_finishedLabel;
 
     public:
-        ThreadPool()
+        threadpool()
         {
             m_finishedLabel.store(0);
 
@@ -202,11 +202,11 @@ namespace influx
             WaitUntilFinished();
         }
 
-        ThreadPool(const ThreadPool&) = delete;
-        ThreadPool(ThreadPool&&) = delete;
-        ThreadPool& operator=(const ThreadPool&) = delete;
-        ThreadPool& operator=(ThreadPool&&) = delete;
-        virtual ~ThreadPool()
+        threadpool(const ThreadPool&) = delete;
+        threadpool(ThreadPool&&) = delete;
+        threadpool& operator=(const ThreadPool&) = delete;
+        threadpool& operator=(ThreadPool&&) = delete;
+        virtual ~threadpool()
         {
             Terminate();
         }
@@ -217,7 +217,7 @@ namespace influx
     template <uint8 _dim>
     static void AsyncFor(detail::IThreadPool::Job it_job)
     {
-        ThreadPool<_dim> pool{};
+        threadpool<_dim> pool{};
 
         pool.AsyncFor(it_job);
     }
@@ -229,7 +229,7 @@ namespace influx
     {
         const uint64 numJobs = jobs.dimension();
 
-        ThreadPool<_dim> pool{};
+        threadpool<_dim> pool{};
 
         for (uint64 i = 0u; i < numJobs; ++i)
         {

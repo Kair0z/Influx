@@ -1,26 +1,28 @@
-
-#include "PixEvents.h"
-
-#if _DEBUG
+#pragma region sdl
+    #if _DEBUG
 #pragma comment (lib, "SDL2d.lib")
-#else
+    #else
 #pragma comment (lib, "SDL2.lib")
-#endif
-
-#include "SDL/SDL.h"
-#include <iostream>
-#include <array>
-
-#ifdef main
-#undef main
-#endif
-
-#include "Core/Math/Vector.h"
-#include "Core/Time.h"
-#include "Core/Threading/ThreadPool.h"
-#include "Core/Math/Random.h"
-#include "Core/KDTree.h"
-#include "Core/Platform/WindowsPlatform.h"
+    #endif
+    #include "SDL/SDL.h"
+    #ifdef main
+    #undef main
+    #endif
+    #pragma endregion
+#pragma region core
+    #include "Core/basetypes.h"
+    #include "Core/Math/Vector.h"
+    #include "Core/Time.h"
+    // #include "Core/Threading/ThreadPool.h"
+    #include "Core/Math/Random.h"
+    #include "Core/KDTree.h"
+    #include "Core/Platform/windows_platform.h"
+#pragma endregion
+#pragma region stl
+    #include <iostream>
+    #include <array>
+#pragma endregion
+#include "PixEvents.h"
 
 using uint8 = unsigned char;
 
@@ -32,15 +34,15 @@ constexpr uint32_t  gNumFramesPerLog = 10;
 constexpr uint32_t  gNumFramesPerAverage = 60;
 
 // Setup scene:
-constexpr uint32_t gNumSpheres = 25;
-constexpr float gSpheresMin = -100.0f;
-constexpr float gSpheresMax = 100.0f;
-constexpr float gSpheresMinSize = 5.0f;
-constexpr float gSpheresMaxSize = 10.0f;
+constexpr uint32_t gNumSpheres = 1;
+constexpr float gSpheresMin = 0.0f;
+constexpr float gSpheresMax = 0.0f;
+constexpr float gSpheresMinSize = 1.0f;
+constexpr float gSpheresMaxSize = 1.0f;
 constexpr float gSpheresMinDepth = 80.0f;
 constexpr float gSpheresMaxDepth = 100.0f;
 
-#define THREADED_RENDERING 1
+#define THREADED_RENDERING 0
 #if THREADED_RENDERING
 constexpr uint8_t gNumThreads = 8u;
 const size_t gThreadRange = (size_t)std::ceil(static_cast<double>(gNumPixels) / static_cast<double>(gNumThreads));
@@ -48,10 +50,10 @@ const size_t gThreadRange = (size_t)std::ceil(static_cast<double>(gNumPixels) / 
 
 #include "PixelRaytracer.h"
 
-struct Time final
+struct timing final
 {
-    float DeltaTime;
-    float Time;
+    float m_delta_time;
+    float m_time;
 };
 
 struct Stats final
@@ -80,7 +82,7 @@ struct Stats final
     std::array<size_t, k_EnumSize> AverageCounter{};
 
     template <EStat _S>
-    void AddValue(const double value)
+    void add(const double value)
     {
         constexpr size_t idx = static_cast<size_t>(_S);
         ++AverageCounter[idx];
@@ -113,25 +115,25 @@ struct Stats final
     }
 };
 
-void UpdateScene(const Time& sceneTime, influx::RenderScene& scene)
+void update_scene(const timing& sceneTime, influx::render_scene& scene)
 {
     float pingPong{};
 
-    for (size_t i = 0; i < scene.Spheres.dimension(); ++i)
+    for (size_t i = 0; i < scene.m_spheres.size(); ++i)
     {
-        influx::Math::Sphere<float>& sphere = scene.Spheres[i];
-        pingPong = influx::Math::PingPong(sceneTime.Time + scene.Randoms[i], 1.0f);
-        sphere.m_radius = influx::Math::Lerp(pingPong, gSpheresMinSize, gSpheresMaxSize);
+        influx::math::sphere<float>& sphere = scene.m_spheres[i];
+        pingPong = influx::math::pingpong(sceneTime.m_time + scene.m_randoms[i], 1.0f);
+        sphere.m_radius = influx::math::lerp(pingPong, gSpheresMinSize, gSpheresMaxSize);
 
-        sphere.m_position.x = influx::Math::Cos(pingPong) * gSpheresMax * scene.Randoms[i];
-        sphere.m_position.y = influx::Math::Sin(pingPong) * gSpheresMax * scene.Randoms[i];
-        sphere.m_position.z = influx::Math::Lerp(pingPong, gSpheresMinDepth, gSpheresMaxDepth);
+        sphere.m_position.x = influx::math::cos(pingPong) * gSpheresMax * scene.m_randoms[i];
+        sphere.m_position.y = influx::math::sin(pingPong) * gSpheresMax * scene.m_randoms[i];
+        sphere.m_position.z = influx::math::lerp(pingPong, gSpheresMinDepth, gSpheresMaxDepth);
     }
 }
 
 int main()
 {
-    using namespace influx::Math;
+    using namespace influx::math;
 
 #pragma region Setup
     int a = 0;
@@ -166,29 +168,29 @@ int main()
     unsigned char* backbufferPixels = (unsigned char*)backbuffer_surface->pixels;
 #pragma endregion
 
-    // Seed our random:
-    influx::Random::SeedRandom();
+    influx::random::seed_random();
 
     // Setup Renderscane:
-    influx::RenderScene scene{};
-    scene.Spheres               = influx::Random::Sphere::RandomSpherefs<gNumSpheres>(
-                                    {gSpheresMin, gSpheresMin, gSpheresMinDepth}, 
-                                    {gSpheresMax, gSpheresMax, gSpheresMaxDepth}, 
-                                    {gSpheresMinSize, gSpheresMaxSize});
+    influx::render_scene scene{};
+    {
+        scene.m_spheres = influx::random::get_random_spherefs<gNumSpheres>(
+            { gSpheresMin, gSpheresMax },
+            { gSpheresMinSize, gSpheresMaxSize });
 
-    scene.Randoms               = influx::Random::Randoms<float, gNumSpheres>(0.0f, 1.0f);
-    scene.MainLight.Colour      = Vectorf3::One();
-    scene.MainLight.Direction   = Vectorf3::Normalized({ 0.33f, -0.33f, -0.33f });
+        scene.m_randoms = influx::random::get_randoms<float, gNumSpheres>(0.0f, 1.0f);
+        scene.m_light.m_colour = vectorf3::one();
+        scene.m_light.m_direction = vectorf3::normalized({ 0.33f, -0.33f, -0.33f });
+    }
 
     // Setup Renderer & Camera:
-    influx::PixelRaytracer renderer = influx::PixelRaytracer();
-    renderer.SetCameraFieldOfView(90.0f);
-    renderer.SetCameraPosition({});
-    renderer.SetCameraForward({ 0.0f, 0.0f, 1.0f });
-    renderer.GetRenderSettings().RenderDepthMinMax.y = 500.0f;
+    influx::pixel_raytracer renderer = influx::pixel_raytracer();
+    renderer.set_camera_fov(90.0f);
+    renderer.set_camera_position({0.0f, 0.0f, -10.0f });
+    renderer.set_camera_forward({ 0.0f, 0.0f, 1.0f });
+    renderer.get_render_settings().m_depth_min_max.y = 500.0f;
 
 #if THREADED_RENDERING
-    influx::ThreadPool<gNumThreads>* renderJobPool = new influx::ThreadPool<gNumThreads>();
+    influx::threadpool<gNumThreads>* renderJobPool = new influx::threadpool<gNumThreads>();
 #else
     float uvx{};
     float uvy{};
@@ -201,7 +203,7 @@ int main()
     influx::time::point beforePresent = influx::time::get_now();
 
     uint64_t currentFrame{};
-    Time sceneTime{};
+    timing sceneTime{};
     Stats stats{};
     bool isQuit = false;
 
@@ -222,9 +224,9 @@ int main()
         }
 
         // ¬ UPDATE:
-        stats.AddValue<Stats::EStat::Update>(influx::time::measure_ms<double>([&sceneTime, &scene]()
+        stats.add<Stats::EStat::Update>(influx::time::measure_ms<double>([&sceneTime, &scene]()
         {
-            UpdateScene(sceneTime, scene);
+            update_scene(sceneTime, scene);
         }));
 
         // ¬ RENDER
@@ -241,17 +243,17 @@ int main()
                         float uvx = float(p % gWindowWidth) / float(gWindowWidth);
                         float uvy = float(p / gWindowWidth) / float(gWindowHeight);
 
-                        influx::PixelRenderer::PixelOutput pixelResult =
-                            renderer.RenderPixel(scene, { uvx, uvy }, gAspectRatio);
+                        influx::pixel_renderer::pixel_output pixelResult =
+                            renderer.render_pixel(scene, { uvx, uvy }, gAspectRatio);
 
                         const size_t pixelBaseIdx = p * 4u;
 
-                        backbufferPixels[pixelBaseIdx]      = static_cast<uint8>(255.0f * pixelResult.RGBA.b); // B
-                        backbufferPixels[pixelBaseIdx + 1u] = static_cast<uint8>(255.0f * pixelResult.RGBA.g); // G
-                        backbufferPixels[pixelBaseIdx + 2u] = static_cast<uint8>(255.0f * pixelResult.RGBA.r); // R
-                        backbufferPixels[pixelBaseIdx + 3u] = static_cast<uint8>(255.0f * pixelResult.RGBA.a); // A
+                        backbufferPixels[pixelBaseIdx]      = static_cast<uint8>(255.0f * pixelResult.m_rgba.b); // B
+                        backbufferPixels[pixelBaseIdx + 1u] = static_cast<uint8>(255.0f * pixelResult.m_rgba.g); // G
+                        backbufferPixels[pixelBaseIdx + 2u] = static_cast<uint8>(255.0f * pixelResult.m_rgba.r); // R
+                        backbufferPixels[pixelBaseIdx + 3u] = static_cast<uint8>(255.0f * pixelResult.m_rgba.a); // A
 
-                        depthBufferPixels[p] = pixelResult.Depth;
+                        depthBufferPixels[p] = pixelResult.m_depth;
                     }
                 });
         }
@@ -263,31 +265,31 @@ int main()
             uvx = float(i % gWindowWidth) / float(gWindowWidth);
             uvy = float(i / gWindowWidth) / float(gWindowHeight);
 
-            auto pxResult = raytracer.RenderPixel(scene, { uvx, uvy }, gAspectRatio);
+            auto pxResult = renderer.render_pixel(scene, { uvx, uvy }, gAspectRatio);
 
             const size_t pixelBaseIdx = i * 4u;
 
-            backbufferPixels[pixelBaseIdx]      = 255.0f * pxResult.RGBA.b; // B
-            backbufferPixels[pixelBaseIdx + 1u] = 255.0f * pxResult.RGBA.g; // G
-            backbufferPixels[pixelBaseIdx + 2u] = 255.0f * pxResult.RGBA.r; // R
-            backbufferPixels[pixelBaseIdx + 3u] = 255.0f * pxResult.RGBA.a; // A
+            backbufferPixels[pixelBaseIdx]      = static_cast<uint8>(255.0f * pxResult.m_rgba.b); // B
+            backbufferPixels[pixelBaseIdx + 1u] = static_cast<uint8>(255.0f * pxResult.m_rgba.g); // G
+            backbufferPixels[pixelBaseIdx + 2u] = static_cast<uint8>(255.0f * pxResult.m_rgba.r); // R
+            backbufferPixels[pixelBaseIdx + 3u] = static_cast<uint8>(255.0f * pxResult.m_rgba.a); // A
 
-            depthBufferPixels[i] = pxResult.Depth;
+            depthBufferPixels[i] = pxResult.m_depth;
         }
 #endif
-        stats.AddValue<Stats::EStat::Render>(influx::time::get_ms_between<double>(influx::time::get_now(), beforeRender));
+        stats.add<Stats::EStat::Render>(influx::time::get_ms_between<double>(influx::time::get_now(), beforeRender));
 
         // ¬ PRESENT
         beforePresent = influx::time::get_now();
         SDL_BlitSurface(backbuffer_surface, NULL, window_surface, NULL);
         SDL_UpdateWindowSurface(window);
-        stats.AddValue<Stats::EStat::Present>(influx::time::get_ms_between<double>(influx::time::get_now(), beforePresent));
+        stats.add<Stats::EStat::Present>(influx::time::get_ms_between<double>(influx::time::get_now(), beforePresent));
         
         // ¬ COMPILE FRAMETIME
         double thisFrame = influx::time::get_ms_between<double>(influx::time::get_now(), beforeFrame);
-        stats.AddValue<Stats::EStat::Frame>(thisFrame);
-        sceneTime.DeltaTime = static_cast<float>(thisFrame / 1000);
-        sceneTime.Time += sceneTime.DeltaTime;
+        stats.add<Stats::EStat::Frame>(thisFrame);
+        sceneTime.m_delta_time = static_cast<float>(thisFrame / 1000);
+        sceneTime.m_time += sceneTime.m_delta_time;
         
         // ¬ LOG
         if (currentFrame > 0 && currentFrame % gNumFramesPerLog == 0)
@@ -298,13 +300,13 @@ int main()
             double fps = (1 / msFrame * 1000);
             
             std::cout << "-- FPS: " << fps << " \n";
-            using ValueAndIndex = std::pair<double, size_t>;
-            std::array<ValueAndIndex, Stats::k_EnumSize> sortedStats{};
+            using value_and_index = std::pair<double, size_t>;
+            std::array<value_and_index, Stats::k_EnumSize> sortedStats{};
             for (size_t i = 0; i < Stats::k_EnumSize; ++i)
             {
                 sortedStats[i] = { stats.Values[i], i };
             }
-            std::sort(sortedStats.begin(), sortedStats.end(), [](const ValueAndIndex& a, const ValueAndIndex& b) -> bool
+            std::sort(sortedStats.begin(), sortedStats.end(), [](const value_and_index& a, const value_and_index& b) -> bool
                 {
                     bool aIsBigger = a.first > b.first;
                     if (aIsBigger && ((Stats::EStat)b.second == Stats::EStat::Frame)) return !aIsBigger;

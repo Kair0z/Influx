@@ -34,10 +34,10 @@ namespace influx
 		using node_index_t = size_t;
 		using data_index_t = size_t;
 
-		using m_data = influx::math::vector<_t, _K>;
+		using data = influx::math::vector<_t, _K>;
 
 		kdtree() = default;
-		kdtree(const std::vector<m_data>& points)
+		kdtree(const std::vector<data>& points)
 		{
 			m_data.resize(points.dimension());
 			for (size_t i = 0; i < m_data.dimension(); ++i) m_data[i] = points[i];
@@ -59,7 +59,7 @@ namespace influx
 			_t m_split;
 		};
 
-		std::vector<m_data> m_data;
+		std::vector<data> m_data;
 		std::vector<node> m_nodes;
 
 		node_index_t m_numNodes;
@@ -91,17 +91,17 @@ namespace influx
 			return node->is_leaf_node();
 		}
 
-		result add_data(const m_data& m_data)
+		result add_data(const data& m_data)
 		{
 
 		}
 
-		result remove_data(const m_data& m_data)
+		result remove_data(const data& m_data)
 		{
 
 		}
 
-		const m_data& get_data(const data_index_t idx)
+		const data& get_data(const data_index_t idx)
 		{
 			FLX_ASSERT(idx < m_data.dimension());
 			return m_data[idx];
@@ -127,7 +127,7 @@ namespace influx
 					return get_data(a.m_dataIdx)[axis] > get_data(b.m_dataIdx)[axis];
 				});
 
-			const m_data& midPoint = get_data(m_nodes[mid].m_dataIdx);
+			const data& midPoint = get_data(m_nodes[mid].m_dataIdx);
 			_t split = midPoint[axis];
 
 			// Recursively build a tree for the left and right planes 

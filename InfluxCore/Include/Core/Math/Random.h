@@ -94,7 +94,8 @@ namespace influx::random
 		const math::vectorf2& minMaxDistance,
 		const math::vectorf2& minMaxRadius)
 	{
-		influx::vector<math::spheref> randoms(_N);
+		influx::vector<math::spheref> randoms{};
+		randoms.reserve(_N);
 		for (size_t i = 0; i < _N; ++i)
 		{
 			randoms.push_back(get_random_spheref(minMaxDistance, minMaxRadius));

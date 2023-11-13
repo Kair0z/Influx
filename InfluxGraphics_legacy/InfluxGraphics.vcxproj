@@ -21,32 +21,32 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{5d2be527-24b8-4162-95f7-254e9dd330e4}</ProjectGuid>
-    <RootNamespace>InfluxRenderer</RootNamespace>
+    <ProjectGuid>{804ebbd1-c037-46ef-b607-dd8dad7d5922}</ProjectGuid>
+    <RootNamespace>InfluxGraphics</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -90,12 +90,10 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions) PLATFORM_WINDOWS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>renderer_pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>Source;Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxCore\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;$(SolutionDir)3thParty\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -108,12 +106,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions) PLATFORM_WINDOWS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>renderer_pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>Source;Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxCore\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;$(SolutionDir)3thParty\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,12 +122,10 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions) PLATFORM_WINDOWS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>renderer_pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>Source;Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxCore\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;$(SolutionDir)3thParty\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,12 +138,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions) PLATFORM_WINDOWS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>renderer_pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>Source;Include;$(SolutionDir)InfluxGraphics\Include;$(SolutionDir)InfluxCore\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)InfluxCore\Include;Source;Include;$(SolutionDir)3thParty\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,60 +151,42 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Include\influx_renderer.h" />
-    <ClInclude Include="source\api\api.h" />
-    <ClInclude Include="source\ImGui\imconfig.h" />
-    <ClInclude Include="source\ImGui\imgui.h" />
-    <ClInclude Include="source\ImGui\imgui_impl_dx12.h" />
-    <ClInclude Include="source\ImGui\imgui_impl_win32.h" />
-    <ClInclude Include="source\ImGui\imgui_internal.h" />
-    <ClInclude Include="source\ImGui\imstb_rectpack.h" />
-    <ClInclude Include="source\ImGui\imstb_textedit.h" />
-    <ClInclude Include="source\ImGui\imstb_truetype.h" />
-    <ClInclude Include="Include\InfluxRenderer\Renderer.h" />
-    <ClInclude Include="source\renderer\renderer.h" />
-    <ClInclude Include="source\ImGuiTools\ImGuiLogView.h" />
-    <ClInclude Include="source\ImGuiTools\ImguiWidget.h" />
-    <ClInclude Include="source\ImGuiTools\ImGuiWidgets.h" />
-    <ClInclude Include="source\ImGuiTools\ViewportWidget.h" />
-    <ClInclude Include="Source\InfluxRenderer\RootRenderer.h" />
-    <ClInclude Include="source\renderer_pch.h" />
+    <ClCompile Include="Source\InfluxGraphics\InfluxGraphics.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\api\api.cpp" />
-    <ClCompile Include="source\api\api_d3d12.cpp" />
-    <ClCompile Include="source\renderer\renderer.cpp" />
-    <ClCompile Include="source\renderer_pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="..\Resources\Shaders\shaders.hlsl">
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">6.2</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">6.2</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.2</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.2</ShaderModel>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PSMain</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PSMain</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PSMain</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PSMain</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <DisableOptimizations Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DisableOptimizations>
-      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</EnableDebuggingInformation>
-      <DisableOptimizations Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableOptimizations>
-      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableDebuggingInformation>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\InfluxCore\InfluxCore.vcxproj">
-      <Project>{aae8ef84-74c2-44f9-804e-6c08abe0f35b}</Project>
-    </ProjectReference>
+    <ClInclude Include="Include\InfluxGraphics.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Pipeline.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12PipelineLayout.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\ResourceViews\D3D12RenderTargetView.h" />
+    <ClInclude Include="Include\InfluxGraphics\Common.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12CommandList.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12CommandQueue.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Conversion.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12DescriptorHeap.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Device.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Resource.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\D3D12Swapchain.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\ResourceViews\D3D12ShaderResourceView.h" />
+    <ClInclude Include="Include\InfluxGraphics\D3D12\ResourceViews\D3D12Views.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHI.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHICommandList.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHICommandQueue.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIDescriptorHeap.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIDevice.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIPipeline.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResource.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIShaderResourceView.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIViews.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIPipelineLayout.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHISwapchain.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHITexture.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHITypes.h" />
+    <ClInclude Include="Include\InfluxGraphics\Types.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIRenderTargetView.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIResourceViews\RHIResourceView.h" />
+    <ClInclude Include="Include\InfluxGraphics\RHIObject.h" />
+    <ClInclude Include="Include\InfluxGraphics\Vulkan\Vulkan.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

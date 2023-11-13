@@ -8,6 +8,8 @@
 #include "core/platform/windows_platform.h"
 #include "Core/Time.h"
 
+#include "api/api.h"
+
 #include <thread>
 
 namespace influx::renderer
@@ -121,6 +123,8 @@ namespace influx::renderer
                 D3D_FEATURE_LEVEL_11_0,
                 IID_PPV_ARGS(&mpdx_device));
         }
+
+        api::logical_device device{};
 
         // Describe and create the command queue.
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};

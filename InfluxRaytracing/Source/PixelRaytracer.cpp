@@ -8,67 +8,68 @@
 
 namespace influx
 {
-	PixelRenderer::PixelOutput influx::PixelRaytracer::RenderPixel(
-		const RenderScene& scene, const Math::Vectorf2& uv, const float ar) const
+	pixel_renderer::pixel_output influx::pixel_raytracer::render_pixel(
+		const render_scene& scene, const math::vectorf2& uv, const float ar) const
 	{
-		Math::Ray ray = CreateViewRay(uv, ar);
+		math::ray ray = create_viewray(uv, ar);
 
-		float depth = GetRenderSettings().RenderDepthMinMax.y;
+		float depth = get_render_settings().m_depth_min_max.y;
 		bool anyHit = false;
-		HitRecord record{};
+		hit_record record{};
 
 		// For each object:
 		size_t sphereHitIdx = 0;
-		for (size_t i = 0; i < scene.Spheres.dimension(); ++i)
+		for (size_t i = 0; i < scene.m_spheres.size(); ++i)
 		{
-			const Math::Sphere<float>& sphere = scene.Spheres[i];
+			const math::sphere<float>& sphere = scene.m_spheres[i];
 
-			if (TraceSphere(sphere, ray, record, depth))
+			if (trace_sphere(sphere, ray, record, depth))
 			{
 				anyHit = true;
 				sphereHitIdx = i;
 			}
 		}
 
-		PixelOutput pixelResult{};
-		pixelResult.Depth = record.T;
-		pixelResult.AnythingRendered = anyHit;
+		pixel_output pixelResult{};
+		pixelResult.m_depth = record.m_t;
+		pixelResult.m_is_anything_rendered = anyHit;
 
 		if (anyHit)
 		{
-			switch (GetRenderMode())
+			switch (get_render_mode())
 			{
 			default:
-			case ERenderMode::Material:
+			case e_render_mode::material:
 			{
-				BRDF::PhongSettings settings{};
-				settings.PhongExponent = 100.0f;
-				settings.Specular = 0.7f;
-				settings.DiffuseColour = { 0.8f, 0.4f, 0.7f };
-				settings.Diffuse = 0.6f;
+				BRDF::phong_settings settings{};
+				settings.m_phong_exponent = 100.0f;
+				settings.m_specular = 0.7f;
+				settings.m_diffuse_colour = { 0.8f, 0.4f, 0.7f };
+				settings.m_diffuse = 0.6f;
 
-				settings.DiffuseColour *= scene.Randoms[sphereHitIdx];
+				settings.m_diffuse_colour *= scene.m_randoms[sphereHitIdx];
 
-				auto result = BRDF::Phong(settings, scene.MainLight.Direction, scene.MainLight.Colour, record.ToView, record.Normal);
+				auto result = BRDF::phong(settings, scene.m_light.m_direction, scene.m_light.m_colour, 
+					record.m_to_view, record.m_normal);
 
-				pixelResult.RGBA = { result.r, result.g, result.b, 1.0f };
+				pixelResult.m_rgba = { result.r, result.g, result.b, 1.0f };
 				break;
 			}
 
-			case ERenderMode::Normals:
+			case e_render_mode::normals:
 			{
-				Math::Vectorf3 colouredNormal = record.Normal;
-				colouredNormal += Math::Vectorf3{ 1.0f, 1.0f, 1.0f };
+				math::vectorf3 colouredNormal = record.m_normal;
+				colouredNormal += math::vectorf3{ 1.0f, 1.0f, 1.0f };
 				colouredNormal *= 0.5f;
 
-				pixelResult.RGBA = { colouredNormal.r, colouredNormal.g, colouredNormal.b, 1.0f };
+				pixelResult.m_rgba = { colouredNormal.r, colouredNormal.g, colouredNormal.b, 1.0f };
 				break;
 			}
 
-			case ERenderMode::Depth:
+			case e_render_mode::depth:
 			{
-				float colouredDepth = RemapDepth(record.T);
-				pixelResult.RGBA = { colouredDepth, colouredDepth, colouredDepth, 1.0f };
+				float colouredDepth = remap_depth(record.m_t);
+				pixelResult.m_rgba = { colouredDepth, colouredDepth, colouredDepth, 1.0f };
 				break;
 			}
 
@@ -78,41 +79,41 @@ namespace influx
 		return pixelResult;
 	}
 
-	Math::Ray PixelRaytracer::CreateViewRay(const Math::Vectorf2& uv, const float ar, float sampleRandStrength) const
+	math::ray pixel_raytracer::create_viewray(const math::vectorf2& uv, const float ar, float sampleRandStrength) const
 	{
-		Math::Vectorf3 worldOrigin = GetCameraPosition();
-		Math::Vectorf3 worldDirection = GetCameraForward();
+		math::vectorf3 worldOrigin = get_camera_position();
+		math::vectorf3 worldDirection = get_camera_forward();
 
-		Math::Vectorf2 ndc = (2 * uv) - Math::Vectorf2(1.0f, 1.0f); // [uv:0,1] => [ndc:-1,1]
+		math::vectorf2 ndc = (2 * uv) - math::vectorf2(1.0f, 1.0f); // [uv:0,1] => [ndc:-1,1]
 
 		if (sampleRandStrength > 0.0f)
 		{
 			// Apply a random pixel-offset
-			worldOrigin.x += (ndc.x + (sampleRandStrength * Random::TentRandom<float>() * ar)) * GetCamera().GetFov() * ar;
-			worldOrigin.y += (ndc.y + (sampleRandStrength * Random::TentRandom<float>())) * GetCamera().GetFov();
+			worldOrigin.x += (ndc.x + (sampleRandStrength * random::get_tent_random<float>() * ar)) * get_camera().get_fov() * ar;
+			worldOrigin.y += (ndc.y + (sampleRandStrength * random::get_tent_random<float>())) * get_camera().get_fov();
 		}
 		else
 		{
-			worldOrigin.x += (ndc.x) * GetCamera().GetFov() * ar;
-			worldOrigin.y += (ndc.y) * GetCamera().GetFov();
+			worldOrigin.x += (ndc.x) * get_camera().get_fov() * ar;
+			worldOrigin.y += (ndc.y) * get_camera().get_fov();
 		}
 
-		float min = GetRenderSettings().RenderDepthMinMax.x;
-		float max = GetRenderSettings().RenderDepthMinMax.y;
+		float min = get_render_settings().m_depth_min_max.x;
+		float max = get_render_settings().m_depth_min_max.y;
 
-		return Math::Ray(worldOrigin, worldDirection, min, max);
+		return math::ray(worldOrigin, worldDirection, min, max);
 	}
 
-	Math::Ray PixelRaytracer::CreateViewRay(const Math::Vectorf2& uv, const float ar) const
+	math::ray pixel_raytracer::create_viewray(const math::vectorf2& uv, const float ar) const
 	{
-		return CreateViewRay(uv, ar, 0.0f);
+		return create_viewray(uv, ar, 0.0f);
 	}
 
-	bool PixelRaytracer::TraceSphere(const Math::Sphere<float>& sphere, const Math::Ray& ray, PixelRaytracer::HitRecord& out_hitRecord, float& depthBuffer) const
+	bool pixel_raytracer::trace_sphere(const math::sphere<float>& sphere, const math::ray& ray, pixel_raytracer::hit_record& out_hitRecord, float& depthBuffer) const
 	{
-		float a = Math::Vectorf3::Dot(ray.GetDirection(), ray.GetDirection());
-		float b = Math::Vectorf3::Dot(2 * ray.GetDirection(), ray.GetOrigin() - sphere.m_position);
-		float c = Math::Vectorf3::Dot(ray.GetOrigin() - sphere.m_position, ray.GetOrigin() - sphere.m_position) - (sphere.m_radius * sphere.m_radius);
+		float a = math::vectorf3::dot(ray.get_direction(), ray.get_direction());
+		float b = math::vectorf3::dot(2 * ray.get_direction(), ray.get_direction() - sphere.m_position);
+		float c = math::vectorf3::dot(ray.get_origin() - sphere.m_position, ray.get_origin() - sphere.m_position) - (sphere.m_radius * sphere.m_radius);
 
 		float d{ (b * b) - 4 * a * c };
 
@@ -123,22 +124,22 @@ namespace influx
 		float t1{ (-b - dSqrt) / 2.f * a };
 		float t2;
 
-		if (t1 < ray.GetMin())
+		if (t1 < ray.get_minimum())
 		{
 			t2 = (-b + dSqrt) / 2.f * a;
 		}
 
-		if (t1 > ray.GetMax() || t1 < ray.GetMin()) return false;
+		if (t1 > ray.get_maximum() || t1 < ray.get_minimum()) return false;
 
 		// Depth
 		if (t1 > depthBuffer) return false;
 
 		// Fill out hitrecord
-		out_hitRecord.WorldPosition = ray.GetOrigin() + ray.GetDirection() * t1;
-		out_hitRecord.Normal = (out_hitRecord.WorldPosition - sphere.m_position).Normalized();
-		out_hitRecord.Dot = Math::Vectorf3::Dot(ray.GetDirection(), out_hitRecord.Normal);
-		out_hitRecord.T = t1;
-		out_hitRecord.ToView = (ray.GetOrigin() - out_hitRecord.WorldPosition).Normalized();
+		out_hitRecord.m_world_position = ray.get_origin() + ray.get_direction() * t1;
+		out_hitRecord.m_normal = (out_hitRecord.m_world_position - sphere.m_position).normalized();
+		out_hitRecord.m_dot = math::vectorf3::dot(ray.get_direction(), out_hitRecord.m_normal);
+		out_hitRecord.m_t = t1;
+		out_hitRecord.m_to_view = (ray.get_origin() - out_hitRecord.m_world_position).normalized();
 
 		depthBuffer = t1;
 		return true;

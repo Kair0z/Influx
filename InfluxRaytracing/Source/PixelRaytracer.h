@@ -1,30 +1,30 @@
 #pragma once
-#include "PixelRenderer.h"
 
+#include "PixelRenderer.h"
 #include "Core/Geometry/Ray.h"
 
 namespace influx
 {
-	class PixelRaytracer : public PixelRenderer
+	class pixel_raytracer : public pixel_renderer
 	{
 	public:
-		PixelRaytracer() = default;
+		pixel_raytracer() = default;
 
-		virtual PixelOutput RenderPixel(const RenderScene& scene, const Math::Vectorf2& uv, const float ar) const override;
+		virtual pixel_output render_pixel(const render_scene& scene, const math::vectorf2& uv, const float ar) const override;
 
 	private:
-		struct HitRecord
+		struct hit_record final
 		{
-			Math::Vectorf3 Normal;
-			Math::Vectorf3 WorldPosition;
-			Math::Vectorf3 ToView;
-			float T;
-			float Dot;
+			math::vectorf3 m_normal;
+			math::vectorf3 m_world_position;
+			math::vectorf3 m_to_view;
+			float m_t;
+			float m_dot;
 		};
 
-		Math::Ray CreateViewRay(const Math::Vectorf2& uv, const float ar, float sampleRandStrength) const;
-		Math::Ray CreateViewRay(const Math::Vectorf2& uv, const float ar) const;
-		bool TraceSphere(const Math::Sphere<float>& sphere, const Math::Ray& ray, HitRecord& out_hitRecord, float& depthBuffer) const;
+		math::ray create_viewray(const math::vectorf2& uv, const float ar, float sampleRandStrength) const;
+		math::ray create_viewray(const math::vectorf2& uv, const float ar) const;
+		bool trace_sphere(const math::sphere<float>& sphere, const math::ray& ray, hit_record& out_hitRecord, float& depthBuffer) const;
 	};
 }
 

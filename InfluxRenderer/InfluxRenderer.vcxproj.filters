@@ -18,10 +18,13 @@
     <ClInclude Include="source\ImGuiTools\ImguiWidget.h" />
     <ClInclude Include="source\ImGuiTools\ViewportWidget.h" />
     <ClInclude Include="Include\influx_renderer.h" />
+    <ClInclude Include="source\api\api.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\renderer_pch.cpp" />
     <ClCompile Include="source\renderer\renderer.cpp" />
+    <ClCompile Include="source\api\api_d3d12.cpp" />
+    <ClCompile Include="source\api\api.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\Resources\Shaders\shaders.hlsl" />

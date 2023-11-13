@@ -9,83 +9,82 @@
 
 namespace influx
 {
-	struct RenderScene
+	struct render_scene final
 	{
-		using Spheref = influx::Math::Sphere<float>;
-		std::vector<float> Randoms;
-		std::vector<Spheref> Spheres;
+		using sphere = influx::math::sphere<float>;
+		std::vector<float> m_randoms;
+		std::vector<sphere> m_spheres;
 
-		struct DirectionLight
+		struct direction_light final
 		{
-			Math::Vectorf3 Direction;
-			Math::Vectorf3 Colour;
+			math::vectorf3 m_direction;
+			math::vectorf3 m_colour;
 		};
 
-		DirectionLight MainLight;
+		direction_light m_light;
 	};
 
-	class PixelRenderer
+	class pixel_renderer
 	{
 	public:
-		struct PixelOutput
+		struct pixel_output final
 		{
-			influx::Math::vector<float, 4u> RGBA;
-			float Depth;
-			bool AnythingRendered;
+			math::vectorf4 m_rgba;
+			float m_depth;
+			bool m_is_anything_rendered;
 		};
 
-		enum class ERenderMode
+		enum class e_render_mode
 		{
-			Material,
-			Depth,
-			Normals
+			material,
+			depth,
+			normals
 		};
 
-		struct RenderSettings
+		struct render_settings final
 		{
-			influx::Math::vector<float, 2u> RenderDepthMinMax = {0.0f, FLT_MAX};
+			e_render_mode m_mode{};
+			math::vectorf2 m_depth_min_max = {0.0f, FLT_MAX};
 		};
 
 	public:
-		virtual PixelOutput RenderPixel(const RenderScene& scene, const Math::Vectorf2& uv, const float ar) const = 0;
+		virtual pixel_output render_pixel(const render_scene& scene, const math::vectorf2& uv, const float ar) const = 0;
 
-		void SetCameraFieldOfView(const float newFov) { m_camera.SetFov(newFov); }
-		void SetCameraPosition(const Math::Vectorf3& newPosition) { m_cameraPosition = newPosition; }
-		void SetCameraForward(const Math::Vectorf3& newForward) { m_cameraForward = newForward; }
-		void SetRenderMode(const ERenderMode renderMode) { m_renderMode = renderMode; }
+		void set_camera_fov(const float newFov) { m_camera.set_fov(newFov); }
+		void set_camera_position(const math::vectorf3& newPosition) { m_camera_position = newPosition; }
+		void set_camera_forward(const math::vectorf3& newForward) { m_camera_forward = newForward; }
+		void set_render_mode(const e_render_mode renderMode) { m_renderSettings.m_mode = renderMode; }
 
-		const Math::Vectorf3& GetCameraPosition() const { return m_cameraPosition; }
-		const Math::Vectorf3& GetCameraForward() const { return m_cameraForward; }
+		const scene::camera& get_camera() const { return m_camera; }
+		const math::vectorf3& get_camera_position() const { return m_camera_position; }
+		const math::vectorf3& get_camera_forward() const { return m_camera_forward; }
 		
-		const Scene::Camera& GetCamera() const { return m_camera; }
-		const ERenderMode GetRenderMode() const { return m_renderMode; }
+		const e_render_mode get_render_mode() const { return m_renderSettings.m_mode; }
 
-		RenderSettings& GetRenderSettings() { return m_renderSettings; }
-		const RenderSettings& GetRenderSettings() const { return m_renderSettings; }
+		render_settings& get_render_settings() { return m_renderSettings; }
+		const render_settings& get_render_settings() const { return m_renderSettings; }
 
 	protected:
-		inline float RemapDepth(float depthValue) const
+		inline float remap_depth(float depth_value) const
 		{
-			return influx::Math::Remap(depthValue,
-				m_renderSettings.RenderDepthMinMax.x, m_renderSettings.RenderDepthMinMax.y,
+			return math::remap(depth_value,
+				m_renderSettings.m_depth_min_max.x, m_renderSettings.m_depth_min_max.y,
 				0.0f, 1.0f);
 		}
 
 	private:
-		Scene::Camera m_camera;
-		Math::Vectorf3 m_cameraPosition;
-		Math::Vectorf3 m_cameraForward;
-
-		ERenderMode m_renderMode;
-		RenderSettings m_renderSettings;
+		scene::camera m_camera;
+		math::vectorf3 m_camera_position;
+		math::vectorf3 m_camera_forward;
+		render_settings m_renderSettings;
 
 	public:
-		PixelRenderer() = default;
-		PixelRenderer(const PixelRenderer&) = delete;
-		PixelRenderer(PixelRenderer&&) = delete;
-		PixelRenderer& operator=(const PixelRenderer&) = delete;
-		PixelRenderer& operator=(PixelRenderer&&) = delete;
-		virtual ~PixelRenderer() = default;
+		pixel_renderer() = default;
+		pixel_renderer(const pixel_renderer&) = delete;
+		pixel_renderer(pixel_renderer&&) = delete;
+		pixel_renderer& operator=(const pixel_renderer&) = delete;
+		pixel_renderer& operator=(pixel_renderer&&) = delete;
+		virtual ~pixel_renderer() = default;
 	};
 }
 
