@@ -157,6 +157,9 @@ namespace influx::application
 					math::vectorf3::one());
 			}
 
+			m_camera_entity.m_transform.set_position({ 0.0f, 0.0f, 10.0f });
+			m_camera_entity.m_transform.set_forward({ 0.0f, 0.0f, -1.0f });
+
 			this_frame_stat.m_ms_total = math::maximum(math::k_epsilon, time::get_ms_between<float>(time::get_now(), frame_start));
 			this_frame_stat.m_pc_sync = math::is_zero(this_frame_stat.m_ms_total) ? 0.0f : (seconds_synced * 1000.0f) / this_frame_stat.m_ms_total;
 			m_gamethread_state.m_stats.pop_to_push(this_frame_stat);
@@ -219,7 +222,7 @@ namespace influx::application
 		scene_proxy.m_cameras[0].m_near_plane = 0.01f;
 		scene_proxy.m_cameras[0].m_far_plane = 1.0f;
 		scene_proxy.m_cameras[0].m_position = m_camera_entity.m_transform.get_position();
-		scene_proxy.m_cameras[0].look_at( math::vectorf3::zero() );
+		scene_proxy.m_cameras[0].m_forward = m_camera_entity.m_transform.get_forward();
 
 		frame_stats this_frame_stats{};
 		float seconds_synced = 0.0f;

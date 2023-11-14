@@ -110,6 +110,9 @@ xcopy /Y /E "$(SolutionDir)Resources" "$(TargetDir)Resources\"</Command>
     <ProjectReference Include="..\InfluxApplication\InfluxApplication.vcxproj">
       <Project>{22e6b704-82d5-42f4-a8ab-f1f1843b8cdf}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\InfluxRenderer\InfluxRenderer.vcxproj">
+      <Project>{5d2be527-24b8-4162-95f7-254e9dd330e4}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -163,9 +163,20 @@ namespace influx::assimp_helpers
 			return;
 		}
 
-		for (uint32 i = 0u; i < scene->mNumMeshes; ++i)
+		auto check_meshes = [func, scene](const aiNode* node)
 		{
-			func(scene->mMeshes[i], i);
+			for (uint32 i = 0u; i < node->mNumMeshes; ++i)
+			{
+				int idx = node->mMeshes[i];
+				func(scene->mMeshes[idx], idx);
+			}
+		};
+
+		aiNode* current_node = scene->mRootNode;
+		while (current_node != nullptr)
+		{
+			check_meshes(current_node);
+			// ...
 		}
 	}
 

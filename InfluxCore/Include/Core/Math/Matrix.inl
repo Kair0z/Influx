@@ -7,6 +7,30 @@
 
 namespace influx::math
 {
+#pragma region transpose
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	matrix<_t, _C, _R>& matrix<_t, _C, _R>::transpose()
+	{
+
+	}
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	matrix<_t, _C, _R> matrix<_t, _C, _R>::transposed() const
+	{
+
+	}
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	static void matrix<_t, _C, _R>::transpose(matrix& matrix)
+	{
+
+	}
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	static matrix<_t, _C, _R> matrix<_t, _C, _R>::transposed(const matrix& matrix)
+	{
+
+	}
+#pragma endregion
+
+#pragma region determinant
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline float matrix<_t, _C, _R>::determinant(const matrix<_t, 2, 2>& m)
 	{
@@ -35,6 +59,7 @@ namespace influx::math
 	{
 		return determinant(*this);
 	}
+#pragma endregion
 
 #pragma region Inversion
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
