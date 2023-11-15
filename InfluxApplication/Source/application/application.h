@@ -12,6 +12,11 @@
 #include <atomic>
 #include <thread>
 
+namespace influx::renderer
+{
+	struct material_data;
+}
+
 namespace influx::application
 {
 	class application final 
@@ -71,6 +76,8 @@ namespace influx::application
 		void wait_for_gamethread_reaching(const uint64 frame_to_reach, const wait_args& args = {});
 
 		void mainthread_log();
+
+		void renderthread_loadassets(uint32& num_submeshes, vector<renderer::material_data>& materials);
 
 		platform::window_handle m_windowhandle = nullptr;
 		platform::instance_handle m_instancehandle = nullptr;

@@ -10,6 +10,9 @@
 #include "Core/Scene/Camera.h"
 #include "Core/Function.h"
 
+#include "Core/Container/Map.h"
+
+
 namespace influx::assimp_helpers
 {
 	inline static Assimp::Importer* gp_importer = nullptr;
@@ -63,6 +66,10 @@ namespace influx::assimp_helpers
 		return { string.C_Str() };
 	}
 
+	inline aiString to_assimp(const string& string)
+	{
+		return aiString(string);
+	}
 	inline constexpr scene::e_light_type from_assimp(const aiLightSourceType& lightType)
 	{
 		switch (lightType)
@@ -155,7 +162,45 @@ namespace influx::assimp_helpers
 		return scene->mMeshes[index];
 	}
 
-	inline void for_each_mesh_in(const string& filepath, const function<void(const aiMesh*, uint32 idx)>& func)
+	inline void traverse_graph(const aiNode* root, const function<void(const aiNode*, const aiMatrix4x4&)>& func)
+	{
+		// depth-first traverse the node
+		umap<const aiNode*, bool> visited = {};
+		function<void(const aiNode*, const aiMatrix4x4&)> depth_first_traversal{};
+		depth_first_traversal = [&visited, &depth_first_traversal, func](const aiNode* node, const aiMatrix4x4& parent_world_transform)
+		{
+			if (visited[node] == true) return;
+
+			const aiMatrix4x4& this_world_transform = parent_world_transform * node->mTransformation;
+			func(node, this_world_transform);
+			
+			// check children
+			for (uint32 i = 0u; i < node->mNumChildren; ++i)
+			{
+				depth_first_traversal(node->mChildren[i], this_world_transform);
+			}
+		};
+
+		depth_first_traversal(root, root->mTransformation);
+	}
+
+	struct add_mesh_info final
+	{
+		aiMatrix4x4 m_world_transform; 
+
+		aiMatrix4x4 m_world_rotation;
+		aiMatrix4x4 m_world_translation;
+		aiMatrix4x4 m_world_scale;
+		aiVector3D m_world_rotation_v;
+		aiVector3D m_world_translation_v;
+		aiVector3D m_world_scale_v;
+
+		aiMaterial* m_material;
+
+		uint32 m_idx;
+	};
+
+	inline void for_each_mesh_in(const string& filepath, const function<void(const aiMesh*, const add_mesh_info&)>& func)
 	{
 		const aiScene* scene = scene_from_file(filepath);
 		if (scene == nullptr)
@@ -163,21 +208,33 @@ namespace influx::assimp_helpers
 			return;
 		}
 
-		auto check_meshes = [func, scene](const aiNode* node)
+		traverse_graph(scene->mRootNode, [func, scene](const aiNode* node, const aiMatrix4x4& world_transform)
 		{
+			aiMatrix4x4 this_world_transform = world_transform * node->mTransformation;
+
+			aiVector3D scale = {};
+			aiVector3D translation = {};
+			aiVector3D rotation = {};
+			this_world_transform.Decompose(scale, rotation, translation);
+
 			for (uint32 i = 0u; i < node->mNumMeshes; ++i)
 			{
-				int idx = node->mMeshes[i];
-				func(scene->mMeshes[idx], idx);
-			}
-		};
+				const uint32 mesh_index = node->mMeshes[i];
+				const aiMesh* mesh = scene->mMeshes[mesh_index];
 
-		aiNode* current_node = scene->mRootNode;
-		while (current_node != nullptr)
-		{
-			check_meshes(current_node);
-			// ...
-		}
+				add_mesh_info info{};
+				info.m_idx = mesh_index;
+				info.m_world_transform = this_world_transform;
+				info.m_world_scale_v = scale;
+				info.m_world_rotation_v = rotation;
+				info.m_world_translation_v = translation;
+				info.m_world_scale = aiMatrix4x4::Scaling(scale, info.m_world_scale);
+				info.m_world_rotation.FromEulerAnglesXYZ(rotation.x, rotation.y, rotation.z);
+				info.m_world_translation = aiMatrix4x4::Translation(translation, info.m_world_translation);
+				info.m_material = scene->mMaterials[mesh->mMaterialIndex];
+				func(mesh, info);
+			}
+		});
 	}
 
 	inline void for_each_camera_in(const string& filepath, const function<void(const aiCamera*)>& func)
@@ -206,5 +263,69 @@ namespace influx::assimp_helpers
 		{
 			func(scene->mLights[i]);
 		}
+	}
+
+	inline void for_each_texture_in(const string& filepath, const function<void(const aiTexture*, const uint32)>& func)
+	{
+		const aiScene* scene = scene_from_file(filepath);
+		if (scene == nullptr)
+		{
+			return;
+		}
+
+		for (uint32 i = 0u; i < scene->mNumTextures; ++i)
+		{
+			func(scene->mTextures[i], i);
+		}
+	}
+
+	enum class e_material_property : uint8
+	{
+		diffuse,
+		emissive,
+		ambient,
+		specular,
+		max
+	};
+
+	namespace detail
+	{
+		const static char* g_material_property_strings[static_cast<uint8>(e_material_property::max)]
+		{
+			"$clr.diffuse",
+			"$clr.emissive",
+			"$clr.ambient",
+			"$clr.specular"
+		};
+
+		const static char* get_material_property_string(e_material_property prop)
+		{
+			return g_material_property_strings[static_cast<uint8>(prop)];
+		}
+	}
+	
+	template <typename _t>
+	inline _t parse_material_property(const string& property_name, const aiMaterial* material)
+	{
+		_t result = {};
+
+		for (uint32 i = 0u; i < material->mNumProperties; ++i)
+		{
+			const aiMaterialProperty* prop = material->mProperties[i];
+			if (prop->mKey == to_assimp(property_name))
+			{
+				if (prop->mDataLength > sizeof(_t)) return {};
+
+				memcpy(reinterpret_cast<void*>(&result), reinterpret_cast<void*>(prop->mData), prop->mDataLength);
+			}
+		}
+
+		return result;
+	}
+
+	template <typename _t>
+	inline _t parse_material_property(e_material_property prop, const aiMaterial* material)
+	{
+		return parse_material_property<_t>(detail::get_material_property_string(prop), material);
 	}
 }

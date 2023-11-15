@@ -46,6 +46,10 @@ namespace influx::renderer
 
 		void load(const string& title, const mesh_data& data);
 		void load(const string& title, const texture_data& data);
+		void load(const string& title, const material_data& data);
+
+		const mesh_data* find_mesh_data(const string& title);
+		vector<const mesh_data*> get_all_mesh_datas();
 
 		using frame_id = uint64;
 		struct per_frame_context final
@@ -82,29 +86,14 @@ namespace influx::renderer
 		vector<ID3D12Resource*> mpdx_backbufferResources{};
 		vector<D3D12_CPU_DESCRIPTOR_HANDLE> mpdx_backbuffer_rtvs{};
 		uint32 m_swapchain_buffer_idx = 0u;
-		uint32 m_rtvDescriptorSize = 0u;
-		uint32 m_srvDescriptorSize = 0u;
-
-		class copy_queue final
-		{
-		public:
-			copy_queue(ID3D12Device* device);
-			~copy_queue();
-
-			void queue(const function<void(ID3D12GraphicsCommandList*)>& func);
-
-		private:
-			ID3D12CommandQueue* mpdx_copy_queue = nullptr;
-			ID3D12GraphicsCommandList* mpdx_cmdlist = nullptr;
-			ID3D12CommandAllocator* mpdx_allocator = nullptr;
-			ID3D12Fence* mpdx_fence = nullptr;
-			uint64 m_counter = 0u;
-		};
-		copy_queue* mp_copyqueue = nullptr;
+		uint64 m_rtvDescriptorSize = 0u;
+		uint64 m_srvDescriptorSize = 0u;
+		frame_id m_frame = 0u;
 
 		struct instance_data final
 		{
 			math::matrix4x4f m_transform{};
+			math::vectorf4 m_colour{};
 		};
 		umap<string, vector<instance_data>> m_instance_map{};
 
@@ -123,11 +112,24 @@ namespace influx::renderer
 
 			uint32 m_num_instances_this_frame = 0u;
 		};
-
+		struct texture_data_entry final
+		{
+			texture_data m_data{};
+			ID3D12Resource* mp_resource = nullptr;
+			uint32 m_resource_size = 0u;
+			D3D12_CPU_DESCRIPTOR_HANDLE m_srv_handle_cpu;
+			D3D12_GPU_DESCRIPTOR_HANDLE m_srv_handle_gpu;
+		};
+		struct material_data_entry final
+		{
+			material_data m_data{};
+			ID3D12Resource* mp_resource = nullptr;
+			D3D12_CPU_DESCRIPTOR_HANDLE m_cbv_handle_cpu;
+			D3D12_GPU_DESCRIPTOR_HANDLE m_cbv_handle_gpu;
+		};
 		umap<string, mesh_data_entry> m_meshdata_map{};
-		umap<string, texture_data> m_texturedata_map{};
-
-		frame_id m_frame = 0u;
+		umap<string, texture_data_entry> m_texturedata_map{};
+		umap<string, material_data_entry> m_materialdata_map{};
 
 		// recreates the swapchain resources when it's dirty
 		void recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle);

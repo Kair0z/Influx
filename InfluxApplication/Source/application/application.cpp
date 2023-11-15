@@ -26,13 +26,6 @@
 
 namespace influx::application
 {
-	renderer::texture_data load_texture_from(const string& filepath)
-	{
-		renderer::texture_data data{};
-
-		return data;
-	}
-
 	#if INFLUX_APP_USES_WINDOWS
 	inline static ::LRESULT windows_procedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
 	{
@@ -174,42 +167,10 @@ namespace influx::application
 		args.m_resource_dir = m_run_args.m_resources_dir;
 		renderer::initialize(args);
 
-		uint32 num_submeshes = 0u;
-
-		// load assets
-		{
-			assimp_helpers::initialize();
-
-			assimp_helpers::for_each_mesh_in(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx", [&num_submeshes](const aiMesh* mesh, uint32 idx)
-			{
-				renderer::mesh_data result_data{};
-				renderer::vertex_data vertex{};
-				for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
-				{
-					vertex.m_position = assimp_helpers::from_assimp(mesh->mVertices[i]);
-					vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
-					vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
-					vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
-					result_data.m_vertices.push_back(vertex);
-				}
-
-				for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
-				{
-					for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
-					{
-						result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
-					}
-				}
-
-				renderer::load(string("duolingo_mesh_" + std::to_string(idx)).c_str(), result_data);
-
-				++num_submeshes;
-			});
-
-			renderer::load("default_texture", load_texture_from(m_run_args.m_resources_dir + "/Textures/Duolingo.png"));
-
-			assimp_helpers::cleanup();
-		}
+		// load assets into the renderer
+		uint32 num_submeshes{}; 
+		vector<renderer::material_data> materials{};
+		renderthread_loadassets(num_submeshes, materials);
 
 		renderer::render_args render_args{};
 		renderer::present_args present_args{};
@@ -231,7 +192,7 @@ namespace influx::application
 		{
 			frame_start = time::get_now();
 
-			// make sure this frame's been simulated
+			// make sure this frame's passed simulation
 			wait_for_gamethread_reaching(m_renderthread_frame + 1u, wait_args{ &seconds_synced });
 
 			// update render proxies
@@ -243,6 +204,7 @@ namespace influx::application
 					renderer::mesh_proxy mesh{};
 					mesh.m_name = "duolingo_mesh_" + std::to_string(s);
 					mesh.m_transform = m_entities[i].m_transform.get_matrix();
+					mesh.m_per_instance_colour = materials[s].m_albedo;
 					scene_proxy.m_meshes[(i * num_submeshes) + s] = mesh;
 				}
 			}
@@ -259,6 +221,96 @@ namespace influx::application
 		renderer::cleanup();
 	}
 
+	void application::renderthread_loadassets(uint32& num_submeshes, vector<renderer::material_data>& materials)
+	{
+		assimp_helpers::initialize();
+
+		math::spheref bounding_sphere{};
+		assimp_helpers::for_each_mesh_in(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx",
+			[&num_submeshes, &materials, &bounding_sphere](const aiMesh* mesh, const assimp_helpers::add_mesh_info& info)
+			{
+				renderer::mesh_data result_data{};
+				renderer::vertex_data vertex{};
+
+				renderer::material_data material{};
+				material.m_albedo = assimp_helpers::parse_material_property<math::vectorf4>(assimp_helpers::e_material_property::diffuse, info.m_material);
+				materials.push_back(material);
+
+				// vertexbuffer
+				for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
+				{
+					vertex.m_position = assimp_helpers::from_assimp(info.m_world_rotation * mesh->mVertices[i]);
+					vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
+					vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
+					vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
+					result_data.m_vertices.push_back(vertex);
+				}
+
+				// indexbuffer
+				for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
+				{
+					for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
+					{
+						result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
+					}
+				}
+
+				// load into the renderer
+				renderer::load("duolingo_mesh_" + to_string(info.m_idx), result_data);
+
+				++num_submeshes;
+			});
+
+		assimp_helpers::for_each_mesh_in(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx",
+			[&num_submeshes, &materials](const aiMesh* mesh, const assimp_helpers::add_mesh_info& info)
+			{
+				renderer::mesh_data result_data{};
+				renderer::vertex_data vertex{};
+
+				// vertexbuffer
+				for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
+				{
+					vertex.m_position = assimp_helpers::from_assimp(info.m_world_rotation * mesh->mVertices[i]);
+					vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
+					vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
+					vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
+					result_data.m_vertices.push_back(vertex);
+				}
+
+				// indexbuffer
+				for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
+				{
+					for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
+					{
+						result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
+					}
+				}
+
+				// load into the renderer
+				renderer::load("duolingo_mesh_" + to_string(info.m_idx), result_data);
+
+				++num_submeshes;
+			});
+
+		assimp_helpers::for_each_texture_in(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx",
+			[](const aiTexture* texture, uint32 index)
+			{
+				const uint32 num_pixels = (texture->mWidth * texture->mHeight);
+
+				renderer::texture_data result_data{};
+				result_data.m_width = texture->mWidth;
+				result_data.m_pixels.reserve(num_pixels);
+				for (uint32 i = 0u; i < num_pixels; ++i)
+				{
+					const aiTexel& texel = texture->pcData[i];
+					result_data.m_pixels.push_back(assimp_helpers::from_assimp(texel.operator aiColor4D()));
+				}
+
+				renderer::load("duolingo_texture_" + to_string(index), result_data);
+			});
+
+		assimp_helpers::cleanup();
+	}
 
 	void application::wait_for_renderthread_reaching(const uint64 frame_to_reach, const wait_args& args)
 	{
@@ -297,7 +349,7 @@ namespace influx::application
 		std::cout << "[Game]  \tFPS: " << 1.0f / (game_stats.m_ms_total * 0.001f) << "\t| ms: " << game_stats.m_ms_total << "\t| " << "Sync: " << 100.0f * game_stats.m_pc_sync << "%\n";
 		std::cout << "[Render]\tFPS: " << 1.0f / (render_stats.m_ms_total * 0.001f) << "\t| ms: " << render_stats.m_ms_total << "\t| " << "Sync: " << 100.0f * render_stats.m_pc_sync << "%\n";
 	}
-	
+
 #pragma region apifunctions
 	void run(const run_args& args)
 	{

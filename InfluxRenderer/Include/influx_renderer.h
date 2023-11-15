@@ -119,7 +119,8 @@ namespace influx::renderer
 	struct mesh_proxy final
 	{
 		string m_name = "";
-
+		string m_material_name = "";
+		math::vectorf4 m_per_instance_colour = {};
 		math::matrix4x4f m_transform = math::matrix4x4f::identity();
 	};
 
@@ -153,13 +154,34 @@ namespace influx::renderer
 	struct texture_data final
 	{
 		vector<math::vectorf4> m_pixels{};
+		uint32 m_width = 0u;
+
+		uint32 get_width() const
+		{
+			return m_width;
+		}
+
+		uint32 get_height() const
+		{
+			return m_pixels.size() / get_width();
+		}
+
 		bool is_valid() const;
+	};
+
+	struct material_data final
+	{
+		math::vectorf4 m_albedo{};
 	};
 
 	INFLUX_RENDER_API void initialize(const init_args& args);
 
 	INFLUX_RENDER_API void load(const string& title, const mesh_data& data);
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
+	INFLUX_RENDER_API void load(const string& title, const material_data& data);
+
+	INFLUX_RENDER_API const mesh_data* find_mesh_data(const string& title); 
+	INFLUX_RENDER_API vector<const mesh_data*> get_all_mesh_datas();
 
 	INFLUX_RENDER_API void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present = {});
 

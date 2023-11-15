@@ -26,6 +26,11 @@ namespace influx
 		std::copy(string.cbegin(), string.cend(), res.begin());
 		return res;
 	}
+
+	inline string to_string(int i)
+	{
+		return std::to_string(i);
+	}
 #pragma warning (pop)
 }
 
