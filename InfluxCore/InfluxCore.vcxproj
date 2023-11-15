@@ -27,6 +27,8 @@
     <ClInclude Include="Include\core\container\queue.h" />
     <ClInclude Include="Include\core\container\ringbuffer.h" />
     <ClInclude Include="Include\core\container\vector.h" />
+    <ClInclude Include="Include\core\geometry\geometry.h" />
+    <ClInclude Include="Include\core\geometry\quad.h" />
     <ClInclude Include="Include\core\graph\hierarchy.h" />
     <ClInclude Include="Include\core\macros.h" />
     <ClInclude Include="Include\Core\Math\colour.h" />
@@ -80,13 +82,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <ConfigurationType>StaticLibrary</ConfigurationType>

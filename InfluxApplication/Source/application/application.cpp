@@ -9,6 +9,9 @@
 #endif
 
 #include "Core/Math/Random.h"
+#include "core/geometry/quad.h"
+#include "core/geometry/geometry.h"
+
 #include "Core/Time.h"
 
 #pragma comment(lib, "InfluxRenderer.lib")
@@ -219,6 +222,27 @@ namespace influx::application
 		uint32 num_submeshes{}; 
 		vector<renderer::material_data> materials{};
 		renderthread_loadassets(num_submeshes, materials);
+		
+		// plane
+		renderer::mesh_data plane_mesh_data{};
+		{
+			using namespace math;
+			quadf plane_quad = quadf::up_quad(rectf::square_rect(10.0f), -vectorf3::forward());
+
+			geometry::traverse(plane_quad,
+				[&plane_mesh_data](const vectorf3& vertex)
+				{
+					renderer::vertex_data result_vertex{};
+					result_vertex.m_position = vertex;
+					plane_mesh_data.m_vertices.push_back(result_vertex);
+				},
+				[&plane_mesh_data](const uint32 index)
+				{
+					plane_mesh_data.m_indices.push_back(index);
+				});
+
+			renderer::load("plane", plane_mesh_data);
+		}
 
 		renderer::render_args render_args{};
 		renderer::present_args present_args{};
@@ -289,37 +313,6 @@ namespace influx::application
 				{
 					vertex.m_position = assimp_helpers::from_assimp(info.m_world_rotation * mesh->mVertices[i]);
 					vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : material.m_albedo;
-					vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
-					vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
-					result_data.m_vertices.push_back(vertex);
-				}
-
-				// indexbuffer
-				for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
-				{
-					for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
-					{
-						result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
-					}
-				}
-
-				// load into the renderer
-				renderer::load("duolingo_mesh_" + to_string(info.m_idx), result_data);
-
-				++num_submeshes;
-			});
-
-		assimp_helpers::for_each_mesh_in(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx",
-			[&num_submeshes, &materials](const aiMesh* mesh, const assimp_helpers::add_mesh_info& info)
-			{
-				renderer::mesh_data result_data{};
-				renderer::vertex_data vertex{};
-
-				// vertexbuffer
-				for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
-				{
-					vertex.m_position = assimp_helpers::from_assimp(info.m_world_rotation * mesh->mVertices[i]);
-					vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
 					vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
 					vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
 					result_data.m_vertices.push_back(vertex);

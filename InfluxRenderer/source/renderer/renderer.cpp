@@ -522,7 +522,7 @@ namespace influx::renderer
     {
         if (m_meshdata_map.contains(title))
         {
-            return &m_meshdata_map[title].m_data;
+            return &m_meshdata_map.at(title).m_data;
         }
 
         return nullptr;

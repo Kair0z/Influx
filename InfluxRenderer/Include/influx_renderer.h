@@ -163,7 +163,7 @@ namespace influx::renderer
 
 		uint32 get_height() const
 		{
-			return m_pixels.size() / get_width();
+			return static_cast<uint32>(m_pixels.size()) / get_width();
 		}
 
 		bool is_valid() const;

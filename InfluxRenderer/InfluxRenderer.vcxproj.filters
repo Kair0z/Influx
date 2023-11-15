@@ -25,6 +25,13 @@
     <ClCompile Include="source\renderer\renderer.cpp" />
     <ClCompile Include="source\api\api_d3d12.cpp" />
     <ClCompile Include="source\api\api.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="Source\foreign\ImGui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\Resources\Shaders\shaders.hlsl" />
