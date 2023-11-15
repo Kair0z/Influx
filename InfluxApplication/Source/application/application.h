@@ -71,6 +71,7 @@ namespace influx::application
 		void run_mainthread();
 		void run_renderthread();
 		void run_gamethread();
+		void run_editorthread();
 
 		void wait_for_renderthread_reaching(const uint64 frame_to_reach, const wait_args& args = {});
 		void wait_for_gamethread_reaching(const uint64 frame_to_reach, const wait_args& args = {});
@@ -87,6 +88,7 @@ namespace influx::application
 		std::thread m_mainthread;
 		std::thread m_renderthread;
 		std::thread m_gamethread;
+		std::thread m_editorthread;
 
 		thread_state m_gamethread_state{};
 		thread_state m_renderthread_state{};

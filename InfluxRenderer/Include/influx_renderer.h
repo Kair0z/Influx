@@ -96,7 +96,7 @@ namespace influx::renderer
 	
 	struct render_args final
 	{
-		int a{};
+		math::vectorf4 m_clear_colour = {};
 	};
 
 #pragma region scene proxy
@@ -175,21 +175,23 @@ namespace influx::renderer
 	};
 
 	INFLUX_RENDER_API void initialize(const init_args& args);
+	INFLUX_RENDER_API void initialize_imgui();
+
+	INFLUX_RENDER_API bool is_initialized();
+	INFLUX_RENDER_API bool is_initialized_imgui();
+	INFLUX_RENDER_API void cleanup();
+
+	INFLUX_RENDER_API void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present = {});
 
 	INFLUX_RENDER_API void load(const string& title, const mesh_data& data);
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
 	INFLUX_RENDER_API void load(const string& title, const material_data& data);
-
 	INFLUX_RENDER_API const mesh_data* find_mesh_data(const string& title); 
 	INFLUX_RENDER_API vector<const mesh_data*> get_all_mesh_datas();
 
-	INFLUX_RENDER_API void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present = {});
+	INFLUX_RENDER_API void* get_backend_device();
 
 	INFLUX_RENDER_API vector<frame_stats> get_frame_stats(const uint32 over_num_frames = 1u);
-
-	INFLUX_RENDER_API bool is_initialized();
-
-	INFLUX_RENDER_API void cleanup();
 }
 
 #endif

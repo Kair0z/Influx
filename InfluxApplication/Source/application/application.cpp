@@ -15,12 +15,21 @@
 #pragma comment(lib, "InfluxAsync.lib")
 
 // We're using Assimp libary for loading .FBX files...
+#pragma region assimp
 #include "foreign/assimp/assimp_helpers.h"
 #if _DEBUG
 #pragma comment(lib, "assimp-vc142-mtd.lib")
 #else
 #pragma comment(lib, "assimp-vc142-mt.lib")
 #endif
+#pragma endregion
+
+#pragma region imgui
+#include "foreign/ImGui/imgui.h"
+#if INFLUX_APP_USES_WINDOWS
+	#include "foreign/ImGui/imgui_impl_win32.h"
+#endif
+#pragma endregion
 
 #include <iostream>
 
@@ -69,12 +78,18 @@ namespace influx::application
 				m_renderthread = std::thread(&application::run_renderthread, this);
 				m_gamethread = std::thread(&application::run_gamethread, this);
 
+				if (args.m_enable_editor)
+				{
+					m_editorthread = std::thread(&application::run_editorthread, this);
+				}
+
 				// run main thread
 				run_mainthread();
 
 				// cleanup
 				if (m_renderthread.joinable()) m_renderthread.join();
 				if (m_mainthread.joinable()) m_mainthread.join();
+				if (m_editorthread.joinable()) m_editorthread.join();
 			}
 		}
 	}
@@ -160,12 +175,45 @@ namespace influx::application
 		}
 	}
 
+	void application::run_editorthread()
+	{
+		uint64 editor_frame = 0u;
+		
+		while (!renderer::is_initialized_imgui())
+		{
+			// wait a bit :)
+			// if the renderer never initializes imgui,
+			// this thread will be useless anyhow...
+		}
+
+		ImGui_ImplWin32_Init(m_windowhandle);
+		while (!m_is_quit_requested)
+		{
+			ImGui_ImplWin32_NewFrame();
+			ImGui::NewFrame();
+			{
+				ImGui::ShowDemoWindow();
+			}
+			ImGui::Render(); // endframe + submits draw data
+
+			ImGui::GetDrawData();
+			++editor_frame;
+		}
+
+		ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
+	}
+
 	void application::run_renderthread()
 	{
 		renderer::init_args args{};
 		args.m_api_type = renderer::e_render_api::dx12;
 		args.m_resource_dir = m_run_args.m_resources_dir;
 		renderer::initialize(args);
+
+		// initialize imgui backend
+		if (m_run_args.m_enable_editor) 
+			renderer::initialize_imgui();
 
 		// load assets into the renderer
 		uint32 num_submeshes{}; 
@@ -240,7 +288,7 @@ namespace influx::application
 				for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
 				{
 					vertex.m_position = assimp_helpers::from_assimp(info.m_world_rotation * mesh->mVertices[i]);
-					vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : math::vectorf4{};
+					vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : material.m_albedo;
 					vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
 					vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
 					result_data.m_vertices.push_back(vertex);

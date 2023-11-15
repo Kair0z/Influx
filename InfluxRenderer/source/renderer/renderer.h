@@ -39,17 +39,22 @@ namespace influx::renderer
 	{
 	public:
 		void initialize(const init_args& args);
+		void initialize_imgui();
+
 		void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present);
 		vector<frame_stats> get_frame_stats(const uint32 over_num_frames);
 		bool is_initialized() const;
+		bool is_initialized_imgui() const;
 		void cleanup();
 
 		void load(const string& title, const mesh_data& data);
 		void load(const string& title, const texture_data& data);
 		void load(const string& title, const material_data& data);
 
-		const mesh_data* find_mesh_data(const string& title);
-		vector<const mesh_data*> get_all_mesh_datas();
+		const mesh_data* find_mesh_data(const string& title) const;
+		vector<const mesh_data*> get_all_mesh_datas() const;
+
+		void* get_backend_device() const;
 
 		using frame_id = uint64;
 		struct per_frame_context final
@@ -72,6 +77,7 @@ namespace influx::renderer
 		IDXGISwapChain4* mpdx_swapchain = nullptr;
 		ID3D12DescriptorHeap* mpdx_rtv_heap = nullptr;
 		ID3D12DescriptorHeap* mpdx_srvheap = nullptr;
+		ID3D12DescriptorHeap* mpdx_srvheap_imgui = nullptr;
 		ID3D12RootSignature* mpdx_rootsignature = nullptr;
 		ID3D12PipelineState* mpdx_pipeline = nullptr;
 		CD3DX12_RECT m_rect{};
@@ -89,6 +95,19 @@ namespace influx::renderer
 		uint64 m_rtvDescriptorSize = 0u;
 		uint64 m_srvDescriptorSize = 0u;
 		frame_id m_frame = 0u;
+
+		struct swapchain_state final
+		{
+			math::rectu m_window_rect{};
+		};
+		swapchain_state m_previous_swapchain_state{};
+		bool is_swapchain_dirty(const swapchain_state& new_swapchain) const;
+
+		struct view_constant_buffer final
+		{
+			math::matrix4x4f m_wvp{};
+		};
+		view_constant_buffer m_view_constant_buffer{};
 
 		struct instance_data final
 		{
@@ -135,30 +154,11 @@ namespace influx::renderer
 		void recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle);
 		void update_view_constant_buffer(const scene_proxy* proxy);
 		void update_instance_buffers(const scene_proxy* proxy);
-
-		// stalls if num_frames_in_flight > k_max_frames_in_flight
-		per_frame_context acquire_next_frame();
-
+		per_frame_context acquire_next_frame(); // stalls if num_frames_in_flight > k_max_frames_in_flight
 		void on_frame_finished(const per_frame_context& ctx);
-
-		// submit frame to queue
 		void submit_to_queue(const per_frame_context& ctx);
-
 		bool get_swapchain_buffer_and_rtv(const frame_id for_frame, ID3D12Resource*& out_buffer, D3D12_CPU_DESCRIPTOR_HANDLE*& out_rtv);
 		void transition_resource(ID3D12GraphicsCommandList* cmdlist, ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
-
-		struct swapchain_state final
-		{
-			math::rectu m_window_rect{};
-		};
-		swapchain_state m_previous_swapchain_state{};
-		bool is_swapchain_dirty(const swapchain_state& new_swapchain) const;
-
-		struct view_constant_buffer final
-		{
-			math::matrix4x4f m_wvp{};
-		};
-		view_constant_buffer m_view_constant_buffer{};
 
 		template <class _t>
 		static void safe_release(_t*& ptr)
@@ -172,6 +172,7 @@ namespace influx::renderer
 
 	private:
 		bool m_is_initialized = false;
+		bool m_is_initialized_imgui = false;
 		queue<per_frame_context> m_frames_in_flight{};
 		ringbuffer<frame_stats, k_max_stat_frames> m_frame_stats{};
 	};

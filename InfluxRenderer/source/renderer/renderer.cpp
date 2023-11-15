@@ -5,6 +5,8 @@
 #pragma comment (lib, "DXGI.lib")
 #pragma comment (lib, "D3DCompiler.lib")
 
+#include "foreign/ImGui/imgui_impl_dx12.h"
+
 #include "core/platform/windows_platform.h"
 #include "Core/Time.h"
 
@@ -264,30 +266,61 @@ namespace influx::renderer
         m_is_initialized = true;
     }
 
+    void renderer_state::initialize_imgui()
+    {
+        if (!is_initialized())
+        {
+            FLX_ASSERT(false);
+            return;
+        }
+
+        // create an srv heap for the font
+        D3D12_DESCRIPTOR_HEAP_DESC desc_heap_desc{};
+        desc_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        desc_heap_desc.NumDescriptors = 1u;
+        desc_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        mpdx_device->CreateDescriptorHeap(&desc_heap_desc, IID_PPV_ARGS(&mpdx_srvheap_imgui));
+
+        ImGui_ImplDX12_Init(mpdx_device, k_max_num_frames_in_flight,
+            DXGI_FORMAT_R8G8B8A8_UNORM, mpdx_srvheap_imgui,
+            mpdx_srvheap_imgui->GetCPUDescriptorHandleForHeapStart(),
+            mpdx_srvheap_imgui->GetGPUDescriptorHandleForHeapStart());
+
+        // bit cheeky, this creates the imgui device objects.
+        ImGui_ImplDX12_NewFrame();
+    }
+
     void renderer_state::render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present)
     {
-        if (mpdx_commandQueue == nullptr)
+        if (mpdx_commandQueue == nullptr || !platform::is_window_valid(window))
         {
             return;
         }
 
-        // recreate swapchain first if necessary
+        // recreate swapchain
         recreate_swapchain_from_window(k_default_buffering, window);
 
+        // update instance buffers
         if (scene_proxy != nullptr)
         {
             update_instance_buffers(scene_proxy);
         }
 
+        if (m_is_initialized_imgui)
+        {
+            ImGui_ImplDX12_NewFrame();
+        }
+        
         // open a new frame_context that's not in flight
+        // this can stall us if the GPU hasn't finished working!
         per_frame_context new_frame_ctx{};
         {
             time::point start = time::get_now();
             new_frame_ctx = acquire_next_frame();
             new_frame_ctx.m_stats.m_ms_acquire = time::get_ms_between<float>(time::get_now(), start);
         }
-
-        // record commands
+        
+        // record commandlist
         {
             time::point start = time::get_now();
 
@@ -299,9 +332,8 @@ namespace influx::renderer
 
             transition_resource(cmdlist, backbuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-            const ::FLOAT rgba[]{ 0,0,0,0 };
             cmdlist->OMSetRenderTargets(1u, &backbuffer_rtv, false, nullptr);
-            cmdlist->ClearRenderTargetView(backbuffer_rtv, rgba, 0u, nullptr);
+            cmdlist->ClearRenderTargetView(backbuffer_rtv, reinterpret_cast<const FLOAT*>(&render_args.m_clear_colour.r), 0u, nullptr);
 
             if (scene_proxy != nullptr)
             {
@@ -486,7 +518,7 @@ namespace influx::renderer
         }
     }
 
-    const mesh_data* renderer_state::find_mesh_data(const string& title)
+    const mesh_data* renderer_state::find_mesh_data(const string& title) const
     {
         if (m_meshdata_map.contains(title))
         {
@@ -496,7 +528,7 @@ namespace influx::renderer
         return nullptr;
     }
 
-    vector<const mesh_data*> renderer_state::get_all_mesh_datas()
+    vector<const mesh_data*> renderer_state::get_all_mesh_datas() const
     {
         vector<const mesh_data*> result{};
         for (auto pair : m_meshdata_map)
@@ -504,6 +536,11 @@ namespace influx::renderer
             result.push_back(&pair.second.m_data);
         }
         return result;
+    }
+
+    void* renderer_state::get_backend_device() const
+    {
+        return reinterpret_cast<void*>(mpdx_device);
     }
 
     vector<frame_stats> renderer_state::get_frame_stats(const uint32 over_num_frames)
@@ -528,6 +565,11 @@ namespace influx::renderer
     bool renderer_state::is_initialized() const
     {
         return m_is_initialized;
+    }
+
+    bool renderer_state::is_initialized_imgui() const
+    {
+        return m_is_initialized_imgui;
     }
 
     void renderer_state::cleanup()
@@ -727,6 +769,11 @@ namespace influx::renderer
         renderer_state::get_instance().initialize(args);
     }
 
+    void initialize_imgui()
+    {
+        renderer_state::get_instance().initialize_imgui();
+    }
+
     void load(const string& title, const mesh_data& data)
     {
         renderer_state::get_instance().load(title, data);
@@ -744,12 +791,17 @@ namespace influx::renderer
 
     const mesh_data* find_mesh_data(const string& title)
     {
-        renderer_state::get_instance().find_mesh_data(title);
+        return renderer_state::get_instance().find_mesh_data(title);
     }
 
     vector<const mesh_data*> get_all_mesh_datas()
     {
-        renderer_state::get_instance().get_all_mesh_datas();
+        return renderer_state::get_instance().get_all_mesh_datas();
+    }
+
+    void* get_backend_device()
+    {
+        return renderer_state::get_instance().get_backend_device();
     }
 
     void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present)
@@ -765,6 +817,11 @@ namespace influx::renderer
     bool is_initialized()
     {
         return renderer_state::get_instance().is_initialized();
+    }
+
+     bool is_initialized_imgui()
+    {
+        return renderer_state::get_instance().is_initialized_imgui();
     }
 
     void cleanup()
