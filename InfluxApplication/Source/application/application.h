@@ -28,7 +28,6 @@ namespace influx::application
 			wait_args(float* out_seconds_waited) : mp_out_seconds_waited{ out_seconds_waited } {}
 			float* mp_out_seconds_waited = nullptr;
 		};
-
 		struct entity final
 		{
 			entity() = default;
@@ -37,7 +36,6 @@ namespace influx::application
 			uint64 m_id = 0u;
 			math::transform3D m_transform = math::transform3D::identity();
 		};
-
 		struct frame_stats final
 		{
 			float m_pc_sync = 0.0f;
@@ -57,7 +55,6 @@ namespace influx::application
 				return *this;
 			}
 		};
-
 		struct thread_state final
 		{
 			ringbuffer<frame_stats, 256u> m_stats{};

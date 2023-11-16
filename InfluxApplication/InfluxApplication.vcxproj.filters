@@ -10,7 +10,6 @@
   <ItemGroup>
     <ClCompile Include="Source\app_pch.cpp" />
     <ClCompile Include="Source\application\application.cpp" />
-    <ClCompile Include="Source\editor\editor_rendersystem.cpp" />
     <ClCompile Include="Source\foreign\ImGui\imgui.cpp" />
     <ClCompile Include="Source\foreign\ImGui\imgui_demo.cpp" />
     <ClCompile Include="Source\foreign\ImGui\imgui_draw.cpp" />

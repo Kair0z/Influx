@@ -42,14 +42,44 @@ namespace influx::async
 		return stats;
 	}
 
+	bool task_handle::has_parent() const
+	{
+		return async::async_manager::get_instance().has_parent(*this);
+	}
+
 	void task_handle::wait(const wait_args& args) const
 	{
 		async::async_manager::get_instance().wait_for(*this, args);
 	}
 
+	bool task_handle::is_finished_self() const
+	{
+		return mp_data->is_self_finished();
+	}
+
+	bool task_handle::are_children_finished() const
+	{
+		return mp_data->are_children_finished();
+	}
+
+	bool task_handle::is_finished_all() const
+	{
+		return mp_data->is_all_finished();
+	}
+
 	void task_handle::dispatch() const
 	{
 		async::async_manager::get_instance().dispatch(*this);
+	}
+
+	void task_handle::add_child(const task_handle& child)
+	{
+		async::async_manager::get_instance().add_child(*this, child);
+	}
+
+	void task_handle::set_requeue_condition(const function<bool()>& condition_func)
+	{
+		async::async_manager::get_instance().set_requeue_condition(*this, condition_func);
 	}
 
 	bool task_handle::operator==(const task_handle& other) const
@@ -80,6 +110,7 @@ namespace influx::async
 #endif
 	}
 
+	// MEAT AND POTATOES
 	void async_manager::worker_thread_method(worker_state& state)
 	{
 		async_manager& manager = async_manager::get_instance();
@@ -90,14 +121,11 @@ namespace influx::async
 
 		while (true)
 		{
-			if (!manager.try_process_a_task())
-			{
-				// if we couldn't process a task, try cleaning up one...
-				if (!manager.try_cleanup_a_task())
-				{
+			if (manager.try_process_a_task())
+				continue;
 
-				}
-			}
+			// if we couldn't process a task, try cleaning up one instead...
+			manager.try_cleanup_a_task();
 		}
 	}
 
@@ -137,8 +165,13 @@ namespace influx::async
 
 	bool async_manager::try_process_a_task()
 	{
+		auto is_parent_finished = [](task_data* const& data)
+		{
+			return (data->m_parent == nullptr) || (data->m_parent->is_self_finished());
+		};
+
 		task_data* task = nullptr;
-		if (m_global_queue.m_tasks.pop(task))
+		if (m_global_queue.m_tasks.pop_if(task, is_parent_finished))
 		{
 			process_task(task);
 			return true;
@@ -152,21 +185,27 @@ namespace influx::async
 		cleanup_task(get_task_data_from_handle(handle));
 	}
 
+	// MEAT AND POTATOES
 	void async_manager::process_task(task_data* data)
 	{
 		data->m_time_started = time::get_now();
-
-		// do the work
 		data->m_state = e_task_state::running;
-		if (data->m_args.m_func_execute)
 		{
-			data->m_args.m_func_execute();
+			// do the work
+			if (data->m_args.m_func_execute)
+				data->m_args.m_func_execute();
 		}
-		
+		data->m_state = e_task_state::finished;
 		data->m_time_finished = time::get_now();
 
+		// update own counter
+		data->m_num_children_unfinished--;
+
+		// update parent counter
+		if (data->m_parent != nullptr)
+			data->m_parent->m_num_children_unfinished--;
+
 		// add to cleanup queue
-		data->m_state = e_task_state::finished;
 		m_global_cleanup_queue.m_tasks.push(data);
 	}
 
@@ -196,9 +235,9 @@ namespace influx::async
 
 		// todo: probably isn't safe!!!
 		data->m_handle.mp_data = nullptr;
-
 		m_taskpool.try_release(data);
 	}
+
 
 	task_data* async_manager::get_task_data_from_handle(const task_handle& handle)
 	{
@@ -213,7 +252,18 @@ namespace influx::async
 			return;
 		}
 
+		dispatch(data);
+	}
+
+	void async_manager::dispatch(task_data* data)
+	{
+		data->reset(e_task_state::pending);
 		m_global_queue.m_tasks.push(data);
+
+		for (task_data* child : data->m_children)
+		{
+			dispatch(child);
+		}
 	}
 
 	void async_manager::wait_for(const task_handle& handle, const wait_args& args)
@@ -230,20 +280,55 @@ namespace influx::async
 		}
 
 		time::point wait_start = time::get_now();
-
 		float seconds_waited = 0.0f;
-		while (data->m_state == e_task_state::finished && seconds_waited < args.m_max_wait_seconds)
+		while (!data->is_all_finished() && seconds_waited < args.m_max_wait_seconds)
 		{
-			// might as well do some cleanup
-			try_cleanup_a_task();
+			if (!try_cleanup_a_task()) // might as well do some cleanup
+			{
+
+			}
+
+			if (args.m_wait_func)
+				args.m_wait_func();
 
 			seconds_waited = time::get_ms_between<float>(time::get_now(), wait_start) * 0.001f;
 		}
-
 		if (args.mp_out_seconds_waited != nullptr)
 		{
 			(*args.mp_out_seconds_waited) = seconds_waited;
 		}
+	}
+
+	void async_manager::add_child(const task_handle& parent, const task_handle& child)
+	{
+		if (!parent.is_valid() || !child.is_valid() || (parent == child))
+		{
+			return;
+		}
+
+		++parent.mp_data->m_num_children_unfinished;
+		parent.mp_data->m_children.push_back(child.mp_data);
+		child.mp_data->m_parent = parent.mp_data;
+	}
+
+	bool async_manager::has_parent(const task_handle& handle)
+	{
+		if (!handle.is_valid())
+		{
+			return false;
+		}
+
+		return (handle.mp_data->m_parent != nullptr);
+	}
+
+	void async_manager::set_requeue_condition(const task_handle& handle, const function<bool()>& condition_func)
+	{
+		if (!handle.is_valid())
+		{
+			return;
+		}
+
+		handle.mp_data->m_requeue_condition = condition_func;
 	}
 
 	async_manager::work_queue& async_manager::get_global_queue()
@@ -290,6 +375,21 @@ namespace influx::async
 	void wait_for(const task_handle& handle, const wait_args& args)
 	{
 		async_manager::get_instance().wait_for(handle, args);
+	}
+
+	void add_child(const task_handle& parent, const task_handle& child)
+	{
+		async_manager::get_instance().add_child(parent, child);
+	}
+
+	bool has_parent(const task_handle& handle)
+	{
+		return async_manager::get_instance().has_parent(handle);
+	}
+
+	void set_requeue_condition(const task_handle& handle, const function<bool()>& condition_func)
+	{
+		async_manager::get_instance().set_requeue_condition(handle, condition_func);
 	}
 
 	void shutdown()

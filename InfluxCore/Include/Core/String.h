@@ -5,6 +5,7 @@
 
 #include <string>
 #include <algorithm>
+#include "Core/basetypes.h"
 
 namespace influx
 {
@@ -31,6 +32,17 @@ namespace influx
 	{
 		return std::to_string(i);
 	}
+
+	inline string to_string(uint32 i)
+	{
+		return std::to_string(i);
+	}
+
+	inline string to_string(uint64 i)
+	{
+		return std::to_string(i);
+	}
+
 #pragma warning (pop)
 }
 

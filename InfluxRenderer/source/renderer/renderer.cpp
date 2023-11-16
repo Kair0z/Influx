@@ -630,7 +630,7 @@ namespace influx::renderer
             mpdx_swapchain->GetBuffer(i, IID_PPV_ARGS(&mpdx_backbufferResources[i]));
             mpdx_device->CreateRenderTargetView(mpdx_backbufferResources[i], nullptr, rtv_handle);
             mpdx_backbuffer_rtvs[i] = rtv_handle;
-            rtv_handle.Offset(1u, m_rtvDescriptorSize);
+            rtv_handle.Offset(1u, static_cast<uint32>(m_rtvDescriptorSize));
         }
 
         // update state

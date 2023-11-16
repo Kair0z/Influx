@@ -36,6 +36,9 @@
 
 #include <iostream>
 
+constexpr static bool k_render_scene = false;
+constexpr static bool k_jobify_update = true;
+
 namespace influx::application
 {
 	#if INFLUX_APP_USES_WINDOWS
@@ -69,6 +72,10 @@ namespace influx::application
 		{
 			m_instancehandle = platform::get_current_instance();
 			
+			async::init_args async_init_args{};
+			async_init_args.m_num_workers = async::get_max_concurrency() - 3u;
+			async::initialize(async_init_args);
+
 			if (!args.m_commandlet)
 			{
 				// create a window
@@ -93,6 +100,8 @@ namespace influx::application
 				if (m_renderthread.joinable()) m_renderthread.join();
 				if (m_mainthread.joinable()) m_mainthread.join();
 				if (m_editorthread.joinable()) m_editorthread.join();
+
+				async::shutdown();
 			}
 		}
 	}
@@ -101,6 +110,7 @@ namespace influx::application
 	{
 		m_is_quit_requested = true;
 	}
+
 
 	void application::run_mainthread()
 	{
@@ -142,7 +152,7 @@ namespace influx::application
 
 		// start
 		// temp: create entities
-		constexpr uint64 k_num_entities = 14u;
+		constexpr uint64 k_num_entities = 4096u * 10u;
 		m_entities.reserve(k_num_entities);
 		for (uint64 i = 0u; i < k_num_entities; ++i)
 		{
@@ -158,19 +168,39 @@ namespace influx::application
 				wait_for_renderthread_reaching(m_gamethread_frame - frame_diff, wait_args{ &seconds_synced });
 			}
 			
-			for (entity& entity : m_entities)
+			if (k_jobify_update)
 			{
-				// update
-				entity.m_id++;
-				entity.m_transform = math::transform3D(
-					random::get_random_unit_vectorf3() * 5.0f,
-					math::quaternion::identity(),
-					math::vectorf3::one());
+				vector<async::task_handle> update_job_handles =
+					async::dispatch_for(m_entities.size(), [this](uint64 i)
+					{
+						m_entities[i].m_transform = math::transform3D(
+							random::get_random_unit_vectorf3() * 5.0f,
+							math::quaternion::identity(),
+							math::vectorf3::one());
+					});
+
+				update_job_handles.push_back(async::dispatch([this]()
+				{
+					m_camera_entity.m_transform.set_position({ 0.0f, 0.0f, 10.0f });
+					m_camera_entity.m_transform.set_forward({ 0.0f, 0.0f, -1.0f });
+				}));
+
+				for (async::task_handle& handle : update_job_handles)
+				{
+					handle.wait();
+				}
 			}
-
-			m_camera_entity.m_transform.set_position({ 0.0f, 0.0f, 10.0f });
-			m_camera_entity.m_transform.set_forward({ 0.0f, 0.0f, -1.0f });
-
+			else
+			{
+				for (entity& e : m_entities)
+				{
+					e.m_transform = math::transform3D(
+						random::get_random_unit_vectorf3() * 5.0f,
+						math::quaternion::identity(),
+						math::vectorf3::one());
+				}
+			}
+			
 			this_frame_stat.m_ms_total = math::maximum(math::k_epsilon, time::get_ms_between<float>(time::get_now(), frame_start));
 			this_frame_stat.m_pc_sync = math::is_zero(this_frame_stat.m_ms_total) ? 0.0f : (seconds_synced * 1000.0f) / this_frame_stat.m_ms_total;
 			m_gamethread_state.m_stats.pop_to_push(this_frame_stat);
@@ -267,22 +297,28 @@ namespace influx::application
 			// make sure this frame's passed simulation
 			wait_for_gamethread_reaching(m_renderthread_frame + 1u, wait_args{ &seconds_synced });
 
-			// update render proxies
-			scene_proxy.m_meshes.resize(m_entities.size() * num_submeshes);
-			for (uint64 i = 0u; i < m_entities.size(); ++i)
+			if (k_render_scene)
 			{
-				for (uint32 s = 0u; s < num_submeshes; ++s)
+				// update render proxies
+				scene_proxy.m_meshes.resize(m_entities.size() * num_submeshes);
+				for (uint64 i = 0u; i < m_entities.size(); ++i)
 				{
-					renderer::mesh_proxy mesh{};
-					mesh.m_name = "duolingo_mesh_" + std::to_string(s);
-					mesh.m_transform = m_entities[i].m_transform.get_matrix();
-					mesh.m_per_instance_colour = materials[s].m_albedo;
-					scene_proxy.m_meshes[(i * num_submeshes) + s] = mesh;
+					for (uint32 s = 0u; s < num_submeshes; ++s)
+					{
+						renderer::mesh_proxy mesh{};
+						mesh.m_name = "duolingo_mesh_" + std::to_string(s);
+						mesh.m_transform = m_entities[i].m_transform.get_matrix();
+						mesh.m_per_instance_colour = materials[s].m_albedo;
+						scene_proxy.m_meshes[(i * num_submeshes) + s] = mesh;
+					}
 				}
+
+				renderer::render_to_window(&scene_proxy, render_args, m_windowhandle, present_args);
 			}
-			
-			// render
-			renderer::render_to_window(&scene_proxy, render_args, m_windowhandle, present_args);
+			else
+			{
+				renderer::render_to_window(nullptr, render_args, m_windowhandle, present_args);
+			}
 
 			this_frame_stats.m_ms_total = math::maximum(math::k_epsilon, time::get_ms_between<float>(time::get_now(), frame_start));
 			this_frame_stats.m_pc_sync = math::is_zero(this_frame_stats.m_ms_total) ? 0.0f : (seconds_synced * 1000.0f) / this_frame_stats.m_ms_total;
@@ -292,6 +328,7 @@ namespace influx::application
 
 		renderer::cleanup();
 	}
+
 
 	void application::renderthread_loadassets(uint32& num_submeshes, vector<renderer::material_data>& materials)
 	{

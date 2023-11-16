@@ -27,7 +27,7 @@ namespace influx::application
 		bool m_enable_scenerender = false;
 		bool m_enable_editor = false;
 		bool m_vsync = false;
-		uint8 m_max_thread_frame_difference = 3u;
+		uint8 m_max_thread_frame_difference = 2u;
 
 		uint32 m_window_width = 640u;
 		uint32 m_window_height = 480u;

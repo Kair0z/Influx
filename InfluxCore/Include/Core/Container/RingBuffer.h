@@ -20,6 +20,7 @@ namespace influx
 		ringbuffer() = default;
 		bool push(const _t& value);
 		bool pop(_t& value);
+		bool pop_if(_t& value, const function<bool(const _t&)> cond);
 		bool peak(detail::capacity_t i, _t& value);
 		
 		// push, if full, pop
@@ -67,6 +68,26 @@ namespace influx
 			value = m_data[m_tail];
 			m_tail = (m_tail + 1) % _C;
 			result = true;
+		}
+		m_lock.unlock();
+
+		return result;
+	}
+
+	template<typename _t, detail::capacity_t _C>
+	inline bool ringbuffer<_t, _C>::pop_if(_t& value, const function<bool(const _t&)> cond)
+	{
+		bool result = false;
+
+		m_lock.lock();
+		if (m_tail != m_head)
+		{
+			value = m_data[m_tail];
+			if (cond(value) == true)
+			{
+				m_tail = (m_tail + 1) % _C;
+				result = true;
+			}
 		}
 		m_lock.unlock();
 
