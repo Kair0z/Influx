@@ -15,6 +15,7 @@
 namespace influx::renderer
 {
 	struct material_data;
+	struct scene_proxy;
 }
 
 namespace influx::application
@@ -75,11 +76,8 @@ namespace influx::application
 
 		void mainthread_log();
 
-		void renderthread_loadassets(uint32& num_submeshes, vector<renderer::material_data>& materials);
-
 		platform::window_handle m_windowhandle = nullptr;
 		platform::instance_handle m_instancehandle = nullptr;
-
 		std::atomic_bool m_is_quit_requested = false;
 
 		std::thread m_mainthread;
