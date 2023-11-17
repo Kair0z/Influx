@@ -49,6 +49,7 @@
     <ClInclude Include="Include\core\math\vector.h" />
     <ClInclude Include="Include\core\threading\ThreadPool.h" />
     <ClInclude Include="Include\core\sync\semaphore.h" />
+    <ClInclude Include="Include\Core\wait.h" />
     <ClInclude Include="Include\influx_core.h" />
     <ClInclude Include="Include\core\function.h" />
     <ClInclude Include="Include\core\math\math.h" />

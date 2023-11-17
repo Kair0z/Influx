@@ -50,6 +50,7 @@
     <ClInclude Include="Include\Core\Math\colour.h" />
     <ClInclude Include="Include\core\geometry\geometry.h" />
     <ClInclude Include="Include\core\geometry\quad.h" />
+    <ClInclude Include="Include\Core\wait.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\core\math\vector.inl" />

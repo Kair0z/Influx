@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Core/Container/ringbuffer.h"
 #include <thread>
-#include "Core/Container/RingBuffer.h"
 
 namespace influx::application
 {
@@ -36,10 +36,25 @@ namespace influx::application
 			}
 		};
 
-		virtual ~dedicated_thread();
+		inline virtual ~dedicated_thread()
+		{
+			if (m_thread_object.joinable())
+				m_thread_object.join();
+		}
 
 		// spins implementation off onto a new thread object
-		void spin();
+		inline void spin()
+		{
+			m_thread_object = std::thread([this]()
+			{
+				call_initialize();
+				while (true)
+				{
+					call_tick();
+				}
+				call_cleanup();
+			});
+		}
 
 	private:
 		std::thread m_thread_object{};
@@ -49,29 +64,5 @@ namespace influx::application
 		virtual void call_initialize() = 0;
 		virtual void call_tick() = 0;
 		virtual void call_cleanup() = 0;
-	};
-
-	class renderthread final : public dedicated_thread
-	{
-	public:
-		def_inherit_static_void_func(initialize());
-		def_inherit_static_void_func(tick());
-		def_inherit_static_void_func(cleanup());
-	};
-
-	class gamethread final : public dedicated_thread
-	{
-	public:
-		def_inherit_static_void_func(initialize());
-		def_inherit_static_void_func(tick());
-		def_inherit_static_void_func(cleanup());
-	};
-
-	class mainthread final : public dedicated_thread
-	{
-	public:
-		def_inherit_static_void_func(initialize());
-		def_inherit_static_void_func(tick());
-		def_inherit_static_void_func(cleanup());
 	};
 }

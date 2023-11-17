@@ -34,10 +34,6 @@
 
 #include <iostream>
 
-constexpr static bool k_render_scene = true;
-constexpr static bool k_jobify = false;
-constexpr static influx::uint8 k_max_thread_frame_difference = 1u;
-
 namespace influx::application
 {
 	#if INFLUX_APP_USES_WINDOWS
@@ -458,6 +454,16 @@ namespace influx::application
 
 		std::cout << "[Game]  \tFPS: " << 1.0f / (game_stats.m_ms_total * 0.001f) << "\t| ms: " << game_stats.m_ms_total << "\t| " << "Sync: " << 100.0f * game_stats.m_pc_sync << "%\n";
 		std::cout << "[Render]\tFPS: " << 1.0f / (render_stats.m_ms_total * 0.001f) << "\t| ms: " << render_stats.m_ms_total << "\t| " << "Sync: " << 100.0f * render_stats.m_pc_sync << "%\n";
+	}
+
+	string application::get_resource_directory() const
+	{
+		return m_run_args.m_resources_dir;
+	}
+
+	run_args application::get_run_arguments() const
+	{
+		return m_run_args;
 	}
 
 #pragma region apifunctions

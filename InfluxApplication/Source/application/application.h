@@ -20,6 +20,10 @@ namespace influx::renderer
 
 namespace influx::application
 {
+	constexpr static bool k_render_scene = true;
+	constexpr static bool k_jobify = false;
+	constexpr static influx::uint8 k_max_thread_frame_difference = 1u;
+
 	class application final 
 		: public singleton<application>
 	{
