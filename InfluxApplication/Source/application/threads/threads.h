@@ -36,6 +36,8 @@ namespace influx::application
 			}
 		};
 
+		virtual ~dedicated_thread();
+
 		// spins implementation off onto a new thread object
 		void spin();
 

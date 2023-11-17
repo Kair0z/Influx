@@ -67,60 +67,57 @@ namespace influx::application
 			m_run_args.m_resources_dir = platform::get_current_directory() + "/Resources/";
 		}
 
-		// initialize
+		m_instancehandle = platform::get_current_instance();
+
+		// initialize jobs
+		async::init_args async_init_args{};
+		async_init_args.m_num_workers = async::get_max_concurrency() - 3u;
+		async::initialize(async_init_args);
+
+		// create a window
+		platform::create_window_args window_args{};
+		window_args.m_width = (int)args.m_window_width;
+		window_args.m_height = (int)args.m_window_height;
+		window_args.m_name = args.m_name;
+		m_windowhandle = platform::create_window(window_args, true, windows_procedure);
+
+		// run thread loops
+		if (args.m_threaded_rendering)
 		{
-			m_instancehandle = platform::get_current_instance();
-			
-			async::init_args async_init_args{};
-			async_init_args.m_num_workers = async::get_max_concurrency() - 3u;
-			async::initialize(async_init_args);
+			m_dedicated_threads.clear();
+			m_dedicated_threads.push_back(new gamethread());
+			m_dedicated_threads.push_back(new renderthread());
+			m_dedicated_threads.push_back(new mainthread());
 
-			if (!args.m_commandlet)
+			for (dedicated_thread*& thread : m_dedicated_threads)
 			{
-				// create a window
-				platform::create_window_args window_args{};
-				window_args.m_width = (int)args.m_window_width;
-				window_args.m_height = (int)args.m_window_height;
-				window_args.m_name = args.m_name;
-				m_windowhandle = platform::create_window(window_args, true, windows_procedure);
+				thread->spin();
+			}
 
-				if (args.m_threaded_rendering)
-				{
-					m_dedicated_threads.clear();
-					m_dedicated_threads.push_back(new gamethread());
-					m_dedicated_threads.push_back(new renderthread());
-					m_dedicated_threads.push_back(new mainthread());
-
-					for (dedicated_thread*& thread : m_dedicated_threads)
-					{
-						thread->spin();
-					}
-
-					for (dedicated_thread*& thread : m_dedicated_threads)
-					{
-						delete thread;
-						thread = nullptr;
-					}
-				}
-				else
-				{
-					mainthread::static_initialize();
-					gamethread::static_initialize();
-					renderthread::static_initialize();
-					while (!m_is_quit_requested)
-					{
-						mainthread::static_tick();
-						gamethread::static_tick();
-						renderthread::static_tick();
-					}
-					mainthread::static_cleanup();
-					gamethread::static_cleanup();
-					renderthread::static_cleanup();
-				}
-
-				async::shutdown();
+			// joins & so stalls until all threads are finished...
+			for (dedicated_thread*& thread : m_dedicated_threads)
+			{
+				delete thread;
+				thread = nullptr;
 			}
 		}
+		else
+		{
+			mainthread::static_initialize();
+			gamethread::static_initialize();
+			renderthread::static_initialize();
+			while (!m_is_quit_requested)
+			{
+				mainthread::static_tick();
+				gamethread::static_tick();
+				renderthread::static_tick();
+			}
+			mainthread::static_cleanup();
+			gamethread::static_cleanup();
+			renderthread::static_cleanup();
+		}
+
+		async::shutdown();
 	}
 
 	void application::request_quit()

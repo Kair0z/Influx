@@ -36,6 +36,9 @@ namespace influx::application
 		void run(const run_args& args);
 		void request_quit();
 
+		string get_resource_directory() const;
+		run_args get_run_arguments() const;
+
 	private:
 		void run_mainthread();
 		void run_renderthread();
