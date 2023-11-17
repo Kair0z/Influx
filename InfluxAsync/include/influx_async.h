@@ -43,9 +43,16 @@ namespace influx::async
 		float m_seconds_total = 0.0f;
 	};
 
-	/*
-	* task_handle:
-	*/
+	struct task_create_args final
+	{
+		task_create_args() = default;
+		task_create_args(const string& name, const function<void()>& func)
+			: m_name{ name }, m_func_execute{ func } { }
+
+		function<void()> m_func_execute = {};
+		string m_name = "task";
+	};
+
 	class INFLUX_ASYNC_API task_handle final
 	{
 		task_id m_id = 0u;
@@ -56,13 +63,7 @@ namespace influx::async
 
 		void dispatch() const;
 		void wait(const wait_args& args = {}) const;
-
-		bool is_finished_self() const;
-		bool are_children_finished() const;
-		bool is_finished_all() const;
-
-		bool has_parent() const;
-		void add_child(const task_handle& child);
+		bool is_finished() const;
 
 		bool operator==(const task_handle& other) const;
 		bool operator!=(const task_handle& other) const;
@@ -70,8 +71,6 @@ namespace influx::async
 		e_task_state get_state() const;
 		task_stats get_stats() const;
 		
-		void set_requeue_condition(const function<bool()>& condition_func);
-
 	private:
 		task_handle() = default;
 		task_handle(task_id id);
@@ -80,17 +79,7 @@ namespace influx::async
 		friend struct task_data;
 	};
 
-	struct task_args final
-	{
-		task_args() = default;
-		task_args(const string& name, const function<void()>& func) 
-			: m_name{ name }, m_func_execute { func } { }
-		
-		function<void()> m_func_execute = {};
-		string m_name = "task";
-	};
-
-
+	// global API
 	struct INFLUX_ASYNC_API init_args final
 	{
 		int m_num_workers = 2u;
@@ -98,18 +87,24 @@ namespace influx::async
 
 	INFLUX_ASYNC_API void initialize(const init_args& args);
 
-	INFLUX_ASYNC_API task_handle create_task(const task_args& args = {});
+	INFLUX_ASYNC_API task_handle create_task(const task_create_args& args = {});
 	
 	inline task_handle create_task(const string& name, const function<void()>& func)
 	{
-		return create_task(task_args{ name, func });
+		return create_task(task_create_args{ name, func });
 	}
 
 	INFLUX_ASYNC_API void dispatch(const task_handle& handle);
 
-	INFLUX_ASYNC_API void dispatch(const vector<task_handle>& handles);
+	inline void dispatch(const vector<task_handle>& handles)
+	{
+		for (const task_handle& handle : handles)
+		{
+			dispatch(handle);
+		}
+	}
 
-	inline task_handle dispatch(const task_args& args)
+	inline task_handle dispatch(const task_create_args& args)
 	{
 		task_handle handle = create_task(args);
 		dispatch(handle);
@@ -131,29 +126,18 @@ namespace influx::async
 		for (uint64 i = 0u; i < range; ++i)
 		{
 			handles.push_back(create_task({ "foreach_" + to_string(i) }, [i, func]()
-				{
-					func(i);
-				}));
+			{
+				func(i);
+			}));
 		}
 
-		for (task_handle& handle : handles)
-		{
-			handle.dispatch();
-		}
-
+		dispatch(handles);
 		return handles;
 	}
-
 
 	INFLUX_ASYNC_API void wait_for(const task_handle& handle, const wait_args& args = {});
 
 	INFLUX_ASYNC_API void wait_for(const vector<task_handle>& handles, const wait_args& args = {});
-
-	INFLUX_ASYNC_API void add_child(const task_handle& parent, const task_handle& child);
-
-	INFLUX_ASYNC_API bool has_parent(const task_handle& handle);
-
-	INFLUX_ASYNC_API void set_requeue_condition(const task_handle& handle, const function<bool()>& condition_func);
 
 	INFLUX_ASYNC_API void shutdown();
 
@@ -163,6 +147,7 @@ namespace influx::async
 	}
 	
 #if _DEBUG
+	// DONT TOUCH THIS, IN DEBUG BUILDS GIVES US A PEAK TO PRIVATE GLOBAL STATE
 	static class async_manager* gp_global_manager_state = nullptr;
 #endif
 }

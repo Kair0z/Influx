@@ -42,44 +42,19 @@ namespace influx::async
 		return stats;
 	}
 
-	bool task_handle::has_parent() const
-	{
-		return async::async_manager::get_instance().has_parent(*this);
-	}
-
 	void task_handle::wait(const wait_args& args) const
 	{
 		async::async_manager::get_instance().wait_for(*this, args);
 	}
 
-	bool task_handle::is_finished_self() const
+	bool task_handle::is_finished() const
 	{
-		return mp_data->is_self_finished();
-	}
-
-	bool task_handle::are_children_finished() const
-	{
-		return mp_data->are_children_finished();
-	}
-
-	bool task_handle::is_finished_all() const
-	{
-		return mp_data->is_all_finished();
+		return mp_data->is_finished();
 	}
 
 	void task_handle::dispatch() const
 	{
 		async::async_manager::get_instance().dispatch(*this);
-	}
-
-	void task_handle::add_child(const task_handle& child)
-	{
-		async::async_manager::get_instance().add_child(*this, child);
-	}
-
-	void task_handle::set_requeue_condition(const function<bool()>& condition_func)
-	{
-		async::async_manager::get_instance().set_requeue_condition(*this, condition_func);
 	}
 
 	bool task_handle::operator==(const task_handle& other) const
@@ -129,23 +104,24 @@ namespace influx::async
 		}
 	}
 
-	task_handle async_manager::create_task(const task_args& args)
+	task_handle async_manager::create_task(const task_create_args& args)
 	{
+		// allocate a task
 		task_data* new_task_data = m_taskpool.try_acquire();
 		if (new_task_data == nullptr)
 		{
 			return task_handle(k_task_id_invalid);
 		}
 
-		// initialize data with args
-		(*new_task_data) = task_data{ args };
-		new_task_data->m_handle = task_handle(0u); // todo: create a unique handle!
+		new_task_data->m_time_created = time::get_now();
 
+		// add to allocated-list
 		m_cleanup_mutex.lock();
 		mp_taskdatas.push_back(new_task_data);
 		m_cleanup_mutex.unlock();
 
-		new_task_data->m_time_created = time::get_now();
+		// initialize data
+		new_task_data->reset(e_task_state::pending);
 
 		new_task_data->m_handle.mp_data = new_task_data;
 		return new_task_data->m_handle;
@@ -165,13 +141,8 @@ namespace influx::async
 
 	bool async_manager::try_process_a_task()
 	{
-		auto is_parent_finished = [](task_data* const& data)
-		{
-			return (data->m_parent == nullptr) || (data->m_parent->is_self_finished());
-		};
-
 		task_data* task = nullptr;
-		if (m_global_queue.m_tasks.pop_if(task, is_parent_finished))
+		if (m_global_queue.m_tasks.pop(task))
 		{
 			process_task(task);
 			return true;
@@ -197,13 +168,6 @@ namespace influx::async
 		}
 		data->m_state = e_task_state::finished;
 		data->m_time_finished = time::get_now();
-
-		// update own counter
-		data->m_num_children_unfinished--;
-
-		// update parent counter
-		if (data->m_parent != nullptr)
-			data->m_parent->m_num_children_unfinished--;
 
 		// add to cleanup queue
 		m_global_cleanup_queue.m_tasks.push(data);
@@ -259,76 +223,48 @@ namespace influx::async
 	{
 		data->reset(e_task_state::pending);
 		m_global_queue.m_tasks.push(data);
-
-		for (task_data* child : data->m_children)
-		{
-			dispatch(child);
-		}
 	}
 
 	void async_manager::wait_for(const task_handle& handle, const wait_args& args)
 	{
-		if (!handle.is_valid())
-		{
-			return;
-		}
+		wait_for({ handle });
+	}
 
-		task_data* data = get_task_data_from_handle(handle);
-		if (data == nullptr)
-		{
-			return;
-		}
-
+	void async_manager::wait_for(const vector<task_handle>& handles, const wait_args& args)
+	{
 		time::point wait_start = time::get_now();
 		float seconds_waited = 0.0f;
-		while (!data->is_all_finished() && seconds_waited < args.m_max_wait_seconds)
+		for (const task_handle& handle : handles)
 		{
-			if (!try_cleanup_a_task()) // might as well do some cleanup
+			if (!handle.is_valid())
 			{
-
+				return;
 			}
 
-			if (args.m_wait_func)
-				args.m_wait_func();
+			task_data* data = get_task_data_from_handle(handle);
+			if (data == nullptr)
+			{
+				return;
+			}
 
-			seconds_waited = time::get_ms_between<float>(time::get_now(), wait_start) * 0.001f;
+			while (!data->is_finished() && seconds_waited < args.m_max_wait_seconds)
+			{
+				if (!try_cleanup_a_task()) // might as well do some cleanup
+				{
+
+				}
+
+				if (args.m_wait_func)
+					args.m_wait_func();
+
+				seconds_waited = time::get_ms_between<float>(time::get_now(), wait_start) * 0.001f;
+			}
 		}
+
 		if (args.mp_out_seconds_waited != nullptr)
 		{
 			(*args.mp_out_seconds_waited) = seconds_waited;
 		}
-	}
-
-	void async_manager::add_child(const task_handle& parent, const task_handle& child)
-	{
-		if (!parent.is_valid() || !child.is_valid() || (parent == child))
-		{
-			return;
-		}
-
-		++parent.mp_data->m_num_children_unfinished;
-		parent.mp_data->m_children.push_back(child.mp_data);
-		child.mp_data->m_parent = parent.mp_data;
-	}
-
-	bool async_manager::has_parent(const task_handle& handle)
-	{
-		if (!handle.is_valid())
-		{
-			return false;
-		}
-
-		return (handle.mp_data->m_parent != nullptr);
-	}
-
-	void async_manager::set_requeue_condition(const task_handle& handle, const function<bool()>& condition_func)
-	{
-		if (!handle.is_valid())
-		{
-			return;
-		}
-
-		handle.mp_data->m_requeue_condition = condition_func;
 	}
 
 	async_manager::work_queue& async_manager::get_global_queue()
@@ -362,7 +298,7 @@ namespace influx::async
 		return async_manager::get_instance().initialize(args);
 	}
 
-	task_handle create_task(const task_args& args)
+	task_handle create_task(const task_create_args& args)
 	{
 		return async_manager::get_instance().create_task(args);
 	}
@@ -377,19 +313,9 @@ namespace influx::async
 		async_manager::get_instance().wait_for(handle, args);
 	}
 
-	void add_child(const task_handle& parent, const task_handle& child)
+	void wait_for(const vector<task_handle>& handles, const wait_args& args)
 	{
-		async_manager::get_instance().add_child(parent, child);
-	}
-
-	bool has_parent(const task_handle& handle)
-	{
-		return async_manager::get_instance().has_parent(handle);
-	}
-
-	void set_requeue_condition(const task_handle& handle, const function<bool()>& condition_func)
-	{
-		async_manager::get_instance().set_requeue_condition(handle, condition_func);
+		async_manager::get_instance().wait_for(handles, args);
 	}
 
 	void shutdown()

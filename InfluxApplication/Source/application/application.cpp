@@ -36,8 +36,9 @@
 
 #include <iostream>
 
-constexpr static bool k_render_scene = false;
-constexpr static bool k_jobify_update = true;
+constexpr static bool k_render_scene = true;
+constexpr static bool k_jobify = false;
+constexpr static influx::uint8 k_max_thread_frame_difference = 1u;
 
 namespace influx::application
 {
@@ -117,7 +118,7 @@ namespace influx::application
 		frame_stats this_frame_stat{};
 		float seconds_synced = 0.0f;
 		time::point frame_start = time::get_now();
-		const uint64 frame_diff = m_run_args.m_max_thread_frame_difference;
+		const uint64 frame_diff = k_max_thread_frame_difference;
 
 		// start
 		// temp: create entities
@@ -132,12 +133,7 @@ namespace influx::application
 		{
 			frame_start = time::get_now();
 
-			if (m_gamethread_frame > frame_diff)
-			{
-				wait_for_renderthread_reaching(m_gamethread_frame - frame_diff, wait_args{ &seconds_synced });
-			}
-			
-			if (k_jobify_update)
+			if (k_jobify)
 			{
 				vector<async::task_handle> update_job_handles =
 					async::dispatch_for(m_entities.size(), [this](uint64 i)
@@ -154,10 +150,7 @@ namespace influx::application
 					m_camera_entity.m_transform.set_forward({ 0.0f, 0.0f, -1.0f });
 				}));
 
-				for (async::task_handle& handle : update_job_handles)
-				{
-					handle.wait();
-				}
+				async::wait_for(update_job_handles);
 			}
 			else
 			{
@@ -174,6 +167,12 @@ namespace influx::application
 			this_frame_stat.m_pc_sync = math::is_zero(this_frame_stat.m_ms_total) ? 0.0f : (seconds_synced * 1000.0f) / this_frame_stat.m_ms_total;
 			m_gamethread_state.m_stats.pop_to_push(this_frame_stat);
 			++m_gamethread_frame;
+
+			// wait for renderthread
+			if (m_gamethread_frame > frame_diff)
+			{
+				wait_for_renderthread_reaching(m_gamethread_frame - frame_diff, wait_args{ &seconds_synced });
+			}
 		}
 	}
 
@@ -296,22 +295,44 @@ namespace influx::application
 		{
 			frame_start = time::get_now();
 
-			// make sure this frame's passed simulation
+			// make sure simulation finished this 
 			wait_for_gamethread_reaching(m_renderthread_frame + 1u, wait_args{ &seconds_synced });
 
 			// update render proxies
 			if (k_render_scene)
 			{
 				scene_proxy.m_meshes.resize(m_entities.size()* num_submeshes);
-				for (uint64 i = 0u; i < m_entities.size(); ++i)
+				if (k_jobify)
 				{
-					for (uint32 s = 0u; s < num_submeshes; ++s)
+					auto handles = async::dispatch_for(m_entities.size()* num_submeshes,
+						[this, num_submeshes, &scene_proxy, materials](uint64 i)
 					{
+						uint32 entity_idx = i / num_submeshes;
+						uint32 submesh_idx = i % num_submeshes;
+						entity& entity = m_entities[entity_idx];
+
 						renderer::mesh_proxy mesh{};
-						mesh.m_name = "duolingo_mesh_" + std::to_string(s);
-						mesh.m_transform = m_entities[i].m_transform.get_matrix();
-						mesh.m_per_instance_colour = materials[s].m_albedo;
-						scene_proxy.m_meshes[(i * num_submeshes) + s] = mesh;
+						mesh.m_name = "duolingo_mesh_" + std::to_string(submesh_idx);
+						mesh.m_transform = entity.m_transform.get_matrix();
+						mesh.m_per_instance_colour = materials[submesh_idx].m_albedo;
+
+						scene_proxy.m_meshes[(entity_idx * num_submeshes) + submesh_idx] = mesh;
+					});
+
+					async::wait_for(handles);
+				}
+				else
+				{
+					for (uint64 i = 0u; i < m_entities.size(); ++i)
+					{
+						for (uint32 s = 0u; s < num_submeshes; ++s)
+						{
+							renderer::mesh_proxy mesh{};
+							mesh.m_name = "duolingo_mesh_" + std::to_string(s);
+							mesh.m_transform = m_entities[i].m_transform.get_matrix();
+							mesh.m_per_instance_colour = materials[s].m_albedo;
+							scene_proxy.m_meshes[(i * num_submeshes) + s] = mesh;
+						}
 					}
 				}
 			}

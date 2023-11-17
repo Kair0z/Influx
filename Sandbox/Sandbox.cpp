@@ -5,10 +5,10 @@
 
 uint64_t g_frame = 840u;
 
+using namespace influx;
+
 int main()
 {
-	using namespace influx;
-
 	async::init_args args{};
 	args.m_num_workers = 1u;
 	async::initialize(args);
@@ -19,10 +19,14 @@ int main()
 		--g_frame;
 	});
 
+	async::task_handle render_task = async::create_task("render", []()
+	{
+		std::cout << "Render! \n";
+	});
+
 	while (true)
 	{
-		simulation_task.dispatch();
-		simulation_task.wait();
+		
 	}
 
 	async::shutdown();
