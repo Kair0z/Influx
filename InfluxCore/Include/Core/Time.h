@@ -38,6 +38,12 @@ namespace influx
 		}
 
 		template <typename _t>
+		static _t get_ms_since(const point& point)
+		{
+			return get_ms_between<_t>(get_now(), point);
+		}
+
+		template <typename _t>
 		static _t measure_ms(const function<void()>& function)
 		{
 			point before = get_now();

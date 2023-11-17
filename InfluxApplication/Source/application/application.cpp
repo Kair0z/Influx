@@ -1,23 +1,21 @@
 #include "app_pch.h"
 
 #include "application/application.h"
-#include "influx_renderer.h"
-#include "influx_async.h"
-
-#if INFLUX_APP_USES_WINDOWS
-#include "core/platform/windows_platform.h"
-#endif
+#include "application/threads/threads.h"
 
 #include "Core/Math/Random.h"
 #include "core/geometry/quad.h"
 #include "core/geometry/geometry.h"
-
 #include "Core/Time.h"
+#if INFLUX_APP_USES_WINDOWS
+#include "core/platform/windows_platform.h"
+#endif
 
+#include "influx_renderer.h"
+#include "influx_async.h"
 #pragma comment(lib, "InfluxRenderer.lib")
 #pragma comment(lib, "InfluxAsync.lib")
 
-// We're using Assimp libary for loading .FBX files...
 #pragma region assimp
 #include "foreign/assimp/assimp_helpers.h"
 #if _DEBUG
@@ -86,21 +84,39 @@ namespace influx::application
 				window_args.m_name = args.m_name;
 				m_windowhandle = platform::create_window(window_args, true, windows_procedure);
 
-				m_renderthread = std::thread(&application::run_renderthread, this);
-				m_gamethread = std::thread(&application::run_gamethread, this);
-
-				if (args.m_enable_editor)
+				if (args.m_threaded_rendering)
 				{
-					m_editorthread = std::thread(&application::run_editorthread, this);
+					m_dedicated_threads.clear();
+					m_dedicated_threads.push_back(new gamethread());
+					m_dedicated_threads.push_back(new renderthread());
+					m_dedicated_threads.push_back(new mainthread());
+
+					for (dedicated_thread*& thread : m_dedicated_threads)
+					{
+						thread->spin();
+					}
+
+					for (dedicated_thread*& thread : m_dedicated_threads)
+					{
+						delete thread;
+						thread = nullptr;
+					}
 				}
-
-				// run main thread
-				run_mainthread();
-
-				// cleanup
-				if (m_renderthread.joinable()) m_renderthread.join();
-				if (m_mainthread.joinable()) m_mainthread.join();
-				if (m_editorthread.joinable()) m_editorthread.join();
+				else
+				{
+					mainthread::static_initialize();
+					gamethread::static_initialize();
+					renderthread::static_initialize();
+					while (!m_is_quit_requested)
+					{
+						mainthread::static_tick();
+						gamethread::static_tick();
+						renderthread::static_tick();
+					}
+					mainthread::static_cleanup();
+					gamethread::static_cleanup();
+					renderthread::static_cleanup();
+				}
 
 				async::shutdown();
 			}
@@ -122,7 +138,7 @@ namespace influx::application
 
 		// start
 		// temp: create entities
-		constexpr uint64 k_num_entities = 4096u * 10u;
+		constexpr uint64 k_num_entities = 4096u;
 		m_entities.reserve(k_num_entities);
 		for (uint64 i = 0u; i < k_num_entities; ++i)
 		{
