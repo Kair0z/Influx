@@ -58,12 +58,16 @@ namespace influx::platform
 	
 	enum class e_console_colour : uint16
 	{
-		Green = 2,
-		Red = 4,
-		Purple = 5,
-		BG_Green = 12,
-		BG_Red = 14,
-		BG_Purple = 15,
+		blue = 1,
+		green = 2,
+		red = 4,
+		yellow = green | red,
+		purple = red | blue,
+		white = green | red | blue,
+		bg_blue = 11,
+		bg_green = 12,
+		bg_red = 14,
+		bg_purple = bg_red | bg_blue,
 		maximum
 	};
 
@@ -145,8 +149,7 @@ namespace influx::platform
 		messagebox<e_messagebox::warning>(caption, message, windowHandle);
 	}
 
-	template <e_console_colour _C>
-	void set_console_colour_attribute();
+	void set_console_colour_attribute(e_console_colour colour);
 #pragma endregion
 
 #pragma region files

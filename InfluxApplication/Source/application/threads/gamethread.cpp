@@ -58,10 +58,17 @@ namespace influx::application
 
 		// push a game frame
 		// if unsuccesful, that means we're full -> stall until render pops a frame...
-		while (!application::get_render_sync().push({}))
-		{
+		rendersync::game_frame result_frame = {};
+		result_frame.m_frame_id = get_frame();
+		result_frame.m_entities = m_entities;
+		result_frame.m_camera_entity = m_camera_entity;
 
+		mark_sync_start();
+		while (!application::get_render_sync().push_frame(result_frame))
+		{
+			// ...
 		}
+		mark_sync_end();
 	}
 
 	void gamethread::cleanup()

@@ -14,6 +14,7 @@ namespace influx
 		using capacity_t = size_t;
 	}
 
+	// FIFO queue really...
 	template <typename _t, detail::capacity_t _C>
 	class ringbuffer
 	{
@@ -24,7 +25,7 @@ namespace influx
 		bool pop_if(_t& value, const function<bool(const _t&)> cond);
 		bool peak(detail::capacity_t i, _t& value);
 		
-		// push, if full, pop
+		// push, if (full) => pop
 		_t* pop_to_push(const _t& value);
 
 		detail::capacity_t size() const;
@@ -44,7 +45,7 @@ namespace influx
 		bool result = false;
 
 		m_lock.lock();
-		detail::capacity_t next = (m_head + 1) % _C;
+		detail::capacity_t next = (m_head + 1u) % _C;
 		if (next != m_tail)
 		{
 			m_data[m_head] = value;
@@ -148,8 +149,8 @@ namespace influx
 	inline _t ringbuffer<_t, _c>::get_average_value(const detail::capacity_t num_elements)
 	{
 		_t result{};
-
 		detail::capacity_t num = math::minimum(num_elements, size());
+		if (num <= 0u) return result;
 
 		m_lock.lock();
 		for (detail::capacity_t i = m_head; i != (m_head - num) % _c; i = (i - 1u) % _c)

@@ -52,15 +52,24 @@ namespace influx::application
 				m_time_before_init = time::get_now();
 				initialize();
 				m_time_after_init = time::get_now();
-				while (true)
+				while (application::is_quit_requested() == false)
 				{
-					m_time_before_tick = time::get_now();
+					m_time_before_tick = m_time_before_sync = m_time_after_sync = time::get_now();
 					tick();
 					m_time_after_tick = time::get_now();
+
+					// record stats
+					per_frame_stats this_frame_stats{};
+					const float ms_sync = time::get_ms_between<float>(m_time_after_sync, m_time_before_sync);
+					this_frame_stats.m_ms_total = time::get_ms_between<float>(m_time_after_tick, m_time_before_tick);
+					this_frame_stats.m_pc_sync = math::is_zero(this_frame_stats.m_ms_total) ? 0.0f : ms_sync / this_frame_stats.m_ms_total;
+					m_stats.pop_to_push(this_frame_stats);
+
+					++m_frame;
 				}
 				cleanup();
 			});
-		}
+		};
 
 		virtual void initialize() = 0;
 		virtual void tick() = 0;
@@ -70,6 +79,20 @@ namespace influx::application
 		inline per_frame_stats get_average_stats(uint64 num_elements)
 		{
 			return m_stats.get_average_value(num_elements);
+		}
+		inline uint64 get_frame() const
+		{
+			return m_frame;
+		}
+
+	protected:
+		inline void mark_sync_start()
+		{
+			m_time_before_sync = time::get_now();
+		}
+		inline void mark_sync_end()
+		{
+			m_time_after_sync = time::get_now();
 		}
 
 	private:
@@ -81,5 +104,7 @@ namespace influx::application
 		time::point m_time_after_init{};
 		time::point m_time_before_tick{};
 		time::point m_time_after_tick{};
+		time::point m_time_before_sync{};
+		time::point m_time_after_sync{};
 	};
 }

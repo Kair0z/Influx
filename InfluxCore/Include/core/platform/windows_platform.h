@@ -373,13 +373,10 @@ namespace influx::platform
 		::MessageBoxA((::HWND)windowHandle, message.c_str(), caption.c_str(), type);
 	}
 
-	template <e_console_colour _C>
-	inline void set_console_colour_attribute()
+	inline void set_console_colour_attribute(e_console_colour colour)
 	{
-		constexpr int value = static_cast<int>(_C);
-
 		HANDLE hConsole = ::GetStdHandle(STD_OUTPUT_HANDLE);
-		::SetConsoleTextAttribute(hConsole, value);
+		::SetConsoleTextAttribute(hConsole, static_cast<int>(colour));
 	}
 
 #pragma region files

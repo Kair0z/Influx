@@ -12,19 +12,8 @@
 #include "core/platform/windows_platform.h"
 #endif
 
-#include "influx_renderer.h"
 #include "influx_async.h"
-#pragma comment(lib, "InfluxRenderer.lib")
 #pragma comment(lib, "InfluxAsync.lib")
-
-#pragma region assimp
-#include "foreign/assimp/assimp_helpers.h"
-#if _DEBUG
-#pragma comment(lib, "assimp-vc142-mtd.lib")
-#else
-#pragma comment(lib, "assimp-vc142-mt.lib")
-#endif
-#pragma endregion
 
 #pragma region imgui
 #include "foreign/ImGui/imgui.h"
@@ -68,7 +57,7 @@ namespace influx::application
 
 		// initialize async jobs module
 		async::init_args async_init_args{};
-		async_init_args.m_num_workers = async::get_max_concurrency() - 3u;
+		async_init_args.m_num_workers = k_max_num_job_threads;
 		async::initialize(async_init_args);
 
 		// create a window
@@ -134,14 +123,6 @@ namespace influx::application
 
 		if (m_run_args.m_enable_editor)
 		{
-			// initialize imgui
-			while (!renderer::is_initialized_imgui())
-			{
-				// wait a bit :)
-				// if the renderer never initializes imgui,
-				// this thread will be useless anyhow...
-			}
-
 			ImGui_ImplWin32_Init(application::get_instance().get_window_handle());
 		}
 	}
@@ -175,7 +156,8 @@ namespace influx::application
 		}
 
 		// log stats
-		if (m_mainthread_frame % (512 * 512) == 0u && m_mainthread_frame != 0u)
+		const uint64 game_frame = mp_gamethread->get_frame();
+		if (game_frame % k_stats_log_frame_intv == 0u && game_frame != 0u)
 		{
 			mainthread_log();
 		}
@@ -195,11 +177,38 @@ namespace influx::application
 	void application::mainthread_log()
 	{
 		system("cls");
-		dedicated_thread::per_frame_stats game_stats = mp_gamethread->get_average_stats(64u);
-		dedicated_thread::per_frame_stats render_stats = mp_renderthread->get_average_stats(64u);
+		dedicated_thread::per_frame_stats game_stats = mp_gamethread->get_average_stats(k_num_stats_to_average); // we can miss a couple of frames but who cares?
+		dedicated_thread::per_frame_stats render_stats = mp_renderthread->get_average_stats(k_num_stats_to_average);
 
-		std::cout << "[Game]  \tFPS: " << 1.0f / (game_stats.m_ms_total * 0.001f) << "\t| ms: " << game_stats.m_ms_total << "\t| " << "Sync: " << 100.0f * game_stats.m_pc_sync << "%\n";
-		std::cout << "[Render]\tFPS: " << 1.0f / (render_stats.m_ms_total * 0.001f) << "\t| ms: " << render_stats.m_ms_total << "\t| " << "Sync: " << 100.0f * render_stats.m_pc_sync << "%\n";
+		auto set_console_color = [](const float ms_value, const float pc_sync)
+		{
+			platform::set_console_colour_attribute(platform::e_console_colour::white);
+			const float pc_self = 1.0f - pc_sync;
+			const float ms_self = ms_value * pc_self;
+			
+			if (ms_self >= 16.66f)
+			{
+				platform::set_console_colour_attribute(platform::e_console_colour::yellow);
+			}
+			if (ms_self >= 33.33f)
+			{
+				platform::set_console_colour_attribute(platform::e_console_colour::red);
+			}
+		};
+
+		const float game_fps = 1.0f / (game_stats.m_ms_total * 0.001f);
+		const float render_fps = 1.0f / (render_stats.m_ms_total * 0.001f);
+		const float game_ms_sync = game_stats.m_pc_sync * game_stats.m_ms_total;
+		const float render_ms_sync = render_stats.m_pc_sync * render_stats.m_ms_total;
+
+		set_console_color(game_stats.m_ms_total, game_stats.m_pc_sync);
+		std::cout << "[Game]  \tFPS: " << game_fps << "\t| ms: " << game_stats.m_ms_total << "\t\t| " << "Sync: " << 100.0f * game_stats.m_pc_sync 
+			<< "% (" << game_ms_sync << " ms)\n";
+		set_console_color(render_stats.m_ms_total, render_stats.m_pc_sync);
+		std::cout << "[Render]\tFPS: " << render_fps << "\t| ms: " << render_stats.m_ms_total << "\t\t| " << "Sync: " << 100.0f * render_stats.m_pc_sync 
+			<< "% (" << render_ms_sync << " ms)\n";
+
+		platform::set_console_colour_attribute(platform::e_console_colour::white);
 	}
 
 	void application::request_quit()
@@ -210,6 +219,11 @@ namespace influx::application
 	rendersync& application::get_render_sync()
 	{
 		return get_instance().m_render_sync;
+	}
+
+	bool application::is_quit_requested()
+	{
+		return get_instance().m_is_quit_requested;
 	}
 
 	string application::get_resource_directory() const

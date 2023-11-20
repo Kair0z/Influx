@@ -12,15 +12,23 @@ namespace influx::application
 		class game_frame final
 		{
 		public:
+			uint64 m_frame_id = 0u;
 			vector<entity> m_entities{};
 			entity m_camera_entity{};
 		};
 
-		bool push(const game_frame& frame);
-		bool pop(game_frame& out_frame);
+		bool push_frame(const game_frame& frame)
+		{
+			return m_frames.push(frame);
+		}
+
+		bool pop_frame(game_frame& out_frame)
+		{
+			return m_frames.pop(out_frame);
+		}
 
 	private:
-		ringbuffer<game_frame, 2u> m_game_frame_stack{};
+		ringbuffer<game_frame, 2u> m_frames{};
 	};
 }
 
