@@ -1,17 +1,19 @@
 #pragma once
 
+#include "application/application.h"
 #include "Core/Container/ringbuffer.h"
+#include "Core/Time.h"
+
 #include <thread>
 
 namespace influx::application
 {
-	constexpr static uint64 k_stats_capacity = 512u;
-
-#define def_inherit_static_void_func(func) \
-	public: \
-		static void static_##func; \
-	private: \
-		inline virtual void call_##func override { static_##func; }; \
+	enum class e_dedicated_thread : uint8
+	{
+		gamethread,
+		renderthread,
+		max
+	};
 
 	class dedicated_thread
 	{
@@ -47,13 +49,27 @@ namespace influx::application
 		{
 			m_thread_object = std::thread([this]()
 			{
-				call_initialize();
+				m_time_before_init = time::get_now();
+				initialize();
+				m_time_after_init = time::get_now();
 				while (true)
 				{
-					call_tick();
+					m_time_before_tick = time::get_now();
+					tick();
+					m_time_after_tick = time::get_now();
 				}
-				call_cleanup();
+				cleanup();
 			});
+		}
+
+		virtual void initialize() = 0;
+		virtual void tick() = 0;
+		virtual void cleanup() = 0;
+		virtual e_dedicated_thread get_thread_type() const = 0;
+
+		inline per_frame_stats get_average_stats(uint64 num_elements)
+		{
+			return m_stats.get_average_value(num_elements);
 		}
 
 	private:
@@ -61,8 +77,9 @@ namespace influx::application
 		uint64 m_frame = 0u;
 		ringbuffer<per_frame_stats, k_stats_capacity> m_stats{};
 
-		virtual void call_initialize() = 0;
-		virtual void call_tick() = 0;
-		virtual void call_cleanup() = 0;
+		time::point m_time_before_init{};
+		time::point m_time_after_init{};
+		time::point m_time_before_tick{};
+		time::point m_time_after_tick{};
 	};
 }

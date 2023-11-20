@@ -7,6 +7,10 @@
     <ClInclude Include="Source\application\application.h" />
     <ClInclude Include="Source\foreign\assimp\assimp_helpers.h" />
     <ClInclude Include="Source\application\threads\threads.h" />
+    <ClInclude Include="Source\application\threads\gamethread.h" />
+    <ClInclude Include="Source\application\threads\renderthread.h" />
+    <ClInclude Include="Source\application\scene\scene.h" />
+    <ClInclude Include="Source\application\threads\rendersync.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\app_pch.cpp" />
@@ -18,6 +22,9 @@
     <ClCompile Include="Source\foreign\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\foreign\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\foreign\ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\application\threads\threads.cpp" />
+    <ClCompile Include="Source\application\threads\gamethread.cpp" />
+    <ClCompile Include="Source\application\threads\renderthread.cpp" />
+    <ClCompile Include="Source\application\scene\scene.cpp" />
+    <ClCompile Include="Source\application\threads\rendersync.cpp" />
   </ItemGroup>
 </Project>

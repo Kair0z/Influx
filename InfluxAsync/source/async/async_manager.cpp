@@ -227,7 +227,7 @@ namespace influx::async
 
 	void async_manager::wait_for(const task_handle& handle, const wait_args& args)
 	{
-		wait_for({ handle });
+		wait_for(vector<task_handle>{ handle });
 	}
 
 	void async_manager::wait_for(const vector<task_handle>& handles, const wait_args& args)

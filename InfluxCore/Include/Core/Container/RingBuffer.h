@@ -5,6 +5,7 @@
 
 #include <mutex>
 #include "Core/Math/Math.h"
+#include "Core/Function.h"
 
 namespace influx
 {
@@ -43,7 +44,6 @@ namespace influx
 		bool result = false;
 
 		m_lock.lock();
-
 		detail::capacity_t next = (m_head + 1) % _C;
 		if (next != m_tail)
 		{
@@ -51,7 +51,6 @@ namespace influx
 			m_head = next;
 			result = true;
 		}
-
 		m_lock.unlock();
 
 		return result;

@@ -159,16 +159,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\application\threads\rendersync.h" />
+    <ClInclude Include="Source\application\scene\scene.h" />
     <ClInclude Include="Source\application\application.h" />
     <ClInclude Include="Include\influx_application.h" />
+    <ClInclude Include="Source\application\threads\gamethread.h" />
+    <ClInclude Include="Source\application\threads\renderthread.h" />
     <ClInclude Include="Source\application\threads\threads.h" />
     <ClInclude Include="Source\app_pch.h" />
     <ClInclude Include="Include\InfluxApplication\Application.h" />
     <ClInclude Include="Source\foreign\assimp\assimp_helpers.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\application\threads\rendersync.cpp" />
+    <ClCompile Include="Source\application\scene\scene.cpp" />
     <ClCompile Include="Source\application\application.cpp" />
-    <ClCompile Include="Source\application\threads\threads.cpp" />
+    <ClCompile Include="Source\application\threads\gamethread.cpp" />
+    <ClCompile Include="Source\application\threads\renderthread.cpp" />
     <ClCompile Include="Source\app_pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

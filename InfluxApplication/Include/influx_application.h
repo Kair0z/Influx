@@ -28,7 +28,7 @@ namespace influx::application
 		bool m_enable_scenerender = false;
 		bool m_enable_editor = false;
 		bool m_vsync = false;
-		bool m_threaded_rendering = false;
+		bool m_single_threaded = false;
 
 		math::vectorf4 m_window_clear_colour = {};
 

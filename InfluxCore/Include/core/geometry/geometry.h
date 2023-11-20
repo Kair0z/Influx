@@ -8,7 +8,7 @@
 
 namespace influx::math::geometry
 {
-	void traverse(const quadf& rectangle, 
+	inline static void traverse(const quadf& rectangle, 
 		const function<void(const vectorf3&)>& func_vertex,
 		const function<void(const uint32)>& func_index)
 	{

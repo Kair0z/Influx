@@ -1,7 +1,8 @@
 #include "app_pch.h"
 
 #include "application/application.h"
-#include "application/threads/threads.h"
+#include "application/threads/gamethread.h"
+#include "application/threads/renderthread.h"
 
 #include "Core/Math/Random.h"
 #include "core/geometry/quad.h"
@@ -65,311 +66,103 @@ namespace influx::application
 
 		m_instancehandle = platform::get_current_instance();
 
-		// initialize jobs
+		// initialize async jobs module
 		async::init_args async_init_args{};
 		async_init_args.m_num_workers = async::get_max_concurrency() - 3u;
 		async::initialize(async_init_args);
 
 		// create a window
-		platform::create_window_args window_args{};
-		window_args.m_width = (int)args.m_window_width;
-		window_args.m_height = (int)args.m_window_height;
-		window_args.m_name = args.m_name;
-		m_windowhandle = platform::create_window(window_args, true, windows_procedure);
-
-		// run thread loops
-		if (args.m_threaded_rendering)
+		if (m_run_args.m_commandlet == false)
+		{
+			platform::create_window_args window_args{};
+			window_args.m_width = (int)args.m_window_width;
+			window_args.m_height = (int)args.m_window_height;
+			window_args.m_name = args.m_name;
+			m_windowhandle = platform::create_window(window_args, true, windows_procedure);
+		}
+		
+		// create dedicated threads
+		mp_gamethread = new gamethread();
+		mp_renderthread = new renderthread();
 		{
 			m_dedicated_threads.clear();
-			m_dedicated_threads.push_back(new gamethread());
-			m_dedicated_threads.push_back(new renderthread());
-			m_dedicated_threads.push_back(new mainthread());
-
+			m_dedicated_threads.push_back(mp_gamethread);
+			m_dedicated_threads.push_back(mp_renderthread);
+		}
+		
+		if (args.m_single_threaded)
+		{
+			main_init();
+			mp_gamethread->initialize();
+			mp_renderthread->initialize();
+			while (!m_is_quit_requested)
+			{
+				main_tick();
+				mp_gamethread->tick();
+				mp_renderthread->tick();
+			}
+			main_cleanup();
+			mp_gamethread->cleanup();
+			mp_renderthread->cleanup();
+		}
+		else
+		{
+			main_init();
 			for (dedicated_thread*& thread : m_dedicated_threads)
 			{
 				thread->spin();
 			}
-
-			// joins & so stalls until all threads are finished...
+			while (!m_is_quit_requested)
+			{
+				main_tick();
+			}
+			// joins() & so stalls until all threads are finished...
 			for (dedicated_thread*& thread : m_dedicated_threads)
 			{
 				delete thread;
 				thread = nullptr;
 			}
-		}
-		else
-		{
-			mainthread::static_initialize();
-			gamethread::static_initialize();
-			renderthread::static_initialize();
-			while (!m_is_quit_requested)
-			{
-				mainthread::static_tick();
-				gamethread::static_tick();
-				renderthread::static_tick();
-			}
-			mainthread::static_cleanup();
-			gamethread::static_cleanup();
-			renderthread::static_cleanup();
+			main_cleanup();
 		}
 
 		async::shutdown();
 	}
 
-	void application::request_quit()
+	void application::main_init()
 	{
-		m_is_quit_requested = true;
-	}
+		m_mainthread_frame = 0u;
 
-
-	void application::run_gamethread()
-	{
-		frame_stats this_frame_stat{};
-		float seconds_synced = 0.0f;
-		time::point frame_start = time::get_now();
-		const uint64 frame_diff = k_max_thread_frame_difference;
-
-		// start
-		// temp: create entities
-		constexpr uint64 k_num_entities = 4096u;
-		m_entities.reserve(k_num_entities);
-		for (uint64 i = 0u; i < k_num_entities; ++i)
+		if (m_run_args.m_enable_editor)
 		{
-			m_entities.push_back(i);
-		}
-
-		while (!m_is_quit_requested)
-		{
-			frame_start = time::get_now();
-
-			if (k_jobify)
+			// initialize imgui
+			while (!renderer::is_initialized_imgui())
 			{
-				vector<async::task_handle> update_job_handles =
-					async::dispatch_for(m_entities.size(), [this](uint64 i)
-					{
-						m_entities[i].m_transform = math::transform3D(
-							random::get_random_unit_vectorf3() * 5.0f,
-							math::quaternion::identity(),
-							math::vectorf3::one());
-					});
-
-				update_job_handles.push_back(async::dispatch([this]()
-				{
-					m_camera_entity.m_transform.set_position({ 0.0f, 0.0f, 10.0f });
-					m_camera_entity.m_transform.set_forward({ 0.0f, 0.0f, -1.0f });
-				}));
-
-				async::wait_for(update_job_handles);
+				// wait a bit :)
+				// if the renderer never initializes imgui,
+				// this thread will be useless anyhow...
 			}
-			else
-			{
-				for (entity& e : m_entities)
-				{
-					e.m_transform = math::transform3D(
-						random::get_random_unit_vectorf3() * 5.0f,
-						math::quaternion::identity(),
-						math::vectorf3::one());
-				}
-			}
-			
-			this_frame_stat.m_ms_total = math::maximum(math::k_epsilon, time::get_ms_between<float>(time::get_now(), frame_start));
-			this_frame_stat.m_pc_sync = math::is_zero(this_frame_stat.m_ms_total) ? 0.0f : (seconds_synced * 1000.0f) / this_frame_stat.m_ms_total;
-			m_gamethread_state.m_stats.pop_to_push(this_frame_stat);
-			++m_gamethread_frame;
 
-			// wait for renderthread
-			if (m_gamethread_frame > frame_diff)
-			{
-				wait_for_renderthread_reaching(m_gamethread_frame - frame_diff, wait_args{ &seconds_synced });
-			}
+			ImGui_ImplWin32_Init(application::get_instance().get_window_handle());
 		}
 	}
 
-	void application::run_renderthread()
+	void application::main_tick()
 	{
-		// initialize renderer
-		renderer::init_args args{};
-		args.m_api_type = renderer::e_render_api::dx12;
-		args.m_resource_dir = m_run_args.m_resources_dir;
-		renderer::initialize(args);
-
-		// initialize imgui backend
-		if (m_run_args.m_enable_editor) 
-			renderer::initialize_imgui();
-
-		// load meshes, textures & materials into the renderer
-		uint32 num_submeshes{}; 
-		vector<renderer::material_data> materials{};
+		// window events
+		vector<platform::e_windowevent> out_events{};
+		if (!platform::poll_window_events(out_events, m_windowhandle))
 		{
-			// mesh assets
-			{
-				assimp_helpers::initialize();
-
-				math::spheref bounding_sphere{};
-				assimp_helpers::for_each_mesh_in(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx",
-					[&num_submeshes, &materials, &bounding_sphere](const aiMesh* mesh, const assimp_helpers::add_mesh_info& info)
-					{
-						renderer::mesh_data result_data{};
-						renderer::vertex_data vertex{};
-
-						renderer::material_data material{};
-						material.m_albedo = assimp_helpers::parse_material_property<math::vectorf4>(assimp_helpers::e_material_property::diffuse, info.m_material);
-						materials.push_back(material);
-
-						// vertexbuffer
-						for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
-						{
-							vertex.m_position = assimp_helpers::from_assimp(info.m_world_rotation * mesh->mVertices[i]);
-							vertex.m_colour = mesh->HasVertexColors(0u) ? assimp_helpers::from_assimp(mesh->mColors[0u][i]) : material.m_albedo;
-							vertex.m_normal = mesh->HasNormals() ? assimp_helpers::from_assimp(mesh->mNormals[i]) : math::vectorf3{};
-							vertex.m_texcoords = mesh->HasTextureCoords(0u) ? assimp_helpers::from_assimp(mesh->mTextureCoords[0u][i]).get_xy() : math::vectorf2{};
-							result_data.m_vertices.push_back(vertex);
-						}
-
-						// indexbuffer
-						for (uint32 f = 0u; f < mesh->mNumFaces; ++f)
-						{
-							for (uint32 i = 0u; i < mesh->mFaces[f].mNumIndices; ++i)
-							{
-								result_data.m_indices.push_back(mesh->mFaces[f].mIndices[i]);
-							}
-						}
-
-						// load into the renderer
-						renderer::load("duolingo_mesh_" + to_string(info.m_idx), result_data);
-
-						++num_submeshes;
-					});
-
-				assimp_helpers::for_each_texture_in(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx",
-					[](const aiTexture* texture, uint32 index)
-					{
-						const uint32 num_pixels = (texture->mWidth * texture->mHeight);
-
-						renderer::texture_data result_data{};
-						result_data.m_width = texture->mWidth;
-						result_data.m_pixels.reserve(num_pixels);
-						for (uint32 i = 0u; i < num_pixels; ++i)
-						{
-							const aiTexel& texel = texture->pcData[i];
-							result_data.m_pixels.push_back(assimp_helpers::from_assimp(texel.operator aiColor4D()));
-						}
-
-						renderer::load("duolingo_texture_" + to_string(index), result_data);
-					});
-
-				assimp_helpers::cleanup();
-			}
-
-			// plane
-			renderer::mesh_data plane_mesh_data{};
-			using namespace math;
-			quadf plane_quad = quadf::up_quad(rectf::square_rect(10.0f), -vectorf3::forward());
-
-			geometry::traverse(plane_quad,
-				[&plane_mesh_data](const vectorf3& vertex)
-				{
-					renderer::vertex_data result_vertex{};
-					result_vertex.m_position = vertex;
-					plane_mesh_data.m_vertices.push_back(result_vertex);
-				},
-				[&plane_mesh_data](const uint32 index)
-				{
-					plane_mesh_data.m_indices.push_back(index);
-				});
-
-			renderer::load("plane", plane_mesh_data);
+			request_quit();
+			return;
 		}
 
-		// set up render & present arguments
-		renderer::render_args render_args{};
-		render_args.m_clear_colour = m_run_args.m_window_clear_colour;
-		renderer::present_args present_args{};
-		present_args.m_vsync = m_run_args.m_vsync;
-
-		// setup scene proxy & hardcoded camera
-		renderer::scene_proxy scene_proxy{};
-		renderer::camera_proxy camera_proxy{};
-		scene_proxy.m_cameras.push_back(camera_proxy);
-		scene_proxy.m_cameras[0].m_fov = 90.0f;
-		scene_proxy.m_cameras[0].m_near_plane = 0.01f;
-		scene_proxy.m_cameras[0].m_far_plane = 1.0f;
-		scene_proxy.m_cameras[0].m_position = m_camera_entity.m_transform.get_position();
-		scene_proxy.m_cameras[0].m_forward = m_camera_entity.m_transform.get_forward();
-
-		frame_stats this_frame_stats{};
-		float seconds_synced = 0.0f;
-		time::point frame_start = time::get_now();
-		while (!m_is_quit_requested)
+		// handle events
+		for (platform::e_windowevent e : out_events)
 		{
-			frame_start = time::get_now();
-
-			// make sure simulation finished this 
-			wait_for_gamethread_reaching(m_renderthread_frame + 1u, wait_args{ &seconds_synced });
-
-			// update render proxies
-			if (k_render_scene)
-			{
-				scene_proxy.m_meshes.resize(m_entities.size()* num_submeshes);
-				if (k_jobify)
-				{
-					auto handles = async::dispatch_for(m_entities.size()* num_submeshes,
-						[this, num_submeshes, &scene_proxy, materials](uint64 i)
-					{
-						uint32 entity_idx = i / num_submeshes;
-						uint32 submesh_idx = i % num_submeshes;
-						entity& entity = m_entities[entity_idx];
-
-						renderer::mesh_proxy mesh{};
-						mesh.m_name = "duolingo_mesh_" + std::to_string(submesh_idx);
-						mesh.m_transform = entity.m_transform.get_matrix();
-						mesh.m_per_instance_colour = materials[submesh_idx].m_albedo;
-
-						scene_proxy.m_meshes[(entity_idx * num_submeshes) + submesh_idx] = mesh;
-					});
-
-					async::wait_for(handles);
-				}
-				else
-				{
-					for (uint64 i = 0u; i < m_entities.size(); ++i)
-					{
-						for (uint32 s = 0u; s < num_submeshes; ++s)
-						{
-							renderer::mesh_proxy mesh{};
-							mesh.m_name = "duolingo_mesh_" + std::to_string(s);
-							mesh.m_transform = m_entities[i].m_transform.get_matrix();
-							mesh.m_per_instance_colour = materials[s].m_albedo;
-							scene_proxy.m_meshes[(i * num_submeshes) + s] = mesh;
-						}
-					}
-				}
-			}
-
-			renderer::render_to_window(k_render_scene ? &scene_proxy : nullptr, render_args, m_windowhandle, present_args);
-
-			this_frame_stats.m_ms_total = math::maximum(math::k_epsilon, time::get_ms_between<float>(time::get_now(), frame_start));
-			this_frame_stats.m_pc_sync = math::is_zero(this_frame_stats.m_ms_total) ? 0.0f : (seconds_synced * 1000.0f) / this_frame_stats.m_ms_total;
-			m_renderthread_state.m_stats.pop_to_push(this_frame_stats);
-			++m_renderthread_frame;
 		}
 
-		renderer::cleanup();
-	}
-
-	void application::run_editorthread()
-	{
-		uint64 editor_frame = 0u;
-
-		while (!renderer::is_initialized_imgui())
-		{
-			// wait a bit :)
-			// if the renderer never initializes imgui,
-			// this thread will be useless anyhow...
-		}
-
-		ImGui_ImplWin32_Init(m_windowhandle);
-		while (!m_is_quit_requested)
+		// editor
+		if (m_run_args.m_enable_editor)
 		{
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
@@ -379,81 +172,44 @@ namespace influx::application
 			ImGui::Render(); // endframe + submits draw data
 
 			ImGui::GetDrawData();
-			++editor_frame;
 		}
 
-		ImGui_ImplWin32_Shutdown();
-		ImGui::DestroyContext();
+		// log stats
+		if (m_mainthread_frame % (512 * 512) == 0u && m_mainthread_frame != 0u)
+		{
+			mainthread_log();
+		}
+
+		++m_mainthread_frame;
 	}
 
-	void application::run_mainthread()
+	void application::main_cleanup()
 	{
-		uint64 mainthread_frame = 0u;
-		vector<platform::e_windowevent> out_events{};
-		while (!m_is_quit_requested)
+		if (m_run_args.m_enable_editor)
 		{
-			// window events
-			if (!platform::poll_window_events(out_events, m_windowhandle))
-			{
-				request_quit();
-				break;
-			}
-
-			// handle events
-			for (platform::e_windowevent e : out_events)
-			{
-			}
-
-			// log stats
-			if (mainthread_frame % (512 * 512) == 0u && mainthread_frame != 0u)
-			{
-				mainthread_log();
-			}
-
-			++mainthread_frame;
-		}
-
-		int a = 0;
-		a++;
-	}
-
-
-	void application::wait_for_renderthread_reaching(const uint64 frame_to_reach, const wait_args& args)
-	{
-		time::point before_wait = time::get_now();
-		while (m_renderthread_frame < frame_to_reach)
-		{
-			// wait...
-		}
-
-		if (args.mp_out_seconds_waited != nullptr)
-		{
-			(*args.mp_out_seconds_waited) = time::get_ms_between<float>(time::get_now(), before_wait) * 0.001f;
-		}
-	}
-
-	void application::wait_for_gamethread_reaching(const uint64 frame_to_reach, const wait_args& args)
-	{
-		time::point before_wait = time::get_now();
-		while (m_gamethread_frame < frame_to_reach)
-		{
-			// wait...
-		}
-
-		if (args.mp_out_seconds_waited != nullptr)
-		{
-			(*args.mp_out_seconds_waited) = time::get_ms_between<float>(time::get_now(), before_wait) * 0.001f;
+			ImGui_ImplWin32_Shutdown();
+			ImGui::DestroyContext();
 		}
 	}
 
 	void application::mainthread_log()
 	{
 		system("cls");
-		frame_stats game_stats = m_gamethread_state.m_stats.get_average_value(64u);
-		frame_stats render_stats = m_renderthread_state.m_stats.get_average_value(64u);
+		dedicated_thread::per_frame_stats game_stats = mp_gamethread->get_average_stats(64u);
+		dedicated_thread::per_frame_stats render_stats = mp_renderthread->get_average_stats(64u);
 
 		std::cout << "[Game]  \tFPS: " << 1.0f / (game_stats.m_ms_total * 0.001f) << "\t| ms: " << game_stats.m_ms_total << "\t| " << "Sync: " << 100.0f * game_stats.m_pc_sync << "%\n";
 		std::cout << "[Render]\tFPS: " << 1.0f / (render_stats.m_ms_total * 0.001f) << "\t| ms: " << render_stats.m_ms_total << "\t| " << "Sync: " << 100.0f * render_stats.m_pc_sync << "%\n";
+	}
+
+	void application::request_quit()
+	{
+		m_is_quit_requested = true;
+	}
+
+	rendersync& application::get_render_sync()
+	{
+		return get_instance().m_render_sync;
 	}
 
 	string application::get_resource_directory() const
@@ -464,6 +220,16 @@ namespace influx::application
 	run_args application::get_run_arguments() const
 	{
 		return m_run_args;
+	}
+
+	platform::window_handle application::get_window_handle() const
+	{
+		return m_windowhandle;
+	}
+
+	platform::instance_handle application::get_instance_handle() const
+	{
+		return m_instancehandle;
 	}
 
 #pragma region apifunctions

@@ -7,6 +7,7 @@
 #include "Core/Geometry/quad.h"
 
 #include "influx_renderer.h"
+#include "influx_async.h"
 #pragma comment(lib, "InfluxRenderer.lib")
 
 #pragma region assimp
@@ -20,7 +21,10 @@
 
 namespace influx::application
 {
-	void renderthread::static_initialize()
+	inline static uint32 g_num_submeshes = 0u;
+	inline static vector<renderer::material_data> g_materials{};
+
+	void renderthread::initialize()
 	{
 		auto app_run_args = application::get_instance().get_run_arguments();
 		auto app_resource_directory = application::get_instance().get_resource_directory();
@@ -36,8 +40,6 @@ namespace influx::application
 			renderer::initialize_imgui();
 
 		// load meshes, textures & materials into the renderer
-		uint32 num_submeshes{};
-		vector<renderer::material_data> materials{};
 		{
 			// mesh assets
 			{
@@ -45,14 +47,14 @@ namespace influx::application
 
 				math::spheref bounding_sphere{};
 				assimp_helpers::for_each_mesh_in(app_resource_directory + "/Meshes/Duolingo.fbx",
-					[&num_submeshes, &materials, &bounding_sphere](const aiMesh* mesh, const assimp_helpers::add_mesh_info& info)
+					[&bounding_sphere](const aiMesh* mesh, const assimp_helpers::add_mesh_info& info)
 					{
 						renderer::mesh_data result_data{};
 						renderer::vertex_data vertex{};
 
 						renderer::material_data material{};
 						material.m_albedo = assimp_helpers::parse_material_property<math::vectorf4>(assimp_helpers::e_material_property::diffuse, info.m_material);
-						materials.push_back(material);
+						g_materials.push_back(material);
 
 						// vertexbuffer
 						for (uint32 i = 0u; i < mesh->mNumVertices; ++i)
@@ -76,10 +78,10 @@ namespace influx::application
 						// load into the renderer
 						renderer::load("duolingo_mesh_" + to_string(info.m_idx), result_data);
 
-						++num_submeshes;
+						++g_num_submeshes;
 					});
 
-				assimp_helpers::for_each_texture_in(m_run_args.m_resources_dir + "/Meshes/Duolingo.fbx",
+				assimp_helpers::for_each_texture_in(app_resource_directory + "/Meshes/Duolingo.fbx",
 					[](const aiTexture* texture, uint32 index)
 					{
 						const uint32 num_pixels = (texture->mWidth * texture->mHeight);
@@ -120,9 +122,17 @@ namespace influx::application
 		}
 	}
 
-	void renderthread::static_tick()
+	void renderthread::tick()
 	{
+		rendersync::game_frame game_frame{};
+		if (application::get_render_sync().pop(game_frame) == false)
+		{
+			// failed popping a game frame, nothing to render...
+			return;
+		}
+
 		auto app_run_args = application::get_instance().get_run_arguments();
+		auto app_window = application::get_instance().get_window_handle();
 
 		// set up render & present arguments
 		renderer::render_args render_args{};
@@ -137,52 +147,52 @@ namespace influx::application
 		scene_proxy.m_cameras[0].m_fov = 90.0f;
 		scene_proxy.m_cameras[0].m_near_plane = 0.01f;
 		scene_proxy.m_cameras[0].m_far_plane = 1.0f;
-		scene_proxy.m_cameras[0].m_position = m_camera_entity.m_transform.get_position();
-		scene_proxy.m_cameras[0].m_forward = m_camera_entity.m_transform.get_forward();
+		scene_proxy.m_cameras[0].m_position = game_frame.m_camera_entity.m_transform.get_position();
+		scene_proxy.m_cameras[0].m_forward = game_frame.m_camera_entity.m_transform.get_forward();
 
 		// update render proxies
 		if (k_render_scene)
 		{
-			scene_proxy.m_meshes.resize(m_entities.size() * num_submeshes);
+			scene_proxy.m_meshes.resize(game_frame.m_entities.size() * g_num_submeshes);
 			if (k_jobify)
 			{
-				auto handles = async::dispatch_for(m_entities.size() * num_submeshes,
-					[this, num_submeshes, &scene_proxy, materials](uint64 i)
+				auto handles = async::dispatch_for(game_frame.m_entities.size() * g_num_submeshes,
+					[this, &game_frame, &scene_proxy](uint64 i)
 					{
-						uint32 entity_idx = i / num_submeshes;
-						uint32 submesh_idx = i % num_submeshes;
-						entity& entity = m_entities[entity_idx];
+						uint32 entity_idx = i / g_num_submeshes;
+						uint32 submesh_idx = i % g_num_submeshes;
+						entity& entity = game_frame.m_entities[entity_idx];
 
 						renderer::mesh_proxy mesh{};
 						mesh.m_name = "duolingo_mesh_" + std::to_string(submesh_idx);
 						mesh.m_transform = entity.m_transform.get_matrix();
-						mesh.m_per_instance_colour = materials[submesh_idx].m_albedo;
+						mesh.m_per_instance_colour = g_materials[submesh_idx].m_albedo;
 
-						scene_proxy.m_meshes[(entity_idx * num_submeshes) + submesh_idx] = mesh;
+						scene_proxy.m_meshes[(entity_idx * g_num_submeshes) + submesh_idx] = mesh;
 					});
 
 				async::wait_for(handles);
 			}
 			else
 			{
-				for (uint64 i = 0u; i < m_entities.size(); ++i)
+				for (uint64 i = 0u; i < game_frame.m_entities.size(); ++i)
 				{
-					for (uint32 s = 0u; s < num_submeshes; ++s)
+					for (uint32 s = 0u; s < g_num_submeshes; ++s)
 					{
 						renderer::mesh_proxy mesh{};
 						mesh.m_name = "duolingo_mesh_" + std::to_string(s);
-						mesh.m_transform = m_entities[i].m_transform.get_matrix();
-						mesh.m_per_instance_colour = materials[s].m_albedo;
-						scene_proxy.m_meshes[(i * num_submeshes) + s] = mesh;
+						mesh.m_transform = game_frame.m_entities[i].m_transform.get_matrix();
+						mesh.m_per_instance_colour = g_materials[s].m_albedo;
+						scene_proxy.m_meshes[(i * g_num_submeshes) + s] = mesh;
 					}
 				}
 			}
 		}
 
-		renderer::render_to_window(k_render_scene ? &scene_proxy : nullptr, render_args, m_windowhandle, present_args);
+		renderer::render_to_window(k_render_scene ? &scene_proxy : nullptr, render_args, app_window, present_args);
 	}
 
-	void renderthread::static_cleanup()
+	void renderthread::cleanup()
 	{
 		renderer::cleanup();
 	}
