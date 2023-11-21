@@ -22,14 +22,17 @@ namespace influx::renderer
 
 namespace influx::application
 {
+	constexpr static uint8 k_cache_line_num_bytes = 64u;
 	constexpr static bool k_render_scene = true;
 	constexpr static bool k_jobify = true;
 	constexpr static uint8 k_max_num_job_threads = 8u;
-	constexpr static uint64 k_stats_capacity = 512u;
 	constexpr static uint64 k_num_entities = 512u;
-	constexpr static uint64 k_stats_log_frame_intv = 512u;
-	constexpr static uint64 k_num_stats_to_average = 64u;
+	constexpr static bool k_force_vsync = false;
+	constexpr static bool k_force_single_threaded = true;
 
+	constexpr static uint64 k_stats_capacity = 256u;
+	constexpr static uint64 k_stats_log_frame_intv = k_stats_capacity;
+	
 	class dedicated_thread;
 	class gamethread;
 	class renderthread;
@@ -49,6 +52,8 @@ namespace influx::application
 		static rendersync& get_render_sync();
 
 		static bool is_quit_requested();
+		static bool is_single_threaded();
+		static bool is_vsync();
 
 	private:
 		void main_init();

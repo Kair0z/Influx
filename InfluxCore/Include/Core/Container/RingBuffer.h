@@ -30,13 +30,15 @@ namespace influx
 
 		detail::capacity_t size() const;
 
-		_t get_average_value(const detail::capacity_t num_elements = _c);
+		_t get_average_value(const detail::capacity_t num_elements = _C);
 
 	private:
 		_t m_data[_C]{};
 		detail::capacity_t m_head = 0;
 		detail::capacity_t m_tail = 0;
 		std::mutex m_lock{};
+
+		_t m_cached_sum{};
 	};
 
 	template<typename _t, detail::capacity_t _C>
@@ -121,12 +123,14 @@ namespace influx
 			detail::capacity_t next = (m_head + 1) % _C;
 			if (next != m_tail)
 			{
+				// push
 				m_data[m_head] = value;
 				m_head = next;
 				result = nullptr;
 			}
 			else
 			{
+				// pop & push
 				result = &m_data[m_tail];
 				m_tail = (m_tail + 1u) % _C;
 				m_head = (m_head + 1u) % _C;

@@ -79,20 +79,20 @@ namespace influx::application
 			m_dedicated_threads.push_back(mp_renderthread);
 		}
 		
-		if (args.m_single_threaded)
+		if (is_single_threaded())
 		{
 			main_init();
-			mp_gamethread->initialize();
-			mp_renderthread->initialize();
+			mp_gamethread->call_initialize();
+			mp_renderthread->call_initialize();
 			while (!m_is_quit_requested)
 			{
 				main_tick();
-				mp_gamethread->tick();
-				mp_renderthread->tick();
+				mp_gamethread->call_tick();
+				mp_renderthread->call_tick();
 			}
 			main_cleanup();
-			mp_gamethread->cleanup();
-			mp_renderthread->cleanup();
+			mp_gamethread->call_cleanup();
+			mp_renderthread->call_cleanup();
 		}
 		else
 		{
@@ -177,8 +177,8 @@ namespace influx::application
 	void application::mainthread_log()
 	{
 		system("cls");
-		dedicated_thread::per_frame_stats game_stats = mp_gamethread->get_average_stats(k_num_stats_to_average); // we can miss a couple of frames but who cares?
-		dedicated_thread::per_frame_stats render_stats = mp_renderthread->get_average_stats(k_num_stats_to_average);
+		dedicated_thread::per_frame_stats game_stats = mp_gamethread->get_average_stats(); // we can miss a couple of frames but who cares?
+		dedicated_thread::per_frame_stats render_stats = mp_renderthread->get_average_stats();
 
 		auto set_console_color = [](const float ms_value, const float pc_sync)
 		{
@@ -201,12 +201,23 @@ namespace influx::application
 		const float game_ms_sync = game_stats.m_pc_sync * game_stats.m_ms_total;
 		const float render_ms_sync = render_stats.m_pc_sync * render_stats.m_ms_total;
 
+		const bool log_sync_stats = !is_single_threaded(); // no need for sync stats if single threaded
+
 		set_console_color(game_stats.m_ms_total, game_stats.m_pc_sync);
-		std::cout << "[Game]  \tFPS: " << game_fps << "\t| ms: " << game_stats.m_ms_total << "\t\t| " << "Sync: " << 100.0f * game_stats.m_pc_sync 
-			<< "% (" << game_ms_sync << " ms)\n";
+		std::cout << "[Game]  \tFPS: " << game_fps << "\t| ms: " << game_stats.m_ms_total;
+		if (log_sync_stats) std::cout << "\t\t| " << "Sync: " << 100.0f * game_stats.m_pc_sync << "% (" << game_ms_sync << " ms)";
+		std::cout << "\n";
+
 		set_console_color(render_stats.m_ms_total, render_stats.m_pc_sync);
-		std::cout << "[Render]\tFPS: " << render_fps << "\t| ms: " << render_stats.m_ms_total << "\t\t| " << "Sync: " << 100.0f * render_stats.m_pc_sync 
-			<< "% (" << render_ms_sync << " ms)\n";
+		std::cout << "[Render]\tFPS: " << render_fps << "\t| ms: " << render_stats.m_ms_total;
+		if (log_sync_stats) std::cout << "\t\t| " << "Sync: " << 100.0f * render_stats.m_pc_sync << "% (" << render_ms_sync << " ms)\n";
+		std::cout << "\n";
+
+		std::cout << "\n";
+		if (is_vsync()) std::cout << "[vsync]";
+		if (is_single_threaded()) std::cout << "[singlethreaded]"; else std::cout << "[threaded]";
+		if (k_jobify) std::cout << "[jobified:" << to_string(k_max_num_job_threads) << "]";
+		std::cout << "\n";
 
 		platform::set_console_colour_attribute(platform::e_console_colour::white);
 	}
@@ -224,6 +235,16 @@ namespace influx::application
 	bool application::is_quit_requested()
 	{
 		return get_instance().m_is_quit_requested;
+	}
+
+	bool application::is_single_threaded()
+	{
+		return get_instance().m_run_args.m_single_threaded || k_force_single_threaded;
+	}
+
+	bool application::is_vsync()
+	{
+		return get_instance().m_run_args.m_vsync || k_force_vsync;
 	}
 
 	string application::get_resource_directory() const

@@ -64,10 +64,13 @@ namespace influx::application
 		result_frame.m_camera_entity = m_camera_entity;
 
 		mark_sync_start();
+		time::point before = time::get_now();
 		while (!application::get_render_sync().push_frame(result_frame))
 		{
-			// ...
+			int a = 0u; 
+			a++;
 		}
+		float ms_between = time::get_ms_since<float>(before);
 		mark_sync_end();
 	}
 

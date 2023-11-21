@@ -125,19 +125,12 @@ namespace influx::application
 	void renderthread::tick()
 	{
 		mark_sync_start();
-		rendersync::game_frame* game_frame = nullptr;
-		rendersync::game_frame obj{};
-		while (!application::get_render_sync().pop_frame(obj))
+		rendersync::game_frame game_frame{};
+		while (!application::get_render_sync().pop_frame(game_frame))
 		{
 			// ...
 		}
-		game_frame = &obj;
 		mark_sync_end();
-
-		if (game_frame == nullptr)
-		{
-			return;
-		}
 
 		auto app_run_args = application::get_instance().get_run_arguments();
 		auto app_window = application::get_instance().get_window_handle();
@@ -146,30 +139,29 @@ namespace influx::application
 		renderer::render_args render_args{};
 		render_args.m_clear_colour = app_run_args.m_window_clear_colour;
 		renderer::present_args present_args{};
-		present_args.m_vsync = app_run_args.m_vsync;
+		present_args.m_vsync = application::is_vsync();
 
 		// setup scene proxy & hardcoded camera
-		renderer::scene_proxy scene_proxy{};
-		renderer::camera_proxy camera_proxy{};
-		scene_proxy.m_cameras.push_back(camera_proxy);
-		scene_proxy.m_cameras[0].m_fov = 90.0f;
-		scene_proxy.m_cameras[0].m_near_plane = 0.01f;
-		scene_proxy.m_cameras[0].m_far_plane = 1.0f;
-		scene_proxy.m_cameras[0].m_position = game_frame->m_camera_entity.m_transform.get_position();
-		scene_proxy.m_cameras[0].m_forward = game_frame->m_camera_entity.m_transform.get_forward();
-
-		// update render proxies
 		if (k_render_scene)
 		{
-			scene_proxy.m_meshes.resize(game_frame->m_entities.size() * g_num_submeshes);
+			renderer::scene_proxy scene_proxy{};
+			renderer::camera_proxy camera_proxy{};
+			scene_proxy.m_cameras.push_back(camera_proxy);
+			scene_proxy.m_cameras[0].m_fov = 90.0f;
+			scene_proxy.m_cameras[0].m_near_plane = 0.01f;
+			scene_proxy.m_cameras[0].m_far_plane = 1.0f;
+			scene_proxy.m_cameras[0].m_position = game_frame.m_camera_entity.m_transform.get_position();
+			scene_proxy.m_cameras[0].m_forward = game_frame.m_camera_entity.m_transform.get_forward();
+
+			scene_proxy.m_meshes.resize(game_frame.m_entities.size() * g_num_submeshes);
 			if (k_jobify)
 			{
-				auto handles = async::dispatch_for(game_frame->m_entities.size() * g_num_submeshes,
+				auto handles = async::dispatch_for(game_frame.m_entities.size() * g_num_submeshes,
 					[this, &game_frame, &scene_proxy](uint64 i)
 					{
 						uint32 entity_idx = i / g_num_submeshes;
 						uint32 submesh_idx = i % g_num_submeshes;
-						entity& entity = game_frame->m_entities[entity_idx];
+						entity& entity = game_frame.m_entities[entity_idx];
 
 						renderer::mesh_proxy mesh{};
 						mesh.m_name = "duolingo_mesh_" + std::to_string(submesh_idx);
@@ -183,21 +175,25 @@ namespace influx::application
 			}
 			else
 			{
-				for (uint64 i = 0u; i < game_frame->m_entities.size(); ++i)
+				for (uint64 i = 0u; i < game_frame.m_entities.size(); ++i)
 				{
 					for (uint32 s = 0u; s < g_num_submeshes; ++s)
 					{
 						renderer::mesh_proxy mesh{};
 						mesh.m_name = "duolingo_mesh_" + std::to_string(s);
-						mesh.m_transform = game_frame->m_entities[i].m_transform.get_matrix();
+						mesh.m_transform = game_frame.m_entities[i].m_transform.get_matrix();
 						mesh.m_per_instance_colour = g_materials[s].m_albedo;
 						scene_proxy.m_meshes[(i * g_num_submeshes) + s] = mesh;
 					}
 				}
 			}
-		}
 
-		renderer::render_to_window(k_render_scene ? &scene_proxy : nullptr, render_args, app_window, present_args);
+			renderer::render_to_window(&scene_proxy, render_args, app_window, present_args);
+		}
+		else
+		{
+			renderer::render_to_window(nullptr, render_args, app_window, present_args);
+		}
 	}
 
 	void renderthread::cleanup()
