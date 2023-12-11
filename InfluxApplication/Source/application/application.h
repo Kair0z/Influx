@@ -67,7 +67,7 @@ namespace influx::application
 		: public singleton<application>
 	{
 	public:
-		void run(const run_args& args);
+		void run(const run_args& args, bool blocking);
 		void request_quit();
 
 		string get_resource_directory() const;

@@ -75,9 +75,10 @@ namespace influx::application
 	}
 	#endif
 
-	void application::run(const run_args& args)
+	void application::run(const run_args& args, bool blocking)
 	{
 		m_run_args = args;
+
 		if (m_run_args.m_resources_dir.empty())
 		{
 			m_run_args.m_resources_dir = platform::get_current_directory() + "/Resources/";
@@ -316,9 +317,9 @@ namespace influx::application
 	}
 
 #pragma region apifunctions
-	void run(const run_args& args)
+	void run(const run_args& args, bool blocking)
 	{
-		application::get_instance().run(args);
+		application::get_instance().run(args, blocking);
 	}
 
 	void quit()

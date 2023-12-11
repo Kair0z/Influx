@@ -8,17 +8,19 @@
 
 #define INFLUX_APP_USES_WINDOWS 1
 
-#include "Core/basetypes.h"
-#include "Core/String.h"
-#include "Core/Math/Vector.h"
+#include "core/basetypes.h"
+#include "core/string.h"
+#include "core/math/vector.h"
 
 namespace influx::application
 {
 	struct run_args final
 	{
+		run_args() = default;
 		run_args(int argc = 0, char** argv = nullptr)
+			: m_argv{argv}
+			, m_argc{argc}
 		{
-			// ...
 		}
 
 		const char* m_name = "";
@@ -34,13 +36,16 @@ namespace influx::application
 
 		uint32 m_window_width = 640u;
 		uint32 m_window_height = 480u;
+
+		int m_argc{};
+		char** m_argv{};
 	};
 
-	void INFLUX_APP_API run(const run_args& args);
+	void INFLUX_APP_API run(const run_args& args, bool blocking);
 
-	inline void run(int argc = 0, char** argv = nullptr)
+	inline void run(bool blocking, int argc = 0, char** argv = nullptr)
 	{
-		run(run_args{ argc, argv });
+		run(run_args{ argc, argv }, blocking);
 	}
 
 	void INFLUX_APP_API quit();
