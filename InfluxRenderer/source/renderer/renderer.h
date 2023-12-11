@@ -61,6 +61,7 @@ namespace influx::renderer
 		vector<const mesh_data*> get_all_mesh_datas() const;
 
 		void* get_backend_device() const;
+		void* get_backend_texture_gpu_handle(const string& title) const;
 
 		using frame_id = uint64;
 		struct per_frame_context final

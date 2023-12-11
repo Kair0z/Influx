@@ -159,6 +159,14 @@ namespace influx::application
 			ImGui::End();
 		}
 
+		// game viewport
+		if (ImGui::Begin("viewport"))
+		{
+			
+			ImGui::End();
+		}
+
+		// stats menu
 		if (ImGui::Begin("stats"))
 		{
 			auto render_stats = application::get_average_frame_stats(e_dedicated_thread::renderthread);

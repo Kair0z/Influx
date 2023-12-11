@@ -196,6 +196,7 @@ namespace influx::renderer
 	INFLUX_RENDER_API vector<const mesh_data*> get_all_mesh_datas();
 
 	INFLUX_RENDER_API void* get_backend_device();
+	INFLUX_RENDER_API void* get_backend_texture_gpu_handle(const string& title);
 
 	INFLUX_RENDER_API vector<frame_stats> get_frame_stats(const uint32 over_num_frames = 1u);
 }

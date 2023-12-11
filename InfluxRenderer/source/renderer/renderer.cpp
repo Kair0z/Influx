@@ -580,6 +580,11 @@ namespace influx::renderer
         return reinterpret_cast<void*>(mpdx_device);
     }
 
+    void* renderer_state::get_backend_texture_gpu_handle(const string& title) const
+    {
+        
+    }
+
     vector<frame_stats> renderer_state::get_frame_stats(const uint32 over_num_frames)
     {
         vector<frame_stats> stats{};
@@ -841,6 +846,11 @@ namespace influx::renderer
     void* get_backend_device()
     {
         return renderer_state::get_instance().get_backend_device();
+    }
+
+    void* get_backend_texture_gpu_handle(const string& title)
+    {
+        return renderer_state::get_instance().get_backend_texture_gpu_handle(title);
     }
 
     void render_to_window(
