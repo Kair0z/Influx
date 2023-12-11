@@ -29,6 +29,8 @@ namespace influx
 		_t* pop_to_push(const _t& value);
 
 		detail::capacity_t size() const;
+		static detail::capacity_t capacity();
+		bool is_full() const;
 
 		_t get_average_value(const detail::capacity_t num_elements = _C);
 
@@ -147,6 +149,18 @@ namespace influx
 	inline detail::capacity_t ringbuffer<_t, _C>::size() const
 	{
 		return (m_head - m_tail) % _C;
+	}
+
+	template<typename _t, detail::capacity_t _C>
+	detail::capacity_t ringbuffer<_t, _C>::capacity()
+	{
+		return _C;
+	}
+
+	template<typename _t, detail::capacity_t _C>
+	bool ringbuffer<_t, _C>::is_full() const
+	{
+		return ((m_head + 1u) % _C) == m_tail;
 	}
 
 	template<typename _t, detail::capacity_t _c>

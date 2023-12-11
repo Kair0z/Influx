@@ -83,6 +83,11 @@ namespace influx::math
 	{
 		return this->m_data;
 	}
+	template<typename _t, _vector_dim_t _dim>
+	_t* vector<_t, _dim>::data()
+	{
+		return this->m_data;
+	}
 #pragma endregion
 
 	// Normalize:

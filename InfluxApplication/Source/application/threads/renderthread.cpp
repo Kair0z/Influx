@@ -19,6 +19,8 @@
 #endif
 #pragma endregion
 
+#include "imgui/imgui_helpers.h"
+
 namespace influx::application
 {
 	inline static uint32 g_num_submeshes = 0u;
@@ -34,10 +36,6 @@ namespace influx::application
 		args.m_api_type = renderer::e_render_api::dx12;
 		args.m_resource_dir = app_resource_directory;
 		renderer::initialize(args);
-
-		// initialize imgui backend
-		if (app_run_args.m_enable_editor)
-			renderer::initialize_imgui();
 
 		// load meshes, textures & materials into the renderer
 		{
@@ -120,17 +118,82 @@ namespace influx::application
 
 			renderer::load("plane", plane_mesh_data);
 		}
+
+		mp_scene_proxy = new renderer::scene_proxy();
+		mp_scene_proxy->m_cameras.push_back({}); // single camera
+	}
+
+	inline static void renderthread_imgui_frame(rendersync::game_frame& game_frame)
+	{
+		// main menu
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("file"))
+			{
+				if (ImGui::MenuItem("save"))
+				{
+
+				}
+
+				if (ImGui::MenuItem("open"))
+				{
+
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("options"))
+			{
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMainMenuBar();
+		}
+
+		// camera transform
+		if (ImGui::Begin("camera transform"))
+		{
+			imgui::widget_transform_editor(&game_frame.m_camera_entity.m_transform);
+
+			ImGui::End();
+		}
+
+		if (ImGui::Begin("stats"))
+		{
+			auto render_stats = application::get_average_frame_stats(e_dedicated_thread::renderthread);
+			auto game_stats = application::get_average_frame_stats(e_dedicated_thread::gamethread);
+			ImGui::SeparatorText("threads");
+			ImGui::Text("main: %f ms", 0.0f);
+			ImGui::Text("render: %f ms", render_stats.m_ms_total);
+			ImGui::Text("game: %f ms", game_stats.m_ms_total);
+			ImGui::End();
+		}
+		// demo window
+		//ImGui::ShowDemoWindow();
 	}
 
 	void renderthread::tick()
 	{
-		mark_sync_start();
+		// sync and recieve a game_frame
 		rendersync::game_frame game_frame{};
-		while (!application::get_render_sync().pop_frame(game_frame))
+		sync_to_gamethread(game_frame);
+
+		// build imgui frame
+		static function<void(void*)> imgui_frame = [&game_frame](void* _ctx)
 		{
-			// ...
-		}
-		mark_sync_end();
+			// set the context owned by the renderer-dll
+			ImGuiContext* ctx = reinterpret_cast<ImGuiContext*>(_ctx);
+			if (ctx == nullptr)
+			{
+				return;
+			}
+			ImGui::SetCurrentContext(ctx);
+			renderthread_imgui_frame(game_frame);
+		};
+
+		// build scene proxy
+		build_scene_proxy(game_frame);
 
 		auto app_run_args = application::get_instance().get_run_arguments();
 		auto app_window = application::get_instance().get_window_handle();
@@ -141,34 +204,42 @@ namespace influx::application
 		renderer::present_args present_args{};
 		present_args.m_vsync = application::is_vsync();
 
-		// setup scene proxy & hardcoded camera
+		renderer::render_to_window(
+			k_render_scene ? mp_scene_proxy : nullptr, 
+			app_window,
+			application::is_editor_enabled() ? &imgui_frame : nullptr,
+			render_args, 
+			present_args);
+	}
+
+	void renderthread::build_scene_proxy(const rendersync::game_frame& game_frame)
+	{
+		// build scene proxy & hardcoded camera
 		if (k_render_scene)
 		{
-			renderer::scene_proxy scene_proxy{};
 			renderer::camera_proxy camera_proxy{};
-			scene_proxy.m_cameras.push_back(camera_proxy);
-			scene_proxy.m_cameras[0].m_fov = 90.0f;
-			scene_proxy.m_cameras[0].m_near_plane = 0.01f;
-			scene_proxy.m_cameras[0].m_far_plane = 1.0f;
-			scene_proxy.m_cameras[0].m_position = game_frame.m_camera_entity.m_transform.get_position();
-			scene_proxy.m_cameras[0].m_forward = game_frame.m_camera_entity.m_transform.get_forward();
+			mp_scene_proxy->m_cameras[0].m_fov = 90.0f;
+			mp_scene_proxy->m_cameras[0].m_near_plane = 0.01f;
+			mp_scene_proxy->m_cameras[0].m_far_plane = 1.0f;
+			mp_scene_proxy->m_cameras[0].m_position = game_frame.m_camera_entity.m_transform.get_position();
+			mp_scene_proxy->m_cameras[0].m_forward = game_frame.m_camera_entity.m_transform.get_forward();
 
-			scene_proxy.m_meshes.resize(game_frame.m_entities.size() * g_num_submeshes);
+			mp_scene_proxy->m_meshes.resize(game_frame.m_entities.size() * g_num_submeshes);
 			if (k_jobify)
 			{
 				auto handles = async::dispatch_for(game_frame.m_entities.size() * g_num_submeshes,
-					[this, &game_frame, &scene_proxy](uint64 i)
+					[this, &game_frame](uint64 i)
 					{
-						uint32 entity_idx = i / g_num_submeshes;
+						uint32 entity_idx = static_cast<uint32>(i) / g_num_submeshes;
 						uint32 submesh_idx = i % g_num_submeshes;
-						entity& entity = game_frame.m_entities[entity_idx];
+						const entity& entity = game_frame.m_entities[entity_idx];
 
 						renderer::mesh_proxy mesh{};
 						mesh.m_name = "duolingo_mesh_" + std::to_string(submesh_idx);
 						mesh.m_transform = entity.m_transform.get_matrix();
 						mesh.m_per_instance_colour = g_materials[submesh_idx].m_albedo;
 
-						scene_proxy.m_meshes[(entity_idx * g_num_submeshes) + submesh_idx] = mesh;
+						mp_scene_proxy->m_meshes[(entity_idx * g_num_submeshes) + submesh_idx] = mesh;
 					});
 
 				async::wait_for(handles);
@@ -183,17 +254,21 @@ namespace influx::application
 						mesh.m_name = "duolingo_mesh_" + std::to_string(s);
 						mesh.m_transform = game_frame.m_entities[i].m_transform.get_matrix();
 						mesh.m_per_instance_colour = g_materials[s].m_albedo;
-						scene_proxy.m_meshes[(i * g_num_submeshes) + s] = mesh;
+						mp_scene_proxy->m_meshes[(i * g_num_submeshes) + s] = mesh;
 					}
 				}
 			}
-
-			renderer::render_to_window(&scene_proxy, render_args, app_window, present_args);
 		}
-		else
+	}
+	
+	void renderthread::sync_to_gamethread(rendersync::game_frame& game_frame)
+	{
+		mark_sync_start();
+		while (!application::get_render_sync().pop_frame(game_frame))
 		{
-			renderer::render_to_window(nullptr, render_args, app_window, present_args);
+			// ...
 		}
+		mark_sync_end();
 	}
 
 	void renderthread::cleanup()

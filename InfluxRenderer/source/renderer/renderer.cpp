@@ -6,6 +6,7 @@
 #pragma comment (lib, "D3DCompiler.lib")
 
 #include "foreign/ImGui/imgui_impl_dx12.h"
+#include "foreign/ImGui/imgui_impl_win32.h"
 
 #include "core/platform/windows_platform.h"
 #include "Core/Time.h"
@@ -266,11 +267,16 @@ namespace influx::renderer
         m_is_initialized = true;
     }
 
-    void renderer_state::initialize_imgui()
+    void renderer_state::initialize_imgui(platform::window_handle window)
     {
         if (!is_initialized())
         {
             FLX_ASSERT(false);
+            return;
+        }
+
+        if (is_initialized_imgui())
+        {
             return;
         }
 
@@ -281,16 +287,32 @@ namespace influx::renderer
         desc_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         mpdx_device->CreateDescriptorHeap(&desc_heap_desc, IID_PPV_ARGS(&mpdx_srvheap_imgui));
 
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+
+        ImGui_ImplWin32_Init(window);
         ImGui_ImplDX12_Init(mpdx_device, k_max_num_frames_in_flight,
             DXGI_FORMAT_R8G8B8A8_UNORM, mpdx_srvheap_imgui,
             mpdx_srvheap_imgui->GetCPUDescriptorHandleForHeapStart(),
             mpdx_srvheap_imgui->GetGPUDescriptorHandleForHeapStart());
 
-        // bit cheeky, this creates the imgui device objects.
+        // bit cheeky, this already creates the imgui device objects.
         ImGui_ImplDX12_NewFrame();
+
+        m_is_initialized_imgui = true;
     }
 
-    void renderer_state::render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present)
+    void renderer_state::render_to_window(
+        const scene_proxy* scene_proxy,
+        platform::window_handle window,
+        const imgui_proxy* imgui_proxy,
+        const render_args& render_args,
+        const present_args& present)
     {
         if (mpdx_commandQueue == nullptr || !platform::is_window_valid(window))
         {
@@ -306,21 +328,22 @@ namespace influx::renderer
             update_instance_buffers(scene_proxy);
         }
 
-        if (m_is_initialized_imgui)
-        {
-            ImGui_ImplDX12_NewFrame();
-        }
-        
         // open a new frame_context that's not in flight
-        // this can stall us if the GPU hasn't finished working!
+        // HERE CAN STALL if the GPU hasn't finished working!
         per_frame_context new_frame_ctx{};
         {
             time::point start = time::get_now();
             new_frame_ctx = acquire_next_frame();
             new_frame_ctx.m_stats.m_ms_acquire = time::get_ms_between<float>(time::get_now(), start);
         }
+
+        // initialize win32 backend with windowhandle
+        if (imgui_proxy != nullptr)
+        {
+            initialize_imgui(window);
+        }
         
-        // record commandlist
+        // record commandlists
         {
             time::point start = time::get_now();
 
@@ -335,6 +358,7 @@ namespace influx::renderer
             cmdlist->OMSetRenderTargets(1u, &backbuffer_rtv, false, nullptr);
             cmdlist->ClearRenderTargetView(backbuffer_rtv, reinterpret_cast<const FLOAT*>(&render_args.m_clear_colour.r), 0u, nullptr);
 
+            // scene commands
             if (scene_proxy != nullptr)
             {
                 // scene general stuff
@@ -356,6 +380,19 @@ namespace influx::renderer
                     cmdlist->IASetIndexBuffer(&m_meshdata_map[pair.first].mdx_indexbuffer_view);
                     cmdlist->DrawIndexedInstanced((uint32)m_meshdata_map[pair.first].m_data.m_indices.size(), num_instances, 0u, 0u, 0u);
                 }
+            }
+
+            // imgui commands
+            if (m_is_initialized_imgui && imgui_proxy != nullptr)
+            {
+                ImGui_ImplWin32_NewFrame();
+                ImGui_ImplDX12_NewFrame();
+                ImGui::NewFrame();
+                {
+                    imgui_proxy->operator()(ImGui::GetCurrentContext());
+                }
+                ImGui::Render();
+                ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdlist);
             }
 
             transition_resource(cmdlist, backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -575,6 +612,13 @@ namespace influx::renderer
     void renderer_state::cleanup()
     {
         m_is_initialized = false;
+
+        if (is_initialized_imgui())
+        {
+            ImGui_ImplDX12_Shutdown();
+            ImGui_ImplWin32_Shutdown();
+            ImGui::DestroyContext();
+        }
     }
 
     void renderer_state::recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle)
@@ -769,11 +813,6 @@ namespace influx::renderer
         renderer_state::get_instance().initialize(args);
     }
 
-    void initialize_imgui()
-    {
-        renderer_state::get_instance().initialize_imgui();
-    }
-
     void load(const string& title, const mesh_data& data)
     {
         renderer_state::get_instance().load(title, data);
@@ -804,9 +843,14 @@ namespace influx::renderer
         return renderer_state::get_instance().get_backend_device();
     }
 
-    void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present)
+    void render_to_window(
+        const scene_proxy* scene_proxy,
+        platform::window_handle window,
+        const imgui_proxy* imgui_proxy,
+        const render_args& render_args,
+        const present_args& present)
     {
-        renderer_state::get_instance().render_to_window(scene_proxy, render_args, window, present);
+        renderer_state::get_instance().render_to_window(scene_proxy, window, imgui_proxy, render_args, present);
     }
 
     vector<frame_stats> get_frame_stats(const uint32 over_num_frames)
@@ -819,7 +863,7 @@ namespace influx::renderer
         return renderer_state::get_instance().is_initialized();
     }
 
-     bool is_initialized_imgui()
+    bool is_initialized_imgui()
     {
         return renderer_state::get_instance().is_initialized_imgui();
     }

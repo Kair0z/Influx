@@ -11,6 +11,8 @@
     <ClInclude Include="Source\application\threads\renderthread.h" />
     <ClInclude Include="Source\application\scene\scene.h" />
     <ClInclude Include="Source\application\threads\rendersync.h" />
+    <ClInclude Include="Source\application\imgui_helpers.h" />
+    <ClInclude Include="Source\imgui\imgui_helpers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\app_pch.cpp" />

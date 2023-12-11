@@ -15,20 +15,27 @@
 #include "influx_async.h"
 #pragma comment(lib, "InfluxAsync.lib")
 
-#pragma region imgui
-#include "foreign/ImGui/imgui.h"
-#if INFLUX_APP_USES_WINDOWS
-	#include "foreign/ImGui/imgui_impl_win32.h"
-#endif
-#pragma endregion
+#include "foreign/ImGui/imgui_impl_win32.h"
 
 #include <iostream>
+
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace influx::application
 {
 	#if INFLUX_APP_USES_WINDOWS
 	inline static ::LRESULT windows_procedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
 	{
+		if (application::is_editor_enabled())
+		{
+			// nasty imgui dependency here...
+			if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
+			{
+				// return?...
+			}
+		}
+
 		switch (uMsg)
 		{
 		case WM_DESTROY:
@@ -37,6 +44,29 @@ namespace influx::application
 			return 0;
 		}
 
+		case WM_MOUSEMOVE:
+		case WM_NCMOUSEMOVE:
+		case WM_MOUSELEAVE:
+		case WM_NCMOUSELEAVE:
+		case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
+		case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
+		case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
+		case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+		case WM_LBUTTONUP:
+		case WM_RBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_XBUTTONUP:
+		case WM_MOUSEWHEEL:
+		case WM_MOUSEHWHEEL:
+		case WM_KEYDOWN:
+		case WM_KEYUP:
+		case WM_SYSKEYDOWN:
+		case WM_SYSKEYUP:
+		case WM_SETFOCUS:
+		case WM_KILLFOCUS:
+		case WM_INPUTLANGCHANGE:
+		case WM_CHAR:
+		case WM_SETCURSOR:
 		default:
 			return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
@@ -120,11 +150,6 @@ namespace influx::application
 	void application::main_init()
 	{
 		m_mainthread_frame = 0u;
-
-		if (m_run_args.m_enable_editor)
-		{
-			ImGui_ImplWin32_Init(application::get_instance().get_window_handle());
-		}
 	}
 
 	void application::main_tick()
@@ -142,19 +167,6 @@ namespace influx::application
 		{
 		}
 
-		// editor
-		if (m_run_args.m_enable_editor)
-		{
-			ImGui_ImplWin32_NewFrame();
-			ImGui::NewFrame();
-			{
-				ImGui::ShowDemoWindow();
-			}
-			ImGui::Render(); // endframe + submits draw data
-
-			ImGui::GetDrawData();
-		}
-
 		// log stats
 		const uint64 game_frame = mp_gamethread->get_frame();
 		if (game_frame % k_stats_log_frame_intv == 0u && game_frame != 0u)
@@ -167,18 +179,14 @@ namespace influx::application
 
 	void application::main_cleanup()
 	{
-		if (m_run_args.m_enable_editor)
-		{
-			ImGui_ImplWin32_Shutdown();
-			ImGui::DestroyContext();
-		}
+
 	}
 
 	void application::mainthread_log()
 	{
 		system("cls");
-		dedicated_thread::per_frame_stats game_stats = mp_gamethread->get_average_stats(); // we can miss a couple of frames but who cares?
-		dedicated_thread::per_frame_stats render_stats = mp_renderthread->get_average_stats();
+		per_frame_stats game_stats = mp_gamethread->calc_average_stats();
+		per_frame_stats render_stats = mp_renderthread->calc_average_stats();
 
 		auto set_console_color = [](const float ms_value, const float pc_sync)
 		{
@@ -222,6 +230,22 @@ namespace influx::application
 		platform::set_console_colour_attribute(platform::e_console_colour::white);
 	}
 
+	const dedicated_thread* application::find_thread(e_dedicated_thread thread_type) const
+	{
+		auto found = std::find_if(m_dedicated_threads.cbegin(), m_dedicated_threads.cend(),
+		[thread_type](dedicated_thread* t)
+		{
+			return t->get_thread_type() == thread_type;
+		});
+
+		if (found != m_dedicated_threads.cend())
+		{
+			return *found;
+		}
+
+		return nullptr;
+	}
+
 	void application::request_quit()
 	{
 		m_is_quit_requested = true;
@@ -245,6 +269,30 @@ namespace influx::application
 	bool application::is_vsync()
 	{
 		return get_instance().m_run_args.m_vsync || k_force_vsync;
+	}
+
+	bool application::is_editor_enabled()
+	{
+		return get_instance().m_run_args.m_enable_editor && !is_commandlet();
+	}
+
+	bool application::is_commandlet()
+	{
+		return get_instance().m_run_args.m_commandlet;
+	}
+
+	per_frame_stats application::get_average_frame_stats(e_dedicated_thread thread)
+	{
+		if (!is_single_threaded())
+		{
+			auto found_thread = get_instance().find_thread(thread);
+			if (found_thread != nullptr)
+			{
+				return found_thread->get_average_stats();
+			}
+		}
+
+		return {};
 	}
 
 	string application::get_resource_directory() const

@@ -22,5 +22,7 @@ namespace influx::application
 		virtual void initialize() override;
 		virtual void tick() override;
 		virtual void cleanup() override;
+
+		void sync_to_renderthread();
 	};
 }

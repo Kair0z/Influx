@@ -39,9 +39,15 @@ namespace influx::renderer
 	{
 	public:
 		void initialize(const init_args& args);
-		void initialize_imgui();
+		void initialize_imgui(platform::window_handle window);
 
-		void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present);
+		void render_to_window(
+			const scene_proxy* scene_proxy,
+			platform::window_handle window,
+			const imgui_proxy* imgui_proxy,
+			const render_args& render_args,
+			const present_args& present);
+
 		vector<frame_stats> get_frame_stats(const uint32 over_num_frames);
 		bool is_initialized() const;
 		bool is_initialized_imgui() const;

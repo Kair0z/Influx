@@ -1,42 +1,16 @@
 #pragma once
 
 #include "application/application.h"
+
 #include "Core/Container/ringbuffer.h"
 #include "Core/Time.h"
-
 #include <thread>
 
 namespace influx::application
 {
-	enum class e_dedicated_thread : uint8
-	{
-		gamethread,
-		renderthread,
-		max
-	};
-
 	class dedicated_thread
 	{
 	public:
-		struct per_frame_stats final
-		{
-			float m_pc_sync = 0.0f;
-			float m_ms_total = 0.0f;
-
-			per_frame_stats& operator+=(const per_frame_stats& other)
-			{
-				m_pc_sync += other.m_pc_sync;
-				m_ms_total += other.m_ms_total;
-				return *this;
-			}
-			per_frame_stats& operator/=(const float& div)
-			{
-				m_pc_sync /= div;
-				m_ms_total /= div;
-				return *this;
-			}
-		};
-
 		inline virtual ~dedicated_thread()
 		{
 			if (m_thread_object.joinable())
@@ -84,17 +58,25 @@ namespace influx::application
 			cleanup();
 		}
 
-		inline per_frame_stats get_average_stats()
+		inline per_frame_stats calc_average_stats()
 		{
-			return m_stats.get_average_value();
+			m_last_average_stats = m_stats.get_average_value();
+			return m_last_average_stats;
 		}
+
 		inline uint64 get_frame() const
 		{
 			return m_frame;
 		}
+
 		inline float get_ms_initialize() const
 		{
 			return time::get_ms_between<float>(m_time_after_init, m_time_before_init);
+		}
+
+		inline const per_frame_stats& get_average_stats() const
+		{
+			return m_last_average_stats;
 		}
 
 	protected:
@@ -111,6 +93,7 @@ namespace influx::application
 		std::thread m_thread_object{};
 		uint64 m_frame = 0u;
 		ringbuffer<per_frame_stats, k_stats_capacity> m_stats{};
+		per_frame_stats m_last_average_stats{};
 
 		time::point m_time_before_init{};
 		time::point m_time_after_init{};

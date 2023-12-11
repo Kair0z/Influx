@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 	arguments.m_commandlet = false;
 	arguments.m_single_threaded = false;
 	arguments.m_vsync = false;
-	arguments.m_enable_editor = false;
+	arguments.m_enable_editor = true;
 	arguments.m_name = "Influx Game";
 	arguments.m_window_clear_colour = influx::math::float4{ 0.2f, 0.2f, 0.2f, 1.0f };
 

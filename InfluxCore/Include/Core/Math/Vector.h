@@ -109,6 +109,7 @@ namespace influx::math
 		const _t& at(_vector_dim_t i) const;
 
 		const _t* data() const;
+		_t* data();
 
 		// Normalizing:
 		vector normalized() const;

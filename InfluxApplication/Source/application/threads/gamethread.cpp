@@ -32,7 +32,7 @@ namespace influx::application
 		auto entity_update = [](entity& entity)
 		{
 			entity.m_transform = math::transform3D(
-				random::get_random_unit_vectorf3() * 5.0f,
+				math::vectorf3::zero(),
 				math::quaternion::identity(),
 				math::vectorf3::one());
 		};
@@ -56,27 +56,29 @@ namespace influx::application
 			}
 		}
 
-		// push a game frame
-		// if unsuccesful, that means we're full -> stall until render pops a frame...
+		sync_to_renderthread();
+	}
+
+	void gamethread::cleanup()
+	{
+
+	}
+
+	void gamethread::sync_to_renderthread()
+	{
+		// build a gameframe
 		rendersync::game_frame result_frame = {};
 		result_frame.m_frame_id = get_frame();
 		result_frame.m_entities = m_entities;
 		result_frame.m_camera_entity = m_camera_entity;
 
 		mark_sync_start();
-		time::point before = time::get_now();
+		// if unsuccesful, that means we're full -> stall until render pops a frame...
 		while (!application::get_render_sync().push_frame(result_frame))
 		{
-			int a = 0u; 
-			a++;
+			// ...
 		}
-		float ms_between = time::get_ms_since<float>(before);
 		mark_sync_end();
-	}
-
-	void gamethread::cleanup()
-	{
-
 	}
 }
 

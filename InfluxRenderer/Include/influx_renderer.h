@@ -131,6 +131,8 @@ namespace influx::renderer
 		// lightproxy ...
 	};
 
+	using imgui_proxy = function<void(void* ctx)>;
+
 #pragma endregion
 
 	using index = uint32;
@@ -175,13 +177,17 @@ namespace influx::renderer
 	};
 
 	INFLUX_RENDER_API void initialize(const init_args& args);
-	INFLUX_RENDER_API void initialize_imgui();
 
 	INFLUX_RENDER_API bool is_initialized();
 	INFLUX_RENDER_API bool is_initialized_imgui();
 	INFLUX_RENDER_API void cleanup();
 
-	INFLUX_RENDER_API void render_to_window(const scene_proxy* scene_proxy, const render_args& render_args, platform::window_handle window, const present_args& present = {});
+	INFLUX_RENDER_API void render_to_window(
+		const scene_proxy* scene_proxy, 
+		platform::window_handle window, 
+		const imgui_proxy* imgui_proxy = nullptr,
+		const render_args& render_args = {}, 
+		const present_args& present = {});
 
 	INFLUX_RENDER_API void load(const string& title, const mesh_data& data);
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data);

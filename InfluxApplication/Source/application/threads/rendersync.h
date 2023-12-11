@@ -28,7 +28,7 @@ namespace influx::application
 		}
 
 	private:
-		ringbuffer<game_frame, 3u> m_frames{};
+		ringbuffer<game_frame, 2u> m_frames{};
 	};
 }
 
