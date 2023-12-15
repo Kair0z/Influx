@@ -24,11 +24,14 @@ namespace influx::async
 
 		void reset(e_task_state state)
 		{
-			m_time_initialized = time::get_now();
-			m_time_started = time::get_now();
-			m_time_finished = time::get_now();
+			m_time_allocated = m_time_started = m_time_finished = time::get_now();
 			m_state = state;
 			m_stats = task_stats{};
+		}
+
+		inline bool is_finished() const
+		{
+			return m_state == e_task_state::finished;
 		}
 
 		task_handle m_handle{};
@@ -36,13 +39,7 @@ namespace influx::async
 		task_create_args m_args{};
 		task_stats m_stats{};
 
-		inline bool is_finished() const
-		{
-			return m_state == e_task_state::finished;
-		}
-
-		time::point m_time_created = time::get_now();
-		time::point m_time_initialized = time::get_now();
+		time::point m_time_allocated = time::get_now();
 		time::point m_time_started = time::get_now();
 		time::point m_time_finished = time::get_now();
 	};
@@ -51,17 +48,9 @@ namespace influx::async
 		: public singleton<async_manager>
 	{
 	public:
-		// the pool of task_data memory which we use as our allocator
 		using task_pool = pool<task_data, k_max_num_tasks_in_flight>;
+		using task_queue = ringbuffer<task_data*, k_max_num_tasks_in_flight>;
 
-		// threadsafe ringbuffer for pushing & popping tasks
-		struct work_queue final
-		{
-			work_queue() = default;
-			ringbuffer<task_data*, k_max_num_tasks_in_flight> m_tasks{};
-		};
-
-		// state of a worker thread
 		class worker_state final
 		{
 		public:
@@ -75,24 +64,28 @@ namespace influx::async
 		void shutdown();
 
 		task_handle create_task(const task_create_args& args = {});
+		std::vector<task_handle> create_tasks(const std::vector<task_create_args>& args);
 
 		void dispatch(const task_handle& handle);
+		void dispatch(const vector<task_handle>& handles);
 		void dispatch(task_data* data);
+		void dispatch(const vector<task_data*>& datas);
+
 		void wait_for(const task_handle& handle, const wait_args& args = {});
 		void wait_for(const vector<task_handle>& handles, const wait_args& args = {});
 
-		work_queue& get_global_queue();
-		work_queue& get_global_cleanup_queue();
+		task_queue& get_global_queue();
+		task_queue& get_global_cleanup_queue();
 
 		task_data* get_task_data_from_handle(const task_handle& handle);
 
 	private:
 		bool m_is_initialized = false;
-		vector<std::thread> m_worker_threads{};
-		vector<worker_state> m_worker_states{};
+		vector<worker_state> m_worker_threads{};
 
 		task_pool m_taskpool{};
-		vector<task_data*> mp_taskdatas{};
+		task_queue m_global_queue{};
+		task_queue m_global_cleanup_queue{};
 
 		// single pop, false if fail
 		bool try_cleanup_a_task();
@@ -103,11 +96,6 @@ namespace influx::async
 		void cleanup_task(task_data* data);
 
 		static void worker_thread_method(worker_state& state);
-
-		work_queue m_global_queue{};
-		work_queue m_global_cleanup_queue{};
-
-		std::mutex m_cleanup_mutex{};
 	};
 }
 

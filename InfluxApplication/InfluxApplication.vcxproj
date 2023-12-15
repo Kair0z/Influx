@@ -159,7 +159,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Source\application\imgui_helpers.h" />
     <ClInclude Include="Source\application\threads\rendersync.h" />
     <ClInclude Include="Source\application\scene\scene.h" />
     <ClInclude Include="Source\application\application.h" />
