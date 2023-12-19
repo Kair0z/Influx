@@ -1,0 +1,2 @@
+@echo off
+start premake/premake5 vs2019
