@@ -1,18 +1,7 @@
 #pragma once
 
 #include "influx_application.h"
-
-#include "core/singleton/singleton.h"
-#include "core/platform/platform.h"
-#include "Core/Container/Vector.h"
-#include "core/Math/Matrix.h"
-#include "Core/Math/Transform.h"
-#include "Core/Container/RingBuffer.h"
-
 #include "application/threads/rendersync.h"
-
-#include <atomic>
-#include <thread>
 
 namespace influx::renderer
 {
@@ -67,7 +56,7 @@ namespace influx::application
 		: public singleton<application>
 	{
 	public:
-		void run(const run_args& args, bool blocking);
+		void run(const run_args& args);
 		void request_quit();
 
 		string get_resource_directory() const;
@@ -81,6 +70,8 @@ namespace influx::application
 		static bool is_single_threaded();
 		static bool is_vsync();
 		static bool is_editor_enabled();
+		static bool is_game_enabled();
+		static bool is_scene_render_enabled();
 		static bool is_commandlet();
 
 		static per_frame_stats get_average_frame_stats(e_dedicated_thread thread);

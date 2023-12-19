@@ -3,7 +3,7 @@
 #ifndef __CORE_H_
 #define __CORE_H_
 
-#include "core/assert.h"
+#include "core/debug.h"
 #include "core/singleton/locator.h"
 #include "core/singleton/singleton.h"
 #include "core/container/containers.h"

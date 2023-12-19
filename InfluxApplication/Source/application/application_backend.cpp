@@ -1,16 +1,8 @@
 #include "app_pch.h"
 
-#include "application/application.h"
+#include "application/application_backend.h"
 #include "application/threads/gamethread.h"
 #include "application/threads/renderthread.h"
-
-#include "Core/Math/Random.h"
-#include "core/geometry/quad.h"
-#include "core/geometry/geometry.h"
-#include "Core/Time.h"
-#if INFLUX_APP_USES_WINDOWS
-#include "core/platform/windows_platform.h"
-#endif
 
 #include "influx_async.h"
 #pragma comment(lib, "InfluxAsync.lib")
@@ -75,7 +67,7 @@ namespace influx::application
 	}
 	#endif
 
-	void application::run(const run_args& args, bool blocking)
+	void application::run(const run_args& args)
 	{
 		m_run_args = args;
 
@@ -102,27 +94,26 @@ namespace influx::application
 		}
 		
 		// create dedicated threads
-		mp_gamethread = new gamethread();
-		mp_renderthread = new renderthread();
+		m_dedicated_threads.clear();
+		m_dedicated_threads.push_back(mp_renderthread = new renderthread());
+		if (is_game_enabled())
 		{
-			m_dedicated_threads.clear();
-			m_dedicated_threads.push_back(mp_gamethread);
-			m_dedicated_threads.push_back(mp_renderthread);
+			m_dedicated_threads.push_back(mp_gamethread = new gamethread());
 		}
-		
+
 		if (is_single_threaded())
 		{
 			main_init();
-			mp_gamethread->call_initialize();
+			if (is_game_enabled()) mp_gamethread->call_initialize();
 			mp_renderthread->call_initialize();
 			while (!m_is_quit_requested)
 			{
 				main_tick();
-				mp_gamethread->call_tick();
+				if (is_game_enabled()) mp_gamethread->call_tick();
 				mp_renderthread->call_tick();
 			}
 			main_cleanup();
-			mp_gamethread->call_cleanup();
+			if (is_game_enabled()) mp_gamethread->call_cleanup();
 			mp_renderthread->call_cleanup();
 		}
 		else
@@ -132,6 +123,10 @@ namespace influx::application
 			{
 				thread->spin();
 			}
+			for (dedicated_thread*& thread : m_dedicated_threads)
+			{
+				thread->wait_for_initialize();
+			}
 			while (!m_is_quit_requested)
 			{
 				main_tick();
@@ -139,8 +134,7 @@ namespace influx::application
 			// joins() & so stalls until all threads are finished...
 			for (dedicated_thread*& thread : m_dedicated_threads)
 			{
-				delete thread;
-				thread = nullptr;
+				influx_delete(thread);
 			}
 			main_cleanup();
 		}
@@ -151,6 +145,68 @@ namespace influx::application
 	void application::main_init()
 	{
 		m_mainthread_frame = 0u;
+
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+
+		ImGui_ImplWin32_Init(m_windowhandle);
+	}
+
+
+	inline static void imgui_frame()
+	{
+		// main menu
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("file"))
+			{
+				if (ImGui::MenuItem("save"))
+				{
+
+				}
+
+				if (ImGui::MenuItem("open"))
+				{
+
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("options"))
+			{
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMainMenuBar();
+		}
+
+		// game viewport
+		if (ImGui::Begin("viewport"))
+		{
+
+			ImGui::End();
+		}
+
+		// stats menu
+		if (ImGui::Begin("stats"))
+		{
+			auto render_stats = application::get_average_frame_stats(e_dedicated_thread::renderthread);
+			auto game_stats = application::get_average_frame_stats(e_dedicated_thread::gamethread);
+			ImGui::SeparatorText("threads");
+			ImGui::Text("main: %f ms", 0.0f);
+			ImGui::Text("render: %f ms", render_stats.m_ms_total);
+			ImGui::Text("game: %f ms", game_stats.m_ms_total);
+			ImGui::End();
+		}
+
+		// demo window
+		ImGui::ShowDemoWindow();
 	}
 
 	void application::main_tick()
@@ -168,13 +224,20 @@ namespace influx::application
 		{
 		}
 
-		// log stats
-		const uint64 game_frame = mp_gamethread->get_frame();
-		if (game_frame % k_stats_log_frame_intv == 0u && game_frame != 0u)
+		// imgui frame:
+		if (is_editor_enabled())
 		{
-			mainthread_log();
-		}
+			ImGui_ImplWin32_NewFrame();
+			ImGui::NewFrame();
+			imgui_frame();
 
+			ImGui::Render(); // results a single DrawData
+			while (!get_render_sync().push_frame({ m_mainthread_frame, ImGui::GetDrawData() }))
+			{
+				// ...
+			}
+		}
+		
 		++m_mainthread_frame;
 	}
 
@@ -277,6 +340,16 @@ namespace influx::application
 		return get_instance().m_run_args.m_enable_editor && !is_commandlet();
 	}
 
+	bool application::is_game_enabled()
+	{
+		return get_instance().m_run_args.m_enable_game && !is_commandlet();
+	}
+
+	bool application::is_scene_render_enabled()
+	{
+		return k_render_scene;
+	}
+
 	bool application::is_commandlet()
 	{
 		return get_instance().m_run_args.m_commandlet;
@@ -317,9 +390,9 @@ namespace influx::application
 	}
 
 #pragma region apifunctions
-	void run(const run_args& args, bool blocking)
+	void run(const run_args& args)
 	{
-		application::get_instance().run(args, blocking);
+		application::get_instance().run(args);
 	}
 
 	void quit()

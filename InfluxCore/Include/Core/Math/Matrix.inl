@@ -1,7 +1,6 @@
-#include "core/Math/Matrix.h"
-
-#include "Core/Assert.h"
-#include "Core/Math/Math.h"
+#include "core/math/matrix.h"
+#include "core/debug.h"
+#include "core/math/math.h"
 
 #include <cmath>
 
@@ -348,21 +347,21 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline const vector<_t, _C>& matrix<_t, _C, _R>::operator[](matrix_dim_t r) const
 	{
-		FLX_ASSERT(r < _R);
+		influx_assert(r < _R);
 		return this->m_rows[r];
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline vector<_t, _C>& matrix<_t, _C, _R>::operator[](matrix_dim_t r)
 	{
-		FLX_ASSERT(r < _R);
+		influx_assert(r < _R);
 		return this->m_rows[r];
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline const vector<_t, _C>& matrix<_t, _C, _R>::get_row(matrix_dim_t r) const
 	{
-		FLX_ASSERT(r < _R);
+		influx_assert(r < _R);
 		return this->m_rows[r];
 	}
 
@@ -504,7 +503,7 @@ namespace influx::math
 	template <typename _t, matrix_dim_t _C, matrix_dim_t _R, matrix_dim_t _OC, matrix_dim_t _OR>
 	inline matrix<_t, _R, _OR> operator*(const matrix<_t, _C, _R>& a, const matrix<_t, _OC, _OR>& b)
 	{
-		FLX_ASSERT(_C == _OR);
+		influx_assert(_C == _OR);
 
 		matrix<_t, _R, _OC> result{};
 

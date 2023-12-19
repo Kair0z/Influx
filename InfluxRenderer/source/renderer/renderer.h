@@ -39,7 +39,7 @@ namespace influx::renderer
 	{
 	public:
 		void initialize(const init_args& args);
-		void initialize_imgui(platform::window_handle window);
+		void initialize_imgui(const imgui_init_args& args);
 
 		void render_to_window(
 			const scene_proxy* scene_proxy,

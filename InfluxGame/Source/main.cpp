@@ -21,6 +21,4 @@ int main(int argc, char** argv)
 	arguments.m_window_clear_colour = influx::math::float4{ 0.2f, 0.2f, 0.2f, 1.0f };
 
 	influx::application::run(arguments);
-
-	influx::application::quit();
 }

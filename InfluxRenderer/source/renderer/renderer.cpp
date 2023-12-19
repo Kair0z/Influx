@@ -267,17 +267,27 @@ namespace influx::renderer
         m_is_initialized = true;
     }
 
-    void renderer_state::initialize_imgui(platform::window_handle window)
+    void renderer_state::initialize_imgui(const imgui_init_args& args)
     {
         if (!is_initialized())
         {
-            FLX_ASSERT(false);
+            influx_assert(false);
             return;
         }
 
         if (is_initialized_imgui())
         {
+            influx_assert(false);
             return;
+        }
+
+        if (args.m_imgui_context != nullptr)
+        {
+            ImGui::SetCurrentContext(reinterpret_cast<ImGuiContext*>(args.m_imgui_context));
+        }
+        else
+        {
+            ImGui::CreateContext();
         }
 
         // create an srv heap for the font
@@ -286,22 +296,12 @@ namespace influx::renderer
         desc_heap_desc.NumDescriptors = 1u;
         desc_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         mpdx_device->CreateDescriptorHeap(&desc_heap_desc, IID_PPV_ARGS(&mpdx_srvheap_imgui));
-
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-
-        ImGui_ImplWin32_Init(window);
+       
         ImGui_ImplDX12_Init(mpdx_device, k_max_num_frames_in_flight,
             DXGI_FORMAT_R8G8B8A8_UNORM, mpdx_srvheap_imgui,
             mpdx_srvheap_imgui->GetCPUDescriptorHandleForHeapStart(),
             mpdx_srvheap_imgui->GetGPUDescriptorHandleForHeapStart());
 
-        // bit cheeky, this already creates the imgui device objects.
         ImGui_ImplDX12_NewFrame();
 
         m_is_initialized_imgui = true;
@@ -314,10 +314,8 @@ namespace influx::renderer
         const render_args& render_args,
         const present_args& present)
     {
-        if (mpdx_commandQueue == nullptr || !platform::is_window_valid(window))
-        {
-            return;
-        }
+        influx_assert_not_null(mpdx_commandQueue);
+        influx_assert(platform::is_window_valid(window));
 
         // recreate swapchain
         recreate_swapchain_from_window(k_default_buffering, window);
@@ -335,12 +333,6 @@ namespace influx::renderer
             time::point start = time::get_now();
             new_frame_ctx = acquire_next_frame();
             new_frame_ctx.m_stats.m_ms_acquire = time::get_ms_between<float>(time::get_now(), start);
-        }
-
-        // initialize win32 backend with windowhandle
-        if (imgui_proxy != nullptr)
-        {
-            initialize_imgui(window);
         }
         
         // record commandlists
@@ -383,16 +375,9 @@ namespace influx::renderer
             }
 
             // imgui commands
-            if (m_is_initialized_imgui && imgui_proxy != nullptr)
+            if (m_is_initialized_imgui && imgui_proxy != nullptr && imgui_proxy->mp_drawdata != nullptr)
             {
-                ImGui_ImplWin32_NewFrame();
-                ImGui_ImplDX12_NewFrame();
-                ImGui::NewFrame();
-                {
-                    imgui_proxy->operator()(ImGui::GetCurrentContext());
-                }
-                ImGui::Render();
-                ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdlist);
+                ImGui_ImplDX12_RenderDrawData(reinterpret_cast<ImDrawData*>(imgui_proxy->mp_drawdata), cmdlist);
             }
 
             transition_resource(cmdlist, backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -582,7 +567,7 @@ namespace influx::renderer
 
     void* renderer_state::get_backend_texture_gpu_handle(const string& title) const
     {
-        
+        return nullptr;
     }
 
     vector<frame_stats> renderer_state::get_frame_stats(const uint32 over_num_frames)
@@ -816,6 +801,11 @@ namespace influx::renderer
     void initialize(const init_args& args)
     {
         renderer_state::get_instance().initialize(args);
+    }
+
+    void initialize_imgui(const imgui_init_args& args)
+    {
+        renderer_state::get_instance().initialize_imgui(args);
     }
 
     void load(const string& title, const mesh_data& data)

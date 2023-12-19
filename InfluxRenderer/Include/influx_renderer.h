@@ -89,6 +89,11 @@ namespace influx::renderer
 		string m_resource_dir = "";
 	};
 
+	struct imgui_init_args final
+	{
+		void* m_imgui_context = nullptr;
+	};
+
 	struct present_args final
 	{
 		bool m_vsync = false;
@@ -131,7 +136,11 @@ namespace influx::renderer
 		// lightproxy ...
 	};
 
-	using imgui_proxy = function<void(void* ctx)>;
+	struct imgui_proxy final
+	{
+		function<void(void* ctx)> m_func = {};
+		void* mp_drawdata = nullptr;
+	};
 
 #pragma endregion
 
@@ -177,6 +186,7 @@ namespace influx::renderer
 	};
 
 	INFLUX_RENDER_API void initialize(const init_args& args);
+	INFLUX_RENDER_API void initialize_imgui(const imgui_init_args& args);
 
 	INFLUX_RENDER_API bool is_initialized();
 	INFLUX_RENDER_API bool is_initialized_imgui();

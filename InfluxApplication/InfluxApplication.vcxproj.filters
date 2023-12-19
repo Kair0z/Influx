@@ -4,7 +4,7 @@
     <ClInclude Include="Include\InfluxApplication\Application.h" />
     <ClInclude Include="Source\app_pch.h" />
     <ClInclude Include="Include\influx_application.h" />
-    <ClInclude Include="Source\application\application.h" />
+    <ClInclude Include="Source\application\application_backend.h" />
     <ClInclude Include="Source\foreign\assimp\assimp_helpers.h" />
     <ClInclude Include="Source\application\threads\threads.h" />
     <ClInclude Include="Source\application\threads\gamethread.h" />
@@ -15,7 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\app_pch.cpp" />
-    <ClCompile Include="Source\application\application.cpp" />
+    <ClCompile Include="Source\application\application_backend.cpp" />
     <ClCompile Include="Source\foreign\ImGui\imgui.cpp" />
     <ClCompile Include="Source\foreign\ImGui\imgui_demo.cpp" />
     <ClCompile Include="Source\foreign\ImGui\imgui_draw.cpp" />

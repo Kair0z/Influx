@@ -1,3 +1,4 @@
+#pragma once
 
 // define api
 #if _DLL
@@ -16,8 +17,7 @@ namespace influx::application
 {
 	struct run_args final
 	{
-		run_args() = default;
-		run_args(int argc = 0, char** argv = nullptr)
+		inline run_args(int argc = 0, char** argv = nullptr)
 			: m_argv{argv}
 			, m_argc{argc}
 		{
@@ -29,6 +29,7 @@ namespace influx::application
 		bool m_commandlet = false;
 		bool m_enable_scenerender = false;
 		bool m_enable_editor = false;
+		bool m_enable_game = false;
 		bool m_vsync = false;
 		bool m_single_threaded = false;
 
@@ -41,11 +42,11 @@ namespace influx::application
 		char** m_argv{};
 	};
 
-	void INFLUX_APP_API run(const run_args& args, bool blocking);
+	void INFLUX_APP_API run(const run_args& args);
 
-	inline void run(bool blocking, int argc = 0, char** argv = nullptr)
+	inline void run(int argc = 0, char** argv = nullptr)
 	{
-		run(run_args{ argc, argv }, blocking);
+		run(run_args{ argc, argv });
 	}
 
 	void INFLUX_APP_API quit();

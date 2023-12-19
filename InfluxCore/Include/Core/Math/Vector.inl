@@ -3,7 +3,7 @@
 #define __CORE_VECTOR_USECORE_ 1
 
 #if __CORE_VECTOR_USECORE_
-#include "core/assert.h"
+#include "core/debug.h"
 #else
 #include <cassert>
 #define FLX_ASSERT(expr) assert(expr)
@@ -57,25 +57,25 @@ namespace influx::math
 	template<typename _t, _vector_dim_t _dim>
 	inline _t& vector<_t, _dim>::operator[](_vector_dim_t i)
 	{
-		FLX_ASSERT(i < _dim);
+		influx_assert(i < _dim);
 		return this->m_data[i];
 	}
 	template<typename _t, _vector_dim_t _dim>
 	inline const _t& vector<_t, _dim>::operator[](_vector_dim_t i) const
 	{
-		FLX_ASSERT(i < _dim);
+		influx_assert(i < _dim);
 		return this->m_data[i];
 	}
 	template<typename _t, _vector_dim_t _dim>
 	inline _t& vector<_t, _dim>::at(_vector_dim_t i)
 	{
-		FLX_ASSERT(i < _dim);
+		influx_assert(i < _dim);
 		return (*this)[i];
 	}
 	template<typename _t, _vector_dim_t _dim>
 	inline const _t& vector<_t, _dim>::at(_vector_dim_t i) const
 	{
-		FLX_ASSERT(i < _dim);
+		influx_assert(i < _dim);
 		return (*this)[i];
 	}
 	template<typename _t, _vector_dim_t _dim>
@@ -116,7 +116,7 @@ namespace influx::math
 	template<typename _t, _vector_dim_t _dim>
 	static vector<_t, _dim> clamped(const vector<_t, _dim>& vec, float min, float max)
 	{
-		FLX_ASSERT(false); // Noimpl
+		influx_assert(false); // Noimpl
 	}
 #pragma endregion
 

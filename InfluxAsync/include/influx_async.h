@@ -9,26 +9,23 @@
 #include "core/basetypes.h"
 #include "core/container/vector.h"
 #include "core/function.h"
-#include "Core/String.h"
-
-#include <thread>
+#include "core/string.h"
 
 namespace influx::async
 {
-	using task_id = uint64;
-	constexpr static task_id k_task_id_invalid = (uint64)-1;
 	constexpr static uint64 k_max_num_tasks_in_flight = 4096u;
 	extern constexpr uint64 INFLUX_ASYNC_API get_static_num_bytes();
 
 	struct wait_args final
 	{
-		float m_max_wait_seconds = FLT_MAX;
-		float* mp_out_seconds_waited = nullptr;
+		float m_max_ms = FLT_MAX;
+		float* mp_out_ms = nullptr;
 		function<void()> m_wait_func{};
 	};
 
 	enum class e_task_state : uint8
 	{
+		allocated,
 		pending,
 		running,
 		finished,
@@ -53,30 +50,34 @@ namespace influx::async
 		string m_name = "task";
 	};
 
-	class INFLUX_ASYNC_API task_handle final
+	class task_handle final
 	{
-		task_id m_id = 0u;
-		struct task_data* mp_data = nullptr;
-
 	public:
-		bool is_valid() const;
+		INFLUX_ASYNC_API bool is_valid() const;
 
-		void dispatch() const;
-		void wait(const wait_args& args = {}) const;
-		bool is_finished() const;
+		INFLUX_ASYNC_API void dispatch() const;
+		INFLUX_ASYNC_API void wait(const wait_args& args = {}) const;
+		INFLUX_ASYNC_API bool is_finished() const;
 
-		bool operator==(const task_handle& other) const;
-		bool operator!=(const task_handle& other) const;
-		bool is_equal(const task_handle& other) const;
-		e_task_state get_state() const;
-		task_stats get_stats() const;
+		INFLUX_ASYNC_API bool operator==(const task_handle& other) const;
+		INFLUX_ASYNC_API bool operator!=(const task_handle& other) const;
+		INFLUX_ASYNC_API bool is_equal(const task_handle& other) const;
+		INFLUX_ASYNC_API e_task_state get_state() const;
+		INFLUX_ASYNC_API task_stats get_stats() const;
 		
+		// copy & move constructable
+		INFLUX_ASYNC_API task_handle(const task_handle& other);
+		INFLUX_ASYNC_API task_handle(task_handle&& other) noexcept;
+		INFLUX_ASYNC_API task_handle& operator=(const task_handle& other);
+		INFLUX_ASYNC_API task_handle& operator=(task_handle&& other) noexcept;
+
 	private:
-		task_handle() = default;
-		task_handle(task_id id);
-		
+		size_t m_task_data_idx = -1;
+
 		friend class async_manager;
 		friend struct task_data;
+		task_handle(size_t task_idx = (size_t)-1);
+		task_data* get_task_data() const;
 	};
 
 	// global API
@@ -140,11 +141,6 @@ namespace influx::async
 	INFLUX_ASYNC_API void wait_for(const vector<task_handle>& handles, const wait_args& args = {});
 
 	INFLUX_ASYNC_API void shutdown();
-
-	inline int get_max_concurrency()
-	{
-		return std::thread::hardware_concurrency();
-	}
 	
 #if _DEBUG
 	// DONT TOUCH THIS, IN DEBUG BUILDS GIVES US A PEAK TO PRIVATE GLOBAL STATE

@@ -161,7 +161,7 @@
   <ItemGroup>
     <ClInclude Include="Source\application\threads\rendersync.h" />
     <ClInclude Include="Source\application\scene\scene.h" />
-    <ClInclude Include="Source\application\application.h" />
+    <ClInclude Include="Source\application\application_backend.h" />
     <ClInclude Include="Include\influx_application.h" />
     <ClInclude Include="Source\application\threads\gamethread.h" />
     <ClInclude Include="Source\application\threads\renderthread.h" />
@@ -174,7 +174,7 @@
   <ItemGroup>
     <ClCompile Include="Source\application\threads\rendersync.cpp" />
     <ClCompile Include="Source\application\scene\scene.cpp" />
-    <ClCompile Include="Source\application\application.cpp" />
+    <ClCompile Include="Source\application\application_backend.cpp" />
     <ClCompile Include="Source\application\threads\gamethread.cpp" />
     <ClCompile Include="Source\application\threads\renderthread.cpp" />
     <ClCompile Include="Source\app_pch.cpp">

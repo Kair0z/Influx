@@ -1,6 +1,6 @@
 #include "app_pch.h"
 #include "renderthread.h"
-#include "application/application.h"
+#include "application/application_backend.h"
 
 #include "Core/Geometry/geometry.h"
 #include "Core/Geometry/Sphere.h"
@@ -36,6 +36,14 @@ namespace influx::application
 		args.m_api_type = renderer::e_render_api::dx12;
 		args.m_resource_dir = app_resource_directory;
 		renderer::initialize(args);
+
+		// initialize imgui renderer backend
+		if (application::is_editor_enabled())
+		{
+			renderer::imgui_init_args imgui_args{};
+			imgui_args.m_imgui_context = ImGui::GetCurrentContext();
+			renderer::initialize_imgui(imgui_args);
+		}
 
 		// load meshes, textures & materials into the renderer
 		{
@@ -121,106 +129,56 @@ namespace influx::application
 
 		mp_scene_proxy = new renderer::scene_proxy();
 		mp_scene_proxy->m_cameras.push_back({}); // single camera
-	}
 
-	inline static void renderthread_imgui_frame(rendersync::game_frame& game_frame)
-	{
-		// main menu
-		if (ImGui::BeginMainMenuBar())
-		{
-			if (ImGui::BeginMenu("file"))
-			{
-				if (ImGui::MenuItem("save"))
-				{
-
-				}
-
-				if (ImGui::MenuItem("open"))
-				{
-
-				}
-
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::BeginMenu("options"))
-			{
-				ImGui::EndMenu();
-			}
-
-			ImGui::EndMainMenuBar();
-		}
-
-		// camera transform
-		if (ImGui::Begin("camera transform"))
-		{
-			imgui::widget_transform_editor(&game_frame.m_camera_entity.m_transform);
-
-			ImGui::End();
-		}
-
-		// game viewport
-		if (ImGui::Begin("viewport"))
-		{
-			
-			ImGui::End();
-		}
-
-		// stats menu
-		if (ImGui::Begin("stats"))
-		{
-			auto render_stats = application::get_average_frame_stats(e_dedicated_thread::renderthread);
-			auto game_stats = application::get_average_frame_stats(e_dedicated_thread::gamethread);
-			ImGui::SeparatorText("threads");
-			ImGui::Text("main: %f ms", 0.0f);
-			ImGui::Text("render: %f ms", render_stats.m_ms_total);
-			ImGui::Text("game: %f ms", game_stats.m_ms_total);
-			ImGui::End();
-		}
-		// demo window
-		//ImGui::ShowDemoWindow();
+		mp_imgui_proxy = new renderer::imgui_proxy();
 	}
 
 	void renderthread::tick()
 	{
-		// sync and recieve a game_frame
-		rendersync::game_frame game_frame{};
-		sync_to_gamethread(game_frame);
+		rendersync::game_frame frame_game{};
+		rendersync::editor_frame frame_editor{};
 
-		// build imgui frame
-		static function<void(void*)> imgui_frame = [&game_frame](void* _ctx)
+		bool scene_render_enabled = application::is_game_enabled() && application::is_scene_render_enabled();
+		bool imgui_render_enabled = application::is_editor_enabled();
+
+		// sync and grab a game / editor frame
+		mark_sync_start();
 		{
-			// set the context owned by the renderer-dll
-			ImGuiContext* ctx = reinterpret_cast<ImGuiContext*>(_ctx);
-			if (ctx == nullptr)
+			if (scene_render_enabled)
 			{
-				return;
+				while (!application::get_render_sync().pop_frame(frame_game))
+				{
+					// ...
+				}
 			}
-			ImGui::SetCurrentContext(ctx);
-			renderthread_imgui_frame(game_frame);
-		};
 
-		// build scene proxy
-		build_scene_proxy(game_frame);
+			if (imgui_render_enabled)
+			{
+				while (!application::get_render_sync().pop_frame(frame_editor))
+				{
+					// ...
+				}
+			}
+		}
+		mark_sync_end();
 
+		// build proxies
+		renderer::scene_proxy* scene_proxy = scene_render_enabled ? build_scene_proxy(frame_game) : nullptr;
+		renderer::imgui_proxy* imgui_proxy = imgui_render_enabled ? mp_imgui_proxy : nullptr;
+		imgui_proxy->mp_drawdata = frame_editor.m_frame_data;
+
+		// configure render arguments
 		auto app_run_args = application::get_instance().get_run_arguments();
 		auto app_window = application::get_instance().get_window_handle();
-
-		// set up render & present arguments
 		renderer::render_args render_args{};
 		render_args.m_clear_colour = app_run_args.m_window_clear_colour;
 		renderer::present_args present_args{};
 		present_args.m_vsync = application::is_vsync();
 
-		renderer::render_to_window(
-			k_render_scene ? mp_scene_proxy : nullptr, 
-			app_window,
-			application::is_editor_enabled() ? &imgui_frame : nullptr,
-			render_args, 
-			present_args);
+		renderer::render_to_window(scene_proxy, app_window, imgui_proxy, render_args, present_args);
 	}
 
-	void renderthread::build_scene_proxy(const rendersync::game_frame& game_frame)
+	renderer::scene_proxy* renderthread::build_scene_proxy(const rendersync::game_frame& game_frame)
 	{
 		// build scene proxy & hardcoded camera
 		if (k_render_scene)
@@ -267,6 +225,8 @@ namespace influx::application
 				}
 			}
 		}
+
+		return mp_scene_proxy;
 	}
 	
 	void renderthread::sync_to_gamethread(rendersync::game_frame& game_frame)

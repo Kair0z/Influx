@@ -4,6 +4,7 @@
 namespace influx::renderer
 {
 	struct scene_proxy;
+	struct imgui_proxy;
 }
 
 namespace influx::application
@@ -21,9 +22,10 @@ namespace influx::application
 		virtual void tick() override;
 		virtual void cleanup() override;
 
-		void build_scene_proxy(const rendersync::game_frame& game_frame);
+		renderer::scene_proxy* build_scene_proxy(const rendersync::game_frame& game_frame);
 		void sync_to_gamethread(rendersync::game_frame& game_frame);
 
 		renderer::scene_proxy* mp_scene_proxy{};
+		renderer::imgui_proxy* mp_imgui_proxy{};
 	};
 }

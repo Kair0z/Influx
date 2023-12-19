@@ -1,185 +1,309 @@
 #pragma once
 
-#ifndef _CORE_RINGBUFFER_H_
-#define _CORE_RINGBUFFER_H_
-
 #include <mutex>
-#include "Core/Math/Math.h"
-#include "Core/Function.h"
+
+#if 1
+#include "core/math/math.h"
+#include "core/function.h"
+#include "core/container/vector.h"
+
+#else
+#include <algorithm>
+#include <cassert>
+namespace influx
+{
+	template <typename _t>
+	constexpr inline _t minimum(std::initializer_list<_t> list)
+	{
+		return std::min(list);
+	}
+
+#define influx_assert(x) assert(x);
+}
+#endif
 
 namespace influx
 {
-	namespace detail
-	{
-		using capacity_t = size_t;
-	}
-
-	// FIFO queue really...
-	template <typename _t, detail::capacity_t _C>
-	class ringbuffer
+	template <typename _t, size_t _c>
+	class ringbuffer final
 	{
 	public:
 		ringbuffer() = default;
-		bool push(const _t& value);
-		bool pop(_t& value);
-		bool pop_if(_t& value, const function<bool(const _t&)> cond);
-		bool peak(detail::capacity_t i, _t& value);
-		
-		// push, if (full) => pop
-		_t* pop_to_push(const _t& value);
 
-		detail::capacity_t size() const;
-		static detail::capacity_t capacity();
+		bool push_lockless(const _t& value);
+		bool push_lockless(const vector<_t>& values);
+		bool push(const _t& value);
+		bool push(const vector<_t>& values);
+		bool try_push(const _t& value);
+		bool try_push(const vector<_t>& values);
+
+		bool pop_lockless(_t& value);
+		bool pop(_t& value);
+		bool try_pop(_t& value);
+
+		template <class _func>
+		bool pop_if_lockless(_t& value, _func&& cond);
+		template <class _func>
+		bool pop_if(_t& value, _func&& cond);
+		template <class _func>
+		bool try_pop_if(_t& value, _func&& cond);
+
+		bool peak_lockless(size_t i, _t& value);
+		bool peak(size_t i, _t& value);
+		bool try_peak(size_t i, _t& value);
+
+		// push, if (full) => pop
+		void pop_to_push_lockless(const _t& value, _t* out_popped = nullptr);
+		void pop_to_push(const _t& value, _t* out_popped = nullptr);
+
+		size_t size() const;
+		constexpr static size_t capacity();
 		bool is_full() const;
 
-		_t get_average_value(const detail::capacity_t num_elements = _C);
+		template <class _func>
+		void for_each_lockless(_func&& func, const size_t max_num = -1);
+		template <class _func>
+		void for_each(_func&& func, const size_t max_num = -1);
+		template <class _func>
+		bool try_for_each(_func&& func, const size_t max_num = -1);
+
+		_t get_average_value(const size_t num_elements = _c);
 
 	private:
-		_t m_data[_C]{};
-		detail::capacity_t m_head = 0;
-		detail::capacity_t m_tail = 0;
+		_t m_data[_c]{};
+		size_t m_head = 0;
+		size_t m_tail = 0;
 		std::mutex m_lock{};
 
 		_t m_cached_sum{};
 	};
 
-	template<typename _t, detail::capacity_t _C>
-	inline bool ringbuffer<_t, _C>::push(const _t& value)
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::push_lockless(const _t& value)
 	{
-		bool result = false;
-
-		m_lock.lock();
-		detail::capacity_t next = (m_head + 1u) % _C;
+		const size_t next = (m_head + 1u) % _c;
 		if (next != m_tail)
 		{
 			m_data[m_head] = value;
 			m_head = next;
-			result = true;
+			return true;
 		}
-		m_lock.unlock();
+		
+		return false;
+	}
 
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::push_lockless(const vector<_t>& values)
+	{
+		bool result = false;
+		for (size_t i = 0u; i < values.size(); ++i)
+		{
+			result |= push_lockless(values[i]);
+		}
 		return result;
 	}
 
-	template<typename _t, detail::capacity_t _C>
-	inline bool ringbuffer<_t, _C>::pop(_t& value)
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::push(const _t& value)
 	{
-		bool result = false;
+		std::lock_guard<std::mutex> lock(m_lock);
+		return push_lockless(value);
+	}
 
-		m_lock.lock();
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::push(const vector<_t>& values)
+	{
+		std::lock_guard<std::mutex> lock(m_lock);
+		return push_lockless(values);
+	}
+
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::try_push(const _t& value)
+	{
+		if (!m_lock.try_lock()) return false;
+		bool result = push_lockless(value);
+		m_lock.unlock();
+		return result;
+	}
+
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::try_push(const vector<_t>& values)
+	{
+		if (!m_lock.try_lock()) return false;
+		bool result = push_lockless(values);
+		m_lock.unlock();
+		return result;
+	}
+
+
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::pop_lockless(_t& value)
+	{
 		if (m_tail != m_head)
 		{
 			value = m_data[m_tail];
-			m_tail = (m_tail + 1) % _C;
-			result = true;
+			m_tail = (m_tail + 1) % _c;
+			return true;
 		}
-		m_lock.unlock();
 
+		return false;
+	}
+
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::pop(_t& value)
+	{
+		std::lock_guard<std::mutex> lock(m_lock);
+		return pop_lockless(value);
+	}
+
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::try_pop(_t& value)
+	{
+		if (!m_lock.try_lock()) return false;
+		bool result = pop_lockless(value);
+		m_lock.unlock();
 		return result;
 	}
 
-	template<typename _t, detail::capacity_t _C>
-	inline bool ringbuffer<_t, _C>::pop_if(_t& value, const function<bool(const _t&)> cond)
+
+	template<typename _t, size_t _c>
+	template <class _func>
+	inline bool ringbuffer<_t, _c>::pop_if_lockless(_t& value, _func&& cond)
 	{
-		bool result = false;
-
-		m_lock.lock();
-		if (m_tail != m_head)
-		{
-			value = m_data[m_tail];
-			if (cond(value) == true)
-			{
-				m_tail = (m_tail + 1) % _C;
-				result = true;
-			}
-		}
-		m_lock.unlock();
-
-		return result;
-	}
-
-	template<typename _t, detail::capacity_t _C>
-	bool ringbuffer<_t, _C>::peak(detail::capacity_t i, _t& value)
-	{
-		if (i >= size())
-		{
+		if (cond() == false) 
 			return false;
-		}
 
-		m_lock.lock();
-		value = m_data[(m_tail + i) % _C];
+		return pop_lockless(value);
+	}
+
+	template<typename _t, size_t _c>
+	template <class _func>
+	inline bool ringbuffer<_t, _c>::pop_if(_t& value, _func&& cond)
+	{
+		std::lock_guard<std::mutex>(m_lock);
+		return pop_if_lockless(value, cond);
+	}
+
+	template<typename _t, size_t _c>
+	template <class _func>
+	inline bool ringbuffer<_t, _c>::try_pop_if(_t& value, _func&& cond)
+	{
+		if (!m_lock.try_lock()) return false;
+		bool result = pop_if_lockless(value, cond);
 		m_lock.unlock();
+		return result;
+	}
 
+
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::peak_lockless(size_t i, _t& value)
+	{
+		influx_assert(i < size());
+		value = m_data[(m_tail + i) % _c];
 		return true;
 	}
 
-	template<typename _t, detail::capacity_t _C>
-	_t* ringbuffer<_t, _C>::pop_to_push(const _t& value)
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::peak(size_t i, _t& value)
 	{
-		_t* result = nullptr;
+		std::lock_guard<std::mutex> lock(m_lock);
+		return peak_lockless(i, value);
+	}
 
-		// try push
-		if (!push(value))
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::try_peak(size_t i, _t& value)
+	{
+		if (!m_lock.try_lock()) return false;
+		bool result = peak_lockless(i, value);
+		m_lock.unlock();
+		return result;
+	}
+
+
+	template<typename _t, size_t _c>
+	inline void ringbuffer<_t, _c>::pop_to_push_lockless(const _t& value, _t* out_popped)
+	{
+		_t popped{};
+		while (!push_lockless(value)) // as long as push failed
 		{
-			m_lock.lock();
-			detail::capacity_t next = (m_head + 1) % _C;
-			if (next != m_tail)
-			{
-				// push
-				m_data[m_head] = value;
-				m_head = next;
-				result = nullptr;
-			}
-			else
-			{
-				// pop & push
-				result = &m_data[m_tail];
-				m_tail = (m_tail + 1u) % _C;
-				m_head = (m_head + 1u) % _C;
-			}
-			m_lock.unlock();
-
-			return result;
+			pop_lockless(popped);
 		}
 
-		return nullptr;
+		if (out_popped)
+		{
+			*out_popped = popped;
+		}
 	}
 
-	template<typename _t, detail::capacity_t _C>
-	inline detail::capacity_t ringbuffer<_t, _C>::size() const
+	template<typename _t, size_t _c>
+	inline void ringbuffer<_t, _c>::pop_to_push(const _t& value, _t* out_popped)
 	{
-		return (m_head - m_tail) % _C;
+		std::lock_guard<std::mutex> lock(m_lock);
+		return pop_to_push_lockless(value, out_popped);
 	}
 
-	template<typename _t, detail::capacity_t _C>
-	detail::capacity_t ringbuffer<_t, _C>::capacity()
+
+	template<typename _t, size_t _c>
+	inline size_t ringbuffer<_t, _c>::size() const
 	{
-		return _C;
+		return (m_head - m_tail) % _c;
 	}
 
-	template<typename _t, detail::capacity_t _C>
-	bool ringbuffer<_t, _C>::is_full() const
+	template<typename _t, size_t _c>
+	inline constexpr size_t ringbuffer<_t, _c>::capacity()
 	{
-		return ((m_head + 1u) % _C) == m_tail;
+		return _c;
 	}
 
-	template<typename _t, detail::capacity_t _c>
-	inline _t ringbuffer<_t, _c>::get_average_value(const detail::capacity_t num_elements)
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::is_full() const
+	{
+		return ((m_head + 1u) % _c) == m_tail;
+	}
+
+	template<typename _t, size_t _c>
+	template <class _func>
+	inline void ringbuffer<_t, _c>::for_each_lockless(_func&& func, const size_t max_num)
+	{
+		const size_t num = math::minimum(max_num, size());
+		const size_t tail = (m_head - num) % _c;
+		for (size_t i = m_head; i != tail; i = (i - 1u) % _c)
+		{
+			func(m_data[i]);
+		}
+	}
+
+	template<typename _t, size_t _c>
+	template <class _func>
+	void ringbuffer<_t, _c>::for_each(_func&& func, const size_t max_num)
+	{
+		std::lock_guard<std::mutex> lock(m_lock);
+		for_each_lockless(func, max_num);
+	}
+
+	template<typename _t, size_t _c>
+	template <class _func>
+	bool ringbuffer<_t, _c>::try_for_each(_func&& func, const size_t max_num)
+	{
+		if (!m_lock.try_lock()) return false;
+		for_each_lockless(func, max_num);
+		m_lock.unlock();
+		return true;
+	}
+
+
+	template<typename _t, size_t _c>
+	inline _t ringbuffer<_t, _c>::get_average_value(const size_t num_elements)
 	{
 		_t result{};
-		detail::capacity_t num = math::minimum(num_elements, size());
-		if (num <= 0u) return result;
-
-		m_lock.lock();
-		for (detail::capacity_t i = m_head; i != (m_head - num) % _c; i = (i - 1u) % _c)
+		size_t num = math::minimum(num_elements, size());
+		for_each([&result](const _t& val)
 		{
-			result += m_data[i];
-		}
-		m_lock.unlock();
+			result += val;
+		}, num);
 
 		result /= static_cast<float>(num);
+
 		return result;
 	}
 }
-
-#endif

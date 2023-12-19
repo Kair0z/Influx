@@ -1,9 +1,6 @@
 #pragma once
 
-#include "application/application.h"
-
-#include "Core/Container/ringbuffer.h"
-#include "Core/Time.h"
+#include "application/application_backend.h"
 #include <thread>
 
 namespace influx::application
@@ -37,6 +34,7 @@ namespace influx::application
 			m_time_before_init = time::get_now();
 			initialize();
 			m_time_after_init = time::get_now();
+			m_is_initialized = true;
 		}
 		inline void call_tick()
 		{
@@ -79,6 +77,14 @@ namespace influx::application
 			return m_last_average_stats;
 		}
 
+		void wait_for_initialize()
+		{
+			while (!m_is_initialized)
+			{
+
+			}
+		}
+
 	protected:
 		inline void mark_sync_start()
 		{
@@ -101,6 +107,8 @@ namespace influx::application
 		time::point m_time_after_tick{};
 		time::point m_time_before_sync{};
 		time::point m_time_after_sync{};
+
+		bool m_is_initialized = false;
 
 		virtual void initialize() = 0;
 		virtual void tick() = 0;
