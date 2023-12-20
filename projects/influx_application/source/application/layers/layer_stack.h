@@ -25,8 +25,8 @@ namespace influx::application
 		void tick();
 
 		void queue_event(layer_event* e);
-
 		virtual ~layer_stack();
+
 	private:
 		vector<layer_base*> mp_layers{};
 

@@ -15,6 +15,9 @@ project "influx_async"
         g_project_dir .. "source/async/**.cpp",
     }
 
+    pchheader "async_pch.h"
+    pchsource "async_pch.cpp"
+
     defines
     {
         

@@ -1,37 +1,13 @@
 #pragma once
 
 #include "influx_application.h"
-#include "application/threads/rendersync.h"
+#include "konstants.h"
 
 #include "core/platform/platform.h"
 #include "core/singleton/singleton.h"
 
-namespace influx::renderer
-{
-	struct material_data;
-	struct scene_proxy;
-}
-
 namespace influx::application
 {
-	constexpr static uint8 k_cache_line_num_bytes = 64u;
-	constexpr static bool k_render_scene = true;
-	constexpr static bool k_jobify = true;
-	constexpr static uint8 k_max_num_job_threads = 4u;
-	constexpr static uint64 k_num_entities = 10u;
-	constexpr static bool k_force_vsync = false;
-	constexpr static bool k_force_single_threaded = false;
-
-	constexpr static uint64 k_stats_capacity = 256u;
-	constexpr static uint64 k_stats_log_frame_intv = k_stats_capacity;
-	
-	enum class e_dedicated_thread : uint8
-	{
-		gamethread,
-		renderthread,
-		max
-	};
-
 	struct per_frame_stats final
 	{
 		float m_ms_total = 0.0f;	// total ms frame
@@ -55,6 +31,7 @@ namespace influx::application
 	class renderthread;
 	class dedicated_thread;
 	class layer_stack;
+	class rendersync;
 
 	class application final
 		: public singleton<application>
@@ -68,23 +45,20 @@ namespace influx::application
 
 		platform::window_handle get_window_handle() const;
 		platform::instance_handle get_instance_handle() const;
-		static rendersync& get_render_sync();
 
 		static bool is_quit_requested();
-		static bool is_single_threaded();
 		static bool is_vsync();
 		static bool is_editor_enabled();
 		static bool is_game_enabled();
 		static bool is_scene_render_enabled();
 		static bool is_commandlet();
 
-		static per_frame_stats get_average_frame_stats(e_dedicated_thread thread);
+		rendersync& get_render_sync();
 
 	private:
 		void main_init();
 		void main_tick();
 		void main_cleanup();
-		void mainthread_log();
 		uint64 m_mainthread_frame = 0u;
 
 		platform::window_handle m_windowhandle = nullptr;
@@ -95,13 +69,10 @@ namespace influx::application
 		gamethread* mp_gamethread = nullptr;
 		renderthread* mp_renderthread = nullptr;
 		layer_stack* mp_layerstack = nullptr;
+		rendersync* mp_rendersync = nullptr;
 
-		rendersync m_render_sync{};
 		run_args m_run_args{};
-
 		base* mp_base_application = nullptr;
-
-		const dedicated_thread* find_thread(e_dedicated_thread thread_type) const;
 	};
 }
 

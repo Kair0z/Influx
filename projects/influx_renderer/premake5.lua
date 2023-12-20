@@ -14,6 +14,9 @@ project "influx_renderer"
         g_project_dir .. "**.cpp",
     }
 
+    pchheader "renderer_pch.h"
+    pchsource "renderer_pch.cpp"
+
     defines
     {
         

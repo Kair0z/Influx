@@ -10,6 +10,12 @@
     <Filter Include="source\application">
       <UniqueIdentifier>{59C4D3EF-45A8-9445-AE08-8F989A0B7FC7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="source\application\layers">
+      <UniqueIdentifier>{18F14F33-84B3-83BD-CD63-124A39655C9B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\application\layers\layers">
+      <UniqueIdentifier>{F77000C9-E3C1-EB0A-0C26-DACCF8D57E74}</UniqueIdentifier>
+    </Filter>
     <Filter Include="source\application\scene">
       <UniqueIdentifier>{56609111-4285-E091-6BD0-C5215754DFAF}</UniqueIdentifier>
     </Filter>
@@ -26,6 +32,30 @@
     </ClInclude>
     <ClInclude Include="..\projects\influx_application\source\application\application_backend.h">
       <Filter>source\application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\projects\influx_application\source\application\konstants.h">
+      <Filter>source\application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\projects\influx_application\source\application\layers\layer_base.h">
+      <Filter>source\application\layers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\projects\influx_application\source\application\layers\layer_stack.h">
+      <Filter>source\application\layers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\projects\influx_application\source\application\layers\layers\layer_editor.h">
+      <Filter>source\application\layers\layers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\projects\influx_application\source\application\layers\layers\layer_main.h">
+      <Filter>source\application\layers\layers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\projects\influx_application\source\application\layers\layers\layer_module.h">
+      <Filter>source\application\layers\layers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\projects\influx_application\source\application\layers\layers\layer_render.h">
+      <Filter>source\application\layers\layers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\projects\influx_application\source\application\layers\layers\layers.h">
+      <Filter>source\application\layers\layers</Filter>
     </ClInclude>
     <ClInclude Include="..\projects\influx_application\source\application\scene\scene.h">
       <Filter>source\application\scene</Filter>
@@ -49,6 +79,12 @@
     </ClCompile>
     <ClCompile Include="..\projects\influx_application\source\application\application_backend.cpp">
       <Filter>source\application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\projects\influx_application\source\application\layers\layer_base.cpp">
+      <Filter>source\application\layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\projects\influx_application\source\application\layers\layer_stack.cpp">
+      <Filter>source\application\layers</Filter>
     </ClCompile>
     <ClCompile Include="..\projects\influx_application\source\application\scene\scene.cpp">
       <Filter>source\application\scene</Filter>

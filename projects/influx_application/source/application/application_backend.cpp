@@ -1,8 +1,7 @@
 #include "app_pch.h"
 
 #include "application/application_backend.h"
-#include "application/threads/gamethread.h"
-#include "application/threads/renderthread.h"
+#include "application/threads/rendersync.h"
 
 #include "application/layers/layer_stack.h"
 #include "application/layers/layers/layers.h"
@@ -12,8 +11,10 @@
 
 #include <iostream>
 
+#if INFLUX_PLATFORM_WINDOWS
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#endif
 
 namespace influx::application
 {
@@ -22,7 +23,7 @@ namespace influx::application
 		return nullptr;
 	}
 
-	#if INFLUX_APP_USES_WINDOWS
+	#if INFLUX_PLATFORM_WINDOWS
 	inline static ::LRESULT windows_procedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
 	{
 		if (application::is_editor_enabled())
@@ -81,7 +82,6 @@ namespace influx::application
 		{
 			m_run_args.m_resources_dir = platform::get_current_directory() + "/Resources/";
 		}
-
 		m_instancehandle = platform::get_current_instance();
 
 		// initialize async jobs module
@@ -104,64 +104,16 @@ namespace influx::application
 
 		// create layerstack
 		mp_layerstack = new layer_stack();
-		mp_layerstack->push<layer_main>		(layer_base_args{"layer_main",		!is_single_threaded() });
-		mp_layerstack->push<layer_render>	(layer_base_args{"layer_render",	!is_single_threaded() });
-		mp_layerstack->push<layer_module>	(layer_base_args{"layer_module",	!is_single_threaded() });
+		mp_layerstack->push<layer_main>		(layer_base_args{"layer_main"});	// |
+		mp_layerstack->push<layer_module>	(layer_base_args{"layer_module"});	// |
+		mp_layerstack->push<layer_editor>	(layer_base_args{"layer_editor");	// |
+		mp_layerstack->push<layer_render>	(layer_base_args{"layer_render"});	// v
 
 		while (!m_is_quit_requested)
 		{
 			mp_layerstack->process_events();
 			mp_layerstack->tick();
 		}
-
-		// legacy
-#if 0
-		// create dedicated threads
-		m_dedicated_threads.clear();
-		m_dedicated_threads.push_back(mp_renderthread = new renderthread());
-		if (is_game_enabled())
-		{
-			m_dedicated_threads.push_back(mp_gamethread = new gamethread());
-		}
-
-		if (is_single_threaded())
-		{
-			main_init();
-			if (is_game_enabled()) mp_gamethread->call_initialize();
-			mp_renderthread->call_initialize();
-			while (!m_is_quit_requested)
-			{
-				main_tick();
-				if (is_game_enabled()) mp_gamethread->call_tick();
-				mp_renderthread->call_tick();
-			}
-			main_cleanup();
-			if (is_game_enabled()) mp_gamethread->call_cleanup();
-			mp_renderthread->call_cleanup();
-		}
-		else
-		{
-			main_init();
-			for (dedicated_thread*& thread : m_dedicated_threads)
-			{
-				thread->spin();
-			}
-			for (dedicated_thread*& thread : m_dedicated_threads)
-			{
-				thread->wait_for_initialize();
-			}
-			while (!m_is_quit_requested)
-			{
-				main_tick();
-			}
-			// joins() & so stalls until all threads are finished...
-			for (dedicated_thread*& thread : m_dedicated_threads)
-			{
-				influx_delete(thread);
-			}
-			main_cleanup();
-		}
-#endif
 
 		// shutdown
 		influx_delete(mp_layerstack);
@@ -272,88 +224,14 @@ namespace influx::application
 
 	}
 
-	void application::mainthread_log()
-	{
-		system("cls");
-		per_frame_stats game_stats = mp_gamethread->calc_average_stats();
-		per_frame_stats render_stats = mp_renderthread->calc_average_stats();
-
-		auto set_console_color = [](const float ms_value, const float pc_sync)
-		{
-			platform::set_console_colour_attribute(platform::e_console_colour::white);
-			const float pc_self = 1.0f - pc_sync;
-			const float ms_self = ms_value * pc_self;
-			
-			if (ms_self >= 16.66f)
-			{
-				platform::set_console_colour_attribute(platform::e_console_colour::yellow);
-			}
-			if (ms_self >= 33.33f)
-			{
-				platform::set_console_colour_attribute(platform::e_console_colour::red);
-			}
-		};
-
-		const float game_fps = 1.0f / (game_stats.m_ms_total * 0.001f);
-		const float render_fps = 1.0f / (render_stats.m_ms_total * 0.001f);
-		const float game_ms_sync = game_stats.m_pc_sync * game_stats.m_ms_total;
-		const float render_ms_sync = render_stats.m_pc_sync * render_stats.m_ms_total;
-
-		const bool log_sync_stats = !is_single_threaded(); // no need for sync stats if single threaded
-
-		set_console_color(game_stats.m_ms_total, game_stats.m_pc_sync);
-		std::cout << "[Game]  \tFPS: " << game_fps << "\t| ms: " << game_stats.m_ms_total;
-		if (log_sync_stats) std::cout << "\t\t| " << "Sync: " << 100.0f * game_stats.m_pc_sync << "% (" << game_ms_sync << " ms)";
-		std::cout << "\n";
-
-		set_console_color(render_stats.m_ms_total, render_stats.m_pc_sync);
-		std::cout << "[Render]\tFPS: " << render_fps << "\t| ms: " << render_stats.m_ms_total;
-		if (log_sync_stats) std::cout << "\t\t| " << "Sync: " << 100.0f * render_stats.m_pc_sync << "% (" << render_ms_sync << " ms)\n";
-		std::cout << "\n";
-
-		std::cout << "\n";
-		if (is_vsync()) std::cout << "[vsync]";
-		if (is_single_threaded()) std::cout << "[singlethreaded]"; else std::cout << "[threaded]";
-		if (k_jobify) std::cout << "[jobified:" << to_string(k_max_num_job_threads) << "]";
-		std::cout << "\n";
-
-		platform::set_console_colour_attribute(platform::e_console_colour::white);
-	}
-
-	const dedicated_thread* application::find_thread(e_dedicated_thread thread_type) const
-	{
-		auto found = std::find_if(m_dedicated_threads.cbegin(), m_dedicated_threads.cend(),
-		[thread_type](dedicated_thread* t)
-		{
-			return t->get_thread_type() == thread_type;
-		});
-
-		if (found != m_dedicated_threads.cend())
-		{
-			return *found;
-		}
-
-		return nullptr;
-	}
-
 	void application::request_quit()
 	{
 		m_is_quit_requested = true;
 	}
 
-	rendersync& application::get_render_sync()
-	{
-		return get_instance().m_render_sync;
-	}
-
 	bool application::is_quit_requested()
 	{
 		return get_instance().m_is_quit_requested;
-	}
-
-	bool application::is_single_threaded()
-	{
-		return get_instance().m_run_args.m_single_threaded || k_force_single_threaded;
 	}
 
 	bool application::is_vsync()
@@ -379,6 +257,11 @@ namespace influx::application
 	bool application::is_commandlet()
 	{
 		return get_instance().m_run_args.m_commandlet;
+	}
+
+	rendersync& application::get_render_sync()
+	{
+		return *get_instance().mp_rendersynce;
 	}
 
 	per_frame_stats application::get_average_frame_stats(e_dedicated_thread thread)

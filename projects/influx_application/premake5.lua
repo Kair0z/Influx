@@ -14,6 +14,9 @@ project "influx_application"
         g_project_dir .. "**.cpp"
     }
 
+    pchheader "app_pch.h"
+    pchsource "app_pch.cpp"
+
     defines
     {
         

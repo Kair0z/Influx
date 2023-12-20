@@ -47,7 +47,7 @@ namespace influx::application
 
 	void layer_stack::process_events()
 	{
-		for (layer_base* layer : mp_layers)
+		for (auto it = mp_layers.rbegin(); it != mp_layers.rend(); ++it)
 		{
 			layer->process_events_if_enabled();
 		}
