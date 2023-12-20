@@ -12,6 +12,7 @@ namespace influx::application
 
 	void layer_render::on_event(layer_event*)
 	{
+
 	}
 
 	void layer_render::on_tick()

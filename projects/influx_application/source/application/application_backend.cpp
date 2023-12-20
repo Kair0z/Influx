@@ -84,11 +84,6 @@ namespace influx::application
 		}
 		m_instancehandle = platform::get_current_instance();
 
-		// initialize async jobs module
-		async::init_args async_init_args{};
-		async_init_args.m_num_workers = k_max_num_job_threads;
-		async::initialize(async_init_args);
-
 		// create a window
 		if (m_run_args.m_commandlet == false)
 		{
@@ -99,6 +94,11 @@ namespace influx::application
 			m_windowhandle = platform::create_window(window_args, true, windows_procedure);
 		}
 		
+		// initialize async jobs
+		async::init_args async_init_args{};
+		async_init_args.m_num_workers = k_max_num_job_threads;
+		async::initialize(async_init_args);
+
 		// create base app module
 		mp_base_application = sub_module;
 
@@ -106,8 +106,7 @@ namespace influx::application
 		mp_layerstack = new layer_stack();
 		mp_layerstack->push<layer_main>		(layer_base_args{"layer_main"});	// |
 		mp_layerstack->push<layer_module>	(layer_base_args{"layer_module"});	// |
-		mp_layerstack->push<layer_editor>	(layer_base_args{"layer_editor");	// |
-		mp_layerstack->push<layer_render>	(layer_base_args{"layer_render"});	// v
+		mp_layerstack->push<layer_editor>	(layer_base_args{"layer_editor"});	// v
 
 		while (!m_is_quit_requested)
 		{
@@ -124,105 +123,11 @@ namespace influx::application
 	{
 		m_mainthread_frame = 0u;
 
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-		// Setup Dear ImGui style
-		ImGui::StyleColorsDark();
+		
 
 		ImGui_ImplWin32_Init(m_windowhandle);
 	}
 
-
-	inline static void imgui_frame()
-	{
-		// main menu
-		if (ImGui::BeginMainMenuBar())
-		{
-			if (ImGui::BeginMenu("file"))
-			{
-				if (ImGui::MenuItem("save"))
-				{
-
-				}
-
-				if (ImGui::MenuItem("open"))
-				{
-
-				}
-
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::BeginMenu("options"))
-			{
-				ImGui::EndMenu();
-			}
-
-			ImGui::EndMainMenuBar();
-		}
-
-		// game viewport
-		if (ImGui::Begin("viewport"))
-		{
-
-			ImGui::End();
-		}
-
-		// stats menu
-		if (ImGui::Begin("stats"))
-		{
-			auto render_stats = application::get_average_frame_stats(e_dedicated_thread::renderthread);
-			auto game_stats = application::get_average_frame_stats(e_dedicated_thread::gamethread);
-			ImGui::SeparatorText("threads");
-			ImGui::Text("main: %f ms", 0.0f);
-			ImGui::Text("render: %f ms", render_stats.m_ms_total);
-			ImGui::Text("game: %f ms", game_stats.m_ms_total);
-			ImGui::End();
-		}
-
-		// demo window
-		ImGui::ShowDemoWindow();
-	}
-
-	void application::main_tick()
-	{
-		// window events
-		vector<platform::e_windowevent> out_events{};
-		if (!platform::poll_window_events(out_events, m_windowhandle))
-		{
-			request_quit();
-			return;
-		}
-
-		// handle events
-		for (platform::e_windowevent e : out_events)
-		{
-		}
-
-		// imgui frame:
-		if (is_editor_enabled())
-		{
-			ImGui_ImplWin32_NewFrame();
-			ImGui::NewFrame();
-			imgui_frame();
-
-			ImGui::Render(); // results a single DrawData
-			while (!get_render_sync().push_frame({ m_mainthread_frame, ImGui::GetDrawData() }))
-			{
-				// ...
-			}
-		}
-		
-		++m_mainthread_frame;
-	}
-
-	void application::main_cleanup()
-	{
-
-	}
 
 	void application::request_quit()
 	{

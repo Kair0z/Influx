@@ -46,8 +46,8 @@ namespace influx::renderer
 			const scene_proxy* scene_proxy,
 			platform::window_handle window,
 			const imgui_proxy* imgui_proxy,
-			const render_args& render_args,
-			const present_args& present);
+			const render_args& render_args = {},
+			const present_args& present = {});
 
 		vector<frame_stats> get_frame_stats(const uint32 over_num_frames);
 		bool is_initialized() const;

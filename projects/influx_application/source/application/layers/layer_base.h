@@ -10,7 +10,7 @@ namespace influx::application
 	struct layer_base_args
 	{
 		layer_base_args() = default;
-		layer_base_args(const string& name, bool ded_thread)
+		layer_base_args(const string& name)
 			: m_name{ name } {}
 
 		string m_name{};

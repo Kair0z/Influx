@@ -51,6 +51,14 @@ namespace influx::application
 
 	void layer_editor::on_enable()
 	{
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+
 		ImGui_ImplWin32_Init(application::get_instance().get_window_handle());
 	}
 
