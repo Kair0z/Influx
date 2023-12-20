@@ -1,14 +1,12 @@
 #pragma once
 
-// define api
 #if _DLL
 	#define INFLUX_APP_API __declspec(dllexport)
 #else
 	#define INFLUX_APP_API __declspec(dllimport)
 #endif
 
-#define INFLUX_APP_USES_WINDOWS 1
-
+// core dependencies
 #include "core/basetypes.h"
 #include "core/string.h"
 #include "core/math/vector.h"
@@ -43,11 +41,5 @@ namespace influx::application
 	};
 
 	void INFLUX_APP_API run(const run_args& args);
-
-	inline void run(int argc = 0, char** argv = nullptr)
-	{
-		run(run_args{ argc, argv });
-	}
-
 	void INFLUX_APP_API quit();
 }
