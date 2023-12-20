@@ -21,6 +21,8 @@ workspace "influx"
     g_dir_vendor_libraries = g_dir_root .. "/vendor/lib/x64/"
     libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }
 
+    g_dir_resources = g_dir_root .. "/resources/"
+
     -- projects
     printf(".. libraries")
     group "libraries"

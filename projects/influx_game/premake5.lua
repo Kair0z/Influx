@@ -37,7 +37,8 @@ project "influx_game"
     {
         {"{COPYFILE} %{cfg.buildtarget.directory}../influx_application/influx_application.dll %{cfg.buildtarget.directory}"},
         {"{COPYFILE} %{cfg.buildtarget.directory}../influx_renderer/influx_renderer.dll %{cfg.buildtarget.directory}"},
-        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_async/influx_async.dll %{cfg.buildtarget.directory}"}
+        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_async/influx_async.dll %{cfg.buildtarget.directory}"},
+        {"{COPYDIR} " .. g_dir_resources .. " %{cfg.buildtarget.directory}/resources/" }
     }
 
     filter "system:windows"
