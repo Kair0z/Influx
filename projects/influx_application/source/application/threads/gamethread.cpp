@@ -3,8 +3,6 @@
 #include "application/application_backend.h"
 
 #include "influx_async.h"
-#pragma comment(lib, "InfluxAsync.lib")
-
 #include "Core/Math/Random.h"
 
 namespace influx::application

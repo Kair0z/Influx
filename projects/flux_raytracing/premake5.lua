@@ -4,7 +4,7 @@ project "flux_raytracing"
     cppdialect "C++20"
     staticruntime "on"
 
-    g_project_dir = g_dir_projects .. "/flux_raytracing/"
+    g_project_dir = g_dir_projects .. "/%{prj.name}/"
 
     targetdir(g_dir_binaries .. "/%{prj.name}")
     objdir(g_dir_int .. "/%{prj.name}")
@@ -21,7 +21,9 @@ project "flux_raytracing"
 
     includedirs
     {
-        "source"
+        "source",
+        g_dir_core_include,
+        g_dir_vendor_include
     }
 
     links

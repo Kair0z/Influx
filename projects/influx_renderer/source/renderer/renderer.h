@@ -15,7 +15,8 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
-#include "foreign/d3dx12.h"
+
+#include "vendor/d3dx12.h"
 
 struct IDXGIFactory1;
 struct IDXGIAdapter1;

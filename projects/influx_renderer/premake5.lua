@@ -3,16 +3,15 @@ project "influx_renderer"
     language "C++"
     cppdialect "C++20"
 
-    g_project_dir = g_dir_projects .. "/influx_renderer/"
+    g_project_dir = g_dir_projects .. "/%{prj.name}/"
 
     targetdir(g_dir_binaries .. "/%{prj.name}")
     objdir(g_dir_int .. "/%{prj.name}")
 
     files
     {
-        g_project_dir .. "include/**.h",
-        g_project_dir .. "source/**.h",
-        g_project_dir .. "source/**.cpp",
+        g_project_dir .. "**.h",
+        g_project_dir .. "**.cpp",
     }
 
     defines
@@ -24,12 +23,13 @@ project "influx_renderer"
     {
         "source",
         "include",
-        g_dir_core_include
+        g_dir_core_include,
+        g_dir_vendor_include
     }
 
     links
     {
-
+        "influx_vendor"
     }
 
     filter "system:windows"

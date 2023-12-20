@@ -5,9 +5,7 @@
 #include "application/threads/renderthread.h"
 
 #include "influx_async.h"
-#pragma comment(lib, "InfluxAsync.lib")
-
-#include "foreign/ImGui/imgui_impl_win32.h"
+#include "ImGui/imgui_impl_win32.h"
 
 #include <iostream>
 

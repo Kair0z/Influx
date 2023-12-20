@@ -6,7 +6,8 @@ project "influx_game"
 
     g_project_dir = g_dir_projects .. "/influx_game/"
 
-    targetdir(g_dir_binaries .. "/%{prj.name}")
+    g_target_dir = g_dir_binaries .. "/%{prj.name}"
+    targetdir(g_target_dir)
     objdir(g_dir_int .. "/%{prj.name}")
 
     files
@@ -21,12 +22,22 @@ project "influx_game"
 
     includedirs
     {
-        "source"
+        "source",
+        g_dir_app_include,
+        g_dir_core_include
     }
 
     links
     {
+        "influx_application"
+    }
 
+    postbuildmessage "Copying dependencies..."
+    postbuildcommands
+    {
+        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_application/influx_application.dll %{cfg.buildtarget.directory}"},
+        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_renderer/influx_renderer.dll %{cfg.buildtarget.directory}"},
+        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_async/influx_async.dll %{cfg.buildtarget.directory}"}
     }
 
     filter "system:windows"
@@ -40,8 +51,16 @@ project "influx_game"
         defines "INFLUX_DEBUG"
         runtime "Debug"
         symbols "on"
+        postbuildcommands
+        {
+            {"{COPYFILE} " .. g_dir_root .. "vendor/bin/x64/Debug/assimp-vc142-mtd.dll %{cfg.buildtarget.directory}"}
+        }
     
     filter "configurations:release"
         defines "INFLUX_RELEASE"
         runtime "Release"
         optimize "on"
+        postbuildcommands
+        {
+            {"{COPYFILE} " .. g_dir_root .. "vendor/bin/x64/Release/assimp-vc142-mt.dll %{cfg.buildtarget.directory}"}
+        }

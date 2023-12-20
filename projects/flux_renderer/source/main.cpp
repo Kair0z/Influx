@@ -3,9 +3,9 @@
 #include "InfluxAssets/InfluxAssets.h"
 
 // core
-#include "Core/Platform/windows_platform.h"
-#include "Core/Time.h"
-#include "Core/Threading/ThreadPool.h"
+#include "core/platform/windows_platform.h"
+#include "core/time.h"
+#include "core/threading/ThreadPool.h"
 
 // stl
 #include <iostream>

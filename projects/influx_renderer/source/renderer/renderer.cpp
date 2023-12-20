@@ -5,13 +5,13 @@
 #pragma comment (lib, "DXGI.lib")
 #pragma comment (lib, "D3DCompiler.lib")
 
-#include "foreign/ImGui/imgui_impl_dx12.h"
-#include "foreign/ImGui/imgui_impl_win32.h"
-
 #include "core/platform/windows_platform.h"
-#include "Core/Time.h"
-
+#include "core/time.h"
 #include "api/api.h"
+
+#include "ImGui/imgui.h"
+#include "ImGui/imgui_impl_dx12.h"
+#include "ImGui/imgui_impl_win32.h"
 
 #include <thread>
 

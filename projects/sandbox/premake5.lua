@@ -4,14 +4,14 @@ project "sandbox"
     cppdialect "C++20"
     staticruntime "on"
 
-    g_project_dir = g_dir_projects .. "/sandbox/"
+    g_project_dir = g_dir_projects .. "/%{prj.name}/"
 
     targetdir(g_dir_binaries .. "/%{prj.name}")
     objdir(g_dir_int .. "/%{prj.name}")
 
     files
     {
-        g_project_dir .. "source/**.cpp"
+        g_project_dir .. "/source/**.cpp"
     }
 
     defines

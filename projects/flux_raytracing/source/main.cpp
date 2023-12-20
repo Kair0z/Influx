@@ -10,13 +10,12 @@
     #endif
     #pragma endregion
 #pragma region core
-    #include "Core/basetypes.h"
-    #include "Core/Math/Vector.h"
-    #include "Core/Time.h"
-    // #include "Core/Threading/ThreadPool.h"
-    #include "Core/Math/Random.h"
-    #include "Core/KDTree.h"
-    #include "Core/Platform/windows_platform.h"
+    #include "core/basetypes.h"
+    #include "core/math/vector.h"
+    #include "core/time.h"
+    #include "core/math/random.h"
+    #include "core/KDTree.h"
+    #include "core/platform/windows_platform.h"
 #pragma endregion
 #pragma region stl
     #include <iostream>
@@ -315,10 +314,11 @@ int main()
 
             for (size_t i = 0; i < Stats::k_EnumSize; ++i)
             {
+                
                 using namespace influx::platform;
                 double value = sortedStats[i].first;
-                if (value > 16.0) set_console_colour_attribute<e_console_colour::Red>();
-                else set_console_colour_attribute<e_console_colour::Green>();
+                if (value > 16.0) set_console_colour_attribute(e_console_colour::red);
+                else set_console_colour_attribute(e_console_colour::green);
 
                 std::cout << "Ms " << Stats::k_StatToNames[sortedStats[i].second] << ": " << value << "\n";
             }

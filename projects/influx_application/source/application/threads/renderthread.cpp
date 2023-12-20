@@ -8,18 +8,11 @@
 
 #include "influx_renderer.h"
 #include "influx_async.h"
-#pragma comment(lib, "InfluxRenderer.lib")
 
-#pragma region assimp
-#include "foreign/assimp/assimp_helpers.h"
-#if _DEBUG
-#pragma comment(lib, "assimp-vc142-mtd.lib")
-#else
-#pragma comment(lib, "assimp-vc142-mt.lib")
-#endif
+#pragma region vendorstuff
+#include "imgui_helpers.h"
+#include "assimp_helpers.h"
 #pragma endregion
-
-#include "imgui/imgui_helpers.h"
 
 namespace influx::application
 {

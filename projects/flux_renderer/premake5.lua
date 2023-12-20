@@ -21,7 +21,8 @@ project "flux_renderer"
 
     includedirs
     {
-        "source"
+        "source",
+        g_dir_core_include
     }
 
     links
