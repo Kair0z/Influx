@@ -4,6 +4,9 @@
 #include "application/threads/gamethread.h"
 #include "application/threads/renderthread.h"
 
+#include "application/layers/layer_stack.h"
+#include "application/layers/layers/layers.h"
+
 #include "influx_async.h"
 #include "ImGui/imgui_impl_win32.h"
 
@@ -14,6 +17,11 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace influx::application
 {
+	base* create_module()
+	{
+		return nullptr;
+	}
+
 	#if INFLUX_APP_USES_WINDOWS
 	inline static ::LRESULT windows_procedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
 	{
@@ -65,7 +73,7 @@ namespace influx::application
 	}
 	#endif
 
-	void application::run(const run_args& args)
+	void application::run(const run_args& args, base* sub_module)
 	{
 		m_run_args = args;
 
@@ -91,6 +99,23 @@ namespace influx::application
 			m_windowhandle = platform::create_window(window_args, true, windows_procedure);
 		}
 		
+		// create base app module
+		mp_base_application = sub_module;
+
+		// create layerstack
+		mp_layerstack = new layer_stack();
+		mp_layerstack->push<layer_main>		(layer_base_args{"layer_main",		!is_single_threaded() });
+		mp_layerstack->push<layer_render>	(layer_base_args{"layer_render",	!is_single_threaded() });
+		mp_layerstack->push<layer_module>	(layer_base_args{"layer_module",	!is_single_threaded() });
+
+		while (!m_is_quit_requested)
+		{
+			mp_layerstack->process_events();
+			mp_layerstack->tick();
+		}
+
+		// legacy
+#if 0
 		// create dedicated threads
 		m_dedicated_threads.clear();
 		m_dedicated_threads.push_back(mp_renderthread = new renderthread());
@@ -136,7 +161,10 @@ namespace influx::application
 			}
 			main_cleanup();
 		}
+#endif
 
+		// shutdown
+		influx_delete(mp_layerstack);
 		async::shutdown();
 	}
 
@@ -388,9 +416,9 @@ namespace influx::application
 	}
 
 #pragma region apifunctions
-	void run(const run_args& args)
+	void run(const run_args& args, base* sub_module)
 	{
-		application::get_instance().run(args);
+		application::get_instance().run(args, sub_module);
 	}
 
 	void quit()

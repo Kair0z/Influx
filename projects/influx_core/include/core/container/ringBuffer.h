@@ -41,6 +41,9 @@ namespace influx
 		bool pop(_t& value);
 		bool try_pop(_t& value);
 
+		bool pop(std::vector<_t>& out_values, size_t num = -1);
+		bool try_pop(std::vector<_t>& out_values, size_t num = -1);
+
 		template <class _func>
 		bool pop_if_lockless(_t& value, _func&& cond);
 		template <class _func>
@@ -59,6 +62,7 @@ namespace influx
 		size_t size() const;
 		constexpr static size_t capacity();
 		bool is_full() const;
+		bool is_empty() const;
 
 		template <class _func>
 		void for_each_lockless(_func&& func, const size_t max_num = -1);
@@ -165,6 +169,44 @@ namespace influx
 		return result;
 	}
 
+	template<typename _t, size_t _c>
+	bool ringbuffer<_t, _c>::pop(std::vector<_t>& out_values, size_t num)
+	{
+		num = math::minimum(num, size());
+		out_values.resize(num);
+		std::lock_guard<std::mutex> lock(m_lock);
+
+		for (size_t i = 0u; i < num; ++i)
+		{
+			if (!pop_lockless(out_values[i]))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	template<typename _t, size_t _c>
+	bool ringbuffer<_t, _c>::try_pop(std::vector<_t>& out_values, size_t num)
+	{
+		num = math::minimum(num, size());
+		out_values.resize(num);
+		
+		if (!m_lock.try_lock()) return false;
+
+		for (size_t i = 0u; i < num; ++i)
+		{
+			if (!pop_lockless(out_values[i]))
+			{
+				return false;
+			}
+		}
+
+		m_lock.unlock();
+		return true;
+	}
+
 
 	template<typename _t, size_t _c>
 	template <class _func>
@@ -259,6 +301,12 @@ namespace influx
 	inline bool ringbuffer<_t, _c>::is_full() const
 	{
 		return ((m_head + 1u) % _c) == m_tail;
+	}
+
+	template<typename _t, size_t _c>
+	inline bool ringbuffer<_t, _c>::is_empty() const
+	{
+		return m_head == m_tail;
 	}
 
 	template<typename _t, size_t _c>

@@ -3,6 +3,9 @@
 #include "influx_application.h"
 #include "application/threads/rendersync.h"
 
+#include "core/platform/platform.h"
+#include "core/singleton/singleton.h"
+
 namespace influx::renderer
 {
 	struct material_data;
@@ -51,12 +54,13 @@ namespace influx::application
 	class gamethread;
 	class renderthread;
 	class dedicated_thread;
+	class layer_stack;
 
 	class application final
 		: public singleton<application>
 	{
 	public:
-		void run(const run_args& args);
+		void run(const run_args& args, base* sub_module);
 		void request_quit();
 
 		string get_resource_directory() const;
@@ -90,9 +94,12 @@ namespace influx::application
 		vector<dedicated_thread*> m_dedicated_threads{};
 		gamethread* mp_gamethread = nullptr;
 		renderthread* mp_renderthread = nullptr;
+		layer_stack* mp_layerstack = nullptr;
 
 		rendersync m_render_sync{};
 		run_args m_run_args{};
+
+		base* mp_base_application = nullptr;
 
 		const dedicated_thread* find_thread(e_dedicated_thread thread_type) const;
 	};
