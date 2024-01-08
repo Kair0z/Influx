@@ -5,4 +5,4 @@
   imgui_impl_win32.cpp
   imgui_tables.cpp
   imgui_widgets.cpp
-  influx_vendor.vcxproj -> D:\Git\Influx\generated\bin\debug\influx_vendor.lib
+  influx_vendor.vcxproj -> D:\Git\Influx\generated\vs2022\bin\debug\influx_vendor.lib

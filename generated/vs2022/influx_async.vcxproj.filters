@@ -12,24 +12,30 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\projects\influx_async\include\influx_async.h">
+    <ClInclude Include="..\..\projects\influx_async\include\influx_async.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_async\source\async\async_backend.h">
+    <ClInclude Include="..\..\projects\influx_async\source\async\async_backend.h">
       <Filter>source\async</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_async\source\async\task_data.h">
+    <ClInclude Include="..\..\projects\influx_async\source\async\async_pch.h">
       <Filter>source\async</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_async\source\async\task_queue.h">
+    <ClInclude Include="..\..\projects\influx_async\source\async\task_data.h">
+      <Filter>source\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_async\source\async\task_queue.h">
       <Filter>source\async</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\projects\influx_async\source\async\async_backend.cpp">
+    <ClCompile Include="..\..\projects\influx_async\source\async\async_backend.cpp">
       <Filter>source\async</Filter>
     </ClCompile>
-    <ClCompile Include="..\projects\influx_async\source\async\task_queue.cpp">
+    <ClCompile Include="..\..\projects\influx_async\source\async\async_pch.cpp">
+      <Filter>source\async</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_async\source\async\task_queue.cpp">
       <Filter>source\async</Filter>
     </ClCompile>
   </ItemGroup>

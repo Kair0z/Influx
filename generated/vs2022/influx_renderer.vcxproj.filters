@@ -10,41 +10,41 @@
     <Filter Include="source\api">
       <UniqueIdentifier>{BF3B15B8-ABF3-5605-14FB-2F6100D2F1F5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="source\foreign">
+      <UniqueIdentifier>{8F152573-7BE3-1879-6477-899F50E4F4DD}</UniqueIdentifier>
+    </Filter>
     <Filter Include="source\renderer">
       <UniqueIdentifier>{FCA3AEDF-682F-1CA4-7140-9F98DD4A78A4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="source\vendor">
-      <UniqueIdentifier>{13D5F18C-7F95-6DC3-48D0-B640B44FB29F}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\projects\influx_renderer\include\influx_renderer.h">
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_renderer\source\api\api.h">
+    <ClInclude Include="..\..\projects\influx_renderer\source\api\api.h">
       <Filter>source\api</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_renderer\source\renderer\renderer.h">
+    <ClInclude Include="..\..\projects\influx_renderer\source\foreign\d3dx12.h">
+      <Filter>source\foreign</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\renderer\renderer.h">
       <Filter>source\renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_renderer\source\renderer_pch.h">
+    <ClInclude Include="..\..\projects\influx_renderer\source\renderer_pch.h">
       <Filter>source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\projects\influx_renderer\source\vendor\d3dx12.h">
-      <Filter>source\vendor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\projects\influx_renderer\source\api\api.cpp">
+    <ClCompile Include="..\..\projects\influx_renderer\source\api\api.cpp">
       <Filter>source\api</Filter>
     </ClCompile>
-    <ClCompile Include="..\projects\influx_renderer\source\api\api_d3d12.cpp">
+    <ClCompile Include="..\..\projects\influx_renderer\source\api\api_d3d12.cpp">
       <Filter>source\api</Filter>
     </ClCompile>
-    <ClCompile Include="..\projects\influx_renderer\source\renderer\renderer.cpp">
+    <ClCompile Include="..\..\projects\influx_renderer\source\renderer\renderer.cpp">
       <Filter>source\renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\projects\influx_renderer\source\renderer_pch.cpp">
+    <ClCompile Include="..\..\projects\influx_renderer\source\renderer_pch.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>

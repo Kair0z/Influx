@@ -4,9 +4,9 @@ workspace "influx"
     flags {"MultiProcessorCompile"}
     language "C++"
     startproject "sandbox"
-    location "../generated"
+    location "../generated/%{_ACTION}/"
     
-    g_dir_root = "%{wks.location}/../"
+    g_dir_root = "%{wks.location}/../../"
 
     g_dir_projects = g_dir_root .. "/projects/"
     g_dir_binaries = g_dir_root .. "/bin/%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}/"

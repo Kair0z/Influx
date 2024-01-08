@@ -39,153 +39,156 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\projects\influx_core\include\core\BRDF\BRDF.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\BRDF\BRDF.h">
       <Filter>core\BRDF</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\KDTree.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\KDTree.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\allocators\allocator.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\allocators\allocator.h">
       <Filter>core\allocators</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\basetypes.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\basetypes.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\cache.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\cache.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\cast.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\cast.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\cleanup.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\cleanup.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\container\array.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\container\array.h">
       <Filter>core\container</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\container\containers.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\container\containers.h">
       <Filter>core\container</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\container\list.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\container\list.h">
       <Filter>core\container</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\container\map.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\container\map.h">
       <Filter>core\container</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\container\pool.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\container\pool.h">
       <Filter>core\container</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\container\queue.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\container\queue.h">
       <Filter>core\container</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\container\ringBuffer.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\container\ringBuffer.h">
       <Filter>core\container</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\container\vector.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\container\vector.h">
       <Filter>core\container</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\debug.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\debug.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\function.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\function.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\geometry\geometry.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\geometry\geometry.h">
       <Filter>core\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\geometry\plane.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\geometry\plane.h">
       <Filter>core\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\geometry\quad.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\geometry\quad.h">
       <Filter>core\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\geometry\ray.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\geometry\ray.h">
       <Filter>core\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\geometry\rect.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\geometry\rect.h">
       <Filter>core\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\geometry\sphere.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\geometry\sphere.h">
       <Filter>core\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\geometry\triangle.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\geometry\triangle.h">
       <Filter>core\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\graph\graph.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\graph\graph.h">
       <Filter>core\graph</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\graph\hierarchy.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\graph\hierarchy.h">
       <Filter>core\graph</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\macros.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\macros.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\math\bounds.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\math\bounds.h">
       <Filter>core\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\math\colour.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\math\colour.h">
       <Filter>core\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\math\math.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\math\math.h">
       <Filter>core\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\math\matrix.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\math\matrix.h">
       <Filter>core\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\math\quaternion.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\math\quaternion.h">
       <Filter>core\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\math\random.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\math\random.h">
       <Filter>core\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\math\transform.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\math\transform.h">
       <Filter>core\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\math\vector.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\math\vector.h">
       <Filter>core\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\platform\platform.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\platform\platform.h">
       <Filter>core\platform</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\platform\windows_platform.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\platform\windows_platform.h">
       <Filter>core\platform</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\pointer.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\pointer.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\registry.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\registry.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\scene\camera.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\scene\camera.h">
       <Filter>core\scene</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\scene\light.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\scene\light.h">
       <Filter>core\scene</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\scene\mesh.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\scene\mesh.h">
       <Filter>core\scene</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\singleton\locator.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\singleton\locator.h">
       <Filter>core\singleton</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\singleton\singleton.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\singleton\singleton.h">
       <Filter>core\singleton</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\string.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\string.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\sync\semaphore.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\sync\semaphore.h">
       <Filter>core\sync</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\threading\threadpool.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\threading\threadpool.h">
       <Filter>core\threading</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\time.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\time.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\core\wait.h">
+    <ClInclude Include="..\..\projects\influx_core\include\core\tree.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\projects\influx_core\include\influx_core.h" />
+    <ClInclude Include="..\..\projects\influx_core\include\core\wait.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_core\include\influx_core.h" />
   </ItemGroup>
 </Project>

@@ -79,7 +79,6 @@ namespace influx::platform
 	};
 }
 
-// [INTERFACE DECLARATIONS]
 namespace influx::platform
 {
 	// [MEMORY]

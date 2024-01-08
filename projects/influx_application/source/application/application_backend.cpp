@@ -204,9 +204,9 @@ namespace influx::application
 	}
 
 #pragma region apifunctions
-	void run(const run_args& args, base* sub_module)
+	void run(const run_args& args)
 	{
-		application::get_instance().run(args, sub_module);
+		application::get_instance().run(args);
 	}
 
 	void quit()
