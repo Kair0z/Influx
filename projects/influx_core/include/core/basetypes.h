@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef __CORE_BASIC_TYPES_H_
-#define __CORE_BASIC_TYPES_H_
-
 namespace influx
 {
 	using uint8 = unsigned char;
@@ -24,5 +21,3 @@ namespace influx
 	constexpr uint16 u16_max = { 0xffffui16 };
 	constexpr uint8  u8_max = { 0xffui8 };
 }
-
-#endif

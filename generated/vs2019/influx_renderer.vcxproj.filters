@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="foreign">
+      <UniqueIdentifier>{2F88A8BA-9B67-2756-A47F-B22C10DE8DB7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{89AF369E-F58E-B539-FEA6-40106A051C9B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source">
+      <UniqueIdentifier>{76FF3A1C-62A1-65F2-4B5C-7946379DEC42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\api">
+      <UniqueIdentifier>{BF3B15B8-ABF3-5605-14FB-2F6100D2F1F5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\renderer">
+      <UniqueIdentifier>{FCA3AEDF-682F-1CA4-7140-9F98DD4A78A4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\d3dx12.h">
+      <Filter>foreign</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\api\api.h">
+      <Filter>source\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\renderer\renderer.h">
+      <Filter>source\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\renderer_pch.h">
+      <Filter>source</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\projects\influx_renderer\source\api\api.cpp">
+      <Filter>source\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\source\api\api_d3d12.cpp">
+      <Filter>source\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\source\renderer\renderer.cpp">
+      <Filter>source\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\source\renderer_pch.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\projects\influx_renderer\premake5.lua" />
+  </ItemGroup>
+</Project>

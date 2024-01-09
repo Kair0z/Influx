@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 
-#include <set>
 namespace influx
 {
 	class tree_view
@@ -21,31 +20,21 @@ namespace influx
 			count
 		};
 
-		enum class e_traverse_order : uint8_t
+		enum class e_traverse : uint8_t
 		{
-			breadth_first,
-			depth_first,
+			breadth,
+			depth,
 			count
 		};
 
 		class node final
 		{
-			std::set<int> ints{};
+			
 		};
 
-		tree()
+		inline _t get_child()
 		{
-
-		}
-
-		node& get_root()
-		{
-
-		}
-
-		_t get_child()
-		{
-
+			return m_data;
 		}
 
 	private:

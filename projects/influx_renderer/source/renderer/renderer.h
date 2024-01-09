@@ -2,7 +2,7 @@
 
 #include "influx_renderer.h"
 
-#include "core/singleton/singleton.h"
+#include "core/singleton.h"
 #include "Core/Container/Vector.h"
 #include "Core/Container/RingBuffer.h"
 #include "Core/Container/List.h"
@@ -16,7 +16,7 @@
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
 
-#include "vendor/d3dx12.h"
+#include "d3dx12.h"
 
 struct IDXGIFactory1;
 struct IDXGIAdapter1;

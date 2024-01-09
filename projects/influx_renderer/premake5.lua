@@ -12,10 +12,11 @@ project "influx_renderer"
     {
         g_project_dir .. "**.h",
         g_project_dir .. "**.cpp",
+        g_project_dir .. "**.lua"
     }
 
     pchheader "renderer_pch.h"
-    pchsource "renderer_pch.cpp"
+    pchsource "source/renderer_pch.cpp"
 
     defines
     {
@@ -26,6 +27,7 @@ project "influx_renderer"
     {
         "source",
         "include",
+        "foreign",
         g_dir_core_include,
         g_dir_vendor_include
     }

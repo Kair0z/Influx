@@ -6,29 +6,13 @@
 	#define INFLUX_APP_API __declspec(dllimport)
 #endif
 
-// core dependencies
+// influx core
 #include "core/basetypes.h"
 #include "core/string.h"
 #include "core/math/vector.h"
 
 namespace influx::application
 {
-	struct tick_args final
-	{
-		float delta_ms = 0.0f;
-	};
-
-	class base
-	{
-	public:
-		virtual void on_start() = 0;
-		virtual void on_tick(const tick_args& args) = 0;
-		virtual void on_end() = 0;
-
-	protected:
-
-	};
-
 	struct run_args final
 	{
 		inline run_args(int argc = 0, char** argv = nullptr)
@@ -56,7 +40,7 @@ namespace influx::application
 		char** m_argv{};
 	};
 
-	void INFLUX_APP_API run(const run_args& args, base* sub_module);
+	void INFLUX_APP_API run(const run_args& args);
 
 	void INFLUX_APP_API quit();
 }

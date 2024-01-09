@@ -11,11 +11,12 @@ project "influx_application"
     files
     {
         g_project_dir .. "**.h",
-        g_project_dir .. "**.cpp"
+        g_project_dir .. "**.cpp",
+        g_project_dir .. "**.lua"
     }
 
     pchheader "app_pch.h"
-    pchsource "app_pch.cpp"
+    pchsource ("source/app_pch.cpp")
 
     defines
     {

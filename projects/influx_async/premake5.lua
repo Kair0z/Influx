@@ -4,19 +4,20 @@ project "influx_async"
     cppdialect "C++20"
 
     g_project_dir = g_dir_projects .. "/influx_async/"
+    g_source_dir = g_project_dir .. "/source/"
 
     targetdir(g_dir_binaries .. "/%{prj.name}")
     objdir(g_dir_int .. "/%{prj.name}")
 
     files
     {
-        g_project_dir .. "include/influx_async.h",
-        g_project_dir .. "source/async/**.h",
-        g_project_dir .. "source/async/**.cpp",
+        g_project_dir .. "**.h",
+        g_project_dir .. "**.cpp",
+        g_project_dir .. "**.lua"
     }
 
     pchheader "async_pch.h"
-    pchsource "async_pch.cpp"
+    pchsource ("source/async_pch.cpp")
 
     defines
     {
@@ -34,6 +35,10 @@ project "influx_async"
     {
 
     }
+
+    -- deactivate precompiled headers for C files
+    -- filter "files:**.c"
+    -- flags { "NoPCH" }
 
     filter "system:windows"
         systemversion "latest"

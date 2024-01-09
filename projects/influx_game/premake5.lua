@@ -12,7 +12,9 @@ project "influx_game"
 
     files
     {
-        g_project_dir .. "source/**.cpp"
+        g_project_dir .. "**.h",
+        g_project_dir .. "**.cpp",
+        g_project_dir .. "**.lua"
     }
 
     defines

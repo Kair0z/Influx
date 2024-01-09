@@ -11,7 +11,8 @@ project "sandbox"
 
     files
     {
-        g_project_dir .. "/source/**.cpp"
+        g_project_dir .. "**.cpp",
+        g_project_dir .. "**.lua"
     }
 
     defines
@@ -27,7 +28,6 @@ project "sandbox"
 
     links
     {
-        "influx_core"
     }
 
     filter "system:windows"

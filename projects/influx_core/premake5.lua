@@ -7,7 +7,8 @@ project "influx_core"
     
     files
     {
-        g_project_dir .. "**.h"
+        g_project_dir .. "**.h",
+        g_project_dir .. "**.lua"
     }
 
     defines
