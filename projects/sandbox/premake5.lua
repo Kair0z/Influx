@@ -23,11 +23,13 @@ project "sandbox"
     includedirs
     {
         "source",
-        g_dir_core_include
+        g_dir_core_include,
+        g_dir_render_include
     }
 
     links
     {
+        "influx_renderer"
     }
 
     filter "system:windows"

@@ -1,51 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="foreign">
+      <UniqueIdentifier>{2F88A8BA-9B67-2756-A47F-B22C10DE8DB7}</UniqueIdentifier>
+    </Filter>
     <Filter Include="include">
       <UniqueIdentifier>{89AF369E-F58E-B539-FEA6-40106A051C9B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\influx_renderer">
+      <UniqueIdentifier>{A479EC72-10B1-340A-19BB-982D85715B03}</UniqueIdentifier>
     </Filter>
     <Filter Include="source">
       <UniqueIdentifier>{76FF3A1C-62A1-65F2-4B5C-7946379DEC42}</UniqueIdentifier>
     </Filter>
-    <Filter Include="source\api">
-      <UniqueIdentifier>{BF3B15B8-ABF3-5605-14FB-2F6100D2F1F5}</UniqueIdentifier>
+    <Filter Include="source\influx_renderer">
+      <UniqueIdentifier>{910365A9-7DFD-8DFB-666A-240C5203F467}</UniqueIdentifier>
     </Filter>
-    <Filter Include="source\foreign">
-      <UniqueIdentifier>{8F152573-7BE3-1879-6477-899F50E4F4DD}</UniqueIdentifier>
+    <Filter Include="source\influx_renderer\graphics_api">
+      <UniqueIdentifier>{0ADF51F8-7698-BCA2-FFF7-D67C6BB07212}</UniqueIdentifier>
     </Filter>
-    <Filter Include="source\renderer">
-      <UniqueIdentifier>{FCA3AEDF-682F-1CA4-7140-9F98DD4A78A4}</UniqueIdentifier>
+    <Filter Include="source\influx_renderer\graphics_api\d3d12">
+      <UniqueIdentifier>{B72D95A2-2348-F843-6C6A-08D8D8C31F4B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\influx_renderer\graphics_api\null">
+      <UniqueIdentifier>{B4A6391C-A023-2D5F-C9A0-2D73B57CC9F2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\influx_renderer\graphics_api\vulkan">
+      <UniqueIdentifier>{6A71E723-56D9-ADF1-BF44-C207ABCBC4DD}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\d3dx12.h">
+      <Filter>foreign</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\api\api.h">
-      <Filter>source\api</Filter>
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\constants.h">
+      <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\foreign\d3dx12.h">
-      <Filter>source\foreign</Filter>
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\material.h">
+      <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\renderer\renderer.h">
-      <Filter>source\renderer</Filter>
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\mesh.h">
+      <Filter>include\influx_renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\scene.h">
+      <Filter>include\influx_renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\stats.h">
+      <Filter>include\influx_renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\target.h">
+      <Filter>include\influx_renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\texture.h">
+      <Filter>include\influx_renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\types.h">
+      <Filter>include\influx_renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\commandallocator.h">
+      <Filter>source\influx_renderer\graphics_api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\commandlist.h">
+      <Filter>source\influx_renderer\graphics_api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\commandqueue.h">
+      <Filter>source\influx_renderer\graphics_api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\d3d12\dx12_api.h">
+      <Filter>source\influx_renderer\graphics_api\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\device.h">
+      <Filter>source\influx_renderer\graphics_api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\graphics_api.h">
+      <Filter>source\influx_renderer\graphics_api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\null\null_api.h">
+      <Filter>source\influx_renderer\graphics_api\null</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\vulkan\vulkan_api.h">
+      <Filter>source\influx_renderer\graphics_api\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\renderer_backend.h">
+      <Filter>source\influx_renderer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_renderer\source\renderer_pch.h">
       <Filter>source</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\projects\influx_renderer\source\api\api.cpp">
-      <Filter>source\api</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\source\api\api_d3d12.cpp">
-      <Filter>source\api</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\source\renderer\renderer.cpp">
-      <Filter>source\renderer</Filter>
+    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\renderer_backend.cpp">
+      <Filter>source\influx_renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx_renderer\source\renderer_pch.cpp">
       <Filter>source</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\projects\influx_renderer\premake5.lua" />
   </ItemGroup>
 </Project>

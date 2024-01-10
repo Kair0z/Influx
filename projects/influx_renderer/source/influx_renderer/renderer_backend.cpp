@@ -1,88 +1,61 @@
 #include "renderer_pch.h"
-#include "renderer.h"
-
-#pragma comment (lib, "d3d12.lib")
-#pragma comment (lib, "DXGI.lib")
-#pragma comment (lib, "D3DCompiler.lib")
-
-#include "core/platform/windows_platform.h"
-#include "core/time.h"
-#include "api/api.h"
-
-#include "ImGui/imgui.h"
-#include "ImGui/imgui_impl_dx12.h"
-#include "ImGui/imgui_impl_win32.h"
-
-#include <thread>
+#include "influx_renderer/renderer_backend.h"
+#include "influx_renderer/graphics_api/graphics_api.h"
+#include "influx_renderer/graphics_api/d3d12/dx12_api.h"
+#include "influx_renderer/graphics_api/vulkan/vulkan_api.h"
+#include "influx_renderer/graphics_api/null/null_api.h"
 
 namespace influx::renderer
 {
-    // Helper function for acquiring the first available hardware adapter that supports Direct3D 12.
-    // If no such adapter can be found, *ppAdapter will be set to nullptr.
-    inline void get_hardware_adapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter)
+    void renderer_backend::initialize(const init_args& args)
     {
-        *ppAdapter = nullptr;
-
-        IDXGIAdapter1* adapter = nullptr;
-
-        IDXGIFactory6* factory6;
-        if (SUCCEEDED(pFactory->QueryInterface(IID_PPV_ARGS(&factory6))))
+        // create the graphics api
+        switch (args.m_api_type)
         {
-            for (
-                UINT adapterIndex = 0;
-                SUCCEEDED(factory6->EnumAdapterByGpuPreference(
-                    adapterIndex,
-                    requestHighPerformanceAdapter == true ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED,
-                    IID_PPV_ARGS(&adapter)));
-                ++adapterIndex)
-            {
-                DXGI_ADAPTER_DESC1 desc;
-                adapter->GetDesc1(&desc);
+        case e_render_api::dx12:
+            mp_graphics_api = std::make_unique<api::dx12_api>();
+            break;
 
-                if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                {
-                    // Don't select the Basic Render Driver adapter.
-                    // If you want a software adapter, pass in "/warp" on the command line.
-                    continue;
-                }
+        case e_render_api::vulkan:
+            mp_graphics_api = std::make_unique<api::vulkan_api>();
+            break;
 
-                // Check to see whether the adapter supports Direct3D 12, but don't create the
-                // actual device yet.
-                if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
-                {
-                    break;
-                }
-            }
+        default:
         }
-
-        if (adapter == nullptr)
-        {
-            for (UINT adapterIndex = 0; SUCCEEDED(pFactory->EnumAdapters1(adapterIndex, &adapter)); ++adapterIndex)
-            {
-                DXGI_ADAPTER_DESC1 desc;
-                adapter->GetDesc1(&desc);
-
-                if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                {
-                    // Don't select the Basic Render Driver adapter.
-                    // If you want a software adapter, pass in "/warp" on the command line.
-                    continue;
-                }
-
-                // Check to see whether the adapter supports Direct3D 12, but don't create the
-                // actual device yet.
-                if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
-                {
-                    break;
-                }
-            }
-        }
-
-        *ppAdapter = adapter;
+        mp_graphics_api = std::make_unique<graphics_api>();
     }
 
-    void renderer_state::initialize(const init_args& args)
+    bool renderer_backend::is_initialized() const
     {
+        return mp_graphics_api.get() != nullptr;
+    }
+
+    void renderer_backend::cleanup()
+    {
+        mp_graphics_api = nullptr;
+    }
+
+#pragma region frontend_api
+    void initialize(const init_args& args)
+    {
+        renderer_backend::get_instance().initialize(args);
+    }
+
+    bool is_initialized()
+    {
+        return renderer_backend::get_instance().is_initialized();
+    }
+
+    void cleanup()
+    {
+        renderer_backend::get_instance().cleanup();
+    }
+#pragma endregion
+
+#if 0
+    void renderer_backend::initialize(const init_args& args)
+    {
+        // 
         UINT dxgiFactoryFlags = 0;
 
         // debug layer
@@ -267,7 +240,7 @@ namespace influx::renderer
         m_is_initialized = true;
     }
 
-    void renderer_state::initialize_imgui(const imgui_init_args& args)
+    void renderer_backend::initialize_imgui(const imgui_init_args& args)
     {
         if (!is_initialized())
         {
@@ -307,7 +280,7 @@ namespace influx::renderer
         m_is_initialized_imgui = true;
     }
 
-    void renderer_state::render_to_window(
+    void renderer_backend::render_to_window(
         const scene_proxy* scene_proxy,
         platform::window_handle window,
         const imgui_proxy* imgui_proxy,
@@ -393,7 +366,7 @@ namespace influx::renderer
         mpdx_swapchain->Present(present.m_vsync ? 1u : 0u, 0u);
     }
 
-    void renderer_state::load(const string& title, const mesh_data& data)
+    void renderer_backend::load(const string& title, const mesh_data& data)
     {
         // store in map:
         m_meshdata_map[title].m_data = data; // COPY
@@ -459,7 +432,7 @@ namespace influx::renderer
         }
     }
 
-    void renderer_state::load(const string& title, const texture_data& data)
+    void renderer_backend::load(const string& title, const texture_data& data)
     {
         // store in map:
         m_texturedata_map[title].m_data = data;
@@ -506,7 +479,7 @@ namespace influx::renderer
         }
     }
 
-    void renderer_state::load(const string& title, const material_data& data)
+    void renderer_backend::load(const string& title, const material_data& data)
     {
         m_materialdata_map[title].m_data = data;
         material_data& my_data = m_materialdata_map[title].m_data;
@@ -540,7 +513,7 @@ namespace influx::renderer
         }
     }
 
-    const mesh_data* renderer_state::find_mesh_data(const string& title) const
+    const mesh_data* renderer_backend::find_mesh_data(const string& title) const
     {
         if (m_meshdata_map.contains(title))
         {
@@ -550,7 +523,7 @@ namespace influx::renderer
         return nullptr;
     }
 
-    vector<const mesh_data*> renderer_state::get_all_mesh_datas() const
+    vector<const mesh_data*> renderer_backend::get_all_mesh_datas() const
     {
         vector<const mesh_data*> result{};
         for (auto pair : m_meshdata_map)
@@ -560,17 +533,17 @@ namespace influx::renderer
         return result;
     }
 
-    void* renderer_state::get_backend_device() const
+    void* renderer_backend::get_backend_device() const
     {
         return reinterpret_cast<void*>(mpdx_device);
     }
 
-    void* renderer_state::get_backend_texture_gpu_handle(const string& title) const
+    void* renderer_backend::get_backend_texture_gpu_handle(const string& title) const
     {
         return nullptr;
     }
 
-    vector<frame_stats> renderer_state::get_frame_stats(const uint32 over_num_frames)
+    vector<frame_stats> renderer_backend::get_frame_stats(const uint32 over_num_frames)
     {
         vector<frame_stats> stats{};
 
@@ -589,17 +562,17 @@ namespace influx::renderer
         return stats;
     }
 
-    bool renderer_state::is_initialized() const
+    bool renderer_backend::is_initialized() const
     {
         return m_is_initialized;
     }
 
-    bool renderer_state::is_initialized_imgui() const
+    bool renderer_backend::is_initialized_imgui() const
     {
         return m_is_initialized_imgui;
     }
 
-    void renderer_state::cleanup()
+    void renderer_backend::cleanup()
     {
         m_is_initialized = false;
 
@@ -611,7 +584,7 @@ namespace influx::renderer
         }
     }
 
-    void renderer_state::recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle)
+    void renderer_backend::recreate_swapchain_from_window(const e_buffering& buffering, platform::window_handle handle)
     {
         math::rectu window_rect = platform::get_windowrect_client<uint32>(handle);
         swapchain_state new_state{};
@@ -671,7 +644,7 @@ namespace influx::renderer
         m_previous_swapchain_state = new_state;
     }
 
-    void renderer_state::update_view_constant_buffer(const scene_proxy* proxy)
+    void renderer_backend::update_view_constant_buffer(const scene_proxy* proxy)
     {
         auto& camera = proxy->m_cameras[0u];
         auto view = math::matrix4x4f::make_view_RH(camera.m_position, camera.m_forward);
@@ -679,7 +652,7 @@ namespace influx::renderer
         m_view_constant_buffer.m_wvp = view * proj;
     }
 
-    void renderer_state::update_instance_buffers(const scene_proxy* proxy)
+    void renderer_backend::update_instance_buffers(const scene_proxy* proxy)
     {
         // remake our instance map
         m_instance_map.clear();
@@ -735,7 +708,7 @@ namespace influx::renderer
         }
     }
 
-    renderer_state::per_frame_context renderer_state::acquire_next_frame()
+    renderer_state::per_frame_context renderer_backend::acquire_next_frame()
     {
         // wait for the oldest submitted frame to be signalled finished
         if (m_frames_in_flight.size() >= k_max_num_frames_in_flight)
@@ -759,14 +732,14 @@ namespace influx::renderer
         return new_context;
     }
 
-    void renderer_state::on_frame_finished(const per_frame_context& ctx)
+    void renderer_backend::on_frame_finished(const per_frame_context& ctx)
     {
         frame_stats stats = ctx.m_stats;
         stats.m_ms_frame = time::get_ms_between<float>(time::get_now(), ctx.m_timepoint_created);
         m_frame_stats.push(stats);
     }
 
-    void renderer_state::submit_to_queue(const per_frame_context& ctx)
+    void renderer_backend::submit_to_queue(const per_frame_context& ctx)
     {
         m_frames_in_flight.push(ctx);
 
@@ -778,12 +751,12 @@ namespace influx::renderer
         ++m_frame;
     }
 
-    bool renderer_state::is_swapchain_dirty(const swapchain_state& new_swapchain) const
+    bool renderer_backend::is_swapchain_dirty(const swapchain_state& new_swapchain) const
     {
         return m_previous_swapchain_state.m_window_rect != new_swapchain.m_window_rect;
     }
 
-    bool renderer_state::get_swapchain_buffer_and_rtv(const frame_id for_frame, ID3D12Resource*& out_buffer, D3D12_CPU_DESCRIPTOR_HANDLE*& out_rtv)
+    bool renderer_backend::get_swapchain_buffer_and_rtv(const frame_id for_frame, ID3D12Resource*& out_buffer, D3D12_CPU_DESCRIPTOR_HANDLE*& out_rtv)
     {
         uint8 frame_idx = for_frame % k_max_num_frames_in_flight;
         out_buffer = mpdx_backbufferResources[frame_idx];
@@ -791,7 +764,7 @@ namespace influx::renderer
         return true;
     }
 
-    void renderer_state::transition_resource(ID3D12GraphicsCommandList* cmdlist, ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
+    void renderer_backend::transition_resource(ID3D12GraphicsCommandList* cmdlist, ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
     {
         CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource, before, after);
         cmdlist->ResourceBarrier(1u, &barrier);
@@ -800,47 +773,47 @@ namespace influx::renderer
 #pragma region frontend_api
     void initialize(const init_args& args)
     {
-        renderer_state::get_instance().initialize(args);
+        renderer_backend::get_instance().initialize(args);
     }
 
     void initialize_imgui(const imgui_init_args& args)
     {
-        renderer_state::get_instance().initialize_imgui(args);
+        renderer_backend::get_instance().initialize_imgui(args);
     }
 
     void load(const string& title, const mesh_data& data)
     {
-        renderer_state::get_instance().load(title, data);
+        renderer_backend::get_instance().load(title, data);
     }
 
     void load(const string& title, const texture_data& data)
     {
-        renderer_state::get_instance().load(title, data);
+        renderer_backend::get_instance().load(title, data);
     }
 
     void load(const string& title, const material_data& data)
     {
-        renderer_state::get_instance().load(title, data);
+        renderer_backend::get_instance().load(title, data);
     }
 
     const mesh_data* find_mesh_data(const string& title)
     {
-        return renderer_state::get_instance().find_mesh_data(title);
+        return renderer_backend::get_instance().find_mesh_data(title);
     }
 
     vector<const mesh_data*> get_all_mesh_datas()
     {
-        return renderer_state::get_instance().get_all_mesh_datas();
+        return renderer_backend::get_instance().get_all_mesh_datas();
     }
 
     void* get_backend_device()
     {
-        return renderer_state::get_instance().get_backend_device();
+        return renderer_backend::get_instance().get_backend_device();
     }
 
     void* get_backend_texture_gpu_handle(const string& title)
     {
-        return renderer_state::get_instance().get_backend_texture_gpu_handle(title);
+        return renderer_backend::get_instance().get_backend_texture_gpu_handle(title);
     }
 
     void render_to_window(
@@ -850,28 +823,41 @@ namespace influx::renderer
         const render_args& render_args,
         const present_args& present)
     {
-        renderer_state::get_instance().render_to_window(scene_proxy, window, imgui_proxy, render_args, present);
+        renderer_backend::get_instance().render_to_window(scene_proxy, window, imgui_proxy, render_args, present);
     }
 
     vector<frame_stats> get_frame_stats(const uint32 over_num_frames)
     {
-        return renderer_state::get_instance().get_frame_stats(over_num_frames);
+        return renderer_backend::get_instance().get_frame_stats(over_num_frames);
     }
 
     bool is_initialized()
     {
-        return renderer_state::get_instance().is_initialized();
+        return renderer_backend::get_instance().is_initialized();
     }
 
     bool is_initialized_imgui()
     {
-        return renderer_state::get_instance().is_initialized_imgui();
+        return renderer_backend::get_instance().is_initialized_imgui();
     }
 
     void cleanup()
     {
-        renderer_state::get_instance().cleanup();
+        renderer_backend::get_instance().cleanup();
+    }
+
+    // create a target to render to
+    target create_target(const target_create_args& args)
+    {
+        
+    }
+
+    // implicitly creates a swapchain
+    target create_target(const platform::window_handle& window)
+    {
+
     }
 #pragma endregion
+#endif
 }
 

@@ -1,6 +1,8 @@
 
 #include "influx_application.h"
 
+#include "influx_renderer.h"
+
 int main(int argc, char** argv)
 {
 	using namespace influx;

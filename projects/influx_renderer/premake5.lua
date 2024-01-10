@@ -34,7 +34,7 @@ project "influx_renderer"
 
     links
     {
-        "influx_vendor"
+
     }
 
     filter "system:windows"

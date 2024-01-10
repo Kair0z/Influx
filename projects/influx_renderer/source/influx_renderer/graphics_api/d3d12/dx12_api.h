@@ -1,14 +1,36 @@
 #include "renderer_pch.h"
-#include "api.h"
+#include "influx_renderer/graphics_api/graphics_api.h"
 
+// d3d12 includes
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
-
 #include "d3dx12.h"
 
 namespace influx::renderer::api
 {
+    // global api manager
+    class dx12_api final
+        : public graphics_api
+    {
+    public:
+        // gathers a list of physical devices (gpu's)
+        inline vector<physical_device> get_physical_devices() override
+        {
+
+        }
+
+        // create a logical interface device based on the given physical device
+        inline virtual logical_device create_logical_device(const physical_device& device) override
+        {
+
+        }
+
+    private:
+        vector<shared_ptr<base>> mp_children = {};
+    };
+
+#if 0
 #pragma region misc
     // Helper function for acquiring the first available hardware adapter that supports Direct3D 12.
     // If no such adapter can be found, *ppAdapter will be set to nullptr.
@@ -139,4 +161,5 @@ namespace influx::renderer::api
 			IID_PPV_ARGS(&_get_native<ID3D12CommandQueue>(*this)));
 	}
 #pragma endregion
+#endif
 }
