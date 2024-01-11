@@ -24,7 +24,7 @@ int main()
 	}
 
 	// create a renderer target from the platform window
-	renderer::target window_target = renderer::create_target(window);
+	renderer::target* window_target = renderer::create_target(window);
 	renderer::scene scene = {};
 	scene.m_cameras.push_back(renderer::camera{ 90.0f, 0.001f, 1.0f });
 	scene.m_meshes.push_back(renderer::mesh_instance{ "mesh", math::matrix4x4f::identity(), "material", math::vectorf4{1,0,0,1} });
@@ -32,7 +32,7 @@ int main()
 	while (true)
 	{
 		// draw our scene onto the window target
-		renderer::draw_scene(scene, window_target);
+		renderer::draw_scene(scene, *window_target);
 
 		// present swapchain
 		renderer::present_swapchain({});

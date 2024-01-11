@@ -1,5 +1,5 @@
-project "influx_renderer"
-    kind "SharedLib"
+project "influx_graphics"
+    kind "StaticLib"
     language "C++"
     cppdialect "C++20"
 
@@ -15,8 +15,8 @@ project "influx_renderer"
         g_project_dir .. "**.lua"
     }
 
-    pchheader "renderer_pch.h"
-    pchsource "source/renderer_pch.cpp"
+    pchheader "graphics_pch.h"
+    pchsource "source/graphics_pch.cpp"
 
     defines
     {
@@ -28,13 +28,12 @@ project "influx_renderer"
         "source",
         "include",
         "foreign",
-        g_dir_core_include,
-        g_dir_graphics_include
+        g_dir_core_include
     }
 
     links
     {
-        "influx_graphics"
+
     }
 
     filter "system:windows"

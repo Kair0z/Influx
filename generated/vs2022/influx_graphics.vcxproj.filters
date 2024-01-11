@@ -7,8 +7,23 @@
     <Filter Include="include">
       <UniqueIdentifier>{89AF369E-F58E-B539-FEA6-40106A051C9B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\influx_graphics">
+      <UniqueIdentifier>{3EFE5417-AA35-9DAE-B33F-01D21FF6C3A7}</UniqueIdentifier>
+    </Filter>
     <Filter Include="source">
       <UniqueIdentifier>{76FF3A1C-62A1-65F2-4B5C-7946379DEC42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\influx_graphics">
+      <UniqueIdentifier>{2B88CD4D-1782-F69F-00EF-8CB0EC875C0C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\influx_graphics\d3d12">
+      <UniqueIdentifier>{986BAD06-8426-9DB2-2DDE-15FD1978E742}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\influx_graphics\null">
+      <UniqueIdentifier>{752C619B-E139-8F81-6A20-8B6CD62C5B38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\influx_graphics\vulkan">
+      <UniqueIdentifier>{6B6B070B-D783-EE34-A030-7ECE0C0883CE}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -18,13 +33,88 @@
     <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\base.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\commandallocator.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\commandlist.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\commandqueue.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\device.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\fence.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\pipelinestate.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\resource.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\rootsignature.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\swapchain.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx_graphics\source\graphics_pch.h">
       <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_allocator.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_commandlist.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_commandqueue.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_conversion.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_device.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_fence.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_graphics.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_helpers.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_resource.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_rootsignature.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_swapchain.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\null\null_device.h">
+      <Filter>source\influx_graphics\null</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\null\null_graphics.h">
+      <Filter>source\influx_graphics\null</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vulkan_graphics.h">
+      <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\projects\influx_graphics\source\graphics_pch.cpp">
       <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\device.cpp">
+      <Filter>source\influx_graphics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

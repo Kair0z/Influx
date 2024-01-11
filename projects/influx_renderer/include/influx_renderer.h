@@ -53,10 +53,10 @@ namespace influx::renderer
 	INFLUX_RENDER_API void cleanup();
 
 	// create a target to render to
-	INFLUX_RENDER_API target create_target(const target_create_args& args);
+	INFLUX_RENDER_API target* create_target(const target_create_args& args);
 
 	// implicitly creates a swapchain
-	INFLUX_RENDER_API target create_target(const platform::window_handle& window);
+	INFLUX_RENDER_API target* create_target(const platform::window_handle& window);
 
 	// issue commands
 	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target);

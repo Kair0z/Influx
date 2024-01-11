@@ -92,6 +92,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\projects\influx_renderer\include\influx_renderer\target.cpp">
+      <Filter>include\influx_renderer</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\renderer_backend.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>

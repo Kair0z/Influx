@@ -1,38 +1,85 @@
 #include "renderer_pch.h"
-#include "influx_renderer/renderer_backend.h"
-#include "influx_renderer/graphics_api/graphics_api.h"
-#include "influx_renderer/graphics_api/d3d12/dx12_api.h"
-#include "influx_renderer/graphics_api/vulkan/vulkan_api.h"
-#include "influx_renderer/graphics_api/null/null_api.h"
+#include "renderer_backend.h"
+
+// graphics include
+#include "influx_graphics.h"
 
 namespace influx::renderer
 {
     void renderer_backend::initialize(const init_args& args)
     {
-        // create the graphics api
-        switch (args.m_api_type)
+        // create the graphics device
+        using namespace influx::graphics;
+        mp_device = device::create(e_api_type::dx12);
+
+        // create a graphics command queue
         {
-        case e_render_api::dx12:
-            mp_graphics_api = std::make_unique<api::dx12_api>();
-            break;
-
-        case e_render_api::vulkan:
-            mp_graphics_api = std::make_unique<api::vulkan_api>();
-            break;
-
-        default:
+            command_queue_desc desc{};
+            desc.m_type = e_command_queue_type::graphics;
+            desc.m_priority = 1;
+            mp_graphics_queue = mp_device->create_command_queue(desc);
         }
-        mp_graphics_api = std::make_unique<graphics_api>();
+
+        // create single commandlist, multiple allocators
+        {
+            for (size_t i = 0u; i < k_num_inflight_max; ++i)
+            {
+                mp_allocators.push_back(mp_device->create_graphics_allocator());
+            }
+
+            mp_commandlist = mp_device->create_graphics_command_list(mp_allocators[0u]);
+        }
+
+        // create fence
+        {
+            mp_fence = mp_device->create_fence();
+        }
+
+        m_is_initialized = true;
     }
 
     bool renderer_backend::is_initialized() const
     {
-        return mp_graphics_api.get() != nullptr;
+        return m_is_initialized;
     }
 
     void renderer_backend::cleanup()
     {
-        mp_graphics_api = nullptr;
+        // delete the device
+        delete mp_device;
+        mp_device = nullptr;
+
+        m_is_initialized = false;
+    }
+
+    target* renderer_backend::create_target(const target_create_args& args)
+    {
+        return new target(mp_device, args);
+    }
+
+    target* renderer_backend::create_target(const platform::window_handle& window)
+    {
+        // create implicit swapchain
+        graphics::swapchain_desc desc{};
+        mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window);
+
+        return new target(mp_device, window);
+    }
+
+    void renderer_backend::draw_scene(const scene& scene, const target& target)
+    {
+        mp_commandlist->start(mp_allocators[0u], nullptr);
+
+        mp_commandlist->end();
+
+        // submit onto queue
+        mp_graphics_queue->submit_commandlists({ mp_commandlist });
+    }
+
+    void renderer_backend::present_swapchain(const present_args& args)
+    {
+        graphics::present_args p_args{};
+        mp_swapchain->present(p_args);
     }
 
 #pragma region frontend_api
@@ -49,6 +96,28 @@ namespace influx::renderer
     void cleanup()
     {
         renderer_backend::get_instance().cleanup();
+    }
+
+    // create a target to render to
+    target* create_target(const target_create_args& args)
+    {
+        return renderer_backend::get_instance().create_target(args);
+    }
+
+    // implicitly creates a swapchain
+    target* create_target(const platform::window_handle& window)
+    {
+        return renderer_backend::get_instance().create_target(window);
+    }
+
+    void draw_scene(const scene& scene, const target& target)
+    {
+        renderer_backend::get_instance().draw_scene(scene, target);
+    }
+
+    void present_swapchain(const present_args& args)
+    {
+        renderer_backend::get_instance().present_swapchain(args);
     }
 #pragma endregion
 

@@ -16,11 +16,10 @@ workspace "influx"
     g_dir_app_include = g_dir_projects .. "/influx_application/include/"
     g_dir_async_include = g_dir_projects .. "/influx_async/include/"
     g_dir_render_include = g_dir_projects .. "/influx_renderer/include/"
-    g_dir_vendor_include = g_dir_projects .. "/influx_vendor/include/vendor/" -- special include to avoid having to specify vendor
-
+    g_dir_graphics_include = g_dir_projects .. "/influx_graphics/include/"
+    
     g_dir_vendor_libraries = g_dir_root .. "/vendor/lib/x64/"
     libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }
-
     g_dir_resources = g_dir_root .. "/resources/"
 
     filter "system:windows"
@@ -47,7 +46,7 @@ workspace "influx"
     include "../projects/influx_async"
     include "../projects/influx_core"
     include "../projects/influx_renderer"
-    include "../projects/influx_vendor"
+    include "../projects/influx_graphics"
     group ""
 
     printf(".. applications")
