@@ -6,6 +6,9 @@ namespace influx::graphics
 {
 	class resource;
 	class device;
+	class swapchain;
+	class descriptor_heap;
+	class render_target_view;
 }
 
 namespace influx::renderer
@@ -24,13 +27,24 @@ namespace influx::renderer
 	// serving as a target for draw commands
 	class target
 	{
+	public:
+		graphics::resource* get_resource() const;
+		graphics::render_target_view* get_rtv() const;
+
 	private:
-		explicit target(graphics::device* device, const platform::window_handle& from_window);
-		explicit target(graphics::device* device, const target_create_args& args);
+		explicit target(graphics::device* device, graphics::descriptor_heap* rtv_heap, const target_create_args& args);
+
+		explicit target(graphics::resource* resource, graphics::render_target_view* rtv);
+
+		static vector<target*> create_swapchain_targets(graphics::device* device, graphics::swapchain* swapchain, graphics::descriptor_heap* rtv_heap);
+
 		friend class renderer_backend;
 
 	private:
 		graphics::resource* mp_resource;
-		static target_create_args make_from_window(const platform::window_handle& window);
+		graphics::render_target_view* mp_rtv;
+		target_create_args m_args;
+
+		
 	};
 }

@@ -1,9 +1,7 @@
 #include "graphics_pch.h"
 #include "influx_graphics.h"
 
-#include "influx_graphics/d3d12/dx12_graphics.h"
-#include "influx_graphics/vulkan/vulkan_graphics.h"
-#include "influx_graphics/null/null_graphics.h"
+#include "influx_graphics/d3d12/dx12_device.h"
 
 namespace influx::graphics
 {
@@ -16,11 +14,12 @@ namespace influx::graphics
 			break;
 
 		case e_api_type::vulkan:
-			return new vulkan_device();
+			return nullptr; // todo...
 			break;
 
 		default:
-			return new null_device();
+			// return new null_device();
+			return nullptr;
 			break;
 		}
 	}

@@ -60,6 +60,9 @@
     <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\types.h">
       <Filter>include\influx_renderer</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\descriptor_manager.h">
+      <Filter>source\influx_renderer</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\commandallocator.h">
       <Filter>source\influx_renderer\graphics_api</Filter>
     </ClInclude>
@@ -92,10 +95,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\projects\influx_renderer\include\influx_renderer\target.cpp">
-      <Filter>include\influx_renderer</Filter>
+    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\descriptor_manager.cpp">
+      <Filter>source\influx_renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\renderer_backend.cpp">
+      <Filter>source\influx_renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\target.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx_renderer\source\renderer_pch.cpp">

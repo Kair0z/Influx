@@ -34,7 +34,8 @@ project "influx_renderer"
 
     links
     {
-        "influx_graphics"
+        "influx_graphics",
+        "d3d12", "dxgi", "d3dcompiler"
     }
 
     filter "system:windows"

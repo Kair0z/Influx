@@ -15,7 +15,7 @@ namespace influx::math
 		using vector3 = math::vector<_t, 3u>;
 
 	public:
-		inline sphere() = default;
+		sphere() = default;
 		inline sphere(const vector3& position, const _t radius)
 			: m_radius{ radius }, m_position{ position }{}
 

@@ -1,0 +1,55 @@
+#include "renderer_pch.h"
+#include "descriptor_manager.h"
+
+#include "influx_graphics/device.h"
+#include "influx_graphics/descriptorheap.h"
+
+namespace influx::renderer
+{
+	// https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-support
+	constexpr static uint64 k_max_num_rtvs = 4u;
+	constexpr static uint64 k_max_num_cbvs = 14;
+	constexpr static uint64 k_max_num_samplers = 16u;
+	constexpr static uint64 k_max_num_dsvs = 64u;
+
+	descriptor_manager::descriptor_manager(graphics::device* device)
+		: mp_cbv_heap{}
+		, mp_dsv_heap{}
+		, mp_rtv_heap{}
+		, mp_sampler_heap{}
+	{
+		using namespace influx::graphics;
+
+		// rtv heap
+		graphics::descriptor_heap::create_args create_args{e_descriptor_heap_type::rtv, k_max_num_rtvs };
+		mp_rtv_heap = device->create_descriptor_heap(create_args);
+
+		// dsv heap
+		create_args.m_capacity = k_max_num_dsvs;
+		create_args.m_type = e_descriptor_heap_type::dsv;
+		mp_dsv_heap = device->create_descriptor_heap(create_args);
+
+		// cbv heap
+		create_args.m_capacity = k_max_num_cbvs;
+		create_args.m_type = e_descriptor_heap_type::cbv;
+		mp_cbv_heap = device->create_descriptor_heap(create_args);
+
+		// sampler heap
+		create_args.m_capacity = k_max_num_samplers;
+		create_args.m_type = e_descriptor_heap_type::sampler;
+		mp_sampler_heap = device->create_descriptor_heap(create_args);
+	}
+
+	descriptor_manager::~descriptor_manager()
+	{
+		delete mp_rtv_heap;
+		delete mp_cbv_heap;
+		delete mp_dsv_heap;
+		delete mp_sampler_heap;
+	}
+
+	graphics::descriptor_heap* descriptor_manager::get_rtv_heap() const
+	{
+		return mp_rtv_heap;
+	}
+}

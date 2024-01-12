@@ -32,6 +32,12 @@ project "sandbox"
         "influx_renderer"
     }
 
+    postbuildmessage "Copying dependencies..."
+    postbuildcommands
+    {
+        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_renderer/influx_renderer.dll %{cfg.buildtarget.directory}"}
+    }
+
     filter "system:windows"
         systemversion "latest"
         defines

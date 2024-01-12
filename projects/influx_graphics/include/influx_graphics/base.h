@@ -9,13 +9,13 @@ namespace influx::graphics
 		template <typename _t>
 		inline _t* get_native() const
 		{
-			return dynamic_cast<_t*>(mp_native);
+			return (_t*)(mp_native);
 		}
 
 		template <typename _t>
 		inline _t*& get_native()
 		{
-			return dynamic_cast<_t*>(mp_native);
+			return (_t*&)(mp_native);
 		}
 
 	protected:

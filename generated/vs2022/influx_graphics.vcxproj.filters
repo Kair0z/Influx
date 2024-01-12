@@ -45,6 +45,12 @@
     <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\commandqueue.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\common.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\descriptorheap.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\device.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
@@ -55,6 +61,9 @@
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\resource.h">
+      <Filter>include\influx_graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\resource_views.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\rootsignature.h">
@@ -78,19 +87,25 @@
     <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_conversion.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_descriptorheap.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_device.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_fence.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_graphics.h">
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_headers.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_helpers.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_resource.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_resource_views.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_rootsignature.h">
@@ -112,6 +127,39 @@
   <ItemGroup>
     <ClCompile Include="..\..\projects\influx_graphics\source\graphics_pch.cpp">
       <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_allocator.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_commandlist.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_commandqueue.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_descriptorheap.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_device.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_fence.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_helpers.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_resource.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_resource_views.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_rootsignature.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_swapchain.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\device.cpp">
       <Filter>source\influx_graphics</Filter>

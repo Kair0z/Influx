@@ -1,7 +1,11 @@
 #pragma once
 
-#include "influx_graphics.h"
+#include "influx_graphics/common.h"
+#include "influx_graphics/commandqueue.h"
+#include "influx_graphics/resource.h"
+#include "influx_graphics/descriptorheap.h"
 
+// dx12 includes
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
@@ -9,7 +13,7 @@
 
 namespace influx::graphics
 {
-	D3D12_COMMAND_LIST_TYPE convert(e_command_queue_type type)
+	inline D3D12_COMMAND_LIST_TYPE convert(e_command_queue_type type)
 	{
 		switch (type)
 		{
@@ -20,21 +24,47 @@ namespace influx::graphics
 		}
 	}
 
-	DXGI_FORMAT convert(e_format format)
+	inline DXGI_FORMAT convert(e_format format)
 	{
 		switch (format)
 		{
-		case e_format::rgba8: return DXGI_FORMAT_R8G8_UNORM;
+		case e_format::rgba8: return DXGI_FORMAT_R8G8B8A8_UNORM;
 		default: return DXGI_FORMAT_R8G8_UNORM;
 		}
 	}
 
-	D3D12_RESOURCE_FLAGS convert(e_resource_flags flags)
+	inline D3D12_RESOURCE_FLAGS convert(e_resource_flags flags)
 	{
 		switch (flags)
 		{
 		case e_resource_flags::none: return D3D12_RESOURCE_FLAG_NONE;
 		default: return D3D12_RESOURCE_FLAG_NONE;
 		}
+	}
+
+	inline D3D12_DESCRIPTOR_HEAP_TYPE convert(e_descriptor_heap_type type)
+	{
+		switch (type)
+		{
+		case e_descriptor_heap_type::rtv: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		case e_descriptor_heap_type::dsv: return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		case e_descriptor_heap_type::cbv: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		case e_descriptor_heap_type::sampler: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+		}
+
+		// uh oh!
+		return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
+	}
+
+	inline D3D12_RESOURCE_STATES convert(e_resource_state state)
+	{
+		switch (state)
+		{
+		case e_resource_state::none: return D3D12_RESOURCE_STATE_COMMON;
+		case e_resource_state::render_target: return D3D12_RESOURCE_STATE_RENDER_TARGET;
+		case e_resource_state::present: return D3D12_RESOURCE_STATE_PRESENT;
+		}
+
+		return D3D12_RESOURCE_STATE_COMMON;
 	}
 }

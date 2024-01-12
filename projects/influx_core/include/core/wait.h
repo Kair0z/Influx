@@ -15,6 +15,59 @@ namespace influx
 		function<void()> m_wait_tick = {};
 	};
 
+	class wait_handle final
+	{
+	public:
+		inline wait_handle()
+		{
+			reset();
+		}
+
+		inline wait_handle(const wait_args& args)
+			: m_ms_waited{}
+			, m_ms_waited_accum{}
+			, m_args{args}
+		{
+			
+		}
+
+		inline void add_ms_waited(float ms_waited)
+		{
+			m_ms_waited = ms_waited;
+			m_ms_waited_accum += m_ms_waited;
+		}
+
+		inline float get_ms_waited() const
+		{
+			return m_ms_waited_accum;
+		}
+
+		inline float get_recent_ms_waited() const
+		{
+			return m_ms_waited;
+		}
+
+		inline float get_ms_max() const
+		{
+			return m_args.m_max_ms;
+		}
+
+		inline const function<void()>& get_wait_tick()
+		{
+			return m_args.m_wait_tick;
+		}
+
+		inline void reset()
+		{
+			m_ms_waited = m_ms_waited_accum = 0;
+		}
+
+	private:
+		float m_ms_waited{};
+		float m_ms_waited_accum{};
+		wait_args m_args{};
+	};
+
 	inline void wait(const function<bool()>& pred, const wait_args& args = {})
 	{
 		time::point wait_start = time::get_now();

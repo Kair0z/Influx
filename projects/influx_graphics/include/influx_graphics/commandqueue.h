@@ -1,5 +1,6 @@
 #pragma once
 #include "influx_graphics/base.h"
+
 #include "core/basetypes.h"
 #include "core/container/vector.h"
 
@@ -41,6 +42,13 @@ namespace influx::graphics
 		virtual void submit_commandlists(const vector<command_list*>& commandlists) = 0;
 
 	protected:
-		command_queue(const command_queue_desc& desc);
+		command_queue(const command_queue_desc& desc)
+			: m_desc{ desc }
+		{
+
+		}
+
+	private:
+		command_queue_desc m_desc{};
 	};
 }

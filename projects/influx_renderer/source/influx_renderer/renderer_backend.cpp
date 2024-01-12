@@ -4,6 +4,8 @@
 // graphics include
 #include "influx_graphics.h"
 
+#include "influx_renderer/descriptor_manager.h"
+
 namespace influx::renderer
 {
     void renderer_backend::initialize(const init_args& args)
@@ -16,7 +18,7 @@ namespace influx::renderer
         {
             command_queue_desc desc{};
             desc.m_type = e_command_queue_type::graphics;
-            desc.m_priority = 1;
+            desc.m_priority = 0;
             mp_graphics_queue = mp_device->create_command_queue(desc);
         }
 
@@ -33,6 +35,11 @@ namespace influx::renderer
         // create fence
         {
             mp_fence = mp_device->create_fence();
+        }
+
+        // create descriptor manager
+        {
+            mp_desc_manager = new descriptor_manager(mp_device);
         }
 
         m_is_initialized = true;
@@ -54,32 +61,58 @@ namespace influx::renderer
 
     target* renderer_backend::create_target(const target_create_args& args)
     {
-        return new target(mp_device, args);
+        return new target(mp_device, mp_desc_manager->get_rtv_heap(), args);
     }
 
-    target* renderer_backend::create_target(const platform::window_handle& window)
+    target* renderer_backend::get_window_target(const platform::window_handle& window)
     {
-        // create implicit swapchain
-        graphics::swapchain_desc desc{};
-        mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window);
+        if (mp_swapchain == nullptr)
+        {
+            // create swapchain and targets:
+            graphics::swapchain_desc desc{};
+            mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
 
-        return new target(mp_device, window);
+            // create targets for swapchain:
+            m_swapchain_targets = target::create_swapchain_targets(mp_device, mp_swapchain, mp_desc_manager->get_rtv_heap());
+        }
+
+        // return current swapchain target:
+        return m_swapchain_targets[ mp_swapchain->get_current_backbuffer_index() ];
     }
 
     void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
+        // reset the commandlist and allocator
         mp_commandlist->start(mp_allocators[0u], nullptr);
+        {
+            mp_commandlist->transition_resource(target.get_resource(), graphics::e_resource_state::render_target);
 
+            mp_commandlist->clear_rtv(target.get_rtv(), { 1, 0, 0, 1 });
+
+            mp_commandlist->transition_resource(target.get_resource(), graphics::e_resource_state::present);
+        }
         mp_commandlist->end();
 
         // submit onto queue
         mp_graphics_queue->submit_commandlists({ mp_commandlist });
+
+        // add signal command to queue
+        mp_fence->queue_signal(m_frame_count, mp_graphics_queue);
+
+        // wait for command queue to signal our frame value
+        wait_handle handle{};
+        mp_fence->wait_for_value(m_frame_count, handle);
     }
 
     void renderer_backend::present_swapchain(const present_args& args)
     {
         graphics::present_args p_args{};
         mp_swapchain->present(p_args);
+    }
+
+    descriptor_manager* renderer_backend::get_descriptor_manager()
+    {
+        return get_instance().mp_desc_manager;
     }
 
 #pragma region frontend_api
@@ -104,10 +137,9 @@ namespace influx::renderer
         return renderer_backend::get_instance().create_target(args);
     }
 
-    // implicitly creates a swapchain
-    target* create_target(const platform::window_handle& window)
+    target* get_window_target(const platform::window_handle& window)
     {
-        return renderer_backend::get_instance().create_target(window);
+        return renderer_backend::get_instance().get_window_target(window);
     }
 
     void draw_scene(const scene& scene, const target& target)

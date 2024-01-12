@@ -1,10 +1,6 @@
 #pragma once
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <D3Dcompiler.h>
-#include "d3dx12.h"
-
+#include "dx12_headers.h"
 #include "dx12_conversion.h"
 
 // core/vector
@@ -12,57 +8,64 @@
 
 namespace influx::graphics::dx12helpers
 {
-    inline bool adapter_is_software(IDXGIAdapter1* adapter)
-    {
-        DXGI_ADAPTER_DESC1 desc;
-        adapter->GetDesc1(&desc);
+    bool adapter_is_software(IDXGIAdapter1* adapter);
 
-        return desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE;
-    }
+    bool adapter_supports_dx12(IDXGIAdapter1* adapter);
 
-    inline bool adapter_supports_dx12(IDXGIAdapter1* adapter)
+    // Enable the debug layer (requires the Graphics Tools "optional feature").
+    // NOTE: Enabling the debug layer after device creation will invalidate the active device.
+    void set_debug_layer_enabled(bool enabled);
+
+    ID3D12CommandQueue* create_command_queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, int priority = 1);
+
+    ID3D12CommandAllocator* create_command_allocator(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type);
+
+    ID3D12DescriptorHeap* create_descriptor_heap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 capacity);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE create_rtv(ID3D12Device* device, ID3D12Resource* resource,
+        D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, DXGI_FORMAT format);
+
+    struct descriptor_strides final
     {
-        return SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr));
-    }
+        size_t m_rtv{};
+        size_t m_dsv{};
+        size_t m_cbv{};
+        size_t m_sampler{};
+    };
+
+    descriptor_strides query_descriptor_strides(ID3D12Device* device);
 
     // Helper function for acquiring the all available hardware adapters that supports Direct3D 12. (sorted on performance)
     template <typename _adapter_t>
     inline vector<_adapter_t*> get_hardware_adapters(IDXGIFactory1* pFactory)
     {
         vector<_adapter_t*> result_adapters{};
-        constexpr bool prefer_high_performance = true;
+        const bool prefer_performance = true;
 
-        _adapter_t* adapter = nullptr;
+        IDXGIAdapter1* adapter = nullptr;
         IDXGIFactory6* factory6;
         if (SUCCEEDED(pFactory->QueryInterface(IID_PPV_ARGS(&factory6))))
         {
-            for (
-                UINT adapterIndex = 0;
+            for (UINT adapterIndex = 0;
                 SUCCEEDED(factory6->EnumAdapterByGpuPreference(
                     adapterIndex,
-                    prefer_high_performance == true ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED,
+                    prefer_performance ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED,
                     IID_PPV_ARGS(&adapter)));
                     ++adapterIndex)
             {
                 DXGI_ADAPTER_DESC1 desc;
                 adapter->GetDesc1(&desc);
 
-                // Don't select the Basic Render Driver adapter.
-                // If you want a software adapter, pass in "/warp" on the command line.
                 if (adapter_is_software(adapter))
                 {
+                    // Don't select the Basic Render Driver adapter.
+                    // If you want a software adapter, pass in "/warp" on the command line.
                     continue;
                 }
 
                 // Check to see whether the adapter supports Direct3D 12, but don't create the
                 // actual device yet.
-                if (!adapter_supports_dx12(adapter))
-                {
-                    continue;
-                }
-
-                // if adapter passed, add to vector
-                if (adapter != nullptr)
+                if (adapter_supports_dx12(adapter))
                 {
                     result_adapters.push_back(adapter);
                 }
@@ -72,37 +75,13 @@ namespace influx::graphics::dx12helpers
         return result_adapters;
     }
 
-    // Enable the debug layer (requires the Graphics Tools "optional feature").
-    // NOTE: Enabling the debug layer after device creation will invalidate the active device.
-    inline void set_debug_layer_enabled(bool enabled)
-    {
-        UINT dxgiFactoryFlags = 0;
-        
-        ID3D12Debug* debugController;
-        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
-        {
-            if (enabled)
-            {
-                debugController->EnableDebugLayer();
-            }
-            else
-            {
-                debugController->Release();
-            }
-            
-
-            // Enable additional debug layers.
-            dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-        }
-    }
-
     template <typename _device_t>
     inline _device_t* create_logical_device(IDXGIAdapter1* adapter)
     {
         _device_t* result_device = nullptr;
 
         // this better succeed...
-        D3D12CreateDevice(
+        ::D3D12CreateDevice(
             adapter,
             D3D_FEATURE_LEVEL_11_0,
             IID_PPV_ARGS(&result_device));
@@ -110,21 +89,8 @@ namespace influx::graphics::dx12helpers
         return result_device;
     }
 
-    inline ID3D12CommandQueue* create_command_queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, int priority = 1)
-    {
-        D3D12_COMMAND_QUEUE_DESC desc{};
-        desc.Priority = priority;
-        desc.Type = type;
-        desc.Flags;
-        desc.NodeMask = 0;
-
-        ID3D12CommandQueue* result_queue = nullptr;
-        device->CreateCommandQueue(&desc, IID_PPV_ARGS(&result_queue));
-        return result_queue;
-    }
-
     template <typename _swapchain_t>
-    inline _swapchain_t* create_swapchain(IDXGIFactory2* factory, ID3D12CommandQueue* queue, ::HWND window, 
+    inline _swapchain_t* create_swapchain(IDXGIFactory2* factory, ID3D12CommandQueue* queue, ::HWND window,
         uint32_t width, uint32_t height, DXGI_FORMAT format, uint32 num_buffers)
     {
         DXGI_SWAP_CHAIN_DESC1 desc = {};
@@ -151,13 +117,6 @@ namespace influx::graphics::dx12helpers
         result_swapchain = (_swapchain_t*)int_swapchain;
 
         return result_swapchain;
-    }
-
-    inline ID3D12CommandAllocator* create_command_allocator(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type)
-    {
-        ID3D12CommandAllocator* allocator = nullptr;
-        device->CreateCommandAllocator(type, IID_PPV_ARGS(&allocator));
-        return allocator;
     }
 
     template <typename _cmdlist_t>

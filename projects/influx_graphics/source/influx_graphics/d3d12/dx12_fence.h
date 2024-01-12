@@ -1,20 +1,21 @@
 #pragma once 
 #include "influx_graphics/fence.h"
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <D3Dcompiler.h>
-#include "d3dx12.h"
+struct ID3D12Fence;
 
 namespace influx::graphics
 {
 	class dx12_fence final : public fence
 	{
 	public:
-		dx12_fence(ID3D12Fence* fence)
-		{
-			mp_native = mpdx_fence = fence;
-		}
+		dx12_fence(ID3D12Fence* fence);
+
+		// queues a signal command to the command queue
+		virtual void queue_signal(uint64 value, command_queue* queue) override;
+
+		virtual void signal(uint64 value) override;
+
+		virtual void wait_for_value(uint64 value, wait_handle& handle) override;
 
 	private:
 		ID3D12Fence* mpdx_fence;
