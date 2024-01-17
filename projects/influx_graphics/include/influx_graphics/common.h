@@ -1,5 +1,4 @@
 #pragma once
-
 #include "core/string.h"
 #include "core/basetypes.h"
 

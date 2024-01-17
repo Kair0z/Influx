@@ -11,6 +11,7 @@ project "influx_renderer"
     files
     {
         g_project_dir .. "**.h",
+        g_project_dir .. "**.hpp",
         g_project_dir .. "**.cpp",
         g_project_dir .. "**.lua"
     }
@@ -28,14 +29,17 @@ project "influx_renderer"
         "source",
         "include",
         "foreign",
+        "foreign/imgui/",
         g_dir_core_include,
+        g_dir_vulkan_include, -- vulkan include for imgui
         g_dir_graphics_include
     }
 
     links
     {
         "influx_graphics",
-        "d3d12", "dxgi", "d3dcompiler"
+        "d3d12", "dxgi", "d3dcompiler",
+        "vulkan-1"
     }
 
     filter "system:windows"
@@ -60,3 +64,6 @@ project "influx_renderer"
         runtime "Release"
         symbols "on"
         optimize "on"
+
+    filter "files:**/imgui/**.cpp"
+        flags {"NoPCH"}

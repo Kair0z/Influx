@@ -1,8 +1,7 @@
 #pragma once
 #include "influx_graphics/base.h"
-
-#include "core/basetypes.h"
 #include "core/container/vector.h"
+#include "core/basetypes.h"
 
 namespace influx::graphics
 {

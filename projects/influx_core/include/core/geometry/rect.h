@@ -31,14 +31,26 @@ namespace influx::math
 			max
 		};
 
-		const vector2& get_dimensions() const
+		_t get_width() const
+		{
+			return m_width_height.x;
+		}
+
+		_t get_height() const
+		{
+			return m_width_height.y;
+		}
+
+		inline const vector2& get_dimensions() const
 		{
 			return m_width_height;
 		}
-		vector2 get_half_dimensions() const
+
+		inline vector2 get_half_dimensions() const
 		{
 			return get_dimensions() * 0.5f;
 		}
+
 		const float get_aspect_ratio() const
 		{
 			return static_cast<float>(m_width_height.x) / static_cast<float>(m_width_height.y);
@@ -48,27 +60,32 @@ namespace influx::math
 		{
 			return m_leftBottom == other.m_leftBottom && m_width_height == other.m_width_height;
 		}
+
 		inline bool operator!=(const rect& other) const
 		{
 			return !(*this == other);
 		}
 
-		_t get_left() const
+		inline _t get_left() const
 		{
 			return m_leftBottom.x;
 		}
-		_t get_right() const
+
+		inline _t get_right() const
 		{
 			return m_leftBottom.x + m_width_height.x;
 		}
-		_t get_bottom() const
+
+		inline _t get_bottom() const
 		{
 			return m_leftBottom.y;
 		}
-		_t get_top() const
+
+		inline _t get_top() const
 		{
 			return m_leftBottom.y + m_width_height.y;
 		}
+
 		vector2 get_mid() const
 		{
 			return vector2(m_leftBottom.x + (m_width_height.x * 0.5f), m_leftBottom.y + (m_width_height.y * 0.5f));

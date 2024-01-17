@@ -12,11 +12,13 @@ workspace "influx"
     g_dir_binaries = g_dir_root .. "/bin/%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}/"
     g_dir_int = g_dir_root .. "/int/%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}/"
 
+    -- global include paths 
     g_dir_core_include = g_dir_projects .. "/influx_core/include/"
     g_dir_app_include = g_dir_projects .. "/influx_application/include/"
     g_dir_async_include = g_dir_projects .. "/influx_async/include/"
     g_dir_render_include = g_dir_projects .. "/influx_renderer/include/"
     g_dir_graphics_include = g_dir_projects .. "/influx_graphics/include/"
+    g_dir_vulkan_include = g_dir_projects .. "/influx_graphics/foreign/vulkan/"
     
     g_dir_vendor_libraries = g_dir_root .. "/vendor/lib/x64/"
     libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }

@@ -8,6 +8,8 @@
 
 namespace influx::graphics
 {
+	class command_list;
+
 	enum class e_resource_flags : uint8
 	{
 		none,
@@ -18,6 +20,8 @@ namespace influx::graphics
 	{
 		none,
 		render_target,
+		copy_source,
+		copy_dest,
 		present,
 		count
 	};
@@ -40,44 +44,30 @@ namespace influx::graphics
 	class resource : public base
 	{
 	public:
-		inline e_format get_format() const
-		{
-			return m_tex2D_desc.m_format;
-		}
+		e_format get_format() const;
 
-		inline uint32 get_width() const
-		{
-			return m_tex2D_desc.m_dimensions.x;
-		}
+		uint32 get_width() const;
 
-		inline uint32 get_height() const
-		{
-			return m_tex2D_desc.m_dimensions.y;
-		}
+		uint32 get_height() const;
 
-		inline e_resource_state get_state() const
-		{
-			return m_state;
-		}
+		e_resource_state get_state() const;
+
+		e_resource_state get_previous_state() const;
+
+		void transition(command_list* cmdlist, e_resource_state new_state);
+		void revert_transition(command_list* cmdlist);
+
+		virtual ~resource() = default;
 
 	protected:
-		inline resource(const tex2D_desc& desc)
-			: m_tex2D_desc{desc}
-			, m_buffer_desc{}
-		{
-
-		}
-
-		inline resource(const buffer_desc& desc)
-			: m_buffer_desc{desc}
-			, m_tex2D_desc{}
-		{
-
-		}
+		resource() = default;
+		resource(const tex2D_desc& desc);
+		resource(const buffer_desc& desc);
 
 	private:
 		tex2D_desc m_tex2D_desc{};
 		buffer_desc m_buffer_desc{};
+		e_resource_state m_previous_state = e_resource_state::none;
 		e_resource_state m_state = e_resource_state::none;
 	};
 }

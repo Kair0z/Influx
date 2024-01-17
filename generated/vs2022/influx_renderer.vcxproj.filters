@@ -4,6 +4,12 @@
     <Filter Include="foreign">
       <UniqueIdentifier>{2F88A8BA-9B67-2756-A47F-B22C10DE8DB7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="foreign\imgui">
+      <UniqueIdentifier>{D9BC2BA0-457D-A7D6-0EB8-F0537A37ECB2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="foreign\imgui\backends">
+      <UniqueIdentifier>{23BBA91D-0FB5-D26F-F821-6980E4BA38DC}</UniqueIdentifier>
+    </Filter>
     <Filter Include="include">
       <UniqueIdentifier>{89AF369E-F58E-B539-FEA6-40106A051C9B}</UniqueIdentifier>
     </Filter>
@@ -16,22 +22,40 @@
     <Filter Include="source\influx_renderer">
       <UniqueIdentifier>{910365A9-7DFD-8DFB-666A-240C5203F467}</UniqueIdentifier>
     </Filter>
-    <Filter Include="source\influx_renderer\graphics_api">
-      <UniqueIdentifier>{0ADF51F8-7698-BCA2-FFF7-D67C6BB07212}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="source\influx_renderer\graphics_api\d3d12">
-      <UniqueIdentifier>{B72D95A2-2348-F843-6C6A-08D8D8C31F4B}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="source\influx_renderer\graphics_api\null">
-      <UniqueIdentifier>{B4A6391C-A023-2D5F-C9A0-2D73B57CC9F2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="source\influx_renderer\graphics_api\vulkan">
-      <UniqueIdentifier>{6A71E723-56D9-ADF1-BF44-C207ABCBC4DD}</UniqueIdentifier>
+    <Filter Include="source\influx_renderer\systems">
+      <UniqueIdentifier>{B8F255C5-A418-202C-8D5E-A5F7792345F8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\projects\influx_renderer\foreign\d3dx12.h">
       <Filter>foreign</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_dx12.h">
+      <Filter>foreign\imgui\backends</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_vulkan.h">
+      <Filter>foreign\imgui\backends</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_win32.h">
+      <Filter>foreign\imgui\backends</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imconfig.h">
+      <Filter>foreign\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imgui.h">
+      <Filter>foreign\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imgui_internal.h">
+      <Filter>foreign\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imstb_rectpack.h">
+      <Filter>foreign\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imstb_textedit.h">
+      <Filter>foreign\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imstb_truetype.h">
+      <Filter>foreign\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer.h">
       <Filter>include</Filter>
@@ -63,43 +87,55 @@
     <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\descriptor_manager.h">
       <Filter>source\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\commandallocator.h">
-      <Filter>source\influx_renderer\graphics_api</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\commandlist.h">
-      <Filter>source\influx_renderer\graphics_api</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\commandqueue.h">
-      <Filter>source\influx_renderer\graphics_api</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\d3d12\dx12_api.h">
-      <Filter>source\influx_renderer\graphics_api\d3d12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\device.h">
-      <Filter>source\influx_renderer\graphics_api</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\graphics_api.h">
-      <Filter>source\influx_renderer\graphics_api</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\null\null_api.h">
-      <Filter>source\influx_renderer\graphics_api\null</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\graphics_api\vulkan\vulkan_api.h">
-      <Filter>source\influx_renderer\graphics_api\vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\renderer_backend.h">
       <Filter>source\influx_renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\rendersystem.h">
+      <Filter>source\influx_renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\systems\imgui_system.h">
+      <Filter>source\influx_renderer\systems</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_renderer\source\renderer_pch.h">
       <Filter>source</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_dx12.cpp">
+      <Filter>foreign\imgui\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_vulkan.cpp">
+      <Filter>foreign\imgui\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>foreign\imgui\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui.cpp">
+      <Filter>foreign\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui_demo.cpp">
+      <Filter>foreign\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui_draw.cpp">
+      <Filter>foreign\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui_tables.cpp">
+      <Filter>foreign\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui_widgets.cpp">
+      <Filter>foreign\imgui</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\descriptor_manager.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\renderer_backend.cpp">
       <Filter>source\influx_renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\rendersystem.cpp">
+      <Filter>source\influx_renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\systems\imgui_system.cpp">
+      <Filter>source\influx_renderer\systems</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\target.cpp">
       <Filter>source\influx_renderer</Filter>

@@ -1,12 +1,14 @@
 
 #if 1
-#include "core/platform/windows/windows_window.h"
+#include "core/platform/win32/win32_window.h"
 #else
 #include "core/platform/null/null_window.h"
 #endif
 
 #include "influx_renderer.h"
 #include <iostream>
+
+#include "core/scope.h"
 
 int main()
 {
@@ -23,17 +25,21 @@ int main()
 		renderer::initialize(init);
 	}
 
-	// create a renderer target from the platform window
 	renderer::scene scene = {};
 	scene.m_cameras.push_back(renderer::camera{ 90.0f, 0.001f, 1.0f });
 	scene.m_meshes.push_back(renderer::mesh_instance{ "mesh", math::matrix4x4f::identity(), "material", math::vectorf4{1,0,0,1} });
 
 	while (true)
 	{
-		// draw our scene onto the window target
-		renderer::draw_scene(scene, *renderer::get_window_target(window));
+		const renderer::target& window_target = *renderer::get_window_target(window);
 
-		// present swapchain
+		// acquire a swapchain frame to render
+		renderer::acquire_swapchain_frame();
+
+		// draw our scene onto the window target
+		renderer::draw_scene(scene, window_target);
+
+		// present our window
 		renderer::present_swapchain({});
 	}
 

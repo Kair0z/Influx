@@ -1,3 +1,4 @@
+#pragma once
 #include "influx_graphics/device.h"
 
 struct IDXGIFactory2;
@@ -33,6 +34,8 @@ namespace influx::graphics
 		virtual resource* create_resource(const tex2D_desc& desc) override;
 
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) override;
+
+		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) override;
 
 	private:
 		IDXGIFactory2* mpdxgi_factory;

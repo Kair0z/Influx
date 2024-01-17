@@ -13,7 +13,7 @@ namespace influx::graphics
 {
 	dx12_commandlist::dx12_commandlist(ID3D12GraphicsCommandList* commandlist)
 	{
-		mp_native = mpdx_graphics_commandlist = commandlist;
+		mp_native = mpdx_commandlist = mpdx_graphics_commandlist = commandlist;
 	}
 
 	void dx12_commandlist::start(command_allocator* allocator, pipeline_state* init_state)
@@ -34,11 +34,19 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->ClearRenderTargetView(*cpu_handle, clear_value.data(), 0u, nullptr);
 	}
 
-	void dx12_commandlist::transition_resource(resource* resource, e_resource_state new_state)
+	void dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		auto dxresource = resource->get_native<ID3D12Resource>();
-		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(dxresource, convert(resource->get_state()), convert(new_state));
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(dxresource, convert(before), convert(after));
 		mpdx_graphics_commandlist->ResourceBarrier(1u, &barrier);
+	}
+
+	void dx12_commandlist::copy_resource(resource* source, resource* dest)
+	{
+		auto dxsource = source->get_native<ID3D12Resource>();
+		auto dxdest = dest->get_native<ID3D12Resource>();
+
+		mpdx_graphics_commandlist->CopyResource(dxdest, dxsource);
 	}
 
 	void dx12_commandlist::end()

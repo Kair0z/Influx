@@ -12,7 +12,8 @@ project "influx_graphics"
     {
         g_project_dir .. "**.h",
         g_project_dir .. "**.cpp",
-        g_project_dir .. "**.lua"
+        g_project_dir .. "**.lua",
+        g_project_dir .. "**.hpp"
     }
 
     pchheader "graphics_pch.h"
@@ -28,12 +29,13 @@ project "influx_graphics"
         "source",
         "include",
         "foreign",
+        "foreign/vulkan/",
         g_dir_core_include
     }
 
     links
     {
-
+        
     }
 
     filter "system:windows"

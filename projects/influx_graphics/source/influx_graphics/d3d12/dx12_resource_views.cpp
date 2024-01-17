@@ -5,9 +5,9 @@
 namespace influx::graphics
 {
 	dx12_render_target_view::dx12_render_target_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
-		: render_target_view()
+		: render_target_view( reinterpret_cast<descriptor_handle>(cpu_handle.ptr) )
 		, m_dx_cpu_handle{ cpu_handle }
 	{
-		mp_native = reinterpret_cast<void*>(m_dx_cpu_handle.ptr);
+		mp_native = &m_dx_cpu_handle;
 	}
 }

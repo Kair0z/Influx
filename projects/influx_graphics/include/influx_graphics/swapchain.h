@@ -3,10 +3,16 @@
 #include "influx_graphics/common.h"
 
 #include "core/math/vector.h"
+#include "core/container/vector.h"
+#include "core/platform/window.h"
 
 namespace influx::graphics
 {
 	class resource;
+	class render_target_view;
+	class device;
+	class descriptor_heap;
+	class command_queue;
 
 	struct swapchain_desc final
 	{
@@ -20,33 +26,60 @@ namespace influx::graphics
 		bool m_vsync = false;
 	};
 
+	struct swapchain_dependencies final
+	{
+		swapchain_dependencies(device* device, command_queue* queue)
+			: mp_device{ device }, mp_command_queue{ queue } {}
+
+		device* mp_device = nullptr;
+		command_queue* mp_command_queue = nullptr;
+	};
+
 	class swapchain : public base
 	{
 	public:
 		virtual void present(const present_args& args) = 0;
 
-		virtual resource* get_backbuffer_resource(uint8 at_index) const = 0;
+		// acquires the next available backbuffer (and returns the index)
+		virtual uint8 acquire_backbuffer() = 0;
 
-		virtual uint8 get_current_backbuffer_index() const = 0;
+		void resize(const math::vectoru2& new_dimensions);
+		void resize(const platform::window_handle& window);
 
-		inline uint8 get_num_backbuffers() const
-		{
-			return m_desc.m_num_buffers;
-		}
+		resource* get_backbuffer_resource(uint8 at_index) const;
+
+		resource* get_current_backbuffer_resource() const;
+
+		uint8 get_num_backbuffers() const;
+
+		const swapchain_desc& get_desc() const;
+
+		// checks the window handle to find wether a recreate of resources is necessary
+		bool needs_recreate(const platform::window_handle& window) const;
+
+		uint8 get_current_backbuffer_index() const;
+
+		const math::vectoru2& get_dimensions() const;
+
+		e_format get_format() const;
 
 	protected:
-		swapchain(const swapchain_desc& desc)
-			: m_desc{desc}
-		{
+		swapchain(const swapchain_desc& desc, const swapchain_dependencies& dependencies);
 
-		}
+		void update_backbuffer_index(uint8 new_index);
 
-		inline const swapchain_desc& get_desc() const
-		{
-			return m_desc;
-		}
+		device* get_parent_device();
 
 	private:
 		swapchain_desc m_desc{};
+		vector<resource*> mp_buffer_resources;
+		math::vectoru2 m_current_dimensions{};
+		uint32 m_current_backbuffer_index = 0u;
+
+		// dependencies
+		device* mp_parent_device;
+		command_queue* mp_command_queue;
+
+		virtual vector<resource*> create_resources() = 0;
 	};
 }

@@ -16,7 +16,7 @@
 #include "influx_graphics/d3d12/dx12_descriptorheap.h"
 
 // core win32
-#include "core/platform/windows/windows_window.h"
+#include "core/platform/win32/win32_window.h"
 
 namespace influx::graphics
 {
@@ -100,13 +100,14 @@ namespace influx::graphics
 		desc_copy.m_dimensions.x = width;
 		desc_copy.m_dimensions.y = height;
 		desc_copy.m_format = format;
-		return new dx12_swapchain(desc_copy, dxswapchain);
+		
+		swapchain_dependencies dependencies{ this, queue };
+		return new dx12_swapchain(desc_copy, dependencies, dxswapchain);
 	}
 
 	descriptor_heap* dx12_device::create_descriptor_heap(const descriptor_heap::create_args& args)
 	{
 		auto dxheap = dx12helpers::create_descriptor_heap(mpdx_devices[0u], convert(args.m_type), args.m_capacity);
-		
 		return new dx12_descriptor_heap(args, dxheap, get_descriptor_stride(args.m_type));
 	}
 
@@ -121,6 +122,8 @@ namespace influx::graphics
 		auto dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(mpdx_devices[0u],
 			allocator->get_native<ID3D12CommandAllocator>(), D3D12_COMMAND_LIST_TYPE_DIRECT,
 			init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr);
+
+		dxcommandlist->Close();
 
 		return new dx12_commandlist(dxcommandlist);
 	}
@@ -145,7 +148,14 @@ namespace influx::graphics
 		
 		// allocate a new rtv descriptor:
 		descriptor_handle new_descriptor = rtv_heap->allocate();
-		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { reinterpret_cast<size_t>(new_descriptor) };
+		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(new_descriptor) };
+
+		return create_rtv(new_descriptor, resource);
+	}
+
+	render_target_view* dx12_device::create_rtv(descriptor_handle handle, resource* resource)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
 
 		// create the rtv
 		ID3D12Resource* dxresource = resource->get_native<ID3D12Resource>();

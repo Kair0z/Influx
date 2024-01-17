@@ -59,7 +59,11 @@ namespace influx::renderer
 	INFLUX_RENDER_API target* get_window_target(const platform::window_handle& window);
 
 	// issue commands
+	INFLUX_RENDER_API void acquire_swapchain_frame();
+
 	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target);
+
+	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
 
 	INFLUX_RENDER_API void present_swapchain(const present_args& args);
 
@@ -73,7 +77,6 @@ namespace influx::renderer
 	INFLUX_RENDER_API const mesh_data* find_mesh_data(const string& title); 
 
 	INFLUX_RENDER_API vector<const mesh_data*> get_all_mesh_datas();
-
 
 	// backend hooks
 	INFLUX_RENDER_API void* get_backend_device();

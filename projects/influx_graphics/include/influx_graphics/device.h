@@ -43,6 +43,9 @@ namespace influx::graphics
 
 		virtual resource* create_resource(const tex2D_desc& desc) = 0;
 
+		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) = 0;
+
+		// implicitly allocates a handle from rtv_heap
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) = 0;
 
 	private:

@@ -6,6 +6,7 @@
 
 namespace influx::renderer
 {
+	// constructs a target from create_args, allocating new graphics resources
 	target::target(graphics::device* device, graphics::descriptor_heap* rtv_heap, const target_create_args& args)
 	{
 		// create the resource
@@ -20,18 +21,40 @@ namespace influx::renderer
 		// create the underlying resource
 		mp_resource = device->create_resource(desc);
 
-		// create the rtv
+		// allocate & create the rtv
 		mp_rtv = device->create_rtv(rtv_heap, mp_resource);
 
-		target(mp_resource, mp_rtv);
+		target(device, mp_resource, mp_rtv);
 	}
 
-	target::target(graphics::resource* resource, graphics::render_target_view* rtv)
+	// constructs a target from existing swapchain resources
+	target::target(graphics::device* device, graphics::swapchain* swapchain, uint8 swapchain_index, graphics::descriptor_heap* rtv_heap)
+	{
+		influx_assert(swapchain_index < swapchain->get_num_backbuffers());
+
+		// get the existing backbuffer resource, and allocate + create a new rtv
+		mp_resource = swapchain->get_backbuffer_resource(swapchain_index);
+		mp_rtv = device->create_rtv(rtv_heap, mp_resource);
+
+		m_args.m_width = swapchain->get_dimensions().x;
+		m_args.m_heigth = swapchain->get_dimensions().y;
+		m_current_dimensions = swapchain->get_dimensions();
+
+		// store the descriptor handle
+		m_descriptor_handle = mp_rtv->get_descriptor_handle();
+	}
+
+	target::target(graphics::device* device, graphics::resource* resource, graphics::render_target_view* rtv)
+		: mp_device{device}
 	{
 		m_args.m_width = resource->get_width();
 		m_args.m_heigth = resource->get_height();
+		m_current_dimensions = { m_args.m_width, m_args.m_heigth };
 		mp_resource = resource;
 		mp_rtv = rtv;
+
+		// store the descriptor handle
+		m_descriptor_handle = mp_rtv->get_descriptor_handle();
 	}
 
 	graphics::resource* target::get_resource() const
@@ -44,20 +67,34 @@ namespace influx::renderer
 		return mp_rtv;
 	}
 
-	vector<target*> target::create_swapchain_targets(graphics::device* device, 
-		graphics::swapchain* swapchain, graphics::descriptor_heap* rtv_heap)
+	void target::resize(const math::vectoru2& dimensions)
 	{
-		vector<target*> targets{};
-
-		for (uint8 i = 0u; i < swapchain->get_num_backbuffers(); ++i)
+		if (dimensions != m_current_dimensions)
 		{
-			graphics::resource* backbuffer = swapchain->get_backbuffer_resource(i);
-			target* new_target = new target(backbuffer, device->create_rtv(rtv_heap, backbuffer));
+			delete mp_resource;
 
-			targets.push_back(new_target);
+			// update size:
+			m_current_dimensions = dimensions;
+
+			// create new resource
+			graphics::tex2D_desc desc{};
+			desc.m_arraysize = 1u;
+			desc.m_dimensions = { dimensions.x, dimensions.y };
+			desc.m_flags;
+			desc.m_format = graphics::e_format::rgba8;
+			desc.m_num_mips = 1u;
+			desc.m_sample_count = 1u;
+			mp_resource = mp_device->create_resource(desc);
+
+			// recreate our rtv
+			recreate_rtv();
 		}
+	}
 
-		return targets;
+	void target::recreate_rtv()
+	{
+		delete mp_rtv;
+		mp_rtv = mp_device->create_rtv(m_descriptor_handle, mp_resource);
 	}
 }
 

@@ -2,6 +2,7 @@
 #include "influx_graphics.h"
 
 #include "influx_graphics/d3d12/dx12_device.h"
+#include "influx_graphics/vulkan/vk_device.h"
 
 namespace influx::graphics
 {
@@ -14,7 +15,7 @@ namespace influx::graphics
 			break;
 
 		case e_api_type::vulkan:
-			return nullptr; // todo...
+			return new vk_device(); // todo...
 			break;
 
 		default:

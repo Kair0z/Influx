@@ -1,16 +1,16 @@
 #include "graphics_pch.h"
 #include "influx_graphics/d3d12/dx12_swapchain.h"
-#include "dx12_headers.h"
-
 #include "influx_graphics/d3d12/dx12_resource.h"
+#include "dx12_headers.h"
 
 namespace influx::graphics
 {
-	dx12_swapchain::dx12_swapchain(const swapchain_desc& desc, IDXGISwapChain4* swapchain4)
-		: swapchain(desc)
+	dx12_swapchain::dx12_swapchain(const swapchain_desc& desc, 
+		const swapchain_dependencies& swapchain_dependencies, 
+		IDXGISwapChain4* swapchain4)
+		: swapchain(desc, swapchain_dependencies)
 	{
 		mp_native = mpdxgi_swapchain4 = swapchain4;
-
 		create_resources();
 	}
 
@@ -19,38 +19,27 @@ namespace influx::graphics
 		mpdxgi_swapchain4->Present(args.m_vsync ? 1 : 0, 0u);
 	}
 
-	resource* dx12_swapchain::get_backbuffer_resource(uint8 at_index) const
+	uint8 dx12_swapchain::acquire_backbuffer()
 	{
-		return mp_buffer_resources[at_index];
+		const uint8 index = mpdxgi_swapchain4->GetCurrentBackBufferIndex();
+		update_backbuffer_index(index);
+		return index;
 	}
 
-	uint8 dx12_swapchain::get_current_backbuffer_index() const
+	vector<resource*> dx12_swapchain::create_resources()
 	{
-		return mpdxgi_swapchain4->GetCurrentBackBufferIndex();
-	}
-
-	void dx12_swapchain::create_resources()
-	{
-		// delete & clear previous
-		for (dx12_resource* res : mp_buffer_resources)
-		{
-			delete res;
-			res = nullptr;
-		}
-		mp_buffer_resources.clear();
-
-		// recreate
+		vector<resource*> resources{};
 		for (uint8 i = 0u; i < get_num_backbuffers(); ++i)
 		{
 			ID3D12Resource* dxresource = nullptr;
 			mpdxgi_swapchain4->GetBuffer(i, IID_PPV_ARGS(&dxresource));
 
-			// this is a bit cringe...
 			tex2D_desc desc{};
-			desc.m_format = get_desc().m_format;
-			desc.m_dimensions = get_desc().m_dimensions;
+			desc.m_format = get_format();
+			desc.m_dimensions = get_dimensions();
 
-			mp_buffer_resources.push_back(new dx12_resource(dxresource, desc));
+			resources.push_back(new dx12_resource(dxresource, desc));
 		}
+		return resources;
 	}
 }

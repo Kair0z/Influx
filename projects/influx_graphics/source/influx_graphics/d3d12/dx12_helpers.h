@@ -65,7 +65,7 @@ namespace influx::graphics::dx12helpers
 
                 // Check to see whether the adapter supports Direct3D 12, but don't create the
                 // actual device yet.
-                if (adapter_supports_dx12(adapter))
+                //if (adapter_supports_dx12(adapter))
                 {
                     result_adapters.push_back(adapter);
                 }

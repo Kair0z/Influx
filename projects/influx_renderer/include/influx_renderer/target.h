@@ -32,19 +32,29 @@ namespace influx::renderer
 		graphics::render_target_view* get_rtv() const;
 
 	private:
+		// constructs a target from create_args, allocating new graphics resources
 		explicit target(graphics::device* device, graphics::descriptor_heap* rtv_heap, const target_create_args& args);
 
-		explicit target(graphics::resource* resource, graphics::render_target_view* rtv);
+		// constructs a target from existing swapchain resources
+		explicit target(graphics::device* device, graphics::swapchain* swapchain, uint8 swapchain_index, graphics::descriptor_heap* rtv_heap);
 
-		static vector<target*> create_swapchain_targets(graphics::device* device, graphics::swapchain* swapchain, graphics::descriptor_heap* rtv_heap);
+		explicit target(graphics::device* device, graphics::resource* resource, graphics::render_target_view* rtv);
 
-		friend class renderer_backend;
+		// re-allocates graphics resource, and recreates the rtv
+		void resize(const math::vectoru2& new_dimensions);
 
-	private:
+		// does not allocate a new descriptor handle, but recreates the view
+		void recreate_rtv();
+
 		graphics::resource* mp_resource;
 		graphics::render_target_view* mp_rtv;
-		target_create_args m_args;
+		void* m_descriptor_handle;
 
-		
+		target_create_args m_args;
+		math::vectoru2 m_current_dimensions;
+		graphics::device* mp_device;
+
+		// only backend can create targets
+		friend class renderer_backend;
 	};
 }
