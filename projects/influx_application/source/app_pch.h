@@ -13,8 +13,4 @@
 #include "core/geometry/geometry.h"
 #include "core/time.h"
 #include "core/platform/platform.h"
-#if INFLUX_PLATFORM_WINDOWS
-#include "core/platform/windows_platform.h"
-#endif
-
 #include "application/constants.h"

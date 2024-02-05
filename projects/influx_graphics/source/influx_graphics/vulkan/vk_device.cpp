@@ -112,6 +112,7 @@ namespace influx::graphics
 		info.format = convert(resource->get_format());
 		info.image = *resource->get_native<vk::Image>();
 		info.viewType = vk::ImageViewType::e2D;
+		info.subresourceRange = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u);
 
 		vk::ImageView vkview = get_main_device().createImageView(info);
 		return new vk_render_target_view(vkview);

@@ -24,18 +24,22 @@ project "sandbox"
     {
         "source",
         g_dir_core_include,
-        g_dir_render_include
+        g_dir_render_include,
+        g_dir_app_include
     }
 
     links
     {
-        "influx_renderer"
+        "influx_renderer",
+        "influx_application"
     }
 
     postbuildmessage "Copying dependencies..."
     postbuildcommands
     {
-        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_renderer/influx_renderer.dll %{cfg.buildtarget.directory}"}
+        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_renderer/influx_renderer.dll %{cfg.buildtarget.directory}"},
+        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_application/influx_application.dll %{cfg.buildtarget.directory}"},
+        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_async/influx_async.dll %{cfg.buildtarget.directory}"}
     }
 
     filter "system:windows"

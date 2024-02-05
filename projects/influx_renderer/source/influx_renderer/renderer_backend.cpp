@@ -77,24 +77,22 @@ namespace influx::renderer
             // create swapchain and targets:
             graphics::swapchain_desc desc{};
             mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
-        }
 
-        if (mp_swapchain->needs_recreate(window))
-        {
-            mp_swapchain->resize(window);
-        }
-
-        const uint8 num_swapchain_buffers = mp_swapchain->get_num_backbuffers();
-        const uint8 current_swapchain_index = mp_swapchain->get_current_backbuffer_index();
-
-        // create all swapchain targets pre-emptively
-        if (m_swapchain_targets.size() < num_swapchain_buffers)
-        {
+            const uint8 num_swapchain_buffers = mp_swapchain->get_num_backbuffers();
             for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
             {
                 m_swapchain_targets.push_back(new target(mp_device, mp_swapchain, i,
                     mp_desc_manager->get_rtv_heap()));
             }
+        }
+
+        const uint8 current_swapchain_index = mp_swapchain->get_current_backbuffer_index();
+
+        // resize if necessary
+        if (mp_swapchain->needs_recreate(window))
+        {
+            mp_swapchain->resize(window); // resizes the underlying resources
+            m_swapchain_targets[current_swapchain_index]->recreate_rtv(); // only recreates rtv
         }
 
         // return the current swapchain target

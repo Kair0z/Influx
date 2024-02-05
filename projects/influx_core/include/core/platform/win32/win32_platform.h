@@ -1,10 +1,24 @@
 #pragma once
 
+// Include Windows
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
+// We don't like UNICODE steered macros! 
+// We will always use the UNICODE A versions of these functions!
+#ifdef CreateWindow
+#undef CreateWindow
+#endif
+
+#ifdef messagebox
+#undef message_box
+#endif
+
 namespace influx::platform
 {
 	inline void set_console_colour_attribute(e_console_colour colour)
 	{
-		HANDLE hConsole = ::GetStdHandle(STD_OUTPUT_HANDLE);
+		::HANDLE hConsole = ::GetStdHandle(STD_OUTPUT_HANDLE);
 		::SetConsoleTextAttribute(hConsole, static_cast<int>(colour));
 	}
 

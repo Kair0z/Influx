@@ -1,5 +1,6 @@
 #pragma once
 #include "core/platform/platform.h"
+
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/geometry/rect.h"
@@ -7,8 +8,6 @@
 
 namespace influx::platform
 {
-#pragma region types
-	// window pointer
 	using window_handle = void*;
 
 	// window event callback types
@@ -17,18 +16,6 @@ namespace influx::platform
 	typedef void(*winev_mousebutton)(int button, bool isDown);
 	typedef void(*winev_mousewheel)	(const float w_x, const float w_y);
 	typedef void(*winev_focus)		(bool is_focussed);
-
-	struct create_window_args final
-	{
-		create_window_args() = default;
-		create_window_args(const math::vectori2& dimensions, const string& name)
-			: m_width{ dimensions.x }, m_height{ dimensions.y }, m_name{ name } {}
-
-		int m_width;
-		int m_height;
-
-		string m_name;
-	};
 
 	enum class e_windowevent : uint8
 	{
@@ -53,13 +40,24 @@ namespace influx::platform
 		error,
 		count
 	};
-#pragma endregion
 
 	window_handle get_current_window();
 
 	bool is_window_valid(window_handle handle);
 
-	window_handle create_window(const create_window_args& args, bool make_open = true);
+	// create a window
+	struct create_window_args final
+	{
+		create_window_args() = default;
+		create_window_args(const math::vectoru2& dimensions, const string& name)
+			: m_width{ dimensions.x }, m_height{ dimensions.y }, m_name{ name } {}
+
+		uint32 m_width;
+		uint32 m_height;
+		string m_name;
+	};
+
+	window_handle create_window(const create_window_args& args);
 
 	void destroy_window(const window_handle handle);
 

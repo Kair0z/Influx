@@ -72,38 +72,6 @@ namespace influx::platform
 		}
 	}
 
-	// [ MEMORY ]
-	inline void* allocate(const uint64 size)
-	{
-		if (size == 0)
-		{
-			// https://stackoverflow.com/questions/2022335/whats-the-point-of-malloc0
-			return malloc(1u);
-		}
-		else
-		{
-			return malloc(size);
-		}
-	}
-
-	template <typename _t>
-	inline _t* allocate()
-	{
-		return static_cast<_t*>(allocate(sizeof(_t)));
-	}
-
-	template <typename _t, typename ..._args>
-	inline _t* anew(_args&&... args)
-	{
-		return new _t(args...);
-	}
-
-	template <typename _t>
-	inline void free(_t* address)
-	{
-		std::free(address);
-	}
-
 	// [ APPLICATION ]
 #pragma region application
 	inline process_handle get_current_process()
@@ -177,8 +145,11 @@ namespace influx::platform
 		return poll_window_events(out_events, handle);
 	}
 
-	inline window_handle create_window(const create_window_args& args, bool make_open, windows_procedure procedure_override = detail::default_windows_procedure)
+	inline window_handle create_window(const create_window_args& args, windows_procedure procedure_override)
 	{
+		// default open
+		const bool make_open = true;
+
 		::HINSTANCE instance = (::HINSTANCE)get_current_instance();
 		const wstring nameWstring = to_wstring(args.m_name);
 
@@ -288,9 +259,9 @@ namespace influx::platform
 		return newWindowHandle;
 	}
 
-	inline window_handle create_window(const create_window_args& args, bool make_open)
+	inline window_handle create_window(const create_window_args& args)
 	{
-		return create_window(args, make_open, detail::default_windows_procedure);
+		return create_window(args, detail::default_windows_procedure);
 	}
 
 	inline void destroy_window(const window_handle handle)

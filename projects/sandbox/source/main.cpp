@@ -1,19 +1,12 @@
 
-#if 1
-#include "core/platform/win32/win32_window.h"
-#else
-#include "core/platform/null/null_window.h"
-#endif
-
-#include "influx_renderer.h"
 #include <iostream>
+#include <thread>
 
-#include "core/scope.h"
+#include "influx_application.h"
 
-int main()
+#if 0
+void foo()
 {
-	using namespace influx;
-
 	// create a platform window
 	platform::window_handle window = platform::create_window({ { 640u, 480u }, "window" });
 
@@ -42,7 +35,23 @@ int main()
 		// present our window
 		renderer::present_swapchain({});
 	}
+}
+#endif
 
-	std::cin.get();
+int main()
+{
+	using namespace influx;
+	application::run_args args{};
+	args.m_window_width = 640u;
+	args.m_window_height = 480u;
+
+	std::thread app_thread;
+	application::run_async(app_thread, args);
+
+	if (app_thread.joinable())
+	{
+		app_thread.join();
+	}
+
 	return 0u;
 }

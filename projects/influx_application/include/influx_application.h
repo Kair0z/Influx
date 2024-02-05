@@ -10,6 +10,7 @@
 #include "core/basetypes.h"
 #include "core/string.h"
 #include "core/math/vector.h"
+#include <thread>
 
 namespace influx::application
 {
@@ -40,7 +41,11 @@ namespace influx::application
 		char** m_argv{};
 	};
 
+	// runs the application on the calling thread
 	void INFLUX_APP_API run(const run_args& args);
+
+	// runs the application on a given separate thread
+	void INFLUX_APP_API run_async(std::thread& out_thread, const run_args& args);
 
 	void INFLUX_APP_API quit();
 }

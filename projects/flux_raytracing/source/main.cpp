@@ -15,7 +15,7 @@
     #include "core/time.h"
     #include "core/math/random.h"
     #include "core/KDTree.h"
-    #include "core/platform/windows_platform.h"
+    #include "core/platform/win32/win32_window.h"
 #pragma endregion
 #pragma region stl
     #include <iostream>

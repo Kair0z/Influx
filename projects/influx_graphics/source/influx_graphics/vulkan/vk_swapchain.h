@@ -38,7 +38,6 @@ namespace influx::graphics
 	private:
 		vk::SwapchainKHR m_vk_swapchain;
 		vector<vk::Image> m_vk_images;
-		vector<vk::ImageView> m_vk_imageviews;
 		vk::Queue m_vk_present_queue;
 		vk::Device m_vk_device;
 

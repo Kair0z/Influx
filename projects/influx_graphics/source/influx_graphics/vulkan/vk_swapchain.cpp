@@ -18,7 +18,8 @@ namespace influx::graphics
 	{
 		// store the native commandqueue (present queue)
 		m_vk_present_queue = *swapchain_dependencies.mp_command_queue->get_native<vk::Queue>();
-
+		m_vk_device = vk_dependencies.m_vk_device;
+		
 		// format
 		constexpr e_format k_format = e_format::rgba8;
 		constexpr vk::Format k_vk_format = vk::Format::eR8G8B8A8Unorm;
@@ -101,16 +102,6 @@ namespace influx::graphics
 		// get the images (resources)
 		m_vk_images = vk_dependencies.m_vk_device.getSwapchainImagesKHR(m_vk_swapchain);
 
-		// get the image views (rtvs)
-		{
-			vk::ImageViewCreateInfo info({}, {}, vk::ImageViewType::e2D, swapchain_format, {}, { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
-			for (size_t i = 0u; i < m_vk_images.size(); ++i)
-			{
-				info.image = m_vk_images[i];
-				m_vk_imageviews.push_back(vk_dependencies.m_vk_device.createImageView(info));
-			}
-		}
-
 		resize(window);
 	}
 
@@ -122,7 +113,8 @@ namespace influx::graphics
 
 	uint8 vk_swapchain::acquire_backbuffer()
 	{
-		vk::ResultValue<uint32> current_index = m_vk_device.acquireNextImageKHR(m_vk_swapchain, {}/*timeout*/, {}/*semaphore*/, {});
+		vk::Semaphore imageAcquiredSemaphore = m_vk_device.createSemaphore(vk::SemaphoreCreateInfo());
+		vk::ResultValue<uint32> current_index = m_vk_device.acquireNextImageKHR(m_vk_swapchain, 100000000/*timeout*/, imageAcquiredSemaphore, nullptr);
 		update_backbuffer_index(current_index.value);
 		return current_index.value;
 	}
