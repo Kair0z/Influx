@@ -1,0 +1,69 @@
+#pragma once
+
+#ifndef __CORE_MATH_QUATERNION_H_
+#define __CORE_MATH_QUATERNION_H_
+
+#include "core/math/vector.h"
+
+namespace influx::math
+{
+	class quaternion final
+	{
+	public:
+		quaternion() = default;
+		quaternion(const vectorf3& forward, const vectorf3& up = vectorf3::up())
+		{
+			m_forward = forward.normalized();
+			m_right = vectorf3::cross(up, m_forward);
+			m_up = vectorf3::cross(m_right, m_forward);
+		}
+
+		virtual ~quaternion() = default;
+
+		const static quaternion identity()
+		{
+			static quaternion q{};
+			return q;
+		}
+
+		vectorf3 get_forward() const
+		{
+			return m_forward;
+		}
+
+		vectorf3 get_right() const
+		{
+			return m_right;
+		}
+
+		vectorf3 get_up() const
+		{
+			return m_up;
+		}
+
+		void set_forward(const vectorf3& newForward)
+		{
+			m_forward = newForward;
+		}
+
+		void set_right(const vectorf3& newRight)
+		{
+			m_right = newRight;
+		}
+
+		void set_up(const vectorf3& newUp)
+		{
+			m_up = newUp;
+		}
+
+	private:
+		vectorf3 m_forward;
+		vectorf3 m_right;
+		vectorf3 m_up;
+	};
+
+	// Temp... might / should make this a standalone-class someday..
+	using rotation = quaternion;
+}
+
+#endif

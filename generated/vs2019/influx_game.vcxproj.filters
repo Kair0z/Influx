@@ -6,11 +6,11 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\projects\influx_game\source\main.cpp">
+    <ClCompile Include="..\..\projects\apps\influx_game\source\main.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\projects\influx_game\premake5.lua" />
+    <None Include="..\..\projects\apps\influx_game\premake5.lua" />
   </ItemGroup>
 </Project>

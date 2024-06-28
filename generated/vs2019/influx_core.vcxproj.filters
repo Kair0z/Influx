@@ -31,8 +31,8 @@
     <Filter Include="include\core\platform\null">
       <UniqueIdentifier>{BF557383-AB65-1F54-141F-8472004E0EED}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\core\platform\windows">
-      <UniqueIdentifier>{8FE2877A-FBFA-6EA4-C4A7-FE3D307F033E}</UniqueIdentifier>
+    <Filter Include="include\core\platform\win32">
+      <UniqueIdentifier>{F7567AF2-6364-A8D8-EC4A-A4C35857748F}</UniqueIdentifier>
     </Filter>
     <Filter Include="include\core\scene">
       <UniqueIdentifier>{9EEF9EB7-8AD3-5F0D-F333-5A60DF364A8F}</UniqueIdentifier>
@@ -159,14 +159,14 @@
     <ClInclude Include="..\..\projects\influx_core\include\core\platform\platform.h">
       <Filter>include\core\platform</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx_core\include\core\platform\win32\win32_platform.h">
+      <Filter>include\core\platform\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_core\include\core\platform\win32\win32_window.h">
+      <Filter>include\core\platform\win32</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx_core\include\core\platform\window.h">
       <Filter>include\core\platform</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx_core\include\core\platform\windows\windows_platform.h">
-      <Filter>include\core\platform\windows</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx_core\include\core\platform\windows\windows_window.h">
-      <Filter>include\core\platform\windows</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_core\include\core\pointer.h">
       <Filter>include\core</Filter>
@@ -182,6 +182,9 @@
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_core\include\core\scene\mesh.h">
       <Filter>include\core\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx_core\include\core\scope.h">
+      <Filter>include\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx_core\include\core\singleton.h">
       <Filter>include\core</Filter>

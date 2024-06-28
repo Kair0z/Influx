@@ -6,11 +6,11 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\projects\sandbox\source\main.cpp">
+    <ClCompile Include="..\..\projects\apps\sandbox\source\main.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\projects\sandbox\premake5.lua" />
+    <None Include="..\..\projects\apps\sandbox\premake5.lua" />
   </ItemGroup>
 </Project>
