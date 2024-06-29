@@ -4,16 +4,12 @@ influx_root = "../"
 influx_projects = influx_root + "projects/influx/"
 influx_projects_engine = influx_projects
 
-#
+# for each project in ../projects/influx/
 for project_name in os.listdir(influx_projects_engine):
-    print(project_name)
-    for root, dirs, files in os.walk(influx_projects_engine + project_name):
-        for file in files:
-            full_file = os.path.join(root, file)
-            if full_file.__contains__('include'):
-                full_file.replace(influx_projects_engine + project_name + '/include/', '')
-                print(full_file)
-                shutil.copy(full_file, '../include/')
+    # for 
+    include_src_dir = influx_projects_engine + project_name + "/include/"
+    include_tar_dir = "../include/" + project_name + "/"
+    print(include_src_dir + " -> " + include_tar_dir)
+    shutil.copytree(include_src_dir, include_tar_dir, dirs_exist_ok=True)
 
-
-print('done')
+print('include files copied :)')
