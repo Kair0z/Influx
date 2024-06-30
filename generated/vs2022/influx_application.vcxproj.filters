@@ -12,28 +12,28 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\projects\influx_application\include\influx_application.h">
+    <ClInclude Include="..\..\projects\influx\influx_application\include\influx_application.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_application\source\app_pch.h">
+    <ClInclude Include="..\..\projects\influx\influx_application\source\app_pch.h">
       <Filter>source</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_application\source\application\application_backend.h">
+    <ClInclude Include="..\..\projects\influx\influx_application\source\application\application_backend.h">
       <Filter>source\application</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_application\source\application\constants.h">
+    <ClInclude Include="..\..\projects\influx\influx_application\source\application\constants.h">
       <Filter>source\application</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\projects\influx_application\source\app_pch.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_application\source\app_pch.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_application\source\application\application_backend.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_application\source\application\application_backend.cpp">
       <Filter>source\application</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\projects\influx_application\premake5.lua" />
+    <None Include="..\..\projects\influx\influx_application\premake5.lua" />
   </ItemGroup>
 </Project>

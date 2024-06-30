@@ -6,16 +6,18 @@ workspace "influx"
     startproject "sandbox"
     location "../generated/%{_ACTION}/"
     
+    -- /influx/
     g_dir_root = "%{wks.location}/../../"
 
+    -- /influx/projects/...
     g_dir_projects = g_dir_root .. "/projects/"
     g_dir_projects_apps = g_dir_projects .. "/apps/"
-    g_dir_projects_engine = g_dir_projects .. "/engine/"
+    g_dir_projects_engine = g_dir_projects .. "/influx/"
     g_dir_projects_misc = g_dir_projects .. "/misc/"
     g_dir_binaries = g_dir_root .. "/bin/%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}/"
     g_dir_int = g_dir_root .. "/int/%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}/"
 
-    -- global include paths 
+    -- /influx/projects/influx/<projectname>/include/...
     g_dir_core_include = g_dir_projects_engine .. "/influx_core/include/"
     g_dir_app_include = g_dir_projects_engine .. "/influx_application/include/"
     g_dir_async_include = g_dir_projects_engine .. "/influx_async/include/"
