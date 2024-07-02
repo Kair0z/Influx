@@ -1,9 +1,12 @@
 #include "app_pch.h"
 #include "application/application_backend.h"
-#include "influx_async.h"
 
+// platform: win32
 #include "core/platform/win32/win32_platform.h"
 #include "core/platform/win32/win32_window.h"
+
+// renderer
+#include "influx_renderer.h"
 
 namespace influx::application
 {
@@ -21,27 +24,55 @@ namespace influx::application
 			window_args.m_height	= args.m_window_height;
 			window_args.m_name		= args.m_name;
 			m_windowhandle = platform::create_window(window_args);
+
+			// create renderer
+			renderer::init_args render_init_args{};
+			render_init_args.m_api_type = renderer::e_render_api::dx12;
+			render_init_args.m_resource_dir = get_resource_directory();
+			renderer::initialize(render_init_args);
+
+			renderer::target_create_args target_args{};
+			target_args.m_width = args.m_window_width;
+			target_args.m_heigth = args.m_window_height;
+			renderer::target* window_target = renderer::create_target(target_args);
+
+			renderer::present_args present_args{};
+			present_args.m_vsync = true;
+
+			// create scene
+			renderer::scene render_scene{};
+			{
+				math::vectorf3 scene_center = math::vectorf3::zero();
+
+				// data loading
+				renderer::mesh_data scene_data{};
+				scene_data.m_indices;
+				scene_data.m_vertices;
+				renderer::load("scene_mesh", scene_data);
+
+				// camera
+				renderer::camera render_camera{};
+				render_camera.m_far_plane = 1000.0f;
+				render_camera.m_near_plane = 0.001f;
+				render_camera.m_position = { 0.0f, 0.0f, 10.0f };
+				render_camera.look_at(scene_center);
+				render_scene.m_cameras.push_back(render_camera);
+
+				// meshes
+				renderer::mesh_instance mesh_instance{};
+				mesh_instance.m_name = "scene_mesh";
+				mesh_instance.m_material_name = "none";
+				mesh_instance.m_per_instance_colour;
+				mesh_instance.m_transform = math::matrix4x4f::identity();
+				render_scene.m_meshes.push_back(mesh_instance);
+			}
+			
+			while (true)
+			{
+				renderer::draw_scene(render_scene, *window_target);
+				renderer::present_swapchain(present_args);
+			}
 		}
-		
-		// initialize async job scheduler
-		async::init_args async_init_args{};
-		async_init_args.m_num_workers = 1u;
-		async::initialize(async_init_args);
-
-		while (true)
-		{
-
-		}
-	}
-
-	void application::run_async(std::thread& out_thread, const run_args& args)
-	{
-		m_main_thread = &out_thread;
-
-		out_thread = std::thread([this, &args]()
-		{
-			run(args);
-		});
 	}
 
 	void application::request_quit()
@@ -113,11 +144,6 @@ namespace influx::application
 	void run(const run_args& args)
 	{
 		application::get_instance().run(args);
-	}
-
-	void run_async(std::thread& out_thread, const run_args& args)
-	{
-		application::get_instance().run_async(out_thread, args);
 	}
 
 	void quit()

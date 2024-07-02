@@ -36,385 +36,385 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\d3dx12.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\d3dx12.h">
       <Filter>foreign</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h264std.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h264std.h">
       <Filter>foreign\vulkan\vk_video</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h264std_decode.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h264std_decode.h">
       <Filter>foreign\vulkan\vk_video</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h264std_encode.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h264std_encode.h">
       <Filter>foreign\vulkan\vk_video</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h265std.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h265std.h">
       <Filter>foreign\vulkan\vk_video</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h265std_decode.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h265std_decode.h">
       <Filter>foreign\vulkan\vk_video</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h265std_encode.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codec_h265std_encode.h">
       <Filter>foreign\vulkan\vk_video</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codecs_common.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vk_video\vulkan_video_codecs_common.h">
       <Filter>foreign\vulkan\vk_video</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vk_icd.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vk_icd.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vk_layer.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vk_layer.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vk_platform.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vk_platform.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_android.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_android.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_beta.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_beta.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_core.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_core.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_directfb.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_directfb.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_fuchsia.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_fuchsia.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_ggp.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_ggp.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_ios.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_ios.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_macos.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_macos.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_metal.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_metal.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_screen.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_screen.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_vi.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_vi.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_wayland.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_wayland.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_win32.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_win32.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_xcb.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_xcb.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_xlib.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_xlib.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan\vulkan_xlib_xrandr.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan\vulkan_xlib_xrandr.h">
       <Filter>foreign\vulkan\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_enums.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_enums.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_extension_inspection.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_extension_inspection.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_format_traits.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_format_traits.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_funcs.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_funcs.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_handles.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_handles.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_hash.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_hash.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_hpp_macros.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_hpp_macros.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_raii.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_raii.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_shared.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_shared.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_static_assertions.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_static_assertions.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_structs.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_structs.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_to_string.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_to_string.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkan_video.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan_video.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_enums.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_enums.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_extension_inspection.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_extension_inspection.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_format_traits.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_format_traits.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_funcs.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_funcs.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_handles.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_handles.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_hash.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_hash.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_hpp_macros.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_hpp_macros.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_raii.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_raii.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_shared.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_shared.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_static_assertions.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_static_assertions.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_structs.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_structs.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\foreign\vulkan\vulkansc_to_string.hpp">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc_to_string.hpp">
       <Filter>foreign\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\base.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\base.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\commandallocator.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\commandallocator.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\commandlist.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\commandlist.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\commandqueue.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\commandqueue.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\common.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\common.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\descriptorheap.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\descriptorheap.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\device.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\device.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\fence.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\fence.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\pipelinestate.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\pipelinestate.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\resource.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\resource.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\resource_views.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\resource_views.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\rootsignature.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\rootsignature.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\include\influx_graphics\swapchain.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\swapchain.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\graphics_pch.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\graphics_pch.h">
       <Filter>source</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_allocator.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_allocator.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_commandlist.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_commandlist.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_commandqueue.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_commandqueue.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_conversion.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_conversion.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_descriptorheap.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_descriptorheap.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_device.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_device.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_fence.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_fence.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_headers.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_headers.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_helpers.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_helpers.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_resource.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_resource.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_resource_views.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_resource_views.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_rootsignature.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_rootsignature.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_swapchain.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_swapchain.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\null\null_device.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\null\null_device.h">
       <Filter>source\influx_graphics\null</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\null\null_graphics.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\null\null_graphics.h">
       <Filter>source\influx_graphics\null</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_allocator.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_allocator.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_commandlist.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_commandlist.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_commandqueue.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_commandqueue.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_conversion.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_conversion.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_descriptorheap.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_descriptorheap.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_device.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_device.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_fence.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_fence.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_headers.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_headers.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_helpers.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_helpers.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_resource.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_resource.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_resource_views.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_resource_views.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_rootsignature.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_rootsignature.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_swapchain.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_swapchain.h">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\projects\influx_graphics\source\graphics_pch.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\graphics_pch.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_allocator.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_allocator.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_commandlist.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_commandlist.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_commandqueue.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_commandqueue.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_descriptorheap.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_descriptorheap.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_device.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_device.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_fence.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_fence.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_helpers.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_helpers.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_resource.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_resource.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_resource_views.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_resource_views.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_rootsignature.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_rootsignature.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\d3d12\dx12_swapchain.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_swapchain.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\device.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\device.cpp">
       <Filter>source\influx_graphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\resource.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\resource.cpp">
       <Filter>source\influx_graphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\resource_views.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\resource_views.cpp">
       <Filter>source\influx_graphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\swapchain.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\swapchain.cpp">
       <Filter>source\influx_graphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_allocator.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_allocator.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_commandlist.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_commandlist.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_commandqueue.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_commandqueue.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_descriptorheap.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_descriptorheap.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_device.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_device.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_fence.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_fence.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_helpers.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_helpers.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_resource.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_resource.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_resource_views.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_resource_views.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_rootsignature.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_rootsignature.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_graphics\source\influx_graphics\vulkan\vk_swapchain.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\vulkan\vk_swapchain.cpp">
       <Filter>source\influx_graphics\vulkan</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\projects\influx_graphics\premake5.lua" />
+    <None Include="..\..\projects\influx\influx_graphics\premake5.lua" />
   </ItemGroup>
 </Project>

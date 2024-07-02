@@ -27,124 +27,124 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\d3dx12.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\d3dx12.h">
       <Filter>foreign</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_dx12.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_dx12.h">
       <Filter>foreign\imgui\backends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_vulkan.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_vulkan.h">
       <Filter>foreign\imgui\backends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_win32.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_win32.h">
       <Filter>foreign\imgui\backends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imconfig.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imconfig.h">
       <Filter>foreign\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imgui.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui.h">
       <Filter>foreign\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imgui_internal.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_internal.h">
       <Filter>foreign\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imstb_rectpack.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imstb_rectpack.h">
       <Filter>foreign\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imstb_textedit.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imstb_textedit.h">
       <Filter>foreign\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\foreign\imgui\imstb_truetype.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imstb_truetype.h">
       <Filter>foreign\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\constants.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer\constants.h">
       <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\material.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer\material.h">
       <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\mesh.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer\mesh.h">
       <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\scene.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer\scene.h">
       <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\stats.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer\stats.h">
       <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\target.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer\target.h">
       <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\texture.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer\texture.h">
       <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\include\influx_renderer\types.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer\types.h">
       <Filter>include\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\descriptor_manager.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\source\influx_renderer\descriptor_manager.h">
       <Filter>source\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\renderer_backend.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\source\influx_renderer\renderer_backend.h">
       <Filter>source\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\rendersystem.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\source\influx_renderer\rendersystem.h">
       <Filter>source\influx_renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\influx_renderer\systems\imgui_system.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\source\influx_renderer\systems\imgui_system.h">
       <Filter>source\influx_renderer\systems</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx_renderer\source\renderer_pch.h">
+    <ClInclude Include="..\..\projects\influx\influx_renderer\source\renderer_pch.h">
       <Filter>source</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_dx12.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_dx12.cpp">
       <Filter>foreign\imgui\backends</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_vulkan.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_vulkan.cpp">
       <Filter>foreign\imgui\backends</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\backends\imgui_impl_win32.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_win32.cpp">
       <Filter>foreign\imgui\backends</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui.cpp">
       <Filter>foreign\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui_demo.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_demo.cpp">
       <Filter>foreign\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui_draw.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_draw.cpp">
       <Filter>foreign\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui_tables.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_tables.cpp">
       <Filter>foreign\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\foreign\imgui\imgui_widgets.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_widgets.cpp">
       <Filter>foreign\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\descriptor_manager.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\descriptor_manager.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\renderer_backend.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\renderer_backend.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\rendersystem.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\rendersystem.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\systems\imgui_system.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\systems\imgui_system.cpp">
       <Filter>source\influx_renderer\systems</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\source\influx_renderer\target.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\target.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\projects\influx_renderer\source\renderer_pch.cpp">
+    <ClCompile Include="..\..\projects\influx\influx_renderer\source\renderer_pch.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\projects\influx_renderer\premake5.lua" />
+    <None Include="..\..\projects\influx\influx_renderer\premake5.lua" />
   </ItemGroup>
 </Project>

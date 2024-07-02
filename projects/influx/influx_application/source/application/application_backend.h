@@ -13,7 +13,6 @@ namespace influx::application
 	{
 	public:
 		void run(const run_args& args);
-		void run_async(std::thread& out_thread, const run_args& args);
 
 		void request_quit();
 
@@ -33,7 +32,6 @@ namespace influx::application
 	private:
 		platform::window_handle m_windowhandle = nullptr;
 		platform::instance_handle m_instancehandle = nullptr;
-		std::thread* m_main_thread;
 
 		uint64 m_mainthread_frame = 0u;
 		std::atomic_bool m_is_quit_requested = false;
