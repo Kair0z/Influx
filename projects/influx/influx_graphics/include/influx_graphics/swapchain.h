@@ -70,9 +70,9 @@ namespace influx::graphics
 
 		device* get_parent_device();
 
+		vector<resource*> mp_buffer_resources;
 	private:
 		swapchain_desc m_desc{};
-		vector<resource*> mp_buffer_resources;
 		math::vectoru2 m_current_dimensions{};
 		uint32 m_current_backbuffer_index = 0u;
 

@@ -11,7 +11,8 @@ namespace influx::graphics
 		: swapchain(desc, swapchain_dependencies)
 	{
 		mp_native = mpdxgi_swapchain4 = swapchain4;
-		create_resources();
+
+		mp_buffer_resources = create_resources();
 	}
 
 	void dx12_swapchain::present(const present_args& args)

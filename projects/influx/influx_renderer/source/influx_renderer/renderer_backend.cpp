@@ -9,13 +9,39 @@
 
 namespace influx::renderer
 {
+#pragma region translation
+    constexpr static e_render_api translate(graphics::e_api_type type)
+    {
+        switch (type)
+        {
+        case graphics::e_api_type::dx12:        return e_render_api::dx12;
+        case graphics::e_api_type::vulkan:      return e_render_api::vulkan;
+        default:
+        case graphics::e_api_type::unsupported: return e_render_api::unsupported;
+        }
+    }
+
+    constexpr static graphics::e_api_type translate(e_render_api type)
+    {
+        switch (type)
+        {
+        case e_render_api::dx12:        return graphics::e_api_type::dx12;
+        case e_render_api::vulkan:      return graphics::e_api_type::vulkan;
+        default:
+        case e_render_api::unsupported: return graphics::e_api_type::unsupported;
+        }
+    }
+#pragma endregion
+
     void renderer_backend::initialize(const init_args& args)
     {
         influx_scope("renderer_backend::initialize");
 
         // create the graphics device
         using namespace influx::graphics;
-        mp_device = device::create(e_api_type::vulkan);
+
+        const e_api_type translated_type = translate(args.m_api_type);
+        mp_device = device::create(translated_type);
 
         // create graphics command queue
         {
@@ -76,6 +102,9 @@ namespace influx::renderer
         {
             // create swapchain and targets:
             graphics::swapchain_desc desc{};
+            desc.m_num_buffers = k_num_backbuffers;
+            desc.m_format; //  todo
+            desc.m_dimensions; // todo
             mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
 
             const uint8 num_swapchain_buffers = mp_swapchain->get_num_backbuffers();
@@ -180,6 +209,21 @@ namespace influx::renderer
         create_render_system<imgui_system>(mp_device);
     }
 
+    void renderer_backend::load(const string& title, const mesh_data& data)
+    {
+        // todo...
+    }
+
+    void renderer_backend::load(const string& title, const texture_data& data)
+    {
+        // todo...
+    }
+
+    void renderer_backend::load(const string& title, const material_data& data)
+    {
+        // todo...
+    }
+
 #pragma region frontend_api
     void initialize(const init_args& args)
     {
@@ -225,6 +269,21 @@ namespace influx::renderer
     void present_swapchain(const present_args& args)
     {
         renderer_backend::get_instance().present_swapchain(args);
+    }
+
+    void load(const string& title, const mesh_data& data)
+    {
+        renderer_backend::get_instance().load(title, data);
+    }
+
+    void load(const string& title, const texture_data& data)
+    {
+        renderer_backend::get_instance().load(title, data);
+    }
+
+    void load(const string& title, const material_data& data)
+    {
+        renderer_backend::get_instance().load(title, data);
     }
 #pragma endregion
 

@@ -23,6 +23,9 @@ namespace influx::renderer
 	class renderer_backend final
 		: public singleton<renderer_backend>
 	{
+		// konstants
+		constexpr static uint8 k_num_backbuffers = 3u;
+
 	public:
 		void initialize(const init_args& args);
 
@@ -43,6 +46,12 @@ namespace influx::renderer
 		void present_swapchain(const present_args& args);
 
 		static descriptor_manager* get_descriptor_manager();
+
+		void load(const string& title, const mesh_data& data);
+
+		void load(const string& title, const texture_data& data);
+
+		void load(const string& title, const material_data& data);
 
 	private:
 		graphics::device* mp_device = nullptr;

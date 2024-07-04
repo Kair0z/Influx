@@ -30,11 +30,7 @@ namespace influx::application
 			render_init_args.m_api_type = renderer::e_render_api::dx12;
 			render_init_args.m_resource_dir = get_resource_directory();
 			renderer::initialize(render_init_args);
-
-			renderer::target_create_args target_args{};
-			target_args.m_width = args.m_window_width;
-			target_args.m_heigth = args.m_window_height;
-			renderer::target* window_target = renderer::create_target(target_args);
+			renderer::target* window_target = renderer::get_window_target(m_windowhandle);
 
 			renderer::present_args present_args{};
 			present_args.m_vsync = true;

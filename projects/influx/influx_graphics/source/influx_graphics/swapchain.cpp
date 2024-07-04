@@ -59,7 +59,7 @@ namespace influx::graphics
 
 	uint8 swapchain::get_num_backbuffers() const
 	{
-		return static_cast<uint8>(mp_buffer_resources.size());
+		return m_desc.m_num_buffers;
 	}
 
 	const swapchain_desc& swapchain::get_desc() const
