@@ -112,6 +112,10 @@ namespace influx::renderer
             {
                 m_swapchain_targets.push_back(new target(mp_device, mp_swapchain, i,
                     mp_desc_manager->get_rtv_heap()));
+
+#if _DEBUG
+                m_swapchain_targets[i]->set_name("window_target_" + to_string(i));
+#endif
             }
         }
 
@@ -197,6 +201,7 @@ namespace influx::renderer
     {
         graphics::present_args p_args{};
         mp_swapchain->present(p_args);
+
     }
 
     descriptor_manager* renderer_backend::get_descriptor_manager()

@@ -31,6 +31,11 @@ namespace influx::renderer
 		graphics::resource* get_resource() const;
 		graphics::render_target_view* get_rtv() const;
 
+#if _DEBUG
+		void set_name(const string& name);
+		const string& get_name() const;
+#endif
+
 	private:
 		// constructs a target from create_args, allocating new graphics resources
 		explicit target(graphics::device* device, graphics::descriptor_heap* rtv_heap, const target_create_args& args);
@@ -53,6 +58,10 @@ namespace influx::renderer
 		target_create_args m_args;
 		math::vectoru2 m_current_dimensions;
 		graphics::device* mp_device;
+
+#if _DEBUG
+		string m_debug_name;
+#endif
 
 		// only backend can create targets
 		friend class renderer_backend;

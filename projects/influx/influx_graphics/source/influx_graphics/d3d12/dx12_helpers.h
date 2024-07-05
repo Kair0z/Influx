@@ -65,7 +65,7 @@ namespace influx::graphics::dx12helpers
 
                 // Check to see whether the adapter supports Direct3D 12, but don't create the
                 // actual device yet.
-                //if (adapter_supports_dx12(adapter))
+                if (adapter_supports_dx12(adapter))
                 {
                     result_adapters.push_back(adapter);
                 }
@@ -81,7 +81,7 @@ namespace influx::graphics::dx12helpers
         _device_t* result_device = nullptr;
 
         // this better succeed...
-        ::D3D12CreateDevice(
+        HRESULT res = ::D3D12CreateDevice(
             adapter,
             D3D_FEATURE_LEVEL_11_0,
             IID_PPV_ARGS(&result_device));

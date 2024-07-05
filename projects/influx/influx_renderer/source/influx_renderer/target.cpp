@@ -42,6 +42,8 @@ namespace influx::renderer
 
 		// store the descriptor handle
 		m_descriptor_handle = mp_rtv->get_descriptor_handle();
+
+		mp_device = device;
 	}
 
 	target::target(graphics::device* device, graphics::resource* resource, graphics::render_target_view* rtv)
@@ -96,5 +98,17 @@ namespace influx::renderer
 		delete mp_rtv;
 		mp_rtv = mp_device->create_rtv(m_descriptor_handle, mp_resource);
 	}
+
+#if _DEBUG
+	void target::set_name(const string& name)
+	{
+		m_debug_name = name;
+	}
+
+	const string& target::get_name() const
+	{
+		return m_debug_name;
+	}
+#endif
 }
 
