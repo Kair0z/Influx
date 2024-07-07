@@ -27,7 +27,7 @@ namespace influx::graphics
 
 		virtual command_allocator* create_graphics_allocator() override;
 
-		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline_state* init_state = nullptr) override;
+		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) override;
 
 		virtual fence* create_fence(uint64 init_value = 0u) override;
 
@@ -36,6 +36,10 @@ namespace influx::graphics
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) override;
 
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) override;
+
+		virtual rootsignature* create_rootsignature(const rootsignature_desc& desc) override;
+
+		virtual pipeline* create_pipeline(const pipeline_desc& desc) override;
 
 	private:
 		IDXGIFactory2* mpdxgi_factory;

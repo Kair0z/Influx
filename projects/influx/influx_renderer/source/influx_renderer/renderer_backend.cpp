@@ -4,6 +4,8 @@
 // graphics includes
 #include "influx_graphics.h"
 #include "influx_renderer/descriptor_manager.h"
+#include "influx_graphics/pipeline.h"
+#include "influx_graphics/rootsignature.h"
 
 #include "influx_renderer/systems/imgui_system.h"
 
@@ -70,6 +72,17 @@ namespace influx::renderer
         // create descriptor manager
         {
             mp_desc_manager = new descriptor_manager(mp_device);
+        }
+
+        // create pipeline + rootsignature
+        {
+            graphics::rootsignature_desc desc{};
+            mp_rootsig = mp_device->create_rootsignature(desc);
+        }
+
+        {
+            graphics::pipeline_desc desc{};
+            mp_pipeline = mp_device->create_pipeline(desc);
         }
 
         create_render_systems();
@@ -150,11 +163,19 @@ namespace influx::renderer
             graphics::resource* target_resource = target.get_resource();
             graphics::render_target_view* target_rtv = target.get_rtv();
 
-            mp_commandlist->start(mp_allocators[0u], nullptr);
+            mp_commandlist->start(mp_allocators[0u], mp_pipeline);
             {
-                target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
+                mp_commandlist->set(mp_rootsig);
+                mp_commandlist->set(graphics::viewport{});
+                mp_commandlist->set(graphics::scissor_rect{});
+                mp_commandlist->set(target_rtv);
 
+                target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
+                
                 mp_commandlist->clear_rtv(target_rtv, { 1, 0, 0, 1 });
+                mp_commandlist->set(graphics::e_primitive_topology::trilist);
+                // set vertex buffers
+                mp_commandlist->draw_instanced({ 3u, 1u, 0u, 0u });
 
                 target_resource->transition(mp_commandlist, graphics::e_resource_state::present);
             }

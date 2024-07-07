@@ -8,6 +8,7 @@ project "influx_game"
     g_target_dir = g_dir_binaries .. "/%{prj.name}"
     
     targetdir(g_target_dir)
+    debugdir(g_target_dir)
     objdir(g_dir_int .. "/%{prj.name}")
 
     files
@@ -40,6 +41,7 @@ project "influx_game"
         {"{COPYFILE} %{cfg.buildtarget.directory}../influx_application/influx_application.dll %{cfg.buildtarget.directory}"},
         {"{COPYFILE} %{cfg.buildtarget.directory}../influx_renderer/influx_renderer.dll %{cfg.buildtarget.directory}"},
         {"{COPYFILE} %{cfg.buildtarget.directory}../influx_async/influx_async.dll %{cfg.buildtarget.directory}"},
+        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_assets/influx_assets.dll %{cfg.buildtarget.directory}"},
         {"{COPYDIR} " .. g_dir_resources .. " %{cfg.buildtarget.directory}/resources/" }
     }
 

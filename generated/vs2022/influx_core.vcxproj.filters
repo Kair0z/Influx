@@ -189,6 +189,9 @@
     <ClInclude Include="..\..\projects\influx\influx_core\include\core\scope.h">
       <Filter>include\core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_core\include\core\shader.h">
+      <Filter>include\core</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_core\include\core\singleton.h">
       <Filter>include\core</Filter>
     </ClInclude>

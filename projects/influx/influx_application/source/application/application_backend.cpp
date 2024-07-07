@@ -11,6 +11,9 @@
 // renderer
 #include "influx_renderer.h"
 
+// assets
+#include "influx_assets.h"
+
 namespace influx::application
 {
 	void application::run(const run_args& args)
@@ -28,6 +31,19 @@ namespace influx::application
 			window_args.m_name		= args.m_name;
 			m_windowhandle = platform::create_window(window_args);
 
+			// load meshes
+			assets::scene_data transistor_mesh_data{};
+			assets::scene_data box_mesh_data{};
+			assets::scene_load_args args{};
+			{
+				string filepath = get_resource_directory() + "/meshes/transistor.fbx";
+				assets::load_scene_file(filepath, transistor_mesh_data, args);
+			}
+			{
+				string filepath = get_resource_directory() + "/meshes/box.fbx";
+				assets::load_scene_file(filepath, box_mesh_data, args);
+			}
+			
 			// create renderer
 			renderer::init_args render_init_args{};
 			render_init_args.m_api_type = renderer::e_render_api::dx12;
@@ -45,11 +61,26 @@ namespace influx::application
 			{
 				math::vectorf3 scene_center = math::vectorf3::zero();
 
-				// data loading
-				renderer::mesh_data scene_data{};
-				scene_data.m_indices;
-				scene_data.m_vertices;
-				renderer::load("scene_mesh", scene_data);
+				// load data onto the renderer
+				{
+					renderer::mesh_data box_data{};
+					for (const scene::mesh::vertex& vertex : box_mesh_data.m_meshes[0].get_vertices())
+					{
+						box_data.m_vertices.push_back({});
+						box_data.m_vertices.back().m_position = vertex;
+					}
+					box_data.m_indices = box_mesh_data.m_meshes[0].get_indices();
+					renderer::load("box_mesh", box_data);
+
+					renderer::mesh_data transistor_data{};
+					for (const scene::mesh::vertex& vertex : transistor_mesh_data.m_meshes[0].get_vertices())
+					{
+						transistor_data.m_vertices.push_back({});
+						transistor_data.m_vertices.back().m_position = vertex;
+					}
+					box_data.m_indices = transistor_mesh_data.m_meshes[0].get_indices();
+					renderer::load("transistor_mesh", transistor_data);
+				}
 
 				// camera
 				renderer::camera render_camera{};

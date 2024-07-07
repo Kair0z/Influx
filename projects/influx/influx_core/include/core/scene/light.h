@@ -10,7 +10,7 @@ namespace influx::scene
 		directional,
 		point,
 		spot,
-		maximum
+		count
 	};
 
 	namespace detail

@@ -4,10 +4,11 @@
 
 #include "influx_graphics/d3d12/dx12_conversion.h"
 
-#include "influx_graphics/pipelinestate.h"
+#include "influx_graphics/d3d12/dx12_pipeline.h"
 #include "influx_graphics/d3d12/dx12_allocator.h"
 #include "influx_graphics/d3d12/dx12_resource_views.h"
 #include "influx_graphics/d3d12/dx12_resource.h"
+#include "influx_graphics/d3d12/dx12_rootsignature.h"
 
 namespace influx::graphics
 {
@@ -16,7 +17,7 @@ namespace influx::graphics
 		mp_native = mpdx_commandlist = mpdx_graphics_commandlist = commandlist;
 	}
 
-	void dx12_commandlist::start(command_allocator* allocator, pipeline_state* init_state)
+	void dx12_commandlist::start(command_allocator* allocator, pipeline* init_state)
 	{
 		ID3D12PipelineState* dxpipeline = (init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr);
 		ID3D12CommandAllocator* dxallocator = allocator->get_native<ID3D12CommandAllocator>();
@@ -26,6 +27,15 @@ namespace influx::graphics
 
 		// reset commandlist
 		mpdx_graphics_commandlist->Reset(dxallocator, dxpipeline);
+	}
+
+	void dx12_commandlist::draw_instanced(const draw_instanced_args& args)
+	{
+		mpdx_graphics_commandlist->DrawInstanced(
+			args.m_num_vertices_per_instance,
+			args.m_num_instances,
+			args.m_start_vertex,
+			args.m_start_instance);
 	}
 
 	void dx12_commandlist::clear_rtv(render_target_view* view, const math::vectorf4& clear_value)
@@ -47,6 +57,41 @@ namespace influx::graphics
 		auto dxdest = dest->get_native<ID3D12Resource>();
 
 		mpdx_graphics_commandlist->CopyResource(dxdest, dxsource);
+	}
+
+	void dx12_commandlist::set(render_target_view* rtv)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE* rtv_handle = rtv->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
+		mpdx_graphics_commandlist->OMSetRenderTargets(1u, rtv_handle, FALSE, nullptr);
+	}
+
+	void dx12_commandlist::set(rootsignature* rootsig)
+	{
+		auto dxrootsig = rootsig->get_native<ID3D12RootSignature>();
+		mpdx_graphics_commandlist->SetGraphicsRootSignature(dxrootsig);
+	}
+
+	void dx12_commandlist::set(pipeline* pipeline)
+	{
+		auto dxpipeline = pipeline->get_native<ID3D12PipelineState>();
+		mpdx_graphics_commandlist->SetPipelineState(dxpipeline);
+	}
+
+	void dx12_commandlist::set(const viewport& viewport)
+	{
+		D3D12_VIEWPORT dxviewport{};
+		mpdx_graphics_commandlist->RSSetViewports(1u, &dxviewport);
+	}
+
+	void dx12_commandlist::set(const scissor_rect& rect)
+	{
+		D3D12_RECT dxrect{};
+		mpdx_graphics_commandlist->RSSetScissorRects(1u, &dxrect);
+	}
+
+	void dx12_commandlist::set(e_primitive_topology topo)
+	{
+		mpdx_graphics_commandlist->IASetPrimitiveTopology(convert(topo));
 	}
 
 	void dx12_commandlist::end()

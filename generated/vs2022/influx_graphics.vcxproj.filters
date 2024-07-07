@@ -54,7 +54,7 @@
     <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\fence.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\pipelinestate.h">
+    <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\pipeline.h">
       <Filter>include\influx_graphics</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_graphics\include\influx_graphics\resource.h">
@@ -99,6 +99,9 @@
     <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_helpers.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_pipeline.h">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_resource.h">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClInclude>
@@ -141,6 +144,9 @@
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_helpers.cpp">
+      <Filter>source\influx_graphics\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_pipeline.cpp">
       <Filter>source\influx_graphics\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx\influx_graphics\source\influx_graphics\d3d12\dx12_resource.cpp">

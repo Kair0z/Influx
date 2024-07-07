@@ -4,13 +4,13 @@
 #include "influx_graphics/commandqueue.h"
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/commandallocator.h"
-#include "influx_graphics/pipelinestate.h"
+#include "influx_graphics/pipeline.h"
 #include "influx_graphics/fence.h"
 #include "influx_graphics/swapchain.h"
 #include "influx_graphics/resource.h"
 #include "influx_graphics/resource_views.h"
 #include "influx_graphics/descriptorheap.h"
-
+#include "influx_graphics/rootsignature.h"
 #include "core/platform/window.h"
 
 namespace influx::graphics
@@ -37,7 +37,7 @@ namespace influx::graphics
 
 		virtual command_allocator* create_graphics_allocator() = 0;
 
-		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline_state* init_state = nullptr) = 0;
+		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
 
 		virtual fence* create_fence(uint64 init_value = 0u) = 0;
 
@@ -47,6 +47,10 @@ namespace influx::graphics
 
 		// implicitly allocates a handle from rtv_heap
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) = 0;
+
+		virtual rootsignature* create_rootsignature(const rootsignature_desc& desc) = 0;
+
+		virtual pipeline* create_pipeline(const pipeline_desc& desc) = 0;
 
 	private:
 		vector<base*> mp_children = {};

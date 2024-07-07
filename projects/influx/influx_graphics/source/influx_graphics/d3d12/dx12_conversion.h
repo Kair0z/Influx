@@ -29,6 +29,7 @@ namespace influx::graphics
 		switch (format)
 		{
 		case e_format::rgba8: return DXGI_FORMAT_R8G8B8A8_UNORM;
+		case e_format::d32: return DXGI_FORMAT_D32_FLOAT;
 		default: return DXGI_FORMAT_R8G8_UNORM;
 		}
 	}
@@ -66,5 +67,35 @@ namespace influx::graphics
 		}
 
 		return D3D12_RESOURCE_STATE_COMMON;
+	}
+
+	inline D3D12_COMPARISON_FUNC convert(e_comparison_func func)
+	{
+		switch (func)
+		{
+		case e_comparison_func::lequal: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		default:
+		case e_comparison_func::count: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		}
+	}
+
+	inline D3D12_PRIMITIVE_TOPOLOGY_TYPE convert(e_primitive_topology_type type)
+	{
+		switch (type)
+		{
+		case e_primitive_topology_type::triangle: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		default:
+		case e_primitive_topology_type::count: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+		}
+	}
+
+	inline D3D_PRIMITIVE_TOPOLOGY convert(e_primitive_topology topo)
+	{
+		switch (topo)
+		{
+		case e_primitive_topology::trilist: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		default:
+		case e_primitive_topology::count: return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		}
 	}
 }

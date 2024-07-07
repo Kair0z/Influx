@@ -11,6 +11,8 @@ namespace influx::graphics
 	class command_list;
 	class command_allocator;
 	class fence;
+	class pipeline;
+	class rootsignature;
 }
 #pragma endregion
 
@@ -19,7 +21,6 @@ namespace influx::renderer
 	class descriptor_manager;
 	class target;
 
-	// backend singleton keeping static state for the renderer
 	class renderer_backend final
 		: public singleton<renderer_backend>
 	{
@@ -28,13 +29,10 @@ namespace influx::renderer
 
 	public:
 		void initialize(const init_args& args);
-
 		bool is_initialized() const;
-
 		void cleanup();
 
 		target* create_target(const target_create_args& args);
-
 		target* get_window_target(const platform::window_handle& window);
 
 		void acquire_swapchain_frame();
@@ -48,9 +46,7 @@ namespace influx::renderer
 		static descriptor_manager* get_descriptor_manager();
 
 		void load(const string& title, const mesh_data& data);
-
 		void load(const string& title, const texture_data& data);
-
 		void load(const string& title, const material_data& data);
 
 	private:
@@ -63,6 +59,9 @@ namespace influx::renderer
 		graphics::command_queue* mp_copy_queue = nullptr;
 		graphics::command_allocator* mp_copy_allocator = nullptr;
 		graphics::command_list* mp_copy_commandlist = nullptr;
+
+		graphics::rootsignature* mp_rootsig = nullptr;
+		graphics::pipeline* mp_pipeline = nullptr;
 
 		graphics::fence* mp_fence = nullptr;
 

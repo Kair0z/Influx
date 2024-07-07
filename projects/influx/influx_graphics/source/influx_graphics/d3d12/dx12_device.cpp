@@ -4,6 +4,7 @@
 
 // helpers
 #include "influx_graphics/d3d12/dx12_helpers.h"
+#include "d3dx12.h"
 
 // subheaders
 #include "influx_graphics/d3d12/dx12_commandqueue.h"
@@ -14,6 +15,8 @@
 #include "influx_graphics/d3d12/dx12_allocator.h"
 #include "influx_graphics/d3d12/dx12_resource_views.h"
 #include "influx_graphics/d3d12/dx12_descriptorheap.h"
+#include "influx_graphics/d3d12/dx12_pipeline.h"
+#include "influx_graphics/d3d12/dx12_rootsignature.h"
 
 // core win32
 #include "core/platform/win32/win32_window.h"
@@ -139,7 +142,7 @@ namespace influx::graphics
 		return new dx12_command_allocator(dxallocator);
 	}
 
-	command_list* dx12_device::create_graphics_command_list(command_allocator* allocator, pipeline_state* init_state)
+	command_list* dx12_device::create_graphics_command_list(command_allocator* allocator, pipeline* init_state)
 	{
 		auto dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(mpdx_devices[0u],
 			allocator->get_native<ID3D12CommandAllocator>(), D3D12_COMMAND_LIST_TYPE_DIRECT,
@@ -185,5 +188,82 @@ namespace influx::graphics
 			new_dxdescriptor, convert(resource->get_format()));
 
 		return new dx12_render_target_view(dx_rtv);
+	}
+
+	rootsignature* dx12_device::create_rootsignature(const rootsignature_desc& desc)
+	{
+		ID3D12RootSignature* dxrootsignature = nullptr;
+
+		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+
+		// This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
+		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+		if (mpdx_devices[0]->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)) != S_OK)
+		{
+			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+		}
+
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);    // 2 frequently changed diffuse + normal textures - using registers t1 and t2.
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);    // 1 frequently changed constant buffer.
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);                                                // 1 infrequently changed shadow texture - starting in register t0.
+		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 0);                                            // 2 static samplers.
+
+		CD3DX12_ROOT_PARAMETER1 rootParameters[4];
+		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
+		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_PIXEL);
+
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+		ID3DBlob* signature;
+		ID3DBlob* error;
+		HRESULT res = ::D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
+		res = mpdx_devices[0]->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&dxrootsignature));
+
+		return new dx12_rootsignature(dxrootsignature, desc);
+	}
+
+	pipeline* dx12_device::create_pipeline(const pipeline_desc& desc)
+	{
+		ID3D12PipelineState* dxpipeline = nullptr;
+
+		// input layout
+		D3D12_INPUT_LAYOUT_DESC input_layout_desc{};
+		input_layout_desc.pInputElementDescs;
+		input_layout_desc.NumElements;
+
+		// depth stencil
+		CD3DX12_DEPTH_STENCIL_DESC depth_stencil_desc(D3D12_DEFAULT);
+		depth_stencil_desc.DepthEnable = desc.m_depth_stencil_desc.m_depth_enable;
+		depth_stencil_desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		depth_stencil_desc.DepthFunc = convert(desc.m_depth_stencil_desc.m_depth_func);
+		depth_stencil_desc.StencilEnable = desc.m_depth_stencil_desc.m_stencil_enable;
+
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
+		pso_desc.InputLayout = input_layout_desc;
+		// pso_desc.pRootSignature = m_rootSignature.Get();
+		pso_desc.VS = CD3DX12_SHADER_BYTECODE(desc.m_vs.data(), desc.m_vs.size());
+		pso_desc.PS = CD3DX12_SHADER_BYTECODE(desc.m_ps.data(), desc.m_ps.size());
+		pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		pso_desc.DepthStencilState = depth_stencil_desc;
+		pso_desc.SampleMask = desc.m_sample_mask;
+		pso_desc.PrimitiveTopologyType = convert(desc.m_prim_type);
+		pso_desc.DSVFormat = convert(desc.m_format_dsv);
+		pso_desc.SampleDesc.Count = desc.m_sample_count;
+
+		// rtvs
+		for (size_t i = 0u; i < k_max_render_targets; ++i)
+		{
+			pso_desc.NumRenderTargets++;
+			pso_desc.RTVFormats[i] = convert(desc.m_rtvs[i].m_format);
+		}
+
+		// create the pipeline
+		HRESULT res = mpdx_devices[0]->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
+		return new dx12_pipeline(dxpipeline, desc);
 	}
 }

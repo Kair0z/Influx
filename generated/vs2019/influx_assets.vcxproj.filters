@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{89AF369E-F58E-B539-FEA6-40106A051C9B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source">
+      <UniqueIdentifier>{76FF3A1C-62A1-65F2-4B5C-7946379DEC42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\image">
+      <UniqueIdentifier>{0832E212-F494-71B7-9D1A-AA6D895C3D3A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\scene">
+      <UniqueIdentifier>{33BD9113-1F20-21B8-C8A5-596EB4E7EC3A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\shader">
+      <UniqueIdentifier>{7C822186-E842-9DBC-B17D-E6391DFDE198}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\projects\influx\influx_assets\include\influx_assets.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\source\assets_pch.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\source\scene\influx_assimp.h">
+      <Filter>source\scene</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\projects\influx\influx_assets\source\assets_pch.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_assets\source\image\image_loader.cpp">
+      <Filter>source\image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_assets\source\scene\scene_loader.cpp">
+      <Filter>source\scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_assets\source\shader\shader_loader.cpp">
+      <Filter>source\shader</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\projects\influx\influx_assets\premake5.lua" />
+  </ItemGroup>
+</Project>

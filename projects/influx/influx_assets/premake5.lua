@@ -1,9 +1,9 @@
-project "influx_async"
+project "influx_assets"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
 
-    g_project_dir = g_dir_projects_engine .. "/influx_async/"
+    g_project_dir = g_dir_projects_engine .. "/influx_assets/"
     g_source_dir = g_project_dir .. "/source/"
 
     targetdir(g_dir_binaries .. "/%{prj.name}")
@@ -16,8 +16,8 @@ project "influx_async"
         g_project_dir .. "**.lua"
     }
 
-    pchheader "async_pch.h"
-    pchsource ("source/async_pch.cpp")
+    pchheader "assets_pch.h"
+    pchsource ("source/assets_pch.cpp")
 
     defines
     {
@@ -28,12 +28,13 @@ project "influx_async"
     {
         "source",
         "include",
-        g_dir_core_include
+        g_dir_core_include,
+        g_dir_root .. "/vendor/include/assimp/"
     }
 
     links
     {
-
+        
     }
 
     -- deactivate precompiled headers for C files

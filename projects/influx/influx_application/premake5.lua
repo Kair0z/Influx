@@ -29,13 +29,15 @@ project "influx_application"
         "include",
         g_dir_core_include,
         g_dir_async_include,
-        g_dir_render_include
+        g_dir_render_include,
+        g_dir_assets_include
     }
 
     links
     {
         "influx_renderer",
-        "influx_async"
+        "influx_async",
+        "influx_assets"
     }
 
     filter "system:windows"
