@@ -129,11 +129,11 @@ namespace influx::graphics::dx12helpers
     }
 
     template <typename _fence_t>
-    inline _fence_t* create_fence(ID3D12Device* device)
+    inline _fence_t* create_fence(ID3D12Device* device, uint64 init_value = 0u)
     {
         _fence_t* result_fence = nullptr;
         D3D12_FENCE_FLAGS flags{};
-        device->CreateFence(0u, flags, IID_PPV_ARGS(&result_fence));
+        device->CreateFence(init_value, flags, IID_PPV_ARGS(&result_fence));
         return result_fence;
     }
 

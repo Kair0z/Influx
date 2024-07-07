@@ -23,9 +23,10 @@ namespace influx::graphics
 
 	void dx12_fence::wait_for_value(uint64 value, wait_handle& handle)
 	{
-		while (mpdx_fence->GetCompletedValue() < value)
+		const uint64 completed_value = mpdx_fence->GetCompletedValue();
+		while (completed_value != value)
 		{
-			::HANDLE event_handle{ ::CreateEventEx(0u, 0u, 0u, 0u) };
+			::HANDLE event_handle = ::CreateEventEx(NULL, 0, 0, EVENT_ALL_ACCESS);
 
 			// Fire event when GPU hits current fence.
 			mpdx_fence->SetEventOnCompletion(value, event_handle);

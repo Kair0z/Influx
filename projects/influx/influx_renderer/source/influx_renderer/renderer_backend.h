@@ -24,7 +24,7 @@ namespace influx::renderer
 		: public singleton<renderer_backend>
 	{
 		// konstants
-		constexpr static uint8 k_num_backbuffers = 3u;
+		constexpr static e_buffering k_buffering = e_buffering::tripple;
 
 	public:
 		void initialize(const init_args& args);

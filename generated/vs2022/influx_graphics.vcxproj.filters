@@ -332,12 +332,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkan.cppm">
-      <Filter>foreign\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx\influx_graphics\foreign\vulkan\vulkansc.cppm">
-      <Filter>foreign\vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\projects\influx\influx_graphics\source\graphics_pch.cpp">
       <Filter>source</Filter>
     </ClCompile>

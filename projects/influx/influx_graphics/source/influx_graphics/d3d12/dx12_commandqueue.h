@@ -12,6 +12,8 @@ namespace influx::graphics
 
 		virtual void submit_commandlists(const vector<command_list*>& commandlists) override;
 
+		virtual void queue_signal(fence* fence, uint64 value) override;
+
 	private:
 		ID3D12CommandQueue* mpdx_command_queue;
 	};

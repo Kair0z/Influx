@@ -39,7 +39,7 @@ namespace influx::graphics
 
 		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline_state* init_state = nullptr) = 0;
 
-		virtual fence* create_fence() = 0;
+		virtual fence* create_fence(uint64 init_value = 0u) = 0;
 
 		virtual resource* create_resource(const tex2D_desc& desc) = 0;
 

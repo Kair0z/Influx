@@ -3,6 +3,7 @@
 #include "dx12_headers.h"
 
 #include "influx_graphics/d3d12/dx12_commandlist.h"
+#include "influx_graphics/d3d12/dx12_fence.h"
 
 namespace influx::graphics
 {
@@ -22,5 +23,11 @@ namespace influx::graphics
 
 		mpdx_command_queue->ExecuteCommandLists(
 			static_cast<uint32>(commandlists.size()), dxcmdlists.data());
+	}
+
+	// queues a signal to the target fence
+	void dx12_commandqueue::queue_signal(fence* fence, uint64 value)
+	{
+		fence->queue_signal(value, this);
 	}
 }

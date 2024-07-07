@@ -93,7 +93,7 @@ namespace influx::graphics
 		return new vk_commandlist(vkcommandlist);
 	}
 
-	fence* vk_device::create_fence()
+	fence* vk_device::create_fence(uint64 init_value)
 	{
 		vk::FenceCreateInfo info{};
 		vk::Fence vkfence = get_main_device().createFence(info);

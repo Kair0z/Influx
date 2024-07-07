@@ -9,7 +9,7 @@ namespace influx::renderer
 	constexpr static uint8	k_num_srvs_max = 64u;
 	
 	// swapchain
-	constexpr static e_buffering k_swapchain_buffering_default = e_buffering::dubble;
+	constexpr static e_buffering k_swapchain_buffering_default = e_buffering::tripple;
 	constexpr static uint8 k_num_swapchain_buffers_max = static_cast<uint8>(e_buffering::max) - 1u;
 	constexpr static uint8 k_num_swapchain_buffers_def = static_cast<uint8>(k_swapchain_buffering_default);
 

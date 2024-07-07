@@ -67,9 +67,11 @@ namespace influx::application
 			
 			while (true)
 			{
-				renderer::acquire_swapchain_frame();
+				// acquire the window target:
+				const renderer::target& window_target 
+					= *renderer::get_window_target(m_windowhandle);
 
-				renderer::draw_scene(render_scene, *renderer::get_window_target(m_windowhandle));
+				renderer::draw_scene(render_scene, window_target);
 				
 				renderer::present_swapchain(present_args);
 			}
@@ -117,7 +119,7 @@ namespace influx::application
 
 		if (m_run_args.m_resources_dir.empty())
 		{
-			m_run_args.m_resources_dir = platform::get_current_directory() + "/Resources/";
+			m_run_args.m_resources_dir = platform::get_current_directory() + "/resources/";
 		}
 	}
 

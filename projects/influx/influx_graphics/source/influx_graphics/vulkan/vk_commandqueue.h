@@ -11,6 +11,9 @@ namespace influx::graphics
 
 		virtual void submit_commandlists(const vector<command_list*>& commandlists) override;
 
+		// queues a signal to the target fence
+		virtual void queue_signal(fence* fence, uint64 value) override;
+
 	private:
 		vk::Queue m_vk_queue;
 	};

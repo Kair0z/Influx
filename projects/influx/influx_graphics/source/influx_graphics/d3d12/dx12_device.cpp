@@ -128,9 +128,9 @@ namespace influx::graphics
 		return new dx12_commandlist(dxcommandlist);
 	}
 
-	fence* dx12_device::create_fence()
+	fence* dx12_device::create_fence(uint64 init_value)
 	{
-		return new dx12_fence(dx12helpers::create_fence<ID3D12Fence>(mpdx_devices[0u]));
+		return new dx12_fence(dx12helpers::create_fence<ID3D12Fence>(mpdx_devices[0u], init_value));
 	}
 
 	resource* dx12_device::create_resource(const tex2D_desc& desc)

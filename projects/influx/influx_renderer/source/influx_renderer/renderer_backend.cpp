@@ -54,7 +54,7 @@ namespace influx::renderer
 
         // create commandlist & allocators for rendering:
         {
-            for (size_t i = 0u; i < k_num_inflight_max; ++i)
+            for (size_t i = 0u; i < get_num_buffers(k_buffering); ++i)
             {
                 mp_allocators.push_back(mp_device->create_graphics_allocator());
             }
@@ -64,7 +64,7 @@ namespace influx::renderer
 
         // create fence
         {
-            mp_fence = mp_device->create_fence();
+            mp_fence = mp_device->create_fence((uint64)-1);
         }
 
         // create descriptor manager
@@ -98,11 +98,11 @@ namespace influx::renderer
 
     target* renderer_backend::get_window_target(const platform::window_handle& window)
     {
+        // create the swapchain for the first time
         if (mp_swapchain == nullptr)
         {
-            // create swapchain and targets:
             graphics::swapchain_desc desc{};
-            desc.m_num_buffers = k_num_backbuffers;
+            desc.m_num_buffers = get_num_buffers(k_buffering);
             desc.m_format; //  todo
             desc.m_dimensions; // todo
             mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
@@ -119,9 +119,12 @@ namespace influx::renderer
             }
         }
 
-        const uint8 current_swapchain_index = mp_swapchain->get_current_backbuffer_index();
+        // acquire the frame
+        acquire_swapchain_frame();
+        const uint8 current_swapchain_index 
+            = mp_swapchain->get_current_backbuffer_index();
 
-        // resize if necessary
+        // resize the swapchain resources if necessary
         if (mp_swapchain->needs_recreate(window))
         {
             mp_swapchain->resize(window); // resizes the underlying resources
@@ -162,14 +165,14 @@ namespace influx::renderer
             influx_scope("renderer_backend::draw_scene::submit_commands");
             mp_graphics_queue->submit_commandlists({ mp_commandlist });
 
-            // add signal command to queue
-            mp_fence->queue_signal(m_frame_count, mp_graphics_queue);
+            // queue a signal to the fence that the gpu work [frame_count] is done
+            mp_graphics_queue->queue_signal(mp_fence, m_frame_count);
         }
 
         {
             influx_scope("renderer_backend::draw_scene::wait_for_commands");
 
-            // wait for command queue to signal our frame value
+            // wait for the signal
             wait_handle handle{};
             mp_fence->wait_for_value(m_frame_count, handle);
         }
