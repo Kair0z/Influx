@@ -33,15 +33,10 @@ namespace influx::application
 
 			// load meshes
 			assets::scene_data transistor_mesh_data{};
-			assets::scene_data box_mesh_data{};
 			assets::scene_load_args args{};
 			{
 				string filepath = get_resource_directory() + "/meshes/transistor.fbx";
 				assets::load_scene_file(filepath, transistor_mesh_data, args);
-			}
-			{
-				string filepath = get_resource_directory() + "/meshes/box.fbx";
-				assets::load_scene_file(filepath, box_mesh_data, args);
 			}
 			
 			// create renderer
@@ -63,22 +58,13 @@ namespace influx::application
 
 				// load data onto the renderer
 				{
-					renderer::mesh_data box_data{};
-					for (const scene::mesh::vertex& vertex : box_mesh_data.m_meshes[0].get_vertices())
-					{
-						box_data.m_vertices.push_back({});
-						box_data.m_vertices.back().m_position = vertex;
-					}
-					box_data.m_indices = box_mesh_data.m_meshes[0].get_indices();
-					renderer::load("box_mesh", box_data);
-
 					renderer::mesh_data transistor_data{};
 					for (const scene::mesh::vertex& vertex : transistor_mesh_data.m_meshes[0].get_vertices())
 					{
 						transistor_data.m_vertices.push_back({});
 						transistor_data.m_vertices.back().m_position = vertex;
 					}
-					box_data.m_indices = transistor_mesh_data.m_meshes[0].get_indices();
+					transistor_data.m_indices = transistor_mesh_data.m_meshes[0].get_indices();
 					renderer::load("transistor_mesh", transistor_data);
 				}
 
