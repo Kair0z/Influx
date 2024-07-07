@@ -38,6 +38,8 @@ namespace influx::graphics::dx12helpers
             // Enable additional debug layers.
             dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
         }
+
+        
     }
 
     ID3D12CommandQueue* create_command_queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, int priority)

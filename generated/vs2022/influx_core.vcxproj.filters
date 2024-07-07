@@ -123,6 +123,9 @@
     <ClInclude Include="..\..\projects\influx\influx_core\include\core\graph\hierarchy.h">
       <Filter>include\core\graph</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_core\include\core\log.h">
+      <Filter>include\core</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_core\include\core\macros.h">
       <Filter>include\core</Filter>
     </ClInclude>

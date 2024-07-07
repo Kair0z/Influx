@@ -4,6 +4,8 @@ project "influx_graphics"
     cppdialect "C++20"
 
     g_project_dir = g_dir_projects_engine .. "/%{prj.name}/"
+    g_compile_vulkan = false
+    g_compile_d3d12 = true
 
     targetdir(g_dir_binaries .. "/%{prj.name}")
     objdir(g_dir_int .. "/%{prj.name}")
@@ -16,12 +18,19 @@ project "influx_graphics"
         g_project_dir .. "**.hpp"
     }
 
+    removefiles
+    {
+        iif(g_compile_vulkan ~= true, "**/vulkan/**", ""),
+        iif(g_compile_d3d12 ~= true, "**/d3d12/**", "")
+    }
+
     pchheader "graphics_pch.h"
     pchsource "source/graphics_pch.cpp"
 
     defines
     {
-        
+        iif(g_compile_vulkan, "INFLUX_VULKAN=1", "INFLUX_VULKAN=0"),
+        iif(g_compile_d3d12, "INFLUX_DX12=1", "INFLUX_DX12=0")
     }
 
     includedirs

@@ -33,7 +33,7 @@ namespace influx::application
 		platform::window_handle m_windowhandle = nullptr;
 		platform::instance_handle m_instancehandle = nullptr;
 
-		uint64 m_mainthread_frame = 0u;
+		uint64 m_frame = 0u;
 		std::atomic_bool m_is_quit_requested = false;
 
 		run_args m_run_args{};

@@ -9,4 +9,11 @@ namespace influx::graphics
 	{
 		mp_native = mpdx_resource = resource;
 	}
+
+#if _DEBUG
+	void dx12_resource::set_name_impl(const string& new_name)
+	{
+		mpdx_resource->SetName(to_wstring(new_name).c_str());
+	}
+#endif
 }

@@ -29,7 +29,6 @@ namespace influx::graphics
 #if _DEBUG
 		dx12helpers::set_debug_layer_enabled(true);
 #endif
-
 		// query adapters
 		auto adapters = dx12helpers::get_hardware_adapters<IDXGIAdapter1>(mpdxgi_factory);
 		for (size_t i = 0u; i < adapters.size(); ++i)
@@ -40,6 +39,29 @@ namespace influx::graphics
 		// create 1 dx12 logical device of first adapter
 		mpdx_devices.push_back(
 			dx12helpers::create_logical_device<ID3D12Device>(mpdxgi_adapters[0u]));
+
+#if _DEBUG
+		for (size_t i = 0u; i < mpdx_devices.size(); ++i)
+		{
+			ID3D12InfoQueue* info_queue;
+			HRESULT res = mpdx_devices[i]->QueryInterface(IID_PPV_ARGS(&info_queue));
+			if (res == S_OK)
+			{
+				D3D12_MESSAGE_ID hide[] =
+				{
+					D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
+					D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
+					// Workarounds for debug layer issues on hybrid-graphics systems
+					D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE,
+					D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE,
+				};
+				D3D12_INFO_QUEUE_FILTER filter = {};
+				filter.DenyList.NumIDs = _countof(hide);
+				filter.DenyList.pIDList = hide;
+				info_queue->AddStorageFilterEntries(&filter);
+			}
+		}
+#endif
 
 		// query strides:
 		auto strides = dx12helpers::query_descriptor_strides(mpdx_devices[0]);

@@ -1,6 +1,9 @@
 #include "app_pch.h"
 #include "application/application_backend.h"
 
+// core:
+#include "core/log.h"
+
 // platform: win32
 #include "core/platform/win32/win32_platform.h"
 #include "core/platform/win32/win32_window.h"
@@ -65,15 +68,26 @@ namespace influx::application
 				render_scene.m_meshes.push_back(mesh_instance);
 			}
 			
-			while (true)
+			while (!m_is_quit_requested)
 			{
-				// acquire the window target:
-				const renderer::target& window_target 
-					= *renderer::get_window_target(m_windowhandle);
+				// returns false if quit event was requested
+				if (!platform::poll_window_events(m_windowhandle))
+				{
+					request_quit();
+					continue;
+				}
+				else
+				{
+					// acquire the window target:
+					const renderer::target& window_target
+						= *renderer::get_window_target(m_windowhandle);
 
-				renderer::draw_scene(render_scene, window_target);
-				
-				renderer::present_swapchain(present_args);
+					renderer::draw_scene(render_scene, window_target);
+
+					renderer::present_swapchain(present_args);
+
+					influx::logn("Frame: {}", m_frame++);
+				}
 			}
 		}
 	}

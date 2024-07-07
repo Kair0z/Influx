@@ -103,6 +103,10 @@ namespace influx::renderer
 	void target::set_name(const string& name)
 	{
 		m_debug_name = name;
+
+#if _DEBUG
+		mp_resource->set_name(m_debug_name);
+#endif
 	}
 
 	const string& target::get_name() const

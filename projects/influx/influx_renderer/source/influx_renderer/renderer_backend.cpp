@@ -203,8 +203,8 @@ namespace influx::renderer
     void renderer_backend::present_swapchain(const present_args& args)
     {
         graphics::present_args p_args{};
+        p_args.m_vsync = args.m_vsync;
         mp_swapchain->present(p_args);
-
     }
 
     descriptor_manager* renderer_backend::get_descriptor_manager()
