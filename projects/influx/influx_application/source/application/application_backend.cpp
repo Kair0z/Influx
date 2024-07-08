@@ -3,6 +3,7 @@
 
 // core:
 #include "core/log.h"
+#include "core/time.h"
 
 // platform: win32
 #include "core/platform/win32/win32_platform.h"
@@ -130,8 +131,18 @@ namespace influx::application
 				render_scene.m_meshes.push_back(mesh_instance);
 			}
 			
+			time::point last_tick = time::get_now();
+			float time = 0.0f;
 			while (!m_is_quit_requested)
 			{
+				float delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
+				time += delta_seconds;
+				last_tick = time::get_now();
+
+				render_scene.m_cameras[0].m_position.x = cos(time) * 300.0f;
+				render_scene.m_cameras[0].m_position.z = sin(time) * 300.0f;
+				render_scene.m_cameras[0].look_at(math::vectorf3::zero());
+
 				// returns false if quit event was requested
 				if (!platform::poll_window_events(m_windowhandle))
 				{
