@@ -24,8 +24,21 @@ namespace influx::graphics
 	{
 		rgba8 = 0,
 		d32 = 1,
+		u32 = 2,
 		count
 	};
+
+	constexpr size_t deduce_bytesize(e_format format)
+	{
+		switch (format)
+		{
+		case e_format::d32: return 4u;
+		case e_format::rgba8: return 4u * 8u;
+		case e_format::u32: return 4u;
+		default:
+		case e_format::count: return (size_t)-1;
+		}
+	}
 
 	enum class e_comparison_func : uint8
 	{
@@ -45,13 +58,21 @@ namespace influx::graphics
 		count
 	};
 
-	struct viewport
+	struct viewport final
 	{
-
+		float m_left;
+		float m_top;
+		float m_width;
+		float m_height;
+		float m_depth_min;
+		float m_depth_max;
 	};
 
-	struct scissor_rect
+	struct rect final
 	{
-
+		uint32 m_left;
+		uint32 m_top;
+		uint32 m_right;
+		uint32 m_bottom;
 	};
 }

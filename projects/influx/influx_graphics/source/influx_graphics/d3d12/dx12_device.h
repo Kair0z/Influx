@@ -31,15 +31,22 @@ namespace influx::graphics
 
 		virtual fence* create_fence(uint64 init_value = 0u) override;
 
-		virtual resource* create_resource(const tex2D_desc& desc) override;
+		virtual resource* create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
+
+		virtual resource* create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) override;
 
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) override;
-
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) override;
+
+		virtual input_resource_view* create_irv(descriptor_heap* irv_heap, resource* resource) override;
+		virtual input_resource_view* create_irv(descriptor_handle handle, resource* resource) override;
+
+		virtual sampler_view* create_sampview(descriptor_heap* samp_heap, resource* resource) override;
+		virtual sampler_view* create_sampview(descriptor_handle handle, resource* resource) override;
 
 		virtual rootsignature* create_rootsignature(const rootsignature_desc& desc) override;
 
-		virtual pipeline* create_pipeline(const pipeline_desc& desc) override;
+		virtual pipeline* create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) override;
 
 	private:
 		IDXGIFactory2* mpdxgi_factory;

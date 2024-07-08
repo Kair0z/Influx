@@ -69,6 +69,16 @@ namespace influx::renderer
 		return mp_rtv;
 	}
 
+	uint32 target::get_width() const
+	{
+		return m_current_dimensions.x;
+	}
+
+	uint32 target::get_height() const
+	{
+		return m_current_dimensions.y;
+	}
+
 	void target::resize(const math::vectoru2& dimensions)
 	{
 		if (dimensions != m_current_dimensions)

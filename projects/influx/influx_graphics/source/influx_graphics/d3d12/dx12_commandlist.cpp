@@ -9,6 +9,7 @@
 #include "influx_graphics/d3d12/dx12_resource_views.h"
 #include "influx_graphics/d3d12/dx12_resource.h"
 #include "influx_graphics/d3d12/dx12_rootsignature.h"
+#include "influx_graphics/d3d12/dx12_descriptorheap.h"
 
 namespace influx::graphics
 {
@@ -38,6 +39,40 @@ namespace influx::graphics
 			args.m_start_instance);
 	}
 
+	void dx12_commandlist::draw_indexed(const draw_indexed_args& args)
+	{
+		mpdx_graphics_commandlist->DrawIndexedInstanced(
+			args.m_num_indexes_per_instance,
+			args.m_num_instances,
+			args.m_start_index,
+			args.m_start_vertex,
+			args.m_start_instance);
+	}
+
+	void dx12_commandlist::set_indexbuffer(resource* index_buffer)
+	{
+		auto dxresource = index_buffer->get_native<ID3D12Resource>();
+
+		D3D12_INDEX_BUFFER_VIEW ib_view{};
+		ib_view.BufferLocation = dxresource->GetGPUVirtualAddress();
+		ib_view.SizeInBytes = (uint32)index_buffer->get_bytesize();
+		ib_view.Format = convert(index_buffer->get_format());
+
+		mpdx_graphics_commandlist->IASetIndexBuffer(&ib_view);
+	}
+
+	void dx12_commandlist::set_vertexbuffer(resource* vertex_buffer)
+	{
+		auto dxresource = vertex_buffer->get_native<ID3D12Resource>();
+
+		D3D12_VERTEX_BUFFER_VIEW vb_view{};
+		vb_view.BufferLocation = dxresource->GetGPUVirtualAddress();
+		vb_view.SizeInBytes = (uint32)vertex_buffer->get_bytesize();
+		vb_view.StrideInBytes = (uint32)vertex_buffer->get_bytestride();
+
+		mpdx_graphics_commandlist->IASetVertexBuffers(0u, 1u, &vb_view);
+	}
+
 	void dx12_commandlist::clear_rtv(render_target_view* view, const math::vectorf4& clear_value)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE* cpu_handle = view->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
@@ -57,6 +92,12 @@ namespace influx::graphics
 		auto dxdest = dest->get_native<ID3D12Resource>();
 
 		mpdx_graphics_commandlist->CopyResource(dxdest, dxsource);
+	}
+
+	void dx12_commandlist::set(descriptor_heap* heap)
+	{
+		auto dxheap = heap->get_native<ID3D12DescriptorHeap>();
+		mpdx_graphics_commandlist->SetDescriptorHeaps(1u, &dxheap);
 	}
 
 	void dx12_commandlist::set(render_target_view* rtv)
@@ -80,12 +121,22 @@ namespace influx::graphics
 	void dx12_commandlist::set(const viewport& viewport)
 	{
 		D3D12_VIEWPORT dxviewport{};
+		dxviewport.TopLeftX = viewport.m_left;
+		dxviewport.TopLeftY = viewport.m_top;
+		dxviewport.Width = viewport.m_width;
+		dxviewport.Height = viewport.m_height;
+		dxviewport.MinDepth = viewport.m_depth_min;
+		dxviewport.MaxDepth = viewport.m_depth_max;
 		mpdx_graphics_commandlist->RSSetViewports(1u, &dxviewport);
 	}
 
-	void dx12_commandlist::set(const scissor_rect& rect)
+	void dx12_commandlist::set(const rect& rect)
 	{
 		D3D12_RECT dxrect{};
+		dxrect.left = rect.m_left;
+		dxrect.top = rect.m_top;
+		dxrect.right = rect.m_right;
+		dxrect.bottom = rect.m_bottom;
 		mpdx_graphics_commandlist->RSSetScissorRects(1u, &dxrect);
 	}
 

@@ -16,6 +16,9 @@ namespace influx::renderer
 		virtual ~descriptor_manager();
 
 		graphics::descriptor_heap* get_rtv_heap() const;
+		graphics::descriptor_heap* get_samp_heap() const;
+		graphics::descriptor_heap* get_input_heap() const;
+		graphics::descriptor_heap* get_dsv_heap() const;
 
 	private:
 		graphics::descriptor_heap* mp_rtv_heap;

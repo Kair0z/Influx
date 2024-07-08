@@ -140,6 +140,9 @@
     <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\target.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\texture.cpp">
+      <Filter>source\influx_renderer</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\projects\influx\influx_renderer\source\renderer_pch.cpp">
       <Filter>source</Filter>
     </ClCompile>

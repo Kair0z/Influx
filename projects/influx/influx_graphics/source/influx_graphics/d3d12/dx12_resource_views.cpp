@@ -10,4 +10,32 @@ namespace influx::graphics
 	{
 		mp_native = &m_dx_cpu_handle;
 	}
+
+	dx12_vertex_buffer_view::dx12_vertex_buffer_view(D3D12_VERTEX_BUFFER_VIEW vb_view)
+		: vertex_buffer_view( reinterpret_cast<descriptor_handle>(vb_view.BufferLocation) )
+		, m_dx_vbv{vb_view}
+	{
+		mp_native = &m_dx_vbv;
+	}
+
+	dx12_index_buffer_view::dx12_index_buffer_view(D3D12_INDEX_BUFFER_VIEW index_view)
+		: index_buffer_view( reinterpret_cast<descriptor_handle>(index_view.BufferLocation) )
+		, m_dx_ibv{ index_view }
+	{
+		mp_native = &m_dx_ibv;
+	}
+
+	dx12_sampler_view::dx12_sampler_view(D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+		: sampler_view(reinterpret_cast<descriptor_handle>(descriptor.ptr) )
+		, m_dx_descriptor_handle{ descriptor }
+	{
+		mp_native = &m_dx_descriptor_handle;
+	}
+
+	dx12_input_resource_view::dx12_input_resource_view(D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+		: input_resource_view(reinterpret_cast<descriptor_handle>(descriptor.ptr))
+		, m_dx_descriptor_handle{ descriptor }
+	{
+		mp_native = &m_dx_descriptor_handle;
+	}
 }

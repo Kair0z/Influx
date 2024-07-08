@@ -22,4 +22,32 @@ namespace influx::graphics
 		render_target_view(descriptor_handle handle)
 			: resource_view(handle) {}
 	};
+
+	class vertex_buffer_view : public resource_view
+	{
+	public:
+		vertex_buffer_view(descriptor_handle handle)
+			: resource_view(handle) {}
+	};
+
+	class index_buffer_view : public resource_view
+	{
+	public:
+		index_buffer_view(descriptor_handle handle)
+			: resource_view(handle) {}
+	};
+
+	class sampler_view : public resource_view
+	{
+	public:
+		sampler_view(descriptor_handle handle)
+			: resource_view(handle) {}
+	};
+
+	class input_resource_view : public resource_view
+	{
+	public:
+		input_resource_view(descriptor_handle handle)
+			: resource_view(handle) {}
+	};
 }

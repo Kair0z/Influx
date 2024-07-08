@@ -48,6 +48,11 @@ namespace influx::renderer
 		void load(const string& title, const mesh_data& data);
 		void load(const string& title, const texture_data& data);
 		void load(const string& title, const material_data& data);
+		void load(const string& title, const shader_data& data);
+
+	private:
+		void draw_meshes(const scene& scene);
+		bool create_pipeline_if_possible();
 
 	private:
 		graphics::device* mp_device = nullptr;
@@ -72,6 +77,13 @@ namespace influx::renderer
 
 		uint64 m_frame_count = 0u;
 		bool m_is_initialized = false;
+
+		// resources
+		map<string, graphics::resource*> m_vertex_buffers;
+		map<string, graphics::resource*> m_index_buffers;
+		map<string, shader_data> m_vertex_shaders;
+		map<string, shader_data> m_pixel_shaders;
+		vector<texture*> m_textures;
 
 		void create_render_systems();
 

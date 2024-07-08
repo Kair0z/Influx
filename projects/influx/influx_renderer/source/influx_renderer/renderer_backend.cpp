@@ -74,15 +74,15 @@ namespace influx::renderer
             mp_desc_manager = new descriptor_manager(mp_device);
         }
 
-        // create pipeline + rootsignature
+        // create textures
         {
-            graphics::rootsignature_desc desc{};
-            mp_rootsig = mp_device->create_rootsignature(desc);
-        }
-
-        {
-            graphics::pipeline_desc desc{};
-            mp_pipeline = mp_device->create_pipeline(desc);
+            texture_create_args args{};
+            args.m_width = 512u;
+            args.m_heigth = 512u;
+            for (size_t i = 0u; i < 128u; ++i)
+            {
+                m_textures.push_back(new texture(mp_device, mp_desc_manager->get_input_heap(), args));
+            }
         }
 
         create_render_systems();
@@ -165,17 +165,17 @@ namespace influx::renderer
 
             mp_commandlist->start(mp_allocators[0u], mp_pipeline);
             {
-                mp_commandlist->set(mp_rootsig);
-                mp_commandlist->set(graphics::viewport{});
-                mp_commandlist->set(graphics::scissor_rect{});
-                mp_commandlist->set(target_rtv);
+                const uint32 target_width = target.get_width();
+                const uint32 target_height = target.get_height();
+                mp_commandlist->set(graphics::viewport{ (float)target_width, (float)target_height, 0.0f, 1.0f});
+                mp_commandlist->set(graphics::rect{0u, 0u, target_width, target_height});
 
                 target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
                 
+                mp_commandlist->set(target_rtv);
                 mp_commandlist->clear_rtv(target_rtv, { 1, 0, 0, 1 });
-                mp_commandlist->set(graphics::e_primitive_topology::trilist);
-                // set vertex buffers
-                mp_commandlist->draw_instanced({ 3u, 1u, 0u, 0u });
+               
+                draw_meshes(scene);
 
                 target_resource->transition(mp_commandlist, graphics::e_resource_state::present);
             }
@@ -199,6 +199,57 @@ namespace influx::renderer
         }
 
         ++m_frame_count;
+    }
+
+    void renderer_backend::draw_meshes(const scene& scene)
+    {
+        // try to create the pipeline
+        const bool we_have_a_pipeline = create_pipeline_if_possible();
+        if (!we_have_a_pipeline)
+        {
+            return;
+        }
+
+        mp_commandlist->set(graphics::e_primitive_topology::trilist);
+        mp_commandlist->set(mp_rootsig);
+        mp_commandlist->set(mp_pipeline);
+        mp_commandlist->set(mp_desc_manager->get_input_heap());
+        mp_commandlist->set(mp_desc_manager->get_samp_heap());
+
+        for (size_t i = 0u; i < scene.m_meshes.size(); ++i)
+        {
+            const string& mesh_name = scene.m_meshes[i].m_name;
+            influx_assert(m_vertex_buffers.contains(mesh_name));
+
+            graphics::resource* vertex_buffer = m_vertex_buffers[mesh_name];
+            const uint32 num_vertices = vertex_buffer->get_bytesize() / vertex_buffer->get_bytestride();
+
+            // mp_commandlist->set_indexbuffer(m_index_buffers[mesh_name]);
+            mp_commandlist->set_vertexbuffer(vertex_buffer);
+            mp_commandlist->draw_instanced({ num_vertices, 1u, 0u, 0u });
+        }
+    }
+
+    bool renderer_backend::create_pipeline_if_possible()
+    {
+        if (!m_vertex_shaders.empty() 
+            && !m_pixel_shaders.empty()
+            && mp_pipeline == nullptr)
+        {
+            {
+                graphics::rootsignature_desc desc{};
+                mp_rootsig = mp_device->create_rootsignature(desc);
+            }
+
+            {
+                graphics::pipeline_desc desc{};
+                desc.m_vs = m_vertex_shaders.cbegin()->second.m_bytecode;
+                desc.m_ps = m_pixel_shaders.cbegin()->second.m_bytecode;
+                mp_pipeline = mp_device->create_pipeline(mp_rootsig, desc);
+            }
+        }
+
+        return mp_pipeline != nullptr;
     }
 
     void renderer_backend::copy_target(const target& source, const target& dest)
@@ -240,7 +291,40 @@ namespace influx::renderer
 
     void renderer_backend::load(const string& title, const mesh_data& data)
     {
-        // todo...
+        if (!m_vertex_buffers.contains(title))
+        {
+            // create index / vertex buffer on the shared heap (so cpu can write to it)
+            graphics::heap_desc heap_desc{};
+            heap_desc.m_type = graphics::e_heap_type::shared;
+
+            // set default resource state to read
+            graphics::buffer_desc desc{};
+            desc.m_init_state = graphics::e_resource_state::read;
+
+            // create vertex buffer resource
+            desc.m_bytesize = data.m_vertices.size() * sizeof(vertex_data);
+            desc.m_bytestride = sizeof(vertex_data);
+            m_vertex_buffers[title] = mp_device->create_resource(desc, heap_desc);
+            m_vertex_buffers[title]->map([&data](void* target)
+            {
+                memcpy(target, 
+                    data.m_vertices.data(), 
+                    data.m_vertices.size() * sizeof(vertex_data));
+            });
+
+            // create index buffer resource
+            desc.m_bytesize = data.m_indices.size() * sizeof(index);
+            desc.m_bytestride = sizeof(index);
+            desc.m_format = graphics::e_format::u32;
+            m_index_buffers[title] = mp_device->create_resource(desc, heap_desc);
+            m_index_buffers[title]->map([&data](void* target)
+            {
+                 memcpy(target,
+                     data.m_indices.data(),
+                     data.m_indices.size() * sizeof(index));
+            });
+        }
+        
     }
 
     void renderer_backend::load(const string& title, const texture_data& data)
@@ -251,6 +335,24 @@ namespace influx::renderer
     void renderer_backend::load(const string& title, const material_data& data)
     {
         // todo...
+    }
+
+    void renderer_backend::load(const string& title, const shader_data& data)
+    {
+        map<string, shader_data>* target_map = nullptr;
+        switch (data.m_type)
+        {
+        case e_shader_type::vs: target_map = &m_vertex_shaders;
+            break;
+        case e_shader_type::ps: target_map = &m_pixel_shaders;
+            break;
+        }
+        influx_assert_not_null(target_map);
+
+        if (!target_map->contains(title))
+        {
+            (*target_map)[title] = data;
+        }
     }
 
 #pragma region frontend_api
@@ -311,6 +413,11 @@ namespace influx::renderer
     }
 
     void load(const string& title, const material_data& data)
+    {
+        renderer_backend::get_instance().load(title, data);
+    }
+
+    void load(const string& title, const shader_data& data)
     {
         renderer_backend::get_instance().load(title, data);
     }

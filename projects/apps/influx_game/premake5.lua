@@ -42,6 +42,7 @@ project "influx_game"
         {"{COPYFILE} %{cfg.buildtarget.directory}../influx_renderer/influx_renderer.dll %{cfg.buildtarget.directory}"},
         {"{COPYFILE} %{cfg.buildtarget.directory}../influx_async/influx_async.dll %{cfg.buildtarget.directory}"},
         {"{COPYFILE} %{cfg.buildtarget.directory}../influx_assets/influx_assets.dll %{cfg.buildtarget.directory}"},
+        {"{COPYFILE} " .. g_dir_root .. "/vendor/bin/x64/debug/dxil.dll %{cfg.buildtarget.directory}"},
         {"{COPYDIR} " .. g_dir_resources .. " %{cfg.buildtarget.directory}/resources/" }
     }
 

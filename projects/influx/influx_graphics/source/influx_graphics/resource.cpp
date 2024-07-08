@@ -8,18 +8,27 @@ namespace influx::graphics
 	resource::resource(const tex2D_desc& desc)
 		: m_tex2D_desc{desc}
 	{
+		m_bytesize =
+			size_t(desc.m_dimensions.x) 
+			* size_t(desc.m_dimensions.y)
+			* size_t(desc.m_num_mips)
+			* size_t(desc.m_arraysize)
+			* deduce_bytesize(desc.m_format);
 
+		m_format = desc.m_format;
 	}
 
 	resource::resource(const buffer_desc& desc)
 		: m_buffer_desc{desc}
 	{
-
+		m_bytesize = m_buffer_desc.m_bytesize;
+		m_bytestride = m_buffer_desc.m_bytestride;
+		m_format = desc.m_format;
 	}
 
 	e_format resource::get_format() const
 	{
-		return m_tex2D_desc.m_format;
+		return m_format;
 	}
 
 	uint32 resource::get_width() const
@@ -30,6 +39,16 @@ namespace influx::graphics
 	uint32 resource::get_height() const
 	{
 		return m_tex2D_desc.m_dimensions.y;
+	}
+
+	size_t resource::get_bytesize() const
+	{
+		return m_bytesize;
+	}
+
+	size_t resource::get_bytestride() const
+	{
+		return m_bytestride;
 	}
 
 	e_resource_state resource::get_state() const

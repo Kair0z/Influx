@@ -1,44 +1,43 @@
-
-Texture2D<float4> g_texture         : register(t0);
-SamplerState g_texture_sampler      : register(s0);
-
-cbuffer view_constant_buffer : register(b0)
-{
-    row_major float4x4 mat_vp;
-};
-
-struct Vertex
+struct vs_input
 {
     float3 position : POSITION;
-    float4 color : COLOR;
-    float3 normal : NORMAL;
-    float2 uv : TEXCOORD;
-
-    row_major float4x4 instance_transform : INSTANCE_DATA;
-    float4 instance_color : INSTANCE_COLOR;
+    float2 texcoord : TEXCOORD;
 };
 
-struct PSInput
+struct ps_input
 {
     float4 position : SV_POSITION;
-    float4 color : COLOR0;
-    float3 normal : NORMAL;
-    float2 uv : UV;
+    float2 texcoord : TEXCOORD;
 };
 
-[shader("vertex")]
-PSInput VSMain(Vertex vertex)
+struct vs_constants
 {
-    PSInput output;
-    float4x4 wvp = vertex.instance_transform * mat_vp;
-    output.position = mul(float4(vertex.position, 1.0f), wvp);
-    output.color = vertex.instance_color;
-    output.uv = vertex.uv;
+    float4x4 mat_mvp;
+};
+
+struct ps_constants
+{
+    uint texture_index;
+};
+
+
+ConstantBuffer<vs_constants> _perframe_vs : register(b0);
+
+[shader("vertex")]
+ps_input VSMain ( vs_input input )
+{
+    ps_input output = (ps_input)0;
+    output.position = mul ( _perframe_vs.mat_mvp, float4 ( input.position, 1.0f ) );
+    output.texcoord = input.texcoord;
     return output;
 }
 
+ConstantBuffer<ps_constants> _perframe_ps : register(b0);
+Texture2D _texture[128] : register(t0);
+SamplerState _sampler : register(s0);
+
 [shader("pixel")]
-float4 PSMain(PSInput input) : SV_TARGET
+float4 PSMain ( ps_input input ) : SV_TARGET
 {
-    return input.color;
+    return _texture[_perframe_ps.texture_index].Sample(_sampler, input.texcoord);
 }

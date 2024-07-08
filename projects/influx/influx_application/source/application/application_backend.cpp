@@ -38,6 +38,27 @@ namespace influx::application
 				string filepath = get_resource_directory() + "/meshes/transistor.fbx";
 				assets::load_scene_file(filepath, transistor_mesh_data, args);
 			}
+
+			// load shaders
+			assets::shader_data vertex_shader{};
+			assets::shader_data pixel_shader{};
+			assets::shader_load_args shader_load_args{};
+			{
+				string filepath = get_resource_directory() + "/shaders/shaders.hlsl";
+				shader_load_args.m_target = e_shader_target::_6_2;
+				shader_load_args.m_compile_debug = _DEBUG;
+				shader_load_args.m_pbd = false;
+				shader_load_args.m_reflection = false;
+				shader_load_args.m_defines = {};
+
+				shader_load_args.m_type = e_shader_type::vs;
+				shader_load_args.m_entrypoint = "VSMain";
+				influx_assert(assets::load_shader_file(filepath, vertex_shader, shader_load_args));
+
+				shader_load_args.m_type = e_shader_type::ps;
+				shader_load_args.m_entrypoint = "PSMain";
+				influx_assert(assets::load_shader_file(filepath, pixel_shader, shader_load_args));
+			}
 			
 			// create renderer
 			renderer::init_args render_init_args{};
@@ -56,7 +77,7 @@ namespace influx::application
 			{
 				math::vectorf3 scene_center = math::vectorf3::zero();
 
-				// load data onto the renderer
+				// load meshdata into renderer
 				{
 					renderer::mesh_data transistor_data{};
 					for (const scene::mesh::vertex& vertex : transistor_mesh_data.m_meshes[0].get_vertices())
@@ -66,6 +87,20 @@ namespace influx::application
 					}
 					transistor_data.m_indices = transistor_mesh_data.m_meshes[0].get_indices();
 					renderer::load("transistor_mesh", transistor_data);
+				}
+				
+				// load shaders into renderer
+				{
+					renderer::shader_data vs_data{};
+					vs_data.m_type = e_shader_type::vs;
+					vs_data.m_bytecode = vertex_shader.m_compile_result;
+
+					renderer::shader_data ps_data{};
+					ps_data.m_type = e_shader_type::ps;
+					ps_data.m_bytecode = pixel_shader.m_compile_result;
+
+					renderer::load("vs_main", vs_data);
+					renderer::load("ps_main", ps_data);
 				}
 
 				// camera
@@ -78,7 +113,7 @@ namespace influx::application
 
 				// meshes
 				renderer::mesh_instance mesh_instance{};
-				mesh_instance.m_name = "scene_mesh";
+				mesh_instance.m_name = "transistor_mesh";
 				mesh_instance.m_material_name = "none";
 				mesh_instance.m_per_instance_colour;
 				mesh_instance.m_transform = math::matrix4x4f::identity();

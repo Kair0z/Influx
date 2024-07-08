@@ -8,7 +8,7 @@ namespace influx::renderer
 {
 	// https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-support
 	constexpr static uint64 k_max_num_rtvs = 4u;
-	constexpr static uint64 k_max_num_cbvs = 14;
+	constexpr static uint64 k_max_num_cbvs = 128;
 	constexpr static uint64 k_max_num_samplers = 16u;
 	constexpr static uint64 k_max_num_dsvs = 64u;
 
@@ -21,7 +21,7 @@ namespace influx::renderer
 		using namespace influx::graphics;
 
 		// rtv heap
-		graphics::descriptor_heap::create_args create_args{e_descriptor_heap_type::rtv, k_max_num_rtvs };
+		graphics::descriptor_heap::create_args create_args{e_descriptor_heap_type::rtv, k_max_num_rtvs, false };
 		mp_rtv_heap = device->create_descriptor_heap(create_args);
 
 		// dsv heap
@@ -32,11 +32,13 @@ namespace influx::renderer
 		// cbv heap
 		create_args.m_capacity = k_max_num_cbvs;
 		create_args.m_type = e_descriptor_heap_type::cbv;
+		create_args.m_shader_visible = true;
 		mp_cbv_heap = device->create_descriptor_heap(create_args);
 
 		// sampler heap
 		create_args.m_capacity = k_max_num_samplers;
 		create_args.m_type = e_descriptor_heap_type::sampler;
+		create_args.m_shader_visible = true;
 		mp_sampler_heap = device->create_descriptor_heap(create_args);
 	}
 
@@ -51,5 +53,17 @@ namespace influx::renderer
 	graphics::descriptor_heap* descriptor_manager::get_rtv_heap() const
 	{
 		return mp_rtv_heap;
+	}
+	graphics::descriptor_heap* descriptor_manager::get_samp_heap() const
+	{
+		return mp_sampler_heap;
+	}
+	graphics::descriptor_heap* descriptor_manager::get_input_heap() const
+	{
+		return mp_cbv_heap;
+	}
+	graphics::descriptor_heap* descriptor_manager::get_dsv_heap() const
+	{
+		return mp_dsv_heap;
 	}
 }

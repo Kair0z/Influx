@@ -41,16 +41,22 @@ namespace influx::graphics
 
 		virtual fence* create_fence(uint64 init_value = 0u) = 0;
 
-		virtual resource* create_resource(const tex2D_desc& desc) = 0;
+		virtual resource* create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) = 0;
 
+		virtual resource* create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) = 0;
+
+		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) = 0;
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) = 0;
 
-		// implicitly allocates a handle from rtv_heap
-		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) = 0;
+		virtual input_resource_view* create_irv(descriptor_heap* irv_heap, resource* resource) = 0;
+		virtual input_resource_view* create_irv(descriptor_handle handle, resource* resource) = 0;
+
+		virtual sampler_view* create_sampview(descriptor_heap* samp_heap, resource* resource) = 0;
+		virtual sampler_view* create_sampview(descriptor_handle handle, resource* resource) = 0;
 
 		virtual rootsignature* create_rootsignature(const rootsignature_desc& desc) = 0;
 
-		virtual pipeline* create_pipeline(const pipeline_desc& desc) = 0;
+		virtual pipeline* create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) = 0;
 
 	private:
 		vector<base*> mp_children = {};

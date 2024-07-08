@@ -17,4 +17,40 @@ namespace influx::graphics
 	private:
 		D3D12_CPU_DESCRIPTOR_HANDLE m_dx_cpu_handle;
 	};
+
+	class dx12_vertex_buffer_view : public vertex_buffer_view
+	{
+	public:
+		dx12_vertex_buffer_view(D3D12_VERTEX_BUFFER_VIEW vb_view);
+
+	private:
+		D3D12_VERTEX_BUFFER_VIEW m_dx_vbv;
+	};
+
+	class dx12_index_buffer_view : public index_buffer_view
+	{
+	public:
+		dx12_index_buffer_view(D3D12_INDEX_BUFFER_VIEW index_view);
+
+	private:
+		D3D12_INDEX_BUFFER_VIEW m_dx_ibv;
+	};
+
+	class dx12_sampler_view : public sampler_view
+	{
+	public:
+		dx12_sampler_view(D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
+
+	private:
+		D3D12_CPU_DESCRIPTOR_HANDLE m_dx_descriptor_handle;
+	};
+
+	class dx12_input_resource_view : public input_resource_view
+	{
+	public:
+		dx12_input_resource_view(D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
+
+	private:
+		D3D12_CPU_DESCRIPTOR_HANDLE m_dx_descriptor_handle;
+	};
 }

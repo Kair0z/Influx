@@ -19,11 +19,19 @@ namespace influx::graphics
 
 		virtual void draw_instanced(const draw_instanced_args& args) override;
 
+		virtual void draw_indexed(const draw_indexed_args& args) override;
+
+		virtual void set_indexbuffer(resource* index_buffer) override;
+
+		virtual void set_vertexbuffer(resource* vertex_buffer) override;
+
 		virtual void clear_rtv(render_target_view* view, const math::vectorf4& clear_value) override;
 
 		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
 
 		virtual void copy_resource(resource* source, resource* dest) override;
+
+		virtual void set(descriptor_heap* heap) override;
 
 		virtual void set(render_target_view* rtv) override;
 
@@ -33,7 +41,7 @@ namespace influx::graphics
 
 		virtual void set(const viewport& viewport) override;
 
-		virtual void set(const scissor_rect& rect) override;
+		virtual void set(const rect& rect) override;
 
 		virtual void set(e_primitive_topology topo) override;
 

@@ -13,6 +13,7 @@
 #include "core/container/vector.h"
 #include "core/string.h"
 #include "core/math/vector.h"
+#include "core/shader.h"
 
 // sub-headers
 #include "influx_renderer/types.h"
@@ -73,6 +74,14 @@ namespace influx::renderer
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
 
 	INFLUX_RENDER_API void load(const string& title, const material_data& data);
+
+	struct shader_data final
+	{
+		e_shader_type m_type;
+		vector<byte> m_bytecode;
+	};
+
+	INFLUX_RENDER_API void load(const string& title, const shader_data& data);
 
 	INFLUX_RENDER_API const mesh_data* find_mesh_data(const string& title); 
 

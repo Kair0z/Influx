@@ -20,7 +20,7 @@ namespace influx::graphics::dx12helpers
 
     ID3D12CommandAllocator* create_command_allocator(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type);
 
-    ID3D12DescriptorHeap* create_descriptor_heap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 capacity);
+    ID3D12DescriptorHeap* create_descriptor_heap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 capacity, bool is_shader_visible);
 
     D3D12_CPU_DESCRIPTOR_HANDLE create_rtv(ID3D12Device* device, ID3D12Resource* resource,
         D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, DXGI_FORMAT format);
@@ -138,19 +138,39 @@ namespace influx::graphics::dx12helpers
     }
 
     template <typename _resource_t>
-    inline _resource_t* create_tex2d_resource(ID3D12Device* device, DXGI_FORMAT format, uint64_t width, uint64_t height,
+    inline _resource_t* create_tex2d_resource(ID3D12Device* device, D3D12_HEAP_TYPE heap_type, DXGI_FORMAT format, uint64_t width, uint64_t height,
         uint16_t array_size, uint16_t mip_levels, uint32_t sample_count, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES init_state)
     {
         _resource_t* result_resource = nullptr;
 
         // heap desc
         auto heap_properties = D3D12_HEAP_PROPERTIES{};
+        heap_properties.Type = heap_type;
 
         // resource desc
         auto layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         auto alignment = 0u;
         auto resource_desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, static_cast<uint32>(height),
             array_size, mip_levels, sample_count, 0u, flags, layout, alignment);
+
+        device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE,
+            &resource_desc, init_state, nullptr, IID_PPV_ARGS(&result_resource));
+
+        return result_resource;
+    }
+
+    template <typename _resource_t>
+    inline _resource_t* create_buffer_resource(ID3D12Device* device, D3D12_HEAP_TYPE heap_type, uint64_t width, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES init_state)
+    {
+        _resource_t* result_resource = nullptr;
+
+        // heap desc
+        auto heap_properties = D3D12_HEAP_PROPERTIES{};
+        heap_properties.Type = heap_type;
+
+        // resource desc
+        auto alignment = 0u;
+        auto resource_desc = CD3DX12_RESOURCE_DESC::Buffer(width, flags, alignment);
 
         device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE,
             &resource_desc, init_state, nullptr, IID_PPV_ARGS(&result_resource));

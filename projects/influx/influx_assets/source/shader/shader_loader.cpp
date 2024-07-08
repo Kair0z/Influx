@@ -98,6 +98,8 @@ namespace influx::assets
 		if (pErrors && pErrors->GetStringLength() > 0)
 		{
 			// Do something with... (char*)pErrors->GetBufferPointer()
+			printf(((char*)pErrors->GetBufferPointer()));
+
 			logerr("influx_assets::load_shader_file() failed!");
 			return false;
 		}

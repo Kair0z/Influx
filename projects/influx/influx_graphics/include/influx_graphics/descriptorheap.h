@@ -21,15 +21,17 @@ namespace influx::graphics
 		struct create_args final
 		{
 			create_args() = default;
-			inline create_args(e_descriptor_heap_type type, uint32 capacity)
+			inline create_args(e_descriptor_heap_type type, uint32 capacity, bool is_shader_visible)
 				: m_type{type}
 				, m_capacity{capacity}
+				, m_shader_visible{is_shader_visible}
 			{
 
 			}
 
 			e_descriptor_heap_type m_type{};
 			uint32 m_capacity{};
+			bool m_shader_visible;
 		};
 
 		virtual descriptor_handle allocate() = 0;

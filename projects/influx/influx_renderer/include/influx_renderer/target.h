@@ -31,6 +31,9 @@ namespace influx::renderer
 		graphics::resource* get_resource() const;
 		graphics::render_target_view* get_rtv() const;
 
+		uint32 get_width() const;
+		uint32 get_height() const;
+
 #if _DEBUG
 		void set_name(const string& name);
 		const string& get_name() const;

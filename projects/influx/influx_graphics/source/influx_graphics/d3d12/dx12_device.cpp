@@ -132,7 +132,7 @@ namespace influx::graphics
 
 	descriptor_heap* dx12_device::create_descriptor_heap(const descriptor_heap::create_args& args)
 	{
-		auto dxheap = dx12helpers::create_descriptor_heap(mpdx_devices[0u], convert(args.m_type), args.m_capacity);
+		auto dxheap = dx12helpers::create_descriptor_heap(mpdx_devices[0u], convert(args.m_type), args.m_capacity, args.m_shader_visible);
 		return new dx12_descriptor_heap(args, dxheap, get_descriptor_stride(args.m_type));
 	}
 
@@ -158,11 +158,27 @@ namespace influx::graphics
 		return new dx12_fence(dx12helpers::create_fence<ID3D12Fence>(mpdx_devices[0u], init_value));
 	}
 
-	resource* dx12_device::create_resource(const tex2D_desc& desc)
+	resource* dx12_device::create_resource(const tex2D_desc& desc, const heap_desc& heap_desc)
 	{
 		auto dxresource = dx12helpers::create_tex2d_resource<ID3D12Resource>(mpdx_devices[0u],
-			convert(desc.m_format), desc.m_dimensions.x, desc.m_dimensions.y, desc.m_arraysize, desc.m_num_mips,
-			desc.m_sample_count, convert(desc.m_flags), D3D12_RESOURCE_STATE_COMMON);
+			convert(heap_desc.m_type),
+			convert(desc.m_format), 
+			desc.m_dimensions.x, desc.m_dimensions.y, 
+			desc.m_arraysize, desc.m_num_mips,
+			desc.m_sample_count, 
+			convert(desc.m_flags), 
+			convert(desc.m_init_state));
+
+		return new dx12_resource(dxresource, desc);
+	}
+
+	resource* dx12_device::create_resource(const buffer_desc& desc, const heap_desc& heap_desc)
+	{
+		auto dxresource = dx12helpers::create_buffer_resource<ID3D12Resource>(mpdx_devices[0], 
+			convert(heap_desc.m_type),
+			desc.m_bytesize, 
+			convert(desc.m_flags), 
+			convert(desc.m_init_state));
 
 		return new dx12_resource(dxresource, desc);
 	}
@@ -190,6 +206,46 @@ namespace influx::graphics
 		return new dx12_render_target_view(dx_rtv);
 	}
 
+	input_resource_view* dx12_device::create_irv(descriptor_heap* irv_heap, resource* resource)
+	{
+		ID3D12DescriptorHeap* dxheap = irv_heap->get_native<ID3D12DescriptorHeap>();
+
+		// allocate a new irv descriptor:
+		descriptor_handle new_descriptor = irv_heap->allocate();
+		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(new_descriptor) };
+
+		return create_irv(new_descriptor, resource);
+	}
+
+	input_resource_view* dx12_device::create_irv(descriptor_handle handle, resource* resource)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
+
+		// ... no extra code necessary
+
+		return new dx12_input_resource_view(new_dxdescriptor);
+	}
+
+	sampler_view* dx12_device::create_sampview(descriptor_heap* samp_heap, resource* resource)
+	{
+		ID3D12DescriptorHeap* heap = samp_heap->get_native<ID3D12DescriptorHeap>();
+
+		// allocate a new rtv descriptor:
+		descriptor_handle new_descriptor = samp_heap->allocate();
+		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(new_descriptor) };
+
+		return create_sampview(new_descriptor, resource);
+	}
+
+	sampler_view* dx12_device::create_sampview(descriptor_handle handle, resource* resource)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
+
+		// ... no extra code necessary
+
+		return new dx12_sampler_view(new_dxdescriptor);
+	}
+
 	rootsignature* dx12_device::create_rootsignature(const rootsignature_desc& desc)
 	{
 		ID3D12RootSignature* dxrootsignature = nullptr;
@@ -203,20 +259,23 @@ namespace influx::graphics
 			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 		}
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);    // 2 frequently changed diffuse + normal textures - using registers t1 and t2.
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);    // 1 frequently changed constant buffer.
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);                                                // 1 infrequently changed shadow texture - starting in register t0.
-		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 0);                                            // 2 static samplers.
+		// parameters:
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[1]; // Perfomance TIP: Order from most frequent to least frequent.
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 128u, 0u); // g_texture's (128)
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[4];
-		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
-		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_PIXEL);
+		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL); // 
+		rootParameters[1].InitAsConstants(50u, 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX); // _perframe_vs
+		rootParameters[2].InitAsConstants(1u, 0u, 0u, D3D12_SHADER_VISIBILITY_PIXEL); // _perframe_ps
+
+		CD3DX12_STATIC_SAMPLER_DESC samplers[1];
+		samplers[0].Init(0u);
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		rootSignatureDesc.Init_1_1(
+			_countof(rootParameters), rootParameters, 
+			_countof(samplers), samplers, 
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		ID3DBlob* signature;
 		ID3DBlob* error;
@@ -226,14 +285,19 @@ namespace influx::graphics
 		return new dx12_rootsignature(dxrootsignature, desc);
 	}
 
-	pipeline* dx12_device::create_pipeline(const pipeline_desc& desc)
+	pipeline* dx12_device::create_pipeline(rootsignature* rootsig, const pipeline_desc& desc)
 	{
 		ID3D12PipelineState* dxpipeline = nullptr;
 
 		// input layout
+		D3D12_INPUT_ELEMENT_DESC input_elements[]
+		{
+			{"POSITION"	, 0u, DXGI_FORMAT_R32G32B32_FLOAT, 0u, 0u, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u },
+			{"TEXCOORD"	, 0u, DXGI_FORMAT_R32G32_FLOAT, 1u, (32 * 3), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u }
+		};
 		D3D12_INPUT_LAYOUT_DESC input_layout_desc{};
-		input_layout_desc.pInputElementDescs;
-		input_layout_desc.NumElements;
+		input_layout_desc.pInputElementDescs = input_elements;
+		input_layout_desc.NumElements = _countof(input_elements);
 
 		// depth stencil
 		CD3DX12_DEPTH_STENCIL_DESC depth_stencil_desc(D3D12_DEFAULT);
@@ -244,7 +308,7 @@ namespace influx::graphics
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
 		pso_desc.InputLayout = input_layout_desc;
-		// pso_desc.pRootSignature = m_rootSignature.Get();
+		pso_desc.pRootSignature = rootsig->get_native<ID3D12RootSignature>();
 		pso_desc.VS = CD3DX12_SHADER_BYTECODE(desc.m_vs.data(), desc.m_vs.size());
 		pso_desc.PS = CD3DX12_SHADER_BYTECODE(desc.m_ps.data(), desc.m_ps.size());
 		pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -260,6 +324,7 @@ namespace influx::graphics
 		{
 			pso_desc.NumRenderTargets++;
 			pso_desc.RTVFormats[i] = convert(desc.m_rtvs[i].m_format);
+			pso_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 		}
 
 		// create the pipeline

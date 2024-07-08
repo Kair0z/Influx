@@ -30,6 +30,7 @@ namespace influx::graphics
 		{
 		case e_format::rgba8: return DXGI_FORMAT_R8G8B8A8_UNORM;
 		case e_format::d32: return DXGI_FORMAT_D32_FLOAT;
+		case e_format::u32: return DXGI_FORMAT_R32_UINT;
 		default: return DXGI_FORMAT_R8G8_UNORM;
 		}
 	}
@@ -51,22 +52,22 @@ namespace influx::graphics
 		case e_descriptor_heap_type::dsv: return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 		case e_descriptor_heap_type::cbv: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		case e_descriptor_heap_type::sampler: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+		default:
+		case e_descriptor_heap_type::count:	return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 		}
-
-		// uh oh!
-		return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 	}
 
 	inline D3D12_RESOURCE_STATES convert(e_resource_state state)
 	{
 		switch (state)
 		{
-		case e_resource_state::none: return D3D12_RESOURCE_STATE_COMMON;
+		case e_resource_state::common: return D3D12_RESOURCE_STATE_COMMON;
 		case e_resource_state::render_target: return D3D12_RESOURCE_STATE_RENDER_TARGET;
 		case e_resource_state::present: return D3D12_RESOURCE_STATE_PRESENT;
+		case e_resource_state::read:	return D3D12_RESOURCE_STATE_GENERIC_READ;
+		default:
+		case e_resource_state::count:	return D3D12_RESOURCE_STATE_COMMON;
 		}
-
-		return D3D12_RESOURCE_STATE_COMMON;
 	}
 
 	inline D3D12_COMPARISON_FUNC convert(e_comparison_func func)
@@ -96,6 +97,18 @@ namespace influx::graphics
 		case e_primitive_topology::trilist: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		default:
 		case e_primitive_topology::count: return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		}
+	}
+
+	inline D3D12_HEAP_TYPE convert(e_heap_type type)
+	{
+		switch (type)
+		{
+		case e_heap_type::gpu: return D3D12_HEAP_TYPE_DEFAULT;
+		case e_heap_type::shared: return D3D12_HEAP_TYPE_UPLOAD;
+		case e_heap_type::readback: return D3D12_HEAP_TYPE_READBACK;
+		default:
+		case e_heap_type::count: return D3D12_HEAP_TYPE_DEFAULT;
 		}
 	}
 }

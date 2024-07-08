@@ -62,11 +62,11 @@ namespace influx::graphics::dx12helpers
         return allocator;
     }
 
-    ID3D12DescriptorHeap* create_descriptor_heap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 capacity)
+    ID3D12DescriptorHeap* create_descriptor_heap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 capacity, bool is_shader_visible)
     {
         ID3D12DescriptorHeap* result_heap = nullptr;
         D3D12_DESCRIPTOR_HEAP_DESC desc{};
-        desc.Flags;
+        desc.Flags = is_shader_visible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
         desc.NumDescriptors = capacity;
         desc.Type = type;
 
