@@ -143,7 +143,7 @@ namespace influx::renderer
             mp_swapchain->resize(window); // resizes the underlying resources
             m_swapchain_targets[current_swapchain_index]->recreate_rtv(); // only recreates rtv
         }
-
+        
         // return the current swapchain target
         return m_swapchain_targets[current_swapchain_index];
     }
@@ -235,6 +235,8 @@ namespace influx::renderer
         // draw meshes
         for (const auto& vertex_buffer : m_vertex_buffers)
         {
+            const string& mesh_name = vertex_buffer.first;
+
             vector<gpu_instance_data> instances{};
             instances.reserve(scene.m_meshes.size());
             for (const mesh_instance& instance : scene.m_meshes)
@@ -246,27 +248,26 @@ namespace influx::renderer
                     instance_data.m_colour = instance.m_per_instance_colour;
                     instances.push_back(instance_data);
                 }
-                    
             }
 
             if (instances.size() > 0u)
             {
+                graphics::resource* vertex_buffer = m_vertex_buffers[mesh_name];
+                graphics::resource* index_buffer = m_index_buffers[mesh_name];
+                const uint32 num_vertices = (uint32)vertex_buffer->get_bytesize() / (uint32)vertex_buffer->get_bytestride();
+                const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
 
+                mp_commandlist->set_indexbuffer(m_index_buffers[mesh_name]);
+                mp_commandlist->set_vertexbuffer(vertex_buffer);
+                mp_commandlist->draw_indexed(
+                {
+                    .m_num_indexes_per_instance = num_indices,
+                    .m_num_instances = (uint32)instances.size(),
+                    .m_start_index = 0u,
+                    .m_start_vertex = 0,
+                    .m_start_instance = 0u
+                });
             }
-        }
-        for (size_t i = 0u; i < scene.m_meshes.size(); ++i)
-        {
-            const string& mesh_name = scene.m_meshes[i].m_name;
-            influx_assert(m_vertex_buffers.contains(mesh_name));
-
-            graphics::resource* vertex_buffer = m_vertex_buffers[mesh_name];
-            graphics::resource* index_buffer = m_index_buffers[mesh_name];
-            const uint32 num_vertices = (uint32)vertex_buffer->get_bytesize() / (uint32)vertex_buffer->get_bytestride();
-            const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
-
-            mp_commandlist->set_indexbuffer(m_index_buffers[mesh_name]);
-            mp_commandlist->set_vertexbuffer(vertex_buffer);
-            mp_commandlist->draw_indexed({ num_indices, 1u, 0u, 0u });
         }
     }
 

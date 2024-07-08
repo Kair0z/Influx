@@ -310,13 +310,16 @@ namespace influx::graphics
 		CD3DX12_RASTERIZER_DESC rasterizer_desc(D3D12_DEFAULT);
 		rasterizer_desc.CullMode = convert(desc.m_rasterizer.m_cullmode);
 
+		// blend state
+		CD3DX12_BLEND_DESC blend_desc(D3D12_DEFAULT);
+
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
 		pso_desc.InputLayout = input_layout_desc;
 		pso_desc.pRootSignature = rootsig->get_native<ID3D12RootSignature>();
 		pso_desc.VS = CD3DX12_SHADER_BYTECODE(desc.m_vs.data(), desc.m_vs.size());
 		pso_desc.PS = CD3DX12_SHADER_BYTECODE(desc.m_ps.data(), desc.m_ps.size());
-		pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-		pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		pso_desc.RasterizerState = rasterizer_desc;
+		pso_desc.BlendState = blend_desc;
 		pso_desc.DepthStencilState = depth_stencil_desc;
 		pso_desc.SampleMask = desc.m_sample_mask;
 		pso_desc.PrimitiveTopologyType = convert(desc.m_prim_type);

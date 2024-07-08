@@ -42,7 +42,7 @@ namespace influx::renderer
 		: public singleton<renderer_backend>
 	{
 		// konstants
-		constexpr static uint32 k_max_instances;
+		constexpr static uint32 k_max_instances = 1024u;
 		constexpr static e_buffering k_buffering = e_buffering::tripple;
 
 	public:

@@ -3,6 +3,8 @@
 [Bb]in/
 .vs
 
+!/vendor/bin/
+
 # Prerequisites
 *.d
 
