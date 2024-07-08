@@ -21,10 +21,28 @@ namespace influx::renderer
 	class descriptor_manager;
 	class target;
 
+	// this should always match shader layout...
+	struct gpu_instance_data final
+	{
+		math::matrix4x4f	m_transform;
+		math::vectorf4		m_colour;
+	};
+
+	struct gpu_vs_constants final
+	{
+		math::matrix4x4f m_mvp;
+	};
+
+	struct gpu_ps_constants final
+	{
+		uint32 m_texture_idx;
+	};
+
 	class renderer_backend final
 		: public singleton<renderer_backend>
 	{
 		// konstants
+		constexpr static uint32 k_max_instances;
 		constexpr static e_buffering k_buffering = e_buffering::tripple;
 
 	public:
@@ -81,6 +99,7 @@ namespace influx::renderer
 		// resources
 		map<string, graphics::resource*> m_vertex_buffers;
 		map<string, graphics::resource*> m_index_buffers;
+		map<string, graphics::resource*> m_instance_buffers;
 		map<string, shader_data> m_vertex_shaders;
 		map<string, shader_data> m_pixel_shaders;
 		vector<texture*> m_textures;

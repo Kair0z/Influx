@@ -233,6 +233,27 @@ namespace influx::renderer
         mp_commandlist->set_constants(2u, 1u, &texture_idx);
 
         // draw meshes
+        for (const auto& vertex_buffer : m_vertex_buffers)
+        {
+            vector<gpu_instance_data> instances{};
+            instances.reserve(scene.m_meshes.size());
+            for (const mesh_instance& instance : scene.m_meshes)
+            {
+                if (instance.m_name == vertex_buffer.first)
+                {
+                    gpu_instance_data instance_data{};
+                    instance_data.m_transform = instance.m_transform;
+                    instance_data.m_colour = instance.m_per_instance_colour;
+                    instances.push_back(instance_data);
+                }
+                    
+            }
+
+            if (instances.size() > 0u)
+            {
+
+            }
+        }
         for (size_t i = 0u; i < scene.m_meshes.size(); ++i)
         {
             const string& mesh_name = scene.m_meshes[i].m_name;
@@ -333,6 +354,11 @@ namespace influx::renderer
                     data.m_vertices.data(), 
                     data.m_vertices.size() * sizeof(vertex_data));
             });
+
+            // create instance buffer resource
+            desc.m_bytesize = k_max_instances * sizeof(gpu_instance_data);
+            desc.m_bytestride = sizeof(gpu_instance_data);
+            m_instance_buffers[title] = mp_device->create_resource(desc, heap_desc);
 
             // create index buffer resource
             desc.m_bytesize = data.m_indices.size() * sizeof(index);
