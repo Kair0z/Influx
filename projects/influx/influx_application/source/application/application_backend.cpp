@@ -8,6 +8,9 @@
 #include "core/platform/win32/win32_platform.h"
 #include "core/platform/win32/win32_window.h"
 
+// input
+#include "influx_input.h"
+
 // renderer
 #include "influx_renderer.h"
 
@@ -21,6 +24,9 @@ namespace influx::application
 		process_run_args(args);
 
 		m_instancehandle = platform::get_current_instance();
+
+		// initialize input:
+		input::init();
 
 		if (m_run_args.m_commandlet == false)
 		{
