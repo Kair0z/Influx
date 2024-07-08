@@ -265,7 +265,7 @@ namespace influx::graphics
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL); // 
-		rootParameters[1].InitAsConstants(50u, 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX); // _perframe_vs
+		rootParameters[1].InitAsConstants(4u * 4u, 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX); // _perframe_vs
 		rootParameters[2].InitAsConstants(1u, 0u, 0u, D3D12_SHADER_VISIBILITY_PIXEL); // _perframe_ps
 
 		CD3DX12_STATIC_SAMPLER_DESC samplers[1];
@@ -301,10 +301,14 @@ namespace influx::graphics
 
 		// depth stencil
 		CD3DX12_DEPTH_STENCIL_DESC depth_stencil_desc(D3D12_DEFAULT);
-		depth_stencil_desc.DepthEnable = desc.m_depth_stencil_desc.m_depth_enable;
+		depth_stencil_desc.DepthEnable = desc.m_depth_stencil.m_depth_enable;
 		depth_stencil_desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		depth_stencil_desc.DepthFunc = convert(desc.m_depth_stencil_desc.m_depth_func);
-		depth_stencil_desc.StencilEnable = desc.m_depth_stencil_desc.m_stencil_enable;
+		depth_stencil_desc.DepthFunc = convert(desc.m_depth_stencil.m_depth_func);
+		depth_stencil_desc.StencilEnable = desc.m_depth_stencil.m_stencil_enable;
+
+		// rasterizer
+		CD3DX12_RASTERIZER_DESC rasterizer_desc(D3D12_DEFAULT);
+		rasterizer_desc.CullMode = convert(desc.m_rasterizer.m_cullmode);
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
 		pso_desc.InputLayout = input_layout_desc;

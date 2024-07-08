@@ -49,6 +49,14 @@ namespace influx::graphics
 			args.m_start_instance);
 	}
 
+	void dx12_commandlist::set_constants(uint32 param_index, uint32 num_dwords, void* source_data)
+	{
+		mpdx_graphics_commandlist->SetGraphicsRoot32BitConstants(
+			param_index,
+			num_dwords,
+			source_data, 0u);
+	}
+
 	void dx12_commandlist::set_indexbuffer(resource* index_buffer)
 	{
 		auto dxresource = index_buffer->get_native<ID3D12Resource>();

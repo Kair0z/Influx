@@ -167,7 +167,7 @@ namespace influx::renderer
             {
                 const uint32 target_width = target.get_width();
                 const uint32 target_height = target.get_height();
-                mp_commandlist->set(graphics::viewport{ (float)target_width, (float)target_height, 0.0f, 1.0f});
+                mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f});
                 mp_commandlist->set(graphics::rect{0u, 0u, target_width, target_height});
 
                 target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
@@ -175,7 +175,7 @@ namespace influx::renderer
                 mp_commandlist->set(target_rtv);
                 mp_commandlist->clear_rtv(target_rtv, { 1, 0, 0, 1 });
                
-                draw_meshes(scene);
+                draw_meshes(scene, target);
 
                 target_resource->transition(mp_commandlist, graphics::e_resource_state::present);
             }
@@ -201,7 +201,7 @@ namespace influx::renderer
         ++m_frame_count;
     }
 
-    void renderer_backend::draw_meshes(const scene& scene)
+    void renderer_backend::draw_meshes(const scene& scene, const target& target)
     {
         // try to create the pipeline
         const bool we_have_a_pipeline = create_pipeline_if_possible();
@@ -216,17 +216,36 @@ namespace influx::renderer
         mp_commandlist->set(mp_desc_manager->get_input_heap());
         mp_commandlist->set(mp_desc_manager->get_samp_heap());
 
+        // setup constants
+        const camera& camera = scene.m_cameras[0];
+        struct vs_consants
+        {
+            math::matrix4x4f m_mvp;
+        } constants;
+
+        const math::matrix4x4f mat_mod = math::matrix4x4f::identity();
+        const math::matrix4x4f mat_view = math::matrix4x4f::make_view_RH(camera.m_position, -camera.m_forward);
+        const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
+        constants.m_mvp = mat_mod * mat_view * mat_proj;
+
+        uint32 texture_idx = 0u;
+        mp_commandlist->set_constants(1u, sizeof(constants) / 4u, &constants);
+        mp_commandlist->set_constants(2u, 1u, &texture_idx);
+
+        // draw meshes
         for (size_t i = 0u; i < scene.m_meshes.size(); ++i)
         {
             const string& mesh_name = scene.m_meshes[i].m_name;
             influx_assert(m_vertex_buffers.contains(mesh_name));
 
             graphics::resource* vertex_buffer = m_vertex_buffers[mesh_name];
-            const uint32 num_vertices = vertex_buffer->get_bytesize() / vertex_buffer->get_bytestride();
+            graphics::resource* index_buffer = m_index_buffers[mesh_name];
+            const uint32 num_vertices = (uint32)vertex_buffer->get_bytesize() / (uint32)vertex_buffer->get_bytestride();
+            const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
 
-            // mp_commandlist->set_indexbuffer(m_index_buffers[mesh_name]);
+            mp_commandlist->set_indexbuffer(m_index_buffers[mesh_name]);
             mp_commandlist->set_vertexbuffer(vertex_buffer);
-            mp_commandlist->draw_instanced({ num_vertices, 1u, 0u, 0u });
+            mp_commandlist->draw_indexed({ num_indices, 1u, 0u, 0u });
         }
     }
 
@@ -245,6 +264,9 @@ namespace influx::renderer
                 graphics::pipeline_desc desc{};
                 desc.m_vs = m_vertex_shaders.cbegin()->second.m_bytecode;
                 desc.m_ps = m_pixel_shaders.cbegin()->second.m_bytecode;
+                desc.m_depth_stencil.m_depth_enable = false;
+                desc.m_depth_stencil.m_stencil_enable = false;
+                desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
                 mp_pipeline = mp_device->create_pipeline(mp_rootsig, desc);
             }
         }

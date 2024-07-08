@@ -46,7 +46,11 @@ namespace influx::application
 			{
 				string filepath = get_resource_directory() + "/shaders/shaders.hlsl";
 				shader_load_args.m_target = e_shader_target::_6_2;
-				shader_load_args.m_compile_debug = _DEBUG;
+#if _DEBUG
+				shader_load_args.m_compile_debug = true;
+#else
+				shader_load_args.m_compile_debug = false;
+#endif
 				shader_load_args.m_pbd = false;
 				shader_load_args.m_reflection = false;
 				shader_load_args.m_defines = {};
@@ -107,7 +111,7 @@ namespace influx::application
 				renderer::camera render_camera{};
 				render_camera.m_far_plane = 1000.0f;
 				render_camera.m_near_plane = 0.001f;
-				render_camera.m_position = { 0.0f, 0.0f, 10.0f };
+				render_camera.m_position = { 0.0f, 0.0f, 500.0f };
 				render_camera.look_at(scene_center);
 				render_scene.m_cameras.push_back(render_camera);
 

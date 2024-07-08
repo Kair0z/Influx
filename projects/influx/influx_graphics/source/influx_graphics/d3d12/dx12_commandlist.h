@@ -21,6 +21,8 @@ namespace influx::graphics
 
 		virtual void draw_indexed(const draw_indexed_args& args) override;
 
+		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data) override;
+
 		virtual void set_indexbuffer(resource* index_buffer) override;
 
 		virtual void set_vertexbuffer(resource* vertex_buffer) override;

@@ -39,5 +39,6 @@ SamplerState _sampler : register(s0);
 [shader("pixel")]
 float4 PSMain ( ps_input input ) : SV_TARGET
 {
-    return _texture[_perframe_ps.texture_index].Sample(_sampler, input.texcoord);
+    return float4(0.0f, 1.0f, 0.0f, 1.0f);
+    // return _texture[_perframe_ps.texture_index].Sample(_sampler, input.texcoord);
 }

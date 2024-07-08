@@ -51,7 +51,7 @@ namespace influx::renderer
 		void load(const string& title, const shader_data& data);
 
 	private:
-		void draw_meshes(const scene& scene);
+		void draw_meshes(const scene& scene, const target& target);
 		bool create_pipeline_if_possible();
 
 	private:

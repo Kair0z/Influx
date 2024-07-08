@@ -17,8 +17,13 @@ namespace influx::graphics
 			bool m_stencil_enable;
 			e_comparison_func m_depth_func;
 			// depth write mask
-		} m_depth_stencil_desc;
+		} m_depth_stencil;
 
+		// rasterizer
+		struct
+		{
+			e_cull_mode m_cullmode;
+		} m_rasterizer;
 		// input layout
 		// ...
 		

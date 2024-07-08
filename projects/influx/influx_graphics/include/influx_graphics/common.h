@@ -40,6 +40,14 @@ namespace influx::graphics
 		}
 	}
 
+	enum class e_cull_mode : uint8
+	{
+		front,
+		back,
+		nocull,
+		count
+	};
+
 	enum class e_comparison_func : uint8
 	{
 		lequal,		// less than equal

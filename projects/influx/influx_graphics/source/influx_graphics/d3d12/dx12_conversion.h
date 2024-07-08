@@ -80,6 +80,18 @@ namespace influx::graphics
 		}
 	}
 
+	inline D3D12_CULL_MODE convert(e_cull_mode mode)
+	{
+		switch (mode)
+		{
+		case e_cull_mode::back: return D3D12_CULL_MODE_BACK;
+		case e_cull_mode::front: return D3D12_CULL_MODE_FRONT;
+		case e_cull_mode::nocull: return D3D12_CULL_MODE_NONE;
+		default:
+		case e_cull_mode::count: return D3D12_CULL_MODE_NONE;
+		}
+	}
+
 	inline D3D12_PRIMITIVE_TOPOLOGY_TYPE convert(e_primitive_topology_type type)
 	{
 		switch (type)
