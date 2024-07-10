@@ -4,6 +4,7 @@
 // core:
 #include "core/log.h"
 #include "core/time.h"
+#include "core/file.h"
 
 // platform: win32
 #include "core/platform/win32/win32_platform.h"
@@ -20,6 +21,55 @@
 
 namespace influx::application
 {
+	content_cache::content_cache(const string& resource_dir)
+	{
+		vector<file> fbx_files = get_files_in_directory(resource_dir, true, ".fbx");
+		vector<file> png_files = get_files_in_directory(resource_dir, true, ".png");
+		vector<file> hlsl_files = get_files_in_directory(resource_dir, true, ".hlsl");
+
+		// load meshes
+		for (const file& file : fbx_files)
+		{
+			assets::scene_load_args args{};
+			assets::scene_data& scene_data = m_scenes[file.m_filename];
+			assets::load_scene_file(file.m_path_full, scene_data, args);
+		}
+		
+		// load images
+		for (const file& file : png_files)
+		{
+			assets::image_load_args args{};
+			assets::image_data& texture_data = m_images[file.m_filename];
+			assets::load_image_file(file.m_path_full, texture_data, args);
+		}
+
+		// load shaders
+		for (const file& file : hlsl_files)
+		{
+			assets::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"];
+			assets::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"];
+
+			assets::shader_load_args shader_load_args{};
+			shader_load_args.m_target = e_shader_target::_6_2;
+#if _DEBUG
+			shader_load_args.m_compile_debug = true;
+#else
+			shader_load_args.m_compile_debug = false;
+#endif
+			shader_load_args.m_pbd = false;
+			shader_load_args.m_reflection = false;
+			shader_load_args.m_defines = {};
+
+			shader_load_args.m_type = e_shader_type::vs;
+			shader_load_args.m_entrypoint = "VSMain";
+			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_vs, shader_load_args));
+
+			shader_load_args.m_type = e_shader_type::ps;
+			shader_load_args.m_entrypoint = "PSMain";
+			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_ps, shader_load_args));
+		}
+	}
+
 	void application::run(const run_args& args)
 	{
 		process_run_args(args);
@@ -38,46 +88,8 @@ namespace influx::application
 			window_args.m_name		= args.m_name;
 			m_windowhandle = platform::create_window(window_args);
 
-			// load meshes
-			assets::scene_data transistor_mesh_data{};
-			assets::scene_load_args args{};
-			{
-				string filepath = get_resource_directory() + "/meshes/transistor.fbx";
-				assets::load_scene_file(filepath, transistor_mesh_data, args);
-			}
-
-			// load images
-			assets::image_data texture_data{};
-			{
-				assets::image_load_args args{};
-				string filepath = get_resource_directory() + "/textures/wood_albedo.png";
-				assets::load_image_file(filepath, texture_data, args);
-			}
-
-			// load shaders
-			assets::shader_data vertex_shader{};
-			assets::shader_data pixel_shader{};
-			assets::shader_load_args shader_load_args{};
-			{
-				string filepath = get_resource_directory() + "/shaders/shaders.hlsl";
-				shader_load_args.m_target = e_shader_target::_6_2;
-#if _DEBUG
-				shader_load_args.m_compile_debug = true;
-#else
-				shader_load_args.m_compile_debug = false;
-#endif
-				shader_load_args.m_pbd = false;
-				shader_load_args.m_reflection = false;
-				shader_load_args.m_defines = {};
-
-				shader_load_args.m_type = e_shader_type::vs;
-				shader_load_args.m_entrypoint = "VSMain";
-				influx_assert(assets::load_shader_file(filepath, vertex_shader, shader_load_args));
-
-				shader_load_args.m_type = e_shader_type::ps;
-				shader_load_args.m_entrypoint = "PSMain";
-				influx_assert(assets::load_shader_file(filepath, pixel_shader, shader_load_args));
-			}
+			// resources
+			mp_content_cache = new content_cache(get_resource_directory());
 			
 			// create renderer
 			renderer::init_args render_init_args{};
@@ -96,6 +108,7 @@ namespace influx::application
 			{
 				math::vectorf3 scene_center = math::vectorf3::zero();
 
+#if 0
 				// load meshdata into renderer
 				{
 					renderer::mesh_data transistor_data{};
@@ -133,6 +146,7 @@ namespace influx::application
 					tex_data.m_width = texture_data.m_dimensions.x;
 					renderer::load("tex_colour", tex_data);
 				}
+#endif
 
 				// camera
 				renderer::camera render_camera{};

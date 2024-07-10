@@ -6,8 +6,22 @@
 #include "core/platform/window.h"
 #include "core/singleton.h"
 
+// assets
+#include "influx_assets.h"
+
 namespace influx::application
 {
+	class content_cache final
+	{
+	public:
+		content_cache(const string& resource_dir);
+
+	private:
+		map<string, assets::scene_data> m_scenes;
+		map<string, assets::image_data> m_images;
+		map<string, assets::shader_data> m_shaders;
+	};
+
 	class application final
 		: public singleton<application>
 	{
@@ -37,6 +51,8 @@ namespace influx::application
 		std::atomic_bool m_is_quit_requested = false;
 
 		run_args m_run_args{};
+
+		content_cache* mp_content_cache;
 
 		void process_run_args(const run_args& args);
 	};
