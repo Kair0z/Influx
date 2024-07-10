@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Include">
-      <UniqueIdentifier>{6917EFFE-D5F6-6D9A-DE0E-F9704A6DD4FB}</UniqueIdentifier>
+    <Filter Include="include">
+      <UniqueIdentifier>{89AF369E-F58E-B539-FEA6-40106A051C9B}</UniqueIdentifier>
     </Filter>
     <Filter Include="source">
       <UniqueIdentifier>{76FF3A1C-62A1-65F2-4B5C-7946379DEC42}</UniqueIdentifier>
@@ -16,16 +16,28 @@
     <Filter Include="source\shader">
       <UniqueIdentifier>{7C822186-E842-9DBC-B17D-E6391DFDE198}</UniqueIdentifier>
     </Filter>
+    <Filter Include="vendor">
+      <UniqueIdentifier>{B3738122-9F15-ACF8-88D0-BF4C74113349}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\lodepng">
+      <UniqueIdentifier>{EBAA2651-D778-1A57-C00C-8B7DAC79F6BB}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\projects\influx\influx_assets\Include\influx_assets.h">
-      <Filter>Include</Filter>
+    <ClInclude Include="..\..\projects\influx\influx_assets\include\influx_assets.h">
+      <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_assets\source\assets_pch.h">
       <Filter>source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_assets\source\scene\influx_assimp.h">
       <Filter>source\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\lodepng\lodepng.h">
+      <Filter>vendor\lodepng</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\lodepng\lodepng_util.h">
+      <Filter>vendor\lodepng</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -40,6 +52,15 @@
     </ClCompile>
     <ClCompile Include="..\..\projects\influx\influx_assets\source\shader\shader_loader.cpp">
       <Filter>source\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_assets\vendor\lodepng\lodepng.cpp">
+      <Filter>vendor\lodepng</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_assets\vendor\lodepng\lodepng_util.cpp">
+      <Filter>vendor\lodepng</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_assets\vendor\lodepng\pngdetail.cpp">
+      <Filter>vendor\lodepng</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

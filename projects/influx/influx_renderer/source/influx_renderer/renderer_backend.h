@@ -19,6 +19,7 @@ namespace influx::graphics
 namespace influx::renderer
 {
 	class descriptor_manager;
+	class upload_manager;
 	class target;
 
 	// this should always match shader layout...
@@ -63,6 +64,8 @@ namespace influx::renderer
 
 		static descriptor_manager* get_descriptor_manager();
 
+		static upload_manager* get_upload_manager();
+
 		void load(const string& title, const mesh_data& data);
 		void load(const string& title, const texture_data& data);
 		void load(const string& title, const material_data& data);
@@ -87,9 +90,11 @@ namespace influx::renderer
 		graphics::pipeline* mp_pipeline = nullptr;
 
 		graphics::fence* mp_fence = nullptr;
+		graphics::fence* mp_copyfence = nullptr;
 
 		vector<target*> m_swapchain_targets{};
 		descriptor_manager* mp_desc_manager = nullptr;
+		upload_manager* mp_upload_manager = nullptr;
 
 		vector<render_args*> mp_rendersystems{};
 
@@ -103,6 +108,7 @@ namespace influx::renderer
 		map<string, shader_data> m_vertex_shaders;
 		map<string, shader_data> m_pixel_shaders;
 		vector<texture*> m_textures;
+		graphics::resource* mp_texture_upload_resource;
 
 		void create_render_systems();
 

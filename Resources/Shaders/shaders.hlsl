@@ -1,12 +1,16 @@
 struct vs_input
 {
     float3 position : POSITION;
+    float4 colour : COLOR;
+    float3 normal : NORMAL;
     float2 texcoord : TEXCOORD;
 };
 
 struct ps_input
 {
     float4 position : SV_POSITION;
+    float4 colour : COLOR;
+    float3 normal : NORMAL;
     float2 texcoord : TEXCOORD;
 };
 
@@ -29,6 +33,8 @@ ps_input VSMain ( vs_input input )
     ps_input output = (ps_input)0;
     output.position = mul ( _perframe_vs.mat_mvp, float4 ( input.position, 1.0f ) );
     output.texcoord = input.texcoord;
+    output.colour = input.colour;
+    output.normal = input.normal;
     return output;
 }
 
@@ -39,6 +45,5 @@ SamplerState _sampler : register(s0);
 [shader("pixel")]
 float4 PSMain ( ps_input input ) : SV_TARGET
 {
-    return float4(0.0f, 1.0f, 0.0f, 1.0f);
-    // return _texture[_perframe_ps.texture_index].Sample(_sampler, input.texcoord);
+    return _texture[_perframe_ps.texture_index].Sample(_sampler, input.texcoord);
 }

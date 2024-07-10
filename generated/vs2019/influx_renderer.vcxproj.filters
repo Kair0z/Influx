@@ -96,6 +96,9 @@
     <ClInclude Include="..\..\projects\influx\influx_renderer\source\influx_renderer\systems\imgui_system.h">
       <Filter>source\influx_renderer\systems</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_renderer\source\influx_renderer\upload_manager.h">
+      <Filter>source\influx_renderer</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_renderer\source\renderer_pch.h">
       <Filter>source</Filter>
     </ClInclude>
@@ -141,6 +144,9 @@
       <Filter>source\influx_renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\texture.cpp">
+      <Filter>source\influx_renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\upload_manager.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx\influx_renderer\source\renderer_pch.cpp">

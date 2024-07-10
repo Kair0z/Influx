@@ -10,6 +10,7 @@ namespace influx::graphics
 	class render_target_view;
 	class rootsignature;
 	class descriptor_heap;
+	class input_resource_view;
 
 	struct draw_instanced_args final
 	{
@@ -27,6 +28,25 @@ namespace influx::graphics
 		uint32 m_start_index;
 		int m_start_vertex;
 		uint32 m_start_instance;
+	};
+
+	struct copy_texture_args final
+	{
+		struct
+		{
+			uint32 m_subresource = 0u;
+		} m_src;
+		struct
+		{
+			uint32 m_subresource = 0u;
+		} m_dest;
+	};
+
+	struct copy_buffer_args final
+	{
+		uint32 m_dest_offset = 0u;
+		uint32 m_src_offset = 0u;
+		
 	};
 
 	class command_list : public base
@@ -50,9 +70,15 @@ namespace influx::graphics
 
 		virtual void copy_resource(resource* source, resource* dest) = 0;
 
+		virtual void copy_texture(resource* src, resource* dest, const copy_texture_args& = {}) = 0;
+
+		virtual void copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args & = {}) = 0;
+
 		virtual void set(descriptor_heap* heap) = 0;
 
 		virtual void set(render_target_view* rtv) = 0;
+
+		virtual void set(input_resource_view* srv, uint32 param_idx) = 0;
 
 		virtual void set(rootsignature* rootsig) = 0;
 		

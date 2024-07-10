@@ -23,7 +23,16 @@ namespace influx::assets
 
 	struct scene_data final
 	{
-		vector<scene::mesh> m_meshes{};
+		struct mesh
+		{
+			vector<uint32> m_indices{};
+			vector<math::vectorf3> m_positions{};
+			vector<math::vectorf4> m_colours{};
+			vector<math::vectorf3> m_normals{};
+			vector<math::vectorf2> m_uvs{};
+		};
+
+		vector<mesh> m_meshes{};
 		vector<scene::light> m_lights{};
 		vector<scene::camera> m_cameras{};
 	};
@@ -54,15 +63,23 @@ namespace influx::assets
 		shader_data& out_shader, const shader_load_args& args = {});
 
 
+	enum class e_image_colour_type
+	{
+		rgb,
+		rgba,
+		grey,
+		count
+	};
+
 	/* Loads an 2D-image (.png, .jpeg) */
 	struct image_load_args final
 	{
-
 	};
 
 	struct image_data final
 	{
-
+		vector<byte> m_pixels{};
+		math::vectoru2 m_dimensions{};
 	};
 
 	INFLUX_ASSETS_API bool load_image_file(const string& filepath, 

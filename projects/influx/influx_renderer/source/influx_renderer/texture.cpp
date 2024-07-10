@@ -17,12 +17,13 @@ namespace influx::renderer
 		desc.m_format = graphics::e_format::rgba8;
 		desc.m_num_mips = 1u;
 		desc.m_sample_count = 1u;
+		desc.m_init_state = graphics::e_resource_state::shader_resource;
 
 		// create the underlying resource
 		mp_resource = device->create_resource(desc);
 
 		// allocate & create the rtv
-		mp_irv = device->create_irv(irv_heap, mp_resource);
+		mp_irv = device->create_srv(irv_heap, mp_resource);
 
 		texture(device, mp_resource, mp_irv);
 	}
@@ -35,8 +36,9 @@ namespace influx::renderer
 		mp_resource = resource;
 		mp_irv = irv;
 
-		// store the descriptor handle
-		m_descriptor_handle = mp_irv->get_descriptor_handle();
+		// store the descriptor handles
+		m_cpu_handle = mp_irv->get_cpu_handle();
+		m_gpu_handle = mp_irv->get_gpu_handle();
 	}
 
 

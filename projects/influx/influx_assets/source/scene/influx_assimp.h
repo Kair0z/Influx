@@ -42,9 +42,9 @@ namespace influx
 		}
 	}
 
-	influx::scene::mesh translate(const aiMesh* pMesh)
+	influx::assets::scene_data::mesh translate(const aiMesh* pMesh)
 	{
-		influx::scene::mesh result{};
+		influx::assets::scene_data::mesh result{};
 		constexpr uint32 vColChannel = 0u;
 
 		const bool meshHasPositions = pMesh->HasPositions();
@@ -54,24 +54,22 @@ namespace influx
 		bool collectPositions = true && meshHasPositions;
 		bool collectNormals = true && meshHasNormals;
 		bool collectVertexColors = true && meshHasVertexColors;
+		bool collectUvs = true && pMesh->HasTextureCoords(0u);
 
 		for (uint32 v = 0u; v < pMesh->mNumVertices; ++v)
 		{
-			influx::scene::mesh::vertex vertex{};
-
-			if (collectPositions)	 vertex = translate(pMesh->mVertices[v]);
-			// if (collectNormals)		 vertex.Normal = FromAssimp(pMesh->mNormals[v]);
-			// if (collectVertexColors) vertex.Colour = FromAssimp(pMesh->mColors[v][vColChannel]);
-
-			result.add_vertex(vertex);
+			if (collectPositions)	 result.m_positions.push_back(translate(pMesh->mVertices[v]));
+			if (collectNormals)		 result.m_normals.push_back(translate(pMesh->mNormals[v]));
+			if (collectVertexColors) result.m_colours.push_back(translate(pMesh->mColors[v][vColChannel]));
+			if (collectUvs)			result.m_uvs.push_back(translate(pMesh->mTextureCoords[0u][v]));
 		}
 
 		for (uint32 f = 0u; f < pMesh->mNumFaces; ++f)
 		{
 			for (uint32 i = 0u; i < pMesh->mFaces[f].mNumIndices; ++i)
 			{
-				influx::scene::mesh::index index = pMesh->mFaces[f].mIndices[i];
-				result.add_index(index);
+				uint32 index = pMesh->mFaces[f].mIndices[i];
+				result.m_indices.push_back(index);
 			}
 		}
 

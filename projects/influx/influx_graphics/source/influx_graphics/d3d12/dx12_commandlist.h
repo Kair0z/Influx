@@ -33,9 +33,15 @@ namespace influx::graphics
 
 		virtual void copy_resource(resource* source, resource* dest) override;
 
+		virtual void copy_texture(resource* src, resource* dest, const copy_texture_args& = {}) override;
+
+		virtual void copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& = {}) override;
+
 		virtual void set(descriptor_heap* heap) override;
 
 		virtual void set(render_target_view* rtv) override;
+
+		virtual void set(input_resource_view* srv, uint32 param_idx) override;
 
 		virtual void set(rootsignature* rootsig) override;
 

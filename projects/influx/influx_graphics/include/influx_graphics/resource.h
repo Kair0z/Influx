@@ -36,6 +36,7 @@ namespace influx::graphics
 		render_target,
 		copy_source,
 		copy_dest,
+		shader_resource,
 		present,
 		read,
 		count

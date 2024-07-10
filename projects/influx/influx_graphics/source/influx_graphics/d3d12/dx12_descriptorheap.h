@@ -12,14 +12,17 @@ namespace influx::graphics
 		dx12_descriptor_heap(const descriptor_heap::create_args& args, 
 			ID3D12DescriptorHeap* dxheap, uint64 descriptor_stride);
 
-		virtual descriptor_handle allocate() override;
+		virtual descriptor_handle allocate_cpu() override;
+		virtual descriptor_handle allocate_gpu() override;
 
-		virtual void free(descriptor_handle handle) override;
+		virtual void free_cpu(descriptor_handle handle) override;
+		virtual void free_gpu(descriptor_handle handle) override;
 
 	private:
 		ID3D12DescriptorHeap* mpdx_heap;
 		uint64 m_descriptor_stride;
-		list<void*> m_freelist = {};
+		list<void*> m_freelist_cpu = {};
+		list<void*> m_freelist_gpu = {};
 
 		void clear();
 	};

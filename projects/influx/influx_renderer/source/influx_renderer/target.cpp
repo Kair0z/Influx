@@ -41,7 +41,7 @@ namespace influx::renderer
 		m_current_dimensions = swapchain->get_dimensions();
 
 		// store the descriptor handle
-		m_descriptor_handle = mp_rtv->get_descriptor_handle();
+		m_descriptor_handle = mp_rtv->get_cpu_handle();
 
 		mp_device = device;
 	}
@@ -56,7 +56,7 @@ namespace influx::renderer
 		mp_rtv = rtv;
 
 		// store the descriptor handle
-		m_descriptor_handle = mp_rtv->get_descriptor_handle();
+		m_descriptor_handle = mp_rtv->get_cpu_handle();
 	}
 
 	graphics::resource* target::get_resource() const

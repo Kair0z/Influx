@@ -46,6 +46,14 @@ namespace influx::application
 				assets::load_scene_file(filepath, transistor_mesh_data, args);
 			}
 
+			// load images
+			assets::image_data texture_data{};
+			{
+				assets::image_load_args args{};
+				string filepath = get_resource_directory() + "/textures/wood_albedo.png";
+				assets::load_image_file(filepath, texture_data, args);
+			}
+
 			// load shaders
 			assets::shader_data vertex_shader{};
 			assets::shader_data pixel_shader{};
@@ -91,12 +99,16 @@ namespace influx::application
 				// load meshdata into renderer
 				{
 					renderer::mesh_data transistor_data{};
-					for (const scene::mesh::vertex& vertex : transistor_mesh_data.m_meshes[0].get_vertices())
+					const auto& mesh = transistor_mesh_data.m_meshes[0];
+					for (size_t i = 0u; i < mesh.m_positions.size(); ++i)
 					{
 						transistor_data.m_vertices.push_back({});
-						transistor_data.m_vertices.back().m_position = vertex;
+						transistor_data.m_vertices.back().m_position = mesh.m_positions[i];
+						// transistor_data.m_vertices.back().m_colour = mesh.m_colours[i];
+						transistor_data.m_vertices.back().m_normal = mesh.m_normals[i];
+						transistor_data.m_vertices.back().m_texcoords = mesh.m_uvs[i];
 					}
-					transistor_data.m_indices = transistor_mesh_data.m_meshes[0].get_indices();
+					transistor_data.m_indices = transistor_mesh_data.m_meshes[0u].m_indices;
 					renderer::load("transistor_mesh", transistor_data);
 				}
 				
@@ -112,6 +124,14 @@ namespace influx::application
 
 					renderer::load("vs_main", vs_data);
 					renderer::load("ps_main", ps_data);
+				}
+
+				// load textures into renderer
+				{
+					renderer::texture_data tex_data{};
+					tex_data.m_pixels = texture_data.m_pixels;
+					tex_data.m_width = texture_data.m_dimensions.x;
+					renderer::load("tex_colour", tex_data);
 				}
 
 				// camera

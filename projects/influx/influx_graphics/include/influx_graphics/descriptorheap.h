@@ -34,9 +34,11 @@ namespace influx::graphics
 			bool m_shader_visible;
 		};
 
-		virtual descriptor_handle allocate() = 0;
+		virtual descriptor_handle allocate_cpu() = 0;
+		virtual descriptor_handle allocate_gpu() = 0;
 
-		virtual void free(descriptor_handle handle) = 0;
+		virtual void free_cpu(descriptor_handle handle) = 0;
+		virtual void free_gpu(descriptor_handle handle) = 0;
 	
 		inline uint32 get_capacity() const
 		{

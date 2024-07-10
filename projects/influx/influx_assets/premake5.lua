@@ -28,6 +28,7 @@ project "influx_assets"
     {
         "source",
         "include",
+        "vendor",
         g_dir_core_include,
         g_dir_root .. "/vendor/include/assimp/"
     }
@@ -37,9 +38,8 @@ project "influx_assets"
         
     }
 
-    -- deactivate precompiled headers for C files
-    -- filter "files:**.c"
-    -- flags { "NoPCH" }
+    filter "files:**/lodepng/**.cpp"
+        flags {"NoPCH"}
 
     filter "system:windows"
         systemversion "latest"

@@ -38,8 +38,8 @@ namespace influx::graphics
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) override;
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) override;
 
-		virtual input_resource_view* create_irv(descriptor_heap* irv_heap, resource* resource) override;
-		virtual input_resource_view* create_irv(descriptor_handle handle, resource* resource) override;
+		virtual input_resource_view* create_srv(descriptor_heap* irv_heap, resource* resource) override;
+		virtual input_resource_view* create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
 
 		virtual sampler_view* create_sampview(descriptor_heap* samp_heap, resource* resource) override;
 		virtual sampler_view* create_sampview(descriptor_handle handle, resource* resource) override;

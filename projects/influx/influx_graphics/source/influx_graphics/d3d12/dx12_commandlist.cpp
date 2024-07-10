@@ -102,6 +102,38 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->CopyResource(dxdest, dxsource);
 	}
 
+	void dx12_commandlist::copy_texture(resource* src, resource* dest, 
+		const copy_texture_args& args)
+	{
+		D3D12_TEXTURE_COPY_TYPE copy_type 
+			= D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout{};
+
+		CD3DX12_TEXTURE_COPY_LOCATION src_loc{ src->get_native<ID3D12Resource>() };
+		CD3DX12_TEXTURE_COPY_LOCATION dest_loc{ dest->get_native<ID3D12Resource>() };
+
+		src_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		src_loc.PlacedFootprint.Offset = 0;
+		src_loc.PlacedFootprint.Footprint.Width = 1024u;
+		src_loc.PlacedFootprint.Footprint.Height = 1024u;
+		src_loc.PlacedFootprint.Footprint.Depth = 1;
+		src_loc.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		src_loc.PlacedFootprint.Footprint.RowPitch = 4096u;
+
+		mpdx_graphics_commandlist->CopyTextureRegion(
+			&dest_loc, 0u, 0u, 0u,
+			&src_loc, NULL);
+	}
+
+	void dx12_commandlist::copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& args)
+	{
+		mpdx_graphics_commandlist->CopyBufferRegion(
+			dest->get_native<ID3D12Resource>(), args.m_dest_offset,
+			src->get_native<ID3D12Resource>(), args.m_src_offset,
+			bytesize);
+	}
+
 	void dx12_commandlist::set(descriptor_heap* heap)
 	{
 		auto dxheap = heap->get_native<ID3D12DescriptorHeap>();
@@ -112,6 +144,15 @@ namespace influx::graphics
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE* rtv_handle = rtv->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
 		mpdx_graphics_commandlist->OMSetRenderTargets(1u, rtv_handle, FALSE, nullptr);
+	}
+
+	void dx12_commandlist::set(input_resource_view* srv, uint32 param_idx)
+	{
+		auto dx12srv = (dx12_input_resource_view*)srv;
+
+		D3D12_GPU_DESCRIPTOR_HANDLE srv_gpu_handle{};
+		srv_gpu_handle.ptr = (size_t)dx12srv->get_gpu_handle();
+		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, srv_gpu_handle);
 	}
 
 	void dx12_commandlist::set(rootsignature* rootsig)

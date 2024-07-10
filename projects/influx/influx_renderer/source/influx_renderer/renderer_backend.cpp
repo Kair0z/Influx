@@ -4,6 +4,7 @@
 // graphics includes
 #include "influx_graphics.h"
 #include "influx_renderer/descriptor_manager.h"
+#include "influx_renderer/upload_manager.h"
 #include "influx_graphics/pipeline.h"
 #include "influx_graphics/rootsignature.h"
 
@@ -67,6 +68,7 @@ namespace influx::renderer
         // create fence
         {
             mp_fence = mp_device->create_fence((uint64)-1);
+            mp_copyfence = mp_device->create_fence(0u);
         }
 
         // create descriptor manager
@@ -77,12 +79,17 @@ namespace influx::renderer
         // create textures
         {
             texture_create_args args{};
-            args.m_width = 512u;
-            args.m_heigth = 512u;
+            args.m_width = 1024u;
+            args.m_heigth = 1024u;
             for (size_t i = 0u; i < 128u; ++i)
             {
-                m_textures.push_back(new texture(mp_device, mp_desc_manager->get_input_heap(), args));
+                m_textures.push_back(new texture(mp_device, mp_desc_manager->get_srv_heap(), args));
             }
+        }
+
+        // create upload manager
+        {
+            mp_upload_manager = new upload_manager(mp_device);
         }
 
         create_render_systems();
@@ -213,8 +220,10 @@ namespace influx::renderer
         mp_commandlist->set(graphics::e_primitive_topology::trilist);
         mp_commandlist->set(mp_rootsig);
         mp_commandlist->set(mp_pipeline);
-        mp_commandlist->set(mp_desc_manager->get_input_heap());
+
+        // set descriptor heaps
         mp_commandlist->set(mp_desc_manager->get_samp_heap());
+        mp_commandlist->set(mp_desc_manager->get_srv_heap());
 
         // setup constants
         const camera& camera = scene.m_cameras[0];
@@ -229,6 +238,7 @@ namespace influx::renderer
         constants.m_mvp = mat_mod * mat_view * mat_proj;
 
         uint32 texture_idx = 0u;
+        mp_commandlist->set(m_textures[0]->get_irv(), 0u);
         mp_commandlist->set_constants(1u, sizeof(constants) / 4u, &constants);
         mp_commandlist->set_constants(2u, 1u, &texture_idx);
 
@@ -328,6 +338,11 @@ namespace influx::renderer
         return get_instance().mp_desc_manager;
     }
 
+    upload_manager* renderer_backend::get_upload_manager()
+    {
+        return get_instance().mp_upload_manager;
+    }
+
     void renderer_backend::create_render_systems()
     {
         create_render_system<imgui_system>(mp_device);
@@ -373,12 +388,14 @@ namespace influx::renderer
                      data.m_indices.size() * sizeof(index));
             });
         }
-        
     }
 
     void renderer_backend::load(const string& title, const texture_data& data)
     {
-        // todo...
+        mp_upload_manager->upload_texture(
+            mp_graphics_queue, 
+            data, 
+            m_textures[0u]->get_resource());
     }
 
     void renderer_backend::load(const string& title, const material_data& data)

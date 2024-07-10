@@ -185,13 +185,9 @@ namespace influx::graphics
 
 	render_target_view* dx12_device::create_rtv(descriptor_heap* rtv_heap, resource* resource)
 	{
-		ID3D12DescriptorHeap* heap = rtv_heap->get_native<ID3D12DescriptorHeap>();
-		
 		// allocate a new rtv descriptor:
-		descriptor_handle new_descriptor = rtv_heap->allocate();
-		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(new_descriptor) };
-
-		return create_rtv(new_descriptor, resource);
+		descriptor_handle cpu_handle = rtv_heap->allocate_cpu();
+		return create_rtv(cpu_handle, resource);
 	}
 
 	render_target_view* dx12_device::create_rtv(descriptor_handle handle, resource* resource)
@@ -206,24 +202,31 @@ namespace influx::graphics
 		return new dx12_render_target_view(dx_rtv);
 	}
 
-	input_resource_view* dx12_device::create_irv(descriptor_heap* irv_heap, resource* resource)
+	input_resource_view* dx12_device::create_srv(descriptor_heap* irv_heap, resource* resource)
 	{
-		ID3D12DescriptorHeap* dxheap = irv_heap->get_native<ID3D12DescriptorHeap>();
+		// allocate new srv descriptors
+		descriptor_handle cpu_handle = irv_heap->allocate_cpu();
+		descriptor_handle gpu_handle = irv_heap->allocate_gpu();
 
-		// allocate a new irv descriptor:
-		descriptor_handle new_descriptor = irv_heap->allocate();
-		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(new_descriptor) };
-
-		return create_irv(new_descriptor, resource);
+		return create_srv(cpu_handle, gpu_handle, resource);
 	}
 
-	input_resource_view* dx12_device::create_irv(descriptor_handle handle, resource* resource)
+	input_resource_view* dx12_device::create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
 	{
-		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { (size_t)(cpu_handle) };
+		D3D12_GPU_DESCRIPTOR_HANDLE dxgpu_descriptor = { (size_t)(gpu_handle) };
 
-		// ... no extra code necessary
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srv_desc.Format = convert(resource->get_format());
+		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srv_desc.Texture2D.MipLevels = 1;
 
-		return new dx12_input_resource_view(new_dxdescriptor);
+		mpdx_devices[0u]->CreateShaderResourceView(
+			resource->get_native<ID3D12Resource>(),
+			&srv_desc, dxcpu_descriptor);
+
+		return new dx12_input_resource_view(dxcpu_descriptor, dxgpu_descriptor);
 	}
 
 	sampler_view* dx12_device::create_sampview(descriptor_heap* samp_heap, resource* resource)
@@ -231,7 +234,7 @@ namespace influx::graphics
 		ID3D12DescriptorHeap* heap = samp_heap->get_native<ID3D12DescriptorHeap>();
 
 		// allocate a new rtv descriptor:
-		descriptor_handle new_descriptor = samp_heap->allocate();
+		descriptor_handle new_descriptor = samp_heap->allocate_cpu();
 		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(new_descriptor) };
 
 		return create_sampview(new_descriptor, resource);
@@ -293,8 +296,11 @@ namespace influx::graphics
 		D3D12_INPUT_ELEMENT_DESC input_elements[]
 		{
 			{"POSITION"	, 0u, DXGI_FORMAT_R32G32B32_FLOAT, 0u, 0u, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u },
-			{"TEXCOORD"	, 0u, DXGI_FORMAT_R32G32_FLOAT, 1u, (32 * 3), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u }
+			{"COLOR"	, 0u, DXGI_FORMAT_R32G32B32A32_FLOAT, 0u, (32 * 3u), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u},
+			{"NORMAL"	, 0u, DXGI_FORMAT_R32G32B32_FLOAT, 0u, (32 * 7u), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u},
+			{"TEXCOORD"	, 0u, DXGI_FORMAT_R32G32_FLOAT, 0u, (32 * 10u), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u }
 		};
+
 		D3D12_INPUT_LAYOUT_DESC input_layout_desc{};
 		input_layout_desc.pInputElementDescs = input_elements;
 		input_layout_desc.NumElements = _countof(input_elements);

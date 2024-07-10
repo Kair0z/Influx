@@ -58,7 +58,7 @@ namespace influx::renderer
 	{
 		return mp_sampler_heap;
 	}
-	graphics::descriptor_heap* descriptor_manager::get_input_heap() const
+	graphics::descriptor_heap* descriptor_manager::get_srv_heap() const
 	{
 		return mp_cbv_heap;
 	}

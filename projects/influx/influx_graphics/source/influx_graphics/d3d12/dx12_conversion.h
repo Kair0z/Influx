@@ -62,9 +62,12 @@ namespace influx::graphics
 		switch (state)
 		{
 		case e_resource_state::common: return D3D12_RESOURCE_STATE_COMMON;
+		case e_resource_state::copy_dest: return D3D12_RESOURCE_STATE_COPY_DEST;
+		case e_resource_state::copy_source: return D3D12_RESOURCE_STATE_COPY_SOURCE;
 		case e_resource_state::render_target: return D3D12_RESOURCE_STATE_RENDER_TARGET;
 		case e_resource_state::present: return D3D12_RESOURCE_STATE_PRESENT;
 		case e_resource_state::read:	return D3D12_RESOURCE_STATE_GENERIC_READ;
+		case e_resource_state::shader_resource: return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		default:
 		case e_resource_state::count:	return D3D12_RESOURCE_STATE_COMMON;
 		}
