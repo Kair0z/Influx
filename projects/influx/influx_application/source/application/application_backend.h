@@ -9,12 +9,27 @@
 // assets
 #include "influx_assets.h"
 
+namespace influx::renderer
+{
+	struct scene;
+}
+
 namespace influx::application
 {
+	struct frame_time final
+	{
+		float m_delta_seconds;
+		float m_time_seconds;
+	};
+
 	class content_cache final
 	{
 	public:
 		content_cache(const string& resource_dir);
+
+		const map<string, assets::scene_data>& get_scenes() const;
+		const map<string, assets::image_data>& get_images() const;
+		const map<string, assets::shader_data>& get_shaders() const;
 
 	private:
 		map<string, assets::scene_data> m_scenes;
@@ -44,6 +59,9 @@ namespace influx::application
 		static bool is_commandlet();
 
 	private:
+		void load_render_assets();
+		void update(renderer::scene& render_scene, const frame_time& time);
+
 		platform::window_handle m_windowhandle = nullptr;
 		platform::instance_handle m_instancehandle = nullptr;
 

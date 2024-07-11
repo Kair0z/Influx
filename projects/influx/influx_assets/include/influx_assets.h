@@ -57,6 +57,7 @@ namespace influx::assets
 	{
 		using compiled_shader = vector<byte>;
 		compiled_shader m_compile_result;
+		e_shader_type m_type;
 	};
 	
 	INFLUX_ASSETS_API bool load_shader_file(const string& filepath, 

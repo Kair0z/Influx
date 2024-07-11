@@ -19,6 +19,12 @@ project "influx_assets"
     pchheader "assets_pch.h"
     pchsource ("source/assets_pch.cpp")
 
+    disablewarnings 
+    {
+        "4244",
+        "4267"
+    }
+
     defines
     {
         

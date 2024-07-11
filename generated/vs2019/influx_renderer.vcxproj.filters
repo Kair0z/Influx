@@ -4,12 +4,6 @@
     <Filter Include="foreign">
       <UniqueIdentifier>{2F88A8BA-9B67-2756-A47F-B22C10DE8DB7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="foreign\imgui">
-      <UniqueIdentifier>{D9BC2BA0-457D-A7D6-0EB8-F0537A37ECB2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="foreign\imgui\backends">
-      <UniqueIdentifier>{23BBA91D-0FB5-D26F-F821-6980E4BA38DC}</UniqueIdentifier>
-    </Filter>
     <Filter Include="include">
       <UniqueIdentifier>{89AF369E-F58E-B539-FEA6-40106A051C9B}</UniqueIdentifier>
     </Filter>
@@ -29,33 +23,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\d3dx12.h">
       <Filter>foreign</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_dx12.h">
-      <Filter>foreign\imgui\backends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_vulkan.h">
-      <Filter>foreign\imgui\backends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_win32.h">
-      <Filter>foreign\imgui\backends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imconfig.h">
-      <Filter>foreign\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui.h">
-      <Filter>foreign\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_internal.h">
-      <Filter>foreign\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imstb_rectpack.h">
-      <Filter>foreign\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imstb_textedit.h">
-      <Filter>foreign\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\projects\influx\influx_renderer\foreign\imgui\imstb_truetype.h">
-      <Filter>foreign\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_renderer\include\influx_renderer.h">
       <Filter>include</Filter>
@@ -104,30 +71,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_dx12.cpp">
-      <Filter>foreign\imgui\backends</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_vulkan.cpp">
-      <Filter>foreign\imgui\backends</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\backends\imgui_impl_win32.cpp">
-      <Filter>foreign\imgui\backends</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui.cpp">
-      <Filter>foreign\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_demo.cpp">
-      <Filter>foreign\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_draw.cpp">
-      <Filter>foreign\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_tables.cpp">
-      <Filter>foreign\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\projects\influx\influx_renderer\foreign\imgui\imgui_widgets.cpp">
-      <Filter>foreign\imgui</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\projects\influx\influx_renderer\source\influx_renderer\descriptor_manager.cpp">
       <Filter>source\influx_renderer</Filter>
     </ClCompile>

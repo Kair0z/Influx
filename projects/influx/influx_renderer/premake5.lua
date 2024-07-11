@@ -24,6 +24,12 @@ project "influx_renderer"
         
     }
 
+    -- temp, don't want imgui in here
+    removefiles
+    {
+        iif(g_compile_vulkan ~= true, "**/imgui/**", "")
+    }
+
     includedirs
     {
         "source",
@@ -31,15 +37,12 @@ project "influx_renderer"
         "foreign",
         "foreign/imgui/",
         g_dir_core_include,
-        g_dir_vulkan_include, -- vulkan include for imgui
         g_dir_graphics_include
     }
 
     links
     {
         "influx_graphics",
-        "d3d12", "dxgi", "d3dcompiler",
-        "vulkan-1"
     }
 
     filter "system:windows"

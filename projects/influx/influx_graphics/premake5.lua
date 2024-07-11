@@ -44,7 +44,8 @@ project "influx_graphics"
 
     links
     {
-        
+        "d3d12", "dxgi",
+        --"vulkan-1"
     }
 
     filter "system:windows"

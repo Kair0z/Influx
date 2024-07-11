@@ -42,6 +42,7 @@ namespace influx
 		}
 	}
 
+#pragma optimize(off)
 	influx::assets::scene_data::mesh translate(const aiMesh* pMesh)
 	{
 		influx::assets::scene_data::mesh result{};
@@ -64,17 +65,21 @@ namespace influx
 			if (collectUvs)			result.m_uvs.push_back(translate(pMesh->mTextureCoords[0u][v]));
 		}
 
-		for (uint32 f = 0u; f < pMesh->mNumFaces; ++f)
+		if (pMesh->mFaces != nullptr)
 		{
-			for (uint32 i = 0u; i < pMesh->mFaces[f].mNumIndices; ++i)
+			for (uint32 f = 0u; f < pMesh->mNumFaces; ++f)
 			{
-				uint32 index = pMesh->mFaces[f].mIndices[i];
-				result.m_indices.push_back(index);
+				for (uint32 i = 0u; i < pMesh->mFaces[f].mNumIndices; ++i)
+				{
+					uint32 index = pMesh->mFaces[f].mIndices[i];
+					result.m_indices.push_back(index);
+				}
 			}
 		}
 
 		return result;
 	}
+#pragma optimize(on)
 
 	influx::scene::camera translate(const aiCamera* pCamera)
 	{

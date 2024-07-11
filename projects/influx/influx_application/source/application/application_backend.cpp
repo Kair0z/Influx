@@ -5,6 +5,7 @@
 #include "core/log.h"
 #include "core/time.h"
 #include "core/file.h"
+#include "core/scope.h"
 
 // platform: win32
 #include "core/platform/win32/win32_platform.h"
@@ -21,15 +22,18 @@
 
 namespace influx::application
 {
+#pragma optimize off
 	content_cache::content_cache(const string& resource_dir)
 	{
 		vector<file> fbx_files = get_files_in_directory(resource_dir, true, ".fbx");
 		vector<file> png_files = get_files_in_directory(resource_dir, true, ".png");
 		vector<file> hlsl_files = get_files_in_directory(resource_dir, true, ".hlsl");
 
+		
 		// load meshes
 		for (const file& file : fbx_files)
 		{
+			continue;
 			assets::scene_load_args args{};
 			assets::scene_data& scene_data = m_scenes[file.m_filename];
 			assets::load_scene_file(file.m_path_full, scene_data, args);
@@ -69,6 +73,78 @@ namespace influx::application
 			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_ps, shader_load_args));
 		}
 	}
+#pragma optimize on
+
+	const map<string, assets::scene_data>& content_cache::get_scenes() const
+	{
+		return m_scenes;
+	}
+
+	const map<string, assets::image_data>& content_cache::get_images() const
+	{
+		return m_images;
+	}
+
+	const map<string, assets::shader_data>& content_cache::get_shaders() const
+	{
+		return m_shaders;
+	}
+
+	void application::load_render_assets()
+	{
+		// load meshdata into renderer
+		for (const auto& asset : mp_content_cache->get_scenes())
+		{
+			const assets::scene_data::mesh& mesh = asset.second.m_meshes[0]; // gets the first mesh
+			const std::string& name = asset.first;
+
+			renderer::mesh_data mesh_data{};
+			for (size_t i = 0u; i < mesh.m_positions.size(); ++i)
+			{
+				mesh_data.m_vertices.push_back({});
+				mesh_data.m_vertices.back().m_position = mesh.m_positions[i];
+				// mesh_data.m_vertices.back().m_colour = mesh.m_colours[i];
+				mesh_data.m_vertices.back().m_normal = mesh.m_normals[i];
+				mesh_data.m_vertices.back().m_texcoords = mesh.m_uvs[i];
+			}
+			mesh_data.m_indices = mesh.m_indices;
+
+			// load into the renderer
+			renderer::load(name, mesh_data);
+		}
+
+		// load shaders into renderer
+		for (const auto& asset : mp_content_cache->get_shaders())
+		{
+			const assets::shader_data& shader = asset.second;
+			const std::string& name = asset.first;
+
+			renderer::shader_data shader_data{};
+			shader_data.m_bytecode = shader.m_compile_result;
+			shader_data.m_type = shader.m_type;
+
+			renderer::load(name, shader_data);
+		}
+
+		// load textures into renderer
+		for (const auto& asset : mp_content_cache->get_images())
+		{
+			const assets::image_data& image = asset.second;
+			const std::string& name = asset.first;
+
+			renderer::texture_data tex_data{};
+			tex_data.m_pixels = image.m_pixels;
+			tex_data.m_width = image.m_dimensions.x;
+			renderer::load(name, tex_data);
+		}
+	}
+
+	void application::update(renderer::scene& render_scene, const frame_time& time)
+	{
+		render_scene.m_cameras[0].m_position.x = cos(time.m_time_seconds) * 300.0f;
+		render_scene.m_cameras[0].m_position.z = sin(time.m_time_seconds) * 300.0f;
+		render_scene.m_cameras[0].look_at(math::vectorf3::zero());
+	}
 
 	void application::run(const run_args& args)
 	{
@@ -89,7 +165,10 @@ namespace influx::application
 			m_windowhandle = platform::create_window(window_args);
 
 			// resources
+			logn("loading assets :3 ...");
+			time::point time_before_load = time::get_now();
 			mp_content_cache = new content_cache(get_resource_directory());
+			logn("finished loading assets in {} seconds", time::get_ms_since<float>(time_before_load) * 0.001f);
 			
 			// create renderer
 			renderer::init_args render_init_args{};
@@ -100,53 +179,13 @@ namespace influx::application
 			// create swapchain
 			renderer::get_window_target(m_windowhandle);
 
-			renderer::present_args present_args{};
-			present_args.m_vsync = true;
+			// load assets into renderer
+			load_render_assets();
 
 			// create scene
 			renderer::scene render_scene{};
 			{
 				math::vectorf3 scene_center = math::vectorf3::zero();
-
-#if 0
-				// load meshdata into renderer
-				{
-					renderer::mesh_data transistor_data{};
-					const auto& mesh = transistor_mesh_data.m_meshes[0];
-					for (size_t i = 0u; i < mesh.m_positions.size(); ++i)
-					{
-						transistor_data.m_vertices.push_back({});
-						transistor_data.m_vertices.back().m_position = mesh.m_positions[i];
-						// transistor_data.m_vertices.back().m_colour = mesh.m_colours[i];
-						transistor_data.m_vertices.back().m_normal = mesh.m_normals[i];
-						transistor_data.m_vertices.back().m_texcoords = mesh.m_uvs[i];
-					}
-					transistor_data.m_indices = transistor_mesh_data.m_meshes[0u].m_indices;
-					renderer::load("transistor_mesh", transistor_data);
-				}
-				
-				// load shaders into renderer
-				{
-					renderer::shader_data vs_data{};
-					vs_data.m_type = e_shader_type::vs;
-					vs_data.m_bytecode = vertex_shader.m_compile_result;
-
-					renderer::shader_data ps_data{};
-					ps_data.m_type = e_shader_type::ps;
-					ps_data.m_bytecode = pixel_shader.m_compile_result;
-
-					renderer::load("vs_main", vs_data);
-					renderer::load("ps_main", ps_data);
-				}
-
-				// load textures into renderer
-				{
-					renderer::texture_data tex_data{};
-					tex_data.m_pixels = texture_data.m_pixels;
-					tex_data.m_width = texture_data.m_dimensions.x;
-					renderer::load("tex_colour", tex_data);
-				}
-#endif
 
 				// camera
 				renderer::camera render_camera{};
@@ -165,18 +204,20 @@ namespace influx::application
 				render_scene.m_meshes.push_back(mesh_instance);
 			}
 			
+			renderer::present_args present_args{};
+			present_args.m_vsync = true;
+
+			logn("start ticking ...");
 			time::point last_tick = time::get_now();
-			float time = 0.0f;
+			frame_time frame_time{};
 			while (!m_is_quit_requested)
 			{
-				float delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
-				time += delta_seconds;
+				frame_time.m_delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
+				frame_time.m_time_seconds += frame_time.m_delta_seconds;
 				last_tick = time::get_now();
 
-				render_scene.m_cameras[0].m_position.x = cos(time) * 300.0f;
-				render_scene.m_cameras[0].m_position.z = sin(time) * 300.0f;
-				render_scene.m_cameras[0].look_at(math::vectorf3::zero());
-
+				update(render_scene, frame_time);
+				
 				// returns false if quit event was requested
 				if (!platform::poll_window_events(m_windowhandle))
 				{
@@ -192,8 +233,6 @@ namespace influx::application
 					renderer::draw_scene(render_scene, window_target);
 
 					renderer::present_swapchain(present_args);
-
-					influx::logn("Frame: {}", m_frame++);
 				}
 			}
 		}

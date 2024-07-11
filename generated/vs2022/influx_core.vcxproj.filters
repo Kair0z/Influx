@@ -93,6 +93,9 @@
     <ClInclude Include="..\..\projects\influx\influx_core\include\core\debug.h">
       <Filter>include\core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_core\include\core\file.h">
+      <Filter>include\core</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_core\include\core\function.h">
       <Filter>include\core</Filter>
     </ClInclude>

@@ -146,6 +146,8 @@ namespace influx::assets
 			}
 		}
 
+		out_shader.m_type = args.m_type;
+
 		return true;
 	}
 }

@@ -23,7 +23,7 @@ namespace influx::renderer
 
 	void upload_manager::upload_texture(graphics::command_queue* queue, const texture_data& data, graphics::resource* target_resource)
 	{
-		const uint32 texture_bytesize = data.m_pixels.size() * sizeof(byte);
+		const size_t texture_bytesize = data.m_pixels.size() * sizeof(byte);
 
 		// MAP texture data onto the upload resource
 		mp_upload_resource->map([&data, texture_bytesize](void* target)
