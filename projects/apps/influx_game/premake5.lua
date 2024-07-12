@@ -35,6 +35,8 @@ project "influx_game"
         "influx_application"
     }
 
+    debugdir "%{cfg.buildtarget.directory}"
+
     postbuildmessage "Copying dependencies..."
     postbuildcommands
     {
@@ -45,7 +47,9 @@ project "influx_game"
         {"{COPYFILE} %{cfg.buildtarget.directory}../influx_input/influx_input.dll %{cfg.buildtarget.directory}"},
         {"{COPYFILE} " .. g_dir_root .. "/vendor/bin/x64/debug/dxil.dll %{cfg.buildtarget.directory}"},
         {"{COPYFILE} " .. g_dir_root .. "/vendor/bin/x64/debug/dxcompiler.dll %{cfg.buildtarget.directory}"},
-        {"{COPYDIR} " .. g_dir_resources .. " %{cfg.buildtarget.directory}/resources/" }
+        {"{COPYDIR} " .. g_dir_resources .. " %{cfg.buildtarget.directory}/resources/" },
+        {"cd $(SolutionDir)/scripts/"},
+        {"python.exe stage.py"}
     }
 
     filter "system:windows"
