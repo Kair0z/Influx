@@ -200,7 +200,7 @@ namespace influx::application
 
 				// meshes
 				renderer::mesh_instance mesh_instance{};
-				mesh_instance.m_name = "transistor_mesh";
+				mesh_instance.m_name = "transistor";
 				mesh_instance.m_material_name = "none";
 				mesh_instance.m_per_instance_colour;
 				mesh_instance.m_transform = math::matrix4x4f::identity();

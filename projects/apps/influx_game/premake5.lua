@@ -35,8 +35,6 @@ project "influx_game"
         "influx_application"
     }
 
-    debugdir "%{cfg.buildtarget.directory}"
-
     postbuildmessage "Copying dependencies..."
     postbuildcommands
     {
