@@ -48,7 +48,7 @@ project "influx_game"
         {"{COPYFILE} " .. g_dir_root .. "/vendor/bin/x64/debug/dxil.dll %{cfg.buildtarget.directory}"},
         {"{COPYFILE} " .. g_dir_root .. "/vendor/bin/x64/debug/dxcompiler.dll %{cfg.buildtarget.directory}"},
         {"{COPYDIR} " .. g_dir_resources .. " %{cfg.buildtarget.directory}/resources/" },
-        {"cd $(SolutionDir)/scripts/"},
+        {"cd" .. g_dir_root},
         {"python.exe stage.py"}
     }
 
