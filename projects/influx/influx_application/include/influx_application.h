@@ -31,6 +31,7 @@ namespace influx::application
 		bool m_enable_game = false;
 		bool m_vsync = false;
 		bool m_single_threaded = false;
+		bool m_staged = false;
 
 		math::vectorf4 m_window_clear_colour = {};
 

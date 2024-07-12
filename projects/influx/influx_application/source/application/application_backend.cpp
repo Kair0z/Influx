@@ -22,14 +22,12 @@
 
 namespace influx::application
 {
-#pragma optimize off
 	content_cache::content_cache(const string& resource_dir)
 	{
 		vector<file> fbx_files = get_files_in_directory(resource_dir, true, ".fbx");
 		vector<file> png_files = get_files_in_directory(resource_dir, true, ".png");
 		vector<file> hlsl_files = get_files_in_directory(resource_dir, true, ".hlsl");
 
-		
 		// load meshes
 		for (const file& file : fbx_files)
 		{
@@ -73,7 +71,6 @@ namespace influx::application
 			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_ps, shader_load_args));
 		}
 	}
-#pragma optimize on
 
 	const map<string, assets::scene_data>& content_cache::get_scenes() const
 	{
@@ -146,6 +143,11 @@ namespace influx::application
 		render_scene.m_cameras[0].look_at(math::vectorf3::zero());
 	}
 
+	inline void windows_proc(const platform::window_event& ev)
+	{
+		logn("message!");
+	}
+
 	void application::run(const run_args& args)
 	{
 		process_run_args(args);
@@ -162,6 +164,7 @@ namespace influx::application
 			window_args.m_width		= args.m_window_width;
 			window_args.m_height	= args.m_window_height;
 			window_args.m_name		= args.m_name;
+			window_args.m_proc_callback = { windows_proc };
 			m_windowhandle = platform::create_window(window_args);
 
 			// resources
@@ -280,6 +283,12 @@ namespace influx::application
 		if (m_run_args.m_resources_dir.empty())
 		{
 			m_run_args.m_resources_dir = platform::get_current_directory() + "/resources/";
+		}
+
+		// staged? -> resources are in /Influx/resources/...
+		if (m_run_args.m_staged == false)
+		{
+			m_run_args.m_resources_dir = platform::get_current_directory() + "../../../resources/";
 		}
 	}
 

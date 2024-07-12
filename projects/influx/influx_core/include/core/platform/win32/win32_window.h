@@ -21,41 +21,67 @@
 
 namespace influx::platform
 {
-	using windows_procedure = ::WNDPROC;
+	inline window_event::key_type window_event::parse_key_type() const
+	{
+		switch (m_wParam)
+		{
+		case VK_LEFT: return key_type::left;
+		case VK_RIGHT: return key_type::right;
+		case VK_UP: return key_type::up;
+		case VK_DOWN: return key_type::down;
+		case VK_HOME: return key_type::home;
+		case VK_END: return key_type::end;
+		case VK_INSERT: return key_type::insert;
+		case VK_DELETE: return key_type::deleet;
+		case VK_F2: return key_type::f2;
+		default: return key_type::unknown;
+		}
+	}
 
 	namespace detail
 	{
 		static list<window_handle>		gWindowHandles{};
-		static list<windows_procedure>	gWindowsProcedureCallbacklist{};
+		static list<window_proc_callback>	g_windows_procs{};
 
-		constexpr e_windowevent translate_event(const uint32 value)
+		static window_event::type translate_umsg(uint32 uMsg)
 		{
-			switch (value)
+			switch (uMsg)
 			{
-			default:
-			case WM_NULL:		return e_windowevent::unknown;
-			case WM_QUIT:		return e_windowevent::quit;
-			case WM_ACTIVATE:	return e_windowevent::activate;
+			case WM_DESTROY: return window_event::type::quit;
+			case WM_KEYDOWN: return window_event::type::keydown;
+			case WM_KEYUP: return window_event::type::keyup;
 			}
 		}
 
-		inline LRESULT default_windows_procedure(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
+		static window_event make_window_event(uint32 uMsg, uint64 wParam, uint64 lParam)
 		{
-			for (const windows_procedure& proc : gWindowsProcedureCallbacklist)
+			window_event ev{};
+
+			ev.m_wParam = wParam;
+			ev.m_lParam = lParam;
+
+			// determine type
+			ev.m_type = translate_umsg(uMsg);
+			return ev;
+		}
+
+		inline LRESULT influx_window_proc(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
+		{
+			// call user procedures
+			for (const window_proc_callback& callback : g_windows_procs)
 			{
-				proc(hWnd, uMsg, wParam, lParam);
+				window_event ev = make_window_event(uMsg, wParam, lParam);
+				callback(ev);
 			}
 
+			// default behaviour
 			switch (uMsg)
 			{
-			case WM_DESTROY:
-			{
-				::PostQuitMessage(0);
-				return 0;
-			}
-
-			default:
-				return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
+				case WM_DESTROY:
+				{
+					::PostQuitMessage(0);
+					return 0;
+				}
 			}
 
 			return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -104,7 +130,7 @@ namespace influx::platform
 #pragma region window
 
 	/* Returns false if a quit-event was polled! */
-	inline bool poll_window_events(vector<e_windowevent>& out_events, window_handle handle = get_current_window())
+	inline bool poll_window_events(vector<window_event::type>& out_events, window_handle handle = get_current_window())
 	{
 		// http://www.directxtutorial.com/Lesson.aspx?lessonid=9-1-4
 		MSG msg;
@@ -120,10 +146,10 @@ namespace influx::platform
 		// process ALL windows event message
 		while (::PeekMessage(&msg, (::HWND)handle, 0u, 0u, PM_REMOVE))
 		{
-			e_windowevent translatedEvent = detail::translate_event(msg.message);
-			out_events.push_back(translatedEvent);
+			window_event::type translated_type = detail::translate_umsg(msg.message);
+			out_events.push_back(translated_type);
 
-			if (translatedEvent == e_windowevent::quit)
+			if (translated_type == window_event::type::quit)
 			{
 				found_quit_event = true;
 				break;
@@ -141,17 +167,19 @@ namespace influx::platform
 	/* Returns false if a quit-event was polled! */
 	inline bool poll_window_events(window_handle handle = get_current_window())
 	{
-		vector<e_windowevent> out_events{};
+		vector<window_event::type> out_events{};
 		return poll_window_events(out_events, handle);
 	}
 
-	inline window_handle create_window(const create_window_args& args, windows_procedure procedure_override)
+	inline window_handle create_window(const create_window_args& args)
 	{
 		// default open
 		const bool make_open = true;
 
 		::HINSTANCE instance = (::HINSTANCE)get_current_instance();
 		const wstring nameWstring = to_wstring(args.m_name);
+
+		detail::g_windows_procs.push_back(args.m_proc_callback);
 
 		// [ REGISTER WINDOW CLASS ]
 		{
@@ -162,7 +190,7 @@ namespace influx::platform
 			::WNDCLASSEXW windowClassExtended;
 			windowClassExtended.cbSize			= sizeof(WNDCLASSEXW);
 			windowClassExtended.style			= windowClassStyle;
-			windowClassExtended.lpfnWndProc		= procedure_override;
+			windowClassExtended.lpfnWndProc		= detail::influx_window_proc;
 			windowClassExtended.cbClsExtra		= 0;
 			windowClassExtended.cbWndExtra		= 0;
 			windowClassExtended.hInstance		= instance;
@@ -257,11 +285,6 @@ namespace influx::platform
 		}
 
 		return newWindowHandle;
-	}
-
-	inline window_handle create_window(const create_window_args& args)
-	{
-		return create_window(args, detail::default_windows_procedure);
 	}
 
 	inline void destroy_window(const window_handle handle)
