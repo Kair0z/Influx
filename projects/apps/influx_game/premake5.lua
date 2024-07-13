@@ -38,16 +38,16 @@ project "influx_game"
     postbuildmessage "Copying dependencies..."
     postbuildcommands
     {
-        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_application/influx_application.dll %{cfg.buildtarget.directory}"},
-        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_renderer/influx_renderer.dll %{cfg.buildtarget.directory}"},
-        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_async/influx_async.dll %{cfg.buildtarget.directory}"},
-        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_assets/influx_assets.dll %{cfg.buildtarget.directory}"},
-        {"{COPYFILE} %{cfg.buildtarget.directory}../influx_input/influx_input.dll %{cfg.buildtarget.directory}"},
-        {"{COPYFILE} " .. g_dir_root .. "/vendor/bin/x64/debug/dxil.dll %{cfg.buildtarget.directory}"},
-        {"{COPYFILE} " .. g_dir_root .. "/vendor/bin/x64/debug/dxcompiler.dll %{cfg.buildtarget.directory}"},
-        {"{COPYDIR} " .. g_dir_resources .. " %{cfg.buildtarget.directory}/resources/" },
-        {"cd" .. g_dir_root},
-        {"python.exe stage.py"}
+        --{"{COPYFILE} " .. g_dir_root .. "/vendor/bin/x64/debug/dxil.dll %{cfg.buildtarget.directory}"},
+        --{"{COPYFILE} " .. g_dir_root .. "/vendor/bin/x64/debug/dxcompiler.dll %{cfg.buildtarget.directory}"},
+
+        {"cd " .. g_dir_root .. "/scripts/"},
+        {
+            "python.exe stage.py " 
+                .. " --config=" .. g_config_string 
+                .. " --game=" .. "influx_game"
+                .. " --deps " .. "influx_application influx_renderer influx_async influx_assets influx_input"
+        }
     }
 
     filter "system:windows"

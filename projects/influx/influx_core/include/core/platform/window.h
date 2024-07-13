@@ -56,8 +56,8 @@ namespace influx::platform
 
 		key_type parse_key_type() const;
 
-		uint32 m_wParam;
-		uint32 m_lParam;
+		uint64 m_wParam;
+		uint64 m_lParam;
 	};
 
 	using window_proc_callback = function<void(const window_event& e)>;
