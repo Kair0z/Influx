@@ -18,15 +18,11 @@ namespace influx
 		file() = default;
 		file(const string& filepath)
 		{
-			m_path_full = filepath;
-			auto dot_location = filepath.find(".");
-			auto last_sep = filepath.find_last_of("/");
-			auto last_sep2 = filepath.find_last_of("\\");
-			last_sep = std::max(last_sep, last_sep2);
-			auto filename_size = dot_location - (last_sep + 1u);
+			std::filesystem::path path(filepath);
 
-			m_filename = m_path_full.substr(last_sep + 1u, filename_size);
-			m_extension = m_path_full.substr(dot_location);
+			m_filename = path.filename().string();
+			m_path_full = path.string();
+			m_extension = path.extension().string();
 		}
 
 		string m_path_full;
