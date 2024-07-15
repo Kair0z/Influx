@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Include">
-      <UniqueIdentifier>{6917EFFE-D5F6-6D9A-DE0E-F9704A6DD4FB}</UniqueIdentifier>
+    <Filter Include="include">
+      <UniqueIdentifier>{89AF369E-F58E-B539-FEA6-40106A051C9B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\file">
+      <UniqueIdentifier>{7808DB69-646B-6A0E-0DF1-A2C4F9323691}</UniqueIdentifier>
     </Filter>
     <Filter Include="source">
       <UniqueIdentifier>{76FF3A1C-62A1-65F2-4B5C-7946379DEC42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\file">
+      <UniqueIdentifier>{8554BFBA-F109-38B0-7AFE-3187E6B22EB4}</UniqueIdentifier>
     </Filter>
     <Filter Include="source\image">
       <UniqueIdentifier>{0832E212-F494-71B7-9D1A-AA6D895C3D3A}</UniqueIdentifier>
@@ -19,19 +25,310 @@
     <Filter Include="vendor">
       <UniqueIdentifier>{B3738122-9F15-ACF8-88D0-BF4C74113349}</UniqueIdentifier>
     </Filter>
+    <Filter Include="vendor\cereal">
+      <UniqueIdentifier>{AEB24DFC-1A73-C932-E3AD-12B04F2D0E0F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\archives">
+      <UniqueIdentifier>{B24EC258-9E48-EBAA-87B5-81BB734E5117}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\details">
+      <UniqueIdentifier>{23714D12-8FDD-080D-58D1-A06AC4FC2A75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\external">
+      <UniqueIdentifier>{C0441DFF-AC3E-4651-95AB-DC618144ACBD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\external\rapidjson">
+      <UniqueIdentifier>{79BE0CB9-650F-F8FA-8E73-E6BC7A238B64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\external\rapidjson\error">
+      <UniqueIdentifier>{928C70E2-7EDE-47D2-67FD-84E253EE60BB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\external\rapidjson\internal">
+      <UniqueIdentifier>{E5B89ADA-51D3-FD7B-9AF5-0D10064F2583}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\external\rapidjson\msinttypes">
+      <UniqueIdentifier>{A828E1D5-148E-745C-9D66-163509CB69CB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\external\rapidxml">
+      <UniqueIdentifier>{70E317F6-DCC6-2636-E5C9-5472512CED86}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\types">
+      <UniqueIdentifier>{F2507A08-5EB2-5716-E71F-9EC853808ED5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\cereal\types\concepts">
+      <UniqueIdentifier>{4028B079-2CE3-9F25-D59A-1870C134EAB5}</UniqueIdentifier>
+    </Filter>
     <Filter Include="vendor\lodepng">
       <UniqueIdentifier>{EBAA2651-D778-1A57-C00C-8B7DAC79F6BB}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\projects\influx\influx_assets\Include\influx_assets.h">
-      <Filter>Include</Filter>
+    <ClInclude Include="..\..\projects\influx\influx_assets\include\file\influx_file.h">
+      <Filter>include\file</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\include\influx_assets.h">
+      <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_assets\source\assets_pch.h">
       <Filter>source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_assets\source\scene\influx_assimp.h">
       <Filter>source\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\access.hpp">
+      <Filter>vendor\cereal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\archives\adapters.hpp">
+      <Filter>vendor\cereal\archives</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\archives\binary.hpp">
+      <Filter>vendor\cereal\archives</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\archives\json.hpp">
+      <Filter>vendor\cereal\archives</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\archives\portable_binary.hpp">
+      <Filter>vendor\cereal\archives</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\archives\xml.hpp">
+      <Filter>vendor\cereal\archives</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\cereal.hpp">
+      <Filter>vendor\cereal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\details\helpers.hpp">
+      <Filter>vendor\cereal\details</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\details\polymorphic_impl.hpp">
+      <Filter>vendor\cereal\details</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\details\polymorphic_impl_fwd.hpp">
+      <Filter>vendor\cereal\details</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\details\static_object.hpp">
+      <Filter>vendor\cereal\details</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\details\traits.hpp">
+      <Filter>vendor\cereal\details</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\details\util.hpp">
+      <Filter>vendor\cereal\details</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\base64.hpp">
+      <Filter>vendor\cereal\external</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\allocators.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\cursorstreamwrapper.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\document.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\encodedstream.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\encodings.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\error\en.h">
+      <Filter>vendor\cereal\external\rapidjson\error</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\error\error.h">
+      <Filter>vendor\cereal\external\rapidjson\error</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\filereadstream.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\filewritestream.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\fwd.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\biginteger.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\diyfp.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\dtoa.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\ieee754.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\itoa.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\meta.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\pow10.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\regex.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\stack.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\strfunc.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\strtod.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\internal\swap.h">
+      <Filter>vendor\cereal\external\rapidjson\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\istreamwrapper.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\memorybuffer.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\memorystream.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\msinttypes\inttypes.h">
+      <Filter>vendor\cereal\external\rapidjson\msinttypes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\msinttypes\stdint.h">
+      <Filter>vendor\cereal\external\rapidjson\msinttypes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\ostreamwrapper.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\pointer.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\prettywriter.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\rapidjson.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\reader.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\schema.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\stream.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\stringbuffer.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidjson\writer.h">
+      <Filter>vendor\cereal\external\rapidjson</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidxml\rapidxml.hpp">
+      <Filter>vendor\cereal\external\rapidxml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidxml\rapidxml_iterators.hpp">
+      <Filter>vendor\cereal\external\rapidxml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidxml\rapidxml_print.hpp">
+      <Filter>vendor\cereal\external\rapidxml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\external\rapidxml\rapidxml_utils.hpp">
+      <Filter>vendor\cereal\external\rapidxml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\macros.hpp">
+      <Filter>vendor\cereal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\specialize.hpp">
+      <Filter>vendor\cereal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\array.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\atomic.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\base_class.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\bitset.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\boost_variant.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\chrono.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\common.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\complex.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\concepts\pair_associative_container.hpp">
+      <Filter>vendor\cereal\types\concepts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\deque.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\forward_list.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\functional.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\list.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\map.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\memory.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\optional.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\polymorphic.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\queue.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\set.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\stack.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\string.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\tuple.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\unordered_map.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\unordered_set.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\utility.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\valarray.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\variant.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\types\vector.hpp">
+      <Filter>vendor\cereal\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\projects\influx\influx_assets\vendor\cereal\version.hpp">
+      <Filter>vendor\cereal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\projects\influx\influx_assets\vendor\lodepng\lodepng.h">
       <Filter>vendor\lodepng</Filter>
@@ -43,6 +340,9 @@
   <ItemGroup>
     <ClCompile Include="..\..\projects\influx\influx_assets\source\assets_pch.cpp">
       <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\projects\influx\influx_assets\source\file\influx_file.cpp">
+      <Filter>source\file</Filter>
     </ClCompile>
     <ClCompile Include="..\..\projects\influx\influx_assets\source\image\image_loader.cpp">
       <Filter>source\image</Filter>
