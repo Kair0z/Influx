@@ -31,7 +31,6 @@ namespace influx::application
 		// load meshes
 		for (const file& file : fbx_files)
 		{
-			continue;
 			assets::scene_load_args args{};
 			assets::scene_data& scene_data = m_scenes[file.m_filename];
 			assets::load_scene_file(file.m_path_full, scene_data, args);
