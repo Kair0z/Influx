@@ -145,7 +145,7 @@ namespace influx::application
 
 	inline void windows_proc(const platform::window_event& ev)
 	{
-		logn("message!");
+		// logn("message!");
 	}
 
 	void application::run(const run_args& args)

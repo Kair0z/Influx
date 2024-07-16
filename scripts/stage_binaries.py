@@ -22,14 +22,16 @@ influx_bin_game = influx_bin + args.game + "/"
 # staging game binaries
 shutil.copytree(influx_bin_game, influx_staged, dirs_exist_ok=True)
 
-# staging game dependencies
+# staging influx dependencies
 for _, value in parser.parse_args()._get_kwargs():
     if isinstance(value, list):
         for dep in value:
             shutil.copytree(influx_bin + dep + '/', influx_staged, dirs_exist_ok=True)
             shutil.copytree(influx_bin + dep + '/', influx_bin_game, dirs_exist_ok=True)
 
-
-
+# staging vendor dependencies
+vendor_bin_debug = influx_root + "/vendor/bin/x64/Debug/"
+shutil.copytree(vendor_bin_debug, influx_staged, dirs_exist_ok=True)
+shutil.copytree(vendor_bin_debug, influx_bin_game, dirs_exist_ok=True)
 
 

@@ -46,7 +46,7 @@ namespace influx
 		{
 			const string& full_path = entry.path().string();
 			const string& filename = entry.path().filename().string();
-			const string& extension = full_path.substr(full_path.find("."));
+			const string& extension = entry.path().extension().string();
 
 			if (!extension.empty() && extension != file_extension)
 			{

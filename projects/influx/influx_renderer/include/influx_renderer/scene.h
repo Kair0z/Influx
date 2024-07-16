@@ -6,7 +6,6 @@
 
 namespace influx::renderer
 {
-	// camera data
 	struct camera final
 	{
 		float m_fov = 90.0f;
@@ -23,7 +22,6 @@ namespace influx::renderer
 		}
 	};
 
-	// per instance data
 	struct mesh_instance final
 	{
 		mesh_instance() = default;

@@ -23,15 +23,19 @@ namespace influx::renderer
 
 	void upload_manager::upload_texture(graphics::command_queue* queue, const texture_data& data, graphics::resource* target_resource)
 	{
+		static uint32 num_textures = 0u;
 		const size_t texture_bytesize = data.m_pixels.size() * sizeof(byte);
 
 		// MAP texture data onto the upload resource
+		graphics::map_args args{};
+		args.m_begin = texture_bytesize * num_textures++;
+		args.m_end = args.m_begin + texture_bytesize;
 		mp_upload_resource->map([&data, texture_bytesize](void* target)
 		{
 			memcpy(target,
 				data.m_pixels.data(),
 				texture_bytesize);
-		});
+		}, args);
 
 		// start a commandlist that copies the texture from intermediate -> gpu resource
 		mp_commandlist->start(mp_commandalloc, nullptr);

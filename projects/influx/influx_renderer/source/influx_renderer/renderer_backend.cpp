@@ -392,10 +392,11 @@ namespace influx::renderer
 
     void renderer_backend::load(const string& title, const texture_data& data)
     {
+        static uint32 num_textures = 0u;
         mp_upload_manager->upload_texture(
             mp_graphics_queue, 
             data, 
-            m_textures[0u]->get_resource());
+            m_textures[num_textures++]->get_resource());
     }
 
     void renderer_backend::load(const string& title, const material_data& data)
