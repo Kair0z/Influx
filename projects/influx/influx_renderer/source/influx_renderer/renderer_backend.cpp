@@ -227,19 +227,12 @@ namespace influx::renderer
 
         // setup constants
         const camera& camera = scene.m_cameras[0];
-        struct vs_consants
-        {
-            math::matrix4x4f m_mvp;
-        } constants;
-
-        const math::matrix4x4f mat_mod = math::matrix4x4f::identity();
         const math::matrix4x4f mat_view = math::matrix4x4f::make_view_RH(camera.m_position, -camera.m_forward);
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
-        constants.m_mvp = mat_mod * mat_view * mat_proj;
 
         uint32 texture_idx = m_frame_count % 1u;
         mp_commandlist->set(m_textures[0]->get_irv(), 0u);
-        mp_commandlist->set_constants(1u, sizeof(constants) / 4u, &constants);
+        
         mp_commandlist->set_constants(2u, 1u, &texture_idx);
 
         // draw meshes
@@ -262,6 +255,14 @@ namespace influx::renderer
 
             if (instances.size() > 0u)
             {
+                struct vs_consants final
+                {
+                    math::matrix4x4f m_mvp;
+                } constants;
+
+                constants.m_mvp = instances[0u].m_transform * mat_view * mat_proj;
+                mp_commandlist->set_constants(1u, sizeof(constants) / sizeof(uint32), &constants);
+
                 graphics::resource* vertex_buffer = m_vertex_buffers[mesh_name];
                 graphics::resource* index_buffer = m_index_buffers[mesh_name];
                 const uint32 num_vertices = (uint32)vertex_buffer->get_bytesize() / (uint32)vertex_buffer->get_bytestride();

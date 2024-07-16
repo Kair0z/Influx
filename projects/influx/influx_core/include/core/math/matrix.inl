@@ -431,6 +431,13 @@ namespace influx::math
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::operator*=(const matrix& other)
+	{
+		*this = *this * other;
+		return *this;
+	}
+
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::member_multiply(const matrix<_t, _C, _R>& other)
 	{
 		for (matrix_dim_t i{}; i < _R * _C; ++i)

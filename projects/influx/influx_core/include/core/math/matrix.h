@@ -63,6 +63,7 @@ namespace influx::math
 		// Basic Operations:
 		matrix& operator*=(const float scalar);
 		matrix& operator/=(const float scalar);
+		matrix& operator*=(const matrix& other);
 		matrix& operator+=(const matrix& other);
 		matrix& operator-=(const matrix& other);
 

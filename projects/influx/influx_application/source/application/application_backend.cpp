@@ -210,7 +210,8 @@ namespace influx::application
 				render_scene.m_meshes.push_back(mesh_instance);
 
 				mesh_instance.m_name = "box";
-				mesh_instance.m_transform = math::matrix4x4f::make_transform_RH({0.0f, 0.0f, 50.0f}, {0,1,0});
+				mesh_instance.m_transform = math::matrix4x4f::make_transform_RH({ 0.0f, 0.0f, 50.0f }, { 0,1,0 });
+				mesh_instance.m_transform *= math::matrix4x4f::make_scale(math::vectorf3::one() * 10.0f);
 				render_scene.m_meshes.push_back(mesh_instance);
 			}
 			
