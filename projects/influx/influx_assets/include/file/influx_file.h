@@ -2,6 +2,9 @@
 
 #include "core/string.h"
 #include "core/file.h"
+#include "core/math/matrix.h"
+#include "core/container/list.h"
+#include "core/graph/hierarchy.h"
 
 #include <fstream>
 
@@ -30,12 +33,30 @@ namespace influx::assets
 		std::ifstream m_ifstream{};
 	};
 
-	class flx_scene final : public flx_asset
+	class flx_actor final : public flx_asset
 	{
 	private:
 		INFLUX_ASSETS_API bool serialize() override;
 
 	public:
 		uint32 m_id;
+		string m_name;
+		
+	};
+
+	class flx_scene final : public flx_asset
+	{
+	private:
+		INFLUX_ASSETS_API bool serialize() override;
+
+	public:
+		struct node final
+		{
+			math::matrix4x4f m_transform;
+			uint32 m_id;
+		};
+
+		uint32 m_id;
+		hierarchy<node> m_hierarchy;
 	};
 }

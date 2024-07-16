@@ -1,17 +1,15 @@
 #pragma once
 
-#ifndef __CORE_GRAPH_HIERARCHY_H_
-#define __CORE_GRAPH_HIERARCHY_H_
-
 #include "core/container/containers.h"
+#include "core/function.h"
 
 namespace influx
 {
 	template <class _t>
 	class hierarchy final
 	{
+	public:
 		using data = _t;
-
 		constexpr static uint32 k_maxLayers = u32_max;
 		constexpr static uint32 k_maxChildren = u32_max;
 
@@ -24,13 +22,16 @@ namespace influx
 			uint32 LayerIndex;
 			data data;
 		};
-
 		using node_vector = vector<node>;
+
+	private:
+		node m_root;
+		vector<node_vector> m_layers{};
 
 	public:
 		hierarchy() = default;
 
-		const node& add(const data& element, const node& parent)
+		inline const node& add(const data& element, const node& parent)
 		{
 			const uint32 newLayerIndex = parent.LayerIndex + 1u;
 
@@ -44,18 +45,20 @@ namespace influx
 			return *m_layers[newLayerIndex].end();
 		}
 
-		const node* get_child(uint32 index, const node& parent)
+		inline node* get_child(uint32 index, const node& parent)
 		{
-			if (!has_children())
+			if (!has_children(parent))
 			{
 				return nullptr;
 			}
+
+			return nullptr;
 		}
 
-		uint32 get_num_children(const node& parent) const
+		inline uint32 get_num_children(const node& parent) const
 		{
 			const uint32 childLayerIndex = parent.LayerIndex + 1u;
-			if (childLayerIndex >= m_layers.dimension())
+			if (childLayerIndex >= m_layers.size())
 			{
 				return 0u;
 			}
@@ -63,16 +66,41 @@ namespace influx
 			return 1u;
 		}
 
-		bool has_children(const node& parent) const
+		inline bool has_children(const node& parent) const
 		{
-			return get_num_children() != 0u;
+			return get_num_children(parent) != 0u;
 		}
 
-	private:
-		node m_root;
+		inline void traverse(const function<void(node&)>& traverse_func)
+		{
+			function<void(node&)> visit_children;
+			visit_children = [this, &visit_children, &traverse_func](node& parent)
+			{
+				for (uint32 i = 0u; i < get_num_children(parent); ++i)
+				{
+					node* child = get_child(i, parent);
+					if (child)
+					{
+						traverse_func(*child);
+					}
+				}
 
-		vector<node_vector> m_layers{};
+				for (uint32 i = 0u; i < get_num_children(parent); ++i)
+				{
+					node* child = get_child(i, parent);
+					if (child)
+					{
+						visit_children(*child);
+					}
+				}
+			};
+
+			visit_children(m_root);
+		}
+
+		inline node& get_root()
+		{
+			return m_root;
+		}
 	};
 }
-
-#endif

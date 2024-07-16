@@ -206,9 +206,11 @@ namespace influx::application
 				// meshes
 				renderer::mesh_instance mesh_instance{};
 				mesh_instance.m_name = "transistor";
-				mesh_instance.m_material_name = "none";
-				mesh_instance.m_per_instance_colour;
 				mesh_instance.m_transform = math::matrix4x4f::identity();
+				render_scene.m_meshes.push_back(mesh_instance);
+
+				mesh_instance.m_name = "box";
+				mesh_instance.m_transform = math::matrix4x4f::make_transform_RH({0.0f, 0.0f, 50.0f}, {0,1,0});
 				render_scene.m_meshes.push_back(mesh_instance);
 			}
 			

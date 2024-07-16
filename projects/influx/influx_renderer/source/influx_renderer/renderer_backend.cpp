@@ -237,7 +237,7 @@ namespace influx::renderer
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
         constants.m_mvp = mat_mod * mat_view * mat_proj;
 
-        uint32 texture_idx = 0u;
+        uint32 texture_idx = m_frame_count % 1u;
         mp_commandlist->set(m_textures[0]->get_irv(), 0u);
         mp_commandlist->set_constants(1u, sizeof(constants) / 4u, &constants);
         mp_commandlist->set_constants(2u, 1u, &texture_idx);
@@ -251,7 +251,7 @@ namespace influx::renderer
             instances.reserve(scene.m_meshes.size());
             for (const mesh_instance& instance : scene.m_meshes)
             {
-                if (instance.m_name == vertex_buffer.first)
+                if (instance.m_name == mesh_name)
                 {
                     gpu_instance_data instance_data{};
                     instance_data.m_transform = instance.m_transform;

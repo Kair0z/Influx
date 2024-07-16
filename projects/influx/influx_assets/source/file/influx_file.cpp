@@ -1,11 +1,37 @@
 #include "assets_pch.h"
 #include "influx_assets.h"
 
-#include "core/string.h"
-
 #include "cereal/types/string.hpp"
 #include "cereal/archives/json.hpp"
 #include "cereal/archives/binary.hpp"
+
+// these custom serialization functions need to be in the cereal namespace for cereal to access them!
+namespace cereal
+{
+	// influx::math::matrix4x4f
+	template <class _archive> void serialize(_archive& arch, influx::math::matrix4x4f& matrix)
+	{
+		arch(matrix.m_data);
+	}
+
+	// influx::assets::flx_scene::node
+	template <class _archive> void serialize(_archive& arch, influx::assets::flx_scene::node& node)
+	{
+		arch(node.m_id);
+		arch(node.m_transform);
+	}
+
+	// influx::assets::flx_scene
+	template <class _archive> void serialize(_archive& arch, influx::assets::flx_scene& scene)
+	{
+		arch(scene.m_id);
+		scene.m_hierarchy.traverse([&arch](influx::hierarchy<influx::assets::flx_scene::node>::node& node)
+		{
+			arch(node.data);
+		});
+	}
+}
+
 
 namespace influx::assets
 {
@@ -18,14 +44,6 @@ namespace influx::assets
 	else { cereal::BinaryOutputArchive AR(get_ofs()); AR(variable); }
 
 #define archive(variable) archive_json(variable)
-
-#pragma region serialize_impl
-	template <class _archive>
-	void serialize(_archive& arch, flx_scene& scene)
-	{
-		arch(scene.m_id);
-	}
-#pragma endregion
 
 	void flx_asset::save(const file& file)
 	{
