@@ -1,6 +1,8 @@
 # INFLUX
 [Ii]nt/
 [Bb]in/
+[Ss]taged/
+[Gg]enerated/
 .vs
 
 !/vendor/bin/
