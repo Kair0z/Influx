@@ -38,3 +38,6 @@
 *.out
 *.app
 *.vcxproj
+*.vcxproj.filters
+
+!/premake/premake5.exe
