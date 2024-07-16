@@ -15,10 +15,27 @@ namespace influx
 
 	struct file
 	{
+		file() = default;
+		file(const string& filepath)
+		{
+			std::filesystem::path path(filepath);
+
+			m_filename = path.filename().string();
+			m_path_full = path.string();
+			m_extension = path.extension().string();
+		}
+
 		string m_path_full;
 		string m_filename;
 		string m_extension;
 	};
+
+	inline bool create_file(const string& file)
+	{
+		std::filesystem::path path(file);
+		std::filesystem::create_directories(path.parent_path());
+		return true;
+	}
 
 	inline vector<file> get_files_in_directory(const string& directory, bool recursive, const string& file_extension = {})
 	{

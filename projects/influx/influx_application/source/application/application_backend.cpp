@@ -157,6 +157,11 @@ namespace influx::application
 		// initialize input:
 		input::init();
 
+		assets::flx_scene scene_file = {};
+		scene_file.m_id = 2u;
+
+		scene_file.save(get_resource_directory() + "../assets/scene.flx");
+
 		if (m_run_args.m_commandlet == false)
 		{
 			// create a platform window

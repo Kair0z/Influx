@@ -13,6 +13,8 @@
 #include "core/basetypes.h"
 #include "core/shader.h"
 
+#include "file/influx_file.h"
+
 namespace influx::assets
 {
 	/* Loads an 3D-model scene file (.fbx, .obj) */
@@ -40,6 +42,7 @@ namespace influx::assets
 	INFLUX_ASSETS_API bool load_scene_file(const string& filepath, 
 		scene_data& out_scene, const scene_load_args& args = {});
 
+
 	/* Loads a Shader file (.hlsl) */
 	struct shader_load_args final
 	{
@@ -64,17 +67,17 @@ namespace influx::assets
 		shader_data& out_shader, const shader_load_args& args = {});
 
 
+	/* Loads an 2D-image (.png, .jpeg) */
+	struct image_load_args final
+	{
+	};
+
 	enum class e_image_colour_type
 	{
 		rgb,
 		rgba,
 		grey,
 		count
-	};
-
-	/* Loads an 2D-image (.png, .jpeg) */
-	struct image_load_args final
-	{
 	};
 
 	struct image_data final

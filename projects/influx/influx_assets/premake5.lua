@@ -13,7 +13,8 @@ project "influx_assets"
     {
         g_project_dir .. "**.h",
         g_project_dir .. "**.cpp",
-        g_project_dir .. "**.lua"
+        g_project_dir .. "**.lua",
+        g_project_dir .. "**.hpp"
     }
 
     pchheader "assets_pch.h"
