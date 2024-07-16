@@ -27,6 +27,7 @@ for _, value in parser.parse_args()._get_kwargs():
     if isinstance(value, list):
         for dep in value:
             shutil.copytree(influx_bin + dep + '/', influx_staged, dirs_exist_ok=True)
+            shutil.copytree(influx_bin + dep + '/', influx_bin_game, dirs_exist_ok=True)
 
 
 

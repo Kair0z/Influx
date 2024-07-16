@@ -157,10 +157,11 @@ namespace influx::application
 		// initialize input:
 		input::init();
 
+		// save assets
 		assets::flx_scene scene_file = {};
 		scene_file.m_id = 2u;
-
-		scene_file.save(get_resource_directory() + "../assets/scene.flx");
+		scene_file.save(get_assets_directory() + "scene.flx");
+		scene_file.save(get_assets_directory() + "scene2.flx");
 
 		if (m_run_args.m_commandlet == false)
 		{
@@ -284,22 +285,33 @@ namespace influx::application
 	void application::process_run_args(const run_args& args)
 	{
 		m_run_args = args;
+		m_staged = args.m_staged;
 
-		if (m_run_args.m_resources_dir.empty())
+		if (m_staged)
 		{
-			m_run_args.m_resources_dir = platform::get_current_directory() + "/resources/";
+			m_resource_dir = (m_run_args.m_resources_dir.empty()) ?
+				platform::get_current_directory() + "/resources/" : m_run_args.m_resources_dir;
+
+			m_asset_dir = (m_run_args.m_assets_dir.empty()) ?
+				platform::get_current_directory() + "/assets/" : m_run_args.m_assets_dir;
 		}
-
-		// staged? -> resources are in /Influx/resources/...
-		if (m_run_args.m_staged == false)
+		else
 		{
-			m_run_args.m_resources_dir = platform::get_current_directory() + "../../../resources/";
+			// non-staged builds are ran in Influx/bin/[config]/influx_game/ folder
+			const string& root_influx = platform::get_current_directory() + "/../../../";
+			m_resource_dir = root_influx + "/resources/";
+			m_asset_dir = root_influx + "/assets/";
 		}
 	}
 
 	string application::get_resource_directory() const
 	{
-		return m_run_args.m_resources_dir;
+		return m_resource_dir;
+	}
+
+	string application::get_assets_directory() const
+	{
+		return m_asset_dir;
 	}
 
 	run_args application::get_run_arguments() const
