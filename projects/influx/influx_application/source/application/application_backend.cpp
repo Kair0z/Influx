@@ -185,7 +185,12 @@ namespace influx::application
 			renderer::initialize(render_init_args);
 			
 			// create swapchain
-			renderer::get_window_target(m_windowhandle);
+			renderer::target* initialTarget = renderer::get_window_target(m_windowhandle);
+			// create a depthbuffer
+			renderer::depth_stencil_create_args ds_args{};
+			ds_args.m_width = initialTarget->get_width();
+			ds_args.m_heigth = initialTarget->get_height();
+			renderer::depth_stencil* depth_stencil = renderer::create_depth_stencil(ds_args);
 
 			// load assets into renderer
 			load_render_assets();
@@ -197,16 +202,16 @@ namespace influx::application
 
 				// camera
 				renderer::camera render_camera{};
-				render_camera.m_far_plane = 1000.0f;
-				render_camera.m_near_plane = 0.001f;
-				render_camera.m_position = { 0.0f, 0.0f, 500.0f };
+				render_camera.m_far_plane = 500.0f; // 1000 makes the depth very imprecise, maybe want to reverse depth
+				render_camera.m_near_plane = 0.01f;
+				render_camera.m_position = { 0.0f, 0.0f, 400.0f };
 				render_camera.look_at(scene_center);
 				render_scene.m_cameras.push_back(render_camera);
 
 				// meshes
 				renderer::mesh_instance mesh_instance{};
 				mesh_instance.m_name = "transistor";
-				mesh_instance.m_transform = math::matrix4x4f::identity();
+				mesh_instance.m_transform *= math::matrix4x4f::make_scale(math::vectorf3::one() * 2.0f);
 				render_scene.m_meshes.push_back(mesh_instance);
 
 				mesh_instance.m_name = "box";
@@ -241,11 +246,13 @@ namespace influx::application
 					const renderer::target& window_target
 						= *renderer::get_window_target(m_windowhandle);
 
-					renderer::draw_scene(render_scene, window_target);
+					renderer::draw_scene(render_scene, window_target, *depth_stencil);
 
 					renderer::present_swapchain(present_args);
 				}
 			}
+
+			delete depth_stencil;
 		}
 	}
 

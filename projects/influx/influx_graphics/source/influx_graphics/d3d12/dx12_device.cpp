@@ -202,6 +202,25 @@ namespace influx::graphics
 		return new dx12_render_target_view(dx_rtv);
 	}
 
+	depth_stencil_view* dx12_device::create_dsv(descriptor_heap* dsv_heap, resource* resource)
+	{
+		// allocate a new rtv descriptor:
+		descriptor_handle cpu_handle = dsv_heap->allocate_cpu();
+		return create_dsv(cpu_handle, resource);
+	}
+
+	depth_stencil_view* dx12_device::create_dsv(descriptor_handle handle, resource* resource)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
+
+		// create the dsv
+		ID3D12Resource* dxresource = resource->get_native<ID3D12Resource>();
+		auto dx_dsv = dx12helpers::create_dsv(mpdx_devices[0u], dxresource,
+			new_dxdescriptor, convert(resource->get_format()));
+
+		return new dx12_depth_stencil_view(dx_dsv);
+	}
+
 	input_resource_view* dx12_device::create_srv(descriptor_heap* irv_heap, resource* resource)
 	{
 		// allocate new srv descriptors

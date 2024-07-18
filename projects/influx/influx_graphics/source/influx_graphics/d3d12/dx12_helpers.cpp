@@ -87,6 +87,18 @@ namespace influx::graphics::dx12helpers
         return cpu_handle;
     }
 
+    D3D12_CPU_DESCRIPTOR_HANDLE create_dsv(ID3D12Device* device, ID3D12Resource* resource,
+        D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, DXGI_FORMAT format)
+    {
+        D3D12_DEPTH_STENCIL_VIEW_DESC desc{};
+        desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+        desc.Texture2D.MipSlice = 0u;
+        desc.Format = format;
+
+        device->CreateDepthStencilView(resource, &desc, cpu_handle);
+        return cpu_handle;
+    }
+
     descriptor_strides query_descriptor_strides(ID3D12Device* device)
     {
         descriptor_strides strides{};

@@ -18,6 +18,15 @@ namespace influx::graphics
 		D3D12_CPU_DESCRIPTOR_HANDLE m_dx_cpu_handle;
 	};
 
+	class dx12_depth_stencil_view : public depth_stencil_view
+	{
+	public:
+		dx12_depth_stencil_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle);
+
+	private:
+		D3D12_CPU_DESCRIPTOR_HANDLE m_dx_cpu_handle;
+	};
+
 	class dx12_vertex_buffer_view : public vertex_buffer_view
 	{
 	public:

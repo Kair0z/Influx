@@ -29,6 +29,8 @@ namespace influx::graphics
 
 		virtual void clear_rtv(render_target_view* view, const math::vectorf4& clear_value) override;
 
+		virtual void clear_dsv(depth_stencil_view* view, float clear_depth, uint32 clear_stencil) override;
+
 		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
 
 		virtual void copy_resource(resource* source, resource* dest) override;
@@ -39,7 +41,7 @@ namespace influx::graphics
 
 		virtual void set(descriptor_heap* heap) override;
 
-		virtual void set(render_target_view* rtv) override;
+		virtual void set(render_target_view* rtv, depth_stencil_view* dsv) override;
 
 		virtual void set(input_resource_view* srv, uint32 param_idx) override;
 

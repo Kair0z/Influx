@@ -48,6 +48,9 @@ namespace influx::graphics
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) = 0;
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) = 0;
 
+		virtual depth_stencil_view* create_dsv(descriptor_heap* dsv_heap, resource* resource) = 0;
+		virtual depth_stencil_view* create_dsv(descriptor_handle handle, resource* resource) = 0;
+
 		virtual input_resource_view* create_srv(descriptor_heap* irv_heap, resource* resource) = 0;
 		virtual input_resource_view* create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) = 0;
 

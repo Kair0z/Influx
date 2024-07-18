@@ -26,6 +26,13 @@ namespace influx::graphics
 			: resource_view(cpu_handle, gpu_handle) {}
 	};
 
+	class depth_stencil_view : public resource_view
+	{
+	public:
+		depth_stencil_view(descriptor_handle cpu_handle, descriptor_handle gpu_handle)
+			: resource_view(cpu_handle, gpu_handle) {}
+	};
+
 	class vertex_buffer_view : public resource_view
 	{
 	public:

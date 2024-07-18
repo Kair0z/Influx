@@ -27,13 +27,15 @@ namespace influx::graphics
 	enum class e_resource_flags : uint8
 	{
 		none,
-		max
+		allow_depth_stencil,
+		count
 	};
 
 	enum class e_resource_state : uint8
 	{
 		common,
 		render_target,
+		depth_write,
 		copy_source,
 		copy_dest,
 		shader_resource,

@@ -87,6 +87,12 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->ClearRenderTargetView(*cpu_handle, clear_value.data(), 0u, nullptr);
 	}
 
+	void dx12_commandlist::clear_dsv(depth_stencil_view* view, float clear_depth, uint32 clear_stencil)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE* cpu_handle = view->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
+		mpdx_graphics_commandlist->ClearDepthStencilView(*cpu_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, clear_depth, clear_stencil, 0u, nullptr);
+	}
+
 	void dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		auto dxresource = resource->get_native<ID3D12Resource>();
@@ -140,10 +146,11 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->SetDescriptorHeaps(1u, &dxheap);
 	}
 
-	void dx12_commandlist::set(render_target_view* rtv)
+	void dx12_commandlist::set(render_target_view* rtv, depth_stencil_view* dsv)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE* rtv_handle = rtv->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
-		mpdx_graphics_commandlist->OMSetRenderTargets(1u, rtv_handle, FALSE, nullptr);
+		D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = dsv->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
+		mpdx_graphics_commandlist->OMSetRenderTargets(1u, rtv_handle, FALSE, dsv_handle);
 	}
 
 	void dx12_commandlist::set(input_resource_view* srv, uint32 param_idx)

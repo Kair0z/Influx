@@ -40,6 +40,7 @@ namespace influx::graphics
 		switch (flags)
 		{
 		case e_resource_flags::none: return D3D12_RESOURCE_FLAG_NONE;
+		case e_resource_flags::allow_depth_stencil: return D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 		default: return D3D12_RESOURCE_FLAG_NONE;
 		}
 	}
@@ -65,6 +66,7 @@ namespace influx::graphics
 		case e_resource_state::copy_dest: return D3D12_RESOURCE_STATE_COPY_DEST;
 		case e_resource_state::copy_source: return D3D12_RESOURCE_STATE_COPY_SOURCE;
 		case e_resource_state::render_target: return D3D12_RESOURCE_STATE_RENDER_TARGET;
+		case e_resource_state::depth_write: return D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		case e_resource_state::present: return D3D12_RESOURCE_STATE_PRESENT;
 		case e_resource_state::read:	return D3D12_RESOURCE_STATE_GENERIC_READ;
 		case e_resource_state::shader_resource: return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -77,7 +79,10 @@ namespace influx::graphics
 	{
 		switch (func)
 		{
+		case e_comparison_func::less: return D3D12_COMPARISON_FUNC_LESS;
 		case e_comparison_func::lequal: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		case e_comparison_func::gequal: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		case e_comparison_func::greater: return D3D12_COMPARISON_FUNC_GREATER;
 		default:
 		case e_comparison_func::count: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		}

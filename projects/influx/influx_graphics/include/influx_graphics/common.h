@@ -50,7 +50,10 @@ namespace influx::graphics
 
 	enum class e_comparison_func : uint8
 	{
-		lequal,		// less than equal
+		less,		// <
+		lequal,		// <=
+		gequal,		// >=
+		greater,	// >
 		count
 	};
 

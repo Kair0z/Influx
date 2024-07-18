@@ -25,6 +25,9 @@ namespace influx::graphics::dx12helpers
     D3D12_CPU_DESCRIPTOR_HANDLE create_rtv(ID3D12Device* device, ID3D12Resource* resource,
         D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, DXGI_FORMAT format);
 
+    D3D12_CPU_DESCRIPTOR_HANDLE create_dsv(ID3D12Device* device, ID3D12Resource* resource,
+        D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, DXGI_FORMAT format);
+
     struct descriptor_strides final
     {
         size_t m_rtv{};

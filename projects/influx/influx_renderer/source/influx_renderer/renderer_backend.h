@@ -52,11 +52,13 @@ namespace influx::renderer
 		void cleanup();
 
 		target* create_target(const target_create_args& args);
+		depth_stencil* create_depth_stencil(const depth_stencil_create_args& args);
+
 		target* get_window_target(const platform::window_handle& window);
 
 		void acquire_swapchain_frame();
 
-		void draw_scene(const scene& scene, const target& target);
+		void draw_scene(const scene& scene, const target& target, const depth_stencil& depth_stencil);
 
 		void copy_target(const target& source, const target& dest);
 

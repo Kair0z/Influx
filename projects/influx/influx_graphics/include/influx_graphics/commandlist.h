@@ -8,6 +8,7 @@ namespace influx::graphics
 	class command_allocator;
 	class pipeline;
 	class render_target_view;
+	class depth_stencil_view;
 	class rootsignature;
 	class descriptor_heap;
 	class input_resource_view;
@@ -66,6 +67,8 @@ namespace influx::graphics
 
 		virtual void clear_rtv(render_target_view* view, const math::vectorf4& clear_value) = 0;
 
+		virtual void clear_dsv(depth_stencil_view* view, float clear_depth, uint32 clear_stencil) = 0;
+
 		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) = 0;
 
 		virtual void copy_resource(resource* source, resource* dest) = 0;
@@ -76,7 +79,7 @@ namespace influx::graphics
 
 		virtual void set(descriptor_heap* heap) = 0;
 
-		virtual void set(render_target_view* rtv) = 0;
+		virtual void set(render_target_view* rtv, depth_stencil_view* dsv) = 0;
 
 		virtual void set(input_resource_view* srv, uint32 param_idx) = 0;
 

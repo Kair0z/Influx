@@ -49,7 +49,7 @@ namespace influx::graphics
 		descriptor_heap(const create_args& args)
 			: m_create_args{ args } {}
 
-	private:
+	protected:
 		create_args m_create_args{};
 	};
 }

@@ -116,6 +116,11 @@ namespace influx::renderer
         return new target(mp_device, mp_desc_manager->get_rtv_heap(), args);
     }
 
+    depth_stencil* renderer_backend::create_depth_stencil(const depth_stencil_create_args& args)
+    {
+        return new depth_stencil(mp_device, mp_desc_manager->get_dsv_heap(), args);
+    }
+
     target* renderer_backend::get_window_target(const platform::window_handle& window)
     {
         // create the swapchain for the first time
@@ -161,7 +166,7 @@ namespace influx::renderer
         mp_swapchain->acquire_backbuffer();
     }
 
-    void renderer_backend::draw_scene(const scene& scene, const target& target)
+    void renderer_backend::draw_scene(const scene& scene, const target& target, const depth_stencil& depth_stencil)
     {
         influx_scope("renderer_backend::draw_scene");
         {
@@ -169,6 +174,8 @@ namespace influx::renderer
 
             graphics::resource* target_resource = target.get_resource();
             graphics::render_target_view* target_rtv = target.get_rtv();
+
+            graphics::depth_stencil_view* dsv = depth_stencil.get_dsv();
 
             mp_commandlist->start(mp_allocators[0u], mp_pipeline);
             {
@@ -179,8 +186,9 @@ namespace influx::renderer
 
                 target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
                 
-                mp_commandlist->set(target_rtv);
-                mp_commandlist->clear_rtv(target_rtv, { 1, 0, 0, 1 });
+                mp_commandlist->set(target_rtv, dsv);
+                mp_commandlist->clear_rtv(target_rtv, { 0.2, 0.2, 0.2, 1 });
+                mp_commandlist->clear_dsv(dsv, 1.0f, 0u);
                
                 draw_meshes(scene, target);
 
@@ -297,9 +305,11 @@ namespace influx::renderer
                 graphics::pipeline_desc desc{};
                 desc.m_vs = m_vertex_shaders.cbegin()->second.m_bytecode;
                 desc.m_ps = m_pixel_shaders.cbegin()->second.m_bytecode;
-                desc.m_depth_stencil.m_depth_enable = false;
+                desc.m_depth_stencil.m_depth_enable = true;
+                desc.m_depth_stencil.m_depth_func = graphics::e_comparison_func::less;
                 desc.m_depth_stencil.m_stencil_enable = false;
                 desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
+                desc.m_format_dsv = graphics::e_format::d32;
                 mp_pipeline = mp_device->create_pipeline(mp_rootsig, desc);
             }
         }
@@ -445,6 +455,11 @@ namespace influx::renderer
         return renderer_backend::get_instance().create_target(args);
     }
 
+    depth_stencil* create_depth_stencil(const depth_stencil_create_args& args)
+    {
+        return renderer_backend::get_instance().create_depth_stencil(args);
+    }
+
     target* get_window_target(const platform::window_handle& window)
     {
         return renderer_backend::get_instance().get_window_target(window);
@@ -455,9 +470,9 @@ namespace influx::renderer
         renderer_backend::get_instance().acquire_swapchain_frame();
     }
 
-    void draw_scene(const scene& scene, const target& target)
+    void draw_scene(const scene& scene, const target& target, const depth_stencil& depth_stencil)
     {
-        renderer_backend::get_instance().draw_scene(scene, target);
+        renderer_backend::get_instance().draw_scene(scene, target, depth_stencil);
     }
 
     void copy_target(const target& source, const target& dest)

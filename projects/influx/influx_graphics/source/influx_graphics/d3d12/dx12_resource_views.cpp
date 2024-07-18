@@ -11,6 +11,13 @@ namespace influx::graphics
 		mp_native = &m_dx_cpu_handle;
 	}
 
+	dx12_depth_stencil_view::dx12_depth_stencil_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
+		: depth_stencil_view(reinterpret_cast<descriptor_handle>(cpu_handle.ptr), nullptr)
+		, m_dx_cpu_handle{ cpu_handle }
+	{
+		mp_native = &m_dx_cpu_handle;
+	}
+
 	dx12_vertex_buffer_view::dx12_vertex_buffer_view(D3D12_VERTEX_BUFFER_VIEW vb_view)
 		: vertex_buffer_view( reinterpret_cast<descriptor_handle>(vb_view.BufferLocation), nullptr )
 		, m_dx_vbv{vb_view}

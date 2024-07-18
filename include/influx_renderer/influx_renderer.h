@@ -18,6 +18,7 @@
 #include "influx_renderer/types.h"
 #include "influx_renderer/constants.h"
 #include "influx_renderer/target.h"
+#include "influx_renderer/depth_stencil.h"
 #include "influx_renderer/mesh.h"
 #include "influx_renderer/texture.h"
 #include "influx_renderer/material.h"

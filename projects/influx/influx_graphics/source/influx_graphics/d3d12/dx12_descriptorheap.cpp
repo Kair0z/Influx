@@ -44,11 +44,19 @@ namespace influx::graphics
 		m_freelist_gpu.clear();
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = mpdx_heap->GetCPUDescriptorHandleForHeapStart();
-		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = mpdx_heap->GetGPUDescriptorHandleForHeapStart();
 		for (size_t i = 0; i < get_capacity(); ++i)
 		{
 			m_freelist_cpu.push_back(reinterpret_cast<void*>(cpu_handle.ptr + (i * m_descriptor_stride)));
-			m_freelist_gpu.push_back(reinterpret_cast<void*>(gpu_handle.ptr + (i * m_descriptor_stride)));
 		}
+
+		if (m_create_args.m_shader_visible)
+		{
+			D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = mpdx_heap->GetGPUDescriptorHandleForHeapStart();
+			for (size_t i = 0; i < get_capacity(); ++i)
+			{
+				m_freelist_gpu.push_back(reinterpret_cast<void*>(gpu_handle.ptr + (i * m_descriptor_stride)));
+			}
+		}
+
 	}
 }
