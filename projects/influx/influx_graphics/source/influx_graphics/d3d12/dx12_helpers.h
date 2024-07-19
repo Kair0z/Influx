@@ -156,8 +156,25 @@ namespace influx::graphics::dx12helpers
         auto resource_desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, static_cast<uint32>(height),
             array_size, mip_levels, sample_count, 0u, flags, layout, alignment);
 
+        D3D12_CLEAR_VALUE* p_clear_val = nullptr;
+
+        // only set clear val when resource is flagged as depthstencil or target
+        D3D12_CLEAR_VALUE clear_val{};
+        clear_val.Format = format;
+        if (flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+        {
+            clear_val.DepthStencil.Depth = 1.0f;
+            clear_val.DepthStencil.Stencil = 0u;
+            p_clear_val = &clear_val;
+        }
+        else if (flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+        {
+            clear_val.Color[0] = clear_val.Color[1] = clear_val.Color[2] = clear_val.Color[3] = 0;
+            p_clear_val = &clear_val;
+        }
+
         device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE,
-            &resource_desc, init_state, nullptr, IID_PPV_ARGS(&result_resource));
+            &resource_desc, init_state, p_clear_val, IID_PPV_ARGS(&result_resource));
 
         return result_resource;
     }
