@@ -43,3 +43,4 @@
 *.vcxproj.filters
 
 !/premake/premake5.exe
+resources/textures/wood_albedo.png

@@ -61,17 +61,10 @@ SamplerState _sampler : register(s0);
 [shader("pixel")]
 float4 PSMain ( ps_input input ) : SV_TARGET
 {
-    float3 dx = ddx_fine(input.worldPos);
-    float3 dy = ddy_fine(input.worldPos);
-    float3 n = normalize(cross(dx, dy));
-
-    float3 cameraPos = float3(0,0,400);
     float3 lightDir = float3(-0.5,-0.5,-0.5);
 
-    float ambient = 0.1f;
-    float diffuse = max(ambient,dot(n, normalize(lightDir)));
+    float ambient = 0.2f;
+    float diffuse = max(ambient,dot(normalize(input.normal), normalize(lightDir)));
 
-    //float3 viewDir = normalize(input.worldPos - cameraPos);
-
-    return diffuse * input.colour; //_texture[_perframe_ps.texture_index].Sample(_sampler, input.texcoord);
+    return diffuse * _texture[_perframe_ps.texture_index].Sample(_sampler, input.texcoord);
 }

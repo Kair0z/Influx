@@ -33,6 +33,7 @@ namespace influx::assets
 			aiProcess_CalcTangentSpace |
 			aiProcess_Triangulate |
 			aiProcess_JoinIdenticalVertices |
+			aiProcess_FlipUVs |
 			aiProcess_SortByPType);
 
 		// If the import failed, report it

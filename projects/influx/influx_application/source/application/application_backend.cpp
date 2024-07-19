@@ -210,7 +210,7 @@ namespace influx::application
 
 				// meshes
 				renderer::mesh_instance mesh_instance{};
-				mesh_instance.m_name = "transistor";
+				mesh_instance.m_name = "transistor1";
 				mesh_instance.m_transform *= math::matrix4x4f::make_scale(math::vectorf3::one() * 2.0f);
 				render_scene.m_meshes.push_back(mesh_instance);
 
