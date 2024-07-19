@@ -224,12 +224,13 @@ namespace influx::application
 			present_args.m_vsync = true;
 
 			logn("start ticking ...");
-			time::point last_tick = time::get_now();
+			time::point initial_tick = time::get_now();
+			time::point last_tick = initial_tick;
 			frame_time frame_time{};
 			while (!m_is_quit_requested)
 			{
 				frame_time.m_delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
-				frame_time.m_time_seconds += frame_time.m_delta_seconds;
+				frame_time.m_time_seconds = time::get_ms_since<float>(initial_tick) * 0.001f;
 				last_tick = time::get_now();
 
 				update(render_scene, frame_time);
