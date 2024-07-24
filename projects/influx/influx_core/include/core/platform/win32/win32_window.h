@@ -8,6 +8,7 @@
 // Include Windows
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include "core/platform/window.h"
 
 // We don't like UNICODE steered macros! 
 // We will always use the UNICODE A versions of these functions!
@@ -23,6 +24,20 @@ namespace influx::platform
 {
 	inline window_event::key_type window_event::parse_key_type() const
 	{
+		/*
+		* VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
+		* 0x3A - 0x40 : unassigned
+		* VK_A - VK_Z are the same as ASCII 'A' - 'Z' (0x41 - 0x5A) */
+		if (m_wParam >= 0x30 || m_wParam <= 0x39)
+		{
+			return key_type::ascii_num;
+		}
+
+		if (m_wParam >= 0x41 || m_wParam <= 0x5A)
+		{
+			return key_type::ascii_ch;
+		}
+
 		switch (m_wParam)
 		{
 		case VK_LEFT: return key_type::left;
@@ -38,6 +53,11 @@ namespace influx::platform
 		}
 	}
 
+	inline char window_event::parse_ascii() const
+	{
+		return (char)m_wParam;
+	}
+
 	namespace detail
 	{
 		static list<window_handle>		gWindowHandles{};
@@ -51,6 +71,8 @@ namespace influx::platform
 			case WM_KEYDOWN: return window_event::type::keydown;
 			case WM_KEYUP: return window_event::type::keyup;
 			}
+
+			return window_event::type::count;
 		}
 
 		static window_event make_window_event(uint32 uMsg, uint64 wParam, uint64 lParam)
@@ -70,8 +92,11 @@ namespace influx::platform
 			// call user procedures
 			for (const window_proc_callback& callback : g_windows_procs)
 			{
-				window_event ev = make_window_event(uMsg, wParam, lParam);
-				callback(ev);
+				if (callback)
+				{
+					window_event ev = make_window_event(uMsg, wParam, lParam);
+					callback(ev);
+				}
 			}
 
 			// default behaviour
@@ -285,6 +310,11 @@ namespace influx::platform
 		}
 
 		return newWindowHandle;
+	}
+
+	inline void add_window_proc(const window_handle handle, const window_proc_callback& callback)
+	{
+		detail::g_windows_procs.push_back(callback);
 	}
 
 	inline void destroy_window(const window_handle handle)

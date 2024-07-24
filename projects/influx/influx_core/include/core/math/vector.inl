@@ -119,6 +119,14 @@ namespace influx::math
 	{
 		influx_assert(false); // Noimpl
 	}
+	template<typename _t, _vector_dim_t _dim>
+	inline void vector<_t, _dim>::clamp_length(float length)
+	{
+		if (sqr_magnitude() > (length * length))
+		{
+			scale(length);
+		}
+	}
 #pragma endregion
 
 	// Angle:
@@ -291,6 +299,12 @@ namespace influx::math
 	{
 		return a * t + b * (1.0f - t);
 	}
+
+	template<typename _t, _vector_dim_t _dim>
+	void vector<_t, _dim>::lerp_towards(const vector& b, const float t)
+	{
+		*this = lerp(*this, b, t);
+	}
 #pragma endregion
 
 	// Zero:
@@ -298,12 +312,12 @@ namespace influx::math
 	template<typename _t, _vector_dim_t _dim>
 	inline bool vector<_t, _dim>::is_zero() const
 	{
-		return is_null(*this);
+		return is_zero(*this);
 	}
 	template<typename _t, _vector_dim_t _dim>
 	inline bool vector<_t, _dim>::is_zero(const vector& v)
 	{
-		for (size_t i{}; i < _dim; ++i)
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			if (v[i] != static_cast<_t>(0)) return false;
 
 		return true;

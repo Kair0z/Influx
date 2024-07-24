@@ -1,9 +1,10 @@
-project "influx_application"
+project "influx_events"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
 
-    g_project_dir = g_dir_projects_engine .. "/%{prj.name}/"
+    g_project_dir = g_dir_projects_engine .. "/influx_events/"
+    g_source_dir = g_project_dir .. "/source/"
 
     targetdir(g_dir_binaries .. "/%{prj.name}")
     objdir(g_dir_int .. "/%{prj.name}")
@@ -12,11 +13,18 @@ project "influx_application"
     {
         g_project_dir .. "**.h",
         g_project_dir .. "**.cpp",
-        g_project_dir .. "**.lua"
+        g_project_dir .. "**.lua",
+        g_project_dir .. "**.hpp"
     }
 
-    pchheader "app_pch.h"
-    pchsource ("source/app_pch.cpp")
+    pchheader "events_pch.h"
+    pchsource ("source/events_pch.cpp")
+
+    disablewarnings 
+    {
+        "4244",
+        "4267"
+    }
 
     defines
     {
@@ -27,21 +35,12 @@ project "influx_application"
     {
         "source",
         "include",
-        g_dir_core_include,
-        g_dir_async_include,
-        g_dir_render_include,
-        g_dir_assets_include,
-        g_dir_input_include,
-        g_dir_events_include
+        g_dir_core_include
     }
 
     links
     {
-        "influx_renderer",
-        "influx_async",
-        "influx_assets",
-        "influx_input",
-        "influx_events"
+        
     }
 
     filter "system:windows"
@@ -55,17 +54,14 @@ project "influx_application"
         defines "INFLUX_DEBUG"
         runtime "Debug"
         symbols "on"
-        links { "assimp-vc142-mtd.lib" }
     
     filter "configurations:release"
         defines "INFLUX_RELEASE"
         runtime "Release"
         optimize "on"
-        links {"assimp-vc142-mt.lib"}
 
     filter "configurations:profile"
         defines "INFLUX_PROFILE"
         runtime "Release"
         symbols "on"
         optimize "on"
-        links {"assimp-vc142-mt.lib"}

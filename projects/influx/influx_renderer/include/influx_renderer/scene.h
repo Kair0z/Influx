@@ -37,11 +37,11 @@ namespace influx::renderer
 	struct scene final
 	{
 		scene() = default;
-		scene(const vector<mesh_instance>& meshes, const vector<camera>& cameras)
+		scene(const vector<mesh_instance>& meshes, const camera& camera)
 			: m_meshes{ meshes },
-			m_cameras{ cameras } {}
+			m_camera{ camera } {}
 
 		vector<mesh_instance> m_meshes = {};
-		vector<camera> m_cameras = {};
+		camera m_camera = {};
 	};
 }

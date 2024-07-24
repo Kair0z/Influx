@@ -7,6 +7,9 @@
 #include "core/file.h"
 #include "core/scope.h"
 
+// application scene
+#include "scene/scene.h"
+
 // platform: win32
 #include "core/platform/win32/win32_platform.h"
 #include "core/platform/win32/win32_window.h"
@@ -135,45 +138,28 @@ namespace influx::application
 		}
 	}
 
-	void application::update(renderer::scene& render_scene, const frame_time& time)
-	{
-		render_scene.m_cameras[0].m_position.x = cos(time.m_time_seconds) * 300.0f;
-		render_scene.m_cameras[0].m_position.z = sin(time.m_time_seconds) * 300.0f;
-		render_scene.m_cameras[0].look_at(math::vectorf3::zero());
-	}
-
-	inline void windows_proc(const platform::window_event& ev)
-	{
-		// logn("message!");
-	}
-
 	void application::run(const run_args& args)
 	{
 		process_run_args(args);
 
+		// platform instance handle:
 		m_instancehandle = platform::get_current_instance();
-
-		// initialize input:
-		input::init();
-
-		// save assets
-		assets::flx_scene scene_file = {};
-		scene_file.m_id = 2u;
-		scene_file.save(get_assets_directory() + "scene.flx");
-		scene_file.save(get_assets_directory() + "scene2.flx");
 
 		if (m_run_args.m_commandlet == false)
 		{
+			// initialize input
+			influx::input::init();
+
 			// create a platform window
 			platform::create_window_args window_args{};
-			window_args.m_width		= args.m_window_width;
-			window_args.m_height	= args.m_window_height;
-			window_args.m_name		= args.m_name;
-			window_args.m_proc_callback = { windows_proc };
+			window_args.m_width = args.m_window_width;
+			window_args.m_height = args.m_window_height;
+			window_args.m_name = args.m_name;
+			window_args.m_proc_callback = [](const platform::window_event& ev) { input::push_window_event(ev); };
 			m_windowhandle = platform::create_window(window_args);
 
 			// resources
-			logn("loading assets :3 ...");
+			logn("loading assets ... :3");
 			time::point time_before_load = time::get_now();
 			mp_content_cache = new content_cache(get_resource_directory());
 			logn("finished loading assets in {} seconds", time::get_ms_since<float>(time_before_load) * 0.001f);
@@ -183,51 +169,25 @@ namespace influx::application
 			render_init_args.m_api_type = renderer::e_render_api::dx12;
 			render_init_args.m_resource_dir = get_resource_directory();
 			renderer::initialize(render_init_args);
-			
-			// create swapchain
-			renderer::get_window_target(m_windowhandle);
 
 			// load assets into renderer
 			load_render_assets();
 
-			// create scene
-			renderer::scene render_scene{};
-			{
-				math::vectorf3 scene_center = math::vectorf3::zero();
-
-				// camera
-				renderer::camera render_camera{};
-				render_camera.m_far_plane = 1000.0f;
-				render_camera.m_near_plane = 0.001f;
-				render_camera.m_position = { 0.0f, 0.0f, 500.0f };
-				render_camera.look_at(scene_center);
-				render_scene.m_cameras.push_back(render_camera);
-
-				// meshes
-				renderer::mesh_instance mesh_instance{};
-				mesh_instance.m_name = "transistor";
-				mesh_instance.m_transform = math::matrix4x4f::identity();
-				render_scene.m_meshes.push_back(mesh_instance);
-
-				mesh_instance.m_name = "box";
-				mesh_instance.m_transform = math::matrix4x4f::make_transform_RH({ 0.0f, 0.0f, 50.0f }, { 0,1,0 });
-				mesh_instance.m_transform *= math::matrix4x4f::make_scale(math::vectorf3::one() * 10.0f);
-				render_scene.m_meshes.push_back(mesh_instance);
-			}
+			// create the scene
+			mp_scene = new scene();
 			
+			logn("start ticking ...");
 			renderer::present_args present_args{};
 			present_args.m_vsync = true;
 
-			logn("start ticking ...");
 			time::point last_tick = time::get_now();
 			frame_time frame_time{};
 			while (!m_is_quit_requested)
 			{
+				// update frame time
 				frame_time.m_delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
 				frame_time.m_time_seconds += frame_time.m_delta_seconds;
 				last_tick = time::get_now();
-
-				update(render_scene, frame_time);
 				
 				// returns false if quit event was requested
 				if (!platform::poll_window_events(m_windowhandle))
@@ -235,16 +195,18 @@ namespace influx::application
 					request_quit();
 					continue;
 				}
-				else
-				{
-					// acquire the window target:
-					const renderer::target& window_target
-						= *renderer::get_window_target(m_windowhandle);
+				
+				// update scene
+				mp_scene->update(frame_time);
 
-					renderer::draw_scene(render_scene, window_target);
+				// acquire the window target:
+				const renderer::target& window_target
+					= *renderer::get_window_target(m_windowhandle);
 
-					renderer::present_swapchain(present_args);
-				}
+				// draw the render scene
+				renderer::draw_scene(mp_scene->get_render_scene(), window_target);
+
+				renderer::present_swapchain(present_args);
 			}
 		}
 	}
@@ -282,6 +244,11 @@ namespace influx::application
 	bool application::is_commandlet()
 	{
 		return get_instance().m_run_args.m_commandlet;
+	}
+
+	events::event_queue* application::get_input_queue()
+	{
+		return get_instance().mp_input_queue;
 	}
 
 	void application::process_run_args(const run_args& args)

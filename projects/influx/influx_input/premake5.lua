@@ -28,12 +28,13 @@ project "influx_input"
     {
         "source",
         "include",
-        g_dir_core_include
+        g_dir_core_include,
+        g_dir_events_include
     }
 
     links
     {
-
+        "influx_events"
     }
 
     -- deactivate precompiled headers for C files

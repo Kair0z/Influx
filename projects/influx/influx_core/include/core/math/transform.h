@@ -41,10 +41,34 @@ namespace influx::math
 			return identity;
 		}
 
+		void translate(const vectorf3& add_position)
+		{
+			set_position(get_position() + add_position);
+		}
+
 		void set_position(const vectorf3& position)
 		{
 			m_position = position;
 		}
+
+		void set_position(float x, float y, float z)
+		{
+			set_position({ x,y,z });
+		}
+
+		void set_position_x(float x)
+		{
+			m_position.x = x;
+		}
+		void set_position_y(float y)
+		{
+			m_position.y = y;
+		}
+		void set_position_z(float z)
+		{
+			m_position.z = z;
+		}
+
 		void set_forward(const vectorf3& newForward)
 		{
 			m_rotation.set_forward(newForward);
@@ -90,6 +114,11 @@ namespace influx::math
 		matrix4x4f get_matrix() const
 		{
 			return m_matrix;
+		}
+
+		void update_matrix()
+		{
+			m_matrix = matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward());
 		}
 
 		transform3D(const transform3D&) = default;

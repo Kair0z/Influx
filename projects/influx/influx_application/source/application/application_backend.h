@@ -9,18 +9,14 @@
 // assets
 #include "influx_assets.h"
 
-namespace influx::renderer
+namespace influx::events
 {
-	struct scene;
+	class event_queue;
 }
 
 namespace influx::application
 {
-	struct frame_time final
-	{
-		float m_delta_seconds;
-		float m_time_seconds;
-	};
+	class scene;
 
 	class content_cache final
 	{
@@ -59,9 +55,11 @@ namespace influx::application
 		static bool is_scene_render_enabled();
 		static bool is_commandlet();
 
+		static events::event_queue* get_input_queue();
+
 	private:
+		// loads asset data into renderer (textures/meshes/shaders)
 		void load_render_assets();
-		void update(renderer::scene& render_scene, const frame_time& time);
 
 		platform::window_handle m_windowhandle = nullptr;
 		platform::instance_handle m_instancehandle = nullptr;
@@ -75,8 +73,11 @@ namespace influx::application
 		bool m_staged{};
 
 		content_cache* mp_content_cache;
+		scene* mp_scene;
 
 		void process_run_args(const run_args& args);
+
+		events::event_queue* mp_input_queue;
 	};
 }
 
