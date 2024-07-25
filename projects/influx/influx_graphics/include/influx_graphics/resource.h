@@ -27,7 +27,9 @@ namespace influx::graphics
 	enum class e_resource_flags : uint8
 	{
 		none,
-		max
+		depth_stencil,
+		render_target,
+		count
 	};
 
 	enum class e_resource_state : uint8

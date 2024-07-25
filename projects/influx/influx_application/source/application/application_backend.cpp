@@ -118,11 +118,22 @@ namespace influx::application
 			// create the scene
 			mp_scene = new scene();
 			
-			logn("start ticking ...");
+			// some stack variables
 			renderer::present_args present_args{};
 			present_args.m_vsync = true;
-			time::point last_tick = time::get_now();
+			time::point initial_tick = time::get_now();
+			time::point last_tick = initial_tick;
 			frame_time frame_time{};
+
+			// setup targets:
+			renderer::target* window_target = renderer::get_window_target(m_windowhandle);
+			renderer::target_create_args target_args{};
+			target_args.m_has_depth_stencil = true;
+			target_args.m_width = window_target->get_width();
+			target_args.m_heigth = window_target->get_height();
+			renderer::target* scene_target = renderer::create_target(target_args);
+
+			logn("start ticking ...");
 			while (!m_is_quit_requested)
 			{
 				// update frame time
@@ -140,12 +151,14 @@ namespace influx::application
 				// update scene
 				mp_scene->update(frame_time);
 
-				// acquire the window target:
-				const renderer::target& window_target
-					= *renderer::get_window_target(m_windowhandle);
+				// update the window target
+				window_target = renderer::get_window_target(m_windowhandle);
 
 				// draw the render scene
-				renderer::draw_scene(mp_scene->get_render_scene(), window_target);
+				renderer::draw_scene(mp_scene->get_render_scene(), *scene_target);
+
+				// copy the scene -> window
+				renderer::copy_target(*scene_target, *window_target);
 
 				renderer::present_swapchain(present_args);
 			}

@@ -40,6 +40,8 @@ namespace influx::graphics
 		switch (flags)
 		{
 		case e_resource_flags::none: return D3D12_RESOURCE_FLAG_NONE;
+		case e_resource_flags::depth_stencil: return D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		case e_resource_flags::render_target: return D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		default: return D3D12_RESOURCE_FLAG_NONE;
 		}
 	}
