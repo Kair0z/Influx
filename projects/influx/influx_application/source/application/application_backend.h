@@ -6,32 +6,10 @@
 #include "core/platform/window.h"
 #include "core/singleton.h"
 
-// assets
-#include "influx_assets.h"
-
-namespace influx::events
-{
-	class event_queue;
-}
-
 namespace influx::application
 {
 	class scene;
-
-	class content_cache final
-	{
-	public:
-		content_cache(const string& resource_dir);
-
-		const map<string, assets::scene_data>& get_scenes() const;
-		const map<string, assets::image_data>& get_images() const;
-		const map<string, assets::shader_data>& get_shaders() const;
-
-	private:
-		map<string, assets::scene_data> m_scenes;
-		map<string, assets::image_data> m_images;
-		map<string, assets::shader_data> m_shaders;
-	};
+	class content_manager;
 
 	class application final
 		: public singleton<application>
@@ -55,8 +33,6 @@ namespace influx::application
 		static bool is_scene_render_enabled();
 		static bool is_commandlet();
 
-		static events::event_queue* get_input_queue();
-
 	private:
 		// loads asset data into renderer (textures/meshes/shaders)
 		void load_render_assets();
@@ -72,12 +48,10 @@ namespace influx::application
 		string m_asset_dir{};
 		bool m_staged{};
 
-		content_cache* mp_content_cache;
+		content_manager* mp_content_manager;
 		scene* mp_scene;
 
 		void process_run_args(const run_args& args);
-
-		events::event_queue* mp_input_queue;
 	};
 }
 

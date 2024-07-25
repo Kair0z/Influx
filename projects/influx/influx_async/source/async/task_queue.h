@@ -25,6 +25,11 @@ namespace influx::async
 			return m_buffer.push(datas);
 		}
 
+		inline uint64 size() const
+		{
+			return m_buffer.size();
+		}
+
 	private:
 		ringbuffer<task_data*, 4096u> m_buffer{};
 	};

@@ -21,10 +21,10 @@ namespace influx
 
 		inline _t* allocate_lockless()
 		{
-			assert(get_num_free() <= 0u);
+			assert(get_num_free() > 0u);
 
-			const size_t free_index = m_freequeue.back();
-			m_freequeue.pop();
+			const size_t free_index = m_freelist.back();
+			m_freelist.pop_back();
 
 			return &m_data[free_index];
 		}
@@ -60,7 +60,7 @@ namespace influx
 		inline bool free_lockless(_t*& pointer)
 		{
 			const size_t index = get_index(pointer);
-			m_freequeue.push(index);
+			m_freelist.push_back(index);
 			return true;
 		}
 		inline bool free(_t*& pointer)
@@ -82,7 +82,7 @@ namespace influx
 		}
 		inline size_t get_num_free() const
 		{
-			return m_freequeue.size();
+			return m_freelist.size();
 		}
 
 		inline size_t get_index(_t* pointer)
@@ -100,15 +100,15 @@ namespace influx
 
 		void reset()
 		{
-			m_freequeue = {};
+			m_freelist.clear();
 
 			for (size_t i = 0u; i < _c; ++i)
-				m_freequeue.push(i);
+				m_freelist.push_back(i);
 		}
 
 	private:
 		_t m_data[_c]{};
-		std::queue<size_t> m_freequeue{};
+		std::list<size_t> m_freelist{};
 		std::mutex m_mutex{};
 	};
 }

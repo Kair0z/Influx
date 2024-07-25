@@ -67,7 +67,6 @@ workspace "influx"
 
     printf(".. apps ")
     group "apps"
-    include "../projects/apps/sandbox"
     include "../projects/apps/influx_game"
     group ""
 

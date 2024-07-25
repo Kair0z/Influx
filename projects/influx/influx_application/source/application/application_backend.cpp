@@ -1,5 +1,6 @@
 #include "app_pch.h"
 #include "application/application_backend.h"
+#include "content/content_manager.h"
 
 // core:
 #include "core/log.h"
@@ -14,6 +15,9 @@
 #include "core/platform/win32/win32_platform.h"
 #include "core/platform/win32/win32_window.h"
 
+// async
+#include "influx_async.h"
+
 // input
 #include "influx_input.h"
 
@@ -25,74 +29,10 @@
 
 namespace influx::application
 {
-	content_cache::content_cache(const string& resource_dir)
-	{
-		vector<file> fbx_files = get_files_in_directory(resource_dir, true, ".fbx");
-		vector<file> png_files = get_files_in_directory(resource_dir, true, ".png");
-		vector<file> hlsl_files = get_files_in_directory(resource_dir, true, ".hlsl");
-
-		// load meshes
-		for (const file& file : fbx_files)
-		{
-			assets::scene_load_args args{};
-			assets::scene_data& scene_data = m_scenes[file.m_filename];
-			assets::load_scene_file(file.m_path_full, scene_data, args);
-		}
-		
-		// load images
-		for (const file& file : png_files)
-		{
-			assets::image_load_args args{};
-			assets::image_data& texture_data = m_images[file.m_filename];
-			assets::load_image_file(file.m_path_full, texture_data, args);
-		}
-
-		// load shaders
-		for (const file& file : hlsl_files)
-		{
-			assets::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"];
-			assets::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"];
-
-			assets::shader_load_args shader_load_args{};
-			shader_load_args.m_target = e_shader_target::_6_2;
-#if _DEBUG
-			shader_load_args.m_compile_debug = true;
-#else
-			shader_load_args.m_compile_debug = false;
-#endif
-			shader_load_args.m_pbd = false;
-			shader_load_args.m_reflection = false;
-			shader_load_args.m_defines = {};
-
-			shader_load_args.m_type = e_shader_type::vs;
-			shader_load_args.m_entrypoint = "VSMain";
-			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_vs, shader_load_args));
-
-			shader_load_args.m_type = e_shader_type::ps;
-			shader_load_args.m_entrypoint = "PSMain";
-			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_ps, shader_load_args));
-		}
-	}
-
-	const map<string, assets::scene_data>& content_cache::get_scenes() const
-	{
-		return m_scenes;
-	}
-
-	const map<string, assets::image_data>& content_cache::get_images() const
-	{
-		return m_images;
-	}
-
-	const map<string, assets::shader_data>& content_cache::get_shaders() const
-	{
-		return m_shaders;
-	}
-
 	void application::load_render_assets()
 	{
 		// load meshdata into renderer
-		for (const auto& asset : mp_content_cache->get_scenes())
+		for (const auto& asset : mp_content_manager->get_scenes())
 		{
 			const assets::scene_data::mesh& mesh = asset.second.m_meshes[0]; // gets the first mesh
 			const std::string& name = asset.first;
@@ -113,7 +53,7 @@ namespace influx::application
 		}
 
 		// load shaders into renderer
-		for (const auto& asset : mp_content_cache->get_shaders())
+		for (const auto& asset : mp_content_manager->get_shaders())
 		{
 			const assets::shader_data& shader = asset.second;
 			const std::string& name = asset.first;
@@ -126,7 +66,7 @@ namespace influx::application
 		}
 
 		// load textures into renderer
-		for (const auto& asset : mp_content_cache->get_images())
+		for (const auto& asset : mp_content_manager->get_images())
 		{
 			const assets::image_data& image = asset.second;
 			const std::string& name = asset.first;
@@ -145,6 +85,11 @@ namespace influx::application
 		// platform instance handle:
 		m_instancehandle = platform::get_current_instance();
 
+		// initialize job system:
+		async::init_args async_args{};
+		async_args.m_num_workers = 1u;
+		async::initialize(async_args);
+
 		if (m_run_args.m_commandlet == false)
 		{
 			// initialize input
@@ -158,11 +103,8 @@ namespace influx::application
 			window_args.m_proc_callback = [](const platform::window_event& ev) { input::push_window_event(ev); };
 			m_windowhandle = platform::create_window(window_args);
 
-			// resources
-			logn("loading assets ... :3");
-			time::point time_before_load = time::get_now();
-			mp_content_cache = new content_cache(get_resource_directory());
-			logn("finished loading assets in {} seconds", time::get_ms_since<float>(time_before_load) * 0.001f);
+			// load content
+			mp_content_manager = new content_manager(get_resource_directory());
 			
 			// create renderer
 			renderer::init_args render_init_args{};
@@ -179,7 +121,6 @@ namespace influx::application
 			logn("start ticking ...");
 			renderer::present_args present_args{};
 			present_args.m_vsync = true;
-
 			time::point last_tick = time::get_now();
 			frame_time frame_time{};
 			while (!m_is_quit_requested)
@@ -244,11 +185,6 @@ namespace influx::application
 	bool application::is_commandlet()
 	{
 		return get_instance().m_run_args.m_commandlet;
-	}
-
-	events::event_queue* application::get_input_queue()
-	{
-		return get_instance().mp_input_queue;
 	}
 
 	void application::process_run_args(const run_args& args)

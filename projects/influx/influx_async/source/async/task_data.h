@@ -21,7 +21,7 @@ namespace influx::async
 				m_time_allocated = time::get_now();
 				break;
 
-			case e_task_state::pending:
+			case e_task_state::queued:
 				m_time_queued = time::get_now();
 				break;
 

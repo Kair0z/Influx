@@ -72,15 +72,14 @@ namespace influx::application
 		case 'S': input.y = -value; break;
 		}
 	}
+
 	void scene::on_keyhold(const input::key_event& ev)
 	{
-		influx::logn("keyhold! [{}]", ev.to_string());
+
 	}
 
 	void scene::on_keydown(const input::key_event& ev)
 	{
-		influx::logn("keydown! [{}]", ev.to_string());
-
 		apply_ascii(m_cam_controls.m_input, ev.m_ascii_char, 1.0f);
 
 		// reset camera on 'R'
@@ -92,8 +91,6 @@ namespace influx::application
 
 	void scene::on_keyup(const input::key_event& ev)
 	{
-		influx::logn("keyup! [{}]", ev.to_string());
-
 		apply_ascii(m_cam_controls.m_input, ev.m_ascii_char, 0.0f);
 	}
 

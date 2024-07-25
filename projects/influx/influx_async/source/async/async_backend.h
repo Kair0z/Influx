@@ -35,12 +35,20 @@ namespace influx::async
 
 		void wait_for(const task_handle& handle, const wait_args& args = {});
 		void wait_for(const vector<task_handle>& handles, const wait_args& args = {});
+		void wait_for_all(const wait_args& args = {});
 
 		task_queue& get_global_queue();
 		task_queue& get_global_cleanup_queue();
 
 		task_data* get_task_from_handle(const task_handle& handle);
 
+		uint64 get_num_queued() const;
+		uint64 get_num_processing() const;
+		uint64 get_num_toclean() const;
+		
+		// true if we have tasks queued || processing
+		bool has_unfinished_work() const; 
+		
 	private:
 		bool m_is_initialized = false;
 		vector<worker_state> m_worker_threads{};
@@ -57,6 +65,8 @@ namespace influx::async
 		void do_cleanup_task(task_data* data);
 
 		static void worker_thread_method(worker_state& state);
+
+		std::atomic_uint64_t m_num_processing = 0u;
 	};
 }
 
