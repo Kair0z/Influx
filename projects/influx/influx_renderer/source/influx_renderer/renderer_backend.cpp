@@ -113,12 +113,9 @@ namespace influx::renderer
 
     target* renderer_backend::create_target(const target_create_args& args)
     {
-        return new target(mp_device, mp_desc_manager->get_rtv_heap(), args);
-    }
-
-    depth_stencil* renderer_backend::create_depth_stencil(const depth_stencil_create_args& args)
-    {
-        return new depth_stencil(mp_device, mp_desc_manager->get_dsv_heap(), args);
+        return new target(mp_device, 
+            mp_desc_manager->get_rtv_heap(),
+            mp_desc_manager->get_dsv_heap(), args);
     }
 
     target* renderer_backend::get_window_target(const platform::window_handle& window)
@@ -153,7 +150,8 @@ namespace influx::renderer
         if (mp_swapchain->needs_recreate(window))
         {
             mp_swapchain->resize(window); // resizes the underlying resources
-            m_swapchain_targets[current_swapchain_index]->recreate_rtv(); // only recreates rtv
+            m_swapchain_targets[current_swapchain_index]->recreate_rtv();
+            m_swapchain_targets[current_swapchain_index]->recreate_dsv();
         }
         
         // return the current swapchain target
@@ -166,7 +164,7 @@ namespace influx::renderer
         mp_swapchain->acquire_backbuffer();
     }
 
-    void renderer_backend::draw_scene(const scene& scene, const target& target, const depth_stencil& depth_stencil)
+    void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
         influx_scope("renderer_backend::draw_scene");
         {
@@ -174,8 +172,7 @@ namespace influx::renderer
 
             graphics::resource* target_resource = target.get_resource();
             graphics::render_target_view* target_rtv = target.get_rtv();
-
-            graphics::depth_stencil_view* dsv = depth_stencil.get_dsv();
+            graphics::depth_stencil_view* target_dsv = target.get_dsv();
 
             mp_commandlist->start(mp_allocators[0u], mp_pipeline);
             {
@@ -186,13 +183,11 @@ namespace influx::renderer
 
                 target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
                 
-                mp_commandlist->set(target_rtv, dsv);
+                mp_commandlist->set(target_rtv, target_dsv);
                 mp_commandlist->clear_rtv(target_rtv, { 0.2, 0.2, 0.2, 1 });
-                mp_commandlist->clear_dsv(dsv, 1.0f, 0u);
+                mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
                
                 draw_meshes(scene, target);
-
-                target_resource->transition(mp_commandlist, graphics::e_resource_state::present);
             }
             mp_commandlist->end();
         }
@@ -305,11 +300,9 @@ namespace influx::renderer
                 graphics::pipeline_desc desc{};
                 desc.m_vs = m_vertex_shaders.cbegin()->second.m_bytecode;
                 desc.m_ps = m_pixel_shaders.cbegin()->second.m_bytecode;
-                desc.m_depth_stencil.m_depth_enable = true;
-                desc.m_depth_stencil.m_depth_func = graphics::e_comparison_func::less;
+                desc.m_depth_stencil.m_depth_enable = false;
                 desc.m_depth_stencil.m_stencil_enable = false;
                 desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
-                desc.m_format_dsv = graphics::e_format::d32;
                 mp_pipeline = mp_device->create_pipeline(mp_rootsig, desc);
             }
         }
@@ -322,19 +315,28 @@ namespace influx::renderer
         graphics::resource* source_resource = source.get_resource();
         graphics::resource* dest_resource = dest.get_resource();
 
-        mp_copy_commandlist->start(mp_copy_allocator);
+        mp_commandlist->start(mp_allocators[0u]);
 
-        source_resource->transition(mp_copy_commandlist, graphics::e_resource_state::copy_source);
-        dest_resource->transition(mp_copy_commandlist, graphics::e_resource_state::copy_dest);
+        source_resource->transition(mp_commandlist, graphics::e_resource_state::copy_source);
+        dest_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dest);
 
-        mp_copy_commandlist->copy_resource(source_resource, dest_resource);
+        mp_commandlist->copy_resource(source_resource, dest_resource);
 
-        source_resource->revert_transition(mp_copy_commandlist);
-        dest_resource->revert_transition(mp_copy_commandlist);
+        source_resource->revert_transition(mp_commandlist);
+        dest_resource->transition(mp_commandlist, graphics::e_resource_state::present); // this is hardcoded!!!
 
-        mp_copy_commandlist->end();
+        mp_commandlist->end();
+        mp_graphics_queue->submit_commandlists({ mp_commandlist });
 
-        mp_copy_queue->submit_commandlists({ mp_copy_commandlist });
+        // signal copyfence '1' when finished
+        mp_graphics_queue->queue_signal(mp_copyfence, 1u);
+
+        // copyfence wait for '1' signal
+        wait_handle handle{};
+        mp_copyfence->wait_for_value(1u, handle);
+
+        // signal fence '0' (reset)
+        mp_graphics_queue->queue_signal(mp_copyfence, 0u);
     }
 
     void renderer_backend::present_swapchain(const present_args& args)
@@ -455,11 +457,6 @@ namespace influx::renderer
         return renderer_backend::get_instance().create_target(args);
     }
 
-    depth_stencil* create_depth_stencil(const depth_stencil_create_args& args)
-    {
-        return renderer_backend::get_instance().create_depth_stencil(args);
-    }
-
     target* get_window_target(const platform::window_handle& window)
     {
         return renderer_backend::get_instance().get_window_target(window);
@@ -470,9 +467,9 @@ namespace influx::renderer
         renderer_backend::get_instance().acquire_swapchain_frame();
     }
 
-    void draw_scene(const scene& scene, const target& target, const depth_stencil& depth_stencil)
+    void draw_scene(const scene& scene, const target& target)
     {
-        renderer_backend::get_instance().draw_scene(scene, target, depth_stencil);
+        renderer_backend::get_instance().draw_scene(scene, target);
     }
 
     void copy_target(const target& source, const target& dest)

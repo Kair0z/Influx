@@ -27,7 +27,8 @@ namespace influx::graphics
 	enum class e_resource_flags : uint8
 	{
 		none,
-		allow_depth_stencil,
+		depth_stencil,
+		render_target,
 		count
 	};
 
@@ -35,7 +36,6 @@ namespace influx::graphics
 	{
 		common,
 		render_target,
-		depth_write,
 		copy_source,
 		copy_dest,
 		shader_resource,

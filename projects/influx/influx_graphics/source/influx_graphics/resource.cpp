@@ -16,6 +16,7 @@ namespace influx::graphics
 			* deduce_bytesize(desc.m_format);
 
 		m_format = desc.m_format;
+		m_state = desc.m_init_state;
 	}
 
 	resource::resource(const buffer_desc& desc)
@@ -63,7 +64,10 @@ namespace influx::graphics
 
 	void resource::transition(command_list* cmdlist, e_resource_state new_state)
 	{
-		influx_assert(m_state != new_state);
+		if (m_state == new_state)
+		{
+			return;
+		}
 
 		cmdlist->transition_resource(this, m_state, new_state);
 

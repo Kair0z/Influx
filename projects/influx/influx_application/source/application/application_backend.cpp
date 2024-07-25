@@ -111,14 +111,6 @@ namespace influx::application
 			render_init_args.m_api_type = renderer::e_render_api::dx12;
 			render_init_args.m_resource_dir = get_resource_directory();
 			renderer::initialize(render_init_args);
-			
-			// create swapchain
-			renderer::target* initialTarget = renderer::get_window_target(m_windowhandle);
-			// create a depthbuffer
-			renderer::depth_stencil_create_args ds_args{};
-			ds_args.m_width = initialTarget->get_width();
-			ds_args.m_heigth = initialTarget->get_height();
-			renderer::depth_stencil* depth_stencil = renderer::create_depth_stencil(ds_args);
 
 			// load assets into renderer
 			load_render_assets();
@@ -126,19 +118,27 @@ namespace influx::application
 			// create the scene
 			mp_scene = new scene();
 			
-			logn("start ticking ...");
+			// some stack variables
 			renderer::present_args present_args{};
 			present_args.m_vsync = true;
-
-			logn("start ticking ...");
 			time::point initial_tick = time::get_now();
 			time::point last_tick = initial_tick;
 			frame_time frame_time{};
+
+			// setup targets:
+			renderer::target* window_target = renderer::get_window_target(m_windowhandle);
+			renderer::target_create_args target_args{};
+			target_args.m_has_depth_stencil = true;
+			target_args.m_width = window_target->get_width();
+			target_args.m_heigth = window_target->get_height();
+			renderer::target* scene_target = renderer::create_target(target_args);
+
+			logn("start ticking ...");
 			while (!m_is_quit_requested)
 			{
 				// update frame time
 				frame_time.m_delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
-				frame_time.m_time_seconds = time::get_ms_since<float>(initial_tick) * 0.001f;
+				frame_time.m_time_seconds += frame_time.m_delta_seconds;
 				last_tick = time::get_now();
 				
 				// returns false if quit event was requested
@@ -151,17 +151,17 @@ namespace influx::application
 				// update scene
 				mp_scene->update(frame_time);
 
-				// acquire the window target:
-				const renderer::target& window_target
-					= *renderer::get_window_target(m_windowhandle);
+				// update the window target
+				window_target = renderer::get_window_target(m_windowhandle);
 
 				// draw the render scene
-				renderer::draw_scene(mp_scene->get_render_scene(), window_target, *depth_stencil);
+				renderer::draw_scene(mp_scene->get_render_scene(), *scene_target);
+
+				// copy the scene -> window
+				renderer::copy_target(*scene_target, *window_target);
 
 				renderer::present_swapchain(present_args);
 			}
-
-			delete depth_stencil;
 		}
 	}
 
