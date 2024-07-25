@@ -11,6 +11,8 @@ namespace influx::renderer
 		graphics::descriptor_heap* rtv_heap, 
 		graphics::descriptor_heap* dsv_heap,
 		const target_create_args& args)
+		: mp_device{device}
+		, m_args{args}
 	{
 		// create the colour resource
 		graphics::tex2D_desc desc{};
@@ -25,6 +27,7 @@ namespace influx::renderer
 
 		// allocate & create the rtv && dsv
 		mp_rtv = device->create_rtv(rtv_heap, mp_resource);
+		m_rtv_handle = mp_rtv->get_cpu_handle();
 
 		// create the depth resource
 		if (args.m_has_depth_stencil)
@@ -40,32 +43,10 @@ namespace influx::renderer
 			mp_depth_resource = device->create_resource(desc);
 
 			mp_dsv = device->create_dsv(dsv_heap, mp_depth_resource);
-		}
-
-		target::target(device, mp_resource, mp_depth_resource, mp_rtv, mp_dsv);
-	}
-
-	target::target(graphics::device* device, 
-		graphics::resource* resource, 
-		graphics::resource* depth_resource,
-		graphics::render_target_view* rtv, 
-		graphics::depth_stencil_view* dsv)
-		: mp_device{ device }
-	{
-		m_args.m_width = resource->get_width();
-		m_args.m_heigth = resource->get_height();
-		m_current_dimensions = { m_args.m_width, m_args.m_heigth };
-		mp_resource = resource;
-		mp_depth_resource = depth_resource;
-		mp_rtv = rtv;
-		mp_dsv = dsv;
-
-		// store the descriptor handle
-		m_rtv_handle = mp_rtv->get_cpu_handle();
-		if (mp_dsv)
-		{
 			m_dsv_handle = mp_dsv->get_cpu_handle();
 		}
+
+		m_current_dimensions = { args.m_width, args.m_heigth };
 	}
 
 	// constructs a target from existing swapchain resources

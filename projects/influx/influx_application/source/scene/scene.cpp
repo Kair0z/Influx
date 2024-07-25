@@ -193,7 +193,7 @@ namespace influx::application
 	void scene::reset_camera()
 	{
 		camera_actor& cam = get_current_camera();
-		cam.m_transform.set_position(0.0f, 0.0f, 10.0f);
+		cam.m_transform.set_position(0.0f, 0.0f, -300.0f);
 		cam.m_transform.look_at(math::vectorf3::zero());
 
 		m_cam_controls.m_acceleration = {};

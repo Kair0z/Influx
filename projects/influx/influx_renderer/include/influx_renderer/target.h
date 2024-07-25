@@ -59,13 +59,6 @@ namespace influx::renderer
 			uint8 swapchain_index, 
 			graphics::descriptor_heap* rtv_heap);
 
-		explicit target(
-			graphics::device* device, 
-			graphics::resource* resource, 
-			graphics::resource* depth_resource,
-			graphics::render_target_view* rtv,
-			graphics::depth_stencil_view* dsv);
-
 		// re-allocates graphics resource, and recreates the rtv
 		void resize(const math::vectoru2& new_dimensions);
 
