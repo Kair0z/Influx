@@ -101,28 +101,36 @@ namespace influx::async
 	std::vector<task_handle> async_manager::create_tasks(const std::vector<task_create_args>& args)
 	{
 		std::vector<task_handle> result{};
-		for (task_data* new_data : mp_taskpool->allocate(args.size()))
+		vector<task_data*> allocated_tasks = mp_taskpool->allocate(args.size());
+
+		influx_assert(allocated_tasks.size() == args.size());
+
+		for (uint64 i = 0u; i < allocated_tasks.size(); ++i)
 		{
-			influx_assert_not_null(new_data);
+			task_data* new_task_data = allocated_tasks[i];
+			influx_assert_not_null(new_task_data);
 
-			// reset to initialize timers
-			new_data->reset(e_task_state::allocated);
+			// initialize the allocated task
+			new_task_data->reset(e_task_state::allocated);
+			new_task_data->m_args = args[i];
 
-			result.push_back(task_handle(mp_taskpool->get_index(new_data)));
+			// push handle to data
+			result.push_back(task_handle(mp_taskpool->get_index(new_task_data)));
 		}
 		return result;
 	}
-
 
 	void async_manager::do_process_task(task_data* data)
 	{
 		data->m_time_started = time::get_now();
 		data->m_state = e_task_state::running;
+		m_num_processing++;
 		{
 			// do the work
 			if (data->m_args.m_func_execute)
 				data->m_args.m_func_execute();
 		}
+		m_num_processing--;
 		data->m_state = e_task_state::finished;
 		data->m_time_finished = time::get_now();
 
@@ -163,6 +171,26 @@ namespace influx::async
 		}
 	}
 
+	uint64 async_manager::get_num_queued() const
+	{
+		return mp_global_queue->size();
+	}
+
+	uint64 async_manager::get_num_processing() const
+	{
+		return m_num_processing;
+	}
+
+	uint64 async_manager::get_num_toclean() const
+	{
+		return mp_global_cleanup_queue->size();
+	}
+
+	bool async_manager::has_unfinished_work() const
+	{
+		return (get_num_queued() > 0u || get_num_processing() > 0u);
+	}
+
 	void async_manager::dispatch(const task_handle& handle)
 	{
 		task_data* data = get_task_from_handle(handle);
@@ -173,7 +201,7 @@ namespace influx::async
 
 	void async_manager::dispatch(task_data* data)
 	{
-		data->set_state(e_task_state::pending);
+		data->set_state(e_task_state::queued);
 		influx_assert(mp_global_queue->push(data));
 	}
 
@@ -207,6 +235,26 @@ namespace influx::async
 			}
 		}
 
+		if (args.mp_out_ms != nullptr)
+		{
+			(*args.mp_out_ms) = ms_waited;
+		}
+	}
+
+	void async_manager::wait_for_all(const wait_args& args)
+	{
+		time::point wait_start = time::get_now();
+		float ms_waited = 0.0f;
+
+		// wait
+		while (has_unfinished_work() && ms_waited < args.m_max_ms)
+		{
+			if (args.m_wait_func)
+				args.m_wait_func();
+
+			ms_waited = time::get_ms_between<float>(time::get_now(), wait_start);
+		}
+		
 		if (args.mp_out_ms != nullptr)
 		{
 			(*args.mp_out_ms) = ms_waited;
@@ -247,6 +295,10 @@ namespace influx::async
 	void wait_for(const vector<task_handle>& handles, const wait_args& args)
 	{
 		async_manager::get_instance().wait_for(handles, args);
+	}
+	void wait_for_all(const wait_args& args)
+	{
+		async_manager::get_instance().wait_for_all(args);
 	}
 	void shutdown()
 	{

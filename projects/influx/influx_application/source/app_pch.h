@@ -14,3 +14,10 @@
 #include "core/time.h"
 #include "core/platform/platform.h"
 #include "application/constants.h"
+
+// common
+struct frame_time final
+{
+	float m_delta_seconds;
+	float m_time_seconds;
+};

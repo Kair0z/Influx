@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef __CORE_SCENE_CAMERA_H_
-#define __CORE_SCENE_CAMERA_H_
-
 #include "core/macros.h"
 
 namespace influx::scene
@@ -20,5 +17,3 @@ namespace influx::scene
 		FLX_CORE_GET_SET(float, farplane);
 	};
 }
-
-#endif

@@ -234,8 +234,8 @@ namespace influx::renderer
         mp_commandlist->set(mp_desc_manager->get_srv_heap());
 
         // setup constants
-        const camera& camera = scene.m_cameras[0];
-        const math::matrix4x4f mat_view = math::matrix4x4f::make_view_RH(camera.m_position, -camera.m_forward);
+        const camera& camera = scene.m_camera;
+        const math::matrix4x4f mat_view = camera.m_transform.inverted();
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
 
         uint32 texture_idx = m_frame_count % 1u;

@@ -46,7 +46,7 @@ project "influx_game"
             "python.exe stage.py " 
                 .. " --config=" .. g_config_string 
                 .. " --game=" .. "influx_game"
-                .. " --deps " .. "influx_application influx_renderer influx_async influx_assets influx_input"
+                .. " --deps " .. "influx_application influx_renderer influx_async influx_assets influx_input influx_events"
         }
     }
 

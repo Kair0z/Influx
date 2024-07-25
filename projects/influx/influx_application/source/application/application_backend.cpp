@@ -1,5 +1,6 @@
 #include "app_pch.h"
 #include "application/application_backend.h"
+#include "content/content_manager.h"
 
 // core:
 #include "core/log.h"
@@ -7,9 +8,15 @@
 #include "core/file.h"
 #include "core/scope.h"
 
+// application scene
+#include "scene/scene.h"
+
 // platform: win32
 #include "core/platform/win32/win32_platform.h"
 #include "core/platform/win32/win32_window.h"
+
+// async
+#include "influx_async.h"
 
 // input
 #include "influx_input.h"
@@ -22,74 +29,10 @@
 
 namespace influx::application
 {
-	content_cache::content_cache(const string& resource_dir)
-	{
-		vector<file> fbx_files = get_files_in_directory(resource_dir, true, ".fbx");
-		vector<file> png_files = get_files_in_directory(resource_dir, true, ".png");
-		vector<file> hlsl_files = get_files_in_directory(resource_dir, true, ".hlsl");
-
-		// load meshes
-		for (const file& file : fbx_files)
-		{
-			assets::scene_load_args args{};
-			assets::scene_data& scene_data = m_scenes[file.m_filename];
-			assets::load_scene_file(file.m_path_full, scene_data, args);
-		}
-		
-		// load images
-		for (const file& file : png_files)
-		{
-			assets::image_load_args args{};
-			assets::image_data& texture_data = m_images[file.m_filename];
-			assets::load_image_file(file.m_path_full, texture_data, args);
-		}
-
-		// load shaders
-		for (const file& file : hlsl_files)
-		{
-			assets::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"];
-			assets::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"];
-
-			assets::shader_load_args shader_load_args{};
-			shader_load_args.m_target = e_shader_target::_6_2;
-#if _DEBUG
-			shader_load_args.m_compile_debug = true;
-#else
-			shader_load_args.m_compile_debug = false;
-#endif
-			shader_load_args.m_pbd = false;
-			shader_load_args.m_reflection = false;
-			shader_load_args.m_defines = {};
-
-			shader_load_args.m_type = e_shader_type::vs;
-			shader_load_args.m_entrypoint = "VSMain";
-			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_vs, shader_load_args));
-
-			shader_load_args.m_type = e_shader_type::ps;
-			shader_load_args.m_entrypoint = "PSMain";
-			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_ps, shader_load_args));
-		}
-	}
-
-	const map<string, assets::scene_data>& content_cache::get_scenes() const
-	{
-		return m_scenes;
-	}
-
-	const map<string, assets::image_data>& content_cache::get_images() const
-	{
-		return m_images;
-	}
-
-	const map<string, assets::shader_data>& content_cache::get_shaders() const
-	{
-		return m_shaders;
-	}
-
 	void application::load_render_assets()
 	{
 		// load meshdata into renderer
-		for (const auto& asset : mp_content_cache->get_scenes())
+		for (const auto& asset : mp_content_manager->get_scenes())
 		{
 			const assets::scene_data::mesh& mesh = asset.second.m_meshes[0]; // gets the first mesh
 			const std::string& name = asset.first;
@@ -110,7 +53,7 @@ namespace influx::application
 		}
 
 		// load shaders into renderer
-		for (const auto& asset : mp_content_cache->get_shaders())
+		for (const auto& asset : mp_content_manager->get_shaders())
 		{
 			const assets::shader_data& shader = asset.second;
 			const std::string& name = asset.first;
@@ -123,7 +66,7 @@ namespace influx::application
 		}
 
 		// load textures into renderer
-		for (const auto& asset : mp_content_cache->get_images())
+		for (const auto& asset : mp_content_manager->get_images())
 		{
 			const assets::image_data& image = asset.second;
 			const std::string& name = asset.first;
@@ -135,48 +78,33 @@ namespace influx::application
 		}
 	}
 
-	void application::update(renderer::scene& render_scene, const frame_time& time)
-	{
-		render_scene.m_cameras[0].m_position.x = cos(time.m_time_seconds) * 300.0f;
-		render_scene.m_cameras[0].m_position.z = sin(time.m_time_seconds) * 300.0f;
-		render_scene.m_cameras[0].look_at(math::vectorf3::zero());
-	}
-
-	inline void windows_proc(const platform::window_event& ev)
-	{
-		// logn("message!");
-	}
-
 	void application::run(const run_args& args)
 	{
 		process_run_args(args);
 
+		// platform instance handle:
 		m_instancehandle = platform::get_current_instance();
 
-		// initialize input:
-		input::init();
-
-		// save assets
-		assets::flx_scene scene_file = {};
-		scene_file.m_id = 2u;
-		scene_file.save(get_assets_directory() + "scene.flx");
-		scene_file.save(get_assets_directory() + "scene2.flx");
+		// initialize job system:
+		async::init_args async_args{};
+		async_args.m_num_workers = 1u;
+		async::initialize(async_args);
 
 		if (m_run_args.m_commandlet == false)
 		{
+			// initialize input
+			influx::input::init();
+
 			// create a platform window
 			platform::create_window_args window_args{};
-			window_args.m_width		= args.m_window_width;
-			window_args.m_height	= args.m_window_height;
-			window_args.m_name		= args.m_name;
-			window_args.m_proc_callback = { windows_proc };
+			window_args.m_width = args.m_window_width;
+			window_args.m_height = args.m_window_height;
+			window_args.m_name = args.m_name;
+			window_args.m_proc_callback = [](const platform::window_event& ev) { input::push_window_event(ev); };
 			m_windowhandle = platform::create_window(window_args);
 
-			// resources
-			logn("loading assets :3 ...");
-			time::point time_before_load = time::get_now();
-			mp_content_cache = new content_cache(get_resource_directory());
-			logn("finished loading assets in {} seconds", time::get_ms_since<float>(time_before_load) * 0.001f);
+			// load content
+			mp_content_manager = new content_manager(get_resource_directory());
 			
 			// create renderer
 			renderer::init_args render_init_args{};
@@ -195,31 +123,10 @@ namespace influx::application
 			// load assets into renderer
 			load_render_assets();
 
-			// create scene
-			renderer::scene render_scene{};
-			{
-				math::vectorf3 scene_center = math::vectorf3::zero();
-
-				// camera
-				renderer::camera render_camera{};
-				render_camera.m_far_plane = 500.0f; // 1000 makes the depth very imprecise, maybe want to reverse depth
-				render_camera.m_near_plane = 0.01f;
-				render_camera.m_position = { 0.0f, 0.0f, 400.0f };
-				render_camera.look_at(scene_center);
-				render_scene.m_cameras.push_back(render_camera);
-
-				// meshes
-				renderer::mesh_instance mesh_instance{};
-				mesh_instance.m_name = "transistor1";
-				mesh_instance.m_transform *= math::matrix4x4f::make_scale(math::vectorf3::one() * 2.0f);
-				render_scene.m_meshes.push_back(mesh_instance);
-
-				mesh_instance.m_name = "box";
-				mesh_instance.m_transform = math::matrix4x4f::make_transform_RH({ 0.0f, 0.0f, 50.0f }, { 0,1,0 });
-				mesh_instance.m_transform *= math::matrix4x4f::make_scale(math::vectorf3::one() * 10.0f);
-				render_scene.m_meshes.push_back(mesh_instance);
-			}
+			// create the scene
+			mp_scene = new scene();
 			
+			logn("start ticking ...");
 			renderer::present_args present_args{};
 			present_args.m_vsync = true;
 
@@ -229,11 +136,10 @@ namespace influx::application
 			frame_time frame_time{};
 			while (!m_is_quit_requested)
 			{
+				// update frame time
 				frame_time.m_delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
 				frame_time.m_time_seconds = time::get_ms_since<float>(initial_tick) * 0.001f;
 				last_tick = time::get_now();
-
-				update(render_scene, frame_time);
 				
 				// returns false if quit event was requested
 				if (!platform::poll_window_events(m_windowhandle))
@@ -241,16 +147,18 @@ namespace influx::application
 					request_quit();
 					continue;
 				}
-				else
-				{
-					// acquire the window target:
-					const renderer::target& window_target
-						= *renderer::get_window_target(m_windowhandle);
+				
+				// update scene
+				mp_scene->update(frame_time);
 
-					renderer::draw_scene(render_scene, window_target, *depth_stencil);
+				// acquire the window target:
+				const renderer::target& window_target
+					= *renderer::get_window_target(m_windowhandle);
 
-					renderer::present_swapchain(present_args);
-				}
+				// draw the render scene
+				renderer::draw_scene(mp_scene->get_render_scene(), window_target, *depth_stencil);
+
+				renderer::present_swapchain(present_args);
 			}
 
 			delete depth_stencil;

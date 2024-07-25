@@ -123,6 +123,8 @@ namespace influx::math
 		static void clamp(vector& vec, float min, float max);
 		static vector clamped(const vector& vec, float min, float max);
 
+		void clamp_length(float length);
+
 		// Angle:
 		float radians_between(const vector& other) const;
 		static float radians_between(const vector& a, const vector& b);
@@ -168,6 +170,7 @@ namespace influx::math
 
 		// Lerp:
 		static vector lerp(const vector& a, const vector& b, const float t);
+		void lerp_towards(const vector& b, const float t);
 
 		// Zero:
 		static vector zero();

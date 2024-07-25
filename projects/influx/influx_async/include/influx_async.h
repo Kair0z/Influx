@@ -26,7 +26,7 @@ namespace influx::async
 	enum class e_task_state : uint8
 	{
 		allocated,
-		pending,
+		queued,
 		running,
 		finished,
 		max,
@@ -119,7 +119,7 @@ namespace influx::async
 
 	inline vector<task_handle> dispatch_for(uint64 range, const function<void(uint64 i)>& func)
 	{
-		if (func != nullptr)
+		if (func == nullptr)
 			return {};
 
 		vector<task_handle> handles{};
@@ -139,6 +139,8 @@ namespace influx::async
 	INFLUX_ASYNC_API void wait_for(const task_handle& handle, const wait_args& args = {});
 
 	INFLUX_ASYNC_API void wait_for(const vector<task_handle>& handles, const wait_args& args = {});
+
+	INFLUX_ASYNC_API void wait_for_all(const wait_args& args = {});
 
 	INFLUX_ASYNC_API void shutdown();
 	

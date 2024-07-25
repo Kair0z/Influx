@@ -41,7 +41,6 @@ namespace influx::assets
 	public:
 		uint32 m_id;
 		string m_name;
-		
 	};
 
 	class flx_scene final : public flx_asset

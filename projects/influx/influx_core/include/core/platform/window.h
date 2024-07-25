@@ -50,11 +50,14 @@ namespace influx::platform
 			insert,
 			deleet,
 			f2,
+			ascii_num, // ascii number (0-9)
+			ascii_ch, // ascii character (A-Z)
 			unknown,
 			count
 		};
 
 		key_type parse_key_type() const;
+		char parse_ascii() const;
 
 		uint64 m_wParam;
 		uint64 m_lParam;
@@ -99,6 +102,8 @@ namespace influx::platform
 	};
 
 	window_handle create_window(const create_window_args& args);
+
+	void add_window_proc(const window_handle handle, const window_proc_callback& callback);
 
 	void destroy_window(const window_handle handle);
 

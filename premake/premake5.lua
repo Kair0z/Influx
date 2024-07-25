@@ -28,6 +28,7 @@ workspace "influx"
     g_dir_assets_include = g_dir_projects_engine .. "/influx_assets/include/"
     g_dir_render_include = g_dir_projects_engine .. "/influx_renderer/include/"
     g_dir_graphics_include = g_dir_projects_engine .. "/influx_graphics/include/"
+    g_dir_events_include = g_dir_projects_engine .. "/influx_events/include/"
     g_dir_vulkan_include = g_dir_projects_engine .. "/influx_graphics/foreign/vulkan/"
     
     g_dir_vendor_libraries = g_dir_root .. "/vendor/lib/x64/"
@@ -55,6 +56,7 @@ workspace "influx"
     printf(".. influx engine")
     group "influx engine"
     include "../projects/influx/influx_application"
+    include "../projects/influx/influx_events"
     include "../projects/influx/influx_input"
     include "../projects/influx/influx_async"
     include "../projects/influx/influx_core"
@@ -65,7 +67,6 @@ workspace "influx"
 
     printf(".. apps ")
     group "apps"
-    include "../projects/apps/sandbox"
     include "../projects/apps/influx_game"
     group ""
 
