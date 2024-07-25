@@ -87,7 +87,7 @@ namespace influx::application
 
 		// initialize job system:
 		async::init_args async_args{};
-		async_args.m_num_workers = 1u;
+		async_args.m_num_workers = 4u;
 		async::initialize(async_args);
 
 		if (m_run_args.m_commandlet == false)

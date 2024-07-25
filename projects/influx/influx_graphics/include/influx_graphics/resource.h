@@ -36,6 +36,7 @@ namespace influx::graphics
 	{
 		common,
 		render_target,
+		depth_write,
 		copy_source,
 		copy_dest,
 		shader_resource,

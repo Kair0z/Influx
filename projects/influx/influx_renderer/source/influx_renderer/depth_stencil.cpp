@@ -13,7 +13,7 @@ namespace influx::renderer
 		graphics::tex2D_desc desc{};
 		desc.m_arraysize = 1u;
 		desc.m_dimensions = { args.m_width, args.m_heigth };
-		desc.m_flags = graphics::e_resource_flags::allow_depth_stencil;
+		desc.m_flags = graphics::e_resource_flags::depth_stencil;
 		desc.m_format = graphics::e_format::d32;
 		desc.m_num_mips = 1u;
 		desc.m_sample_count = 1u;
@@ -54,7 +54,7 @@ namespace influx::renderer
 			graphics::tex2D_desc desc{};
 			desc.m_arraysize = 1u;
 			desc.m_dimensions = { new_dimensions.x, new_dimensions.y };
-			desc.m_flags = graphics::e_resource_flags::allow_depth_stencil;
+			desc.m_flags = graphics::e_resource_flags::depth_stencil;
 			desc.m_format = graphics::e_format::d32;
 			desc.m_num_mips = 1u;
 			desc.m_sample_count = 1u;

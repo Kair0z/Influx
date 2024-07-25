@@ -57,16 +57,13 @@ namespace influx::renderer
 	// create a target to render to
 	INFLUX_RENDER_API target* create_target(const target_create_args& args);
 
-	// create a depthbuffer to render to
-	INFLUX_RENDER_API depth_stencil* create_depth_stencil(const depth_stencil_create_args& args);
-
 	// creates / switches to the appropriate target representation of our window backbuffer
 	INFLUX_RENDER_API target* get_window_target(const platform::window_handle& window);
 
 	// issue commands
 	INFLUX_RENDER_API void acquire_swapchain_frame();
 
-	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target, const depth_stencil& depth_stencil);
+	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target);
 
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
 
