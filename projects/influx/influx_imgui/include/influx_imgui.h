@@ -9,6 +9,8 @@
 // imgui dependency (duh)
 #include "imgui.h"
 
+// influx::graphics dependency 
+#include "influx_graphics.h"
 
 namespace influx::imgui
 {
