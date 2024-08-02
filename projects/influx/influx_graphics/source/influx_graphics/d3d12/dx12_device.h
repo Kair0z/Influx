@@ -51,6 +51,8 @@ namespace influx::graphics
 
 		virtual pipeline* create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) override;
 
+		virtual void* get_native() override final;
+
 	private:
 		IDXGIFactory2* mpdxgi_factory;
 		vector<IDXGIAdapter1*> mpdxgi_adapters;

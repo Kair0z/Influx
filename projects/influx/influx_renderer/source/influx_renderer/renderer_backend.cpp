@@ -10,6 +10,11 @@
 
 #include "influx_renderer/systems/imgui_system.h"
 
+// imgui: TODO make this platform agnostic!
+#include "imgui.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_impl_dx12.h"
+
 namespace influx::renderer
 {
 #pragma region translation
@@ -230,7 +235,8 @@ namespace influx::renderer
 
         // setup constants
         const camera& camera = scene.m_camera;
-        const math::matrix4x4f mat_view = camera.m_transform.inverted();
+        //const math::matrix4x4f mat_view = math::matrix4x4f::make_view_RH(camera.m_transform.get_position(), -camera.m_transform.get_forward());
+        const math::matrix4x4f mat_view = camera.m_transform.get_matrix().inverted();
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
 
         uint32 texture_idx = m_frame_count % 1u;

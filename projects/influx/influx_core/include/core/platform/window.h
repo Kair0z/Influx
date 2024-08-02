@@ -33,6 +33,10 @@ namespace influx::platform
 			// input
 			keydown,
 			keyup,
+
+			// mouse
+			wheel,
+
 			// general
 			activate,
 			quit,
@@ -58,6 +62,7 @@ namespace influx::platform
 
 		key_type parse_key_type() const;
 		char parse_ascii() const;
+		float parse_wheel_delta() const;
 
 		uint64 m_wParam;
 		uint64 m_lParam;

@@ -58,6 +58,11 @@ namespace influx::platform
 		return (char)m_wParam;
 	}
 
+	inline float window_event::parse_wheel_delta() const
+	{
+		return (float)GET_WHEEL_DELTA_WPARAM(m_wParam) / WHEEL_DELTA;
+	}
+
 	namespace detail
 	{
 		static list<window_handle>		gWindowHandles{};
@@ -70,6 +75,7 @@ namespace influx::platform
 			case WM_DESTROY: return window_event::type::quit;
 			case WM_KEYDOWN: return window_event::type::keydown;
 			case WM_KEYUP: return window_event::type::keyup;
+			case WM_MOUSEWHEEL: return window_event::type::wheel;
 			}
 
 			return window_event::type::count;

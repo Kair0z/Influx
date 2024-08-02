@@ -75,6 +75,7 @@ namespace influx::renderer
 	private:
 		void draw_meshes(const scene& scene, const target& target);
 		bool create_pipeline_if_possible();
+		void initialize_imgui(platform::window_handle window_handle);
 
 	private:
 		graphics::device* mp_device = nullptr;

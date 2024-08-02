@@ -1,4 +1,4 @@
-project "influx_renderer"
+project "influx_imgui"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
@@ -16,18 +16,12 @@ project "influx_renderer"
         g_project_dir .. "**.lua"
     }
 
-    pchheader "renderer_pch.h"
-    pchsource "source/renderer_pch.cpp"
+    pchheader "imgui_pch.h"
+    pchsource "source/imgui_pch.cpp"
 
     defines
     {
         
-    }
-
-    -- temp, don't want imgui in here
-    removefiles
-    {
-        --iif(g_compile_vulkan ~= true, "**/imgui/**", "")
     }
 
     includedirs

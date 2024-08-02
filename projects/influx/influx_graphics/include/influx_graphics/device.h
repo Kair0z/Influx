@@ -61,6 +61,8 @@ namespace influx::graphics
 
 		virtual pipeline* create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) = 0;
 
+		virtual void* get_native() = 0;
+
 	private:
 		vector<base*> mp_children = {};
 		e_api_type m_type{};

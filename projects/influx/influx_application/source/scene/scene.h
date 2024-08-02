@@ -53,6 +53,7 @@ namespace influx::application
 		void on_keyhold(const input::key_event& ev);
 		void on_keydown(const input::key_event& ev);
 		void on_keyup(const input::key_event& ev);
+		void on_mouse_scroll(const float value);
 
 		void update(const frame_time& time);
 		const renderer::scene& get_render_scene();
@@ -74,6 +75,10 @@ namespace influx::application
 
 		struct camera_controls final
 		{
+			constexpr static float k_max_speed = 1000.0f;
+			constexpr static float k_min_speed = 10.0f;
+
+			float m_speed = k_min_speed;
 			math::vectorf3 m_velocity;
 			math::vectorf3 m_acceleration;
 			math::vectorf2 m_input;

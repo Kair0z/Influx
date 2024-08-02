@@ -85,84 +85,90 @@ namespace influx::application
 		// platform instance handle:
 		m_instancehandle = platform::get_current_instance();
 
+		// initialize input
+		influx::input::init();
+		std::thread input_thread = std::thread([this]()
+		{
+			while (!m_is_quit_requested)
+			{
+				input::service();
+			}
+		});
+
 		// initialize job system:
 		async::init_args async_args{};
 		async_args.m_num_workers = 4u;
 		async::initialize(async_args);
 
-		if (m_run_args.m_commandlet == false)
+		// create a platform window
+		platform::create_window_args window_args{};
+		window_args.m_width = args.m_window_width;
+		window_args.m_height = args.m_window_height;
+		window_args.m_name = args.m_name;
+		window_args.m_proc_callback = [](const platform::window_event& ev) { input::push_window_event(ev); };
+		m_windowhandle = platform::create_window(window_args);
+
+		// load content
+		mp_content_manager = new content_manager(get_resource_directory());
+
+		// create renderer
+		renderer::init_args render_init_args{};
+		render_init_args.m_api_type = renderer::e_render_api::dx12;
+		render_init_args.m_resource_dir = get_resource_directory();
+		renderer::initialize(render_init_args);
+
+		// load assets into renderer
+		load_render_assets();
+
+		// create the scene
+		mp_scene = new scene();
+
+		// some stack variables
+		renderer::present_args present_args{};
+		present_args.m_vsync = true;
+		time::point initial_tick = time::get_now();
+		time::point last_tick = initial_tick;
+		frame_time frame_time{};
+
+		// setup targets:
+		renderer::target* window_target = renderer::get_window_target(m_windowhandle);
+		renderer::target_create_args target_args{};
+		target_args.m_has_depth_stencil = true;
+		target_args.m_width = window_target->get_width();
+		target_args.m_heigth = window_target->get_height();
+		renderer::target* scene_target = renderer::create_target(target_args);
+
+		logn("start ticking ...");
+		while (!m_is_quit_requested)
 		{
-			// initialize input
-			influx::input::init();
+			// update frame time
+			frame_time.m_delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
+			frame_time.m_time_seconds += frame_time.m_delta_seconds;
+			last_tick = time::get_now();
 
-			// create a platform window
-			platform::create_window_args window_args{};
-			window_args.m_width = args.m_window_width;
-			window_args.m_height = args.m_window_height;
-			window_args.m_name = args.m_name;
-			window_args.m_proc_callback = [](const platform::window_event& ev) { input::push_window_event(ev); };
-			m_windowhandle = platform::create_window(window_args);
-
-			// load content
-			mp_content_manager = new content_manager(get_resource_directory());
-			
-			// create renderer
-			renderer::init_args render_init_args{};
-			render_init_args.m_api_type = renderer::e_render_api::dx12;
-			render_init_args.m_resource_dir = get_resource_directory();
-			renderer::initialize(render_init_args);
-
-			// load assets into renderer
-			load_render_assets();
-
-			// create the scene
-			mp_scene = new scene();
-			
-			// some stack variables
-			renderer::present_args present_args{};
-			present_args.m_vsync = true;
-			time::point initial_tick = time::get_now();
-			time::point last_tick = initial_tick;
-			frame_time frame_time{};
-
-			// setup targets:
-			renderer::target* window_target = renderer::get_window_target(m_windowhandle);
-			renderer::target_create_args target_args{};
-			target_args.m_has_depth_stencil = true;
-			target_args.m_width = window_target->get_width();
-			target_args.m_heigth = window_target->get_height();
-			renderer::target* scene_target = renderer::create_target(target_args);
-
-			logn("start ticking ...");
-			while (!m_is_quit_requested)
+			// returns false if quit event was requested
+			if (!platform::poll_window_events(m_windowhandle))
 			{
-				// update frame time
-				frame_time.m_delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
-				frame_time.m_time_seconds += frame_time.m_delta_seconds;
-				last_tick = time::get_now();
-				
-				// returns false if quit event was requested
-				if (!platform::poll_window_events(m_windowhandle))
-				{
-					request_quit();
-					continue;
-				}
-				
-				// update scene
-				mp_scene->update(frame_time);
-
-				// update the window target
-				window_target = renderer::get_window_target(m_windowhandle);
-
-				// draw the render scene
-				renderer::draw_scene(mp_scene->get_render_scene(), *scene_target);
-
-				// copy the scene -> window
-				renderer::copy_target(*scene_target, *window_target);
-
-				renderer::present_swapchain(present_args);
+				request_quit();
+				continue;
 			}
+
+			// update scene
+			mp_scene->update(frame_time);
+
+			// update the window target
+			window_target = renderer::get_window_target(m_windowhandle);
+
+			// draw the render scene
+			renderer::draw_scene(mp_scene->get_render_scene(), *scene_target);
+
+			// copy the scene -> window
+			renderer::copy_target(*scene_target, *window_target);
+
+			renderer::present_swapchain(present_args);
 		}
+
+		input_thread.join();
 	}
 
 	void application::request_quit()

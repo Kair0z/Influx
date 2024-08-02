@@ -14,8 +14,6 @@ namespace influx::input
 {
 	struct init_args final
 	{
-		platform::instance_handle m_instance;
-		platform::window_handle m_window;
 	};
 
 	enum class e_key
@@ -48,7 +46,7 @@ namespace influx::input
 
 	struct mouse_event
 	{
-
+		float m_wheel_delta;
 	};
 
 	INFLUX_INPUT_API void init(const init_args& args = {});
@@ -57,6 +55,11 @@ namespace influx::input
 
 	using key_callback = function<void(const key_event& ev)>;
 	INFLUX_INPUT_API void subscribe(const key_callback&);
+
+	using mouse_callback = function<void(const mouse_event& ev)>;
+	INFLUX_INPUT_API void subscribe(const mouse_callback&);
+
+	INFLUX_INPUT_API void service();
 
 	INFLUX_INPUT_API void cleanup();
 }

@@ -365,4 +365,9 @@ namespace influx::graphics
 		HRESULT res = mpdx_devices[0]->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
 		return new dx12_pipeline(dxpipeline, desc);
 	}
+
+	void* dx12_device::get_native()
+	{
+		return mpdx_devices[0u];
+	}
 }

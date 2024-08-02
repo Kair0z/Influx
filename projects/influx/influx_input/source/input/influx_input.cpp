@@ -65,6 +65,7 @@ namespace influx::input
 		// filter key-events only
 		void* data = nullptr;
 		key_event* new_key_ev = nullptr;
+		mouse_event* new_mouse_ev = nullptr;
 		switch (platform_ev.m_type)
 		{
 		case platform::window_event::type::keydown:
@@ -77,6 +78,12 @@ namespace influx::input
 			new_key_ev = new key_event();
 			new_key_ev->m_type = key_event::e_type::keyup;
 			data = new_key_ev;
+			break;
+
+		case platform::window_event::type::wheel:
+			new_mouse_ev = new mouse_event();
+			new_mouse_ev->m_wheel_delta = platform_ev.parse_wheel_delta();
+			data = new_mouse_ev;
 			break;
 		}
 
@@ -114,9 +121,25 @@ namespace influx::input
 		global_state::get_queue()->subscribe(this_callback);
 	}
 
+	void subscribe(const mouse_callback& callback)
+	{
+		auto this_callback = [callback](const events::event& ev)
+		{
+			mouse_event* mouse_ev = reinterpret_cast<mouse_event*>(ev.get_data());
+			callback(*mouse_ev);
+		};
+
+		global_state::get_queue()->subscribe(this_callback);
+	}
+
 	void cleanup()
 	{
 		delete global_state::get_queue();
+	}
+
+	void service()
+	{
+		global_state::get_queue()->service();
 	}
 
 	string key_event::to_string() const

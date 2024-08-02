@@ -1,6 +1,7 @@
 #pragma once
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
+#include "core/math/transform.h"
 #include "core/string.h"
 #include "core/container/vector.h"
 
@@ -12,14 +13,7 @@ namespace influx::renderer
 		float m_near_plane = 0.0001f;
 		float m_far_plane = 100.0f;
 
-		math::vectorf3 m_position = {};
-		math::vectorf3 m_forward = -math::vectorf3::forward();
-		math::matrix4x4f m_transform = math::matrix4x4f::identity();
-
-		inline void look_at(const math::vectorf3& at)
-		{
-			m_forward = (at - m_position).normalized();
-		}
+		math::transform3D m_transform;
 	};
 
 	struct mesh_instance final
