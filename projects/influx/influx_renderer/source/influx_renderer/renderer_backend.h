@@ -2,6 +2,7 @@
 #include "influx_renderer.h"
 #include "influx_renderer/rendersystem.h"
 
+// influx::graphics
 #pragma region graphics declarations
 namespace influx::graphics
 {
@@ -58,6 +59,8 @@ namespace influx::renderer
 		void acquire_swapchain_frame();
 
 		void draw_scene(const scene& scene, const target& target);
+
+		void draw_imgui(ImDrawData* draw_data, const target& target);
 
 		void copy_target(const target& source, const target& dest);
 

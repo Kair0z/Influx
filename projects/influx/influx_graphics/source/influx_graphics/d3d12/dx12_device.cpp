@@ -201,7 +201,11 @@ namespace influx::graphics
 		auto dx_rtv = dx12helpers::create_rtv(mpdx_devices[0u], dxresource,
 			new_dxdescriptor, convert(resource->get_format()));
 
-		return new dx12_render_target_view(dx_rtv);
+		// setup resource info
+		resource_info res_info{};
+		res_info.m_dimensions = { resource->get_width(), resource->get_height() };
+
+		return new dx12_render_target_view(dx_rtv, res_info);
 	}
 
 	depth_stencil_view* dx12_device::create_dsv(descriptor_heap* dsv_heap, resource* resource)

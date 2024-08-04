@@ -12,7 +12,7 @@ namespace influx::graphics
 	class dx12_render_target_view : public render_target_view
 	{
 	public:
-		dx12_render_target_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle);
+		dx12_render_target_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, const resource_info& res_info);
 
 	private:
 		D3D12_CPU_DESCRIPTOR_HANDLE m_dx_cpu_handle;
@@ -54,10 +54,10 @@ namespace influx::graphics
 		D3D12_CPU_DESCRIPTOR_HANDLE m_dx_descriptor_handle;
 	};
 
-	class dx12_input_resource_view : public input_resource_view
+	class dx12_shader_resource_view : public shader_resource_view
 	{
 	public:
-		dx12_input_resource_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle);
+		dx12_shader_resource_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle);
 
 	private:
 		D3D12_GPU_DESCRIPTOR_HANDLE m_dx_gpu_handle;

@@ -162,6 +162,9 @@ namespace influx::application
 			// draw the render scene
 			renderer::draw_scene(mp_scene->get_render_scene(), *scene_target);
 
+			// draw imgui
+			renderer::draw_imgui(nullptr, *scene_target);
+
 			// copy the scene -> window
 			renderer::copy_target(*scene_target, *window_target);
 

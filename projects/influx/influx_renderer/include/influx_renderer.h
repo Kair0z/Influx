@@ -6,6 +6,9 @@
 	#define INFLUX_RENDER_API __declspec(dllimport)
 #endif
 
+// influx::imgui
+#include "influx_imgui.h"
+
 // core dependencies
 #include "core/basetypes.h"
 #include "core/function.h"
@@ -60,7 +63,6 @@ namespace influx::renderer
 	// creates / switches to the appropriate target representation of our window backbuffer
 	INFLUX_RENDER_API target* get_window_target(const platform::window_handle& window);
 
-	// issue commands
 	INFLUX_RENDER_API void acquire_swapchain_frame();
 
 	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target);

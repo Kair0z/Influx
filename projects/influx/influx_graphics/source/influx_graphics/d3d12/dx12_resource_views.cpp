@@ -4,8 +4,8 @@
 
 namespace influx::graphics
 {
-	dx12_render_target_view::dx12_render_target_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
-		: render_target_view( reinterpret_cast<descriptor_handle>(cpu_handle.ptr), nullptr )
+	dx12_render_target_view::dx12_render_target_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, const resource_info& res_info)
+		: render_target_view( reinterpret_cast<descriptor_handle>(cpu_handle.ptr), nullptr, res_info)
 		, m_dx_cpu_handle{ cpu_handle }
 	{
 		mp_native = &m_dx_cpu_handle;
@@ -39,8 +39,8 @@ namespace influx::graphics
 		mp_native = &m_dx_descriptor_handle;
 	}
 
-	dx12_input_resource_view::dx12_input_resource_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)
-		: input_resource_view(
+	dx12_shader_resource_view::dx12_shader_resource_view(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)
+		: shader_resource_view(
 			reinterpret_cast<descriptor_handle>(cpu_handle.ptr),
 			reinterpret_cast<descriptor_handle>(gpu_handle.ptr))
 		, m_dx_gpu_handle{ gpu_handle }

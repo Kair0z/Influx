@@ -8,7 +8,7 @@ namespace influx::graphics
 	{
 		rtv,
 		dsv,
-		cbv,
+		srv,
 		sampler,
 		count
 	};

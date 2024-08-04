@@ -16,15 +16,27 @@ namespace influx::imgui
 		graphics::resource* mp_vertexbuffer;
 	};
 
+	struct texture
+	{
+		graphics::resource* mp_upload;
+		graphics::resource* mp_resource;
+		graphics::shader_resource_view* mp_srv;
+	};
+
 	struct global_state : public singleton<global_state>
 	{
 		render_buffers m_renderbuffers;
+		texture m_fonts_texture;
+
 		graphics::device* mp_device;
 		graphics::command_queue* mp_commandqueue;
 		graphics::command_list* mp_commandlist;
 		graphics::command_allocator* mp_allocator;
 		graphics::rootsignature* mp_rootsig;
 		graphics::pipeline* mp_pipeline;
+		graphics::descriptor_heap* mp_srv_heap;
+
+		graphics::fence* mp_fence;
 	};
 
 	inline graphics::device*& get_device()
@@ -52,6 +64,11 @@ namespace influx::imgui
 		return global_state::get_instance().m_renderbuffers;
 	}
 
+	inline texture& get_texfonts()
+	{
+		return global_state::get_instance().m_fonts_texture;
+	}
+
 	inline graphics::pipeline*& get_pipeline()
 	{
 		return global_state::get_instance().mp_pipeline;
@@ -60,6 +77,16 @@ namespace influx::imgui
 	inline graphics::rootsignature*& get_rootsig()
 	{
 		return global_state::get_instance().mp_rootsig;
+	}
+
+	inline graphics::fence*& get_fence()
+	{
+		return global_state::get_instance().mp_fence;
+	}
+
+	inline graphics::descriptor_heap*& get_srv_heap()
+	{
+		return global_state::get_instance().mp_srv_heap;
 	}
 
 	inline void update_renderbuffers(ImDrawData* draw_data, render_buffers& buffers)
@@ -119,6 +146,71 @@ namespace influx::imgui
 		});
 	}
 
+	inline void create_fonts_texture()
+	{
+		texture& fonts_tex = get_texfonts();
+
+		// get texture data:
+		ImGuiIO& io = ImGui::GetIO();
+		unsigned char* pixels;
+		int width, height;
+		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+		uint32 tex_width = width;
+		uint32 tex_height = height;
+		size_t tex_pitch = tex_width * sizeof(unsigned char);
+		size_t tex_bytesize = tex_height * tex_pitch;
+		
+		graphics::e_format tex_format = graphics::e_format::rgba8;
+
+		// upload texture to graphics:
+		graphics::buffer_desc buffer_desc{};
+		buffer_desc.m_bytesize = tex_bytesize;
+		buffer_desc.m_init_state = graphics::e_resource_state::copy_source;
+
+		graphics::tex2D_desc texture_desc{};
+		texture_desc.m_dimensions = { tex_width, tex_height };
+		texture_desc.m_format = tex_format;
+		texture_desc.m_init_state = graphics::e_resource_state::copy_dest;
+
+		fonts_tex.mp_upload = get_device()->create_resource(buffer_desc, { graphics::e_heap_type::shared });
+		fonts_tex.mp_resource = get_device()->create_resource(texture_desc);
+
+		// texture data -> upload res
+		fonts_tex.mp_upload->map([tex_pitch, tex_height, pixels](void* dest)
+		{
+			for (uint32 y = 0; y < tex_height; ++y)
+				memcpy((void*) ((uintptr_t) dest + y * tex_pitch),
+					pixels + y * tex_pitch, tex_pitch);
+		});
+
+		// record transfer (upload resource -> gpu resource)
+		get_commandlist()->start(get_allocator());
+		get_commandlist()->copy_texture(
+			fonts_tex.mp_upload, fonts_tex.mp_resource);
+		get_commandlist()->end();
+
+		// submit transfer
+		get_queue()->submit_commandlists({ get_commandlist() });
+		get_queue()->queue_signal(get_fence(), 1u);
+
+		// wait for transfer to finish on gpu
+		wait_handle wait{};
+		get_fence()->wait_for_value(1u, wait);
+
+		// create srv
+		fonts_tex.mp_srv = get_device()->create_srv(get_srv_heap(), fonts_tex.mp_resource);
+	}
+
+	inline void create_pipeline()
+	{
+		graphics::rootsignature_desc rootsig_desc{};
+		get_rootsig() = get_device()->create_rootsignature(rootsig_desc);
+
+		graphics::pipeline_desc pipeline_desc{};
+		get_pipeline() = get_device()->create_pipeline(get_rootsig(), pipeline_desc);
+	}
+
 	bool initialize()
 	{
 		// create the device
@@ -133,6 +225,16 @@ namespace influx::imgui
 		get_allocator() = get_device()->create_graphics_allocator();
 		get_commandlist() = get_device()->create_graphics_command_list(get_allocator());
 
+		// create srv heap
+		graphics::descriptor_heap::create_args desc_heap_args{};
+		desc_heap_args.m_capacity = 1u;
+		desc_heap_args.m_shader_visible = true;
+		desc_heap_args.m_type = graphics::e_descriptor_heap_type::srv;
+		get_srv_heap() = get_device()->create_descriptor_heap(desc_heap_args);
+
+		create_fonts_texture();
+		create_pipeline();
+
 		return true;
 	}
 
@@ -141,13 +243,17 @@ namespace influx::imgui
 		delete get_device();
 	}
 
-	void render(ImDrawData* draw_data)
+	void render(ImDrawData* draw_data, const target& target)
 	{
 		// Avoid rendering when minimized
 		if (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f)
 			return;
 
+		const math::vectorf2& target_dim = target.mp_rtv->get_dimensions();
+
 		graphics::viewport viewport{};
+		viewport.m_width = target_dim.x;
+		viewport.m_height = target_dim.y;
 
 		struct vertex_const_buffer
 		{

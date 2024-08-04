@@ -18,5 +18,11 @@ namespace influx::imgui
 
 	INFLUX_IMGUI_API bool shutdown();
 
-	INFLUX_IMGUI_API void render(ImDrawData* draw_data);
+	// target struct imgui can render to
+	struct target final
+	{
+		graphics::render_target_view* mp_rtv;
+	};
+
+	INFLUX_IMGUI_API void render(ImDrawData* draw_data, const target& target);
 }
