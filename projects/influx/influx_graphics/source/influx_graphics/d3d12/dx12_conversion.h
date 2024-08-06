@@ -129,4 +129,19 @@ namespace influx::graphics
 		case e_heap_type::count: return D3D12_HEAP_TYPE_DEFAULT;
 		}
 	}
+
+	D3D12_SHADER_VISIBILITY convert(e_shader_visibility vis)
+	{
+		switch (vis)
+		{
+		case e_shader_visibility::all: return D3D12_SHADER_VISIBILITY_ALL;
+		case e_shader_visibility::vertex: return D3D12_SHADER_VISIBILITY_VERTEX;
+		case e_shader_visibility::pixel: return D3D12_SHADER_VISIBILITY_PIXEL;
+		case e_shader_visibility::domain: return D3D12_SHADER_VISIBILITY_DOMAIN;
+		case e_shader_visibility::hull: return D3D12_SHADER_VISIBILITY_HULL;
+		case e_shader_visibility::geometry: return D3D12_SHADER_VISIBILITY_GEOMETRY;
+		}
+
+		influx_assert(false);
+	}
 }

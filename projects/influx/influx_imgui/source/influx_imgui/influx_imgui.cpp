@@ -205,7 +205,18 @@ namespace influx::imgui
 	inline void create_pipeline()
 	{
 		graphics::rootsignature_desc rootsig_desc{};
+
+		// constants
+		rootsig_desc.m_constants.push_back({});
+
+		// descriptor table
+		rootsig_desc.m_resource_tables.push_back({});
+
+		// static sampler
+		rootsig_desc.m_static_samplers.push_back({});
+
 		get_rootsig() = get_device()->create_rootsignature(rootsig_desc);
+
 
 		graphics::pipeline_desc pipeline_desc{};
 		get_pipeline() = get_device()->create_pipeline(get_rootsig(), pipeline_desc);

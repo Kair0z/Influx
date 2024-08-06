@@ -278,8 +278,8 @@ namespace influx::graphics
 	{
 		ID3D12RootSignature* dxrootsignature = nullptr;
 
+		// setup versioning
 		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
-
 		// This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 		if (mpdx_devices[0]->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)) != S_OK)
@@ -287,22 +287,74 @@ namespace influx::graphics
 			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 		}
 
-		// parameters:
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[1]; // Perfomance TIP: Order from most frequent to least frequent.
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 128u, 0u); // g_texture's (128)
+		// setup root parameters
+		vector<CD3DX12_ROOT_PARAMETER1> root_parameters{};
+		vector<CD3DX12_STATIC_SAMPLER_DESC> static_samplers{};
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
-		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL); // 
-		rootParameters[1].InitAsConstants(4u * 4u, 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX); // _perframe_vs
-		rootParameters[2].InitAsConstants(1u, 0u, 0u, D3D12_SHADER_VISIBILITY_PIXEL); // _perframe_ps
+		for (const root_param_constants& constants : desc.m_constants)
+		{
+			root_parameters.push_back({});
+			root_parameters.back().InitAsConstants(constants.m_num_dwords, constants.m_common.m_shader_register, 
+				constants.m_common.m_register_space, convert(constants.m_common.m_visibility));
+		}
 
-		CD3DX12_STATIC_SAMPLER_DESC samplers[1];
-		samplers[0].Init(0u);
+		for (const root_param_resource& resource : desc.m_resources)
+		{
+			influx_assert(false);
+		}
 
+		for (const root_param_resource_table& tables : desc.m_resource_tables)
+		{
+			vector<CD3DX12_DESCRIPTOR_RANGE1> ranges{};
+			for (const root_param_resource_range& range : tables.m_resource_ranges)
+			{
+				D3D12_DESCRIPTOR_RANGE_TYPE range_type{};
+				switch (range.m_type)
+				{
+				case root_param_resource_range::e_type::cbv: range_type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
+				case root_param_resource_range::e_type::uav: range_type = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; break;
+				case root_param_resource_range::e_type::srv: range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
+				case root_param_resource_range::e_type::sampler: range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
+				}
+
+				ranges.push_back({});
+				ranges.back().Init(range_type,
+					range.m_num_resources, 
+					range.m_shader_register,
+					range.m_register_space);
+			}
+
+			root_parameters.push_back({});
+			root_parameters.back().InitAsDescriptorTable(ranges.size(), ranges.data(), convert(tables.m_common.m_visibility));
+		}
+
+		for (const root_static_sampler& sampler : desc.m_static_samplers)
+		{
+			static_samplers.push_back({});
+			static_samplers.back().Init(
+				sampler.m_common.m_shader_register,
+				sampler.m_filter,
+				sampler.m_wrap_u,
+				sampler.m_wrap_v,
+				sampler.m_wrap_w,
+				sampler.m_mip_lod_bias,
+				sampler.m_max_anisotropy,
+				sampler.m_comparison_func,
+				sampler.m_border_color,
+				sampler.m_min_lod,
+				sampler.m_max_lod,
+				convert(sampler.m_common.m_visibility));
+		}
+
+		// ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 128u, 0u); // g_texture's (128)
+		//rootParameters[1].InitAsConstants(4u * 4u, 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX); // _perframe_vs
+		//rootParameters[2].InitAsConstants(1u, 0u, 0u, D3D12_SHADER_VISIBILITY_PIXEL); // _perframe_ps
+
+		// initialize the desc, and create the root signature
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init_1_1(
-			_countof(rootParameters), rootParameters, 
-			_countof(samplers), samplers, 
+			root_parameters.size(), root_parameters.data(), 
+			static_samplers.size(), static_samplers.data(), 
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		ID3DBlob* signature;

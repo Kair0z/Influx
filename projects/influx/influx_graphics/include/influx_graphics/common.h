@@ -54,6 +54,67 @@ namespace influx::graphics
 		lequal,		// <=
 		gequal,		// >=
 		greater,	// >
+		always,
+		count
+	};
+
+	// D3D12_STATIC_BORDER_COLOR
+	enum class e_border_color : uint8
+	{
+		count
+	};
+
+	// D3D12_FILTER
+	// ...
+	enum class e_filter : uint8
+	{
+		min_mag_mip_point = 0,
+		min_mag_point_mip_linear = 0x1,
+		min_point_mag_linear_mip_point = 0x4,
+		min_point_mag_mip_linear = 0x5,
+		min_linear_mag_mip_point = 0x10,
+		min_linear_mag_point_mip_linear = 0x11,
+		min_mag_linear_mip_point = 0x14,
+		min_mag_mip_linear = 0x15,
+		anisotropic = 0x55,
+		comparison_min_mag_mip_point = 0x80,
+		comparison_min_mag_point_mip_linear = 0x81,
+		comparison_min_point_mag_linear_mip_point = 0x84,
+		comparison_min_point_mag_mip_linear = 0x85,
+		comparison_min_linear_mag_mip_point = 0x90,
+		comparison_min_linear_mag_point_mip_linear = 0x91,
+		comparison_min_mag_linear_mip_point = 0x94,
+		comparison_min_mag_mip_linear = 0x95,
+		comparison_anisotropic = 0xd5,
+		minimum_min_mag_mip_point = 0x100,
+		minimum_min_mag_point_mip_linear = 0x101,
+		minimum_min_point_mag_linear_mip_point = 0x104,
+		minimum_min_point_mag_mip_linear = 0x105,
+		minimum_min_linear_mag_mip_point = 0x110,
+		minimum_min_linear_mag_point_mip_linear = 0x111,
+		minimum_min_mag_linear_mip_point = 0x114,
+		minimum_min_mag_mip_linear = 0x115,
+		minimum_anisotropic = 0x155,
+		maximum_min_mag_mip_point = 0x180,
+		maximum_min_mag_point_mip_linear = 0x181,
+		maximum_min_point_mag_linear_mip_point = 0x184,
+		maximum_min_point_mag_mip_linear = 0x185,
+		maximum_min_linear_mag_mip_point = 0x190,
+		maximum_min_linear_mag_point_mip_linear = 0x191,
+		maximum_min_mag_linear_mip_point = 0x194,
+		maximum_min_mag_mip_linear = 0x195,
+		maximum_anisotropic = 0x1d5
+	};
+
+	// D3D12_TEXTURE_ADDRESS_MODE
+	// ...
+	enum class e_texture_wrap_mode : uint8
+	{
+		wrap,
+		mirror,
+		clamp,
+		border,
+		mirror_once,
 		count
 	};
 
