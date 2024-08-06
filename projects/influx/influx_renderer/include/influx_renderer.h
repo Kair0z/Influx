@@ -6,8 +6,8 @@
 	#define INFLUX_RENDER_API __declspec(dllimport)
 #endif
 
-// influx::imgui
-#include "influx_imgui.h"
+// Imgui
+struct ImDrawData;
 
 // core dependencies
 #include "core/basetypes.h"
@@ -31,6 +31,13 @@
 
 namespace influx::renderer
 {
+	// shader data
+	struct shader_data final
+	{
+		e_shader_type m_type;
+		vector<byte> m_bytecode;
+	};
+
 	// arguments to pass to backend initialization
 	struct init_args final
 	{
@@ -57,19 +64,27 @@ namespace influx::renderer
 
 	INFLUX_RENDER_API void cleanup();
 
-	// create a target to render to
+	// targets
 	INFLUX_RENDER_API target* create_target(const target_create_args& args);
 
 	// creates / switches to the appropriate target representation of our window backbuffer
 	INFLUX_RENDER_API target* get_window_target(const platform::window_handle& window);
 
+
+	// 1. acquire the frame to render
 	INFLUX_RENDER_API void acquire_swapchain_frame();
 
+	// 2. draw the scene to window / intermediate target
 	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target);
 
+	// 3. (optional) copy intermediate data
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
 
+	// 4. present to window swapchain
 	INFLUX_RENDER_API void present_swapchain(const present_args& args);
+
+	INFLUX_RENDER_API void draw_imgui(ImDrawData* draw_data, const target& target);
+
 
 	// loading assets into the renderer
 	INFLUX_RENDER_API void load(const string& title, const mesh_data& data);
@@ -77,12 +92,6 @@ namespace influx::renderer
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
 
 	INFLUX_RENDER_API void load(const string& title, const material_data& data);
-
-	struct shader_data final
-	{
-		e_shader_type m_type;
-		vector<byte> m_bytecode;
-	};
 
 	INFLUX_RENDER_API void load(const string& title, const shader_data& data);
 

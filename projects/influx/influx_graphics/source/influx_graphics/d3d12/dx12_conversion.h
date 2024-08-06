@@ -29,9 +29,14 @@ namespace influx::graphics
 		switch (format)
 		{
 		case e_format::rgba8: return DXGI_FORMAT_R8G8B8A8_UNORM;
+		case e_format::rg32: return DXGI_FORMAT_R32G32_FLOAT;
+		case e_format::rgb32: return DXGI_FORMAT_R32G32B32_FLOAT;
+		case e_format::rgba32: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 		case e_format::d32: return DXGI_FORMAT_D32_FLOAT;
 		case e_format::u32: return DXGI_FORMAT_R32_UINT;
-		default: return DXGI_FORMAT_R8G8_UNORM;
+		default: 
+			influx_assert(false);
+			return DXGI_FORMAT_R8G8_UNORM;
 		}
 	}
 
@@ -52,7 +57,7 @@ namespace influx::graphics
 		{
 		case e_descriptor_heap_type::rtv: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		case e_descriptor_heap_type::dsv: return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		case e_descriptor_heap_type::cbv: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		case e_descriptor_heap_type::srv: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		case e_descriptor_heap_type::sampler: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		default:
 		case e_descriptor_heap_type::count:	return D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
@@ -81,8 +86,14 @@ namespace influx::graphics
 		switch (func)
 		{
 		case e_comparison_func::lequal: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		case e_comparison_func::always: return D3D12_COMPARISON_FUNC_ALWAYS;
+		case e_comparison_func::less: return D3D12_COMPARISON_FUNC_LESS;
+		case e_comparison_func::gequal: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		case e_comparison_func::greater: return D3D12_COMPARISON_FUNC_GREATER;
 		default:
-		case e_comparison_func::count: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		case e_comparison_func::count: 
+			influx_assert(false);
+			return D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		}
 	}
 
@@ -126,11 +137,13 @@ namespace influx::graphics
 		case e_heap_type::shared: return D3D12_HEAP_TYPE_UPLOAD;
 		case e_heap_type::readback: return D3D12_HEAP_TYPE_READBACK;
 		default:
-		case e_heap_type::count: return D3D12_HEAP_TYPE_DEFAULT;
+		case e_heap_type::count:
+			influx_assert(false);
+			return D3D12_HEAP_TYPE_DEFAULT;
 		}
 	}
 
-	D3D12_SHADER_VISIBILITY convert(e_shader_visibility vis)
+	inline D3D12_SHADER_VISIBILITY convert(e_shader_visibility vis)
 	{
 		switch (vis)
 		{
@@ -140,8 +153,44 @@ namespace influx::graphics
 		case e_shader_visibility::domain: return D3D12_SHADER_VISIBILITY_DOMAIN;
 		case e_shader_visibility::hull: return D3D12_SHADER_VISIBILITY_HULL;
 		case e_shader_visibility::geometry: return D3D12_SHADER_VISIBILITY_GEOMETRY;
+		default:
+		case e_shader_visibility::count:
+			influx_assert(false);
+			return D3D12_SHADER_VISIBILITY_ALL;
 		}
+	}
 
-		influx_assert(false);
+	inline D3D12_TEXTURE_ADDRESS_MODE convert(e_texture_wrap_mode wrap)
+	{
+		switch (wrap)
+		{
+		case e_texture_wrap_mode::wrap: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		case e_texture_wrap_mode::border: return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		case e_texture_wrap_mode::mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+		case e_texture_wrap_mode::mirror_once: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE;
+		case e_texture_wrap_mode::clamp: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		default:
+		case e_texture_wrap_mode::count:
+			influx_assert(false);
+			return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		}
+	}
+
+	inline D3D12_STATIC_BORDER_COLOR convert(e_border_color color)
+	{
+		switch (color)
+		{
+		case e_border_color::white: return D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+		case e_border_color::black: return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+		case e_border_color::black_transparent: return D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+		default:
+		case e_border_color::count:
+			return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+		}
+	}
+
+	inline D3D12_FILTER convert(e_filter filter)
+	{
+		return (D3D12_FILTER)filter;
 	}
 }

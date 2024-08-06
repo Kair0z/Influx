@@ -8,7 +8,7 @@ namespace influx::graphics
 	class resource;
 	class device;
 	class descriptor_heap;
-	class input_resource_view;
+	class shader_resource_view;
 }
 
 namespace influx::renderer
@@ -41,12 +41,12 @@ namespace influx::renderer
 		uint32 m_heigth = 1u;
 	};
 
-	// contains a texture resource, as well as a input resource view (irv)
+	// contains a texture resource, as well as a shader resource view (srv)
 	class texture
 	{
 	public:
 		graphics::resource* get_resource() const;
-		graphics::input_resource_view* get_irv() const;
+		graphics::shader_resource_view* get_srv() const;
 
 		uint32 get_width() const;
 		uint32 get_height() const;
@@ -57,15 +57,15 @@ namespace influx::renderer
 #endif
 
 	private:
-		// constructs a target from create_args, allocating new graphics resources
+		// constructs a texture from create_args, allocating new graphics resources
 		explicit texture(graphics::device* device, graphics::descriptor_heap* irv_heap, const texture_create_args& args);
-		explicit texture(graphics::device* device, graphics::resource* resource, graphics::input_resource_view* irv);
+		explicit texture(graphics::device* device, graphics::resource* resource, graphics::shader_resource_view* irv);
 
 		// re-allocates graphics resource, and recreates the irv
 		void resize(const math::vectoru2& new_dimensions);
 
 		graphics::resource* mp_resource;
-		graphics::input_resource_view* mp_irv;
+		graphics::shader_resource_view* mp_srv;
 		void* m_cpu_handle;
 		void* m_gpu_handle;
 

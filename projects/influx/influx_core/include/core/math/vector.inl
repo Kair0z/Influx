@@ -18,6 +18,7 @@
 #endif
 
 #include <cmath>
+#include <algorithm>
 #include <limits>
 
 namespace influx::math

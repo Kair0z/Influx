@@ -41,8 +41,8 @@ namespace influx::graphics
 		virtual depth_stencil_view* create_dsv(descriptor_heap* dsv_heap, resource* resource) override;
 		virtual depth_stencil_view* create_dsv(descriptor_handle handle, resource* resource) override;
 
-		virtual input_resource_view* create_srv(descriptor_heap* irv_heap, resource* resource) override;
-		virtual input_resource_view* create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
+		virtual shader_resource_view* create_srv(descriptor_heap* irv_heap, resource* resource) override;
+		virtual shader_resource_view* create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
 
 		virtual sampler_view* create_sampview(descriptor_heap* samp_heap, resource* resource) override;
 		virtual sampler_view* create_sampview(descriptor_handle handle, resource* resource) override;
@@ -61,6 +61,6 @@ namespace influx::graphics
 		uint64 m_rtv_stride{};
 		uint64 m_dsv_stride{};
 		uint64 m_sampler_stride{};
-		uint64 m_cbv_stride{};
+		uint64 m_srv_stride{};
 	};
 }

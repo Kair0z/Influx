@@ -153,9 +153,9 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->OMSetRenderTargets(1u, rtv_handle, FALSE, dsv_handle);
 	}
 
-	void dx12_commandlist::set(input_resource_view* srv, uint32 param_idx)
+	void dx12_commandlist::set(shader_resource_view* srv, uint32 param_idx)
 	{
-		auto dx12srv = (dx12_input_resource_view*)srv;
+		auto dx12srv = (dx12_shader_resource_view*)srv;
 
 		D3D12_GPU_DESCRIPTOR_HANDLE srv_gpu_handle{};
 		srv_gpu_handle.ptr = (size_t)dx12srv->get_gpu_handle();

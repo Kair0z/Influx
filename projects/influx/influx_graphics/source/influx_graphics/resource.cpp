@@ -52,6 +52,11 @@ namespace influx::graphics
 		return m_bytestride;
 	}
 
+	uint32 resource::get_num_elements() const
+	{
+		return (uint32)(get_bytesize() / get_bytestride());
+	}
+
 	e_resource_state resource::get_state() const
 	{
 		return m_state;

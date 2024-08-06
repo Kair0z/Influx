@@ -6,11 +6,11 @@
 	#define INFLUX_IMGUI_API __declspec(dllimport)
 #endif
 
-// imgui dependency (duh)
-#include "imgui.h"
-
 // influx::graphics dependency 
 #include "influx_graphics.h"
+
+// imgui
+struct ImDrawData;
 
 namespace influx::imgui
 {
@@ -18,7 +18,6 @@ namespace influx::imgui
 
 	INFLUX_IMGUI_API bool shutdown();
 
-	// target struct imgui can render to
 	struct target final
 	{
 		graphics::render_target_view* mp_rtv;

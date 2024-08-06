@@ -8,13 +8,6 @@
 #include "influx_graphics/pipeline.h"
 #include "influx_graphics/rootsignature.h"
 
-#include "influx_renderer/systems/imgui_system.h"
-
-// imgui: TODO make this platform agnostic!
-#include "imgui.h"
-#include "imgui/imgui_impl_win32.h"
-#include "imgui/imgui_impl_dx12.h"
-
 namespace influx::renderer
 {
 #pragma region translation
@@ -78,26 +71,29 @@ namespace influx::renderer
 
         // create descriptor manager
         {
-            mp_desc_manager = new descriptor_manager(mp_device);
+            
         }
+
+        mp_desc_manager = new descriptor_manager(mp_device);
 
         // create textures
         {
             texture_create_args args{};
             args.m_width = 1024u;
             args.m_heigth = 1024u;
-            for (size_t i = 0u; i < 128u; ++i)
+            for (size_t i = 0u; i < 64u; ++i)
             {
                 m_textures.push_back(new texture(mp_device, mp_desc_manager->get_srv_heap(), args));
             }
         }
 
-        // create upload manager
-        {
-            mp_upload_manager = new upload_manager(mp_device);
-        }
+        mp_upload_manager = new upload_manager(mp_device);
 
-        create_render_systems();
+        texture_create_args imgui_fonts_tex_args{};
+        imgui_fonts_tex_args.m_width = 1024u;
+        imgui_fonts_tex_args.m_heigth = 1024u;
+        mp_imgui = new imgui_manager(mp_device, 
+            new texture(mp_device, mp_desc_manager->get_srv_heap(), imgui_fonts_tex_args));
 
         m_is_initialized = true;
     }
@@ -216,6 +212,14 @@ namespace influx::renderer
         ++m_frame_count;
     }
 
+    void renderer_backend::draw_imgui(ImDrawData* draw_data, const target& target)
+    {
+        influx_scope("renderer_backend::draw_imgui");
+        {
+
+        }
+    }
+
     void renderer_backend::draw_meshes(const scene& scene, const target& target)
     {
         // try to create the pipeline
@@ -240,7 +244,7 @@ namespace influx::renderer
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
 
         uint32 texture_idx = m_frame_count % 1u;
-        mp_commandlist->set(m_textures[0]->get_irv(), 0u);
+        mp_commandlist->set(m_textures[0]->get_srv(), 0u);
         
         mp_commandlist->set_constants(2u, 1u, &texture_idx);
 
@@ -299,6 +303,15 @@ namespace influx::renderer
         {
             {
                 graphics::rootsignature_desc desc{};
+                desc.m_constants.push_back({ 16u, 0u, 0u, graphics::e_shader_visibility::vertex }); // _per_frame_vs
+                desc.m_constants.push_back({ 1u, 0u, 0u, graphics::e_shader_visibility::pixel }); // _per_frame_ps
+                
+                graphics::root_param_resource_range srv_range{};
+                srv_range.m_num_resources = 128u;
+                srv_range.m_register_space = 0u;
+                srv_range.m_type = graphics::root_param_resource_range::e_type::srv;
+                desc.m_resource_tables.push_back({ {srv_range } });
+
                 mp_rootsig = mp_device->create_rootsignature(desc);
             }
 
@@ -309,6 +322,12 @@ namespace influx::renderer
                 desc.m_depth_stencil.m_depth_enable = false;
                 desc.m_depth_stencil.m_stencil_enable = false;
                 desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
+
+                desc.add_input_element("POSITION", 0u, graphics::e_format::rgb32, 0u, false, 0u);
+                desc.add_input_element("COLOR", 0u, graphics::e_format::rgba32, 0u, false, 0u);
+                desc.add_input_element("NORMAL", 0u, graphics::e_format::rgb32, 0u, false, 0u);
+                desc.add_input_element("TEXCOORD", 0u, graphics::e_format::rg32, 0u, false, 0u);
+
                 mp_pipeline = mp_device->create_pipeline(mp_rootsig, desc);
             }
         }
@@ -347,9 +366,12 @@ namespace influx::renderer
 
     void renderer_backend::present_swapchain(const present_args& args)
     {
-        graphics::present_args p_args{};
-        p_args.m_vsync = args.m_vsync;
-        mp_swapchain->present(p_args);
+        if (mp_swapchain)
+        {
+            graphics::present_args p_args{};
+            p_args.m_vsync = args.m_vsync;
+            mp_swapchain->present(p_args);
+        }
     }
 
     descriptor_manager* renderer_backend::get_descriptor_manager()
@@ -360,11 +382,6 @@ namespace influx::renderer
     upload_manager* renderer_backend::get_upload_manager()
     {
         return get_instance().mp_upload_manager;
-    }
-
-    void renderer_backend::create_render_systems()
-    {
-        create_render_system<imgui_system>(mp_device);
     }
 
     void renderer_backend::load(const string& title, const mesh_data& data)
@@ -486,6 +503,11 @@ namespace influx::renderer
     void present_swapchain(const present_args& args)
     {
         renderer_backend::get_instance().present_swapchain(args);
+    }
+
+    void draw_imgui(ImDrawData* draw_data, const target& target)
+    {
+        renderer_backend::get_instance().draw_imgui(draw_data, target);
     }
 
     void load(const string& title, const mesh_data& data)

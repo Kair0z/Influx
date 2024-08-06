@@ -22,9 +22,12 @@ namespace influx::graphics
 
 	enum class e_format : uint8
 	{
-		rgba8 = 0,
-		d32 = 1,
-		u32 = 2,
+		rgba8,
+		rg32,
+		rgb32,
+		rgba32,
+		d32,
+		u32,
 		count
 	};
 
@@ -32,9 +35,12 @@ namespace influx::graphics
 	{
 		switch (format)
 		{
-		case e_format::d32: return 4u;
-		case e_format::rgba8: return 4u * 8u;
-		case e_format::u32: return 4u;
+		case e_format::d32:		return 1u * 4u;
+		case e_format::rg32:	return 2u * 4u;
+		case e_format::rgb32:	return 3u * 4u;
+		case e_format::rgba32:	return 4u * 4u;
+		case e_format::rgba8:	return 8u * 4u;
+		case e_format::u32:		return 1u * 4u;
 		default:
 		case e_format::count: return (size_t)-1;
 		}
@@ -61,12 +67,15 @@ namespace influx::graphics
 	// D3D12_STATIC_BORDER_COLOR
 	enum class e_border_color : uint8
 	{
+		black,
+		white,
+		black_transparent,
 		count
 	};
 
 	// D3D12_FILTER
 	// ...
-	enum class e_filter : uint8
+	enum class e_filter : uint32
 	{
 		min_mag_mip_point = 0,
 		min_mag_point_mip_linear = 0x1,
@@ -115,6 +124,17 @@ namespace influx::graphics
 		clamp,
 		border,
 		mirror_once,
+		count
+	};
+
+	enum class e_shader_visibility : uint32
+	{
+		all = 0,
+		vertex = 1,
+		hull = 2,
+		domain = 3,
+		geometry = 4,
+		pixel = 5,
 		count
 	};
 

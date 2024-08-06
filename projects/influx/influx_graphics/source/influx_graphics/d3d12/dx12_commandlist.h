@@ -43,7 +43,7 @@ namespace influx::graphics
 
 		virtual void set(render_target_view* rtv, depth_stencil_view* dsv) override;
 
-		virtual void set(input_resource_view* srv, uint32 param_idx) override;
+		virtual void set(shader_resource_view* srv, uint32 param_idx) override;
 
 		virtual void set(rootsignature* rootsig) override;
 

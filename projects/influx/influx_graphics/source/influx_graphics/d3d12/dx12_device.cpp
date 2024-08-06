@@ -73,7 +73,7 @@ namespace influx::graphics
 		m_rtv_stride = strides.m_rtv;
 		m_dsv_stride = strides.m_dsv;
 		m_sampler_stride = strides.m_sampler;
-		m_cbv_stride = strides.m_cbv;
+		m_srv_stride = strides.m_cbv;
 	}
 
 	uint64 dx12_device::get_descriptor_stride(e_descriptor_heap_type type) const
@@ -82,7 +82,7 @@ namespace influx::graphics
 		{
 		case e_descriptor_heap_type::rtv: return m_rtv_stride;
 		case e_descriptor_heap_type::dsv: return m_dsv_stride;
-		case e_descriptor_heap_type::cbv: return m_cbv_stride;
+		case e_descriptor_heap_type::srv: return m_srv_stride;
 		case e_descriptor_heap_type::sampler: return m_sampler_stride;
 		}
 
@@ -227,7 +227,7 @@ namespace influx::graphics
 		return new dx12_depth_stencil_view(dx_dsv);
 	}
 
-	input_resource_view* dx12_device::create_srv(descriptor_heap* irv_heap, resource* resource)
+	shader_resource_view* dx12_device::create_srv(descriptor_heap* irv_heap, resource* resource)
 	{
 		// allocate new srv descriptors
 		descriptor_handle cpu_handle = irv_heap->allocate_cpu();
@@ -236,7 +236,7 @@ namespace influx::graphics
 		return create_srv(cpu_handle, gpu_handle, resource);
 	}
 
-	input_resource_view* dx12_device::create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
+	shader_resource_view* dx12_device::create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { (size_t)(cpu_handle) };
 		D3D12_GPU_DESCRIPTOR_HANDLE dxgpu_descriptor = { (size_t)(gpu_handle) };
@@ -251,7 +251,7 @@ namespace influx::graphics
 			resource->get_native<ID3D12Resource>(),
 			&srv_desc, dxcpu_descriptor);
 
-		return new dx12_input_resource_view(dxcpu_descriptor, dxgpu_descriptor);
+		return new dx12_shader_resource_view(dxcpu_descriptor, dxgpu_descriptor);
 	}
 
 	sampler_view* dx12_device::create_sampview(descriptor_heap* samp_heap, resource* resource)
@@ -300,7 +300,33 @@ namespace influx::graphics
 
 		for (const root_param_resource& resource : desc.m_resources)
 		{
-			influx_assert(false);
+			root_parameters.push_back({});
+			switch (resource.m_type)
+			{
+			case root_param_resource::e_type::srv: 
+				root_parameters.back().InitAsShaderResourceView(
+					resource.m_common.m_shader_register,
+					resource.m_common.m_register_space,
+					D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+					convert(resource.m_common.m_visibility));
+				break;
+
+			case root_param_resource::e_type::cbv:
+				root_parameters.back().InitAsConstantBufferView(
+					resource.m_common.m_shader_register,
+					resource.m_common.m_register_space,
+					D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+					convert(resource.m_common.m_visibility));
+				break;
+
+			case root_param_resource::e_type::uav:
+				root_parameters.back().InitAsUnorderedAccessView(
+					resource.m_common.m_shader_register,
+					resource.m_common.m_register_space,
+					D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+					convert(resource.m_common.m_visibility));
+				break;
+			}
 		}
 
 		for (const root_param_resource_table& tables : desc.m_resource_tables)
@@ -325,7 +351,7 @@ namespace influx::graphics
 			}
 
 			root_parameters.push_back({});
-			root_parameters.back().InitAsDescriptorTable(ranges.size(), ranges.data(), convert(tables.m_common.m_visibility));
+			root_parameters.back().InitAsDescriptorTable((uint32)ranges.size(), ranges.data(), convert(tables.m_common.m_visibility));
 		}
 
 		for (const root_static_sampler& sampler : desc.m_static_samplers)
@@ -333,14 +359,14 @@ namespace influx::graphics
 			static_samplers.push_back({});
 			static_samplers.back().Init(
 				sampler.m_common.m_shader_register,
-				sampler.m_filter,
-				sampler.m_wrap_u,
-				sampler.m_wrap_v,
-				sampler.m_wrap_w,
+				convert(sampler.m_filter),
+				convert(sampler.m_wrap_u),
+				convert(sampler.m_wrap_v),
+				convert(sampler.m_wrap_w),
 				sampler.m_mip_lod_bias,
 				sampler.m_max_anisotropy,
-				sampler.m_comparison_func,
-				sampler.m_border_color,
+				convert(sampler.m_comparison_func),
+				convert(sampler.m_border_color),
 				sampler.m_min_lod,
 				sampler.m_max_lod,
 				convert(sampler.m_common.m_visibility));
@@ -353,8 +379,8 @@ namespace influx::graphics
 		// initialize the desc, and create the root signature
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init_1_1(
-			root_parameters.size(), root_parameters.data(), 
-			static_samplers.size(), static_samplers.data(), 
+			(uint32)root_parameters.size(), root_parameters.data(), 
+			(uint32)static_samplers.size(), static_samplers.data(), 
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		ID3DBlob* signature;
@@ -370,17 +396,21 @@ namespace influx::graphics
 		ID3D12PipelineState* dxpipeline = nullptr;
 
 		// input layout
-		D3D12_INPUT_ELEMENT_DESC input_elements[]
-		{
-			{"POSITION"	, 0u, DXGI_FORMAT_R32G32B32_FLOAT, 0u, 0u, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u },
-			{"COLOR"	, 0u, DXGI_FORMAT_R32G32B32A32_FLOAT, 0u, (sizeof(float) * 3u), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u},
-			{"NORMAL"	, 0u, DXGI_FORMAT_R32G32B32_FLOAT, 0u, (sizeof(float) * 7u), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u},
-			{"TEXCOORD"	, 0u, DXGI_FORMAT_R32G32_FLOAT, 0u, (sizeof(float) * 10u), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0u }
-		};
-
 		D3D12_INPUT_LAYOUT_DESC input_layout_desc{};
-		input_layout_desc.pInputElementDescs = input_elements;
-		input_layout_desc.NumElements = _countof(input_elements);
+		vector< D3D12_INPUT_ELEMENT_DESC> input_elements{};
+		for (const pipeline_input_element& element : desc.m_input_elements)
+		{
+			input_elements.push_back({});
+			input_elements.back().AlignedByteOffset = element.m_aligned_byteoffset;
+			input_elements.back().Format = convert(element.m_format);
+			input_elements.back().InputSlot = element.m_input_slot;
+			input_elements.back().InputSlotClass = element.m_is_per_instance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+			input_elements.back().InstanceDataStepRate = element.m_instance_data_steprate;
+			input_elements.back().SemanticIndex = element.m_semantic_idx;
+			input_elements.back().SemanticName = element.m_semantic_name.c_str();
+		}
+		input_layout_desc.pInputElementDescs = input_elements.data();
+		input_layout_desc.NumElements = (uint32)input_elements.size();
 
 		// depth stencil
 		CD3DX12_DEPTH_STENCIL_DESC depth_stencil_desc(D3D12_DEFAULT);

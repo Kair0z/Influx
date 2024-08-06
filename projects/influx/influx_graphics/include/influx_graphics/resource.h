@@ -95,6 +95,8 @@ namespace influx::graphics
 
 		size_t get_bytestride() const;
 
+		uint32 get_num_elements() const;
+
 		e_resource_state get_state() const;
 
 		e_resource_state get_previous_state() const;

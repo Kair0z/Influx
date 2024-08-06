@@ -29,9 +29,9 @@ namespace influx::renderer
 		create_args.m_type = e_descriptor_heap_type::dsv;
 		mp_dsv_heap = device->create_descriptor_heap(create_args);
 
-		// cbv heap
+		// srv heap
 		create_args.m_capacity = k_max_num_cbvs;
-		create_args.m_type = e_descriptor_heap_type::cbv;
+		create_args.m_type = e_descriptor_heap_type::srv;
 		create_args.m_shader_visible = true;
 		mp_cbv_heap = device->create_descriptor_heap(create_args);
 

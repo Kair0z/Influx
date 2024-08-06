@@ -1,6 +1,6 @@
 #pragma once
 #include "influx_renderer.h"
-#include "influx_renderer/rendersystem.h"
+#include "influx_renderer/renderer_imgui.h"
 
 // influx::graphics
 #pragma region graphics declarations
@@ -21,6 +21,7 @@ namespace influx::renderer
 {
 	class descriptor_manager;
 	class upload_manager;
+	class imgui_manager;
 	class target;
 
 	// this should always match shader layout...
@@ -59,15 +60,10 @@ namespace influx::renderer
 		void acquire_swapchain_frame();
 
 		void draw_scene(const scene& scene, const target& target);
-
 		void draw_imgui(ImDrawData* draw_data, const target& target);
-
 		void copy_target(const target& source, const target& dest);
-
 		void present_swapchain(const present_args& args);
-
 		static descriptor_manager* get_descriptor_manager();
-
 		static upload_manager* get_upload_manager();
 
 		void load(const string& title, const mesh_data& data);
@@ -78,7 +74,6 @@ namespace influx::renderer
 	private:
 		void draw_meshes(const scene& scene, const target& target);
 		bool create_pipeline_if_possible();
-		void initialize_imgui(platform::window_handle window_handle);
 
 	private:
 		graphics::device* mp_device = nullptr;
@@ -101,7 +96,7 @@ namespace influx::renderer
 		descriptor_manager* mp_desc_manager = nullptr;
 		upload_manager* mp_upload_manager = nullptr;
 
-		vector<render_args*> mp_rendersystems{};
+		imgui_manager* mp_imgui = nullptr;
 
 		uint64 m_frame_count = 0u;
 		bool m_is_initialized = false;
@@ -114,32 +109,5 @@ namespace influx::renderer
 		map<string, shader_data> m_pixel_shaders;
 		vector<texture*> m_textures;
 		graphics::resource* mp_texture_upload_resource;
-
-		void create_render_systems();
-
-		template <class _sys_t>
-		_sys_t* get_render_system() const
-		{
-			auto found = std::find_if(mp_rendersystems.cbegin(), mp_rendersystems.cend(), [](const rendersystem* sys)
-			{
-				return typeid(*sys) == typeid(_sys_t);
-			});
-
-			if (found != mp_rendersystems.cend())
-			{
-				return static_cast<_sys_t*>(found);
-			}
-			else
-			{
-				return nullptr;
-			}
-		}
-
-		template <class _sys_t, class ..._args>
-		_sys_t* create_render_system(_args&& ...args)
-		{
-			// create new system
-			return new _sys_t(args...);
-		}
 	};
 }

@@ -11,7 +11,7 @@ namespace influx::graphics
 	class depth_stencil_view;
 	class rootsignature;
 	class descriptor_heap;
-	class input_resource_view;
+	class shader_resource_view;
 
 	struct draw_instanced_args final
 	{
@@ -81,7 +81,7 @@ namespace influx::graphics
 
 		virtual void set(render_target_view* rtv, depth_stencil_view* dsv) = 0;
 
-		virtual void set(input_resource_view* srv, uint32 param_idx) = 0;
+		virtual void set(shader_resource_view* srv, uint32 param_idx) = 0;
 
 		virtual void set(rootsignature* rootsig) = 0;
 		

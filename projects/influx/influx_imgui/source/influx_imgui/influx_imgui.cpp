@@ -1,6 +1,9 @@
 #include "imgui_pch.h"
 #include "influx_imgui.h"
 
+// imgui dependency (duh)
+#include "imgui.h"
+
 #include "core/singleton.h"
 
 #include "influx_graphics/resource.h"
@@ -91,14 +94,14 @@ namespace influx::imgui
 
 	inline void update_renderbuffers(ImDrawData* draw_data, render_buffers& buffers)
 	{
-		const uint32 num_vertices = (buffers.mp_vertexbuffer == nullptr) ? 
-			0u : buffers.mp_vertexbuffer->get_bytesize() / sizeof(ImDrawVert);
+		const uint32 num_vertices = (buffers.mp_vertexbuffer == nullptr) ?
+			0u : (uint32)(buffers.mp_vertexbuffer->get_bytesize() / sizeof(ImDrawVert));
 
-		const uint32 num_indices = buffers.mp_indexbuffer == nullptr ? 
-			0u : buffers.mp_indexbuffer->get_bytesize() / sizeof(ImDrawIdx);
+		const uint32 num_indices = buffers.mp_indexbuffer == nullptr ?
+			0u : (uint32)(buffers.mp_indexbuffer->get_bytesize() / sizeof(ImDrawIdx));
 
 		// recreate resources if necessary
-		if (num_vertices < draw_data->TotalVtxCount)
+		if (num_vertices < (uint32)draw_data->TotalVtxCount)
 		{
 			delete buffers.mp_vertexbuffer;
 			const uint32 new_num_vertices = draw_data->TotalVtxCount + 5000u;
@@ -110,7 +113,7 @@ namespace influx::imgui
 
 			buffers.mp_vertexbuffer = get_device()->create_resource(desc, heap_desc);
 		}
-		if (num_indices < draw_data->TotalIdxCount)
+		if (num_indices < (uint32)draw_data->TotalIdxCount)
 		{
 			delete buffers.mp_indexbuffer;
 			const uint32 new_num_indices = draw_data->TotalIdxCount + 10000;
@@ -207,18 +210,63 @@ namespace influx::imgui
 		graphics::rootsignature_desc rootsig_desc{};
 
 		// constants
-		rootsig_desc.m_constants.push_back({});
+		graphics::root_param_constants constants
+		{
+			16u, // num_dwords
+			0u, // shader_reg
+			0u,	// register_space
+			graphics::e_shader_visibility::vertex
+		};
+		rootsig_desc.m_constants.push_back(constants);
 
 		// descriptor table
-		rootsig_desc.m_resource_tables.push_back({});
+		graphics::root_param_resource_range range
+		{
+			1u, // num_dwords
+			graphics::root_param_resource_range::e_type::srv,
+			0u, // shadder_reg
+			0u	// register_space
+		};
+		rootsig_desc.m_resource_tables.push_back({ range });
 
 		// static sampler
-		rootsig_desc.m_static_samplers.push_back({});
+		rootsig_desc.m_static_samplers.push_back(graphics::root_static_sampler
+		{
+			0u, // shader_register
+			0u, // register_space
+			graphics::e_shader_visibility::pixel,
+			0.0f, // mip_lod_bias
+			0.0f, // min_lod
+			0.0f, // max_lod
+			0u, // max_anisotropy
+			graphics::e_texture_wrap_mode::wrap, // u
+			graphics::e_texture_wrap_mode::wrap, // v
+			graphics::e_texture_wrap_mode::wrap, // w
+			graphics::e_filter::comparison_min_mag_mip_linear,
+			graphics::e_comparison_func::always,
+			graphics::e_border_color::black_transparent
+		});
 
 		get_rootsig() = get_device()->create_rootsignature(rootsig_desc);
 
-
 		graphics::pipeline_desc pipeline_desc{};
+		pipeline_desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
+		pipeline_desc.m_sample_mask = UINT_MAX;
+		pipeline_desc.m_sample_count = 1u;
+		pipeline_desc.m_rtvs[0].m_enabled = true;
+		pipeline_desc.m_rtvs[0].m_format = graphics::e_format::rgba8;
+
+		// pipeline layout
+		pipeline_desc.add_input_element("POSITION", 0u, graphics::e_format::rg32, 0u, false, 0u);
+		pipeline_desc.add_input_element("TEXCOORD", 0u, graphics::e_format::rg32, 0u, false, 0u);
+		pipeline_desc.add_input_element("COLOR", 0u, graphics::e_format::rgba8, 0u, false, 0u);
+
+		// blend setup
+		pipeline_desc;
+
+		// rasterizer
+		pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
+
 		get_pipeline() = get_device()->create_pipeline(get_rootsig(), pipeline_desc);
 	}
 
@@ -252,6 +300,7 @@ namespace influx::imgui
 	bool shutdown()
 	{
 		delete get_device();
+		return true;
 	}
 
 	void render(ImDrawData* draw_data, const target& target)
@@ -321,10 +370,10 @@ namespace influx::imgui
 				// Apply Scissor/clipping rectangle, Bind texture, Draw
 				graphics::rect rect
 				{
-					.m_left = clip_min.x,
-					.m_top = clip_max.y,
-					.m_right = clip_max.x,
-					.m_bottom = clip_min.y,
+					.m_left = (uint32)clip_min.x,
+					.m_top = (uint32)clip_max.y,
+					.m_right = (uint32)clip_max.x,
+					.m_bottom = (uint32)clip_min.y,
 				};
 				get_commandlist()->set(rect);
 

@@ -23,22 +23,22 @@ namespace influx::renderer
 		mp_resource = device->create_resource(desc);
 
 		// allocate & create the rtv
-		mp_irv = device->create_srv(irv_heap, mp_resource);
+		mp_srv = device->create_srv(irv_heap, mp_resource);
 
-		texture(device, mp_resource, mp_irv);
+		texture(device, mp_resource, mp_srv);
 	}
 
-	texture::texture(graphics::device* device, graphics::resource* resource, graphics::input_resource_view* irv)
+	texture::texture(graphics::device* device, graphics::resource* resource, graphics::shader_resource_view* srv)
 	{
 		m_args.m_width = resource->get_width();
 		m_args.m_heigth = resource->get_height();
 		m_current_dimensions = { m_args.m_width, m_args.m_heigth };
 		mp_resource = resource;
-		mp_irv = irv;
+		mp_srv = srv;
 
 		// store the descriptor handles
-		m_cpu_handle = mp_irv->get_cpu_handle();
-		m_gpu_handle = mp_irv->get_gpu_handle();
+		m_cpu_handle = mp_srv->get_cpu_handle();
+		m_gpu_handle = mp_srv->get_gpu_handle();
 	}
 
 
@@ -47,9 +47,9 @@ namespace influx::renderer
 		return mp_resource;
 	}
 
-	graphics::input_resource_view* texture::get_irv() const
+	graphics::shader_resource_view* texture::get_srv() const
 	{
-		return mp_irv;
+		return mp_srv;
 	}
 
 	uint32 texture::get_width() const
