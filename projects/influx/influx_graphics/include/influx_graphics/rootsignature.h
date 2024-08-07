@@ -16,9 +16,9 @@ namespace influx::graphics
 
 	struct root_param_common final
 	{
-		e_shader_visibility m_visibility;
-		uint32 m_shader_register;
-		uint32 m_register_space;
+		e_shader_visibility m_visibility = e_shader_visibility::all;
+		uint32 m_shader_register = 0u;
+		uint32 m_register_space = 0u;
 	};
 
 	struct root_param_constants final

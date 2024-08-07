@@ -12,6 +12,7 @@ namespace influx::renderer
 
 		graphics::buffer_desc desc{};
 		desc.m_bytesize = 16u * 1024u * 1024u;
+		desc.m_bytestride = sizeof(byte);
 		desc.m_init_state = graphics::e_resource_state::read;
 
 		mp_upload_resource = mp_device->create_resource(desc, heap_desc);
@@ -26,10 +27,12 @@ namespace influx::renderer
 		static uint32 num_textures = 0u;
 		const size_t texture_bytesize = data.m_pixels.size() * sizeof(byte);
 
+		const range<size_t> upload_subrange{ num_textures++, texture_bytesize };
+
 		// MAP texture data onto the upload resource
 		graphics::map_args args{};
-		args.m_begin = texture_bytesize * num_textures++;
-		args.m_end = args.m_begin + texture_bytesize;
+		args.m_begin = upload_subrange.get_start();
+		args.m_end = upload_subrange.get_end();
 		mp_upload_resource->map([&data, texture_bytesize](void* target)
 		{
 			memcpy(target,
@@ -45,8 +48,12 @@ namespace influx::renderer
 				graphics::e_resource_state::shader_resource,
 				graphics::e_resource_state::copy_dest);
 
+			graphics::copy_texture_args copy_args{};
+			copy_args.m_src.m_range = upload_subrange;
+			copy_args.m_dest.m_range = target_resource->get_full_range();
+
 			mp_commandlist->copy_texture(
-				mp_upload_resource, target_resource);
+				mp_upload_resource, target_resource, copy_args);
 
 			// transition our gpu texture to shader resource usage
 			mp_commandlist->transition_resource(target_resource, 

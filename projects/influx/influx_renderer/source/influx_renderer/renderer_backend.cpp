@@ -69,31 +69,9 @@ namespace influx::renderer
             mp_copyfence = mp_device->create_fence(0u);
         }
 
-        // create descriptor manager
-        {
-            
-        }
-
         mp_desc_manager = new descriptor_manager(mp_device);
-
-        // create textures
-        {
-            texture_create_args args{};
-            args.m_width = 1024u;
-            args.m_heigth = 1024u;
-            for (size_t i = 0u; i < 64u; ++i)
-            {
-                m_textures.push_back(new texture(mp_device, mp_desc_manager->get_srv_heap(), args));
-            }
-        }
-
         mp_upload_manager = new upload_manager(mp_device);
-
-        texture_create_args imgui_fonts_tex_args{};
-        imgui_fonts_tex_args.m_width = 1024u;
-        imgui_fonts_tex_args.m_heigth = 1024u;
-        mp_imgui = new imgui_manager(mp_device, 
-            new texture(mp_device, mp_desc_manager->get_srv_heap(), imgui_fonts_tex_args));
+        mp_imgui = new imgui_manager(mp_device);
 
         m_is_initialized = true;
     }
@@ -303,14 +281,21 @@ namespace influx::renderer
         {
             {
                 graphics::rootsignature_desc desc{};
-                desc.m_constants.push_back({ 16u, 0u, 0u, graphics::e_shader_visibility::vertex }); // _per_frame_vs
-                desc.m_constants.push_back({ 1u, 0u, 0u, graphics::e_shader_visibility::pixel }); // _per_frame_ps
                 
+                // resource table
                 graphics::root_param_resource_range srv_range{};
                 srv_range.m_num_resources = 128u;
                 srv_range.m_register_space = 0u;
                 srv_range.m_type = graphics::root_param_resource_range::e_type::srv;
+                graphics::root_param_resource_table table{};
                 desc.m_resource_tables.push_back({ {srv_range } });
+
+                // constants
+                desc.m_constants.push_back({ 16u, 1u, 0u, graphics::e_shader_visibility::vertex }); // _per_frame_vs
+                desc.m_constants.push_back({ 1u, 2u, 0u, graphics::e_shader_visibility::pixel }); // _per_frame_ps
+
+                // static samplers
+                desc.m_static_samplers.push_back({});
 
                 mp_rootsig = mp_device->create_rootsignature(desc);
             }
@@ -428,11 +413,15 @@ namespace influx::renderer
 
     void renderer_backend::load(const string& title, const texture_data& data)
     {
-        static uint32 num_textures = 0u;
+        texture_create_args create_args{};
+        create_args.m_width = 1024u;
+        create_args.m_heigth = 1024u;
+        texture* new_texture = create_texture(create_args);
+
         mp_upload_manager->upload_texture(
             mp_graphics_queue, 
             data, 
-            m_textures[num_textures++]->get_resource());
+            new_texture->get_resource());
     }
 
     void renderer_backend::load(const string& title, const material_data& data)
@@ -456,6 +445,18 @@ namespace influx::renderer
         {
             (*target_map)[title] = data;
         }
+    }
+
+    texture* renderer_backend::create_texture(const texture_create_args& args)
+    {
+        texture* new_texture = new texture(mp_device, mp_desc_manager->get_srv_heap(), args);
+        m_textures.push_back(new_texture);
+        return new_texture;
+    }
+
+    void renderer_backend::upload_texture_data(texture* target_tex, const texture_data& data)
+    {
+        mp_upload_manager->upload_texture(mp_graphics_queue, data, target_tex->get_resource());
     }
 
 #pragma region frontend_api

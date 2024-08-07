@@ -10,13 +10,15 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
+	class texture;
+
 	class imgui_manager final
 	{
 	public:
-		imgui_manager(graphics::device* device, texture* fonts_texture);
+		imgui_manager(graphics::device* device);
 
 	private:
-		void create_fonts_texture(graphics::device* device, texture* fonts_texture);
+		void create_fonts_texture(graphics::device* device);
 		void create_pipeline(graphics::device* device);
 
 		graphics::pipeline* mp_pipeline;

@@ -71,6 +71,10 @@ namespace influx::renderer
 		void load(const string& title, const material_data& data);
 		void load(const string& title, const shader_data& data);
 
+		texture* create_texture(const texture_create_args& args);
+		
+		void upload_texture_data(texture* target_tex, const texture_data& data);
+
 	private:
 		void draw_meshes(const scene& scene, const target& target);
 		bool create_pipeline_if_possible();
@@ -108,6 +112,5 @@ namespace influx::renderer
 		map<string, shader_data> m_vertex_shaders;
 		map<string, shader_data> m_pixel_shaders;
 		vector<texture*> m_textures;
-		graphics::resource* mp_texture_upload_resource;
 	};
 }

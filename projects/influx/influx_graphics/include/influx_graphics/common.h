@@ -39,7 +39,7 @@ namespace influx::graphics
 		case e_format::rg32:	return 2u * 4u;
 		case e_format::rgb32:	return 3u * 4u;
 		case e_format::rgba32:	return 4u * 4u;
-		case e_format::rgba8:	return 8u * 4u;
+		case e_format::rgba8:	return 4u * 1u;
 		case e_format::u32:		return 1u * 4u;
 		default:
 		case e_format::count: return (size_t)-1;

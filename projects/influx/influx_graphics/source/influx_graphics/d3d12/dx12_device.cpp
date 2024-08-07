@@ -290,6 +290,7 @@ namespace influx::graphics
 		// setup root parameters
 		vector<CD3DX12_ROOT_PARAMETER1> root_parameters{};
 		vector<CD3DX12_STATIC_SAMPLER_DESC> static_samplers{};
+		vector<vector<CD3DX12_DESCRIPTOR_RANGE1>> root_descriptor_ranges(desc.m_resource_tables.size());
 
 		for (const root_param_constants& constants : desc.m_constants)
 		{
@@ -329,9 +330,11 @@ namespace influx::graphics
 			}
 		}
 
+		size_t descriptor_table_idx = 0u;
 		for (const root_param_resource_table& tables : desc.m_resource_tables)
 		{
-			vector<CD3DX12_DESCRIPTOR_RANGE1> ranges{};
+			vector<CD3DX12_DESCRIPTOR_RANGE1>& ranges = root_descriptor_ranges[descriptor_table_idx++];
+
 			for (const root_param_resource_range& range : tables.m_resource_ranges)
 			{
 				D3D12_DESCRIPTOR_RANGE_TYPE range_type{};
@@ -371,10 +374,6 @@ namespace influx::graphics
 				sampler.m_max_lod,
 				convert(sampler.m_common.m_visibility));
 		}
-
-		// ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 128u, 0u); // g_texture's (128)
-		//rootParameters[1].InitAsConstants(4u * 4u, 0u, 0u, D3D12_SHADER_VISIBILITY_VERTEX); // _perframe_vs
-		//rootParameters[2].InitAsConstants(1u, 0u, 0u, D3D12_SHADER_VISIBILITY_PIXEL); // _perframe_ps
 
 		// initialize the desc, and create the root signature
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;

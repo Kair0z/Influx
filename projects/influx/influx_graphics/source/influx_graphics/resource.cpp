@@ -6,21 +6,24 @@
 namespace influx::graphics
 {
 	resource::resource(const tex2D_desc& desc)
-		: m_tex2D_desc{desc}
+		: m_type{ e_type::tex2D }
+		, m_tex2D_desc{desc}
 	{
+		m_bytestride = deduce_bytesize(desc.m_format);
 		m_bytesize =
 			size_t(desc.m_dimensions.x) 
 			* size_t(desc.m_dimensions.y)
 			* size_t(desc.m_num_mips)
 			* size_t(desc.m_arraysize)
-			* deduce_bytesize(desc.m_format);
+			* m_bytestride;
 
 		m_format = desc.m_format;
 		m_state = desc.m_init_state;
 	}
 
 	resource::resource(const buffer_desc& desc)
-		: m_buffer_desc{desc}
+		: m_type{ e_type::buffer }
+		, m_buffer_desc{desc}
 	{
 		m_bytesize = m_buffer_desc.m_bytesize;
 		m_bytestride = m_buffer_desc.m_bytestride;
@@ -65,6 +68,11 @@ namespace influx::graphics
 	e_resource_state resource::get_previous_state() const
 	{
 		return m_previous_state;
+	}
+
+	range<size_t> resource::get_full_range() const
+	{
+		return range<size_t>(0u, m_bytesize);
 	}
 
 	void resource::transition(command_list* cmdlist, e_resource_state new_state)

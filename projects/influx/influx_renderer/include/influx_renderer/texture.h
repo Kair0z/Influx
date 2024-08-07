@@ -50,6 +50,7 @@ namespace influx::renderer
 
 		uint32 get_width() const;
 		uint32 get_height() const;
+		uint32 get_num_pixels() const;
 
 #if _DEBUG
 		void set_name(const string& name);
@@ -69,7 +70,7 @@ namespace influx::renderer
 		void* m_cpu_handle;
 		void* m_gpu_handle;
 
-		target_create_args m_args;
+		texture_create_args m_args;
 		math::vectoru2 m_current_dimensions;
 		graphics::device* mp_device;
 

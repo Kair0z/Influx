@@ -111,25 +111,28 @@ namespace influx::graphics
 	void dx12_commandlist::copy_texture(resource* src, resource* dest, 
 		const copy_texture_args& args)
 	{
-		D3D12_TEXTURE_COPY_TYPE copy_type 
-			= D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout{};
-
 		CD3DX12_TEXTURE_COPY_LOCATION src_loc{ src->get_native<ID3D12Resource>() };
-		CD3DX12_TEXTURE_COPY_LOCATION dest_loc{ dest->get_native<ID3D12Resource>() };
-
 		src_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		src_loc.PlacedFootprint.Offset = 0;
-		src_loc.PlacedFootprint.Footprint.Width = 1024u;
-		src_loc.PlacedFootprint.Footprint.Height = 1024u;
+		src_loc.PlacedFootprint.Footprint.Width = dest->get_width();
+		src_loc.PlacedFootprint.Footprint.Height = dest->get_height();
 		src_loc.PlacedFootprint.Footprint.Depth = 1;
-		src_loc.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		src_loc.PlacedFootprint.Footprint.RowPitch = 4096u;
+		src_loc.PlacedFootprint.Footprint.Format = convert(dest->get_format());
+		src_loc.PlacedFootprint.Footprint.RowPitch = dest->get_width() * dest->get_bytestride();
+
+		CD3DX12_TEXTURE_COPY_LOCATION dest_loc{ dest->get_native<ID3D12Resource>() };
+		
+		D3D12_BOX src_box{};
+		src_box.left = 0u;
+		src_box.right = dest->get_width();
+		src_box.bottom = dest->get_height();
+		src_box.top = 0u;
+		src_box.front = 0u;
+		src_box.back = 1u;
 
 		mpdx_graphics_commandlist->CopyTextureRegion(
 			&dest_loc, 0u, 0u, 0u,
-			&src_loc, NULL);
+			&src_loc, &src_box);
 	}
 
 	void dx12_commandlist::copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& args)

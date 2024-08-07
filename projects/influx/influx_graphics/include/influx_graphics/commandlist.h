@@ -1,7 +1,9 @@
 #pragma once
 #include "influx_graphics/base.h"
 #include "influx_graphics/resource.h"
+
 #include "core/math/vector.h"
+#include "core/range.h"
 
 namespace influx::graphics
 {
@@ -36,10 +38,12 @@ namespace influx::graphics
 		struct
 		{
 			uint32 m_subresource = 0u;
+			range<size_t> m_range{};
 		} m_src;
 		struct
 		{
 			uint32 m_subresource = 0u;
+			range<size_t> m_range{};
 		} m_dest;
 	};
 
@@ -47,7 +51,6 @@ namespace influx::graphics
 	{
 		uint32 m_dest_offset = 0u;
 		uint32 m_src_offset = 0u;
-		
 	};
 
 	class command_list : public base

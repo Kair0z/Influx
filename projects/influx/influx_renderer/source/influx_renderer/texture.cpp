@@ -7,7 +7,10 @@
 namespace influx::renderer
 {
 	// constructs a target from create_args, allocating new graphics resources
-	texture::texture(graphics::device* device, graphics::descriptor_heap* irv_heap, const texture_create_args& args)
+	texture::texture(graphics::device* device, graphics::descriptor_heap* srv_heap, const texture_create_args& args)
+		: mp_device{ device }
+		, m_args{ args }
+		, m_current_dimensions{ args.m_width, args.m_heigth }
 	{
 		// create the resource
 		graphics::tex2D_desc desc{};
@@ -23,12 +26,15 @@ namespace influx::renderer
 		mp_resource = device->create_resource(desc);
 
 		// allocate & create the rtv
-		mp_srv = device->create_srv(irv_heap, mp_resource);
+		mp_srv = device->create_srv(srv_heap, mp_resource);
 
-		texture(device, mp_resource, mp_srv);
+		// store the descriptor handles
+		m_cpu_handle = mp_srv->get_cpu_handle();
+		m_gpu_handle = mp_srv->get_gpu_handle();
 	}
 
 	texture::texture(graphics::device* device, graphics::resource* resource, graphics::shader_resource_view* srv)
+		: mp_device{device}
 	{
 		m_args.m_width = resource->get_width();
 		m_args.m_heigth = resource->get_height();
@@ -60,6 +66,11 @@ namespace influx::renderer
 	uint32 texture::get_height() const
 	{
 		return m_current_dimensions.y;
+	}
+
+	uint32 texture::get_num_pixels() const
+	{
+		return get_width() * get_height();
 	}
 
 #if _DEBUG

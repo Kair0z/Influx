@@ -6,6 +6,7 @@
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/function.h"
+#include "core/range.h"
 
 namespace influx::graphics
 {
@@ -77,6 +78,13 @@ namespace influx::graphics
 		virtual void* map(const map_args& args) = 0;
 		virtual void unmap(const map_args& args) = 0;
 
+		enum class e_type : uint8
+		{
+			tex2D,
+			buffer,
+			count
+		};
+
 	public:
 		void map(const function<void(void*)> map_func, const map_args& args = {})
 		{
@@ -101,6 +109,8 @@ namespace influx::graphics
 
 		e_resource_state get_previous_state() const;
 
+		range<size_t> get_full_range() const;
+
 		void transition(command_list* cmdlist, e_resource_state new_state);
 		void revert_transition(command_list* cmdlist);
 
@@ -112,6 +122,7 @@ namespace influx::graphics
 		resource(const buffer_desc& desc);
 
 	private:
+		e_type m_type{};
 		tex2D_desc m_tex2D_desc{};
 		buffer_desc m_buffer_desc{};
 		e_resource_state m_previous_state = e_resource_state::common;
