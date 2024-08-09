@@ -1,10 +1,9 @@
-project "influx_imgui"
+project "influx_shader"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
 
     g_project_dir = g_dir_projects_engine .. "/%{prj.name}/"
-
     targetdir(g_dir_binaries .. "/%{prj.name}")
     objdir(g_dir_int .. "/%{prj.name}")
 
@@ -16,29 +15,24 @@ project "influx_imgui"
         g_project_dir .. "**.lua"
     }
 
-    pchheader "imgui_pch.h"
-    pchsource "source/imgui_pch.cpp"
-
     defines
     {
         
+    }
+
+    removefiles
+    {
     }
 
     includedirs
     {
         "source",
         "include",
-        "vendor",
-        "vendor/imgui/",
-        g_dir_core_include,
-        g_dir_graphics_include,
-        g_dir_shader_include
+        g_dir_core_include
     }
 
     links
     {
-        "influx_graphics",
-        "influx_shader"
     }
 
     filter "system:windows"
@@ -63,6 +57,3 @@ project "influx_imgui"
         runtime "Release"
         symbols "on"
         optimize "on"
-
-    filter "files:**/imgui/**.cpp"
-        flags {"NoPCH"}

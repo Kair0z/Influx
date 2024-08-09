@@ -42,7 +42,6 @@ namespace influx::renderer
 	struct init_args final
 	{
 		e_render_api m_api_type = e_render_api::dx12;
-		string m_resource_dir = "";
 	};
 
 	// arguments passed to swapchain presenting

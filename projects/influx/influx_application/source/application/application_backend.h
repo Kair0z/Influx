@@ -10,6 +10,7 @@ namespace influx::application
 {
 	class scene;
 	class content_manager;
+	class renderer;
 
 	class application final
 		: public singleton<application>
@@ -34,8 +35,6 @@ namespace influx::application
 		static bool is_commandlet();
 
 	private:
-		// loads asset data into renderer (textures/meshes/shaders)
-		void load_render_assets();
 
 		platform::window_handle m_windowhandle = nullptr;
 		platform::instance_handle m_instancehandle = nullptr;
@@ -48,6 +47,7 @@ namespace influx::application
 		string m_asset_dir{};
 		bool m_staged{};
 
+		renderer* mp_renderer;
 		content_manager* mp_content_manager;
 		scene* mp_scene;
 

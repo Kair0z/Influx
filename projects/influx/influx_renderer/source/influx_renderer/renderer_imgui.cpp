@@ -11,13 +11,150 @@
 #include "influx_graphics/device.h"
 #include "influx_graphics/commandqueue.h"
 #include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/commandlist.h"
+
+// influx::shader
+#include "influx_shader.h"
+
+#pragma region shaders
+static const char* k_vertex_shader =
+"cbuffer vertexBuffer : register(b0) \
+            {\
+              float4x4 ProjectionMatrix; \
+            };\
+            struct VS_INPUT\
+            {\
+              float2 pos : POSITION;\
+              float4 col : COLOR0;\
+              float2 uv  : TEXCOORD0;\
+            };\
+            \
+            struct PS_INPUT\
+            {\
+              float4 pos : SV_POSITION;\
+              float4 col : COLOR0;\
+              float2 uv  : TEXCOORD0;\
+            };\
+            \
+            PS_INPUT main(VS_INPUT input)\
+            {\
+              PS_INPUT output;\
+              output.pos = mul( ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));\
+              output.col = input.col;\
+              output.uv  = input.uv;\
+              return output;\
+            }";
+
+static const char* k_pixel_shader =
+"struct PS_INPUT\
+            {\
+              float4 pos : SV_POSITION;\
+              float4 col : COLOR0;\
+              float2 uv  : TEXCOORD0;\
+            };\
+            SamplerState sampler0 : register(s0);\
+            Texture2D texture0 : register(t0);\
+            \
+            float4 main(PS_INPUT input) : SV_Target\
+            {\
+              float4 out_col = input.col * texture0.Sample(sampler0, input.uv); \
+              return out_col; \
+            }";
+#pragma endregion
 
 namespace influx::renderer
 {
 	imgui_manager::imgui_manager(graphics::device* device)
+		: mp_device{device}
 	{
 		create_fonts_texture(device);
 		create_pipeline(device);
+	}
+
+	void imgui_manager::render(graphics::command_list* commandlist, ImDrawData* draw_data, const target& target)
+	{
+		// Avoid rendering when minimized
+		if (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f)
+			return;
+
+		// update vertex / index buffers
+		update_buffers(draw_data);
+
+		const math::vectorf2& target_dim = { target.get_width(), target.get_height() };
+
+		graphics::viewport viewport{};
+		viewport.m_width = target_dim.x;
+		viewport.m_height = target_dim.y;
+
+		struct vertex_const_buffer
+		{
+			float  m_mvp[4][4];
+		};
+		vertex_const_buffer vertex_constant_buffer;
+		{
+			float L = draw_data->DisplayPos.x;
+			float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
+			float T = draw_data->DisplayPos.y;
+			float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
+			float mvp[4][4] =
+			{
+				{ 2.0f / (R - L),   0.0f,           0.0f,       0.0f },
+				{ 0.0f,         2.0f / (T - B),     0.0f,       0.0f },
+				{ 0.0f,         0.0f,           0.5f,       0.0f },
+				{ (R + L) / (L - R),  (T + B) / (B - T),    0.5f,       1.0f },
+			};
+			memcpy(&vertex_constant_buffer.m_mvp, mvp, sizeof(mvp));
+		}
+
+		// setup state
+		commandlist->set_vertexbuffer(mp_vertexbuffer);
+		commandlist->set_indexbuffer(mp_indexbuffer);
+		commandlist->set(viewport);
+		commandlist->set(graphics::e_primitive_topology::trilist);
+		commandlist->set(mp_pipeline);
+		commandlist->set(mp_rootsig);
+		commandlist->set_constants(0u, 16u, &vertex_constant_buffer);
+
+		// setup draw
+		// (Because we merged all buffers into a single one, we maintain our own offset into them)
+		int global_vtx_offset = 0;
+		int global_idx_offset = 0;
+		ImVec2 clip_off = draw_data->DisplayPos;
+		for (int n = 0; n < draw_data->CmdListsCount; ++n)
+		{
+			const ImDrawList* cmd_list = draw_data->CmdLists[n];
+			for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; ++cmd_i)
+			{
+				const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
+
+				// Project scissor/clipping rectangles into framebuffer space
+				ImVec2 clip_min(pcmd->ClipRect.x - clip_off.x, pcmd->ClipRect.y - clip_off.y);
+				ImVec2 clip_max(pcmd->ClipRect.z - clip_off.x, pcmd->ClipRect.w - clip_off.y);
+				if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
+					continue;
+
+				// Apply Scissor/clipping rectangle, Bind texture, Draw
+				graphics::rect rect
+				{
+					.m_left = (uint32)clip_min.x,
+					.m_top = (uint32)clip_max.y,
+					.m_right = (uint32)clip_max.x,
+					.m_bottom = (uint32)clip_min.y,
+				};
+				commandlist->set(rect);
+
+				commandlist->draw_indexed({
+					.m_num_indexes_per_instance = pcmd->ElemCount,
+					.m_num_instances = 1u,
+					.m_start_index = pcmd->IdxOffset + global_idx_offset,
+					.m_start_vertex = (int)pcmd->VtxOffset + global_vtx_offset,
+					.m_start_instance = 0u
+					});
+			}
+
+			global_idx_offset += cmd_list->IdxBuffer.Size;
+			global_vtx_offset += cmd_list->VtxBuffer.Size;
+		}
 	}
 
 	void imgui_manager::create_fonts_texture(graphics::device* device)
@@ -46,9 +183,26 @@ namespace influx::renderer
 		backend.upload_texture_data(mp_fonts_texture, tex_data);
 	}
 
+	void imgui_manager::create_shaders()
+	{
+		shader::compile_args args{};
+		args.m_entrypoint = "main";
+		args.m_compile_debug = _DEBUG;
+		args.m_target = shader::e_shader_target::_6_2;
+		args.m_pbd = true;
+		args.m_reflection;
+
+		args.m_type = shader::e_shader_type::vs;
+		m_vertex_shader = shader::compile_shader_source(k_vertex_shader, args);
+
+		args.m_type = shader::e_shader_type::ps;
+		m_pixel_shader = shader::compile_shader_source(k_pixel_shader, args);
+	}
+
 	void imgui_manager::create_pipeline(graphics::device* device)
 	{
 		// setup root signature
+#pragma region root_signature
 		graphics::rootsignature_desc rootsig_desc{};
 		graphics::root_param_constants constants
 		{
@@ -86,8 +240,15 @@ namespace influx::renderer
 		});
 
 		mp_rootsig = device->create_rootsignature(rootsig_desc);
+#pragma endregion
 
+		// create shaders
+		create_shaders();
+
+		// setup pipeline
 		graphics::pipeline_desc pipeline_desc{};
+		pipeline_desc.m_vs = m_vertex_shader.m_bytecode;
+		pipeline_desc.m_ps = m_pixel_shader.m_bytecode;
 		pipeline_desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
 		pipeline_desc.m_sample_mask = UINT_MAX;
 		pipeline_desc.m_sample_count = 1u;
@@ -106,5 +267,62 @@ namespace influx::renderer
 		pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
 
 		mp_pipeline = device->create_pipeline(mp_rootsig, pipeline_desc);
+	}
+
+	void imgui_manager::update_buffers(ImDrawData* draw_data)
+	{
+		const uint32 num_vertices = (mp_vertexbuffer == nullptr) ?
+			0u : (uint32)(mp_vertexbuffer->get_bytesize() / sizeof(ImDrawVert));
+
+		const uint32 num_indices = mp_indexbuffer == nullptr ?
+			0u : (uint32)(mp_indexbuffer->get_bytesize() / sizeof(ImDrawIdx));
+
+		// recreate resources if necessary
+		if (num_vertices < (uint32)draw_data->TotalVtxCount)
+		{
+			delete mp_vertexbuffer;
+			const uint32 new_num_vertices = draw_data->TotalVtxCount + 5000u;
+
+			graphics::heap_desc heap_desc{};
+			heap_desc.m_type = graphics::e_heap_type::shared;
+			graphics::buffer_desc desc{};
+			desc.m_bytesize = new_num_vertices * sizeof(ImDrawVert);
+
+			mp_vertexbuffer = mp_device->create_resource(desc, heap_desc);
+		}
+		if (num_indices < (uint32)draw_data->TotalIdxCount)
+		{
+			delete mp_indexbuffer;
+			const uint32 new_num_indices = draw_data->TotalIdxCount + 10000;
+
+			graphics::heap_desc heap_desc{};
+			heap_desc.m_type = graphics::e_heap_type::shared;
+			graphics::buffer_desc desc{};
+			desc.m_bytesize = new_num_indices * sizeof(ImDrawIdx);
+
+			mp_indexbuffer = mp_device->create_resource(desc, heap_desc);
+		}
+
+		// map buffer data
+		mp_vertexbuffer->map([&draw_data](void* dest)
+		{
+			ImDrawVert* vtx_dst = (ImDrawVert*)dest;
+			for (int n = 0u; n < draw_data->CmdListsCount; ++n)
+			{
+				const ImDrawList* cmd_list = draw_data->CmdLists[n];
+				memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+				vtx_dst += cmd_list->VtxBuffer.Size;
+			}
+		});
+		mp_indexbuffer->map([&draw_data](void* dest)
+		{
+			ImDrawIdx* idx_dst = (ImDrawIdx*)dest;
+			for (int n = 0u; n < draw_data->CmdListsCount; ++n)
+			{
+				const ImDrawList* cmd_list = draw_data->CmdLists[n];
+				memcpy(idx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+				idx_dst += cmd_list->VtxBuffer.Size;
+			}
+		});
 	}
 }

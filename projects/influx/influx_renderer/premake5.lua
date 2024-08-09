@@ -38,13 +38,15 @@ project "influx_renderer"
         "vendor/imgui/",
         g_dir_core_include,
         g_dir_graphics_include,
-        g_dir_imgui_include
+        g_dir_imgui_include,
+        g_dir_shader_include
     }
 
     links
     {
         "influx_graphics",
-        "influx_imgui"
+        "influx_imgui",
+        "influx_shader"
     }
 
     filter "system:windows"

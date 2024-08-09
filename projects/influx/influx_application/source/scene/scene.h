@@ -56,7 +56,7 @@ namespace influx::application
 		void on_mouse_scroll(const float value);
 
 		void update(const frame_time& time);
-		const renderer::scene& get_render_scene();
+		const influx::renderer::scene& get_render_scene();
 
 		void save(const std::string& filepath);
 		void load(const std::string& filepath);
@@ -70,7 +70,7 @@ namespace influx::application
 		void step_idx_mesh(uint32 inc = 1u);
 
 	private:
-		renderer::scene* mp_render_scene;
+		influx::renderer::scene* mp_render_scene;
 		assets::flx_scene* mp_asset_scene;
 
 		struct camera_controls final

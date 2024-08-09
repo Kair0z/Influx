@@ -147,7 +147,7 @@ namespace influx::renderer
     {
         influx_scope("renderer_backend::draw_scene");
         {
-            influx_scope("renderer_backend::draw_scene::record_commands");
+            influx_scope("renderer_backend::draw_scene::record");
 
             graphics::resource* target_resource = target.get_resource();
             graphics::render_target_view* target_rtv = target.get_rtv();
@@ -172,7 +172,7 @@ namespace influx::renderer
         }
 
         {
-            influx_scope("renderer_backend::draw_scene::submit_commands");
+            influx_scope("renderer_backend::draw_scene::submit");
             mp_graphics_queue->submit_commandlists({ mp_commandlist });
 
             // queue a signal to the fence that the gpu work [frame_count] is done
@@ -194,7 +194,19 @@ namespace influx::renderer
     {
         influx_scope("renderer_backend::draw_imgui");
         {
+            influx_scope("renderer_backend::draw_imgui::record");
+            mp_commandlist->start(mp_allocators[0u], mp_pipeline);
 
+            mp_imgui->render(mp_commandlist, draw_data, target);
+
+            mp_commandlist->end();
+        }
+        {
+            influx_scope("renderer_backend::draw_imgui::submit");
+            mp_graphics_queue->submit_commandlists({ mp_commandlist });
+
+            // queue a signal to the fence that the gpu work [frame_count] is done
+            mp_graphics_queue->queue_signal(mp_fence, m_frame_count);
         }
     }
 
@@ -287,12 +299,16 @@ namespace influx::renderer
                 srv_range.m_num_resources = 128u;
                 srv_range.m_register_space = 0u;
                 srv_range.m_type = graphics::root_param_resource_range::e_type::srv;
+
                 graphics::root_param_resource_table table{};
-                desc.m_resource_tables.push_back({ {srv_range } });
+                table.m_resource_ranges.push_back(srv_range);
+                table.m_common.m_visibility = graphics::e_shader_visibility::pixel;
+                desc.m_resource_tables.push_back(table);
 
                 // constants
-                desc.m_constants.push_back({ 16u, 1u, 0u, graphics::e_shader_visibility::vertex }); // _per_frame_vs
-                desc.m_constants.push_back({ 1u, 2u, 0u, graphics::e_shader_visibility::pixel }); // _per_frame_ps
+                desc.m_constants.push_back({ 16u, 0u, 0u, graphics::e_shader_visibility::vertex }); // _per_frame_vs
+
+                desc.m_constants.push_back({ 1u, 0u, 0u, graphics::e_shader_visibility::pixel }); // _per_frame_ps
 
                 // static samplers
                 desc.m_static_samplers.push_back({});

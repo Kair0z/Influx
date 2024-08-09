@@ -21,7 +21,7 @@ namespace influx::application
 		: m_current_cam_idx{}
 		, m_current_mesh_idx{}
 	{
-		mp_render_scene = new renderer::scene();
+		mp_render_scene = new influx::renderer::scene();
 		mp_asset_scene = new assets::flx_scene();
 
 		math::vectorf3 scene_center = math::vectorf3::zero();
@@ -139,7 +139,7 @@ namespace influx::application
 		cam.m_transform.update_matrix();
 
 		// update render scene
-		renderer::camera& render_cam = mp_render_scene->m_camera;
+		influx::renderer::camera& render_cam = mp_render_scene->m_camera;
 		render_cam.m_transform = cam.m_transform;
 		render_cam.m_far_plane = cam.m_camera.get_farplane();
 		render_cam.m_near_plane = cam.m_camera.get_nearplane();
@@ -160,8 +160,6 @@ namespace influx::application
 		return;
 		// load the asset scene from file
 		mp_asset_scene->load(filepath);
-
-		// update the rest
 	}
 
 	void scene::add(const camera_actor& camera)
@@ -173,7 +171,7 @@ namespace influx::application
 	{
 		m_meshes.push_back(mesh);
 
-		renderer::mesh_instance mesh_instance{};
+		influx::renderer::mesh_instance mesh_instance{};
 		mesh_instance.m_name = mesh.m_mesh_name;
 		mesh_instance.m_transform = mesh.m_transform.get_matrix();
 		mp_render_scene->m_meshes.push_back(mesh_instance);
@@ -216,7 +214,7 @@ namespace influx::application
 		m_cam_controls.m_velocity = {};
 	}
 
-	const renderer::scene& scene::get_render_scene()
+	const influx::renderer::scene& scene::get_render_scene()
 	{
 		return *mp_render_scene;
 	}

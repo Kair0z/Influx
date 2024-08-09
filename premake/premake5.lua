@@ -8,7 +8,6 @@ workspace "influx"
     
     -- /influx/
     g_dir_root = "%{wks.location}/../../"
-
     g_config_string = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
     -- /influx/projects/...
@@ -28,6 +27,7 @@ workspace "influx"
     g_dir_assets_include = g_dir_projects_engine .. "/influx_assets/include/"
     g_dir_render_include = g_dir_projects_engine .. "/influx_renderer/include/"
     g_dir_graphics_include = g_dir_projects_engine .. "/influx_graphics/include/"
+    g_dir_shader_include = g_dir_projects_engine .. "/influx_shader/include/"
     g_dir_imgui_include = g_dir_projects_engine .. "/influx_imgui/include/"
     g_dir_events_include = g_dir_projects_engine .. "/influx_events/include/"
     g_dir_vulkan_include = g_dir_projects_engine .. "/influx_graphics/foreign/vulkan/"
@@ -65,6 +65,7 @@ workspace "influx"
     include "../projects/influx/influx_imgui"
     include "../projects/influx/influx_graphics"
     include "../projects/influx/influx_assets"
+    include "../projects/influx/influx_shader"
     group ""
 
     printf(".. apps ")
