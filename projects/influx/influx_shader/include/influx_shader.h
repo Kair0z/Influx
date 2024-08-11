@@ -43,9 +43,44 @@ namespace influx::shader
 		bool m_pbd;
 	};
 
+	struct reflection final
+	{
+		struct input_param final
+		{
+			string m_semantic_name;
+			uint32 m_semantic_index;
+			uint32 m_num_floats;
+		};
+
+		struct resource final
+		{
+			enum class e_type : uint8
+			{
+				cbv,
+				sampler,
+				uav,
+				srv,
+				unknown,
+				count
+			};
+
+			string m_name;
+			e_type m_type;
+			uint32 m_shader_register;
+			uint32 m_register_space;
+
+			// if srv / sampler, this is the number of descriptors possibly used
+			uint32 m_range_size = 0u;
+		};
+
+		vector<input_param> m_input_params{};
+		vector<resource> m_bound_resources{};
+	};
+
 	struct compile_output final
 	{
 		vector<byte> m_bytecode;
+		reflection m_reflection;
 	};
 
 	// compiles from a .hlsl filepath

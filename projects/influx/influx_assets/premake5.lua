@@ -37,12 +37,13 @@ project "influx_assets"
         "include",
         "vendor",
         g_dir_core_include,
+        g_dir_shader_include,
         g_dir_root .. "/vendor/include/assimp/"
     }
 
     links
     {
-        
+        "influx_shader",
     }
 
     filter "files:**/lodepng/**.cpp"

@@ -28,6 +28,93 @@ namespace influx::shader
 		return result;
 	}
 
+	inline uint32 calc_num_floats_from_mask(uint32 mask)
+	{
+		uint32 num_floats = 0u;
+		while (mask) {
+			num_floats += mask & 1;
+			mask >>= 1;
+		}
+		return num_floats;
+	}
+
+	inline reflection reflect_shader(ID3D12ShaderReflection* dx12_refl)
+	{
+		reflection result{};
+		
+		HRESULT hres = {};
+		D3D12_SHADER_DESC shader_desc{};
+		hres = dx12_refl->GetDesc(&shader_desc);
+
+		// get input parameters
+		for (uint32 i = 0u; i < shader_desc.InputParameters; ++i)
+		{
+			D3D12_SIGNATURE_PARAMETER_DESC signatureParameterDesc{};
+			hres = dx12_refl->GetInputParameterDesc(i, &signatureParameterDesc);
+
+			reflection::input_param param{};
+			param.m_semantic_name = signatureParameterDesc.SemanticName;
+			param.m_semantic_index = signatureParameterDesc.SemanticIndex;
+			param.m_num_floats = calc_num_floats_from_mask(signatureParameterDesc.Mask);
+			result.m_input_params.push_back(param);
+		}
+
+		// get bound resources
+		for (uint32 i = 0u; i < shader_desc.BoundResources; ++i)
+		{
+			reflection::resource resource{};
+
+			D3D12_SHADER_INPUT_BIND_DESC shaderInputBindDesc{};
+			hres = dx12_refl->GetResourceBindingDesc(i, &shaderInputBindDesc);
+			resource.m_shader_register = shaderInputBindDesc.BindPoint;
+			resource.m_register_space = shaderInputBindDesc.Space;
+			resource.m_range_size = shaderInputBindDesc.BindCount;
+			resource.m_name = string(shaderInputBindDesc.Name);
+
+			// get variable info
+			D3D12_SHADER_VARIABLE_DESC variable_desc{};
+			ID3D12ShaderReflectionVariable* variable_refl = dx12_refl->GetVariableByName(shaderInputBindDesc.Name);
+			hres = variable_refl->GetDesc(&variable_desc);
+			
+			switch (shaderInputBindDesc.Type)
+			{
+			case D3D_SHADER_INPUT_TYPE::D3D_SIT_CBUFFER:
+			{
+				resource.m_type = reflection::resource::e_type::cbv;
+
+				D3D12_SHADER_BUFFER_DESC constantBufferDesc{};
+				ID3D12ShaderReflectionConstantBuffer* cbuffer_refl = dx12_refl->GetConstantBufferByIndex(i);
+				hres = cbuffer_refl->GetDesc(&constantBufferDesc);
+				// ...
+			}
+			break;
+
+			case D3D_SHADER_INPUT_TYPE::D3D_SIT_SAMPLER:
+			{
+				resource.m_type = reflection::resource::e_type::sampler;
+				// ...
+			}
+			break;
+
+			case D3D_SHADER_INPUT_TYPE::D3D_SIT_TEXTURE:
+			{
+				resource.m_type = reflection::resource::e_type::srv;
+				// ...
+			}
+			break;
+
+			default:
+				resource.m_type = reflection::resource::e_type::unknown;
+				// ...
+				break;
+			}
+
+			result.m_bound_resources.push_back(resource);
+		}
+
+		return result;
+	}
+
 	inline compile_output compile_shader_dxcbuffer(const DxcBuffer& buffer, const compile_args& args)
 	{
 		HRESULT result{};
@@ -96,6 +183,7 @@ namespace influx::shader
 		result = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugData), &pDebugDataPath);
 
 		// [OUTPUT: ROOT SIGNATURE]
+#if 0
 		IDxcBlob* pRootSignature = nullptr;
 		IDxcBlobUtf16* pRootSignatureDataPath = nullptr;
 		result = pCompileResult->GetOutput(DXC_OUT_ROOT_SIGNATURE, IID_PPV_ARGS(&pRootSignature), &pRootSignatureDataPath);
@@ -103,20 +191,24 @@ namespace influx::shader
 		{
 
 		}
+#endif
 
 		// [OUTPUT: REFLECTION DATA]
-		IDxcBlob* pReflectionData = nullptr;
-		ID3D12ShaderReflection* pShaderReflection = nullptr;
-		result = pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
-		if (pReflectionData)
+		if (args.m_reflection)
 		{
-			DxcBuffer reflectionBuffer;
-			reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
-			reflectionBuffer.Size = pReflectionData->GetBufferSize();
-			reflectionBuffer.Encoding = 0;
+			IDxcBlob* pReflectionData = nullptr;
+			ID3D12ShaderReflection* pShaderReflection = nullptr;
+			result = pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
+			if (pReflectionData)
+			{
+				DxcBuffer reflectionBuffer;
+				reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
+				reflectionBuffer.Size = pReflectionData->GetBufferSize();
+				reflectionBuffer.Encoding = 0;
 
-			result = pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&pShaderReflection));
-			// ...
+				result = pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&pShaderReflection));
+				output.m_reflection = reflect_shader(pShaderReflection);
+			}
 		}
 
 		// [OUTPUT: RESULT SHADER BYTE CODE]

@@ -73,8 +73,9 @@ namespace influx::application
 			const string& name = asset.first;
 
 			influx::renderer::shader_data shader_data{};
-			shader_data.m_bytecode = shader.m_compile_result;
+			shader_data.m_bytecode = shader.m_compile_result.m_bytecode;
 			shader_data.m_type = shader.m_type;
+			shader_data.m_reflection = shader.m_compile_result.m_reflection;
 
 			influx::renderer::load(name, shader_data);
 		}

@@ -9,7 +9,7 @@
 // Imgui
 struct ImDrawData;
 
-// core dependencies
+// influx::core
 #include "core/basetypes.h"
 #include "core/function.h"
 #include "core/platform/platform.h"
@@ -18,7 +18,7 @@ struct ImDrawData;
 #include "core/math/vector.h"
 #include "core/shader.h"
 
-// sub-headers
+// influx::renderer
 #include "influx_renderer/types.h"
 #include "influx_renderer/constants.h"
 #include "influx_renderer/target.h"
@@ -29,12 +29,16 @@ struct ImDrawData;
 #include "influx_renderer/scene.h"
 #include "influx_renderer/stats.h"
 
+// influx::shader
+#include "influx_shader.h"
+
 namespace influx::renderer
 {
 	// shader data
 	struct shader_data final
 	{
-		e_shader_type m_type;
+		shader::e_shader_type m_type;
+		shader::reflection m_reflection;
 		vector<byte> m_bytecode;
 	};
 

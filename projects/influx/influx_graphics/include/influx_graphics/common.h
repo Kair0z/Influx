@@ -23,6 +23,7 @@ namespace influx::graphics
 	enum class e_format : uint8
 	{
 		rgba8,
+		r32,
 		rg32,
 		rgb32,
 		rgba32,
@@ -36,6 +37,7 @@ namespace influx::graphics
 		switch (format)
 		{
 		case e_format::d32:		return 1u * 4u;
+		case e_format::r32:		return 1u * 4u;
 		case e_format::rg32:	return 2u * 4u;
 		case e_format::rgb32:	return 3u * 4u;
 		case e_format::rgba32:	return 4u * 4u;

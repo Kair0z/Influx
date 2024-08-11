@@ -213,14 +213,12 @@ namespace influx::renderer
 		};
 		rootsig_desc.m_constants.push_back(constants);
 
-		graphics::root_param_resource_range range
-		{
-			1u, // num_dwords
+		rootsig_desc.add_root_range( 
 			graphics::root_param_resource_range::e_type::srv,
-			0u, // shadder_reg
-			0u	// register_space
-		};
-		rootsig_desc.m_resource_tables.push_back({ range });
+			1u,
+			0u,
+			0u,
+			graphics::e_shader_visibility::pixel);
 
 		rootsig_desc.m_static_samplers.push_back(graphics::root_static_sampler
 		{

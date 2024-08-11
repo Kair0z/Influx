@@ -7,6 +7,9 @@
 // async
 #include "influx_async.h"
 
+// shader
+#include "influx_shader.h"
+
 namespace influx::application
 {
 	content_manager::content_manager(const string& resource_dir)
@@ -19,48 +22,45 @@ namespace influx::application
 		vector<file> hlsl_files = get_files_in_directory(resource_dir, true, ".hlsl");
 
 		// load fbxs
-		async::dispatch_for(fbx_files.size(), [this, &fbx_files](uint64 i)
+		for (uint64 i = 0u; i < fbx_files.size(); ++i)
 		{
 			const file& file = fbx_files[i];
 			assets::scene_load_args args{};
 			assets::scene_data& scene_data = m_scenes[file.m_filename];
 			assets::load_scene_file(file.m_path_full, scene_data, args);
-		});
+		};
 
 		// load pngs
-		async::dispatch_for(png_files.size(), [this, &png_files](uint64 i)
+		for (uint64 i = 0u; i < png_files.size(); ++i)
 		{
 			const file& file = png_files[i];
 			assets::image_load_args args{};
 			assets::image_data& texture_data = m_images[file.m_filename];
 			assets::load_image_file(file.m_path_full, texture_data, args);
-		});
+		};
 
 		// load hlsls
-		async::dispatch_for(hlsl_files.size(), [this, &hlsl_files](uint64 i)
+		for(uint64 i = 0u; i < hlsl_files.size(); ++i)
 		{
 			const file& file = hlsl_files[i];
 			assets::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"];
 			assets::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"];
 
-			assets::shader_load_args shader_load_args{};
-			shader_load_args.m_target = e_shader_target::_6_2;
-			shader_load_args.m_compile_debug = (_DEBUG) ? true : false;
-			shader_load_args.m_pbd = false;
-			shader_load_args.m_reflection = false;
-			shader_load_args.m_defines = {};
+			shader::compile_args compile_args{};
+			compile_args.m_target = shader::e_shader_target::_6_2;
+			compile_args.m_compile_debug = (_DEBUG) ? true : false;
+			compile_args.m_pbd = false;
+			compile_args.m_reflection = true;
+			compile_args.m_defines = {};
 
-			shader_load_args.m_type = e_shader_type::vs;
-			shader_load_args.m_entrypoint = "VSMain";
-			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_vs, shader_load_args));
+			compile_args.m_type = shader::e_shader_type::vs;
+			compile_args.m_entrypoint = "VSMain";
+			assets::load_shader_file(file.m_path_full, shader_data_vs, compile_args);
 
-			shader_load_args.m_type = e_shader_type::ps;
-			shader_load_args.m_entrypoint = "PSMain";
-			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_ps, shader_load_args));
-		});
-
-		async::wait_args args{};
-		async::wait_for_all(args);
+			compile_args.m_type = shader::e_shader_type::ps;
+			compile_args.m_entrypoint = "PSMain";
+			assets::load_shader_file(file.m_path_full, shader_data_ps, compile_args);
+		};
 
 		logn("finished loading assets in {} seconds", time::get_ms_since<float>(time_before_load) * 0.001f);
 	}

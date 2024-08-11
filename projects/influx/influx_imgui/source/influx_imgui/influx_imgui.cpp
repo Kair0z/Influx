@@ -308,7 +308,12 @@ namespace influx::imgui
 				0u, // shadder_reg
 				0u	// register_space
 			};
-			rootsig_desc.m_resource_tables.push_back({ range });
+			rootsig_desc.add_root_range(
+				graphics::root_param_resource_range::e_type::srv,
+				1u, // num_dwords
+				0u, // shadder_reg
+				0u	// register_space
+			);
 
 			// static sampler
 			rootsig_desc.m_static_samplers.push_back(graphics::root_static_sampler

@@ -23,6 +23,7 @@ namespace influx::renderer
 	class upload_manager;
 	class imgui_manager;
 	class target;
+	class pipeline;
 
 	// this should always match shader layout...
 	struct gpu_instance_data final
@@ -99,6 +100,8 @@ namespace influx::renderer
 		vector<target*> m_swapchain_targets{};
 		descriptor_manager* mp_desc_manager = nullptr;
 		upload_manager* mp_upload_manager = nullptr;
+
+		vector<pipeline*> mp_pipelines{};
 
 		imgui_manager* mp_imgui = nullptr;
 

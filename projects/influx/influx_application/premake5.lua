@@ -32,7 +32,8 @@ project "influx_application"
         g_dir_render_include,
         g_dir_assets_include,
         g_dir_input_include,
-        g_dir_events_include
+        g_dir_events_include,
+        g_dir_shader_include,
     }
 
     links
@@ -41,7 +42,8 @@ project "influx_application"
         "influx_async",
         "influx_assets",
         "influx_input",
-        "influx_events"
+        "influx_events",
+        "influx_shader"
     }
 
     filter "system:windows"

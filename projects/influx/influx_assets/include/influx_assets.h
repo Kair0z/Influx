@@ -6,6 +6,7 @@
 #define INFLUX_ASSETS_API __declspec(dllimport)
 #endif
 
+// influx::core
 #include "core/scene/mesh.h"
 #include "core/scene/camera.h"
 #include "core/scene/light.h"
@@ -13,6 +14,10 @@
 #include "core/basetypes.h"
 #include "core/shader.h"
 
+// influx::shader
+#include "influx_shader.h"
+
+// influx::assets
 #include "file/influx_file.h"
 
 namespace influx::assets
@@ -44,27 +49,14 @@ namespace influx::assets
 
 
 	/* Loads a Shader file (.hlsl) */
-	struct shader_load_args final
-	{
-		e_shader_type m_type;
-		e_shader_target m_target;
-		string m_entrypoint;
-		vector<string> m_defines;
-
-		bool m_compile_debug;
-		bool m_reflection;
-		bool m_pbd;
-	};
-
 	struct shader_data final
 	{
-		using compiled_shader = vector<byte>;
-		compiled_shader m_compile_result;
-		e_shader_type m_type;
+		shader::compile_output m_compile_result;
+		shader::e_shader_type m_type;
 	};
 	
 	INFLUX_ASSETS_API bool load_shader_file(const string& filepath, 
-		shader_data& out_shader, const shader_load_args& args = {});
+		shader_data& out_shader, const shader::compile_args& args = {});
 
 
 	/* Loads an 2D-image (.png, .jpeg) */

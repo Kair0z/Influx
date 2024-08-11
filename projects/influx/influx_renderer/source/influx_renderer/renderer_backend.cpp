@@ -1,12 +1,13 @@
 #include "renderer_pch.h"
 #include "renderer_backend.h"
 
-// graphics includes
-#include "influx_graphics.h"
+// influx::renderer
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
-#include "influx_graphics/pipeline.h"
-#include "influx_graphics/rootsignature.h"
+#include "influx_renderer/pipeline.h"
+
+// influx::graphics
+#include "influx_graphics.h"
 
 namespace influx::renderer
 {
@@ -219,9 +220,7 @@ namespace influx::renderer
             return;
         }
 
-        mp_commandlist->set(graphics::e_primitive_topology::trilist);
-        mp_commandlist->set(mp_rootsig);
-        mp_commandlist->set(mp_pipeline);
+        mp_pipelines[0u]->set_state(mp_commandlist);
 
         // set descriptor heaps
         mp_commandlist->set(mp_desc_manager->get_samp_heap());
@@ -287,53 +286,18 @@ namespace influx::renderer
 
     bool renderer_backend::create_pipeline_if_possible()
     {
-        if (!m_vertex_shaders.empty() 
+        if (!m_vertex_shaders.empty()
             && !m_pixel_shaders.empty()
             && mp_pipeline == nullptr)
         {
-            {
-                graphics::rootsignature_desc desc{};
-                
-                // resource table
-                graphics::root_param_resource_range srv_range{};
-                srv_range.m_num_resources = 128u;
-                srv_range.m_register_space = 0u;
-                srv_range.m_type = graphics::root_param_resource_range::e_type::srv;
-
-                graphics::root_param_resource_table table{};
-                table.m_resource_ranges.push_back(srv_range);
-                table.m_common.m_visibility = graphics::e_shader_visibility::pixel;
-                desc.m_resource_tables.push_back(table);
-
-                // constants
-                desc.m_constants.push_back({ 16u, 0u, 0u, graphics::e_shader_visibility::vertex }); // _per_frame_vs
-
-                desc.m_constants.push_back({ 1u, 0u, 0u, graphics::e_shader_visibility::pixel }); // _per_frame_ps
-
-                // static samplers
-                desc.m_static_samplers.push_back({});
-
-                mp_rootsig = mp_device->create_rootsignature(desc);
-            }
-
-            {
-                graphics::pipeline_desc desc{};
-                desc.m_vs = m_vertex_shaders.cbegin()->second.m_bytecode;
-                desc.m_ps = m_pixel_shaders.cbegin()->second.m_bytecode;
-                desc.m_depth_stencil.m_depth_enable = false;
-                desc.m_depth_stencil.m_stencil_enable = false;
-                desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
-
-                desc.add_input_element("POSITION", 0u, graphics::e_format::rgb32, 0u, false, 0u);
-                desc.add_input_element("COLOR", 0u, graphics::e_format::rgba32, 0u, false, 0u);
-                desc.add_input_element("NORMAL", 0u, graphics::e_format::rgb32, 0u, false, 0u);
-                desc.add_input_element("TEXCOORD", 0u, graphics::e_format::rg32, 0u, false, 0u);
-
-                mp_pipeline = mp_device->create_pipeline(mp_rootsig, desc);
-            }
+            mp_pipelines.push_back(new pipeline(
+                mp_device,
+                m_vertex_shaders.cbegin()->second,
+                m_pixel_shaders.cbegin()->second
+            ));
         }
 
-        return mp_pipeline != nullptr;
+        return !mp_pipelines.empty();
     }
 
     void renderer_backend::copy_target(const target& source, const target& dest)
@@ -450,9 +414,9 @@ namespace influx::renderer
         map<string, shader_data>* target_map = nullptr;
         switch (data.m_type)
         {
-        case e_shader_type::vs: target_map = &m_vertex_shaders;
+        case shader::e_shader_type::vs: target_map = &m_vertex_shaders;
             break;
-        case e_shader_type::ps: target_map = &m_pixel_shaders;
+        case shader::e_shader_type::ps: target_map = &m_pixel_shaders;
             break;
         }
         influx_assert_not_null(target_map);

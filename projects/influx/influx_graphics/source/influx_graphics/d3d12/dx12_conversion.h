@@ -29,6 +29,7 @@ namespace influx::graphics
 		switch (format)
 		{
 		case e_format::rgba8: return DXGI_FORMAT_R8G8B8A8_UNORM;
+		case e_format::r32: return DXGI_FORMAT_R32_FLOAT;
 		case e_format::rg32: return DXGI_FORMAT_R32G32_FLOAT;
 		case e_format::rgb32: return DXGI_FORMAT_R32G32B32_FLOAT;
 		case e_format::rgba32: return DXGI_FORMAT_R32G32B32A32_FLOAT;
