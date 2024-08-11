@@ -235,7 +235,7 @@ namespace influx::renderer
         uint32 texture_idx = m_frame_count % 1u;
         mp_commandlist->set(m_textures[0]->get_srv(), 0u);
         
-        mp_commandlist->set_constants(2u, 1u, &texture_idx);
+        mp_pipelines[0u]->set_constants(mp_commandlist, "_vs_constants", 1u, &texture_idx);
 
         // draw meshes
         for (const auto& vertex_buffer : m_vertex_buffers)

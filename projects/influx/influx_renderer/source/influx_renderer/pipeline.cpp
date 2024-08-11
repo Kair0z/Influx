@@ -140,4 +140,15 @@ namespace influx::renderer
         cmdlist->set(mp_pipeline);
         cmdlist->set(graphics::e_primitive_topology::trilist);
     }
+
+    void pipeline::set_constants(graphics::command_list* cmdlist, const string& name, uint32 num_dwords, void* data)
+    {
+        uint32 sh_reg = get_shader_register(name);
+        cmdlist->set_constants(sh_reg, num_dwords, data);
+    }
+
+    uint32 pipeline::get_shader_register(const string& resource_name)
+    {
+        return m_name_to_register[resource_name];
+    }
 }

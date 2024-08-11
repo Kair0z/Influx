@@ -28,7 +28,9 @@ namespace influx::renderer
 
 		void set_state(graphics::command_list* cmdlist);
 
-		uint32 get_register(const string& resource_name);
+		void set_constants(graphics::command_list* cmdlist, const string& name, uint32 num_dwords, void* data);
+
+		uint32 get_shader_register(const string& resource_name);
 
 #if _DEBUG
 		void set_name(const string& name);
