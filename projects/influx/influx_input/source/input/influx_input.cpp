@@ -160,6 +160,9 @@ namespace influx::input
 		{
 			key_event* key_ev = reinterpret_cast<key_event*>(ev.get_data());
 			callback(*key_ev);
+
+			delete key_ev;
+			key_ev = nullptr;
 		};
 
 		global_state::get_queue()->subscribe(this_callback);
@@ -171,6 +174,9 @@ namespace influx::input
 		{
 			mouse_event* mouse_ev = reinterpret_cast<mouse_event*>(ev.get_data());
 			callback(*mouse_ev);
+
+			delete mouse_ev;
+			mouse_ev = nullptr;
 		};
 
 		global_state::get_queue()->subscribe(this_callback);
