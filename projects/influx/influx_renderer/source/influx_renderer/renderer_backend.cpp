@@ -185,6 +185,10 @@ namespace influx::renderer
                 mp_commandlist->clear_rtv(target_rtv, { 0.2, 0.2, 0.2, 1 });
                 mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
                
+                // bind global descriptor heaps
+                mp_commandlist->set(get_descriptor_manager()->get_samp_heap());
+                mp_commandlist->set(get_descriptor_manager()->get_srv_heap());
+
                 mp_scene_renderer->render(mp_commandlist, scene, target);
             }
             mp_commandlist->end();

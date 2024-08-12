@@ -1,4 +1,5 @@
 #pragma once
+#include "core/container/ringBuffer.h"
 
 namespace influx::graphics
 {
@@ -25,5 +26,8 @@ namespace influx::renderer
 		graphics::descriptor_heap* mp_dsv_heap;
 		graphics::descriptor_heap* mp_sampler_heap;
 		graphics::descriptor_heap* mp_cbv_heap;
+
+		using descriptor_couple = std::pair<graphics::descriptor_handle*, graphics::descriptor_handle*>;
+		ringbuffer<descriptor_couple> m_srv_allocation_buffer;
 	};
 }
