@@ -33,12 +33,12 @@ namespace influx::renderer
 		void create_pipeline(graphics::device* device);
 		void update_buffers(ImDrawData* draw_data);
 
-		graphics::device* mp_device;
-		graphics::pipeline* mp_pipeline;
-		graphics::rootsignature* mp_rootsig;
-		graphics::resource* mp_indexbuffer;
-		graphics::resource* mp_vertexbuffer;
-		texture* mp_fonts_texture;
+		graphics::device* mp_device = nullptr;
+		graphics::pipeline* mp_pipeline = nullptr;
+		graphics::rootsignature* mp_rootsig = nullptr;
+		graphics::resource* mp_indexbuffer = nullptr;
+		graphics::resource* mp_vertexbuffer = nullptr;
+		texture* mp_fonts_texture = nullptr;
 
 		shader::compile_output m_vertex_shader;
 		shader::compile_output m_pixel_shader;

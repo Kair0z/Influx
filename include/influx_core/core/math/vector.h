@@ -123,6 +123,8 @@ namespace influx::math
 		static void clamp(vector& vec, float min, float max);
 		static vector clamped(const vector& vec, float min, float max);
 
+		void clamp_length(float length);
+
 		// Angle:
 		float radians_between(const vector& other) const;
 		static float radians_between(const vector& a, const vector& b);
@@ -168,6 +170,7 @@ namespace influx::math
 
 		// Lerp:
 		static vector lerp(const vector& a, const vector& b, const float t);
+		void lerp_towards(const vector& b, const float t);
 
 		// Zero:
 		static vector zero();
@@ -216,22 +219,22 @@ namespace influx::math
 	vector<_t, _dim> operator-(const vector<_t, _dim>& v);
 
 #pragma region Aliases
-	template <_vector_dim_t _dim>
+	template <typename _vector_dim_t _dim>
 	using vectoru8 = vector<uint8, _dim>;
 
-	template <_vector_dim_t _dim>
+	template <typename _vector_dim_t _dim>
 	using vectoru32 = vector<uint32, _dim>;
 
-	template <_vector_dim_t _dim>
+	template <typename _vector_dim_t _dim>
 	using vectoru64 = vector<uint64, _dim>;
 
-	template <_vector_dim_t _dim>
+	template <typename _vector_dim_t _dim>
 	using vectori = vector<int, _dim>;
 
-	template <_vector_dim_t _dim>
+	template <typename _vector_dim_t _dim>
 	using vectorf = vector<float, _dim>;
 
-	template <_vector_dim_t _dim>
+	template <typename _vector_dim_t _dim>
 	using vectorl = vector<long, _dim>;
 
 	using vectorf2 = vectorf<2u>;

@@ -1,11 +1,8 @@
 #pragma once
 
-#ifndef __CORE_SCENE_MESH_H_
-#define __CORE_SCENE_MESH_H_
-
 #include "core/basetypes.h"
-#include "core/geometry/vertex.h"
 #include "core/container/vector.h"
+#include "core/math/vector.h"
 #include "core/string.h"
 
 namespace influx::scene
@@ -20,7 +17,9 @@ namespace influx::scene
 		template <class _vertex_t, class _index_t = uint32>
 		struct mesh final
 		{
-			using triangle = vertex_t[3u];
+			using triangle = _vertex_t[3u];
+			using vertex = _vertex_t;
+			using index = _index_t;
 
 		public:
 			mesh() = default;
@@ -84,8 +83,6 @@ namespace influx::scene
 			vector<_index_t> m_indices;
 		};
 	}
-	
-	
-}
 
-#endif
+	using mesh = detail::mesh<math::vectorf3>;
+}

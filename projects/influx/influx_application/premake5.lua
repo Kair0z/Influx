@@ -27,6 +27,7 @@ project "influx_application"
     {
         "source",
         "include",
+        "vendor",
         g_dir_core_include,
         g_dir_async_include,
         g_dir_render_include,
@@ -45,6 +46,10 @@ project "influx_application"
         "influx_events",
         "influx_shader"
     }
+
+    -- remove imgui pch
+    filter "files:**/imgui/**.cpp"
+        flags {"NoPCH"}
 
     filter "system:windows"
         systemversion "latest"
@@ -71,3 +76,5 @@ project "influx_application"
         symbols "on"
         optimize "on"
         links {"assimp-vc142-mt.lib"}
+
+        

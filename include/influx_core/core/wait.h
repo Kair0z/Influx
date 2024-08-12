@@ -62,6 +62,11 @@ namespace influx
 			m_ms_waited = m_ms_waited_accum = 0;
 		}
 
+		inline void set_max_ms_waited(float ms_max)
+		{
+			m_args.m_max_ms = ms_max;
+		}
+
 	private:
 		float m_ms_waited{};
 		float m_ms_waited_accum{};

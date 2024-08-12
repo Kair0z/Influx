@@ -28,6 +28,12 @@ namespace influx::renderer
 
 		void set_state(graphics::command_list* cmdlist);
 
+		template <typename _constants>
+		void set_constants(graphics::command_list* cmdlist, const string& name, _constants& constants)
+		{
+			set_constants(cmdlist, name, sizeof(_constants) / sizeof(uint32), &constants);
+		}
+
 		void set_constants(graphics::command_list* cmdlist, const string& name, uint32 num_dwords, void* data);
 
 		void set_texture(graphics::command_list* cmdlist, const string& name, const texture& tex);

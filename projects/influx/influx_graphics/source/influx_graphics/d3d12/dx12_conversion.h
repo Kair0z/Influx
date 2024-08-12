@@ -34,6 +34,7 @@ namespace influx::graphics
 		case e_format::rgb32: return DXGI_FORMAT_R32G32B32_FLOAT;
 		case e_format::rgba32: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 		case e_format::d32: return DXGI_FORMAT_D32_FLOAT;
+		case e_format::u16: return DXGI_FORMAT_R16_UINT;
 		case e_format::u32: return DXGI_FORMAT_R32_UINT;
 		default: 
 			influx_assert(false);
@@ -193,5 +194,28 @@ namespace influx::graphics
 	inline D3D12_FILTER convert(e_filter filter)
 	{
 		return (D3D12_FILTER)filter;
+	}
+
+	inline D3D12_BLEND convert(e_blend blend)
+	{
+		return (D3D12_BLEND)blend;
+	}
+
+	inline D3D12_BLEND_OP convert(e_blendop op)
+	{
+		return (D3D12_BLEND_OP)op;
+	}
+
+	inline D3D12_FILL_MODE convert(e_fill_mode mode)
+	{
+		switch (mode)
+		{
+		case e_fill_mode::wireframe: return D3D12_FILL_MODE_WIREFRAME;
+		case e_fill_mode::solid: return D3D12_FILL_MODE_SOLID;
+		default:
+		case e_fill_mode::count:
+			influx_assert(false);
+			return  D3D12_FILL_MODE_SOLID;
+		}
 	}
 }

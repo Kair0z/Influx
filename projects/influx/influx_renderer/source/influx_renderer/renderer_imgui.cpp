@@ -6,6 +6,7 @@
 // influx::renderer
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/upload_manager.h"
+#include "influx_renderer/descriptor_manager.h"
 
 // influx::graphics
 #include "influx_graphics/device.h"
@@ -77,6 +78,9 @@ namespace influx::renderer
 		if (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f)
 			return;
 
+		if (draw_data->CmdListsCount <= 0)
+			return;
+
 		// update vertex / index buffers
 		update_buffers(draw_data);
 
@@ -85,6 +89,8 @@ namespace influx::renderer
 		graphics::viewport viewport{};
 		viewport.m_width = target_dim.x;
 		viewport.m_height = target_dim.y;
+		viewport.m_depth_min = 0.0f;
+		viewport.m_depth_max = 1.0f;
 
 		struct vertex_const_buffer
 		{
@@ -107,12 +113,15 @@ namespace influx::renderer
 		}
 
 		// setup state
+		renderer_backend& backend = renderer_backend::get_instance();
 		commandlist->set_vertexbuffer(mp_vertexbuffer);
 		commandlist->set_indexbuffer(mp_indexbuffer);
+		commandlist->set(backend.get_descriptor_manager()->get_srv_heap());
 		commandlist->set(viewport);
 		commandlist->set(graphics::e_primitive_topology::trilist);
 		commandlist->set(mp_pipeline);
 		commandlist->set(mp_rootsig);
+
 		commandlist->set_constants(0u, 16u, &vertex_constant_buffer);
 
 		// setup draw
@@ -137,11 +146,12 @@ namespace influx::renderer
 				graphics::rect rect
 				{
 					.m_left = (uint32)clip_min.x,
-					.m_top = (uint32)clip_max.y,
+					.m_top = (uint32)clip_min.y,
 					.m_right = (uint32)clip_max.x,
-					.m_bottom = (uint32)clip_min.y,
+					.m_bottom = (uint32)clip_max.y,
 				};
 				commandlist->set(rect);
+				commandlist->set(mp_fonts_texture->get_srv(), 1u);
 
 				commandlist->draw_indexed({
 					.m_num_indexes_per_instance = pcmd->ElemCount,
@@ -259,10 +269,31 @@ namespace influx::renderer
 		pipeline_desc.add_input_element("COLOR", 0u, graphics::e_format::rgba8, 0u, false, 0u);
 
 		// blend setup
-		pipeline_desc;
+		pipeline_desc.m_blends[0u].m_enabled = true;
+		pipeline_desc.m_blends[0u].m_src		= graphics::e_blend::src_alpha;
+		pipeline_desc.m_blends[0u].m_dest		= graphics::e_blend::inv_src_alpha;
+		pipeline_desc.m_blends[0u].m_op			= graphics::e_blendop::add;
+		pipeline_desc.m_blends[0u].m_srcalpha	= graphics::e_blend::one;
+		pipeline_desc.m_blends[0u].m_destalpha	= graphics::e_blend::inv_src_alpha;
+		pipeline_desc.m_blends[0u].m_op_alpha	= graphics::e_blendop::add;
+		pipeline_desc.m_blends[0u].m_write_mask = 15u; // all
 
 		// rasterizer
 		pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
+		pipeline_desc.m_rasterizer.m_fillmode = graphics::e_fill_mode::solid;
+		pipeline_desc.m_rasterizer.m_front_ccw = false;
+		pipeline_desc.m_rasterizer.m_depth_bias = 0;
+		pipeline_desc.m_rasterizer.m_depth_bias_clamp = 0.0f;
+		pipeline_desc.m_rasterizer.m_slope_depth_bias = 0.0f;
+		pipeline_desc.m_rasterizer.m_depth_clip_enable = true;
+		pipeline_desc.m_rasterizer.m_multisample = false;
+		pipeline_desc.m_rasterizer.m_antialiased_line = false;
+		pipeline_desc.m_rasterizer.m_forced_samplecount = 0u;
+		pipeline_desc.m_rasterizer.m_conservative = false;
+
+		// depth stencil
+		pipeline_desc.m_depth_stencil.m_depth_enable = false;
+		pipeline_desc.m_depth_stencil.m_stencil_enable = false;
 
 		mp_pipeline = device->create_pipeline(mp_rootsig, pipeline_desc);
 	}
@@ -285,6 +316,8 @@ namespace influx::renderer
 			heap_desc.m_type = graphics::e_heap_type::shared;
 			graphics::buffer_desc desc{};
 			desc.m_bytesize = new_num_vertices * sizeof(ImDrawVert);
+			desc.m_bytestride = sizeof(ImDrawVert);
+			desc.m_init_state = graphics::e_resource_state::read;
 
 			mp_vertexbuffer = mp_device->create_resource(desc, heap_desc);
 		}
@@ -297,6 +330,8 @@ namespace influx::renderer
 			heap_desc.m_type = graphics::e_heap_type::shared;
 			graphics::buffer_desc desc{};
 			desc.m_bytesize = new_num_indices * sizeof(ImDrawIdx);
+			desc.m_format = graphics::e_format::u16;
+			desc.m_init_state = graphics::e_resource_state::read;
 
 			mp_indexbuffer = mp_device->create_resource(desc, heap_desc);
 		}
@@ -318,8 +353,8 @@ namespace influx::renderer
 			for (int n = 0u; n < draw_data->CmdListsCount; ++n)
 			{
 				const ImDrawList* cmd_list = draw_data->CmdLists[n];
-				memcpy(idx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-				idx_dst += cmd_list->VtxBuffer.Size;
+				memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+				idx_dst += cmd_list->IdxBuffer.Size;
 			}
 		});
 	}

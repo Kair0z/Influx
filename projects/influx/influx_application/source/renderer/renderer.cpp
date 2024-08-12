@@ -5,6 +5,10 @@
 
 // influx::renderer
 #include "influx_renderer.h"
+#include "influx_renderer/target.h"
+
+// imgui
+#include "imgui/imgui.h"
 
 namespace influx::application
 {
@@ -25,6 +29,27 @@ namespace influx::application
 		target_args.m_width = mp_window_target->get_width();
 		target_args.m_heigth = mp_window_target->get_height();
 		mp_scene_color_target = influx::renderer::create_target(target_args);
+
+		// Build texture atlas
+		ImGui::CreateContext();
+
+		ImGuiIO& io = ImGui::GetIO();
+		unsigned char* pixels;
+		int width, height;
+		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+	}
+
+	inline ImDrawData* get_imgui_data(const influx::renderer::target& target)
+	{
+		ImGui::GetIO().DisplaySize = { (float)target.get_width(), (float)target.get_height() };
+
+		ImGui::NewFrame();
+		
+		ImGui::ShowDemoWindow();
+
+		// calls EndFrame
+		ImGui::Render();
+		return ImGui::GetDrawData();
 	}
 
 	void renderer::render(const influx::renderer::scene& scene)
@@ -34,7 +59,7 @@ namespace influx::application
 
 		influx::renderer::draw_scene(scene, *mp_scene_color_target);
 
-		influx::renderer::draw_imgui(nullptr, *mp_scene_color_target);
+		influx::renderer::draw_imgui(get_imgui_data(*mp_scene_color_target), *mp_scene_color_target);
 
 		influx::renderer::copy_target(*mp_scene_color_target, *mp_window_target);
 

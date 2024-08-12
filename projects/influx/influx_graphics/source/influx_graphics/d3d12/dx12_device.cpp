@@ -421,9 +421,30 @@ namespace influx::graphics
 		// rasterizer
 		CD3DX12_RASTERIZER_DESC rasterizer_desc(D3D12_DEFAULT);
 		rasterizer_desc.CullMode = convert(desc.m_rasterizer.m_cullmode);
+		rasterizer_desc.FillMode = convert(desc.m_rasterizer.m_fillmode);
+		rasterizer_desc.MultisampleEnable = desc.m_rasterizer.m_multisample;
+		rasterizer_desc.FrontCounterClockwise = desc.m_rasterizer.m_front_ccw;
+		rasterizer_desc.DepthBias = desc.m_rasterizer.m_depth_bias;
+		rasterizer_desc.DepthBiasClamp = desc.m_rasterizer.m_depth_bias_clamp;
+		rasterizer_desc.SlopeScaledDepthBias = desc.m_rasterizer.m_slope_depth_bias;
+		rasterizer_desc.DepthClipEnable = desc.m_rasterizer.m_depth_clip_enable;
+		rasterizer_desc.AntialiasedLineEnable = desc.m_rasterizer.m_antialiased_line;
+		rasterizer_desc.ForcedSampleCount = desc.m_rasterizer.m_forced_samplecount;
+		rasterizer_desc.ConservativeRaster = desc.m_rasterizer.m_conservative ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
 		// blend state
 		CD3DX12_BLEND_DESC blend_desc(D3D12_DEFAULT);
+		for (size_t i = 0u; i < k_max_render_targets; ++i)
+		{
+			blend_desc.RenderTarget[i].BlendEnable		= desc.m_blends[i].m_enabled;
+			blend_desc.RenderTarget[i].SrcBlend			= convert(desc.m_blends[i].m_src);
+			blend_desc.RenderTarget[i].DestBlend		= convert(desc.m_blends[i].m_dest);
+			blend_desc.RenderTarget[i].BlendOp			= convert(desc.m_blends[i].m_op);
+			blend_desc.RenderTarget[i].SrcBlendAlpha	= convert(desc.m_blends[i].m_srcalpha);
+			blend_desc.RenderTarget[i].DestBlendAlpha	= convert(desc.m_blends[i].m_destalpha);
+			blend_desc.RenderTarget[i].BlendOpAlpha		= convert(desc.m_blends[i].m_op_alpha);
+			blend_desc.RenderTarget[i].RenderTargetWriteMask = desc.m_blends[i].m_write_mask;
+		}
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
 		pso_desc.InputLayout = input_layout_desc;

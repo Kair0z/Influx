@@ -24,6 +24,7 @@ namespace influx::application
 
 		const char* m_name = "";
 		string m_resources_dir = "";
+		string m_assets_dir = "";
 
 		bool m_commandlet = false;
 		bool m_enable_scenerender = false;
@@ -31,6 +32,7 @@ namespace influx::application
 		bool m_enable_game = false;
 		bool m_vsync = false;
 		bool m_single_threaded = false;
+		bool m_staged = false;
 
 		math::vectorf4 m_window_clear_colour = {};
 
@@ -43,9 +45,6 @@ namespace influx::application
 
 	// runs the application on the calling thread
 	void INFLUX_APP_API run(const run_args& args);
-
-	// runs the application on a given separate thread
-	void INFLUX_APP_API run_async(std::thread& out_thread, const run_args& args);
 
 	void INFLUX_APP_API quit();
 }

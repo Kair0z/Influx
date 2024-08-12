@@ -28,6 +28,7 @@ namespace influx::graphics
 		rgb32,
 		rgba32,
 		d32,
+		u16,
 		u32,
 		count
 	};
@@ -42,6 +43,7 @@ namespace influx::graphics
 		case e_format::rgb32:	return 3u * 4u;
 		case e_format::rgba32:	return 4u * 4u;
 		case e_format::rgba8:	return 4u * 1u;
+		case e_format::u16:		return 1u * 2u;
 		case e_format::u32:		return 1u * 4u;
 		default:
 		case e_format::count: return (size_t)-1;
@@ -53,6 +55,15 @@ namespace influx::graphics
 		front,
 		back,
 		nocull,
+		count
+	};
+
+	// D3D12_FILL_MODE
+	// ...
+	enum class e_fill_mode : uint8
+	{
+		wireframe,
+		solid,
 		count
 	};
 
@@ -115,6 +126,44 @@ namespace influx::graphics
 		maximum_min_mag_linear_mip_point = 0x194,
 		maximum_min_mag_mip_linear = 0x195,
 		maximum_anisotropic = 0x1d5
+	};
+
+	// D3D12_BLEND
+	// ...
+	enum class e_blend : uint8
+	{
+		zero = 1,
+		one = 2,
+		src_color = 3,
+		inv_src_color = 4,
+		src_alpha = 5,
+		inv_src_alpha = 6,
+		dest_alpha = 7,
+		inv_dest_alpha = 8,
+		dest_color = 9,
+		inv_dest_color = 10,
+		src_alpha_sat = 11,
+		blend_factor = 14,
+		inv_blend_factor = 15,
+		src1_color = 16,
+		inv_src1_color = 17,
+		src1_alpha = 18,
+		inv_src1_alpha = 19,
+		alpha_factor = 20,
+		inv_alpha_factor = 21,
+		count
+	};
+
+	// D3D12_BLEND_OP
+	// ...
+	enum class e_blendop : uint8
+	{
+		add = 1,
+		subtract = 2,
+		rev_subtract = 3,
+		min = 4,
+		max = 5,
+		count
 	};
 
 	// D3D12_TEXTURE_ADDRESS_MODE

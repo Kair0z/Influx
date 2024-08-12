@@ -6,6 +6,7 @@
 namespace influx::graphics
 {
 	class command_list;
+	class fence;
 
 	enum class e_command_queue_type : uint8
 	{
@@ -39,6 +40,9 @@ namespace influx::graphics
 	{
 	public:
 		virtual void submit_commandlists(const vector<command_list*>& commandlists) = 0;
+		
+		// queues a signal to the target fence
+		virtual void queue_signal(fence* fence, uint64 value) = 0;
 
 	protected:
 		command_queue(const command_queue_desc& desc)

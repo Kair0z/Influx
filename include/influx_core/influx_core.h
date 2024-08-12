@@ -5,4 +5,5 @@
 #include "core/container/containers.h"
 #include "core/math/math.h"
 #include "core/math/random.h"
+#include "core/log.h"
 #include "core/cleanup.h"

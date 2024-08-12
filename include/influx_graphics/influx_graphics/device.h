@@ -4,13 +4,13 @@
 #include "influx_graphics/commandqueue.h"
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/commandallocator.h"
-#include "influx_graphics/pipelinestate.h"
+#include "influx_graphics/pipeline.h"
 #include "influx_graphics/fence.h"
 #include "influx_graphics/swapchain.h"
 #include "influx_graphics/resource.h"
 #include "influx_graphics/resource_views.h"
 #include "influx_graphics/descriptorheap.h"
-
+#include "influx_graphics/rootsignature.h"
 #include "core/platform/window.h"
 
 namespace influx::graphics
@@ -37,16 +37,31 @@ namespace influx::graphics
 
 		virtual command_allocator* create_graphics_allocator() = 0;
 
-		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline_state* init_state = nullptr) = 0;
+		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
 
-		virtual fence* create_fence() = 0;
+		virtual fence* create_fence(uint64 init_value = 0u) = 0;
 
-		virtual resource* create_resource(const tex2D_desc& desc) = 0;
+		virtual resource* create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) = 0;
 
+		virtual resource* create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) = 0;
+
+		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) = 0;
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) = 0;
 
-		// implicitly allocates a handle from rtv_heap
-		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) = 0;
+		virtual depth_stencil_view* create_dsv(descriptor_heap* dsv_heap, resource* resource) = 0;
+		virtual depth_stencil_view* create_dsv(descriptor_handle handle, resource* resource) = 0;
+
+		virtual shader_resource_view* create_srv(descriptor_heap* irv_heap, resource* resource) = 0;
+		virtual shader_resource_view* create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) = 0;
+
+		virtual sampler_view* create_sampview(descriptor_heap* samp_heap, resource* resource) = 0;
+		virtual sampler_view* create_sampview(descriptor_handle handle, resource* resource) = 0;
+
+		virtual rootsignature* create_rootsignature(const rootsignature_desc& desc) = 0;
+
+		virtual pipeline* create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) = 0;
+
+		virtual void* get_native() = 0;
 
 	private:
 		vector<base*> mp_children = {};

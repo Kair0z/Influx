@@ -3,7 +3,7 @@
 #include "influx_renderer/renderer_imgui.h"
 
 // influx::graphics
-#pragma region graphics declarations
+#pragma region declarations
 namespace influx::graphics
 {
 	class device;
@@ -12,36 +12,22 @@ namespace influx::graphics
 	class command_list;
 	class command_allocator;
 	class fence;
-	class pipeline;
-	class rootsignature;
 }
-#pragma endregion
 
+// influx::renderer
 namespace influx::renderer
 {
 	class descriptor_manager;
 	class upload_manager;
 	class imgui_manager;
+	class pipeline_manager;
+	class scene_renderer;
 	class target;
-	class pipeline;
+}
+#pragma endregion
 
-	// this should always match shader layout...
-	struct gpu_instance_data final
-	{
-		math::matrix4x4f	m_transform;
-		math::vectorf4		m_colour;
-	};
-
-	struct gpu_vs_constants final
-	{
-		math::matrix4x4f m_mvp;
-	};
-
-	struct gpu_ps_constants final
-	{
-		uint32 m_texture_idx;
-	};
-
+namespace influx::renderer
+{
 	class renderer_backend final
 		: public singleton<renderer_backend>
 	{
@@ -55,9 +41,7 @@ namespace influx::renderer
 		void cleanup();
 
 		target* create_target(const target_create_args& args);
-
 		target* get_window_target(const platform::window_handle& window);
-
 		void acquire_swapchain_frame();
 
 		void draw_scene(const scene& scene, const target& target);
@@ -73,40 +57,44 @@ namespace influx::renderer
 		void load(const string& title, const shader_data& data);
 
 		texture* create_texture(const texture_create_args& args);
+		const vector<texture*>& get_textures() const;
 		
 		void upload_texture_data(texture* target_tex, const texture_data& data);
+
+		vector<string> get_mesh_names() const;
+		bool get_mesh_buffers(const string& name, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
 
 	private:
 		void draw_meshes(const scene& scene, const target& target);
 		bool create_pipeline_if_possible();
 
 	private:
+		uint64 m_frame_count = 0u;
+		bool m_is_initialized = false;
+
+		// graphics engine
 		graphics::device* mp_device = nullptr;
 		graphics::command_queue* mp_graphics_queue = nullptr;
-		graphics::swapchain* mp_swapchain = nullptr;
 		graphics::command_list* mp_commandlist = nullptr;
 		vector<graphics::command_allocator*> mp_allocators = {};
 
+		// copy engine
 		graphics::command_queue* mp_copy_queue = nullptr;
 		graphics::command_allocator* mp_copy_allocator = nullptr;
 		graphics::command_list* mp_copy_commandlist = nullptr;
-
-		graphics::rootsignature* mp_rootsig = nullptr;
-		graphics::pipeline* mp_pipeline = nullptr;
-
 		graphics::fence* mp_fence = nullptr;
 		graphics::fence* mp_copyfence = nullptr;
 
+		// swapchain
+		graphics::swapchain* mp_swapchain = nullptr;
 		vector<target*> m_swapchain_targets{};
+
+		// managers:
 		descriptor_manager* mp_desc_manager = nullptr;
 		upload_manager* mp_upload_manager = nullptr;
-
-		vector<pipeline*> mp_pipelines{};
-
+		pipeline_manager* mp_pipeline_manager = nullptr;
 		imgui_manager* mp_imgui = nullptr;
-
-		uint64 m_frame_count = 0u;
-		bool m_is_initialized = false;
+		scene_renderer* mp_scene_renderer = nullptr;
 
 		// resources
 		map<string, graphics::resource*> m_vertex_buffers;

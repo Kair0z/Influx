@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 namespace influx::graphics
 {
@@ -18,7 +19,26 @@ namespace influx::graphics
 			return (_t*&)(mp_native);
 		}
 
+#if _DEBUG
+		inline void set_name(const string& new_name)
+		{
+			m_debug_name = new_name;
+
+			set_name_impl(new_name);
+		}
+
+		inline const string& get_name() const
+		{
+			return m_debug_name;
+		}
+#endif
+
 	protected:
 		void* mp_native;
+
+#if _DEBUG
+		string m_debug_name;
+		virtual void set_name_impl(const string& new_name) { }
+#endif
 	};
 }

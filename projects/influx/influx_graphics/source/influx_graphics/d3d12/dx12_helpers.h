@@ -191,7 +191,6 @@ namespace influx::graphics::dx12helpers
         // resource desc
         auto alignment = 0u;
         auto resource_desc = CD3DX12_RESOURCE_DESC::Buffer(width, flags, alignment);
-
         device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE,
             &resource_desc, init_state, nullptr, IID_PPV_ARGS(&result_resource));
 

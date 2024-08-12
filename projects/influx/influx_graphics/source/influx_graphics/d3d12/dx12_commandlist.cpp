@@ -152,7 +152,7 @@ namespace influx::graphics
 	void dx12_commandlist::set(render_target_view* rtv, depth_stencil_view* dsv)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE* rtv_handle = rtv->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
-		D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = dsv->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
+		D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = dsv ? dsv->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>() : nullptr;
 		mpdx_graphics_commandlist->OMSetRenderTargets(1u, rtv_handle, FALSE, dsv_handle);
 	}
 

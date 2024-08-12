@@ -11,6 +11,8 @@ project "influx_game"
     debugdir(g_target_dir)
     objdir(g_dir_int .. "/%{prj.name}")
 
+    fastuptodate (false)
+
     files
     {
         g_project_dir .. "**.h",

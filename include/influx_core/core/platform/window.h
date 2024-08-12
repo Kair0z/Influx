@@ -5,6 +5,7 @@
 #include "core/math/vector.h"
 #include "core/geometry/rect.h"
 #include "core/string.h"
+#include "core/function.h"
 
 namespace influx::platform
 {
@@ -16,7 +17,7 @@ namespace influx::platform
 	typedef void(*winev_mousebutton)(int button, bool isDown);
 	typedef void(*winev_mousewheel)	(const float w_x, const float w_y);
 	typedef void(*winev_focus)		(bool is_focussed);
-
+	
 	enum class e_windowevent : uint8
 	{
 		activate,
@@ -24,6 +25,50 @@ namespace influx::platform
 		max,
 		unknown = max
 	};
+
+	struct window_event final
+	{
+		enum class type : uint8
+		{
+			// input
+			keydown,
+			keyup,
+
+			// mouse
+			wheel,
+
+			// general
+			activate,
+			quit,
+			count
+		} m_type;
+
+		enum class key_type : uint8
+		{
+			left,
+			right,
+			up,
+			down,
+			home,
+			end,
+			insert,
+			deleet,
+			f2,
+			ascii_num, // ascii number (0-9)
+			ascii_ch, // ascii character (A-Z)
+			unknown,
+			count
+		};
+
+		key_type parse_key_type() const;
+		char parse_ascii() const;
+		float parse_wheel_delta() const;
+
+		uint64 m_wParam;
+		uint64 m_lParam;
+	};
+
+	using window_proc_callback = function<void(const window_event& e)>;
 
 	enum class e_window_visibility : uint8
 	{
@@ -49,15 +94,21 @@ namespace influx::platform
 	struct create_window_args final
 	{
 		create_window_args() = default;
-		create_window_args(const math::vectoru2& dimensions, const string& name)
-			: m_width{ dimensions.x }, m_height{ dimensions.y }, m_name{ name } {}
+		create_window_args(const math::vectoru2& dimensions, const string& name, const window_proc_callback& proc_clb)
+			: m_width{ dimensions.x }
+			, m_height{ dimensions.y }
+			, m_name{ name }
+			, m_proc_callback{ proc_clb } {}
 
 		uint32 m_width;
 		uint32 m_height;
 		string m_name;
+		window_proc_callback m_proc_callback;
 	};
 
 	window_handle create_window(const create_window_args& args);
+
+	void add_window_proc(const window_handle handle, const window_proc_callback& callback);
 
 	void destroy_window(const window_handle handle);
 

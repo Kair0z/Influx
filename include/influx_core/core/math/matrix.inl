@@ -431,6 +431,13 @@ namespace influx::math
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::operator*=(const matrix& other)
+	{
+		*this = *this * other;
+		return *this;
+	}
+
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::member_multiply(const matrix<_t, _C, _R>& other)
 	{
 		for (matrix_dim_t i{}; i < _R * _C; ++i)
@@ -500,6 +507,8 @@ namespace influx::math
 		return result;
 	}
 
+#pragma warning(push)
+#pragma warning(disable : 4267)
 	template <typename _t, matrix_dim_t _C, matrix_dim_t _R, matrix_dim_t _OC, matrix_dim_t _OR>
 	inline matrix<_t, _R, _OR> operator*(const matrix<_t, _C, _R>& a, const matrix<_t, _OC, _OR>& b)
 	{
@@ -516,6 +525,7 @@ namespace influx::math
 
 		return result;
 	}
+#pragma warning(pop) 
 
 	// Operations: matrix - Vector
 	template<typename _t>

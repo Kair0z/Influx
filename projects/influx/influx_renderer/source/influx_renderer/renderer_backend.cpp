@@ -4,13 +4,27 @@
 // influx::renderer
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
-#include "influx_renderer/pipeline.h"
+#include "influx_renderer/pipeline_manager.h"
+#include "influx_renderer/scene_renderer.h"
 
 // influx::graphics
 #include "influx_graphics.h"
 
 namespace influx::renderer
 {
+    enum class e_frame_phase : uint8
+    {
+        scene = 0,
+        imgui = 1,
+        present = 2,
+        count
+    };
+
+    uint64 get_signal_value(uint64 frame, e_frame_phase phase)
+    {
+        return (frame * (uint64)e_frame_phase::count) + (uint64)phase;
+    }
+
 #pragma region translation
     constexpr static e_render_api translate(graphics::e_api_type type)
     {
@@ -71,8 +85,10 @@ namespace influx::renderer
         }
 
         mp_desc_manager = new descriptor_manager(mp_device);
+        mp_pipeline_manager = new pipeline_manager(mp_device);
         mp_upload_manager = new upload_manager(mp_device);
         mp_imgui = new imgui_manager(mp_device);
+        mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
 
         m_is_initialized = true;
     }
@@ -154,41 +170,38 @@ namespace influx::renderer
             graphics::render_target_view* target_rtv = target.get_rtv();
             graphics::depth_stencil_view* target_dsv = target.get_dsv();
 
-            mp_commandlist->start(mp_allocators[0u], mp_pipeline);
+            mp_commandlist->start(mp_allocators[0u], nullptr);
             {
                 const uint32 target_width = target.get_width();
                 const uint32 target_height = target.get_height();
+
                 mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f});
                 mp_commandlist->set(graphics::rect{0u, 0u, target_width, target_height});
 
                 target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
                 
+                // clear targets
                 mp_commandlist->set(target_rtv, target_dsv);
                 mp_commandlist->clear_rtv(target_rtv, { 0.2, 0.2, 0.2, 1 });
                 mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
                
-                draw_meshes(scene, target);
+                mp_scene_renderer->render(mp_commandlist, scene, target);
             }
             mp_commandlist->end();
         }
 
+        uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::scene);
         {
             influx_scope("renderer_backend::draw_scene::submit");
             mp_graphics_queue->submit_commandlists({ mp_commandlist });
-
-            // queue a signal to the fence that the gpu work [frame_count] is done
-            mp_graphics_queue->queue_signal(mp_fence, m_frame_count);
+            mp_graphics_queue->queue_signal(mp_fence, signal_value);
         }
 
         {
             influx_scope("renderer_backend::draw_scene::wait_for_commands");
-
-            // wait for the signal
             wait_handle handle{};
-            mp_fence->wait_for_value(m_frame_count, handle);
+            mp_fence->wait_for_value(signal_value, handle);
         }
-
-        ++m_frame_count;
     }
 
     void renderer_backend::draw_imgui(ImDrawData* draw_data, const target& target)
@@ -196,111 +209,28 @@ namespace influx::renderer
         influx_scope("renderer_backend::draw_imgui");
         {
             influx_scope("renderer_backend::draw_imgui::record");
-            mp_commandlist->start(mp_allocators[0u], mp_pipeline);
+            mp_commandlist->start(mp_allocators[0u], nullptr);
+
+            graphics::render_target_view* target_rtv = target.get_rtv();
+            mp_commandlist->set(target_rtv, nullptr);
 
             mp_imgui->render(mp_commandlist, draw_data, target);
 
             mp_commandlist->end();
         }
+
+        uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::imgui);
         {
             influx_scope("renderer_backend::draw_imgui::submit");
             mp_graphics_queue->submit_commandlists({ mp_commandlist });
 
             // queue a signal to the fence that the gpu work [frame_count] is done
-            mp_graphics_queue->queue_signal(mp_fence, m_frame_count);
+            mp_graphics_queue->queue_signal(mp_fence, signal_value);
+
+            // wait for signal
+            wait_handle handle{};
+            mp_fence->wait_for_value(signal_value, handle);
         }
-    }
-
-    void renderer_backend::draw_meshes(const scene& scene, const target& target)
-    {
-        // try to create the pipeline
-        const bool we_have_a_pipeline = create_pipeline_if_possible();
-        if (!we_have_a_pipeline)
-        {
-            return;
-        }
-
-        mp_pipelines[0u]->set_state(mp_commandlist);
-
-        // set descriptor heaps
-        mp_commandlist->set(mp_desc_manager->get_samp_heap());
-        mp_commandlist->set(mp_desc_manager->get_srv_heap());
-
-        // setup constants
-        const camera& camera = scene.m_camera;
-        //const math::matrix4x4f mat_view = math::matrix4x4f::make_view_RH(camera.m_transform.get_position(), -camera.m_transform.get_forward());
-        const math::matrix4x4f mat_view = camera.m_transform.get_matrix().inverted();
-        const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
-
-        struct ps_constants
-        {
-            uint32 m_texture_idx;
-        } ps_constants;
-        ps_constants.m_texture_idx = m_frame_count % 1u;
-
-        mp_pipelines[0u]->set_texture(mp_commandlist, "_texture", *m_textures[0u]);
-        mp_pipelines[0u]->set_constants(mp_commandlist, "_perframe_ps", sizeof(ps_constants), &ps_constants);
-
-        // draw meshes
-        for (const auto& vertex_buffer : m_vertex_buffers)
-        {
-            const string& mesh_name = vertex_buffer.first;
-
-            vector<gpu_instance_data> instances{};
-            instances.reserve(scene.m_meshes.size());
-            for (const mesh_instance& instance : scene.m_meshes)
-            {
-                if (instance.m_name == mesh_name)
-                {
-                    gpu_instance_data instance_data{};
-                    instance_data.m_transform = instance.m_transform;
-                    instance_data.m_colour = instance.m_per_instance_colour;
-                    instances.push_back(instance_data);
-                }
-            }
-
-            if (instances.size() > 0u)
-            {
-                struct vs_consants final
-                {
-                    math::matrix4x4f m_mvp;
-                } constants;
-                constants.m_mvp = instances[0u].m_transform * mat_view * mat_proj;
-                mp_pipelines[0u]->set_constants(mp_commandlist, "_perframe_vs", sizeof(vs_consants), &constants);
-
-                graphics::resource* vertex_buffer = m_vertex_buffers[mesh_name];
-                graphics::resource* index_buffer = m_index_buffers[mesh_name];
-                const uint32 num_vertices = (uint32)vertex_buffer->get_bytesize() / (uint32)vertex_buffer->get_bytestride();
-                const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
-
-                mp_commandlist->set_indexbuffer(m_index_buffers[mesh_name]);
-                mp_commandlist->set_vertexbuffer(vertex_buffer);
-                mp_commandlist->draw_indexed(
-                {
-                    .m_num_indexes_per_instance = num_indices,
-                    .m_num_instances = (uint32)instances.size(),
-                    .m_start_index = 0u,
-                    .m_start_vertex = 0,
-                    .m_start_instance = 0u
-                });
-            }
-        }
-    }
-
-    bool renderer_backend::create_pipeline_if_possible()
-    {
-        if (!m_vertex_shaders.empty()
-            && !m_pixel_shaders.empty()
-            && mp_pipeline == nullptr)
-        {
-            mp_pipelines.push_back(new pipeline(
-                mp_device,
-                m_vertex_shaders.cbegin()->second,
-                m_pixel_shaders.cbegin()->second
-            ));
-        }
-
-        return !mp_pipelines.empty();
     }
 
     void renderer_backend::copy_target(const target& source, const target& dest)
@@ -340,6 +270,8 @@ namespace influx::renderer
             p_args.m_vsync = args.m_vsync;
             mp_swapchain->present(p_args);
         }
+
+        ++m_frame_count;
     }
 
     descriptor_manager* renderer_backend::get_descriptor_manager()
@@ -409,7 +341,7 @@ namespace influx::renderer
 
     void renderer_backend::load(const string& title, const material_data& data)
     {
-        // todo...
+        influx_todo("renderer_backend::load(material_data)");
     }
 
     void renderer_backend::load(const string& title, const shader_data& data)
@@ -437,9 +369,34 @@ namespace influx::renderer
         return new_texture;
     }
 
+    const vector<texture*>& renderer_backend::get_textures() const
+    {
+        return m_textures;
+    }
+
     void renderer_backend::upload_texture_data(texture* target_tex, const texture_data& data)
     {
         mp_upload_manager->upload_texture(mp_graphics_queue, data, target_tex->get_resource());
+    }
+
+    vector<string> renderer_backend::get_mesh_names() const
+    {
+        vector<string> out_names{};
+        for (const auto& vertex_buffer : m_vertex_buffers)
+        {
+            out_names.push_back(vertex_buffer.first);
+        }
+        return out_names;
+    }
+
+    bool renderer_backend::get_mesh_buffers(const string& name, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer)
+    {
+        influx_assert(m_vertex_buffers.contains(name) && m_index_buffers.contains(name));
+
+        out_vertex_buffer = m_vertex_buffers[name];
+        out_index_buffer = m_index_buffers[name];
+
+        return true;
     }
 
 #pragma region frontend_api

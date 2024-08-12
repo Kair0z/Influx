@@ -1,5 +1,6 @@
 #pragma once 
 #include "core/math/vector.h"
+#include "core/container/vector.h"
 
 namespace influx::renderer
 {

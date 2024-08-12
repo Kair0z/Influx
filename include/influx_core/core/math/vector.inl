@@ -18,6 +18,7 @@
 #endif
 
 #include <cmath>
+#include <algorithm>
 #include <limits>
 
 namespace influx::math
@@ -118,6 +119,14 @@ namespace influx::math
 	static vector<_t, _dim> clamped(const vector<_t, _dim>& vec, float min, float max)
 	{
 		influx_assert(false); // Noimpl
+	}
+	template<typename _t, _vector_dim_t _dim>
+	inline void vector<_t, _dim>::clamp_length(float length)
+	{
+		if (sqr_magnitude() > (length * length))
+		{
+			scale(length);
+		}
 	}
 #pragma endregion
 
@@ -289,7 +298,19 @@ namespace influx::math
 	template<typename _t, _vector_dim_t _dim>
 	inline vector<_t, _dim> vector<_t, _dim>::lerp(const vector& a, const vector& b, const float t)
 	{
-		return a * t + b * (1.0f - t);
+		float clamped_t = t;
+
+		// clamp [0-1]
+		if (clamped_t < 0.0f) clamped_t = 0.0f;
+		if (clamped_t > 1.0f) clamped_t = 1.0f;
+
+		return (b * clamped_t) + (a * (1.0f - clamped_t));
+	}
+
+	template<typename _t, _vector_dim_t _dim>
+	void vector<_t, _dim>::lerp_towards(const vector& b, const float t)
+	{
+		*this = lerp(*this, b, t);
 	}
 #pragma endregion
 
@@ -298,12 +319,12 @@ namespace influx::math
 	template<typename _t, _vector_dim_t _dim>
 	inline bool vector<_t, _dim>::is_zero() const
 	{
-		return is_null(*this);
+		return is_zero(*this);
 	}
 	template<typename _t, _vector_dim_t _dim>
 	inline bool vector<_t, _dim>::is_zero(const vector& v)
 	{
-		for (size_t i{}; i < _dim; ++i)
+		for (_vector_dim_t i{}; i < _dim; ++i)
 			if (v[i] != static_cast<_t>(0)) return false;
 
 		return true;
