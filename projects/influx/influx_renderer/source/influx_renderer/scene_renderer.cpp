@@ -38,8 +38,13 @@ namespace influx::renderer
         // update constants
         m_ps_constants.m_texture_idx = 0u;
 
+        // invert camera :) (engine is right handed, but d3d12 is left handed)
         const camera& camera = scene.m_camera;
-        const math::matrix4x4f mat_view = camera.m_transform.get_matrix().inverted();
+        math::transform3D transform = camera.m_transform;
+        transform.set_position_z(-transform.get_position().z);
+        transform.update_matrix();
+
+        const math::matrix4x4f mat_view = transform.get_matrix().inverted();
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
 
         const texture& a_texture = *mp_backend->get_textures()[0u];

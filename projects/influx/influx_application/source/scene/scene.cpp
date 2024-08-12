@@ -40,6 +40,11 @@ namespace influx::application
 		mesh.m_transform = math::transform3D::identity();
 		add(mesh);
 
+		mesh_actor ground{};
+		mesh.m_mesh_name = "engine_plane";
+		mesh.m_transform = math::transform3D::identity();
+		add(ground);
+
 		mesh.m_mesh_name = "box";
 		add(mesh);
 
@@ -171,9 +176,13 @@ namespace influx::application
 	{
 		m_meshes.push_back(mesh);
 
+		// invert position
+		math::transform3D inverse_transform = mesh.m_transform;
+		inverse_transform.set_position_z(-mesh.m_transform.get_position().z);
+
 		influx::renderer::mesh_instance mesh_instance{};
 		mesh_instance.m_name = mesh.m_mesh_name;
-		mesh_instance.m_transform = mesh.m_transform.get_matrix();
+		mesh_instance.m_transform = inverse_transform.get_matrix();
 		mp_render_scene->m_meshes.push_back(mesh_instance);
 	}
 

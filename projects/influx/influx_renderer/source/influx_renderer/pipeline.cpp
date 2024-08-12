@@ -92,7 +92,7 @@ namespace influx::renderer
         pipeline_desc.m_depth_stencil.m_depth_enable = false;
         pipeline_desc.m_depth_stencil.m_stencil_enable = false;
 
-        pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
+        pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::back;
         pipeline_desc.m_rasterizer.m_front_ccw = false;
         
         if (use_reflection)

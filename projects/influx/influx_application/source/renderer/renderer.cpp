@@ -182,5 +182,59 @@ namespace influx::application
 			tex_data.m_width = image.m_dimensions.x;
 			influx::renderer::load(name, tex_data);
 		}
+
+		// ENGINE GEOMETRY MESHES
+		// PLANE
+		{
+			math::vectorf3 positions[4u]
+			{
+				{ 1.0f, 0.0f, 1.0f },
+				{ -1.0f, 0.0f, 1.0f },
+				{ 1.0f, 0.0f, -1.0f },
+				{ -1.0f, 0.0f, -1.0f }
+			};
+			math::vectorf4 colours[4u]
+			{
+				{ 1.0f, 0.0f, 0.0f, 1.0f },
+				{ 0.0f, 1.0f, 0.0f, 1.0f },
+				{ 0.0f, 0.0f, 1.0f, 1.0f },
+				{ 1.0f, 1.0f, 0.0f, 1.0f }
+			};
+			math::vectorf2 uvs[4u]
+			{
+				{ 0.0f, 0.0f },
+				{ 1.0f, 0.0f },
+				{ 1.0f, 1.0f },
+				{ 0.0f, 1.0f }
+			};
+			math::vectorf3 normals[4u]
+			{
+				{ 0.0f, 1.0f, 0.0f },
+				{ 0.0f, 1.0f, 0.0f },
+				{ 0.0f, 1.0f, 0.0f },
+				{ 0.0f, 1.0f, 0.0f }
+			};
+
+			influx::renderer::mesh_data mesh_data{};
+			for (uint8 i = 0u; i < 4u; ++i)
+			{
+				mesh_data.m_vertices.push_back
+				({
+					.m_position{positions[i]},
+					.m_colour{colours[i]},
+					.m_normal{normals[i]},
+					.m_texcoords{uvs[i]}
+				});
+			}
+			
+			mesh_data.m_indices.push_back(0u);
+			mesh_data.m_indices.push_back(1u);
+			mesh_data.m_indices.push_back(2u);
+			mesh_data.m_indices.push_back(2u);
+			mesh_data.m_indices.push_back(3u);
+			mesh_data.m_indices.push_back(0u);
+
+			influx::renderer::load("engine_plane", mesh_data);
+		}	
 	}
 }
