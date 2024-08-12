@@ -1,6 +1,9 @@
 #include "renderer_pch.h"
 #include "pipeline.h"
 
+// influx::renderer
+#include "influx_renderer/texture.h"
+
 // influx::graphics
 #include "influx_graphics.h"
 #include "influx_graphics/pipeline.h"
@@ -145,6 +148,12 @@ namespace influx::renderer
     {
         uint32 sh_reg = get_shader_register(name);
         cmdlist->set_constants(sh_reg, num_dwords, data);
+    }
+
+    void pipeline::set_texture(graphics::command_list* cmdlist, const string& name, const texture& tex)
+    {
+        uint32 sh_reg = get_shader_register(name);
+        cmdlist->set(tex.get_srv(), sh_reg);
     }
 
     uint32 pipeline::get_shader_register(const string& resource_name)
