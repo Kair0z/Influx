@@ -2,8 +2,8 @@
 #include "influx_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
 
-// influx::graphics
 #pragma region declarations
+// influx::graphics
 namespace influx::graphics
 {
 	class device;
@@ -54,7 +54,6 @@ namespace influx::renderer
 
 		void load(const string& title, const mesh_data& data);
 		void load(const string& title, const texture_data& data);
-		void load(const string& title, const material_data& data);
 		void load(const string& title, const shader_data& data);
 
 		texture* create_texture(const texture_create_args& args);
@@ -64,10 +63,6 @@ namespace influx::renderer
 
 		vector<string> get_mesh_names() const;
 		bool get_mesh_buffers(const string& name, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
-
-	private:
-		void draw_meshes(const scene& scene, const target& target);
-		bool create_pipeline_if_possible();
 
 	private:
 		uint64 m_frame_count = 0u;

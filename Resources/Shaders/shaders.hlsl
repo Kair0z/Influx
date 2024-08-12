@@ -22,7 +22,9 @@ struct vs_constants
 
 struct ps_constants
 {
-    uint texture_index;
+    uint albedo_slotidx;
+	uint normals_slotidx;
+	uint other_slotidx;
 };
 
 float3 hash( uint3 x )
@@ -46,6 +48,7 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID )
 {
     ps_input output = (ps_input)0;
     output.position = mul ( _perframe_vs.mat_mvp, float4 ( input.position, 1.0f ) );
+
     output.worldPos = input.position;
     output.texcoord = input.texcoord;
     output.colour = float4(hash(uint3(vID,vID+7,vID+41)), 1.0f);
@@ -54,7 +57,7 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID )
 }
 
 ConstantBuffer<ps_constants> _perframe_ps : register(b0);
-Texture2D _texture[1] : register(t0);
+Texture2D _textures[3] : register(t0);
 SamplerState _sampler : register(s0);
 
 
@@ -66,5 +69,9 @@ float4 PSMain ( ps_input input ) : SV_TARGET
     float ambient = 0.2f;
     float diffuse = max(ambient,dot(normalize(input.normal), normalize(lightDir)));
 
-    return diffuse * _texture[_perframe_ps.texture_index].Sample(_sampler, input.texcoord);
+    float4 albedo = _textures[_perframe_ps.albedo_slotidx].Sample(_sampler, input.texcoord).rgba;
+    float3 normal = _textures[_perframe_ps.normals_slotidx].Sample(_sampler, input.texcoord).rgb;
+    float3 other = _textures[_perframe_ps.other_slotidx].Sample(_sampler, input.texcoord).rgb;
+
+    return diffuse * albedo;
 }

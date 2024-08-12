@@ -36,7 +36,9 @@ namespace influx::renderer
         mp_pipeline->set_state(commandlist);
 
         // update constants
-        m_ps_constants.m_texture_idx = 0u;
+        m_ps_constants.m_albedo_slotidx = 0u;
+        m_ps_constants.m_normals_slotidx = 1u;
+        m_ps_constants.m_other_slotidx = 2u;
 
         // invert camera :) (engine is right handed, but d3d12 is left handed)
         const camera& camera = scene.m_camera;
@@ -48,7 +50,7 @@ namespace influx::renderer
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
 
         const texture& a_texture = *mp_backend->get_textures()[0u];
-        mp_pipeline->set_texture(commandlist, "_texture", a_texture);
+        mp_pipeline->set_texture(commandlist, "_textures", a_texture);
         mp_pipeline->set_constants(commandlist, "_perframe_ps", m_ps_constants);
 
         graphics::resource* index_buffer;

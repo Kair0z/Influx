@@ -94,19 +94,5 @@ namespace influx::renderer
 
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
 
-	INFLUX_RENDER_API void load(const string& title, const material_data& data);
-
 	INFLUX_RENDER_API void load(const string& title, const shader_data& data);
-
-	INFLUX_RENDER_API const mesh_data* find_mesh_data(const string& title); 
-
-	INFLUX_RENDER_API vector<const mesh_data*> get_all_mesh_datas();
-
-	// backend hooks
-	INFLUX_RENDER_API void* get_backend_device();
-
-	INFLUX_RENDER_API void* get_backend_texture_gpu_handle(const string& title);
-
-	// statistics
-	INFLUX_RENDER_API vector<frame_stats> get_frame_stats(const uint32 over_num_frames = 1u);
 }

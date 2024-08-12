@@ -1,10 +1,11 @@
 #pragma once 
+
 #include "core/math/vector.h"
-#include "core/container/vector.h"
+#include "core/string.h"
 
 namespace influx::renderer
 {
-	struct material_data final
+	struct material final
 	{
 		math::vectorf4 m_albedo{};
 	};

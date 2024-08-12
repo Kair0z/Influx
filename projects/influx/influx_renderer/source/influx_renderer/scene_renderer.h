@@ -29,7 +29,9 @@ namespace influx::renderer
 
 	struct gpu_ps_constants final
 	{
-		uint32 m_texture_idx;
+		uint32 m_albedo_slotidx;
+		uint32 m_normals_slotidx;
+		uint32 m_other_slotidx;
 	};
 
 	class scene_renderer final

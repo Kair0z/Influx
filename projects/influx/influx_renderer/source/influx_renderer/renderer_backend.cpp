@@ -344,11 +344,6 @@ namespace influx::renderer
             new_texture->get_resource());
     }
 
-    void renderer_backend::load(const string& title, const material_data& data)
-    {
-        influx_todo("renderer_backend::load(material_data)");
-    }
-
     void renderer_backend::load(const string& title, const shader_data& data)
     {
         map<string, shader_data>* target_map = nullptr;
@@ -472,11 +467,6 @@ namespace influx::renderer
     }
 
     void load(const string& title, const texture_data& data)
-    {
-        renderer_backend::get_instance().load(title, data);
-    }
-
-    void load(const string& title, const material_data& data)
     {
         renderer_backend::get_instance().load(title, data);
     }
