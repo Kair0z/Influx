@@ -85,6 +85,8 @@ namespace influx::shader
 				D3D12_SHADER_BUFFER_DESC constantBufferDesc{};
 				ID3D12ShaderReflectionConstantBuffer* cbuffer_refl = dx12_refl->GetConstantBufferByIndex(i);
 				hres = cbuffer_refl->GetDesc(&constantBufferDesc);
+
+				resource.m_bytesize = constantBufferDesc.Size;
 				// ...
 			}
 			break;
@@ -98,7 +100,7 @@ namespace influx::shader
 
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_TEXTURE:
 			{
-				resource.m_type = reflection::resource::e_type::srv;
+				resource.m_type = reflection::resource::e_type::texture;
 				// ...
 			}
 			break;

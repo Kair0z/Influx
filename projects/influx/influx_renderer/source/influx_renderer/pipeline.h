@@ -23,8 +23,8 @@ namespace influx::renderer
 	public:
 		pipeline(
 			graphics::device* device,
-			renderer::shader_data vertex_shader,
-			renderer::shader_data pixel_shader);
+			const renderer::shader_data& vertex_shader,
+			const renderer::shader_data& pixel_shader);
 
 		void set_state(graphics::command_list* cmdlist);
 
@@ -39,6 +39,7 @@ namespace influx::renderer
 		void set_texture(graphics::command_list* cmdlist, const string& name, const texture& tex);
 
 		uint32 get_shader_register(const string& resource_name);
+		uint32 get_param_index(const string& resource_name);
 
 #if _DEBUG
 		void set_name(const string& name);
@@ -49,6 +50,7 @@ namespace influx::renderer
 		graphics::rootsignature* mp_rootsig = nullptr;
 		graphics::pipeline* mp_pipeline = nullptr;
 		umap<string, uint32> m_name_to_register;
+		umap<string, uint32> m_name_to_param_idx;
 
 #if _DEBUG
 		string m_debug_name;

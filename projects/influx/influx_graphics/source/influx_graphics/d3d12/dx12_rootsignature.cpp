@@ -4,8 +4,8 @@
 
 namespace influx::graphics
 {
-	dx12_rootsignature::dx12_rootsignature(ID3D12RootSignature* rootsignature, const rootsignature_desc& desc)
-		: rootsignature(desc)
+	dx12_rootsignature::dx12_rootsignature(ID3D12RootSignature* rootsignature, const rootsignature_desc& desc, const umap<string, uint32>& name_to_paramidx)
+		: rootsignature(desc, name_to_paramidx)
 	{
 		mp_native = mpdx_rootsignature = rootsignature;
 	}

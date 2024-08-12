@@ -60,6 +60,19 @@ namespace influx::input
 		return e_key::count;
 	}
 
+	inline static mouse_event::e_button translate(platform::window_event::mouse_button button)
+	{
+		switch (button)
+		{
+		case platform::window_event::mouse_button::left: return mouse_event::e_button::left;
+		case platform::window_event::mouse_button::right: return mouse_event::e_button::right;
+		case platform::window_event::mouse_button::middle: return mouse_event::e_button::middle;
+		case platform::window_event::mouse_button::x: return mouse_event::e_button::x;
+		}
+
+		return mouse_event::e_button::count;
+	}
+
 	void push_window_event(const platform::window_event& platform_ev)
 	{
 		// filter key-events only
@@ -82,7 +95,38 @@ namespace influx::input
 
 		case platform::window_event::type::wheel:
 			new_mouse_ev = new mouse_event();
+			new_mouse_ev->m_type = mouse_event::e_type::scroll;
 			new_mouse_ev->m_wheel_delta = platform_ev.parse_wheel_delta();
+			data = new_mouse_ev;
+			break;
+
+		case platform::window_event::type::mouse_move:
+			new_mouse_ev = new mouse_event();
+			new_mouse_ev->m_type = mouse_event::e_type::move;
+			new_mouse_ev->m_position_client = platform_ev.parse_position_window();
+			new_mouse_ev->m_position_screen = platform_ev.parse_position_screen();
+			data = new_mouse_ev;
+			break;
+
+		case platform::window_event::type::mouse_leave:
+			new_mouse_ev = new mouse_event();
+			new_mouse_ev->m_type = mouse_event::e_type::leave;
+			new_mouse_ev->m_position_client = { -FLT_MAX, -FLT_MAX };
+			new_mouse_ev->m_position_screen = { -FLT_MAX, -FLT_MAX };
+			data = new_mouse_ev;
+			break;
+
+		case platform::window_event::type::mouse_down:
+			new_mouse_ev = new mouse_event();
+			new_mouse_ev->m_type = mouse_event::e_type::button_down;
+			new_mouse_ev->m_button = translate(platform_ev.parse_mouse_button());
+			data = new_mouse_ev;
+			break;
+
+		case platform::window_event::type::mouse_up:
+			new_mouse_ev = new mouse_event();
+			new_mouse_ev->m_type = mouse_event::e_type::button_up;
+			new_mouse_ev->m_button = translate(platform_ev.parse_mouse_button());
 			data = new_mouse_ev;
 			break;
 		}

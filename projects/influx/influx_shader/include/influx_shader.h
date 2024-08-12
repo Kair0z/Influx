@@ -60,14 +60,18 @@ namespace influx::shader
 				sampler,
 				uav,
 				srv,
+				texture,
 				unknown,
 				count
 			};
 
-			string m_name;
-			e_type m_type;
-			uint32 m_shader_register;
-			uint32 m_register_space;
+			string m_name{};
+			e_type m_type{};
+			uint32 m_shader_register{};
+			uint32 m_register_space{};
+
+			// if cbv
+			uint64 m_bytesize{};
 
 			// if srv / sampler, this is the number of descriptors possibly used
 			uint32 m_range_size = 0u;

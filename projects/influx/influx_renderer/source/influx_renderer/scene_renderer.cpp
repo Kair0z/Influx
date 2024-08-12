@@ -5,6 +5,7 @@
 #include "influx_renderer/pipeline.h"
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/descriptor_manager.h"
+#include "influx_renderer/pipeline_manager.h"
 
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/resource.h"
@@ -20,10 +21,10 @@ namespace influx::renderer
 
     void scene_renderer::render(graphics::command_list* commandlist, const scene& scene, const target& target)
     {
-        // try to create the pipeline
+        // try to fish the scene pipeline from the manager...
+        mp_pipeline = mp_backend->get_pipeline_manager()->get_scene_pipeline();
         if (mp_pipeline == nullptr)
         {
-            // ...
             return;
         }
 

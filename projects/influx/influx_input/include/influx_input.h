@@ -29,7 +29,7 @@ namespace influx::input
 
 	struct key_event
 	{
-		enum class e_type
+		enum class e_type : uint8
 		{
 			keyup,
 			keydown,
@@ -46,7 +46,30 @@ namespace influx::input
 
 	struct mouse_event
 	{
+		enum class e_type : uint8
+		{
+			scroll,
+			move,
+			leave,
+			button_down,
+			button_up,
+			count
+		};
+
+		enum class e_button : uint8
+		{
+			left,
+			right,
+			middle,
+			x,
+			count
+		};
+
+		e_type m_type;
+		e_button m_button;
 		float m_wheel_delta;
+		math::vectorf2 m_position_client; // relative to window
+		math::vectorf2 m_position_screen; // relative to screen
 	};
 
 	INFLUX_INPUT_API void init(const init_args& args = {});

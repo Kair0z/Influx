@@ -36,12 +36,25 @@ namespace influx::platform
 
 			// mouse
 			wheel,
+			mouse_move,
+			mouse_leave,
+			mouse_down,
+			mouse_up,
 
 			// general
 			activate,
 			quit,
 			count
 		} m_type;
+
+		enum class mouse_button : uint8
+		{
+			left,
+			right,
+			middle,
+			x,
+			count
+		};
 
 		enum class key_type : uint8
 		{
@@ -63,7 +76,11 @@ namespace influx::platform
 		key_type parse_key_type() const;
 		char parse_ascii() const;
 		float parse_wheel_delta() const;
+		math::vectorf2 parse_position_window() const;
+		math::vectorf2 parse_position_screen() const;
+		mouse_button parse_mouse_button() const;
 
+		uint32 m_mssg;
 		uint64 m_wParam;
 		uint64 m_lParam;
 	};

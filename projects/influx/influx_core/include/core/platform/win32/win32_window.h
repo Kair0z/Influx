@@ -8,6 +8,7 @@
 // Include Windows
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <windowsx.h> // GET_X_LPARAM(), GET_Y_LPARAM()
 #include "core/platform/window.h"
 
 // We don't like UNICODE steered macros! 
@@ -63,6 +64,51 @@ namespace influx::platform
 		return (float)GET_WHEEL_DELTA_WPARAM(m_wParam) / WHEEL_DELTA;
 	}
 
+	inline math::vectorf2 window_event::parse_position_window() const
+	{
+		POINT mouse_pos = { (LONG)GET_X_LPARAM(m_lParam), (LONG)GET_Y_LPARAM(m_lParam) };
+
+		// transform if necessary
+		if (m_mssg == WM_NCMOUSEMOVE)
+		{
+			::ScreenToClient((HWND)get_current_window(), &mouse_pos);
+		}
+
+		return { (float)mouse_pos.x, (float)mouse_pos.y };
+	}
+
+	inline math::vectorf2 window_event::parse_position_screen() const
+	{
+		POINT mouse_pos = { (LONG)GET_X_LPARAM(m_lParam), (LONG)GET_Y_LPARAM(m_lParam) };
+
+		// transform if necessary
+		if (m_mssg == WM_MOUSEMOVE)
+		{
+			::ClientToScreen((HWND)get_current_window(), &mouse_pos);
+		}
+
+		return { (float)mouse_pos.x, (float)mouse_pos.y };
+	}
+
+	inline window_event::mouse_button window_event::parse_mouse_button() const
+	{
+		switch (m_mssg)
+		{
+		case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK: case WM_LBUTTONUP:
+			return window_event::mouse_button::left;
+
+		case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK: case WM_RBUTTONUP:
+			return window_event::mouse_button::right;
+
+		case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK: case  WM_MBUTTONUP:
+			return window_event::mouse_button::middle;
+
+		case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK: case WM_XBUTTONUP:
+			return window_event::mouse_button::x;
+		}
+
+		return window_event::mouse_button::count;
+	}
 	namespace detail
 	{
 		static list<window_handle>		gWindowHandles{};
@@ -76,6 +122,26 @@ namespace influx::platform
 			case WM_KEYDOWN: return window_event::type::keydown;
 			case WM_KEYUP: return window_event::type::keyup;
 			case WM_MOUSEWHEEL: return window_event::type::wheel;
+
+			case WM_MOUSEMOVE:
+			case WM_NCMOUSEMOVE: 
+				return window_event::type::mouse_move;
+
+			case WM_MOUSELEAVE:
+			case WM_NCMOUSELEAVE: 
+				return window_event::type::mouse_leave;
+
+			case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
+			case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
+			case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
+			case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+				return window_event::type::mouse_down;
+
+			case WM_LBUTTONUP:
+			case WM_RBUTTONUP:
+			case WM_MBUTTONUP:
+			case WM_XBUTTONUP:
+				return window_event::type::mouse_up;
 			}
 
 			return window_event::type::count;
@@ -87,6 +153,7 @@ namespace influx::platform
 
 			ev.m_wParam = wParam;
 			ev.m_lParam = lParam;
+			ev.m_mssg = uMsg;
 
 			// determine type
 			ev.m_type = translate_umsg(uMsg);

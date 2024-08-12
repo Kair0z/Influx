@@ -287,20 +287,29 @@ namespace influx::graphics
 			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 		}
 
+		// build a name-to-param-idx map
+		umap<string, uint32> name_to_param_idx{};
+
 		// setup root parameters
 		vector<CD3DX12_ROOT_PARAMETER1> root_parameters{};
 		vector<CD3DX12_STATIC_SAMPLER_DESC> static_samplers{};
 		vector<vector<CD3DX12_DESCRIPTOR_RANGE1>> root_descriptor_ranges(desc.m_resource_tables.size());
 
+		// constants
 		for (const root_param_constants& constants : desc.m_constants)
 		{
+			name_to_param_idx[constants.m_common.m_name] = root_parameters.size();
+
 			root_parameters.push_back({});
 			root_parameters.back().InitAsConstants(constants.m_num_dwords, constants.m_common.m_shader_register, 
 				constants.m_common.m_register_space, convert(constants.m_common.m_visibility));
 		}
 
+		// resources
 		for (const root_param_resource& resource : desc.m_resources)
 		{
+			name_to_param_idx[resource.m_common.m_name] = root_parameters.size();
+
 			root_parameters.push_back({});
 			switch (resource.m_type)
 			{
@@ -330,9 +339,12 @@ namespace influx::graphics
 			}
 		}
 
+		// resource tables
 		size_t descriptor_table_idx = 0u;
 		for (const root_param_resource_table& tables : desc.m_resource_tables)
 		{
+			name_to_param_idx[tables.m_common.m_name] = root_parameters.size();
+
 			vector<CD3DX12_DESCRIPTOR_RANGE1>& ranges = root_descriptor_ranges[descriptor_table_idx++];
 
 			for (const root_param_resource_range& range : tables.m_resource_ranges)
@@ -357,6 +369,7 @@ namespace influx::graphics
 			root_parameters.back().InitAsDescriptorTable((uint32)ranges.size(), ranges.data(), convert(tables.m_common.m_visibility));
 		}
 
+		// samplers
 		for (const root_static_sampler& sampler : desc.m_static_samplers)
 		{
 			static_samplers.push_back({});
@@ -387,7 +400,7 @@ namespace influx::graphics
 		HRESULT res = ::D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
 		res = mpdx_devices[0]->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&dxrootsignature));
 
-		return new dx12_rootsignature(dxrootsignature, desc);
+		return new dx12_rootsignature(dxrootsignature, desc, name_to_param_idx);
 	}
 
 	pipeline* dx12_device::create_pipeline(rootsignature* rootsig, const pipeline_desc& desc)

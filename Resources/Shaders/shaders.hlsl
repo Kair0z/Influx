@@ -54,7 +54,7 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID )
 }
 
 ConstantBuffer<ps_constants> _perframe_ps : register(b0);
-Texture2D _texture[128] : register(t0);
+Texture2D _texture[1] : register(t0);
 SamplerState _sampler : register(s0);
 
 

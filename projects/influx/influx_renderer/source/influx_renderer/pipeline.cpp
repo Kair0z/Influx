@@ -12,7 +12,7 @@
 
 namespace influx::renderer
 {
-	pipeline::pipeline(graphics::device* device, renderer::shader_data vertex_shader, renderer::shader_data pixel_shader)
+	pipeline::pipeline(graphics::device* device, const renderer::shader_data& vertex_shader, const renderer::shader_data& pixel_shader)
 	{
         // get the reflection data:
         const shader::reflection& vs_reflection = vertex_shader.m_reflection;
@@ -33,23 +33,16 @@ namespace influx::renderer
                 switch (resource.m_type)
                 {
                 case shader::reflection::resource::e_type::cbv:
-                    rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::cbv, 
+                    rootsig_desc.add_root_constants(resource.m_bytesize / sizeof(uint32),
                         resource.m_shader_register, resource.m_register_space, shader_vis);
+                    rootsig_desc.name_last_constants(resource.m_name);
                     break;
 
-                case shader::reflection::resource::e_type::srv:
-                    if (resource.m_range_size == 1u)
-                    {
-                        // add single resource
-                        rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::srv, 
-                            resource.m_shader_register, resource.m_register_space, shader_vis);
-                    }
-                    else if (resource.m_range_size > 1u)
-                    {
-                        // add resource range
-                        rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv, 
-                            resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
-                    }
+                // textures are always located in a shader resource table!
+                case shader::reflection::resource::e_type::texture:
+                    rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
+                        resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+                    rootsig_desc.name_last_resource_table(resource.m_name);
                     break;
 
                 case shader::reflection::resource::e_type::sampler:
@@ -89,14 +82,19 @@ namespace influx::renderer
         }
 
         mp_rootsig = device->create_rootsignature(rootsig_desc);
+        m_name_to_param_idx = mp_rootsig->get_param_idx_table();
 
         // build the pipeline
         graphics::pipeline_desc pipeline_desc{};
         pipeline_desc.m_vs = vertex_shader.m_bytecode;
         pipeline_desc.m_ps = pixel_shader.m_bytecode;
+
         pipeline_desc.m_depth_stencil.m_depth_enable = false;
         pipeline_desc.m_depth_stencil.m_stencil_enable = false;
+
         pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
+        pipeline_desc.m_rasterizer.m_front_ccw = false;
+        
         if (use_reflection)
         {
             // derive the input elements from reflection:
@@ -146,18 +144,33 @@ namespace influx::renderer
 
     void pipeline::set_constants(graphics::command_list* cmdlist, const string& name, uint32 num_dwords, void* data)
     {
-        uint32 sh_reg = get_shader_register(name);
-        cmdlist->set_constants(sh_reg, num_dwords, data);
+        uint32 param_idx = get_param_index(name);
+        cmdlist->set_constants(param_idx, num_dwords, data);
     }
 
     void pipeline::set_texture(graphics::command_list* cmdlist, const string& name, const texture& tex)
     {
-        uint32 sh_reg = get_shader_register(name);
-        cmdlist->set(tex.get_srv(), sh_reg);
+        uint32 param_idx = get_param_index(name);
+        cmdlist->set(tex.get_srv(), param_idx);
     }
 
     uint32 pipeline::get_shader_register(const string& resource_name)
     {
         return m_name_to_register[resource_name];
+    }
+
+    uint32 pipeline::get_param_index(const string& resource_name)
+    {
+        return m_name_to_param_idx[resource_name];
+    }
+
+    void pipeline::set_name(const string& name)
+    {
+        mp_pipeline->set_name(name);
+    }
+
+    const string& pipeline::get_name() const
+    {
+        return mp_pipeline->get_name();
     }
 }

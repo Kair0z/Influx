@@ -284,6 +284,11 @@ namespace influx::renderer
         return get_instance().mp_upload_manager;
     }
 
+    pipeline_manager* renderer_backend::get_pipeline_manager()
+    {
+        return get_instance().mp_pipeline_manager;
+    }
+
     void renderer_backend::load(const string& title, const mesh_data& data)
     {
         if (!m_vertex_buffers.contains(title))
@@ -359,6 +364,16 @@ namespace influx::renderer
         if (!target_map->contains(title))
         {
             (*target_map)[title] = data;
+        }
+
+        // build a pipeline off the first 2 shaders loaded
+        // todo: this is ugly!!
+        if (mp_pipeline_manager->get_num_pipelines() == 0u
+            && !m_vertex_shaders.empty() && !m_pixel_shaders.empty())
+        {
+            mp_pipeline_manager->new_pipeline("pip_scene", 
+                m_vertex_shaders.cbegin()->second, 
+                m_pixel_shaders.cbegin()->second);
         }
     }
 

@@ -50,6 +50,7 @@ namespace influx::renderer
 		void present_swapchain(const present_args& args);
 		static descriptor_manager* get_descriptor_manager();
 		static upload_manager* get_upload_manager();
+		static pipeline_manager* get_pipeline_manager();
 
 		void load(const string& title, const mesh_data& data);
 		void load(const string& title, const texture_data& data);

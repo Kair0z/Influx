@@ -43,8 +43,8 @@ namespace influx::graphics
 		// rasterizer
 		struct rasterizer final
 		{
-			e_cull_mode m_cullmode;
-			e_fill_mode m_fillmode;
+			e_cull_mode m_cullmode = e_cull_mode::back;
+			e_fill_mode m_fillmode = e_fill_mode::solid;
 			bool m_front_ccw = false;
 			int m_depth_bias = 0;
 			float m_depth_bias_clamp = 0.0f;
