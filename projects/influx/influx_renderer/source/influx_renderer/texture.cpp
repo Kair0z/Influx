@@ -1,5 +1,8 @@
 #include "renderer_pch.h"
+
 #include "influx_renderer/texture.h"
+#include "influx_renderer/renderer_backend.h"
+#include "influx_renderer/descriptor_manager.h"
 
 #include "influx_graphics/device.h"
 #include "influx_graphics/descriptorheap.h"
@@ -7,7 +10,7 @@
 namespace influx::renderer
 {
 	// constructs a target from create_args, allocating new graphics resources
-	texture::texture(graphics::device* device, graphics::descriptor_heap* srv_heap, const texture_create_args& args)
+	texture::texture(graphics::device* device, const texture_create_args& args)
 		: mp_device{ device }
 		, m_args{ args }
 		, m_current_dimensions{ args.m_width, args.m_heigth }
@@ -24,38 +27,11 @@ namespace influx::renderer
 
 		// create the underlying resource
 		mp_resource = device->create_resource(desc);
-
-		// allocate & create the rtv
-		mp_srv = device->create_srv(srv_heap, mp_resource);
-
-		// store the descriptor handles
-		m_cpu_handle = mp_srv->get_cpu_handle();
-		m_gpu_handle = mp_srv->get_gpu_handle();
 	}
-
-	texture::texture(graphics::device* device, graphics::resource* resource, graphics::shader_resource_view* srv)
-		: mp_device{device}
-	{
-		m_args.m_width = resource->get_width();
-		m_args.m_heigth = resource->get_height();
-		m_current_dimensions = { m_args.m_width, m_args.m_heigth };
-		mp_resource = resource;
-		mp_srv = srv;
-
-		// store the descriptor handles
-		m_cpu_handle = mp_srv->get_cpu_handle();
-		m_gpu_handle = mp_srv->get_gpu_handle();
-	}
-
 
 	graphics::resource* texture::get_resource() const
 	{
 		return mp_resource;
-	}
-
-	graphics::shader_resource_view* texture::get_srv() const
-	{
-		return mp_srv;
 	}
 
 	uint32 texture::get_width() const
@@ -103,10 +79,16 @@ namespace influx::renderer
 			desc.m_num_mips = 1u;
 			desc.m_sample_count = 1u;
 			mp_resource = mp_device->create_resource(desc);
-
-			// recreate our irv
-			// ...
 		}
+	}
+
+	graphics::shader_resource_view* texture::update_srv()
+	{
+		const auto& pair = renderer_backend::get_instance().get_descriptor_manager()->allocate_srv(1u)[0u];
+
+		mp_srv = mp_device->create_srv(pair.m_cpu_handle, pair.m_gpu_handle, mp_resource);
+
+		return mp_srv;
 	}
 
 	bool texture_data::is_valid() const

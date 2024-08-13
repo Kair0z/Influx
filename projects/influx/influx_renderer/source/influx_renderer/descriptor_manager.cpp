@@ -66,4 +66,31 @@ namespace influx::renderer
 	{
 		return mp_dsv_heap;
 	}
+
+	vector<descriptor_manager::descriptor_couple> descriptor_manager::allocate_srv(uint64 num_descriptors)
+	{
+		vector<descriptor_couple> couples{};
+		for (uint64 i = 0u; i < num_descriptors; ++i)
+		{
+			couples[i].m_cpu_handle = mp_cbv_heap->allocate_cpu();
+			couples[i].m_gpu_handle = mp_cbv_heap->allocate_gpu();
+		}
+
+		m_srv_allocation_buffer.push(couples);
+	}
+
+	void descriptor_manager::free_srv(uint64 num_descriptors)
+	{
+		vector<descriptor_couple> couples{};
+		for (uint64 i = 0u; i < num_descriptors; ++i)
+		{
+			m_srv_allocation_buffer.pop_lockless(couples[i]);
+		}
+
+		for (uint64 i = 0u; i < num_descriptors; ++i)
+		{
+			mp_cbv_heap->free_cpu(couples[i].m_cpu_handle);
+			mp_cbv_heap->free_gpu(couples[i].m_gpu_handle);
+		}
+	}
 }

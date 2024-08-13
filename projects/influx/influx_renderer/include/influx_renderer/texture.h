@@ -59,16 +59,15 @@ namespace influx::renderer
 
 	private:
 		// constructs a texture from create_args, allocating new graphics resources
-		explicit texture(graphics::device* device, graphics::descriptor_heap* irv_heap, const texture_create_args& args);
-		explicit texture(graphics::device* device, graphics::resource* resource, graphics::shader_resource_view* irv);
+		explicit texture(graphics::device* device, const texture_create_args& args);
 
-		// re-allocates graphics resource, and recreates the irv
+		// re-allocates graphics resource
 		void resize(const math::vectoru2& new_dimensions);
+
+		graphics::shader_resource_view* update_srv();
 
 		graphics::resource* mp_resource;
 		graphics::shader_resource_view* mp_srv;
-		void* m_cpu_handle;
-		void* m_gpu_handle;
 
 		texture_create_args m_args;
 		math::vectoru2 m_current_dimensions;

@@ -28,10 +28,6 @@ namespace influx::renderer
             return;
         }
 
-        // bind descriptor heaps
-        commandlist->set(mp_backend->get_descriptor_manager()->get_samp_heap());
-        commandlist->set(mp_backend->get_descriptor_manager()->get_srv_heap());
-
         // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
         mp_pipeline->set_state(commandlist);
 

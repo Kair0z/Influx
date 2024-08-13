@@ -27,6 +27,11 @@ struct ps_constants
 	uint other_slotidx;
 };
 
+ConstantBuffer<vs_constants> _perframe_vs : register(b0);
+ConstantBuffer<ps_constants> _perframe_ps : register(b0);
+Texture2D _textures[128] : register(t0);
+SamplerState _sampler : register(s0);
+
 float3 hash( uint3 x )
 {  
     //https://www.shadertoy.com/view/4lXyWN
@@ -41,8 +46,6 @@ float3 hash( uint3 x )
     return (float3(x)*(1.0/float(0xffffffffU)));
 }
 
-ConstantBuffer<vs_constants> _perframe_vs : register(b0);
-
 [shader("vertex")]
 ps_input VSMain ( vs_input input, uint vID : SV_VertexID )
 {
@@ -55,10 +58,6 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID )
     output.normal = input.normal;
     return output;
 }
-
-ConstantBuffer<ps_constants> _perframe_ps : register(b0);
-Texture2D _textures[3] : register(t0);
-SamplerState _sampler : register(s0);
 
 
 [shader("pixel")]
