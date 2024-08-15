@@ -254,6 +254,8 @@ namespace influx::graphics
 		vector<root_param_resource> m_resources;
 		vector<root_param_resource_table> m_resource_tables;
 		vector<root_static_sampler> m_static_samplers;
+
+		bool m_direct_indexing = false;
 	};
 
 	class rootsignature : public base

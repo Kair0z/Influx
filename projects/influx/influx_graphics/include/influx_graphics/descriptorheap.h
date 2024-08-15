@@ -39,7 +39,10 @@ namespace influx::graphics
 
 		virtual void free_cpu(descriptor_handle handle) = 0;
 		virtual void free_gpu(descriptor_handle handle) = 0;
-	
+
+		virtual uint32 get_heap_index_cpu(descriptor_handle handle) const = 0;
+		virtual uint32 get_heap_index_gpu(descriptor_handle handle) const = 0;
+
 		inline uint32 get_capacity() const
 		{
 			return m_create_args.m_capacity;

@@ -22,6 +22,7 @@ namespace influx::shader
 	enum class e_shader_target : uint8
 	{
 		_6_2,
+		_6_6,
 		count
 	};
 

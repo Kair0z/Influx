@@ -27,11 +27,19 @@ namespace influx::renderer
 
 		// create the underlying resource
 		mp_resource = device->create_resource(desc);
+
+		// create srv:
+		mp_srv = device->create_srv(renderer_backend::get_descriptor_manager()->get_srv_heap(), mp_resource);
 	}
 
 	graphics::resource* texture::get_resource() const
 	{
 		return mp_resource;
+	}
+
+	graphics::shader_resource_view* texture::get_srv() const
+	{
+		return mp_srv;
 	}
 
 	uint32 texture::get_width() const
@@ -47,6 +55,11 @@ namespace influx::renderer
 	uint32 texture::get_num_pixels() const
 	{
 		return get_width() * get_height();
+	}
+
+	uint32 texture::get_srv_heap_idx() const
+	{
+		return renderer_backend::get_descriptor_manager()->get_srv_heap_gpu_idx(mp_srv->get_gpu_handle());
 	}
 
 #if _DEBUG
@@ -80,15 +93,6 @@ namespace influx::renderer
 			desc.m_sample_count = 1u;
 			mp_resource = mp_device->create_resource(desc);
 		}
-	}
-
-	graphics::shader_resource_view* texture::update_srv()
-	{
-		const auto& pair = renderer_backend::get_instance().get_descriptor_manager()->allocate_srv(1u)[0u];
-
-		mp_srv = mp_device->create_srv(pair.m_cpu_handle, pair.m_gpu_handle, mp_resource);
-
-		return mp_srv;
 	}
 
 	bool texture_data::is_valid() const

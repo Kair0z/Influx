@@ -23,6 +23,7 @@ namespace influx::shader
 		switch (target)
 		{
 		case e_shader_target::_6_2: result += L"6_2"; break;
+		case e_shader_target::_6_6: result += L"6_6"; break;
 		}
 
 		return result;

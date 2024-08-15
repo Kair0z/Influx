@@ -51,6 +51,7 @@ namespace influx::renderer
 		uint32 get_width() const;
 		uint32 get_height() const;
 		uint32 get_num_pixels() const;
+		uint32 get_srv_heap_idx() const;
 
 #if _DEBUG
 		void set_name(const string& name);
@@ -63,8 +64,6 @@ namespace influx::renderer
 
 		// re-allocates graphics resource
 		void resize(const math::vectoru2& new_dimensions);
-
-		graphics::shader_resource_view* update_srv();
 
 		graphics::resource* mp_resource;
 		graphics::shader_resource_view* mp_srv;

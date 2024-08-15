@@ -378,7 +378,7 @@ namespace influx::renderer
 
     texture* renderer_backend::create_texture(const texture_create_args& args)
     {
-        texture* new_texture = new texture(mp_device, mp_desc_manager->get_srv_heap(), args);
+        texture* new_texture = new texture(mp_device, args);
         m_textures.push_back(new_texture);
         return new_texture;
     }

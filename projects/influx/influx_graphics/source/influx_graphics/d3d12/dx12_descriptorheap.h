@@ -18,6 +18,9 @@ namespace influx::graphics
 		virtual void free_cpu(descriptor_handle handle) override;
 		virtual void free_gpu(descriptor_handle handle) override;
 
+		virtual uint32 get_heap_index_cpu(descriptor_handle handle) const override;
+		virtual uint32 get_heap_index_gpu(descriptor_handle handle) const override;
+
 	private:
 		ID3D12DescriptorHeap* mpdx_heap;
 		uint64 m_descriptor_stride;

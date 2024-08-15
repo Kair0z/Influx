@@ -47,7 +47,7 @@ namespace influx::application
 			assets::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"];
 
 			shader::compile_args compile_args{};
-			compile_args.m_target = shader::e_shader_target::_6_2;
+			compile_args.m_target = shader::e_shader_target::_6_6;
 			compile_args.m_compile_debug = (_DEBUG) ? true : false;
 			compile_args.m_pbd = false;
 			compile_args.m_reflection = true;

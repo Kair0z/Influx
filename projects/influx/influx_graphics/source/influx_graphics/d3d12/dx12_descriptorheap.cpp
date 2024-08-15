@@ -38,6 +38,24 @@ namespace influx::graphics
 		m_freelist_gpu.push_back(handle);
 	}
 
+	uint32 dx12_descriptor_heap::get_heap_index_cpu(descriptor_handle handle) const
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE cpu_base = mpdx_heap->GetCPUDescriptorHandleForHeapStart();
+		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
+		cpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
+
+		return (uint32)(cpu_handle.ptr - cpu_base.ptr);
+	}
+
+	uint32 dx12_descriptor_heap::get_heap_index_gpu(descriptor_handle handle) const
+	{
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_base = mpdx_heap->GetGPUDescriptorHandleForHeapStart();
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
+		gpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
+
+		return (uint32)(gpu_handle.ptr - gpu_base.ptr);
+	}
+
 	void dx12_descriptor_heap::clear()
 	{
 		m_freelist_cpu.clear();

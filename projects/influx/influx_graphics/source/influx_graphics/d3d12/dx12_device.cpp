@@ -390,6 +390,11 @@ namespace influx::graphics
 
 		// initialize the desc, and create the root signature
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+
+		// flag direct indexing enabled/disabled
+		rootSignatureDesc.Desc_1_1.Flags = desc.m_direct_indexing
+			? (D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED) : D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
 		rootSignatureDesc.Init_1_1(
 			(uint32)root_parameters.size(), root_parameters.data(), 
 			(uint32)static_samplers.size(), static_samplers.data(), 
