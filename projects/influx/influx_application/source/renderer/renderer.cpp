@@ -158,6 +158,7 @@ namespace influx::application
 		}
 
 		// load shaders into renderer
+#if 0
 		for (const auto& asset : cont_man->get_shaders())
 		{
 			const assets::shader_data& shader = asset.second;
@@ -170,6 +171,21 @@ namespace influx::application
 
 			influx::renderer::load(name, shader_data);
 		}
+#else
+		const assets::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs");
+		const assets::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps");
+
+		influx::renderer::shader_data shader_data{};
+		shader_data.m_bytecode = vs_shader.m_compile_result.m_bytecode;
+		shader_data.m_type = vs_shader.m_type;
+		shader_data.m_reflection = vs_shader.m_compile_result.m_reflection;
+		influx::renderer::load("shaders_vs", shader_data);
+
+		shader_data.m_bytecode = ps_shader.m_compile_result.m_bytecode;
+		shader_data.m_type = ps_shader.m_type;
+		shader_data.m_reflection = ps_shader.m_compile_result.m_reflection;
+		influx::renderer::load("shaders_ps", shader_data);
+#endif
 
 		// load textures into renderer
 		for (const auto& asset : cont_man->get_images())

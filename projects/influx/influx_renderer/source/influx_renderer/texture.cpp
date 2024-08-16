@@ -29,7 +29,7 @@ namespace influx::renderer
 		mp_resource = device->create_resource(desc);
 
 		// create srv:
-		mp_srv = device->create_srv(renderer_backend::get_descriptor_manager()->get_srv_heap(), mp_resource);
+		// mp_srv = device->create_srv(renderer_backend::get_descriptor_manager()->get_srv_heap(), mp_resource);
 	}
 
 	graphics::resource* texture::get_resource() const
@@ -59,7 +59,7 @@ namespace influx::renderer
 
 	uint32 texture::get_srv_heap_idx() const
 	{
-		return renderer_backend::get_descriptor_manager()->get_srv_heap_gpu_idx(mp_srv->get_gpu_handle());
+		return 0u;
 	}
 
 #if _DEBUG

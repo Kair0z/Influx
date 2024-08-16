@@ -6,6 +6,7 @@ struct vs_input
     float3 normal : NORMAL;
     float2 texcoord : TEXCOORD;
 };
+
 struct ps_input
 {
     float4 position : SV_POSITION;
@@ -57,34 +58,19 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID )
     return output;
 }
 
-struct global_constants
-{
-
-};
-struct global_table
-{
-    Texture2D tex_random;
-    ConstantBuffer<global_constants> constants;
-    SamplerState samp_default;
-};
-global_table g_table_global;
-
-struct material_table
-{
-    Texture2D tex_albedo;
-    Texture2D tex_normal;
-};
-material_table g_table_material;
-
 [shader("pixel")]
 float4 PSMain ( ps_input input ) : SV_TARGET
 {
     float3 lightDir = float3(-0.5,-0.5,-0.5);
 
-    SamplerState thesampler = g_table_global.samp_default;
+    Texture2D tex_albedo = ResourceDescriptorHeap[_perframe_ps.albedo_slotidx];
+    Texture2D tex_normal = ResourceDescriptorHeap[_perframe_ps.normals_slotidx];
+    Texture2D tex_other = ResourceDescriptorHeap[_perframe_ps.other_slotidx];
+    SamplerState default_sampler = SamplerDescriptorHeap[_perframe_ps.sampler_slotidx];
 
-    float4 albedo = g_table_material.tex_albedo.Sample(thesampler, input.texcoord).rgba;
-    float3 normal = g_table_material.tex_normal.Sample(thesampler, input.texcoord).rgb;
+    float4 albedo = tex_albedo.Sample(default_sampler, input.texcoord).rgba;
+    float3 normal = tex_normal.Sample(default_sampler, input.texcoord).rgb;
+    float3 other = tex_other.Sample(default_sampler, input.texcoord).rgb;
 
     float ambient = 0.2f;
     float diffuse = max(ambient,dot(normalize(normal), normalize(lightDir)));

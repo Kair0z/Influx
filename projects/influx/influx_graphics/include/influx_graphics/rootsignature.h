@@ -250,6 +250,14 @@ namespace influx::graphics
 			m_resource_tables.back().m_common.m_name = name;
 		}
 
+		inline void name_last_sampler(const string& name)
+		{
+			if (m_static_samplers.empty())
+				return;
+
+			m_static_samplers.back().m_common.m_name = name;
+		}
+
 		vector<root_param_constants> m_constants;
 		vector<root_param_resource> m_resources;
 		vector<root_param_resource_table> m_resource_tables;

@@ -38,7 +38,6 @@ namespace influx::renderer
                     rootsig_desc.name_last_constants(resource.m_name);
                     break;
 
-                // textures are always located in a shader resource table!
                 case shader::reflection::resource::e_type::texture:
                     rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
                         resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
@@ -47,6 +46,7 @@ namespace influx::renderer
 
                 case shader::reflection::resource::e_type::sampler:
                     rootsig_desc.add_root_sampler(resource.m_shader_register, resource.m_register_space, shader_vis);
+                    rootsig_desc.name_last_sampler(resource.m_name);
                     break;
                 }
             };
