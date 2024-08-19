@@ -1,12 +1,61 @@
 #include "influx_shader.h"
 
+#include "core/file.h"
+#include "core/container/map.h"
+
 // dx12 compiler
 #include <d3dcompiler.h>
 #include <dxcapi.h>
 #pragma comment (lib, "dxcompiler.lib")
 
+// global dxc utils
+static inline IDxcUtils* get_utils()
+{
+	static IDxcUtils* g_pUtils = nullptr;
+	if (g_pUtils == nullptr)
+	{
+		HRESULT res = ::DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&g_pUtils));
+	}
+	return g_pUtils;
+}
+
 namespace influx::shader
 {
+	class influx_include_handler : public IDxcIncludeHandler
+	{
+	public:
+		HRESULT STDMETHODCALLTYPE LoadSource(_In_ LPCWSTR pFilename, _COM_Outptr_result_maybenull_ IDxcBlob** ppIncludeSource) override
+		{
+			IDxcBlobEncoding* pEncoding;
+			string filename = file(to_string(pFilename)).m_filename;
+			
+			if (m_included_map.contains(filename))
+			{
+				// Return empty string blob if this file has been included before
+				static const char nullStr[] = " ";
+				get_utils()->CreateBlobFromPinned(nullStr, ARRAYSIZE(nullStr), DXC_CP_ACP, &pEncoding);
+				*ppIncludeSource = pEncoding;
+				return S_OK;
+			}
+
+			// load the file and return the file as source
+			HRESULT hr = get_utils()->LoadFile(pFilename, nullptr, &pEncoding);
+			if (SUCCEEDED(hr))
+			{
+				m_included_map[filename] = filename;
+				*ppIncludeSource = pEncoding;
+			}
+			return hr;
+		}
+
+		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, _COM_Outptr_ void __RPC_FAR* __RPC_FAR* ppvObject) override { return E_NOINTERFACE; }
+		ULONG STDMETHODCALLTYPE AddRef(void) override { return 0; }
+		ULONG STDMETHODCALLTYPE Release(void) override { return 0; }
+
+	private:
+		umap<string, string> m_included_map{};
+	};
+
 	inline static wstring make_shader_type_wstring(e_shader_type type, e_shader_target target)
 	{
 		wstring result{};
@@ -122,9 +171,6 @@ namespace influx::shader
 	inline compile_output compile_shader_dxcbuffer(const DxcBuffer& buffer, const compile_args& args)
 	{
 		HRESULT result{};
-		IDxcUtils* pUtils;
-		result = ::DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
-
 		compile_output output = {};
 
 		// https://simoncoenen.com/blog/programming/graphics/DxcCompiling
@@ -142,10 +188,13 @@ namespace influx::shader
 
 		//-T for the target profile (eg. ps_6_2)
 		arguments.push_back(L"-T");
-
 		wstring target_profile = make_shader_type_wstring(args.m_type, args.m_target);
 		arguments.push_back(target_profile.c_str());
+
 		arguments.push_back(L"dxc -help | findstr Version");
+
+		// add include folder
+		arguments.push_back(L"-I D:/Git/Influx/Resources/Shaders/include/");
 
 		// Strip reflection data and pdbs (see later)
 		// "The compiler will strip both the shader PDBs and reflection data from the Object part"
@@ -164,18 +213,21 @@ namespace influx::shader
 			arguments.push_back(to_wstring(define).c_str());
 		}
 		
+		influx_include_handler include_handler{};
+
 		// COMPILE
 		IDxcResult* pCompileResult;
 		result = pCompiler->Compile(&buffer, arguments.data(),
-			(uint32)arguments.size(), nullptr, IID_PPV_ARGS(&pCompileResult));
+			(uint32)arguments.size(), &include_handler, IID_PPV_ARGS(&pCompileResult));
 
 		// [OUTPUT: COMPILE ERRORS]
 		IDxcBlobUtf8* pErrors = nullptr;
 		result = pCompileResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
 		if (pErrors && pErrors->GetStringLength() > 0)
 		{
-			// Do something with... (char*)pErrors->GetBufferPointer()
 			printf(((char*)pErrors->GetBufferPointer()));
+			printf("\n");
+			influx_assert(false);
 
 			// logerr("influx_assets::load_shader_file() failed!");
 			return output;
@@ -187,16 +239,17 @@ namespace influx::shader
 		result = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugData), &pDebugDataPath);
 
 		// [OUTPUT: ROOT SIGNATURE]
-#if 0
-		IDxcBlob* pRootSignature = nullptr;
-		IDxcBlobUtf16* pRootSignatureDataPath = nullptr;
-		result = pCompileResult->GetOutput(DXC_OUT_ROOT_SIGNATURE, IID_PPV_ARGS(&pRootSignature), &pRootSignatureDataPath);
-		if (pRootSignature)
+		if (false)
 		{
+			IDxcBlob* pRootSignature = nullptr;
+			IDxcBlobUtf16* pRootSignatureDataPath = nullptr;
+			result = pCompileResult->GetOutput(DXC_OUT_ROOT_SIGNATURE, IID_PPV_ARGS(&pRootSignature), &pRootSignatureDataPath);
+			if (pRootSignature)
+			{
 
+			}
 		}
-#endif
-
+		
 		// [OUTPUT: REFLECTION DATA]
 		if (args.m_reflection)
 		{
@@ -210,7 +263,7 @@ namespace influx::shader
 				reflectionBuffer.Size = pReflectionData->GetBufferSize();
 				reflectionBuffer.Encoding = 0;
 
-				result = pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&pShaderReflection));
+				result = get_utils()->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&pShaderReflection));
 				output.m_reflection = reflect_shader(pShaderReflection);
 			}
 		}
@@ -232,15 +285,12 @@ namespace influx::shader
 
 	compile_output compile_shader(const string& filepath, const compile_args& args)
 	{
-		// create the Dxc Utils
 		HRESULT result{};
-		IDxcUtils* pUtils;
-		result = ::DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
-
+		
 		// load the file
 		wstring wfilepath = to_wstring(filepath);
 		IDxcBlobEncoding* pShaderSourceFile;
-		result = pUtils->LoadFile(wfilepath.c_str(), nullptr, &pShaderSourceFile);
+		result = get_utils()->LoadFile(wfilepath.c_str(), nullptr, &pShaderSourceFile);
 
 		DxcBuffer sourceBuffer;
 		sourceBuffer.Ptr = pShaderSourceFile->GetBufferPointer();
