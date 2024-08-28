@@ -490,6 +490,21 @@ namespace influx::graphics
 		return new dx12_pipeline(dxpipeline, desc);
 	}
 
+	void dx12_device::copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE source_start{};
+		source_start.ptr = (SIZE_T)source.m_start;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE dest_start{};
+		dest_start.ptr = (SIZE_T)dest.m_start;
+
+		mpdx_devices[0]->CopyDescriptorsSimple(
+			source.m_num_descriptors,
+			dest_start,
+			source_start,
+			convert(heap_type));
+	}
+
 	void* dx12_device::get_native()
 	{
 		return mpdx_devices[0u];

@@ -376,6 +376,14 @@ namespace influx::renderer
         }
     }
 
+    void renderer_backend::load(const string& title, const material& data)
+    {
+        if (m_materials.contains(title))
+            return;
+
+        m_materials[title] = data;
+    }
+
     texture* renderer_backend::create_texture(const texture_create_args& args)
     {
         texture* new_texture = new texture(mp_device, args);
@@ -386,6 +394,19 @@ namespace influx::renderer
     const vector<texture*>& renderer_backend::get_textures() const
     {
         return m_textures;
+    }
+
+    const umap<string, material> renderer_backend::get_materials() const
+    {
+        return m_materials;
+    }
+
+    const material* renderer_backend::get_material(const string& name) const
+    {
+        if (m_materials.contains(name))
+            return &m_materials.at(name);
+
+        return nullptr;
     }
 
     void renderer_backend::upload_texture_data(texture* target_tex, const texture_data& data)
@@ -476,6 +497,11 @@ namespace influx::renderer
     }
 
     void load(const string& title, const shader_data& data)
+    {
+        renderer_backend::get_instance().load(title, data);
+    }
+
+    void load(const string& title, const material& data)
     {
         renderer_backend::get_instance().load(title, data);
     }

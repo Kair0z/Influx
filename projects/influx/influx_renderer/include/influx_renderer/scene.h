@@ -5,6 +5,8 @@
 #include "core/string.h"
 #include "core/container/vector.h"
 
+#include "core/math/colour.h"
+
 namespace influx::renderer
 {
 	struct camera final
@@ -37,5 +39,18 @@ namespace influx::renderer
 
 		vector<mesh_instance> m_meshes = {};
 		camera m_camera = {};
+	};
+
+	struct material final
+	{
+		// shaders?
+
+		// variables:
+		math::colour_rgba m_basecolor;
+
+		// textures:
+		string m_tex_albedo;
+		string m_tex_normal;
+		string m_tex_roughness;
 	};
 }

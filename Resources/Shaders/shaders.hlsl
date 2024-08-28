@@ -1,7 +1,5 @@
-
 #include "common.hlsli"
 
-[RootSignature(INFLUX_DEFAULT_ROOTSIGNATURE)]
 [shader("vertex")]
 ps_input VSMain ( vs_input input, uint vID : SV_VertexID )
 {
@@ -15,7 +13,6 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID )
     return output;
 }
 
-[RootSignature(INFLUX_DEFAULT_ROOTSIGNATURE)]
 [shader("pixel")]
 float4 PSMain ( ps_input input ) : SV_TARGET
 {

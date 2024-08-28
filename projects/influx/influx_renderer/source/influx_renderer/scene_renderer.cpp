@@ -10,13 +10,25 @@
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/resource.h"
 #include "influx_graphics/resource_views.h"
+#include "influx_graphics/device.h"
 
 namespace influx::renderer
 {
     scene_renderer::scene_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
         : mp_pipeline{ pipeline }
         , mp_backend{ backend }
+        , mp_device{ device }
     {
+        const uint32 num_descriptors = 4u;
+
+        graphics::descriptor_heap::create_args args{};
+        args.m_capacity = num_descriptors;
+        args.m_shader_visible = true;
+        args.m_type = graphics::e_descriptor_heap_type::srv;
+        mp_srv_heap_gpu = device->create_descriptor_heap(args);
+
+        // allocate 4 gpu descriptors
+        m_srv_gpu_range = mp_srv_heap_gpu->allocate_range_gpu(num_descriptors);
     }
 
     void scene_renderer::render(graphics::command_list* commandlist, const scene& scene, const target& target)
@@ -49,6 +61,10 @@ namespace influx::renderer
         mp_pipeline->set_texture(commandlist, "_textures", a_texture);
         mp_pipeline->set_constants(commandlist, "_perframe_ps", m_ps_constants);
 
+        // copy cpu srv range into the gpu shader visible descriptor heap
+        mp_device->copy_descriptors({}, m_srv_gpu_range, graphics::e_descriptor_heap_type::srv);
+        commandlist->set(mp_srv_heap_gpu);
+
         graphics::resource* index_buffer;
         graphics::resource* vertex_buffer;
 
@@ -57,40 +73,50 @@ namespace influx::renderer
         {
             influx_assert(mp_backend->get_mesh_buffers(mesh_name, vertex_buffer, index_buffer));
 
-            // gather instances
-            vector<gpu_instance_data> instances{};
-            instances.reserve(scene.m_meshes.size());
+            // gather instances per material
+            umap<string, vector<gpu_instance_data>> instances_per_material{};
             for (const mesh_instance& instance : scene.m_meshes)
             {
                 if (instance.m_name == mesh_name)
                 {
+                    // convert to gpu_instance_data
                     gpu_instance_data instance_data{};
                     instance_data.m_transform = instance.m_transform;
                     instance_data.m_colour = instance.m_per_instance_colour;
-                    instances.push_back(instance_data);
+                    instances_per_material[instance.m_material_name].push_back(instance_data);
                 }
             }
 
-            // render instances
-            if (instances.size() > 0u)
+            // render instances per material
+            for (const auto& pair : instances_per_material)
             {
-                m_vs_constants.m_mvp = instances[0u].m_transform * mat_view * mat_proj;
-                mp_pipeline->set_constants(commandlist, "_perframe_vs", m_vs_constants);
+                const string& material_name = pair.first;
+                const vector<gpu_instance_data>& instances = pair.second;
 
-                const uint32 num_vertices = (uint32)vertex_buffer->get_bytesize() / (uint32)vertex_buffer->get_bytestride();
-                const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
+                // find the material
+                const material* material = mp_backend->get_material(material_name);
 
-                commandlist->set_indexbuffer(index_buffer);
-                commandlist->set_vertexbuffer(vertex_buffer);
-                commandlist->draw_indexed(
+                if (instances.size() > 0u && material != nullptr)
                 {
-                    .m_num_indexes_per_instance = num_indices,
-                    .m_num_instances = (uint32)instances.size(),
-                    .m_start_index = 0u,
-                    .m_start_vertex = 0,
-                    .m_start_instance = 0u
-                });
+                    m_vs_constants.m_mvp = instances[0u].m_transform * mat_view * mat_proj;
+                    mp_pipeline->set_constants(commandlist, "_perframe_vs", m_vs_constants);
+
+                    const uint32 num_vertices = (uint32)vertex_buffer->get_bytesize() / (uint32)vertex_buffer->get_bytestride();
+                    const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
+
+                    commandlist->set_indexbuffer(index_buffer);
+                    commandlist->set_vertexbuffer(vertex_buffer);
+                    commandlist->draw_indexed(
+                    {
+                        .m_num_indexes_per_instance = num_indices,
+                        .m_num_instances = (uint32)instances.size(),
+                        .m_start_index = 0u,
+                        .m_start_vertex = 0,
+                        .m_start_instance = 0u
+                    });
+                }
             }
+            
         }
     }
 }

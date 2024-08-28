@@ -95,4 +95,6 @@ namespace influx::renderer
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
 
 	INFLUX_RENDER_API void load(const string& title, const shader_data& data);
+
+	INFLUX_RENDER_API void load(const string& title, const material& data);
 }

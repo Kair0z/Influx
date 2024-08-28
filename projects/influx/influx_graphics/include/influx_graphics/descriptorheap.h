@@ -15,6 +15,13 @@ namespace influx::graphics
 
 	using descriptor_handle = void*;
 
+	// continuous range of descriptors
+	struct descriptor_range final
+	{
+		descriptor_handle m_start;
+		uint32 m_num_descriptors;
+	};
+
 	class descriptor_heap : public base
 	{
 	public:
@@ -31,11 +38,34 @@ namespace influx::graphics
 
 			e_descriptor_heap_type m_type{};
 			uint32 m_capacity{};
-			bool m_shader_visible;
+			bool m_shader_visible = false;
 		};
 
 		virtual descriptor_handle allocate_cpu() = 0;
 		virtual descriptor_handle allocate_gpu() = 0;
+		
+		inline descriptor_range allocate_range_cpu(uint32 num_descriptors)
+		{
+			descriptor_range range{};
+			range.m_start = allocate_cpu();
+			range.m_num_descriptors = num_descriptors;
+			for (uint32 i = 0u; i < num_descriptors - 1u; ++i)
+			{
+				allocate_cpu();
+			}
+			return range;
+		}
+		inline descriptor_range allocate_range_gpu(uint32 num_descriptors)
+		{
+			descriptor_range range{};
+			range.m_start = allocate_gpu();
+			range.m_num_descriptors = num_descriptors;
+			for (uint32 i = 0u; i < num_descriptors - 1u; ++i)
+			{
+				allocate_gpu();
+			}
+			return range;
+		}
 
 		virtual void free_cpu(descriptor_handle handle) = 0;
 		virtual void free_gpu(descriptor_handle handle) = 0;

@@ -5,6 +5,7 @@ namespace influx::graphics
 {
 	class device;
 	class command_list;
+	class descriptor_heap;
 }
 
 namespace influx::renderer
@@ -50,7 +51,9 @@ namespace influx::renderer
 	private:
 		renderer_backend* mp_backend;
 		pipeline* mp_pipeline;
-
+		graphics::device* mp_device;
+		graphics::descriptor_heap* mp_srv_heap_gpu;
+		graphics::descriptor_range m_srv_gpu_range;
 		gpu_vs_constants m_vs_constants;
 		gpu_ps_constants m_ps_constants;
 	};
