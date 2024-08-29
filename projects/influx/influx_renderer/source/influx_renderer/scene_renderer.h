@@ -7,6 +7,7 @@ namespace influx::graphics
 	class command_list;
 	class descriptor_heap;
 	class resource;
+	class shader_resource_view;
 }
 
 namespace influx::renderer
@@ -90,6 +91,7 @@ namespace influx::renderer
 		pipeline* mp_pipeline;
 		graphics::device* mp_device;
 		graphics::resource* mp_instancebuffer;
+		graphics::shader_resource_view* mp_instance_buffer_srv;
 
 		gpu_vs_constants m_vs_constants;
 		gpu_ps_constants m_ps_constants;

@@ -34,6 +34,7 @@ namespace influx::renderer
 		graphics::render_target_view* create_rtv(graphics::resource* resource);
 		graphics::depth_stencil_view* create_dsv(graphics::resource* resource);
 		graphics::shader_resource_view* create_srv(graphics::resource* resource);
+		graphics::shader_resource_view* create_buffer_srv(graphics::resource* resource);
 
 		// stages descriptors into the appropriate shader-visible descriptor heap
 		// and returns the address of that range of descriptors

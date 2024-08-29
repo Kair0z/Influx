@@ -103,6 +103,11 @@ namespace influx::renderer
 		return mp_device->create_srv(mp_srv_heap, resource);
 	}
 
+	graphics::shader_resource_view* descriptor_manager::create_buffer_srv(graphics::resource* resource)
+	{
+		return mp_device->create_buffer_srv(mp_srv_heap, resource);
+	}
+
 	graphics::descriptor_range descriptor_manager::stage(const vector<graphics::descriptor_handle>& cpu_descriptors)
 	{
 		graphics::descriptor_range gpu_range{};

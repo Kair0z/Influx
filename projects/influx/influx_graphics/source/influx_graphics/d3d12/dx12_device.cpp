@@ -252,6 +252,33 @@ namespace influx::graphics
 		return new dx12_shader_resource_view(dxcpu_descriptor, dxgpu_descriptor);
 	}
 
+	shader_resource_view* dx12_device::create_buffer_srv(descriptor_heap* srv_heap, resource* resource)
+	{
+		// allocate new srv descriptors
+		descriptor_handle cpu_handle = srv_heap->allocate_cpu();
+		return create_buffer_srv(cpu_handle, {}, resource);
+	}
+
+	shader_resource_view* dx12_device::create_buffer_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { (size_t)(cpu_handle) };
+		D3D12_GPU_DESCRIPTOR_HANDLE dxgpu_descriptor = { (size_t)(gpu_handle) };
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srv_desc.Format = DXGI_FORMAT_UNKNOWN;
+		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srv_desc.Buffer.NumElements = resource->get_num_elements();
+		srv_desc.Buffer.StructureByteStride = resource->get_bytestride();
+		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+		mpdx_devices[0u]->CreateShaderResourceView(
+			resource->get_native<ID3D12Resource>(),
+			&srv_desc, dxcpu_descriptor);
+
+		return new dx12_shader_resource_view(dxcpu_descriptor, dxgpu_descriptor);
+	}
+
 	sampler_view* dx12_device::create_sampview(descriptor_heap* samp_heap, resource* resource)
 	{
 		ID3D12DescriptorHeap* heap = samp_heap->get_native<ID3D12DescriptorHeap>();

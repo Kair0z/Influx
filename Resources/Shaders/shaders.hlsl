@@ -6,7 +6,7 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_I
     ps_input output = (ps_input)0;
     per_instance_data instance_data = g_instancebuffer[instanceID];
 
-    float4x4 mvp = instance_data.mat_transform * g_perframe_vs.mat_vp;
+    float4x4 mvp = g_perframe_vs.mat_vp * instance_data.mat_transform;
     output.position = mul( mvp, float4 ( input.position, 1.0f ) );
 
     output.worldPos = input.position;

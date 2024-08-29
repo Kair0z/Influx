@@ -30,7 +30,8 @@ namespace influx::renderer
         desc.m_init_state = graphics::e_resource_state::read;
         mp_instancebuffer = device->create_resource(desc, heap_desc);
 
-        backend->get_descriptor_manager()->create_srv(mp_instancebuffer);
+        // create srv
+        mp_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
     }
 
     scene_renderer::~scene_renderer()
@@ -139,6 +140,15 @@ namespace influx::renderer
     {
         renderer_backend& backend = renderer_backend::get_instance();
 
+        // stage the instance buffer
+        {
+            graphics::descriptor_range gpu_range =
+                backend.get_descriptor_manager()->stage(mp_instance_buffer_srv->get_cpu_handle());
+
+            // set the resource table
+            mp_pipeline->set_resource_table(commandlist, "g_instancebuffer", gpu_range);
+        }
+        
         for (const batch& batch : batches)
         {
             material* material = batch.get_material();
@@ -200,7 +210,7 @@ namespace influx::renderer
         const math::matrix4x4f mat_view = transform.get_matrix().inverted();
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
         m_vs_constants.m_vp = mat_view * mat_proj;
-        m_vs_constants.m_mvp = mat_view * mat_proj;
+        m_vs_constants.m_mvp = m_vs_constants.m_vp;
         m_ps_constants.m_delta_seconds = 0.0f;
         m_ps_constants.m_seconds = 0.0f;
         mp_pipeline->set_constants(commandlist, "g_perframe_vs", m_vs_constants);
