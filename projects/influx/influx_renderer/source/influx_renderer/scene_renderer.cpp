@@ -19,16 +19,6 @@ namespace influx::renderer
         , mp_backend{ backend }
         , mp_device{ device }
     {
-        const uint32 num_descriptors = 4u;
-
-        graphics::descriptor_heap::create_args args{};
-        args.m_capacity = num_descriptors;
-        args.m_shader_visible = true;
-        args.m_type = graphics::e_descriptor_heap_type::srv;
-        mp_srv_heap_gpu = device->create_descriptor_heap(args);
-
-        // allocate 4 gpu descriptors
-        m_srv_gpu_range = mp_srv_heap_gpu->allocate_range_gpu(num_descriptors);
     }
 
     void scene_renderer::render(graphics::command_list* commandlist, const scene& scene, const target& target)
@@ -57,13 +47,9 @@ namespace influx::renderer
         const math::matrix4x4f mat_view = transform.get_matrix().inverted();
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
 
-        const texture& a_texture = *mp_backend->get_textures()[0u];
-        mp_pipeline->set_texture(commandlist, "_textures", a_texture);
-        mp_pipeline->set_constants(commandlist, "_perframe_ps", m_ps_constants);
+        renderer_backend::get_descriptor_manager()->start_commandlist(commandlist);
 
-        // copy cpu srv range into the gpu shader visible descriptor heap
-        mp_device->copy_descriptors({}, m_srv_gpu_range, graphics::e_descriptor_heap_type::srv);
-        commandlist->set(mp_srv_heap_gpu);
+        mp_pipeline->set_constants(commandlist, "g_perframe_ps", m_ps_constants);
 
         graphics::resource* index_buffer;
         graphics::resource* vertex_buffer;
@@ -83,7 +69,9 @@ namespace influx::renderer
                     gpu_instance_data instance_data{};
                     instance_data.m_transform = instance.m_transform;
                     instance_data.m_colour = instance.m_per_instance_colour;
-                    instances_per_material[instance.m_material_name].push_back(instance_data);
+
+                    const string& material_name = instance.m_material_name.empty() ? "none" : instance.m_material_name;
+                    instances_per_material[material_name].push_back(instance_data);
                 }
             }
 
@@ -95,11 +83,24 @@ namespace influx::renderer
 
                 // find the material
                 const material* material = mp_backend->get_material(material_name);
-
                 if (instances.size() > 0u && material != nullptr)
                 {
+                    // find the material textures
+                    vector<graphics::descriptor_handle> material_textures(4u);
+                    material_textures[0] = mp_backend->get_texture(material->m_tex_albedo)->get_srv()->get_cpu_handle();
+                    material_textures[1] = mp_backend->get_texture(material->m_tex_normal)->get_srv()->get_cpu_handle();
+                    material_textures[2] = mp_backend->get_texture(material->m_tex_roughness)->get_srv()->get_cpu_handle();
+                    material_textures[3] = mp_backend->get_texture(material->m_tex_special)->get_srv()->get_cpu_handle();
+
+                    // stage the descriptors onto the gpu-visible heap
+                    graphics::descriptor_range gpu_range =
+                        renderer_backend::get_descriptor_manager()->stage(material_textures);
+
+                    // set the resource table
+                    mp_pipeline->set_resource_table(commandlist, "g_textures", gpu_range);
+
                     m_vs_constants.m_mvp = instances[0u].m_transform * mat_view * mat_proj;
-                    mp_pipeline->set_constants(commandlist, "_perframe_vs", m_vs_constants);
+                    mp_pipeline->set_constants(commandlist, "g_perframe_vs", m_vs_constants);
 
                     const uint32 num_vertices = (uint32)vertex_buffer->get_bytesize() / (uint32)vertex_buffer->get_bytestride();
                     const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();

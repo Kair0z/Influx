@@ -45,6 +45,8 @@ namespace influx::graphics
 
 		virtual void set(shader_resource_view* srv, uint32 param_idx) override;
 
+		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) override;
+
 		virtual void set(rootsignature* rootsig) override;
 
 		virtual void set(pipeline* pipeline) override;

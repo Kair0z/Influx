@@ -12,16 +12,38 @@ namespace influx::renderer
 	constexpr static uint64 k_max_num_samplers = 2048u;
 	constexpr static uint64 k_max_num_dsvs = 64u;
 
+	void descriptor_manager::start_frame()
+	{
+		
+	}
+
+	void descriptor_manager::start_commandlist(graphics::command_list* commandlist)
+	{
+		commandlist->set(mp_samp_gpu_heap);
+		commandlist->set(mp_srv_gpu_heap);
+	}
+
+	void descriptor_manager::end_frame()
+	{
+		mp_srv_gpu_heap->free_all_cpu();
+		mp_srv_gpu_heap->free_all_gpu();
+		
+		mp_samp_gpu_heap->free_all_cpu();
+		mp_samp_gpu_heap->free_all_gpu();
+	}
+
 	descriptor_manager::descriptor_manager(graphics::device* device)
-		: m_samp_heap{}
-		, mp_dsv_heap{}
-		, mp_rtv_heap{}
-		, m_srv_heap{}
+		: mp_device{ device }
 	{
 		using namespace influx::graphics;
 
+		// CPU heaps:
+		graphics::descriptor_heap::create_args create_args{};
+		create_args.m_shader_visible = false;
+
 		// rtv heap
-		graphics::descriptor_heap::create_args create_args{e_descriptor_heap_type::rtv, k_max_num_rtvs, false };
+		create_args.m_capacity = k_max_num_rtvs;
+		create_args.m_type = e_descriptor_heap_type::rtv;
 		mp_rtv_heap = device->create_descriptor_heap(create_args);
 
 		// dsv heap
@@ -32,85 +54,79 @@ namespace influx::renderer
 		// srv heap
 		create_args.m_type = e_descriptor_heap_type::srv;
 		create_args.m_capacity = k_max_num_srvs;
-		create_args.m_shader_visible = false;
-		m_srv_heap.mp_cpu_heap = device->create_descriptor_heap(create_args);
-
-		create_args.m_capacity = 128u;
-		create_args.m_shader_visible = true;
-		m_srv_heap.mp_online_heap = device->create_descriptor_heap(create_args);
+		mp_srv_heap = device->create_descriptor_heap(create_args);
 
 		// sampler heap
 		create_args.m_type = e_descriptor_heap_type::sampler;
 		create_args.m_capacity = k_max_num_samplers;
-		create_args.m_shader_visible = false;
-		m_samp_heap.mp_cpu_heap = device->create_descriptor_heap(create_args);
+		mp_sampler_heap = device->create_descriptor_heap(create_args);
 
-		create_args.m_capacity = k_max_num_samplers;
+		// GPU heaps
 		create_args.m_shader_visible = true;
-		m_samp_heap.mp_online_heap = device->create_descriptor_heap(create_args);
+
+		// sampler heap
+		create_args.m_type = e_descriptor_heap_type::sampler;
+		create_args.m_capacity = 8u;
+		mp_samp_gpu_heap = device->create_descriptor_heap(create_args);
+
+		// srv heap
+		create_args.m_type = e_descriptor_heap_type::srv;
+		create_args.m_capacity = 12u;
+		mp_srv_gpu_heap = device->create_descriptor_heap(create_args);
 	}
 
 	descriptor_manager::~descriptor_manager()
 	{
 		delete mp_rtv_heap;
-		delete m_samp_heap.mp_cpu_heap;
-		delete m_samp_heap.mp_online_heap;
 		delete mp_dsv_heap;
-		delete m_srv_heap.mp_cpu_heap;
-		delete m_srv_heap.mp_online_heap;
+		delete mp_srv_heap;
+		delete mp_sampler_heap;
+
+		delete mp_samp_gpu_heap;
+		delete mp_srv_gpu_heap;
 	}
 
-	graphics::descriptor_heap* descriptor_manager::get_rtv_heap() const
+	graphics::render_target_view* descriptor_manager::create_rtv(graphics::resource* resource)
 	{
-		return get_heap(graphics::e_descriptor_heap_type::rtv);
+		return mp_device->create_rtv(mp_rtv_heap, resource);
 	}
 
-	graphics::descriptor_heap* descriptor_manager::get_samp_heap() const
+	graphics::depth_stencil_view* descriptor_manager::create_dsv(graphics::resource* resource)
 	{
-		return get_heap(graphics::e_descriptor_heap_type::sampler);
+		return mp_device->create_dsv(mp_dsv_heap, resource);
 	}
 
-	graphics::descriptor_heap* descriptor_manager::get_srv_heap() const
+	graphics::shader_resource_view* descriptor_manager::create_srv(graphics::resource* resource)
 	{
-		return get_heap(graphics::e_descriptor_heap_type::srv);
+		return mp_device->create_srv(mp_srv_heap, resource);
 	}
 
-	graphics::descriptor_heap* descriptor_manager::get_dsv_heap() const
+	graphics::descriptor_range descriptor_manager::stage(const vector<graphics::descriptor_handle>& cpu_descriptors)
 	{
-		return get_heap(graphics::e_descriptor_heap_type::dsv);
-	}
-
-	graphics::descriptor_heap* descriptor_manager::get_heap(graphics::e_descriptor_heap_type type) const
-	{
-		switch (type)
+		graphics::descriptor_range gpu_range{};
+		for (size_t i = 0u; i < cpu_descriptors.size(); ++i)
 		{
-		case graphics::e_descriptor_heap_type::dsv: return mp_dsv_heap;
-		case graphics::e_descriptor_heap_type::srv: return m_srv_heap.mp_cpu_heap;
-		case graphics::e_descriptor_heap_type::rtv: return mp_rtv_heap;
-		case graphics::e_descriptor_heap_type::sampler: return m_samp_heap.mp_cpu_heap;
-		default:
-			influx_assert(false);
-			return nullptr;
+			// allocate a gpu descriptor and 
+			graphics::descriptor_handle gpu_handle = mp_srv_gpu_heap->allocate_gpu();
+			graphics::descriptor_handle cpu_handle = mp_srv_gpu_heap->allocate_cpu();
+			gpu_range.m_num_descriptors++;
+
+			// set the first gpu handles as the gpu_range base
+			if (gpu_range.m_start == nullptr)
+			{
+				gpu_range.m_start = gpu_handle;
+			}
+
+			// copy the cpu descriptor into the gpu-visible descriptor
+			mp_device->copy_descriptors(cpu_descriptors[i], cpu_handle, graphics::e_descriptor_heap_type::srv);
 		}
+
+		return gpu_range;
 	}
 
-	graphics::descriptor_handle descriptor_manager::allocate_cpu(graphics::e_descriptor_heap_type type)
+	graphics::descriptor_range descriptor_manager::stage(const graphics::descriptor_handle& cpu_descriptor)
 	{
-		return get_heap(type)->allocate_cpu();
-	}
-
-	graphics::descriptor_handle descriptor_manager::allocate_gpu(graphics::e_descriptor_heap_type type)
-	{
-		return get_heap(type)->allocate_gpu();
-	}
-
-	void descriptor_manager::free_cpu(graphics::descriptor_handle handle, graphics::e_descriptor_heap_type type)
-	{
-		get_heap(type)->free_cpu(handle);
-	}
-
-	void descriptor_manager::free_gpu(graphics::descriptor_handle handle, graphics::e_descriptor_heap_type type)
-	{
-		get_heap(type)->free_gpu(handle);
+		vector<graphics::descriptor_handle> handles{ cpu_descriptor };
+		return stage(handles);
 	}
 }

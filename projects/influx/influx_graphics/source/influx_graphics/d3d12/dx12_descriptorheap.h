@@ -21,12 +21,16 @@ namespace influx::graphics
 		virtual uint32 get_heap_index_cpu(descriptor_handle handle) const override;
 		virtual uint32 get_heap_index_gpu(descriptor_handle handle) const override;
 
+		virtual void free_all_cpu() override;
+		virtual void free_all_gpu() override;
+
 	private:
 		ID3D12DescriptorHeap* mpdx_heap;
 		uint64 m_descriptor_stride;
 		list<void*> m_freelist_cpu = {};
 		list<void*> m_freelist_gpu = {};
 
-		void clear();
+		void clear_cpu();
+		void clear_gpu();
 	};
 }

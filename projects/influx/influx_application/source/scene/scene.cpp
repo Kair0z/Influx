@@ -183,6 +183,7 @@ namespace influx::application
 		influx::renderer::mesh_instance mesh_instance{};
 		mesh_instance.m_name = mesh.m_mesh_name;
 		mesh_instance.m_transform = inverse_transform.get_matrix();
+		mesh_instance.m_material_name = "mat_transistor";
 		mp_render_scene->m_meshes.push_back(mesh_instance);
 	}
 

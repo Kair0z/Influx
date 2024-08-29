@@ -9,6 +9,7 @@
 #include "influx_graphics/pipeline.h"
 #include "influx_graphics/rootsignature.h"
 #include "influx_graphics/commandlist.h"
+#include "influx_graphics/descriptorheap.h"
 
 namespace influx::renderer
 {
@@ -148,10 +149,10 @@ namespace influx::renderer
         cmdlist->set_constants(param_idx, num_dwords, data);
     }
 
-    void pipeline::set_texture(graphics::command_list* cmdlist, const string& name, const texture& tex)
+    void pipeline::set_resource_table(graphics::command_list* cmdlist, const string& name, const graphics::descriptor_range& gpu_range)
     {
         uint32 param_idx = get_param_index(name);
-        cmdlist->set(tex.get_srv(), param_idx);
+        cmdlist->set(gpu_range, param_idx);
     }
 
     uint32 pipeline::get_shader_register(const string& resource_name)

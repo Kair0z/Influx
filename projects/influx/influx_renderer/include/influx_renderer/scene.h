@@ -52,5 +52,6 @@ namespace influx::renderer
 		string m_tex_albedo;
 		string m_tex_normal;
 		string m_tex_roughness;
+		string m_tex_special;
 	};
 }

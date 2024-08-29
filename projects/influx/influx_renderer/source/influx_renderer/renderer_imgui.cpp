@@ -116,14 +116,16 @@ namespace influx::renderer
 		renderer_backend& backend = renderer_backend::get_instance();
 		commandlist->set_vertexbuffer(mp_vertexbuffer);
 		commandlist->set_indexbuffer(mp_indexbuffer);
-		commandlist->set(backend.get_descriptor_manager()->get_srv_heap());
 		commandlist->set(viewport);
 		commandlist->set(graphics::e_primitive_topology::trilist);
 		commandlist->set(mp_pipeline);
 		commandlist->set(mp_rootsig);
-
 		commandlist->set_constants(0u, 16u, &vertex_constant_buffer);
 
+		// stage the cpu srv onto the gpu heap
+		graphics::descriptor_range gpu_range = 
+			backend.get_descriptor_manager()->stage(mp_fonts_texture->get_srv()->get_cpu_handle());
+			
 		// setup draw
 		// (Because we merged all buffers into a single one, we maintain our own offset into them)
 		int global_vtx_offset = 0;
@@ -151,7 +153,7 @@ namespace influx::renderer
 					.m_bottom = (uint32)clip_max.y,
 				};
 				commandlist->set(rect);
-				commandlist->set(mp_fonts_texture->get_srv(), 1u);
+				commandlist->set(gpu_range, 1u);
 
 				commandlist->draw_indexed({
 					.m_num_indexes_per_instance = pcmd->ElemCount,

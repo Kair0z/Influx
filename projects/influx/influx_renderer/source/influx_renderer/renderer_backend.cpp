@@ -90,6 +90,12 @@ namespace influx::renderer
         mp_imgui = new imgui_manager(mp_device);
         mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
 
+        // setup default material
+        m_materials["none"].m_basecolor;
+        m_materials["none"].m_tex_albedo = "albedo";
+        m_materials["none"].m_tex_normal = "normal";
+        m_materials["none"].m_tex_roughness = "roughness";
+
         m_is_initialized = true;
     }
 
@@ -109,9 +115,7 @@ namespace influx::renderer
 
     target* renderer_backend::create_target(const target_create_args& args)
     {
-        return new target(mp_device, 
-            mp_desc_manager->get_rtv_heap(),
-            mp_desc_manager->get_dsv_heap(), args);
+        return new target(mp_device, args);
     }
 
     target* renderer_backend::get_window_target(const platform::window_handle& window)
@@ -128,8 +132,7 @@ namespace influx::renderer
             const uint8 num_swapchain_buffers = mp_swapchain->get_num_backbuffers();
             for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
             {
-                m_swapchain_targets.push_back(new target(mp_device, mp_swapchain, i,
-                    mp_desc_manager->get_rtv_heap()));
+                m_swapchain_targets.push_back(new target(mp_device, mp_swapchain, i));
 
 #if _DEBUG
                 m_swapchain_targets[i]->set_name("window_target_" + to_string(i));
@@ -185,9 +188,8 @@ namespace influx::renderer
                 mp_commandlist->clear_rtv(target_rtv, { 0.2, 0.2, 0.2, 1 });
                 mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
                
-                // bind global descriptor heaps
-                mp_commandlist->set(get_descriptor_manager()->get_samp_heap());
-                mp_commandlist->set(get_descriptor_manager()->get_srv_heap());
+                // bind gpu descriptor heaps
+                get_descriptor_manager()->start_commandlist(mp_commandlist);
 
                 mp_scene_renderer->render(mp_commandlist, scene, target);
             }
@@ -217,6 +219,8 @@ namespace influx::renderer
 
             graphics::render_target_view* target_rtv = target.get_rtv();
             mp_commandlist->set(target_rtv, nullptr);
+
+            get_descriptor_manager()->start_commandlist(mp_commandlist);
 
             mp_imgui->render(mp_commandlist, draw_data, target);
 
@@ -268,6 +272,8 @@ namespace influx::renderer
 
     void renderer_backend::present_swapchain(const present_args& args)
     {
+        get_descriptor_manager()->end_frame();
+
         if (mp_swapchain)
         {
             graphics::present_args p_args{};
@@ -342,6 +348,10 @@ namespace influx::renderer
         create_args.m_heigth = 1024u;
         texture* new_texture = create_texture(create_args);
 
+#if _DEBUG
+        new_texture->set_name(title);
+#endif
+
         mp_upload_manager->upload_texture(
             mp_graphics_queue, 
             data, 
@@ -350,7 +360,7 @@ namespace influx::renderer
 
     void renderer_backend::load(const string& title, const shader_data& data)
     {
-        map<string, shader_data>* target_map = nullptr;
+        umap<string, shader_data>* target_map = nullptr;
         switch (data.m_type)
         {
         case shader::e_shader_type::vs: target_map = &m_vertex_shaders;
@@ -394,6 +404,22 @@ namespace influx::renderer
     const vector<texture*>& renderer_backend::get_textures() const
     {
         return m_textures;
+    }
+
+    const texture* renderer_backend::get_texture(const string& name) const
+    {
+        auto found = std::find_if(m_textures.cbegin(), m_textures.cend(), 
+            [&name](const texture* tex) -> bool
+            {
+                return tex->get_name() == name;
+            });
+
+        if (found != m_textures.cend())
+        {
+            return *found;
+        }
+
+        return nullptr;
     }
 
     const umap<string, material> renderer_backend::get_materials() const

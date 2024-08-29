@@ -18,6 +18,11 @@ namespace influx::graphics
 	// continuous range of descriptors
 	struct descriptor_range final
 	{
+		descriptor_range() = default;
+		descriptor_range(const descriptor_handle& handle)
+			: m_start{handle}
+			, m_num_descriptors{ 1u }{}
+
 		descriptor_handle m_start;
 		uint32 m_num_descriptors;
 	};
@@ -77,6 +82,9 @@ namespace influx::graphics
 		{
 			return m_create_args.m_capacity;
 		}
+
+		virtual void free_all_cpu() = 0;
+		virtual void free_all_gpu() = 0;
 
 	protected:
 		descriptor_heap(const create_args& args)

@@ -165,6 +165,13 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, srv_gpu_handle);
 	}
 
+	void dx12_commandlist::set(const descriptor_range& gpu_range, uint32 param_idx)
+	{
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
+		gpu_handle.ptr = (size_t)gpu_range.m_start;
+		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, gpu_handle);
+	}
+
 	void dx12_commandlist::set(rootsignature* rootsig)
 	{
 		auto dxrootsig = rootsig->get_native<ID3D12RootSignature>();

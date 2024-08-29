@@ -125,7 +125,7 @@ namespace influx::application
 
 		influx::renderer::draw_scene(scene, *mp_scene_color_target);
 
-		influx::renderer::draw_imgui(get_imgui_data(*mp_scene_color_target), *mp_scene_color_target);
+		// influx::renderer::draw_imgui(get_imgui_data(*mp_scene_color_target), *mp_scene_color_target);
 
 		influx::renderer::copy_target(*mp_scene_color_target, *mp_window_target);
 
@@ -199,7 +199,18 @@ namespace influx::application
 			influx::renderer::load(name, tex_data);
 		}
 
-		// ENGINE GEOMETRY MESHES
+		// load engine materials into renderer
+		{
+			influx::renderer::material mat_transistor{};
+			mat_transistor.m_basecolor = colour::k_white;
+			mat_transistor.m_tex_albedo = "T_Sword_Opaque_BC";
+			mat_transistor.m_tex_normal = "T_Sword_Opaque_N";
+			mat_transistor.m_tex_roughness = "T_Sword_Opaque_N";
+			mat_transistor.m_tex_special = "T_Sword_Opaque_N";
+			influx::renderer::load("mat_transistor", mat_transistor);
+		}
+
+		// load engine geometry meshes
 		// PLANE
 		{
 			math::vectorf3 positions[4u]

@@ -1,5 +1,7 @@
 #include "renderer_pch.h"
 #include "influx_renderer/target.h"
+#include "influx_renderer/renderer_backend.h"
+#include "influx_renderer/descriptor_manager.h"
 
 #include "influx_graphics/device.h"
 #include "influx_graphics/descriptorheap.h"
@@ -7,10 +9,7 @@
 namespace influx::renderer
 {
 	// constructs a target from create_args, allocating new graphics resources
-	target::target(graphics::device* device, 
-		graphics::descriptor_heap* rtv_heap, 
-		graphics::descriptor_heap* dsv_heap,
-		const target_create_args& args)
+	target::target(graphics::device* device, const target_create_args& args)
 		: mp_device{device}
 		, m_args{args}
 	{
@@ -26,7 +25,7 @@ namespace influx::renderer
 		mp_resource = device->create_resource(desc);
 
 		// allocate & create the rtv && dsv
-		mp_rtv = device->create_rtv(rtv_heap, mp_resource);
+		mp_rtv = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
 		m_rtv_handle = mp_rtv->get_cpu_handle();
 
 		// create the depth resource
@@ -42,7 +41,7 @@ namespace influx::renderer
 			desc.m_init_state = graphics::e_resource_state::depth_write;
 			mp_depth_resource = device->create_resource(desc);
 
-			mp_dsv = device->create_dsv(dsv_heap, mp_depth_resource);
+			mp_dsv = renderer_backend::get_descriptor_manager()->create_dsv(mp_depth_resource);
 			m_dsv_handle = mp_dsv->get_cpu_handle();
 		}
 
@@ -52,14 +51,13 @@ namespace influx::renderer
 	// constructs a target from existing swapchain resources
 	target::target(graphics::device* device, 
 		graphics::swapchain* swapchain, 
-		uint8 swapchain_index, 
-		graphics::descriptor_heap* rtv_heap)
+		uint8 swapchain_index)
 	{
 		influx_assert(swapchain_index < swapchain->get_num_backbuffers());
 
 		// get the existing backbuffer resource, and allocate + create a new rtv
 		mp_resource = swapchain->get_backbuffer_resource(swapchain_index);
-		mp_rtv = device->create_rtv(rtv_heap, mp_resource);
+		mp_rtv = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
 		mp_dsv = nullptr;
 
 		m_args.m_width = swapchain->get_dimensions().x;

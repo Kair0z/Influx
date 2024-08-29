@@ -11,7 +11,8 @@ namespace influx::graphics
 	{
 		mp_native = mpdx_heap = dxheap;
 
-		clear();
+		clear_gpu();
+		clear_cpu();
 	}
 
 	descriptor_handle dx12_descriptor_heap::allocate_cpu()
@@ -56,16 +57,29 @@ namespace influx::graphics
 		return (uint32)(gpu_handle.ptr - gpu_base.ptr);
 	}
 
-	void dx12_descriptor_heap::clear()
+	void dx12_descriptor_heap::free_all_cpu()
+	{
+		clear_cpu();
+	}
+
+	void dx12_descriptor_heap::free_all_gpu()
+	{
+		clear_gpu();
+	}
+
+	void dx12_descriptor_heap::clear_cpu()
 	{
 		m_freelist_cpu.clear();
-		m_freelist_gpu.clear();
-
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = mpdx_heap->GetCPUDescriptorHandleForHeapStart();
 		for (size_t i = 0; i < get_capacity(); ++i)
 		{
 			m_freelist_cpu.push_back(reinterpret_cast<void*>(cpu_handle.ptr + (i * m_descriptor_stride)));
 		}
+	}
+
+	void dx12_descriptor_heap::clear_gpu()
+	{
+		m_freelist_gpu.clear();
 
 		if (m_create_args.m_shader_visible)
 		{
@@ -75,6 +89,5 @@ namespace influx::graphics
 				m_freelist_gpu.push_back(reinterpret_cast<void*>(gpu_handle.ptr + (i * m_descriptor_stride)));
 			}
 		}
-
 	}
 }

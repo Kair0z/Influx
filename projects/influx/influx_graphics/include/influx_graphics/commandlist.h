@@ -1,6 +1,7 @@
 #pragma once
 #include "influx_graphics/base.h"
 #include "influx_graphics/resource.h"
+#include "influx_graphics/descriptorheap.h"
 
 #include "core/math/vector.h"
 #include "core/range.h"
@@ -85,6 +86,8 @@ namespace influx::graphics
 		virtual void set(render_target_view* rtv, depth_stencil_view* dsv) = 0;
 
 		virtual void set(shader_resource_view* srv, uint32 param_idx) = 0;
+
+		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) = 0;
 
 		virtual void set(rootsignature* rootsig) = 0;
 		

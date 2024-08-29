@@ -47,17 +47,13 @@ namespace influx::renderer
 	private:
 		// constructs a target from create_args, allocating new graphics resources
 		explicit target(
-			graphics::device* device, 
-			graphics::descriptor_heap* rtv_heap,
-			graphics::descriptor_heap* dsv_heap,
-			const target_create_args& args);
+			graphics::device* device, const target_create_args& args);
 
 		// constructs a target from existing swapchain resources
 		explicit target(
 			graphics::device* device, 
 			graphics::swapchain* swapchain, 
-			uint8 swapchain_index, 
-			graphics::descriptor_heap* rtv_heap);
+			uint8 swapchain_index);
 
 		// re-allocates graphics resource, and recreates the rtv
 		void resize(const math::vectoru2& new_dimensions);

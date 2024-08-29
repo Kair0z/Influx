@@ -231,9 +231,7 @@ namespace influx::graphics
 	{
 		// allocate new srv descriptors
 		descriptor_handle cpu_handle = irv_heap->allocate_cpu();
-		descriptor_handle gpu_handle = irv_heap->allocate_gpu();
-
-		return create_srv(cpu_handle, gpu_handle, resource);
+		return create_srv(cpu_handle, {}, resource);
 	}
 
 	shader_resource_view* dx12_device::create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)

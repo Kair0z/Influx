@@ -13,6 +13,7 @@ namespace influx::graphics
 	class pipeline;
 	class rootsignature;
 	class command_list;
+	struct descriptor_range;
 }
 #pragma endregion
 
@@ -36,7 +37,7 @@ namespace influx::renderer
 
 		void set_constants(graphics::command_list* cmdlist, const string& name, uint32 num_dwords, void* data);
 
-		void set_texture(graphics::command_list* cmdlist, const string& name, const texture& tex);
+		void set_resource_table(graphics::command_list* cmdlist, const string& name, const graphics::descriptor_range& gpu_range);
 
 		uint32 get_shader_register(const string& resource_name);
 		uint32 get_param_index(const string& resource_name);
