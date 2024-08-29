@@ -39,6 +39,8 @@ namespace influx::renderer
 		// and returns the address of that range of descriptors
 		graphics::descriptor_range stage(const vector<graphics::descriptor_handle>& cpu_descriptors);
 		graphics::descriptor_range stage(const graphics::descriptor_handle& cpu_descriptor);
+		graphics::descriptor_range stage(const vector<texture*>& textures);
+		graphics::descriptor_range stage(texture* texture);
 
 	private:
 		// GPU heaps (shader-visible)

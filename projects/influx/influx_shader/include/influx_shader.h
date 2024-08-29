@@ -59,6 +59,7 @@ namespace influx::shader
 			enum class e_type : uint8
 			{
 				cbv,
+				structured,
 				sampler,
 				uav,
 				srv,

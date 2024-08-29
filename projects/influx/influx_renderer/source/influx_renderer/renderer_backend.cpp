@@ -406,7 +406,7 @@ namespace influx::renderer
         return m_textures;
     }
 
-    const texture* renderer_backend::get_texture(const string& name) const
+    texture* renderer_backend::get_texture(const string& name) const
     {
         auto found = std::find_if(m_textures.cbegin(), m_textures.cend(), 
             [&name](const texture* tex) -> bool
@@ -427,7 +427,7 @@ namespace influx::renderer
         return m_materials;
     }
 
-    const material* renderer_backend::get_material(const string& name) const
+    material* renderer_backend::get_material(const string& name)
     {
         if (m_materials.contains(name))
             return &m_materials.at(name);

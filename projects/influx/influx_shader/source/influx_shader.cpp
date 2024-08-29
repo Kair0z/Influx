@@ -129,6 +129,13 @@ namespace influx::shader
 			
 			switch (shaderInputBindDesc.Type)
 			{
+			case D3D_SHADER_INPUT_TYPE::D3D_SIT_STRUCTURED:
+			{
+				resource.m_type = reflection::resource::e_type::structured;
+
+			}
+			break;
+
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_CBUFFER:
 			{
 				resource.m_type = reflection::resource::e_type::cbv;

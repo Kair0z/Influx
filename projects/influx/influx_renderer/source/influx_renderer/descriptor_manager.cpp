@@ -1,6 +1,8 @@
 #include "renderer_pch.h"
 #include "descriptor_manager.h"
 
+#include "influx_renderer/texture.h"
+
 #include "influx_graphics/device.h"
 #include "influx_graphics/descriptorheap.h"
 
@@ -128,5 +130,25 @@ namespace influx::renderer
 	{
 		vector<graphics::descriptor_handle> handles{ cpu_descriptor };
 		return stage(handles);
+	}
+
+	graphics::descriptor_range descriptor_manager::stage(const vector<texture*>& textures)
+	{
+		vector<graphics::descriptor_handle> cpu_handles{};
+		for (size_t i = 0u; i < textures.size(); ++i)
+		{
+			influx_assert(textures[i] != nullptr);
+			influx_assert(textures[i]->get_srv() != nullptr);
+
+			cpu_handles.push_back(textures[i]->get_srv()->get_cpu_handle());
+		}
+
+		return stage(cpu_handles);
+	}
+
+	graphics::descriptor_range descriptor_manager::stage(texture* texture)
+	{
+		vector<renderer::texture*> textures{ texture };
+		return stage(textures);
 	}
 }

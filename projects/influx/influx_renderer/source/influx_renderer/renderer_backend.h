@@ -59,10 +59,10 @@ namespace influx::renderer
 
 		texture* create_texture(const texture_create_args& args);
 		const vector<texture*>& get_textures() const;
-		const texture* get_texture(const string& name) const;
+		texture* get_texture(const string& name) const;
 
 		const umap<string, material> get_materials() const;
-		const material* get_material(const string& name) const;
+		material* get_material(const string& name);
 
 		void upload_texture_data(texture* target_tex, const texture_data& data);
 

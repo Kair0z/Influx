@@ -20,22 +20,28 @@ struct ps_input
 
 struct vs_constants
 {
+    float4x4 mat_vp;
     float4x4 mat_mvp;
 };
 
 struct ps_constants
 {
-    uint albedo_slotidx;
-	uint normals_slotidx;
-	uint other_slotidx;
-
-    uint sampler_slotidx;
+    float seconds;
+    float delta_seconds;
 };
 
+struct per_instance_data
+{
+    float4x4	mat_transform;
+    float4      colour;
+};
 
 // constant buffers
 ConstantBuffer<vs_constants> g_perframe_vs : register(b0);
 ConstantBuffer<ps_constants> g_perframe_ps : register(b0);
+
+// structured buffers
+StructuredBuffer<per_instance_data> g_instancebuffer;
 
 // root descriptors
 // ...

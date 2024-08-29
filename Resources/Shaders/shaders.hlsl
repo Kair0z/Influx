@@ -1,10 +1,13 @@
 #include "common.hlsli"
 
 [shader("vertex")]
-ps_input VSMain ( vs_input input, uint vID : SV_VertexID )
+ps_input VSMain ( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_InstanceID)
 {
     ps_input output = (ps_input)0;
-    output.position = mul ( g_perframe_vs.mat_mvp, float4 ( input.position, 1.0f ) );
+    per_instance_data instance_data = g_instancebuffer[instanceID];
+
+    float4x4 mvp = instance_data.mat_transform * g_perframe_vs.mat_vp;
+    output.position = mul( mvp, float4 ( input.position, 1.0f ) );
 
     output.worldPos = input.position;
     output.texcoord = input.texcoord;
