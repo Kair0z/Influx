@@ -217,9 +217,7 @@ namespace influx::renderer
         mp_pipeline->set_constants(commandlist, "g_perframe_ps", m_ps_constants);
 
         vector<batch> batches = create_batches(scene);
-
         update_instance_buffer(batches);
-
         render_batches(commandlist, batches);
     }
 }
