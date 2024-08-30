@@ -18,6 +18,9 @@ namespace influx::graphics
 		virtual void free_cpu(descriptor_handle handle) override;
 		virtual void free_gpu(descriptor_handle handle) override;
 
+		virtual void free_cpu(uint32 at_index) override;
+		virtual void free_gpu(uint32 at_index) override;
+
 		virtual uint32 get_heap_index_cpu(descriptor_handle handle) const override;
 		virtual uint32 get_heap_index_gpu(descriptor_handle handle) const override;
 
@@ -32,5 +35,10 @@ namespace influx::graphics
 
 		void clear_cpu();
 		void clear_gpu();
+
+		uint32 gpu_handle_to_index(descriptor_handle handle) const;
+		uint32 cpu_handle_to_index(descriptor_handle handle) const;
+		descriptor_handle index_to_gpu_handle(uint32 index) const;
+		descriptor_handle index_to_cpu_handle(uint32 index) const;
 	};
 }

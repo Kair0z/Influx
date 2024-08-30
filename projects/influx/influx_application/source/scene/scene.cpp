@@ -35,18 +35,25 @@ namespace influx::application
 		add(cam);
 
 		// meshes
-		mesh_actor mesh{};
-		mesh.m_mesh_name = "transistor1";
-		mesh.m_transform = math::transform3D::identity();
-		add(mesh);
+		float distance = 10.0f;
+		for (size_t i = 0u; i < 200u; ++i)
+		{
+			mesh_actor mesh{};
+			mesh.m_mesh_name = "transistor1";
+			mesh.m_transform = math::transform3D::identity();
+			mesh.m_transform.set_position(distance * random::get_random_unit_vectorf3());
+			mesh.m_transform.update_matrix();
+			add(mesh);
+		}
 
 		mesh_actor ground{};
-		mesh.m_mesh_name = "engine_plane";
-		mesh.m_transform = math::transform3D::identity();
+		ground.m_mesh_name = "engine_plane";
+		ground.m_transform = math::transform3D::identity();
 		add(ground);
 
-		mesh.m_mesh_name = "box";
-		add(mesh);
+		mesh_actor box{};
+		box.m_mesh_name = "box";
+		add(box);
 
 		// subscribe to input events
 		input::subscribe([this](const input::key_event& ev)

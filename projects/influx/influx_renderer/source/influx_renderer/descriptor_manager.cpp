@@ -73,7 +73,7 @@ namespace influx::renderer
 
 		// srv heap
 		create_args.m_type = e_descriptor_heap_type::srv;
-		create_args.m_capacity = 12u;
+		create_args.m_capacity = 256u;
 		mp_srv_gpu_heap = device->create_descriptor_heap(create_args);
 	}
 

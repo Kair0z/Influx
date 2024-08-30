@@ -23,6 +23,9 @@ namespace influx::math
 		const static quaternion identity()
 		{
 			static quaternion q{};
+			q.m_up = { 0.0f, 1.0f, 0.0f };
+			q.m_forward = { 0.0f, 0.0f, 1.0f };
+			q.m_right = { 1.0f, 0.0f, 0.0f };
 			return q;
 		}
 

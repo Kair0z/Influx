@@ -39,22 +39,24 @@ namespace influx::graphics
 		m_freelist_gpu.push_back(handle);
 	}
 
+	void dx12_descriptor_heap::free_cpu(uint32 at_index)
+	{
+		free_cpu(index_to_cpu_handle(at_index));
+	}
+
+	void dx12_descriptor_heap::free_gpu(uint32 at_index)
+	{
+		free_gpu(index_to_gpu_handle(at_index));
+	}
+
 	uint32 dx12_descriptor_heap::get_heap_index_cpu(descriptor_handle handle) const
 	{
-		D3D12_CPU_DESCRIPTOR_HANDLE cpu_base = mpdx_heap->GetCPUDescriptorHandleForHeapStart();
-		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
-		cpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
-
-		return (uint32)(cpu_handle.ptr - cpu_base.ptr);
+		return cpu_handle_to_index(handle);
 	}
 
 	uint32 dx12_descriptor_heap::get_heap_index_gpu(descriptor_handle handle) const
 	{
-		D3D12_GPU_DESCRIPTOR_HANDLE gpu_base = mpdx_heap->GetGPUDescriptorHandleForHeapStart();
-		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
-		gpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
-
-		return (uint32)(gpu_handle.ptr - gpu_base.ptr);
+		return gpu_handle_to_index(handle);
 	}
 
 	void dx12_descriptor_heap::free_all_cpu()
@@ -89,5 +91,37 @@ namespace influx::graphics
 				m_freelist_gpu.push_back(reinterpret_cast<void*>(gpu_handle.ptr + (i * m_descriptor_stride)));
 			}
 		}
+	}
+
+	uint32 dx12_descriptor_heap::gpu_handle_to_index(descriptor_handle handle) const
+	{
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_base = mpdx_heap->GetGPUDescriptorHandleForHeapStart();
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
+		gpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
+
+		return (uint32)(gpu_handle.ptr - gpu_base.ptr);
+	}
+
+	uint32 dx12_descriptor_heap::cpu_handle_to_index(descriptor_handle handle) const
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE cpu_base = mpdx_heap->GetCPUDescriptorHandleForHeapStart();
+		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
+		cpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
+
+		return (uint32)(cpu_handle.ptr - cpu_base.ptr);
+	}
+
+	descriptor_handle dx12_descriptor_heap::index_to_gpu_handle(uint32 index) const
+	{
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = mpdx_heap->GetGPUDescriptorHandleForHeapStart();
+		gpu_handle.ptr += index * m_descriptor_stride;
+		return reinterpret_cast<descriptor_handle>(gpu_handle.ptr);
+	}
+
+	descriptor_handle dx12_descriptor_heap::index_to_cpu_handle(uint32 index) const
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = mpdx_heap->GetCPUDescriptorHandleForHeapStart();
+		cpu_handle.ptr += index * m_descriptor_stride;
+		return reinterpret_cast<descriptor_handle>(cpu_handle.ptr);
 	}
 }
