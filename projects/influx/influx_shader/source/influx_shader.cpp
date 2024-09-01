@@ -209,6 +209,8 @@ namespace influx::shader
 		if (!args.m_pbd) arguments.push_back(L"-Qstrip_debug");
 		if (!args.m_reflection) arguments.push_back(L"-Qstrip_reflect");
 		// arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS); //-WX
+		if (args.m_compile_debug) arguments.push_back(L"-Od");
+		if (args.m_compile_debug) arguments.push_back(L"-O0");
 		if (args.m_compile_debug) arguments.push_back(DXC_ARG_DEBUG); //-Zi
 		// arguments.push_back(DXC_ARG_SKIP_VALIDATION);
 		//arguments.push_back(DXC_ARG_PACK_MATRIX_ROW_MAJOR); //-Zp
