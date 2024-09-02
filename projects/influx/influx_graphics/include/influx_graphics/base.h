@@ -19,6 +19,16 @@ namespace influx::graphics
 			return (_t*&)(mp_native);
 		}
 
+		inline bool is_valid() const
+		{
+			return mp_native != nullptr;
+		}
+
+		inline operator bool() const
+		{
+			return is_valid();
+		}
+
 #if _DEBUG
 		inline void set_name(const string& new_name)
 		{

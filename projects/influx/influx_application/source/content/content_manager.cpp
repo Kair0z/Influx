@@ -44,7 +44,7 @@ namespace influx::application
 			assets::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"];
 
 			shader::compile_args compile_args{};
-			compile_args.m_target = shader::e_shader_target::_6_5;
+			compile_args.m_target = shader::e_shader_target::_6_6;
 			compile_args.m_compile_debug = (_DEBUG) ? true : false;
 			compile_args.m_pbd = false;
 			compile_args.m_reflection = true;
@@ -52,11 +52,11 @@ namespace influx::application
 
 			compile_args.m_type = shader::e_shader_type::vs;
 			compile_args.m_entrypoint = "VSMain";
-			assets::load_shader_file(file.m_path_full, shader_data_vs, compile_args);
+			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_vs, compile_args));
 
 			compile_args.m_type = shader::e_shader_type::ps;
 			compile_args.m_entrypoint = "PSMain";
-			assets::load_shader_file(file.m_path_full, shader_data_ps, compile_args);
+			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_ps, compile_args));
 		});
 
 		// wait for all jobs to complete

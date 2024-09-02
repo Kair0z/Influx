@@ -4,7 +4,6 @@
 
 // helpers
 #include "influx_graphics/d3d12/dx12_helpers.h"
-#include "d3dx12.h"
 
 // subheaders
 #include "influx_graphics/d3d12/dx12_commandqueue.h"

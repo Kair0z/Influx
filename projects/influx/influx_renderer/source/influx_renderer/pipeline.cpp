@@ -89,6 +89,8 @@ namespace influx::renderer
         }
 
         mp_rootsig = device->create_rootsignature(rootsig_desc);
+        influx_assert(mp_rootsig->is_valid());
+
         m_name_to_param_idx = mp_rootsig->get_param_idx_table();
 
         // build the pipeline
@@ -140,6 +142,7 @@ namespace influx::renderer
         }
 
         mp_pipeline = device->create_pipeline(mp_rootsig, pipeline_desc);
+        influx_assert(mp_pipeline->is_valid());
 	}
 
     void pipeline::set_state(graphics::command_list* cmdlist)

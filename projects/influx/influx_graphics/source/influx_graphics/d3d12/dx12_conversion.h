@@ -5,11 +5,7 @@
 #include "influx_graphics/resource.h"
 #include "influx_graphics/descriptorheap.h"
 
-// dx12 includes
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <D3Dcompiler.h>
-#include "d3dx12.h"
+#include "influx_graphics/d3d12/dx12_headers.h"
 
 namespace influx::graphics
 {

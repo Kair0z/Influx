@@ -38,14 +38,22 @@ project "influx_graphics"
         "source",
         "include",
         "foreign",
+
         "foreign/vulkan/",
+        "foreign/d3d12/",
+
         g_dir_core_include
+    }
+
+    libdirs 
+    { 
+        
     }
 
     links
     {
-        "d3d12", "dxgi",
-        --"vulkan-1"
+        "d3d12",
+        "dxgi",
     }
 
     filter "system:windows"
