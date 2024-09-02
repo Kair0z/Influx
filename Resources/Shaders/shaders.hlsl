@@ -33,5 +33,5 @@ float4 PSMain ( ps_input input ) : SV_TARGET
     float ambient = 0.2f;
     float diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
 
-    return albedo;
+    return diffuse;
 }

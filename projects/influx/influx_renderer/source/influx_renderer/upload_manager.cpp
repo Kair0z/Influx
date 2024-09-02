@@ -27,7 +27,7 @@ namespace influx::renderer
 		static uint32 num_textures = 0u;
 		const size_t texture_bytesize = data.m_pixels.size() * sizeof(byte);
 
-		const range<size_t> upload_subrange{ num_textures++, texture_bytesize };
+		const range<size_t> upload_subrange{ (num_textures++ * texture_bytesize), texture_bytesize };
 
 		// MAP texture data onto the upload resource
 		graphics::map_args args{};

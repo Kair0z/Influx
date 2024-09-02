@@ -46,9 +46,10 @@ namespace influx::application
 			shader::compile_args compile_args{};
 			compile_args.m_target = shader::e_shader_target::_6_6;
 			compile_args.m_compile_debug = (_DEBUG) ? true : false;
-			compile_args.m_pbd = false;
+			compile_args.m_pbd = true;
 			compile_args.m_reflection = true;
 			compile_args.m_defines = {};
+			compile_args.m_pdb_folder = "D:/Git/Influx/int/shaderdebug/";
 
 			compile_args.m_type = shader::e_shader_type::vs;
 			compile_args.m_entrypoint = "VSMain";

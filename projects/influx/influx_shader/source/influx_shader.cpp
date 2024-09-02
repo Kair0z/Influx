@@ -175,6 +175,14 @@ namespace influx::shader
 		return result;
 	}
 
+	inline static wstring make_shader_name_string(const compile_args& args)
+	{
+		wstring type = make_shader_type_wstring(args.m_type, args.m_target);
+		wstring entry = to_wstring(args.m_entrypoint);
+
+		return type + entry;
+	}
+
 	inline compile_output compile_shader_dxcbuffer(const DxcBuffer& buffer, const compile_args& args)
 	{
 		HRESULT result{};
@@ -243,9 +251,30 @@ namespace influx::shader
 		}
 
 		// [OUTPUT: DEBUG INFO]
-		IDxcBlob* pDebugData = nullptr;
-		IDxcBlobUtf16* pDebugDataPath = nullptr;
-		result = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugData), &pDebugDataPath);
+		if (args.m_pbd && !args.m_pdb_folder.empty())
+		{
+			influx_assert(influx::file::is_directory(args.m_pdb_folder));
+
+			IDxcBlob* pDebugData = nullptr;
+			IDxcBlobUtf16* pDebugDataPath = nullptr;
+			result = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugData), &pDebugDataPath);
+			if (pDebugDataPath && pDebugDataPath->GetStringLength() > 0)
+			{
+				printf(((char*)pDebugDataPath->GetBufferPointer()));
+				printf("\n");
+
+			}
+
+			if (result == S_OK && pDebugData != nullptr)
+			{
+				wstring foldername = to_wstring(args.m_pdb_folder);
+				wstring filename = make_shader_name_string(args);
+				wstring filepath = foldername + L"/" + filename + L".pdb";
+
+				// result = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData, 
+				// 	filepath.c_str(), true);
+			}
+		}
 
 		// [OUTPUT: ROOT SIGNATURE]
 		if (false)

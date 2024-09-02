@@ -39,6 +39,7 @@ namespace influx::shader
 		e_shader_target m_target;
 		string m_entrypoint;
 		vector<string> m_defines;
+		string m_pdb_folder;
 
 		bool m_compile_debug;
 		bool m_reflection;
