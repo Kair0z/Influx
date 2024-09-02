@@ -100,7 +100,6 @@ namespace influx::renderer
 		// resources
 		umap<string, graphics::resource*> m_vertex_buffers;
 		umap<string, graphics::resource*> m_index_buffers;
-		umap<string, graphics::resource*> m_instance_buffers;
 		umap<string, material> m_materials;
 		umap<string, shader_data> m_vertex_shaders;
 		umap<string, shader_data> m_pixel_shaders;

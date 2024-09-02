@@ -55,6 +55,10 @@ namespace influx::input
 		case platform::window_event::key_type::down: return e_key::down;
 		case platform::window_event::key_type::right: return e_key::right;
 		case platform::window_event::key_type::left: return e_key::left;
+		case platform::window_event::key_type::lshift: return e_key::lshift;
+		case platform::window_event::key_type::rshift: return e_key::rshift;
+		case platform::window_event::key_type::lctrl: return e_key::lctrl;
+		case platform::window_event::key_type::rctrl: return e_key::rctrl;
 		}
 
 		return e_key::count;

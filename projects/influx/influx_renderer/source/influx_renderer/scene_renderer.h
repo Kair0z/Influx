@@ -28,10 +28,14 @@ namespace influx::renderer
 		math::vectorf4		m_colour;
 	};
 
+	struct gpu_perdraw_vs final
+	{
+		uint32 m_start_instance = 0u;
+	};
+
 	struct gpu_vs_constants final
 	{
 		math::matrix4x4f m_vp;
-		math::matrix4x4f m_mvp;
 	};
 
 	struct gpu_ps_constants final
@@ -95,6 +99,7 @@ namespace influx::renderer
 
 		gpu_vs_constants m_vs_constants;
 		gpu_ps_constants m_ps_constants;
+		gpu_perdraw_vs m_vs_perdraw;
 		gpu_instance_data* m_instance_data;
 	};
 }

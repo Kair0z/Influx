@@ -1,11 +1,8 @@
 
 #include <cstdint>
 
-#ifndef AFAFAFAF
-#define AFAFAFAF
 extern "C" { __declspec(dllexport) extern const uint32_t D3D12SDKVersion = 614u; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
-#endif
 
 #include "influx_application.h"
 

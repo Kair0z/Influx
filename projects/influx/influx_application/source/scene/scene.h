@@ -79,6 +79,7 @@ namespace influx::application
 			constexpr static float k_min_speed = 10.0f;
 
 			float m_speed = k_min_speed;
+			float m_shift_multiplier = 1.0f;
 			math::vectorf3 m_velocity;
 			math::vectorf3 m_acceleration;
 			math::vectorf2 m_input;

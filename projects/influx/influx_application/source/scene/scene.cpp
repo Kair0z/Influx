@@ -35,8 +35,8 @@ namespace influx::application
 		add(cam);
 
 		// meshes
-		float distance = 10.0f;
-		for (size_t i = 0u; i < 200u; ++i)
+		float distance = 50.0f;
+		for (size_t i = 0u; i < 50u; ++i)
 		{
 			mesh_actor mesh{};
 			mesh.m_mesh_name = "transistor1";
@@ -108,17 +108,29 @@ namespace influx::application
 		{
 			reset_camera();
 		}
+
+		if (ev.m_key == input::e_key::lshift)
+		{
+			m_cam_controls.m_shift_multiplier = 2.0f;
+		}
 	}
 
 	void scene::on_keyup(const input::key_event& ev)
 	{
 		apply_ascii(m_cam_controls.m_input, ev.m_ascii_char, -1.0f);
+
+		if (ev.m_key == input::e_key::lshift)
+		{
+			m_cam_controls.m_shift_multiplier = 1.0f;
+		}
 	}
 
 	void scene::on_mouse_scroll(const float value)
 	{
 		m_cam_controls.m_speed += value;
-		m_cam_controls.m_speed = math::clamp(m_cam_controls.m_speed, camera_controls::k_min_speed, camera_controls::k_max_speed);
+		m_cam_controls.m_speed = math::clamp(m_cam_controls.m_speed, 
+			camera_controls::k_min_speed, 
+			camera_controls::k_max_speed * m_cam_controls.m_shift_multiplier);
 	}
 
 	void scene::update(const frame_time& time)
@@ -151,6 +163,9 @@ namespace influx::application
 		cam.m_transform.update_matrix();
 
 		// update render scene
+		mp_render_scene->m_delta_seconds = time.m_delta_seconds;
+		mp_render_scene->m_seconds = time.m_time_seconds;
+
 		influx::renderer::camera& render_cam = mp_render_scene->m_camera;
 		render_cam.m_transform = cam.m_transform;
 		render_cam.m_far_plane = cam.m_camera.get_farplane();

@@ -39,6 +39,9 @@ namespace influx::renderer
 
 		vector<mesh_instance> m_meshes = {};
 		camera m_camera = {};
+
+		float m_delta_seconds;
+		float m_seconds;
 	};
 
 	struct material final

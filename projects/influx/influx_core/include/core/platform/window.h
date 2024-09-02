@@ -67,6 +67,10 @@ namespace influx::platform
 			insert,
 			deleet,
 			f2,
+			lshift,
+			rshift,
+			lctrl,
+			rctrl,
 			ascii_num, // ascii number (0-9)
 			ascii_ch, // ascii character (A-Z)
 			unknown,

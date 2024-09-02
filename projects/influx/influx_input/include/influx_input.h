@@ -22,6 +22,10 @@ namespace influx::input
 		right,
 		down,
 		up,
+		lshift,
+		rshift,
+		lctrl,
+		rctrl,
 		ascii_num,
 		ascii_char,
 		count

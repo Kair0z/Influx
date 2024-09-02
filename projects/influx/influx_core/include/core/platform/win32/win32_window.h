@@ -49,6 +49,10 @@ namespace influx::platform
 		case VK_END: return key_type::end;
 		case VK_INSERT: return key_type::insert;
 		case VK_DELETE: return key_type::deleet;
+		case VK_LSHIFT: return key_type::lshift;
+		case VK_RSHIFT: return key_type::rshift;
+		case VK_LCONTROL: return key_type::lctrl;
+		case VK_RCONTROL: return key_type::rctrl;
 		case VK_F2: return key_type::f2;
 		default: return key_type::unknown;
 		}

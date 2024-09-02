@@ -21,7 +21,11 @@ struct ps_input
 struct vs_constants
 {
     float4x4 mat_vp;
-    float4x4 mat_mvp;
+};
+
+struct per_draw_constants
+{
+    uint start_instance;
 };
 
 struct ps_constants
@@ -36,24 +40,21 @@ struct per_instance_data
     float4      colour;
 };
 
-// constant buffers
-ConstantBuffer<vs_constants> g_perframe_vs : register(b0);
-ConstantBuffer<ps_constants> g_perframe_ps : register(b0);
+// SHADER INPUTS
+// buffers
+ConstantBuffer<vs_constants>            g_perframe_vs       : register(b0);
+ConstantBuffer<ps_constants>            g_perframe_ps       : register(b1);
+ConstantBuffer<per_draw_constants>      g_perdraw_vs        : register(b2);
 
-// structured buffers
-StructuredBuffer<per_instance_data> g_instancebuffer;
+// samplers
+SamplerState                            g_sampler           : register(s0);
 
-// root descriptors
-// ...
-
-// root samplers
-SamplerState g_sampler : register(s0);
-
-// descriptor tables
-Texture2D g_textures[4] : register(t0);
+// textures
+Texture2D                               g_textures[4]       : register(t0);
+StructuredBuffer<per_instance_data>     g_instancebuffer    : register(t1);
 
 
-// global functions
+// GLOBAL FUNCTIONS
 float4 get_albedo(float2 texcoord)
 {
     return g_textures[0].Sample(g_sampler, texcoord).rgba;

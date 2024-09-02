@@ -176,6 +176,10 @@ namespace influx::renderer
             commandlist->set_indexbuffer(index_buffer);
             commandlist->set_vertexbuffer(vertex_buffer);
 
+            // set base instance variable
+            m_vs_perdraw.m_start_instance = batch.get_instance_base();
+            mp_pipeline->set_constants(commandlist, "g_perdraw_vs", m_vs_perdraw);
+
             // 1 batch == 1 draw-call
             const vector<gpu_instance_data>& instances = batch.get_instances();
             commandlist->draw_indexed(
@@ -184,7 +188,7 @@ namespace influx::renderer
                 .m_num_instances = (uint32)instances.size(),
                 .m_start_index = 0u,
                 .m_start_vertex = 0,
-                .m_start_instance = 0u
+                .m_start_instance = 0
             });
         }
     }
@@ -211,11 +215,10 @@ namespace influx::renderer
         const math::matrix4x4f mat_view = transform.get_matrix().inverted();
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
         m_vs_constants.m_vp = mat_view * mat_proj;
-        m_vs_constants.m_mvp = mat_view * mat_proj;
-        m_ps_constants.m_delta_seconds = 0.0f;
-        m_ps_constants.m_seconds = 0.0f;
+        m_ps_constants.m_delta_seconds = scene.m_delta_seconds;
+        m_ps_constants.m_seconds = scene.m_seconds;
         mp_pipeline->set_constants<gpu_vs_constants>(commandlist, "g_perframe_vs", m_vs_constants);
-        // mp_pipeline->set_constants<gpu_ps_constants>(commandlist, "g_perframe_ps", m_ps_constants);
+        mp_pipeline->set_constants<gpu_ps_constants>(commandlist, "g_perframe_ps", m_ps_constants);
 
         vector<batch> batches = create_batches(scene);
         update_instance_buffer(batches);

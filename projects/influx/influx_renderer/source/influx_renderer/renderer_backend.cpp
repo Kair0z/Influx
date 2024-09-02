@@ -322,11 +322,6 @@ namespace influx::renderer
                     data.m_vertices.size() * sizeof(vertex_data));
             });
 
-            // create instance buffer resource
-            desc.m_bytesize = k_max_instances * sizeof(gpu_instance_data);
-            desc.m_bytestride = sizeof(gpu_instance_data);
-            m_instance_buffers[title] = mp_device->create_resource(desc, heap_desc);
-
             // create index buffer resource
             desc.m_bytesize = data.m_indices.size() * sizeof(index);
             desc.m_bytestride = sizeof(index);
@@ -338,6 +333,11 @@ namespace influx::renderer
                      data.m_indices.data(),
                      data.m_indices.size() * sizeof(index));
             });
+
+            #if _DEBUG
+            m_index_buffers[title]->set_name("ib_" + title);
+            m_vertex_buffers[title]->set_name("vb_" + title);
+            #endif
         }
     }
 
