@@ -45,13 +45,12 @@ struct per_instance_data
 ConstantBuffer<vs_constants>            g_perframe_vs       : register(b0);
 ConstantBuffer<ps_constants>            g_perframe_ps       : register(b1);
 ConstantBuffer<per_draw_constants>      g_perdraw_vs        : register(b2);
-
+StructuredBuffer<per_instance_data>     g_instancebuffer;
 // samplers
 SamplerState                            g_sampler           : register(s0);
 
 // textures
 Texture2D                               g_textures[4]       : register(t0);
-StructuredBuffer<per_instance_data>     g_instancebuffer    : register(t1);
 
 
 // GLOBAL FUNCTIONS

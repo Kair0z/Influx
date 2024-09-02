@@ -16,9 +16,9 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_I
 
     output.worldPos = input.position;
     output.texcoord = input.texcoord;
-    // output.colour = float4(hash(uint3(vID,vID+7,vID+41)), 1.0f);
-    output.colour.r = (float)instanceID / 50u;
+    output.colour = float4(hash(uint3(vID,vID+7,vID+41)), 1.0f);
     output.normal = input.normal;
+
     return output;
 }
 
@@ -31,7 +31,7 @@ float4 PSMain ( ps_input input ) : SV_TARGET
     float3 normal = get_normal(input.texcoord).rgb;
 
     float ambient = 0.2f;
-    float diffuse = max(ambient,dot(normalize(normal), normalize(lightDir)));
+    float diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
 
-    return lerp(input.colour, albedo, sin(g_perframe_ps.seconds * 2.0f));
+    return albedo;
 }
