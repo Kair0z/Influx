@@ -64,8 +64,8 @@ namespace influx::math
 			m_rotation_matrix = math::matrix4x4f::make_rotation(axis, delta_angle);
 
 			m_forward = m_rotation_matrix * m_forward;
-			m_right = m_rotation_matrix * m_right;
-			m_up = m_rotation_matrix * m_up;
+			m_right = math::vectorf3::cross(m_forward, vectorf3::up());
+			m_up = math::vectorf3::cross(m_right, m_forward);
 		}
 
 	private:

@@ -268,14 +268,13 @@ namespace influx::application
 			math::vectorf2 delta_mouse = m_cam_controls.m_mouse_windowpos - m_cam_controls.m_previous_mouse_windowpos;
 			m_cam_controls.m_previous_mouse_windowpos = m_cam_controls.m_mouse_windowpos;
 			
-			// 
+			//  orient
 			if (!delta_mouse.is_zero())
 			{
 				delta_mouse.normalize();
 				delta_mouse.y = -delta_mouse.y;
 				delta_mouse.x = -delta_mouse.x;
-				logn("delta mouse: {}:{}", delta_mouse.x, delta_mouse.y);
-				
+
 				cam.m_transform.rotate_y(delta_mouse.x * time.m_delta_seconds);
 				cam.m_transform.rotate_x(delta_mouse.y * time.m_delta_seconds);
 				cam.m_transform.update_matrix();
