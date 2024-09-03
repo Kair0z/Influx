@@ -43,12 +43,14 @@ namespace influx::application
 			mesh.m_transform = math::transform3D::identity();
 			mesh.m_transform.set_position(distance * random::get_random_unit_vectorf3());
 			mesh.m_transform.update_matrix();
-			add(mesh);
+			//add(mesh);
 		}
 
 		mesh_actor ground{};
 		ground.m_mesh_name = "engine_plane";
 		ground.m_transform = math::transform3D::identity();
+		ground.m_transform.set_scale(100.0f);
+		ground.m_transform.update_matrix();
 		add(ground);
 
 		mesh_actor box{};
@@ -73,25 +75,41 @@ namespace influx::application
 				break;
 			}
 		});
-
 		input::subscribe([this](const input::mouse_event& ev)
 		{
-			on_mouse_scroll(ev.m_wheel_delta);
+			switch (ev.m_type)
+			{
+			case input::mouse_event::e_type::button_down:
+				on_mouse_button_down(ev.m_button);
+				break;
+
+			case input::mouse_event::e_type::button_up:
+				on_mouse_button_up(ev.m_button);
+				break;
+
+			case input::mouse_event::e_type::move:
+				on_mouse_move(ev.m_position_client);
+				break;
+
+			case input::mouse_event::e_type::scroll:
+				on_mouse_scroll(ev.m_wheel_delta);
+				break;
+			}
 		});
 	}
 
-	void apply_ascii(math::vectorf2& input, char ascii, float value)
+	void apply_ascii(math::vectorf3& input, char ascii, float value)
 	{
 		switch (ascii)
 		{
 		case 'A': input.x += -value; break;
-		case 'W': input.y += value; break;
+		case 'W': input.z += value; break;
 		case 'D': input.x += value; break;
-		case 'S': input.y += -value; break;
+		case 'S': input.z += -value; break;
 		}
 
 		input.x = math::clamp(input.x, -1.0f, 1.0f);
-		input.y = math::clamp(input.y, -1.0f, 1.0f);
+		input.z = math::clamp(input.z, -1.0f, 1.0f);
 	}
 
 	void scene::on_keyhold(const input::key_event& ev)
@@ -109,9 +127,14 @@ namespace influx::application
 			reset_camera();
 		}
 
-		if (ev.m_key == input::e_key::lshift)
+		if (ev.m_key == input::e_key::lctrl)
 		{
-			m_cam_controls.m_shift_multiplier = 2.0f;
+			m_cam_controls.m_input.y = -1.0f;
+		}
+
+		if (ev.m_key == input::e_key::space)
+		{
+			m_cam_controls.m_input.y = 1.0f;
 		}
 	}
 
@@ -119,9 +142,52 @@ namespace influx::application
 	{
 		apply_ascii(m_cam_controls.m_input, ev.m_ascii_char, -1.0f);
 
-		if (ev.m_key == input::e_key::lshift)
+		if (ev.m_key == input::e_key::lctrl)
 		{
-			m_cam_controls.m_shift_multiplier = 1.0f;
+			m_cam_controls.m_input.y = 0.0f;
+		}
+
+		if (ev.m_key == input::e_key::space)
+		{
+			m_cam_controls.m_input.y = 0.0f;
+		}
+	}
+
+	void scene::on_mouse_button_down(const input::mouse_event::e_button& button)
+	{
+		switch (button)
+		{
+		case input::mouse_event::e_button::right:
+			m_cam_controls.m_is_orienting = true;
+			m_cam_controls.m_first_frame_orient = true;
+			break;
+		}
+	}
+
+	void scene::on_mouse_button_up(const input::mouse_event::e_button& button)
+	{
+		switch (button)
+		{
+		case input::mouse_event::e_button::right:
+			m_cam_controls.m_is_orienting = false;
+			m_cam_controls.m_first_frame_orient = false;
+			break;
+		}
+	}
+
+	void scene::on_mouse_move(const math::vectorf2& window_pos)
+	{
+		if (m_cam_controls.m_is_orienting)
+		{
+			// on the first frame of orienting, set previous to the current
+			if (m_cam_controls.m_first_frame_orient)
+			{
+				m_cam_controls.m_previous_mouse_windowpos = window_pos;
+				m_cam_controls.m_first_frame_orient = false;
+			}
+			
+			// set current mouse window position
+			m_cam_controls.m_mouse_windowpos = window_pos;
 		}
 	}
 
@@ -142,25 +208,8 @@ namespace influx::application
 			reset_camera();
 		}
 
-		// update camera velocity:
-		float acc_power = 1000.0f;
-		m_cam_controls.m_acceleration.x = m_cam_controls.m_input.x * acc_power;
-		m_cam_controls.m_acceleration.z = -m_cam_controls.m_input.y * acc_power;
-		m_cam_controls.m_acceleration.y = 0.0f;
-
-		m_cam_controls.m_velocity += m_cam_controls.m_acceleration * time.m_delta_seconds;
-		m_cam_controls.m_velocity.clamp_length(m_cam_controls.m_speed);
-
-		// update camera
-		cam.m_transform.translate(m_cam_controls.m_velocity * time.m_delta_seconds);
-
-		// drag camera
-		if (m_cam_controls.m_input.is_zero())
-		{
-			m_cam_controls.m_velocity.lerp_towards(math::vectorf3::zero(), time.m_delta_seconds * acc_power);
-		}
-		
-		cam.m_transform.update_matrix();
+		update_camera_move(time);
+		update_camera_orient(time);
 
 		// update render scene
 		mp_render_scene->m_delta_seconds = time.m_delta_seconds;
@@ -172,7 +221,66 @@ namespace influx::application
 		render_cam.m_near_plane = cam.m_camera.get_nearplane();
 		render_cam.m_fov = cam.m_camera.get_fov();
 
+		// increment framecount
 		++m_frame;
+	}
+
+	void scene::update_camera_move(const frame_time& time)
+	{
+		camera_actor& cam = get_current_camera();
+
+		// update velocity:
+		float acc_power = 1000.0f;
+		m_cam_controls.m_acceleration.x = m_cam_controls.m_input.x * acc_power;
+		m_cam_controls.m_acceleration.y = m_cam_controls.m_input.y * acc_power;
+		m_cam_controls.m_acceleration.z = -m_cam_controls.m_input.z * acc_power;
+
+		m_cam_controls.m_velocity += m_cam_controls.m_acceleration * time.m_delta_seconds;
+		m_cam_controls.m_velocity.clamp_length(m_cam_controls.m_speed);
+
+		// move horizontal (local)
+		math::vectorf3 vel_horizontal = m_cam_controls.m_velocity;
+		vel_horizontal.y = 0.0f;
+		cam.m_transform.translate(vel_horizontal * time.m_delta_seconds, true);
+
+		// move vertical (world)
+		math::vectorf3 vel_vertical = m_cam_controls.m_velocity;
+		vel_vertical.x = vel_vertical.z = 0.0f;
+		cam.m_transform.translate(vel_vertical * time.m_delta_seconds, false);
+
+		// drag
+		if (m_cam_controls.m_input.is_zero())
+		{
+			m_cam_controls.m_velocity.lerp_towards(math::vectorf3::zero(), time.m_delta_seconds * acc_power);
+		}
+
+		// update matrix
+		cam.m_transform.update_matrix();
+	}
+
+	void scene::update_camera_orient(const frame_time& time)
+	{
+		camera_actor& cam = get_current_camera();
+
+		if (m_cam_controls.m_is_orienting)
+		{
+			// update delta mousepos
+			math::vectorf2 delta_mouse = m_cam_controls.m_mouse_windowpos - m_cam_controls.m_previous_mouse_windowpos;
+			m_cam_controls.m_previous_mouse_windowpos = m_cam_controls.m_mouse_windowpos;
+			
+			// 
+			if (!delta_mouse.is_zero())
+			{
+				delta_mouse.normalize();
+				delta_mouse.y = -delta_mouse.y;
+				delta_mouse.x = -delta_mouse.x;
+				logn("delta mouse: {}:{}", delta_mouse.x, delta_mouse.y);
+				
+				cam.m_transform.rotate_y(delta_mouse.x * time.m_delta_seconds);
+				cam.m_transform.rotate_x(delta_mouse.y * time.m_delta_seconds);
+				cam.m_transform.update_matrix();
+			}
+		}
 	}
 
 	void scene::save(const string& filepath)
@@ -237,7 +345,7 @@ namespace influx::application
 	void scene::reset_camera()
 	{
 		camera_actor& cam = get_current_camera();
-		cam.m_transform.set_position(0.0f, 0.0f, 20.0f);
+		cam.m_transform.set_position(0.0f, 2.0f, 10.0f);
 		cam.m_transform.look_at(math::vectorf3::zero());
 		cam.m_transform.update_matrix();
 

@@ -80,5 +80,4 @@ namespace influx::application
 	{
 		return m_shaders;
 	}
-
 }

@@ -293,7 +293,7 @@ namespace influx::math
 		// http://www.fastgraph.com/makegames/3drotation/3dsrce.html
 
 		float x{ axis.x }, y{ axis.y }, z{ axis.z };
-		vector<_t, 3> norm = axis.Normalized();
+		vector<_t, 3> norm = axis.normalized();
 		float c, s, t;
 		c = cos(angle);
 		s = sin(angle);
@@ -368,17 +368,17 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline vector<_t, _C>& matrix<_t, _C, _R>::get_row(matrix_dim_t r)
 	{
-		FLX_ASSERT(r < _R);
+		influx_assert(r < _R);
 		return this->m_rows[r];
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline vector<_t, _R> matrix<_t, _C, _R>::get_collumn(matrix_dim_t c) const
 	{
-		FLX_ASSERT(c < _C);
+		influx_assert(c < _C);
 		vector<_t, _R> collumn{};
 		for (matrix_dim_t r{}; r < _R; ++r)
-			collumn[r] = this->rows[r][c];
+			collumn[r] = this->m_rows[r][c];
 
 		return collumn;
 	}
@@ -387,25 +387,25 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline _t& matrix<_t, _C, _R>::get_element(matrix_dim_t c, matrix_dim_t r)
 	{
-		FLX_ASSERT(r < _R&& c < _C);
+		influx_assert(r < _R&& c < _C);
 		return (*this)[r][c];
 	}
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline const _t& matrix<_t, _C, _R>::get_element(matrix_dim_t c, matrix_dim_t r) const
 	{
-		FLX_ASSERT(r < _R&& c < _C);
+		influx_assert(r < _R&& c < _C);
 		return (*this)[r][c];
 	}
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline _t& matrix<_t, _C, _R>::get_element(matrix_dim_t idx)
 	{
-		FLX_ASSERT(idx < _C* _R);
+		influx_assert(idx < _C* _R);
 		return get_element(idx % _C, idx / _R);
 	}
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline const _t& matrix<_t, _C, _R>::get_element(matrix_dim_t idx) const
 	{
-		FLX_ASSERT(idx < _C* _R);
+		influx_assert(idx < _C* _R);
 		return get_element(idx % _C, idx / _R);
 	}
 
@@ -545,7 +545,7 @@ namespace influx::math
 		vector<_t, 4u> cpy = { v.x, v.y, v.z, 1.f };
 		vector<_t, 4u> res{};
 		for (matrix_dim_t c{}; c < 4u; ++c)
-			res[c] = vector<_t, 4u>::dot(mat.Collumn(c), cpy);
+			res[c] = vector<_t, 4u>::dot(mat.get_collumn(c), cpy);
 
 		return { res.x, res.y, res.z };
 	}

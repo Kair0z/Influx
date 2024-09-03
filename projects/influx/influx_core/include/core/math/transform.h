@@ -41,9 +41,50 @@ namespace influx::math
 			return identity;
 		}
 
-		void translate(const vectorf3& add_position)
+		void translate(const vectorf3& add_position, bool blocal = false)
 		{
-			set_position(get_position() + add_position);
+			if (blocal)
+			{
+				vectorf3 delta =
+					(get_right() * add_position.x) +
+					(get_up() * add_position.y) +
+					(get_forward() * add_position.z);
+
+				set_position(get_position() + delta);
+			}
+			else
+			{
+				set_position(get_position() + add_position);
+			}
+		}
+
+		void rotate(float delta_angle, const vectorf3& axis)
+		{
+			m_rotation.rotate(delta_angle, axis);
+		}
+
+		void rotate_y(float delta_angle, bool blocal = false)
+		{
+			if (blocal)
+			{
+				rotate(delta_angle, get_up());
+			}
+			else
+			{
+				rotate(delta_angle, vectorf3::up());
+			}
+		}
+
+		void rotate_x(float delta_angle, bool blocal = false)
+		{
+			if (blocal)
+			{
+				rotate(delta_angle, get_right());
+			}
+			else
+			{
+				rotate(delta_angle, vectorf3::right());
+			}
 		}
 
 		void set_position(const vectorf3& position)
@@ -85,6 +126,10 @@ namespace influx::math
 		{
 			m_scale = scale;
 		}
+		void set_scale(const float scale)
+		{
+			m_scale = vectorf3{ scale, scale, scale };
+		}
 		void look_at(const vectorf3& location)
 		{
 			set_forward((location - get_position()).normalized());
@@ -118,7 +163,7 @@ namespace influx::math
 
 		void update_matrix()
 		{
-			m_matrix = matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward());
+			m_matrix = matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward()) * matrix4x4f::make_scale(m_scale);
 		}
 
 		transform3D(const transform3D&) = default;
@@ -131,7 +176,6 @@ namespace influx::math
 		vectorf3 m_position = vectorf3::zero();
 		vectorf3 m_scale = vectorf3::one();
 		math::rotation m_rotation = rotation::identity();
-		
 		matrix4x4f m_matrix = matrix4x4f::identity();
 	};
 }

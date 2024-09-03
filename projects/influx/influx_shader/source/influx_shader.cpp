@@ -6,6 +6,7 @@
 // dx12 compiler
 #include <d3dcompiler.h>
 #include <dxcapi.h>
+#pragma comment (lib, "d3dcompiler.lib")
 #pragma comment (lib, "dxcompiler.lib")
 
 // global dxc utils
@@ -258,21 +259,14 @@ namespace influx::shader
 			IDxcBlob* pDebugData = nullptr;
 			IDxcBlobUtf16* pDebugDataPath = nullptr;
 			result = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugData), &pDebugDataPath);
-			if (pDebugDataPath && pDebugDataPath->GetStringLength() > 0)
-			{
-				printf(((char*)pDebugDataPath->GetBufferPointer()));
-				printf("\n");
-
-			}
-
 			if (result == S_OK && pDebugData != nullptr)
 			{
 				wstring foldername = to_wstring(args.m_pdb_folder);
 				wstring filename = make_shader_name_string(args);
 				wstring filepath = foldername + L"/" + filename + L".pdb";
 
-				// result = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData, 
-				// 	filepath.c_str(), true);
+				result = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData, 
+					filepath.c_str(), true);
 			}
 		}
 

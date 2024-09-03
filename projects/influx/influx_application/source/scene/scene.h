@@ -7,6 +7,8 @@
 
 #include "core/platform/window.h"
 
+#include "influx_input.h"
+
 namespace influx
 {
 	namespace renderer
@@ -53,6 +55,10 @@ namespace influx::application
 		void on_keyhold(const input::key_event& ev);
 		void on_keydown(const input::key_event& ev);
 		void on_keyup(const input::key_event& ev);
+
+		void on_mouse_button_down(const input::mouse_event::e_button& button);
+		void on_mouse_button_up(const input::mouse_event::e_button& button);
+		void on_mouse_move(const math::vectorf2& move);
 		void on_mouse_scroll(const float value);
 
 		void update(const frame_time& time);
@@ -80,11 +86,20 @@ namespace influx::application
 
 			float m_speed = k_min_speed;
 			float m_shift_multiplier = 1.0f;
-			math::vectorf3 m_velocity;
-			math::vectorf3 m_acceleration;
-			math::vectorf2 m_input;
+			math::vectorf3 m_velocity{};
+			math::vectorf3 m_acceleration{};
+			math::vectorf3 m_input{};
+
+			bool m_is_orienting = false;
+			bool m_first_frame_orient = false;
+
+			math::vectorf2 m_previous_mouse_windowpos{};
+			math::vectorf2 m_mouse_windowpos{};
 		};
 		camera_controls m_cam_controls{};
+
+		void update_camera_move(const frame_time&);
+		void update_camera_orient(const frame_time&);
 
 		camera_actor& get_current_camera();
 		void reset_camera();

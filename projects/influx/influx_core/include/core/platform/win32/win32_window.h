@@ -29,12 +29,13 @@ namespace influx::platform
 		* VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
 		* 0x3A - 0x40 : unassigned
 		* VK_A - VK_Z are the same as ASCII 'A' - 'Z' (0x41 - 0x5A) */
-		if (m_wParam >= 0x30 || m_wParam <= 0x39)
+		const bool is_ascii_number = m_wParam >= 0x30 && m_wParam <= 0x39;
+		if (is_ascii_number)
 		{
 			return key_type::ascii_num;
 		}
-
-		if (m_wParam >= 0x41 || m_wParam <= 0x5A)
+		const bool is_ascii_character = m_wParam >= 0x41 && m_wParam <= 0x5A;
+		if (is_ascii_character)
 		{
 			return key_type::ascii_ch;
 		}
@@ -49,10 +50,11 @@ namespace influx::platform
 		case VK_END: return key_type::end;
 		case VK_INSERT: return key_type::insert;
 		case VK_DELETE: return key_type::deleet;
-		case VK_LSHIFT: return key_type::lshift;
+		case VK_SHIFT: return key_type::lshift;
 		case VK_RSHIFT: return key_type::rshift;
-		case VK_LCONTROL: return key_type::lctrl;
+		case VK_CONTROL: return key_type::lctrl;
 		case VK_RCONTROL: return key_type::rctrl;
+		case VK_SPACE: return key_type::space;
 		case VK_F2: return key_type::f2;
 		default: return key_type::unknown;
 		}

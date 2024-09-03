@@ -218,7 +218,7 @@ namespace influx::renderer
         m_ps_constants.m_delta_seconds = scene.m_delta_seconds;
         m_ps_constants.m_seconds = scene.m_seconds;
         mp_pipeline->set_constants<gpu_vs_constants>(commandlist, "g_perframe_vs", m_vs_constants);
-        mp_pipeline->set_constants<gpu_ps_constants>(commandlist, "g_perframe_ps", m_ps_constants);
+        // mp_pipeline->set_constants<gpu_ps_constants>(commandlist, "g_perframe_ps", m_ps_constants);
 
         vector<batch> batches = create_batches(scene);
         update_instance_buffer(batches);

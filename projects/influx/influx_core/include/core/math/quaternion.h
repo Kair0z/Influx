@@ -59,13 +59,23 @@ namespace influx::math
 			m_up = newUp;
 		}
 
+		void rotate(float delta_angle, const vectorf3& axis)
+		{
+			m_rotation_matrix = math::matrix4x4f::make_rotation(axis, delta_angle);
+
+			m_forward = m_rotation_matrix * m_forward;
+			m_right = m_rotation_matrix * m_right;
+			m_up = m_rotation_matrix * m_up;
+		}
+
 	private:
 		vectorf3 m_forward;
 		vectorf3 m_right;
 		vectorf3 m_up;
+
+		math::matrix4x4f m_rotation_matrix;
 	};
 
-	// Temp... might / should make this a standalone-class someday..
 	using rotation = quaternion;
 }
 

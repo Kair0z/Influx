@@ -26,6 +26,7 @@ namespace influx::input
 		rshift,
 		lctrl,
 		rctrl,
+		space,
 		ascii_num,
 		ascii_char,
 		count

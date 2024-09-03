@@ -71,6 +71,7 @@ namespace influx::platform
 			rshift,
 			lctrl,
 			rctrl,
+			space,
 			ascii_num, // ascii number (0-9)
 			ascii_ch, // ascii character (A-Z)
 			unknown,
