@@ -184,7 +184,7 @@ namespace influx::renderer
 		texture_create_args texture_args{};
 		texture_args.m_width = width;
 		texture_args.m_heigth = height;
-		mp_fonts_texture = backend.create_texture(texture_args);
+		mp_fonts_texture = backend.create_texture("tex_imgui_fonts", texture_args);
 
 		// setup texture data
 		texture_data tex_data{};

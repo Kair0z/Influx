@@ -29,6 +29,8 @@ namespace influx::graphics
 		// interface:
 		virtual vector<physical_device_info> get_gpu_infos() = 0;
 
+		virtual const memory_info& get_memory_info() const = 0;
+
 		virtual command_queue* create_command_queue(const command_queue_desc& desc) = 0;
 
 		virtual swapchain* create_swapchain(command_queue* queue, const platform::window_handle& window, const swapchain_desc& desc) = 0;

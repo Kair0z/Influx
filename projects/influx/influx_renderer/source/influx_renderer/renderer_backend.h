@@ -57,9 +57,9 @@ namespace influx::renderer
 		void load(const string& title, const shader_data& data);
 		void load(const string& title, const material& data);
 
-		texture* create_texture(const texture_create_args& args);
-		const vector<texture*>& get_textures() const;
-		texture* get_texture(const string& name) const;
+		texture* create_texture(const string& title, const texture_create_args& args);
+		const umap<string, texture*>& get_textures() const;
+		texture* get_texture(const string& name);
 
 		const umap<string, material> get_materials() const;
 		material* get_material(const string& name);
@@ -68,6 +68,8 @@ namespace influx::renderer
 
 		vector<string> get_mesh_names() const;
 		bool get_mesh_buffers(const string& name, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
+
+		memory_info get_memory_info() const;
 
 	private:
 		uint64 m_frame_count = 0u;
@@ -103,6 +105,6 @@ namespace influx::renderer
 		umap<string, material> m_materials;
 		umap<string, shader_data> m_vertex_shaders;
 		umap<string, shader_data> m_pixel_shaders;
-		vector<texture*> m_textures;
+		umap<string, texture*> m_textures;
 	};
 }

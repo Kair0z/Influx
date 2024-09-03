@@ -18,6 +18,8 @@ namespace influx::graphics
 		// get info about physical devices:
 		virtual vector<physical_device_info> get_gpu_infos() override;
 
+		virtual const memory_info& get_memory_info() const override;
+
 		// get interface to graphics object creation:
 		virtual command_queue* create_command_queue(const command_queue_desc& desc) override;
 

@@ -8,6 +8,7 @@
 
 namespace influx::application
 {
+	class editor;
 	class scene;
 	class content_manager;
 	class renderer;
@@ -34,6 +35,8 @@ namespace influx::application
 		static bool is_scene_render_enabled();
 		static bool is_commandlet();
 
+		static editor* get_editor();
+
 	private:
 
 		platform::window_handle m_windowhandle = nullptr;
@@ -50,6 +53,7 @@ namespace influx::application
 		renderer* mp_renderer;
 		content_manager* mp_content_manager;
 		scene* mp_scene;
+		editor* mp_editor;
 
 		void process_run_args(const run_args& args);
 	};

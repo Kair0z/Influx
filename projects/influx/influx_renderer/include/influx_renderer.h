@@ -97,4 +97,13 @@ namespace influx::renderer
 	INFLUX_RENDER_API void load(const string& title, const shader_data& data);
 
 	INFLUX_RENDER_API void load(const string& title, const material& data);
+
+	// graphics info
+	struct memory_info final
+	{
+		size_t m_gpu_usage = 0u;
+		size_t m_gpu_budget = 0u;
+	};
+
+	INFLUX_RENDER_API memory_info get_memory_info();
 }

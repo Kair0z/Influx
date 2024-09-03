@@ -14,7 +14,6 @@
 // input
 #include "influx_input.h"
 
-
 namespace influx::application
 {
 	scene::scene()
@@ -233,7 +232,7 @@ namespace influx::application
 		float acc_power = 1000.0f;
 		m_cam_controls.m_acceleration.x = m_cam_controls.m_input.x * acc_power;
 		m_cam_controls.m_acceleration.y = m_cam_controls.m_input.y * acc_power;
-		m_cam_controls.m_acceleration.z = -m_cam_controls.m_input.z * acc_power;
+		m_cam_controls.m_acceleration.z = m_cam_controls.m_input.z * acc_power;
 
 		m_cam_controls.m_velocity += m_cam_controls.m_acceleration * time.m_delta_seconds;
 		m_cam_controls.m_velocity.clamp_length(m_cam_controls.m_speed);

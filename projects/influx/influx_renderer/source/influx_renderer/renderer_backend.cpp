@@ -299,6 +299,8 @@ namespace influx::renderer
         return get_instance().mp_pipeline_manager;
     }
 
+
+    // mesh
     void renderer_backend::load(const string& title, const mesh_data& data)
     {
         if (!m_vertex_buffers.contains(title))
@@ -341,23 +343,19 @@ namespace influx::renderer
         }
     }
 
+    // texture
     void renderer_backend::load(const string& title, const texture_data& data)
     {
         texture_create_args create_args{};
         create_args.m_width = 1024u;
         create_args.m_heigth = 1024u;
-        texture* new_texture = create_texture(create_args);
+        texture* texture = create_texture(title, create_args);
 
-#if _DEBUG
-        new_texture->set_name(title);
-#endif
-
-        mp_upload_manager->upload_texture(
-            mp_graphics_queue, 
-            data, 
-            new_texture->get_resource());
+        mp_upload_manager->upload_texture(mp_graphics_queue, data,
+            texture->get_resource());
     }
 
+    // shader
     void renderer_backend::load(const string& title, const shader_data& data)
     {
         umap<string, shader_data>* target_map = nullptr;
@@ -386,6 +384,7 @@ namespace influx::renderer
         }
     }
 
+    // material
     void renderer_backend::load(const string& title, const material& data)
     {
         if (m_materials.contains(title))
@@ -394,29 +393,31 @@ namespace influx::renderer
         m_materials[title] = data;
     }
 
-    texture* renderer_backend::create_texture(const texture_create_args& args)
+
+    texture* renderer_backend::create_texture(const string& title, const texture_create_args& args)
     {
-        texture* new_texture = new texture(mp_device, args);
-        m_textures.push_back(new_texture);
-        return new_texture;
+        if (!m_textures.contains(title))
+        {
+            texture* new_texture = new texture(mp_device, args);
+#if _DEBUG
+            new_texture->set_name(title);
+#endif
+            m_textures[title] = new_texture;
+        }
+
+        return m_textures[title];
     }
 
-    const vector<texture*>& renderer_backend::get_textures() const
+    const umap<string, texture*>& renderer_backend::get_textures() const
     {
         return m_textures;
     }
 
-    texture* renderer_backend::get_texture(const string& name) const
+    texture* renderer_backend::get_texture(const string& name)
     {
-        auto found = std::find_if(m_textures.cbegin(), m_textures.cend(), 
-            [&name](const texture* tex) -> bool
-            {
-                return tex->get_name() == name;
-            });
-
-        if (found != m_textures.cend())
+        if (m_textures.contains(name))
         {
-            return *found;
+            return m_textures[name];
         }
 
         return nullptr;
@@ -458,6 +459,17 @@ namespace influx::renderer
         out_index_buffer = m_index_buffers[name];
 
         return true;
+    }
+
+    memory_info renderer_backend::get_memory_info() const
+    {
+        memory_info info{};
+
+        graphics::memory_info graphics_info = mp_device->get_memory_info();
+        info.m_gpu_budget = graphics_info.m_gpu_budget;
+        info.m_gpu_usage = graphics_info.m_gpu_usage;
+
+        return info;
     }
 
 #pragma region frontend_api
@@ -530,6 +542,11 @@ namespace influx::renderer
     void load(const string& title, const material& data)
     {
         renderer_backend::get_instance().load(title, data);
+    }
+
+    memory_info get_memory_info()
+    {
+        return renderer_backend::get_instance().get_memory_info();
     }
 #pragma endregion
 

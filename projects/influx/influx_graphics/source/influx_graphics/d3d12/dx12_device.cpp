@@ -101,6 +101,23 @@ namespace influx::graphics
 		return result_infos;
 	}
 
+	const memory_info& dx12_device::get_memory_info() const
+	{
+		memory_info result_info{};
+
+		DXGI_QUERY_VIDEO_MEMORY_INFO out_info{};
+		HRESULT res = ((IDXGIAdapter3*)mpdxgi_adapters[0u])->QueryVideoMemoryInfo(0u,
+			DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &out_info);
+
+		if (res == S_OK)
+		{
+			result_info.m_gpu_budget = out_info.Budget;
+			result_info.m_gpu_usage = out_info.CurrentUsage;
+		}
+
+		return result_info;
+	}
+
 	// get interface to graphics object creation:
 	command_queue* dx12_device::create_command_queue(const command_queue_desc& desc)
 	{

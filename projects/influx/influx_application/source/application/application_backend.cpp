@@ -5,6 +5,7 @@
 #include "scene/scene.h"
 #include "renderer/renderer.h"
 #include "content/content_manager.h"
+#include "imgui/editor.h"
 
 // core:
 #include "core/log.h"
@@ -56,6 +57,9 @@ namespace influx::application
 		async::init_args async_args{};
 		async_args.m_num_workers = 4u;
 		async::initialize(async_args);
+
+		// create editor
+		mp_editor = new editor();
 
 		// load content
 		mp_content_manager = new content_manager(get_resource_directory());
@@ -129,6 +133,11 @@ namespace influx::application
 	bool application::is_commandlet()
 	{
 		return get_instance().m_run_args.m_commandlet;
+	}
+
+	editor* application::get_editor()
+	{
+		return get_instance().mp_editor;
 	}
 
 	void application::process_run_args(const run_args& args)

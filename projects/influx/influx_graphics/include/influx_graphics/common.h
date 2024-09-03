@@ -20,6 +20,12 @@ namespace influx::graphics
 		string m_name{};
 	};
 
+	struct memory_info final
+	{
+		size_t m_gpu_budget{};
+		size_t m_gpu_usage{}; // in bytes
+	};
+
 	enum class e_format : uint8
 	{
 		rgba8,
