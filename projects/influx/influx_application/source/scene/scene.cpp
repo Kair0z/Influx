@@ -38,15 +38,18 @@ namespace influx::application
 		add(cam);
 
 		// meshes
-		float distance = 50.0f;
-		for (size_t i = 0u; i < 50u; ++i)
+		float distance = 500.0f;
+		for (size_t i = 0u; i < 4u; ++i)
 		{
 			mesh_actor mesh{};
 			mesh.m_mesh_name = "transistor1";
 			mesh.m_transform = math::transform3D::identity();
 			mesh.m_transform.set_position(distance * random::get_random_unit_vectorf3());
+			mesh.m_transform.set_position_y(0.0f);
+			mesh.m_transform.set_position_z(-10.0f);
+			mesh.m_transform.set_scale(0.05f);
 			mesh.m_transform.update_matrix();
-			//add(mesh);
+			add(mesh);
 		}
 
 		mesh_actor ground{};
@@ -107,7 +110,7 @@ namespace influx::application
 
 			ImGui::Begin("Scene");
 
-			// draw the camera
+			// draw the cameras
 			ImGui::Text("Camera:");
 			editor::draw_transform(cam.m_transform, "Transform");
 			editor::draw_camera(cam.m_camera);

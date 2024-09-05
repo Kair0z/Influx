@@ -24,7 +24,7 @@ namespace influx::graphics
 		e_primitive_topology_type m_prim_type = e_primitive_topology_type::triangle;
 
 		// DSV
-		e_format m_format_dsv;
+		e_format m_format_dsv = e_format::d32;
 
 		// shaders
 		vector<byte> m_vs;
