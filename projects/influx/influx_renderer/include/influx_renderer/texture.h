@@ -15,7 +15,7 @@ namespace influx::renderer
 {
 	struct texture_data final
 	{
-		vector<byte> m_pixels{};
+		vector<pixel32> m_pixels{};
 		uint32 m_width = 0u;
 
 		uint32 get_width() const

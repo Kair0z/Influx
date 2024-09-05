@@ -4,11 +4,14 @@
 // influx::application
 #include "application/application_backend.h"
 #include "content/content_manager.h"
-#include "imgui/editor.h"
+#include "editor/editor.h"
 
 // influx::renderer
 #include "influx_renderer.h"
 #include "influx_renderer/target.h"
+
+// imgui
+#include "imgui/imgui.h"
 
 namespace influx::application
 {
@@ -29,6 +32,16 @@ namespace influx::application
 		target_args.m_width = mp_window_target->get_width();
 		target_args.m_heigth = mp_window_target->get_height();
 		mp_scene_color_target = influx::renderer::create_target(target_args);
+
+		// imgui
+		application::get_editor()->subscribe([this]()
+		{
+			ImGui::Begin("Renderer");
+			const auto mem_info = influx::renderer::get_memory_info();
+			const float percentage = (float)mem_info.m_gpu_usage / mem_info.m_gpu_budget;
+			ImGui::Text("Gpu Memory %u / %u (%f)", mem_info.m_gpu_usage, mem_info.m_gpu_budget, percentage);
+			ImGui::End();
+		});
 	}
 
 	void renderer::render(const influx::renderer::scene& scene)

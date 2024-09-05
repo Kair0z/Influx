@@ -14,6 +14,10 @@
 // input
 #include "influx_input.h"
 
+// imgui
+#include "editor/editor.h"
+#include "imgui/imgui.h"
+
 namespace influx::application
 {
 	scene::scene()
@@ -94,6 +98,21 @@ namespace influx::application
 				on_mouse_scroll(ev.m_wheel_delta);
 				break;
 			}
+		});
+
+		// imgui
+		application::get_editor()->subscribe([this]()
+		{
+			camera_actor& cam = get_current_camera();
+
+			ImGui::Begin("Scene");
+
+			// draw the camera
+			ImGui::Text("Camera:");
+			editor::draw_transform(cam.m_transform, "Transform");
+			editor::draw_camera(cam.m_camera);
+
+			ImGui::End();
 		});
 	}
 

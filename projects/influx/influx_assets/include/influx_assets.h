@@ -74,7 +74,7 @@ namespace influx::assets
 
 	struct image_data final
 	{
-		vector<byte> m_pixels{};
+		vector<pixel32> m_pixels{};
 		math::vectoru2 m_dimensions{};
 	};
 

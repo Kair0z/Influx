@@ -135,6 +135,10 @@ namespace influx::math
 			set_forward((location - get_position()).normalized());
 		}
 
+		const rotation& get_rotation() const
+		{
+			return m_rotation;
+		}
 		vectorf3 get_position() const
 		{
 			return m_position;

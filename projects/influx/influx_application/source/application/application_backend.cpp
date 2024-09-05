@@ -5,7 +5,7 @@
 #include "scene/scene.h"
 #include "renderer/renderer.h"
 #include "content/content_manager.h"
-#include "imgui/editor.h"
+#include "editor/editor.h"
 
 // core:
 #include "core/log.h"
@@ -93,6 +93,7 @@ namespace influx::application
 
 			// update scene
 			mp_scene->update(frame_time);
+			mp_editor->update();
 
 			mp_renderer->render(mp_scene->get_render_scene());
 		}

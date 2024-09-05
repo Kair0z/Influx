@@ -16,6 +16,8 @@ namespace influx::renderer
 		mp_texture_upload_resource = mp_device->create_resource(texture_desc, heap_desc);
 
 		graphics::buffer_desc buffer_desc{};
+		buffer_desc.m_bytesize = 1024u * 1024u * 14u;
+		buffer_desc.m_init_state = graphics::e_resource_state::read;
 		mp_buffer_upload_resource = mp_device->create_resource(buffer_desc, heap_desc);
 
 		mp_fence = mp_device->create_fence(0u);
@@ -56,7 +58,7 @@ namespace influx::renderer
 
 	void upload_manager::upload_texture(graphics::command_queue* queue, const texture_data& data, graphics::resource* target_resource)
 	{
-		const size_t texture_bytesize = data.m_pixels.size() * sizeof(byte);
+		const size_t texture_bytesize = data.m_pixels.size() * sizeof(pixel32);
 		static uint32 num_textures = 0u;
 
 		const range<size_t> upload_subrange{

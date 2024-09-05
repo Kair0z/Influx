@@ -79,6 +79,8 @@ namespace influx::application
 			break;
 			}
 		});
+
+		set_window_dimensions({ 1280, 720 });
 	}
 
 	void editor::set_window_dimensions(const math::vectorf2& dimensions)
@@ -88,20 +90,65 @@ namespace influx::application
 
 	void editor::update()
 	{
+		
 	}
 
 	ImDrawData* editor::get_imgui_drawdata()
 	{
-		
-
-		ImGui::GetIO();
-
 		ImGui::NewFrame();
 
-		// ImGui::ShowDemoWindow();
+		for (const auto& callback : m_callbacks)
+		{
+			callback();
+		}
 
-		// calls EndFrame
-		ImGui::Render();
+		ImGui::ShowDemoWindow();
+
+		ImGui::Render(); // EndFrame
 		return ImGui::GetDrawData();
+	}
+
+	void editor::subscribe(const imgui_callback& callback)
+	{
+		m_callbacks.push_back(callback);
+	}
+
+	void editor::unsubscribe(const imgui_callback& callback)
+	{
+		// m_callbacks.remove_if([&callback](const imgui_callback& list_clb) { return callback. == list_clb;  });
+	}
+
+	void editor::draw_transform(const math::transform3D& transform, const string& tag)
+	{
+		const math::vectorf3& position = transform.get_position();
+		const math::rotation& rotation = transform.get_rotation();
+		const math::vectorf3& scale = transform.get_scale();
+
+		ImGui::Text(tag.c_str());
+		ImGui::Text("Position | x:%f | y:%f | z:%f |", position.x, position.y, position.z);
+		ImGui::Text("Rotation | x:%f | y:%f | z:%f |", 0.0f, 0.0f, 0.0f);
+		ImGui::Text("Scale    | x:%f | y:%f | z:%f |", scale.x, scale.y, scale.z);
+	}
+
+	void editor::draw_vector3(const math::vectorf3& vec3, const string& tag)
+	{
+		ImGui::Text((tag + " | x:%f | y:%f | z:%f |").c_str(), vec3.x, vec3.y, vec3.z);
+	}
+
+	void editor::draw_mat4x4(const math::matrix4x4f& mat4x4, const string& tag)
+	{
+		ImGui::Text(tag.c_str());
+		for (size_t i = 0u; i < 4u; ++i)
+		{
+			const auto& row = mat4x4.get_row(i);
+			ImGui::Text("| %f | %f | %f | %f |", row.x, row.y, row.z, row.w);
+		}
+	}
+
+	void editor::draw_camera(const scene::camera& camera, const string& tag)
+	{
+		ImGui::Text(tag.c_str());
+		ImGui::Text("Fov: %f", camera.get_fov());
+		ImGui::Text("Near/Far: %f/%f", camera.get_nearplane(), camera.get_farplane());
 	}
 }

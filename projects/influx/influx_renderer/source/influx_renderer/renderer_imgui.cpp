@@ -178,7 +178,9 @@ namespace influx::renderer
 		ImGuiIO& io = ImGui::GetIO();
 		unsigned char* pixels;
 		int width, height;
-		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+		int bytes_per_pixel = 0u;
+		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytes_per_pixel);
+		uint32 num_pixels = width * height;
 
 		// setup tex create args
 		texture_create_args texture_args{};
@@ -188,10 +190,20 @@ namespace influx::renderer
 
 		// setup texture data
 		texture_data tex_data{};
-		for (size_t i = 0; i < mp_fonts_texture->get_num_pixels(); ++i)
+		constexpr uint32 k_num_channels = 4u;
+		for (uint32 i = 0u; i < num_pixels; ++i)
 		{
-			tex_data.m_pixels.push_back(pixels[i]);
+			tex_data.m_pixels.push_back({});
+			pixel32& pixel = tex_data.m_pixels.back();
+
+			uint32 r = pixels[(i * k_num_channels) + 0u];
+			uint32 g = pixels[(i * k_num_channels) + 1u];
+			uint32 b = pixels[(i * k_num_channels) + 2u];
+			uint32 a = pixels[(i * k_num_channels) + 3u];
+
+			pixel = make_pixel32(r, g, b, a);
 		}
+
 		backend.upload_texture_data(mp_fonts_texture, tex_data);
 	}
 
