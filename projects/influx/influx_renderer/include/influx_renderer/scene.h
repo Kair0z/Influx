@@ -1,11 +1,15 @@
 #pragma once
+
+// influx::core
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
 #include "core/math/transform.h"
 #include "core/string.h"
 #include "core/container/vector.h"
-
 #include "core/math/colour.h"
+
+// influx::renderer
+#include "types.h"
 
 namespace influx::renderer
 {
@@ -44,13 +48,25 @@ namespace influx::renderer
 		float m_seconds;
 	};
 
+
 	struct material final
 	{
-		// shaders?
-
+		// shaders:
+		string m_vertex_shader = "";
+		string m_pixel_shader = "";
+		// ...
+		
 		// variables:
 		math::colour_rgba m_basecolor;
 
+		// this section sketches the pipeline object,
+		bool m_enable_depth = true;
+		bool m_enable_stencil = false;
+		e_cull_mode m_cull_mode = e_cull_mode::back;
+		// ...
+		
+		// this section sketches the rootsignature,
+		// which is hard-coded to 4 resources...
 		// textures:
 		string m_tex_albedo;
 		string m_tex_normal;

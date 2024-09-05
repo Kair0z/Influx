@@ -30,4 +30,12 @@ namespace influx::renderer
 		vulkan,
 		max
 	};
+
+	enum class e_cull_mode : uint8
+	{
+		front,
+		back,
+		nocull,
+		count
+	};
 }

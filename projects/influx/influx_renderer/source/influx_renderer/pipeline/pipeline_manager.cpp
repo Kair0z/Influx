@@ -1,7 +1,7 @@
 #include "renderer_pch.h"
 #include "pipeline_manager.h"
 
-#include "influx_renderer/pipeline.h"
+#include "pipeline.h"
 
 namespace influx::renderer
 {
@@ -19,7 +19,10 @@ namespace influx::renderer
 			return m_pipeline_map[name];
 		}
 
-		pipeline* new_pipeline = new pipeline(mp_device, vertex_shader, pixel_shader);
+		pipeline* new_pipeline = new pipeline(
+			mp_device, 
+			&vertex_shader, 
+			&pixel_shader);
 
 #if _DEBUG
 		new_pipeline->set_name(name);

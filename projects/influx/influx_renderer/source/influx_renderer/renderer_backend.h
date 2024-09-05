@@ -106,5 +106,8 @@ namespace influx::renderer
 		umap<string, shader_data> m_vertex_shaders;
 		umap<string, shader_data> m_pixel_shaders;
 		umap<string, texture*> m_textures;
+
+	private:
+		void validate_materials();
 	};
 }

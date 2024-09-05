@@ -24,8 +24,8 @@ namespace influx::renderer
 	public:
 		pipeline(
 			graphics::device* device,
-			const renderer::shader_data& vertex_shader,
-			const renderer::shader_data& pixel_shader);
+			renderer::shader_data const* vertex_shader,
+			renderer::shader_data const* pixel_shader);
 
 		void set_state(graphics::command_list* cmdlist);
 

@@ -2,10 +2,10 @@
 #include "scene_renderer.h"
 
 #include "influx_renderer/target.h"
-#include "influx_renderer/pipeline.h"
+#include "influx_renderer/pipeline/pipeline.h"
+#include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/descriptor_manager.h"
-#include "influx_renderer/pipeline_manager.h"
 
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/resource.h"

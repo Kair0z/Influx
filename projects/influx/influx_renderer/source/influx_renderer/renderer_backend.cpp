@@ -2,9 +2,9 @@
 #include "renderer_backend.h"
 
 // influx::renderer
+#include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
-#include "influx_renderer/pipeline_manager.h"
 #include "influx_renderer/scene_renderer.h"
 
 // influx::graphics
@@ -470,6 +470,42 @@ namespace influx::renderer
         info.m_gpu_usage = graphics_info.m_gpu_usage;
 
         return info;
+    }
+
+    void renderer_backend::validate_materials()
+    {
+        for (const auto& mat : m_materials)
+        {
+            const string& mat_name = mat.first;
+            const material& material = mat.second;
+
+            // check shaders
+            const bool valid_pixelshader = m_pixel_shaders.contains(material.m_pixel_shader);
+            const bool valid_vertexshader = m_vertex_shaders.contains(material.m_vertex_shader);
+
+            const bool valid_pipeline = true;
+            const bool valid_rootsignature = true;
+
+            if (!valid_pixelshader)
+            {
+                influx_assert(false);
+            }
+
+            if (!valid_vertexshader)
+            {
+                influx_assert(false);
+            }
+
+            if (!valid_pipeline)
+            {
+                influx_assert(false);
+            }
+
+            if (!valid_rootsignature)
+            {
+                influx_assert(false);
+            }
+        }
     }
 
 #pragma region frontend_api

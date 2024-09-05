@@ -1,4 +1,6 @@
 #pragma once
+
+// graphics
 #include "influx_graphics/common.h"
 #include "influx_graphics/base.h"
 #include "influx_graphics/commandqueue.h"
@@ -11,6 +13,8 @@
 #include "influx_graphics/resource_views.h"
 #include "influx_graphics/descriptorheap.h"
 #include "influx_graphics/rootsignature.h"
+
+// core
 #include "core/platform/window.h"
 
 namespace influx::graphics
@@ -26,7 +30,6 @@ namespace influx::graphics
 
 		void set_api_type(e_api_type type);
 
-		// interface:
 		virtual vector<physical_device_info> get_gpu_infos() = 0;
 
 		virtual const memory_info& get_memory_info() const = 0;
