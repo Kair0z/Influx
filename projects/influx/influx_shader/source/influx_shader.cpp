@@ -254,7 +254,10 @@ namespace influx::shader
 		// [OUTPUT: DEBUG INFO]
 		if (args.m_pbd && !args.m_pdb_folder.empty())
 		{
-			influx_assert(influx::file::is_directory(args.m_pdb_folder));
+			if (!influx::file::is_directory(args.m_pdb_folder))
+			{
+				influx::file::make_directory(args.m_pdb_folder);
+			}
 
 			IDxcBlob* pDebugData = nullptr;
 			IDxcBlobUtf16* pDebugDataPath = nullptr;

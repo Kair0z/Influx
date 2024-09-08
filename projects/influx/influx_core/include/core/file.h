@@ -31,6 +31,12 @@ namespace influx
 			return std::filesystem::is_directory(path);
 		}
 
+		static bool make_directory(const string& string)
+		{
+			std::filesystem::path path(string);
+			return std::filesystem::create_directory(path);
+		}
+
 		string m_path_full;
 		string m_filename;
 		string m_extension;

@@ -116,6 +116,11 @@ namespace influx
 		return result;
 	}
 
+	void* translate(const aiMaterial* material)
+	{
+		
+	}
+
 	influx::assets::scene_data parse(const aiScene* pScene)
 	{
 		assets::scene_data result{};
