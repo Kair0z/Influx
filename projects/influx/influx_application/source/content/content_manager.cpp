@@ -1,5 +1,6 @@
 #include "app_pch.h"
 #include "content_manager.h"
+#include "application/application_backend.h"
 
 // core
 #include "core/log.h"
@@ -49,7 +50,8 @@ namespace influx::application
 			compile_args.m_pbd = true;
 			compile_args.m_reflection = true;
 			compile_args.m_defines = {};
-			compile_args.m_pdb_folder = "D:/Git/Influx/int/shaderdebug/";
+			compile_args.m_pdb_folder = application::get_intermediate_directory() + "/shaderdebug/";
+			compile_args.m_include_folder = application::get_resource_directory() + "/shaders/include/";
 
 			compile_args.m_type = shader::e_shader_type::vs;
 			compile_args.m_entrypoint = "VSMain";

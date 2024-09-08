@@ -4,6 +4,7 @@
 
 #include "core/log.h"
 #include "core/math/math.h"
+#include "core/math/vectortools.h"
 
 // renderer
 #include "influx_renderer/scene.h"
@@ -38,16 +39,21 @@ namespace influx::application
 		add(cam);
 
 		// meshes
-		float distance = 500.0f;
-		for (size_t i = 0u; i < 4u; ++i)
+		float radius = 100.0f;
+		constexpr uint32 num_swords = 8u;
+		math::circlef3D circle{ {}, math::vectorf3::up(), radius };
+		vector<math::vectorf3> positions = math::get_points_in_circle(circle, num_swords);
+		vector<math::vectorf3> normals = math::get_normals_in_circle(circle, num_swords);
+
+		for (size_t i = 0u; i < num_swords; ++i)
 		{
 			mesh_actor mesh{};
 			mesh.m_mesh_name = "transistor1";
 			mesh.m_transform = math::transform3D::identity();
-			mesh.m_transform.set_position(distance * random::get_random_unit_vectorf3());
-			mesh.m_transform.set_position_y(0.0f);
-			mesh.m_transform.set_position_z(-10.0f);
-			mesh.m_transform.set_scale(0.05f);
+			mesh.m_transform.set_position(positions[i]);
+			mesh.m_transform.set_position_y(150.0f);
+			mesh.m_transform.set_forward(normals[i]);
+			mesh.m_transform.set_scale(0.02f);
 			mesh.m_transform.update_matrix();
 			add(mesh);
 		}
@@ -133,6 +139,7 @@ namespace influx::application
 		input.z = math::clamp(input.z, -1.0f, 1.0f);
 	}
 
+#pragma region input
 	void scene::on_keyhold(const input::key_event& ev)
 	{
 
@@ -219,6 +226,7 @@ namespace influx::application
 			camera_controls::k_min_speed, 
 			camera_controls::k_max_speed * m_cam_controls.m_shift_multiplier);
 	}
+#pragma endregion
 
 	void scene::update(const frame_time& time)
 	{
@@ -333,7 +341,7 @@ namespace influx::application
 		influx::renderer::mesh_instance mesh_instance{};
 		mesh_instance.m_name = mesh.m_mesh_name;
 		mesh_instance.m_transform = inverse_transform.get_matrix();
-		mesh_instance.m_material_name = "mat_transistor";
+		mesh_instance.m_material_name = "none";
 		mp_render_scene->m_meshes.push_back(mesh_instance);
 	}
 

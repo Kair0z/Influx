@@ -210,7 +210,9 @@ namespace influx::shader
 		arguments.push_back(L"dxc -help | findstr Version");
 
 		// add include folder
-		arguments.push_back(L"-I D:/Git/Influx/Resources/Shaders/include/");
+		arguments.push_back(L"-I");
+		wstring include_folder = to_wstring(args.m_include_folder);
+		arguments.push_back(include_folder.c_str());
 
 		// Strip reflection data and pdbs (see later)
 		// "The compiler will strip both the shader PDBs and reflection data from the Object part"

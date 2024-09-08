@@ -18,20 +18,27 @@ struct ps_input
     float2 texcoord : TEXCOORD;
 };
 
-struct vs_constants
+struct per_view
 {
     float4x4 mat_vp;
 };
 
-struct per_draw_constants
-{
-    uint start_instance;
-};
-
-struct ps_constants
+struct per_scene
 {
     float seconds;
     float delta_seconds;
+    float3 light_direction;
+    float4 light_colour;
+};
+
+struct per_material
+{
+    float4 colour;
+};
+
+struct per_draw
+{
+    uint start_instance;
 };
 
 struct per_instance_data
@@ -42,9 +49,10 @@ struct per_instance_data
 
 // SHADER INPUTS
 // buffers
-ConstantBuffer<vs_constants>            g_perframe_vs       : register(b0);
-ConstantBuffer<ps_constants>            g_perframe_ps       : register(b1);
-ConstantBuffer<per_draw_constants>      g_perdraw_vs        : register(b2);
+ConstantBuffer<per_view>                g_perview           : register(b0);
+ConstantBuffer<per_scene>               g_perscene          : register(b1);
+ConstantBuffer<per_material>            g_permaterial       : register(b2);
+ConstantBuffer<per_draw>                g_perdraw           : register(b3);
 
 // samplers
 SamplerState                            g_sampler           : register(s0);

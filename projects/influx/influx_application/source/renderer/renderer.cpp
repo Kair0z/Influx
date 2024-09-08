@@ -189,8 +189,8 @@ namespace influx::application
 			}
 			
 			mesh_data.m_indices.push_back(0u);
-			mesh_data.m_indices.push_back(1u);
 			mesh_data.m_indices.push_back(2u);
+			mesh_data.m_indices.push_back(1u);
 			mesh_data.m_indices.push_back(2u);
 			mesh_data.m_indices.push_back(3u);
 			mesh_data.m_indices.push_back(1u);

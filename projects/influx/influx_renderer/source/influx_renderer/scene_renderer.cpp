@@ -33,6 +33,14 @@ namespace influx::renderer
 
         // create srv
         mp_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
+
+        // create depth-only shadowtarget
+        target_create_args args{};
+        args.m_has_colour = false;
+        args.m_has_depth_stencil = true;
+        args.m_width = 1920u;
+        args.m_heigth = 1080u;
+        mp_shadowstarget = backend->create_target(args);
     }
 
     scene_renderer::~scene_renderer()
@@ -52,6 +60,7 @@ namespace influx::renderer
 
         backend.get_mesh_buffers(mesh_name, m_vertex_buffer, m_index_buffer);
         m_material = backend.get_material(material_name);
+        influx_assert(m_material != nullptr);
     }
 
     graphics::resource* batch::get_vertex_buffer() const
@@ -177,8 +186,11 @@ namespace influx::renderer
             commandlist->set_vertexbuffer(vertex_buffer);
 
             // set base instance variable
-            m_vs_perdraw.m_start_instance = batch.get_instance_base();
-            mp_pipeline->set_constants(commandlist, "g_perdraw_vs", m_vs_perdraw);
+            m_gpu_perdraw.m_start_instance = batch.get_instance_base();
+            m_gpu_permaterial.m_colour = material->m_basecolor;
+
+            mp_pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
+            mp_pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
             // 1 batch == 1 draw-call
             const vector<gpu_instance_data>& instances = batch.get_instances();
@@ -193,14 +205,34 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::render(graphics::command_list* commandlist, const scene& scene, const target& target)
+    void scene_renderer::render_shadows(graphics::command_list* commandlist, 
+        const scene& scene, const vector<batch>& batches)
     {
-        // try to fish the scene pipeline from the manager...
+        mp_shadowspipeline = mp_backend->get_pipeline_manager()->get_pipeline("pip_shadows");
+        influx_assert(mp_shadowspipeline);
+
+        mp_shadowspipeline->set_state(commandlist);
+
+        // set shadowtarget dsv
+        commandlist->set(nullptr, mp_shadowstarget->get_dsv());
+
+        // push constants
+        math::transform3D light_transform = scene.m_camera.m_transform;
+        const math::matrix4x4f mat_view = light_transform.get_matrix().inverted();
+        //const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
+        m_gpu_perview.m_vp = mat_view;
+        mp_shadowspipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
+
+        // render
+        render_batches(commandlist, batches);
+    }
+
+    void scene_renderer::render_basepass(graphics::command_list* commandlist, 
+        const scene& scene, const vector<batch>& batches, const target& target)
+    {
+        // get the pipeline
         mp_pipeline = mp_backend->get_pipeline_manager()->get_scene_pipeline();
-        if (mp_pipeline == nullptr)
-        {
-            return;
-        }
+        influx_assert(mp_pipeline);
 
         // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
         mp_pipeline->set_state(commandlist);
@@ -211,17 +243,27 @@ namespace influx::renderer
         math::transform3D transform = camera.m_transform;
         transform.set_position_z(-transform.get_position().z);
         transform.update_matrix();
-
         const math::matrix4x4f mat_view = transform.get_matrix().inverted();
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
-        m_vs_constants.m_vp = mat_view * mat_proj;
-        m_ps_constants.m_delta_seconds = scene.m_delta_seconds;
-        m_ps_constants.m_seconds = scene.m_seconds;
-        mp_pipeline->set_constants<gpu_vs_constants>(commandlist, "g_perframe_vs", m_vs_constants);
-        // mp_pipeline->set_constants<gpu_ps_constants>(commandlist, "g_perframe_ps", m_ps_constants);
+        m_gpu_perview.m_vp = mat_view * mat_proj;
 
-        vector<batch> batches = create_batches(scene);
-        update_instance_buffer(batches);
+        mp_pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
+        mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
+
         render_batches(commandlist, batches);
+    }
+
+    void scene_renderer::render(graphics::command_list* commandlist, const scene& scene, const target& target)
+    {
+        m_gpu_perscene.m_delta_seconds = scene.m_delta_seconds;
+        m_gpu_perscene.m_seconds = scene.m_seconds;
+
+        // setup batched draw
+        vector<batch> batches = create_batches(scene);
+
+        update_instance_buffer(batches);
+
+        render_shadows(commandlist, scene, batches);
+        render_basepass(commandlist, scene, batches, target);
     }
 }

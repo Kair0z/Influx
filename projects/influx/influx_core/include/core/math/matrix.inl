@@ -596,7 +596,7 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_projection_RH(const float fov, const float ar, const float n, const float f)
 	{
-		float y = 1.0f / tanf(math::degrees_to_radians(fov) / 2.f);
+		float y = 1.0f / tanf(math::to_radians(fov) / 2.f);
 		float x = y / ar;
 		float intv = n - f;
 
@@ -612,7 +612,7 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_projection_LH(const float fov, const float ar, const float n, const float f)
 	{
-		float y = 1.0f / tanf(math::degrees_to_radians(fov) / 2.f);
+		float y = 1.0f / tanf(math::to_radians(fov) / 2.f);
 		float x = y / ar;
 		float intv = f - n;
 

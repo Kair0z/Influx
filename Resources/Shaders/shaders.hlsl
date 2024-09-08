@@ -5,33 +5,44 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_I
 {
     ps_input output = (ps_input)0;
 
-    instanceID += g_perdraw_vs.start_instance;
-    per_instance_data instance_data = g_instancebuffer[instanceID];
+    // offset instance ID
+    instanceID += g_perdraw.start_instance;
 
+    per_instance_data instance_data = g_instancebuffer[instanceID];
+    
+    // calculate mvp
     float4x4 mvp = mul(
-        (float4x4)g_perframe_vs.mat_vp,
+        (float4x4)g_perview.mat_vp,
         (float4x4)instance_data.mat_transform);
 
     output.position = mul(mvp, float4 ( input.position, 1.0f ) );
+    output.worldPos = mul(instance_data.mat_transform, float4(input.position, 1.0f)).xyz;
 
-    output.worldPos = input.position;
     output.texcoord = input.texcoord;
-    output.colour = float4(hash(uint3(vID,vID+7,vID+41)), 1.0f);
-    output.normal = input.normal;
+    output.normal = normalize(mul((float3x3)instance_data.mat_transform, input.normal));
+
+    // todo: choose colour
+    output.colour = float4(hash(uint3(vID, vID + 7, vID + 41)), 1.0f);
     output.colour = instance_data.colour;
+    output.colour = g_permaterial.colour;
+
     return output;
 }
 
 [shader("pixel")]
-float4 PSMain ( ps_input input ) : SV_TARGET
+float4 PSMain(ps_input input) : SV_TARGET
 {
-    float3 lightDir = float3(-0.5,-0.5,-0.5);
+    float3 lightDir = g_perscene.light_direction;
+    float3 lightCol = g_perscene.light_colour.rgb;
 
     float4 albedo = get_albedo(input.texcoord).rgba;
+    albedo *= input.colour;
+
     float3 normal = get_normal(input.texcoord).rgb;
+    normal = input.normal;
 
     float ambient = 0.2f;
     float diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
 
-    return albedo + (float4(normal, 1.0f) * 0.001f);
+    return albedo * (diffuse * float4(lightCol, 1.0f));
 }

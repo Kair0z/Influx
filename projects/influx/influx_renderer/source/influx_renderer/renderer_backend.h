@@ -60,9 +60,11 @@ namespace influx::renderer
 		texture* create_texture(const string& title, const texture_create_args& args);
 		const umap<string, texture*>& get_textures() const;
 		texture* get_texture(const string& name);
+		texture* get_default_texture(); // "none"
 
 		const umap<string, material> get_materials() const;
 		material* get_material(const string& name);
+		material* get_default_material(); // "none"
 
 		void upload_texture_data(texture* target_tex, const texture_data& data);
 

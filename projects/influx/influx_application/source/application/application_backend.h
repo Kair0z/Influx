@@ -21,8 +21,10 @@ namespace influx::application
 
 		void request_quit();
 
-		string get_resource_directory() const;
-		string get_assets_directory() const;
+		static string get_resource_directory();
+		static string get_assets_directory();
+		static string get_intermediate_directory();
+
 		run_args get_run_arguments() const;
 
 		platform::window_handle get_window_handle() const;
@@ -46,8 +48,11 @@ namespace influx::application
 		std::atomic_bool m_is_quit_requested = false;
 
 		run_args m_run_args{};
+
 		string m_resource_dir{};
 		string m_asset_dir{};
+		string m_int_dir{};
+
 		bool m_staged{};
 
 		renderer* mp_renderer;

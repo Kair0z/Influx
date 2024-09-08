@@ -13,22 +13,24 @@ namespace influx::renderer
 		: mp_device{device}
 		, m_args{args}
 	{
-		// create the colour resource
-		graphics::tex2D_desc desc{};
-		desc.m_arraysize = 1u;
-		desc.m_dimensions = { args.m_width, args.m_heigth };
-		desc.m_format = graphics::e_format::rgba8;
-		desc.m_num_mips = 1u;
-		desc.m_sample_count = 1u;
-		desc.m_flags = graphics::e_resource_flags::render_target;
-		desc.m_init_state = graphics::e_resource_state::render_target;
-		mp_resource = device->create_resource(desc);
+		influx_assert(args.m_has_colour || args.m_has_depth_stencil);
 
-		// allocate & create the rtv && dsv
-		mp_rtv = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
-		m_rtv_handle = mp_rtv->get_cpu_handle();
+		if (args.m_has_colour)
+		{
+			// create the colour resource
+			graphics::tex2D_desc desc{};
+			desc.m_arraysize = 1u;
+			desc.m_dimensions = { args.m_width, args.m_heigth };
+			desc.m_format = graphics::e_format::rgba8;
+			desc.m_num_mips = 1u;
+			desc.m_sample_count = 1u;
+			desc.m_flags = graphics::e_resource_flags::render_target;
+			desc.m_init_state = graphics::e_resource_state::render_target;
+			mp_resource = device->create_resource(desc);
 
-		// create the depth resource
+			mp_rtv = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
+			m_rtv_handle = mp_rtv->get_cpu_handle();
+		}
 		if (args.m_has_depth_stencil)
 		{
 			graphics::tex2D_desc desc{};
@@ -101,6 +103,11 @@ namespace influx::renderer
 		return mp_depth_resource != nullptr;
 	}
 
+	bool target::is_depth_only() const
+	{
+		return !m_args.m_has_colour && m_args.m_has_depth_stencil;
+	}
+
 	void target::resize(const math::vectoru2& dimensions)
 	{
 		if (dimensions != m_current_dimensions)
@@ -110,26 +117,45 @@ namespace influx::renderer
 			// update size:
 			m_current_dimensions = dimensions;
 
-			// create new resource
-			graphics::tex2D_desc desc{};
-			desc.m_arraysize = 1u;
-			desc.m_dimensions = { dimensions.x, dimensions.y };
-			desc.m_flags;
-			desc.m_format = graphics::e_format::rgba8;
-			desc.m_num_mips = 1u;
-			desc.m_sample_count = 1u;
-			mp_resource = mp_device->create_resource(desc);
+			if (m_args.m_has_colour)
+			{
+				// create new resource
+				graphics::tex2D_desc desc{};
+				desc.m_arraysize = 1u;
+				desc.m_dimensions = { dimensions.x, dimensions.y };
+				desc.m_flags;
+				desc.m_format = graphics::e_format::rgba8;
+				desc.m_num_mips = 1u;
+				desc.m_sample_count = 1u;
+				mp_resource = mp_device->create_resource(desc);
 
-			// recreate our views
-			recreate_rtv();
-			recreate_dsv();
+				recreate_rtv();
+			}
+
+			if (m_args.m_has_depth_stencil)
+			{
+				graphics::tex2D_desc desc{};
+				desc.m_arraysize = 1u;
+				desc.m_dimensions = { dimensions.x, dimensions.y };
+				desc.m_format = graphics::e_format::d32;
+				desc.m_num_mips = 1u;
+				desc.m_sample_count = 1u;
+				desc.m_flags = graphics::e_resource_flags::depth_stencil;
+				desc.m_init_state = graphics::e_resource_state::depth_write;
+				mp_depth_resource = mp_device->create_resource(desc);
+
+				recreate_dsv();
+			}
 		}
 	}
 
 	void target::recreate_rtv()
 	{
-		delete mp_rtv;
-		mp_rtv = mp_device->create_rtv(m_rtv_handle, mp_resource);
+		if (mp_rtv)
+		{
+			delete mp_rtv;
+			mp_rtv = mp_device->create_rtv(m_rtv_handle, mp_resource);
+		}
 	}
 
 	void target::recreate_dsv()
@@ -147,7 +173,8 @@ namespace influx::renderer
 		m_debug_name = name;
 
 #if _DEBUG
-		mp_resource->set_name(m_debug_name);
+		if (mp_resource && mp_resource->is_valid()) mp_resource->set_name(m_debug_name);
+		if (mp_depth_resource && mp_depth_resource->is_valid()) mp_depth_resource->set_name(m_debug_name);
 #endif
 	}
 

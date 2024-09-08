@@ -22,28 +22,35 @@ namespace influx::renderer
 	constexpr static uint32 k_max_num_instances = 4096u;
 
 	// [LAYOUT]
+	struct gpu_perscene final
+	{
+		float m_seconds{};
+		float m_delta_seconds{};
+		math::vectorf3 m_light_direction = { -0.5f, -0.5f, -0.5f };
+		math::colour_rgba m_light_colour = { 1.0f, 1.0f, 1.0f, 1.0f };
+	};
+
+	struct gpu_perview final
+	{
+		math::matrix4x4f m_vp;
+	};
+
+	struct gpu_permaterial final
+	{
+		math::colour_rgba m_colour;
+	};
+
+	struct gpu_perdraw final
+	{
+		uint32 m_start_instance = 0u;
+	};
+
 	struct gpu_instance_data final
 	{
 		math::matrix4x4f	m_transform;
 		math::vectorf4		m_colour;
 	};
-
-	struct gpu_perdraw_vs final
-	{
-		uint32 m_start_instance = 0u;
-	};
-
-	struct gpu_vs_constants final
-	{
-		math::matrix4x4f m_vp;
-	};
-
-	struct gpu_ps_constants final
-	{
-		float m_seconds;
-		float m_delta_seconds;
-	};
-
+	
 	// a batch of instances grouped per material
 	class batch final
 	{
@@ -85,21 +92,30 @@ namespace influx::renderer
 
 	private:
 		vector<batch> create_batches(const scene& scene);
-
 		void update_instance_buffer(const vector<batch>& batches);
-
 		void render_batches(graphics::command_list* commandlist, const vector<batch>& batches);
+
+		void render_shadows(graphics::command_list* commandlist, 
+			const scene& scene, const vector<batch>& batches);
+
+		void render_basepass(graphics::command_list* commandlist, 
+			const scene& scene, const vector<batch>& batches, const target& target);
 
 	private:
 		renderer_backend* mp_backend;
 		pipeline* mp_pipeline;
+		pipeline* mp_shadowspipeline;
+		target* mp_shadowstarget;
+
 		graphics::device* mp_device;
 		graphics::resource* mp_instancebuffer;
 		graphics::shader_resource_view* mp_instance_buffer_srv;
 
-		gpu_vs_constants m_vs_constants;
-		gpu_ps_constants m_ps_constants;
-		gpu_perdraw_vs m_vs_perdraw;
+		// gpu data
+		gpu_perscene m_gpu_perscene;
+		gpu_perview m_gpu_perview;
+		gpu_permaterial m_gpu_permaterial;
+		gpu_perdraw m_gpu_perdraw;
 		gpu_instance_data* m_instance_data;
 	};
 }

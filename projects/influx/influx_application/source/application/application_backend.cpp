@@ -106,6 +106,21 @@ namespace influx::application
 		m_is_quit_requested = true;
 	}
 
+	string application::get_resource_directory()
+	{
+		return get_instance().m_resource_dir;
+	}
+
+	string application::get_assets_directory()
+	{
+		return get_instance().m_asset_dir;
+	}
+
+	string application::get_intermediate_directory()
+	{
+		return get_instance().m_int_dir;
+	}
+
 	bool application::is_quit_requested()
 	{
 		return get_instance().m_is_quit_requested;
@@ -160,17 +175,8 @@ namespace influx::application
 			const string& root_influx = platform::get_current_directory() + "/../../../";
 			m_resource_dir = root_influx + "/resources/";
 			m_asset_dir = root_influx + "/assets/";
+			m_int_dir = root_influx + "/int/";
 		}
-	}
-
-	string application::get_resource_directory() const
-	{
-		return m_resource_dir;
-	}
-
-	string application::get_assets_directory() const
-	{
-		return m_asset_dir;
 	}
 
 	run_args application::get_run_arguments() const

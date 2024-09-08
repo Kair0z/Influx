@@ -11,6 +11,7 @@
 #undef min
 #endif
 
+#include "core/container/vector.h"
 #include "core/math/vector.h"
 
 #include <algorithm>
@@ -206,7 +207,7 @@ namespace influx
 		}
 
 		template <typename _t>
-		constexpr inline _t degrees_to_radians(_t degrees)
+		constexpr inline _t to_radians(_t degrees)
 		{
 			return degrees * (_t)(k_PI / 180);
 		}

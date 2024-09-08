@@ -90,11 +90,8 @@ namespace influx::renderer
         mp_imgui = new imgui_manager(mp_device);
         mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
 
-        // setup default material
-        m_materials["none"].m_basecolor;
-        m_materials["none"].m_tex_albedo = "albedo";
-        m_materials["none"].m_tex_normal = "normal";
-        m_materials["none"].m_tex_roughness = "roughness";
+        get_default_texture();
+        get_default_material();
 
         m_is_initialized = true;
     }
@@ -381,6 +378,10 @@ namespace influx::renderer
             mp_pipeline_manager->new_pipeline("pip_scene", 
                 m_vertex_shaders.cbegin()->second, 
                 m_pixel_shaders.cbegin()->second);
+
+            // bind the shaders to the default material
+            m_materials["none"].m_vertex_shader = m_vertex_shaders.cbegin()->first;
+            m_materials["none"].m_pixel_shader = m_pixel_shaders.cbegin()->first;
         }
     }
 
@@ -423,6 +424,29 @@ namespace influx::renderer
         return nullptr;
     }
 
+    texture* renderer_backend::get_default_texture()
+    {
+        if (!m_textures.contains("none"))
+        {
+            texture_create_args args{};
+            args.m_width = 256u;
+            args.m_heigth = 256u;
+            m_textures["none"] = create_texture("none", args);
+
+            texture_data dummy_data{};
+            dummy_data.m_width = 256u;
+            for (size_t i = 0u; i < 256u * 256u; ++i)
+            {
+                dummy_data.m_pixels.push_back(make_pixel32(255u, 255u, 255u, 255u));
+            }
+
+            mp_upload_manager->upload_texture(mp_graphics_queue, dummy_data, 
+                m_textures["none"]->get_resource());
+        }
+        
+        return m_textures["none"];
+    }
+
     const umap<string, material> renderer_backend::get_materials() const
     {
         return m_materials;
@@ -434,6 +458,18 @@ namespace influx::renderer
             return &m_materials.at(name);
 
         return nullptr;
+    }
+
+    material* renderer_backend::get_default_material()
+    {
+        // setup default material
+        m_materials["none"].m_basecolor = colour::k_red;
+        m_materials["none"].m_tex_albedo = "none";
+        m_materials["none"].m_tex_normal = "none";
+        m_materials["none"].m_tex_roughness = "none";
+        m_materials["none"].m_tex_special = "none";
+
+        return &m_materials["none"];
     }
 
     void renderer_backend::upload_texture_data(texture* target_tex, const texture_data& data)

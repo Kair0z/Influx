@@ -253,7 +253,6 @@ namespace influx::math
 	using float3 = vectorf3;
 	using float4 = vectorf4;
 #pragma endregion
-
 }
 
 #include "vector.inl"
