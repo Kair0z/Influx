@@ -19,16 +19,21 @@ namespace influx::renderer
 
 	class rgpass_base
 	{
-	public:
-		rgpass_base() = default;
+	protected:
+		rgpass_base(e_rgpass_type type, e_rgpass_flags flags);
 
-#if _DEBUG
-		void set_name(const string& name);
-		const string& get_name() const;
-#endif
+		bool is_culled() const;
+		bool allow_uav_writes() const;
+
 	private:
 #if _DEBUG
 		string m_name{};
+#endif
+
+	public:
+#if _DEBUG
+		void set_name(const string& name);
+		const string& get_name() const;
 #endif
 	};
 
@@ -36,8 +41,7 @@ namespace influx::renderer
 	class trgpass final : public rgpass_base
 	{
 	public:
-		bool is_culled() const;
-		bool allow_uav_writes() const;
+		
 
 	protected:
 		trgpass() = default;
@@ -58,6 +62,9 @@ namespace influx::renderer
 		trgpass(setup_func&& setup, execute_func&& exe,
 			e_rgpass_type type = e_rgpass_type::graphics,
 			e_rgpass_flags flags = e_rgpass_flags::none)
+			: rgpass_base(type, flags)
+			, m_setup{ std::move(setup) }
+			, m_execute{ std::move(exe) }
 		{
 
 		}
@@ -79,17 +86,4 @@ namespace influx::renderer
 	
 	template <typename _passdata>
 	using rgpass = trgpass<_passdata>;
-
-	template <typename _passdata>
-	bool trgpass<_passdata>::is_culled() const
-	{
-		return m_is_culled;
-	}
-
-	template <typename _passdata>
-	bool trgpass<_passdata>::allow_uav_writes() const
-	{
-		return false;
-		// return has_any_flag(m_flags, e_rgpass_flags::allow_uav_write);
-	}
 }

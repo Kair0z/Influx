@@ -12,5 +12,16 @@ namespace influx::renderer
 	{
 		return m_name;
 	}
+	rgpass_base::rgpass_base(e_rgpass_type type, e_rgpass_flags flags)
+	{
+	}
+	bool rgpass_base::is_culled() const
+	{
+		return false;
+	}
+	bool rgpass_base::allow_uav_writes() const
+	{
+		return false;
+	}
 }
 
