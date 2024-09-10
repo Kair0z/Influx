@@ -3,8 +3,23 @@
 #include "core/string.h"
 #include "core/container/vector.h"
 
+#include "rgpass.h"
+
+namespace influx::graphics
+{
+	
+}
+
 namespace influx::renderer
 {
+	class texture;
+	struct texture_desc;
+}
+
+namespace influx::renderer
+{
+	class rendergraph;
+
 	class rgchild
 	{
 	public:
@@ -45,15 +60,6 @@ namespace influx::renderer
 	public:
 	};
 
-	class rgpass final : public rgchild
-	{
-	private:
-		rgpass() = default;
-
-	public:
-
-	};
-
 	class rgbuilder final
 	{
 	public:
@@ -75,28 +81,56 @@ namespace influx::renderer
 
 		// add pass node
 		template <typename _parameters, typename _func>
-		rgpass* add_pass(const _parameters* params, _func&& func)
+		rgpass_base* add_pass(const _parameters* params, _func&& func)
 		{
 
 		}
 
 		// link 2 passes together
-		void add_dependency(rgpass* producer, rgpass* consumer)
+		void add_dependency(rgpass_base* producer, rgpass_base* consumer)
 		{
 
 		}
 
 	private:
-		vector<rgpass*> m_passes;
+		vector<rgpass_base*> m_passes;
 		vector<rgtexture*> m_textures;
 		vector<rgbuffer*> m_buffers;
+	};
+
+	class rglayer final
+	{
+	private:
+		friend class rendergraph;
+		rglayer(rendergraph& rg) : m_rg{ rg } {}
+
+		void execute();
+
+		rendergraph& m_rg;
+		vector<rgpass_base*> m_passes;
+	};
+
+	// resource pool
+	class rgpool final
+	{
+		friend class rendergraph;
+		rgpool() = default;
+
+	private:
+		void tick();
+
+		texture* allocate_texture(const texture_desc& args);
+		bool release_texture(texture* tex);
+
+
 	};
 
 	class rendergraph final
 	{
 	public:
+		void execute();
 
 	private:
-
+		vector<rglayer*> m_layers{};
 	};
 }

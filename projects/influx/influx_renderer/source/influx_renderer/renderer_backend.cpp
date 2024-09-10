@@ -343,7 +343,7 @@ namespace influx::renderer
     // texture
     void renderer_backend::load(const string& title, const texture_data& data)
     {
-        texture_create_args create_args{};
+        texture_desc create_args{};
         create_args.m_width = 1024u;
         create_args.m_heigth = 1024u;
         texture* texture = create_texture(title, create_args);
@@ -395,7 +395,7 @@ namespace influx::renderer
     }
 
 
-    texture* renderer_backend::create_texture(const string& title, const texture_create_args& args)
+    texture* renderer_backend::create_texture(const string& title, const texture_desc& args)
     {
         if (!m_textures.contains(title))
         {
@@ -428,7 +428,7 @@ namespace influx::renderer
     {
         if (!m_textures.contains("none"))
         {
-            texture_create_args args{};
+            texture_desc args{};
             args.m_width = 256u;
             args.m_heigth = 256u;
             m_textures["none"] = create_texture("none", args);

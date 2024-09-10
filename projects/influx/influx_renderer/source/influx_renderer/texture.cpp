@@ -10,7 +10,7 @@
 namespace influx::renderer
 {
 	// constructs a target from create_args, allocating new graphics resources
-	texture::texture(graphics::device* device, const texture_create_args& args)
+	texture::texture(graphics::device* device, const texture_desc& args)
 		: mp_device{ device }
 		, m_args{ args }
 		, m_current_dimensions{ args.m_width, args.m_heigth }

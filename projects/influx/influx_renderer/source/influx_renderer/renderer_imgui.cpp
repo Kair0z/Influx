@@ -183,7 +183,7 @@ namespace influx::renderer
 		uint32 num_pixels = width * height;
 
 		// setup tex create args
-		texture_create_args texture_args{};
+		texture_desc texture_args{};
 		texture_args.m_width = width;
 		texture_args.m_heigth = height;
 		mp_fonts_texture = backend.create_texture("tex_imgui_fonts", texture_args);

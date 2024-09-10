@@ -57,7 +57,7 @@ namespace influx::renderer
 		void load(const string& title, const shader_data& data);
 		void load(const string& title, const material& data);
 
-		texture* create_texture(const string& title, const texture_create_args& args);
+		texture* create_texture(const string& title, const texture_desc& args);
 		const umap<string, texture*>& get_textures() const;
 		texture* get_texture(const string& name);
 		texture* get_default_texture(); // "none"
