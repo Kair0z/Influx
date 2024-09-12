@@ -30,6 +30,56 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->Reset(dxallocator, dxpipeline);
 	}
 
+	bool g_current_render_pass = true;
+	void dx12_commandlist::renderpass_begin(const renderpass_args& args)
+	{
+		ID3D12GraphicsCommandList7* gfx_commandlist7 = nullptr;
+		HRESULT res = mpdx_graphics_commandlist->QueryInterface(&gfx_commandlist7);
+
+		if (!args.m_legacy && res == S_OK && gfx_commandlist7 != nullptr)
+		{
+			vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rtvs{};
+			for (uint64 i = 0u; i < args.m_color_attachments.size(); ++i)
+			{
+				rtvs.push_back({});
+
+				rtvs[i].BeginningAccess = translate(args.m_color_attachments[i].m_load);
+				rtvs[i].EndingAccess = translate(args.m_color_attachments[i].m_store);
+				//rtvs[i].BeginningAccess.Clear.ClearValue.Color = &args.m_color_attachments[i].m_clear.r;
+			}
+
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsv{};
+			dsv.cpuDescriptor;
+			dsv.DepthBeginningAccess = translate(args.m_depth_attachment.m_depth_load);
+			dsv.StencilBeginningAccess = translate(args.m_depth_attachment.m_stencil_load);
+			dsv.DepthEndingAccess = translate(args.m_depth_attachment.m_depth_store);
+			dsv.StencilEndingAccess = translate(args.m_depth_attachment.m_stencil_store);
+			dsv.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = args.m_depth_attachment.m_stencil_clear;
+			dsv.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = args.m_depth_attachment.m_depth_clear;
+
+			D3D12_RENDER_PASS_FLAGS flags = translate(args.m_flags);
+			gfx_commandlist7->BeginRenderPass((uint32)rtvs.size(), rtvs.data(), &dsv, flags);
+
+			g_current_render_pass = true;
+		}
+		else
+		{
+			// legacy / manual render passes...
+			
+		}
+	}
+
+	void dx12_commandlist::renderpass_end()
+	{
+		ID3D12GraphicsCommandList7* gfx_commandlist7 = nullptr;
+		HRESULT res = mpdx_graphics_commandlist->QueryInterface(&gfx_commandlist7);
+		if (g_current_render_pass && res == S_OK && gfx_commandlist7 != nullptr)
+		{
+			gfx_commandlist7->EndRenderPass();
+			g_current_render_pass = false;
+		}
+	}
+
 	void dx12_commandlist::draw_instanced(const draw_instanced_args& args)
 	{
 		mpdx_graphics_commandlist->DrawInstanced(

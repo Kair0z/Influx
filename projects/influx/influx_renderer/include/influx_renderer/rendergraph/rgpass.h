@@ -1,5 +1,9 @@
 #pragma once
 
+#include "rgcommon.h"
+
+#include "influx_graphics/renderpass.h"
+
 namespace influx::renderer
 {
 	enum class e_rgpass_type : uint8
@@ -19,37 +23,48 @@ namespace influx::renderer
 
 	class rgpass_base
 	{
+		friend class rendergraph;
+		friend class rglayer;
+
 	protected:
 		rgpass_base(e_rgpass_type type, e_rgpass_flags flags);
 
+	private:
+		virtual void setup() = 0;
+		virtual void execute() = 0;
+
 		bool is_culled() const;
 		bool allow_uav_writes() const;
+		void set_id(rgpass_id id);
+		e_rgpass_type get_type() const;
+		static bool has_dependency(rgpass_base* a, rgpass_base* b);
+		graphics::renderpass_args make_renderpass_args(class rendergraph& rg) const;
 
 	private:
-#if _DEBUG
-		string m_name{};
-#endif
-
-	public:
-#if _DEBUG
-		void set_name(const string& name);
-		const string& get_name() const;
-#endif
-	};
-
-	template <typename _passdata>
-	class trgpass final : public rgpass_base
-	{
-	public:
-		
-
-	protected:
-		trgpass() = default;
-
 		e_rgpass_type m_type;
 		e_rgpass_flags m_flags;
 		bool m_is_culled;
+		rgpass_id m_id;
+
+		struct render_target final
+		{
+			// rtv handle
+			rgaccess m_access;
+		};
+		vector<render_target> m_rtvs{};
+
+		struct depth_stencil final
+		{
+			// depth stencil handle
+			rgaccess m_depth_access;
+			rgaccess m_stencil_access;
+			bool m_depth_read_only;
+		};
+		depth_stencil m_dsv{};
 	};
+
+	template <typename _passdata>
+	class trgpass final : public rgpass_base {};
 
 	template<>
 	class trgpass<void> final : public rgpass_base
@@ -69,12 +84,12 @@ namespace influx::renderer
 
 		}
 
-		void setup()
+		virtual void setup() override
 		{
 			m_setup();
 		}
 
-		void execute()
+		virtual void execute() override
 		{
 			m_execute();
 		}

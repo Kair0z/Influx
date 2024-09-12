@@ -4,7 +4,7 @@
 #include "influx_graphics/commandqueue.h"
 #include "influx_graphics/resource.h"
 #include "influx_graphics/descriptorheap.h"
-
+#include "influx_graphics/renderpass.h"
 #include "influx_graphics/d3d12/dx12_headers.h"
 
 namespace influx::graphics
@@ -213,5 +213,42 @@ namespace influx::graphics
 			influx_assert(false);
 			return  D3D12_FILL_MODE_SOLID;
 		}
+	}
+
+	constexpr D3D12_RENDER_PASS_FLAGS translate(e_renderpass_flags flags)
+	{
+		D3D12_RENDER_PASS_FLAGS translated = D3D12_RENDER_PASS_FLAG_NONE;
+		if (flags & e_renderpass_flags::read_only_depth) translated |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_DEPTH;
+		if (flags & e_renderpass_flags::read_only_stencil) translated |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_STENCIL;
+		if (flags & e_renderpass_flags::allow_uav_write) translated |= D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES;
+		if (flags & e_renderpass_flags::suspending) translated |= D3D12_RENDER_PASS_FLAG_SUSPENDING_PASS;
+		if (flags & e_renderpass_flags::resuming) translated |= D3D12_RENDER_PASS_FLAG_RESUMING_PASS;
+		return translated;
+	}
+
+	constexpr D3D12_RENDER_PASS_BEGINNING_ACCESS translate(e_load_op load_op)
+	{
+		D3D12_RENDER_PASS_BEGINNING_ACCESS access{};
+		switch (load_op)
+		{
+		case e_load_op::discard: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD; break;
+		case e_load_op::preserve: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE; break;
+		case e_load_op::clear: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR; break;
+		case e_load_op::no_access: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS; break;
+		}
+		return access;
+	}
+
+	constexpr D3D12_RENDER_PASS_ENDING_ACCESS translate(e_store_op store_op)
+	{
+		D3D12_RENDER_PASS_ENDING_ACCESS access{};
+		switch (store_op)
+		{
+		case e_store_op::discard: access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD; break;
+		case e_store_op::preserve: access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE; break;
+		case e_store_op::resolve: access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE; break;
+		case e_store_op::no_access: access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS; break;
+		}
+		return access;
 	}
 }

@@ -2,6 +2,7 @@
 #include "influx_graphics/base.h"
 #include "influx_graphics/resource.h"
 #include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/renderpass.h"
 
 #include "core/math/vector.h"
 #include "core/range.h"
@@ -59,6 +60,10 @@ namespace influx::graphics
 	public:
 		virtual void start(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
 		
+		virtual void renderpass_begin(const renderpass_args& args) = 0;
+	
+		virtual void renderpass_end() = 0;
+
 		virtual void draw_instanced(const draw_instanced_args& args) = 0;
 		
 		virtual void draw_indexed(const draw_indexed_args& args) = 0;

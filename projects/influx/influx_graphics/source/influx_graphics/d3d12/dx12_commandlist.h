@@ -17,6 +17,10 @@ namespace influx::graphics
 
 		virtual void start(command_allocator* allocator, pipeline* init_state) override;
 
+		virtual void renderpass_begin(const renderpass_args& args) override;
+
+		virtual void renderpass_end() override;
+
 		virtual void draw_instanced(const draw_instanced_args& args) override;
 
 		virtual void draw_indexed(const draw_indexed_args& args) override;
