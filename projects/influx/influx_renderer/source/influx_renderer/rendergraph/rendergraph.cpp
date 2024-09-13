@@ -11,6 +11,65 @@
 
 namespace influx::renderer
 {
+	constexpr graphics::e_load_op translate(const e_rg_load load)
+	{
+		switch (load)
+		{
+		case e_rg_load::clear: return graphics::e_load_op::clear;
+		case e_rg_load::discard: return graphics::e_load_op::discard;
+		case e_rg_load::preserve: return graphics::e_load_op::preserve;
+		case e_rg_load::no_access: return graphics::e_load_op::no_access;
+		}
+		return graphics::e_load_op::count;
+	}
+
+	constexpr graphics::e_store_op translate(const e_rg_store store)
+	{
+		switch (store)
+		{
+		case e_rg_store::resolve: return graphics::e_store_op::resolve;
+		case e_rg_store::discard: return graphics::e_store_op::discard;
+		case e_rg_store::preserve: return graphics::e_store_op::preserve;
+		case e_rg_store::no_access: return graphics::e_store_op::no_access;
+		}
+		return graphics::e_store_op::count;
+	}
+
+	class rglayer final
+	{
+	public:
+		rglayer() = default;
+
+		inline void reset()
+		{
+			m_passes.clear();
+			m_texture_creates.clear();
+			m_texture_reads.clear();
+			m_texture_writes.clear();
+			m_texture_destroys.clear();
+			m_texture_to_state_map.clear();
+			m_buffer_creates.clear();
+			m_buffer_reads.clear();
+			m_buffer_writes.clear();
+			m_buffer_destroys.clear();
+			m_buffer_to_state_map.clear();
+		}
+
+		vector<rgpass_base*> m_passes;
+
+		vector<rgtexture_id> m_texture_creates;
+		vector<rgtexture_id> m_texture_reads;
+		vector<rgtexture_id> m_texture_writes;
+		vector<rgtexture_id> m_texture_destroys;
+		umap<rgtexture_id, graphics::e_resource_state> m_texture_to_state_map;
+		
+		vector<rgbuffer_id> m_buffer_creates;
+		vector<rgbuffer_id> m_buffer_reads;
+		vector<rgbuffer_id> m_buffer_writes;
+		vector<rgbuffer_id> m_buffer_destroys;
+		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_to_state_map;
+	};
+
 	rendergraph::rendergraph(graphics::device* device)
 		: m_device{ device }
 	{
@@ -28,9 +87,9 @@ namespace influx::renderer
 		// todo: calc resource lifetimes
 		// ...
 
-		for (const rglayer& layer : m_layers)
+		for (const rglayer* layer : m_layers)
 		{
-			for (rgpass_base* pass : layer)
+			for (rgpass_base* pass : layer->m_passes)
 			{
 				pass->setup();
 			}
@@ -43,39 +102,109 @@ namespace influx::renderer
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
-			const rglayer& layer = m_layers[layer_idx];
+			rglayer const* layer = m_layers[layer_idx];
 
-			// todo: texture creates
+			// texture creates
+			for (const rgtexture_id& tex_id : layer->m_texture_creates)
+			{
+				rgtexture* texture = get_texture(tex_id);
+				texture->m_resource; // todo: allocate from pool
+				// todo: create descriptors
+				// todo: set name
+			}
 
-			// todo: buffer creates
+			// buffer creates
+			for (const rgbuffer_id& buff_id : layer->m_buffer_creates)
+			{
+				rgbuffer* buffer = get_buffer(buff_id);
+				buffer->m_resource; // todo: allocate from pool
+				// todo: create descriptors
+				// todo: set name
+			}
 
 			// todo: texture transitions
 
 			// todo: buffer transitions
+			// todo: flush barriers
 
 			// todo: run each pass in the layer
 			graphics::command_list* cmdlist = nullptr;
-			for (size_t pass_idx = 0u; pass_idx < m_passes.size(); ++pass_idx)
+			for (size_t pass_idx = 0u; pass_idx < layer->m_passes.size(); ++pass_idx)
 			{
-				rgpass_base* pass = m_passes[pass_idx];
+				rgpass_base* pass = layer->m_passes[pass_idx];
+
+				if (pass->is_culled())
+				{
+					continue;
+				}
+
 				if (pass->get_type() == e_rgpass_type::graphics)
 				{
-					// todo: allow uav writes?
-					// ...
-
-					// todo: profiling scope
-					// ...
-
 					graphics::renderpass_args args{};
-					cmdlist->renderpass_begin(args);
-					pass->execute();
-					cmdlist->renderpass_end();
+					args.m_width = pass->get_width();
+					args.m_height = pass->get_height();
+					args.m_legacy = false;
+
+					// rtvs
+					args.m_color_attachments.reserve(pass->m_rtvs.size());
+					for (const auto& rtv : pass->m_rtvs)
+					{
+						args.m_color_attachments.push_back({});
+						auto& color_attachment = args.m_color_attachments.back();
+
+						color_attachment.m_load = translate(rtv.m_access.m_load);
+						color_attachment.m_store = translate(rtv.m_access.m_store);
+
+						rgtexture* color_texture = get_texture(rtv.m_texture_id);
+						influx_assert(color_texture != nullptr);
+
+						color_attachment.m_clear;
+
+						graphics::descriptor_handle* handle = get_rtv(rtv.m_texture_id);
+						influx_assert(handle);
+						color_attachment.m_rtv_descriptor = handle;
+					}
+
+					// dsv
+					{
+						auto& dsv = pass->m_dsv;
+						auto& depth_attachment = args.m_depth_attachment;
+
+						depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
+						depth_attachment.m_depth_store = translate(dsv.m_depth_access.m_store);
+						depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
+						depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
+
+						depth_attachment.m_depth_clear;
+						depth_attachment.m_stencil_clear;
+
+						graphics::descriptor_handle* handle = get_dsv(dsv.m_texture_id);
+						influx_assert(handle);
+						depth_attachment.m_dsv_descriptor = handle;
+					}
+
+					{
+						influx_scope("renderpass");
+						cmdlist->renderpass_begin(args);
+						pass->execute();
+						cmdlist->renderpass_end();
+					}
 				}
 			}
 
-			// todo: texture destroys
+			// texture destroys
+			for (const rgtexture_id& tex_id : layer->m_texture_destroys)
+			{
+				rgtexture* texture = get_texture(tex_id);
+				texture->m_resource; // todo: de-allocate from pool
+			}
 
-			// todo: buffer destroys
+			// buffer destroys
+			for (const rgbuffer_id& buff_id : layer->m_buffer_destroys)
+			{
+				rgbuffer* buffer = get_buffer(buff_id);
+				buffer->m_resource; // todo: de-allocate from pool
+			}
 		}
 	}
 
@@ -218,6 +347,42 @@ namespace influx::renderer
 		}
 
 		return nullptr;
+	}
+
+	graphics::descriptor_handle* rendergraph::get_rtv(rgtexture_id id)
+	{
+		influx_assert(m_texture_to_descriptors_map.contains(id));
+		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::rendertarget)];
+	}
+
+	graphics::descriptor_handle* rendergraph::get_dsv(rgtexture_id id)
+	{
+		influx_assert(m_texture_to_descriptors_map.contains(id));
+		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::depthstencil)];
+	}
+
+	graphics::descriptor_handle* rendergraph::get_readonly(rgtexture_id id)
+	{
+		influx_assert(m_texture_to_descriptors_map.contains(id));
+		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readonly)];
+	}
+
+	graphics::descriptor_handle* rendergraph::get_readonly(rgbuffer_id id)
+	{
+		influx_assert(m_buffer_to_descriptors_map.contains(id));
+		m_buffer_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readonly)];
+	}
+
+	graphics::descriptor_handle* rendergraph::get_readwrite(rgbuffer_id id)
+	{
+		influx_assert(m_buffer_to_descriptors_map.contains(id));
+		m_buffer_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readwrite)];
+	}
+
+	graphics::descriptor_handle* rendergraph::get_readwrite(rgtexture_id id)
+	{
+		influx_assert(m_texture_to_descriptors_map.contains(id));
+		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readwrite)];
 	}
 }
 

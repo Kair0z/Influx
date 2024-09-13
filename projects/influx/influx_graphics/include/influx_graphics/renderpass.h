@@ -36,7 +36,7 @@ namespace influx::graphics
         count
     };
 
-    struct color_attachment final
+    struct depth_attachment final
     {
         descriptor_handle* m_rtv_descriptor;
 

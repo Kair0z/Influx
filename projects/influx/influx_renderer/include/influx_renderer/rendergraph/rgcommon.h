@@ -28,12 +28,20 @@ namespace influx::renderer
 
 	enum class e_rg_load : uint8
 	{
-
+		clear,
+		discard,
+		preserve,
+		no_access,
+		count
 	};
 
 	enum class e_rg_store : uint8
 	{
-
+		resolve,
+		discard,
+		preserve,
+		no_access,
+		count
 	};
 
 	struct rgaccess final

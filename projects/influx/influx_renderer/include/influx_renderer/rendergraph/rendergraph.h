@@ -72,12 +72,20 @@ namespace influx::renderer
 		rgbuffer* get_buffer(rgbuffer_id id);
 		rgpass_base* get_pass(rgpass_id id);
 
+		graphics::descriptor_handle* get_rtv(rgtexture_id id);
+		graphics::descriptor_handle* get_dsv(rgtexture_id id);
+		graphics::descriptor_handle* get_readonly(rgtexture_id id);
+		graphics::descriptor_handle* get_readwrite(rgtexture_id id);
+
+		graphics::descriptor_handle* get_readonly(rgbuffer_id id);
+		graphics::descriptor_handle* get_readwrite(rgbuffer_id id);
+
 	private:
 		vector<rgpass_base*> m_passes{};
 		vector<rgbuffer*> m_buffers{};
 		vector<rgtexture*> m_textures{};
-		using rglayer = vector<rgpass_base*>;
-		vector<rglayer> m_layers{};
+		vector<class rglayer*> m_layers{};
+
 		rgpool* m_pool = nullptr;
 
 		vector<vector<uint64>> m_adjacency_lists{};
@@ -88,6 +96,19 @@ namespace influx::renderer
 		umap<rgpass_id, rgpass_base*> m_id_to_pass_map;
 		umap<texture*, rgtexture*> m_imported_texture_map;
 		umap<buffer*, rgbuffer*> m_imported_buffer_map;
+
+		enum class e_descriptor_type : uint8
+		{
+			readwrite,
+			readonly,
+			rendertarget,
+			depthstencil,
+			count
+		};
+		static constexpr uint8_t k_num_descriptor_types = static_cast<uint8_t>(e_descriptor_type::count);
+
+		umap<rgtexture_id, graphics::descriptor_handle*[k_num_descriptor_types]> m_texture_to_descriptors_map;
+		umap<rgtexture_id, graphics::descriptor_handle*[k_num_descriptor_types]> m_buffer_to_descriptors_map;
 
 	private:
 		void build_adjacency();

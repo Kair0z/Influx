@@ -40,22 +40,27 @@ namespace influx::renderer
 		static bool has_dependency(rgpass_base* a, rgpass_base* b);
 		graphics::renderpass_args make_renderpass_args(class rendergraph& rg) const;
 
+		uint32 get_width() const;
+		uint32 get_height() const;
+
 	private:
 		e_rgpass_type m_type;
 		e_rgpass_flags m_flags;
 		bool m_is_culled;
 		rgpass_id m_id;
+		uint32 m_width;
+		uint32 m_height;
 
 		struct render_target final
 		{
-			// rtv handle
+			rgtexture_id m_texture_id;
 			rgaccess m_access;
 		};
 		vector<render_target> m_rtvs{};
 
 		struct depth_stencil final
 		{
-			// depth stencil handle
+			rgtexture_id m_texture_id;
 			rgaccess m_depth_access;
 			rgaccess m_stencil_access;
 			bool m_depth_read_only;

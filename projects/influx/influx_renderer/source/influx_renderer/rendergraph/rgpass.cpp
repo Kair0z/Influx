@@ -55,5 +55,15 @@ namespace influx::renderer
 
 		return args;
 	}
+
+	uint32 rgpass_base::get_width() const
+	{
+		return m_width;
+	}
+
+	uint32 rgpass_base::get_height() const
+	{
+		return m_height;
+	}
 }
 
