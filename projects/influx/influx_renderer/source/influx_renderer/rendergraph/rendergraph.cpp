@@ -3,6 +3,7 @@
 #include "influx_renderer/rendergraph/rendergraph.h"
 #include "influx_renderer/rendergraph/rgpass.h"
 #include "influx_renderer/rendergraph/rgpool.h"
+#include "influx_renderer/rendergraph/rgresources.h"
 
 #include "influx_graphics/commandlist.h"
 
@@ -10,20 +11,8 @@
 
 namespace influx::renderer
 {
-	class rglayer final
-	{
-	private:
-		friend class rendergraph;
-		rglayer(rendergraph& rg) : m_rg{ rg } {}
-
-		void setup();
-		void execute();
-
-		rendergraph& m_rg;
-		vector<rgpass_base*> m_passes;
-	};
-
 	rendergraph::rendergraph(graphics::device* device)
+		: m_device{ device }
 	{
 		m_pool = new rgpool();
 	}
@@ -33,12 +22,18 @@ namespace influx::renderer
 		build_adjacency();
 		build_layers();
 
-		// cull passes
-		// calc resource lifetimes
+		// todo: cull passes
+		// ...
+		
+		// todo: calc resource lifetimes
+		// ...
 
-		for (rglayer* layer : m_layers)
+		for (const rglayer& layer : m_layers)
 		{
-			layer->setup();
+			for (rgpass_base* pass : layer)
+			{
+				pass->setup();
+			}
 		}
 	}
 
@@ -48,22 +43,39 @@ namespace influx::renderer
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
-			rglayer* layer = m_layers[layer_idx];
+			const rglayer& layer = m_layers[layer_idx];
 
-			// texture creates
+			// todo: texture creates
 
-			// buffer creates
+			// todo: buffer creates
 
-			// texture transitions
+			// todo: texture transitions
 
-			// buffer transitions
+			// todo: buffer transitions
 
-			// execute
-			layer->execute();
+			// todo: run each pass in the layer
+			graphics::command_list* cmdlist = nullptr;
+			for (size_t pass_idx = 0u; pass_idx < m_passes.size(); ++pass_idx)
+			{
+				rgpass_base* pass = m_passes[pass_idx];
+				if (pass->get_type() == e_rgpass_type::graphics)
+				{
+					// todo: allow uav writes?
+					// ...
 
-			// texture destroys
+					// todo: profiling scope
+					// ...
 
-			// buffer destroys
+					graphics::renderpass_args args{};
+					cmdlist->renderpass_begin(args);
+					pass->execute();
+					cmdlist->renderpass_end();
+				}
+			}
+
+			// todo: texture destroys
+
+			// todo: buffer destroys
 		}
 	}
 
@@ -102,41 +114,110 @@ namespace influx::renderer
 			}
 		}
 
-		m_layers.resize(*std::max_element(std::begin(distances), std::end(distances)) + 1u, new rglayer(*this));
+		const uint64 num_layers = *std::max_element(std::begin(distances), std::end(distances)) + 1u;
+		m_layers.resize(num_layers);
+
 		for (uint64 i = 0u; i < m_passes.size(); ++i)
 		{
 			uint64 layer = distances[i];
-			m_layers[layer]; // add_pass();
+			m_layers[layer].push_back(m_passes[i]); // add the pass to the layer
 		}
 	}
 
-#pragma region rglayer
-	void rglayer::setup()
+	rgtexture_id rendergraph::add_texture(const rgname& name, const texture_desc& desc)
 	{
-		// todo
+		rgtexture* new_texture = new rgtexture();
+		m_textures.push_back(new_texture);
+
+		rgtexture_id new_id = m_textures.size() - 1u;
+		new_texture->m_id = new_id;
+
+		return new_id;
 	}
 
-	void rglayer::execute()
+	rgbuffer_id rendergraph::add_buffer(const rgname& name, const buffer_desc& desc)
 	{
-		graphics::command_list* cmdlist = nullptr;
-		for (size_t pass_idx = 0u; pass_idx < m_passes.size(); ++pass_idx)
+		rgbuffer* new_buffer = new rgbuffer();
+		m_buffers.push_back(new_buffer);
+
+		rgbuffer_id new_id = m_buffers.size() - 1u;
+		new_buffer->m_id = new_id;
+
+		return new_id;
+	}
+
+	rgtexture_id rendergraph::import_texture(const rgname& name, texture* texture)
+	{
+		rgtexture* new_texture = new rgtexture();
+		m_textures.push_back(new_texture);
+
+		rgtexture_id new_id = m_textures.size() - 1u;
+		new_texture->m_id = new_id;
+		new_texture->m_is_imported = true;
+
+		m_imported_texture_map[texture] = new_texture;
+
+		return new_id;
+	}
+
+	rgtexture_id rendergraph::import_buffer(const rgname& name, buffer* buffer)
+	{
+		rgbuffer* new_buffer = new rgbuffer();
+		m_buffers.push_back(new_buffer);
+
+		rgbuffer_id new_id = m_buffers.size() - 1u;
+		new_buffer->m_id = new_id;
+		new_buffer->m_is_imported = true;
+
+		// register import
+		m_imported_buffer_map[buffer] = new_buffer;
+
+		return new_id;
+	}
+
+	bool rendergraph::is_texture_declared(rgtexture_id id) const
+	{
+		return m_id_to_texture_map.contains(id);
+	}
+
+	bool rendergraph::is_buffer_declared(rgbuffer_id id) const
+	{
+		return m_id_to_buffer_map.contains(id);
+	}
+
+	bool rendergraph::is_pass_declared(rgpass_id id) const
+	{
+		return m_id_to_pass_map.contains(id);
+	}
+
+	rgtexture* rendergraph::get_texture(rgtexture_id id)
+	{
+		if (is_texture_declared(id))
 		{
-			rgpass_base* pass = m_passes[pass_idx];
-			if (pass->get_type() == e_rgpass_type::graphics)
-			{
-				// allow uav writes?
-				// ...
-
-				// scope
-				// ...
-
-				graphics::renderpass_args args{};
-				cmdlist->renderpass_begin(args);
-				pass->execute();
-				cmdlist->renderpass_end();
-			}
+			return m_id_to_texture_map[id];
 		}
+
+		return nullptr;
 	}
-#pragma endregion
+
+	rgbuffer* rendergraph::get_buffer(rgbuffer_id id)
+	{
+		if (is_buffer_declared(id))
+		{
+			return m_id_to_buffer_map[id];
+		}
+
+		return nullptr;
+	}
+
+	rgpass_base* rendergraph::get_pass(rgpass_id id)
+	{
+		if (is_pass_declared(id))
+		{
+			return m_id_to_pass_map[id];
+		}
+
+		return nullptr;
+	}
 }
 

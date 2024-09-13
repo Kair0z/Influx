@@ -2,6 +2,7 @@
 
 #include "core/string.h"
 #include "core/container/vector.h"
+#include "core/container/map.h"
 
 #include "rgcommon.h"
 #include "rgpass.h"
@@ -26,7 +27,6 @@ namespace influx::renderer
 	class rgbuffer;
 	class rgtexture;
 	class rgpool;
-	class rglayer;
 
 	class rendergraph final
 	{
@@ -38,6 +38,7 @@ namespace influx::renderer
 		// single threaded, single command list...
 		void execute(graphics::command_list* commandlist);
 
+		// adding nodes & resources
 		template <typename _passdata, typename... _args> requires std::is_constructible_v<rgpass<_passdata>, _args...>
 		rgpass<_passdata>* add_pass(_args&&... args)
 		{
@@ -45,32 +46,48 @@ namespace influx::renderer
 
 			// setup the base
 			rgpass_base* pass_base = m_passes.back();
-			pass_base->set_id(m_passes.size() - 1u);
+			rgpass_id new_id = m_passes.size() - 1u;
+			pass_base->set_id(new_id);
 			pass_base->setup();
+
+			// register in map
+			m_id_to_pass_map[new_id] = pass_base;
 
 			// return the spec
 			return dynamic_cast<rgpass<_passdata>*>(pass_base);
 		}
 
-		// new rgresource
-		rgtexture_id declare_texture(const rgname& name, const texture_desc& desc);
-		rgbuffer_id declare_buffer(const rgname& name, const buffer_desc& desc);
+		rgtexture_id add_texture(const rgname& name, const texture_desc& desc);
+		rgbuffer_id add_buffer(const rgname& name, const buffer_desc& desc);
 
-		bool is_texture_declared(rgtexture_id id);
-		bool is_buffer_declared(rgbuffer_id id);
+		// adding externals
+		rgtexture_id import_texture(const rgname& name, texture* texture);
+		rgtexture_id import_buffer(const rgname& name, buffer* buffer);
+
+		bool is_texture_declared(rgtexture_id id) const;
+		bool is_buffer_declared(rgbuffer_id id) const;
+		bool is_pass_declared(rgpass_id id) const;
 
 		rgtexture* get_texture(rgtexture_id id);
 		rgbuffer* get_buffer(rgbuffer_id id);
+		rgpass_base* get_pass(rgpass_id id);
 
 	private:
 		vector<rgpass_base*> m_passes{};
 		vector<rgbuffer*> m_buffers{};
 		vector<rgtexture*> m_textures{};
-		vector<rglayer*> m_layers{};
+		using rglayer = vector<rgpass_base*>;
+		vector<rglayer> m_layers{};
 		rgpool* m_pool = nullptr;
 
 		vector<vector<uint64>> m_adjacency_lists{};
 		graphics::device* m_device;
+
+		umap<rgtexture_id, rgtexture*> m_id_to_texture_map;
+		umap<rgbuffer_id, rgbuffer*> m_id_to_buffer_map;
+		umap<rgpass_id, rgpass_base*> m_id_to_pass_map;
+		umap<texture*, rgtexture*> m_imported_texture_map;
+		umap<buffer*, rgbuffer*> m_imported_buffer_map;
 
 	private:
 		void build_adjacency();

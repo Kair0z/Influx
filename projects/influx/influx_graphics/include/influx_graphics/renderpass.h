@@ -4,6 +4,8 @@
 #include "core/container/vector.h"
 #include "core/math/colour.h"
 
+#include "influx_graphics/descriptorheap.h"
+
 namespace influx::graphics
 {
     enum e_renderpass_flags : uint32
@@ -36,6 +38,8 @@ namespace influx::graphics
 
     struct color_attachment final
     {
+        descriptor_handle* m_rtv_descriptor;
+
         e_load_op m_load;
         e_store_op m_store;
         math::colour_rgba m_clear = {};
@@ -43,6 +47,8 @@ namespace influx::graphics
 
     struct depth_attachment final
     {
+        descriptor_handle* m_dsv_descriptor;
+
         e_load_op m_depth_load;
         e_load_op m_stencil_load = e_load_op::no_access;
         e_store_op m_depth_store;

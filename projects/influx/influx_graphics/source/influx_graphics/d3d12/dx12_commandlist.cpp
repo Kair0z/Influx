@@ -42,7 +42,7 @@ namespace influx::graphics
 			for (uint64 i = 0u; i < args.m_color_attachments.size(); ++i)
 			{
 				rtvs.push_back({});
-
+				rtvs[i].cpuDescriptor;
 				rtvs[i].BeginningAccess = translate(args.m_color_attachments[i].m_load);
 				rtvs[i].EndingAccess = translate(args.m_color_attachments[i].m_store);
 				//rtvs[i].BeginningAccess.Clear.ClearValue.Color = &args.m_color_attachments[i].m_clear.r;

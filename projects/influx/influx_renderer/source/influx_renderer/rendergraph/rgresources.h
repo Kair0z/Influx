@@ -1,4 +1,5 @@
 #pragma once
+#include "influx_renderer/rendergraph/rgcommon.h"
 
 namespace influx::renderer
 {
@@ -13,17 +14,23 @@ namespace influx::renderer
 
 	class rgtexture final : public rgchild
 	{
+		friend class rendergraph;
+
 	private:
 		rgtexture() = default;
 
-	public:
+		rgtexture_id m_id;
+		bool m_is_imported;
 	};
 
 	class rgbuffer final : public rgchild
 	{
+		friend class rendergraph;
+
 	private:
 		rgbuffer() = default;
 
-	public:
+		rgbuffer_id m_id;
+		bool m_is_imported;
 	};
 }
