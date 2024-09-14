@@ -5,7 +5,7 @@ namespace influx::graphics
 	class device;
 }
 
-namespace influx::renderer
+namespace influx::rendergraph
 {
 	class texture;
 	struct texture_desc;

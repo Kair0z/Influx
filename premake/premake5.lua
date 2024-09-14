@@ -3,7 +3,7 @@ workspace "influx"
     configurations {"debug", "release", "profile"}
     flags {"MultiProcessorCompile"}
     language "C++"
-    startproject "sandbox"
+    startproject "influx_game"
     location "../generated/%{_ACTION}/"
     
     -- /influx/
@@ -32,6 +32,7 @@ workspace "influx"
     g_dir_imgui_include = g_dir_projects_engine .. "/influx_imgui/include/"
     g_dir_events_include = g_dir_projects_engine .. "/influx_events/include/"
     g_dir_vulkan_include = g_dir_projects_engine .. "/influx_graphics/foreign/vulkan/"
+    g_dir_rendergraph_include = g_dir_projects_engine .. "/influx_rendergraph/include/"
     
     g_dir_vendor_libraries = g_dir_root .. "/vendor/lib/x64/"
     libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }
@@ -62,6 +63,7 @@ workspace "influx"
     include "../projects/influx/influx_async"
     include "../projects/influx/influx_core"
     include "../projects/influx/influx_renderer"
+    include "../projects/influx/influx_rendergraph"
     include "../projects/influx/influx_imgui"
     include "../projects/influx/influx_graphics"
     include "../projects/influx/influx_assets"
@@ -72,6 +74,7 @@ workspace "influx"
     printf(".. apps ")
     group "apps"
     include "../projects/apps/influx_game"
+    include "../projects/apps/influx_rendy"
     group ""
 
     printf(".. misc ")

@@ -36,9 +36,9 @@ namespace influx::graphics
         count
     };
 
-    struct depth_attachment final
+    struct color_attachment final
     {
-        descriptor_handle* m_rtv_descriptor;
+        descriptor_handle m_rtv_descriptor;
 
         e_load_op m_load;
         e_store_op m_store;
@@ -47,7 +47,7 @@ namespace influx::graphics
 
     struct depth_attachment final
     {
-        descriptor_handle* m_dsv_descriptor;
+        descriptor_handle m_dsv_descriptor;
 
         e_load_op m_depth_load;
         e_load_op m_stencil_load = e_load_op::no_access;

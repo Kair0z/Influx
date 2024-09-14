@@ -168,7 +168,7 @@ namespace influx::graphics
 		src_loc.PlacedFootprint.Footprint.Height = dest->get_height();
 		src_loc.PlacedFootprint.Footprint.Depth = 1;
 		src_loc.PlacedFootprint.Footprint.Format = convert(dest->get_format());
-		src_loc.PlacedFootprint.Footprint.RowPitch = dest->get_width() * dest->get_bytestride();
+		src_loc.PlacedFootprint.Footprint.RowPitch = dest->get_width() * (uint32)dest->get_bytestride();
 
 		CD3DX12_TEXTURE_COPY_LOCATION dest_loc{ dest->get_native<ID3D12Resource>() };
 		

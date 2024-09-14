@@ -1,16 +1,17 @@
-#include "renderer_pch.h"
+#include "rendergraph_pch.h"
 
-#include "influx_renderer/rendergraph/rendergraph.h"
-#include "influx_renderer/rendergraph/rgpass.h"
-#include "influx_renderer/rendergraph/rgpool.h"
-#include "influx_renderer/rendergraph/rgresources.h"
+#include "core/scope.h"
+#include "core/enum.h" // has_any_flag()...
+
+#include "rendergraph.h"
+#include "rgpass.h"
+#include "rgpool.h"
+#include "rgresources.h"
 
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/device.h"
 
-#include "core/enum.h" // has_any_flag()...
-
-namespace influx::renderer
+namespace influx::rendergraph
 {
 	constexpr graphics::e_load_op translate(const e_rg_load load)
 	{
@@ -56,7 +57,7 @@ namespace influx::renderer
 			m_buffer_to_state_map.clear();
 		}
 
-		vector<rgpass_base*> m_passes;
+		vector<rgpass*> m_passes;
 
 		vector<rgtexture_id> m_texture_creates;
 		vector<rgtexture_id> m_texture_reads;
@@ -129,11 +130,12 @@ namespace influx::renderer
 		// todo: calc resource lifetimes
 		// ...
 
+		rgbuilder builder{};
 		for (const rglayer* layer : m_layers)
 		{
-			for (rgpass_base* pass : layer->m_passes)
+			for (rgpass* pass : layer->m_passes)
 			{
-				pass->setup();
+				pass->setup(builder);
 			}
 		}
 	}
@@ -174,7 +176,7 @@ namespace influx::renderer
 			graphics::command_list* cmdlist = nullptr;
 			for (size_t pass_idx = 0u; pass_idx < layer->m_passes.size(); ++pass_idx)
 			{
-				rgpass_base* pass = layer->m_passes[pass_idx];
+				rgpass* pass = layer->m_passes[pass_idx];
 
 				if (pass->is_culled())
 				{
@@ -203,7 +205,7 @@ namespace influx::renderer
 
 						color_attachment.m_clear;
 
-						graphics::descriptor_handle* handle = get_rtv(rtv.m_texture_id);
+						graphics::descriptor_handle handle = get_rtv(rtv.m_texture_id);
 						influx_assert(handle);
 						color_attachment.m_rtv_descriptor = handle;
 					}
@@ -221,7 +223,7 @@ namespace influx::renderer
 						depth_attachment.m_depth_clear;
 						depth_attachment.m_stencil_clear;
 
-						graphics::descriptor_handle* handle = get_dsv(dsv.m_texture_id);
+						graphics::descriptor_handle handle = get_dsv(dsv.m_texture_id);
 						influx_assert(handle);
 						depth_attachment.m_dsv_descriptor = handle;
 					}
@@ -256,13 +258,13 @@ namespace influx::renderer
 		m_adjacency_lists.resize(m_passes.size());
 		for (uint64 i = 0u; i < m_passes.size(); ++i)
 		{
-			rgpass_base* pass = m_passes[i];
+			rgpass* pass = m_passes[i];
 			vector<uint64>& pass_adj_list = m_adjacency_lists[i];
 
 			for (uint64 j = i + 1U; j < m_passes.size(); ++j)
 			{
-				rgpass_base* other_pass = m_passes[j];
-				bool dependency = rgpass_base::has_dependency(pass, other_pass);
+				rgpass* other_pass = m_passes[j];
+				bool dependency = rgpass::has_dependency(pass, other_pass);
 				if (dependency)
 				{
 					pass_adj_list.push_back(j);
@@ -292,7 +294,7 @@ namespace influx::renderer
 		for (uint64 i = 0u; i < m_passes.size(); ++i)
 		{
 			uint64 layer = distances[i];
-			m_layers[layer].push_back(m_passes[i]); // add the pass to the layer
+			m_layers[layer]->m_passes.push_back(m_passes[i]); // add the pass to the layer
 		}
 	}
 
@@ -314,35 +316,6 @@ namespace influx::renderer
 
 		rgbuffer_id new_id = m_buffers.size() - 1u;
 		new_buffer->m_id = new_id;
-
-		return new_id;
-	}
-
-	rgtexture_id rendergraph::import_texture(const rgname& name, texture* texture)
-	{
-		rgtexture* new_texture = new rgtexture();
-		m_textures.push_back(new_texture);
-
-		rgtexture_id new_id = m_textures.size() - 1u;
-		new_texture->m_id = new_id;
-		new_texture->m_is_imported = true;
-
-		m_imported_texture_map[texture] = new_texture;
-
-		return new_id;
-	}
-
-	rgtexture_id rendergraph::import_buffer(const rgname& name, buffer* buffer)
-	{
-		rgbuffer* new_buffer = new rgbuffer();
-		m_buffers.push_back(new_buffer);
-
-		rgbuffer_id new_id = m_buffers.size() - 1u;
-		new_buffer->m_id = new_id;
-		new_buffer->m_is_imported = true;
-
-		// register import
-		m_imported_buffer_map[buffer] = new_buffer;
 
 		return new_id;
 	}
@@ -382,7 +355,7 @@ namespace influx::renderer
 		return nullptr;
 	}
 
-	rgpass_base* rendergraph::get_pass(rgpass_id id)
+	rgpass* rendergraph::get_pass(rgpass_id id)
 	{
 		if (is_pass_declared(id))
 		{
@@ -392,37 +365,25 @@ namespace influx::renderer
 		return nullptr;
 	}
 
-	graphics::descriptor_handle* rendergraph::get_rtv(rgtexture_id id)
+	graphics::descriptor_handle rendergraph::get_rtv(rgtexture_id id)
 	{
 		influx_assert(m_texture_to_descriptors_map.contains(id));
 		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::rendertarget)];
 	}
 
-	graphics::descriptor_handle* rendergraph::get_dsv(rgtexture_id id)
+	graphics::descriptor_handle rendergraph::get_dsv(rgtexture_id id)
 	{
 		influx_assert(m_texture_to_descriptors_map.contains(id));
 		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::depthstencil)];
 	}
 
-	graphics::descriptor_handle* rendergraph::get_readonly(rgtexture_id id)
+	graphics::descriptor_handle rendergraph::get_readonly(rgtexture_id id)
 	{
 		influx_assert(m_texture_to_descriptors_map.contains(id));
 		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readonly)];
 	}
 
-	graphics::descriptor_handle* rendergraph::get_readonly(rgbuffer_id id)
-	{
-		influx_assert(m_buffer_to_descriptors_map.contains(id));
-		m_buffer_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readonly)];
-	}
-
-	graphics::descriptor_handle* rendergraph::get_readwrite(rgbuffer_id id)
-	{
-		influx_assert(m_buffer_to_descriptors_map.contains(id));
-		m_buffer_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readwrite)];
-	}
-
-	graphics::descriptor_handle* rendergraph::get_readwrite(rgtexture_id id)
+	graphics::descriptor_handle rendergraph::get_readwrite(rgtexture_id id)
 	{
 		influx_assert(m_texture_to_descriptors_map.contains(id));
 		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readwrite)];

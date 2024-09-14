@@ -31,6 +31,15 @@ namespace influx::graphics
 
 	struct command_queue_desc final
 	{
+		static command_queue_desc default_graphics()
+		{
+			static command_queue_desc result{};
+			result.m_flags = {};
+			result.m_priority = 1.0f;
+			result.m_type = e_command_queue_type::graphics;
+			return result;
+		}
+
 		e_command_queue_type m_type;
 		e_command_queue_flags m_flags;
 		float m_priority = 1.0f;

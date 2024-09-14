@@ -101,7 +101,7 @@ namespace influx::graphics
 		return result_infos;
 	}
 
-	const memory_info& dx12_device::get_memory_info() const
+	memory_info dx12_device::get_memory_info() const
 	{
 		memory_info result_info{};
 
@@ -285,7 +285,7 @@ namespace influx::graphics
 		srv_desc.Format = DXGI_FORMAT_UNKNOWN;
 		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 		srv_desc.Buffer.NumElements = resource->get_num_elements();
-		srv_desc.Buffer.StructureByteStride = resource->get_bytestride();
+		srv_desc.Buffer.StructureByteStride = (uint32)resource->get_bytestride();
 		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
 		mpdx_devices[0u]->CreateShaderResourceView(
@@ -339,7 +339,7 @@ namespace influx::graphics
 		// constants
 		for (const root_param_constants& constants : desc.m_constants)
 		{
-			name_to_param_idx[constants.m_common.m_name] = root_parameters.size();
+			name_to_param_idx[constants.m_common.m_name] = (uint32)root_parameters.size();
 
 			root_parameters.push_back({});
 			root_parameters.back().InitAsConstants(constants.m_num_dwords, constants.m_common.m_shader_register, 
@@ -349,7 +349,7 @@ namespace influx::graphics
 		// resources
 		for (const root_param_resource& resource : desc.m_resources)
 		{
-			name_to_param_idx[resource.m_common.m_name] = root_parameters.size();
+			name_to_param_idx[resource.m_common.m_name] = (uint32)root_parameters.size();
 
 			root_parameters.push_back({});
 			switch (resource.m_type)
@@ -384,7 +384,7 @@ namespace influx::graphics
 		size_t descriptor_table_idx = 0u;
 		for (const root_param_resource_table& tables : desc.m_resource_tables)
 		{
-			name_to_param_idx[tables.m_common.m_name] = root_parameters.size();
+			name_to_param_idx[tables.m_common.m_name] = (uint32)root_parameters.size();
 
 			vector<CD3DX12_DESCRIPTOR_RANGE1>& ranges = root_descriptor_ranges[descriptor_table_idx++];
 

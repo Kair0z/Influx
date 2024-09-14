@@ -1,7 +1,7 @@
-#include "renderer_pch.h"
+#include "rendergraph_pch.h"
 #include "rgpool.h"
 
-namespace influx::renderer
+namespace influx::rendergraph
 {
 	rgpool::rgpool(graphics::device* device)
 	{
