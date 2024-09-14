@@ -87,6 +87,7 @@ namespace influx::renderer
 		vector<class rglayer*> m_layers{};
 
 		rgpool* m_pool = nullptr;
+		class gpu_view_manager* m_view_manager = nullptr;
 
 		vector<vector<uint64>> m_adjacency_lists{};
 		graphics::device* m_device;

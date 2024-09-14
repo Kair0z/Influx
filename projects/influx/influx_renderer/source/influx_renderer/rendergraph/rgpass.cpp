@@ -36,26 +36,6 @@ namespace influx::renderer
 		return false;
 	}
 
-	graphics::renderpass_args rgpass_base::make_renderpass_args(rendergraph& rg) const
-	{
-		graphics::renderpass_args args{};
-
-		for (const render_target& rtv : m_rtvs)
-		{
-			switch (rtv.m_access.m_load)
-			{
-
-			}
-
-			switch (rtv.m_access.m_store)
-			{
-
-			}
-		}
-
-		return args;
-	}
-
 	uint32 rgpass_base::get_width() const
 	{
 		return m_width;

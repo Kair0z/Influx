@@ -38,7 +38,6 @@ namespace influx::renderer
 		void set_id(rgpass_id id);
 		e_rgpass_type get_type() const;
 		static bool has_dependency(rgpass_base* a, rgpass_base* b);
-		graphics::renderpass_args make_renderpass_args(class rendergraph& rg) const;
 
 		uint32 get_width() const;
 		uint32 get_height() const;

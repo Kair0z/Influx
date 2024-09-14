@@ -70,6 +70,15 @@ namespace influx::renderer
 		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_to_state_map;
 	};
 
+	class gpu_view_manager final
+	{
+	public:
+		graphics::descriptor_handle* allocate_descriptor();
+		void free_descriptor(graphics::descriptor_handle* descriptor);
+	private:
+
+	};
+
 	rendergraph::rendergraph(graphics::device* device)
 		: m_device{ device }
 	{
@@ -125,6 +134,7 @@ namespace influx::renderer
 			// todo: texture transitions
 
 			// todo: buffer transitions
+			
 			// todo: flush barriers
 
 			// todo: run each pass in the layer
