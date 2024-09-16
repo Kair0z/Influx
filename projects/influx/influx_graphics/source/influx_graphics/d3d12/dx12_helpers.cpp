@@ -42,7 +42,7 @@ namespace influx::graphics::dx12helpers
         
     }
 
-    ID3D12CommandQueue* create_command_queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, int priority)
+    ID3D12CommandQueue* create_queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, int priority)
     {
         D3D12_COMMAND_QUEUE_DESC desc{};
         desc.Priority = priority;

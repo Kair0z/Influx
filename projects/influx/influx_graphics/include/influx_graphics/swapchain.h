@@ -12,7 +12,7 @@ namespace influx::graphics
 	class render_target_view;
 	class device;
 	class descriptor_heap;
-	class command_queue;
+	class queue;
 
 	struct swapchain_desc final
 	{
@@ -28,11 +28,11 @@ namespace influx::graphics
 
 	struct swapchain_dependencies final
 	{
-		swapchain_dependencies(device* device, command_queue* queue)
-			: mp_device{ device }, mp_command_queue{ queue } {}
+		swapchain_dependencies(device* device, queue* queue)
+			: mp_device{ device }, mp_queue{ queue } {}
 
 		device* mp_device = nullptr;
-		command_queue* mp_command_queue = nullptr;
+		queue* mp_queue = nullptr;
 	};
 
 	class swapchain : public base
@@ -78,7 +78,7 @@ namespace influx::graphics
 
 		// dependencies
 		device* mp_parent_device;
-		command_queue* mp_command_queue;
+		queue* mp_queue;
 
 		virtual vector<resource*> create_resources() = 0;
 	};

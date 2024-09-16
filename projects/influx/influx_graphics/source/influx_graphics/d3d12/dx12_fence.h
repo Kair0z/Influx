@@ -11,7 +11,7 @@ namespace influx::graphics
 		dx12_fence(ID3D12Fence* fence);
 
 		// queues a signal command to the command queue
-		virtual void queue_signal(uint64 value, command_queue* queue) override;
+		virtual void queue_signal(uint64 value, queue* queue) override;
 
 		virtual void signal(uint64 value) override;
 

@@ -6,7 +6,7 @@
 #include "influx_graphics/d3d12/dx12_helpers.h"
 
 // subheaders
-#include "influx_graphics/d3d12/dx12_commandqueue.h"
+#include "influx_graphics/d3d12/dx12_queue.h"
 #include "influx_graphics/d3d12/dx12_fence.h"
 #include "influx_graphics/d3d12/dx12_swapchain.h"
 #include "influx_graphics/d3d12/dx12_resource.h"
@@ -25,8 +25,8 @@ namespace influx::graphics
 {
 	void dx12_device::submit(commandbuffer* commandbuffer)
 	{
-		influx_assert(m_command_queue_graphics);
-		commandbuffer->submit(m_command_queue_graphics);
+		influx_assert(m_queue_graphics);
+		commandbuffer->submit(m_queue_graphics);
 	}
 
 	dx12_device::dx12_device()
@@ -126,23 +126,23 @@ namespace influx::graphics
 	}
 
 	// get interface to graphics object creation:
-	command_queue* dx12_device::create_command_queue(const command_queue_desc& desc)
+	queue* dx12_device::create_queue(const queue_desc& desc)
 	{
 		int priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 		switch (desc.m_priority)
 		{
-		case e_command_queue_priority::normal: priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL; break;
-		case e_command_queue_priority::high: priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH; break;
-		case e_command_queue_priority::global_realtime: priority = D3D12_COMMAND_QUEUE_PRIORITY_GLOBAL_REALTIME; break;
+		case e_queue_priority::normal: priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL; break;
+		case e_queue_priority::high: priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH; break;
+		case e_queue_priority::global_realtime: priority = D3D12_COMMAND_QUEUE_PRIORITY_GLOBAL_REALTIME; break;
 		}
 
-		auto dxcommandqueue = dx12helpers::create_command_queue(
+		auto dxcommandqueue = dx12helpers::create_queue(
 			mpdx_devices[0u], convert(desc.m_type), priority);
 
-		return new dx12_commandqueue(desc, dxcommandqueue);
+		return new dx12_queue(desc, dxcommandqueue);
 	}
 
-	swapchain* dx12_device::create_swapchain(command_queue* queue, const platform::window_handle& window, const swapchain_desc& desc)
+	swapchain* dx12_device::create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc)
 	{
 		auto rect = platform::get_windowrect_client<uint32>(window);
 		uint32 width = rect.m_width_height.x;

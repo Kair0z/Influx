@@ -15,12 +15,12 @@ namespace influx::graphics
 			return {};
 		}
 
-		inline virtual command_queue* create_command_queue(const command_queue_desc& desc)
+		inline virtual queue* create_queue(const queue_desc& desc)
 		{
 			return nullptr;
 		}
 
-		inline virtual swapchain* create_swapchain(command_queue* queue, const platform::window_handle& window)
+		inline virtual swapchain* create_swapchain(queue* queue, const platform::window_handle& window)
 		{
 			return nullptr;
 		}

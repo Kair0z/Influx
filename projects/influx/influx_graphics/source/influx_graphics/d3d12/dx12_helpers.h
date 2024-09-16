@@ -16,7 +16,7 @@ namespace influx::graphics::dx12helpers
     // NOTE: Enabling the debug layer after device creation will invalidate the active device.
     void set_debug_layer_enabled(bool enabled);
 
-    ID3D12CommandQueue* create_command_queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, int priority = 1);
+    ID3D12CommandQueue* create_queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, int priority = 1);
 
     ID3D12CommandAllocator* create_command_allocator(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type);
 

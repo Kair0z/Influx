@@ -292,7 +292,7 @@ namespace influx::renderer
 		for (uint64 i = 0u; i < m_passes.size(); ++i)
 		{
 			uint64 layer = distances[i];
-			m_layers[layer].push_back(m_passes[i]); // add the pass to the layer
+			m_layers[layer]->m_passes.push_back(m_passes[i]); // add the pass to the layer
 		}
 	}
 
@@ -410,17 +410,17 @@ namespace influx::renderer
 		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readonly)];
 	}
 
-	graphics::descriptor_handle* rendergraph::get_readonly(rgbuffer_id id)
-	{
-		influx_assert(m_buffer_to_descriptors_map.contains(id));
-		m_buffer_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readonly)];
-	}
+	// graphics::descriptor_handle* rendergraph::get_readonly(rgbuffer_id id)
+	// {
+	// 	influx_assert(m_buffer_to_descriptors_map.contains(id));
+	// 	m_buffer_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readonly)];
+	// }
 
-	graphics::descriptor_handle* rendergraph::get_readwrite(rgbuffer_id id)
-	{
-		influx_assert(m_buffer_to_descriptors_map.contains(id));
-		m_buffer_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readwrite)];
-	}
+	// graphics::descriptor_handle* rendergraph::get_readwrite(rgbuffer_id id)
+	// {
+	// 	influx_assert(m_buffer_to_descriptors_map.contains(id));
+	// 	m_buffer_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readwrite)];
+	// }
 
 	graphics::descriptor_handle* rendergraph::get_readwrite(rgtexture_id id)
 	{

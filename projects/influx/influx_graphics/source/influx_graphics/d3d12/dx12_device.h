@@ -7,7 +7,7 @@ struct ID3D12Device;
 
 namespace influx::graphics
 {
-	class dx12_commandqueue;
+	class dx12_queue;
 }
 
 namespace influx::graphics
@@ -29,9 +29,9 @@ namespace influx::graphics
 		virtual memory_info get_memory_info() const override;
 
 		// get interface to graphics object creation:
-		virtual command_queue* create_command_queue(const command_queue_desc& desc) override;
+		virtual queue* create_queue(const queue_desc& desc) override;
 
-		virtual swapchain* create_swapchain(command_queue* queue, const platform::window_handle& window, const swapchain_desc& desc) override;
+		virtual swapchain* create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc) override;
 
 		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args& args) override;
 
@@ -78,8 +78,8 @@ namespace influx::graphics
 		uint64 m_sampler_stride{};
 		uint64 m_srv_stride{};
 
-		dx12_commandqueue* m_command_queue_graphics;
-		dx12_commandqueue* m_command_queue_compute;
-		dx12_commandqueue* m_command_queue_copy;
+		dx12_queue* m_queue_graphics;
+		dx12_queue* m_queue_compute;
+		dx12_queue* m_queue_copy;
 	};
 }

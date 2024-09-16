@@ -45,7 +45,7 @@ namespace influx::graphics
 		e_queue_priority m_priority = e_queue_priority::normal;
 	};
 
-	class commandqueue : public base
+	class queue : public base
 	{
 	public:
 		virtual void submit_commandlists(const vector<commandlist*>& commandlists) = 0;
@@ -54,7 +54,7 @@ namespace influx::graphics
 		virtual void queue_signal(fence* fence, uint64 value) = 0;
 
 	protected:
-		commandqueue(const queue_desc& desc)
+		queue(const queue_desc& desc)
 			: m_desc{ desc }
 		{
 

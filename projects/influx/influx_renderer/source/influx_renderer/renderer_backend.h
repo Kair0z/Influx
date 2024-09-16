@@ -7,7 +7,7 @@
 namespace influx::graphics
 {
 	class device;
-	class command_queue;
+	class queue;
 	class swapchain;
 	class commandlist;
 	class command_allocator;
@@ -79,12 +79,12 @@ namespace influx::renderer
 
 		// graphics engine
 		graphics::device* mp_device = nullptr;
-		graphics::command_queue* mp_graphics_queue = nullptr;
+		graphics::queue* mp_graphics_queue = nullptr;
 		graphics::commandlist* mp_commandlist = nullptr;
 		vector<graphics::command_allocator*> mp_allocators = {};
 
 		// copy engine
-		graphics::command_queue* mp_copy_queue = nullptr;
+		graphics::queue* mp_copy_queue = nullptr;
 		graphics::command_allocator* mp_copy_allocator = nullptr;
 		graphics::commandlist* mp_copy_commandlist = nullptr;
 		graphics::fence* mp_fence = nullptr;

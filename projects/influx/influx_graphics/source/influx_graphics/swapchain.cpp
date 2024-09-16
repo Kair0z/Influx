@@ -10,7 +10,7 @@ namespace influx::graphics
 		: m_desc{ desc }
 		, m_current_dimensions{ desc.m_dimensions }
 		, mp_parent_device{ dependencies.mp_device }
-		, mp_command_queue{ dependencies.mp_command_queue }
+		, mp_queue{ dependencies.mp_queue }
 	{
 	}
 

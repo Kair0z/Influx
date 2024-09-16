@@ -1,16 +1,16 @@
 #pragma once
 #include "influx_graphics/base.h"
-#include "influx_graphics/commandqueue.h"
 
 #include "core/wait.h"
 
 namespace influx::graphics
 {
+	class queue;
 	class fence : public base
 	{
 	public:
 		// queues a signal command to the command queue
-		virtual void queue_signal(uint64 value, command_queue* queue) = 0;
+		virtual void queue_signal(uint64 value, queue* queue) = 0;
 
 		virtual void signal(uint64 value) = 0;
 

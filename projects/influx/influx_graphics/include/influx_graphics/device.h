@@ -9,7 +9,7 @@
 // graphics
 #include "influx_graphics/common.h"
 #include "influx_graphics/base.h"
-#include "influx_graphics/commandqueue.h"
+#include "influx_graphics/queue.h"
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/commandallocator.h"
 #include "influx_graphics/pipeline.h"
@@ -50,9 +50,9 @@ namespace influx::graphics
 
 		virtual memory_info get_memory_info() const = 0;
 
-		virtual command_queue* create_command_queue(const command_queue_desc& desc = command_queue_desc::default_graphics()) = 0;
+		virtual queue* create_queue(const queue_desc& desc = queue_desc::default_graphics()) = 0;
 
-		virtual swapchain* create_swapchain(command_queue* queue, const platform::window_handle& window, const swapchain_desc& desc) = 0;
+		virtual swapchain* create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc) = 0;
 
 		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args&) = 0;
 

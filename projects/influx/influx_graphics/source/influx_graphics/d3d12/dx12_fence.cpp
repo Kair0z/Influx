@@ -1,5 +1,6 @@
 #include "graphics_pch.h"
 #include "influx_graphics/d3d12/dx12_fence.h"
+#include "influx_graphics/d3d12/dx12_queue.h"
 #include "dx12_headers.h"
 
 namespace influx::graphics
@@ -10,7 +11,7 @@ namespace influx::graphics
 	}
 
 	// queues a signal command to the command queue
-	void dx12_fence::queue_signal(uint64 value, command_queue* queue)
+	void dx12_fence::queue_signal(uint64 value, queue* queue)
 	{
 		ID3D12CommandQueue* native_queue = queue->get_native<ID3D12CommandQueue>();
 		native_queue->Signal(mpdx_fence, value);

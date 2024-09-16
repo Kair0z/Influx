@@ -62,10 +62,10 @@ namespace influx::renderer
         // create graphics command queue
         {
             // graphics queue
-            command_queue_desc desc{};
-            desc.m_type = e_command_queue_type::graphics;
-            desc.m_priority = 0;
-            mp_graphics_queue = mp_device->create_command_queue(desc);
+            queue_desc desc{};
+            desc.m_type = e_queue_type::graphics;
+            desc.m_priority = graphics::e_queue_priority::normal;
+            mp_graphics_queue = mp_device->create_queue(desc);
         }
 
         // create commandlist & allocators for rendering:

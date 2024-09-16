@@ -77,8 +77,8 @@ namespace influx::renderer
 		graphics::descriptor_handle* get_readonly(rgtexture_id id);
 		graphics::descriptor_handle* get_readwrite(rgtexture_id id);
 
-		graphics::descriptor_handle* get_readonly(rgbuffer_id id);
-		graphics::descriptor_handle* get_readwrite(rgbuffer_id id);
+		// graphics::descriptor_handle* get_readonly(rgbuffer_id id);
+		// graphics::descriptor_handle* get_readwrite(rgbuffer_id id);
 
 	private:
 		vector<rgpass_base*> m_passes{};

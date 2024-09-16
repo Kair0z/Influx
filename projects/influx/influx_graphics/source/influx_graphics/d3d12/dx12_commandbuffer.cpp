@@ -2,12 +2,12 @@
 #include "influx_graphics.h"
 
 #include "dx12_commandbuffer.h"
-#include "dx12_commandqueue.h"
+#include "dx12_queue.h"
 #include "dx12_fence.h"
 
 namespace influx::graphics
 {
-	dx12_commandbuffer::dx12_commandbuffer(graphics::dx12_commandqueue* queue, graphics::dx12_fence* fence)
+	dx12_commandbuffer::dx12_commandbuffer(graphics::dx12_queue* queue, graphics::dx12_fence* fence)
 		: m_fence{ fence }
 		, m_queue{ queue }
 	{
@@ -18,7 +18,7 @@ namespace influx::graphics
 		//submit(m_queue);
 	}
 
-	void dx12_commandbuffer::submit(graphics::commandqueue* queue)
+	void dx12_commandbuffer::submit(graphics::queue* queue)
 	{
 		if (m_queue)
 		{

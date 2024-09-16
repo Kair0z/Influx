@@ -9,7 +9,7 @@
 
 // influx::graphics
 #include "influx_graphics/resource.h"
-#include "influx_graphics/commandqueue.h"
+#include "influx_graphics/queue.h"
 #include "influx_graphics/descriptorheap.h"
 #include "influx_graphics/device.h"
 
@@ -86,7 +86,7 @@ namespace influx::imgui
 		shader::compile_output m_pixel_shader;
 
 		graphics::device* mp_device;
-		graphics::command_queue* mp_commandqueue;
+		graphics::queue* mp_commandqueue;
 		graphics::commandlist* mp_commandlist;
 		graphics::command_allocator* mp_allocator;
 		graphics::rootsignature* mp_rootsig;
@@ -101,7 +101,7 @@ namespace influx::imgui
 		return global_state::get_instance().mp_device;
 	}
 
-	inline graphics::command_queue*& get_queue()
+	inline graphics::queue*& get_queue()
 	{
 		return global_state::get_instance().mp_commandqueue;
 	}
@@ -370,9 +370,9 @@ namespace influx::imgui
 		get_device() = graphics::device::create(graphics::e_api_type::dx12);
 
 		// create the command queue
-		graphics::command_queue_desc queue_desc{};
-		queue_desc.m_type = graphics::e_command_queue_type::graphics;
-		get_queue() = get_device()->create_command_queue(queue_desc);
+		graphics::queue_desc queue_desc{};
+		queue_desc.m_type = graphics::e_queue_type::graphics;
+		get_queue() = get_device()->create_queue(queue_desc);
 
 		// create command list & allocator
 		get_allocator() = get_device()->create_graphics_allocator();

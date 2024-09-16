@@ -1,7 +1,7 @@
 #pragma once
 
 #include "influx_graphics/common.h"
-#include "influx_graphics/commandqueue.h"
+#include "influx_graphics/queue.h"
 #include "influx_graphics/resource.h"
 #include "influx_graphics/descriptorheap.h"
 #include "influx_graphics/renderpass.h"
@@ -9,13 +9,13 @@
 
 namespace influx::graphics
 {
-	inline D3D12_COMMAND_LIST_TYPE convert(e_command_queue_type type)
+	inline D3D12_COMMAND_LIST_TYPE convert(e_queue_type type)
 	{
 		switch (type)
 		{
-		case e_command_queue_type::graphics: return D3D12_COMMAND_LIST_TYPE_DIRECT;
-		case e_command_queue_type::compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-		case e_command_queue_type::copy: return D3D12_COMMAND_LIST_TYPE_COPY;
+		case e_queue_type::graphics: return D3D12_COMMAND_LIST_TYPE_DIRECT;
+		case e_queue_type::compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+		case e_queue_type::copy: return D3D12_COMMAND_LIST_TYPE_COPY;
 		default: return D3D12_COMMAND_LIST_TYPE_DIRECT;
 		}
 	}

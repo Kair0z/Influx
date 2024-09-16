@@ -25,7 +25,7 @@ namespace influx::renderer
 		mp_commandlist = mp_device->create_graphics_command_list(mp_commandalloc);
 	}
 
-	void upload_manager::upload_buffer(graphics::command_queue* queue, const vector<byte>& data, graphics::resource* target)
+	void upload_manager::upload_buffer(graphics::queue* queue, const vector<byte>& data, graphics::resource* target)
 	{
 		map_buffer(data);
 
@@ -56,7 +56,7 @@ namespace influx::renderer
 		queue->queue_signal(mp_fence, 0u);
 	}
 
-	void upload_manager::upload_texture(graphics::command_queue* queue, const texture_data& data, graphics::resource* target_resource)
+	void upload_manager::upload_texture(graphics::queue* queue, const texture_data& data, graphics::resource* target_resource)
 	{
 		const size_t texture_bytesize = data.m_pixels.size() * sizeof(pixel32);
 		static uint32 num_textures = 0u;
