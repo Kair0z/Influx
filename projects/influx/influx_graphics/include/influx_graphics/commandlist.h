@@ -55,7 +55,7 @@ namespace influx::graphics
 		uint32 m_src_offset = 0u;
 	};
 
-	class command_list : public base
+	class commandlist : public base
 	{
 	public:
 		virtual void start(command_allocator* allocator, pipeline* init_state = nullptr) = 0;

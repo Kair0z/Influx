@@ -35,7 +35,7 @@ namespace influx::graphics
 			return nullptr;
 		}
 
-		inline virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline_state* init_state = nullptr)
+		inline virtual commandlist* create_graphics_command_list(command_allocator* allocator, pipeline_state* init_state = nullptr)
 		{
 			return nullptr;
 		}

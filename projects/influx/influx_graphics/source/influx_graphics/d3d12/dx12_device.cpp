@@ -175,7 +175,7 @@ namespace influx::graphics
 		return new dx12_command_allocator(dxallocator);
 	}
 
-	command_list* dx12_device::create_graphics_command_list(command_allocator* allocator, pipeline* init_state)
+	commandlist* dx12_device::create_graphics_command_list(command_allocator* allocator, pipeline* init_state)
 	{
 		auto dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(mpdx_devices[0u],
 			allocator->get_native<ID3D12CommandAllocator>(), D3D12_COMMAND_LIST_TYPE_DIRECT,

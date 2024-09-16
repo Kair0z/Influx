@@ -10,7 +10,7 @@ namespace influx::graphics
 {
 	class descriptor_heap;
 	class device;
-	class command_list;
+	class commandlist;
 	class render_target_view;
 	class resource;
 }
@@ -26,7 +26,7 @@ namespace influx::renderer
 		void start_frame();
 
 		// binds all gpu heaps
-		void start_commandlist(graphics::command_list* commandlist);
+		void start_commandlist(graphics::commandlist* commandlist);
 
 		// unstages all gpu heaps
 		void end_frame();

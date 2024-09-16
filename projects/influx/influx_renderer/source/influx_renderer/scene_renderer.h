@@ -4,7 +4,7 @@
 namespace influx::graphics
 {
 	class device;
-	class command_list;
+	class commandlist;
 	class descriptor_heap;
 	class resource;
 	class shader_resource_view;
@@ -86,19 +86,19 @@ namespace influx::renderer
 		~scene_renderer();
 
 		void render(
-			graphics::command_list* commandlist, 
+			graphics::commandlist* commandlist, 
 			const scene& scene,
 			const target& target);
 
 	private:
 		vector<batch> create_batches(const scene& scene);
 		void update_instance_buffer(const vector<batch>& batches);
-		void render_batches(graphics::command_list* commandlist, const vector<batch>& batches);
+		void render_batches(graphics::commandlist* commandlist, const vector<batch>& batches);
 
-		void render_shadows(graphics::command_list* commandlist, 
+		void render_shadows(graphics::commandlist* commandlist, 
 			const scene& scene, const vector<batch>& batches);
 
-		void render_basepass(graphics::command_list* commandlist, 
+		void render_basepass(graphics::commandlist* commandlist, 
 			const scene& scene, const vector<batch>& batches, const target& target);
 
 	private:

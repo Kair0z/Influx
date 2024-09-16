@@ -146,7 +146,7 @@ namespace influx::renderer
         });
     }
 
-    void scene_renderer::render_batches(graphics::command_list* commandlist, const vector<batch>& batches)
+    void scene_renderer::render_batches(graphics::commandlist* commandlist, const vector<batch>& batches)
     {
         renderer_backend& backend = renderer_backend::get_instance();
 
@@ -205,7 +205,7 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::render_shadows(graphics::command_list* commandlist, 
+    void scene_renderer::render_shadows(graphics::commandlist* commandlist, 
         const scene& scene, const vector<batch>& batches)
     {
         mp_shadowspipeline = mp_backend->get_pipeline_manager()->get_pipeline("pip_shadows");
@@ -227,7 +227,7 @@ namespace influx::renderer
         render_batches(commandlist, batches);
     }
 
-    void scene_renderer::render_basepass(graphics::command_list* commandlist, 
+    void scene_renderer::render_basepass(graphics::commandlist* commandlist, 
         const scene& scene, const vector<batch>& batches, const target& target)
     {
         // get the pipeline
@@ -253,7 +253,7 @@ namespace influx::renderer
         render_batches(commandlist, batches);
     }
 
-    void scene_renderer::render(graphics::command_list* commandlist, const scene& scene, const target& target)
+    void scene_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)
     {
         m_gpu_perscene.m_delta_seconds = scene.m_delta_seconds;
         m_gpu_perscene.m_seconds = scene.m_seconds;

@@ -13,10 +13,10 @@ namespace influx::graphics
 		mp_native = mpdx_command_queue = queue;
 	}
 
-	void dx12_commandqueue::submit_commandlists(const vector<command_list*>& commandlists)
+	void dx12_commandqueue::submit_commandlists(const vector<commandlist*>& commandlists)
 	{
 		vector<ID3D12CommandList*> dxcmdlists = {};
-		for (command_list* list : commandlists)
+		for (commandlist* list : commandlists)
 		{
 			dxcmdlists.push_back(list->get_native<ID3D12CommandList>());
 		}

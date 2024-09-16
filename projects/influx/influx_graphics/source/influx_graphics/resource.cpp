@@ -75,7 +75,7 @@ namespace influx::graphics
 		return range<size_t>(0u, m_bytesize);
 	}
 
-	void resource::transition(command_list* cmdlist, e_resource_state new_state)
+	void resource::transition(commandlist* cmdlist, e_resource_state new_state)
 	{
 		if (m_state == new_state)
 		{
@@ -88,7 +88,7 @@ namespace influx::graphics
 		m_state = new_state;
 	}
 
-	void resource::revert_transition(command_list* cmdlist)
+	void resource::revert_transition(commandlist* cmdlist)
 	{
 		influx_assert(m_previous_state != m_state);
 

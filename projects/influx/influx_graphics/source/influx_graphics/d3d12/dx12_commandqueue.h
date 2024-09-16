@@ -10,7 +10,7 @@ namespace influx::graphics
 	public:
 		explicit dx12_commandqueue(const command_queue_desc& desc, ID3D12CommandQueue* queue);
 
-		virtual void submit_commandlists(const vector<command_list*>& commandlists) override;
+		virtual void submit_commandlists(const vector<commandlist*>& commandlists) override;
 
 		virtual void queue_signal(fence* fence, uint64 value) override;
 

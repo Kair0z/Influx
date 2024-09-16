@@ -19,7 +19,7 @@
 namespace influx::graphics
 {
 	class device;
-	class command_list;
+	class commandlist;
 }
 
 namespace influx::rendergraph
@@ -67,7 +67,7 @@ namespace influx::rendergraph
 		INFLUX_RG_API void build();
 
 		// single threaded, single command list...
-		INFLUX_RG_API void execute(graphics::command_list* commandlist);
+		INFLUX_RG_API void execute(graphics::commandlist* commandlist);
 
 		// adding nodes & resources
 		template <typename trgpass, typename... _args> requires std::is_constructible_v<trgpass, _args...>

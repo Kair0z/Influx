@@ -138,7 +138,7 @@ namespace influx::renderer
 		}
 	}
 
-	void rendergraph::execute(graphics::command_list* commandlist)
+	void rendergraph::execute(graphics::commandlist* commandlist)
 	{
 		m_pool->tick();
 
@@ -171,7 +171,7 @@ namespace influx::renderer
 			// todo: flush barriers
 
 			// todo: run each pass in the layer
-			graphics::command_list* cmdlist = nullptr;
+			graphics::commandlist* cmdlist = nullptr;
 			for (size_t pass_idx = 0u; pass_idx < layer->m_passes.size(); ++pass_idx)
 			{
 				rgpass_base* pass = layer->m_passes[pass_idx];

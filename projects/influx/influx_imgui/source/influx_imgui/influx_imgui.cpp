@@ -87,7 +87,7 @@ namespace influx::imgui
 
 		graphics::device* mp_device;
 		graphics::command_queue* mp_commandqueue;
-		graphics::command_list* mp_commandlist;
+		graphics::commandlist* mp_commandlist;
 		graphics::command_allocator* mp_allocator;
 		graphics::rootsignature* mp_rootsig;
 		graphics::pipeline* mp_pipeline;
@@ -106,7 +106,7 @@ namespace influx::imgui
 		return global_state::get_instance().mp_commandqueue;
 	}
 
-	inline graphics::command_list*& get_commandlist()
+	inline graphics::commandlist*& get_commandlist()
 	{
 		return global_state::get_instance().mp_commandlist;
 	}

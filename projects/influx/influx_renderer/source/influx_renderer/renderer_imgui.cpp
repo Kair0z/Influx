@@ -72,7 +72,7 @@ namespace influx::renderer
 		create_pipeline(device);
 	}
 
-	void imgui_manager::render(graphics::command_list* commandlist, ImDrawData* draw_data, const target& target)
+	void imgui_manager::render(graphics::commandlist* commandlist, ImDrawData* draw_data, const target& target)
 	{
 		// Avoid rendering when minimized
 		if (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f)

@@ -122,20 +122,20 @@ namespace influx::renderer
         influx_assert(mp_pipeline->is_valid());
     }
 
-    void pipeline::set_state(graphics::command_list* cmdlist)
+    void pipeline::set_state(graphics::commandlist* cmdlist)
     {
         cmdlist->set(mp_rootsig);
         cmdlist->set(mp_pipeline);
         cmdlist->set(graphics::e_primitive_topology::trilist);
     }
 
-    void pipeline::set_constants(graphics::command_list* cmdlist, const string& name, uint32 num_dwords, void* data)
+    void pipeline::set_constants(graphics::commandlist* cmdlist, const string& name, uint32 num_dwords, void* data)
     {
         uint32 param_idx = get_param_index(name);
         cmdlist->set_constants(param_idx, num_dwords, data);
     }
 
-    void pipeline::set_resource_table(graphics::command_list* cmdlist, const string& name, const graphics::descriptor_range& gpu_range)
+    void pipeline::set_resource_table(graphics::commandlist* cmdlist, const string& name, const graphics::descriptor_range& gpu_range)
     {
         uint32 param_idx = get_param_index(name);
         cmdlist->set(gpu_range, param_idx);

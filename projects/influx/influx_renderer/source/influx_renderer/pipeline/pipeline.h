@@ -12,7 +12,7 @@ namespace influx::graphics
 	class device;
 	class pipeline;
 	class rootsignature;
-	class command_list;
+	class commandlist;
 	struct descriptor_range;
 }
 #pragma endregion
@@ -27,17 +27,17 @@ namespace influx::renderer
 			renderer::shader_data const* vertex_shader,
 			renderer::shader_data const* pixel_shader);
 
-		void set_state(graphics::command_list* cmdlist);
+		void set_state(graphics::commandlist* cmdlist);
 
 		template <typename _constants>
-		void set_constants(graphics::command_list* cmdlist, const string& name, _constants& constants)
+		void set_constants(graphics::commandlist* cmdlist, const string& name, _constants& constants)
 		{
 			set_constants(cmdlist, name, sizeof(_constants) / sizeof(uint32), &constants);
 		}
 
-		void set_constants(graphics::command_list* cmdlist, const string& name, uint32 num_dwords, void* data);
+		void set_constants(graphics::commandlist* cmdlist, const string& name, uint32 num_dwords, void* data);
 
-		void set_resource_table(graphics::command_list* cmdlist, const string& name, const graphics::descriptor_range& gpu_range);
+		void set_resource_table(graphics::commandlist* cmdlist, const string& name, const graphics::descriptor_range& gpu_range);
 
 		uint32 get_shader_register(const string& resource_name);
 		uint32 get_param_index(const string& resource_name);

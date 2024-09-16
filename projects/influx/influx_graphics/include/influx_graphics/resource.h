@@ -10,7 +10,7 @@
 
 namespace influx::graphics
 {
-	class command_list;
+	class commandlist;
 
 	enum class e_heap_type : uint8
 	{
@@ -111,8 +111,8 @@ namespace influx::graphics
 
 		range<size_t> get_full_range() const;
 
-		void transition(command_list* cmdlist, e_resource_state new_state);
-		void revert_transition(command_list* cmdlist);
+		void transition(commandlist* cmdlist, e_resource_state new_state);
+		void revert_transition(commandlist* cmdlist);
 
 		virtual ~resource() = default;
 

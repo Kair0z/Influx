@@ -58,7 +58,7 @@ namespace influx::graphics
 
 		virtual command_allocator* create_graphics_allocator() = 0;
 
-		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
+		virtual commandlist* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
 
 		virtual commandbuffer* create_commandbuffer() = 0;
 

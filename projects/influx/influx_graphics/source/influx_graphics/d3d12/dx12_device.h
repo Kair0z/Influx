@@ -37,7 +37,7 @@ namespace influx::graphics
 
 		virtual command_allocator* create_graphics_allocator() override;
 
-		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) override;
+		virtual commandlist* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) override;
 
 		virtual commandbuffer* create_commandbuffer() override;
 

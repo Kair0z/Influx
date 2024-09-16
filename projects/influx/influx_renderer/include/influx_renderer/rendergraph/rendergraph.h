@@ -10,7 +10,7 @@
 namespace influx::graphics
 {
 	class device;
-	class command_list;
+	class commandlist;
 }
 
 namespace influx::renderer
@@ -36,7 +36,7 @@ namespace influx::renderer
 		void build();
 
 		// single threaded, single command list...
-		void execute(graphics::command_list* commandlist);
+		void execute(graphics::commandlist* commandlist);
 
 		// adding nodes & resources
 		template <typename _passdata, typename... _args> requires std::is_constructible_v<rgpass<_passdata>, _args...>

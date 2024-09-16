@@ -23,7 +23,7 @@ namespace influx::graphics
 		if (m_queue)
 		{
 			// submit work to gpu
-			vector<command_list*> lists{};
+			vector<commandlist*> lists{};
 			m_queue->submit_commandlists(lists);
 
 			set_state(e_state::submitted);

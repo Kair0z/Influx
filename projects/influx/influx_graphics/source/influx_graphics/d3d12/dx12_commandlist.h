@@ -10,7 +10,7 @@ namespace influx::graphics
 	class pipeline;
 	class render_target_view;
 
-	class dx12_commandlist final : public command_list
+	class dx12_commandlist final : public commandlist
 	{
 	public:
 		dx12_commandlist(ID3D12GraphicsCommandList* commandlist);

@@ -11,7 +11,7 @@ namespace influx::graphics
 	class rootsignature;
 	class pipeline;
 	class resource;
-	class command_list;
+	class commandlist;
 }
 
 // influx::shader
@@ -25,7 +25,7 @@ namespace influx::renderer
 	{
 	public:
 		imgui_manager(graphics::device* device);
-		void render(graphics::command_list* commandlist, ImDrawData* draw_data, const target& target);
+		void render(graphics::commandlist* commandlist, ImDrawData* draw_data, const target& target);
 
 	private:
 		void create_fonts_texture(graphics::device* device);
