@@ -16,12 +16,19 @@
 #include "influx_graphics/d3d12/dx12_descriptorheap.h"
 #include "influx_graphics/d3d12/dx12_pipeline.h"
 #include "influx_graphics/d3d12/dx12_rootsignature.h"
+#include "influx_graphics/d3d12/dx12_commandbuffer.h"
 
 // core win32
 #include "core/platform/win32/win32_window.h"
 
 namespace influx::graphics
 {
+	void dx12_device::submit(commandbuffer* commandbuffer)
+	{
+		influx_assert(m_command_queue_graphics);
+		commandbuffer->submit(m_command_queue_graphics);
+	}
+
 	dx12_device::dx12_device()
 		: device()
 	{
@@ -121,8 +128,16 @@ namespace influx::graphics
 	// get interface to graphics object creation:
 	command_queue* dx12_device::create_command_queue(const command_queue_desc& desc)
 	{
+		int priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+		switch (desc.m_priority)
+		{
+		case e_command_queue_priority::normal: priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL; break;
+		case e_command_queue_priority::high: priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH; break;
+		case e_command_queue_priority::global_realtime: priority = D3D12_COMMAND_QUEUE_PRIORITY_GLOBAL_REALTIME; break;
+		}
+
 		auto dxcommandqueue = dx12helpers::create_command_queue(
-			mpdx_devices[0u], convert(desc.m_type), static_cast<int>(desc.m_priority));
+			mpdx_devices[0u], convert(desc.m_type), priority);
 
 		return new dx12_commandqueue(desc, dxcommandqueue);
 	}
@@ -169,6 +184,13 @@ namespace influx::graphics
 		dxcommandlist->Close();
 
 		return new dx12_commandlist(dxcommandlist);
+	}
+
+	commandbuffer* dx12_device::create_commandbuffer()
+	{
+		commandbuffer* new_buffer = new dx12_commandbuffer(nullptr, nullptr);
+		
+		return new_buffer;
 	}
 
 	fence* dx12_device::create_fence(uint64 init_value)

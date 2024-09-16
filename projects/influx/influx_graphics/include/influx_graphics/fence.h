@@ -16,5 +16,7 @@ namespace influx::graphics
 
 		// wait for fence to reach value
 		virtual void wait_for_value(uint64 value, wait_handle& handle) = 0;
+
+		virtual uint64 query_value() const = 0;
 	};
 }

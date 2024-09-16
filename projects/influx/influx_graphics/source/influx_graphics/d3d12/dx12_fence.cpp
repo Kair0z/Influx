@@ -23,7 +23,7 @@ namespace influx::graphics
 
 	void dx12_fence::wait_for_value(uint64 value, wait_handle& handle)
 	{
-		while (mpdx_fence->GetCompletedValue() != value)
+		while (query_value() != value)
 		{
 			::HANDLE event_handle = ::CreateEventEx(NULL, 0, 0, EVENT_ALL_ACCESS);
 
@@ -34,5 +34,10 @@ namespace influx::graphics
 			::WaitForSingleObject(event_handle, static_cast<::DWORD>(handle.get_ms_max()));
 			::CloseHandle(event_handle);
 		}
+	}
+
+	uint64 dx12_fence::query_value() const
+	{
+		return mpdx_fence->GetCompletedValue();
 	}
 }

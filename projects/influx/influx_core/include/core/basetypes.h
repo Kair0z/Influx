@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 
 namespace influx
 {
@@ -27,4 +28,7 @@ namespace influx
 	{
 		return (r << 0) | (g << 8) | (b << 16) | (a << 24);
 	}
+
+	template <typename _t>
+	using opt = std::optional<_t>;
 }

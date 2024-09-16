@@ -5,10 +5,10 @@
 
 namespace influx::graphics
 {
-	class command_list;
+	class commandlist;
 	class fence;
 
-	enum class e_command_queue_type : uint8
+	enum class e_queue_type : uint8
 	{
 		graphics,
 		copy,
@@ -16,51 +16,51 @@ namespace influx::graphics
 		count
 	};
 
-	enum class e_command_queue_flags : uint8
+	enum class e_queue_flags : uint8
 	{
 		none
 	};
 
-	enum class e_command_queue_priority : uint8
+	enum class e_queue_priority : uint8
 	{
-		low,
-		medium,
+		normal,
 		high,
+		global_realtime,
 		count
 	};
 
-	struct command_queue_desc final
+	struct queue_desc final
 	{
-		static command_queue_desc default_graphics()
+		static queue_desc default_graphics()
 		{
-			static command_queue_desc result{};
+			static queue_desc result{};
 			result.m_flags = {};
-			result.m_priority = 1.0f;
-			result.m_type = e_command_queue_type::graphics;
+			result.m_priority = e_queue_priority::normal;
+			result.m_type = e_queue_type::graphics;
 			return result;
 		}
 
-		e_command_queue_type m_type;
-		e_command_queue_flags m_flags;
-		float m_priority = 1.0f;
+		e_queue_type m_type;
+		e_queue_flags m_flags;
+		e_queue_priority m_priority = e_queue_priority::normal;
 	};
 
-	class command_queue : public base
+	class commandqueue : public base
 	{
 	public:
-		virtual void submit_commandlists(const vector<command_list*>& commandlists) = 0;
+		virtual void submit_commandlists(const vector<commandlist*>& commandlists) = 0;
 		
 		// queues a signal to the target fence
 		virtual void queue_signal(fence* fence, uint64 value) = 0;
 
 	protected:
-		command_queue(const command_queue_desc& desc)
+		commandqueue(const queue_desc& desc)
 			: m_desc{ desc }
 		{
 
 		}
 
 	private:
-		command_queue_desc m_desc{};
+		queue_desc m_desc{};
 	};
 }

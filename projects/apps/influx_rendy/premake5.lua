@@ -35,10 +35,10 @@ project "influx_rendy"
 
     links
     {
-        "influx_rendergraph"
+        "influx_graphics"
     }
 
-    dependencies = "influx_rendergraph influx_graphics"
+    dependencies = "influx_graphics"
 
     postbuildmessage "Copying dependencies..."
     postbuildcommands

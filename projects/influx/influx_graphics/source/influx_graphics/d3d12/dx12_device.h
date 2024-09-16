@@ -7,9 +7,17 @@ struct ID3D12Device;
 
 namespace influx::graphics
 {
+	class dx12_commandqueue;
+}
+
+namespace influx::graphics
+{
 	class dx12_device final
 		: public device
 	{
+	public:
+		virtual void submit(commandbuffer* commandbuffer) override;
+
 	public:
 		dx12_device();
 
@@ -30,6 +38,8 @@ namespace influx::graphics
 		virtual command_allocator* create_graphics_allocator() override;
 
 		virtual command_list* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) override;
+
+		virtual commandbuffer* create_commandbuffer() override;
 
 		virtual fence* create_fence(uint64 init_value = 0u) override;
 
@@ -67,5 +77,9 @@ namespace influx::graphics
 		uint64 m_dsv_stride{};
 		uint64 m_sampler_stride{};
 		uint64 m_srv_stride{};
+
+		dx12_commandqueue* m_command_queue_graphics;
+		dx12_commandqueue* m_command_queue_compute;
+		dx12_commandqueue* m_command_queue_copy;
 	};
 }

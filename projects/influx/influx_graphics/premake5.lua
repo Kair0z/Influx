@@ -1,5 +1,5 @@
 project "influx_graphics"
-    kind "StaticLib"
+    kind "SharedLib"
     language "C++"
     cppdialect "C++20"
 

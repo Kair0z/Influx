@@ -17,6 +17,8 @@ namespace influx::graphics
 
 		virtual void wait_for_value(uint64 value, wait_handle& handle) override;
 
+		virtual uint64 query_value() const override;
+
 	private:
 		ID3D12Fence* mpdx_fence;
 	};
