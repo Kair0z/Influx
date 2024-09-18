@@ -19,7 +19,7 @@ namespace influx::graphics
 		virtual void submit(commandbuffer* commandbuffer) override;
 
 	public:
-		dx12_device();
+		dx12_device(const device_desc&);
 
 		uint64 get_descriptor_stride(e_descriptor_heap_type type) const;
 
@@ -78,8 +78,8 @@ namespace influx::graphics
 		uint64 m_sampler_stride{};
 		uint64 m_srv_stride{};
 
-		dx12_queue* m_queue_graphics;
-		dx12_queue* m_queue_compute;
-		dx12_queue* m_queue_copy;
+		dx12_queue* m_dx_queue_graphics = nullptr;
+		dx12_queue* m_dx_queue_compute = nullptr;
+		dx12_queue* m_dx_queue_copy = nullptr;
 	};
 }

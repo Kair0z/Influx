@@ -10,20 +10,20 @@
 
 namespace influx::graphics
 {
-	device* device::create(e_api_type type)
+	device* device::create(e_api_type type, const device_desc& desc)
 	{
 		switch (type)
 		{
 		#if INFLUX_DX12
 		case e_api_type::dx12:
-			return new dx12_device();
+			return new dx12_device(desc);
 			break;
 		#else
 			static_assert("NO DX12 4U");
 		#endif
 		#if INFLUX_VULKAN
 		case e_api_type::vulkan:
-			return new vk_device(); // todo...
+			return new vk_device(desc); // todo...
 			break;
 		#else
 			static_assert("NO VULKAN 4U");

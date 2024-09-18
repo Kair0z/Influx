@@ -15,15 +15,22 @@ namespace influx::graphics
 
 	void dx12_commandbuffer::submit()
 	{
-		//submit(m_queue);
+		submit(m_queue);
 	}
 
 	void dx12_commandbuffer::submit(graphics::queue* queue)
 	{
+		influx_assert(is_finished_gpu());
+
 		if (m_queue)
 		{
 			// submit work to gpu
 			vector<commandlist*> lists{};
+			for (const detail::command_base* command : m_commands)
+			{
+				
+			}
+
 			m_queue->submit_commandlists(lists);
 
 			set_state(e_state::submitted);

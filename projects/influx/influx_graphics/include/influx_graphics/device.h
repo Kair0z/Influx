@@ -29,6 +29,8 @@ namespace influx::graphics
 	struct device_desc final
 	{
 	public:
+		device_desc() = default;
+
 		bool m_has_graphics_queue;
 		bool m_has_compute_queue;
 		bool m_has_copy_queue;
@@ -42,7 +44,7 @@ namespace influx::graphics
 		virtual void submit(commandbuffer* commandbuffer) = 0;
 
 	public:
-		INFLUX_GFX_API static device* create(e_api_type type);
+		INFLUX_GFX_API static device* create(e_api_type type, const device_desc& desc = device_desc{});
 
 		void set_api_type(e_api_type type);
 
@@ -94,6 +96,13 @@ namespace influx::graphics
 		e_api_type m_type{};
 
 	protected:
-		device() = default;
+		device(const device_desc& desc)
+			: m_desc{ desc } {}
+
+		device_desc m_desc{};
+
+		graphics::queue* m_compute_queue;
+		graphics::queue* m_graphics_queue;
+		graphics::queue* m_copy_queue;
 	};
 }

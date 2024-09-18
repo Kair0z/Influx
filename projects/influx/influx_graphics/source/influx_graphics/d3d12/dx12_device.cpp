@@ -25,12 +25,12 @@ namespace influx::graphics
 {
 	void dx12_device::submit(commandbuffer* commandbuffer)
 	{
-		influx_assert(m_queue_graphics);
-		commandbuffer->submit(m_queue_graphics);
+		influx_assert(m_graphics_queue);
+		commandbuffer->submit(m_graphics_queue);
 	}
 
-	dx12_device::dx12_device()
-		: device()
+	dx12_device::dx12_device(const device_desc& desc)
+		: device(desc)
 	{
 		// create factory
 		::CreateDXGIFactory2(0u, IID_PPV_ARGS(&mpdxgi_factory));
@@ -80,6 +80,29 @@ namespace influx::graphics
 		m_dsv_stride = strides.m_dsv;
 		m_sampler_stride = strides.m_sampler;
 		m_srv_stride = strides.m_cbv;
+
+		// internal queues
+		queue_desc queue_desc{};
+		if (desc.m_has_graphics_queue)
+		{
+			queue_desc.m_type = e_queue_type::graphics;
+			m_graphics_queue = create_queue(queue_desc);
+			m_dx_queue_graphics = (dx12_queue*)m_graphics_queue;
+		}
+
+		if (desc.m_has_compute_queue)
+		{
+			queue_desc.m_type = e_queue_type::compute;
+			m_compute_queue = create_queue(queue_desc);
+			m_dx_queue_compute = (dx12_queue*)m_compute_queue;
+		}
+
+		if (desc.m_has_copy_queue)
+		{
+			queue_desc.m_type = e_queue_type::copy;
+			m_copy_queue = create_queue(queue_desc);
+			m_dx_queue_copy = (dx12_queue*)m_copy_queue;
+		}
 	}
 
 	uint64 dx12_device::get_descriptor_stride(e_descriptor_heap_type type) const
@@ -188,8 +211,13 @@ namespace influx::graphics
 
 	commandbuffer* dx12_device::create_commandbuffer()
 	{
-		commandbuffer* new_buffer = new dx12_commandbuffer(nullptr, nullptr);
-		
+		dx12_queue* queue = m_dx_queue_graphics;
+		influx_assert(queue);
+
+		dx12_fence* new_fence = (dx12_fence*)create_fence();
+		influx_assert(new_fence);
+
+		commandbuffer* new_buffer = new dx12_commandbuffer(queue, new_fence);
 		return new_buffer;
 	}
 
