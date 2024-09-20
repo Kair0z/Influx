@@ -38,7 +38,7 @@ project "influx_game"
     }
 
     dependencies = 
-    "influx_application influx_renderer influx_async influx_assets influx_input influx_events influx_shader"
+    "influx_application influx_renderer influx_graphics influx_async influx_assets influx_input influx_events influx_shader"
 
     postbuildmessage "Copying dependencies..."
     postbuildcommands

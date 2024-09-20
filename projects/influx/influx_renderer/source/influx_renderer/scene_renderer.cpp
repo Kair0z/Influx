@@ -263,7 +263,7 @@ namespace influx::renderer
 
         update_instance_buffer(batches);
 
-        render_shadows(commandlist, scene, batches);
+        // render_shadows(commandlist, scene, batches);
         render_basepass(commandlist, scene, batches, target);
     }
 }
