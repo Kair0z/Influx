@@ -7,7 +7,7 @@
 #include "influx_graphics/vulkan/vk_conversion.h"
 
 // subheaders
-#include "influx_graphics/vulkan/vk_commandqueue.h"
+#include "influx_graphics/vulkan/vk_queue.h"
 #include "influx_graphics/vulkan/vk_fence.h"
 #include "influx_graphics/vulkan/vk_swapchain.h"
 #include "influx_graphics/vulkan/vk_resource.h"
@@ -18,8 +18,8 @@
 
 namespace influx::graphics
 {
-	vk_device::vk_device()
-		: device()
+	vk_device::vk_device(const device_desc& desc)
+		: device(desc)
 	{
 		m_vk_instance = vk_helpers::createInstance("app_name", "engine_name", {}, vk_helpers::getInstanceExtensions(), 0u);
 
@@ -47,15 +47,14 @@ namespace influx::graphics
 		return result_infos;
 	}
 
-	// get interface to graphics object creation:
-	command_queue* vk_device::create_command_queue(const command_queue_desc& desc)
+	queue* vk_device::create_queue(const queue_desc& desc)
 	{
 		vk::Queue queue = {};
 		get_main_device().getQueue(0u, 0u, &queue);
-		return new vk_commandqueue(desc, queue);
+		return new vk_queue(desc, queue);
 	}
 
-	swapchain* vk_device::create_swapchain(command_queue* queue, const platform::window_handle& window, const swapchain_desc& desc)
+	swapchain* vk_device::create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc)
 	{
 		// get window info
 		auto rect = platform::get_windowrect_client<uint32>(window);
@@ -85,7 +84,7 @@ namespace influx::graphics
 		return new vk_command_allocator(vkcommandpool);
 	}
 
-	command_list* vk_device::create_graphics_command_list(command_allocator* allocator, pipeline_state* init_state)
+	commandlist* vk_device::create_graphics_command_list(command_allocator* allocator, pipeline* init_state)
 	{
 		vk::CommandPool* vkcommandpool = allocator->get_native<vk::CommandPool>();
 		vk::CommandBuffer vkcommandlist = get_main_device().allocateCommandBuffers(
@@ -96,13 +95,7 @@ namespace influx::graphics
 	fence* vk_device::create_fence(uint64 init_value)
 	{
 		vk::FenceCreateInfo info{};
-		vk::Fence vkfence = get_main_device().createFence(info);
-		return new vk_fence(vkfence);
-	}
-
-	resource* vk_device::create_resource(const tex2D_desc& desc)
-	{
-		return nullptr;
+		return new vk_fence(get_main_device().createFence(info));
 	}
 
 	render_target_view* vk_device::create_rtv(descriptor_heap* rtv_heap, resource* resource)

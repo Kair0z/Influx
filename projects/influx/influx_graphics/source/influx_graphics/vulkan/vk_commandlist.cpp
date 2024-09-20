@@ -1,6 +1,8 @@
 #include "graphics_pch.h"
+
 #include "influx_graphics/vulkan/vk_commandlist.h"
 #include "influx_graphics/vulkan/vk_conversion.h"
+
 #include "vk_headers.h"
 
 namespace influx::graphics
@@ -11,7 +13,7 @@ namespace influx::graphics
         mp_native = &m_vk_commandbuffer;
     }
 
-    void vk_commandlist::start(command_allocator* allocator, pipeline_state* init_state)
+    void vk_commandlist::start(command_allocator* allocator, pipeline* init_state)
     {
 
     }

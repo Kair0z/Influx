@@ -1,19 +1,21 @@
 #include "graphics_pch.h"
-#include "influx_graphics/vulkan/vk_commandqueue.h"
+
+#include "influx_graphics/vulkan/vk_queue.h"
 #include "influx_graphics/vulkan/vk_commandlist.h"
+
 #include "vk_headers.h"
-#include "vk_commandqueue.h"
+#include "vk_queue.h"
 
 namespace influx::graphics
 {
-	vk_commandqueue::vk_commandqueue(const command_queue_desc& desc, const vk::Queue& vkqueue)
-		: command_queue(desc)
+	vk_queue::vk_queue(const queue_desc& desc, const vk::Queue& vkqueue)
+		: queue(desc)
 		, m_vk_queue{vkqueue}
 	{
 		mp_native = &m_vk_queue;
 	}
 
-	void vk_commandqueue::submit_commandlists(const vector<command_list*>& commandlists)
+	void vk_queue::submit_commandlists(const vector<commandlist*>& commandlists)
 	{
 		// get native command buffers
 		vector<vk::CommandBuffer*> vkcommandbuffers{};

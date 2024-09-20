@@ -5,7 +5,7 @@
 namespace influx::graphics
 {
     vk_render_target_view::vk_render_target_view(const vk::ImageView& vk_view)
-        : render_target_view(nullptr)
+        : render_target_view(nullptr, nullptr)
         , m_vk_view{vk_view}
     {
     }

@@ -16,57 +16,39 @@ namespace influx::graphics
 		: public device
 	{
 	public:
-		virtual void submit(commandbuffer* commandbuffer) override;
-
-	public:
 		dx12_device(const device_desc&);
 
 		uint64 get_descriptor_stride(e_descriptor_heap_type type) const;
 
-		// get info about physical devices:
-		virtual vector<physical_device_info> get_gpu_infos() override;
-
-		virtual memory_info get_memory_info() const override;
-
-		// get interface to graphics object creation:
+		// creation:
 		virtual queue* create_queue(const queue_desc& desc) override;
-
 		virtual swapchain* create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc) override;
-
 		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args& args) override;
-
 		virtual command_allocator* create_graphics_allocator() override;
-
 		virtual commandlist* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) override;
-
 		virtual commandbuffer* create_commandbuffer() override;
-
 		virtual fence* create_fence(uint64 init_value = 0u) override;
-
 		virtual resource* create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual resource* create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) override;
-
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) override;
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) override;
-
 		virtual depth_stencil_view* create_dsv(descriptor_heap* dsv_heap, resource* resource) override;
 		virtual depth_stencil_view* create_dsv(descriptor_handle handle, resource* resource) override;
-
 		virtual shader_resource_view* create_srv(descriptor_heap* irv_heap, resource* resource) override;
 		virtual shader_resource_view* create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
 		virtual shader_resource_view* create_buffer_srv(descriptor_heap* srv_heap, resource* resource) override;
 		virtual shader_resource_view* create_buffer_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
-
 		virtual sampler_view* create_sampview(descriptor_heap* samp_heap, resource* resource) override;
 		virtual sampler_view* create_sampview(descriptor_handle handle, resource* resource) override;
-
 		virtual rootsignature* create_rootsignature(const rootsignature_desc& desc) override;
 		virtual pipeline* create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) override;
 
-		virtual void copy_descriptors(const descriptor_range& source, const descriptor_range& dest, 
-			const graphics::e_descriptor_heap_type& heap_type);
-
+		// misc:
+		virtual vector<physical_device_info> get_gpu_infos() override;
+		virtual memory_info get_memory_info() const override;
+		virtual void copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type);
 		virtual void* get_native() override final;
+		virtual void submit(commandbuffer* commandbuffer) override;
 
 	private:
 		IDXGIFactory2* mpdxgi_factory;

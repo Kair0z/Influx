@@ -10,7 +10,7 @@ namespace influx::graphics
         mp_native = &m_vk_fence;
     }
 
-    void vk_fence::queue_signal(uint64 value, command_queue* queue)
+    void vk_fence::queue_signal(uint64 value, queue* queue)
     {
 
     }

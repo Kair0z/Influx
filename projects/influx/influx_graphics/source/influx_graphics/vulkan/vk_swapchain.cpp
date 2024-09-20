@@ -1,7 +1,7 @@
 #include "graphics_pch.h"
 #include "influx_graphics/vulkan/vk_swapchain.h"
 #include "influx_graphics/vulkan/vk_resource.h"
-#include "influx_graphics/vulkan/vk_commandqueue.h"
+#include "influx_graphics/vulkan/vk_queue.h"
 #include "influx_graphics/vulkan/vk_resource_views.h"
 #include "vk_headers.h"
 
@@ -17,7 +17,7 @@ namespace influx::graphics
 		: swapchain(desc, swapchain_dependencies)
 	{
 		// store the native commandqueue (present queue)
-		m_vk_present_queue = *swapchain_dependencies.mp_command_queue->get_native<vk::Queue>();
+		m_vk_present_queue = *swapchain_dependencies.mp_queue->get_native<vk::Queue>();
 		m_vk_device = vk_dependencies.m_vk_device;
 		
 		// format
