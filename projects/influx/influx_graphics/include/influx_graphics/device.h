@@ -1,11 +1,5 @@
 #pragma once
 
-#if _DLL
-#define INFLUX_GFX_API __declspec(dllexport)
-#else
-#define INFLUX_GFX_API __declspec(dllimport)
-#endif
-
 // graphics
 #include "influx_graphics/common.h"
 #include "influx_graphics/base.h"

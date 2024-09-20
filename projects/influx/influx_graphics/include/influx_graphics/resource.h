@@ -93,26 +93,26 @@ namespace influx::graphics
 			unmap(args);
 		}
 
-		e_format get_format() const;
+		INFLUX_GFX_API e_format get_format() const;
 
-		uint32 get_width() const;
+		INFLUX_GFX_API uint32 get_width() const;
 
-		uint32 get_height() const;
+		INFLUX_GFX_API uint32 get_height() const;
 
-		size_t get_bytesize() const;
+		INFLUX_GFX_API size_t get_bytesize() const;
 
-		size_t get_bytestride() const;
+		INFLUX_GFX_API size_t get_bytestride() const;
 
-		uint32 get_num_elements() const;
+		INFLUX_GFX_API uint32 get_num_elements() const;
 
-		e_resource_state get_state() const;
+		INFLUX_GFX_API e_resource_state get_state() const;
 
-		e_resource_state get_previous_state() const;
+		INFLUX_GFX_API e_resource_state get_previous_state() const;
 
-		range<size_t> get_full_range() const;
+		INFLUX_GFX_API range<size_t> get_full_range() const;
 
-		void transition(commandlist* cmdlist, e_resource_state new_state);
-		void revert_transition(commandlist* cmdlist);
+		INFLUX_GFX_API void transition(commandlist* cmdlist, e_resource_state new_state);
+		INFLUX_GFX_API void revert_transition(commandlist* cmdlist);
 
 		virtual ~resource() = default;
 

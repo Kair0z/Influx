@@ -1,4 +1,5 @@
 #pragma once
+#include "influx_graphics/common.h"
 #include <string>
 
 namespace influx::graphics

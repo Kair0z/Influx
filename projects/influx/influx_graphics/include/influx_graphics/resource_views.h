@@ -17,10 +17,10 @@ namespace influx::graphics
 			, m_gpu_handle{ gpu_handle }
 			, m_res_info{ res_info } {}
 
-		descriptor_handle get_cpu_handle() const;
-		descriptor_handle get_gpu_handle() const;
+		INFLUX_GFX_API descriptor_handle get_cpu_handle() const;
+		INFLUX_GFX_API descriptor_handle get_gpu_handle() const;
 
-		const math::vectorf2& get_dimensions() const
+		inline const math::vectorf2& get_dimensions() const
 		{
 			return m_res_info.m_dimensions;
 		}

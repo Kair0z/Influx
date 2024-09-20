@@ -1,4 +1,11 @@
 #pragma once
+
+#if _DLL
+#define INFLUX_GFX_API __declspec(dllexport)
+#else
+#define INFLUX_GFX_API __declspec(dllimport)
+#endif
+
 #include "core/string.h"
 #include "core/basetypes.h"
 

@@ -118,7 +118,7 @@ namespace influx
 
 	void* translate(const aiMaterial* material)
 	{
-		
+		return nullptr;
 	}
 
 	influx::assets::scene_data parse(const aiScene* pScene)
