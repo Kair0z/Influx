@@ -9,6 +9,7 @@
 
 #include "influx_input.h"
 
+#pragma region declarations
 namespace influx
 {
 	namespace renderer
@@ -26,6 +27,7 @@ namespace influx
 		struct key_event;
 	}
 }
+#pragma endregion
 
 namespace influx::application
 {
