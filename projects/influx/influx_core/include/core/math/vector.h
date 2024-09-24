@@ -9,7 +9,7 @@
 
 namespace influx::math
 {
-	using _vector_dim_t = uint8;
+	using _vector_dim_t = size_t;
 
 	namespace detail
 	{

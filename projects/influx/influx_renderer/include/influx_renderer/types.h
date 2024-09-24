@@ -26,8 +26,8 @@ namespace influx::renderer
 	enum class e_render_api : uint8
 	{
 		dx12,
-		unsupported,
 		vulkan,
+		unsupported,
 		max
 	};
 

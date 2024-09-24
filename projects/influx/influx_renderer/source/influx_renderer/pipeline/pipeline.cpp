@@ -32,7 +32,7 @@ namespace influx::renderer
             switch (resource.m_type)
             {
             case shader::reflection::resource::e_type::cbv:
-                rootsig_desc.add_root_constants(resource.m_bytesize / sizeof(uint32),
+                rootsig_desc.add_root_constants((uint32)resource.m_bytesize / sizeof(uint32),
                     resource.m_shader_register, resource.m_register_space, shader_vis);
                 rootsig_desc.name_last_constants(resource.m_name);
                 break;

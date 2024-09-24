@@ -29,6 +29,7 @@ namespace influx::renderer
 #endif
 
 		m_pipeline_map[name] = new_pipeline;
+		return new_pipeline;
 	}
 
 	pipeline* pipeline_manager::get_pipeline(const string& name)

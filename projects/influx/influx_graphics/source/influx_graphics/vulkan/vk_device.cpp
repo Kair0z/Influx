@@ -47,6 +47,26 @@ namespace influx::graphics
 		return result_infos;
 	}
 
+	memory_info vk_device::get_memory_info() const
+	{
+		return memory_info();
+	}
+
+	void vk_device::copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type)
+	{
+
+	}
+
+	void* vk_device::get_native()
+	{
+		return nullptr;
+	}
+
+	void vk_device::submit(commandbuffer* commandbuffer)
+	{
+		
+	}
+
 	queue* vk_device::create_queue(const queue_desc& desc)
 	{
 		vk::Queue queue = {};
@@ -92,10 +112,25 @@ namespace influx::graphics
 		return new vk_commandlist(vkcommandlist);
 	}
 
+	commandbuffer* vk_device::create_commandbuffer()
+	{
+		return nullptr;
+	}
+
 	fence* vk_device::create_fence(uint64 init_value)
 	{
 		vk::FenceCreateInfo info{};
 		return new vk_fence(get_main_device().createFence(info));
+	}
+
+	resource* vk_device::create_resource(const tex2D_desc& desc, const heap_desc& heap_desc)
+	{
+		return nullptr;
+	}
+
+	resource* vk_device::create_resource(const buffer_desc& desc, const heap_desc& heap_desc)
+	{
+		return nullptr;
 	}
 
 	render_target_view* vk_device::create_rtv(descriptor_heap* rtv_heap, resource* resource)
@@ -112,6 +147,56 @@ namespace influx::graphics
 	}
 
 	render_target_view* vk_device::create_rtv(descriptor_handle handle, resource* resource)
+	{
+		return nullptr;
+	}
+
+	depth_stencil_view* vk_device::create_dsv(descriptor_heap* dsv_heap, resource* resource)
+	{
+		return nullptr;
+	}
+
+	depth_stencil_view* vk_device::create_dsv(descriptor_handle handle, resource* resource)
+	{
+		return nullptr;
+	}
+
+	shader_resource_view* vk_device::create_srv(descriptor_heap* irv_heap, resource* resource)
+	{
+		return nullptr;
+	}
+
+	shader_resource_view* vk_device::create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
+	{
+		return nullptr;
+	}
+
+	shader_resource_view* vk_device::create_buffer_srv(descriptor_heap* srv_heap, resource* resource)
+	{
+		return nullptr;
+	}
+
+	shader_resource_view* vk_device::create_buffer_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
+	{
+		return nullptr;
+	}
+
+	sampler_view* vk_device::create_sampview(descriptor_heap* samp_heap, resource* resource)
+	{
+		return nullptr;
+	}
+
+	sampler_view* vk_device::create_sampview(descriptor_handle handle, resource* resource)
+	{
+		return nullptr;
+	}
+
+	rootsignature* vk_device::create_rootsignature(const rootsignature_desc& desc)
+	{
+		return nullptr;
+	}
+
+	pipeline* vk_device::create_pipeline(rootsignature* rootsig, const pipeline_desc& desc)
 	{
 		return nullptr;
 	}

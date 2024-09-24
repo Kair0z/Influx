@@ -21,6 +21,7 @@ namespace influx::application
 		// create renderer
 		influx::renderer::init_args render_init_args{};
 		render_init_args.m_api_type = influx::renderer::e_render_api::dx12;
+		// render_init_args.m_api_type = influx::renderer::e_render_api::vulkan;
 		influx::renderer::initialize(render_init_args);
 
 		// window render target:

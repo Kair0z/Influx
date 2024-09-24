@@ -75,15 +75,16 @@ namespace influx::graphics
 
 	class resource : public base
 	{
-		virtual void* map(const map_args& args) = 0;
-		virtual void unmap(const map_args& args) = 0;
-
 		enum class e_type : uint8
 		{
 			tex2D,
 			buffer,
 			count
 		};
+
+		INFLUX_GFX_API virtual void* map(const map_args& args) = 0;
+
+		INFLUX_GFX_API virtual void unmap(const map_args& args) = 0;
 
 	public:
 		void map(const function<void(void*)> map_func, const map_args& args = {})
@@ -112,6 +113,7 @@ namespace influx::graphics
 		INFLUX_GFX_API range<size_t> get_full_range() const;
 
 		INFLUX_GFX_API void transition(commandlist* cmdlist, e_resource_state new_state);
+		
 		INFLUX_GFX_API void revert_transition(commandlist* cmdlist);
 
 		virtual ~resource() = default;

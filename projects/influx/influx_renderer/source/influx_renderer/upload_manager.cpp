@@ -29,7 +29,7 @@ namespace influx::renderer
 	{
 		map_buffer(data);
 
-		const size_t num_bytes = data.size();
+		const uint32 num_bytes = (uint32)data.size();
 
 		// start a commandlist that copies the buffer from intermediate -> gpu resource
 		mp_commandlist->start(mp_commandalloc, nullptr);

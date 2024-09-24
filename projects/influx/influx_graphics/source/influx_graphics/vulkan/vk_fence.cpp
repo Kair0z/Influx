@@ -24,4 +24,8 @@ namespace influx::graphics
     {
 
     }
+    uint64 vk_fence::query_value() const
+    {
+        return uint64();
+    }
 }

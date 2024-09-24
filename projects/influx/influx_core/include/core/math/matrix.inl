@@ -529,7 +529,7 @@ namespace influx::math
 
 	// Operations: matrix - Vector
 	template<typename _t>
-	inline vector<_t, 2> operator*(const matrix<_t, 3, 3>& mat, const vector<_t, 2>& v)
+	inline vector<_t, 2u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 2>& v)
 	{
 		vector<_t, 3> result{ v.x, v.y, 1.f };
 		for (matrix_dim_t c{}; c < 3; ++c)
@@ -551,7 +551,7 @@ namespace influx::math
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
 		vector<_t, 3u> lRight = vector<_t, 3u>::cross(up, forward);
 		vector<_t, 3u> lUp = vector<_t, 3u>::cross(forward, lRight);
@@ -566,7 +566,7 @@ namespace influx::math
 		};
 	}
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
 		vector<_t, 3u> lRight = vector<_t, 3u>::cross(forward, up);
 		vector<_t, 3u> lUp = vector<_t, 3u>::cross(lRight, forward);

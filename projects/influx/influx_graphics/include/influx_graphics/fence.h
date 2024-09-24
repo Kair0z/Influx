@@ -6,6 +6,10 @@
 namespace influx::graphics
 {
 	class queue;
+}
+
+namespace influx::graphics
+{
 	class fence : public base
 	{
 	public:

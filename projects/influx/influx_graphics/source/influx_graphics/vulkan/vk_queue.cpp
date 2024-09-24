@@ -30,4 +30,8 @@ namespace influx::graphics
 		new_info.pCommandBuffers;
 		m_vk_queue.submit(new_info);
 	}
+
+	void vk_queue::queue_signal(fence* fence, uint64 value)
+	{
+	}
 }
