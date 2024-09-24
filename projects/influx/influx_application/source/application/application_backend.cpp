@@ -43,6 +43,11 @@ namespace influx::application
 		window_args.m_proc_callback = [](const platform::window_event& ev) { input::push_window_event(ev); };
 		m_windowhandle = platform::create_window(window_args);
 
+		// initialize job system:
+		async::init_args async_args{};
+		async_args.m_num_workers = 4u;
+		async::initialize(async_args);
+
 		// initialize input
 		influx::input::init();
 		std::thread input_thread = std::thread([this]()
@@ -53,21 +58,16 @@ namespace influx::application
 			}
 		});
 
-		// initialize job system:
-		async::init_args async_args{};
-		async_args.m_num_workers = 4u;
-		async::initialize(async_args);
+		// load content
+		mp_content_manager = new content_manager(get_resource_directory());
 
 		// create editor
 		mp_editor = new editor();
 
-		// load content
-		mp_content_manager = new content_manager(get_resource_directory());
-
 		// create scene
 		mp_scene = new scene();
 
-		// setup renderer:
+		// create renderer:
 		mp_renderer = new renderer(m_windowhandle);
 		mp_renderer->load_render_assets(mp_content_manager);
 		
@@ -91,10 +91,11 @@ namespace influx::application
 				continue;
 			}
 
-			// update scene
+			// update
 			mp_scene->update(frame_time);
 			mp_editor->update();
 
+			// render
 			mp_renderer->render(mp_scene->get_render_scene());
 		}
 

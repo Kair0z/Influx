@@ -20,6 +20,7 @@ namespace influx::application
 		int width, height;
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
+		// subscribe to input
 		input::subscribe([this, &io](const input::mouse_event& ev)
 		{
 			switch (ev.m_type)
@@ -97,6 +98,15 @@ namespace influx::application
 	{
 		ImGui::NewFrame();
 
+		// Main Menu Bar
+		ImGui::BeginMainMenuBar();
+		if (ImGui::BeginMenu("File"))
+		{
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+
+		// callbacks
 		for (const auto& callback : m_callbacks)
 		{
 			callback();

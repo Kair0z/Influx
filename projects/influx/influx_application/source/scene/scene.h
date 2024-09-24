@@ -9,6 +9,7 @@
 
 #include "influx_input.h"
 
+#pragma region declarations
 namespace influx
 {
 	namespace renderer
@@ -26,6 +27,7 @@ namespace influx
 		struct key_event;
 	}
 }
+#pragma endregion
 
 namespace influx::application
 {
@@ -52,6 +54,7 @@ namespace influx::application
 	public:
 		scene();
 
+#pragma region input
 		void on_keyhold(const input::key_event& ev);
 		void on_keydown(const input::key_event& ev);
 		void on_keyup(const input::key_event& ev);
@@ -60,10 +63,15 @@ namespace influx::application
 		void on_mouse_button_up(const input::mouse_event::e_button& button);
 		void on_mouse_move(const math::vectorf2& move);
 		void on_mouse_scroll(const float value);
+#pragma endregion
 
+		// update
 		void update(const frame_time& time);
+		
+		// render scene
 		const influx::renderer::scene& get_render_scene();
 
+		// scene file
 		void save(const std::string& filepath);
 		void load(const std::string& filepath);
 

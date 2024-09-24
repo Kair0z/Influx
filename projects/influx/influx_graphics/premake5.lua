@@ -4,7 +4,7 @@ project "influx_graphics"
     cppdialect "C++20"
 
     g_project_dir = g_dir_projects_engine .. "/%{prj.name}/"
-    g_compile_vulkan = true
+    g_compile_vulkan = false
     g_compile_d3d12 = true
 
     targetdir(g_dir_binaries .. "/%{prj.name}")
