@@ -12,6 +12,7 @@
 #include "core/time.h"
 #include "core/file.h"
 #include "core/scope.h"
+#include "core/threading/thread.h"
 
 // platform: win32
 #include "core/platform/win32/win32_platform.h"
@@ -32,10 +33,8 @@ namespace influx::application
 	{
 		process_run_args(args);
 
-		// platform instance handle:
+		// create the application window
 		m_instancehandle = platform::get_current_instance();
-
-		// create a platform window
 		platform::create_window_args window_args{};
 		window_args.m_width = args.m_window_width;
 		window_args.m_height = args.m_window_height;
@@ -50,13 +49,14 @@ namespace influx::application
 
 		// initialize input
 		influx::input::init();
-		std::thread input_thread = std::thread([this]()
+		thread input_thread = thread([this]()
 		{
 			while (!m_is_quit_requested)
 			{
 				input::service();
 			}
 		});
+		input_thread.set_name("influx::application::input");
 
 		// load content
 		mp_content_manager = new content_manager(get_resource_directory());
