@@ -20,7 +20,7 @@ namespace influx::application
 		int width, height;
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-		// subscribe to input
+		// subscribe to mouse input
 		input::subscribe([this, &io](const input::mouse_event& ev)
 		{
 			switch (ev.m_type)
@@ -80,7 +80,21 @@ namespace influx::application
 			break;
 			}
 		});
+		input::subscribe([this, &io](const input::key_event& ev)
+			{
+				switch (ev.m_type)
+				{
 
+				}
+
+				if (ev.m_type == input::key_event::e_type::keydown)
+				{
+					switch (ev.m_key)
+					{
+
+					}
+				}
+			});
 		set_window_dimensions({ 1280, 720 });
 	}
 
@@ -94,10 +108,8 @@ namespace influx::application
 		
 	}
 
-	ImDrawData* editor::get_imgui_drawdata()
+	void editor::draw_imgui()
 	{
-		ImGui::NewFrame();
-
 		// Main Menu Bar
 		ImGui::BeginMainMenuBar();
 		if (ImGui::BeginMenu("File"))
@@ -113,8 +125,16 @@ namespace influx::application
 		}
 
 		ImGui::ShowDemoWindow();
+	}
+
+	ImDrawData* editor::get_imgui_drawdata()
+	{
+		ImGui::NewFrame();
+
+		draw_imgui();
 
 		ImGui::Render(); // EndFrame
+		
 		return ImGui::GetDrawData();
 	}
 

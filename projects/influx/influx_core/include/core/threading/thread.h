@@ -17,6 +17,13 @@ namespace influx
 	{
 	public:
 		template <class _func, class... _args>
+		explicit thread(const string& name, _func&& func, _args&&... args)
+			: thread(std::forward<_func>(func), std::forward<_args>(args)...)
+		{
+			set_name(name);
+		}
+
+		template <class _func, class... _args>
 		explicit thread(_func&& func, _args&&... args)
 		{
 			m_thread = std::thread(std::forward<_func>(func), std::forward<_args>(args)...);

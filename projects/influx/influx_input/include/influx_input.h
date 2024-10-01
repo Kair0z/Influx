@@ -77,17 +77,28 @@ namespace influx::input
 		math::vectorf2 m_position_screen; // relative to screen
 	};
 
+	// allocate internal memory
 	INFLUX_INPUT_API void init(const init_args& args = {});
 
+	// platform code should push window events into this function
+	// calling service() will translate them into input events
 	INFLUX_INPUT_API void push_window_event(const platform::window_event& platform_ev);
 
+	// keyboard inputs
 	using key_callback = function<void(const key_event& ev)>;
 	INFLUX_INPUT_API void subscribe(const key_callback&);
 
+	// mouse inputs
 	using mouse_callback = function<void(const mouse_event& ev)>;
 	INFLUX_INPUT_API void subscribe(const mouse_callback&);
 
+	// convenience helper functions
+	INFLUX_INPUT_API void subscribe_keydown(const function<void(e_key)>& keydown_callback);
+	INFLUX_INPUT_API void subscribe_asciidown(const function<void(char)>& keydown_callback);
+
+	// call this function from any thread to pump the input queue
 	INFLUX_INPUT_API void service();
 
+	// cleanup all memory
 	INFLUX_INPUT_API void cleanup();
 }

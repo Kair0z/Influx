@@ -25,5 +25,7 @@ namespace influx::application
 
 	private:
 		list<imgui_callback> m_callbacks{};
+
+		void draw_imgui();
 	};
 }
