@@ -45,9 +45,10 @@ namespace influx::application
 		});
 	}
 
+	// renders the scene
 	void renderer::render(const influx::renderer::scene& scene)
 	{
-		// updates the window target
+		// update the window target
 		mp_window_target = influx::renderer::get_window_target(m_window_handle);
 
 		influx::renderer::draw_scene(scene, *mp_scene_color_target);
@@ -69,72 +70,81 @@ namespace influx::application
 		influx::renderer::present_swapchain(present_args);
 	}
 
+	// mesh geometry
+	inline bool load_to_renderer(const assets::scene_data::mesh& mesh, const string& name)
+	{
+		const assets::scene_data::mesh& mesh = asset.second.m_meshes[0]; // gets the first mesh
+		const std::string& name = asset.first;
+
+		influx::renderer::mesh_data mesh_data{};
+		for (size_t i = 0u; i < mesh.m_positions.size(); ++i)
+		{
+			mesh_data.m_vertices.push_back({});
+			mesh_data.m_vertices.back().m_position = mesh.m_positions[i];
+			// mesh_data.m_vertices.back().m_colour = mesh.m_colours[i];
+			mesh_data.m_vertices.back().m_normal = mesh.m_normals[i];
+			mesh_data.m_vertices.back().m_texcoords = mesh.m_uvs[i];
+		}
+		mesh_data.m_indices = mesh.m_indices;
+
+		// load into the renderer
+		influx::renderer::load(name, mesh_data);
+		return true;
+	}
+
+	// shaders
+	inline bool load_to_renderer(const assets::shader_data& shader, const string& name)
+	{
+		influx::renderer::shader_data shader_data{};
+		shader_data.m_bytecode = shader.m_compile_result.m_bytecode;
+		shader_data.m_type = shader.m_type;
+		shader_data.m_reflection = shader.m_compile_result.m_reflection;
+
+		influx::renderer::load(name, shader_data);
+		return true;
+	}
+
+	// textures
+	inline bool load_to_renderer(const assets::image_data& image, const string& name)
+	{
+		influx::renderer::texture_data tex_data{};
+		tex_data.m_pixels = image.m_pixels;
+		tex_data.m_width = image.m_dimensions.x;
+		influx::renderer::load(name, tex_data);
+		return true;
+	}
+
+	// loads application asset data into renderer (textures/meshes/shaders)
 	void renderer::load_render_assets(content_manager* cont_man)
 	{
-		// load meshdata into renderer
+		// GEOMETRY
 		for (const auto& asset : cont_man->get_scenes())
 		{
-			const assets::scene_data::mesh& mesh = asset.second.m_meshes[0]; // gets the first mesh
-			const std::string& name = asset.first;
-
-			influx::renderer::mesh_data mesh_data{};
-			for (size_t i = 0u; i < mesh.m_positions.size(); ++i)
-			{
-				mesh_data.m_vertices.push_back({});
-				mesh_data.m_vertices.back().m_position = mesh.m_positions[i];
-				// mesh_data.m_vertices.back().m_colour = mesh.m_colours[i];
-				mesh_data.m_vertices.back().m_normal = mesh.m_normals[i];
-				mesh_data.m_vertices.back().m_texcoords = mesh.m_uvs[i];
-			}
-			mesh_data.m_indices = mesh.m_indices;
-
-			// load into the renderer
-			influx::renderer::load(name, mesh_data);
+			// todo: for now, only loading the first mesh...
+			load_to_renderer(asset.second.m_meshes[0], asset.first);
 		}
 
-		// load shaders into renderer
-#if 0
-		for (const auto& asset : cont_man->get_shaders())
-		{
-			const assets::shader_data& shader = asset.second;
-			const string& name = asset.first;
-
-			influx::renderer::shader_data shader_data{};
-			shader_data.m_bytecode = shader.m_compile_result.m_bytecode;
-			shader_data.m_type = shader.m_type;
-			shader_data.m_reflection = shader.m_compile_result.m_reflection;
-
-			influx::renderer::load(name, shader_data);
-		}
-#else
-		const assets::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs");
-		const assets::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps");
-
-		influx::renderer::shader_data shader_data{};
-		shader_data.m_bytecode = vs_shader.m_compile_result.m_bytecode;
-		shader_data.m_type = vs_shader.m_type;
-		shader_data.m_reflection = vs_shader.m_compile_result.m_reflection;
-		influx::renderer::load("shaders_vs", shader_data);
-
-		shader_data.m_bytecode = ps_shader.m_compile_result.m_bytecode;
-		shader_data.m_type = ps_shader.m_type;
-		shader_data.m_reflection = ps_shader.m_compile_result.m_reflection;
-		influx::renderer::load("shaders_ps", shader_data);
-#endif
-
-		// load textures into renderer
+		// TEXTURES
 		for (const auto& asset : cont_man->get_images())
 		{
-			const assets::image_data& image = asset.second;
-			const string& name = asset.first;
-
-			influx::renderer::texture_data tex_data{};
-			tex_data.m_pixels = image.m_pixels;
-			tex_data.m_width = image.m_dimensions.x;
-			influx::renderer::load(name, tex_data);
+			load_to_renderer(asset.second, asset.first);
 		}
 
-		// load engine materials into renderer
+		// SHADERS
+		// todo: for now only 2 shaders are necessary
+		#if 0
+		for (const auto& asset : cont_man->get_shaders())
+		{
+			load_to_renderer(asset.second, asset.first);
+		}
+		#else
+		const assets::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs");
+		const assets::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps");
+		load_to_renderer(vs_shader, "shaders_vs");
+		load_to_renderer(ps_shader, "shaders_ps");
+		#endif
+
+		// MATERIALS
 		{
 			influx::renderer::material mat_transistor{};
 			mat_transistor.m_basecolor = colour::k_white;
