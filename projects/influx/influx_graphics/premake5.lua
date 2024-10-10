@@ -35,7 +35,7 @@ new_influx_dll("influx_graphics")
 
     links
     {
-        "d3d12",
-        "dxgi",
-        "vulkan-1"
+        iif(g_compile_d3d12, "d3d12", ""),
+        iif(g_compile_d3d12, "dxgi", ""),
+        -- iif(g_compile_vulkan, "vulkan-1", "")
     }

@@ -1,8 +1,8 @@
 -- influx assets
-new_influx_dll("influx_assets")
+new_influx_dll("influx_import")
 
-    pchheader "assets_pch.h"
-    pchsource ("source/assets_pch.cpp")
+    pchheader "import_pch.h"
+    pchsource ("source/import_pch.cpp")
 
     local dependencies =
     {

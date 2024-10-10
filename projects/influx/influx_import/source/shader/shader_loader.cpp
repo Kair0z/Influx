@@ -1,7 +1,7 @@
-#include "assets_pch.h"
-#include "influx_assets.h"
+#include "import_pch.h"
+#include "influx_import.h"
 
-namespace influx::assets
+namespace influx::imp
 {
 	/* Loads a Shader file (.hlsl) */
 	bool load_shader_file(const string& filepath, shader_data& out_shader, const shader::compile_args& args)

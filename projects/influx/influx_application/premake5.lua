@@ -9,7 +9,7 @@ new_influx_dll("influx_application")
         "influx_core",
         "influx_renderer",
         "influx_async",
-        "influx_assets",
+        "influx_import",
         "influx_input",
         "influx_events",
         "influx_shader"

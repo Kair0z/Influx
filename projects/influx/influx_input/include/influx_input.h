@@ -30,7 +30,7 @@ namespace influx::input
 	// 3. call this function from any thread to pump the input queue
 	struct service_args final
 	{
-		uint32_t m_max_events_to_service = -1u; // limits the amount of work this service-call does before returning
+		uint32 m_max_events_to_service;
 	};
 	INFLUX_INPUT_API void service(const service_args& args = {});
 

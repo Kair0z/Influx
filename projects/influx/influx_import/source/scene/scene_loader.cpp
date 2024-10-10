@@ -1,5 +1,5 @@
-#include "assets_pch.h"
-#include "influx_assets.h"
+#include "import_pch.h"
+#include "influx_import.h"
 
 #ifdef epsilon
 #undef epsilon
@@ -19,7 +19,7 @@
 // conversion header
 #include "influx_assimp.h"
 
-namespace influx::assets
+namespace influx::imp
 {
 	bool load_scene_file(const string& filepath, scene_data& out_scene, const scene_load_args& args)
 	{

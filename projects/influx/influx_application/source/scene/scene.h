@@ -85,7 +85,6 @@ namespace influx::application
 
 	private:
 		influx::renderer::scene* mp_render_scene;
-		assets::flx_scene* mp_asset_scene;
 
 		struct camera_controls final
 		{

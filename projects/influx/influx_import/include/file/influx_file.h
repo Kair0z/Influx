@@ -8,7 +8,7 @@
 
 #include <fstream>
 
-namespace influx::assets
+namespace influx::imp
 {
 	class flx_asset
 	{

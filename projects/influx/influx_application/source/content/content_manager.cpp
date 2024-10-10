@@ -25,24 +25,24 @@ namespace influx::application
 		// load fbxs
 		async::dispatch_for<file>(fbx_files, [this](const file& file)
 		{
-			assets::scene_load_args args{};
-			assets::scene_data& scene_data = m_scenes[file.m_filename];
-			assets::load_scene_file(file.m_path_full, scene_data, args);
+			imp::scene_load_args args{};
+			imp::scene_data& scene_data = m_scenes[file.m_filename];
+			imp::load_scene_file(file.m_path_full, scene_data, args);
 		});
 
 		// load pngs
 		async::dispatch_for<file>(png_files, [this](const file& file)
 		{
-			assets::image_load_args args{};
-			assets::image_data& texture_data = m_images[file.m_filename];
-			assets::load_image_file(file.m_path_full, texture_data, args);
+			imp::image_load_args args{};
+			imp::image_data& texture_data = m_images[file.m_filename];
+			imp::load_image_file(file.m_path_full, texture_data, args);
 		});
 
 		// load hlsls
 		async::dispatch_for<file>(hlsl_files, [this](const file& file)
 		{
-			assets::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"];
-			assets::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"];
+			imp::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"];
+			imp::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"];
 
 			shader::compile_args compile_args{};
 			compile_args.m_target = shader::e_shader_target::_6_6;
@@ -59,11 +59,11 @@ namespace influx::application
 
 			compile_args.m_type = shader::e_shader_type::vs;
 			compile_args.m_entrypoint = "VSMain";
-			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_vs, compile_args));
+			influx_assert(imp::load_shader_file(file.m_path_full, shader_data_vs, compile_args));
 
 			compile_args.m_type = shader::e_shader_type::ps;
 			compile_args.m_entrypoint = "PSMain";
-			influx_assert(assets::load_shader_file(file.m_path_full, shader_data_ps, compile_args));
+			influx_assert(imp::load_shader_file(file.m_path_full, shader_data_ps, compile_args));
 		});
 
 		// wait for all jobs to complete
@@ -72,17 +72,17 @@ namespace influx::application
 		logn("finished loading assets in {} seconds", time::get_ms_since<float>(time_before_load) * 0.001f);
 	}
 
-	const map<string, assets::scene_data>& content_manager::get_scenes() const
+	const map<string, imp::scene_data>& content_manager::get_scenes() const
 	{
 		return m_scenes;
 	}
 
-	const map<string, assets::image_data>& content_manager::get_images() const
+	const map<string, imp::image_data>& content_manager::get_images() const
 	{
 		return m_images;
 	}
 
-	const map<string, assets::shader_data>& content_manager::get_shaders() const
+	const map<string, imp::shader_data>& content_manager::get_shaders() const
 	{
 		return m_shaders;
 	}

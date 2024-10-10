@@ -4,8 +4,8 @@
 #include "core/string.h"
 #include "core/container/map.h"
 
-// assets
-#include "influx_assets.h"
+// influx::import
+#include "influx_import.h"
 
 namespace influx::application
 {
@@ -14,13 +14,13 @@ namespace influx::application
 	public:
 		content_manager(const string& resource_dir);
 
-		const map<string, assets::scene_data>& get_scenes() const;
-		const map<string, assets::image_data>& get_images() const;
-		const map<string, assets::shader_data>& get_shaders() const;
+		const map<string, imp::scene_data>& get_scenes() const;
+		const map<string, imp::image_data>& get_images() const;
+		const map<string, imp::shader_data>& get_shaders() const;
 
 	private:
-		map<string, assets::scene_data> m_scenes;
-		map<string, assets::image_data> m_images;
-		map<string, assets::shader_data> m_shaders;
+		map<string, imp::scene_data> m_scenes;
+		map<string, imp::image_data> m_images;
+		map<string, imp::shader_data> m_shaders;
 	};
 }

@@ -6,16 +6,16 @@
 #include "core/math/math.h"
 #include "core/math/vectortools.h"
 
-// renderer
+// influx::renderer
 #include "influx_renderer/scene.h"
 
-// assets
-#include "influx_assets.h"
+// influx::import
+#include "influx_import.h"
 
-// input
+// influx::input
 #include "influx_input.h"
 
-// imgui
+// influx::imgui
 #include "editor/editor.h"
 #include "imgui/imgui.h"
 
@@ -26,7 +26,6 @@ namespace influx::application
 		, m_current_mesh_idx{}
 	{
 		mp_render_scene = new influx::renderer::scene();
-		mp_asset_scene = new assets::flx_scene();
 
 		math::vectorf3 scene_center = math::vectorf3::zero();
 
@@ -314,15 +313,11 @@ namespace influx::application
 	void scene::save(const string& filepath)
 	{
 		return;
-		// save to file
-		mp_asset_scene->save(filepath);
 	}
 
 	void scene::load(const string& filepath)
 	{
 		return;
-		// load the asset scene from file
-		mp_asset_scene->load(filepath);
 	}
 
 	void scene::add(const camera_actor& camera)

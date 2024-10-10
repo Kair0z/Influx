@@ -71,7 +71,7 @@ namespace influx::application
 	}
 
 	// mesh geometry
-	inline bool load_to_renderer(const assets::scene_data::mesh& mesh, const string& name)
+	inline bool load_to_renderer(const imp::scene_data::mesh& mesh, const string& name)
 	{
 		influx::renderer::mesh_data mesh_data{};
 		for (size_t i = 0u; i < mesh.m_positions.size(); ++i)
@@ -90,7 +90,7 @@ namespace influx::application
 	}
 
 	// shaders
-	inline bool load_to_renderer(const assets::shader_data& shader, const string& name)
+	inline bool load_to_renderer(const imp::shader_data& shader, const string& name)
 	{
 		influx::renderer::shader_data shader_data{};
 		shader_data.m_bytecode = shader.m_compile_result.m_bytecode;
@@ -102,7 +102,7 @@ namespace influx::application
 	}
 
 	// textures
-	inline bool load_to_renderer(const assets::image_data& image, const string& name)
+	inline bool load_to_renderer(const imp::image_data& image, const string& name)
 	{
 		influx::renderer::texture_data tex_data{};
 		tex_data.m_pixels = image.m_pixels;
@@ -135,8 +135,8 @@ namespace influx::application
 			load_to_renderer(asset.second, asset.first);
 		}
 		#else
-		const assets::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs");
-		const assets::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps");
+		const imp::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs");
+		const imp::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps");
 		load_to_renderer(vs_shader, "shaders_vs");
 		load_to_renderer(ps_shader, "shaders_ps");
 		#endif

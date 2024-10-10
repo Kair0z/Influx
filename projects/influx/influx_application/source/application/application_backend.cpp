@@ -1,24 +1,24 @@
 #include "app_pch.h"
 #include "application/application_backend.h"
 
-// application
+// influx::application
 #include "scene/scene.h"
 #include "renderer/renderer.h"
 #include "content/content_manager.h"
 #include "editor/editor.h"
 
-// platform: win32
+// influx::platform - win32
 #include "core/platform/win32/win32_platform.h"
 #include "core/platform/win32/win32_window.h"
 
-// async
+// influx::async
 #include "influx_async.h"
 
-// input
+// influx::input
 #include "influx_input.h"
 
-// assets
-#include "influx_assets.h"
+// influx::import
+#include "influx_import.h"
 
 namespace influx::application
 {

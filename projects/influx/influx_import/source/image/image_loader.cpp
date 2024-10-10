@@ -1,9 +1,9 @@
-#include "assets_pch.h"
-#include "influx_assets.h"
+#include "import_pch.h"
+#include "influx_import.h"
 
 #include "lodepng/lodepng.h"
 
-namespace influx::assets
+namespace influx::imp
 {
 	LodePNGColorType translate(e_image_colour_type type)
 	{

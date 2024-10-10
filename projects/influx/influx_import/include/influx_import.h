@@ -17,12 +17,11 @@
 // influx::shader
 #include "influx_shader.h"
 
-// influx::assets
+// influx::imp
 #include "file/influx_file.h"
 
-namespace influx::assets
+namespace influx::imp
 {
-	/* Loads an 3D-model scene file (.fbx, .obj) */
 	struct scene_load_args final
 	{
 		// ...
@@ -44,6 +43,7 @@ namespace influx::assets
 		vector<scene::camera> m_cameras{};
 	};
 
+	/* Loads an 3D-model scene file (.fbx, .obj) */
 	INFLUX_ASSETS_API bool load_scene_file(const string& filepath, 
 		scene_data& out_scene, const scene_load_args& args = {});
 

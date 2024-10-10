@@ -1,4 +1,4 @@
-new_influx_app("influx_game")
+new_influx_app("influx_pacman")
     staticruntime "on"
     local dependencies =
     {

@@ -249,7 +249,7 @@ namespace influx::shader
 			printf("\n");
 			influx_assert(false);
 
-			// logerr("influx_assets::load_shader_file() failed!");
+			// logerr("influx_imp::load_shader_file() failed!");
 			return output;
 		}
 

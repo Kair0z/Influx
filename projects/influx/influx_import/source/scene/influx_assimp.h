@@ -42,9 +42,9 @@ namespace influx
 		}
 	}
 
-	influx::assets::scene_data::mesh translate(const aiMesh* pMesh)
+	influx::imp::scene_data::mesh translate(const aiMesh* pMesh)
 	{
-		influx::assets::scene_data::mesh result{};
+		influx::imp::scene_data::mesh result{};
 		constexpr uint32 vColChannel = 0u;
 
 		const bool meshHasPositions = pMesh->HasPositions();
@@ -121,9 +121,9 @@ namespace influx
 		return nullptr;
 	}
 
-	influx::assets::scene_data parse(const aiScene* pScene)
+	influx::imp::scene_data parse(const aiScene* pScene)
 	{
-		assets::scene_data result{};
+		imp::scene_data result{};
 
 		for (uint32 i = 0u; i < pScene->mNumMeshes; ++i)
 		{

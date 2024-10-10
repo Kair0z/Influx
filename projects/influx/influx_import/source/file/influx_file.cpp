@@ -1,5 +1,5 @@
-#include "assets_pch.h"
-#include "influx_assets.h"
+#include "import_pch.h"
+#include "influx_import.h"
 
 #include "cereal/types/string.hpp"
 #include "cereal/archives/json.hpp"
@@ -14,18 +14,18 @@ namespace cereal
 		arch(matrix.m_data);
 	}
 
-	// influx::assets::flx_scene::node
-	template <class _archive> void serialize(_archive& arch, influx::assets::flx_scene::node& node)
+	// influx::imp::flx_scene::node
+	template <class _archive> void serialize(_archive& arch, influx::imp::flx_scene::node& node)
 	{
 		arch(node.m_id);
 		arch(node.m_transform);
 	}
 
-	// influx::assets::flx_scene
-	template <class _archive> void serialize(_archive& arch, influx::assets::flx_scene& scene)
+	// influx::imp::flx_scene
+	template <class _archive> void serialize(_archive& arch, influx::imp::flx_scene& scene)
 	{
 		arch(scene.m_id);
-		scene.m_hierarchy.traverse([&arch](influx::hierarchy<influx::assets::flx_scene::node>::node& node)
+		scene.m_hierarchy.traverse([&arch](influx::hierarchy<influx::imp::flx_scene::node>::node& node)
 		{
 			arch(node.data);
 		});
@@ -33,7 +33,7 @@ namespace cereal
 }
 
 
-namespace influx::assets
+namespace influx::imp
 {
 #define archive_json(variable) \
 	if (is_loading()) { cereal::JSONInputArchive AR(get_ifs()); AR(variable); } \
