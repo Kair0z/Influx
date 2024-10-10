@@ -5,6 +5,7 @@
 #include "core/platform/platform.h"
 #include "core/platform/window.h"
 #include "core/singleton.h"
+#include "core/threading/thread.h"
 
 namespace influx::application
 {
@@ -40,7 +41,6 @@ namespace influx::application
 		static editor* get_editor();
 
 	private:
-
 		platform::window_handle m_windowhandle = nullptr;
 		platform::instance_handle m_instancehandle = nullptr;
 
@@ -60,7 +60,11 @@ namespace influx::application
 		scene* mp_scene;
 		editor* mp_editor;
 
+		thread m_input_thread;
+
 		void process_run_args(const run_args& args);
+		void initialize(const run_args& args);
+		void cleanup();
 	};
 }
 

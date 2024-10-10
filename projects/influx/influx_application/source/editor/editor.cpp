@@ -30,11 +30,11 @@ namespace influx::application
 				bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
 				if (want_absolute_pos)
 				{
-					ImGui::GetIO().AddMousePosEvent(ev.m_position_screen.x, ev.m_position_screen.y);
+					ImGui::GetIO().AddMousePosEvent(ev.m_position.m_screen.x, ev.m_position.m_screen.y);
 				}
 				else
 				{
-					ImGui::GetIO().AddMousePosEvent(ev.m_position_client.x, ev.m_position_client.y);
+					ImGui::GetIO().AddMousePosEvent(ev.m_position.m_client.x, ev.m_position.m_client.y);
 				}
 			}
 			break;

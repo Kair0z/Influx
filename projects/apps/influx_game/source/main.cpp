@@ -1,26 +1,27 @@
 
-#include <cstdint>
+#include "influx_application.h"
 
 extern "C" { __declspec(dllexport) extern const uint32_t D3D12SDKVersion = 614u; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
-#include "influx_application.h"
-
 int main(int argc, char** argv)
 {
 	using namespace influx;
+	application::run_args args{ argc, argv };
 
-	application::run_args arguments{};
-	arguments.m_commandlet = false;
-	arguments.m_single_threaded = false;
-	arguments.m_vsync = false;
-	arguments.m_enable_editor = true;
-	arguments.m_name = "Influx Game";
-	arguments.m_window_clear_colour = math::float4{ 0.2f, 0.2f, 0.2f, 1.0f };
-	arguments.m_staged = false;
-
-	arguments.m_window_width = 1280u;
-	arguments.m_window_height = 720u;
-
-	application::run(arguments);
+	args.m_assets_dir = "";
+	args.m_resources_dir = "";
+	args.m_commandlet = false;
+	args.m_enable_editor = true;
+	args.m_enable_game = true;
+	args.m_enable_scenerender = true;
+	args.m_name = "influx game";
+	args.m_single_threaded = false;
+	args.m_staged = false;
+	args.m_vsync = true;
+	args.m_window_clear_colour = {};
+	args.m_window_width = 1280u;
+	args.m_window_height = 720u;
+	
+	application::run(args);
 }

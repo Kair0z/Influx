@@ -73,9 +73,6 @@ namespace influx::application
 	// mesh geometry
 	inline bool load_to_renderer(const assets::scene_data::mesh& mesh, const string& name)
 	{
-		const assets::scene_data::mesh& mesh = asset.second.m_meshes[0]; // gets the first mesh
-		const std::string& name = asset.first;
-
 		influx::renderer::mesh_data mesh_data{};
 		for (size_t i = 0u; i < mesh.m_positions.size(); ++i)
 		{

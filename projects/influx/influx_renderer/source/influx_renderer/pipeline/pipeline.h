@@ -42,7 +42,7 @@ namespace influx::renderer
 		uint32 get_shader_register(const string& resource_name);
 		uint32 get_param_index(const string& resource_name);
 
-#if _DEBUG
+#if INFLUX_DEBUG
 		void set_name(const string& name);
 		const string& get_name() const;
 #endif
@@ -53,7 +53,7 @@ namespace influx::renderer
 		umap<string, uint32> m_name_to_register;
 		umap<string, uint32> m_name_to_param_idx;
 
-#if _DEBUG
+#if INFLUX_DEBUG
 		string m_debug_name;
 #endif
 	};

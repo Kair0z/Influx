@@ -211,7 +211,11 @@ namespace influx::renderer
 	{
 		shader::compile_args args{};
 		args.m_entrypoint = "main";
-		args.m_compile_debug = _DEBUG;
+#if INFLUX_DEBUG
+		args.m_compile_debug = true;
+#else
+		args.m_compile_debug = false;
+#endif
 		args.m_target = shader::e_shader_target::_6_2;
 		args.m_pbd = true;
 		args.m_reflection;

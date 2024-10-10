@@ -29,7 +29,10 @@ namespace influx::renderer
         desc.m_bytestride = sizeof(gpu_instance_data);
         desc.m_init_state = graphics::e_resource_state::read;
         mp_instancebuffer = device->create_resource(desc, heap_desc);
+
+#if INFLUX_DEBUG
         mp_instancebuffer->set_name("scene_instance_buffer");
+#endif
 
         // create srv
         mp_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);

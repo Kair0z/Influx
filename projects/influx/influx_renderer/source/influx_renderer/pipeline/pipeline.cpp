@@ -151,6 +151,7 @@ namespace influx::renderer
         return m_name_to_param_idx[resource_name];
     }
 
+#if INFLUX_DEBUG
     void pipeline::set_name(const string& name)
     {
         mp_pipeline->set_name(name);
@@ -160,4 +161,5 @@ namespace influx::renderer
     {
         return mp_pipeline->get_name();
     }
+#endif
 }

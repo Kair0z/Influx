@@ -2,7 +2,7 @@
 
 #include "core/singleton.h"
 
-// events
+// influx::events
 #include "influx_events.h"
 
 #include "core/platform/win32/win32_window.h"
@@ -21,6 +21,24 @@ namespace influx::input
 		events::event_queue* mp_event_queue;
 	};
 
+	template <typename _t, typename ..._args>
+	_t* allocate(_args&&... args)
+	{
+		return new _t(std::forward<_args>(args)...);
+	}
+
+	void free(void* ptr)
+	{
+		delete ptr;
+	}
+
+	mouse_event* new_mouse_move(const math::vectorf2& pos_client, const math::vectorf2& pos_screen)
+	{
+		mouse_event* new_event = allocate<mouse_event>();
+		new_event->m_position = { pos_client, pos_screen };
+		return new_event;
+	}
+
 	void push(key_event* key_ev)
 	{
 		events::event ev { key_ev };
@@ -32,6 +50,15 @@ namespace influx::input
 	{
 		// create the events::queue
 		global_state::get_queue() = new events::event_queue();
+	}
+
+	void subscribe_keydown(const function<void(e_key)>& keydown_callback)
+	{
+		subscribe([keydown_callback](const key_event& key)
+		{
+			if (keydown_callback && key.m_type == key_event::e_type::keydown)
+				keydown_callback(key.m_key);
+		});
 	}
 
 	inline static key_event::e_type translate(platform::window_event::type plat_type)
@@ -87,37 +114,36 @@ namespace influx::input
 		switch (platform_ev.m_type)
 		{
 		case platform::window_event::type::keydown:
-			new_key_ev = new key_event();
+			new_key_ev = allocate<key_event>();
 			new_key_ev->m_type = key_event::e_type::keydown;
 			data = new_key_ev;
 			break;
 
 		case platform::window_event::type::keyup:
-			new_key_ev = new key_event();
+			new_key_ev = allocate<key_event>();
 			new_key_ev->m_type = key_event::e_type::keyup;
 			data = new_key_ev;
 			break;
 
 		case platform::window_event::type::wheel:
-			new_mouse_ev = new mouse_event();
+			new_mouse_ev = allocate<mouse_event>();
 			new_mouse_ev->m_type = mouse_event::e_type::scroll;
 			new_mouse_ev->m_wheel_delta = platform_ev.parse_wheel_delta();
 			data = new_mouse_ev;
 			break;
 
 		case platform::window_event::type::mouse_move:
-			new_mouse_ev = new mouse_event();
+			new_mouse_ev = allocate<mouse_event>();
 			new_mouse_ev->m_type = mouse_event::e_type::move;
-			new_mouse_ev->m_position_client = platform_ev.parse_position_window();
-			new_mouse_ev->m_position_screen = platform_ev.parse_position_screen();
+			new_mouse_ev->m_position = { platform_ev.parse_position_window(), platform_ev.parse_position_screen() };
 			data = new_mouse_ev;
 			break;
 
 		case platform::window_event::type::mouse_leave:
 			new_mouse_ev = new mouse_event();
 			new_mouse_ev->m_type = mouse_event::e_type::leave;
-			new_mouse_ev->m_position_client = { -FLT_MAX, -FLT_MAX };
-			new_mouse_ev->m_position_screen = { -FLT_MAX, -FLT_MAX };
+			new_mouse_ev->m_position.m_client = { -FLT_MAX, -FLT_MAX };
+			new_mouse_ev->m_position.m_screen = { -FLT_MAX, -FLT_MAX };
 			data = new_mouse_ev;
 			break;
 
@@ -159,6 +185,24 @@ namespace influx::input
 		}
 	}
 
+	void push_external_event(const key_event& ev)
+	{
+		// make a copy
+		key_event* new_event_copy = allocate<key_event>(ev);
+
+		// push into queue
+		global_state::get_queue()->push(events::event{ new_event_copy });
+	}
+
+	void push_external_event(const mouse_event& ev)
+	{
+		// make a copy
+		mouse_event* new_event_copy = allocate<mouse_event>(ev);
+
+		// push into queue
+		global_state::get_queue()->push(events::event{ new_event_copy });
+	}
+
 	void subscribe(const key_callback& callback)
 	{
 		auto this_callback = [callback](const events::event& ev)
@@ -192,9 +236,10 @@ namespace influx::input
 		delete global_state::get_queue();
 	}
 
-	void service()
+	void service(const service_args& args)
 	{
-		global_state::get_queue()->service();
+		events::event_queue::service_args translated{ args.m_max_events_to_service };
+		global_state::get_queue()->service(translated);
 	}
 
 	string key_event::to_string() const

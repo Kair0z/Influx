@@ -46,7 +46,11 @@ namespace influx::application
 
 			shader::compile_args compile_args{};
 			compile_args.m_target = shader::e_shader_target::_6_6;
-			compile_args.m_compile_debug = (_DEBUG) ? true : false;
+#if INFLUX_DEBUG
+			compile_args.m_compile_debug = true;
+#else
+			compile_args.m_compile_debug = false;
+#endif
 			compile_args.m_pbd = true;
 			compile_args.m_reflection = true;
 			compile_args.m_defines = {};

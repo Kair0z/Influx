@@ -7,13 +7,6 @@
 #include "content/content_manager.h"
 #include "editor/editor.h"
 
-// core:
-#include "core/log.h"
-#include "core/time.h"
-#include "core/file.h"
-#include "core/scope.h"
-#include "core/threading/thread.h"
-
 // platform: win32
 #include "core/platform/win32/win32_platform.h"
 #include "core/platform/win32/win32_window.h"
@@ -33,44 +26,8 @@ namespace influx::application
 	{
 		process_run_args(args);
 
-		// create the application window
-		m_instancehandle = platform::get_current_instance();
-		platform::create_window_args window_args{};
-		window_args.m_width = args.m_window_width;
-		window_args.m_height = args.m_window_height;
-		window_args.m_name = args.m_name;
-		window_args.m_proc_callback = [](const platform::window_event& ev) { input::push_window_event(ev); };
-		m_windowhandle = platform::create_window(window_args);
+		initialize(args);
 
-		// initialize job system:
-		async::init_args async_args{};
-		async_args.m_num_workers = 4u;
-		async::initialize(async_args);
-
-		// initialize input
-		influx::input::init();
-		thread input_thread = thread([this]()
-		{
-			while (!m_is_quit_requested)
-			{
-				input::service();
-			}
-		});
-		input_thread.set_name("influx::application::input");
-
-		// load content
-		mp_content_manager = new content_manager(get_resource_directory());
-
-		// create editor
-		mp_editor = new editor();
-
-		// create scene
-		mp_scene = new scene();
-
-		// create renderer:
-		mp_renderer = new renderer(m_windowhandle);
-		mp_renderer->load_render_assets(mp_content_manager);
-		
 		// some stack variables
 		time::point initial_tick = time::get_now();
 		time::point last_tick = initial_tick;
@@ -79,10 +36,7 @@ namespace influx::application
 		logn("start ticking ...");
 		while (!m_is_quit_requested)
 		{
-			// update frame time
-			frame_time.m_delta_seconds = time::get_ms_since<float>(last_tick) * 0.001f;
-			frame_time.m_time_seconds += frame_time.m_delta_seconds;
-			last_tick = time::get_now();
+			frame_time.tick();
 
 			// returns false if quit event was requested
 			if (!platform::poll_window_events(m_windowhandle))
@@ -98,8 +52,47 @@ namespace influx::application
 			// render
 			mp_renderer->render(mp_scene->get_render_scene());
 		}
+	}
 
-		input_thread.join();
+	void application::initialize(const run_args& args)
+	{
+		// create the application window
+		m_instancehandle = platform::get_current_instance();
+		platform::create_window_args window_args{};
+		window_args.m_width = args.m_window_width;
+		window_args.m_height = args.m_window_height;
+		window_args.m_name = args.m_name;
+		// window_args.m_proc_callback = [](const platform::window_event& ev) { input::push_window_event(ev); };
+		m_windowhandle = platform::create_window(window_args);
+
+		// initialize job system:
+		async::init_args async_args{};
+		async_args.m_num_workers = 4u;
+		async::initialize(async_args);
+
+		// initialize input
+		influx::input::init();
+		m_input_thread = thread([this]()
+		{
+			while (!m_is_quit_requested)
+			{
+				input::service();
+			}
+		});
+
+		mp_content_manager = new content_manager(get_resource_directory());
+		mp_editor = new editor();
+		mp_scene = new scene();
+		mp_renderer = new renderer(m_windowhandle);
+		mp_renderer->load_render_assets(mp_content_manager);
+	}
+
+	void application::cleanup()
+	{
+		influx::input::cleanup();
+		
+		// join the inputthread
+		m_input_thread.join();
 	}
 
 	void application::request_quit()

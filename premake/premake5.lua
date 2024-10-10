@@ -38,6 +38,9 @@ workspace "influx"
     g_dir_vendor_libraries = g_dir_root .. "/vendor/lib/x64/"
     libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }
     
+    -- common
+    g_common_cpp_dialect = "C++20"
+    
     filter "system:windows"
         systemversion "latest"
         defines
@@ -54,6 +57,8 @@ workspace "influx"
         defines "INFLUX_RELEASE"
         runtime "Release"
         optimize "on"
+
+    include "premake_common.lua"
     
     -- projects
     printf(".. influx engine")

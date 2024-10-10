@@ -16,36 +16,34 @@ namespace influx
 	class thread final
 	{
 	public:
-		template <class _func, class... _args>
-		explicit thread(const string& name, _func&& func, _args&&... args)
-			: thread(std::forward<_func>(func), std::forward<_args>(args)...)
-		{
-			set_name(name);
-		}
-
+		thread() = default;
+		
 		template <class _func, class... _args>
 		explicit thread(_func&& func, _args&&... args)
+			: m_thread{ std::forward<_func>(func), std::forward<_args>(args)... }
 		{
-			m_thread = std::thread(std::forward<_func>(func), std::forward<_args>(args)...);
-			set_name("");
 		}
+
+		// std::thread moveable
+		thread(thread&& other) noexcept
+		{
+			m_thread = std::move(other.m_thread);
+		}
+
+		thread& operator=(thread&& other) noexcept
+		{
+			m_thread = std::move(other.m_thread);
+			return *this;
+		}
+
+		// std::thread non-copyable
+		thread(const thread&) = delete;
+		thread& operator=(const thread&) = delete;
 
 		virtual ~thread()
 		{
 			if (m_thread.joinable())
 				m_thread.join();
-		}
-
-		void set_name(const string& name)
-		{
-			g_id_to_name_map[m_thread.get_id()] = name;
-			// platform::set_current_thread_name(name);
-		}
-
-		string& get_name() const
-		{
-			influx_assert(g_id_to_name_map.contains(m_thread.get_id()));
-			return g_id_to_name_map[m_thread.get_id()];
 		}
 
 		void join()
@@ -65,9 +63,5 @@ namespace influx
 
 	private:
 		std::thread m_thread;
-
-		static umap<std::thread::id, string> g_id_to_name_map;
 	};
-
-	umap<std::thread::id, string> thread::g_id_to_name_map = {};
 }

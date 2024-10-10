@@ -20,10 +20,12 @@ namespace influx::events
 		m_mutex.unlock();
 	}
 
-	void event_queue::service()
+	void event_queue::service(const service_args& args)
 	{
+		uint32 count = 0u;
+
 		m_mutex.lock();
-		if (!m_events.empty())
+		if (!m_events.empty() && count < args.m_max_num_events)
 		{
 			// pop an event
 			const event& ev = m_events.front();
@@ -34,6 +36,8 @@ namespace influx::events
 			{
 				sub(ev);
 			}
+
+			++count;
 		}
 		m_mutex.unlock();
 	}

@@ -100,7 +100,7 @@ namespace influx::application
 				break;
 
 			case input::mouse_event::e_type::move:
-				on_mouse_move(ev.m_position_client);
+				on_mouse_move(ev.m_position.m_client);
 				break;
 
 			case input::mouse_event::e_type::scroll:
