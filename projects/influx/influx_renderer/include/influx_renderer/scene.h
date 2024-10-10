@@ -47,4 +47,18 @@ namespace influx::renderer
 		float m_delta_seconds;
 		float m_seconds;
 	};
+
+	struct sprite2D final
+	{
+		math::transform2D m_transform;
+		math::rectu m_rectangle;
+		string m_texture;
+
+		bool m_scale_to_view;
+	};
+
+	struct scene2D final
+	{
+		vector<sprite2D> m_sprites = {};
+	};
 }

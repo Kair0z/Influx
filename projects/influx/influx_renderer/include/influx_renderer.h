@@ -80,13 +80,17 @@ namespace influx::renderer
 	// 2. draw the scene to window / intermediate target
 	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target);
 
+	// - imgui rendering
+	INFLUX_RENDER_API void draw_imgui(ImDrawData* draw_data, const target& target);
+
+	// - sprite rendering
+	INFLUX_RENDER_API void draw_2D(const scene2D& scene, const target& target);
+
 	// 3. (optional) copy intermediate data
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
 
 	// 4. present to window swapchain
 	INFLUX_RENDER_API void present_swapchain(const present_args& args);
-
-	INFLUX_RENDER_API void draw_imgui(ImDrawData* draw_data, const target& target);
 
 
 	// loading assets into the renderer

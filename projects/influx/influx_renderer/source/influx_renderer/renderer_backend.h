@@ -46,6 +46,7 @@ namespace influx::renderer
 
 		void draw_scene(const scene& scene, const target& target);
 		void draw_imgui(ImDrawData* draw_data, const target& target);
+		void draw_2D(const scene2D& scene, const target& target);
 		void copy_target(const target& source, const target& dest);
 		void present_swapchain(const present_args& args);
 		static descriptor_manager* get_descriptor_manager();

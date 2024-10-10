@@ -15,8 +15,9 @@ namespace influx::renderer
     enum class e_frame_phase : uint8
     {
         scene = 0,
-        imgui = 1,
-        present = 2,
+        scene2D = 1,
+        imgui = 2,
+        present = 3,
         count
     };
 
@@ -227,6 +228,35 @@ namespace influx::renderer
         uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::imgui);
         {
             influx_scope("renderer_backend::draw_imgui::submit");
+            mp_graphics_queue->submit_commandlists({ mp_commandlist });
+
+            // queue a signal to the fence that the gpu work [frame_count] is done
+            mp_graphics_queue->queue_signal(mp_fence, signal_value);
+
+            // wait for signal
+            wait_handle handle{};
+            mp_fence->wait_for_value(signal_value, handle);
+        }
+    }
+
+    void renderer_backend::draw_2D(const scene2D& scene, const target& target)
+    {
+        influx_scope("renderer_backend::draw_2D");
+        {
+            influx_scope("renderer_backend::draw2D::record");
+            mp_commandlist->start(mp_allocators[0u], nullptr);
+
+            graphics::render_target_view* target_rtv = target.get_rtv();
+            mp_commandlist->set(target_rtv, nullptr);
+
+            get_descriptor_manager()->start_commandlist(mp_commandlist);
+
+            mp_commandlist->end();
+        }
+
+        uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::scene2D);
+        {
+            influx_scope("renderer_backend::draw2D::submit");
             mp_graphics_queue->submit_commandlists({ mp_commandlist });
 
             // queue a signal to the fence that the gpu work [frame_count] is done
@@ -594,6 +624,11 @@ namespace influx::renderer
     void draw_imgui(ImDrawData* draw_data, const target& target)
     {
         renderer_backend::get_instance().draw_imgui(draw_data, target);
+    }
+
+    void draw_2D(const scene2D& scene, const target& target)
+    {
+        renderer_backend::get_instance().draw_2D(scene, target);
     }
 
     void load(const string& title, const mesh_data& data)
