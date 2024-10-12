@@ -64,8 +64,10 @@ workspace "influx"
     printf(".. influx engine")
     group "influx engine"
     include "../projects/influx/influx_application"
+    include "../projects/influx/influx_engine"
     include "../projects/influx/influx_events"
     include "../projects/influx/influx_input"
+    include "../projects/influx/influx_assets"
     include "../projects/influx/influx_async"
     include "../projects/influx/influx_core"
     include "../projects/influx/influx_platform"
@@ -81,8 +83,7 @@ workspace "influx"
     printf(".. apps ")
     group "apps"
     include "../projects/apps/influx_game"
-    include "../projects/apps/influx_pacman"
-    include "../projects/apps/influx_rendy"
+    include "../projects/apps/influx_editor"
     group ""
 
     printf(".. misc ")

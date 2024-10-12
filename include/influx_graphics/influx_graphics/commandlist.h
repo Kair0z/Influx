@@ -1,6 +1,8 @@
 #pragma once
 #include "influx_graphics/base.h"
 #include "influx_graphics/resource.h"
+#include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/renderpass.h"
 
 #include "core/math/vector.h"
 #include "core/range.h"
@@ -53,11 +55,15 @@ namespace influx::graphics
 		uint32 m_src_offset = 0u;
 	};
 
-	class command_list : public base
+	class commandlist : public base
 	{
 	public:
 		virtual void start(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
 		
+		virtual void renderpass_begin(const renderpass_args& args) = 0;
+	
+		virtual void renderpass_end() = 0;
+
 		virtual void draw_instanced(const draw_instanced_args& args) = 0;
 		
 		virtual void draw_indexed(const draw_indexed_args& args) = 0;
@@ -85,6 +91,8 @@ namespace influx::graphics
 		virtual void set(render_target_view* rtv, depth_stencil_view* dsv) = 0;
 
 		virtual void set(shader_resource_view* srv, uint32 param_idx) = 0;
+
+		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) = 0;
 
 		virtual void set(rootsignature* rootsig) = 0;
 		

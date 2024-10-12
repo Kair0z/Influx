@@ -126,14 +126,28 @@ namespace influx::async
 		handles.reserve(range);
 		for (uint64 i = 0u; i < range; ++i)
 		{
-			handles.push_back(create_task({ "foreach_" + to_string(i) }, [i, func]()
+			auto sub_func = [i, func]()
 			{
 				func(i);
-			}));
+			};
+
+			handles.push_back(create_task({ "foreach_" + to_string(i) }, sub_func));
 		}
 
 		dispatch(handles);
 		return handles;
+	}
+
+	// iterates over a const vector<_t>&
+	template <typename _t>
+	inline vector<task_handle> dispatch_for(const vector<_t>& vector, const function<void(const _t& i)>& func)
+	{
+		auto sub_func = [&vector, func](uint64 i)
+		{
+			func(vector[i]);
+		};
+
+		return dispatch_for(vector.size(), sub_func);
 	}
 
 	INFLUX_ASYNC_API void wait_for(const task_handle& handle, const wait_args& args = {});

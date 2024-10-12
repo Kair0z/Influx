@@ -15,7 +15,7 @@ namespace influx::renderer
 {
 	struct texture_data final
 	{
-		vector<byte> m_pixels{};
+		vector<pixel32> m_pixels{};
 		uint32 m_width = 0u;
 
 		uint32 get_width() const
@@ -31,14 +31,18 @@ namespace influx::renderer
 		bool is_valid() const;
 	};
 
-	struct texture_create_args final
+	struct texture_desc final
 	{
-		texture_create_args() = default;
-		texture_create_args(uint32 w, uint32 h)
+		texture_desc() = default;
+		texture_desc(uint32 w, uint32 h)
 			: m_width{ w }, m_heigth{ h } {}
 
 		uint32 m_width = 1u;
 		uint32 m_heigth = 1u;
+		uint32 m_depth = 1u;
+		uint32 m_array_size = 1u;
+		uint32 m_num_mips = 1u;
+		uint32 m_sample_count = 1u;
 	};
 
 	// contains a texture resource, as well as a shader resource view (srv)
@@ -51,6 +55,7 @@ namespace influx::renderer
 		uint32 get_width() const;
 		uint32 get_height() const;
 		uint32 get_num_pixels() const;
+		uint32 get_srv_heap_idx() const;
 
 #if _DEBUG
 		void set_name(const string& name);
@@ -59,18 +64,15 @@ namespace influx::renderer
 
 	private:
 		// constructs a texture from create_args, allocating new graphics resources
-		explicit texture(graphics::device* device, graphics::descriptor_heap* irv_heap, const texture_create_args& args);
-		explicit texture(graphics::device* device, graphics::resource* resource, graphics::shader_resource_view* irv);
+		explicit texture(graphics::device* device, const texture_desc& args);
 
-		// re-allocates graphics resource, and recreates the irv
+		// re-allocates graphics resource
 		void resize(const math::vectoru2& new_dimensions);
 
 		graphics::resource* mp_resource;
 		graphics::shader_resource_view* mp_srv;
-		void* m_cpu_handle;
-		void* m_gpu_handle;
 
-		texture_create_args m_args;
+		texture_desc m_args;
 		math::vectoru2 m_current_dimensions;
 		graphics::device* mp_device;
 

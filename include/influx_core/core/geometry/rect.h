@@ -117,7 +117,7 @@ namespace influx::math
 	template<typename _t>
 	inline rect<_t> rect<_t>::square_rect(float radius)
 	{
-		float radians = math::degrees_to_radians(45.0f);
+		float radians = math::to_radians(45.0f);
 		rect<_t> result{};
 		result.m_leftBottom = {};
 		result.m_width_height = vector2(

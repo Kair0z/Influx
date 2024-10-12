@@ -37,6 +37,24 @@ namespace influx
 			return std::filesystem::create_directory(path);
 		}
 
+		static bool create(const string& file)
+		{
+			std::filesystem::path path(file);
+			std::filesystem::create_directories(path.parent_path());
+			return true;
+		}
+
+		static bool exists(const file& file)
+		{
+			return std::filesystem::exists(file.m_path_full);
+		}
+
+		static bool exists(const string& file)
+		{
+			std::filesystem::path path(file);
+			return std::filesystem::exists(path);
+		}
+
 		string m_path_full;
 		string m_filename;
 		string m_extension;
@@ -44,9 +62,7 @@ namespace influx
 
 	inline bool create_file(const string& file)
 	{
-		std::filesystem::path path(file);
-		std::filesystem::create_directories(path.parent_path());
-		return true;
+		return file::create(file);
 	}
 
 	inline vector<file> get_files_in_directory(const string& directory, bool recursive, const string& file_extension = {})

@@ -80,13 +80,17 @@ namespace influx::renderer
 	// 2. draw the scene to window / intermediate target
 	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target);
 
+	// - imgui rendering
+	INFLUX_RENDER_API void draw_imgui(ImDrawData* draw_data, const target& target);
+
+	// - sprite rendering
+	INFLUX_RENDER_API void draw_2D(const scene2D& scene, const target& target);
+
 	// 3. (optional) copy intermediate data
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
 
 	// 4. present to window swapchain
 	INFLUX_RENDER_API void present_swapchain(const present_args& args);
-
-	INFLUX_RENDER_API void draw_imgui(ImDrawData* draw_data, const target& target);
 
 
 	// loading assets into the renderer
@@ -94,19 +98,16 @@ namespace influx::renderer
 
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
 
-	INFLUX_RENDER_API void load(const string& title, const material_data& data);
-
 	INFLUX_RENDER_API void load(const string& title, const shader_data& data);
 
-	INFLUX_RENDER_API const mesh_data* find_mesh_data(const string& title); 
+	INFLUX_RENDER_API void load(const string& title, const material& data);
 
-	INFLUX_RENDER_API vector<const mesh_data*> get_all_mesh_datas();
+	// graphics info
+	struct memory_info final
+	{
+		size_t m_gpu_usage = 0u;
+		size_t m_gpu_budget = 0u;
+	};
 
-	// backend hooks
-	INFLUX_RENDER_API void* get_backend_device();
-
-	INFLUX_RENDER_API void* get_backend_texture_gpu_handle(const string& title);
-
-	// statistics
-	INFLUX_RENDER_API vector<frame_stats> get_frame_stats(const uint32 over_num_frames = 1u);
+	INFLUX_RENDER_API memory_info get_memory_info();
 }

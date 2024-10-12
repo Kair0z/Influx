@@ -2,6 +2,8 @@
 #include "influx_graphics/base.h"
 #include "influx_graphics/common.h"
 
+#include "core/container/map.h"
+
 namespace influx::graphics
 {
 	enum class e_rootparam_type : uint32
@@ -19,6 +21,7 @@ namespace influx::graphics
 		e_shader_visibility m_visibility = e_shader_visibility::all;
 		uint32 m_shader_register = 0u;
 		uint32 m_register_space = 0u;
+		string m_name;
 	};
 
 	struct root_param_constants final
@@ -223,24 +226,64 @@ namespace influx::graphics
 				border_color});
 		}
 
+		inline void name_last_constants(const string& name)
+		{
+			if (m_constants.empty())
+				return;
+
+			m_constants.back().m_common.m_name = name;
+		}
+
+		inline void name_last_resource(const string& name)
+		{
+			if (m_resources.empty())
+				return;
+
+			m_resources.back().m_common.m_name = name;
+		}
+
+		inline void name_last_resource_table(const string& name)
+		{
+			if (m_resource_tables.empty())
+				return;
+
+			m_resource_tables.back().m_common.m_name = name;
+		}
+
+		inline void name_last_sampler(const string& name)
+		{
+			if (m_static_samplers.empty())
+				return;
+
+			m_static_samplers.back().m_common.m_name = name;
+		}
+
 		vector<root_param_constants> m_constants;
 		vector<root_param_resource> m_resources;
 		vector<root_param_resource_table> m_resource_tables;
 		vector<root_static_sampler> m_static_samplers;
+
+		bool m_direct_indexing = false;
 	};
 
 	class rootsignature : public base
 	{
 	public:
-		
+		inline const umap<string, uint32>& get_param_idx_table() const
+		{
+			return m_name_to_param_idx;
+		}
+
 	protected:
-		rootsignature(const rootsignature_desc& desc)
+		rootsignature(const rootsignature_desc& desc, const umap<string, uint32>& name_to_paramidx)
 			: m_desc{desc}
+			, m_name_to_param_idx{ name_to_paramidx }
 		{
 
 		}
 
 	private:
 		rootsignature_desc m_desc;
+		umap<string, uint32> m_name_to_param_idx;
 	};
 }

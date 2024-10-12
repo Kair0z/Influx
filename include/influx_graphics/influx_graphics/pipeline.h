@@ -18,28 +18,47 @@ namespace influx::graphics
 
 	struct pipeline_desc final
 	{
+		// misc
+		uint32 m_sample_mask = (uint32)-1;
+		uint32 m_sample_count = 1u;
+		e_primitive_topology_type m_prim_type = e_primitive_topology_type::triangle;
+
+		// DSV
+		e_format m_format_dsv = e_format::d32;
+
 		// shaders
 		vector<byte> m_vs;
 		vector<byte> m_ps;
 
 		// depth / stencil
-		struct
+		struct depth_stencil final
 		{
 			bool m_depth_enable;
 			bool m_stencil_enable;
 			e_comparison_func m_depth_func;
 			// depth write mask
-		} m_depth_stencil;
+		};
+		depth_stencil m_depth_stencil;
 
 		// rasterizer
-		struct
+		struct rasterizer final
 		{
-			e_cull_mode m_cullmode;
-		} m_rasterizer;
+			e_cull_mode m_cullmode = e_cull_mode::back;
+			e_fill_mode m_fillmode = e_fill_mode::solid;
+			bool m_front_ccw = false;
+			int m_depth_bias = 0;
+			float m_depth_bias_clamp = 0.0f;
+			float m_slope_depth_bias = 0.0f;
+			bool m_depth_clip_enable = true;
+			bool m_multisample = false;
+			bool m_antialiased_line = false;
+			uint32 m_forced_samplecount = 0u;
+			bool m_conservative = false;
+		};
+		rasterizer m_rasterizer;
 
 		// input layout
 		vector<pipeline_input_element> m_input_elements{};
-
 		inline void add_input_element(
 			const string& semantic_name,
 			uint32 semantic_index,
@@ -66,22 +85,28 @@ namespace influx::graphics
 			
 			m_input_elements.push_back(new_element);
 		}
-		
-		// misc
-		uint32 m_sample_mask = (uint32)-1;
-		uint32 m_sample_count = 1u;
-		e_primitive_topology_type m_prim_type = e_primitive_topology_type::triangle;
 
 		// RTVs
-		struct
+		struct rtv_desc
 		{
 			bool m_enabled = false;
 			e_format m_format = e_format::rgba8;
+		};
+		rtv_desc m_rtvs[k_max_render_targets]{};
 
-		} m_rtvs[k_max_render_targets];
-
-		// DSV
-		e_format m_format_dsv;
+		// blends
+		struct blend_desc final
+		{
+			bool m_enabled = false;
+			e_blend m_src;
+			e_blend m_dest;
+			e_blendop m_op;
+			e_blend m_srcalpha;
+			e_blend m_destalpha;
+			e_blendop m_op_alpha;
+			uint8 m_write_mask = 15u; // all
+		};
+		blend_desc m_blends[k_max_render_targets]{};
 	};
 
 	class pipeline : public base

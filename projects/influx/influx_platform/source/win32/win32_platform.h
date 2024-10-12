@@ -3,7 +3,7 @@
 
 namespace influx::platform
 {
-	class win32_platform final
+	class win32_platform final : public platform
 	{
 	public:
 

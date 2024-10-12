@@ -38,6 +38,11 @@ namespace influx::application
 		static bool is_scene_render_enabled();
 		static bool is_commandlet();
 
+		// user functions
+		void set_on_initialize(const init_callback& clb);
+		void set_on_imgui(const imgui_callback& clb);
+		void set_on_shutdown(const shutdown_callback& clb);
+
 		static editor* get_editor();
 
 	private:
@@ -62,9 +67,14 @@ namespace influx::application
 
 		thread m_input_thread;
 
+		init_callback m_user_init_clb;
+		imgui_callback m_user_imgui_clb;
+		shutdown_callback m_user_shutdown_clb;
+
 		void process_run_args(const run_args& args);
 		void initialize(const run_args& args);
 		void cleanup();
+		void on_imgui();
 	};
 }
 

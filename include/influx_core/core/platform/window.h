@@ -1,96 +1,21 @@
 #pragma once
-#include "core/platform/platform.h"
 
+// influx::core
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/geometry/rect.h"
 #include "core/string.h"
 #include "core/function.h"
 
+// influx::core::platform
+#include "core/platform/platform.h"
+
 namespace influx::platform
 {
-	using window_handle = void*;
-
-	// window event callback types
-	typedef void(*winev_callback)	();
-	typedef void(*winev_mousepos)	(const float x, const float y);
-	typedef void(*winev_mousebutton)(int button, bool isDown);
-	typedef void(*winev_mousewheel)	(const float w_x, const float w_y);
-	typedef void(*winev_focus)		(bool is_focussed);
-	
-	enum class e_windowevent : uint8
-	{
-		activate,
-		quit,
-		max,
-		unknown = max
-	};
-
-	struct window_event final
-	{
-		enum class type : uint8
-		{
-			// input
-			keydown,
-			keyup,
-
-			// mouse
-			wheel,
-
-			// general
-			activate,
-			quit,
-			count
-		} m_type;
-
-		enum class key_type : uint8
-		{
-			left,
-			right,
-			up,
-			down,
-			home,
-			end,
-			insert,
-			deleet,
-			f2,
-			ascii_num, // ascii number (0-9)
-			ascii_ch, // ascii character (A-Z)
-			unknown,
-			count
-		};
-
-		key_type parse_key_type() const;
-		char parse_ascii() const;
-		float parse_wheel_delta() const;
-
-		uint64 m_wParam;
-		uint64 m_lParam;
-	};
-
-	using window_proc_callback = function<void(const window_event& e)>;
-
-	enum class e_window_visibility : uint8
-	{
-		minimized,
-		showed,
-		maximized,
-		count
-	};
-
-	enum class e_messagebox : uint8
-	{
-		info,
-		warning,
-		error,
-		count
-	};
-
 	window_handle get_current_window();
 
 	bool is_window_valid(window_handle handle);
-
-	// create a window
+	
 	struct create_window_args final
 	{
 		create_window_args() = default;

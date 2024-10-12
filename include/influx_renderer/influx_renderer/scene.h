@@ -1,9 +1,15 @@
 #pragma once
+
+// influx::core
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
 #include "core/math/transform.h"
 #include "core/string.h"
 #include "core/container/vector.h"
+#include "core/math/colour.h"
+
+// influx::renderer
+#include "types.h"
 
 namespace influx::renderer
 {
@@ -37,5 +43,22 @@ namespace influx::renderer
 
 		vector<mesh_instance> m_meshes = {};
 		camera m_camera = {};
+
+		float m_delta_seconds;
+		float m_seconds;
+	};
+
+	struct sprite2D final
+	{
+		math::transform2D m_transform;
+		math::rectu m_rectangle;
+		string m_texture;
+
+		bool m_scale_to_view;
+	};
+
+	struct scene2D final
+	{
+		vector<sprite2D> m_sprites = {};
 	};
 }

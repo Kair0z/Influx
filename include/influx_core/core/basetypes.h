@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 
 namespace influx
 {
@@ -20,4 +21,14 @@ namespace influx
 	constexpr uint32 u32_max = { 0xffff'ffffui32 };
 	constexpr uint16 u16_max = { 0xffffui16 };
 	constexpr uint8  u8_max = { 0xffui8 };
+
+	using pixel32 = uint32;
+
+	inline static pixel32 make_pixel32(uint32 r, uint32 g, uint32 b, uint32 a)
+	{
+		return (r << 0) | (g << 8) | (b << 16) | (a << 24);
+	}
+
+	template <typename _t>
+	using opt = std::optional<_t>;
 }

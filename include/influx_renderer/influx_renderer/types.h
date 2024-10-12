@@ -26,8 +26,16 @@ namespace influx::renderer
 	enum class e_render_api : uint8
 	{
 		dx12,
-		unsupported,
 		vulkan,
+		unsupported,
 		max
+	};
+
+	enum class e_cull_mode : uint8
+	{
+		front,
+		back,
+		nocull,
+		count
 	};
 }

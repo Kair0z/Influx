@@ -1,20 +1,7 @@
 #pragma once
 
-#ifndef __CORE_TIME_H_
-#define __CORE_TIME_H_
-
-// Dependencies:
-#ifdef __USECORE_
-#undef __USECORE_
-#endif
-
-#define __USECORE_ 1
-
-#if		__USECORE_
 #include "core/cast.h"
 #include "core/function.h"
-#undef __USECORE_
-#endif
 
 // STL:
 #include <chrono>
@@ -97,7 +84,3 @@ namespace influx::time
 		point m_end;
 	};
 }
-
-#endif
-
-

@@ -22,6 +22,8 @@ namespace influx::shader
 	enum class e_shader_target : uint8
 	{
 		_6_2,
+		_6_5,
+		_6_6,
 		count
 	};
 
@@ -37,6 +39,8 @@ namespace influx::shader
 		e_shader_target m_target;
 		string m_entrypoint;
 		vector<string> m_defines;
+		string m_pdb_folder;
+		string m_include_folder;
 
 		bool m_compile_debug;
 		bool m_reflection;
@@ -57,17 +61,22 @@ namespace influx::shader
 			enum class e_type : uint8
 			{
 				cbv,
+				structured,
 				sampler,
 				uav,
 				srv,
+				texture,
 				unknown,
 				count
 			};
 
-			string m_name;
-			e_type m_type;
-			uint32 m_shader_register;
-			uint32 m_register_space;
+			string m_name{};
+			e_type m_type{};
+			uint32 m_shader_register{};
+			uint32 m_register_space{};
+
+			// if cbv
+			uint64 m_bytesize{};
 
 			// if srv / sampler, this is the number of descriptors possibly used
 			uint32 m_range_size = 0u;

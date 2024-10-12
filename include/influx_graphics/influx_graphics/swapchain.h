@@ -12,7 +12,7 @@ namespace influx::graphics
 	class render_target_view;
 	class device;
 	class descriptor_heap;
-	class command_queue;
+	class queue;
 
 	struct swapchain_desc final
 	{
@@ -28,40 +28,40 @@ namespace influx::graphics
 
 	struct swapchain_dependencies final
 	{
-		swapchain_dependencies(device* device, command_queue* queue)
-			: mp_device{ device }, mp_command_queue{ queue } {}
+		swapchain_dependencies(device* device, queue* queue)
+			: mp_device{ device }, mp_queue{ queue } {}
 
 		device* mp_device = nullptr;
-		command_queue* mp_command_queue = nullptr;
+		queue* mp_queue = nullptr;
 	};
 
 	class swapchain : public base
 	{
 	public:
-		virtual void present(const present_args& args) = 0;
+		INFLUX_GFX_API virtual void present(const present_args& args) = 0;
 
 		// acquires the next available backbuffer (and returns the index)
-		virtual uint8 acquire_backbuffer() = 0;
+		INFLUX_GFX_API virtual uint8 acquire_backbuffer() = 0;
 
-		void resize(const math::vectoru2& new_dimensions);
-		void resize(const platform::window_handle& window);
+		INFLUX_GFX_API void resize(const math::vectoru2& new_dimensions);
+		INFLUX_GFX_API void resize(const platform::window_handle& window);
 
-		resource* get_backbuffer_resource(uint8 at_index) const;
+		INFLUX_GFX_API resource* get_backbuffer_resource(uint8 at_index) const;
 
-		resource* get_current_backbuffer_resource() const;
+		INFLUX_GFX_API resource* get_current_backbuffer_resource() const;
 
-		uint8 get_num_backbuffers() const;
+		INFLUX_GFX_API uint8 get_num_backbuffers() const;
 
-		const swapchain_desc& get_desc() const;
+		INFLUX_GFX_API const swapchain_desc& get_desc() const;
 
 		// checks the window handle to find wether a recreate of resources is necessary
-		bool needs_recreate(const platform::window_handle& window) const;
+		INFLUX_GFX_API bool needs_recreate(const platform::window_handle& window) const;
 
-		uint8 get_current_backbuffer_index() const;
+		INFLUX_GFX_API uint8 get_current_backbuffer_index() const;
 
-		const math::vectoru2& get_dimensions() const;
+		INFLUX_GFX_API const math::vectoru2& get_dimensions() const;
 
-		e_format get_format() const;
+		INFLUX_GFX_API e_format get_format() const;
 
 	protected:
 		swapchain(const swapchain_desc& desc, const swapchain_dependencies& dependencies);
@@ -78,7 +78,7 @@ namespace influx::graphics
 
 		// dependencies
 		device* mp_parent_device;
-		command_queue* mp_command_queue;
+		queue* mp_queue;
 
 		virtual vector<resource*> create_resources() = 0;
 	};

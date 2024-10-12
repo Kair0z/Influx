@@ -81,18 +81,34 @@ namespace influx::application
 		});
 
 		mp_content_manager = new content_manager(get_resource_directory());
+
 		mp_editor = new editor();
+		mp_editor->subscribe([this]() { on_imgui(); });
+
 		mp_scene = new scene();
+
 		mp_renderer = new renderer(m_windowhandle);
 		mp_renderer->load_render_assets(mp_content_manager);
+
+		if (m_user_init_clb)
+			m_user_init_clb();
 	}
 
 	void application::cleanup()
 	{
+		if (m_user_shutdown_clb)
+			m_user_shutdown_clb();
+
 		influx::input::cleanup();
 		
 		// join the inputthread
 		m_input_thread.join();
+	}
+
+	void application::on_imgui()
+	{
+		if (m_user_imgui_clb)
+			m_user_imgui_clb();
 	}
 
 	void application::request_quit()
@@ -145,6 +161,21 @@ namespace influx::application
 		return get_instance().m_run_args.m_commandlet;
 	}
 
+	void application::set_on_initialize(const init_callback& clb)
+	{
+		m_user_init_clb = clb;
+	}
+
+	void application::set_on_imgui(const imgui_callback& clb)
+	{
+		m_user_imgui_clb = clb;
+	}
+
+	void application::set_on_shutdown(const shutdown_callback& clb)
+	{
+		m_user_shutdown_clb = clb;
+	}
+
 	editor* application::get_editor()
 	{
 		return get_instance().mp_editor;
@@ -192,6 +223,21 @@ namespace influx::application
 	void run(const run_args& args)
 	{
 		application::get_instance().run(args);
+	}
+
+	void on_initialize(const init_callback& clb)
+	{
+		application::get_instance().set_on_initialize(clb);
+	}
+
+	void on_imgui(const imgui_callback& clb)
+	{
+		application::get_instance().set_on_imgui(clb);
+	}
+
+	void on_shutdown(const shutdown_callback& clb)
+	{
+		application::get_instance().set_on_shutdown(clb);
 	}
 
 	void quit()

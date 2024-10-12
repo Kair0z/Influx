@@ -23,6 +23,9 @@ namespace influx::math
 		const static quaternion identity()
 		{
 			static quaternion q{};
+			q.m_up = { 0.0f, 1.0f, 0.0f };
+			q.m_forward = { 0.0f, 0.0f, 1.0f };
+			q.m_right = { 1.0f, 0.0f, 0.0f };
 			return q;
 		}
 
@@ -56,13 +59,23 @@ namespace influx::math
 			m_up = newUp;
 		}
 
+		void rotate(float delta_angle, const vectorf3& axis)
+		{
+			m_rotation_matrix = math::matrix4x4f::make_rotation(axis, delta_angle);
+
+			m_forward = m_rotation_matrix * m_forward;
+			m_right = math::vectorf3::cross(m_forward, vectorf3::up());
+			m_up = math::vectorf3::cross(m_right, m_forward);
+		}
+
 	private:
 		vectorf3 m_forward;
 		vectorf3 m_right;
 		vectorf3 m_up;
+
+		math::matrix4x4f m_rotation_matrix;
 	};
 
-	// Temp... might / should make this a standalone-class someday..
 	using rotation = quaternion;
 }
 

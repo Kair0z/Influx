@@ -9,7 +9,7 @@
 
 namespace influx::math
 {
-	using _vector_dim_t = uint8;
+	using _vector_dim_t = size_t;
 
 	namespace detail
 	{
@@ -253,7 +253,6 @@ namespace influx::math
 	using float3 = vectorf3;
 	using float4 = vectorf4;
 #pragma endregion
-
 }
 
 #include "vector.inl"

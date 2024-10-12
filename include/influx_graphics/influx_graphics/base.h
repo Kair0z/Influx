@@ -1,4 +1,5 @@
 #pragma once
+#include "influx_graphics/common.h"
 #include <string>
 
 namespace influx::graphics
@@ -17,6 +18,16 @@ namespace influx::graphics
 		inline _t*& get_native()
 		{
 			return (_t*&)(mp_native);
+		}
+
+		inline bool is_valid() const
+		{
+			return mp_native != nullptr;
+		}
+
+		inline operator bool() const
+		{
+			return is_valid();
 		}
 
 #if _DEBUG

@@ -23,6 +23,7 @@ namespace influx::renderer
 		uint32 m_width = 1u;
 		uint32 m_heigth = 1u;
 		bool m_has_depth_stencil = true;
+		bool m_has_colour = true;
 	};
 
 	// contains a texture resource, as well as a render target view and an optional depth stencil view
@@ -38,6 +39,7 @@ namespace influx::renderer
 		INFLUX_RENDER_API uint32 get_height() const;
 
 		INFLUX_RENDER_API bool has_depth_stencil() const;
+		INFLUX_RENDER_API bool is_depth_only() const;
 
 #if _DEBUG
 		void set_name(const string& name);
@@ -47,17 +49,13 @@ namespace influx::renderer
 	private:
 		// constructs a target from create_args, allocating new graphics resources
 		explicit target(
-			graphics::device* device, 
-			graphics::descriptor_heap* rtv_heap,
-			graphics::descriptor_heap* dsv_heap,
-			const target_create_args& args);
+			graphics::device* device, const target_create_args& args);
 
 		// constructs a target from existing swapchain resources
 		explicit target(
 			graphics::device* device, 
 			graphics::swapchain* swapchain, 
-			uint8 swapchain_index, 
-			graphics::descriptor_heap* rtv_heap);
+			uint8 swapchain_index);
 
 		// re-allocates graphics resource, and recreates the rtv
 		void resize(const math::vectoru2& new_dimensions);
@@ -66,8 +64,8 @@ namespace influx::renderer
 		void recreate_rtv();
 		void recreate_dsv();
 
-		graphics::resource* mp_resource;
-		graphics::resource* mp_depth_resource;
+		graphics::resource* mp_resource = nullptr;
+		graphics::resource* mp_depth_resource = nullptr;
 		graphics::render_target_view* mp_rtv;
 		graphics::depth_stencil_view* mp_dsv;
 		void* m_rtv_handle;

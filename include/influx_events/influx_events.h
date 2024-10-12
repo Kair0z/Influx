@@ -10,7 +10,6 @@
 #include "core/container/containers.h"
 #include "core/function.h"
 
-#include <thread>
 #include <mutex>
 
 namespace influx::events
@@ -42,7 +41,11 @@ namespace influx::events
 		INFLUX_EVENTS_API void push(const event& ev);
 
 		// pops events off the queue
-		INFLUX_EVENTS_API void service();
+		struct service_args final
+		{
+			uint32 m_max_num_events = (uint32)-1;
+		};
+		INFLUX_EVENTS_API void service(const service_args& args = {});
 
 		// nukes all events, and removes all subscribers!
 		INFLUX_EVENTS_API void reset();
@@ -53,7 +56,5 @@ namespace influx::events
 		vector<event_callback> m_subscribers{};
 		queue<event> m_events{};
 		std::mutex m_mutex;
-
-		void worker_loop();
 	};
 }
