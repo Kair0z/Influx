@@ -3,6 +3,7 @@
 // influx::core
 #include "core/string.h"
 #include "core/math/vector.h"
+#include "core/file.h"
 
 namespace influx::engine
 {
@@ -19,6 +20,12 @@ namespace influx::engine
 			string m_gamefile_path;
 			string m_gamename;
 			math::vectoru2 m_window_dimensions;
+
+			// setup by the engine
+			file m_file_influx_root;
+			file m_file_influx_assets;
+			file m_file_influx_staged;
+			file m_file_influx_resources;
 		};
 
 		virtual void on_config(config&);

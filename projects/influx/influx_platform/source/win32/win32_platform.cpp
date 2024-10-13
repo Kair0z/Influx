@@ -10,4 +10,17 @@ namespace influx::platform
 	{
 		return ::GetModuleHandleW(NULL);
 	}
+
+	const string& platform::get_current_directory()
+	{
+		wchar_t buff[MAX_PATH];
+		::GetCurrentDirectory(MAX_PATH, buff);
+
+		return to_string(buff);
+	}
+
+	void platform::set_current_directory(const string& path)
+	{
+		::SetCurrentDirectory(to_wstring(path).c_str());
+	}
 }

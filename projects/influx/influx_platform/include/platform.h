@@ -47,8 +47,8 @@ namespace influx::platform
 
 		static void set_console_colour_attribute(e_console_colour colour);
 
-		const string& get_current_directory();
+		static const string& get_current_directory();
 
-		void set_current_directory(const string& path);
+		static void set_current_directory(const string& path);
 	};
 }

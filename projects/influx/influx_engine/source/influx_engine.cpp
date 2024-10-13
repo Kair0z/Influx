@@ -35,6 +35,16 @@ namespace influx::engine::detail
 		}
 	};
 
+	void setup_engineconfig(game_module::config& config)
+	{
+		// builds are ran in /influx/bin/[config]/influx_game/
+		const string& root_influx = platform::platform::get_current_directory() + "/../../../";
+		config.m_file_influx_root = root_influx;
+		config.m_file_influx_resources = root_influx + "/resources/";
+		config.m_file_influx_assets = root_influx + "/assets/";
+		config.m_file_influx_staged = root_influx + "/staged/";
+	}
+
 	void run_game()
 	{
 		// create game object:
@@ -42,6 +52,7 @@ namespace influx::engine::detail
 
 		// build game config:
 		game_module::config game_config{};
+		setup_engineconfig(game_config);
 		new_game->on_config(game_config);
 
 		// parse game config:
