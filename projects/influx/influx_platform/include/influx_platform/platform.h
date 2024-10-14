@@ -18,7 +18,6 @@ namespace influx::platform
 	using process_handle = void*;
 	using instance_handle = void*;
 	using event_handle = void*;
-	using window_handle = void*;
 	using thread_handle = void*;
 
 	enum class e_console_colour : uint16
@@ -47,7 +46,7 @@ namespace influx::platform
 
 		static void set_console_colour_attribute(e_console_colour colour);
 
-		static const string& get_current_directory();
+		static string get_current_directory();
 
 		static void set_current_directory(const string& path);
 	};

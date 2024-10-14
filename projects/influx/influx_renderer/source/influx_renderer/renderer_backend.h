@@ -24,6 +24,12 @@ namespace influx::renderer
 	class scene_renderer;
 	class target;
 }
+
+// influx::platform
+namespace influx::platform
+{
+	class window;
+}
 #pragma endregion
 
 namespace influx::renderer
@@ -41,7 +47,7 @@ namespace influx::renderer
 		void cleanup();
 
 		target* create_target(const target_create_args& args);
-		target* get_window_target(const platform::window_handle& window);
+		target* get_window_target(const platform::window& window);
 		void acquire_swapchain_frame();
 
 		void draw_scene(const scene& scene, const target& target);

@@ -104,7 +104,8 @@ namespace influx::renderer
 
     void renderer_backend::cleanup()
     {
-        // delete the device
+        mp_device->cleanup();
+
         delete mp_device;
         mp_device = nullptr;
 
@@ -116,7 +117,7 @@ namespace influx::renderer
         return new target(mp_device, args);
     }
 
-    target* renderer_backend::get_window_target(const platform::window_handle& window)
+    target* renderer_backend::get_window_target(const platform::window& window)
     {
         // create the swapchain for the first time
         if (mp_swapchain == nullptr)
@@ -596,7 +597,7 @@ namespace influx::renderer
         return renderer_backend::get_instance().create_target(args);
     }
 
-    target* get_window_target(const platform::window_handle& window)
+    target* get_window_target(const platform::window& window)
     {
         return renderer_backend::get_instance().get_window_target(window);
     }

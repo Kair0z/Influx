@@ -22,9 +22,9 @@ public:
 
 	}
 
-	virtual void on_update() override
+	virtual void on_update(const ctx_update& ctx) override
 	{
-
+		
 	}
 
 	virtual void on_cleanup() override

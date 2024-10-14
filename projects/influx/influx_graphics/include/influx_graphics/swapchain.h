@@ -4,7 +4,9 @@
 
 #include "core/math/vector.h"
 #include "core/container/vector.h"
-#include "core/platform/window.h"
+
+// influx::platform
+#include "influx_platform/window.h"
 
 namespace influx::graphics
 {
@@ -44,7 +46,7 @@ namespace influx::graphics
 		INFLUX_GFX_API virtual uint8 acquire_backbuffer() = 0;
 
 		INFLUX_GFX_API void resize(const math::vectoru2& new_dimensions);
-		INFLUX_GFX_API void resize(const platform::window_handle& window);
+		INFLUX_GFX_API void resize(const platform::window& window);
 
 		INFLUX_GFX_API resource* get_backbuffer_resource(uint8 at_index) const;
 
@@ -55,7 +57,7 @@ namespace influx::graphics
 		INFLUX_GFX_API const swapchain_desc& get_desc() const;
 
 		// checks the window handle to find wether a recreate of resources is necessary
-		INFLUX_GFX_API bool needs_recreate(const platform::window_handle& window) const;
+		INFLUX_GFX_API bool needs_recreate(const platform::window& window) const;
 
 		INFLUX_GFX_API uint8 get_current_backbuffer_index() const;
 

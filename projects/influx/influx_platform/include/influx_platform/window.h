@@ -1,12 +1,16 @@
 #pragma once 
 #include "platform.h"
 
+#include "core/string.h"
 #include "core/math/vector.h"
 #include "core/geometry/rect.h"
 #include "core/function.h"
 
 namespace influx::platform
 {
+	class window;
+	using window_handle = void*;
+
 	enum class e_messagebox : uint8
 	{
 		info,
@@ -15,8 +19,9 @@ namespace influx::platform
 		count
 	};
 
-	struct window_event final
+	class window_event final
 	{
+	public:
 		enum class type : uint8
 		{
 			// input
@@ -67,16 +72,17 @@ namespace influx::platform
 			count
 		};
 
-		key_type parse_key_type() const;
-		char parse_ascii() const;
-		float parse_wheel_delta() const;
-		math::vectorf2 parse_position_window() const;
-		math::vectorf2 parse_position_screen() const;
-		mouse_button parse_mouse_button() const;
+		key_type	INFLUX_PLATFORM_API	parse_key_type() const;
+		char		INFLUX_PLATFORM_API	parse_ascii() const;
+		float		INFLUX_PLATFORM_API parse_wheel_delta() const;
+		math::vectorf2 INFLUX_PLATFORM_API parse_position_window() const;
+		math::vectorf2 INFLUX_PLATFORM_API parse_position_screen() const;
+		mouse_button INFLUX_PLATFORM_API parse_mouse_button() const;
 
 		uint32 m_mssg;
 		uint64 m_wParam;
 		uint64 m_lParam;
+		window* m_window;
 	};
 
 	struct window_desc final
@@ -114,6 +120,8 @@ namespace influx::platform
 		};
 
 		using event_callback = function<void(const window_event& e)>;
+
+		virtual window_handle get_platform_handle() const { return nullptr; }
 
 		virtual void poll_events(bool& is_quit) const { };
 

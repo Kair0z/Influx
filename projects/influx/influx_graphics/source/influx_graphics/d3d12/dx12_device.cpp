@@ -118,6 +118,21 @@ namespace influx::graphics
 		return 0u;
 	}
 
+	void dx12_device::cleanup()
+	{
+		// release the native objects
+		for (base* child : m_children)
+		{
+		}
+
+		for (base* child : m_children)
+		{
+			delete child;
+		}
+
+		m_children.clear();
+	}
+
 	// get info about physical devices:
 	vector<physical_device_info> dx12_device::get_gpu_infos()
 	{
@@ -162,12 +177,12 @@ namespace influx::graphics
 		auto dxcommandqueue = dx12helpers::create_queue(
 			mpdx_devices[0u], convert(desc.m_type), priority);
 
-		return new dx12_queue(desc, dxcommandqueue);
+		return new_child<dx12_queue, queue>(desc, dxcommandqueue);
 	}
 
-	swapchain* dx12_device::create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc)
+	swapchain* dx12_device::create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc)
 	{
-		auto rect = platform::get_windowrect_client<uint32>(window);
+		auto rect = window.get_rect_client();
 		uint32 width = rect.m_width_height.x;
 		uint32 height = rect.m_width_height.y;
 		e_format format = e_format::rgba8;
@@ -175,7 +190,7 @@ namespace influx::graphics
 		// create dx swapchain
 		IDXGISwapChain4* dxswapchain = dx12helpers::create_swapchain<IDXGISwapChain4>(
 			mpdxgi_factory, queue->get_native<ID3D12CommandQueue>(),
-			(::HWND)window, width, height, convert(format), desc.m_num_buffers);
+			(::HWND)window.get_platform_handle(), width, height, convert(format), desc.m_num_buffers);
 
 		swapchain_desc desc_copy = desc;
 		desc_copy.m_dimensions.x = width;
@@ -183,19 +198,19 @@ namespace influx::graphics
 		desc_copy.m_format = format;
 		
 		swapchain_dependencies dependencies{ this, queue };
-		return new dx12_swapchain(desc_copy, dependencies, dxswapchain);
+		return new_child<dx12_swapchain, swapchain>(desc_copy, dependencies, dxswapchain);
 	}
 
 	descriptor_heap* dx12_device::create_descriptor_heap(const descriptor_heap::create_args& args)
 	{
 		auto dxheap = dx12helpers::create_descriptor_heap(mpdx_devices[0u], convert(args.m_type), args.m_capacity, args.m_shader_visible);
-		return new dx12_descriptor_heap(args, dxheap, get_descriptor_stride(args.m_type));
+		return new_child<dx12_descriptor_heap, descriptor_heap>(args, dxheap, get_descriptor_stride(args.m_type));
 	}
 
 	command_allocator* dx12_device::create_graphics_allocator()
 	{
 		auto dxallocator = dx12helpers::create_command_allocator(mpdx_devices[0u], D3D12_COMMAND_LIST_TYPE_DIRECT);
-		return new dx12_command_allocator(dxallocator);
+		return new_child<dx12_command_allocator, command_allocator>(dxallocator);
 	}
 
 	commandlist* dx12_device::create_graphics_command_list(command_allocator* allocator, pipeline* init_state)
@@ -206,7 +221,7 @@ namespace influx::graphics
 
 		dxcommandlist->Close();
 
-		return new dx12_commandlist(dxcommandlist);
+		return new_child<dx12_commandlist, commandlist>(dxcommandlist);
 	}
 
 	commandbuffer* dx12_device::create_commandbuffer()
@@ -217,13 +232,13 @@ namespace influx::graphics
 		dx12_fence* new_fence = (dx12_fence*)create_fence();
 		influx_assert(new_fence);
 
-		commandbuffer* new_buffer = new dx12_commandbuffer(queue, new_fence);
+		commandbuffer* new_buffer = new_child<dx12_commandbuffer, commandbuffer>(queue, new_fence);
 		return new_buffer;
 	}
 
 	fence* dx12_device::create_fence(uint64 init_value)
 	{
-		return new dx12_fence(dx12helpers::create_fence<ID3D12Fence>(mpdx_devices[0u], init_value));
+		return new_child<dx12_fence, fence>(dx12helpers::create_fence<ID3D12Fence>(mpdx_devices[0u], init_value));
 	}
 
 	resource* dx12_device::create_resource(const tex2D_desc& desc, const heap_desc& heap_desc)
@@ -237,7 +252,7 @@ namespace influx::graphics
 			convert(desc.m_flags), 
 			convert(desc.m_init_state));
 
-		return new dx12_resource(dxresource, desc);
+		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
 	resource* dx12_device::create_resource(const buffer_desc& desc, const heap_desc& heap_desc)
@@ -248,7 +263,7 @@ namespace influx::graphics
 			convert(desc.m_flags), 
 			convert(desc.m_init_state));
 
-		return new dx12_resource(dxresource, desc);
+		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
 	render_target_view* dx12_device::create_rtv(descriptor_heap* rtv_heap, resource* resource)
@@ -271,7 +286,7 @@ namespace influx::graphics
 		resource_info res_info{};
 		res_info.m_dimensions = { resource->get_width(), resource->get_height() };
 
-		return new dx12_render_target_view(dx_rtv, res_info);
+		return new_child<dx12_render_target_view, render_target_view>(dx_rtv, res_info);
 	}
 
 	depth_stencil_view* dx12_device::create_dsv(descriptor_heap* dsv_heap, resource* resource)
@@ -290,7 +305,7 @@ namespace influx::graphics
 		auto dx_dsv = dx12helpers::create_dsv(mpdx_devices[0u], dxresource,
 			new_dxdescriptor, convert(resource->get_format()));
 
-		return new dx12_depth_stencil_view(dx_dsv);
+		return new_child<dx12_depth_stencil_view, depth_stencil_view>(dx_dsv);
 	}
 
 	shader_resource_view* dx12_device::create_srv(descriptor_heap* irv_heap, resource* resource)
@@ -315,7 +330,7 @@ namespace influx::graphics
 			resource->get_native<ID3D12Resource>(),
 			&srv_desc, dxcpu_descriptor);
 
-		return new dx12_shader_resource_view(dxcpu_descriptor, dxgpu_descriptor);
+		return new_child<dx12_shader_resource_view, shader_resource_view>(dxcpu_descriptor, dxgpu_descriptor);
 	}
 
 	shader_resource_view* dx12_device::create_buffer_srv(descriptor_heap* srv_heap, resource* resource)
@@ -342,7 +357,7 @@ namespace influx::graphics
 			resource->get_native<ID3D12Resource>(),
 			&srv_desc, dxcpu_descriptor);
 
-		return new dx12_shader_resource_view(dxcpu_descriptor, dxgpu_descriptor);
+		return new_child<dx12_shader_resource_view, shader_resource_view>(dxcpu_descriptor, dxgpu_descriptor);
 	}
 
 	sampler_view* dx12_device::create_sampview(descriptor_heap* samp_heap, resource* resource)
@@ -362,7 +377,7 @@ namespace influx::graphics
 
 		// ... no extra code necessary
 
-		return new dx12_sampler_view(new_dxdescriptor);
+		return new_child<dx12_sampler_view, sampler_view>(new_dxdescriptor);
 	}
 
 	rootsignature* dx12_device::create_rootsignature(const rootsignature_desc& desc)
@@ -496,7 +511,7 @@ namespace influx::graphics
 		HRESULT res = ::D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
 		res = mpdx_devices[0]->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&dxrootsignature));
 
-		return new dx12_rootsignature(dxrootsignature, desc, name_to_param_idx);
+		return new_child<dx12_rootsignature, rootsignature>(dxrootsignature, desc, name_to_param_idx);
 	}
 
 	pipeline* dx12_device::create_pipeline(rootsignature* rootsig, const pipeline_desc& desc)
@@ -578,7 +593,7 @@ namespace influx::graphics
 
 		// create the pipeline
 		HRESULT res = mpdx_devices[0]->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
-		return new dx12_pipeline(dxpipeline, desc);
+		return new_child<dx12_pipeline, pipeline>(dxpipeline, desc);
 	}
 
 	void dx12_device::copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type)

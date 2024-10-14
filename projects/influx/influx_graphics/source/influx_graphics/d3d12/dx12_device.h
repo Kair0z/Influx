@@ -1,5 +1,6 @@
 #pragma once
 #include "influx_graphics/device.h"
+#include "core/pointer.h"
 
 struct IDXGIFactory2;
 struct IDXGIAdapter1;
@@ -20,9 +21,11 @@ namespace influx::graphics
 
 		uint64 get_descriptor_stride(e_descriptor_heap_type type) const;
 
+		virtual void cleanup();
+
 		// creation:
 		virtual queue* create_queue(const queue_desc& desc) override;
-		virtual swapchain* create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc) override;
+		virtual swapchain* create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) override;
 		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args& args) override;
 		virtual command_allocator* create_graphics_allocator() override;
 		virtual commandlist* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) override;
@@ -63,5 +66,14 @@ namespace influx::graphics
 		dx12_queue* m_dx_queue_graphics = nullptr;
 		dx12_queue* m_dx_queue_compute = nullptr;
 		dx12_queue* m_dx_queue_copy = nullptr;
+
+		vector<base*> m_children;
+
+		template <typename _t, typename _tret, typename ..._args>
+		inline _tret* new_child(_args&&... args)
+		{
+			m_children.push_back(new _t(std::forward<_args>(args)...));
+			return (_tret*)m_children.back();
+		}
 	};
 }

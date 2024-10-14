@@ -6,7 +6,8 @@ new_influx_dll("influx_graphics")
 
     local dependencies =
     {
-        "influx_core"
+        "influx_core",
+        "influx_platform"
     }
 
     set_influx_includes(dependencies)

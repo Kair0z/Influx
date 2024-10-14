@@ -39,8 +39,10 @@ namespace influx::graphics
 
 	public:
 		INFLUX_GFX_API static device* create(e_api_type type, const device_desc& desc = device_desc{});
-
+	
 		void set_api_type(e_api_type type);
+
+		virtual void cleanup() = 0;
 
 		virtual vector<physical_device_info> get_gpu_infos() = 0;
 
@@ -48,7 +50,7 @@ namespace influx::graphics
 
 		virtual queue* create_queue(const queue_desc& desc = queue_desc::default_graphics()) = 0;
 
-		virtual swapchain* create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc) = 0;
+		virtual swapchain* create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) = 0;
 
 		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args&) = 0;
 

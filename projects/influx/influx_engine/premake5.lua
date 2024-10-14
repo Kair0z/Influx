@@ -7,7 +7,12 @@ new_influx_statlib("influx_engine")
     local dependencies =
     {
         "influx_core",
-        "influx_platform"
+        "influx_platform",
+        "influx_input",
+        "influx_async",
+        "influx_import",
+        "influx_shader",
+        "influx_renderer"
     }
 
     set_influx_includes(dependencies)

@@ -1,15 +1,25 @@
 #include "win32_window.h"
 
+// influx::core
+#include "core/container/map.h"
+
 // Include Windows
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <windowsx.h> // GET_X_LPARAM(), GET_Y_LPARAM()
 
-#include "core/container/map.h"
-
 namespace influx::platform
 {
 	static umap<::HWND, win32_window*> g_handle_to_window_map{};
+
+	static window::rect translate(const ::RECT& rect)
+	{
+		return window::rect(
+			static_cast<uint32>(rect.left),
+			static_cast<uint32>(rect.bottom),
+			static_cast<uint32>(rect.right - rect.left),
+			static_cast<uint32>(rect.bottom - rect.top));
+	}
 
 	static window_event::type translate_umsg(uint32 uMsg)
 	{
@@ -192,8 +202,123 @@ namespace influx::platform
 		}
 	}
 
+	window_handle win32_window::get_platform_handle() const
+	{
+		return m_handle;
+	}
+
+	window::rect win32_window::get_rect_full() const
+	{
+		::RECT res{};
+		::GetWindowRect((::HWND)m_handle, &res);
+
+		return translate(res);
+	}
+
+	window::rect win32_window::get_rect_client() const
+	{
+		::RECT res{};
+		::GetClientRect((::HWND)m_handle, &res);
+
+		return translate(res);
+	}
+
 	win32_window::~win32_window()
 	{
 		::DestroyWindow((::HWND)m_handle);
+	}
+
+
+	window_event::key_type window_event::parse_key_type() const
+	{
+		/*
+		* VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
+		* 0x3A - 0x40 : unassigned
+		* VK_A - VK_Z are the same as ASCII 'A' - 'Z' (0x41 - 0x5A) */
+		const bool is_ascii_number = m_wParam >= 0x30 && m_wParam <= 0x39;
+		if (is_ascii_number)
+		{
+			return key_type::ascii_num;
+		}
+		const bool is_ascii_character = m_wParam >= 0x41 && m_wParam <= 0x5A;
+		if (is_ascii_character)
+		{
+			return key_type::ascii_ch;
+		}
+
+		switch (m_wParam)
+		{
+		case VK_LEFT: return key_type::left;
+		case VK_RIGHT: return key_type::right;
+		case VK_UP: return key_type::up;
+		case VK_DOWN: return key_type::down;
+		case VK_HOME: return key_type::home;
+		case VK_END: return key_type::end;
+		case VK_INSERT: return key_type::insert;
+		case VK_DELETE: return key_type::deleet;
+		case VK_SHIFT: return key_type::lshift;
+		case VK_RSHIFT: return key_type::rshift;
+		case VK_CONTROL: return key_type::lctrl;
+		case VK_RCONTROL: return key_type::rctrl;
+		case VK_SPACE: return key_type::space;
+		case VK_F2: return key_type::f2;
+		default: return key_type::unknown;
+		}
+	}
+
+	char window_event::parse_ascii() const
+	{
+		return (char)m_wParam;
+	}
+
+	float window_event::parse_wheel_delta() const
+	{
+		return (float)GET_WHEEL_DELTA_WPARAM(m_wParam) / WHEEL_DELTA;
+	}
+
+	math::vectorf2 window_event::parse_position_window() const
+	{
+		POINT mouse_pos = { (LONG)GET_X_LPARAM(m_lParam), (LONG)GET_Y_LPARAM(m_lParam) };
+
+		// transform if necessary
+		if (m_mssg == WM_NCMOUSEMOVE && m_window != nullptr)
+		{
+			::ScreenToClient((HWND)m_window->get_platform_handle(), &mouse_pos);
+		}
+
+		return { (float)mouse_pos.x, (float)mouse_pos.y };
+	}
+
+	math::vectorf2 window_event::parse_position_screen() const
+	{
+		POINT mouse_pos = { (LONG)GET_X_LPARAM(m_lParam), (LONG)GET_Y_LPARAM(m_lParam) };
+
+		// transform if necessary
+		if (m_mssg == WM_MOUSEMOVE && m_window != nullptr)
+		{
+			::ClientToScreen((HWND)m_window->get_platform_handle(), &mouse_pos);
+		}
+
+		return { (float)mouse_pos.x, (float)mouse_pos.y };
+	}
+
+	window_event::mouse_button window_event::parse_mouse_button() const
+	{
+		switch (m_mssg)
+		{
+		case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK: case WM_LBUTTONUP:
+			return window_event::mouse_button::left;
+
+		case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK: case WM_RBUTTONUP:
+			return window_event::mouse_button::right;
+
+		case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK: case  WM_MBUTTONUP:
+			return window_event::mouse_button::middle;
+
+		case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK: case WM_XBUTTONUP:
+			return window_event::mouse_button::x;
+		}
+
+		return window_event::mouse_button::count;
 	}
 }

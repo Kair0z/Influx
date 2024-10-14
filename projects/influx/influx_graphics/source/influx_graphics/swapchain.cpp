@@ -40,9 +40,9 @@ namespace influx::graphics
 		mp_buffer_resources = create_resources();
 	}
 
-	void swapchain::resize(const platform::window_handle& window)
+	void swapchain::resize(const platform::window& window)
 	{
-		const auto& rect = platform::get_windowrect_client<uint32>(window);
+		const auto& rect = window.get_rect_client();
 		resize(rect.m_width_height);
 	}
 
@@ -67,10 +67,10 @@ namespace influx::graphics
 		return m_desc;
 	}
 
-	bool swapchain::needs_recreate(const platform::window_handle& window) const
+	bool swapchain::needs_recreate(const platform::window& window) const
 	{
 		// if swapchain dimensions != current window dimensions
-		const auto& rect = platform::get_windowrect_client<uint32>(window);
+		const auto& rect = window.get_rect_client();
 		return m_current_dimensions != rect.get_dimensions();
 	}
 

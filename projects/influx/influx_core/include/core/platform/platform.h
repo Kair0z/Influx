@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 // influx::core
 #include "core/basetypes.h"
 #include "core/math/vector.h"
@@ -26,3 +27,4 @@ namespace influx::platform
 
 	void set_current_directory(const string& path);
 }
+#endif

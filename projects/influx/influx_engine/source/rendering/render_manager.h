@@ -1,21 +1,19 @@
 #pragma once
 
-#include "core/platform/window.h"
-
+// influx::renderer
 namespace influx::renderer
 {
 	class target;
 	struct scene;
 }
 
-namespace influx::application
+namespace influx::engine
 {
-	class content_manager;
-
-	class renderer final
+	class render_manager final
 	{
 	public:
-		renderer(platform::window_handle window_handle);
+		render_manager(engine* engine);
+		~render_manager();
 
 		// loads application asset data into renderer (textures/meshes/shaders)
 		void load_render_assets(content_manager* cont_man);
@@ -24,8 +22,7 @@ namespace influx::application
 		void render(const influx::renderer::scene& scene);
 
 	private:
-		platform::window_handle m_window_handle;
 		influx::renderer::target* mp_window_target;
-		influx::renderer::target* mp_scene_color_target;
+		influx::renderer::target* mp_scene_target;
 	};
 }

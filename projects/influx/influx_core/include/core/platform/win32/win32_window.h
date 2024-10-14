@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 #include "core/platform/window.h"
 #include "core/basetypes.h"
 #include "core/cast.h"
@@ -472,3 +473,4 @@ namespace influx::platform
 		::MessageBoxA((::HWND)handle, message.c_str(), caption.c_str(), type_val);
 	}
 }
+#endif

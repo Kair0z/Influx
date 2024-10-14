@@ -1,4 +1,4 @@
-#include "platform.h"
+#include "influx_platform/platform.h"
 
 namespace influx::platform
 {

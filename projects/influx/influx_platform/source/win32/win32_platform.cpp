@@ -11,7 +11,7 @@ namespace influx::platform
 		return ::GetModuleHandleW(NULL);
 	}
 
-	const string& platform::get_current_directory()
+	string platform::get_current_directory()
 	{
 		wchar_t buff[MAX_PATH];
 		::GetCurrentDirectory(MAX_PATH, buff);

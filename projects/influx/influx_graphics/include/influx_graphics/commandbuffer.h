@@ -73,7 +73,7 @@ namespace influx::graphics
 #pragma endregion
 
 	// a encapsulating layer that manages underlying command allocator and GPU state
-	class commandbuffer
+	class commandbuffer : public base
 	{
 	public:
 		enum class e_state : uint8

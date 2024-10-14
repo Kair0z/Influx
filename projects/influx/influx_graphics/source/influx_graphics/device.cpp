@@ -6,6 +6,7 @@
 #endif
 #if INFLUX_VULKAN
 #include "influx_graphics/vulkan/vk_device.h"
+#include "..\..\include\influx_graphics\device.h"
 #endif
 
 namespace influx::graphics

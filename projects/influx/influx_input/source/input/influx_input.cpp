@@ -5,7 +5,8 @@
 // influx::events
 #include "influx_events.h"
 
-#include "core/platform/win32/win32_window.h"
+// influx::platform
+#include "influx_platform/window.h"
 
 namespace influx::input
 {

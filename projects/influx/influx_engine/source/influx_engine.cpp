@@ -1,59 +1,56 @@
 #include "engine_pch.h"
 
 // influx::platform
-#include "platform.h"
+#include "influx_platform/platform.h"
 
 // influx::core
 #include "core/time.h"
 #include "core/log.h"
 
-namespace influx::engine::detail
+// influx::async
+#include "influx_async.h"
+
+// influx::input
+#include "influx_input.h"
+
+// influx::engine
+#include "content/content_manager.h"
+#include "rendering/render_manager.h"
+
+namespace influx::engine
 {
-	struct frame_time final
-	{
-		float m_delta_seconds;
-		float m_time_seconds;
-
-		influx::time::point m_first_tick;
-		influx::time::point m_last_tick;
-		bool m_is_first_tick = true;
-
-		inline void tick()
-		{
-			if (m_is_first_tick)
-			{
-				m_first_tick = influx::time::get_now();
-				m_last_tick = m_first_tick;
-				m_is_first_tick = false;
-			}
-
-			const float delta_seconds = influx::time::get_ms_since<float>(m_last_tick) * 0.001f;
-			m_delta_seconds = delta_seconds;
-			m_time_seconds += delta_seconds;
-
-			m_last_tick = influx::time::get_now();
-		}
-	};
-
+	// sets up files & directory paths
 	void setup_engineconfig(game_module::config& config)
 	{
-		// builds are ran in /influx/bin/[config]/influx_game/
-		const string& root_influx = platform::platform::get_current_directory() + "/../../../";
-		config.m_file_influx_root = root_influx;
-		config.m_file_influx_resources = root_influx + "/resources/";
-		config.m_file_influx_assets = root_influx + "/assets/";
-		config.m_file_influx_staged = root_influx + "/staged/";
+		engine* engine = get_engine();
+		config.m_file_influx_root = engine->get_engine_directory(engine::e_directory::root);
+		config.m_file_influx_resources = engine->get_engine_directory(engine::e_directory::resources);
+		config.m_file_influx_assets = engine->get_engine_directory(engine::e_directory::assets);
+		config.m_file_influx_staged = engine->get_engine_directory(engine::e_directory::staged);
 	}
 
-	void run_game()
+	void engine::run(run_type type)
 	{
-		// create game object:
-		game_module* new_game = create_game();
+		switch (type)
+		{
+		case run_type::editor:
+			run_editor();
+			break;
+
+		case run_type::game:
+			run_game();
+			break;
+		}
+	}
+
+	void engine::run_game()
+	{
+		m_gamemodule = detail::create_game();
 
 		// build game config:
 		game_module::config game_config{};
 		setup_engineconfig(game_config);
-		new_game->on_config(game_config);
+		m_gamemodule->on_config(game_config);
 
 		// parse game config:
 		platform::window_desc window_desc{};
@@ -62,40 +59,94 @@ namespace influx::engine::detail
 			.set_name(game_config.m_gamename);
 
 		// make a window
-		platform::window* game_window 
-			= platform::window::create(window_desc);
+		m_window = platform::window::create(window_desc);
+
+		// initialize job system:
+		async::init_args async_args{};
+		async_args.m_num_workers = 4u;
+		async::initialize(async_args);
+
+		// initialize input and run an input thread
+		influx::input::init();
+		m_inputthread = thread([this]()
+		{
+			while (!m_is_quit_requested)
+			{
+				input::service();
+			}
+		});
+
+		// make game content
+		m_contentman = new content_manager(this);
+
+		// make renderer
+		m_renderman = new render_manager(this);
 
 		// some stack variables
 		time::point initial_tick = time::get_now();
 		time::point last_tick = initial_tick;
 		frame_time frame_time{};
-
-		// LOOP
-		bool platform_quit_event = false;
-		while (!platform_quit_event)
+		game_module::ctx_update update_ctx{};
+		while (!m_is_quit_requested)
 		{
 			frame_time.tick();
 
-			game_window->poll_events(platform_quit_event);
-			platform_quit_event |= game_window->has_quit_request();
+			m_window->poll_events(m_is_quit_requested);
+			m_is_quit_requested |= m_window->has_quit_request();
+
+			update_ctx.m_frametime = frame_time;
+			m_gamemodule->on_update(update_ctx);
 		}
 
-		// destroy the window
-		delete game_window;
-
-		// cleanup game
-		new_game->on_cleanup();
-		delete new_game;
+		// CLEANUP
+		m_gamemodule->on_cleanup();
+		delete m_window;
+		delete m_renderman;
+		delete m_contentman;
+		delete m_gamemodule;
 	}
 
-	void run_editor()
+	void engine::run_editor()
 	{
 
 	}
 
+	file engine::get_engine_directory(e_directory dir)
+	{
+		// temp: HARDCODED builds are ran in /influx/bin/[config]/influx_game/
+		const string& root = platform::platform::get_current_directory() + "/../../../";
+		switch (dir)
+		{
+		case e_directory::root:			return root;
+		case e_directory::resources:	return root + "/resources/";
+		case e_directory::assets:		return root + "/assets/";
+		case e_directory::staged:		return root + "/staged/";
+		case e_directory::binaries:		return root + "/bin/";
+		case e_directory::intermediate: return root + "/int/";
+		}
+		return {};
+	}
+
+	platform::window const* engine::get_window() const
+	{
+		return m_window;
+	}
+
+	content_manager const* engine::get_content() const
+	{
+		return m_contentman;
+	}
+
+	render_manager const* engine::get_renderer() const
+	{
+		return m_renderman;
+	}
+}
+
+namespace influx::engine::detail
+{
 	void run_engine()
 	{
-		// todo - for now just runs game...
-		run_game();
+		get_engine()->run(engine::run_type::game);
 	}
 }

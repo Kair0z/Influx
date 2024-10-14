@@ -7,6 +7,7 @@ new_influx_dll("influx_input")
     local dependencies =
     {
         "influx_core",
+        "influx_platform",
         "influx_events"
     }
     set_influx_includes(dependencies)

@@ -7,6 +7,7 @@ new_influx_dll("influx_imgui")
     local dependencies =
     {
         "influx_core",
+        "influx_platform",
         "influx_graphics",
         "influx_shader"
     }
