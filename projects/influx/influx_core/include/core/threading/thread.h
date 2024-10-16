@@ -51,6 +51,11 @@ namespace influx
 			m_thread.join();
 		}
 
+		bool joinable() const
+		{
+			return m_thread.joinable();
+		}
+
 		void detach()
 		{
 			m_thread.detach();

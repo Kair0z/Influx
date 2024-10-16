@@ -22,7 +22,7 @@ namespace influx::graphics
 
 		uint64 get_descriptor_stride(e_descriptor_heap_type type) const;
 
-		virtual void cleanup();
+		virtual void cleanup() override;
 
 		// creation:
 		virtual queue* create_queue(const queue_desc& desc) override;

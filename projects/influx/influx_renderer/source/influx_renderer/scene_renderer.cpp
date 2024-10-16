@@ -235,7 +235,11 @@ namespace influx::renderer
     {
         // get the pipeline
         mp_pipeline = mp_backend->get_pipeline_manager()->get_scene_pipeline();
-        influx_assert(mp_pipeline);
+        if (mp_pipeline == nullptr)
+        {
+            logonce(e_log_category::warning, "influx::renderer::scene_renderer: no scene pipeline!");
+            return;
+        }
 
         // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
         mp_pipeline->set_state(commandlist);
@@ -258,6 +262,7 @@ namespace influx::renderer
 
     void scene_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)
     {
+        
         m_gpu_perscene.m_delta_seconds = scene.m_delta_seconds;
         m_gpu_perscene.m_seconds = scene.m_seconds;
 

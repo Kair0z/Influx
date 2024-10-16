@@ -36,7 +36,6 @@ namespace influx::renderer
 	{
 		if (!m_pipeline_map.contains(name))
 		{
-			influx_assert(false);
 			return nullptr;
 		}
 
@@ -45,7 +44,13 @@ namespace influx::renderer
 
 	pipeline* pipeline_manager::get_scene_pipeline()
 	{
-		return get_pipeline(k_scene_pipeline_name);
+		pipeline* scene_pipeline = get_pipeline(k_scene_pipeline_name);
+		if (!scene_pipeline)
+		{
+			return nullptr;
+		}
+
+		return scene_pipeline;
 	}
 
 	uint64 pipeline_manager::get_num_pipelines() const

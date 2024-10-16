@@ -18,21 +18,51 @@ namespace influx::engine
 {
 	content_manager::content_manager(engine* engine)
 	{
-		const auto& resource_dir = engine->get_engine_directory(engine::e_directory::resources);
-		const auto& interm_dir = engine->get_engine_directory(engine::e_directory::intermediate);
+		// kick-off loading thread
+		m_loading_thread = thread([this, engine]()
+		{
+			while (engine->is_quit() == false)
+			{
+				if (m_is_loading)
+				{
+					// wait for all jobs to complete
+					async::wait_for_all();
 
-		logn("loading assets ... :3");
-		time::point time_before_load = time::get_now();
+					float seconds_since_load = time::get_ms_since<float>(m_start_engine_resources) * 0.001f;
+					logonce(e_log_category::normal, "finished loading engine resources in {} seconds", seconds_since_load);
 
-		vector<file> fbx_files = get_files_in_directory(resource_dir.m_path_full, true, ".fbx");
-		vector<file> png_files = get_files_in_directory(resource_dir.m_path_full, true, ".png");
-		vector<file> hlsl_files = get_files_in_directory(resource_dir.m_path_full, true, ".hlsl");
+					m_is_loading = false;
+				}
+			}
+		});
+
+		// kick-off engine resources load
+		load_engine_resources(engine);
+	}
+
+	content_manager::~content_manager()
+	{
+		if (m_loading_thread.joinable())
+			m_loading_thread.join();
+	}
+
+	void content_manager::load_engine_resources(engine* engine)
+	{
+		static const auto& resource_dir = engine->get_engine_directory(engine::e_directory::resources);
+		static const auto& interm_dir = engine->get_engine_directory(engine::e_directory::intermediate);
+
+		logn("loading engine resources ... :3");
+		m_start_engine_resources = time::get_now();
+
+		static vector<file> fbx_files = get_files_in_directory(resource_dir.m_path_full, true, ".fbx");
+		static vector<file> png_files = get_files_in_directory(resource_dir.m_path_full, true, ".png");
+		static vector<file> hlsl_files = get_files_in_directory(resource_dir.m_path_full, true, ".hlsl");
 
 		// load fbxs
 		async::dispatch_for<file>(fbx_files, [this](const file& file)
 		{
 			imp::scene_load_args args{};
-			imp::scene_data& scene_data = m_scenes[file.m_filename];
+			imp::scene_data& scene_data = m_scenes[file.m_filename].m_item;
 			imp::load_scene_file(file.m_path_full, scene_data, args);
 		});
 
@@ -40,15 +70,15 @@ namespace influx::engine
 		async::dispatch_for<file>(png_files, [this](const file& file)
 		{
 			imp::image_load_args args{};
-			imp::image_data& texture_data = m_images[file.m_filename];
+			imp::image_data& texture_data = m_images[file.m_filename].m_item;
 			imp::load_image_file(file.m_path_full, texture_data, args);
 		});
 
 		// load hlsls
-		async::dispatch_for<file>(hlsl_files, [this, &interm_dir, &resource_dir](const file& file)
+		async::dispatch_for<file>(hlsl_files, [this](const file& file)
 		{
-			imp::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"];
-			imp::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"];
+			imp::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"].m_item;
+			imp::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"].m_item;
 
 			shader::compile_args compile_args{};
 			compile_args.m_target = shader::e_shader_target::_6_6;
@@ -72,28 +102,20 @@ namespace influx::engine
 			influx_assert(imp::load_shader_file(file.m_path_full, shader_data_ps, compile_args));
 		});
 
-		// wait for all jobs to complete
-		async::wait_for_all();
-
-		logn("finished loading assets in {} seconds", time::get_ms_since<float>(time_before_load) * 0.001f);
+		m_is_loading = true;
 	}
 
-	content_manager::~content_manager()
-	{
-
-	}
-
-	const map<string, imp::scene_data>& content_manager::get_scenes() const
+	const map<string, content_manager::scene_item>& content_manager::get_scenes() const
 	{
 		return m_scenes;
 	}
 
-	const map<string, imp::image_data>& content_manager::get_images() const
+	const map<string, content_manager::image_item>& content_manager::get_images() const
 	{
 		return m_images;
 	}
 
-	const map<string, imp::shader_data>& content_manager::get_shaders() const
+	const map<string, content_manager::shader_item>& content_manager::get_shaders() const
 	{
 		return m_shaders;
 	}

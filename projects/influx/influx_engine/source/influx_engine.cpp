@@ -107,6 +107,8 @@ namespace influx::engine
 			m_renderman->render(scene);
 		}
 
+		m_is_quit = true;
+
 		// CLEANUP
 		m_gamemodule->on_cleanup();
 		delete m_window;
@@ -149,6 +151,11 @@ namespace influx::engine
 	render_manager const* engine::get_renderer() const
 	{
 		return m_renderman;
+	}
+	
+	bool engine::is_quit() const
+	{
+		return m_is_quit;
 	}
 }
 

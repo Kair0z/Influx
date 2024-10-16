@@ -89,13 +89,13 @@ namespace influx::engine
 		for (const auto& asset : cont_man->get_scenes())
 		{
 			// todo: for now, only loading the first mesh...
-			load_to_renderer(asset.second.m_meshes[0], asset.first);
+			load_to_renderer(asset.second.m_item.m_meshes[0], asset.first);
 		}
 
 		// TEXTURES
 		for (const auto& asset : cont_man->get_images())
 		{
-			load_to_renderer(asset.second, asset.first);
+			load_to_renderer(asset.second.m_item, asset.first);
 		}
 
 		// SHADERS
@@ -103,11 +103,11 @@ namespace influx::engine
 #if 0
 		for (const auto& asset : cont_man->get_shaders())
 		{
-			load_to_renderer(asset.second, asset.first);
+			load_to_renderer(asset.second.m_item, asset.first);
 		}
 #else
-		const imp::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs");
-		const imp::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps");
+		const imp::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs").m_item;
+		const imp::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps").m_item;
 		load_to_renderer(vs_shader, "shaders_vs");
 		load_to_renderer(ps_shader, "shaders_ps");
 #endif

@@ -46,6 +46,8 @@ namespace influx::engine
 
 		render_manager const* get_renderer() const;
 
+		bool is_quit() const;
+
 	private:
 		void run_game();
 		void run_editor();
@@ -59,6 +61,8 @@ namespace influx::engine
 		platform::window* m_window = nullptr;
 		content_manager* m_contentman = nullptr;
 		render_manager* m_renderman = nullptr;
+
+		bool m_is_quit = false;
 	};
 
 	inline static engine* get_engine()

@@ -87,15 +87,23 @@ namespace influx::graphics
 
 		virtual void* get_native() = 0;
 
+		bool is_initialized() const;
+
+		virtual ~device() = default;
+
 	private:
 		vector<base*> mp_children = {};
 		e_api_type m_type{};
+		bool m_is_initialized = false;
 
 	protected:
 		device(const device_desc& desc)
-			: m_desc{ desc } {}
+			: m_desc{ desc } 
+			, m_is_initialized{ true } {}
 
 		device_desc m_desc{};
+
+		void set_initialized(bool initialized);
 
 		graphics::queue* m_compute_queue;
 		graphics::queue* m_graphics_queue;

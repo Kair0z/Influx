@@ -53,4 +53,7 @@ namespace influx
 	{
 		log(e_log_category::warning, format, args...);
 	}
+
+#define logonce(cat, format, ...) \
+	{ static bool once = true; if (once == true) { once = false; log(cat, format, __VA_ARGS__); } }
 }

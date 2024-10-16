@@ -142,6 +142,7 @@ namespace influx::graphics
 
 		mpdxgi_factory->Release();
 
+		set_initialized(false);
 	}
 
 	// get info about physical devices:

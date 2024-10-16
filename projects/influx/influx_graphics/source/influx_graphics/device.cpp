@@ -60,4 +60,14 @@ namespace influx::graphics
 			break;
 		}
 	}
+
+	bool device::is_initialized() const
+	{
+		return m_is_initialized;
+	}
+
+	void device::set_initialized(bool initialized)
+	{
+		m_is_initialized = initialized;
+	}
 }
