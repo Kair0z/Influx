@@ -13,6 +13,9 @@
 // influx::input
 #include "influx_input.h"
 
+// influx::renderer
+#include "influx_renderer/scene.h"
+
 // influx::engine
 #include "content/content_manager.h"
 #include "rendering/render_manager.h"
@@ -81,6 +84,7 @@ namespace influx::engine
 
 		// make renderer
 		m_renderman = new render_manager(this);
+		//m_renderman->load_render_assets(m_contentman);
 
 		// some stack variables
 		time::point initial_tick = time::get_now();
@@ -96,6 +100,11 @@ namespace influx::engine
 
 			update_ctx.m_frametime = frame_time;
 			m_gamemodule->on_update(update_ctx);
+
+			// make renderscene
+			renderer::scene scene{};
+
+			m_renderman->render(scene);
 		}
 
 		// CLEANUP

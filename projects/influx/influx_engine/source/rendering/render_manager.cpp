@@ -180,6 +180,18 @@ namespace influx::engine
 
 	void render_manager::render(const influx::renderer::scene& scene)
 	{
-		
+		platform::window const* window = get_engine()->get_window();
+		influx_assert(window != nullptr);
+
+		// updates the window target
+		mp_window_target 
+			= influx::renderer::get_window_target(*window);
+
+		influx::renderer::draw_scene(scene, *mp_scene_target);
+		influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
+
+		influx::renderer::present_args present_args{};
+		present_args.m_vsync = true;
+		influx::renderer::present_swapchain(present_args);
 	}
 }

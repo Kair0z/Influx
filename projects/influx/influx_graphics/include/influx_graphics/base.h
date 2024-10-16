@@ -45,8 +45,10 @@ namespace influx::graphics
 #endif
 
 	protected:
-		void* mp_native;
+		base() = default;
+		virtual ~base() = default;
 
+		void* mp_native;
 #if _DEBUG
 		string m_debug_name;
 		virtual void set_name_impl(const string& new_name) { }

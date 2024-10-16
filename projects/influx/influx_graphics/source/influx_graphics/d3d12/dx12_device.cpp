@@ -6,6 +6,7 @@
 #include "influx_graphics/d3d12/dx12_helpers.h"
 
 // subheaders
+#include "influx_graphics/d3d12/dx12_base.h"
 #include "influx_graphics/d3d12/dx12_queue.h"
 #include "influx_graphics/d3d12/dx12_fence.h"
 #include "influx_graphics/d3d12/dx12_swapchain.h"
@@ -120,17 +121,27 @@ namespace influx::graphics
 
 	void dx12_device::cleanup()
 	{
-		// release the native objects
-		for (base* child : m_children)
-		{
-		}
-
-		for (base* child : m_children)
+		for (dx12_base* child : m_children)
 		{
 			delete child;
+			child = nullptr;
 		}
 
 		m_children.clear();
+		
+		for (size_t i = 0u; i < mpdx_devices.size(); ++i)
+		{
+			if (mpdx_devices[i] != nullptr)
+				mpdx_devices[i]->Release();
+		}
+
+		for (size_t i = 0u; i < mpdxgi_adapters.size(); ++i)
+		{
+			mpdxgi_adapters[i]->Release();
+		}
+
+		mpdxgi_factory->Release();
+
 	}
 
 	// get info about physical devices:

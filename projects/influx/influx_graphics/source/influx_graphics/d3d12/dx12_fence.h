@@ -1,11 +1,14 @@
 #pragma once 
 #include "influx_graphics/fence.h"
+#include "influx_graphics/d3d12/dx12_base.h"
 
 struct ID3D12Fence;
 
 namespace influx::graphics
 {
-	class dx12_fence final : public fence
+	class dx12_fence final 
+		: public fence
+		, public dx12_base
 	{
 	public:
 		dx12_fence(ID3D12Fence* fence);

@@ -8,6 +8,7 @@ namespace influx::graphics
 		: rootsignature(desc, name_to_paramidx)
 	{
 		mp_native = mpdx_rootsignature = rootsignature;
+		set_releasable(mpdx_rootsignature);
 	}
 }
 

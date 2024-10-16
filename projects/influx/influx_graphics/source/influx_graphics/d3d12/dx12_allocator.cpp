@@ -9,5 +9,11 @@ namespace influx::graphics
 		: mpdx_allocator{ allocator }
 	{
 		mp_native = mpdx_allocator = allocator;
+		set_releasable(mpdx_allocator);
+	}
+
+	dx12_command_allocator::~dx12_command_allocator()
+	{
+		
 	}
 }

@@ -65,8 +65,11 @@ namespace influx::graphics
 
 		INFLUX_GFX_API e_format get_format() const;
 
+		INFLUX_GFX_API void destroy_resources();
+
 	protected:
 		swapchain(const swapchain_desc& desc, const swapchain_dependencies& dependencies);
+		virtual ~swapchain();
 
 		void update_backbuffer_index(uint8 new_index);
 

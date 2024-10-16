@@ -9,6 +9,7 @@ struct ID3D12Device;
 namespace influx::graphics
 {
 	class dx12_queue;
+	class dx12_base;
 }
 
 namespace influx::graphics
@@ -67,13 +68,14 @@ namespace influx::graphics
 		dx12_queue* m_dx_queue_compute = nullptr;
 		dx12_queue* m_dx_queue_copy = nullptr;
 
-		vector<base*> m_children;
+		vector<dx12_base*> m_children;
 
 		template <typename _t, typename _tret, typename ..._args>
 		inline _tret* new_child(_args&&... args)
 		{
-			m_children.push_back(new _t(std::forward<_args>(args)...));
-			return (_tret*)m_children.back();
+			_t* new_child = new _t(std::forward<_args&&>(args)...);
+			m_children.push_back(new_child);
+			return (_tret*)new_child;
 		}
 	};
 }

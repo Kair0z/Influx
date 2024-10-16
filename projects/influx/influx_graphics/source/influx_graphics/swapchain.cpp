@@ -14,6 +14,11 @@ namespace influx::graphics
 	{
 	}
 
+	swapchain::~swapchain()
+	{
+		destroy_resources();
+	}
+
 	void swapchain::update_backbuffer_index(uint8 new_index)
 	{
 		m_current_backbuffer_index = new_index;
@@ -26,12 +31,7 @@ namespace influx::graphics
 
 	void swapchain::resize(const math::vectoru2& new_dimensions)
 	{
-		// destroy resources & rtvs
-		for (resource* res : mp_buffer_resources)
-		{
-			delete res;
-			res = nullptr;
-		}
+		destroy_resources();
 
 		// update current dimensions
 		m_current_dimensions = new_dimensions;
@@ -87,6 +87,15 @@ namespace influx::graphics
 	e_format swapchain::get_format() const
 	{
 		return m_desc.m_format;
+	}
+
+	void swapchain::destroy_resources()
+	{
+		for (uint64 i = 0u; i < mp_buffer_resources.size(); ++i)
+		{
+			delete mp_buffer_resources[i];
+			mp_buffer_resources[i] = nullptr;
+		}
 	}
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "influx_graphics/commandlist.h"
+#include "influx_graphics/d3d12/dx12_base.h"
 
 struct ID3D12CommandList;
 struct ID3D12GraphicsCommandList;
@@ -10,7 +11,9 @@ namespace influx::graphics
 	class pipeline;
 	class render_target_view;
 
-	class dx12_commandlist final : public commandlist
+	class dx12_commandlist final 
+		: public commandlist
+		, public dx12_base
 	{
 	public:
 		dx12_commandlist(ID3D12GraphicsCommandList* commandlist);

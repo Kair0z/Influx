@@ -1,6 +1,6 @@
 #pragma once
 #include "influx_graphics/commandbuffer.h"
-
+#include "influx_graphics/d3d12/dx12_base.h"
 namespace influx::graphics
 {
 	class dx12_queue;
@@ -9,7 +9,9 @@ namespace influx::graphics
 
 namespace influx::graphics
 {
-	class dx12_commandbuffer final : public commandbuffer
+	class dx12_commandbuffer final 
+		: public commandbuffer
+		, public dx12_base
 	{
 	public:
 		dx12_commandbuffer(graphics::dx12_queue* queue, graphics::dx12_fence* fence);

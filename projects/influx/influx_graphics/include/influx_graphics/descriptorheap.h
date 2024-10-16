@@ -30,6 +30,8 @@ namespace influx::graphics
 	class descriptor_heap : public base
 	{
 	public:
+		virtual ~descriptor_heap() = default;
+
 		struct create_args final
 		{
 			create_args() = default;

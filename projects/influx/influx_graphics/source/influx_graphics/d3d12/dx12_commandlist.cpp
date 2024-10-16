@@ -16,6 +16,7 @@ namespace influx::graphics
 	dx12_commandlist::dx12_commandlist(ID3D12GraphicsCommandList* commandlist)
 	{
 		mp_native = mpdx_commandlist = mpdx_graphics_commandlist = commandlist;
+		set_releasable(mpdx_commandlist);
 	}
 
 	void dx12_commandlist::start(command_allocator* allocator, pipeline* init_state)

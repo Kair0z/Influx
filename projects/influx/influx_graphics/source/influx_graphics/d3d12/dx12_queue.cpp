@@ -11,6 +11,7 @@ namespace influx::graphics
 		: queue(desc)
 	{
 		mp_native = mpdx_queue = queue;
+		set_releasable(mpdx_queue);
 	}
 
 	void dx12_queue::submit_commandlists(const vector<commandlist*>& commandlists)

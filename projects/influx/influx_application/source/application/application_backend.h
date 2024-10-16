@@ -7,6 +7,9 @@
 #include "core/singleton.h"
 #include "core/threading/thread.h"
 
+#include "influx_platform/window.h"
+#include "influx_platform/application.h"
+
 namespace influx::application
 {
 	class editor;

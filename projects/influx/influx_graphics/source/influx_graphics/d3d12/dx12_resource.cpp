@@ -9,6 +9,7 @@ namespace influx::graphics
 		: resource(desc)
 	{
 		mp_native = mpdx_resource = resource;
+		set_releasable(mpdx_resource);
 	}
 
 	dx12_resource::dx12_resource(ID3D12Resource* resource, const buffer_desc& desc)

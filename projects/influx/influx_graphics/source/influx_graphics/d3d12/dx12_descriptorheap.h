@@ -1,12 +1,15 @@
 #pragma once 
 #include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/d3d12/dx12_base.h"
 #include <list>
 
 struct ID3D12DescriptorHeap;
 
 namespace influx::graphics
 {
-	class dx12_descriptor_heap final : public descriptor_heap
+	class dx12_descriptor_heap final 
+		: public descriptor_heap
+		, public dx12_base
 	{
 	public:
 		dx12_descriptor_heap(const descriptor_heap::create_args& args, 
