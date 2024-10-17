@@ -9,12 +9,14 @@ public:
 class game final : public influx::engine::game_module
 {
 public:
-	virtual void on_config(config& config) override
+	virtual void on_config(influx::engine::app_config& app, influx::engine::game_config& game) override
 	{
-		config
+		app
+			.set_window_dim({ 640u, 480u });
+
+		game
 			.set_gamefile("")
-			.set_name("influx_game")
-			.set_window_dim({640u, 480u});
+			.set_name("influx_game");
 	}
 
 	virtual void on_start() override

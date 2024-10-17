@@ -9,6 +9,7 @@
 // influx::engine
 #include "game/game.h"
 #include "editor/editor.h"
+#include "config.h"
 
 namespace influx::engine
 {
@@ -41,10 +42,9 @@ namespace influx::engine
 	class game_module
 	{
 	public:
-		struct config;
 		struct ctx_update;
 
-		virtual void on_config(config&);
+		virtual void on_config(app_config&, game_config&);
 		virtual void on_start();
 		virtual void on_level_loaded();
 		virtual void on_update(const ctx_update& ctx);
@@ -53,29 +53,11 @@ namespace influx::engine
 		void load_level(level* level);
 		void load_level(const string& levelname);
 		level const* get_current_level() const;
-		const config& get_config() const;
+		const game_config& get_config() const;
 
 		virtual ~game_module() = default;
 
 	public:
-		struct config final
-		{
-			using self = config;
-			self& set_gamefile(const string& file);
-			self& set_window_dim(const math::vectoru2& dim);
-			self& set_name(const string& name);
-
-			string m_gamefile_path;
-			string m_gamename;
-			math::vectoru2 m_window_dimensions;
-
-			// setup by the engine
-			file m_file_influx_root;
-			file m_file_influx_assets;
-			file m_file_influx_staged;
-			file m_file_influx_resources;
-		};
-
 		struct ctx_update final
 		{
 			frame_time m_frametime;
@@ -85,12 +67,13 @@ namespace influx::engine
 		};
 
 	private:
-		config m_config;
+		game_config m_config;
 	};
 
 	class editor_module
 	{
 	public:
+		virtual void on_config(app_config&, editor_config&);
 		virtual void on_imgui();
 
 		virtual ~editor_module() = default;
@@ -103,9 +86,11 @@ namespace influx::engine::detail
 	extern editor_module* create_editor();
 
 #define influx_engine_game(x) \
-	influx::engine::game_module* influx::engine::detail::create_game() { return new x(); } 
+	influx::engine::game_module* influx::engine::detail::create_game() { return new x(); } \
+	influx::engine::editor_module* influx::engine::detail::create_editor() { return nullptr; } 
 
 #define influx_engine_editor(x) \
-	influx::engine::editor_module* influx::engine::detail::create_editor() { return new x(); }
+	influx::engine::editor_module* influx::engine::detail::create_editor() { return new x(); } \
+	influx::engine::game_module* influx::engine::detail::create_game() { return nullptr; } 
 }
 

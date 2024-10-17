@@ -36,7 +36,7 @@ namespace influx::engine
 			count
 		};
 
-		void run(run_type type);
+		void run();
 
 		file get_engine_directory(e_directory dir);
 
@@ -55,8 +55,13 @@ namespace influx::engine
 		bool m_is_quit_requested = false;
 		game_module* m_gamemodule = nullptr;
 		editor_module* m_editormodule = nullptr;
+		engine_config m_config;
+		app_config m_app_config;
 		run_type m_runtype;
 		thread m_inputthread;
+
+		time::point m_t_init;
+		time::point m_t_start;
 
 		platform::window* m_window = nullptr;
 		content_manager* m_contentman = nullptr;

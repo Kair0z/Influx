@@ -48,15 +48,15 @@ namespace influx::engine
 
 	void content_manager::load_engine_resources(engine* engine)
 	{
-		static const auto& resource_dir = engine->get_engine_directory(engine::e_directory::resources);
-		static const auto& interm_dir = engine->get_engine_directory(engine::e_directory::intermediate);
+		const auto& resource_dir = engine->get_engine_directory(engine::e_directory::resources);
+		const auto& interm_dir = engine->get_engine_directory(engine::e_directory::intermediate);
 
 		logn("loading engine resources ... :3");
 		m_start_engine_resources = time::get_now();
 
-		static vector<file> fbx_files = get_files_in_directory(resource_dir.m_path_full, true, ".fbx");
-		static vector<file> png_files = get_files_in_directory(resource_dir.m_path_full, true, ".png");
-		static vector<file> hlsl_files = get_files_in_directory(resource_dir.m_path_full, true, ".hlsl");
+		vector<file> fbx_files = get_files_in_directory(resource_dir.m_path_full, true, ".fbx");
+		vector<file> png_files = get_files_in_directory(resource_dir.m_path_full, true, ".png");
+		vector<file> hlsl_files = get_files_in_directory(resource_dir.m_path_full, true, ".hlsl");
 
 		// load fbxs
 		async::dispatch_for<file>(fbx_files, [this](const file& file)
@@ -75,7 +75,7 @@ namespace influx::engine
 		});
 
 		// load hlsls
-		async::dispatch_for<file>(hlsl_files, [this](const file& file)
+		async::dispatch_for<file>(hlsl_files, [this, resource_dir, interm_dir](const file& file)
 		{
 			imp::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"].m_item;
 			imp::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"].m_item;
