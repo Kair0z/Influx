@@ -114,7 +114,7 @@ namespace influx::engine
 			
 			// render
 			renderer::scene scene{};
-			m_renderman->render(scene);
+			m_renderman->render(&scene);
 		}
 
 		m_gamemodule->on_cleanup();
@@ -147,12 +147,15 @@ namespace influx::engine
 			m_window->poll_events(m_is_quit_requested);
 			m_is_quit_requested |= m_window->has_quit_request();
 
-			// update
-			m_editormodule->on_imgui();
+			// imgui
+			m_renderman->record_imgui_frame([this]()
+			{
+				m_editormodule->on_imgui();
+			});
 
 			// render
 			renderer::scene scene{};
-			m_renderman->render(scene);
+			m_renderman->render(&scene);
 		}
 
 		delete m_window;

@@ -14,7 +14,7 @@ public:
 
 	virtual void on_imgui() override
 	{
-		
+		editor_module::on_imgui();
 	}
 };
 influx_engine_editor(editor);

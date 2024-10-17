@@ -1,4 +1,5 @@
 #include "engine_pch.h"
+#include "imgui/imgui.h"
 
 namespace influx::engine
 {
@@ -8,5 +9,10 @@ namespace influx::engine
 
 	void editor_module::on_imgui()
 	{
+		if (ImGui::BeginMainMenuBar())
+		{
+
+			ImGui::EndMainMenuBar();
+		}
 	}
 }
