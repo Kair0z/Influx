@@ -1,3 +1,4 @@
+#if 0
 #include "influx_engine.h"
 #include "engine/entrypoint.h"
 
@@ -15,6 +16,29 @@ public:
 	virtual void on_imgui() override
 	{
 		editor_module::on_imgui();
+
+		if (ImGui::Begin("influx editor"))
+		{
+			// ...
+			ImGui::End();
+		}
 	}
 };
 influx_engine_editor(editor);
+#endif
+
+#include "core/events/event_queue.h"
+int main()
+{
+	struct eve
+	{
+		int a;
+	};
+
+	struct adam
+	{
+		int b;
+	};
+
+	influx::events::event_queue<eve, adam> m_event_queue{};
+}

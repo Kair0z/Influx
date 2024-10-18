@@ -199,6 +199,11 @@ namespace influx::engine
 		mp_imgui_drawdata = ImGui::GetDrawData();
 	}
 
+	void render_manager::prerender()
+	{
+
+	}
+
 	void render_manager::render(influx::renderer::scene const* scene)
 	{
 		if (mp_imgui_drawdata == nullptr && scene == nullptr)

@@ -25,8 +25,12 @@ namespace influx::input
 	INFLUX_INPUT_API void init(const init_args& args = {});
 
 	// 2. subscribe to events
-	// (see event subscribing)
-	
+	using key_callback = function<void(const key_event& ev)>;
+	INFLUX_INPUT_API void subscribe(const key_callback&);
+
+	using mouse_callback = function<void(const mouse_event& ev)>;
+	INFLUX_INPUT_API void subscribe(const mouse_callback&);
+
 	// 3. call this function from any thread to pump the input queue
 	struct service_args final
 	{
@@ -38,12 +42,6 @@ namespace influx::input
 	INFLUX_INPUT_API void cleanup();
 
 	// event subscribing
-	using key_callback = function<void(const key_event& ev)>;
-	INFLUX_INPUT_API void subscribe(const key_callback&);
-
-	using mouse_callback = function<void(const mouse_event& ev)>;
-	INFLUX_INPUT_API void subscribe(const mouse_callback&);
-
 	INFLUX_INPUT_API void subscribe_keydown(const function<void(e_key)>& keydown_callback);
 	INFLUX_INPUT_API void subscribe_asciidown(const function<void(char)>& keydown_callback);
 

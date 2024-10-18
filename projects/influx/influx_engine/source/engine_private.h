@@ -51,6 +51,7 @@ namespace influx::engine
 	private:
 		void run_game();
 		void run_editor();
+		void initialize_windowed_renderer(const app_config& config);
 
 		bool m_is_quit_requested = false;
 		game_module* m_gamemodule = nullptr;

@@ -127,15 +127,7 @@ namespace influx::engine
 		editor_config config{};
 		m_editormodule->on_config(m_app_config, config);
 
-		// make a window
-		platform::window_desc window_desc{};
-		window_desc
-			.set_dimensions(m_app_config.m_window_dimensions)
-			.set_name("influx editor");
-		m_window = platform::window::create(window_desc);
-
-		// make renderer
-		m_renderman = new render_manager(this);
+		initialize_windowed_renderer(m_app_config);
 
 		frame_time frame_time{};
 		while (!m_is_quit_requested)
@@ -147,7 +139,8 @@ namespace influx::engine
 			m_window->poll_events(m_is_quit_requested);
 			m_is_quit_requested |= m_window->has_quit_request();
 
-			// imgui
+			m_renderman->prerender();
+
 			m_renderman->record_imgui_frame([this]()
 			{
 				m_editormodule->on_imgui();
@@ -159,6 +152,24 @@ namespace influx::engine
 		}
 
 		delete m_window;
+	}
+
+	void engine::initialize_windowed_renderer(const app_config& config)
+	{
+		// make a window
+		platform::window_desc window_desc{};
+		window_desc
+			.set_dimensions(config.m_window_dimensions)
+			.set_name("influx editor");
+
+		m_window = platform::window::create(window_desc);
+		if (m_window == nullptr)
+		{
+			logonce(e_log_category::warning, "influx_engine::engine: window::create() failed!");
+		}
+
+		// make renderer
+		m_renderman = new render_manager(this);
 	}
 
 	file engine::get_engine_directory(e_directory dir)
