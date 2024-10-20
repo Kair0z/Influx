@@ -7,6 +7,7 @@ new_influx_app("influx_editor")
         "influx_engine",
         "influx_renderer",
         "influx_graphics",
+        "influx_shader",
         "influx_import",
         "influx_input",
         "influx_async"

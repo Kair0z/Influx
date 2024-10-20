@@ -75,6 +75,7 @@ namespace influx::engine
 	public:
 		virtual void on_config(app_config&, editor_config&);
 		virtual void on_imgui();
+		virtual void on_cleanup();
 
 		virtual ~editor_module() = default;
 	};

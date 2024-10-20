@@ -15,4 +15,8 @@ namespace influx::engine
 			ImGui::EndMainMenuBar();
 		}
 	}
+
+	void editor_module::on_cleanup()
+	{
+	}
 }

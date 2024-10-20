@@ -10,16 +10,21 @@
 
 namespace influx::input
 {
+	using input_event_queue = 
+		events::event_queue<key_event, mouse_event>;
+
+	using input_event = input_event_queue::my_event;
+
 	class global_state final : public singleton<global_state>
 	{
 	public:
-		static events::event_queue*& get_queue()
+		static input_event_queue*& get_queue()
 		{
 			return get_instance().mp_event_queue;
 		}
 
 	private:
-		events::event_queue* mp_event_queue;
+		input_event_queue* mp_event_queue;
 	};
 
 	template <typename _t, typename ..._args>
@@ -40,17 +45,16 @@ namespace influx::input
 		return new_event;
 	}
 
-	void push(key_event* key_ev)
+	template <typename _evtype, typename... _args>
+	void push(_args&&... args)
 	{
-		events::event ev { key_ev };
-
-		global_state::get_queue()->push(ev);
+		global_state::get_queue()->push<key_event>(args);
 	}
 
 	void init(const init_args& args)
 	{
 		// create the events::queue
-		global_state::get_queue() = new events::event_queue();
+		global_state::get_queue() = new input_event_queue();
 	}
 
 	void subscribe_keydown(const function<void(e_key)>& keydown_callback)
@@ -182,7 +186,7 @@ namespace influx::input
 		// push into the queue
 		if (data != nullptr)
 		{
-			global_state::get_queue()->push(events::event{ data });
+			//global_state::get_queue()->push(data);
 		}
 	}
 
@@ -192,20 +196,18 @@ namespace influx::input
 		key_event* new_event_copy = allocate<key_event>(ev);
 
 		// push into queue
-		global_state::get_queue()->push(events::event{ new_event_copy });
+		// global_state::get_queue()->push(events::event{ new_event_copy });
 	}
 
 	void push_external_event(const mouse_event& ev)
 	{
-		// make a copy
-		mouse_event* new_event_copy = allocate<mouse_event>(ev);
-
 		// push into queue
-		global_state::get_queue()->push(events::event{ new_event_copy });
+		global_state::get_queue()->push<mouse_event>(ev);
 	}
 
 	void subscribe(const key_callback& callback)
 	{
+#if 0
 		auto this_callback = [callback](const events::event& ev)
 		{
 			key_event* key_ev = reinterpret_cast<key_event*>(ev.get_data());
@@ -216,10 +218,12 @@ namespace influx::input
 		};
 
 		global_state::get_queue()->subscribe(this_callback);
+#endif
 	}
 
 	void subscribe(const mouse_callback& callback)
 	{
+#if 0
 		auto this_callback = [callback](const events::event& ev)
 		{
 			mouse_event* mouse_ev = reinterpret_cast<mouse_event*>(ev.get_data());
@@ -230,6 +234,7 @@ namespace influx::input
 		};
 
 		global_state::get_queue()->subscribe(this_callback);
+#endif
 	}
 
 	void cleanup()
@@ -239,8 +244,7 @@ namespace influx::input
 
 	void service(const service_args& args)
 	{
-		events::event_queue::service_args translated{ args.m_max_events_to_service };
-		global_state::get_queue()->service(translated);
+		global_state::get_queue()->process();
 	}
 
 	string key_event::to_string() const

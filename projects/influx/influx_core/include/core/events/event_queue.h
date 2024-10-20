@@ -3,6 +3,7 @@
 #include "core/function.h"
 #include "core/basetypes.h"
 #include "core/container/containers.h"
+#include "core/function.h"
 
 #include <mutex>
 
@@ -26,15 +27,25 @@ namespace influx::events
 			delete m_eventpool;
 		}
 
-		void subscribe(const my_event_handler& handler)
+		template <typename _ev, typename _func>
+		void subscribe(_func&& handler)
 		{
-			m_subscribers.push_back(handler);
+			m_subscribers.push_back([handler](const my_event& generic_event)
+			{
+				if (_ev const* eventdata = generic_event.get_if<_ev>())
+				{
+					handler(*eventdata);
+				}
+			});
 		}
 
-		void push(const my_event& ev)
+		template <typename _ev, class ..._args>
+		void push(_args&&... args)
 		{
 			m_mutex.lock();
-			m_eventqueue.push(m_eventpool->allocate_lockless());
+			my_event* new_event = m_eventpool->allocate_lockless();
+			new_event->set<_ev>(std::forward<_args>(args)...);
+			m_eventqueue.push(new_event);
 			m_mutex.unlock();
 		}
 
@@ -57,7 +68,7 @@ namespace influx::events
 				// call subscriber callbacks
 				for (const my_event_handler& sub : m_subscribers)
 				{
-					sub(current_event);
+					sub(*current_event);
 				}
 
 				m_eventpool->free_lockless(current_event);
@@ -72,7 +83,7 @@ namespace influx::events
 			m_mutex.lock();
 			while (!m_eventqueue.empty())
 			{
-				event* ev = m_eventqueue.front();
+				my_event* ev = m_eventqueue.front();
 				m_eventqueue.pop();
 
 				m_eventpool->free_lockless(ev);

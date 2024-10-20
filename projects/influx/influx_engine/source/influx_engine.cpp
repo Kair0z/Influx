@@ -151,6 +151,7 @@ namespace influx::engine
 			m_renderman->render(&scene);
 		}
 
+		m_editormodule->on_cleanup();
 		delete m_window;
 	}
 
@@ -175,7 +176,7 @@ namespace influx::engine
 	file engine::get_engine_directory(e_directory dir)
 	{
 		// temp: HARDCODED builds are ran in /influx/bin/[config]/influx_game/
-		const string& root = platform::platform::get_current_directory() + "/../../../";
+		const string& root = platform::platform::get_current_directory() + "/../../";
 		switch (dir)
 		{
 		case e_directory::root:			return root;
