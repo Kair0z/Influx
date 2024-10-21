@@ -7,9 +7,10 @@ namespace influx::graphics
 {
 	dx12_base::~dx12_base()
 	{
-		if (mp_releasable)
+		if (mp_releasable != nullptr)
 		{
 			mp_releasable->Release();
+			mp_releasable = nullptr;
 		}
 	}
 

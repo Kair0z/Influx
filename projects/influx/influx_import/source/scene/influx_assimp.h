@@ -72,6 +72,7 @@ namespace influx
 				return e_texture_semantic::count;
 		}
 	}
+
 	influx::imp::scene_data::mesh translate(const aiMesh& mesh)
 	{
 		influx::imp::scene_data::mesh result{};
@@ -169,7 +170,7 @@ namespace influx
 		}
 
 		// parse textures
-		for (int t = 0; t < AI_TEXTURE_TYPE_MAX; ++t)
+		for (uint32 t = 0; t < AI_TEXTURE_TYPE_MAX; ++t)
 		{
 			const aiTextureType type = static_cast<aiTextureType>(t);
 			for (uint32 i = 0; i < mat.GetTextureCount(type); ++i)
@@ -198,6 +199,7 @@ namespace influx
 				});
 			}
 		}
+
 		return result;
 	}
 

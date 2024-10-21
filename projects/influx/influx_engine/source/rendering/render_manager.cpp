@@ -342,10 +342,6 @@ namespace influx::engine
 
 			if (ev.m_type == input::key_event::e_type::keydown)
 			{
-				switch (ev.m_key)
-				{
-
-				}
 			}
 		});
 	}

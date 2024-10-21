@@ -121,7 +121,7 @@ namespace influx::graphics
 
 	void dx12_device::cleanup()
 	{
-		for (dx12_base* child : m_children)
+		for (dx12_base*& child : m_children)
 		{
 			delete child;
 			child = nullptr;
