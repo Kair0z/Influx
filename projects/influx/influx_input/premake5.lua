@@ -8,7 +8,6 @@ new_influx_dll("influx_input")
     {
         "influx_core",
         "influx_platform",
-        "influx_events"
     }
     set_influx_includes(dependencies)
     set_influx_links(dependencies)

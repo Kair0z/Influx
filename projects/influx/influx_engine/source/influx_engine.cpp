@@ -3,10 +3,6 @@
 // influx::platform
 #include "influx_platform/platform.h"
 
-// influx::core
-#include "core/time.h"
-#include "core/log.h"
-
 // influx::async
 #include "influx_async.h"
 
@@ -73,6 +69,8 @@ namespace influx::engine
 		}
 
 		m_is_quit = true;
+
+		influx::log_scopedata();
 		
 		delete m_renderman;
 		delete m_contentman;
@@ -176,7 +174,7 @@ namespace influx::engine
 	file engine::get_engine_directory(e_directory dir)
 	{
 		// temp: HARDCODED builds are ran in /influx/bin/[config]/influx_game/
-		const string& root = platform::platform::get_current_directory() + "/../../";
+		const string& root = platform::platform::get_current_directory() + "/../../../";
 		switch (dir)
 		{
 		case e_directory::root:			return root;

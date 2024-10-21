@@ -1,9 +1,7 @@
 #include "input_pch.h"
 
 #include "core/singleton.h"
-
-// influx::events
-#include "influx_events.h"
+#include "core/events/event_queue.h"
 
 // influx::platform
 #include "influx_platform/window.h"

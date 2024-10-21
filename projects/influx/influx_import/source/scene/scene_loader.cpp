@@ -6,7 +6,7 @@
 #endif
 
 // We're using Assimp libary for loading .FBX files...
-#if _DEBUG
+#if INFLUX_DEBUG
 #pragma comment(lib, "assimp-vc142-mtd.lib")
 #else
 #pragma comment(lib, "assimp-vc142-mt.lib")

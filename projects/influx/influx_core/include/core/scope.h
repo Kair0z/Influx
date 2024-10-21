@@ -52,7 +52,7 @@ namespace influx
 		string m_name;
 	};
 
-	void log_scopedata()
+	inline void log_scopedata()
 	{
 		for (const auto& pair : g_scopedata)
 		{

@@ -48,6 +48,7 @@ namespace influx::engine
 
 	void content_manager::load_engine_resources(engine* engine)
 	{
+		return;
 		const auto& resource_dir = engine->get_engine_directory(engine::e_directory::resources);
 		const auto& interm_dir = engine->get_engine_directory(engine::e_directory::intermediate);
 

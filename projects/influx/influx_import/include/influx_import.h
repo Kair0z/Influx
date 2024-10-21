@@ -13,6 +13,7 @@
 #include "core/container/vector.h"
 #include "core/basetypes.h"
 #include "core/shader.h"
+#include "core/material/material.h"
 
 // influx::shader
 #include "influx_shader.h"
@@ -41,6 +42,7 @@ namespace influx::imp
 		vector<mesh> m_meshes{};
 		vector<scene::light> m_lights{};
 		vector<scene::camera> m_cameras{};
+		vector<influx::material> m_materials{};
 	};
 
 	/* Loads an 3D-model scene file (.fbx, .obj) */

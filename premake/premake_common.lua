@@ -31,6 +31,9 @@ function new_influx_project(_name, _kind)
         filter "configurations:release"
            common_release_config()
 
+        filter "configurations:profile"
+           common_profile_config()
+
         -- ending all filters
         filter {}
 end

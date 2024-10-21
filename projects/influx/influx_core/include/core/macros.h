@@ -3,7 +3,7 @@
 #ifndef __CORE_MACROS_H_
 #define __CORE_MACROS_H_
 
-#define FLX_CORE_GET(Type, Name) \
+#define influx_property_read(Type, Name) \
 		private: \
 			Type m_##Name; \
 		public: \
@@ -13,7 +13,7 @@
 			} \
 		private: // default to private...
 
-#define FLX_CORE_GET_SET(Type, Name) \
+#define influx_property_readwrite(Type, Name) \
 		private: \
 			Type m_##Name; \
 		public: \

@@ -23,10 +23,5 @@ public:
 			ImGui::End();
 		}
 	}
-
-	virtual void on_cleanup() override
-	{
-		influx::log_scopedata();
-	}
 };
 influx_engine_editor(editor);
