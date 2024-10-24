@@ -7,17 +7,11 @@
 #include "influx_rhi/rhi_constants.h"
 #include "influx_rhi/rhi_interface.h"
 
-#if INFLUX_RHI_D3D12
-#include "influx_rhi/d3d12/d3d12_headers.h"
-#endif
-
-#if INFLUX_RHI_VULKAN
-#include "influx_rhi/vulkan/vulkan_headers.h"
-#endif
-
 namespace influx::rhi
 {
-    class queue : public wrapper<queue, ID3D12CommandQueue>
+    class device;
+    
+    class queue
     {
     public:
         static shared_ptr<device> create(const device& dev);
@@ -26,7 +20,7 @@ namespace influx::rhi
         queue() = default;
     };
 
-    class commandlist : public wrapper<commandlist, ID3D12GraphicsCommandlist>
+    class commandlist
     {
     public:
         static shared_ptr<commandlist> create(const device& dev);
@@ -35,7 +29,13 @@ namespace influx::rhi
         commandlist() = default;
     };
 
-    class swapchain : public wrapper<swapchain, IDXGISwapChain4>
+    class allocator
+    {
+    public:
+
+    };
+
+    class swapchain
     {
     public:
         static shared_ptr<swapchain> create(const device& dev);
@@ -44,10 +44,11 @@ namespace influx::rhi
         swapchain() = default;
     };
 
-    class device : public wrapper<device, ID3D12Device>
+    class device
     {
     public:
-        static shared_ptr<device> create(e_api_type);
+        static device* create(e_api_type api);
+        virtual ~device() = default;
 
         // expensive, involves destroying all current objects, and re-allocating new ones
         void        switch_api(e_api_type);
@@ -59,12 +60,5 @@ namespace influx::rhi
         
     private:
         device() = default;
-        vector<shared_ptr<wrapper>> m_children;
-    };
-
-    class allocator : public wrapper<allocator, ID3D12CommandAllocator>
-    {
-    public:
-
     };
 }

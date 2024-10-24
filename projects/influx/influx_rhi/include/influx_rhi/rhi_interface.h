@@ -14,9 +14,9 @@ namespace influx::rhi
         void        on_switch_api(e_api_type);
         e_api_type  get_api_type() const;
         virtual     ~wrapper();
-        
+
     private:
         shared_ptr<dx12_type> m_dx12_object;
         shared_ptr<vulkan_type> m_vulkan_object;
-    }
+    };
 }

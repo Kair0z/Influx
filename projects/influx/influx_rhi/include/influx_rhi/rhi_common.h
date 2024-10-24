@@ -7,6 +7,7 @@ namespace influx::rhi
 	enum class e_api_type : uint8
 	{
 		dx12,
+		null,
 		unsupported,
 		vulkan,
 		max
