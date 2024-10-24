@@ -13,7 +13,7 @@ new_influx_dll("influx_rhi")
     set_influx_includes(dependencies)
     set_influx_links(dependencies)
 
-    g_compile_vulkan = false
+    g_compile_vulkan = true
     g_compile_d3d12 = true
 
     removefiles
