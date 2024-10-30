@@ -16,6 +16,7 @@ namespace influx::graphics
 	class rootsignature;
 	class descriptor_heap;
 	class shader_resource_view;
+	class device;
 
 	struct draw_instanced_args final
 	{
@@ -58,6 +59,8 @@ namespace influx::graphics
 	class commandlist : public base
 	{
 	public:
+		static commandlist* create(device*, command_allocator*, pipeline* = nullptr);
+
 		virtual void start(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
 		
 		virtual void renderpass_begin(const renderpass_args& args) = 0;

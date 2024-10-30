@@ -18,6 +18,11 @@ namespace influx::graphics
 		mp_native = mpdx_resource = resource;
 	}
 
+	void dx12_resource::on_set_name(const debug_name& name)
+	{
+		mpdx_resource->SetName(to_wstring(name.get()).c_str());
+	}
+
 	void* dx12_resource::map(const map_args& args)
 	{
 		void* target_ptr;
@@ -35,11 +40,4 @@ namespace influx::graphics
 		range.End = min(args.m_end, get_bytesize());
 		mpdx_resource->Unmap(args.m_subres, &range);
 	}
-
-#if _DEBUG
-	void dx12_resource::set_name_impl(const string& new_name)
-	{
-		mpdx_resource->SetName(to_wstring(new_name).c_str());
-	}
-#endif
 }

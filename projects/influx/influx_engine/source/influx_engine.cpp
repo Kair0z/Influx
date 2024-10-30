@@ -20,6 +20,32 @@ namespace influx::engine
 {
 	void engine::run()
 	{
+		initialize();
+
+		m_gamemodule = detail::create_game();
+		m_editormodule = detail::create_editor();
+
+		m_t_start = time::get_now();
+
+		if (m_gamemodule && m_editormodule == nullptr)
+		{
+			run_game();
+			delete m_gamemodule;
+			m_gamemodule = nullptr;
+		}
+		if (m_editormodule && m_gamemodule == nullptr)
+		{
+			run_editor();
+			delete m_editormodule;
+			m_editormodule = nullptr;
+		}
+
+		m_is_quit = true;
+		cleanup();
+	}
+
+	void engine::initialize()
+	{
 		m_t_init = time::get_now();
 
 		// setup engine config
@@ -27,12 +53,6 @@ namespace influx::engine
 		m_config.m_file_influx_resources = get_engine_directory(engine::e_directory::resources);
 		m_config.m_file_influx_assets = get_engine_directory(engine::e_directory::assets);
 		m_config.m_file_influx_staged = get_engine_directory(engine::e_directory::staged);
-
-		// setup app config
-		m_app_config.m_window_dimensions;
-
-		m_gamemodule = detail::create_game();
-		m_editormodule = detail::create_editor();
 
 		// initialize job system:
 		async::init_args async_args{};
@@ -51,72 +71,54 @@ namespace influx::engine
 
 		// make editor content
 		m_contentman = new content_manager(this);
+	}
 
-		m_t_start = time::get_now();
+	void engine::cleanup()
+	{
+		delete m_contentman;
+		m_contentman = nullptr;
 
-		if (m_gamemodule && m_editormodule == nullptr)
-		{
-			run_game();
-			delete m_gamemodule;
-			m_gamemodule = nullptr;
-		}
+		if (m_inputthread.joinable())
+			m_inputthread.join();
 		
-		if (m_editormodule && m_gamemodule == nullptr)
-		{
-			run_editor();
-			delete m_editormodule;
-			m_editormodule = nullptr;
-		}
-
-		m_is_quit = true;
+		async::shutdown();
 
 		influx::log_scopedata();
-		
-		delete m_renderman;
-		delete m_contentman;
-		delete m_gamemodule;
 	}
 
 	void engine::run_game()
 	{
 		m_gamemodule = detail::create_game();
 
-		// build game config:
 		game_config game_config{};
 		m_gamemodule->on_config(m_app_config, game_config);
 
-		// make a window
-		platform::window_desc window_desc{};
-		window_desc
-			.set_dimensions(m_app_config.m_window_dimensions)
-			.set_name(game_config.m_gamename);
-		m_window = platform::window::create(window_desc);
-
-		// make renderer
-		m_renderman = new render_manager(this);
+		initialize_renderer(m_app_config);
 
 		frame_time frame_time{};
 		game_module::ctx_update update_ctx{};
 		while (!m_is_quit_requested)
 		{
-			// tick time
 			frame_time.tick();
 
-			// platform event poll
 			m_window->poll_events(m_is_quit_requested);
 			m_is_quit_requested |= m_window->has_quit_request();
 
-			// update
 			update_ctx.m_frametime = frame_time;
 			m_gamemodule->on_update(update_ctx);
-			
-			// render
+
 			renderer::scene scene{};
 			m_renderman->render(&scene);
 		}
 
-		m_gamemodule->on_cleanup();
+		delete m_renderman;
+		m_renderman = nullptr;
+
 		delete m_window;
+		m_window = nullptr;
+
+		m_gamemodule->on_cleanup();
+		delete m_gamemodule;
 	}
 
 	void engine::run_editor()
@@ -125,7 +127,7 @@ namespace influx::engine
 		editor_config config{};
 		m_editormodule->on_config(m_app_config, config);
 
-		initialize_windowed_renderer(m_app_config);
+		initialize_renderer(m_app_config);
 
 		frame_time frame_time{};
 		while (!m_is_quit_requested)
@@ -153,7 +155,7 @@ namespace influx::engine
 		delete m_window;
 	}
 
-	void engine::initialize_windowed_renderer(const app_config& config)
+	void engine::initialize_renderer(const app_config& config)
 	{
 		// make a window
 		platform::window_desc window_desc{};

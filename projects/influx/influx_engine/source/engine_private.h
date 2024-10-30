@@ -1,7 +1,9 @@
 #pragma once
 
-#include "engine/engine.h"
+// influx::engine
+#include "influx_engine/engine/engine.h"
 
+// influx::core
 #include "core/singleton.h"
 #include "core/threading/thread.h"
 
@@ -49,10 +51,12 @@ namespace influx::engine
 		bool is_quit() const;
 
 	private:
+		void initialize();
+		void cleanup();
 		void run_game();
 		void run_editor();
 		void initialize_windowed_renderer(const app_config& config);
-
+		
 		bool m_is_quit_requested = false;
 		game_module* m_gamemodule = nullptr;
 		editor_module* m_editormodule = nullptr;

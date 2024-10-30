@@ -6,6 +6,8 @@ workspace "influx"
     startproject "influx_game"
     location "../generated/%{_ACTION}/"
     
+    g_compile_mono_engine = true
+    
     -- /influx/
     g_dir_root = "%{wks.location}/../../"
     g_config_string = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
@@ -35,6 +37,7 @@ workspace "influx"
     g_dir_vulkan_include = g_dir_projects_engine .. "/influx_graphics/foreign/vulkan/"
     g_dir_rendergraph_include = g_dir_projects_engine .. "/influx_rendergraph/include/"
     
+    -- vendor libraries
     g_dir_vendor_libraries = g_dir_root .. "/vendor/lib/x64/"
     libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }
     

@@ -36,12 +36,12 @@ namespace influx::graphics
 		// create factory
 		::CreateDXGIFactory2(0u, IID_PPV_ARGS(&mpdxgi_factory));
 
-#if _DEBUG
+#if INFLUX_DEBUG
 		dx12helpers::set_debug_layer_enabled(true);
 #endif
 		// query adapters
 		auto adapters = dx12helpers::get_hardware_adapters<IDXGIAdapter1>(mpdxgi_factory);
-		for (size_t i = 0u; i < adapters.size(); ++i)
+		for (uint64 i = 0u; i < adapters.size(); ++i)
 		{
 			mpdxgi_adapters.push_back(adapters[i]);
 		}
@@ -50,8 +50,8 @@ namespace influx::graphics
 		mpdx_devices.push_back(
 			dx12helpers::create_logical_device<ID3D12Device>(mpdxgi_adapters[0u]));
 
-#if _DEBUG
-		for (size_t i = 0u; i < mpdx_devices.size(); ++i)
+#if INFLUX_DEBUG
+		for (uint64 i = 0u; i < mpdx_devices.size(); ++i)
 		{
 			ID3D12InfoQueue* info_queue;
 			HRESULT res = mpdx_devices[i]->QueryInterface(IID_PPV_ARGS(&info_queue));

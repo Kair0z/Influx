@@ -1,12 +1,14 @@
 #pragma once
 #include "influx_graphics/common.h"
-#include <string>
+#include "core/string.h"
 
 namespace influx::graphics
 {
 	// interface base class for each object created by our graphics api
 	class base
 	{
+		virtual void on_set_name(const debug_name& name) {}
+
 	public:
 		template <typename _t>
 		inline _t* get_native() const
@@ -30,28 +32,27 @@ namespace influx::graphics
 			return is_valid();
 		}
 
-#if _DEBUG
-		inline void set_name(const string& new_name)
+		inline void set_name(const debug_name& name)
 		{
-			m_debug_name = new_name;
-
-			set_name_impl(new_name);
+			m_name = name;
 		}
 
-		inline const string& get_name() const
+		inline const debug_name& get_name() const
 		{
-			return m_debug_name;
+			return m_name;
 		}
-#endif
+
+		base(const base&) = delete;
+		base(base&&) = delete;
+		base& operator=(const base&) = delete;
+		base& operator=(base&&) = delete;
+		virtual ~base() = default;
 
 	protected:
 		base() = default;
-		virtual ~base() = default;
-
 		void* mp_native;
-#if _DEBUG
-		string m_debug_name;
-		virtual void set_name_impl(const string& new_name) { }
-#endif
+		
+	private:
+		debug_name m_name{};
 	};
 }

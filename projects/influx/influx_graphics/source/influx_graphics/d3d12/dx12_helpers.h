@@ -3,7 +3,7 @@
 #include "dx12_headers.h"
 #include "dx12_conversion.h"
 
-// core/vector
+// influx::core
 #include "core/container/vector.h"
 
 namespace influx::graphics::dx12helpers

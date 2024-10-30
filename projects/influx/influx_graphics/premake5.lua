@@ -13,7 +13,7 @@ new_influx_dll("influx_graphics")
     set_influx_includes(dependencies)
     set_influx_links(dependencies)
 
-    g_compile_vulkan = false
+    g_compile_vulkan = true
     g_compile_d3d12 = true
 
     removefiles
@@ -30,6 +30,7 @@ new_influx_dll("influx_graphics")
 
     includedirs
     {
+        "foreign/",
         iif(g_compile_vulkan, "foreign/vulkan/", ""),
         iif(g_compile_d3d12, "foreign/d3d12/", ""),
     }
@@ -38,5 +39,5 @@ new_influx_dll("influx_graphics")
     {
         iif(g_compile_d3d12, "d3d12", ""),
         iif(g_compile_d3d12, "dxgi", ""),
-        -- iif(g_compile_vulkan, "vulkan-1", "")
+        iif(g_compile_vulkan, "vulkan-1", "")
     }

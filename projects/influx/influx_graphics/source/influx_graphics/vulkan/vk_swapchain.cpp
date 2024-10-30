@@ -1,16 +1,19 @@
 #include "graphics_pch.h"
+
+// influx::graphics
+#include "vk_headers.h"
 #include "influx_graphics/vulkan/vk_swapchain.h"
 #include "influx_graphics/vulkan/vk_resource.h"
 #include "influx_graphics/vulkan/vk_queue.h"
 #include "influx_graphics/vulkan/vk_resource_views.h"
-#include "vk_headers.h"
 
-#include "core/platform/win32/win32_window.h"
+// influx::platform
+#include "influx_platform/window.h"
 
 namespace influx::graphics
 {
 	vk_swapchain::vk_swapchain(
-		const platform::window_handle& window, 
+		const platform::window& window, 
 		const swapchain_desc& desc,
 		const swapchain_dependencies& swapchain_dependencies, 
 		const dependencies& vk_dependencies)
@@ -29,8 +32,8 @@ namespace influx::graphics
 		{
 			VkSurfaceKHR temp_surface;
 			VkWin32SurfaceCreateInfoKHR create_info{};
-			create_info.hinstance = static_cast<::HINSTANCE>(platform::get_current_instance());
-			create_info.hwnd = static_cast<::HWND>(window);
+			// create_info.hinstance = static_cast<::HINSTANCE>(platform::get_current_instance());
+			create_info.hwnd = static_cast<::HWND>(window.get_platform_handle());
 			create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 
 			vkCreateWin32SurfaceKHR(vk_dependencies.m_vk_instance, &create_info, nullptr, &temp_surface);

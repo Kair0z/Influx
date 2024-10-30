@@ -1,7 +1,11 @@
 #pragma once
 #include "influx_graphics/swapchain.h"
-#include "core/platform/window.h"
 #include "vk_headers.h"
+
+namespace influx::platform
+{
+	class window;
+}
 
 namespace influx::graphics
 {
@@ -25,7 +29,7 @@ namespace influx::graphics
 
 	public:
 		vk_swapchain(
-			const platform::window_handle& window,
+			const platform::window& window,
 			const swapchain_desc& desc,
 			const swapchain_dependencies& swapchain_dependencies, 
 			const dependencies& vk_dependencies);

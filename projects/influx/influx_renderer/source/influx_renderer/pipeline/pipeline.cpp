@@ -159,7 +159,7 @@ namespace influx::renderer
 
     const string& pipeline::get_name() const
     {
-        return mp_pipeline->get_name();
+        return mp_pipeline->get_name().get();
     }
 #endif
 }

@@ -6,8 +6,12 @@ namespace influx::graphics
 {
 	class vk_resource final : public resource
 	{
+		// influx::graphics::resource
 		virtual void* map(const map_args& args) override;
 		virtual void unmap(const map_args& args) override;
+
+		// influx::graphics::base
+		virtual void on_set_name(const debug_name& name) override;
 
 	public:
 		vk_resource() = default;
@@ -15,10 +19,5 @@ namespace influx::graphics
 
 	private:
 		vk::Image m_vk_image;
-
-	protected:
-#if _DEBUG
-		virtual void set_name_impl(const string& new_name) override;
-#endif
 	};
 }

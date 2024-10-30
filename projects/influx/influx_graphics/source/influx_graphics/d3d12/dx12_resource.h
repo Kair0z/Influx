@@ -21,8 +21,6 @@ namespace influx::graphics
 		ID3D12Resource* mpdx_resource;
 
 	protected:
-#if _DEBUG
-		virtual void set_name_impl(const string& new_name) override;
-#endif
+		virtual void on_set_name(const debug_name& name) override;
 	};
 }

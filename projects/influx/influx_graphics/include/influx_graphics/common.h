@@ -17,8 +17,8 @@ namespace influx::graphics
 	enum class e_api_type : uint8
 	{
 		dx12,
-		unsupported,
 		vulkan,
+		unsupported,
 		max
 	};
 

@@ -34,6 +34,10 @@ namespace influx::graphics
 			m_graphics_queue_family_index, vk_helpers::getDeviceExtensions()) );
 	}
 
+	void vk_device::cleanup()
+	{
+	}
+
 	// get info about physical devices:
 	vector<physical_device_info> vk_device::get_gpu_infos()
 	{
@@ -74,14 +78,14 @@ namespace influx::graphics
 		return new vk_queue(desc, queue);
 	}
 
-	swapchain* vk_device::create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc)
+	swapchain* vk_device::create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc)
 	{
 		// get window info
-		auto rect = platform::get_windowrect_client<uint32>(window);
-		uint32 width = rect.m_width_height.x;
-		uint32 height = rect.m_width_height.y;
+		auto rect = window.get_rect_client();
+		uint32 width = rect.get_width();
+		uint32 height = rect.get_height();
 		e_format format = e_format::rgba8;
-		
+
 		// modify copy based on window data
 		swapchain_desc desc_copy = desc;
 		desc_copy.m_dimensions.x = width;

@@ -9,10 +9,11 @@ namespace influx::graphics
 	{
 	public:
 		vk_device(const device_desc&);
+		virtual void cleanup() override;
 
 		// creation:
 		virtual queue* create_queue(const queue_desc& desc) override;
-		virtual swapchain* create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc) override;
+		virtual swapchain* create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) override;
 		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args& args) override;
 		virtual command_allocator* create_graphics_allocator() override;
 		virtual commandlist* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) override;

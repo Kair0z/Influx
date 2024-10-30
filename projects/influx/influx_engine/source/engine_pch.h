@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/engine.h"
+#include "influx_engine/engine/engine.h"
 #include "engine_private.h"
 
 // influx::core

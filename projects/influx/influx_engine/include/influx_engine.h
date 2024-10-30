@@ -1,7 +1,7 @@
 #pragma once
 
-// encapsulates the entrypoint
-#include "engine/entrypoint.h"
+// encapsulate the entrypoint
+#include "influx_engine/engine/entrypoint.h"
 
 // engine API
-#include "engine/engine.h"
+#include "influx_engine/engine/engine.h"

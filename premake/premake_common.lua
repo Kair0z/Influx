@@ -54,6 +54,14 @@ function new_influx_statlib(name)
     new_influx_project(name, "StaticLib")
 end
 
+function new_influx_library(name)
+    if g_compile_mono_engine then
+        new_influx_statlib(name)
+    else
+        new_influx_dll(name)
+    end
+end
+
 -- helpers
 function set_influx_app_dependencies(...)
     -- add include dependency includes

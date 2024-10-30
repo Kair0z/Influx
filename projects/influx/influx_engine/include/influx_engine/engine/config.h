@@ -8,7 +8,6 @@ namespace influx::engine
 {
 	struct engine_config
 	{
-		// setup by the engine
 		file m_file_influx_root;
 		file m_file_influx_assets;
 		file m_file_influx_staged;
