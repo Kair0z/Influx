@@ -331,18 +331,5 @@ namespace influx::engine
 			break;
 			}
 		});
-
-		// key events
-		input::subscribe([this, &io](const input::key_event& ev)
-		{
-			switch (ev.m_type)
-			{
-
-			}
-
-			if (ev.m_type == input::key_event::e_type::keydown)
-			{
-			}
-		});
 	}
 }

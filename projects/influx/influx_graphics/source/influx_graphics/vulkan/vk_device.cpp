@@ -2,11 +2,12 @@
 #include "influx_graphics/vulkan/vk_device.h"
 #include "vk_headers.h"
 
-// helpers
+// influx::core
+#include "core/log.h"
+
+// influx::graphics::vulkan
 #include "influx_graphics/vulkan/vk_helpers.h"
 #include "influx_graphics/vulkan/vk_conversion.h"
-
-// subheaders
 #include "influx_graphics/vulkan/vk_queue.h"
 #include "influx_graphics/vulkan/vk_fence.h"
 #include "influx_graphics/vulkan/vk_swapchain.h"
@@ -18,20 +19,97 @@
 
 namespace influx::graphics
 {
+	inline void on_debug_message(
+		VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+		VkDebugUtilsMessageTypeFlagsEXT type,
+		const VkDebugUtilsMessengerCallbackDataEXT& data)
+	{
+		const bool log_warning	= severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+		const bool log_error	= severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+
+		e_log_category category{};
+		if (log_error)
+		{
+			category = e_log_category::error;
+		}
+		else if (log_warning)
+		{
+			category = e_log_category::warning;
+		}
+		else
+		{
+			category = e_log_category::normal;
+		}
+
+		log(category, "vk_error: {} {}: {}", 
+			data.messageIdNumber, data.pMessageIdName, data.pMessage);
+
+#if 0
+		std::cerr << vk::to_string(static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(severity)) << ": "
+			<< vk::to_string(static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(type)) << ":\n";
+		std::cerr << std::string("\t") << "messageIDName   = <" << data.pMessageIdName << ">\n";
+		std::cerr << std::string("\t") << "messageIdNumber = " << data.messageIdNumber << "\n";
+		std::cerr << std::string("\t") << "message         = <" << data.pMessage << ">\n";
+		if (0 < data.queueLabelCount)
+		{
+			std::cerr << std::string("\t") << "Queue Labels:\n";
+			for (uint32_t i = 0; i < data.queueLabelCount; i++)
+			{
+				std::cerr << std::string("\t\t") << "labelName = <" << data.pQueueLabels[i].pLabelName << ">\n";
+			}
+		}
+		if (0 < data.cmdBufLabelCount)
+		{
+			std::cerr << std::string("\t") << "CommandBuffer Labels:\n";
+			for (uint32_t i = 0; i < data.cmdBufLabelCount; i++)
+			{
+				std::cerr << std::string("\t\t") << "labelName = <" << data.pCmdBufLabels[i].pLabelName << ">\n";
+			}
+		}
+		if (0 < data.objectCount)
+		{
+			std::cerr << std::string("\t") << "Objects:\n";
+			for (uint32_t i = 0; i < data.objectCount; i++)
+			{
+				std::cerr << std::string("\t\t") << "Object " << i << "\n";
+				std::cerr << std::string("\t\t\t") << "objectType   = " << vk::to_string(static_cast<vk::ObjectType>(data.pObjects[i].objectType))
+					<< "\n";
+				std::cerr << std::string("\t\t\t") << "objectHandle = " << data.pObjects[i].objectHandle << "\n";
+				if (data.pObjects[i].pObjectName)
+				{
+					std::cerr << std::string("\t\t\t") << "objectName   = <" << data.pObjects[i].pObjectName << ">\n";
+				}
+			}
+		}
+#endif
+	}
+
 	vk_device::vk_device(const device_desc& desc)
 		: device(desc)
 	{
-		m_vk_instance = vk_helpers::createInstance("app_name", "engine_name", {}, vk_helpers::getInstanceExtensions(), 0u);
+		// create the vulkan instance
+		constexpr uint32 k_api_version = 0u;
+		const vector<string> instance_layers = vk_helpers::getInstanceLayers();
+		const vector<string> instance_extensions = vk_helpers::getInstanceExtensions();
+		m_vk_instance = vk_helpers::createInstance("app_name", "engine_name", 
+			instance_layers,
+			instance_extensions,
+			k_api_version,
+			&on_debug_message);
 
-		// query physical devices:
+		// get the main physical device
 		m_vk_physical_devices = m_vk_instance.enumeratePhysicalDevices();
+		const vk::PhysicalDevice& main_physical_device = m_vk_physical_devices.front();
 
 		// query queue family indices:
-		m_graphics_queue_family_index = vk_helpers::findGraphicsQueueFamilyIndex(m_vk_physical_devices.front().getQueueFamilyProperties());
+		m_graphics_queue_family_index = vk_helpers::findGraphicsQueueFamilyIndex(main_physical_device.getQueueFamilyProperties());
 
 		// create the main logical device:
-		m_vk_devices.push_back(vk_helpers::createDevice(m_vk_physical_devices.front(), 
-			m_graphics_queue_family_index, vk_helpers::getDeviceExtensions()) );
+		const vk::Device& main_device = vk_helpers::createDevice(
+			main_physical_device,
+			m_graphics_queue_family_index,
+			vk_helpers::getDeviceExtensions());
+		m_vk_devices.push_back(main_device);
 	}
 
 	void vk_device::cleanup()

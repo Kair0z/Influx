@@ -1,5 +1,5 @@
 -- influx platform
-new_influx_dll("influx_platform")
+new_influx_library("influx_platform")
     local dependencies =
     {
         "influx_core"

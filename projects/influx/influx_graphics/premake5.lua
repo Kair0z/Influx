@@ -1,5 +1,5 @@
 -- influx graphics
-new_influx_dll("influx_graphics")
+new_influx_library("influx_graphics")
 
     pchheader "graphics_pch.h"
     pchsource "source/graphics_pch.cpp"

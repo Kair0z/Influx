@@ -1,5 +1,11 @@
 #pragma once
 
+#if _DLL
+#define INFLUX_ENGINE_API __declspec(dllexport)
+#else
+#define INFLUX_ENGINE_API __declspec(dllimport)
+#endif
+
 // influx::core
 #include "core/string.h"
 #include "core/math/vector.h"
@@ -13,7 +19,16 @@
 
 namespace influx::engine
 {
-	class game_module
+	class INFLUX_ENGINE_API base_module
+	{
+	public:
+		virtual ~base_module() = default;
+
+	protected:
+		base_module() = default;
+	};
+
+	class INFLUX_ENGINE_API game_module : public base_module
 	{
 	public:
 		struct ctx_update final
@@ -41,7 +56,7 @@ namespace influx::engine
 		game_config m_config;
 	};
 
-	class editor_module
+	class INFLUX_ENGINE_API editor_module : public base_module
 	{
 	public:
 		virtual void on_config(app_config&, editor_config&);
@@ -54,15 +69,12 @@ namespace influx::engine
 
 namespace influx::engine::detail
 {
-	extern game_module* create_game();
-	extern editor_module* create_editor();
-
 #define influx_engine_game(x) \
-	influx::engine::game_module* influx::engine::detail::create_game() { return new x(); } \
-	influx::engine::editor_module* influx::engine::detail::create_editor() { return nullptr; } 
+	influx::engine::base_module* create_module() { return new x(); } \
 
 #define influx_engine_editor(x) \
-	influx::engine::editor_module* influx::engine::detail::create_editor() { return new x(); } \
-	influx::engine::game_module* influx::engine::detail::create_game() { return nullptr; } 
+	influx::engine::base_module* create_module() { return new x(); } \
+
+	bool INFLUX_ENGINE_API run_engine(base_module* mod);
 }
 

@@ -1,5 +1,5 @@
 -- influx renderer
-new_influx_dll("influx_renderer")
+new_influx_library("influx_renderer")
 
     pchheader "renderer_pch.h"
     pchsource "source/renderer_pch.cpp"

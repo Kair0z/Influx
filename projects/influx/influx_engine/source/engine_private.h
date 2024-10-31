@@ -38,7 +38,7 @@ namespace influx::engine
 			count
 		};
 
-		void run();
+		void run(base_module* mod);
 
 		file get_engine_directory(e_directory dir);
 
@@ -55,11 +55,14 @@ namespace influx::engine
 		void cleanup();
 		void run_game();
 		void run_editor();
-		void initialize_windowed_renderer(const app_config& config);
+		void initialize_renderer(const app_config& config);
 		
 		bool m_is_quit_requested = false;
-		game_module* m_gamemodule = nullptr;
-		editor_module* m_editormodule = nullptr;
+
+		base_module* m_module = nullptr;
+		game_module* m_game = nullptr;
+		editor_module* m_editor = nullptr;
+
 		engine_config m_config;
 		app_config m_app_config;
 		run_type m_runtype;

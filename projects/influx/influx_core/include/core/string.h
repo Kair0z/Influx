@@ -5,7 +5,8 @@
 
 #include <string>
 #include <algorithm>
-#include "Core/basetypes.h"
+
+#include "core/basetypes.h"
 
 namespace influx
 {
@@ -52,22 +53,26 @@ namespace influx
 		using name = string;
 #else
 		using name = uint8;
-
 #endif
+
 		debug_name() = default;
-		
-		debug_name(const name& name) { set(name); }
-#if !INFLUX_DEBUG
-		debug_name(const string& name) { set(0u); }
-		debug_name(const char* name) { set(0u); }
-#endif
-
 		debug_name(const debug_name&) = default;
 		debug_name(debug_name&&) = default;
 		debug_name& operator=(const debug_name&) = default;
 		debug_name& operator=(debug_name&&) = default;
 		~debug_name() = default;
 
+#if INFLUX_DEBUG
+		debug_name(const name& name) { set(name); }
+		debug_name(const string& name) { set(name); }
+		debug_name(const char* name) { set(name); }
+#else
+		debug_name(const name& name) { set(""); }
+		debug_name(const string& name) { set(""); }
+		debug_name(const char* name) { set(""); }
+#endif
+
+#if INFLUX_DEBUG
 		inline void set(const name& name)
 		{
 			m_name = name;
@@ -79,7 +84,7 @@ namespace influx
 		}
 
 		// treating this class as a string in non-debug config will result in a no-op
-#if !INFLUX_DEBUG
+#else
 		inline void set(const string& str)
 		{
 

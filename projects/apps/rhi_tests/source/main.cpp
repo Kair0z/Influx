@@ -45,4 +45,5 @@ void test_vulkan()
 int main()
 {
 	test_vulkan();
+	test_dx12();
 }

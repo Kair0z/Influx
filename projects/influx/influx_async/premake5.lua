@@ -1,5 +1,5 @@
 -- influx assets
-new_influx_dll("influx_async")
+new_influx_library("influx_async")
 
     pchheader "async_pch.h"
     pchsource ("source/async_pch.cpp")

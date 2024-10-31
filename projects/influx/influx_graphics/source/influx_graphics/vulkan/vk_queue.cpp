@@ -18,7 +18,7 @@ namespace influx::graphics
 	void vk_queue::submit_commandlists(const vector<commandlist*>& commandlists)
 	{
 		vector<const vk::CommandBuffer*> vkcommandbuffers{};
-		for (size_t i = 0u; i < commandlists.size(); ++i)
+		for (uint64 i = 0u; i < commandlists.size(); ++i)
 		{
 			vkcommandbuffers.push_back(commandlists[i]->get_native<vk::CommandBuffer>());
 		}

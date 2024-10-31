@@ -1,11 +1,5 @@
 #include "influx_engine.h"
 
-class actor final
-{
-public:
-
-};
-
 class game final : public influx::engine::game_module
 {
 public:

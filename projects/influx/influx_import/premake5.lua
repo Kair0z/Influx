@@ -1,5 +1,5 @@
 -- influx assets
-new_influx_dll("influx_import")
+new_influx_library("influx_import")
 
     pchheader "import_pch.h"
     pchsource ("source/import_pch.cpp")

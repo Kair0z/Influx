@@ -4,16 +4,24 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <functional>
 
 namespace influx::graphics::vk_helpers
 {
     // debug callback!
+    using debug_message_callback = std::function<void(
+        VkDebugUtilsMessageSeverityFlagBitsEXT, // severity
+        VkDebugUtilsMessageTypeFlagsEXT, // message type
+        const VkDebugUtilsMessengerCallbackDataEXT&)>;
+
+    inline std::list<debug_message_callback> g_debug_message_callbacks = {};
+
     inline VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT       messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT              messageTypes,
         VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
         void* /*pUserData*/ )
     {
-#if !defined( NDEBUG )
+#if INFLUX_DEBUG
         if (static_cast<uint32_t>(pCallbackData->messageIdNumber) == 0x822806fa)
         {
             // Validation Warning: vkCreateInstance(): to enable extension VK_EXT_debug_utils, but this extension is intended to support use by applications when
@@ -27,78 +35,49 @@ namespace influx::graphics::vk_helpers
         }
 #endif
 
-        std::cerr << vk::to_string(static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity)) << ": "
-            << vk::to_string(static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(messageTypes)) << ":\n";
-        std::cerr << std::string("\t") << "messageIDName   = <" << pCallbackData->pMessageIdName << ">\n";
-        std::cerr << std::string("\t") << "messageIdNumber = " << pCallbackData->messageIdNumber << "\n";
-        std::cerr << std::string("\t") << "message         = <" << pCallbackData->pMessage << ">\n";
-        if (0 < pCallbackData->queueLabelCount)
+        // user callbacks
+        for (const debug_message_callback& clb : g_debug_message_callbacks)
         {
-            std::cerr << std::string("\t") << "Queue Labels:\n";
-            for (uint32_t i = 0; i < pCallbackData->queueLabelCount; i++)
-            {
-                std::cerr << std::string("\t\t") << "labelName = <" << pCallbackData->pQueueLabels[i].pLabelName << ">\n";
-            }
+            clb(messageSeverity, messageTypes, *pCallbackData);
         }
-        if (0 < pCallbackData->cmdBufLabelCount)
-        {
-            std::cerr << std::string("\t") << "CommandBuffer Labels:\n";
-            for (uint32_t i = 0; i < pCallbackData->cmdBufLabelCount; i++)
-            {
-                std::cerr << std::string("\t\t") << "labelName = <" << pCallbackData->pCmdBufLabels[i].pLabelName << ">\n";
-            }
-        }
-        if (0 < pCallbackData->objectCount)
-        {
-            std::cerr << std::string("\t") << "Objects:\n";
-            for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
-            {
-                std::cerr << std::string("\t\t") << "Object " << i << "\n";
-                std::cerr << std::string("\t\t\t") << "objectType   = " << vk::to_string(static_cast<vk::ObjectType>(pCallbackData->pObjects[i].objectType))
-                    << "\n";
-                std::cerr << std::string("\t\t\t") << "objectHandle = " << pCallbackData->pObjects[i].objectHandle << "\n";
-                if (pCallbackData->pObjects[i].pObjectName)
-                {
-                    std::cerr << std::string("\t\t\t") << "objectName   = <" << pCallbackData->pObjects[i].pObjectName << ">\n";
-                }
-            }
-        }
+
         return vk::False;
     }
 
-    // makeInstanceCreateInfoChain
-    inline 
-#if defined( NDEBUG )
-    vk::StructureChain<vk::InstanceCreateInfo>
+    // instance_create_info_chain
+#if INFLUX_DEBUG
+    using instance_create_info_chain = vk::StructureChain<vk::InstanceCreateInfo, vk::DebugUtilsMessengerCreateInfoEXT>;
 #else
-    vk::StructureChain<vk::InstanceCreateInfo, vk::DebugUtilsMessengerCreateInfoEXT>
+    using instance_create_info_chain = vk::StructureChain<vk::InstanceCreateInfo>;
 #endif
-        makeInstanceCreateInfoChain(vk::ApplicationInfo const& applicationInfo,
+    inline instance_create_info_chain make_instance_create_info_chain(
+            vk::ApplicationInfo const& applicationInfo,
             std::vector<char const*> const& layers,
             std::vector<char const*> const& extensions)
     {
-#if defined( NDEBUG )
-        // in non-debug mode just use the InstanceCreateInfo for instance creation
-        vk::StructureChain<vk::InstanceCreateInfo> instanceCreateInfo({ {}, &applicationInfo, layers, extensions });
-#else
+#if INFLUX_DEBUG
         // in debug mode, addionally use the debugUtilsMessengerCallback in instance creation!
-        vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+        vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
             vk::DebugUtilsMessageSeverityFlagBitsEXT::eError);
-        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
+
+        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
             vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
-        vk::StructureChain<vk::InstanceCreateInfo, vk::DebugUtilsMessengerCreateInfoEXT> instanceCreateInfo(
-            { {}, &applicationInfo, layers, extensions }, { {}, severityFlags, messageTypeFlags, &debugUtilsMessengerCallback });
+
+        vk::InstanceCreateInfo instance_create_info{ {}, &applicationInfo, layers, extensions };
+        vk::DebugUtilsMessengerCreateInfoEXT debug_messenger_create_info = { {}, severityFlags, messageTypeFlags, &debugUtilsMessengerCallback };
+        return instance_create_info_chain{ instance_create_info, debug_messenger_create_info };
+#else
+        return instance_create_info_chain{ { {}, &applicationInfo, layers, extensions } };
 #endif
-        return instanceCreateInfo;
     }
 
     // gather layers
-    inline std::vector<char const*> gatherLayers(std::vector<std::string> const& layers
-#if !defined( NDEBUG )
-        ,
-        std::vector<vk::LayerProperties> const& layerProperties
-#endif
-    )
+    inline std::vector<char const*> gatherLayers(
+        std::vector<std::string> const& layers,
+        std::vector<vk::LayerProperties> const& layerProperties)
     {
         std::vector<char const*> enabledLayers;
         enabledLayers.reserve(layers.size());
@@ -107,7 +86,8 @@ namespace influx::graphics::vk_helpers
             assert(std::any_of(layerProperties.begin(), layerProperties.end(), [layer](vk::LayerProperties const& lp) { return layer == lp.layerName; }));
             enabledLayers.push_back(layer.data());
         }
-#if !defined( NDEBUG )
+
+#if INFLUX_DEBUG
         // Enable standard validation layer to find as much errors as possible!
         if (std::none_of(layers.begin(), layers.end(), [](std::string const& layer) { return layer == "VK_LAYER_KHRONOS_validation"; }) &&
             std::any_of(layerProperties.begin(),
@@ -121,12 +101,8 @@ namespace influx::graphics::vk_helpers
     }
 
     // gather extensions
-    inline std::vector<char const*> gatherExtensions(std::vector<std::string> const& extensions
-#if !defined( NDEBUG )
-        ,
-        std::vector<vk::ExtensionProperties> const& extensionProperties
-#endif
-    )
+    inline std::vector<char const*> gatherExtensions(std::vector<std::string> const& extensions,
+        std::vector<vk::ExtensionProperties> const& extensionProperties)
     {
         std::vector<char const*> enabledExtensions;
         enabledExtensions.reserve(extensions.size());
@@ -136,7 +112,7 @@ namespace influx::graphics::vk_helpers
                 extensionProperties.begin(), extensionProperties.end(), [ext](vk::ExtensionProperties const& ep) { return ext == ep.extensionName; }));
             enabledExtensions.push_back(ext.data());
         }
-#if !defined( NDEBUG )
+#if INFLUX_DEBUG
         if (std::none_of(
             extensions.begin(), extensions.end(), [](std::string const& extension) { return extension == VK_EXT_DEBUG_UTILS_EXTENSION_NAME; }) &&
             std::any_of(extensionProperties.begin(),
@@ -159,30 +135,24 @@ namespace influx::graphics::vk_helpers
         std::string const& engineName,
         std::vector<std::string> const& layers,
         std::vector<std::string> const& extensions,
-        uint32_t                         apiVersion)
+        uint32_t                         apiVersion,
+        debug_message_callback debug_callback)
     {
-#if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
         VULKAN_HPP_DEFAULT_DISPATCHER.init();
 #endif
 
         vk::ApplicationInfo       applicationInfo(appName.c_str(), 1, engineName.c_str(), 1, apiVersion);
-        std::vector<char const*> enabledLayers = gatherLayers(layers
-#if !defined( NDEBUG )
-            ,
-            vk::enumerateInstanceLayerProperties()
-#endif
-        );
-        std::vector<char const*> enabledExtensions = gatherExtensions(extensions
-#if !defined( NDEBUG )
-            ,
-            vk::enumerateInstanceExtensionProperties()
-#endif
-        );
+        std::vector<char const*> enabledLayers = gatherLayers(layers, vk::enumerateInstanceLayerProperties());
+        std::vector<char const*> enabledExtensions = gatherExtensions(extensions, vk::enumerateInstanceExtensionProperties());
 
-        vk::Instance instance =
-            vk::createInstance(makeInstanceCreateInfoChain(applicationInfo, enabledLayers, enabledExtensions).get<vk::InstanceCreateInfo>());
+        // add global callback to list
+        g_debug_message_callbacks.push_back(debug_callback);
 
-#if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+        vk::Instance instance = vk::createInstance(
+            make_instance_create_info_chain(applicationInfo, enabledLayers, enabledExtensions).get<vk::InstanceCreateInfo>());
+
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
         // initialize function pointers for instance
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
 #endif
@@ -236,6 +206,12 @@ namespace influx::graphics::vk_helpers
         }
 
         throw std::runtime_error("Could not find queues for both graphics or present -> terminating");
+    }
+
+    inline std::vector<std::string> getInstanceLayers()
+    {
+        std::vector<std::string> layers{};
+        return layers;
     }
 
     inline std::vector<std::string> getInstanceExtensions()

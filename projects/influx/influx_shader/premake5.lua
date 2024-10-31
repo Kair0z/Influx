@@ -1,5 +1,5 @@
 -- influx shader
-new_influx_dll("influx_shader")
+new_influx_library("influx_shader")
 
     local dependencies =
     {

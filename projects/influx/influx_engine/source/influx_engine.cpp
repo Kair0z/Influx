@@ -18,31 +18,34 @@
 
 namespace influx::engine
 {
-	void engine::run()
+	void engine::run(base_module* mod)
 	{
+		m_module = mod;
+
 		initialize();
-
-		m_gamemodule = detail::create_game();
-		m_editormodule = detail::create_editor();
-
 		m_t_start = time::get_now();
 
-		if (m_gamemodule && m_editormodule == nullptr)
+		game_module* as_game = dynamic_cast<game_module*>(m_module);
+		if (as_game)
 		{
+			m_game = as_game;
 			run_game();
-			delete m_gamemodule;
-			m_gamemodule = nullptr;
 		}
-		if (m_editormodule && m_gamemodule == nullptr)
+		
+		editor_module* as_editor = dynamic_cast<editor_module*>(m_module);
+		if (as_editor)
 		{
+			m_editor = as_editor;
 			run_editor();
-			delete m_editormodule;
-			m_editormodule = nullptr;
 		}
+
+		delete m_module;
+		m_module = nullptr;
 
 		m_is_quit = true;
 		cleanup();
 	}
+
 
 	void engine::initialize()
 	{
@@ -88,10 +91,8 @@ namespace influx::engine
 
 	void engine::run_game()
 	{
-		m_gamemodule = detail::create_game();
-
 		game_config game_config{};
-		m_gamemodule->on_config(m_app_config, game_config);
+		m_game->on_config(m_app_config, game_config);
 
 		initialize_renderer(m_app_config);
 
@@ -105,7 +106,7 @@ namespace influx::engine
 			m_is_quit_requested |= m_window->has_quit_request();
 
 			update_ctx.m_frametime = frame_time;
-			m_gamemodule->on_update(update_ctx);
+			m_game->on_update(update_ctx);
 
 			renderer::scene scene{};
 			m_renderman->render(&scene);
@@ -116,16 +117,13 @@ namespace influx::engine
 
 		delete m_window;
 		m_window = nullptr;
-
-		m_gamemodule->on_cleanup();
-		delete m_gamemodule;
 	}
 
 	void engine::run_editor()
 	{
 		// build editor config:
 		editor_config config{};
-		m_editormodule->on_config(m_app_config, config);
+		m_editor->on_config(m_app_config, config);
 
 		initialize_renderer(m_app_config);
 
@@ -143,7 +141,7 @@ namespace influx::engine
 
 			m_renderman->record_imgui_frame([this]()
 			{
-				m_editormodule->on_imgui();
+				m_editor->on_imgui();
 			});
 
 			// render
@@ -151,7 +149,7 @@ namespace influx::engine
 			m_renderman->render(&scene);
 		}
 
-		m_editormodule->on_cleanup();
+		m_editor->on_cleanup();
 		delete m_window;
 	}
 
@@ -212,8 +210,9 @@ namespace influx::engine
 
 namespace influx::engine::detail
 {
-	void run_engine()
+	bool run_engine(base_module* mod)
 	{
-		get_engine()->run();
+		get_engine()->run(mod);
+		return true;
 	}
 }

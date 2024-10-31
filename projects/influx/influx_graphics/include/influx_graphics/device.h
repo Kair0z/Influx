@@ -25,6 +25,9 @@ namespace influx::graphics
 	public:
 		device_desc() = default;
 
+		string m_app_name		= "";
+		string m_engine_name	= "influx engine";
+
 		bool m_has_graphics_queue;
 		bool m_has_compute_queue;
 		bool m_has_copy_queue;

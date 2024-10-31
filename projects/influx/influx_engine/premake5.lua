@@ -1,5 +1,5 @@
 -- influx engine
-new_influx_statlib("influx_engine")
+new_influx_dll("influx_engine")
 
     pchheader "engine_pch.h"
     pchsource ("source/engine_pch.cpp")
@@ -12,7 +12,8 @@ new_influx_statlib("influx_engine")
         "influx_async",
         "influx_import",
         "influx_shader",
-        "influx_renderer"
+        "influx_renderer",
+        "influx_imgui",
     }
 
     set_influx_includes(dependencies)

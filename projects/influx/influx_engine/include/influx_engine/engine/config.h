@@ -17,7 +17,7 @@ namespace influx::engine
 	struct app_config
 	{
 		using self = app_config;
-		self& set_window_dim(const math::vectoru2& dim);
+		INFLUX_ENGINE_API self& set_window_dim(const math::vectoru2& dim);
 
 		math::vectoru2 m_window_dimensions;
 	};
@@ -25,14 +25,14 @@ namespace influx::engine
 	struct game_config final
 	{
 		using self = game_config;
-		self& set_gamefile(const string& file);
-		self& set_name(const string& name);
+		INFLUX_ENGINE_API self& set_gamefile(const string& file);
+		INFLUX_ENGINE_API self& set_name(const string& name);
 
 		string m_gamefile_path;
 		string m_gamename;
 	};
 
-	struct editor_config
+	struct INFLUX_ENGINE_API editor_config
 	{
 
 	};

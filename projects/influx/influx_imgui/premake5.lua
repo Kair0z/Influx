@@ -1,5 +1,5 @@
 -- influx imgui
-new_influx_dll("influx_imgui")
+new_influx_library("influx_imgui")
 
     pchheader "imgui_pch.h"
     pchsource "source/imgui_pch.cpp"

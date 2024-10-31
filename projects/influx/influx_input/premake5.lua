@@ -1,5 +1,5 @@
 -- influx input
-new_influx_dll("influx_input")
+new_influx_library("influx_input")
 
     pchheader "input_pch.h"
     pchsource ("source/input_pch.cpp")
