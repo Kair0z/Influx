@@ -112,7 +112,6 @@ namespace influx::engine
 
 			poll_platform_events();
 
-			m_renderman->prerender();
 			m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
 			{
 				m_editor->on_imgui(ctx);
@@ -201,6 +200,7 @@ namespace influx::engine
 		case e_directory::staged:		return root + "/staged/";
 		case e_directory::binaries:		return root + "/bin/";
 		case e_directory::intermediate: return root + "/int/";
+		case e_directory::games:		return root + "/games/";
 		}
 		return {};
 	}

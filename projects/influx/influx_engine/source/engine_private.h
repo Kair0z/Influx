@@ -18,6 +18,7 @@ namespace influx::engine
 {
 	class render_manager;
 	class content_manager;
+	class editor_manager;
 
 	class engine final : public singleton<engine>
 	{
@@ -30,6 +31,7 @@ namespace influx::engine
 			staged,
 			intermediate,
 			binaries,
+			games,
 			count
 		};
 
@@ -80,6 +82,7 @@ namespace influx::engine
 		platform::window* m_window = nullptr;
 		content_manager* m_contentman = nullptr;
 		render_manager* m_renderman = nullptr;
+		editor_manager* m_editorman = nullptr;
 
 		bool m_is_quit = false;
 	};

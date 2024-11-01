@@ -47,9 +47,6 @@ namespace influx::engine
 		virtual void on_update(const ctx_update& ctx);
 		virtual void on_cleanup();
 
-		void load_level(level* level);
-		void load_level(const string& levelname);
-		level const* get_current_level() const;
 		const game_config& get_config() const;
 
 		virtual ~game_module() = default;

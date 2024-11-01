@@ -7,4 +7,11 @@ namespace influx::engine
 	{
 
 	}
+
+	void editor_manager::on_imgui(ImGuiContext& ctx)
+	{
+
+	}
+
+
 }

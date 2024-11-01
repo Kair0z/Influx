@@ -11,6 +11,25 @@ namespace influx::engine
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
+			if (ImGui::BeginMenu("file"))
+			{
+				if (ImGui::Button("new"))
+				{
+
+				}
+
+				if (ImGui::Button("open"))
+				{
+
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("edit"))
+			{
+				ImGui::EndMenu();
+			}
 
 			ImGui::EndMainMenuBar();
 		}

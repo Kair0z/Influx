@@ -18,8 +18,9 @@ public:
 
 		if (ImGui::Begin("imgui"))
 		{
-			ImGui::End();
+			
 		}
+		ImGui::End();
 	}
 };
 influx_engine_editor(editor);

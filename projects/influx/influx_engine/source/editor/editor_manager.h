@@ -6,5 +6,7 @@ namespace influx::engine
 	{
 	public:
 		editor_manager();
+
+		void on_imgui(ImGuiContext& ctx);
 	};
 }
