@@ -118,7 +118,6 @@ namespace influx::engine
 			m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
 			{
 				m_editorman->on_imgui(ctx);
-				m_editor->on_imgui(ctx);
 			});
 
 			renderer::scene scene{};
