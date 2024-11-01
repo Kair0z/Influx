@@ -27,19 +27,6 @@ namespace influx::engine
 	{
 	}
 
-	void game_module::load_level(level* level)
-	{
-	}
-
-	void game_module::load_level(const string& levelname)
-	{
-	}
-
-	level const* game_module::get_current_level() const
-	{
-		return nullptr;
-	}
-
 	game_module::ctx_update::ctx_update(const frame_time& frtime)
 		: m_frametime{ frtime }
 	{

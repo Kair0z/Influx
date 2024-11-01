@@ -16,6 +16,7 @@
 // influx::engine
 #include "content/content_manager.h"
 #include "rendering/render_manager.h"
+#include "editor/editor_manager.h"
 
 namespace influx::engine
 {
@@ -100,6 +101,8 @@ namespace influx::engine
 
 	void engine::run_editor()
 	{
+		m_editorman = new editor_manager();
+
 		editor_config config{};
 		m_editor->on_config(m_app_config, config);
 
@@ -114,6 +117,7 @@ namespace influx::engine
 
 			m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
 			{
+				m_editorman->on_imgui(ctx);
 				m_editor->on_imgui(ctx);
 			});
 
@@ -136,6 +140,12 @@ namespace influx::engine
 		{
 			delete m_module;
 			m_module = nullptr;
+		}
+
+		if (m_editorman)
+		{
+			delete m_editorman;
+			m_editorman = nullptr;
 		}
 
 		if (m_renderman)
