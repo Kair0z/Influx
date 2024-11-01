@@ -1,7 +1,4 @@
 #include "influx_engine.h"
-#include "engine/entrypoint.h"
-#include "core/scope.h"
-
 #include "imgui/imgui.h"
 
 class editor final : public influx::engine::editor_module
@@ -13,13 +10,14 @@ public:
 			.set_window_dim({ 640u, 480u });
 	}
 
-	virtual void on_imgui() override
+	virtual void on_imgui(ImGuiContext& ctx) override
 	{
-		editor_module::on_imgui();
+		editor_module::on_imgui(ctx);
 
-		if (ImGui::Begin("influx editor"))
+		ImGui::SetCurrentContext(&ctx);
+
+		if (ImGui::Begin("imgui"))
 		{
-			// ...
 			ImGui::End();
 		}
 	}

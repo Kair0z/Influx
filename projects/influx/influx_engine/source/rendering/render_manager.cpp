@@ -190,11 +190,10 @@ namespace influx::engine
 		}
 	}
 
-
-	void render_manager::record_imgui_frame(const function<void()>& func)
+	void render_manager::record_imgui_frame(const function<void(ImGuiContext&)>& func)
 	{
 		ImGui::NewFrame();
-		func();
+		func(*ImGui::GetCurrentContext());
 		ImGui::Render();
 		mp_imgui_drawdata = ImGui::GetDrawData();
 	}

@@ -17,6 +17,8 @@
 #include "influx_engine/engine/config.h"
 #include "influx_engine/engine/common.h"
 
+struct ImGuiContext;
+
 namespace influx::engine
 {
 	class INFLUX_ENGINE_API base_module
@@ -60,7 +62,7 @@ namespace influx::engine
 	{
 	public:
 		virtual void on_config(app_config&, editor_config&);
-		virtual void on_imgui();
+		virtual void on_imgui(ImGuiContext& ctx);
 		virtual void on_cleanup();
 
 		virtual ~editor_module() = default;

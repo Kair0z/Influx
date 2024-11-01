@@ -11,6 +11,11 @@
 #include "core/string.h"
 #include "core/math/vector.h"
 
+namespace influx::platform
+{
+	class window_event;
+}
+
 namespace influx::input
 {
 	// event types
@@ -34,7 +39,7 @@ namespace influx::input
 	// 3. call this function from any thread to pump the input queue
 	struct service_args final
 	{
-		uint32 m_max_events_to_service;
+		uint32 m_max_events_to_service = (uint32)-1;
 	};
 	INFLUX_INPUT_API void service(const service_args& args = {});
 
@@ -50,7 +55,7 @@ namespace influx::input
 	INFLUX_INPUT_API void push_external_event(const mouse_event& ev);
 
 	// parse input::events from platform::window event
-	// INFLUX_INPUT_API void push_window_event(const platform::window_event& platform_ev);
+	INFLUX_INPUT_API void push_window_event(const platform::window_event& platform_ev);
 
 #pragma region key_events
 	enum class e_key : uint8

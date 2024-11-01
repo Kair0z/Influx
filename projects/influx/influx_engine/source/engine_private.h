@@ -7,9 +7,11 @@
 #include "core/singleton.h"
 #include "core/threading/thread.h"
 
+// influx::platform
 namespace influx::platform
 {
 	class window;
+	class window_event;
 }
 
 namespace influx::engine
@@ -55,8 +57,12 @@ namespace influx::engine
 		void cleanup();
 		void run_game();
 		void run_editor();
-		void initialize_renderer(const app_config& config);
+		void run_input();
+		void initialize_renderer(const string& window_name, const app_config& config);
+		void poll_platform_events();
 		
+		void on_window_event(const platform::window_event& ev);
+
 		bool m_is_quit_requested = false;
 
 		base_module* m_module = nullptr;

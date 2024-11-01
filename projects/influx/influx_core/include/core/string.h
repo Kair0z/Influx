@@ -63,11 +63,9 @@ namespace influx
 		~debug_name() = default;
 
 #if INFLUX_DEBUG
-		debug_name(const name& name) { set(name); }
 		debug_name(const string& name) { set(name); }
 		debug_name(const char* name) { set(name); }
 #else
-		debug_name(const name& name) { set(""); }
 		debug_name(const string& name) { set(""); }
 		debug_name(const char* name) { set(""); }
 #endif

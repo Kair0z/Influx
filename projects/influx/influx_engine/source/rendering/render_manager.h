@@ -10,6 +10,7 @@ namespace influx::renderer
 }
 
 struct ImDrawData;
+struct ImGuiContext;
 
 namespace influx::engine
 {
@@ -22,7 +23,7 @@ namespace influx::engine
 		// loads application asset data into renderer (textures/meshes/shaders)
 		void load_render_assets(content_manager* cont_man);
 
-		void record_imgui_frame(const function<void()>& func);
+		void record_imgui_frame(const function<void(ImGuiContext&)>& func);
 
 		// build render::scene, imgui data & load resources
 		void prerender();

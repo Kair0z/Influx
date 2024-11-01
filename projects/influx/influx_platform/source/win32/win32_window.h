@@ -18,9 +18,15 @@ namespace influx::platform
 
 		virtual rect get_rect_client() const override;
 
+		virtual void set_event_callback(const event_callback&) override;
+
 		~win32_window();
 
 	private:
 		window_handle m_handle;
+		list<event_callback> m_event_callbacks;
+
+	public:
+		static uint64 window_proc(window_handle handle, uint32 message, uint64 wParam, uint64 lParam);
 	};
 }

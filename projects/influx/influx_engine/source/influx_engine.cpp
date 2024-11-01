@@ -2,6 +2,7 @@
 
 // influx::platform
 #include "influx_platform/platform.h"
+#include "influx_platform/window.h"
 
 // influx::async
 #include "influx_async.h"
@@ -21,31 +22,30 @@ namespace influx::engine
 	void engine::run(base_module* mod)
 	{
 		m_module = mod;
+		influx_assert(m_module != nullptr);
 
 		initialize();
 		m_t_start = time::get_now();
 
-		game_module* as_game = dynamic_cast<game_module*>(m_module);
-		if (as_game)
+		if (game_module* as_game = dynamic_cast<game_module*>(m_module))
 		{
 			m_game = as_game;
 			run_game();
 		}
-		
-		editor_module* as_editor = dynamic_cast<editor_module*>(m_module);
-		if (as_editor)
+
+		if (editor_module* as_editor = dynamic_cast<editor_module*>(m_module))
 		{
 			m_editor = as_editor;
 			run_editor();
 		}
 
-		delete m_module;
-		m_module = nullptr;
+#if INFLUX_DEBUG
+		influx::log_scopedata();
+#endif
 
 		m_is_quit = true;
 		cleanup();
 	}
-
 
 	void engine::initialize()
 	{
@@ -66,27 +66,11 @@ namespace influx::engine
 		influx::input::init();
 		m_inputthread = thread([this]()
 		{
-			while (!m_is_quit_requested)
-			{
-				input::service();
-			}
+			run_input();
 		});
 
 		// make editor content
 		m_contentman = new content_manager(this);
-	}
-
-	void engine::cleanup()
-	{
-		delete m_contentman;
-		m_contentman = nullptr;
-
-		if (m_inputthread.joinable())
-			m_inputthread.join();
-		
-		async::shutdown();
-
-		influx::log_scopedata();
 	}
 
 	void engine::run_game()
@@ -94,7 +78,7 @@ namespace influx::engine
 		game_config game_config{};
 		m_game->on_config(m_app_config, game_config);
 
-		initialize_renderer(m_app_config);
+		initialize_renderer(game_config.m_gamename, m_app_config);
 
 		frame_time frame_time{};
 		game_module::ctx_update update_ctx{};
@@ -102,64 +86,83 @@ namespace influx::engine
 		{
 			frame_time.tick();
 
-			m_window->poll_events(m_is_quit_requested);
-			m_is_quit_requested |= m_window->has_quit_request();
+			poll_platform_events();
 
+			// update
 			update_ctx.m_frametime = frame_time;
 			m_game->on_update(update_ctx);
-
-			renderer::scene scene{};
-			m_renderman->render(&scene);
-		}
-
-		delete m_renderman;
-		m_renderman = nullptr;
-
-		delete m_window;
-		m_window = nullptr;
-	}
-
-	void engine::run_editor()
-	{
-		// build editor config:
-		editor_config config{};
-		m_editor->on_config(m_app_config, config);
-
-		initialize_renderer(m_app_config);
-
-		frame_time frame_time{};
-		while (!m_is_quit_requested)
-		{
-			// tick time
-			frame_time.tick();
-
-			// platform event poll
-			m_window->poll_events(m_is_quit_requested);
-			m_is_quit_requested |= m_window->has_quit_request();
-
-			m_renderman->prerender();
-
-			m_renderman->record_imgui_frame([this]()
-			{
-				m_editor->on_imgui();
-			});
 
 			// render
 			renderer::scene scene{};
 			m_renderman->render(&scene);
 		}
-
-		m_editor->on_cleanup();
-		delete m_window;
 	}
 
-	void engine::initialize_renderer(const app_config& config)
+	void engine::run_editor()
 	{
-		// make a window
+		editor_config config{};
+		m_editor->on_config(m_app_config, config);
+
+		initialize_renderer("influx editor", m_app_config);
+
+		frame_time frame_time{};
+		while (!m_is_quit_requested)
+		{
+			frame_time.tick();
+
+			poll_platform_events();
+
+			m_renderman->prerender();
+			m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
+			{
+				m_editor->on_imgui(ctx);
+			});
+
+			renderer::scene scene{};
+			m_renderman->render(&scene);
+		}
+	}
+
+	void engine::run_input()
+	{
+		while (!m_is_quit_requested)
+		{
+			input::service();
+		}
+	}
+
+	void engine::cleanup()
+	{
+		if (m_module)
+		{
+			delete m_module;
+			m_module = nullptr;
+		}
+
+		if (m_renderman)
+		{
+			delete m_renderman;
+			m_renderman = nullptr;
+		}
+
+		if (m_contentman)
+		{
+			delete m_contentman;
+			m_contentman = nullptr;
+		}
+
+		if (m_inputthread.joinable())
+			m_inputthread.join();
+		
+		async::shutdown();
+	}
+
+	void engine::initialize_renderer(const string& window_name, const app_config& config)
+	{
 		platform::window_desc window_desc{};
 		window_desc
 			.set_dimensions(config.m_window_dimensions)
-			.set_name("influx editor");
+			.set_name(window_name);
 
 		m_window = platform::window::create(window_desc);
 		if (m_window == nullptr)
@@ -167,8 +170,23 @@ namespace influx::engine
 			logonce(e_log_category::warning, "influx_engine::engine: window::create() failed!");
 		}
 
-		// make renderer
+		m_window->set_event_callback([this](const platform::window_event& ev)
+		{
+			on_window_event(ev);
+		});
+
 		m_renderman = new render_manager(this);
+	}
+
+	void engine::poll_platform_events()
+	{
+		m_window->poll_events(m_is_quit_requested);
+		m_is_quit_requested |= m_window->has_quit_request();
+	}
+
+	void engine::on_window_event(const platform::window_event& ev)
+	{
+		input::push_window_event(ev);
 	}
 
 	file engine::get_engine_directory(e_directory dir)

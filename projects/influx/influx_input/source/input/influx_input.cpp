@@ -8,9 +8,7 @@
 
 namespace influx::input
 {
-	using input_event_queue = 
-		events::event_queue<key_event, mouse_event>;
-
+	using input_event_queue = events::event_queue<key_event, mouse_event>;
 	using input_event = input_event_queue::my_event;
 
 	class global_state final : public singleton<global_state>
@@ -64,7 +62,7 @@ namespace influx::input
 		});
 	}
 
-	inline static key_event::e_type translate(platform::window_event::type plat_type)
+	inline static key_event::e_type translate_key(platform::window_event::type plat_type)
 	{
 		switch (plat_type)
 		{
@@ -73,6 +71,20 @@ namespace influx::input
 		}
 
 		return key_event::e_type::count;
+	}
+
+	inline static mouse_event::e_type translate_mouse(platform::window_event::type plat_type)
+	{
+		switch (plat_type)
+		{
+			case platform::window_event::type::mouse_down: return mouse_event::e_type::button_down;
+			case platform::window_event::type::mouse_up: return mouse_event::e_type::button_up;
+			case platform::window_event::type::mouse_leave: return mouse_event::e_type::leave;
+			case platform::window_event::type::mouse_move: return mouse_event::e_type::move;
+			case platform::window_event::type::wheel: return mouse_event::e_type::scroll;
+		}
+
+		return mouse_event::e_type::count;
 	}
 
 	inline static e_key translate(platform::window_event::key_type plat_key)
@@ -110,81 +122,26 @@ namespace influx::input
 
 	void push_window_event(const platform::window_event& platform_ev)
 	{
-		// filter key-events only
-		void* data = nullptr;
-		key_event* new_key_ev = nullptr;
-		mouse_event* new_mouse_ev = nullptr;
-		switch (platform_ev.m_type)
+		const bool is_key_event = platform_ev.is_key_event();
+		const bool is_mouse_event = platform_ev.is_mouse_event();
+
+		if (is_key_event)
 		{
-		case platform::window_event::type::keydown:
-			new_key_ev = allocate<key_event>();
-			new_key_ev->m_type = key_event::e_type::keydown;
-			data = new_key_ev;
-			break;
-
-		case platform::window_event::type::keyup:
-			new_key_ev = allocate<key_event>();
-			new_key_ev->m_type = key_event::e_type::keyup;
-			data = new_key_ev;
-			break;
-
-		case platform::window_event::type::wheel:
-			new_mouse_ev = allocate<mouse_event>();
-			new_mouse_ev->m_type = mouse_event::e_type::scroll;
-			new_mouse_ev->m_wheel_delta = platform_ev.parse_wheel_delta();
-			data = new_mouse_ev;
-			break;
-
-		case platform::window_event::type::mouse_move:
-			new_mouse_ev = allocate<mouse_event>();
-			new_mouse_ev->m_type = mouse_event::e_type::move;
-			new_mouse_ev->m_position = { platform_ev.parse_position_window(), platform_ev.parse_position_screen() };
-			data = new_mouse_ev;
-			break;
-
-		case platform::window_event::type::mouse_leave:
-			new_mouse_ev = new mouse_event();
-			new_mouse_ev->m_type = mouse_event::e_type::leave;
-			new_mouse_ev->m_position.m_client = { -FLT_MAX, -FLT_MAX };
-			new_mouse_ev->m_position.m_screen = { -FLT_MAX, -FLT_MAX };
-			data = new_mouse_ev;
-			break;
-
-		case platform::window_event::type::mouse_down:
-			new_mouse_ev = new mouse_event();
-			new_mouse_ev->m_type = mouse_event::e_type::button_down;
-			new_mouse_ev->m_button = translate(platform_ev.parse_mouse_button());
-			data = new_mouse_ev;
-			break;
-
-		case platform::window_event::type::mouse_up:
-			new_mouse_ev = new mouse_event();
-			new_mouse_ev->m_type = mouse_event::e_type::button_up;
-			new_mouse_ev->m_button = translate(platform_ev.parse_mouse_button());
-			data = new_mouse_ev;
-			break;
+			key_event ev{};
+			ev.m_type = translate_key(platform_ev.m_type);
+			ev.m_key = translate(platform_ev.parse_key_type());
+			ev.m_ascii_char = platform_ev.parse_ascii();
+			global_state::get_queue()->push<key_event>(ev);
 		}
 
-		// parse further key_event data
-		if (new_key_ev)
+		if (is_mouse_event)
 		{
-			platform::window_event::key_type key_type = platform_ev.parse_key_type();
-			new_key_ev->m_key = translate(key_type);
-
-			// store an optional ascii char
-			switch (key_type)
-			{
-			case platform::window_event::key_type::ascii_ch:
-			case platform::window_event::key_type::ascii_num:
-				new_key_ev->m_ascii_char = platform_ev.parse_ascii();
-				break;
-			}
-		}
-
-		// push into the queue
-		if (data != nullptr)
-		{
-			//global_state::get_queue()->push(data);
+			mouse_event ev{};
+			ev.m_type = translate_mouse(platform_ev.m_type);
+			ev.m_position = { platform_ev.parse_position_window(), platform_ev.parse_position_screen() };
+			ev.m_button = translate(platform_ev.parse_mouse_button());
+			ev.m_wheel_delta = platform_ev.parse_wheel_delta();
+			global_state::get_queue()->push<mouse_event>(ev);
 		}
 	}
 
@@ -194,7 +151,7 @@ namespace influx::input
 		key_event* new_event_copy = allocate<key_event>(ev);
 
 		// push into queue
-		// global_state::get_queue()->push(events::event{ new_event_copy });
+		global_state::get_queue()->push<key_event>(*new_event_copy);
 	}
 
 	void push_external_event(const mouse_event& ev)
@@ -205,34 +162,18 @@ namespace influx::input
 
 	void subscribe(const key_callback& callback)
 	{
-#if 0
-		auto this_callback = [callback](const events::event& ev)
+		global_state::get_queue()->subscribe<key_event>([callback](const key_event& ev)
 		{
-			key_event* key_ev = reinterpret_cast<key_event*>(ev.get_data());
-			callback(*key_ev);
-
-			// delete key_ev;
-			key_ev = nullptr;
-		};
-
-		global_state::get_queue()->subscribe(this_callback);
-#endif
+			callback(ev);
+		});
 	}
 
 	void subscribe(const mouse_callback& callback)
 	{
-#if 0
-		auto this_callback = [callback](const events::event& ev)
+		global_state::get_queue()->subscribe<mouse_event>([callback](const mouse_event& ev)
 		{
-			mouse_event* mouse_ev = reinterpret_cast<mouse_event*>(ev.get_data());
-			callback(*mouse_ev);
-
-			// delete mouse_ev;
-			mouse_ev = nullptr;
-		};
-
-		global_state::get_queue()->subscribe(this_callback);
-#endif
+			callback(ev);
+		});
 	}
 
 	void cleanup()
@@ -242,7 +183,9 @@ namespace influx::input
 
 	void service(const service_args& args)
 	{
-		global_state::get_queue()->process();
+		input_event_queue::process_args process_args{};
+		process_args.m_max_num_events = args.m_max_events_to_service;
+		global_state::get_queue()->process(process_args);
 	}
 
 	string key_event::to_string() const

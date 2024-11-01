@@ -7,7 +7,7 @@ namespace influx::engine
 	{
 	}
 
-	void editor_module::on_imgui()
+	void editor_module::on_imgui(ImGuiContext& ctx)
 	{
 		if (ImGui::BeginMainMenuBar())
 		{

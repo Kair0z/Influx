@@ -25,15 +25,19 @@ namespace influx::platform
 		enum class type : uint8
 		{
 			// input
+			_key_begin,
 			keydown,
 			keyup,
+			_key_end,
 
 			// mouse
+			_mouse_begin,
 			wheel,
 			mouse_move,
 			mouse_leave,
 			mouse_down,
 			mouse_up,
+			_mouse_end,
 
 			// general
 			activate,
@@ -78,6 +82,9 @@ namespace influx::platform
 		math::vectorf2 INFLUX_PLATFORM_API parse_position_window() const;
 		math::vectorf2 INFLUX_PLATFORM_API parse_position_screen() const;
 		mouse_button INFLUX_PLATFORM_API parse_mouse_button() const;
+		bool INFLUX_PLATFORM_API is_mouse_event() const;
+		bool INFLUX_PLATFORM_API is_key_event() const;
+		bool INFLUX_PLATFORM_API is_wheel_event() const;
 
 		uint32 m_mssg;
 		uint64 m_wParam;

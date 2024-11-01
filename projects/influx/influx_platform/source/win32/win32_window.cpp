@@ -54,20 +54,50 @@ namespace influx::platform
 		return window_event::type::count;
 	}
 
-	inline LRESULT window_proc(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
+	uint64 win32_window::window_proc(window_handle handle, uint32 message, uint64 wParam, uint64 lParam)
 	{
-		// default behaviour
-		switch (uMsg)
+		win32_window* target_window = nullptr;
+		if (g_handle_to_window_map.contains((::HWND)handle))
+		{
+			target_window = g_handle_to_window_map[(::HWND)handle];
+		}
+
+		if (target_window)
+		{
+			window_event new_event{};
+			new_event.m_mssg = message;
+			new_event.m_wParam = wParam;
+			new_event.m_lParam = lParam;
+			new_event.m_type = translate_umsg(message);
+
+			for (const event_callback& callback : target_window->m_event_callbacks)
+			{
+				if (callback)
+				{
+					callback(new_event);
+				}
+			}
+		}
+
+		switch (message)
 		{
 		case WM_DESTROY:
 		{
 			::PostQuitMessage(0);
-			if (g_handle_to_window_map.contains(hWnd))
-				g_handle_to_window_map[hWnd]->request_quit();
+			if (target_window)
+			{
+				target_window->request_quit();
+			}
 			return 0;
 		}
 		}
 
+		return 0;
+	}
+
+	inline LRESULT _window_proc(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
+	{
+		win32_window::window_proc(hWnd, uMsg, wParam, lParam);
 		return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 
@@ -94,7 +124,7 @@ namespace influx::platform
 			::WNDCLASSEXW windowClassExtended;
 			windowClassExtended.cbSize = sizeof(WNDCLASSEXW);
 			windowClassExtended.style = class_style;
-			windowClassExtended.lpfnWndProc = window_proc;
+			windowClassExtended.lpfnWndProc = _window_proc;
 			windowClassExtended.cbClsExtra = 0;
 			windowClassExtended.cbWndExtra = 0;
 			windowClassExtended.hInstance = instance;
@@ -223,6 +253,11 @@ namespace influx::platform
 		return translate(res);
 	}
 
+	void win32_window::set_event_callback(const event_callback& callback)
+	{
+		m_event_callbacks.push_back(callback);
+	}
+
 	win32_window::~win32_window()
 	{
 		::DestroyWindow((::HWND)m_handle);
@@ -300,6 +335,26 @@ namespace influx::platform
 		}
 
 		return { (float)mouse_pos.x, (float)mouse_pos.y };
+	}
+
+	bool window_event::is_mouse_event() const
+	{
+		int type_value = (int)m_type;
+		return
+			type_value > (int)type::_mouse_begin &&
+			type_value < (int)type::_mouse_end;
+	}
+	bool window_event::is_key_event() const
+	{
+		int type_value = (int)m_type;
+		return
+			type_value > (int)type::_key_begin &&
+			type_value < (int)type::_key_end;
+	}
+	bool window_event::is_wheel_event() const
+	{
+		return
+			m_type == type::wheel;
 	}
 
 	window_event::mouse_button window_event::parse_mouse_button() const
