@@ -48,7 +48,9 @@ namespace influx::input
 
 	// event subscribing
 	INFLUX_INPUT_API void subscribe_keydown(const function<void(e_key)>& keydown_callback);
+	INFLUX_INPUT_API void subscribe_keyup(const function<void(e_key)>& keydown_callback);
 	INFLUX_INPUT_API void subscribe_asciidown(const function<void(char)>& keydown_callback);
+	INFLUX_INPUT_API void subscribe_asciiup(const function<void(char)>& keydown_callback);
 
 	// manually push events into the queue
 	INFLUX_INPUT_API void push_external_event(const key_event& ev);
@@ -68,6 +70,8 @@ namespace influx::input
 		rshift,
 		lctrl,
 		rctrl,
+		lalt,
+		ralt,
 		space,
 		ascii_num,
 		ascii_char,
@@ -107,6 +111,8 @@ namespace influx::input
 		e_type m_type;
 		e_key m_key;
 		char m_ascii_char;
+
+		INFLUX_INPUT_API bool is_ascii() const;
 
 		INFLUX_INPUT_API string to_string() const;
 	};

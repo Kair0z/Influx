@@ -55,6 +55,8 @@ namespace influx::platform
 		case VK_RSHIFT: return key_type::rshift;
 		case VK_CONTROL: return key_type::lctrl;
 		case VK_RCONTROL: return key_type::rctrl;
+		case VK_LMENU: return key_type::lalt;
+		case VK_RMENU: return key_type::ralt;
 		case VK_SPACE: return key_type::space;
 		case VK_F2: return key_type::f2;
 		default: return key_type::unknown;

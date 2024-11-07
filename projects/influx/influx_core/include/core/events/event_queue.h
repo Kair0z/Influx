@@ -27,6 +27,7 @@ namespace influx::events
 			delete m_eventpool;
 		}
 
+		// signature: void(const _ev&)
 		template <typename _ev, typename _func>
 		void subscribe(_func&& handler)
 		{

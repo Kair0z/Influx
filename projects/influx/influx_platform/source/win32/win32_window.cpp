@@ -26,10 +26,12 @@ namespace influx::platform
 		switch (uMsg)
 		{
 		case WM_DESTROY: return window_event::type::quit;
+		case WM_SYSKEYDOWN:
 		case WM_KEYDOWN: return window_event::type::keydown;
+		case WM_SYSKEYUP:
 		case WM_KEYUP: return window_event::type::keyup;
 		case WM_MOUSEWHEEL: return window_event::type::wheel;
-
+		
 		case WM_MOUSEMOVE:
 		case WM_NCMOUSEMOVE:
 			return window_event::type::mouse_move;
@@ -295,6 +297,9 @@ namespace influx::platform
 		case VK_RSHIFT: return key_type::rshift;
 		case VK_CONTROL: return key_type::lctrl;
 		case VK_RCONTROL: return key_type::rctrl;
+		case VK_MENU:
+		case VK_LMENU:	return key_type::lalt;
+		case VK_RMENU: return key_type::ralt;
 		case VK_SPACE: return key_type::space;
 		case VK_F2: return key_type::f2;
 		default: return key_type::unknown;

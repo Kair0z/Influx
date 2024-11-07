@@ -60,7 +60,7 @@ namespace influx::engine
 
 		// initialize job system:
 		async::init_args async_args{};
-		async_args.m_num_workers = 4u;
+		async_args.m_num_workers = 2u;
 		async::initialize(async_args);
 
 		// initialize input and run an input thread
@@ -101,7 +101,7 @@ namespace influx::engine
 
 	void engine::run_editor()
 	{
-		m_editorman = new editor_manager();
+		m_editorman = new editor_manager(m_editor);
 
 		editor_config config{};
 		m_editor->on_config(m_app_config, config);

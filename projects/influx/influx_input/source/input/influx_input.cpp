@@ -53,15 +53,43 @@ namespace influx::input
 		global_state::get_queue() = new input_event_queue();
 	}
 
-	void subscribe_keydown(const function<void(e_key)>& keydown_callback)
+	void subscribe_keydown(const function<void(e_key)>& callback)
 	{
-		subscribe([keydown_callback](const key_event& key)
+		subscribe([callback](const key_event& keyev)
 		{
-			if (keydown_callback && key.m_type == key_event::e_type::keydown)
-				keydown_callback(key.m_key);
+			if (callback && keyev.m_type == key_event::e_type::keydown)
+				callback(keyev.m_key);
 		});
 	}
 
+	void subscribe_keyup(const function<void(e_key)>& callback)
+	{
+		subscribe([callback](const key_event& keyev)
+		{
+			if (callback && keyev.m_type == key_event::e_type::keyup)
+				callback(keyev.m_key);
+		});
+	}
+
+	void subscribe_asciidown(const function<void(char)>& callback)
+	{
+		subscribe([callback](const key_event& keyev)
+		{
+			if (callback && keyev.is_ascii() && keyev.m_type == key_event::e_type::keydown)
+				callback(keyev.m_ascii_char);
+		});
+	}
+
+	void subscribe_asciiup(const function<void(char)>& callback)
+	{
+		subscribe([callback](const key_event& keyev)
+		{
+			if (callback && keyev.is_ascii() && keyev.m_type == key_event::e_type::keyup)
+				callback(keyev.m_ascii_char);
+		});
+	}
+
+#pragma region translation
 	inline static key_event::e_type translate_key(platform::window_event::type plat_type)
 	{
 		switch (plat_type)
@@ -101,6 +129,8 @@ namespace influx::input
 		case platform::window_event::key_type::rshift: return e_key::rshift;
 		case platform::window_event::key_type::lctrl: return e_key::lctrl;
 		case platform::window_event::key_type::rctrl: return e_key::rctrl;
+		case platform::window_event::key_type::lalt: return e_key::lalt;
+		case platform::window_event::key_type::ralt: return e_key::ralt;
 		case platform::window_event::key_type::space: return e_key::space;
 		}
 
@@ -119,6 +149,7 @@ namespace influx::input
 
 		return mouse_event::e_button::count;
 	}
+#pragma endregion
 
 	void push_window_event(const platform::window_event& platform_ev)
 	{
@@ -186,6 +217,11 @@ namespace influx::input
 		input_event_queue::process_args process_args{};
 		process_args.m_max_num_events = args.m_max_events_to_service;
 		global_state::get_queue()->process(process_args);
+	}
+
+	bool key_event::is_ascii() const
+	{
+		return m_key == e_key::ascii_char || m_key == e_key::ascii_num;
 	}
 
 	string key_event::to_string() const
