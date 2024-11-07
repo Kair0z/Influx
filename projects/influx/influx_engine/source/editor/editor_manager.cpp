@@ -5,7 +5,9 @@
 #include "core/log.h"
 
 // influx::engine
+#include "engine_private.h"
 #include "file/engine_files.h"
+#include "content/content_manager.h"
 
 // imgui
 #include "imgui/imgui.h"
@@ -34,6 +36,7 @@ namespace influx::imgui
 
 namespace influx::engine
 {
+#pragma region gamefile
 	string make_gamefile_path(const string& game_name)
 	{
 		engine* engine = get_engine();
@@ -50,65 +53,46 @@ namespace influx::engine
 		return gamefile_path;
 	}
 
-	// creates file at /influx/games/'game_name'/
-	void create_gamefile(const string& game_name)
-	{
-		const string gamefile_path = make_gamefile_path(game_name);
-		if (file::exists(gamefile_path))
-		{
-			// already exists
-		}
-		else
-		{
-			// new file
-			file_game gamefile{};
-			gamefile.m_name = game_name;
-			gamefile.m_id = 0u;
-			gamefile.save(gamefile_path);
-		}
-	}
-
 	// loads file at /influx/games/'game_name'/
-	void load_gamefile(const string& game_name)
+	bool load_gamefile(const string& game_name, file_game& out_gamefile)
 	{
 		const string gamefile_path = make_gamefile_path(game_name);
 		if (file::exists(gamefile_path))
 		{
 			// open existing file
-
+			out_gamefile.load(gamefile_path);
+			return true;
 		}
-		else
-		{
 
-		}
+		return false;
 	}
+
+	// creates file at /influx/games/'game_name'/
+	bool create_gamefile(const string& game_name, file_game& out_gamefile)
+	{
+		const string gamefile_path = make_gamefile_path(game_name);
+		if (file::exists(gamefile_path))
+		{
+			// return false;
+		}
+		
+		// new file
+		out_gamefile = {};
+		out_gamefile.m_name = game_name;
+		out_gamefile.m_id = 0u;
+		out_gamefile.save(gamefile_path);
+		return true;
+	}
+#pragma endregion
 
 	editor_manager::editor_manager(editor_module* editor)
 		: m_editor{ editor }
 	{
 		m_editor_toggle.force_set(true);
 
+		set_target_game(*get_engine(), "influx_game");
+
 		initialize_inputs();
-	}
-
-	void editor_manager::on_keydown(input::e_key key)
-	{
-		m_keybinds.set(key, true);
-	}
-
-	void editor_manager::on_keyup(input::e_key key)
-	{
-		m_keybinds.set(key, false);
-	}
-
-	void editor_manager::on_ascii_down(char ascii)
-	{
-		m_keybinds.set(ascii, true);
-	}
-
-	void editor_manager::on_ascii_up(char ascii)
-	{
-		m_keybinds.set(ascii, false);
 	}
 
 	void editor_manager::on_imgui(ImGuiContext& ctx)
@@ -127,14 +111,14 @@ namespace influx::engine
 		{
 			if (ImGui::BeginMenu("file"))
 			{
-				if (ImGui::Button("new"))
+				if (ImGui::Button("new game"))
 				{
-					create_gamefile("influx_game");
+					create_gamefile("influx_game", m_current_gamefile);
 				}
 
-				if (ImGui::Button("load"))
+				if (ImGui::Button("load game"))
 				{
-					load_gamefile("influx_game");
+					load_gamefile("influx_game", m_current_gamefile);
 				}
 
 				ImGui::EndMenu();
@@ -157,16 +141,16 @@ namespace influx::engine
 			}
 			ImGui::End();
 		}
-		
+
 		if (m_content_toggle)
 		{
-			if (ImGui::Begin("content"))
+			if (ImGui::Begin(has_game() ? (get_game_name() + ":content").c_str() : "content"))
 			{
 
 			}
 			ImGui::End();
 		}
-		
+
 		// user-module after main editor
 		m_editor->on_imgui(ctx);
 	}
@@ -184,6 +168,61 @@ namespace influx::engine
 		{
 			m_editor_toggle = !m_editor_toggle;
 		}
+	}
+
+	void editor_manager::set_target_game(engine& engine, const string& gamename)
+	{
+		if (has_game() && get_game_name() == gamename)
+		{
+			return;
+		}
+
+		// try load, if fail, create game
+#if 0
+		if (!load_gamefile(gamename, m_current_gamefile))
+		{
+			create_gamefile(gamename, m_current_gamefile);
+		}
+#else
+		create_gamefile(gamename, m_current_gamefile);
+#endif
+
+		engine.get_content()->load_game_assets(gamename, &engine);
+	}
+
+	void editor_manager::on_keydown(input::e_key key)
+	{
+		m_keybinds.set(key, true);
+	}
+
+	void editor_manager::on_keyup(input::e_key key)
+	{
+		m_keybinds.set(key, false);
+	}
+
+	void editor_manager::on_ascii_down(char ascii)
+	{
+		m_keybinds.set(ascii, true);
+	}
+
+	void editor_manager::on_ascii_up(char ascii)
+	{
+		m_keybinds.set(ascii, false);
+	}
+
+	bool editor_manager::has_game() const
+	{
+		return m_current_gamefile.m_name != "";
+	}
+
+	string editor_manager::get_game_name() const
+	{
+		if (has_game())
+		{
+			return m_current_gamefile.m_name;
+		}
+
+		return "";
 	}
 
 	void editor_manager::initialize_inputs()

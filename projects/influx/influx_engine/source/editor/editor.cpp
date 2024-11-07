@@ -8,7 +8,6 @@ namespace influx::engine
 
 	void editor_module::on_imgui(ImGuiContext& ctx)
 	{
-		
 	}
 
 	void editor_module::on_cleanup()

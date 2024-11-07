@@ -54,13 +54,12 @@ namespace influx::engine
 
 		// setup engine config
 		m_config.m_file_influx_root = get_engine_directory(engine::e_directory::root);
-		m_config.m_file_influx_resources = get_engine_directory(engine::e_directory::resources);
 		m_config.m_file_influx_assets = get_engine_directory(engine::e_directory::assets);
 		m_config.m_file_influx_staged = get_engine_directory(engine::e_directory::staged);
 
 		// initialize job system:
 		async::init_args async_args{};
-		async_args.m_num_workers = 2u;
+		async_args.m_num_workers = 1u;
 		async::initialize(async_args);
 
 		// initialize input and run an input thread
@@ -70,7 +69,6 @@ namespace influx::engine
 			run_input();
 		});
 
-		// make editor content
 		m_contentman = new content_manager(this);
 	}
 
@@ -198,14 +196,13 @@ namespace influx::engine
 		input::push_window_event(ev);
 	}
 
-	file engine::get_engine_directory(e_directory dir)
+	file engine::get_engine_directory(e_directory dir) const
 	{
 		// temp: HARDCODED builds are ran in /influx/bin/[config]/influx_game/
 		const string& root = platform::platform::get_current_directory() + "/../../../";
 		switch (dir)
 		{
 		case e_directory::root:			return root;
-		case e_directory::resources:	return root + "/resources/";
 		case e_directory::assets:		return root + "/assets/";
 		case e_directory::staged:		return root + "/staged/";
 		case e_directory::binaries:		return root + "/bin/";
@@ -215,12 +212,27 @@ namespace influx::engine
 		return {};
 	}
 
+	file engine::get_game_directory(const string& game_name, e_game_directory dir) const
+	{
+		influx_assert(does_game_exist(game_name));
+		
+		const file& games_directory = get_engine_directory(e_directory::games);
+		const file game_directory = games_directory.m_path_full + "/" + game_name + "/";
+
+		switch (dir)
+		{
+		case e_game_directory::root: return game_directory;
+		case e_game_directory::assets: return game_directory.m_path_full + "/assets/";
+		}
+		return {};
+	}
+
 	platform::window const* engine::get_window() const
 	{
 		return m_window;
 	}
 
-	content_manager const* engine::get_content() const
+	content_manager* engine::get_content() const
 	{
 		return m_contentman;
 	}
@@ -228,6 +240,13 @@ namespace influx::engine
 	render_manager const* engine::get_renderer() const
 	{
 		return m_renderman;
+	}
+
+	bool engine::does_game_exist(const string& game) const
+	{
+		const file& games_directory = get_engine_directory(e_directory::games);
+		const file& game_directory = games_directory.m_path_full + "/" + game + "/";
+		return game_directory.is_directory();
 	}
 
 	float engine::get_fps() const

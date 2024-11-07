@@ -7,6 +7,9 @@
 // influx::input
 #include "influx_input.h"
 
+// influx::engine
+#include "file/engine_files.h"
+
 namespace influx::engine
 {
 	class compound_keybind_tracker final
@@ -138,6 +141,12 @@ namespace influx::engine
 		void on_ascii_down(char);
 		void on_ascii_up(char);
 
+		// sets the editor up to load assets & target the named game
+		void set_target_game(engine& engine, const string& gamename);
+
+		bool has_game() const;
+		string get_game_name() const;
+
 	private:
 		editor_module* m_editor = nullptr;
 		void initialize_inputs();
@@ -147,5 +156,7 @@ namespace influx::engine
 		cooldown_toggle m_content_toggle = 0.5f;
 		cooldown_toggle m_engine_toggle = 0.5f;
 		cooldown_toggle m_editor_toggle = 0.5f;
+
+		file_game m_current_gamefile;
 	};
 }

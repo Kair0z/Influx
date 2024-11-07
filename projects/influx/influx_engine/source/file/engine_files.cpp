@@ -62,12 +62,12 @@ namespace influx::engine
 #define archive_bin(variable) \
 	if (is_loading()) { cereal::BinaryInputArchive AR(get_ifs()); AR(variable); } \
 	else { cereal::BinaryOutputArchive AR(get_ofs()); AR(variable); }
-
 #define archive(variable) archive_json(variable)
 
 	bool file_game::serialize()
 	{
 		archive(m_id);
+		archive(m_name);
 		return true;
 	}
 }

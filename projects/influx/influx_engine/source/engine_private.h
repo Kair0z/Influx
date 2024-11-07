@@ -27,11 +27,17 @@ namespace influx::engine
 		{
 			root,
 			assets,
-			resources,
 			staged,
 			intermediate,
 			binaries,
 			games,
+			count
+		};
+
+		enum class e_game_directory
+		{
+			root,
+			assets,
 			count
 		};
 
@@ -44,13 +50,16 @@ namespace influx::engine
 
 		void run(base_module* mod);
 
-		file get_engine_directory(e_directory dir);
+		file get_engine_directory(e_directory dir) const;
+		file get_game_directory(const string& game_name, e_game_directory dir) const;
 
 		platform::window const* get_window() const;
 
-		content_manager const* get_content() const;
+		content_manager* get_content() const;
 
 		render_manager const* get_renderer() const;
+
+		bool does_game_exist(const string& game) const;
 
 		float get_fps() const;
 
