@@ -113,6 +113,9 @@ namespace influx::engine
 
 	void editor_manager::on_imgui(ImGuiContext& ctx)
 	{
+		engine* engine = get_engine();
+		influx_assert(engine);
+
 		process_inputs();
 
 		if (!m_editor_toggle)
@@ -150,6 +153,7 @@ namespace influx::engine
 			if (ImGui::Begin("influx engine"))
 			{
 				imgui::scoped_style_var minsize(ImGuiStyleVar_WindowMinSize, ImVec2(1000, 1000));
+				ImGui::Text("fps: %f", engine->get_fps());
 			}
 			ImGui::End();
 		}

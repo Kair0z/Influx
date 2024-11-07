@@ -112,6 +112,7 @@ namespace influx::engine
 		while (!m_is_quit_requested)
 		{
 			frame_time.tick();
+			m_fps = 1.0f / frame_time.m_delta_seconds;
 
 			poll_platform_events();
 
@@ -227,6 +228,11 @@ namespace influx::engine
 	render_manager const* engine::get_renderer() const
 	{
 		return m_renderman;
+	}
+
+	float engine::get_fps() const
+	{
+		return m_fps;
 	}
 	
 	bool engine::is_quit() const

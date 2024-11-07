@@ -16,7 +16,7 @@ public:
 
 		ImGui::SetCurrentContext(&ctx);
 
-		if (ImGui::Begin("imgui"))
+		if (ImGui::Begin("custom editor"))
 		{
 			
 		}

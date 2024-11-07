@@ -52,6 +52,8 @@ namespace influx::engine
 
 		render_manager const* get_renderer() const;
 
+		float get_fps() const;
+
 		bool is_quit() const;
 
 	private:
@@ -78,6 +80,7 @@ namespace influx::engine
 
 		time::point m_t_init;
 		time::point m_t_start;
+		float m_fps;
 
 		platform::window* m_window = nullptr;
 		content_manager* m_contentman = nullptr;
