@@ -4,18 +4,16 @@
 ¬ Projects Overview
 ----------------------
 1. Apps
-- [FluxRenderer]: Minimalist Renderer showcasing the [InfluxGraphics] project-library
-- [InfluxEditor]: Editor application hosting the [InfluxEngine] project-library
-- [InfluxGame]: Game application hosting the [InfluxEngine] project-library
-- [InfluxRayTracing]: Standalone CPU-Raytracer application using [InfluxCore]
+- [influx_editor]
+- [influx_game]
 
 2. Libraries
-- [InfluxCore]: Header-only library providing various basic-types, math-& utility-functions 
-- [InfluxApplication]: Library providing a Windowed Application interface that hosts [InfluxEngine]
-- [InfluxEngine]: ... Honestly not quite sure yet what functionality will reside in this centralized unit...
-- [InfluxGraphics]: RHI-library (similar to Unreal Engine) providing an abstraction layer of Graphics APIs (Dx12/Vulkan)
-- [InfluxRenderer]: Library providing a Renderer interface using [InfluxGraphics]
-- [InfluxAssets]: Library providing asset-loading functionality (PNGs, FBXs, OBJs, ...)
+- [influx_import]: Library providing asset-loading functionality (PNGs, FBXs, OBJs, ...)
+- [influx_async]: task scheduling
+- [influx_core]: stateless, header-only library, each other library depends on this one 
+- [influx_engine]: main library the applications link to
+- [influx_graphics]: RHI-library (similar to Unreal Engine) providing an abstraction layer of Graphics APIs (Dx12/Vulkan)
+- [influx_renderer]: the renderer used by the engine, uses influx_graphics
 - ...
 
 ¬ Getting up and running
