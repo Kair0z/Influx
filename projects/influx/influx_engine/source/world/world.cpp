@@ -1,7 +1,132 @@
 #include "engine_pch.h"
 #include "world.h"
 
+// influx::engine
+#include "influx_engine/scene/scene.h"
+
 namespace influx::engine
 {
+    world::world()
+    {
+        foreach_pool([](entity_pool& pool)
+        {
+            pool.reset();
+        });
+    }
 
+    world::~world()
+    {
+
+    }
+
+    void world::load_scene(scene* scene, bool set_main)
+    {
+        m_scenes.push_back(scene);
+
+        // create an entity for each actor
+        for (const actor& actor : scene->get_all_actors())
+        {
+            ref_ptr<entity> new_ent = new_entity();
+        }
+
+        if (set_main)
+        {
+            m_mainscene_idx = m_scenes.size() - 1u;
+        }
+    }
+
+    void world::unload_scene(scene*)
+    {
+
+    }
+
+    scene* world::get_main_scene()
+    {
+        return *m_scenes.begin();
+    }
+
+    ref_ptr<entity> world::find_entity(entity_id id)
+    {
+        entity_capsule* capsule = find_capsule(id);
+        if (capsule)
+        {
+            return capsule->m_entity;
+        }
+    }
+
+    uint32 g_idtracker = 0u;
+    ref_ptr<entity> world::new_entity()
+    {
+        entity_capsule new_capsule{};
+        const uint32 pool_idx = 0u;
+        new_capsule.m_entity = m_entity_pools[pool_idx].allocate();
+        new_capsule.m_entity->set_id(g_idtracker++);
+        new_capsule.m_pool_idx = pool_idx;
+        m_entities.push_back(new_capsule);
+        return m_entities.back().m_entity;
+    }
+
+    bool world::remove_entity(entity_id id)
+    {
+        entity_capsule* capsule = find_capsule(id);
+        if (capsule)
+        {
+            // remove reference
+            capsule->m_entity.release();
+            return true;
+        }
+
+        return false;
+    }
+
+    void world::remove_all()
+    {
+        for (entity_capsule& capsule : m_entities)
+        {
+            capsule.m_entity.release();
+        }
+    }
+
+    // deletes unreferenced entities
+    void world::flush()
+    {
+        m_entities.remove_if([this](const entity_capsule& capsule)
+        {
+            // the only reference remaining is the one held in the list m_entities
+            // nobody else references it anymore, so let's get rid of it
+            if (capsule.m_entity && capsule.m_entity.get_refcount() == 0u)
+            {
+                m_entity_pools[capsule.m_pool_idx].free_lockless(capsule.m_entity.get_ptr());
+                return true;
+            }
+            
+            return false;
+        });
+    }
+
+    world::entity_capsule* world::find_capsule(entity_id id)
+    {
+        // find capsule with id
+        const auto& found = std::find_if(m_entities.begin(), m_entities.end(), [id](entity_capsule& capsule)
+        {
+            return capsule.m_entity && capsule.m_entity->get_id() == id;
+        });
+
+        if (found != m_entities.cend())
+        {
+            return &(*found);
+        }
+
+        return nullptr;
+    }
+
+    entity_id entity::get_id() const
+    {
+        return m_id;
+    }
+
+    void entity::set_id(entity_id id)
+    {
+        m_id = id;
+    }
 }

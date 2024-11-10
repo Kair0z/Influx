@@ -19,6 +19,7 @@ namespace influx::engine
 	class render_manager;
 	class content_manager;
 	class editor_manager;
+	class world;
 
 	class engine final : public singleton<engine>
 	{
@@ -59,6 +60,8 @@ namespace influx::engine
 
 		render_manager const* get_renderer() const;
 
+		world* get_world() const;
+
 		bool does_game_exist(const string& game) const;
 
 		float get_fps() const;
@@ -95,6 +98,7 @@ namespace influx::engine
 		content_manager* m_contentman = nullptr;
 		render_manager* m_renderman = nullptr;
 		editor_manager* m_editorman = nullptr;
+		world* m_world = nullptr;
 
 		bool m_is_quit = false;
 	};

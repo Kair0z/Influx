@@ -8,6 +8,8 @@
 #include "engine_private.h"
 #include "file/engine_files.h"
 #include "content/content_manager.h"
+#include "world/world.h"
+#include "influx_engine/scene/scene.h"
 
 // imgui
 #include "imgui/imgui.h"
@@ -119,6 +121,13 @@ namespace influx::engine
 				if (ImGui::Button("load game"))
 				{
 					load_gamefile("influx_game", m_current_gamefile);
+				}
+
+				if (ImGui::Button("load scene"))
+				{
+					// load the main scene
+					scene* new_scene = scene::load_from_file("");
+					engine->get_world()->load_scene(new_scene);
 				}
 
 				ImGui::EndMenu();

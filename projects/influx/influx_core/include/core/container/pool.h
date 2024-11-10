@@ -278,18 +278,18 @@ namespace influx
 			return result;
 		}
 
-		inline bool free_lockless(_t*& pointer)
+		inline bool free_lockless(_t* pointer)
 		{
 			const size_t index = get_index(pointer);
 			m_freelist.push_back(index);
 			return true;
 		}
-		inline bool free(_t*& pointer)
+		inline bool free(_t* pointer)
 		{
 			std::lock_guard<std::mutex> lock(m_mutex);
 			return free_lockless(pointer);
 		}
-		inline bool try_free(_t*& pointer)
+		inline bool try_free(_t* pointer)
 		{
 			if (!m_mutex.try_lock()) return nullptr;
 			bool result = free_lockless(pointer);

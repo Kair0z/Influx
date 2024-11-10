@@ -17,6 +17,7 @@
 #include "content/content_manager.h"
 #include "rendering/render_manager.h"
 #include "editor/editor_manager.h"
+#include "world/world.h"
 
 namespace influx::engine
 {
@@ -106,6 +107,8 @@ namespace influx::engine
 
 		initialize_renderer("influx editor", m_app_config);
 
+		m_world = new world();
+
 		frame_time frame_time{};
 		while (!m_is_quit_requested)
 		{
@@ -122,6 +125,8 @@ namespace influx::engine
 			renderer::scene scene{};
 			m_renderman->render(&scene);
 		}
+
+		delete m_world;
 	}
 
 	void engine::run_input()
@@ -240,6 +245,11 @@ namespace influx::engine
 	render_manager const* engine::get_renderer() const
 	{
 		return m_renderman;
+	}
+
+	world* engine::get_world() const
+	{
+		return m_world;
 	}
 
 	bool engine::does_game_exist(const string& game) const
