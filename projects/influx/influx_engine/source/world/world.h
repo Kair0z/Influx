@@ -3,6 +3,7 @@
 // influx::core
 #include "core/container/pool.h"
 #include "core/container/list.h"
+#include "core/container/vector.h"
 #include "core/pointer.h"
 
 namespace influx::engine
@@ -17,7 +18,6 @@ namespace influx::engine
 	{
 	public:
 		entity_id get_id() const;
-
 		void set_id(entity_id);
 
 	private:
@@ -65,7 +65,7 @@ namespace influx::engine
 	private:
 		entity_pool m_entity_pools[k_num_entity_pools]{};
 		list<entity_capsule> m_entities{};
-		list<scene*> m_scenes{};
+		vector<scene*> m_scenes{};
 		uint32 m_mainscene_idx = 0u;
 
 		template <typename _func>

@@ -3,6 +3,7 @@
 // influx::core
 #include "core/file.h"
 #include "core/string.h"
+#include "core/container/vector.h"
 
 // STL
 #include <fstream>
@@ -43,9 +44,14 @@ namespace influx::engine
 		string m_name;
 	};
 
-	class file_scene
+	class file_scene : public detail::file_interface
 	{
+		bool serialize() override;
 
+	public:
+		vector<uint32> m_actor_ids;
+		vector<string> m_actor_names;
+		vector<uint32> m_actor_component_types;
 	};
 
 	class file_texture

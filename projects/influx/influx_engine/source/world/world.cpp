@@ -31,7 +31,7 @@ namespace influx::engine
 
         if (set_main)
         {
-            m_mainscene_idx = m_scenes.size() - 1u;
+            m_mainscene_idx = uint32(m_scenes.size() - 1u);
         }
     }
 
@@ -42,7 +42,7 @@ namespace influx::engine
 
     scene* world::get_main_scene()
     {
-        return *m_scenes.begin();
+        return m_scenes[m_mainscene_idx];
     }
 
     ref_ptr<entity> world::find_entity(entity_id id)
@@ -52,6 +52,8 @@ namespace influx::engine
         {
             return capsule->m_entity;
         }
+
+        return nullptr;
     }
 
     uint32 g_idtracker = 0u;

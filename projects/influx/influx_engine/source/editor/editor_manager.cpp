@@ -39,20 +39,39 @@ namespace influx::imgui
 namespace influx::engine
 {
 #pragma region gamefile
-	string make_gamefile_path(const string& game_name)
+	string make_game_directory_path(const string& game_name)
 	{
 		engine* engine = get_engine();
 		const file& game_directory = engine->get_engine_directory(engine::e_directory::games);
-		const string gamefile_subdir = "/" + game_name + "/";
+		const string gamefile_subdir = game_directory.m_path_full + "/" + game_name + "/";
+		return gamefile_subdir;
+	}
+
+	string make_gamefile_path(const string& game_name)
+	{
+		const string gamefile_subdir = make_game_directory_path(game_name);
 		const string gamefile_ext = ".flx";
 
 		const string gamefile_path =
-			game_directory.m_path_full
-			+ gamefile_subdir
+			gamefile_subdir
 			+ game_name
 			+ gamefile_ext;
 
 		return gamefile_path;
+	}
+
+	string make_scenefile_path(const string& game_name, const string& scene_name)
+	{
+		const string gamefile_subdir = make_game_directory_path(game_name);
+		const string scenefile_ext = ".flx";
+
+		const string scenefile_path =
+			gamefile_subdir
+			+ "/scenes/"
+			+ scene_name
+			+ scenefile_ext;
+
+		return scenefile_path;
 	}
 
 	// loads file at /influx/games/'game_name'/
@@ -102,6 +121,9 @@ namespace influx::engine
 		engine* engine = get_engine();
 		influx_assert(engine);
 
+		world* world = engine->get_world();
+		influx_assert(world);
+
 		process_inputs();
 
 		if (!m_editor_toggle)
@@ -123,11 +145,27 @@ namespace influx::engine
 					load_gamefile("influx_game", m_current_gamefile);
 				}
 
+				if (ImGui::Button("new scene"))
+				{
+					// new empty scene
+					scene* new_scene = scene::make_empty_scene();
+					
+					// save to file
+					const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
+					scene::save_to_file(new_scene, scenefile_path);
+
+					// load into world
+					world->load_scene(new_scene);
+				}
+
 				if (ImGui::Button("load scene"))
 				{
-					// load the main scene
-					scene* new_scene = scene::load_from_file("");
-					engine->get_world()->load_scene(new_scene);
+					// load from file
+					const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
+					scene* scene = scene::load_from_file(scenefile_path);
+					
+					// load into world
+					world->load_scene(scene);
 				}
 
 				ImGui::EndMenu();

@@ -70,5 +70,17 @@ namespace influx::engine
 		archive(m_name);
 		return true;
 	}
+
+	bool file_scene::serialize()
+	{
+		const uint64 num_actors = m_actor_ids.size();
+		for (uint64 i = 0u; i < num_actors; ++i)
+		{
+			archive(m_actor_ids[i]);
+			archive(m_actor_names[i]);
+		}
+
+		return true;
+	}
 }
 

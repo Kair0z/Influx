@@ -15,7 +15,7 @@ public:
 
 	virtual void on_start() override
 	{
-
+		
 	}
 
 	virtual void on_update(const ctx_update& ctx) override
