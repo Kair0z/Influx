@@ -6,9 +6,7 @@ struct ID3D12Fence;
 
 namespace influx::graphics
 {
-	class dx12_fence final 
-		: public fence
-		, public dx12_base
+	class dx12_fence final : public fence
 	{
 	public:
 		dx12_fence(ID3D12Fence* fence);
@@ -21,6 +19,8 @@ namespace influx::graphics
 		virtual void wait_for_value(uint64 value, wait_handle& handle) override;
 
 		virtual uint64 query_value() const override;
+
+		virtual void release() override;
 
 	private:
 		ID3D12Fence* mpdx_fence;

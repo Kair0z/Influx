@@ -23,12 +23,6 @@ namespace influx::engine
     {
         m_scenes.push_back(scene);
 
-        // create an entity for each actor
-        for (const actor& actor : scene->get_all_actors())
-        {
-            ref_ptr<entity> new_ent = new_entity();
-        }
-
         if (set_main)
         {
             m_mainscene_idx = uint32(m_scenes.size() - 1u);

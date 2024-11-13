@@ -5,7 +5,6 @@ namespace influx::graphics
 	class device;
 	class resource;
 	class commandlist;
-	class command_allocator;
 	class queue;
 	class fence;
 }
@@ -25,7 +24,6 @@ namespace influx::renderer
 	private:
 		graphics::device* mp_device;
 		graphics::commandlist* mp_commandlist;
-		graphics::command_allocator* mp_commandalloc;
 		graphics::fence* mp_fence;
 
 		graphics::resource* mp_texture_upload_resource;

@@ -9,7 +9,6 @@ namespace influx::graphics
 		: resource(desc)
 	{
 		mp_native = mpdx_resource = resource;
-		set_releasable(mpdx_resource);
 	}
 
 	dx12_resource::dx12_resource(ID3D12Resource* resource, const buffer_desc& desc)
@@ -18,9 +17,14 @@ namespace influx::graphics
 		mp_native = mpdx_resource = resource;
 	}
 
-	void dx12_resource::on_set_name(const debug_name& name)
+	void dx12_resource::set_name_impl(const debug_name& name)
 	{
 		mpdx_resource->SetName(to_wstring(name.get()).c_str());
+	}
+
+	void dx12_resource::release()
+	{
+		mpdx_resource->Release();
 	}
 
 	void* dx12_resource::map(const map_args& args)

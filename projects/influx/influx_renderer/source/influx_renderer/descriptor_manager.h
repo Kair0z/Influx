@@ -1,6 +1,9 @@
 #pragma once
 
-#include "influx_graphics/descriptorheap.h"
+// influx::graphics
+#include "influx_graphics/descriptors.h"
+
+// influx::core
 #include "core/container/ringBuffer.h"
 
 // heavily inspired by

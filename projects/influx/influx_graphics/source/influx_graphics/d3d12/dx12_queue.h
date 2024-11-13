@@ -6,9 +6,7 @@ struct ID3D12CommandQueue;
 
 namespace influx::graphics
 {
-	class dx12_queue final 
-		: public queue
-		, public dx12_base
+	class dx12_queue final : public queue
 	{
 	public:
 		explicit dx12_queue(const queue_desc& desc, ID3D12CommandQueue* queue);
@@ -19,5 +17,7 @@ namespace influx::graphics
 
 	private:
 		ID3D12CommandQueue* mpdx_queue;
+
+		virtual void release() override;
 	};
 }

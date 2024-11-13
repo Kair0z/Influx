@@ -62,6 +62,7 @@ namespace influx::engine
 #define archive_bin(variable) \
 	if (is_loading()) { cereal::BinaryInputArchive AR(get_ifs()); AR(variable); } \
 	else { cereal::BinaryOutputArchive AR(get_ofs()); AR(variable); }
+
 #define archive(variable) archive_json(variable)
 
 	bool file_game::serialize()
@@ -74,6 +75,7 @@ namespace influx::engine
 	bool file_scene::serialize()
 	{
 		const uint64 num_actors = m_actor_ids.size();
+
 		for (uint64 i = 0u; i < num_actors; ++i)
 		{
 			archive(m_actor_ids[i]);
@@ -81,6 +83,17 @@ namespace influx::engine
 		}
 
 		return true;
+	}
+
+	void file_scene::add_actor(const uint32 id, const string& name)
+	{
+		m_actor_ids.push_back(id);
+		m_actor_names.push_back(name);
+	}
+
+	uint32 file_scene::get_num_actors() const
+	{
+		return (uint32)m_actor_ids.size();
 	}
 }
 

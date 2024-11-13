@@ -8,12 +8,13 @@ namespace influx::graphics
 {
 	class dx12_swapchain final 
 		: public swapchain
-		, public dx12_base
 	{
 		// acquires the next available backbuffer (and returns the index)
 		virtual uint8 acquire_backbuffer() override;
 
 		virtual vector<resource*> create_resources() override;
+
+		virtual void release() override;
 
 	public:
 		dx12_swapchain(

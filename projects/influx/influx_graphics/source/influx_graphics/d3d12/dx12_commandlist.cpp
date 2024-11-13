@@ -2,36 +2,47 @@
 #include "influx_graphics/d3d12/dx12_commandlist.h"
 #include "dx12_headers.h"
 
+// influx::graphics
+#include "influx_graphics/d3d12/dx12_device.h"
 #include "influx_graphics/d3d12/dx12_conversion.h"
-
 #include "influx_graphics/d3d12/dx12_pipeline.h"
-#include "influx_graphics/d3d12/dx12_allocator.h"
-#include "influx_graphics/d3d12/dx12_resource_views.h"
+#include "influx_graphics/d3d12/dx12_descriptors.h"
 #include "influx_graphics/d3d12/dx12_resource.h"
 #include "influx_graphics/d3d12/dx12_rootsignature.h"
-#include "influx_graphics/d3d12/dx12_descriptorheap.h"
 
 namespace influx::graphics
 {
 	dx12_commandlist::dx12_commandlist(ID3D12GraphicsCommandList* commandlist)
 	{
 		mp_native = mpdx_commandlist = mpdx_graphics_commandlist = commandlist;
-		set_releasable(mpdx_commandlist);
-	}
-
-	void dx12_commandlist::start(command_allocator* allocator, pipeline* init_state)
-	{
-		ID3D12PipelineState* dxpipeline = (init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr);
-		ID3D12CommandAllocator* dxallocator = allocator->get_native<ID3D12CommandAllocator>();
-
-		// reset allocator
-		dxallocator->Reset();
-
-		// reset commandlist
-		mpdx_graphics_commandlist->Reset(dxallocator, dxpipeline);
 	}
 
 	bool g_current_render_pass = true;
+
+	void dx12_commandlist::free_allocator(device* device)
+	{
+		dx12_device* dxdevice = ((dx12_device*)device);
+		if (mpdx_allocator)
+		{
+			dxdevice->free_allocator(D3D12_COMMAND_LIST_TYPE_DIRECT, mpdx_allocator);
+			mpdx_allocator = nullptr;
+		}
+	}
+
+	void dx12_commandlist::start(device* device, pipeline* init_state)
+	{
+		// free the previous allocator if that's not already happened
+		free_allocator(device);
+
+		// re-allocate
+		dx12_device* dxdevice = ((dx12_device*)device);
+		mpdx_allocator = dxdevice->new_allocator(D3D12_COMMAND_LIST_TYPE_DIRECT);
+		influx_assert(mpdx_allocator != nullptr);
+
+		ID3D12PipelineState* dxpipeline = (init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr);		
+		mpdx_graphics_commandlist->Reset(mpdx_allocator, dxpipeline);
+	}
+
 	void dx12_commandlist::renderpass_begin(const renderpass_args& args)
 	{
 		ID3D12GraphicsCommandList7* gfx_commandlist7 = nullptr;
@@ -265,5 +276,10 @@ namespace influx::graphics
 	void dx12_commandlist::end()
 	{
 		mpdx_graphics_commandlist->Close();
+	}
+
+	void dx12_commandlist::release()
+	{
+		mpdx_graphics_commandlist->Release();
 	}
 }

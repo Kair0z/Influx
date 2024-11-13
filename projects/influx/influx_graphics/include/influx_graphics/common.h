@@ -6,6 +6,7 @@
 #define INFLUX_GFX_API __declspec(dllimport)
 #endif
 
+// influx::core
 #include "core/string.h"
 #include "core/basetypes.h"
 

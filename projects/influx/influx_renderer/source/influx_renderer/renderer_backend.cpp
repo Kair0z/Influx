@@ -71,12 +71,7 @@ namespace influx::renderer
 
         // create commandlist & allocators for rendering:
         {
-            for (size_t i = 0u; i < get_num_buffers(k_buffering); ++i)
-            {
-                mp_allocators.push_back(mp_device->create_graphics_allocator());
-            }
-
-            mp_commandlist = mp_device->create_graphics_command_list(mp_allocators[0u]);
+            mp_commandlist = mp_device->create_graphics_commandlist();
         }
 
         // create fence
@@ -172,7 +167,7 @@ namespace influx::renderer
             graphics::render_target_view* target_rtv = target.get_rtv();
             graphics::depth_stencil_view* target_dsv = target.get_dsv();
 
-            mp_commandlist->start(mp_allocators[0u], nullptr);
+            mp_commandlist->start(mp_device, nullptr);
             {
                 const uint32 target_width = target.get_width();
                 const uint32 target_height = target.get_height();
@@ -214,7 +209,7 @@ namespace influx::renderer
         influx_scope("renderer_backend::draw_imgui");
         {
             influx_scope("renderer_backend::draw_imgui::record");
-            mp_commandlist->start(mp_allocators[0u], nullptr);
+            mp_commandlist->start(mp_device, nullptr);
 
             graphics::render_target_view* target_rtv = target.get_rtv();
             mp_commandlist->set(target_rtv, nullptr);
@@ -245,7 +240,7 @@ namespace influx::renderer
         influx_scope("renderer_backend::draw_2D");
         {
             influx_scope("renderer_backend::draw2D::record");
-            mp_commandlist->start(mp_allocators[0u], nullptr);
+            mp_commandlist->start(mp_device, nullptr);
 
             graphics::render_target_view* target_rtv = target.get_rtv();
             mp_commandlist->set(target_rtv, nullptr);
@@ -274,7 +269,7 @@ namespace influx::renderer
         graphics::resource* source_resource = source.get_resource();
         graphics::resource* dest_resource = dest.get_resource();
 
-        mp_commandlist->start(mp_allocators[0u]);
+        mp_commandlist->start(mp_device);
 
         source_resource->transition(mp_commandlist, graphics::e_resource_state::copy_source);
         dest_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dest);

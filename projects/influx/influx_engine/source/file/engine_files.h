@@ -49,6 +49,12 @@ namespace influx::engine
 		bool serialize() override;
 
 	public:
+		void add_actor(
+			const uint32 id, 
+			const string& name);
+
+		uint32 get_num_actors() const;
+
 		vector<uint32> m_actor_ids;
 		vector<string> m_actor_names;
 		vector<uint32> m_actor_component_types;

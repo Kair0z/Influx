@@ -1,10 +1,12 @@
 #include "renderer_pch.h"
 #include "descriptor_manager.h"
 
+// influx::renderer
 #include "influx_renderer/texture.h"
 
+// influx::graphics
 #include "influx_graphics/device.h"
-#include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/descriptors.h"
 
 namespace influx::renderer
 {

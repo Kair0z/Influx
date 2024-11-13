@@ -6,6 +6,7 @@
 #define INFLUX_ENGINE_API __declspec(dllimport)
 #endif
 
+#pragma region dependencies
 // influx::core
 #include "core/string.h"
 #include "core/math/vector.h"
@@ -17,8 +18,11 @@
 #include "influx_engine/engine/config.h"
 #include "influx_engine/engine/common.h"
 
+// ImGui
 struct ImGuiContext;
+#pragma endregion
 
+// modules
 namespace influx::engine
 {
 	class INFLUX_ENGINE_API base_module

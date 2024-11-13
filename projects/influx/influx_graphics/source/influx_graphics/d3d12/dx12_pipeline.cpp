@@ -9,7 +9,11 @@ namespace influx::graphics
 		: pipeline(desc)
 	{
 		mp_native = mpdx_pipeline = dxpipeline;
-		set_releasable(mpdx_pipeline);
+	}
+
+	void dx12_pipeline::release()
+	{
+		mpdx_pipeline->Release();
 	}
 }
 

@@ -21,8 +21,7 @@ namespace influx::renderer
 		mp_buffer_upload_resource = mp_device->create_resource(buffer_desc, heap_desc);
 
 		mp_fence = mp_device->create_fence(0u);
-		mp_commandalloc = mp_device->create_graphics_allocator();
-		mp_commandlist = mp_device->create_graphics_command_list(mp_commandalloc);
+		mp_commandlist = mp_device->create_graphics_commandlist();
 	}
 
 	void upload_manager::upload_buffer(graphics::queue* queue, const vector<byte>& data, graphics::resource* target)
@@ -32,7 +31,7 @@ namespace influx::renderer
 		const uint32 num_bytes = (uint32)data.size();
 
 		// start a commandlist that copies the buffer from intermediate -> gpu resource
-		mp_commandlist->start(mp_commandalloc, nullptr);
+		mp_commandlist->start(mp_device, nullptr);
 		{
 			// transition our gpu buffer to copy_dest
 			target->transition(mp_commandlist, graphics::e_resource_state::copy_dest);
@@ -75,7 +74,7 @@ namespace influx::renderer
 		}, args);
 
 		// start a commandlist that copies the texture from intermediate -> gpu resource
-		mp_commandlist->start(mp_commandalloc, nullptr);
+		mp_commandlist->start(mp_device, nullptr);
 		{
 			// transition our gpu texture to shader resource usage
 			mp_commandlist->transition_resource(target_resource,
@@ -111,7 +110,6 @@ namespace influx::renderer
 		delete mp_texture_upload_resource;
 		delete mp_buffer_upload_resource;
 		delete mp_fence;
-		delete mp_commandalloc;
 		delete mp_commandlist;
 	}
 

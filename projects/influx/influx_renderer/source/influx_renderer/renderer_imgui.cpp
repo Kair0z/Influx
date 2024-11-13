@@ -11,7 +11,7 @@
 // influx::graphics
 #include "influx_graphics/device.h"
 #include "influx_graphics/queue.h"
-#include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/descriptors.h"
 #include "influx_graphics/commandlist.h"
 
 // influx::shader

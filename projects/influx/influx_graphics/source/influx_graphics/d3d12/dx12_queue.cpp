@@ -7,11 +7,10 @@
 
 namespace influx::graphics
 {
-	dx12_queue::dx12_queue(const queue_desc& desc, ID3D12CommandQueue* queue)
+	dx12_queue::dx12_queue(const queue_desc& desc, ID3D12CommandQueue* queue) 
 		: queue(desc)
 	{
 		mp_native = mpdx_queue = queue;
-		set_releasable(mpdx_queue);
 	}
 
 	void dx12_queue::submit_commandlists(const vector<commandlist*>& commandlists)
@@ -30,5 +29,10 @@ namespace influx::graphics
 	void dx12_queue::queue_signal(fence* fence, uint64 value)
 	{
 		fence->queue_signal(value, this);
+	}
+
+	void dx12_queue::release()
+	{
+		mpdx_queue->Release();
 	}
 }

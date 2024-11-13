@@ -12,24 +12,15 @@
 #include "influx_graphics/d3d12/dx12_swapchain.h"
 #include "influx_graphics/d3d12/dx12_resource.h"
 #include "influx_graphics/d3d12/dx12_commandlist.h"
-#include "influx_graphics/d3d12/dx12_allocator.h"
-#include "influx_graphics/d3d12/dx12_resource_views.h"
-#include "influx_graphics/d3d12/dx12_descriptorheap.h"
+#include "influx_graphics/d3d12/dx12_descriptors.h"
 #include "influx_graphics/d3d12/dx12_pipeline.h"
 #include "influx_graphics/d3d12/dx12_rootsignature.h"
-#include "influx_graphics/d3d12/dx12_commandbuffer.h"
 
 // core win32
 #include "core/platform/win32/win32_window.h"
 
 namespace influx::graphics
 {
-	void dx12_device::submit(commandbuffer* commandbuffer)
-	{
-		influx_assert(m_graphics_queue);
-		commandbuffer->submit(m_graphics_queue);
-	}
-
 	dx12_device::dx12_device(const device_desc& desc)
 		: device(desc)
 	{
@@ -121,14 +112,15 @@ namespace influx::graphics
 
 	void dx12_device::cleanup()
 	{
-		for (dx12_base*& child : m_children)
+		for (size_t i = 0u; i < m_children.size(); ++i)
 		{
-			delete child;
-			child = nullptr;
+			base* child = m_children[i];
+			if (child != nullptr)
+			{
+				child->release();
+			}
 		}
 
-		m_children.clear();
-		
 		for (size_t i = 0u; i < mpdx_devices.size(); ++i)
 		{
 			if (mpdx_devices[i] != nullptr)
@@ -219,33 +211,44 @@ namespace influx::graphics
 		return new_child<dx12_descriptor_heap, descriptor_heap>(args, dxheap, get_descriptor_stride(args.m_type));
 	}
 
-	command_allocator* dx12_device::create_graphics_allocator()
+	commandlist* dx12_device::create_commandlist(e_commandlist_type type, pipeline* init_state)
 	{
-		auto dxallocator = dx12helpers::create_command_allocator(mpdx_devices[0u], D3D12_COMMAND_LIST_TYPE_DIRECT);
-		return new_child<dx12_command_allocator, command_allocator>(dxallocator);
+		commandlist* result = nullptr;
+		switch (type)
+		{
+		case e_commandlist_type::graphics: result = create_graphics_commandlist(init_state); break;
+		case e_commandlist_type::compute: result = create_compute_commandlist(init_state); break;
+		}
+
+		return result;
 	}
 
-	commandlist* dx12_device::create_graphics_command_list(command_allocator* allocator, pipeline* init_state)
+	commandlist* dx12_device::create_graphics_commandlist(pipeline* init_state)
 	{
-		auto dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(mpdx_devices[0u],
-			allocator->get_native<ID3D12CommandAllocator>(), D3D12_COMMAND_LIST_TYPE_DIRECT,
-			init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr);
+		const D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+		ID3D12CommandAllocator* allocator = new_allocator(type);
+		ID3D12PipelineState* init_pipeline = init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr;
+
+		ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
+			mpdx_devices[0u], allocator, type, init_pipeline);
 
 		dxcommandlist->Close();
 
 		return new_child<dx12_commandlist, commandlist>(dxcommandlist);
 	}
 
-	commandbuffer* dx12_device::create_commandbuffer()
+	commandlist* dx12_device::create_compute_commandlist(pipeline* init_state)
 	{
-		dx12_queue* queue = m_dx_queue_graphics;
-		influx_assert(queue);
+		const D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+		ID3D12CommandAllocator* allocator = new_allocator(type);
+		ID3D12PipelineState* init_pipeline = init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr;
 
-		dx12_fence* new_fence = (dx12_fence*)create_fence();
-		influx_assert(new_fence);
+		ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
+			mpdx_devices[0u], allocator, type, init_pipeline);
 
-		commandbuffer* new_buffer = new_child<dx12_commandbuffer, commandbuffer>(queue, new_fence);
-		return new_buffer;
+		dxcommandlist->Close();
+
+		return new_child<dx12_commandlist, commandlist>(dxcommandlist);
 	}
 
 	fence* dx12_device::create_fence(uint64 init_value)
@@ -626,5 +629,70 @@ namespace influx::graphics
 	void* dx12_device::get_native()
 	{
 		return mpdx_devices[0u];
+	}
+
+	vector<dx12_device::command_alloc_entry>& dx12_device::get_allocators(const D3D12_COMMAND_LIST_TYPE& type)
+	{
+		switch (type)
+		{
+		case D3D12_COMMAND_LIST_TYPE_DIRECT: return m_direct_allocators;
+		case D3D12_COMMAND_LIST_TYPE_COMPUTE: return m_compute_allocators;
+		case D3D12_COMMAND_LIST_TYPE_COPY: return m_copy_allocators;
+		}
+
+		return m_direct_allocators;
+	}
+
+	ID3D12CommandAllocator* dx12_device::new_allocator(const D3D12_COMMAND_LIST_TYPE& type)
+	{
+		vector<command_alloc_entry>& allocators = get_allocators(type);
+
+		for (uint64 i = 0u; i < allocators.size(); ++i)
+		{
+			// find an already created allocator that was returned
+			if (allocators[i].m_allocator != nullptr && allocators[i].m_in_flight == false)
+			{
+				allocators[i].m_allocator->Reset();
+				allocators[i].m_in_flight = true;
+				return allocators[i].m_allocator;
+			}
+		}
+
+		auto create_allocator = [this]() -> ID3D12CommandAllocator*
+		{
+			ID3D12CommandAllocator* result = dx12helpers::create_command_allocator(mpdx_devices[0u], D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+			result->Reset();
+			return result;
+		};
+
+		// make sure there's no holes in our vector
+		for (uint64 i = 0u; i < allocators.size(); ++i)
+		{
+			if (allocators[i].m_allocator == nullptr)
+			{
+				allocators[i].m_allocator = create_allocator();
+				allocators[i].m_in_flight = true;
+				return allocators[i].m_allocator;
+			}
+		}
+
+		// create new entry if needed
+		command_alloc_entry new_entry{};
+		new_entry.m_in_flight = true;
+		new_entry.m_allocator = create_allocator();
+		allocators.push_back(new_entry);
+		return allocators.back().m_allocator;
+	}
+
+	void dx12_device::free_allocator(const D3D12_COMMAND_LIST_TYPE& type, ID3D12CommandAllocator* allocator)
+	{
+		vector<command_alloc_entry>& allocators = get_allocators(type);
+		for (uint64 i = 0u; i < allocators.size(); ++i)
+		{
+			if (allocators[i].m_allocator == allocator)
+			{
+				allocators[i].m_in_flight = false;
+			}
+		}
 	}
 }

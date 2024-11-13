@@ -1,10 +1,16 @@
 #pragma once
+
+// influx::graphics
 #include "influx_graphics/device.h"
+
+// influx::core
 #include "core/pointer.h"
 
 struct IDXGIFactory2;
 struct IDXGIAdapter1;
 struct ID3D12Device;
+struct ID3D12CommandAllocator;
+enum D3D12_COMMAND_LIST_TYPE;
 
 namespace influx::graphics
 {
@@ -28,9 +34,11 @@ namespace influx::graphics
 		virtual queue* create_queue(const queue_desc& desc) override;
 		virtual swapchain* create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) override;
 		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args& args) override;
-		virtual command_allocator* create_graphics_allocator() override;
-		virtual commandlist* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) override;
-		virtual commandbuffer* create_commandbuffer() override;
+
+		virtual commandlist* create_commandlist(e_commandlist_type type, pipeline* init_state = nullptr) override;
+		virtual commandlist* create_graphics_commandlist(pipeline* init_state = nullptr) override;
+		virtual commandlist* create_compute_commandlist(pipeline* init_state = nullptr) override;
+
 		virtual fence* create_fence(uint64 init_value = 0u) override;
 		virtual resource* create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual resource* create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) override;
@@ -52,12 +60,24 @@ namespace influx::graphics
 		virtual memory_info get_memory_info() const override;
 		virtual void copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type);
 		virtual void* get_native() override final;
-		virtual void submit(commandbuffer* commandbuffer) override;
 
+		ID3D12CommandAllocator* new_allocator(const D3D12_COMMAND_LIST_TYPE& type);
+		void free_allocator(const D3D12_COMMAND_LIST_TYPE& type, ID3D12CommandAllocator*);
+		
 	private:
 		IDXGIFactory2* mpdxgi_factory;
 		vector<IDXGIAdapter1*> mpdxgi_adapters;
 		vector<ID3D12Device*> mpdx_devices;
+
+		struct command_alloc_entry final
+		{
+			ID3D12CommandAllocator* m_allocator = nullptr;
+			bool m_in_flight = false;
+		};
+		vector<command_alloc_entry>& get_allocators(const D3D12_COMMAND_LIST_TYPE& type);
+		vector<command_alloc_entry> m_direct_allocators;
+		vector<command_alloc_entry> m_compute_allocators;
+		vector<command_alloc_entry> m_copy_allocators;
 
 		uint64 m_rtv_stride{};
 		uint64 m_dsv_stride{};
@@ -68,14 +88,14 @@ namespace influx::graphics
 		dx12_queue* m_dx_queue_compute = nullptr;
 		dx12_queue* m_dx_queue_copy = nullptr;
 
-		vector<dx12_base*> m_children;
+		vector<base*> m_children;
 
-		template <typename _t, typename _tret, typename ..._args>
-		inline _tret* new_child(_args&&... args)
+		template <typename _nat, typename _ret, typename ..._args>
+		_ret* new_child(_args&&... args)
 		{
-			_t* new_child = new _t(std::forward<_args&&>(args)...);
+			_nat* new_child = new _nat(std::forward<_args&&>(args)...);
 			m_children.push_back(new_child);
-			return (_tret*)new_child;
+			return (_ret*)new_child;
 		}
 	};
 }

@@ -1,9 +1,10 @@
 #pragma once
 
+// influx::graphics
 #include "influx_graphics/common.h"
 #include "influx_graphics/queue.h"
 #include "influx_graphics/resource.h"
-#include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/descriptors.h"
 #include "influx_graphics/renderpass.h"
 #include "influx_graphics/d3d12/dx12_headers.h"
 

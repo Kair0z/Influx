@@ -1,4 +1,6 @@
 #include "graphics_pch.h"
+
+// influx::graphics
 #include "influx_graphics/d3d12/dx12_swapchain.h"
 #include "influx_graphics/d3d12/dx12_resource.h"
 #include "dx12_headers.h"
@@ -11,7 +13,6 @@ namespace influx::graphics
 		: swapchain(desc, swapchain_dependencies)
 	{
 		mp_native = mpdxgi_swapchain4 = swapchain4;
-		set_releasable(mpdxgi_swapchain4);
 
 		mp_buffer_resources = create_resources();
 	}
@@ -47,5 +48,11 @@ namespace influx::graphics
 			resources.push_back(new dx12_resource(dxresource, desc));
 		}
 		return resources;
+	}
+
+	void dx12_swapchain::release()
+	{
+
+		mpdxgi_swapchain4->Release();
 	}
 }

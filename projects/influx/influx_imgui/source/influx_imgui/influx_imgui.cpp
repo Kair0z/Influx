@@ -10,7 +10,7 @@
 // influx::graphics
 #include "influx_graphics/resource.h"
 #include "influx_graphics/queue.h"
-#include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/descriptors.h"
 #include "influx_graphics/device.h"
 
 // influx::shader
@@ -252,7 +252,7 @@ namespace influx::imgui
 		});
 
 		// record transfer (upload resource -> gpu resource)
-		get_commandlist()->start(get_allocator());
+		get_commandlist()->start(get_device());
 		get_commandlist()->copy_texture(
 			fonts_tex.mp_upload, fonts_tex.mp_resource);
 		get_commandlist()->end();
@@ -370,19 +370,14 @@ namespace influx::imgui
 
 	bool initialize()
 	{
-		// create the device
 		get_device() = graphics::device::create(graphics::e_api_type::dx12);
 
-		// create the command queue
 		graphics::queue_desc queue_desc{};
 		queue_desc.m_type = graphics::e_queue_type::graphics;
 		get_queue() = get_device()->create_queue(queue_desc);
 
-		// create command list & allocator
-		get_allocator() = get_device()->create_graphics_allocator();
-		get_commandlist() = get_device()->create_graphics_command_list(get_allocator());
+		get_commandlist() = get_device()->create_graphics_commandlist();
 
-		// create srv heap
 		graphics::descriptor_heap::create_args desc_heap_args{};
 		desc_heap_args.m_capacity = 1u;
 		desc_heap_args.m_shader_visible = true;
@@ -436,7 +431,7 @@ namespace influx::imgui
 		// update vertex / index buffers
 		update_renderbuffers(draw_data, global_state::get_instance().m_renderbuffers);
 
-		get_commandlist()->start(get_allocator());
+		get_commandlist()->start(get_device());
 
 		// setup state
 		get_commandlist()->set_vertexbuffer(get_buffers().mp_vertexbuffer);

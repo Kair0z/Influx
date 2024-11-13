@@ -3,23 +3,27 @@
 // influx::core
 #include "core/container/vector.h"
 #include "core/string.h"
+#include "core/pointer.h"
+
+namespace influx::engine
+{
+	class entity;
+	using entity_ref = ref_ptr<entity>;
+}
 
 namespace influx::engine
 {
 	class actor
 	{
 	public:
-		actor(const string& name);
+		actor(const entity_ref& entity)
+			: m_entity{ entity } {}
 
+		string get_name() const;
 		void set_name(const string& name);
 
-		const string& get_name() const;
-
-		void add_component();
-
-		void remove_component();
-
 	private:
+		entity_ref m_entity;
 		string m_name;
 	};
 
@@ -41,13 +45,13 @@ namespace influx::engine
 		static bool save_to_file(scene*, const string& path);
 
 		INFLUX_ENGINE_API
-		const vector<actor>& get_all_actors() const;
+		const vector<entity_ref> get_entities() const;
 
 		INFLUX_ENGINE_API
 		void add_actor(const string& name);
 
 		INFLUX_ENGINE_API
-		actor* find_actor(const string& name);
+		entity_ref find_actor(const string& name);
 
 		INFLUX_ENGINE_API
 		void remove_actor(const string&);

@@ -4,10 +4,9 @@
 
 namespace influx::graphics
 {
-	// interface base class for each object created by our graphics api
 	class base
 	{
-		virtual void on_set_name(const debug_name& name) {}
+		virtual void set_name_impl(const debug_name& name) {}
 
 	public:
 		template <typename _t>
@@ -35,6 +34,7 @@ namespace influx::graphics
 		inline void set_name(const debug_name& name)
 		{
 			m_name = name;
+			set_name_impl(name);
 		}
 
 		inline const debug_name& get_name() const
@@ -46,11 +46,14 @@ namespace influx::graphics
 		base(base&&) = delete;
 		base& operator=(const base&) = delete;
 		base& operator=(base&&) = delete;
-		virtual ~base() = default;
+
+		virtual ~base();
+
+		virtual void release() = 0;
 
 	protected:
 		base() = default;
-		void* mp_native;
+		void* mp_native = nullptr;
 		
 	private:
 		debug_name m_name{};

@@ -9,7 +9,7 @@
 #include "influx_graphics/pipeline.h"
 #include "influx_graphics/rootsignature.h"
 #include "influx_graphics/commandlist.h"
-#include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/descriptors.h"
 
 namespace influx::renderer
 {

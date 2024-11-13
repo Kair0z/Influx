@@ -1,8 +1,11 @@
 #pragma once
+
+// influx::graphics
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/d3d12/dx12_base.h"
 
 struct ID3D12CommandList;
+struct ID3D12CommandAllocator;
 struct ID3D12GraphicsCommandList;
 
 namespace influx::graphics
@@ -11,14 +14,13 @@ namespace influx::graphics
 	class pipeline;
 	class render_target_view;
 
-	class dx12_commandlist final 
-		: public commandlist
-		, public dx12_base
+	class dx12_commandlist final : public commandlist
 	{
 	public:
 		dx12_commandlist(ID3D12GraphicsCommandList* commandlist);
 
-		virtual void start(command_allocator* allocator, pipeline* init_state) override;
+		// starts a commandlist, using the device to allocate the memory internally
+		virtual void start(device* device, pipeline* init_state = nullptr) override;
 
 		virtual void renderpass_begin(const renderpass_args& args) override;
 
@@ -66,8 +68,13 @@ namespace influx::graphics
 
 		virtual void end() override;
 
+		virtual void release() override;
+
+		void free_allocator(device*);
+
 	private:
 		ID3D12CommandList* mpdx_commandlist;
 		ID3D12GraphicsCommandList* mpdx_graphics_commandlist;
+		ID3D12CommandAllocator* mpdx_allocator;
 	};
 }

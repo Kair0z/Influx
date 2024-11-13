@@ -1,5 +1,5 @@
 #include "graphics_pch.h"
-#include "influx_graphics/resource_views.h"
+#include "influx_graphics/descriptors.h"
 
 namespace influx::graphics
 {
@@ -13,4 +13,3 @@ namespace influx::graphics
 		return m_gpu_handle;
 	}
 }
-

@@ -1,15 +1,16 @@
 #include "renderer_pch.h"
 #include "scene_renderer.h"
 
+// influx::renderer
 #include "influx_renderer/target.h"
 #include "influx_renderer/pipeline/pipeline.h"
 #include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/descriptor_manager.h"
 
+// influx::graphics
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/resource.h"
-#include "influx_graphics/resource_views.h"
 #include "influx_graphics/device.h"
 
 namespace influx::renderer

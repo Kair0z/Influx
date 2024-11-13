@@ -8,7 +8,6 @@ namespace influx::graphics
 	dx12_fence::dx12_fence(ID3D12Fence* fence)
 	{
 		mp_native = mpdx_fence = fence;
-		set_releasable(mpdx_fence);
 	}
 
 	// queues a signal command to the command queue
@@ -41,5 +40,10 @@ namespace influx::graphics
 	uint64 dx12_fence::query_value() const
 	{
 		return mpdx_fence->GetCompletedValue();
+	}
+
+	void dx12_fence::release()
+	{
+		mpdx_fence->Release();
 	}
 }

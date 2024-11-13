@@ -1,21 +1,18 @@
 #pragma once
 
-// graphics
+// influx::graphics
 #include "influx_graphics/common.h"
 #include "influx_graphics/base.h"
 #include "influx_graphics/queue.h"
 #include "influx_graphics/commandlist.h"
-#include "influx_graphics/commandallocator.h"
 #include "influx_graphics/pipeline.h"
 #include "influx_graphics/fence.h"
 #include "influx_graphics/swapchain.h"
 #include "influx_graphics/resource.h"
-#include "influx_graphics/resource_views.h"
-#include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/descriptors.h"
 #include "influx_graphics/rootsignature.h"
-#include "influx_graphics/commandbuffer.h"
 
-// core
+// influx::core
 #include "core/platform/window.h"
 
 namespace influx::graphics
@@ -38,9 +35,6 @@ namespace influx::graphics
 	class device
 	{
 	public:
-		virtual void submit(commandbuffer* commandbuffer) = 0;
-
-	public:
 		INFLUX_GFX_API static device* create(e_api_type type, const device_desc& desc = device_desc{});
 	
 		void set_api_type(e_api_type type);
@@ -57,11 +51,9 @@ namespace influx::graphics
 
 		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args&) = 0;
 
-		virtual command_allocator* create_graphics_allocator() = 0;
-
-		virtual commandlist* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
-
-		virtual commandbuffer* create_commandbuffer() = 0;
+		virtual commandlist* create_commandlist(e_commandlist_type type, pipeline* init_state = nullptr) = 0;
+		virtual commandlist* create_graphics_commandlist(pipeline* init_state = nullptr) = 0;
+		virtual commandlist* create_compute_commandlist(pipeline* init_state = nullptr) = 0;
 
 		virtual fence* create_fence(uint64 init_value = 0u) = 0;
 

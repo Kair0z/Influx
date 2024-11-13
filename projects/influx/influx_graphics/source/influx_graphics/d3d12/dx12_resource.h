@@ -1,4 +1,6 @@
 #pragma once
+
+// influx::graphics
 #include "influx_graphics/resource.h"
 #include "influx_graphics/d3d12/dx12_base.h"
 
@@ -6,9 +8,7 @@ struct ID3D12Resource;
 
 namespace influx::graphics
 {
-	class dx12_resource final 
-		: public resource
-		, public dx12_base
+	class dx12_resource final : public resource
 	{
 		virtual void* map(const map_args& args) override;
 		virtual void unmap(const map_args& args) override;
@@ -20,7 +20,7 @@ namespace influx::graphics
 	private:
 		ID3D12Resource* mpdx_resource;
 
-	protected:
-		virtual void on_set_name(const debug_name& name) override;
+		virtual void set_name_impl(const debug_name& name) override;
+		virtual void release() override;
 	};
 }
