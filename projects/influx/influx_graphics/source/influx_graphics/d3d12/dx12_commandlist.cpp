@@ -12,37 +12,28 @@
 
 namespace influx::graphics
 {
-	dx12_commandlist::dx12_commandlist(ID3D12GraphicsCommandList* commandlist)
+	dx12_commandlist::dx12_commandlist(ID3D12GraphicsCommandList* commandlist, ID3D12CommandAllocator* allocator)
 	{
 		mp_native = mpdx_commandlist = mpdx_graphics_commandlist = commandlist;
-	}
-
-	bool g_current_render_pass = true;
-
-	void dx12_commandlist::free_allocator(device* device)
-	{
-		dx12_device* dxdevice = ((dx12_device*)device);
-		if (mpdx_allocator)
-		{
-			dxdevice->free_allocator(D3D12_COMMAND_LIST_TYPE_DIRECT, mpdx_allocator);
-			mpdx_allocator = nullptr;
-		}
+		mpdx_allocator = allocator;
 	}
 
 	void dx12_commandlist::start(device* device, pipeline* init_state)
 	{
-		// free the previous allocator if that's not already happened
-		free_allocator(device);
-
-		// re-allocate
 		dx12_device* dxdevice = ((dx12_device*)device);
-		mpdx_allocator = dxdevice->new_allocator(D3D12_COMMAND_LIST_TYPE_DIRECT);
-		influx_assert(mpdx_allocator != nullptr);
+
+		if (mpdx_allocator != nullptr)
+		{
+			free_allocator(dxdevice);
+		}
+
+		mpdx_allocator = obtain_allocator(dxdevice);
 
 		ID3D12PipelineState* dxpipeline = (init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr);		
 		mpdx_graphics_commandlist->Reset(mpdx_allocator, dxpipeline);
 	}
 
+	bool g_current_render_pass = true;
 	void dx12_commandlist::renderpass_begin(const renderpass_args& args)
 	{
 		ID3D12GraphicsCommandList7* gfx_commandlist7 = nullptr;
@@ -281,5 +272,19 @@ namespace influx::graphics
 	void dx12_commandlist::release()
 	{
 		mpdx_graphics_commandlist->Release();
+	}
+
+	ID3D12CommandAllocator* dx12_commandlist::obtain_allocator(dx12_device* dxdevice)
+	{
+		influx_assert(dxdevice);
+		mpdx_allocator = dxdevice->new_allocator(D3D12_COMMAND_LIST_TYPE_DIRECT);
+		return mpdx_allocator;
+	}
+
+	void dx12_commandlist::free_allocator(dx12_device* dxdevice)
+	{
+		influx_assert(dxdevice);
+		dxdevice->free_allocator(D3D12_COMMAND_LIST_TYPE_DIRECT, mpdx_allocator);
+		mpdx_allocator = nullptr;
 	}
 }

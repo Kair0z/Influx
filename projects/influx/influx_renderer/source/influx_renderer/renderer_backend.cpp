@@ -586,7 +586,6 @@ namespace influx::renderer
         renderer_backend::get_instance().cleanup();
     }
 
-    // create a target to render to
     target* create_target(const target_create_args& args)
     {
         return renderer_backend::get_instance().create_target(args);

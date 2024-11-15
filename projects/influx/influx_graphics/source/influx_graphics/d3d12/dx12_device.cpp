@@ -119,7 +119,11 @@ namespace influx::graphics
 			{
 				child->release();
 			}
+
+			delete child;
+			child = nullptr;
 		}
+		m_children.clear();
 
 		for (size_t i = 0u; i < mpdx_devices.size(); ++i)
 		{
@@ -225,21 +229,24 @@ namespace influx::graphics
 
 	commandlist* dx12_device::create_graphics_commandlist(pipeline* init_state)
 	{
-		const D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-		ID3D12CommandAllocator* allocator = new_allocator(type);
-		ID3D12PipelineState* init_pipeline = init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr;
+		const D3D12_COMMAND_LIST_TYPE type	= D3D12_COMMAND_LIST_TYPE_DIRECT;
+		ID3D12PipelineState* dxpipeline = init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr;
+		ID3D12CommandAllocator* dxallocator = new_allocator(type);
 
 		ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
-			mpdx_devices[0u], allocator, type, init_pipeline);
+			mpdx_devices[0u], 
+			dxallocator, 
+			type, 
+			dxpipeline);
 
 		dxcommandlist->Close();
 
-		return new_child<dx12_commandlist, commandlist>(dxcommandlist);
+		return new_child<dx12_commandlist, commandlist>(dxcommandlist, dxallocator);
 	}
 
 	commandlist* dx12_device::create_compute_commandlist(pipeline* init_state)
 	{
-		const D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+		const D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
 		ID3D12CommandAllocator* allocator = new_allocator(type);
 		ID3D12PipelineState* init_pipeline = init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr;
 
@@ -248,7 +255,7 @@ namespace influx::graphics
 
 		dxcommandlist->Close();
 
-		return new_child<dx12_commandlist, commandlist>(dxcommandlist);
+		return new_child<dx12_commandlist, commandlist>(dxcommandlist, allocator);
 	}
 
 	fence* dx12_device::create_fence(uint64 init_value)
@@ -692,6 +699,7 @@ namespace influx::graphics
 			if (allocators[i].m_allocator == allocator)
 			{
 				allocators[i].m_in_flight = false;
+				allocators[i].m_allocator->Reset();
 			}
 		}
 	}

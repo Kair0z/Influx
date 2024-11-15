@@ -2,7 +2,6 @@
 
 // influx::graphics
 #include "influx_graphics/commandlist.h"
-#include "influx_graphics/d3d12/dx12_base.h"
 
 struct ID3D12CommandList;
 struct ID3D12CommandAllocator;
@@ -10,25 +9,25 @@ struct ID3D12GraphicsCommandList;
 
 namespace influx::graphics
 {
-	class command_allocator;
 	class pipeline;
 	class render_target_view;
+	class dx12_device;
 
 	class dx12_commandlist final : public commandlist
 	{
 	public:
-		dx12_commandlist(ID3D12GraphicsCommandList* commandlist);
+		dx12_commandlist(ID3D12GraphicsCommandList* commandlist, ID3D12CommandAllocator* allocator);
 
 		// starts a commandlist, using the device to allocate the memory internally
-		virtual void start(device* device, pipeline* init_state = nullptr) override;
+		virtual void start(device*, pipeline* init_state = nullptr) override;
 
-		virtual void renderpass_begin(const renderpass_args& args) override;
+		virtual void renderpass_begin(const renderpass_args&) override;
 
 		virtual void renderpass_end() override;
 
-		virtual void draw_instanced(const draw_instanced_args& args) override;
+		virtual void draw_instanced(const draw_instanced_args&) override;
 
-		virtual void draw_indexed(const draw_indexed_args& args) override;
+		virtual void draw_indexed(const draw_indexed_args&) override;
 
 		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data) override;
 
@@ -70,7 +69,9 @@ namespace influx::graphics
 
 		virtual void release() override;
 
-		void free_allocator(device*);
+		ID3D12CommandAllocator* obtain_allocator(dx12_device*);
+
+		void free_allocator(dx12_device*);
 
 	private:
 		ID3D12CommandList* mpdx_commandlist;

@@ -10,7 +10,6 @@ namespace influx::graphics
 		, m_descriptor_stride{descriptor_stride}
 	{
 		mp_native = mpdx_heap = dxheap;
-		set_releasable(mpdx_heap);
 
 		clear_gpu();
 		clear_cpu();

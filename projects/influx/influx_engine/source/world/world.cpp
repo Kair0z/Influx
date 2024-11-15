@@ -3,6 +3,10 @@
 
 // influx::engine
 #include "influx_engine/scene/scene.h"
+#include "content/content_manager.h"
+
+// influx::renderer
+#include "influx_renderer/scene.h"
 
 namespace influx::engine
 {
@@ -80,6 +84,34 @@ namespace influx::engine
         for (entity_capsule& capsule : m_entities)
         {
             capsule.m_entity.release();
+        }
+    }
+
+    void world::build_renderscene(renderer::scene& scene) const
+    {
+        scene.m_camera.m_far_plane = 1000.0f;
+        scene.m_camera.m_near_plane = 0.001f;
+        scene.m_camera.m_fov = 90.0f;
+        scene.m_camera.m_transform = math::transform3D::identity();
+
+        const auto& scenes = get_engine()->get_content()->get_scenes();
+        if (scenes.empty())
+        {
+            logonce(e_log_category::warning, "world::build_renderscene > no scene content to render!");
+            return;
+        }
+
+        const string mesh_name = "sphere";
+
+        scene.m_meshes.clear();
+        for (uint32 i = 0u; i < 10u; ++i)
+        {
+            renderer::mesh_instance mesh{};
+            mesh.m_name = mesh_name;
+            mesh.m_transform = math::matrix4x4f::identity();
+            mesh.m_material_name = "";
+            mesh.m_per_instance_colour;
+            scene.m_meshes.push_back(mesh);
         }
     }
 

@@ -11,6 +11,11 @@ namespace influx::engine
 	class scene;
 }
 
+namespace influx::renderer
+{
+	class scene;
+}
+
 namespace influx::engine
 {
 	using entity_id = uint32;
@@ -58,6 +63,8 @@ namespace influx::engine
 		bool remove_entity(entity_id);
 		
 		void remove_all();
+
+		void build_renderscene(renderer::scene&) const;
 
 		// deletes unreferenced entities
 		void flush();

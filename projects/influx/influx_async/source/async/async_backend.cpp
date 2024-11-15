@@ -30,6 +30,8 @@ namespace influx::async
 
 	void async_manager::shutdown()
 	{
+		m_is_initialized = false;
+
 		// join the threads
 		for (uint64 i = 0u; i < m_worker_threads.size(); ++i)
 		{
@@ -41,8 +43,11 @@ namespace influx::async
 		influx_delete(mp_global_cleanup_queue);
 		influx_delete(mp_global_queue);
 		influx_delete(mp_taskpool);
+	}
 
-		m_is_initialized = false;
+	bool async_manager::is_shutdown()
+	{
+		return m_is_initialized == false;
 	}
 
 	void async_manager::worker_thread_method(worker_state& state)
@@ -53,7 +58,7 @@ namespace influx::async
 		task_data* cur_task_data = nullptr;
 		task_handle* cur_task_handle = nullptr;
 
-		while (true)
+		while (async_manager::get_instance().is_shutdown() == false)
 		{
 			if (!manager.grab_and_process_a_task())
 			{

@@ -24,6 +24,7 @@ namespace influx::async
 	public:
 		void initialize(const init_args& args);
 		void shutdown();
+		bool is_shutdown();
 
 		task_handle create_task(const task_create_args& args = {});
 		std::vector<task_handle> create_tasks(const std::vector<task_create_args>& args);

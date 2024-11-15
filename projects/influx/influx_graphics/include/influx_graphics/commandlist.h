@@ -66,8 +66,6 @@ namespace influx::graphics
 	class commandlist : public base
 	{
 	public:
-		static commandlist* create(device*, command_allocator*, pipeline* = nullptr);
-
 		// starts a commandlist, using the device to allocate the memory internally
 		virtual void start(device* device, pipeline* init_state = nullptr) = 0;
 		

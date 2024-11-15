@@ -80,6 +80,8 @@ namespace influx::engine
 
 		initialize_renderer(game_config.m_gamename, m_app_config);
 
+		m_contentman->load_engine_assets(this);
+
 		frame_time frame_time{};
 		game_module::ctx_update update_ctx{};
 		while (!m_is_quit_requested)
@@ -87,13 +89,24 @@ namespace influx::engine
 			frame_time.tick();
 
 			poll_platform_events();
+			if (m_is_quit_requested) break;
 
-			// update
 			update_ctx.m_frametime = frame_time;
 			m_game->on_update(update_ctx);
 
-			// render
+			m_renderman->load_render_assets(m_contentman);
+			// upload content to renderer
+			for (const auto& model : m_contentman->get_scenes())
+			{
+
+			}
+
+			// parse render scene
 			renderer::scene scene{};
+			scene.m_seconds = frame_time.m_time_seconds;
+			scene.m_delta_seconds = frame_time.m_delta_seconds;
+			m_world->build_renderscene(scene);
+
 			m_renderman->render(&scene);
 		}
 	}
@@ -116,6 +129,7 @@ namespace influx::engine
 			m_fps = 1.0f / frame_time.m_delta_seconds;
 
 			poll_platform_events();
+			if (m_is_quit_requested) break;
 
 			m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
 			{

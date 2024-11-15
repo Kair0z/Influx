@@ -5,9 +5,5 @@
 
 namespace influx::graphics
 {
-	commandlist* commandlist::create(device* device, command_allocator* allocator, pipeline* init_pipeline)
-	{
-		influx_assert(device != nullptr);
-		return device->create_graphics_commandlist(init_pipeline);
-	}
+
 }

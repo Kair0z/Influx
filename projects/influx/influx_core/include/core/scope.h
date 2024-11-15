@@ -6,6 +6,7 @@
 #include "core/time.h"
 #include "core/container/map.h"
 #include "core/string.h"
+#include "core/container/vector.h"
 
 namespace influx
 {
@@ -54,10 +55,24 @@ namespace influx
 
 	inline void log_scopedata()
 	{
+		using scope_pair = std::pair<string, float>;
+		std::vector<scope_pair> sorted_scopes{};
+
 		for (const auto& pair : g_scopedata)
 		{
 			const float avg_duration = pair.second.m_durationsum / pair.second.m_times_ran;
-			std::cout << "[" << pair.first << "] " << avg_duration << " ms \n";
+			sorted_scopes.push_back({ pair.first, avg_duration });
+		}
+
+		std::sort(sorted_scopes.begin(), sorted_scopes.end(), [](const scope_pair& a, const scope_pair& b)
+		{
+			return a.second > b.second;
+		});
+
+		std::cout << "scopes avg. duration:" << "\n";
+		for (const auto& pair : sorted_scopes)
+		{
+			std::cout << "[" << pair.first << "] " << pair.second << " ms \n";
 		}
 	}
 }

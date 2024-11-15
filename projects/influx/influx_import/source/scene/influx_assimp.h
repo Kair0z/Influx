@@ -250,6 +250,7 @@ namespace influx
 			}
 			result.m_cameras.push_back(translate(*camera));
 		}
+#if 0
 		for (uint32 i = 0u; i < pScene->mNumMaterials; ++i)
 		{
 			const aiMaterial* material = pScene->mMaterials[i];
@@ -260,6 +261,7 @@ namespace influx
 			}
 			result.m_materials.push_back(translate(*material));
 		}
+#endif
 		for (uint32 i = 0u; i < pScene->mNumLights; ++i)
 		{
 			const aiLight* light = pScene->mLights[i];
