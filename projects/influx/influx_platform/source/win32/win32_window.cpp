@@ -184,6 +184,8 @@ namespace influx::platform
 
 		// set default open
 		set_visibility(e_visibility::showed);
+
+		set_dimensions(desc.m_dimensions);
 	}
 
 	void win32_window::set_visibility(e_visibility vis)
@@ -239,18 +241,65 @@ namespace influx::platform
 		return m_handle;
 	}
 
-	window::rect win32_window::get_rect_full() const
+	void win32_window::set_dimensions(const math::vectoru2& dimensions)
 	{
-		::RECT res{};
-		::GetWindowRect((::HWND)m_handle, &res);
+		::HWND handle = (::HWND)m_handle;
 
-		return translate(res);
+		m_previous_dimensions_full = get_dimensions(e_space::full);
+		m_previous_dimensions_client = get_dimensions(e_space::client);
+
+		// Get the current window rectangle
+		RECT rect;
+		if (GetWindowRect(handle, &rect))
+		{
+			// Calculate current position
+			int x = rect.left;
+			int y = rect.top;
+
+			bool res = ::SetWindowPos(
+				handle,				// Handle to the window
+				0,					// Z-order placement (NULL or special values)
+				x,					// New X-coordinate of the top-left corner
+				y,					// New Y-coordinate of the top-left corner
+				dimensions.x,       // New width
+				dimensions.y,       // New height
+				0u					// Flags for window positioning
+			);
+		}
+
+		m_current_dimensions_client = get_dimensions(e_space::client);
+		m_current_dimensions_full = get_dimensions(e_space::full);
 	}
 
-	window::rect win32_window::get_rect_client() const
+	math::vectoru2 win32_window::get_dimensions(e_space space) const
+	{
+		return get_rect(space).get_dimensions();
+	}
+
+	math::vectoru2 win32_window::get_previous_dimensions(e_space space) const
+	{
+		switch (space)
+		{
+		case e_space::client:	return m_previous_dimensions_client;
+		case e_space::full:		return m_previous_dimensions_full;
+		}
+
+		return {};
+	}
+
+	window::rect win32_window::get_rect(e_space space) const
 	{
 		::RECT res{};
-		::GetClientRect((::HWND)m_handle, &res);
+
+		switch (space)
+		{
+		case e_space::client:
+			::GetClientRect((::HWND)m_handle, &res);
+			break;
+		case e_space::full: 		
+			::GetWindowRect((::HWND)m_handle, &res); 
+			break;
+		}
 
 		return translate(res);
 	}

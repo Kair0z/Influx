@@ -4,7 +4,9 @@
 
 #include "core/math/vector.h"
 #include "core/container/vector.h"
-#include "core/platform/window.h"
+
+// influx::platform
+#include "influx_platform/window.h"
 
 namespace influx::graphics
 {
@@ -43,8 +45,9 @@ namespace influx::graphics
 		// acquires the next available backbuffer (and returns the index)
 		INFLUX_GFX_API virtual uint8 acquire_backbuffer() = 0;
 
+		// recreates resources according to the new dimensions of the window
 		INFLUX_GFX_API void resize(const math::vectoru2& new_dimensions);
-		INFLUX_GFX_API void resize(const platform::window_handle& window);
+		INFLUX_GFX_API void resize(const platform::window& window);
 
 		INFLUX_GFX_API resource* get_backbuffer_resource(uint8 at_index) const;
 
@@ -55,7 +58,7 @@ namespace influx::graphics
 		INFLUX_GFX_API const swapchain_desc& get_desc() const;
 
 		// checks the window handle to find wether a recreate of resources is necessary
-		INFLUX_GFX_API bool needs_recreate(const platform::window_handle& window) const;
+		INFLUX_GFX_API bool needs_recreate(const platform::window& window) const;
 
 		INFLUX_GFX_API uint8 get_current_backbuffer_index() const;
 
@@ -63,8 +66,11 @@ namespace influx::graphics
 
 		INFLUX_GFX_API e_format get_format() const;
 
+		INFLUX_GFX_API void destroy_resources();
+
 	protected:
 		swapchain(const swapchain_desc& desc, const swapchain_dependencies& dependencies);
+		virtual ~swapchain();
 
 		void update_backbuffer_index(uint8 new_index);
 
@@ -80,6 +86,6 @@ namespace influx::graphics
 		device* mp_parent_device;
 		queue* mp_queue;
 
-		virtual vector<resource*> create_resources() = 0;
+		virtual vector<resource*> create_resources(device*) = 0;
 	};
 }

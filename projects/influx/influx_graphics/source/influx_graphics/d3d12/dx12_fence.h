@@ -16,6 +16,7 @@ namespace influx::graphics
 
 		virtual void signal(uint64 value) override;
 
+		virtual void wait_for_value(uint64 value) override;
 		virtual void wait_for_value(uint64 value, wait_handle& handle) override;
 
 		virtual uint64 query_value() const override;

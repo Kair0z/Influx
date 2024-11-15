@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 // influx::core
 #include "core/basetypes.h"
 #include "core/math/vector.h"
@@ -49,3 +50,4 @@ namespace influx::platform
 
 	void messagebox(e_messagebox type, const string& caption, const string& message, const window_handle handle = get_current_window());
 }
+#endif

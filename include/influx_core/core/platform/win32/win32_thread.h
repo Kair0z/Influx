@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 // influx::platform
 #include "../platform_thread.h"
 
@@ -15,3 +16,4 @@ namespace influx::platform
 		return "";
 	}
 }
+#endif

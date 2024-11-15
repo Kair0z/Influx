@@ -1,7 +1,10 @@
 #pragma once
+
+// influx::graphics
 #include "influx_graphics/base.h"
 #include "influx_graphics/common.h"
 
+// influx::core
 #include "core/math/vector.h"
 #include "core/container/vector.h"
 
@@ -10,9 +13,9 @@
 
 namespace influx::graphics
 {
+	class device;
 	class resource;
 	class render_target_view;
-	class device;
 	class descriptor_heap;
 	class queue;
 
@@ -45,8 +48,9 @@ namespace influx::graphics
 		// acquires the next available backbuffer (and returns the index)
 		INFLUX_GFX_API virtual uint8 acquire_backbuffer() = 0;
 
-		INFLUX_GFX_API void resize(const math::vectoru2& new_dimensions);
-		INFLUX_GFX_API void resize(const platform::window& window);
+		// recreates resources according to the new dimensions of the window
+		INFLUX_GFX_API void resize(device*, const math::vectoru2& new_dimensions);
+		INFLUX_GFX_API void resize(device*, const platform::window& window);
 
 		INFLUX_GFX_API resource* get_backbuffer_resource(uint8 at_index) const;
 
@@ -65,26 +69,32 @@ namespace influx::graphics
 
 		INFLUX_GFX_API e_format get_format() const;
 
-		INFLUX_GFX_API void destroy_resources();
-
 	protected:
-		swapchain(const swapchain_desc& desc, const swapchain_dependencies& dependencies);
+		// creates the resources by default
+		swapchain(
+			const swapchain_desc& desc, 
+			const swapchain_dependencies& dependencies);
+
 		virtual ~swapchain();
 
 		void update_backbuffer_index(uint8 new_index);
 
 		device* get_parent_device();
 
-		vector<resource*> mp_buffer_resources;
+		vector<resource*>& get_resources();
+
 	private:
 		swapchain_desc m_desc{};
 		math::vectoru2 m_current_dimensions{};
 		uint32 m_current_backbuffer_index = 0u;
+		vector<resource*> mp_resources;
 
 		// dependencies
 		device* mp_parent_device;
 		queue* mp_queue;
 
-		virtual vector<resource*> create_resources() = 0;
+		virtual vector<resource*> create_resources(device*) = 0;
+		virtual void resize_impl(const math::vectoru2& old_dim, const math::vectoru2& new_dim) = 0;
+		virtual void destroy_resources() = 0;
 	};
 }

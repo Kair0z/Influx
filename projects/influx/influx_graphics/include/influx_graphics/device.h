@@ -60,6 +60,10 @@ namespace influx::graphics
 		virtual resource* create_resource(const struct tex2D_desc& desc, const heap_desc& heap_desc = {}) = 0;
 		virtual resource* create_resource(const struct buffer_desc& desc, const heap_desc& heap_desc = {}) = 0;
 
+		// adds external resources to the RHI
+		virtual resource* import_buffer(void* native_ptr, const buffer_desc& desc) = 0;
+		virtual resource* import_texture(void* native_ptr, const tex2D_desc& desc) = 0;
+
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) = 0;
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) = 0;
 

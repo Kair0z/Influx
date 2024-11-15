@@ -25,10 +25,11 @@ namespace influx::graphics
 			static_cast<uint32>(commandlists.size()), dxcmdlists.data());
 	}
 
-	// queues a signal to the target fence
+	// queues a signal which the fence can later wait for
 	void dx12_queue::queue_signal(fence* fence, uint64 value)
 	{
-		fence->queue_signal(value, this);
+		ID3D12Fence* dxfence = fence->get_native<ID3D12Fence>();
+		mpdx_queue->Signal(dxfence, value);
 	}
 
 	void dx12_queue::release()

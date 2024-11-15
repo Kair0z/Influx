@@ -1,21 +1,18 @@
 #pragma once
 
-// graphics
+// influx::graphics
 #include "influx_graphics/common.h"
 #include "influx_graphics/base.h"
 #include "influx_graphics/queue.h"
 #include "influx_graphics/commandlist.h"
-#include "influx_graphics/commandallocator.h"
 #include "influx_graphics/pipeline.h"
 #include "influx_graphics/fence.h"
 #include "influx_graphics/swapchain.h"
 #include "influx_graphics/resource.h"
-#include "influx_graphics/resource_views.h"
-#include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/descriptors.h"
 #include "influx_graphics/rootsignature.h"
-#include "influx_graphics/commandbuffer.h"
 
-// core
+// influx::core
 #include "core/platform/window.h"
 
 namespace influx::graphics
@@ -24,6 +21,9 @@ namespace influx::graphics
 	{
 	public:
 		device_desc() = default;
+
+		string m_app_name		= "";
+		string m_engine_name	= "influx engine";
 
 		bool m_has_graphics_queue;
 		bool m_has_compute_queue;
@@ -35,12 +35,11 @@ namespace influx::graphics
 	class device
 	{
 	public:
-		virtual void submit(commandbuffer* commandbuffer) = 0;
-
-	public:
 		INFLUX_GFX_API static device* create(e_api_type type, const device_desc& desc = device_desc{});
-
+	
 		void set_api_type(e_api_type type);
+
+		virtual void cleanup() = 0;
 
 		virtual vector<physical_device_info> get_gpu_infos() = 0;
 
@@ -48,20 +47,21 @@ namespace influx::graphics
 
 		virtual queue* create_queue(const queue_desc& desc = queue_desc::default_graphics()) = 0;
 
-		virtual swapchain* create_swapchain(queue* queue, const platform::window_handle& window, const swapchain_desc& desc) = 0;
+		virtual swapchain* create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) = 0;
 
 		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args&) = 0;
 
-		virtual command_allocator* create_graphics_allocator() = 0;
-
-		virtual commandlist* create_graphics_command_list(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
-
-		virtual commandbuffer* create_commandbuffer() = 0;
+		virtual commandlist* create_commandlist(e_commandlist_type type, pipeline* init_state = nullptr) = 0;
+		virtual commandlist* create_graphics_commandlist(pipeline* init_state = nullptr) = 0;
+		virtual commandlist* create_compute_commandlist(pipeline* init_state = nullptr) = 0;
 
 		virtual fence* create_fence(uint64 init_value = 0u) = 0;
 
 		virtual resource* create_resource(const struct tex2D_desc& desc, const heap_desc& heap_desc = {}) = 0;
 		virtual resource* create_resource(const struct buffer_desc& desc, const heap_desc& heap_desc = {}) = 0;
+
+		// adds external resources to the RHI
+		virtual resource* create_external_resource(void* native_ptr) = 0;
 
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) = 0;
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) = 0;
@@ -85,15 +85,23 @@ namespace influx::graphics
 
 		virtual void* get_native() = 0;
 
+		bool is_initialized() const;
+
+		virtual ~device() = default;
+
 	private:
 		vector<base*> mp_children = {};
 		e_api_type m_type{};
+		bool m_is_initialized = false;
 
 	protected:
 		device(const device_desc& desc)
-			: m_desc{ desc } {}
+			: m_desc{ desc } 
+			, m_is_initialized{ true } {}
 
 		device_desc m_desc{};
+
+		void set_initialized(bool initialized);
 
 		graphics::queue* m_compute_queue;
 		graphics::queue* m_graphics_queue;

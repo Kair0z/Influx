@@ -48,7 +48,7 @@ namespace influx::graphics
 	class queue : public base
 	{
 	public:
-		virtual void submit_commandlists(const vector<commandlist*>& commandlists) = 0;
+		void submit(const vector<commandlist*>& commandlists);
 
 		// queues a signal to the target fence
 		virtual void queue_signal(fence* fence, uint64 value) = 0;
@@ -56,11 +56,12 @@ namespace influx::graphics
 		virtual ~queue() = default;
 
 	protected:
-		queue(const queue_desc& desc)
-			: m_desc{ desc }
-		{
+		friend class commandlist;
+		queue(const queue_desc& desc);
+		void post_submit(const vector<commandlist*>& commandlists);
 
-		}
+	private:
+		virtual void submit_commandlists(const vector<commandlist*>& commandlists) = 0;
 
 	private:
 		queue_desc m_desc{};

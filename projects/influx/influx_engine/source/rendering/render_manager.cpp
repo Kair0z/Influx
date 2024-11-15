@@ -48,8 +48,8 @@ namespace influx::engine
 		initialize_imgui();
 
 		// signal window resize once
-		const auto& windowrect = window->get_rect_client();
-		on_window_resize(windowrect.get_dimensions());
+		const auto& clientrect = window->get_rect(platform::window::e_space::client);
+		on_window_resize(clientrect.get_dimensions());
 	}
 
 	render_manager::~render_manager()
@@ -115,7 +115,7 @@ namespace influx::engine
 		{
 			if (renderer::has_mesh(asset.first) == false)
 			{
-				if (!asset.second.m_resource.m_meshes.empty())
+				if (asset.second.is_finished_loading() && !asset.second.m_resource.m_meshes.empty())
 				{
 					const imp::scene_data::mesh& mesh = asset.second.m_resource.m_meshes[0u];
 					translate(mesh, m_mesh_data);
@@ -128,43 +128,41 @@ namespace influx::engine
 		{
 			if (renderer::has_texture(asset.first) == false)
 			{
-				translate(asset.second.m_resource, m_tex_data);
-				influx::renderer::load(asset.first, m_tex_data);
+				if (asset.second.is_finished_loading())
+				{
+					translate(asset.second.m_resource, m_tex_data);
+					influx::renderer::load(asset.first, m_tex_data);
+				}
 			}
 		}
 
 		// todo: for now only 2 shaders are necessary
+		auto load_shader = [](const string& name, const content_manager::shader_item& item)
+		{
+			if (renderer::has_shader(name) == false)
+			{
+				const imp::shader_data& vs_shader = item.m_resource;
+				translate(vs_shader, m_shader_data);
+				influx::renderer::load(name, m_shader_data);
+			}
+		};
 #if 0
 		for (const auto& asset : cont_man->get_shaders())
 		{
-			if (renderer::has_shader(asset.first) == false)
-			{
-				translate(asset.second.m_item, m_shader_data);
-				influx::renderer::load(asset.first, m_shader_data);
-			}
+			load_shader(asset.first, asset.second);
 		}
 #else
-		const string& vs_name = "shaders_vs";
 		const auto& shaders = cont_man->get_shaders();
-		if (renderer::has_shader(vs_name) == false)
+		const string& vs_name = "shaders_vs";
+		if (shaders.contains(vs_name))
 		{
-			if (shaders.contains(vs_name))
-			{
-				const imp::shader_data& vs_shader = shaders.at(vs_name).m_resource;
-				translate(vs_shader, m_shader_data);
-				influx::renderer::load(vs_name, m_shader_data);
-			}
+			load_shader(vs_name, shaders.at(vs_name));
 		}
 		
 		const string& ps_name = "shaders_ps";
-		if (renderer::has_shader(ps_name) == false)
+		if (shaders.contains(ps_name))
 		{
-			if (shaders.contains(ps_name))
-			{
-				const imp::shader_data& ps_shader = cont_man->get_shaders().at(ps_name).m_resource;
-				translate(ps_shader, m_shader_data);
-				influx::renderer::load(ps_name, m_shader_data);
-			}
+			load_shader(ps_name, shaders.at(ps_name));
 		}
 #endif
 

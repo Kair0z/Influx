@@ -12,8 +12,10 @@ namespace influx::scene
 			: m_fov{ fov }, m_nearplane{ nearp }, m_farplane{ farp } {}
 
 	private:
-		FLX_CORE_GET_SET(float, fov);
-		FLX_CORE_GET_SET(float, nearplane);
-		FLX_CORE_GET_SET(float, farplane);
+		influx_property_readwrite(float, fov);
+		influx_property_readwrite(float, nearplane);
+		influx_property_readwrite(float, farplane);
+		influx_property_readwrite(bool, is_orthographic);
+		influx_property_readwrite(float, aspect_ratio);
 	};
 }

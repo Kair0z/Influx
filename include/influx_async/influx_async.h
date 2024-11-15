@@ -142,7 +142,7 @@ namespace influx::async
 	template <typename _t>
 	inline vector<task_handle> dispatch_for(const vector<_t>& vector, const function<void(const _t& i)>& func)
 	{
-		auto sub_func = [&vector, func](uint64 i)
+		auto sub_func = [vector, func](uint64 i)
 		{
 			func(vector[i]);
 		};

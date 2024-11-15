@@ -7,6 +7,7 @@
 #include "core/string.h"
 #include "core/container/vector.h"
 #include "core/math/colour.h"
+#include "core/geometry/rect.h"
 
 // influx::renderer
 #include "types.h"
@@ -51,7 +52,7 @@ namespace influx::renderer
 	struct sprite2D final
 	{
 		math::transform2D m_transform;
-		math::rectu m_rectangle;
+		math::rectf m_rectangle;
 		string m_texture;
 
 		bool m_scale_to_view;

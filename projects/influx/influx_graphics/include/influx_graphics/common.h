@@ -34,6 +34,13 @@ namespace influx::graphics
 		size_t m_gpu_usage{}; // in bytes
 	};
 
+	enum class e_commandlist_type
+	{
+		graphics,
+		compute,
+		count
+	};
+
 	enum class e_format : uint8
 	{
 		rgba8,

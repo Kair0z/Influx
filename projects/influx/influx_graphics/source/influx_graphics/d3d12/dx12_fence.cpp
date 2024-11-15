@@ -13,8 +13,7 @@ namespace influx::graphics
 	// queues a signal command to the command queue
 	void dx12_fence::queue_signal(uint64 value, queue* queue)
 	{
-		ID3D12CommandQueue* native_queue = queue->get_native<ID3D12CommandQueue>();
-		native_queue->Signal(mpdx_fence, value);
+		queue->queue_signal(this, value);
 	}
 
 	void dx12_fence::signal(uint64 value)
@@ -22,8 +21,15 @@ namespace influx::graphics
 		mpdx_fence->Signal(value);
 	}
 
+	void dx12_fence::wait_for_value(uint64 value)
+	{
+		wait_handle wait{};
+		wait_for_value(value, wait);
+	}
+
 	void dx12_fence::wait_for_value(uint64 value, wait_handle& handle)
 	{
+		logwar("wait_for: {} start", value);
 		while (query_value() != value)
 		{
 			::HANDLE event_handle = ::CreateEventEx(NULL, 0, 0, EVENT_ALL_ACCESS);
@@ -35,6 +41,8 @@ namespace influx::graphics
 			::WaitForSingleObject(event_handle, static_cast<::DWORD>(handle.get_ms_max()));
 			::CloseHandle(event_handle);
 		}
+
+		logwar("wait_for: {} finished", value);
 	}
 
 	uint64 dx12_fence::query_value() const

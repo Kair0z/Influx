@@ -11,6 +11,11 @@
 #include "core/string.h"
 #include "core/math/vector.h"
 
+namespace influx::platform
+{
+	class window_event;
+}
+
 namespace influx::input
 {
 	// event types
@@ -25,12 +30,16 @@ namespace influx::input
 	INFLUX_INPUT_API void init(const init_args& args = {});
 
 	// 2. subscribe to events
-	// (see event subscribing)
-	
+	using key_callback = function<void(const key_event& ev)>;
+	INFLUX_INPUT_API void subscribe(const key_callback&);
+
+	using mouse_callback = function<void(const mouse_event& ev)>;
+	INFLUX_INPUT_API void subscribe(const mouse_callback&);
+
 	// 3. call this function from any thread to pump the input queue
 	struct service_args final
 	{
-		uint32 m_max_events_to_service;
+		uint32 m_max_events_to_service = (uint32)-1;
 	};
 	INFLUX_INPUT_API void service(const service_args& args = {});
 
@@ -38,21 +47,17 @@ namespace influx::input
 	INFLUX_INPUT_API void cleanup();
 
 	// event subscribing
-	using key_callback = function<void(const key_event& ev)>;
-	INFLUX_INPUT_API void subscribe(const key_callback&);
-
-	using mouse_callback = function<void(const mouse_event& ev)>;
-	INFLUX_INPUT_API void subscribe(const mouse_callback&);
-
 	INFLUX_INPUT_API void subscribe_keydown(const function<void(e_key)>& keydown_callback);
+	INFLUX_INPUT_API void subscribe_keyup(const function<void(e_key)>& keydown_callback);
 	INFLUX_INPUT_API void subscribe_asciidown(const function<void(char)>& keydown_callback);
+	INFLUX_INPUT_API void subscribe_asciiup(const function<void(char)>& keydown_callback);
 
 	// manually push events into the queue
 	INFLUX_INPUT_API void push_external_event(const key_event& ev);
 	INFLUX_INPUT_API void push_external_event(const mouse_event& ev);
 
 	// parse input::events from platform::window event
-	// INFLUX_INPUT_API void push_window_event(const platform::window_event& platform_ev);
+	INFLUX_INPUT_API void push_window_event(const platform::window_event& platform_ev);
 
 #pragma region key_events
 	enum class e_key : uint8
@@ -65,6 +70,8 @@ namespace influx::input
 		rshift,
 		lctrl,
 		rctrl,
+		lalt,
+		ralt,
 		space,
 		ascii_num,
 		ascii_char,
@@ -104,6 +111,8 @@ namespace influx::input
 		e_type m_type;
 		e_key m_key;
 		char m_ascii_char;
+
+		INFLUX_INPUT_API bool is_ascii() const;
 
 		INFLUX_INPUT_API string to_string() const;
 	};

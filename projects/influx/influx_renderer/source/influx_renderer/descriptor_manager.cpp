@@ -158,4 +158,14 @@ namespace influx::renderer
 		vector<renderer::texture*> textures{ texture };
 		return stage(textures);
 	}
+
+	void descriptor_manager::cleanup_rtv(graphics::render_target_view* rtv)
+	{
+		mp_rtv_heap->free_cpu(rtv->get_cpu_handle());
+	}
+
+	void descriptor_manager::cleanup_dsv(graphics::depth_stencil_view* dsv)
+	{
+		mp_dsv_heap->free_cpu(dsv->get_cpu_handle());
+	}
 }

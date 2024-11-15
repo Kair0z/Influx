@@ -7,5 +7,6 @@
 #include "queue.h"
 #include "vector.h"
 #include "map.h"
+#include "pool.h"
 
 #endif

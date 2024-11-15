@@ -1,9 +1,13 @@
 #pragma once
+
+// influx::graphics
 #include "influx_graphics/base.h"
 #include "influx_graphics/resource.h"
 #include "influx_graphics/descriptors.h"
 #include "influx_graphics/renderpass.h"
+#include "influx_graphics/queue.h"
 
+// influx::core
 #include "core/math/vector.h"
 #include "core/range.h"
 
@@ -17,13 +21,6 @@ namespace influx::graphics
 	class descriptor_heap;
 	class shader_resource_view;
 	class device;
-
-	enum class e_commandlist_type
-	{
-		graphics,
-		compute,
-		count
-	};
 
 	struct draw_instanced_args final
 	{
@@ -66,9 +63,26 @@ namespace influx::graphics
 	class commandlist : public base
 	{
 	public:
-		// starts a commandlist, using the device to allocate the memory internally
-		virtual void start(device* device, pipeline* init_state = nullptr) = 0;
+		enum class e_state : uint8
+		{
+			created,
+			recording,
+			submitted,
+			completed,
+			count
+		};
 		
+		// -- interface
+		void start(device* device, pipeline* init_state = nullptr);
+
+		void submit(queue*);
+
+		bool is_completed();
+
+		e_state get_state();
+
+		// -- platform implementations
+		// starts a commandlist, using the device to allocate the memory internally
 		virtual void renderpass_begin(const renderpass_args& args) = 0;
 	
 		virtual void renderpass_end() = 0;
@@ -114,5 +128,16 @@ namespace influx::graphics
 		virtual void set(e_primitive_topology topo) = 0;
 
 		virtual void end() = 0;
+
+	private:
+		virtual void start_impl(device* device, pipeline* init_state = nullptr) = 0;
+
+	private:
+		e_state m_state = e_state::created;
+		fence* m_fence = nullptr;
+
+		// the queue will inform this commandlist its been submitted
+		friend void queue::post_submit(const vector<commandlist*>& commandlists);
+		void post_submit(queue*);
 	};
 }

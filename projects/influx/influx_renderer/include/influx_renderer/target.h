@@ -28,7 +28,7 @@ namespace influx::renderer
 
 	// contains a texture resource, as well as a render target view and an optional depth stencil view
 	// serving as a target for draw commands
-	class target
+	class target final
 	{
 	public:
 		graphics::resource* get_resource() const;
@@ -41,10 +41,8 @@ namespace influx::renderer
 		INFLUX_RENDER_API bool has_depth_stencil() const;
 		INFLUX_RENDER_API bool is_depth_only() const;
 
-#if _DEBUG
-		void set_name(const string& name);
-		const string& get_name() const;
-#endif
+		void set_name(const debug_name& name);
+		const debug_name& get_name() const;
 
 	private:
 		// constructs a target from create_args, allocating new graphics resources
@@ -53,9 +51,11 @@ namespace influx::renderer
 
 		// constructs a target from existing swapchain resources
 		explicit target(
-			graphics::device* device, 
-			graphics::swapchain* swapchain, 
+			graphics::device* device,
+			graphics::swapchain* swapchain,
 			uint8 swapchain_index);
+
+		~target();
 
 		// re-allocates graphics resource, and recreates the rtv
 		void resize(const math::vectoru2& new_dimensions);
@@ -75,9 +75,7 @@ namespace influx::renderer
 		math::vectoru2 m_current_dimensions;
 		graphics::device* mp_device;
 
-#if _DEBUG
-		string m_debug_name;
-#endif
+		debug_name m_debug_name;
 
 		// only backend can create targets
 		friend class renderer_backend;

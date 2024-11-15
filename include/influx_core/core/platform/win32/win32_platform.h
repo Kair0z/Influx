@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 // Include Windows
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -37,3 +38,4 @@ namespace influx::platform
 	}
 #pragma endregion
 }
+#endif

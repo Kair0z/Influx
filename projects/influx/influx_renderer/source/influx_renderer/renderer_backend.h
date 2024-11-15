@@ -44,6 +44,7 @@ namespace influx::renderer
 	public:
 		void initialize(const init_args& args);
 		bool is_initialized() const;
+		void wait_gpu_finished() const;
 		void cleanup();
 
 		target* create_target(const target_create_args& args);

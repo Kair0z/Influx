@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 #include "core/string.h"
 
 namespace influx::platform
@@ -8,3 +9,4 @@ namespace influx::platform
 
 	string get_current_thread_name();
 }
+#endif

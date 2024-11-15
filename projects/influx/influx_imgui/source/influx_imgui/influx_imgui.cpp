@@ -258,7 +258,7 @@ namespace influx::imgui
 		get_commandlist()->end();
 
 		// submit transfer
-		get_queue()->submit_commandlists({ get_commandlist() });
+		get_queue()->submit({ get_commandlist() });
 		get_queue()->queue_signal(get_fence(), 1u);
 
 		// wait for transfer to finish on gpu

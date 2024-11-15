@@ -45,7 +45,7 @@ namespace influx::renderer
 		}
 		mp_commandlist->end();
 
-		queue->submit_commandlists({ mp_commandlist });
+		queue->submit({ mp_commandlist });
 		queue->queue_signal(mp_fence, 1u);
 
 		// wait for the signal
@@ -95,7 +95,7 @@ namespace influx::renderer
 		}
 		mp_commandlist->end();
 
-		queue->submit_commandlists({ mp_commandlist });
+		queue->submit({ mp_commandlist });
 		queue->queue_signal(mp_fence, 1u);
 		
 		// wait for the signal

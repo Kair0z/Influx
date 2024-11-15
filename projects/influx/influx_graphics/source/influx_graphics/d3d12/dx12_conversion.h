@@ -252,4 +252,16 @@ namespace influx::graphics
 		}
 		return access;
 	}
+
+	constexpr D3D12_COMMAND_LIST_TYPE translate(e_commandlist_type type)
+	{
+		switch (type)
+		{
+		case e_commandlist_type::graphics: return D3D12_COMMAND_LIST_TYPE_DIRECT;
+		case e_commandlist_type::compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+		default:
+			influx_assert(false);
+			return D3D12_COMMAND_LIST_TYPE_NONE;
+		}
+	}
 }

@@ -6,11 +6,11 @@
 	#define INFLUX_APP_API __declspec(dllimport)
 #endif
 
-// influx core
+// influx::core
 #include "core/basetypes.h"
 #include "core/string.h"
 #include "core/math/vector.h"
-#include <thread>
+#include "core/function.h"
 
 namespace influx::application
 {
@@ -45,6 +45,15 @@ namespace influx::application
 
 	// runs the application on the calling thread
 	void INFLUX_APP_API run(const run_args& args);
+
+	using init_callback = function<void()>;
+	void INFLUX_APP_API on_initialize(const init_callback& clb);
+
+	using imgui_callback = function<void()>;
+	void INFLUX_APP_API on_imgui(const imgui_callback& clb);
+
+	using shutdown_callback = function<void()>;
+	void INFLUX_APP_API on_shutdown(const shutdown_callback& clb);
 
 	void INFLUX_APP_API quit();
 }

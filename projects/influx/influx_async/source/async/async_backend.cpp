@@ -251,7 +251,6 @@ namespace influx::async
 		time::point wait_start = time::get_now();
 		float ms_waited = 0.0f;
 
-		// wait
 		while (has_unfinished_work() && ms_waited < args.m_max_ms)
 		{
 			if (args.m_wait_func)

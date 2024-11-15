@@ -19,6 +19,7 @@ namespace influx::graphics
 		virtual void signal(uint64 value) = 0;
 
 		// wait for fence to reach value
+		virtual void wait_for_value(uint64 value) = 0;
 		virtual void wait_for_value(uint64 value, wait_handle& handle) = 0;
 
 		virtual uint64 query_value() const = 0;

@@ -38,16 +38,21 @@ namespace influx::engine
 		template <typename _t>
 		struct asset_item final
 		{
+			bool is_finished_loading() const
+			{
+				return m_state == e_load_state::loaded;
+			}
+
 			_t m_resource; // the raw resource
 			e_load_state m_state;
 			e_asset_origin m_origin;
 		};
 
+	public:
 		using scene_item = asset_item<imp::scene_data>;
 		using image_item = asset_item<imp::image_data>;
 		using shader_item = asset_item<imp::shader_data>;
 
-	public:
 		content_manager(engine* engine);
 		~content_manager();
 

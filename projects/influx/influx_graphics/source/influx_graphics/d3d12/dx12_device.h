@@ -42,6 +42,10 @@ namespace influx::graphics
 		virtual fence* create_fence(uint64 init_value = 0u) override;
 		virtual resource* create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual resource* create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) override;
+		
+		virtual resource* import_buffer(void* native_ptr, const buffer_desc& desc) override;
+		virtual resource* import_texture(void* native_ptr, const tex2D_desc& desc) override;
+
 		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) override;
 		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) override;
 		virtual depth_stencil_view* create_dsv(descriptor_heap* dsv_heap, resource* resource) override;

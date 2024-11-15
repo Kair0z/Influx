@@ -6,16 +6,8 @@ struct IDXGISwapChain4;
 
 namespace influx::graphics
 {
-	class dx12_swapchain final 
-		: public swapchain
+	class dx12_swapchain final : public swapchain
 	{
-		// acquires the next available backbuffer (and returns the index)
-		virtual uint8 acquire_backbuffer() override;
-
-		virtual vector<resource*> create_resources() override;
-
-		virtual void release() override;
-
 	public:
 		dx12_swapchain(
 			const swapchain_desc& desc,
@@ -28,5 +20,14 @@ namespace influx::graphics
 
 	private:
 		IDXGISwapChain4* mpdxgi_swapchain4;
+
+		virtual vector<resource*> create_resources(device*) override;
+		virtual void resize_impl(const math::vectoru2& old_dim, const math::vectoru2& new_dim) override;
+		virtual void destroy_resources() override;
+
+		// acquires the next available backbuffer (and returns the index)
+		virtual uint8 acquire_backbuffer() override;
+
+		virtual void release() override;
 	};
 }

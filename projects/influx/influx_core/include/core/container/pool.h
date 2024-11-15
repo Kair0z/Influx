@@ -249,11 +249,13 @@ namespace influx
 			m_freelist.pop_back();
 			return &m_data[free_index];
 		}
+
 		inline _t* allocate()
 		{
 			std::lock_guard<std::mutex> lock(m_mutex);
 			return allocate_lockless();
 		}
+
 		inline std::vector<_t*> allocate_lockless(size_t num)
 		{
 			std::vector<_t*> result{};
@@ -265,11 +267,13 @@ namespace influx
 			}
 			return result;
 		}
+
 		inline std::vector<_t*> allocate(size_t num)
 		{
 			std::lock_guard<std::mutex> lock(m_mutex);
 			return allocate_lockless(num);
 		}
+
 		inline _t* try_allocate()
 		{
 			if (!m_mutex.try_lock()) return nullptr;

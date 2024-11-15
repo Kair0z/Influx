@@ -1,7 +1,7 @@
 #pragma once
 #include "influx_graphics/base.h"
 #include "influx_graphics/resource.h"
-#include "influx_graphics/descriptorheap.h"
+#include "influx_graphics/descriptors.h"
 #include "influx_graphics/renderpass.h"
 
 #include "core/math/vector.h"
@@ -16,6 +16,14 @@ namespace influx::graphics
 	class rootsignature;
 	class descriptor_heap;
 	class shader_resource_view;
+	class device;
+
+	enum class e_commandlist_type
+	{
+		graphics,
+		compute,
+		count
+	};
 
 	struct draw_instanced_args final
 	{
@@ -58,7 +66,8 @@ namespace influx::graphics
 	class commandlist : public base
 	{
 	public:
-		virtual void start(command_allocator* allocator, pipeline* init_state = nullptr) = 0;
+		// starts a commandlist, using the device to allocate the memory internally
+		virtual void start(device* device, pipeline* init_state = nullptr) = 0;
 		
 		virtual void renderpass_begin(const renderpass_args& args) = 0;
 	

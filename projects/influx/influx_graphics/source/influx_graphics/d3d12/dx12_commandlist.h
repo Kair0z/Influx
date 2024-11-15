@@ -19,7 +19,7 @@ namespace influx::graphics
 		dx12_commandlist(ID3D12GraphicsCommandList* commandlist, ID3D12CommandAllocator* allocator);
 
 		// starts a commandlist, using the device to allocate the memory internally
-		virtual void start(device*, pipeline* init_state = nullptr) override;
+		virtual void start_impl(device*, pipeline* init_state = nullptr) override;
 
 		virtual void renderpass_begin(const renderpass_args&) override;
 

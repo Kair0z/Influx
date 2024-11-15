@@ -6,6 +6,7 @@
 #define INFLUX_GFX_API __declspec(dllimport)
 #endif
 
+// influx::core
 #include "core/string.h"
 #include "core/basetypes.h"
 
@@ -17,8 +18,8 @@ namespace influx::graphics
 	enum class e_api_type : uint8
 	{
 		dx12,
-		unsupported,
 		vulkan,
+		unsupported,
 		max
 	};
 

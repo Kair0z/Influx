@@ -190,9 +190,9 @@ namespace influx::graphics
 
 	swapchain* dx12_device::create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc)
 	{
-		auto rect = window.get_rect_client();
-		uint32 width = rect.m_width_height.x;
-		uint32 height = rect.m_width_height.y;
+		const math::vectoru2 dimensions = window.get_dimensions(platform::window::e_space::client);
+		const uint32 width = dimensions.x;
+		const uint32 height = dimensions.y;
 		e_format format = e_format::rgba8;
 
 		// create dx swapchain
@@ -217,45 +217,47 @@ namespace influx::graphics
 
 	commandlist* dx12_device::create_commandlist(e_commandlist_type type, pipeline* init_state)
 	{
+		D3D12_COMMAND_LIST_TYPE dxtype = translate(type);
+		ID3D12CommandAllocator* dxallocator = new_allocator(dxtype);
+		ID3D12PipelineState* dxpipeline = (init_state != nullptr) 
+			? init_state->get_native<ID3D12PipelineState>() : nullptr;
+
 		commandlist* result = nullptr;
 		switch (type)
 		{
-		case e_commandlist_type::graphics: result = create_graphics_commandlist(init_state); break;
-		case e_commandlist_type::compute: result = create_compute_commandlist(init_state); break;
-		}
+		case e_commandlist_type::graphics:
+		{
+			ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
+				mpdx_devices[0u], dxallocator, dxtype, dxpipeline);
+			dxcommandlist->Close();
 
-		return result;
+			return new_child<dx12_commandlist, commandlist>(dxcommandlist, dxallocator);
+		}
+		break;
+
+		case e_commandlist_type::compute:
+		{
+			ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
+				mpdx_devices[0u], dxallocator, dxtype, dxpipeline);
+			dxcommandlist->Close();
+
+			return new_child<dx12_commandlist, commandlist>(dxcommandlist, dxallocator);
+		}
+		break;
+		}
+		
+		influx_assert(false);
+		return nullptr;
 	}
 
 	commandlist* dx12_device::create_graphics_commandlist(pipeline* init_state)
 	{
-		const D3D12_COMMAND_LIST_TYPE type	= D3D12_COMMAND_LIST_TYPE_DIRECT;
-		ID3D12PipelineState* dxpipeline = init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr;
-		ID3D12CommandAllocator* dxallocator = new_allocator(type);
-
-		ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
-			mpdx_devices[0u], 
-			dxallocator, 
-			type, 
-			dxpipeline);
-
-		dxcommandlist->Close();
-
-		return new_child<dx12_commandlist, commandlist>(dxcommandlist, dxallocator);
+		return create_commandlist(e_commandlist_type::graphics, init_state);
 	}
 
 	commandlist* dx12_device::create_compute_commandlist(pipeline* init_state)
 	{
-		const D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-		ID3D12CommandAllocator* allocator = new_allocator(type);
-		ID3D12PipelineState* init_pipeline = init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr;
-
-		ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
-			mpdx_devices[0u], allocator, type, init_pipeline);
-
-		dxcommandlist->Close();
-
-		return new_child<dx12_commandlist, commandlist>(dxcommandlist, allocator);
+		return create_commandlist(e_commandlist_type::compute, init_state);
 	}
 
 	fence* dx12_device::create_fence(uint64 init_value)
@@ -285,6 +287,18 @@ namespace influx::graphics
 			convert(desc.m_flags), 
 			convert(desc.m_init_state));
 
+		return new_child<dx12_resource, resource>(dxresource, desc);
+	}
+
+	resource* dx12_device::import_buffer(void* native_ptr, const buffer_desc& desc)
+	{
+		ID3D12Resource* dxresource = (ID3D12Resource*)native_ptr;
+		return new_child<dx12_resource, resource>(dxresource, desc);
+	}
+
+	resource* dx12_device::import_texture(void* native_ptr, const tex2D_desc& desc)
+	{
+		ID3D12Resource* dxresource = (ID3D12Resource*)native_ptr;
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 

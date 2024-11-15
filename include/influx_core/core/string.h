@@ -5,7 +5,8 @@
 
 #include <string>
 #include <algorithm>
-#include "Core/basetypes.h"
+
+#include "core/basetypes.h"
 
 namespace influx
 {
@@ -42,8 +43,60 @@ namespace influx
 	{
 		return std::to_string(i);
 	}
-
 #pragma warning (pop)
+
+	// string that is only represented as string in debug
+	class debug_name final
+	{
+	public:
+#if INFLUX_DEBUG
+		using name = string;
+#else
+		using name = uint8;
+#endif
+
+		debug_name() = default;
+		debug_name(const debug_name&) = default;
+		debug_name(debug_name&&) = default;
+		debug_name& operator=(const debug_name&) = default;
+		debug_name& operator=(debug_name&&) = default;
+		~debug_name() = default;
+
+#if INFLUX_DEBUG
+		debug_name(const string& name) { set(name); }
+		debug_name(const char* name) { set(name); }
+#else
+		debug_name(const string& name) { set(""); }
+		debug_name(const char* name) { set(""); }
+#endif
+
+#if INFLUX_DEBUG
+		inline void set(const name& name)
+		{
+			m_name = name;
+		}
+
+		inline const name& get() const
+		{
+			return m_name;
+		}
+
+		// treating this class as a string in non-debug config will result in a no-op
+#else
+		inline void set(const string& str)
+		{
+
+		}
+
+		inline string get() const
+		{
+			return "";
+		}
+#endif
+
+	private:
+		name m_name;
+	};
 }
 
 #endif

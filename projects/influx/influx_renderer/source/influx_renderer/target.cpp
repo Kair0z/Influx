@@ -76,6 +76,22 @@ namespace influx::renderer
 		mp_device = device;
 	}
 
+	target::~target()
+	{
+		descriptor_manager* desc_man = renderer_backend::get_descriptor_manager();
+		if (mp_rtv)
+		{
+			desc_man->cleanup_rtv(mp_rtv);
+			mp_rtv = nullptr;
+		}
+
+		if (mp_dsv)
+		{
+			desc_man->cleanup_dsv(mp_dsv);
+			mp_dsv = nullptr;
+		}
+	}
+
 	graphics::resource* target::get_resource() const
 	{
 		return mp_resource;
@@ -170,21 +186,24 @@ namespace influx::renderer
 		}
 	}
 
-#if _DEBUG
-	void target::set_name(const string& name)
+	void target::set_name(const debug_name& name)
 	{
 		m_debug_name = name;
 
-#if _DEBUG
-		if (mp_resource && mp_resource->is_valid()) mp_resource->set_name(m_debug_name);
-		if (mp_depth_resource && mp_depth_resource->is_valid()) mp_depth_resource->set_name(m_debug_name);
-#endif
+		if (mp_resource && mp_resource->is_valid())
+		{
+			mp_resource->set_name(m_debug_name);
+		}
+
+		if (mp_depth_resource && mp_depth_resource->is_valid())
+		{
+			mp_depth_resource->set_name(m_debug_name);
+		}
 	}
 
-	const string& target::get_name() const
+	const debug_name& target::get_name() const
 	{
 		return m_debug_name;
 	}
-#endif
 }
 

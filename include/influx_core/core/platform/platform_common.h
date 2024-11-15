@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 #include "core/function.h" // function
 
 namespace influx::platform
@@ -126,3 +127,4 @@ namespace influx::platform
 
 	using window_proc_callback = function<void(const window_event& e)>;
 }
+#endif

@@ -12,11 +12,13 @@ struct ImDrawData;
 // influx::core
 #include "core/basetypes.h"
 #include "core/function.h"
-#include "core/platform/platform.h"
 #include "core/container/vector.h"
 #include "core/string.h"
 #include "core/math/vector.h"
 #include "core/shader.h"
+
+// influx::platform
+#include "influx_platform/window.h"
 
 // influx::renderer
 #include "influx_renderer/types.h"
@@ -71,7 +73,7 @@ namespace influx::renderer
 	INFLUX_RENDER_API target* create_target(const target_create_args& args);
 
 	// creates / switches to the appropriate target representation of our window backbuffer
-	INFLUX_RENDER_API target* get_window_target(const platform::window_handle& window);
+	INFLUX_RENDER_API target* get_window_target(const platform::window& window);
 
 
 	// 1. acquire the frame to render
@@ -101,6 +103,14 @@ namespace influx::renderer
 	INFLUX_RENDER_API void load(const string& title, const shader_data& data);
 
 	INFLUX_RENDER_API void load(const string& title, const material& data);
+
+	INFLUX_RENDER_API bool has_mesh(const string& title);
+
+	INFLUX_RENDER_API bool has_texture(const string& title);
+
+	INFLUX_RENDER_API bool has_shader(const string& title);
+
+	INFLUX_RENDER_API bool has_material(const string& title);
 
 	// graphics info
 	struct memory_info final

@@ -1,6 +1,7 @@
 #pragma once 
 #include "platform.h"
 
+// influx::core
 #include "core/string.h"
 #include "core/math/vector.h"
 #include "core/geometry/rect.h"
@@ -120,6 +121,13 @@ namespace influx::platform
 		// gets the main current window
 		static window& get_current();
 
+		enum class e_space : uint8
+		{
+			client,
+			full,
+			count
+		};
+
 		enum class e_visibility : uint8
 		{
 			minimized,
@@ -141,6 +149,7 @@ namespace influx::platform
 		virtual void set_visibility(e_visibility) { };
 
 		virtual bool is_visible() const { return false; };
+
 		virtual bool is_visible(e_visibility& out_vis) const { return false; };
 
 		virtual void messagebox(e_messagebox type,
@@ -149,10 +158,19 @@ namespace influx::platform
 
 		using rect = math::rect<uint32>;
 
-		virtual rect get_rect_full() const { return {}; };
+		INFLUX_PLATFORM_API
+		virtual void set_dimensions(const math::vectoru2& new_dimensions) { }
 
-		virtual rect get_rect_client() const { return {}; };
+		INFLUX_PLATFORM_API
+		virtual math::vectoru2 get_dimensions(e_space) const { return {}; }
 
+		INFLUX_PLATFORM_API
+		virtual math::vectoru2 get_previous_dimensions(e_space) const { return {}; }
+
+		INFLUX_PLATFORM_API
+		virtual rect get_rect(e_space) const { return {}; };
+
+		INFLUX_PLATFORM_API
 		virtual ~window() = default;
 
 		void INFLUX_PLATFORM_API request_quit();

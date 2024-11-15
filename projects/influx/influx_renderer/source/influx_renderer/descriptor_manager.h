@@ -46,6 +46,9 @@ namespace influx::renderer
 		graphics::descriptor_range stage(const vector<texture*>& textures);
 		graphics::descriptor_range stage(texture* texture);
 
+		void cleanup_rtv(graphics::render_target_view* rtv);
+		void cleanup_dsv(graphics::depth_stencil_view* dsv);
+
 	private:
 		// GPU heaps (shader-visible)
 		graphics::descriptor_heap* mp_srv_gpu_heap;

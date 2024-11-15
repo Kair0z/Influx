@@ -1,10 +1,12 @@
 #pragma once
 
+// influx::core
 #include "core/basetypes.h"
 #include "core/container/vector.h"
 #include "core/math/colour.h"
 
-#include "influx_graphics/descriptorheap.h"
+// influx::graphics
+#include "influx_graphics/descriptors.h"
 
 namespace influx::graphics
 {

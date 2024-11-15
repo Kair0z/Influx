@@ -94,8 +94,18 @@ namespace influx::renderer
         return m_is_initialized;
     }
 
+    void renderer_backend::wait_gpu_finished() const
+    {
+        logwar("wait_gpu_finished");
+
+        const uint64 finished_value = (uint64)-1;
+        mp_fence->queue_signal(finished_value, mp_graphics_queue);
+        mp_fence->wait_for_value(finished_value);
+    }
+
     void renderer_backend::cleanup()
     {
+        wait_gpu_finished();
         mp_device->cleanup();
 
         delete mp_device;
@@ -124,24 +134,26 @@ namespace influx::renderer
             for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
             {
                 m_swapchain_targets.push_back(new target(mp_device, mp_swapchain, i));
-
-#if _DEBUG
                 m_swapchain_targets[i]->set_name("window_target_" + to_string(i));
-#endif
             }
         }
 
-        // acquire the frame
         acquire_swapchain_frame();
-        const uint8 current_swapchain_index 
-            = mp_swapchain->get_current_backbuffer_index();
+        const uint8 current_swapchain_index = mp_swapchain->get_current_backbuffer_index();
 
-        // resize the swapchain resources if necessary
         if (mp_swapchain->needs_recreate(window))
         {
-            mp_swapchain->resize(window); // resizes the underlying resources
-            m_swapchain_targets[current_swapchain_index]->recreate_rtv();
-            m_swapchain_targets[current_swapchain_index]->recreate_dsv();
+            wait_gpu_finished();
+
+            mp_swapchain->resize(mp_device, window);
+
+            const uint8 num_swapchain_buffers = mp_swapchain->get_num_backbuffers();
+            for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
+            {
+                delete m_swapchain_targets[i];
+                m_swapchain_targets[i] = new target(mp_device, mp_swapchain, i);
+                m_swapchain_targets[i]->set_name("window_target_" + to_string(i));
+            }
         }
         
         // return the current swapchain target
@@ -190,14 +202,13 @@ namespace influx::renderer
         uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::scene);
         {
             influx_scope("renderer_backend::draw_scene::submit");
-            mp_graphics_queue->submit_commandlists({ mp_commandlist });
+            mp_graphics_queue->submit({ mp_commandlist });
             mp_graphics_queue->queue_signal(mp_fence, signal_value);
         }
 
         {
-            influx_scope("renderer_backend::draw_scene::wait_for_commands");
-            wait_handle handle{};
-            mp_fence->wait_for_value(signal_value, handle);
+            influx_scope("renderer_backend::draw_scene::wait");
+            mp_fence->wait_for_value(signal_value);
         }
     }
 
@@ -221,7 +232,7 @@ namespace influx::renderer
         uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::imgui);
         {
             influx_scope("renderer_backend::draw_imgui::submit");
-            mp_graphics_queue->submit_commandlists({ mp_commandlist });
+            mp_graphics_queue->submit({ mp_commandlist });
 
             // queue a signal to the fence that the gpu work [frame_count] is done
             mp_graphics_queue->queue_signal(mp_fence, signal_value);
@@ -250,7 +261,7 @@ namespace influx::renderer
         uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::scene2D);
         {
             influx_scope("renderer_backend::draw2D::submit");
-            mp_graphics_queue->submit_commandlists({ mp_commandlist });
+            mp_graphics_queue->submit({ mp_commandlist });
 
             // queue a signal to the fence that the gpu work [frame_count] is done
             mp_graphics_queue->queue_signal(mp_fence, signal_value);
@@ -274,34 +285,43 @@ namespace influx::renderer
         mp_commandlist->copy_resource(source_resource, dest_resource);
 
         source_resource->revert_transition(mp_commandlist);
-        dest_resource->transition(mp_commandlist, graphics::e_resource_state::present); // this is hardcoded!!!
+        dest_resource->revert_transition(mp_commandlist);
 
         mp_commandlist->end();
-        mp_graphics_queue->submit_commandlists({ mp_commandlist });
+        mp_graphics_queue->submit({ mp_commandlist });
 
-        // signal copyfence '1' when finished
+        // signal & wait for gpu to finish copying
         mp_graphics_queue->queue_signal(mp_copyfence, 1u);
-
-        // copyfence wait for '1' signal
-        wait_handle handle{};
-        mp_copyfence->wait_for_value(1u, handle);
-
-        // signal fence '0' (reset)
-        mp_graphics_queue->queue_signal(mp_copyfence, 0u);
+        {
+            influx_scope("renderer_backend::copy_target::wait");
+            mp_copyfence->wait_for_value(1u);
+        }
     }
 
     void renderer_backend::present_swapchain(const present_args& args)
     {
-        get_descriptor_manager()->end_frame();
-
+        influx_scope("renderer_backend::present");
         if (mp_swapchain)
         {
+            // transition backbuffer into presenting state
+            mp_commandlist->start(mp_device);
+            graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
+            backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
+            mp_commandlist->end();
+
+            const uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::present);
+            mp_graphics_queue->submit({ mp_commandlist });
+            mp_graphics_queue->queue_signal(mp_fence, signal_value);
+            mp_fence->wait_for_value(signal_value);
+
+            get_descriptor_manager()->end_frame();
+
             graphics::present_args p_args{};
             p_args.m_vsync = args.m_vsync;
             mp_swapchain->present(p_args);
-        }
 
-        ++m_frame_count;
+            ++m_frame_count;
+        }
     }
 
     descriptor_manager* renderer_backend::get_descriptor_manager()
