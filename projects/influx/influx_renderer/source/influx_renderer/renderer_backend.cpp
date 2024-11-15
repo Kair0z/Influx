@@ -56,13 +56,10 @@ namespace influx::renderer
 
         // create the graphics device
         using namespace influx::graphics;
-
-        const e_api_type translated_type = translate(args.m_api_type);
-        mp_device = device::create(translated_type);
+        mp_device = device::create(translate(args.m_api_type));
 
         // create graphics command queue
         {
-            // graphics queue
             queue_desc desc{};
             desc.m_type = e_queue_type::graphics;
             desc.m_priority = graphics::e_queue_priority::normal;

@@ -91,42 +91,36 @@ namespace influx::engine
 
 	void translate(const imp::image_data& imp_data, renderer::texture_data& out_data)
 	{
+		out_data.m_pixels.resize(imp_data.m_pixels.size());
+		
+		for (uint64 i = 0u; i < imp_data.m_pixels.size(); ++i)
+		{
+			out_data.m_pixels[i] = imp_data.m_pixels[i];
+		}
+
+		out_data.m_width = imp_data.m_dimensions.x;
 	}
 
-	inline bool load_to_renderer(const imp::scene_data::mesh& mesh, const string& name)
-	{
-		influx::renderer::mesh_data mesh_data{};
-		translate(mesh, mesh_data);
-
-		influx::renderer::load(name, mesh_data);
-		return true;
-	}
-
-	inline bool load_to_renderer(const imp::shader_data& shader, const string& name)
-	{
-		influx::renderer::shader_data shader_data{};
-		translate(shader, shader_data);
-
-		influx::renderer::load(name, shader_data);
-		return true;
-	}
-
-	inline bool load_to_renderer(const imp::image_data& image, const string& name)
-	{
-		influx::renderer::texture_data tex_data{};
-		tex_data.m_pixels = image.m_pixels;
-		tex_data.m_width = image.m_dimensions.x;
-		influx::renderer::load(name, tex_data);
-		return true;
-	}
-
+	// loads assets from content_manager into the influx::renderer
 	void render_manager::load_render_assets(content_manager* cont_man)
 	{
+		// these are shared staging buffers that are read and copied when 'loaded' to the renderer
+		// if we end up wanting to multithread this, we'll have to rework this approach!
+		static influx::renderer::shader_data m_shader_data{};
+		static influx::renderer::texture_data m_tex_data{};
+		static influx::renderer::mesh_data m_mesh_data{};
+		static influx::renderer::material m_material_data{};
+
 		for (const auto& asset : cont_man->get_scenes())
 		{
 			if (renderer::has_mesh(asset.first) == false)
 			{
-				load_to_renderer(asset.second.m_resource.m_meshes[0], asset.first);
+				if (!asset.second.m_resource.m_meshes.empty())
+				{
+					const imp::scene_data::mesh& mesh = asset.second.m_resource.m_meshes[0u];
+					translate(mesh, m_mesh_data);
+					influx::renderer::load(asset.first, m_mesh_data);
+				}
 			}
 		}
 
@@ -134,7 +128,8 @@ namespace influx::engine
 		{
 			if (renderer::has_texture(asset.first) == false)
 			{
-				load_to_renderer(asset.second.m_resource, asset.first);
+				translate(asset.second.m_resource, m_tex_data);
+				influx::renderer::load(asset.first, m_tex_data);
 			}
 		}
 
@@ -144,58 +139,70 @@ namespace influx::engine
 		{
 			if (renderer::has_shader(asset.first) == false)
 			{
-				load_to_renderer(asset.second.m_item, asset.first);
+				translate(asset.second.m_item, m_shader_data);
+				influx::renderer::load(asset.first, m_shader_data);
 			}
 		}
 #else
-		if (renderer::has_shader("shaders_vs") == false)
+		const string& vs_name = "shaders_vs";
+		const auto& shaders = cont_man->get_shaders();
+		if (renderer::has_shader(vs_name) == false)
 		{
-			const imp::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs").m_resource;
-			load_to_renderer(vs_shader, "shaders_vs");
+			if (shaders.contains(vs_name))
+			{
+				const imp::shader_data& vs_shader = shaders.at(vs_name).m_resource;
+				translate(vs_shader, m_shader_data);
+				influx::renderer::load(vs_name, m_shader_data);
+			}
 		}
 		
-		if (renderer::has_shader("shaders_ps") == false)
+		const string& ps_name = "shaders_ps";
+		if (renderer::has_shader(ps_name) == false)
 		{
-			const imp::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps").m_resource;
-			load_to_renderer(ps_shader, "shaders_ps");
+			if (shaders.contains(ps_name))
+			{
+				const imp::shader_data& ps_shader = cont_man->get_shaders().at(ps_name).m_resource;
+				translate(ps_shader, m_shader_data);
+				influx::renderer::load(ps_name, m_shader_data);
+			}
 		}
 #endif
 
+		// hardcoded assets
 		if (renderer::has_material("mat_transistor") == false)
-		{
-			influx::renderer::material mat_transistor{};
-			mat_transistor.m_basecolor = colour::k_white;
-			mat_transistor.m_tex_albedo = "T_Sword_Opaque_BC";
-			mat_transistor.m_tex_normal = "T_Sword_Opaque_N";
-			mat_transistor.m_tex_roughness = "T_Sword_Opaque_N";
-			mat_transistor.m_tex_special = "T_Sword_Opaque_N";
-			influx::renderer::load("mat_transistor", mat_transistor);
+		{	
+			m_material_data.m_basecolor = colour::k_white;
+			m_material_data.m_tex_albedo = "T_Sword_Opaque_BC";
+			m_material_data.m_tex_normal = "T_Sword_Opaque_N";
+			m_material_data.m_tex_roughness = "T_Sword_Opaque_N";
+			m_material_data.m_tex_special = "T_Sword_Opaque_N";
+			influx::renderer::load("mat_transistor", m_material_data);
 		}
 
 		if (renderer::has_mesh("engine_plane") == false)
 		{
-			math::vectorf3 positions[4u]
+			const static math::vectorf3 positions[4u]
 			{
 				{ 1.0f, 0.0f, 1.0f },
 				{ -1.0f, 0.0f, 1.0f },
 				{ 1.0f, 0.0f, -1.0f },
 				{ -1.0f, 0.0f, -1.0f }
 			};
-			math::vectorf4 colours[4u]
+			const static math::vectorf4 colours[4u]
 			{
 				{ 1.0f, 0.0f, 0.0f, 1.0f },
 				{ 0.0f, 1.0f, 0.0f, 1.0f },
 				{ 0.0f, 0.0f, 1.0f, 1.0f },
 				{ 1.0f, 1.0f, 0.0f, 1.0f }
 			};
-			math::vectorf2 uvs[4u]
+			const static math::vectorf2 uvs[4u]
 			{
 				{ 0.0f, 0.0f },
 				{ 1.0f, 0.0f },
 				{ 1.0f, 1.0f },
 				{ 0.0f, 1.0f }
 			};
-			math::vectorf3 normals[4u]
+			const static math::vectorf3 normals[4u]
 			{
 				{ 0.0f, 1.0f, 0.0f },
 				{ 0.0f, 1.0f, 0.0f },
@@ -203,26 +210,26 @@ namespace influx::engine
 				{ 0.0f, 1.0f, 0.0f }
 			};
 
-			influx::renderer::mesh_data mesh_data{};
+			m_mesh_data.m_vertices.resize(4u);
+			m_mesh_data.m_indices.resize(6u);
+
 			for (uint8 i = 0u; i < 4u; ++i)
 			{
-				mesh_data.m_vertices.push_back
-				({
+				m_mesh_data.m_vertices[i] = {
 					.m_position{positions[i]},
 					.m_colour{colours[i]},
 					.m_normal{normals[i]},
-					.m_texcoords{uvs[i]}
-					});
+					.m_texcoords{uvs[i]} };
 			}
 
-			mesh_data.m_indices.push_back(0u);
-			mesh_data.m_indices.push_back(2u);
-			mesh_data.m_indices.push_back(1u);
-			mesh_data.m_indices.push_back(2u);
-			mesh_data.m_indices.push_back(3u);
-			mesh_data.m_indices.push_back(1u);
+			m_mesh_data.m_indices[0] = 0u;
+			m_mesh_data.m_indices[1] = 2u;
+			m_mesh_data.m_indices[2] = 1u;
+			m_mesh_data.m_indices[3] = 2u;
+			m_mesh_data.m_indices[4] = 3u;
+			m_mesh_data.m_indices[5] = 1u;
 
-			influx::renderer::load("engine_plane", mesh_data);
+			influx::renderer::load("engine_plane", m_mesh_data);
 		}
 	}
 

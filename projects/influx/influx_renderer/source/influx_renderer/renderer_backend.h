@@ -107,7 +107,7 @@ namespace influx::renderer
 		graphics::swapchain* mp_swapchain = nullptr;
 		vector<target*> m_swapchain_targets{};
 
-		// managers:
+		// managers
 		descriptor_manager* mp_desc_manager = nullptr;
 		upload_manager* mp_upload_manager = nullptr;
 		pipeline_manager* mp_pipeline_manager = nullptr;

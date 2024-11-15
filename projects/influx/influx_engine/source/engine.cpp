@@ -95,11 +95,6 @@ namespace influx::engine
 			m_game->on_update(update_ctx);
 
 			m_renderman->load_render_assets(m_contentman);
-			// upload content to renderer
-			for (const auto& model : m_contentman->get_scenes())
-			{
-
-			}
 
 			// parse render scene
 			renderer::scene scene{};
@@ -122,6 +117,8 @@ namespace influx::engine
 
 		m_world = new world();
 
+		m_contentman->load_engine_assets(this);
+
 		frame_time frame_time{};
 		while (!m_is_quit_requested)
 		{
@@ -130,6 +127,8 @@ namespace influx::engine
 
 			poll_platform_events();
 			if (m_is_quit_requested) break;
+
+			m_renderman->load_render_assets(m_contentman);
 
 			m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
 			{

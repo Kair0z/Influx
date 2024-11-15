@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/macros.h"
 #include "core/math/vector.h"
 
 // influx::renderer
@@ -16,11 +17,14 @@ namespace influx::engine
 {
 	class render_manager final
 	{
+		INFLUX_NO_MOVE(render_manager);
+		INFLUX_NO_COPY(render_manager);
+
 	public:
 		render_manager(engine* engine);
 		~render_manager();
 
-		// loads application asset data into renderer (textures/meshes/shaders)
+		// loads assets from content_manager into the influx::renderer
 		void load_render_assets(content_manager* cont_man);
 
 		void record_imgui_frame(const function<void(ImGuiContext&)>& func);

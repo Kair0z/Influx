@@ -28,4 +28,7 @@
 			} \
 		private: // default to private...
 
+
+#define INFLUX_NO_COPY(clss) clss(const clss&) = delete; clss& operator=(const clss&) = delete;
+#define INFLUX_NO_MOVE(clss) clss(clss&&) = delete; clss& operator=(clss&&) = delete;
 #endif

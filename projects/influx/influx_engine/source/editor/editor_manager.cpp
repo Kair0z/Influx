@@ -10,6 +10,7 @@
 #include "content/content_manager.h"
 #include "world/world.h"
 #include "influx_engine/scene/scene.h"
+#include "content/content_manager.h"
 
 // imgui
 #include "imgui/imgui.h"
@@ -124,6 +125,9 @@ namespace influx::engine
 		world* world = engine->get_world();
 		influx_assert(world);
 
+		content_manager* content = engine->get_content();
+		influx_assert(content);
+
 		process_inputs();
 
 		if (!m_editor_toggle)
@@ -193,7 +197,15 @@ namespace influx::engine
 		{
 			if (ImGui::Begin(has_game() ? (get_game_name() + ":content").c_str() : "content"))
 			{
-
+				for (const auto& pair : content->get_scenes())
+					ImGui::Text("scene:%s", pair.first.c_str());
+				ImGui::Text("--");
+				for (const auto& pair : content->get_images())
+					ImGui::Text("texture:%s", pair.first.c_str());
+				ImGui::Text("--");
+				for (const auto& pair : content->get_shaders())
+					ImGui::Text("shader:%s", pair.first.c_str());
+				ImGui::Text("--");
 			}
 			ImGui::End();
 		}

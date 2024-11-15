@@ -13,7 +13,7 @@ namespace influx::engine
 
 namespace influx::renderer
 {
-	class scene;
+	struct scene;
 }
 
 namespace influx::engine
