@@ -57,20 +57,47 @@ namespace influx::engine
 		influx::renderer::cleanup();
 	}
 
+	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data)
+	{
+		out_data.m_indices.resize(imp_data.m_indices.size());
+		out_data.m_vertices.resize(imp_data.m_positions.size());
+
+		for (uint64 i = 0u; i < imp_data.m_positions.size(); ++i)
+		{
+			out_data.m_vertices[i].m_position = imp_data.m_positions[i];
+			out_data.m_vertices[i].m_normal = imp_data.m_normals[i];
+			out_data.m_vertices[i].m_texcoords = imp_data.m_uvs[i];
+			// ...
+		}
+
+		for (uint64 i = 0u; i < imp_data.m_indices.size(); ++i)
+		{
+			out_data.m_indices[i] = imp_data.m_indices[i];
+		}
+	}
+
+	void translate(const imp::shader_data& imp_data, renderer::shader_data& out_data)
+	{
+		out_data.m_bytecode.resize(imp_data.m_compile_result.m_bytecode.size());
+
+		for (uint64 i = 0u; i < imp_data.m_compile_result.m_bytecode.size(); ++i)
+		{
+			out_data.m_bytecode[i] = imp_data.m_compile_result.m_bytecode[i];
+		}
+
+		out_data.m_type = imp_data.m_type;
+		out_data.m_reflection = imp_data.m_compile_result.m_reflection;
+	}
+
+	void translate(const imp::image_data& imp_data, renderer::texture_data& out_data)
+	{
+	}
+
 	inline bool load_to_renderer(const imp::scene_data::mesh& mesh, const string& name)
 	{
 		influx::renderer::mesh_data mesh_data{};
-		for (size_t i = 0u; i < mesh.m_positions.size(); ++i)
-		{
-			mesh_data.m_vertices.push_back({});
-			mesh_data.m_vertices.back().m_position = mesh.m_positions[i];
-			// mesh_data.m_vertices.back().m_colour = mesh.m_colours[i];
-			mesh_data.m_vertices.back().m_normal = mesh.m_normals[i];
-			mesh_data.m_vertices.back().m_texcoords = mesh.m_uvs[i];
-		}
-		mesh_data.m_indices = mesh.m_indices;
+		translate(mesh, mesh_data);
 
-		// load into the renderer
 		influx::renderer::load(name, mesh_data);
 		return true;
 	}
@@ -78,9 +105,7 @@ namespace influx::engine
 	inline bool load_to_renderer(const imp::shader_data& shader, const string& name)
 	{
 		influx::renderer::shader_data shader_data{};
-		shader_data.m_bytecode = shader.m_compile_result.m_bytecode;
-		shader_data.m_type = shader.m_type;
-		shader_data.m_reflection = shader.m_compile_result.m_reflection;
+		translate(shader, shader_data);
 
 		influx::renderer::load(name, shader_data);
 		return true;
@@ -97,34 +122,46 @@ namespace influx::engine
 
 	void render_manager::load_render_assets(content_manager* cont_man)
 	{
-		// GEOMETRY
 		for (const auto& asset : cont_man->get_scenes())
 		{
-			// todo: for now, only loading the first mesh...
-			load_to_renderer(asset.second.m_resource.m_meshes[0], asset.first);
+			if (renderer::has_mesh(asset.first) == false)
+			{
+				load_to_renderer(asset.second.m_resource.m_meshes[0], asset.first);
+			}
 		}
 
-		// TEXTURES
 		for (const auto& asset : cont_man->get_images())
 		{
-			load_to_renderer(asset.second.m_resource, asset.first);
+			if (renderer::has_texture(asset.first) == false)
+			{
+				load_to_renderer(asset.second.m_resource, asset.first);
+			}
 		}
 
-		// SHADERS
 		// todo: for now only 2 shaders are necessary
 #if 0
 		for (const auto& asset : cont_man->get_shaders())
 		{
-			load_to_renderer(asset.second.m_item, asset.first);
+			if (renderer::has_shader(asset.first) == false)
+			{
+				load_to_renderer(asset.second.m_item, asset.first);
+			}
 		}
 #else
-		const imp::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs").m_resource;
-		const imp::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps").m_resource;
-		load_to_renderer(vs_shader, "shaders_vs");
-		load_to_renderer(ps_shader, "shaders_ps");
+		if (renderer::has_shader("shaders_vs") == false)
+		{
+			const imp::shader_data& vs_shader = cont_man->get_shaders().at("shaders_vs").m_resource;
+			load_to_renderer(vs_shader, "shaders_vs");
+		}
+		
+		if (renderer::has_shader("shaders_ps") == false)
+		{
+			const imp::shader_data& ps_shader = cont_man->get_shaders().at("shaders_ps").m_resource;
+			load_to_renderer(ps_shader, "shaders_ps");
+		}
 #endif
 
-		// MATERIALS
+		if (renderer::has_material("mat_transistor") == false)
 		{
 			influx::renderer::material mat_transistor{};
 			mat_transistor.m_basecolor = colour::k_white;
@@ -135,8 +172,7 @@ namespace influx::engine
 			influx::renderer::load("mat_transistor", mat_transistor);
 		}
 
-		// load engine geometry meshes
-		// PLANE
+		if (renderer::has_mesh("engine_plane") == false)
 		{
 			math::vectorf3 positions[4u]
 			{

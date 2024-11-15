@@ -104,6 +104,14 @@ namespace influx::renderer
 
 	INFLUX_RENDER_API void load(const string& title, const material& data);
 
+	INFLUX_RENDER_API bool has_mesh(const string& title);
+
+	INFLUX_RENDER_API bool has_texture(const string& title);
+
+	INFLUX_RENDER_API bool has_shader(const string& title);
+
+	INFLUX_RENDER_API bool has_material(const string& title);
+
 	// graphics info
 	struct memory_info final
 	{

@@ -55,6 +55,7 @@ namespace influx::renderer
 		void draw_2D(const scene2D& scene, const target& target);
 		void copy_target(const target& source, const target& dest);
 		void present_swapchain(const present_args& args);
+
 		static descriptor_manager* get_descriptor_manager();
 		static upload_manager* get_upload_manager();
 		static pipeline_manager* get_pipeline_manager();
@@ -63,6 +64,11 @@ namespace influx::renderer
 		void load(const string& title, const texture_data& data);
 		void load(const string& title, const shader_data& data);
 		void load(const string& title, const material& data);
+
+		bool has_mesh(const string& title) const;
+		bool has_texture(const string& title) const;
+		bool has_shader(const string& title) const;
+		bool has_material(const string& title) const;
 
 		texture* create_texture(const string& title, const texture_desc& args);
 		const umap<string, texture*>& get_textures() const;

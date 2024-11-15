@@ -420,6 +420,25 @@ namespace influx::renderer
         m_materials[title] = data;
     }
 
+    bool renderer_backend::has_mesh(const string& title) const
+    {
+        return m_vertex_buffers.contains(title);
+    }
+
+    bool renderer_backend::has_texture(const string& title) const
+    {
+        return m_textures.contains(title);
+    }
+
+    bool renderer_backend::has_shader(const string& title) const
+    {
+        return m_pixel_shaders.contains(title) || m_vertex_shaders.contains(title);
+    }
+
+    bool renderer_backend::has_material(const string& title) const
+    {
+        return m_materials.contains(title);
+    }
 
     texture* renderer_backend::create_texture(const string& title, const texture_desc& args)
     {
@@ -644,6 +663,26 @@ namespace influx::renderer
     void load(const string& title, const material& data)
     {
         renderer_backend::get_instance().load(title, data);
+    }
+
+    bool has_mesh(const string& title)
+    {
+        return renderer_backend::get_instance().has_mesh(title);
+    }
+    
+    bool has_texture(const string& title)
+    {
+        return renderer_backend::get_instance().has_texture(title);
+    }
+    
+    bool has_shader(const string& title)
+    {
+        return renderer_backend::get_instance().has_shader(title);
+    }
+    
+    bool has_material(const string& title)
+    {
+        return renderer_backend::get_instance().has_material(title);
     }
 
     memory_info get_memory_info()
