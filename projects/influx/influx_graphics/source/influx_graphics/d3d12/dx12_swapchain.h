@@ -8,26 +8,24 @@ namespace influx::graphics
 {
 	class dx12_swapchain final : public swapchain
 	{
-	public:
+	private:
+		IDXGISwapChain4* mpdxgi_swapchain4;
+
+	private:
 		dx12_swapchain(
 			const swapchain_desc& desc,
 			const swapchain_dependencies& swapchain_dependencies,
 			IDXGISwapChain4* swapchain4);
 
 		virtual ~dx12_swapchain();
+		virtual void release_impl(device*) override;
 
 		virtual void present(const present_args& args) override;
-
-	private:
-		IDXGISwapChain4* mpdxgi_swapchain4;
-
 		virtual vector<resource*> create_resources(device*) override;
 		virtual void resize_impl(const math::vectoru2& old_dim, const math::vectoru2& new_dim) override;
-		virtual void destroy_resources() override;
-
-		// acquires the next available backbuffer (and returns the index)
+		virtual void destroy_resources(device*) override;
 		virtual uint8 acquire_backbuffer() override;
 
-		virtual void release() override;
+		friend class dx12_device;
 	};
 }

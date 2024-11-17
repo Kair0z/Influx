@@ -94,6 +94,7 @@ namespace influx::renderer
 	// 4. present to window swapchain
 	INFLUX_RENDER_API void present_swapchain(const present_args& args);
 
+	INFLUX_RENDER_API void wait_gpu_finished();
 
 	// loading assets into the renderer
 	INFLUX_RENDER_API void load(const string& title, const mesh_data& data);

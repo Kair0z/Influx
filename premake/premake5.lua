@@ -6,7 +6,7 @@ workspace "influx"
     startproject "influx_game"
     location "../generated/%{_ACTION}/"
     
-    g_compile_mono_engine = true
+    g_compile_mono_engine = false
     
     -- /influx/
     g_dir_root = "%{wks.location}/../../"

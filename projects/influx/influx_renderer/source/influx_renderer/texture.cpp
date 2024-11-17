@@ -78,7 +78,7 @@ namespace influx::renderer
 	{
 		if (new_dimensions != m_current_dimensions)
 		{
-			delete mp_resource;
+			mp_resource->release(mp_device);
 
 			// update size:
 			m_current_dimensions = new_dimensions;

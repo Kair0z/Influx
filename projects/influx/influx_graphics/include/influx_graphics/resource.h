@@ -48,8 +48,8 @@ namespace influx::graphics
 
 	struct buffer_desc final
 	{
-		size_t m_bytesize;
-		size_t m_bytestride;
+		uint64 m_bytesize;
+		uint64 m_bytestride;
 		e_resource_flags m_flags;
 		e_resource_state m_init_state;
 		e_format m_format;
@@ -69,8 +69,8 @@ namespace influx::graphics
 	struct map_args final
 	{
 		uint32 m_subres = 0u;
-		size_t m_begin = 0u;
-		size_t m_end = (size_t)-1;
+		uint64 m_begin = 0u;
+		uint64 m_end = (size_t)-1;
 	};
 
 	class resource : public base
@@ -81,12 +81,10 @@ namespace influx::graphics
 			buffer,
 			count
 		};
-
+	public:
 		INFLUX_GFX_API virtual void* map(const map_args& args) = 0;
-
 		INFLUX_GFX_API virtual void unmap(const map_args& args) = 0;
 
-	public:
 		void map(const function<void(void*)> map_func, const map_args& args = {})
 		{
 			void* target = map(args);
@@ -116,13 +114,11 @@ namespace influx::graphics
 		
 		INFLUX_GFX_API void revert_transition(commandlist* cmdlist);
 
-		virtual ~resource() = default;
-
 	protected:
-		resource() = default;
 		resource(const tex2D_desc& desc);
 		resource(const buffer_desc& desc);
-
+		virtual ~resource() = default;
+		
 	private:
 		e_type m_type{};
 		tex2D_desc m_tex2D_desc{};

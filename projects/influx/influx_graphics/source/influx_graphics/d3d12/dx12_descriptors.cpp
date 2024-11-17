@@ -69,7 +69,7 @@ namespace influx::graphics
 		clear_gpu();
 	}
 
-	void dx12_descriptor_heap::release()
+	void dx12_descriptor_heap::release_impl(device*)
 	{
 		mpdx_heap->Release();
 	}

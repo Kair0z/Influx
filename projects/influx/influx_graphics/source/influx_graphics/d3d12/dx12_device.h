@@ -20,44 +20,46 @@ namespace influx::graphics
 
 namespace influx::graphics
 {
-	class dx12_device final
-		: public device
+	class base;
+
+	class dx12_device final : public device
 	{
 	public:
 		dx12_device(const device_desc&);
 
 		uint64 get_descriptor_stride(e_descriptor_heap_type type) const;
 
+		virtual void release(base*) override;
 		virtual void cleanup() override;
 
 		// creation:
-		virtual queue* create_queue(const queue_desc& desc) override;
-		virtual swapchain* create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) override;
-		virtual descriptor_heap* create_descriptor_heap(const descriptor_heap::create_args& args) override;
+		virtual ptr<queue> create_queue(const queue_desc& desc) override;
+		virtual ptr<swapchain> create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) override;
+		virtual ptr<descriptor_heap> create_descriptor_heap(const descriptor_heap::create_args& args) override;
 
-		virtual commandlist* create_commandlist(e_commandlist_type type, pipeline* init_state = nullptr) override;
-		virtual commandlist* create_graphics_commandlist(pipeline* init_state = nullptr) override;
-		virtual commandlist* create_compute_commandlist(pipeline* init_state = nullptr) override;
+		virtual ptr<commandlist> create_commandlist(e_commandlist_type type, pipeline* init_state = nullptr) override;
+		virtual ptr<commandlist> create_graphics_commandlist(pipeline* init_state = nullptr) override;
+		virtual ptr<commandlist> create_compute_commandlist(pipeline* init_state = nullptr) override;
 
-		virtual fence* create_fence(uint64 init_value = 0u) override;
-		virtual resource* create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
-		virtual resource* create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) override;
+		virtual ptr<fence> create_fence(uint64 init_value = 0u) override;
+		virtual ptr<resource> create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
+		virtual ptr<resource> create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) override;
 		
-		virtual resource* import_buffer(void* native_ptr, const buffer_desc& desc) override;
-		virtual resource* import_texture(void* native_ptr, const tex2D_desc& desc) override;
+		virtual ptr<resource> import_buffer(void* native_ptr, const buffer_desc& desc) override;
+		virtual ptr<resource> import_texture(void* native_ptr, const tex2D_desc& desc) override;
 
-		virtual render_target_view* create_rtv(descriptor_heap* rtv_heap, resource* resource) override;
-		virtual render_target_view* create_rtv(descriptor_handle handle, resource* resource) override;
-		virtual depth_stencil_view* create_dsv(descriptor_heap* dsv_heap, resource* resource) override;
-		virtual depth_stencil_view* create_dsv(descriptor_handle handle, resource* resource) override;
-		virtual shader_resource_view* create_srv(descriptor_heap* irv_heap, resource* resource) override;
-		virtual shader_resource_view* create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
-		virtual shader_resource_view* create_buffer_srv(descriptor_heap* srv_heap, resource* resource) override;
-		virtual shader_resource_view* create_buffer_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
-		virtual sampler_view* create_sampview(descriptor_heap* samp_heap, resource* resource) override;
-		virtual sampler_view* create_sampview(descriptor_handle handle, resource* resource) override;
-		virtual rootsignature* create_rootsignature(const rootsignature_desc& desc) override;
-		virtual pipeline* create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) override;
+		virtual ptr<render_target_view> create_rtv(descriptor_heap* rtv_heap, resource* resource) override;
+		virtual ptr<render_target_view> create_rtv(descriptor_handle handle, resource* resource) override;
+		virtual ptr<depth_stencil_view> create_dsv(descriptor_heap* dsv_heap, resource* resource) override;
+		virtual ptr<depth_stencil_view> create_dsv(descriptor_handle handle, resource* resource) override;
+		virtual ptr<shader_resource_view> create_srv(descriptor_heap* irv_heap, resource* resource) override;
+		virtual ptr<shader_resource_view> create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
+		virtual ptr<shader_resource_view> create_buffer_srv(descriptor_heap* srv_heap, resource* resource) override;
+		virtual ptr<shader_resource_view> create_buffer_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
+		virtual ptr<sampler_view> create_sampview(descriptor_heap* samp_heap, resource* resource) override;
+		virtual ptr<sampler_view> create_sampview(descriptor_handle handle, resource* resource) override;
+		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) override;
+		virtual ptr<pipeline> create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) override;
 
 		// misc:
 		virtual vector<physical_device_info> get_gpu_infos() override;
@@ -93,6 +95,7 @@ namespace influx::graphics
 		dx12_queue* m_dx_queue_copy = nullptr;
 
 		vector<base*> m_children;
+		vector<base*>::iterator find_child(base*);
 
 		template <typename _nat, typename _ret, typename ..._args>
 		_ret* new_child(_args&&... args)

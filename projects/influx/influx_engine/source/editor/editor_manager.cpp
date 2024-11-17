@@ -12,6 +12,9 @@
 #include "influx_engine/scene/scene.h"
 #include "content/content_manager.h"
 
+// influx::platform
+#include "influx_platform/window.h"
+
 // imgui
 #include "imgui/imgui.h"
 
@@ -117,7 +120,44 @@ namespace influx::engine
 		initialize_inputs();
 	}
 
-	void editor_manager::on_imgui(ImGuiContext& ctx)
+	void editor_manager::update_imgui(ImGuiContext& ctx)
+	{
+		update_context();
+		update_inputs();
+		update_main_editor();
+
+		// user-module after main editor
+		m_editor->on_imgui(ctx);
+	}
+
+	void editor_manager::update_inputs()
+	{
+		// ctrl + space: engine + content
+		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::space))
+		{
+			m_content_toggle = !m_content_toggle;
+			m_engine_toggle = !m_engine_toggle;
+		}
+
+		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::lalt))
+		{
+			m_editor_toggle = !m_editor_toggle;
+		}
+	}
+
+	void editor_manager::update_context()
+	{
+		engine* engine = get_engine();
+		influx_assert(engine);
+
+		const platform::window* window = engine->get_window();
+		influx_assert(window);
+
+		const math::vectoru2& window_dimensions = window->get_dimensions(platform::window::e_space::client);
+		ImGui::GetIO().DisplaySize = { (float)window_dimensions.x, (float)window_dimensions.y };
+	}
+
+	void editor_manager::update_main_editor()
 	{
 		engine* engine = get_engine();
 		influx_assert(engine);
@@ -127,8 +167,6 @@ namespace influx::engine
 
 		content_manager* content = engine->get_content();
 		influx_assert(content);
-
-		process_inputs();
 
 		if (!m_editor_toggle)
 		{
@@ -153,7 +191,7 @@ namespace influx::engine
 				{
 					// new empty scene
 					scene* new_scene = scene::make_empty_scene();
-					
+
 					// save to file
 					const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
 					scene::save_to_file(new_scene, scenefile_path);
@@ -167,7 +205,7 @@ namespace influx::engine
 					// load from file
 					const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
 					scene* scene = scene::load_from_file(scenefile_path);
-					
+
 					// load into world
 					world->load_scene(scene);
 				}
@@ -210,23 +248,6 @@ namespace influx::engine
 			ImGui::End();
 		}
 
-		// user-module after main editor
-		m_editor->on_imgui(ctx);
-	}
-
-	void editor_manager::process_inputs()
-	{
-		// ctrl + space: engine + content
-		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::space))
-		{
-			m_content_toggle = !m_content_toggle;
-			m_engine_toggle = !m_engine_toggle;
-		}
-
-		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::lalt))
-		{
-			m_editor_toggle = !m_editor_toggle;
-		}
 	}
 
 	void editor_manager::set_target_game(engine& engine, const string& gamename)

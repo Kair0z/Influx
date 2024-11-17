@@ -10,7 +10,7 @@ namespace influx::graphics
 		mp_native = mpdx_rootsignature = rootsignature;
 	}
 
-	void dx12_rootsignature::release()
+	void dx12_rootsignature::release_impl(device*)
 	{
 		mpdx_rootsignature->Release();
 	}

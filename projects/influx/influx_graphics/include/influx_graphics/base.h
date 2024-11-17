@@ -1,12 +1,19 @@
 #pragma once
+
+// influx::graphics
 #include "influx_graphics/common.h"
+
+// influx::core
 #include "core/string.h"
 
 namespace influx::graphics
 {
+	class device;
+
 	class base
 	{
 		virtual void set_name_impl(const debug_name& name) {}
+		virtual void release_impl(device*) = 0;
 
 	public:
 		template <typename _t>
@@ -23,7 +30,7 @@ namespace influx::graphics
 
 		inline bool is_valid() const
 		{
-			return mp_native != nullptr;
+			return !is_released() && mp_native != nullptr;
 		}
 
 		inline operator bool() const
@@ -42,20 +49,33 @@ namespace influx::graphics
 			return m_name;
 		}
 
+		virtual void release(device* device)
+		{
+			m_is_released = true;
+			release_impl(device);
+		}
+
+		bool is_released() const
+		{
+			return m_is_released;
+		}
+
+	protected:
+		// only the child classes can call constructor/desctructor
+		base() = default;
+		virtual ~base();
+
+		void* mp_native = nullptr;
+
 		base(const base&) = delete;
 		base(base&&) = delete;
 		base& operator=(const base&) = delete;
 		base& operator=(base&&) = delete;
-
-		virtual ~base();
-
-		virtual void release() = 0;
-
-	protected:
-		base() = default;
-		void* mp_native = nullptr;
 		
 	private:
 		debug_name m_name{};
+		bool m_is_released = false;
+
+		friend class device;
 	};
 }

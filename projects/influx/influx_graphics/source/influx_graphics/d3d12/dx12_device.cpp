@@ -110,18 +110,24 @@ namespace influx::graphics
 		return 0u;
 	}
 
+	void dx12_device::release(base* child)
+	{
+		device::release(child);
+
+		// remove pointer from bookkeeping
+		auto found_child = find_child(child);
+		if (found_child != m_children.cend())
+		{
+			m_children.erase(found_child);
+		}
+	}
+
 	void dx12_device::cleanup()
 	{
+		// release the unreleased
 		for (size_t i = 0u; i < m_children.size(); ++i)
 		{
-			base* child = m_children[i];
-			if (child != nullptr)
-			{
-				child->release();
-			}
-
-			delete child;
-			child = nullptr;
+			device::release(m_children[i]);
 		}
 		m_children.clear();
 
@@ -172,7 +178,7 @@ namespace influx::graphics
 	}
 
 	// get interface to graphics object creation:
-	queue* dx12_device::create_queue(const queue_desc& desc)
+	ptr<queue> dx12_device::create_queue(const queue_desc& desc)
 	{
 		int priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 		switch (desc.m_priority)
@@ -188,7 +194,7 @@ namespace influx::graphics
 		return new_child<dx12_queue, queue>(desc, dxcommandqueue);
 	}
 
-	swapchain* dx12_device::create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc)
+	ptr<swapchain> dx12_device::create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc)
 	{
 		const math::vectoru2 dimensions = window.get_dimensions(platform::window::e_space::client);
 		const uint32 width = dimensions.x;
@@ -209,13 +215,13 @@ namespace influx::graphics
 		return new_child<dx12_swapchain, swapchain>(desc_copy, dependencies, dxswapchain);
 	}
 
-	descriptor_heap* dx12_device::create_descriptor_heap(const descriptor_heap::create_args& args)
+	ptr<descriptor_heap> dx12_device::create_descriptor_heap(const descriptor_heap::create_args& args)
 	{
 		auto dxheap = dx12helpers::create_descriptor_heap(mpdx_devices[0u], convert(args.m_type), args.m_capacity, args.m_shader_visible);
 		return new_child<dx12_descriptor_heap, descriptor_heap>(args, dxheap, get_descriptor_stride(args.m_type));
 	}
 
-	commandlist* dx12_device::create_commandlist(e_commandlist_type type, pipeline* init_state)
+	ptr<commandlist> dx12_device::create_commandlist(e_commandlist_type type, pipeline* init_state)
 	{
 		D3D12_COMMAND_LIST_TYPE dxtype = translate(type);
 		ID3D12CommandAllocator* dxallocator = new_allocator(dxtype);
@@ -250,22 +256,22 @@ namespace influx::graphics
 		return nullptr;
 	}
 
-	commandlist* dx12_device::create_graphics_commandlist(pipeline* init_state)
+	ptr<commandlist> dx12_device::create_graphics_commandlist(pipeline* init_state)
 	{
 		return create_commandlist(e_commandlist_type::graphics, init_state);
 	}
 
-	commandlist* dx12_device::create_compute_commandlist(pipeline* init_state)
+	ptr<commandlist> dx12_device::create_compute_commandlist(pipeline* init_state)
 	{
 		return create_commandlist(e_commandlist_type::compute, init_state);
 	}
 
-	fence* dx12_device::create_fence(uint64 init_value)
+	ptr<fence> dx12_device::create_fence(uint64 init_value)
 	{
 		return new_child<dx12_fence, fence>(dx12helpers::create_fence<ID3D12Fence>(mpdx_devices[0u], init_value));
 	}
 
-	resource* dx12_device::create_resource(const tex2D_desc& desc, const heap_desc& heap_desc)
+	ptr<resource> dx12_device::create_resource(const tex2D_desc& desc, const heap_desc& heap_desc)
 	{
 		auto dxresource = dx12helpers::create_tex2d_resource<ID3D12Resource>(mpdx_devices[0u],
 			convert(heap_desc.m_type),
@@ -279,7 +285,7 @@ namespace influx::graphics
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
-	resource* dx12_device::create_resource(const buffer_desc& desc, const heap_desc& heap_desc)
+	ptr<resource> dx12_device::create_resource(const buffer_desc& desc, const heap_desc& heap_desc)
 	{
 		auto dxresource = dx12helpers::create_buffer_resource<ID3D12Resource>(mpdx_devices[0], 
 			convert(heap_desc.m_type),
@@ -290,26 +296,26 @@ namespace influx::graphics
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
-	resource* dx12_device::import_buffer(void* native_ptr, const buffer_desc& desc)
+	ptr<resource> dx12_device::import_buffer(void* native_ptr, const buffer_desc& desc)
 	{
 		ID3D12Resource* dxresource = (ID3D12Resource*)native_ptr;
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
-	resource* dx12_device::import_texture(void* native_ptr, const tex2D_desc& desc)
+	ptr<resource> dx12_device::import_texture(void* native_ptr, const tex2D_desc& desc)
 	{
 		ID3D12Resource* dxresource = (ID3D12Resource*)native_ptr;
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
-	render_target_view* dx12_device::create_rtv(descriptor_heap* rtv_heap, resource* resource)
+	ptr<render_target_view> dx12_device::create_rtv(descriptor_heap* rtv_heap, resource* resource)
 	{
 		// allocate a new rtv descriptor:
 		descriptor_handle cpu_handle = rtv_heap->allocate_cpu();
 		return create_rtv(cpu_handle, resource);
 	}
 
-	render_target_view* dx12_device::create_rtv(descriptor_handle handle, resource* resource)
+	ptr<render_target_view> dx12_device::create_rtv(descriptor_handle handle, resource* resource)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
 
@@ -325,14 +331,14 @@ namespace influx::graphics
 		return new_child<dx12_render_target_view, render_target_view>(dx_rtv, res_info);
 	}
 
-	depth_stencil_view* dx12_device::create_dsv(descriptor_heap* dsv_heap, resource* resource)
+	ptr<depth_stencil_view> dx12_device::create_dsv(descriptor_heap* dsv_heap, resource* resource)
 	{
 		// allocate a new rtv descriptor:
 		descriptor_handle cpu_handle = dsv_heap->allocate_cpu();
 		return create_dsv(cpu_handle, resource);
 	}
 
-	depth_stencil_view* dx12_device::create_dsv(descriptor_handle handle, resource* resource)
+	ptr<depth_stencil_view> dx12_device::create_dsv(descriptor_handle handle, resource* resource)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
 
@@ -344,14 +350,14 @@ namespace influx::graphics
 		return new_child<dx12_depth_stencil_view, depth_stencil_view>(dx_dsv);
 	}
 
-	shader_resource_view* dx12_device::create_srv(descriptor_heap* irv_heap, resource* resource)
+	ptr<shader_resource_view> dx12_device::create_srv(descriptor_heap* irv_heap, resource* resource)
 	{
 		// allocate new srv descriptors
 		descriptor_handle cpu_handle = irv_heap->allocate_cpu();
 		return create_srv(cpu_handle, {}, resource);
 	}
 
-	shader_resource_view* dx12_device::create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
+	ptr<shader_resource_view> dx12_device::create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { (size_t)(cpu_handle) };
 		D3D12_GPU_DESCRIPTOR_HANDLE dxgpu_descriptor = { (size_t)(gpu_handle) };
@@ -369,14 +375,14 @@ namespace influx::graphics
 		return new_child<dx12_shader_resource_view, shader_resource_view>(dxcpu_descriptor, dxgpu_descriptor);
 	}
 
-	shader_resource_view* dx12_device::create_buffer_srv(descriptor_heap* srv_heap, resource* resource)
+	ptr<shader_resource_view> dx12_device::create_buffer_srv(descriptor_heap* srv_heap, resource* resource)
 	{
 		// allocate new srv descriptors
 		descriptor_handle cpu_handle = srv_heap->allocate_cpu();
 		return create_buffer_srv(cpu_handle, {}, resource);
 	}
 
-	shader_resource_view* dx12_device::create_buffer_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
+	ptr<shader_resource_view> dx12_device::create_buffer_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { (size_t)(cpu_handle) };
 		D3D12_GPU_DESCRIPTOR_HANDLE dxgpu_descriptor = { (size_t)(gpu_handle) };
@@ -396,7 +402,7 @@ namespace influx::graphics
 		return new_child<dx12_shader_resource_view, shader_resource_view>(dxcpu_descriptor, dxgpu_descriptor);
 	}
 
-	sampler_view* dx12_device::create_sampview(descriptor_heap* samp_heap, resource* resource)
+	ptr<sampler_view> dx12_device::create_sampview(descriptor_heap* samp_heap, resource* resource)
 	{
 		ID3D12DescriptorHeap* heap = samp_heap->get_native<ID3D12DescriptorHeap>();
 
@@ -407,7 +413,7 @@ namespace influx::graphics
 		return create_sampview(new_descriptor, resource);
 	}
 
-	sampler_view* dx12_device::create_sampview(descriptor_handle handle, resource* resource)
+	ptr<sampler_view> dx12_device::create_sampview(descriptor_handle handle, resource* resource)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
 
@@ -416,7 +422,7 @@ namespace influx::graphics
 		return new_child<dx12_sampler_view, sampler_view>(new_dxdescriptor);
 	}
 
-	rootsignature* dx12_device::create_rootsignature(const rootsignature_desc& desc)
+	ptr<rootsignature> dx12_device::create_rootsignature(const rootsignature_desc& desc)
 	{
 		ID3D12RootSignature* dxrootsignature = nullptr;
 
@@ -662,6 +668,11 @@ namespace influx::graphics
 		}
 
 		return m_direct_allocators;
+	}
+
+	vector<base*>::iterator dx12_device::find_child(base* ptr)
+	{
+		return std::find(m_children.begin(), m_children.end(), ptr);
 	}
 
 	ID3D12CommandAllocator* dx12_device::new_allocator(const D3D12_COMMAND_LIST_TYPE& type)

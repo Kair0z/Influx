@@ -167,7 +167,7 @@ namespace influx::imgui
 		// recreate resources if necessary
 		if (num_vertices < (uint32)draw_data->TotalVtxCount)
 		{
-			delete buffers.mp_vertexbuffer;
+			get_device()->release(buffers.mp_vertexbuffer);
 			const uint32 new_num_vertices = draw_data->TotalVtxCount + 5000u;
 
 			graphics::heap_desc heap_desc{};
@@ -179,7 +179,7 @@ namespace influx::imgui
 		}
 		if (num_indices < (uint32)draw_data->TotalIdxCount)
 		{
-			delete buffers.mp_indexbuffer;
+			get_device()->release(buffers.mp_indexbuffer);
 			const uint32 new_num_indices = draw_data->TotalIdxCount + 10000;
 
 			graphics::heap_desc heap_desc{};

@@ -15,8 +15,15 @@ namespace influx::graphics
 
 	class dx12_commandlist final : public commandlist
 	{
-	public:
+	private:
+		ID3D12CommandList* mpdx_commandlist;
+		ID3D12GraphicsCommandList* mpdx_graphics_commandlist;
+		ID3D12CommandAllocator* mpdx_allocator;
+
+	private:
 		dx12_commandlist(ID3D12GraphicsCommandList* commandlist, ID3D12CommandAllocator* allocator);
+		virtual void release_impl(device*) override;
+		friend class dx12_device;
 
 		// starts a commandlist, using the device to allocate the memory internally
 		virtual void start_impl(device*, pipeline* init_state = nullptr) override;
@@ -67,15 +74,8 @@ namespace influx::graphics
 
 		virtual void end() override;
 
-		virtual void release() override;
-
 		ID3D12CommandAllocator* obtain_allocator(dx12_device*);
 
 		void free_allocator(dx12_device*);
-
-	private:
-		ID3D12CommandList* mpdx_commandlist;
-		ID3D12GraphicsCommandList* mpdx_graphics_commandlist;
-		ID3D12CommandAllocator* mpdx_allocator;
 	};
 }

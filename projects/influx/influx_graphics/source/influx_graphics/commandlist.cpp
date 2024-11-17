@@ -9,24 +9,47 @@
 
 namespace influx::graphics
 {
+    const bool g_mute = true;
+
     void commandlist::start(device* device, pipeline* init_state)
     {
-        if (m_fence == nullptr)
-        {
-            m_fence = device->create_fence(0u);
-        }
-
         const e_state state = get_state();
         influx_assert(state == e_state::created || state == e_state::completed);
 
+        // create fence if this commandlist is just created
+        if (state == e_state::created && m_fence == nullptr)
+        {
+            const uint32 incomplete_value = (m_complete_value == 1u) ? 0u : 1u;
+            m_fence = device->create_fence(incomplete_value);
+        }
+        
+        // if we've completed previous, time to flip the value to wait for
+        if (state == e_state::completed)
+        {
+            m_complete_value = 1 - m_complete_value;
+        }
+
+        // starts allocator
         m_state = e_state::recording;
         start_impl(device, init_state);
+
+        if (!g_mute) logwar("commandlist start: {}", m_name.get().c_str());
     }
 
     void commandlist::submit(queue* queue)
     {
-        queue->submit_commandlists({ this });
-        post_submit(queue);
+        queue->submit({ this });
+        if (!g_mute) logwar("commandlist submit: {}", m_name.get().c_str());
+    }
+
+    void commandlist::wait_for_completion()
+    {
+        while (get_state() == e_state::submitted)
+        {
+            // ...
+        }
+
+        if (!g_mute) logwar("commandlist complete: {}", m_name.get().c_str());
     }
 
     bool commandlist::is_completed()
@@ -36,7 +59,7 @@ namespace influx::graphics
 
     commandlist::e_state commandlist::get_state()
     {
-        if (m_fence->query_value() == 1u)
+        if (m_fence != nullptr && m_fence->query_value() == m_complete_value)
         {
             m_state = e_state::completed;
         }
@@ -44,9 +67,20 @@ namespace influx::graphics
         return m_state;
     }
 
+    void commandlist::set_name(const debug_name& name)
+    {
+        m_name = name;
+    }
+
+    const debug_name& commandlist::get_name() const
+    {
+        return m_name;
+    }
+
     void commandlist::post_submit(queue* queue)
     {
         m_state = e_state::submitted;
-        queue->queue_signal(m_fence, 1u);
+        queue->queue_signal(m_fence, m_complete_value);
+        if (!g_mute) logwar("commandlist signal: {}", m_name.get().c_str());
     }
 }

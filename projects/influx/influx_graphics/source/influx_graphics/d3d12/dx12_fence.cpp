@@ -29,7 +29,6 @@ namespace influx::graphics
 
 	void dx12_fence::wait_for_value(uint64 value, wait_handle& handle)
 	{
-		logwar("wait_for: {} start", value);
 		while (query_value() != value)
 		{
 			::HANDLE event_handle = ::CreateEventEx(NULL, 0, 0, EVENT_ALL_ACCESS);
@@ -41,8 +40,6 @@ namespace influx::graphics
 			::WaitForSingleObject(event_handle, static_cast<::DWORD>(handle.get_ms_max()));
 			::CloseHandle(event_handle);
 		}
-
-		logwar("wait_for: {} finished", value);
 	}
 
 	uint64 dx12_fence::query_value() const
@@ -50,7 +47,7 @@ namespace influx::graphics
 		return mpdx_fence->GetCompletedValue();
 	}
 
-	void dx12_fence::release()
+	void dx12_fence::release_impl(device*)
 	{
 		mpdx_fence->Release();
 	}

@@ -36,6 +36,11 @@ namespace influx::graphics
 		return index;
 	}
 
+	void dx12_swapchain::release_impl(device*)
+	{
+		mpdxgi_swapchain4->Release();
+	}
+
 	vector<resource*> dx12_swapchain::create_resources(device* device)
 	{
 		const auto& dimensions = get_dimensions();
@@ -72,17 +77,11 @@ namespace influx::graphics
 		influx_assert(res == S_OK);
 	}
 
-	void dx12_swapchain::destroy_resources()
+	void dx12_swapchain::destroy_resources(device* device)
 	{
 		for (auto& resource : get_resources())
 		{
-			resource->release();
-			resource = nullptr;
+			resource->release(device);
 		}
-	}
-
-	void dx12_swapchain::release()
-	{
-		mpdxgi_swapchain4->Release();
 	}
 }

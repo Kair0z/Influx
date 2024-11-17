@@ -139,7 +139,7 @@ namespace influx::engine
 			// record imgui
 			m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
 			{
-				m_editorman->on_imgui(ctx);
+				m_editorman->update_imgui(ctx);
 			});
 
 			// render the scene

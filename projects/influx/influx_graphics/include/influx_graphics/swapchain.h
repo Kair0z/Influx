@@ -7,6 +7,7 @@
 // influx::core
 #include "core/math/vector.h"
 #include "core/container/vector.h"
+#include "core/pointer.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -95,6 +96,6 @@ namespace influx::graphics
 
 		virtual vector<resource*> create_resources(device*) = 0;
 		virtual void resize_impl(const math::vectoru2& old_dim, const math::vectoru2& new_dim) = 0;
-		virtual void destroy_resources() = 0;
+		virtual void destroy_resources(device*) = 0;
 	};
 }

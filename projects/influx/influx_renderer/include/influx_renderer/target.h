@@ -41,6 +41,10 @@ namespace influx::renderer
 		INFLUX_RENDER_API bool has_depth_stencil() const;
 		INFLUX_RENDER_API bool is_depth_only() const;
 
+		// re-allocates graphics resource, and recreates the rtv
+		INFLUX_RENDER_API void resize(const math::vectoru2& new_dimensions);
+		INFLUX_RENDER_API void resize(const target& target);
+
 		void set_name(const debug_name& name);
 		const debug_name& get_name() const;
 
@@ -56,9 +60,6 @@ namespace influx::renderer
 			uint8 swapchain_index);
 
 		~target();
-
-		// re-allocates graphics resource, and recreates the rtv
-		void resize(const math::vectoru2& new_dimensions);
 
 		// does not allocate a new descriptor handle, but recreates the view
 		void recreate_rtv();

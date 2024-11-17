@@ -10,8 +10,12 @@
 // influx::engine
 #include "file/engine_files.h"
 
+// imgui
+struct ImGuiContext;
+
 namespace influx::engine
 {
+#pragma region helpers
 	class compound_keybind_tracker final
 	{
 		enum class e_keystate : uint8
@@ -128,13 +132,14 @@ namespace influx::engine
 			return m_state;
 		}
 	};
+#pragma endregion
 
 	class editor_manager final
 	{
 	public:
 		editor_manager(editor_module* editor);
 
-		void on_imgui(ImGuiContext& ctx);
+		void update_imgui(ImGuiContext& ctx);
 
 		void on_keydown(input::e_key);
 		void on_keyup(input::e_key);
@@ -150,7 +155,6 @@ namespace influx::engine
 	private:
 		editor_module* m_editor = nullptr;
 		void initialize_inputs();
-		void process_inputs();
 
 		compound_keybind_tracker m_keybinds;
 		cooldown_toggle m_content_toggle = 0.5f;
@@ -158,5 +162,9 @@ namespace influx::engine
 		cooldown_toggle m_editor_toggle = 0.5f;
 
 		file_game m_current_gamefile;
+
+		void update_inputs();
+		void update_context();
+		void update_main_editor();
 	};
 }

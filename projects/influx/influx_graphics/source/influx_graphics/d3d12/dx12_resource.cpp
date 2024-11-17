@@ -22,7 +22,7 @@ namespace influx::graphics
 		mpdx_resource->SetName(to_wstring(name.get()).c_str());
 	}
 
-	void dx12_resource::release()
+	void dx12_resource::release_impl(device*)
 	{
 		mpdx_resource->Release();
 	}

@@ -61,9 +61,26 @@ namespace influx::graphics
 		}
 	}
 
+	void device::release(base* child)
+	{
+		// release the object
+		if (!child->is_released())
+		{
+			child->release(this);
+		}
+
+		// destroy the wrapper
+		delete child;
+		child = nullptr;
+	}
+
 	bool device::is_initialized() const
 	{
 		return m_is_initialized;
+	}
+
+	device::device(const device_desc& desc)
+	{
 	}
 
 	void device::set_initialized(bool initialized)

@@ -11,7 +11,7 @@ namespace influx::graphics
 		mp_native = mpdx_pipeline = dxpipeline;
 	}
 
-	void dx12_pipeline::release()
+	void dx12_pipeline::release_impl(device*)
 	{
 		mpdx_pipeline->Release();
 	}

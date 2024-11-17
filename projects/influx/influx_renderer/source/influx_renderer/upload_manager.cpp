@@ -94,23 +94,16 @@ namespace influx::renderer
 				graphics::e_resource_state::shader_resource);
 		}
 		mp_commandlist->end();
-
-		queue->submit({ mp_commandlist });
-		queue->queue_signal(mp_fence, 1u);
-		
-		// wait for the signal
-		wait_handle handle{};
-		mp_fence->wait_for_value(1u, handle);
-
-		queue->queue_signal(mp_fence, 0u);
+		mp_commandlist->submit(queue);
+		mp_commandlist->wait_for_completion();
 	}
 
 	upload_manager::~upload_manager()
 	{
-		delete mp_texture_upload_resource;
-		delete mp_buffer_upload_resource;
-		delete mp_fence;
-		delete mp_commandlist;
+		mp_texture_upload_resource->release(mp_device);
+		mp_buffer_upload_resource->release(mp_device);
+		mp_fence->release(mp_device);
+		mp_commandlist->release(mp_device);
 	}
 
 	void upload_manager::map_buffer(const vector<byte>& data)

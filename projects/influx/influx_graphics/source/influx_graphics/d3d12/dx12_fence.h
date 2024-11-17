@@ -8,8 +8,13 @@ namespace influx::graphics
 {
 	class dx12_fence final : public fence
 	{
-	public:
+	private:
+		ID3D12Fence* mpdx_fence;
+
+	private:
 		dx12_fence(ID3D12Fence* fence);
+		virtual void release_impl(device*) override;
+		friend class dx12_device;
 
 		// queues a signal command to the command queue
 		virtual void queue_signal(uint64 value, queue* queue) override;
@@ -20,10 +25,5 @@ namespace influx::graphics
 		virtual void wait_for_value(uint64 value, wait_handle& handle) override;
 
 		virtual uint64 query_value() const override;
-
-		virtual void release() override;
-
-	private:
-		ID3D12Fence* mpdx_fence;
 	};
 }

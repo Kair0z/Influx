@@ -259,8 +259,9 @@ namespace influx::engine
 			return;
 		}
 
-		// updates the window target
+		// update the target dimensions to match the window
 		mp_window_target = influx::renderer::get_window_target(*window);
+		mp_scene_target->resize(*mp_window_target);
 
 		// scene render
 		if (scene != nullptr)

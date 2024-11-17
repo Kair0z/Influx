@@ -47,23 +47,22 @@ namespace influx::graphics
 
 	class queue : public base
 	{
+		queue_desc m_desc{};
+
 	public:
-		void submit(const vector<commandlist*>& commandlists);
+		INFLUX_GFX_API void submit(const vector<commandlist*>& commandlists);
 
 		// queues a signal to the target fence
-		virtual void queue_signal(fence* fence, uint64 value) = 0;
-
-		virtual ~queue() = default;
+		INFLUX_GFX_API virtual void queue_signal(fence* fence, uint64 value) = 0;
 
 	protected:
-		friend class commandlist;
 		queue(const queue_desc& desc);
+		virtual ~queue() = default;
 		void post_submit(const vector<commandlist*>& commandlists);
+		friend class commandlist;
+		friend class device;
 
-	private:
+		// impl
 		virtual void submit_commandlists(const vector<commandlist*>& commandlists) = 0;
-
-	private:
-		queue_desc m_desc{};
 	};
 }

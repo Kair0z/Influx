@@ -41,7 +41,7 @@ namespace influx::graphics
 	void swapchain::resize(device* device, const math::vectoru2& new_dimensions)
 	{
 		// destroy previous
-		destroy_resources();
+		destroy_resources(device);
 
 		// resize
 		const math::vectoru2 old_dimensions = m_current_dimensions;

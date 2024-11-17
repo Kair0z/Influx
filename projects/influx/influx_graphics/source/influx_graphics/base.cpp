@@ -5,6 +5,9 @@ namespace influx::graphics
 {
 	base::~base()
 	{
-		
+		if (!is_released())
+		{
+			
+		}
 	}
 }

@@ -64,14 +64,21 @@ end
 
 -- helpers
 function set_influx_app_dependencies(...)
+
+    local copy_strings = ...
+    if g_compile_mono_engine then
+        -- mono engine only makes 2 dependencies
+        copy_strings = {"influx_core", "influx_engine"}
+    end
+    
     -- add include dependency includes
-    set_influx_includes(...)
+    set_influx_includes(copy_strings)
 
     -- add static lib links
-    set_influx_links(...)
+    set_influx_links(copy_strings)
 
     -- make a string listing all dependencies (except core)
-    local copylist = table.concat(..., " ")
+    local copylist = table.concat(copy_strings, " ")
     copylist = string.gsub(copylist, "influx_core", "")
 
     -- copy dependencies script setup

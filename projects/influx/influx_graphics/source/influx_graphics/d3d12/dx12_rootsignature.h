@@ -8,12 +8,10 @@ namespace influx::graphics
 {
 	class dx12_rootsignature final : public rootsignature
 	{
-	public:
-		dx12_rootsignature(ID3D12RootSignature* rootsignature, const rootsignature_desc& desc, const umap<string, uint32>& name_to_paramidx);
-
-	private:
 		ID3D12RootSignature* mpdx_rootsignature;
-
-		virtual void release() override;
+	private:
+		dx12_rootsignature(ID3D12RootSignature* rootsignature, const rootsignature_desc& desc, const umap<string, uint32>& name_to_paramidx);
+		virtual void release_impl(device*) override;
+		friend class dx12_device;
 	};
 }

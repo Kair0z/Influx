@@ -269,7 +269,7 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->Close();
 	}
 
-	void dx12_commandlist::release()
+	void dx12_commandlist::release_impl(device*)
 	{
 		mpdx_graphics_commandlist->Release();
 	}

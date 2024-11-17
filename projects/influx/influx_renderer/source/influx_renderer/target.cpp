@@ -127,11 +127,21 @@ namespace influx::renderer
 		return !m_args.m_has_colour && m_args.m_has_depth_stencil;
 	}
 
+	void target::resize(const target& target)
+	{
+		const math::vectoru2 target_dim = { target.get_width(), target.get_height() };
+		resize(target_dim);
+	}
+
 	void target::resize(const math::vectoru2& dimensions)
 	{
 		if (dimensions != m_current_dimensions)
 		{
-			delete mp_resource;
+			// wait for gpu to stop rendering
+			renderer_backend::get_instance().wait_gpu_finished();
+
+			mp_resource->release(mp_device);
+			mp_device->release(mp_resource);
 
 			// update size:
 			m_current_dimensions = dimensions;
@@ -142,7 +152,7 @@ namespace influx::renderer
 				graphics::tex2D_desc desc{};
 				desc.m_arraysize = 1u;
 				desc.m_dimensions = { dimensions.x, dimensions.y };
-				desc.m_flags;
+				desc.m_flags = graphics::e_resource_flags::render_target;
 				desc.m_format = graphics::e_format::rgba8;
 				desc.m_num_mips = 1u;
 				desc.m_sample_count = 1u;
@@ -182,7 +192,7 @@ namespace influx::renderer
 		if (mp_dsv)
 		{
 			delete mp_dsv;
-			mp_dsv = mp_device->create_dsv(m_dsv_handle, mp_resource);
+			mp_dsv = mp_device->create_dsv(m_dsv_handle, mp_depth_resource);
 		}
 	}
 

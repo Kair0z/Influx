@@ -177,6 +177,7 @@ namespace influx::renderer
             graphics::depth_stencil_view* target_dsv = target.get_dsv();
 
             mp_commandlist->start(mp_device, nullptr);
+            mp_commandlist->set_name("draw_scene");
             {
                 const uint32 target_width = target.get_width();
                 const uint32 target_height = target.get_height();
@@ -199,16 +200,10 @@ namespace influx::renderer
             mp_commandlist->end();
         }
 
-        uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::scene);
         {
             influx_scope("renderer_backend::draw_scene::submit");
-            mp_graphics_queue->submit({ mp_commandlist });
-            mp_graphics_queue->queue_signal(mp_fence, signal_value);
-        }
-
-        {
-            influx_scope("renderer_backend::draw_scene::wait");
-            mp_fence->wait_for_value(signal_value);
+            mp_commandlist->submit(mp_graphics_queue);
+            mp_commandlist->wait_for_completion();
         }
     }
 
@@ -217,6 +212,7 @@ namespace influx::renderer
         influx_scope("renderer_backend::draw_imgui");
         {
             influx_scope("renderer_backend::draw_imgui::record");
+            mp_commandlist->set_name("draw_imgui");
             mp_commandlist->start(mp_device, nullptr);
 
             graphics::render_target_view* target_rtv = target.get_rtv();
@@ -229,17 +225,10 @@ namespace influx::renderer
             mp_commandlist->end();
         }
 
-        uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::imgui);
         {
             influx_scope("renderer_backend::draw_imgui::submit");
-            mp_graphics_queue->submit({ mp_commandlist });
-
-            // queue a signal to the fence that the gpu work [frame_count] is done
-            mp_graphics_queue->queue_signal(mp_fence, signal_value);
-
-            // wait for signal
-            wait_handle handle{};
-            mp_fence->wait_for_value(signal_value, handle);
+            mp_commandlist->submit(mp_graphics_queue);
+            mp_commandlist->wait_for_completion();
         }
     }
 
@@ -258,17 +247,10 @@ namespace influx::renderer
             mp_commandlist->end();
         }
 
-        uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::scene2D);
         {
             influx_scope("renderer_backend::draw2D::submit");
-            mp_graphics_queue->submit({ mp_commandlist });
-
-            // queue a signal to the fence that the gpu work [frame_count] is done
-            mp_graphics_queue->queue_signal(mp_fence, signal_value);
-
-            // wait for signal
-            wait_handle handle{};
-            mp_fence->wait_for_value(signal_value, handle);
+            mp_commandlist->submit(mp_graphics_queue);
+            mp_commandlist->wait_for_completion();
         }
     }
 
@@ -277,6 +259,7 @@ namespace influx::renderer
         graphics::resource* source_resource = source.get_resource();
         graphics::resource* dest_resource = dest.get_resource();
 
+        mp_commandlist->set_name("copy_target");
         mp_commandlist->start(mp_device);
 
         source_resource->transition(mp_commandlist, graphics::e_resource_state::copy_source);
@@ -288,14 +271,8 @@ namespace influx::renderer
         dest_resource->revert_transition(mp_commandlist);
 
         mp_commandlist->end();
-        mp_graphics_queue->submit({ mp_commandlist });
-
-        // signal & wait for gpu to finish copying
-        mp_graphics_queue->queue_signal(mp_copyfence, 1u);
-        {
-            influx_scope("renderer_backend::copy_target::wait");
-            mp_copyfence->wait_for_value(1u);
-        }
+        mp_commandlist->submit(mp_graphics_queue);
+        mp_commandlist->wait_for_completion();
     }
 
     void renderer_backend::present_swapchain(const present_args& args)
@@ -304,6 +281,7 @@ namespace influx::renderer
         if (mp_swapchain)
         {
             // transition backbuffer into presenting state
+            mp_commandlist->set_name("present");
             mp_commandlist->start(mp_device);
             graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
             backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
@@ -650,6 +628,11 @@ namespace influx::renderer
     void present_swapchain(const present_args& args)
     {
         renderer_backend::get_instance().present_swapchain(args);
+    }
+
+    void wait_gpu_finished()
+    {
+        renderer_backend::get_instance().wait_gpu_finished();
     }
 
     void draw_imgui(ImDrawData* draw_data, const target& target)
