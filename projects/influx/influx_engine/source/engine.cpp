@@ -129,7 +129,6 @@ namespace influx::engine
 			frame_time.tick();
 			m_fps = 1.0f / frame_time.m_delta_seconds;
 
-			// poll the platform window
 			poll_platform_events();
 			if (m_is_quit_requested) break;
 
