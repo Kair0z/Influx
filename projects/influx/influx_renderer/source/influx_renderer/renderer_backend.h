@@ -34,8 +34,7 @@ namespace influx::platform
 
 namespace influx::renderer
 {
-	class renderer_backend final
-		: public singleton<renderer_backend>
+	class renderer_backend final : public singleton<renderer_backend>
 	{
 		// konstants
 		constexpr static uint32 k_max_instances = 1024u;
@@ -48,13 +47,14 @@ namespace influx::renderer
 		void cleanup();
 
 		target* create_target(const target_create_args& args);
-		target* get_window_target(const platform::window& window);
+		target* acquire_window_target(const platform::window& window);
 		void acquire_swapchain_frame();
 
 		void draw_scene(const scene& scene, const target& target);
 		void draw_imgui(ImDrawData* draw_data, const target& target);
 		void draw_2D(const scene2D& scene, const target& target);
 		void copy_target(const target& source, const target& dest);
+		void clear_target(const target&, const clear_args&);
 		void present_swapchain(const present_args& args);
 
 		static descriptor_manager* get_descriptor_manager();

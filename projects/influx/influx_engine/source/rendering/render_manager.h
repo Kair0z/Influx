@@ -29,10 +29,7 @@ namespace influx::engine
 
 		void record_imgui_frame(const function<void(ImGuiContext&)>& func);
 
-		// build render::scene, imgui data & load resources
-		void prerender();
-
-		void render(influx::renderer::scene const* scene);
+		void render(const renderer::scene&);
 
 		void on_window_resize(const math::vectoru2& new_dimensions);
 

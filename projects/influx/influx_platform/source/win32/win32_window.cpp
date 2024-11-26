@@ -398,6 +398,7 @@ namespace influx::platform
 			type_value > (int)type::_mouse_begin &&
 			type_value < (int)type::_mouse_end;
 	}
+
 	bool window_event::is_key_event() const
 	{
 		int type_value = (int)m_type;
@@ -405,6 +406,7 @@ namespace influx::platform
 			type_value > (int)type::_key_begin &&
 			type_value < (int)type::_key_end;
 	}
+
 	bool window_event::is_wheel_event() const
 	{
 		return

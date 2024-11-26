@@ -6,6 +6,7 @@ new_influx_app("influx_editor")
         "influx_engine",
 
         -- non-mono-engine dependencies
+        "influx_platform",
         "influx_input",
         "influx_async",
         "influx_import",

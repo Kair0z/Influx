@@ -38,9 +38,10 @@ namespace influx::renderer
 	struct scene final
 	{
 		scene() = default;
-		scene(const vector<mesh_instance>& meshes, const camera& camera)
-			: m_meshes{ meshes },
-			m_camera{ camera } {}
+		scene(const vector<mesh_instance>& meshes, const camera& camera);
+
+		uint32	get_num_meshes() const;
+		bool	has_meshes() const;
 
 		vector<mesh_instance> m_meshes = {};
 		camera m_camera = {};
@@ -62,4 +63,23 @@ namespace influx::renderer
 	{
 		vector<sprite2D> m_sprites = {};
 	};
+}
+
+namespace influx::renderer
+{
+	inline scene::scene(const vector<mesh_instance>& meshes, const camera& camera)
+		: m_meshes{ meshes }
+		, m_camera{ camera }
+	{
+	}
+
+	inline uint32 scene::get_num_meshes() const
+	{
+		return static_cast<uint32>(m_meshes.size());
+	}
+
+	inline bool scene::has_meshes() const
+	{
+		return get_num_meshes() > 0u;
+	}
 }

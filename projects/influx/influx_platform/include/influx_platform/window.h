@@ -44,7 +44,7 @@ namespace influx::platform
 			activate,
 			quit,
 			count
-		} m_type;
+		};
 
 		enum class mouse_button : uint8
 		{
@@ -93,6 +93,7 @@ namespace influx::platform
 		uint64 m_wParam;
 		uint64 m_lParam;
 		window* m_window;
+		type m_type;
 	};
 
 	struct window_desc final

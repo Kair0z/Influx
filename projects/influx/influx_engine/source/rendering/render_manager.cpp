@@ -35,7 +35,7 @@ namespace influx::engine
 
 		// window render target:
 		platform::window const* window = engine->get_window();
-		mp_window_target = influx::renderer::get_window_target(*window);
+		mp_window_target = renderer::acquire_window_target(*window);
 
 		// scene render target:
 		influx::renderer::target_create_args target_args{};
@@ -239,19 +239,8 @@ namespace influx::engine
 		mp_imgui_drawdata = ImGui::GetDrawData();
 	}
 
-	void render_manager::prerender()
+	void render_manager::render(const renderer::scene& scene)
 	{
-
-	}
-
-	void render_manager::render(influx::renderer::scene const* scene)
-	{
-		if (mp_imgui_drawdata == nullptr && scene == nullptr)
-		{
-			logonce(e_log_category::warning, "render_manager::render: nothing to render!");
-			return;
-		}
-
 		platform::window const* window = get_engine()->get_window();
 		if (window == nullptr)
 		{
@@ -259,29 +248,26 @@ namespace influx::engine
 			return;
 		}
 
-		// update the target dimensions to match the window
-		mp_window_target = influx::renderer::get_window_target(*window);
+		mp_window_target = renderer::acquire_window_target(*window);
 		mp_scene_target->resize(*mp_window_target);
 
-		// scene render
-		if (scene != nullptr)
+		// 1. clear
+		renderer::clear_args clear{ {0.2f, 0.2f, 0.2f, 0.2f } };
+		renderer::clear_target(*mp_scene_target, clear);
+		
+		// 2. scene render
+		if (scene.has_meshes())
 		{
-			influx::renderer::draw_scene(*scene, *mp_scene_target);
+			renderer::draw_scene(scene, *mp_scene_target);
 		}
 
-		// 2D render
-		if (false)
-		{
-			// todo ...
-		}
-
-		// imgui render
+		// 3. imgui render
 		if (mp_imgui_drawdata != nullptr)
 		{
-			influx::renderer::draw_imgui(mp_imgui_drawdata, *mp_scene_target);
+			renderer::draw_imgui(mp_imgui_drawdata, *mp_scene_target);
 		}
 		
-		// copy scene into window
+		// 4. copy scene-target into window
 		influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
 
 		// present to window

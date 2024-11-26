@@ -119,7 +119,7 @@ namespace influx::renderer
         return new target(mp_device, args);
     }
 
-    target* renderer_backend::get_window_target(const platform::window& window)
+    target* renderer_backend::acquire_window_target(const platform::window& window)
     {
         // create the swapchain for the first time
         if (mp_swapchain == nullptr)
@@ -168,13 +168,13 @@ namespace influx::renderer
 
     void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
+        graphics::resource* target_resource = target.get_resource();
+        graphics::render_target_view* target_rtv = target.get_rtv();
+        graphics::depth_stencil_view* target_dsv = target.get_dsv();
+
         influx_scope("renderer_backend::draw_scene");
         {
             influx_scope("renderer_backend::draw_scene::record");
-
-            graphics::resource* target_resource = target.get_resource();
-            graphics::render_target_view* target_rtv = target.get_rtv();
-            graphics::depth_stencil_view* target_dsv = target.get_dsv();
 
             mp_commandlist->start(mp_device, nullptr);
             mp_commandlist->set_name("draw_scene");
@@ -182,18 +182,14 @@ namespace influx::renderer
                 const uint32 target_width = target.get_width();
                 const uint32 target_height = target.get_height();
 
-                mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f});
-                mp_commandlist->set(graphics::rect{0u, 0u, target_width, target_height});
-
                 target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
-                
-                // clear targets
-                mp_commandlist->set(target_rtv, target_dsv);
-                mp_commandlist->clear_rtv(target_rtv, { 0.2, 0.2, 0.2, 1 });
-                mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
-               
+
                 // bind gpu descriptor heaps
                 get_descriptor_manager()->start_commandlist(mp_commandlist);
+
+                mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
+                mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
+                mp_commandlist->set(target_rtv, target_dsv);
 
                 mp_scene_renderer->render(mp_commandlist, scene, target);
             }
@@ -273,6 +269,46 @@ namespace influx::renderer
         mp_commandlist->end();
         mp_commandlist->submit(mp_graphics_queue);
         mp_commandlist->wait_for_completion();
+    }
+
+    void renderer_backend::clear_target(const target& target, const clear_args& args)
+    {
+        influx_scope("renderer_backend::clear_target");
+
+        graphics::resource* target_resource = target.get_resource();
+        graphics::render_target_view* target_rtv = target.get_rtv();
+        graphics::depth_stencil_view* target_dsv = target.get_dsv();
+
+        const uint32 target_width = target.get_width();
+        const uint32 target_height = target.get_height();
+
+        {
+            influx_scope("renderer_backend::clear_target::record");
+            mp_commandlist->start(mp_device, nullptr);
+            mp_commandlist->set_name("clear_target");
+
+            target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
+
+            if (target_rtv != nullptr)
+            {
+                // clear targets
+                mp_commandlist->set(target_rtv, target_dsv);
+                mp_commandlist->clear_rtv(target_rtv, args.m_colour);
+            }
+
+            if (target_dsv != nullptr)
+            {
+                mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
+            }
+
+            mp_commandlist->end();
+        }
+
+        {
+            influx_scope("renderer_backend::clear_target::submit");
+            mp_commandlist->submit(mp_graphics_queue);
+            mp_commandlist->wait_for_completion();
+        }
     }
 
     void renderer_backend::present_swapchain(const present_args& args)
@@ -605,9 +641,9 @@ namespace influx::renderer
         return renderer_backend::get_instance().create_target(args);
     }
 
-    target* get_window_target(const platform::window& window)
+    target* acquire_window_target(const platform::window& window)
     {
-        return renderer_backend::get_instance().get_window_target(window);
+        return renderer_backend::get_instance().acquire_window_target(window);
     }
 
     void acquire_swapchain_frame()
@@ -623,6 +659,11 @@ namespace influx::renderer
     void copy_target(const target& source, const target& dest)
     {
         renderer_backend::get_instance().copy_target(source, dest);
+    }
+
+    void clear_target(const target& target, const clear_args& args)
+    {
+        renderer_backend::get_instance().clear_target(target, args);
     }
 
     void present_swapchain(const present_args& args)

@@ -106,7 +106,7 @@ namespace influx::engine
 			m_world->build_renderscene(scene);
 
 			// render
-			m_renderman->render(&scene);
+			m_renderman->render(scene);
 		}
 	}
 
@@ -143,7 +143,7 @@ namespace influx::engine
 
 			// render the scene
 			renderer::scene scene{};
-			m_renderman->render(&scene);
+			m_renderman->render(scene);
 		}
 
 		delete m_world;

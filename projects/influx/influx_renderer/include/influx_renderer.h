@@ -56,10 +56,14 @@ namespace influx::renderer
 		bool m_vsync = false;
 	};
 	
-	// arguments passed to main render call
+	struct clear_args final
+	{
+		math::vectorf4 m_colour = {};
+	};
+
 	struct render_args final
 	{
-		math::vectorf4 m_clear_colour = {};
+
 	};
 
 	// initialize renderer first!
@@ -69,11 +73,10 @@ namespace influx::renderer
 
 	INFLUX_RENDER_API void cleanup();
 
-	// targets
 	INFLUX_RENDER_API target* create_target(const target_create_args& args);
 
 	// creates / switches to the appropriate target representation of our window backbuffer
-	INFLUX_RENDER_API target* get_window_target(const platform::window& window);
+	INFLUX_RENDER_API target* acquire_window_target(const platform::window& window);
 
 
 	// 1. acquire the frame to render
@@ -90,6 +93,8 @@ namespace influx::renderer
 
 	// 3. (optional) copy intermediate data
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
+
+	INFLUX_RENDER_API void clear_target(const target&, const clear_args&);
 
 	// 4. present to window swapchain
 	INFLUX_RENDER_API void present_swapchain(const present_args& args);
