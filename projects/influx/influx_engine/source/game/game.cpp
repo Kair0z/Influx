@@ -7,7 +7,7 @@ namespace influx::engine
 		app
 			.set_window_dim({ 640u, 480u });
 		game
-			.set_gamefile("")
+			.set_gameproject_path("")
 			.set_name("none");
 	}
 
@@ -15,8 +15,12 @@ namespace influx::engine
 	{
 	}
 
-	void game_module::on_level_loaded()
+	void game_module::update(const ctx_update& ctx)
 	{
+		on_update(ctx);
+
+		// update layer hierarchy
+		m_root_layer.on_update();
 	}
 
 	void game_module::on_update(const ctx_update& ctx)

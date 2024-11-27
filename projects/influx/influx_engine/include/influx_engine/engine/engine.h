@@ -11,18 +11,21 @@
 #include "core/string.h"
 #include "core/math/vector.h"
 #include "core/file.h"
+#include "core/result.h"
 
 // influx::engine
 #include "influx_engine/game/game.h"
 #include "influx_engine/editor/editor.h"
 #include "influx_engine/engine/config.h"
 #include "influx_engine/engine/common.h"
+#include "influx_engine/engine/component.h"
+#include "influx_engine/engine/gameobject.h"
+#include "influx_engine/engine/layer.h"
 
 // ImGui
 struct ImGuiContext;
 #pragma endregion
 
-// modules
 namespace influx::engine
 {
 	class INFLUX_ENGINE_API base_module
@@ -37,6 +40,12 @@ namespace influx::engine
 	class INFLUX_ENGINE_API game_module : public base_module
 	{
 	public:
+		virtual ~game_module() = default;
+
+		template <typename _layer>
+		_layer* create_layer();
+
+		// inheritable interface
 		struct ctx_update final
 		{
 			frame_time m_frametime;
@@ -47,16 +56,17 @@ namespace influx::engine
 
 		virtual void on_config(app_config&, game_config&);
 		virtual void on_start();
-		virtual void on_level_loaded();
 		virtual void on_update(const ctx_update& ctx);
 		virtual void on_cleanup();
 
 		const game_config& get_config() const;
 
-		virtual ~game_module() = default;
+		// don't touch this
+		void update(const ctx_update&);
 
 	private:
 		game_config m_config;
+		layer m_root_layer{};
 	};
 
 	class INFLUX_ENGINE_API editor_module : public base_module
@@ -68,6 +78,16 @@ namespace influx::engine
 
 		virtual ~editor_module() = default;
 	};
+
+#pragma region impl
+	template<typename _layer>
+	inline _layer* game_module::create_layer()
+	{
+		_layer* new_layer = new _layer();
+		m_root_layer.add_child(new_layer);
+		return new_layer;
+	}
+#pragma endregion
 }
 
 namespace influx::engine::detail

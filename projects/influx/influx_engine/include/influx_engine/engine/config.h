@@ -25,10 +25,10 @@ namespace influx::engine
 	struct game_config final
 	{
 		using self = game_config;
-		INFLUX_ENGINE_API self& set_gamefile(const string& file);
+		INFLUX_ENGINE_API self& set_gameproject_path(const string&);
 		INFLUX_ENGINE_API self& set_name(const string& name);
 
-		string m_gamefile_path;
+		string m_gameproject_path;
 		string m_gamename;
 	};
 

@@ -13,6 +13,7 @@ public:
 	{
 		editor_module::on_imgui(ctx);
 
+#if 0
 		ImGui::SetCurrentContext(&ctx);
 
 		if (ImGui::Begin("custom editor"))
@@ -20,6 +21,7 @@ public:
 			
 		}
 		ImGui::End();
+#endif
 	}
 };
 influx_engine_editor(editor);

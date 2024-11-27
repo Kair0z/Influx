@@ -15,9 +15,9 @@ namespace influx::engine
 	}
 
 	// game config
-	game_config::self& game_config::set_gamefile(const string& file)
+	game_config::self& game_config::set_gameproject_path(const string& file)
 	{
-		m_gamefile_path = file;
+		m_gameproject_path = file;
 		return *this;
 	}
 
