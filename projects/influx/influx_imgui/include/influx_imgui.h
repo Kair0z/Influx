@@ -6,7 +6,11 @@
 	#define INFLUX_IMGUI_API __declspec(dllimport)
 #endif
 
-// influx::graphics dependency 
+// influx::imgui
+#include "influx_imgui/imgui_translation.h"
+#include "influx_imgui/imgui_widgets.h"
+
+// influx::graphics
 #include "influx_graphics.h"
 
 // imgui

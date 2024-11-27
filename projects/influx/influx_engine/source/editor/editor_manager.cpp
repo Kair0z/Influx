@@ -15,30 +15,12 @@
 // influx::platform
 #include "influx_platform/window.h"
 
+// influx::imgui
+#include "influx_imgui/imgui_translation.h"
+#include "influx_imgui/imgui_widgets.h"
+
 // imgui
 #include "imgui/imgui.h"
-
-namespace influx::imgui
-{
-	struct scoped_style_var
-	{
-	public:
-		explicit scoped_style_var(ImGuiStyleVar style, const float& value)
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, value);
-		}
-
-		explicit scoped_style_var(ImGuiStyleVar style, const ImVec2& value)
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, value);
-		}
-
-		~scoped_style_var()
-		{
-			ImGui::PopStyleVar();
-		}
-	};
-}
 
 namespace influx::engine
 {
@@ -112,15 +94,20 @@ namespace influx::engine
 
 	editor_manager::editor_manager(editor_module* editor)
 		: m_editor{ editor }
+		, m_popup_radial{}
 	{
+		// defaults
 		m_editor_toggle.force_set(true);
-
-		set_target_game(*get_engine(), "influx_game");
+		m_engine_toggle.force_set(true);
+		m_content_toggle.force_set(false);
 
 		initialize_inputs();
+
+		// temp
+		set_target_game(*get_engine(), "influx_game");
 	}
 
-	void editor_manager::update_imgui(ImGuiContext& ctx)
+	result editor_manager::update_imgui(ImGuiContext& ctx)
 	{
 		update_context();
 		update_inputs();
@@ -128,9 +115,11 @@ namespace influx::engine
 
 		// user-module after main editor
 		m_editor->on_imgui(ctx);
+
+		return {};
 	}
 
-	void editor_manager::update_inputs()
+	result editor_manager::update_inputs()
 	{
 		// ctrl + space: engine + content
 		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::space))
@@ -143,9 +132,11 @@ namespace influx::engine
 		{
 			m_editor_toggle = !m_editor_toggle;
 		}
+
+		return {};
 	}
 
-	void editor_manager::update_context()
+	result editor_manager::update_context()
 	{
 		engine* engine = get_engine();
 		influx_assert(engine);
@@ -155,9 +146,11 @@ namespace influx::engine
 
 		const math::vectoru2& window_dimensions = window->get_dimensions(platform::window::e_space::client);
 		ImGui::GetIO().DisplaySize = { (float)window_dimensions.x, (float)window_dimensions.y };
+
+		return {};
 	}
 
-	void editor_manager::update_main_editor()
+	result editor_manager::update_main_editor()
 	{
 		engine* engine = get_engine();
 		influx_assert(engine);
@@ -170,9 +163,10 @@ namespace influx::engine
 
 		if (!m_editor_toggle)
 		{
-			return;
+			return {};
 		}
 
+		// "main menu"
 		if (ImGui::BeginMainMenuBar())
 		{
 			if (ImGui::BeginMenu("file"))
@@ -221,6 +215,7 @@ namespace influx::engine
 			ImGui::EndMainMenuBar();
 		}
 
+		// "influx engine"
 		if (m_engine_toggle)
 		{
 			if (ImGui::Begin("influx engine"))
@@ -231,30 +226,57 @@ namespace influx::engine
 			ImGui::End();
 		}
 
+		// "game:content"
 		if (m_content_toggle)
 		{
 			if (ImGui::Begin(has_game() ? (get_game_name() + ":content").c_str() : "content"))
 			{
+				// "scene:filepath"
 				for (const auto& pair : content->get_scenes())
-					ImGui::Text("scene:%s", pair.first.c_str());
+					if (pair.second.is_loaded()) 
+						ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 				ImGui::Text("--");
+				// "texture:filepath"
 				for (const auto& pair : content->get_images())
-					ImGui::Text("texture:%s", pair.first.c_str());
+					if (pair.second.is_loaded())
+						ImGui::Text("texture:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 				ImGui::Text("--");
+				// "shader:filepath"
 				for (const auto& pair : content->get_shaders())
-					ImGui::Text("shader:%s", pair.first.c_str());
+					if (pair.second.is_loaded())
+						ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 				ImGui::Text("--");
 			}
 			ImGui::End();
 		}
 
+		// radial menu
+		update_radial_menu();
+
+		return {};
 	}
 
-	void editor_manager::set_target_game(engine& engine, const string& gamename)
+	result editor_manager::update_radial_menu()
+	{
+		// size animation
+		const float max_radius = 50.0f;
+		const float seconds = get_engine()->get_time().m_time_seconds;
+		const float anim_speed = 5.0f;
+		const float radius = math::pingpong(seconds * anim_speed, max_radius * 0.95f, max_radius);
+
+		m_popup_radial.set_id("##piepopup");
+		m_popup_radial.set_items({ "new", "old" });
+		m_popup_radial.set_radius(radius);
+		m_popup_radial.render(m_mousepos);
+
+		return {};
+	}
+
+	result editor_manager::set_target_game(engine& engine, const string& gamename)
 	{
 		if (has_game() && get_game_name() == gamename)
 		{
-			return;
+			return {};
 		}
 
 		// try load, if fail, create game
@@ -268,26 +290,62 @@ namespace influx::engine
 #endif
 
 		engine.get_content()->load_game_assets(gamename, &engine);
+		return {};
 	}
 
-	void editor_manager::on_keydown(input::e_key key)
+	result editor_manager::on_keydown(input::e_key key)
 	{
 		m_keybinds.set(key, true);
+		return {};
 	}
 
-	void editor_manager::on_keyup(input::e_key key)
+	result editor_manager::on_keyup(input::e_key key)
 	{
 		m_keybinds.set(key, false);
+		return {};
 	}
 
-	void editor_manager::on_ascii_down(char ascii)
+	result editor_manager::on_ascii_down(char ascii)
 	{
 		m_keybinds.set(ascii, true);
+		return {};
 	}
 
-	void editor_manager::on_ascii_up(char ascii)
+	result editor_manager::on_ascii_up(char ascii)
 	{
 		m_keybinds.set(ascii, false);
+		return {};
+	}
+
+	result editor_manager::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
+	{
+		switch (button)
+		{
+		case input::e_mouse_button::right: 
+			m_popup_radial.set_visible(true);
+			m_popup_radial.set_position(position.m_client);
+			break;
+		}
+
+		return {};
+	}
+
+	result editor_manager::on_mouse_up(input::e_mouse_button button, const input::mouse_position& position)
+	{
+		switch (button)
+		{
+		case input::e_mouse_button::right:
+			m_popup_radial.set_visible(false);
+			break;
+		}
+
+		return {};
+	}
+
+	result editor_manager::on_mouse_move(const input::mouse_position& position)
+	{
+		m_mousepos = position.m_client;
+		return {};
 	}
 
 	bool editor_manager::has_game() const
@@ -305,26 +363,28 @@ namespace influx::engine
 		return "";
 	}
 
-	void editor_manager::initialize_inputs()
+	result editor_manager::initialize_inputs()
 	{
-		input::subscribe_keydown([this](input::e_key key)
+		input::subscribe_keydown([this](input::e_key key) { on_keydown(key); });
+		input::subscribe_keyup([this](input::e_key key) { on_keyup(key); });
+		input::subscribe_asciidown([this](char ascii) { on_ascii_down(ascii); });
+		input::subscribe_asciiup([this](char ascii) { on_ascii_up(ascii); });
+
+		input::subscribe_mousemove([this](const input::mouse_position& position)
 		{
-			on_keydown(key);
+			on_mouse_move(position);
 		});
 
-		input::subscribe_keyup([this](input::e_key key)
+		input::subscribe_mousedown([this](input::e_mouse_button button, const input::mouse_position& position)
 		{
-			on_keyup(key);
+			on_mouse_down(button, position);
 		});
 
-		input::subscribe_asciidown([this](char ascii)
+		input::subscribe_mouseup([this](input::e_mouse_button button, const input::mouse_position& position)
 		{
-			on_ascii_down(ascii);
+			on_mouse_up(button, position);
 		});
 
-		input::subscribe_asciiup([this](char ascii)
-		{
-			on_ascii_up(ascii);
-		});
+		return {};
 	}
 }

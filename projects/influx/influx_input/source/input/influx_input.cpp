@@ -89,6 +89,33 @@ namespace influx::input
 		});
 	}
 
+	void subscribe_mousemove(const function<void(const mouse_position&)>& callback)
+	{
+		subscribe([callback](const mouse_event& ev)
+		{
+			if (callback && ev.m_type == mouse_event::e_type::move)
+				callback(ev.m_position);
+		});
+	}
+
+	void subscribe_mousedown(const function<void(e_mouse_button, const mouse_position&)>& callback)
+	{
+		subscribe([callback](const mouse_event& ev)
+		{
+			if (callback && ev.m_type == mouse_event::e_type::button_down)
+				callback(ev.m_button, ev.m_position);
+		});
+	}
+
+	void subscribe_mouseup(const function<void(e_mouse_button, const mouse_position&)>& callback)
+	{
+		subscribe([callback](const mouse_event& ev)
+		{
+			if (callback && ev.m_type == mouse_event::e_type::button_up)
+				callback(ev.m_button, ev.m_position);
+		});
+	}
+
 #pragma region translation
 	inline static key_event::e_type translate_key(platform::window_event::type plat_type)
 	{
@@ -137,17 +164,17 @@ namespace influx::input
 		return e_key::count;
 	}
 
-	inline static mouse_event::e_button translate(platform::window_event::mouse_button button)
+	inline static e_mouse_button translate(platform::window_event::mouse_button button)
 	{
 		switch (button)
 		{
-		case platform::window_event::mouse_button::left: return mouse_event::e_button::left;
-		case platform::window_event::mouse_button::right: return mouse_event::e_button::right;
-		case platform::window_event::mouse_button::middle: return mouse_event::e_button::middle;
-		case platform::window_event::mouse_button::x: return mouse_event::e_button::x;
+		case platform::window_event::mouse_button::left: return e_mouse_button::left;
+		case platform::window_event::mouse_button::right: return e_mouse_button::right;
+		case platform::window_event::mouse_button::middle: return e_mouse_button::middle;
+		case platform::window_event::mouse_button::x: return e_mouse_button::x;
 		}
 
-		return mouse_event::e_button::count;
+		return e_mouse_button::count;
 	}
 #pragma endregion
 

@@ -22,6 +22,8 @@ namespace influx::input
 	struct key_event;
 	enum class e_key : uint8;
 	struct mouse_event;
+	enum class e_mouse_button : uint8;
+	struct mouse_position;
 
 	// 1. Initialize memory first
 	struct init_args final
@@ -46,11 +48,26 @@ namespace influx::input
 	// 3. cleanup all memory
 	INFLUX_INPUT_API void cleanup();
 
-	// event subscribing
+	// void func(e_key);
 	INFLUX_INPUT_API void subscribe_keydown(const function<void(e_key)>& keydown_callback);
+
+	// void func(e_key);
 	INFLUX_INPUT_API void subscribe_keyup(const function<void(e_key)>& keydown_callback);
+
+	// void func(char);
 	INFLUX_INPUT_API void subscribe_asciidown(const function<void(char)>& keydown_callback);
+
+	// void func(char);
 	INFLUX_INPUT_API void subscribe_asciiup(const function<void(char)>& keydown_callback);
+
+	// void func(const mouse_position&);
+	INFLUX_INPUT_API void subscribe_mousemove(const function<void(const mouse_position&)>&);
+
+	// void func(e_mouse_button, const mouse_position&);
+	INFLUX_INPUT_API void subscribe_mousedown(const function<void(e_mouse_button, const mouse_position&)>&);
+
+	// void func(e_mouse_button, const mouse_position&);
+	INFLUX_INPUT_API void subscribe_mouseup(const function<void(e_mouse_button, const mouse_position&)>&);
 
 	// manually push events into the queue
 	INFLUX_INPUT_API void push_external_event(const key_event& ev);
@@ -119,25 +136,33 @@ namespace influx::input
 #pragma endregion
 
 #pragma region mouse_events
+	enum class e_mouse_button : uint8
+	{
+		left,
+		right,
+		middle,
+		x,
+		count
+	};
+
+	struct mouse_position final
+	{
+		mouse_position() = default;
+		mouse_position(const math::vectorf2& client, const math::vectorf2& screen)
+			: m_client{ client }
+			, m_screen(screen)
+		{}
+
+		math::vectorf2 m_client; // relative to window
+		math::vectorf2 m_screen; // relative to screen
+	};
+
 	struct mouse_event
 	{
 		enum class e_type : uint8;
-		enum class e_button : uint8;
-
-		struct mouse_position final
-		{
-			mouse_position() = default;
-			mouse_position(const math::vectorf2& client, const math::vectorf2& screen)
-				: m_client{client}
-				, m_screen(screen)
-			{}
-
-			math::vectorf2 m_client; // relative to window
-			math::vectorf2 m_screen; // relative to screen
-		};
 
 		e_type m_type;
-		e_button m_button;
+		e_mouse_button m_button;
 		float m_wheel_delta;
 		mouse_position m_position;
 
@@ -148,15 +173,6 @@ namespace influx::input
 			leave,
 			button_down,
 			button_up,
-			count
-		};
-
-		enum class e_button : uint8
-		{
-			left,
-			right,
-			middle,
-			x,
 			count
 		};
 	};

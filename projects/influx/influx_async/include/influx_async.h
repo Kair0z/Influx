@@ -86,16 +86,19 @@ namespace influx::async
 		int m_num_workers = 2u;
 	};
 
-	INFLUX_ASYNC_API void initialize(const init_args& args);
+	INFLUX_ASYNC_API 
+	void initialize(const init_args& args);
 
-	INFLUX_ASYNC_API task_handle create_task(const task_create_args& args = {});
+	INFLUX_ASYNC_API
+	task_handle create_task(const task_create_args& args = {});
 	
 	inline task_handle create_task(const string& name, const function<void()>& func)
 	{
 		return create_task(task_create_args{ name, func });
 	}
 
-	INFLUX_ASYNC_API void dispatch(const task_handle& handle);
+	INFLUX_ASYNC_API 
+	void dispatch(const task_handle& handle);
 
 	inline void dispatch(const vector<task_handle>& handles)
 	{

@@ -60,6 +60,8 @@ namespace influx::engine
 
 		render_manager const* get_renderer() const;
 
+		const frame_time& get_time() const;
+
 		world* get_world() const;
 
 		bool does_game_exist(const string& game) const;
@@ -80,7 +82,7 @@ namespace influx::engine
 		void on_window_event(const platform::window_event& ev);
 
 		bool m_is_quit_requested = false;
-
+		
 		base_module* m_module = nullptr;
 		game_module* m_game = nullptr;
 		editor_module* m_editor = nullptr;
@@ -99,6 +101,7 @@ namespace influx::engine
 		render_manager* m_renderman = nullptr;
 		editor_manager* m_editorman = nullptr;
 		world* m_world = nullptr;
+		frame_time m_time{};
 
 		bool m_is_quit = false;
 	};

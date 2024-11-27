@@ -82,18 +82,17 @@ namespace influx::engine
 
 		m_contentman->load_engine_assets(this);
 
-		frame_time frame_time{};
 		game_module::ctx_update update_ctx{};
 		while (!m_is_quit_requested)
 		{
-			frame_time.tick();
+			m_time.tick();
 
 			// poll the platform window
 			poll_platform_events();
 			if (m_is_quit_requested) break;
 
 			// update game
-			update_ctx.m_frametime = frame_time;
+			update_ctx.m_frametime = m_time;
 			m_game->on_update(update_ctx);
 
 			// stream available assets from content into the renderer
@@ -101,8 +100,8 @@ namespace influx::engine
 
 			// build render-scene
 			renderer::scene scene{};
-			scene.m_seconds = frame_time.m_time_seconds;
-			scene.m_delta_seconds = frame_time.m_delta_seconds;
+			scene.m_seconds = m_time.m_time_seconds;
+			scene.m_delta_seconds = m_time.m_delta_seconds;
 			m_world->build_renderscene(scene);
 
 			// render
@@ -123,11 +122,10 @@ namespace influx::engine
 
 		m_contentman->load_engine_assets(this);
 
-		frame_time frame_time{};
 		while (!m_is_quit_requested)
 		{
-			frame_time.tick();
-			m_fps = 1.0f / frame_time.m_delta_seconds;
+			m_time.tick();
+			m_fps = 1.0f / m_time.m_delta_seconds;
 
 			poll_platform_events();
 			if (m_is_quit_requested) break;
@@ -159,6 +157,8 @@ namespace influx::engine
 
 	void engine::cleanup()
 	{
+		async::shutdown();
+
 		if (m_module)
 		{
 			delete m_module;
@@ -185,8 +185,6 @@ namespace influx::engine
 
 		if (m_inputthread.joinable())
 			m_inputthread.join();
-		
-		async::shutdown();
 	}
 
 	void engine::initialize_renderer(const string& window_name, const app_config& config)
@@ -265,6 +263,11 @@ namespace influx::engine
 	render_manager const* engine::get_renderer() const
 	{
 		return m_renderman;
+	}
+
+	const frame_time& engine::get_time() const
+	{
+		return m_time;
 	}
 
 	world* engine::get_world() const

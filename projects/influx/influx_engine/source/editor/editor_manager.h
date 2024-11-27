@@ -3,12 +3,16 @@
 // influx::core
 #include "core/container/map.h"
 #include "core/time.h"
+#include "core/result.h"
 
 // influx::input
 #include "influx_input.h"
 
 // influx::engine
 #include "file/engine_files.h"
+
+// influx::imgui
+#include "influx_imgui/imgui_widgets.h" // imgui::popup_radial
 
 // imgui
 struct ImGuiContext;
@@ -100,7 +104,9 @@ namespace influx::engine
 	{
 		cooldown_toggle() = default;
 		cooldown_toggle(const float cooldown)
-			: m_cooldown{ cooldown } {}
+			: m_cooldown{ cooldown }
+			, m_state{}
+			, m_time_last_set{} {}
 
 		float m_cooldown;
 		bool m_state;
@@ -139,22 +145,19 @@ namespace influx::engine
 	public:
 		editor_manager(editor_module* editor);
 
-		void update_imgui(ImGuiContext& ctx);
-
-		void on_keydown(input::e_key);
-		void on_keyup(input::e_key);
-		void on_ascii_down(char);
-		void on_ascii_up(char);
+		result update_imgui(ImGuiContext& ctx);
 
 		// sets the editor up to load assets & target the named game
-		void set_target_game(engine& engine, const string& gamename);
+		result load_gameproject(engine& engine, const string& name);
+
+		result set_target_game(engine& engine, const string& gamename);
 
 		bool has_game() const;
 		string get_game_name() const;
 
 	private:
 		editor_module* m_editor = nullptr;
-		void initialize_inputs();
+		result initialize_inputs();
 
 		compound_keybind_tracker m_keybinds;
 		cooldown_toggle m_content_toggle = 0.5f;
@@ -163,8 +166,20 @@ namespace influx::engine
 
 		file_game m_current_gamefile;
 
-		void update_inputs();
-		void update_context();
-		void update_main_editor();
+		result update_inputs();
+		result update_context();
+		result update_main_editor();
+		result update_radial_menu();
+
+		imgui::popup_radial m_popup_radial;
+		math::vectorf2 m_mousepos;
+
+		result on_keydown(input::e_key);
+		result on_keyup(input::e_key);
+		result on_ascii_down(char);
+		result on_ascii_up(char);
+		result on_mouse_move(const input::mouse_position& position);
+		result on_mouse_down(input::e_mouse_button button, const input::mouse_position& position);
+		result on_mouse_up(input::e_mouse_button button, const input::mouse_position& position);
 	};
 }

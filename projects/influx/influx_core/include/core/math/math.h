@@ -58,6 +58,11 @@ namespace influx
 			return static_cast<_t>(std::sin(value));
 		}
 
+		inline float sinf(const float& value)
+		{
+			return sin(value);
+		}
+
 		template <typename _t>
 		constexpr inline _t abs(const _t& value)
 		{
@@ -90,6 +95,15 @@ namespace influx
 			{
 				return range2 - mod;
 			}
+		}
+
+		// really just a sin...
+		template <typename _t>
+		constexpr inline _t pingpong(const _t& t, const _t& min, const _t& max)
+		{
+			const float intv = max - min;
+			const float intv_half = (0.5f * intv);
+			return min + intv_half + math::sin(t) * intv_half;
 		}
 
 		template <typename _t>

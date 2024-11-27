@@ -26,6 +26,9 @@
 namespace influx::engine
 {
 	render_manager::render_manager(engine* engine)
+		: mp_imgui_drawdata{ nullptr }
+		, mp_window_target{ nullptr }
+		, mp_scene_target{ nullptr }
 	{
 		// create renderer
 		influx::renderer::init_args render_init_args{};
@@ -104,130 +107,136 @@ namespace influx::engine
 	// loads assets from content_manager into the influx::renderer
 	void render_manager::load_render_assets(content_manager* cont_man)
 	{
-		// these are shared staging buffers that are read and copied when 'loaded' to the renderer
+		// these are shared 'staging' buffers that are read and copied when 'loaded' to the renderer
 		// if we end up wanting to multithread this, we'll have to rework this approach!
-		static influx::renderer::shader_data m_shader_data{};
-		static influx::renderer::texture_data m_tex_data{};
-		static influx::renderer::mesh_data m_mesh_data{};
-		static influx::renderer::material m_material_data{};
+		static renderer::shader_data m_shader_data{};
+		static renderer::texture_data m_tex_data{};
+		static renderer::mesh_data m_mesh_data{};
+		static renderer::material m_material_data{};
 
-		for (const auto& asset : cont_man->get_scenes())
+		// CONTENT SECTION
 		{
-			if (renderer::has_mesh(asset.first) == false)
+			for (const auto& asset : cont_man->get_scenes())
 			{
-				if (asset.second.is_finished_loading() && !asset.second.m_resource.m_meshes.empty())
+				if (renderer::has_mesh(asset.first) == false)
 				{
-					const imp::scene_data::mesh& mesh = asset.second.m_resource.m_meshes[0u];
-					translate(mesh, m_mesh_data);
-					influx::renderer::load(asset.first, m_mesh_data);
+					if (asset.second.is_loaded() && !asset.second.m_resource.m_meshes.empty())
+					{
+						const imp::scene_data::mesh& mesh = asset.second.m_resource.m_meshes[0u];
+						translate(mesh, m_mesh_data);
+						influx::renderer::load(asset.first, m_mesh_data);
+					}
 				}
 			}
-		}
 
-		for (const auto& asset : cont_man->get_images())
-		{
-			if (renderer::has_texture(asset.first) == false)
+			for (const auto& asset : cont_man->get_images())
 			{
-				if (asset.second.is_finished_loading())
+				if (renderer::has_texture(asset.first) == false)
 				{
-					translate(asset.second.m_resource, m_tex_data);
-					influx::renderer::load(asset.first, m_tex_data);
+					if (asset.second.is_loaded())
+					{
+						translate(asset.second.m_resource, m_tex_data);
+						influx::renderer::load(asset.first, m_tex_data);
+					}
 				}
 			}
-		}
 
-		// todo: for now only 2 shaders are necessary
-		auto load_shader = [](const string& name, const content_manager::shader_item& item)
-		{
-			if (renderer::has_shader(name) == false)
+			// todo: for now only 2 shaders are necessary
+			auto load_shader = [](const string& name, const content_manager::shader_item& item)
 			{
-				const imp::shader_data& vs_shader = item.m_resource;
-				translate(vs_shader, m_shader_data);
-				influx::renderer::load(name, m_shader_data);
-			}
-		};
+				if (renderer::has_shader(name) == false)
+				{
+					const imp::shader_data& vs_shader = item.m_resource;
+					translate(vs_shader, m_shader_data);
+					influx::renderer::load(name, m_shader_data);
+				}
+			};
 #if 0
-		for (const auto& asset : cont_man->get_shaders())
-		{
-			load_shader(asset.first, asset.second);
-		}
+			for (const auto& asset : cont_man->get_shaders())
+			{
+				load_shader(asset.first, asset.second);
+			}
 #else
-		const auto& shaders = cont_man->get_shaders();
-		const string& vs_name = "shaders_vs";
-		if (shaders.contains(vs_name))
-		{
-			load_shader(vs_name, shaders.at(vs_name));
-		}
-		
-		const string& ps_name = "shaders_ps";
-		if (shaders.contains(ps_name))
-		{
-			load_shader(ps_name, shaders.at(ps_name));
-		}
+			const auto& shaders = cont_man->get_shaders();
+			const string& vs_name = "shaders_vs";
+			if (shaders.contains(vs_name))
+			{
+				load_shader(vs_name, shaders.at(vs_name));
+			}
+
+			const string& ps_name = "shaders_ps";
+			if (shaders.contains(ps_name))
+			{
+				load_shader(ps_name, shaders.at(ps_name));
+			}
 #endif
 
-		// hardcoded assets
-		if (renderer::has_material("mat_transistor") == false)
-		{	
-			m_material_data.m_basecolor = colour::k_white;
-			m_material_data.m_tex_albedo = "T_Sword_Opaque_BC";
-			m_material_data.m_tex_normal = "T_Sword_Opaque_N";
-			m_material_data.m_tex_roughness = "T_Sword_Opaque_N";
-			m_material_data.m_tex_special = "T_Sword_Opaque_N";
-			influx::renderer::load("mat_transistor", m_material_data);
 		}
-
-		if (renderer::has_mesh("engine_plane") == false)
+		
+		// HARDCODED SECTION
 		{
-			const static math::vectorf3 positions[4u]
+			if (renderer::has_material("mat_transistor") == false)
 			{
-				{ 1.0f, 0.0f, 1.0f },
-				{ -1.0f, 0.0f, 1.0f },
-				{ 1.0f, 0.0f, -1.0f },
-				{ -1.0f, 0.0f, -1.0f }
-			};
-			const static math::vectorf4 colours[4u]
-			{
-				{ 1.0f, 0.0f, 0.0f, 1.0f },
-				{ 0.0f, 1.0f, 0.0f, 1.0f },
-				{ 0.0f, 0.0f, 1.0f, 1.0f },
-				{ 1.0f, 1.0f, 0.0f, 1.0f }
-			};
-			const static math::vectorf2 uvs[4u]
-			{
-				{ 0.0f, 0.0f },
-				{ 1.0f, 0.0f },
-				{ 1.0f, 1.0f },
-				{ 0.0f, 1.0f }
-			};
-			const static math::vectorf3 normals[4u]
-			{
-				{ 0.0f, 1.0f, 0.0f },
-				{ 0.0f, 1.0f, 0.0f },
-				{ 0.0f, 1.0f, 0.0f },
-				{ 0.0f, 1.0f, 0.0f }
-			};
-
-			m_mesh_data.m_vertices.resize(4u);
-			m_mesh_data.m_indices.resize(6u);
-
-			for (uint8 i = 0u; i < 4u; ++i)
-			{
-				m_mesh_data.m_vertices[i] = {
-					.m_position{positions[i]},
-					.m_colour{colours[i]},
-					.m_normal{normals[i]},
-					.m_texcoords{uvs[i]} };
+				m_material_data.m_basecolor = colour::k_white;
+				m_material_data.m_tex_albedo = "T_Sword_Opaque_BC";
+				m_material_data.m_tex_normal = "T_Sword_Opaque_N";
+				m_material_data.m_tex_roughness = "T_Sword_Opaque_N";
+				m_material_data.m_tex_special = "T_Sword_Opaque_N";
+				influx::renderer::load("mat_transistor", m_material_data);
 			}
 
-			m_mesh_data.m_indices[0] = 0u;
-			m_mesh_data.m_indices[1] = 2u;
-			m_mesh_data.m_indices[2] = 1u;
-			m_mesh_data.m_indices[3] = 2u;
-			m_mesh_data.m_indices[4] = 3u;
-			m_mesh_data.m_indices[5] = 1u;
+			if (renderer::has_mesh("engine_plane") == false)
+			{
+				const static math::vectorf3 positions[4u]
+				{
+					{ 1.0f, 0.0f, 1.0f },
+					{ -1.0f, 0.0f, 1.0f },
+					{ 1.0f, 0.0f, -1.0f },
+					{ -1.0f, 0.0f, -1.0f }
+				};
+				const static math::vectorf4 colours[4u]
+				{
+					{ 1.0f, 0.0f, 0.0f, 1.0f },
+					{ 0.0f, 1.0f, 0.0f, 1.0f },
+					{ 0.0f, 0.0f, 1.0f, 1.0f },
+					{ 1.0f, 1.0f, 0.0f, 1.0f }
+				};
+				const static math::vectorf2 uvs[4u]
+				{
+					{ 0.0f, 0.0f },
+					{ 1.0f, 0.0f },
+					{ 1.0f, 1.0f },
+					{ 0.0f, 1.0f }
+				};
+				const static math::vectorf3 normals[4u]
+				{
+					{ 0.0f, 1.0f, 0.0f },
+					{ 0.0f, 1.0f, 0.0f },
+					{ 0.0f, 1.0f, 0.0f },
+					{ 0.0f, 1.0f, 0.0f }
+				};
 
-			influx::renderer::load("engine_plane", m_mesh_data);
+				m_mesh_data.m_vertices.resize(4u);
+				m_mesh_data.m_indices.resize(6u);
+
+				for (uint8 i = 0u; i < 4u; ++i)
+				{
+					m_mesh_data.m_vertices[i] = {
+						.m_position{positions[i]},
+						.m_colour{colours[i]},
+						.m_normal{normals[i]},
+						.m_texcoords{uvs[i]} };
+				}
+
+				m_mesh_data.m_indices[0] = 0u;
+				m_mesh_data.m_indices[1] = 2u;
+				m_mesh_data.m_indices[2] = 1u;
+				m_mesh_data.m_indices[3] = 2u;
+				m_mesh_data.m_indices[4] = 3u;
+				m_mesh_data.m_indices[5] = 1u;
+
+				influx::renderer::load("engine_plane", m_mesh_data);
+			}
 		}
 	}
 
@@ -334,9 +343,9 @@ namespace influx::engine
 				int button_value = 0;
 				switch (ev.m_button)
 				{
-				case input::mouse_event::e_button::left: button_value = 0; break;
-				case input::mouse_event::e_button::middle: button_value = 2; break;
-				case input::mouse_event::e_button::right: button_value = 1; break;
+				case input::e_mouse_button::left: button_value = 0; break;
+				case input::e_mouse_button::middle: button_value = 2; break;
+				case input::e_mouse_button::right: button_value = 1; break;
 				}
 
 				io.AddMouseButtonEvent(button_value, true);
@@ -348,9 +357,9 @@ namespace influx::engine
 				int button_value = 0;
 				switch (ev.m_button)
 				{
-				case input::mouse_event::e_button::left: button_value = 0; break;
-				case input::mouse_event::e_button::middle: button_value = 2; break;
-				case input::mouse_event::e_button::right: button_value = 1; break;
+				case input::e_mouse_button::left: button_value = 0; break;
+				case input::e_mouse_button::middle: button_value = 2; break;
+				case input::e_mouse_button::right: button_value = 1; break;
 				}
 
 				io.AddMouseButtonEvent(button_value, false);

@@ -2,10 +2,14 @@
 
 // influx::core
 #include "core/container/map.h"
+#include "core/container/vector.h"
 #include "core/time.h"
 
 // influx::import
 #include "influx_import.h"
+
+// influx::async
+#include "influx_async.h"
 
 namespace influx::engine
 {
@@ -38,14 +42,57 @@ namespace influx::engine
 		template <typename _t>
 		struct asset_item final
 		{
-			bool is_finished_loading() const
+			asset_item()
+			{
+				set_loadstate(e_load_state::unloaded);
+			}
+
+			bool is_loaded() const
 			{
 				return m_state == e_load_state::loaded;
 			}
 
-			_t m_resource; // the raw resource
-			e_load_state m_state;
-			e_asset_origin m_origin;
+			e_asset_origin get_origin() const
+			{
+				return m_origin;
+			}
+
+			e_load_state get_loadstate() const
+			{
+				return m_state;
+			}
+
+			const _t& get_resource() const
+			{
+				return m_resource;
+			}
+
+			void set_loadstate(e_load_state new_state)
+			{
+				if (new_state == e_load_state::loading)
+				{
+					m_time_loadstart = time::get_now();
+				}
+
+				if (new_state == e_load_state::loaded)
+				{
+					m_time_loadend = time::get_now();
+				}
+
+				m_state = new_state;
+			}
+
+			float get_load_ms() const
+			{
+				return time::get_ms_between<float>(m_time_loadend, m_time_loadstart);
+			}
+
+			_t m_resource{}; // the raw resource
+			e_load_state m_state{};
+			e_asset_origin m_origin{};
+
+			time::point m_time_loadstart{};
+			time::point m_time_loadend{};
 		};
 
 	public:
@@ -74,8 +121,6 @@ namespace influx::engine
 		thread m_loading_thread;
 
 		time::point m_start_engine_resources;
-
-		bool m_is_loading = false;
 
 		void load_assets(engine* engine, e_asset_origin, const file& root);
 	};

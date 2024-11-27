@@ -55,12 +55,12 @@ namespace influx
 
 		bool is_success() const
 		{
-			return m_value == 0u;
+			return m_value == (uint64)e_result::success;
 		}
 
 		const char* print() const
 		{
-			return error_codes[m_value];
+			return detail::error_codes[m_value];
 		}
 
 		void set(e_result result)

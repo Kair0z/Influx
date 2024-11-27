@@ -18,29 +18,10 @@ namespace influx::engine
 {
 	content_manager::content_manager(engine* engine)
 	{
-		// kick-off loading thread
-		m_loading_thread = thread([this, engine]()
-		{
-			while (engine->is_quit() == false)
-			{
-				if (m_is_loading)
-				{
-					// wait for all jobs to complete
-					async::wait_for_all();
-
-					float seconds_since_load = time::get_ms_since<float>(m_start_engine_resources) * 0.001f;
-					logonce(e_log_category::normal, "finished resources in {} seconds", seconds_since_load);
-
-					m_is_loading = false;
-				}
-			}
-		});
 	}
 
 	content_manager::~content_manager()
 	{
-		if (m_loading_thread.joinable())
-			m_loading_thread.join();
 	}
 
 	const map<string, content_manager::scene_item>& content_manager::get_scenes() const
@@ -84,24 +65,28 @@ namespace influx::engine
 		async::dispatch_for<file>(fbx_files, [this](const file& file)
 		{
 			imp::scene_load_args args{};
-			imp::scene_data& scene_data = m_scenes[file.m_filename].m_resource;
-			imp::load_scene_file(file.m_path_full, scene_data, args);
+			scene_item& item = m_scenes[file.m_filename];
+			item.set_loadstate(e_load_state::loading);
+			imp::load_scene_file(file.m_path_full, item.m_resource, args);
+			item.set_loadstate(e_load_state::loaded);
 		});
 
 		// load pngs
 		async::dispatch_for<file>(png_files, [this](const file& file)
 		{
 			imp::image_load_args args{};
-			imp::image_data& texture_data = m_images[file.m_filename].m_resource;
-			imp::load_image_file(file.m_path_full, texture_data, args);
+			image_item& item = m_images[file.m_filename];
+			item.set_loadstate(e_load_state::loading);
+			imp::load_image_file(file.m_path_full, item.m_resource, args);
+			item.set_loadstate(e_load_state::loaded);
 		});
 
 		// load hlsls
 		const auto& interm_dir = engine->get_engine_directory(engine::e_directory::intermediate);
 		async::dispatch_for<file>(hlsl_files, [this, root, interm_dir](const file& file)
 		{
-			imp::shader_data& shader_data_vs = m_shaders[file.m_filename + "_vs"].m_resource;
-			imp::shader_data& shader_data_ps = m_shaders[file.m_filename + "_ps"].m_resource;
+			shader_item& vs_item = m_shaders[file.m_filename + "_vs"];
+			shader_item& ps_item = m_shaders[file.m_filename + "_ps"];
 
 			shader::compile_args compile_args{};
 			compile_args.m_target = shader::e_shader_target::_6_6;
@@ -118,13 +103,15 @@ namespace influx::engine
 
 			compile_args.m_type = shader::e_shader_type::vs;
 			compile_args.m_entrypoint = "VSMain";
-			influx_assert(imp::load_shader_file(file.m_path_full, shader_data_vs, compile_args));
+			vs_item.set_loadstate(e_load_state::loading);
+			influx_assert(imp::load_shader_file(file.m_path_full, vs_item.m_resource, compile_args));
+			vs_item.set_loadstate(e_load_state::loaded);
 
 			compile_args.m_type = shader::e_shader_type::ps;
 			compile_args.m_entrypoint = "PSMain";
-			influx_assert(imp::load_shader_file(file.m_path_full, shader_data_ps, compile_args));
+			ps_item.set_loadstate(e_load_state::loading);
+			influx_assert(imp::load_shader_file(file.m_path_full, ps_item.m_resource, compile_args));
+			ps_item.set_loadstate(e_load_state::loaded);
 		});
-
-		m_is_loading = true;
 	}
 }

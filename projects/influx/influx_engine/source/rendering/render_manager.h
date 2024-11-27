@@ -3,6 +3,7 @@
 #include "core/macros.h"
 #include "core/math/vector.h"
 
+#pragma region declarations
 // influx::renderer
 namespace influx::renderer
 {
@@ -12,6 +13,7 @@ namespace influx::renderer
 
 struct ImDrawData;
 struct ImGuiContext;
+#pragma endregion
 
 namespace influx::engine
 {
@@ -34,10 +36,9 @@ namespace influx::engine
 		void on_window_resize(const math::vectoru2& new_dimensions);
 
 	private:
-		influx::renderer::target* mp_window_target;
-		influx::renderer::target* mp_scene_target;
-
-		ImDrawData* mp_imgui_drawdata = nullptr;
+		renderer::target* mp_window_target;
+		renderer::target* mp_scene_target;
+		ImDrawData* mp_imgui_drawdata;
 
 		void initialize_imgui();
 	};
