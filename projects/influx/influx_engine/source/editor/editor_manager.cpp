@@ -258,7 +258,7 @@ namespace influx::engine
 
 	result editor_manager::update_radial_menu()
 	{
-		// size animation
+		// temp: size animation
 		const float max_radius = 50.0f;
 		const float seconds = get_engine()->get_time().m_time_seconds;
 		const float anim_speed = 5.0f;
@@ -268,6 +268,9 @@ namespace influx::engine
 		m_popup_radial.set_items({ "new", "old" });
 		m_popup_radial.set_radius(radius);
 		m_popup_radial.render(m_mousepos);
+
+		if (m_popup_radial.has_selection())
+			logn("selected: {}", m_popup_radial.get_selected());
 
 		return {};
 	}

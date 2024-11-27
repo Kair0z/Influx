@@ -123,6 +123,9 @@ namespace influx::imgui
 		void set_id(const char* id);
 		const char* get_id() const;
 
+		bool has_selection() const;
+		const char* get_selected();
+
 	private:
 		bool m_is_visible = false;
 		math::vectorf2 m_position = {};
@@ -150,11 +153,11 @@ namespace influx::imgui
 
 	inline void popup_radial::render(const math::vectorf2& mouse_pos)
 	{
-		PiePopupSelectMenu(
+		m_selected = PiePopupSelectMenu(
 			translate(m_position),
 			translate(mouse_pos),
 			get_radius(),
-			m_id,
+			get_id(),
 			m_items.data(),
 			(int)m_items.size(),
 			&m_selected,
@@ -251,6 +254,21 @@ namespace influx::imgui
 	inline const char* popup_radial::get_id() const
 	{
 		return m_id;
+	}
+
+	inline bool popup_radial::has_selection() const
+	{
+		return m_selected >= 0u && m_selected < m_items.size();
+	}
+
+	inline const char* popup_radial::get_selected()
+	{
+		if (has_selection())
+		{
+			return m_items[m_selected];
+		}
+
+		return "";
 	}
 #pragma endregion
 }
