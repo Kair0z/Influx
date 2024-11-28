@@ -52,6 +52,11 @@ namespace influx
 			return static_cast<_t>(std::cos(value));
 		}
 
+		inline float cosf(const float& value)
+		{
+			return cos(value);
+		}
+
 		template <typename _t>
 		inline _t sin(const _t& value)
 		{

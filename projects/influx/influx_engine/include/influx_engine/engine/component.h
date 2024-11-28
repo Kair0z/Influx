@@ -3,6 +3,7 @@
 // influx::core
 #include "core/string.h"
 #include "core/math/transform.h"
+#include "core/scene/camera.h"
 
 namespace influx::engine
 {
@@ -69,5 +70,22 @@ namespace influx::engine
 
 	private:
 		string m_mesh_filepath;
+	};
+
+	class camera_component final : public component
+	{
+	public:
+		void set_fov(float fov)
+		{
+			m_camera.set_fov(fov);
+		}
+
+		float get_fov() const
+		{
+			return m_camera.get_fov();
+		}
+
+	private:
+		influx::scene::camera m_camera{};
 	};
 }

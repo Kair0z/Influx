@@ -50,6 +50,12 @@ namespace influx::math
 		const vector<_t, _C>& operator[](matrix_dim_t r) const;
 		const vector<_t, _C>& get_row(matrix_dim_t r) const;
 		vector<_t, _R> get_collumn(matrix_dim_t c) const;
+		inline void set_collumn(matrix_dim_t c_index, const vector<_t, _R>& collumn)
+		{
+			influx_assert(c_index < _C);
+			for (matrix_dim_t r{}; r < _R; ++r)
+				this->m_rows[r][c_index] = collumn[r];
+		}
 
 		vector<_t, _C>& operator[](matrix_dim_t r);
 		vector<_t, _C>& get_row(matrix_dim_t r);
@@ -59,6 +65,9 @@ namespace influx::math
 
 		const _t& get_element(matrix_dim_t c, matrix_dim_t r) const;
 		const _t& get_element(matrix_dim_t idx) const;
+
+		bool operator==(const matrix& other) const;
+		bool operator!=(const matrix& other) const;
 
 		// Basic Operations:
 		matrix& operator*=(const float scalar);
@@ -139,6 +148,7 @@ namespace influx::math
 	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator*(float a, const matrix<_t, _C, _R>& b);
 	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator/(float a, const matrix<_t, _C, _R>& b);
 
+	
 	// Aliases:
 	using matrix2x2f = matrix<float, 2u, 2u>;
 	using matrix2x2d = matrix<double, 2u, 2u>;

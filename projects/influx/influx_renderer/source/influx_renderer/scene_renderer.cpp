@@ -239,6 +239,8 @@ namespace influx::renderer
             return;
         }
 
+        logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
+
         // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
         mp_pipeline->set_state(commandlist);
 
@@ -246,11 +248,19 @@ namespace influx::renderer
         // invert camera :) (engine is right handed, but d3d12 is left handed)
         const camera& camera = scene.m_camera;
         math::transform3D transform = camera.m_transform;
-        transform.set_position_z(-transform.get_position().z);
         transform.update_matrix();
-        const math::matrix4x4f mat_view = transform.get_matrix().inverted();
+
+        auto copy = transform.get_matrix();
+        math::matrix4x4f::invert(copy); // <-- this is probably wrong
+        copy.set_collumn(2u, -copy.get_collumn(2u));
+
+        const math::matrix4x4f mat_view = copy;
         const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
         m_gpu_perview.m_vp = mat_view * mat_proj;
+
+        // invert the 3rd collumn (right handed -> left handed)
+        // const math::vectorf4 collumn = m_gpu_perview.m_vp.get_collumn(2u);
+        // m_gpu_perview.m_vp.set_collumn(2u, -collumn);
 
         mp_pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
         mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);

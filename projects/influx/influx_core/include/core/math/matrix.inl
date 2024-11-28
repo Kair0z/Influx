@@ -410,6 +410,24 @@ namespace influx::math
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	bool matrix<_t, _C, _R>::operator==(const matrix& other) const
+	{
+		for (matrix_dim_t r{}; r < _R; ++r)
+			for (matrix_dim_t c{}; c < _C; ++c)
+			{
+				const matrix_dim_t idx = c + (_C * r);
+				if (this->m_data[idx] != other.m_data[idx]) return false;
+			}
+
+		return true;
+	}
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	bool matrix<_t, _C, _R>::operator!=(const matrix& other) const
+	{
+		return !(*this == other);
+	}
+
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::operator*=(const float scalar)
 	{
 		for_each_element([](_t& element)

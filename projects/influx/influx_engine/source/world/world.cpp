@@ -26,11 +26,19 @@ namespace influx::engine
         // general scene
         scene.m_camera.m_far_plane = 1000.0f;
         scene.m_camera.m_near_plane = 0.001f;
-        scene.m_camera.m_fov = 90.0f;
-        scene.m_camera.m_transform = math::transform3D::identity();
-        scene.m_camera.m_transform.set_position_z(10.0f);
-        scene.m_camera.m_transform.look_at({});
-        scene.m_camera.m_transform.update_matrix();
+        
+        // build the camera
+        {
+            auto view = m_registry.view<const transform_component, camera_component>();
+            for (auto [entity, transform_comp, camera_comp] : view.each())
+            {
+                math::transform3D transform = transform_comp.get_transform();
+
+                scene.m_camera.m_fov = camera_comp.get_fov();
+                scene.m_camera.m_transform = transform;
+                scene.m_camera.m_transform.update_matrix();
+            }
+        }
 
         // 2D scene
         // build all sprites

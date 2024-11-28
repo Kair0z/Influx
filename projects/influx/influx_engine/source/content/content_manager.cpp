@@ -71,16 +71,6 @@ namespace influx::engine
 			item.set_loadstate(e_load_state::loaded);
 		});
 
-		// load pngs
-		async::dispatch_for<file>(png_files, [this](const file& file)
-		{
-			imp::image_load_args args{};
-			image_item& item = m_images[file.m_filename];
-			item.set_loadstate(e_load_state::loading);
-			imp::load_image_file(file.m_path_full, item.m_resource, args);
-			item.set_loadstate(e_load_state::loaded);
-		});
-
 		// load hlsls
 		const auto& interm_dir = engine->get_engine_directory(engine::e_directory::intermediate);
 		async::dispatch_for<file>(hlsl_files, [this, root, interm_dir](const file& file)
@@ -112,6 +102,16 @@ namespace influx::engine
 			ps_item.set_loadstate(e_load_state::loading);
 			influx_assert(imp::load_shader_file(file.m_path_full, ps_item.m_resource, compile_args));
 			ps_item.set_loadstate(e_load_state::loaded);
+		});
+
+		// load pngs
+		async::dispatch_for<file>(png_files, [this](const file& file)
+		{
+			imp::image_load_args args{};
+			image_item& item = m_images[file.m_filename];
+			item.set_loadstate(e_load_state::loading);
+			imp::load_image_file(file.m_path_full, item.m_resource, args);
+			item.set_loadstate(e_load_state::loaded);
 		});
 	}
 }
