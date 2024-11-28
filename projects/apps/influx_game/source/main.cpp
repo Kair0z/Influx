@@ -1,60 +1,83 @@
 #include "influx_engine.h"
 
+#include "core/container/vector.h"
+
 using namespace influx;
 
 class scene_layer : public engine::layer
 {
 public:
+	struct mesh_object
+	{
+		mesh_object(layer& layer)
+		{
+			m_object = layer.create();
+			m_mesh = m_object->add_component<engine::mesh_component>();
+			m_transform = m_object->add_component<engine::transform_component>();
+		}
+
+		engine::gameobject* m_object = nullptr;
+		engine::mesh_component* m_mesh = nullptr;
+		engine::transform_component* m_transform = nullptr;
+	};
+
+	struct camera_object
+	{
+		camera_object(layer& layer)
+		{
+			m_object = layer.create();
+			m_camera = m_object->add_component<engine::camera_component>();
+			m_transform = m_object->add_component<engine::transform_component>();
+		}
+
+		engine::gameobject* m_object = nullptr;
+		engine::camera_component* m_camera = nullptr;
+		engine::transform_component* m_transform = nullptr;
+	};
+
 	virtual void on_start() override
 	{
 		// mesh
-		engine::gameobject* object = layer::create();
-		m_transform = object->add_component<engine::transform_component>();
-		math::transform3D& transform = m_transform->get_transform();
-		transform = math::transform3D::identity();
-		transform.set_position({});
+		for (uint32 i = 0u; i < 100u; ++i)
+		{
+			m_meshes.push_back(mesh_object(*this));
+			mesh_object& object = m_meshes[i];
 
-		engine::sprite_component*  sprite = object->add_component<engine::sprite_component>();
-		sprite->set_texture_path("lego");
+			object.m_mesh->set_mesh_path("sphere");
+			auto& transform = object.m_transform->get_transform();
+			const float padding = 200.0f;
+			float x = (i % 10u) * padding;
+			float y = (i / 10u) * padding;
+			const float offset = -(5 * padding);
 
-		engine::mesh_component* mesh = object->add_component<engine::mesh_component>();
-		mesh->set_mesh_path("sphere");
+			math::vectorf3 position = { x + offset, 0.0f, y + offset };
+			transform.set_position(position);
+			transform.set_scale(0.01f);
+			transform.update_matrix();
+		}
 
 		// camera
-		engine::gameobject* camera_object = layer::create();
-		engine::camera_component* camera_comp = camera_object->add_component<engine::camera_component>();
-		camera_comp->set_fov(90.0f);
-
-		m_cam_transform = camera_object->add_component<engine::transform_component>();
+		m_cameras.push_back(camera_object(*this));
+		m_cameras[0u].m_camera->set_fov(120.0f);
 	}
 
 	virtual void on_update(const engine::update_context& ctx) override
 	{
-		// mesh
 		const float time = ctx.m_frametime.get_time_seconds();
-		const float speed = 10.0f;
-		const float range = 20.0f;
-		const float pos_y = math::pingpong(speed * time, -range, range);
-		const float size = 0.01f;
-
-		math::transform3D& transform = m_transform->get_transform();
-		transform.set_scale(size);
-		transform.set_position_y(pos_y);
-		transform.update_matrix();
-
-		// camera
 		const float angle = time;
 		const float distance = 10.0f;
-		math::transform3D& cam_transform = m_cam_transform->get_transform();
+
+		math::transform3D& cam_transform = m_cameras[0u].m_transform->get_transform();
 		cam_transform.set_position_x(math::sinf(angle) * distance);
 		cam_transform.set_position_z(math::cosf(angle) * distance);
+		cam_transform.set_position_y(10.0f);
 		cam_transform.look_at({});
 		cam_transform.update_matrix();
 	}
 
 private:
-	engine::transform_component* m_transform;
-	engine::transform_component* m_cam_transform;
+	vector<mesh_object> m_meshes{};
+	vector<camera_object> m_cameras{};
 };
 
 class game final : public engine::game_module
