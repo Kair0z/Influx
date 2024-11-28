@@ -17,7 +17,7 @@
 #include "content/content_manager.h"
 #include "rendering/render_manager.h"
 #include "editor/editor_manager.h"
-#include "world/world.h"
+#include "influx_engine/world/world.h"
 
 namespace influx::engine
 {
@@ -82,7 +82,12 @@ namespace influx::engine
 
 		m_contentman->load_engine_assets(this);
 
-		game_module::ctx_update update_ctx{};
+		m_world = new world();
+
+		m_game->on_start();
+		m_game;
+
+		update_context update_ctx{};
 		while (!m_is_quit_requested)
 		{
 			m_time.tick();
@@ -91,22 +96,23 @@ namespace influx::engine
 			poll_platform_events();
 			if (m_is_quit_requested) break;
 
-			// update game
+			// tick game
 			update_ctx.m_frametime = m_time;
-			m_game->on_update(update_ctx);
+			m_game->update(update_ctx);
 
 			// stream available assets from content into the renderer
 			m_renderman->load_render_assets(m_contentman);
 
 			// build render-scene
 			renderer::scene scene{};
-			scene.m_seconds = m_time.m_time_seconds;
-			scene.m_delta_seconds = m_time.m_delta_seconds;
-			m_world->build_renderscene(scene);
-
-			// render
+			scene.m_seconds = m_time.get_time_seconds();
+			scene.m_delta_seconds = m_time.get_delta_seconds();
+			renderer::scene2D scene2D{};
+			m_world->build_renderscene(scene, scene2D);
 			m_renderman->render(scene);
 		}
+
+		delete m_world;
 	}
 
 	void engine::run_editor()
@@ -125,7 +131,7 @@ namespace influx::engine
 		while (!m_is_quit_requested)
 		{
 			m_time.tick();
-			m_fps = 1.0f / m_time.m_delta_seconds;
+			m_fps = 1.0f / m_time.get_delta_seconds();
 
 			poll_platform_events();
 			if (m_is_quit_requested) break;
@@ -290,6 +296,11 @@ namespace influx::engine
 	bool engine::is_quit() const
 	{
 		return m_is_quit;
+	}
+
+	world* get_world()
+	{
+		return get_engine()->get_world();
 	}
 }
 

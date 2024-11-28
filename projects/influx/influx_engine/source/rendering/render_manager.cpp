@@ -144,7 +144,7 @@ namespace influx::engine
 			// todo: for now only 2 shaders are necessary
 			auto load_shader = [](const string& name, const content_manager::shader_item& item)
 			{
-				if (renderer::has_shader(name) == false)
+				if (renderer::has_shader(name) == false && item.is_loaded())
 				{
 					const imp::shader_data& vs_shader = item.m_resource;
 					translate(vs_shader, m_shader_data);

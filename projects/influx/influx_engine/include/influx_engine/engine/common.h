@@ -7,6 +7,18 @@ namespace influx::engine
 {
 	struct frame_time final
 	{
+	public:
+		float get_delta_seconds() const
+		{
+			return m_delta_seconds;
+		}
+
+		float get_time_seconds() const
+		{
+			return m_time_seconds;
+		}
+
+	private:
 		float m_delta_seconds;
 		float m_time_seconds;
 
@@ -14,6 +26,7 @@ namespace influx::engine
 		influx::time::point m_last_tick;
 		bool m_is_first_tick = true;
 
+	public:
 		inline void tick()
 		{
 			if (m_is_first_tick)
@@ -29,5 +42,10 @@ namespace influx::engine
 
 			m_last_tick = influx::time::get_now();
 		}
+	};
+
+	struct update_context final
+	{
+		frame_time m_frametime;
 	};
 }

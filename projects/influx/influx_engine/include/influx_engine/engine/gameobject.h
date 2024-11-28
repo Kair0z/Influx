@@ -1,38 +1,33 @@
 #pragma once
 
+// influx::core
+#include "core/basetypes.h"
+
 // influx::engine
 #include "influx_engine/engine/engine.h"
+#include "influx_engine/engine/layer.h"
 
 namespace influx::engine
 {
 	class gameobject
 	{
 	public:
-		template <typename _c, typename ..._init>
-		_c* add_component(_init&&...);
+		template <typename _ctype, typename ..._init>
+		_ctype* add_component(_init&&...);
 
-		template <typename _c>
-		void remove_component();
+		INFLUX_ENGINE_API
+		uint32 get_id() const;
 
-		template <typename _c>
-		_c* get_component() const;
+	private:
+		layer* m_owner;
+		friend class layer;
 
-		template <typename _c>
-		bool has_component() const;
+		uint32 m_id;
 	};
 
-	namespace detail
+	template <typename _ctype, typename ..._init>
+	inline _ctype* gameobject::add_component(_init&&... init)
 	{
-		template <typename _c, typename ..._init>
-		_c* create_component(_init&&... init)
-		{
-			return nullptr;
-		}
-	}
-
-	template <typename _c, typename ..._init>
-	inline _c* gameobject::add_component(_init&&... init)
-	{
-		return detail::create_component<_c>(init...);
+		return m_owner->create_component<_ctype>(get_id(), init...);
 	}
 }

@@ -1,39 +1,37 @@
 #pragma once
 
 // influx::engine
-#include "influx_engine/engine/engine.h" // ctx_update
+#include "influx_engine/world/world.h"
+#include "influx_engine/engine/component.h"
 
 namespace influx::engine
 {
-	class world;
-	struct ctx_update;
+	class layergraph;
 	class gameobject;
 
+	// -- recognize this as 'scene', just more hierarchical and abstract
+	// -- layergraph manages layer hierarchy tick schedule
+	// -- world manages objects like gameobject & components
 	class layer
 	{
 	public:
-		// layers
-		void add_child(layer*);
+		INFLUX_ENGINE_API gameobject* create();
 
-		// inheritable
-		virtual void on_start() {}
-		virtual void on_update() {}
-		virtual void on_exit() {}
-
-		// dont touch this
-		void update()
+		template <class _ctype, class ..._args>
+		inline _ctype* create_component(uint32 object_id, _args&&... args)
 		{
-			on_update();
-
-			for (uint64 i = 0u; i < m_children.size(); ++i)
-			{
-				layer* child = m_children[i];
-				child->update();
-			}
+			world* current_world = detail::get_world();
+			return current_world->create_component<_ctype>(object_id, args...);
 		}
 
+		// -- deriveable interface
+		virtual void on_start() {}
+		virtual void on_update(const update_context&) {}
+		virtual void on_exit() {}
+
 	private:
-		layer* m_parent;
-		vector<layer*> m_children;
+		layergraph* m_owner;
+		friend class layergraph;
+		uint64 m_frame_counter{};
 	};
 }

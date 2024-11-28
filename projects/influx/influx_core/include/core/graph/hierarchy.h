@@ -19,30 +19,45 @@ namespace influx
 			node(const data& m_data, uint32 layer)
 				: data{ m_data }, LayerIndex{ layer } {}
 
-			uint32 LayerIndex;
-			data data;
+			uint32 LayerIndex{};
+			data data{};
 		};
 		using node_vector = vector<node>;
 
 	private:
-		node m_root;
+		node m_root{};
 		vector<node_vector> m_layers{};
 
 	public:
 		hierarchy() = default;
 
+		inline node* find_node(const data& value)
+		{
+			node* found = nullptr;
+			traverse([&found, &value](node& node)
+			{
+				if (node.data == value)
+				{
+					found = &node;
+				}
+			});
+
+			return found;
+		}
+
 		inline const node& add(const data& element, const node& parent)
 		{
-			const uint32 newLayerIndex = parent.LayerIndex + 1u;
+			const uint32 new_layer_index = parent.LayerIndex + 1u;
 
-			// Create new layer...
-			if (newLayerIndex >= m_layers.dimension())
+			while (new_layer_index >= m_layers.size())
 			{
 				m_layers.push_back({});
 			}
 			
-			m_layers[newLayerIndex].push_back({element, newLayerIndex});
-			return *m_layers[newLayerIndex].end();
+			node_vector& this_layer = m_layers[new_layer_index];
+			this_layer.push_back({element, new_layer_index });
+			const node& new_node = this_layer.back();
+			return new_node;
 		}
 
 		inline node* get_child(uint32 index, const node& parent)
@@ -52,7 +67,16 @@ namespace influx
 				return nullptr;
 			}
 
-			return nullptr;
+			const uint32 child_layer_idx = parent.LayerIndex + 1u;
+			node_vector& child_layer = m_layers[child_layer_idx];
+			if (index < child_layer.size())
+			{
+				return &child_layer[index];
+			}
+			else
+			{
+				return nullptr;
+			}
 		}
 
 		inline uint32 get_num_children(const node& parent) const

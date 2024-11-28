@@ -235,7 +235,7 @@ namespace influx::renderer
         mp_pipeline = mp_backend->get_pipeline_manager()->get_scene_pipeline();
         if (mp_pipeline == nullptr)
         {
-            logonce(e_log_category::warning, "influx::renderer::scene_renderer: no scene pipeline!");
+            // logonce(e_log_category::warning, "influx::renderer::scene_renderer: no scene pipeline!");
             return;
         }
 
@@ -260,7 +260,6 @@ namespace influx::renderer
 
     void scene_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)
     {
-        
         m_gpu_perscene.m_delta_seconds = scene.m_delta_seconds;
         m_gpu_perscene.m_seconds = scene.m_seconds;
 

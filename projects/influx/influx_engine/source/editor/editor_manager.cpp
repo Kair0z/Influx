@@ -8,7 +8,7 @@
 #include "engine_private.h"
 #include "file/engine_files.h"
 #include "content/content_manager.h"
-#include "world/world.h"
+#include "influx_engine/world/world.h"
 #include "influx_engine/scene/scene.h"
 #include "content/content_manager.h"
 
@@ -184,24 +184,24 @@ namespace influx::engine
 				if (ImGui::Button("new scene"))
 				{
 					// new empty scene
-					scene* new_scene = scene::make_empty_scene();
+					//scene* new_scene = scene::make_empty_scene();
 
 					// save to file
-					const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
-					scene::save_to_file(new_scene, scenefile_path);
+					// const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
+					// scene::save_to_file(new_scene, scenefile_path);
 
 					// load into world
-					world->load_scene(new_scene);
+					// world->load_scene(new_scene);
 				}
 
 				if (ImGui::Button("load scene"))
 				{
 					// load from file
-					const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
-					scene* scene = scene::load_from_file(scenefile_path);
+					// const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
+					// scene* scene = scene::load_from_file(scenefile_path);
 
 					// load into world
-					world->load_scene(scene);
+					// world->load_scene(scene);
 				}
 
 				ImGui::EndMenu();
@@ -260,7 +260,7 @@ namespace influx::engine
 	{
 		// temp: size animation
 		const float max_radius = 50.0f;
-		const float seconds = get_engine()->get_time().m_time_seconds;
+		const float seconds = get_engine()->get_time().get_time_seconds();
 		const float anim_speed = 5.0f;
 		const float radius = math::pingpong(seconds * anim_speed, max_radius * 0.95f, max_radius);
 

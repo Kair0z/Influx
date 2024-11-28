@@ -5,6 +5,7 @@
 #include "core/string.h"
 #include "core/pointer.h"
 
+#if 0
 namespace influx::engine
 {
 	class entity;
@@ -60,3 +61,4 @@ namespace influx::engine
 		vector<actor> m_actors{};
 	};
 }
+#endif

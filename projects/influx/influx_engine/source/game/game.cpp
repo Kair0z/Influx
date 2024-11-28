@@ -15,25 +15,18 @@ namespace influx::engine
 	{
 	}
 
-	void game_module::update(const ctx_update& ctx)
+	void game_module::update(const update_context& ctx)
 	{
 		on_update(ctx);
 
-		// update layer hierarchy
-		m_root_layer.on_update();
+		m_layergraph.update(ctx);
 	}
 
-	void game_module::on_update(const ctx_update& ctx)
+	void game_module::on_update(const update_context& ctx)
 	{
 	}
 
 	void game_module::on_cleanup()
 	{
-	}
-
-	game_module::ctx_update::ctx_update(const frame_time& frtime)
-		: m_frametime{ frtime }
-	{
-
 	}
 }

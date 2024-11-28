@@ -16,6 +16,16 @@ namespace influx::math
 		transform2D(const math::vectorf2& position, float rotation, const math::vectorf2& scale)
 			: m_position{ position }, m_rotation{ rotation }, m_scale{ scale } {}
 
+		void set_position(const vectorf2& position)
+		{
+			m_position = position;
+		}
+
+		const vectorf2& get_position() const
+		{
+			return m_position;
+		}
+
 		transform2D(const transform2D&) = default;
 		transform2D(transform2D&&) = default;
 		transform2D& operator=(const transform2D&) = default;

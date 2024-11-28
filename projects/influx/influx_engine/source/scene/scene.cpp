@@ -1,6 +1,7 @@
 #include "engine_pch.h"
 #include "influx_engine/scene/scene.h"
 
+#if 0
 // influx::engine
 #include "file/engine_files.h"
 
@@ -62,3 +63,4 @@ namespace influx::engine
 		m_name = name;
 	}
 }
+#endif
