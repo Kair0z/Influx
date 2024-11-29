@@ -14,10 +14,12 @@ public:
 			m_object = layer.create();
 			m_mesh = m_object->add_component<engine::mesh_component>();
 			m_transform = m_object->add_component<engine::transform_component>();
+			m_material = m_object->add_component<engine::material_component>();
 		}
 
 		engine::gameobject* m_object = nullptr;
 		engine::mesh_component* m_mesh = nullptr;
+		engine::material_component* m_material = nullptr;
 		engine::transform_component* m_transform = nullptr;
 	};
 
@@ -73,6 +75,34 @@ public:
 		cam_transform.set_position_y(10.0f);
 		cam_transform.look_at({});
 		cam_transform.update_matrix();
+	}
+
+	virtual void on_keydown(input::e_key) override 
+	{
+	}
+
+	virtual void on_keyup(input::e_key) override 
+	{
+	}
+
+	virtual void on_ascii_down(char) override 
+	{
+	}
+
+	virtual void on_ascii_up(char) override 
+	{
+	}
+
+	virtual void on_mouse_move(const input::mouse_position& position) override 
+	{
+	}
+
+	virtual void on_mouse_down(input::e_mouse_button button, const input::mouse_position& position) override 
+	{
+	}
+
+	virtual void on_mouse_up(input::e_mouse_button button, const input::mouse_position& position) override 
+	{
 	}
 
 private:

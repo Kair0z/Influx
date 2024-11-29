@@ -17,9 +17,9 @@ namespace influx
 		{
 			node() = default;
 			node(const data& m_data, uint32 layer)
-				: data{ m_data }, LayerIndex{ layer } {}
+				: data{ m_data }, m_layer_idx{ layer } {}
 
-			uint32 LayerIndex{};
+			uint32 m_layer_idx{};
 			data data{};
 		};
 		using node_vector = vector<node>;
@@ -47,7 +47,7 @@ namespace influx
 
 		inline const node& add(const data& element, const node& parent)
 		{
-			const uint32 new_layer_index = parent.LayerIndex + 1u;
+			const uint32 new_layer_index = parent.m_layer_idx + 1u;
 
 			while (new_layer_index >= m_layers.size())
 			{
@@ -60,6 +60,16 @@ namespace influx
 			return new_node;
 		}
 
+		inline void remove(node& nod)
+		{
+			const uint32 layer_idx = nod.m_layer_idx;
+			if (layer_idx < m_layers.size())
+			{
+				node_vector& layer = m_layers[layer_idx];
+				layer.pop_back();
+			}
+		}
+
 		inline node* get_child(uint32 index, const node& parent)
 		{
 			if (!has_children(parent))
@@ -67,7 +77,7 @@ namespace influx
 				return nullptr;
 			}
 
-			const uint32 child_layer_idx = parent.LayerIndex + 1u;
+			const uint32 child_layer_idx = parent.m_layer_idx + 1u;
 			node_vector& child_layer = m_layers[child_layer_idx];
 			if (index < child_layer.size())
 			{
@@ -81,7 +91,7 @@ namespace influx
 
 		inline uint32 get_num_children(const node& parent) const
 		{
-			const uint32 childLayerIndex = parent.LayerIndex + 1u;
+			const uint32 childLayerIndex = parent.m_layer_idx + 1u;
 			if (childLayerIndex >= m_layers.size())
 			{
 				return 0u;

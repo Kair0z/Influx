@@ -85,7 +85,6 @@ namespace influx::engine
 		m_world = new world();
 
 		m_game->on_start();
-		m_game;
 
 		update_context update_ctx{};
 		while (!m_is_quit_requested)

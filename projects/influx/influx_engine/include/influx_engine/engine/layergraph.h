@@ -23,25 +23,26 @@ namespace influx::engine
 			return new_layer;
 		}
 
-		void update(const update_context& ctx)
+		void destroy_layer(layer* layer)
 		{
-			m_graph.traverse([&ctx](const graph_node& node)
+			if (layer != nullptr)
 			{
-				layer* layer = node.data;
-				if (layer == nullptr) return;
+				remove_from_graph(layer);
 
-				if (layer->m_frame_counter == 0u)
-				{
-					layer->on_start();
-				}
-				else
-				{
-					layer->on_update(ctx);
-				}
-
-				layer->m_frame_counter++;
-			});
+				delete layer;
+				layer = nullptr;
+			}
 		}
+
+		void update(const update_context& ctx);
+
+		void on_keydown(input::e_key);
+		void on_keyup(input::e_key);
+		void on_ascii_down(char);
+		void on_ascii_up(char);
+		void on_mouse_move(const input::mouse_position& position);
+		void on_mouse_down(input::e_mouse_button button, const input::mouse_position& position);
+		void on_mouse_up(input::e_mouse_button button, const input::mouse_position& position);
 
 	private:
 		void add_to_graph(layer* child, layer* parent = nullptr)
@@ -62,6 +63,15 @@ namespace influx::engine
 				{
 					influx_assert(false);
 				}
+			}
+		}
+
+		void remove_from_graph(layer* child)
+		{
+			hierarchy<layer*>::node* found_node = m_graph.find_node(child);
+			if (found_node != nullptr)
+			{
+				m_graph.remove(*found_node);
 			}
 		}
 	};

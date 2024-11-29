@@ -4,6 +4,9 @@
 #include "influx_engine/world/world.h"
 #include "influx_engine/engine/component.h"
 
+// influx::input
+#include "influx_input.h"
+
 namespace influx::engine
 {
 	class layergraph;
@@ -28,6 +31,14 @@ namespace influx::engine
 		virtual void on_start() {}
 		virtual void on_update(const update_context&) {}
 		virtual void on_exit() {}
+
+		virtual void on_keydown(input::e_key) {}
+		virtual void on_keyup(input::e_key) {}
+		virtual void on_ascii_down(char) {}
+		virtual void on_ascii_up(char) {}
+		virtual void on_mouse_move(const input::mouse_position& position) {}
+		virtual void on_mouse_down(input::e_mouse_button button, const input::mouse_position& position) {}
+		virtual void on_mouse_up(input::e_mouse_button button, const input::mouse_position& position) {}
 
 	private:
 		layergraph* m_owner;

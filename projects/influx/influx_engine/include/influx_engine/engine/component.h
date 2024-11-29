@@ -68,8 +68,36 @@ namespace influx::engine
 			return m_mesh_filepath;
 		}
 
+		void set_visible(bool new_vis)
+		{
+			m_is_visible = new_vis;
+		}
+
+		bool is_visible() const
+		{
+			return m_is_visible;
+		}
+
 	private:
 		string m_mesh_filepath;
+		bool m_is_visible;
+	};
+
+	class material_component final
+	{
+	public:
+		void set_color(const math::vectorf4& color)
+		{
+			m_color = color;
+		}
+
+		const math::vectorf4& get_color() const
+		{
+			return m_color;
+		}
+
+	private:
+		math::vectorf4 m_color;
 	};
 
 	class camera_component final : public component
