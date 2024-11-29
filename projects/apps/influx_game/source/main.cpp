@@ -75,6 +75,14 @@ public:
 		cam_transform.set_position_y(10.0f);
 		cam_transform.look_at({});
 		cam_transform.update_matrix();
+
+		const float value = math::pingpong(time, 0.0f, 1.0f);
+		const math::vectorf4 colour = { value, value, value, 1.0f};
+		for (uint32 i = 0u; i < 100u; ++i)
+		{
+			mesh_object& object = m_meshes[i];
+			object.m_material->set_color(colour);
+		}
 	}
 
 	virtual void on_keydown(input::e_key) override 
