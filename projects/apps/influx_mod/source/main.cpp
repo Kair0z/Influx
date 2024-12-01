@@ -1,5 +1,5 @@
 
-#include "core/file.h"
+#include "core/filewatcher.h"
 #include <iostream>
 
 int main()
@@ -8,18 +8,16 @@ int main()
 
 	file_watcher watcher{ file("E:/Data/file.txt") };
 
-	watcher.subscribe_onchange([](const file& file)
-	{
-		std::cout << "file changed! \n";
-	});
-
-	watcher.subscribe_onrename([](const file& file)
+	auto on_file_change = [](const file& file)
 	{
 		std::cout << "file renamed! \n";
-	});
+	};
+	watcher.subscribe<file_watcher::on_change>(on_file_change);
 
 	while (true)
 	{
 		watcher.check_file();
 	}
+
+	watcher.unsub<file_watcher::on_change>(on_file_change);
 }
