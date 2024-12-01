@@ -44,6 +44,11 @@ function new_influx_app(name)
         fastuptodate(false)
 end
 
+function new_influx_module(name)
+    project_dir = g_dir_projects_apps .. "/%{prj.name}/"
+    new_influx_project(name, "SharedLib")
+end
+
 function new_influx_dll(name)
     project_dir = g_dir_projects_engine .. "/%{prj.name}/"
     new_influx_project(name, "SharedLib")

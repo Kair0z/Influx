@@ -24,4 +24,3 @@ public:
 #endif
 	}
 };
-influx_engine_editor(editor);
