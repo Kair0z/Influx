@@ -14,6 +14,7 @@ new_influx_dll("influx_engine")
         "influx_shader",
         "influx_renderer",
         "influx_imgui",
+        "influx_script",
     }
 
     set_influx_includes(dependencies)

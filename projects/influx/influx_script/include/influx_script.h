@@ -4,6 +4,10 @@
 #include "core/file.h"
 #include "core/container/list.h"
 
+// rttr
+#if 0
+#include "rttr/registration.h"
+#endif 
 namespace influx::script
 {
 	struct xvariable
@@ -29,10 +33,19 @@ namespace influx::script
 	class script
 	{
 	public:
+		virtual void on_start() {}
+		virtual void on_update() {}
+		virtual const char* print() {}
 
 	private:
 		file m_file;
 		vector<xclass> m_classes;
 		vector<xstruct> m_structs;
 	};
+}
+
+RTTR_REGISTRATION
+{
+	using namespace rttr;
+	registration::method("f", &f);
 }

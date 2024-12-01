@@ -1,23 +1,21 @@
 
-#include "core/filewatcher.h"
-#include <iostream>
+#include "influx_script.h"
 
-int main()
+class my_script : influx::script::script
 {
-	using namespace influx;
-
-	file_watcher watcher{ file("E:/Data/file.txt") };
-
-	auto on_file_change = [](const file& file)
+public:
+	virtual void on_start() override
 	{
-		std::cout << "file renamed! \n";
-	};
-	watcher.subscribe<file_watcher::on_change>(on_file_change);
 
-	while (true)
-	{
-		watcher.check_file();
 	}
 
-	watcher.unsub<file_watcher::on_change>(on_file_change);
-}
+	virtual void on_update()
+	{
+
+	}
+
+	virtual const char* print()
+	{
+		return "my_script";
+	}
+};
