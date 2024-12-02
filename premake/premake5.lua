@@ -80,7 +80,7 @@ workspace "influx"
     include "../projects/influx/influx_rhi"
     include "../projects/influx/influx_import"
     include "../projects/influx/influx_shader"
-    include "../projects/influx/influx_script"
+    --include "../projects/influx/influx_script"
     include "../projects/influx/shaders"
     group ""
 

@@ -4,8 +4,7 @@
 #include "core/basetypes.h"
 
 // influx::engine
-#include "influx_engine/engine/engine.h"
-#include "influx_engine/engine/layer.h"
+#include "influx_engine/layer/layer.h"
 
 namespace influx::engine
 {
@@ -15,7 +14,6 @@ namespace influx::engine
 		template <typename _ctype, typename ..._init>
 		_ctype* add_component(_init&&...);
 
-		INFLUX_ENGINE_API
 		uint32 get_id() const;
 
 	private:

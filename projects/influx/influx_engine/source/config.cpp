@@ -1,12 +1,10 @@
 #include "engine_pch.h"
 
+// influx::engine
+#include "influx_engine/config.h"
+
 namespace influx::engine
 {
-	const game_config& game_module::get_config() const
-	{
-		return m_config;
-	}
-
 	// app config
 	app_config::self& app_config::set_window_dim(const math::vectoru2& dim)
 	{

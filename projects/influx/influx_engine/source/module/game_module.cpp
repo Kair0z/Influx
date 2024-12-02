@@ -1,10 +1,16 @@
 #include "engine_pch.h"
+#include "influx_engine/module/game_module.h"
 
 // influx::input
 #include "influx_input.h"
 
 namespace influx::engine
 {
+	const game_config& game_module::get_config() const
+	{
+		return m_config;
+	}
+
 	void game_module::on_config(app_config& app, game_config& game)
 	{
 		app

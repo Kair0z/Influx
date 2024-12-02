@@ -19,6 +19,9 @@ struct ImGuiContext;
 
 namespace influx::engine
 {
+	class editor_module;
+	class engine;
+
 #pragma region helpers
 	class compound_keybind_tracker final
 	{

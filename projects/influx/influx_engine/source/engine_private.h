@@ -1,11 +1,13 @@
 #pragma once
 
 // influx::engine
-#include "influx_engine/engine/engine.h"
+#include "influx_engine/common.h"
+#include "influx_engine/config.h"
 
 // influx::core
 #include "core/singleton.h"
 #include "core/threading/thread.h"
+#include "core/file.h"
 
 // influx::platform
 namespace influx::platform
@@ -24,32 +26,12 @@ namespace influx::engine
 	class engine final : public singleton<engine>
 	{
 	public:
-		enum class e_directory : uint8
-		{
-			root,
-			assets,
-			staged,
-			intermediate,
-			binaries,
-			games,
-			count
-		};
-
-		enum class e_game_directory
-		{
-			root,
-			assets,
-			count
-		};
-
 		enum class run_type
 		{
 			game,
 			editor,
 			count
 		};
-
-		void run(base_module* mod);
 
 		file get_engine_directory(e_directory dir) const;
 		file get_game_directory(const string& game_name, e_game_directory dir) const;
@@ -82,10 +64,6 @@ namespace influx::engine
 		void on_window_event(const platform::window_event& ev);
 
 		bool m_is_quit_requested = false;
-		
-		base_module* m_module = nullptr;
-		game_module* m_game = nullptr;
-		editor_module* m_editor = nullptr;
 
 		engine_config m_config;
 		app_config m_app_config;

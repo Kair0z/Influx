@@ -4,6 +4,7 @@
 #include "core/container/map.h"
 #include "core/container/vector.h"
 #include "core/time.h"
+#include "core/threading/thread.h"
 
 // influx::import
 #include "influx_import.h"

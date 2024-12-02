@@ -7,7 +7,7 @@
 #include "core/pointer.h"
 
 // influx::engine
-#include "influx_engine/engine/component.h"
+#include "influx_engine/component.h"
 
 // entt
 #include "entt/entt.hpp"
@@ -61,9 +61,4 @@ namespace influx::engine
 	private:
 		entt::registry m_registry;
 	};
-
-	namespace detail
-	{
-		INFLUX_ENGINE_API world* get_world();
-	}
 }

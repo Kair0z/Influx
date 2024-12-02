@@ -1,5 +1,6 @@
 #pragma once
 
+// influx::core
 #include "core/string.h"
 #include "core/math/vector.h"
 #include "core/file.h"
@@ -17,7 +18,7 @@ namespace influx::engine
 	struct app_config
 	{
 		using self = app_config;
-		INFLUX_ENGINE_API self& set_window_dim(const math::vectoru2& dim);
+		self& set_window_dim(const math::vectoru2& dim);
 
 		math::vectoru2 m_window_dimensions;
 	};
@@ -25,14 +26,14 @@ namespace influx::engine
 	struct game_config final
 	{
 		using self = game_config;
-		INFLUX_ENGINE_API self& set_gameproject_path(const string&);
-		INFLUX_ENGINE_API self& set_name(const string& name);
+		self& set_gameproject_path(const string&);
+		self& set_name(const string& name);
 
 		string m_gameproject_path;
 		string m_gamename;
 	};
 
-	struct INFLUX_ENGINE_API editor_config
+	struct editor_config
 	{
 
 	};

@@ -1,5 +1,6 @@
 #include "engine_pch.h"
-#include "influx_engine/engine/gameobject.h"
+
+#include "influx_engine/gameobject.h"
 
 namespace influx::engine
 {

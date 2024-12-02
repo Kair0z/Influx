@@ -35,6 +35,24 @@ namespace influx::engine
 		};
 	}
 
+	enum class engine_directory : uint8
+	{
+		root,
+		assets,
+		staged,
+		intermediate,
+		binaries,
+		games,
+		count
+	};
+
+	enum class game_directory : uint8
+	{
+		root,
+		assets,
+		count
+	};
+
 	class file_game : public detail::file_interface
 	{
 		bool serialize() override;
