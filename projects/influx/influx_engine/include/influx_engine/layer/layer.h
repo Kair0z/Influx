@@ -11,6 +11,7 @@ namespace influx::engine
 {
 	class layergraph;
 	class gameobject;
+	struct update_context;
 
 	// -- recognize this as 'scene', just more hierarchical and abstract
 	// -- layergraph manages layer hierarchy tick schedule

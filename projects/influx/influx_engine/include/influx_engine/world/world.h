@@ -9,9 +9,6 @@
 // influx::engine
 #include "influx_engine/component.h"
 
-// entt
-#include "entt/entt.hpp"
-
 namespace influx::engine
 {
 	class scene;
@@ -40,6 +37,7 @@ namespace influx::engine
 		world();
 		virtual ~world();
 
+#if 0
 		// -- layer-end -
 		uint32 create_entity()
 		{
@@ -51,14 +49,13 @@ namespace influx::engine
 		{
 			return &m_registry.emplace_or_replace<_ctype>((entt::entity)entt, args...);
 		}
+#endif
 
 		// -- engine-end
 		void build_renderscene(renderer::scene&, renderer::scene2D&) const;
 
 		// deletes unreferenced entities
 		void flush();
-
-	private:
-		entt::registry m_registry;
+		
 	};
 }

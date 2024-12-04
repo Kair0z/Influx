@@ -86,9 +86,9 @@ workspace "influx"
 
     printf(".. apps ")
     group "apps"
+    include "../projects/apps/run_game"
+    include "../projects/apps/run_editor"
     include "../projects/apps/influx_game"
-    include "../projects/apps/influx_editor"
-    include "../projects/apps/influx_mod"
     include "../projects/apps/rhi_tests"
     group ""
 

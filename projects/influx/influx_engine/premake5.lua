@@ -14,7 +14,6 @@ new_influx_dll("influx_engine")
         "influx_shader",
         "influx_renderer",
         "influx_imgui",
-        "influx_script",
     }
 
     set_influx_includes(dependencies)
@@ -23,5 +22,3 @@ new_influx_dll("influx_engine")
     -- remove imgui pch
     filter "files:**/imgui/**.cpp"
         flags {"NoPCH"}
-
-        

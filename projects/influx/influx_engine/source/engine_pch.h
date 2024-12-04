@@ -6,4 +6,4 @@
 #include "core/scope.h"
 
 // influx::engine
-#include "engine_private.h"
+#include "engine.h"

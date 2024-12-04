@@ -1,9 +1,11 @@
-new_influx_game("influx_mod")
+new_influx_app("run_game")
 
     local dependencies =
     {
         "influx_core",
         "influx_engine",
+
+        -- non-mono-engine dependencies
         "influx_platform",
         "influx_input",
         "influx_async",
@@ -11,8 +13,6 @@ new_influx_game("influx_mod")
         "influx_renderer",
         "influx_shader",
         "influx_graphics",
-        "influx_script"
     }
-
-    set_influx_includes(dependencies)
-    set_influx_links(dependencies)
+    set_influx_app_dependencies(dependencies)
+    staticruntime "off"

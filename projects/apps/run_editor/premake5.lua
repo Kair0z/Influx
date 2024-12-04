@@ -1,4 +1,4 @@
-new_influx_app("influx_editor")
+new_influx_app("run_editor")
 
     local dependencies =
     {

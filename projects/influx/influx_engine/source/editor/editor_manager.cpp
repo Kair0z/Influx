@@ -5,7 +5,7 @@
 #include "core/log.h"
 
 // influx::engine
-#include "engine_private.h"
+#include "engine.h"
 #include "file/engine_files.h"
 #include "content/content_manager.h"
 #include "influx_engine/world/world.h"
@@ -14,6 +14,7 @@
 
 // influx::platform
 #include "influx_platform/window.h"
+#include "influx_platform/library.h"
 
 // influx::imgui
 #include "influx_imgui/imgui_translation.h"
@@ -28,7 +29,7 @@ namespace influx::engine
 	string make_game_directory_path(const string& game_name)
 	{
 		engine* engine = get_engine();
-		const file& game_directory = engine->get_engine_directory(engine::e_directory::games);
+		const file& game_directory = get_engine_directory(engine_directory::games);
 		const string gamefile_subdir = game_directory.m_path_full + "/" + game_name + "/";
 		return gamefile_subdir;
 	}
@@ -114,7 +115,7 @@ namespace influx::engine
 		update_main_editor();
 
 		// user-module after main editor
-		m_editor->on_imgui(ctx);
+		// m_mod->on_imgui(ctx);
 
 		return {};
 	}
@@ -265,12 +266,29 @@ namespace influx::engine
 		const float radius = math::pingpong(seconds * anim_speed, max_radius * 0.95f, max_radius);
 
 		m_popup_radial.set_id("##piepopup");
-		m_popup_radial.set_items({ "new", "old" });
+		m_popup_radial.set_items({ "new", "old", "load"});
 		m_popup_radial.set_radius(radius);
 		m_popup_radial.render(m_mousepos);
 
 		if (m_popup_radial.has_selection())
-			logn("selected: {}", m_popup_radial.get_selected());
+		{
+			const char* selected = m_popup_radial.get_selected();
+			logn("selected: {}", selected);
+			if (selected == "load")
+			{
+				string dll_dir = "D:/Git/Influx/bin/debug-windows-x86_64/influx_game/";
+				string dll_path = dll_dir + "influx_game.dll";
+				
+				// load dll
+				static platform::library* lib = nullptr;
+				if (lib == nullptr)
+				{
+					lib = platform::library::load(dll_path);
+				}
+
+				lib->call("foo");
+			}
+		}
 
 		return {};
 	}

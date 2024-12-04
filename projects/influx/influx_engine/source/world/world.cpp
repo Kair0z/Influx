@@ -8,10 +8,14 @@
 // influx::renderer
 #include "influx_renderer/scene.h"
 
+// entt
+#include "entt/entt.hpp"
+
+entt::registry m_registry;
+
 namespace influx::engine
 {
     world::world()
-        : m_registry{}
     {
         
     }
@@ -87,13 +91,5 @@ namespace influx::engine
     void world::flush()
     {
 
-    }
-}
-
-namespace influx::engine::detail
-{
-    world* influx::engine::detail::get_world()
-    {
-        return get_engine()->get_world();
     }
 }

@@ -9,6 +9,9 @@
 #include "core/threading/thread.h"
 #include "core/file.h"
 
+// influx::engine
+#include "file/engine_files.h"
+
 // influx::platform
 namespace influx::platform
 {
@@ -33,8 +36,7 @@ namespace influx::engine
 			count
 		};
 
-		file get_engine_directory(e_directory dir) const;
-		file get_game_directory(const string& game_name, e_game_directory dir) const;
+		void run(run_type);
 
 		platform::window const* get_window() const;
 
@@ -46,8 +48,6 @@ namespace influx::engine
 
 		world* get_world() const;
 
-		bool does_game_exist(const string& game) const;
-
 		float get_fps() const;
 
 		bool is_quit() const;
@@ -55,8 +55,6 @@ namespace influx::engine
 	private:
 		void initialize();
 		void cleanup();
-		void run_game();
-		void run_editor();
 		void run_input();
 		void initialize_renderer(const string& window_name, const app_config& config);
 		void poll_platform_events();
