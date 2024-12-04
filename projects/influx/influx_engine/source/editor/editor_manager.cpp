@@ -273,7 +273,6 @@ namespace influx::engine
 		if (m_popup_radial.has_selection())
 		{
 			const char* selected = m_popup_radial.get_selected();
-			logn("selected: {}", selected);
 			if (selected == "load")
 			{
 				string dll_dir = "D:/Git/Influx/bin/debug-windows-x86_64/influx_game/";
