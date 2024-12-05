@@ -17,7 +17,7 @@
 #include "content/content_manager.h"
 #include "rendering/render_manager.h"
 #include "editor/editor_manager.h"
-#include "influx_engine/world/world.h"
+#include "world/world.h"
 
 namespace influx::engine
 {

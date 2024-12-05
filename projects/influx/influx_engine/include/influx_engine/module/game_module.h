@@ -1,9 +1,7 @@
 #pragma once
 
 // influx::engine
-#include "influx_engine/config.h"
 #include "influx_engine/module/module.h"
-#include "influx_engine/layer/layergraph.h"
 
 namespace influx::engine
 {

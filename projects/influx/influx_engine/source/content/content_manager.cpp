@@ -47,15 +47,15 @@ namespace influx::engine
 		m_start_engine_resources = time::get_now();
 
 		logn("loading engine resources ...");
-		load_assets(engine, e_asset_origin::engine, 
-			get_engine_directory(engine_directory::assets));
+		const auto engine_assets_dir = get_engine_directory(engine_directory::assets);
+		load_assets(engine, e_asset_origin::engine, engine_assets_dir);
 	}
 
 	void content_manager::load_game_assets(const string& game_name, engine* engine)
 	{
 		logn("loading {} resources ...", game_name.c_str());
-		load_assets(engine, e_asset_origin::game, 
-			get_game_directory(game_name, game_directory::assets));
+		const auto game_assets_dir = get_game_directory(game_name, game_directory::assets);
+		load_assets(engine, e_asset_origin::game, game_assets_dir);
 	}
 
 	void content_manager::load_assets(engine* engine, e_asset_origin origin, const file& root)

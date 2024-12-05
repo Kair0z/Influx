@@ -4,7 +4,7 @@
 #include "core/graph/hierarchy.h"
 
 // influx::engine
-#include "influx_engine/layer/layer.h"
+#include "layer/layer.h"
 
 namespace influx::engine
 {

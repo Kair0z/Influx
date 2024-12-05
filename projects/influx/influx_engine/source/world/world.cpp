@@ -1,8 +1,8 @@
 #include "engine_pch.h"
-#include "influx_engine/world/world.h"
+#include "world/world.h"
 
 // influx::engine
-#include "influx_engine/scene/scene.h"
+#include "scene/scene.h"
 #include "content/content_manager.h"
 
 // influx::renderer

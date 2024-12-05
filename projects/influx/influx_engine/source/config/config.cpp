@@ -1,7 +1,7 @@
 #include "engine_pch.h"
 
 // influx::engine
-#include "influx_engine/config.h"
+#include "config/config.h"
 
 namespace influx::engine
 {

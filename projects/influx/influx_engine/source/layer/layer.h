@@ -1,8 +1,8 @@
 #pragma once
 
 // influx::engine
-#include "influx_engine/world/world.h"
-#include "influx_engine/component.h"
+#include "world/world.h"
+#include "component/component.h"
 
 // influx::input
 #include "influx_input.h"

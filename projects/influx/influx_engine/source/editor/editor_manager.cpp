@@ -8,8 +8,8 @@
 #include "engine.h"
 #include "file/engine_files.h"
 #include "content/content_manager.h"
-#include "influx_engine/world/world.h"
-#include "influx_engine/scene/scene.h"
+#include "world/world.h"
+#include "scene/scene.h"
 #include "content/content_manager.h"
 
 // influx::platform

@@ -7,7 +7,7 @@
 #include "core/pointer.h"
 
 // influx::engine
-#include "influx_engine/component.h"
+#include "component/component.h"
 namespace influx::engine
 {
 	class scene;

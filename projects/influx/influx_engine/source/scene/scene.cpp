@@ -1,5 +1,5 @@
 #include "engine_pch.h"
-#include "influx_engine/scene/scene.h"
+#include "scene/scene.h"
 
 #if 0
 // influx::engine

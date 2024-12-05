@@ -1,8 +1,8 @@
 #pragma once
 
 // influx::engine
-#include "influx_engine/common.h"
-#include "influx_engine/config.h"
+#include "common.h"
+#include "config/config.h"
 
 // influx::core
 #include "core/singleton.h"
