@@ -8,12 +8,12 @@
 
 // influx::engine
 #include "influx_engine/component.h"
-
 namespace influx::engine
 {
 	class scene;
 }
 
+// influx::renderer
 namespace influx::renderer
 {
 	struct scene;
@@ -37,25 +37,10 @@ namespace influx::engine
 		world();
 		virtual ~world();
 
-#if 0
-		// -- layer-end -
-		uint32 create_entity()
-		{
-			return (uint32)m_registry.create();
-		}
-
-		template <class _ctype, class ..._args>
-		_ctype* create_component(uint32 entt, _args&&... args)
-		{
-			return &m_registry.emplace_or_replace<_ctype>((entt::entity)entt, args...);
-		}
-#endif
-
 		// -- engine-end
 		void build_renderscene(renderer::scene&, renderer::scene2D&) const;
 
 		// deletes unreferenced entities
 		void flush();
-		
 	};
 }

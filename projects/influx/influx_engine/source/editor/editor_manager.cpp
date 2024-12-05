@@ -285,6 +285,11 @@ namespace influx::engine
 					lib = platform::library::load(dll_path);
 				}
 
+				for (string func : lib->get_functions())
+				{
+					logn("influx_game:{}", func);
+				}
+
 				lib->call("foo");
 			}
 		}

@@ -27,6 +27,7 @@ namespace influx::engine
 
 	void game_module::update(const update_context& ctx)
 	{
+#if 0
 		static bool first = true;
 		if (first)
 		{	
@@ -39,13 +40,19 @@ namespace influx::engine
 			input::subscribe_mouseup([this](input::e_mouse_button button, const input::mouse_position& position){ m_layergraph.on_mouse_up(button, position); });
 			first = false;
 		}
-
+#endif
 		on_update(ctx);
 
+#if 0
 		m_layergraph.update(ctx);
+#endif
 	}
 
 	void game_module::on_update(const update_context& ctx)
+	{
+	}
+
+	void game_module::on_end()
 	{
 	}
 
