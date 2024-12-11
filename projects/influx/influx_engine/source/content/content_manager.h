@@ -12,6 +12,7 @@
 // influx::async
 #include "influx_async.h"
 
+// influx::engine
 namespace influx::engine
 {
 	class engine;
@@ -20,7 +21,7 @@ namespace influx::engine
 namespace influx::engine
 {
 	// content in influx::engine
-	// differentiates between 2 terms.
+	// differentiates between 2 categories.
 	// - resources: the raw input items that the engine accepts and can convert into assets
 	// - assets: influx-native representations of resources (.flx)
 	class content_manager final
