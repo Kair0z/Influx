@@ -8,6 +8,8 @@
 #include "core/singleton.h"
 #include "core/threading/thread.h"
 #include "core/file.h"
+#include "core/result.h"
+#include "core/pointer.h"
 
 // influx::engine
 #include "file/engine_files.h"
@@ -35,28 +37,24 @@ namespace influx::engine
 			editor,
 			count
 		};
-
 		void run(run_type);
 
-		platform::window const* get_window() const;
+		result<cptr<platform::window>> get_window() const;
+		result<cptr<content_manager>> get_content() const;
+		result<cptr<render_manager>> get_renderer() const;
+		result<cptr<world>> get_world() const;
 
-		content_manager* get_content() const;
-
-		render_manager const* get_renderer() const;
+		result<ptr<content_manager>> get_content();
 
 		const frame_time& get_time() const;
-
-		world* get_world() const;
-
 		float get_fps() const;
-
 		bool is_quit() const;
 
 	private:
 		void initialize();
 		void cleanup();
 		void run_input();
-		void initialize_renderer(const string& window_name, const app_config& config);
+		void initialize_renderer(const string& window_name, const math::vectoru2& size);
 		void poll_platform_events();
 		
 		void on_window_event(const platform::window_event& ev);

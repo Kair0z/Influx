@@ -10,7 +10,8 @@ new_influx_game("influx_game")
         "influx_import",
         "influx_renderer",
         "influx_shader",
-        "influx_graphics"
+        "influx_graphics",
+        "influx_file"
     }
 
     set_influx_includes(dependencies)

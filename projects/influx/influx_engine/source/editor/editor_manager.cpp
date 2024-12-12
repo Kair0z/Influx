@@ -62,7 +62,7 @@ namespace influx::engine
 	}
 
 	// loads file at /influx/games/'game_name'/
-	bool load_gamefile(const string& game_name, file_game& out_gamefile)
+	bool load_gamefile(const string& game_name, files::projectfile& out_gamefile)
 	{
 		const string gamefile_path = make_gamefile_path(game_name);
 		if (file::exists(gamefile_path))
@@ -76,7 +76,7 @@ namespace influx::engine
 	}
 
 	// creates file at /influx/games/'game_name'/
-	bool create_gamefile(const string& game_name, file_game& out_gamefile)
+	bool create_gamefile(const string& game_name, files::projectfile& out_gamefile)
 	{
 		const string gamefile_path = make_gamefile_path(game_name);
 		if (file::exists(gamefile_path))
@@ -100,7 +100,8 @@ namespace influx::engine
 		// defaults
 		m_editor_toggle.force_set(true);
 		m_engine_toggle.force_set(true);
-		m_content_toggle.force_set(false);
+		m_fps_toggle.force_set(true);
+		m_content_toggle.force_set(true);
 
 		initialize_inputs();
 
@@ -108,19 +109,16 @@ namespace influx::engine
 		set_target_game(*get_engine(), "influx_game");
 	}
 
-	result editor_manager::update_imgui(ImGuiContext& ctx)
+	result<> editor_manager::update_imgui(ImGuiContext& ctx)
 	{
 		update_context();
 		update_inputs();
+		update_background_dockspace();
 		update_main_editor();
-
-		// user-module after main editor
-		// m_mod->on_imgui(ctx);
-
 		return {};
 	}
 
-	result editor_manager::update_inputs()
+	result<> editor_manager::update_inputs()
 	{
 		// ctrl + space: engine + content
 		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::space))
@@ -137,30 +135,34 @@ namespace influx::engine
 		return {};
 	}
 
-	result editor_manager::update_context()
+	result<> editor_manager::update_context()
 	{
+		result<> res{};
+
 		engine* engine = get_engine();
 		influx_assert(engine);
 
-		const platform::window* window = engine->get_window();
-		influx_assert(window);
+		if (cptr<platform::window> window = res.append_and_get(engine->get_window()))
+		{
+			const math::vectoru2& window_dimensions = window->get_dimensions(platform::window::e_space::client);
+			ImGui::GetIO().DisplaySize = { (float)window_dimensions.x, (float)window_dimensions.y };
+		}
 
-		const math::vectoru2& window_dimensions = window->get_dimensions(platform::window::e_space::client);
-		ImGui::GetIO().DisplaySize = { (float)window_dimensions.x, (float)window_dimensions.y };
-
-		return {};
+		return res;
 	}
 
-	result editor_manager::update_main_editor()
+	result<> editor_manager::update_main_editor()
 	{
+		result<> result{};
+
 		engine* engine = get_engine();
 		influx_assert(engine);
 
-		world* world = engine->get_world();
-		influx_assert(world);
+		auto res_world = engine->get_world();
+		influx_assert(res_world);
 
-		content_manager* content = engine->get_content();
-		influx_assert(content);
+		auto res_content = engine->get_content();
+		influx_assert(res_content);
 
 		if (!m_editor_toggle)
 		{
@@ -174,12 +176,12 @@ namespace influx::engine
 			{
 				if (ImGui::Button("new game"))
 				{
-					create_gamefile("influx_game", m_current_gamefile);
+					create_gamefile("influx_game", m_projectfile);
 				}
 
 				if (ImGui::Button("load game"))
 				{
-					load_gamefile("influx_game", m_current_gamefile);
+					load_gamefile("influx_game", m_projectfile);
 				}
 
 				if (ImGui::Button("new scene"))
@@ -216,8 +218,8 @@ namespace influx::engine
 			ImGui::EndMainMenuBar();
 		}
 
-		// "influx engine"
-		if (m_engine_toggle)
+		// "fps"
+		if (m_fps_toggle)
 		{
 			if (ImGui::Begin("influx engine"))
 			{
@@ -230,20 +232,28 @@ namespace influx::engine
 		// "game:content"
 		if (m_content_toggle)
 		{
-			if (ImGui::Begin(has_game() ? (get_game_name() + ":content").c_str() : "content"))
+			m_content_animation.update(engine->get_time().get_time_seconds());
+
+			const math::float2 window_size = { 200.0f, 200.0f };
+			const math::float2 animated_pos = m_content_animation.get_lerped<math::float2>({ 0, 0 }, { 1280 - window_size.x, 720 - window_size.y });
+
+			ImGui::SetNextWindowPos(imgui::translate(animated_pos));
+			ImGui::SetNextWindowSize(imgui::translate(window_size));
+			
+			if (ImGui::Begin(has_project() ? (get_projectname().get() + ":content").c_str() : "content"))
 			{
 				// "scene:filepath"
-				for (const auto& pair : content->get_scenes())
+				for (const auto& pair : res_content->get_scenes())
 					if (pair.second.is_loaded()) 
 						ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 				ImGui::Text("--");
 				// "texture:filepath"
-				for (const auto& pair : content->get_images())
+				for (const auto& pair : res_content->get_images())
 					if (pair.second.is_loaded())
 						ImGui::Text("texture:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 				ImGui::Text("--");
 				// "shader:filepath"
-				for (const auto& pair : content->get_shaders())
+				for (const auto& pair : res_content->get_shaders())
 					if (pair.second.is_loaded())
 						ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 				ImGui::Text("--");
@@ -257,7 +267,7 @@ namespace influx::engine
 		return {};
 	}
 
-	result editor_manager::update_radial_menu()
+	result<> editor_manager::update_radial_menu()
 	{
 		// temp: size animation
 		const float max_radius = 50.0f;
@@ -297,9 +307,43 @@ namespace influx::engine
 		return {};
 	}
 
-	result editor_manager::set_target_game(engine& engine, const string& gamename)
+	result<> editor_manager::update_background_dockspace()
 	{
-		if (has_game() && get_game_name() == gamename)
+		// Get the current viewport
+		ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+		// Set up a window that spans the entire viewport
+		ImGui::SetNextWindowPos(viewport->Pos);
+		ImGui::SetNextWindowSize(viewport->Size);
+		ImGui::SetNextWindowViewport(viewport->ID);
+
+		// Set window flags to make it invisible and non-interactive
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoNavFocus;
+
+		window_flags |= ImGuiWindowFlags_NoBackground;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+		ImGui::Begin("InvisibleDockSpace", nullptr, window_flags);
+		ImGui::PopStyleVar(3);
+
+		// Create the dock space
+		ImGuiID dockspace_id = ImGui::GetID("InvisibleDockSpace");
+		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+		ImGui::End();
+
+		return {};
+	}
+
+	result<> editor_manager::set_target_game(engine& engine, const string& gamename)
+	{
+		if (has_project() && get_projectname().get() == gamename)
 		{
 			return {};
 		}
@@ -311,38 +355,38 @@ namespace influx::engine
 			create_gamefile(gamename, m_current_gamefile);
 		}
 #else
-		create_gamefile(gamename, m_current_gamefile);
+		create_gamefile(gamename, m_projectfile);
 #endif
 
 		engine.get_content()->load_game_assets(gamename, &engine);
 		return {};
 	}
 
-	result editor_manager::on_keydown(input::e_key key)
+	result<> editor_manager::on_keydown(input::e_key key)
 	{
 		m_keybinds.set(key, true);
 		return {};
 	}
 
-	result editor_manager::on_keyup(input::e_key key)
+	result<> editor_manager::on_keyup(input::e_key key)
 	{
 		m_keybinds.set(key, false);
 		return {};
 	}
 
-	result editor_manager::on_ascii_down(char ascii)
+	result<> editor_manager::on_ascii_down(char ascii)
 	{
 		m_keybinds.set(ascii, true);
 		return {};
 	}
 
-	result editor_manager::on_ascii_up(char ascii)
+	result<> editor_manager::on_ascii_up(char ascii)
 	{
 		m_keybinds.set(ascii, false);
 		return {};
 	}
 
-	result editor_manager::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
+	result<> editor_manager::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
 	{
 		switch (button)
 		{
@@ -355,7 +399,7 @@ namespace influx::engine
 		return {};
 	}
 
-	result editor_manager::on_mouse_up(input::e_mouse_button button, const input::mouse_position& position)
+	result<> editor_manager::on_mouse_up(input::e_mouse_button button, const input::mouse_position& position)
 	{
 		switch (button)
 		{
@@ -367,49 +411,45 @@ namespace influx::engine
 		return {};
 	}
 
-	result editor_manager::on_mouse_move(const input::mouse_position& position)
+	result<> editor_manager::on_mouse_move(const input::mouse_position& position)
 	{
 		m_mousepos = position.m_client;
 		return {};
 	}
 
-	bool editor_manager::has_game() const
+	bool editor_manager::has_project() const
 	{
-		return m_current_gamefile.m_name != "";
+		return m_projectfile.m_name != "";
 	}
 
-	string editor_manager::get_game_name() const
+	result<string> editor_manager::get_projectname() const
 	{
-		if (has_game())
+		if (has_project())
 		{
-			return m_current_gamefile.m_name;
+			return m_projectfile.m_name;
 		}
 
 		return "";
 	}
 
-	result editor_manager::initialize_inputs()
+	result<> editor_manager::initialize_inputs()
 	{
 		input::subscribe_keydown([this](input::e_key key) { on_keydown(key); });
 		input::subscribe_keyup([this](input::e_key key) { on_keyup(key); });
 		input::subscribe_asciidown([this](char ascii) { on_ascii_down(ascii); });
 		input::subscribe_asciiup([this](char ascii) { on_ascii_up(ascii); });
-
 		input::subscribe_mousemove([this](const input::mouse_position& position)
 		{
 			on_mouse_move(position);
 		});
-
 		input::subscribe_mousedown([this](input::e_mouse_button button, const input::mouse_position& position)
 		{
 			on_mouse_down(button, position);
 		});
-
 		input::subscribe_mouseup([this](input::e_mouse_button button, const input::mouse_position& position)
 		{
 			on_mouse_up(button, position);
 		});
-
 		return {};
 	}
 }

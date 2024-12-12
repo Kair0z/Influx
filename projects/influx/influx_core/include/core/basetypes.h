@@ -30,5 +30,5 @@ namespace influx
 	}
 
 	template <typename _t>
-	using opt = std::optional<_t>;
+	using option = std::optional<_t>;
 }

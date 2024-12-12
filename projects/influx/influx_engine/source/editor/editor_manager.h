@@ -8,8 +8,8 @@
 // influx::input
 #include "influx_input.h"
 
-// influx::engine
-#include "file/engine_files.h"
+// influx::file
+#include "influx_file.h"
 
 // influx::imgui
 #include "influx_imgui/imgui_widgets.h" // imgui::popup_radial
@@ -148,41 +148,44 @@ namespace influx::engine
 	public:
 		editor_manager(editor_module* editor);
 
-		result update_imgui(ImGuiContext& ctx);
+		result<> update_imgui(ImGuiContext& ctx);
 
 		// sets the editor up to load assets & target the named game
-		result load_gameproject(engine& engine, const string& name);
+		result<> load_project(engine& engine, const string& name);
 
-		result set_target_game(engine& engine, const string& gamename);
+		result<> set_target_game(engine& engine, const string& gamename);
 
-		bool has_game() const;
-		string get_game_name() const;
+		bool has_project() const;
+		result<string> get_projectname() const;
 
 	private:
 		editor_module* m_editor = nullptr;
-		result initialize_inputs();
+		result<> initialize_inputs();
 
 		compound_keybind_tracker m_keybinds;
 		cooldown_toggle m_content_toggle = 0.5f;
+		animated m_content_animation;
+		cooldown_toggle m_fps_toggle = 0.5f;
 		cooldown_toggle m_engine_toggle = 0.5f;
 		cooldown_toggle m_editor_toggle = 0.5f;
 
-		file_game m_current_gamefile;
+		files::projectfile m_projectfile;
 
-		result update_inputs();
-		result update_context();
-		result update_main_editor();
-		result update_radial_menu();
+		result<> update_inputs();
+		result<> update_context();
+		result<> update_main_editor();
+		result<> update_radial_menu();
+		result<> update_background_dockspace();
 
 		imgui::popup_radial m_popup_radial;
 		math::vectorf2 m_mousepos;
 
-		result on_keydown(input::e_key);
-		result on_keyup(input::e_key);
-		result on_ascii_down(char);
-		result on_ascii_up(char);
-		result on_mouse_move(const input::mouse_position& position);
-		result on_mouse_down(input::e_mouse_button button, const input::mouse_position& position);
-		result on_mouse_up(input::e_mouse_button button, const input::mouse_position& position);
+		result<> on_keydown(input::e_key);
+		result<> on_keyup(input::e_key);
+		result<> on_ascii_down(char);
+		result<> on_ascii_up(char);
+		result<> on_mouse_move(const input::mouse_position& position);
+		result<> on_mouse_down(input::e_mouse_button button, const input::mouse_position& position);
+		result<> on_mouse_up(input::e_mouse_button button, const input::mouse_position& position);
 	};
 }

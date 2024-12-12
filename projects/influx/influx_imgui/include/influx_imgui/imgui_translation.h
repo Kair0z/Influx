@@ -12,4 +12,9 @@ namespace influx::imgui
 	{
 		return ImVec2{ vec.x, vec.y };
 	}
+
+	inline static math::vectorf2 translate(const ImVec2& vec)
+	{
+		return math::vectorf2{ vec.x, vec.y };
+	}
 }

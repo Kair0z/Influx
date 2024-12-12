@@ -30,7 +30,6 @@ namespace influx::engine
 		if (type == run_type::editor)
 		{
 			m_editorman = new editor_manager(nullptr);
-
 			render_name = "influx_editor";
 		}
 		else
@@ -38,10 +37,10 @@ namespace influx::engine
 			render_name = "influx_game";
 		}
 
-		// init render
+		// initialize render
 		app_config app_config{};
-		app_config.m_window_dimensions = { 640u, 480u };
-		initialize_renderer(render_name, app_config);
+		app_config.m_window_dimensions = { 1280u, 720u };
+		initialize_renderer(render_name, app_config.m_window_dimensions);
 
 		// init world
 		m_world = new world();
@@ -148,11 +147,11 @@ namespace influx::engine
 			m_inputthread.join();
 	}
 
-	void engine::initialize_renderer(const string& window_name, const app_config& config)
+	void engine::initialize_renderer(const string& window_name, const math::vectoru2& size)
 	{
 		platform::window_desc window_desc{};
 		window_desc
-			.set_dimensions(config.m_window_dimensions)
+			.set_dimensions(size)
 			.set_name(window_name);
 
 		m_window = platform::window::create(window_desc);
@@ -180,29 +179,34 @@ namespace influx::engine
 		input::push_window_event(ev);
 	}
 
-	platform::window const* engine::get_window() const
+	result<cptr<platform::window>> engine::get_window() const
 	{
 		return m_window;
 	}
 
-	content_manager* engine::get_content() const
+	result<cptr<content_manager>> engine::get_content() const
 	{
 		return m_contentman;
 	}
 
-	render_manager const* engine::get_renderer() const
+	result<cptr<render_manager>> engine::get_renderer() const
 	{
 		return m_renderman;
+	}
+
+	result<cptr<world>> engine::get_world() const
+	{
+		return m_world;
+	}
+
+	result<ptr<content_manager>> engine::get_content()
+	{
+		return m_contentman;
 	}
 
 	const frame_time& engine::get_time() const
 	{
 		return m_time;
-	}
-
-	world* engine::get_world() const
-	{
-		return m_world;
 	}
 
 	float engine::get_fps() const
@@ -215,7 +219,7 @@ namespace influx::engine
 		return m_is_quit;
 	}
 
-	world* get_world()
+	result<cptr<world>> get_world()
 	{
 		return get_engine()->get_world();
 	}

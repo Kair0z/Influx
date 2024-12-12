@@ -1,7 +1,9 @@
 #pragma once
 
+// influx::core
 #include "core/cast.h"
 #include "core/function.h"
+#include "core/basetypes.h"
 
 // STL:
 #include <chrono>
@@ -33,6 +35,13 @@ namespace influx::time
 		point before = get_now();
 		function();
 		return get_ms_between<_t>(get_now(), before);
+	}
+
+	static float measure_msf(const function<void()>& function)
+	{
+		point before = get_now();
+		function();
+		return get_ms_between<float>(get_now(), before);
 	}
 
 	class range final
@@ -82,5 +91,27 @@ namespace influx::time
 	private:
 		point m_start;
 		point m_end;
+	};
+
+	class profiler
+	{
+	public:
+		struct result
+		{
+			float m_ms_average = 0.0f;
+		};
+
+		static result run(const function<void()>& func, const uint32 num_iterations)
+		{
+			float sum_ms = 0.0f;
+			for (uint32 i = 0u; i < num_iterations; ++i)
+			{
+				sum_ms += measure_msf(func);
+			}
+
+			result new_result{};
+			new_result.m_ms_average = sum_ms / num_iterations;
+			return new_result;
+		}
 	};
 }

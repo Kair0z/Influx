@@ -66,7 +66,7 @@ namespace influx::files
 
 #define archive(variable) archive_json(variable)
 
-	bool gamefile::serialize()
+	bool projectfile::serialize()
 	{
 		archive(m_id);
 		archive(m_name);

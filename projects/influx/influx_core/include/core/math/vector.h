@@ -252,6 +252,14 @@ namespace influx::math
 	using float2 = vectorf2;
 	using float3 = vectorf3;
 	using float4 = vectorf4;
+
+	using uint2 = vectoru2;
+	using uint3 = vectoru3;
+	using uint4 = vectoru4;
+
+	using int2 = vectori2;
+	using int3 = vectori3;
+	using int4 = vectori4;
 #pragma endregion
 }
 

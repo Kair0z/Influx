@@ -10,6 +10,10 @@ namespace influx
 	template <typename _t>
 	using ptr = _t*;
 
+	// pointer that points to an immutable object
+	template <typename _t>
+	using cptr = _t const*;
+
 	template <typename _t>
 	constexpr bool is_null(const ptr<_t> p)
 	{

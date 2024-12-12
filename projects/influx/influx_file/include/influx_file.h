@@ -6,7 +6,6 @@
 #define INFLUX_FILE_API __declspec(dllimport)
 #endif
 
-
 // influx::core
 #include "core/basetypes.h"
 #include "core/file.h"
@@ -39,7 +38,7 @@ namespace influx::files
 		};
 	}
 
-	class gamefile final : public detail::file_interface
+	class projectfile final : public detail::file_interface
 	{
 		INFLUX_FILE_API virtual bool serialize() override;
 
