@@ -174,6 +174,7 @@ namespace influx::engine
 		editor_window m_main_window;
 		editor_window m_fps_window;
 		editor_window m_content_window;
+		editor_window m_engine_content_window;
 		imgui::popup_radial m_popup_radial;
 
 		files::projectfile m_projectfile;

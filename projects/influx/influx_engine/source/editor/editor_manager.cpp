@@ -174,20 +174,13 @@ namespace influx::engine
 
 		// "fps"
 		{
-			m_content_window.set_visible(m_fps_toggle);
-			m_content_window.set_name("influx engine");
-			m_content_window.run([&engine]()
+			m_fps_window.set_visible(m_fps_toggle);
+			m_fps_window.set_name("influx engine");
+			m_fps_window.run([&engine]()
 			{
 				imgui::scoped_style_var minsize(ImGuiStyleVar_WindowMinSize, ImVec2(1000, 1000));
 				ImGui::Text("fps: %f", engine->get_fps());
 			});
-
-			if (ImGui::Begin("influx engine"))
-			{
-				imgui::scoped_style_var minsize(ImGuiStyleVar_WindowMinSize, ImVec2(1000, 1000));
-				ImGui::Text("fps: %f", engine->get_fps());
-			}
-			ImGui::End();
 		}
 
 		// "game:content"
@@ -198,24 +191,44 @@ namespace influx::engine
 			const string name = has_project() ? (get_projectname().get() + ":content") : "content";
 
 			m_content_window.set_visible(m_content_toggle);
-			m_content_window.set_position(animated_pos);
+			// m_content_window.set_position(animated_pos);
 			m_content_window.set_size(window_size);
 			m_content_window.set_name(name);
 			m_content_window.run([&res_content]()
 			{
 				// "scene:filepath"
 				for (const auto& pair : res_content->get_scenes())
-					if (pair.second.is_loaded())
+					if (pair.second.is_loaded() && pair.second.is_game())
 						ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 				ImGui::Text("--");
 				// "texture:filepath"
 				for (const auto& pair : res_content->get_images())
-					if (pair.second.is_loaded())
+					if (pair.second.is_loaded() && pair.second.is_game())
 						ImGui::Text("texture:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 				ImGui::Text("--");
 				// "shader:filepath"
 				for (const auto& pair : res_content->get_shaders())
-					if (pair.second.is_loaded())
+					if (pair.second.is_loaded() && pair.second.is_game())
+						ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+				ImGui::Text("--");
+			});
+
+			m_engine_content_window.set_name("engine:content");
+			m_engine_content_window.run([&res_content]()
+			{
+				// "scene:filepath"
+				for (const auto& pair : res_content->get_scenes())
+					if (pair.second.is_loaded() && pair.second.is_engine())
+						ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+				ImGui::Text("--");
+				// "texture:filepath"
+				for (const auto& pair : res_content->get_images())
+					if (pair.second.is_loaded() && pair.second.is_engine())
+						ImGui::Text("texture:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+				ImGui::Text("--");
+				// "shader:filepath"
+				for (const auto& pair : res_content->get_shaders())
+					if (pair.second.is_loaded() && pair.second.is_engine())
 						ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 				ImGui::Text("--");
 			});

@@ -59,6 +59,16 @@ namespace influx::engine
 				return m_origin;
 			}
 
+			bool is_engine() const
+			{
+				return m_origin == e_asset_origin::engine;
+			}
+
+			bool is_game() const
+			{
+				return m_origin == e_asset_origin::game;
+			}
+
 			e_load_state get_loadstate() const
 			{
 				return m_state;
