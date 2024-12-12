@@ -29,14 +29,18 @@ namespace influx::engine
 
 			const _t& get() const
 			{
-				return m_force_position.m_force_value.value();
+				return m_force_value.value();
 			}
 
 			option<_t> m_force_value;
 		};
 
 	public:
-		void run();
+		using callback = std::function<void()>;
+		void run(const callback& clb);
+
+		void set_name(const string& name);
+		const string& get_name() const;
 
 		// coordinates are in in pixels
 		math::rectf get_rect() const;
@@ -45,6 +49,9 @@ namespace influx::engine
 
 		void set_visible(bool new_visible);
 		bool is_visible() const;
+
+		void set_position(const math::float2& new_position);
+		void set_size(const math::float2& new_size);
 
 	private:
 		string m_title;

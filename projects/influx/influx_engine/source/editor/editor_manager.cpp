@@ -170,6 +170,65 @@ namespace influx::engine
 		}
 
 		// "main menu"
+		update_mainmenu();
+
+		// "fps"
+		{
+			m_content_window.set_visible(m_fps_toggle);
+			m_content_window.set_name("influx engine");
+			m_content_window.run([&engine]()
+			{
+				imgui::scoped_style_var minsize(ImGuiStyleVar_WindowMinSize, ImVec2(1000, 1000));
+				ImGui::Text("fps: %f", engine->get_fps());
+			});
+
+			if (ImGui::Begin("influx engine"))
+			{
+				imgui::scoped_style_var minsize(ImGuiStyleVar_WindowMinSize, ImVec2(1000, 1000));
+				ImGui::Text("fps: %f", engine->get_fps());
+			}
+			ImGui::End();
+		}
+
+		// "game:content"
+		{
+			const math::float2 window_size = { 200.0f, 200.0f };
+			const float t = math::pingpong(engine->get_time().get_time_seconds(), 0.0f, 1.0f);
+			const math::float2 animated_pos = math::lerp<math::float2>(t, { 0, 0 }, { 1280 - window_size.x, 720 - window_size.y });
+			const string name = has_project() ? (get_projectname().get() + ":content") : "content";
+
+			m_content_window.set_visible(m_content_toggle);
+			m_content_window.set_position(animated_pos);
+			m_content_window.set_size(window_size);
+			m_content_window.set_name(name);
+			m_content_window.run([&res_content]()
+			{
+				// "scene:filepath"
+				for (const auto& pair : res_content->get_scenes())
+					if (pair.second.is_loaded())
+						ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+				ImGui::Text("--");
+				// "texture:filepath"
+				for (const auto& pair : res_content->get_images())
+					if (pair.second.is_loaded())
+						ImGui::Text("texture:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+				ImGui::Text("--");
+				// "shader:filepath"
+				for (const auto& pair : res_content->get_shaders())
+					if (pair.second.is_loaded())
+						ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+				ImGui::Text("--");
+			});
+		}
+
+		// radial menu
+		update_radial_menu();
+
+		return {};
+	}
+
+	result<> editor_manager::update_mainmenu()
+	{
 		if (ImGui::BeginMainMenuBar())
 		{
 			if (ImGui::BeginMenu("file"))
@@ -217,52 +276,6 @@ namespace influx::engine
 
 			ImGui::EndMainMenuBar();
 		}
-
-		// "fps"
-		if (m_fps_toggle)
-		{
-			if (ImGui::Begin("influx engine"))
-			{
-				imgui::scoped_style_var minsize(ImGuiStyleVar_WindowMinSize, ImVec2(1000, 1000));
-				ImGui::Text("fps: %f", engine->get_fps());
-			}
-			ImGui::End();
-		}
-
-		// "game:content"
-		if (m_content_toggle)
-		{
-			m_content_animation.update(engine->get_time().get_time_seconds());
-
-			const math::float2 window_size = { 200.0f, 200.0f };
-			const math::float2 animated_pos = m_content_animation.get_lerped<math::float2>({ 0, 0 }, { 1280 - window_size.x, 720 - window_size.y });
-
-			ImGui::SetNextWindowPos(imgui::translate(animated_pos));
-			ImGui::SetNextWindowSize(imgui::translate(window_size));
-			
-			if (ImGui::Begin(has_project() ? (get_projectname().get() + ":content").c_str() : "content"))
-			{
-				// "scene:filepath"
-				for (const auto& pair : res_content->get_scenes())
-					if (pair.second.is_loaded()) 
-						ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
-				ImGui::Text("--");
-				// "texture:filepath"
-				for (const auto& pair : res_content->get_images())
-					if (pair.second.is_loaded())
-						ImGui::Text("texture:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
-				ImGui::Text("--");
-				// "shader:filepath"
-				for (const auto& pair : res_content->get_shaders())
-					if (pair.second.is_loaded())
-						ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
-				ImGui::Text("--");
-			}
-			ImGui::End();
-		}
-
-		// radial menu
-		update_radial_menu();
 
 		return {};
 	}

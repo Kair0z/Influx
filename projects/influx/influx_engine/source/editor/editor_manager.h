@@ -14,6 +14,9 @@
 // influx::imgui
 #include "influx_imgui/imgui_widgets.h" // imgui::popup_radial
 
+// influx::engine
+#include "editor_window.h"
+
 // imgui
 struct ImGuiContext;
 
@@ -164,20 +167,24 @@ namespace influx::engine
 
 		compound_keybind_tracker m_keybinds;
 		cooldown_toggle m_content_toggle = 0.5f;
-		animated m_content_animation;
 		cooldown_toggle m_fps_toggle = 0.5f;
 		cooldown_toggle m_engine_toggle = 0.5f;
 		cooldown_toggle m_editor_toggle = 0.5f;
+
+		editor_window m_main_window;
+		editor_window m_fps_window;
+		editor_window m_content_window;
+		imgui::popup_radial m_popup_radial;
 
 		files::projectfile m_projectfile;
 
 		result<> update_inputs();
 		result<> update_context();
+		result<> update_mainmenu();
 		result<> update_main_editor();
 		result<> update_radial_menu();
 		result<> update_background_dockspace();
 
-		imgui::popup_radial m_popup_radial;
 		math::vectorf2 m_mousepos;
 
 		result<> on_keydown(input::e_key);
