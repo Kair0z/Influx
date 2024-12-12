@@ -3,10 +3,16 @@
 #include <string>
 #include <iostream>
 
+// influx::core
 #include "core/time.h"
 #include "core/container/map.h"
 #include "core/string.h"
 #include "core/container/vector.h"
+
+#define USE_PIX 1
+#if USE_PIX
+#include "pix3.h"
+#endif
 
 namespace influx
 {
@@ -21,11 +27,19 @@ namespace influx
 	inline void begin_event(const std::string& name)
 	{
 		g_scopedata[name].m_times_ran++;
+
+#if USE_PIX
+		PIXBeginEvent(0u, name);
+#endif
 	}
 
 	inline void end_event(const string& name, const scope_footprint& data)
 	{
 		g_scopedata[name].m_durationsum += data.m_durationsum;
+
+#if USE_PIX
+		PIXEndEvent();
+#endif
 	}
 
 	class scoped_event final
