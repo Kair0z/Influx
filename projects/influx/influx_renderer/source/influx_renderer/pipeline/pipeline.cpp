@@ -56,7 +56,7 @@ namespace influx::renderer
             }
         };
 
-        // parse resources in shader refletions
+        // parse resources in shader reflections
         if (vs_reflection)
         {
             for (const shader::reflection::resource& resource : vs_reflection->m_bound_resources)
