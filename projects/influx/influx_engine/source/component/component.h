@@ -4,6 +4,10 @@
 #include "core/string.h"
 #include "core/math/transform.h"
 #include "core/scene/camera.h"
+#include "core/function.h"
+
+// influx::input
+#include "influx_input.h"
 
 namespace influx::engine
 {
@@ -28,6 +32,121 @@ namespace influx::engine
 		math::transform3D& get_transform()
 		{
 			return m_transform;
+		}
+
+		void translate(const math::vectorf3& add_position, bool blocal = false)
+		{
+			m_transform.translate(add_position, blocal);
+		}
+
+		void rotate(float delta_angle, const math::vectorf3& axis)
+		{
+			m_transform.rotate(delta_angle, axis);
+		}
+
+		void rotate_y(float delta_angle, bool blocal = false)
+		{
+			m_transform.rotate_y(delta_angle, blocal);
+		}
+
+		void rotate_x(float delta_angle, bool blocal = false)
+		{
+			m_transform.rotate_x(delta_angle, blocal);
+		}
+
+		void set_position(const math::vectorf3& position)
+		{
+			m_transform.set_position(position);
+		}
+
+		void set_position(float x, float y, float z)
+		{
+			m_transform.set_position(x,y,z);
+		}
+
+		void set_position_x(float x)
+		{
+			m_transform.set_position_x(x);
+		}
+
+		void set_position_y(float y)
+		{
+			m_transform.set_position_y(y);
+		}
+
+		void set_position_z(float z)
+		{
+			m_transform.set_position_z(z);
+		}
+
+		void set_forward(const math::vectorf3& newForward)
+		{
+			m_transform.set_forward(newForward);
+		}
+
+		void set_right(const math::vectorf3& newRight)
+		{
+			m_transform.set_right(newRight);
+		}
+
+		void set_up(const math::vectorf3& newUp)
+		{
+			m_transform.set_up(newUp);
+		}
+
+		void set_scale(const math::vectorf3& scale)
+		{
+			m_transform.set_scale(scale);
+		}
+
+		void set_scale(const float scale)
+		{
+			m_transform.set_scale(scale);
+		}
+
+		void look_at(const math::vectorf3& location)
+		{
+			m_transform.look_at(location);
+		}
+
+		const math::rotation& get_rotation() const
+		{
+			return m_transform.get_rotation();
+		}
+
+		math::vectorf3 get_position() const
+		{
+			return m_transform.get_position();
+		}
+
+		math::vectorf3 get_forward() const
+		{
+			return m_transform.get_forward();
+		}
+
+		math::vectorf3 get_right() const
+		{
+			return m_transform.get_right();
+		}
+
+		math::vectorf3 get_up() const
+		{
+			return m_transform.get_up();
+		}
+
+		math::vectorf3 get_scale() const
+		{
+			return m_transform.get_scale();
+		}
+
+		math::matrix4x4f get_matrix() const
+		{
+			return m_transform.get_matrix();
+		}
+
+		void update_matrix()
+		{
+			m_transform.update_matrix();
 		}
 
 	private:
@@ -115,5 +234,17 @@ namespace influx::engine
 
 	private:
 		influx::scene::camera m_camera{};
+	};
+
+	class input_component final
+	{
+	public:
+		function<void(input::e_key)>	m_on_keydown = {};
+		function<void(input::e_key)>	m_on_keyup = {};
+		function<void(char)>			m_on_ascii_down = {};
+		function<void(char)>			m_on_ascii_up = {};
+		function<void(const input::mouse_position&)> m_on_mouse_move = {};
+		function<void(input::e_mouse_button button, const input::mouse_position&)> m_on_mouse_down = {};
+		function<void(input::e_mouse_button button, const input::mouse_position&)> m_on_mouse_up = {};
 	};
 }

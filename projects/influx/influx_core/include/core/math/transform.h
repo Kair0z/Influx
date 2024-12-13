@@ -111,10 +111,12 @@ namespace influx::math
 		{
 			m_position.x = x;
 		}
+
 		void set_position_y(float y)
 		{
 			m_position.y = y;
 		}
+
 		void set_position_z(float z)
 		{
 			m_position.z = z;
@@ -124,22 +126,27 @@ namespace influx::math
 		{
 			m_rotation.set_forward(newForward);
 		}
+
 		void set_right(const vectorf3& newRight)
 		{
-			m_rotation.set_forward(newRight);
+			m_rotation.set_right(newRight);
 		}
+
 		void set_up(const vectorf3& newUp)
 		{
-			m_rotation.set_forward(newUp);
+			m_rotation.set_up(newUp);
 		}
+
 		void set_scale(const vectorf3& scale)
 		{
 			m_scale = scale;
 		}
+
 		void set_scale(const float scale)
 		{
 			m_scale = vectorf3{ scale, scale, scale };
 		}
+
 		void look_at(const vectorf3& location)
 		{
 			set_forward((location - get_position()).normalized());
@@ -149,22 +156,27 @@ namespace influx::math
 		{
 			return m_rotation;
 		}
+
 		vectorf3 get_position() const
 		{
 			return m_position;
 		}
+
 		vectorf3 get_forward() const
 		{
 			return m_rotation.get_forward();
 		}
+
 		vectorf3 get_right() const
 		{
 			return m_rotation.get_right();
 		}
+
 		vectorf3 get_up() const
 		{
 			return m_rotation.get_up();
 		}
+
 		vectorf3 get_scale() const
 		{
 			return m_scale;

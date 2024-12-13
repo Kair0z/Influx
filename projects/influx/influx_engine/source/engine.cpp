@@ -45,6 +45,47 @@ namespace influx::engine
 		// init world
 		m_world = new world();
 
+		// TEMP
+		{
+			auto entity = m_world->create_entity();
+			transform_component& ent_transform = m_world->create_component<transform_component>(entity);
+			ent_transform.set_position({ 0.0f, 0.0f, 0.0f });
+			ent_transform.set_scale(0.01f);
+			m_world->create_component<mesh_component>(entity).set_mesh_path("sphere");
+
+			static float distance = 10.0f;
+			auto camera = m_world->create_entity();
+			transform_component& cam_transform = m_world->create_component<transform_component>(camera);
+			cam_transform.set_position({ 0.0f, 0.0f, distance });
+			cam_transform.look_at({ 0.0f, 0.0f, 0.0f });
+			m_world->create_component<camera_component>(camera).set_fov(90.0f);
+
+			static math::float2 spin_velocity = {};
+			static math::float2 mouse_position_previous = {};
+			static math::float2 angular_pos = {};
+			
+			input_component& cam_input = m_world->create_component<input_component>(camera);
+			cam_input.m_on_mouse_move = [this, &cam_transform](const input::mouse_position& pos)
+			{
+				const math::float2 delta_mouse = pos.m_client - mouse_position_previous;
+				mouse_position_previous = pos.m_client;
+
+				const float delta_seconds = m_time.get_delta_seconds();
+				spin_velocity += delta_mouse * delta_seconds * 10.0f;
+				angular_pos += spin_velocity * delta_seconds;
+
+				cam_transform.set_position_x(distance * math::cosf(angular_pos.x));
+				cam_transform.set_position_y(distance * math::sinf(angular_pos.y));
+				cam_transform.look_at({});
+
+				// drag
+				if (delta_mouse.sqr_magnitude() <= 0.0001f)
+				{
+					spin_velocity = math::lerp(delta_seconds * 0.01f, spin_velocity, {});
+				}
+			};
+		}
+
 		// init content
 		m_contentman->load_engine_assets(this);
 
@@ -56,6 +97,8 @@ namespace influx::engine
 
 			poll_platform_events();
 			if (m_is_quit_requested) break;
+
+			m_world->update();
 
 			// stream available assets from content into the renderer
 			m_renderman->load_render_assets(m_contentman);
@@ -75,6 +118,7 @@ namespace influx::engine
 			scene.m_delta_seconds = m_time.get_delta_seconds();
 			renderer::scene2D scene2D{};
 			m_world->build_renderscene(scene, scene2D);
+
 			m_renderman->render(scene);
 		}
 

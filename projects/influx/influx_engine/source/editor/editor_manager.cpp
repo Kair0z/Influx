@@ -113,7 +113,7 @@ namespace influx::engine
 	{
 		update_context();
 		update_inputs();
-		update_background_dockspace();
+		//update_background_dockspace();
 		update_main_editor();
 		return {};
 	}
