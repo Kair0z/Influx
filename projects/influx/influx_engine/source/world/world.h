@@ -64,6 +64,11 @@ namespace influx::engine
 	private:
 		entt::registry m_registry;
 
+		void update_input_system();
+		void update_bounds_system();
+		void update_stream_system();
+
+		// deferred input: this is a bit ugly
 		template <typename _t>
 		struct lock_queue
 		{
@@ -95,8 +100,6 @@ namespace influx::engine
 			queue<_t> m_data{};
 			std::mutex m_lock;
 		};
-
-		// this is ugly
 		lock_queue<input::e_key> m_deferred_keydowns{};
 		lock_queue<input::e_key> m_deferred_keyups{};
 		lock_queue<char> m_deferred_ascii_downs{};

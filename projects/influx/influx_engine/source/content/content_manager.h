@@ -119,6 +119,28 @@ namespace influx::engine
 		const map<string, image_item>& get_images() const;
 		const map<string, shader_item>& get_shaders() const;
 
+		template <typename _t>
+		result<_t const*> find(const string& asset_path)
+		{
+			if constexpr (std::is_same_v<_t, scene_item>) 
+			{
+				if (get_scenes().contains(asset_path))
+					return { &get_scenes().at(asset_path) };
+			}
+			else if constexpr (std::is_same_v<_t, image_item>) 
+			{
+				if (get_images().contains(asset_path))
+					return { &get_images().at(asset_path) };
+			}
+			else if constexpr (std::is_same_v<_t, shader_item>) 
+			{
+				if (get_shaders().contains(asset_path))
+					return { &get_shaders().at(asset_path) };
+			}
+			
+			return result<_t const*>::make_error();
+		}
+
 		// loads /influx/assets/
 		void load_engine_assets(engine* engine);
 
@@ -136,4 +158,8 @@ namespace influx::engine
 
 		void load_assets(engine* engine, e_asset_origin, const file& root);
 	};
+
+	using image_asset = content_manager::image_item;
+	using scene_asset = content_manager::scene_item;
+	using shader_asset = content_manager::shader_item;
 }

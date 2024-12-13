@@ -5,6 +5,9 @@
 #include "core/math/transform.h"
 #include "core/scene/camera.h"
 #include "core/function.h"
+#include "core/math/bounds.h"
+#include "core/geometry/sphere.h"
+#include "core/macros.h"
 
 // influx::input
 #include "influx_input.h"
@@ -170,6 +173,10 @@ namespace influx::engine
 
 	private:
 		string m_texture_filepath;
+
+		// -- filed in on asset load
+		math::vectoru2 m_texture_dimensions;
+		friend class world;
 	};
 
 	class mesh_component final : public component
@@ -197,9 +204,16 @@ namespace influx::engine
 			return m_is_visible;
 		}
 
+		influx_property_readwrite(bool, use_normalized_scale);
+
 	private:
 		string m_mesh_filepath;
 		bool m_is_visible;
+
+		// -- filled in when asset is loaded
+		math::boxf m_mesh_boundbox;
+		math::spheref m_mesh_boundsphere;
+		friend class world;
 	};
 
 	class material_component final

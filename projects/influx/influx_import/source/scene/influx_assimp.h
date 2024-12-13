@@ -87,9 +87,26 @@ namespace influx
 		bool collectVertexColors = true && meshHasVertexColors;
 		bool collectUvs = true && mesh.HasTextureCoords(0u);
 
+		math::vectorf3 max_position;
+		math::vectorf3 min_position;
+		math::vectorf3 sum_position;
+		const uint32 num_positions = mesh.mNumVertices;
+
 		for (uint32 v = 0u; v < mesh.mNumVertices; ++v)
 		{
-			if (collectPositions)	 result.m_positions.push_back(translate(mesh.mVertices[v]));
+			if (collectPositions)
+			{
+				math::vectorf3 vertex = translate(mesh.mVertices[v]);
+				max_position.x = math::maximum(vertex.x, max_position.x);
+				max_position.y = math::maximum(vertex.y, max_position.y);
+				max_position.z = math::maximum(vertex.z, max_position.z);
+				min_position.x = math::minimum(vertex.x, min_position.x);
+				min_position.y = math::minimum(vertex.y, min_position.y);
+				min_position.z = math::minimum(vertex.z, min_position.z);
+				sum_position += vertex;
+				result.m_positions.push_back(vertex);
+			}
+
 			if (collectNormals)		 result.m_normals.push_back(translate(mesh.mNormals[v]));
 			if (collectVertexColors) result.m_colours.push_back(translate(mesh.mColors[v][vColChannel]));
 			if (collectUvs)			result.m_uvs.push_back(translate(mesh.mTextureCoords[0u][v]));
@@ -105,6 +122,17 @@ namespace influx
 			}
 		}
 
+		if (num_positions > 0)
+		{
+			result.m_average_position = sum_position / num_positions;
+			math::vectorf3 local_max = max_position - result.m_average_position;
+			math::vectorf3 local_min = min_position - result.m_average_position;
+			result.m_bounding_box.grow_to_contain(local_max);
+			result.m_bounding_box.grow_to_contain(local_min);
+			result.m_bounding_sphere.grow_to(local_max);
+			result.m_bounding_sphere.grow_to(local_min);
+		}
+		
 		return result;
 	}
 

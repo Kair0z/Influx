@@ -65,6 +65,7 @@ namespace influx::engine
 		app_config m_app_config;
 		run_type m_runtype;
 		thread m_inputthread;
+		thread m_contentthread;
 
 		time::point m_t_init;
 		time::point m_t_start;

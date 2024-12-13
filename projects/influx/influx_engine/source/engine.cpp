@@ -23,8 +23,8 @@ namespace influx::engine
 {
 	void engine::run(run_type type)
 	{
+		// 
 		initialize();
-		m_t_start = time::get_now();
 
 		string render_name = "";
 		if (type == run_type::editor)
@@ -50,8 +50,9 @@ namespace influx::engine
 			auto entity = m_world->create_entity();
 			transform_component& ent_transform = m_world->create_component<transform_component>(entity);
 			ent_transform.set_position({ 0.0f, 0.0f, 0.0f });
-			ent_transform.set_scale(0.01f);
-			m_world->create_component<mesh_component>(entity).set_mesh_path("sphere");
+			mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
+			ent_mesh.set_mesh_path("sphere");
+			ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
 
 			static float distance = 10.0f;
 			auto camera = m_world->create_entity();
@@ -60,34 +61,26 @@ namespace influx::engine
 			cam_transform.look_at({ 0.0f, 0.0f, 0.0f });
 			m_world->create_component<camera_component>(camera).set_fov(90.0f);
 
-			static math::float2 spin_velocity = {};
+			static math::float2 angular_position = {};
 			static math::float2 mouse_position_previous = {};
-			static math::float2 angular_pos = {};
-			
 			input_component& cam_input = m_world->create_component<input_component>(camera);
 			cam_input.m_on_mouse_move = [this, &cam_transform](const input::mouse_position& pos)
 			{
 				const math::float2 delta_mouse = pos.m_client - mouse_position_previous;
 				mouse_position_previous = pos.m_client;
 
+				const float seconds = m_time.get_time_seconds();
 				const float delta_seconds = m_time.get_delta_seconds();
-				spin_velocity += delta_mouse * delta_seconds * 10.0f;
-				angular_pos += spin_velocity * delta_seconds;
+				angular_position += delta_mouse * delta_seconds * 0.5f;
 
-				cam_transform.set_position_x(distance * math::cosf(angular_pos.x));
-				cam_transform.set_position_y(distance * math::sinf(angular_pos.y));
+				cam_transform.set_position_x(distance * math::cosf(angular_position.x) * math::cosf(angular_position.y));
+				cam_transform.set_position_y(distance * math::cosf(angular_position.y) * math::sinf(angular_position.y));
+				cam_transform.set_position_z(distance * math::sinf(angular_position.x));
 				cam_transform.look_at({});
-
-				// drag
-				if (delta_mouse.sqr_magnitude() <= 0.0001f)
-				{
-					spin_velocity = math::lerp(delta_seconds * 0.01f, spin_velocity, {});
-				}
 			};
 		}
 
-		// init content
-		m_contentman->load_engine_assets(this);
+		m_t_start = time::get_now();
 
 		// run
 		while (!m_is_quit_requested)
@@ -153,7 +146,18 @@ namespace influx::engine
 			run_input();
 		});
 
+		// initialize content
 		m_contentman = new content_manager(this);
+		m_contentthread = thread([this]()
+		{
+			// init content
+			m_contentman->load_engine_assets(this);
+
+			while (!m_is_quit_requested)
+			{
+
+			}
+		});
 	}
 
 

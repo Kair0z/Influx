@@ -14,6 +14,8 @@
 #include "core/basetypes.h"
 #include "core/shader.h"
 #include "core/material/material.h"
+#include "core/math/bounds.h"
+#include "core/geometry/sphere.h"
 
 // influx::shader
 #include "influx_shader.h"
@@ -37,13 +39,20 @@ namespace influx::imp
 			vector<math::vectorf4> m_colours{};
 			vector<math::vectorf3> m_normals{};
 			vector<math::vectorf2> m_uvs{};
+			math::boxf m_bounding_box{};
+			math::spheref m_bounding_sphere{};
+			math::vectorf3 m_average_position;
 		};
+
+		const mesh& get_main_mesh() const { return m_meshes[0]; }
 
 		vector<mesh> m_meshes{};
 		vector<scene::light> m_lights{};
 		vector<scene::camera> m_cameras{};
 		vector<influx::material> m_materials{};
 	};
+
+	using mesh = scene_data::mesh;
 
 	/* Loads an 3D-model scene file (.fbx, .obj) */
 	INFLUX_ASSETS_API bool load_scene_file(const string& filepath, 
