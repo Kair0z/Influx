@@ -33,6 +33,7 @@ namespace influx::renderer
 		string m_material_name = "";
 		math::vectorf4 m_per_instance_colour = {};
 		math::matrix4x4f m_transform = math::matrix4x4f::identity();
+		bool m_invert_normals = false;
 	};
 
 	struct scene final

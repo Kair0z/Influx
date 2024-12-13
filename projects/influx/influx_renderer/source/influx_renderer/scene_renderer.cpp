@@ -89,7 +89,6 @@ namespace influx::renderer
         return m_base_instance;
     }
 
-
     vector<batch> scene_renderer::create_batches(const scene& scene)
     {
         // group instances per material, then per mesh
@@ -110,6 +109,7 @@ namespace influx::renderer
                     gpu_instance_data instance_data{};
                     instance_data.m_transform = instance.m_transform;
                     instance_data.m_colour = instance.m_per_instance_colour;
+                    instance_data.m_invert_normals = instance.m_invert_normals;
                     instances_per_material[material_name].push_back(instance_data);
                 }
             }

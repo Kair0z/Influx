@@ -49,6 +49,7 @@ namespace influx::renderer
 	{
 		math::matrix4x4f	m_transform;
 		math::vectorf4		m_colour;
+		bool m_invert_normals;
 	};
 	
 	// a batch of instances grouped per material

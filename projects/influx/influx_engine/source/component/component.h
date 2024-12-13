@@ -205,6 +205,7 @@ namespace influx::engine
 		}
 
 		influx_property_readwrite(bool, use_normalized_scale);
+		influx_property_readwrite(bool, invert_normals);
 
 	private:
 		string m_mesh_filepath;

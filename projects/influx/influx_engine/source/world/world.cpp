@@ -99,6 +99,7 @@ namespace influx::engine
                 render_mesh.m_material_name = "";
                 render_mesh.m_per_instance_colour = {};
                 render_mesh.m_transform = transform.get_matrix();
+                render_mesh.m_invert_normals = mesh_comp.get_invert_normals();
                 scene.m_meshes.push_back(render_mesh);
             }
         }

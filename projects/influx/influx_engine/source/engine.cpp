@@ -45,14 +45,16 @@ namespace influx::engine
 		// init world
 		m_world = new world();
 
-		// TEMP
+		// TEMP:
+		// little scene with camera controls and central mesh
 		{
 			auto entity = m_world->create_entity();
 			transform_component& ent_transform = m_world->create_component<transform_component>(entity);
 			ent_transform.set_position({ 0.0f, 0.0f, 0.0f });
 			mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
-			ent_mesh.set_mesh_path("sphere");
+			ent_mesh.set_mesh_path("box");
 			ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
+			ent_mesh.set_invert_normals(true);
 
 			static float distance = 10.0f;
 			auto camera = m_world->create_entity();
@@ -159,7 +161,6 @@ namespace influx::engine
 			}
 		});
 	}
-
 
 	void engine::run_input()
 	{

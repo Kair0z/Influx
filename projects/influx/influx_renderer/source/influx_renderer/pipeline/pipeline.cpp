@@ -88,8 +88,9 @@ namespace influx::renderer
         pipeline_desc.m_depth_stencil.m_stencil_enable = false;
 
         // rasterizer
-        pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::back;
+        pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
         pipeline_desc.m_rasterizer.m_front_ccw = true;
+        pipeline_desc.m_rasterizer;
 
         // parse the input elements from reflection:
         for (uint32 i = 0u; i < vs_reflection->m_input_params.size(); ++i)
