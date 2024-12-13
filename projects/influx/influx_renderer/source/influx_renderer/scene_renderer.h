@@ -65,6 +65,7 @@ namespace influx::renderer
 		graphics::resource* get_vertex_buffer() const;
 		graphics::resource* get_index_buffer() const;
 		material* get_material() const;
+
 		const vector<gpu_instance_data>& get_instances() const;
 		const uint32 get_instance_base() const;
 

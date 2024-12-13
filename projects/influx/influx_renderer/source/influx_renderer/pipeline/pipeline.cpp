@@ -22,7 +22,7 @@ namespace influx::renderer
         influx_assert(vs_reflection); 
 
         // build the root signature:
-        graphics::rootsignature_desc rootsig_desc{};
+        graphics::rootsignature_desc& rootsig_desc = m_rootsig_desc;
         auto reflect_resource = [&rootsig_desc, this]
         (const shader::reflection::resource& resource, graphics::e_shader_visibility shader_vis)
         {
@@ -78,7 +78,7 @@ namespace influx::renderer
         influx_assert(mp_rootsig->is_valid());
 
         // build the pipeline
-        graphics::pipeline_desc pipeline_desc{};
+        graphics::pipeline_desc& pipeline_desc = m_create_desc;
         if (vertex_shader)  pipeline_desc.m_vs = vertex_shader->m_bytecode;
         if (pixel_shader)   pipeline_desc.m_ps = pixel_shader->m_bytecode;
         // ...
@@ -123,6 +123,11 @@ namespace influx::renderer
         influx_assert(mp_pipeline->is_valid());
     }
 
+    pipeline* pipeline::load_from_file(const string& path)
+    {
+        return nullptr;
+    }
+
     void pipeline::set_state(graphics::commandlist* cmdlist)
     {
         cmdlist->set(mp_rootsig);
@@ -161,6 +166,11 @@ namespace influx::renderer
     const string& pipeline::get_name() const
     {
         return mp_pipeline->get_name().get();
+    }
+
+    void pipeline::save_to_file(const string& path) const
+    {
+        
     }
 #endif
 }

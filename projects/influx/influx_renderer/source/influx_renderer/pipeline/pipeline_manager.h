@@ -15,6 +15,17 @@ namespace influx::renderer
 {
 	static const char* k_scene_pipeline_name = "pip_scene";
 
+	// builds a keyvalue (uint32) from parameters
+	struct pipeline_key
+	{
+		pipeline_key()
+		{
+			
+		}
+
+		uint32 m_id = 0u;
+	};
+
 	class pipeline_manager final
 	{
 	public:
