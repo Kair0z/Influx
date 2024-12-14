@@ -17,29 +17,107 @@
 #include "content/content_manager.h"
 #include "rendering/render_manager.h"
 #include "editor/editor_manager.h"
-#include "influx_engine/world/world.h"
+#include "world/world.h"
 
 namespace influx::engine
 {
-	void engine::run(base_module* mod)
+	void engine::run(run_type type)
 	{
-		m_module = mod;
-		influx_assert(m_module != nullptr);
-
+		// 
 		initialize();
+
+		string render_name = "";
+		if (type == run_type::editor)
+		{
+			m_editorman = new editor_manager(nullptr);
+			render_name = "influx_editor";
+		}
+		else
+		{
+			render_name = "influx_game";
+		}
+
+		// initialize render
+		app_config app_config{};
+		app_config.m_window_dimensions = { 1280u, 720u };
+		initialize_renderer(render_name, app_config.m_window_dimensions);
+
+		// init world
+		m_world = new world();
+
+		// TEMP:
+		// little scene with camera controls and central mesh
+		{
+			auto entity = m_world->create_entity();
+			transform_component& ent_transform = m_world->create_component<transform_component>(entity);
+			ent_transform.set_position({ 0.0f, 0.0f, 0.0f });
+			mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
+			ent_mesh.set_mesh_path("box");
+			ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
+			ent_mesh.set_invert_normals(true);
+
+			static float distance = 10.0f;
+			auto camera = m_world->create_entity();
+			transform_component& cam_transform = m_world->create_component<transform_component>(camera);
+			cam_transform.set_position({ 0.0f, 0.0f, distance });
+			cam_transform.look_at({ 0.0f, 0.0f, 0.0f });
+			m_world->create_component<camera_component>(camera).set_fov(90.0f);
+
+			static math::float2 angular_position = {};
+			static math::float2 mouse_position_previous = {};
+			input_component& cam_input = m_world->create_component<input_component>(camera);
+			cam_input.m_on_mouse_move = [this, &cam_transform](const input::mouse_position& pos)
+			{
+				const math::float2 delta_mouse = pos.m_client - mouse_position_previous;
+				mouse_position_previous = pos.m_client;
+
+				const float seconds = m_time.get_time_seconds();
+				const float delta_seconds = m_time.get_delta_seconds();
+				angular_position += delta_mouse * delta_seconds * 0.5f;
+
+				cam_transform.set_position_x(distance * math::cosf(angular_position.x) * math::cosf(angular_position.y));
+				cam_transform.set_position_y(distance * math::cosf(angular_position.y) * math::sinf(angular_position.y));
+				cam_transform.set_position_z(distance * math::sinf(angular_position.x));
+				cam_transform.look_at({});
+			};
+		}
+
 		m_t_start = time::get_now();
 
-		if (game_module* as_game = dynamic_cast<game_module*>(m_module))
+		// run
+		while (!m_is_quit_requested)
 		{
-			m_game = as_game;
-			run_game();
+			m_time.tick();
+			m_fps = 1.0f / m_time.get_delta_seconds();
+
+			poll_platform_events();
+			if (m_is_quit_requested) break;
+
+			m_world->update();
+
+			// stream available assets from content into the renderer
+			m_renderman->load_render_assets(m_contentman);
+
+			// record imgui
+			if (type == run_type::editor)
+			{
+				m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
+				{
+					m_editorman->update_imgui(ctx);
+				});
+			}
+			
+			// build a render-scene
+			renderer::scene scene{};
+			scene.m_seconds = m_time.get_time_seconds();
+			scene.m_delta_seconds = m_time.get_delta_seconds();
+			renderer::scene2D scene2D{};
+			m_world->build_renderscene(scene, scene2D);
+
+			m_renderman->render(scene);
 		}
 
-		if (editor_module* as_editor = dynamic_cast<editor_module*>(m_module))
-		{
-			m_editor = as_editor;
-			run_editor();
-		}
+		delete m_world;
 
 #if INFLUX_DEBUG
 		influx::log_scopedata();
@@ -54,9 +132,9 @@ namespace influx::engine
 		m_t_init = time::get_now();
 
 		// setup engine config
-		m_config.m_file_influx_root = get_engine_directory(engine::e_directory::root);
-		m_config.m_file_influx_assets = get_engine_directory(engine::e_directory::assets);
-		m_config.m_file_influx_staged = get_engine_directory(engine::e_directory::staged);
+		m_config.m_file_influx_root = get_engine_directory(engine_directory::root);
+		m_config.m_file_influx_assets = get_engine_directory(engine_directory::assets);
+		m_config.m_file_influx_staged = get_engine_directory(engine_directory::staged);
 
 		// initialize job system:
 		async::init_args async_args{};
@@ -70,86 +148,18 @@ namespace influx::engine
 			run_input();
 		});
 
+		// initialize content
 		m_contentman = new content_manager(this);
-	}
-
-	void engine::run_game()
-	{
-		game_config game_config{};
-		m_game->on_config(m_app_config, game_config);
-
-		initialize_renderer(game_config.m_gamename, m_app_config);
-
-		m_contentman->load_engine_assets(this);
-
-		m_world = new world();
-
-		m_game->on_start();
-
-		update_context update_ctx{};
-		while (!m_is_quit_requested)
+		m_contentthread = thread([this]()
 		{
-			m_time.tick();
+			// init content
+			m_contentman->load_engine_assets(this);
 
-			// poll the platform window
-			poll_platform_events();
-			if (m_is_quit_requested) break;
-
-			// tick game
-			update_ctx.m_frametime = m_time;
-			m_game->update(update_ctx);
-
-			// stream available assets from content into the renderer
-			m_renderman->load_render_assets(m_contentman);
-
-			// build render-scene
-			renderer::scene scene{};
-			scene.m_seconds = m_time.get_time_seconds();
-			scene.m_delta_seconds = m_time.get_delta_seconds();
-			renderer::scene2D scene2D{};
-			m_world->build_renderscene(scene, scene2D);
-			m_renderman->render(scene);
-		}
-
-		delete m_world;
-	}
-
-	void engine::run_editor()
-	{
-		m_editorman = new editor_manager(m_editor);
-
-		editor_config config{};
-		m_editor->on_config(m_app_config, config);
-
-		initialize_renderer("influx editor", m_app_config);
-
-		m_world = new world();
-
-		m_contentman->load_engine_assets(this);
-
-		while (!m_is_quit_requested)
-		{
-			m_time.tick();
-			m_fps = 1.0f / m_time.get_delta_seconds();
-
-			poll_platform_events();
-			if (m_is_quit_requested) break;
-
-			// stream available assets from content into the renderer
-			m_renderman->load_render_assets(m_contentman);
-
-			// record imgui
-			m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
+			while (!m_is_quit_requested)
 			{
-				m_editorman->update_imgui(ctx);
-			});
 
-			// render the scene
-			renderer::scene scene{};
-			m_renderman->render(scene);
-		}
-
-		delete m_world;
+			}
+		});
 	}
 
 	void engine::run_input()
@@ -163,12 +173,6 @@ namespace influx::engine
 	void engine::cleanup()
 	{
 		async::shutdown();
-
-		if (m_module)
-		{
-			delete m_module;
-			m_module = nullptr;
-		}
 
 		if (m_editorman)
 		{
@@ -192,11 +196,11 @@ namespace influx::engine
 			m_inputthread.join();
 	}
 
-	void engine::initialize_renderer(const string& window_name, const app_config& config)
+	void engine::initialize_renderer(const string& window_name, const math::vectoru2& size)
 	{
 		platform::window_desc window_desc{};
 		window_desc
-			.set_dimensions(config.m_window_dimensions)
+			.set_dimensions(size)
 			.set_name(window_name);
 
 		m_window = platform::window::create(window_desc);
@@ -224,67 +228,34 @@ namespace influx::engine
 		input::push_window_event(ev);
 	}
 
-	file engine::get_engine_directory(e_directory dir) const
-	{
-		// temp: HARDCODED builds are ran in /influx/bin/[config]/influx_game/
-		const string& root = platform::platform::get_current_directory() + "/../../../";
-		switch (dir)
-		{
-		case e_directory::root:			return root;
-		case e_directory::assets:		return root + "/assets/";
-		case e_directory::staged:		return root + "/staged/";
-		case e_directory::binaries:		return root + "/bin/";
-		case e_directory::intermediate: return root + "/int/";
-		case e_directory::games:		return root + "/games/";
-		}
-		return {};
-	}
-
-	file engine::get_game_directory(const string& game_name, e_game_directory dir) const
-	{
-		influx_assert(does_game_exist(game_name));
-		
-		const file& games_directory = get_engine_directory(e_directory::games);
-		const file game_directory = games_directory.m_path_full + "/" + game_name + "/";
-
-		switch (dir)
-		{
-		case e_game_directory::root: return game_directory;
-		case e_game_directory::assets: return game_directory.m_path_full + "/assets/";
-		}
-		return {};
-	}
-
-	platform::window const* engine::get_window() const
+	result<cptr<platform::window>> engine::get_window() const
 	{
 		return m_window;
 	}
 
-	content_manager* engine::get_content() const
+	result<cptr<content_manager>> engine::get_content() const
 	{
 		return m_contentman;
 	}
 
-	render_manager const* engine::get_renderer() const
+	result<cptr<render_manager>> engine::get_renderer() const
 	{
 		return m_renderman;
+	}
+
+	result<cptr<world>> engine::get_world() const
+	{
+		return m_world;
+	}
+
+	result<ptr<content_manager>> engine::get_content()
+	{
+		return m_contentman;
 	}
 
 	const frame_time& engine::get_time() const
 	{
 		return m_time;
-	}
-
-	world* engine::get_world() const
-	{
-		return m_world;
-	}
-
-	bool engine::does_game_exist(const string& game) const
-	{
-		const file& games_directory = get_engine_directory(e_directory::games);
-		const file& game_directory = games_directory.m_path_full + "/" + game + "/";
-		return game_directory.is_directory();
 	}
 
 	float engine::get_fps() const
@@ -297,17 +268,22 @@ namespace influx::engine
 		return m_is_quit;
 	}
 
-	world* get_world()
+	result<cptr<world>> get_world()
 	{
 		return get_engine()->get_world();
 	}
 }
 
-namespace influx::engine::detail
+#include "influx_engine.h"
+namespace influx::engine
 {
-	bool run_engine(base_module* mod)
+	void run_editor()
 	{
-		get_engine()->run(mod);
-		return true;
+		get_engine()->run(engine::run_type::editor);
+	}
+
+	void run_game()
+	{
+		get_engine()->run(engine::run_type::game);
 	}
 }

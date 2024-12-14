@@ -89,7 +89,6 @@ namespace influx::renderer
         return m_base_instance;
     }
 
-
     vector<batch> scene_renderer::create_batches(const scene& scene)
     {
         // group instances per material, then per mesh
@@ -103,13 +102,13 @@ namespace influx::renderer
                 if (instance.m_name == mesh_name)
                 {
                     const string& material_name = instance.m_material_name.empty() ? "none" : instance.m_material_name;
-
                     per_material_instances& instances_per_material = instances_per_mesh_per_material[mesh_name];
 
                     // mesh_instance --> gpu_instance_data
                     gpu_instance_data instance_data{};
                     instance_data.m_transform = instance.m_transform;
                     instance_data.m_colour = instance.m_per_instance_colour;
+                    instance_data.m_invert_normals = instance.m_invert_normals;
                     instances_per_material[material_name].push_back(instance_data);
                 }
             }
@@ -172,10 +171,7 @@ namespace influx::renderer
             material_textures[3] = backend.get_texture(material->m_tex_special);
 
             // stage the descriptors onto the gpu-visible heap
-            graphics::descriptor_range gpu_range =
-                backend.get_descriptor_manager()->stage(material_textures);
-
-            // set the resource table
+            graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(material_textures);
             mp_pipeline->set_resource_table(commandlist, "g_textures", gpu_range);
 
             // set index / vertex buffers
@@ -273,7 +269,7 @@ namespace influx::renderer
         m_gpu_perscene.m_delta_seconds = scene.m_delta_seconds;
         m_gpu_perscene.m_seconds = scene.m_seconds;
 
-        // setup batched draw
+        // setup a batched draw
         vector<batch> batches = create_batches(scene);
 
         update_instance_buffer(batches);

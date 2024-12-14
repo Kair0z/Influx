@@ -75,7 +75,7 @@ namespace influx
 		}
 
 		template <typename _t>
-		constexpr inline _t lerp(const _t& t, const _t& min, const _t& max)
+		constexpr inline _t lerp(const float t, const _t& min, const _t& max)
 		{
 			return min + ((max - min) * t);
 		}

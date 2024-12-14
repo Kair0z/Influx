@@ -49,6 +49,7 @@ namespace influx::renderer
 	{
 		math::matrix4x4f	m_transform;
 		math::vectorf4		m_colour;
+		bool m_invert_normals;
 	};
 	
 	// a batch of instances grouped per material
@@ -64,6 +65,7 @@ namespace influx::renderer
 		graphics::resource* get_vertex_buffer() const;
 		graphics::resource* get_index_buffer() const;
 		material* get_material() const;
+
 		const vector<gpu_instance_data>& get_instances() const;
 		const uint32 get_instance_base() const;
 

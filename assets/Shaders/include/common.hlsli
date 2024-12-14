@@ -45,6 +45,7 @@ struct per_instance_data
 {
     float4x4	mat_transform;
     float4      colour;
+    bool        invert_normals;
 };
 
 // SHADER INPUTS

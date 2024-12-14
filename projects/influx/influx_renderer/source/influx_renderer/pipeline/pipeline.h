@@ -27,6 +27,8 @@ namespace influx::renderer
 			renderer::shader_data const* vertex_shader,
 			renderer::shader_data const* pixel_shader);
 
+		static pipeline* load_from_file(const string& path);
+
 		void set_state(graphics::commandlist* cmdlist);
 
 		template <typename _constants>
@@ -47,11 +49,16 @@ namespace influx::renderer
 		const string& get_name() const;
 #endif
 
+		void save_to_file(const string& path) const;
+		
+
 	private:
 		graphics::rootsignature* mp_rootsig = nullptr;
 		graphics::pipeline* mp_pipeline = nullptr;
 		umap<string, uint32> m_name_to_register;
 		umap<string, uint32> m_name_to_param_idx;
+		graphics::pipeline_desc m_create_desc{};
+		graphics::rootsignature_desc m_rootsig_desc{};
 
 #if INFLUX_DEBUG
 		string m_debug_name;

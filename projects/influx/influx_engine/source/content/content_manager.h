@@ -4,6 +4,7 @@
 #include "core/container/map.h"
 #include "core/container/vector.h"
 #include "core/time.h"
+#include "core/threading/thread.h"
 
 // influx::import
 #include "influx_import.h"
@@ -11,6 +12,7 @@
 // influx::async
 #include "influx_async.h"
 
+// influx::engine
 namespace influx::engine
 {
 	class engine;
@@ -19,7 +21,7 @@ namespace influx::engine
 namespace influx::engine
 {
 	// content in influx::engine
-	// differentiates between 2 terms.
+	// differentiates between 2 categories.
 	// - resources: the raw input items that the engine accepts and can convert into assets
 	// - assets: influx-native representations of resources (.flx)
 	class content_manager final
@@ -55,6 +57,16 @@ namespace influx::engine
 			e_asset_origin get_origin() const
 			{
 				return m_origin;
+			}
+
+			bool is_engine() const
+			{
+				return m_origin == e_asset_origin::engine;
+			}
+
+			bool is_game() const
+			{
+				return m_origin == e_asset_origin::game;
 			}
 
 			e_load_state get_loadstate() const
@@ -107,6 +119,28 @@ namespace influx::engine
 		const map<string, image_item>& get_images() const;
 		const map<string, shader_item>& get_shaders() const;
 
+		template <typename _t>
+		result<_t const*> find(const string& asset_path)
+		{
+			if constexpr (std::is_same_v<_t, scene_item>) 
+			{
+				if (get_scenes().contains(asset_path))
+					return { &get_scenes().at(asset_path) };
+			}
+			else if constexpr (std::is_same_v<_t, image_item>) 
+			{
+				if (get_images().contains(asset_path))
+					return { &get_images().at(asset_path) };
+			}
+			else if constexpr (std::is_same_v<_t, shader_item>) 
+			{
+				if (get_shaders().contains(asset_path))
+					return { &get_shaders().at(asset_path) };
+			}
+			
+			return result<_t const*>::make_error();
+		}
+
 		// loads /influx/assets/
 		void load_engine_assets(engine* engine);
 
@@ -124,4 +158,8 @@ namespace influx::engine
 
 		void load_assets(engine* engine, e_asset_origin, const file& root);
 	};
+
+	using image_asset = content_manager::image_item;
+	using scene_asset = content_manager::scene_item;
+	using shader_asset = content_manager::shader_item;
 }

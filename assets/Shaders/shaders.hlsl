@@ -20,7 +20,8 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_I
 
     output.texcoord = input.texcoord;
     output.normal = normalize(mul((float3x3)instance_data.mat_transform, input.normal));
-
+    if (instance_data.invert_normals) output.normal = -output.normal;
+    
     // todo: choose colour
     output.colour = float4(hash(uint3(vID, vID + 7, vID + 41)), 1.0f);
     output.colour = instance_data.colour;

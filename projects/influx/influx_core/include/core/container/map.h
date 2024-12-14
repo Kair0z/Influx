@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 #include <map>
+#include <unordered_set>
 
 namespace influx
 {
@@ -25,6 +26,9 @@ namespace influx
 
 	template <typename K, typename V>
 	using map = std::map<K, V>;
+
+	template <typename _k>
+	using uset = std::unordered_set<_k>;
 }
 
 #endif

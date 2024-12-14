@@ -37,7 +37,7 @@ namespace influx::engine
 		influx::renderer::initialize(render_init_args);
 
 		// window render target:
-		platform::window const* window = engine->get_window();
+		cptr<platform::window> window = engine->get_window().get();
 		mp_window_target = renderer::acquire_window_target(*window);
 
 		// scene render target:
@@ -250,7 +250,7 @@ namespace influx::engine
 
 	void render_manager::render(const renderer::scene& scene)
 	{
-		platform::window const* window = get_engine()->get_window();
+		cptr<platform::window> window = get_engine()->get_window().get();
 		if (window == nullptr)
 		{
 			logonce(e_log_category::warning, "render_manager::render: no window to render!");
@@ -306,6 +306,9 @@ namespace influx::engine
 		unsigned char* pixels;
 		int width, height;
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+		// docking
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 		// mouse events
 		input::subscribe([this, &io](const input::mouse_event& ev)

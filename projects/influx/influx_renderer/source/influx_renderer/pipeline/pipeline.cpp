@@ -22,7 +22,7 @@ namespace influx::renderer
         influx_assert(vs_reflection); 
 
         // build the root signature:
-        graphics::rootsignature_desc rootsig_desc{};
+        graphics::rootsignature_desc& rootsig_desc = m_rootsig_desc;
         auto reflect_resource = [&rootsig_desc, this]
         (const shader::reflection::resource& resource, graphics::e_shader_visibility shader_vis)
         {
@@ -56,7 +56,7 @@ namespace influx::renderer
             }
         };
 
-        // parse resources in shader refletions
+        // parse resources in shader reflections
         if (vs_reflection)
         {
             for (const shader::reflection::resource& resource : vs_reflection->m_bound_resources)
@@ -78,7 +78,7 @@ namespace influx::renderer
         influx_assert(mp_rootsig->is_valid());
 
         // build the pipeline
-        graphics::pipeline_desc pipeline_desc{};
+        graphics::pipeline_desc& pipeline_desc = m_create_desc;
         if (vertex_shader)  pipeline_desc.m_vs = vertex_shader->m_bytecode;
         if (pixel_shader)   pipeline_desc.m_ps = pixel_shader->m_bytecode;
         // ...
@@ -88,8 +88,9 @@ namespace influx::renderer
         pipeline_desc.m_depth_stencil.m_stencil_enable = false;
 
         // rasterizer
-        pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::back;
+        pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
         pipeline_desc.m_rasterizer.m_front_ccw = true;
+        pipeline_desc.m_rasterizer;
 
         // parse the input elements from reflection:
         for (uint32 i = 0u; i < vs_reflection->m_input_params.size(); ++i)
@@ -120,6 +121,11 @@ namespace influx::renderer
 
         mp_pipeline = device->create_pipeline(mp_rootsig, pipeline_desc);
         influx_assert(mp_pipeline->is_valid());
+    }
+
+    pipeline* pipeline::load_from_file(const string& path)
+    {
+        return nullptr;
     }
 
     void pipeline::set_state(graphics::commandlist* cmdlist)
@@ -160,6 +166,11 @@ namespace influx::renderer
     const string& pipeline::get_name() const
     {
         return mp_pipeline->get_name().get();
+    }
+
+    void pipeline::save_to_file(const string& path) const
+    {
+        
     }
 #endif
 }

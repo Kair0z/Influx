@@ -1,4 +1,3 @@
--- influx shader
 new_influx_library("influx_shader")
 
     local dependencies =

@@ -210,9 +210,7 @@ namespace influx::renderer
             influx_scope("renderer_backend::draw_imgui::record");
             mp_commandlist->set_name("draw_imgui");
             mp_commandlist->start(mp_device, nullptr);
-
-            graphics::render_target_view* target_rtv = target.get_rtv();
-            mp_commandlist->set(target_rtv, nullptr);
+            mp_commandlist->set(target.get_rtv(), nullptr);
 
             get_descriptor_manager()->start_commandlist(mp_commandlist);
 

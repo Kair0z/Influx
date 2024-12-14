@@ -17,6 +17,9 @@ struct ImGuiContext;
 
 namespace influx::engine
 {
+	class engine;
+	class content_manager;
+
 	class render_manager final
 	{
 		INFLUX_NO_MOVE(render_manager);

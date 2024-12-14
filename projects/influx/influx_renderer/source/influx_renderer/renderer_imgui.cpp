@@ -296,6 +296,8 @@ namespace influx::renderer
 		pipeline_desc.m_blends[0u].m_op_alpha	= graphics::e_blendop::add;
 		pipeline_desc.m_blends[0u].m_write_mask = 15u; // all
 
+		pipeline_desc;
+
 		// rasterizer
 		pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
 		pipeline_desc.m_rasterizer.m_fillmode = graphics::e_fill_mode::solid;

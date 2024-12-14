@@ -1,7 +1,14 @@
 #pragma once
 
-// engine API
-#include "influx_engine/engine/engine.h"
+#if _DLL
+#define INFLUX_ENGINE_API __declspec(dllexport)
+#else
+#define INFLUX_ENGINE_API __declspec(dllimport)
+#endif
 
-// encapsulate the entrypoint
-#include "influx_engine/engine/entrypoint.h"
+namespace influx::engine
+{
+	INFLUX_ENGINE_API void run_editor();
+
+	INFLUX_ENGINE_API void run_game();
+}

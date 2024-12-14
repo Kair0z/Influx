@@ -40,8 +40,8 @@ namespace influx::math
 		bool contains(const point& point) const;
 		bool contains(const point& point, math::vector<bool, _dim>& out_isContained) const;
 
-		enum class e_contain_status : uint8 { less, contained, more, max };
-		bool contains(const point& point, math::vector<e_contain_status, _dim>& out_results) const;
+		enum class e_contain_status : uint8 { less, contained, more, count };
+		bool contains(const point& point, math::vector<uint8, _dim>& out_results) const;
 
 		bounds() = default;
 		bounds(const bounds&) = default;
@@ -50,12 +50,6 @@ namespace influx::math
 		bounds& operator=(bounds&&) = default;
 		virtual ~bounds() = default;
 	};
-
-	template <typename _t>
-	using rect  = bounds<_t, 2u>;
-	using rectf = rect<float>;
-	using recti = rect<int>;
-	using rectu = rect<uint32>;
 
 	template <typename _t>
 	using box	= bounds<_t, 3u>;
@@ -97,15 +91,15 @@ namespace influx::math
 	template<typename _t, detail::dim_t _dim>
 	inline void bounds<_t, _dim>::grow_to_contain(const bounds<_t, _dim>::point& point)
 	{
-		math::vector<e_contain_status, _dim> contained_results{};
-		if (contains(point, contained_results))
+		math::vector<uint8, _dim> results{};
+		if (contains(point, results))
 		{
 			return;
 		}
 
 		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			if (contained_results[d] == e_contain_status::less)
+			if (results[d] == (uint8)e_contain_status::less)
 			{
 				m_max[d] = point[d];
 			}
@@ -115,15 +109,15 @@ namespace influx::math
 	template<typename _t, detail::dim_t _dim>
 	inline void bounds<_t, _dim>::shrink_to_contain(const bounds<_t, _dim>::point& point)
 	{
-		math::vector<e_contain_status, _dim> contained_results{};
-		if (!contains(point, contained_results))
+		math::vector<uint8, _dim> results{};
+		if (!contains(point, results))
 		{
 			return;
 		}
 
 		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			if (contained_results[d] == e_contain_status::more)
+			if (results[d] == (uint8)e_contain_status::more)
 			{
 				m_max[d] = point[d];
 			}
@@ -152,11 +146,11 @@ namespace influx::math
 	}
 
 	template<typename _t, detail::dim_t _dim>
-	inline bool bounds<_t, _dim>::contains(const point& point, math::vector<bounds<_t, _dim>::e_contain_status, _dim>& out_results) const
+	inline bool bounds<_t, _dim>::contains(const point& point, math::vector<uint8, _dim>& out_results) const
 	{
 		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			out_results[d] = e_contain_status::contained;
+			out_results[d] = (uint8)e_contain_status::contained;
 		}
 
 		bool isBiggerThanMin = true;
@@ -166,7 +160,7 @@ namespace influx::math
 			
 			if (!isDimBiggerThanMin)
 			{
-				out_results[d] = e_contain_status::less;
+				out_results[d] = (uint8)e_contain_status::less;
 			}
 
 			isBiggerThanMin &= isDimBiggerThanMin;
@@ -179,7 +173,7 @@ namespace influx::math
 			
 			if (!isDimSmallerThanMax)
 			{
-				out_results[d] = e_contain_status::more;
+				out_results[d] = (uint8)e_contain_status::more;
 			}
 
 			isSmallerThanMax &= isDimSmallerThanMax;

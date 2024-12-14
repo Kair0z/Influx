@@ -27,6 +27,12 @@ namespace influx
 			m_extension = path.extension().string();
 		}
 
+		file(const char* path)
+			: file(string(path))
+		{
+
+		}
+
 		static bool is_directory(const string& string)
 		{
 			std::filesystem::path path(string);

@@ -114,4 +114,6 @@ namespace influx::events
 		using event_pool = pool<my_event, k_ev_capacity>;
 		event_pool* m_eventpool;
 	};
+
+
 }

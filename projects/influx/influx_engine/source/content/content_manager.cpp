@@ -5,6 +5,9 @@
 #include "core/log.h"
 #include "core/time.h"
 
+// influx::engine
+#include "file/engine_files.h"
+
 // influx::async
 #include "influx_async.h"
 
@@ -44,15 +47,15 @@ namespace influx::engine
 		m_start_engine_resources = time::get_now();
 
 		logn("loading engine resources ...");
-		load_assets(engine, e_asset_origin::engine, 
-			engine->get_engine_directory(engine::e_directory::assets));
+		const auto engine_assets_dir = get_engine_directory(engine_directory::assets);
+		load_assets(engine, e_asset_origin::engine, engine_assets_dir);
 	}
 
 	void content_manager::load_game_assets(const string& game_name, engine* engine)
 	{
 		logn("loading {} resources ...", game_name.c_str());
-		load_assets(engine, e_asset_origin::game, 
-			engine->get_game_directory(game_name, engine::e_game_directory::assets));
+		const auto game_assets_dir = get_game_directory(game_name, game_directory::assets);
+		load_assets(engine, e_asset_origin::game, game_assets_dir);
 	}
 
 	void content_manager::load_assets(engine* engine, e_asset_origin origin, const file& root)
@@ -72,7 +75,7 @@ namespace influx::engine
 		});
 
 		// load hlsls
-		const auto& interm_dir = engine->get_engine_directory(engine::e_directory::intermediate);
+		const auto& interm_dir = get_engine_directory(engine_directory::intermediate);
 		async::dispatch_for<file>(hlsl_files, [this, root, interm_dir](const file& file)
 		{
 			shader_item& vs_item = m_shaders[file.m_filename + "_vs"];

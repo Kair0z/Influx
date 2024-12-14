@@ -1,49 +1,29 @@
-#include "influx_graphics.h"
+#include "core/result.h"
+#include <iostream>
 
-
-extern "C" { __declspec(dllexport) extern const uint32_t D3D12SDKVersion = 614u; }
-extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
+#include "core/time.h"
 
 using namespace influx;
-
-void test_generic(graphics::device* device)
+result<> res_do_something()
 {
-	graphics::queue* queue = device->create_queue();
+	new int();
 
-	graphics::command_allocator* alloc = device->create_graphics_allocator();
-	graphics::commandlist* list = device->create_graphics_command_list(alloc, nullptr);
-	graphics::fence* fence = device->create_fence();
-
-	queue->submit_commandlists({ list });
-
-	queue->queue_signal(fence, 1u);
-
-	wait_handle wait{};
-	fence->wait_for_value(1u, wait);
+	if (true)
+	{
+		return {};
+	}
+	else
+	{
+		return true;
+	}
 }
 
-void test_dx12()
+bool do_something()
 {
-	graphics::device* dx_device
-		= graphics::device::create(graphics::e_api_type::dx12);
-
-	test_generic(dx_device);
-
-	delete dx_device;
-}
-
-void test_vulkan()
-{
-	graphics::device* vk_device
-		= graphics::device::create(graphics::e_api_type::vulkan);
-
-	test_generic(vk_device);
-	
-	delete vk_device;
+	new int();
+	return true;
 }
 
 int main()
 {
-	test_vulkan();
-	test_dx12();
 }

@@ -5,5 +5,5 @@
 #include "core/log.h"
 #include "core/scope.h"
 
-#include "influx_engine/engine/engine.h"
-#include "engine_private.h"
+// influx::engine
+#include "engine.h"

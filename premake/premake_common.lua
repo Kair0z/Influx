@@ -44,7 +44,7 @@ function new_influx_app(name)
         fastuptodate(false)
 end
 
-function new_influx_module(name)
+function new_influx_game(name)
     project_dir = g_dir_projects_apps .. "/%{prj.name}/"
     new_influx_project(name, "SharedLib")
 end
