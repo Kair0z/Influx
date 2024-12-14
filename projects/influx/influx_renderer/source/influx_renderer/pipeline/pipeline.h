@@ -2,10 +2,14 @@
 
 #include "influx_renderer.h"
 
+// influx::core
 #include "core/string.h"
 #include "core/container/map.h"
 
 // influx::graphics
+#include "influx_graphics/pipeline.h"
+#include "influx_graphics/rootsignature.h"
+
 #pragma region graphics declarations
 namespace influx::graphics
 {

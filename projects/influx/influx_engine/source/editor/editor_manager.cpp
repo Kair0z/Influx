@@ -224,7 +224,13 @@ namespace influx::engine
 				// "texture:filepath"
 				for (const auto& pair : res_content->get_images())
 					if (pair.second.is_loaded() && pair.second.is_engine())
-						ImGui::Text("texture:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+					{
+						const image_asset& image = pair.second;
+						const math::vectori2& image_dims = image.m_resource.m_dimensions;
+						ImGui::Text("texture:%s - ms:%f[%ix%i]", pair.first.c_str(), image.get_load_ms(), 
+							image_dims.x, image_dims.y);
+					}
+						
 				ImGui::Text("--");
 				// "shader:filepath"
 				for (const auto& pair : res_content->get_shaders())

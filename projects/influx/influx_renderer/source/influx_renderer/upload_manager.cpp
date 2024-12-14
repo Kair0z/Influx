@@ -11,7 +11,8 @@ namespace influx::renderer
 		heap_desc.m_type = graphics::e_heap_type::shared;
 
 		graphics::buffer_desc texture_desc{};
-		texture_desc.m_bytesize = 1024u * 1024u * 14u;
+		const uint32 made_up_size = 2048u;
+		texture_desc.m_bytesize = made_up_size * made_up_size * 14u;
 		texture_desc.m_init_state = graphics::e_resource_state::read;
 		mp_texture_upload_resource = mp_device->create_resource(texture_desc, heap_desc);
 

@@ -52,7 +52,7 @@ namespace influx::engine
 			transform_component& ent_transform = m_world->create_component<transform_component>(entity);
 			ent_transform.set_position({ 0.0f, 0.0f, 0.0f });
 			mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
-			ent_mesh.set_mesh_path("box");
+			ent_mesh.set_mesh_path("duolingo");
 			ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
 			ent_mesh.set_invert_normals(true);
 
