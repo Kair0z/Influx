@@ -52,7 +52,7 @@ namespace influx::engine
 			transform_component& ent_transform = m_world->create_component<transform_component>(entity);
 			ent_transform.set_position({ 0.0f, 0.0f, 0.0f });
 			mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
-			ent_mesh.set_mesh_path("duolingo");
+			ent_mesh.set_mesh_path("transistor");
 			ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
 			ent_mesh.set_invert_normals(true);
 
@@ -75,9 +75,15 @@ namespace influx::engine
 				const float delta_seconds = m_time.get_delta_seconds();
 				angular_position += delta_mouse * delta_seconds * 0.5f;
 
+#if 0
 				cam_transform.set_position_x(distance * math::cosf(angular_position.x) * math::cosf(angular_position.y));
-				cam_transform.set_position_y(distance * math::cosf(angular_position.y) * math::sinf(angular_position.y));
-				cam_transform.set_position_z(distance * math::sinf(angular_position.x));
+				cam_transform.set_position_y(distance * math::sinf(angular_position.x) * math::cosf(angular_position.y));
+				cam_transform.set_position_z(distance * math::sinf(angular_position.y));
+#else
+				cam_transform.set_position_x(distance * math::sinf(angular_position.x) * math::cosf(angular_position.y));
+				cam_transform.set_position_y(distance * math::sinf(angular_position.x) * math::sinf(angular_position.y));
+				cam_transform.set_position_z(distance * math::cosf(angular_position.x));
+#endif
 				cam_transform.look_at({});
 			};
 		}
