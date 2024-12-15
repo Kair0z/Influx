@@ -8,6 +8,7 @@
 #include "core/container/vector.h"
 #include "core/math/colour.h"
 #include "core/geometry/rect.h"
+#include "core/math/bounds.h"
 
 // influx::renderer
 #include "types.h"
@@ -63,6 +64,28 @@ namespace influx::renderer
 	struct scene2D final
 	{
 		vector<sprite2D> m_sprites = {};
+	};
+
+	struct scene_debug final
+	{
+		using line = math::float3[2];
+
+		void add_box(const math::boxf& box)
+		{
+			// todo
+		}
+
+		void add_line(const line& line)
+		{
+			m_lines.push_back(line);
+		}
+
+		void add_point(const math::float3& point)
+		{
+			add_line({ point, point });
+		}
+
+		vector<line> m_lines;
 	};
 }
 
