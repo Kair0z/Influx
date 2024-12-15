@@ -68,19 +68,23 @@ namespace influx::renderer
 
 	struct scene_debug final
 	{
-		using line = math::float3[2];
-
-		void add_box(const math::boxf& box)
+		struct line final
 		{
-			// todo
+			math::float3 m_points[2]{};
+			math::colour_rgba m_colour;
+		};
+
+		void add_box(const math::boxf& box, const math::colour_rgba& colour)
+		{
+			
 		}
 
-		void add_line(const line& line)
+		void add_line(const line& line, const math::colour_rgba& colour)
 		{
 			m_lines.push_back(line);
 		}
 
-		void add_point(const math::float3& point)
+		void add_point(const math::float3& point, const math::colour_rgba& colour)
 		{
 			add_line({ point, point });
 		}
