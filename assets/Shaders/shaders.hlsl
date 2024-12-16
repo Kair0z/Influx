@@ -1,7 +1,7 @@
 #include "common.hlsli"
 
 [shader("vertex")]
-ps_input VSMain ( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_InstanceID)
+ps_input main_vs( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_InstanceID)
 {
     ps_input output = (ps_input)0;
 
@@ -31,7 +31,7 @@ ps_input VSMain ( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_I
 }
 
 [shader("pixel")]
-float4 PSMain(ps_input input) : SV_TARGET
+float4 main_ps(ps_input input) : SV_TARGET
 {
     float3 lightDir = g_perscene.light_direction;
     float3 lightCol = g_perscene.light_colour.rgb;

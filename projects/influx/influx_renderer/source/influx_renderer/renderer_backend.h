@@ -22,6 +22,7 @@ namespace influx::renderer
 	class imgui_manager;
 	class pipeline_manager;
 	class scene_renderer;
+	class debug_renderer;
 	class target;
 }
 
@@ -53,6 +54,7 @@ namespace influx::renderer
 		void draw_scene(const scene& scene, const target& target);
 		void draw_imgui(ImDrawData* draw_data, const target& target);
 		void draw_2D(const scene2D& scene, const target& target);
+		void draw_debug(const scene_debug& scene, const target& target);
 		void copy_target(const target& source, const target& dest);
 		void clear_target(const target&, const clear_args&);
 		void present_swapchain(const present_args& args);
@@ -87,6 +89,9 @@ namespace influx::renderer
 
 		memory_info get_memory_info() const;
 
+		umap<string, shader_data>& get_vertex_shaders();
+		umap<string, shader_data>& get_pixel_shaders();
+
 	private:
 		uint64 m_frame_count = 0u;
 		bool m_is_initialized = false;
@@ -114,6 +119,7 @@ namespace influx::renderer
 		pipeline_manager* mp_pipeline_manager = nullptr;
 		imgui_manager* mp_imgui = nullptr;
 		scene_renderer* mp_scene_renderer = nullptr;
+		debug_renderer* mp_debug_renderer = nullptr;
 
 		// resources
 		umap<string, graphics::resource*> m_vertex_buffers;

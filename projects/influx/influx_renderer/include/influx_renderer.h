@@ -91,6 +91,9 @@ namespace influx::renderer
 	// - sprite rendering
 	INFLUX_RENDER_API void draw_2D(const scene2D& scene, const target& target);
 
+	// - debug line rendering
+	INFLUX_RENDER_API void draw_debug(const scene_debug& scene, const target& target);
+
 	// 3. (optional) copy intermediate data
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
 

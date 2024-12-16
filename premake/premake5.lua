@@ -21,6 +21,7 @@ workspace "influx"
     g_dir_int           = g_dir_root .. "/int/" .. g_config_string .. "/"
     g_dir_scripts       = g_dir_root .. "/scripts/"
     g_dir_resources     = g_dir_root .. "/resources/"
+    g_dir_assets        = g_dir_root .. "/assets/"
     
     -- /influx/projects/influx/<projectname>/include/...
     g_dir_core_include      = g_dir_projects_engine .. "/influx_core/include/"

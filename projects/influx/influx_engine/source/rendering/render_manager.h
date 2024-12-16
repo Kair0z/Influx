@@ -9,6 +9,7 @@ namespace influx::renderer
 {
 	class target;
 	struct scene;
+	struct scene_debug;
 }
 
 struct ImDrawData;
@@ -38,10 +39,13 @@ namespace influx::engine
 
 		void on_window_resize(const math::vectoru2& new_dimensions);
 
+		renderer::scene_debug& get_debug_render();
+
 	private:
 		renderer::target* mp_window_target;
 		renderer::target* mp_scene_target;
-		ImDrawData* mp_imgui_drawdata;
+		ImDrawData* mp_imgui_drawdata = nullptr;
+		renderer::scene_debug* mp_debug_scene = nullptr;
 
 		void initialize_imgui();
 	};

@@ -76,7 +76,13 @@ namespace influx::renderer
 
 		void add_box(const math::boxf& box, const math::colour_rgba& colour)
 		{
-			
+			const auto& max = box.get_maximum();
+			const auto& min = box.get_minimum();
+			const auto& mid = box.get_middle();
+			const math::vectorf3 dimensions = min - max;
+
+			// make lines
+			add_line(min, max, colour);
 		}
 
 		void add_line(const line& line, const math::colour_rgba& colour)
@@ -84,12 +90,23 @@ namespace influx::renderer
 			m_lines.push_back(line);
 		}
 
+		void add_line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour)
+		{
+			add_line({ start, end }, colour);
+		}
+		
 		void add_point(const math::float3& point, const math::colour_rgba& colour)
 		{
-			add_line({ point, point });
+			add_line({ point, point}, colour);
 		}
 
-		vector<line> m_lines;
+		void clear()
+		{
+			m_lines.clear();
+		}
+
+		vector<line> m_lines{};
+		camera m_camera = {};
 	};
 }
 

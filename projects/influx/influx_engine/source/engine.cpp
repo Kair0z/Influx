@@ -118,7 +118,7 @@ namespace influx::engine
 			scene.m_seconds = m_time.get_time_seconds();
 			scene.m_delta_seconds = m_time.get_delta_seconds();
 			renderer::scene2D scene2D{};
-			m_world->build_renderscene(scene, scene2D);
+			m_world->build_renderscene(scene, scene2D, m_renderman->get_debug_render());
 
 			m_renderman->render(scene);
 		}

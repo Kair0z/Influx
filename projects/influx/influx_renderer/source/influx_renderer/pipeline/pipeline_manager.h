@@ -14,15 +14,13 @@ namespace influx::renderer
 namespace influx::renderer
 {
 	static const char* k_scene_pipeline_name = "pip_scene";
+	static const char* k_debug_pipeline_name = "pip_debug";
 
 	// builds a keyvalue (uint32) from parameters
 	struct pipeline_key
 	{
-		pipeline_key()
-		{
-			
-		}
-
+		string m_vs_name;
+		string m_ps_name;
 		uint32 m_id = 0u;
 	};
 
@@ -38,6 +36,9 @@ namespace influx::renderer
 
 		pipeline* get_pipeline(const string& name);
 		pipeline* get_scene_pipeline();
+		pipeline* get_debug_pipeline();
+
+		pipeline* get_or_create_pipeline(const string& name, const pipeline_key& key);
 
 		uint64 get_num_pipelines() const;
 

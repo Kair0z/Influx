@@ -95,13 +95,13 @@ namespace influx::engine
 			compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
 
 			compile_args.m_type = shader::e_shader_type::vs;
-			compile_args.m_entrypoint = "VSMain";
+			compile_args.m_entrypoint = "main_vs";
 			vs_item.set_loadstate(e_load_state::loading);
 			influx_assert(imp::load_shader_file(file.m_path_full, vs_item.m_resource, compile_args));
 			vs_item.set_loadstate(e_load_state::loaded);
 
 			compile_args.m_type = shader::e_shader_type::ps;
-			compile_args.m_entrypoint = "PSMain";
+			compile_args.m_entrypoint = "main_ps";
 			ps_item.set_loadstate(e_load_state::loading);
 			influx_assert(imp::load_shader_file(file.m_path_full, ps_item.m_resource, compile_args));
 			ps_item.set_loadstate(e_load_state::loaded);

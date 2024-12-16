@@ -23,6 +23,7 @@ namespace influx::renderer
 {
 	struct scene;
 	struct scene2D;
+	struct scene_debug;
 }
 
 namespace influx::engine
@@ -45,7 +46,10 @@ namespace influx::engine
 		void update();
 
 		// -- engine-end
-		void build_renderscene(renderer::scene&, renderer::scene2D&) const;
+		void build_renderscene(
+			renderer::scene&, 
+			renderer::scene2D&,
+			renderer::scene_debug&) const;
 
 		entity create_entity();
 

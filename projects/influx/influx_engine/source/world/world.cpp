@@ -36,7 +36,7 @@ namespace influx::engine
         update_stream_system();
     }
 
-    void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D) const
+    void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D, renderer::scene_debug& debugscene) const
     {
         // general scene
         scene.m_camera.m_far_plane = 1000.0f;
@@ -52,6 +52,8 @@ namespace influx::engine
                 scene.m_camera.m_fov = camera_comp.get_fov();
                 scene.m_camera.m_transform = transform;
                 scene.m_camera.m_transform.update_matrix();
+
+                debugscene.m_camera = scene.m_camera;
             }
         }
 
@@ -81,6 +83,8 @@ namespace influx::engine
             return;
         }
 
+        debugscene.clear();
+        
         // build all meshes
         {
             auto view = m_registry.view<transform_component, mesh_component>();
@@ -101,6 +105,8 @@ namespace influx::engine
                 render_mesh.m_transform = transform.get_matrix();
                 render_mesh.m_invert_normals = mesh_comp.get_invert_normals();
                 scene.m_meshes.push_back(render_mesh);
+
+                debugscene.add_box(mesh_comp.m_mesh_boundbox, { 0,1,0,1 });
             }
         }
     }

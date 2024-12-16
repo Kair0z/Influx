@@ -3,6 +3,8 @@
 
 #include "pipeline.h"
 
+#include "influx_renderer/renderer_backend.h"
+
 namespace influx::renderer
 {
 	pipeline_manager::pipeline_manager(graphics::device* device)
@@ -51,6 +53,43 @@ namespace influx::renderer
 		}
 
 		return scene_pipeline;
+	}
+
+	pipeline* pipeline_manager::get_debug_pipeline()
+	{
+		pipeline* debug_pipeline = get_pipeline(k_debug_pipeline_name);
+		if (!debug_pipeline)
+		{
+			return nullptr;
+		}
+
+		return debug_pipeline;
+	}
+
+	pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const pipeline_key& key)
+	{
+		pipeline* result = nullptr;
+
+		if (!m_pipeline_map.contains(name))
+		{
+			// try create using key
+			auto& backend = renderer_backend::get_instance();
+			const bool vertex_shader_found = backend.get_vertex_shaders().contains(key.m_vs_name);
+			const bool pixel_shader_found = backend.get_pixel_shaders().contains(key.m_ps_name);
+
+			if (vertex_shader_found && pixel_shader_found)
+			{
+				result = new_pipeline(name,
+					backend.get_vertex_shaders()[key.m_vs_name],
+					backend.get_pixel_shaders()[key.m_ps_name]);
+			}
+		}
+		else
+		{
+			result = m_pipeline_map[name];
+		}
+
+		return result;
 	}
 
 	uint64 pipeline_manager::get_num_pipelines() const

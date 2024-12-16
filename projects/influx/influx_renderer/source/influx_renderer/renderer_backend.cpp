@@ -6,6 +6,7 @@
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
 #include "influx_renderer/scene_renderer.h"
+#include "influx_renderer/debug_renderer.h"
 
 // influx::graphics
 #include "influx_graphics.h"
@@ -16,8 +17,9 @@ namespace influx::renderer
     {
         scene = 0,
         scene2D = 1,
-        imgui = 2,
-        present = 3,
+        debug = 2,
+        imgui = 3,
+        present = 4,
         count
     };
 
@@ -82,6 +84,7 @@ namespace influx::renderer
         mp_upload_manager = new upload_manager(mp_device);
         mp_imgui = new imgui_manager(mp_device);
         mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
+        mp_debug_renderer = new debug_renderer(this, mp_device, nullptr);
 
         get_default_texture();
         get_default_material();
@@ -243,6 +246,43 @@ namespace influx::renderer
 
         {
             influx_scope("renderer_backend::draw2D::submit");
+            mp_commandlist->submit(mp_graphics_queue);
+            mp_commandlist->wait_for_completion();
+        }
+    }
+
+    void renderer_backend::draw_debug(const scene_debug& scene, const target& target)
+    {
+        graphics::resource* target_resource = target.get_resource();
+        graphics::render_target_view* target_rtv = target.get_rtv();
+        graphics::depth_stencil_view* target_dsv = target.get_dsv();
+
+        influx_scope("renderer_backend::draw_debug");
+        {
+            influx_scope("renderer_backend::draw_debug::record");
+
+            mp_commandlist->start(mp_device, nullptr);
+            mp_commandlist->set_name("draw_debug");
+            {
+                const uint32 target_width = target.get_width();
+                const uint32 target_height = target.get_height();
+
+                target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
+
+                // bind gpu descriptor heaps
+                get_descriptor_manager()->start_commandlist(mp_commandlist);
+
+                mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
+                mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
+                mp_commandlist->set(target_rtv, target_dsv);
+
+                mp_debug_renderer->render(mp_commandlist, scene, target);
+            }
+            mp_commandlist->end();
+        }
+
+        {
+            influx_scope("renderer_backend::draw_debug::submit");
             mp_commandlist->submit(mp_graphics_queue);
             mp_commandlist->wait_for_completion();
         }
@@ -424,20 +464,6 @@ namespace influx::renderer
         {
             (*target_map)[title] = data;
         }
-
-        // build a pipeline off the first 2 shaders loaded
-        // todo: this is ugly!!
-        if (mp_pipeline_manager->get_num_pipelines() == 0u
-            && !m_vertex_shaders.empty() && !m_pixel_shaders.empty())
-        {
-            mp_pipeline_manager->new_pipeline("pip_scene", 
-                m_vertex_shaders.cbegin()->second, 
-                m_pixel_shaders.cbegin()->second);
-
-            // bind the shaders to the default material
-            m_materials["none"].m_vertex_shader = m_vertex_shaders.cbegin()->first;
-            m_materials["none"].m_pixel_shader = m_pixel_shaders.cbegin()->first;
-        }
     }
 
     // material
@@ -582,6 +608,16 @@ namespace influx::renderer
         return info;
     }
 
+    umap<string, shader_data>& renderer_backend::get_vertex_shaders()
+    {
+        return m_vertex_shaders;
+    }
+
+    umap<string, shader_data>& renderer_backend::get_pixel_shaders()
+    {
+        return m_pixel_shaders;
+    }
+
     void renderer_backend::validate_materials()
     {
         for (const auto& mat : m_materials)
@@ -682,6 +718,11 @@ namespace influx::renderer
     void draw_2D(const scene2D& scene, const target& target)
     {
         renderer_backend::get_instance().draw_2D(scene, target);
+    }
+
+    void draw_debug(const scene_debug& scene, const target& target)
+    {
+        renderer_backend::get_instance().draw_debug(scene, target);
     }
 
     void load(const string& title, const mesh_data& data)

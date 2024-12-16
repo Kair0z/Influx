@@ -132,7 +132,6 @@ namespace influx::renderer
     {
         cmdlist->set(mp_rootsig);
         cmdlist->set(mp_pipeline);
-        cmdlist->set(graphics::e_primitive_topology::trilist);
     }
 
     void pipeline::set_constants(graphics::commandlist* cmdlist, const string& name, uint32 num_dwords, void* data)

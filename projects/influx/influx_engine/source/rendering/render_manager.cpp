@@ -151,26 +151,11 @@ namespace influx::engine
 					influx::renderer::load(name, m_shader_data);
 				}
 			};
-#if 0
+
 			for (const auto& asset : cont_man->get_shaders())
 			{
 				load_shader(asset.first, asset.second);
 			}
-#else
-			const auto& shaders = cont_man->get_shaders();
-			const string& vs_name = "shaders_vs";
-			if (shaders.contains(vs_name))
-			{
-				load_shader(vs_name, shaders.at(vs_name));
-			}
-
-			const string& ps_name = "shaders_ps";
-			if (shaders.contains(ps_name))
-			{
-				load_shader(ps_name, shaders.at(ps_name));
-			}
-#endif
-
 		}
 		
 		// HARDCODED SECTION
@@ -270,13 +255,19 @@ namespace influx::engine
 			renderer::draw_scene(scene, *mp_scene_target);
 		}
 
-		// 3. imgui render
+		// 3. debug render
+		if (mp_debug_scene != nullptr)
+		{
+			renderer::draw_debug(*mp_debug_scene, *mp_scene_target);
+		}
+
+		// 4. imgui render
 		if (mp_imgui_drawdata != nullptr)
 		{
 			renderer::draw_imgui(mp_imgui_drawdata, *mp_scene_target);
 		}
 		
-		// 4. copy scene-target into window
+		// 5. copy scene-target into window
 		influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
 
 		// present to window
@@ -285,6 +276,16 @@ namespace influx::engine
 		influx::renderer::present_swapchain(present_args);
 
 		mp_imgui_drawdata = nullptr;
+	}
+
+	renderer::scene_debug& render_manager::get_debug_render()
+	{
+		if (mp_debug_scene == nullptr)
+		{
+			mp_debug_scene = new renderer::scene_debug();
+		}
+
+		return *mp_debug_scene;
 	}
 
 	void render_manager::on_window_resize(const math::vectoru2& new_dimensions)
