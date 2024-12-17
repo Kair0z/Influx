@@ -49,7 +49,7 @@ namespace influx::renderer
 		};
 		enum blendmask : uint32
 		{
-			all = 15u
+			blend_all = 15u
 		};
 		enum format : uint32
 		{
@@ -102,7 +102,7 @@ namespace influx::renderer
 		uint32 m_alpha_sources[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 		uint32 m_alpha_dests[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 		uint32 m_alpha_ops[k_max_num_rendertargets]			= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint8 m_blend_writemasks[k_max_num_rendertargets]	= { blendmask::all, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint8 m_blend_writemasks[k_max_num_rendertargets]	= { blendmask::blend_all, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 	};
 
 	class pipeline final

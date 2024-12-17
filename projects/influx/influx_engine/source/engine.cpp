@@ -65,15 +65,10 @@ namespace influx::engine
 				const float delta_seconds = m_time.get_delta_seconds();
 				angular_position += delta_mouse * delta_seconds * 0.5f;
 
-#if 0
-				cam_transform.set_position_x(distance * math::cosf(angular_position.x) * math::cosf(angular_position.y));
-				cam_transform.set_position_y(distance * math::sinf(angular_position.x) * math::cosf(angular_position.y));
-				cam_transform.set_position_z(distance * math::sinf(angular_position.y));
-#else
 				cam_transform.set_position_x(distance * math::sinf(angular_position.x) * math::cosf(angular_position.y));
 				cam_transform.set_position_y(distance * math::sinf(angular_position.x) * math::sinf(angular_position.y));
 				cam_transform.set_position_z(distance * math::cosf(angular_position.x));
-#endif
+
 				cam_transform.look_at({});
 			};
 		}
