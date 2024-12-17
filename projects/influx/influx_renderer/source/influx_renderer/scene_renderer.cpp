@@ -22,7 +22,7 @@ namespace influx::renderer
 
         .m_primitive_type       { 0u }, // triangle
         .m_cullmode             { 2u }, // no cull
-        .m_fillmode             { 1u }, // solid
+        .m_fillmode             { pipeline_signature::fillmode::solid }, // solid
         .m_forced_samplecount   { 0u },
         .m_sample_mask          { (uint32)-1 },
         .m_sample_count         { 1u },
