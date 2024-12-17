@@ -1,6 +1,7 @@
 #pragma once
 #include "influx_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
+#include <influx_renderer/renderer_backend.h>
 
 #pragma region declarations
 // influx::graphics
@@ -88,6 +89,7 @@ namespace influx::renderer
 		bool get_mesh_buffers(const string& name, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
 
 		memory_info get_memory_info() const;
+		pipeline_info get_pipeline_info() const;
 
 		umap<string, shader_data>& get_vertex_shaders();
 		umap<string, shader_data>& get_pixel_shaders();

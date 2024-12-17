@@ -129,4 +129,11 @@ namespace influx::renderer
 	};
 
 	INFLUX_RENDER_API memory_info get_memory_info();
+
+	struct pipeline_info final
+	{
+		uint32 m_num_pipelines;
+	};
+
+	INFLUX_RENDER_API pipeline_info get_pipeline_info();
 }

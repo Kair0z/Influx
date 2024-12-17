@@ -610,6 +610,13 @@ namespace influx::renderer
         return info;
     }
 
+    pipeline_info renderer_backend::get_pipeline_info() const
+    {
+        pipeline_info info{};
+        info.m_num_pipelines = mp_pipeline_manager->get_num_pipelines();
+        return info;
+    }
+
     umap<string, shader_data>& renderer_backend::get_vertex_shaders()
     {
         return m_vertex_shaders;
@@ -770,6 +777,11 @@ namespace influx::renderer
     memory_info get_memory_info()
     {
         return renderer_backend::get_instance().get_memory_info();
+    }
+
+    pipeline_info get_pipeline_info()
+    {
+        return renderer_backend::get_instance().get_pipeline_info();
     }
 #pragma endregion
 

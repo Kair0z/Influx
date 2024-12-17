@@ -31,10 +31,12 @@ namespace influx::engine
 	public:
 		virtual void on_run() override
 		{
-			ImGui::Text("LETSGO");
+			ImGui::Text("num_pipelines: %i", renderer::get_pipeline_info().m_num_pipelines);
 		}
-	};
 
+		uint32 m_num_pipelines = 0u;
+	};
+	
 	render_manager::render_manager(engine* engine)
 		: mp_imgui_drawdata{ nullptr }
 		, mp_window_target{ nullptr }
@@ -64,7 +66,6 @@ namespace influx::engine
 		const auto& clientrect = window->get_rect(platform::window::e_space::client);
 		on_window_resize(clientrect.get_dimensions());
 
-		// editor_manager
 		editor_manager::add_window<render_editor>();
 	}
 
