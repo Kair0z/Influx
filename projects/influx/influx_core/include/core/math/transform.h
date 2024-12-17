@@ -193,6 +193,31 @@ namespace influx::math
 			m_matrix = matrix4x4f::make_scale(m_scale) * matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward());
 		}
 
+		bool is_gimbal_locked() const
+		{
+			return m_rotation.is_gimbal_locked();
+		}
+
+		vectorf3 get_euler_angles() const
+		{
+			return m_rotation.get_euler_angles();
+		}
+
+		float get_pitch() const
+		{
+			return m_rotation.get_pitch();
+		}
+
+		float get_yaw() const
+		{
+			return m_rotation.get_yaw();
+		}
+
+		float get_roll() const
+		{
+			return m_rotation.get_roll();
+		}
+
 		transform3D(const transform3D&) = default;
 		transform3D(transform3D&&) = default;
 		transform3D& operator=(const transform3D&) = default;
