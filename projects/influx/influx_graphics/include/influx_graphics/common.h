@@ -83,8 +83,8 @@ namespace influx::graphics
 	// ...
 	enum class e_fill_mode : uint8
 	{
-		wireframe,
 		solid,
+		wireframe,
 		count
 	};
 

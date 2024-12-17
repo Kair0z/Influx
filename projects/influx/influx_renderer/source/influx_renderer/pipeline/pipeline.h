@@ -26,15 +26,53 @@ namespace influx::renderer
 {
 	struct pipeline_signature final
 	{
+#pragma region enums
+		enum cullmode : uint32
+		{
+			front	= 0,
+			back	= 1,
+			none	= 2
+		};
+		enum primitive_type : uint32
+		{
+			triangle,
+			line
+		};
+		enum fillmode : uint32
+		{
+			solid		= 0,
+			wireframe	= 1
+		};
+		enum samplemask : uint32
+		{
+			all = (uint32)-1
+		};
+		enum blendmask : uint32
+		{
+			all = 15u
+		};
+		enum format : uint32
+		{
+			rgba8	= 0u,
+			r32		= 1u,
+			rg32	= 2u,
+			rgb32	= 3u,
+			rgba32	= 4u,
+			d32		= 5u,
+			u16		= 6u,
+			u32		= 7u
+		};
+#pragma endregion
+
 		string m_vs_name = "";
 		string m_ps_name = "";
 
 		// rasterizer
-		uint32 m_primitive_type			= 0u; // triangle
-		uint32 m_cullmode				= 2u;
-		uint32 m_fillmode				= 1u;
+		uint32 m_primitive_type			= primitive_type::triangle;
+		uint32 m_cullmode				= cullmode::back;
+		uint32 m_fillmode				= fillmode::solid;
 		uint32 m_forced_samplecount		= 0u;
-		uint32 m_sample_mask			= (uint32)-1;
+		uint32 m_sample_mask			= samplemask::all;
 		uint32 m_sample_count			= 1u;
 		bool m_front_ccw				= false;
 		bool m_depthclip				= true;
@@ -49,22 +87,22 @@ namespace influx::renderer
 		bool m_depth_enable				= false;
 		bool m_stencil_enable			= false;
 		uint32 m_depth_comparison		= 0u;
-		uint32 m_depth_format			= 5u; // d32
+		uint32 m_depth_format			= format::d32;
 
 		// rtvs & dsvs
 		static constexpr uint8 k_max_num_rendertargets = 8u;
-		bool m_rtv_actives[k_max_num_rendertargets] = { true, false, false, false, false, false, false, false };
-		uint8 m_rtv_formats[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		bool m_rtv_actives[k_max_num_rendertargets]		= { true, false, false, false, false, false, false, false };
+		uint8 m_rtv_formats[k_max_num_rendertargets]	= { format::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 
 		// rtv blend
-		bool m_blend_actives[k_max_num_rendertargets] = { false, false, false, false, false, false, false, false };
-		uint32 m_blend_sources[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_blend_dests[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_blend_ops[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_alpha_sources[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_alpha_dests[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_alpha_ops[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint8 m_blend_writemasks[k_max_num_rendertargets] = { 15u, 15u, 15u, 15u, 15u, 15u, 15u, 15u };
+		bool m_blend_actives[k_max_num_rendertargets]		= { false, false, false, false, false, false, false, false };
+		uint32 m_blend_sources[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_blend_dests[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_blend_ops[k_max_num_rendertargets]			= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_alpha_sources[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_alpha_dests[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_alpha_ops[k_max_num_rendertargets]			= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint8 m_blend_writemasks[k_max_num_rendertargets]	= { blendmask::all, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 	};
 
 	class pipeline final
