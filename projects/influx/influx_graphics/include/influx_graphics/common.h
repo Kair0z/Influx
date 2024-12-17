@@ -210,15 +210,21 @@ namespace influx::graphics
 		count
 	};
 
+	// D3D12_PRIMITIVE_TOPOLOGY_TYPE
 	enum class e_primitive_topology_type : uint8
 	{
-		triangle,
+		triangle	= 0,
+		point		= 1,
+		line		= 2,
+		patch		= 3,
 		count
 	};
 
+	// D3D_PRIMITIVE_TOPOLOGY
 	enum class e_primitive_topology : uint8
 	{
 		trilist,
+		linelist,
 		count
 	};
 

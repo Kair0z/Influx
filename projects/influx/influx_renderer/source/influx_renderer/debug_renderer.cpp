@@ -25,6 +25,50 @@ namespace influx::renderer
         math::matrix4x4f m_vp;
     };
 
+    struct vertex final
+    {
+        math::float3 m_position;
+        math::colour_rgba m_colour;
+        uint32 m_id;
+    };
+
+    static const pipeline_signature k_debug_pipeline_signature
+    {
+        .m_vs_name              { "debug_shaders_vs" },
+        .m_ps_name              { "debug_shaders_ps" },
+
+        .m_primitive_type       { 2u }, // line
+        .m_cullmode             { 2u }, // nocull
+        .m_fillmode             { 0u }, // wireframe
+        .m_forced_samplecount   { 0u },
+        .m_sample_mask          { (uint32)-1 },
+        .m_sample_count         { 1u },
+        .m_front_ccw            { false },
+        .m_depthclip            { true },
+        .m_multisample          { false },
+        .m_antialiased_line     { false },
+        .m_conservative_raster  { false },
+        .m_depthbias            { 0 },
+        .m_depthbias_clamp      { 0.0f },
+        .m_slope_depthbias      { 0.0f },
+
+        .m_depth_enable         { false },
+        .m_stencil_enable       { false },
+        .m_depth_comparison     { 0u },
+        .m_depth_format         { 5u }, // d32
+
+        .m_rtv_actives          { true, false, false, false, false, false, false, false },
+        .m_rtv_formats          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        .m_blend_actives        { false, false, false, false, false, false, false, false },
+        .m_blend_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_writemasks     { 15u, 15u, 15u, 15u, 15u, 15u, 15u, 15u }
+    };
+
     debug_renderer::debug_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
         : mp_pipeline{pipeline}
         , mp_backend{backend}
@@ -46,23 +90,24 @@ namespace influx::renderer
             mp_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
         }
         
-        // create 2-element vertexbuffer (mini)
+        // create 2-element vertexbuffer
         {
-            vector<math::float3> vertices = { {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} };
+            vector<vertex> vertices = {
+                {.m_position{0.0f, 0.0f, 0.0f}, .m_colour{1,1,1,1}},
+                {.m_position{1.0f, 0.0f, 0.0f}, .m_colour{1,1,1,1}}};
 
             graphics::heap_desc heap_desc{};
             heap_desc.m_type = graphics::e_heap_type::shared;
             graphics::buffer_desc desc{};
             desc.m_init_state = graphics::e_resource_state::read;
-
-            desc.m_bytesize = vertices.size() * sizeof(math::float3);
-            desc.m_bytestride = sizeof(math::float3);
+            desc.m_bytesize = vertices.size() * sizeof(vertex);
+            desc.m_bytestride = sizeof(vertex);
             mp_vertexbuffer = mp_device->create_resource(desc, heap_desc);
             mp_vertexbuffer->map([&vertices](void* target)
             {
                 memcpy(target,
                 vertices.data(),
-                vertices.size() * sizeof(math::float3));
+                vertices.size() * sizeof(vertex));
             });
         }
 
@@ -76,8 +121,7 @@ namespace influx::renderer
 
     void debug_renderer::render(graphics::commandlist* commandlist, const scene_debug& scene, const target& target)
     {
-        mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_debug",
-            pipeline_key{.m_vs_name{"debug_shaders_vs"}, .m_ps_name{"debug_shaders_ps"}});
+        mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_debug", k_debug_pipeline_signature);
 
         if (mp_pipeline == nullptr)
         {
@@ -123,6 +167,8 @@ namespace influx::renderer
             // set the resource table
             mp_pipeline->set_resource_table(commandlist, "g_instancebuffer", gpu_range);
         }
+
+        commandlist->set(graphics::e_primitive_topology::linelist);
 
         const uint32 num_instances = (uint32)m_instance_data.size();
         commandlist->draw_instanced(

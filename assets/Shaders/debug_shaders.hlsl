@@ -10,7 +10,6 @@ struct vs_input
 {
     float3 position : POSITION;
     float4 colour : COLOR;
-    uint instanceID : SV_InstanceID;
 };
 
 struct ps_input 
@@ -29,11 +28,11 @@ struct per_view
 ConstantBuffer<per_view>                g_perview           : register(b0);
 StructuredBuffer<per_instance_data>     g_instancebuffer    : register(t1);
 
-ps_input main_vs(vs_input input)
+ps_input main_vs(vs_input input, uint instanceID : SV_InstanceID)
 {
     ps_input result;
 
-    per_instance_data instance_data = g_instancebuffer[input.instanceID];
+    per_instance_data instance_data = g_instancebuffer[instanceID];
 
     float3 world_position = lerp(
         instance_data.wp_start, 
@@ -43,7 +42,7 @@ ps_input main_vs(vs_input input)
     // to clip space
     result.position = mul(float4(world_position, 1.0f), g_perview.mat_vp);
     
-    result.colour = input.colour * instance_data.colour;
+    result.colour = instance_data.colour;
 
     return result;
 }

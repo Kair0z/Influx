@@ -15,6 +15,43 @@
 
 namespace influx::renderer
 {
+    static const pipeline_signature k_scene_pipeline_signature
+    {
+        .m_vs_name              { "shaders_vs" },
+        .m_ps_name              { "shaders_ps" },
+
+        .m_primitive_type       { 0u }, // triangle
+        .m_cullmode             { 2u }, // no cull
+        .m_fillmode             { 1u }, // solid
+        .m_forced_samplecount   { 0u },
+        .m_sample_mask          { 0u },
+        .m_sample_count         { 1u },
+        .m_front_ccw            { false },
+        .m_depthclip            { false },
+        .m_multisample          { false },
+        .m_antialiased_line     { false },
+        .m_conservative_raster  { false },
+        .m_depthbias            { 0 },
+        .m_depthbias_clamp      { 0.0f },
+        .m_slope_depthbias      { 0.0f },
+
+        .m_depth_enable         { true },
+        .m_stencil_enable       { false },
+        .m_depth_comparison     { 0u },
+        .m_depth_format         { 5u }, // d32
+
+        .m_rtv_actives          { true, false, false, false, false, false, false, false },
+        .m_rtv_formats          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        .m_blend_actives        { false, false, false, false, false, false, false, false },
+        .m_blend_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_writemasks     { 15u, 15u, 15u, 15u, 15u, 15u, 15u, 15u }
+    };
+
     scene_renderer::scene_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
         : mp_pipeline{ pipeline }
         , mp_backend{ backend }
@@ -227,9 +264,7 @@ namespace influx::renderer
     void scene_renderer::render_basepass(graphics::commandlist* commandlist, 
         const scene& scene, const vector<batch>& batches, const target& target)
     {
-        // get the pipeline
-        mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_scene",
-            pipeline_key{.m_vs_name{"shaders_vs"}, .m_ps_name{"shaders_ps"}});
+        mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
         if (mp_pipeline == nullptr)
         {
             // logonce(e_log_category::warning, "influx::renderer::scene_renderer: no scene pipeline!");

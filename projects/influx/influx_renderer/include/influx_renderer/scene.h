@@ -70,6 +70,10 @@ namespace influx::renderer
 	{
 		struct line final
 		{
+			line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour)
+				: m_points{start, end}
+				, m_colour{ colour } {}
+
 			math::float3 m_points[2]{};
 			math::colour_rgba m_colour;
 		};
@@ -85,19 +89,19 @@ namespace influx::renderer
 			add_line(min, max, colour);
 		}
 
-		void add_line(const line& line, const math::colour_rgba& colour)
+		void add_line(const line& line)
 		{
 			m_lines.push_back(line);
 		}
 
 		void add_line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour)
 		{
-			add_line({ start, end }, colour);
+			add_line({ start, end, colour});
 		}
 		
 		void add_point(const math::float3& point, const math::colour_rgba& colour)
 		{
-			add_line({ point, point}, colour);
+			add_line({ point, point, colour });
 		}
 
 		void clear()

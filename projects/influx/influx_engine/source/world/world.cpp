@@ -106,7 +106,7 @@ namespace influx::engine
                 render_mesh.m_invert_normals = mesh_comp.get_invert_normals();
                 scene.m_meshes.push_back(render_mesh);
 
-                debugscene.add_box(mesh_comp.m_mesh_boundbox, { 0,1,0,1 });
+                debugscene.add_line(math::float3{-10.0f, 0.0f, 0.0f}, math::float3{10.0f, 0.0f, 0.0f}, { 0,1,0,1 });
             }
         }
     }

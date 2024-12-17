@@ -13,7 +13,7 @@ namespace influx::renderer
 
 	}
 
-	pipeline* pipeline_manager::new_pipeline(const string& name, const renderer::shader_data& vertex_shader, const renderer::shader_data& pixel_shader)
+	pipeline* pipeline_manager::new_pipeline(const string& name, const pipeline_signature& signature, const renderer::shader_data& vertex_shader, const renderer::shader_data& pixel_shader)
 	{
 		if (m_pipeline_map.contains(name))
 		{
@@ -23,6 +23,7 @@ namespace influx::renderer
 
 		pipeline* new_pipeline = new pipeline(
 			mp_device, 
+			signature,
 			&vertex_shader, 
 			&pixel_shader);
 
@@ -66,7 +67,7 @@ namespace influx::renderer
 		return debug_pipeline;
 	}
 
-	pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const pipeline_key& key)
+	pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const pipeline_signature& signature)
 	{
 		pipeline* result = nullptr;
 
@@ -74,14 +75,15 @@ namespace influx::renderer
 		{
 			// try create using key
 			auto& backend = renderer_backend::get_instance();
-			const bool vertex_shader_found = backend.get_vertex_shaders().contains(key.m_vs_name);
-			const bool pixel_shader_found = backend.get_pixel_shaders().contains(key.m_ps_name);
+			const bool vertex_shader_found = backend.get_vertex_shaders().contains(signature.m_vs_name);
+			const bool pixel_shader_found = backend.get_pixel_shaders().contains(signature.m_ps_name);
 
 			if (vertex_shader_found && pixel_shader_found)
 			{
 				result = new_pipeline(name,
-					backend.get_vertex_shaders()[key.m_vs_name],
-					backend.get_pixel_shaders()[key.m_ps_name]);
+					signature,
+					backend.get_vertex_shaders()[signature.m_vs_name],
+					backend.get_pixel_shaders()[signature.m_ps_name]);
 			}
 		}
 		else

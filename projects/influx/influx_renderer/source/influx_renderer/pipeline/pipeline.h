@@ -18,18 +18,63 @@ namespace influx::graphics
 	class rootsignature;
 	class commandlist;
 	struct descriptor_range;
+	struct pipeline_desc;
 }
 #pragma endregion
 
 namespace influx::renderer
 {
+	struct pipeline_signature final
+	{
+		string m_vs_name = "";
+		string m_ps_name = "";
+
+		// rasterizer
+		uint32 m_primitive_type			= 0u; // triangle
+		uint32 m_cullmode				= 2u;
+		uint32 m_fillmode				= 1u;
+		uint32 m_forced_samplecount		= 0u;
+		uint32 m_sample_mask			= (uint32)-1;
+		uint32 m_sample_count			= 1u;
+		bool m_front_ccw				= false;
+		bool m_depthclip				= true;
+		bool m_multisample				= false;
+		bool m_antialiased_line			= false;
+		bool m_conservative_raster		= false;
+		int m_depthbias					= 0;
+		float m_depthbias_clamp			= 0.0f;
+		float m_slope_depthbias			= 0.0f;
+
+		// depth / stencil
+		bool m_depth_enable				= false;
+		bool m_stencil_enable			= false;
+		uint32 m_depth_comparison		= 0u;
+		uint32 m_depth_format			= 5u; // d32
+
+		// rtvs & dsvs
+		static constexpr uint8 k_max_num_rendertargets = 8u;
+		bool m_rtv_actives[k_max_num_rendertargets] = { true, false, false, false, false, false, false, false };
+		uint8 m_rtv_formats[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+
+		// rtv blend
+		bool m_blend_actives[k_max_num_rendertargets] = { false, false, false, false, false, false, false, false };
+		uint32 m_blend_sources[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_blend_dests[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_blend_ops[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_alpha_sources[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_alpha_dests[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_alpha_ops[k_max_num_rendertargets] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint8 m_blend_writemasks[k_max_num_rendertargets] = { 15u, 15u, 15u, 15u, 15u, 15u, 15u, 15u };
+	};
+
 	class pipeline final
 	{
 	public:
 		pipeline(
 			graphics::device* device,
-			renderer::shader_data const* vertex_shader,
-			renderer::shader_data const* pixel_shader);
+			const pipeline_signature& signature,
+			renderer::shader_data const* vs,
+			renderer::shader_data const* ps);
 
 		static pipeline* load_from_file(const string& path);
 

@@ -99,9 +99,10 @@ namespace influx::math
 
 		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			if (results[d] == (uint8)e_contain_status::less)
+			switch (results[d])
 			{
-				m_max[d] = point[d];
+			case (uint8)e_contain_status::less: m_min[d] = point[d]; break;
+			case (uint8)e_contain_status::more: m_max[d] = point[d]; break;
 			}
 		}
 	}
@@ -153,33 +154,31 @@ namespace influx::math
 			out_results[d] = (uint8)e_contain_status::contained;
 		}
 
-		bool isBiggerThanMin = true;
+		bool min_exceeded = false;
 		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			const bool isDimBiggerThanMin = (point[d] >= m_min[d]);
-			
-			if (!isDimBiggerThanMin)
+			const bool is_smaller_than_min = (point[d] < m_min[d]);
+			if (is_smaller_than_min)
 			{
 				out_results[d] = (uint8)e_contain_status::less;
 			}
 
-			isBiggerThanMin &= isDimBiggerThanMin;
+			min_exceeded |= is_smaller_than_min;
 		}
 
-		bool isSmallerThanMax = true;
+		bool max_exceeded = false;
 		for (detail::dim_t d = 0; d < _dim; ++d)
 		{
-			const bool isDimSmallerThanMax = (point[d] >= m_min[d]);
-			
-			if (!isDimSmallerThanMax)
+			const bool is_bigger_than_max = point[d] > m_max[d];
+			if (is_bigger_than_max)
 			{
 				out_results[d] = (uint8)e_contain_status::more;
 			}
 
-			isSmallerThanMax &= isDimSmallerThanMax;
+			max_exceeded |= is_bigger_than_max;
 		}
 
-		return (isBiggerThanMin && isSmallerThanMax);
+		return (!min_exceeded && !max_exceeded);
 	}
 }
 

@@ -112,9 +112,14 @@ namespace influx::graphics
 	{
 		switch (type)
 		{
-		case e_primitive_topology_type::triangle: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		case e_primitive_topology_type::triangle:	return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		case e_primitive_topology_type::line:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		case e_primitive_topology_type::patch:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+		case e_primitive_topology_type::point:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 		default:
-		case e_primitive_topology_type::count: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+		case e_primitive_topology_type::count: 
+			influx_assert(false);
+			return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
 		}
 	}
 
@@ -123,8 +128,11 @@ namespace influx::graphics
 		switch (topo)
 		{
 		case e_primitive_topology::trilist: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		case e_primitive_topology::linelist: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
 		default:
-		case e_primitive_topology::count: return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		case e_primitive_topology::count: 
+			influx_assert(false);
+			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 		}
 	}
 

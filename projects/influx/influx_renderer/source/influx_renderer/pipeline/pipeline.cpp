@@ -13,13 +13,13 @@
 
 namespace influx::renderer
 {
-    pipeline::pipeline(graphics::device* device, renderer::shader_data const* vertex_shader, renderer::shader_data const* pixel_shader)
+    pipeline::pipeline(graphics::device* device, const pipeline_signature& signature, renderer::shader_data const* vs, renderer::shader_data const* ps)
     {
-        shader::reflection const* vs_reflection = vertex_shader ? &vertex_shader->m_reflection : nullptr;
-        shader::reflection const* ps_reflection = pixel_shader ? &pixel_shader->m_reflection : nullptr;
+        shader::reflection const* vs_reflection = vs ? &vs->m_reflection : nullptr;
+        shader::reflection const* ps_reflection = ps ? &ps->m_reflection : nullptr;
 
-        influx_assert(vertex_shader); // for now, we require vertex shaders!
-        influx_assert(vs_reflection); 
+        influx_assert(vs); // for now, we require vertex shaders!
+        influx_assert(vs_reflection);
 
         // build the root signature:
         graphics::rootsignature_desc& rootsig_desc = m_rootsig_desc;
@@ -79,18 +79,41 @@ namespace influx::renderer
 
         // build the pipeline
         graphics::pipeline_desc& pipeline_desc = m_create_desc;
-        if (vertex_shader)  pipeline_desc.m_vs = vertex_shader->m_bytecode;
-        if (pixel_shader)   pipeline_desc.m_ps = pixel_shader->m_bytecode;
+        if (vs)  pipeline_desc.m_vs = vs->m_bytecode;
+        if (ps)   pipeline_desc.m_ps = ps->m_bytecode;
         // ...
-        
-        // depth stencil
-        pipeline_desc.m_depth_stencil.m_depth_enable = true;
-        pipeline_desc.m_depth_stencil.m_stencil_enable = false;
 
-        // rasterizer
-        pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
-        pipeline_desc.m_rasterizer.m_front_ccw = true;
-        pipeline_desc.m_rasterizer;
+        pipeline_desc.m_rasterizer.m_cullmode = (graphics::e_cull_mode)signature.m_cullmode;
+        pipeline_desc.m_rasterizer.m_front_ccw = signature.m_front_ccw;
+        pipeline_desc.m_prim_type = (graphics::e_primitive_topology_type)signature.m_primitive_type;
+        pipeline_desc.m_rasterizer.m_fillmode = (graphics::e_fill_mode)signature.m_fillmode;
+        pipeline_desc.m_rasterizer.m_forced_samplecount = signature.m_forced_samplecount;
+        pipeline_desc.m_sample_mask = signature.m_sample_mask;
+        pipeline_desc.m_sample_count = signature.m_sample_count;
+        pipeline_desc.m_rasterizer.m_depth_clip_enable = signature.m_depthclip;
+        pipeline_desc.m_rasterizer.m_multisample = signature.m_multisample;
+        pipeline_desc.m_rasterizer.m_antialiased_line = signature.m_antialiased_line;
+        pipeline_desc.m_rasterizer.m_conservative = signature.m_conservative_raster;
+        pipeline_desc.m_rasterizer.m_depth_bias = signature.m_depthbias;
+        pipeline_desc.m_rasterizer.m_depth_bias_clamp = signature.m_depthbias_clamp;
+        pipeline_desc.m_rasterizer.m_slope_depth_bias = signature.m_slope_depthbias;
+        pipeline_desc.m_depth_stencil.m_depth_enable = signature.m_depth_enable;
+        pipeline_desc.m_depth_stencil.m_stencil_enable = signature.m_stencil_enable;
+        pipeline_desc.m_depth_stencil.m_depth_func = (graphics::e_comparison_func)signature.m_depth_comparison;
+        pipeline_desc.m_format_dsv = (graphics::e_format)signature.m_depth_format;
+        for (uint8 i = 0u; i < 8u; ++i)
+        {
+            pipeline_desc.m_blends[i].m_enabled = signature.m_blend_actives[i];
+            pipeline_desc.m_blends[i].m_src = (graphics::e_blend)signature.m_blend_sources[i];
+            pipeline_desc.m_blends[i].m_dest = (graphics::e_blend)signature.m_blend_dests[i];
+            pipeline_desc.m_blends[i].m_op = (graphics::e_blendop)signature.m_blend_ops[i];
+            pipeline_desc.m_blends[i].m_srcalpha = (graphics::e_blend)signature.m_alpha_sources[i];
+            pipeline_desc.m_blends[i].m_destalpha = (graphics::e_blend)signature.m_alpha_dests[i];
+            pipeline_desc.m_blends[i].m_op_alpha = (graphics::e_blendop)signature.m_alpha_ops[i];
+            pipeline_desc.m_blends[i].m_write_mask = signature.m_blend_writemasks[i];
+            pipeline_desc.m_rtvs[i].m_enabled = signature.m_rtv_actives[i];
+            pipeline_desc.m_rtvs[i].m_format = (graphics::e_format)signature.m_rtv_formats[i];
+        }
 
         // parse the input elements from reflection:
         for (uint32 i = 0u; i < vs_reflection->m_input_params.size(); ++i)

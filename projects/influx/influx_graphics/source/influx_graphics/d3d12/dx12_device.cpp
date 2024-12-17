@@ -622,6 +622,7 @@ namespace influx::graphics
 		pso_desc.DepthStencilState = depth_stencil_desc;
 		pso_desc.SampleMask = desc.m_sample_mask;
 		pso_desc.PrimitiveTopologyType = convert(desc.m_prim_type);
+		pso_desc;
 		pso_desc.DSVFormat = convert(desc.m_format_dsv);
 		pso_desc.SampleDesc.Count = desc.m_sample_count;
 
