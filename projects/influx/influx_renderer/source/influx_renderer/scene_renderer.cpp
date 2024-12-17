@@ -20,9 +20,9 @@ namespace influx::renderer
         .m_vs_name              { "shaders_vs" },
         .m_ps_name              { "shaders_ps" },
 
-        .m_primitive_type       { 0u }, // triangle
-        .m_cullmode             { 2u }, // no cull
-        .m_fillmode             { pipeline_signature::fillmode::solid }, // solid
+        .m_primitive_type       { pipeline_signature::primitive_type::triangle },
+        .m_cullmode             { pipeline_signature::cullmode::none },
+        .m_fillmode             { pipeline_signature::fillmode::solid },
         .m_forced_samplecount   { 0u },
         .m_sample_mask          { (uint32)-1 },
         .m_sample_count         { 1u },
@@ -38,10 +38,10 @@ namespace influx::renderer
         .m_depth_enable         { true },
         .m_stencil_enable       { false },
         .m_depth_comparison     { 0u },
-        .m_depth_format         { 5u }, // d32
+        .m_depth_format         { pipeline_signature::format::d32 }, // d32
 
         .m_rtv_actives          { true, false, false, false, false, false, false, false },
-        .m_rtv_formats          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        .m_rtv_formats          { pipeline_signature::format::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
         .m_blend_actives        { false, false, false, false, false, false, false, false },
         .m_blend_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_blend_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
