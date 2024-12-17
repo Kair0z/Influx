@@ -105,9 +105,7 @@ namespace influx::renderer
             mp_vertexbuffer = mp_device->create_resource(desc, heap_desc);
             mp_vertexbuffer->map([&vertices](void* target)
             {
-                memcpy(target,
-                vertices.data(),
-                vertices.size() * sizeof(vertex));
+                memcpy(target, vertices.data(), vertices.size() * sizeof(vertex));
             });
         }
 
@@ -140,8 +138,9 @@ namespace influx::renderer
             math::matrix4x4f::invert(copy); // <-- this is probably wrong
             copy.set_collumn(2u, -copy.get_collumn(2u));
 
+            const float ar = (float)target.get_width() / target.get_height();
             const math::matrix4x4f mat_view = copy;
-            const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
+            const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, ar, camera.m_near_plane, camera.m_far_plane);
             m_gpu_perview->m_vp = mat_view * mat_proj;
         }
 

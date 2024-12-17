@@ -23,7 +23,6 @@ namespace influx::engine
 {
 	void engine::run(run_type type)
 	{
-		// 
 		initialize();
 
 		string render_name = "";

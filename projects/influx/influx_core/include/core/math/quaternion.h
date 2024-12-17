@@ -3,6 +3,7 @@
 #ifndef __CORE_MATH_QUATERNION_H_
 #define __CORE_MATH_QUATERNION_H_
 
+#include "core/math/math.h"
 #include "core/math/vector.h"
 
 namespace influx::math
@@ -66,6 +67,34 @@ namespace influx::math
 			m_forward = m_rotation_matrix * m_forward;
 			m_right = math::vectorf3::cross(m_forward, vectorf3::up());
 			m_up = math::vectorf3::cross(m_right, m_forward);
+		}
+
+		bool is_gimbal_locked() const
+		{
+			return math::abs(m_forward[1]) > 0.9999;
+		}
+
+		vectorf3 get_euler_angles() const
+		{
+			return { 
+				math::to_degrees(get_pitch()), 
+				math::to_degrees(get_yaw()), 
+				math::to_degrees(get_roll()) };
+		}
+
+		float get_pitch() const
+		{
+			return asinf(-m_forward.y);
+		}
+
+		float get_yaw() const
+		{
+			return atan2f(m_forward.x, m_forward.z);
+		}
+
+		float get_roll() const
+		{
+			return atan2f(m_right.y, m_right.x);
 		}
 
 	private:

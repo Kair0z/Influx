@@ -25,6 +25,7 @@ namespace influx::renderer
 
 namespace influx::renderer
 {
+	// renders instanced debug lines
 	class debug_renderer final
 	{
 		struct gpu_instance_data;
@@ -46,7 +47,6 @@ namespace influx::renderer
 	private:
 		renderer_backend* mp_backend;
 		pipeline* mp_pipeline;
-
 		graphics::device* mp_device;
 
 		constexpr static uint32 k_max_instances = 4096u;
@@ -56,9 +56,7 @@ namespace influx::renderer
 
 		graphics::resource* mp_instancebuffer;
 		graphics::shader_resource_view* mp_instance_buffer_srv;
-
 		graphics::resource* mp_vertexbuffer;
-
 		void update_instance_buffer(const scene_debug& scene);
 	};
 }

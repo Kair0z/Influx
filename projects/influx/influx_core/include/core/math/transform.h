@@ -3,6 +3,7 @@
 #ifndef __CORE_MATH_TRANSFORM_H_
 #define __CORE_MATH_TRANSFORM_H_
 
+#include "core/math/math.h"
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
 #include "core/math/quaternion.h"

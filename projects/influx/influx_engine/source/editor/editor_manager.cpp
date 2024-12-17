@@ -93,6 +93,12 @@ namespace influx::engine
 	}
 #pragma endregion
 
+	static math::transform3D g_inspect_transform{};
+	math::transform3D& editor_manager::get_inspect_transform()
+	{
+		return g_inspect_transform;
+	}
+
 	editor_manager::editor_manager(editor_module* editor)
 		: m_editor{ editor }
 		, m_popup_radial{}
@@ -239,6 +245,14 @@ namespace influx::engine
 				ImGui::Text("--");
 			});
 		}
+
+		static editor_window transform_window{};
+		transform_window.set_visible(true);
+		transform_window.set_name("transform");
+		transform_window.run([]()
+		{
+			imgui::transform3D("camera transform", g_inspect_transform);
+		});
 
 		// radial menu
 		update_radial_menu();

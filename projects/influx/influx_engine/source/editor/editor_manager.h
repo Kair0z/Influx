@@ -149,6 +149,8 @@ namespace influx::engine
 	class editor_manager final
 	{
 	public:
+		static math::transform3D& get_inspect_transform();
+
 		editor_manager(editor_module* editor);
 
 		result<> update_imgui(ImGuiContext& ctx);

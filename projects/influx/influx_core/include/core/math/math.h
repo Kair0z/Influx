@@ -46,6 +46,7 @@ namespace influx
 		{
 			return static_cast<_t>(std::ceil(fvalue));
 		}
+
 		template <typename _t>
 		inline _t cos(const _t& value)
 		{
@@ -63,7 +64,18 @@ namespace influx
 			return static_cast<_t>(std::sin(value));
 		}
 
+		template <typename _t>
+		inline _t asin(const _t& value)
+		{
+			return static_cast<_t>(std::asin(value));
+		}
+
 		inline float sinf(const float& value)
+		{
+			return sin(value);
+		}
+
+		inline float asinf(const float& value)
 		{
 			return sin(value);
 		}
@@ -229,6 +241,12 @@ namespace influx
 		constexpr inline _t to_radians(_t degrees)
 		{
 			return degrees * (_t)(k_PI / 180);
+		}
+
+		template <typename _t>
+		constexpr inline _t to_degrees(_t radians)
+		{
+			return radians * (_t)(180.0 / k_PI);
 		}
 	}
 }

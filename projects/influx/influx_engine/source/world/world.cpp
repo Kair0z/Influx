@@ -4,6 +4,7 @@
 // influx::engine
 #include "scene/scene.h"
 #include "content/content_manager.h"
+#include "editor/editor_manager.h"
 
 // influx::renderer
 #include "influx_renderer/scene.h"
@@ -56,6 +57,7 @@ namespace influx::engine
         }
 
         debugscene.m_camera = scene.m_camera;
+        editor_manager::get_inspect_transform() = debugscene.m_camera.m_transform;
 
         // 2D scene
         // build all sprites
@@ -85,9 +87,9 @@ namespace influx::engine
 
         // make a cute gizmo :)
         debugscene.clear();
-        // debugscene.add_line(math::float3{ 0.0f, 0.0f, 0.0f }, math::float3{ 1.0f, 0.0f, 0.0f }, { 1,0,0,1 });
-        // debugscene.add_line(math::float3{ 0.0f, 0.0f, 0.0f }, math::float3{ 0.0f, 1.0f, 0.0f }, { 0,1,0,1 });
-        // debugscene.add_line(math::float3{ 0.0f, 0.0f, 0.0f }, math::float3{ 0.0f, 0.0f, 1.0f }, { 0,0,1,1 });
+        debugscene.add_line(math::float3{ 0.0f, 0.0f, 0.0f }, math::float3{ 1.0f, 0.0f, 0.0f }, { 1,0,0,1 });
+        debugscene.add_line(math::float3{ 0.0f, 0.0f, 0.0f }, math::float3{ 0.0f, 1.0f, 0.0f }, { 0,1,0,1 });
+        debugscene.add_line(math::float3{ 0.0f, 0.0f, 0.0f }, math::float3{ 0.0f, 0.0f, 1.0f }, { 0,0,1,1 });
 
         // build all meshes
         {
