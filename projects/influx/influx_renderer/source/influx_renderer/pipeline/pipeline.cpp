@@ -15,6 +15,8 @@ namespace influx::renderer
 {
     pipeline::pipeline(graphics::device* device, const pipeline_signature& signature, renderer::shader_data const* vs, renderer::shader_data const* ps)
     {
+        m_signature = signature;
+
         shader::reflection const* vs_reflection = vs ? &vs->m_reflection : nullptr;
         shader::reflection const* ps_reflection = ps ? &ps->m_reflection : nullptr;
 
@@ -193,6 +195,10 @@ namespace influx::renderer
     void pipeline::save_to_file(const string& path) const
     {
         
+    }
+    const pipeline_signature& pipeline::get_signature() const
+    {
+        return m_signature;
     }
 #endif
 }

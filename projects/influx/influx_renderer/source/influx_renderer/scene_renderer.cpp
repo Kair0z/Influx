@@ -242,7 +242,7 @@ namespace influx::renderer
     void scene_renderer::render_shadows(graphics::commandlist* commandlist, 
         const scene& scene, const vector<batch>& batches)
     {
-        mp_shadowspipeline = mp_backend->get_pipeline_manager()->get_pipeline("pip_shadows");
+        // mp_shadowspipeline = mp_backend->get_pipeline_manager()->get_pipeline("pip_shadows");
         influx_assert(mp_shadowspipeline);
 
         mp_shadowspipeline->set_state(commandlist);
@@ -267,7 +267,6 @@ namespace influx::renderer
         mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
         if (mp_pipeline == nullptr)
         {
-            // logonce(e_log_category::warning, "influx::renderer::scene_renderer: no scene pipeline!");
             return;
         }
 

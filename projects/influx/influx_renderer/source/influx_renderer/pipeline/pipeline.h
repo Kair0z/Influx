@@ -105,6 +105,52 @@ namespace influx::renderer
 		uint8 m_blend_writemasks[k_max_num_rendertargets]	= { blendmask::blend_all, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 	};
 
+	inline static bool operator==(const pipeline_signature& a, const pipeline_signature& b)
+	{
+		const bool settings_match = (
+			a.m_vs_name == b.m_vs_name &&
+			a.m_ps_name == b.m_ps_name &&
+			a.m_primitive_type == b.m_primitive_type &&
+			a.m_cullmode == b.m_cullmode &&
+			a.m_fillmode == b.m_fillmode &&
+			a.m_forced_samplecount == b.m_forced_samplecount &&
+			a.m_sample_mask == b.m_sample_mask &&
+			a.m_sample_count == b.m_sample_count &&
+			a.m_front_ccw == b.m_front_ccw &&
+			a.m_depthclip == b.m_depthclip &&
+			a.m_multisample == b.m_multisample &&
+			a.m_antialiased_line == b.m_antialiased_line &&
+			a.m_conservative_raster == b.m_conservative_raster &&
+			a.m_depthbias == b.m_depthbias &&
+			a.m_depthbias_clamp == b.m_depthbias_clamp &&
+			a.m_slope_depthbias == b.m_slope_depthbias &&
+			a.m_depth_enable == b.m_depth_enable &&
+			a.m_stencil_enable == b.m_stencil_enable &&
+			a.m_depth_comparison == b.m_depth_comparison &&
+			a.m_depth_format == b.m_depth_format);
+
+		bool render_target_settings_match = true;
+		for (uint8 i = 0u; i < pipeline_signature::k_max_num_rendertargets; ++i)
+		{
+			render_target_settings_match &=
+				a.m_blend_actives[i] == b.m_blend_actives[i] &&
+				a.m_blend_sources[i] == b.m_blend_sources[i] &&
+				a.m_blend_dests[i] == b.m_blend_dests[i] &&
+				a.m_blend_ops[i] == b.m_blend_ops[i] &&
+				a.m_alpha_sources[i] == b.m_alpha_sources[i] &&
+				a.m_alpha_dests[i] == b.m_alpha_dests[i] &&
+				a.m_alpha_ops[i] == b.m_alpha_ops[i] &&
+				a.m_blend_writemasks[i] == b.m_blend_writemasks[i];
+		}
+
+		return settings_match;
+	}
+
+	inline static bool operator!=(const pipeline_signature& a, const pipeline_signature& b)
+	{
+		return !(a == b);
+	}
+
 	class pipeline final
 	{
 	public:
@@ -138,8 +184,10 @@ namespace influx::renderer
 
 		void save_to_file(const string& path) const;
 		
+		const pipeline_signature& get_signature() const;
 
 	private:
+		pipeline_signature m_signature;
 		graphics::rootsignature* mp_rootsig = nullptr;
 		graphics::pipeline* mp_pipeline = nullptr;
 		umap<string, uint32> m_name_to_register;

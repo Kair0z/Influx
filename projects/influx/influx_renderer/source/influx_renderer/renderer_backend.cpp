@@ -169,6 +169,7 @@ namespace influx::renderer
         mp_swapchain->acquire_backbuffer();
     }
 
+
     void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
         graphics::resource* target_resource = target.get_resource();
@@ -375,6 +376,7 @@ namespace influx::renderer
             ++m_frame_count;
         }
     }
+
 
     descriptor_manager* renderer_backend::get_descriptor_manager()
     {

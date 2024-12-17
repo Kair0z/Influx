@@ -22,22 +22,12 @@ namespace influx::renderer
 	public:
 		pipeline_manager(graphics::device* device);
 
-		pipeline* new_pipeline(
-			const string& name,
-			const pipeline_signature& signature,
-			const renderer::shader_data& vertex_shader,
-			const renderer::shader_data& pixel_shader);
-
-		pipeline* get_pipeline(const string& name);
-		pipeline* get_scene_pipeline();
-		pipeline* get_debug_pipeline();
-
 		pipeline* get_or_create_pipeline(const string& name, const pipeline_signature& key);
 
 		uint64 get_num_pipelines() const;
 
 	private:
 		graphics::device* mp_device;
-		umap<string, pipeline*> m_pipeline_map;
+		umap<string, vector<pipeline*>> m_pipeline_map;
 	};
 }
