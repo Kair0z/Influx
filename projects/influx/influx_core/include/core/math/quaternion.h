@@ -31,7 +31,7 @@ namespace influx::math
 
 		vectorf3 get_forward() const
 		{
-			return m_forward;
+			return m_forward.normalized();
 		}
 
 		vectorf3 get_right() const

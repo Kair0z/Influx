@@ -52,10 +52,10 @@ namespace influx::engine
                 scene.m_camera.m_fov = camera_comp.get_fov();
                 scene.m_camera.m_transform = transform;
                 scene.m_camera.m_transform.update_matrix();
-
-                debugscene.m_camera = scene.m_camera;
             }
         }
+
+        debugscene.m_camera = scene.m_camera;
 
         // 2D scene
         // build all sprites
@@ -83,8 +83,12 @@ namespace influx::engine
             return;
         }
 
+        // make a cute gizmo :)
         debugscene.clear();
-        
+        // debugscene.add_line(math::float3{ 0.0f, 0.0f, 0.0f }, math::float3{ 1.0f, 0.0f, 0.0f }, { 1,0,0,1 });
+        // debugscene.add_line(math::float3{ 0.0f, 0.0f, 0.0f }, math::float3{ 0.0f, 1.0f, 0.0f }, { 0,1,0,1 });
+        // debugscene.add_line(math::float3{ 0.0f, 0.0f, 0.0f }, math::float3{ 0.0f, 0.0f, 1.0f }, { 0,0,1,1 });
+
         // build all meshes
         {
             auto view = m_registry.view<transform_component, mesh_component>();
@@ -106,7 +110,10 @@ namespace influx::engine
                 render_mesh.m_invert_normals = mesh_comp.get_invert_normals();
                 scene.m_meshes.push_back(render_mesh);
 
-                debugscene.add_line(math::float3{-10.0f, 0.0f, 0.0f}, math::float3{10.0f, 0.0f, 0.0f}, { 0,1,0,1 });
+                // transform gizmo ;)
+                debugscene.add_line(transform.get_position(), transform.get_position() + transform.get_right(),     {1,0,0,1});
+                debugscene.add_line(transform.get_position(), transform.get_position() + transform.get_up(),        {0,1,0,1});
+                debugscene.add_line(transform.get_position(), transform.get_position() + transform.get_forward(),   {0,0,1,1});
             }
         }
     }

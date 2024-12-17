@@ -57,6 +57,16 @@ namespace influx::math
 				this->m_rows[r][c_index] = collumn[r];
 		}
 
+		inline void set_row(matrix_dim_t r_index, const vector<_t, _C>& row)
+		{
+			influx_assert(r_index < _R);
+			for (matrix_dim_t c{}; c < _C; ++c)
+			{
+				const uint32 index = (r_index * _C) + c;
+				this->m_data[index] = row[c];
+			}
+		}
+
 		vector<_t, _C>& operator[](matrix_dim_t r);
 		vector<_t, _C>& get_row(matrix_dim_t r);
 
