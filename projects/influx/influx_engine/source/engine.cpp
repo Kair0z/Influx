@@ -19,42 +19,33 @@
 #include "editor/editor_manager.h"
 #include "world/world.h"
 
+// influx::core
+#include "core/math/vectortools.h"
+
 namespace influx::engine
 {
 	void engine::run(run_type type)
 	{
+		m_runtype = type;
 		initialize();
-
-		string render_name = "";
-		if (type == run_type::editor)
-		{
-			m_editorman = new editor_manager(nullptr);
-			render_name = "influx_editor";
-		}
-		else
-		{
-			render_name = "influx_game";
-		}
-
-		// initialize render
-		app_config app_config{};
-		app_config.m_window_dimensions = { 1280u, 720u };
-		initialize_renderer(render_name, app_config.m_window_dimensions);
-
-		// init world
-		m_world = new world();
 
 		// TEMP:
 		// little scene with camera controls and central mesh
 		{
-			auto entity = m_world->create_entity();
-			transform_component& ent_transform = m_world->create_component<transform_component>(entity);
-			ent_transform.set_position({ 0.0f, 0.0f, 0.0f });
-			mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
-			ent_mesh.set_mesh_path("transistor");
-			ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
-			ent_mesh.set_invert_normals(true);
+			const math::circlef3D circle = math::circlef3D({}, { 0,1,0 }, 2.0f);
+			const auto points = math::get_points_in_circle(circle, 10u);
+			for (uint32 i = 0u; i < 10u; ++i)
+			{
+				auto entity = m_world->create_entity();
+				transform_component& ent_transform = m_world->create_component<transform_component>(entity);
+				ent_transform.set_position(points[i]);
 
+				mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
+				ent_mesh.set_mesh_path("transistor");
+				ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
+				ent_mesh.set_invert_normals(false);
+			}
+			
 			static float distance = 10.0f;
 			auto camera = m_world->create_entity();
 			transform_component& cam_transform = m_world->create_component<transform_component>(camera);
@@ -87,17 +78,16 @@ namespace influx::engine
 			};
 		}
 
-		m_t_start = time::get_now();
-
-		// run
 		while (!m_is_quit_requested)
 		{
 			m_time.tick();
 			m_fps = 1.0f / m_time.get_delta_seconds();
 
+			// platform window tick
 			poll_platform_events();
 			if (m_is_quit_requested) break;
 
+			// main update
 			m_world->update();
 
 			// stream available assets from content into the renderer
@@ -122,14 +112,12 @@ namespace influx::engine
 			m_renderman->render(scene);
 		}
 
-		delete m_world;
-
 #if INFLUX_DEBUG
 		influx::log_scopedata();
 #endif
 
-		m_is_quit = true;
 		cleanup();
+		m_is_quit = true;
 	}
 
 	void engine::initialize()
@@ -165,6 +153,18 @@ namespace influx::engine
 
 			}
 		});
+
+		// initialize editor
+		if (m_runtype == run_type::editor) 
+			m_editorman = new editor_manager(nullptr);
+		
+		// initialize render
+		string render_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
+		const math::vectoru2 window_dimensions = { 1280u, 720u };
+		initialize_renderer(render_name, window_dimensions);
+
+		// init world
+		m_world = new world();
 	}
 
 	void engine::run_input()
@@ -199,6 +199,12 @@ namespace influx::engine
 
 		if (m_inputthread.joinable())
 			m_inputthread.join();
+
+		if (m_world)
+		{
+			delete m_world;
+			m_world = nullptr;
+		}
 	}
 
 	void engine::initialize_renderer(const string& window_name, const math::vectoru2& size)

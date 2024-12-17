@@ -60,6 +60,7 @@ namespace influx::engine
 		influx::renderer::cleanup();
 	}
 
+#pragma region translation layer
 	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data)
 	{
 		out_data.m_indices.resize(imp_data.m_indices.size());
@@ -103,6 +104,7 @@ namespace influx::engine
 
 		out_data.m_width = imp_data.m_dimensions.x;
 	}
+#pragma endregion
 
 	// loads assets from content_manager into the influx::renderer
 	void render_manager::load_render_assets(content_manager* cont_man)
@@ -141,20 +143,14 @@ namespace influx::engine
 				}
 			}
 
-			// todo: for now only 2 shaders are necessary
-			auto load_shader = [](const string& name, const content_manager::shader_item& item)
-			{
-				if (renderer::has_shader(name) == false && item.is_loaded())
-				{
-					const imp::shader_data& vs_shader = item.m_resource;
-					translate(vs_shader, m_shader_data);
-					influx::renderer::load(name, m_shader_data);
-				}
-			};
-
 			for (const auto& asset : cont_man->get_shaders())
 			{
-				load_shader(asset.first, asset.second);
+				if (renderer::has_shader(asset.first) == false && asset.second.is_loaded())
+				{
+					const imp::shader_data& vs_shader = asset.second.m_resource;
+					translate(vs_shader, m_shader_data);
+					influx::renderer::load(asset.first, m_shader_data);
+				}
 			}
 		}
 		

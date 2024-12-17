@@ -24,7 +24,7 @@ namespace influx::renderer
         .m_cullmode             { 2u }, // no cull
         .m_fillmode             { 1u }, // solid
         .m_forced_samplecount   { 0u },
-        .m_sample_mask          { 0u },
+        .m_sample_mask          { (uint32)-1 },
         .m_sample_count         { 1u },
         .m_front_ccw            { false },
         .m_depthclip            { false },

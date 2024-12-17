@@ -103,7 +103,7 @@ namespace influx::engine
                     transform.set_scale(transform.get_scale() * normalized_scale);
                 }
                 transform.update_matrix();
-
+                
                 renderer::mesh_instance render_mesh{};
                 render_mesh.m_name = mesh_comp.get_mesh_path();
                 render_mesh.m_material_name = "";

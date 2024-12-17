@@ -190,7 +190,7 @@ namespace influx::math
 
 		void update_matrix()
 		{
-			m_matrix = matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward()) * matrix4x4f::make_scale(m_scale);
+			m_matrix = matrix4x4f::make_scale(m_scale) * matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward());
 		}
 
 		transform3D(const transform3D&) = default;
