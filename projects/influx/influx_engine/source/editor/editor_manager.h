@@ -163,6 +163,9 @@ namespace influx::engine
 		bool has_project() const;
 		result<string> get_projectname() const;
 
+		template <typename _t>
+		static _t& add_window();
+
 	private:
 		editor_module* m_editor = nullptr;
 		result<> initialize_inputs();
@@ -185,8 +188,12 @@ namespace influx::engine
 		result<> update_context();
 		result<> update_mainmenu();
 		result<> update_main_editor();
+		result<> update_render_editor();
 		result<> update_radial_menu();
 		result<> update_background_dockspace();
+		result<> update_externals();
+
+		static list<editor_window*> m_external_windows;
 
 		math::vectorf2 m_mousepos;
 
@@ -198,4 +205,18 @@ namespace influx::engine
 		result<> on_mouse_down(input::e_mouse_button button, const input::mouse_position& position);
 		result<> on_mouse_up(input::e_mouse_button button, const input::mouse_position& position);
 	};
+
+	template<typename _t>
+	inline _t& editor_manager::add_window()
+	{
+		static bool first = true;
+		static _t static_win = _t{};
+		if (first)
+		{
+			m_external_windows.push_back(&static_win);
+			first = false;
+		}
+
+		return static_win;
+	}
 }

@@ -53,6 +53,8 @@ namespace influx::engine
 		void set_position(const math::float2& new_position);
 		void set_size(const math::float2& new_size);
 
+		virtual void on_run() {}
+
 	private:
 		string m_title;
 		optional_property<math::float2> m_force_position;

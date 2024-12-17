@@ -25,6 +25,8 @@ namespace influx::engine
 				m_last_size = imgui::translate(ImGui::GetWindowSize());
 
 				if (clb != nullptr) clb();
+
+				on_run();
 			}
 
 			ImGui::End();

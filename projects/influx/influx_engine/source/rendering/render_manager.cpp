@@ -6,6 +6,7 @@
 
 // influx::engine
 #include "content/content_manager.h"
+#include "editor/editor_manager.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -25,6 +26,15 @@
 
 namespace influx::engine
 {
+	class render_editor final : public editor_window
+	{
+	public:
+		virtual void on_run() override
+		{
+			ImGui::Text("LETSGO");
+		}
+	};
+
 	render_manager::render_manager(engine* engine)
 		: mp_imgui_drawdata{ nullptr }
 		, mp_window_target{ nullptr }
@@ -53,6 +63,9 @@ namespace influx::engine
 		// signal window resize once
 		const auto& clientrect = window->get_rect(platform::window::e_space::client);
 		on_window_resize(clientrect.get_dimensions());
+
+		// editor_manager
+		editor_manager::add_window<render_editor>();
 	}
 
 	render_manager::~render_manager()
