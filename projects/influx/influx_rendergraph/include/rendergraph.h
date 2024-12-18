@@ -6,21 +6,23 @@
 #define INFLUX_RG_API __declspec(dllimport)
 #endif
 
+// influx::core
 #include "core/string.h"
 #include "core/container/vector.h"
 #include "core/container/map.h"
 
+// influx::graphics
 #include "influx_graphics/resource.h"
-#include "influx_graphics/descriptorheap.h"
-
-#include "rgcommon.h"
-#include "rgpass.h"
-
+#include "influx_graphics/descriptors.h"
 namespace influx::graphics
 {
 	class device;
 	class commandlist;
 }
+
+// influx::rendergraph
+#include "rgcommon.h"
+#include "rgpass.h"
 
 namespace influx::rendergraph
 {

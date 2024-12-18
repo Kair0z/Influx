@@ -1,9 +1,12 @@
 #pragma once
 
+// influx::core
 #include "core/function.h"
 
+// influx::rendergraph
 #include "rgcommon.h"
 
+// influx::graphics
 #include "influx_graphics/renderpass.h"
 
 namespace influx::rendergraph

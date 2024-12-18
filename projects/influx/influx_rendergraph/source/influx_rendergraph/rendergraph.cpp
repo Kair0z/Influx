@@ -13,6 +13,7 @@
 
 namespace influx::rendergraph
 {
+#pragma region translation
 	constexpr graphics::e_load_op translate(const e_rg_load load)
 	{
 		switch (load)
@@ -36,6 +37,7 @@ namespace influx::rendergraph
 		}
 		return graphics::e_store_op::count;
 	}
+#pragma endregion
 
 	class rglayer final
 	{
