@@ -59,7 +59,7 @@ namespace influx::engine
 		string m_title;
 		optional_property<math::float2> m_force_position;
 		optional_property<math::float2> m_force_size;
-		bool m_is_visible;
+		bool m_is_visible = true;
 
 		math::float2 m_last_position;
 		math::float2 m_last_size;

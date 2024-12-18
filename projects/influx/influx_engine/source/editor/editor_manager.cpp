@@ -26,6 +26,7 @@
 namespace influx::engine
 {
 	list<editor_window*> editor_manager::m_external_windows{};
+
 #pragma region gamefile
 	string make_game_directory_path(const string& game_name)
 	{
@@ -93,12 +94,6 @@ namespace influx::engine
 		return true;
 	}
 #pragma endregion
-
-	static math::transform3D g_inspect_transform{};
-	math::transform3D& editor_manager::get_inspect_transform()
-	{
-		return g_inspect_transform;
-	}
 
 	editor_manager::editor_manager(editor_module* editor)
 		: m_editor{ editor }
@@ -247,15 +242,6 @@ namespace influx::engine
 			});
 		}
 
-		// transform
-		static editor_window transform_window{};
-		transform_window.set_visible(true);
-		transform_window.set_name("transform");
-		transform_window.run([]()
-		{
-			imgui::transform3D("camera transform", g_inspect_transform);
-		});
-
 		update_externals();
 
 		// radial menu
@@ -397,7 +383,6 @@ namespace influx::engine
 		{
 			if (win)
 			{
-				win->set_name("external");
 				win->set_visible(true);
 				win->run({});
 			}

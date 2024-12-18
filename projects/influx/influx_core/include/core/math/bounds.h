@@ -7,6 +7,7 @@
 #include "core/math/math.h"
 #include "core/math/vector.h"
 #include "core/container/vector.h"
+#include "core/math/matrix.h"
 
 namespace influx::math
 {
@@ -21,6 +22,8 @@ namespace influx::math
 	public:
 		using point = math::vector<_t, _dim>;
 		bounds(const influx::vector<point>& points);
+		bounds(const point& min, const point& max)
+			: m_min{ min }, m_max{ max }{}
 
 	private:
 		point m_min;
@@ -30,6 +33,12 @@ namespace influx::math
 		const point get_middle() const;
 		const point& get_minimum() const;
 		const point& get_maximum() const;
+
+		static const bounds& identity()
+		{
+			static bounds g_identity{ -point::one(), point::one() };
+			return g_identity;
+		}
 
 		// sets to zero volume
 		void reset();
@@ -42,6 +51,25 @@ namespace influx::math
 
 		enum class e_contain_status : uint8 { less, contained, more, count };
 		bool contains(const point& point, math::vector<uint8, _dim>& out_results) const;
+
+		bounds get_scaled(const float scale) const
+		{
+			return bounds{ m_min * scale, m_max * scale };
+		}
+
+		bounds get_scaled(const math::vector<_t, _dim>& scale) const
+		{
+			return bounds{ m_min * scale, m_max * scale };
+		}
+
+		bounds get_transformed3D(const math::matrix<_t, 4u, 4u>& matrix) const
+		{
+			return bounds
+			{
+				matrix * m_max,
+				matrix * m_min
+			};
+		}
 
 		bounds() = default;
 		bounds(const bounds&) = default;

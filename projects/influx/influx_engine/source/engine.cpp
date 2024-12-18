@@ -49,8 +49,6 @@ namespace influx::engine
 			static float distance = 5.0f;
 			auto camera = m_world->create_entity();
 			transform_component& cam_transform = m_world->create_component<transform_component>(camera);
-			cam_transform.set_position({ 0.0f, 0.0f, distance });
-			cam_transform.look_at({ 0.0f, 0.0f, 0.0f });
 			m_world->create_component<camera_component>(camera).set_fov(90.0f);
 
 			static math::float2 angular_position = {};

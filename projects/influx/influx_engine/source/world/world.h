@@ -71,6 +71,7 @@ namespace influx::engine
 		void update_input_system();
 		void update_bounds_system();
 		void update_stream_system();
+		void update_rigidbody_system();
 
 		// deferred input: this is a bit ugly
 		template <typename _t>

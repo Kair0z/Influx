@@ -19,7 +19,8 @@ namespace influx::engine
 			if (m_force_size.is_forced())
 				ImGui::SetNextWindowSize(imgui::translate(m_force_size.get()));
 
-			if (ImGui::Begin(m_title.c_str()))
+			const string& name = m_title.empty() ? "-" : m_title;
+			if (ImGui::Begin(name.c_str()))
 			{
 				m_last_position = imgui::translate(ImGui::GetWindowPos());
 				m_last_size = imgui::translate(ImGui::GetWindowSize());

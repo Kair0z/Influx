@@ -262,4 +262,22 @@ namespace influx::engine
 		function<void(input::e_mouse_button button, const input::mouse_position&)> m_on_mouse_down = {};
 		function<void(input::e_mouse_button button, const input::mouse_position&)> m_on_mouse_up = {};
 	};
+
+	class rigidbody_component final
+	{
+	public:
+		void add_force(const math::float3& force)
+		{
+			m_acceleration += force;
+		}
+
+		void hard_stop()
+		{
+			m_velocity = math::float3::zero();
+		}
+
+		influx_property_readwrite(math::float3, velocity);
+		influx_property_readwrite(math::float3, acceleration);
+		influx_property_readwrite(float, drag);
+	};
 }

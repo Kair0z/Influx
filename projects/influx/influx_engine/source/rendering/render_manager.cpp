@@ -31,7 +31,13 @@ namespace influx::engine
 	public:
 		virtual void on_run() override
 		{
-			ImGui::Text("num_pipelines: %i", renderer::get_pipeline_info().m_num_pipelines);
+			const auto& pipeline_info = renderer::get_pipeline_info();
+			ImGui::Text("num_pipelines: %i", pipeline_info.m_num_pipelines);
+
+			const auto& memory_info = renderer::get_memory_info();
+			const float video_mem_used = memory_info.m_gpu_usage / (float)(1024 * 1024 * 1024);
+			const float video_mem_budget = memory_info.m_gpu_budget / (float)(1024 * 1024 * 1024);
+			ImGui::Text("memory: %.2f/%.2fMB", video_mem_used, video_mem_budget);
 		}
 
 		uint32 m_num_pipelines = 0u;
@@ -66,7 +72,8 @@ namespace influx::engine
 		const auto& clientrect = window->get_rect(platform::window::e_space::client);
 		on_window_resize(clientrect.get_dimensions());
 
-		editor_manager::add_window<render_editor>();
+		// static editor
+		editor_manager::static_window<render_editor>().set_name("renderer");
 	}
 
 	render_manager::~render_manager()

@@ -149,8 +149,6 @@ namespace influx::engine
 	class editor_manager final
 	{
 	public:
-		static math::transform3D& get_inspect_transform();
-
 		editor_manager(editor_module* editor);
 
 		result<> update_imgui(ImGuiContext& ctx);
@@ -164,7 +162,7 @@ namespace influx::engine
 		result<string> get_projectname() const;
 
 		template <typename _t>
-		static _t& add_window();
+		static _t& static_window();
 
 	private:
 		editor_module* m_editor = nullptr;
@@ -207,7 +205,7 @@ namespace influx::engine
 	};
 
 	template<typename _t>
-	inline _t& editor_manager::add_window()
+	inline _t& editor_manager::static_window()
 	{
 		static bool first = true;
 		static _t static_win = _t{};
