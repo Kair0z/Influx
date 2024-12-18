@@ -57,28 +57,17 @@ namespace influx::renderer
     {
         influx_scope("renderer_backend::initialize");
 
-        // create the graphics device
         using namespace influx::graphics;
         mp_device = device::create(translate(args.m_api_type));
 
-        // create graphics command queue
-        {
-            queue_desc desc{};
-            desc.m_type = e_queue_type::graphics;
-            desc.m_priority = graphics::e_queue_priority::normal;
-            mp_graphics_queue = mp_device->create_queue(desc);
-        }
+        queue_desc desc{};
+        desc.m_type = e_queue_type::graphics;
+        desc.m_priority = graphics::e_queue_priority::normal;
+        mp_graphics_queue = mp_device->create_queue(desc);
 
-        // create commandlist & allocators for rendering:
-        {
-            mp_commandlist = mp_device->create_graphics_commandlist();
-        }
-
-        // create fence
-        {
-            mp_fence = mp_device->create_fence((uint64)-1);
-            mp_copyfence = mp_device->create_fence(0u);
-        }
+        mp_commandlist = mp_device->create_graphics_commandlist();
+        mp_fence = mp_device->create_fence((uint64)-1);
+        mp_copyfence = mp_device->create_fence(0u);
 
         mp_desc_manager = new descriptor_manager(mp_device);
         mp_pipeline_manager = new pipeline_manager(mp_device);
@@ -280,8 +269,6 @@ namespace influx::renderer
                 mp_commandlist->set(target_rtv, target_dsv);
 
                 mp_debug_renderer->render(mp_commandlist, scene, target);
-
-                mp_quad_renderer->render_quad(mp_commandlist, target);
             }
             mp_commandlist->end();
         }
@@ -292,6 +279,7 @@ namespace influx::renderer
             mp_commandlist->wait_for_completion();
         }
     }
+
 
     void renderer_backend::copy_target(const target& source, const target& dest)
     {
@@ -445,12 +433,11 @@ namespace influx::renderer
     void renderer_backend::load(const string& title, const texture_data& data)
     {
         texture_desc create_args{};
-        create_args.m_width = 1024u;
-        create_args.m_heigth = 1024u;
+        create_args.m_width = data.get_width();
+        create_args.m_heigth = data.get_height();
         texture* texture = create_texture(title, create_args);
 
-        mp_upload_manager->upload_texture(mp_graphics_queue, data,
-            texture->get_resource());
+        mp_upload_manager->upload_texture(mp_graphics_queue, data, texture->get_resource());
     }
 
     // shader
@@ -788,5 +775,4 @@ namespace influx::renderer
         return renderer_backend::get_instance().get_pipeline_info();
     }
 #pragma endregion
-
 }
