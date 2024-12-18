@@ -32,6 +32,13 @@ namespace influx::engine
     
     void world::update()
     {
+        const float delta_time = get_engine()->get_time().get_delta_seconds();
+        auto view = m_registry.view<transform_component, mesh_component>();
+        for (auto [entity, transform_comp, mesh_comp] : view.each())
+        {
+            transform_comp.get_transform().rotate(delta_time, math::float3::up());
+        }
+
         update_input_system();
         update_bounds_system();
         update_stream_system();
@@ -40,6 +47,8 @@ namespace influx::engine
 
     void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D, renderer::scene_debug& debugscene) const
     {
+        const float delta_time = get_engine()->get_time().get_delta_seconds();
+
         // general scene
         scene.m_camera.m_far_plane = 1000.0f;
         scene.m_camera.m_near_plane = 0.001f;
