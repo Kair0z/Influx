@@ -71,14 +71,6 @@ namespace influx::renderer
 
         // create srv
         mp_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
-
-        // create depth-only shadowtarget
-        target_create_args args{};
-        args.m_has_colour = false;
-        args.m_has_depth_stencil = true;
-        args.m_width = 1024u;
-        args.m_heigth = 1024u;
-        mp_shadowstarget = backend->create_target(args);
     }
 
     scene_renderer::~scene_renderer()

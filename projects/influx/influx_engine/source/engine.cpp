@@ -46,7 +46,7 @@ namespace influx::engine
 				ent_mesh.set_invert_normals(false);
 			}
 			
-			static float distance = 10.0f;
+			static float distance = 5.0f;
 			auto camera = m_world->create_entity();
 			transform_component& cam_transform = m_world->create_component<transform_component>(camera);
 			cam_transform.set_position({ 0.0f, 0.0f, distance });
@@ -58,17 +58,18 @@ namespace influx::engine
 			input_component& cam_input = m_world->create_component<input_component>(camera);
 			cam_input.m_on_mouse_move = [this, &cam_transform](const input::mouse_position& pos)
 			{
-				const math::float2 delta_mouse = pos.m_client - mouse_position_previous;
+				const float ar = get_window()->get_rect(platform::window::e_space::client).get_aspect_ratio();
+				math::float2 delta_mouse = (pos.m_client - mouse_position_previous);
+				delta_mouse.y *= ar; // normalize mousemove
 				mouse_position_previous = pos.m_client;
 
 				const float seconds = m_time.get_time_seconds();
 				const float delta_seconds = m_time.get_delta_seconds();
 				angular_position += delta_mouse * delta_seconds * 0.5f;
 
-				cam_transform.set_position_x(distance * math::sinf(angular_position.x) * math::cosf(angular_position.y));
-				cam_transform.set_position_y(distance * math::sinf(angular_position.x) * math::sinf(angular_position.y));
-				cam_transform.set_position_z(distance * math::cosf(angular_position.x));
-
+				cam_transform.set_position_x(distance * math::sinf(angular_position.y) * math::cosf(angular_position.x));
+				cam_transform.set_position_y(distance * math::cosf(angular_position.y));
+				cam_transform.set_position_z(distance * math::sinf(angular_position.y) * math::sinf(angular_position.x));
 				cam_transform.look_at({});
 			};
 		}

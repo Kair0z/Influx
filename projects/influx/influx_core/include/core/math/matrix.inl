@@ -586,9 +586,9 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		vector<_t, 3u> lRight = vector<_t, 3u>::cross(forward, up);
-		vector<_t, 3u> lUp = vector<_t, 3u>::cross(lRight, forward);
-		vector<_t, 3u> lForward = forward;
+		vector<_t, 3u> lRight = vector<_t, 3u>::cross(forward, up).normalized();
+		vector<_t, 3u> lUp = vector<_t, 3u>::cross(lRight, forward).normalized();
+		vector<_t, 3u> lForward = forward.normalized();
 
 		return
 		{
@@ -614,7 +614,7 @@ namespace influx::math
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_projection_RH(const float fov, const float ar, const float n, const float f)
 	{
-		float y = 1.0f / tanf(math::to_radians(fov) / 2.f);
+		float y = 1.0f / tanf(math::to_radians(fov) * 0.5f);
 		float x = y / ar;
 		float intv = n - f;
 
@@ -622,7 +622,7 @@ namespace influx::math
 		{
 			(_t)x, (_t)0, (_t)0, (_t)0,
 			(_t)0, (_t)y, (_t)0, (_t)0,
-			(_t)0, (_t)0, (_t)f / intv,			(_t)-1,
+			(_t)0, (_t)0, (_t)f / intv,			(_t)-1.0f,
 			(_t)0, (_t)0, (_t)(f * n) / intv,	(_t)0
 		};
 	}
