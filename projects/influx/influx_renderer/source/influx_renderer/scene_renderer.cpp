@@ -7,6 +7,7 @@
 #include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/descriptor_manager.h"
+#include "influx_renderer/renderer_common.h"
 
 // influx::graphics
 #include "influx_graphics/commandlist.h"
@@ -218,7 +219,6 @@ namespace influx::renderer
             mp_pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
             mp_pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
-            // 1 batch == 1 draw-call
             const vector<gpu_instance_data>& instances = batch.get_instances();
             commandlist->draw_indexed(
             {
@@ -268,20 +268,16 @@ namespace influx::renderer
         mp_pipeline->set_state(commandlist);
         commandlist->set(graphics::e_primitive_topology::trilist);
 
-        // update constants
-        // invert camera :) (engine is right handed, but d3d12 is left handed)
-        const camera& camera = scene.m_camera;
-        math::transform3D transform = camera.m_transform;
-        transform.update_matrix();
+        // update viewprojection matrix
+        {
+            const camera& camera = scene.m_camera;
+            math::transform3D transform = camera.m_transform;
+            transform.update_matrix();
 
-        auto copy = transform.get_matrix();
-        math::matrix4x4f::invert(copy); // <-- this is probably wrong
-        copy.set_collumn(2u, -copy.get_collumn(2u));
-
-        const math::matrix4x4f mat_view = copy;
-        const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
-        m_gpu_perview.m_vp = mat_view * mat_proj;
-
+            const float ar = (float)target.get_width() / target.get_height();
+            m_gpu_perview.m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
+        }
+        
         mp_pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
         mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
 

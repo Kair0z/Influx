@@ -10,6 +10,7 @@ namespace influx::graphics
 	class shader_resource_view;
 }
 
+// influx::renderer
 namespace influx::renderer
 {
 	class renderer_backend;

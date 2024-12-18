@@ -363,6 +363,17 @@ namespace influx::math
 		return vector<_t, 2u>{ this->x, this->y };
 	}
 
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> vector<_t, _dim>::abs(const vector<_t, _dim>& vec)
+	{
+		vector<_t, _dim> result = vec;
+		for (_vector_dim_t i = 0u; i < _dim; ++i)
+		{
+			result[i] = std::abs(vec[i]);
+		}
+		return result;
+	}
+
 	template<typename _t, _vector_dim_t _dim>
 	inline vector<_t, _dim> vector<_t, _dim>::zero()
 	{

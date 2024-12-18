@@ -10,6 +10,7 @@
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/pipeline/pipeline.h"
+#include "influx_renderer/renderer_common.h"
 
 namespace influx::renderer
 {
@@ -134,14 +135,8 @@ namespace influx::renderer
             math::transform3D transform = camera.m_transform;
             transform.update_matrix();
 
-            auto copy = transform.get_matrix();
-            math::matrix4x4f::invert(copy); // <-- this is probably wrong
-            copy.set_collumn(2u, -copy.get_collumn(2u));
-
             const float ar = (float)target.get_width() / target.get_height();
-            const math::matrix4x4f mat_view = copy;
-            const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, ar, camera.m_near_plane, camera.m_far_plane);
-            m_gpu_perview->m_vp = mat_view * mat_proj;
+            m_gpu_perview->m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
         }
 
         mp_pipeline->set_state(commandlist);

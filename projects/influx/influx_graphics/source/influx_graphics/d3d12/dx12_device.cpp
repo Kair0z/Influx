@@ -609,7 +609,7 @@ namespace influx::graphics
 			blend_desc.RenderTarget[i].SrcBlendAlpha	= convert(desc.m_blends[i].m_srcalpha);
 			blend_desc.RenderTarget[i].DestBlendAlpha	= convert(desc.m_blends[i].m_destalpha);
 			blend_desc.RenderTarget[i].BlendOpAlpha		= convert(desc.m_blends[i].m_op_alpha);
-			blend_desc.RenderTarget[i].RenderTargetWriteMask = desc.m_blends[i].m_write_mask;
+			blend_desc.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL; // desc.m_blends[i].m_write_mask;
 		}
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};

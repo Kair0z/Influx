@@ -62,6 +62,36 @@ namespace influx::renderer
 			u16		= 6u,
 			u32		= 7u
 		};
+		enum blendop : uint32
+		{
+			op_add				= 1,
+			op_subtract			= 2,
+			op_rev_subtract		= 3,
+			op_min				= 4,
+			op_max				= 5
+		};
+		enum blend : uint32
+		{
+			bl_zero				= 1,
+			bl_one				= 2,
+			bl_src_color		= 3,
+			bl_inv_src_color	= 4,
+			bl_src_alpha		= 5,
+			bl_inv_src_alpha	= 6,
+			bl_dest_alpha		= 7,
+			bl_inv_dest_alpha	= 8,
+			bl_dest_color		= 9,
+			bl_inv_dest_color	= 10,
+			bl_src_alpha_sat	= 11,
+			bl_blend_factor		= 14,
+			bl_inv_blend_factor = 15,
+			bl_src1_color		= 16,
+			bl_inv_src1_color	= 17,
+			bl_src1_alpha		= 18,
+			bl_inv_src1_alpha	= 19,
+			bl_alpha_factor		= 20,
+			bl_inv_alpha_factor = 21,
+		};
 #pragma endregion
 
 		string m_vs_name = "";

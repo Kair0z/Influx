@@ -24,6 +24,7 @@ namespace influx::renderer
 	class pipeline_manager;
 	class scene_renderer;
 	class debug_renderer;
+	class quad_renderer;
 	class target;
 }
 
@@ -122,6 +123,7 @@ namespace influx::renderer
 		imgui_manager* mp_imgui = nullptr;
 		scene_renderer* mp_scene_renderer = nullptr;
 		debug_renderer* mp_debug_renderer = nullptr;
+		quad_renderer* mp_quad_renderer = nullptr;
 
 		// resources
 		umap<string, graphics::resource*> m_vertex_buffers;

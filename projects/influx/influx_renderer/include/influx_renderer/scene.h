@@ -94,7 +94,12 @@ namespace influx::renderer
 				min + dimensions * math::float3{0.0f,0.0f,+1.0f},
 				min + dimensions * math::float3{+1.0f,0.0f,+1.0f}
 			};
+			add_line(bottoms[0], bottoms[1], colour);
+			add_line(bottoms[0], bottoms[2], colour);
+			add_line(bottoms[2], bottoms[3], colour);
+			add_line(bottoms[1], bottoms[3], colour);
 
+			// top square
 			const math::float3 tops[4] =
 			{
 				max + dimensions * math::float3{-1.0f,0.0f,-1.0f},
@@ -102,12 +107,6 @@ namespace influx::renderer
 				max + dimensions * math::float3{-1.0f,0.0f,0.0f},
 				max
 			};
-
-			add_line(bottoms[0], bottoms[1], colour);
-			add_line(bottoms[0], bottoms[2], colour);
-			add_line(bottoms[2], bottoms[3], colour);
-			add_line(bottoms[1], bottoms[3], colour);
-
 			add_line(tops[0], tops[1], colour);
 			add_line(tops[0], tops[2], colour);
 			add_line(tops[2], tops[3], colour);

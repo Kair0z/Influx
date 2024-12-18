@@ -7,6 +7,7 @@
 #include "influx_renderer/upload_manager.h"
 #include "influx_renderer/scene_renderer.h"
 #include "influx_renderer/debug_renderer.h"
+#include "influx_renderer/quad_renderer.h"
 
 // influx::graphics
 #include "influx_graphics.h"
@@ -85,6 +86,7 @@ namespace influx::renderer
         mp_imgui = new imgui_manager(mp_device);
         mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
         mp_debug_renderer = new debug_renderer(this, mp_device, nullptr);
+        mp_quad_renderer = new quad_renderer(this, mp_device, nullptr);
 
         get_default_texture();
         get_default_material();
@@ -278,6 +280,8 @@ namespace influx::renderer
                 mp_commandlist->set(target_rtv, target_dsv);
 
                 mp_debug_renderer->render(mp_commandlist, scene, target);
+
+                mp_quad_renderer->render_quad(mp_commandlist, target);
             }
             mp_commandlist->end();
         }
