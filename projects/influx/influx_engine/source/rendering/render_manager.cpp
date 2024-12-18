@@ -38,6 +38,12 @@ namespace influx::engine
 			const float video_mem_used = memory_info.m_gpu_usage / (float)(1024 * 1024 * 1024);
 			const float video_mem_budget = memory_info.m_gpu_budget / (float)(1024 * 1024 * 1024);
 			ImGui::Text("memory: %.2f/%.2fMB", video_mem_used, video_mem_budget);
+
+			renderer::render_settings settings = renderer::get_settings();
+			ImGui::Checkbox("wireframe: ", &settings.m_wireframe);
+			ImGui::SliderInt("Cullmode: ", (int*)&settings.m_cullmode, 0, 2);
+
+			renderer::set_settings(settings);
 		}
 
 		uint32 m_num_pipelines = 0u;
@@ -73,7 +79,7 @@ namespace influx::engine
 		on_window_resize(clientrect.get_dimensions());
 
 		// static editor
-		editor_manager::static_window<render_editor>().set_name("renderer");
+		editor_manager::static_window<render_editor>("renderer").set_name("renderer");
 	}
 
 	render_manager::~render_manager()

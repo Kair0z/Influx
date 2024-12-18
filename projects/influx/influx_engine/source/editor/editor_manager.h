@@ -162,7 +162,7 @@ namespace influx::engine
 		result<string> get_projectname() const;
 
 		template <typename _t>
-		static _t& static_window();
+		static _t& static_window(const string& tag);
 
 	private:
 		editor_module* m_editor = nullptr;
@@ -178,7 +178,10 @@ namespace influx::engine
 		editor_window m_fps_window;
 		editor_window m_content_window;
 		editor_window m_engine_content_window;
-		imgui::popup_radial m_popup_radial;
+
+		// static windows
+		imgui::popup_radial<editor_window*> m_static_windows_radial;
+		static umap<string, editor_window*> m_static_windows;
 
 		files::projectfile m_projectfile;
 
@@ -186,12 +189,8 @@ namespace influx::engine
 		result<> update_context();
 		result<> update_mainmenu();
 		result<> update_main_editor();
-		result<> update_render_editor();
-		result<> update_radial_menu();
 		result<> update_background_dockspace();
-		result<> update_externals();
-
-		static list<editor_window*> m_external_windows;
+		result<> update_static_windows();
 
 		math::vectorf2 m_mousepos;
 
@@ -205,13 +204,13 @@ namespace influx::engine
 	};
 
 	template<typename _t>
-	inline _t& editor_manager::static_window()
+	inline _t& editor_manager::static_window(const string& title)
 	{
 		static bool first = true;
 		static _t static_win = _t{};
 		if (first)
 		{
-			m_external_windows.push_back(&static_win);
+			m_static_windows[title] = &static_win;
 			first = false;
 		}
 

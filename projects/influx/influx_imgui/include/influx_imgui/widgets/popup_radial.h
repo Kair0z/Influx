@@ -1,5 +1,8 @@
 #pragma once
 
+// influx::core
+#include "core/container/map.h"
+
 // imgui
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -95,8 +98,13 @@ namespace influx::imgui
 	}
 
 	// helper class which uses the PiePopupSelect, and manages its own state
+
+	template <typename _t, uint32 _c = 6u>
 	class popup_radial final
 	{
+		using item_type = _t;
+		static constexpr uint32 capacity = _c;
+
 	public:
 		popup_radial() = default;
 		popup_radial(const math::vectorf2& spawn_position);
@@ -113,162 +121,167 @@ namespace influx::imgui
 		void set_radius(float);
 		float get_radius() const;
 
-		void set_items(const vector<const char*>& items);
-		void add_item(const char*);
-		void remove_item(const char*);
-		void remove_item(uint32 at_index);
-		const char* get_item(uint32 at_index) const;
-		uint32 get_item_index(const char*) const;
+		void set_item(const string& name, const item_type& item);
+		void remove_item(const string& name);
+		item_type* get_item(const string& name) const;
 
 		void set_id(const char* id);
 		const char* get_id() const;
 
 		bool has_selection() const;
-		const char* get_selected();
+		_t* get_selected();
 
 	private:
 		bool m_is_visible = false;
 		math::vectorf2 m_position = {};
 		const char* m_id = "##piepopup";
-		vector<const char*> m_items = {};
-		int m_selected = -1;
+
+		umap<string, item_type> m_items{};
+
+		string m_selected = "";
 		float m_radius = 10.0f;
 	};
 
 #pragma region impl
-	inline popup_radial::popup_radial(const math::vectorf2& spawn_position)
+	template <typename _t, uint32 _c>
+	inline popup_radial<_t, _c>::popup_radial(const math::vectorf2& spawn_position)
 		: m_position{ spawn_position }
 		, m_is_visible{ true }
 		, m_items{}
-		, m_selected{ -1 }
+		, m_selected{ ""}
 		, m_radius{}
 	{
 		set_position(spawn_position);
 	}
 
-	inline popup_radial::~popup_radial()
+	template <typename _t, uint32 _c>
+	inline popup_radial<_t, _c>::~popup_radial()
 	{
 
 	}
 
-	inline void popup_radial::render(const math::vectorf2& mouse_pos)
+	template <typename _t, uint32 _c>
+	inline void popup_radial<_t, _c>::render(const math::vectorf2& mouse_pos)
 	{
-		m_selected = PiePopupSelectMenu(
+		vector<const char*> item_titles{};
+		for (const auto& pair : m_items)
+		{
+			item_titles.push_back(pair.first.c_str());
+		}
+
+		int selected_idx = PiePopupSelectMenu(
 			translate(m_position),
 			translate(mouse_pos),
 			get_radius(),
 			get_id(),
-			m_items.data(),
-			(int)m_items.size(),
-			&m_selected,
+			item_titles.data(),
+			(int)item_titles.size(),
+			&selected_idx,
 			!m_is_visible);
+
+		if (selected_idx >= 0)
+		{
+			m_selected = item_titles[selected_idx];
+		}
+		else
+		{
+			m_selected = "";
+		}
 
 		// this opens/shows the popup
 		if (m_is_visible)
 			ImGui::OpenPopup(m_id);
 	}
 
-	inline void popup_radial::set_position(const math::vectorf2& position)
+	template <typename _t, uint32 _c>
+	inline void popup_radial<_t, _c>::set_position(const math::vectorf2& position)
 	{
 		m_position = position;
 	}
 
-	inline const math::vectorf2& popup_radial::get_position() const
+	template <typename _t, uint32 _c>
+	inline const math::vectorf2& popup_radial<_t, _c>::get_position() const
 	{
 		return m_position;
 	}
 
-	inline void popup_radial::set_visible(bool new_vis)
+	template <typename _t, uint32 _c>
+	inline void popup_radial<_t, _c>::set_visible(bool new_vis)
 	{
 		m_is_visible = new_vis;
 	}
 
-	inline bool popup_radial::is_visible() const
+	template <typename _t, uint32 _c>
+	inline bool popup_radial<_t, _c>::is_visible() const
 	{
 		return m_is_visible;
 	}
 
-	inline void popup_radial::set_radius(float new_radius)
+	template <typename _t, uint32 _c>
+	inline void popup_radial<_t, _c>::set_radius(float new_radius)
 	{
 		m_radius = new_radius;
 	}
 
-	inline float popup_radial::get_radius() const
+	template <typename _t, uint32 _c>
+	inline float popup_radial<_t, _c>::get_radius() const
 	{
 		return m_radius;
 	}
 
-	inline void popup_radial::set_items(const vector<const char*>& items)
+	template <typename _t, uint32 _c>
+	inline void popup_radial<_t, _c>::set_item(const string& title, const _t& item)
 	{
-		m_items = items;
+		m_items[title] = item;
 	}
 
-	inline void popup_radial::add_item(const char* new_item)
+	template <typename _t, uint32 _c>
+	inline _t* popup_radial<_t, _c>::get_item(const string& title) const
 	{
-		m_items.push_back(new_item);
-	}
-
-	inline const char* popup_radial::get_item(uint32 at_index) const
-	{
-		if (at_index < m_items.size())
+		if (m_items.contains(title))
 		{
-			return m_items[at_index];
+			return m_items[title];
 		}
-		return "";
+
+		return nullptr;
 	}
 
-	inline void popup_radial::remove_item(const char* item)
+	template <typename _t, uint32 _c>
+	inline void popup_radial<_t, _c>::remove_item(const string& name)
 	{
-		const uint32 item_idx = get_item_index(item);
-		remove_item(item_idx);
-	}
-
-	inline void popup_radial::remove_item(uint32 at_index)
-	{
-		if (at_index < m_items.size())
+		if (m_items.contains(name))
 		{
-			m_items[at_index] = m_items.back();
-			m_items.pop_back();
+			m_items.remove(name);
 		}
 	}
 
-	inline uint32 popup_radial::get_item_index(const char* item) const
-	{
-		for (uint64 i = 0u; i < m_items.size(); ++i)
-		{
-			const string str = m_items[i];
-			if (str.compare(item))
-			{
-				return (uint32)i;
-			}
-		}
-
-		return (uint32)-1;
-	}
-
-	inline void popup_radial::set_id(const char* id)
+	template <typename _t, uint32 _c>
+	inline void popup_radial<_t, _c>::set_id(const char* id)
 	{
 		m_id = id;
 	}
 
-	inline const char* popup_radial::get_id() const
+	template <typename _t, uint32 _c>
+	inline const char* popup_radial<_t, _c>::get_id() const
 	{
 		return m_id;
 	}
 
-	inline bool popup_radial::has_selection() const
+	template <typename _t, uint32 _c>
+	inline bool popup_radial<_t, _c>::has_selection() const
 	{
-		return m_selected >= 0u && m_selected < m_items.size();
+		return (m_selected != "" && m_items.contains(m_selected));
 	}
 
-	inline const char* popup_radial::get_selected()
+	template <typename _t, uint32 _c>
+	inline _t* popup_radial<_t, _c>::get_selected()
 	{
 		if (has_selection())
 		{
-			return m_items[m_selected];
+			return &m_items.at(m_selected);
 		}
 
-		return "";
+		return nullptr;
 	}
 #pragma endregion
 }

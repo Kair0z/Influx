@@ -26,6 +26,7 @@ namespace influx::engine
 	class render_manager;
 	class content_manager;
 	class editor_manager;
+	class game_manager;
 	class world;
 
 	class engine final : public singleton<engine>
@@ -45,6 +46,7 @@ namespace influx::engine
 		result<cptr<world>> get_world() const;
 
 		result<ptr<content_manager>> get_content();
+		result<ptr<game_manager>> get_game();
 
 		const frame_time& get_time() const;
 		float get_fps() const;
@@ -75,6 +77,7 @@ namespace influx::engine
 		content_manager* m_contentman = nullptr;
 		render_manager* m_renderman = nullptr;
 		editor_manager* m_editorman = nullptr;
+		game_manager* m_gameman = nullptr;
 		world* m_world = nullptr;
 		frame_time m_time{};
 

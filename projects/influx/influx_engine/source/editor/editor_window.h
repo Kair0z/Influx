@@ -47,6 +47,7 @@ namespace influx::engine
 		const math::float2& get_position() const;
 		const math::float2& get_size() const;
 
+		void toggle();
 		void set_visible(bool new_visible);
 		bool is_visible() const;
 

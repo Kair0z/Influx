@@ -489,6 +489,16 @@ namespace influx::renderer
         return m_materials.contains(title);
     }
 
+    void renderer_backend::set_settings(const render_settings& settings)
+    {
+        m_settings = settings;
+    }
+
+    const render_settings& renderer_backend::get_settings() const
+    {
+        return m_settings;
+    }
+
     texture* renderer_backend::create_texture(const string& title, const texture_desc& args)
     {
         if (!m_textures.contains(title))
@@ -764,6 +774,16 @@ namespace influx::renderer
     bool has_material(const string& title)
     {
         return renderer_backend::get_instance().has_material(title);
+    }
+
+    void set_settings(const render_settings& settings)
+    {
+        renderer_backend::get_instance().set_settings(settings);
+    }
+
+    INFLUX_RENDER_API render_settings get_settings()
+    {
+        return renderer_backend::get_instance().get_settings();
     }
 
     memory_info get_memory_info()

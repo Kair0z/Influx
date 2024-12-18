@@ -17,6 +17,7 @@
 #include "content/content_manager.h"
 #include "rendering/render_manager.h"
 #include "editor/editor_manager.h"
+#include "game/game_manager.h"
 #include "world/world.h"
 
 // influx::core
@@ -153,6 +154,8 @@ namespace influx::engine
 		if (m_runtype == run_type::editor) 
 			m_editorman = new editor_manager(nullptr);
 		
+		m_gameman = new game_manager();
+
 		// initialize render
 		string render_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
 		const math::vectoru2 window_dimensions = { 1280u, 720u };
@@ -257,6 +260,11 @@ namespace influx::engine
 	result<ptr<content_manager>> engine::get_content()
 	{
 		return m_contentman;
+	}
+
+	result<ptr<game_manager>> engine::get_game()
+	{
+		return m_gameman;
 	}
 
 	const frame_time& engine::get_time() const

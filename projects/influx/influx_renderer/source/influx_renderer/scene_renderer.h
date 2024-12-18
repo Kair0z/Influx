@@ -104,6 +104,8 @@ namespace influx::renderer
 		void render_basepass(graphics::commandlist* commandlist, 
 			const scene& scene, const vector<batch>& batches, const target& target);
 
+		void apply_pipeline_settings();
+
 	private:
 		renderer_backend* mp_backend;
 		pipeline* mp_pipeline;

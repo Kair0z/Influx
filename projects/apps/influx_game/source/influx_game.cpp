@@ -1,12 +1,17 @@
-#include "influx_game.h"
+﻿#include "influx_game.h"
 #include <iostream>
 
-void game::on_start()
+void game::start()
 {
-	printf("game:on_start");
+	printf("game:on_start\n");
 }
 
-void game::on_end()
+void game::tick()
 {
-	printf("game:on_end");
+	printf("game:on_tick\n");
+}
+
+void game::end()
+{
+	printf("game:on_end\n");
 }

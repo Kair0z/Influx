@@ -46,7 +46,7 @@ namespace influx::engine
 
 	const string& editor_window::get_name() const
 	{
-		return m_title;
+		return m_title.empty() ? "-" : m_title;
 	}
 
 	const math::float2& editor_window::get_position() const
@@ -77,6 +77,11 @@ namespace influx::engine
 		}
 
 		return position;
+	}
+
+	void editor_window::toggle()
+	{
+		set_visible(!is_visible());
 	}
 
 	void editor_window::set_visible(bool new_visible)

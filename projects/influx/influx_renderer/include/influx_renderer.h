@@ -61,9 +61,11 @@ namespace influx::renderer
 		math::vectorf4 m_colour = {};
 	};
 
-	struct render_args final
+	struct render_settings final
 	{
-
+		enum class cullmode { back, front, none };
+		cullmode m_cullmode		= cullmode::back;
+		bool m_wireframe		= false;
 	};
 
 	// initialize renderer first!
@@ -120,6 +122,10 @@ namespace influx::renderer
 	INFLUX_RENDER_API bool has_shader(const string& title);
 
 	INFLUX_RENDER_API bool has_material(const string& title);
+	
+	INFLUX_RENDER_API void set_settings(const render_settings& settings);
+
+	INFLUX_RENDER_API render_settings get_settings();
 
 	// graphics info
 	struct memory_info final

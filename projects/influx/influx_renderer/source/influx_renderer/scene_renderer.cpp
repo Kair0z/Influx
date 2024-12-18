@@ -16,7 +16,7 @@
 
 namespace influx::renderer
 {
-    static const pipeline_signature k_scene_pipeline_signature
+    static pipeline_signature k_scene_pipeline_signature
     {
         .m_vs_name              { "shaders_vs" },
         .m_ps_name              { "shaders_ps" },
@@ -256,6 +256,8 @@ namespace influx::renderer
     void scene_renderer::render_basepass(graphics::commandlist* commandlist, 
         const scene& scene, const vector<batch>& batches, const target& target)
     {
+        apply_pipeline_settings();
+
         mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
         if (mp_pipeline == nullptr)
         {
@@ -282,6 +284,22 @@ namespace influx::renderer
         mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
 
         render_batches(commandlist, batches);
+    }
+
+    void scene_renderer::apply_pipeline_settings()
+    {
+        const render_settings& settings = renderer_backend::get_instance().get_settings();
+        
+        // fillmode
+        k_scene_pipeline_signature.m_fillmode = settings.m_wireframe ? pipeline_signature::fillmode::wireframe : pipeline_signature::fillmode::solid;
+        
+        // cullmode
+        switch (settings.m_cullmode)
+        {
+        case render_settings::cullmode::back:  k_scene_pipeline_signature.m_cullmode = pipeline_signature::cullmode::back; break;
+        case render_settings::cullmode::front: k_scene_pipeline_signature.m_cullmode = pipeline_signature::cullmode::front; break;
+        case render_settings::cullmode::none:  k_scene_pipeline_signature.m_cullmode = pipeline_signature::cullmode::none; break;
+        }
     }
 
     void scene_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)

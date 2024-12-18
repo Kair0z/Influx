@@ -1,4 +1,4 @@
-#include "engine_pch.h"
+﻿#include "engine_pch.h"
 #include "editor_manager.h"
 
 // influx::core
@@ -11,6 +11,7 @@
 #include "world/world.h"
 #include "scene/scene.h"
 #include "content/content_manager.h"
+#include "game/game_manager.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -25,7 +26,76 @@
 
 namespace influx::engine
 {
-	list<editor_window*> editor_manager::m_external_windows{};
+	class game_manager_ui final : public editor_window
+	{
+	public:
+		virtual void on_run() override
+		{
+			if (!m_is_running)
+			{
+				if (ImGui::Button("play"))
+				{
+					m_is_running = true;
+					get_engine()->get_game()->start();
+				}
+			}
+			else
+			{
+				if (ImGui::Button("end"))
+				{
+					m_is_running = false;
+					get_engine()->get_game()->end();
+				}
+			}
+		}
+
+	private:
+		bool m_is_running = false;
+	};
+
+	class content_ui final : public editor_window
+	{
+	public:
+		virtual void on_run() override
+		{
+			set_name("engine:content");
+			
+			// "scene:filepath"
+			for (const auto& pair : get_engine()->get_content()->get_scenes())
+				if (pair.second.is_loaded() && pair.second.is_engine())
+					ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+			ImGui::Text("--");
+			// "texture:filepath"
+			for (const auto& pair : get_engine()->get_content()->get_images())
+				if (pair.second.is_loaded() && pair.second.is_engine())
+				{
+					const image_asset& image = pair.second;
+					const math::vectori2& image_dims = image.m_resource.m_dimensions;
+					ImGui::Text("texture:%s - ms:%f[%ix%i]", pair.first.c_str(), image.get_load_ms(),
+						image_dims.x, image_dims.y);
+				}
+
+			ImGui::Text("--");
+			// "shader:filepath"
+			for (const auto& pair : get_engine()->get_content()->get_shaders())
+				if (pair.second.is_loaded() && pair.second.is_engine())
+					ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+			ImGui::Text("--");
+		}
+	};
+
+	class fps_ui final : public editor_window
+	{
+	public:
+		virtual void on_run() override
+		{
+			set_name("influx engine");
+			imgui::scoped_style_var minsize(ImGuiStyleVar_WindowMinSize, ImVec2(1000, 1000));
+			ImGui::Text("fps: %f", get_engine()->get_fps());
+		}
+	};
+
+	umap<string, editor_window*> editor_manager::m_static_windows{};
 
 #pragma region gamefile
 	string make_game_directory_path(const string& game_name)
@@ -97,7 +167,7 @@ namespace influx::engine
 
 	editor_manager::editor_manager(editor_module* editor)
 		: m_editor{ editor }
-		, m_popup_radial{}
+		, m_static_windows_radial{}
 	{
 		// defaults
 		m_editor_toggle.force_set(true);
@@ -171,81 +241,14 @@ namespace influx::engine
 			return {};
 		}
 
+		static_window<game_manager_ui>("game");
+		static_window<fps_ui>("fps");
+		static_window<content_ui>("content");
+
 		// "main menu"
 		update_mainmenu();
 
-		// "fps"
-		{
-			m_fps_window.set_visible(m_fps_toggle);
-			m_fps_window.set_name("influx engine");
-			m_fps_window.run([&engine]()
-			{
-				imgui::scoped_style_var minsize(ImGuiStyleVar_WindowMinSize, ImVec2(1000, 1000));
-				ImGui::Text("fps: %f", engine->get_fps());
-			});
-		}
-
-		// "game:content"
-		{
-			const math::float2 window_size = { 200.0f, 200.0f };
-			const float t = math::pingpong(engine->get_time().get_time_seconds(), 0.0f, 1.0f);
-			const math::float2 animated_pos = math::lerp<math::float2>(t, { 0, 0 }, { 1280 - window_size.x, 720 - window_size.y });
-			const string name = has_project() ? (get_projectname().get() + ":content") : "content";
-
-			m_content_window.set_visible(m_content_toggle);
-			// m_content_window.set_position(animated_pos);
-			m_content_window.set_size(window_size);
-			m_content_window.set_name(name);
-			m_content_window.run([&res_content]()
-			{
-				// "scene:filepath"
-				for (const auto& pair : res_content->get_scenes())
-					if (pair.second.is_loaded() && pair.second.is_game())
-						ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
-				ImGui::Text("--");
-				// "texture:filepath"
-				for (const auto& pair : res_content->get_images())
-					if (pair.second.is_loaded() && pair.second.is_game())
-						ImGui::Text("texture:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
-				ImGui::Text("--");
-				// "shader:filepath"
-				for (const auto& pair : res_content->get_shaders())
-					if (pair.second.is_loaded() && pair.second.is_game())
-						ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
-				ImGui::Text("--");
-			});
-
-			m_engine_content_window.set_name("engine:content");
-			m_engine_content_window.run([&res_content]()
-			{
-				// "scene:filepath"
-				for (const auto& pair : res_content->get_scenes())
-					if (pair.second.is_loaded() && pair.second.is_engine())
-						ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
-				ImGui::Text("--");
-				// "texture:filepath"
-				for (const auto& pair : res_content->get_images())
-					if (pair.second.is_loaded() && pair.second.is_engine())
-					{
-						const image_asset& image = pair.second;
-						const math::vectori2& image_dims = image.m_resource.m_dimensions;
-						ImGui::Text("texture:%s - ms:%f[%ix%i]", pair.first.c_str(), image.get_load_ms(), 
-							image_dims.x, image_dims.y);
-					}
-						
-				ImGui::Text("--");
-				// "shader:filepath"
-				for (const auto& pair : res_content->get_shaders())
-					if (pair.second.is_loaded() && pair.second.is_engine())
-						ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
-				ImGui::Text("--");
-			});
-		}
-
-		update_externals();
-
-		// radial menu
-		update_radial_menu();
+		update_static_windows();
 
 		return {};
 	}
@@ -303,46 +306,6 @@ namespace influx::engine
 		return {};
 	}
 
-	result<> editor_manager::update_radial_menu()
-	{
-		// temp: size animation
-		const float max_radius = 50.0f;
-		const float seconds = get_engine()->get_time().get_time_seconds();
-		const float anim_speed = 5.0f;
-		const float radius = math::pingpong(seconds * anim_speed, max_radius * 0.95f, max_radius);
-
-		m_popup_radial.set_id("##piepopup");
-		m_popup_radial.set_items({ "new", "old", "load"});
-		m_popup_radial.set_radius(radius);
-		m_popup_radial.render(m_mousepos);
-
-		if (m_popup_radial.has_selection())
-		{
-			const char* selected = m_popup_radial.get_selected();
-			if (selected == "load")
-			{
-				string dll_dir = "D:/Git/Influx/bin/debug-windows-x86_64/influx_game/";
-				string dll_path = dll_dir + "influx_game.dll";
-				
-				// load dll
-				static platform::library* lib = nullptr;
-				if (lib == nullptr)
-				{
-					lib = platform::library::load(dll_path);
-				}
-
-				for (string func : lib->get_functions())
-				{
-					logn("influx_game:{}", func);
-				}
-
-				lib->call("foo");
-			}
-		}
-
-		return {};
-	}
-
 	result<> editor_manager::update_background_dockspace()
 	{
 		// Get the current viewport
@@ -377,14 +340,36 @@ namespace influx::engine
 		return {};
 	}
 
-	result<> editor_manager::update_externals()
+	result<> editor_manager::update_static_windows()
 	{
-		for (editor_window* win : m_external_windows)
+		const float max_radius = 50.0f;
+		const float seconds = get_engine()->get_time().get_time_seconds();
+		const float anim_speed = 5.0f;
+		const float radius = math::pingpong(seconds * anim_speed, max_radius * 0.95f, max_radius);
+
+		m_static_windows_radial.set_id("##piepopup");
+		m_static_windows_radial.set_radius(radius);
+		m_static_windows_radial.render(m_mousepos);
+
+		for (auto& pair : m_static_windows)
 		{
-			if (win)
+			if (!pair.first.empty() && pair.second != nullptr)
 			{
-				win->set_visible(true);
-				win->run({});
+				m_static_windows_radial.set_item(pair.first, pair.second);
+			}
+		}
+
+		if (m_static_windows_radial.has_selection())
+		{
+			editor_window* selected = *m_static_windows_radial.get_selected();
+			selected->toggle();
+		}
+
+		for (auto& pair : m_static_windows)
+		{
+			if (pair.second && pair.second->is_visible())
+			{
+				pair.second->run({});
 			}
 		}
 
@@ -441,8 +426,8 @@ namespace influx::engine
 		switch (button)
 		{
 		case input::e_mouse_button::right: 
-			m_popup_radial.set_visible(true);
-			m_popup_radial.set_position(position.m_client);
+			m_static_windows_radial.set_visible(true);
+			m_static_windows_radial.set_position(position.m_client);
 			break;
 		}
 
@@ -454,7 +439,7 @@ namespace influx::engine
 		switch (button)
 		{
 		case input::e_mouse_button::right:
-			m_popup_radial.set_visible(false);
+			m_static_windows_radial.set_visible(false);
 			break;
 		}
 

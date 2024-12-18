@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 
 #if _DLL
 #define INFLUX_GAME_API __declspec(dllexport)
@@ -9,6 +10,7 @@
 class INFLUX_GAME_API game final
 {
 public:
-	static void on_start();
-	static void on_end();
+	static void start();
+	static void tick();
+	static void end();
 };

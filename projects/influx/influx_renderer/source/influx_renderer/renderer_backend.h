@@ -75,6 +75,9 @@ namespace influx::renderer
 		bool has_shader(const string& title) const;
 		bool has_material(const string& title) const;
 
+		void set_settings(const render_settings& settings);
+		const render_settings& get_settings() const;
+
 		texture* create_texture(const string& title, const texture_desc& args);
 		const umap<string, texture*>& get_textures() const;
 		texture* get_texture(const string& name);
@@ -132,6 +135,8 @@ namespace influx::renderer
 		umap<string, shader_data> m_vertex_shaders;
 		umap<string, shader_data> m_pixel_shaders;
 		umap<string, texture*> m_textures;
+
+		render_settings m_settings;
 
 	private:
 		void validate_materials();
