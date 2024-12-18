@@ -275,7 +275,7 @@ namespace influx::engine
 		// 3. debug render
 		if (mp_debug_scene != nullptr)
 		{
-			renderer::draw_debug(*mp_debug_scene, *mp_scene_target);
+			// renderer::draw_debug(*mp_debug_scene, *mp_scene_target);
 		}
 
 		// 4. imgui render
@@ -289,7 +289,7 @@ namespace influx::engine
 
 		// present to window
 		influx::renderer::present_args present_args{};
-		present_args.m_vsync = true;
+		present_args.m_vsync = false;
 		influx::renderer::present_swapchain(present_args);
 
 		mp_imgui_drawdata = nullptr;

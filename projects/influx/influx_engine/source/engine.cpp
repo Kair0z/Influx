@@ -32,9 +32,10 @@ namespace influx::engine
 		// TEMP:
 		// little scene with camera controls and central mesh
 		{
+			const uint32 num_swords = 50u;
 			const math::circlef3D circle = math::circlef3D({}, { 0,1,0 }, 2.0f);
-			const auto points = math::get_points_in_circle(circle, 10u);
-			for (uint32 i = 0u; i < 10u; ++i)
+			const auto points = math::get_points_in_circle(circle, num_swords);
+			for (uint32 i = 0u; i < num_swords; ++i)
 			{
 				auto entity = m_world->create_entity();
 				transform_component& ent_transform = m_world->create_component<transform_component>(entity);

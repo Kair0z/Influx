@@ -268,6 +268,7 @@ namespace influx::renderer
                 mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
                 mp_commandlist->set(target_rtv, target_dsv);
 
+                mp_quad_renderer->render_quad(mp_commandlist, target);
                 mp_debug_renderer->render(mp_commandlist, scene, target);
             }
             mp_commandlist->end();
