@@ -102,16 +102,7 @@ namespace influx::engine
             for (auto [entity, transform_comp, mesh_comp] : view.each())
             {
                 math::transform3D transform = transform_comp.get_transform();
-                
-                // determine scale
-                float norm_scale = 1.0f;
-                const math::float3 transform_scale = transform.get_scale();
-                if (mesh_comp.get_use_normalized_scale() && mesh_comp.m_mesh_boundsphere.m_radius > 0.0f)
-                {
-                    norm_scale = 1.0f / mesh_comp.m_mesh_boundsphere.m_radius;
-                }
-                const math::float3 scale = transform_scale * norm_scale;
-                transform.set_scale(scale);
+                transform.set_scale(mesh_comp.m_normalized_scale);
                 transform.update_matrix();
                 
                 // setup mesh
@@ -140,6 +131,7 @@ namespace influx::engine
             for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
             {
                 math::transform3D transform = transform_comp.get_transform();
+                transform.set_scale(mesh_comp.m_normalized_scale);
                 transform.update_matrix();
 
                 const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform.get_matrix());
@@ -316,9 +308,7 @@ namespace influx::engine
             {
                 norm_scale = 1.0f / mesh_comp.m_mesh_boundsphere.m_radius;
             }
-
-            transform_comp.set_scale(norm_scale);
-            transform_comp.update_matrix();
+            mesh_comp.m_normalized_scale = norm_scale;
         }
     }
 }

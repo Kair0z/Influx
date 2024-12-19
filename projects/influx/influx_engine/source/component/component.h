@@ -213,10 +213,11 @@ namespace influx::engine
 	private:
 		string m_mesh_filepath;
 		bool m_is_visible;
-
+		
 		// -- filled in when asset is loaded
 		math::boxf m_mesh_boundbox;
 		math::spheref m_mesh_boundsphere;
+		float m_normalized_scale;
 		friend class world;
 	};
 
