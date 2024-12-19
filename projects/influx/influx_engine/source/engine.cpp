@@ -282,6 +282,16 @@ namespace influx::engine
 		return m_is_quit;
 	}
 
+	bool engine::is_editor() const
+	{
+		return m_runtype == run_type::editor;
+	}
+
+	bool engine::is_game() const
+	{
+		return m_runtype == run_type::game;
+	}
+
 	result<cptr<world>> get_world()
 	{
 		return get_engine()->get_world();

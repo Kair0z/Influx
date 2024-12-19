@@ -43,23 +43,33 @@ namespace influx::engine
         update_bounds_system();
         update_stream_system();
         update_rigidbody_system();
+        update_rendermesh_system();
+
+        if (get_engine()->is_editor())
+        {
+            // editor select system
+            auto view = m_registry.view<const transform_component, collider_component>();
+            for (auto [entity, transform_comp, collider_comp] : view.each())
+            {
+                collider_comp.get_bounding_sphere();
+            }
+        }
     }
 
     void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D, renderer::scene_debug& debugscene) const
     {
+        const bool is_editor = get_engine()->is_editor();
         const float delta_time = get_engine()->get_time().get_delta_seconds();
 
         // general scene
         scene.m_camera.m_far_plane = 1000.0f;
         scene.m_camera.m_near_plane = 0.001f;
-
         debugscene.clear();
-        debugscene.add_gizmo_transform(math::transform3D::identity());
-
-        // build the camera
+        
+        // render camera
         {
-            auto view = m_registry.view<const transform_component, camera_component>();
-            for (auto [entity, transform_comp, camera_comp] : view.each())
+            for (auto [entity, transform_comp, camera_comp] 
+                : m_registry.view<const transform_component, camera_component>().each())
             {
                 math::transform3D transform = transform_comp.get_transform();
                 scene.m_camera.m_fov = camera_comp.get_fov();
@@ -69,7 +79,7 @@ namespace influx::engine
             debugscene.m_camera = scene.m_camera;
         }
 
-        // build all sprites
+        // render sprites
         {
             auto view = m_registry.view<const transform_component, sprite_component>();
             for (auto [entity, transform_comp, sprite] : view.each())
@@ -86,7 +96,7 @@ namespace influx::engine
             }
         }
 
-        // build all meshes
+        // render meshes
         {
             auto view = m_registry.view<transform_component, mesh_component>();
             for (auto [entity, transform_comp, mesh_comp] : view.each())
@@ -112,17 +122,56 @@ namespace influx::engine
                 render_mesh.m_transform = transform.get_matrix();
                 render_mesh.m_invert_normals = mesh_comp.get_invert_normals();
                 scene.m_meshes.push_back(render_mesh);
+            }
+        }
 
-                // debug rendering
-                debugscene.add_gizmo_transform(transform);
-                debugscene.add_box(mesh_comp.m_mesh_boundbox.get_transformed3D(transform.get_matrix()), { 1,0,0,1 });
+        // editor render
+        if (is_editor)
+        {
+            debugscene.add_gizmo_transform(math::transform3D::identity());
+
+            // transform gizmos
+            for (auto [entity, transform_comp] : m_registry.view<transform_component>().each())
+            {
+                debugscene.add_gizmo_transform(transform_comp.get_transform());
+            }
+
+            // bounds boxes
+            for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
+            {
+                math::transform3D transform = transform_comp.get_transform();
+                transform.update_matrix();
+
+                const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform.get_matrix());
+                debugscene.add_box(transformed_bounds, { 1,0,0,1 });
             }
         }
     }
 
     entity world::create_entity()
     {
-        return (entity)m_registry.create();
+        entity result = m_registry.create();
+        m_entities.push_back(result);
+        return result;
+    }
+
+    bool world::trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer)
+    {
+        out_result.hit_entity = nullptr;
+
+        bool hit_any = false;
+        for (auto [entity, transform_comp, collision_comp] : m_registry.view<transform_component, collider_component>().each())
+        {
+            const math::boxf& bounds = collision_comp.get_bounding_box();
+            float out_distance{};
+            if (bounds.trace(ray, out_distance))
+            {
+                out_result.hit_entity = nullptr;
+                hit_any |= true;
+            }
+        }
+
+        return hit_any;
     }
 
     void world::flush()
@@ -203,13 +252,17 @@ namespace influx::engine
 
     void world::update_bounds_system()
     {
-
+        auto view = m_registry.view<transform_component, mesh_component, collider_component>();
+        for (auto [entity, transform_comp, mesh_comp, collider_comp] : view.each())
+        {
+            const math::boxf& transformed_box = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_comp.get_matrix());
+            collider_comp.grow(transformed_box);
+        }
     }
 
     void world::update_stream_system()
     {
         content_manager* contman = get_engine()->get_content().get();
-
         {
             auto view = m_registry.view<sprite_component>();
             for (auto [entity, sprite] : view.each())
@@ -249,6 +302,23 @@ namespace influx::engine
 
                 body_comp.set_velocity(velocity + acceleration * delta_time);
             }
+        }
+    }
+
+    void world::update_rendermesh_system()
+    {
+        // normalize scales
+        for (auto [entity, transform_comp, mesh_comp]
+            : m_registry.view<transform_component, mesh_component>().each())
+        {
+            float norm_scale = 1.0f;
+            if (mesh_comp.get_use_normalized_scale() && mesh_comp.m_mesh_boundsphere.m_radius > 0.0f)
+            {
+                norm_scale = 1.0f / mesh_comp.m_mesh_boundsphere.m_radius;
+            }
+
+            transform_comp.set_scale(norm_scale);
+            transform_comp.update_matrix();
         }
     }
 }

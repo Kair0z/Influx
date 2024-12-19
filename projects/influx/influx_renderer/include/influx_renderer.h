@@ -108,23 +108,16 @@ namespace influx::renderer
 
 	// loading assets into the renderer
 	INFLUX_RENDER_API void load(const string& title, const mesh_data& data);
-
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
-
 	INFLUX_RENDER_API void load(const string& title, const shader_data& data);
-
 	INFLUX_RENDER_API void load(const string& title, const material& data);
 
 	INFLUX_RENDER_API bool has_mesh(const string& title);
-
 	INFLUX_RENDER_API bool has_texture(const string& title);
-
 	INFLUX_RENDER_API bool has_shader(const string& title);
-
 	INFLUX_RENDER_API bool has_material(const string& title);
-	
-	INFLUX_RENDER_API void set_settings(const render_settings& settings);
 
+	INFLUX_RENDER_API void set_settings(const render_settings& settings);
 	INFLUX_RENDER_API render_settings get_settings();
 
 	// graphics info
@@ -133,13 +126,11 @@ namespace influx::renderer
 		size_t m_gpu_usage = 0u;
 		size_t m_gpu_budget = 0u;
 	};
-
 	INFLUX_RENDER_API memory_info get_memory_info();
 
 	struct pipeline_info final
 	{
 		uint32 m_num_pipelines;
 	};
-
 	INFLUX_RENDER_API pipeline_info get_pipeline_info();
 }

@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef _CORE_GEOMETRY_RAY_H_
-#define _CORE_GEOMETRY_RAY_H_
-
 #include "core/math/vector.h"
 
 namespace influx::math
@@ -40,5 +37,3 @@ namespace influx::math
 		float m_max;
 	};
 }
-
-#endif

@@ -8,6 +8,7 @@
 #include "core/math/vector.h"
 #include "core/container/vector.h"
 #include "core/math/matrix.h"
+#include "core/geometry/ray.h"
 
 namespace influx::math
 {
@@ -56,12 +57,10 @@ namespace influx::math
 		{
 			return bounds{ m_min * scale, m_max * scale };
 		}
-
 		bounds get_scaled(const math::vector<_t, _dim>& scale) const
 		{
 			return bounds{ m_min * scale, m_max * scale };
 		}
-
 		bounds get_transformed3D(const math::matrix<_t, 4u, 4u>& matrix) const
 		{
 			return bounds
@@ -69,6 +68,12 @@ namespace influx::math
 				matrix * m_max,
 				matrix * m_min
 			};
+		}
+
+		inline bool trace(const ray& ray, float& out_distance) const
+		{
+			// todo
+			return false;
 		}
 
 		bounds() = default;

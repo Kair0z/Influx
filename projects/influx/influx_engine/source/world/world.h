@@ -6,12 +6,12 @@
 #include "core/container/vector.h"
 #include "core/pointer.h"
 #include "core/result.h"
-
-// entt
-#include "entt/entt.hpp"
+#include "core/flag.h"
+#include "core/geometry/ray.h"
 
 // influx::engine
 #include "component/component.h"
+#include "entity.h"
 
 namespace influx::engine
 {
@@ -28,24 +28,14 @@ namespace influx::renderer
 
 namespace influx::engine
 {
-	using entity = entt::entity;
-
 	class world final
 	{
-		template <uint32 _num>
-		using tentity_pool = pool<entity, _num>;
-		using entity_pool_8K = tentity_pool<8 * 1024u>;
-		using entity_pool_4K = tentity_pool<4 * 1024u>;
-		using entity_pool_1K = tentity_pool<1 * 1024u>;
-		using entity_pool = entity_pool_4K;
-
 	public:
 		world();
 		virtual ~world();
 
 		void update();
 
-		// -- engine-end
 		void build_renderscene(
 			renderer::scene&, 
 			renderer::scene2D&,
@@ -62,16 +52,21 @@ namespace influx::engine
 		template<typename _ctype>
 		bool has_component(const entity& e);
 
+		struct trace_result { entity* hit_entity = nullptr; };
+		bool trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer = e_collision_layer::all);
+
 		// deletes unreferenced entities
 		void flush();
 
 	private:
 		entt::registry m_registry;
-
+		list<entity> m_entities;
+		
 		void update_input_system();
 		void update_bounds_system();
 		void update_stream_system();
 		void update_rigidbody_system();
+		void update_rendermesh_system();
 
 		// deferred input: this is a bit ugly
 		template <typename _t>
@@ -117,15 +112,15 @@ namespace influx::engine
 	template<typename _ctype, typename... _args>
 	inline _ctype& world::create_component(const entity e, _args&&... args)
 	{
-		return m_registry.emplace<_ctype>(e, std::forward<_args&&>(args)...);
+		return m_registry.emplace<_ctype>(e.get_handle(), std::forward<_args&&>(args)...);
 	}
 
 	template<typename _ctype>
 	inline _ctype* world::get_component(const entity& e)
 	{
-		if (m_registry.valid(e))
+		if (m_registry.valid(e.get_handle()))
 		{
-			return m_registry.try_get<_ctype>(e);
+			return m_registry.try_get<_ctype>(e.get_handle());
 		}
 
 		return nullptr;
@@ -134,7 +129,7 @@ namespace influx::engine
 	template<typename _ctype>
 	inline bool world::has_component(const entity& e)
 	{
-		if (m_registry.valid(e) && m_registry.try_get<_ctype>(e))
+		if (m_registry.valid(e.get_handle()) && m_registry.try_get<_ctype>(e.get_handle()))
 		{
 			return true;
 		}

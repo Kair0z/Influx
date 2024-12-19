@@ -281,7 +281,7 @@ namespace influx::engine
 		// 3. debug render
 		if (mp_debug_scene != nullptr)
 		{
-			// renderer::draw_debug(*mp_debug_scene, *mp_scene_target);
+			renderer::draw_debug(*mp_debug_scene, *mp_scene_target);
 		}
 
 		// 4. imgui render

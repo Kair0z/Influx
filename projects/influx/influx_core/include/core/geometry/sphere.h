@@ -22,6 +22,7 @@ namespace influx::math
 			: m_radius{ radius }, m_position{ position }{}
 
 		void grow_to(const vector3& point);
+		void shrink_to(const vector3& point);
 
 		_t		m_radius;
 		vector3 m_position;
@@ -37,6 +38,22 @@ namespace influx::math
 
 		float distance = diff.magnitude();
 		if (m_radius < distance)
+		{
+			m_radius = distance;
+		}
+	}
+
+	template <typename _t>
+	void sphere<_t>::shrink_to(const vector3& point)
+	{
+		vector3 diff = (point - m_position);
+		if (diff.is_zero())
+		{
+			return;
+		}
+
+		float distance = diff.magnitude();
+		if (m_radius > distance)
 		{
 			m_radius = distance;
 		}

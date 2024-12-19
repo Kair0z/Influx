@@ -12,6 +12,9 @@
 // influx::input
 #include "influx_input.h"
 
+// influx::engine
+#include "collision/collision.h"
+
 namespace influx::engine
 {
 	class component
@@ -217,7 +220,7 @@ namespace influx::engine
 		friend class world;
 	};
 
-	class material_component final
+	class material_component final : public component
 	{
 	public:
 		void set_color(const math::vectorf4& color)
@@ -251,7 +254,7 @@ namespace influx::engine
 		influx::scene::camera m_camera{};
 	};
 
-	class input_component final
+	class input_component final : public component
 	{
 	public:
 		function<void(input::e_key)>	m_on_keydown = {};
@@ -263,7 +266,7 @@ namespace influx::engine
 		function<void(input::e_mouse_button button, const input::mouse_position&)> m_on_mouse_up = {};
 	};
 
-	class rigidbody_component final
+	class rigidbody_component final : public component
 	{
 	public:
 		void add_force(const math::float3& force)
@@ -279,5 +282,38 @@ namespace influx::engine
 		influx_property_readwrite(math::float3, velocity);
 		influx_property_readwrite(math::float3, acceleration);
 		influx_property_readwrite(float, drag);
+	};
+
+	class collider_component final : public component
+	{
+	public:
+		void grow(const math::float3& position)
+		{
+			m_bounding_sphere.grow_to(position);
+			m_bounding_box.grow_to_contain(position);
+		}
+
+		void shrink(const math::float3& position)
+		{
+			m_bounding_sphere.shrink_to(position);
+			m_bounding_box.shrink_to_contain(position);
+		}
+
+		void grow(const math::boxf& box)
+		{
+			grow(box.get_minimum());
+			grow(box.get_maximum());
+		}
+
+		void shrink(const math::boxf& box)
+		{
+			shrink(box.get_minimum());
+			shrink(box.get_maximum());
+		}
+
+	private:
+		influx_property_read(math::boxf, bounding_box);
+		influx_property_read(math::spheref, bounding_sphere);
+		influx_property_readwrite(e_collision_layer, layer);
 	};
 }

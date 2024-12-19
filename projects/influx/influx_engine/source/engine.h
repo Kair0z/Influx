@@ -52,6 +52,9 @@ namespace influx::engine
 		float get_fps() const;
 		bool is_quit() const;
 
+		bool is_editor() const;
+		bool is_game() const;
+
 	private:
 		void initialize();
 		void cleanup();
