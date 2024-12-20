@@ -16,6 +16,7 @@ struct ImDrawData;
 #include "core/string.h"
 #include "core/math/vector.h"
 #include "core/shader.h"
+#include "core/material/material.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -27,7 +28,6 @@ struct ImDrawData;
 #include "influx_renderer/depth_stencil.h"
 #include "influx_renderer/mesh.h"
 #include "influx_renderer/texture.h"
-#include "influx_renderer/material.h"
 #include "influx_renderer/scene.h"
 #include "influx_renderer/stats.h"
 

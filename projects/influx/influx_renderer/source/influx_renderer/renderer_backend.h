@@ -1,15 +1,12 @@
 #pragma once
 
 // influx::core
-namespace influx
-{
-	struct material;
-}
+#include "core/material/material.h"
 
 // influx::renderer
 #include "influx_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
-#include <influx_renderer/renderer_backend.h>
+#include "influx_renderer/renderer_backend.h"
 
 #pragma region declarations
 // influx::graphics
@@ -88,12 +85,12 @@ namespace influx::renderer
 
 		texture* create_texture(const string& title, const texture_desc& args);
 		const umap<string, texture*>& get_textures() const;
-		texture* get_texture(const string& name);
-		texture* get_default_texture(); // "none"
+		texture* find_texture(const string& name);
+		texture& get_default_texture(); // "none"
 
 		const umap<string, material> get_materials() const;
 		material* get_material(const string& name);
-		material* get_default_material(); // "none"
+		static material& get_default_material(); // "none"
 
 		void upload_texture_data(texture* target_tex, const texture_data& data);
 
@@ -145,8 +142,5 @@ namespace influx::renderer
 		umap<string, texture*> m_textures;
 
 		render_settings m_settings;
-
-	private:
-		void validate_materials();
 	};
 }

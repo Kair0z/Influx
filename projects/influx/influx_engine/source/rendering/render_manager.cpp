@@ -3,6 +3,7 @@
 
 // influx::core
 #include "core/log.h"
+#include "core/material/material.h"
 
 // influx::engine
 #include "content/content_manager.h"
@@ -141,7 +142,7 @@ namespace influx::engine
 		static renderer::shader_data m_shader_data{};
 		static renderer::texture_data m_tex_data{};
 		static renderer::mesh_data m_mesh_data{};
-		static renderer::material m_material_data{};
+		static material m_material_data{};
 
 		// CONTENT SECTION
 		{
@@ -183,16 +184,6 @@ namespace influx::engine
 		
 		// HARDCODED SECTION
 		{
-			if (renderer::has_material("mat_transistor") == false)
-			{
-				m_material_data.m_basecolor = colour::k_white;
-				m_material_data.m_tex_albedo = "T_Sword_Opaque_BC";
-				m_material_data.m_tex_normal = "T_Sword_Opaque_N";
-				m_material_data.m_tex_roughness = "T_Sword_Opaque_N";
-				m_material_data.m_tex_special = "T_Sword_Opaque_N";
-				influx::renderer::load("mat_transistor", m_material_data);
-			}
-
 			if (renderer::has_mesh("engine_plane") == false)
 			{
 				const static math::vectorf3 positions[4u]

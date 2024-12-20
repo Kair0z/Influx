@@ -149,7 +149,7 @@ namespace influx::renderer
 			// texture creates
 			for (const rgtexture_id& tex_id : layer->m_texture_creates)
 			{
-				rgtexture* texture = get_texture(tex_id);
+				rgtexture* texture = find_texture(tex_id);
 				texture->m_resource; // todo: allocate from pool
 				// todo: create descriptors
 				// todo: set name
@@ -198,7 +198,7 @@ namespace influx::renderer
 						color_attachment.m_load = translate(rtv.m_access.m_load);
 						color_attachment.m_store = translate(rtv.m_access.m_store);
 
-						rgtexture* color_texture = get_texture(rtv.m_texture_id);
+						rgtexture* color_texture = find_texture(rtv.m_texture_id);
 						influx_assert(color_texture != nullptr);
 
 						color_attachment.m_clear;
@@ -238,7 +238,7 @@ namespace influx::renderer
 			// texture destroys
 			for (const rgtexture_id& tex_id : layer->m_texture_destroys)
 			{
-				rgtexture* texture = get_texture(tex_id);
+				rgtexture* texture = find_texture(tex_id);
 				texture->m_resource; // todo: de-allocate from pool
 			}
 
@@ -362,7 +362,7 @@ namespace influx::renderer
 		return m_id_to_pass_map.contains(id);
 	}
 
-	rgtexture* rendergraph::get_texture(rgtexture_id id)
+	rgtexture* rendergraph::find_texture(rgtexture_id id)
 	{
 		if (is_texture_declared(id))
 		{

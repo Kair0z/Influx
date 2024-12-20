@@ -1,5 +1,11 @@
 #pragma once
 
+// influx::core
+namespace influx
+{
+	class material;
+}
+
 // influx::graphics
 namespace influx::graphics
 {
@@ -15,7 +21,6 @@ namespace influx::renderer
 {
 	class renderer_backend;
 	class pipeline;
-	struct material;
 }
 
 namespace influx::renderer

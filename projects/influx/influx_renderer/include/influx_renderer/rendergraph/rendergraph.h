@@ -68,7 +68,7 @@ namespace influx::renderer
 		bool is_buffer_declared(rgbuffer_id id) const;
 		bool is_pass_declared(rgpass_id id) const;
 
-		rgtexture* get_texture(rgtexture_id id);
+		rgtexture* find_texture(rgtexture_id id);
 		rgbuffer* get_buffer(rgbuffer_id id);
 		rgpass_base* get_pass(rgpass_id id);
 

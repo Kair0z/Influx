@@ -2,6 +2,7 @@
 #include "core/basetypes.h"
 #include "core/container/map.h"
 #include "core/pointer.h"
+#include "core/math/colour.h"
 
 namespace influx
 {
@@ -79,6 +80,8 @@ namespace influx
         };
 
 	public:
+        material() = default;
+
         struct float_property
         {
             float m_value;
@@ -89,6 +92,11 @@ namespace influx
             e_texture_semantic m_semantic;
             uint32 m_texture_index;
             string m_path;
+            
+            const string& get_name() const
+            {
+                return m_path;
+            }
         };
 
         struct int_property
@@ -120,9 +128,31 @@ namespace influx
 
             return nullptr;
         }
-
         texture_property const* get_texture_normals() const { return get_texture(e_texture_semantic::normals); }
         texture_property const* get_texture_diffuse() const { return get_texture(e_texture_semantic::diffuse); }
+
+        inline const string& get_texture_name(const e_texture_semantic& slot) const
+        {
+            texture_property const* texture = get_texture(slot);
+            if (texture)
+            {
+                return texture->get_name();
+            }
+
+            return "";
+        }
+        const string& get_texture_normals_name() const { return get_texture_name(e_texture_semantic::normals); }
+        const string& get_texture_diffuse_name() const { return get_texture_name(e_texture_semantic::diffuse); }
+
+        math::colour_rgba get_basecolour() const
+        {
+            return m_basecolour;
+        }
+
+        void set_basecolour(const math::colour_rgba& colour)
+        {
+            m_basecolour = colour;
+        }
 
 	private:
         umap<string, float_property> m_floats;

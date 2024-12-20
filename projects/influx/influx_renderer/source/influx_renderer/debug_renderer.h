@@ -18,7 +18,6 @@ namespace influx::renderer
 {
 	class renderer_backend;
 	class pipeline;
-	struct material;
 	struct scene_debug;
 	class target;
 }

@@ -195,10 +195,10 @@ namespace influx::renderer
 
             // find the material textures
             vector<texture*> material_textures(4u);
-            material_textures[0] = backend.get_texture(material->m_tex_albedo);
-            material_textures[1] = backend.get_texture(material->m_tex_normal);
-            material_textures[2] = backend.get_texture(material->m_tex_roughness);
-            material_textures[3] = backend.get_texture(material->m_tex_special);
+            material_textures[0] = backend.find_texture(material->get_texture_name(e_texture_semantic::basecolor));
+            material_textures[1] = backend.find_texture(material->get_texture_name(e_texture_semantic::normals));
+            material_textures[2] = backend.find_texture(material->get_texture_name(e_texture_semantic::roughness));
+            material_textures[3] = backend.find_texture(material->get_texture_name(e_texture_semantic::opacity));
 
             // stage the descriptors onto the gpu-visible heap
             graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(material_textures);
@@ -214,7 +214,7 @@ namespace influx::renderer
 
             // set base instance variable
             m_gpu_perdraw.m_start_instance = batch.get_instance_base();
-            m_gpu_permaterial.m_colour = material->m_basecolor;
+            m_gpu_permaterial.m_colour = material->get_basecolour();
 
             mp_pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
             mp_pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);

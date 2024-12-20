@@ -518,24 +518,25 @@ namespace influx::renderer
         return m_textures;
     }
 
-    texture* renderer_backend::get_texture(const string& name)
+    texture* renderer_backend::find_texture(const string& name)
     {
         if (m_textures.contains(name))
         {
             return m_textures[name];
         }
 
-        return nullptr;
+        return &get_default_texture();
     }
 
-    texture* renderer_backend::get_default_texture()
+    texture& renderer_backend::get_default_texture()
     {
-        if (!m_textures.contains("none"))
+        static texture* default_texture = nullptr;
+        if (!default_texture)
         {
             texture_desc args{};
             args.m_width = 256u;
             args.m_heigth = 256u;
-            m_textures["none"] = create_texture("none", args);
+            default_texture = create_texture("none", args);
 
             texture_data dummy_data{};
             dummy_data.m_width = 256u;
@@ -544,11 +545,14 @@ namespace influx::renderer
                 dummy_data.m_pixels.push_back(make_pixel32(255u, 255u, 255u, 255u));
             }
 
-            mp_upload_manager->upload_texture(mp_graphics_queue, dummy_data, 
-                m_textures["none"]->get_resource());
+            mp_upload_manager->upload_texture(mp_graphics_queue, dummy_data,
+                default_texture->get_resource());
+
+            influx_assert(default_texture != nullptr);
         }
         
-        return m_textures["none"];
+        m_textures["none"] = default_texture;
+        return *default_texture;
     }
 
     const umap<string, material> renderer_backend::get_materials() const
@@ -561,19 +565,14 @@ namespace influx::renderer
         if (m_materials.contains(name))
             return &m_materials.at(name);
 
-        return nullptr;
+        return &get_default_material();
     }
 
-    material* renderer_backend::get_default_material()
+    material& renderer_backend::get_default_material()
     {
-        // setup default material
-        m_materials["none"].m_basecolor = colour::k_red;
-        m_materials["none"].m_tex_albedo = "none";
-        m_materials["none"].m_tex_normal = "none";
-        m_materials["none"].m_tex_roughness = "none";
-        m_materials["none"].m_tex_special = "none";
-
-        return &m_materials["none"];
+        static material k_default{};
+        k_default.set_basecolour(colour::k_red);
+        return k_default;
     }
 
     void renderer_backend::upload_texture_data(texture* target_tex, const texture_data& data)
@@ -627,42 +626,6 @@ namespace influx::renderer
     umap<string, shader_data>& renderer_backend::get_pixel_shaders()
     {
         return m_pixel_shaders;
-    }
-
-    void renderer_backend::validate_materials()
-    {
-        for (const auto& mat : m_materials)
-        {
-            const string& mat_name = mat.first;
-            const material& material = mat.second;
-
-            // check shaders
-            const bool valid_pixelshader = m_pixel_shaders.contains(material.m_pixel_shader);
-            const bool valid_vertexshader = m_vertex_shaders.contains(material.m_vertex_shader);
-
-            const bool valid_pipeline = true;
-            const bool valid_rootsignature = true;
-
-            if (!valid_pixelshader)
-            {
-                influx_assert(false);
-            }
-
-            if (!valid_vertexshader)
-            {
-                influx_assert(false);
-            }
-
-            if (!valid_pipeline)
-            {
-                influx_assert(false);
-            }
-
-            if (!valid_rootsignature)
-            {
-                influx_assert(false);
-            }
-        }
     }
 
 #pragma region frontend_api
