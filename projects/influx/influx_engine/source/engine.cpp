@@ -22,6 +22,7 @@
 
 // influx::core
 #include "core/math/vectortools.h"
+#include "core/math/random.h"
 
 namespace influx::engine
 {
@@ -46,6 +47,11 @@ namespace influx::engine
 				ent_mesh.set_mesh_path("transistor");
 				ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
 				ent_mesh.set_invert_normals(false);
+
+				material_component& ent_mat = m_world->create_component<material_component>(entity);
+				ent_mat.set_texture(e_texture_semantic::basecolor, "");
+				ent_mat.set_texture(e_texture_semantic::normals, "");
+				ent_mat.set_texture(e_texture_semantic::roughness, "");
 			}
 			
 			static float distance = 5.0f;
@@ -135,6 +141,8 @@ namespace influx::engine
 
 	void engine::initialize()
 	{
+		random::seed_random(0u);
+
 		m_t_init = time::get_now();
 
 		// setup engine config

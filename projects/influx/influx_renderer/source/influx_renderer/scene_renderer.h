@@ -1,5 +1,6 @@
 #pragma once
 
+#pragma region forward_decl
 // influx::core
 namespace influx
 {
@@ -22,6 +23,7 @@ namespace influx::renderer
 	class renderer_backend;
 	class pipeline;
 }
+#pragma endregion
 
 namespace influx::renderer
 {
@@ -30,10 +32,9 @@ namespace influx::renderer
 	// [LAYOUT]
 	struct gpu_perscene final
 	{
-		float m_seconds{};
-		float m_delta_seconds{};
-		math::vectorf3 m_light_direction = { -0.5f, -0.5f, -0.5f };
-		math::colour_rgba m_light_colour = { 1.0f, 1.0f, 1.0f, 1.0f };
+		math::vectorf4 m_time = {};
+		math::vectorf4 m_light_direction = { -0.5f, -0.5f, -0.5f };
+		math::vectorf4 m_light_colour = { 1.0f, 1.0f, 1.0f, 1.0f };
 	};
 
 	struct gpu_perview final
@@ -63,24 +64,24 @@ namespace influx::renderer
 	{
 	public:
 		batch(
-			const string& mesh_name, 
-			const string& material_name, 
+			const uint32 material_index,
+			const string& mesh_name,
 			const vector<gpu_instance_data>& instances,
 			uint32 instance_base);
 
 		graphics::resource* get_vertex_buffer() const;
 		graphics::resource* get_index_buffer() const;
-		material* get_material() const;
 
 		const vector<gpu_instance_data>& get_instances() const;
 		const uint32 get_instance_base() const;
+		const uint32 get_material_index() const;
 
 	private:
-		material* m_material;
 		graphics::resource* m_vertex_buffer;
 		graphics::resource* m_index_buffer;
 		vector<gpu_instance_data> m_instances{};
 		uint32 m_base_instance;
+		uint32 m_material_index;
 	};
 
 	class scene_renderer final
@@ -101,7 +102,7 @@ namespace influx::renderer
 	private:
 		vector<batch> create_batches(const scene& scene);
 		void update_instance_buffer(const vector<batch>& batches);
-		void render_batches(graphics::commandlist* commandlist, const vector<batch>& batches);
+		void render_batches(graphics::commandlist* commandlist, const scene& scene, const vector<batch>& batches);
 
 		void render_shadows(graphics::commandlist* commandlist, 
 			const scene& scene, const vector<batch>& batches);
@@ -110,6 +111,8 @@ namespace influx::renderer
 			const scene& scene, const vector<batch>& batches, const target& target);
 
 		void apply_pipeline_settings();
+
+		const material& get_mesh_material(const mesh_instance& mesh, const scene& scene) const;
 
 	private:
 		renderer_backend* mp_backend;

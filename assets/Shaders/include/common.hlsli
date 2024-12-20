@@ -25,9 +25,8 @@ struct per_view
 
 struct per_scene
 {
-    float seconds;
-    float delta_seconds;
-    float3 light_direction;
+    float4 time;
+    float4 light_direction;
     float4 light_colour;
 };
 

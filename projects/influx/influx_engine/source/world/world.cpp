@@ -100,11 +100,13 @@ namespace influx::engine
             }
         }
 
+        
         // render meshes
         {
+            list<material> unique_materials{};
             influx_scope("build_meshes");
-            auto view = m_registry.view<transform_component, mesh_component>();
-            for (auto [entity, transform_comp, mesh_comp] : view.each())
+            auto view = m_registry.view<transform_component, mesh_component, material_component>();
+            for (auto [entity, transform_comp, mesh_comp, material_comp] : view.each())
             {
                 math::transform3D transform = transform_comp.get_transform();
                 transform.set_scale(mesh_comp.m_normalized_scale);
@@ -113,16 +115,27 @@ namespace influx::engine
                 // setup mesh
                 renderer::mesh_instance render_mesh{};
                 render_mesh.m_name = mesh_comp.get_mesh_path();
-                render_mesh.m_material_name = "";
                 render_mesh.m_per_instance_colour = {};
                 render_mesh.m_transform = transform.get_matrix();
-                render_mesh.m_invert_normals = mesh_comp.get_invert_normals();
+
+                // setup material
+                auto found_material = std::find_if(unique_materials.cbegin(), unique_materials.cend(), [&material_comp](const material& mat)
+                {
+                    return mat == material_comp.get_material();
+                });
+                if (found_material == unique_materials.cend())
+                {
+                    scene.m_materials.push_back(material_comp.get_material());
+                }
+
+                // bind material to mesh
+                render_mesh = &scene.m_materials.back();
                 scene.m_meshes.push_back(render_mesh);
             }
         }
 
         // editor render
-        if (is_editor)
+        if (is_editor && false)
         {
             influx_scope("build_gizmos");
             debugscene.add_gizmo_transform(math::transform3D::identity());

@@ -8,6 +8,8 @@
 #include "core/math/bounds.h"
 #include "core/geometry/sphere.h"
 #include "core/macros.h"
+#include "core/material/material.h"
+#include "core/container/map.h"
 
 // influx::input
 #include "influx_input.h"
@@ -226,16 +228,40 @@ namespace influx::engine
 	public:
 		void set_color(const math::vectorf4& color)
 		{
-			m_color = color;
+			m_material.set_basecolour(color);
 		}
 
 		const math::vectorf4& get_color() const
 		{
-			return m_color;
+			return m_material.get_basecolour();
+		}
+
+		void set_texture(e_texture_semantic semantic, const string& path)
+		{
+			material::texture_property properties{};
+			properties.m_path = path;
+			properties.m_semantic = semantic;
+			properties.m_texture_index = 0;
+			m_material.add_texture(semantic, properties);
+		}
+
+		bool has_texture(e_texture_semantic semantic) const
+		{
+			return m_material.has_texture(semantic);
+		}
+
+		string get_texture_path(e_texture_semantic semantic) const
+		{
+			return m_material.get_texture_name(semantic);
+		}
+
+		const material& get_material() const
+		{
+			return m_material;
 		}
 
 	private:
-		math::vectorf4 m_color;
+		material m_material{};
 	};
 
 	class camera_component final : public component

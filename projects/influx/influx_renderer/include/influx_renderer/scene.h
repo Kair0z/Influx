@@ -10,6 +10,7 @@
 #include "core/geometry/rect.h"
 #include "core/math/bounds.h"
 #include "core/math/transform.h"
+#include "core/material/material.h"
 
 // influx::renderer
 #include "types.h"
@@ -29,13 +30,12 @@ namespace influx::renderer
 	{
 		mesh_instance() = default;
 		mesh_instance(const string& name, const math::matrix4x4f& transform, const string& mat_name, const math::vectorf4& colour)
-			: m_name{ name }, m_transform{ transform }, m_material_name{ mat_name }, m_per_instance_colour{ colour } {}
+			: m_name{ name }, m_transform{ transform }, m_per_instance_colour{ colour } {}
 
 		string m_name = "";
-		string m_material_name = "";
 		math::vectorf4 m_per_instance_colour = {};
 		math::matrix4x4f m_transform = math::matrix4x4f::identity();
-		bool m_invert_normals = false;
+		uint32 m_material_index = (uint32)-1;
 	};
 
 	struct scene final
@@ -46,7 +46,11 @@ namespace influx::renderer
 		uint32	get_num_meshes() const;
 		bool	has_meshes() const;
 
+		uint32 get_num_materials() const;
+		bool has_materials() const;
+
 		vector<mesh_instance> m_meshes = {};
+		vector<material> m_materials = {};
 		camera m_camera = {};
 
 		float m_delta_seconds;
@@ -168,5 +172,15 @@ namespace influx::renderer
 	inline bool scene::has_meshes() const
 	{
 		return get_num_meshes() > 0u;
+	}
+
+	inline uint32 scene::get_num_materials() const
+	{
+		return static_cast<uint32>(m_materials.size());
+	}
+
+	inline bool scene::has_materials() const
+	{
+		return get_num_materials() > 0u;
 	}
 }

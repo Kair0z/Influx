@@ -571,7 +571,7 @@ namespace influx::renderer
     material& renderer_backend::get_default_material()
     {
         static material k_default{};
-        k_default.set_basecolour(colour::k_red);
+        k_default.set_basecolour(colour::k_white);
         return k_default;
     }
 

@@ -29,6 +29,19 @@ namespace influx
 
 	template <typename _k>
 	using uset = std::unordered_set<_k>;
+
+	template <typename _k, typename _t>
+	bool is_umap_equal(const umap<_k, _t>& a, const umap<_k, _t>& b)
+	{
+		if (a.size() != b.size()) return false;
+		if (a.empty() && b.empty()) return true;
+
+		for (const auto& pair : a)
+		{
+			if (!b.contains(pair.first)) return false;
+			if (b.at(pair.first) != pair.second) return false;
+		}
+	}
 }
 
 #endif

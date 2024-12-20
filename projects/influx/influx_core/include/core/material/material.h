@@ -3,6 +3,7 @@
 #include "core/container/map.h"
 #include "core/pointer.h"
 #include "core/math/colour.h"
+#include "core/string.h"
 
 namespace influx
 {
@@ -82,26 +83,47 @@ namespace influx
 	public:
         material() = default;
 
-        struct float_property
+        struct float_property final
         {
             float m_value;
+
+            bool operator==(const float_property& b) const
+            {
+                const float_property& a = *this;
+                return a.m_value == b.m_value;
+            }
         };
 
-        struct texture_property
+        struct texture_property final
         {
             e_texture_semantic m_semantic;
             uint32 m_texture_index;
             string m_path;
+            string m_name;
             
             const string& get_name() const
             {
                 return m_path;
             }
+
+            bool operator==(const texture_property& b) const
+            {
+                const texture_property& a = *this;
+                return 
+                    a.m_path == b.m_path &&
+                    a.m_semantic == b.m_semantic;
+            }
         };
 
-        struct int_property
+        struct int_property final
         {
             int m_value;
+
+            bool operator==(const int_property& b) const
+            {
+                const int_property& a = *this;
+                return a.m_value == b.m_value;
+            }
         };
 
         void add_int(const string& name, const int_property& new_int)
@@ -117,6 +139,14 @@ namespace influx
         void add_texture(const e_texture_semantic& slot, const texture_property& new_texture)
         {
             m_textures[slot] = new_texture;
+        }
+        bool has_texture(const e_texture_semantic slot) const
+        {
+            if (m_textures.contains(slot))
+            {
+                return !m_textures.at(slot).m_path.empty();
+            }
+            return false;
         }
 
         inline texture_property const* get_texture(const e_texture_semantic& slot) const
@@ -148,10 +178,35 @@ namespace influx
         {
             return m_basecolour;
         }
-
         void set_basecolour(const math::colour_rgba& colour)
         {
             m_basecolour = colour;
+        }
+        
+        bool operator==(const material& b) const
+        {
+            const material& a = *this;
+
+            const bool floats_equal = is_umap_equal(a.m_floats, b.m_floats);
+            if (!floats_equal) return false;
+
+            const bool textures_equal = is_umap_equal(a.m_textures, b.m_textures);
+            if (!textures_equal) return false;
+
+            const bool ints_equal = is_umap_equal(a.m_integers, b.m_integers);
+            if (!ints_equal) return false;
+
+            if (a.m_basecolour != b.m_basecolour) return false;
+            if (a.m_render_depth != b.m_render_depth) return false;
+            if (a.m_cullmode != b.m_cullmode) return false;
+            if (a.m_invert_normals != b.m_invert_normals) return false;
+
+            return true;
+        }
+
+        bool operator!=(const material& b) const
+        {
+            return !(*this == b);
         }
 
 	private:
@@ -165,5 +220,6 @@ namespace influx
         bool m_render_depth;
         bool m_render_stencil;
         e_cullmode m_cullmode;
+        bool m_invert_normals;
     };
 }

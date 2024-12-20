@@ -80,18 +80,17 @@ namespace influx::renderer
     }
 
     batch::batch(
-        const string& mesh_name, 
-        const string& material_name, 
+        const uint32 material_index,
+        const string& mesh_name,
         const vector<gpu_instance_data>& instances,
         uint32 instance_base)
         : m_instances{ instances }
         , m_base_instance{ instance_base }
     {
         auto& backend = renderer_backend::get_instance();
-
         backend.get_mesh_buffers(mesh_name, m_vertex_buffer, m_index_buffer);
-        m_material = backend.get_material(material_name);
-        influx_assert(m_material != nullptr);
+
+        m_material_index = material_index;
     }
 
     graphics::resource* batch::get_vertex_buffer() const
@@ -104,11 +103,6 @@ namespace influx::renderer
         return m_index_buffer;
     }
 
-    material* batch::get_material() const
-    {
-        return m_material;
-    }
-
     const vector<gpu_instance_data>& batch::get_instances() const
     {
         return m_instances;
@@ -119,10 +113,15 @@ namespace influx::renderer
         return m_base_instance;
     }
 
+    const uint32 batch::get_material_index() const
+    {
+        return m_material_index;
+    }
+
     vector<batch> scene_renderer::create_batches(const scene& scene)
     {
         // group instances per material, then per mesh
-        using per_material_instances = umap<string, vector<gpu_instance_data>>;
+        using per_material_instances = umap<uint32, vector<gpu_instance_data>>;
         umap<string, per_material_instances> instances_per_mesh_per_material{};
 
         for (const string& mesh_name : mp_backend->get_mesh_names())
@@ -131,15 +130,14 @@ namespace influx::renderer
             {
                 if (instance.m_name == mesh_name)
                 {
-                    const string& material_name = instance.m_material_name.empty() ? "none" : instance.m_material_name;
+                    const uint32 material_index = instance.m_material_index;
                     per_material_instances& instances_per_material = instances_per_mesh_per_material[mesh_name];
 
                     // mesh_instance --> gpu_instance_data
                     gpu_instance_data instance_data{};
                     instance_data.m_transform = instance.m_transform;
                     instance_data.m_colour = instance.m_per_instance_colour;
-                    instance_data.m_invert_normals = instance.m_invert_normals;
-                    instances_per_material[material_name].push_back(instance_data);
+                    instances_per_material[material_index].push_back(instance_data);
                 }
             }
         }
@@ -151,8 +149,8 @@ namespace influx::renderer
             const string& mesh_name = per_mesh.first;
             for (const auto& per_material : per_mesh.second)
             {
-                const string& material_name = per_material.first;
-                batches.push_back(batch(mesh_name, material_name, per_material.second, instance_offset));
+                const uint32 material_index = per_material.first;
+                batches.push_back(batch(material_index, mesh_name, per_material.second, instance_offset));
                 instance_offset += (uint32)per_material.second.size();
             }
         }
@@ -176,7 +174,7 @@ namespace influx::renderer
         });
     }
 
-    void scene_renderer::render_batches(graphics::commandlist* commandlist, const vector<batch>& batches)
+    void scene_renderer::render_batches(graphics::commandlist* commandlist, const scene& scene, const vector<batch>& batches)
     {
         renderer_backend& backend = renderer_backend::get_instance();
 
@@ -191,14 +189,14 @@ namespace influx::renderer
         
         for (const batch& batch : batches)
         {
-            material* material = batch.get_material();
+            const material& material = scene.m_materials[batch.get_material_index()];
 
             // find the material textures
             vector<texture*> material_textures(4u);
-            material_textures[0] = backend.find_texture(material->get_texture_name(e_texture_semantic::basecolor));
-            material_textures[1] = backend.find_texture(material->get_texture_name(e_texture_semantic::normals));
-            material_textures[2] = backend.find_texture(material->get_texture_name(e_texture_semantic::roughness));
-            material_textures[3] = backend.find_texture(material->get_texture_name(e_texture_semantic::opacity));
+            material_textures[0] = backend.find_texture(material.get_texture_name(e_texture_semantic::basecolor));
+            material_textures[1] = backend.find_texture(material.get_texture_name(e_texture_semantic::normals));
+            material_textures[2] = backend.find_texture(material.get_texture_name(e_texture_semantic::roughness));
+            material_textures[3] = backend.find_texture(material.get_texture_name(e_texture_semantic::opacity));
 
             // stage the descriptors onto the gpu-visible heap
             graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(material_textures);
@@ -214,8 +212,9 @@ namespace influx::renderer
 
             // set base instance variable
             m_gpu_perdraw.m_start_instance = batch.get_instance_base();
-            m_gpu_permaterial.m_colour = material->get_basecolour();
 
+            // per material + per draw
+            m_gpu_permaterial.m_colour = material.get_basecolour();
             mp_pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
             mp_pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
@@ -250,7 +249,7 @@ namespace influx::renderer
         mp_shadowspipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
 
         // render
-        render_batches(commandlist, batches);
+        render_batches(commandlist, scene, batches);
     }
 
     void scene_renderer::render_basepass(graphics::commandlist* commandlist, 
@@ -283,7 +282,7 @@ namespace influx::renderer
         mp_pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
         mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
 
-        render_batches(commandlist, batches);
+        render_batches(commandlist, scene, batches);
     }
 
     void scene_renderer::apply_pipeline_settings()
@@ -302,10 +301,20 @@ namespace influx::renderer
         }
     }
 
+    const material& scene_renderer::get_mesh_material(const mesh_instance& mesh, const scene& scene) const
+    {
+        if (mesh.m_material_index != (uint32)-1u && mesh.m_material_index < scene.get_num_materials())
+        {
+            return scene.m_materials[mesh.m_material_index];
+        }
+
+        return mp_backend->get_default_material();
+    }
+
     void scene_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)
     {
-        m_gpu_perscene.m_delta_seconds = scene.m_delta_seconds;
-        m_gpu_perscene.m_seconds = scene.m_seconds;
+        m_gpu_perscene.m_time.x = scene.m_delta_seconds;
+        m_gpu_perscene.m_time.y = scene.m_seconds;
 
         // setup a batched draw
         vector<batch> batches = create_batches(scene);
