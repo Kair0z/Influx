@@ -2,6 +2,7 @@
 
 // influx::core
 #include "core/log.h"
+#include "core/scope.h"
 
 // influx::graphics
 #include "influx_graphics/commandlist.h"
@@ -44,6 +45,7 @@ namespace influx::graphics
 
     void commandlist::wait_for_completion()
     {
+        influx_scope("wait_for_gpu");
         while (get_state() == e_state::submitted)
         {
             // ...

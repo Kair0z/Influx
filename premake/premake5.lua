@@ -7,6 +7,7 @@ workspace "influx"
     location "../generated/%{_ACTION}/"
     
     g_compile_mono_engine = false
+    g_use_pix = true;
     
     -- /influx/
     g_dir_root      = "%{wks.location}/../../"
@@ -22,7 +23,8 @@ workspace "influx"
     g_dir_scripts       = g_dir_root .. "/scripts/"
     g_dir_resources     = g_dir_root .. "/resources/"
     g_dir_assets        = g_dir_root .. "/assets/"
-    
+    g_dir_vendor        = g_dir_root .. "/vendor/"
+
     -- /influx/projects/influx/<projectname>/include/...
     g_dir_core_include      = g_dir_projects_engine .. "/influx_core/include/"
     g_dir_platform_include  = g_dir_projects_engine .. "/influx_platform/include/"
@@ -39,7 +41,7 @@ workspace "influx"
     g_dir_rendergraph_include = g_dir_projects_engine .. "/influx_rendergraph/include/"
     
     -- vendor libraries
-    g_dir_vendor_libraries = g_dir_root .. "/vendor/lib/x64/"
+    g_dir_vendor_libraries = g_dir_vendor .. "/lib/x64/"
     libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }
     
     -- common

@@ -21,6 +21,7 @@ namespace influx::input
 	// event types
 	struct key_event;
 	enum class e_key : uint8;
+
 	struct mouse_event;
 	enum class e_mouse_button : uint8;
 	struct mouse_position;
@@ -149,7 +150,7 @@ namespace influx::input
 	{
 		mouse_position() = default;
 		mouse_position(const math::vectorf2& client, const math::vectorf2& screen)
-			: m_client{ client }
+			: m_client{client}
 			, m_screen(screen)
 		{}
 
@@ -159,14 +160,7 @@ namespace influx::input
 
 	struct mouse_event
 	{
-		enum class e_type : uint8;
-
-		e_type m_type;
-		e_mouse_button m_button;
-		float m_wheel_delta;
-		mouse_position m_position;
-
-		enum class e_type : uint8
+		enum class type : uint8
 		{
 			scroll,
 			move,
@@ -175,6 +169,11 @@ namespace influx::input
 			button_up,
 			count
 		};
+
+		type m_type;
+		e_mouse_button m_button;
+		float m_wheel_delta;
+		mouse_position m_position;
 	};
 #pragma endregion
 }

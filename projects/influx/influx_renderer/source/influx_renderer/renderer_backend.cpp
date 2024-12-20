@@ -194,53 +194,56 @@ namespace influx::renderer
         {
             influx_scope("renderer_backend::draw_scene::submit");
             mp_commandlist->submit(mp_graphics_queue);
-            mp_commandlist->wait_for_completion();
         }
+        mp_commandlist->wait_for_completion();
     }
 
     void renderer_backend::draw_imgui(ImDrawData* draw_data, const target& target)
     {
         influx_scope("renderer_backend::draw_imgui");
         {
-            influx_scope("renderer_backend::draw_imgui::record");
             mp_commandlist->set_name("draw_imgui");
             mp_commandlist->start(mp_device, nullptr);
-            mp_commandlist->set(target.get_rtv(), nullptr);
+            {
+                influx_scope("renderer_backend::draw_imgui::record");
 
-            get_descriptor_manager()->start_commandlist(mp_commandlist);
-
-            mp_imgui->render(mp_commandlist, draw_data, target);
-
-            mp_commandlist->end();
+                mp_commandlist->set(target.get_rtv(), nullptr);
+                get_descriptor_manager()->start_commandlist(mp_commandlist);
+                mp_imgui->render(mp_commandlist, draw_data, target);
+                mp_commandlist->end();
+            }
         }
-
         {
             influx_scope("renderer_backend::draw_imgui::submit");
             mp_commandlist->submit(mp_graphics_queue);
-            mp_commandlist->wait_for_completion();
+            
         }
+        mp_commandlist->wait_for_completion();
     }
 
     void renderer_backend::draw_2D(const scene2D& scene, const target& target)
     {
         influx_scope("renderer_backend::draw_2D");
         {
-            influx_scope("renderer_backend::draw2D::record");
             mp_commandlist->start(mp_device, nullptr);
+            {
+                influx_scope("renderer_backend::draw2D::record");
 
-            graphics::render_target_view* target_rtv = target.get_rtv();
-            mp_commandlist->set(target_rtv, nullptr);
+                graphics::render_target_view* target_rtv = target.get_rtv();
+                mp_commandlist->set(target_rtv, nullptr);
 
-            get_descriptor_manager()->start_commandlist(mp_commandlist);
+                get_descriptor_manager()->start_commandlist(mp_commandlist);
 
-            mp_commandlist->end();
+                mp_commandlist->end();
+            }
         }
 
         {
             influx_scope("renderer_backend::draw2D::submit");
             mp_commandlist->submit(mp_graphics_queue);
-            mp_commandlist->wait_for_completion();
         }
+        
+        mp_commandlist->wait_for_completion();
     }
 
     void renderer_backend::draw_debug(const scene_debug& scene, const target& target)
@@ -251,11 +254,10 @@ namespace influx::renderer
 
         influx_scope("renderer_backend::draw_debug");
         {
-            influx_scope("renderer_backend::draw_debug::record");
-
-            mp_commandlist->start(mp_device, nullptr);
             mp_commandlist->set_name("draw_debug");
+            mp_commandlist->start(mp_device, nullptr);
             {
+                influx_scope("renderer_backend::draw_debug::record");
                 const uint32 target_width = target.get_width();
                 const uint32 target_height = target.get_height();
 
@@ -277,8 +279,8 @@ namespace influx::renderer
         {
             influx_scope("renderer_backend::draw_debug::submit");
             mp_commandlist->submit(mp_graphics_queue);
-            mp_commandlist->wait_for_completion();
         }
+        mp_commandlist->wait_for_completion();
     }
 
 
@@ -315,32 +317,30 @@ namespace influx::renderer
         const uint32 target_height = target.get_height();
 
         {
-            influx_scope("renderer_backend::clear_target::record");
-            mp_commandlist->start(mp_device, nullptr);
             mp_commandlist->set_name("clear_target");
+            mp_commandlist->start(mp_device, nullptr);
 
-            target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
-
-            if (target_rtv != nullptr)
             {
-                // clear targets
-                mp_commandlist->set(target_rtv, target_dsv);
-                mp_commandlist->clear_rtv(target_rtv, args.m_colour);
+                influx_scope("renderer_backend::clear_target::record");
+                target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
+                if (target_rtv != nullptr)
+                {
+                    // clear targets
+                    mp_commandlist->set(target_rtv, target_dsv);
+                    mp_commandlist->clear_rtv(target_rtv, args.m_colour);
+                }
+                if (target_dsv != nullptr)
+                {
+                    mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
+                }
+                mp_commandlist->end();
             }
-
-            if (target_dsv != nullptr)
-            {
-                mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
-            }
-
-            mp_commandlist->end();
         }
-
         {
             influx_scope("renderer_backend::clear_target::submit");
             mp_commandlist->submit(mp_graphics_queue);
-            mp_commandlist->wait_for_completion();
         }
+        mp_commandlist->wait_for_completion();
     }
 
     void renderer_backend::present_swapchain(const present_args& args)

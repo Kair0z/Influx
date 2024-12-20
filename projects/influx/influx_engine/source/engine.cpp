@@ -76,22 +76,34 @@ namespace influx::engine
 
 		while (!m_is_quit_requested)
 		{
+			influx_scope("frame");
+
 			m_time.tick();
 			m_fps = 1.0f / m_time.get_delta_seconds();
 
 			// platform window tick
-			poll_platform_events();
-			if (m_is_quit_requested) break;
+			{
+				influx_scope("poll_window");
+				poll_platform_events();
+				if (m_is_quit_requested) break;
+			}
 
 			// main update
-			m_world->update();
+			{
+				influx_scope("update");
+				m_world->update();
+			}
 
 			// stream available assets from content into the renderer
-			m_renderman->load_render_assets(m_contentman);
+			{
+				influx_scope("render_upload");
+				m_renderman->load_render_assets(m_contentman);
+			}
 
 			// record imgui
 			if (type == run_type::editor)
 			{
+				influx_scope("record_imgui");
 				m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
 				{
 					m_editorman->update_imgui(ctx);
@@ -100,12 +112,17 @@ namespace influx::engine
 			
 			// build a render-scene
 			renderer::scene scene{};
-			scene.m_seconds = m_time.get_time_seconds();
-			scene.m_delta_seconds = m_time.get_delta_seconds();
-			renderer::scene2D scene2D{};
-			m_world->build_renderscene(scene, scene2D, m_renderman->get_debug_render());
-
-			m_renderman->render(scene);
+			{
+				influx_scope("build_renderscene");
+				scene.m_seconds = m_time.get_time_seconds();
+				scene.m_delta_seconds = m_time.get_delta_seconds();
+				renderer::scene2D scene2D{};
+				m_world->build_renderscene(scene, scene2D, m_renderman->get_debug_render());
+			}
+			{
+				influx_scope("render");
+				m_renderman->render(scene);
+			}
 		}
 
 #if INFLUX_DEBUG

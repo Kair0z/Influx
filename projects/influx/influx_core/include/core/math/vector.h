@@ -175,7 +175,7 @@ namespace influx::math
 		// Zero:
 		static vector zero();
 		static vector one();
-		static vector max();
+		static vector get_max();
 		bool is_zero() const;
 		static bool is_zero(const vector& v);
 

@@ -390,7 +390,7 @@ namespace influx::math
 		return result;
 	}
 	template<typename _t, _vector_dim_t _dim>
-	inline vector<_t, _dim> vector<_t, _dim>::max()
+	inline vector<_t, _dim> vector<_t, _dim>::get_max()
 	{
 		vector<_t, _dim> result{};
 		for (_vector_dim_t i{}; i < _dim; ++i)

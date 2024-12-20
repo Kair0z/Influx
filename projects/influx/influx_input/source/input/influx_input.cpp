@@ -23,24 +23,6 @@ namespace influx::input
 		input_event_queue* mp_event_queue;
 	};
 
-	template <typename _t, typename ..._args>
-	_t* allocate(_args&&... args)
-	{
-		return new _t(std::forward<_args>(args)...);
-	}
-
-	void free(void* ptr)
-	{
-		delete ptr;
-	}
-
-	mouse_event* new_mouse_move(const math::vectorf2& pos_client, const math::vectorf2& pos_screen)
-	{
-		mouse_event* new_event = allocate<mouse_event>();
-		new_event->m_position = { pos_client, pos_screen };
-		return new_event;
-	}
-
 	template <typename _evtype, typename... _args>
 	void push(_args&&... args)
 	{
@@ -93,7 +75,7 @@ namespace influx::input
 	{
 		subscribe([callback](const mouse_event& ev)
 		{
-			if (callback && ev.m_type == mouse_event::e_type::move)
+			if (callback && ev.m_type == mouse_event::type::move)
 				callback(ev.m_position);
 		});
 	}
@@ -102,7 +84,7 @@ namespace influx::input
 	{
 		subscribe([callback](const mouse_event& ev)
 		{
-			if (callback && ev.m_type == mouse_event::e_type::button_down)
+			if (callback && ev.m_type == mouse_event::type::button_down)
 				callback(ev.m_button, ev.m_position);
 		});
 	}
@@ -111,7 +93,7 @@ namespace influx::input
 	{
 		subscribe([callback](const mouse_event& ev)
 		{
-			if (callback && ev.m_type == mouse_event::e_type::button_up)
+			if (callback && ev.m_type == mouse_event::type::button_up)
 				callback(ev.m_button, ev.m_position);
 		});
 	}
@@ -128,18 +110,18 @@ namespace influx::input
 		return key_event::e_type::count;
 	}
 
-	inline static mouse_event::e_type translate_mouse(platform::window_event::type plat_type)
+	inline static mouse_event::type translate_mouse(platform::window_event::type plat_type)
 	{
 		switch (plat_type)
 		{
-			case platform::window_event::type::mouse_down: return mouse_event::e_type::button_down;
-			case platform::window_event::type::mouse_up: return mouse_event::e_type::button_up;
-			case platform::window_event::type::mouse_leave: return mouse_event::e_type::leave;
-			case platform::window_event::type::mouse_move: return mouse_event::e_type::move;
-			case platform::window_event::type::wheel: return mouse_event::e_type::scroll;
+			case platform::window_event::type::mouse_down: return mouse_event::type::button_down;
+			case platform::window_event::type::mouse_up: return mouse_event::type::button_up;
+			case platform::window_event::type::mouse_leave: return mouse_event::type::leave;
+			case platform::window_event::type::mouse_move: return mouse_event::type::move;
+			case platform::window_event::type::wheel: return mouse_event::type::scroll;
 		}
 
-		return mouse_event::e_type::count;
+		return mouse_event::type::count;
 	}
 
 	inline static e_key translate(platform::window_event::key_type plat_key)
@@ -205,16 +187,11 @@ namespace influx::input
 
 	void push_external_event(const key_event& ev)
 	{
-		// make a copy
-		key_event* new_event_copy = allocate<key_event>(ev);
-
-		// push into queue
-		global_state::get_queue()->push<key_event>(*new_event_copy);
+		global_state::get_queue()->push<key_event>(ev);
 	}
 
 	void push_external_event(const mouse_event& ev)
 	{
-		// push into queue
 		global_state::get_queue()->push<mouse_event>(ev);
 	}
 

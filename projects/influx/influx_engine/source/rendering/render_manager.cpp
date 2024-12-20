@@ -339,7 +339,7 @@ namespace influx::engine
 		{
 			switch (ev.m_type)
 			{
-			case input::mouse_event::e_type::move:
+			case input::mouse_event::type::move:
 			{
 				bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
 				if (want_absolute_pos)
@@ -353,19 +353,19 @@ namespace influx::engine
 			}
 			break;
 
-			case input::mouse_event::e_type::leave:
+			case input::mouse_event::type::leave:
 			{
 				io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
 			}
 			break;
 
-			case input::mouse_event::e_type::scroll:
+			case input::mouse_event::type::scroll:
 			{
 				io.AddMouseWheelEvent(0.0f, ev.m_wheel_delta);
 			}
 			break;
 
-			case input::mouse_event::e_type::button_down:
+			case input::mouse_event::type::button_down:
 			{
 				int button_value = 0;
 				switch (ev.m_button)
@@ -379,7 +379,7 @@ namespace influx::engine
 			}
 			break;
 
-			case input::mouse_event::e_type::button_up:
+			case input::mouse_event::type::button_up:
 			{
 				int button_value = 0;
 				switch (ev.m_button)

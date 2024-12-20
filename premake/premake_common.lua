@@ -19,10 +19,22 @@ function new_influx_project(_name, _kind)
         {
             "source",
             "include",
-            "vendor"
+            "vendor",
+
+            -- global third party
+            iif(g_use_pix ~= true, "", g_dir_vendor .. "/include/pix/")
+        }
+
+        
+
+        -- common defines for each project
+        defines
+        {
+            iif(g_use_pix ~= true, "INFLUX_USE_WINPIX=0", "INFLUX_USE_WINPIX=1")
         }
 
         filter "system:windows"
+            if g_use_pix then links("WinPixEventRuntime") end
             common_windows_config()
 
         filter "configurations:debug"

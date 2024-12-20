@@ -25,6 +25,7 @@ namespace influx::engine
 		influx::time::point m_first_tick;
 		influx::time::point m_last_tick;
 		bool m_is_first_tick = true;
+		bool m_is_fixed = false;
 
 	public:
 		inline void tick()
@@ -36,11 +37,23 @@ namespace influx::engine
 				m_is_first_tick = false;
 			}
 
-			const float delta_seconds = influx::time::get_ms_since<float>(m_last_tick) * 0.001f;
-			m_delta_seconds = delta_seconds;
-			m_time_seconds += delta_seconds;
+			if (m_is_fixed)
+			{
+				m_delta_seconds = 1.0f / 60.0f;
+			}
+			else
+			{
+				const float delta_seconds = influx::time::get_ms_since<float>(m_last_tick) * 0.001f;
+				m_delta_seconds = delta_seconds;
+				m_last_tick = influx::time::get_now();
+			}
 
-			m_last_tick = influx::time::get_now();
+			m_time_seconds += m_delta_seconds;
+		}
+
+		void set_fixed(bool is_fixed)
+		{
+			m_is_fixed = is_fixed;
 		}
 	};
 

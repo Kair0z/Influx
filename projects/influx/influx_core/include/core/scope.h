@@ -8,6 +8,13 @@
 #include "core/container/map.h"
 #include "core/string.h"
 #include "core/container/vector.h"
+#include "core/function.h"
+
+// pix
+#if INFLUX_USE_WINPIX
+#include <Windows.h>
+#include "pix/pix3.h"
+#endif
 
 namespace influx
 {
@@ -22,11 +29,19 @@ namespace influx
 	inline void begin_event(const std::string& name)
 	{
 		g_scopedata[name].m_times_ran++;
+
+#if INFLUX_USE_WINPIX
+		PIXBeginEvent(0u, name.c_str());
+#endif
 	}
 
 	inline void end_event(const string& name, const scope_footprint& data)
 	{
 		g_scopedata[name].m_durationsum += data.m_durationsum;
+
+#if INFLUX_USE_WINPIX
+		PIXEndEvent();
+#endif
 	}
 
 	class scoped_event final

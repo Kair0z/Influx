@@ -1,6 +1,9 @@
 #include "engine_pch.h"
 #include "world/world.h"
 
+// influx::core
+#include "core/scope.h"
+
 // influx::engine
 #include "scene/scene.h"
 #include "content/content_manager.h"
@@ -32,12 +35,16 @@ namespace influx::engine
     
     void world::update()
     {
-        const float delta_time = get_engine()->get_time().get_delta_seconds();
-        auto view = m_registry.view<transform_component, mesh_component>();
-        for (auto [entity, transform_comp, mesh_comp] : view.each())
         {
-            transform_comp.get_transform().rotate(delta_time, math::float3::up());
+            influx_scope("rotate_everyone");
+            const float delta_time = get_engine()->get_time().get_delta_seconds();
+            auto view = m_registry.view<transform_component, mesh_component>();
+            for (auto [entity, transform_comp, mesh_comp] : view.each())
+            {
+                transform_comp.get_transform().rotate(delta_time, math::float3::up());
+            }
         }
+        
 
         update_input_system();
         update_bounds_system();
@@ -47,12 +54,7 @@ namespace influx::engine
 
         if (get_engine()->is_editor())
         {
-            // editor select system
-            auto view = m_registry.view<const transform_component, collider_component>();
-            for (auto [entity, transform_comp, collider_comp] : view.each())
-            {
-                collider_comp.get_bounding_sphere();
-            }
+            // ..
         }
     }
 
@@ -68,6 +70,7 @@ namespace influx::engine
         
         // render camera
         {
+            influx_scope("build_camera");
             for (auto [entity, transform_comp, camera_comp] 
                 : m_registry.view<const transform_component, camera_component>().each())
             {
@@ -81,6 +84,7 @@ namespace influx::engine
 
         // render sprites
         {
+            influx_scope("build_sprites");
             auto view = m_registry.view<const transform_component, sprite_component>();
             for (auto [entity, transform_comp, sprite] : view.each())
             {
@@ -98,6 +102,7 @@ namespace influx::engine
 
         // render meshes
         {
+            influx_scope("build_meshes");
             auto view = m_registry.view<transform_component, mesh_component>();
             for (auto [entity, transform_comp, mesh_comp] : view.each())
             {
@@ -119,6 +124,7 @@ namespace influx::engine
         // editor render
         if (is_editor)
         {
+            influx_scope("build_gizmos");
             debugscene.add_gizmo_transform(math::transform3D::identity());
 
             // transform gizmos
@@ -173,6 +179,7 @@ namespace influx::engine
 
     void world::update_input_system()
     {
+        influx_scope("input_system");
         auto view = m_registry.view<input_component>();
         for (auto [entity, input] : view.each())
         {
@@ -244,6 +251,7 @@ namespace influx::engine
 
     void world::update_bounds_system()
     {
+        influx_scope("bounds_system");
         auto view = m_registry.view<transform_component, mesh_component, collider_component>();
         for (auto [entity, transform_comp, mesh_comp, collider_comp] : view.each())
         {
@@ -254,6 +262,7 @@ namespace influx::engine
 
     void world::update_stream_system()
     {
+        influx_scope("stream_system");
         content_manager* contman = get_engine()->get_content().get();
         {
             auto view = m_registry.view<sprite_component>();
@@ -284,6 +293,7 @@ namespace influx::engine
 
     void world::update_rigidbody_system()
     {
+        influx_scope("rigidbody_system");
         const float delta_time = get_engine()->get_time().get_delta_seconds();
         {
             auto view = m_registry.view<transform_component, rigidbody_component>();
@@ -299,6 +309,8 @@ namespace influx::engine
 
     void world::update_rendermesh_system()
     {
+        influx_scope("rendermesh_system");
+
         // normalize scales
         for (auto [entity, transform_comp, mesh_comp]
             : m_registry.view<transform_component, mesh_component>().each())
