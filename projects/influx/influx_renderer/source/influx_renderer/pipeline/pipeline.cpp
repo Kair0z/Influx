@@ -191,14 +191,14 @@ namespace influx::renderer
     {
         return mp_pipeline->get_name().get();
     }
+#endif
 
     void pipeline::save_to_file(const string& path) const
     {
-        
+
     }
     const pipeline_signature& pipeline::get_signature() const
     {
         return m_signature;
     }
-#endif
 }

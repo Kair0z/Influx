@@ -30,12 +30,4 @@ namespace influx::renderer
 		unsupported,
 		max
 	};
-
-	enum class e_cull_mode : uint8
-	{
-		front,
-		back,
-		nocull,
-		count
-	};
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "core/basetypes.h"
 #include "core/container/map.h"
+#include "core/pointer.h"
 
 namespace influx
 {
@@ -59,6 +60,14 @@ namespace influx
         count
     };
 
+    enum class e_cullmode : uint8
+    {
+        front,
+        back,
+        nocull,
+        count
+    };
+
 	class material final
 	{
         enum class e_property_type : uint8
@@ -97,14 +106,34 @@ namespace influx
             m_floats[name] = new_scalar;
         }
 
-        void add_texture(const string& name, const texture_property& new_texture)
+        void add_texture(const e_texture_semantic& slot, const texture_property& new_texture)
         {
-            m_textures[name] = new_texture;
+            m_textures[slot] = new_texture;
         }
+
+        inline texture_property const* get_texture(const e_texture_semantic& slot) const
+        {
+            if (m_textures.contains(slot))
+            {
+                return &m_textures.at(slot);
+            }
+
+            return nullptr;
+        }
+
+        texture_property const* get_texture_normals() const { return get_texture(e_texture_semantic::normals); }
+        texture_property const* get_texture_diffuse() const { return get_texture(e_texture_semantic::diffuse); }
 
 	private:
         umap<string, float_property> m_floats;
-        umap<string, texture_property> m_textures;
+        umap<e_texture_semantic, texture_property> m_textures;
         umap<string, int_property> m_integers;
+
+        math::colour_rgba m_basecolour;
+
+        // settings
+        bool m_render_depth;
+        bool m_render_stencil;
+        e_cullmode m_cullmode;
     };
 }

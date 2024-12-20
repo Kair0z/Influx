@@ -219,9 +219,10 @@ namespace influx
 				}
 
 				file to_file = file(path);
-				result.add_texture(to_file.m_filename,
+				const auto semantic = translate(type);
+				result.add_texture(semantic,
 				{
-					.m_semantic = translate(type),
+					.m_semantic = semantic,
 					.m_texture_index = i,
 					.m_path = to_file.m_path_full
 				});

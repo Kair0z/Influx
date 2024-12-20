@@ -1,4 +1,12 @@
 #pragma once
+
+// influx::core
+namespace influx
+{
+	struct material;
+}
+
+// influx::renderer
 #include "influx_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
 #include <influx_renderer/renderer_backend.h>
