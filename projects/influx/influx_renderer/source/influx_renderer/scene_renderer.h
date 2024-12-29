@@ -58,31 +58,8 @@ namespace influx::renderer
 		math::vectorf4		m_colour;
 		bool m_invert_normals;
 	};
-	
-	// a batch of instances grouped per material
-	class batch final
-	{
-	public:
-		batch(
-			const uint32 material_index,
-			const string& mesh_name,
-			const vector<gpu_instance_data>& instances,
-			uint32 instance_base);
 
-		graphics::resource* get_vertex_buffer() const;
-		graphics::resource* get_index_buffer() const;
-
-		const vector<gpu_instance_data>& get_instances() const;
-		const uint32 get_instance_base() const;
-		const uint32 get_material_index() const;
-
-	private:
-		graphics::resource* m_vertex_buffer;
-		graphics::resource* m_index_buffer;
-		vector<gpu_instance_data> m_instances{};
-		uint32 m_base_instance;
-		uint32 m_material_index;
-	};
+	class batch;
 
 	class scene_renderer final
 	{
@@ -111,8 +88,6 @@ namespace influx::renderer
 			const scene& scene, const vector<batch>& batches, const target& target);
 
 		void apply_pipeline_settings();
-
-		const material& get_mesh_material(const mesh_instance& mesh, const scene& scene) const;
 
 	private:
 		renderer_backend* mp_backend;

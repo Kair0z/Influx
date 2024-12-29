@@ -28,7 +28,6 @@ ps_input main_vs( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_I
     }
 
     // color
-    // output.colour = float4(hash(uint3(vID, vID + 7, vID + 41)), 1.0f);
     output.colour.rgb = lerp(instance_data.colour.rgb, g_permaterial.colour.rgb, 0.5f);
     
     return output;
@@ -41,7 +40,7 @@ float4 main_ps(ps_input input) : SV_TARGET
     float3 lightCol = g_perscene.light_colour.rgb;
 
     float4 albedo = get_albedo(input.texcoord).rgba;
-    albedo.rgb = lerp(input.colour.rgb, albedo.rgb, 0.001f);
+    // albedo.rgb = lerp(input.colour.rgb, albedo.rgb, 0.5f);
 
     float3 normal = get_normal(input.texcoord).rgb;
     normal = input.normal;
@@ -49,5 +48,5 @@ float4 main_ps(ps_input input) : SV_TARGET
     float ambient = 0.2f;
     float diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
 
-    return albedo * (diffuse * float4(lightCol.rgb, 1.0f));
+    return float4(albedo.rgb, 1.0f);
 }

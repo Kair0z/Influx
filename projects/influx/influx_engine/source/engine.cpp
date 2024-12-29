@@ -49,7 +49,16 @@ namespace influx::engine
 				ent_mesh.set_invert_normals(false);
 
 				material_component& ent_mat = m_world->create_component<material_component>(entity);
-				ent_mat.set_texture(e_texture_semantic::basecolor, "");
+
+				if (i % 2 == 0)
+				{
+					ent_mat.set_texture(e_texture_semantic::basecolor, "T_Sword_Opaque_BC");
+				}
+				else
+				{
+					ent_mat.set_texture(e_texture_semantic::basecolor, "lego");
+				}
+				
 				ent_mat.set_texture(e_texture_semantic::normals, "");
 				ent_mat.set_texture(e_texture_semantic::roughness, "");
 			}

@@ -41,6 +41,8 @@ namespace influx
 			if (!b.contains(pair.first)) return false;
 			if (b.at(pair.first) != pair.second) return false;
 		}
+
+		return true;
 	}
 }
 
