@@ -102,6 +102,8 @@ namespace influx::engine
 			_t m_resource{}; // the raw resource
 			e_load_state m_state{};
 			e_asset_origin m_origin{};
+			string m_name;
+			string m_path;
 
 			time::point m_time_loadstart{};
 			time::point m_time_loadend{};
@@ -115,27 +117,27 @@ namespace influx::engine
 		content_manager(engine* engine);
 		~content_manager();
 
-		const map<string, scene_item>& get_scenes() const;
-		const map<string, image_item>& get_images() const;
-		const map<string, shader_item>& get_shaders() const;
+		const umap<string, scene_item>& get_scenes() const;
+		const umap<string, image_item>& get_images() const;
+		const umap<string, shader_item>& get_shaders() const;
 
 		template <typename _t>
-		result<_t const*> find(const string& asset_path)
+		result<_t const*> find(const string& asset_name)
 		{
 			if constexpr (std::is_same_v<_t, scene_item>) 
 			{
-				if (get_scenes().contains(asset_path))
-					return { &get_scenes().at(asset_path) };
+				if (get_scenes().contains(asset_name))
+					return { &get_scenes().at(asset_name) };
 			}
 			else if constexpr (std::is_same_v<_t, image_item>) 
 			{
-				if (get_images().contains(asset_path))
-					return { &get_images().at(asset_path) };
+				if (get_images().contains(asset_name))
+					return { &get_images().at(asset_name) };
 			}
 			else if constexpr (std::is_same_v<_t, shader_item>) 
 			{
-				if (get_shaders().contains(asset_path))
-					return { &get_shaders().at(asset_path) };
+				if (get_shaders().contains(asset_name))
+					return { &get_shaders().at(asset_name) };
 			}
 			
 			return result<_t const*>::make_error();
@@ -147,10 +149,36 @@ namespace influx::engine
 		// loads /influx/games/'game_name'/assets/
 		void load_game_assets(const string& game_name, engine* engine);
 
+		imp::scene_data::mesh* find_mesh(const string& mesh_name)
+		{
+			const string& mesh_name = mesh_comp.get_mesh_name();
+			const vector<string>& parts = str::split(mesh_name, '_');
+			const string scene_name = parts.size() > 0u ? parts[0u] : "";
+			const string index_str = parts.size() > 1u ? parts[1u] : "";
+			const uint32 mesh_idx = !index_str.empty() ? std::stoi(index_str) : 0u;
+
+			return find_mesh(scene_name, mesh_idx);
+		}
+
+		imp::scene_data::mesh* find_mesh(const string& scene_name, uint32 mesh_idx)
+		{
+			if (m_scenes.contains(scene_name))
+			{
+				return &m_scenes[scene_name].m_resource.get_mesh(mesh_idx);
+			}
+
+			return nullptr;
+		}
+
+		static string get_scene_mesh_name(const scene_item& item, const uint32 idx)
+		{
+			return item.m_name + "_" + to_string(idx);
+		}
+
 	private:
-		map<string, scene_item> m_scenes;
-		map<string, image_item> m_images;
-		map<string, shader_item> m_shaders;
+		umap<string, scene_item> m_scenes;
+		umap<string, image_item> m_images;
+		umap<string, shader_item> m_shaders;
 
 		thread m_loading_thread;
 

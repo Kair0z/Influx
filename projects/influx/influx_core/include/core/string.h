@@ -5,7 +5,9 @@
 
 #include <string>
 #include <algorithm>
+#include <sstream>
 
+#include "core/container/vector.h"
 #include "core/basetypes.h"
 
 namespace influx
@@ -15,6 +17,20 @@ namespace influx
 
 	namespace str
 	{
+		inline static vector<string> split(const string& str, char delim)
+		{
+			std::istringstream stream(str);
+			vector<string> tokens;
+			string token;
+
+			while (std::getline(stream, token, delim)) 
+			{
+				tokens.push_back(token);
+			}
+
+			return tokens;
+		}
+
 		inline static string to_lower(const string& str) 
 		{
 			string lower_str = str;

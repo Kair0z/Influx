@@ -27,17 +27,17 @@ namespace influx::engine
 	{
 	}
 
-	const map<string, content_manager::scene_item>& content_manager::get_scenes() const
+	const umap<string, content_manager::scene_item>& content_manager::get_scenes() const
 	{
 		return m_scenes;
 	}
 
-	const map<string, content_manager::image_item>& content_manager::get_images() const
+	const umap<string, content_manager::image_item>& content_manager::get_images() const
 	{
 		return m_images;
 	}
 
-	const map<string, content_manager::shader_item>& content_manager::get_shaders() const
+	const umap<string, content_manager::shader_item>& content_manager::get_shaders() const
 	{
 		return m_shaders;
 	}

@@ -189,14 +189,14 @@ namespace influx::engine
 	public:
 		mesh_component() = default;
 
-		void set_mesh_path(const string& path)
+		void set_mesh_name(const string& path)
 		{
-			m_mesh_filepath = path;
+			m_mesh_name = path;
 		}
 
-		const string& get_mesh_path() const
+		const string& get_mesh_name() const
 		{
-			return m_mesh_filepath;
+			return m_mesh_name;
 		}
 
 		void set_visible(bool new_vis)
@@ -213,9 +213,9 @@ namespace influx::engine
 		influx_property_readwrite(bool, invert_normals);
 
 	private:
-		string m_mesh_filepath;
+		string m_mesh_name;
 		bool m_is_visible;
-		
+
 		// -- filled in when asset is loaded
 		math::boxf m_mesh_boundbox;
 		math::spheref m_mesh_boundsphere;

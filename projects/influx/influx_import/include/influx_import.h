@@ -47,6 +47,7 @@ namespace influx::imp
 
 		const mesh& get_main_mesh() const { return m_meshes[0]; }
 		const mesh& get_mesh(const uint32 i) const { return m_meshes[i % m_meshes.size()]; }
+		mesh& get_mesh(const uint32 i) { return m_meshes[i % m_meshes.size()]; }
 		const vector<mesh>& get_meshes() const { return m_meshes; }
 		const uint32 get_num_meshes() const { return m_meshes.size(); }
 

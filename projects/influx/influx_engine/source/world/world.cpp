@@ -36,6 +36,7 @@ namespace influx::engine
     void world::update()
     {
         {
+            // temp
             influx_scope("rotate_everyone");
             const float delta_time = get_engine()->get_time().get_delta_seconds();
             auto view = m_registry.view<transform_component, mesh_component>();
@@ -45,17 +46,11 @@ namespace influx::engine
             }
         }
         
-
         update_input_system();
         update_bounds_system();
         update_stream_system();
         update_rigidbody_system();
         update_rendermesh_system();
-
-        if (get_engine()->is_editor())
-        {
-            // ..
-        }
     }
 
     void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D, renderer::scene_debug& debugscene) const
@@ -110,12 +105,12 @@ namespace influx::engine
             for (auto [entity, transform_comp, mesh_comp, material_comp] : view.each())
             {
                 math::transform3D transform = transform_comp.get_transform();
-                transform.set_scale(mesh_comp.m_normalized_scale);
+                if (mesh_comp.get_use_normalized_scale()) transform.set_scale(mesh_comp.m_normalized_scale);
                 transform.update_matrix();
                 
                 // setup mesh
                 renderer::mesh_instance render_mesh{};
-                render_mesh.m_name = mesh_comp.get_mesh_path();
+                render_mesh.m_name = mesh_comp.get_mesh_name();
                 render_mesh.m_per_instance_colour = {};
                 render_mesh.m_transform = transform.get_matrix();
 
@@ -286,6 +281,8 @@ namespace influx::engine
     {
         influx_scope("stream_system");
         content_manager* contman = get_engine()->get_content().get();
+
+        // stream in image asset info -> sprite components
         {
             auto view = m_registry.view<sprite_component>();
             for (auto [entity, sprite] : view.each())
@@ -298,14 +295,23 @@ namespace influx::engine
             }
         }
 
+        // stream in scene asset info -> mesh components
         {
             auto view = m_registry.view<mesh_component>();
             for (auto [entity, mesh_comp] : view.each())
             {
-                result<scene_asset const*> asset = contman->find<scene_asset>(mesh_comp.get_mesh_path());
+                // deduce the scene name & mesh index from the name
+                const string& mesh_name = mesh_comp.get_mesh_name();
+                const vector<string>& parts = str::split(mesh_name, '_');
+                const string scene_name = parts.size() > 0u ? parts[0u] : "";
+                const string index_str = parts.size() > 1u ? parts[1u] : "";
+                const uint32 mesh_idx = !index_str.empty() ? std::stoi(index_str) : 0u;
+
+                result<scene_asset const*> asset = contman->find<scene_asset>(scene_name);
                 if (asset.is_success() && asset->is_loaded())
                 {
-                    const imp::mesh& mesh = asset->m_resource.get_mesh(1u);
+                    // update bounding box / sphere
+                    const imp::mesh& mesh = asset->m_resource.get_mesh(mesh_idx);
                     mesh_comp.m_mesh_boundbox = mesh.m_bounding_box;
                     mesh_comp.m_mesh_boundsphere = mesh.m_bounding_sphere;
                 }
@@ -323,7 +329,6 @@ namespace influx::engine
             {
                 const math::float3 velocity = body_comp.get_velocity();
                 const math::float3 acceleration = body_comp.get_acceleration();
-
                 body_comp.set_velocity(velocity + acceleration * delta_time);
             }
         }

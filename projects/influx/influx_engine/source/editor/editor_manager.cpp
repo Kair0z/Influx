@@ -62,8 +62,23 @@ namespace influx::engine
 			
 			// "scene:filepath"
 			for (const auto& pair : get_engine()->get_content()->get_scenes())
-				if (pair.second.is_loaded() && pair.second.is_engine())
-					ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+			{
+				const string& name = pair.first;
+				const scene_asset& scene_asset = pair.second;
+
+				if (scene_asset.is_loaded() && scene_asset.is_engine())
+				{
+					if (ImGui::TreeNode("scene:%s - ms:%f", name.c_str(), scene_asset.get_load_ms()))
+					{
+						for (uint32 i = 0u; i < scene_asset.get_resource().get_num_meshes(); ++i)
+						{
+							const string& mesh_name = name + "_" + to_string(i);
+							ImGui::Text(mesh_name.c_str());
+						}
+						ImGui::TreePop();
+					}
+				}
+			}
 
 			ImGui::Text("--");
 			// "texture:filepath"
