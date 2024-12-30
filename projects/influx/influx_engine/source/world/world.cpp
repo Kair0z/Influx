@@ -305,7 +305,7 @@ namespace influx::engine
                 result<scene_asset const*> asset = contman->find<scene_asset>(mesh_comp.get_mesh_path());
                 if (asset.is_success() && asset->is_loaded())
                 {
-                    const imp::mesh& mesh = asset->m_resource.get_main_mesh();
+                    const imp::mesh& mesh = asset->m_resource.get_mesh(1u);
                     mesh_comp.m_mesh_boundbox = mesh.m_bounding_box;
                     mesh_comp.m_mesh_boundsphere = mesh.m_bounding_sphere;
                 }

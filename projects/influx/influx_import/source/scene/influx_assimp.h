@@ -133,6 +133,8 @@ namespace influx
 			result.m_bounding_sphere.grow_to(local_min);
 		}
 		
+		result.m_material_index = mesh.mMaterialIndex;
+
 		return result;
 	}
 
@@ -291,6 +293,8 @@ namespace influx
 			result.m_materials.push_back(translate(*material));
 		}
 #endif
+		result.m_num_materials = pScene->mNumMaterials;
+
 		for (uint32 i = 0u; i < pScene->mNumLights; ++i)
 		{
 			const aiLight* light = pScene->mLights[i];

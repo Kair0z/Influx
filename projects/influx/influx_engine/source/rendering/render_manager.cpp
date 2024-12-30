@@ -148,13 +148,18 @@ namespace influx::engine
 		{
 			for (const auto& asset : cont_man->get_scenes())
 			{
-				if (renderer::has_mesh(asset.first) == false)
+				if (asset.second.is_loaded() && !asset.second.m_resource.m_meshes.empty())
 				{
-					if (asset.second.is_loaded() && !asset.second.m_resource.m_meshes.empty())
+					for (uint32 i = 0u; i < asset.second.m_resource.get_num_meshes(); ++i)
 					{
-						const imp::scene_data::mesh& mesh = asset.second.m_resource.m_meshes[0u];
-						translate(mesh, m_mesh_data);
-						influx::renderer::load(asset.first, m_mesh_data);
+						const imp::scene_data::mesh& mesh = asset.second.m_resource.get_mesh(i);
+						const string name = asset.first + "_" + std::to_string(i);
+
+						if (renderer::has_mesh(name) == false)
+						{
+							translate(mesh, m_mesh_data);
+							influx::renderer::load(name, m_mesh_data);
+						}
 					}
 				}
 			}

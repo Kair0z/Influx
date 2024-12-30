@@ -13,6 +13,31 @@ namespace influx
 	using string = std::string;
 	using wstring = std::wstring;
 
+	namespace str
+	{
+		inline static string to_lower(const string& str) 
+		{
+			string lower_str = str;
+			std::transform(lower_str.begin(), lower_str.end(), lower_str.begin(),
+				[](unsigned char c) { return std::tolower(c); });
+			return lower_str;
+		}
+
+		inline static bool contains(const string& a, const string& b, bool case_sensitive = true)
+		{
+			if (case_sensitive) 
+			{
+				return a.find(b) != std::string::npos;
+			}
+			else 
+			{
+				string low_a = to_lower(a);
+				string low_b = to_lower(b);
+				return low_a.find(low_b) != std::string::npos;
+			}
+		}
+	}
+
 #pragma warning (push)
 #pragma warning (disable : 4244)
 	inline string to_string(const wstring& wstring)

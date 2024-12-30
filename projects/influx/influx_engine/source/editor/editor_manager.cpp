@@ -64,6 +64,7 @@ namespace influx::engine
 			for (const auto& pair : get_engine()->get_content()->get_scenes())
 				if (pair.second.is_loaded() && pair.second.is_engine())
 					ImGui::Text("scene:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+
 			ImGui::Text("--");
 			// "texture:filepath"
 			for (const auto& pair : get_engine()->get_content()->get_images())

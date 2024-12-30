@@ -42,14 +42,19 @@ namespace influx::imp
 			math::boxf m_bounding_box{};
 			math::spheref m_bounding_sphere{};
 			math::vectorf3 m_average_position;
+			uint32 m_material_index{};
 		};
 
 		const mesh& get_main_mesh() const { return m_meshes[0]; }
+		const mesh& get_mesh(const uint32 i) const { return m_meshes[i % m_meshes.size()]; }
+		const vector<mesh>& get_meshes() const { return m_meshes; }
+		const uint32 get_num_meshes() const { return m_meshes.size(); }
 
 		vector<mesh> m_meshes{};
 		vector<scene::light> m_lights{};
 		vector<scene::camera> m_cameras{};
 		vector<influx::material> m_materials{};
+		uint32 m_num_materials{};
 	};
 
 	using mesh = scene_data::mesh;
