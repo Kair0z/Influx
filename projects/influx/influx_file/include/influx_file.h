@@ -13,70 +13,34 @@
 
 namespace influx::files
 {
-	namespace detail
+	class componentfile final
 	{
-		class file_interface
-		{
-		public:
-			void INFLUX_FILE_API save(const file& file);
-			void INFLUX_FILE_API load(const file& file);
-			bool INFLUX_FILE_API is_loading() const;
-
-		protected:
-			std::ofstream& get_ofs();
-			std::ifstream& get_ifs();
-			uint32 m_id;
-
-		private:
-			virtual bool serialize() = 0;
-
-			file m_file = {};
-			string m_name = {};
-			bool m_is_loading = false;
-			std::ofstream m_ofstream{};
-			std::ifstream m_ifstream{};
-		};
-	}
-
-	class projectfile final : public detail::file_interface
-	{
-		INFLUX_FILE_API virtual bool serialize() override;
-
 	public:
-		uint32 m_id;
+		void INFLUX_FILE_API save(const file& file);
+		void INFLUX_FILE_API load(const file& file);
+
 		string m_name;
 	};
 
-	class actorfile final : public detail::file_interface
+	class entityfile final
 	{
-
-	};
-
-	class componentfile final : public detail::file_interface
-	{
-
-	};
-
-	class scenefile final : public detail::file_interface
-	{
-		INFLUX_FILE_API virtual bool serialize() override;
-
 	public:
-		// actors in scene
-		INFLUX_FILE_API
-			void add_actor(const uint32 id, const string& name);
-		
-		INFLUX_FILE_API
-			uint32 get_num_actors() const;
+		void INFLUX_FILE_API save(const file& file);
+		void INFLUX_FILE_API load(const file& file);
+		void INFLUX_FILE_API clear();
 
-		// components in scene
-		vector<uint32> m_actor_ids;
-		vector<string> m_actor_names;
-		vector<uint32> m_actor_component_types;
+		string m_name;
+		vector<componentfile> m_components{};
 	};
 
-	class texturefile final : public detail::file_interface
+	class projectfile final
 	{
-		INFLUX_FILE_API virtual bool serialize() override;
+	public:
+		void INFLUX_FILE_API save(const file& file);
+		void INFLUX_FILE_API load(const file& file);
+		void INFLUX_FILE_API clear();
+
+		string m_name;
+		vector<entityfile> m_entities{};
 	};
 }

@@ -302,6 +302,11 @@ namespace influx::engine
 		return m_gameman;
 	}
 
+	ptr<world> engine::get_world_ptr()
+	{
+		return m_world;
+	}
+
 	const frame_time& engine::get_time() const
 	{
 		return m_time;

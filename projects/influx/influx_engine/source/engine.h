@@ -47,6 +47,7 @@ namespace influx::engine
 
 		result<ptr<content_manager>> get_content();
 		result<ptr<game_manager>> get_game();
+		ptr<world> get_world_ptr();
 
 		const frame_time& get_time() const;
 		float get_fps() const;

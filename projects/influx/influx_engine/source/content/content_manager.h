@@ -151,7 +151,6 @@ namespace influx::engine
 
 		imp::scene_data::mesh* find_mesh(const string& mesh_name)
 		{
-			const string& mesh_name = mesh_comp.get_mesh_name();
 			const vector<string>& parts = str::split(mesh_name, '_');
 			const string scene_name = parts.size() > 0u ? parts[0u] : "";
 			const string index_str = parts.size() > 1u ? parts[1u] : "";

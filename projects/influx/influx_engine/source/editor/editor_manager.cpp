@@ -134,51 +134,6 @@ namespace influx::engine
 
 		return gamefile_path;
 	}
-
-	string make_scenefile_path(const string& game_name, const string& scene_name)
-	{
-		const string gamefile_subdir = make_game_directory_path(game_name);
-		const string scenefile_ext = ".flx";
-
-		const string scenefile_path =
-			gamefile_subdir
-			+ "/scenes/"
-			+ scene_name
-			+ scenefile_ext;
-
-		return scenefile_path;
-	}
-
-	// loads file at /influx/games/'game_name'/
-	bool load_gamefile(const string& game_name, files::projectfile& out_gamefile)
-	{
-		const string gamefile_path = make_gamefile_path(game_name);
-		if (file::exists(gamefile_path))
-		{
-			// open existing file
-			out_gamefile.load(gamefile_path);
-			return true;
-		}
-
-		return false;
-	}
-
-	// creates file at /influx/games/'game_name'/
-	bool create_gamefile(const string& game_name, files::projectfile& out_gamefile)
-	{
-		const string gamefile_path = make_gamefile_path(game_name);
-		if (file::exists(gamefile_path))
-		{
-			// return false;
-		}
-		
-		// new file
-		out_gamefile = {};
-		out_gamefile.m_name = game_name;
-		out_gamefile.m_id = 0u;
-		out_gamefile.save(gamefile_path);
-		return true;
-	}
 #pragma endregion
 
 	editor_manager::editor_manager(editor_module* editor)
@@ -192,9 +147,6 @@ namespace influx::engine
 		m_content_toggle.force_set(true);
 
 		initialize_inputs();
-
-		// temp
-		set_target_game(*get_engine(), "influx_game");
 	}
 
 	result<> editor_manager::update_imgui(ImGuiContext& ctx)
@@ -257,13 +209,7 @@ namespace influx::engine
 			return {};
 		}
 
-		static_window<game_manager_ui>("game");
-		static_window<fps_ui>("fps");
-		static_window<content_ui>("content");
-
-		// "main menu"
 		update_mainmenu();
-
 		update_static_windows();
 
 		return {};
@@ -273,46 +219,24 @@ namespace influx::engine
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
-			if (ImGui::BeginMenu("file"))
+			if (ImGui::BeginMenu("project"))
 			{
-				if (ImGui::Button("new game"))
+				world& world = *get_engine()->get_world_ptr();
+				const string proj_path = make_gamefile_path("influx_game");
+				if (ImGui::Button("save"))
 				{
-					create_gamefile("influx_game", m_projectfile);
+					files::projectfile proj_file{};
+					world.save_project(proj_file);
+					proj_file.save(proj_path);
 				}
 
-				if (ImGui::Button("load game"))
+				if (ImGui::Button("load"))
 				{
-					load_gamefile("influx_game", m_projectfile);
+					files::projectfile proj_file{};
+					proj_file.load(proj_path);
+					world.load_project(proj_file);
 				}
 
-				if (ImGui::Button("new scene"))
-				{
-					// new empty scene
-					//scene* new_scene = scene::make_empty_scene();
-
-					// save to file
-					// const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
-					// scene::save_to_file(new_scene, scenefile_path);
-
-					// load into world
-					// world->load_scene(new_scene);
-				}
-
-				if (ImGui::Button("load scene"))
-				{
-					// load from file
-					// const string& scenefile_path = make_scenefile_path("influx_game", "scene_main");
-					// scene* scene = scene::load_from_file(scenefile_path);
-
-					// load into world
-					// world->load_scene(scene);
-				}
-
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::BeginMenu("edit"))
-			{
 				ImGui::EndMenu();
 			}
 
@@ -358,6 +282,10 @@ namespace influx::engine
 
 	result<> editor_manager::update_static_windows()
 	{
+		static_window<game_manager_ui>("game");
+		static_window<fps_ui>("fps");
+		static_window<content_ui>("content");
+
 		const float max_radius = 50.0f;
 		const float seconds = get_engine()->get_time().get_time_seconds();
 		const float anim_speed = 5.0f;
@@ -389,27 +317,6 @@ namespace influx::engine
 			}
 		}
 
-		return {};
-	}
-
-	result<> editor_manager::set_target_game(engine& engine, const string& gamename)
-	{
-		if (has_project() && get_projectname().get() == gamename)
-		{
-			return {};
-		}
-
-		// try load, if fail, create game
-#if 0
-		if (!load_gamefile(gamename, m_current_gamefile))
-		{
-			create_gamefile(gamename, m_current_gamefile);
-		}
-#else
-		create_gamefile(gamename, m_projectfile);
-#endif
-
-		engine.get_content()->load_game_assets(gamename, &engine);
 		return {};
 	}
 

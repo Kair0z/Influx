@@ -189,9 +189,34 @@ namespace influx::engine
         return hit_any;
     }
 
-    void world::flush()
+    void world::clear()
     {
+        m_registry.clear();
+    }
 
+    void world::load_project(const influx::files::projectfile& proj)
+    {
+        clear();
+
+        for (const files::entityfile& entityfile : proj.m_entities)
+        {
+            auto new_entity = create_entity();
+
+            for (const files::componentfile& compfile : entityfile.m_components)
+            {
+                auto new_component = create_component<transform_component>(new_entity);
+            }
+        }
+    }
+
+    void world::save_project(influx::files::projectfile& proj)
+    {
+        proj.clear();
+
+        for (auto entity : m_registry.view<entt::entity>())
+        {
+            proj.m_entities.push_back({});
+        }
     }
 
     void world::update_input_system()

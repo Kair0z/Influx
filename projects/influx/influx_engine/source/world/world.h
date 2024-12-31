@@ -13,6 +13,9 @@
 #include "component/component.h"
 #include "entity.h"
 
+// influx::files
+#include "influx_file.h"
+
 namespace influx::engine
 {
 	class scene;
@@ -54,9 +57,12 @@ namespace influx::engine
 
 		struct trace_result { entity* hit_entity = nullptr; };
 		bool trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer = e_collision_layer::all);
+		
+		void clear();
 
-		// deletes unreferenced entities
-		void flush();
+		void load_project(const influx::files::projectfile& proj);
+
+		void save_project(influx::files::projectfile& proj);
 
 	private:
 		entt::registry m_registry;

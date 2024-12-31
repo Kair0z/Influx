@@ -156,8 +156,6 @@ namespace influx::engine
 		// sets the editor up to load assets & target the named game
 		result<> load_project(engine& engine, const string& name);
 
-		result<> set_target_game(engine& engine, const string& gamename);
-
 		bool has_project() const;
 		result<string> get_projectname() const;
 

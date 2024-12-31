@@ -1,104 +1,157 @@
 #include "influx_file.h"
 
+// std
+#include <type_traits>
+
 // cereal
 #include "influx_cereal_layer.h"
 
 namespace influx::files
 {
+	static constexpr bool k_use_binary_archive = false;
+
+	template <bool _load, bool _binary = k_use_binary_archive>
+	using arch_type = typename std::conditional<_binary,
+		typename std::conditional<_load, cereal::BinaryInputArchive, cereal::BinaryOutputArchive>::type,
+		typename std::conditional<_load, cereal::JSONInputArchive, cereal::JSONOutputArchive>::type>::type;
+
+	template <typename _t, typename _arch_type>
+	inline void named(_arch_type& arch, const char* name, _t& var)
+	{
+		arch.setNextName(name);
+		arch(var);
+	}
+
 	namespace detail
 	{
-		void file_interface::save(const file& file)
+		std::ofstream start_save(const file& file)
 		{
-			m_is_loading = false;
-
+			// make sure the file exists
 			create_file(file.m_path_full);
 
-			m_ofstream.close();
-			m_ofstream.open(file.m_path_full);
-			influx_assert(m_ofstream.is_open());
+			std::ofstream ofs{};
+			ofs.close();
+			ofs.open(file.m_path_full);
+			influx_assert(ofs.is_open());
 
-			m_name = file.m_filename;
-
-			serialize();
-
-			m_file = file;
+			return ofs;
 		}
 
-		void file_interface::load(const file& file)
+		std::ifstream start_load(const file& file)
 		{
-			m_is_loading = true;
+			std::ifstream ifs{};
+			ifs.close();
+			ifs.open(file.m_path_full);
+			influx_assert(ifs.is_open());
 
-			m_ifstream.close();
-			m_ifstream.open(file.m_path_full);
-			influx_assert(m_ifstream.is_open());
-
-			m_name = file.m_filename;
-
-			serialize();
-
-			m_file = file;
-		}
-
-		bool file_interface::is_loading() const
-		{
-			return m_is_loading;
-		}
-
-		std::ofstream& file_interface::get_ofs()
-		{
-			return m_ofstream;
-		}
-
-		std::ifstream& file_interface::get_ifs()
-		{
-			return m_ifstream;
+			return ifs;
 		}
 	}
 
-#pragma region 
-#define archive_json(variable) \
-	if (is_loading()) { cereal::JSONInputArchive AR(get_ifs()); AR(variable); } \
-	else { cereal::JSONOutputArchive AR(get_ofs()); AR(variable); }
-#define archive_bin(variable) \
-	if (is_loading()) { cereal::BinaryInputArchive AR(get_ifs()); AR(variable); } \
-	else { cereal::BinaryOutputArchive AR(get_ofs()); AR(variable); }
-#pragma endregion
-
-#define archive(variable) archive_json(variable)
-
-	bool projectfile::serialize()
+	// generic sized vectors!!
+	template <typename _t, typename _arch_type>
+	inline bool serialize(vector<_t>& vec, _arch_type& parent)
 	{
-		archive(m_id);
-		archive(m_name);
-		return true;
-	}
+		size_t size = vec.size();
+		named(parent, "num", size);
 
-	bool scenefile::serialize()
-	{
-		const uint64 num_actors = m_actor_ids.size();
-
-		for (uint64 i = 0u; i < num_actors; ++i)
+		vec.resize(size);
+		for (size_t i = 0u; i < size; ++i)
 		{
-			archive(m_actor_ids[i]);
-			archive(m_actor_names[i]);
+			serialize(vec[i], parent);
 		}
 
 		return true;
 	}
 
-	void scenefile::add_actor(const uint32 id, const string& name)
+	// componentfile impl
+	template <typename _arch_type>
+	bool serialize(componentfile& component, _arch_type& parent)
 	{
-		m_actor_ids.push_back(id);
-		m_actor_names.push_back(name);
+		named(parent, "Name", component.m_name);
+		return true;
 	}
 
-	uint32 scenefile::get_num_actors() const
+	// projectfile impl
+	template <typename _arch_type>
+	bool serialize(projectfile& project, _arch_type& parent)
 	{
-		return (uint32)m_actor_ids.size();
+		named(parent, "Name", project.m_name);
+
+		parent.setNextName("entities");
+		parent.startNode();
+		serialize(project.m_entities, parent);
+		parent.finishNode();
+
+		return true;
 	}
 
-	bool texturefile::serialize()
+	// entityfile impl
+	template <typename _arch_type>
+	bool serialize(entityfile& entity, _arch_type& parent)
 	{
-		return false;
+		named(parent, "Name", entity.m_name);
+
+		parent.setNextName("components");
+		parent.startNode();
+		serialize(entity.m_components, parent);
+		parent.finishNode();
+
+		return true;
+	}
+
+
+	void projectfile::save(const file& file)
+	{
+		auto fstream = detail::start_save(file);
+		auto archive = arch_type<false>(fstream);
+		serialize(*this, archive);
+	}
+
+	void projectfile::load(const file& file)
+	{
+		auto fstream = detail::start_load(file); \
+		auto archive = arch_type<true>(fstream); \
+		serialize(*this, archive);
+	}
+
+	void projectfile::clear()
+	{
+		m_name.clear();
+		m_entities.clear();
+	}
+
+	void componentfile::save(const file& file)
+	{
+		auto fstream = detail::start_save(file);
+		auto archive = arch_type<false>(fstream);
+		serialize(*this, archive);
+	}
+
+	void componentfile::load(const file& file)
+	{
+		auto fstream = detail::start_load(file);
+		auto archive = arch_type<true>(fstream);
+		serialize(*this, archive);
+	}
+
+	void entityfile::save(const file& file)
+	{
+		auto fstream = detail::start_save(file);
+		auto archive = arch_type<false>(fstream);
+		serialize(*this, archive);
+	}
+
+	void entityfile::load(const file& file)
+	{
+		auto fstream = detail::start_load(file);
+		auto archive = arch_type<true>(fstream);
+		serialize(*this, archive);
+	}
+
+	void entityfile::clear()
+	{
+		m_name.clear();
+		m_components.clear();
 	}
 }

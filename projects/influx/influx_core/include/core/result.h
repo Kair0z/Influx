@@ -55,6 +55,7 @@ namespace influx
 		result() : m_value{}, m_return{true} {}
 
 		// takes the underlying value, default means success
+		result(_t& value) : m_return{ value } { set_state(e_result::success); }
 		result(const _t& value) : m_return{ value } { set_state(e_result::success);  }
 		result(_t&& value) : m_return{ value } { set_state(e_result::success); }
 
