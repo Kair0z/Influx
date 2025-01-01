@@ -100,19 +100,30 @@ namespace influx::files
 		return true;
 	}
 
+	template <typename _t>
+	bool load_impl(const file& file, _t& result)
+	{
+		auto fstream = detail::start_load(file);
+		auto archive = arch_type<true>(fstream);
+		return serialize(result, archive);
+	}
 
-	void projectfile::save(const file& file)
+	template <typename _t>
+	bool save_impl(const file& file, _t& result)
 	{
 		auto fstream = detail::start_save(file);
 		auto archive = arch_type<false>(fstream);
-		serialize(*this, archive);
+		return serialize(result, archive);
+	}
+
+	void projectfile::save(const file& file)
+	{
+		save_impl(file, *this);
 	}
 
 	void projectfile::load(const file& file)
 	{
-		auto fstream = detail::start_load(file); \
-		auto archive = arch_type<true>(fstream); \
-		serialize(*this, archive);
+		load_impl(file, *this);
 	}
 
 	void projectfile::clear()
@@ -123,30 +134,22 @@ namespace influx::files
 
 	void componentfile::save(const file& file)
 	{
-		auto fstream = detail::start_save(file);
-		auto archive = arch_type<false>(fstream);
-		serialize(*this, archive);
+		save_impl(file, *this);
 	}
 
 	void componentfile::load(const file& file)
 	{
-		auto fstream = detail::start_load(file);
-		auto archive = arch_type<true>(fstream);
-		serialize(*this, archive);
+		load_impl(file, *this);
 	}
 
 	void entityfile::save(const file& file)
 	{
-		auto fstream = detail::start_save(file);
-		auto archive = arch_type<false>(fstream);
-		serialize(*this, archive);
+		save_impl(file, *this);
 	}
 
 	void entityfile::load(const file& file)
 	{
-		auto fstream = detail::start_load(file);
-		auto archive = arch_type<true>(fstream);
-		serialize(*this, archive);
+		load_impl(file, *this);
 	}
 
 	void entityfile::clear()
