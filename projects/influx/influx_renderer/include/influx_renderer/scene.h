@@ -50,7 +50,6 @@ namespace influx::renderer
 		bool has_materials() const;
 
 		vector<mesh_instance> m_meshes = {};
-		vector<material> m_materials = {};
 		camera m_camera = {};
 
 		float m_delta_seconds;
@@ -172,15 +171,5 @@ namespace influx::renderer
 	inline bool scene::has_meshes() const
 	{
 		return get_num_meshes() > 0u;
-	}
-
-	inline uint32 scene::get_num_materials() const
-	{
-		return static_cast<uint32>(m_materials.size());
-	}
-
-	inline bool scene::has_materials() const
-	{
-		return get_num_materials() > 0u;
 	}
 }

@@ -94,11 +94,8 @@ namespace influx::engine
             }
         }
 
-        
         // render meshes
         {
-            list<const material*> unique_materials{};
-
             influx_scope("build_meshes");
             auto view = m_registry.view<transform_component, mesh_component, material_component>();
             for (auto [entity, transform_comp, mesh_comp, material_comp] : view.each())
@@ -118,26 +115,8 @@ namespace influx::engine
                 render_mesh.m_per_instance_colour = {};
                 render_mesh.m_transform = transform.get_matrix();
 
-                // merge unique materials
-                const material* unique_material = nullptr;
-                auto found = std::find_if(unique_materials.cbegin(), unique_materials.cend(), 
-                    [&material_comp](const material* mat)
-                {
-                    return (*mat) == material_comp.get_material();
-                });
-
-                if (found == unique_materials.cend())
-                {
-                    unique_materials.push_back(&material_comp.get_material());
-                    unique_material = unique_materials.back();
-                }
-                else
-                {
-                    unique_material = *found;
-                }
-
                 // bind material to mesh
-                render_mesh.m_material = unique_material;
+                render_mesh.m_material = &material_comp.get_material();
                 scene.m_meshes.push_back(render_mesh);
             }
         }

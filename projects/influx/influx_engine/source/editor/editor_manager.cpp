@@ -59,44 +59,57 @@ namespace influx::engine
 		virtual void on_run() override
 		{
 			set_name("engine:content");
-			
-			// "scene:filepath"
-			for (const auto& pair : get_engine()->get_content()->get_scenes())
+
+			if (ImGui::BeginTabBar("content"))
 			{
-				const string& name = pair.first;
-				const scene_asset& scene_asset = pair.second;
-
-				if (scene_asset.is_loaded() && scene_asset.is_engine())
+				if (ImGui::BeginTabItem("scenes"))
 				{
-					if (ImGui::TreeNode("scene:%s - ms:%f", name.c_str(), scene_asset.get_load_ms()))
+					// "scene:filepath"
+					for (const auto& pair : get_engine()->get_content()->get_scenes())
 					{
-						for (uint32 i = 0u; i < scene_asset.get_resource().get_num_meshes(); ++i)
+						const string& name = pair.first;
+						const scene_asset& scene_asset = pair.second;
+
+						if (scene_asset.is_loaded() && scene_asset.is_engine())
 						{
-							const string& mesh_name = name + "_" + to_string(i);
-							ImGui::Text(mesh_name.c_str());
+							if (ImGui::TreeNode("scene:%s - ms:%f", name.c_str(), scene_asset.get_load_ms()))
+							{
+								for (uint32 i = 0u; i < scene_asset.get_resource().get_num_meshes(); ++i)
+								{
+									const string& mesh_name = name + "_" + to_string(i);
+									ImGui::Text(mesh_name.c_str());
+								}
+								ImGui::TreePop();
+							}
 						}
-						ImGui::TreePop();
 					}
+					ImGui::EndTabItem();
 				}
-			}
 
-			ImGui::Text("--");
-			// "texture:filepath"
-			for (const auto& pair : get_engine()->get_content()->get_images())
-				if (pair.second.is_loaded() && pair.second.is_engine())
+				if (ImGui::BeginTabItem("textures"))
 				{
-					const image_asset& image = pair.second;
-					const math::vectori2& image_dims = image.m_resource.m_dimensions;
-					ImGui::Text("texture:%s - ms:%f[%ix%i]", pair.first.c_str(), image.get_load_ms(),
-						image_dims.x, image_dims.y);
+					// "texture:filepath"
+					for (const auto& pair : get_engine()->get_content()->get_images())
+						if (pair.second.is_loaded() && pair.second.is_engine())
+						{
+							const image_asset& image = pair.second;
+							const math::vectori2& image_dims = image.m_resource.m_dimensions;
+							ImGui::Text("texture:%s - ms:%f[%ix%i]", pair.first.c_str(), image.get_load_ms(),
+								image_dims.x, image_dims.y);
+						}
+					ImGui::EndTabItem();
 				}
 
-			ImGui::Text("--");
-			// "shader:filepath"
-			for (const auto& pair : get_engine()->get_content()->get_shaders())
-				if (pair.second.is_loaded() && pair.second.is_engine())
-					ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
-			ImGui::Text("--");
+				if (ImGui::BeginTabItem("shaders"))
+				{
+					// "shader:filepath"
+					for (const auto& pair : get_engine()->get_content()->get_shaders())
+						if (pair.second.is_loaded() && pair.second.is_engine())
+							ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+					ImGui::EndTabItem();
+				}
+				ImGui::EndTabBar();
+			}
 		}
 	};
 

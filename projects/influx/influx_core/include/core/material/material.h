@@ -142,6 +142,7 @@ namespace influx
         {
             m_textures[slot] = new_texture;
         }
+       
         bool has_texture(const e_texture_semantic slot) const
         {
             if (m_textures.contains(slot))
@@ -205,23 +206,21 @@ namespace influx
 
             return true;
         }
-
         bool operator!=(const material& b) const
         {
             return !(*this == b);
         }
 
 	private:
+        bool m_render_depth;
+        bool m_render_stencil;
+        e_cullmode m_cullmode;
+        bool m_invert_normals;
+
         umap<string, float_property> m_floats;
         umap<e_texture_semantic, texture_property> m_textures;
         umap<string, int_property> m_integers;
 
         math::colour_rgba m_basecolour;
-
-        // settings
-        bool m_render_depth;
-        bool m_render_stencil;
-        e_cullmode m_cullmode;
-        bool m_invert_normals;
     };
 }

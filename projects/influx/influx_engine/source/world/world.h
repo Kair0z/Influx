@@ -73,11 +73,6 @@ namespace influx::engine
 		void update_bounds_system();
 		void update_stream_system();
 		void update_rigidbody_system();
-		void update_rendermesh_system();
-
-		// render
-		void render_sprites();
-		void render_meshes();
 
 		// deferred input: this is a bit ugly
 		template <typename _t>

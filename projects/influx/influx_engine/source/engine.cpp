@@ -103,7 +103,6 @@ namespace influx::engine
 				{
 					ent_mat.set_texture(e_texture_semantic::basecolor, "lego");
 				}
-				
 				ent_mat.set_texture(e_texture_semantic::normals, "");
 				ent_mat.set_texture(e_texture_semantic::roughness, "");
 			}
