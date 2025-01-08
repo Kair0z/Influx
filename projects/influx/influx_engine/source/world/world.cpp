@@ -336,7 +336,7 @@ namespace influx::engine
                 if (asset.is_success() && asset->is_loaded())
                 {
                     // update bounding box / sphere
-                    const imp::mesh& mesh = asset->m_resource.get_mesh(mesh_idx);
+                    const imp::mesh_data& mesh = asset->m_resource.get_mesh(mesh_idx);
                     mesh_comp.m_mesh_boundbox = mesh.m_bounding_box;
                     mesh_comp.m_mesh_boundsphere = mesh.m_bounding_sphere;
                 }

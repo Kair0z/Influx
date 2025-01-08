@@ -49,7 +49,7 @@ namespace influx::imp
 		const mesh& get_mesh(const uint32 i) const { return m_meshes[i % m_meshes.size()]; }
 		mesh& get_mesh(const uint32 i) { return m_meshes[i % m_meshes.size()]; }
 		const vector<mesh>& get_meshes() const { return m_meshes; }
-		const uint32 get_num_meshes() const { return m_meshes.size(); }
+		const uint32 get_num_meshes() const { return static_cast<uint32>(m_meshes.size()); }
 
 		vector<mesh> m_meshes{};
 		vector<scene::light> m_lights{};
@@ -58,7 +58,7 @@ namespace influx::imp
 		uint32 m_num_materials{};
 	};
 
-	using mesh = scene_data::mesh;
+	using mesh_data = scene_data::mesh;
 
 	/* Loads an 3D-model scene file (.fbx, .obj) */
 	INFLUX_ASSETS_API bool load_scene_file(const string& filepath, 

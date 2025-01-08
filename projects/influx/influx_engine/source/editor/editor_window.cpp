@@ -44,12 +44,12 @@ namespace influx::engine
 		m_title = name;
 	}
 
-	const string& editor_window::get_name() const
+	string editor_window::get_name() const
 	{
 		return m_title.empty() ? "-" : m_title;
 	}
 
-	const math::float2& editor_window::get_position() const
+	math::float2 editor_window::get_position() const
 	{
 		math::float2 position = {};
 		if (m_force_position.is_forced())
@@ -64,9 +64,9 @@ namespace influx::engine
 		return position;
 	}
 
-	const math::float2& editor_window::get_size() const
+	math::float2 editor_window::get_size() const
 	{
-		math::float2 position = {};
+		math::float2 size = {};
 		if (m_force_size.is_forced())
 		{
 			return m_force_size.m_force_value.value();
@@ -76,7 +76,7 @@ namespace influx::engine
 			return m_last_size;
 		}
 
-		return position;
+		return size;
 	}
 
 	void editor_window::toggle()

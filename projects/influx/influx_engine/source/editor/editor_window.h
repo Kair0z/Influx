@@ -40,12 +40,12 @@ namespace influx::engine
 		void run(const callback& clb);
 
 		void set_name(const string& name);
-		const string& get_name() const;
+		string get_name() const;
 
 		// coordinates are in in pixels
 		math::rectf get_rect() const;
-		const math::float2& get_position() const;
-		const math::float2& get_size() const;
+		math::float2 get_position() const;
+		math::float2 get_size() const;
 
 		void toggle();
 		void set_visible(bool new_visible);

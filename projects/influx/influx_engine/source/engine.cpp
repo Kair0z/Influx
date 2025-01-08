@@ -45,7 +45,7 @@ namespace influx::engine
 				//ent_transform.set_scale(0.1f);
 
 				mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
-				ent_mesh.set_mesh_name("transistor");
+				ent_mesh.set_mesh_name("transistor_0");
 				ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
 				ent_mesh.set_invert_normals(false);
 
