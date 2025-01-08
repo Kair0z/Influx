@@ -123,8 +123,7 @@ namespace influx::renderer
 		commandlist->set_constants(0u, 16u, &vertex_constant_buffer);
 
 		// stage the font srv onto the gpu heap
-		graphics::descriptor_range font_gpu_range =
-			backend.get_descriptor_manager()->stage(mp_fonts_texture->get_srv()->get_cpu_handle());
+		graphics::descriptor_range font_gpu_range = backend.get_descriptor_manager()->stage(mp_fonts_texture->get_srv()->get_cpu_handle());
 		graphics::descriptor_range tex_gpu_range = font_gpu_range;
 
 		// setup draw
@@ -155,19 +154,23 @@ namespace influx::renderer
 				};
 				commandlist->set(rect);
 
-				// check if this command requires the font texture, or any of our own textures
+				// if this command has a bound TexID (texture*/void*),
+				// we should stage the texture (allocate gpu descriptor)
+				// and bind that range to the commandlist
 				const bool command_has_texture = pcmd->GetTexID() != 0u;
 				if (command_has_texture)
 				{
 					texture* tex = reinterpret_cast<texture*>(pcmd->GetTexID());
-					tex_gpu_range = backend.get_descriptor_manager()->stage(tex);
+					if (tex != nullptr)
+					{
+						tex_gpu_range = backend.get_descriptor_manager()->stage(tex);
+					}
 				}
 				else
 				{
 					tex_gpu_range = font_gpu_range;
 				}
 
-				// set the gpu range
 				commandlist->set(tex_gpu_range, 1u);
 				commandlist->draw_indexed({
 					.m_num_indexes_per_instance = pcmd->ElemCount,
