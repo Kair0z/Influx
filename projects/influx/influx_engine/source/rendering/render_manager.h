@@ -1,9 +1,9 @@
 #pragma once
 
+// influx::core
 #include "core/macros.h"
 #include "core/math/vector.h"
 
-#pragma region declarations
 // influx::renderer
 namespace influx::renderer
 {
@@ -12,9 +12,9 @@ namespace influx::renderer
 	struct scene_debug;
 }
 
+// ImGui
 struct ImDrawData;
 struct ImGuiContext;
-#pragma endregion
 
 namespace influx::engine
 {
@@ -31,7 +31,7 @@ namespace influx::engine
 		~render_manager();
 
 		// loads assets from content_manager into the influx::renderer
-		void load_render_assets(content_manager* cont_man);
+		void stream_content(content_manager* cont_man);
 
 		void record_imgui_frame(const function<void(ImGuiContext&)>& func);
 
@@ -46,6 +46,10 @@ namespace influx::engine
 		renderer::target* mp_scene_target;
 		ImDrawData* mp_imgui_drawdata = nullptr;
 		renderer::scene_debug* mp_debug_scene = nullptr;
+
+		void stream_shaders(const content_manager& content);
+		void stream_images(const content_manager& content);
+		void stream_meshes(const content_manager& content);
 
 		void initialize_imgui();
 	};

@@ -1,8 +1,8 @@
 #include "renderer_pch.h"
 #include "pipeline_manager.h"
 
+// influx::renderer
 #include "pipeline.h"
-
 #include "influx_renderer/renderer_backend.h"
 
 namespace influx::renderer
@@ -13,65 +13,88 @@ namespace influx::renderer
 
 	}
 
+	bool pipeline_manager::has_pipeline(const string& name) const
+	{
+		return m_pipeline_map.contains(name);
+	}
+
+	pipeline* pipeline_manager::create_pipeline(
+		const string& name,
+		const pipeline_signature& signature,
+		const shader_data* vs,
+		const shader_data* ps)
+	{
+		pipeline* result = nullptr;
+		result = new pipeline(
+			mp_device,
+			signature,
+			vs,
+			ps);
+
+		m_pipeline_map[name].push_back(result);
+		return result;
+	}
+
+	pipeline* pipeline_manager::find_pipeline(const string& name, const pipeline_signature& signature)
+	{
+		const vector<pipeline*>& existing_pipelines = m_pipeline_map[name];
+		auto found = std::find_if(existing_pipelines.cbegin(), existing_pipelines.cend(), [&signature](const pipeline* pip)
+		{
+			return pip->get_signature() == signature;
+		});
+
+		return found != existing_pipelines.cend() ? *found : nullptr;
+	}
+
 	pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const pipeline_signature& signature)
 	{
 		pipeline* result = nullptr;
 		auto& backend = renderer_backend::get_instance();
 
-		const bool vertex_shader_found = backend.get_vertex_shaders().contains(signature.m_vs_name);
-		const bool pixel_shader_found = backend.get_pixel_shaders().contains(signature.m_ps_name);
+		const auto& vs_shaders = backend.get_vertex_shaders();
+		const auto& ps_shaders = backend.get_pixel_shaders();
+		const bool vertex_shader_found = vs_shaders.contains(signature.m_vs_name);
+		const bool pixel_shader_found = ps_shaders.contains(signature.m_ps_name);
 
-		if (!m_pipeline_map.contains(name))
+		if (!vertex_shader_found || !pixel_shader_found)
 		{
-			if (vertex_shader_found && pixel_shader_found)
-			{
-				result = new pipeline(
-					mp_device,
-					signature,
-					&backend.get_vertex_shaders()[signature.m_vs_name],
-					&backend.get_pixel_shaders()[signature.m_ps_name]);
+			return nullptr;
+		}
 
-				m_pipeline_map[name].push_back(result);
-			}
+		if (!has_pipeline(name))
+		{
+			result = create_pipeline(
+				name,
+				signature,
+				&vs_shaders.at(signature.m_vs_name),
+				&ps_shaders.at(signature.m_ps_name));
 		}
 		else
 		{
-			const vector<pipeline*>& existing_pipelines = m_pipeline_map[name];
-			auto found = std::find_if(existing_pipelines.cbegin(), existing_pipelines.cend(), [&signature](const pipeline* pip)
+			pipeline* found = find_pipeline(name, signature);
+			if (found == nullptr)
 			{
-				return pip->get_signature() == signature;
-			});
-
-			// if we can't find, create a new variant
-			if (found == existing_pipelines.cend())
-			{
-				if (vertex_shader_found && pixel_shader_found)
-				{
-					result = new pipeline(
-						mp_device,
-						signature,
-						&backend.get_vertex_shaders()[signature.m_vs_name],
-						&backend.get_pixel_shaders()[signature.m_ps_name]);
-
-					m_pipeline_map[name].push_back(result);
-				}
+				result = create_pipeline(
+					name,
+					signature,
+					&vs_shaders.at(signature.m_vs_name),
+					&ps_shaders.at(signature.m_ps_name));
 			}
 			else
 			{
-				// we did find it
-				return *found;
+				result = found;
 			}
 		}
 
 		return result;
 	}
 
-	uint64 pipeline_manager::get_num_pipelines() const
+	uint32 pipeline_manager::get_num_pipelines() const
 	{
-		uint64 sum = 0u;
+		uint32 sum = 0u;
 		for (const auto& pair : m_pipeline_map)
 		{
-			sum += pair.second.size();
+			sum += static_cast<uint32>(pair.second.size());
 		}
 		return sum;
 	}

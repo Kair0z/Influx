@@ -59,7 +59,11 @@ namespace influx::engine
 	private:
 		void initialize();
 		void cleanup();
+
+		// threads
 		void run_input();
+		void run_content();
+
 		void initialize_renderer(const string& window_name, const math::vectoru2& size);
 		void poll_platform_events();
 		

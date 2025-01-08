@@ -1,4 +1,6 @@
 #pragma once
+
+// influx::core
 #include "core/basetypes.h"
 #include "core/container/map.h"
 #include "core/pointer.h"
@@ -161,7 +163,7 @@ namespace influx
         texture_property const* get_texture_normals() const { return get_texture(e_texture_semantic::normals); }
         texture_property const* get_texture_diffuse() const { return get_texture(e_texture_semantic::diffuse); }
 
-        inline const string& get_texture_name(const e_texture_semantic& slot) const
+        inline string get_texture_name(const e_texture_semantic& slot) const
         {
             texture_property const* texture = get_texture(slot);
             if (texture)

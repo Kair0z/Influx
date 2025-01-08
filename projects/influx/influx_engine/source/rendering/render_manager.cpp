@@ -134,113 +134,83 @@ namespace influx::engine
 	}
 #pragma endregion
 
+	// staging buffers
+	static renderer::shader_data m_shader_data{};
+	static renderer::texture_data m_tex_data{};
+	static renderer::mesh_data m_mesh_data{};
+	static material m_material_data{};
+
 	// loads assets from content_manager into the influx::renderer
-	void render_manager::load_render_assets(content_manager* cont_man)
+	void render_manager::stream_content(content_manager* cont_man)
 	{
-		// these are shared 'staging' buffers that are read and copied when 'loaded' to the renderer
-		// if we end up wanting to multithread this, we'll have to rework this approach!
-		static renderer::shader_data m_shader_data{};
-		static renderer::texture_data m_tex_data{};
-		static renderer::mesh_data m_mesh_data{};
-		static material m_material_data{};
+		stream_shaders(*cont_man);
+		stream_images(*cont_man);
+		stream_meshes(*cont_man);
+	}
 
-		// CONTENT SECTION
+	void render_manager::stream_shaders(const content_manager& content)
+	{
+		for (const auto& asset : content.get_shaders())
 		{
-			for (const auto& asset : cont_man->get_scenes())
+			if (renderer::has_shader(asset.first) == false && asset.second.is_loaded())
 			{
-				if (asset.second.is_loaded() && !asset.second.m_resource.m_meshes.empty())
-				{
-					for (uint32 i = 0u; i < asset.second.m_resource.get_num_meshes(); ++i)
-					{
-						const imp::scene_data::mesh& mesh = asset.second.m_resource.get_mesh(i);
-						const string name = asset.first + "_" + std::to_string(i);
-
-						if (renderer::has_mesh(name) == false)
-						{
-							translate(mesh, m_mesh_data);
-							influx::renderer::load(name, m_mesh_data);
-						}
-					}
-				}
+				const imp::shader_data& vs_shader = asset.second.m_resource;
+				translate(vs_shader, m_shader_data);
+				influx::renderer::load(asset.first, m_shader_data);
 			}
+		}
+	}
 
-			for (const auto& asset : cont_man->get_images())
+	void render_manager::stream_images(const content_manager& content)
+	{
+		for (const auto& asset : content.get_images())
+		{
+			if (renderer::has_texture(asset.first) == false)
 			{
-				if (renderer::has_texture(asset.first) == false)
+				if (asset.second.is_loaded())
 				{
-					if (asset.second.is_loaded())
-					{
-						translate(asset.second.m_resource, m_tex_data);
-						influx::renderer::load(asset.first, m_tex_data);
-					}
-				}
-			}
-
-			for (const auto& asset : cont_man->get_shaders())
-			{
-				if (renderer::has_shader(asset.first) == false && asset.second.is_loaded())
-				{
-					const imp::shader_data& vs_shader = asset.second.m_resource;
-					translate(vs_shader, m_shader_data);
-					influx::renderer::load(asset.first, m_shader_data);
+					translate(asset.second.m_resource, m_tex_data);
+					influx::renderer::load(asset.first, m_tex_data);
 				}
 			}
 		}
-		
-		// HARDCODED SECTION
+	}
+
+	void render_manager::stream_meshes(const content_manager& content)
+	{
+		// content meshes
+		for (const auto& asset : content.get_scenes())
 		{
-			if (renderer::has_mesh("engine_plane") == false)
+			if (asset.second.is_loaded() && !asset.second.m_resource.m_meshes.empty())
 			{
-				const static math::vectorf3 positions[4u]
+				for (uint32 i = 0u; i < asset.second.m_resource.get_num_meshes(); ++i)
 				{
-					{ 1.0f, 0.0f, 1.0f },
-					{ -1.0f, 0.0f, 1.0f },
-					{ 1.0f, 0.0f, -1.0f },
-					{ -1.0f, 0.0f, -1.0f }
-				};
-				const static math::vectorf4 colours[4u]
-				{
-					{ 1.0f, 0.0f, 0.0f, 1.0f },
-					{ 0.0f, 1.0f, 0.0f, 1.0f },
-					{ 0.0f, 0.0f, 1.0f, 1.0f },
-					{ 1.0f, 1.0f, 0.0f, 1.0f }
-				};
-				const static math::vectorf2 uvs[4u]
-				{
-					{ 0.0f, 0.0f },
-					{ 1.0f, 0.0f },
-					{ 1.0f, 1.0f },
-					{ 0.0f, 1.0f }
-				};
-				const static math::vectorf3 normals[4u]
-				{
-					{ 0.0f, 1.0f, 0.0f },
-					{ 0.0f, 1.0f, 0.0f },
-					{ 0.0f, 1.0f, 0.0f },
-					{ 0.0f, 1.0f, 0.0f }
-				};
+					const imp::scene_data::mesh& mesh = asset.second.m_resource.get_mesh(i);
+					const string name = asset.first + "_" + std::to_string(i);
 
-				m_mesh_data.m_vertices.resize(4u);
-				m_mesh_data.m_indices.resize(6u);
-
-				for (uint8 i = 0u; i < 4u; ++i)
-				{
-					m_mesh_data.m_vertices[i] = {
-						.m_position{positions[i]},
-						.m_colour{colours[i]},
-						.m_normal{normals[i]},
-						.m_texcoords{uvs[i]} };
+					if (renderer::has_mesh(name) == false)
+					{
+						translate(mesh, m_mesh_data);
+						influx::renderer::load(name, m_mesh_data);
+					}
 				}
-
-				m_mesh_data.m_indices[0] = 0u;
-				m_mesh_data.m_indices[1] = 2u;
-				m_mesh_data.m_indices[2] = 1u;
-				m_mesh_data.m_indices[3] = 2u;
-				m_mesh_data.m_indices[4] = 3u;
-				m_mesh_data.m_indices[5] = 1u;
-
-				influx::renderer::load("engine_plane", m_mesh_data);
 			}
+		}
+
+		// inline meshes
+		if (renderer::has_mesh("engine_plane") == false)
+		{
+			influx::renderer::load("engine_plane", renderer::get_inline_mesh_plane());
+		}
+
+		if (renderer::has_mesh("engine_box") == false)
+		{
+			influx::renderer::load("engine_box", renderer::get_inline_mesh_box());
+		}
+
+		if (renderer::has_mesh("engine_sphere") == false)
+		{
+			influx::renderer::load("engine_sphere", renderer::get_inline_mesh_sphere());
 		}
 	}
 

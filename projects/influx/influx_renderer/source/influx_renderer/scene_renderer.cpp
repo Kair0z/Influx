@@ -39,10 +39,10 @@ namespace influx::renderer
         .m_depth_enable         { true },
         .m_stencil_enable       { false },
         .m_depth_comparison     { 0u },
-        .m_depth_format         { pipeline_signature::format::d32 }, // d32
+        .m_depth_format         { pipeline_signature::format::default_depth },
 
         .m_rtv_actives          { true, false, false, false, false, false, false, false },
-        .m_rtv_formats          { pipeline_signature::format::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        .m_rtv_formats          { pipeline_signature::format::default_color, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
         .m_blend_actives        { false, false, false, false, false, false, false, false },
         .m_blend_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_blend_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
@@ -50,7 +50,7 @@ namespace influx::renderer
         .m_alpha_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_alpha_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_alpha_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_writemasks     { 15u, 15u, 15u, 15u, 15u, 15u, 15u, 15u }
+        .m_blend_writemasks     { pipeline_signature::blendmask::blend_all, 0u, 0u, 0u, 0u, 0u, 0u, 0u}
     };
 
     scene_renderer::scene_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)

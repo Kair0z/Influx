@@ -24,6 +24,7 @@ namespace influx
 	{
 		constexpr float k_E			= 2.718281828459045f;
 		constexpr float k_PI		= 3.1415926535897932384626433832795f;
+		constexpr float k_PIHalf	= k_PI / 2.0f;
 		constexpr double k_dPI		= 3.141592653589793238462643383279502884197169399375105820974944592307816406286;
 		constexpr float k_PIDouble	= 6.283185307179586476925286766559f;
 		constexpr float k_PIonTwo	= 1.5707963267948966192313216916398f;

@@ -26,6 +26,51 @@
 
 namespace influx::engine
 {
+	void engine::initialize()
+	{
+		random::seed_random(0u);
+
+		m_t_init = time::get_now();
+
+		// setup engine config
+		m_config.m_file_influx_root = get_engine_directory(engine_directory::root);
+		m_config.m_file_influx_assets = get_engine_directory(engine_directory::assets);
+		m_config.m_file_influx_staged = get_engine_directory(engine_directory::staged);
+
+		// initialize job system:
+		async::init_args async_args{};
+		async_args.m_num_workers = 1u;
+		async::initialize(async_args);
+
+		// initialize input and run an input thread
+		influx::input::init();
+		m_inputthread = thread([this]()
+		{
+			run_input();
+		});
+
+		// initialize content
+		m_contentman = new content_manager(this);
+		m_contentthread = thread([this]()
+		{
+			run_content();
+		});
+
+		// initialize editor
+		if (m_runtype == run_type::editor)
+			m_editorman = new editor_manager(nullptr);
+
+		m_gameman = new game_manager();
+
+		// initialize render
+		string render_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
+		const math::vectoru2 window_dimensions = { 1280u, 720u };
+		initialize_renderer(render_name, window_dimensions);
+
+		// init world
+		m_world = new world();
+	}
+
 	void engine::run(run_type type)
 	{
 		m_runtype = type;
@@ -50,7 +95,6 @@ namespace influx::engine
 				ent_mesh.set_invert_normals(false);
 
 				material_component& ent_mat = m_world->create_component<material_component>(entity);
-
 				if (i % 2 == 0)
 				{
 					ent_mat.set_texture(e_texture_semantic::basecolor, "T_Sword_Opaque_BC");
@@ -113,7 +157,7 @@ namespace influx::engine
 			// stream available assets from content into the renderer
 			{
 				influx_scope("render_upload");
-				m_renderman->load_render_assets(m_contentman);
+				m_renderman->stream_content(m_contentman);
 			}
 
 			// record imgui
@@ -149,62 +193,22 @@ namespace influx::engine
 		m_is_quit = true;
 	}
 
-	void engine::initialize()
-	{
-		random::seed_random(0u);
-
-		m_t_init = time::get_now();
-
-		// setup engine config
-		m_config.m_file_influx_root = get_engine_directory(engine_directory::root);
-		m_config.m_file_influx_assets = get_engine_directory(engine_directory::assets);
-		m_config.m_file_influx_staged = get_engine_directory(engine_directory::staged);
-
-		// initialize job system:
-		async::init_args async_args{};
-		async_args.m_num_workers = 1u;
-		async::initialize(async_args);
-
-		// initialize input and run an input thread
-		influx::input::init();
-		m_inputthread = thread([this]()
-		{
-			run_input();
-		});
-
-		// initialize content
-		m_contentman = new content_manager(this);
-		m_contentthread = thread([this]()
-		{
-			// init content
-			m_contentman->load_engine_assets(this);
-
-			while (!m_is_quit_requested)
-			{
-
-			}
-		});
-
-		// initialize editor
-		if (m_runtype == run_type::editor) 
-			m_editorman = new editor_manager(nullptr);
-		
-		m_gameman = new game_manager();
-
-		// initialize render
-		string render_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
-		const math::vectoru2 window_dimensions = { 1280u, 720u };
-		initialize_renderer(render_name, window_dimensions);
-
-		// init world
-		m_world = new world();
-	}
-
 	void engine::run_input()
 	{
 		while (!m_is_quit_requested)
 		{
 			input::service();
+		}
+	}
+
+	void engine::run_content()
+	{
+		// kick off loading engine assets
+		m_contentman->load_engine_assets(this);
+
+		while (!m_is_quit_requested)
+		{
+
 		}
 	}
 

@@ -54,11 +54,13 @@ namespace influx::renderer
 		enum format : uint32
 		{
 			rgba8	= 0u,
+			default_color = rgba8,
 			r32		= 1u,
 			rg32	= 2u,
 			rgb32	= 3u,
 			rgba32	= 4u,
 			d32		= 5u,
+			default_depth = d32,
 			u16		= 6u,
 			u32		= 7u
 		};

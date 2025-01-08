@@ -67,7 +67,7 @@ namespace influx::renderer
         .m_alpha_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_alpha_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_alpha_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_writemasks     { 15u, 15u, 15u, 15u, 15u, 15u, 15u, 15u }
+        .m_blend_writemasks     { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
     };
 
     debug_renderer::debug_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
