@@ -181,7 +181,7 @@ namespace influx::engine
 		// content meshes
 		for (const auto& asset : content.get_scenes())
 		{
-			if (asset.second.is_loaded() && !asset.second.m_resource.m_meshes.empty())
+			if (asset.second.is_loaded())
 			{
 				for (uint32 i = 0u; i < asset.second.m_resource.get_num_meshes(); ++i)
 				{
@@ -202,12 +202,10 @@ namespace influx::engine
 		{
 			influx::renderer::load("engine_plane", renderer::get_inline_mesh_plane());
 		}
-
 		if (renderer::has_mesh("engine_box") == false)
 		{
 			influx::renderer::load("engine_box", renderer::get_inline_mesh_box());
 		}
-
 		if (renderer::has_mesh("engine_sphere") == false)
 		{
 			influx::renderer::load("engine_sphere", renderer::get_inline_mesh_sphere());

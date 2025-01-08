@@ -50,7 +50,6 @@ namespace influx::engine
         update_bounds_system();
         update_stream_system();
         update_rigidbody_system();
-        update_rendermesh_system();
     }
 
     void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D, renderer::scene_debug& debugscene) const
@@ -63,7 +62,7 @@ namespace influx::engine
         scene.m_camera.m_near_plane = 0.001f;
         debugscene.clear();
         
-        // render camera
+        // choose camera
         {
             influx_scope("build_camera");
             for (auto [entity, transform_comp, camera_comp] 
@@ -105,8 +104,13 @@ namespace influx::engine
             for (auto [entity, transform_comp, mesh_comp, material_comp] : view.each())
             {
                 math::transform3D transform = transform_comp.get_transform();
-                if (mesh_comp.get_use_normalized_scale()) transform.set_scale(mesh_comp.m_normalized_scale);
-                transform.update_matrix();
+
+                // normalize scale to bounding sphere
+                if (mesh_comp.get_use_normalized_scale() && mesh_comp.m_mesh_boundsphere.m_radius > 0.0f)
+                {
+                    transform.set_scale(1.0f / mesh_comp.m_mesh_boundsphere.m_radius);
+                    transform.update_matrix();
+                }
                 
                 // setup mesh
                 renderer::mesh_instance render_mesh{};
@@ -356,23 +360,6 @@ namespace influx::engine
                 const math::float3 acceleration = body_comp.get_acceleration();
                 body_comp.set_velocity(velocity + acceleration * delta_time);
             }
-        }
-    }
-
-    void world::update_rendermesh_system()
-    {
-        influx_scope("rendermesh_system");
-
-        // normalize scales
-        for (auto [entity, transform_comp, mesh_comp]
-            : m_registry.view<transform_component, mesh_component>().each())
-        {
-            float norm_scale = 1.0f;
-            if (mesh_comp.get_use_normalized_scale() && mesh_comp.m_mesh_boundsphere.m_radius > 0.0f)
-            {
-                norm_scale = 1.0f / mesh_comp.m_mesh_boundsphere.m_radius;
-            }
-            mesh_comp.m_normalized_scale = norm_scale;
         }
     }
 }

@@ -156,7 +156,7 @@ namespace influx::engine
 
 			// stream available assets from content into the renderer
 			{
-				influx_scope("render_upload");
+				influx_scope("stream_to_render");
 				m_renderman->stream_content(m_contentman);
 			}
 

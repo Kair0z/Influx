@@ -68,11 +68,16 @@ namespace influx::engine
 		entt::registry m_registry;
 		list<entity> m_entities;
 		
+		// update
 		void update_input_system();
 		void update_bounds_system();
 		void update_stream_system();
 		void update_rigidbody_system();
 		void update_rendermesh_system();
+
+		// render
+		void render_sprites();
+		void render_meshes();
 
 		// deferred input: this is a bit ugly
 		template <typename _t>
