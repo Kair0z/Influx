@@ -114,6 +114,7 @@ namespace influx::renderer
 
 		// setup state
 		renderer_backend& backend = renderer_backend::get_instance();
+		descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
 		commandlist->set_vertexbuffer(mp_vertexbuffer);
 		commandlist->set_indexbuffer(mp_indexbuffer);
 		commandlist->set(viewport);
@@ -123,7 +124,7 @@ namespace influx::renderer
 		commandlist->set_constants(0u, 16u, &vertex_constant_buffer);
 
 		// stage the font srv onto the gpu heap
-		graphics::descriptor_range font_gpu_range = backend.get_descriptor_manager()->stage(mp_fonts_texture->get_srv()->get_cpu_handle());
+		graphics::descriptor_range font_gpu_range = descriptor_manager.stage(mp_fonts_texture->get_srv()->get_cpu_handle());
 		graphics::descriptor_range tex_gpu_range = font_gpu_range;
 
 		// setup draw
@@ -163,7 +164,7 @@ namespace influx::renderer
 					texture* tex = reinterpret_cast<texture*>(pcmd->GetTexID());
 					if (tex != nullptr)
 					{
-						tex_gpu_range = backend.get_descriptor_manager()->stage(tex);
+						tex_gpu_range = descriptor_manager.stage(tex);
 					}
 				}
 				else
