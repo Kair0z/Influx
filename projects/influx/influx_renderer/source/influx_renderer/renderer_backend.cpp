@@ -628,6 +628,18 @@ namespace influx::renderer
         return m_pixel_shaders;
     }
 
+    void* renderer_backend::get_imgui_texture_id(const string& title)
+    {
+        if (has_texture(title))
+        {
+            return m_textures.at(title);
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+
 #pragma region frontend_api
     void initialize(const init_args& args)
     {
@@ -744,9 +756,14 @@ namespace influx::renderer
         renderer_backend::get_instance().set_settings(settings);
     }
 
-    INFLUX_RENDER_API render_settings get_settings()
+    render_settings get_settings()
     {
         return renderer_backend::get_instance().get_settings();
+    }
+
+    void* get_imgui_texture_id(const string& title)
+    {
+        return renderer_backend::get_instance().get_imgui_texture_id(title);
     }
 
     memory_info get_memory_info()

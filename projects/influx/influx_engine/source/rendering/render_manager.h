@@ -41,6 +41,10 @@ namespace influx::engine
 
 		renderer::scene_debug& get_debug_render();
 
+		// textures
+		bool has_texture_loaded(const string& name) const;
+		void* get_loaded_texture_id(const string& name) const;
+
 	private:
 		renderer::target* mp_window_target;
 		renderer::target* mp_scene_target;

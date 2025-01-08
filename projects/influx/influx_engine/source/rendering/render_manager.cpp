@@ -275,6 +275,23 @@ namespace influx::engine
 		return *mp_debug_scene;
 	}
 
+	bool render_manager::has_texture_loaded(const string& name) const
+	{
+		return influx::renderer::has_texture(name);
+	}
+
+	void* render_manager::get_loaded_texture_id(const string& name) const
+	{
+		if (has_texture_loaded(name))
+		{
+			return influx::renderer::get_imgui_texture_id(name);
+		}
+		else
+		{
+			return 0u;
+		}
+	}
+
 	void render_manager::on_window_resize(const math::vectoru2& new_dimensions)
 	{
 		// update imgui IO

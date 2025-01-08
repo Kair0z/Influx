@@ -103,6 +103,8 @@ namespace influx::renderer
 		umap<string, shader_data>& get_vertex_shaders();
 		umap<string, shader_data>& get_pixel_shaders();
 
+		void* get_imgui_texture_id(const string& title);
+
 	private:
 		uint64 m_frame_count = 0u;
 		bool m_is_initialized = false;

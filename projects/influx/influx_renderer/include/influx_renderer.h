@@ -120,6 +120,9 @@ namespace influx::renderer
 	INFLUX_RENDER_API void set_settings(const render_settings& settings);
 	INFLUX_RENDER_API render_settings get_settings();
 
+	// get ImTextureID from a loaded-in texture
+	INFLUX_RENDER_API void* get_imgui_texture_id(const string& title);
+
 	// graphics info
 	struct memory_info final
 	{

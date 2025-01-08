@@ -1,4 +1,6 @@
 #pragma once
+
+// influx::core
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/container/vector.h"
@@ -56,6 +58,9 @@ namespace influx::renderer
 		uint32 get_height() const;
 		uint32 get_num_pixels() const;
 		uint32 get_srv_heap_idx() const;
+
+		// useful for ImTextureID (imgui)
+		void* get_cpu_handle() const;
 
 #if _DEBUG
 		void set_name(const string& name);

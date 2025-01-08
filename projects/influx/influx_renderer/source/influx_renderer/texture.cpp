@@ -62,6 +62,18 @@ namespace influx::renderer
 		return 0u;
 	}
 
+	void* texture::get_cpu_handle() const
+	{
+		if (mp_srv != nullptr)
+		{
+			return mp_srv->get_cpu_handle();
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+
 #if _DEBUG
 	void texture::set_name(const string& name)
 	{

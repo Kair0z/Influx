@@ -10,8 +10,8 @@
 #include "content/content_manager.h"
 #include "world/world.h"
 #include "scene/scene.h"
-#include "content/content_manager.h"
 #include "game/game_manager.h"
+#include "rendering/render_manager.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -88,15 +88,27 @@ namespace influx::engine
 
 				if (ImGui::BeginTabItem("textures"))
 				{
-					// "texture:filepath"
-					for (const auto& pair : get_engine()->get_content()->get_images())
-						if (pair.second.is_loaded() && pair.second.is_engine())
+					const float size = 50.0f;
+
+					if (ImGui::BeginTable("ed_texture_grid", 4u))
+					{
+						for (const auto& pair : get_engine()->get_content()->get_images())
 						{
-							const image_asset& image = pair.second;
-							const math::vectori2& image_dims = image.m_resource.m_dimensions;
-							ImGui::Text("texture:%s - ms:%f[%ix%i]", pair.first.c_str(), image.get_load_ms(),
-								image_dims.x, image_dims.y);
+							if (pair.second.is_loaded() && pair.second.is_engine())
+							{
+								ImGui::TableNextColumn();
+
+								const string& name = pair.first;
+								ImGui::Image(get_engine()->get_renderer()->get_loaded_texture_id(name), { size, size });
+
+								const image_asset& image = pair.second;
+								const math::vectori2& image_dims = image.m_resource.m_dimensions;
+								ImGui::TextWrapped("%s", name.c_str());
+							}
 						}
+						ImGui::EndTable();
+					}
+
 					ImGui::EndTabItem();
 				}
 
@@ -108,6 +120,7 @@ namespace influx::engine
 							ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 					ImGui::EndTabItem();
 				}
+
 				ImGui::EndTabBar();
 			}
 		}

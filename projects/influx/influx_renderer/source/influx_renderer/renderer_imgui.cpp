@@ -122,10 +122,11 @@ namespace influx::renderer
 		commandlist->set(mp_rootsig);
 		commandlist->set_constants(0u, 16u, &vertex_constant_buffer);
 
-		// stage the cpu srv onto the gpu heap
-		graphics::descriptor_range gpu_range = 
+		// stage the font srv onto the gpu heap
+		graphics::descriptor_range font_gpu_range =
 			backend.get_descriptor_manager()->stage(mp_fonts_texture->get_srv()->get_cpu_handle());
-			
+		graphics::descriptor_range tex_gpu_range = font_gpu_range;
+
 		// setup draw
 		// (Because we merged all buffers into a single one, we maintain our own offset into them)
 		int global_vtx_offset = 0;
@@ -153,8 +154,21 @@ namespace influx::renderer
 					.m_bottom = (uint32)clip_max.y,
 				};
 				commandlist->set(rect);
-				commandlist->set(gpu_range, 1u);
 
+				// check if this command requires the font texture, or any of our own textures
+				const bool command_has_texture = pcmd->GetTexID() != 0u;
+				if (command_has_texture)
+				{
+					texture* tex = reinterpret_cast<texture*>(pcmd->GetTexID());
+					tex_gpu_range = backend.get_descriptor_manager()->stage(tex);
+				}
+				else
+				{
+					tex_gpu_range = font_gpu_range;
+				}
+
+				// set the gpu range
+				commandlist->set(tex_gpu_range, 1u);
 				commandlist->draw_indexed({
 					.m_num_indexes_per_instance = pcmd->ElemCount,
 					.m_num_instances = 1u,
