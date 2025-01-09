@@ -180,7 +180,13 @@ namespace influx::engine
 		update_context();
 		update_inputs();
 		//update_background_dockspace();
-		update_main_editor();
+		
+		if (m_editor_toggle)
+		{
+			update_mainmenu();
+			update_static_windows();
+		}
+
 		return {};
 	}
 
@@ -215,30 +221,6 @@ namespace influx::engine
 		}
 
 		return res;
-	}
-
-	result<> editor_manager::update_main_editor()
-	{
-		result<> result{};
-
-		engine* engine = get_engine();
-		influx_assert(engine);
-
-		auto res_world = engine->get_world();
-		influx_assert(res_world);
-
-		auto res_content = engine->get_content();
-		influx_assert(res_content);
-
-		if (!m_editor_toggle)
-		{
-			return {};
-		}
-
-		update_mainmenu();
-		update_static_windows();
-
-		return {};
 	}
 
 	result<> editor_manager::update_mainmenu()
@@ -377,6 +359,10 @@ namespace influx::engine
 		case input::e_mouse_button::right: 
 			m_static_windows_radial.set_visible(true);
 			m_static_windows_radial.set_position(position.m_client);
+			break;
+
+		case input::e_mouse_button::left:
+
 			break;
 		}
 

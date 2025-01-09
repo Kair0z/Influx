@@ -188,6 +188,9 @@ namespace influx::math
 		static vector<_t, 3u> get_look_at(const vector<_t, 3u>& from, const vector<_t, 3u>& to);
 
 		vector<_t, 2u> get_xy() const;
+		vector<_t, 3u> get_xyz() const;
+		vector<_t, 2u> get_rg() const;
+		vector<_t, 3u> get_rgb() const;
 
 		static vector abs(const vector& vec);
 		

@@ -172,11 +172,6 @@ namespace influx::engine
 		cooldown_toggle m_engine_toggle = 0.5f;
 		cooldown_toggle m_editor_toggle = 0.5f;
 
-		editor_window m_main_window;
-		editor_window m_fps_window;
-		editor_window m_content_window;
-		editor_window m_engine_content_window;
-
 		// static windows
 		imgui::popup_radial<editor_window*> m_static_windows_radial;
 		static umap<string, editor_window*> m_static_windows;
@@ -186,7 +181,6 @@ namespace influx::engine
 		result<> update_inputs();
 		result<> update_context();
 		result<> update_mainmenu();
-		result<> update_main_editor();
 		result<> update_background_dockspace();
 		result<> update_static_windows();
 

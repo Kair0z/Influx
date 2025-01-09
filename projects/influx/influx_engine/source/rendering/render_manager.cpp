@@ -27,6 +27,12 @@
 
 namespace influx::engine
 {
+	struct
+	{
+		math::colour_rgba m_clearcolour{};
+
+	} g_global_settings{};
+
 	class render_editor final : public editor_window
 	{
 	public:
@@ -42,7 +48,8 @@ namespace influx::engine
 
 			renderer::render_settings settings = renderer::get_settings();
 			ImGui::Checkbox("wireframe: ", &settings.m_wireframe);
-			ImGui::SliderInt("Cullmode: ", (int*)&settings.m_cullmode, 0, 2);
+			ImGui::SliderInt("cullmode: ", (int*)&settings.m_cullmode, 0, 2);
+			ImGui::ColorEdit3("clear colour: ", &g_global_settings.m_clearcolour.r);
 
 			renderer::set_settings(settings);
 		}
@@ -233,7 +240,12 @@ namespace influx::engine
 		mp_scene_target->resize(*mp_window_target);
 
 		// 1. clear
-		renderer::clear_args clear{ {0.2f, 0.2f, 0.2f, 0.2f } };
+		renderer::clear_args clear{ {
+			g_global_settings.m_clearcolour.r,
+			g_global_settings.m_clearcolour.g,
+			g_global_settings.m_clearcolour.b,
+			1.0f }};
+
 		renderer::clear_target(*mp_scene_target, clear);
 		
 		// 2. scene render
