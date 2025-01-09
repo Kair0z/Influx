@@ -10,6 +10,9 @@
 #include "core/math/matrix.h"
 #include "core/geometry/ray.h"
 
+// STL
+#include <algorithm> // swap
+
 namespace influx::math
 {
 	namespace detail
@@ -72,8 +75,38 @@ namespace influx::math
 
 		inline bool trace(const ray& ray, float& out_distance) const
 		{
-			// todo
-			return false;
+			const auto& ray_origin = ray.get_origin();
+			const auto& ray_direction = ray.get_direction();
+			float t_min = (m_min[0] - ray_origin[0]) / ray_direction[0]; 
+			float t_max = (m_max[0] - ray_origin[0]) / ray_direction[0]; 
+
+			if (t_min > t_max)
+			{
+				std::swap(t_min, t_max);
+			}
+			
+			for (uint32 i = 1u; i < 3u; ++i) 
+			{  
+				// Process y and z axes
+				float t1 = (m_min[i] - ray_origin[i]) / ray_direction[i];
+				float t2 = (m_max[i] - ray_origin[i]) / ray_direction[i];
+
+				if (t1 > t2)
+				{
+					std::swap(t1, t2);
+				}
+
+				t_min = math::maximum(t_min, t1);
+				t_max = math::minimum(t_max, t2);
+
+				if (t_min > t_max)
+				{
+					return false;
+				}
+			}
+
+			out_distance = t_min;
+			return true;
 		}
 
 		bounds() = default;

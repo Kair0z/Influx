@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/macros.h"
+#include "core/math/matrix.h"
 
 namespace influx::scene
 {
@@ -10,6 +11,15 @@ namespace influx::scene
 		camera() = default;
 		camera(float fov, float nearp = 0.0f, float farp = 1.0f)
 			: m_fov{ fov }, m_nearplane{ nearp }, m_farplane{ farp } {}
+
+		inline math::matrix4x4f get_projection() const
+		{
+			return math::matrix4x4f::make_projection_RH(
+				get_fov(),
+				get_aspect_ratio(),
+				get_nearplane(),
+				get_farplane());
+		}
 
 	private:
 		influx_property_readwrite(float, fov);

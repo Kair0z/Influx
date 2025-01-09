@@ -362,7 +362,44 @@ namespace influx::engine
 			break;
 
 		case input::e_mouse_button::left:
+			
+			world& world = *get_engine()->get_world_ptr();
 
+			// get camera matrices
+			const math::matrix4x4f projection = world.get_main_projection_matrix();
+			const math::matrix4x4f view = world.get_main_viewmatrix();
+			const math::float3 camera_pos = world.get_main_cameraposition();
+
+			// convert pixel to ndc space
+			const math::float2 clientpos = position.m_client;
+			math::float3 mouse_ndc =
+			{
+				(2.0f * clientpos.x / 1280.0f) - 1.0f,
+				1.0f - (2.0f * clientpos.y / 720.0f),
+				-1.0f
+			};
+
+			mouse_ndc.x = -mouse_ndc.x;
+			mouse_ndc.y = -mouse_ndc.y;
+
+			// unproject ndc -> view
+			const math::float3 raypos_ndc = math::float4(mouse_ndc.x, mouse_ndc.y, mouse_ndc.z);
+			math::float3 raypos_view = projection.inverted() * raypos_ndc;
+			raypos_view.z = -1.0f;
+
+			// unview view -> world
+			math::float4 raypoint_world = view.inverted() * raypos_view;
+			
+			// make the ray
+			math::ray ray_from_eye{};
+			ray_from_eye.m_direction = -(raypoint_world.get_xyz() - camera_pos).normalized();
+			ray_from_eye.m_origin = camera_pos;
+			ray_from_eye.m_min = 0.0f;
+			ray_from_eye.m_max = FLT_MAX;
+
+			// trace the world with the ray
+			world::trace_result result{};
+			world.trace(ray_from_eye, result);
 			break;
 		}
 

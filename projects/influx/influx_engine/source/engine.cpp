@@ -64,7 +64,7 @@ namespace influx::engine
 
 		// initialize render
 		string render_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
-		const math::vectoru2 window_dimensions = { 640u, 480u };
+		const math::vectoru2 window_dimensions = { 1280u, 720u };
 		initialize_renderer(render_name, window_dimensions);
 
 		// init world
@@ -89,11 +89,13 @@ namespace influx::engine
 				ent_transform.set_position(points[i]);
 				//ent_transform.set_scale(0.1f);
 
+				// mesh
 				mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
 				ent_mesh.set_mesh_name("transistor_0");
 				ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
 				ent_mesh.set_invert_normals(false);
 
+				// material
 				material_component& ent_mat = m_world->create_component<material_component>(entity);
 				if (i % 2 == 0)
 				{
@@ -105,18 +107,26 @@ namespace influx::engine
 				}
 				ent_mat.set_texture(e_texture_semantic::normals, "");
 				ent_mat.set_texture(e_texture_semantic::roughness, "");
+
+				// bounds
+
 			}
 			
 			static float distance = 5.0f;
 			auto camera = m_world->create_entity();
 			transform_component& cam_transform = m_world->create_component<transform_component>(camera);
-			m_world->create_component<camera_component>(camera).set_fov(90.0f);
+			camera_component& cam_component = m_world->create_component<camera_component>(camera);
+			cam_component.set_fov(90.0f);
+			cam_component.set_aspect_ratio(1280.0f / 720.0f);
+			cam_component.set_farplane(1000.0f);
+			cam_component.set_nearplane(0.001f);
 
 			static math::float2 angular_position = {};
 			static math::float2 mouse_position_previous = {};
 			input_component& cam_input = m_world->create_component<input_component>(camera);
 			cam_input.m_on_mouse_move = [this, &cam_transform](const input::mouse_position& pos)
 			{
+				return;
 				const float ar = get_window()->get_rect(platform::window::e_space::client).get_aspect_ratio();
 				math::float2 delta_mouse = (pos.m_client - mouse_position_previous);
 				delta_mouse.y *= ar; // normalize mousemove
@@ -130,6 +140,7 @@ namespace influx::engine
 				cam_transform.set_position_y(distance * math::cosf(angular_position.y));
 				cam_transform.set_position_z(distance * math::sinf(angular_position.y) * math::sinf(angular_position.x));
 				cam_transform.look_at({});
+				cam_transform.update_matrix();
 			};
 		}
 

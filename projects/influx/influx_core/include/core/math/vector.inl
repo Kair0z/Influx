@@ -366,7 +366,7 @@ namespace influx::math
 	template <typename _t, _vector_dim_t _dim>
 	inline vector<_t, 3u> vector<_t, _dim>::get_xyz() const
 	{
-		return vector<_t, 2u>{ this->x, this->y, this->z };
+		return vector<_t, 3u>{ this->x, this->y, this->z };
 	}
 
 	template <typename _t, _vector_dim_t _dim>
@@ -378,7 +378,7 @@ namespace influx::math
 	template <typename _t, _vector_dim_t _dim>
 	inline vector<_t, 3u> vector<_t, _dim>::get_rgb() const
 	{
-		return vector<_t, 2u>{ this->x, this->y, this->z };
+		return vector<_t, 3u>{ this->x, this->y, this->z };
 	}
 
 	template <typename _t, _vector_dim_t _dim>

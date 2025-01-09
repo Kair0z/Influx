@@ -7,6 +7,7 @@ namespace influx::math
 	class ray final
 	{
 	public:
+		ray() = default;
 		ray(const math::vectorf3& origin, const math::vectorf3& direction, float min = 0.0f, float max = FLT_MAX)
 			: m_origin{ origin }, m_direction{ direction }, m_min{ min }, m_max{ max }{}
 
@@ -30,7 +31,7 @@ namespace influx::math
 			return m_max;
 		}
 
-	private:
+	public:
 		math::vectorf3 m_origin;
 		math::vectorf3 m_direction;
 		float m_min;

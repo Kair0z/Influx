@@ -55,7 +55,7 @@ namespace influx::engine
 		template<typename _ctype>
 		bool has_component(const entity& e);
 
-		struct trace_result { entity* hit_entity = nullptr; };
+		struct trace_result { entity* m_entity = nullptr; };
 		bool trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer = e_collision_layer::all);
 		
 		void clear();
@@ -63,6 +63,11 @@ namespace influx::engine
 		void load_project(const influx::files::projectfile& proj);
 
 		void save_project(influx::files::projectfile& proj);
+
+		// gets the viewmatrix of the main camera
+		math::matrix4x4f get_main_projection_matrix() const;
+		math::matrix4x4f get_main_viewmatrix() const;
+		math::float3 get_main_cameraposition() const;
 
 	private:
 		entt::registry m_registry;

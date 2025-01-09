@@ -62,6 +62,11 @@ namespace influx::engine
 			m_transform.rotate_x(delta_angle, blocal);
 		}
 
+		void move(const math::vectorf3& delta_position)
+		{
+			set_position(get_position() + delta_position);
+		}
+
 		void set_position(const math::vectorf3& position)
 		{
 			m_transform.set_position(position);
@@ -277,6 +282,41 @@ namespace influx::engine
 			return m_camera.get_fov();
 		}
 
+		void set_aspect_ratio(float ar)
+		{
+			m_camera.set_aspect_ratio(ar);
+		}
+
+		float get_aspect_ratio() const
+		{
+			return m_camera.get_aspect_ratio();
+		}
+
+		inline math::matrix4x4f get_projection() const
+		{
+			return m_camera.get_projection();
+		}
+
+		void set_nearplane(float n)
+		{
+			m_camera.set_nearplane(n);
+		}
+
+		void set_farplane(float f)
+		{
+			m_camera.set_farplane(f);
+		}
+
+		float get_nearplane() const
+		{
+			return m_camera.get_nearplane();
+		}
+
+		float get_farplane() const
+		{
+			return m_camera.get_farplane();
+		}
+
 	private:
 		influx::scene::camera m_camera{};
 	};
@@ -342,5 +382,13 @@ namespace influx::engine
 		influx_property_read(math::boxf, bounding_box);
 		influx_property_read(math::spheref, bounding_sphere);
 		influx_property_readwrite(e_collision_layer, layer);
+	};
+
+	class select_component final
+	{
+	public:
+
+	private:
+		influx_property_readwrite(bool, is_selected);
 	};
 }

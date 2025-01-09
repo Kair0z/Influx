@@ -52,14 +52,13 @@ namespace influx::engine
         update_rigidbody_system();
     }
 
+    static math::ray* g_lastray = nullptr;
+
     void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D, renderer::scene_debug& debugscene) const
     {
         const bool is_editor = get_engine()->is_editor();
         const float delta_time = get_engine()->get_time().get_delta_seconds();
 
-        // general scene
-        scene.m_camera.m_far_plane = 1000.0f;
-        scene.m_camera.m_near_plane = 0.001f;
         debugscene.clear();
         
         // choose camera
@@ -70,6 +69,8 @@ namespace influx::engine
             {
                 math::transform3D transform = transform_comp.get_transform();
                 scene.m_camera.m_fov = camera_comp.get_fov();
+                scene.m_camera.m_far_plane = camera_comp.get_farplane();
+                scene.m_camera.m_near_plane = camera_comp.get_nearplane();
                 scene.m_camera.m_transform = transform;
                 scene.m_camera.m_transform.update_matrix();
             }
@@ -122,14 +123,25 @@ namespace influx::engine
         }
 
         // editor render
-        if (is_editor && false)
+        if (is_editor)
         {
             influx_scope("build_gizmos");
             debugscene.add_gizmo_transform(math::transform3D::identity());
 
+            // ray
+            if (g_lastray)
+            {
+                debugscene.add_line(g_lastray->get_origin(), g_lastray->get_origin() + g_lastray->get_direction() * 100.0f, colour::k_white);
+            }
             // transform gizmos
             for (auto [entity, transform_comp] : m_registry.view<transform_component>().each())
             {
+                if (m_registry.try_get<camera_component>(entity))
+                {
+                    // cameras shouldn't here
+                    continue;
+                }
+
                 debugscene.add_gizmo_transform(transform_comp.get_transform());
             }
 
@@ -137,7 +149,7 @@ namespace influx::engine
             for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
             {
                 math::transform3D transform = transform_comp.get_transform();
-                transform.set_scale(mesh_comp.m_normalized_scale);
+                transform.set_scale(1.0f / mesh_comp.m_mesh_boundsphere.m_radius);
                 transform.update_matrix();
 
                 const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform.get_matrix());
@@ -155,21 +167,57 @@ namespace influx::engine
 
     bool world::trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer)
     {
-        out_result.hit_entity = nullptr;
+        out_result.m_entity = nullptr;
+
+        struct hit_result final
+        {
+            entity* m_entity;
+            select_component* m_component;
+            float m_hit_distance;
+        };
+        vector<hit_result> hit_results{};
 
         bool hit_any = false;
-        for (auto [entity, transform_comp, collision_comp] : m_registry.view<transform_component, collider_component>().each())
+        for (auto [entity, transform_comp, mesh_comp] : m_registry.view<
+            transform_component, 
+            mesh_component>().each())
         {
-            const math::boxf& bounds = collision_comp.get_bounding_box();
+            math::transform3D transform = transform_comp.get_transform();
+            transform.set_scale(1.0f / mesh_comp.m_mesh_boundsphere.m_radius);
+            transform.update_matrix();
+
+            math::boxf bounds = mesh_comp.m_mesh_boundbox;
+            bounds = bounds.get_transformed3D(transform.get_matrix());
+
             float out_distance{};
             if (bounds.trace(ray, out_distance))
             {
-                out_result.hit_entity = nullptr;
-                hit_any |= true;
+                hit_result new_result{};
+                new_result.m_component = nullptr;
+                new_result.m_entity = reinterpret_cast<influx::engine::entity*>(&entity);
+                new_result.m_hit_distance = out_distance;
+                hit_results.push_back(new_result);
+
+                if (g_lastray == nullptr)
+                    g_lastray = new math::ray();
+
+                (*g_lastray) = ray;
+                transform_comp.move({ 0.0f, 1.0f, 0.0f });
             }
         }
 
-        return hit_any;
+        // find the closest one
+        if (hit_results.size() > 0u)
+        {
+            std::sort(hit_results.begin(), hit_results.end(), [](const hit_result& a, const hit_result& b)
+            {
+                return a.m_hit_distance < b.m_hit_distance;
+            });
+
+            out_result.m_entity = hit_results[0u].m_entity;
+        }
+
+        return hit_results.size() != 0u;
     }
 
     void world::clear()
@@ -200,6 +248,40 @@ namespace influx::engine
         {
             proj.m_entities.push_back({});
         }
+    }
+
+    math::matrix4x4f world::get_main_projection_matrix() const
+    {
+        math::matrix4x4f projection_matrix{};
+        for (auto [entity, transform_comp, camera_comp]
+            : m_registry.view<const transform_component, camera_component>().each())
+        {
+            projection_matrix = camera_comp.get_projection();
+        }
+        return projection_matrix;
+    }
+
+    math::matrix4x4f world::get_main_viewmatrix() const
+    {
+        math::matrix4x4f view_matrix = {};
+        for (auto [entity, transform_comp, camera_comp]
+            : m_registry.view<const transform_component, camera_component>().each())
+        {
+            math::transform3D transform = transform_comp.get_transform();
+            view_matrix = transform.get_matrix().inverted();
+        }
+        return view_matrix;
+    }
+
+    math::float3 world::get_main_cameraposition() const
+    {
+        math::float3 position{};
+        for (auto [entity, transform_comp, camera_comp]
+            : m_registry.view<const transform_component, camera_component>().each())
+        {
+            position = transform_comp.get_position();
+        }
+        return position;
     }
 
     void world::update_input_system()
