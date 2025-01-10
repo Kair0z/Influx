@@ -379,7 +379,7 @@ namespace influx::engine
 				-1.0f
 			};
 
-			mouse_ndc.x = -mouse_ndc.x;
+			// mouse_ndc.x = -mouse_ndc.x;
 			mouse_ndc.y = -mouse_ndc.y;
 
 			// unproject ndc -> view

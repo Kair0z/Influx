@@ -346,6 +346,21 @@ namespace influx::engine
 			m_velocity = math::float3::zero();
 		}
 
+		void set_force_x(const float x)
+		{
+			m_acceleration.x = x;
+		}
+
+		void set_force_y(const float y)
+		{
+			m_acceleration.y = y;
+		}
+
+		void set_force_z(const float z)
+		{
+			m_acceleration.z = z;
+		}
+
 		influx_property_readwrite(math::float3, velocity);
 		influx_property_readwrite(math::float3, acceleration);
 		influx_property_readwrite(float, drag);

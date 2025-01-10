@@ -99,6 +99,7 @@ namespace influx::renderer
         pipeline_desc.m_rasterizer.m_depth_bias = signature.m_depthbias;
         pipeline_desc.m_rasterizer.m_depth_bias_clamp = signature.m_depthbias_clamp;
         pipeline_desc.m_rasterizer.m_slope_depth_bias = signature.m_slope_depthbias;
+        pipeline_desc.m_rasterizer.m_front_ccw = true;
         pipeline_desc.m_depth_stencil.m_depth_enable = signature.m_depth_enable;
         pipeline_desc.m_depth_stencil.m_stencil_enable = signature.m_stencil_enable;
         pipeline_desc.m_depth_stencil.m_depth_func = (graphics::e_comparison_func)signature.m_depth_comparison;

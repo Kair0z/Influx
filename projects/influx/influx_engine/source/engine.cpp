@@ -87,12 +87,13 @@ namespace influx::engine
 				auto entity = m_world->create_entity();
 				transform_component& ent_transform = m_world->create_component<transform_component>(entity);
 				ent_transform.set_position(points[i]);
-				//ent_transform.set_scale(0.1f);
+				ent_transform.set_scale(0.1f);
+				ent_transform.update_matrix();
 
 				// mesh
 				mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
-				ent_mesh.set_mesh_name("transistor_0");
-				ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
+				ent_mesh.set_mesh_name("esphere");
+				ent_mesh.set_use_normalized_scale(false); // scales to bounding sphere
 				ent_mesh.set_invert_normals(false);
 
 				// material
@@ -107,40 +108,47 @@ namespace influx::engine
 				}
 				ent_mat.set_texture(e_texture_semantic::normals, "");
 				ent_mat.set_texture(e_texture_semantic::roughness, "");
-
-				// bounds
-
 			}
 			
-			static float distance = 5.0f;
+			// setup camera transform
 			auto camera = m_world->create_entity();
 			transform_component& cam_transform = m_world->create_component<transform_component>(camera);
+			cam_transform.set_position({ 0.0f, 0.0f, 10.0f });
+			cam_transform.look_at({});
+			cam_transform.update_matrix();
+
+			// setup camera settings
 			camera_component& cam_component = m_world->create_component<camera_component>(camera);
 			cam_component.set_fov(90.0f);
 			cam_component.set_aspect_ratio(1280.0f / 720.0f);
 			cam_component.set_farplane(1000.0f);
 			cam_component.set_nearplane(0.001f);
 
-			static math::float2 angular_position = {};
-			static math::float2 mouse_position_previous = {};
+			// setup camera movement
 			input_component& cam_input = m_world->create_component<input_component>(camera);
-			cam_input.m_on_mouse_move = [this, &cam_transform](const input::mouse_position& pos)
+			rigidbody_component& physics_component = m_world->create_component<rigidbody_component>(camera);
+			physics_component.set_drag(1.0f);
+
+			cam_input.m_on_ascii_down = [this, &cam_transform, &physics_component](const char ascii)
 			{
-				return;
-				const float ar = get_window()->get_rect(platform::window::e_space::client).get_aspect_ratio();
-				math::float2 delta_mouse = (pos.m_client - mouse_position_previous);
-				delta_mouse.y *= ar; // normalize mousemove
-				mouse_position_previous = pos.m_client;
+				const float movement_force = 10.0f;
+				switch (ascii)
+				{
+				case 'A': physics_component.add_force(-cam_transform.get_right()	* movement_force); break;
+				case 'W': physics_component.add_force(cam_transform.get_forward()	* movement_force); break;
+				case 'S': physics_component.add_force(-cam_transform.get_forward()	* movement_force); break;
+				case 'D': physics_component.add_force(cam_transform.get_right()		* movement_force); break;
+				}
+			};
 
-				const float seconds = m_time.get_time_seconds();
-				const float delta_seconds = m_time.get_delta_seconds();
-				angular_position += delta_mouse * delta_seconds * 0.5f;
-
-				cam_transform.set_position_x(distance * math::sinf(angular_position.y) * math::cosf(angular_position.x));
-				cam_transform.set_position_y(distance * math::cosf(angular_position.y));
-				cam_transform.set_position_z(distance * math::sinf(angular_position.y) * math::sinf(angular_position.x));
-				cam_transform.look_at({});
-				cam_transform.update_matrix();
+			cam_input.m_on_keydown = [this, &cam_transform, &physics_component](const input::e_key key)
+			{
+				const float movement_force = 10.0f;
+				switch (key)
+				{
+				case input::e_key::space: physics_component.add_force(cam_transform.get_up() * movement_force); break;
+				case input::e_key::lshift: physics_component.add_force(-cam_transform.get_up() * movement_force); break;
+				}
 			};
 		}
 

@@ -611,19 +611,22 @@ namespace influx::math
 		return make_transform_RH(pos, forward, up).inverted();
 	}
 
+	// assuming [0, 1] depth range
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_projection_RH(const float fov, const float ar, const float n, const float f)
 	{
 		float y = 1.0f / tanf(math::to_radians(fov) * 0.5f);
 		float x = y / ar;
-		float intv = n - f;
+		float intv = f - n;
+		float z = (_t)f / intv;
+		float pos_z = -(_t)f * n / intv;
 
 		return
 		{
-			(_t)x, (_t)0, (_t)0, (_t)0,
-			(_t)0, (_t)y, (_t)0, (_t)0,
-			(_t)0, (_t)0, (_t)f / intv,			(_t)-1.0f,
-			(_t)0, (_t)0, (_t)(f * n) / intv,	(_t)0
+			(_t)x, (_t)0, (_t)0,	(_t)0,
+			(_t)0, (_t)y, (_t)0,	(_t)0,
+			(_t)0, (_t)0, z,		(_t)-1.0f,
+			(_t)0, (_t)0, (_t)pos_z, (_t)0
 		};
 	}
 

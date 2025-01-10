@@ -241,7 +241,7 @@ namespace influx
 		template <typename _t>
 		constexpr inline _t to_radians(_t degrees)
 		{
-			return degrees * (_t)(k_PI / 180);
+			return degrees * (_t)(k_PI / 180.0);
 		}
 
 		template <typename _t>

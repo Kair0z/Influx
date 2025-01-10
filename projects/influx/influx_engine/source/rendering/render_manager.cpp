@@ -207,15 +207,15 @@ namespace influx::engine
 		// inline meshes
 		if (renderer::has_mesh("engine_plane") == false)
 		{
-			influx::renderer::load("engine_plane", renderer::get_inline_mesh_plane());
+			influx::renderer::load("eplane", renderer::get_inline_mesh_plane());
 		}
 		if (renderer::has_mesh("engine_box") == false)
 		{
-			influx::renderer::load("engine_box", renderer::get_inline_mesh_box());
+			influx::renderer::load("ebox", renderer::get_inline_mesh_box());
 		}
 		if (renderer::has_mesh("engine_sphere") == false)
 		{
-			influx::renderer::load("engine_sphere", renderer::get_inline_mesh_sphere());
+			influx::renderer::load("esphere", renderer::get_inline_mesh_sphere());
 		}
 	}
 

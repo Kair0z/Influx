@@ -417,9 +417,29 @@ namespace influx::engine
             auto view = m_registry.view<transform_component, rigidbody_component>();
             for (auto [entity, transform_comp, body_comp] : view.each())
             {
-                const math::float3 velocity = body_comp.get_velocity();
+                const math::float3 old_velocity = body_comp.get_velocity();
                 const math::float3 acceleration = body_comp.get_acceleration();
-                body_comp.set_velocity(velocity + acceleration * delta_time);
+                const math::float3 new_velocity = old_velocity + acceleration * delta_time;
+                body_comp.set_velocity(new_velocity);
+
+                // perform drag
+                if (!new_velocity.is_zero() && body_comp.get_drag() != 0.0f)
+                {
+                    const float speed = new_velocity.magnitude();
+                    const math::float3 velocity_normalized = (new_velocity / speed);
+                    const math::float3 drag_force = -velocity_normalized * (body_comp.get_drag() * speed * speed);
+                    const math::float3 dragged_velocity = new_velocity + drag_force * delta_time;
+                    body_comp.set_velocity(dragged_velocity);
+                }
+
+                // move
+                const math::float3 old_position = transform_comp.get_position();
+                const math::float3 new_position = old_position + new_velocity * delta_time;
+                transform_comp.set_position(new_position);
+                transform_comp.update_matrix();
+
+                // reset force
+                body_comp.set_acceleration({});
             }
         }
     }
