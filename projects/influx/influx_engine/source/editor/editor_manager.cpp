@@ -165,6 +165,7 @@ namespace influx::engine
 	editor_manager::editor_manager(editor_module* editor)
 		: m_editor{ editor }
 		, m_static_windows_radial{}
+		, m_edit_radial{}
 	{
 		// defaults
 		m_editor_toggle.force_set(true);
@@ -185,6 +186,7 @@ namespace influx::engine
 		{
 			update_mainmenu();
 			update_static_windows();
+			update_edit_radial();
 		}
 
 		return {};
@@ -328,6 +330,54 @@ namespace influx::engine
 		return {};
 	}
 
+	result<> editor_manager::update_edit_radial()
+	{
+		static entity custom_entity{};
+
+		const float max_radius = 50.0f;
+		const float seconds = get_engine()->get_time().get_time_seconds();
+		const float anim_speed = 5.0f;
+		const float radius = math::pingpong(seconds * anim_speed, max_radius * 0.95f, max_radius);
+
+		world& world = *get_engine()->get_world_ptr();
+		m_edit_radial.set_item("create", [&world]()
+		{
+			custom_entity = world.create_entity();
+			
+			transform_component& ent_transform = world.create_component<transform_component>(custom_entity);
+			ent_transform.set_position({});
+			ent_transform.set_scale(0.001f);
+			ent_transform.update_matrix();
+
+			// mesh
+			mesh_component& ent_mesh = world.create_component<mesh_component>(custom_entity);
+			ent_mesh.set_mesh_name("esphere");
+			ent_mesh.set_use_normalized_scale(false); // scales to bounding sphere
+			ent_mesh.set_invert_normals(false);
+
+			// material
+			material_component& ent_mat = world.create_component<material_component>(custom_entity);
+			ent_mat.set_texture(e_texture_semantic::basecolor, "lego");
+			ent_mat.set_texture(e_texture_semantic::normals, "");
+			ent_mat.set_texture(e_texture_semantic::roughness, "");
+		});
+
+		m_edit_radial.set_item("destroy", []()
+		{
+			get_engine()->get_world_ptr()->destroy_entity(custom_entity);
+		});
+
+		m_edit_radial.set_id("##piepopup_edit");
+		m_edit_radial.set_radius(radius);
+		m_edit_radial.render(m_mousepos);
+		if (m_edit_radial.has_selection())
+		{
+			m_edit_radial.get_selected()->operator()();
+		}
+
+		return {};
+	}
+
 	result<> editor_manager::on_keydown(input::e_key key)
 	{
 		m_keybinds.set(key, true);
@@ -357,8 +407,8 @@ namespace influx::engine
 		switch (button)
 		{
 		case input::e_mouse_button::right: 
-			m_static_windows_radial.set_visible(true);
-			m_static_windows_radial.set_position(position.m_client);
+			m_edit_radial.set_visible(true);
+			m_edit_radial.set_position(position.m_client);
 			break;
 
 		case input::e_mouse_button::left:
@@ -411,7 +461,7 @@ namespace influx::engine
 		switch (button)
 		{
 		case input::e_mouse_button::right:
-			m_static_windows_radial.set_visible(false);
+			m_edit_radial.set_visible(false);
 			break;
 		}
 

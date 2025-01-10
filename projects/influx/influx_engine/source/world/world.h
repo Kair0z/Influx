@@ -46,6 +46,8 @@ namespace influx::engine
 
 		entity create_entity();
 
+		void destroy_entity(entity);
+
 		template<typename _ctype, typename... _args>
 		_ctype& create_component(const entity e, _args&&... args);
 

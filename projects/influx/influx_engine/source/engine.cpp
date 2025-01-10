@@ -78,6 +78,7 @@ namespace influx::engine
 
 		// TEMP:
 		// little scene with camera controls and central mesh
+		if (false)
 		{
 			const uint32 num_swords = 50u;
 			const math::circlef3D circle = math::circlef3D({}, { 0,1,0 }, 2.0f);

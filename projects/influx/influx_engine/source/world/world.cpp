@@ -165,6 +165,13 @@ namespace influx::engine
         return result;
     }
 
+    void world::destroy_entity(entity e)
+    {
+        remove(m_entities, e);
+
+        m_registry.destroy(e.get_handle());
+    }
+
     bool world::trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer)
     {
         out_result.m_entity = nullptr;
@@ -222,6 +229,7 @@ namespace influx::engine
 
     void world::clear()
     {
+        m_entities.clear();
         m_registry.clear();
     }
 

@@ -8,6 +8,7 @@ namespace influx::engine
 	class entity final
 	{
 	public:
+		entity() = default;
 		entity(const entt::entity& handle);
 
 		enum render_flag : uint32
@@ -24,6 +25,15 @@ namespace influx::engine
 		bool is_debug_render() const;
 
 		entt::entity get_handle() const;
+
+		bool operator==(const entity& b) const
+		{
+			return this->m_handle == b.m_handle;
+		}
+		bool operator!=(const entity& b) const
+		{
+			return !(*this == b);
+		}
 
 	private:
 		render_flag m_renderflags;

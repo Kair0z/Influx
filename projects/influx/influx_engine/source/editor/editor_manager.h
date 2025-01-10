@@ -174,6 +174,7 @@ namespace influx::engine
 
 		// static windows
 		imgui::popup_radial<editor_window*> m_static_windows_radial;
+		imgui::popup_radial<function<void()>> m_edit_radial{};
 		static umap<string, editor_window*> m_static_windows;
 
 		files::projectfile m_projectfile;
@@ -183,6 +184,7 @@ namespace influx::engine
 		result<> update_mainmenu();
 		result<> update_background_dockspace();
 		result<> update_static_windows();
+		result<> update_edit_radial();
 
 		math::vectorf2 m_mousepos;
 
