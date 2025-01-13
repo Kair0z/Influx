@@ -10,6 +10,8 @@ namespace influx::renderer
 	class target;
 	struct scene;
 	struct scene_debug;
+	struct scene_imgui;
+	struct scene2D;
 }
 
 // ImGui
@@ -30,20 +32,27 @@ namespace influx::engine
 		render_manager(engine* engine);
 		~render_manager();
 
-		// loads assets from content_manager into the influx::renderer
-		void stream_content(content_manager* cont_man);
+		void render(
+			const renderer::scene& scene,
+			const renderer::scene2D& scene2D,
+			const renderer::scene_imgui& imgui,
+			const renderer::scene_debug& debug);
 
-		void record_imgui_frame(const function<void(ImGuiContext&)>& func);
-
-		void render(const renderer::scene&);
-
+		// takes care of backbuffer resizing
 		void on_window_resize(const math::vectoru2& new_dimensions);
 
-		renderer::scene_debug& get_debug_render();
+		// loads assets from content_manager into the influx::renderer
+		void stream_content(const content_manager& cont_man);
 
-		// textures
+		// shaders:
+		
+		// meshes:
+		
+		// textures:
 		bool has_texture_loaded(const string& name) const;
 		void* get_loaded_texture_id(const string& name) const;
+
+		bool get_render_debug() const;
 
 	private:
 		renderer::target* mp_window_target;

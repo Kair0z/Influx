@@ -176,31 +176,36 @@ namespace influx::engine
 			// stream available assets from content into the renderer
 			{
 				influx_scope("stream_to_render");
-				m_renderman->stream_content(m_contentman);
-			}
-
-			// record imgui
-			if (type == run_type::editor)
-			{
-				influx_scope("record_imgui");
-				m_renderman->record_imgui_frame([this](ImGuiContext& ctx)
-				{
-					m_editorman->update_imgui(ctx);
-				});
+				m_renderman->stream_content(*m_contentman);
 			}
 			
 			// build a render-scene
 			renderer::scene scene{};
+			renderer::scene_debug debug{};
+			renderer::scene2D scene2D{};
+			renderer::scene_imgui imgui{};
+
+			// record imgui if editor
+			if (m_runtype == run_type::editor)
+			{
+				imgui.m_imgui_stacks.push_back([this](ImGuiContext& ctx)
+				{
+					m_editorman->update_imgui(ctx);
+				});
+			}
+
+			// world builds renderscene 
 			{
 				influx_scope("build_renderscene");
 				scene.m_seconds = m_time.get_time_seconds();
 				scene.m_delta_seconds = m_time.get_delta_seconds();
-				renderer::scene2D scene2D{};
-				m_world->build_renderscene(scene, scene2D, m_renderman->get_debug_render());
+				m_world->build_renderscene(scene, scene2D, debug);
 			}
+
+			// render
 			{
 				influx_scope("render");
-				m_renderman->render(scene);
+				m_renderman->render(scene, scene2D, imgui, debug);
 			}
 		}
 
@@ -328,6 +333,11 @@ namespace influx::engine
 	ptr<world> engine::get_world_ptr()
 	{
 		return m_world;
+	}
+
+	ptr<platform::window> engine::get_window_ptr()
+	{
+		return m_window;
 	}
 
 	const frame_time& engine::get_time() const

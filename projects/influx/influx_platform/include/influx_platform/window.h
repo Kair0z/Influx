@@ -178,6 +178,11 @@ namespace influx::platform
 
 		bool INFLUX_PLATFORM_API has_quit_request() const;
 
+		inline float get_aspect_ratio(e_space space = e_space::client) const
+		{
+			return get_rect(space).get_aspect_ratio();
+		}
+
 	protected:
 		window(const window_desc& desc);
 		window_desc m_desc{};

@@ -15,6 +15,9 @@
 // influx::renderer
 #include "types.h"
 
+// imgui
+struct ImGuiContext;
+
 namespace influx::renderer
 {
 	struct camera final
@@ -43,6 +46,7 @@ namespace influx::renderer
 		scene() = default;
 		scene(const vector<mesh_instance>& meshes, const camera& camera);
 
+		bool is_empty() const;
 		uint32	get_num_meshes() const;
 		bool	has_meshes() const;
 
@@ -67,11 +71,31 @@ namespace influx::renderer
 
 	struct scene2D final
 	{
+		inline bool is_empty() const
+		{
+			return m_sprites.size() == 0u;
+		}
+
 		vector<sprite2D> m_sprites = {};
+	};
+
+	struct scene_imgui final
+	{
+		inline bool is_empty() const
+		{
+			return m_imgui_stacks.size() == 0u;
+		}
+
+		vector<function<void(ImGuiContext&)>> m_imgui_stacks{};
 	};
 
 	struct scene_debug final
 	{
+		inline bool is_empty() const
+		{
+			return m_lines.size() == 0u;
+		}
+
 		struct line final
 		{
 			line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour)
@@ -161,6 +185,11 @@ namespace influx::renderer
 		: m_meshes{ meshes }
 		, m_camera{ camera }
 	{
+	}
+
+	inline bool scene::is_empty() const
+	{
+		return m_meshes.size() == 0u;
 	}
 
 	inline uint32 scene::get_num_meshes() const

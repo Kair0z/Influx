@@ -352,7 +352,7 @@ namespace influx::engine
 			// mesh
 			mesh_component& ent_mesh = world.create_component<mesh_component>(custom_entity);
 			ent_mesh.set_mesh_name("esphere");
-			ent_mesh.set_use_normalized_scale(false); // scales to bounding sphere
+			ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
 			ent_mesh.set_invert_normals(false);
 
 			// material

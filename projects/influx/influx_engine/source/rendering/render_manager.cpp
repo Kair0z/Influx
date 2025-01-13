@@ -29,6 +29,7 @@ namespace influx::engine
 {
 	struct
 	{
+		bool m_render_debug;
 		math::colour_rgba m_clearcolour{};
 
 	} g_global_settings{};
@@ -48,6 +49,7 @@ namespace influx::engine
 
 			renderer::render_settings settings = renderer::get_settings();
 			ImGui::Checkbox("wireframe: ", &settings.m_wireframe);
+			ImGui::Checkbox("debug render: ", &g_global_settings.m_render_debug);
 			ImGui::SliderInt("cullmode: ", (int*)&settings.m_cullmode, 0, 2);
 			ImGui::ColorEdit3("clear colour: ", &g_global_settings.m_clearcolour.r);
 
@@ -90,11 +92,172 @@ namespace influx::engine
 		editor_manager::static_window<render_editor>("renderer").set_name("renderer");
 	}
 
+	void render_manager::initialize_imgui()
+	{
+		// create ImGui context
+		ImGui::CreateContext();
+
+		// Build texture atlas
+		ImGuiIO& io = ImGui::GetIO();
+		unsigned char* pixels;
+		int width, height;
+		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+		// docking
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+		// mouse events
+		input::subscribe([this, &io](const input::mouse_event& ev)
+			{
+				switch (ev.m_type)
+				{
+				case input::mouse_event::type::move:
+				{
+					bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
+					if (want_absolute_pos)
+					{
+						ImGui::GetIO().AddMousePosEvent(ev.m_position.m_screen.x, ev.m_position.m_screen.y);
+					}
+					else
+					{
+						ImGui::GetIO().AddMousePosEvent(ev.m_position.m_client.x, ev.m_position.m_client.y);
+					}
+				}
+				break;
+
+				case input::mouse_event::type::leave:
+				{
+					io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
+				}
+				break;
+
+				case input::mouse_event::type::scroll:
+				{
+					io.AddMouseWheelEvent(0.0f, ev.m_wheel_delta);
+				}
+				break;
+
+				case input::mouse_event::type::button_down:
+				{
+					int button_value = 0;
+					switch (ev.m_button)
+					{
+					case input::e_mouse_button::left: button_value = 0; break;
+					case input::e_mouse_button::middle: button_value = 2; break;
+					case input::e_mouse_button::right: button_value = 1; break;
+					}
+
+					io.AddMouseButtonEvent(button_value, true);
+				}
+				break;
+
+				case input::mouse_event::type::button_up:
+				{
+					int button_value = 0;
+					switch (ev.m_button)
+					{
+					case input::e_mouse_button::left: button_value = 0; break;
+					case input::e_mouse_button::middle: button_value = 2; break;
+					case input::e_mouse_button::right: button_value = 1; break;
+					}
+
+					io.AddMouseButtonEvent(button_value, false);
+				}
+				break;
+				}
+			});
+	}
+
 	render_manager::~render_manager()
 	{
 		influx::renderer::cleanup();
 	}
 
+	void render_manager::on_window_resize(const math::vectoru2& new_dimensions)
+	{
+		// update imgui IO
+		ImGui::GetIO().DisplaySize = { (float)new_dimensions.x, (float)new_dimensions.y };
+	}
+
+	void render_manager::render(
+		const renderer::scene& scene,
+		const renderer::scene2D& scene2D,
+		const renderer::scene_imgui& imgui, 
+		const renderer::scene_debug& debug)
+	{
+		cptr<platform::window> window = get_engine()->get_window().get();
+		if (window == nullptr)
+		{
+			logonce(e_log_category::warning, "render_manager::render: no window to render!");
+			return;
+		}
+
+		mp_window_target = renderer::acquire_window_target(*window);
+		mp_scene_target->resize(*mp_window_target);
+
+		// 1. clear
+		renderer::clear_args clear{ {
+			g_global_settings.m_clearcolour.r,
+			g_global_settings.m_clearcolour.g,
+			g_global_settings.m_clearcolour.b,
+			1.0f } };
+
+		renderer::clear_target(*mp_scene_target, clear);
+
+		// 2. scene render
+		if (scene.is_empty() == false)
+		{
+			renderer::draw_scene(scene, *mp_scene_target);
+		}
+
+		// 3. debug render
+		if (debug.is_empty() == false && get_render_debug())
+		{
+			renderer::draw_debug(debug, *mp_scene_target);
+		}
+
+		// 4. imgui render
+		if (imgui.is_empty() == false)
+		{
+			ImGui::NewFrame();
+			imgui.m_imgui_stacks[0u](*ImGui::GetCurrentContext());
+			ImGui::Render();
+
+			renderer::draw_imgui(ImGui::GetDrawData(), *mp_scene_target);
+		}
+
+		// 5. copy scene-target into window
+		influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
+
+		// 6. present to window
+		influx::renderer::present_args present_args{};
+		present_args.m_vsync = false;
+		influx::renderer::present_swapchain(present_args);
+	}
+
+	bool render_manager::has_texture_loaded(const string& name) const
+	{
+		return influx::renderer::has_texture(name);
+	}
+
+	void* render_manager::get_loaded_texture_id(const string& name) const
+	{
+		if (has_texture_loaded(name))
+		{
+			return influx::renderer::get_imgui_texture_id(name);
+		}
+		else
+		{
+			return 0u;
+		}
+	}
+
+	bool render_manager::get_render_debug() const
+	{
+		return g_global_settings.m_render_debug;
+	}
+
+#pragma region content_streaming
 #pragma region translation layer
 	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data)
 	{
@@ -131,7 +294,7 @@ namespace influx::engine
 	void translate(const imp::image_data& imp_data, renderer::texture_data& out_data)
 	{
 		out_data.m_pixels.resize(imp_data.m_pixels.size());
-		
+
 		for (uint64 i = 0u; i < imp_data.m_pixels.size(); ++i)
 		{
 			out_data.m_pixels[i] = imp_data.m_pixels[i];
@@ -148,11 +311,11 @@ namespace influx::engine
 	static material m_material_data{};
 
 	// loads assets from content_manager into the influx::renderer
-	void render_manager::stream_content(content_manager* cont_man)
+	void render_manager::stream_content(const content_manager& cont_man)
 	{
-		stream_shaders(*cont_man);
-		stream_images(*cont_man);
-		stream_meshes(*cont_man);
+		stream_shaders(cont_man);
+		stream_images(cont_man);
+		stream_meshes(cont_man);
 	}
 
 	void render_manager::stream_shaders(const content_manager& content)
@@ -218,174 +381,5 @@ namespace influx::engine
 			influx::renderer::load("esphere", renderer::get_inline_mesh_sphere());
 		}
 	}
-
-	void render_manager::record_imgui_frame(const function<void(ImGuiContext&)>& func)
-	{
-		ImGui::NewFrame();
-		func(*ImGui::GetCurrentContext());
-		ImGui::Render();
-		mp_imgui_drawdata = ImGui::GetDrawData();
-	}
-
-	void render_manager::render(const renderer::scene& scene)
-	{
-		cptr<platform::window> window = get_engine()->get_window().get();
-		if (window == nullptr)
-		{
-			logonce(e_log_category::warning, "render_manager::render: no window to render!");
-			return;
-		}
-
-		mp_window_target = renderer::acquire_window_target(*window);
-		mp_scene_target->resize(*mp_window_target);
-
-		// 1. clear
-		renderer::clear_args clear{ {
-			g_global_settings.m_clearcolour.r,
-			g_global_settings.m_clearcolour.g,
-			g_global_settings.m_clearcolour.b,
-			1.0f }};
-
-		renderer::clear_target(*mp_scene_target, clear);
-		
-		// 2. scene render
-		if (scene.has_meshes())
-		{
-			renderer::draw_scene(scene, *mp_scene_target);
-		}
-
-		// 3. debug render
-		if (mp_debug_scene != nullptr)
-		{
-			renderer::draw_debug(*mp_debug_scene, *mp_scene_target);
-		}
-
-		// 4. imgui render
-		if (mp_imgui_drawdata != nullptr)
-		{
-			renderer::draw_imgui(mp_imgui_drawdata, *mp_scene_target);
-		}
-		
-		// 5. copy scene-target into window
-		influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
-
-		// present to window
-		influx::renderer::present_args present_args{};
-		present_args.m_vsync = false;
-		influx::renderer::present_swapchain(present_args);
-
-		mp_imgui_drawdata = nullptr;
-	}
-
-	renderer::scene_debug& render_manager::get_debug_render()
-	{
-		if (mp_debug_scene == nullptr)
-		{
-			mp_debug_scene = new renderer::scene_debug();
-		}
-
-		return *mp_debug_scene;
-	}
-
-	bool render_manager::has_texture_loaded(const string& name) const
-	{
-		return influx::renderer::has_texture(name);
-	}
-
-	void* render_manager::get_loaded_texture_id(const string& name) const
-	{
-		if (has_texture_loaded(name))
-		{
-			return influx::renderer::get_imgui_texture_id(name);
-		}
-		else
-		{
-			return 0u;
-		}
-	}
-
-	void render_manager::on_window_resize(const math::vectoru2& new_dimensions)
-	{
-		// update imgui IO
-		ImGui::GetIO().DisplaySize = { (float)new_dimensions.x, (float)new_dimensions.y };
-
-		// update renderer
-		// ... todo
-	}
-
-	void render_manager::initialize_imgui()
-	{
-		// create ImGui context
-		ImGui::CreateContext();
-
-		// Build texture atlas
-		ImGuiIO& io = ImGui::GetIO();
-		unsigned char* pixels;
-		int width, height;
-		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
-		// docking
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-
-		// mouse events
-		input::subscribe([this, &io](const input::mouse_event& ev)
-		{
-			switch (ev.m_type)
-			{
-			case input::mouse_event::type::move:
-			{
-				bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
-				if (want_absolute_pos)
-				{
-					ImGui::GetIO().AddMousePosEvent(ev.m_position.m_screen.x, ev.m_position.m_screen.y);
-				}
-				else
-				{
-					ImGui::GetIO().AddMousePosEvent(ev.m_position.m_client.x, ev.m_position.m_client.y);
-				}
-			}
-			break;
-
-			case input::mouse_event::type::leave:
-			{
-				io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
-			}
-			break;
-
-			case input::mouse_event::type::scroll:
-			{
-				io.AddMouseWheelEvent(0.0f, ev.m_wheel_delta);
-			}
-			break;
-
-			case input::mouse_event::type::button_down:
-			{
-				int button_value = 0;
-				switch (ev.m_button)
-				{
-				case input::e_mouse_button::left: button_value = 0; break;
-				case input::e_mouse_button::middle: button_value = 2; break;
-				case input::e_mouse_button::right: button_value = 1; break;
-				}
-
-				io.AddMouseButtonEvent(button_value, true);
-			}
-			break;
-
-			case input::mouse_event::type::button_up:
-			{
-				int button_value = 0;
-				switch (ev.m_button)
-				{
-				case input::e_mouse_button::left: button_value = 0; break;
-				case input::e_mouse_button::middle: button_value = 2; break;
-				case input::e_mouse_button::right: button_value = 1; break;
-				}
-
-				io.AddMouseButtonEvent(button_value, false);
-			}
-			break;
-			}
-		});
-	}
+#pragma endregion
 }
