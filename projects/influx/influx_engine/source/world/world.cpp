@@ -425,29 +425,41 @@ namespace influx::engine
             auto view = m_registry.view<transform_component, rigidbody_component>();
             for (auto [entity, transform_comp, body_comp] : view.each())
             {
+                const float max_speed = body_comp.get_max_speed();
                 const math::float3 old_velocity = body_comp.get_velocity();
                 const math::float3 acceleration = body_comp.get_acceleration();
-                const math::float3 new_velocity = old_velocity + acceleration * delta_time;
-                body_comp.set_velocity(new_velocity);
+                math::float3 new_velocity = old_velocity + acceleration * delta_time;
+
+                // clamp max speed
+                new_velocity.clamp_length(max_speed);
 
                 // perform drag
-                if (!new_velocity.is_zero() && body_comp.get_drag() != 0.0f)
+                const float drag = body_comp.get_drag();
+                if (drag > 0.0f)
                 {
-                    const float speed = new_velocity.magnitude();
-                    const math::float3 velocity_normalized = (new_velocity / speed);
-                    const math::float3 drag_force = -velocity_normalized * (body_comp.get_drag() * speed * speed);
-                    const math::float3 dragged_velocity = new_velocity + drag_force * delta_time;
-                    body_comp.set_velocity(dragged_velocity);
+                    const float inv_drag = 1.0f - drag;
+                    if (max_speed > 0.0f)
+                    {
+                        // dynamic drag, based on max speed use higher drag when slowing down
+                        const float speed_sqr = new_velocity.sqr_magnitude();
+                        const float speed_fraction = speed_sqr / (max_speed * max_speed);
+                        const float damp_factor = (1.0f - speed_fraction) * inv_drag;
+                        new_velocity *= damp_factor;
+                    }
+                    else
+                    {
+                        new_velocity *= inv_drag;
+                    }
                 }
+                
+                // finally, update velocity
+                body_comp.set_velocity(new_velocity);
 
                 // move
                 const math::float3 old_position = transform_comp.get_position();
                 const math::float3 new_position = old_position + new_velocity * delta_time;
                 transform_comp.set_position(new_position);
                 transform_comp.update_matrix();
-
-                // reset force
-                body_comp.set_acceleration({});
             }
         }
     }

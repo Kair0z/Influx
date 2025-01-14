@@ -137,14 +137,29 @@ namespace influx::engine
 			return m_transform.get_forward();
 		}
 
+		math::vectorf3 get_back() const
+		{
+			return -get_forward();
+		}
+
 		math::vectorf3 get_right() const
 		{
 			return m_transform.get_right();
 		}
 
+		math::vectorf3 get_left() const
+		{
+			return -get_right();
+		}
+
 		math::vectorf3 get_up() const
 		{
 			return m_transform.get_up();
+		}
+
+		math::vectorf3 get_down() const
+		{
+			return -get_up();
 		}
 
 		math::vectorf3 get_scale() const
@@ -339,6 +354,7 @@ namespace influx::engine
 		void add_force(const math::float3& force)
 		{
 			m_acceleration += force;
+			logn("add_force({},{},{})", force.x, force.y, force.z);
 		}
 
 		void hard_stop()
@@ -364,6 +380,7 @@ namespace influx::engine
 		influx_property_readwrite(math::float3, velocity);
 		influx_property_readwrite(math::float3, acceleration);
 		influx_property_readwrite(float, drag);
+		influx_property_readwrite(float, max_speed);
 	};
 
 	class collider_component final : public component

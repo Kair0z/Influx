@@ -235,6 +235,16 @@ namespace influx::engine
 		influx::renderer::present_swapchain(present_args);
 	}
 
+	bool render_manager::has_shader_loaded(const string& name) const
+	{
+		return influx::renderer::has_shader(name);
+	}
+
+	bool render_manager::has_mesh_loaded(const string& name) const
+	{
+		return influx::renderer::has_mesh(name);
+	}
+
 	bool render_manager::has_texture_loaded(const string& name) const
 	{
 		return influx::renderer::has_texture(name);

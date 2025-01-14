@@ -45,8 +45,10 @@ namespace influx::engine
 		void stream_content(const content_manager& cont_man);
 
 		// shaders:
-		
+		bool has_shader_loaded(const string& name) const;
+
 		// meshes:
+		bool has_mesh_loaded(const string& name) const;
 		
 		// textures:
 		bool has_texture_loaded(const string& name) const;
