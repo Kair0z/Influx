@@ -618,7 +618,7 @@ namespace influx::math
 		float y = 1.0f / tanf(math::to_radians(fov) * 0.5f);
 		float x = y / ar;
 		float intv = f - n;
-		float z = (_t)f / intv;
+		float z = -(_t)f / intv;
 		float pos_z = -(_t)f * n / intv;
 
 		return
