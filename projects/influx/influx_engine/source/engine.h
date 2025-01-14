@@ -27,6 +27,8 @@ namespace influx::engine
 	class content_manager;
 	class editor_manager;
 	class game_manager;
+	class input_manager;
+	class task_manager;
 	class world;
 
 	class engine final : public singleton<engine>
@@ -61,10 +63,6 @@ namespace influx::engine
 		void initialize();
 		void cleanup();
 
-		// threads
-		void run_input();
-		void run_content();
-
 		void initialize_renderer(const string& window_name, const math::vectoru2& size);
 		void poll_platform_events();
 		
@@ -87,6 +85,8 @@ namespace influx::engine
 		render_manager* m_renderman = nullptr;
 		editor_manager* m_editorman = nullptr;
 		game_manager* m_gameman = nullptr;
+		input_manager* m_inputman = nullptr;
+		task_manager* m_taskman = nullptr;
 		world* m_world = nullptr;
 		frame_time m_time{};
 

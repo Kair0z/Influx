@@ -35,10 +35,33 @@ namespace influx::engine
 	{
 		get_game_library()->call("start");
 
-		world& world = *get_engine()->get_world_ptr();
-		platform::window& window = *get_engine()->get_window_ptr();
+		setup_camera();
+		setup_swords();
+	}
 
-		// create camera
+	void game_manager::tick()
+	{
+		get_game_library()->call("tick");
+	}
+
+	void game_manager::end()
+	{
+		get_game_library()->call("end");
+
+		world& world = *get_engine()->get_world_ptr();
+
+		for (const entity& e : m_entities)
+		{
+			world.destroy_entity(e);
+		}
+		m_entities.clear();
+	}
+
+	void game_manager::setup_camera()
+	{
+		platform::window& window = *get_engine()->get_window_ptr();
+		world& world = *get_engine()->get_world_ptr();
+
 		const float camera_distance = 5.0f;
 		const static float max_speed = 10.0f;
 		const static float acceleration_rate = 1 * max_speed;
@@ -60,7 +83,7 @@ namespace influx::engine
 				cam_comp.set_farplane(1000.0f);
 				cam_comp.set_nearplane(0.001f);
 			}
-			
+
 			rigidbody_component& rigid_comp = world.create_component<rigidbody_component>(camera);
 			{
 				rigid_comp.set_drag(damp_rate);
@@ -149,7 +172,7 @@ namespace influx::engine
 				{
 					switch (button)
 					{
-					case input::e_mouse_button::left : mouse_down = false; break;
+					case input::e_mouse_button::left: mouse_down = false; break;
 					}
 				};
 				input_comp.m_on_mouse_move = [&window, &trans_comp](const input::mouse_position& position)
@@ -160,7 +183,7 @@ namespace influx::engine
 					mousepos_delta.y *= ar; // normalize mousemove
 
 					if (mouse_down && mousepos_delta.is_zero() == false)
-					{	
+					{
 						const frame_time& time = get_engine()->get_time();
 						const float seconds = time.get_time_seconds();
 						const float delta_seconds = time.get_delta_seconds();
@@ -175,6 +198,12 @@ namespace influx::engine
 				};
 			}
 		}
+
+	}
+
+	void game_manager::setup_swords()
+	{
+		world& world = *get_engine()->get_world_ptr();
 
 		// create swoards
 		const uint32 num_swords = 50u;
@@ -197,27 +226,9 @@ namespace influx::engine
 
 			material_component& mat_comp = world.create_component<material_component>(sword);
 			{
-				mat_comp.set_texture(e_texture_semantic::basecolor, "wood_albedo");
+				mat_comp.set_texture(e_texture_semantic::basecolor, "T_Sword_Opaque_BC");
 			}
 		}
-	}
-
-	void game_manager::tick()
-	{
-		get_game_library()->call("tick");
-	}
-
-	void game_manager::end()
-	{
-		get_game_library()->call("end");
-
-		world& world = *get_engine()->get_world_ptr();
-
-		for (const entity& e : m_entities)
-		{
-			world.destroy_entity(e);
-		}
-		m_entities.clear();
 	}
 
 	entity game_manager::create_entity()

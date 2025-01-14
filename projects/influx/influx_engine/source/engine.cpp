@@ -19,6 +19,8 @@
 #include "editor/editor_manager.h"
 #include "game/game_manager.h"
 #include "world/world.h"
+#include "input/input_manager.h"
+#include "tasks/task_manager.h"
 
 // influx::core
 #include "core/math/vectortools.h"
@@ -38,27 +40,19 @@ namespace influx::engine
 		m_config.m_file_influx_staged = get_engine_directory(engine_directory::staged);
 
 		// initialize job system:
-		async::init_args async_args{};
-		async_args.m_num_workers = 1u;
-		async::initialize(async_args);
+		m_taskman = new task_manager();
 
-		// initialize input and run an input thread
-		influx::input::init();
-		m_inputthread = thread([this]()
-		{
-			run_input();
-		});
+		// initialize input manager
+		m_inputman = new input_manager();
 
 		// initialize content
 		m_contentman = new content_manager(this);
-		m_contentthread = thread([this]()
-		{
-			run_content();
-		});
 
 		// initialize editor
 		if (m_runtype == run_type::editor)
+		{
 			m_editorman = new editor_manager(nullptr);
+		}
 
 		m_gameman = new game_manager();
 
@@ -76,83 +70,6 @@ namespace influx::engine
 		m_runtype = type;
 		initialize();
 
-		// TEMP:
-		// little scene with camera controls and central mesh
-		if (false)
-		{
-			const uint32 num_swords = 50u;
-			const math::circlef3D circle = math::circlef3D({}, { 0,1,0 }, 2.0f);
-			const auto points = math::get_points_in_circle(circle, num_swords);
-			for (uint32 i = 0u; i < num_swords; ++i)
-			{
-				auto entity = m_world->create_entity();
-				transform_component& ent_transform = m_world->create_component<transform_component>(entity);
-				ent_transform.set_position(points[i]);
-				ent_transform.set_scale(0.1f);
-				ent_transform.update_matrix();
-
-				// mesh
-				mesh_component& ent_mesh = m_world->create_component<mesh_component>(entity);
-				ent_mesh.set_mesh_name("esphere");
-				ent_mesh.set_use_normalized_scale(false); // scales to bounding sphere
-				ent_mesh.set_invert_normals(false);
-
-				// material
-				material_component& ent_mat = m_world->create_component<material_component>(entity);
-				if (i % 2 == 0)
-				{
-					ent_mat.set_texture(e_texture_semantic::basecolor, "T_Sword_Opaque_BC");
-				}
-				else
-				{
-					ent_mat.set_texture(e_texture_semantic::basecolor, "lego");
-				}
-				ent_mat.set_texture(e_texture_semantic::normals, "");
-				ent_mat.set_texture(e_texture_semantic::roughness, "");
-			}
-			
-			// setup camera transform
-			auto camera = m_world->create_entity();
-			transform_component& cam_transform = m_world->create_component<transform_component>(camera);
-			cam_transform.set_position({ 0.0f, 0.0f, 10.0f });
-			cam_transform.look_at({});
-			cam_transform.update_matrix();
-
-			// setup camera settings
-			camera_component& cam_component = m_world->create_component<camera_component>(camera);
-			cam_component.set_fov(90.0f);
-			cam_component.set_aspect_ratio(1280.0f / 720.0f);
-			cam_component.set_farplane(1000.0f);
-			cam_component.set_nearplane(0.001f);
-
-			// setup camera movement
-			input_component& cam_input = m_world->create_component<input_component>(camera);
-			rigidbody_component& physics_component = m_world->create_component<rigidbody_component>(camera);
-			physics_component.set_drag(1.0f);
-
-			cam_input.m_on_ascii_down = [this, &cam_transform, &physics_component](const char ascii)
-			{
-				const float movement_force = 10.0f;
-				switch (ascii)
-				{
-				case 'A': physics_component.add_force(-cam_transform.get_right()	* movement_force); break;
-				case 'W': physics_component.add_force(cam_transform.get_forward()	* movement_force); break;
-				case 'S': physics_component.add_force(-cam_transform.get_forward()	* movement_force); break;
-				case 'D': physics_component.add_force(cam_transform.get_right()		* movement_force); break;
-				}
-			};
-
-			cam_input.m_on_keydown = [this, &cam_transform, &physics_component](const input::e_key key)
-			{
-				const float movement_force = 10.0f;
-				switch (key)
-				{
-				case input::e_key::space: physics_component.add_force(cam_transform.get_up() * movement_force); break;
-				case input::e_key::lshift: physics_component.add_force(-cam_transform.get_up() * movement_force); break;
-				}
-			};
-		}
-
 		while (!m_is_quit_requested)
 		{
 			influx_scope("frame");
@@ -165,6 +82,12 @@ namespace influx::engine
 				influx_scope("poll_window");
 				poll_platform_events();
 				if (m_is_quit_requested) break;
+			}
+
+			// input tick
+			{
+				influx_scope("input");
+				m_inputman->tick();
 			}
 
 			// main update
@@ -217,25 +140,6 @@ namespace influx::engine
 		m_is_quit = true;
 	}
 
-	void engine::run_input()
-	{
-		while (!m_is_quit_requested)
-		{
-			input::service();
-		}
-	}
-
-	void engine::run_content()
-	{
-		// kick off loading engine assets
-		m_contentman->load_engine_assets(this);
-
-		while (!m_is_quit_requested)
-		{
-
-		}
-	}
-
 	void engine::cleanup()
 	{
 		async::shutdown();
@@ -258,13 +162,25 @@ namespace influx::engine
 			m_contentman = nullptr;
 		}
 
-		if (m_inputthread.joinable())
-			m_inputthread.join();
+		if (m_inputman)
+		{
+			delete m_inputman;
+		}
+
+		if (m_taskman)
+		{
+			delete m_taskman;
+		}
 
 		if (m_world)
 		{
 			delete m_world;
 			m_world = nullptr;
+		}
+
+		if (m_gameman)
+		{
+			delete m_gameman;
 		}
 	}
 

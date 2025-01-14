@@ -21,6 +21,8 @@ namespace influx::engine
 {
 	content_manager::content_manager(engine* engine)
 	{
+		// immediately start kicking loading
+		load_engine_assets(engine);
 	}
 
 	content_manager::~content_manager()

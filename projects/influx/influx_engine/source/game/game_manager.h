@@ -26,5 +26,8 @@ namespace influx::engine
 	private:
 		state m_state;
 		vector<entity> m_entities{};
+
+		void setup_camera();
+		void setup_swords();
 	};
 }
