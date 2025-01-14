@@ -64,9 +64,9 @@ namespace influx::math
 		{
 			m_rotation_matrix = math::matrix4x4f::make_rotation(axis, delta_angle);
 
-			m_forward = m_rotation_matrix * m_forward;
-			m_right = math::vectorf3::cross(m_forward, vectorf3::up());
-			m_up = math::vectorf3::cross(m_right, m_forward);
+			m_forward = (m_rotation_matrix * m_forward).normalized();
+			m_right = math::vectorf3::cross(m_forward, vectorf3::up()).normalized();
+			m_up = math::vectorf3::cross(m_right, m_forward).normalized();
 		}
 
 		bool is_gimbal_locked() const

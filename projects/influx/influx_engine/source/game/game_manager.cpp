@@ -69,17 +69,54 @@ namespace influx::engine
 
 			input_component& input_comp = world.create_component<input_component>(camera);
 			{
-				static bool locks[4u]{ false, false, false, false };
+				static bool locks[6u]{ false, false, false, false, false, false };
+				static math::vectorf3 acceleration{};
+
+				static auto update_acceleration = [&rigid_comp, &trans_comp]()
+				{
+					// translate the force
+					math::float3 transf_acceleration =
+					{
+						acceleration.x * trans_comp.get_right() +
+						acceleration.y * math::vectorf3::up() +
+						acceleration.z * trans_comp.get_forward()
+					};
+					if (!transf_acceleration.is_zero()) transf_acceleration = transf_acceleration.normalized();
+					rigid_comp.set_acceleration(transf_acceleration * acceleration_rate);
+				};
+
+				input_comp.m_on_keydown = [&rigid_comp, &trans_comp](input::e_key key)
+				{
+					switch (key)
+					{
+					case input::e_key::space:   if (!locks[4u]) { acceleration.y += +1.0f;		locks[4u] = true; } break;
+					case input::e_key::lshift:  if (!locks[5u]) { acceleration.y += -1.0f;		locks[5u] = true; } break;
+					}
+					update_acceleration();
+				};
+				input_comp.m_on_keyup = [&rigid_comp, &trans_comp](input::e_key key)
+				{
+					switch (key)
+					{
+					case input::e_key::space:   if (locks[4u]) { acceleration.y -= +1.0f;		locks[4u] = false; } break;
+					case input::e_key::lshift:	if (locks[5u]) { acceleration.y -= -1.0f;		locks[5u] = false; } break;
+					}
+
+					update_acceleration();
+				};
 				input_comp.m_on_ascii_down = [&rigid_comp, &trans_comp](const char ascii)
 				{
 					switch (ascii)
 					{
-					case 'W': if (!locks[0u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_forward());		locks[0u] = true; } break;
-					case 'A': if (!locks[1u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_left());		locks[1u] = true; } break;
-					case 'S': if (!locks[2u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_back());		locks[2u] = true; } break;
-					case 'D': if (!locks[3u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_right());		locks[3u] = true; } break;
+					case 'W': if (!locks[0u]) { acceleration.z += +1.0f;		locks[0u] = true; } break;
+					case 'A': if (!locks[1u]) { acceleration.x += -1.0f;		locks[1u] = true; } break;
+					case 'S': if (!locks[2u]) { acceleration.z += -1.0f;		locks[2u] = true; } break;
+					case 'D': if (!locks[3u]) { acceleration.x += +1.0f;		locks[3u] = true; } break;
 					}
 
+					update_acceleration();
+
+					// reset position
 					switch (ascii)
 					{
 					case 'R': trans_comp.set_position(start_position); break;
@@ -89,11 +126,13 @@ namespace influx::engine
 				{
 					switch (ascii)
 					{
-					case 'W': if (locks[0u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_forward()); locks[0u] = false; } break;
-					case 'A': if (locks[1u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_left());    locks[1u] = false; } break;
-					case 'S': if (locks[2u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_back());    locks[2u] = false; } break;
-					case 'D': if (locks[3u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_right());   locks[3u] = false; } break;
+					case 'W': if (locks[0u]) { acceleration.z -= +1.0f; locks[0u] = false; } break;
+					case 'A': if (locks[1u]) { acceleration.x -= -1.0f; locks[1u] = false; } break;
+					case 'S': if (locks[2u]) { acceleration.z -= -1.0f; locks[2u] = false; } break;
+					case 'D': if (locks[3u]) { acceleration.x -= +1.0f; locks[3u] = false; } break;
 					}
+
+					update_acceleration();
 				};
 
 				static bool mouse_down = false;
