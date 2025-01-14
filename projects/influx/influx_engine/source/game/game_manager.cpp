@@ -43,6 +43,7 @@ namespace influx::engine
 		const static float max_speed = 10.0f;
 		const static float acceleration_rate = 1 * max_speed;
 		const static float damp_rate = 0.01f;
+		const static float fov = 90.0f;
 		static const math::float3 start_position = { 0, camera_distance, camera_distance };
 		entity camera = create_entity();
 		{
@@ -55,7 +56,7 @@ namespace influx::engine
 			camera_component& cam_comp = world.create_component<camera_component>(camera);
 			{
 				cam_comp.set_aspect_ratio(window.get_aspect_ratio());
-				cam_comp.set_fov(90.0f);
+				cam_comp.set_fov(fov);
 				cam_comp.set_farplane(1000.0f);
 				cam_comp.set_nearplane(0.001f);
 			}
@@ -84,7 +85,6 @@ namespace influx::engine
 					case 'R': trans_comp.set_position(start_position); break;
 					}
 				};
-
 				input_comp.m_on_ascii_up = [&rigid_comp, &trans_comp](const char ascii)
 				{
 					switch (ascii)
@@ -97,6 +97,8 @@ namespace influx::engine
 				};
 
 				static bool mouse_down = false;
+				static math::float2 mousepos_prev{};
+				static math::float2 angular_position{};
 				input_comp.m_on_mouse_down = [](input::e_mouse_button button, const input::mouse_position& position)
 				{
 					switch (button)
@@ -111,9 +113,6 @@ namespace influx::engine
 					case input::e_mouse_button::left : mouse_down = false; break;
 					}
 				};
-
-				static math::float2 mousepos_prev{};
-				static math::float2 angular_position{};
 				input_comp.m_on_mouse_move = [&window, &trans_comp](const input::mouse_position& position)
 				{
 					const float ar = window.get_aspect_ratio();
@@ -121,19 +120,16 @@ namespace influx::engine
 					math::float2 mousepos_delta = mousepos_current - mousepos_prev;
 					mousepos_delta.y *= ar; // normalize mousemove
 
-					if (mouse_down)
+					if (mouse_down && mousepos_delta.is_zero() == false)
 					{	
 						const frame_time& time = get_engine()->get_time();
 						const float seconds = time.get_time_seconds();
 						const float delta_seconds = time.get_delta_seconds();
 
-						if (mousepos_delta.is_zero() == false)
-						{
-							trans_comp.rotate(
-								mousepos_delta.y * delta_seconds,
-								mousepos_delta.x * delta_seconds,
-								0.0f);
-						}
+						trans_comp.rotate(
+							mousepos_delta.y * delta_seconds,
+							mousepos_delta.x * delta_seconds,
+							0.0f);
 					}
 
 					mousepos_prev = mousepos_current;
