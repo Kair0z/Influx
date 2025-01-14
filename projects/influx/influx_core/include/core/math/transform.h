@@ -69,6 +69,22 @@ namespace influx::math
 			}
 		}
 
+		void rotate(float x, float y, float z, bool blocal = true)
+		{
+			if (blocal)
+			{
+				rotate(x, get_right());
+				rotate(y, get_up());
+				rotate(z, get_forward());
+			}
+			else
+			{
+				rotate(x, math::vectorf3::right());
+				rotate(y, math::vectorf3::up());
+				rotate(z, math::vectorf3::forward());
+			}
+		}
+
 		void rotate(float delta_angle, const vectorf3& axis)
 		{
 			m_rotation.rotate(delta_angle, axis);

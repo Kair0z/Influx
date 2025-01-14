@@ -73,10 +73,10 @@ namespace influx::engine
 				{
 					switch (ascii)
 					{
-					case 'W': if (!locks[0u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_forward());		locks[0u] = true;  } break;
+					case 'W': if (!locks[0u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_forward());		locks[0u] = true; } break;
 					case 'A': if (!locks[1u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_left());		locks[1u] = true; } break;
 					case 'S': if (!locks[2u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_back());		locks[2u] = true; } break;
-					case 'D': if (!locks[3u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_right());		locks[3u] = true;  } break;
+					case 'D': if (!locks[3u]) { rigid_comp.add_force(acceleration_rate * trans_comp.get_right());		locks[3u] = true; } break;
 					}
 
 					switch (ascii)
@@ -89,11 +89,54 @@ namespace influx::engine
 				{
 					switch (ascii)
 					{
-					case 'W': if (locks[0u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_forward()); locks[0u] = false;} break;
-					case 'A': if (locks[1u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_left());    locks[1u] = false;} break;
-					case 'S': if (locks[2u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_back());    locks[2u] = false;} break;
-					case 'D': if (locks[3u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_right());   locks[3u] = false;} break;
+					case 'W': if (locks[0u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_forward()); locks[0u] = false; } break;
+					case 'A': if (locks[1u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_left());    locks[1u] = false; } break;
+					case 'S': if (locks[2u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_back());    locks[2u] = false; } break;
+					case 'D': if (locks[3u]) { rigid_comp.add_force(acceleration_rate * -trans_comp.get_right());   locks[3u] = false; } break;
 					}
+				};
+
+				static bool mouse_down = false;
+				input_comp.m_on_mouse_down = [](input::e_mouse_button button, const input::mouse_position& position)
+				{
+					switch (button)
+					{
+					case input::e_mouse_button::left: mouse_down = true; break;
+					}
+				};
+				input_comp.m_on_mouse_up = [](input::e_mouse_button button, const input::mouse_position& position)
+				{
+					switch (button)
+					{
+					case input::e_mouse_button::left : mouse_down = false; break;
+					}
+				};
+
+				static math::float2 mousepos_prev{};
+				static math::float2 angular_position{};
+				input_comp.m_on_mouse_move = [&window, &trans_comp](const input::mouse_position& position)
+				{
+					const float ar = window.get_aspect_ratio();
+					math::float2 mousepos_current = position.m_client;
+					math::float2 mousepos_delta = mousepos_current - mousepos_prev;
+					mousepos_delta.y *= ar; // normalize mousemove
+
+					if (mouse_down)
+					{	
+						const frame_time& time = get_engine()->get_time();
+						const float seconds = time.get_time_seconds();
+						const float delta_seconds = time.get_delta_seconds();
+
+						if (mousepos_delta.is_zero() == false)
+						{
+							trans_comp.rotate(
+								mousepos_delta.y * delta_seconds,
+								mousepos_delta.x * delta_seconds,
+								0.0f);
+						}
+					}
+
+					mousepos_prev = mousepos_current;
 				};
 			}
 		}

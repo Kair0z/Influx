@@ -47,6 +47,11 @@ namespace influx::engine
 			m_transform.translate(add_position, blocal);
 		}
 
+		void rotate(float x, float y, float z, bool blocal = true)
+		{
+			m_transform.rotate(x, y, z, blocal);
+		}
+
 		void rotate(float delta_angle, const math::vectorf3& axis)
 		{
 			m_transform.rotate(delta_angle, axis);
