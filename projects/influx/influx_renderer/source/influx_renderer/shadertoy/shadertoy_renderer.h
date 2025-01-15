@@ -6,14 +6,12 @@
 // influx::graphics
 namespace influx::graphics
 {
-	class device;
 	class commandlist;
 }
 
+// influx::renderer
 namespace influx::renderer
 {
-	class renderer_backend;
-	class pipeline;
 	struct scene_shadertoy;
 	class target;
 }
@@ -23,11 +21,7 @@ namespace influx::renderer
 	class shadertoy_renderer final
 	{
 	public:
-		shadertoy_renderer(
-			renderer_backend* backend,
-			graphics::device* device,
-			pipeline* pipeline);
-
+		shadertoy_renderer();
 		~shadertoy_renderer();
 
 		void render(

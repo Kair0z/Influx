@@ -106,7 +106,7 @@ namespace influx::renderer
 		uint32 m_forced_samplecount		= 0u;
 		uint32 m_sample_mask			= samplemask::all;
 		uint32 m_sample_count			= 1u;
-		bool m_front_ccw				= false;
+		bool m_front_ccw				= true;
 		bool m_depthclip				= true;
 		bool m_multisample				= false;
 		bool m_antialiased_line			= false;

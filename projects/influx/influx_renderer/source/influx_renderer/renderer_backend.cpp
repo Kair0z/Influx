@@ -76,8 +76,8 @@ namespace influx::renderer
         mp_imgui = new imgui_manager(mp_device);
         mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
         mp_debug_renderer = new debug_renderer(this, mp_device, nullptr);
-        mp_quad_renderer = new quad_renderer(this, mp_device, nullptr);
-        mp_shadertoy_renderer = new shadertoy_renderer(this, mp_device, nullptr);
+        mp_quad_renderer = new quad_renderer();
+        mp_shadertoy_renderer = new shadertoy_renderer();
 
         get_default_texture();
         get_default_material();

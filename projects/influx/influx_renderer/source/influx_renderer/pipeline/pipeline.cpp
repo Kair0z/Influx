@@ -13,6 +13,17 @@
 
 namespace influx::renderer
 {
+    constexpr static graphics::e_cull_mode translate(pipeline_signature::cullmode mode)
+    {
+        switch (mode)
+        {
+        case pipeline_signature::cullmode::back: return graphics::e_cull_mode::back;
+        case pipeline_signature::cullmode::front: return graphics::e_cull_mode::front;
+        case pipeline_signature::cullmode::none: return graphics::e_cull_mode::nocull;
+        }
+        return graphics::e_cull_mode::count;
+    }
+
     pipeline::pipeline(graphics::device* device, const pipeline_signature& signature, renderer::shader_data const* vs, renderer::shader_data const* ps)
     {
         m_signature = signature;
@@ -85,7 +96,7 @@ namespace influx::renderer
         if (ps)   pipeline_desc.m_ps = ps->m_bytecode;
         // ...
 
-        pipeline_desc.m_rasterizer.m_cullmode = (graphics::e_cull_mode)signature.m_cullmode;
+        pipeline_desc.m_rasterizer.m_cullmode = translate((pipeline_signature::cullmode)signature.m_cullmode);
         pipeline_desc.m_rasterizer.m_front_ccw = signature.m_front_ccw;
         pipeline_desc.m_prim_type = (graphics::e_primitive_topology_type)signature.m_primitive_type;
         pipeline_desc.m_rasterizer.m_fillmode = (graphics::e_fill_mode)signature.m_fillmode;
@@ -99,7 +110,6 @@ namespace influx::renderer
         pipeline_desc.m_rasterizer.m_depth_bias = signature.m_depthbias;
         pipeline_desc.m_rasterizer.m_depth_bias_clamp = signature.m_depthbias_clamp;
         pipeline_desc.m_rasterizer.m_slope_depth_bias = signature.m_slope_depthbias;
-        pipeline_desc.m_rasterizer.m_front_ccw = true;
         pipeline_desc.m_depth_stencil.m_depth_enable = signature.m_depth_enable;
         pipeline_desc.m_depth_stencil.m_stencil_enable = signature.m_stencil_enable;
         pipeline_desc.m_depth_stencil.m_depth_func = (graphics::e_comparison_func)signature.m_depth_comparison;

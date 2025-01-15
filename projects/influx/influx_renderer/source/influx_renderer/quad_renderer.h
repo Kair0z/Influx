@@ -23,10 +23,7 @@ namespace influx::renderer
 	class quad_renderer final
 	{
 	public:
-		quad_renderer(
-			renderer_backend* backend,
-			graphics::device* device,
-			pipeline* pipeline);
+		quad_renderer();
 
 		~quad_renderer();
 

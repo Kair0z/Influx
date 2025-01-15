@@ -149,6 +149,7 @@ namespace influx::engine
 		// loads /influx/games/'game_name'/assets/
 		void load_game_assets(const string& game_name, engine* engine);
 
+		// finding meshes
 		imp::scene_data::mesh* find_mesh(const string& mesh_name)
 		{
 			const vector<string>& parts = str::split(mesh_name, '_');
@@ -158,7 +159,6 @@ namespace influx::engine
 
 			return find_mesh(scene_name, mesh_idx);
 		}
-
 		imp::scene_data::mesh* find_mesh(const string& scene_name, uint32 mesh_idx)
 		{
 			if (m_scenes.contains(scene_name))
@@ -168,7 +168,6 @@ namespace influx::engine
 
 			return nullptr;
 		}
-
 		static string get_scene_mesh_name(const scene_item& item, const uint32 idx)
 		{
 			return item.m_name + "_" + to_string(idx);

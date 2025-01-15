@@ -54,52 +54,25 @@ namespace influx::renderer
         .m_blend_writemasks     { pipeline_signature::blend_all, 15u, 15u, 15u, 15u, 15u, 15u, 15u }
     };
 
-	quad_renderer::quad_renderer(
-		renderer_backend* backend,
-		graphics::device* device,
-		pipeline* pipeline)
+	quad_renderer::quad_renderer()
 	{
         struct vertex final
         {
             math::float2 m_uv{};
         };
-        // vertexbuffer
+        
+        vector<vertex> vertices =
         {
-            vector<vertex> vertices = {
-                {.m_uv{0.0f, 0.0f}},
-                {.m_uv{1.0f, 0.0f}},
-                {.m_uv{0.0f, 1.0f}},
-                {.m_uv{1.0f, 1.0f}},
-            };
+            {.m_uv{0.0f, 0.0f}},
+            {.m_uv{1.0f, 0.0f}},
+            {.m_uv{0.0f, 1.0f}},
+            {.m_uv{1.0f, 1.0f}},
+        };
+        vector<index> indices = { 0u, 1u, 2u, 2u, 1u, 3u };
 
-            graphics::heap_desc heap_desc{};
-            heap_desc.m_type = graphics::e_heap_type::shared;
-            graphics::buffer_desc desc{};
-            desc.m_init_state = graphics::e_resource_state::read;
-            desc.m_bytesize = vertices.size() * sizeof(vertex);
-            desc.m_bytestride = sizeof(vertex);
-            mp_vertexbuffer = device->create_resource(desc, heap_desc);
-            mp_vertexbuffer->map([&vertices](void* target)
-            {
-                memcpy(target, vertices.data(), vertices.size() * sizeof(vertex));
-            });
-        }
-        // indexbuffer
-        {
-            vector<uint32> indices = { 0u, 1u, 2u, 2u, 1u, 3u };
-            graphics::heap_desc heap_desc{};
-            heap_desc.m_type = graphics::e_heap_type::shared;
-            graphics::buffer_desc desc{};
-            desc.m_init_state = graphics::e_resource_state::read;
-            desc.m_bytesize = indices.size() * sizeof(uint32);
-            desc.m_bytestride = sizeof(uint32);
-            desc.m_format = graphics::e_format::u32;
-            mp_indexbuffer = device->create_resource(desc, heap_desc);
-            mp_indexbuffer->map([&indices](void* target)
-            {
-                memcpy(target, indices.data(), indices.size() * sizeof(uint32));
-            });
-        }
+        renderer_backend& backend = renderer_backend::get_instance();
+        mp_vertexbuffer = backend.create_vertexbuffer("quadrender_quad", vertices);
+        mp_indexbuffer = backend.create_indexbuffer("quadrender_quad", indices);
 	}
 
 	quad_renderer::~quad_renderer()
@@ -108,25 +81,25 @@ namespace influx::renderer
 
 	void quad_renderer::render_quad(graphics::commandlist* commandlist, const target& target)
 	{
-        pipeline* pipeline = renderer_backend::get_instance().get_pipeline_manager()->get_or_create_pipeline("pip_quad", k_quad_pipeline_signature);
-        if (pipeline == nullptr)
+        renderer_backend& backend = renderer_backend::get_instance();
+        pipeline_manager& pipelineman = *backend.get_pipeline_manager();
+        pipeline* pipeline = pipelineman.get_or_create_pipeline("pip_quad", k_quad_pipeline_signature);
+        if (pipeline != nullptr)
         {
-            return;
+            logonce(e_log_category::warning, "influx::renderer::quad_renderer: first quad render!");
+
+            pipeline->set_state(commandlist);
+            commandlist->set(graphics::e_primitive_topology::trilist);
+            commandlist->set_vertexbuffer(mp_vertexbuffer);
+            commandlist->set_indexbuffer(mp_indexbuffer);
+            commandlist->draw_indexed(
+            {
+                .m_num_indexes_per_instance{6u},
+                .m_num_instances{1u},
+                .m_start_index{0u},
+                .m_start_vertex{0u},
+                .m_start_instance{0u}
+            });
         }
-        logonce(e_log_category::warning, "influx::renderer::quad_renderer: first quad render!");
-
-        pipeline->set_state(commandlist);
-        commandlist->set(graphics::e_primitive_topology::trilist);
-        commandlist->set_vertexbuffer(mp_vertexbuffer);
-        commandlist->set_indexbuffer(mp_indexbuffer);
-
-        commandlist->draw_indexed(
-        {
-            .m_num_indexes_per_instance{6u},
-            .m_num_instances{1u},
-            .m_start_index{0u},
-            .m_start_vertex{0u},
-            .m_start_instance{0u}
-        });
 	}
 }
