@@ -8,6 +8,10 @@
 #include "influx_renderer/renderer_imgui.h"
 #include "influx_renderer/renderer_backend.h"
 
+// influx::graphics
+#include "influx_graphics/resource.h"
+#include "influx_graphics/device.h"
+
 #pragma region declarations
 // influx::graphics
 namespace influx::graphics
@@ -30,6 +34,7 @@ namespace influx::renderer
 	class scene_renderer;
 	class debug_renderer;
 	class quad_renderer;
+	class shadertoy_renderer;
 	class target;
 }
 
@@ -62,6 +67,7 @@ namespace influx::renderer
 		void draw_imgui(ImDrawData* draw_data, const target& target);
 		void draw_2D(const scene2D& scene, const target& target);
 		void draw_debug(const scene_debug& scene, const target& target);
+		void draw_shadertoy(const scene_shadertoy& scene, const target& target);
 		void copy_target(const target& source, const target& dest);
 		void clear_target(const target&, const clear_args&);
 		void present_swapchain(const present_args& args);
@@ -70,10 +76,10 @@ namespace influx::renderer
 		static upload_manager* get_upload_manager();
 		static pipeline_manager* get_pipeline_manager();
 
-		void load(const string& title, const mesh_data& data);
-		void load(const string& title, const texture_data& data);
-		void load(const string& title, const shader_data& data);
-		void load(const string& title, const material& data);
+		void load(const string& title, const mesh_data& data, bool reload = false);
+		void load(const string& title, const texture_data& data, bool reload = false);
+		void load(const string& title, const shader_data& data, bool reload = false);
+		void load(const string& title, const material& data, bool reload = false);
 
 		bool has_mesh(const string& title) const;
 		bool has_texture(const string& title) const;
@@ -105,6 +111,10 @@ namespace influx::renderer
 
 		void* get_imgui_texture_id(const string& title);
 
+		template <typename _tvtx>
+		graphics::resource* create_vertexbuffer(const string& title, const vector<_tvtx>& data, bool reload = false);
+		graphics::resource* create_indexbuffer(const string& title, const vector<index>& data, bool reload = false);
+
 	private:
 		uint64 m_frame_count = 0u;
 		bool m_is_initialized = false;
@@ -134,6 +144,7 @@ namespace influx::renderer
 		scene_renderer* mp_scene_renderer = nullptr;
 		debug_renderer* mp_debug_renderer = nullptr;
 		quad_renderer* mp_quad_renderer = nullptr;
+		shadertoy_renderer* mp_shadertoy_renderer = nullptr;
 
 		// resources
 		umap<string, graphics::resource*> m_vertex_buffers;
@@ -145,4 +156,36 @@ namespace influx::renderer
 
 		render_settings m_settings;
 	};
+
+	template<typename _tvtx>
+	inline graphics::resource* renderer::renderer_backend::create_vertexbuffer(const string& title, const vector<_tvtx>& data, bool reload)
+	{
+		using vertex_type = _tvtx;
+
+		if (!m_vertex_buffers.contains(title))
+		{
+			// create index / vertex buffer on the shared heap (so cpu can write to it)
+			graphics::heap_desc heap_desc{};
+			heap_desc.m_type = graphics::e_heap_type::shared;
+
+			// set default resource state to read
+			graphics::buffer_desc desc{};
+			desc.m_init_state = graphics::e_resource_state::read;
+
+			// create resource
+			desc.m_bytesize = data.size() * sizeof(vertex_type);
+			desc.m_bytestride = sizeof(vertex_type);
+			m_vertex_buffers[title] = mp_device->create_resource(desc, heap_desc);
+
+			// map data to resource
+			m_vertex_buffers[title]->map([&data](void* target)
+			{
+				memcpy(target, data.data(), data.size() * sizeof(vertex_type));
+			});
+
+			m_vertex_buffers[title]->set_name("vb_" + title);
+		}
+
+		return m_vertex_buffers[title];
+	}
 }

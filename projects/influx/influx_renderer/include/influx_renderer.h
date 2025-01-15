@@ -30,6 +30,7 @@ struct ImDrawData;
 #include "influx_renderer/texture.h"
 #include "influx_renderer/scene.h"
 #include "influx_renderer/stats.h"
+#include "influx_renderer/shadertoy.h"
 
 // influx::shader
 #include "influx_shader.h"
@@ -96,6 +97,9 @@ namespace influx::renderer
 	// - debug line rendering
 	INFLUX_RENDER_API void draw_debug(const scene_debug& scene, const target& target);
 
+	// - shadertoy rendering
+	INFLUX_RENDER_API void draw_shadertoy(const scene_shadertoy& scene, const target& target);
+
 	// 3. (optional) copy intermediate data
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
 
@@ -107,10 +111,10 @@ namespace influx::renderer
 	INFLUX_RENDER_API void wait_gpu_finished();
 
 	// loading assets into the renderer
-	INFLUX_RENDER_API void load(const string& title, const mesh_data& data);
-	INFLUX_RENDER_API void load(const string& title, const texture_data& data);
-	INFLUX_RENDER_API void load(const string& title, const shader_data& data);
-	INFLUX_RENDER_API void load(const string& title, const material& data);
+	INFLUX_RENDER_API void load(const string& title, const mesh_data& data, bool reload = false);
+	INFLUX_RENDER_API void load(const string& title, const texture_data& data, bool reload = false);
+	INFLUX_RENDER_API void load(const string& title, const shader_data& data, bool reload = false);
+	INFLUX_RENDER_API void load(const string& title, const material& data, bool reload = false);
 
 	INFLUX_RENDER_API bool has_mesh(const string& title);
 	INFLUX_RENDER_API bool has_texture(const string& title);

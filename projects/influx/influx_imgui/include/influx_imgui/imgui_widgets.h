@@ -8,6 +8,7 @@
 // influx::imgui
 #include "influx_imgui/imgui_translation.h"
 #include "influx_imgui/widgets/popup_radial.h"
+#include "influx_imgui/widgets/text_editor.h"
 
 // imgui
 #include "imgui/imgui.h"

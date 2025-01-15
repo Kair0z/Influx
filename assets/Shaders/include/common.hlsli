@@ -1,77 +1,14 @@
 #ifndef _INFLUX_COMMON_HF
 #define _INFLUX_COMMON_HF
 
-struct vs_input
+// quad rendering
+float4 make_quad_ndc_pos(float2 uv)
 {
-    float3 position : POSITION;
-    float4 colour : COLOR;
-    float3 normal : NORMAL;
-    float2 texcoord : TEXCOORD;
-};
+    float2 ndc_pos = (uv * 2.0f) - float2(1, 1);
+    return float4(ndc_pos.xy, 0.0f, 1.0f);
+} 
 
-struct ps_input
-{
-    float4 position : SV_POSITION;
-    float3 worldPos : WORLD_POS;
-    nointerpolation float4 colour : COLOR;
-    float3 normal : NORMAL;
-    float2 texcoord : TEXCOORD;
-};
-
-struct per_view
-{
-    float4x4 mat_vp;
-};
-
-struct per_scene
-{
-    float4 time;
-    float4 light_direction;
-    float4 light_colour;
-};
-
-struct per_material
-{
-    float4 colour;
-};
-
-struct per_draw
-{
-    uint start_instance;
-};
-
-struct per_instance_data
-{
-    float4x4	mat_transform;
-    float4      colour;
-    bool        invert_normals;
-};
-
-// SHADER INPUTS
-// buffers
-ConstantBuffer<per_view>                g_perview           : register(b0);
-ConstantBuffer<per_scene>               g_perscene          : register(b1);
-ConstantBuffer<per_material>            g_permaterial       : register(b2);
-ConstantBuffer<per_draw>                g_perdraw           : register(b3);
-
-// samplers
-SamplerState                            g_sampler           : register(s0);
-
-// textures
-Texture2D                               g_textures[4]       : register(t0);
-StructuredBuffer<per_instance_data>     g_instancebuffer    : register(t1);
-
-// GLOBAL FUNCTIONS
-float4 get_albedo(float2 texcoord)
-{
-    return g_textures[0].Sample(g_sampler, texcoord).rgba;
-}
-
-float3 get_normal(float2 texcoord)
-{
-    return g_textures[1].Sample(g_sampler, texcoord).rgb;
-}
-
+// misc
 float3 hash(uint3 x)
 {
     //https://www.shadertoy.com/view/4lXyWN
@@ -85,4 +22,5 @@ float3 hash(uint3 x)
 
     return (float3(x) * (1.0 / float(0xffffffffU)));
 }
+
 #endif

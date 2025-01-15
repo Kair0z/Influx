@@ -8,6 +8,7 @@
 #include "influx_renderer/scene_renderer.h"
 #include "influx_renderer/debug_renderer.h"
 #include "influx_renderer/quad_renderer.h"
+#include "influx_renderer/shadertoy/shadertoy_renderer.h"
 
 // influx::graphics
 #include "influx_graphics.h"
@@ -76,6 +77,7 @@ namespace influx::renderer
         mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
         mp_debug_renderer = new debug_renderer(this, mp_device, nullptr);
         mp_quad_renderer = new quad_renderer(this, mp_device, nullptr);
+        mp_shadertoy_renderer = new shadertoy_renderer(this, mp_device, nullptr);
 
         get_default_texture();
         get_default_material();
@@ -286,6 +288,42 @@ namespace influx::renderer
         mp_commandlist->wait_for_completion();
     }
 
+    void renderer_backend::draw_shadertoy(const scene_shadertoy& scene, const target& target)
+    {
+        graphics::resource* target_resource = target.get_resource();
+        graphics::render_target_view* target_rtv = target.get_rtv();
+        graphics::depth_stencil_view* target_dsv = target.get_dsv();
+
+        influx_scope("renderer_backend::draw_shadertoy");
+        {
+            mp_commandlist->set_name("draw_shadertoy");
+            mp_commandlist->start(mp_device, nullptr);
+            {
+                influx_scope("renderer_backend::draw_shadertoy::record");
+                const uint32 target_width = target.get_width();
+                const uint32 target_height = target.get_height();
+
+                target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
+
+                // bind gpu descriptor heaps
+                get_descriptor_manager()->start_commandlist(mp_commandlist);
+
+                mp_shadertoy_renderer->render(mp_commandlist, scene, target);
+
+                mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
+                mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
+                mp_commandlist->set(target_rtv, target_dsv);
+            }
+            mp_commandlist->end();
+        }
+
+        {
+            influx_scope("renderer_backend::draw_shadertoy::submit");
+            mp_commandlist->submit(mp_graphics_queue);
+        }
+        mp_commandlist->wait_for_completion();
+    }
+
 
     void renderer_backend::copy_target(const target& source, const target& dest)
     {
@@ -389,52 +427,15 @@ namespace influx::renderer
         return get_instance().mp_pipeline_manager;
     }
 
-
     // mesh
-    void renderer_backend::load(const string& title, const mesh_data& data)
+    void renderer_backend::load(const string& title, const mesh_data& data, bool reload)
     {
-        if (!m_vertex_buffers.contains(title))
-        {
-            // create index / vertex buffer on the shared heap (so cpu can write to it)
-            graphics::heap_desc heap_desc{};
-            heap_desc.m_type = graphics::e_heap_type::shared;
-
-            // set default resource state to read
-            graphics::buffer_desc desc{};
-            desc.m_init_state = graphics::e_resource_state::read;
-
-            // create vertex buffer resource
-            desc.m_bytesize = data.m_vertices.size() * sizeof(vertex_data);
-            desc.m_bytestride = sizeof(vertex_data);
-            m_vertex_buffers[title] = mp_device->create_resource(desc, heap_desc);
-            m_vertex_buffers[title]->map([&data](void* target)
-            {
-                memcpy(target, 
-                    data.m_vertices.data(), 
-                    data.m_vertices.size() * sizeof(vertex_data));
-            });
-
-            // create index buffer resource
-            desc.m_bytesize = data.m_indices.size() * sizeof(index);
-            desc.m_bytestride = sizeof(index);
-            desc.m_format = graphics::e_format::u32;
-            m_index_buffers[title] = mp_device->create_resource(desc, heap_desc);
-            m_index_buffers[title]->map([&data](void* target)
-            {
-                 memcpy(target,
-                     data.m_indices.data(),
-                     data.m_indices.size() * sizeof(index));
-            });
-
-            #if _DEBUG
-            m_index_buffers[title]->set_name("ib_" + title);
-            m_vertex_buffers[title]->set_name("vb_" + title);
-            #endif
-        }
+        create_vertexbuffer<vertex_data>(title, data.m_vertices, reload);
+        create_indexbuffer(title, data.m_indices, reload);
     }
 
     // texture
-    void renderer_backend::load(const string& title, const texture_data& data)
+    void renderer_backend::load(const string& title, const texture_data& data, bool reload)
     {
         texture_desc create_args{};
         create_args.m_width = data.get_width();
@@ -445,7 +446,7 @@ namespace influx::renderer
     }
 
     // shader
-    void renderer_backend::load(const string& title, const shader_data& data)
+    void renderer_backend::load(const string& title, const shader_data& data, bool reload)
     {
         umap<string, shader_data>* target_map = nullptr;
         switch (data.m_type)
@@ -457,19 +458,19 @@ namespace influx::renderer
         }
         influx_assert_not_null(target_map);
 
-        if (!target_map->contains(title))
+        if (!target_map->contains(title) || reload)
         {
             (*target_map)[title] = data;
         }
     }
 
     // material
-    void renderer_backend::load(const string& title, const material& data)
+    void renderer_backend::load(const string& title, const material& data, bool reload)
     {
-        if (m_materials.contains(title))
-            return;
-
-        m_materials[title] = data;
+        if (!m_materials.contains(title) || reload)
+        {
+            m_materials[title] = data;
+        }
     }
 
     bool renderer_backend::has_mesh(const string& title) const
@@ -643,6 +644,34 @@ namespace influx::renderer
         }
     }
 
+    graphics::resource* renderer_backend::create_indexbuffer(const string& title, const vector<index>& data, bool reload)
+    {
+        if (!m_index_buffers.contains(title) || reload)
+        {
+            // create index / vertex buffer on the shared heap (so cpu can write to it)
+            graphics::heap_desc heap_desc{};
+            heap_desc.m_type = graphics::e_heap_type::shared;
+
+            // set default resource state to read
+            graphics::buffer_desc desc{};
+            desc.m_init_state = graphics::e_resource_state::read;
+
+            // create index buffer resource
+            desc.m_bytesize = data.size() * sizeof(index);
+            desc.m_bytestride = sizeof(index);
+            desc.m_format = graphics::e_format::u32;
+            m_index_buffers[title] = mp_device->create_resource(desc, heap_desc);
+            m_index_buffers[title]->map([&data](void* target)
+            {
+                 memcpy(target, data.data(), data.size() * sizeof(index));
+            });
+
+            m_index_buffers[title]->set_name("ib_" + title);
+        }
+
+        return m_index_buffers[title];
+    }
+
 #pragma region frontend_api
     void initialize(const init_args& args)
     {
@@ -714,24 +743,29 @@ namespace influx::renderer
         renderer_backend::get_instance().draw_debug(scene, target);
     }
 
-    void load(const string& title, const mesh_data& data)
+    void draw_shadertoy(const scene_shadertoy& scene, const target& target)
     {
-        renderer_backend::get_instance().load(title, data);
+        renderer_backend::get_instance().draw_shadertoy(scene, target);
     }
 
-    void load(const string& title, const texture_data& data)
+    void load(const string& title, const mesh_data& data, bool reload)
     {
-        renderer_backend::get_instance().load(title, data);
+        renderer_backend::get_instance().load(title, data, reload);
     }
 
-    void load(const string& title, const shader_data& data)
+    void load(const string& title, const texture_data& data, bool reload)
     {
-        renderer_backend::get_instance().load(title, data);
+        renderer_backend::get_instance().load(title, data, reload);
     }
 
-    void load(const string& title, const material& data)
+    void load(const string& title, const shader_data& data, bool reload)
     {
-        renderer_backend::get_instance().load(title, data);
+        renderer_backend::get_instance().load(title, data, reload);
+    }
+
+    void load(const string& title, const material& data, bool reload)
+    {
+        renderer_backend::get_instance().load(title, data, reload);
     }
 
     bool has_mesh(const string& title)

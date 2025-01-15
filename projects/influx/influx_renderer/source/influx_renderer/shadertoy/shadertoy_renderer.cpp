@@ -1,0 +1,132 @@
+#include "renderer_pch.h"
+#include "shadertoy_renderer.h"
+
+// influx::renderer
+#include "influx_renderer/renderer_backend.h"
+#include "influx_renderer/pipeline/pipeline_manager.h"
+#include "influx_renderer/pipeline/pipeline.h"
+
+// influx::graphics
+#include "influx_graphics/commandlist.h"
+#include "influx_graphics/device.h"
+
+namespace influx::renderer
+{
+    struct gpu_perview final
+    {
+        math::matrix4x4f m_vp;
+    };
+
+    static const pipeline_signature g_pipeline_sig
+    {
+        .m_vs_name              { "shadertoy_vs" },
+        .m_ps_name              { "shadertoy_ps" },
+
+        .m_primitive_type       { pipeline_signature::primitive_type::triangle },
+        .m_cullmode             { pipeline_signature::cullmode::none },
+        .m_fillmode             { pipeline_signature::fillmode::solid },
+        .m_forced_samplecount   { 0u },
+        .m_sample_mask          { (uint32)-1 },
+        .m_sample_count         { 1u },
+        .m_front_ccw            { false },
+        .m_depthclip            { false },
+        .m_multisample          { false },
+        .m_antialiased_line     { false },
+        .m_conservative_raster  { false },
+        .m_depthbias            { 0 },
+        .m_depthbias_clamp      { 0.0f },
+        .m_slope_depthbias      { 0.0f },
+
+        .m_depth_enable         { false },
+        .m_stencil_enable       { false },
+        .m_depth_comparison     { 0u },
+        .m_depth_format         { pipeline_signature::format::d32 },
+
+        .m_rtv_actives          { true, false, false, false, false, false, false, false },
+        .m_rtv_formats          { pipeline_signature::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        .m_blend_actives        { true, false, false, false, false, false, false, false },
+        .m_blend_sources        { pipeline_signature::bl_src_alpha, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_dests          { pipeline_signature::bl_inv_src_alpha, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_ops            { pipeline_signature::op_add, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_sources        { pipeline_signature::bl_one, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_dests          { pipeline_signature::bl_zero, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_ops            { pipeline_signature::op_add, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_writemasks     { pipeline_signature::blend_all, 15u, 15u, 15u, 15u, 15u, 15u, 15u }
+    };
+
+	shadertoy_renderer::shadertoy_renderer(
+		renderer_backend* backend,
+		graphics::device* device,
+		pipeline* pipeline)
+	{
+        struct vertex final
+        {
+            math::float2 m_uv{};
+        };
+        // vertexbuffer
+        {
+            vector<vertex> vertices = {
+                {.m_uv{0.0f, 0.0f}},
+                {.m_uv{1.0f, 0.0f}},
+                {.m_uv{0.0f, 1.0f}},
+                {.m_uv{1.0f, 1.0f}},
+            };
+
+            graphics::heap_desc heap_desc{};
+            heap_desc.m_type = graphics::e_heap_type::shared;
+            graphics::buffer_desc desc{};
+            desc.m_init_state = graphics::e_resource_state::read;
+            desc.m_bytesize = vertices.size() * sizeof(vertex);
+            desc.m_bytestride = sizeof(vertex);
+            mp_vertexbuffer = device->create_resource(desc, heap_desc);
+            mp_vertexbuffer->map([&vertices](void* target)
+                {
+                    memcpy(target, vertices.data(), vertices.size() * sizeof(vertex));
+                });
+        }
+        // indexbuffer
+        {
+            vector<uint32> indices = { 0u, 1u, 2u, 2u, 1u, 3u };
+            graphics::heap_desc heap_desc{};
+            heap_desc.m_type = graphics::e_heap_type::shared;
+            graphics::buffer_desc desc{};
+            desc.m_init_state = graphics::e_resource_state::read;
+            desc.m_bytesize = indices.size() * sizeof(uint32);
+            desc.m_bytestride = sizeof(uint32);
+            desc.m_format = graphics::e_format::u32;
+            mp_indexbuffer = device->create_resource(desc, heap_desc);
+            mp_indexbuffer->map([&indices](void* target)
+                {
+                    memcpy(target, indices.data(), indices.size() * sizeof(uint32));
+                });
+        }
+	}
+
+	void shadertoy_renderer::render(graphics::commandlist* commandlist, const scene_shadertoy& scene, const target& target)
+	{
+        pipeline* pipeline = renderer_backend::get_instance().get_pipeline_manager()->get_or_create_pipeline("pip_toy", g_pipeline_sig);
+        if (pipeline == nullptr)
+        {
+            return;
+        }
+        logonce(e_log_category::warning, "influx::renderer::shadertoy_renderer: first render!");
+
+        pipeline->set_state(commandlist);
+        commandlist->set(graphics::e_primitive_topology::trilist);
+        commandlist->set_vertexbuffer(mp_vertexbuffer);
+        commandlist->set_indexbuffer(mp_indexbuffer);
+
+        commandlist->draw_indexed(
+        {
+            .m_num_indexes_per_instance{6u},
+            .m_num_instances{1u},
+            .m_start_index{0u},
+            .m_start_vertex{0u},
+            .m_start_instance{0u}
+        });
+	}
+
+	shadertoy_renderer::~shadertoy_renderer()
+	{
+	}
+}

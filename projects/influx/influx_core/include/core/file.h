@@ -3,10 +3,12 @@
 #include "string.h"
 #include "container/vector.h"
 #include "debug.h"
-#include <filesystem>
-#include <functional>
-
 #include "core/function.h"
+
+// STL
+#include <fstream>
+#include <string>
+#include <filesystem>
 
 namespace influx
 {
@@ -66,6 +68,12 @@ namespace influx
 		{
 			std::filesystem::path path(file);
 			return std::filesystem::exists(path);
+		}
+
+		static bool is_text(const string& file)
+		{
+			std::filesystem::path path(file);
+			return std::filesystem::is_regular_file(path);
 		}
 
 		static bool is_file_renamed(const file& file, const std::filesystem::file_time_type& last_time, string& out_new_name)
@@ -149,4 +157,23 @@ namespace influx
 		
 		return out_files;
 	}
+
+	struct textfile
+	{
+		inline static string read_all(const string& path)
+		{
+			influx_assert(file::is_text(path));
+
+			std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
+			if (file) 
+			{
+				string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+				file.close();
+
+				return content;
+			}
+
+			return "";
+		}
+	};
 }

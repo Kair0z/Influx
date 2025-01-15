@@ -23,10 +23,14 @@
 #include "influx_import.h"
 
 // imgui
-#include "imgui/imgui.h"
+#include "influx_imgui/imgui_widgets.h"
 
 namespace influx::engine
 {
+	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data);
+	void translate(const imp::shader_data& imp_data, renderer::shader_data& out_data);
+	void translate(const imp::image_data& imp_data, renderer::texture_data& out_data);
+
 	struct
 	{
 		bool m_render_debug;
@@ -57,6 +61,71 @@ namespace influx::engine
 		}
 
 		uint32 m_num_pipelines = 0u;
+	};
+
+	class shadertoy_editor final : public editor_window
+	{
+	public:
+		const char* filepath = "D:/Git/Influx/assets/Shaders/shadertoy.hlsl";
+
+		shadertoy_editor()
+		{
+			const string& file_content = textfile::read_all(string(filepath));
+			m_texteditor.InsertText(file_content.c_str());
+		}
+
+		virtual void on_run() override
+		{
+			// render text editor
+			m_texteditor.SetLanguageDefinition(imgui::TextEditor::LanguageDefinition::HLSL());
+			m_texteditor.Render("file");
+
+			if (ImGui::Button("compile"))
+			{
+				shader::compile_args compile_args{};
+				compile_args.m_target = shader::e_shader_target::_6_6;
+#if INFLUX_DEBUG
+				compile_args.m_compile_debug = true;
+#else
+				compile_args.m_compile_debug = false;
+#endif
+				compile_args.m_pbd = true;
+				compile_args.m_reflection = true;
+				compile_args.m_defines = {};
+				compile_args.m_pdb_folder = get_engine_directory(engine_directory::intermediate).m_path_full + "/shaderdebug/";
+				compile_args.m_include_folder = get_engine_directory(engine_directory::assets).m_path_full + "/shaders/include/";
+
+				compile_args.m_type = shader::e_shader_type::vs;
+				compile_args.m_entrypoint = "main_vs";
+				const bool vs_compiled = imp::load_shader_file(filepath, m_compiled_vs, compile_args);
+
+				compile_args.m_type = shader::e_shader_type::ps;
+				compile_args.m_entrypoint = "main_ps";
+				const bool ps_compiled = imp::load_shader_file(filepath, m_compiled_ps, compile_args);
+
+				m_compile_success = vs_compiled && ps_compiled;
+			}
+
+			if (ImGui::Button("render"))
+			{
+				m_enable_render = m_compile_success && !m_enable_render;
+			}
+		}
+
+		bool can_render() const
+		{
+			return m_enable_render && m_compile_success;
+		}
+
+		const imp::shader_data& get_compiled_vs() const { return m_compiled_vs; }
+		const imp::shader_data& get_compiled_ps() const { return m_compiled_ps; }
+
+	private:
+		imgui::TextEditor m_texteditor{};
+		imp::shader_data m_compiled_vs{};
+		imp::shader_data m_compiled_ps{};
+		bool m_compile_success = false;
+		bool m_enable_render = false;
 	};
 	
 	render_manager::render_manager(engine* engine)
@@ -90,6 +159,7 @@ namespace influx::engine
 
 		// static editor
 		editor_manager::static_window<render_editor>("renderer").set_name("renderer");
+		editor_manager::static_window<shadertoy_editor>("shadertoy").set_name("shadertoy");
 	}
 
 	void render_manager::initialize_imgui()
@@ -208,6 +278,25 @@ namespace influx::engine
 		if (scene.is_empty() == false)
 		{
 			renderer::draw_scene(scene, *mp_scene_target);
+		}
+
+		// shader toy render
+		shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");
+		if (editor.can_render())
+		{
+			// flags the renderer to overwrite previous shader on this name
+			const bool reload = true;
+
+			renderer::shader_data vs_data{};
+			translate(editor.get_compiled_vs(), vs_data);
+			renderer::load("shadertoy_vs", vs_data, reload);
+
+			renderer::shader_data ps_data{};
+			translate(editor.get_compiled_ps(), ps_data);
+			renderer::load("shadertoy_ps", ps_data, reload);
+
+			renderer::scene_shadertoy shadertoy{};
+			renderer::draw_shadertoy(shadertoy, *mp_scene_target);
 		}
 
 		// 3. debug render
