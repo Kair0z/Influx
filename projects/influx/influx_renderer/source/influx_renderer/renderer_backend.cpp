@@ -308,11 +308,11 @@ namespace influx::renderer
                 // bind gpu descriptor heaps
                 get_descriptor_manager()->start_commandlist(mp_commandlist);
 
-                mp_shadertoy_renderer->render(mp_commandlist, scene, target);
-
                 mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
                 mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
                 mp_commandlist->set(target_rtv, target_dsv);
+
+                mp_shadertoy_renderer->render(mp_commandlist, scene, target);
             }
             mp_commandlist->end();
         }

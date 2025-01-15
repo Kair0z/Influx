@@ -88,8 +88,12 @@ namespace influx::shader
 
 	struct compile_output final
 	{
+		e_shader_target m_target;
+		e_shader_type m_type;
 		vector<byte> m_bytecode;
 		reflection m_reflection;
+		vector<string> m_log;
+		bool m_success = false;
 	};
 
 	// compiles from a .hlsl filepath

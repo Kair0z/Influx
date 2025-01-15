@@ -77,8 +77,7 @@ namespace influx::engine
 		});
 
 		// load hlsls
-		const auto& interm_dir = get_engine_directory(engine_directory::intermediate);
-		async::dispatch_for<file>(hlsl_files, [this, root, interm_dir](const file& file)
+		async::dispatch_for<file>(hlsl_files, [this, root](const file& file)
 		{
 			shader_item& vs_item = m_shaders[file.m_filename + "_vs"];
 			shader_item& ps_item = m_shaders[file.m_filename + "_ps"];
@@ -87,15 +86,17 @@ namespace influx::engine
 			compile_args.m_target = shader::e_shader_target::_6_6;
 #if INFLUX_DEBUG
 			compile_args.m_compile_debug = true;
+			compile_args.m_pbd = true;
+			compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
 #else
 			compile_args.m_compile_debug = false;
-#endif
-			compile_args.m_pbd = true;
+			compile_args.m_pbd = false;
+#endif	
+
+			compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
 			compile_args.m_reflection = true;
 			compile_args.m_defines = {};
-			compile_args.m_pdb_folder = interm_dir.m_path_full + "/shaderdebug/";
-			compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
-
+			
 			compile_args.m_type = shader::e_shader_type::vs;
 			compile_args.m_entrypoint = "main_vs";
 			vs_item.set_loadstate(e_load_state::loading);

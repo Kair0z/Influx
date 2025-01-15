@@ -91,6 +91,8 @@ namespace influx::input
 		lalt,
 		ralt,
 		space,
+		backspace,
+		enter,
 		ascii_num,
 		ascii_char,
 		count
@@ -109,6 +111,8 @@ namespace influx::input
 		case e_key::lctrl:		return "left ctrl";
 		case e_key::rctrl:		return "right ctrl";
 		case e_key::space:		return "space";
+		case e_key::backspace:	return "backspace";
+		case e_key::enter:		return "enter";
 		case e_key::ascii_num:	return "ascii_num";
 		case e_key::ascii_char: return "ascii_char";
 		}

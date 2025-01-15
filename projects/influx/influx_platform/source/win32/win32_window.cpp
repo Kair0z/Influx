@@ -350,6 +350,8 @@ namespace influx::platform
 		case VK_LMENU:	return key_type::lalt;
 		case VK_RMENU: return key_type::ralt;
 		case VK_SPACE: return key_type::space;
+		case VK_BACK: return key_type::backspace;
+		case VK_RETURN: return key_type::enter;
 		case VK_F2: return key_type::f2;
 		default: return key_type::unknown;
 		}

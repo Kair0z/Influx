@@ -30,6 +30,7 @@ namespace influx::engine
 	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data);
 	void translate(const imp::shader_data& imp_data, renderer::shader_data& out_data);
 	void translate(const imp::image_data& imp_data, renderer::texture_data& out_data);
+	void translate(const shader::compile_output& shader_data, renderer::shader_data& out_data);
 
 	struct
 	{
@@ -70,8 +71,31 @@ namespace influx::engine
 
 		shadertoy_editor()
 		{
+			m_texteditor.SetHandleKeyboardInputs(true);
+			m_texteditor.SetHandleMouseInputs(true);
+			m_texteditor.SetReadOnly(false);
+
 			const string& file_content = textfile::read_all(string(filepath));
 			m_texteditor.InsertText(file_content.c_str());
+		}
+
+		shader::compile_args make_compile_args(shader::e_shader_type type, const string& entrypoint)
+		{
+			shader::compile_args compile_args{};
+			compile_args.m_target = shader::e_shader_target::_6_6;
+#if INFLUX_DEBUG
+			compile_args.m_compile_debug = true;
+#else
+			compile_args.m_compile_debug = false;
+#endif
+			compile_args.m_pbd = true;
+			compile_args.m_reflection = true;
+			compile_args.m_defines = {};
+			compile_args.m_pdb_folder = get_engine_directory(engine_directory::intermediate).m_path_full + "/shaderdebug/";
+			compile_args.m_include_folder = get_engine_directory(engine_directory::assets).m_path_full + "/shaders/include/";
+			compile_args.m_type = type;
+			compile_args.m_entrypoint = entrypoint;
+			return compile_args;
 		}
 
 		virtual void on_run() override
@@ -80,30 +104,23 @@ namespace influx::engine
 			m_texteditor.SetLanguageDefinition(imgui::TextEditor::LanguageDefinition::HLSL());
 			m_texteditor.Render("file");
 
+			// render log
+			string log_text = {};
+			for (const string& str : m_compile_errors)
+			{
+				log_text.append(str + "\n");
+			}
+			ImVec4 TextColor = m_compile_errors.size() > 0u ? ImVec4(1, 0, 0, 1) : ImVec4(1, 1, 1, 1);
+			ImGui::TextColored(TextColor, log_text.c_str());
+
+			// buttons
 			if (ImGui::Button("compile"))
 			{
-				shader::compile_args compile_args{};
-				compile_args.m_target = shader::e_shader_target::_6_6;
-#if INFLUX_DEBUG
-				compile_args.m_compile_debug = true;
-#else
-				compile_args.m_compile_debug = false;
-#endif
-				compile_args.m_pbd = true;
-				compile_args.m_reflection = true;
-				compile_args.m_defines = {};
-				compile_args.m_pdb_folder = get_engine_directory(engine_directory::intermediate).m_path_full + "/shaderdebug/";
-				compile_args.m_include_folder = get_engine_directory(engine_directory::assets).m_path_full + "/shaders/include/";
-
-				compile_args.m_type = shader::e_shader_type::vs;
-				compile_args.m_entrypoint = "main_vs";
-				const bool vs_compiled = imp::load_shader_file(filepath, m_compiled_vs, compile_args);
-
-				compile_args.m_type = shader::e_shader_type::ps;
-				compile_args.m_entrypoint = "main_ps";
-				const bool ps_compiled = imp::load_shader_file(filepath, m_compiled_ps, compile_args);
-
-				m_compile_success = vs_compiled && ps_compiled;
+				const string source = m_texteditor.GetText();
+				m_compiled_vs = shader::compile_shader_source(source, make_compile_args(shader::e_shader_type::vs, "main_vs"));
+				m_compiled_ps = shader::compile_shader_source(source, make_compile_args(shader::e_shader_type::ps, "main_ps"));
+				m_compile_errors = merged(m_compiled_vs.m_log, m_compiled_ps.m_log);
+				m_compile_success = m_compiled_vs.m_success && m_compiled_ps.m_success;
 			}
 
 			if (ImGui::Button("render"))
@@ -117,15 +134,16 @@ namespace influx::engine
 			return m_enable_render && m_compile_success;
 		}
 
-		const imp::shader_data& get_compiled_vs() const { return m_compiled_vs; }
-		const imp::shader_data& get_compiled_ps() const { return m_compiled_ps; }
+		const shader::compile_output& get_compiled_vs() const { return m_compiled_vs; }
+		const shader::compile_output& get_compiled_ps() const { return m_compiled_ps; }
 
 	private:
 		imgui::TextEditor m_texteditor{};
-		imp::shader_data m_compiled_vs{};
-		imp::shader_data m_compiled_ps{};
+		shader::compile_output m_compiled_vs{};
+		shader::compile_output m_compiled_ps{};
 		bool m_compile_success = false;
 		bool m_enable_render = false;
+		vector<string> m_compile_errors{};
 	};
 	
 	render_manager::render_manager(engine* engine)
@@ -178,64 +196,92 @@ namespace influx::engine
 
 		// mouse events
 		input::subscribe([this, &io](const input::mouse_event& ev)
+		{
+			switch (ev.m_type)
 			{
-				switch (ev.m_type)
+			case input::mouse_event::type::move:
+			{
+				bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
+				if (want_absolute_pos)
 				{
-				case input::mouse_event::type::move:
+					io.AddMousePosEvent(ev.m_position.m_screen.x, ev.m_position.m_screen.y);
+				}
+				else
 				{
-					bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
-					if (want_absolute_pos)
-					{
-						ImGui::GetIO().AddMousePosEvent(ev.m_position.m_screen.x, ev.m_position.m_screen.y);
-					}
-					else
-					{
-						ImGui::GetIO().AddMousePosEvent(ev.m_position.m_client.x, ev.m_position.m_client.y);
-					}
+					io.AddMousePosEvent(ev.m_position.m_client.x, ev.m_position.m_client.y);
 				}
-				break;
+			}
+			break;
 
-				case input::mouse_event::type::leave:
+			case input::mouse_event::type::leave:
+			{
+				io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
+			}
+			break;
+
+			case input::mouse_event::type::scroll:
+			{
+				io.AddMouseWheelEvent(0.0f, ev.m_wheel_delta);
+			}
+			break;
+
+			case input::mouse_event::type::button_down:
+			{
+				int button_value = 0;
+				switch (ev.m_button)
 				{
-					io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
+				case input::e_mouse_button::left: button_value = 0; break;
+				case input::e_mouse_button::middle: button_value = 2; break;
+				case input::e_mouse_button::right: button_value = 1; break;
 				}
-				break;
 
-				case input::mouse_event::type::scroll:
+				io.AddMouseButtonEvent(button_value, true);
+			}
+			break;
+
+			case input::mouse_event::type::button_up:
+			{
+				int button_value = 0;
+				switch (ev.m_button)
 				{
-					io.AddMouseWheelEvent(0.0f, ev.m_wheel_delta);
+				case input::e_mouse_button::left: button_value = 0; break;
+				case input::e_mouse_button::middle: button_value = 2; break;
+				case input::e_mouse_button::right: button_value = 1; break;
 				}
-				break;
 
-				case input::mouse_event::type::button_down:
+				io.AddMouseButtonEvent(button_value, false);
+			}
+			break;
+			}
+		});
+
+		// keyboard events
+		input::subscribe([this, &io](const input::key_event& key)
+		{
+			const bool is_ascii = key.is_ascii();
+			const bool is_key_down = key.m_type != input::key_event::e_type::keyup;
+			if (!is_ascii)
+			{
+				switch (key.m_key)
 				{
-					int button_value = 0;
-					switch (ev.m_button)
-					{
-					case input::e_mouse_button::left: button_value = 0; break;
-					case input::e_mouse_button::middle: button_value = 2; break;
-					case input::e_mouse_button::right: button_value = 1; break;
-					}
+				case input::e_key::space:
+					io.AddKeyEvent(ImGuiKey::ImGuiKey_Space, is_key_down);
+					break;
 
-					io.AddMouseButtonEvent(button_value, true);
-				}
-				break;
+				case input::e_key::backspace:
+					io.AddKeyEvent(ImGuiKey::ImGuiKey_Backspace, is_key_down);
+					break;
 
-				case input::mouse_event::type::button_up:
-				{
-					int button_value = 0;
-					switch (ev.m_button)
-					{
-					case input::e_mouse_button::left: button_value = 0; break;
-					case input::e_mouse_button::middle: button_value = 2; break;
-					case input::e_mouse_button::right: button_value = 1; break;
-					}
-
-					io.AddMouseButtonEvent(button_value, false);
+				case input::e_key::enter:
+					io.AddKeyEvent(ImGuiKey::ImGuiKey_Enter, is_key_down);
+					break;
 				}
-				break;
-				}
-			});
+			}
+			else
+			{
+				io.AddInputCharacter(key.m_ascii_char);
+			}
+		});
 	}
 
 	render_manager::~render_manager()
@@ -400,6 +446,19 @@ namespace influx::engine
 		}
 
 		out_data.m_width = imp_data.m_dimensions.x;
+	}
+
+	void translate(const shader::compile_output& shader_data, renderer::shader_data& out_data)
+	{
+		out_data.m_bytecode.resize(shader_data.m_bytecode.size());
+
+		for (uint64 i = 0u; i < shader_data.m_bytecode.size(); ++i)
+		{
+			out_data.m_bytecode[i] = shader_data.m_bytecode[i];
+		}
+
+		out_data.m_type = shader_data.m_type;
+		out_data.m_reflection = shader_data.m_reflection;
 	}
 #pragma endregion
 

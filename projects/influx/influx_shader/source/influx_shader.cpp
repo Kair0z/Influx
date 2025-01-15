@@ -246,11 +246,10 @@ namespace influx::shader
 		result = pCompileResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
 		if (pErrors && pErrors->GetStringLength() > 0)
 		{
-			printf(((char*)pErrors->GetBufferPointer()));
+			output.m_log.push_back(string((char*)pErrors->GetBufferPointer()));
+			printf(output.m_log.back().c_str());
 			printf("\n");
-			influx_assert(false);
-
-			// logerr("influx_imp::load_shader_file() failed!");
+			output.m_success = false;
 			return output;
 		}
 
@@ -317,6 +316,9 @@ namespace influx::shader
 				output.m_bytecode.push_back(reinterpret_cast<byte*>(pResultData->GetBufferPointer())[i]);
 			}
 		}
+
+		output.m_type = args.m_type;
+		output.m_target = args.m_target;
 
 		return output;
 	}

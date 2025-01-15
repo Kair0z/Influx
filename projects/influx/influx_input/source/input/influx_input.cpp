@@ -141,6 +141,8 @@ namespace influx::input
 		case platform::window_event::key_type::lalt: return e_key::lalt;
 		case platform::window_event::key_type::ralt: return e_key::ralt;
 		case platform::window_event::key_type::space: return e_key::space;
+		case platform::window_event::key_type::backspace: return e_key::backspace;
+		case platform::window_event::key_type::enter: return e_key::enter;
 		}
 
 		return e_key::count;

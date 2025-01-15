@@ -17,6 +17,7 @@ namespace influx::engine
 		intermediate,
 		binaries,
 		games,
+		shaderpdb,
 		count
 	};
 
@@ -40,6 +41,7 @@ namespace influx::engine
 			case engine_directory::binaries:		return root + "/bin/";
 			case engine_directory::intermediate: return root + "/int/";
 			case engine_directory::games:		return root + "/games/";
+			case engine_directory::shaderpdb:	return root + "/int/shaderdebug/";
 		}
 		return {};
 	}

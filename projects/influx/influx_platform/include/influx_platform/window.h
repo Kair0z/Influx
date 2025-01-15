@@ -73,6 +73,8 @@ namespace influx::platform
 			lalt,
 			ralt,
 			space,
+			backspace,
+			enter,
 			ascii_num, // ascii number (0-9)
 			ascii_ch, // ascii character (A-Z)
 			unknown,
