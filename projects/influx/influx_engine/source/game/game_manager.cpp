@@ -198,7 +198,6 @@ namespace influx::engine
 				};
 			}
 		}
-
 	}
 
 	void game_manager::setup_swords()

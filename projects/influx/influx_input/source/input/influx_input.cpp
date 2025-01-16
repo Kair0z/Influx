@@ -143,6 +143,21 @@ namespace influx::input
 		case platform::window_event::key_type::space: return e_key::space;
 		case platform::window_event::key_type::backspace: return e_key::backspace;
 		case platform::window_event::key_type::enter: return e_key::enter;
+		case platform::window_event::key_type::home: return e_key::home;
+		case platform::window_event::key_type::end:	return e_key::end;
+		case platform::window_event::key_type::insert: return e_key::insert;
+		case platform::window_event::key_type::deleet: return e_key::deleet;
+		case platform::window_event::key_type::apostrophe: return e_key::apostrophe;
+		case platform::window_event::key_type::comma: return e_key::comma;
+		case platform::window_event::key_type::minus: return e_key::minus;
+		case platform::window_event::key_type::plus: return e_key::plus;
+		case platform::window_event::key_type::period: return e_key::period;
+		case platform::window_event::key_type::backslash: return e_key::backslash;
+		case platform::window_event::key_type::slash: return e_key::slash;
+		case platform::window_event::key_type::semicolon: return e_key::semicolon;
+		case platform::window_event::key_type::equal: return e_key::equal;
+		case platform::window_event::key_type::lbracket: return e_key::lbracket;
+		case platform::window_event::key_type::rbracket: return e_key::rbracket;
 		}
 
 		return e_key::count;

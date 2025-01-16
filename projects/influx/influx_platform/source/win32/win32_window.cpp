@@ -334,6 +334,15 @@ namespace influx::platform
 
 		switch (m_wParam)
 		{
+		case VK_OEM_1: return key_type::semicolon;
+		case VK_OEM_PLUS: return key_type::plus;
+		case VK_OEM_COMMA: return key_type::comma;
+		case VK_OEM_MINUS: return key_type::minus;
+		case VK_OEM_PERIOD: return key_type::period;
+		case VK_OEM_4: return key_type::lbracket;
+		case VK_OEM_6: return key_type::rbracket;
+		case VK_OEM_5: return key_type::backslash;
+		case VK_OEM_7: return key_type::apostrophe;
 		case VK_LEFT: return key_type::left;
 		case VK_RIGHT: return key_type::right;
 		case VK_UP: return key_type::up;

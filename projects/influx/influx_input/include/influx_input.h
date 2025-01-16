@@ -80,19 +80,12 @@ namespace influx::input
 #pragma region key_events
 	enum class e_key : uint8
 	{
-		left,
-		right,
-		down,
-		up,
-		lshift,
-		rshift,
-		lctrl,
-		rctrl,
-		lalt,
-		ralt,
-		space,
-		backspace,
-		enter,
+		left,right,down,up,
+		home, end, insert, deleet,
+		apostrophe, comma, minus, plus, period,
+		backslash, slash, semicolon, equal, lbracket, rbracket,
+		lshift,rshift,lctrl,rctrl,lalt,ralt,
+		space,backspace,enter,
 		ascii_num,
 		ascii_char,
 		count
@@ -115,6 +108,21 @@ namespace influx::input
 		case e_key::enter:		return "enter";
 		case e_key::ascii_num:	return "ascii_num";
 		case e_key::ascii_char: return "ascii_char";
+		case e_key::home:		return "home";
+		case e_key::end:		return "end";
+		case e_key::insert:		return "insert";
+		case e_key::deleet:		return "delete";
+		case e_key::apostrophe:	return "'";
+		case e_key::comma:		return ",";
+		case e_key::minus:		return "-";
+		case e_key::plus:		return "+";
+		case e_key::period:		return ".";
+		case e_key::backslash:	return "\\";
+		case e_key::slash:		return "/";
+		case e_key::semicolon:	return ";";
+		case e_key::equal:		return "=";
+		case e_key::lbracket:	return "[";
+		case e_key::rbracket:	return "]";
 		}
 
 		return "unknown";

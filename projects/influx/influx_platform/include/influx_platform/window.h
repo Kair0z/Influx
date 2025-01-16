@@ -57,24 +57,13 @@ namespace influx::platform
 
 		enum class key_type : uint8
 		{
-			left,
-			right,
-			up,
-			down,
-			home,
-			end,
-			insert,
-			deleet,
+			left,right,up,down,
+			home,end,insert,deleet,
+			apostrophe,comma,minus,plus,period, 
+			backslash,slash,semicolon,equal,lbracket,rbracket,
 			f2,
-			lshift,
-			rshift,
-			lctrl,
-			rctrl,
-			lalt,
-			ralt,
-			space,
-			backspace,
-			enter,
+			lshift, rshift, lctrl, rctrl, lalt, ralt,
+			space, backspace, enter,
 			ascii_num, // ascii number (0-9)
 			ascii_ch, // ascii character (A-Z)
 			unknown,

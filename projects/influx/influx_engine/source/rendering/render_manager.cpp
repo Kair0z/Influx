@@ -27,6 +27,7 @@
 
 namespace influx::engine
 {
+	ImGuiKey translate(const input::e_key key);
 	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data);
 	void translate(const imp::shader_data& imp_data, renderer::shader_data& out_data);
 	void translate(const imp::image_data& imp_data, renderer::texture_data& out_data);
@@ -262,20 +263,7 @@ namespace influx::engine
 			const bool is_key_down = key.m_type != input::key_event::e_type::keyup;
 			if (!is_ascii)
 			{
-				switch (key.m_key)
-				{
-				case input::e_key::space:
-					io.AddKeyEvent(ImGuiKey::ImGuiKey_Space, is_key_down);
-					break;
-
-				case input::e_key::backspace:
-					io.AddKeyEvent(ImGuiKey::ImGuiKey_Backspace, is_key_down);
-					break;
-
-				case input::e_key::enter:
-					io.AddKeyEvent(ImGuiKey::ImGuiKey_Enter, is_key_down);
-					break;
-				}
+				io.AddKeyEvent(translate(key.m_key), is_key_down);
 			}
 			else
 			{
@@ -312,12 +300,7 @@ namespace influx::engine
 		mp_scene_target->resize(*mp_window_target);
 
 		// 1. clear
-		renderer::clear_args clear{ {
-			g_global_settings.m_clearcolour.r,
-			g_global_settings.m_clearcolour.g,
-			g_global_settings.m_clearcolour.b,
-			1.0f } };
-
+		renderer::clear_args clear{ g_global_settings.m_clearcolour };
 		renderer::clear_target(*mp_scene_target, clear);
 
 		// 2. scene render
@@ -538,6 +521,43 @@ namespace influx::engine
 		{
 			influx::renderer::load("esphere", renderer::get_inline_mesh_sphere());
 		}
+	}
+#pragma endregion
+
+#pragma region imgui_translate
+	ImGuiKey translate(const input::e_key key)
+	{
+		switch (key)
+		{
+		case input::e_key::left:		return ImGuiKey::ImGuiKey_LeftArrow;
+		case input::e_key::right:		return ImGuiKey::ImGuiKey_RightArrow;
+		case input::e_key::down:		return ImGuiKey::ImGuiKey_DownArrow;
+		case input::e_key::up:			return ImGuiKey::ImGuiKey_UpArrow;
+		case input::e_key::lshift:		return ImGuiKey::ImGuiKey_LeftShift;
+		case input::e_key::rshift:		return ImGuiKey::ImGuiKey_RightShift;
+		case input::e_key::lctrl:		return ImGuiKey::ImGuiKey_LeftCtrl;
+		case input::e_key::rctrl:		return ImGuiKey::ImGuiKey_RightCtrl;
+		case input::e_key::space:		return ImGuiKey::ImGuiKey_Space;
+		case input::e_key::backspace:	return ImGuiKey::ImGuiKey_Backspace;
+		case input::e_key::enter:		return ImGuiKey::ImGuiKey_Enter;
+		case input::e_key::home:		return ImGuiKey::ImGuiKey_Home;
+		case input::e_key::end:			return ImGuiKey::ImGuiKey_End;
+		case input::e_key::insert:		return ImGuiKey::ImGuiKey_Insert;
+		case input::e_key::deleet:		return ImGuiKey::ImGuiKey_Delete;
+		case input::e_key::apostrophe:	return ImGuiKey::ImGuiKey_Apostrophe;
+		case input::e_key::comma:		return ImGuiKey::ImGuiKey_Comma;
+		case input::e_key::minus:		return ImGuiKey::ImGuiKey_Minus;
+		case input::e_key::period:		return ImGuiKey::ImGuiKey_Period;
+		case input::e_key::backslash:	return ImGuiKey::ImGuiKey_Backslash;
+		case input::e_key::slash:		return ImGuiKey::ImGuiKey_Slash;
+		case input::e_key::semicolon:	return ImGuiKey::ImGuiKey_Semicolon;
+		case input::e_key::equal:		return ImGuiKey::ImGuiKey_Equal;
+		case input::e_key::lbracket:	return ImGuiKey::ImGuiKey_LeftBracket;
+		case input::e_key::rbracket:	return ImGuiKey::ImGuiKey_RightBracket;
+		// case e_key::plus:		return ImGuiKey::;
+		}
+
+		return ImGuiKey::ImGuiKey_None;
 	}
 #pragma endregion
 }
