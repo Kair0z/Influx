@@ -39,11 +39,13 @@ namespace influx::engine
 
 		void update();
 
+		// rendering
 		void build_renderscene(
 			renderer::scene&, 
 			renderer::scene2D&,
 			renderer::scene_debug&) const;
 
+		// entities / components
 		entity create_entity();
 
 		void destroy_entity(entity);
@@ -57,19 +59,22 @@ namespace influx::engine
 		template<typename _ctype>
 		bool has_component(const entity& e);
 
-		struct trace_result { entity* m_entity = nullptr; };
-		bool trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer = e_collision_layer::all);
-		
 		void clear();
 
-		void load_project(const influx::files::projectfile& proj);
+		// scene picking
+		struct trace_result { entity* m_entity = nullptr; };
+		bool trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer = e_collision_layer::all);
 
+		// project file management
+		void load_project(const influx::files::projectfile& proj);
 		void save_project(influx::files::projectfile& proj);
 
 		// gets the viewmatrix of the main camera
 		math::matrix4x4f get_main_projection_matrix() const;
 		math::matrix4x4f get_main_viewmatrix() const;
 		math::float3 get_main_cameraposition() const;
+
+		math::ray make_camera_viewray(const entity& camera_entity) const;
 
 	private:
 		entt::registry m_registry;

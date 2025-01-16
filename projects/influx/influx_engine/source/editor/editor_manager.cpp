@@ -415,6 +415,10 @@ namespace influx::engine
 			
 			world& world = *get_engine()->get_world_ptr();
 
+			// get main view ray:
+
+			world.make_camera_viewray()
+			
 			// get camera matrices
 			const math::matrix4x4f projection = world.get_main_projection_matrix();
 			const math::matrix4x4f view = world.get_main_viewmatrix();
@@ -429,7 +433,7 @@ namespace influx::engine
 				-1.0f
 			};
 
-			// mouse_ndc.x = -mouse_ndc.x;
+			mouse_ndc.x = -mouse_ndc.x;
 			mouse_ndc.y = -mouse_ndc.y;
 
 			// unproject ndc -> view

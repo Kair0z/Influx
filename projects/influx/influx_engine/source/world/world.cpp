@@ -227,6 +227,11 @@ namespace influx::engine
         return hit_results.size() != 0u;
     }
 
+    bool world::trace_from_camera(trace_result& out_result, e_collision_layer layer)
+    {
+        return false;
+    }
+
     void world::clear()
     {
         m_entities.clear();
@@ -290,6 +295,11 @@ namespace influx::engine
             position = transform_comp.get_position();
         }
         return position;
+    }
+
+    math::ray world::make_camera_viewray(const entity& camera_entity) const
+    {
+        
     }
 
     void world::update_input_system()
