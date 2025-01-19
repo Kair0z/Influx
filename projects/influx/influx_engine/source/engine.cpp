@@ -58,7 +58,7 @@ namespace influx::engine
 
 		// initialize render
 		string render_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
-		const math::vectoru2 window_dimensions = { 640u, 480u };
+		const math::vectoru2 window_dimensions = { 1280u, 720u };
 		initialize_renderer(render_name, window_dimensions);
 
 		// init world
@@ -144,6 +144,11 @@ namespace influx::engine
 	{
 		async::shutdown();
 
+		if (m_gameman)
+		{
+			delete m_gameman;
+		}
+
 		if (m_editorman)
 		{
 			delete m_editorman;
@@ -176,11 +181,6 @@ namespace influx::engine
 		{
 			delete m_world;
 			m_world = nullptr;
-		}
-
-		if (m_gameman)
-		{
-			delete m_gameman;
 		}
 	}
 

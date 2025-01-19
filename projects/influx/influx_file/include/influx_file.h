@@ -9,6 +9,7 @@
 // influx::core
 #include "core/basetypes.h"
 #include "core/file.h"
+#include "core/math/matrix.h"
 #include <fstream>
 
 namespace influx::files
@@ -42,5 +43,6 @@ namespace influx::files
 
 		string m_name;
 		vector<entityfile> m_entities{};
+		math::matrix4x4f m_camera_transform{};
 	};
 }

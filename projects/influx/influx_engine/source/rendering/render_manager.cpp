@@ -76,8 +76,8 @@ namespace influx::engine
 			m_texteditor.SetHandleMouseInputs(true);
 			m_texteditor.SetReadOnly(false);
 
-			const string& file_content = textfile::read_all(string(filepath));
-			m_texteditor.InsertText(file_content.c_str());
+			// const string& file_content = textfile::read_all(string(filepath));
+			// m_texteditor.InsertText(file_content.c_str());
 		}
 
 		shader::compile_args make_compile_args(shader::e_shader_type type, const string& entrypoint)

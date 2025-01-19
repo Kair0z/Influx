@@ -23,7 +23,6 @@ namespace influx::math
 				struct { math::vector<_t, _C> m_rows[_R]; };
 			};
 
-
 			template <class... _Init>
 			base_matrix(_Init...values) : m_data{ static_cast<_t>(values)... } {}
 		};
@@ -45,6 +44,9 @@ namespace influx::math
 		template <class... _I>	matrix(_I... values) : detail::base_matrix<_t, _C, _R>(values...) {} // Initializer list
 		template <typename _D>	matrix(const matrix<_D, _C, _R>& other); // Typecasting
 		template <typename _D>	matrix(matrix<_D, _C, _R>&& other); // Typecasting
+
+		static const matrix_dim_t get_num_rows() { return _R; }
+		static const matrix_dim_t get_num_collumns() { return _C; };
 
 		// Data Access:
 		const vector<_t, _C>& operator[](matrix_dim_t r) const;
@@ -120,8 +122,7 @@ namespace influx::math
 		static matrix identity();
 
 		// Transformation:
-		static matrix<_t, 3u, 3u> make_rotation(float angle);
-		static matrix<_t, 4u, 4u> make_rotation(const vector<_t, 3u>& axis, float angle);
+		static matrix<_t, 3u, 3u> make_rotation(const vector<_t, 3u>& axis, float angle);
 		static matrix<_t, 3u, 3u> make_translation(const vector<_t, 2u>& translation);
 		static matrix<_t, 4u, 4u> make_translation(const vector<_t, 3u>& translation);
 		static matrix<_t, 3u, 3u> make_scale(const vector<_t, 2u>& scale);
@@ -134,6 +135,13 @@ namespace influx::math
 		static matrix<_t, 4u, 4u> make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector3::up());
 		static matrix<_t, 4u, 4u> make_projection_LH(const float fov, const float ar, const float n, const float f);
 		static matrix<_t, 4u, 4u> make_projection_RH(const float fov, const float ar, const float n, const float f); // Todo: [Orthographic vs Perspective]
+
+		// 
+		vector<_t, 3u> get_translation() const;
+		vector<_t, 3u> get_scale() const;
+		vector<_t, 3u> get_scale_sqr() const;
+
+		matrix<_t, 3u, 3u> get_rotation_matrix() const;
 
 		void for_each_element(std::function<void(_t&)> operation);
 		void for_each_element(std::function<void(_t&, matrix_dim_t idx)> operation);
@@ -150,6 +158,7 @@ namespace influx::math
 
 	// Matrix - Vector
 	template<typename _t> math::vector<_t, 2u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 2u>& v);
+	template<typename _t> math::vector<_t, 3u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 3u>& v);
 	template<typename _t> math::vector<_t, 3u> operator*(const matrix<_t, 4u, 4u>& mat, const vector<_t, 3u>& v);
 
 	// Matrix - scalar

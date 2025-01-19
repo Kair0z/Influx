@@ -59,11 +59,6 @@ namespace influx
 			return true;
 		}
 
-		static bool exists(const file& file)
-		{
-			return std::filesystem::exists(file.m_path_full);
-		}
-
 		static bool exists(const string& file)
 		{
 			std::filesystem::path path(file);

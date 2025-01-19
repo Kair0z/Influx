@@ -35,17 +35,7 @@ namespace influx::engine
     
     void world::update()
     {
-        {
-            // temp
-            influx_scope("rotate_everyone");
-            const float delta_time = get_engine()->get_time().get_delta_seconds();
-            auto view = m_registry.view<transform_component, mesh_component>();
-            for (auto [entity, transform_comp, mesh_comp] : view.each())
-            {
-                transform_comp.get_transform().rotate(delta_time, math::float3::up());
-            }
-        }
-        
+        update_transform_system();
         update_input_system();
         update_bounds_system();
         update_stream_system();
@@ -209,7 +199,7 @@ namespace influx::engine
                     g_lastray = new math::ray();
 
                 (*g_lastray) = ray;
-                transform_comp.move({ 0.0f, 1.0f, 0.0f });
+                // transform_comp.move({ 0.0f, 1.0f, 0.0f });
             }
         }
 
@@ -290,6 +280,16 @@ namespace influx::engine
             position = transform_comp.get_position();
         }
         return position;
+    }
+
+    void world::update_transform_system()
+    {
+        influx_scope("transform_system");
+        auto view = m_registry.view<transform_component>();
+        for (auto [entity, transform] : view.each())
+        {
+            transform.update_matrix();
+        }
     }
 
     void world::update_input_system()
@@ -386,7 +386,7 @@ namespace influx::engine
             for (auto [entity, sprite] : view.each())
             {
                 auto asset = contman->find<image_asset>(sprite.get_texture_path());
-                if (asset.is_success() && asset->is_loaded())
+                if (asset && asset->is_loaded())
                 {
                     sprite.m_texture_dimensions = asset->m_resource.m_dimensions;
                 }
@@ -406,7 +406,7 @@ namespace influx::engine
                 const uint32 mesh_idx = !index_str.empty() ? std::stoi(index_str) : 0u;
 
                 result<scene_asset const*> asset = contman->find<scene_asset>(scene_name);
-                if (asset.is_success() && asset->is_loaded())
+                if (asset && asset->is_loaded())
                 {
                     // update bounding box / sphere
                     const imp::mesh_data& mesh = asset->m_resource.get_mesh(mesh_idx);

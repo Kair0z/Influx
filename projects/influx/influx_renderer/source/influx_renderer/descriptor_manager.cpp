@@ -12,7 +12,7 @@ namespace influx::renderer
 {
 	// https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-support
 	constexpr static uint64 k_max_num_rtvs = 4u;
-	constexpr static uint64 k_max_num_srvs = 512u;
+	constexpr static uint64 k_max_num_srvs = 1024u;
 	constexpr static uint64 k_max_num_samplers = 2048u;
 	constexpr static uint64 k_max_num_dsvs = 64u;
 
@@ -75,7 +75,7 @@ namespace influx::renderer
 
 		// srv heap
 		create_args.m_type = e_descriptor_heap_type::srv;
-		create_args.m_capacity = 256u;
+		create_args.m_capacity = 2048u;
 		mp_srv_gpu_heap = device->create_descriptor_heap(create_args);
 	}
 

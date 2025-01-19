@@ -278,17 +278,7 @@ namespace influx::math
 		};
 	}
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 3, 3> matrix<_t, _C, _R>::make_rotation(float angle)
-	{
-		return
-		{
-			cosf(angle), -sinf(angle), 0,
-			sinf(angle), cosf(angle), 0,
-			0, 0, 1
-		};
-	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_rotation(const vector<_t, 3>& axis, float angle)
+	inline matrix<_t, 3u, 3u> matrix<_t, _C, _R>::make_rotation(const vector<_t, 3>& axis, float angle)
 	{
 		// http://www.fastgraph.com/makegames/3drotation/3dsrce.html
 
@@ -301,10 +291,9 @@ namespace influx::math
 
 		return
 		{
-			t * x * x + c,	 t * x * y - s * z,	 t * x * z + s * y, 0,
-			t * x * y + s * z, t * y * y + c, t * y * z - s * x, 0,
-			t * x * z - s * y, t * y * z + s * x, t * z * z + c, 0,
-			0, 0, 0, 1
+			t * x * x + c,	 t * x * y - s * z,	 t * x * z + s * y,
+			t * x * y + s * z, t * y * y + c, t * y * z - s * x,
+			t * x * z - s * y, t * y * z + s * x, t * z * z + c
 		};
 	}
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
@@ -558,6 +547,18 @@ namespace influx::math
 		return { result.x, result.y };
 	}
 	template<typename _t>
+	inline vector<_t, 3u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 3u>& v)
+	{
+		vector<_t, 3u> cpy = { v.x, v.y, v.z };
+		vector<_t, 3u> res{};
+		for (matrix_dim_t c{}; c < 3u; ++c)
+		{
+			res[c] = vector<_t, 3u>::dot(mat.get_collumn(c), cpy);
+		}
+
+		return { res.x, res.y, res.z };
+	}
+	template<typename _t>
 	inline vector<_t, 3u> operator*(const matrix<_t, 4u, 4u>& mat, const vector<_t, 3u>& v)
 	{
 		vector<_t, 4u> cpy = { v.x, v.y, v.z, 1.f };
@@ -643,6 +644,63 @@ namespace influx::math
 			(_t)0, (_t)y, (_t)0, (_t)0,
 			(_t)0, (_t)0, (_t)f / intv, (_t)1,
 			(_t)0, (_t)0, static_cast<_t>(-(f * n) / intv), (_t)0
+		};
+	}
+
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline vector<_t, 3u> matrix<_t, _C, _R>::get_translation() const
+	{
+		static_assert(_C == 4u && _R == 4u);
+		const auto& row = get_row(3u);
+		return { row.x, row.y, row.z };
+	}
+
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	vector<_t, 3u> matrix<_t, _C, _R>::get_scale() const
+	{
+		static_assert(_C == 4u && _R == 4u);
+		vector<_t, 3u> scale_sqr = get_scale_sqr();
+		return 
+		{
+			sqrtf(scale_sqr.x),
+			sqrtf(scale_sqr.y),
+			sqrtf(scale_sqr.z),
+		};
+
+		return scale_sqr;
+	}
+
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	vector<_t, 3u> matrix<_t, _C, _R>::get_scale_sqr() const
+	{
+		static_assert(_C == 4u && _R == 4u);
+		const auto& rowX = get_row(0u);
+		const auto& rowY = get_row(1u);
+		const auto& rowZ = get_row(2u);
+
+		return { 
+			rowX.sqr_magnitude(),
+			rowY.sqr_magnitude(),
+			rowZ.sqr_magnitude()};
+	}
+
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	matrix<_t, 3u, 3u> matrix<_t, _C, _R>::get_rotation_matrix() const
+	{
+		static_assert(_C == 4u && _R == 4u);
+		auto rowX = get_row(0u);
+		auto rowY = get_row(1u);
+		auto rowZ = get_row(2u);
+
+		rowX.normalize();
+		rowY.normalize();
+		rowZ.normalize();
+
+		return
+		{
+			rowX.x, rowX.y, rowX.z,
+			rowY.x, rowY.y, rowY.z,
+			rowZ.x, rowZ.y, rowZ.z,
 		};
 	}
 

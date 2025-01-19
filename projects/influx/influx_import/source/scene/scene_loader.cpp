@@ -34,7 +34,8 @@ namespace influx::imp
 			aiProcess_Triangulate |
 			aiProcess_JoinIdenticalVertices |
 			aiProcess_FlipUVs |
-			aiProcess_SortByPType);
+			aiProcess_SortByPType |
+			aiProcess_PreTransformVertices);
 
 		// If the import failed, report it
 		if (aiscene == nullptr)

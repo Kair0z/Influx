@@ -9,13 +9,35 @@
 #include "editor/editor_manager.h"
 #include "world/world.h"
 #include "component/component.h"
+#include "content/content_manager.h"
 
 // influx::platform
 #include "influx_platform/library.h"
 #include "influx_platform/window.h"
 
+// influx::file
+#include "influx_file.h"
+
 namespace influx::engine
 {
+	static bool load_projectfile(files::projectfile& out_file)
+	{
+		if (file::exists("E:/Git/Influx/editor/project.flx"))
+		{
+			out_file.load("E:/Git/Influx/editor/project.flx");
+			return true;
+		}
+		return false;
+	}
+
+	static files::projectfile save_projectfile(const math::matrix4x4f& cam_transform)
+	{
+		files::projectfile proj_file{};
+		proj_file.m_camera_transform = cam_transform;
+		proj_file.save("E:/Git/Influx/editor/project.flx");
+		return proj_file;
+	}
+
 	inline platform::library* get_game_library()
 	{
 		// call game module dll start
@@ -33,28 +55,51 @@ namespace influx::engine
 
 	void game_manager::start()
 	{
-		get_game_library()->call("start");
+		if (m_state == state::idle)
+		{
+			get_game_library()->call("start");
 
-		setup_camera();
-		setup_swords();
+			setup_camera();
+			// setup_swords();
+			setup_cafe();
+
+			m_state = state::running;
+		}
 	}
 
 	void game_manager::tick()
 	{
+		if (m_state == state::idle)
+		{
+			return;
+		}
+
 		get_game_library()->call("tick");
 	}
 
 	void game_manager::end()
 	{
+		if (m_state == state::idle)
+		{
+			return;
+		}
+
 		get_game_library()->call("end");
 
 		world& world = *get_engine()->get_world_ptr();
 
+		// save to file
+		const entity& camera = m_entities[0];
+		transform_component* cam_transform = world.get_component<transform_component>(camera);
+		save_projectfile(cam_transform->get_matrix());
+		
 		for (const entity& e : m_entities)
 		{
 			world.destroy_entity(e);
 		}
 		m_entities.clear();
+
+		m_state = state::idle;
 	}
 
 	void game_manager::setup_camera()
@@ -67,13 +112,24 @@ namespace influx::engine
 		const static float acceleration_rate = 1 * max_speed;
 		const static float damp_rate = 0.01f;
 		const static float fov = 90.0f;
-		static const math::float3 start_position = { 0, camera_distance, camera_distance };
+
+		static math::float3 start_position = {};
+		static math::matrix3x3f start_rotation = {};
+
+		files::projectfile file{};
+		if (load_projectfile(file))
+		{
+			const math::matrix4x4f file_transform = file.m_camera_transform;
+			start_position = file_transform.get_translation();
+			start_rotation = file_transform.get_rotation_matrix();
+		}
+
 		entity camera = create_entity();
 		{
 			transform_component& trans_comp = world.create_component<transform_component>(camera);
 			{
 				trans_comp.set_position(start_position);
-				trans_comp.look_at({});
+				trans_comp.set_rotation(start_rotation);
 			}
 
 			camera_component& cam_comp = world.create_component<camera_component>(camera);
@@ -230,10 +286,59 @@ namespace influx::engine
 		}
 	}
 
+	void game_manager::setup_cafe()
+	{
+		world& world = *get_engine()->get_world_ptr();
+
+		const string& scene_name = "CafeLeBlanc";
+		const content_manager& contman = *get_engine()->get_content().get();
+		const scene_asset* leblanc_asset = contman.find<scene_asset>(scene_name);
+		if (leblanc_asset == nullptr)
+		{
+			return;
+		}
+
+		const imp::scene_data& scene_data = leblanc_asset->get_resource();
+		const uint32 num_meshes = scene_data.get_num_meshes();
+
+		for (uint32 i = 0u; i < num_meshes; ++i)
+		{
+			const imp::mesh_data& mesh = scene_data.get_mesh(i);
+			entity sword = create_entity();
+
+			transform_component& trans_comp = world.create_component<transform_component>(sword);
+			{
+				math::vectorf3 scale = mesh.m_world_transform.get_scale();
+				scale *= 0.001f;
+				trans_comp.set_position(mesh.m_world_transform.get_translation());
+				trans_comp.set_scale(scale);
+				trans_comp.set_rotation(mesh.m_world_transform.get_rotation_matrix());
+			}
+
+			mesh_component& mesh_comp = world.create_component<mesh_component>(sword);
+			{
+				mesh_comp.set_mesh_name(scene_name + "_" + to_string(i));
+			}
+
+			material_component& mat_comp = world.create_component<material_component>(sword);
+			{
+				mat_comp.set_texture(e_texture_semantic::basecolor, "checkerboard");
+			}
+		}
+	}
+
 	entity game_manager::create_entity()
 	{
 		world& world = *get_engine()->get_world_ptr();
 		m_entities.push_back(world.create_entity());
 		return m_entities.back();
+	}
+	
+	game_manager::~game_manager()
+	{
+		if (m_state == state::running)
+		{
+			end();
+		}
 	}
 }

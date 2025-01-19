@@ -122,7 +122,7 @@ namespace influx::engine
 		const umap<string, shader_item>& get_shaders() const;
 
 		template <typename _t>
-		result<_t const*> find(const string& asset_name)
+		_t const* find(const string& asset_name) const
 		{
 			if constexpr (std::is_same_v<_t, scene_item>) 
 			{
@@ -140,7 +140,7 @@ namespace influx::engine
 					return { &get_shaders().at(asset_name) };
 			}
 			
-			return result<_t const*>::make_error();
+			return nullptr;
 		}
 
 		// loads /influx/assets/

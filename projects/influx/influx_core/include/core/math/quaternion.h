@@ -62,7 +62,7 @@ namespace influx::math
 
 		void rotate(float delta_angle, const vectorf3& axis)
 		{
-			m_rotation_matrix = math::matrix4x4f::make_rotation(axis, delta_angle);
+			m_rotation_matrix = math::matrix3x3f::make_rotation(axis, delta_angle);
 
 			m_forward = (m_rotation_matrix * m_forward).normalized();
 			m_right = math::vectorf3::cross(m_forward, vectorf3::up()).normalized();
@@ -97,12 +97,21 @@ namespace influx::math
 			return atan2f(m_right.y, m_right.x);
 		}
 
+		void set_matrix(const math::matrix3x3f& matrix)
+		{
+			m_rotation_matrix = matrix;
+
+			m_right		= m_rotation_matrix.get_row(0u).normalized();
+			m_up		= m_rotation_matrix.get_row(1u).normalized();
+			m_forward	= m_rotation_matrix.get_row(2u).normalized();
+		}
+
 	private:
 		vectorf3 m_forward;
 		vectorf3 m_right;
 		vectorf3 m_up;
 
-		math::matrix4x4f m_rotation_matrix;
+		math::matrix3x3f m_rotation_matrix;
 	};
 
 	using rotation = quaternion;
