@@ -7,7 +7,7 @@ namespace influx::engine
 	{
 		m_graph.traverse([&ctx](const graph_node& node)
 		{
-			layer* layer = node.data;
+			layer* layer = node.m_data;
 			if (layer == nullptr) return;
 
 			if (layer->m_frame_counter == 0u)
@@ -27,7 +27,7 @@ namespace influx::engine
 	{
 		m_graph.traverse([key](const graph_node& node)
 		{
-			layer* layer = node.data;
+			layer* layer = node.m_data;
 			if (layer == nullptr) return;
 
 			layer->on_keydown(key);
@@ -38,7 +38,7 @@ namespace influx::engine
 	{
 		m_graph.traverse([key](const graph_node& node)
 		{
-			layer* layer = node.data;
+			layer* layer = node.m_data;
 			if (layer == nullptr) return;
 
 			layer->on_keyup(key);
@@ -49,7 +49,7 @@ namespace influx::engine
 	{
 		m_graph.traverse([ascii](const graph_node& node)
 		{
-			layer* layer = node.data;
+			layer* layer = node.m_data;
 			if (layer == nullptr) return;
 
 			layer->on_ascii_down(ascii);
@@ -60,7 +60,7 @@ namespace influx::engine
 	{
 		m_graph.traverse([ascii](const graph_node& node)
 		{
-			layer* layer = node.data;
+			layer* layer = node.m_data;
 			if (layer == nullptr) return;
 
 			layer->on_ascii_up(ascii);
@@ -71,7 +71,7 @@ namespace influx::engine
 	{
 		m_graph.traverse([position](const graph_node& node)
 		{
-			layer* layer = node.data;
+			layer* layer = node.m_data;
 			if (layer == nullptr) return;
 
 			layer->on_mouse_move(position);
@@ -82,7 +82,7 @@ namespace influx::engine
 	{
 		m_graph.traverse([button, position](const graph_node& node)
 		{
-			layer* layer = node.data;
+			layer* layer = node.m_data;
 			if (layer == nullptr) return;
 
 			layer->on_mouse_down(button, position);
@@ -93,7 +93,7 @@ namespace influx::engine
 	{
 		m_graph.traverse([button, position](const graph_node& node)
 		{
-			layer* layer = node.data;
+			layer* layer = node.m_data;
 			if (layer == nullptr) return;
 
 			layer->on_mouse_up(button, position);

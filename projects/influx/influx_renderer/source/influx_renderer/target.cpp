@@ -51,6 +51,7 @@ namespace influx::renderer
 		}
 
 		m_current_dimensions = { args.m_width, args.m_heigth };
+		m_is_swapchain_target = false;
 	}
 
 	// constructs a target from existing swapchain resources
@@ -74,6 +75,8 @@ namespace influx::renderer
 		m_dsv_handle = nullptr;
 
 		mp_device = device;
+
+		m_is_swapchain_target = true;
 	}
 
 	target::~target()
@@ -84,11 +87,26 @@ namespace influx::renderer
 			desc_man->cleanup_rtv(mp_rtv);
 			mp_rtv = nullptr;
 		}
-
 		if (mp_dsv)
 		{
 			desc_man->cleanup_dsv(mp_dsv);
 			mp_dsv = nullptr;
+		}
+
+		// all non-swapchain targets own their own resources and so should destroy them
+		if (m_is_swapchain_target == false)
+		{
+			if (mp_resource)
+			{
+				mp_device->release(mp_resource);
+				mp_resource = nullptr;
+			}
+
+			if (mp_depth_resource)
+			{
+				mp_device->release(mp_depth_resource);
+				mp_depth_resource = nullptr;
+			}
 		}
 	}
 

@@ -56,6 +56,6 @@ namespace influx::imp
 		};
 
 		uint32 m_id;
-		hierarchy<node> m_hierarchy;
+		flat_tree<node> m_hierarchy;
 	};
 }

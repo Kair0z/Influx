@@ -151,20 +151,20 @@ namespace influx::engine
 	public:
 		editor_manager(editor_module* editor);
 
-		result<> update_imgui(ImGuiContext& ctx);
+		void update_imgui(ImGuiContext& ctx);
 
 		// sets the editor up to load assets & target the named game
-		result<> load_project(engine& engine, const string& name);
+		void load_project(engine& engine, const string& name);
 
 		bool has_project() const;
-		result<string> get_projectname() const;
+		string get_projectname() const;
 
 		template <typename _t>
 		static _t& static_window(const string& tag);
 
 	private:
 		editor_module* m_editor = nullptr;
-		result<> initialize_inputs();
+		void initialize_inputs();
 
 		compound_keybind_tracker m_keybinds;
 		cooldown_toggle m_content_toggle = 0.5f;
@@ -179,22 +179,22 @@ namespace influx::engine
 
 		files::projectfile m_projectfile;
 
-		result<> update_inputs();
-		result<> update_context();
-		result<> update_mainmenu();
-		result<> update_background_dockspace();
-		result<> update_static_windows();
-		result<> update_edit_radial();
+		void update_inputs();
+		void update_context();
+		void update_mainmenu();
+		void update_background_dockspace();
+		void update_static_windows();
+		void update_edit_radial();
 
 		math::vectorf2 m_mousepos;
 
-		result<> on_keydown(input::e_key);
-		result<> on_keyup(input::e_key);
-		result<> on_ascii_down(char);
-		result<> on_ascii_up(char);
-		result<> on_mouse_move(const input::mouse_position& position);
-		result<> on_mouse_down(input::e_mouse_button button, const input::mouse_position& position);
-		result<> on_mouse_up(input::e_mouse_button button, const input::mouse_position& position);
+		void on_keydown(input::e_key);
+		void on_keyup(input::e_key);
+		void on_ascii_down(char);
+		void on_ascii_up(char);
+		void on_mouse_move(const input::mouse_position& position);
+		void on_mouse_down(input::e_mouse_button button, const input::mouse_position& position);
+		void on_mouse_up(input::e_mouse_button button, const input::mouse_position& position);
 	};
 
 	template<typename _t>

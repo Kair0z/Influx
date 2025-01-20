@@ -65,5 +65,8 @@ namespace influx::engine
 		lock_queue<input::mouse_position> m_deferred_mousemoves{};
 		lock_queue<std::pair<input::e_mouse_button, input::mouse_position>> m_deferred_mousedowns{};
 		lock_queue<std::pair<input::e_mouse_button, input::mouse_position>> m_deferred_mouseups{};
+
+		math::float2 m_mousepos = {};
+		math::float2 m_mousedelta = {};
 	};
 }

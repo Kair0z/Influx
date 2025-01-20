@@ -10,8 +10,8 @@ namespace influx::engine
 {
 	class layergraph final
 	{
-		hierarchy<layer*> m_graph{};
-		using graph_node = hierarchy<layer*>::node;
+		flat_tree<layer*> m_graph{};
+		using graph_node = flat_tree<layer*>::node;
 
 	public:
 		template <class _ltype, class ..._args>
@@ -54,7 +54,7 @@ namespace influx::engine
 			}
 			else
 			{
-				hierarchy<layer*>::node* found_parent_node = m_graph.find_node(parent);
+				flat_tree<layer*>::node* found_parent_node = m_graph.find(parent);
 				if (found_parent_node != nullptr)
 				{
 					m_graph.add(child, *found_parent_node);
@@ -68,7 +68,7 @@ namespace influx::engine
 
 		void remove_from_graph(layer* child)
 		{
-			hierarchy<layer*>::node* found_node = m_graph.find_node(child);
+			flat_tree<layer*>::node* found_node = m_graph.find(child);
 			if (found_node != nullptr)
 			{
 				m_graph.remove(*found_node);

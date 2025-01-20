@@ -71,6 +71,7 @@ namespace influx::renderer
 		graphics::depth_stencil_view* mp_dsv;
 		void* m_rtv_handle;
 		void* m_dsv_handle;
+		bool m_is_swapchain_target = false;
 
 		target_create_args m_args;
 		math::vectoru2 m_current_dimensions;

@@ -155,6 +155,8 @@ namespace influx::renderer
 		umap<string, texture*> m_textures;
 
 		render_settings m_settings;
+
+		void recreate_backbuffer_targets();
 	};
 
 	template<typename _tvtx>

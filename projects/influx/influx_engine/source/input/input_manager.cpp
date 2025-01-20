@@ -7,7 +7,6 @@ namespace influx::engine
 	{
 		influx::input::init();
 
-		// subscribe to callbacks
 		input::subscribe_keydown([this](input::e_key key) { on_keydown(key); });
 		input::subscribe_keyup([this](input::e_key key) { on_keyup(key); });
 		input::subscribe_asciidown([this](char ascii) { on_ascii_down(ascii); });
@@ -33,16 +32,17 @@ namespace influx::engine
 
 	void input_manager::tick()
 	{
+		// service input queue
 		input::service_args args{};
-		args.m_max_events_to_service = 10u;
+		args.m_max_events_to_service = 64u;
 		input::service(args);
+
+		//
+
 	}
 
 	void input_manager::flush()
-	{
-		//
-
-		// 
+	{ 
 		m_deferred_keydowns.clear();
 		m_deferred_keyups.clear();
 		m_deferred_ascii_downs.clear();

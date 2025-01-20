@@ -48,6 +48,7 @@ namespace influx::engine
 		platform::window& get_window();
 		editor_manager& get_editor();
 		render_manager& get_renderer();
+		input_manager& get_input();
 
 		const frame_time& get_time() const;
 		float get_fps() const;

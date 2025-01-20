@@ -20,12 +20,12 @@
 
 namespace influx::engine
 {
+	static const char* k_editor_config_path = "D:/Git/Influx/editor/prj.flx";
 	static bool load_projectfile(files::projectfile& out_file)
 	{
-		
-		if (file::exists("E:/Git/Influx/editor/project.flx"))
+		if (file::exists(k_editor_config_path))
 		{
-			out_file.load("E:/Git/Influx/editor/project.flx");
+			out_file.load(k_editor_config_path);
 			return true;
 		}
 		return false;
@@ -35,7 +35,7 @@ namespace influx::engine
 	{
 		files::projectfile proj_file{};
 		proj_file.m_camera_transform = cam_transform;
-		proj_file.save("E:/Git/Influx/editor/project.flx");
+		proj_file.save(k_editor_config_path);
 		return proj_file;
 	}
 
@@ -115,7 +115,7 @@ namespace influx::engine
 		const static float fov = 90.0f;
 
 		static math::float3 start_position = {};
-		static math::matrix3x3f start_rotation = {};
+		static math::matrix3x3f start_rotation = math::matrix3x3f::identity();
 
 		files::projectfile file{};
 		if (load_projectfile(file))

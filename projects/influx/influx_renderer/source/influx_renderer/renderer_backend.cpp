@@ -92,8 +92,6 @@ namespace influx::renderer
 
     void renderer_backend::wait_gpu_finished() const
     {
-        logwar("wait_gpu_finished");
-
         const uint64 finished_value = (uint64)-1;
         mp_fence->queue_signal(finished_value, mp_graphics_queue);
         mp_fence->wait_for_value(finished_value);
@@ -115,8 +113,34 @@ namespace influx::renderer
         return new target(mp_device, args);
     }
 
+    void renderer_backend::recreate_backbuffer_targets()
+    {
+        // delete old
+        for (target*& target : m_swapchain_targets)
+        {
+            if (target != nullptr)
+            {
+                delete target;
+                target = nullptr;
+            }
+        }
+        m_swapchain_targets.clear();
+
+        // create new
+        const uint8 num_swapchain_buffers = mp_swapchain->get_num_backbuffers();
+        for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
+        {
+            target* new_target = new target(mp_device, mp_swapchain, i);
+            new_target->set_name("window_target_" + to_string(i));
+            m_swapchain_targets.push_back(new_target);
+        }
+    }
+
     target* renderer_backend::acquire_window_target(const platform::window& window)
     {
+        // stall
+        wait_gpu_finished();
+
         // create the swapchain for the first time
         if (mp_swapchain == nullptr)
         {
@@ -126,33 +150,20 @@ namespace influx::renderer
             desc.m_dimensions; // todo
             mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
 
-            const uint8 num_swapchain_buffers = mp_swapchain->get_num_backbuffers();
-            for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
-            {
-                m_swapchain_targets.push_back(new target(mp_device, mp_swapchain, i));
-                m_swapchain_targets[i]->set_name("window_target_" + to_string(i));
-            }
+            recreate_backbuffer_targets();
         }
 
-        acquire_swapchain_frame();
-        const uint8 current_swapchain_index = mp_swapchain->get_current_backbuffer_index();
-
+        // if need, recreate the swapchain
         if (mp_swapchain->needs_recreate(window))
         {
-            wait_gpu_finished();
-
             mp_swapchain->resize(mp_device, window);
 
-            const uint8 num_swapchain_buffers = mp_swapchain->get_num_backbuffers();
-            for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
-            {
-                delete m_swapchain_targets[i];
-                m_swapchain_targets[i] = new target(mp_device, mp_swapchain, i);
-                m_swapchain_targets[i]->set_name("window_target_" + to_string(i));
-            }
+            recreate_backbuffer_targets();
         }
-        
-        // return the current swapchain target
+
+        // acquire the frame
+        acquire_swapchain_frame();
+        const uint8 current_swapchain_index = mp_swapchain->get_current_backbuffer_index();
         return m_swapchain_targets[current_swapchain_index];
     }
 

@@ -127,7 +127,8 @@ namespace influx::graphics
 		// release the unreleased
 		for (size_t i = 0u; i < m_children.size(); ++i)
 		{
-			device::release(m_children[i]);
+			if (m_children[i]->is_valid())
+				device::release(m_children[i]);
 		}
 		m_children.clear();
 

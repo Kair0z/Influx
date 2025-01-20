@@ -25,9 +25,9 @@ namespace cereal
 	template <class _archive> void serialize(_archive& arch, influx::imp::flx_scene& scene)
 	{
 		arch(scene.m_id);
-		scene.m_hierarchy.traverse([&arch](influx::hierarchy<influx::imp::flx_scene::node>::node& node)
+		scene.m_hierarchy.traverse([&arch](influx::flat_tree<influx::imp::flx_scene::node>::node& node)
 		{
-			arch(node.data);
+			arch(node.m_data);
 		});
 	}
 }

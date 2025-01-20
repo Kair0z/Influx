@@ -6,7 +6,7 @@
 namespace influx
 {
 	template <class _t>
-	class hierarchy final
+	class flat_tree final
 	{
 	public:
 		using data = _t;
@@ -16,11 +16,12 @@ namespace influx
 		struct node final
 		{
 			node() = default;
-			node(const data& m_data, uint32 layer)
-				: data{ m_data }, m_layer_idx{ layer } {}
+			node(const data& data, uint32 layer)
+				: m_data{ data }, m_layer_idx{ layer } {}
 
-			uint32 m_layer_idx{};
-			data data{};
+			uint32	m_parent_idx{};
+			uint32	m_layer_idx{};
+			data	m_data{};
 		};
 		using node_vector = vector<node>;
 
@@ -29,14 +30,14 @@ namespace influx
 		vector<node_vector> m_layers{};
 
 	public:
-		hierarchy() = default;
+		flat_tree() = default;
 
-		inline node* find_node(const data& value)
+		inline node* find(const data& value)
 		{
 			node* found = nullptr;
 			traverse([&found, &value](node& node)
 			{
-				if (node.data == value)
+				if (node.m_data == value)
 				{
 					found = &node;
 				}
@@ -45,19 +46,25 @@ namespace influx
 			return found;
 		}
 
+		inline const node& add(const data& element)
+		{
+			add(element, m_root);
+		}
+
 		inline const node& add(const data& element, const node& parent)
 		{
 			const uint32 new_layer_index = parent.m_layer_idx + 1u;
 
-			while (new_layer_index >= m_layers.size())
+			// grow layers
+			while (new_layer_index >= get_num_layers())
 			{
 				m_layers.push_back({});
 			}
 			
-			node_vector& this_layer = m_layers[new_layer_index];
-			this_layer.push_back({element, new_layer_index });
-			const node& new_node = this_layer.back();
-			return new_node;
+			// add the node to the layer
+			node_vector& layer = m_layers[new_layer_index];
+			layer.push_back( {element, new_layer_index } );
+			return layer.back();
 		}
 
 		inline void remove(node& nod)
@@ -89,6 +96,16 @@ namespace influx
 			}
 		}
 
+		inline uint32 get_num_nodes() const
+		{
+			uint32 sum = 0u;
+			for (const node_vector& layer : m_layers)
+			{
+				sum += (uint32)layer.size();
+			}
+			return sum;
+		}
+
 		inline uint32 get_num_children(const node& parent) const
 		{
 			const uint32 childLayerIndex = parent.m_layer_idx + 1u;
@@ -98,6 +115,11 @@ namespace influx
 			}
 
 			return 1u;
+		}
+
+		inline uint32 get_num_layers() const
+		{
+			return (uint32)m_layers.size();
 		}
 
 		inline bool has_children(const node& parent) const

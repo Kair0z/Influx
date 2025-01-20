@@ -179,7 +179,7 @@ namespace influx::engine
 		initialize_inputs();
 	}
 
-	result<> editor_manager::update_imgui(ImGuiContext& ctx)
+	void editor_manager::update_imgui(ImGuiContext& ctx)
 	{
 		update_context();
 		update_inputs();
@@ -191,11 +191,9 @@ namespace influx::engine
 			update_static_windows();
 			update_edit_radial();
 		}
-
-		return {};
 	}
 
-	result<> editor_manager::update_inputs()
+	void editor_manager::update_inputs()
 	{
 		// ctrl + space: engine + content
 		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::space))
@@ -208,20 +206,16 @@ namespace influx::engine
 		{
 			m_editor_toggle = !m_editor_toggle;
 		}
-
-		return {};
 	}
 
-	result<> editor_manager::update_context()
+	void editor_manager::update_context()
 	{
 		engine& engine = *get_engine();
 		const math::vectoru2& window_dimensions = engine.get_window().get_dimensions(platform::window::e_space::client);
 		ImGui::GetIO().DisplaySize = { (float)window_dimensions.x, (float)window_dimensions.y };
-
-		return {};
 	}
 
-	result<> editor_manager::update_mainmenu()
+	void editor_manager::update_mainmenu()
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -248,11 +242,9 @@ namespace influx::engine
 
 			ImGui::EndMainMenuBar();
 		}
-
-		return {};
 	}
 
-	result<> editor_manager::update_background_dockspace()
+	void editor_manager::update_background_dockspace()
 	{
 		// Get the current viewport
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -282,11 +274,9 @@ namespace influx::engine
 		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
 		ImGui::End();
-
-		return {};
 	}
 
-	result<> editor_manager::update_static_windows()
+	void editor_manager::update_static_windows()
 	{
 		static_window<game_manager_ui>("game");
 		static_window<fps_ui>("fps");
@@ -322,11 +312,9 @@ namespace influx::engine
 				pair.second->run({});
 			}
 		}
-
-		return {};
 	}
 
-	result<> editor_manager::update_edit_radial()
+	void editor_manager::update_edit_radial()
 	{
 		static entity custom_entity{};
 
@@ -370,35 +358,29 @@ namespace influx::engine
 		{
 			m_edit_radial.get_selected()->operator()();
 		}
-
-		return {};
 	}
 
-	result<> editor_manager::on_keydown(input::e_key key)
+	void editor_manager::on_keydown(input::e_key key)
 	{
 		m_keybinds.set(key, true);
-		return {};
 	}
 
-	result<> editor_manager::on_keyup(input::e_key key)
+	void editor_manager::on_keyup(input::e_key key)
 	{
 		m_keybinds.set(key, false);
-		return {};
 	}
 
-	result<> editor_manager::on_ascii_down(char ascii)
+	void editor_manager::on_ascii_down(char ascii)
 	{
 		m_keybinds.set(ascii, true);
-		return {};
 	}
 
-	result<> editor_manager::on_ascii_up(char ascii)
+	void editor_manager::on_ascii_up(char ascii)
 	{
 		m_keybinds.set(ascii, false);
-		return {};
 	}
 
-	result<> editor_manager::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
+	void editor_manager::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
 	{
 		switch (button)
 		{
@@ -411,10 +393,6 @@ namespace influx::engine
 			
 			world& world = get_engine()->get_world();
 
-			// get main view ray:
-
-			world.make_camera_viewray()
-			
 			// get camera matrices
 			const math::matrix4x4f projection = world.get_main_projection_matrix();
 			const math::matrix4x4f view = world.get_main_viewmatrix();
@@ -452,11 +430,9 @@ namespace influx::engine
 			world.trace(ray_from_eye, result);
 			break;
 		}
-
-		return {};
 	}
 
-	result<> editor_manager::on_mouse_up(input::e_mouse_button button, const input::mouse_position& position)
+	void editor_manager::on_mouse_up(input::e_mouse_button button, const input::mouse_position& position)
 	{
 		switch (button)
 		{
@@ -464,14 +440,11 @@ namespace influx::engine
 			m_edit_radial.set_visible(false);
 			break;
 		}
-
-		return {};
 	}
 
-	result<> editor_manager::on_mouse_move(const input::mouse_position& position)
+	void editor_manager::on_mouse_move(const input::mouse_position& position)
 	{
 		m_mousepos = position.m_client;
-		return {};
 	}
 
 	bool editor_manager::has_project() const
@@ -479,7 +452,7 @@ namespace influx::engine
 		return m_projectfile.m_name != "";
 	}
 
-	result<string> editor_manager::get_projectname() const
+	string editor_manager::get_projectname() const
 	{
 		if (has_project())
 		{
@@ -489,7 +462,7 @@ namespace influx::engine
 		return "";
 	}
 
-	result<> editor_manager::initialize_inputs()
+	void editor_manager::initialize_inputs()
 	{
 		input::subscribe_keydown([this](input::e_key key) { on_keydown(key); });
 		input::subscribe_keyup([this](input::e_key key) { on_keyup(key); });
@@ -507,6 +480,5 @@ namespace influx::engine
 		{
 			on_mouse_up(button, position);
 		});
-		return {};
 	}
 }

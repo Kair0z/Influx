@@ -74,8 +74,6 @@ namespace influx::engine
 		math::matrix4x4f get_main_viewmatrix() const;
 		math::float3 get_main_cameraposition() const;
 
-		math::ray make_camera_viewray(const entity& camera_entity) const;
-
 	private:
 		entt::registry m_registry;
 		list<entity> m_entities;
