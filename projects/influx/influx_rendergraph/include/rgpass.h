@@ -30,12 +30,18 @@ namespace influx::rendergraph
 		allow_uav_write = 0x02
 	};
 
+	class rgpass_builder final
+	{
+
+	};
+
 	class rgpass_context final
 	{
 
 	};
 
-	using rgpass_callback = const function<void(rgpass_context&)>&;
+	using rgpass_builder_clb = function<void(rgpass_builder&)>;
+	using rgpass_process_clb = function<void(rgpass_context&)>;
 
 	class rgpass final
 	{
@@ -44,9 +50,14 @@ namespace influx::rendergraph
 		uint32 get_num_writes() const;
 
 	protected:
-		rgpass(const rgpass_callback& clb, e_rgpass_type type = e_rgpass_type::graphics, e_rgpass_flags flags = e_rgpass_flags::none);
+		rgpass(
+			const rgpass_builder_clb& builder_clb,
+			const rgpass_process_clb& process_clb,
+			e_rgpass_type type = e_rgpass_type::graphics,
+			e_rgpass_flags flags = e_rgpass_flags::none);
 
 	private:
+		void build(rgpass_builder& builder);
 		void execute(rgpass_context& ctx);
 
 		bool is_culled() const;
@@ -54,12 +65,14 @@ namespace influx::rendergraph
 		bool allow_uav_writes() const;
 		void set_id(rgpass_id id);
 		e_rgpass_type get_type() const;
-		static bool has_dependency(rgpass* a, rgpass* b);
+		static bool has_dependency(const rgpass& a, const rgpass& b);
 
 		uint32 get_width() const;
 		uint32 get_height() const;
 
-		rgpass_callback m_callback;
+		rgpass_builder_clb m_builder_clb;
+		rgpass_process_clb m_process_clb;
+
 		e_rgpass_type m_type;
 		e_rgpass_flags m_flags;
 		rgpass_id m_id;

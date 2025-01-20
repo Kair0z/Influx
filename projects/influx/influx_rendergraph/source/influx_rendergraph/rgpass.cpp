@@ -20,18 +20,27 @@ namespace influx::rendergraph
 		return static_cast<uint32>(m_buffer_writes.size() + m_texture_writes.size());
 	}
 
-	rgpass::rgpass(const rgpass_callback& clb, e_rgpass_type type, e_rgpass_flags flags)
-		: m_callback{clb}
-		, m_type{type}
-		, m_flags{flags}
+	rgpass::rgpass(const rgpass_builder_clb& builder_clb, const rgpass_process_clb& process_clb, e_rgpass_type type, e_rgpass_flags flags)
+		: m_process_clb{ process_clb }
+		, m_builder_clb{ builder_clb }
+		, m_type{ type }
+		, m_flags{ flags }
 	{
+	}
+
+	void rgpass::build(rgpass_builder& builder)
+	{
+		if (m_builder_clb)
+		{
+			m_builder_clb(builder);
+		}
 	}
 
 	void rgpass::execute(rgpass_context& ctx)
 	{
-		if (m_callback)
+		if (m_process_clb)
 		{
-			m_callback(ctx);
+			m_process_clb(ctx);
 		}
 	}
 
@@ -60,8 +69,26 @@ namespace influx::rendergraph
 		return m_type;
 	}
 
-	bool rgpass::has_dependency(rgpass* a, rgpass* b)
+	bool rgpass::has_dependency(const rgpass& a, const rgpass& b)
 	{
+		// if 'b' reads a texture that 'a' writes, then we have a dependency
+		for (auto other_node_read : b.m_texture_reads)
+		{
+			if (a.m_texture_writes.find(other_node_read) != a.m_texture_writes.end())
+			{
+				return true;
+			}
+		}
+
+		// if 'b' reads a buffer that 'a' writes, then we have a dependency
+		for (auto other_node_read : b.m_buffer_reads)
+		{
+			if (a.m_buffer_writes.find(other_node_read) != a.m_buffer_writes.end())
+			{
+				return true;
+			}
+		}
+
 		return false;
 	}
 

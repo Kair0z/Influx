@@ -103,10 +103,11 @@ namespace influx::rendergraph
 		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_to_state_map;
 	};
 
-	class gpu_view_manager final
+	// allocates descriptors
+	class view_manager final
 	{
 	public:
-		gpu_view_manager(graphics::device* device)
+		view_manager(graphics::device* device)
 		{
 			graphics::descriptor_heap::create_args args{};
 			args.m_shader_visible = true;
@@ -147,7 +148,7 @@ namespace influx::rendergraph
 		: m_device{ device }
 	{
 		m_pool = new rgpool(device);
-		m_view_manager = new gpu_view_manager(device);
+		m_view_manager = new view_manager(device);
 	}
 	
 	void rendergraph::build()
@@ -348,9 +349,11 @@ namespace influx::rendergraph
 		}
 	}
 
-	rgpass* rendergraph::add_pass(const rgpass_callback& callback)
+	rgpass* rendergraph::add_pass(
+		const rgpass_builder_clb& builder_clb,
+		const rgpass_process_clb& process_clb)
 	{
-		rgpass* new_pass = new rgpass(callback);
+		rgpass* new_pass = new rgpass(builder_clb, process_clb);
 		m_passes.emplace_back(new_pass);
 
 		rgpass_id new_id = m_passes.size() - 1u;
@@ -384,8 +387,7 @@ namespace influx::rendergraph
 			for (uint64 j = i + 1U; j < m_passes.size(); ++j)
 			{
 				rgpass* other_pass = m_passes[j];
-				bool dependency = rgpass::has_dependency(pass, other_pass);
-				if (dependency)
+				if (rgpass::has_dependency(*pass, *other_pass))
 				{
 					pass_adj_list.push_back(j);
 					break;

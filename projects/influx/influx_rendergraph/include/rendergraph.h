@@ -30,7 +30,7 @@ namespace influx::rendergraph
 	class rgtexture;
 	class rgpool;
 	class rglayer;
-	class gpu_view_manager;
+	class view_manager;
 
 	struct texture_desc final
 	{
@@ -65,8 +65,10 @@ namespace influx::rendergraph
 		// single threaded, single command list...
 		INFLUX_RG_API void execute(graphics::commandlist* commandlist);
 
-		// adding nodes & resources
-		INFLUX_RG_API rgpass* add_pass(const rgpass_callback& callback);
+		// adds a node outputting to root
+		INFLUX_RG_API rgpass* add_pass(
+			const rgpass_builder_clb& builder_clb,
+			const rgpass_process_clb& context_clb);
 
 		INFLUX_RG_API rgtexture_id add_texture(const rgname& name, const texture_desc& desc);
 		INFLUX_RG_API rgbuffer_id add_buffer(const rgname& name, const buffer_desc& desc);
@@ -86,7 +88,7 @@ namespace influx::rendergraph
 		vector<rglayer*> m_layers{};
 
 		rgpool* m_pool = nullptr;
-		gpu_view_manager* m_view_manager = nullptr;
+		view_manager* m_view_manager = nullptr;
 
 		vector<vector<uint64>> m_adjacency_lists{};
 		graphics::device* m_device;

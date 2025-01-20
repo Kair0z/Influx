@@ -22,15 +22,15 @@ int main()
 	graphics::commandlist* commandlist = device->create_graphics_commandlist();
 
 	rendergraph::rendergraph graph{ device };
-	auto* clear_pass = graph.add_pass([](rendergraph::rgpass_context& ctx)
-	{
-		
-	});;
 
-	auto* present_pass = graph.add_pass([](rendergraph::rgpass_context& ctx)
-	{
-		
-	});
+	auto* clear_pass = graph.add_pass(
+		[](rendergraph::rgpass_builder& builder)
+		{
+			
+		},
+		[](rendergraph::rgpass_context& ctx)
+		{
+		});
 
 	graph.build();
 
@@ -38,9 +38,6 @@ int main()
 	graph.execute(commandlist);
 	commandlist->end();
 
-	while (true)
-	{
-		commandlist->submit(queue);
-		commandlist->wait_for_completion();
-	}
+	commandlist->submit(queue);
+	commandlist->wait_for_completion();
 }
