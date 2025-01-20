@@ -172,7 +172,7 @@ namespace influx::renderer
 
 			// set default resource state to read
 			graphics::buffer_desc desc{};
-			desc.m_init_state = graphics::e_resource_state::read;
+			desc.m_init_state = graphics::e_resource_state::gen_read;
 
 			// create resource
 			desc.m_bytesize = data.size() * sizeof(vertex_type);

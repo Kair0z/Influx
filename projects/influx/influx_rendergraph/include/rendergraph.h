@@ -55,12 +55,6 @@ namespace influx::rendergraph
 		graphics::e_format m_format;
 	};
 
-	class rgbuilder final
-	{
-	public:
-
-	};
-
 	class rendergraph final
 	{
 	public:
@@ -130,12 +124,24 @@ namespace influx::rendergraph
 		umap<rgtexture_id, graphics::descriptor_handle[k_num_descriptor_types]> m_buffer_to_descriptors_map;
 
 	private:
+		// build
 		void build_adjacency();
+		void sort_topological();
 		void build_layers();
+		void cull_passes();
+		void calc_resource_lifetimes();
+		void depth_search(uint64 parent_idx, vector<bool>& visited_list, vector<uint64>& topo_sorted_passes);
+		vector<uint64> m_topo_sorted_passes;
 
+		// execute
+		
+		// misc
 		graphics::descriptor_handle get_rtv(rgtexture_id id);
 		graphics::descriptor_handle get_dsv(rgtexture_id id);
 		graphics::descriptor_handle get_readonly(rgtexture_id id);
 		graphics::descriptor_handle get_readwrite(rgtexture_id id);
+
+		void create_texture_views(rgtexture_id);
+		void create_buffer_views(rgbuffer_id);
 	};
 }

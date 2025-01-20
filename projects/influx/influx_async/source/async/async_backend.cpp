@@ -58,7 +58,7 @@ namespace influx::async
 		task_data* cur_task_data = nullptr;
 		task_handle* cur_task_handle = nullptr;
 
-		while (async_manager::get_instance().is_shutdown() == false)
+		while (manager.is_shutdown() == false)
 		{
 			if (!manager.grab_and_process_a_task())
 			{

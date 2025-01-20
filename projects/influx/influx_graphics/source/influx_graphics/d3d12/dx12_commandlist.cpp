@@ -153,6 +153,25 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->ResourceBarrier(1u, &barrier);
 	}
 
+	void dx12_commandlist::buffer_barrier(resource* resource, e_resource_state before, e_resource_state after)
+	{
+		D3D12_BUFFER_BARRIER barrier{};
+		barrier.SyncBefore;
+		barrier.SyncAfter;
+	}
+
+	void dx12_commandlist::texture_barrier(resource* resource, e_resource_state before, e_resource_state after)
+	{
+		D3D12_TEXTURE_BARRIER barrier{};
+
+	}
+
+	void dx12_commandlist::global_barrier(e_resource_state before, e_resource_state after)
+	{
+		D3D12_GLOBAL_BARRIER barrier{};
+
+	}
+
 	void dx12_commandlist::copy_resource(resource* source, resource* dest)
 	{
 		auto dxsource = source->get_native<ID3D12Resource>();

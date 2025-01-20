@@ -1,15 +1,21 @@
 #include "rendergraph_pch.h"
 
+// influx::core
 #include "core/scope.h"
 #include "core/enum.h" // has_any_flag()...
 
+// influx::rendergraph
 #include "rendergraph.h"
 #include "rgpass.h"
 #include "rgpool.h"
 #include "rgresources.h"
 
+// influx::graphics
 #include "influx_graphics/commandlist.h"
 #include "influx_graphics/device.h"
+
+// stl
+#include <stack>
 
 namespace influx::rendergraph
 {
@@ -44,6 +50,8 @@ namespace influx::rendergraph
 	public:
 		rglayer() = default;
 
+		void setup();
+
 		inline void reset()
 		{
 			m_passes.clear();
@@ -61,16 +69,16 @@ namespace influx::rendergraph
 
 		vector<rgpass*> m_passes;
 
-		vector<rgtexture_id> m_texture_creates;
-		vector<rgtexture_id> m_texture_reads;
-		vector<rgtexture_id> m_texture_writes;
-		vector<rgtexture_id> m_texture_destroys;
+		uset<rgtexture_id> m_texture_creates;
+		uset<rgtexture_id> m_texture_reads;
+		uset<rgtexture_id> m_texture_writes;
+		uset<rgtexture_id> m_texture_destroys;
 		umap<rgtexture_id, graphics::e_resource_state> m_texture_to_state_map;
 		
-		vector<rgbuffer_id> m_buffer_creates;
-		vector<rgbuffer_id> m_buffer_reads;
-		vector<rgbuffer_id> m_buffer_writes;
-		vector<rgbuffer_id> m_buffer_destroys;
+		uset<rgbuffer_id> m_buffer_creates;
+		uset<rgbuffer_id> m_buffer_reads;
+		uset<rgbuffer_id> m_buffer_writes;
+		uset<rgbuffer_id> m_buffer_destroys;
 		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_to_state_map;
 	};
 
@@ -124,21 +132,14 @@ namespace influx::rendergraph
 	void rendergraph::build()
 	{
 		build_adjacency();
+		sort_topological();
 		build_layers();
+		cull_passes();
+		calc_resource_lifetimes();
 
-		// todo: cull passes
-		// ...
-		
-		// todo: calc resource lifetimes
-		// ...
-
-		rgbuilder builder{};
-		for (const rglayer* layer : m_layers)
+		for (rglayer* layer : m_layers)
 		{
-			for (rgpass* pass : layer->m_passes)
-			{
-				pass->setup(builder);
-			}
+			layer->setup();
 		}
 	}
 
@@ -150,7 +151,7 @@ namespace influx::rendergraph
 		{
 			rglayer const* layer = m_layers[layer_idx];
 
-			// texture creates
+			// texture & buffer creates
 			for (const rgtexture_id& tex_id : layer->m_texture_creates)
 			{
 				rgtexture* texture = get_texture(tex_id);
@@ -158,8 +159,6 @@ namespace influx::rendergraph
 				// todo: create descriptors
 				// todo: set name
 			}
-
-			// buffer creates
 			for (const rgbuffer_id& buff_id : layer->m_buffer_creates)
 			{
 				rgbuffer* buffer = get_buffer(buff_id);
@@ -168,14 +167,12 @@ namespace influx::rendergraph
 				// todo: set name
 			}
 
-			// todo: texture transitions
-
-			// todo: buffer transitions
+			// todo: transitions
 			
 			// todo: flush barriers
 
 			// todo: run each pass in the layer
-			graphics::commandlist* cmdlist = nullptr;
+			
 			for (size_t pass_idx = 0u; pass_idx < layer->m_passes.size(); ++pass_idx)
 			{
 				rgpass* pass = layer->m_passes[pass_idx];
@@ -276,6 +273,19 @@ namespace influx::rendergraph
 		}
 	}
 
+	void rendergraph::sort_topological()
+	{
+		vector<bool>  visited_list(m_passes.size(), false);
+		for (uint64 i = 0; i < m_passes.size(); i++)
+		{
+			if (visited_list[i] == false)
+			{
+				depth_search(i, visited_list, m_topo_sorted_passes);
+			}
+		}
+		std::reverse(m_topo_sorted_passes.begin(), m_topo_sorted_passes.end());
+	}
+
 	void rendergraph::build_layers()
 	{
 		vector<uint64> distances(m_passes.size(), 0u);
@@ -298,6 +308,137 @@ namespace influx::rendergraph
 			uint64 layer = distances[i];
 			m_layers[layer]->m_passes.push_back(m_passes[i]); // add the pass to the layer
 		}
+	}
+
+	void rendergraph::cull_passes()
+	{
+		for (rgpass* pass : m_passes)
+		{
+			pass->m_refcount = pass->get_num_writes();
+
+			// if any of the resources are read, increase their refcount
+			for (rgtexture_id id : pass->m_texture_reads)
+			{
+				rgtexture* texture = get_texture(id);
+				texture->m_refcount += 1u;
+			}
+			for (rgbuffer_id id : pass->m_buffer_reads)
+			{
+				rgbuffer* buffer = get_buffer(id);
+				buffer->m_refcount += 1u;
+			}
+
+			// if any of the resources are written, increase the refcount of the writer
+			for (rgtexture_id id : pass->m_texture_writes)
+			{
+				rgtexture* written = get_texture(id);
+				written->m_writer = pass;
+			}
+			for (rgbuffer_id id : pass->m_buffer_writes)
+			{
+				rgbuffer* written = get_buffer(id);
+				written->m_writer = pass;
+			}
+
+			// gather & cull nullrefs
+			std::stack<rgchild*> zero_ref_resources;
+			for (auto& texture : m_textures) if (texture->m_refcount == 0) zero_ref_resources.push(texture);
+			for (auto& buffer : m_buffers)   if (buffer->m_refcount == 0) zero_ref_resources.push(buffer);
+
+			while (!zero_ref_resources.empty())
+			{
+				rgchild* resource = zero_ref_resources.top();
+				zero_ref_resources.pop();
+
+				rgpass* writer = resource->m_writer;
+				if (writer == nullptr || !writer->can_be_culled())
+				{
+					continue;
+				}
+
+				--writer->m_refcount;
+				if (writer->m_refcount == 0)
+				{
+					for (auto id : writer->m_texture_reads)
+					{
+						auto* texture = get_texture(id);
+						if (--texture->m_refcount == 0) zero_ref_resources.push(texture);
+					}
+					for (auto id : writer->m_buffer_reads)
+					{
+						auto* buffer = get_buffer(id);
+						if (--buffer->m_refcount == 0) zero_ref_resources.push(buffer);
+					}
+				}
+			}
+
+		}
+	}
+
+	void rendergraph::calc_resource_lifetimes()
+	{
+		// record last reads/writes
+		for (rglayer* layer : m_layers)
+		{
+			for (rgpass* pass : layer->m_passes)
+			{
+				if (pass->is_culled())
+				{
+					continue;
+				}
+
+				for (auto id : pass->m_texture_writes)
+				{
+					if (!pass->m_texture_state_map.contains(id)) continue;
+					rgtexture* texture = get_texture(id);
+					texture->m_last_user = pass;
+				}
+				for (auto id : pass->m_buffer_writes)
+				{
+					if (!pass->m_buffer_state_map.contains(id)) continue;
+					rgbuffer* buffer = get_buffer(id);
+					buffer->m_last_user = pass;
+				}
+				for (auto id : pass->m_texture_reads)
+				{
+					if (!pass->m_texture_state_map.contains(id)) continue;
+					rgtexture* texture = get_texture(id);
+					texture->m_last_user = pass;
+				}
+				for (auto id : pass->m_buffer_reads)
+				{
+					if (!pass->buffer_state_map.contains(id)) continue;
+					rgbuffer* buffer = get_buffer(id);
+					buffer->m_last_user = pass;
+				}
+			}
+		}
+
+		// insert destroy points at the 'last user pass' of the resources
+		for (uint64 i = 0; i < m_textures.size(); ++i)
+		{
+			if (m_textures[i]->m_last_user != nullptr) m_textures[i]->m_last_user->m_texture_destroys.insert(rgtexture_id(i));
+			if (m_textures[i]->m_is_imported) create_texture_views(rgtexture_id(i));
+		}
+		for (uint64 i = 0; i < m_buffers.size(); ++i)
+		{
+			if (m_buffers[i]->m_last_user != nullptr) m_buffers[i]->m_last_user->m_buffer_destroys.insert(rgbuffer_id(i));
+			if (m_buffers[i]->m_is_imported) create_buffer_views(rgbuffer_id(i));
+		}
+	}
+
+	void rendergraph::depth_search(uint64 parent_idx, vector<bool>& visited_list, vector<uint64>& topo_sorted_passes)
+	{
+		visited_list[parent_idx] = true;
+		for (const auto& adj_idx : m_adjacency_lists[parent_idx])
+		{
+			if (visited_list[adj_idx] == false)
+			{
+				depth_search(adj_idx, visited_list, topo_sorted_passes);
+			}
+		}
+
+		topo_sorted_passes.push_back(parent_idx);
 	}
 
 	rgtexture_id rendergraph::add_texture(const rgname& name, const texture_desc& desc)
@@ -389,6 +530,40 @@ namespace influx::rendergraph
 	{
 		influx_assert(m_texture_to_descriptors_map.contains(id));
 		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readwrite)];
+	}
+
+	void rendergraph::create_texture_views(rgtexture_id)
+	{
+		// todo
+		influx_assert(false);
+	}
+
+	void rendergraph::create_buffer_views(rgbuffer_id)
+	{
+		// todo
+		influx_assert(false);
+	}
+
+	void rglayer::setup()
+	{
+		for (rgpass* pass : m_passes)
+		{
+			if (pass->is_culled()) continue;
+
+			m_texture_creates.insert(pass->m_texture_creates.begin(), pass->m_texture_creates.end());
+			m_texture_destroys.insert(pass->m_texture_destroys.begin(), pass->m_texture_destroys.end());
+			for (auto [resource, state] : pass->m_texture_state_map)
+			{
+				m_texture_to_state_map[resource] |= state;
+			}
+
+			m_buffer_creates.insert(pass->m_buffer_creates.begin(), pass->m_buffer_creates.end());
+			m_buffer_destroys.insert(pass->m_buffer_destroys.begin(), pass->m_buffer_destroys.end());
+			for (auto [resource, state] : pass->m_buffer_state_map)
+			{
+				m_buffer_to_state_map[resource] |= state;
+			}
+		}
 	}
 }
 

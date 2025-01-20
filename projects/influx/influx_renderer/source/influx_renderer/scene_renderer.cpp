@@ -66,7 +66,7 @@ namespace influx::renderer
         graphics::buffer_desc desc{};
         desc.m_bytesize = k_max_num_instances * sizeof(gpu_instance_data);
         desc.m_bytestride = sizeof(gpu_instance_data);
-        desc.m_init_state = graphics::e_resource_state::read;
+        desc.m_init_state = graphics::e_resource_state::gen_read;
         mp_instancebuffer = device->create_resource(desc, heap_desc);
         mp_instancebuffer->set_name({ "scene_instance_buffer" });
 

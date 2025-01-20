@@ -43,6 +43,16 @@ namespace influx::files
 
 		string m_name;
 		vector<entityfile> m_entities{};
+		
+	};
+
+	class editorfile final
+	{
+	public:
+		void INFLUX_FILE_API save(const file& file);
+		void INFLUX_FILE_API load(const file& file);
+		void INFLUX_FILE_API clear();
+
 		math::matrix4x4f m_camera_transform{};
 	};
 }

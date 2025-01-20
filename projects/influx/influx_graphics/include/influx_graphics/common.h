@@ -9,9 +9,47 @@
 // influx::core
 #include "core/string.h"
 #include "core/basetypes.h"
+#include "core/enum.h"
 
 namespace influx::graphics
 {
+	enum class e_resource_state : uint32
+	{
+		none			= 0 << 0,
+		common			= 1 << 0,
+		present			= 1 << 1,
+		render_target	= 1 << 2,
+		depth_target	= 1 << 3,
+		depth_readonly	= 1 << 4,
+		vs_srv			= 1 << 5,
+		ps_srv			= 1 << 6,
+		cs_srv			= 1 << 7,
+		vs_uav			= 1 << 8,
+		ps_uav			= 1 << 9,
+		cs_uav			= 1 << 10,
+		clear_uav		= 1 << 11,
+		copy_src		= 1 << 12,
+		copy_dst		= 1 << 13,
+		shading_rate	= 1 << 14,
+		indexbuffer		= 1 << 15,
+		indirect_args	= 1 << 16,
+		as_read			= 1 << 17,
+		as_write		= 1 << 18,
+		discard			= 1 << 19,
+
+		all_vs = vs_srv | vs_uav,
+		all_ps = ps_srv | ps_uav,
+		all_cs = cs_srv | cs_uav,
+		all_srv = vs_srv | ps_srv | cs_srv,
+		all_uav = vs_uav | ps_uav | cs_uav,
+		all_depth = depth_target | depth_readonly,
+		all_copy = copy_src | copy_dst,
+		all_as = as_read | as_write,
+		gen_read = copy_src | all_srv,
+		gen_write = copy_dst | all_uav,
+		all_shading = all_srv | all_uav | shading_rate | as_read
+	};
+
 	constexpr static uint8 k_max_render_targets = 8u;
 
 	// graphics api
@@ -246,3 +284,5 @@ namespace influx::graphics
 		uint32 m_bottom;
 	};
 }
+
+ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_resource_state);

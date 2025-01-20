@@ -26,6 +26,7 @@
 
 namespace influx::engine
 {
+#pragma region uis
 	class game_manager_ui final : public editor_window
 	{
 	public:
@@ -139,44 +140,22 @@ namespace influx::engine
 			ImGui::Text("fps: %f", get_engine()->get_fps());
 		}
 	};
-
-	umap<string, editor_window*> editor_manager::m_static_windows{};
-
-#pragma region gamefile
-	string make_game_directory_path(const string& game_name)
-	{
-		engine* engine = get_engine();
-		const file& game_directory = get_engine_directory(engine_directory::games);
-		const string gamefile_subdir = game_directory.m_path_full + "/" + game_name + "/";
-		return gamefile_subdir;
-	}
-
-	string make_gamefile_path(const string& game_name)
-	{
-		const string gamefile_subdir = make_game_directory_path(game_name);
-		const string gamefile_ext = ".flx";
-
-		const string gamefile_path =
-			gamefile_subdir
-			+ game_name
-			+ gamefile_ext;
-
-		return gamefile_path;
-	}
 #pragma endregion
+	umap<string, editor_window*> editor_manager::m_static_windows{};
 
 	editor_manager::editor_manager(editor_module* editor)
 		: m_editor{ editor }
 		, m_static_windows_radial{}
 		, m_edit_radial{}
 	{
-		// defaults
-		m_editor_toggle.force_set(true);
-		m_engine_toggle.force_set(true);
-		m_fps_toggle.force_set(true);
-		m_content_toggle.force_set(true);
-
 		initialize_inputs();
+
+		load_editor();
+	}
+
+	editor_manager::~editor_manager()
+	{
+		save_editor();
 	}
 
 	void editor_manager::update_imgui(ImGuiContext& ctx)
@@ -185,12 +164,9 @@ namespace influx::engine
 		update_inputs();
 		//update_background_dockspace();
 		
-		if (m_editor_toggle)
-		{
-			update_mainmenu();
-			update_static_windows();
-			update_edit_radial();
-		}
+		update_mainmenu();
+		update_static_windows();
+		update_edit_radial();
 	}
 
 	void editor_manager::update_inputs()
@@ -221,22 +197,6 @@ namespace influx::engine
 		{
 			if (ImGui::BeginMenu("project"))
 			{
-				world& world = get_engine()->get_world();
-				const string proj_path = make_gamefile_path("influx_game");
-				if (ImGui::Button("save"))
-				{
-					files::projectfile proj_file{};
-					world.save_project(proj_file);
-					proj_file.save(proj_path);
-				}
-
-				if (ImGui::Button("load"))
-				{
-					files::projectfile proj_file{};
-					proj_file.load(proj_path);
-					world.load_project(proj_file);
-				}
-
 				ImGui::EndMenu();
 			}
 
@@ -460,6 +420,28 @@ namespace influx::engine
 		}
 
 		return "";
+	}
+
+	string editor_manager::get_editor_filepath() const
+	{
+		return get_engine_directory(engine_directory::editor).m_path_full + "editor.flx";
+	}
+
+	void editor_manager::save_editor()
+	{
+		m_editorfile.save(get_editor_filepath());
+	}
+
+	void editor_manager::load_editor()
+	{
+		const string& filepath = get_editor_filepath();
+		if (file::exists(filepath))
+			m_editorfile.load(filepath);
+	}
+
+	files::editorfile& editor_manager::get_editorfile()
+	{
+		return m_editorfile;
 	}
 
 	void editor_manager::initialize_inputs()

@@ -96,8 +96,6 @@ namespace influx::files
 	bool serialize(projectfile& project, _arch_type& parent)
 	{
 		named(parent, "Name", project.m_name);
-		named(parent, "CameraTransform", project.m_camera_transform);
-
 		parent.setNextName("entities");
 		parent.startNode();
 		serialize(project.m_entities, parent);
@@ -117,6 +115,14 @@ namespace influx::files
 		serialize(entity.m_components, parent);
 		parent.finishNode();
 
+		return true;
+	}
+
+	// editorfile impl
+	template <typename _arch_type>
+	bool serialize(editorfile& editor, _arch_type& parent)
+	{
+		named(parent, "camera_transform", editor.m_camera_transform);
 		return true;
 	}
 
@@ -176,5 +182,18 @@ namespace influx::files
 	{
 		m_name.clear();
 		m_components.clear();
+	}
+
+	void editorfile::save(const file& file)
+	{
+		save_impl(file, *this);
+	}
+	void editorfile::load(const file& file)
+	{
+		load_impl(file, *this);
+	}
+	void editorfile::clear()
+	{
+		m_camera_transform = math::matrix4x4f::identity();
 	}
 }

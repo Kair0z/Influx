@@ -355,7 +355,7 @@ namespace influx::renderer
 			graphics::buffer_desc desc{};
 			desc.m_bytesize = new_num_vertices * sizeof(ImDrawVert);
 			desc.m_bytestride = sizeof(ImDrawVert);
-			desc.m_init_state = graphics::e_resource_state::read;
+			desc.m_init_state = graphics::e_resource_state::gen_read;
 
 			mp_vertexbuffer = mp_device->create_resource(desc, heap_desc);
 		}
@@ -369,7 +369,7 @@ namespace influx::renderer
 			graphics::buffer_desc desc{};
 			desc.m_bytesize = new_num_indices * sizeof(ImDrawIdx);
 			desc.m_format = graphics::e_format::u16;
-			desc.m_init_state = graphics::e_resource_state::read;
+			desc.m_init_state = graphics::e_resource_state::gen_read;
 
 			mp_indexbuffer = mp_device->create_resource(desc, heap_desc);
 		}

@@ -39,7 +39,6 @@ namespace influx
 		using T = std::underlying_type_t<E>;
 		return static_cast<E>(~static_cast<T>(e));
 	}
-
 	template <typename E>
 	typename std::enable_if_t<enable_bitmask_operators<E>, E&> operator|=(E& lhs, E rhs)
 	{
@@ -80,4 +79,8 @@ namespace influx
 		influx_assert(std::has_single_bit((T)flag));
 		return has_any_flag(value, flag);
 	}
+
+#define ENABLE_ENUM_BIT_OPERATORS(type) \
+	template<> struct influx::enum_bitmask_operators<type> \
+	{ static constexpr bool enable = true; }
 }

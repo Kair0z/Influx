@@ -126,6 +126,15 @@ namespace influx::graphics
 		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) = 0;
 
 		INFLUX_GFX_API
+		virtual void buffer_barrier(resource* resource, e_resource_state before, e_resource_state after) = 0;
+
+		INFLUX_GFX_API
+		virtual void texture_barrier(resource* resource, e_resource_state before, e_resource_state after) = 0;
+
+		INFLUX_GFX_API 
+		virtual void global_barrier(e_resource_state before, e_resource_state after) = 0;
+
+		INFLUX_GFX_API
 		virtual void copy_resource(resource* source, resource* dest) = 0;
 
 		INFLUX_GFX_API

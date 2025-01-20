@@ -20,25 +20,6 @@
 
 namespace influx::engine
 {
-	static const char* k_editor_config_path = "D:/Git/Influx/editor/prj.flx";
-	static bool load_projectfile(files::projectfile& out_file)
-	{
-		if (file::exists(k_editor_config_path))
-		{
-			out_file.load(k_editor_config_path);
-			return true;
-		}
-		return false;
-	}
-
-	static files::projectfile save_projectfile(const math::matrix4x4f& cam_transform)
-	{
-		files::projectfile proj_file{};
-		proj_file.m_camera_transform = cam_transform;
-		proj_file.save(k_editor_config_path);
-		return proj_file;
-	}
-
 	inline platform::library* get_game_library()
 	{
 		// call game module dll start
@@ -89,10 +70,13 @@ namespace influx::engine
 
 		world& world = get_engine()->get_world();
 
-		// save to file
-		const entity& camera = m_entities[0];
-		transform_component* cam_transform = world.get_component<transform_component>(camera);
-		save_projectfile(cam_transform->get_matrix());
+		// save camera to editor
+		if (get_engine()->is_editor())
+		{
+			const entity& camera = m_entities[0];
+			transform_component* cam_transform = world.get_component<transform_component>(camera);
+			get_engine()->get_editor().get_editorfile().m_camera_transform = cam_transform->get_matrix();
+		}
 		
 		for (const entity& e : m_entities)
 		{
@@ -117,14 +101,14 @@ namespace influx::engine
 		static math::float3 start_position = {};
 		static math::matrix3x3f start_rotation = math::matrix3x3f::identity();
 
-		files::projectfile file{};
-		if (load_projectfile(file))
+		if (get_engine()->is_editor())
 		{
-			const math::matrix4x4f file_transform = file.m_camera_transform;
-			start_position = file_transform.get_translation();
-			start_rotation = file_transform.get_rotation_matrix();
+			editor_manager& editorman = get_engine()->get_editor();
+			const math::matrix4x4f& cam_transform = editorman.get_editorfile().m_camera_transform;;
+			start_position = cam_transform.get_translation();
+			start_rotation = cam_transform.get_rotation_matrix();
 		}
-
+		
 		entity camera = create_entity();
 		{
 			transform_component& trans_comp = world.create_component<transform_component>(camera);

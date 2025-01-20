@@ -1,6 +1,7 @@
 #pragma once
 
 // influx::core
+#include "core/container/map.h"
 #include "core/function.h"
 
 // influx::rendergraph
@@ -8,6 +9,7 @@
 
 // influx::graphics
 #include "influx_graphics/renderpass.h"
+#include "influx_graphics/resource.h"
 
 namespace influx::rendergraph
 {
@@ -30,6 +32,10 @@ namespace influx::rendergraph
 
 	class rgpass
 	{
+	public:
+		uint32 get_num_reads() const;
+		uint32 get_num_writes() const;
+
 	protected:
 		rgpass(e_rgpass_type type, e_rgpass_flags flags);
 
@@ -40,6 +46,7 @@ namespace influx::rendergraph
 
 	private:
 		bool is_culled() const;
+		bool can_be_culled() const;
 		bool allow_uav_writes() const;
 		void set_id(rgpass_id id);
 		e_rgpass_type get_type() const;
@@ -50,10 +57,23 @@ namespace influx::rendergraph
 
 		e_rgpass_type m_type;
 		e_rgpass_flags m_flags;
-		bool m_is_culled;
 		rgpass_id m_id;
 		uint32 m_width;
 		uint32 m_height;
+		uint32 m_refcount;
+		bool m_is_culled;
+
+		uset<rgtexture_id> m_texture_creates;
+		uset<rgtexture_id> m_texture_reads;
+		uset<rgtexture_id> m_texture_writes;
+		uset<rgtexture_id> m_texture_destroys;
+		umap<rgtexture_id, graphics::e_resource_state> m_texture_state_map;
+
+		uset<rgtexture_id> m_buffer_creates;
+		uset<rgtexture_id> m_buffer_reads;
+		uset<rgtexture_id> m_buffer_writes;
+		uset<rgtexture_id> m_buffer_destroys;
+		umap<rgtexture_id, graphics::e_resource_state> m_buffer_state_map;
 
 		struct render_target final
 		{

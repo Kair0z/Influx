@@ -65,19 +65,32 @@ namespace influx::graphics
 
 	inline D3D12_RESOURCE_STATES convert(e_resource_state state)
 	{
+		D3D12_RESOURCE_STATES states = D3D12_RESOURCE_STATE_COMMON;
 		switch (state)
 		{
-		case e_resource_state::common: return D3D12_RESOURCE_STATE_COMMON;
-		case e_resource_state::copy_dest: return D3D12_RESOURCE_STATE_COPY_DEST;
-		case e_resource_state::copy_source: return D3D12_RESOURCE_STATE_COPY_SOURCE;
-		case e_resource_state::render_target: return D3D12_RESOURCE_STATE_RENDER_TARGET;
-		case e_resource_state::depth_write: return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-		case e_resource_state::present: return D3D12_RESOURCE_STATE_PRESENT;
-		case e_resource_state::read:	return D3D12_RESOURCE_STATE_GENERIC_READ;
-		case e_resource_state::shader_resource: return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		default:
-		case e_resource_state::count:	return D3D12_RESOURCE_STATE_COMMON;
+			case e_resource_state::none				: states |= D3D12_RESOURCE_STATE_COMMON; break;
+			case e_resource_state::common			: states |= D3D12_RESOURCE_STATE_COMMON; break;
+			case e_resource_state::present			: states |= D3D12_RESOURCE_STATE_PRESENT; break;
+			case e_resource_state::render_target	: states |= D3D12_RESOURCE_STATE_RENDER_TARGET; break;
+			case e_resource_state::depth_target		: states |= D3D12_RESOURCE_STATE_DEPTH_WRITE; break;
+			case e_resource_state::depth_readonly	: states |= D3D12_RESOURCE_STATE_DEPTH_READ; break;
+			case e_resource_state::vs_srv			: states |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE; break;
+			case e_resource_state::ps_srv			: states |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; break;
+			case e_resource_state::cs_srv			: states |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE; break;
+			case e_resource_state::vs_uav			: states |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			case e_resource_state::ps_uav			: states |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			case e_resource_state::cs_uav			: states |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			case e_resource_state::clear_uav		: states |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			case e_resource_state::copy_src			: states |= D3D12_RESOURCE_STATE_COPY_SOURCE; break;
+			case e_resource_state::copy_dst			: states |= D3D12_RESOURCE_STATE_COPY_DEST; break;
+			case e_resource_state::shading_rate		: states |= D3D12_RESOURCE_STATE_COMMON; break;
+			case e_resource_state::indexbuffer		: states |= D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
+			case e_resource_state::indirect_args	: states |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT; break;
+			case e_resource_state::as_read			: states |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE; break;
+			case e_resource_state::as_write			: states |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE; break;
+			case e_resource_state::discard			: states |= D3D12_RESOURCE_STATE_COMMON; break;
 		}
+		return states;
 	}
 
 	inline D3D12_COMPARISON_FUNC convert(e_comparison_func func)
@@ -271,5 +284,80 @@ namespace influx::graphics
 			influx_assert(false);
 			return D3D12_COMMAND_LIST_TYPE_NONE;
 		}
+	}
+
+	constexpr D3D12_BARRIER_SYNC get_barrier_sync(e_resource_state state)
+	{
+		D3D12_BARRIER_SYNC sync = D3D12_BARRIER_SYNC_NONE;
+		bool is_discard = has_flag(state, e_resource_state::discard);
+		if (!is_discard && has_flag(state, e_resource_state::clear_uav)) sync |= D3D12_BARRIER_SYNC_CLEAR_UNORDERED_ACCESS_VIEW;
+
+		if (has_flag(state, e_resource_state::present)) sync |= D3D12_BARRIER_SYNC_ALL;
+		if (has_flag(state, e_resource_state::common)) sync |= D3D12_BARRIER_SYNC_ALL;
+		if (has_flag(state, e_resource_state::render_target)) sync |= D3D12_BARRIER_SYNC_RENDER_TARGET;
+		if (has_any_flag(state, e_resource_state::all_depth)) sync |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+		if (has_any_flag(state, e_resource_state::all_vs)) sync |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+		if (has_any_flag(state, e_resource_state::all_ps)) sync |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
+		if (has_any_flag(state, e_resource_state::all_cs)) sync |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
+		if (has_any_flag(state, e_resource_state::all_copy)) sync |= D3D12_BARRIER_SYNC_COPY;
+		if (has_flag(state, e_resource_state::shading_rate)) sync |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
+		if (has_flag(state, e_resource_state::indexbuffer)) sync |= D3D12_BARRIER_SYNC_INDEX_INPUT;
+		if (has_flag(state, e_resource_state::indirect_args)) sync |= D3D12_BARRIER_SYNC_EXECUTE_INDIRECT;
+		if (has_any_flag(state, e_resource_state::all_as)) sync |= D3D12_BARRIER_SYNC_BUILD_RAYTRACING_ACCELERATION_STRUCTURE;
+
+		return sync;
+	}
+
+	constexpr D3D12_BARRIER_LAYOUT get_barrier_layout(e_resource_state state)
+	{
+		if (has_flag(state, e_resource_state::copy_src) 
+			&& has_any_flag(state, e_resource_state::all_srv) 
+			&& !has_flag(state, e_resource_state::depth_readonly))
+			return D3D12_BARRIER_LAYOUT_GENERIC_READ;
+
+		if (has_flag(state, e_resource_state::copy_dst)
+			&& has_any_flag(state, e_resource_state::all_uav))
+			return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COMMON;
+
+		if (has_flag(state, e_resource_state::depth_readonly)
+			&& (has_any_flag(state, e_resource_state::all_srv)
+				|| has_flag(state, e_resource_state::copy_src)))
+			return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_GENERIC_READ;
+
+		if (has_flag(state		, e_resource_state::discard))		return D3D12_BARRIER_LAYOUT_UNDEFINED;
+		if (has_flag(state		, e_resource_state::present))		return D3D12_BARRIER_LAYOUT_PRESENT;
+		if (has_flag(state		, e_resource_state::render_target))			return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+		if (has_flag(state		, e_resource_state::depth_target))            return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
+		if (has_flag(state		, e_resource_state::depth_readonly))   return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
+		if (has_any_flag(state	, e_resource_state::all_srv))		return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+		if (has_any_flag(state	, e_resource_state::all_uav))		return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+		if (has_flag(state		, e_resource_state::clear_uav))		return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+		if (has_flag(state		, e_resource_state::copy_dst))		return D3D12_BARRIER_LAYOUT_COPY_DEST;
+		if (has_flag(state		, e_resource_state::copy_src))		return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
+		if (has_flag(state		, e_resource_state::shading_rate))	return D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE;
+
+		return D3D12_BARRIER_LAYOUT_UNDEFINED;
+	}
+
+	constexpr D3D12_BARRIER_ACCESS get_barrier_access(e_resource_state state)
+	{
+		if (has_flag(state, e_resource_state::discard)) return D3D12_BARRIER_ACCESS_NO_ACCESS;
+
+		D3D12_BARRIER_ACCESS access = D3D12_BARRIER_ACCESS_COMMON;
+		if (has_flag(state, e_resource_state::render_target))             access |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+		if (has_flag(state, e_resource_state::depth_target))             access |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
+		if (has_flag(state, e_resource_state::depth_readonly))    access |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
+		if (has_any_flag(state, e_resource_state::all_srv))       access |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+		if (has_any_flag(state, e_resource_state::all_uav))       access |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+		if (has_flag(state, e_resource_state::clear_uav))        access |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+		if (has_flag(state, e_resource_state::copy_dst))         access |= D3D12_BARRIER_ACCESS_COPY_DEST;
+		if (has_flag(state, e_resource_state::copy_src))         access |= D3D12_BARRIER_ACCESS_COPY_SOURCE;
+		if (has_flag(state, e_resource_state::shading_rate))     access |= D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE;
+		if (has_flag(state, e_resource_state::indexbuffer))     access |= D3D12_BARRIER_ACCESS_INDEX_BUFFER;
+		if (has_flag(state, e_resource_state::indirect_args))    access |= D3D12_BARRIER_ACCESS_INDIRECT_ARGUMENT;
+		if (has_flag(state, e_resource_state::as_read))          access |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
+		if (has_flag(state, e_resource_state::as_write))         access |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
+
+		return access;
 	}
 }

@@ -23,7 +23,7 @@ namespace influx::renderer
 		desc.m_format = graphics::e_format::rgba8;
 		desc.m_num_mips = 1u;
 		desc.m_sample_count = 1u;
-		desc.m_init_state = graphics::e_resource_state::shader_resource;
+		desc.m_init_state = graphics::e_resource_state::all_srv;
 
 		// create the underlying resource
 		mp_resource = device->create_resource(desc);

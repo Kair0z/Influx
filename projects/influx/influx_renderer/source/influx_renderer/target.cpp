@@ -43,7 +43,7 @@ namespace influx::renderer
 			desc.m_num_mips = 1u;
 			desc.m_sample_count = 1u;
 			desc.m_flags = graphics::e_resource_flags::depth_stencil;
-			desc.m_init_state = graphics::e_resource_state::depth_write;
+			desc.m_init_state = graphics::e_resource_state::depth_target;
 			mp_depth_resource = device->create_resource(desc);
 
 			mp_dsv = renderer_backend::get_descriptor_manager()->create_dsv(mp_depth_resource);
@@ -188,7 +188,7 @@ namespace influx::renderer
 				desc.m_num_mips = 1u;
 				desc.m_sample_count = 1u;
 				desc.m_flags = graphics::e_resource_flags::depth_stencil;
-				desc.m_init_state = graphics::e_resource_state::depth_write;
+				desc.m_init_state = graphics::e_resource_state::depth_target;
 				mp_depth_resource = mp_device->create_resource(desc);
 
 				recreate_dsv();

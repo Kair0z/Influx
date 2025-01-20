@@ -13,12 +13,12 @@ namespace influx::renderer
 		graphics::buffer_desc texture_desc{};
 		const uint32 made_up_size = 2048u;
 		texture_desc.m_bytesize = made_up_size * made_up_size * 14u;
-		texture_desc.m_init_state = graphics::e_resource_state::read;
+		texture_desc.m_init_state = graphics::e_resource_state::gen_read;
 		mp_texture_upload_resource = mp_device->create_resource(texture_desc, heap_desc);
 
 		graphics::buffer_desc buffer_desc{};
 		buffer_desc.m_bytesize = 1024u * 1024u * 14u;
-		buffer_desc.m_init_state = graphics::e_resource_state::read;
+		buffer_desc.m_init_state = graphics::e_resource_state::gen_read;
 		mp_buffer_upload_resource = mp_device->create_resource(buffer_desc, heap_desc);
 
 		mp_fence = mp_device->create_fence(0u);
@@ -35,7 +35,7 @@ namespace influx::renderer
 		mp_commandlist->start(mp_device, nullptr);
 		{
 			// transition our gpu buffer to copy_dest
-			target->transition(mp_commandlist, graphics::e_resource_state::copy_dest);
+			target->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
 
 			graphics::copy_buffer_args copy_args{};
 			mp_commandlist->copy_buffer(
@@ -77,10 +77,7 @@ namespace influx::renderer
 		// start a commandlist that copies the texture from intermediate -> gpu resource
 		mp_commandlist->start(mp_device, nullptr);
 		{
-			// transition our gpu texture to shader resource usage
-			mp_commandlist->transition_resource(target_resource,
-				graphics::e_resource_state::shader_resource,
-				graphics::e_resource_state::copy_dest);
+			target_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
 
 			graphics::copy_texture_args copy_args{};
 			copy_args.m_src.m_range = upload_subrange;
@@ -90,9 +87,7 @@ namespace influx::renderer
 				mp_texture_upload_resource, target_resource, copy_args);
 
 			// transition our gpu texture to shader resource usage
-			mp_commandlist->transition_resource(target_resource, 
-				graphics::e_resource_state::copy_dest,
-				graphics::e_resource_state::shader_resource);
+			target_resource->transition(mp_commandlist, graphics::e_resource_state::all_srv);
 		}
 		mp_commandlist->end();
 		mp_commandlist->submit(queue);

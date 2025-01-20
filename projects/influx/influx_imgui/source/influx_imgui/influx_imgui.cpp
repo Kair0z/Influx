@@ -233,12 +233,12 @@ namespace influx::imgui
 		// upload texture to graphics:
 		graphics::buffer_desc buffer_desc{};
 		buffer_desc.m_bytesize = tex_bytesize;
-		buffer_desc.m_init_state = graphics::e_resource_state::copy_source;
+		buffer_desc.m_init_state = graphics::e_resource_state::copy_src;
 
 		graphics::tex2D_desc texture_desc{};
 		texture_desc.m_dimensions = { tex_width, tex_height };
 		texture_desc.m_format = tex_format;
-		texture_desc.m_init_state = graphics::e_resource_state::copy_dest;
+		texture_desc.m_init_state = graphics::e_resource_state::copy_dst;
 
 		fonts_tex.mp_upload = get_device()->create_resource(buffer_desc, { graphics::e_heap_type::shared });
 		fonts_tex.mp_resource = get_device()->create_resource(texture_desc);

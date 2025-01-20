@@ -344,8 +344,8 @@ namespace influx::renderer
         mp_commandlist->set_name("copy_target");
         mp_commandlist->start(mp_device);
 
-        source_resource->transition(mp_commandlist, graphics::e_resource_state::copy_source);
-        dest_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dest);
+        source_resource->transition(mp_commandlist, graphics::e_resource_state::copy_src);
+        dest_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
 
         mp_commandlist->copy_resource(source_resource, dest_resource);
 
@@ -665,7 +665,7 @@ namespace influx::renderer
 
             // set default resource state to read
             graphics::buffer_desc desc{};
-            desc.m_init_state = graphics::e_resource_state::read;
+            desc.m_init_state = graphics::e_resource_state::gen_read;
 
             // create index buffer resource
             desc.m_bytesize = data.size() * sizeof(index);

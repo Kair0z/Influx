@@ -5,11 +5,17 @@ namespace influx::rendergraph
 {
 	class rgchild
 	{
+		friend class rendergraph;
+
 	protected:
 		rgchild() = default;
 
 	private:
-
+		rgpass* m_writer;
+		rgpass* m_last_user;
+		uint32 m_refcount;
+		graphics::resource* m_resource;
+		bool m_is_imported;
 	};
 
 	class rgtexture final : public rgchild
@@ -21,7 +27,6 @@ namespace influx::rendergraph
 
 		rgtexture_id m_id;
 		bool m_is_imported;
-		graphics::resource* m_resource;
 	};
 
 	class rgbuffer final : public rgchild
@@ -33,6 +38,5 @@ namespace influx::rendergraph
 
 		rgbuffer_id m_id;
 		bool m_is_imported;
-		graphics::resource* m_resource;
 	};
 }

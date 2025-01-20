@@ -85,7 +85,7 @@ namespace influx::renderer
             graphics::buffer_desc desc{};
             desc.m_bytesize = k_max_instances * sizeof(gpu_instance_data);
             desc.m_bytestride = sizeof(gpu_instance_data);
-            desc.m_init_state = graphics::e_resource_state::read;
+            desc.m_init_state = graphics::e_resource_state::gen_read;
             mp_instancebuffer = device->create_resource(desc, heap_desc);
             mp_instancebuffer->set_name({ "debug_instance_buffer" });
             mp_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
@@ -100,7 +100,7 @@ namespace influx::renderer
             graphics::heap_desc heap_desc{};
             heap_desc.m_type = graphics::e_heap_type::shared;
             graphics::buffer_desc desc{};
-            desc.m_init_state = graphics::e_resource_state::read;
+            desc.m_init_state = graphics::e_resource_state::gen_read;
             desc.m_bytesize = vertices.size() * sizeof(vertex);
             desc.m_bytestride = sizeof(vertex);
             mp_vertexbuffer = mp_device->create_resource(desc, heap_desc);

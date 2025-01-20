@@ -7,6 +7,7 @@
 #include "core/math/vector.h"
 #include "core/function.h"
 #include "core/range.h"
+#include "core/enum.h"
 
 namespace influx::graphics
 {
@@ -33,18 +34,7 @@ namespace influx::graphics
 		count
 	};
 
-	enum class e_resource_state : uint8
-	{
-		common,
-		render_target,
-		depth_write,
-		copy_source,
-		copy_dest,
-		shader_resource,
-		present,
-		read,
-		count
-	};
+	
 
 	struct buffer_desc final
 	{

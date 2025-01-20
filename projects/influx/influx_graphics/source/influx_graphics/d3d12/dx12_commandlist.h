@@ -48,6 +48,12 @@ namespace influx::graphics
 
 		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
 
+		virtual void buffer_barrier(resource* resource, e_resource_state before, e_resource_state after) override;
+
+		virtual void texture_barrier(resource* resource, e_resource_state before, e_resource_state after) override;
+
+		virtual void global_barrier(e_resource_state before, e_resource_state after) override;
+
 		virtual void copy_resource(resource* source, resource* dest) override;
 
 		virtual void copy_texture(resource* src, resource* dest, const copy_texture_args& = {}) override;

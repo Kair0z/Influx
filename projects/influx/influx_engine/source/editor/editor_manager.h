@@ -150,22 +150,25 @@ namespace influx::engine
 	{
 	public:
 		editor_manager(editor_module* editor);
+		virtual ~editor_manager();
 
 		void update_imgui(ImGuiContext& ctx);
-
-		// sets the editor up to load assets & target the named game
-		void load_project(engine& engine, const string& name);
-
-		bool has_project() const;
-		string get_projectname() const;
 
 		template <typename _t>
 		static _t& static_window(const string& tag);
 
+		// files
+		bool has_project() const;
+		string get_projectname() const;
+		string get_editor_filepath() const;
+
+		void save_editor();
+		void load_editor();
+		files::editorfile& get_editorfile();
+
 	private:
 		editor_module* m_editor = nullptr;
-		void initialize_inputs();
-
+		
 		compound_keybind_tracker m_keybinds;
 		cooldown_toggle m_content_toggle = 0.5f;
 		cooldown_toggle m_fps_toggle = 0.5f;
@@ -178,7 +181,9 @@ namespace influx::engine
 		static umap<string, editor_window*> m_static_windows;
 
 		files::projectfile m_projectfile;
+		files::editorfile m_editorfile;
 
+		void initialize_inputs();
 		void update_inputs();
 		void update_context();
 		void update_mainmenu();
