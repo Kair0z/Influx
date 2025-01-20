@@ -49,8 +49,29 @@ namespace influx::rendergraph
 	{
 	public:
 		rglayer() = default;
+		~rglayer() = default;
 
-		void setup();
+		inline void setup()
+		{
+			for (rgpass* pass : m_passes)
+			{
+				if (pass->is_culled()) continue;
+
+				m_texture_creates.insert(pass->m_texture_creates.begin(), pass->m_texture_creates.end());
+				m_texture_destroys.insert(pass->m_texture_destroys.begin(), pass->m_texture_destroys.end());
+				for (auto [resource, state] : pass->m_texture_state_map)
+				{
+					m_texture_to_state_map[resource] |= state;
+				}
+
+				m_buffer_creates.insert(pass->m_buffer_creates.begin(), pass->m_buffer_creates.end());
+				m_buffer_destroys.insert(pass->m_buffer_destroys.begin(), pass->m_buffer_destroys.end());
+				for (auto [resource, state] : pass->m_buffer_state_map)
+				{
+					m_buffer_to_state_map[resource] |= state;
+				}
+			}
+		}
 
 		inline void reset()
 		{
@@ -149,107 +170,207 @@ namespace influx::rendergraph
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
-			rglayer const* layer = m_layers[layer_idx];
+			const rglayer& layer = *m_layers[layer_idx];
 
-			// texture & buffer creates
-			for (const rgtexture_id& tex_id : layer->m_texture_creates)
+			// creates
 			{
-				rgtexture* texture = get_texture(tex_id);
-				texture->m_resource; // todo: allocate from pool
-				// todo: create descriptors
-				// todo: set name
-			}
-			for (const rgbuffer_id& buff_id : layer->m_buffer_creates)
-			{
-				rgbuffer* buffer = get_buffer(buff_id);
-				buffer->m_resource; // todo: allocate from pool
-				// todo: create descriptors
-				// todo: set name
-			}
-
-			// todo: transitions
-			
-			// todo: flush barriers
-
-			// todo: run each pass in the layer
-			
-			for (size_t pass_idx = 0u; pass_idx < layer->m_passes.size(); ++pass_idx)
-			{
-				rgpass* pass = layer->m_passes[pass_idx];
-
-				if (pass->is_culled())
+				for (const rgtexture_id& tex_id : layer.m_texture_creates)
 				{
-					continue;
+					rgtexture* texture = get_texture(tex_id);
+					texture->m_resource = m_pool->allocate_texture_resource(texture->m_desc);
+					create_texture_views(tex_id);
+					// todo: set name
 				}
-
-				if (pass->get_type() == e_rgpass_type::graphics)
+				for (const rgbuffer_id& buff_id : layer.m_buffer_creates)
 				{
-					graphics::renderpass_args args{};
-					args.m_width = pass->get_width();
-					args.m_height = pass->get_height();
-					args.m_legacy = false;
-
-					// rtvs
-					args.m_color_attachments.reserve(pass->m_rtvs.size());
-					for (const auto& rtv : pass->m_rtvs)
-					{
-						args.m_color_attachments.push_back({});
-						auto& color_attachment = args.m_color_attachments.back();
-
-						color_attachment.m_load = translate(rtv.m_access.m_load);
-						color_attachment.m_store = translate(rtv.m_access.m_store);
-
-						rgtexture* color_texture = get_texture(rtv.m_texture_id);
-						influx_assert(color_texture != nullptr);
-
-						color_attachment.m_clear;
-
-						graphics::descriptor_handle handle = get_rtv(rtv.m_texture_id);
-						influx_assert(handle);
-						color_attachment.m_rtv_descriptor = handle;
-					}
-
-					// dsv
-					{
-						auto& dsv = pass->m_dsv;
-						auto& depth_attachment = args.m_depth_attachment;
-
-						depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
-						depth_attachment.m_depth_store = translate(dsv.m_depth_access.m_store);
-						depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
-						depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
-
-						depth_attachment.m_depth_clear;
-						depth_attachment.m_stencil_clear;
-
-						graphics::descriptor_handle handle = get_dsv(dsv.m_texture_id);
-						influx_assert(handle);
-						depth_attachment.m_dsv_descriptor = handle;
-					}
-
-					{
-						influx_scope("renderpass");
-						cmdlist->renderpass_begin(args);
-						pass->execute();
-						cmdlist->renderpass_end();
-					}
+					rgbuffer* buffer = get_buffer(buff_id);
+					buffer->m_resource = m_pool->allocate_buffer_resource(buffer->m_desc);
+					create_buffer_views(buff_id);
+					// todo: set name
 				}
 			}
 
-			// texture destroys
-			for (const rgtexture_id& tex_id : layer->m_texture_destroys)
+			// transitions
 			{
-				rgtexture* texture = get_texture(tex_id);
-				texture->m_resource; // todo: de-allocate from pool
+#if 0
+				for (auto const& [tex_id, state] : layer->m_texture_to_state_map)
+				{
+					rgtexture* texture = get_texture(tex_id);
+					graphics::resource* resource = nullptr; // ...
+
+					// if this texture is freshly created, use initial state
+					if (layer->m_texture_creates.contains(tex_id))
+					{
+						if (!has_all_flags(texture - ().initial_state, state))
+						{
+							commandlist->texture_barrier(resource, texture->GetDesc().initial_state, state);
+						}
+						continue;
+					}
+
+					bool found = false;
+#if 0
+					for (int j = (int)i - 1; j >= 0; --j)
+					{
+						auto& prev_dependency_level = dependency_levels[j];
+						if (prev_dependency_level.texture_state_map.contains(tex_id))
+						{
+							GfxResourceState prev_state = prev_dependency_level.texture_state_map[tex_id];
+							if (prev_state != state) cmd_list->TextureBarrier(*texture, prev_state, state);
+							found = true;
+							break;
+						}
+					}
+#endif
+
+					// if it's not in our graph, and it's imported
+					if (!found && texture->m_is_imported)
+					{
+						GfxResourceState prev_state = rg_texture->desc.initial_state;
+						if (prev_state != state) cmd_list->TextureBarrier(*texture, prev_state, state);
+					}
+				}
+				for (auto const& [buf_id, state] : dependency_level.buffer_state_map)
+				{
+					RGBuffer* rg_buffer = GetRGBuffer(buf_id);
+					GfxBuffer* buffer = rg_buffer->resource;
+					if (dependency_level.buffer_creates.contains(buf_id))
+					{
+						if (state != GfxResourceState::Common)
+						{
+							cmd_list->BufferBarrier(*buffer, GfxResourceState::Common, state);
+						}
+						continue;
+					}
+					Bool found = false;
+					for (Int32 j = (Int32)i - 1; j >= 0; --j)
+					{
+						auto& prev_dependency_level = dependency_levels[j];
+						if (prev_dependency_level.buffer_state_map.contains(buf_id))
+						{
+							GfxResourceState prev_state = prev_dependency_level.buffer_state_map[buf_id];
+							if (prev_state != state) cmd_list->BufferBarrier(*buffer, prev_state, state);
+							found = true;
+							break;
+						}
+					}
+					if (!found && rg_buffer->imported)
+					{
+						if (GfxResourceState::Common != state) cmd_list->BufferBarrier(*buffer, GfxResourceState::Common, state);
+					}
+				}
+#endif
+				commandlist->flush_barriers();
 			}
 
-			// buffer destroys
-			for (const rgbuffer_id& buff_id : layer->m_buffer_destroys)
+			// execute passes
 			{
-				rgbuffer* buffer = get_buffer(buff_id);
-				buffer->m_resource; // todo: de-allocate from pool
+				for (size_t pass_idx = 0u; pass_idx < layer.m_passes.size(); ++pass_idx)
+				{
+					rgpass* pass = layer.m_passes[pass_idx];
+
+					if (pass->is_culled())
+					{
+						continue;
+					}
+
+					if (pass->get_type() == e_rgpass_type::graphics)
+					{
+						graphics::renderpass_args args{};
+						args.m_width = pass->get_width();
+						args.m_height = pass->get_height();
+						args.m_legacy = false;
+
+						// rtvs
+						args.m_color_attachments.reserve(pass->m_rtvs.size());
+						for (const auto& rtv : pass->m_rtvs)
+						{
+							args.m_color_attachments.push_back({});
+							auto& color_attachment = args.m_color_attachments.back();
+
+							color_attachment.m_load = translate(rtv.m_access.m_load);
+							color_attachment.m_store = translate(rtv.m_access.m_store);
+
+							rgtexture* color_texture = get_texture(rtv.m_texture_id);
+							influx_assert(color_texture != nullptr);
+
+							color_attachment.m_clear;
+
+							graphics::descriptor_handle handle = get_rtv(rtv.m_texture_id);
+							influx_assert(handle);
+							color_attachment.m_rtv_descriptor = handle;
+						}
+
+						// dsv
+						if (false)
+						{
+							auto& dsv = pass->m_dsv;
+							auto& depth_attachment = args.m_depth_attachment;
+
+							depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
+							depth_attachment.m_depth_store = translate(dsv.m_depth_access.m_store);
+							depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
+							depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
+
+							depth_attachment.m_depth_clear;
+							depth_attachment.m_stencil_clear;
+
+							graphics::descriptor_handle handle = get_dsv(dsv.m_texture_id);
+							influx_assert(handle);
+							depth_attachment.m_dsv_descriptor = handle;
+						}
+
+						{
+							rgpass_context ctx{};
+
+							influx_scope("renderpass");
+							commandlist->renderpass_begin(args);
+							pass->execute(ctx);
+							commandlist->renderpass_end();
+						}
+					}
+				}
+			}
+
+			// execute destroys
+			{
+				for (const rgtexture_id& tex_id : layer.m_texture_destroys)
+				{
+					rgtexture* texture = get_texture(tex_id);
+					m_pool->release_texture(texture->m_resource);
+				}
+				for (const rgbuffer_id& buff_id : layer.m_buffer_destroys)
+				{
+					rgbuffer* buffer = get_buffer(buff_id);
+					m_pool->release_buffer(buffer->m_resource);
+				}
 			}
 		}
+	}
+
+	rgpass* rendergraph::add_pass(const rgpass_callback& callback)
+	{
+		rgpass* new_pass = new rgpass(callback);
+		m_passes.emplace_back(new_pass);
+
+		rgpass_id new_id = m_passes.size() - 1u;
+		new_pass->set_id(new_id);
+
+		m_id_to_pass_map[new_id] = new_pass;
+
+		return new_pass;
+	}
+
+	void rendergraph::create_texture_views(rgtexture_id)
+	{
+		// todo
+		influx_assert(false);
+	}
+
+	void rendergraph::create_buffer_views(rgbuffer_id)
+	{
+		// todo
+		influx_assert(false);
 	}
 
 	void rendergraph::build_adjacency()
@@ -305,6 +426,11 @@ namespace influx::rendergraph
 
 		for (uint64 i = 0u; i < m_passes.size(); ++i)
 		{
+			if (m_layers[i] == nullptr)
+			{
+				m_layers[i] = new rglayer();
+			}
+
 			uint64 layer = distances[i];
 			m_layers[layer]->m_passes.push_back(m_passes[i]); // add the pass to the layer
 		}
@@ -407,7 +533,7 @@ namespace influx::rendergraph
 				}
 				for (auto id : pass->m_buffer_reads)
 				{
-					if (!pass->buffer_state_map.contains(id)) continue;
+					if (!pass->m_buffer_state_map.contains(id)) continue;
 					rgbuffer* buffer = get_buffer(id);
 					buffer->m_last_user = pass;
 				}
@@ -530,40 +656,6 @@ namespace influx::rendergraph
 	{
 		influx_assert(m_texture_to_descriptors_map.contains(id));
 		return m_texture_to_descriptors_map[id][static_cast<uint32>(e_descriptor_type::readwrite)];
-	}
-
-	void rendergraph::create_texture_views(rgtexture_id)
-	{
-		// todo
-		influx_assert(false);
-	}
-
-	void rendergraph::create_buffer_views(rgbuffer_id)
-	{
-		// todo
-		influx_assert(false);
-	}
-
-	void rglayer::setup()
-	{
-		for (rgpass* pass : m_passes)
-		{
-			if (pass->is_culled()) continue;
-
-			m_texture_creates.insert(pass->m_texture_creates.begin(), pass->m_texture_creates.end());
-			m_texture_destroys.insert(pass->m_texture_destroys.begin(), pass->m_texture_destroys.end());
-			for (auto [resource, state] : pass->m_texture_state_map)
-			{
-				m_texture_to_state_map[resource] |= state;
-			}
-
-			m_buffer_creates.insert(pass->m_buffer_creates.begin(), pass->m_buffer_creates.end());
-			m_buffer_destroys.insert(pass->m_buffer_destroys.begin(), pass->m_buffer_destroys.end());
-			for (auto [resource, state] : pass->m_buffer_state_map)
-			{
-				m_buffer_to_state_map[resource] |= state;
-			}
-		}
 	}
 }
 

@@ -1,5 +1,8 @@
 #pragma once
 
+// dx12
+#include "dx12_headers.h"
+
 // influx::graphics
 #include "influx_graphics/commandlist.h"
 
@@ -19,6 +22,10 @@ namespace influx::graphics
 		ID3D12CommandList* mpdx_commandlist;
 		ID3D12GraphicsCommandList* mpdx_graphics_commandlist;
 		ID3D12CommandAllocator* mpdx_allocator;
+
+		vector<D3D12_TEXTURE_BARRIER>		  m_texture_barriers;
+		vector<D3D12_BUFFER_BARRIER>		  m_buffer_barriers;
+		vector<D3D12_GLOBAL_BARRIER>		  m_global_barriers;
 
 	private:
 		dx12_commandlist(ID3D12GraphicsCommandList* commandlist, ID3D12CommandAllocator* allocator);
@@ -48,11 +55,14 @@ namespace influx::graphics
 
 		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
 
+		// https://microsoft.github.io/DirectX-Specs/d3d/D3D12EnhancedBarriers.html
 		virtual void buffer_barrier(resource* resource, e_resource_state before, e_resource_state after) override;
 
 		virtual void texture_barrier(resource* resource, e_resource_state before, e_resource_state after) override;
 
 		virtual void global_barrier(e_resource_state before, e_resource_state after) override;
+
+		virtual void flush_barriers() override;
 
 		virtual void copy_resource(resource* source, resource* dest) override;
 
@@ -83,5 +93,8 @@ namespace influx::graphics
 		ID3D12CommandAllocator* obtain_allocator(dx12_device*);
 
 		void free_allocator(dx12_device*);
+
+	private:
+
 	};
 }

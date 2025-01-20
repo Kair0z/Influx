@@ -51,17 +51,22 @@ namespace influx::graphics
 				//rtvs[i].BeginningAccess.Clear.ClearValue.Color = &args.m_color_attachments[i].m_clear.r;
 			}
 
-			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsv{};
-			dsv.cpuDescriptor;
-			dsv.DepthBeginningAccess = translate(args.m_depth_attachment.m_depth_load);
-			dsv.StencilBeginningAccess = translate(args.m_depth_attachment.m_stencil_load);
-			dsv.DepthEndingAccess = translate(args.m_depth_attachment.m_depth_store);
-			dsv.StencilEndingAccess = translate(args.m_depth_attachment.m_stencil_store);
-			dsv.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = args.m_depth_attachment.m_stencil_clear;
-			dsv.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = args.m_depth_attachment.m_depth_clear;
-
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsv = nullptr;
+			if (false)
+			{
+				static D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsv_desc{};
+				dsv_desc.cpuDescriptor;
+				dsv_desc.DepthBeginningAccess = translate(args.m_depth_attachment.m_depth_load);
+				dsv_desc.StencilBeginningAccess = translate(args.m_depth_attachment.m_stencil_load);
+				dsv_desc.DepthEndingAccess = translate(args.m_depth_attachment.m_depth_store);
+				dsv_desc.StencilEndingAccess = translate(args.m_depth_attachment.m_stencil_store);
+				dsv_desc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = args.m_depth_attachment.m_stencil_clear;
+				dsv_desc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = args.m_depth_attachment.m_depth_clear;
+				dsv = &dsv_desc;
+			}
+			
 			D3D12_RENDER_PASS_FLAGS flags = translate(args.m_flags);
-			gfx_commandlist7->BeginRenderPass((uint32)rtvs.size(), rtvs.data(), &dsv, flags);
+			gfx_commandlist7->BeginRenderPass((uint32)rtvs.size(), rtvs.data(), dsv, flags);
 
 			g_current_render_pass = true;
 		}
@@ -156,20 +161,76 @@ namespace influx::graphics
 	void dx12_commandlist::buffer_barrier(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		D3D12_BUFFER_BARRIER barrier{};
-		barrier.SyncBefore;
-		barrier.SyncAfter;
+		barrier.SyncBefore = get_barrier_sync(before);
+		barrier.SyncAfter = get_barrier_sync(after);
+		barrier.AccessBefore = get_barrier_access(before);
+		barrier.AccessAfter = get_barrier_access(after);
+		barrier.Offset = 0u;
+		barrier.Size = UINT64_MAX;
+		barrier.pResource = resource->get_native<ID3D12Resource>();
+		m_buffer_barriers.push_back(barrier);
 	}
 
 	void dx12_commandlist::texture_barrier(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		D3D12_TEXTURE_BARRIER barrier{};
-
+		barrier.SyncBefore = get_barrier_sync(before);
+		barrier.SyncAfter= get_barrier_sync(after);
+		barrier.AccessBefore = get_barrier_access(before);
+		barrier.AccessAfter = get_barrier_access(after);
+		barrier.LayoutBefore = get_barrier_layout(before);
+		barrier.LayoutAfter = get_barrier_layout(after);
+		barrier.pResource = resource->get_native<ID3D12Resource>();
+		barrier.Subresources = CD3DX12_BARRIER_SUBRESOURCE_RANGE(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		if (has_any_flag(before, e_resource_state::discard)) barrier.Flags = D3D12_TEXTURE_BARRIER_FLAG_DISCARD;
+		m_texture_barriers.push_back(barrier);
 	}
 
 	void dx12_commandlist::global_barrier(e_resource_state before, e_resource_state after)
 	{
 		D3D12_GLOBAL_BARRIER barrier{};
+		barrier.SyncBefore = get_barrier_sync(before);
+		barrier.SyncAfter = get_barrier_sync(after);
+		barrier.AccessBefore = get_barrier_access(before);
+		barrier.AccessAfter = get_barrier_access(after);
+		m_global_barriers.push_back(barrier);
+	}
 
+	void dx12_commandlist::flush_barriers()
+	{
+		vector<D3D12_BARRIER_GROUP> barrier_groups{};
+		barrier_groups.reserve(3);
+
+		ID3D12GraphicsCommandList7* cmdlist7 = nullptr;
+		if (mpdx_commandlist->QueryInterface(&cmdlist7) != S_OK)
+		{
+			// OY
+			influx_assert(false);
+		}
+
+		if (!m_texture_barriers.empty())
+		{
+			barrier_groups.push_back(CD3DX12_BARRIER_GROUP((uint32)m_texture_barriers.size(), m_texture_barriers.data()));
+		}
+
+		if (!m_buffer_barriers.empty())
+		{
+			barrier_groups.push_back(CD3DX12_BARRIER_GROUP((uint32)m_buffer_barriers.size(), m_buffer_barriers.data()));
+		}
+
+		if (!m_global_barriers.empty())
+		{
+			barrier_groups.push_back(CD3DX12_BARRIER_GROUP((uint32)m_global_barriers.size(), m_global_barriers.data()));
+		}
+
+		if (!barrier_groups.empty())
+		{
+			cmdlist7->Barrier((uint32)barrier_groups.size(), barrier_groups.data());
+		}
+
+		m_texture_barriers.clear();
+		m_buffer_barriers.clear();
+		m_global_barriers.clear();
 	}
 
 	void dx12_commandlist::copy_resource(resource* source, resource* dest)

@@ -7,6 +7,7 @@ new_influx_library("influx_rendergraph")
     local dependencies =
     {
         "influx_core",
+        "influx_platform",
         "influx_graphics"
     }
     set_influx_includes(dependencies)

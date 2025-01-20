@@ -27,6 +27,7 @@ namespace influx::rendergraph
 
 		rgtexture_id m_id;
 		bool m_is_imported;
+		texture_desc m_desc;
 	};
 
 	class rgbuffer final : public rgchild
@@ -38,5 +39,6 @@ namespace influx::rendergraph
 
 		rgbuffer_id m_id;
 		bool m_is_imported;
+		buffer_desc m_desc;
 	};
 }

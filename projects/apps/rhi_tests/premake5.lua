@@ -4,7 +4,8 @@ new_influx_app("rhi_tests")
     {
         "influx_core",
         "influx_platform",
-        "influx_file",
+        "influx_graphics",
+        "influx_rendergraph"
     }
     set_influx_app_dependencies(dependencies)
     staticruntime "off"

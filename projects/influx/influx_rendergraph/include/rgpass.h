@@ -30,21 +30,25 @@ namespace influx::rendergraph
 		allow_uav_write = 0x02
 	};
 
-	class rgpass
+	class rgpass_context final
+	{
+
+	};
+
+	using rgpass_callback = const function<void(rgpass_context&)>&;
+
+	class rgpass final
 	{
 	public:
 		uint32 get_num_reads() const;
 		uint32 get_num_writes() const;
 
 	protected:
-		rgpass(e_rgpass_type type, e_rgpass_flags flags);
+		rgpass(const rgpass_callback& clb, e_rgpass_type type = e_rgpass_type::graphics, e_rgpass_flags flags = e_rgpass_flags::none);
 
 	private:
-		// inherit from this:
-		virtual void setup(rgbuilder& builder) = 0;
-		virtual void execute() = 0;
+		void execute(rgpass_context& ctx);
 
-	private:
 		bool is_culled() const;
 		bool can_be_culled() const;
 		bool allow_uav_writes() const;
@@ -55,6 +59,7 @@ namespace influx::rendergraph
 		uint32 get_width() const;
 		uint32 get_height() const;
 
+		rgpass_callback m_callback;
 		e_rgpass_type m_type;
 		e_rgpass_flags m_flags;
 		rgpass_id m_id;

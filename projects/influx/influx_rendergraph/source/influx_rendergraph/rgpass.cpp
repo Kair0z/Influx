@@ -20,8 +20,19 @@ namespace influx::rendergraph
 		return static_cast<uint32>(m_buffer_writes.size() + m_texture_writes.size());
 	}
 
-	rgpass::rgpass(e_rgpass_type type, e_rgpass_flags flags)
+	rgpass::rgpass(const rgpass_callback& clb, e_rgpass_type type, e_rgpass_flags flags)
+		: m_callback{clb}
+		, m_type{type}
+		, m_flags{flags}
 	{
+	}
+
+	void rgpass::execute(rgpass_context& ctx)
+	{
+		if (m_callback)
+		{
+			m_callback(ctx);
+		}
 	}
 
 	bool rgpass::is_culled() const

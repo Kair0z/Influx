@@ -66,22 +66,7 @@ namespace influx::rendergraph
 		INFLUX_RG_API void execute(graphics::commandlist* commandlist);
 
 		// adding nodes & resources
-		template <typename trgpass, typename... _args> requires std::is_constructible_v<trgpass, _args...>
-		trgpass* add_pass(_args&&... args)
-		{
-			m_passes.emplace_back(new trgpass(std::forward<_args>(args)...));
-
-			// setup the base
-			rgpass* base = m_passes.back();
-			rgpass_id new_id = m_passes.size() - 1u;
-			base->set_id(new_id);
-
-			// register in map
-			m_id_to_pass_map[new_id] = base;
-
-			// return the spec
-			return dynamic_cast<trgpass*>(base);
-		}
+		INFLUX_RG_API rgpass* add_pass(const rgpass_callback& callback);
 
 		INFLUX_RG_API rgtexture_id add_texture(const rgname& name, const texture_desc& desc);
 		INFLUX_RG_API rgbuffer_id add_buffer(const rgname& name, const buffer_desc& desc);
@@ -133,8 +118,6 @@ namespace influx::rendergraph
 		void depth_search(uint64 parent_idx, vector<bool>& visited_list, vector<uint64>& topo_sorted_passes);
 		vector<uint64> m_topo_sorted_passes;
 
-		// execute
-		
 		// misc
 		graphics::descriptor_handle get_rtv(rgtexture_id id);
 		graphics::descriptor_handle get_dsv(rgtexture_id id);
