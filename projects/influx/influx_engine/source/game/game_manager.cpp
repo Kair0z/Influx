@@ -22,6 +22,7 @@ namespace influx::engine
 {
 	static bool load_projectfile(files::projectfile& out_file)
 	{
+		
 		if (file::exists("E:/Git/Influx/editor/project.flx"))
 		{
 			out_file.load("E:/Git/Influx/editor/project.flx");
@@ -86,7 +87,7 @@ namespace influx::engine
 
 		get_game_library()->call("end");
 
-		world& world = *get_engine()->get_world_ptr();
+		world& world = get_engine()->get_world();
 
 		// save to file
 		const entity& camera = m_entities[0];
@@ -104,8 +105,8 @@ namespace influx::engine
 
 	void game_manager::setup_camera()
 	{
-		platform::window& window = *get_engine()->get_window_ptr();
-		world& world = *get_engine()->get_world_ptr();
+		platform::window& window = get_engine()->get_window();
+		world& world = get_engine()->get_world();
 
 		const float camera_distance = 5.0f;
 		const static float max_speed = 10.0f;
@@ -258,7 +259,7 @@ namespace influx::engine
 
 	void game_manager::setup_swords()
 	{
-		world& world = *get_engine()->get_world_ptr();
+		world& world = get_engine()->get_world();
 
 		// create swoards
 		const uint32 num_swords = 50u;
@@ -267,7 +268,7 @@ namespace influx::engine
 		{
 			entity sword = create_entity();
 
-			const float angle = i * (360u / num_swords);
+			const float angle = i * (360.0f / num_swords);
 			transform_component& trans_comp = world.create_component<transform_component>(sword);
 			{
 				trans_comp.set_position(circle.get_point_at_degrees(angle));
@@ -288,10 +289,10 @@ namespace influx::engine
 
 	void game_manager::setup_cafe()
 	{
-		world& world = *get_engine()->get_world_ptr();
+		world& world = get_engine()->get_world();
 
 		const string& scene_name = "CafeLeBlanc";
-		const content_manager& contman = *get_engine()->get_content().get();
+		const content_manager& contman = get_engine()->get_content();
 		const scene_asset* leblanc_asset = contman.find<scene_asset>(scene_name);
 		if (leblanc_asset == nullptr)
 		{
@@ -329,7 +330,7 @@ namespace influx::engine
 
 	entity game_manager::create_entity()
 	{
-		world& world = *get_engine()->get_world_ptr();
+		world& world = get_engine()->get_world();
 		m_entities.push_back(world.create_entity());
 		return m_entities.back();
 	}

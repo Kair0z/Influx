@@ -36,7 +36,7 @@ namespace influx::engine
 				if (ImGui::Button("play"))
 				{
 					m_is_running = true;
-					get_engine()->get_game()->start();
+					get_engine()->get_game().start();
 				}
 			}
 			else
@@ -44,7 +44,7 @@ namespace influx::engine
 				if (ImGui::Button("end"))
 				{
 					m_is_running = false;
-					get_engine()->get_game()->end();
+					get_engine()->get_game().end();
 				}
 			}
 		}
@@ -58,6 +58,9 @@ namespace influx::engine
 	public:
 		virtual void on_run() override
 		{
+			static content_manager& content = get_engine()->get_content();
+			static render_manager& renderer = get_engine()->get_renderer();
+
 			set_name("engine:content");
 
 			if (ImGui::BeginTabBar("content"))
@@ -65,7 +68,7 @@ namespace influx::engine
 				if (ImGui::BeginTabItem("scenes"))
 				{
 					// "scene:filepath"
-					for (const auto& pair : get_engine()->get_content()->get_scenes())
+					for (const auto& pair : content.get_scenes())
 					{
 						const string& name = pair.first;
 						const scene_asset& scene_asset = pair.second;
@@ -92,14 +95,14 @@ namespace influx::engine
 
 					if (ImGui::BeginTable("ed_texture_grid", 4u))
 					{
-						for (const auto& pair : get_engine()->get_content()->get_images())
+						for (const auto& pair : content.get_images())
 						{
 							if (pair.second.is_loaded() && pair.second.is_engine())
 							{
 								ImGui::TableNextColumn();
 
 								const string& name = pair.first;
-								ImGui::Image(get_engine()->get_renderer()->get_loaded_texture_id(name), { size, size });
+								ImGui::Image(renderer.get_loaded_texture_id(name), { size, size });
 
 								const image_asset& image = pair.second;
 								const math::vectori2& image_dims = image.m_resource.m_dimensions;
@@ -115,7 +118,7 @@ namespace influx::engine
 				if (ImGui::BeginTabItem("shaders"))
 				{
 					// "shader:filepath"
-					for (const auto& pair : get_engine()->get_content()->get_shaders())
+					for (const auto& pair : content.get_shaders())
 						if (pair.second.is_loaded() && pair.second.is_engine())
 							ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 					ImGui::EndTabItem();
@@ -211,18 +214,11 @@ namespace influx::engine
 
 	result<> editor_manager::update_context()
 	{
-		result<> res{};
+		engine& engine = *get_engine();
+		const math::vectoru2& window_dimensions = engine.get_window().get_dimensions(platform::window::e_space::client);
+		ImGui::GetIO().DisplaySize = { (float)window_dimensions.x, (float)window_dimensions.y };
 
-		engine* engine = get_engine();
-		influx_assert(engine);
-
-		if (cptr<platform::window> window = res.append_and_get(engine->get_window()))
-		{
-			const math::vectoru2& window_dimensions = window->get_dimensions(platform::window::e_space::client);
-			ImGui::GetIO().DisplaySize = { (float)window_dimensions.x, (float)window_dimensions.y };
-		}
-
-		return res;
+		return {};
 	}
 
 	result<> editor_manager::update_mainmenu()
@@ -231,7 +227,7 @@ namespace influx::engine
 		{
 			if (ImGui::BeginMenu("project"))
 			{
-				world& world = *get_engine()->get_world_ptr();
+				world& world = get_engine()->get_world();
 				const string proj_path = make_gamefile_path("influx_game");
 				if (ImGui::Button("save"))
 				{
@@ -339,8 +335,8 @@ namespace influx::engine
 		const float anim_speed = 5.0f;
 		const float radius = math::pingpong(seconds * anim_speed, max_radius * 0.95f, max_radius);
 
-		world& world = *get_engine()->get_world_ptr();
-		m_edit_radial.set_item("create", [&world]()
+		static world& world = get_engine()->get_world();
+		m_edit_radial.set_item("create", []()
 		{
 			custom_entity = world.create_entity();
 			
@@ -364,7 +360,7 @@ namespace influx::engine
 
 		m_edit_radial.set_item("destroy", []()
 		{
-			get_engine()->get_world_ptr()->destroy_entity(custom_entity);
+			world.destroy_entity(custom_entity);
 		});
 
 		m_edit_radial.set_id("##piepopup_edit");
@@ -413,7 +409,7 @@ namespace influx::engine
 
 		case input::e_mouse_button::left:
 			
-			world& world = *get_engine()->get_world_ptr();
+			world& world = get_engine()->get_world();
 
 			// get camera matrices
 			const math::matrix4x4f projection = world.get_main_projection_matrix();

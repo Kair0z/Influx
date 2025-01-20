@@ -159,8 +159,8 @@ namespace influx::engine
 		influx::renderer::initialize(render_init_args);
 
 		// window render target:
-		cptr<platform::window> window = engine->get_window().get();
-		mp_window_target = renderer::acquire_window_target(*window);
+		platform::window& window = engine->get_window();
+		mp_window_target = renderer::acquire_window_target(window);
 
 		// scene render target:
 		influx::renderer::target_create_args target_args{};
@@ -173,7 +173,7 @@ namespace influx::engine
 		initialize_imgui();
 
 		// signal window resize once
-		const auto& clientrect = window->get_rect(platform::window::e_space::client);
+		const auto& clientrect = window.get_rect(platform::window::e_space::client);
 		on_window_resize(clientrect.get_dimensions());
 
 		// static editor
@@ -289,14 +289,9 @@ namespace influx::engine
 		const renderer::scene_imgui& imgui, 
 		const renderer::scene_debug& debug)
 	{
-		cptr<platform::window> window = get_engine()->get_window().get();
-		if (window == nullptr)
-		{
-			logonce(e_log_category::warning, "render_manager::render: no window to render!");
-			return;
-		}
+		platform::window& window = get_engine()->get_window();
 
-		mp_window_target = renderer::acquire_window_target(*window);
+		mp_window_target = renderer::acquire_window_target(window);
 		mp_scene_target->resize(*mp_window_target);
 
 		// 1. clear

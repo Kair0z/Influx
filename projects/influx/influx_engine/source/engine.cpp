@@ -216,44 +216,34 @@ namespace influx::engine
 		input::push_window_event(ev);
 	}
 
-	result<cptr<platform::window>> engine::get_window() const
+	render_manager& engine::get_renderer()
 	{
-		return m_window;
+		return *m_renderman;
 	}
 
-	result<cptr<content_manager>> engine::get_content() const
+	content_manager& engine::get_content()
 	{
-		return m_contentman;
+		return *m_contentman;
 	}
 
-	result<cptr<render_manager>> engine::get_renderer() const
+	game_manager& engine::get_game()
 	{
-		return m_renderman;
+		return *m_gameman;
 	}
 
-	result<cptr<world>> engine::get_world() const
+	world& engine::get_world()
 	{
-		return m_world;
+		return *m_world;
 	}
 
-	result<ptr<content_manager>> engine::get_content()
+	platform::window& engine::get_window()
 	{
-		return m_contentman;
+		return *m_window;
 	}
 
-	result<ptr<game_manager>> engine::get_game()
+	editor_manager& engine::get_editor()
 	{
-		return m_gameman;
-	}
-
-	ptr<world> engine::get_world_ptr()
-	{
-		return m_world;
-	}
-
-	ptr<platform::window> engine::get_window_ptr()
-	{
-		return m_window;
+		return *m_editorman;
 	}
 
 	const frame_time& engine::get_time() const
@@ -279,11 +269,6 @@ namespace influx::engine
 	bool engine::is_game() const
 	{
 		return m_runtype == run_type::game;
-	}
-
-	result<cptr<world>> get_world()
-	{
-		return get_engine()->get_world();
 	}
 }
 

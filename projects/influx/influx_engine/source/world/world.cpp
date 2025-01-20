@@ -378,14 +378,14 @@ namespace influx::engine
     void world::update_stream_system()
     {
         influx_scope("stream_system");
-        content_manager* contman = get_engine()->get_content().get();
+        content_manager& contman = get_engine()->get_content();
 
         // stream in image asset info -> sprite components
         {
             auto view = m_registry.view<sprite_component>();
             for (auto [entity, sprite] : view.each())
             {
-                auto asset = contman->find<image_asset>(sprite.get_texture_path());
+                auto asset = contman.find<image_asset>(sprite.get_texture_path());
                 if (asset && asset->is_loaded())
                 {
                     sprite.m_texture_dimensions = asset->m_resource.m_dimensions;
@@ -405,7 +405,7 @@ namespace influx::engine
                 const string index_str = parts.size() > 1u ? parts[1u] : "";
                 const uint32 mesh_idx = !index_str.empty() ? std::stoi(index_str) : 0u;
 
-                result<scene_asset const*> asset = contman->find<scene_asset>(scene_name);
+                result<scene_asset const*> asset = contman.find<scene_asset>(scene_name);
                 if (asset && asset->is_loaded())
                 {
                     // update bounding box / sphere
