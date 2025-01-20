@@ -22,12 +22,14 @@ namespace influx::engine
 		void end();
 
 		entity create_entity();
-
+		~game_manager();
+		
 	private:
 		state m_state;
 		vector<entity> m_entities{};
 
 		void setup_camera();
 		void setup_swords();
+		void setup_cafe();
 	};
 }

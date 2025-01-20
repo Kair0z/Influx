@@ -81,6 +81,7 @@ namespace influx::engine
 		list<entity> m_entities;
 		
 		// update
+		void update_transform_system();
 		void update_input_system();
 		void update_bounds_system();
 		void update_stream_system();

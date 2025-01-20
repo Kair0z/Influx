@@ -54,6 +54,7 @@ namespace influx::math
 
 		void translate(const vectorf3& add_position, bool blocal = false)
 		{
+			m_is_matrix_dirty = true;
 			if (blocal)
 			{
 				vectorf3 delta =
@@ -71,6 +72,7 @@ namespace influx::math
 
 		void rotate(float x, float y, float z, bool blocal = true)
 		{
+			m_is_matrix_dirty = true;
 			if (blocal)
 			{
 				rotate(x, get_right());
@@ -87,11 +89,13 @@ namespace influx::math
 
 		void rotate(float delta_angle, const vectorf3& axis)
 		{
+			m_is_matrix_dirty = true;
 			m_rotation.rotate(delta_angle, axis);
 		}
 
 		void rotate_y(float delta_angle, bool blocal = false)
 		{
+			m_is_matrix_dirty = true;
 			if (blocal)
 			{
 				rotate(delta_angle, get_up());
@@ -104,6 +108,8 @@ namespace influx::math
 
 		void rotate_x(float delta_angle, bool blocal = false)
 		{
+			m_is_matrix_dirty = true;
+
 			if (blocal)
 			{
 				rotate(delta_angle, get_right());
@@ -116,56 +122,73 @@ namespace influx::math
 
 		void set_position(const vectorf3& position)
 		{
+			m_is_matrix_dirty = true;
 			m_position = position;
 		}
 
 		void set_position(float x, float y, float z)
 		{
+			m_is_matrix_dirty = true;
 			set_position({ x,y,z });
 		}
 
 		void set_position_x(float x)
 		{
+			m_is_matrix_dirty = true;
 			m_position.x = x;
 		}
 
 		void set_position_y(float y)
 		{
+			m_is_matrix_dirty = true;
 			m_position.y = y;
 		}
 
 		void set_position_z(float z)
 		{
+			m_is_matrix_dirty = true;
 			m_position.z = z;
 		}
 
 		void set_forward(const vectorf3& newForward)
 		{
+			m_is_matrix_dirty = true;
 			m_rotation.set_forward(newForward);
 		}
 
 		void set_right(const vectorf3& newRight)
 		{
+			m_is_matrix_dirty = true;
 			m_rotation.set_right(newRight);
 		}
 
 		void set_up(const vectorf3& newUp)
 		{
+			m_is_matrix_dirty = true;
 			m_rotation.set_up(newUp);
+		}
+
+		void set_rotation(const math::matrix3x3f& matrix)
+		{
+			m_is_matrix_dirty = true;
+			m_rotation.set_matrix(matrix);
 		}
 
 		void set_scale(const vectorf3& scale)
 		{
+			m_is_matrix_dirty = true;
 			m_scale = scale;
 		}
 
 		void set_scale(const float scale)
 		{
+			m_is_matrix_dirty = true;
 			m_scale = vectorf3{ scale, scale, scale };
 		}
 
 		void look_at(const vectorf3& location)
 		{
+			m_is_matrix_dirty = true;
 			set_forward((location - get_position()).normalized());
 		}
 
@@ -206,7 +229,10 @@ namespace influx::math
 
 		void update_matrix()
 		{
-			m_matrix = matrix4x4f::make_scale(m_scale) * matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward());
+			if (m_is_matrix_dirty)
+				m_matrix = matrix4x4f::make_scale(m_scale) * matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward());
+			
+			m_is_matrix_dirty = false;
 		}
 
 		bool is_gimbal_locked() const
@@ -245,6 +271,7 @@ namespace influx::math
 		vectorf3 m_scale = vectorf3::one();
 		math::rotation m_rotation = rotation::identity();
 		matrix4x4f m_matrix = matrix4x4f::identity();
+		bool m_is_matrix_dirty = false;
 	};
 }
 

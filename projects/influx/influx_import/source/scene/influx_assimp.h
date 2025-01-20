@@ -27,6 +27,14 @@ namespace influx
 		return { vector.r, vector.g, vector.b, vector.a };
 	}
 
+	math::matrix4x4f translate(const aiMatrix4x4& mat)
+	{
+		// aiMatrix should be row-major just like ours :)
+		math::matrix4x4f new_matrix{};
+		memcpy(&new_matrix, &mat, sizeof(aiMatrix4x4));
+		return new_matrix;
+	}
+
 	string translate(const aiString& string)
 	{
 		return { string.C_Str() };
@@ -71,6 +79,39 @@ namespace influx
 			default:
 				return e_texture_semantic::count;
 		}
+	}
+
+	static const aiNode* find_node_recursive(const aiScene& scene, const aiNode& parent, const aiMesh& mesh)
+	{
+		// find in this node...
+		for (uint32 i = 0; i < parent.mNumMeshes; ++i) 
+		{
+			if (scene.mMeshes[parent.mMeshes[i]] == &mesh) 
+			{
+				return &parent; // found
+			}
+		}
+
+		// not found, traverse children...
+		for (uint32 i = 0; i < parent.mNumChildren; ++i) 
+		{
+			const aiNode* found = find_node_recursive(scene, *parent.mChildren[i], mesh);
+			if (found)
+			{
+				return found;
+			}
+		}
+
+		return nullptr;
+	}
+
+	static aiMatrix4x4 calc_world_matrix_recursive(const aiNode& node)
+	{
+		if (node.mParent) 
+		{
+			return calc_world_matrix_recursive(*node.mParent) * node.mTransformation;
+		}
+		return node.mTransformation;
 	}
 
 	influx::imp::scene_data::mesh translate(const aiMesh& mesh)
@@ -265,11 +306,30 @@ namespace influx
 		{
 			const aiMesh* mesh = pScene->mMeshes[i];
 			if (mesh == nullptr)
-			{
+			{ 
 				logwar("influx::imp::scene_data::parse >> nullptr mesh!");
 				continue;
 			}
-			result.m_meshes.push_back(translate(*mesh));
+			else
+			{
+				// translate mesh:
+				imp::scene_data::mesh mesh_data = translate(*mesh);
+
+				// calc world matrix:
+				const aiNode* mesh_node = find_node_recursive(*pScene, *pScene->mRootNode, *mesh);
+				if (mesh_node)
+				{
+					const aiMatrix4x4& world_matrix = calc_world_matrix_recursive(*mesh_node);
+					mesh_data.m_world_transform = translate(world_matrix);
+				}
+				else
+				{
+					mesh_data.m_world_transform = math::matrix4x4f::identity();
+				}
+
+				result.m_meshes.push_back(mesh_data);				
+			}
+			
 		}
 		for (uint32 i = 0u; i < pScene->mNumCameras; ++i)
 		{

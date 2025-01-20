@@ -122,6 +122,11 @@ namespace influx::engine
 			m_transform.set_scale(scale);
 		}
 
+		void set_rotation(const math::matrix3x3f& rotation)
+		{
+			m_transform.set_rotation(rotation);
+		}
+
 		void look_at(const math::vectorf3& location)
 		{
 			m_transform.look_at(location);

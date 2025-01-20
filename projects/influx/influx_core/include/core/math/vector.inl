@@ -544,5 +544,18 @@ namespace influx::math
 
 		return res;
 	}
+
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator/(const float a, const vector<_t, _dim>& b)
+	{
+		vector<_t, _dim> res{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
+		{
+			influx_assert(b[i] != 0);
+			res[i] = a / b[i];
+		}
+
+		return res;
+	}
 #pragma endregion
 }

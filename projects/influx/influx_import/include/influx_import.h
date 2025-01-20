@@ -43,6 +43,8 @@ namespace influx::imp
 			math::spheref m_bounding_sphere{};
 			math::vectorf3 m_average_position;
 			uint32 m_material_index{};
+
+			math::matrix4x4f m_world_transform{};
 		};
 
 		const mesh& get_main_mesh() const { return m_meshes[0]; }

@@ -42,15 +42,12 @@ namespace influx::engine
 		};
 		void run(run_type);
 
-		result<cptr<platform::window>> get_window() const;
-		result<cptr<content_manager>> get_content() const;
-		result<cptr<render_manager>> get_renderer() const;
-		result<cptr<world>> get_world() const;
-
-		result<ptr<content_manager>> get_content();
-		result<ptr<game_manager>> get_game();
-		ptr<world> get_world_ptr();
-		ptr<platform::window> get_window_ptr();
+		content_manager& get_content();
+		game_manager& get_game();
+		world& get_world();
+		platform::window& get_window();
+		editor_manager& get_editor();
+		render_manager& get_renderer();
 
 		const frame_time& get_time() const;
 		float get_fps() const;

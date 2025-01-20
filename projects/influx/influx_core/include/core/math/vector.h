@@ -223,6 +223,10 @@ namespace influx::math
 	template <typename _t, _vector_dim_t _dim>
 	vector<_t, _dim> operator-(const vector<_t, _dim>& v);
 
+	template <typename _t, _vector_dim_t _dim>
+	vector<_t, _dim> operator/(const float a, const vector<_t, _dim>& b);
+
+
 #pragma region Aliases
 	template <typename _vector_dim_t _dim>
 	using vectoru8 = vector<uint8, _dim>;

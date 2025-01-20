@@ -64,6 +64,25 @@ namespace influx::files
 		return true;
 	}
 
+	// matrix
+	template <typename _mat_t, typename _arch_type>
+	inline bool serialize(_mat_t& matrix, _arch_type& parent)
+	{
+		const size_t num_collumns = _mat_t::get_num_collumns();
+		const size_t num_rows = _mat_t::get_num_rows();
+
+		named(parent, "x", num_collumns);
+		named(parent, "y", num_rows);
+
+		for (size_t y = 0u; y < num_rows; ++y)
+			for (size_t x = 0u; x < num_collumns; ++x)
+			{
+				serialize(matrix[y][x], parent);
+			}
+
+		return true;
+	}
+
 	// componentfile impl
 	template <typename _arch_type>
 	bool serialize(componentfile& component, _arch_type& parent)
@@ -77,6 +96,7 @@ namespace influx::files
 	bool serialize(projectfile& project, _arch_type& parent)
 	{
 		named(parent, "Name", project.m_name);
+		named(parent, "CameraTransform", project.m_camera_transform);
 
 		parent.setNextName("entities");
 		parent.startNode();
