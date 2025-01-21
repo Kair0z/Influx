@@ -1,11 +1,13 @@
 #pragma once
 
 // influx::core
+#include "core/math/vector.h"
 #include "core/container/map.h"
 #include "core/function.h"
 
 // influx::rendergraph
 #include "rgcommon.h"
+#include "rgpass_builder.h"
 
 // influx::graphics
 #include "influx_graphics/renderpass.h"
@@ -14,26 +16,6 @@
 namespace influx::rendergraph
 {
 	class rgbuilder;
-
-	enum class e_rgpass_type : uint8
-	{
-		graphics,
-		compute,
-		async_compute,
-		count
-	};
-
-	enum class e_rgpass_flags : uint32
-	{
-		none = 0x00,
-		force_no_cull = 0x01,
-		allow_uav_write = 0x02
-	};
-
-	class rgpass_builder final
-	{
-
-	};
 
 	class rgpass_context final
 	{
@@ -87,11 +69,11 @@ namespace influx::rendergraph
 		uset<rgtexture_id> m_texture_destroys;
 		umap<rgtexture_id, graphics::e_resource_state> m_texture_state_map;
 
-		uset<rgtexture_id> m_buffer_creates;
-		uset<rgtexture_id> m_buffer_reads;
-		uset<rgtexture_id> m_buffer_writes;
-		uset<rgtexture_id> m_buffer_destroys;
-		umap<rgtexture_id, graphics::e_resource_state> m_buffer_state_map;
+		uset<rgbuffer_id> m_buffer_creates;
+		uset<rgbuffer_id> m_buffer_reads;
+		uset<rgbuffer_id> m_buffer_writes;
+		uset<rgbuffer_id> m_buffer_destroys;
+		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_state_map;
 
 		struct render_target final
 		{
@@ -111,5 +93,6 @@ namespace influx::rendergraph
 
 		friend class rendergraph;
 		friend class rglayer;
+		friend class rgpass_builder;
 	};
 }

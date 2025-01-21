@@ -569,28 +569,6 @@ namespace influx::rendergraph
 		topo_sorted_passes.push_back(parent_idx);
 	}
 
-	rgtexture_id rendergraph::add_texture(const rgname& name, const texture_desc& desc)
-	{
-		rgtexture* new_texture = new rgtexture();
-		m_textures.push_back(new_texture);
-
-		rgtexture_id new_id = m_textures.size() - 1u;
-		new_texture->m_id = new_id;
-
-		return new_id;
-	}
-
-	rgbuffer_id rendergraph::add_buffer(const rgname& name, const buffer_desc& desc)
-	{
-		rgbuffer* new_buffer = new rgbuffer();
-		m_buffers.push_back(new_buffer);
-
-		rgbuffer_id new_id = m_buffers.size() - 1u;
-		new_buffer->m_id = new_id;
-
-		return new_id;
-	}
-
 	bool rendergraph::is_texture_declared(rgtexture_id id) const
 	{
 		return m_id_to_texture_map.contains(id);
@@ -601,12 +579,22 @@ namespace influx::rendergraph
 		return m_id_to_buffer_map.contains(id);
 	}
 
+	bool rendergraph::is_texture_declared(const rgname& name) const
+	{
+		return false;
+	}
+
+	bool rendergraph::is_buffer_declared(const rgname& name) const
+	{
+		return false;
+	}
+
 	bool rendergraph::is_pass_declared(rgpass_id id) const
 	{
 		return m_id_to_pass_map.contains(id);
 	}
 
-	rgtexture* rendergraph::get_texture(rgtexture_id id)
+	rgtexture* rendergraph::get_texture(rgtexture_id id) const
 	{
 		if (is_texture_declared(id))
 		{
@@ -616,7 +604,7 @@ namespace influx::rendergraph
 		return nullptr;
 	}
 
-	rgbuffer* rendergraph::get_buffer(rgbuffer_id id)
+	rgbuffer* rendergraph::get_buffer(rgbuffer_id id) const
 	{
 		if (is_buffer_declared(id))
 		{

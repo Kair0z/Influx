@@ -6,6 +6,13 @@ namespace influx::rendergraph
 	class rgchild
 	{
 		friend class rendergraph;
+		friend class rgpass_builder;
+
+	public:
+		inline bool is_imported() const
+		{
+			return m_is_imported;
+		}
 
 	protected:
 		rgchild() = default;
@@ -26,7 +33,6 @@ namespace influx::rendergraph
 		rgtexture() = default;
 
 		rgtexture_id m_id;
-		bool m_is_imported;
 		texture_desc m_desc;
 	};
 
@@ -38,7 +44,6 @@ namespace influx::rendergraph
 		rgbuffer() = default;
 
 		rgbuffer_id m_id;
-		bool m_is_imported;
 		buffer_desc m_desc;
 	};
 }
