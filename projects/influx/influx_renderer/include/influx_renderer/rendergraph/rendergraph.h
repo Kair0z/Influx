@@ -32,6 +32,7 @@ namespace influx::renderer
 	{
 	public:
 		rendergraph(graphics::device* device);
+		~rendergraph();
 
 		void build();
 

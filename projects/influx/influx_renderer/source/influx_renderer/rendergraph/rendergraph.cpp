@@ -114,8 +114,12 @@ namespace influx::renderer
 	rendergraph::rendergraph(graphics::device* device)
 		: m_device{ device }
 	{
-		m_pool = new rgpool(device);
-		m_view_manager = new gpu_view_manager(device);
+		
+	}
+
+	rendergraph::~rendergraph()
+	{
+		
 	}
 	
 	void rendergraph::build()

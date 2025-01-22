@@ -27,28 +27,29 @@ int main()
 	swpchain_desc.m_num_buffers = 3u;
 	graphics::swapchain* swapchain = device->create_swapchain(queue, *window, swpchain_desc);
 
-	rendergraph::rendergraph graph{ device };
-	graph.import_texture(RGNAME_IDX("swapchain_buffer", 0u), swapchain->get_backbuffer_resource(0u));
-	graph.import_texture(RGNAME_IDX("swapchain_buffer", 1u), swapchain->get_backbuffer_resource(1u));
-	graph.import_texture(RGNAME_IDX("swapchain_buffer", 2u), swapchain->get_backbuffer_resource(2u));
-
 	static rendergraph::rgrendertarget_id rt_ids[3u]{};
 	static int buffer_index = 0u;
-	auto* clear_pass = graph.add_pass(
-		[](rendergraph::rgpass_builder& builder)
-		{
-			rendergraph::rgaccess access{};
-			rt_ids[buffer_index] = builder.write_rendertarget(RGNAME_IDX("swapchain_buffer", buffer_index), access);
-		},
-		[&graph](rendergraph::rgpass_context& ctx)
-		{
-			// get the descriptor handles and do something to them
-			// influx::graphics::descriptor_handle rtv_handle = ctx.get_rtv(rt_id);
-		});
 
 	while (true)
 	{
+		rendergraph::rendergraph graph{ device };
+		graph.import_texture(RGNAME_IDX("swapchain_buffer", 0u), swapchain->get_backbuffer_resource(0u));
+		graph.import_texture(RGNAME_IDX("swapchain_buffer", 1u), swapchain->get_backbuffer_resource(1u));
+		graph.import_texture(RGNAME_IDX("swapchain_buffer", 2u), swapchain->get_backbuffer_resource(2u));
+
 		buffer_index = swapchain->acquire_backbuffer();
+
+		graph.add_pass(
+			[](rendergraph::rgpass_builder& builder)
+			{
+				rendergraph::rgaccess access{};
+				rt_ids[buffer_index] = builder.write_rendertarget(RGNAME_IDX("swapchain_buffer", buffer_index), access);
+			},
+			[&graph](rendergraph::rgpass_context& ctx)
+			{
+				// get the descriptor handles and do something to them
+				// influx::graphics::descriptor_handle rtv_handle = ctx.get_rtv(rt_id);
+			});
 
 		graph.build();
 

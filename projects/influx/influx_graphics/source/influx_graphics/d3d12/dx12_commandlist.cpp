@@ -48,9 +48,8 @@ namespace influx::graphics
 				rtvs[i].cpuDescriptor.ptr = (SIZE_T)args.m_color_attachments[i].m_rtv_descriptor;
 				rtvs[i].BeginningAccess = translate(args.m_color_attachments[i].m_load);
 				rtvs[i].EndingAccess = translate(args.m_color_attachments[i].m_store);
-
 				rtvs[i].BeginningAccess.Clear.ClearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-				rtvs[i].BeginningAccess.Clear.ClearValue.Color[0] = 1.0f;
+				memcpy(rtvs[i].BeginningAccess.Clear.ClearValue.Color, args.m_color_attachments[i].m_clear.m_data, sizeof(FLOAT[4]));
 			}
 
 			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsv = nullptr;

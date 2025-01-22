@@ -17,6 +17,10 @@ namespace influx::rendergraph
 	// private class used for resource management exclusively inside rendergraph
 	class rgpool final
 	{
+	public:
+		rgpool(graphics::device* device);
+
+	private:
 		struct pooled_resource final
 		{
 			graphics::resource* m_resource;
@@ -25,7 +29,7 @@ namespace influx::rendergraph
 		};
 
 		friend class rendergraph;
-		rgpool(graphics::device* device);
+		
 
 		void tick();
 

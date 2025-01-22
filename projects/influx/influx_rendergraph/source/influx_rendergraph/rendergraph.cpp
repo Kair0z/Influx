@@ -198,11 +198,38 @@ namespace influx::rendergraph
 		graphics::descriptor_heap* m_dsv_heap;
 	};
 
+	static rgpool& get_resource_pool(graphics::device* device)
+	{
+		static rgpool* g_pool = nullptr;
+		if (g_pool == nullptr)
+		{
+			g_pool = new rgpool(device);
+		}
+
+		return *g_pool;
+	}
+
+	static view_manager& get_view_manager(graphics::device* device)
+	{
+		static view_manager* g_manager = nullptr;
+		if (g_manager == nullptr)
+		{
+			g_manager = new view_manager(device);
+		}
+
+		return *g_manager;
+	}
+
 	rendergraph::rendergraph(graphics::device* device)
 		: m_device{ device }
 	{
-		m_pool = new rgpool(device);
-		m_view_manager = new view_manager(device);
+		
+	}
+
+	rendergraph::~rendergraph()
+	{
+		get_resource_pool(m_device);
+		get_view_manager(m_device).end_frame();
 	}
 	
 	void rendergraph::build()
@@ -221,7 +248,7 @@ namespace influx::rendergraph
 
 	void rendergraph::execute(graphics::commandlist* commandlist)
 	{
-		m_pool->tick();
+		get_resource_pool(m_device).tick();
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
@@ -232,14 +259,14 @@ namespace influx::rendergraph
 				for (const rgtexture_id& tex_id : layer.m_texture_creates)
 				{
 					rgtexture* texture = get_texture(tex_id);
-					texture->m_resource = m_pool->allocate_texture_resource(texture->m_desc);
+					texture->m_resource = get_resource_pool(m_device).allocate_texture_resource(texture->m_desc);
 					create_texture_views(tex_id);
 					// todo: set name
 				}
 				for (const rgbuffer_id& buff_id : layer.m_buffer_creates)
 				{
 					rgbuffer* buffer = get_buffer(buff_id);
-					buffer->m_resource = m_pool->allocate_buffer_resource(buffer->m_desc);
+					buffer->m_resource = get_resource_pool(m_device).allocate_buffer_resource(buffer->m_desc);
 					create_buffer_views(buff_id);
 					// todo: set name
 				}
@@ -297,15 +324,8 @@ namespace influx::rendergraph
 
 							color_attachment.m_load = translate(rtv.m_access.m_load);
 							color_attachment.m_store = translate(rtv.m_access.m_store);
-
-							rgtexture* color_texture = get_texture(rtv.m_texture_id);
-							influx_assert(color_texture != nullptr);
-
+							color_attachment.m_rtv_descriptor = get_rtv(rtv.m_texture_id);
 							color_attachment.m_clear;
-
-							graphics::descriptor_handle handle = get_rtv(rtv.m_texture_id);
-							influx_assert(handle);
-							color_attachment.m_rtv_descriptor = handle;
 						}
 
 						// dsv
@@ -348,12 +368,12 @@ namespace influx::rendergraph
 				for (const rgtexture_id& tex_id : layer.m_texture_destroys)
 				{
 					rgtexture* texture = get_texture(tex_id);
-					m_pool->release_texture(texture->m_resource);
+					get_resource_pool(m_device).release_texture(texture->m_resource);
 				}
 				for (const rgbuffer_id& buff_id : layer.m_buffer_destroys)
 				{
 					rgbuffer* buffer = get_buffer(buff_id);
-					m_pool->release_buffer(buffer->m_resource);
+					get_resource_pool(m_device).release_buffer(buffer->m_resource);
 				}
 			}
 		}
@@ -418,7 +438,7 @@ namespace influx::rendergraph
 				switch (type)
 				{
 				case rgdescriptor_type::render_target:
-					descriptors[i] = m_view_manager->alloc_cpu_handle(type);
+					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
 					m_device->create_rtv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::depth_target:

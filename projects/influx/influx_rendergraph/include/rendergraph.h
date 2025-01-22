@@ -73,6 +73,7 @@ namespace influx::rendergraph
 
 	public:
 		INFLUX_RG_API rendergraph(graphics::device* device);
+		INFLUX_RG_API ~rendergraph();
 
 		INFLUX_RG_API void build();
 
@@ -95,9 +96,6 @@ namespace influx::rendergraph
 		vector<rgbuffer*> m_buffers{};
 		vector<rgtexture*> m_textures{};
 		vector<rglayer*> m_layers{};
-
-		rgpool* m_pool = nullptr;
-		view_manager* m_view_manager = nullptr;
 
 		vector<vector<uint64>> m_adjacency_lists{};
 		graphics::device* m_device;
