@@ -65,28 +65,6 @@ namespace influx::rendergraph
 		rglayer() = default;
 		~rglayer() = default;
 
-		inline void setup()
-		{
-			for (rgpass* pass : m_passes)
-			{
-				if (pass->is_culled()) continue;
-
-				m_texture_creates.insert(pass->m_texture_creates.begin(), pass->m_texture_creates.end());
-				m_texture_destroys.insert(pass->m_texture_destroys.begin(), pass->m_texture_destroys.end());
-				for (auto [resource, state] : pass->m_texture_state_map)
-				{
-					m_texture_to_state_map[resource] |= state;
-				}
-
-				m_buffer_creates.insert(pass->m_buffer_creates.begin(), pass->m_buffer_creates.end());
-				m_buffer_destroys.insert(pass->m_buffer_destroys.begin(), pass->m_buffer_destroys.end());
-				for (auto [resource, state] : pass->m_buffer_state_map)
-				{
-					m_buffer_to_state_map[resource] |= state;
-				}
-			}
-		}
-
 		inline void add_pass(rgpass* pass)
 		{
 			m_passes.push_back(pass);
@@ -234,16 +212,19 @@ namespace influx::rendergraph
 	
 	void rendergraph::build()
 	{
+		// build an adjacency list
 		build_adjacency();
+		
+		// sort the passes topologically
 		sort_topological();
-		build_layers();
-		cull_passes();
-		calc_resource_lifetimes();
 
-		for (rglayer* layer : m_layers)
-		{
-			layer->setup();
-		}
+		// cull stubbies
+		cull_passes();
+
+		// setup the layers of passes
+		build_layers();
+
+		calc_resource_lifetimes();
 	}
 
 	void rendergraph::execute(graphics::commandlist* commandlist)
@@ -254,7 +235,7 @@ namespace influx::rendergraph
 		{
 			const rglayer& layer = *m_layers[layer_idx];
 
-			// creates
+			// texture / buffer creates
 			{
 				for (const rgtexture_id& tex_id : layer.m_texture_creates)
 				{
@@ -272,7 +253,7 @@ namespace influx::rendergraph
 				}
 			}
 
-			// transitions
+			// todo: resource
 			{
 				for (auto const& [tex_id, state] : layer.m_texture_to_state_map)
 				{
@@ -521,6 +502,29 @@ namespace influx::rendergraph
 		{
 			uint64 layer = distances[i];
 			m_layers[layer]->add_pass(m_passes[i]);
+		}
+
+		// setup child creates & destroys
+		for (rglayer* layer : m_layers)
+		{
+			for (rgpass* pass : layer->m_passes)
+			{
+				if (pass->is_culled()) continue;
+
+				layer->m_texture_creates.insert(pass->m_texture_creates.begin(), pass->m_texture_creates.end());
+				layer->m_texture_destroys.insert(pass->m_texture_destroys.begin(), pass->m_texture_destroys.end());
+				for (auto [resource, state] : pass->m_texture_state_map)
+				{
+					layer->m_texture_to_state_map[resource] |= state;
+				}
+
+				layer->m_buffer_creates.insert(pass->m_buffer_creates.begin(), pass->m_buffer_creates.end());
+				layer->m_buffer_destroys.insert(pass->m_buffer_destroys.begin(), pass->m_buffer_destroys.end());
+				for (auto [resource, state] : pass->m_buffer_state_map)
+				{
+					layer->m_buffer_to_state_map[resource] |= state;
+				}
+			}
 		}
 	}
 
