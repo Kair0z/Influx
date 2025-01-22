@@ -87,6 +87,15 @@ namespace influx::rendergraph
 			}
 		}
 
+		inline void add_pass(rgpass* pass)
+		{
+			m_passes.push_back(pass);
+			m_texture_reads.insert(pass->m_texture_reads.begin(), pass->m_texture_reads.end());
+			m_texture_writes.insert(pass->m_texture_writes.begin(), pass->m_texture_writes.end());
+			m_buffer_reads.insert(pass->m_buffer_reads.begin(), pass->m_buffer_reads.end());
+			m_buffer_writes.insert(pass->m_buffer_writes.begin(), pass->m_buffer_writes.end());
+		}
+
 		inline void reset()
 		{
 			m_passes.clear();
@@ -467,9 +476,16 @@ namespace influx::rendergraph
 
 	void rendergraph::build_layers()
 	{
-		vector<uint64> distances(m_passes.size(), 0u);
-		for (uint64 i = 0u; i < m_passes.size(); ++i)
+		for (rglayer* layer : m_layers)
 		{
+			delete layer;
+		}
+		m_layers.clear();
+
+		vector<uint64> distances(m_topo_sorted_passes.size(), 0u);
+		for (uint64 u = 0u; u < m_topo_sorted_passes.size(); ++u)
+		{
+			uint64 i = m_topo_sorted_passes[u];
 			for (auto v : m_adjacency_lists[i])
 			{
 				if (distances[v] < distances[i] + 1u)
@@ -480,17 +496,11 @@ namespace influx::rendergraph
 		}
 
 		const uint64 num_layers = *std::max_element(std::begin(distances), std::end(distances)) + 1u;
-		m_layers.resize(num_layers);
-
+		m_layers.resize(num_layers, new rglayer());
 		for (uint64 i = 0u; i < m_passes.size(); ++i)
 		{
-			if (m_layers[i] == nullptr)
-			{
-				m_layers[i] = new rglayer();
-			}
-
 			uint64 layer = distances[i];
-			m_layers[layer]->m_passes.push_back(m_passes[i]); // add the pass to the layer
+			m_layers[layer]->add_pass(m_passes[i]);
 		}
 	}
 

@@ -46,11 +46,11 @@ int main()
 			// influx::graphics::descriptor_handle rtv_handle = ctx.get_rtv(rt_id);
 		});
 
-	graph.build();
-
 	while (true)
 	{
 		buffer_index = swapchain->acquire_backbuffer();
+
+		graph.build();
 
 		commandlist->start(device);
 		graph.execute(commandlist);

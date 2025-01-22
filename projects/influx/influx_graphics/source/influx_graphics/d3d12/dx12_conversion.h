@@ -258,6 +258,7 @@ namespace influx::graphics
 		case e_load_op::clear: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR; break;
 		case e_load_op::no_access: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS; break;
 		}
+
 		return access;
 	}
 
