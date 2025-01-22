@@ -115,55 +115,95 @@ namespace influx::rendergraph
 
 	rgtexture_readonly_id rgpass_builder::read_texture(const rgname& name, rgread_access read_acc, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
 	{
-		texture_desc desc{};
-		return read_texture_impl(name, read_acc, desc);
+		texture_view_desc view_desc
+		{
+			.m_first_slice = first_slice,
+			.m_num_slices = slice_count,
+			.m_first_mip = first_mip,
+			.m_num_mips = num_mips
+		};
+		return read_texture_impl(name, read_acc, view_desc);
 	}
 	rgtexture_readwrite_id rgpass_builder::write_texture(const rgname& name, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
 	{
-		texture_desc desc{};
-		return write_texture_impl(name, desc);
+		texture_view_desc view_desc
+		{
+			.m_first_slice = first_slice,
+			.m_num_slices = slice_count,
+			.m_first_mip = first_mip,
+			.m_num_mips = num_mips
+		};
+		return write_texture_impl(name, view_desc);
 	}
 	rgrendertarget_id rgpass_builder::write_rendertarget(const rgname& name, rgaccess load_store_op, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
 	{
-		texture_desc desc{};
-		return write_rendertarget_impl(name, load_store_op, desc);
+		texture_view_desc view_desc
+		{
+			.m_first_slice = first_slice,
+			.m_num_slices = slice_count,
+			.m_first_mip = first_mip,
+			.m_num_mips = num_mips
+		};
+		return write_rendertarget_impl(name, load_store_op, view_desc);
 	}
 	rgdepthtarget_id rgpass_builder::write_depthtarget(const rgname& name, rgaccess load_store_op, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
 	{
-		texture_desc desc{};
-		rgaccess stencil_access{};
-		stencil_access.m_load = e_rg_load::no_access;
-		stencil_access.m_store = e_rg_store::no_access;
-		return write_depthtarget_impl(name, load_store_op, stencil_access, desc);
+		texture_view_desc view_desc
+		{
+			.m_first_slice = first_slice,
+			.m_num_slices = slice_count,
+			.m_first_mip = first_mip,
+			.m_num_mips = num_mips
+		};
+		rgaccess stencil_access
+		{
+			.m_load = e_rg_load::no_access,
+			.m_store = e_rg_store::no_access
+		};
+		return write_depthtarget_impl(name, load_store_op, stencil_access, view_desc);
 	}
 	rgdepthtarget_id rgpass_builder::read_depthtarget(const rgname& name, rgaccess load_store_op, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
 	{
-		texture_desc desc{};
-		rgaccess stencil_access{};
-		stencil_access.m_load = e_rg_load::no_access;
-		stencil_access.m_store = e_rg_store::no_access;
-		return read_depthtarget_impl(name, load_store_op, stencil_access, desc);
+		texture_view_desc view_desc
+		{
+			.m_first_slice = first_slice,
+			.m_num_slices = slice_count,
+			.m_first_mip = first_mip,
+			.m_num_mips = num_mips
+		};
+		rgaccess stencil_access
+		{
+			.m_load = e_rg_load::no_access,
+			.m_store = e_rg_store::no_access
+		};
+		return read_depthtarget_impl(name, load_store_op, stencil_access, view_desc);
 	}
 	rgbuffer_readonly_id rgpass_builder::read_buffer(const rgname& name, rgread_access read_acc, uint32 offset, uint32 size)
 	{
-		buffer_desc desc{};
-		desc.m_bytestride = offset;
-		desc.m_bytesize = size;
-		return read_buffer_impl(name, read_acc, desc);
+		buffer_view_desc view_desc
+		{
+			.m_offset = offset,
+			.m_size = size
+		};
+		return read_buffer_impl(name, read_acc, view_desc);
 	}
 	rgbuffer_readwrite_id rgpass_builder::write_buffer(const rgname& name, uint32 offset, uint32 size)
 	{
-		buffer_desc desc{};
-		desc.m_bytestride = offset;
-		desc.m_bytesize = size;
-		return write_buffer_impl(name, desc);
+		buffer_view_desc view_desc
+		{
+			.m_offset = offset,
+			.m_size = size
+		};
+		return write_buffer_impl(name, view_desc);
 	}
 	rgbuffer_readwrite_id rgpass_builder::write_buffer(const rgname& name, const rgname& counter_name, uint32 offset, uint32 size)
 	{
-		buffer_desc desc{};
-		desc.m_bytestride = offset;
-		desc.m_bytesize = size;
-		return write_buffer_impl(name, counter_name, desc);
+		buffer_view_desc view_desc
+		{
+			.m_offset = offset,
+			.m_size = size
+		};
+		return write_buffer_impl(name, counter_name, view_desc);
 	}
 
 	void rgpass_builder::set_viewport(uint32 width, uint32 height)
@@ -171,49 +211,173 @@ namespace influx::rendergraph
 		m_pass.m_width = width;
 		m_pass.m_height = height;
 	}
-
 	texture_desc rgpass_builder::get_texture_desc(const rgname& name) const
 	{
 		return m_graph.get_texture_desc(name);
 	}
-
 	buffer_desc rgpass_builder::get_buffer_desc(const rgname& name) const
 	{
 		return m_graph.get_buffer_desc(name);
 	}
 
 #pragma region impl
-	rgtexture_readonly_id rgpass_builder::read_texture_impl(const rgname& name, rgread_access read_access, const texture_desc& desc)
+	rgtexture_readonly_id rgpass_builder::read_texture_impl(const rgname& name, rgread_access read_access, const texture_view_desc& view_desc)
 	{
-		return rgtexture_readonly_id();
+		rgtexture_readonly_id read_id = m_graph.read_texture(name, view_desc);
+		rgtexture_id res_id = read_id.get_resource_id();
+
+		switch (m_pass.m_type)
+		{
+		case e_rgpass_type::graphics:
+			switch (read_access)
+			{
+			case rgread_access::ps: m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::ps_srv; break;
+			case rgread_access::non_ps: m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::cs_srv; break;
+			case rgread_access::all_shader: m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::all_srv; break;
+			}
+			break;
+
+		case e_rgpass_type::compute:
+		case e_rgpass_type::async_compute:
+			m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::cs_srv;
+			break;
+		}
+
+		m_pass.m_texture_reads.insert(res_id);
+		return read_id;
 	}
-	rgtexture_readwrite_id rgpass_builder::write_texture_impl(const rgname& name, const texture_desc& desc)
+	rgtexture_readwrite_id rgpass_builder::write_texture_impl(const rgname& name, const texture_view_desc& view_desc)
 	{
-		return rgtexture_readwrite_id();
+		rgtexture_readwrite_id rw_id = m_graph.write_texture(name, view_desc);
+		rgtexture_id res_id = rw_id.get_resource_id();
+
+		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::cs_uav;
+		
+		if (!m_pass.m_texture_creates.contains(res_id))
+		{
+			dummy_read_texture(name);
+		}
+		
+		m_pass.m_texture_writes.insert(res_id);
+		rgtexture* texture = m_graph.get_texture(res_id);
+		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+
+		return rw_id;
 	}
-	rgrendertarget_id rgpass_builder::write_rendertarget_impl(const rgname& name, rgaccess load_store_op, const texture_desc& desc)
+	rgrendertarget_id rgpass_builder::write_rendertarget_impl(const rgname& name, rgaccess load_store_op, const texture_view_desc& view_desc)
 	{
-		return rgrendertarget_id();
+		rgrendertarget_id rt_id = m_graph.rendertarget(name, view_desc);
+		rgtexture_id res_id = rt_id.get_resource_id();
+
+		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::render_target;
+		m_pass.m_rtvs.push_back(rgpass::render_target{ .m_texture_id = res_id, .m_access = load_store_op };);
+
+		if (!m_pass.m_texture_creates.contains(res_id))
+		{
+			dummy_read_texture(name);
+		}
+
+		m_pass.m_texture_writes.insert(res_id);
+		rgtexture* texture = m_graph.get_texture(res_id);
+		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		return rt_id;
 	}
-	rgdepthtarget_id rgpass_builder::write_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_desc& desc)
+	rgdepthtarget_id rgpass_builder::write_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
 	{
-		return rgdepthtarget_id();
+		rgdepthtarget_id dt_id = m_graph.depthtarget(name, view_desc);
+		rgtexture_id res_id = dt_id.get_resource_id();
+
+		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::depth_target;
+		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op, 
+			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = false };
+
+		if (!m_pass.m_texture_creates.contains(res_id))
+		{
+			dummy_read_texture(name);
+		}
+
+		m_pass.m_texture_writes.insert(res_id);
+		rgtexture* texture = m_graph.get_texture(res_id);
+		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		return dt_id;
 	}
-	rgdepthtarget_id rgpass_builder::read_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_desc& desc)
+	rgdepthtarget_id rgpass_builder::read_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
 	{
-		return rgdepthtarget_id();
+		rgdepthtarget_id dt_id = m_graph.depthtarget(name, view_desc);
+		rgtexture_id res_id = dt_id.get_resource_id();
+
+		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::depth_readonly;
+		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
+			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = true };
+
+		m_pass.m_texture_reads.insert(res_id);
+		rgtexture* texture = m_graph.get_texture(res_id);
+		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		return dt_id;
 	}
-	rgbuffer_readonly_id rgpass_builder::read_buffer_impl(const rgname& name, rgread_access read_access, const buffer_desc& desc)
+	rgbuffer_readonly_id rgpass_builder::read_buffer_impl(const rgname& name, rgread_access read_access, const buffer_view_desc& view_desc)
 	{
-		return rgbuffer_readonly_id();
+		rgbuffer_readonly_id read_id = m_graph.read_buffer(name, view_desc);
+		rgbuffer_id res_id = read_id.get_resource_id();
+
+		if (m_pass.is_compute_any())
+		{
+			read_access = rgread_access::non_ps;
+
+			m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_srv;
+		}
+		else
+		{
+			switch (read_access)
+			{
+			case rgread_access::ps: m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::ps_srv; break;
+			case rgread_access::non_ps: m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_srv; break;
+			case rgread_access::all_shader: m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::all_srv; break;
+			}
+		}
+
+		m_pass.m_buffer_reads.insert(res_id);
+		return read_id;
 	}
-	rgbuffer_readwrite_id rgpass_builder::write_buffer_impl(const rgname& name, const buffer_desc& desc)
+	rgbuffer_readwrite_id rgpass_builder::write_buffer_impl(const rgname& name, const buffer_view_desc& view_desc)
 	{
-		return rgbuffer_readwrite_id();
+		rgbuffer_readwrite_id rw_id = m_graph.write_buffer(name, view_desc);
+		rgbuffer_id res_id = rw_id.get_resource_id();
+
+		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_uav;
+
+		if (!m_pass.m_buffer_creates.contains(res_id))
+		{
+			dummy_read_buffer(name);
+		}
+
+		m_pass.m_buffer_writes.insert(res_id);
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		if (buffer->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		return rw_id;
 	}
-	rgbuffer_readwrite_id rgpass_builder::write_buffer_impl(const rgname& name, const rgname& counter_name, const buffer_desc& desc)
+	rgbuffer_readwrite_id rgpass_builder::write_buffer_impl(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc)
 	{
-		return rgbuffer_readwrite_id();
+		rgbuffer_readwrite_id rw_id = m_graph.write_buffer(name, counter_name, view_desc);
+
+		rgbuffer_id counter_id = m_graph.get_buffer_id(counter_name);
+		rgbuffer_id res_id = rw_id.get_resource_id();
+
+		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_uav;
+		m_pass.m_buffer_state_map[counter_id] = graphics::e_resource_state::cs_uav;
+
+		dummy_write_buffer(counter_name);
+
+		if (!m_pass.m_buffer_creates.contains(res_id))
+		{
+			dummy_read_buffer(name);
+			dummy_read_buffer(counter_name);
+		}
+
+		m_pass.m_buffer_writes.insert(res_id);
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		if (buffer->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		return rw_id;
 	}
 #pragma endregion
 }

@@ -2,12 +2,22 @@
 
 // influx::core
 #include "core/basetypes.h"
+#include "core/hash.h"
 
 // influx::graphics
 #include "influx_graphics/resource.h"
 
+#if INFLUX_DEBUG
+#define RGNAME(name) influx::rendergraph::rgname(#name, influx::crc64(#name)) 
+#define RGNAME_IDX(name, idx) influx::rendergraph::rgname(#name, influx::crc64(#name) + idx)
+#else 
+#define RGNAME(name) influx::rendergraph::rgname(influx::crc64(#name)) 
+#define RGNAME_IDX(name, idx) influx::rendergraph::rgname(influx::crc64(#name) + idx)
+#endif
+
 namespace influx::rendergraph
 {
+	// -- textures & buffers
 	struct texture_desc final
 	{
 		texture_desc() = default;
@@ -20,6 +30,21 @@ namespace influx::rendergraph
 		uint32 m_array_size = 1u;
 		uint32 m_num_mips = 1u;
 		uint32 m_sample_count = 1u;
+		graphics::e_resource_state m_init_state = graphics::e_resource_state::common;
+		graphics::e_bind_flags m_bindflags = graphics::e_bind_flags::none;
+	};
+
+	struct texture_view_desc final
+	{
+		uint32 m_first_slice = 0u;
+		uint32 m_num_slices = uint32(-1);
+		uint32 m_first_mip = 0u;
+		uint32 m_num_mips = uint32(-1);
+
+		// flags
+		// channel mapping
+
+		std::strong_ordering operator<=>(const texture_view_desc& other) const = default;
 	};
 
 	struct buffer_desc final
@@ -27,58 +52,25 @@ namespace influx::rendergraph
 		size_t m_bytesize;
 		size_t m_bytestride;
 		graphics::e_resource_flags m_flags;
-		graphics::e_resource_state m_init_state;
 		graphics::e_format m_format;
+		graphics::e_resource_state m_init_state = graphics::e_resource_state::common;
+		graphics::e_bind_flags m_bindflags = graphics::e_bind_flags::none;
 	};
 
-	class rgname
+	struct buffer_view_desc final
 	{
-#if INFLUX_DEBUG
-	public:
-		const char* get_name() const
-		{
-			return m_name.c_str();
-		}
+		uint64 m_offset = 0u;
+		uint64 m_size = uint64(-1);
 
-		void set_name(const string& name)
-		{
-			m_name = name;
-		}
-
-	private:
-		string m_name;
-#endif
+		std::strong_ordering operator<=>(const buffer_view_desc& other) const = default;
 	};
 
-	using rghandle = uint64;
-	using rgpass_id = rghandle;
-	inline constexpr static uint64 k_invalid_id = uint64(-1);
-
+	// -- enums
 	enum class rgresource_type : uint8
 	{
 		buffer,
 		texture
 	};
-
-	struct rgresource_id
-	{
-		rgresource_id() : m_id{ k_invalid_id }  {}
-		rgresource_id(const rgresource_id&) = default;
-		rgresource_id(uint64 id) : m_id{ id } {}
-		void set_invalid() { m_id = k_invalid_id; }
-		bool is_valid() const { return m_id != k_invalid_id; }
-		auto operator<=>(rgresource_id const&) const = default;
-
-		uint64 m_id;
-	};
-
-	template <rgresource_type _t>
-	struct trgresource_id : rgresource_id
-	{
-		using rgresource_id::rgresource_id;
-	};
-	using rgbuffer_id = trgresource_id<rgresource_type::buffer>;
-	using rgtexture_id = trgresource_id<rgresource_type::texture>;
 
 	enum class rgread_access : uint8
 	{
@@ -121,6 +113,89 @@ namespace influx::rendergraph
 		constant
 	};
 
+	enum class rgdescriptor_type : uint8
+	{
+		read_only,
+		read_write,
+		render_target,
+		depth_target,
+		count
+	};
+
+	enum class e_rgpass_type : uint8
+	{
+		graphics,
+		compute,
+		async_compute,
+		count
+	};
+
+	enum class e_rgpass_flags : uint32
+	{
+		none = 0x00,
+		force_no_cull = 0x01,
+		allow_uav_write = 0x02
+	};
+
+	// -- rgname
+	struct rgname final
+	{
+		static constexpr uint64 k_invalid_hash = uint64(-1);
+
+#if INFLUX_DEBUG
+		rgname() : m_namehash{ k_invalid_hash }, m_name{ "none" }{}
+		template<uint64 _n>
+		constexpr explicit rgname(char const (&name)[_n], uint64 hash) : m_namehash{ hash }, m_name{ name }{}
+		operator char const* () const { return m_name; }
+#else
+		rgname() : m_namehash{ k_invalid_hash }{}
+		constexpr explicit rgname(uint64 hash) : m_namehash{ hash }{}
+		operator char const* () const { return ""; }
+#endif
+
+		bool is_valid() const
+		{
+			return m_namehash != k_invalid_hash;
+		}
+
+		uint64 m_namehash;
+
+#if INFLUX_DEBUG
+		char const* m_name;
+#endif
+	};
+
+	inline bool operator==(const rgname& name1, const rgname& name2)
+	{
+		return name1.m_namehash == name2.m_namehash;
+	}
+
+	// -- handles
+	using rghandle = uint64;
+	using rgpass_id = rghandle;
+	inline constexpr static uint64 k_invalid_id = uint64(-1);
+
+	struct rgresource_id
+	{
+		rgresource_id() : m_id{ k_invalid_id }  {}
+		rgresource_id(const rgresource_id&) = default;
+		rgresource_id(uint64 id) : m_id{ id } {}
+		void set_invalid() { m_id = k_invalid_id; }
+		bool is_valid() const { return m_id != k_invalid_id; }
+		auto operator<=>(rgresource_id const&) const = default;
+
+		uint64 m_id;
+	};
+
+	template <rgresource_type _t>
+	struct trgresource_id : rgresource_id
+	{
+		using rgresource_id::rgresource_id;
+	};
+
+	using rgbuffer_id = trgresource_id<rgresource_type::buffer>;
+	using rgtexture_id = trgresource_id<rgresource_type::texture>;
+
 	template <rgresource_mode _mode>
 	struct rgtexturemode_id : rgtexture_id
 	{
@@ -148,14 +223,6 @@ namespace influx::rendergraph
 	using rgbuf_index_id = rgbuffermode_id<rgresource_mode::index>;
 	using rgbuf_vertex_id = rgbuffermode_id<rgresource_mode::vertex>;
 	using rgbuf_const_id = rgbuffermode_id<rgresource_mode::constant>;
-
-	enum class rgdescriptor_type : uint8
-	{
-		read_only,
-		read_write,
-		render_target,
-		depth_target
-	};
 
 	struct rgdescriptor_id
 	{
@@ -215,28 +282,21 @@ namespace influx::rendergraph
 
 	using rgbuffer_readonly_id		= trgdescriptor_id<rgresource_type::buffer, rgdescriptor_type::read_only>;
 	using rgbuffer_readwrite_id		= trgdescriptor_id<rgresource_type::buffer, rgdescriptor_type::read_write>;
-
-	enum class e_rgpass_type : uint8
-	{
-		graphics,
-		compute,
-		async_compute,
-		count
-	};
-
-	enum class e_rgpass_flags : uint32
-	{
-		none = 0x00,
-		force_no_cull = 0x01,
-		allow_uav_write = 0x02
-	};
 }
 
-// enum bit operators
+// -- enum bit operators
 ENABLE_ENUM_BIT_OPERATORS(influx::rendergraph::e_rgpass_flags);
 
+// -- hashes
 namespace std
 {
+	template <> struct hash<influx::rendergraph::rgname>
+	{
+		influx::uint64 operator()(const influx::rendergraph::rgname& res_name) const
+		{
+			return hash<decltype(res_name.m_namehash)>()(res_name.m_namehash);
+		}
+	};
 	template <> struct hash<influx::rendergraph::rgtexture_id>
 	{
 		influx::uint64 operator()(const influx::rendergraph::rgtexture_id& h) const

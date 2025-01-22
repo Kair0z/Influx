@@ -26,7 +26,11 @@ int main()
 	auto* clear_pass = graph.add_pass(
 		[](rendergraph::rgpass_builder& builder)
 		{
-			
+			rendergraph::texture_desc desc{};
+			desc.m_width = 512u;
+			desc.m_heigth = 512u;
+			builder.declare_texture(RGNAME("FinalOutput"), desc);
+			builder.set_viewport(512u, 512u);
 		},
 		[](rendergraph::rgpass_context& ctx)
 		{

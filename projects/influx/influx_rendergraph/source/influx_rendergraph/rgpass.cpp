@@ -92,6 +92,26 @@ namespace influx::rendergraph
 		return false;
 	}
 
+	bool rgpass::is_graphics() const
+	{
+		return m_type == e_rgpass_type::graphics;
+	}
+
+	bool rgpass::is_compute() const
+	{
+		return m_type == e_rgpass_type::compute;
+	}
+
+	bool rgpass::is_compute_any() const
+	{
+		return is_compute() || is_async_compute();
+	}
+
+	bool rgpass::is_async_compute() const
+	{
+		return m_type == e_rgpass_type::async_compute;
+	}
+
 	uint32 rgpass::get_width() const
 	{
 		return m_width;

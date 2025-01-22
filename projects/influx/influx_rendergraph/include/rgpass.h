@@ -15,7 +15,7 @@
 
 namespace influx::rendergraph
 {
-	class rgbuilder;
+	class rgpass_builder;
 
 	class rgpass_context final
 	{
@@ -48,6 +48,11 @@ namespace influx::rendergraph
 		void set_id(rgpass_id id);
 		e_rgpass_type get_type() const;
 		static bool has_dependency(const rgpass& a, const rgpass& b);
+
+		bool is_graphics() const;
+		bool is_compute() const;
+		bool is_compute_any() const;
+		bool is_async_compute() const;
 
 		uint32 get_width() const;
 		uint32 get_height() const;

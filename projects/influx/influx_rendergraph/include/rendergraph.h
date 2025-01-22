@@ -71,18 +71,15 @@ namespace influx::rendergraph
 		umap<rgbuffer_id, rgbuffer*> m_id_to_buffer_map;
 		umap<rgpass_id, rgpass*> m_id_to_pass_map;
 
-		enum class e_descriptor_type : uint8
-		{
-			readwrite,
-			readonly,
-			rendertarget,
-			depthstencil,
-			count
-		};
-		static constexpr uint8_t k_num_descriptor_types = static_cast<uint8_t>(e_descriptor_type::count);
+		umap<rgname, rgtexture_id> m_texture_name_to_id_map;
+		umap<rgname, rgbuffer_id> m_buffer_name_to_id_map;
+		umap<rgbuffer_readwrite_id, rgbuffer_id> m_buffer_uav_counter_map;
 
-		umap<rgtexture_id, graphics::descriptor_handle[k_num_descriptor_types]> m_texture_to_descriptors_map;
-		umap<rgtexture_id, graphics::descriptor_handle[k_num_descriptor_types]> m_buffer_to_descriptors_map;
+		static constexpr uint8 k_num_descriptor_types = static_cast<uint8>(rgdescriptor_type::count);
+		umap<rgtexture_id, texture_view_desc[k_num_descriptor_types]> m_texid_to_viewdesc_map;
+		umap<rgtexture_id, graphics::descriptor_handle[k_num_descriptor_types]> m_texid_to_descriptors_map;
+		umap<rgbuffer_id, buffer_view_desc[k_num_descriptor_types]> m_bufid_to_viewdesc_map;
+		umap<rgbuffer_id, graphics::descriptor_handle[k_num_descriptor_types]> m_bufid_to_descriptors_map;
 
 		void build_adjacency();
 		void sort_topological();
@@ -117,17 +114,17 @@ namespace influx::rendergraph
 		rgbuf_index_id read_index_buffer(const rgname& name);
 		rgbuf_const_id read_constant_buffer(const rgname& name);
 
-		rgrendertarget_id rendertarget(const rgname& name, const texture_desc& desc);
-		rgdepthtarget_id depthtarget(const rgname& name, const texture_desc& desc);
-		rgtexture_readonly_id read_texture(const rgname& name, const texture_desc& desc);
-		rgtexture_readwrite_id write_texture(const rgname& name, const texture_desc& desc);
-		rgbuffer_readonly_id read_buffer(const rgname& name, const buffer_desc& desc);
-		rgbuffer_readwrite_id write_buffer(const rgname& name, const buffer_desc& desc);
-		rgbuffer_readwrite_id write_buffer(const rgname& name, const rgname& counter_name, const buffer_desc& desc);
+		rgrendertarget_id rendertarget(const rgname& name, const texture_view_desc& view_desc);
+		rgdepthtarget_id depthtarget(const rgname& name, const texture_view_desc& view_desc);
+		rgtexture_readonly_id read_texture(const rgname& name, const texture_view_desc& view_desc);
+		rgtexture_readwrite_id write_texture(const rgname& name, const texture_view_desc& view_desc);
+		rgbuffer_readonly_id read_buffer(const rgname& name, const buffer_view_desc& view_desc);
+		rgbuffer_readwrite_id write_buffer(const rgname& name, const buffer_view_desc& view_desc);
+		rgbuffer_readwrite_id write_buffer(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc);
 
 		// lookups
-		rgtexture* get_texture(rgtexture_id id) const;
-		rgbuffer* get_buffer(rgbuffer_id id) const;
+		rgtexture* get_texture(rgtexture_id id);
+		rgbuffer* get_buffer(rgbuffer_id id);
 		rgtexture_id get_texture_id(const rgname& name) const;
 		rgbuffer_id get_buffer_id(const rgname& name) const;
 		texture_desc get_texture_desc(const rgname& name) const;

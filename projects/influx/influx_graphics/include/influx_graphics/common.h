@@ -248,6 +248,15 @@ namespace influx::graphics
 		count
 	};
 
+	enum class e_bind_flags : uint32
+	{
+		none	= 0,
+		srv		= 1 << 0,
+		rtv		= 1 << 1,
+		dsv		= 1 << 2,
+		uav		= 1 << 3
+	};
+
 	// D3D12_PRIMITIVE_TOPOLOGY_TYPE
 	enum class e_primitive_topology_type : uint8
 	{
@@ -286,3 +295,4 @@ namespace influx::graphics
 }
 
 ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_resource_state);
+ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_bind_flags);
