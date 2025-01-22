@@ -40,6 +40,7 @@ namespace influx::rendergraph
 		uint32 m_num_slices = uint32(-1);
 		uint32 m_first_mip = 0u;
 		uint32 m_num_mips = uint32(-1);
+		bool m_is_active = false;
 
 		// flags
 		// channel mapping
@@ -61,7 +62,7 @@ namespace influx::rendergraph
 	{
 		uint64 m_offset = 0u;
 		uint64 m_size = uint64(-1);
-
+		bool m_is_active = false;
 		std::strong_ordering operator<=>(const buffer_view_desc& other) const = default;
 	};
 
@@ -264,8 +265,8 @@ namespace influx::rendergraph
 
 		uint64 get_resource_id() const
 		{
-			if constexpr (_t == rgresource_type::buffer) return rgbuffer_id(rgdescriptor_id::get_resource_id());
-			else if constexpr (_t == rgresource_type::texture) return rgtexture_id(rgdescriptor_id::get_resource_id());
+			if constexpr (_t == rgresource_type::buffer) return rgbuffer_id(rgdescriptor_id::get_resource_id()).m_id;
+			else if constexpr (_t == rgresource_type::texture) return rgtexture_id(rgdescriptor_id::get_resource_id()).m_id;
 		}
 
 		auto operator*() const

@@ -12,15 +12,10 @@
 // influx::graphics
 #include "influx_graphics/renderpass.h"
 #include "influx_graphics/resource.h"
-
 namespace influx::rendergraph
 {
 	class rgpass_builder;
-
-	class rgpass_context final
-	{
-
-	};
+	class rgpass_context;
 
 	using rgpass_builder_clb = function<void(rgpass_builder&)>;
 	using rgpass_process_clb = function<void(rgpass_context&)>;

@@ -7,6 +7,7 @@ namespace influx::rendergraph
 	{
 		friend class rendergraph;
 		friend class rgpass_builder;
+		friend class rgpass_context;
 
 	public:
 		inline bool is_imported() const
@@ -17,7 +18,6 @@ namespace influx::rendergraph
 	protected:
 		rgchild() = default;
 
-	private:
 		rgpass* m_writer;
 		rgpass* m_last_user;
 		uint32 m_refcount;

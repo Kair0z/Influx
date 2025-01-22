@@ -49,6 +49,8 @@ namespace influx::graphics
 
 		virtual void set_vertexbuffer(resource* vertex_buffer) override;
 
+		virtual void clear_rtv(descriptor_handle cpu_handle, const math::vectorf4& clear) override;
+		
 		virtual void clear_rtv(render_target_view* view, const math::vectorf4& clear_value) override;
 
 		virtual void clear_dsv(depth_stencil_view* view, float clear_depth, uint32 clear_stencil) override;

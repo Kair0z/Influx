@@ -115,6 +115,9 @@ namespace influx::graphics
 		
 		INFLUX_GFX_API
 		virtual void set_vertexbuffer(resource* vertex_buffer) = 0;
+		
+		INFLUX_GFX_API
+		virtual void clear_rtv(descriptor_handle cpu_handle, const math::vectorf4& clear) = 0;
 
 		INFLUX_GFX_API
 		virtual void clear_rtv(render_target_view* view, const math::vectorf4& clear_value) = 0;

@@ -13,7 +13,6 @@
 
 // influx::graphics
 #include "influx_graphics/descriptors.h"
-
 namespace influx::graphics
 {
 	class device;
@@ -31,10 +30,46 @@ namespace influx::rendergraph
 	class rgpool;
 	class rglayer;
 	class view_manager;
+	class rendergraph;
+
+	class rgpass_context final
+	{
+		friend class rendergraph;
+
+	public:
+		graphics::commandlist& get_commandlist()
+		{
+			return m_commandlist;
+		}
+
+		INFLUX_RG_API graphics::resource* get_copysrc_resource(rgtex_copysrc_id id);
+		INFLUX_RG_API graphics::resource* get_copysrc_resource(rgbuf_copysrc_id id);
+		INFLUX_RG_API graphics::resource* get_copydst_resource(rgtex_copydst_id id);
+		INFLUX_RG_API graphics::resource* get_copydst_resource(rgbuf_copydst_id id);
+
+		INFLUX_RG_API graphics::resource* get_vertexbuffer_resource(rgbuf_vertex_id id);
+		INFLUX_RG_API graphics::resource* get_indexbuffer_resource(rgbuf_index_id id);
+		INFLUX_RG_API graphics::resource* get_constbuffer_resource(rgbuf_const_id id);
+		INFLUX_RG_API graphics::resource* get_indirect_args_resource(rgbuf_indargs_id id);
+
+		INFLUX_RG_API graphics::descriptor_handle get_rtv(rgrendertarget_id id);
+		INFLUX_RG_API graphics::descriptor_handle get_dsv(rgrendertarget_id id);
+		INFLUX_RG_API graphics::descriptor_handle get_read_texture(rgtexture_readonly_id id);
+		INFLUX_RG_API graphics::descriptor_handle get_write_texture(rgtexture_readwrite_id id);
+
+		INFLUX_RG_API graphics::descriptor_handle get_read_buffer(rgbuffer_readonly_id id);
+		INFLUX_RG_API graphics::descriptor_handle get_write_buffer(rgbuffer_readwrite_id id);
+
+	private:
+		rgpass_context(rendergraph& rg, graphics::commandlist& cmdlist) : m_graph{ rg }, m_commandlist{ cmdlist } {}
+		graphics::commandlist& m_commandlist;
+		rendergraph& m_graph;
+	};
 
 	class rendergraph final
 	{
 		friend class rgpass_builder;
+		friend class rgpass_context;
 
 	public:
 		INFLUX_RG_API rendergraph(graphics::device* device);

@@ -43,6 +43,20 @@ namespace influx::rendergraph
 		}
 		return graphics::e_store_op::count;
 	}
+
+	texture_desc get_desc_from_resource(const graphics::resource& resource)
+	{
+		texture_desc desc{};
+		desc.m_array_size = 1u;
+		desc.m_bindflags;
+		desc.m_depth = 1u;
+		desc.m_width = resource.get_width();
+		desc.m_heigth = resource.get_height();
+		desc.m_init_state;
+		desc.m_num_mips = 1u;
+		desc.m_sample_count;
+		return desc;
+	}
 #pragma endregion
 
 	class rglayer final
@@ -110,6 +124,7 @@ namespace influx::rendergraph
 		view_manager(graphics::device* device)
 		{
 			graphics::descriptor_heap::create_args args{};
+			// shader heaps:
 			args.m_shader_visible = true;
 
 			args.m_capacity = 8u;
@@ -119,6 +134,30 @@ namespace influx::rendergraph
 			args.m_capacity = 64u;
 			args.m_type = graphics::e_descriptor_heap_type::srv;
 			m_resource_heap = device->create_descriptor_heap(args);
+
+			// non-shader heaps:
+			args.m_shader_visible = false;
+
+			args.m_capacity = 8u;
+			args.m_type = graphics::e_descriptor_heap_type::rtv;
+			m_rtv_heap = device->create_descriptor_heap(args);
+			
+			args.m_capacity = 8u;
+			args.m_type = graphics::e_descriptor_heap_type::dsv;
+			m_dsv_heap = device->create_descriptor_heap(args);
+		}
+
+		graphics::descriptor_handle alloc_cpu_handle(rgdescriptor_type type)
+		{
+			switch (type)
+			{
+			case rgdescriptor_type::render_target: return m_rtv_heap->allocate_cpu();
+			case rgdescriptor_type::depth_target: return m_dsv_heap->allocate_cpu();
+			case rgdescriptor_type::read_only: return m_resource_heap->allocate_cpu();
+			case rgdescriptor_type::read_write: return m_resource_heap->allocate_cpu();
+			}
+
+			return {};
 		}
 
 		graphics::descriptor_handle alloc_gpu_resource()
@@ -137,11 +176,17 @@ namespace influx::rendergraph
 			m_resource_heap->free_all_cpu();
 			m_sampler_heap->free_all_cpu();
 			m_sampler_heap->free_all_gpu();
+			m_rtv_heap->free_all_cpu();
+			m_rtv_heap->free_all_gpu();
+			m_dsv_heap->free_all_gpu();
+			m_dsv_heap->free_all_cpu();
 		}
 
 	private:
 		graphics::descriptor_heap* m_resource_heap;
 		graphics::descriptor_heap* m_sampler_heap;
+		graphics::descriptor_heap* m_rtv_heap;
+		graphics::descriptor_heap* m_dsv_heap;
 	};
 
 	rendergraph::rendergraph(graphics::device* device)
@@ -193,74 +238,26 @@ namespace influx::rendergraph
 
 			// transitions
 			{
-#if 0
-				for (auto const& [tex_id, state] : layer->m_texture_to_state_map)
+				for (auto const& [tex_id, state] : layer.m_texture_to_state_map)
 				{
 					rgtexture* texture = get_texture(tex_id);
-					graphics::resource* resource = nullptr; // ...
+					graphics::resource* resource = texture->m_resource;
 
-					// if this texture is freshly created, use initial state
-					if (layer->m_texture_creates.contains(tex_id))
+					if (resource->get_state() != state)
 					{
-						if (!has_all_flags(texture - ().initial_state, state))
-						{
-							commandlist->texture_barrier(resource, texture->GetDesc().initial_state, state);
-						}
-						continue;
-					}
-
-					bool found = false;
-#if 0
-					for (int j = (int)i - 1; j >= 0; --j)
-					{
-						auto& prev_dependency_level = dependency_levels[j];
-						if (prev_dependency_level.texture_state_map.contains(tex_id))
-						{
-							GfxResourceState prev_state = prev_dependency_level.texture_state_map[tex_id];
-							if (prev_state != state) cmd_list->TextureBarrier(*texture, prev_state, state);
-							found = true;
-							break;
-						}
-					}
-#endif
-
-					// if it's not in our graph, and it's imported
-					if (!found && texture->m_is_imported)
-					{
-						GfxResourceState prev_state = rg_texture->desc.initial_state;
-						if (prev_state != state) cmd_list->TextureBarrier(*texture, prev_state, state);
+						resource->transition(commandlist, state);
 					}
 				}
-				for (auto const& [buf_id, state] : dependency_level.buffer_state_map)
+				for (auto const& [buff_id, state] : layer.m_buffer_to_state_map)
 				{
-					RGBuffer* rg_buffer = GetRGBuffer(buf_id);
-					GfxBuffer* buffer = rg_buffer->resource;
-					if (dependency_level.buffer_creates.contains(buf_id))
+					rgbuffer* buffer = get_buffer(buff_id);
+					graphics::resource* resource = buffer->m_resource;
+
+					if (resource->get_state() != state)
 					{
-						if (state != GfxResourceState::Common)
-						{
-							cmd_list->BufferBarrier(*buffer, GfxResourceState::Common, state);
-						}
-						continue;
-					}
-					Bool found = false;
-					for (Int32 j = (Int32)i - 1; j >= 0; --j)
-					{
-						auto& prev_dependency_level = dependency_levels[j];
-						if (prev_dependency_level.buffer_state_map.contains(buf_id))
-						{
-							GfxResourceState prev_state = prev_dependency_level.buffer_state_map[buf_id];
-							if (prev_state != state) cmd_list->BufferBarrier(*buffer, prev_state, state);
-							found = true;
-							break;
-						}
-					}
-					if (!found && rg_buffer->imported)
-					{
-						if (GfxResourceState::Common != state) cmd_list->BufferBarrier(*buffer, GfxResourceState::Common, state);
+						resource->transition(commandlist, state);
 					}
 				}
-#endif
 				commandlist->flush_barriers();
 			}
 
@@ -322,7 +319,11 @@ namespace influx::rendergraph
 						}
 
 						{
-							rgpass_context ctx{};
+							rgpass_context ctx
+							{
+								*this,
+								*commandlist
+							};
 
 							influx_scope("renderpass");
 							commandlist->renderpass_begin(args);
@@ -361,13 +362,68 @@ namespace influx::rendergraph
 
 		m_id_to_pass_map[new_id] = new_pass;
 
+		// build pass
+		rgpass_builder new_builder{ *this, *new_pass };
+		new_pass->build(new_builder);
+
 		return new_pass;
 	}
 
-	void rendergraph::create_texture_views(rgtexture_id)
+	void rendergraph::import_texture(const rgname& name, graphics::resource* resource)
 	{
-		// todo
-		influx_assert(false);
+		rgtexture* new_texture = new rgtexture();
+		rgtexture_id new_id = m_textures.size();
+		new_texture->m_desc = get_desc_from_resource(*resource);
+		new_texture->m_id = new_id;
+		new_texture->m_resource = resource;
+		new_texture->m_is_imported = true;
+		m_textures.emplace_back(new_texture);
+		m_texture_name_to_id_map[name] = new_id;
+		m_id_to_texture_map[new_id] = m_textures.back();
+	}
+
+	void rendergraph::import_buffer(const rgname& name, graphics::resource* resource)
+	{
+		buffer_desc desc{};
+		rgbuffer* new_buffer = new rgbuffer();
+		rgbuffer_id new_id = m_buffers.size();
+		new_buffer->m_desc = desc;
+		new_buffer->m_id = new_id;
+		new_buffer->m_is_imported = true;
+		new_buffer->m_resource = resource;
+		m_buffers.emplace_back(new_buffer);
+		m_buffer_name_to_id_map[name] = new_id;
+		m_id_to_buffer_map[new_id] = m_buffers.back();
+	}
+
+	void rendergraph::create_texture_views(rgtexture_id id)
+	{
+		const auto& viewdescs = m_texid_to_viewdesc_map[id];
+		auto& descriptors = m_texid_to_descriptors_map[id];
+		rgtexture* texture = get_texture(id);
+		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
+		{
+			if (viewdescs[i].m_is_active)
+			{
+				const rgdescriptor_type type = static_cast<rgdescriptor_type>(i);
+				switch (type)
+				{
+				case rgdescriptor_type::render_target:
+					descriptors[i] = m_view_manager->alloc_cpu_handle(type);
+					m_device->create_rtv(descriptors[i], texture->m_resource);
+					break;
+				case rgdescriptor_type::depth_target:
+					m_device->create_dsv(descriptors[i], texture->m_resource);
+					break;
+				case rgdescriptor_type::read_only:
+					influx_assert(false); // todo
+					break;
+				case rgdescriptor_type::read_write:
+					influx_assert(false); // todo
+					break;
+				}
+			}
+		}
 	}
 
 	void rendergraph::create_buffer_views(rgbuffer_id)
@@ -696,7 +752,7 @@ namespace influx::rendergraph
 		// store the viewdesc
 		texture_view_desc* viewdescs = m_texid_to_viewdesc_map[id];
 		const uint8 desc_type_idx = static_cast<uint8>(rgdescriptor_type::render_target);
-		if (viewdescs[desc_type_idx] == view_desc)
+		if (viewdescs[desc_type_idx].m_is_active && viewdescs[desc_type_idx] == view_desc)
 		{
 			// if this texture already has an exact same view_desc, just return the existing one
 			return rgrendertarget_id(desc_type_idx, id);
@@ -704,6 +760,7 @@ namespace influx::rendergraph
 		
 		// create new if first time
 		viewdescs[desc_type_idx] = view_desc;
+		viewdescs[desc_type_idx].m_is_active = true;
 		return rgrendertarget_id(desc_type_idx, id);
 	}
 
@@ -722,7 +779,7 @@ namespace influx::rendergraph
 		// store the viewdesc
 		texture_view_desc* viewdescs = m_texid_to_viewdesc_map[id];
 		const uint8 desc_type_idx = static_cast<uint8>(rgdescriptor_type::depth_target);
-		if (viewdescs[desc_type_idx] == view_desc)
+		if (viewdescs[desc_type_idx].m_is_active && viewdescs[desc_type_idx] == view_desc)
 		{
 			// if this texture already has an exact same view_desc, just return the existing one
 			return rgdepthtarget_id(desc_type_idx, id);
@@ -730,6 +787,7 @@ namespace influx::rendergraph
 
 		// create new if first time
 		viewdescs[desc_type_idx] = view_desc;
+		viewdescs[desc_type_idx].m_is_active = true;
 		return rgdepthtarget_id(desc_type_idx, id);
 	}
 
@@ -748,7 +806,7 @@ namespace influx::rendergraph
 		// store the viewdesc
 		texture_view_desc* viewdescs = m_texid_to_viewdesc_map[id];
 		const uint8 desc_type_idx = static_cast<uint8>(rgdescriptor_type::read_only);
-		if (viewdescs[desc_type_idx] == view_desc)
+		if (viewdescs[desc_type_idx].m_is_active && viewdescs[desc_type_idx] == view_desc)
 		{
 			// if this texture already has an exact same view_desc, just return the existing one
 			return rgtexture_readonly_id(desc_type_idx, id);
@@ -756,6 +814,7 @@ namespace influx::rendergraph
 
 		// create new if first time
 		viewdescs[desc_type_idx] = view_desc;
+		viewdescs[desc_type_idx].m_is_active = true;
 		return rgtexture_readonly_id(desc_type_idx, id);
 	}
 
@@ -774,7 +833,7 @@ namespace influx::rendergraph
 		// store the viewdesc
 		texture_view_desc* viewdescs = m_texid_to_viewdesc_map[id];
 		const uint8 desc_type_idx = static_cast<uint8>(rgdescriptor_type::read_write);
-		if (viewdescs[desc_type_idx] == view_desc)
+		if (viewdescs[desc_type_idx].m_is_active && viewdescs[desc_type_idx] == view_desc)
 		{
 			// if this texture already has an exact same view_desc, just return the existing one
 			return rgtexture_readwrite_id(desc_type_idx, id);
@@ -782,6 +841,7 @@ namespace influx::rendergraph
 
 		// create new if first time
 		viewdescs[desc_type_idx] = view_desc;
+		viewdescs[desc_type_idx].m_is_active = true;
 		return rgtexture_readwrite_id(desc_type_idx, id);
 	}
 
@@ -796,7 +856,7 @@ namespace influx::rendergraph
 		// store the viewdesc
 		buffer_view_desc* viewdescs = m_bufid_to_viewdesc_map[id];
 		const uint8 desc_type_idx = static_cast<uint8>(rgdescriptor_type::read_only);
-		if (viewdescs[desc_type_idx] == view_desc)
+		if (viewdescs[desc_type_idx].m_is_active && viewdescs[desc_type_idx] == view_desc)
 		{
 			// if this buffer already has an exact same view_desc, just return the existing one
 			return rgbuffer_readonly_id(desc_type_idx, id);
@@ -804,6 +864,7 @@ namespace influx::rendergraph
 
 		// create new if first time
 		viewdescs[desc_type_idx] = view_desc;
+		viewdescs[desc_type_idx].m_is_active = true;
 		return rgbuffer_readonly_id(desc_type_idx, id);
 	}
 
@@ -818,7 +879,7 @@ namespace influx::rendergraph
 		// store the viewdesc
 		buffer_view_desc* viewdescs = m_bufid_to_viewdesc_map[id];
 		const uint8 desc_type_idx = static_cast<uint8>(rgdescriptor_type::read_write);
-		if (viewdescs[desc_type_idx] == view_desc)
+		if (viewdescs[desc_type_idx].m_is_active && viewdescs[desc_type_idx] == view_desc)
 		{
 			// if this buffer already has an exact same view_desc, just return the existing one
 			return rgbuffer_readwrite_id(desc_type_idx, id);
@@ -826,6 +887,7 @@ namespace influx::rendergraph
 
 		// create new if first time
 		viewdescs[desc_type_idx] = view_desc;
+		viewdescs[desc_type_idx].m_is_active = true;
 		return rgbuffer_readwrite_id(desc_type_idx, id);
 	}
 
@@ -846,7 +908,7 @@ namespace influx::rendergraph
 		// store the viewdesc
 		buffer_view_desc* viewdescs = m_bufid_to_viewdesc_map[id];
 		const uint8 desc_type_idx = static_cast<uint8>(rgdescriptor_type::read_write);
-		if (viewdescs[desc_type_idx] == view_desc)
+		if (viewdescs[desc_type_idx].m_is_active && viewdescs[desc_type_idx] == view_desc)
 		{
 			auto readwrite_id = rgbuffer_readwrite_id(desc_type_idx, id);
 			if (auto it = m_buffer_uav_counter_map.find(readwrite_id); it != m_buffer_uav_counter_map.end())
@@ -857,6 +919,7 @@ namespace influx::rendergraph
 
 		// create new if first time
 		viewdescs[desc_type_idx] = view_desc;
+		viewdescs[desc_type_idx].m_is_active = true;
 		auto rw_id = rgbuffer_readwrite_id(desc_type_idx, id);
 		m_buffer_uav_counter_map.insert(std::make_pair(rw_id, cnt_id));
 		return rw_id;
@@ -929,5 +992,76 @@ namespace influx::rendergraph
 		influx_assert(m_texid_to_descriptors_map.contains(id));
 		return m_texid_to_descriptors_map[id][static_cast<uint32>(rgdescriptor_type::read_write)];
 	}
+
+#pragma region rgpass_context
+	graphics::resource* rgpass_context::get_copysrc_resource(rgtex_copysrc_id id)
+	{
+		return m_graph.get_texture(rgtexture_id(id))->m_resource;
+	}
+	graphics::resource* rgpass_context::get_copysrc_resource(rgbuf_copysrc_id id)
+	{
+		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+	}
+	graphics::resource* rgpass_context::get_copydst_resource(rgtex_copydst_id id)
+	{
+		return m_graph.get_texture(rgtexture_id(id))->m_resource;
+	}
+	graphics::resource* rgpass_context::get_copydst_resource(rgbuf_copydst_id id)
+	{
+		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+	}
+	graphics::resource* rgpass_context::get_vertexbuffer_resource(rgbuf_vertex_id id)
+	{
+		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+	}
+	graphics::resource* rgpass_context::get_indexbuffer_resource(rgbuf_index_id id)
+	{
+		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+	}
+	graphics::resource* rgpass_context::get_constbuffer_resource(rgbuf_const_id id)
+	{
+		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+	}
+	graphics::resource* rgpass_context::get_indirect_args_resource(rgbuf_indargs_id id)
+	{
+		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+	}
+	graphics::descriptor_handle rgpass_context::get_rtv(rgrendertarget_id id)
+	{
+		rgtexture_id res_id = id.get_resource_id();
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		return views[static_cast<uint32>(rgdescriptor_type::render_target)];
+	}
+	graphics::descriptor_handle rgpass_context::get_dsv(rgrendertarget_id id)
+	{
+		rgtexture_id res_id = id.get_resource_id();
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		return views[static_cast<uint32>(rgdescriptor_type::depth_target)];
+	}
+	graphics::descriptor_handle rgpass_context::get_read_texture(rgtexture_readonly_id id)
+	{
+		rgtexture_id res_id = id.get_resource_id();
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		return views[static_cast<uint32>(rgdescriptor_type::read_only)];
+	}
+	graphics::descriptor_handle rgpass_context::get_write_texture(rgtexture_readwrite_id id)
+	{
+		rgtexture_id res_id = id.get_resource_id();
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		return views[static_cast<uint32>(rgdescriptor_type::read_write)];
+	}
+	graphics::descriptor_handle rgpass_context::get_read_buffer(rgbuffer_readonly_id id)
+	{
+		rgbuffer_id res_id = id.get_resource_id();
+		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
+		return views[static_cast<uint32>(rgdescriptor_type::read_only)];
+	}
+	graphics::descriptor_handle rgpass_context::get_write_buffer(rgbuffer_readwrite_id id)
+	{
+		rgbuffer_id res_id = id.get_resource_id();
+		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
+		return views[static_cast<uint32>(rgdescriptor_type::read_write)];
+	}
+#pragma endregion
 }
 

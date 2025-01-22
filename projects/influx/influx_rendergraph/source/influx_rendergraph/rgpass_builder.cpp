@@ -270,7 +270,7 @@ namespace influx::rendergraph
 		rgtexture_id res_id = rt_id.get_resource_id();
 
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::render_target;
-		m_pass.m_rtvs.push_back(rgpass::render_target{ .m_texture_id = res_id, .m_access = load_store_op };);
+		m_pass.m_rtvs.push_back(rgpass::render_target{ .m_texture_id = res_id, .m_access = load_store_op });
 
 		if (!m_pass.m_texture_creates.contains(res_id))
 		{
