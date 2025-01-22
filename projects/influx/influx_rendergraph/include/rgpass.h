@@ -20,6 +20,8 @@ namespace influx::rendergraph
 	using rgpass_builder_clb = function<void(rgpass_builder&)>;
 	using rgpass_process_clb = function<void(rgpass_context&)>;
 
+	class rgpass;
+
 	class rgpass final
 	{
 	public:
@@ -35,7 +37,7 @@ namespace influx::rendergraph
 
 	private:
 		void build(rgpass_builder& builder);
-		void execute(rgpass_context& ctx);
+		void execute(rgpass_context& ctx) const;
 
 		bool is_culled() const;
 		bool can_be_culled() const;
@@ -94,5 +96,50 @@ namespace influx::rendergraph
 		friend class rendergraph;
 		friend class rglayer;
 		friend class rgpass_builder;
+	};
+
+	class rglayer final
+	{
+	public:
+		rglayer() = default;
+		~rglayer() = default;
+
+		inline void add_pass(const rgpass& pass)
+		{
+			m_passes.push_back(pass);
+			m_texture_reads.insert(pass.m_texture_reads.begin(), pass.m_texture_reads.end());
+			m_texture_writes.insert(pass.m_texture_writes.begin(), pass.m_texture_writes.end());
+			m_buffer_reads.insert(pass.m_buffer_reads.begin(), pass.m_buffer_reads.end());
+			m_buffer_writes.insert(pass.m_buffer_writes.begin(), pass.m_buffer_writes.end());
+		}
+
+		inline void reset()
+		{
+			m_passes.clear();
+			m_texture_creates.clear();
+			m_texture_reads.clear();
+			m_texture_writes.clear();
+			m_texture_destroys.clear();
+			m_texture_to_state_map.clear();
+			m_buffer_creates.clear();
+			m_buffer_reads.clear();
+			m_buffer_writes.clear();
+			m_buffer_destroys.clear();
+			m_buffer_to_state_map.clear();
+		}
+
+		vector<rgpass> m_passes;
+
+		uset<rgtexture_id> m_texture_creates;
+		uset<rgtexture_id> m_texture_reads;
+		uset<rgtexture_id> m_texture_writes;
+		uset<rgtexture_id> m_texture_destroys;
+		umap<rgtexture_id, graphics::e_resource_state> m_texture_to_state_map;
+
+		uset<rgbuffer_id> m_buffer_creates;
+		uset<rgbuffer_id> m_buffer_reads;
+		uset<rgbuffer_id> m_buffer_writes;
+		uset<rgbuffer_id> m_buffer_destroys;
+		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_to_state_map;
 	};
 }

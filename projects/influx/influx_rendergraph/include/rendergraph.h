@@ -92,10 +92,10 @@ namespace influx::rendergraph
 		INFLUX_RG_API void export_buffer(const rgname& name, graphics::resource* resource);
 
 	private:
-		vector<rgpass*> m_passes{};
+		vector<rgpass> m_passes{};
+		vector<rglayer> m_layers{};
 		vector<rgbuffer*> m_buffers{};
 		vector<rgtexture*> m_textures{};
-		vector<rglayer*> m_layers{};
 
 		vector<vector<uint64>> m_adjacency_lists{};
 		graphics::device* m_device;
@@ -111,6 +111,10 @@ namespace influx::rendergraph
 		static constexpr uint8 k_num_descriptor_types = static_cast<uint8>(rgdescriptor_type::count);
 		umap<rgtexture_id, texture_view_desc[k_num_descriptor_types]> m_texid_to_viewdesc_map;
 		umap<rgtexture_id, graphics::descriptor_handle[k_num_descriptor_types]> m_texid_to_descriptors_map;
+		umap<rgtexture_id, graphics::base*[k_num_descriptor_types]> m_texid_to_deviceobjects_map;
+
+		umap<rgrendertarget_id, math::colour_rgba> m_rtid_to_clear_map;
+
 		umap<rgbuffer_id, buffer_view_desc[k_num_descriptor_types]> m_bufid_to_viewdesc_map;
 		umap<rgbuffer_id, graphics::descriptor_handle[k_num_descriptor_types]> m_bufid_to_descriptors_map;
 

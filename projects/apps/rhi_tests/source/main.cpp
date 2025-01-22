@@ -41,40 +41,27 @@ int main()
 			[](rendergraph::rgpass_builder& builder)
 			{
 				rendergraph::rgaccess access{};
+				access.m_load = rendergraph::e_rg_load::clear;
+				access.m_store = rendergraph::e_rg_store::preserve;
 				builder.write_rendertarget(RGNAME("backbuffer"), access);
 			},
 			[&graph](rendergraph::rgpass_context& ctx)
 			{
-				// get the descriptor handles and do something to them
-				// influx::graphics::descriptor_handle rtv_handle = ctx.get_rtv(rt_id);
-			});
-
-		// render triangle pass...
-		static rendergraph::rgrendertarget_id backbuffer_rt{};
-		graph.add_pass(
-			[](rendergraph::rgpass_builder& builder)
-			{
-				rendergraph::rgaccess access{};
-				backbuffer_rt = builder.write_rendertarget(RGNAME("backbuffer"), access);
-			},
-			[&graph](rendergraph::rgpass_context& ctx)
-			{
 
 			});
-
-
-		graph.build();
 
 		commandlist->start(device);
+
+		graph.build();
 		graph.execute(commandlist);
 
 		// transition backbuffer to present
-		swapchain->get_current_backbuffer_resource()->transition(commandlist, graphics::e_resource_state::present);
+		auto* backbuffer = swapchain->get_current_backbuffer_resource();
+		backbuffer->transition(commandlist, graphics::e_resource_state::present);
 		commandlist->end();
-
 		commandlist->submit(queue);
 		commandlist->wait_for_completion();
 
-		swapchain->present({});
+		swapchain->present({ .m_vsync = false });
 	}
 }

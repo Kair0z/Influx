@@ -80,21 +80,23 @@ namespace influx::rendergraph
 		all_shader
 	};
 
+	// what the renderpass does to the rendertarget when ENTERING
 	enum class e_rg_load : uint8
 	{
-		clear,
-		discard,
-		preserve,
-		no_access,
+		clear,			// clears the target on load
+		discard,		// we won't read from whatever's in the target before, we will first write to it!
+		preserve,		// our renderpass relies on the contents, they remain preserved
+		no_access,		// must pair with store_no_access, means the renderpass does not use the target
 		count
 	};
 
+	// what the renderpass does to the rendertarget when LEAVING
 	enum class e_rg_store : uint8
 	{
-		resolve,
-		discard,
-		preserve,
-		no_access,
+		resolve,		// resolve the target into another dest target
+		discard,		// we won't read from this again until it gets written to again
+		preserve,		// leaving the pass, we will read from this again!
+		no_access,		// must pair with load_no_access, means the renderpass does not use the target
 		count
 	};
 

@@ -48,6 +48,23 @@ namespace influx::graphics
 				rtvs[i].cpuDescriptor.ptr = (SIZE_T)args.m_color_attachments[i].m_rtv_descriptor;
 				rtvs[i].BeginningAccess = translate(args.m_color_attachments[i].m_load);
 				rtvs[i].EndingAccess = translate(args.m_color_attachments[i].m_store);
+
+				// preserve
+				rtvs[i].BeginningAccess.PreserveLocal.AdditionalHeight = 0u;
+				rtvs[i].BeginningAccess.PreserveLocal.AdditionalWidth = 0u;
+				rtvs[i].EndingAccess.PreserveLocal.AdditionalHeight = 0u;
+				rtvs[i].EndingAccess.PreserveLocal.AdditionalWidth = 0u;
+				
+				// resolve
+				rtvs[i].EndingAccess.Resolve.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				rtvs[i].EndingAccess.Resolve.pDstResource;
+				rtvs[i].EndingAccess.Resolve.PreserveResolveSource;
+				rtvs[i].EndingAccess.Resolve.pSrcResource;
+				rtvs[i].EndingAccess.Resolve.pSubresourceParameters;
+				rtvs[i].EndingAccess.Resolve.ResolveMode;
+				rtvs[i].EndingAccess.Resolve.SubresourceCount;
+
+				// clear
 				rtvs[i].BeginningAccess.Clear.ClearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 				memcpy(rtvs[i].BeginningAccess.Clear.ClearValue.Color, args.m_color_attachments[i].m_clear.m_data, sizeof(FLOAT[4]));
 			}

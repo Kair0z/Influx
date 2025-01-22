@@ -36,7 +36,7 @@ namespace influx::rendergraph
 		}
 	}
 
-	void rgpass::execute(rgpass_context& ctx)
+	void rgpass::execute(rgpass_context& ctx) const
 	{
 		if (m_process_clb)
 		{
@@ -46,7 +46,7 @@ namespace influx::rendergraph
 
 	bool rgpass::is_culled() const
 	{
-		return false;
+		return m_is_culled && can_be_culled();
 	}
 
 	bool rgpass::can_be_culled() const

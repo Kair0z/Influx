@@ -59,51 +59,6 @@ namespace influx::rendergraph
 	}
 #pragma endregion
 
-	class rglayer final
-	{
-	public:
-		rglayer() = default;
-		~rglayer() = default;
-
-		inline void add_pass(rgpass* pass)
-		{
-			m_passes.push_back(pass);
-			m_texture_reads.insert(pass->m_texture_reads.begin(), pass->m_texture_reads.end());
-			m_texture_writes.insert(pass->m_texture_writes.begin(), pass->m_texture_writes.end());
-			m_buffer_reads.insert(pass->m_buffer_reads.begin(), pass->m_buffer_reads.end());
-			m_buffer_writes.insert(pass->m_buffer_writes.begin(), pass->m_buffer_writes.end());
-		}
-
-		inline void reset()
-		{
-			m_passes.clear();
-			m_texture_creates.clear();
-			m_texture_reads.clear();
-			m_texture_writes.clear();
-			m_texture_destroys.clear();
-			m_texture_to_state_map.clear();
-			m_buffer_creates.clear();
-			m_buffer_reads.clear();
-			m_buffer_writes.clear();
-			m_buffer_destroys.clear();
-			m_buffer_to_state_map.clear();
-		}
-
-		vector<rgpass*> m_passes;
-
-		uset<rgtexture_id> m_texture_creates;
-		uset<rgtexture_id> m_texture_reads;
-		uset<rgtexture_id> m_texture_writes;
-		uset<rgtexture_id> m_texture_destroys;
-		umap<rgtexture_id, graphics::e_resource_state> m_texture_to_state_map;
-		
-		uset<rgbuffer_id> m_buffer_creates;
-		uset<rgbuffer_id> m_buffer_reads;
-		uset<rgbuffer_id> m_buffer_writes;
-		uset<rgbuffer_id> m_buffer_destroys;
-		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_to_state_map;
-	};
-
 	// allocates descriptors
 	class view_manager final
 	{
@@ -201,13 +156,36 @@ namespace influx::rendergraph
 	rendergraph::rendergraph(graphics::device* device)
 		: m_device{ device }
 	{
-		
 	}
 
 	rendergraph::~rendergraph()
 	{
 		get_resource_pool(m_device);
 		get_view_manager(m_device).end_frame();
+
+		for (rgtexture* texture : m_textures)
+		{
+			delete texture;
+			texture = nullptr;
+		}
+
+		for (rgbuffer* buffer : m_buffers)
+		{
+			delete buffer;
+			buffer = nullptr;
+		}
+
+		for (auto& pair : m_texid_to_deviceobjects_map)
+		{
+			for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
+			{
+				if (pair.second[i] != nullptr)
+				{
+					m_device->release(pair.second[i]);
+					pair.second[i] = nullptr;
+				}
+			}
+		}
 	}
 	
 	void rendergraph::build()
@@ -233,7 +211,7 @@ namespace influx::rendergraph
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
-			const rglayer& layer = *m_layers[layer_idx];
+			const rglayer& layer = m_layers[layer_idx];
 
 			// texture / buffer creates
 			{
@@ -251,9 +229,19 @@ namespace influx::rendergraph
 					create_buffer_views(buff_id);
 					// todo: set name
 				}
+
+				// create views for imported textures
+				for (uint64 i = 0; i < m_textures.size(); ++i)
+				{
+					if (m_textures[i]->m_is_imported) create_texture_views(rgtexture_id(i));
+				}
+				for (uint64 i = 0; i < m_buffers.size(); ++i)
+				{
+					if (m_buffers[i]->m_is_imported) create_buffer_views(rgbuffer_id(i));
+				}
 			}
 
-			// todo: resource
+			// todo: resource transitions
 			{
 				for (auto const& [tex_id, state] : layer.m_texture_to_state_map)
 				{
@@ -282,23 +270,23 @@ namespace influx::rendergraph
 			{
 				for (size_t pass_idx = 0u; pass_idx < layer.m_passes.size(); ++pass_idx)
 				{
-					rgpass* pass = layer.m_passes[pass_idx];
+					const rgpass& pass = layer.m_passes[pass_idx];
 
-					if (pass->is_culled())
+					if (pass.is_culled())
 					{
 						continue;
 					}
 
-					if (pass->get_type() == e_rgpass_type::graphics)
+					if (pass.get_type() == e_rgpass_type::graphics)
 					{
 						graphics::renderpass_args args{};
-						args.m_width = pass->get_width();
-						args.m_height = pass->get_height();
+						args.m_width = pass.get_width();
+						args.m_height = pass.get_height();
 						args.m_legacy = false;
 
 						// rtvs
-						args.m_color_attachments.reserve(pass->m_rtvs.size());
-						for (const auto& rtv : pass->m_rtvs)
+						args.m_color_attachments.reserve(pass.m_rtvs.size());
+						for (const auto& rtv : pass.m_rtvs)
 						{
 							args.m_color_attachments.push_back({});
 							auto& color_attachment = args.m_color_attachments.back();
@@ -306,13 +294,13 @@ namespace influx::rendergraph
 							color_attachment.m_load = translate(rtv.m_access.m_load);
 							color_attachment.m_store = translate(rtv.m_access.m_store);
 							color_attachment.m_rtv_descriptor = get_rtv(rtv.m_texture_id);
-							color_attachment.m_clear;
+							color_attachment.m_clear = {};
 						}
 
 						// dsv
 						if (false)
 						{
-							auto& dsv = pass->m_dsv;
+							auto& dsv = pass.m_dsv;
 							auto& depth_attachment = args.m_depth_attachment;
 
 							depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
@@ -337,7 +325,7 @@ namespace influx::rendergraph
 
 							influx_scope("renderpass");
 							commandlist->renderpass_begin(args);
-							pass->execute(ctx);
+							pass.execute(ctx);
 							commandlist->renderpass_end();
 						}
 					}
@@ -364,19 +352,19 @@ namespace influx::rendergraph
 		const rgpass_builder_clb& builder_clb,
 		const rgpass_process_clb& process_clb)
 	{
-		rgpass* new_pass = new rgpass(builder_clb, process_clb);
-		m_passes.emplace_back(new_pass);
+		m_passes.emplace_back(rgpass(builder_clb, process_clb));
+		rgpass& new_pass = m_passes.back();
 
 		rgpass_id new_id = m_passes.size() - 1u;
-		new_pass->set_id(new_id);
+		new_pass.set_id(new_id);
 
-		m_id_to_pass_map[new_id] = new_pass;
+		m_id_to_pass_map[new_id] = &new_pass;
 
 		// build pass
-		rgpass_builder new_builder{ *this, *new_pass };
-		new_pass->build(new_builder);
+		rgpass_builder new_builder{ *this, new_pass };
+		new_pass.build(new_builder);
 
-		return new_pass;
+		return &new_pass;
 	}
 
 	void rendergraph::import_texture(const rgname& name, graphics::resource* resource)
@@ -410,6 +398,7 @@ namespace influx::rendergraph
 	{
 		const auto& viewdescs = m_texid_to_viewdesc_map[id];
 		auto& descriptors = m_texid_to_descriptors_map[id];
+		auto& device_children = m_texid_to_deviceobjects_map[id];
 		rgtexture* texture = get_texture(id);
 		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
 		{
@@ -420,10 +409,10 @@ namespace influx::rendergraph
 				{
 				case rgdescriptor_type::render_target:
 					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_rtv(descriptors[i], texture->m_resource);
+					device_children[i] = m_device->create_rtv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::depth_target:
-					m_device->create_dsv(descriptors[i], texture->m_resource);
+					device_children[i] = m_device->create_dsv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::read_only:
 					influx_assert(false); // todo
@@ -447,13 +436,13 @@ namespace influx::rendergraph
 		m_adjacency_lists.resize(m_passes.size());
 		for (uint64 i = 0u; i < m_passes.size(); ++i)
 		{
-			rgpass* pass = m_passes[i];
+			rgpass& pass = m_passes[i];
 			vector<uint64>& pass_adj_list = m_adjacency_lists[i];
 
 			for (uint64 j = i + 1U; j < m_passes.size(); ++j)
 			{
-				rgpass* other_pass = m_passes[j];
-				if (rgpass::has_dependency(*pass, *other_pass))
+				rgpass& other_pass = m_passes[j];
+				if (rgpass::has_dependency(pass, other_pass))
 				{
 					pass_adj_list.push_back(j);
 					break;
@@ -477,11 +466,9 @@ namespace influx::rendergraph
 
 	void rendergraph::build_layers()
 	{
-		for (rglayer* layer : m_layers)
-		{
-			delete layer;
-		}
 		m_layers.clear();
+
+		if (m_topo_sorted_passes.size() == 0u) return;
 
 		vector<uint64> distances(m_topo_sorted_passes.size(), 0u);
 		for (uint64 u = 0u; u < m_topo_sorted_passes.size(); ++u)
@@ -497,32 +484,32 @@ namespace influx::rendergraph
 		}
 
 		const uint64 num_layers = *std::max_element(std::begin(distances), std::end(distances)) + 1u;
-		m_layers.resize(num_layers, new rglayer());
+		m_layers.resize(num_layers, rglayer());
 		for (uint64 i = 0u; i < m_passes.size(); ++i)
 		{
 			uint64 layer = distances[i];
-			m_layers[layer]->add_pass(m_passes[i]);
+			m_layers[layer].add_pass(m_passes[i]);
 		}
 
 		// setup child creates & destroys
-		for (rglayer* layer : m_layers)
+		for (rglayer& layer : m_layers)
 		{
-			for (rgpass* pass : layer->m_passes)
+			for (const rgpass& pass : layer.m_passes)
 			{
-				if (pass->is_culled()) continue;
+				if (pass.is_culled()) continue;
 
-				layer->m_texture_creates.insert(pass->m_texture_creates.begin(), pass->m_texture_creates.end());
-				layer->m_texture_destroys.insert(pass->m_texture_destroys.begin(), pass->m_texture_destroys.end());
-				for (auto [resource, state] : pass->m_texture_state_map)
+				layer.m_texture_creates.insert(pass.m_texture_creates.begin(), pass.m_texture_creates.end());
+				layer.m_texture_destroys.insert(pass.m_texture_destroys.begin(), pass.m_texture_destroys.end());
+				for (auto [resource, state] : pass.m_texture_state_map)
 				{
-					layer->m_texture_to_state_map[resource] |= state;
+					layer.m_texture_to_state_map[resource] |= state;
 				}
 
-				layer->m_buffer_creates.insert(pass->m_buffer_creates.begin(), pass->m_buffer_creates.end());
-				layer->m_buffer_destroys.insert(pass->m_buffer_destroys.begin(), pass->m_buffer_destroys.end());
-				for (auto [resource, state] : pass->m_buffer_state_map)
+				layer.m_buffer_creates.insert(pass.m_buffer_creates.begin(), pass.m_buffer_creates.end());
+				layer.m_buffer_destroys.insert(pass.m_buffer_destroys.begin(), pass.m_buffer_destroys.end());
+				for (auto [resource, state] : pass.m_buffer_state_map)
 				{
-					layer->m_buffer_to_state_map[resource] |= state;
+					layer.m_buffer_to_state_map[resource] |= state;
 				}
 			}
 		}
@@ -530,32 +517,32 @@ namespace influx::rendergraph
 
 	void rendergraph::cull_passes()
 	{
-		for (rgpass* pass : m_passes)
+		for (rgpass& pass : m_passes)
 		{
-			pass->m_refcount = pass->get_num_writes();
+			pass.m_refcount = pass.get_num_writes();
 
 			// if any of the resources are read, increase their refcount
-			for (rgtexture_id id : pass->m_texture_reads)
+			for (rgtexture_id id : pass.m_texture_reads)
 			{
 				rgtexture* texture = get_texture(id);
 				texture->m_refcount += 1u;
 			}
-			for (rgbuffer_id id : pass->m_buffer_reads)
+			for (rgbuffer_id id : pass.m_buffer_reads)
 			{
 				rgbuffer* buffer = get_buffer(id);
 				buffer->m_refcount += 1u;
 			}
 
 			// if any of the resources are written, increase the refcount of the writer
-			for (rgtexture_id id : pass->m_texture_writes)
+			for (rgtexture_id id : pass.m_texture_writes)
 			{
 				rgtexture* written = get_texture(id);
-				written->m_writer = pass;
+				written->m_writer = &pass;
 			}
-			for (rgbuffer_id id : pass->m_buffer_writes)
+			for (rgbuffer_id id : pass.m_buffer_writes)
 			{
 				rgbuffer* written = get_buffer(id);
-				written->m_writer = pass;
+				written->m_writer = &pass;
 			}
 
 			// gather & cull nullrefs
@@ -596,38 +583,38 @@ namespace influx::rendergraph
 	void rendergraph::calc_resource_lifetimes()
 	{
 		// record last reads/writes
-		for (rglayer* layer : m_layers)
+		for (rglayer& layer : m_layers)
 		{
-			for (rgpass* pass : layer->m_passes)
+			for (rgpass& pass : layer.m_passes)
 			{
-				if (pass->is_culled())
+				if (pass.is_culled())
 				{
 					continue;
 				}
 
-				for (auto id : pass->m_texture_writes)
+				for (auto id : pass.m_texture_writes)
 				{
-					if (!pass->m_texture_state_map.contains(id)) continue;
+					if (!pass.m_texture_state_map.contains(id)) continue;
 					rgtexture* texture = get_texture(id);
-					texture->m_last_user = pass;
+					texture->m_last_user = &pass;
 				}
-				for (auto id : pass->m_buffer_writes)
+				for (auto id : pass.m_buffer_writes)
 				{
-					if (!pass->m_buffer_state_map.contains(id)) continue;
+					if (!pass.m_buffer_state_map.contains(id)) continue;
 					rgbuffer* buffer = get_buffer(id);
-					buffer->m_last_user = pass;
+					buffer->m_last_user = &pass;
 				}
-				for (auto id : pass->m_texture_reads)
+				for (auto id : pass.m_texture_reads)
 				{
-					if (!pass->m_texture_state_map.contains(id)) continue;
+					if (!pass.m_texture_state_map.contains(id)) continue;
 					rgtexture* texture = get_texture(id);
-					texture->m_last_user = pass;
+					texture->m_last_user = &pass;
 				}
-				for (auto id : pass->m_buffer_reads)
+				for (auto id : pass.m_buffer_reads)
 				{
-					if (!pass->m_buffer_state_map.contains(id)) continue;
+					if (!pass.m_buffer_state_map.contains(id)) continue;
 					rgbuffer* buffer = get_buffer(id);
-					buffer->m_last_user = pass;
+					buffer->m_last_user = &pass;
 				}
 			}
 		}
@@ -636,12 +623,11 @@ namespace influx::rendergraph
 		for (uint64 i = 0; i < m_textures.size(); ++i)
 		{
 			if (m_textures[i]->m_last_user != nullptr) m_textures[i]->m_last_user->m_texture_destroys.insert(rgtexture_id(i));
-			if (m_textures[i]->m_is_imported) create_texture_views(rgtexture_id(i));
+			
 		}
 		for (uint64 i = 0; i < m_buffers.size(); ++i)
 		{
 			if (m_buffers[i]->m_last_user != nullptr) m_buffers[i]->m_last_user->m_buffer_destroys.insert(rgbuffer_id(i));
-			if (m_buffers[i]->m_is_imported) create_buffer_views(rgbuffer_id(i));
 		}
 	}
 
