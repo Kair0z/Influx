@@ -277,6 +277,12 @@ namespace influx::rendergraph
 						continue;
 					}
 
+					rgpass_context context
+					{
+						*this,
+						*commandlist
+					};
+
 					if (pass.get_type() == e_rgpass_type::graphics)
 					{
 						graphics::renderpass_args args{};
@@ -284,7 +290,6 @@ namespace influx::rendergraph
 						args.m_height = pass.get_height();
 						args.m_legacy = false;
 
-						// rtvs
 						args.m_color_attachments.reserve(pass.m_rtvs.size());
 						for (const auto& rtv : pass.m_rtvs)
 						{
@@ -297,7 +302,6 @@ namespace influx::rendergraph
 							color_attachment.m_clear = {};
 						}
 
-						// dsv
 						auto& depth_attachment = args.m_depth_attachment;
 						depth_attachment.m_is_enabled = pass.m_dsv.m_is_enabled;
 						if (depth_attachment.m_is_enabled)
@@ -312,18 +316,15 @@ namespace influx::rendergraph
 							depth_attachment.m_stencil_clear = 0.0f;
 						}
 
-						{
-							rgpass_context ctx
-							{
-								*this,
-								*commandlist
-							};
-
-							influx_scope("renderpass");
-							commandlist->renderpass_begin(args);
-							pass.execute(ctx);
-							commandlist->renderpass_end();
-						}
+						influx_scope("renderpass");
+						commandlist->renderpass_begin(args);
+						pass.execute(context);
+						commandlist->renderpass_end();
+					}
+					else
+					{
+						// compute doesnt do much here...
+						pass.execute(context);
 					}
 				}
 			}
