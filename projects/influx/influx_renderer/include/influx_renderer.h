@@ -79,11 +79,11 @@ namespace influx::renderer
 	INFLUX_RENDER_API target* create_target(const target_create_args& args);
 
 	// creates / switches to the appropriate target representation of our window backbuffer
-	INFLUX_RENDER_API target* acquire_window_target(const platform::window& window);
+	INFLUX_RENDER_API target* get_window_target(const platform::window& window);
 
 
 	// 1. acquire the frame to render
-	INFLUX_RENDER_API void acquire_swapchain_frame();
+	INFLUX_RENDER_API void start_frame();
 
 	// 2. draw the scene to window / intermediate target
 	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target);
@@ -107,6 +107,8 @@ namespace influx::renderer
 
 	// 4. present to window swapchain
 	INFLUX_RENDER_API void present_swapchain(const present_args& args);
+
+	INFLUX_RENDER_API void end_frame();
 
 	INFLUX_RENDER_API void wait_gpu_finished();
 

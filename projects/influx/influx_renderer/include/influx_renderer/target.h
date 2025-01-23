@@ -37,6 +37,7 @@ namespace influx::renderer
 	{
 	public:
 		graphics::resource* get_resource() const;
+		graphics::resource* get_depth_resource() const;
 		graphics::descriptor_handle get_rtv() const;
 		graphics::descriptor_handle get_dsv() const;
 

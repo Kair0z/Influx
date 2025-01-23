@@ -8,6 +8,8 @@
 #include "influx_renderer/renderer_imgui.h"
 #include "influx_renderer/renderer_backend.h"
 
+// influx::rendergraph
+
 // influx::graphics
 #include "influx_graphics/resource.h"
 #include "influx_graphics/device.h"
@@ -22,6 +24,12 @@ namespace influx::graphics
 	class commandlist;
 	class command_allocator;
 	class fence;
+}
+
+// influx::rendergraph
+namespace influx::rendergraph
+{
+	class rendergraph;
 }
 
 // influx::renderer
@@ -59,8 +67,11 @@ namespace influx::renderer
 		void wait_gpu_finished() const;
 		void cleanup();
 
+		void start_frame();
+		void end_frame();
+
 		target* create_target(const target_create_args& args);
-		target* acquire_window_target(const platform::window& window);
+		target* get_window_target(const platform::window& window);
 		void acquire_swapchain_frame();
 
 		void draw_scene(const scene& scene, const target& target);
@@ -118,6 +129,9 @@ namespace influx::renderer
 	private:
 		uint64 m_frame_count = 0u;
 		bool m_is_initialized = false;
+
+		// rendergraph
+		rendergraph::rendergraph* m_rendergraph = nullptr;
 
 		// graphics engine
 		graphics::device* mp_device = nullptr;

@@ -70,16 +70,16 @@ namespace influx::graphics
 			}
 
 			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsv = nullptr;
-			if (false)
 			{
 				static D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsv_desc{};
-				dsv_desc.cpuDescriptor;
+				dsv_desc.cpuDescriptor.ptr = (SIZE_T)args.m_depth_attachment.m_dsv_descriptor;
 				dsv_desc.DepthBeginningAccess = translate(args.m_depth_attachment.m_depth_load);
 				dsv_desc.StencilBeginningAccess = translate(args.m_depth_attachment.m_stencil_load);
 				dsv_desc.DepthEndingAccess = translate(args.m_depth_attachment.m_depth_store);
 				dsv_desc.StencilEndingAccess = translate(args.m_depth_attachment.m_stencil_store);
 				dsv_desc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = args.m_depth_attachment.m_stencil_clear;
 				dsv_desc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = args.m_depth_attachment.m_depth_clear;
+				dsv_desc.DepthBeginningAccess.Clear.ClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 				dsv = &dsv_desc;
 			}
 			

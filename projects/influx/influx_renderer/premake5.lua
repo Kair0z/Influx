@@ -9,6 +9,7 @@ new_influx_library("influx_renderer")
         "influx_core",
         "influx_platform",
         "influx_graphics",
+        "influx_rendergraph",
         "influx_imgui",
         "influx_shader"
     }

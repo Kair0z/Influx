@@ -10,6 +10,9 @@
 #include "influx_renderer/quad_renderer.h"
 #include "influx_renderer/shadertoy/shadertoy_renderer.h"
 
+// influx::rendergraph
+#include "rendergraph.h"
+
 // influx::graphics
 #include "influx_graphics.h"
 
@@ -108,6 +111,35 @@ namespace influx::renderer
         m_is_initialized = false;
     }
 
+    void renderer_backend::start_frame()
+    {
+        m_rendergraph = new rendergraph::rendergraph(mp_device);
+
+        mp_commandlist->start(mp_device, nullptr);
+        mp_commandlist->set_name("frame");
+        get_descriptor_manager()->start_commandlist(mp_commandlist);
+    }
+
+    void renderer_backend::end_frame()
+    {
+        mp_commandlist->end();
+
+        {
+            influx_scope("renderer_backend::draw_scene::submit");
+            mp_commandlist->submit(mp_graphics_queue);
+        }
+        mp_commandlist->wait_for_completion();
+
+        present_swapchain({ .m_vsync = true });
+
+        get_descriptor_manager()->end_frame();
+
+        delete m_rendergraph;
+        m_rendergraph = nullptr;
+
+        ++m_frame_count;
+    }
+
     target* renderer_backend::create_target(const target_create_args& args)
     {
         return new target(mp_device, args);
@@ -136,7 +168,7 @@ namespace influx::renderer
         }
     }
 
-    target* renderer_backend::acquire_window_target(const platform::window& window)
+    target* renderer_backend::get_window_target(const platform::window& window)
     {
         // stall
         wait_gpu_finished();
@@ -173,192 +205,65 @@ namespace influx::renderer
         mp_swapchain->acquire_backbuffer();
     }
 
-
     void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
-        graphics::resource* target_resource = target.get_resource();
-        graphics::descriptor_handle target_rtv = target.get_rtv();
-        graphics::descriptor_handle target_dsv = target.get_dsv();
+        influx_scope("renderer_backend::draw_scene::record");
 
-        influx_scope("renderer_backend::draw_scene");
-        {
-            influx_scope("renderer_backend::draw_scene::record");
+        static const uint32 target_width = target.get_width();
+        static const uint32 target_height = target.get_height();
 
-            mp_commandlist->start(mp_device, nullptr);
-            mp_commandlist->set_name("draw_scene");
+        m_rendergraph->import_texture(RGNAME("scene_target"), target.get_resource());
+        m_rendergraph->import_texture(RGNAME("scene_depth"), target.get_depth_resource());
+
+        m_rendergraph->add_pass(
+            [](rendergraph::rgpass_builder& builder)
             {
-                const uint32 target_width = target.get_width();
-                const uint32 target_height = target.get_height();
-
-                target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
+                rendergraph::rgaccess access{};
+                access.m_load = rendergraph::e_rg_load::clear;
+                access.m_store = rendergraph::e_rg_store::preserve;
+                builder.write_rendertarget(RGNAME("scene_target"), access);
+                builder.write_depthtarget(RGNAME("scene_depth"), access);
+            },
+            [this, &scene, &target](rendergraph::rgpass_context& context)
+            {
+                graphics::commandlist& commandlist = context.get_commandlist();
 
                 // bind gpu descriptor heaps
-                get_descriptor_manager()->start_commandlist(mp_commandlist);
+                get_descriptor_manager()->start_commandlist(&commandlist);
 
-                mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
-                mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
-                mp_commandlist->set_rtv(target_rtv, target_dsv);
+                commandlist.set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
+                commandlist.set(graphics::rect{ 0u, 0u, target_width, target_height });
 
-                // scene
+                // scene render
                 mp_scene_renderer->render(mp_commandlist, scene, target);
 
                 // post processing
                 mp_quad_renderer->render_quad(mp_commandlist, target);
-            }
-            mp_commandlist->end();
-        }
+            });
 
-        {
-            influx_scope("renderer_backend::draw_scene::submit");
-            mp_commandlist->submit(mp_graphics_queue);
-        }
-        mp_commandlist->wait_for_completion();
+        m_rendergraph->build();
+        m_rendergraph->execute(mp_commandlist);
     }
 
     void renderer_backend::draw_imgui(ImDrawData* draw_data, const target& target)
     {
-        influx_scope("renderer_backend::draw_imgui");
-        {
-            mp_commandlist->set_name("draw_imgui");
-            mp_commandlist->start(mp_device, nullptr);
-            {
-                influx_scope("renderer_backend::draw_imgui::record");
+        influx_scope("renderer_backend::draw_imgui::record");
 
-                mp_commandlist->set_rtv(target.get_rtv(), nullptr);
-                get_descriptor_manager()->start_commandlist(mp_commandlist);
-                mp_imgui->render(mp_commandlist, draw_data, target);
-                mp_commandlist->end();
-            }
-        }
-        {
-            influx_scope("renderer_backend::draw_imgui::submit");
-            mp_commandlist->submit(mp_graphics_queue);
-            
-        }
-        mp_commandlist->wait_for_completion();
+        mp_commandlist->set_rtv(target.get_rtv(), nullptr);
+        mp_imgui->render(mp_commandlist, draw_data, target);
     }
 
     void renderer_backend::draw_2D(const scene2D& scene, const target& target)
     {
-        influx_scope("renderer_backend::draw_2D");
-        {
-            mp_commandlist->start(mp_device, nullptr);
-            {
-                influx_scope("renderer_backend::draw2D::record");
-
-                mp_commandlist->set_rtv(target.get_rtv(), nullptr);
-
-                get_descriptor_manager()->start_commandlist(mp_commandlist);
-
-                mp_commandlist->end();
-            }
-        }
-
-        {
-            influx_scope("renderer_backend::draw2D::submit");
-            mp_commandlist->submit(mp_graphics_queue);
-        }
+        influx_scope("renderer_backend::draw2D::record");
         
-        mp_commandlist->wait_for_completion();
+        mp_commandlist->set_rtv(target.get_rtv(), nullptr);
+        mp_commandlist->end();
     }
 
     void renderer_backend::draw_debug(const scene_debug& scene, const target& target)
     {
-        graphics::resource* target_resource = target.get_resource();
-        graphics::descriptor_handle target_rtv = target.get_rtv();
-        graphics::descriptor_handle target_dsv = target.get_dsv();
-
-        influx_scope("renderer_backend::draw_debug");
-        {
-            mp_commandlist->set_name("draw_debug");
-            mp_commandlist->start(mp_device, nullptr);
-            {
-                influx_scope("renderer_backend::draw_debug::record");
-                const uint32 target_width = target.get_width();
-                const uint32 target_height = target.get_height();
-
-                target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
-
-                // bind gpu descriptor heaps
-                get_descriptor_manager()->start_commandlist(mp_commandlist);
-
-                mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
-                mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
-                mp_commandlist->set_rtv(target_rtv, target_dsv);
-
-                mp_debug_renderer->render(mp_commandlist, scene, target);
-            }
-            mp_commandlist->end();
-        }
-
-        {
-            influx_scope("renderer_backend::draw_debug::submit");
-            mp_commandlist->submit(mp_graphics_queue);
-        }
-        mp_commandlist->wait_for_completion();
-    }
-
-    void renderer_backend::draw_shadertoy(const scene_shadertoy& scene, const target& target)
-    {
-        graphics::resource* target_resource = target.get_resource();
-        graphics::descriptor_handle target_rtv = target.get_rtv();
-        graphics::descriptor_handle target_dsv = target.get_dsv();
-
-        influx_scope("renderer_backend::draw_shadertoy");
-        {
-            mp_commandlist->set_name("draw_shadertoy");
-            mp_commandlist->start(mp_device, nullptr);
-            {
-                influx_scope("renderer_backend::draw_shadertoy::record");
-                const uint32 target_width = target.get_width();
-                const uint32 target_height = target.get_height();
-
-                target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
-
-                // bind gpu descriptor heaps
-                get_descriptor_manager()->start_commandlist(mp_commandlist);
-
-                mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
-                mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
-                mp_commandlist->set_rtv(target_rtv, target_dsv);
-
-                mp_shadertoy_renderer->render(mp_commandlist, scene, target);
-            }
-            mp_commandlist->end();
-        }
-
-        {
-            influx_scope("renderer_backend::draw_shadertoy::submit");
-            mp_commandlist->submit(mp_graphics_queue);
-        }
-        mp_commandlist->wait_for_completion();
-    }
-
-
-    void renderer_backend::copy_target(const target& source, const target& dest)
-    {
-        graphics::resource* source_resource = source.get_resource();
-        graphics::resource* dest_resource = dest.get_resource();
-
-        mp_commandlist->set_name("copy_target");
-        mp_commandlist->start(mp_device);
-
-        source_resource->transition(mp_commandlist, graphics::e_resource_state::copy_src);
-        dest_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
-
-        mp_commandlist->copy_resource(source_resource, dest_resource);
-
-        source_resource->revert_transition(mp_commandlist);
-        dest_resource->revert_transition(mp_commandlist);
-
-        mp_commandlist->end();
-        mp_commandlist->submit(mp_graphics_queue);
-        mp_commandlist->wait_for_completion();
-    }
-
-    void renderer_backend::clear_target(const target& target, const clear_args& args)
-    {
-        influx_scope("renderer_backend::clear_target");
+        influx_scope("renderer_backend::draw_debug::record");
 
         graphics::resource* target_resource = target.get_resource();
         graphics::descriptor_handle target_rtv = target.get_rtv();
@@ -367,31 +272,74 @@ namespace influx::renderer
         const uint32 target_width = target.get_width();
         const uint32 target_height = target.get_height();
 
-        {
-            mp_commandlist->set_name("clear_target");
-            mp_commandlist->start(mp_device, nullptr);
+        target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
 
-            {
-                influx_scope("renderer_backend::clear_target::record");
-                target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
-                if (target_rtv != nullptr)
-                {
-                    // clear targets
-                    mp_commandlist->set_rtv(target_rtv, target_dsv);
-                    mp_commandlist->clear_rtv(target_rtv, args.m_colour);
-                }
-                if (target_dsv != nullptr)
-                {
-                    mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
-                }
-                mp_commandlist->end();
-            }
-        }
+        // bind gpu descriptor heaps
+        get_descriptor_manager()->start_commandlist(mp_commandlist);
+
+        mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
+        mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
+        mp_commandlist->set_rtv(target_rtv, target_dsv);
+
+        mp_debug_renderer->render(mp_commandlist, scene, target);
+    }
+
+    void renderer_backend::draw_shadertoy(const scene_shadertoy& scene, const target& target)
+    {
+        graphics::resource* target_resource = target.get_resource();
+        graphics::descriptor_handle target_rtv = target.get_rtv();
+        graphics::descriptor_handle target_dsv = target.get_dsv();
+
+        influx_scope("renderer_backend::draw_shadertoy::record");
+        const uint32 target_width = target.get_width();
+        const uint32 target_height = target.get_height();
+
+        target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
+
+        // bind gpu descriptor heaps
+        get_descriptor_manager()->start_commandlist(mp_commandlist);
+
+        mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
+        mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
+        mp_commandlist->set_rtv(target_rtv, target_dsv);
+
+        mp_shadertoy_renderer->render(mp_commandlist, scene, target);
+    }
+
+    void renderer_backend::copy_target(const target& source, const target& dest)
+    {
+        graphics::resource* source_resource = source.get_resource();
+        graphics::resource* dest_resource = dest.get_resource();
+
+        source_resource->transition(mp_commandlist, graphics::e_resource_state::copy_src);
+        dest_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
+
+        mp_commandlist->copy_resource(source_resource, dest_resource);
+
+        source_resource->revert_transition(mp_commandlist);
+        dest_resource->revert_transition(mp_commandlist);
+    }
+
+    void renderer_backend::clear_target(const target& target, const clear_args& args)
+    {
+        influx_scope("renderer_backend::clear_target::record");
+
+        graphics::resource* target_resource = target.get_resource();
+        graphics::descriptor_handle target_rtv = target.get_rtv();
+        graphics::descriptor_handle target_dsv = target.get_dsv();
+
+        target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
+        if (target_rtv != nullptr)
         {
-            influx_scope("renderer_backend::clear_target::submit");
-            mp_commandlist->submit(mp_graphics_queue);
+            // clear targets
+            mp_commandlist->set_rtv(target_rtv, target_dsv);
+            mp_commandlist->clear_rtv(target_rtv, args.m_colour);
         }
-        mp_commandlist->wait_for_completion();
+        if (target_dsv != nullptr)
+        {
+            mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
+        }
+        mp_commandlist->end();
     }
 
     void renderer_backend::present_swapchain(const present_args& args)
@@ -399,25 +347,12 @@ namespace influx::renderer
         influx_scope("renderer_backend::present");
         if (mp_swapchain)
         {
-            // transition backbuffer into presenting state
-            mp_commandlist->set_name("present");
-            mp_commandlist->start(mp_device);
             graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
             backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
-            mp_commandlist->end();
-
-            const uint64 signal_value = get_signal_value(m_frame_count, e_frame_phase::present);
-            mp_graphics_queue->submit({ mp_commandlist });
-            mp_graphics_queue->queue_signal(mp_fence, signal_value);
-            mp_fence->wait_for_value(signal_value);
-
-            get_descriptor_manager()->end_frame();
 
             graphics::present_args p_args{};
             p_args.m_vsync = args.m_vsync;
             mp_swapchain->present(p_args);
-
-            ++m_frame_count;
         }
     }
 
@@ -703,14 +638,15 @@ namespace influx::renderer
         return renderer_backend::get_instance().create_target(args);
     }
 
-    target* acquire_window_target(const platform::window& window)
+    // creates / switches to the appropriate target representation of our window backbuffer
+    target* get_window_target(const platform::window& window)
     {
-        return renderer_backend::get_instance().acquire_window_target(window);
+        return renderer_backend::get_instance().get_window_target(window);
     }
 
-    void acquire_swapchain_frame()
+    void start_frame()
     {
-        renderer_backend::get_instance().acquire_swapchain_frame();
+        renderer_backend::get_instance().start_frame();
     }
 
     void draw_scene(const scene& scene, const target& target)
@@ -731,6 +667,11 @@ namespace influx::renderer
     void present_swapchain(const present_args& args)
     {
         renderer_backend::get_instance().present_swapchain(args);
+    }
+
+    void end_frame()
+    {
+        renderer_backend::get_instance().end_frame();
     }
 
     void wait_gpu_finished()

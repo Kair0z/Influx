@@ -110,6 +110,11 @@ namespace influx::renderer
 		return mp_resource;
 	}
 
+	graphics::resource* target::get_depth_resource() const
+	{
+		return mp_depth_resource;
+	}
+
 	graphics::descriptor_handle target::get_rtv() const
 	{
 		return m_rtv_cpu;

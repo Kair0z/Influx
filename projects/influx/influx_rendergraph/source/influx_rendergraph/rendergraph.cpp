@@ -298,23 +298,16 @@ namespace influx::rendergraph
 						}
 
 						// dsv
-						if (false)
-						{
-							auto& dsv = pass.m_dsv;
-							auto& depth_attachment = args.m_depth_attachment;
+						auto& dsv = pass.m_dsv;
+						auto& depth_attachment = args.m_depth_attachment;
 
-							depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
-							depth_attachment.m_depth_store = translate(dsv.m_depth_access.m_store);
-							depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
-							depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
-
-							depth_attachment.m_depth_clear;
-							depth_attachment.m_stencil_clear;
-
-							graphics::descriptor_handle handle = get_dsv(dsv.m_texture_id);
-							influx_assert(handle);
-							depth_attachment.m_dsv_descriptor = handle;
-						}
+						depth_attachment.m_dsv_descriptor = get_dsv(dsv.m_texture_id);
+						depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
+						depth_attachment.m_depth_store = translate(dsv.m_depth_access.m_store);
+						depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
+						depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
+						depth_attachment.m_depth_clear = 1.0f;
+						depth_attachment.m_stencil_clear = 0.0f;
 
 						{
 							rgpass_context ctx
@@ -412,6 +405,7 @@ namespace influx::rendergraph
 					m_device->create_rtv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::depth_target:
+					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
 					m_device->create_dsv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::read_only:

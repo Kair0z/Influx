@@ -160,7 +160,7 @@ namespace influx::engine
 
 		// window render target:
 		platform::window& window = engine->get_window();
-		mp_window_target = renderer::acquire_window_target(window);
+		mp_window_target = renderer::get_window_target(window);
 
 		// scene render target:
 		influx::renderer::target_create_args target_args{};
@@ -291,14 +291,14 @@ namespace influx::engine
 	{
 		platform::window& window = get_engine()->get_window();
 
-		mp_window_target = renderer::acquire_window_target(window);
+		// get our targets set up
+		mp_window_target = renderer::get_window_target(window);
 		mp_scene_target->resize(*mp_window_target);
 
-		// 1. clear
-		renderer::clear_args clear{ g_global_settings.m_clearcolour };
-		renderer::clear_target(*mp_scene_target, clear);
 
-		// 2. scene render
+		renderer::start_frame();
+
+		// scene draw
 		if (scene.is_empty() == false)
 		{
 			renderer::draw_scene(scene, *mp_scene_target);
@@ -342,10 +342,7 @@ namespace influx::engine
 		// 5. copy scene-target into window
 		influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
 
-		// 6. present to window
-		influx::renderer::present_args present_args{};
-		present_args.m_vsync = false;
-		influx::renderer::present_swapchain(present_args);
+		influx::renderer::end_frame();
 	}
 
 	bool render_manager::has_shader_loaded(const string& name) const
