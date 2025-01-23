@@ -288,8 +288,8 @@ namespace influx::rendergraph
 		rgtexture_id res_id = dt_id.get_resource_id();
 
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::depth_target;
-		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op, 
-			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = false };
+		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
+			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = false, .m_is_enabled = true };
 
 		if (!m_pass.m_texture_creates.contains(res_id))
 		{
@@ -308,7 +308,7 @@ namespace influx::rendergraph
 
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::depth_readonly;
 		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
-			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = true };
+			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = true, .m_is_enabled = true };
 
 		m_pass.m_texture_reads.insert(res_id);
 		rgtexture* texture = m_graph.get_texture(res_id);

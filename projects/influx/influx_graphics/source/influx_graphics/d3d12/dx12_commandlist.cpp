@@ -70,6 +70,7 @@ namespace influx::graphics
 			}
 
 			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsv = nullptr;
+			if (args.m_depth_attachment.m_is_enabled)
 			{
 				static D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsv_desc{};
 				dsv_desc.cpuDescriptor.ptr = (SIZE_T)args.m_depth_attachment.m_dsv_descriptor;

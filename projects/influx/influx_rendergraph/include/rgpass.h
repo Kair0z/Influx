@@ -90,6 +90,7 @@ namespace influx::rendergraph
 			rgaccess m_depth_access;
 			rgaccess m_stencil_access;
 			bool m_depth_read_only;
+			bool m_is_enabled = false;
 		};
 		depth_stencil m_dsv{};
 

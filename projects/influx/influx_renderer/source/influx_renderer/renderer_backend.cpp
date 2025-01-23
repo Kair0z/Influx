@@ -122,6 +122,9 @@ namespace influx::renderer
 
     void renderer_backend::end_frame()
     {
+        m_rendergraph->build();
+        m_rendergraph->execute(mp_commandlist);
+
         mp_commandlist->end();
 
         {
@@ -209,12 +212,6 @@ namespace influx::renderer
     {
         influx_scope("renderer_backend::draw_scene::record");
 
-        static const uint32 target_width = target.get_width();
-        static const uint32 target_height = target.get_height();
-
-        m_rendergraph->import_texture(RGNAME("scene_target"), target.get_resource());
-        m_rendergraph->import_texture(RGNAME("scene_depth"), target.get_depth_resource());
-
         m_rendergraph->add_pass(
             [](rendergraph::rgpass_builder& builder)
             {
@@ -231,26 +228,30 @@ namespace influx::renderer
                 // bind gpu descriptor heaps
                 get_descriptor_manager()->start_commandlist(&commandlist);
 
-                commandlist.set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
-                commandlist.set(graphics::rect{ 0u, 0u, target_width, target_height });
-
                 // scene render
                 mp_scene_renderer->render(mp_commandlist, scene, target);
 
                 // post processing
                 mp_quad_renderer->render_quad(mp_commandlist, target);
             });
-
-        m_rendergraph->build();
-        m_rendergraph->execute(mp_commandlist);
     }
 
     void renderer_backend::draw_imgui(ImDrawData* draw_data, const target& target)
     {
         influx_scope("renderer_backend::draw_imgui::record");
 
-        mp_commandlist->set_rtv(target.get_rtv(), nullptr);
-        mp_imgui->render(mp_commandlist, draw_data, target);
+        m_rendergraph->add_pass(
+            [](rendergraph::rgpass_builder& builder)
+            {
+                rendergraph::rgaccess access{};
+                access.m_load = rendergraph::e_rg_load::preserve;
+                access.m_store = rendergraph::e_rg_store::preserve;
+                builder.write_rendertarget(RGNAME("scene_target"), access);
+            },
+            [this, draw_data, &target](rendergraph::rgpass_context& context)
+            {
+                mp_imgui->render(mp_commandlist, draw_data, target);
+            });
     }
 
     void renderer_backend::draw_2D(const scene2D& scene, const target& target)
@@ -265,23 +266,20 @@ namespace influx::renderer
     {
         influx_scope("renderer_backend::draw_debug::record");
 
-        graphics::resource* target_resource = target.get_resource();
-        graphics::descriptor_handle target_rtv = target.get_rtv();
-        graphics::descriptor_handle target_dsv = target.get_dsv();
-
-        const uint32 target_width = target.get_width();
-        const uint32 target_height = target.get_height();
-
-        target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
-
-        // bind gpu descriptor heaps
-        get_descriptor_manager()->start_commandlist(mp_commandlist);
-
-        mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
-        mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
-        mp_commandlist->set_rtv(target_rtv, target_dsv);
-
-        mp_debug_renderer->render(mp_commandlist, scene, target);
+        m_rendergraph->add_pass(
+            [](rendergraph::rgpass_builder& builder)
+            {
+                rendergraph::rgaccess access{};
+                access.m_load = rendergraph::e_rg_load::preserve;
+                access.m_store = rendergraph::e_rg_store::preserve;
+                builder.write_rendertarget(RGNAME("scene_target"), access);
+                builder.read_depthtarget(RGNAME("scene_depth"), access);
+            },
+            [this, &scene, &target](rendergraph::rgpass_context& context)
+            {
+                graphics::commandlist& commandlist = context.get_commandlist();
+                mp_debug_renderer->render(&commandlist, scene, target);
+            });
     }
 
     void renderer_backend::draw_shadertoy(const scene_shadertoy& scene, const target& target)
@@ -324,22 +322,21 @@ namespace influx::renderer
     {
         influx_scope("renderer_backend::clear_target::record");
 
-        graphics::resource* target_resource = target.get_resource();
-        graphics::descriptor_handle target_rtv = target.get_rtv();
-        graphics::descriptor_handle target_dsv = target.get_dsv();
+        m_rendergraph->import_texture(RGNAME("scene_target"), target.get_resource());
+        m_rendergraph->import_texture(RGNAME("scene_depth"), target.get_depth_resource());
 
-        target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
-        if (target_rtv != nullptr)
-        {
-            // clear targets
-            mp_commandlist->set_rtv(target_rtv, target_dsv);
-            mp_commandlist->clear_rtv(target_rtv, args.m_colour);
-        }
-        if (target_dsv != nullptr)
-        {
-            mp_commandlist->clear_dsv(target_dsv, 1.0f, 0u);
-        }
-        mp_commandlist->end();
+        m_rendergraph->add_pass(
+            [](rendergraph::rgpass_builder& builder)
+            {
+                rendergraph::rgaccess access{};
+                access.m_load = rendergraph::e_rg_load::clear;
+                access.m_store = rendergraph::e_rg_store::preserve;
+                builder.write_rendertarget(RGNAME("scene_target"), access);
+                builder.write_depthtarget(RGNAME("scene_depth"), access);
+            },
+            [this, &target](rendergraph::rgpass_context& context)
+            {
+            });
     }
 
     void renderer_backend::present_swapchain(const present_args& args)

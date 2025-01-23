@@ -58,6 +58,7 @@ namespace influx::graphics
         
         float m_depth_clear = 0.0f;
         uint8 m_stencil_clear = 0u;
+        bool m_is_enabled = false;
     };
 
 	struct renderpass_args final

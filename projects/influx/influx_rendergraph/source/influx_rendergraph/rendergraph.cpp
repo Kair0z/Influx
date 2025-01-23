@@ -298,16 +298,19 @@ namespace influx::rendergraph
 						}
 
 						// dsv
-						auto& dsv = pass.m_dsv;
 						auto& depth_attachment = args.m_depth_attachment;
-
-						depth_attachment.m_dsv_descriptor = get_dsv(dsv.m_texture_id);
-						depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
-						depth_attachment.m_depth_store = translate(dsv.m_depth_access.m_store);
-						depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
-						depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
-						depth_attachment.m_depth_clear = 1.0f;
-						depth_attachment.m_stencil_clear = 0.0f;
+						depth_attachment.m_is_enabled = pass.m_dsv.m_is_enabled;
+						if (depth_attachment.m_is_enabled)
+						{
+							const auto& dsv = pass.m_dsv;
+							depth_attachment.m_dsv_descriptor = get_dsv(dsv.m_texture_id);
+							depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
+							depth_attachment.m_depth_store = translate(dsv.m_depth_access.m_store);
+							depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
+							depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
+							depth_attachment.m_depth_clear = 1.0f;
+							depth_attachment.m_stencil_clear = 0.0f;
+						}
 
 						{
 							rgpass_context ctx

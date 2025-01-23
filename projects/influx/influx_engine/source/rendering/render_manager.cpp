@@ -295,8 +295,9 @@ namespace influx::engine
 		mp_window_target = renderer::get_window_target(window);
 		mp_scene_target->resize(*mp_window_target);
 
-
 		renderer::start_frame();
+
+		renderer::clear_target(*mp_scene_target, {});
 
 		// scene draw
 		if (scene.is_empty() == false)

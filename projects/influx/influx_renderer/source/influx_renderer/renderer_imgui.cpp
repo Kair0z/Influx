@@ -338,6 +338,9 @@ namespace influx::renderer
 
 	void imgui_manager::update_buffers(ImDrawData* draw_data)
 	{
+		if (draw_data == nullptr) return;
+		if (draw_data->TotalVtxCount <= 0) return;
+
 		const uint32 num_vertices = (mp_vertexbuffer == nullptr) ?
 			0u : (uint32)(mp_vertexbuffer->get_bytesize() / sizeof(ImDrawVert));
 
@@ -375,25 +378,31 @@ namespace influx::renderer
 		}
 
 		// map buffer data
-		mp_vertexbuffer->map([&draw_data](void* dest)
+		if (mp_vertexbuffer)
 		{
-			ImDrawVert* vtx_dst = (ImDrawVert*)dest;
-			for (int n = 0u; n < draw_data->CmdListsCount; ++n)
+			mp_vertexbuffer->map([&draw_data](void* dest)
 			{
-				const ImDrawList* cmd_list = draw_data->CmdLists[n];
-				memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-				vtx_dst += cmd_list->VtxBuffer.Size;
-			}
-		});
-		mp_indexbuffer->map([&draw_data](void* dest)
+				ImDrawVert* vtx_dst = (ImDrawVert*)dest;
+				for (int n = 0u; n < draw_data->CmdListsCount; ++n)
+				{
+					const ImDrawList* cmd_list = draw_data->CmdLists[n];
+					memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+					vtx_dst += cmd_list->VtxBuffer.Size;
+				}
+			});
+		}
+		if (mp_indexbuffer)
 		{
-			ImDrawIdx* idx_dst = (ImDrawIdx*)dest;
-			for (int n = 0u; n < draw_data->CmdListsCount; ++n)
+			mp_indexbuffer->map([&draw_data](void* dest)
 			{
-				const ImDrawList* cmd_list = draw_data->CmdLists[n];
-				memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-				idx_dst += cmd_list->IdxBuffer.Size;
-			}
-		});
+				ImDrawIdx* idx_dst = (ImDrawIdx*)dest;
+				for (int n = 0u; n < draw_data->CmdListsCount; ++n)
+				{
+					const ImDrawList* cmd_list = draw_data->CmdLists[n];
+					memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+					idx_dst += cmd_list->IdxBuffer.Size;
+				}
+			});
+		}
 	}
 }
