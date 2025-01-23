@@ -52,7 +52,7 @@ namespace influx::renderer
 	{
 	public:
 		graphics::resource* get_resource() const;
-		graphics::shader_resource_view* get_srv() const;
+		graphics::descriptor_handle get_srv() const;
 
 		uint32 get_width() const;
 		uint32 get_height() const;
@@ -75,7 +75,7 @@ namespace influx::renderer
 		void resize(const math::vectoru2& new_dimensions);
 
 		graphics::resource* mp_resource;
-		graphics::shader_resource_view* mp_srv;
+		graphics::descriptor_handle m_srv;
 
 		texture_desc m_args;
 		math::vectoru2 m_current_dimensions;

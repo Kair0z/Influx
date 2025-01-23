@@ -1,1 +1,0 @@
-new_influx_game("influx_mod")

@@ -116,14 +116,19 @@ namespace influx::graphics
 		INFLUX_GFX_API
 		virtual void set_vertexbuffer(resource* vertex_buffer) = 0;
 		
-		INFLUX_GFX_API
-		virtual void clear_rtv(descriptor_handle cpu_handle, const math::vectorf4& clear) = 0;
 
 		INFLUX_GFX_API
-		virtual void clear_rtv(render_target_view* view, const math::vectorf4& clear_value) = 0;
+		virtual void clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value) = 0;
 
 		INFLUX_GFX_API
-		virtual void clear_dsv(depth_stencil_view* view, float clear_depth, uint32 clear_stencil) = 0;
+		virtual void clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil) = 0;
+
+		INFLUX_GFX_API
+		virtual void set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu) = 0;
+
+		INFLUX_GFX_API
+		virtual void set_srv(descriptor_handle srv_gpu, uint32 param_idx) = 0;
+
 
 		INFLUX_GFX_API
 		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) = 0;
@@ -151,12 +156,6 @@ namespace influx::graphics
 
 		INFLUX_GFX_API
 		virtual void set(descriptor_heap* heap) = 0;
-
-		INFLUX_GFX_API
-		virtual void set(render_target_view* rtv, depth_stencil_view* dsv) = 0;
-
-		INFLUX_GFX_API
-		virtual void set(shader_resource_view* srv, uint32 param_idx) = 0;
 
 		INFLUX_GFX_API
 		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) = 0;

@@ -53,12 +53,18 @@ end
 function new_influx_app(name)
     project_dir = g_dir_projects_apps .. "/%{prj.name}/"
     new_influx_project(name, "ConsoleApp")
-        fastuptodate(false)
+    fastuptodate(false)
 end
 
 function new_influx_game(name)
     project_dir = g_dir_projects_apps .. "/%{prj.name}/"
     new_influx_project(name, "SharedLib")
+end
+
+function new_influx_test(name)
+    project_dir = g_dir_projects_test .. "/%{prj.name}/"
+    new_influx_project(name, "ConsoleApp")
+    fastuptodate(false)
 end
 
 function new_influx_dll(name)

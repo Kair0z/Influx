@@ -34,10 +34,10 @@ namespace influx::renderer
 		// unstages all gpu heaps
 		void end_frame();
 
-		graphics::render_target_view* create_rtv(graphics::resource* resource);
-		graphics::depth_stencil_view* create_dsv(graphics::resource* resource);
-		graphics::shader_resource_view* create_srv(graphics::resource* resource);
-		graphics::shader_resource_view* create_buffer_srv(graphics::resource* resource);
+		graphics::descriptor_handle create_rtv(graphics::resource* resource);
+		graphics::descriptor_handle create_dsv(graphics::resource* resource);
+		graphics::descriptor_handle create_srv(graphics::resource* resource);
+		graphics::descriptor_handle create_buffer_srv(graphics::resource* resource);
 
 		// stages descriptors into the appropriate shader-visible descriptor heap
 		// and returns the address of that range of descriptors
@@ -46,8 +46,8 @@ namespace influx::renderer
 		graphics::descriptor_range stage(const vector<texture*>& textures);
 		graphics::descriptor_range stage(texture* texture);
 
-		void cleanup_rtv(graphics::render_target_view* rtv);
-		void cleanup_dsv(graphics::depth_stencil_view* dsv);
+		void cleanup_rtv(graphics::descriptor_handle rtv);
+		void cleanup_dsv(graphics::descriptor_handle dsv);
 
 	private:
 		// GPU heaps (shader-visible)

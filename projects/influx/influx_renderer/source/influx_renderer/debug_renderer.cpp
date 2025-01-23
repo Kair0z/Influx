@@ -88,7 +88,7 @@ namespace influx::renderer
             desc.m_init_state = graphics::e_resource_state::gen_read;
             mp_instancebuffer = device->create_resource(desc, heap_desc);
             mp_instancebuffer->set_name({ "debug_instance_buffer" });
-            mp_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
+            m_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
         }
         
         // create 2-element vertexbuffer
@@ -147,7 +147,7 @@ namespace influx::renderer
         update_instance_buffer(scene);
 
         // stage the instance buffer and set as resource table
-        const graphics::descriptor_range gpu_range = mp_backend->get_descriptor_manager()->stage(mp_instance_buffer_srv->get_cpu_handle());
+        const graphics::descriptor_range gpu_range = mp_backend->get_descriptor_manager()->stage(m_instance_buffer_srv);
         mp_pipeline->set_resource_table(commandlist, "g_instancebuffer", gpu_range);
 
         const uint32 num_instances = (uint32)m_instance_data.size();

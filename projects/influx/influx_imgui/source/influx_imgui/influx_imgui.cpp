@@ -74,7 +74,7 @@ namespace influx::imgui
 	{
 		graphics::resource* mp_upload;
 		graphics::resource* mp_resource;
-		graphics::shader_resource_view* mp_srv;
+		graphics::descriptor_handle m_srv_cpu;
 	};
 
 	struct global_state : public singleton<global_state>
@@ -266,7 +266,7 @@ namespace influx::imgui
 		get_fence()->wait_for_value(1u, wait);
 
 		// create srv
-		fonts_tex.mp_srv = get_device()->create_srv(get_srv_heap(), fonts_tex.mp_resource);
+		get_device()->create_texture_srv(get_srv_heap()->allocate_cpu(), fonts_tex.mp_resource);
 	}
 
 	inline void create_shaders()

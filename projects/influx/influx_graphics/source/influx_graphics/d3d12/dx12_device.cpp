@@ -311,84 +311,22 @@ namespace influx::graphics
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
-	ptr<render_target_view> dx12_device::create_rtv(descriptor_heap* rtv_heap, resource* resource)
+	void dx12_device::create_rtv(descriptor_handle cpu_handle, resource* resource)
 	{
-		// allocate a new rtv descriptor:
-		descriptor_handle cpu_handle = rtv_heap->allocate_cpu();
-		return create_rtv(cpu_handle, resource);
-	}
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor = { .ptr = (SIZE_T)cpu_handle };
 
-	ptr<render_target_view> dx12_device::create_rtv(descriptor_handle handle, resource* resource)
-	{
-		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
-
-		// create the rtv
 		ID3D12Resource* dxresource = resource->get_native<ID3D12Resource>();
-		auto dx_rtv = dx12helpers::create_rtv(mpdx_devices[0u], dxresource,
-			new_dxdescriptor, convert(resource->get_format()));
-
-		// setup resource info
-		resource_info res_info{};
-		res_info.m_dimensions = { resource->get_width(), resource->get_height() };
-
-		return new_child<dx12_render_target_view, render_target_view>(dx_rtv, res_info);
+		dx12helpers::create_rtv(mpdx_devices[0u], dxresource, dxdescriptor, convert(resource->get_format()));
 	}
-
-	ptr<depth_stencil_view> dx12_device::create_dsv(descriptor_heap* dsv_heap, resource* resource)
+	void dx12_device::create_dsv(descriptor_handle cpu_handle, resource* resource)
 	{
-		// allocate a new rtv descriptor:
-		descriptor_handle cpu_handle = dsv_heap->allocate_cpu();
-		return create_dsv(cpu_handle, resource);
-	}
-
-	ptr<depth_stencil_view> dx12_device::create_dsv(descriptor_handle handle, resource* resource)
-	{
-		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
-
-		// create the dsv
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdesc = { .ptr = (SIZE_T)cpu_handle };
 		ID3D12Resource* dxresource = resource->get_native<ID3D12Resource>();
-		auto dx_dsv = dx12helpers::create_dsv(mpdx_devices[0u], dxresource,
-			new_dxdescriptor, convert(resource->get_format()));
-
-		return new_child<dx12_depth_stencil_view, depth_stencil_view>(dx_dsv);
+		auto dx_dsv = dx12helpers::create_dsv(mpdx_devices[0u], dxresource, dxdesc, convert(resource->get_format()));
 	}
-
-	ptr<shader_resource_view> dx12_device::create_srv(descriptor_heap* irv_heap, resource* resource)
-	{
-		// allocate new srv descriptors
-		descriptor_handle cpu_handle = irv_heap->allocate_cpu();
-		return create_srv(cpu_handle, {}, resource);
-	}
-
-	ptr<shader_resource_view> dx12_device::create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
+	void dx12_device::create_buffer_srv(descriptor_handle cpu_handle, resource* resource)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { (size_t)(cpu_handle) };
-		D3D12_GPU_DESCRIPTOR_HANDLE dxgpu_descriptor = { (size_t)(gpu_handle) };
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
-		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srv_desc.Format = convert(resource->get_format());
-		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srv_desc.Texture2D.MipLevels = 1;
-
-		mpdx_devices[0u]->CreateShaderResourceView(
-			resource->get_native<ID3D12Resource>(),
-			&srv_desc, dxcpu_descriptor);
-
-		return new_child<dx12_shader_resource_view, shader_resource_view>(dxcpu_descriptor, dxgpu_descriptor);
-	}
-
-	ptr<shader_resource_view> dx12_device::create_buffer_srv(descriptor_heap* srv_heap, resource* resource)
-	{
-		// allocate new srv descriptors
-		descriptor_handle cpu_handle = srv_heap->allocate_cpu();
-		return create_buffer_srv(cpu_handle, {}, resource);
-	}
-
-	ptr<shader_resource_view> dx12_device::create_buffer_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource)
-	{
-		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { (size_t)(cpu_handle) };
-		D3D12_GPU_DESCRIPTOR_HANDLE dxgpu_descriptor = { (size_t)(gpu_handle) };
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
 		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -401,28 +339,37 @@ namespace influx::graphics
 		mpdx_devices[0u]->CreateShaderResourceView(
 			resource->get_native<ID3D12Resource>(),
 			&srv_desc, dxcpu_descriptor);
-
-		return new_child<dx12_shader_resource_view, shader_resource_view>(dxcpu_descriptor, dxgpu_descriptor);
 	}
-
-	ptr<sampler_view> dx12_device::create_sampview(descriptor_heap* samp_heap, resource* resource)
+	void dx12_device::create_buffer_uav(descriptor_handle cpu_handle, resource* resource)
 	{
-		ID3D12DescriptorHeap* heap = samp_heap->get_native<ID3D12DescriptorHeap>();
+		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { .ptr = (size_t)(cpu_handle) };
 
-		// allocate a new rtv descriptor:
-		descriptor_handle new_descriptor = samp_heap->allocate_cpu();
-		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(new_descriptor) };
-
-		return create_sampview(new_descriptor, resource);
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc{};
+		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		uav_desc.Buffer;
+		mpdx_devices[0u]->CreateUnorderedAccessView(resource->get_native<ID3D12Resource>(), nullptr,
+			&uav_desc, dxcpu_descriptor);
 	}
-
-	ptr<sampler_view> dx12_device::create_sampview(descriptor_handle handle, resource* resource)
+	void dx12_device::create_texture_srv(descriptor_handle cpu_handle, resource* resource)
 	{
-		D3D12_CPU_DESCRIPTOR_HANDLE new_dxdescriptor = { (size_t)(handle) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { .ptr = (size_t)(cpu_handle) };
 
-		// ... no extra code necessary
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srv_desc.Format = convert(resource->get_format());
+		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srv_desc.Texture2D.MipLevels = 1;
 
-		return new_child<dx12_sampler_view, sampler_view>(new_dxdescriptor);
+		mpdx_devices[0u]->CreateShaderResourceView(resource->get_native<ID3D12Resource>(),
+			&srv_desc, dxcpu_descriptor);
+	}
+	void dx12_device::create_texture_uav(descriptor_handle cpu_handle, resource* resource)
+	{
+		influx_assert(false);
+	}
+	void dx12_device::create_sampler_view(descriptor_handle cpu_handle, resource* resource)
+	{
+		influx_assert(false);
 	}
 
 	ptr<rootsignature> dx12_device::create_rootsignature(const rootsignature_desc& desc)

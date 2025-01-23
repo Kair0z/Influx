@@ -157,23 +157,32 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->IASetVertexBuffers(0u, 1u, &vb_view);
 	}
 
-	void dx12_commandlist::clear_rtv(descriptor_handle cpu_handle, const math::vectorf4& clear)
+	void dx12_commandlist::clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE dx12_handle{};
-		dx12_handle.ptr = (SIZE_T)cpu_handle;
-		mpdx_graphics_commandlist->ClearRenderTargetView(dx12_handle, clear.data(), 0u, nullptr);
+		dx12_handle.ptr = (SIZE_T)rtv_cpu;
+		mpdx_graphics_commandlist->ClearRenderTargetView(dx12_handle, clear_value.data(), 0u, nullptr);
 	}
 
-	void dx12_commandlist::clear_rtv(render_target_view* view, const math::vectorf4& clear_value)
+	void dx12_commandlist::clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil)
 	{
-		D3D12_CPU_DESCRIPTOR_HANDLE* cpu_handle = view->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
-		clear_rtv(reinterpret_cast<descriptor_handle>(cpu_handle->ptr), clear_value);
+		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
+		cpu_handle.ptr = (SIZE_T)dsv_cpu;
+		mpdx_graphics_commandlist->ClearDepthStencilView(cpu_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, clear_depth, clear_stencil, 0u, nullptr);
 	}
 
-	void dx12_commandlist::clear_dsv(depth_stencil_view* view, float clear_depth, uint32 clear_stencil)
+	void dx12_commandlist::set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu)
 	{
-		D3D12_CPU_DESCRIPTOR_HANDLE* cpu_handle = view->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
-		mpdx_graphics_commandlist->ClearDepthStencilView(*cpu_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, clear_depth, clear_stencil, 0u, nullptr);
+		D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ .ptr = (SIZE_T)rtv_cpu  };
+		D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle{ .ptr = (SIZE_T)dsv_cpu  };
+
+		mpdx_graphics_commandlist->OMSetRenderTargets(1u, &rtv_handle, FALSE, dsv_cpu != nullptr ? &dsv_handle : nullptr);
+	}
+
+	void dx12_commandlist::set_srv(descriptor_handle srv_gpu, uint32 param_idx)
+	{
+		D3D12_GPU_DESCRIPTOR_HANDLE srv_gpu_handle{ .ptr = (SIZE_T)srv_gpu };
+		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, srv_gpu_handle);
 	}
 
 	void dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)
@@ -305,22 +314,6 @@ namespace influx::graphics
 	{
 		auto dxheap = heap->get_native<ID3D12DescriptorHeap>();
 		mpdx_graphics_commandlist->SetDescriptorHeaps(1u, &dxheap);
-	}
-
-	void dx12_commandlist::set(render_target_view* rtv, depth_stencil_view* dsv)
-	{
-		D3D12_CPU_DESCRIPTOR_HANDLE* rtv_handle = rtv->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>();
-		D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = dsv ? dsv->get_native<D3D12_CPU_DESCRIPTOR_HANDLE>() : nullptr;
-		mpdx_graphics_commandlist->OMSetRenderTargets(1u, rtv_handle, FALSE, dsv_handle);
-	}
-
-	void dx12_commandlist::set(shader_resource_view* srv, uint32 param_idx)
-	{
-		auto dx12srv = (dx12_shader_resource_view*)srv;
-
-		D3D12_GPU_DESCRIPTOR_HANDLE srv_gpu_handle{};
-		srv_gpu_handle.ptr = (size_t)dx12srv->get_gpu_handle();
-		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, srv_gpu_handle);
 	}
 
 	void dx12_commandlist::set(const descriptor_range& gpu_range, uint32 param_idx)

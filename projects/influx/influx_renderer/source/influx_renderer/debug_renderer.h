@@ -54,8 +54,9 @@ namespace influx::renderer
 		gpu_perview* m_gpu_perview;
 
 		graphics::resource* mp_instancebuffer;
-		graphics::shader_resource_view* mp_instance_buffer_srv;
 		graphics::resource* mp_vertexbuffer;
+		graphics::descriptor_handle m_instance_buffer_srv;
+
 		void update_instance_buffer(const scene_debug& scene);
 	};
 }

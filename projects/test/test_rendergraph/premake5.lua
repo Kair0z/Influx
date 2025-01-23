@@ -1,4 +1,4 @@
-new_influx_app("rhi_tests")
+new_influx_test("test_rendergraph")
 
     local dependencies =
     {

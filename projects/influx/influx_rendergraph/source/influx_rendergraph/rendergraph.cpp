@@ -402,23 +402,23 @@ namespace influx::rendergraph
 		rgtexture* texture = get_texture(id);
 		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
 		{
-			if (viewdescs[i].m_is_active)
+			if (viewdescs[i].m_is_active && device_children[i] == nullptr)
 			{
 				const rgdescriptor_type type = static_cast<rgdescriptor_type>(i);
 				switch (type)
 				{
 				case rgdescriptor_type::render_target:
 					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					device_children[i] = m_device->create_rtv(descriptors[i], texture->m_resource);
+					m_device->create_rtv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::depth_target:
-					device_children[i] = m_device->create_dsv(descriptors[i], texture->m_resource);
+					m_device->create_dsv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::read_only:
-					influx_assert(false); // todo
+					m_device->create_texture_srv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::read_write:
-					influx_assert(false); // todo
+					m_device->create_texture_uav(descriptors[i], texture->m_resource);
 					break;
 				}
 			}

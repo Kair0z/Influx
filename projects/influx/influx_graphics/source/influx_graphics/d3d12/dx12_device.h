@@ -48,16 +48,14 @@ namespace influx::graphics
 		virtual ptr<resource> import_buffer(void* native_ptr, const buffer_desc& desc) override;
 		virtual ptr<resource> import_texture(void* native_ptr, const tex2D_desc& desc) override;
 
-		virtual ptr<render_target_view> create_rtv(descriptor_heap* rtv_heap, resource* resource) override;
-		virtual ptr<render_target_view> create_rtv(descriptor_handle handle, resource* resource) override;
-		virtual ptr<depth_stencil_view> create_dsv(descriptor_heap* dsv_heap, resource* resource) override;
-		virtual ptr<depth_stencil_view> create_dsv(descriptor_handle handle, resource* resource) override;
-		virtual ptr<shader_resource_view> create_srv(descriptor_heap* irv_heap, resource* resource) override;
-		virtual ptr<shader_resource_view> create_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
-		virtual ptr<shader_resource_view> create_buffer_srv(descriptor_heap* srv_heap, resource* resource) override;
-		virtual ptr<shader_resource_view> create_buffer_srv(descriptor_handle cpu_handle, descriptor_handle gpu_handle, resource* resource) override;
-		virtual ptr<sampler_view> create_sampview(descriptor_heap* samp_heap, resource* resource) override;
-		virtual ptr<sampler_view> create_sampview(descriptor_handle handle, resource* resource) override;
+		virtual void create_rtv(descriptor_handle cpu_handle, resource* resource) override;
+		virtual void create_dsv(descriptor_handle cpu_handle, resource* resource) override;
+		virtual void create_buffer_srv(descriptor_handle cpu_handle, resource* resource) override;
+		virtual void create_buffer_uav(descriptor_handle cpu_handle, resource* resource) override;
+		virtual void create_texture_srv(descriptor_handle cpu_handle, resource* resource) override;
+		virtual void create_texture_uav(descriptor_handle cpu_handle, resource* resource) override;
+		virtual void create_sampler_view(descriptor_handle cpu_handle, resource* resource) override;
+
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) override;
 		virtual ptr<pipeline> create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) override;
 

@@ -90,24 +90,32 @@ namespace influx::renderer
 		delete mp_srv_gpu_heap;
 	}
 
-	graphics::render_target_view* descriptor_manager::create_rtv(graphics::resource* resource)
+	graphics::descriptor_handle descriptor_manager::create_rtv(graphics::resource* resource)
 	{
-		return mp_device->create_rtv(mp_rtv_heap, resource);
+		graphics::descriptor_handle cpu_handle = mp_rtv_heap->allocate_cpu();
+		mp_device->create_rtv(cpu_handle, resource);
+		return cpu_handle;
 	}
 
-	graphics::depth_stencil_view* descriptor_manager::create_dsv(graphics::resource* resource)
+	graphics::descriptor_handle descriptor_manager::create_dsv(graphics::resource* resource)
 	{
-		return mp_device->create_dsv(mp_dsv_heap, resource);
+		graphics::descriptor_handle cpu_handle = mp_dsv_heap->allocate_cpu();
+		mp_device->create_dsv(cpu_handle, resource);
+		return cpu_handle;
 	}
 
-	graphics::shader_resource_view* descriptor_manager::create_srv(graphics::resource* resource)
+	graphics::descriptor_handle descriptor_manager::create_srv(graphics::resource* resource)
 	{
-		return mp_device->create_srv(mp_srv_heap, resource);
+		graphics::descriptor_handle cpu_handle = mp_srv_heap->allocate_cpu();
+		mp_device->create_texture_srv(cpu_handle, resource);
+		return cpu_handle;
 	}
 
-	graphics::shader_resource_view* descriptor_manager::create_buffer_srv(graphics::resource* resource)
+	graphics::descriptor_handle descriptor_manager::create_buffer_srv(graphics::resource* resource)
 	{
-		return mp_device->create_buffer_srv(mp_srv_heap, resource);
+		graphics::descriptor_handle cpu_handle = mp_srv_heap->allocate_cpu();
+		mp_device->create_buffer_srv(cpu_handle, resource);
+		return cpu_handle;
 	}
 
 	graphics::descriptor_range descriptor_manager::stage(const vector<graphics::descriptor_handle>& cpu_descriptors)
@@ -147,7 +155,7 @@ namespace influx::renderer
 			influx_assert(textures[i] != nullptr);
 			influx_assert(textures[i]->get_srv() != nullptr);
 
-			cpu_handles.push_back(textures[i]->get_srv()->get_cpu_handle());
+			cpu_handles.push_back(textures[i]->get_srv());
 		}
 
 		return stage(cpu_handles);
@@ -159,13 +167,13 @@ namespace influx::renderer
 		return stage(textures);
 	}
 
-	void descriptor_manager::cleanup_rtv(graphics::render_target_view* rtv)
+	void descriptor_manager::cleanup_rtv(graphics::descriptor_handle rtv)
 	{
-		mp_rtv_heap->free_cpu(rtv->get_cpu_handle());
+		mp_rtv_heap->free_cpu(rtv);
 	}
 
-	void descriptor_manager::cleanup_dsv(graphics::depth_stencil_view* dsv)
+	void descriptor_manager::cleanup_dsv(graphics::descriptor_handle dsv)
 	{
-		mp_dsv_heap->free_cpu(dsv->get_cpu_handle());
+		mp_dsv_heap->free_cpu(dsv);
 	}
 }

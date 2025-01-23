@@ -1,6 +1,11 @@
 #pragma once
+
+// influx::core
 #include "core/basetypes.h"
 #include "core/platform/window.h"
+
+// influx::graphics
+#include "influx_graphics/descriptors.h"
 
 namespace influx::graphics
 {
@@ -32,8 +37,8 @@ namespace influx::renderer
 	{
 	public:
 		graphics::resource* get_resource() const;
-		graphics::render_target_view* get_rtv() const;
-		graphics::depth_stencil_view* get_dsv() const;
+		graphics::descriptor_handle get_rtv() const;
+		graphics::descriptor_handle get_dsv() const;
 
 		INFLUX_RENDER_API uint32 get_width() const;
 		INFLUX_RENDER_API uint32 get_height() const;
@@ -67,10 +72,8 @@ namespace influx::renderer
 
 		graphics::resource* mp_resource = nullptr;
 		graphics::resource* mp_depth_resource = nullptr;
-		graphics::render_target_view* mp_rtv;
-		graphics::depth_stencil_view* mp_dsv;
-		void* m_rtv_handle;
-		void* m_dsv_handle;
+		graphics::descriptor_handle m_rtv_cpu;
+		graphics::descriptor_handle m_dsv_cpu;
 		bool m_is_swapchain_target = false;
 
 		target_create_args m_args;

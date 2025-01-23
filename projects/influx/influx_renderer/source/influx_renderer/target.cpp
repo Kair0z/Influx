@@ -18,6 +18,7 @@ namespace influx::renderer
 	{
 		influx_assert(args.m_has_colour || args.m_has_depth_stencil);
 
+		descriptor_manager& desc_manager = *renderer_backend::get_descriptor_manager();
 		if (args.m_has_colour)
 		{
 			// create the colour resource
@@ -31,8 +32,7 @@ namespace influx::renderer
 			desc.m_init_state = graphics::e_resource_state::render_target;
 			mp_resource = device->create_resource(desc);
 
-			mp_rtv = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
-			m_rtv_handle = mp_rtv->get_cpu_handle();
+			m_rtv_cpu = desc_manager.create_rtv(mp_resource);
 		}
 		if (args.m_has_depth_stencil)
 		{
@@ -46,8 +46,7 @@ namespace influx::renderer
 			desc.m_init_state = graphics::e_resource_state::depth_target;
 			mp_depth_resource = device->create_resource(desc);
 
-			mp_dsv = renderer_backend::get_descriptor_manager()->create_dsv(mp_depth_resource);
-			m_dsv_handle = mp_dsv->get_cpu_handle();
+			m_dsv_cpu = desc_manager.create_dsv(mp_depth_resource);
 		}
 
 		m_current_dimensions = { args.m_width, args.m_heigth };
@@ -63,16 +62,12 @@ namespace influx::renderer
 
 		// get the existing backbuffer resource, and allocate + create a new rtv
 		mp_resource = swapchain->get_backbuffer_resource(swapchain_index);
-		mp_rtv = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
-		mp_dsv = nullptr;
+		m_rtv_cpu = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
+		m_dsv_cpu = nullptr;
 
 		m_args.m_width = swapchain->get_dimensions().x;
 		m_args.m_heigth = swapchain->get_dimensions().y;
 		m_current_dimensions = swapchain->get_dimensions();
-
-		// store the descriptor handles
-		m_rtv_handle = mp_rtv->get_cpu_handle();
-		m_dsv_handle = nullptr;
 
 		mp_device = device;
 
@@ -82,15 +77,15 @@ namespace influx::renderer
 	target::~target()
 	{
 		descriptor_manager* desc_man = renderer_backend::get_descriptor_manager();
-		if (mp_rtv)
+		if (m_rtv_cpu)
 		{
-			desc_man->cleanup_rtv(mp_rtv);
-			mp_rtv = nullptr;
+			desc_man->cleanup_rtv(m_rtv_cpu);
+			m_rtv_cpu = nullptr;
 		}
-		if (mp_dsv)
+		if (m_dsv_cpu)
 		{
-			desc_man->cleanup_dsv(mp_dsv);
-			mp_dsv = nullptr;
+			desc_man->cleanup_dsv(m_dsv_cpu);
+			m_dsv_cpu = nullptr;
 		}
 
 		// all non-swapchain targets own their own resources and so should destroy them
@@ -115,14 +110,14 @@ namespace influx::renderer
 		return mp_resource;
 	}
 
-	graphics::render_target_view* target::get_rtv() const
+	graphics::descriptor_handle target::get_rtv() const
 	{
-		return mp_rtv;
+		return m_rtv_cpu;
 	}
 
-	graphics::depth_stencil_view* target::get_dsv() const
+	graphics::descriptor_handle target::get_dsv() const
 	{
-		return mp_dsv;
+		return m_dsv_cpu;
 	}
 
 	uint32 target::get_width() const
@@ -198,19 +193,17 @@ namespace influx::renderer
 
 	void target::recreate_rtv()
 	{
-		if (mp_rtv)
+		if (m_rtv_cpu)
 		{
-			delete mp_rtv;
-			mp_rtv = mp_device->create_rtv(m_rtv_handle, mp_resource);
+			mp_device->create_rtv(m_rtv_cpu, mp_resource);
 		}
 	}
 
 	void target::recreate_dsv()
 	{
-		if (mp_dsv)
+		if (m_dsv_cpu)
 		{
-			delete mp_dsv;
-			mp_dsv = mp_device->create_dsv(m_dsv_handle, mp_depth_resource);
+			mp_device->create_dsv(m_dsv_cpu, mp_depth_resource);
 		}
 	}
 

@@ -97,7 +97,7 @@ namespace influx::renderer
 
 		graphics::device* mp_device;
 		graphics::resource* mp_instancebuffer;
-		graphics::shader_resource_view* mp_instance_buffer_srv;
+		graphics::descriptor_handle m_instance_buffer_srv;
 
 		// gpu data
 		gpu_perscene m_gpu_perscene;

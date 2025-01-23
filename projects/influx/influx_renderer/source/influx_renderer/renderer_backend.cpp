@@ -177,8 +177,8 @@ namespace influx::renderer
     void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
         graphics::resource* target_resource = target.get_resource();
-        graphics::render_target_view* target_rtv = target.get_rtv();
-        graphics::depth_stencil_view* target_dsv = target.get_dsv();
+        graphics::descriptor_handle target_rtv = target.get_rtv();
+        graphics::descriptor_handle target_dsv = target.get_dsv();
 
         influx_scope("renderer_backend::draw_scene");
         {
@@ -197,7 +197,7 @@ namespace influx::renderer
 
                 mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
                 mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
-                mp_commandlist->set(target_rtv, target_dsv);
+                mp_commandlist->set_rtv(target_rtv, target_dsv);
 
                 // scene
                 mp_scene_renderer->render(mp_commandlist, scene, target);
@@ -224,7 +224,7 @@ namespace influx::renderer
             {
                 influx_scope("renderer_backend::draw_imgui::record");
 
-                mp_commandlist->set(target.get_rtv(), nullptr);
+                mp_commandlist->set_rtv(target.get_rtv(), nullptr);
                 get_descriptor_manager()->start_commandlist(mp_commandlist);
                 mp_imgui->render(mp_commandlist, draw_data, target);
                 mp_commandlist->end();
@@ -246,8 +246,7 @@ namespace influx::renderer
             {
                 influx_scope("renderer_backend::draw2D::record");
 
-                graphics::render_target_view* target_rtv = target.get_rtv();
-                mp_commandlist->set(target_rtv, nullptr);
+                mp_commandlist->set_rtv(target.get_rtv(), nullptr);
 
                 get_descriptor_manager()->start_commandlist(mp_commandlist);
 
@@ -266,8 +265,8 @@ namespace influx::renderer
     void renderer_backend::draw_debug(const scene_debug& scene, const target& target)
     {
         graphics::resource* target_resource = target.get_resource();
-        graphics::render_target_view* target_rtv = target.get_rtv();
-        graphics::depth_stencil_view* target_dsv = target.get_dsv();
+        graphics::descriptor_handle target_rtv = target.get_rtv();
+        graphics::descriptor_handle target_dsv = target.get_dsv();
 
         influx_scope("renderer_backend::draw_debug");
         {
@@ -285,7 +284,7 @@ namespace influx::renderer
 
                 mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
                 mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
-                mp_commandlist->set(target_rtv, target_dsv);
+                mp_commandlist->set_rtv(target_rtv, target_dsv);
 
                 mp_debug_renderer->render(mp_commandlist, scene, target);
             }
@@ -302,8 +301,8 @@ namespace influx::renderer
     void renderer_backend::draw_shadertoy(const scene_shadertoy& scene, const target& target)
     {
         graphics::resource* target_resource = target.get_resource();
-        graphics::render_target_view* target_rtv = target.get_rtv();
-        graphics::depth_stencil_view* target_dsv = target.get_dsv();
+        graphics::descriptor_handle target_rtv = target.get_rtv();
+        graphics::descriptor_handle target_dsv = target.get_dsv();
 
         influx_scope("renderer_backend::draw_shadertoy");
         {
@@ -321,7 +320,7 @@ namespace influx::renderer
 
                 mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
                 mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
-                mp_commandlist->set(target_rtv, target_dsv);
+                mp_commandlist->set_rtv(target_rtv, target_dsv);
 
                 mp_shadertoy_renderer->render(mp_commandlist, scene, target);
             }
@@ -362,8 +361,8 @@ namespace influx::renderer
         influx_scope("renderer_backend::clear_target");
 
         graphics::resource* target_resource = target.get_resource();
-        graphics::render_target_view* target_rtv = target.get_rtv();
-        graphics::depth_stencil_view* target_dsv = target.get_dsv();
+        graphics::descriptor_handle target_rtv = target.get_rtv();
+        graphics::descriptor_handle target_dsv = target.get_dsv();
 
         const uint32 target_width = target.get_width();
         const uint32 target_height = target.get_height();
@@ -378,7 +377,7 @@ namespace influx::renderer
                 if (target_rtv != nullptr)
                 {
                     // clear targets
-                    mp_commandlist->set(target_rtv, target_dsv);
+                    mp_commandlist->set_rtv(target_rtv, target_dsv);
                     mp_commandlist->clear_rtv(target_rtv, args.m_colour);
                 }
                 if (target_dsv != nullptr)

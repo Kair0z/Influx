@@ -49,11 +49,13 @@ namespace influx::graphics
 
 		virtual void set_vertexbuffer(resource* vertex_buffer) override;
 
-		virtual void clear_rtv(descriptor_handle cpu_handle, const math::vectorf4& clear) override;
-		
-		virtual void clear_rtv(render_target_view* view, const math::vectorf4& clear_value) override;
+		virtual void clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value) override;
 
-		virtual void clear_dsv(depth_stencil_view* view, float clear_depth, uint32 clear_stencil) override;
+		virtual void clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil) override;
+
+		virtual void set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu) override;
+
+		virtual void set_srv(descriptor_handle srv_gpu, uint32 param_idx) override;
 
 		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
 
@@ -73,10 +75,6 @@ namespace influx::graphics
 		virtual void copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& = {}) override;
 
 		virtual void set(descriptor_heap* heap) override;
-
-		virtual void set(render_target_view* rtv, depth_stencil_view* dsv) override;
-
-		virtual void set(shader_resource_view* srv, uint32 param_idx) override;
 
 		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) override;
 

@@ -29,7 +29,7 @@ namespace influx::renderer
 		mp_resource = device->create_resource(desc);
 
 		// create srv:
-		mp_srv = renderer_backend::get_descriptor_manager()->create_srv(mp_resource);
+		m_srv = renderer_backend::get_descriptor_manager()->create_srv(mp_resource);
 	}
 
 	graphics::resource* texture::get_resource() const
@@ -37,9 +37,9 @@ namespace influx::renderer
 		return mp_resource;
 	}
 
-	graphics::shader_resource_view* texture::get_srv() const
+	graphics::descriptor_handle texture::get_srv() const
 	{
-		return mp_srv;
+		return m_srv;
 	}
 
 	uint32 texture::get_width() const
@@ -64,9 +64,9 @@ namespace influx::renderer
 
 	void* texture::get_cpu_handle() const
 	{
-		if (mp_srv != nullptr)
+		if (m_srv != nullptr)
 		{
-			return mp_srv->get_cpu_handle();
+			return m_srv;
 		}
 		else
 		{

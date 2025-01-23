@@ -71,7 +71,7 @@ namespace influx::renderer
         mp_instancebuffer->set_name({ "scene_instance_buffer" });
 
         // create srv
-        mp_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
+        m_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
     }
 
     scene_renderer::~scene_renderer()
@@ -206,7 +206,7 @@ namespace influx::renderer
         // stage the instance buffer
         {
             graphics::descriptor_range gpu_range =
-                backend.get_descriptor_manager()->stage(mp_instance_buffer_srv->get_cpu_handle());
+                backend.get_descriptor_manager()->stage(m_instance_buffer_srv);
 
             // set the resource table
             mp_pipeline->set_resource_table(commandlist, "g_instancebuffer", gpu_range);
@@ -264,7 +264,7 @@ namespace influx::renderer
         mp_shadowspipeline->set_state(commandlist);
 
         // set shadowtarget dsv
-        commandlist->set(nullptr, mp_shadowstarget->get_dsv());
+        commandlist->set_rtv(nullptr, mp_shadowstarget->get_dsv());
 
         // push constants
         math::transform3D light_transform = scene.m_camera.m_transform;
