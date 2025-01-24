@@ -12,6 +12,14 @@
 
 namespace influx::graphics
 {
+	const bool g_mute = false;
+	#define renderpass_check(command) \
+		if (!is_renderpass_valid(command)) \
+		{ \
+			if (!g_mute) logwar("{} is not allowed inside a renderpass!", #command);\
+			return;\
+		}\
+		
 	dx12_commandlist::dx12_commandlist(ID3D12GraphicsCommandList* commandlist, ID3D12CommandAllocator* allocator)
 	{
 		mp_native = mpdx_commandlist = mpdx_graphics_commandlist = commandlist;
@@ -33,9 +41,14 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->Reset(mpdx_allocator, dxpipeline);
 	}
 
-	bool g_current_render_pass = true;
 	void dx12_commandlist::renderpass_begin(const renderpass_args& args)
 	{
+		if (!is_renderpass_valid(e_command::begin_renderpass))
+		{
+			if (!g_mute) logwar("renderpass_begin is not allowed inside a renderpass!");
+			return;
+		}
+
 		ID3D12GraphicsCommandList7* gfx_commandlist7 = nullptr;
 		HRESULT res = mpdx_graphics_commandlist->QueryInterface(&gfx_commandlist7);
 
@@ -44,29 +57,46 @@ namespace influx::graphics
 			vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rtvs{};
 			for (uint64 i = 0u; i < args.m_color_attachments.size(); ++i)
 			{
+				const auto& attachment = args.m_color_attachments[i];
 				rtvs.push_back({});
 				rtvs[i].cpuDescriptor.ptr = (SIZE_T)args.m_color_attachments[i].m_rtv_descriptor;
 				rtvs[i].BeginningAccess = translate(args.m_color_attachments[i].m_load);
 				rtvs[i].EndingAccess = translate(args.m_color_attachments[i].m_store);
 
-				// preserve
-				rtvs[i].BeginningAccess.PreserveLocal.AdditionalHeight = 0u;
-				rtvs[i].BeginningAccess.PreserveLocal.AdditionalWidth = 0u;
-				rtvs[i].EndingAccess.PreserveLocal.AdditionalHeight = 0u;
-				rtvs[i].EndingAccess.PreserveLocal.AdditionalWidth = 0u;
+				// load: preserve
+				if (attachment.m_load == e_load_op::preserve)
+				{
+					rtvs[i].BeginningAccess.PreserveLocal.AdditionalHeight = 0u;
+					rtvs[i].BeginningAccess.PreserveLocal.AdditionalWidth = 0u;
+				}
 				
-				// resolve
-				rtvs[i].EndingAccess.Resolve.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-				rtvs[i].EndingAccess.Resolve.pDstResource;
-				rtvs[i].EndingAccess.Resolve.PreserveResolveSource;
-				rtvs[i].EndingAccess.Resolve.pSrcResource;
-				rtvs[i].EndingAccess.Resolve.pSubresourceParameters;
-				rtvs[i].EndingAccess.Resolve.ResolveMode;
-				rtvs[i].EndingAccess.Resolve.SubresourceCount;
+				// load: clear
+				if (attachment.m_load == e_load_op::clear)
+				{
+					rtvs[i].BeginningAccess.Clear.ClearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+					memcpy(rtvs[i].BeginningAccess.Clear.ClearValue.Color, args.m_color_attachments[i].m_clear.m_data, sizeof(FLOAT[4]));
+				}
+				
+				// store: resolve
+				if (attachment.m_store == e_store_op::resolve)
+				{
+					const auto& resolve = attachment.m_resolve;
+					rtvs[i].EndingAccess.Resolve.Format = translate(resolve.m_format);
+					rtvs[i].EndingAccess.Resolve.pSrcResource = resolve.m_source->get_native<ID3D12Resource>();
+					rtvs[i].EndingAccess.Resolve.pDstResource = resolve.m_dest->get_native<ID3D12Resource>();
+					rtvs[i].EndingAccess.Resolve.PreserveResolveSource = resolve.m_keep_source;
+					rtvs[i].EndingAccess.Resolve.pSubresourceParameters;
+					rtvs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_MIN;
+					rtvs[i].EndingAccess.Resolve.pSubresourceParameters;
+					rtvs[i].EndingAccess.Resolve.SubresourceCount = 0u;
+				}
 
-				// clear
-				rtvs[i].BeginningAccess.Clear.ClearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-				memcpy(rtvs[i].BeginningAccess.Clear.ClearValue.Color, args.m_color_attachments[i].m_clear.m_data, sizeof(FLOAT[4]));
+				// store : preserve
+				if (attachment.m_store == e_store_op::preserve)
+				{
+					rtvs[i].EndingAccess.PreserveLocal.AdditionalHeight = 0u;
+					rtvs[i].EndingAccess.PreserveLocal.AdditionalWidth = 0u;
+				}
 			}
 
 			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsv = nullptr;
@@ -87,7 +117,7 @@ namespace influx::graphics
 			D3D12_RENDER_PASS_FLAGS flags = translate(args.m_flags);
 			gfx_commandlist7->BeginRenderPass((uint32)rtvs.size(), rtvs.data(), dsv, flags);
 
-			g_current_render_pass = true;
+			m_is_in_renderpass = true;
 		}
 		else
 		{
@@ -100,15 +130,17 @@ namespace influx::graphics
 	{
 		ID3D12GraphicsCommandList7* gfx_commandlist7 = nullptr;
 		HRESULT res = mpdx_graphics_commandlist->QueryInterface(&gfx_commandlist7);
-		if (g_current_render_pass && res == S_OK && gfx_commandlist7 != nullptr)
+		if (is_in_renderpass() && res == S_OK && gfx_commandlist7 != nullptr)
 		{
 			gfx_commandlist7->EndRenderPass();
-			g_current_render_pass = false;
+			m_is_in_renderpass = false;
 		}
 	}
 
 	void dx12_commandlist::draw_instanced(const draw_instanced_args& args)
 	{
+		renderpass_check(e_command::draw_any);
+
 		mpdx_graphics_commandlist->DrawInstanced(
 			args.m_num_vertices_per_instance,
 			args.m_num_instances,
@@ -118,6 +150,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::draw_indexed(const draw_indexed_args& args)
 	{
+		renderpass_check(e_command::draw_any);
+
 		mpdx_graphics_commandlist->DrawIndexedInstanced(
 			args.m_num_indexes_per_instance,
 			args.m_num_instances,
@@ -128,6 +162,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::set_constants(uint32 param_index, uint32 num_dwords, void* source_data)
 	{
+		renderpass_check(e_command::set_root_constants);
+
 		mpdx_graphics_commandlist->SetGraphicsRoot32BitConstants(
 			param_index,
 			num_dwords,
@@ -136,18 +172,22 @@ namespace influx::graphics
 
 	void dx12_commandlist::set_indexbuffer(resource* index_buffer)
 	{
+		renderpass_check(e_command::set_indexbuffer);
+
 		auto dxresource = index_buffer->get_native<ID3D12Resource>();
 
 		D3D12_INDEX_BUFFER_VIEW ib_view{};
 		ib_view.BufferLocation = dxresource->GetGPUVirtualAddress();
 		ib_view.SizeInBytes = (uint32)index_buffer->get_bytesize();
-		ib_view.Format = convert(index_buffer->get_format());
+		ib_view.Format = translate(index_buffer->get_format());
 
 		mpdx_graphics_commandlist->IASetIndexBuffer(&ib_view);
 	}
 
 	void dx12_commandlist::set_vertexbuffer(resource* vertex_buffer)
 	{
+		renderpass_check(e_command::set_vertexbuffer);
+
 		auto dxresource = vertex_buffer->get_native<ID3D12Resource>();
 
 		D3D12_VERTEX_BUFFER_VIEW vb_view{};
@@ -160,6 +200,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value)
 	{
+		renderpass_check(e_command::clear_rtv);
+
 		D3D12_CPU_DESCRIPTOR_HANDLE dx12_handle{};
 		dx12_handle.ptr = (SIZE_T)rtv_cpu;
 		mpdx_graphics_commandlist->ClearRenderTargetView(dx12_handle, clear_value.data(), 0u, nullptr);
@@ -167,6 +209,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil)
 	{
+		renderpass_check(e_command::clear_dsv);
+
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
 		cpu_handle.ptr = (SIZE_T)dsv_cpu;
 		mpdx_graphics_commandlist->ClearDepthStencilView(cpu_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, clear_depth, clear_stencil, 0u, nullptr);
@@ -174,6 +218,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu)
 	{
+		renderpass_check(e_command::set_rtv);
+
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle{ .ptr = (SIZE_T)rtv_cpu  };
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle{ .ptr = (SIZE_T)dsv_cpu  };
 
@@ -182,19 +228,25 @@ namespace influx::graphics
 
 	void dx12_commandlist::set_srv(descriptor_handle srv_gpu, uint32 param_idx)
 	{
+		renderpass_check(e_command::set_srv);
+
 		D3D12_GPU_DESCRIPTOR_HANDLE srv_gpu_handle{ .ptr = (SIZE_T)srv_gpu };
 		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, srv_gpu_handle);
 	}
 
 	void dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)
 	{
+		renderpass_check(e_command::barrier_transition);
+
 		auto dxresource = resource->get_native<ID3D12Resource>();
-		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(dxresource, convert(before), convert(after));
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(dxresource, translate(before), translate(after));
 		mpdx_graphics_commandlist->ResourceBarrier(1u, &barrier);
 	}
 
 	void dx12_commandlist::buffer_barrier(resource* resource, e_resource_state before, e_resource_state after)
 	{
+		renderpass_check(e_command::barrier_any);
+
 		D3D12_BUFFER_BARRIER barrier{};
 		barrier.SyncBefore = get_barrier_sync(before);
 		barrier.SyncAfter = get_barrier_sync(after);
@@ -208,6 +260,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::texture_barrier(resource* resource, e_resource_state before, e_resource_state after)
 	{
+		renderpass_check(e_command::barrier_any);
+
 		D3D12_TEXTURE_BARRIER barrier{};
 		barrier.SyncBefore = get_barrier_sync(before);
 		barrier.SyncAfter= get_barrier_sync(after);
@@ -223,6 +277,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::global_barrier(e_resource_state before, e_resource_state after)
 	{
+		renderpass_check(e_command::barrier_any);
+
 		D3D12_GLOBAL_BARRIER barrier{};
 		barrier.SyncBefore = get_barrier_sync(before);
 		barrier.SyncAfter = get_barrier_sync(after);
@@ -270,6 +326,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::copy_resource(resource* source, resource* dest)
 	{
+		renderpass_check(e_command::copy_resource);
+
 		auto dxsource = source->get_native<ID3D12Resource>();
 		auto dxdest = dest->get_native<ID3D12Resource>();
 
@@ -279,13 +337,15 @@ namespace influx::graphics
 	void dx12_commandlist::copy_texture(resource* src, resource* dest, 
 		const copy_texture_args& args)
 	{
+		// renderpass_check(e_command::copy_texture);
+
 		CD3DX12_TEXTURE_COPY_LOCATION src_loc{ src->get_native<ID3D12Resource>() };
 		src_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		src_loc.PlacedFootprint.Offset = 0;
 		src_loc.PlacedFootprint.Footprint.Width = dest->get_width();
 		src_loc.PlacedFootprint.Footprint.Height = dest->get_height();
 		src_loc.PlacedFootprint.Footprint.Depth = 1;
-		src_loc.PlacedFootprint.Footprint.Format = convert(dest->get_format());
+		src_loc.PlacedFootprint.Footprint.Format = translate(dest->get_format());
 		src_loc.PlacedFootprint.Footprint.RowPitch = dest->get_width() * (uint32)dest->get_bytestride();
 
 		CD3DX12_TEXTURE_COPY_LOCATION dest_loc{ dest->get_native<ID3D12Resource>() };
@@ -305,6 +365,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& args)
 	{
+		renderpass_check(e_command::copy_buffer);
+
 		mpdx_graphics_commandlist->CopyBufferRegion(
 			dest->get_native<ID3D12Resource>(), args.m_dest_offset,
 			src->get_native<ID3D12Resource>(), args.m_src_offset,
@@ -313,6 +375,8 @@ namespace influx::graphics
 
 	void dx12_commandlist::set(descriptor_heap* heap)
 	{
+		renderpass_check(e_command::set_descriptor_heap);
+
 		auto dxheap = heap->get_native<ID3D12DescriptorHeap>();
 		mpdx_graphics_commandlist->SetDescriptorHeaps(1u, &dxheap);
 	}
@@ -360,7 +424,7 @@ namespace influx::graphics
 
 	void dx12_commandlist::set(e_primitive_topology topo)
 	{
-		mpdx_graphics_commandlist->IASetPrimitiveTopology(convert(topo));
+		mpdx_graphics_commandlist->IASetPrimitiveTopology(translate(topo));
 	}
 
 	void dx12_commandlist::end()
@@ -385,5 +449,20 @@ namespace influx::graphics
 		influx_assert(dxdevice);
 		dxdevice->free_allocator(D3D12_COMMAND_LIST_TYPE_DIRECT, mpdx_allocator);
 		mpdx_allocator = nullptr;
+	}
+
+	bool dx12_commandlist::is_in_renderpass() const
+	{
+		return m_is_in_renderpass;
+	}
+
+	bool dx12_commandlist::is_renderpass_valid(e_command command) const
+	{
+		if (is_in_renderpass())
+		{
+			return is_allowed_in_renderpass(command);
+		}
+
+		return true;
 	}
 }

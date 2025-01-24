@@ -13,6 +13,41 @@
 
 namespace influx::graphics
 {
+	enum class e_command : uint32
+	{
+		none,
+		draw_any,
+
+		set_rtv,
+		set_srv,
+		set_descriptor_heap,
+		set_root_constants,
+		set_indexbuffer,
+		set_vertexbuffer,
+
+		clear_dsv,
+		clear_rtv,
+		clear_state,
+		clear_uav,
+
+		copy_any,
+		copy_buffer,
+		copy_resource,
+		copy_texture,
+		copy_tiles,
+		atomic_copy_buffer,
+
+		discard,
+		dispatch,
+		
+		barrier_any,
+		barrier_transition,
+
+		resolve_any,
+		begin_renderpass,
+		count
+	};
+
 	enum class e_resource_state : uint32
 	{
 		none			= 0 << 0,
@@ -36,6 +71,8 @@ namespace influx::graphics
 		as_read			= 1 << 17,
 		as_write		= 1 << 18,
 		discard			= 1 << 19,
+		resolve_dst		= 1 << 20,
+		resolve_src		= 1 << 21,
 
 		all_vs = vs_srv | vs_uav,
 		all_ps = ps_srv | ps_uav,
@@ -294,5 +331,6 @@ namespace influx::graphics
 	};
 }
 
+ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_command);
 ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_resource_state);
 ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_bind_flags);

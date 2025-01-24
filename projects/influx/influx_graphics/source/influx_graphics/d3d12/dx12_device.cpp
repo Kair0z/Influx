@@ -192,7 +192,7 @@ namespace influx::graphics
 		}
 
 		auto dxcommandqueue = dx12helpers::create_queue(
-			mpdx_devices[0u], convert(desc.m_type), priority);
+			mpdx_devices[0u], translate(desc.m_type), priority);
 
 		return new_child<dx12_queue, queue>(desc, dxcommandqueue);
 	}
@@ -207,7 +207,7 @@ namespace influx::graphics
 		// create dx swapchain
 		IDXGISwapChain4* dxswapchain = dx12helpers::create_swapchain<IDXGISwapChain4>(
 			mpdxgi_factory, queue->get_native<ID3D12CommandQueue>(),
-			(::HWND)window.get_platform_handle(), width, height, convert(format), desc.m_num_buffers);
+			(::HWND)window.get_platform_handle(), width, height, translate(format), desc.m_num_buffers);
 
 		swapchain_desc desc_copy = desc;
 		desc_copy.m_dimensions.x = width;
@@ -220,7 +220,7 @@ namespace influx::graphics
 
 	ptr<descriptor_heap> dx12_device::create_descriptor_heap(const descriptor_heap::create_args& args)
 	{
-		auto dxheap = dx12helpers::create_descriptor_heap(mpdx_devices[0u], convert(args.m_type), args.m_capacity, args.m_shader_visible);
+		auto dxheap = dx12helpers::create_descriptor_heap(mpdx_devices[0u], translate(args.m_type), args.m_capacity, args.m_shader_visible);
 		return new_child<dx12_descriptor_heap, descriptor_heap>(args, dxheap, get_descriptor_stride(args.m_type));
 	}
 
@@ -277,13 +277,13 @@ namespace influx::graphics
 	ptr<resource> dx12_device::create_resource(const tex2D_desc& desc, const heap_desc& heap_desc)
 	{
 		auto dxresource = dx12helpers::create_tex2d_resource<ID3D12Resource>(mpdx_devices[0u],
-			convert(heap_desc.m_type),
-			convert(desc.m_format), 
+			translate(heap_desc.m_type),
+			translate(desc.m_format), 
 			desc.m_dimensions.x, desc.m_dimensions.y, 
 			desc.m_arraysize, desc.m_num_mips,
 			desc.m_sample_count, 
-			convert(desc.m_flags), 
-			convert(desc.m_init_state));
+			translate(desc.m_flags), 
+			translate(desc.m_init_state));
 
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
@@ -291,10 +291,10 @@ namespace influx::graphics
 	ptr<resource> dx12_device::create_resource(const buffer_desc& desc, const heap_desc& heap_desc)
 	{
 		auto dxresource = dx12helpers::create_buffer_resource<ID3D12Resource>(mpdx_devices[0], 
-			convert(heap_desc.m_type),
+			translate(heap_desc.m_type),
 			desc.m_bytesize, 
-			convert(desc.m_flags), 
-			convert(desc.m_init_state));
+			translate(desc.m_flags), 
+			translate(desc.m_init_state));
 
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
@@ -316,13 +316,13 @@ namespace influx::graphics
 		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor = { .ptr = (SIZE_T)cpu_handle };
 
 		ID3D12Resource* dxresource = resource->get_native<ID3D12Resource>();
-		dx12helpers::create_rtv(mpdx_devices[0u], dxresource, dxdescriptor, convert(resource->get_format()));
+		dx12helpers::create_rtv(mpdx_devices[0u], dxresource, dxdescriptor, translate(resource->get_format()));
 	}
 	void dx12_device::create_dsv(descriptor_handle cpu_handle, resource* resource)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE dxdesc = { .ptr = (SIZE_T)cpu_handle };
 		ID3D12Resource* dxresource = resource->get_native<ID3D12Resource>();
-		auto dx_dsv = dx12helpers::create_dsv(mpdx_devices[0u], dxresource, dxdesc, convert(resource->get_format()));
+		auto dx_dsv = dx12helpers::create_dsv(mpdx_devices[0u], dxresource, dxdesc, translate(resource->get_format()));
 	}
 	void dx12_device::create_buffer_srv(descriptor_handle cpu_handle, resource* resource)
 	{
@@ -356,7 +356,7 @@ namespace influx::graphics
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
 		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srv_desc.Format = convert(resource->get_format());
+		srv_desc.Format = translate(resource->get_format());
 		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srv_desc.Texture2D.MipLevels = 1;
 
@@ -400,7 +400,7 @@ namespace influx::graphics
 
 			root_parameters.push_back({});
 			root_parameters.back().InitAsConstants(constants.m_num_dwords, constants.m_common.m_shader_register, 
-				constants.m_common.m_register_space, convert(constants.m_common.m_visibility));
+				constants.m_common.m_register_space, translate(constants.m_common.m_visibility));
 		}
 
 		// resources
@@ -416,7 +416,7 @@ namespace influx::graphics
 					resource.m_common.m_shader_register,
 					resource.m_common.m_register_space,
 					D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
-					convert(resource.m_common.m_visibility));
+					translate(resource.m_common.m_visibility));
 				break;
 
 			case root_param_resource::e_type::cbv:
@@ -424,7 +424,7 @@ namespace influx::graphics
 					resource.m_common.m_shader_register,
 					resource.m_common.m_register_space,
 					D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
-					convert(resource.m_common.m_visibility));
+					translate(resource.m_common.m_visibility));
 				break;
 
 			case root_param_resource::e_type::uav:
@@ -432,7 +432,7 @@ namespace influx::graphics
 					resource.m_common.m_shader_register,
 					resource.m_common.m_register_space,
 					D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
-					convert(resource.m_common.m_visibility));
+					translate(resource.m_common.m_visibility));
 				break;
 			}
 		}
@@ -464,7 +464,7 @@ namespace influx::graphics
 			}
 
 			root_parameters.push_back({});
-			root_parameters.back().InitAsDescriptorTable((uint32)ranges.size(), ranges.data(), convert(tables.m_common.m_visibility));
+			root_parameters.back().InitAsDescriptorTable((uint32)ranges.size(), ranges.data(), translate(tables.m_common.m_visibility));
 		}
 
 		// samplers
@@ -473,17 +473,17 @@ namespace influx::graphics
 			static_samplers.push_back({});
 			static_samplers.back().Init(
 				sampler.m_common.m_shader_register,
-				convert(sampler.m_filter),
-				convert(sampler.m_wrap_u),
-				convert(sampler.m_wrap_v),
-				convert(sampler.m_wrap_w),
+				translate(sampler.m_filter),
+				translate(sampler.m_wrap_u),
+				translate(sampler.m_wrap_v),
+				translate(sampler.m_wrap_w),
 				sampler.m_mip_lod_bias,
 				sampler.m_max_anisotropy,
-				convert(sampler.m_comparison_func),
-				convert(sampler.m_border_color),
+				translate(sampler.m_comparison_func),
+				translate(sampler.m_border_color),
 				sampler.m_min_lod,
 				sampler.m_max_lod,
-				convert(sampler.m_common.m_visibility));
+				translate(sampler.m_common.m_visibility));
 		}
 
 		// initialize the desc, and create the root signature
@@ -517,7 +517,7 @@ namespace influx::graphics
 		{
 			input_elements.push_back({});
 			input_elements.back().AlignedByteOffset = element.m_aligned_byteoffset;
-			input_elements.back().Format = convert(element.m_format);
+			input_elements.back().Format = translate(element.m_format);
 			input_elements.back().InputSlot = element.m_input_slot;
 			input_elements.back().InputSlotClass = element.m_is_per_instance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 			input_elements.back().InstanceDataStepRate = element.m_instance_data_steprate;
@@ -531,13 +531,13 @@ namespace influx::graphics
 		CD3DX12_DEPTH_STENCIL_DESC depth_stencil_desc(D3D12_DEFAULT);
 		depth_stencil_desc.DepthEnable = desc.m_depth_stencil.m_depth_enable;
 		depth_stencil_desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		depth_stencil_desc.DepthFunc = convert(desc.m_depth_stencil.m_depth_func);
+		depth_stencil_desc.DepthFunc = translate(desc.m_depth_stencil.m_depth_func);
 		depth_stencil_desc.StencilEnable = desc.m_depth_stencil.m_stencil_enable;
 
 		// rasterizer
 		CD3DX12_RASTERIZER_DESC rasterizer_desc(D3D12_DEFAULT);
-		rasterizer_desc.CullMode = convert(desc.m_rasterizer.m_cullmode);
-		rasterizer_desc.FillMode = convert(desc.m_rasterizer.m_fillmode);
+		rasterizer_desc.CullMode = translate(desc.m_rasterizer.m_cullmode);
+		rasterizer_desc.FillMode = translate(desc.m_rasterizer.m_fillmode);
 		rasterizer_desc.MultisampleEnable = desc.m_rasterizer.m_multisample;
 		rasterizer_desc.FrontCounterClockwise = desc.m_rasterizer.m_front_ccw;
 		rasterizer_desc.DepthBias = desc.m_rasterizer.m_depth_bias;
@@ -553,12 +553,12 @@ namespace influx::graphics
 		for (size_t i = 0u; i < k_max_render_targets; ++i)
 		{
 			blend_desc.RenderTarget[i].BlendEnable		= desc.m_blends[i].m_enabled;
-			blend_desc.RenderTarget[i].SrcBlend			= convert(desc.m_blends[i].m_src);
-			blend_desc.RenderTarget[i].DestBlend		= convert(desc.m_blends[i].m_dest);
-			blend_desc.RenderTarget[i].BlendOp			= convert(desc.m_blends[i].m_op);
-			blend_desc.RenderTarget[i].SrcBlendAlpha	= convert(desc.m_blends[i].m_srcalpha);
-			blend_desc.RenderTarget[i].DestBlendAlpha	= convert(desc.m_blends[i].m_destalpha);
-			blend_desc.RenderTarget[i].BlendOpAlpha		= convert(desc.m_blends[i].m_op_alpha);
+			blend_desc.RenderTarget[i].SrcBlend			= translate(desc.m_blends[i].m_src);
+			blend_desc.RenderTarget[i].DestBlend		= translate(desc.m_blends[i].m_dest);
+			blend_desc.RenderTarget[i].BlendOp			= translate(desc.m_blends[i].m_op);
+			blend_desc.RenderTarget[i].SrcBlendAlpha	= translate(desc.m_blends[i].m_srcalpha);
+			blend_desc.RenderTarget[i].DestBlendAlpha	= translate(desc.m_blends[i].m_destalpha);
+			blend_desc.RenderTarget[i].BlendOpAlpha		= translate(desc.m_blends[i].m_op_alpha);
 			blend_desc.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL; // desc.m_blends[i].m_write_mask;
 		}
 
@@ -571,16 +571,16 @@ namespace influx::graphics
 		pso_desc.BlendState = blend_desc;
 		pso_desc.DepthStencilState = depth_stencil_desc;
 		pso_desc.SampleMask = desc.m_sample_mask;
-		pso_desc.PrimitiveTopologyType = convert(desc.m_prim_type);
+		pso_desc.PrimitiveTopologyType = translate(desc.m_prim_type);
 		pso_desc;
-		pso_desc.DSVFormat = convert(desc.m_format_dsv);
+		pso_desc.DSVFormat = translate(desc.m_format_dsv);
 		pso_desc.SampleDesc.Count = desc.m_sample_count;
 
 		// rtvs
 		for (size_t i = 0u; i < k_max_render_targets; ++i)
 		{
 			pso_desc.NumRenderTargets++;
-			pso_desc.RTVFormats[i] = convert(desc.m_rtvs[i].m_format);
+			pso_desc.RTVFormats[i] = translate(desc.m_rtvs[i].m_format);
 			pso_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 		}
 
@@ -601,7 +601,7 @@ namespace influx::graphics
 			source.m_num_descriptors,
 			dest_start,
 			source_start,
-			convert(heap_type));
+			translate(heap_type));
 	}
 
 	void* dx12_device::get_native()

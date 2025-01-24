@@ -20,6 +20,11 @@ namespace influx::rendergraph
 		return static_cast<uint32>(m_buffer_writes.size() + m_texture_writes.size());
 	}
 
+	void rgpass::set_name(const rgname& name)
+	{
+		m_name = name;
+	}
+
 	rgpass::rgpass(const rgpass_builder_clb& builder_clb, const rgpass_process_clb& process_clb, e_rgpass_type type, e_rgpass_flags flags)
 		: m_process_clb{ process_clb }
 		, m_builder_clb{ builder_clb }
@@ -67,6 +72,11 @@ namespace influx::rendergraph
 	e_rgpass_type rgpass::get_type() const
 	{
 		return m_type;
+	}
+
+	bool rgpass::depends_on(const rgpass& other) const
+	{
+		return has_dependency(other, *this);
 	}
 
 	bool rgpass::has_dependency(const rgpass& a, const rgpass& b)

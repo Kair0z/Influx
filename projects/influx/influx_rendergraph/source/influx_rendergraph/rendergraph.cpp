@@ -277,12 +277,7 @@ namespace influx::rendergraph
 						continue;
 					}
 
-					rgpass_context context
-					{
-						*this,
-						*commandlist
-					};
-
+					rgpass_context context {*this, *commandlist};
 					if (pass.get_type() == e_rgpass_type::graphics)
 					{
 						graphics::renderpass_args args{};
@@ -294,12 +289,40 @@ namespace influx::rendergraph
 						for (const auto& rtv : pass.m_rtvs)
 						{
 							args.m_color_attachments.push_back({});
-							auto& color_attachment = args.m_color_attachments.back();
+							auto& attachment = args.m_color_attachments.back();
 
-							color_attachment.m_load = translate(rtv.m_access.m_load);
-							color_attachment.m_store = translate(rtv.m_access.m_store);
-							color_attachment.m_rtv_descriptor = get_rtv(rtv.m_texture_id);
-							color_attachment.m_clear = {};
+							attachment.m_load = translate(rtv.m_access.m_load);
+							attachment.m_store = translate(rtv.m_access.m_store);
+							attachment.m_rtv_descriptor = get_rtv(rtv.m_texture_id);
+
+							// load: preserve
+							if (rtv.m_access.m_load == e_rg_load::preserve)
+							{
+							}
+
+							// load: clear
+							if (rtv.m_access.m_load == e_rg_load::clear)
+							{
+								memcpy(attachment.m_clear.m_data, rtv.m_access.m_load_clear.m_colour.m_data, sizeof(FLOAT[4]));
+							}
+
+							// store: resolve
+							if (rtv.m_access.m_store == e_rg_store::resolve)
+							{
+								auto resolve_source_texture = get_texture(rtv.m_access.m_store_resolve.m_source_texture);
+								auto resolve_dest_texture = get_texture(rtv.m_access.m_store_resolve.m_dest_texture);
+
+								auto& resolve = attachment.m_resolve;
+								resolve.m_format = rtv.m_access.m_store_resolve.m_dest_format;
+								resolve.m_source = resolve_source_texture->m_resource;
+								resolve.m_dest = resolve_dest_texture->m_resource;
+								resolve.m_keep_source = rtv.m_access.m_store_resolve.m_keep_source;
+							}
+
+							// store : preserve
+							if (rtv.m_access.m_store == e_rg_store::preserve)
+							{
+							}
 						}
 
 						auto& depth_attachment = args.m_depth_attachment;
@@ -313,7 +336,7 @@ namespace influx::rendergraph
 							depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
 							depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
 							depth_attachment.m_depth_clear = 1.0f;
-							depth_attachment.m_stencil_clear = 0.0f;
+							depth_attachment.m_stencil_clear = 0u;
 						}
 
 						influx_scope("renderpass");
@@ -345,11 +368,11 @@ namespace influx::rendergraph
 		}
 	}
 
-	rgpass* rendergraph::add_pass(
+	rgpass* rendergraph::add_pass( e_rgpass_type type,
 		const rgpass_builder_clb& builder_clb,
 		const rgpass_process_clb& process_clb)
 	{
-		m_passes.emplace_back(rgpass(builder_clb, process_clb));
+		m_passes.emplace_back(rgpass(builder_clb, process_clb, type));
 		rgpass& new_pass = m_passes.back();
 
 		rgpass_id new_id = m_passes.size() - 1u;
@@ -364,31 +387,79 @@ namespace influx::rendergraph
 		return &new_pass;
 	}
 
+	rgpass* rendergraph::add_copypass(graphics::resource* source, graphics::resource* dest, bool keep_source)
+	{
+		import_texture(dest->get_name().get(), dest);
+		import_texture(source->get_name().get(), source);
+
+		static rgtex_copysrc_id src_tex_id{};
+		static rgtex_copydst_id dst_tex_id{};
+		auto* pass = add_pass( e_rgpass_type::compute,
+			[&source, &dest, keep_source](rgpass_builder& builder)
+			{
+				src_tex_id = builder.read_copysrc_texture(source->get_name().get());
+				dst_tex_id = builder.write_copydst_texture(dest->get_name().get());
+			},
+			[](rgpass_context& context) 
+			{
+				graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
+				graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+				context.get_commandlist().copy_resource(src_resource, dst_resource);
+			});
+
+		pass->set_name(RGNAME("copy"));
+		return pass;
+	}
+
+	rgpass* rendergraph::add_clear_pass(graphics::resource* dest)
+	{
+		import_texture(dest->get_name().get(), dest);
+
+		auto* pass = add_pass(e_rgpass_type::graphics,
+			[dest](rgpass_builder& builder)
+			{
+				rgaccess access{};
+				access.m_load = e_rg_load::clear;
+				access.m_store = e_rg_store::preserve;
+				builder.write_rendertarget(dest->get_name().get(), access);
+			},
+			[](rgpass_context& context) {});
+
+		pass->set_name(RGNAME("clear"));
+		return pass;
+	}
+
 	void rendergraph::import_texture(const rgname& name, graphics::resource* resource)
 	{
-		rgtexture* new_texture = new rgtexture();
-		rgtexture_id new_id = m_textures.size();
-		new_texture->m_desc = get_desc_from_resource(*resource);
-		new_texture->m_id = new_id;
-		new_texture->m_resource = resource;
-		new_texture->m_is_imported = true;
-		m_textures.emplace_back(new_texture);
-		m_texture_name_to_id_map[name] = new_id;
-		m_id_to_texture_map[new_id] = m_textures.back();
+		if (m_texture_name_to_id_map.contains(name) == false)
+		{
+			rgtexture* new_texture = new rgtexture();
+			rgtexture_id new_id = m_textures.size();
+			new_texture->m_desc = get_desc_from_resource(*resource);
+			new_texture->m_id = new_id;
+			new_texture->m_resource = resource;
+			new_texture->m_is_imported = true;
+			m_textures.emplace_back(new_texture);
+			m_texture_name_to_id_map[name] = new_id;
+			m_id_to_texture_map[new_id] = m_textures.back();
+		}
 	}
 
 	void rendergraph::import_buffer(const rgname& name, graphics::resource* resource)
 	{
-		buffer_desc desc{};
-		rgbuffer* new_buffer = new rgbuffer();
-		rgbuffer_id new_id = m_buffers.size();
-		new_buffer->m_desc = desc;
-		new_buffer->m_id = new_id;
-		new_buffer->m_is_imported = true;
-		new_buffer->m_resource = resource;
-		m_buffers.emplace_back(new_buffer);
-		m_buffer_name_to_id_map[name] = new_id;
-		m_id_to_buffer_map[new_id] = m_buffers.back();
+		if (m_buffer_name_to_id_map.contains(name) == false)
+		{
+			buffer_desc desc{};
+			rgbuffer* new_buffer = new rgbuffer();
+			rgbuffer_id new_id = m_buffers.size();
+			new_buffer->m_desc = desc;
+			new_buffer->m_id = new_id;
+			new_buffer->m_is_imported = true;
+			new_buffer->m_resource = resource;
+			m_buffers.emplace_back(new_buffer);
+			m_buffer_name_to_id_map[name] = new_id;
+			m_id_to_buffer_map[new_id] = m_buffers.back();
+		}
 	}
 
 	void rendergraph::create_texture_views(rgtexture_id id)
@@ -434,13 +505,13 @@ namespace influx::rendergraph
 		m_adjacency_lists.resize(m_passes.size());
 		for (uint64 i = 0u; i < m_passes.size(); ++i)
 		{
-			rgpass& pass = m_passes[i];
+			const rgpass& pass = m_passes[i];
 			vector<uint64>& pass_adj_list = m_adjacency_lists[i];
 
 			for (uint64 j = i + 1U; j < m_passes.size(); ++j)
 			{
-				rgpass& other_pass = m_passes[j];
-				if (rgpass::has_dependency(pass, other_pass))
+				const rgpass& other_pass = m_passes[j];
+				if (other_pass.depends_on(pass))
 				{
 					pass_adj_list.push_back(j);
 					break;

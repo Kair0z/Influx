@@ -195,3 +195,4 @@ namespace influx::graphics
 		debug_name m_name;
 	};
 }
+

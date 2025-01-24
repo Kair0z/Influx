@@ -45,6 +45,16 @@ namespace influx::graphics
         e_load_op m_load;
         e_store_op m_store;
         math::colour_rgba m_clear = {};
+
+        struct resolve_params final
+        {
+            e_format m_format;
+            resource* m_source;
+            resource* m_dest;
+            bool m_keep_source = false;
+            // todo... subresources
+            // todo... D3D12_RESOLVE_MODE
+        } m_resolve{};
     };
 
     struct depth_attachment final
@@ -52,12 +62,13 @@ namespace influx::graphics
         descriptor_handle m_dsv_descriptor;
 
         e_load_op m_depth_load;
-        e_load_op m_stencil_load = e_load_op::no_access;
         e_store_op m_depth_store;
-        e_store_op m_stencil_store = e_store_op::no_access;
-        
         float m_depth_clear = 0.0f;
+
+        e_load_op m_stencil_load = e_load_op::no_access;
+        e_store_op m_stencil_store = e_store_op::no_access;
         uint8 m_stencil_clear = 0u;
+
         bool m_is_enabled = false;
     };
 

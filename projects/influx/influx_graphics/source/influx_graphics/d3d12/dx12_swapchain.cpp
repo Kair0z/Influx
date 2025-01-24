@@ -70,7 +70,7 @@ namespace influx::graphics
 			get_num_backbuffers(),
 			new_dim.x,
 			new_dim.y,
-			convert(get_format()),
+			translate(get_format()),
 			0u // flags
 			);
 

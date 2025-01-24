@@ -81,9 +81,13 @@ namespace influx::rendergraph
 		INFLUX_RG_API void execute(graphics::commandlist* commandlist);
 
 		// adds a node outputting to root
-		INFLUX_RG_API rgpass* add_pass(
+		INFLUX_RG_API rgpass* add_pass(e_rgpass_type type,
 			const rgpass_builder_clb& builder_clb,
 			const rgpass_process_clb& context_clb);
+
+		// simple add_pass that resolves source into dest
+		INFLUX_RG_API rgpass* add_copypass(graphics::resource* source, graphics::resource* dest, bool keep_source);
+		INFLUX_RG_API rgpass* add_clear_pass(graphics::resource* dest);
 
 		// in/out resources
 		INFLUX_RG_API void import_texture(const rgname& name, graphics::resource* resource);

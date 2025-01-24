@@ -296,16 +296,13 @@ namespace influx::engine
 		mp_scene_target->resize(*mp_window_target);
 
 		renderer::start_frame();
-
 		renderer::clear_target(*mp_scene_target, {});
 
-		// scene draw
 		if (scene.is_empty() == false)
 		{
 			renderer::draw_scene(scene, *mp_scene_target);
 		}
 
-		// shader toy render
 		shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");
 		if (editor.can_render())
 		{
@@ -324,13 +321,11 @@ namespace influx::engine
 			renderer::draw_shadertoy(shadertoy, *mp_scene_target);
 		}
 
-		// 3. debug render
 		if (debug.is_empty() == false && get_render_debug())
 		{
 			renderer::draw_debug(debug, *mp_scene_target);
 		}
 
-		// 4. imgui render
 		if (imgui.is_empty() == false)
 		{
 			ImGui::NewFrame();
@@ -340,9 +335,7 @@ namespace influx::engine
 			renderer::draw_imgui(ImGui::GetDrawData(), *mp_scene_target);
 		}
 
-		// 5. copy scene-target into window
 		influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
-
 		influx::renderer::end_frame();
 	}
 

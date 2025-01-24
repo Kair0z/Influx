@@ -26,8 +26,8 @@ namespace influx::rendergraph
 		INFLUX_RG_API rgbuf_copysrc_id read_copysrc_buffer(const rgname& name);
 		INFLUX_RG_API rgbuf_copydst_id write_copydst_buffer(const rgname& name);
 
-		INFLUX_RG_API rgbuf_indargs_id	read_indirect_args_buffer(const rgname& name);
-		INFLUX_RG_API rgbuf_index_id		read_index_buffer(const rgname&);
+		INFLUX_RG_API rgbuf_indargs_id read_indirect_args_buffer(const rgname& name);
+		INFLUX_RG_API rgbuf_index_id read_index_buffer(const rgname&);
 
 		INFLUX_RG_API
 		rgtexture_readonly_id read_texture(const rgname& name, rgread_access read_acc = rgread_access::all_shader,
@@ -66,6 +66,9 @@ namespace influx::rendergraph
 		
 		INFLUX_RG_API
 		buffer_desc get_buffer_desc(const rgname& name) const;
+
+		INFLUX_RG_API rgtexture_id get_texture_id(const rgname& name) const;
+		INFLUX_RG_API rgbuffer_id get_buffer_id(const rgname& name) const;
 
 	private:
 		friend class rendergraph;

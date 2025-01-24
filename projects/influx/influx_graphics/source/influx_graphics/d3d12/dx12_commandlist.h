@@ -94,7 +94,35 @@ namespace influx::graphics
 
 		void free_allocator(dx12_device*);
 
-	private:
+		bool is_in_renderpass() const;
 
+	private:
+		bool m_is_in_renderpass = false;
+
+		bool is_renderpass_valid(e_command command) const;
+
+		// https://learn.microsoft.com/en-us/windows/win32/direct3d12/direct3d-12-render-passes
+		// renderpasses prohibit any of these commands to be called.
+		inline constexpr static bool is_allowed_in_renderpass(e_command command)
+		{
+			switch (command)
+			{
+				case e_command::atomic_copy_buffer: return false;
+				case e_command::begin_renderpass  : return false;
+				case e_command::clear_dsv		  : return false;
+				case e_command::clear_rtv		  : return false;
+				case e_command::clear_state		  : return false;
+				case e_command::clear_uav		  : return false;
+				case e_command::copy_buffer		  : return false;
+				case e_command::copy_resource	  : return false;
+				case e_command::copy_texture	  : return false;
+				case e_command::copy_tiles		  : return false;
+				case e_command::discard			  : return false;
+				case e_command::dispatch		  : return false;
+				case e_command::set_rtv			  : return false;
+				case e_command::resolve_any		  : return false;
+			}
+			return true;
+		}
 	};
 }

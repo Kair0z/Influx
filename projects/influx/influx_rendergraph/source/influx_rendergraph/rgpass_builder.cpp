@@ -220,6 +220,16 @@ namespace influx::rendergraph
 		return m_graph.get_buffer_desc(name);
 	}
 
+	rgtexture_id rgpass_builder::get_texture_id(const rgname& name) const
+	{
+		return m_graph.get_texture_id(name);
+	}
+
+	rgbuffer_id rgpass_builder::get_buffer_id(const rgname& name) const
+	{
+		return m_graph.get_buffer_id(name);
+	}
+
 #pragma region impl
 	rgtexture_readonly_id rgpass_builder::read_texture_impl(const rgname& name, rgread_access read_access, const texture_view_desc& view_desc)
 	{

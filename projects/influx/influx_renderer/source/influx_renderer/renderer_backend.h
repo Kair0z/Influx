@@ -171,6 +171,7 @@ namespace influx::renderer
 		render_settings m_settings;
 
 		void recreate_backbuffer_targets();
+		target* get_current_window_target();
 	};
 
 	template<typename _tvtx>

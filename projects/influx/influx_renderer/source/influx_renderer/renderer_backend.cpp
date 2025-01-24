@@ -115,6 +115,9 @@ namespace influx::renderer
     {
         m_rendergraph = new rendergraph::rendergraph(mp_device);
 
+        auto* window_target = get_current_window_target();
+        m_rendergraph->import_texture(window_target->get_name().get(), window_target->get_resource());
+
         mp_commandlist->start(mp_device, nullptr);
         mp_commandlist->set_name("frame");
         get_descriptor_manager()->start_commandlist(mp_commandlist);
@@ -125,6 +128,10 @@ namespace influx::renderer
         m_rendergraph->build();
         m_rendergraph->execute(mp_commandlist);
 
+        // transition backbuffer to present state
+        graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
+        backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
+
         mp_commandlist->end();
 
         {
@@ -132,10 +139,9 @@ namespace influx::renderer
             mp_commandlist->submit(mp_graphics_queue);
         }
         mp_commandlist->wait_for_completion();
+        get_descriptor_manager()->end_frame();
 
         present_swapchain({ .m_vsync = true });
-
-        get_descriptor_manager()->end_frame();
 
         delete m_rendergraph;
         m_rendergraph = nullptr;
@@ -171,6 +177,17 @@ namespace influx::renderer
         }
     }
 
+    target* renderer_backend::get_current_window_target()
+    {
+        if (mp_swapchain != nullptr)
+        {
+            const uint8 current_swapchain_index = mp_swapchain->get_current_backbuffer_index();
+            return m_swapchain_targets[current_swapchain_index];
+        }
+
+        return nullptr;
+    }
+
     target* renderer_backend::get_window_target(const platform::window& window)
     {
         // stall
@@ -198,8 +215,8 @@ namespace influx::renderer
 
         // acquire the frame
         acquire_swapchain_frame();
-        const uint8 current_swapchain_index = mp_swapchain->get_current_backbuffer_index();
-        return m_swapchain_targets[current_swapchain_index];
+        
+        return get_current_window_target();
     }
 
     void renderer_backend::acquire_swapchain_frame()
@@ -210,29 +227,29 @@ namespace influx::renderer
 
     void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
-        influx_scope("renderer_backend::draw_scene::record");
+        static string color_name{}; color_name = target.get_resource()->get_name().get();
+        static string depth_name{}; depth_name = color_name + "_depth";
+        m_rendergraph->import_texture(color_name, target.get_resource());
+        m_rendergraph->import_texture(depth_name, target.get_depth_resource());
 
-        m_rendergraph->add_pass(
+        m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
             [](rendergraph::rgpass_builder& builder)
             {
                 rendergraph::rgaccess access{};
                 access.m_load = rendergraph::e_rg_load::clear;
                 access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(RGNAME("scene_target"), access);
-                builder.write_depthtarget(RGNAME("scene_depth"), access);
+                builder.write_rendertarget(color_name, access);
+                builder.write_depthtarget(depth_name, access);
             },
             [this, &scene, &target](rendergraph::rgpass_context& context)
             {
+                influx_scope("renderer_backend::draw_scene::record");
                 graphics::commandlist& commandlist = context.get_commandlist();
 
-                // bind gpu descriptor heaps
-                get_descriptor_manager()->start_commandlist(&commandlist);
-
-                // scene render
-                mp_scene_renderer->render(mp_commandlist, scene, target);
+                mp_scene_renderer->render(&commandlist, scene, target);
 
                 // post processing
-                mp_quad_renderer->render_quad(mp_commandlist, target);
+                mp_quad_renderer->render_quad(&commandlist, target);
             });
     }
 
@@ -240,33 +257,33 @@ namespace influx::renderer
     {
         influx_scope("renderer_backend::draw_imgui::record");
 
-        m_rendergraph->add_pass(
-            [](rendergraph::rgpass_builder& builder)
+        auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
+            [&target](rendergraph::rgpass_builder& builder)
             {
                 rendergraph::rgaccess access{};
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(RGNAME("scene_target"), access);
+                builder.write_rendertarget(target.get_resource()->get_name().get(), access);
             },
             [this, draw_data, &target](rendergraph::rgpass_context& context)
             {
-                mp_imgui->render(mp_commandlist, draw_data, target);
+                mp_imgui->render(&context.get_commandlist(), draw_data, target);
             });
+
+        pass->set_name(RGNAME("draw_imgui"));
     }
 
     void renderer_backend::draw_2D(const scene2D& scene, const target& target)
     {
         influx_scope("renderer_backend::draw2D::record");
-        
-        mp_commandlist->set_rtv(target.get_rtv(), nullptr);
-        mp_commandlist->end();
+
     }
 
     void renderer_backend::draw_debug(const scene_debug& scene, const target& target)
     {
         influx_scope("renderer_backend::draw_debug::record");
 
-        m_rendergraph->add_pass(
+        m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
             [](rendergraph::rgpass_builder& builder)
             {
                 rendergraph::rgaccess access{};
@@ -306,37 +323,14 @@ namespace influx::renderer
 
     void renderer_backend::copy_target(const target& source, const target& dest)
     {
-        graphics::resource* source_resource = source.get_resource();
-        graphics::resource* dest_resource = dest.get_resource();
-
-        source_resource->transition(mp_commandlist, graphics::e_resource_state::copy_src);
-        dest_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
-
-        mp_commandlist->copy_resource(source_resource, dest_resource);
-
-        source_resource->revert_transition(mp_commandlist);
-        dest_resource->revert_transition(mp_commandlist);
+        const bool keep_source = true;
+        m_rendergraph->add_copypass(source.get_resource(), dest.get_resource(), keep_source);
     }
 
     void renderer_backend::clear_target(const target& target, const clear_args& args)
     {
         influx_scope("renderer_backend::clear_target::record");
-
-        m_rendergraph->import_texture(RGNAME("scene_target"), target.get_resource());
-        m_rendergraph->import_texture(RGNAME("scene_depth"), target.get_depth_resource());
-
-        m_rendergraph->add_pass(
-            [](rendergraph::rgpass_builder& builder)
-            {
-                rendergraph::rgaccess access{};
-                access.m_load = rendergraph::e_rg_load::clear;
-                access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(RGNAME("scene_target"), access);
-                builder.write_depthtarget(RGNAME("scene_depth"), access);
-            },
-            [this, &target](rendergraph::rgpass_context& context)
-            {
-            });
+        m_rendergraph->add_clear_pass(target.get_resource());
     }
 
     void renderer_backend::present_swapchain(const present_args& args)
@@ -344,9 +338,6 @@ namespace influx::renderer
         influx_scope("renderer_backend::present");
         if (mp_swapchain)
         {
-            graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
-            backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
-
             graphics::present_args p_args{};
             p_args.m_vsync = args.m_vsync;
             mp_swapchain->present(p_args);

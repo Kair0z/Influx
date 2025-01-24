@@ -3,6 +3,8 @@
 // influx::core
 #include "core/basetypes.h"
 #include "core/hash.h"
+#include "core/string.h"
+#include "core/math/colour.h"
 
 // influx::graphics
 #include "influx_graphics/resource.h"
@@ -100,12 +102,6 @@ namespace influx::rendergraph
 		count
 	};
 
-	struct rgaccess final
-	{
-		e_rg_load m_load;
-		e_rg_store m_store;
-	};
-
 	enum class rgresource_mode : uint8
 	{
 		copy_src,
@@ -145,6 +141,16 @@ namespace influx::rendergraph
 	{
 		static constexpr uint64 k_invalid_hash = uint64(-1);
 
+		rgname(const string& name)
+		{
+			std::hash<string> hasher{};
+			m_namehash = hasher(name);
+
+#if INFLUX_DEBUG
+			m_name = name.c_str();
+#endif
+		}
+
 #if INFLUX_DEBUG
 		rgname() : m_namehash{ k_invalid_hash }, m_name{ "none" }{}
 		template<uint64 _n>
@@ -161,11 +167,10 @@ namespace influx::rendergraph
 			return m_namehash != k_invalid_hash;
 		}
 
-		uint64 m_namehash;
-
 #if INFLUX_DEBUG
 		char const* m_name;
 #endif
+		uint64 m_namehash;
 	};
 
 	inline bool operator==(const rgname& name1, const rgname& name2)
@@ -206,6 +211,7 @@ namespace influx::rendergraph
 		friend class rgbuilder;
 		friend class rendergraph;
 
+		rgtexturemode_id() = default;
 		rgtexturemode_id(const rgtexture_id& id) : rgtexture_id(id) {}
 	};
 	template <rgresource_mode _mode>
@@ -285,6 +291,35 @@ namespace influx::rendergraph
 
 	using rgbuffer_readonly_id		= trgdescriptor_id<rgresource_type::buffer, rgdescriptor_type::read_only>;
 	using rgbuffer_readwrite_id		= trgdescriptor_id<rgresource_type::buffer, rgdescriptor_type::read_write>;
+
+	struct rgaccess final
+	{
+		e_rg_load m_load;
+		e_rg_store m_store;
+
+		struct load_preserve_params final
+		{
+			// ...
+		} m_load_preserve{};
+
+		struct load_clear_params final
+		{
+			math::colour_rgba m_colour;
+		} m_load_clear{};
+
+		struct store_resolve_params final
+		{
+			graphics::e_format m_dest_format;
+			rgtexture_id m_source_texture;
+			rgtexture_id m_dest_texture;
+			bool m_keep_source = false;
+		} m_store_resolve{};
+
+		struct store_preserve_params final
+		{
+			// ...
+		} m_store_preserve;
+	};
 }
 
 // -- enum bit operators

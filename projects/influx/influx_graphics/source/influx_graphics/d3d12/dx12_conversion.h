@@ -10,7 +10,7 @@
 
 namespace influx::graphics
 {
-	inline D3D12_COMMAND_LIST_TYPE convert(e_queue_type type)
+	inline D3D12_COMMAND_LIST_TYPE translate(e_queue_type type)
 	{
 		switch (type)
 		{
@@ -21,7 +21,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline DXGI_FORMAT convert(e_format format)
+	inline DXGI_FORMAT translate(e_format format)
 	{
 		switch (format)
 		{
@@ -39,7 +39,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_RESOURCE_FLAGS convert(e_resource_flags flags)
+	inline D3D12_RESOURCE_FLAGS translate(e_resource_flags flags)
 	{
 		switch (flags)
 		{
@@ -50,7 +50,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_DESCRIPTOR_HEAP_TYPE convert(e_descriptor_heap_type type)
+	inline D3D12_DESCRIPTOR_HEAP_TYPE translate(e_descriptor_heap_type type)
 	{
 		switch (type)
 		{
@@ -63,37 +63,34 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_RESOURCE_STATES convert(e_resource_state state)
+	inline D3D12_RESOURCE_STATES translate(e_resource_state state)
 	{
-		D3D12_RESOURCE_STATES states = D3D12_RESOURCE_STATE_COMMON;
-		switch (state)
-		{
-			case e_resource_state::none				: states |= D3D12_RESOURCE_STATE_COMMON; break;
-			case e_resource_state::common			: states |= D3D12_RESOURCE_STATE_COMMON; break;
-			case e_resource_state::present			: states |= D3D12_RESOURCE_STATE_PRESENT; break;
-			case e_resource_state::render_target	: states |= D3D12_RESOURCE_STATE_RENDER_TARGET; break;
-			case e_resource_state::depth_target		: states |= D3D12_RESOURCE_STATE_DEPTH_WRITE; break;
-			case e_resource_state::depth_readonly	: states |= D3D12_RESOURCE_STATE_DEPTH_READ; break;
-			case e_resource_state::vs_srv			: states |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE; break;
-			case e_resource_state::ps_srv			: states |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; break;
-			case e_resource_state::cs_srv			: states |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE; break;
-			case e_resource_state::vs_uav			: states |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
-			case e_resource_state::ps_uav			: states |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
-			case e_resource_state::cs_uav			: states |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
-			case e_resource_state::clear_uav		: states |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
-			case e_resource_state::copy_src			: states |= D3D12_RESOURCE_STATE_COPY_SOURCE; break;
-			case e_resource_state::copy_dst			: states |= D3D12_RESOURCE_STATE_COPY_DEST; break;
-			case e_resource_state::shading_rate		: states |= D3D12_RESOURCE_STATE_COMMON; break;
-			case e_resource_state::indexbuffer		: states |= D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
-			case e_resource_state::indirect_args	: states |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT; break;
-			case e_resource_state::as_read			: states |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE; break;
-			case e_resource_state::as_write			: states |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE; break;
-			case e_resource_state::discard			: states |= D3D12_RESOURCE_STATE_COMMON; break;
-		}
-		return states;
+		D3D12_RESOURCE_STATES result = D3D12_RESOURCE_STATE_COMMON;
+		if (has_flag(state, e_resource_state::present			)) result |= D3D12_RESOURCE_STATE_PRESENT;
+		if (has_flag(state, e_resource_state::render_target		)) result |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+		if (has_flag(state, e_resource_state::depth_target		)) result |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		if (has_flag(state, e_resource_state::depth_readonly	)) result |= D3D12_RESOURCE_STATE_DEPTH_READ;
+		if (has_flag(state, e_resource_state::vs_srv			)) result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+		if (has_flag(state, e_resource_state::ps_srv			)) result |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		if (has_flag(state, e_resource_state::cs_srv			)) result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+		if (has_flag(state, e_resource_state::vs_uav			)) result |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		if (has_flag(state, e_resource_state::ps_uav			)) result |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		if (has_flag(state, e_resource_state::cs_uav			)) result |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		if (has_flag(state, e_resource_state::clear_uav			)) result |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		if (has_flag(state, e_resource_state::copy_src			)) result |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+		if (has_flag(state, e_resource_state::copy_dst			)) result |= D3D12_RESOURCE_STATE_COPY_DEST;
+		if (has_flag(state, e_resource_state::shading_rate		)) result |= D3D12_RESOURCE_STATE_COMMON;
+		if (has_flag(state, e_resource_state::indexbuffer		)) result |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
+		if (has_flag(state, e_resource_state::indirect_args		)) result |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+		if (has_flag(state, e_resource_state::as_read			)) result |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+		if (has_flag(state, e_resource_state::as_write			)) result |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+		if (has_flag(state, e_resource_state::discard			)) result |= D3D12_RESOURCE_STATE_COMMON;
+		if (has_flag(state, e_resource_state::resolve_dst		)) result |= D3D12_RESOURCE_STATE_RESOLVE_DEST;
+		if (has_flag(state, e_resource_state::resolve_src		)) result |= D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+		return result;
 	}
 
-	inline D3D12_COMPARISON_FUNC convert(e_comparison_func func)
+	inline D3D12_COMPARISON_FUNC translate(e_comparison_func func)
 	{
 		switch (func)
 		{
@@ -109,7 +106,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_CULL_MODE convert(e_cull_mode mode)
+	inline D3D12_CULL_MODE translate(e_cull_mode mode)
 	{
 		switch (mode)
 		{
@@ -121,7 +118,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_PRIMITIVE_TOPOLOGY_TYPE convert(e_primitive_topology_type type)
+	inline D3D12_PRIMITIVE_TOPOLOGY_TYPE translate(e_primitive_topology_type type)
 	{
 		switch (type)
 		{
@@ -136,7 +133,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D_PRIMITIVE_TOPOLOGY convert(e_primitive_topology topo)
+	inline D3D_PRIMITIVE_TOPOLOGY translate(e_primitive_topology topo)
 	{
 		switch (topo)
 		{
@@ -149,7 +146,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_HEAP_TYPE convert(e_heap_type type)
+	inline D3D12_HEAP_TYPE translate(e_heap_type type)
 	{
 		switch (type)
 		{
@@ -163,7 +160,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_SHADER_VISIBILITY convert(e_shader_visibility vis)
+	inline D3D12_SHADER_VISIBILITY translate(e_shader_visibility vis)
 	{
 		switch (vis)
 		{
@@ -180,7 +177,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_TEXTURE_ADDRESS_MODE convert(e_texture_wrap_mode wrap)
+	inline D3D12_TEXTURE_ADDRESS_MODE translate(e_texture_wrap_mode wrap)
 	{
 		switch (wrap)
 		{
@@ -196,7 +193,7 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_STATIC_BORDER_COLOR convert(e_border_color color)
+	inline D3D12_STATIC_BORDER_COLOR translate(e_border_color color)
 	{
 		switch (color)
 		{
@@ -209,22 +206,22 @@ namespace influx::graphics
 		}
 	}
 
-	inline D3D12_FILTER convert(e_filter filter)
+	inline D3D12_FILTER translate(e_filter filter)
 	{
 		return (D3D12_FILTER)filter;
 	}
 
-	inline D3D12_BLEND convert(e_blend blend)
+	inline D3D12_BLEND translate(e_blend blend)
 	{
 		return (D3D12_BLEND)blend;
 	}
 
-	inline D3D12_BLEND_OP convert(e_blendop op)
+	inline D3D12_BLEND_OP translate(e_blendop op)
 	{
 		return (D3D12_BLEND_OP)op;
 	}
 
-	inline D3D12_FILL_MODE convert(e_fill_mode mode)
+	inline D3D12_FILL_MODE translate(e_fill_mode mode)
 	{
 		switch (mode)
 		{

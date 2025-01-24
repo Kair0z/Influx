@@ -28,6 +28,8 @@ namespace influx::rendergraph
 		uint32 get_num_reads() const;
 		uint32 get_num_writes() const;
 
+		INFLUX_RG_API void set_name(const rgname& name);
+
 	protected:
 		rgpass(
 			const rgpass_builder_clb& builder_clb,
@@ -44,6 +46,7 @@ namespace influx::rendergraph
 		bool allow_uav_writes() const;
 		void set_id(rgpass_id id);
 		e_rgpass_type get_type() const;
+		bool depends_on(const rgpass& other) const;
 		static bool has_dependency(const rgpass& a, const rgpass& b);
 
 		bool is_graphics() const;
@@ -54,6 +57,7 @@ namespace influx::rendergraph
 		uint32 get_width() const;
 		uint32 get_height() const;
 
+		rgname m_name;
 		rgpass_builder_clb m_builder_clb;
 		rgpass_process_clb m_process_clb;
 
