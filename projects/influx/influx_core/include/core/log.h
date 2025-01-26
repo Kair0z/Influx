@@ -32,8 +32,9 @@ namespace influx
 			break;
 		}
 		
-		std::cout << std::vformat(format, std::make_format_args(args...));
-		std::cout << "\n";
+		const string log_string = std::vformat(format, std::make_format_args(args...));
+		std::cout << log_string << "\n";
+		printf((log_string + "\n").c_str());
 	}
 
 	template <typename ..._args>

@@ -12,6 +12,8 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 int main()
 {
 	using namespace influx;
+	using namespace influx::rendergraph;
+
 	platform::window_desc window_desc{};
 	window_desc.m_dimensions = { 640u, 480u };
 	window_desc.m_name = "rendergraph";
@@ -31,21 +33,21 @@ int main()
 
 	while (true)
 	{
-		rendergraph::rendergraph graph{ device };
+		influx::rendergraph::rendergraph graph{ device };
 		buffer_index = swapchain->acquire_backbuffer();
 
 		graph.import_texture(RGNAME("backbuffer"), swapchain->get_current_backbuffer_resource());
 
 		// clear backbuffer pass
-		graph.add_pass(
-			[](rendergraph::rgpass_builder& builder)
+		graph.add_pass(e_rgpass_type::graphics,
+			[](rgpass_builder& builder)
 			{
-				rendergraph::rgaccess access{};
-				access.m_load = rendergraph::e_rg_load::clear;
-				access.m_store = rendergraph::e_rg_store::preserve;
+				rgaccess access{};
+				access.m_load = e_rg_load::clear;
+				access.m_store = e_rg_store::preserve;
 				builder.write_rendertarget(RGNAME("backbuffer"), access);
 			},
-			[&graph](rendergraph::rgpass_context& ctx)
+			[&graph](rgpass_context& ctx)
 			{
 
 			});

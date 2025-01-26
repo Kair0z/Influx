@@ -2,6 +2,7 @@
 
 // influx::core
 #include "core/container/map.h"
+#include "core/log.h"
 
 // Include Windows
 #define WIN32_LEAN_AND_MEAN
@@ -56,12 +57,34 @@ namespace influx::platform
 		return window_event::type::count;
 	}
 
+	inline static string parse_error(DWORD errorcode)
+	{
+		WCHAR* messageBuffer = nullptr;
+
+		// Format the error message from the system
+		size_t size = FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, errorcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPWSTR)&messageBuffer, 0, NULL);
+
+		std::wstring message(messageBuffer, size);
+		LocalFree(messageBuffer); // Free the buffer allocated by FormatMessage
+		
+		return to_string(message);
+	}
+
 	uint64 win32_window::window_proc(window_handle handle, uint32 message, uint64 wParam, uint64 lParam)
 	{
 		win32_window* target_window = nullptr;
 		if (g_handle_to_window_map.contains((::HWND)handle))
 		{
 			target_window = g_handle_to_window_map[(::HWND)handle];
+		}
+
+		DWORD error = ::GetLastError();
+		if (error)
+		{
+			logwar(parse_error(error));
 		}
 
 		if (target_window)

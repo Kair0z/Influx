@@ -212,20 +212,11 @@ namespace influx::renderer
             mp_pipeline->set_resource_table(commandlist, "g_instancebuffer", gpu_range);
         }
         
+        vector<texture*> material_textures(4u);
+
         for (const batch& batch : batches)
         {
             const material& material = *batch.get_material();
-
-            // find the material textures
-            vector<texture*> material_textures(4u);
-            material_textures[0] = backend.find_texture(material.get_texture_name(e_texture_semantic::basecolor));
-            material_textures[1] = backend.find_texture(material.get_texture_name(e_texture_semantic::normals));
-            material_textures[2] = backend.find_texture(material.get_texture_name(e_texture_semantic::roughness));
-            material_textures[3] = backend.find_texture(material.get_texture_name(e_texture_semantic::opacity));
-
-            // stage the descriptors onto the gpu-visible heap
-            graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(material_textures);
-            mp_pipeline->set_resource_table(commandlist, "g_textures", gpu_range);
 
             // set index / vertex buffers
             graphics::resource* vertex_buffer = batch.get_vertex_buffer();
@@ -234,6 +225,16 @@ namespace influx::renderer
             const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
             commandlist->set_indexbuffer(index_buffer);
             commandlist->set_vertexbuffer(vertex_buffer);
+
+            // find the material textures
+            material_textures[0] = backend.find_texture(material.get_texture_name(e_texture_semantic::basecolor));
+            material_textures[1] = backend.find_texture(material.get_texture_name(e_texture_semantic::normals));
+            material_textures[2] = backend.find_texture(material.get_texture_name(e_texture_semantic::roughness));
+            material_textures[3] = backend.find_texture(material.get_texture_name(e_texture_semantic::opacity));
+
+            // stage the descriptors onto the gpu-visible heap
+            graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(material_textures);
+            mp_pipeline->set_resource_table(commandlist, "g_textures", gpu_range);
 
             // set base instance variable
             m_gpu_perdraw.m_start_instance = batch.get_instance_base();

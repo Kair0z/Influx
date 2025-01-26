@@ -125,6 +125,8 @@ namespace influx::renderer
 
     void renderer_backend::end_frame()
     {
+        influx_scope("renderer_backend::end_frame");
+
         m_rendergraph->build();
         m_rendergraph->execute(mp_commandlist);
 
@@ -135,13 +137,20 @@ namespace influx::renderer
         mp_commandlist->end();
 
         {
-            influx_scope("renderer_backend::draw_scene::submit");
+            influx_scope("renderer_backend::end_frame::submit");
             mp_commandlist->submit(mp_graphics_queue);
         }
-        mp_commandlist->wait_for_completion();
-        get_descriptor_manager()->end_frame();
 
-        present_swapchain({ .m_vsync = true });
+        {
+            influx_scope("renderer_backend::descriptor_deallocate");
+            get_descriptor_manager()->end_frame();
+        }
+        
+        {
+            mp_commandlist->wait_for_completion();
+        }
+
+        present_swapchain({ .m_vsync = false });
 
         delete m_rendergraph;
         m_rendergraph = nullptr;
@@ -232,14 +241,16 @@ namespace influx::renderer
         m_rendergraph->import_texture(color_name, target.get_resource());
         m_rendergraph->import_texture(depth_name, target.get_depth_resource());
 
-        m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-            [](rendergraph::rgpass_builder& builder)
+        auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
+            [&target](rendergraph::rgpass_builder& builder)
             {
                 rendergraph::rgaccess access{};
                 access.m_load = rendergraph::e_rg_load::clear;
                 access.m_store = rendergraph::e_rg_store::preserve;
                 builder.write_rendertarget(color_name, access);
                 builder.write_depthtarget(depth_name, access);
+
+                builder.set_viewport(target.get_width(), target.get_height());
             },
             [this, &scene, &target](rendergraph::rgpass_context& context)
             {
@@ -251,6 +262,8 @@ namespace influx::renderer
                 // post processing
                 mp_quad_renderer->render_quad(&commandlist, target);
             });
+
+        pass->set_name(RGNAME("render_scene"));
     }
 
     void renderer_backend::draw_imgui(ImDrawData* draw_data, const target& target)
@@ -264,6 +277,8 @@ namespace influx::renderer
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;
                 builder.write_rendertarget(target.get_resource()->get_name().get(), access);
+
+                builder.set_viewport(target.get_width(), target.get_height());
             },
             [this, draw_data, &target](rendergraph::rgpass_context& context)
             {
@@ -520,10 +535,13 @@ namespace influx::renderer
     vector<string> renderer_backend::get_mesh_names() const
     {
         vector<string> out_names{};
+        out_names.reserve(m_vertex_buffers.size());
+
         for (const auto& vertex_buffer : m_vertex_buffers)
         {
             out_names.push_back(vertex_buffer.first);
         }
+
         return out_names;
     }
 

@@ -284,12 +284,12 @@ namespace influx::math
 
 	inline vector<_t, 2u> vector<_t, _dim>::reflection(const vector<_t, 2u>& vec, const vector<_t, 2u>& hitNormal)
 	{
-		return vector - 2.0f * (dot(vector, hitNormal)) * hitNormal;
+		return vec - 2.0f * (dot(vec, hitNormal)) * hitNormal;
 	}
 	template<typename _t, _vector_dim_t _dim>
 	inline vector<_t, 3u> vector<_t, _dim>::reflection(const vector<_t, 3u>& vec, const vector<_t, 3u>& hitNormal)
 	{
-		return vector - 2.0f * (dot(vector, hitNormal)) * hitNormal;
+		return vec - 2.0f * (dot(vec, hitNormal)) * hitNormal;
 	}
 #pragma endregion
 

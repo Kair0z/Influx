@@ -150,6 +150,7 @@ namespace influx::renderer
 	graphics::descriptor_range descriptor_manager::stage(const vector<texture*>& textures)
 	{
 		vector<graphics::descriptor_handle> cpu_handles{};
+		cpu_handles.reserve(textures.size());
 		for (size_t i = 0u; i < textures.size(); ++i)
 		{
 			influx_assert(textures[i] != nullptr);

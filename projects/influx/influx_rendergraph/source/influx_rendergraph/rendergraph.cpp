@@ -341,6 +341,21 @@ namespace influx::rendergraph
 
 						influx_scope("renderpass");
 						commandlist->renderpass_begin(args);
+
+						graphics::viewport viewport{};
+						viewport.m_width = (float)args.m_width;
+						viewport.m_height = (float)args.m_height;
+						viewport.m_depth_max = 1.0f;
+						viewport.m_depth_min = 0.0f;
+						commandlist->set(viewport);
+						
+						graphics::rect rect{};
+						rect.m_right = args.m_width;
+						rect.m_bottom = args.m_height;
+						rect.m_top = 0u;
+						rect.m_left = 0u;
+						commandlist->set(rect);
+
 						pass.execute(context);
 						commandlist->renderpass_end();
 					}
@@ -399,6 +414,8 @@ namespace influx::rendergraph
 			{
 				src_tex_id = builder.read_copysrc_texture(source->get_name().get());
 				dst_tex_id = builder.write_copydst_texture(dest->get_name().get());
+
+				builder.set_viewport(dest->get_width(), dest->get_height());
 			},
 			[](rgpass_context& context) 
 			{
@@ -422,6 +439,7 @@ namespace influx::rendergraph
 				access.m_load = e_rg_load::clear;
 				access.m_store = e_rg_store::preserve;
 				builder.write_rendertarget(dest->get_name().get(), access);
+				builder.set_viewport(dest->get_width(), dest->get_height());
 			},
 			[](rgpass_context& context) {});
 
