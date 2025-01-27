@@ -26,14 +26,29 @@ namespace influx::renderer
 		}
 	}
 
-	uint64 multimesh::get_base_vertex(const string& name)
+	uint64 multimesh::get_base_vertex(const string& name) const
 	{
-		return m_name_to_basevertex_map[name];
+		return m_name_to_basevertex_map.at(name);
 	}
 
-	uint64 multimesh::get_base_index(const string& name)
+	uint64 multimesh::get_base_index(const string& name) const
 	{
-		return m_name_to_baseindex_map[name];
+		return m_name_to_baseindex_map.at(name);
+	}
+
+	uint64 multimesh::get_num_vertices(const string& name) const
+	{
+		return m_name_to_vertexbuffer.at(name).size();
+	}
+
+	uint64 multimesh::get_num_indices(const string& name) const
+	{
+		return m_name_to_indexbuffer.at(name).size();
+	}
+
+	uint64 multimesh::get_num_meshes() const
+	{
+		return m_name_to_vertexbuffer.size();
 	}
 
 	void multimesh::update_multiresource()

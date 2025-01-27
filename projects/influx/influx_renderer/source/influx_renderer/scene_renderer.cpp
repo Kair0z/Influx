@@ -228,11 +228,11 @@ namespace influx::renderer
             const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
             commandlist->set_indexbuffer(index_buffer);
 
-            const vector<gpu_instance_data>& instances = batch.m_instances;
+            const uint32 num_instances = multimesh.get_num_meshes();
             commandlist->draw_indexed(
             {
                 .m_num_indexes_per_instance = num_indices,
-                .m_num_instances = (uint32)instances.size(),
+                .m_num_instances = num_instances,
                 .m_start_index = 0u,
                 .m_start_vertex = 0,
                 .m_start_instance = 0

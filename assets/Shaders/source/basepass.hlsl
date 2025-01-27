@@ -105,7 +105,7 @@ ps_input main_vs(vs_input input)
     ps_input output = (ps_input)0;
 
     // get instance data
-    per_instance_data instance_data = get_instance_buffer()[0];
+    per_instance_data instance_data = get_instance_buffer()[input.instance_id];
     
     // get vertex data
     per_vertex_data vertex_data = get_vertex_buffer()[input.vertex_id];

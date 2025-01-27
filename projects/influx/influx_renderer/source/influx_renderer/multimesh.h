@@ -28,8 +28,11 @@ namespace influx::renderer
 
 		void remove_mesh(const string& name);
 
-		uint64 get_base_vertex(const string& name);
-		uint64 get_base_index(const string& index);
+		uint64 get_base_vertex(const string& name) const;
+		uint64 get_base_index(const string& name) const;
+		uint64 get_num_vertices(const string& name) const;
+		uint64 get_num_indices(const string& name) const;
+		uint64 get_num_meshes() const;
 
 		void update_multiresource();
 
