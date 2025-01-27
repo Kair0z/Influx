@@ -95,31 +95,8 @@ namespace influx::renderer
 		void apply_pipeline_settings();
 
 	private:
-		struct mega_vertexbuffer final
-		{
-			graphics::resource* m_resource = nullptr;
-			graphics::descriptor_handle m_vertex_buffer_srv;
-			uset<string> m_meshnames{};
-			umap<string, uint64> m_meshname_to_offset{};
-
-			void register_mesh(const string& meshname)
-			{
-				m_meshnames.insert(meshname);
-			}
-
-			void reset()
-			{
-				m_meshname_to_offset.clear();
-			}
-
-			void update_buffer();
-
-		} m_vertexbuffer;
-
 		renderer_backend* mp_backend;
 		pipeline* mp_pipeline;
-		pipeline* mp_shadowspipeline;
-		target* mp_shadowstarget;
 
 		graphics::device* mp_device;
 

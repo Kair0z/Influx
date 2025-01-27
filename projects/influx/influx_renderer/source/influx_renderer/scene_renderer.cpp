@@ -76,21 +76,6 @@ namespace influx::renderer
             m_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
         }
 
-        {
-            graphics::heap_desc heap_desc{};
-            heap_desc.m_type = graphics::e_heap_type::shared;
-
-            graphics::buffer_desc desc{};
-            desc.m_bytesize = k_max_num_vertices * sizeof(vertex_data);
-            desc.m_bytestride = sizeof(vertex_data);
-            desc.m_init_state = graphics::e_resource_state::gen_read;
-            m_vertexbuffer.m_resource = device->create_resource(desc, heap_desc);
-            m_vertexbuffer.m_resource->set_name({ "scene_vertexbuffer" });
-
-            // create srv
-            m_vertexbuffer.m_vertex_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(m_vertexbuffer.m_resource);
-        }
-
         descriptor_manager& descriptor_manager = *backend->get_descriptor_manager();
         m_sampler_view = descriptor_manager.create_sampler();
     }
@@ -170,8 +155,6 @@ namespace influx::renderer
                 }
             }
         });
-
-        m_vertexbuffer.update_buffer();
     }
 
 
@@ -180,11 +163,12 @@ namespace influx::renderer
     {
         renderer_backend& backend = renderer_backend::get_instance();
         descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
+        const multimesh& multimesh = backend.get_multimesh();
 
         // update pipeline
         apply_pipeline_settings();
         mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
-        if (mp_pipeline == nullptr || batches.empty())
+        if (mp_pipeline == nullptr || batches.empty() || !multimesh.is_render_read())
         {
             return;
         }
@@ -197,9 +181,9 @@ namespace influx::renderer
             const material& first_material = *batches[0u].m_material;
             vector<graphics::descriptor_handle> all_descriptors
             {
-                backend.find_texture(first_material.get_texture_diffuse_name())->get_srv(),
                 m_instance_buffer_srv,
-                m_vertexbuffer.m_vertex_buffer_srv
+                multimesh.get_vertexbuffer_srv(),
+                backend.find_texture(first_material.get_texture_diffuse_name())->get_srv(),
             };
 
             graphics::descriptor_range gpu_range = descriptor_manager.stage(all_descriptors);
@@ -226,8 +210,9 @@ namespace influx::renderer
             mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
         }
 
-        for (const batch& batch : batches)
+        //for (const batch& batch : batches)
         {
+            const batch& batch = batches[0u];
             const material& material = *batch.m_material;
 
             // set constants
@@ -239,7 +224,7 @@ namespace influx::renderer
             mp_pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
             // bind index buffer
-            graphics::resource* index_buffer = batch.m_indexbuffer;
+            graphics::resource* index_buffer = backend.get_multimesh().get_index_buffer();
             const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
             commandlist->set_indexbuffer(index_buffer);
 
@@ -271,60 +256,10 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::mega_vertexbuffer::update_buffer()
-    {
-        if (m_resource == nullptr || m_meshnames.empty())
-        {
-            return;
-        }
-
-        reset();
-
-        uint64 total_bytesize = 0u;
-        const renderer_backend& backend = renderer_backend::get_instance();
-        vector<gpu_vertex_data> gpu_data{};
-
-        // gather a mega gpu_vertexdata vector
-        for (const string& name : m_meshnames)
-        {
-            const vector<vertex_data> vertexbuffer_content = backend.get_vertexbuffer_content<vertex_data>(name);
-            if (vertexbuffer_content.size() > 0u)
-            {
-                const uint64 old_size = gpu_data.size();
-                const uint64 num_vertices = vertexbuffer_content.size();
-                const uint64 bytesize = num_vertices * sizeof(vertex_data);
-                gpu_data.resize(old_size + num_vertices);
-
-                // copy the individual vertexbuffer content into our gpu data mega-vector
-                memcpy(&gpu_data[old_size], vertexbuffer_content.data(), bytesize);
-
-                // keep the base offset
-                m_meshname_to_offset[name] = old_size;
-
-                total_bytesize += bytesize;
-            }
-        }
-
-        // map onto the resource
-        m_resource->map([total_bytesize, &gpu_data](void* dest)
-            {
-                gpu_vertex_data* data = reinterpret_cast<gpu_vertex_data*>(dest);
-                memcpy(data, gpu_data.data(), total_bytesize);
-            });
-    }
-
     void scene_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)
     {
         m_gpu_perscene.m_time.x = scene.m_delta_seconds;
         m_gpu_perscene.m_time.y = scene.m_seconds;
-
-        // update vertexbuffer
-        for (const mesh_instance& instance : scene.m_meshes)
-        {
-            // register to the shared vertexbuffer
-            m_vertexbuffer.register_mesh(instance.m_name);
-        }
-        m_vertexbuffer.update_buffer();
 
         // setup a batched draw
         vector<batch> batches = create_batches(scene);

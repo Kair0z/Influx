@@ -6,9 +6,7 @@
 // influx::renderer
 #include "influx_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
-#include "influx_renderer/renderer_backend.h"
-
-// influx::rendergraph
+#include "influx_renderer/multimesh.h"
 
 // influx::graphics
 #include "influx_graphics/resource.h"
@@ -44,6 +42,7 @@ namespace influx::renderer
 	class quad_renderer;
 	class shadertoy_renderer;
 	class target;
+	class multimesh;
 }
 
 // influx::platform
@@ -55,29 +54,6 @@ namespace influx::platform
 
 namespace influx::renderer
 {
-	template <typename _vt>
-	class multi_vertexbuffer_t final
-	{
-		using vertex_type = _vt;
-
-	public:
-		void add_mesh(const string& name, const vector<vertex_type>& vertices);
-		void remove_mesh(const string& name);
-
-		void update_gpu_buffer();
-
-	private:
-		graphics::resource* m_resource;
-		graphics::descriptor_handle m_descriptor;
-		map<string, uint32> m_name_to_offset_map;
-		map<string, vector<vertex_type>> m_name_to_buffer;
-		bool m_is_cpu_gpu_different = false;
-
-		vector<vertex_type> m_vertices{};
-	};
-
-	using multi_vertexbuffer = multi_vertexbuffer_t<vertex_data>;
-
 	class renderer_backend final : public singleton<renderer_backend>
 	{
 		// konstants
@@ -149,9 +125,10 @@ namespace influx::renderer
 		graphics::resource* create_vertexbuffer(const string& title, const vector<_tvtx>& data, bool reload = false);
 		graphics::resource* create_indexbuffer(const string& title, const vector<index>& data, bool reload = false);
 
-		template <typename _tvtx>
-		vector<_tvtx> get_vertexbuffer_content(const string& title) const;
+		vector<vertex_data> get_vertexbuffer_content(const string& title) const;
 		vector<index> get_indexbuffer_content(const string& title) const;
+
+		const multimesh& get_multimesh() const;
 
 		static bool allow_bindless();
 
@@ -190,11 +167,11 @@ namespace influx::renderer
 		shadertoy_renderer* mp_shadertoy_renderer = nullptr;
 
 		// resources
-		multi_vertexbuffer m_multi_vertexbuffer{};
+		multimesh m_multimesh{};
 		umap<string, graphics::resource*> m_vertex_buffers;
 		umap<string, graphics::resource*> m_index_buffers;
 		umap<string, vector<index>> m_index_buffer_contents;
-		umap<string, vector<uint8>> m_vertex_buffer_contents; // can be any type
+		umap<string, vector<vertex_data>> m_vertex_buffer_contents; // can be any type
 		umap<string, material> m_materials;
 		umap<string, shader_data> m_vertex_shaders;
 		umap<string, shader_data> m_pixel_shaders;
@@ -211,7 +188,7 @@ namespace influx::renderer
 	{
 		using vertex_type = _tvtx;
 
-		if (!m_vertex_buffers.contains(title))
+		if (!m_vertex_buffers.contains(title) || reload)
 		{
 			// create index / vertex buffer on the shared heap (so cpu can write to it)
 			graphics::heap_desc heap_desc{};
@@ -233,85 +210,12 @@ namespace influx::renderer
 			});
 
 			// preserve contents
-			m_vertex_buffer_contents[title].resize(desc.m_bytesize / sizeof(uint8));
+			m_vertex_buffer_contents[title].resize(data.size());
 			memcpy(m_vertex_buffer_contents[title].data(), data.data(), desc.m_bytesize);
 
 			m_vertex_buffers[title]->set_name("vb_" + title);
-
-			m_multi_vertexbuffer.add_mesh(title, data);
 		}
 
 		return m_vertex_buffers[title];
-	}
-
-	template<typename _tvtx>
-	inline vector<_tvtx> renderer::renderer_backend::get_vertexbuffer_content(const string& title) const
-	{
-		if (m_vertex_buffer_contents.contains(title))
-		{
-			const vector<uint8>& data = m_vertex_buffer_contents.at(title);
-			const uint64 bytesize = (data.size() * sizeof(uint8));
-			const uint64 num_vertices = bytesize / sizeof(_tvtx);
-			vector<_tvtx> result(num_vertices);
-			memcpy(result.data(), data.data(), bytesize);
-			return result;
-		}
-
-		return {};
-	}
-
-	template<typename _vt>
-	inline void renderer::multi_vertexbuffer_t<_vt>::add_mesh(const string& name, const vector<_vt>& vertices)
-	{
-		m_name_to_buffer[name] = vertices;
-		m_is_cpu_gpu_different = true;
-	}
-
-	template<typename _vt>
-	inline void renderer::multi_vertexbuffer_t<_vt>::remove_mesh(const string& name)
-	{
-		m_is_cpu_gpu_different = true;
-	}
-
-	template<typename _vt>
-	inline void renderer::multi_vertexbuffer_t<_vt>::update_gpu_buffer()
-	{
-		if (m_is_cpu_gpu_different && !m_name_to_buffer.empty())
-		{
-			for (const auto& pair : m_name_to_buffer)
-			{
-				const string& name = pair.first;
-				const auto& vertices = pair.second;
-
-
-			}
-
-
-			uint64 total_bytesize = 0u;
-			vector<gpu_vertex_data> gpu_data{};
-
-			// gather a mega gpu_vertexdata vector
-			for (const string& name : m_meshnames)
-			{
-				const vector<vertex_data> vertexbuffer_content = backend.get_vertexbuffer_content<vertex_data>(name);
-				if (vertexbuffer_content.size() > 0u)
-				{
-					const uint64 old_size = gpu_data.size();
-					const uint64 num_vertices = vertexbuffer_content.size();
-					const uint64 bytesize = num_vertices * sizeof(vertex_data);
-					gpu_data.resize(old_size + num_vertices);
-
-					// copy the individual vertexbuffer content into our gpu data mega-vector
-					memcpy(&gpu_data[old_size], vertexbuffer_content.data(), bytesize);
-
-					// keep the base offset
-					m_meshname_to_offset[name] = old_size;
-
-					total_bytesize += bytesize;
-				}
-			}
-		}
-
-		m_is_cpu_gpu_different = false;
 	}
 }

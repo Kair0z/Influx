@@ -121,6 +121,9 @@ namespace influx::renderer
         mp_commandlist->start(mp_device, nullptr);
         mp_commandlist->set_name("frame");
         get_descriptor_manager()->start_commandlist(mp_commandlist);
+
+        // expensive :))
+        m_multimesh.update_multiresource();
     }
 
     void renderer_backend::end_frame()
@@ -236,6 +239,14 @@ namespace influx::renderer
 
     void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
+        // update multimesh
+        for (const auto& mesh : scene.m_meshes)
+        {
+            m_multimesh.add_mesh(mesh.m_name,
+                m_vertex_buffer_contents.at(mesh.m_name),
+                m_index_buffer_contents.at(mesh.m_name));
+        }
+
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         static string depth_name{}; depth_name = color_name + "_depth";
         m_rendergraph->import_texture(color_name, target.get_resource());
@@ -627,6 +638,15 @@ namespace influx::renderer
         return m_index_buffers[title];
     }
 
+    vector<vertex_data> renderer_backend::get_vertexbuffer_content(const string& title) const
+    {
+        if (m_vertex_buffer_contents.contains(title))
+        {
+            return m_vertex_buffer_contents.at(title);
+        }
+        return {};
+    }
+
     vector<index> renderer_backend::get_indexbuffer_content(const string& title) const
     {
         if (m_index_buffer_contents.contains(title))
@@ -635,6 +655,11 @@ namespace influx::renderer
         }
 
         return {};
+    }
+
+    const multimesh& renderer_backend::get_multimesh() const
+    {
+        return m_multimesh;
     }
 
     bool renderer_backend::allow_bindless()
