@@ -65,12 +65,22 @@ StructuredBuffer<per_vertex_data>       g_vertexbuffers     : register(t2);
 
 Texture2D get_texture(int index)
 {
-    return ResourceDescriptorHeap[index];
+    return ResourceDescriptorHeap[2];
 }
 
 SamplerState get_sampler(int index)
 {
     return SamplerDescriptorHeap[index];
+}
+
+StructuredBuffer<per_instance_data> get_instance_buffer()
+{
+    return ResourceDescriptorHeap[0];
+}
+
+StructuredBuffer<per_vertex_data> get_vertex_buffer()
+{
+    return ResourceDescriptorHeap[1];
 }
 
 struct vs_input
@@ -95,12 +105,10 @@ ps_input main_vs(vs_input input)
     ps_input output = (ps_input)0;
 
     // get instance data
-    input.instance_id += g_perdraw.start_instance;
-    per_instance_data instance_data = input.get_instance_data();
+    per_instance_data instance_data = get_instance_buffer()[0];
     
     // get vertex data
-    input.vertex_id += g_perdraw.start_vertex;
-    per_vertex_data vertex_data = input.get_vertex_data();
+    per_vertex_data vertex_data = get_vertex_buffer()[input.vertex_id];
 
     // positions
     float4x4 mvp = mul((float4x4)g_perview.mat_vp, (float4x4)instance_data.mat_transform);
@@ -129,7 +137,7 @@ float4 get_albedo(float2 texcoord)
 
 float3 get_normal(float2 texcoord)
 {
-    return get_texture(1).Sample(get_sampler(0), texcoord).rgb;
+    return get_texture(0).Sample(get_sampler(0), texcoord).rgb;
 }
 
 [shader("pixel")]
