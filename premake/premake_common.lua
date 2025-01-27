@@ -67,6 +67,12 @@ function new_influx_test(name)
     fastuptodate(false)
 end
 
+function new_influx_tool(name)
+    project_dir = g_dir_projects_tools .. "/%{prj.name}/"
+    new_influx_project(name, "ConsoleApp")
+    fastuptodate(false)
+end
+
 function new_influx_dll(name)
     project_dir = g_dir_projects_engine .. "/%{prj.name}/"
     new_influx_project(name, "SharedLib")

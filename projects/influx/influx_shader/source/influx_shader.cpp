@@ -25,6 +25,11 @@ namespace influx::shader
 	class influx_include_handler : public IDxcIncludeHandler
 	{
 	public:
+		void set_include_folder(const string& path)
+		{
+			m_include_folder = path;
+		}
+
 		HRESULT STDMETHODCALLTYPE LoadSource(_In_ LPCWSTR pFilename, _COM_Outptr_result_maybenull_ IDxcBlob** ppIncludeSource) override
 		{
 			IDxcBlobEncoding* pEncoding;
@@ -46,6 +51,11 @@ namespace influx::shader
 				m_included_map[filename] = filename;
 				*ppIncludeSource = pEncoding;
 			}
+			else
+			{
+				auto rooted_path = to_wstring(m_include_folder) + pFilename;
+				hr = get_utils()->LoadFile(rooted_path.c_str(), nullptr, &pEncoding);
+			}
 			return hr;
 		}
 
@@ -55,6 +65,7 @@ namespace influx::shader
 
 	private:
 		umap<string, string> m_included_map{};
+		string m_include_folder{};
 	};
 
 	inline static wstring make_shader_type_wstring(e_shader_type type, e_shader_target target)
@@ -235,6 +246,7 @@ namespace influx::shader
 		}
 		
 		influx_include_handler include_handler{};
+		include_handler.set_include_folder(args.m_include_folder);
 
 		// COMPILE
 		IDxcResult* pCompileResult;
@@ -319,7 +331,7 @@ namespace influx::shader
 
 		output.m_type = args.m_type;
 		output.m_target = args.m_target;
-
+		output.m_success = true;
 		return output;
 	}
 
@@ -327,6 +339,10 @@ namespace influx::shader
 	{
 		HRESULT result{};
 		
+		influx_assert(!filepath.empty());
+		influx_assert(file::exists(filepath));
+		influx_assert(args.is_valid());
+
 		// load the file
 		wstring wfilepath = to_wstring(filepath);
 		IDxcBlobEncoding* pShaderSourceFile;

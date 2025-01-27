@@ -1,6 +1,5 @@
 #include "common.hlsli"
 
-/// SHADER STRUCTS
 struct per_view
 {
     float4x4 mat_vp;
@@ -21,21 +20,22 @@ struct per_material
 struct per_draw
 {
     uint start_instance;
+    uint start_vertex;
+};
+
+struct per_vertex_data
+{
+    float3 position : POSITION;
+    float4 colour : COLOR;
+    float3 normal : NORMAL;
+    float2 texcoord : TEXCOORD;
 };
 
 struct per_instance_data
 {
     float4x4	mat_transform;
     float4      colour;
-    bool        invert_normals;
-};
-
-struct vs_input
-{
-    float3 position : POSITION;
-    float4 colour : COLOR;
-    float3 normal : NORMAL;
-    float2 texcoord : TEXCOORD;
+    uint        base_vertex;
 };
 
 struct ps_input
@@ -47,8 +47,10 @@ struct ps_input
     float2 texcoord : TEXCOORD;
 };
 
+#define FLX_BINDLESS 1
+
 /// SHADER INPUTS
-// buffers
+// constant buffers:
 ConstantBuffer<per_view>                g_perview           : register(b0);
 ConstantBuffer<per_scene>               g_perscene          : register(b1);
 ConstantBuffer<per_material>            g_permaterial       : register(b2);
@@ -58,51 +60,76 @@ ConstantBuffer<per_draw>                g_perdraw           : register(b3);
 SamplerState                            g_sampler           : register(s0);
 
 // textures
-Texture2D                               g_textures[4]       : register(t0);
 StructuredBuffer<per_instance_data>     g_instancebuffer    : register(t1);
+StructuredBuffer<per_vertex_data>       g_vertexbuffers     : register(t2);
 
-/// SHADER FUNCTIONS
-float4 get_albedo(float2 texcoord)
+Texture2D get_texture(int index)
 {
-    return g_textures[0].Sample(g_sampler, texcoord).rgba;
+    return ResourceDescriptorHeap[index];
 }
 
-float3 get_normal(float2 texcoord)
+SamplerState get_sampler(int index)
 {
-    return g_textures[1].Sample(g_sampler, texcoord).rgb;
+    return SamplerDescriptorHeap[index];
 }
+
+struct vs_input
+{
+    uint vertex_id : SV_VertexID;
+    uint instance_id : SV_InstanceID;
+
+    per_vertex_data get_vertex_data()
+    {
+        return g_vertexbuffers[vertex_id];
+    }
+
+    per_instance_data get_instance_data()
+    {
+        return g_instancebuffer[instance_id];
+    }
+};
 
 [shader("vertex")]
-ps_input main_vs( vs_input input, uint vID : SV_VertexID, uint instanceID : SV_InstanceID)
+ps_input main_vs(vs_input input)
 {
     ps_input output = (ps_input)0;
 
-    // instance
-    instanceID += g_perdraw.start_instance;
-    per_instance_data instance_data = g_instancebuffer[instanceID];
+    // get instance data
+    input.instance_id += g_perdraw.start_instance;
+    per_instance_data instance_data = input.get_instance_data();
     
-    // position
-    // calculate mvp
-    float4x4 mvp = mul(
-        (float4x4)g_perview.mat_vp,
-        (float4x4)instance_data.mat_transform);
-    output.position = mul(mvp, float4 ( input.position, 1.0f ) );
-    output.worldPos = mul(instance_data.mat_transform, float4(input.position, 1.0f)).xyz;
+    // get vertex data
+    input.vertex_id += g_perdraw.start_vertex;
+    per_vertex_data vertex_data = input.get_vertex_data();
+
+    // positions
+    float4x4 mvp = mul((float4x4)g_perview.mat_vp, (float4x4)instance_data.mat_transform);
+    output.position = mul(mvp, float4 ( vertex_data.position, 1.0f ) );
+    output.worldPos = mul(instance_data.mat_transform, float4(vertex_data.position, 1.0f)).xyz;
 
     // uvs
-    output.texcoord = input.texcoord;
+    output.texcoord = vertex_data.texcoord;
     
     // normals
-    output.normal = normalize(mul((float3x3)instance_data.mat_transform, input.normal));
-    if (instance_data.invert_normals)
-    {
-        output.normal = -output.normal;
-    }
+    output.normal = normalize(mul((float3x3)instance_data.mat_transform, vertex_data.normal));
 
     // color
     output.colour.rgb = lerp(instance_data.colour.rgb, g_permaterial.colour.rgb, 0.5f);
     
     return output;
+}
+
+
+
+
+float4 get_albedo(float2 texcoord)
+{
+    return get_texture(0).Sample(get_sampler(0), texcoord).rgba;
+}
+
+float3 get_normal(float2 texcoord)
+{
+    return get_texture(1).Sample(get_sampler(0), texcoord).rgb;
 }
 
 [shader("pixel")]

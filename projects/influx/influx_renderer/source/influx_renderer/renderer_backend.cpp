@@ -617,10 +617,29 @@ namespace influx::renderer
                  memcpy(target, data.data(), data.size() * sizeof(index));
             });
 
+            // preserve contents
+            m_index_buffer_contents[title].resize(data.size());
+            memcpy(m_index_buffer_contents[title].data(), data.data(), desc.m_bytesize);
+
             m_index_buffers[title]->set_name("ib_" + title);
         }
 
         return m_index_buffers[title];
+    }
+
+    vector<index> renderer_backend::get_indexbuffer_content(const string& title) const
+    {
+        if (m_index_buffer_contents.contains(title))
+        {
+            return m_index_buffer_contents[title];
+        }
+
+        return {};
+    }
+
+    bool renderer_backend::allow_bindless()
+    {
+        return INFLUX_RENDER_BINDLESS;
     }
 
 #pragma region frontend_api

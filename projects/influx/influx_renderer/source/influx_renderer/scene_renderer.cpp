@@ -18,8 +18,8 @@ namespace influx::renderer
 {
     static pipeline_signature k_scene_pipeline_signature
     {
-        .m_vs_name              { "shaders_vs" },
-        .m_ps_name              { "shaders_ps" },
+        .m_vs_name              { "basepass_vs" },
+        .m_ps_name              { "basepass_ps" },
 
         .m_primitive_type       { pipeline_signature::primitive_type::triangle },
         .m_cullmode             { pipeline_signature::cullmode::none },
@@ -80,171 +80,149 @@ namespace influx::renderer
     }
 
 #pragma region batch
-    // a batch of instances grouped per material
     class batch final
     {
     public:
-        batch(
-            const material* material,
-            const string& mesh_name,
-            const vector<gpu_instance_data>& instances,
-            uint32 instance_base);
+        batch() = default;
 
-        graphics::resource* get_vertex_buffer() const;
-        graphics::resource* get_index_buffer() const;
-
-        const vector<gpu_instance_data>& get_instances() const;
-        const uint32 get_instance_base() const;
-        const material* get_material() const;
-
-    private:
-        graphics::resource* m_vertex_buffer;
-        graphics::resource* m_index_buffer;
-        vector<gpu_instance_data> m_instances{};
+        material* m_material;
         uint32 m_base_instance;
-        const material* m_material;
+        uint32 m_base_vertex;
+
+        using mesh_to_instances_map = umap<string, vector<gpu_instance_data>>;
+        
+        umap<material*, mesh_to_instances_map> m_material_to_mesh_to_instances_map;
+
+        vector<gpu_instance_data> m_instances;
+        vector<gpu_vertex_data> m_vertex_buffers;
     };
-
-    batch::batch(
-        const material* material,
-        const string& mesh_name,
-        const vector<gpu_instance_data>& instances,
-        uint32 instance_base)
-        : m_instances{ instances }
-        , m_material{ material }
-        , m_base_instance{ instance_base }
-    {
-        auto& backend = renderer_backend::get_instance();
-        backend.get_mesh_buffers(mesh_name, m_vertex_buffer, m_index_buffer);
-    }
-
-    graphics::resource* batch::get_vertex_buffer() const
-    {
-        return m_vertex_buffer;
-    }
-
-    graphics::resource* batch::get_index_buffer() const
-    {
-        return m_index_buffer;
-    }
-
-    const vector<gpu_instance_data>& batch::get_instances() const
-    {
-        return m_instances;
-    }
-
-    const uint32 batch::get_instance_base() const
-    {
-        return m_base_instance;
-    }
-
-    const material* batch::get_material() const
-    {
-        return m_material;
-    }
 #pragma endregion
+
+    inline gpu_instance_data translate(const mesh_instance& mesh)
+    {
+        gpu_instance_data instance_data{};
+        instance_data.m_transform = mesh.m_transform;
+        instance_data.m_colour = mesh.m_per_instance_colour;
+        return instance_data;
+    }
 
     vector<batch> scene_renderer::create_batches(const scene& scene)
     {
-        // group instances per material, then per mesh
-        using per_material_instances = umap<const material*, vector<gpu_instance_data>>;
-        umap<string, per_material_instances> instances_per_mesh_per_material{};
+        using material_instance_map = umap<const material*, vector<gpu_instance_data>>;
+        material_instance_map material_to_instance_map{};
 
-        for (const string& mesh_name : mp_backend->get_mesh_names())
+        for (const mesh_instance& instance : scene.m_meshes)
         {
-            for (const mesh_instance& instance : scene.m_meshes)
-            {
-                if (instance.m_name == mesh_name)
-                {
-                    per_material_instances& instances_per_material = instances_per_mesh_per_material[mesh_name];
-
-                    // mesh_instance --> gpu_instance_data
-                    gpu_instance_data instance_data{};
-                    instance_data.m_transform = instance.m_transform;
-                    instance_data.m_colour = instance.m_per_instance_colour;
-                    instances_per_material[instance.m_material].push_back(instance_data);
-                }
-            }
+            gpu_instance_data gpu_data = translate(instance);
+            material_to_instance_map[instance.m_material].push_back(gpu_data);
         }
 
         vector<batch> batches{};
-        uint32 instance_offset = 0u;
-        for (const auto& per_mesh : instances_per_mesh_per_material)
+        for (const auto& per_material : material_to_instance_map)
         {
-            const string& mesh_name = per_mesh.first;
-            for (const auto& per_material : per_mesh.second)
-            {
-                const material* material = per_material.first;
-                batches.push_back(batch(material, mesh_name, per_material.second, instance_offset));
-                instance_offset += (uint32)per_material.second.size();
-            }
+            batches.push_back({});
+            batch& batch = batches.back();
+
+            batch.m_base_vertex;
         }
 
         return batches;
     }
 
-    void scene_renderer::update_instance_buffer(const vector<batch>& batches)
+    void scene_renderer::update_buffers(const vector<batch>& batches)
     {
         mp_instancebuffer->map([&batches](void* dest)
         {
             gpu_instance_data* data = reinterpret_cast<gpu_instance_data*>(dest);
             for (const batch& batch : batches)
             {
-                const auto& instances = batch.get_instances();
-                for (size_t i = 0u; i < instances.size(); ++i)
+                for (size_t i = 0u; i < batch.m_instances.size(); ++i)
                 {
-                    data[batch.get_instance_base() + i] = instances[i];
+                    data[batch.m_base_instance + i] = batch.m_instances[i];
                 }
             }
         });
+
+        m_vertexbuffer.update_buffer();
     }
 
-    void scene_renderer::render_batches(graphics::commandlist* commandlist, const scene& scene, const vector<batch>& batches)
+
+    void scene_renderer::render_basepass(graphics::commandlist* commandlist, 
+        const scene& scene, const vector<batch>& batches, const target& target)
     {
         renderer_backend& backend = renderer_backend::get_instance();
+        descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
 
-        // stage the instance buffer
+        // update pipeline
+        apply_pipeline_settings();
+        mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
+        if (mp_pipeline == nullptr || batches.empty())
         {
-            graphics::descriptor_range gpu_range =
-                backend.get_descriptor_manager()->stage(m_instance_buffer_srv);
+            return;
+        }
 
-            // set the resource table
-            mp_pipeline->set_resource_table(commandlist, "g_instancebuffer", gpu_range);
+        logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
+
+        // stage the texture descriptors on the bindless heap
+        // in bindless, MUST happen before setting descriptor (mp_pipeline->set_state)
+        {
+            const material& first_material = *batches[0u].m_material;
+            vector<texture*> all_textures
+            {
+                backend.find_texture(first_material.get_texture_diffuse_name()),
+                backend.find_texture(first_material.get_texture_normals_name())
+            };
+
+            for ()
+            graphics::descriptor_range gpu_range = descriptor_manager.stage(all_textures);
+            mp_pipeline->set_resource_table(commandlist, "bindless_heap", gpu_range);
         }
         
-        vector<texture*> material_textures(4u);
+        // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
+        {
+            mp_pipeline->set_state(commandlist);
+            commandlist->set(graphics::e_primitive_topology::trilist);
+        }
+        
+        // update viewprojection matrix
+        {
+            const camera& camera = scene.m_camera;
+            math::transform3D transform = camera.m_transform;
+            transform.update_matrix();
+
+            const float ar = (float)target.get_width() / target.get_height();
+            m_gpu_perview.m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
+            mp_pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
+            mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
+        }
+        
+        // stage the instance & vertex buffers
+        {
+            graphics::descriptor_range gpu_range = descriptor_manager.stage(m_instance_buffer_srv);
+            mp_pipeline->set_resource_table(commandlist, "g_instancebuffer", gpu_range);
+
+            gpu_range = descriptor_manager.stage(m_vertexbuffer.m_vertex_buffer_srv);
+            mp_pipeline->set_resource_table(commandlist, "g_vertexbuffers", gpu_range);
+        }
 
         for (const batch& batch : batches)
         {
-            const material& material = *batch.get_material();
+            const material& material = *batch.m_material;
 
-            // set index / vertex buffers
-            graphics::resource* vertex_buffer = batch.get_vertex_buffer();
-            graphics::resource* index_buffer = batch.get_index_buffer();
-            const uint32 num_vertices = (uint32)vertex_buffer->get_bytesize() / (uint32)vertex_buffer->get_bytestride();
-            const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
-            commandlist->set_indexbuffer(index_buffer);
-            commandlist->set_vertexbuffer(vertex_buffer);
-
-            // find the material textures
-            material_textures[0] = backend.find_texture(material.get_texture_name(e_texture_semantic::basecolor));
-            material_textures[1] = backend.find_texture(material.get_texture_name(e_texture_semantic::normals));
-            material_textures[2] = backend.find_texture(material.get_texture_name(e_texture_semantic::roughness));
-            material_textures[3] = backend.find_texture(material.get_texture_name(e_texture_semantic::opacity));
-
-            // stage the descriptors onto the gpu-visible heap
-            graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(material_textures);
-            mp_pipeline->set_resource_table(commandlist, "g_textures", gpu_range);
-
-            // set base instance variable
-            m_gpu_perdraw.m_start_instance = batch.get_instance_base();
-
-            // per material + per draw
+            // set constants
+            m_gpu_perdraw.m_start_instance = batch.m_base_instance;
+            m_gpu_perdraw.m_start_vertex = batch.m_base_vertex;
             m_gpu_permaterial.m_colour = material.get_basecolour();
+
             mp_pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
             mp_pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
-            const vector<gpu_instance_data>& instances = batch.get_instances();
+            // bind index buffer
+            graphics::resource* index_buffer = batch.get_index_buffer();
+            const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
+            commandlist->set_indexbuffer(index_buffer);
+
+            const vector<gpu_instance_data>& instances = batch.m_instances;
             commandlist->draw_indexed(
             {
                 .m_num_indexes_per_instance = num_indices,
@@ -254,61 +232,6 @@ namespace influx::renderer
                 .m_start_instance = 0
             });
         }
-    }
-
-    void scene_renderer::render_shadows(graphics::commandlist* commandlist, 
-        const scene& scene, const vector<batch>& batches)
-    {
-        // mp_shadowspipeline = mp_backend->get_pipeline_manager()->get_pipeline("pip_shadows");
-        influx_assert(mp_shadowspipeline);
-
-        mp_shadowspipeline->set_state(commandlist);
-
-        // set shadowtarget dsv
-        commandlist->set_rtv(nullptr, mp_shadowstarget->get_dsv());
-
-        // push constants
-        math::transform3D light_transform = scene.m_camera.m_transform;
-        const math::matrix4x4f mat_view = light_transform.get_matrix().inverted();
-        //const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(camera.m_fov, (float)target.get_width() / target.get_height(), camera.m_near_plane, camera.m_far_plane);
-        m_gpu_perview.m_vp = mat_view;
-        mp_shadowspipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
-
-        // render
-        render_batches(commandlist, scene, batches);
-    }
-
-    void scene_renderer::render_basepass(graphics::commandlist* commandlist, 
-        const scene& scene, const vector<batch>& batches, const target& target)
-    {
-        apply_pipeline_settings();
-
-        mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
-        if (mp_pipeline == nullptr)
-        {
-            return;
-        }
-
-        logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
-
-        // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
-        mp_pipeline->set_state(commandlist);
-        commandlist->set(graphics::e_primitive_topology::trilist);
-
-        // update viewprojection matrix
-        {
-            const camera& camera = scene.m_camera;
-            math::transform3D transform = camera.m_transform;
-            transform.update_matrix();
-
-            const float ar = (float)target.get_width() / target.get_height();
-            m_gpu_perview.m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
-        }
-        
-        mp_pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
-        mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
-
-        render_batches(commandlist, scene, batches);
     }
 
     void scene_renderer::apply_pipeline_settings()
@@ -332,10 +255,18 @@ namespace influx::renderer
         m_gpu_perscene.m_time.x = scene.m_delta_seconds;
         m_gpu_perscene.m_time.y = scene.m_seconds;
 
+        // update vertexbuffer
+        for (const mesh_instance& instance : scene.m_meshes)
+        {
+            // register to the shared vertexbuffer
+            m_vertexbuffer.register_mesh(instance.m_name);
+        }
+        m_vertexbuffer.update_buffer();
+
         // setup a batched draw
         vector<batch> batches = create_batches(scene);
 
-        update_instance_buffer(batches);
+        update_buffers(batches);
 
         // render_shadows(commandlist, scene, batches);
         render_basepass(commandlist, scene, batches, target);

@@ -35,6 +35,13 @@ namespace influx::shader
 			m_defines.push_back(define);
 		}
 
+		inline bool is_valid() const
+		{
+			return !m_entrypoint.empty()
+				&& m_target != e_shader_target::count
+				&& m_type != e_shader_type::count;
+		}
+
 		e_shader_type m_type;
 		e_shader_target m_target;
 		string m_entrypoint;

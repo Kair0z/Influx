@@ -101,7 +101,7 @@ namespace influx::engine
 		static math::float3 start_position = {};
 		static math::matrix3x3f start_rotation = math::matrix3x3f::identity();
 
-		if (get_engine()->is_editor() && false)
+		if (get_engine()->is_editor())
 		{
 			editor_manager& editorman = get_engine()->get_editor();
 			const math::matrix4x4f& cam_transform = editorman.get_editorfile().m_camera_transform;;

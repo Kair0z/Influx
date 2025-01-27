@@ -75,18 +75,22 @@ namespace influx::platform
 
 	uint64 win32_window::window_proc(window_handle handle, uint32 message, uint64 wParam, uint64 lParam)
 	{
-		win32_window* target_window = nullptr;
-		if (g_handle_to_window_map.contains((::HWND)handle))
-		{
-			target_window = g_handle_to_window_map[(::HWND)handle];
-		}
-
 		DWORD error = ::GetLastError();
 		if (error)
 		{
 			logwar(parse_error(error));
+			::SetLastError(0u);
 		}
 
+		::HWND native_handle = (::HWND)handle;
+
+		win32_window* target_window = nullptr;
+		if (g_handle_to_window_map.contains(native_handle))
+		{
+			target_window = g_handle_to_window_map[native_handle];
+		}
+
+		// target window callbacks
 		if (target_window)
 		{
 			window_event new_event{};
@@ -104,6 +108,7 @@ namespace influx::platform
 			}
 		}
 
+		// default callbacks
 		switch (message)
 		{
 		case WM_DESTROY:
@@ -113,17 +118,15 @@ namespace influx::platform
 			{
 				target_window->request_quit();
 			}
-			return 0;
 		}
 		}
 
-		return 0;
+		return ::DefWindowProc(native_handle, message, wParam, lParam);
 	}
 
 	inline LRESULT _window_proc(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
 	{
-		win32_window::window_proc(hWnd, uMsg, wParam, lParam);
-		return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
+		return win32_window::window_proc(hWnd, uMsg, wParam, lParam);
 	}
 
 	window* window::create(const window_desc& desc)

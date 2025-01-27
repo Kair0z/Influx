@@ -209,10 +209,8 @@ namespace influx::renderer
 		uint32 get_shader_register(const string& resource_name);
 		uint32 get_param_index(const string& resource_name);
 
-#if INFLUX_DEBUG
-		void set_name(const string& name);
-		const string& get_name() const;
-#endif
+		const debug_name& get_name() const;
+		void set_name(const debug_name&);
 
 		void save_to_file(const string& path) const;
 		
@@ -227,8 +225,6 @@ namespace influx::renderer
 		graphics::pipeline_desc m_create_desc{};
 		graphics::rootsignature_desc m_rootsig_desc{};
 
-#if INFLUX_DEBUG
-		string m_debug_name;
-#endif
+		debug_name m_name;
 	};
 }

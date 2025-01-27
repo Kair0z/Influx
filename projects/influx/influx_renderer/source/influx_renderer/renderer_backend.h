@@ -126,6 +126,12 @@ namespace influx::renderer
 		graphics::resource* create_vertexbuffer(const string& title, const vector<_tvtx>& data, bool reload = false);
 		graphics::resource* create_indexbuffer(const string& title, const vector<index>& data, bool reload = false);
 
+		template <typename _tvtx>
+		vector<_tvtx> get_vertexbuffer_content(const string& title) const;
+		vector<index> get_indexbuffer_content(const string& title) const;
+
+		static bool allow_bindless();
+
 	private:
 		uint64 m_frame_count = 0u;
 		bool m_is_initialized = false;
@@ -163,6 +169,8 @@ namespace influx::renderer
 		// resources
 		umap<string, graphics::resource*> m_vertex_buffers;
 		umap<string, graphics::resource*> m_index_buffers;
+		umap<string, vector<index>> m_index_buffer_contents;
+		umap<string, vector<uint8>> m_vertex_buffer_contents; // can be any type
 		umap<string, material> m_materials;
 		umap<string, shader_data> m_vertex_shaders;
 		umap<string, shader_data> m_pixel_shaders;
@@ -200,9 +208,29 @@ namespace influx::renderer
 				memcpy(target, data.data(), data.size() * sizeof(vertex_type));
 			});
 
+			// preserve contents
+			m_vertex_buffer_contents[title].resize(desc.m_bytesize / sizeof(uint8));
+			memcpy(m_vertex_buffer_contents[title].data(), data.data(), desc.m_bytesize);
+
 			m_vertex_buffers[title]->set_name("vb_" + title);
 		}
 
 		return m_vertex_buffers[title];
+	}
+
+	template<typename _tvtx>
+	inline vector<_tvtx> renderer::renderer_backend::get_vertexbuffer_content(const string& title) const
+	{
+		if (m_vertex_buffer_contents.contains(title))
+		{
+			const vector<uint8>& data = m_vertex_buffer_contents[title];
+			const uint64 bytesize = (data.size() * sizeof(uint8));
+			const uint64 num_vertices = bytesize / sizeof(_tvtx);
+			vector<_tvtx> result(num_vertices);
+			memcpy(result.data(), data.data(), bytesize);
+			return result;
+		}
+
+		return {};
 	}
 }

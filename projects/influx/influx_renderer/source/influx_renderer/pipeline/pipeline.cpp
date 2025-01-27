@@ -86,7 +86,9 @@ namespace influx::renderer
         }
 
         // create root signature
+        rootsig_desc.m_direct_indexing = true; // bindless
         mp_rootsig = device->create_rootsignature(rootsig_desc);
+
         m_name_to_param_idx = mp_rootsig->get_param_idx_table();
         influx_assert(mp_rootsig->is_valid());
 
@@ -192,22 +194,21 @@ namespace influx::renderer
         return m_name_to_param_idx[resource_name];
     }
 
-#if INFLUX_DEBUG
-    void pipeline::set_name(const string& name)
+    const debug_name& pipeline::get_name() const
     {
-        mp_pipeline->set_name(name);
+        return mp_pipeline->get_name();
     }
 
-    const string& pipeline::get_name() const
+    void pipeline::set_name(const debug_name&)
     {
-        return mp_pipeline->get_name().get();
+        mp_pipeline->get_name();
     }
-#endif
 
     void pipeline::save_to_file(const string& path) const
     {
 
     }
+
     const pipeline_signature& pipeline::get_signature() const
     {
         return m_signature;

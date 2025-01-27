@@ -44,6 +44,27 @@ namespace influx
 
 		return true;
 	}
+
+#if 0
+	template <typename _k, typename _t>
+	size_t hash_umap(const const umap<_k, _t>& map)
+	{
+		size_t counter = 0u;
+		size_t result = 0u;
+		for (const auto& pair : map)
+		{
+			const size_t pair_result =
+				std::hash<_k>{}(pair.first) ^
+				std::hash<_k>{}(pair.second) << 1;
+
+			result ^= pair_result << counter;
+
+			counter++;
+		}
+
+		return result;
+	}
+#endif
 }
 
 #endif

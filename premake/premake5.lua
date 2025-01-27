@@ -19,6 +19,7 @@ workspace "influx"
     g_dir_projects_engine = g_dir_projects .. "/influx/"
     g_dir_projects_misc = g_dir_projects .. "/misc/"
     g_dir_projects_test = g_dir_projects .. "/test/"
+    g_dir_projects_tools = g_dir_projects .. "/tools/"
     g_dir_binaries      = g_dir_root .. "/bin/" .. g_config_string .. "/"
     g_dir_int           = g_dir_root .. "/int/" .. g_config_string .. "/"
     g_dir_scripts       = g_dir_root .. "/scripts/"
@@ -85,6 +86,12 @@ workspace "influx"
     printf(".. test ")
     group "test"
     for _, dir in ipairs(os.matchdirs("../projects/test/" .. "/*")) do
+        include(dir)
+    end
+
+    printf(".. tools ")
+    group "tools"
+    for _, dir in ipairs(os.matchdirs("../projects/tools/" .. "/*")) do
         include(dir)
     end
 

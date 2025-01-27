@@ -217,10 +217,68 @@ namespace influx
         e_cullmode m_cullmode;
         bool m_invert_normals;
 
-        umap<string, float_property> m_floats;
-        umap<e_texture_semantic, texture_property> m_textures;
-        umap<string, int_property> m_integers;
+        using float_map = umap<string, float_property>;
+        using texture_map = umap<e_texture_semantic, texture_property>;
+        using int_map = umap<string, int_property>;
+
+        float_map m_floats;
+        texture_map m_textures;
+        int_map m_integers;
 
         math::colour_rgba m_basecolour;
+
+        friend struct std::hash<material>;
     };
 }
+
+#if 0
+// Define a hash function for your struct
+namespace std {
+    template<>
+    struct hash<influx::material::float_property> {
+        std::size_t operator()(const influx::material::float_property& float_prop) const
+        {
+            return std::hash<float>{}(float_prop.m_value);
+        }
+    };
+
+    template<>
+    struct hash<influx::math::colour_rgba> {
+        std::size_t operator()(const influx::math::colour_rgba& colour) const
+        {
+            return 
+                std::hash<float>{}(colour.r)
+                ^ std::hash<float>{}(colour.g) << 1
+                ^ std::hash<float>{}(colour.b) << 2
+                ^ std::hash<float>{}(colour.a) << 3;
+        }
+    };
+
+    template<>
+    struct hash<influx::material> {
+        std::size_t operator()(const influx::material& mat) const 
+        {
+            using namespace influx;
+            size_t hashes[]
+            {
+                 std::hash<bool>{}(mat.m_render_depth),
+                 std::hash<bool>{}(mat.m_render_stencil),
+                 std::hash<e_cullmode>{}(mat.m_cullmode),
+                 std::hash<bool>{}(mat.m_invert_normals),
+                 hash_umap(mat.m_floats),
+                 hash_umap(mat.m_textures),
+                 hash_umap(mat.m_integers),
+                 std::hash<math::colour_rgba>{}(mat.m_basecolour)
+            };
+
+            size_t result = 0u;
+            for (size_t i = 0u; i < _countof(hashes); ++i)
+            {
+                result ^= hashes[i] << i;
+            }
+            
+            return result;
+        }
+    };
+}
+#endif

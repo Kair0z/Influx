@@ -6,6 +6,8 @@
 	#define INFLUX_RENDER_API __declspec(dllimport)
 #endif
 
+#define INFLUX_RENDER_BINDLESS 1
+
 // Imgui
 struct ImDrawData;
 
