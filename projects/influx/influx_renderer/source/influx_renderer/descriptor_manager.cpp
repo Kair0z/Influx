@@ -23,8 +23,7 @@ namespace influx::renderer
 
 	void descriptor_manager::start_commandlist(graphics::commandlist* commandlist)
 	{
-		commandlist->set(mp_samp_gpu_heap);
-		commandlist->set(mp_srv_gpu_heap);
+		commandlist->set({ mp_samp_gpu_heap, mp_srv_gpu_heap });
 	}
 
 	void descriptor_manager::end_frame()
@@ -118,6 +117,13 @@ namespace influx::renderer
 		return cpu_handle;
 	}
 
+	graphics::descriptor_handle descriptor_manager::create_sampler()
+	{
+		graphics::descriptor_handle cpu_handle = mp_sampler_heap->allocate_cpu();
+		mp_device->create_sampler_view(cpu_handle, nullptr);
+		return cpu_handle;
+	}
+
 	graphics::descriptor_range descriptor_manager::stage(const vector<graphics::descriptor_handle>& cpu_descriptors)
 	{
 		graphics::descriptor_range gpu_range{};
@@ -166,6 +172,34 @@ namespace influx::renderer
 	{
 		vector<renderer::texture*> textures{ texture };
 		return stage(textures);
+	}
+
+	graphics::descriptor_range descriptor_manager::stage_sampler(graphics::descriptor_handle handle)
+	{
+		return stage_samplers({ handle });
+	}
+
+	graphics::descriptor_range descriptor_manager::stage_samplers(const vector<graphics::descriptor_handle>& samplers)
+	{
+		graphics::descriptor_range gpu_range{};
+		for (size_t i = 0u; i < samplers.size(); ++i)
+		{
+			// allocate a gpu descriptor and 
+			graphics::descriptor_handle gpu_handle = mp_samp_gpu_heap->allocate_gpu();
+			graphics::descriptor_handle cpu_handle = mp_samp_gpu_heap->allocate_cpu();
+			gpu_range.m_num_descriptors++;
+
+			// set the first gpu handles as the gpu_range base
+			if (gpu_range.m_start == nullptr)
+			{
+				gpu_range.m_start = gpu_handle;
+			}
+
+			// copy the cpu descriptor into the gpu-visible descriptor
+			mp_device->copy_descriptors(samplers[i], cpu_handle, graphics::e_descriptor_heap_type::sampler);
+		}
+
+		return gpu_range;
 	}
 
 	void descriptor_manager::cleanup_rtv(graphics::descriptor_handle rtv)

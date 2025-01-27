@@ -369,7 +369,20 @@ namespace influx::graphics
 	}
 	void dx12_device::create_sampler_view(descriptor_handle cpu_handle, resource* resource)
 	{
-		influx_assert(false);
+		D3D12_SAMPLER_DESC desc{};
+		desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; // Linear filtering
+		desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP; // Wrap addressing for U
+		desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP; // Wrap addressing for V
+		desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP; // Wrap addressing for W
+		desc.MipLODBias = 0.0f; // No bias for MIP levels
+		desc.MaxAnisotropy = 1; // No anisotropic filtering
+		desc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS; // No comparison
+		// desc.BorderColor[0] = samplerDesc.BorderColor[1] = samplerDesc.BorderColor[2] = samplerDesc.BorderColor[3] = 0.0f; // Black border color
+		desc.MinLOD = 0.0f; // Minimum LOD
+		desc.MaxLOD = D3D12_FLOAT32_MAX; // Maximum LOD
+
+		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { .ptr = (size_t)(cpu_handle) };
+		mpdx_devices[0u]->CreateSampler(&desc, dxcpu_descriptor);
 	}
 
 	ptr<rootsignature> dx12_device::create_rootsignature(const rootsignature_desc& desc)
@@ -486,6 +499,7 @@ namespace influx::graphics
 				translate(sampler.m_common.m_visibility));
 		}
 
+		
 		// initialize the desc, and create the root signature
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 

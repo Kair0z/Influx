@@ -86,7 +86,7 @@ namespace influx::renderer
         }
 
         // create root signature
-        rootsig_desc.m_direct_indexing = true; // bindless
+        rootsig_desc.m_direct_indexing = signature.m_bindless; // bindless
         mp_rootsig = device->create_rootsignature(rootsig_desc);
 
         m_name_to_param_idx = mp_rootsig->get_param_idx_table();

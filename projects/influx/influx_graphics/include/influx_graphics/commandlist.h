@@ -158,6 +158,9 @@ namespace influx::graphics
 		virtual void set(descriptor_heap* heap) = 0;
 
 		INFLUX_GFX_API
+		virtual void set(const vector<descriptor_heap*>& heap) = 0;
+
+		INFLUX_GFX_API
 		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) = 0;
 
 		INFLUX_GFX_API

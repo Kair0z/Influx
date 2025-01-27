@@ -95,7 +95,7 @@ namespace influx::renderer
 			bl_inv_alpha_factor = 21,
 		};
 #pragma endregion
-
+		bool m_bindless = false;
 		string m_vs_name = "";
 		string m_ps_name = "";
 

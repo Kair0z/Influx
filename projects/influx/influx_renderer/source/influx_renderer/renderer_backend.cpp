@@ -631,7 +631,7 @@ namespace influx::renderer
     {
         if (m_index_buffer_contents.contains(title))
         {
-            return m_index_buffer_contents[title];
+            return m_index_buffer_contents.at(title);
         }
 
         return {};

@@ -18,6 +18,7 @@ namespace influx::renderer
 {
     static pipeline_signature k_scene_pipeline_signature
     {
+        .m_bindless             { true },
         .m_vs_name              { "basepass_vs" },
         .m_ps_name              { "basepass_ps" },
 
@@ -60,18 +61,38 @@ namespace influx::renderer
     {
         m_instance_data = new gpu_instance_data[k_max_num_instances]{};
 
-        graphics::heap_desc heap_desc{};
-        heap_desc.m_type = graphics::e_heap_type::shared;
+        {
+            graphics::heap_desc heap_desc{};
+            heap_desc.m_type = graphics::e_heap_type::shared;
 
-        graphics::buffer_desc desc{};
-        desc.m_bytesize = k_max_num_instances * sizeof(gpu_instance_data);
-        desc.m_bytestride = sizeof(gpu_instance_data);
-        desc.m_init_state = graphics::e_resource_state::gen_read;
-        mp_instancebuffer = device->create_resource(desc, heap_desc);
-        mp_instancebuffer->set_name({ "scene_instance_buffer" });
+            graphics::buffer_desc desc{};
+            desc.m_bytesize = k_max_num_instances * sizeof(gpu_instance_data);
+            desc.m_bytestride = sizeof(gpu_instance_data);
+            desc.m_init_state = graphics::e_resource_state::gen_read;
+            mp_instancebuffer = device->create_resource(desc, heap_desc);
+            mp_instancebuffer->set_name({ "scene_instance_buffer" });
 
-        // create srv
-        m_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
+            // create srv
+            m_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
+        }
+
+        {
+            graphics::heap_desc heap_desc{};
+            heap_desc.m_type = graphics::e_heap_type::shared;
+
+            graphics::buffer_desc desc{};
+            desc.m_bytesize = k_max_num_vertices * sizeof(vertex_data);
+            desc.m_bytestride = sizeof(vertex_data);
+            desc.m_init_state = graphics::e_resource_state::gen_read;
+            m_vertexbuffer.m_resource = device->create_resource(desc, heap_desc);
+            m_vertexbuffer.m_resource->set_name({ "scene_vertexbuffer" });
+
+            // create srv
+            m_vertexbuffer.m_vertex_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(m_vertexbuffer.m_resource);
+        }
+
+        descriptor_manager& descriptor_manager = *backend->get_descriptor_manager();
+        m_sampler_view = descriptor_manager.create_sampler();
     }
 
     scene_renderer::~scene_renderer()
@@ -85,16 +106,11 @@ namespace influx::renderer
     public:
         batch() = default;
 
-        material* m_material;
+        const material* m_material;
+        vector<gpu_instance_data> m_instances;
+        graphics::resource* m_indexbuffer;
         uint32 m_base_instance;
         uint32 m_base_vertex;
-
-        using mesh_to_instances_map = umap<string, vector<gpu_instance_data>>;
-        
-        umap<material*, mesh_to_instances_map> m_material_to_mesh_to_instances_map;
-
-        vector<gpu_instance_data> m_instances;
-        vector<gpu_vertex_data> m_vertex_buffers;
     };
 #pragma endregion
 
@@ -108,24 +124,36 @@ namespace influx::renderer
 
     vector<batch> scene_renderer::create_batches(const scene& scene)
     {
-        using material_instance_map = umap<const material*, vector<gpu_instance_data>>;
-        material_instance_map material_to_instance_map{};
+        renderer_backend& backend = renderer_backend::get_instance();
+        using indexbuffer_instance_map = umap<graphics::resource*, vector<gpu_instance_data>>;
+        indexbuffer_instance_map idxbuffer_to_instances{};
 
+        const material* first_material = nullptr;
         for (const mesh_instance& instance : scene.m_meshes)
         {
-            gpu_instance_data gpu_data = translate(instance);
-            material_to_instance_map[instance.m_material].push_back(gpu_data);
+            graphics::resource* indexbuffer = nullptr;
+            graphics::resource* vertexbuffer = nullptr;
+            if (backend.get_mesh_buffers(instance.m_name, vertexbuffer, indexbuffer))
+            {
+                gpu_instance_data gpu_data = translate(instance);
+                idxbuffer_to_instances[indexbuffer].push_back(gpu_data);
+
+                first_material = instance.m_material;
+            }
         }
 
         vector<batch> batches{};
-        for (const auto& per_material : material_to_instance_map)
+        for (const auto& per_indexbuffer : idxbuffer_to_instances)
         {
             batches.push_back({});
             batch& batch = batches.back();
 
-            batch.m_base_vertex;
+            batch.m_material = first_material;
+            batch.m_base_instance = 0u;
+            batch.m_base_vertex = 0u;
+            batch.m_indexbuffer = per_indexbuffer.first;
+            batch.m_instances = per_indexbuffer.second;
         }
-
         return batches;
     }
 
@@ -162,28 +190,30 @@ namespace influx::renderer
         }
 
         logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
-
-        // stage the texture descriptors on the bindless heap
+        
+        // stage all srv/uav/const descriptors on the bindless heap
         // in bindless, MUST happen before setting descriptor (mp_pipeline->set_state)
         {
             const material& first_material = *batches[0u].m_material;
-            vector<texture*> all_textures
+            vector<graphics::descriptor_handle> all_descriptors
             {
-                backend.find_texture(first_material.get_texture_diffuse_name()),
-                backend.find_texture(first_material.get_texture_normals_name())
+                backend.find_texture(first_material.get_texture_diffuse_name())->get_srv(),
+                m_instance_buffer_srv,
+                m_vertexbuffer.m_vertex_buffer_srv
             };
 
-            for ()
-            graphics::descriptor_range gpu_range = descriptor_manager.stage(all_textures);
-            mp_pipeline->set_resource_table(commandlist, "bindless_heap", gpu_range);
+            graphics::descriptor_range gpu_range = descriptor_manager.stage(all_descriptors);
+            graphics::descriptor_range gpu_range_samp = descriptor_manager.stage_sampler(m_sampler_view);
+            // mp_pipeline->set_resource_table(commandlist, "all_descriptors", gpu_range);
+            descriptor_manager.start_commandlist(commandlist);
         }
-        
+
         // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
         {
             mp_pipeline->set_state(commandlist);
             commandlist->set(graphics::e_primitive_topology::trilist);
         }
-        
+
         // update viewprojection matrix
         {
             const camera& camera = scene.m_camera;
@@ -194,15 +224,6 @@ namespace influx::renderer
             m_gpu_perview.m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
             mp_pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
             mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
-        }
-        
-        // stage the instance & vertex buffers
-        {
-            graphics::descriptor_range gpu_range = descriptor_manager.stage(m_instance_buffer_srv);
-            mp_pipeline->set_resource_table(commandlist, "g_instancebuffer", gpu_range);
-
-            gpu_range = descriptor_manager.stage(m_vertexbuffer.m_vertex_buffer_srv);
-            mp_pipeline->set_resource_table(commandlist, "g_vertexbuffers", gpu_range);
         }
 
         for (const batch& batch : batches)
@@ -218,7 +239,7 @@ namespace influx::renderer
             mp_pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
             // bind index buffer
-            graphics::resource* index_buffer = batch.get_index_buffer();
+            graphics::resource* index_buffer = batch.m_indexbuffer;
             const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
             commandlist->set_indexbuffer(index_buffer);
 
@@ -248,6 +269,48 @@ namespace influx::renderer
         case render_settings::cullmode::front: k_scene_pipeline_signature.m_cullmode = pipeline_signature::cullmode::front; break;
         case render_settings::cullmode::none:  k_scene_pipeline_signature.m_cullmode = pipeline_signature::cullmode::none; break;
         }
+    }
+
+    void scene_renderer::mega_vertexbuffer::update_buffer()
+    {
+        if (m_resource == nullptr || m_meshnames.empty())
+        {
+            return;
+        }
+
+        reset();
+
+        uint64 total_bytesize = 0u;
+        const renderer_backend& backend = renderer_backend::get_instance();
+        vector<gpu_vertex_data> gpu_data{};
+
+        // gather a mega gpu_vertexdata vector
+        for (const string& name : m_meshnames)
+        {
+            const vector<vertex_data> vertexbuffer_content = backend.get_vertexbuffer_content<vertex_data>(name);
+            if (vertexbuffer_content.size() > 0u)
+            {
+                const uint64 old_size = gpu_data.size();
+                const uint64 num_vertices = vertexbuffer_content.size();
+                const uint64 bytesize = num_vertices * sizeof(vertex_data);
+                gpu_data.resize(old_size + num_vertices);
+
+                // copy the individual vertexbuffer content into our gpu data mega-vector
+                memcpy(&gpu_data[old_size], vertexbuffer_content.data(), bytesize);
+
+                // keep the base offset
+                m_meshname_to_offset[name] = old_size;
+
+                total_bytesize += bytesize;
+            }
+        }
+
+        // map onto the resource
+        m_resource->map([total_bytesize, &gpu_data](void* dest)
+            {
+                gpu_vertex_data* data = reinterpret_cast<gpu_vertex_data*>(dest);
+                memcpy(data, gpu_data.data(), total_bytesize);
+            });
     }
 
     void scene_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)

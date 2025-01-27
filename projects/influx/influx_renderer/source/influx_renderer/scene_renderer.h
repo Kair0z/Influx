@@ -28,6 +28,7 @@ namespace influx::renderer
 namespace influx::renderer
 {
 	constexpr static uint32 k_max_num_instances = 4096u;
+	constexpr static uint32 k_max_num_vertices = 24u * 1024u;
 
 	// [LAYOUT]
 	struct gpu_perscene final
@@ -96,7 +97,7 @@ namespace influx::renderer
 	private:
 		struct mega_vertexbuffer final
 		{
-			graphics::resource* m_resource = nulllptr;
+			graphics::resource* m_resource = nullptr;
 			graphics::descriptor_handle m_vertex_buffer_srv;
 			uset<string> m_meshnames{};
 			umap<string, uint64> m_meshname_to_offset{};
@@ -111,47 +112,7 @@ namespace influx::renderer
 				m_meshname_to_offset.clear();
 			}
 
-			void update_buffer()
-			{
-				if (m_resource == nullptr || m_meshnames.empty())
-				{
-					return;
-				}
-
-				reset();
-
-				uint64 total_bytesize = 0u;
-				const renderer_backend& backend = renderer_backend::get_instance();
-				vector<gpu_vertex_data> gpu_data{};
-
-				// gather a mega gpu_vertexdata vector
-				for (const string& name : m_meshnames)
-				{
-					const vector<vertex_data> vertexbuffer_content = backend.get_vertexbuffer_content<vertex_data>(name);
-					if (vertexbuffer_content.size() > 0u)
-					{
-						const uint64 old_size = gpu_data.size();
-						const uint64 num_vertices = vertexbuffer_content.size();
-						const uint64 bytesize = num_vertices * sizeof(vertex_data);
-						gpu_data.resize(old_size + num_vertices);
-
-						// copy the individual vertexbuffer content into our gpu data mega-vector
-						memcpy(&gpu_data[old_size], vertexbuffer_content.data(), bytesize);
-
-						// keep the base offset
-						m_meshname_to_offset[name] = old_size;
-
-						total_bytesize += bytesize;
-					}
-				}
-
-				// map onto the resource
-				m_resource->map([total_bytesize, &gpu_data](void* dest)
-				{
-					gpu_vertex_data* data = reinterpret_cast<gpu_vertex_data*>(dest);
-					memcpy(data, gpu_data.data(), total_bytesize);
-				});
-			}
+			void update_buffer();
 
 		} m_vertexbuffer;
 
@@ -164,7 +125,8 @@ namespace influx::renderer
 
 		graphics::resource* mp_instancebuffer;
 		graphics::descriptor_handle m_instance_buffer_srv;
-		
+		graphics::descriptor_handle m_sampler_view;
+
 		// gpu data
 		gpu_perscene m_gpu_perscene;
 		gpu_perview m_gpu_perview;

@@ -55,6 +55,29 @@ namespace influx::platform
 
 namespace influx::renderer
 {
+	template <typename _vt>
+	class multi_vertexbuffer_t final
+	{
+		using vertex_type = _vt;
+
+	public:
+		void add_mesh(const string& name, const vector<vertex_type>& vertices);
+		void remove_mesh(const string& name);
+
+		void update_gpu_buffer();
+
+	private:
+		graphics::resource* m_resource;
+		graphics::descriptor_handle m_descriptor;
+		map<string, uint32> m_name_to_offset_map;
+		map<string, vector<vertex_type>> m_name_to_buffer;
+		bool m_is_cpu_gpu_different = false;
+
+		vector<vertex_type> m_vertices{};
+	};
+
+	using multi_vertexbuffer = multi_vertexbuffer_t<vertex_data>;
+
 	class renderer_backend final : public singleton<renderer_backend>
 	{
 		// konstants
@@ -167,6 +190,7 @@ namespace influx::renderer
 		shadertoy_renderer* mp_shadertoy_renderer = nullptr;
 
 		// resources
+		multi_vertexbuffer m_multi_vertexbuffer{};
 		umap<string, graphics::resource*> m_vertex_buffers;
 		umap<string, graphics::resource*> m_index_buffers;
 		umap<string, vector<index>> m_index_buffer_contents;
@@ -213,6 +237,8 @@ namespace influx::renderer
 			memcpy(m_vertex_buffer_contents[title].data(), data.data(), desc.m_bytesize);
 
 			m_vertex_buffers[title]->set_name("vb_" + title);
+
+			m_multi_vertexbuffer.add_mesh(title, data);
 		}
 
 		return m_vertex_buffers[title];
@@ -223,7 +249,7 @@ namespace influx::renderer
 	{
 		if (m_vertex_buffer_contents.contains(title))
 		{
-			const vector<uint8>& data = m_vertex_buffer_contents[title];
+			const vector<uint8>& data = m_vertex_buffer_contents.at(title);
 			const uint64 bytesize = (data.size() * sizeof(uint8));
 			const uint64 num_vertices = bytesize / sizeof(_tvtx);
 			vector<_tvtx> result(num_vertices);
@@ -232,5 +258,60 @@ namespace influx::renderer
 		}
 
 		return {};
+	}
+
+	template<typename _vt>
+	inline void renderer::multi_vertexbuffer_t<_vt>::add_mesh(const string& name, const vector<_vt>& vertices)
+	{
+		m_name_to_buffer[name] = vertices;
+		m_is_cpu_gpu_different = true;
+	}
+
+	template<typename _vt>
+	inline void renderer::multi_vertexbuffer_t<_vt>::remove_mesh(const string& name)
+	{
+		m_is_cpu_gpu_different = true;
+	}
+
+	template<typename _vt>
+	inline void renderer::multi_vertexbuffer_t<_vt>::update_gpu_buffer()
+	{
+		if (m_is_cpu_gpu_different && !m_name_to_buffer.empty())
+		{
+			for (const auto& pair : m_name_to_buffer)
+			{
+				const string& name = pair.first;
+				const auto& vertices = pair.second;
+
+
+			}
+
+
+			uint64 total_bytesize = 0u;
+			vector<gpu_vertex_data> gpu_data{};
+
+			// gather a mega gpu_vertexdata vector
+			for (const string& name : m_meshnames)
+			{
+				const vector<vertex_data> vertexbuffer_content = backend.get_vertexbuffer_content<vertex_data>(name);
+				if (vertexbuffer_content.size() > 0u)
+				{
+					const uint64 old_size = gpu_data.size();
+					const uint64 num_vertices = vertexbuffer_content.size();
+					const uint64 bytesize = num_vertices * sizeof(vertex_data);
+					gpu_data.resize(old_size + num_vertices);
+
+					// copy the individual vertexbuffer content into our gpu data mega-vector
+					memcpy(&gpu_data[old_size], vertexbuffer_content.data(), bytesize);
+
+					// keep the base offset
+					m_meshname_to_offset[name] = old_size;
+
+					total_bytesize += bytesize;
+				}
+			}
+		}
+
+		m_is_cpu_gpu_different = false;
 	}
 }

@@ -381,6 +381,20 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->SetDescriptorHeaps(1u, &dxheap);
 	}
 
+	void dx12_commandlist::set(const vector<descriptor_heap*>& heaps)
+	{
+		renderpass_check(e_command::set_descriptor_heap);
+
+		vector<ID3D12DescriptorHeap*> native_heaps{};
+		native_heaps.resize(heaps.size());
+		for (uint64 i = 0u; i < heaps.size(); ++i)
+		{
+			native_heaps[i] = heaps[i]->get_native<ID3D12DescriptorHeap>();
+		}
+
+		mpdx_graphics_commandlist->SetDescriptorHeaps(native_heaps.size(), native_heaps.data());
+	}
+
 	void dx12_commandlist::set(const descriptor_range& gpu_range, uint32 param_idx)
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};

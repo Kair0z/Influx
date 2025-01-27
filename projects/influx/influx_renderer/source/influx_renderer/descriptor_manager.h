@@ -38,6 +38,7 @@ namespace influx::renderer
 		graphics::descriptor_handle create_dsv(graphics::resource* resource);
 		graphics::descriptor_handle create_srv(graphics::resource* resource);
 		graphics::descriptor_handle create_buffer_srv(graphics::resource* resource);
+		graphics::descriptor_handle create_sampler();
 
 		// stages descriptors into the appropriate shader-visible descriptor heap
 		// and returns the address of that range of descriptors
@@ -45,6 +46,9 @@ namespace influx::renderer
 		graphics::descriptor_range stage(const graphics::descriptor_handle& cpu_descriptor);
 		graphics::descriptor_range stage(const vector<texture*>& textures);
 		graphics::descriptor_range stage(texture* texture);
+
+		graphics::descriptor_range stage_sampler(graphics::descriptor_handle handle);
+		graphics::descriptor_range stage_samplers(const vector<graphics::descriptor_handle>& samplers);
 
 		void cleanup_rtv(graphics::descriptor_handle rtv);
 		void cleanup_dsv(graphics::descriptor_handle dsv);

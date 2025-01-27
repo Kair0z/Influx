@@ -76,6 +76,8 @@ namespace influx::graphics
 
 		virtual void set(descriptor_heap* heap) override;
 
+		virtual void set(const vector<descriptor_heap*>& heap) override;
+
 		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) override;
 
 		virtual void set(rootsignature* rootsig) override;
