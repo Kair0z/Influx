@@ -107,9 +107,39 @@ namespace influx::renderer
         return instance_data;
     }
 
-    vector<batch> scene_renderer::create_batches(const scene& scene)
+    vector<batch> scene_renderer::create_batches(const scene& scene, graphics::commandlist* commandlist)
     {
         renderer_backend& backend = renderer_backend::get_instance();
+        umap<texture*, uint32> tex_to_idx{};
+
+        // stage all srv/uav/const descriptors on the bindless heap
+        // in bindless, MUST happen before setting descriptor (mp_pipeline->set_state)
+        {
+            vector<graphics::descriptor_handle> all_srvs{};
+            all_srvs.push_back(m_instance_buffer_srv);
+
+            uint32 texture_count = 0u;
+            for (const mesh_instance& instance : scene.m_meshes)
+            {
+                const material& material = *instance.m_material;
+                texture* diffuse_texture = backend.find_texture(material.get_texture_diffuse_name());
+                if (diffuse_texture != nullptr && !tex_to_idx.contains(diffuse_texture))
+                {
+                    // add to list of unique srvs
+                    all_srvs.push_back(diffuse_texture->get_cpu_handle());
+
+                    // keep the idx of the srv
+                    tex_to_idx[diffuse_texture] = texture_count;
+                    texture_count++;
+                }
+            }
+
+            graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(all_srvs);
+            graphics::descriptor_range gpu_range_samp = backend.get_descriptor_manager()->stage_sampler(m_sampler_view);
+            // mp_pipeline->set_resource_table(commandlist, "all_descriptors", gpu_range);
+            backend.get_descriptor_manager()->start_commandlist(commandlist);
+        }
+
         using mesh_to_instance_map = umap<string, vector<gpu_instance_data>>;
         mesh_to_instance_map meshname_to_instances{};
 
@@ -119,6 +149,7 @@ namespace influx::renderer
             graphics::resource* vertexbuffer = nullptr;
 
             gpu_instance_data gpu_data = translate(instance);
+            gpu_data.m_albedo_index = tex_to_idx[backend.find_texture(instance.m_material->get_texture_diffuse_name())];
             meshname_to_instances[instance.m_name].push_back(gpu_data);
         }
 
@@ -144,6 +175,14 @@ namespace influx::renderer
         return batches;
     }
 
+    void scene_renderer::gather_textures(const scene& scene)
+    {
+        renderer_backend& backend = renderer_backend::get_instance();
+        graphics::descriptor_handle blank_descriptor = backend.get_default_texture().get_cpu_handle();
+
+        
+    }
+
     void scene_renderer::update_instance_buffer(const vector<batch>& batches)
     {
         mp_instancebuffer->map([&batches](void* dest)
@@ -159,45 +198,11 @@ namespace influx::renderer
         });
     }
 
-
     void scene_renderer::render_basepass(graphics::commandlist* commandlist, 
         const scene& scene, const vector<batch>& batches, const target& target)
     {
         renderer_backend& backend = renderer_backend::get_instance();
         descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
-
-        // update pipeline
-        apply_pipeline_settings();
-        mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
-        if (mp_pipeline == nullptr || batches.empty())
-        {
-            return;
-        }
-
-        logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
-        
-        // stage all srv/uav/const descriptors on the bindless heap
-        // in bindless, MUST happen before setting descriptor (mp_pipeline->set_state)
-        {
-            const material& first_material = *scene.m_meshes[0u].m_material;
-            const string& diffuse_name = first_material.get_texture_diffuse_name();
-            vector<graphics::descriptor_handle> all_descriptors
-            {
-                m_instance_buffer_srv,
-                backend.find_texture(diffuse_name)->get_srv()
-            };
-
-            graphics::descriptor_range gpu_range = descriptor_manager.stage(all_descriptors);
-            graphics::descriptor_range gpu_range_samp = descriptor_manager.stage_sampler(m_sampler_view);
-            // mp_pipeline->set_resource_table(commandlist, "all_descriptors", gpu_range);
-            descriptor_manager.start_commandlist(commandlist);
-        }
-
-        // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
-        {
-            mp_pipeline->set_state(commandlist);
-            commandlist->set(graphics::e_primitive_topology::trilist);
-        }
 
         // update viewprojection matrix
         {
@@ -256,12 +261,33 @@ namespace influx::renderer
 
     void scene_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)
     {
+        renderer_backend& backend = renderer_backend::get_instance();
+        pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
+
+        apply_pipeline_settings();
+
+        mp_pipeline = pipeline_man.get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
+        if (mp_pipeline == nullptr || scene.is_empty())
+        {
+            return;
+        }
+
+        // per-scene
         m_gpu_perscene.m_time.x = scene.m_delta_seconds;
         m_gpu_perscene.m_time.y = scene.m_seconds;
 
-        vector<batch> batches = create_batches(scene);
+        // create batches
+        vector<batch> batches = create_batches(scene, commandlist);
 
         update_instance_buffer(batches);
+
+        logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
+
+        // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
+        {
+            mp_pipeline->set_state(commandlist);
+            commandlist->set(graphics::e_primitive_topology::trilist);
+        }
 
         // render_shadows(commandlist, scene, batches);
         render_basepass(commandlist, scene, batches, target);

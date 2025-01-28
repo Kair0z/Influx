@@ -34,6 +34,8 @@ struct per_instance_data
 {
     float4x4	mat_transform;
     float4      colour;
+    uint texid_albedo;
+    uint texid_normal;
 };
 
 struct ps_input
@@ -43,6 +45,9 @@ struct ps_input
     nointerpolation float4 colour : COLOR;
     float3 normal : NORMAL;
     float2 texcoord : TEXCOORD;
+
+    nointerpolation uint texid_albedo : TEXCOORD1;
+    nointerpolation uint texid_normal : TEXCOORD2;
 };
 
 #define FLX_BINDLESS 1
@@ -63,7 +68,7 @@ StructuredBuffer<per_instance_data>     g_instancebuffer    : register(t1);
 Texture2D get_texture(int index)
 {
 #if FLX_BINDLESS
-    return ResourceDescriptorHeap[1];
+    return ResourceDescriptorHeap[1 + index];
 #endif
 }
 
@@ -114,18 +119,11 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
     float4 instance_color = instance_data.colour;
     output.colour.rgb = lerp(instance_color.rgb, g_permaterial.colour.rgb, 0.5f);
     
+    // texids
+    output.texid_albedo = instance_data.texid_albedo;
+    output.texid_normal = instance_data.texid_normal;
+
     return output;
-}
-
-
-float4 get_albedo(float2 texcoord)
-{
-    return get_texture(0).Sample(get_sampler(0), texcoord).rgba;
-}
-
-float3 get_normal(float2 texcoord)
-{
-    return get_texture(0).Sample(get_sampler(0), texcoord).rgb;
 }
 
 [shader("pixel")]
@@ -134,12 +132,12 @@ float4 main_ps(ps_input input) : SV_TARGET
     float3 lightDir = g_perscene.light_direction.rgb;
     float3 lightCol = g_perscene.light_colour.rgb;
 
-    float4 albedo = get_albedo(input.texcoord).rgba;
+    float4 albedo = get_texture(input.texid_albedo).Sample(get_sampler(0), input.texcoord).rgba;
     // albedo.rgb = lerp(input.colour.rgb, albedo.rgb, 0.5f);
 
+    // float3 normal = get_texture(input.texid_normal).Sample(get_sampler(0), texcoord).rgba;
+    // float3 normal = get_normal(input.texcoord).rgb;
     float3 normal = input.normal;
-    //float3 normal = get_normal(input.texcoord).rgb;
-    // normal = input.normal;
 
     float ambient = 0.2f;
     float diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));

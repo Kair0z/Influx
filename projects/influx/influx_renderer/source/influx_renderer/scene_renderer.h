@@ -57,6 +57,8 @@ namespace influx::renderer
 	{
 		math::matrix4x4f	m_transform;
 		math::vectorf4		m_colour;
+		uint32 m_albedo_index;
+		uint32 m_normal_index;
 	};
 
 	struct gpu_vertex_data final
@@ -85,8 +87,9 @@ namespace influx::renderer
 			const target& target);
 
 	private:
-		vector<batch> create_batches(const scene& scene);
+		vector<batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
 
+		void gather_textures(const scene& scene);
 		void update_instance_buffer(const vector<batch>& batches);
 
 		void render_basepass(graphics::commandlist* commandlist, 

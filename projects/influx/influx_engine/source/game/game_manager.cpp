@@ -307,7 +307,7 @@ namespace influx::engine
 
 			material_component& mat_comp = world.create_component<material_component>(sword);
 			{
-				mat_comp.set_texture(e_texture_semantic::diffuse, "checkerboard");
+				mat_comp.set_texture(e_texture_semantic::diffuse, i % 2 == 0u ? "checkerboard" : "lego");
 			}
 		}
 	}
