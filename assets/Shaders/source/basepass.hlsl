@@ -20,7 +20,6 @@ struct per_material
 struct per_draw
 {
     uint start_instance;
-    uint start_vertex;
 };
 
 struct per_vertex_data
@@ -35,7 +34,6 @@ struct per_instance_data
 {
     float4x4	mat_transform;
     float4      colour;
-    uint        base_vertex;
 };
 
 struct ps_input
@@ -61,11 +59,12 @@ SamplerState                            g_sampler           : register(s0);
 
 // textures
 StructuredBuffer<per_instance_data>     g_instancebuffer    : register(t1);
-StructuredBuffer<per_vertex_data>       g_vertexbuffers     : register(t2);
 
 Texture2D get_texture(int index)
 {
-    return ResourceDescriptorHeap[2];
+#if FLX_BINDLESS
+    return ResourceDescriptorHeap[1];
+#endif
 }
 
 SamplerState get_sampler(int index)
@@ -75,59 +74,48 @@ SamplerState get_sampler(int index)
 
 StructuredBuffer<per_instance_data> get_instance_buffer()
 {
+#if FLX_BINDLESS
     return ResourceDescriptorHeap[0];
-}
-
-StructuredBuffer<per_vertex_data> get_vertex_buffer()
-{
-    return ResourceDescriptorHeap[1];
+#else
+    return g_instancebuffer;
+#endif
 }
 
 struct vs_input
 {
-    uint vertex_id : SV_VertexID;
-    uint instance_id : SV_InstanceID;
-
-    per_vertex_data get_vertex_data()
-    {
-        return g_vertexbuffers[vertex_id];
-    }
-
-    per_instance_data get_instance_data()
-    {
-        return g_instancebuffer[instance_id];
-    }
+    per_vertex_data vertex_data;
 };
 
 [shader("vertex")]
-ps_input main_vs(vs_input input)
+ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
 {
     ps_input output = (ps_input)0;
 
     // get instance data
-    per_instance_data instance_data = get_instance_buffer()[input.instance_id];
+    instance_id = g_perdraw.start_instance;
+    per_instance_data instance_data = get_instance_buffer()[instance_id];
     
     // get vertex data
-    per_vertex_data vertex_data = get_vertex_buffer()[input.vertex_id];
+    per_vertex_data vertex_data = input.vertex_data;
 
     // positions
-    float4x4 mvp = mul((float4x4)g_perview.mat_vp, (float4x4)instance_data.mat_transform);
+    float4x4 instance_transform = (float4x4)instance_data.mat_transform;
+    float4x4 mvp = mul((float4x4)g_perview.mat_vp, instance_transform);
     output.position = mul(mvp, float4 ( vertex_data.position, 1.0f ) );
-    output.worldPos = mul(instance_data.mat_transform, float4(vertex_data.position, 1.0f)).xyz;
+    output.worldPos = mul(instance_transform, float4(vertex_data.position, 1.0f)).xyz;
 
     // uvs
     output.texcoord = vertex_data.texcoord;
     
     // normals
-    output.normal = normalize(mul((float3x3)instance_data.mat_transform, vertex_data.normal));
+    output.normal = normalize(mul((float3x3)instance_transform, vertex_data.normal));
 
     // color
-    output.colour.rgb = lerp(instance_data.colour.rgb, g_permaterial.colour.rgb, 0.5f);
+    float4 instance_color = instance_data.colour;
+    output.colour.rgb = lerp(instance_color.rgb, g_permaterial.colour.rgb, 0.5f);
     
     return output;
 }
-
-
 
 
 float4 get_albedo(float2 texcoord)
@@ -149,11 +137,12 @@ float4 main_ps(ps_input input) : SV_TARGET
     float4 albedo = get_albedo(input.texcoord).rgba;
     // albedo.rgb = lerp(input.colour.rgb, albedo.rgb, 0.5f);
 
-    float3 normal = get_normal(input.texcoord).rgb;
-    normal = input.normal;
+    float3 normal = input.normal;
+    //float3 normal = get_normal(input.texcoord).rgb;
+    // normal = input.normal;
 
     float ambient = 0.2f;
     float diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
 
-    return float4(albedo.rgb, 1.0f);
+    return float4(diffuse * albedo.rgb, 1.0f);
 }

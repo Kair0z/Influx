@@ -174,8 +174,8 @@ namespace influx
 
             return "";
         }
-        const string& get_texture_normals_name() const { return get_texture_name(e_texture_semantic::normals); }
-        const string& get_texture_diffuse_name() const { return get_texture_name(e_texture_semantic::diffuse); }
+        string get_texture_normals_name() const { return get_texture_name(e_texture_semantic::normals); }
+        string get_texture_diffuse_name() const { return get_texture_name(e_texture_semantic::diffuse); }
 
         math::colour_rgba get_basecolour() const
         {

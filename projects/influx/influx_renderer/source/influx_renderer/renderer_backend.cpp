@@ -121,9 +121,6 @@ namespace influx::renderer
         mp_commandlist->start(mp_device, nullptr);
         mp_commandlist->set_name("frame");
         get_descriptor_manager()->start_commandlist(mp_commandlist);
-
-        // expensive :))
-        m_multimesh.update_multiresource();
     }
 
     void renderer_backend::end_frame()
@@ -239,14 +236,6 @@ namespace influx::renderer
 
     void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
-        // update multimesh
-        for (const auto& mesh : scene.m_meshes)
-        {
-            m_multimesh.add_mesh(mesh.m_name,
-                m_vertex_buffer_contents.at(mesh.m_name),
-                m_index_buffer_contents.at(mesh.m_name));
-        }
-
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         static string depth_name{}; depth_name = color_name + "_depth";
         m_rendergraph->import_texture(color_name, target.get_resource());
@@ -307,22 +296,31 @@ namespace influx::renderer
 
     void renderer_backend::draw_debug(const scene_debug& scene, const target& target)
     {
-        influx_scope("renderer_backend::draw_debug::record");
+        static string color_name{}; color_name = target.get_resource()->get_name().get();
+        static string depth_name{}; depth_name = color_name + "_depth";
+        m_rendergraph->import_texture(color_name, target.get_resource());
+        m_rendergraph->import_texture(depth_name, target.get_depth_resource());
 
-        m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-            [](rendergraph::rgpass_builder& builder)
+        auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
+            [&target](rendergraph::rgpass_builder& builder)
             {
                 rendergraph::rgaccess access{};
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(RGNAME("scene_target"), access);
-                builder.read_depthtarget(RGNAME("scene_depth"), access);
+                builder.write_rendertarget(color_name, access);
+                builder.write_depthtarget(depth_name, access);
+
+                builder.set_viewport(target.get_width(), target.get_height());
             },
             [this, &scene, &target](rendergraph::rgpass_context& context)
             {
+                influx_scope("renderer_backend::draw_debug::record");
                 graphics::commandlist& commandlist = context.get_commandlist();
+
                 mp_debug_renderer->render(&commandlist, scene, target);
             });
+
+        pass->set_name(RGNAME("draw_debug"));
     }
 
     void renderer_backend::draw_shadertoy(const scene_shadertoy& scene, const target& target)
@@ -608,7 +606,9 @@ namespace influx::renderer
 
     graphics::resource* renderer_backend::create_indexbuffer(const string& title, const vector<index>& data, bool reload)
     {
-        if (!m_index_buffers.contains(title) || reload)
+        const uint64 old_bytesize = m_index_buffers.contains(title) ? m_index_buffers[title]->get_bytesize() : 0u;
+        const uint64 new_bytesize = data.size() * sizeof(index);
+        if (old_bytesize < new_bytesize)
         {
             // create index / vertex buffer on the shared heap (so cpu can write to it)
             graphics::heap_desc heap_desc{};
@@ -623,16 +623,19 @@ namespace influx::renderer
             desc.m_bytestride = sizeof(index);
             desc.m_format = graphics::e_format::u32;
             m_index_buffers[title] = mp_device->create_resource(desc, heap_desc);
-            m_index_buffers[title]->map([&data](void* target)
+            m_index_buffers[title]->set_name("ib_" + title);
+
+            m_index_buffer_contents[title].resize(data.size());
+        }
+        
+        if (old_bytesize < new_bytesize || reload)
+        {
+            m_index_buffers[title]->map([&data, new_bytesize](void* target)
             {
-                 memcpy(target, data.data(), data.size() * sizeof(index));
+                 memcpy(target, data.data(), new_bytesize);
             });
 
-            // preserve contents
-            m_index_buffer_contents[title].resize(data.size());
-            memcpy(m_index_buffer_contents[title].data(), data.data(), desc.m_bytesize);
-
-            m_index_buffers[title]->set_name("ib_" + title);
+            memcpy(m_index_buffer_contents[title].data(), data.data(), new_bytesize);
         }
 
         return m_index_buffers[title];

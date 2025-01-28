@@ -51,14 +51,12 @@ namespace influx::renderer
 	struct gpu_perdraw final
 	{
 		uint32 m_start_instance = 0u;
-		uint32 m_start_vertex = 0u;
 	};
 
 	struct gpu_instance_data final
 	{
 		math::matrix4x4f	m_transform;
 		math::vectorf4		m_colour;
-		uint32				m_base_vertex;
 	};
 
 	struct gpu_vertex_data final
@@ -88,7 +86,9 @@ namespace influx::renderer
 
 	private:
 		vector<batch> create_batches(const scene& scene);
-		void update_buffers(const vector<batch>& batches);
+
+		void update_instance_buffer(const vector<batch>& batches);
+
 		void render_basepass(graphics::commandlist* commandlist, 
 			const scene& scene, const vector<batch>& batches, const target& target);
 

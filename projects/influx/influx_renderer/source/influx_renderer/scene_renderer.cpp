@@ -86,16 +86,16 @@ namespace influx::renderer
     }
 
 #pragma region batch
+    // 1 draw-call == 1 batch
     class batch final
     {
     public:
-        batch() = default;
-
-        const material* m_material;
+        string m_mesh_name;
+        string m_material_name;
         vector<gpu_instance_data> m_instances;
+        graphics::resource* m_vertexbuffer;
         graphics::resource* m_indexbuffer;
-        uint32 m_base_instance;
-        uint32 m_base_vertex;
+        uint64 m_base_instance{};
     };
 #pragma endregion
 
@@ -110,39 +110,41 @@ namespace influx::renderer
     vector<batch> scene_renderer::create_batches(const scene& scene)
     {
         renderer_backend& backend = renderer_backend::get_instance();
-        using indexbuffer_instance_map = umap<graphics::resource*, vector<gpu_instance_data>>;
-        indexbuffer_instance_map idxbuffer_to_instances{};
+        using mesh_to_instance_map = umap<string, vector<gpu_instance_data>>;
+        mesh_to_instance_map meshname_to_instances{};
 
-        const material* first_material = nullptr;
         for (const mesh_instance& instance : scene.m_meshes)
         {
             graphics::resource* indexbuffer = nullptr;
             graphics::resource* vertexbuffer = nullptr;
-            if (backend.get_mesh_buffers(instance.m_name, vertexbuffer, indexbuffer))
-            {
-                gpu_instance_data gpu_data = translate(instance);
-                idxbuffer_to_instances[indexbuffer].push_back(gpu_data);
 
-                first_material = instance.m_material;
-            }
+            gpu_instance_data gpu_data = translate(instance);
+            meshname_to_instances[instance.m_name].push_back(gpu_data);
         }
 
         vector<batch> batches{};
-        for (const auto& per_indexbuffer : idxbuffer_to_instances)
+        uint64 offset = 0u;
+        for (const auto& pair : meshname_to_instances)
         {
-            batches.push_back({});
-            batch& batch = batches.back();
+            graphics::resource* vertexbuffer = nullptr;
+            graphics::resource* indexbuffer = nullptr;
+            if (backend.get_mesh_buffers(pair.first, vertexbuffer, indexbuffer))
+            {
+                batches.push_back({});
+                batch& batch = batches.back();
 
-            batch.m_material = first_material;
-            batch.m_base_instance = 0u;
-            batch.m_base_vertex = 0u;
-            batch.m_indexbuffer = per_indexbuffer.first;
-            batch.m_instances = per_indexbuffer.second;
+                batch.m_indexbuffer = indexbuffer;
+                batch.m_vertexbuffer = vertexbuffer;
+                batch.m_instances = pair.second;
+                batch.m_base_instance = offset;
+
+                offset += batch.m_instances.size();
+            }
         }
         return batches;
     }
 
-    void scene_renderer::update_buffers(const vector<batch>& batches)
+    void scene_renderer::update_instance_buffer(const vector<batch>& batches)
     {
         mp_instancebuffer->map([&batches](void* dest)
         {
@@ -163,12 +165,11 @@ namespace influx::renderer
     {
         renderer_backend& backend = renderer_backend::get_instance();
         descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
-        const multimesh& multimesh = backend.get_multimesh();
 
         // update pipeline
         apply_pipeline_settings();
         mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
-        if (mp_pipeline == nullptr || batches.empty() || !multimesh.is_render_read())
+        if (mp_pipeline == nullptr || batches.empty())
         {
             return;
         }
@@ -178,12 +179,12 @@ namespace influx::renderer
         // stage all srv/uav/const descriptors on the bindless heap
         // in bindless, MUST happen before setting descriptor (mp_pipeline->set_state)
         {
-            const material& first_material = *batches[0u].m_material;
+            const material& first_material = *scene.m_meshes[0u].m_material;
+            const string& diffuse_name = first_material.get_texture_diffuse_name();
             vector<graphics::descriptor_handle> all_descriptors
             {
                 m_instance_buffer_srv,
-                multimesh.get_vertexbuffer_srv(),
-                backend.find_texture(first_material.get_texture_diffuse_name())->get_srv(),
+                backend.find_texture(diffuse_name)->get_srv()
             };
 
             graphics::descriptor_range gpu_range = descriptor_manager.stage(all_descriptors);
@@ -210,32 +211,29 @@ namespace influx::renderer
             mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
         }
 
-        //for (const batch& batch : batches)
+        for (const batch& batch : batches)
         {
-            const batch& batch = batches[0u];
-            const material& material = *batch.m_material;
-
             // set constants
             m_gpu_perdraw.m_start_instance = batch.m_base_instance;
-            m_gpu_perdraw.m_start_vertex = batch.m_base_vertex;
-            m_gpu_permaterial.m_colour = material.get_basecolour();
+            m_gpu_permaterial.m_colour = {};
 
             mp_pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
             mp_pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
             // bind index buffer
-            graphics::resource* index_buffer = backend.get_multimesh().get_index_buffer();
+            graphics::resource* index_buffer = batch.m_indexbuffer;
             const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
             commandlist->set_indexbuffer(index_buffer);
-
-            const uint32 num_instances = multimesh.get_num_meshes();
+            commandlist->set_vertexbuffer(batch.m_vertexbuffer);
+            influx_assert(batch.m_vertexbuffer->get_bytestride() == 48u);
+            const uint32 num_instances = (uint32)batch.m_instances.size();
             commandlist->draw_indexed(
             {
                 .m_num_indexes_per_instance = num_indices,
                 .m_num_instances = num_instances,
                 .m_start_index = 0u,
-                .m_start_vertex = 0,
-                .m_start_instance = 0
+                .m_start_vertex = 0u,
+                .m_start_instance = m_gpu_perdraw.m_start_instance
             });
         }
     }
@@ -261,10 +259,9 @@ namespace influx::renderer
         m_gpu_perscene.m_time.x = scene.m_delta_seconds;
         m_gpu_perscene.m_time.y = scene.m_seconds;
 
-        // setup a batched draw
         vector<batch> batches = create_batches(scene);
 
-        update_buffers(batches);
+        update_instance_buffer(batches);
 
         // render_shadows(commandlist, scene, batches);
         render_basepass(commandlist, scene, batches, target);

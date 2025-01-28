@@ -22,9 +22,10 @@ namespace influx::renderer
 		using vertex_type = vertex_data;
 
 	public:
-		void add_mesh(const string& name, 
+		void add_mesh(const string& name,
 			const vector<vertex_type>& vertices,
-			const vector<index>& indices);
+			const vector<index>& indices,
+			const math::matrix4x4f& transform = math::matrix4x4f::identity());
 
 		void remove_mesh(const string& name);
 
@@ -55,6 +56,7 @@ namespace influx::renderer
 		vector<vertex_type> m_multi_vertex_content;
 		vector<index> m_multi_index_content{};
 
-		bool m_is_multiresource_dirty = false;
+		bool m_is_size_dirty = false;
+		bool m_is_content_dirty = false;
 	};
 }

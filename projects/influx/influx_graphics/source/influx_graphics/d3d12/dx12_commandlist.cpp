@@ -337,7 +337,7 @@ namespace influx::graphics
 	void dx12_commandlist::copy_texture(resource* src, resource* dest, 
 		const copy_texture_args& args)
 	{
-		// renderpass_check(e_command::copy_texture);
+		renderpass_check(e_command::copy_texture);
 
 		CD3DX12_TEXTURE_COPY_LOCATION src_loc{ src->get_native<ID3D12Resource>() };
 		src_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;

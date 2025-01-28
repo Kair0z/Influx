@@ -188,9 +188,17 @@ namespace influx::renderer
 	{
 		using vertex_type = _tvtx;
 
-		if (!m_vertex_buffers.contains(title) || reload)
+		const uint64 old_bytesize = m_vertex_buffers.contains(title) ? m_vertex_buffers[title]->get_bytesize() : 0u;
+		const uint64 new_bytesize = data.size() * sizeof(vertex_type);
+		if (old_bytesize < new_bytesize)
 		{
-			// create index / vertex buffer on the shared heap (so cpu can write to it)
+			if (m_vertex_buffers[title])
+			{
+				// release previous if existing
+				mp_device->release(m_vertex_buffers[title]);
+			}
+
+			// create vertex buffer on the shared heap (so cpu can write to it)
 			graphics::heap_desc heap_desc{};
 			heap_desc.m_type = graphics::e_heap_type::shared;
 
@@ -199,21 +207,22 @@ namespace influx::renderer
 			desc.m_init_state = graphics::e_resource_state::gen_read;
 
 			// create resource
-			desc.m_bytesize = data.size() * sizeof(vertex_type);
+			desc.m_bytesize = new_bytesize;
 			desc.m_bytestride = sizeof(vertex_type);
 			m_vertex_buffers[title] = mp_device->create_resource(desc, heap_desc);
+			m_vertex_buffers[title]->set_name("vb_" + title);
 
-			// map data to resource
-			m_vertex_buffers[title]->map([&data](void* target)
+			m_vertex_buffer_contents[title].resize(data.size());
+		}
+
+		if (old_bytesize < new_bytesize || reload)
+		{
+			m_vertex_buffers[title]->map([&data, new_bytesize](void* target)
 			{
-				memcpy(target, data.data(), data.size() * sizeof(vertex_type));
+				memcpy(target, data.data(), new_bytesize);
 			});
 
-			// preserve contents
-			m_vertex_buffer_contents[title].resize(data.size());
-			memcpy(m_vertex_buffer_contents[title].data(), data.data(), desc.m_bytesize);
-
-			m_vertex_buffers[title]->set_name("vb_" + title);
+			memcpy(m_vertex_buffer_contents[title].data(), data.data(), new_bytesize);
 		}
 
 		return m_vertex_buffers[title];

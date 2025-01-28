@@ -101,7 +101,7 @@ namespace influx::engine
 		static math::float3 start_position = {};
 		static math::matrix3x3f start_rotation = math::matrix3x3f::identity();
 
-		if (get_engine()->is_editor())
+		if (get_engine()->is_editor() && false)
 		{
 			editor_manager& editorman = get_engine()->get_editor();
 			const math::matrix4x4f& cam_transform = editorman.get_editorfile().m_camera_transform;;
@@ -307,7 +307,7 @@ namespace influx::engine
 
 			material_component& mat_comp = world.create_component<material_component>(sword);
 			{
-				mat_comp.set_texture(e_texture_semantic::basecolor, "checkerboard");
+				mat_comp.set_texture(e_texture_semantic::diffuse, "checkerboard");
 			}
 		}
 	}
