@@ -141,11 +141,12 @@ namespace influx::renderer
 	{
 		bool m_bindless = false;
 		string m_cs_name = "";
+		bool operator==(const compute_pipeline_signature&) const = default; // Automatically generates an equality operator
 	};
 
 	struct raytracing_pipeline_signature final
 	{
-
+		bool operator==(const raytracing_pipeline_signature&) const = default; // Automatically generates an equality operator
 	};
 
 	template <graphics::e_pipeline_type _t>
@@ -174,6 +175,7 @@ namespace influx::renderer
 
 			virtual graphics::e_pipeline_type get_type() const = 0;
 
+		protected:
 			graphics::rootsignature_desc m_rootsig_desc{};
 			graphics::rootsignature* m_rootsig = nullptr;
 			umap<string, uint32> m_name_to_register;
@@ -197,24 +199,10 @@ namespace influx::renderer
 			debug_name m_name;
 
 		public:
-			tpipeline(graphics::device& device, const signature_type& signature)
+			tpipeline(const signature_type& signature)
 				: pipeline()
 				, m_signature{ signature }
 			{
-				pipeline_desc_type desc{};
-
-				if constexpr (_t == graphics::e_pipeline_type::graphics)
-				{
-					m_pipeline = create_graphics(device, desc,);
-				}
-				else if constexpr (_t == graphics::e_pipeline_type::compute)
-				{
-					m_pipeline = create_compute(device, desc);
-				}
-				else if constexpr (_t == graphics::e_pipeline_type::raytracing)
-				{
-					m_pipeline = create_raytracing(device, desc);
-				}
 			}
 
 			void set_state(graphics::commandlist& commandlist)
@@ -262,16 +250,6 @@ namespace influx::renderer
 			const signature_type& get_signature() const
 			{
 				return m_signature;
-			}
-
-			// todo
-			static tpipeline* load_from_file(const string& path)
-			{
-				return nullptr;
-			}
-			void save_to_file(const string& path) const
-			{
-
 			}
 
 			virtual graphics::e_pipeline_type get_type() const override { return _t; }

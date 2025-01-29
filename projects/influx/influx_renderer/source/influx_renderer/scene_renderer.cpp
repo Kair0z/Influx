@@ -22,6 +22,12 @@
 
 namespace influx::renderer
 {
+    static compute_pipeline_signature k_scene_resolve_pipsig
+    {
+        .m_bindless { true },
+        .m_cs_name  {"resolvepass_cs"}
+    };
+
     static graphics_pipeline_signature k_scene_basepass_pipsig
     {
         .m_bindless             { true },
@@ -314,7 +320,15 @@ namespace influx::renderer
 
     void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
+        renderer_backend& backend = renderer_backend::get_instance();
+        pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
+
         graphics::commandlist& commandlist = context.get_commandlist();
+
+        auto* compute_pipeline = pipeline_man.get_or_create_pipeline("resolvepass_pip", k_scene_resolve_pipsig);
+        if (compute_pipeline == nullptr) return;
+
+        compute_pipeline->set_state(commandlist);
         commandlist.dispatch({{1u, 1u, 1u}});
     }
 

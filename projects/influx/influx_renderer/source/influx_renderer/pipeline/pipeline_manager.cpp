@@ -28,25 +28,6 @@ namespace influx::renderer
 		return get_or_create_pipeline<graphics::e_pipeline_type::raytracing>(name, signature);
 	}
 
-	graphics_pipeline* pipeline_manager::create_pipeline(const string& name, const graphics_pipeline_signature& signature, const shader_data& vs, const shader_data& ps)
-	{
-		graphics_pipeline* result = nullptr;
-		result = new graphics_pipeline(*mp_device, signature);
-
-		get_map<graphics::e_pipeline_type::graphics>()[name].push_back(result);
-		return result;
-	}
-
-	compute_pipeline* pipeline_manager::create_pipeline(const string& name, const compute_pipeline_signature& signature, const shader_data& cs)
-	{
-		return nullptr;
-	}
-
-	raytracing_pipeline* pipeline_manager::create_pipeline(const string& name, const raytracing_pipeline_signature& signature, const shader_data& rgs)
-	{
-		return nullptr;
-	}
-
 	uint32 pipeline_manager::get_num_pipelines() const
 	{
 		uint32 sum = 0u;

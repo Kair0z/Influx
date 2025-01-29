@@ -365,7 +365,14 @@ namespace influx::graphics
 	}
 	void dx12_device::create_texture_uav(descriptor_handle cpu_handle, resource* resource)
 	{
-		influx_assert(false);
+		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { .ptr = (size_t)(cpu_handle) };
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc{};
+		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+		uav_desc.Format = translate(resource->get_format());
+		uav_desc.Texture2D.PlaneSlice;
+
+		mpdx_devices[0u]->CreateUnorderedAccessView(resource->get_native<ID3D12Resource>(), nullptr,
+			&uav_desc, dxcpu_descriptor);
 	}
 	void dx12_device::create_sampler_view(descriptor_handle cpu_handle, resource* resource)
 	{

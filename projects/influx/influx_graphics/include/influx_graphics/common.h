@@ -283,6 +283,7 @@ namespace influx::graphics
 		domain = 3,
 		geometry = 4,
 		pixel = 5,
+		compute = 6,
 		count
 	};
 

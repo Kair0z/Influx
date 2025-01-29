@@ -502,9 +502,11 @@ namespace influx::rendergraph
 					m_device->create_dsv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::read_only:
+					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
 					m_device->create_texture_srv(descriptors[i], texture->m_resource);
 					break;
 				case rgdescriptor_type::read_write:
+					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
 					m_device->create_texture_uav(descriptors[i], texture->m_resource);
 					break;
 				}
@@ -744,6 +746,7 @@ namespace influx::rendergraph
 			m_textures.push_back(new_texture);
 
 			m_texture_name_to_id_map[name] = new_id;
+			m_id_to_texture_map[new_id] = new_texture;
 		}
 
 		return m_texture_name_to_id_map[name];
@@ -759,6 +762,7 @@ namespace influx::rendergraph
 			new_buffer->m_desc = desc;
 			m_buffers.push_back(new_buffer);
 			m_buffer_name_to_id_map[name] = new_id;
+			m_id_to_buffer_map[new_id] = new_buffer;
 		}
 
 		return m_buffer_name_to_id_map[name];

@@ -28,7 +28,7 @@ namespace influx::renderer
 		}
 
 		template <graphics::e_pipeline_type _t>
-		detail::tpipeline<_t>* find_pipeline(const string& name, const graphics_pipeline_signature& signature)
+		detail::tpipeline<_t>* find_pipeline(const string& name, const pipeline_signature<_t>& signature)
 		{
 			using pipeline_type = detail::tpipeline<_t>;
 			const auto& existing_pipelines = get_map<_t>()[name];
@@ -53,7 +53,7 @@ namespace influx::renderer
 			}
 
 			// try creating
-			if constexpr (std::is_same_v<_t, graphics::e_pipeline_type::graphics>)
+			if constexpr (_t == graphics::e_pipeline_type::graphics)
 			{
 				const auto& vs_shaders = backend.get_vertex_shaders();
 				const auto& ps_shaders = backend.get_pixel_shaders();
@@ -66,32 +66,28 @@ namespace influx::renderer
 					return nullptr;
 				}
 
-				result = create_pipeline(
-					name, signature,
-					&vs_shaders.at(signature.m_vs_name),
-					&ps_shaders.at(signature.m_ps_name));
+				result = new detail::tpipeline<graphics::e_pipeline_type::graphics>(signature);
+				result->create_graphics(*mp_device, signature,
+					vs_shaders.at(signature.m_vs_name),
+					ps_shaders.at(signature.m_ps_name));
 			}
-			else if constexpr (std::is_same_v<_t, graphics::e_pipeline_type::compute>)
+			else if constexpr (_t == graphics::e_pipeline_type::compute)
 			{
 				const string& shader_name = signature.m_cs_name;
 				const auto& shaders = backend.get_compute_shaders();
 				const bool shader_found = shaders.contains(shader_name);
 
-				result = create_pipeline(
-					name,
-					signature,
-					&shaders.at(shader_name));
+				result = new detail::tpipeline<graphics::e_pipeline_type::compute>(signature);
+				result->create_compute(*mp_device, signature,
+					shaders.at(shader_name));
 			}
-			else if constexpr (std::is_same_v<_t, graphics::e_pipeline_type::raytracing>)
+			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 			{
-				const string& shader_name = signature.m_cs_name;
-				const auto& shaders = backend.get_vertex_shaders();
-				const bool shader_found = shaders.contains(shader_name);
+				// const string& shader_name = signature.m_cs_name;
+				// const auto& shaders = backend.get_vertex_shaders();
+				// const bool shader_found = shaders.contains(shader_name);
 
-				result = create_pipeline(
-					name,
-					signature,
-					&shaders.at(shader_name));
+				result = new detail::tpipeline<graphics::e_pipeline_type::raytracing>(signature);
 			}
 
 			return result;
@@ -107,58 +103,38 @@ namespace influx::renderer
 		umap<string, vector<compute_pipeline*>> m_compute_map;
 		umap<string, vector<raytracing_pipeline*>> m_raytracing_map;
 
-		graphics_pipeline* create_pipeline(
-			const string& name,
-			const graphics_pipeline_signature& signature,
-			const shader_data& vs,
-			const shader_data& ps);
-
-		compute_pipeline* create_pipeline(
-			const string& name,
-			const compute_pipeline_signature& signature,
-			const shader_data& cs);
-
-		raytracing_pipeline* create_pipeline(
-			const string& name,
-			const raytracing_pipeline_signature& signature,
-			const shader_data& rgs);
-
 		template <graphics::e_pipeline_type _t>
 		umap<string, vector<detail::tpipeline<_t>*>>& get_map()
 		{
-			if constexpr (std::is_same_v<_t, graphics::e_pipeline_type::graphics>)
+			if constexpr (_t == graphics::e_pipeline_type::graphics)
 			{
 				return m_graphics_map;
 			}
-			else if constexpr (std::is_same_v<_t, graphics::e_pipeline_type::compute>)
+			else if constexpr (_t == graphics::e_pipeline_type::compute)
 			{
 				return m_compute_map;
 			}
-			else if constexpr (std::is_same_v<_t, graphics::e_pipeline_type::raytracing>)
+			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 			{
 				return m_raytracing_map;
 			}
-
-			return m_graphics_map;
 		}
 
 		template <graphics::e_pipeline_type _t>
 		const umap<string, vector<detail::tpipeline<_t>*>>& get_map() const
 		{
-			if constexpr (std::is_same_v<_t, graphics::e_pipeline_type::graphics>)
+			if constexpr (_t == graphics::e_pipeline_type::graphics)
 			{
 				return m_graphics_map;
 			}
-			else if constexpr (std::is_same_v<_t, graphics::e_pipeline_type::compute>)
+			else if constexpr (_t == graphics::e_pipeline_type::compute)
 			{
 				return m_compute_map;
 			}
-			else if constexpr (std::is_same_v<_t, graphics::e_pipeline_type::raytracing>)
+			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 			{
 				return m_raytracing_map;
 			}
-
-			return m_graphics_map;
 		}
 	};
 }

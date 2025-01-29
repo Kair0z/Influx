@@ -164,7 +164,51 @@ namespace influx::renderer
         const compute_pipeline_signature& signature, 
         const shader_data& cs)
     {
-        return nullptr;
+        // create root signature
+        graphics::rootsignature_desc& rootsig_desc = m_rootsig_desc;
+        auto reflect_resource = [&rootsig_desc, this]
+        (const shader::reflection::resource& resource, graphics::e_shader_visibility shader_vis)
+        {
+            if (!resource.m_name.empty())
+                m_name_to_register[resource.m_name] = resource.m_shader_register;
+
+            switch (resource.m_type)
+            {
+            case shader::reflection::resource::e_type::cbv:
+                rootsig_desc.add_root_constants((uint32)resource.m_bytesize / sizeof(uint32),
+                    resource.m_shader_register, resource.m_register_space, shader_vis);
+                rootsig_desc.name_last_constants(resource.m_name);
+                break;
+
+            case shader::reflection::resource::e_type::structured:
+                rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
+                    resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+                rootsig_desc.name_last_resource_table(resource.m_name);
+                break;
+
+            case shader::reflection::resource::e_type::texture:
+                rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
+                    resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+                rootsig_desc.name_last_resource_table(resource.m_name);
+                break;
+
+            case shader::reflection::resource::e_type::sampler:
+                rootsig_desc.add_root_sampler(resource.m_shader_register, resource.m_register_space, shader_vis);
+                rootsig_desc.name_last_sampler(resource.m_name);
+                break;
+            }
+        };
+        for (const shader::reflection::resource& resource : cs.m_reflection.m_bound_resources)
+        {
+            reflect_resource(resource, graphics::e_shader_visibility::compute);
+        }
+        rootsig_desc.m_direct_indexing = signature.m_bindless;
+        m_rootsig = device.create_rootsignature(rootsig_desc);
+
+        // create pipeline
+        graphics::compute_pipeline_desc desc{};
+        desc.m_cs = cs.m_bytecode;
+        return device.create_compute_pipeline(m_rootsig, desc);
     }
 
     graphics::raytracing_pipeline* detail::pipeline::create_raytracing(graphics::device& device, const raytracing_pipeline_signature& signature)
