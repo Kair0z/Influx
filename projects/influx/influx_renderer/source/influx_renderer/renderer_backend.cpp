@@ -78,7 +78,7 @@ namespace influx::renderer
         mp_upload_manager = new upload_manager(mp_device);
         mp_imgui = new imgui_manager(mp_device);
         mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
-        mp_debug_renderer = new debug_renderer(this, mp_device, nullptr);
+        mp_debug_renderer = new debug_renderer(this, mp_device);
         mp_quad_renderer = new quad_renderer();
         mp_shadertoy_renderer = new shadertoy_renderer();
 
@@ -236,34 +236,7 @@ namespace influx::renderer
 
     void renderer_backend::draw_scene(const scene& scene, const target& target)
     {
-        static string color_name{}; color_name = target.get_resource()->get_name().get();
-        static string depth_name{}; depth_name = color_name + "_depth";
-        m_rendergraph->import_texture(color_name, target.get_resource());
-        m_rendergraph->import_texture(depth_name, target.get_depth_resource());
-
-        auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-            [&target](rendergraph::rgpass_builder& builder)
-            {
-                rendergraph::rgaccess access{};
-                access.m_load = rendergraph::e_rg_load::clear;
-                access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(color_name, access);
-                builder.write_depthtarget(depth_name, access);
-
-                builder.set_viewport(target.get_width(), target.get_height());
-            },
-            [this, &scene, &target](rendergraph::rgpass_context& context)
-            {
-                influx_scope("renderer_backend::draw_scene::record");
-                graphics::commandlist& commandlist = context.get_commandlist();
-
-                mp_scene_renderer->render(&commandlist, scene, target);
-
-                // post processing
-                mp_quad_renderer->render_quad(&commandlist, target);
-            });
-
-        pass->set_name(RGNAME("render_scene"));
+        mp_scene_renderer->render(*m_rendergraph, scene, target);
     }
 
     void renderer_backend::draw_imgui(ImDrawData* draw_data, const target& target)
@@ -411,6 +384,8 @@ namespace influx::renderer
         case shader::e_shader_type::vs: target_map = &m_vertex_shaders;
             break;
         case shader::e_shader_type::ps: target_map = &m_pixel_shaders;
+            break;
+        case shader::e_shader_type::cs: target_map = &m_compute_shaders;
             break;
         }
         influx_assert_not_null(target_map);
@@ -590,6 +565,11 @@ namespace influx::renderer
     umap<string, shader_data>& renderer_backend::get_pixel_shaders()
     {
         return m_pixel_shaders;
+    }
+
+    umap<string, shader_data>& renderer_backend::get_compute_shaders()
+    {
+        return m_compute_shaders;
     }
 
     void* renderer_backend::get_imgui_texture_id(const string& title)

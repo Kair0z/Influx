@@ -16,6 +16,7 @@ namespace influx::shader
 	{
 		vs,
 		ps,
+		cs,
 		count
 	};
 

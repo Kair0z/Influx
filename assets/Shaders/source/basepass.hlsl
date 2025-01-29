@@ -38,6 +38,11 @@ struct per_instance_data
     uint texid_normal;
 };
 
+struct vs_input
+{
+    per_vertex_data vertex_data;
+};
+
 struct ps_input
 {
     float4 position : SV_POSITION;
@@ -50,6 +55,11 @@ struct ps_input
     nointerpolation uint texid_normal : TEXCOORD2;
 };
 
+struct ps_output
+{
+    gbuffer gbuffer_data;
+};  
+
 #define FLX_BINDLESS 1
 
 /// SHADER INPUTS
@@ -59,11 +69,10 @@ ConstantBuffer<per_scene>               g_perscene          : register(b1);
 ConstantBuffer<per_material>            g_permaterial       : register(b2);
 ConstantBuffer<per_draw>                g_perdraw           : register(b3);
 
-// samplers
+#if !FLX_BINDLESS
 SamplerState                            g_sampler           : register(s0);
-
-// textures
 StructuredBuffer<per_instance_data>     g_instancebuffer    : register(t1);
+#endif
 
 Texture2D get_texture(int index)
 {
@@ -74,7 +83,11 @@ Texture2D get_texture(int index)
 
 SamplerState get_sampler(int index)
 {
+#if FLX_BINDLESS
     return SamplerDescriptorHeap[index];
+#else
+    return g_sampler;
+#endif
 }
 
 StructuredBuffer<per_instance_data> get_instance_buffer()
@@ -85,11 +98,6 @@ StructuredBuffer<per_instance_data> get_instance_buffer()
     return g_instancebuffer;
 #endif
 }
-
-struct vs_input
-{
-    per_vertex_data vertex_data;
-};
 
 [shader("vertex")]
 ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
@@ -127,7 +135,7 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
 }
 
 [shader("pixel")]
-float4 main_ps(ps_input input) : SV_TARGET
+ps_output main_ps(ps_input input)
 {
     float3 lightDir = g_perscene.light_direction.rgb;
     float3 lightCol = g_perscene.light_colour.rgb;
@@ -142,5 +150,8 @@ float4 main_ps(ps_input input) : SV_TARGET
     float ambient = 0.2f;
     float diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
 
-    return float4(diffuse * albedo.rgb, 1.0f);
+    ps_output output = (ps_output)0;
+    output.gbuffer_data.set_albedo(albedo.rgb);
+    output.gbuffer_data.set_normal(normal.rgb);
+    return output;
 }

@@ -5,13 +5,22 @@ struct ID3D12PipelineState;
 
 namespace influx::graphics
 {
-	class dx12_pipeline final : public pipeline
+	template <e_pipeline_type _t>
+	class dx12_pipeline final : public detail::tpipeline<_t>
 	{
 		ID3D12PipelineState* mpdx_pipeline;
 
-	private:
-		dx12_pipeline(ID3D12PipelineState* dxpipeline, const pipeline_desc& desc);
-		virtual void release_impl(device*) override;
+		dx12_pipeline(ID3D12PipelineState* dxpipeline, const pipeline_desc<_t>& desc)
+			: detail::tpipeline<_t>(desc)
+		{
+			base::mp_native = mpdx_pipeline = dxpipeline;
+		}
+
+		virtual void release_impl(device*) override
+		{
+			mpdx_pipeline->Release();
+		}
+
 		friend class dx12_device;
 	};
 }

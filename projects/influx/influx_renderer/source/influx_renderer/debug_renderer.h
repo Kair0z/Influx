@@ -14,10 +14,10 @@ namespace influx::graphics
 }
 
 // influx::renderer
+#include "influx_renderer/pipeline/pipeline.h"
 namespace influx::renderer
 {
 	class renderer_backend;
-	class pipeline;
 	struct scene_debug;
 	class target;
 }
@@ -33,8 +33,7 @@ namespace influx::renderer
 	public:
 		debug_renderer(
 			renderer_backend* backend,
-			graphics::device* device,
-			pipeline* pipeline);
+			graphics::device* device);
 
 		~debug_renderer();
 
@@ -45,7 +44,6 @@ namespace influx::renderer
 
 	private:
 		renderer_backend* mp_backend;
-		pipeline* mp_pipeline;
 		graphics::device* mp_device;
 
 		constexpr static uint32 k_max_instances = 4096u;

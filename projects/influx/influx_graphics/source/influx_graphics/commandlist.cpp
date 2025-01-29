@@ -12,7 +12,7 @@ namespace influx::graphics
 {
     const bool g_mute = true;
 
-    void commandlist::start(device* device, pipeline* init_state)
+    void commandlist::start(device* device, detail::pipeline* init_state)
     {
         const e_state state = get_state();
         influx_assert(state == e_state::created || state == e_state::completed);

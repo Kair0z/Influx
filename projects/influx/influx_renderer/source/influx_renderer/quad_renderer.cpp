@@ -17,14 +17,14 @@ namespace influx::renderer
         math::matrix4x4f m_vp;
     };
 
-    static const pipeline_signature k_quad_pipeline_signature
+    static const graphics_pipeline_signature k_quad_pipeline_signature
     {
         .m_vs_name              { "quad_shaders_vs" },
         .m_ps_name              { "quad_shaders_ps" },
 
-        .m_primitive_type       { pipeline_signature::primitive_type::triangle },
-        .m_cullmode             { pipeline_signature::cullmode::none },
-        .m_fillmode             { pipeline_signature::fillmode::solid },
+        .m_primitive_type       { graphics_pipeline_signature::primitive_type::triangle },
+        .m_cullmode             { graphics_pipeline_signature::cullmode::none },
+        .m_fillmode             { graphics_pipeline_signature::fillmode::solid },
         .m_forced_samplecount   { 0u },
         .m_sample_mask          { (uint32)-1 },
         .m_sample_count         { 1u },
@@ -40,18 +40,18 @@ namespace influx::renderer
         .m_depth_enable         { false },
         .m_stencil_enable       { false },
         .m_depth_comparison     { 0u },
-        .m_depth_format         { pipeline_signature::format::d32 },
+        .m_depth_format         { graphics_pipeline_signature::format::d32 },
 
         .m_rtv_actives          { true, false, false, false, false, false, false, false },
-        .m_rtv_formats          { pipeline_signature::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        .m_rtv_formats          { graphics_pipeline_signature::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
         .m_blend_actives        { true, false, false, false, false, false, false, false },
-        .m_blend_sources        { pipeline_signature::bl_src_alpha, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_dests          { pipeline_signature::bl_inv_src_alpha, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_ops            { pipeline_signature::op_add, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_sources        { pipeline_signature::bl_one, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_dests          { pipeline_signature::bl_zero, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_ops            { pipeline_signature::op_add, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_writemasks     { pipeline_signature::blend_all, 15u, 15u, 15u, 15u, 15u, 15u, 15u }
+        .m_blend_sources        { graphics_pipeline_signature::bl_src_alpha, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_dests          { graphics_pipeline_signature::bl_inv_src_alpha, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_ops            { graphics_pipeline_signature::op_add, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_sources        { graphics_pipeline_signature::bl_one, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_dests          { graphics_pipeline_signature::bl_zero, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_alpha_ops            { graphics_pipeline_signature::op_add, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
+        .m_blend_writemasks     { graphics_pipeline_signature::blend_all, 15u, 15u, 15u, 15u, 15u, 15u, 15u }
     };
 
 	quad_renderer::quad_renderer()
@@ -83,12 +83,12 @@ namespace influx::renderer
 	{
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipelineman = *backend.get_pipeline_manager();
-        pipeline* pipeline = pipelineman.get_or_create_pipeline("pip_quad", k_quad_pipeline_signature);
+        graphics_pipeline* pipeline = pipelineman.get_or_create_pipeline("pip_quad", k_quad_pipeline_signature);
         if (pipeline != nullptr)
         {
             logonce(e_log_category::warning, "influx::renderer::quad_renderer: first quad render!");
 
-            pipeline->set_state(commandlist);
+            pipeline->set_state(*commandlist);
             commandlist->set(graphics::e_primitive_topology::trilist);
             commandlist->set_vertexbuffer(mp_vertexbuffer);
             commandlist->set_indexbuffer(mp_indexbuffer);

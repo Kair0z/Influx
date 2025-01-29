@@ -17,6 +17,14 @@ namespace influx::graphics
 	class shader_resource_view;
 }
 
+// influx::rendergraph
+namespace influx::rendergraph
+{
+	class rendergraph;
+	class rgpass_builder;
+	class rgpass_context;
+}
+
 // influx::renderer
 namespace influx::renderer
 {
@@ -81,26 +89,20 @@ namespace influx::renderer
 
 		~scene_renderer();
 
-		void render(
-			graphics::commandlist* commandlist, 
-			const scene& scene,
-			const target& target);
+		void render(rendergraph::rendergraph& graph, const scene& scene, const target& target);
 
 	private:
 		vector<batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
-
-		void gather_textures(const scene& scene);
 		void update_instance_buffer(const vector<batch>& batches);
-
-		void render_basepass(graphics::commandlist* commandlist, 
-			const scene& scene, const vector<batch>& batches, const target& target);
-
 		void apply_pipeline_settings();
+
+		void build_basepass(rendergraph::rgpass_builder&, const target& target);
+		void build_resolvepass(rendergraph::rgpass_builder&, const target& target);
+		void execute_basepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
+		void execute_resolvepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
 
 	private:
 		renderer_backend* mp_backend;
-		pipeline* mp_pipeline;
-
 		graphics::device* mp_device;
 
 		graphics::resource* mp_instancebuffer;

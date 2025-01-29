@@ -224,7 +224,7 @@ namespace influx::graphics
 		return new_child<dx12_descriptor_heap, descriptor_heap>(args, dxheap, get_descriptor_stride(args.m_type));
 	}
 
-	ptr<commandlist> dx12_device::create_commandlist(e_commandlist_type type, pipeline* init_state)
+	ptr<commandlist> dx12_device::create_commandlist(e_commandlist_type type, detail::pipeline* init_state)
 	{
 		D3D12_COMMAND_LIST_TYPE dxtype = translate(type);
 		ID3D12CommandAllocator* dxallocator = new_allocator(dxtype);
@@ -259,12 +259,12 @@ namespace influx::graphics
 		return nullptr;
 	}
 
-	ptr<commandlist> dx12_device::create_graphics_commandlist(pipeline* init_state)
+	ptr<commandlist> dx12_device::create_graphics_commandlist(detail::pipeline* init_state)
 	{
 		return create_commandlist(e_commandlist_type::graphics, init_state);
 	}
 
-	ptr<commandlist> dx12_device::create_compute_commandlist(pipeline* init_state)
+	ptr<commandlist> dx12_device::create_compute_commandlist(detail::pipeline* init_state)
 	{
 		return create_commandlist(e_commandlist_type::compute, init_state);
 	}
@@ -523,14 +523,14 @@ namespace influx::graphics
 		return new_child<dx12_rootsignature, rootsignature>(dxrootsignature, desc, name_to_param_idx);
 	}
 
-	pipeline* dx12_device::create_pipeline(rootsignature* rootsig, const pipeline_desc& desc)
+	ptr<graphics_pipeline> dx12_device::create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc)
 	{
 		ID3D12PipelineState* dxpipeline = nullptr;
 
 		// input layout
 		D3D12_INPUT_LAYOUT_DESC input_layout_desc{};
 		vector< D3D12_INPUT_ELEMENT_DESC> input_elements{};
-		for (const pipeline_input_element& element : desc.m_input_elements)
+		for (const graphics_pipeline_desc::pipeline_input_element& element : desc.m_input_elements)
 		{
 			input_elements.push_back({});
 			input_elements.back().AlignedByteOffset = element.m_aligned_byteoffset;
@@ -603,7 +603,20 @@ namespace influx::graphics
 
 		// create the pipeline
 		HRESULT res = mpdx_devices[0]->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
-		return new_child<dx12_pipeline, pipeline>(dxpipeline, desc);
+		return new_child<dx12_pipeline<e_pipeline_type::graphics>, graphics_pipeline>(dxpipeline, desc);
+	}
+
+	ptr<compute_pipeline> dx12_device::create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc)
+	{
+		D3D12_COMPUTE_PIPELINE_STATE_DESC pso_desc{};
+		pso_desc.CS = CD3DX12_SHADER_BYTECODE(desc.m_cs.data(), desc.m_cs.size());
+		pso_desc.pRootSignature = rootsig->get_native<ID3D12RootSignature>();
+		pso_desc.CachedPSO;
+		pso_desc.Flags;
+
+		ID3D12PipelineState* dxpipeline = nullptr;
+		HRESULT res = mpdx_devices[0]->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
+		return new_child<dx12_pipeline<e_pipeline_type::compute>, compute_pipeline>(dxpipeline, desc);
 	}
 
 	void dx12_device::copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type)

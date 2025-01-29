@@ -26,7 +26,7 @@ namespace influx::graphics
 		mpdx_allocator = allocator;
 	}
 
-	void dx12_commandlist::start_impl(device* device, pipeline* init_state)
+	void dx12_commandlist::start_impl(device* device, detail::pipeline* init_state)
 	{
 		dx12_device* dxdevice = ((dx12_device*)device);
 
@@ -158,6 +158,16 @@ namespace influx::graphics
 			args.m_start_index,
 			args.m_start_vertex,
 			args.m_start_instance);
+	}
+
+	void dx12_commandlist::dispatch(const dispatch_args& args)
+	{
+		renderpass_check(e_command::dispatch);
+
+		mpdx_graphics_commandlist->Dispatch(
+			args.m_threadgroup_count.x,
+			args.m_threadgroup_count.y,
+			args.m_threadgroup_count.z);
 	}
 
 	void dx12_commandlist::set_constants(uint32 param_index, uint32 num_dwords, void* source_data)
@@ -408,7 +418,7 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->SetGraphicsRootSignature(dxrootsig);
 	}
 
-	void dx12_commandlist::set(pipeline* pipeline)
+	void dx12_commandlist::set(detail::pipeline* pipeline)
 	{
 		auto dxpipeline = pipeline->get_native<ID3D12PipelineState>();
 		mpdx_graphics_commandlist->SetPipelineState(dxpipeline);

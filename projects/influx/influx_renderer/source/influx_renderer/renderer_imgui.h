@@ -4,12 +4,12 @@
 struct ImDrawData;
 
 // influx::graphics
+#include "influx_graphics/pipeline.h"
 namespace influx::graphics
 {
 	class device;
 	class descriptor_heap;
 	class rootsignature;
-	class pipeline;
 	class resource;
 	class commandlist;
 }
@@ -34,7 +34,7 @@ namespace influx::renderer
 		void update_buffers(ImDrawData* draw_data);
 
 		graphics::device* mp_device = nullptr;
-		graphics::pipeline* mp_pipeline = nullptr;
+		graphics::graphics_pipeline* mp_pipeline = nullptr;
 		graphics::rootsignature* mp_rootsig = nullptr;
 		graphics::resource* mp_indexbuffer = nullptr;
 		graphics::resource* mp_vertexbuffer = nullptr;

@@ -4,19 +4,15 @@
 
 namespace influx::graphics
 {
-	struct pipeline_input_element final
+	enum class e_pipeline_type
 	{
-		string m_semantic_name;
-		uint32 m_semantic_idx;
-		e_format m_format;
-		uint32 m_input_slot;
-		uint32 m_aligned_byteoffset;
-		
-		bool m_is_per_instance; // if not, per vertex
-		uint32 m_instance_data_steprate;
+		graphics,
+		compute,
+		raytracing,
+		count
 	};
 
-	struct pipeline_desc final
+	struct graphics_pipeline_desc final
 	{
 		// misc
 		uint32 m_sample_mask = (uint32)-1;
@@ -58,6 +54,17 @@ namespace influx::graphics
 		rasterizer m_rasterizer;
 
 		// input layout
+		struct pipeline_input_element final
+		{
+			string m_semantic_name;
+			uint32 m_semantic_idx;
+			e_format m_format;
+			uint32 m_input_slot;
+			uint32 m_aligned_byteoffset;
+
+			bool m_is_per_instance; // if not, per vertex
+			uint32 m_instance_data_steprate;
+		};
 		vector<pipeline_input_element> m_input_elements{};
 		inline void add_input_element(
 			const string& semantic_name,
@@ -109,18 +116,45 @@ namespace influx::graphics
 		blend_desc m_blends[k_max_render_targets]{};
 	};
 
-	class pipeline : public base
+	struct compute_pipeline_desc final
 	{
-	public:
-		
-	protected:
-		pipeline(const pipeline_desc& desc)
-			: m_desc{ desc }
-		{
-
-		}
-
-	private:
-		pipeline_desc m_desc;
+		vector<byte> m_cs{};
 	};
+
+	struct raytracing_pipeline_desc final
+	{
+
+	};
+
+	template <e_pipeline_type _t>
+	using pipeline_desc = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+		graphics::graphics_pipeline_desc,
+		graphics::compute_pipeline_desc,
+		graphics::raytracing_pipeline_desc>>;
+
+	namespace detail
+	{
+		class pipeline : public base
+		{
+		protected:
+			virtual e_pipeline_type get_type() const = 0;
+		};
+
+		template <e_pipeline_type _t>
+		class tpipeline : public detail::pipeline
+		{
+		protected:
+			static constexpr e_pipeline_type k_type = _t;
+			virtual e_pipeline_type get_type() const override { return _t; };
+
+			tpipeline(const pipeline_desc<_t>& desc)
+				: m_desc{desc} {}
+
+			pipeline_desc<_t> m_desc{};
+		};
+	}
+
+	using graphics_pipeline = detail::tpipeline<e_pipeline_type::graphics>;
+	using compute_pipeline = detail::tpipeline<e_pipeline_type::compute>;
+	using raytracing_pipeline = detail::tpipeline<e_pipeline_type::raytracing>;
 }

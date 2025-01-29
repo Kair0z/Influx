@@ -12,9 +12,9 @@ int main()
 
 	const string path = "D:/Git/Influx/assets/Shaders/source/basepass.hlsl";
 	shader::compile_args args{};
-	args.m_entrypoint = "main_vs";
+	args.m_entrypoint = "main_ps";
 	args.m_include_folder = "D:/Git/Influx/assets/Shaders/include/";
-	args.m_type = shader::e_shader_type::vs;
+	args.m_type = shader::e_shader_type::ps;
 	args.m_target = shader::e_shader_target::_6_6;
 	args.m_reflection = true;
 

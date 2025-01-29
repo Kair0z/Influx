@@ -48,9 +48,9 @@ namespace influx::graphics
 		virtual ptr<swapchain>			create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) = 0;
 		virtual ptr<descriptor_heap>	create_descriptor_heap(const descriptor_heap::create_args&) = 0;
 
-		virtual ptr<commandlist> create_commandlist(e_commandlist_type type, pipeline* init_state = nullptr) = 0;
-		virtual ptr<commandlist> create_graphics_commandlist(pipeline* init_state = nullptr) = 0;
-		virtual ptr<commandlist> create_compute_commandlist(pipeline* init_state = nullptr) = 0;
+		virtual ptr<commandlist> create_commandlist(e_commandlist_type type, detail::pipeline* init_state = nullptr) = 0;
+		virtual ptr<commandlist> create_graphics_commandlist(detail::pipeline* init_state = nullptr) = 0;
+		virtual ptr<commandlist> create_compute_commandlist(detail::pipeline* init_state = nullptr) = 0;
 
 		virtual ptr<fence> create_fence(uint64 init_value = 0u) = 0;
 
@@ -68,7 +68,8 @@ namespace influx::graphics
 		virtual void create_sampler_view(descriptor_handle cpu_handle, resource* resource) = 0;
 
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) = 0;
-		virtual ptr<pipeline> create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) = 0;
+		virtual ptr<graphics_pipeline> create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc) = 0;
+		virtual ptr<compute_pipeline> create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc) = 0;
 
 		virtual void copy_descriptors(
 			const descriptor_range& source, const descriptor_range& dest,

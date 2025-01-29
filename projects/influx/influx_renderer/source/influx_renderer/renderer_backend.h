@@ -118,6 +118,7 @@ namespace influx::renderer
 
 		umap<string, shader_data>& get_vertex_shaders();
 		umap<string, shader_data>& get_pixel_shaders();
+		umap<string, shader_data>& get_compute_shaders();
 
 		void* get_imgui_texture_id(const string& title);
 
@@ -175,6 +176,7 @@ namespace influx::renderer
 		umap<string, material> m_materials;
 		umap<string, shader_data> m_vertex_shaders;
 		umap<string, shader_data> m_pixel_shaders;
+		umap<string, shader_data> m_compute_shaders;
 		umap<string, texture*> m_textures;
 
 		render_settings m_settings;

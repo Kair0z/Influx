@@ -290,7 +290,7 @@ namespace influx::renderer
 		create_shaders();
 
 		// setup pipeline
-		graphics::pipeline_desc pipeline_desc{};
+		graphics::graphics_pipeline_desc pipeline_desc{};
 		pipeline_desc.m_vs = m_vertex_shader.m_bytecode;
 		pipeline_desc.m_ps = m_pixel_shader.m_bytecode;
 		pipeline_desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
@@ -333,7 +333,7 @@ namespace influx::renderer
 		pipeline_desc.m_depth_stencil.m_depth_enable = false;
 		pipeline_desc.m_depth_stencil.m_stencil_enable = false;
 
-		mp_pipeline = device->create_pipeline(mp_rootsig, pipeline_desc);
+		mp_pipeline = device->create_graphics_pipeline(mp_rootsig, pipeline_desc);
 	}
 
 	void imgui_manager::update_buffers(ImDrawData* draw_data)

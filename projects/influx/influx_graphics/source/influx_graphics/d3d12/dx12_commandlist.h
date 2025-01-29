@@ -33,7 +33,7 @@ namespace influx::graphics
 		friend class dx12_device;
 
 		// starts a commandlist, using the device to allocate the memory internally
-		virtual void start_impl(device*, pipeline* init_state = nullptr) override;
+		virtual void start_impl(device*, detail::pipeline* init_state = nullptr) override;
 
 		virtual void renderpass_begin(const renderpass_args&) override;
 
@@ -42,6 +42,8 @@ namespace influx::graphics
 		virtual void draw_instanced(const draw_instanced_args&) override;
 
 		virtual void draw_indexed(const draw_indexed_args&) override;
+
+		virtual void dispatch(const dispatch_args&) override;
 
 		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data) override;
 
@@ -82,7 +84,7 @@ namespace influx::graphics
 
 		virtual void set(rootsignature* rootsig) override;
 
-		virtual void set(pipeline* pipeline) override;
+		virtual void set(detail::pipeline* pipeline) override;
 
 		virtual void set(const viewport& viewport) override;
 

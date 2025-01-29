@@ -13,26 +13,25 @@
 
 namespace influx::renderer
 {
-    constexpr static graphics::e_cull_mode translate(pipeline_signature::cullmode mode)
+    constexpr static graphics::e_cull_mode translate(graphics_pipeline_signature::cullmode mode)
     {
         switch (mode)
         {
-        case pipeline_signature::cullmode::back: return graphics::e_cull_mode::back;
-        case pipeline_signature::cullmode::front: return graphics::e_cull_mode::front;
-        case pipeline_signature::cullmode::none: return graphics::e_cull_mode::nocull;
+        case graphics_pipeline_signature::cullmode::back: return graphics::e_cull_mode::back;
+        case graphics_pipeline_signature::cullmode::front: return graphics::e_cull_mode::front;
+        case graphics_pipeline_signature::cullmode::none: return graphics::e_cull_mode::nocull;
         }
         return graphics::e_cull_mode::count;
     }
 
-    pipeline::pipeline(graphics::device* device, const pipeline_signature& signature, renderer::shader_data const* vs, renderer::shader_data const* ps)
+    graphics::graphics_pipeline* detail::pipeline::create_graphics(
+        graphics::device& device, 
+        const graphics_pipeline_signature& signature,
+        const shader_data& vs,
+        const shader_data& ps)
     {
-        m_signature = signature;
-
-        shader::reflection const* vs_reflection = vs ? &vs->m_reflection : nullptr;
-        shader::reflection const* ps_reflection = ps ? &ps->m_reflection : nullptr;
-
-        influx_assert(vs); // for now, we require vertex shaders!
-        influx_assert(vs_reflection);
+        shader::reflection const* vs_reflection = &vs.m_reflection;
+        shader::reflection const* ps_reflection = &ps.m_reflection;
 
         // build the root signature:
         graphics::rootsignature_desc& rootsig_desc = m_rootsig_desc;
@@ -87,18 +86,18 @@ namespace influx::renderer
 
         // create root signature
         rootsig_desc.m_direct_indexing = signature.m_bindless; // bindless
-        mp_rootsig = device->create_rootsignature(rootsig_desc);
+        m_rootsig = device.create_rootsignature(rootsig_desc);
 
-        m_name_to_param_idx = mp_rootsig->get_param_idx_table();
-        influx_assert(mp_rootsig->is_valid());
+        m_name_to_param_idx = m_rootsig->get_param_idx_table();
+        influx_assert(m_rootsig->is_valid());
 
         // build the pipeline
-        graphics::pipeline_desc& pipeline_desc = m_create_desc;
-        if (vs)  pipeline_desc.m_vs = vs->m_bytecode;
-        if (ps)   pipeline_desc.m_ps = ps->m_bytecode;
+        graphics::graphics_pipeline_desc pipeline_desc{};
+        pipeline_desc.m_vs = vs.m_bytecode;
+        pipeline_desc.m_ps = ps.m_bytecode;
         // ...
 
-        pipeline_desc.m_rasterizer.m_cullmode = translate((pipeline_signature::cullmode)signature.m_cullmode);
+        pipeline_desc.m_rasterizer.m_cullmode = translate((graphics_pipeline_signature::cullmode)signature.m_cullmode);
         pipeline_desc.m_rasterizer.m_front_ccw = signature.m_front_ccw;
         pipeline_desc.m_prim_type = (graphics::e_primitive_topology_type)signature.m_primitive_type;
         pipeline_desc.m_rasterizer.m_fillmode = (graphics::e_fill_mode)signature.m_fillmode;
@@ -157,60 +156,19 @@ namespace influx::renderer
                 0u);
         }
 
-        mp_pipeline = device->create_pipeline(mp_rootsig, pipeline_desc);
-        influx_assert(mp_pipeline->is_valid());
+        return device.create_graphics_pipeline(m_rootsig, pipeline_desc);
     }
 
-    pipeline* pipeline::load_from_file(const string& path)
+    graphics::compute_pipeline* detail::pipeline::create_compute(
+        graphics::device& device, 
+        const compute_pipeline_signature& signature, 
+        const shader_data& cs)
     {
         return nullptr;
     }
 
-    void pipeline::set_state(graphics::commandlist* cmdlist)
+    graphics::raytracing_pipeline* detail::pipeline::create_raytracing(graphics::device& device, const raytracing_pipeline_signature& signature)
     {
-        cmdlist->set(mp_rootsig);
-        cmdlist->set(mp_pipeline);
-    }
-
-    void pipeline::set_constants(graphics::commandlist* cmdlist, const string& name, uint32 num_dwords, void* data)
-    {
-        uint32 param_idx = get_param_index(name);
-        cmdlist->set_constants(param_idx, num_dwords, data);
-    }
-
-    void pipeline::set_resource_table(graphics::commandlist* cmdlist, const string& name, const graphics::descriptor_range& gpu_range)
-    {
-        uint32 param_idx = get_param_index(name);
-        cmdlist->set(gpu_range, param_idx);
-    }
-
-    uint32 pipeline::get_shader_register(const string& resource_name)
-    {
-        return m_name_to_register[resource_name];
-    }
-
-    uint32 pipeline::get_param_index(const string& resource_name)
-    {
-        return m_name_to_param_idx[resource_name];
-    }
-
-    const debug_name& pipeline::get_name() const
-    {
-        return mp_pipeline->get_name();
-    }
-
-    void pipeline::set_name(const debug_name&)
-    {
-        mp_pipeline->get_name();
-    }
-
-    void pipeline::save_to_file(const string& path) const
-    {
-
-    }
-
-    const pipeline_signature& pipeline::get_signature() const
-    {
-        return m_signature;
+        return nullptr;
     }
 }

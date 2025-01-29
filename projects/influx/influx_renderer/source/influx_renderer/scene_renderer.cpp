@@ -1,6 +1,9 @@
 #include "renderer_pch.h"
 #include "scene_renderer.h"
 
+// influx::core
+#include "core/math/vector.h"
+
 // influx::renderer
 #include "influx_renderer/target.h"
 #include "influx_renderer/pipeline/pipeline.h"
@@ -14,17 +17,20 @@
 #include "influx_graphics/resource.h"
 #include "influx_graphics/device.h"
 
+// influx::rendergraph
+#include "rendergraph.h"
+
 namespace influx::renderer
 {
-    static pipeline_signature k_scene_pipeline_signature
+    static graphics_pipeline_signature k_scene_basepass_pipsig
     {
         .m_bindless             { true },
         .m_vs_name              { "basepass_vs" },
         .m_ps_name              { "basepass_ps" },
 
-        .m_primitive_type       { pipeline_signature::primitive_type::triangle },
-        .m_cullmode             { pipeline_signature::cullmode::none },
-        .m_fillmode             { pipeline_signature::fillmode::solid },
+        .m_primitive_type       { graphics_pipeline_signature::primitive_type::triangle },
+        .m_cullmode             { graphics_pipeline_signature::cullmode::none },
+        .m_fillmode             { graphics_pipeline_signature::fillmode::solid },
         .m_forced_samplecount   { 0u },
         .m_sample_mask          { (uint32)-1 },
         .m_sample_count         { 1u },
@@ -40,10 +46,10 @@ namespace influx::renderer
         .m_depth_enable         { true },
         .m_stencil_enable       { false },
         .m_depth_comparison     { 0u },
-        .m_depth_format         { pipeline_signature::format::default_depth },
+        .m_depth_format         { graphics_pipeline_signature::format::default_depth },
 
         .m_rtv_actives          { true, false, false, false, false, false, false, false },
-        .m_rtv_formats          { pipeline_signature::format::default_color, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
+        .m_rtv_formats          { graphics_pipeline_signature::format::default_color, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
         .m_blend_actives        { false, false, false, false, false, false, false, false },
         .m_blend_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_blend_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
@@ -51,12 +57,11 @@ namespace influx::renderer
         .m_alpha_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_alpha_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_alpha_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_writemasks     { pipeline_signature::blendmask::blend_all, 0u, 0u, 0u, 0u, 0u, 0u, 0u}
+        .m_blend_writemasks     { graphics_pipeline_signature::blendmask::blend_all, 0u, 0u, 0u, 0u, 0u, 0u, 0u}
     };
 
     scene_renderer::scene_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
-        : mp_pipeline{ pipeline }
-        , mp_backend{ backend }
+        : mp_backend{ backend }
         , mp_device{ device }
     {
         m_instance_data = new gpu_instance_data[k_max_num_instances]{};
@@ -175,14 +180,6 @@ namespace influx::renderer
         return batches;
     }
 
-    void scene_renderer::gather_textures(const scene& scene)
-    {
-        renderer_backend& backend = renderer_backend::get_instance();
-        graphics::descriptor_handle blank_descriptor = backend.get_default_texture().get_cpu_handle();
-
-        
-    }
-
     void scene_renderer::update_instance_buffer(const vector<batch>& batches)
     {
         mp_instancebuffer->map([&batches](void* dest)
@@ -198,12 +195,74 @@ namespace influx::renderer
         });
     }
 
-    void scene_renderer::render_basepass(graphics::commandlist* commandlist, 
-        const scene& scene, const vector<batch>& batches, const target& target)
+    void scene_renderer::apply_pipeline_settings()
+    {
+        const render_settings& settings = renderer_backend::get_instance().get_settings();
+        
+        // fillmode
+        k_scene_basepass_pipsig.m_fillmode = settings.m_wireframe ? graphics_pipeline_signature::fillmode::wireframe : graphics_pipeline_signature::fillmode::solid;
+        
+        // cullmode
+        switch (settings.m_cullmode)
+        {
+        case render_settings::cullmode::back:  k_scene_basepass_pipsig.m_cullmode = graphics_pipeline_signature::cullmode::back; break;
+        case render_settings::cullmode::front: k_scene_basepass_pipsig.m_cullmode = graphics_pipeline_signature::cullmode::front; break;
+        case render_settings::cullmode::none:  k_scene_basepass_pipsig.m_cullmode = graphics_pipeline_signature::cullmode::none; break;
+        }
+    }
+
+    void scene_renderer::build_basepass(rendergraph::rgpass_builder& builder, const target& target)
+    {
+        // declare gbuffer rendertargets
+        rendergraph::texture_desc gbuffer_desc{};
+        gbuffer_desc.m_width = target.get_width();
+        gbuffer_desc.m_heigth = target.get_height();
+        gbuffer_desc.m_format = graphics::e_format::rgba_u32;
+        builder.declare_texture(RGNAME("gbuffer_a"), gbuffer_desc);
+        builder.declare_texture(RGNAME("gbuffer_b"), gbuffer_desc);
+        gbuffer_desc.m_format = graphics::e_format::u32;
+        builder.declare_texture(RGNAME("gbuffer_c"), gbuffer_desc);
+
+        rendergraph::rgaccess access{};
+        access.m_load = rendergraph::e_rg_load::discard;
+        access.m_store = rendergraph::e_rg_store::preserve;
+        builder.write_rendertarget(RGNAME("gbuffer_a"), access);
+        builder.write_rendertarget(RGNAME("gbuffer_b"), access);
+        builder.write_rendertarget(RGNAME("gbuffer_c"), access);
+
+        builder.set_viewport(target.get_width(), target.get_height());
+    }
+
+    void scene_renderer::execute_basepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
         renderer_backend& backend = renderer_backend::get_instance();
-        descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
+        pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
 
+        apply_pipeline_settings();
+        graphics_pipeline* pipeline = pipeline_man.get_or_create_pipeline("pip_scene_basepass", k_scene_basepass_pipsig);
+        if (pipeline == nullptr || scene.is_empty())
+        {
+            return;
+        }
+
+        influx_scope("renderer_backend::draw_scene::record");
+        logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
+
+        graphics::commandlist& commandlist = context.get_commandlist();
+
+        // setup batches & instance buffer
+        vector<batch> batches = create_batches(scene, &commandlist);
+        update_instance_buffer(batches);
+
+        // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
+        pipeline->set_state(commandlist);
+        commandlist.set(graphics::e_primitive_topology::trilist);
+
+        // per-scene
+        m_gpu_perscene.m_time.x = scene.m_delta_seconds;
+        m_gpu_perscene.m_time.y = scene.m_seconds;
+
+        // per view constants
         // update viewprojection matrix
         {
             const camera& camera = scene.m_camera;
@@ -212,27 +271,26 @@ namespace influx::renderer
 
             const float ar = (float)target.get_width() / target.get_height();
             m_gpu_perview.m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
-            mp_pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
-            mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
+            pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
+            pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
         }
 
         for (const batch& batch : batches)
         {
-            // set constants
+            // per draw constants
             m_gpu_perdraw.m_start_instance = batch.m_base_instance;
             m_gpu_permaterial.m_colour = {};
-
-            mp_pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
-            mp_pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
+            pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
+            pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
             // bind index buffer
             graphics::resource* index_buffer = batch.m_indexbuffer;
             const uint32 num_indices = (uint32)index_buffer->get_bytesize() / (uint32)index_buffer->get_bytestride();
-            commandlist->set_indexbuffer(index_buffer);
-            commandlist->set_vertexbuffer(batch.m_vertexbuffer);
+            commandlist.set_indexbuffer(index_buffer);
+            commandlist.set_vertexbuffer(batch.m_vertexbuffer);
             influx_assert(batch.m_vertexbuffer->get_bytestride() == 48u);
             const uint32 num_instances = (uint32)batch.m_instances.size();
-            commandlist->draw_indexed(
+            commandlist.draw_indexed(
             {
                 .m_num_indexes_per_instance = num_indices,
                 .m_num_instances = num_instances,
@@ -243,53 +301,50 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::apply_pipeline_settings()
+    void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target)
     {
-        const render_settings& settings = renderer_backend::get_instance().get_settings();
-        
-        // fillmode
-        k_scene_pipeline_signature.m_fillmode = settings.m_wireframe ? pipeline_signature::fillmode::wireframe : pipeline_signature::fillmode::solid;
-        
-        // cullmode
-        switch (settings.m_cullmode)
-        {
-        case render_settings::cullmode::back:  k_scene_pipeline_signature.m_cullmode = pipeline_signature::cullmode::back; break;
-        case render_settings::cullmode::front: k_scene_pipeline_signature.m_cullmode = pipeline_signature::cullmode::front; break;
-        case render_settings::cullmode::none:  k_scene_pipeline_signature.m_cullmode = pipeline_signature::cullmode::none; break;
-        }
+        // read gbuffers and write into target buffer as result
+        static string color_name{}; color_name = target.get_resource()->get_name().get();
+        builder.read_texture(RGNAME("gbuffer_a"));
+        builder.read_texture(RGNAME("gbuffer_b"));
+        builder.read_texture(RGNAME("gbuffer_c"));
+
+        builder.write_texture(color_name);
     }
 
-    void scene_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)
+    void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
+    {
+        graphics::commandlist& commandlist = context.get_commandlist();
+        commandlist.dispatch({{1u, 1u, 1u}});
+    }
+
+    void scene_renderer::render(rendergraph::rendergraph& graph, const scene& scene, const target& target)
     {
         renderer_backend& backend = renderer_backend::get_instance();
-        pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
 
-        apply_pipeline_settings();
+        static string color_name{}; color_name = target.get_resource()->get_name().get();
+        static string depth_name{}; depth_name = color_name + "_depth";
+        graph.import_texture(color_name, target.get_resource());
+        graph.import_texture(depth_name, target.get_depth_resource());
 
-        mp_pipeline = pipeline_man.get_or_create_pipeline("pip_scene", k_scene_pipeline_signature);
-        if (mp_pipeline == nullptr || scene.is_empty())
-        {
-            return;
-        }
-
-        // per-scene
-        m_gpu_perscene.m_time.x = scene.m_delta_seconds;
-        m_gpu_perscene.m_time.y = scene.m_seconds;
-
-        // create batches
-        vector<batch> batches = create_batches(scene, commandlist);
-
-        update_instance_buffer(batches);
-
-        logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
-
-        // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
-        {
-            mp_pipeline->set_state(commandlist);
-            commandlist->set(graphics::e_primitive_topology::trilist);
-        }
-
-        // render_shadows(commandlist, scene, batches);
-        render_basepass(commandlist, scene, batches, target);
+        auto* basepass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
+            [this, &target](rendergraph::rgpass_builder& builder)
+            {
+                build_basepass(builder, target);
+            },
+            [this, &scene, &target](rendergraph::rgpass_context& context)
+            {
+                execute_basepass(context, target, scene);
+            });
+        
+        auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
+            [this, &target](rendergraph::rgpass_builder& builder)
+            {
+                build_resolvepass(builder, target);
+            },
+            [this, &target, &scene](rendergraph::rgpass_context& ctx)
+            {
+                execute_resolvepass(ctx, target, scene);
+            });
     }
 }

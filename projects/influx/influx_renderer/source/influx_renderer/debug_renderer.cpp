@@ -33,7 +33,7 @@ namespace influx::renderer
         uint32 m_id;
     };
 
-    static const pipeline_signature k_debug_pipeline_signature
+    static const graphics_pipeline_signature k_debug_pipeline_signature
     {
         .m_vs_name              { "debug_shaders_vs" },
         .m_ps_name              { "debug_shaders_ps" },
@@ -70,9 +70,8 @@ namespace influx::renderer
         .m_blend_writemasks     { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
     };
 
-    debug_renderer::debug_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
-        : mp_pipeline{pipeline}
-        , mp_backend{backend}
+    debug_renderer::debug_renderer(renderer_backend* backend, graphics::device* device)
+        : mp_backend{backend}
         , mp_device{device}
     {
         m_instance_data.clear();
@@ -121,8 +120,8 @@ namespace influx::renderer
     void debug_renderer::render(graphics::commandlist* commandlist, const scene_debug& scene, const target& target)
     {
         // get the pipeline
-        mp_pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_debug", k_debug_pipeline_signature);
-        if (mp_pipeline == nullptr)
+        graphics_pipeline* pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_debug", k_debug_pipeline_signature);
+        if (pipeline == nullptr)
         {
             return;
         }
@@ -139,16 +138,16 @@ namespace influx::renderer
             m_gpu_perview->m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
         }
 
-        mp_pipeline->set_state(commandlist);
+        pipeline->set_state(*commandlist);
         commandlist->set(graphics::e_primitive_topology::linelist);
-        mp_pipeline->set_constants<gpu_perview>(commandlist, "g_perview", *m_gpu_perview);
+        pipeline->set_constants<gpu_perview>(*commandlist, "g_perview", *m_gpu_perview);
         commandlist->set_vertexbuffer(mp_vertexbuffer);
 
         update_instance_buffer(scene);
 
         // stage the instance buffer and set as resource table
         const graphics::descriptor_range gpu_range = mp_backend->get_descriptor_manager()->stage(m_instance_buffer_srv);
-        mp_pipeline->set_resource_table(commandlist, "g_instancebuffer", gpu_range);
+        pipeline->set_resource_table(*commandlist, "g_instancebuffer", gpu_range);
 
         const uint32 num_instances = (uint32)m_instance_data.size();
         commandlist->draw_instanced(

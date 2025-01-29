@@ -126,6 +126,7 @@ namespace influx::graphics
 		d32,
 		u16,
 		u32,
+		rgba_u32,
 		count
 	};
 

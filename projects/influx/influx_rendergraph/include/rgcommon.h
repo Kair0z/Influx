@@ -32,6 +32,7 @@ namespace influx::rendergraph
 		uint32 m_array_size = 1u;
 		uint32 m_num_mips = 1u;
 		uint32 m_sample_count = 1u;
+		graphics::e_format m_format;
 		graphics::e_resource_state m_init_state = graphics::e_resource_state::common;
 		graphics::e_bind_flags m_bindflags = graphics::e_bind_flags::none;
 	};

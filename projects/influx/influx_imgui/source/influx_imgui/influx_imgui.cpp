@@ -90,7 +90,7 @@ namespace influx::imgui
 		graphics::commandlist* mp_commandlist;
 		graphics::command_allocator* mp_allocator;
 		graphics::rootsignature* mp_rootsig;
-		graphics::pipeline* mp_pipeline;
+		graphics::graphics_pipeline* mp_pipeline;
 		graphics::descriptor_heap* mp_srv_heap;
 
 		graphics::fence* mp_fence;
@@ -126,7 +126,7 @@ namespace influx::imgui
 		return global_state::get_instance().m_fonts_texture;
 	}
 
-	inline graphics::pipeline*& get_pipeline()
+	inline graphics::graphics_pipeline*& get_pipeline()
 	{
 		return global_state::get_instance().mp_pipeline;
 	}
@@ -345,7 +345,7 @@ namespace influx::imgui
 		create_shaders();
 
 		// pipeline
-		graphics::pipeline_desc pipeline_desc{};
+		graphics::graphics_pipeline_desc pipeline_desc{};
 		pipeline_desc.m_vs = get_vertex_shader().m_bytecode;
 		pipeline_desc.m_ps = get_pixel_shader().m_bytecode;
 		pipeline_desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
@@ -365,7 +365,7 @@ namespace influx::imgui
 		// rasterizer
 		pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
 
-		get_pipeline() = get_device()->create_pipeline(get_rootsig(), pipeline_desc);
+		get_pipeline() = get_device()->create_graphics_pipeline(get_rootsig(), pipeline_desc);
 	}
 
 	bool initialize()

@@ -37,9 +37,9 @@ namespace influx::graphics
 		virtual ptr<swapchain> create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) override;
 		virtual ptr<descriptor_heap> create_descriptor_heap(const descriptor_heap::create_args& args) override;
 
-		virtual ptr<commandlist> create_commandlist(e_commandlist_type type, pipeline* init_state = nullptr) override;
-		virtual ptr<commandlist> create_graphics_commandlist(pipeline* init_state = nullptr) override;
-		virtual ptr<commandlist> create_compute_commandlist(pipeline* init_state = nullptr) override;
+		virtual ptr<commandlist> create_commandlist(e_commandlist_type type, detail::pipeline* init_state = nullptr) override;
+		virtual ptr<commandlist> create_graphics_commandlist(detail::pipeline* init_state = nullptr) override;
+		virtual ptr<commandlist> create_compute_commandlist(detail::pipeline* init_state = nullptr) override;
 
 		virtual ptr<fence> create_fence(uint64 init_value = 0u) override;
 		virtual ptr<resource> create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
@@ -57,7 +57,8 @@ namespace influx::graphics
 		virtual void create_sampler_view(descriptor_handle cpu_handle, resource* resource) override;
 
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) override;
-		virtual ptr<pipeline> create_pipeline(rootsignature* rootsig, const pipeline_desc& desc) override;
+		virtual ptr<graphics_pipeline> create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc) override;
+		virtual ptr<compute_pipeline> create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc) override;
 
 		// misc:
 		virtual vector<physical_device_info> get_gpu_infos() override;

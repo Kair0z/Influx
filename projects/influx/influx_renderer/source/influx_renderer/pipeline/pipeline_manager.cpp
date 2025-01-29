@@ -13,86 +13,44 @@ namespace influx::renderer
 
 	}
 
-	bool pipeline_manager::has_pipeline(const string& name) const
+	graphics_pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const graphics_pipeline_signature& signature)
 	{
-		return m_pipeline_map.contains(name);
+		return get_or_create_pipeline<graphics::e_pipeline_type::graphics>(name, signature);
 	}
 
-	pipeline* pipeline_manager::create_pipeline(
-		const string& name,
-		const pipeline_signature& signature,
-		const shader_data* vs,
-		const shader_data* ps)
+	compute_pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const compute_pipeline_signature& signature)
 	{
-		pipeline* result = nullptr;
-		result = new pipeline(
-			mp_device,
-			signature,
-			vs,
-			ps);
+		return get_or_create_pipeline<graphics::e_pipeline_type::compute>(name, signature);
+	}
 
-		m_pipeline_map[name].push_back(result);
+	raytracing_pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const raytracing_pipeline_signature& signature)
+	{
+		return get_or_create_pipeline<graphics::e_pipeline_type::raytracing>(name, signature);
+	}
+
+	graphics_pipeline* pipeline_manager::create_pipeline(const string& name, const graphics_pipeline_signature& signature, const shader_data& vs, const shader_data& ps)
+	{
+		graphics_pipeline* result = nullptr;
+		result = new graphics_pipeline(*mp_device, signature);
+
+		get_map<graphics::e_pipeline_type::graphics>()[name].push_back(result);
 		return result;
 	}
 
-	pipeline* pipeline_manager::find_pipeline(const string& name, const pipeline_signature& signature)
+	compute_pipeline* pipeline_manager::create_pipeline(const string& name, const compute_pipeline_signature& signature, const shader_data& cs)
 	{
-		const vector<pipeline*>& existing_pipelines = m_pipeline_map[name];
-		auto found = std::find_if(existing_pipelines.cbegin(), existing_pipelines.cend(), [&signature](const pipeline* pip)
-		{
-			return pip->get_signature() == signature;
-		});
-
-		return found != existing_pipelines.cend() ? *found : nullptr;
+		return nullptr;
 	}
 
-	pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const pipeline_signature& signature)
+	raytracing_pipeline* pipeline_manager::create_pipeline(const string& name, const raytracing_pipeline_signature& signature, const shader_data& rgs)
 	{
-		pipeline* result = nullptr;
-		auto& backend = renderer_backend::get_instance();
-
-		const auto& vs_shaders = backend.get_vertex_shaders();
-		const auto& ps_shaders = backend.get_pixel_shaders();
-		const bool vertex_shader_found = vs_shaders.contains(signature.m_vs_name);
-		const bool pixel_shader_found = ps_shaders.contains(signature.m_ps_name);
-
-		if (!vertex_shader_found || !pixel_shader_found)
-		{
-			return nullptr;
-		}
-
-		if (!has_pipeline(name))
-		{
-			result = create_pipeline(
-				name,
-				signature,
-				&vs_shaders.at(signature.m_vs_name),
-				&ps_shaders.at(signature.m_ps_name));
-		}
-		else
-		{
-			pipeline* found = find_pipeline(name, signature);
-			if (found == nullptr)
-			{
-				result = create_pipeline(
-					name,
-					signature,
-					&vs_shaders.at(signature.m_vs_name),
-					&ps_shaders.at(signature.m_ps_name));
-			}
-			else
-			{
-				result = found;
-			}
-		}
-
-		return result;
+		return nullptr;
 	}
 
 	uint32 pipeline_manager::get_num_pipelines() const
 	{
 		uint32 sum = 0u;
-		for (const auto& pair : m_pipeline_map)
+		for (const auto& pair : get_map<graphics::e_pipeline_type::graphics>())
 		{
 			sum += static_cast<uint32>(pair.second.size());
 		}

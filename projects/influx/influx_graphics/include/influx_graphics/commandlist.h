@@ -14,8 +14,12 @@
 
 namespace influx::graphics
 {
+	namespace detail
+	{
+		class pipeline;
+	}
+
 	class command_allocator;
-	class pipeline;
 	class render_target_view;
 	class depth_stencil_view;
 	class rootsignature;
@@ -39,6 +43,11 @@ namespace influx::graphics
 		uint32 m_start_index;
 		int m_start_vertex;
 		uint32 m_start_instance;
+	};
+
+	struct dispatch_args final
+	{
+		math::vectoru3 m_threadgroup_count{};
 	};
 
 	struct copy_texture_args final
@@ -74,7 +83,7 @@ namespace influx::graphics
 		};
 		
 		INFLUX_GFX_API
-		void start(device* device, pipeline* init_state = nullptr);
+		void start(device* device, detail::pipeline* init_state = nullptr);
 
 		INFLUX_GFX_API
 		void submit(queue*);
@@ -106,6 +115,9 @@ namespace influx::graphics
 		
 		INFLUX_GFX_API
 		virtual void draw_indexed(const draw_indexed_args& args) = 0;
+
+		INFLUX_GFX_API
+		virtual void dispatch(const dispatch_args& args) = 0;
 
 		INFLUX_GFX_API
 		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data) = 0;
@@ -167,7 +179,7 @@ namespace influx::graphics
 		virtual void set(rootsignature* rootsig) = 0;
 		
 		INFLUX_GFX_API
-		virtual void set(pipeline* pipeline) = 0;
+		virtual void set(detail::pipeline* pipeline) = 0;
 
 		INFLUX_GFX_API
 		virtual void set(const viewport& viewport) = 0;
@@ -182,7 +194,7 @@ namespace influx::graphics
 		virtual void end() = 0;
 
 	private:
-		virtual void start_impl(device* device, pipeline* init_state = nullptr) = 0;
+		virtual void start_impl(device* device, detail::pipeline* init_state = nullptr) = 0;
 
 	private:
 		e_state m_state = e_state::created;

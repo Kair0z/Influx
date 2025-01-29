@@ -1,5 +1,4 @@
 #pragma once
-
 #include "influx_renderer.h"
 
 // influx::core
@@ -9,22 +8,21 @@
 // influx::graphics
 #include "influx_graphics/pipeline.h"
 #include "influx_graphics/rootsignature.h"
+#include "influx_graphics/commandlist.h"
 
 #pragma region graphics declarations
 namespace influx::graphics
 {
 	class device;
-	class pipeline;
 	class rootsignature;
 	class commandlist;
 	struct descriptor_range;
-	struct pipeline_desc;
 }
 #pragma endregion
 
 namespace influx::renderer
 {
-	struct pipeline_signature final
+	struct graphics_pipeline_signature final
 	{
 #pragma region enums
 		enum cullmode : uint32
@@ -135,96 +133,152 @@ namespace influx::renderer
 		uint32 m_alpha_dests[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 		uint32 m_alpha_ops[k_max_num_rendertargets]			= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 		uint8 m_blend_writemasks[k_max_num_rendertargets]	= { blendmask::blend_all, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+
+		bool operator==(const graphics_pipeline_signature&) const = default; // Automatically generates an equality operator
 	};
 
-	inline static bool operator==(const pipeline_signature& a, const pipeline_signature& b)
+	struct compute_pipeline_signature final
 	{
-		const bool settings_match = (
-			a.m_vs_name == b.m_vs_name &&
-			a.m_ps_name == b.m_ps_name &&
-			a.m_primitive_type == b.m_primitive_type &&
-			a.m_cullmode == b.m_cullmode &&
-			a.m_fillmode == b.m_fillmode &&
-			a.m_forced_samplecount == b.m_forced_samplecount &&
-			a.m_sample_mask == b.m_sample_mask &&
-			a.m_sample_count == b.m_sample_count &&
-			a.m_front_ccw == b.m_front_ccw &&
-			a.m_depthclip == b.m_depthclip &&
-			a.m_multisample == b.m_multisample &&
-			a.m_antialiased_line == b.m_antialiased_line &&
-			a.m_conservative_raster == b.m_conservative_raster &&
-			a.m_depthbias == b.m_depthbias &&
-			a.m_depthbias_clamp == b.m_depthbias_clamp &&
-			a.m_slope_depthbias == b.m_slope_depthbias &&
-			a.m_depth_enable == b.m_depth_enable &&
-			a.m_stencil_enable == b.m_stencil_enable &&
-			a.m_depth_comparison == b.m_depth_comparison &&
-			a.m_depth_format == b.m_depth_format);
-
-		bool render_target_settings_match = true;
-		for (uint8 i = 0u; i < pipeline_signature::k_max_num_rendertargets; ++i)
-		{
-			render_target_settings_match &=
-				a.m_blend_actives[i] == b.m_blend_actives[i] &&
-				a.m_blend_sources[i] == b.m_blend_sources[i] &&
-				a.m_blend_dests[i] == b.m_blend_dests[i] &&
-				a.m_blend_ops[i] == b.m_blend_ops[i] &&
-				a.m_alpha_sources[i] == b.m_alpha_sources[i] &&
-				a.m_alpha_dests[i] == b.m_alpha_dests[i] &&
-				a.m_alpha_ops[i] == b.m_alpha_ops[i] &&
-				a.m_blend_writemasks[i] == b.m_blend_writemasks[i];
-		}
-
-		return settings_match;
-	}
-
-	inline static bool operator!=(const pipeline_signature& a, const pipeline_signature& b)
-	{
-		return !(a == b);
-	}
-
-	class pipeline final
-	{
-	public:
-		pipeline(
-			graphics::device* device,
-			const pipeline_signature& signature,
-			renderer::shader_data const* vs,
-			renderer::shader_data const* ps);
-
-		static pipeline* load_from_file(const string& path);
-
-		void set_state(graphics::commandlist* cmdlist);
-
-		template <typename _constants>
-		void set_constants(graphics::commandlist* cmdlist, const string& name, _constants& constants)
-		{
-			set_constants(cmdlist, name, sizeof(_constants) / sizeof(uint32), &constants);
-		}
-
-		void set_constants(graphics::commandlist* cmdlist, const string& name, uint32 num_dwords, void* data);
-
-		void set_resource_table(graphics::commandlist* cmdlist, const string& name, const graphics::descriptor_range& gpu_range);
-
-		uint32 get_shader_register(const string& resource_name);
-		uint32 get_param_index(const string& resource_name);
-
-		const debug_name& get_name() const;
-		void set_name(const debug_name&);
-
-		void save_to_file(const string& path) const;
-		
-		const pipeline_signature& get_signature() const;
-
-	private:
-		pipeline_signature m_signature;
-		graphics::rootsignature* mp_rootsig = nullptr;
-		graphics::pipeline* mp_pipeline = nullptr;
-		umap<string, uint32> m_name_to_register;
-		umap<string, uint32> m_name_to_param_idx;
-		graphics::pipeline_desc m_create_desc{};
-		graphics::rootsignature_desc m_rootsig_desc{};
-
-		debug_name m_name;
+		bool m_bindless = false;
+		string m_cs_name = "";
 	};
+
+	struct raytracing_pipeline_signature final
+	{
+
+	};
+
+	template <graphics::e_pipeline_type _t>
+	using pipeline_signature = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+		graphics_pipeline_signature,
+		compute_pipeline_signature,
+		raytracing_pipeline_signature>>;
+
+	namespace detail
+	{
+		class pipeline
+		{
+		public:
+			graphics::graphics_pipeline* create_graphics(
+				graphics::device& device, 
+				const graphics_pipeline_signature& signature,
+				const shader_data& vs,
+				const shader_data& ps);
+
+			graphics::compute_pipeline* create_compute(
+				graphics::device& device, 
+				const compute_pipeline_signature& signature,
+				const shader_data& cs);
+
+			graphics::raytracing_pipeline* create_raytracing(graphics::device& device, const raytracing_pipeline_signature& signature);
+
+			virtual graphics::e_pipeline_type get_type() const = 0;
+
+			graphics::rootsignature_desc m_rootsig_desc{};
+			graphics::rootsignature* m_rootsig = nullptr;
+			umap<string, uint32> m_name_to_register;
+			umap<string, uint32> m_name_to_param_idx;
+		};
+
+		template <graphics::e_pipeline_type _t>
+		class tpipeline : public pipeline
+		{
+			using signature_type = pipeline_signature<_t>;
+			using pipeline_desc_type = graphics::pipeline_desc<_t>;
+			using pipeline_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+				graphics::graphics_pipeline,
+				graphics::compute_pipeline,
+				graphics::raytracing_pipeline>>;
+
+			signature_type m_signature;
+			pipeline_type* m_pipeline = nullptr;
+			pipeline_desc_type m_desc{};
+			
+			debug_name m_name;
+
+		public:
+			tpipeline(graphics::device& device, const signature_type& signature)
+				: pipeline()
+				, m_signature{ signature }
+			{
+				pipeline_desc_type desc{};
+
+				if constexpr (_t == graphics::e_pipeline_type::graphics)
+				{
+					m_pipeline = create_graphics(device, desc,);
+				}
+				else if constexpr (_t == graphics::e_pipeline_type::compute)
+				{
+					m_pipeline = create_compute(device, desc);
+				}
+				else if constexpr (_t == graphics::e_pipeline_type::raytracing)
+				{
+					m_pipeline = create_raytracing(device, desc);
+				}
+			}
+
+			void set_state(graphics::commandlist& commandlist)
+			{
+				commandlist.set(m_rootsig);
+				commandlist.set(m_pipeline);
+			}
+
+			template <typename _constants>
+			void set_constants(graphics::commandlist& cmdlist, const string& name, _constants& constants)
+			{
+				set_constants(cmdlist, name, sizeof(_constants) / sizeof(uint32), &constants);
+			}
+
+			void set_constants(graphics::commandlist& cmdlist, const string& name, uint32 num_dwords, void* data)
+			{
+				cmdlist.set_constants(get_param_index(name), num_dwords, data);
+			}
+
+			void set_resource_table(graphics::commandlist& cmdlist, const string& name, const graphics::descriptor_range& gpu_range)
+			{
+				cmdlist.set(gpu_range, get_param_index(name));
+			}
+
+			uint32 get_shader_register(const string& resource_name)
+			{
+				return m_name_to_register[resource_name];
+			}
+
+			uint32 get_param_index(const string& resource_name)
+			{
+				return m_name_to_param_idx[resource_name];
+			}
+
+			const debug_name& get_name() const
+			{
+				return m_pipeline->get_name();
+			}
+
+			void set_name(const debug_name& name)
+			{
+				m_pipeline->set_name(name);
+			}
+
+			const signature_type& get_signature() const
+			{
+				return m_signature;
+			}
+
+			// todo
+			static tpipeline* load_from_file(const string& path)
+			{
+				return nullptr;
+			}
+			void save_to_file(const string& path) const
+			{
+
+			}
+
+			virtual graphics::e_pipeline_type get_type() const override { return _t; }
+		};
+	}
+	
+	using graphics_pipeline = detail::tpipeline<graphics::e_pipeline_type::graphics>;
+	using compute_pipeline = detail::tpipeline<graphics::e_pipeline_type::compute>;
+	using raytracing_pipeline = detail::tpipeline<graphics::e_pipeline_type::raytracing>;
 }
