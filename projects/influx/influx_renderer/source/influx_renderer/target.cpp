@@ -28,7 +28,7 @@ namespace influx::renderer
 			desc.m_format = graphics::e_format::rgba8;
 			desc.m_num_mips = 1u;
 			desc.m_sample_count = 1u;
-			desc.m_flags = graphics::e_resource_flags::render_target;
+			desc.m_bindflags = graphics::e_bind_flags::rtv;
 			desc.m_init_state = graphics::e_resource_state::render_target;
 			mp_resource = device->create_resource(desc);
 
@@ -42,7 +42,7 @@ namespace influx::renderer
 			desc.m_format = graphics::e_format::d32;
 			desc.m_num_mips = 1u;
 			desc.m_sample_count = 1u;
-			desc.m_flags = graphics::e_resource_flags::depth_stencil;
+			desc.m_bindflags = graphics::e_bind_flags::dsv;
 			desc.m_init_state = graphics::e_resource_state::depth_target;
 			mp_depth_resource = device->create_resource(desc);
 
@@ -170,7 +170,7 @@ namespace influx::renderer
 				graphics::tex2D_desc desc{};
 				desc.m_arraysize = 1u;
 				desc.m_dimensions = { dimensions.x, dimensions.y };
-				desc.m_flags = graphics::e_resource_flags::render_target;
+				desc.m_bindflags = graphics::e_bind_flags::rtv;
 				desc.m_format = graphics::e_format::rgba8;
 				desc.m_num_mips = 1u;
 				desc.m_sample_count = 1u;
@@ -187,7 +187,7 @@ namespace influx::renderer
 				desc.m_format = graphics::e_format::d32;
 				desc.m_num_mips = 1u;
 				desc.m_sample_count = 1u;
-				desc.m_flags = graphics::e_resource_flags::depth_stencil;
+				desc.m_bindflags = graphics::e_bind_flags::dsv;
 				desc.m_init_state = graphics::e_resource_state::depth_target;
 				mp_depth_resource = mp_device->create_resource(desc);
 

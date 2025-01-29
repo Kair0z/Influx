@@ -282,7 +282,7 @@ namespace influx::graphics
 			desc.m_dimensions.x, desc.m_dimensions.y, 
 			desc.m_arraysize, desc.m_num_mips,
 			desc.m_sample_count, 
-			translate(desc.m_flags), 
+			translate(desc.m_bindflags), 
 			translate(desc.m_init_state));
 
 		return new_child<dx12_resource, resource>(dxresource, desc);
@@ -293,7 +293,7 @@ namespace influx::graphics
 		auto dxresource = dx12helpers::create_buffer_resource<ID3D12Resource>(mpdx_devices[0], 
 			translate(heap_desc.m_type),
 			desc.m_bytesize, 
-			translate(desc.m_flags), 
+			translate(desc.m_bindflags), 
 			translate(desc.m_init_state));
 
 		return new_child<dx12_resource, resource>(dxresource, desc);

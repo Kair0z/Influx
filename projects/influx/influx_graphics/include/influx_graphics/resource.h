@@ -40,7 +40,7 @@ namespace influx::graphics
 	{
 		uint64 m_bytesize;
 		uint64 m_bytestride;
-		e_resource_flags m_flags;
+		e_bind_flags m_bindflags = e_bind_flags::none;
 		e_resource_state m_init_state;
 		e_format m_format;
 	};
@@ -52,8 +52,9 @@ namespace influx::graphics
 		uint16 m_arraysize = 1u;
 		uint16 m_num_mips = 1u;
 		uint32 m_sample_count = 1u;
-		e_resource_flags m_flags = e_resource_flags::none;
+		e_bind_flags m_bindflags = e_bind_flags::none;
 		e_resource_state m_init_state = e_resource_state::common;
+		bool m_allow_uav = false;
 	};
 
 	struct map_args final

@@ -1,5 +1,6 @@
 #include "rendergraph_pch.h"
 #include "rgpool.h"
+#include "rgcommon.h"
 
 #include "influx_graphics/device.h"
 
@@ -15,6 +16,14 @@ namespace influx::rendergraph
 	graphics::tex2D_desc translate(const texture_desc& desc)
 	{
 		graphics::tex2D_desc new_desc{};
+		new_desc.m_arraysize = desc.m_array_size;
+		new_desc.m_dimensions = { desc.m_width, desc.m_heigth };
+		new_desc.m_bindflags = desc.m_bindflags;
+		new_desc.m_format = desc.m_format;
+		new_desc.m_init_state = desc.m_init_state;
+		new_desc.m_num_mips = desc.m_num_mips;
+		new_desc.m_sample_count = desc.m_sample_count;
+		new_desc.m_allow_uav = desc.m_allow_uav;
 		return new_desc;
 	}
 #pragma endregion

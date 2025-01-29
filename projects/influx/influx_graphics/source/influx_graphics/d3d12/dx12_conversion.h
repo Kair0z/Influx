@@ -33,21 +33,21 @@ namespace influx::graphics
 		case e_format::d32: return DXGI_FORMAT_D32_FLOAT;
 		case e_format::u16: return DXGI_FORMAT_R16_UINT;
 		case e_format::u32: return DXGI_FORMAT_R32_UINT;
+		case e_format::rgba_u32: return DXGI_FORMAT_R32G32B32A32_UINT;
 		default: 
 			influx_assert(false);
 			return DXGI_FORMAT_R8G8_UNORM;
 		}
 	}
 
-	inline D3D12_RESOURCE_FLAGS translate(e_resource_flags flags)
+	inline D3D12_RESOURCE_FLAGS translate(e_bind_flags flags)
 	{
-		switch (flags)
-		{
-		case e_resource_flags::none: return D3D12_RESOURCE_FLAG_NONE;
-		case e_resource_flags::depth_stencil: return D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		case e_resource_flags::render_target: return D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		default: return D3D12_RESOURCE_FLAG_NONE;
-		}
+		D3D12_RESOURCE_FLAGS result = D3D12_RESOURCE_FLAG_NONE;
+		if (has_flag(flags, e_bind_flags::dsv)) result |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		if (has_flag(flags, e_bind_flags::rtv)) result |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		if (has_flag(flags, e_bind_flags::srv)) result |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+		if (has_flag(flags, e_bind_flags::uav)) result |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		return result;
 	}
 
 	inline D3D12_DESCRIPTOR_HEAP_TYPE translate(e_descriptor_heap_type type)

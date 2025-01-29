@@ -35,6 +35,7 @@ namespace influx::rendergraph
 		graphics::e_format m_format;
 		graphics::e_resource_state m_init_state = graphics::e_resource_state::common;
 		graphics::e_bind_flags m_bindflags = graphics::e_bind_flags::none;
+		bool m_allow_uav = false;
 	};
 
 	struct texture_view_desc final

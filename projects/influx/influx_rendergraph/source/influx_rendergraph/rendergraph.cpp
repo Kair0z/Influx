@@ -585,7 +585,7 @@ namespace influx::rendergraph
 		{
 			for (const rgpass& pass : layer.m_passes)
 			{
-				if (pass.is_culled()) continue;
+				// if (pass.is_culled()) continue;
 
 				layer.m_texture_creates.insert(pass.m_texture_creates.begin(), pass.m_texture_creates.end());
 				layer.m_texture_destroys.insert(pass.m_texture_destroys.begin(), pass.m_texture_destroys.end());
