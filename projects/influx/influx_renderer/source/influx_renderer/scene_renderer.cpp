@@ -56,7 +56,7 @@ namespace influx::renderer
 
         .m_depth_enable         { true },
         .m_stencil_enable       { false },
-        .m_depth_comparison     { 0u },
+        .m_depth_comparison     { 4u },
         .m_depth_format         { graphics_pipeline_signature::format::default_depth },
 
 
