@@ -48,6 +48,7 @@ namespace influx::shader
 		string m_entrypoint;
 		vector<string> m_defines;
 		string m_pdb_folder;
+		string m_pdb_filename;
 		string m_include_folder;
 
 		bool m_compile_debug;

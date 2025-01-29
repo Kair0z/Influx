@@ -28,7 +28,7 @@ namespace influx::renderer
 			desc.m_format = graphics::e_format::rgba8;
 			desc.m_num_mips = 1u;
 			desc.m_sample_count = 1u;
-			desc.m_bindflags = graphics::e_bind_flags::rtv;
+			desc.m_bindflags = graphics::e_bind_flags::rtv | graphics::e_bind_flags::uav;
 			desc.m_init_state = graphics::e_resource_state::render_target;
 			mp_resource = device->create_resource(desc);
 

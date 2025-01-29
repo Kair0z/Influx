@@ -64,8 +64,8 @@ namespace influx::rendergraph
 		e_rgpass_type m_type;
 		e_rgpass_flags m_flags;
 		rgpass_id m_id;
-		uint32 m_width;
-		uint32 m_height;
+		uint32 m_width{};
+		uint32 m_height{};
 		uint32 m_refcount;
 		bool m_is_culled;
 

@@ -82,7 +82,7 @@ namespace influx::graphics
 
 		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) override;
 
-		virtual void set(rootsignature* rootsig) override;
+		virtual void set(rootsignature* rootsig, const e_pipeline_type type) override;
 
 		virtual void set(detail::pipeline* pipeline) override;
 

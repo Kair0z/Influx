@@ -51,8 +51,8 @@ namespace influx::renderer
 		INFLUX_RENDER_API void resize(const math::vectoru2& new_dimensions);
 		INFLUX_RENDER_API void resize(const target& target);
 
-		void set_name(const debug_name& name);
-		const debug_name& get_name() const;
+		INFLUX_RENDER_API void set_name(const debug_name& name);
+		INFLUX_RENDER_API const debug_name& get_name() const;
 
 	private:
 		// constructs a target from create_args, allocating new graphics resources

@@ -4,14 +4,6 @@
 
 namespace influx::graphics
 {
-	enum class e_pipeline_type
-	{
-		graphics,
-		compute,
-		raytracing,
-		count
-	};
-
 	struct graphics_pipeline_desc final
 	{
 		// misc

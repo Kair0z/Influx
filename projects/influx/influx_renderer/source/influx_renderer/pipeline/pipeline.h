@@ -60,7 +60,8 @@ namespace influx::renderer
 			d32		= 5u,
 			default_depth = d32,
 			u16		= 6u,
-			u32		= 7u
+			u32		= 7u,
+			u32_4	= 8u,
 		};
 		enum blendop : uint32
 		{
@@ -122,7 +123,7 @@ namespace influx::renderer
 		// rtvs & dsvs
 		static constexpr uint8 k_max_num_rendertargets = 8u;
 		bool m_rtv_actives[k_max_num_rendertargets]		= { true, false, false, false, false, false, false, false };
-		uint8 m_rtv_formats[k_max_num_rendertargets]	= { format::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		uint32 m_rtv_formats[k_max_num_rendertargets]	= { format::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 
 		// rtv blend
 		bool m_blend_actives[k_max_num_rendertargets]		= { false, false, false, false, false, false, false, false };
@@ -185,6 +186,7 @@ namespace influx::renderer
 		template <graphics::e_pipeline_type _t>
 		class tpipeline : public pipeline
 		{
+		public:
 			using signature_type = pipeline_signature<_t>;
 			using pipeline_desc_type = graphics::pipeline_desc<_t>;
 			using pipeline_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
@@ -207,7 +209,7 @@ namespace influx::renderer
 
 			void set_state(graphics::commandlist& commandlist)
 			{
-				commandlist.set(m_rootsig);
+				commandlist.set(m_rootsig, _t);
 				commandlist.set(m_pipeline);
 			}
 

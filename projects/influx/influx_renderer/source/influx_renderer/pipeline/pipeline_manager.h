@@ -67,7 +67,7 @@ namespace influx::renderer
 				}
 
 				result = new detail::tpipeline<graphics::e_pipeline_type::graphics>(signature);
-				result->create_graphics(*mp_device, signature,
+				result->m_pipeline = result->create_graphics(*mp_device, signature,
 					vs_shaders.at(signature.m_vs_name),
 					ps_shaders.at(signature.m_ps_name));
 			}
@@ -76,9 +76,9 @@ namespace influx::renderer
 				const string& shader_name = signature.m_cs_name;
 				const auto& shaders = backend.get_compute_shaders();
 				const bool shader_found = shaders.contains(shader_name);
-
+				
 				result = new detail::tpipeline<graphics::e_pipeline_type::compute>(signature);
-				result->create_compute(*mp_device, signature,
+				result->m_pipeline = result->create_compute(*mp_device, signature,
 					shaders.at(shader_name));
 			}
 			else if constexpr (_t == graphics::e_pipeline_type::raytracing)

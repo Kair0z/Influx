@@ -176,7 +176,7 @@ namespace influx::graphics
 		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) = 0;
 
 		INFLUX_GFX_API
-		virtual void set(rootsignature* rootsig) = 0;
+		virtual void set(rootsignature* rootsig, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
 		
 		INFLUX_GFX_API
 		virtual void set(detail::pipeline* pipeline) = 0;

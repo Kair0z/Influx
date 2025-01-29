@@ -168,7 +168,8 @@ namespace influx::engine
 		target_args.m_width = mp_window_target->get_width();
 		target_args.m_heigth = mp_window_target->get_height();
 		mp_scene_target = influx::renderer::create_target(target_args);
-		
+		mp_scene_target->set_name("scene_target");
+
 		// init imgui:
 		initialize_imgui();
 

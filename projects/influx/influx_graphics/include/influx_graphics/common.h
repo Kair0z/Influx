@@ -87,6 +87,14 @@ namespace influx::graphics
 		all_shading = all_srv | all_uav | shading_rate | as_read
 	};
 
+	enum class e_pipeline_type
+	{
+		graphics,
+		compute,
+		raytracing,
+		count
+	};
+
 	constexpr static uint8 k_max_render_targets = 8u;
 
 	// graphics api

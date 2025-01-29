@@ -412,10 +412,24 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, gpu_handle);
 	}
 
-	void dx12_commandlist::set(rootsignature* rootsig)
+	void dx12_commandlist::set(rootsignature* rootsig, const e_pipeline_type type)
 	{
 		auto dxrootsig = rootsig->get_native<ID3D12RootSignature>();
-		mpdx_graphics_commandlist->SetGraphicsRootSignature(dxrootsig);
+	
+		switch (type)
+		{
+		case e_pipeline_type::graphics:
+			mpdx_graphics_commandlist->SetGraphicsRootSignature(dxrootsig);
+			break;
+
+		case e_pipeline_type::compute:
+			mpdx_graphics_commandlist->SetComputeRootSignature(dxrootsig);
+			break;
+
+		case e_pipeline_type::raytracing:
+			break;
+		}
+		
 	}
 
 	void dx12_commandlist::set(detail::pipeline* pipeline)

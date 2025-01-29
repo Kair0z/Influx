@@ -76,6 +76,7 @@ namespace influx::shader
 		{
 		case e_shader_type::vs: result += L"vs"; break;
 		case e_shader_type::ps: result += L"ps"; break;
+		case e_shader_type::cs: result += L"cs"; break;
 		case e_shader_type::count: result += L"LLLL"; break;
 		}
 
@@ -279,7 +280,7 @@ namespace influx::shader
 			if (result == S_OK && pDebugData != nullptr)
 			{
 				wstring foldername = to_wstring(args.m_pdb_folder);
-				wstring filename = make_shader_name_string(args);
+				wstring filename = to_wstring(args.m_pdb_filename) + make_shader_name_string(args);
 				wstring filepath = foldername + L"/" + filename + L".pdb";
 
 				result = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData, 

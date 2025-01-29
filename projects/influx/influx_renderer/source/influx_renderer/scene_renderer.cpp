@@ -28,6 +28,11 @@ namespace influx::renderer
         .m_cs_name  {"resolvepass_cs"}
     };
 
+    constexpr graphics_pipeline_signature::format gbuffer_formatA = graphics_pipeline_signature::format::u32_4;
+    constexpr graphics_pipeline_signature::format gbuffer_formatB = graphics_pipeline_signature::format::u32;
+    constexpr graphics_pipeline_signature::format gbuffer_formatC = graphics_pipeline_signature::format::u32;
+    constexpr graphics_pipeline_signature::blendmask blendmask = graphics_pipeline_signature::blendmask::blend_all;
+
     static graphics_pipeline_signature k_scene_basepass_pipsig
     {
         .m_bindless             { true },
@@ -54,8 +59,9 @@ namespace influx::renderer
         .m_depth_comparison     { 0u },
         .m_depth_format         { graphics_pipeline_signature::format::default_depth },
 
-        .m_rtv_actives          { true, false, false, false, false, false, false, false },
-        .m_rtv_formats          { graphics_pipeline_signature::format::default_color, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
+
+        .m_rtv_actives          { true, true, true, false, false, false, false, false },
+        .m_rtv_formats          { gbuffer_formatA, gbuffer_formatB, gbuffer_formatC, 0u, 0u, 0u, 0u, 0u},
         .m_blend_actives        { false, false, false, false, false, false, false, false },
         .m_blend_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_blend_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
@@ -63,7 +69,7 @@ namespace influx::renderer
         .m_alpha_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_alpha_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
         .m_alpha_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_writemasks     { graphics_pipeline_signature::blendmask::blend_all, 0u, 0u, 0u, 0u, 0u, 0u, 0u}
+        .m_blend_writemasks     { blendmask, blendmask, blendmask, 0u, 0u, 0u, 0u, 0u}
     };
 
     scene_renderer::scene_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
@@ -219,23 +225,28 @@ namespace influx::renderer
 
     void scene_renderer::build_basepass(rendergraph::rgpass_builder& builder, const target& target)
     {
+        static string color_name{}; color_name = target.get_resource()->get_name().get();
+        static string depth_name{}; depth_name = color_name + "_depth";
+
         // declare gbuffer rendertargets
         rendergraph::texture_desc gbuffer_desc{};
         gbuffer_desc.m_width = target.get_width();
         gbuffer_desc.m_heigth = target.get_height();
         gbuffer_desc.m_format = graphics::e_format::rgba_u32;
         builder.declare_texture(RGNAME("gbuffer_a"), gbuffer_desc);
-        builder.declare_texture(RGNAME("gbuffer_b"), gbuffer_desc);
         gbuffer_desc.m_format = graphics::e_format::u32;
+        builder.declare_texture(RGNAME("gbuffer_b"), gbuffer_desc);
         builder.declare_texture(RGNAME("gbuffer_c"), gbuffer_desc);
 
         rendergraph::rgaccess access{};
-        access.m_load = rendergraph::e_rg_load::discard;
+        access.m_load = rendergraph::e_rg_load::preserve;
         access.m_store = rendergraph::e_rg_store::preserve;
         builder.write_rendertarget(RGNAME("gbuffer_a"), access);
         builder.write_rendertarget(RGNAME("gbuffer_b"), access);
         builder.write_rendertarget(RGNAME("gbuffer_c"), access);
 
+        // write to depth for now
+        builder.write_depthtarget(depth_name, access);
         builder.set_viewport(target.get_width(), target.get_height());
     }
 
@@ -315,6 +326,7 @@ namespace influx::renderer
         builder.read_texture(RGNAME("gbuffer_b"));
         builder.read_texture(RGNAME("gbuffer_c"));
 
+        builder.set_viewport(target.get_width(), target.get_height());
         builder.write_texture(color_name);
     }
 
@@ -350,8 +362,9 @@ namespace influx::renderer
             {
                 execute_basepass(context, target, scene);
             });
+        basepass->set_name(RGNAME("basepass"));
         
-        auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
+        auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
             [this, &target](rendergraph::rgpass_builder& builder)
             {
                 build_resolvepass(builder, target);
@@ -360,5 +373,6 @@ namespace influx::renderer
             {
                 execute_resolvepass(ctx, target, scene);
             });
+        resolvepass->set_name(RGNAME("resolvepass"));
     }
 }

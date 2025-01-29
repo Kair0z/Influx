@@ -81,6 +81,7 @@ namespace influx::engine
 		{
 			shader_item& vs_item = m_shaders[file.m_filename + "_vs"];
 			shader_item& ps_item = m_shaders[file.m_filename + "_ps"];
+			shader_item& cs_item = m_shaders[file.m_filename + "_cs"];
 
 			shader::compile_args compile_args{};
 			compile_args.m_target = shader::e_shader_target::_6_6;
@@ -88,6 +89,7 @@ namespace influx::engine
 			compile_args.m_compile_debug = true;
 			compile_args.m_pbd = true;
 			compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
+			compile_args.m_pdb_filename = file.m_filename;
 #else
 			compile_args.m_compile_debug = false;
 			compile_args.m_pbd = false;
@@ -108,6 +110,12 @@ namespace influx::engine
 			ps_item.set_loadstate(e_load_state::loading);
 			influx_assert(imp::load_shader_file(file.m_path_full, ps_item.m_resource, compile_args));
 			ps_item.set_loadstate(e_load_state::loaded);
+
+			compile_args.m_type = shader::e_shader_type::cs;
+			compile_args.m_entrypoint = "main_cs";
+			cs_item.set_loadstate(e_load_state::loading);
+			influx_assert(imp::load_shader_file(file.m_path_full, cs_item.m_resource, compile_args));
+			cs_item.set_loadstate(e_load_state::loaded);
 		});
 
 		// load pngs

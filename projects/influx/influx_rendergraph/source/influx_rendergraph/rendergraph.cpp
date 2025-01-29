@@ -233,11 +233,11 @@ namespace influx::rendergraph
 				// create views for imported textures
 				for (uint64 i = 0; i < m_textures.size(); ++i)
 				{
-					if (m_textures[i]->m_is_imported) create_texture_views(rgtexture_id(i));
+					if (m_textures[i]->m_is_imported) create_texture_views(m_textures[i]->m_id);
 				}
 				for (uint64 i = 0; i < m_buffers.size(); ++i)
 				{
-					if (m_buffers[i]->m_is_imported) create_buffer_views(rgbuffer_id(i));
+					if (m_buffers[i]->m_is_imported) create_buffer_views(m_buffers[i]->m_id);
 				}
 			}
 
@@ -274,7 +274,7 @@ namespace influx::rendergraph
 
 					if (pass.is_culled())
 					{
-						continue;
+						//continue;
 					}
 
 					rgpass_context context {*this, *commandlist};
@@ -414,7 +414,6 @@ namespace influx::rendergraph
 			{
 				src_tex_id = builder.read_copysrc_texture(source->get_name().get());
 				dst_tex_id = builder.write_copydst_texture(dest->get_name().get());
-
 				builder.set_viewport(dest->get_width(), dest->get_height());
 			},
 			[](rgpass_context& context) 
@@ -456,6 +455,7 @@ namespace influx::rendergraph
 			new_texture->m_desc = get_desc_from_resource(*resource);
 			new_texture->m_id = new_id;
 			new_texture->m_resource = resource;
+			new_texture->m_resource->set_name(name.m_name);
 			new_texture->m_is_imported = true;
 			m_textures.emplace_back(new_texture);
 			m_texture_name_to_id_map[name] = new_id;

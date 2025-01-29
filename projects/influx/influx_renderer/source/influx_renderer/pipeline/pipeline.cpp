@@ -24,6 +24,23 @@ namespace influx::renderer
         return graphics::e_cull_mode::count;
     }
 
+    constexpr static graphics::e_format translate(graphics_pipeline_signature::format format)
+    {
+        switch (format)
+        {
+            case graphics_pipeline_signature::format::rgba8  : return graphics::e_format::rgba8;
+            case graphics_pipeline_signature::format::r32    : return graphics::e_format::r32;
+            case graphics_pipeline_signature::format::rg32   : return graphics::e_format::rg32;
+            case graphics_pipeline_signature::format::rgb32  : return graphics::e_format::rgb32;
+            case graphics_pipeline_signature::format::rgba32 : return graphics::e_format::rgba32;
+            case graphics_pipeline_signature::format::d32    : return graphics::e_format::d32;
+            case graphics_pipeline_signature::format::u16    : return graphics::e_format::u16;
+            case graphics_pipeline_signature::format::u32    : return graphics::e_format::u32;
+            case graphics_pipeline_signature::format::u32_4  : return graphics::e_format::rgba_u32;
+        }
+        return {};
+    }
+
     graphics::graphics_pipeline* detail::pipeline::create_graphics(
         graphics::device& device, 
         const graphics_pipeline_signature& signature,
@@ -114,7 +131,7 @@ namespace influx::renderer
         pipeline_desc.m_depth_stencil.m_depth_enable = signature.m_depth_enable;
         pipeline_desc.m_depth_stencil.m_stencil_enable = signature.m_stencil_enable;
         pipeline_desc.m_depth_stencil.m_depth_func = (graphics::e_comparison_func)signature.m_depth_comparison;
-        pipeline_desc.m_format_dsv = (graphics::e_format)signature.m_depth_format;
+        pipeline_desc.m_format_dsv = translate((graphics_pipeline_signature::format)signature.m_depth_format);
         for (uint8 i = 0u; i < 8u; ++i)
         {
             pipeline_desc.m_blends[i].m_enabled = signature.m_blend_actives[i];
@@ -126,7 +143,7 @@ namespace influx::renderer
             pipeline_desc.m_blends[i].m_op_alpha = (graphics::e_blendop)signature.m_alpha_ops[i];
             pipeline_desc.m_blends[i].m_write_mask = signature.m_blend_writemasks[i];
             pipeline_desc.m_rtvs[i].m_enabled = signature.m_rtv_actives[i];
-            pipeline_desc.m_rtvs[i].m_format = (graphics::e_format)signature.m_rtv_formats[i];
+            pipeline_desc.m_rtvs[i].m_format = translate((graphics_pipeline_signature::format)signature.m_rtv_formats[i]);
         }
 
         // parse the input elements from reflection:
