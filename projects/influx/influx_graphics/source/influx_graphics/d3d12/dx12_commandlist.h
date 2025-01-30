@@ -45,7 +45,7 @@ namespace influx::graphics
 
 		virtual void dispatch(const dispatch_args&) override;
 
-		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data) override;
+		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) override;
 
 		virtual void set_indexbuffer(resource* index_buffer) override;
 

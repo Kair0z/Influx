@@ -170,14 +170,27 @@ namespace influx::graphics
 			args.m_threadgroup_count.z);
 	}
 
-	void dx12_commandlist::set_constants(uint32 param_index, uint32 num_dwords, void* source_data)
+	void dx12_commandlist::set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type)
 	{
 		renderpass_check(e_command::set_root_constants);
 
-		mpdx_graphics_commandlist->SetGraphicsRoot32BitConstants(
-			param_index,
-			num_dwords,
-			source_data, 0u);
+		switch (type)
+		{
+		case graphics::e_pipeline_type::compute:
+			mpdx_graphics_commandlist->SetComputeRoot32BitConstants(
+				param_index,
+				num_dwords,
+				source_data,
+				0u);
+			break;
+
+		case graphics::e_pipeline_type::graphics:
+			mpdx_graphics_commandlist->SetGraphicsRoot32BitConstants(
+				param_index,
+				num_dwords,
+				source_data, 0u);
+			break;
+		}
 	}
 
 	void dx12_commandlist::set_indexbuffer(resource* index_buffer)

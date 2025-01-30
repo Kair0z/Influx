@@ -138,6 +138,7 @@ namespace influx::renderer
 			if (gpu_range.m_start == nullptr)
 			{
 				gpu_range.m_start = gpu_handle;
+				gpu_range.m_start_idx = mp_srv_gpu_heap->get_heap_index_gpu(gpu_handle);
 			}
 
 			// copy the cpu descriptor into the gpu-visible descriptor

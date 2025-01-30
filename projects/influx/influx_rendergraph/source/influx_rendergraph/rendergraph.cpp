@@ -67,7 +67,7 @@ namespace influx::rendergraph
 		{
 			graphics::descriptor_heap::create_args args{};
 			// shader heaps:
-			args.m_shader_visible = true;
+			args.m_shader_visible = false;
 
 			args.m_capacity = 8u;
 			args.m_type = graphics::e_descriptor_heap_type::sampler;

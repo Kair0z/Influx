@@ -28,6 +28,7 @@ namespace influx::graphics
 
 		descriptor_handle m_start;
 		uint32 m_num_descriptors;
+		uint32 m_start_idx;
 	};
 
 	class descriptor_heap : public base

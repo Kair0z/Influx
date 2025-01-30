@@ -469,7 +469,7 @@ namespace influx::renderer
 
 			void set_constants(graphics::commandlist& cmdlist, const string& name, uint32 num_dwords, void* data)
 			{
-				cmdlist.set_constants(get_param_index(name), num_dwords, data);
+				cmdlist.set_constants(get_param_index(name), num_dwords, data, _t);
 			}
 
 			void set_resource_table(graphics::commandlist& cmdlist, const string& name, const graphics::descriptor_range& gpu_range)

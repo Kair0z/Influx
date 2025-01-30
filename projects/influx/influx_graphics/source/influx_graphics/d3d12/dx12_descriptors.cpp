@@ -104,7 +104,7 @@ namespace influx::graphics
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
 		gpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
 
-		return (uint32)(gpu_handle.ptr - gpu_base.ptr);
+		return (uint32)(gpu_handle.ptr - gpu_base.ptr) / m_descriptor_stride;
 	}
 
 	uint32 dx12_descriptor_heap::cpu_handle_to_index(descriptor_handle handle) const

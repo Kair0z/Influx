@@ -120,7 +120,7 @@ namespace influx::graphics
 		virtual void dispatch(const dispatch_args& args) = 0;
 
 		INFLUX_GFX_API
-		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data) = 0;
+		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) = 0;
 
 		INFLUX_GFX_API
 		virtual void set_indexbuffer(resource* index_buffer) = 0;

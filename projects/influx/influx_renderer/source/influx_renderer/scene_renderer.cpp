@@ -318,30 +318,59 @@ namespace influx::renderer
         }
     }
 
+    static rendergraph::rgtexture_readonly_id gbuffer_reads[3u]{};
+    static rendergraph::rgtexture_readwrite_id resolve_write{};
+
     void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target)
     {
         // read gbuffers and write into target buffer as result
         static string color_name{}; color_name = target.get_resource()->get_name().get();
-        builder.read_texture(RGNAME("gbuffer_a"));
-        builder.read_texture(RGNAME("gbuffer_b"));
-        builder.read_texture(RGNAME("gbuffer_c"));
+        gbuffer_reads[0] = builder.read_texture(RGNAME("gbuffer_a"));
+        gbuffer_reads[1] = builder.read_texture(RGNAME("gbuffer_b"));
+        gbuffer_reads[2] = builder.read_texture(RGNAME("gbuffer_c"));
 
         builder.set_viewport(target.get_width(), target.get_height());
-        builder.write_texture(color_name);
+        resolve_write = builder.write_texture(color_name);
     }
 
     void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
-
-        graphics::commandlist& commandlist = context.get_commandlist();
+        descriptor_manager& descriptor_man = *backend.get_descriptor_manager();
 
         auto* compute_pipeline = pipeline_man.get_or_create_pipeline("resolvepass_pip", k_scene_resolve_pipsig);
-        if (compute_pipeline == nullptr) return;
+        if (compute_pipeline)
+        {
+            graphics::commandlist& commandlist = context.get_commandlist();
 
-        compute_pipeline->set_state(commandlist);
-        commandlist.dispatch({{1u, 1u, 1u}});
+            // stage the descriptors onto the gpu heap
+            graphics::descriptor_range gpu_range = descriptor_man.stage({
+                    context.get_read_texture(gbuffer_reads[0]),
+                    context.get_read_texture(gbuffer_reads[1]),
+                    context.get_read_texture(gbuffer_reads[2]),
+                    context.get_write_texture(resolve_write) });
+
+            compute_pipeline->set_state(commandlist);
+
+            // set constant buffer:
+            struct resolve_args final
+            {
+                int descriptor_indices[4u];
+                math::float4 screen_size;
+            };
+            resolve_args args{};
+            args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
+            args.descriptor_indices[0] = gpu_range.m_start_idx;
+            args.descriptor_indices[1] = gpu_range.m_start_idx + 1u;
+            args.descriptor_indices[2] = gpu_range.m_start_idx + 2u;
+            args.descriptor_indices[3] = gpu_range.m_start_idx + 3u;
+            compute_pipeline->set_constants<resolve_args>(commandlist, "g_resolve_args", args);
+
+            const uint32 num_groups_x = target.get_width() / 8u;
+            const uint32 num_groups_y = target.get_height() / 8u;
+            commandlist.dispatch({ {num_groups_x, num_groups_y, 1u} });
+        }
     }
 
     void scene_renderer::render(rendergraph::rendergraph& graph, const scene& scene, const target& target)

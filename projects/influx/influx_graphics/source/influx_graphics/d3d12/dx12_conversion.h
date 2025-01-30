@@ -170,6 +170,7 @@ namespace influx::graphics
 		case e_shader_visibility::domain: return D3D12_SHADER_VISIBILITY_DOMAIN;
 		case e_shader_visibility::hull: return D3D12_SHADER_VISIBILITY_HULL;
 		case e_shader_visibility::geometry: return D3D12_SHADER_VISIBILITY_GEOMETRY;
+		case e_shader_visibility::compute:	return D3D12_SHADER_VISIBILITY_ALL;
 		default:
 		case e_shader_visibility::count:
 			influx_assert(false);
