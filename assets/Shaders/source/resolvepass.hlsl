@@ -38,6 +38,19 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
 
     gbuffer _gbuffer = get_gbuffer(texcoord);
 
-    float4 output = float4(_gbuffer.get_albedo().rgb, 1.0f);
+    // albedo is encoded in 10b, but our output target is 8b
+    float albedo_scale = 1.0f;
+
+    float3 albedo = _gbuffer.get_albedo();
+    float3 normal = _gbuffer.get_normal().rgb;
+
+    float3 lightDir = float3(0.5, -0.5, -0.5);
+    float3 lightCol = float3(1.0, 1.0, 1.0);
+
+    float ambient = 0.2f;
+    float diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
+    diffuse *= 4.0f;
+
+    float4 output = float4(albedo.rgb, 1.0f);
     get_output()[thread_id.xy].rgba = output.rgba;
 }

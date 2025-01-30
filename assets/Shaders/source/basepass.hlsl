@@ -137,9 +137,6 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
 [shader("pixel")]
 ps_output main_ps(ps_input input)
 {
-    float3 lightDir = g_perscene.light_direction.rgb;
-    float3 lightCol = g_perscene.light_colour.rgb;
-
     float4 albedo = get_texture(input.texid_albedo).Sample(get_sampler(0), input.texcoord).rgba;
     // albedo.rgb = lerp(input.colour.rgb, albedo.rgb, 0.5f);
 
@@ -147,11 +144,8 @@ ps_output main_ps(ps_input input)
     // float3 normal = get_normal(input.texcoord).rgb;
     float3 normal = input.normal;
 
-    float ambient = 0.2f;
-    float diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
-
     ps_output output = (ps_output)0;
-    output.gbuffer_data.set_albedo(albedo.rgb);
+    output.gbuffer_data.set_albedo(float3(0,1,1));
     output.gbuffer_data.set_normal(normal.rgb);
     return output;
 }

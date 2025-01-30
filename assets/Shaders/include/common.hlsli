@@ -29,12 +29,12 @@ uint f3_uint(float3 f3)
 {
     uint r = (uint)(f3.x * 1023.0) & 0x3FF; // 10-bit
     uint g = (uint)(f3.y * 1023.0) & 0x3FF; // 10-bit
-    uint b = (uint) (f3.z * 1023.0) & 0x3FF; // 10-bit
+    uint b = (uint)(f3.z * 1023.0) & 0x3FF; // 10-bit
     return (r) | (g << 10) | (b << 20); // Pack into a single uint
 }
 float3 uint_f3(uint packed)
 {
-    const float scale = 255.0 / 1023.0;  // Scale 10-bit to 8-bit
+    const float scale = 1.0f / 1023.0;
     float r = (packed           & 0x3FF) * scale;
     float g = ((packed >> 10)   & 0x3FF) * scale;
     float b = ((packed >> 20)   & 0x3FF) * scale;
@@ -109,7 +109,8 @@ struct gbuffer
 
     float3 get_albedo()
     {
-        return uint_f3(albedo_emmisive_pbr.x).xyz;
+        uint packed_albedo = albedo_emmisive_pbr.x;
+        return uint_f3(packed_albedo);
     }
 
     void set_emmisive(float3 emmisive)
