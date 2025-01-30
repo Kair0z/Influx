@@ -101,6 +101,9 @@ namespace influx::renderer
 		bool m_bindless = false;
 		string m_vs_name = "";
 		string m_ps_name = "";
+		string m_ds_name = "";
+		string m_gs_name = "";
+		string m_hs_name = "";
 
 		// rasterizer
 		uint32 m_primitive_type			= primitive_type::triangle;
@@ -233,6 +236,7 @@ namespace influx::renderer
 
 			void gather_shaders(const signature_type& signature)
 			{
+				// collect shaders
 				renderer_backend& backend = renderer_backend::get_instance();
 				if constexpr (_t == graphics::e_pipeline_type::graphics)
 				{
@@ -243,8 +247,10 @@ namespace influx::renderer
 					auto& hs_shader_map = backend.get_shadermap<shader::e_shader_type::hs>();
 
 					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::vs)] = vs_shader_map.contains(signature.m_vs_name) ? &vs_shader_map.at(signature.m_vs_name) : nullptr;
-					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::ps)] = ps_shader_map.contains(signature.m_ps_name) ? &vs_shader_map.at(signature.m_ps_name) : nullptr;
-					// ...
+					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::ps)] = ps_shader_map.contains(signature.m_ps_name) ? &ps_shader_map.at(signature.m_ps_name) : nullptr;
+					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::ds)] = ds_shader_map.contains(signature.m_ds_name) ? &ds_shader_map.at(signature.m_ds_name) : nullptr;
+					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::gs)] = gs_shader_map.contains(signature.m_gs_name) ? &gs_shader_map.at(signature.m_gs_name) : nullptr;
+					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::hs)] = hs_shader_map.contains(signature.m_hs_name) ? &hs_shader_map.at(signature.m_hs_name) : nullptr;
 				}
 				else if constexpr (_t == graphics::e_pipeline_type::compute)
 				{
@@ -256,11 +262,9 @@ namespace influx::renderer
 					// ...
 				}
 
-
+				// collect reflections
 				for (uint8 i = 0u; i < k_num_shaders; ++i)
 				{
-					influx_assert(m_shaders[i] != nullptr);
-
 					if (m_shaders[i] != nullptr)
 					{
 						m_shader_reflections[i] = &m_shaders[i]->m_reflection;
@@ -321,7 +325,7 @@ namespace influx::renderer
 					// reflect resources of each shader
 					for (uint8 i = 0u; i < k_num_shaders; ++i)
 					{
-						if (m_shaders[i] != nullptr && m_shader_reflections[i] != nullptr)
+						if (m_shader_reflections[i] != nullptr)
 						{
 							for (const shader::reflection::resource& resource : m_shader_reflections[i]->m_bound_resources)
 							{
@@ -340,7 +344,7 @@ namespace influx::renderer
 					// reflect resources of each shader
 					for (uint8 i = 0u; i < k_num_shaders; ++i)
 					{
-						if (m_shaders[i] != nullptr && m_shader_reflections[i] != nullptr)
+						if (m_shader_reflections[i] != nullptr)
 						{
 							for (const shader::reflection::resource& resource : m_shader_reflections[i]->m_bound_resources)
 							{
@@ -362,21 +366,21 @@ namespace influx::renderer
 
 			void build_pipeline(graphics::device& device, const signature_type& signature)
 			{
+				graphics::pipeline_desc<_t> pipeline_desc{};
+
+				// set shaders
+				for (uint8 i = 0u; i < k_num_shaders; ++i)
+				{
+					if (m_shaders[i] != nullptr)
+					{
+						using shader_slot_enum = graphics::shader_slots<_t>::slot_enum;
+						const shader_slot_enum shader_slot = static_cast<shader_slot_enum>(i);
+						pipeline_desc.m_shaders.set(shader_slot, m_shaders[i]->m_bytecode);
+					}
+				}
+
 				if constexpr (_t == graphics::e_pipeline_type::graphics)
 				{
-					// build the pipeline
-					graphics::graphics_pipeline_desc pipeline_desc{};
-#if 0
-					for (uint8 i = 0u; i < k_num_shaders; ++i)
-					{
-
-						if (found_shaders[i] != nullptr)
-						{
-							pipeline_desc.m_shaders.set(static_cast<graphics::graphics_shader_slots>(i), *found_shaders[i].m_bytecode);
-						}
-					}
-#endif
-
 					pipeline_desc.m_rasterizer.m_cullmode = translate((graphics_pipeline_signature::cullmode)signature.m_cullmode);
 					pipeline_desc.m_rasterizer.m_front_ccw = signature.m_front_ccw;
 					pipeline_desc.m_prim_type = (graphics::e_primitive_topology_type)signature.m_primitive_type;
@@ -409,11 +413,13 @@ namespace influx::renderer
 						pipeline_desc.m_rtvs[i].m_format = translate((graphics_pipeline_signature::format)signature.m_rtv_formats[i]);
 					}
 
-#if 0
-					// parse the input elements from reflection:
-					for (uint32 i = 0u; i < vs_reflection->m_input_params.size(); ++i)
+					// parse the input elements from vertex shader reflection:
+					constexpr uint8 vertex_shader_idx = static_cast<uint8>(graphics::graphics_shader_slots::vs);
+					const shader_data& vertex_shader = *m_shaders[vertex_shader_idx];
+					const shader::reflection& vertex_reflection = *m_shader_reflections[vertex_shader_idx];
+					for (uint32 i = 0u; i < vertex_reflection.m_input_params.size(); ++i)
 					{
-						const shader::reflection::input_param& param = vs_reflection->m_input_params[i];
+						const shader::reflection::input_param& param = vertex_reflection.m_input_params[i];
 
 						// derive the format
 						graphics::e_format format;
@@ -436,20 +442,16 @@ namespace influx::renderer
 							false,
 							0u);
 					}
-#endif
 
 					m_pipeline = device.create_graphics_pipeline(m_rootsig, pipeline_desc);
 				}
 				else if constexpr (_t == graphics::e_pipeline_type::compute)
 				{
-					// create pipeline
-					graphics::compute_pipeline_desc desc{};
-					// desc.m_cs = cs.m_bytecode;
-					m_pipeline = device.create_compute_pipeline(m_rootsig, desc);
+					m_pipeline = device.create_compute_pipeline(m_rootsig, pipeline_desc);
 				}
 				else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 				{
-
+					
 				}
 			}
 

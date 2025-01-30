@@ -4,6 +4,8 @@
 
 namespace influx::graphics
 {
+	// shader slots per type of pipeline
+#pragma region shaderslots
 	enum class graphics_shader_slots : uint8
 	{
 		vs,
@@ -27,12 +29,12 @@ namespace influx::graphics
 	template <e_pipeline_type _t>
 	class shader_slots
 	{
+	public:
 		using slot_enum = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
 			graphics_shader_slots,
 			compute_shader_slots,
 			raytracing_shader_slots>>;
 
-	public:
 		inline void set(slot_enum slot, const vector<byte>& shader_bytecode)
 		{
 			m_shaders[static_cast<uint8>(slot)] = shader_bytecode;
@@ -46,11 +48,16 @@ namespace influx::graphics
 		static constexpr uint8 count = static_cast<uint8>(slot_enum::count);
 
 	private:
-		vector<byte> m_shaders[static_cast<uint8>(slot_enum::count)]{};
+		vector<byte> m_shaders[count]{};
 	};
+#pragma endregion
 
+#pragma region pipelinedesc
 	struct graphics_pipeline_desc final
 	{
+		// shaders
+		shader_slots<e_pipeline_type::graphics> m_shaders{};
+
 		// misc
 		uint32 m_sample_mask = (uint32)-1;
 		uint32 m_sample_count = 1u;
@@ -58,9 +65,6 @@ namespace influx::graphics
 
 		// DSV
 		e_format m_format_dsv = e_format::d32;
-
-		// shaders
-		shader_slots<e_pipeline_type::graphics> m_shaders{};
 
 		// depth / stencil
 		struct depth_stencil final
@@ -167,6 +171,7 @@ namespace influx::graphics
 		graphics::graphics_pipeline_desc,
 		graphics::compute_pipeline_desc,
 		graphics::raytracing_pipeline_desc>>;
+#pragma endregion
 
 	namespace detail
 	{
