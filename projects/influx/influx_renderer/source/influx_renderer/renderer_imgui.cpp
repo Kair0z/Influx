@@ -291,8 +291,8 @@ namespace influx::renderer
 
 		// setup pipeline
 		graphics::graphics_pipeline_desc pipeline_desc{};
-		pipeline_desc.m_vs = m_vertex_shader.m_bytecode;
-		pipeline_desc.m_ps = m_pixel_shader.m_bytecode;
+		pipeline_desc.m_shaders.set(graphics::graphics_shader_slots::vs, m_vertex_shader.m_bytecode);
+		pipeline_desc.m_shaders.set(graphics::graphics_shader_slots::ps, m_pixel_shader.m_bytecode);
 		pipeline_desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
 		pipeline_desc.m_sample_mask = UINT_MAX;
 		pipeline_desc.m_sample_count = 1u;

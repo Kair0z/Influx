@@ -4,6 +4,51 @@
 
 namespace influx::graphics
 {
+	enum class graphics_shader_slots : uint8
+	{
+		vs,
+		ps,
+		ds,
+		gs,
+		hs,
+		count
+	};
+	enum class compute_shader_slots : uint8
+	{
+		cs,
+		count
+	};
+	enum class raytracing_shader_slots : uint8
+	{
+		rgs,
+		count
+	};
+
+	template <e_pipeline_type _t>
+	class shader_slots
+	{
+		using slot_enum = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+			graphics_shader_slots,
+			compute_shader_slots,
+			raytracing_shader_slots>>;
+
+	public:
+		inline void set(slot_enum slot, const vector<byte>& shader_bytecode)
+		{
+			m_shaders[static_cast<uint8>(slot)] = shader_bytecode;
+		}
+
+		inline const vector<byte>& get(slot_enum slot) const
+		{
+			return m_shaders[static_cast<uint8>(slot)];
+		}
+
+		static constexpr uint8 count = static_cast<uint8>(slot_enum::count);
+
+	private:
+		vector<byte> m_shaders[static_cast<uint8>(slot_enum::count)]{};
+	};
+
 	struct graphics_pipeline_desc final
 	{
 		// misc
@@ -15,8 +60,7 @@ namespace influx::graphics
 		e_format m_format_dsv = e_format::d32;
 
 		// shaders
-		vector<byte> m_vs;
-		vector<byte> m_ps;
+		shader_slots<e_pipeline_type::graphics> m_shaders{};
 
 		// depth / stencil
 		struct depth_stencil final
@@ -110,12 +154,12 @@ namespace influx::graphics
 
 	struct compute_pipeline_desc final
 	{
-		vector<byte> m_cs{};
+		shader_slots<e_pipeline_type::compute> m_shaders{};
 	};
 
 	struct raytracing_pipeline_desc final
 	{
-
+		shader_slots<e_pipeline_type::raytracing> m_shaders{};
 	};
 
 	template <e_pipeline_type _t>
@@ -135,18 +179,19 @@ namespace influx::graphics
 		template <e_pipeline_type _t>
 		class tpipeline : public detail::pipeline
 		{
+		public:
+			using desc_type = pipeline_desc<_t>;
+
 		protected:
 			static constexpr e_pipeline_type k_type = _t;
 			virtual e_pipeline_type get_type() const override { return _t; };
 
-			tpipeline(const pipeline_desc<_t>& desc)
-				: m_desc{desc} {}
-
-			pipeline_desc<_t> m_desc{};
+			tpipeline(const desc_type& desc) : m_desc{desc} {}
+			desc_type m_desc{};
 		};
 	}
 
-	using graphics_pipeline = detail::tpipeline<e_pipeline_type::graphics>;
-	using compute_pipeline = detail::tpipeline<e_pipeline_type::compute>;
-	using raytracing_pipeline = detail::tpipeline<e_pipeline_type::raytracing>;
+	using graphics_pipeline		= detail::tpipeline<e_pipeline_type::graphics>;
+	using compute_pipeline		= detail::tpipeline<e_pipeline_type::compute>;
+	using raytracing_pipeline	= detail::tpipeline<e_pipeline_type::raytracing>;
 }

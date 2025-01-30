@@ -13,21 +13,6 @@ namespace influx::renderer
 
 	}
 
-	graphics_pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const graphics_pipeline_signature& signature)
-	{
-		return get_or_create_pipeline<graphics::e_pipeline_type::graphics>(name, signature);
-	}
-
-	compute_pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const compute_pipeline_signature& signature)
-	{
-		return get_or_create_pipeline<graphics::e_pipeline_type::compute>(name, signature);
-	}
-
-	raytracing_pipeline* pipeline_manager::get_or_create_pipeline(const string& name, const raytracing_pipeline_signature& signature)
-	{
-		return get_or_create_pipeline<graphics::e_pipeline_type::raytracing>(name, signature);
-	}
-
 	uint32 pipeline_manager::get_num_pipelines() const
 	{
 		uint32 sum = 0u;

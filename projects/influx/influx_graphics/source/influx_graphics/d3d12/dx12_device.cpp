@@ -589,8 +589,17 @@ namespace influx::graphics
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
 		pso_desc.InputLayout = input_layout_desc;
 		pso_desc.pRootSignature = rootsig->get_native<ID3D12RootSignature>();
-		pso_desc.VS = CD3DX12_SHADER_BYTECODE(desc.m_vs.data(), desc.m_vs.size());
-		pso_desc.PS = CD3DX12_SHADER_BYTECODE(desc.m_ps.data(), desc.m_ps.size());
+
+		auto get_shader_code = [](const vector<byte>& data)
+		{
+			return CD3DX12_SHADER_BYTECODE(data.data(), data.size());
+		};
+
+		pso_desc.VS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::vs));
+		pso_desc.PS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::ps));
+		pso_desc.DS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::ds));
+		pso_desc.GS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::gs));
+		pso_desc.HS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::hs));
 		pso_desc.RasterizerState = rasterizer_desc;
 		pso_desc.BlendState = blend_desc;
 		pso_desc.DepthStencilState = depth_stencil_desc;
@@ -616,7 +625,12 @@ namespace influx::graphics
 	ptr<compute_pipeline> dx12_device::create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc)
 	{
 		D3D12_COMPUTE_PIPELINE_STATE_DESC pso_desc{};
-		pso_desc.CS = CD3DX12_SHADER_BYTECODE(desc.m_cs.data(), desc.m_cs.size());
+		auto get_shader_code = [](const vector<byte>& data)
+		{
+			return CD3DX12_SHADER_BYTECODE(data.data(), data.size());
+		};
+
+		pso_desc.CS = get_shader_code(desc.m_shaders.get(compute_shader_slots::cs));
 		pso_desc.pRootSignature = rootsig->get_native<ID3D12RootSignature>();
 		pso_desc.CachedPSO;
 		pso_desc.Flags;

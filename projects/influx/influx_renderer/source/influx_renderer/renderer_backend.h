@@ -60,6 +60,9 @@ namespace influx::renderer
 		constexpr static uint32 k_max_instances = 1024u;
 		constexpr static e_buffering k_buffering = e_buffering::tripple;
 
+		template <shader::e_shader_type _t>
+		using shader_map = umap<string, shader_data>;
+
 	public:
 		void initialize(const init_args& args);
 		bool is_initialized() const;
@@ -116,9 +119,11 @@ namespace influx::renderer
 		memory_info get_memory_info() const;
 		pipeline_info get_pipeline_info() const;
 
-		umap<string, shader_data>& get_vertex_shaders();
-		umap<string, shader_data>& get_pixel_shaders();
-		umap<string, shader_data>& get_compute_shaders();
+		template <shader::e_shader_type _t>
+		shader_map<_t>& get_shadermap();
+		shader_map<shader::e_shader_type::vs>& get_vertex_shaders();
+		shader_map<shader::e_shader_type::ps>& get_pixel_shaders();
+		shader_map<shader::e_shader_type::cs>& get_compute_shaders();
 
 		void* get_imgui_texture_id(const string& title);
 
@@ -174,9 +179,13 @@ namespace influx::renderer
 		umap<string, vector<index>> m_index_buffer_contents;
 		umap<string, vector<vertex_data>> m_vertex_buffer_contents; // can be any type
 		umap<string, material> m_materials;
-		umap<string, shader_data> m_vertex_shaders;
-		umap<string, shader_data> m_pixel_shaders;
-		umap<string, shader_data> m_compute_shaders;
+
+		shader_map<shader::e_shader_type::vs> m_vertex_shaders;
+		shader_map<shader::e_shader_type::ps> m_pixel_shaders;
+		shader_map<shader::e_shader_type::cs> m_compute_shaders;
+		shader_map<shader::e_shader_type::ds> m_domain_shaders;
+		shader_map<shader::e_shader_type::gs> m_geometry_shaders;
+		shader_map<shader::e_shader_type::hs> m_hull_shaders;
 		umap<string, texture*> m_textures;
 
 		render_settings m_settings;
@@ -184,6 +193,17 @@ namespace influx::renderer
 		void recreate_backbuffer_targets();
 		target* get_current_window_target();
 	};
+
+	template<shader::e_shader_type _t>
+	inline renderer_backend::shader_map<_t>& renderer::renderer_backend::get_shadermap()
+	{
+		if constexpr (_t == shader::e_shader_type::vs) return m_vertex_shaders;
+		else if constexpr (_t == shader::e_shader_type::ps) return m_pixel_shaders;
+		else if constexpr (_t == shader::e_shader_type::ds) return m_domain_shaders;
+		else if constexpr (_t == shader::e_shader_type::gs) return m_geometry_shaders;
+		else if constexpr (_t == shader::e_shader_type::hs) return m_hull_shaders;
+		else if constexpr (_t == shader::e_shader_type::cs) return m_compute_shaders;
+	}
 
 	template<typename _tvtx>
 	inline graphics::resource* renderer::renderer_backend::create_vertexbuffer(const string& title, const vector<_tvtx>& data, bool reload)

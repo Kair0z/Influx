@@ -295,7 +295,7 @@ namespace influx::renderer
         for (const batch& batch : batches)
         {
             // per draw constants
-            m_gpu_perdraw.m_start_instance = batch.m_base_instance;
+            m_gpu_perdraw.m_start_instance = static_cast<uint32>(batch.m_base_instance);
             m_gpu_permaterial.m_colour = {};
             pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
             pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);

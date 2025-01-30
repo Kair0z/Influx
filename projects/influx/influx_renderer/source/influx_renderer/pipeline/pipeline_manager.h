@@ -46,56 +46,31 @@ namespace influx::renderer
 			auto& backend = renderer_backend::get_instance();
 
 			// first try finding
-			detail::tpipeline<_t>* result = find_pipeline<_t>(name, signature);
-			if (result)
+			if (detail::tpipeline<_t>* result = find_pipeline<_t>(name, signature))
 			{
 				return result;
 			}
-
-			// try creating
-			if constexpr (_t == graphics::e_pipeline_type::graphics)
+			else
 			{
-				const auto& vs_shaders = backend.get_vertex_shaders();
-				const auto& ps_shaders = backend.get_pixel_shaders();
-				const auto& cs_shaders = backend.get_compute_shaders();
-				const bool vertex_shader_found = vs_shaders.contains(signature.m_vs_name);
-				const bool pixel_shader_found = ps_shaders.contains(signature.m_ps_name);
-
-				if (!vertex_shader_found || !pixel_shader_found)
-				{
-					return nullptr;
-				}
-
-				result = new detail::tpipeline<graphics::e_pipeline_type::graphics>(signature);
-				result->m_pipeline = result->create_graphics(*mp_device, signature,
-					vs_shaders.at(signature.m_vs_name),
-					ps_shaders.at(signature.m_ps_name));
+				// if finding failed, create
+				return new detail::tpipeline<_t>(*mp_device, signature);
 			}
-			else if constexpr (_t == graphics::e_pipeline_type::compute)
-			{
-				const string& shader_name = signature.m_cs_name;
-				const auto& shaders = backend.get_compute_shaders();
-				const bool shader_found = shaders.contains(shader_name);
-				
-				result = new detail::tpipeline<graphics::e_pipeline_type::compute>(signature);
-				result->m_pipeline = result->create_compute(*mp_device, signature,
-					shaders.at(shader_name));
-			}
-			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
-			{
-				// const string& shader_name = signature.m_cs_name;
-				// const auto& shaders = backend.get_vertex_shaders();
-				// const bool shader_found = shaders.contains(shader_name);
-
-				result = new detail::tpipeline<graphics::e_pipeline_type::raytracing>(signature);
-			}
-
-			return result;
 		}
 
-		graphics_pipeline* get_or_create_pipeline(const string& name, const graphics_pipeline_signature& signature);
-		compute_pipeline* get_or_create_pipeline(const string& name, const compute_pipeline_signature& signature);
-		raytracing_pipeline* get_or_create_pipeline(const string& name, const raytracing_pipeline_signature& signature);
+		graphics_pipeline* get_or_create_pipeline(const string& name, const graphics_pipeline_signature& signature)
+		{
+			return get_or_create_pipeline<graphics::e_pipeline_type::graphics>(name, signature);
+		}
+
+		compute_pipeline* get_or_create_pipeline(const string& name, const compute_pipeline_signature& signature)
+		{
+			return get_or_create_pipeline<graphics::e_pipeline_type::compute>(name, signature);
+		}
+
+		raytracing_pipeline* get_or_create_pipeline(const string& name, const raytracing_pipeline_signature& signature)
+		{
+			return get_or_create_pipeline<graphics::e_pipeline_type::raytracing>(name, signature);
+		}
 
 	private:
 		graphics::device* mp_device;

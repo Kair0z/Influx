@@ -14,9 +14,19 @@ namespace influx::shader
 {
 	enum class e_shader_type : uint8
 	{
+		// graphics
 		vs,
 		ps,
+		ds,
+		gs,
+		hs,
+
+		// compute
 		cs,
+
+		// raytracing
+
+		//
 		count
 	};
 
