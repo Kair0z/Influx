@@ -19,6 +19,7 @@ struct ImDrawData;
 #include "core/math/vector.h"
 #include "core/shader.h"
 #include "core/material/material.h"
+#include "core/time.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -45,6 +46,7 @@ namespace influx::renderer
 		shader::e_shader_type m_type;
 		shader::reflection m_reflection;
 		vector<byte> m_bytecode;
+		time::point m_time_loaded;
 	};
 
 	// arguments to pass to backend initialization
@@ -119,6 +121,8 @@ namespace influx::renderer
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const string& title, const shader_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const string& title, const material& data, bool reload = false);
+
+	INFLUX_RENDER_API time::point get_shader_load_timepoint(const string& title);
 
 	INFLUX_RENDER_API bool has_mesh(const string& title);
 	INFLUX_RENDER_API bool has_texture(const string& title);

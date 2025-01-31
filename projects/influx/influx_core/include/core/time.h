@@ -44,6 +44,11 @@ namespace influx::time
 		return get_ms_between<float>(get_now(), before);
 	}
 
+	static bool is_left_sooner(const point& a, const point& b)
+	{
+		return a < b;
+	}
+
 	class range final
 	{
 	public:

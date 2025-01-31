@@ -71,14 +71,15 @@ namespace influx::engine
 				set_loadstate(e_load_state::unloaded);
 			}
 
-			void load(const string& path, const load_args<_t>& args)
+			void load(const string& path, const load_args<_t>& args, bool reload = false)
 			{
 				// use reload instead
-				if (get_loadstate() != e_load_state::unloaded)
-					return;
+				if (get_loadstate() == e_load_state::count) return;
+				if (get_loadstate() == e_load_state::loading) return;
+				if (get_loadstate() == e_load_state::loaded && reload == false) return;
 
 				m_path = path;
-
+				m_time_loadstart = time::get_now();
 				set_loadstate(e_load_state::loading);
 				if constexpr (_t == e_asset_type::scene)
 				{
@@ -93,6 +94,18 @@ namespace influx::engine
 					m_resource = load_shader_data(m_path, args);
 				}
 				set_loadstate(e_load_state::loaded);
+				m_time_loadend = time::get_now();
+				m_last_args = args;
+			}
+
+			void reload(const load_args<_t>& args)
+			{
+				load(m_path, args, true);
+			}
+
+			void reload()
+			{
+				reload(m_last_args);
 			}
 
 			bool is_loaded() const
@@ -150,6 +163,7 @@ namespace influx::engine
 			e_asset_origin m_origin{};
 			string m_name;
 			string m_path;
+			load_args<_t> m_last_args{};
 
 			time::point m_time_loadstart{};
 			time::point m_time_loadend{};
@@ -170,7 +184,8 @@ namespace influx::engine
 		const umap<string, scene_item>& get_scenes() const;
 		const umap<string, image_item>& get_images() const;
 		const umap<string, shader_item>& get_shaders() const;
-
+		umap<string, shader_item>& touch_shaders();
+		
 		template <typename _t>
 		_t const* find(const string& asset_name) const
 		{

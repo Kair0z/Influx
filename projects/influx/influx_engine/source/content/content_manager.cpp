@@ -63,6 +63,11 @@ namespace influx::engine
 		return m_shaders;
 	}
 
+	umap<string, content_manager::shader_item>& content_manager::touch_shaders()
+	{
+		return m_shaders;
+	}
+
 	void content_manager::load_engine_assets(engine* engine)
 	{
 		m_start_engine_resources = time::get_now();

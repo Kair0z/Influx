@@ -99,6 +99,8 @@ namespace influx::renderer
 		bool has_shader(const string& title) const;
 		bool has_material(const string& title) const;
 
+		time::point get_shader_load_timepoint(const string& title) const;
+
 		void set_settings(const render_settings& settings);
 		const render_settings& get_settings() const;
 

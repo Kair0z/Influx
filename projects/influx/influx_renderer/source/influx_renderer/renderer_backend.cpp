@@ -381,18 +381,18 @@ namespace influx::renderer
         umap<string, shader_data>* target_map = nullptr;
         switch (data.m_type)
         {
-        case shader::e_shader_type::vs: target_map = &m_vertex_shaders;
-            break;
-        case shader::e_shader_type::ps: target_map = &m_pixel_shaders;
-            break;
-        case shader::e_shader_type::cs: target_map = &m_compute_shaders;
-            break;
+        case shader::e_shader_type::vs: target_map = &m_vertex_shaders; break;
+        case shader::e_shader_type::ps: target_map = &m_pixel_shaders; break;
+        case shader::e_shader_type::cs: target_map = &m_compute_shaders; break;
+        case shader::e_shader_type::ds: target_map = &m_domain_shaders; break;
+        case shader::e_shader_type::hs: target_map = &m_hull_shaders; break;
+        case shader::e_shader_type::gs: target_map = &m_geometry_shaders; break;
         }
-        influx_assert_not_null(target_map);
 
         if (!target_map->contains(title) || reload)
         {
             (*target_map)[title] = data;
+            (*target_map)[title].m_time_loaded = time::get_now();
         }
     }
 
@@ -417,12 +417,29 @@ namespace influx::renderer
 
     bool renderer_backend::has_shader(const string& title) const
     {
-        return m_pixel_shaders.contains(title) || m_vertex_shaders.contains(title);
+        return
+            m_pixel_shaders.contains(title) ||
+            m_compute_shaders.contains(title) ||
+            m_vertex_shaders.contains(title) ||
+            m_domain_shaders.contains(title) ||
+            m_geometry_shaders.contains(title) ||
+            m_hull_shaders.contains(title);
     }
 
     bool renderer_backend::has_material(const string& title) const
     {
         return m_materials.contains(title);
+    }
+
+    time::point renderer_backend::get_shader_load_timepoint(const string& title) const
+    {
+        if (m_compute_shaders.contains(title)) return m_compute_shaders.at(title).m_time_loaded;
+        if (m_vertex_shaders  .contains(title)) return m_vertex_shaders.at(title).m_time_loaded;
+        if (m_pixel_shaders   .contains(title)) return m_pixel_shaders.at(title).m_time_loaded;
+        if (m_domain_shaders  .contains(title)) return m_domain_shaders.at(title).m_time_loaded;
+        if (m_geometry_shaders.contains(title)) return m_geometry_shaders.at(title).m_time_loaded;
+        if (m_hull_shaders    .contains(title)) return m_hull_shaders.at(title).m_time_loaded;
+        return {};
     }
 
     void renderer_backend::set_settings(const render_settings& settings)
@@ -750,6 +767,11 @@ namespace influx::renderer
     void load(const string& title, const material& data, bool reload)
     {
         renderer_backend::get_instance().load(title, data, reload);
+    }
+
+    time::point get_shader_load_timepoint(const string& title)
+    {
+        return renderer_backend::get_instance().get_shader_load_timepoint(title);
     }
 
     bool has_mesh(const string& title)

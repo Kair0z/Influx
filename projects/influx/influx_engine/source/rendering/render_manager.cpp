@@ -450,11 +450,25 @@ namespace influx::engine
 	{
 		for (const auto& asset : content.get_shaders())
 		{
-			if (renderer::has_shader(asset.first) == false && asset.second.is_loaded())
+			if (asset.second.is_loaded())
 			{
-				const imp::shader_data& vs_shader = asset.second.m_resource;
-				translate(vs_shader, m_shader_data);
-				influx::renderer::load(asset.first, m_shader_data);
+				if (influx::renderer::has_shader(asset.first) == false)
+				{
+					// first load
+					const imp::shader_data& vs_shader = asset.second.m_resource;
+					translate(vs_shader, m_shader_data);
+					influx::renderer::load(asset.first, m_shader_data, false);
+				}
+				else
+				{
+					if (asset.second.m_time_loadend > renderer::get_shader_load_timepoint(asset.first))
+					{
+						// reload
+						const imp::shader_data& vs_shader = asset.second.m_resource;
+						translate(vs_shader, m_shader_data);
+						influx::renderer::load(asset.first, m_shader_data, true);
+					}
+				}
 			}
 		}
 	}

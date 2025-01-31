@@ -64,6 +64,14 @@ namespace influx::engine
 
 			set_name("engine:content");
 
+			if (ImGui::Button("recomp_shaders"))
+			{
+				for (auto& pair : content.touch_shaders())
+				{
+					pair.second.reload();
+				}
+			}
+
 			if (ImGui::BeginTabBar("content"))
 			{
 				if (ImGui::BeginTabItem("scenes"))
