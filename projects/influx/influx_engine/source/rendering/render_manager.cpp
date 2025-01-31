@@ -461,9 +461,9 @@ namespace influx::engine
 				}
 				else
 				{
+					// if dirty, reload
 					if (asset.second.m_time_loadend > renderer::get_shader_load_timepoint(asset.first))
 					{
-						// reload
 						const imp::shader_data& vs_shader = asset.second.m_resource;
 						translate(vs_shader, m_shader_data);
 						influx::renderer::load(asset.first, m_shader_data, true);

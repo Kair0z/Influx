@@ -272,6 +272,18 @@ namespace influx::renderer
 				}
 			}
 
+			template <graphics::shader_slots<_t>::slot_enum _s>
+			bool is_shader_dirty()
+			{
+				static constexpr uint32 index = static_cast<uint32>(_s);
+				if (m_shaders[index] == nullptr)
+				{
+					return true;
+				}
+
+				return false;
+			}
+
 			void build_rootsignature(graphics::device& device, const signature_type& signature)
 			{
 				// build the root signature:
