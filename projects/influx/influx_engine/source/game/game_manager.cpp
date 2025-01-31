@@ -44,7 +44,7 @@ namespace influx::engine
 			setup_camera();
 			// setup_swords();
 			setup_cafe();
-
+			setup_unitcube();
 			m_state = state::running;
 		}
 	}
@@ -93,7 +93,7 @@ namespace influx::engine
 		world& world = get_engine()->get_world();
 
 		const float camera_distance = 5.0f;
-		const static float max_speed = 500.0f;
+		const static float max_speed = 10.0f;
 		const static float acceleration_rate = 1 * max_speed;
 		const static float damp_rate = 0.01f;
 		const static float fov = 90.0f;
@@ -300,7 +300,7 @@ namespace influx::engine
 
 			transform_component& trans_comp = world.create_component<transform_component>(sword);
 			{
-				const float scale_multiplier = 1.0f;
+				const float scale_multiplier = 0.01f;
 				math::matrix4x4f copy_transform = mesh.m_world_transform * math::matrix4x4f::make_scale( math::float3{ scale_multiplier , scale_multiplier , scale_multiplier });
 
 				trans_comp.set_position(copy_transform.get_translation());
@@ -317,6 +317,26 @@ namespace influx::engine
 			{
 				mat_comp.set_texture(e_texture_semantic::diffuse, i % 2 == 0u ? "wood_albedo" : "wood_albedo");
 			}
+		}
+	}
+
+	void game_manager::setup_unitcube()
+	{
+		world& world = get_engine()->get_world();
+		entity cube = create_entity();
+
+		transform_component& trans_comp = world.create_component<transform_component>(cube);
+		{
+		}
+
+		mesh_component& mesh_comp = world.create_component<mesh_component>(cube);
+		{
+			mesh_comp.set_mesh_name("box_0");
+		}
+
+		material_component& mat_comp = world.create_component<material_component>(cube);
+		{
+			mat_comp.set_texture(e_texture_semantic::basecolor, "T_Sword_Opaque_BC");
 		}
 	}
 

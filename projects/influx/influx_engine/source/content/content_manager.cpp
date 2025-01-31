@@ -19,6 +19,25 @@
 
 namespace influx::engine
 {
+	imp::scene_data content_manager::load_scene_data(const string& path, const imp::scene_load_args& args)
+	{
+		imp::scene_data data{};
+		imp::load_scene_file(path, data, args);
+		return data;
+	}
+	imp::image_data content_manager::load_image_data(const string& path, const imp::image_load_args& args)
+	{
+		imp::image_data data{};
+		imp::load_image_file(path, data, args);
+		return data;
+	}
+	imp::shader_data content_manager::load_shader_data(const string& path, const shader::compile_args& args)
+	{
+		imp::shader_data result{};
+		bool success = imp::load_shader_file(path, result, args);
+		return result;
+	}
+
 	content_manager::content_manager(engine* engine)
 	{
 		// immediately start kicking loading
@@ -71,61 +90,50 @@ namespace influx::engine
 		{
 			imp::scene_load_args args{};
 			scene_item& item = m_scenes[file.m_filename];
-			item.set_loadstate(e_load_state::loading);
-			imp::load_scene_file(file.m_path_full, item.m_resource, args);
-			item.set_loadstate(e_load_state::loaded);
+			item.load(file.m_path_full, args);
 		});
 
 		// load hlsls
 		async::dispatch_for<file>(hlsl_files, [this, root](const file& file)
 		{
-				shader::compile_args compile_args{};
-				compile_args.m_target = shader::e_shader_target::_6_6;
-				compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
-				compile_args.m_reflection = true;
-				compile_args.m_defines = {};
+			shader::compile_args compile_args{};
+			compile_args.m_target = shader::e_shader_target::_6_6;
+			compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
+			compile_args.m_reflection = true;
+			compile_args.m_defines = {};
 #if INFLUX_DEBUG
-				compile_args.m_compile_debug = true;
-				compile_args.m_pbd = true;
-				compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
-				compile_args.m_pdb_filename = file.m_filename;
+			compile_args.m_compile_debug = true;
+			compile_args.m_pbd = true;
+			compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
+			compile_args.m_pdb_filename = file.m_filename;
 #else
-				compile_args.m_compile_debug = false;
-				compile_args.m_pbd = false;
+			compile_args.m_compile_debug = false;
+			compile_args.m_pbd = false;
 #endif	
 			
 			const string& file_content = textfile::read_all(file.m_path_full);
 			if (str::contains(file_content, "[shader(\"vertex\")]", false))
 			{
 				shader_item& vs_item = m_shaders[file.m_filename + "_vs"];
-
 				compile_args.m_type = shader::e_shader_type::vs;
 				compile_args.m_entrypoint = "main_vs";
-				vs_item.set_loadstate(e_load_state::loading);
-				influx_assert(imp::load_shader_file(file.m_path_full, vs_item.m_resource, compile_args));
-				vs_item.set_loadstate(e_load_state::loaded);
+				vs_item.load(file.m_path_full, compile_args);
 			}
 
 			if (str::contains(file_content, "[shader(\"pixel\")]", false))
 			{
 				shader_item& ps_item = m_shaders[file.m_filename + "_ps"];
-
 				compile_args.m_type = shader::e_shader_type::ps;
 				compile_args.m_entrypoint = "main_ps";
-				ps_item.set_loadstate(e_load_state::loading);
-				influx_assert(imp::load_shader_file(file.m_path_full, ps_item.m_resource, compile_args));
-				ps_item.set_loadstate(e_load_state::loaded);
+				ps_item.load(file.m_path_full, compile_args);
 			}
 
 			if (str::contains(file_content, "[shader(\"compute\")]", false))
 			{
 				shader_item& cs_item = m_shaders[file.m_filename + "_cs"];
-
 				compile_args.m_type = shader::e_shader_type::cs;
 				compile_args.m_entrypoint = "main_cs";
-				cs_item.set_loadstate(e_load_state::loading);
-				influx_assert(imp::load_shader_file(file.m_path_full, cs_item.m_resource, compile_args));
-				cs_item.set_loadstate(e_load_state::loaded);
+				cs_item.load(file.m_path_full, compile_args);
 			}
 		});
 
@@ -134,9 +142,7 @@ namespace influx::engine
 		{
 			imp::image_load_args args{};
 			image_item& item = m_images[file.m_filename];
-			item.set_loadstate(e_load_state::loading);
-			imp::load_image_file(file.m_path_full, item.m_resource, args);
-			item.set_loadstate(e_load_state::loaded);
+			item.load(file.m_path_full, args);
 		});
 	}
 }

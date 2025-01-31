@@ -27,7 +27,10 @@ namespace influx::imp
 {
 	struct scene_load_args final
 	{
-		// ...
+		float	m_pre_scale = 1.0f;
+
+		// if true, scene_data::mesh::m_world_transform will always end up identity, and the vertex data will be pre-transformed.
+		bool	m_bake_transforms = false;
 	};
 
 	struct scene_data final

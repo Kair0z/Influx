@@ -26,6 +26,26 @@ namespace influx::engine
 	// - assets: influx-native representations of resources (.flx)
 	class content_manager final
 	{
+		enum class e_asset_type : uint8
+		{
+			scene,
+			image,
+			shader,
+			count
+		};
+
+		template <e_asset_type _t>
+		using data_type = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
+			imp::scene_data,
+			imp::image_data,
+			imp::shader_data>>;
+
+		template <e_asset_type _t>
+		using load_args = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
+			imp::scene_load_args,
+			imp::image_load_args,
+			shader::compile_args>>;
+
 		enum class e_asset_origin : uint8
 		{
 			engine,
@@ -41,12 +61,38 @@ namespace influx::engine
 			count
 		};
 
-		template <typename _t>
+		template <e_asset_type _t>
 		struct asset_item final
 		{
+			using data_type = data_type<_t>;
+
 			asset_item()
 			{
 				set_loadstate(e_load_state::unloaded);
+			}
+
+			void load(const string& path, const load_args<_t>& args)
+			{
+				// use reload instead
+				if (get_loadstate() != e_load_state::unloaded)
+					return;
+
+				m_path = path;
+
+				set_loadstate(e_load_state::loading);
+				if constexpr (_t == e_asset_type::scene)
+				{
+					m_resource = load_scene_data(m_path, args);
+				}
+				else if constexpr (_t == e_asset_type::image)
+				{
+					m_resource = load_image_data(m_path, args);
+				}
+				else if constexpr (_t == e_asset_type::shader)
+				{
+					m_resource = load_shader_data(m_path, args);
+				}
+				set_loadstate(e_load_state::loaded);
 			}
 
 			bool is_loaded() const
@@ -74,7 +120,7 @@ namespace influx::engine
 				return m_state;
 			}
 
-			const _t& get_resource() const
+			const data_type& get_resource() const
 			{
 				return m_resource;
 			}
@@ -99,7 +145,7 @@ namespace influx::engine
 				return time::get_ms_between<float>(m_time_loadend, m_time_loadstart);
 			}
 
-			_t m_resource{}; // the raw resource
+			data_type m_resource{}; // the raw resource
 			e_load_state m_state{};
 			e_asset_origin m_origin{};
 			string m_name;
@@ -109,10 +155,14 @@ namespace influx::engine
 			time::point m_time_loadend{};
 		};
 
+		static imp::scene_data load_scene_data(const string& path, const imp::scene_load_args& args);
+		static imp::image_data load_image_data(const string& path, const imp::image_load_args& args);
+		static imp::shader_data load_shader_data(const string& path, const shader::compile_args& args);
+
 	public:
-		using scene_item = asset_item<imp::scene_data>;
-		using image_item = asset_item<imp::image_data>;
-		using shader_item = asset_item<imp::shader_data>;
+		using scene_item = asset_item< e_asset_type::scene >;
+		using image_item = asset_item< e_asset_type::image >;
+		using shader_item = asset_item< e_asset_type::shader >;
 
 		content_manager(engine* engine);
 		~content_manager();

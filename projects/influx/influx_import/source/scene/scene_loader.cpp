@@ -37,8 +37,11 @@ namespace influx::imp
 			aiProcess_FlipUVs				|
 			aiProcess_SortByPType;
 
-		step_flags |= aiProcess_PreTransformVertices;
-
+		if (args.m_bake_transforms)
+		{
+			step_flags |= aiProcess_PreTransformVertices;
+		}
+		
 		const aiScene* aiscene = importer.ReadFile(filepath.c_str(), step_flags);
 
 		// If the import failed, report it
