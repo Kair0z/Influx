@@ -45,7 +45,7 @@ namespace influx::graphics
 		D3D12_RESOURCE_FLAGS result = D3D12_RESOURCE_FLAG_NONE;
 		if (has_flag(flags, e_bind_flags::dsv)) result |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 		if (has_flag(flags, e_bind_flags::rtv)) result |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		if (has_flag(flags, e_bind_flags::srv)) result |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+		if (has_flag(flags, e_bind_flags::srv)) result |= D3D12_RESOURCE_FLAG_NONE;
 		if (has_flag(flags, e_bind_flags::uav)) result |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 		return result;
 	}

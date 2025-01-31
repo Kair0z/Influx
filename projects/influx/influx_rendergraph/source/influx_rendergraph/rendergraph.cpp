@@ -537,10 +537,33 @@ namespace influx::rendergraph
 		}
 	}
 
-	void rendergraph::create_buffer_views(rgbuffer_id)
+	void rendergraph::create_buffer_views(rgbuffer_id id)
 	{
-		// todo
-		influx_assert(false);
+		const auto& viewdescs = m_bufid_to_viewdesc_map[id];
+		auto& descriptors = m_bufid_to_descriptors_map[id];
+		auto& device_children = m_bufid_to_deviceobjects_map[id];
+		rgbuffer* buffer = get_buffer(id);
+		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
+		{
+			if (viewdescs[i].m_is_active && device_children[i] == nullptr)
+			{
+				const rgdescriptor_type type = static_cast<rgdescriptor_type>(i);
+				switch (type)
+				{
+				case rgdescriptor_type::read_only:
+					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
+					m_device->create_buffer_srv(descriptors[i], buffer->m_resource);
+					break;
+				case rgdescriptor_type::read_write:
+					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
+					m_device->create_buffer_uav(descriptors[i], buffer->m_resource);
+					break;
+
+				default:
+					influx_assert(false);
+				}
+			}
+		}
 	}
 
 	void rendergraph::build_adjacency()

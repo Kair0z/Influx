@@ -11,6 +11,7 @@
 #include "core/math/bounds.h"
 #include "core/math/transform.h"
 #include "core/material/material.h"
+#include "core/scene/light.h"
 
 // influx::renderer
 #include "types.h"
@@ -20,6 +21,13 @@ struct ImGuiContext;
 
 namespace influx::renderer
 {
+	struct light final
+	{
+		influx::scene::light m_light;
+		math::float3 m_world_position;
+		math::float3 m_world_forward;
+	};
+
 	struct camera final
 	{
 		float m_fov = 90.0f;
@@ -53,7 +61,21 @@ namespace influx::renderer
 		uint32 get_num_materials() const;
 		bool has_materials() const;
 
+		uint32 get_num_lights() const { return static_cast<uint32>(m_lights.size());  }
+		uint32 get_num_lights(influx::scene::e_light_type type) const
+		{
+			uint32 counter = 0u;
+			for (const light& light : m_lights)
+			{
+				counter += light.m_light.get_type() == type ? 1u : 0u;
+			}
+			return counter;
+		}
+
+		bool has_lights() const { return get_num_lights() > 0u; }
+
 		vector<mesh_instance> m_meshes = {};
+		vector<light> m_lights = {};
 		camera m_camera = {};
 
 		float m_delta_seconds;

@@ -10,7 +10,11 @@ namespace influx::rendergraph
 	graphics::buffer_desc translate(const buffer_desc& desc)
 	{
 		graphics::buffer_desc new_desc{};
-		new_desc.m_bytesize;
+		new_desc.m_bytesize = desc.m_bytesize;
+		new_desc.m_bytestride = desc.m_bytestride;
+		new_desc.m_bindflags = desc.m_bindflags;
+		new_desc.m_format = desc.m_format;
+		new_desc.m_init_state = desc.m_init_state;
 		return new_desc;
 	}
 	graphics::tex2D_desc translate(const texture_desc& desc)

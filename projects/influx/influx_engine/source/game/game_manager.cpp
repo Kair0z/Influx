@@ -131,6 +131,13 @@ namespace influx::engine
 				rigid_comp.set_max_speed(max_speed);
 			}
 
+			light_component& light_comp = world.create_component<light_component>(camera);
+			{
+				light_comp.set_colour(colour::k_white);
+				light_comp.set_attenuation(2.0f);
+				light_comp.set_type(influx::scene::e_light_type::point);
+			}
+
 			input_component& input_comp = world.create_component<input_component>(camera);
 			{
 				static bool locks[6u]{ false, false, false, false, false, false };

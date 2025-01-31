@@ -112,6 +112,23 @@ namespace influx::engine
             }
         }
 
+        // lights
+        {
+            influx_scope("build_lights");
+            auto view = m_registry.view<transform_component, light_component>();
+            for (auto [entity, transform_comp, light_comp] : view.each())
+            {
+                math::transform3D transform = transform_comp.get_transform();
+                transform.update_matrix();
+
+                renderer::light render_light{};
+                render_light.m_light = light_comp.get_light();
+                render_light.m_world_position = transform.get_position();
+                render_light.m_world_forward = transform.get_forward();
+                scene.m_lights.push_back(render_light);
+            }
+        }
+
         // editor render
         if (is_editor)
         {

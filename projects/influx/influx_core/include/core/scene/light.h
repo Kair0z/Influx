@@ -15,7 +15,7 @@ namespace influx::scene
 		count
 	};
 
-	class light
+	class light final
 	{
 	public:
 		struct directional
@@ -86,13 +86,12 @@ namespace influx::scene
 
 	private:
 		e_light_type m_type;
-
 		math::colour_rgba m_colour;
 		float m_attenuation;
 
 		directional m_directional;
-		point m_point;
-		spot m_spot;
+		point		m_point;
+		spot		m_spot;
 	};
 }
 

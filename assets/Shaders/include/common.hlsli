@@ -23,6 +23,22 @@ float3 hash(uint3 x)
     return (float3(x) * (1.0 / float(0xffffffffU)));
 }
 
+// lights
+struct pointlight_data
+{
+    float4 position;
+    float4 colour;
+    float4 attenuation;
+};
+struct spotlight_data
+{
+    float4 position;
+};
+struct dirlight_data
+{
+    float4 colour;
+};
+
 // packing
 // f3 -> uint (10b prec)
 uint f3_uint(float3 f3)
@@ -79,8 +95,8 @@ uint f2_u(float2 value)
 
 float2 u_f2(uint packed)
 {
-    uint x = (packed & 0xFFFF);
-    uint y = ((packed >> 16) & 0xFFFF);
+    uint x = (packed            & 0xFFFF);
+    uint y = ((packed >> 16)    & 0xFFFF);
     return float2(x, y) / 65535.0;
 }
 
@@ -117,6 +133,7 @@ struct gbuffer
     {
         albedo_emmisive_pbr.y = f3_uint(emmisive);
     }
+
     float3 get_emmisive()
     {
         return uint_f3(albedo_emmisive_pbr.y);

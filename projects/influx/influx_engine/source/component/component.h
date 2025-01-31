@@ -10,6 +10,7 @@
 #include "core/macros.h"
 #include "core/material/material.h"
 #include "core/container/map.h"
+#include "core/scene/light.h"
 
 // influx::input
 #include "influx_input.h"
@@ -292,6 +293,70 @@ namespace influx::engine
 
 	private:
 		material m_material{};
+	};
+
+	class light_component final
+	{
+	public:
+		light_component() = default;
+
+		void set_type(scene::e_light_type type)
+		{
+			m_light.set_type(type);
+		}
+
+		scene::e_light_type get_type() const
+		{
+			return m_light.get_type();
+		}
+
+		void set_colour(const math::colour_rgba& colour)
+		{
+			m_light.set_colour(colour);
+		}
+
+		math::colour_rgba get_colour() const
+		{
+			return m_light.get_colour();
+		}
+
+		void set_inner_angle(float inner_angle)
+		{
+			m_light.set_inner_angle(inner_angle);
+		}
+
+		void set_outer_angle(float outer_angle)
+		{
+			m_light.set_outer_angle(outer_angle);
+		}
+
+		float get_inner_angle() const
+		{
+			return m_light.get_inner_angle();
+		}
+
+		float get_outer_angle() const
+		{
+			return m_light.get_outer_angle();
+		}
+
+		void set_attenuation(float att)
+		{
+			m_light.set_attenuation(att);
+		}
+
+		float get_attenuation() const
+		{
+			return m_light.get_attenuation();
+		}
+
+		const influx::scene::light& get_light() const
+		{
+			return m_light;
+		}
+
+	private:
+		influx::scene::light m_light;
 	};
 
 	class camera_component final : public component

@@ -141,6 +141,12 @@ ps_output main_ps(ps_input input)
     // float3 normal = get_normal(input.texcoord).rgb;
     float3 normal = input.normal;
 
+    float epsilon = 5.96e-4;
+    if (abs(normal.x) < epsilon) normal.x = 0;
+    if (abs(normal.y) < epsilon) normal.y = 0;
+    if (abs(normal.z) < epsilon) normal.z = 0;
+    normal = normalize(normal);
+
     ps_output output = (ps_output)0;
     output.gbuffer_data.set_albedo(albedo.rgb);
     output.gbuffer_data.set_normal(normal.rgb);
