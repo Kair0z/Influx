@@ -56,7 +56,7 @@ namespace influx::renderer
 
         .m_depth_enable         { true },
         .m_stencil_enable       { false },
-        .m_depth_comparison     { 4u },
+        .m_depth_comparison     { 0u },
         .m_depth_format         { graphics_pipeline_signature::format::default_depth },
 
 
@@ -239,13 +239,13 @@ namespace influx::renderer
         builder.declare_texture(RGNAME("gbuffer_c"), gbuffer_desc);
 
         rendergraph::rgaccess access{};
-        access.m_load = rendergraph::e_rg_load::preserve;
+        access.m_load = rendergraph::e_rg_load::clear;
         access.m_store = rendergraph::e_rg_store::preserve;
         builder.write_rendertarget(RGNAME("gbuffer_a"), access);
         builder.write_rendertarget(RGNAME("gbuffer_b"), access);
         builder.write_rendertarget(RGNAME("gbuffer_c"), access);
 
-        // write to depth for now
+        access.m_load = rendergraph::e_rg_load::clear;
         builder.write_depthtarget(depth_name, access);
         builder.set_viewport(target.get_width(), target.get_height());
     }
@@ -358,9 +358,17 @@ namespace influx::renderer
             {
                 int descriptor_indices[4u];
                 math::float4 screen_size;
+                math::matrix4x4f inv_viewprojection;
             };
             resolve_args args{};
             args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
+
+            const camera& camera = scene.m_camera;
+            math::transform3D transform = camera.m_transform;
+            transform.update_matrix();
+            const float ar = (float)target.get_width() / target.get_height();
+            args.inv_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane).inverted();
+
             args.descriptor_indices[0] = gpu_range.m_start_idx;
             args.descriptor_indices[1] = gpu_range.m_start_idx + 1u;
             args.descriptor_indices[2] = gpu_range.m_start_idx + 2u;

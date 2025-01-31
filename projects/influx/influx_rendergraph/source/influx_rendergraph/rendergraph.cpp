@@ -203,6 +203,29 @@ namespace influx::rendergraph
 		build_layers();
 
 		calc_resource_lifetimes();
+
+		// setup child creates & destroys
+		for (rglayer& layer : m_layers)
+		{
+			for (const rgpass& pass : layer.m_passes)
+			{
+				// if (pass.is_culled()) continue;
+
+				layer.m_texture_creates.insert(pass.m_texture_creates.begin(), pass.m_texture_creates.end());
+				layer.m_texture_destroys.insert(pass.m_texture_destroys.begin(), pass.m_texture_destroys.end());
+				for (auto [resource, state] : pass.m_texture_state_map)
+				{
+					layer.m_texture_to_state_map[resource] |= state;
+				}
+
+				layer.m_buffer_creates.insert(pass.m_buffer_creates.begin(), pass.m_buffer_creates.end());
+				layer.m_buffer_destroys.insert(pass.m_buffer_destroys.begin(), pass.m_buffer_destroys.end());
+				for (auto [resource, state] : pass.m_buffer_state_map)
+				{
+					layer.m_buffer_to_state_map[resource] |= state;
+				}
+			}
+		}
 	}
 
 	void rendergraph::execute(graphics::commandlist* commandlist)
@@ -579,29 +602,6 @@ namespace influx::rendergraph
 			uint64 layer = distances[i];
 			m_layers[layer].add_pass(m_passes[i]);
 		}
-
-		// setup child creates & destroys
-		for (rglayer& layer : m_layers)
-		{
-			for (const rgpass& pass : layer.m_passes)
-			{
-				// if (pass.is_culled()) continue;
-
-				layer.m_texture_creates.insert(pass.m_texture_creates.begin(), pass.m_texture_creates.end());
-				layer.m_texture_destroys.insert(pass.m_texture_destroys.begin(), pass.m_texture_destroys.end());
-				for (auto [resource, state] : pass.m_texture_state_map)
-				{
-					layer.m_texture_to_state_map[resource] |= state;
-				}
-
-				layer.m_buffer_creates.insert(pass.m_buffer_creates.begin(), pass.m_buffer_creates.end());
-				layer.m_buffer_destroys.insert(pass.m_buffer_destroys.begin(), pass.m_buffer_destroys.end());
-				for (auto [resource, state] : pass.m_buffer_state_map)
-				{
-					layer.m_buffer_to_state_map[resource] |= state;
-				}
-			}
-		}
 	}
 
 	void rendergraph::cull_passes()
@@ -676,11 +676,6 @@ namespace influx::rendergraph
 		{
 			for (rgpass& pass : layer.m_passes)
 			{
-				if (pass.is_culled())
-				{
-					continue;
-				}
-
 				for (auto id : pass.m_texture_writes)
 				{
 					if (!pass.m_texture_state_map.contains(id)) continue;
@@ -712,7 +707,6 @@ namespace influx::rendergraph
 		for (uint64 i = 0; i < m_textures.size(); ++i)
 		{
 			if (m_textures[i]->m_last_user != nullptr) m_textures[i]->m_last_user->m_texture_destroys.insert(rgtexture_id(i));
-			
 		}
 		for (uint64 i = 0; i < m_buffers.size(); ++i)
 		{

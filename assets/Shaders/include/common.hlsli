@@ -27,18 +27,18 @@ float3 hash(uint3 x)
 // f3 -> uint (10b prec)
 uint f3_uint(float3 f3)
 {
-    uint r = (uint)(f3.x * 1023.0) & 0x3FF; // 10-bit
-    uint g = (uint)(f3.y * 1023.0) & 0x3FF; // 10-bit
-    uint b = (uint)(f3.z * 1023.0) & 0x3FF; // 10-bit
+    uint r = (uint)(f3.x * 1023.0); // 10-bit max value is 1024
+    uint g = (uint)(f3.y * 1023.0); // 10-bit max value is 1024
+    uint b = (uint)(f3.z * 1023.0); // 10-bit max value is 1024
     return (r) | (g << 10) | (b << 20); // Pack into a single uint
 }
 float3 uint_f3(uint packed)
 {
     const float scale = 1.0f / 1023.0;
-    float r = (packed           & 0x3FF) * scale;
-    float g = ((packed >> 10)   & 0x3FF) * scale;
-    float b = ((packed >> 20)   & 0x3FF) * scale;
-    return float3(r, g, b);
+    uint r = (packed      ) & 0x000000003FF;
+    uint g = (packed >> 10) & 0x000000003FF;
+    uint b = (packed >> 20) & 0x000000003FF;
+    return float3(r, g, b) * scale;
 }
 
 // 3 x f3 -> uint4 => 96/128bit
@@ -79,9 +79,9 @@ uint f2_u(float2 value)
 
 float2 u_f2(uint packed)
 {
-    float x = (packed & 0xFFFF) / 65535.0;
-    float y = ((packed >> 16) & 0xFFFF) / 65535.0;
-    return float2(x, y);
+    uint x = (packed & 0xFFFF);
+    uint y = ((packed >> 16) & 0xFFFF);
+    return float2(x, y) / 65535.0;
 }
 
 // deferred gbuffer
@@ -90,7 +90,7 @@ struct gbuffer
     uint4 albedo_emmisive_pbr   : SV_TARGET0; // rgb8 x 4 = 96/128bit
     uint normal                 : SV_TARGET1; // rg8  x 1 = 16/32bit
     uint depth_stencil          : SV_TARGET2; // d24s8    = 32/32bit
-
+    
     void set_normal(float3 norm)
     {
         float2 packed_normal = pack_normal(norm);
@@ -99,7 +99,7 @@ struct gbuffer
     
     float3 get_normal()
     {
-        return unpack_normal(u_f2(normal));
+        return normalize(unpack_normal(u_f2(normal)));
     }
     
     void set_albedo(float3 albedo)
@@ -150,11 +150,11 @@ struct gbuffer
 
     void set_depth(float depth)
     {
-
+        depth_stencil = asuint(depth);
     }
     float get_depth()
     {
-        return 0.0f;
+        return asfloat(depth_stencil);
     }
 
     void set_stencil(uint stencil)

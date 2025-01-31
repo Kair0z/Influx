@@ -138,14 +138,12 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
 ps_output main_ps(ps_input input)
 {
     float4 albedo = get_texture(input.texid_albedo).Sample(get_sampler(0), input.texcoord).rgba;
-    // albedo.rgb = lerp(input.colour.rgb, albedo.rgb, 0.5f);
-
-    // float3 normal = get_texture(input.texid_normal).Sample(get_sampler(0), texcoord).rgba;
     // float3 normal = get_normal(input.texcoord).rgb;
     float3 normal = input.normal;
 
     ps_output output = (ps_output)0;
-    output.gbuffer_data.set_albedo(float3(0,1,1));
+    output.gbuffer_data.set_albedo(albedo.rgb);
     output.gbuffer_data.set_normal(normal.rgb);
+    output.gbuffer_data.set_depth(input.position.z);
     return output;
 }
