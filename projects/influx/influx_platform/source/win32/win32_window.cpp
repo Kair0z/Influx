@@ -78,7 +78,7 @@ namespace influx::platform
 		DWORD error = ::GetLastError();
 		if (error)
 		{
-			logwar(parse_error(error));
+			// logwar(parse_error(error));
 			::SetLastError(0u);
 		}
 

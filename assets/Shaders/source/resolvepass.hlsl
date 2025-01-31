@@ -51,7 +51,7 @@ float3 get_worldpos(float2 screen_uv, float depth)
 {
     screen_uv.y = 1.0f - screen_uv.y;
     float2 ndc = screen_uv * 2.0f - 1.0f;
-    depth = depth;
+
     float4 clippos = float4(ndc.xy, depth, 1.0f);
     float4 worldpos = mul((float4x4)g_resolve_args.inv_viewprojection, clippos);
     worldpos.xyz /= worldpos.w;

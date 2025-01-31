@@ -93,7 +93,7 @@ namespace influx::engine
 		world& world = get_engine()->get_world();
 
 		const float camera_distance = 5.0f;
-		const static float max_speed = 10.0f;
+		const static float max_speed = 500.0f;
 		const static float acceleration_rate = 1 * max_speed;
 		const static float damp_rate = 0.01f;
 		const static float fov = 90.0f;
@@ -300,11 +300,12 @@ namespace influx::engine
 
 			transform_component& trans_comp = world.create_component<transform_component>(sword);
 			{
-				math::vectorf3 scale = mesh.m_world_transform.get_scale();
-				scale *= 0.001f;
-				trans_comp.set_position(mesh.m_world_transform.get_translation());
-				trans_comp.set_scale(scale);
-				trans_comp.set_rotation(mesh.m_world_transform.get_rotation_matrix());
+				const float scale_multiplier = 1.0f;
+				math::matrix4x4f copy_transform = mesh.m_world_transform * math::matrix4x4f::make_scale( math::float3{ scale_multiplier , scale_multiplier , scale_multiplier });
+
+				trans_comp.set_position(copy_transform.get_translation());
+				trans_comp.set_scale(copy_transform.get_scale());
+				trans_comp.set_rotation(copy_transform.get_rotation_matrix());
 			}
 
 			mesh_component& mesh_comp = world.create_component<mesh_component>(sword);

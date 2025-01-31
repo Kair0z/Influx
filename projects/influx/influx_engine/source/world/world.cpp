@@ -138,8 +138,9 @@ namespace influx::engine
             // ray
             if (g_lastray)
             {
-                debugscene.add_line(g_lastray->get_origin(), g_lastray->get_origin() + g_lastray->get_direction() * 100.0f, colour::k_white);
+                // debugscene.add_line(g_lastray->get_origin(), g_lastray->get_origin() + g_lastray->get_direction() * 100.0f, colour::k_white);
             }
+
             // transform gizmos
             for (auto [entity, transform_comp] : m_registry.view<transform_component>().each())
             {
@@ -155,11 +156,14 @@ namespace influx::engine
             // bounds boxes
             for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
             {
-                math::transform3D transform = transform_comp.get_transform();
-                transform.set_scale(1.0f / mesh_comp.m_mesh_boundsphere.m_radius);
-                transform.update_matrix();
+                math::transform3D transform_copy = transform_comp.get_transform();
+                math::float3 final_scale = transform_copy.get_scale();
 
-                const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform.get_matrix());
+                // update the copy 
+                transform_copy.set_scale(final_scale);
+                transform_copy.update_matrix();
+
+                const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_copy.get_matrix());
                 debugscene.add_box(transformed_bounds, { 1,0,0,1 });
             }
         }

@@ -29,9 +29,25 @@ namespace influx
 
 	math::matrix4x4f translate(const aiMatrix4x4& mat)
 	{
-		// aiMatrix should be row-major just like ours :)
+		// influx::math::matrix assumes row-major
+		// aiMatrix4x4 is col-major
 		math::matrix4x4f new_matrix{};
-		memcpy(&new_matrix, &mat, sizeof(aiMatrix4x4));
+		for (uint32 y = 0u; y < 4u; ++y)
+		{
+			for (uint32 x = 0u; x < 4u; ++x)
+			{
+				new_matrix[y][x] = mat[x][y];
+			}
+		}
+
+		//new_matrix[0][0] = -new_matrix[0][0];
+		// new_matrix[1][1] = -new_matrix[1][1];
+		new_matrix[2][2] = -new_matrix[2][2];
+
+		//new_matrix[3][0] = -new_matrix[3][0];
+		new_matrix[3][1] = -new_matrix[3][1];
+		new_matrix[3][2] = -new_matrix[3][2];
+
 		return new_matrix;
 	}
 

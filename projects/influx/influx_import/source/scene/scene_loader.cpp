@@ -29,13 +29,17 @@ namespace influx::imp
 		// And have it read the given file with some example postprocessing
 		// Usually - if speed is not the most important aspect for you - you'll
 		// probably to request more postprocessing than we do in this example.
-		const aiScene* aiscene = importer.ReadFile(filepath.c_str(),
-			aiProcess_CalcTangentSpace |
-			aiProcess_Triangulate |
+
+		int step_flags = 
+			aiProcess_CalcTangentSpace		|
+			aiProcess_Triangulate			|
 			aiProcess_JoinIdenticalVertices |
-			aiProcess_FlipUVs |
-			aiProcess_SortByPType |
-			aiProcess_PreTransformVertices);
+			aiProcess_FlipUVs				|
+			aiProcess_SortByPType;
+
+		step_flags |= aiProcess_PreTransformVertices;
+
+		const aiScene* aiscene = importer.ReadFile(filepath.c_str(), step_flags);
 
 		// If the import failed, report it
 		if (aiscene == nullptr)
