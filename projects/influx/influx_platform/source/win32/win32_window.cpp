@@ -78,12 +78,15 @@ namespace influx::platform
 		DWORD error = ::GetLastError();
 		if (error)
 		{
-			// logwar(parse_error(error));
-			::SetLastError(0u);
+			//const string error_str = parse_error(error);
+			//OutputDebugString(to_wstring(error_str).c_str());
+			//logwar(error_str);
 		}
 
-		::HWND native_handle = (::HWND)handle;
+		//const string message_str = "mssg:" + to_string(message) + "\n";
+		//OutputDebugString(to_wstring(message_str).c_str());
 
+		::HWND native_handle = (::HWND)handle;
 		win32_window* target_window = nullptr;
 		if (g_handle_to_window_map.contains(native_handle))
 		{
@@ -119,9 +122,8 @@ namespace influx::platform
 				target_window->request_quit();
 			}
 		}
+		default: { return ::DefWindowProc(native_handle, message, wParam, lParam); };
 		}
-
-		return ::DefWindowProc(native_handle, message, wParam, lParam);
 	}
 
 	inline LRESULT _window_proc(::HWND hWnd, ::UINT uMsg, ::WPARAM wParam, ::LPARAM lParam)
@@ -146,24 +148,24 @@ namespace influx::platform
 		// [ REGISTER WINDOW CLASS ]
 		{
 			// https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes
-			::UINT class_style{};
+			::UINT class_style = CS_HREDRAW | CS_VREDRAW;
 			::HBRUSH classBackgroundBrush = ::CreateSolidBrush(0x00000000);
 
-			::WNDCLASSEXW windowClassExtended;
-			windowClassExtended.cbSize = sizeof(WNDCLASSEXW);
+			::WNDCLASSEX windowClassExtended;
+			windowClassExtended.cbSize = sizeof(WNDCLASSEX);
 			windowClassExtended.style = class_style;
 			windowClassExtended.lpfnWndProc = _window_proc;
 			windowClassExtended.cbClsExtra = 0;
 			windowClassExtended.cbWndExtra = 0;
 			windowClassExtended.hInstance = instance;
-			windowClassExtended.hIcon = NULL;
+			windowClassExtended.hIcon = ::LoadIcon(NULL, IDI_APPLICATION);
 			windowClassExtended.hCursor = ::LoadCursor(NULL, IDC_ARROW);
 			windowClassExtended.hbrBackground = classBackgroundBrush;
 			windowClassExtended.lpszMenuName = NULL;
 			windowClassExtended.lpszClassName = wname.c_str();
 			windowClassExtended.hIconSm = ::LoadIcon(NULL, IDI_APPLICATION);
 
-			influx_assert(::RegisterClassExW(&windowClassExtended));
+			influx_assert(::RegisterClassEx(&windowClassExtended));
 		}
 
 		// [ CREATE WINDOW CLASS ]
@@ -191,7 +193,7 @@ namespace influx::platform
 			::HWND parentWindow = NULL;
 			::HMENU parentMenu = NULL;
 
-			newWindowHandle = ::CreateWindowExW(
+			newWindowHandle = ::CreateWindowEx(
 				extendedWindowStyle,
 				wname.c_str(),
 				wname.c_str(),

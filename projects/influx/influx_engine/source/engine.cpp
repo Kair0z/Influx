@@ -58,7 +58,7 @@ namespace influx::engine
 
 		// initialize render
 		string render_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
-		const math::vectoru2 window_dimensions = { 640u, 480u };
+		const math::vectoru2 window_dimensions = { 1280, 720u };
 		initialize_renderer(render_name, window_dimensions);
 
 		// init world
