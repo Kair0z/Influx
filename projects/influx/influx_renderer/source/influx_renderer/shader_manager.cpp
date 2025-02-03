@@ -5,6 +5,6 @@ namespace influx::renderer
 {
 	shader_manager::shader_manager()
 	{
-
+		
 	}
 }

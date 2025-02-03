@@ -397,6 +397,21 @@ namespace influx::engine
 		}
 	}
 
+	renderer::shader_data translate(const imp::shader_data& imp_data)
+	{
+		renderer::shader_data result{};
+		result.m_bytecode.resize(imp_data.m_compile_result.m_bytecode.size());
+
+		for (uint64 i = 0u; i < imp_data.m_compile_result.m_bytecode.size(); ++i)
+		{
+			result.m_bytecode[i] = imp_data.m_compile_result.m_bytecode[i];
+		}
+
+		result.m_type = imp_data.m_type;
+		result.m_reflection = imp_data.m_compile_result.m_reflection;
+		return result;
+	}
+
 	void translate(const imp::shader_data& imp_data, renderer::shader_data& out_data)
 	{
 		out_data.m_bytecode.resize(imp_data.m_compile_result.m_bytecode.size());
@@ -456,23 +471,7 @@ namespace influx::engine
 		{
 			const imp::shader_data shader_data = asset.second.m_resource;
 			const shader::shader_signature& signature = shader_data.m_signature;
-			if (asset.second.is_loaded())
-			{
-				if (influx::renderer::has_shader(signature) == false)
-				{
-					translate(shader_data, m_shader_data);
-					influx::renderer::load(signature, m_shader_data, false);
-				}
-				else
-				{
-					// if dirty, reload
-					if (asset.second.m_time_loadend > renderer::get_shader_load_timepoint(signature))
-					{
-						translate(shader_data, m_shader_data);
-						influx::renderer::load(signature, m_shader_data, true);
-					}
-				}
-			}
+			influx::renderer::load(signature, translate(shader_data), true);
 		}
 	}
 

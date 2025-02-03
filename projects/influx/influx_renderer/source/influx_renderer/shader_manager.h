@@ -106,5 +106,15 @@ namespace influx::renderer
 		{
 			return (static_cast<uint8>(target) * shader::k_num_shadertargets) + static_cast<uint8>(type);
 		}
+
+		static shader::e_shader_type get_shadertype(uint8 index)
+		{
+			return static_cast<shader::e_shader_type>(index % shader::k_num_shadertypes);
+		}
+
+		static shader::e_shader_target get_shadertarget(uint8 index)
+		{
+			return static_cast<shader::e_shader_target>(index / shader::k_num_shadertargets);
+		}
 	};
 }
