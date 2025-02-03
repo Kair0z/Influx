@@ -272,20 +272,20 @@ namespace influx::imgui
 	inline void create_shaders()
 	{
 		shader::compile_args args{};
-		args.m_entrypoint = "main";
+		args.m_signature.m_entrypoint = "main";
 #if INFLUX_DEBUG
 		args.m_compile_debug = true;
 #else
 		args.m_compile_debug = false;
 #endif
-		args.m_target = shader::e_shader_target::_6_2;
+		args.m_signature.m_target = shader::e_shader_target::_6_2;
 		args.m_pbd = true;
 		args.m_reflection;
 
-		args.m_type = shader::e_shader_type::vs;
+		args.m_signature.m_type = shader::e_shader_type::vs;
 		get_vertex_shader() = shader::compile_shader_source(k_vertex_shader, args);
 
-		args.m_type = shader::e_shader_type::ps;
+		args.m_signature.m_type = shader::e_shader_type::ps;
 		get_pixel_shader() = shader::compile_shader_source(k_pixel_shader, args);
 	}
 
@@ -346,8 +346,8 @@ namespace influx::imgui
 
 		// pipeline
 		graphics::graphics_pipeline_desc pipeline_desc{};
-		pipeline_desc.m_shaders.set(graphics::graphics_shader_slots::vs, get_vertex_shader().m_bytecode);
-		pipeline_desc.m_shaders.set(graphics::graphics_shader_slots::ps, get_pixel_shader().m_bytecode);
+		pipeline_desc.m_shaders.set(graphics::e_graphics_shader_slots::vs, get_vertex_shader().m_bytecode);
+		pipeline_desc.m_shaders.set(graphics::e_graphics_shader_slots::ps, get_pixel_shader().m_bytecode);
 		pipeline_desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
 		pipeline_desc.m_sample_mask = UINT_MAX;
 		pipeline_desc.m_sample_count = 1u;

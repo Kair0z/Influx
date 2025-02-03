@@ -102,7 +102,7 @@ namespace influx::engine
 		async::dispatch_for<file>(hlsl_files, [this, root](const file& file)
 		{
 			shader::compile_args compile_args{};
-			compile_args.m_target = shader::e_shader_target::_6_6;
+			compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
 			compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
 			compile_args.m_reflection = true;
 			compile_args.m_defines = {};
@@ -120,24 +120,24 @@ namespace influx::engine
 			if (str::contains(file_content, "[shader(\"vertex\")]", false))
 			{
 				shader_item& vs_item = m_shaders[file.m_filename + "_vs"];
-				compile_args.m_type = shader::e_shader_type::vs;
-				compile_args.m_entrypoint = "main_vs";
+				compile_args.m_signature.m_type = shader::e_shader_type::vs;
+				compile_args.m_signature.m_entrypoint = "main_vs";
 				vs_item.load(file.m_path_full, compile_args);
 			}
 
 			if (str::contains(file_content, "[shader(\"pixel\")]", false))
 			{
 				shader_item& ps_item = m_shaders[file.m_filename + "_ps"];
-				compile_args.m_type = shader::e_shader_type::ps;
-				compile_args.m_entrypoint = "main_ps";
+				compile_args.m_signature.m_type = shader::e_shader_type::ps;
+				compile_args.m_signature.m_entrypoint = "main_ps";
 				ps_item.load(file.m_path_full, compile_args);
 			}
 
 			if (str::contains(file_content, "[shader(\"compute\")]", false))
 			{
 				shader_item& cs_item = m_shaders[file.m_filename + "_cs"];
-				compile_args.m_type = shader::e_shader_type::cs;
-				compile_args.m_entrypoint = "main_cs";
+				compile_args.m_signature.m_type = shader::e_shader_type::cs;
+				compile_args.m_signature.m_entrypoint = "main_cs";
 				cs_item.load(file.m_path_full, compile_args);
 			}
 		});

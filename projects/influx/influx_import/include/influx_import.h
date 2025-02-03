@@ -73,6 +73,7 @@ namespace influx::imp
 	/* Loads a Shader file (.hlsl) */
 	struct shader_data final
 	{
+		shader::shader_signature m_signature;
 		shader::compile_output m_compile_result;
 		shader::e_shader_type m_type;
 	};

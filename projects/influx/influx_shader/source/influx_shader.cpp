@@ -190,8 +190,8 @@ namespace influx::shader
 
 	inline static wstring make_shader_name_string(const compile_args& args)
 	{
-		wstring type = make_shader_type_wstring(args.m_type, args.m_target);
-		wstring entry = to_wstring(args.m_entrypoint);
+		wstring type = make_shader_type_wstring(args.m_signature.m_type, args.m_signature.m_target);
+		wstring entry = to_wstring(args.m_signature.m_entrypoint);
 
 		return type + entry;
 	}
@@ -208,7 +208,7 @@ namespace influx::shader
 
 		// Gather arguments
 		vector<LPCWSTR> arguments;
-		wstring wentrypoint = to_wstring(args.m_entrypoint);
+		wstring wentrypoint = to_wstring(args.m_signature.m_entrypoint);
 
 		//-E for the entry point (eg. VSMain)
 		arguments.push_back(L"-E");
@@ -216,7 +216,7 @@ namespace influx::shader
 
 		//-T for the target profile (eg. ps_6_2)
 		arguments.push_back(L"-T");
-		wstring target_profile = make_shader_type_wstring(args.m_type, args.m_target);
+		wstring target_profile = make_shader_type_wstring(args.m_signature.m_type, args.m_signature.m_target);
 		arguments.push_back(target_profile.c_str());
 
 		arguments.push_back(L"dxc -help | findstr Version");
@@ -330,8 +330,7 @@ namespace influx::shader
 			}
 		}
 
-		output.m_type = args.m_type;
-		output.m_target = args.m_target;
+		output.m_signature = args.m_signature;
 		output.m_success = true;
 		return output;
 	}

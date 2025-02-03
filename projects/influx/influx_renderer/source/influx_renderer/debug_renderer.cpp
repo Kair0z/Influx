@@ -35,8 +35,11 @@ namespace influx::renderer
 
     static const graphics_pipeline_signature k_debug_pipeline_signature
     {
-        .m_vs_name              { "debug_shaders_vs" },
-        .m_ps_name              { "debug_shaders_ps" },
+        .m_shader_entrypoints              
+        { 
+            "debug_shaders_vs",
+            "debug_shaders_ps"
+        },
 
         .m_primitive_type       { 2u }, // line
         .m_cullmode             { 2u }, // nocull

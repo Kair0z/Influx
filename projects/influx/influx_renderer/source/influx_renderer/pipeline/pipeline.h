@@ -7,6 +7,7 @@
 
 // influx::renderer
 #include "influx_renderer/renderer_backend.h"
+#include "influx_renderer/shader_manager.h"
 
 // influx::graphics
 #include "influx_graphics/pipeline.h"
@@ -26,6 +27,59 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
+#pragma region
+	template <graphics::e_pipeline_type _t>
+	static constexpr graphics::shader_slots<_t>::enum_type type_to_slot(shader::e_shader_type type)
+	{
+		if constexpr (_t == graphics::e_pipeline_type::graphics)
+		{
+			switch (type)
+			{
+			case shader::e_shader_type::vs: return graphics::e_graphics_shader_slots::vs;
+			case shader::e_shader_type::ps: return graphics::e_graphics_shader_slots::ps;
+			case shader::e_shader_type::gs: return graphics::e_graphics_shader_slots::gs;
+			case shader::e_shader_type::ds: return graphics::e_graphics_shader_slots::ds;
+			case shader::e_shader_type::hs: return graphics::e_graphics_shader_slots::hs;
+			}
+		}
+		else if constexpr (_t == graphics::e_pipeline_type::compute)
+		{
+			switch (type)
+			{
+			case shader::e_shader_type::cs: return graphics::e_compute_shader_slots::cs;
+			}
+		}
+		else if constexpr (_t == graphics::e_pipeline_type::raytracing)
+		{
+		}
+	}
+
+	template <graphics::e_pipeline_type _t>
+	static constexpr shader::e_shader_type slot_to_type(typename graphics::shader_slots<_t>::enum_type slot)
+	{
+		if constexpr (_t == graphics::e_pipeline_type::graphics)
+		{
+			switch (slot)
+			{
+			case graphics::e_graphics_shader_slots::vs: return shader::e_shader_type::vs;
+			case graphics::e_graphics_shader_slots::ps: return shader::e_shader_type::ps;
+			case graphics::e_graphics_shader_slots::gs: return shader::e_shader_type::gs;
+			case graphics::e_graphics_shader_slots::ds: return shader::e_shader_type::ds;
+			case graphics::e_graphics_shader_slots::hs: return shader::e_shader_type::hs;
+			}
+		}
+		else if constexpr (_t == graphics::e_pipeline_type::compute)
+		{
+			switch (slot)
+			{
+			case graphics::compute_shaderslots::cs: return shader::e_shader_type::cs;
+			}
+		}
+		else if constexpr (_t == graphics::e_pipeline_type::raytracing)
+		{
+		}
+	}
+#pragma endregion
 	struct graphics_pipeline_signature final
 	{
 #pragma region enums
@@ -99,11 +153,7 @@ namespace influx::renderer
 		};
 #pragma endregion
 		bool m_bindless = false;
-		string m_vs_name = "";
-		string m_ps_name = "";
-		string m_ds_name = "";
-		string m_gs_name = "";
-		string m_hs_name = "";
+		string m_shader_entrypoints[ graphics::graphics_shaderslots::num ]{};
 
 		// rasterizer
 		uint32 m_primitive_type			= primitive_type::triangle;
@@ -148,13 +198,14 @@ namespace influx::renderer
 	struct compute_pipeline_signature final
 	{
 		bool m_bindless = false;
-		string m_cs_name = "";
+		string m_shader_entrypoints[graphics::compute_shaderslots::num]{};
 		bool operator==(const compute_pipeline_signature&) const = default; // Automatically generates an equality operator
 	};
 
 	struct raytracing_pipeline_signature final
 	{
 		bool m_bindless = false;
+		string m_shader_entrypoints[graphics::raytracing_shaderslots::num]{};
 		bool operator==(const raytracing_pipeline_signature&) const = default; // Automatically generates an equality operator
 	};
 
@@ -236,33 +287,41 @@ namespace influx::renderer
 
 			void gather_shaders(const signature_type& signature)
 			{
-				// collect shaders
 				renderer_backend& backend = renderer_backend::get_instance();
+				static shader_manager& shaderman = backend.get_shader_manager();
+
+				shader::shader_signature shader_sig = {};
+				shader_sig.m_target = shader::e_shader_target::_6_6;
+				
+				auto get_shader = [this](shader::shader_signature signature, shader::e_shader_type type)
+				{
+					const graphics::shader_slots<_t>::enum_type slot = type_to_slot<_t>(type);
+					signature.m_entrypoint = m_signature.m_shader_entrypoints[ static_cast<uint8>(slot) ];
+					signature.m_type = type;
+
+					// get the appropriate shadermap and store into slot
+					detail::base_shader_map& shadermap = shaderman.get_shadermap(type);
+					store_shaderdata(slot, shadermap.get_shader(signature));
+				};
+
 				if constexpr (_t == graphics::e_pipeline_type::graphics)
 				{
-					auto& vs_shader_map = backend.get_shadermap<shader::e_shader_type::vs>();
-					auto& ps_shader_map = backend.get_shadermap<shader::e_shader_type::ps>();
-					auto& ds_shader_map = backend.get_shadermap<shader::e_shader_type::ds>();
-					auto& gs_shader_map = backend.get_shadermap<shader::e_shader_type::gs>();
-					auto& hs_shader_map = backend.get_shadermap<shader::e_shader_type::hs>();
-
-					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::vs)] = vs_shader_map.contains(signature.m_vs_name) ? &vs_shader_map.at(signature.m_vs_name) : nullptr;
-					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::ps)] = ps_shader_map.contains(signature.m_ps_name) ? &ps_shader_map.at(signature.m_ps_name) : nullptr;
-					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::ds)] = ds_shader_map.contains(signature.m_ds_name) ? &ds_shader_map.at(signature.m_ds_name) : nullptr;
-					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::gs)] = gs_shader_map.contains(signature.m_gs_name) ? &gs_shader_map.at(signature.m_gs_name) : nullptr;
-					m_shaders[static_cast<uint8>(graphics::graphics_shader_slots::hs)] = hs_shader_map.contains(signature.m_hs_name) ? &hs_shader_map.at(signature.m_hs_name) : nullptr;
+					get_shader(shader_sig, shader::e_shader_type::vs);
+					get_shader(shader_sig, shader::e_shader_type::ps);
+					get_shader(shader_sig, shader::e_shader_type::gs);
+					get_shader(shader_sig, shader::e_shader_type::ds);
+					get_shader(shader_sig, shader::e_shader_type::hs);
 				}
 				else if constexpr (_t == graphics::e_pipeline_type::compute)
 				{
-					auto& cs_shader_map = backend.get_shadermap<shader::e_shader_type::cs>();
-					m_shaders[static_cast<uint8>(graphics::compute_shader_slots::cs)] = cs_shader_map.contains(signature.m_cs_name) ? &cs_shader_map.at(signature.m_cs_name) : nullptr;
+					get_shader(shader_sig, shader::e_shader_type::cs);
 				}
 				else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 				{
 					// ...
 				}
 
-				// collect reflections
+				// gather reflections
 				for (uint8 i = 0u; i < k_num_shaders; ++i)
 				{
 					if (m_shaders[i] != nullptr)
@@ -272,7 +331,7 @@ namespace influx::renderer
 				}
 			}
 
-			template <graphics::shader_slots<_t>::slot_enum _s>
+			template <graphics::shader_slots<_t>::enum_type _s>
 			bool is_shader_dirty()
 			{
 				static constexpr uint32 index = static_cast<uint32>(_s);
@@ -385,7 +444,7 @@ namespace influx::renderer
 				{
 					if (m_shaders[i] != nullptr)
 					{
-						using shader_slot_enum = graphics::shader_slots<_t>::slot_enum;
+						using shader_slot_enum = graphics::shader_slots<_t>::enum_type;
 						const shader_slot_enum shader_slot = static_cast<shader_slot_enum>(i);
 						pipeline_desc.m_shaders.set(shader_slot, m_shaders[i]->m_bytecode);
 					}
@@ -426,7 +485,7 @@ namespace influx::renderer
 					}
 
 					// parse the input elements from vertex shader reflection:
-					constexpr uint8 vertex_shader_idx = static_cast<uint8>(graphics::graphics_shader_slots::vs);
+					constexpr uint8 vertex_shader_idx = static_cast<uint8>(graphics::e_graphics_shader_slots::vs);
 					const shader_data& vertex_shader = *m_shaders[vertex_shader_idx];
 					const shader::reflection& vertex_reflection = *m_shader_reflections[vertex_shader_idx];
 					for (uint32 i = 0u; i < vertex_reflection.m_input_params.size(); ++i)
@@ -515,6 +574,11 @@ namespace influx::renderer
 			}
 
 			virtual graphics::e_pipeline_type get_type() const override { return _t; }
+
+			void store_shaderdata(graphics::shader_slots<_t>::enum_type slot, shader_data* data)
+			{
+				m_shaders[static_cast<uint8>(slot)] = data;
+			}
 		};
 	}
 	

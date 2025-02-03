@@ -6,7 +6,7 @@ namespace influx::graphics
 {
 	// shader slots per type of pipeline
 #pragma region shaderslots
-	enum class graphics_shader_slots : uint8
+	enum class e_graphics_shader_slots : uint8
 	{
 		vs,
 		ps,
@@ -15,12 +15,12 @@ namespace influx::graphics
 		hs,
 		count
 	};
-	enum class compute_shader_slots : uint8
+	enum class e_compute_shader_slots : uint8
 	{
 		cs,
 		count
 	};
-	enum class raytracing_shader_slots : uint8
+	enum class e_raytracing_shader_slots : uint8
 	{
 		rgs,
 		count
@@ -30,26 +30,31 @@ namespace influx::graphics
 	class shader_slots
 	{
 	public:
-		using slot_enum = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
-			graphics_shader_slots,
-			compute_shader_slots,
-			raytracing_shader_slots>>;
+		using enum_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+			e_graphics_shader_slots,
+			e_compute_shader_slots,
+			e_raytracing_shader_slots>>;
 
-		inline void set(slot_enum slot, const vector<byte>& shader_bytecode)
+		inline void set(enum_type slot, const vector<byte>& shader_bytecode)
 		{
 			m_shaders[static_cast<uint8>(slot)] = shader_bytecode;
 		}
 
-		inline const vector<byte>& get(slot_enum slot) const
+		inline const vector<byte>& get(enum_type slot) const
 		{
 			return m_shaders[static_cast<uint8>(slot)];
 		}
 
-		static constexpr uint8 count = static_cast<uint8>(slot_enum::count);
+		static constexpr uint8 count = static_cast<uint8>(enum_type::count);
+		static constexpr uint8 num = count;
 
 	private:
 		vector<byte> m_shaders[count]{};
 	};
+
+	using graphics_shaderslots = shader_slots<e_pipeline_type::graphics>;
+	using compute_shaderslots = shader_slots<e_pipeline_type::compute>;
+	using raytracing_shaderslots = shader_slots<e_pipeline_type::raytracing>;
 #pragma endregion
 
 #pragma region pipelinedesc

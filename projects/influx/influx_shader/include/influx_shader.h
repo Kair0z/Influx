@@ -29,6 +29,7 @@ namespace influx::shader
 		//
 		count
 	};
+	static constexpr uint8 k_num_shadertypes = static_cast<uint8>(e_shader_type::count);
 
 	enum class e_shader_target : uint8
 	{
@@ -36,6 +37,31 @@ namespace influx::shader
 		_6_5,
 		_6_6,
 		count
+	};
+	static constexpr uint8 k_num_shadertargets = static_cast<uint8>(e_shader_target::count);
+
+	struct shader_type_target final
+	{
+		e_shader_type m_type;
+		e_shader_target m_target;
+	};
+
+	struct shader_signature final
+	{
+		bool is_valid() const
+		{
+			return m_type != e_shader_type::count
+				&& m_target != e_shader_target::count
+				&& !m_entrypoint.empty()
+				&& !m_path.empty();
+		}
+
+		e_shader_type m_type;
+		e_shader_target m_target;
+		string m_entrypoint;
+		string m_path;
+
+		bool operator==(const shader_signature&) const = default; // Automatically generates an equality operator
 	};
 
 	struct compile_args final
@@ -48,14 +74,11 @@ namespace influx::shader
 
 		inline bool is_valid() const
 		{
-			return !m_entrypoint.empty()
-				&& m_target != e_shader_target::count
-				&& m_type != e_shader_type::count;
+			return m_signature.is_valid();
 		}
 
-		e_shader_type m_type;
-		e_shader_target m_target;
-		string m_entrypoint;
+		shader_signature m_signature;
+
 		vector<string> m_defines;
 		string m_pdb_folder;
 		string m_pdb_filename;
@@ -107,8 +130,7 @@ namespace influx::shader
 
 	struct compile_output final
 	{
-		e_shader_target m_target;
-		e_shader_type m_type;
+		shader_signature m_signature;
 		vector<byte> m_bytecode;
 		reflection m_reflection;
 		vector<string> m_log;

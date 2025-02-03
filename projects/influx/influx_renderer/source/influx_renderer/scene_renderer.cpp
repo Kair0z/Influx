@@ -25,7 +25,10 @@ namespace influx::renderer
     static compute_pipeline_signature k_scene_resolve_pipsig
     {
         .m_bindless { true },
-        .m_cs_name  {"resolvepass_cs"}
+        .m_shader_entrypoints 
+        {
+            "resolvepass_cs"
+        }
     };
 
     constexpr graphics_pipeline_signature::format gbuffer_formatA = graphics_pipeline_signature::format::u32_4;
@@ -36,8 +39,11 @@ namespace influx::renderer
     static graphics_pipeline_signature k_scene_basepass_pipsig
     {
         .m_bindless             { true },
-        .m_vs_name              { "basepass_vs" },
-        .m_ps_name              { "basepass_ps" },
+        .m_shader_entrypoints
+        {
+             "basepass_vs",
+             "basepass_ps"
+        },
 
         .m_primitive_type       { graphics_pipeline_signature::primitive_type::triangle },
         .m_cullmode             { graphics_pipeline_signature::cullmode::none },

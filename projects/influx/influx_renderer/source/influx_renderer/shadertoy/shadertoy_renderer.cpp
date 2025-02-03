@@ -14,8 +14,11 @@ namespace influx::renderer
 {
     static const graphics_pipeline_signature g_pipeline_sig
     {
-        .m_vs_name              { "shadertoy_vs" },
-        .m_ps_name              { "shadertoy_ps" },
+        .m_shader_entrypoints
+        { 
+            "shadertoy_vs",
+            "shadertoy_ps"
+        },
 
         .m_primitive_type       { graphics_pipeline_signature::primitive_type::triangle },
         .m_cullmode             { graphics_pipeline_signature::cullmode::none },
