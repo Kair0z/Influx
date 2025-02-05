@@ -30,6 +30,15 @@ namespace influx::shader
 		count
 	};
 	static constexpr uint8 k_num_shadertypes = static_cast<uint8>(e_shader_type::count);
+	static const char* k_shadertype_strings[k_num_shadertypes]
+	{
+		"vs",
+		"ps",
+		"ds",
+		"gs",
+		"hs",
+		"cs"
+	};
 
 	enum class e_shader_target : uint8
 	{
@@ -39,6 +48,12 @@ namespace influx::shader
 		count
 	};
 	static constexpr uint8 k_num_shadertargets = static_cast<uint8>(e_shader_target::count);
+	static const char* k_shadertarget_strings[k_num_shadertargets]
+	{
+		"6_2",
+		"6_5",
+		"6_6"
+	};
 
 	struct shader_type_target final
 	{
@@ -53,15 +68,33 @@ namespace influx::shader
 			return m_type != e_shader_type::count
 				&& m_target != e_shader_target::count
 				&& !m_entrypoint.empty()
-				&& !m_path.empty();
+				&& !m_filename.empty();
+		}
+
+		string get_identifier() const
+		{
+			return m_id;
+		}
+
+		void update_id()
+		{
+			string type_str = k_shadertype_strings[static_cast<uint8>(m_type)];
+			string targ_str = k_shadertarget_strings[static_cast<uint8>(m_target)];
+
+			// file::main_vs::vs6_6
+			m_id = m_filename + "::" + m_entrypoint + "::" + type_str + targ_str;
 		}
 
 		e_shader_type m_type;
 		e_shader_target m_target;
 		string m_entrypoint;
-		string m_path;
+		string m_filename;
+		string m_id{};
 
-		bool operator==(const shader_signature&) const = default; // Automatically generates an equality operator
+		bool operator==(const shader_signature& other) const
+		{
+			return (m_type == other.m_type && m_target == other.m_target && m_entrypoint == other.m_entrypoint);
+		}
 	};
 
 	struct compile_args final
@@ -149,12 +182,7 @@ namespace std {
 	template <>
 	struct hash<influx::shader::shader_signature> {
 		std::size_t operator()(const influx::shader::shader_signature& sig) const {
-			return 
-				std::hash<influx::string>{}(sig.m_entrypoint)						 << 0 ^ 
-				std::hash<influx::uint8>{}(static_cast<influx::uint8>(sig.m_type))	 << 1 ^
-				std::hash<influx::uint8>{}(static_cast<influx::uint8>(sig.m_target)) << 2;
-
-			//std::hash<influx::string>{}(sig.m_path) ^
+			return std::hash<influx::string>{}(sig.get_identifier());
 		}
 	};
 }

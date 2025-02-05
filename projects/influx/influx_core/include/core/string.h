@@ -17,17 +17,18 @@ namespace influx
 
 	namespace str
 	{
-		inline static vector<string> split(const string& str, char delim)
+		inline static vector<string> split(const string& str, const string& delimiter) 
 		{
-			std::istringstream stream(str);
 			vector<string> tokens;
-			string token;
+			size_t start = 0, end;
 
-			while (std::getline(stream, token, delim)) 
+			while ((end = str.find(delimiter, start)) != string::npos) 
 			{
-				tokens.push_back(token);
+				tokens.push_back(str.substr(start, end - start));
+				start = end + delimiter.length();
 			}
 
+			tokens.push_back(str.substr(start));
 			return tokens;
 		}
 

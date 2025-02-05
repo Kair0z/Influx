@@ -35,10 +35,10 @@ namespace influx::renderer
 
     static const graphics_pipeline_signature k_debug_pipeline_signature
     {
-        .m_shader_entrypoints              
+        .m_shader_identifiers
         { 
-            "debug_shaders_vs",
-            "debug_shaders_ps"
+            "debug_shaders::main_vs",
+            "debug_shaders::main_ps"
         },
 
         .m_primitive_type       { 2u }, // line

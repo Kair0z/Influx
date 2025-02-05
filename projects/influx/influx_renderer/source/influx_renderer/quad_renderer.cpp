@@ -19,10 +19,10 @@ namespace influx::renderer
 
     static const graphics_pipeline_signature k_quad_pipeline_signature
     {
-        .m_shader_entrypoints
+        .m_shader_identifiers
         {
-            "quad_shaders_vs",
-            "quad_shaders_ps"
+            "quad_shaders::main_vs",
+            "quad_shaders::main_ps"
         },
 
         .m_primitive_type       { graphics_pipeline_signature::primitive_type::triangle },

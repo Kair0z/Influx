@@ -118,7 +118,7 @@ namespace influx::engine
 			compile_args.m_pdb_filename = file.m_filename;
 #endif
 			compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
-			compile_args.m_signature.m_path = file.m_path_full;
+			compile_args.m_signature.m_filename = file.m_filename;
 
 			const string& file_content = textfile::read_all(file.m_path_full);
 			if (str::contains(file_content, "[shader(\"vertex\")]", false))
@@ -126,6 +126,7 @@ namespace influx::engine
 				shader_item& vs_item = m_shaders[file.m_filename + "_vs"];
 				compile_args.m_signature.m_type = shader::e_shader_type::vs;
 				compile_args.m_signature.m_entrypoint = "main_vs";
+				compile_args.m_signature.update_id();
 				vs_item.load(file.m_path_full, compile_args);
 			}
 
@@ -134,6 +135,7 @@ namespace influx::engine
 				shader_item& ps_item = m_shaders[file.m_filename + "_ps"];
 				compile_args.m_signature.m_type = shader::e_shader_type::ps;
 				compile_args.m_signature.m_entrypoint = "main_ps";
+				compile_args.m_signature.update_id();
 				ps_item.load(file.m_path_full, compile_args);
 			}
 
@@ -142,6 +144,7 @@ namespace influx::engine
 				shader_item& cs_item = m_shaders[file.m_filename + "_cs"];
 				compile_args.m_signature.m_type = shader::e_shader_type::cs;
 				compile_args.m_signature.m_entrypoint = "main_cs";
+				compile_args.m_signature.update_id();
 				cs_item.load(file.m_path_full, compile_args);
 			}
 		});

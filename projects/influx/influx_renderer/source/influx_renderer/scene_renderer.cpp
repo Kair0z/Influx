@@ -25,9 +25,9 @@ namespace influx::renderer
     static compute_pipeline_signature k_scene_resolve_pipsig
     {
         .m_bindless { true },
-        .m_shader_entrypoints 
+        .m_shader_identifiers
         {
-            "resolvepass_cs"
+            "resolvepass::main_cs"
         }
     };
 
@@ -39,10 +39,10 @@ namespace influx::renderer
     static graphics_pipeline_signature k_scene_basepass_pipsig
     {
         .m_bindless             { true },
-        .m_shader_entrypoints
+        .m_shader_identifiers
         {
-             "basepass_vs",
-             "basepass_ps"
+             "basepass::main_vs",
+             "basepass::main_ps"
         },
 
         .m_primitive_type       { graphics_pipeline_signature::primitive_type::triangle },

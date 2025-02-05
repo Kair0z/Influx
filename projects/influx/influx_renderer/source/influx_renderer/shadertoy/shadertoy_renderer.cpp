@@ -14,7 +14,7 @@ namespace influx::renderer
 {
     static const graphics_pipeline_signature g_pipeline_sig
     {
-        .m_shader_entrypoints
+        .m_shader_identifiers
         { 
             "shadertoy_vs",
             "shadertoy_ps"

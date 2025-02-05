@@ -153,7 +153,7 @@ namespace influx::renderer
 		};
 #pragma endregion
 		bool m_bindless = false;
-		string m_shader_entrypoints[ graphics::graphics_shaderslots::num ]{};
+		string m_shader_identifiers[ graphics::graphics_shaderslots::num ]{};
 
 		// rasterizer
 		uint32 m_primitive_type			= primitive_type::triangle;
@@ -198,14 +198,14 @@ namespace influx::renderer
 	struct compute_pipeline_signature final
 	{
 		bool m_bindless = false;
-		string m_shader_entrypoints[graphics::compute_shaderslots::num]{};
+		string m_shader_identifiers[graphics::compute_shaderslots::num]{};
 		bool operator==(const compute_pipeline_signature&) const = default; // Automatically generates an equality operator
 	};
 
 	struct raytracing_pipeline_signature final
 	{
 		bool m_bindless = false;
-		string m_shader_entrypoints[graphics::raytracing_shaderslots::num]{};
+		string m_shader_identifiers[graphics::raytracing_shaderslots::num]{};
 		bool operator==(const raytracing_pipeline_signature&) const = default; // Automatically generates an equality operator
 	};
 
@@ -298,12 +298,19 @@ namespace influx::renderer
 					const graphics::shader_slots<_t>::enum_type slot = type_to_slot<_t>(type);
 
 					// setup entrypoint & type
-					signature.m_entrypoint = m_signature.m_shader_entrypoints[ static_cast<uint8>(slot) ];
-					signature.m_type = type;
+					string shader_id = m_signature.m_shader_identifiers[static_cast<uint8>(slot)];
+					if (!shader_id.empty())
+					{
+						auto split = str::split(shader_id, "::");
+						signature.m_entrypoint = split[1];
+						signature.m_filename = split[0];
+						signature.m_type = type;
+						signature.update_id();
 
-					// get the appropriate shadermap and store into slot
-					shader_map& shadermap = shaderman.get_shadermap(type, signature.m_target);
-					store_shaderdata(slot, shadermap.get_shader(signature));
+						// get the appropriate shadermap and store into slot
+						shader_map& shadermap = shaderman.get_shadermap(type, signature.m_target);
+						store_shaderdata(slot, shadermap.get_shader(signature));
+					}
 				};
 
 				if constexpr (_t == graphics::e_pipeline_type::graphics)
