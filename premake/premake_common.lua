@@ -11,7 +11,8 @@ function new_influx_project(_name, _kind)
             project_dir .. "**.h",
             project_dir .. "**.cpp",
             project_dir .. "**.hpp",
-            project_dir .. "**.lua"
+            project_dir .. "**.lua",
+            project_dir .. "**.hlsli"
         }
 
         -- common includes for each project

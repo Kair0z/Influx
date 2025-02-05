@@ -37,13 +37,13 @@ namespace influx::engine
 		switch (directory)
 		{
 			case engine_directory::root:			return root;
-			case engine_directory::assets:		return root + "/assets/";
-			case engine_directory::staged:		return root + "/staged/";
+			case engine_directory::assets:			return root + "/assets/";
+			case engine_directory::staged:			return root + "/staged/";
 			case engine_directory::binaries:		return root + "/bin/";
-			case engine_directory::intermediate: return root + "/int/";
-			case engine_directory::games:		return root + "/games/";
-			case engine_directory::editor:		return root + "/editor/";
-			case engine_directory::shaderpdb:	return root + "/int/shaderdebug/";
+			case engine_directory::intermediate:	return root + "/int/";
+			case engine_directory::games:			return root + "/games/";
+			case engine_directory::editor:			return root + "/editor/";
+			case engine_directory::shaderpdb:		return root + "/int/shaderdebug/";
 		}
 		return {};
 	}
@@ -55,9 +55,9 @@ namespace influx::engine
 		influx_assert(game_directory.is_directory());
 		switch (directory)
 		{
-			case game_directory::root: return game_directory;
-			case game_directory::assets: return game_directory.m_path_full + "/assets/";
-			case game_directory::binaries: return game_directory.m_path_full + "/binaries/";
+			case game_directory::root:		return game_directory;
+			case game_directory::assets:	return game_directory.m_path_full + "/assets/";
+			case game_directory::binaries:	return game_directory.m_path_full + "/binaries/";
 		}
 		return {};
 	}

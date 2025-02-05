@@ -19,6 +19,7 @@ new_influx_library("influx_renderer")
     includedirs
     {
         "vendor/imgui/",
+        "shaders/"
     }
 
     filter "files:**/imgui/**.cpp"

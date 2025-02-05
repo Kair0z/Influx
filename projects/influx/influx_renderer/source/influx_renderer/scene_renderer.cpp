@@ -82,7 +82,7 @@ namespace influx::renderer
         : mp_backend{ backend }
         , mp_device{ device }
     {
-        m_instance_data = new gpu_instance_data[k_max_num_instances]{};
+        m_instance_data = new frontend::per_instance[k_max_num_instances]{};
 
         static descriptor_manager& descriptor_manager = *backend->get_descriptor_manager();
         m_sampler_view = descriptor_manager.create_sampler();
@@ -93,8 +93,8 @@ namespace influx::renderer
             heap_desc.m_type = graphics::e_heap_type::shared;
 
             graphics::buffer_desc desc{};
-            desc.m_bytesize = k_max_num_instances * sizeof(gpu_instance_data);
-            desc.m_bytestride = sizeof(gpu_instance_data);
+            desc.m_bytesize = k_max_num_instances * sizeof(frontend::per_instance);
+            desc.m_bytestride = sizeof(frontend::per_instance);
             desc.m_init_state = graphics::e_resource_state::gen_read;
             mp_instancebuffer = device->create_resource(desc, heap_desc);
             mp_instancebuffer->set_name({ "scene_instance_buffer" });
@@ -107,9 +107,9 @@ namespace influx::renderer
         {
             constexpr static uint64 buffer_strides[k_num_light_types]
             {
-                sizeof(pointlight_data),
-                sizeof(spotlight_data),
-                sizeof(dirlight_data)
+                sizeof(frontend::per_pointlight),
+                sizeof(frontend::per_spotlight),
+                sizeof(frontend::per_dirlight)
             };
 
             for (uint32 i = 0u; i < k_num_light_types; ++i)
@@ -142,16 +142,16 @@ namespace influx::renderer
     public:
         string m_mesh_name;
         string m_material_name;
-        vector<gpu_instance_data> m_instances;
+        vector<frontend::per_instance> m_instances;
         graphics::resource* m_vertexbuffer;
         graphics::resource* m_indexbuffer;
         uint64 m_base_instance{};
     };
 #pragma endregion
 
-    inline gpu_instance_data translate(const mesh_instance& mesh)
+    inline frontend::per_instance translate(const mesh_instance& mesh)
     {
-        gpu_instance_data instance_data{};
+        frontend::per_instance instance_data{};
         instance_data.m_transform = mesh.m_transform;
         instance_data.m_colour = mesh.m_per_instance_colour;
         return instance_data;
@@ -190,7 +190,7 @@ namespace influx::renderer
             backend.get_descriptor_manager()->start_commandlist(commandlist);
         }
 
-        using mesh_to_instance_map = umap<string, vector<gpu_instance_data>>;
+        using mesh_to_instance_map = umap<string, vector<frontend::per_instance>>;
         mesh_to_instance_map meshname_to_instances{};
 
         for (const mesh_instance& instance : scene.m_meshes)
@@ -198,7 +198,7 @@ namespace influx::renderer
             graphics::resource* indexbuffer = nullptr;
             graphics::resource* vertexbuffer = nullptr;
 
-            gpu_instance_data gpu_data = translate(instance);
+            frontend::per_instance gpu_data = translate(instance);
             gpu_data.m_albedo_index = tex_to_idx[backend.find_texture(instance.m_material->get_texture_diffuse_name())];
             meshname_to_instances[instance.m_name].push_back(gpu_data);
         }
@@ -229,7 +229,7 @@ namespace influx::renderer
     {
         mp_instancebuffer->map([&batches](void* dest)
         {
-            gpu_instance_data* data = reinterpret_cast<gpu_instance_data*>(dest);
+            frontend::per_instance* data = reinterpret_cast<frontend::per_instance*>(dest);
             for (const batch& batch : batches)
             {
                 for (size_t i = 0u; i < batch.m_instances.size(); ++i)
@@ -259,24 +259,24 @@ namespace influx::renderer
                     {
                     case influx::scene::e_light_type::directional:
                     {
-                        dirlight_data* data = reinterpret_cast<dirlight_data*>(dest);
-                        data[index].colour = scene.m_lights[l].m_light.get_colour();
+                        frontend::per_dirlight* data = reinterpret_cast<frontend::per_dirlight*>(dest);
+                        data[index].m_colour = scene.m_lights[l].m_light.get_colour();
                         break;
                     }
 
                     case influx::scene::e_light_type::point:
                     {
-                        pointlight_data* data = reinterpret_cast<pointlight_data*>(dest);
-                        data[index].attenuation = scene.m_lights[l].m_light.get_attenuation();
-                        data[index].colour      = scene.m_lights[l].m_light.get_colour();
-                        data[index].position    = scene.m_lights[l].m_world_position;
+                        frontend::per_pointlight* data = reinterpret_cast<frontend::per_pointlight*>(dest);
+                        data[index].m_attenuation = scene.m_lights[l].m_light.get_attenuation();
+                        data[index].m_colour      = scene.m_lights[l].m_light.get_colour();
+                        data[index].m_position    = scene.m_lights[l].m_world_position;
                         break;
                     }
 
                     case influx::scene::e_light_type::spot:
                     {
-                        spotlight_data* data = reinterpret_cast<spotlight_data*>(dest);
-                        data[index].position = scene.m_lights[l].m_world_position;
+                        frontend::per_spotlight* data = reinterpret_cast<frontend::per_spotlight*>(dest);
+                        data[index].m_position = scene.m_lights[l].m_world_position;
                         break;
                     }
                     }
@@ -367,15 +367,15 @@ namespace influx::renderer
             transform.update_matrix();
 
             const float ar = (float)target.get_width() / target.get_height();
-            m_gpu_perview.m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
-            pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
-            pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
+            m_gpu_perview.m_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
+            pipeline->set_constants<frontend::per_scene>(commandlist, "g_perscene", m_gpu_perscene);
+            pipeline->set_constants<frontend::per_view>(commandlist, "g_perview", m_gpu_perview);
         }
 
         for (const batch& batch : batches)
         {
             // per draw constants
-            m_gpu_perdraw.m_start_instance = static_cast<uint32>(batch.m_base_instance);
+            m_gpu_perdraw.m_base_instance = static_cast<uint32>(batch.m_base_instance);
             m_gpu_permaterial.m_colour = {};
             pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
             pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
@@ -393,7 +393,7 @@ namespace influx::renderer
                 .m_num_instances = num_instances,
                 .m_start_index = 0u,
                 .m_start_vertex = 0u,
-                .m_start_instance = m_gpu_perdraw.m_start_instance
+                .m_start_instance = m_gpu_perdraw.m_base_instance
             });
         }
     }
