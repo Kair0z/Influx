@@ -469,9 +469,12 @@ namespace influx::engine
 	{
 		for (const auto& asset : content.get_shaders())
 		{
-			const imp::shader_data shader_data = asset.second.m_resource;
-			const shader::shader_signature& signature = shader_data.m_signature;
-			influx::renderer::load(signature, translate(shader_data), true);
+			if (asset.second.is_loaded())
+			{
+				const imp::shader_data shader_data = asset.second.m_resource;
+				const shader::shader_signature& signature = shader_data.m_signature;
+				influx::renderer::load(signature, translate(shader_data), true);
+			}
 		}
 	}
 

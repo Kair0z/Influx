@@ -99,23 +99,27 @@ namespace influx::engine
 		});
 
 		// load hlsls
+		static shader::compile_args compile_args{};
+		compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
+		compile_args.m_reflection = true;
+		compile_args.m_defines = {};
+#if INFLUX_DEBUG
+		compile_args.m_compile_debug = true;
+		compile_args.m_pbd = true;
+		compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
+#else
+		compile_args.m_compile_debug = false;
+		compile_args.m_pbd = false;
+#endif	
+
 		async::dispatch_for<file>(hlsl_files, [this, root](const file& file)
 		{
-			shader::compile_args compile_args{};
-			compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
-			compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
-			compile_args.m_reflection = true;
-			compile_args.m_defines = {};
 #if INFLUX_DEBUG
-			compile_args.m_compile_debug = true;
-			compile_args.m_pbd = true;
-			compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
 			compile_args.m_pdb_filename = file.m_filename;
-#else
-			compile_args.m_compile_debug = false;
-			compile_args.m_pbd = false;
-#endif	
-			
+#endif
+			compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
+			compile_args.m_signature.m_path = file.m_path_full;
+
 			const string& file_content = textfile::read_all(file.m_path_full);
 			if (str::contains(file_content, "[shader(\"vertex\")]", false))
 			{

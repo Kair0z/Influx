@@ -8,6 +8,7 @@ namespace influx::imp
 	{
 		out_shader.m_compile_result = shader::compile_shader(filepath, args);
 		out_shader.m_type = args.m_signature.m_type;
+		out_shader.m_signature = args.m_signature;
 		return true;
 	}
 }

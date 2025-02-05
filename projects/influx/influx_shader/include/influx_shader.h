@@ -143,3 +143,18 @@ namespace influx::shader
 	// compiles from text source in a string
 	INFLUX_SHADER_API compile_output compile_shader_source(const string& shader_source, const compile_args& args);
 }
+
+// Specialize std::hash for shader_signature
+namespace std {
+	template <>
+	struct hash<influx::shader::shader_signature> {
+		std::size_t operator()(const influx::shader::shader_signature& sig) const {
+			return 
+				std::hash<influx::string>{}(sig.m_entrypoint)						 << 0 ^ 
+				std::hash<influx::uint8>{}(static_cast<influx::uint8>(sig.m_type))	 << 1 ^
+				std::hash<influx::uint8>{}(static_cast<influx::uint8>(sig.m_target)) << 2;
+
+			//std::hash<influx::string>{}(sig.m_path) ^
+		}
+	};
+}

@@ -385,7 +385,7 @@ namespace influx::renderer
     // shader
     void renderer_backend::load(const shader::shader_signature& signature, const shader_data& data, bool reload)
     {
-        get_shader_manager().load(signature, reload);
+        get_shader_manager().load(signature, data, reload);
     }
 
     // material
