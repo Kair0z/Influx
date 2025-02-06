@@ -194,11 +194,11 @@ namespace influx::rendergraph
 		bool is_valid() const { return m_id != k_invalid_id; }
 		auto operator<=>(rgresource_id const&) const = default;
 
-		uint64 m_id;
+		uint64 m_id = k_invalid_id;
 	};
 
 	template <rgresource_type _t>
-	struct trgresource_id : rgresource_id
+	struct trgresource_id : public rgresource_id
 	{
 		using rgresource_id::rgresource_id;
 	};
@@ -207,9 +207,9 @@ namespace influx::rendergraph
 	using rgtexture_id = trgresource_id<rgresource_type::texture>;
 
 	template <rgresource_mode _mode>
-	struct rgtexturemode_id : rgtexture_id
+	struct rgtexturemode_id : public rgtexture_id
 	{
-	private:
+	public:
 		friend class rgbuilder;
 		friend class rendergraph;
 
@@ -219,7 +219,7 @@ namespace influx::rendergraph
 	template <rgresource_mode _mode>
 	struct rgbuffermode_id : rgbuffer_id
 	{
-	private:
+	public:
 		friend class rgbuilder;
 		friend class rendergraph;
 

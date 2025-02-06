@@ -21,5 +21,7 @@ namespace influx::graphics
 		virtual void unmap(const map_args& args) override;
 
 		virtual void set_name_impl(const debug_name& name) override;
+
+		virtual bool allows_uav() const override;
 	};
 }

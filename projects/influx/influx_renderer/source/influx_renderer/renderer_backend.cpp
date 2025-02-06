@@ -19,21 +19,6 @@
 
 namespace influx::renderer
 {
-    enum class e_frame_phase : uint8
-    {
-        scene = 0,
-        scene2D = 1,
-        debug = 2,
-        imgui = 3,
-        present = 4,
-        count
-    };
-
-    uint64 get_signal_value(uint64 frame, e_frame_phase phase)
-    {
-        return (frame * (uint64)e_frame_phase::count) + (uint64)phase;
-    }
-
 #pragma region translation
     constexpr static e_render_api translate(graphics::e_api_type type)
     {
@@ -117,8 +102,15 @@ namespace influx::renderer
     {
         m_rendergraph = new rendergraph::rendergraph(mp_device);
 
-        auto* window_target = get_current_window_target();
-        m_rendergraph->import_texture(window_target->get_name().get(), window_target->get_resource());
+        if (get_current_window_target())
+        {
+            auto* window_target = get_current_window_target();
+            m_rendergraph->import_texture(window_target->get_name().get(), window_target->get_resource());
+        }
+        else
+        {
+            logonce(e_log_category::warning, "influx_renderer::start_frame() >> starting a frame without a window target!");
+        }
 
         mp_commandlist->start(mp_device, nullptr);
         mp_commandlist->set_name("frame");
@@ -132,9 +124,18 @@ namespace influx::renderer
         m_rendergraph->build();
         m_rendergraph->execute(mp_commandlist);
 
+        const bool has_swapchain = get_current_window_target() != nullptr;
+        if (!has_swapchain)
+        {
+            logonce(e_log_category::warning, "influx_renderer::end_frame() >> ending a frame without a window target!");
+        }
+
         // transition backbuffer to present state
-        graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
-        backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
+        if (has_swapchain)
+        {
+            graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
+            backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
+        }
 
         mp_commandlist->end();
 
@@ -152,7 +153,10 @@ namespace influx::renderer
             mp_commandlist->wait_for_completion();
         }
 
-        present_swapchain({ .m_vsync = false });
+        if (has_swapchain)
+        {
+            present_swapchain({ .m_vsync = false });
+        }
 
         delete m_rendergraph;
         m_rendergraph = nullptr;
@@ -329,7 +333,7 @@ namespace influx::renderer
     void renderer_backend::clear_target(const target& target, const clear_args& args)
     {
         influx_scope("renderer_backend::clear_target::record");
-        m_rendergraph->add_clear_pass(target.get_resource());
+        m_rendergraph->add_clear_pass(target.get_resource(), { args.m_colour });
     }
 
     void renderer_backend::present_swapchain(const present_args& args)

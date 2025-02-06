@@ -54,10 +54,19 @@ namespace influx::renderer
 		scene() = default;
 		scene(const vector<mesh_instance>& meshes, const camera& camera);
 
+		void add_mesh(const string& name, const math::matrix4x4f& transform = math::matrix4x4f::identity())
+		{
+			static const math::vectorf4 default_colour = colour::k_white;
+			static const string default_material = "";
+			m_meshes.push_back({ name, transform, default_material, default_colour });
+		}
+
+		void add_cube();
+
 		bool is_empty() const;
 		uint32	get_num_meshes() const;
 		bool	has_meshes() const;
-
+		
 		uint32 get_num_materials() const;
 		bool has_materials() const;
 

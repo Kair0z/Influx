@@ -75,6 +75,7 @@ namespace influx::graphics
 	public:
 		INFLUX_GFX_API virtual void* map(const map_args& args) = 0;
 		INFLUX_GFX_API virtual void unmap(const map_args& args) = 0;
+		INFLUX_GFX_API virtual bool allows_uav() const = 0;
 
 		void map(const function<void(void*)> map_func, const map_args& args = {})
 		{

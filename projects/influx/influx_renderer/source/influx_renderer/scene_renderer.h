@@ -64,7 +64,7 @@ namespace influx::renderer
 		vector<batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
 		void update_instance_buffer(const vector<batch>& batches);
 		void update_lightbuffers(const scene& scene);
-		void apply_pipeline_settings();
+		void apply_pipeline_settings(const target& target);
 
 		void build_basepass(rendergraph::rgpass_builder&, const target& target);
 		void build_resolvepass(rendergraph::rgpass_builder&, const target& target, const scene& scene);

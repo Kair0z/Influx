@@ -3,6 +3,7 @@ project "shaders"
 
     files
     {
-        g_dir_assets .. "shaders/**.hlsl",
-        g_dir_assets .. "shaders/**.hlsli"
+        g_dir_shaders_engine .. "**.hlsli",
+        g_dir_shaders_engine .. "**.hlsl",
+        g_dir_shaders_engine .. "**.h"
     }

@@ -54,6 +54,8 @@ namespace influx::renderer
 		INFLUX_RENDER_API void set_name(const debug_name& name);
 		INFLUX_RENDER_API const debug_name& get_name() const;
 
+		INFLUX_RENDER_API bool is_swapchain_target() const;
+
 	private:
 		// constructs a target from create_args, allocating new graphics resources
 		explicit target(
@@ -73,6 +75,7 @@ namespace influx::renderer
 
 		graphics::resource* mp_resource = nullptr;
 		graphics::resource* mp_depth_resource = nullptr;
+
 		graphics::descriptor_handle m_rtv_cpu;
 		graphics::descriptor_handle m_dsv_cpu;
 		bool m_is_swapchain_target = false;

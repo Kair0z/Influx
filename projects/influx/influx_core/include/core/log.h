@@ -17,23 +17,23 @@ namespace influx
 	template <typename ..._args>
 	inline void log(e_log_category category, const string& format, const _args&... args)
 	{
+		string prefix = "";
 		switch (category)
 		{
 		case e_log_category::normal: 
-			std::cout << "[log] ";
+			prefix = "[log] ";
 			break;
 
 		case e_log_category::warning:
-			std::cout << "[warn] ";
+			prefix = "[warn] ";
 			break;
 
 		case e_log_category::error:
-			std::cout << "[err] ";
+			prefix = "[err] ";
 			break;
 		}
 		
-		const string log_string = std::vformat(format, std::make_format_args(args...));
-		std::cout << log_string << "\n";
+		const string log_string = prefix + std::vformat(format, std::make_format_args(args...));
 		printf((log_string + "\n").c_str());
 	}
 

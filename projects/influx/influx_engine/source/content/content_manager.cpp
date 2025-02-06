@@ -100,7 +100,12 @@ namespace influx::engine
 
 		// load hlsls
 		static shader::compile_args compile_args{};
-		compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
+		if (origin == e_asset_origin::engine)
+		{
+			compile_args.m_include_folder = root.m_path_full + "/engine/shaders/include/";
+		}
+		
+		compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
 		compile_args.m_reflection = true;
 		compile_args.m_defines = {};
 #if INFLUX_DEBUG
@@ -110,14 +115,13 @@ namespace influx::engine
 #else
 		compile_args.m_compile_debug = false;
 		compile_args.m_pbd = false;
-#endif	
+#endif
 
 		async::dispatch_for<file>(hlsl_files, [this, root](const file& file)
 		{
 #if INFLUX_DEBUG
 			compile_args.m_pdb_filename = file.m_filename;
 #endif
-			compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
 			compile_args.m_signature.m_filename = file.m_filename;
 
 			const string& file_content = textfile::read_all(file.m_path_full);

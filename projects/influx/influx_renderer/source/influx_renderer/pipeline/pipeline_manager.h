@@ -30,6 +30,7 @@ namespace influx::renderer
 		template <graphics::e_pipeline_type _t>
 		detail::tpipeline<_t>* find_pipeline(const string& name, const pipeline_signature<_t>& signature)
 		{
+			influx_assert(signature.is_valid());
 			using pipeline_type = detail::tpipeline<_t>;
 			const auto& existing_pipelines = get_map<_t>()[name];
 			auto found = std::find_if(existing_pipelines.cbegin(), existing_pipelines.cend(), [&signature](const pipeline_type* pip)
@@ -43,6 +44,7 @@ namespace influx::renderer
 		template <graphics::e_pipeline_type _t>
 		detail::tpipeline<_t>* get_or_create_pipeline(const string& name, const pipeline_signature<_t>& signature)
 		{
+			influx_assert(signature.is_valid());
 			auto& backend = renderer_backend::get_instance();
 
 			// first try finding
@@ -59,16 +61,19 @@ namespace influx::renderer
 
 		graphics_pipeline* get_or_create_pipeline(const string& name, const graphics_pipeline_signature& signature)
 		{
+			influx_assert(signature.is_valid());
 			return get_or_create_pipeline<graphics::e_pipeline_type::graphics>(name, signature);
 		}
 
 		compute_pipeline* get_or_create_pipeline(const string& name, const compute_pipeline_signature& signature)
 		{
+			influx_assert(signature.is_valid());
 			return get_or_create_pipeline<graphics::e_pipeline_type::compute>(name, signature);
 		}
 
 		raytracing_pipeline* get_or_create_pipeline(const string& name, const raytracing_pipeline_signature& signature)
 		{
+			influx_assert(signature.is_valid());
 			return get_or_create_pipeline<graphics::e_pipeline_type::raytracing>(name, signature);
 		}
 

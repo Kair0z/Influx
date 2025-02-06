@@ -40,6 +40,7 @@ namespace influx::renderer
 			case shader::e_shader_type::gs: return graphics::e_graphics_shader_slots::gs;
 			case shader::e_shader_type::ds: return graphics::e_graphics_shader_slots::ds;
 			case shader::e_shader_type::hs: return graphics::e_graphics_shader_slots::hs;
+			default: return graphics::e_graphics_shader_slots::count;
 			}
 		}
 		else if constexpr (_t == graphics::e_pipeline_type::compute)
@@ -47,10 +48,16 @@ namespace influx::renderer
 			switch (type)
 			{
 			case shader::e_shader_type::cs: return graphics::e_compute_shader_slots::cs;
+			default: return graphics::e_compute_shader_slots::count;
 			}
 		}
 		else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 		{
+			return graphics::e_raytracing_shader_slots::count;
+		}
+		else
+		{
+			static_assert(false, "unsupported pipeline type");
 		}
 	}
 
@@ -78,8 +85,13 @@ namespace influx::renderer
 		else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 		{
 		}
+		else
+		{
+			static_assert(false, "unsupported pipeline type");
+		}
 	}
 #pragma endregion
+
 	struct graphics_pipeline_signature final
 	{
 #pragma region enums
@@ -193,13 +205,58 @@ namespace influx::renderer
 		uint8 m_blend_writemasks[k_max_num_rendertargets]	= { blendmask::blend_all, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 
 		bool operator==(const graphics_pipeline_signature&) const = default; // Automatically generates an equality operator
+		
+		void set_shader_id(graphics::e_graphics_shader_slots slot, const string& identifier)
+		{
+			m_shader_identifiers[static_cast<uint8>(slot)] = identifier;
+		}
+
+		string get_shader_id(graphics::e_graphics_shader_slots slot) const
+		{
+			return m_shader_identifiers[static_cast<uint8>(slot)];
+		}
+
+		uint32 get_num_active_rtvs() const
+		{
+			uint32 count = 0u;
+			for (uint8 i = 0u; i < k_max_num_rendertargets; ++i)
+			{
+				count += m_rtv_actives[i] ? 1u : 0u;
+			}
+			return count;
+		}
+
+		bool is_valid() const
+		{
+			// any graphics pipeline requires a valid vs
+			const bool vs_valid = get_shader_id(graphics::e_graphics_shader_slots::vs).empty() == false;
+
+			const bool rtvs_valid = get_num_active_rtvs() > 0u;
+
+			return vs_valid && rtvs_valid;
+		}
 	};
 
 	struct compute_pipeline_signature final
 	{
+		void set_shader_id(graphics::e_compute_shader_slots slot, const string& identifier)
+		{
+			m_shader_identifiers[static_cast<uint8>(slot)] = identifier;
+		}
+
+		const string& get_shader_id(graphics::e_compute_shader_slots slot) const
+		{
+			return m_shader_identifiers[static_cast<uint8>(slot)];
+		}
+
 		bool m_bindless = false;
 		string m_shader_identifiers[graphics::compute_shaderslots::num]{};
 		bool operator==(const compute_pipeline_signature&) const = default; // Automatically generates an equality operator
+		
+		bool is_valid() const
+		{
+			return true;
+		}
 	};
 
 	struct raytracing_pipeline_signature final
@@ -207,6 +264,11 @@ namespace influx::renderer
 		bool m_bindless = false;
 		string m_shader_identifiers[graphics::raytracing_shaderslots::num]{};
 		bool operator==(const raytracing_pipeline_signature&) const = default; // Automatically generates an equality operator
+		
+		bool is_valid() const
+		{
+			return true;
+		}
 	};
 
 	template <graphics::e_pipeline_type _t>
@@ -268,6 +330,8 @@ namespace influx::renderer
 				graphics::graphics_pipeline,
 				graphics::compute_pipeline,
 				graphics::raytracing_pipeline>>;
+
+			using e_shader_slot = graphics::shader_slots<_t>::enum_type;
 
 			signature_type m_signature = nullptr;
 			pipeline_type* m_pipeline = nullptr;
