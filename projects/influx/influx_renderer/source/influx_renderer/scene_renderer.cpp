@@ -30,7 +30,6 @@ namespace influx::renderer
         graphics::e_format::u32,
     };
 
-
     static graphics_pipeline_signature& get_scene_basepass_pipeline_signature()
     {
         static graphics_pipeline_signature signature{};
@@ -89,7 +88,6 @@ namespace influx::renderer
         signature.set_shader_id(compute_pipeline::e_shader_slot::cs, "resolvepass::main_cs");
         return signature;
     };
-
 
     scene_renderer::scene_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
         : mp_backend{ backend }
@@ -429,8 +427,9 @@ namespace influx::renderer
 
     static rendergraph::rgtexture_readonly_id gbuffer_reads[k_num_gbuffers]{};
     static rendergraph::rgtexture_readwrite_id resolve_write{};
-    static rendergraph::rgtex_copysrc_id resolve_proxy_copy_src;
-    static rendergraph::rgtex_copydst_id resolve_proxy_copy_dst;
+
+    static bool g_use_proxy_pass = false;
+    static rendergraph::rgname g_proxy_name = RGNAME("uav_proxy");
 
     void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target, const scene& scene)
     {
@@ -450,32 +449,15 @@ namespace influx::renderer
 
         builder.set_viewport(target.get_width(), target.get_height());
 
-        // if we're directly writing to the swapchain, we need to write to a intermediate that allows for uav writes
-        const bool target_allows_uav = !target.is_swapchain_target();
-        if (!target_allows_uav)
+        if (g_use_proxy_pass)
         {
-            const auto proxy_name = color_name + "_uav_proxy";
-            rendergraph::texture_desc proxy_desc{};
-            proxy_desc.m_allow_uav = true;
-            proxy_desc.m_array_size = 1u;
-            proxy_desc.m_bindflags = graphics::e_bind_flags::uav;
-            proxy_desc.m_depth = 1u;
-            proxy_desc.m_format = target.get_resource()->get_format();
-            proxy_desc.m_width = target.get_width();
-            proxy_desc.m_heigth = target.get_height();
-            proxy_desc.m_num_mips = 1u;
-            proxy_desc.m_sample_count = 1u;
-            builder.declare_texture(proxy_name, proxy_desc);
-            
-            resolve_write = builder.write_texture(proxy_name);
-
-            resolve_proxy_copy_src = builder.read_copysrc_texture(proxy_name);
-            resolve_proxy_copy_dst = builder.write_copydst_texture(color_name);
+            // write to proxy
+            resolve_write = builder.write_texture(g_proxy_name);
         }
         else
         {
-            resolve_proxy_copy_src.set_invalid();
-            resolve_proxy_copy_dst.set_invalid();
+            // write to target
+            resolve_write = builder.write_texture(target.get_name().get());
         }
     }
 
@@ -546,14 +528,6 @@ namespace influx::renderer
             const uint32 num_groups_x = target.get_width() / 8u;
             const uint32 num_groups_y = target.get_height() / 8u;
             commandlist.dispatch({ {num_groups_x, num_groups_y, 1u} });
-
-            // proxy copy
-            if (resolve_proxy_copy_src != rendergraph::k_invalid_id && resolve_proxy_copy_dst != rendergraph::k_invalid_id)
-            {
-                graphics::resource* src_resource = context.get_copysrc_resource(resolve_proxy_copy_src);
-                graphics::resource* dst_resource = context.get_copydst_resource(resolve_proxy_copy_dst);
-                commandlist.copy_resource(src_resource, dst_resource);
-            }
         }
     }
 
@@ -564,13 +538,13 @@ namespace influx::renderer
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         static string depth_name{}; depth_name = color_name + "_depth";
         graph.import_texture(color_name, target.get_resource());
-
         if (target.has_depth_stencil()) graph.import_texture(depth_name, target.get_depth_resource());
         else
         {
             logonce(e_log_category::warning, "influx_renderer::scene_renderer::render >> rendering scene without depth because specified target has no depth!");
         }
 
+        // deferred gbuffer basepass
         auto* basepass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
             [this, &target](rendergraph::rgpass_builder& builder)
             {
@@ -581,7 +555,42 @@ namespace influx::renderer
                 execute_basepass(context, target, scene);
             });
         basepass->set_name(RGNAME("basepass"));
-        
+       
+        // if we're directly writing to the swapchain, we need to write to a intermediate that allows for uav writes
+        g_use_proxy_pass = target.is_swapchain_target() || !target.get_resource()->allows_uav();
+        if (g_use_proxy_pass)
+        {
+            static rendergraph::rgtex_copysrc_id src_tex_id{};
+            static rendergraph::rgtex_copydst_id dst_tex_id{};
+            auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
+                [&target](rendergraph::rgpass_builder& builder)
+                {
+                    rendergraph::texture_desc proxy_desc{};
+                    proxy_desc.m_allow_uav = true;
+                    proxy_desc.m_array_size = 1u;
+                    proxy_desc.m_bindflags = graphics::e_bind_flags::uav;
+                    proxy_desc.m_depth = 1u;
+                    proxy_desc.m_format = target.get_resource()->get_format();
+                    proxy_desc.m_width = target.get_width();
+                    proxy_desc.m_heigth = target.get_height();
+                    proxy_desc.m_num_mips = 1u;
+                    proxy_desc.m_sample_count = 1u;
+                    builder.declare_texture(g_proxy_name, proxy_desc);
+
+                    src_tex_id = builder.read_copysrc_texture(target.get_name().get());
+                    dst_tex_id = builder.write_copydst_texture(g_proxy_name);
+                    builder.set_viewport(target.get_width(), target.get_height());
+                },
+                [](rendergraph::rgpass_context& context)
+                {
+                    graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
+                    graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+                    context.get_commandlist().copy_resource(src_resource, dst_resource);
+                });
+            proxypass->set_name(RGNAME("proxypass_a"));
+        }
+
+        // resolve gbuffer to the target
         auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
             [this, &target, &scene](rendergraph::rgpass_builder& builder)
             {
@@ -592,5 +601,25 @@ namespace influx::renderer
                 execute_resolvepass(ctx, target, scene);
             });
         resolvepass->set_name(RGNAME("resolvepass"));
+
+        if (g_use_proxy_pass)
+        {
+            static rendergraph::rgtex_copysrc_id src_tex_id{};
+            static rendergraph::rgtex_copydst_id dst_tex_id{};
+            auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
+                [&target](rendergraph::rgpass_builder& builder)
+                {
+                    src_tex_id = builder.read_copysrc_texture(g_proxy_name);
+                    dst_tex_id = builder.write_copydst_texture(target.get_name().get());
+                    builder.set_viewport(target.get_width(), target.get_height());
+                },
+                [](rendergraph::rgpass_context& context)
+                {
+                    graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
+                    graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+                    context.get_commandlist().copy_resource(src_resource, dst_resource);
+                });
+            proxypass->set_name(RGNAME("proxypass_b"));
+        }
     }
 }
