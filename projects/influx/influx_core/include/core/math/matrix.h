@@ -88,6 +88,9 @@ namespace influx::math
 		matrix& operator+=(const matrix& other);
 		matrix& operator-=(const matrix& other);
 
+		template <matrix_dim_t _c, matrix_dim_t _r>
+		matrix& operator*=(const matrix<_t, _c, _r>& other);
+
 		matrix& member_multiply(const matrix& other);
 		static matrix member_multiply(const matrix& a, const matrix& b);
 

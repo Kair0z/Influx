@@ -19,7 +19,7 @@ const influx::renderer::mesh_data& get_mesh_data()
 	imp::scene_data loaded_scene{};
 
 	imp::scene_load_args args{};
-	args.m_bake_transforms = true;
+	args.m_bake_transforms = false;
 	args.m_pre_scale = 1.0f;
 	influx_assert(imp::load_scene_file("D:/Git/Influx/assets/engine/meshes/box.fbx", loaded_scene, args));
 
@@ -146,6 +146,5 @@ int main()
 		renderer::draw_scene(scene_to_draw, *window_target);
 
 		renderer::end_frame();
-		renderer::present_swapchain(present_args);
 	}
 }

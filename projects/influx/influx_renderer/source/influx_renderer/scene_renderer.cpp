@@ -356,8 +356,11 @@ namespace influx::renderer
         builder.write_rendertarget(RGNAME("gbuffer_b"), access);
         builder.write_rendertarget(RGNAME("gbuffer_c"), access);
 
-        access.m_load = rendergraph::e_rg_load::clear;
-        if (target.has_depth_stencil()) builder.write_depthtarget(depth_name, access);
+        if (target.has_depth_stencil())
+        {
+            access.m_load = rendergraph::e_rg_load::clear;
+            builder.write_depthtarget(depth_name, access);
+        }
         builder.set_viewport(target.get_width(), target.get_height());
     }
 
