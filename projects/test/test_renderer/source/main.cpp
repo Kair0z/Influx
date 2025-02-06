@@ -70,19 +70,19 @@ void load_shaders()
 	args.m_signature.m_type = shader::e_shader_type::vs;
 	args.m_signature.m_entrypoint = "main_vs";
 	args.m_signature.m_filename = "basepass";
-	args.m_signature.update_id();
+	args.m_signature.cache_id();
 	influx_assert(imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", loaded_shaders[0], args));
 
 	args.m_signature.m_type = shader::e_shader_type::ps;
 	args.m_signature.m_filename = "basepass";
 	args.m_signature.m_entrypoint = "main_ps";
-	args.m_signature.update_id();
+	args.m_signature.cache_id();
 	influx_assert(imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", loaded_shaders[1], args));
 
 	args.m_signature.m_type = shader::e_shader_type::cs;
 	args.m_signature.m_filename = "resolvepass";
 	args.m_signature.m_entrypoint = "main_cs";
-	args.m_signature.update_id();
+	args.m_signature.cache_id();
 	influx_assert(imp::load_shader_file(shaders_folder + "/source/resolvepass.hlsl", loaded_shaders[2], args));
 
 	renderer::shader_data render_shaders[3u]{};

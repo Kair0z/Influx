@@ -6,6 +6,7 @@
 #include "core/pointer.h"
 #include "core/math/colour.h"
 #include "core/string.h"
+#include "core/shader.h"
 
 namespace influx
 {

@@ -415,7 +415,7 @@ namespace influx::graphics
 			native_heaps[i] = heaps[i]->get_native<ID3D12DescriptorHeap>();
 		}
 
-		mpdx_graphics_commandlist->SetDescriptorHeaps(native_heaps.size(), native_heaps.data());
+		mpdx_graphics_commandlist->SetDescriptorHeaps(static_cast<uint32>(native_heaps.size()), native_heaps.data());
 	}
 
 	void dx12_commandlist::set(const descriptor_range& gpu_range, uint32 param_idx)

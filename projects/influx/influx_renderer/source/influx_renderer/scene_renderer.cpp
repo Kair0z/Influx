@@ -23,11 +23,11 @@
 namespace influx::renderer
 {
     static constexpr uint32 k_num_gbuffers = 3u;
-    static constexpr graphics_pipeline_signature::format k_gbuffer_formats[k_num_gbuffers]
+    static constexpr graphics::e_format k_gbuffer_formats[k_num_gbuffers]
     {
-        graphics_pipeline_signature::format::u32_4,
-        graphics_pipeline_signature::format::u32,
-        graphics_pipeline_signature::format::u32,
+        graphics::e_format::rgba_u32,
+        graphics::e_format::u32,
+        graphics::e_format::u32,
     };
 
 
@@ -41,9 +41,9 @@ namespace influx::renderer
             signature.set_shader_id(graphics_pipeline::e_shader_slot::vs, "basepass::main_vs");
             signature.set_shader_id(graphics_pipeline::e_shader_slot::ps, "basepass::main_ps");
 
-            signature.m_primitive_type = graphics_pipeline_signature::primitive_type::triangle;
-            signature.m_cullmode = graphics_pipeline_signature::cullmode::none;
-            signature.m_fillmode = graphics_pipeline_signature::fillmode::solid;
+            signature.m_primitive_type = graphics::e_primitive_topology_type::triangle;
+            signature.m_cullmode = graphics::e_cull_mode::nocull;
+            signature.m_fillmode = graphics::e_fill_mode::solid;
 
             signature.m_forced_samplecount = 0u;
             signature.m_sample_mask = (uint32)-1;
@@ -59,8 +59,8 @@ namespace influx::renderer
 
             signature.m_depth_enable = true;
             signature.m_stencil_enable = false;
-            signature.m_depth_comparison = 0u;
-            signature.m_depth_format = graphics_pipeline_signature::format::default_depth;
+            signature.m_depth_comparison = graphics::e_comparison_func::less;
+            signature.m_depth_format = graphics::e_format::d32;
 
             for (uint32 i = 0u; i < 8u; ++i)
             {
@@ -319,18 +319,13 @@ namespace influx::renderer
         const render_settings& settings = renderer_backend::get_instance().get_settings();
         graphics_pipeline_signature& signature = get_scene_basepass_pipeline_signature();
         
-        // depth
         signature.m_depth_enable = target.has_depth_stencil();
-        
-        // fillmode
-        signature.m_fillmode = settings.m_wireframe ? graphics_pipeline_signature::fillmode::wireframe : graphics_pipeline_signature::fillmode::solid;
-        
-        // cullmode
+        signature.m_fillmode = settings.m_wireframe ? graphics::e_fill_mode::wireframe : graphics::e_fill_mode::solid;
         switch (settings.m_cullmode)
         {
-        case render_settings::cullmode::back:  signature.m_cullmode = graphics_pipeline_signature::cullmode::back; break;
-        case render_settings::cullmode::front: signature.m_cullmode = graphics_pipeline_signature::cullmode::front; break;
-        case render_settings::cullmode::none:  signature.m_cullmode = graphics_pipeline_signature::cullmode::none; break;
+        case render_settings::cullmode::back:  signature.m_cullmode = graphics::e_cull_mode::back; break;
+        case render_settings::cullmode::front: signature.m_cullmode = graphics::e_cull_mode::front; break;
+        case render_settings::cullmode::none:  signature.m_cullmode = graphics::e_cull_mode::nocull; break;
         }
     }
 
@@ -370,7 +365,7 @@ namespace influx::renderer
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
 
         apply_pipeline_settings(target);
-        graphics_pipeline* pipeline = pipeline_man.get_or_create_pipeline("pip_scene_basepass", get_scene_basepass_pipeline_signature());
+        graphics_pipeline* pipeline = pipeline_man.get_or_create_pipeline(get_scene_basepass_pipeline_signature());
         if (pipeline == nullptr || scene.is_empty())
         {
             return;
@@ -490,7 +485,7 @@ namespace influx::renderer
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
         descriptor_manager& descriptor_man = *backend.get_descriptor_manager();
 
-        auto* compute_pipeline = pipeline_man.get_or_create_pipeline("resolvepass_pip", get_scene_resolve_pipeline_signature());
+        auto* compute_pipeline = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
         if (compute_pipeline)
         {
             graphics::commandlist& commandlist = context.get_commandlist();

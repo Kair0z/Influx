@@ -87,13 +87,14 @@ namespace influx::graphics
 		all_shading = all_srv | all_uav | shading_rate | as_read
 	};
 
-	enum class e_pipeline_type
+	enum class e_pipeline_type : uint8
 	{
 		graphics,
 		compute,
 		raytracing,
 		count
 	};
+	constexpr static uint8 k_num_pipeline_types = static_cast<uint8>(e_pipeline_type::count);
 
 	constexpr static uint8 k_max_render_targets = 8u;
 

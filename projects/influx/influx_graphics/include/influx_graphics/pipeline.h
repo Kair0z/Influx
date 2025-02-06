@@ -23,6 +23,10 @@ namespace influx::graphics
 	enum class e_raytracing_shader_slots : uint8
 	{
 		rgs,
+		mss,
+		chs,
+		ahs,
+		ins,
 		count
 	};
 
@@ -34,6 +38,42 @@ namespace influx::graphics
 			e_graphics_shader_slots,
 			e_compute_shader_slots,
 			e_raytracing_shader_slots>>;
+
+		static constexpr bool is_optional(const enum_type type)
+		{
+			if constexpr (_t == e_pipeline_type::graphics)
+			{
+				switch (type)
+				{
+				case e_graphics_shader_slots::vs: return false;
+				case e_graphics_shader_slots::ps: return true;
+				case e_graphics_shader_slots::ds: return true;
+				case e_graphics_shader_slots::gs: return true;
+				case e_graphics_shader_slots::hs: return true;
+				default: return false;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::compute)
+			{
+				switch (type)
+				{
+				case e_compute_shader_slots::cs: return false;
+				default: return false;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::raytracing)
+			{
+				switch (type)
+				{
+				case e_raytracing_shader_slots::rgs: return false;
+				case e_raytracing_shader_slots::mss: return true;
+				case e_raytracing_shader_slots::chs: return true;
+				case e_raytracing_shader_slots::ahs: return true;
+				case e_raytracing_shader_slots::ins: return true;
+				default: return false;
+				}
+			}
+		}
 
 		inline void set(enum_type slot, const vector<byte>& shader_bytecode)
 		{
@@ -57,6 +97,7 @@ namespace influx::graphics
 	using raytracing_shaderslots = shader_slots<e_pipeline_type::raytracing>;
 #pragma endregion
 
+	// pipeline description
 #pragma region pipelinedesc
 	struct graphics_pipeline_desc final
 	{

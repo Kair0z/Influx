@@ -33,45 +33,40 @@ namespace influx::renderer
         uint32 m_id;
     };
 
-    static const graphics_pipeline_signature k_debug_pipeline_signature
+    static graphics_pipeline_signature& get_pipeline_sig()
     {
-        .m_shader_identifiers
-        { 
-            "debug_shaders::main_vs",
-            "debug_shaders::main_ps"
-        },
+        static graphics_pipeline_signature signature{};
+        {
+            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::vs] = "debug_shaders::main_vs";
+            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::ps] = "debug_shaders::main_ps";
 
-        .m_primitive_type       { 2u }, // line
-        .m_cullmode             { 2u }, // nocull
-        .m_fillmode             { 0u }, // wireframe
-        .m_forced_samplecount   { 0u },
-        .m_sample_mask          { (uint32)-1 },
-        .m_sample_count         { 1u },
-        .m_front_ccw            { false },
-        .m_depthclip            { false },
-        .m_multisample          { false },
-        .m_antialiased_line     { false },
-        .m_conservative_raster  { false },
-        .m_depthbias            { 0 },
-        .m_depthbias_clamp      { 0.0f },
-        .m_slope_depthbias      { 0.0f },
+            signature.m_primitive_type = graphics::e_primitive_topology_type::line;
+            signature.m_cullmode = graphics::e_cull_mode::nocull;
+            signature.m_fillmode = graphics::e_fill_mode::wireframe;
+            signature.m_forced_samplecount = 0u;
+            signature.m_sample_mask = (uint32)-1;
+            signature.m_sample_count = 1u;
+            signature.m_front_ccw = false;
+            signature.m_depthclip = false;
+            signature.m_multisample = false;
+            signature.m_antialiased_line = false;
+            signature.m_conservative_raster = false;
+            signature.m_depthbias = 0;
+            signature.m_depthbias_clamp = 0.0f;
+            signature.m_slope_depthbias = 0.0f;
 
-        .m_depth_enable         { false },
-        .m_stencil_enable       { false },
-        .m_depth_comparison     { 0u },
-        .m_depth_format         { 5u }, // d32
+            signature.m_depth_enable = false;
+            signature.m_stencil_enable = false;
+            signature.m_depth_comparison = graphics::e_comparison_func::less;
+            signature.m_depth_format = graphics::e_format::d32;
 
-        .m_rtv_actives          { true, false, false, false, false, false, false, false },
-        .m_rtv_formats          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
-        .m_blend_actives        { false, false, false, false, false, false, false, false },
-        .m_blend_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_writemasks     { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
-    };
+            signature.m_rtv_actives[0] = true;
+            signature.m_rtv_formats[0] = graphics::e_format::rgba8;
+
+            signature.m_blend_actives[0] = false;
+        }
+        return signature;
+    }
 
     debug_renderer::debug_renderer(renderer_backend* backend, graphics::device* device)
         : mp_backend{backend}
@@ -123,7 +118,7 @@ namespace influx::renderer
     void debug_renderer::render(graphics::commandlist* commandlist, const scene_debug& scene, const target& target)
     {
         // get the pipeline
-        graphics_pipeline* pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_debug", k_debug_pipeline_signature);
+        graphics_pipeline* pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline(get_pipeline_sig());
         if (pipeline == nullptr)
         {
             return;

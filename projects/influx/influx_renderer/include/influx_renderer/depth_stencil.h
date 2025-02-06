@@ -1,5 +1,6 @@
 #pragma once
-#pragma once
+
+// influx::core
 #include "core/basetypes.h"
 #include "core/platform/window.h"
 

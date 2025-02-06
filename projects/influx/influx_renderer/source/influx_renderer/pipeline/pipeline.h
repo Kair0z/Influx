@@ -27,7 +27,7 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
-#pragma region
+#pragma region shaderslots
 	template <graphics::e_pipeline_type _t>
 	static constexpr graphics::shader_slots<_t>::enum_type type_to_slot(shader::e_shader_type type)
 	{
@@ -53,7 +53,15 @@ namespace influx::renderer
 		}
 		else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 		{
-			return graphics::e_raytracing_shader_slots::count;
+			switch (type)
+			{
+			case shader::e_shader_type::rgs: return graphics::e_raytracing_shader_slots::rgs;
+			case shader::e_shader_type::mss: return graphics::e_raytracing_shader_slots::mss;
+			case shader::e_shader_type::chs: return graphics::e_raytracing_shader_slots::chs;
+			case shader::e_shader_type::ahs: return graphics::e_raytracing_shader_slots::ahs;
+			case shader::e_shader_type::ins: return graphics::e_raytracing_shader_slots::ins;
+			default: return graphics::e_raytracing_shader_slots::count;
+			}
 		}
 		else
 		{
@@ -92,25 +100,35 @@ namespace influx::renderer
 	}
 #pragma endregion
 
+#pragma region pipeline signatures
 	struct graphics_pipeline_signature final
 	{
+		inline uint64 get_hash() const
+		{
+			uint64 result_hash = 0u;
+			std::hash<byte> hasher{};
+			std::hash<string> string_hasher{};
+
+			// let's be lazy here :)))
+			byte const* raw_data = reinterpret_cast<byte const*>(this);
+			for (uint64 i = 0u; i < sizeof(graphics_pipeline_signature); ++i)
+			{
+				const byte current_byte = raw_data[i];
+				result_hash = result_hash ^ (hasher(current_byte) + 0x9e3779b9 + (result_hash << 6) + (result_hash >> 2));
+			}
+
+			for (uint32 i = 0u; i < graphics::graphics_shaderslots::num; ++i)
+			{
+				result_hash ^= string_hasher(m_shader_identifiers[i]);
+			}
+			
+			return result_hash;
+		}
+
+		// rtvs & dsvs
+		static constexpr uint8 k_max_num_rendertargets = graphics::k_max_render_targets;
+
 #pragma region enums
-		enum cullmode : uint32
-		{
-			front	= 0,
-			back	= 1,
-			none	= 2
-		};
-		enum primitive_type : uint32
-		{
-			triangle,
-			line
-		};
-		enum fillmode : uint32
-		{
-			solid		= 0,
-			wireframe	= 1
-		};
 		enum samplemask : uint32
 		{
 			all = (uint32)-1
@@ -165,44 +183,45 @@ namespace influx::renderer
 		};
 #pragma endregion
 		bool m_bindless = false;
+
+		// shaders
 		string m_shader_identifiers[ graphics::graphics_shaderslots::num ]{};
 
 		// rasterizer
-		uint32 m_primitive_type			= primitive_type::triangle;
-		uint32 m_cullmode				= cullmode::back;
-		uint32 m_fillmode				= fillmode::solid;
-		uint32 m_forced_samplecount		= 0u;
-		uint32 m_sample_mask			= samplemask::all;
-		uint32 m_sample_count			= 1u;
-		bool m_front_ccw				= true;
-		bool m_depthclip				= true;
-		bool m_multisample				= false;
-		bool m_antialiased_line			= false;
-		bool m_conservative_raster		= false;
-		int m_depthbias					= 0;
-		float m_depthbias_clamp			= 0.0f;
-		float m_slope_depthbias			= 0.0f;
+		graphics::e_primitive_topology_type m_primitive_type		= graphics::e_primitive_topology_type::triangle;
+		graphics::e_cull_mode				m_cullmode				= graphics::e_cull_mode::back;
+		graphics::e_fill_mode				m_fillmode				= graphics::e_fill_mode::solid;
+		uint32								m_forced_samplecount	= 0u;
+		uint32								m_sample_mask			= samplemask::all;
+		uint32								m_sample_count			= 1u;
+		bool								m_front_ccw				= true;
+		bool								m_depthclip				= true;
+		bool								m_multisample			= false;
+		bool								m_antialiased_line		= false;
+		bool								m_conservative_raster	= false;
+		int									m_depthbias				= 0;
+		float								m_depthbias_clamp		= 0.0f;
+		float								m_slope_depthbias		= 0.0f;
 
-		// depth / stencil
-		bool m_depth_enable				= false;
-		bool m_stencil_enable			= false;
-		uint32 m_depth_comparison		= 0u;
-		uint32 m_depth_format			= format::d32;
+		// depth target
+		bool						m_depth_enable		= false;
+		bool						m_stencil_enable	= false;
+		graphics::e_comparison_func	m_depth_comparison	= graphics::e_comparison_func::less;
+		graphics::e_format			m_depth_format		= graphics::e_format::d32;
 
-		// rtvs & dsvs
-		static constexpr uint8 k_max_num_rendertargets = 8u;
-		bool m_rtv_actives[k_max_num_rendertargets]		= { true, false, false, false, false, false, false, false };
-		uint32 m_rtv_formats[k_max_num_rendertargets]	= { format::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		// render targets
+		bool				m_rtv_actives[graphics::k_max_render_targets]	= { true };
+		graphics::e_format	m_rtv_formats[graphics::k_max_render_targets]	= { graphics::e_format::rgba8 };
 
-		// rtv blend
-		bool m_blend_actives[k_max_num_rendertargets]		= { false, false, false, false, false, false, false, false };
-		uint32 m_blend_sources[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_blend_dests[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_blend_ops[k_max_num_rendertargets]			= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_alpha_sources[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_alpha_dests[k_max_num_rendertargets]		= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint32 m_alpha_ops[k_max_num_rendertargets]			= { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
-		uint8 m_blend_writemasks[k_max_num_rendertargets]	= { blendmask::blend_all, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
+		// blend
+		bool m_blend_actives				[graphics::k_max_render_targets] = { false };
+		graphics::e_blend	m_blend_sources	[graphics::k_max_render_targets] = { graphics::e_blend::one };
+		graphics::e_blend	m_blend_dests	[graphics::k_max_render_targets] = { graphics::e_blend::zero };
+		graphics::e_blendop m_blend_ops		[graphics::k_max_render_targets] = { graphics::e_blendop::add };
+		graphics::e_blend	m_alpha_sources	[graphics::k_max_render_targets] = { graphics::e_blend::one };
+		graphics::e_blend	m_alpha_dests	[graphics::k_max_render_targets] = { graphics::e_blend::zero };
+		graphics::e_blendop m_alpha_ops		[graphics::k_max_render_targets] = { graphics::e_blendop::add };
+		blendmask m_blend_writemasks		[graphics::k_max_render_targets] = { blendmask::blend_all };
 
 		bool operator==(const graphics_pipeline_signature&) const = default; // Automatically generates an equality operator
 		
@@ -228,9 +247,8 @@ namespace influx::renderer
 
 		bool is_valid() const
 		{
-			// any graphics pipeline requires a valid vs
+			// any graphics pipeline requires a valid vs!
 			const bool vs_valid = get_shader_id(graphics::e_graphics_shader_slots::vs).empty() == false;
-
 			const bool rtvs_valid = get_num_active_rtvs() > 0u;
 
 			return vs_valid && rtvs_valid;
@@ -239,6 +257,28 @@ namespace influx::renderer
 
 	struct compute_pipeline_signature final
 	{
+		inline uint64 get_hash() const
+		{
+			uint64 result_hash = 0u;
+			std::hash<byte> hasher{};
+			std::hash<string> string_hasher{};
+
+			// let's be lazy here :)))
+			byte const* raw_data = reinterpret_cast<byte const*>(this);
+			for (uint64 i = 0u; i < sizeof(graphics_pipeline_signature); ++i)
+			{
+				const byte current_byte = raw_data[i];
+				result_hash = result_hash ^ (hasher(current_byte) + 0x9e3779b9 + (result_hash << 6) + (result_hash >> 2));
+			}
+
+			for (uint32 i = 0u; i < graphics::compute_shaderslots::num; ++i)
+			{
+				result_hash ^= string_hasher(m_shader_identifiers[i]);
+			}
+
+			return result_hash;
+		}
+
 		void set_shader_id(graphics::e_compute_shader_slots slot, const string& identifier)
 		{
 			m_shader_identifiers[static_cast<uint8>(slot)] = identifier;
@@ -261,6 +301,28 @@ namespace influx::renderer
 
 	struct raytracing_pipeline_signature final
 	{
+		inline uint64 get_hash() const
+		{
+			uint64 result_hash = 0u;
+			std::hash<byte> hasher{};
+			std::hash<string> string_hasher{};
+
+			// let's be lazy here :)))
+			byte const* raw_data = reinterpret_cast<byte const*>(this);
+			for (uint64 i = 0u; i < sizeof(graphics_pipeline_signature); ++i)
+			{
+				const byte current_byte = raw_data[i];
+				result_hash = result_hash ^ (hasher(current_byte) + 0x9e3779b9 + (result_hash << 6) + (result_hash >> 2));
+			}
+
+			for (uint32 i = 0u; i < graphics::raytracing_shaderslots::num; ++i)
+			{
+				result_hash ^= string_hasher(m_shader_identifiers[i]);
+			}
+
+			return result_hash;
+		}
+
 		bool m_bindless = false;
 		string m_shader_identifiers[graphics::raytracing_shaderslots::num]{};
 		bool operator==(const raytracing_pipeline_signature&) const = default; // Automatically generates an equality operator
@@ -276,37 +338,61 @@ namespace influx::renderer
 		graphics_pipeline_signature,
 		compute_pipeline_signature,
 		raytracing_pipeline_signature>>;
-
-	constexpr static graphics::e_cull_mode translate(graphics_pipeline_signature::cullmode mode)
-	{
-		switch (mode)
-		{
-		case graphics_pipeline_signature::cullmode::back: return graphics::e_cull_mode::back;
-		case graphics_pipeline_signature::cullmode::front: return graphics::e_cull_mode::front;
-		case graphics_pipeline_signature::cullmode::none: return graphics::e_cull_mode::nocull;
-		}
-		return graphics::e_cull_mode::count;
-	}
-
-	constexpr static graphics::e_format translate(graphics_pipeline_signature::format format)
-	{
-		switch (format)
-		{
-		case graphics_pipeline_signature::format::rgba8: return graphics::e_format::rgba8;
-		case graphics_pipeline_signature::format::r32: return graphics::e_format::r32;
-		case graphics_pipeline_signature::format::rg32: return graphics::e_format::rg32;
-		case graphics_pipeline_signature::format::rgb32: return graphics::e_format::rgb32;
-		case graphics_pipeline_signature::format::rgba32: return graphics::e_format::rgba32;
-		case graphics_pipeline_signature::format::d32: return graphics::e_format::d32;
-		case graphics_pipeline_signature::format::u16: return graphics::e_format::u16;
-		case graphics_pipeline_signature::format::u32: return graphics::e_format::u32;
-		case graphics_pipeline_signature::format::u32_4: return graphics::e_format::rgba_u32;
-		}
-		return {};
-	}
+#pragma endregion
 
 	namespace detail
 	{
+		inline graphics::compute_pipeline_desc translate(const compute_pipeline_signature& signature)
+		{
+			graphics::compute_pipeline_desc result{};
+			return result;
+		}
+
+		inline graphics::raytracing_pipeline_desc translate(const raytracing_pipeline_signature& signature)
+		{
+			graphics::raytracing_pipeline_desc result{};
+			return result;
+		}
+
+		inline graphics::graphics_pipeline_desc translate(const graphics_pipeline_signature& signature)
+		{
+			graphics::graphics_pipeline_desc result{};
+			result.m_rasterizer.m_cullmode				= signature.m_cullmode;
+			result.m_rasterizer.m_front_ccw				= signature.m_front_ccw;
+			result.m_prim_type							= signature.m_primitive_type;
+			result.m_rasterizer.m_fillmode				= signature.m_fillmode;
+			result.m_rasterizer.m_forced_samplecount	= signature.m_forced_samplecount;
+			result.m_sample_mask						= signature.m_sample_mask;
+			result.m_sample_count						= signature.m_sample_count;
+			result.m_rasterizer.m_depth_clip_enable		= signature.m_depthclip;
+			result.m_rasterizer.m_multisample			= signature.m_multisample;
+			result.m_rasterizer.m_antialiased_line		= signature.m_antialiased_line;
+			result.m_rasterizer.m_conservative			= signature.m_conservative_raster;
+			result.m_rasterizer.m_depth_bias			= signature.m_depthbias;
+			result.m_rasterizer.m_depth_bias_clamp		= signature.m_depthbias_clamp;
+			result.m_rasterizer.m_slope_depth_bias		= signature.m_slope_depthbias;
+			result.m_depth_stencil.m_depth_enable		= signature.m_depth_enable;
+			result.m_depth_stencil.m_stencil_enable		= signature.m_stencil_enable;
+			result.m_depth_stencil.m_depth_func			= signature.m_depth_comparison;
+			result.m_format_dsv							= signature.m_depth_format;
+
+			for (uint8 i = 0u; i < graphics::k_max_render_targets; ++i)
+			{
+				result.m_blends[i].m_enabled	= signature.m_blend_actives[i];
+				result.m_blends[i].m_src		= signature.m_blend_sources[i];
+				result.m_blends[i].m_dest		= signature.m_blend_dests[i];
+				result.m_blends[i].m_op			= signature.m_blend_ops[i];
+				result.m_blends[i].m_srcalpha	= signature.m_alpha_sources[i];
+				result.m_blends[i].m_destalpha	= signature.m_alpha_dests[i];
+				result.m_blends[i].m_op_alpha	= signature.m_alpha_ops[i];
+				result.m_blends[i].m_write_mask = signature.m_blend_writemasks[i];
+				result.m_rtvs[i].m_enabled		= signature.m_rtv_actives[i];
+				result.m_rtvs[i].m_format		= signature.m_rtv_formats[i];
+			}
+
+			return result;
+		}
+
 		class pipeline
 		{
 		public:
@@ -331,7 +417,9 @@ namespace influx::renderer
 				graphics::compute_pipeline,
 				graphics::raytracing_pipeline>>;
 
-			using e_shader_slot = graphics::shader_slots<_t>::enum_type;
+			using shader_slots	= graphics::shader_slots<_t>;
+			using e_shader_slot = shader_slots::enum_type;
+			
 
 			signature_type m_signature = nullptr;
 			pipeline_type* m_pipeline = nullptr;
@@ -369,7 +457,7 @@ namespace influx::renderer
 						signature.m_entrypoint = split[1];
 						signature.m_filename = split[0];
 						signature.m_type = type;
-						signature.update_id();
+						signature.cache_id();
 
 						// get the appropriate shadermap and store into slot
 						shader_map& shadermap = shaderman.get_shadermap(type, signature.m_target);
@@ -381,9 +469,6 @@ namespace influx::renderer
 				{
 					get_and_store_shader(shader_sig, shader::e_shader_type::vs);
 					get_and_store_shader(shader_sig, shader::e_shader_type::ps);
-					influx_assert(get_shader(graphics::e_graphics_shader_slots::vs) != nullptr);
-					influx_assert(get_shader(graphics::e_graphics_shader_slots::ps) != nullptr);
-
 					get_and_store_shader(shader_sig, shader::e_shader_type::gs);
 					get_and_store_shader(shader_sig, shader::e_shader_type::ds);
 					get_and_store_shader(shader_sig, shader::e_shader_type::hs);
@@ -394,12 +479,20 @@ namespace influx::renderer
 				}
 				else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 				{
-					// ...
+					get_and_store_shader(shader_sig, shader::e_shader_type::rgs);
+					get_and_store_shader(shader_sig, shader::e_shader_type::mss);
+					get_and_store_shader(shader_sig, shader::e_shader_type::chs);
+					get_and_store_shader(shader_sig, shader::e_shader_type::ahs);
+					get_and_store_shader(shader_sig, shader::e_shader_type::ins);
 				}
 
-				// gather reflections
+				// final gather
 				for (uint8 i = 0u; i < k_num_shaders; ++i)
 				{
+					// assert the non-optional stages
+					const bool is_slot_optional = shader_slots::is_optional(static_cast<e_shader_slot>(i));
+					influx_assert(m_shaders[i] != nullptr || is_slot_optional);
+
 					if (m_shaders[i] != nullptr)
 					{
 						m_shader_reflections[i] = &m_shaders[i]->m_reflection;
@@ -513,7 +606,7 @@ namespace influx::renderer
 
 			void build_pipeline(graphics::device& device, const signature_type& signature)
 			{
-				graphics::pipeline_desc<_t> pipeline_desc{};
+				graphics::pipeline_desc<_t> pipeline_desc = translate(signature);
 
 				// set shaders
 				for (uint8 i = 0u; i < k_num_shaders; ++i)
@@ -526,40 +619,9 @@ namespace influx::renderer
 					}
 				}
 
+				// set vs input layout
 				if constexpr (_t == graphics::e_pipeline_type::graphics)
 				{
-					pipeline_desc.m_rasterizer.m_cullmode = translate((graphics_pipeline_signature::cullmode)signature.m_cullmode);
-					pipeline_desc.m_rasterizer.m_front_ccw = signature.m_front_ccw;
-					pipeline_desc.m_prim_type = (graphics::e_primitive_topology_type)signature.m_primitive_type;
-					pipeline_desc.m_rasterizer.m_fillmode = (graphics::e_fill_mode)signature.m_fillmode;
-					pipeline_desc.m_rasterizer.m_forced_samplecount = signature.m_forced_samplecount;
-					pipeline_desc.m_sample_mask = signature.m_sample_mask;
-					pipeline_desc.m_sample_count = signature.m_sample_count;
-					pipeline_desc.m_rasterizer.m_depth_clip_enable = signature.m_depthclip;
-					pipeline_desc.m_rasterizer.m_multisample = signature.m_multisample;
-					pipeline_desc.m_rasterizer.m_antialiased_line = signature.m_antialiased_line;
-					pipeline_desc.m_rasterizer.m_conservative = signature.m_conservative_raster;
-					pipeline_desc.m_rasterizer.m_depth_bias = signature.m_depthbias;
-					pipeline_desc.m_rasterizer.m_depth_bias_clamp = signature.m_depthbias_clamp;
-					pipeline_desc.m_rasterizer.m_slope_depth_bias = signature.m_slope_depthbias;
-					pipeline_desc.m_depth_stencil.m_depth_enable = signature.m_depth_enable;
-					pipeline_desc.m_depth_stencil.m_stencil_enable = signature.m_stencil_enable;
-					pipeline_desc.m_depth_stencil.m_depth_func = (graphics::e_comparison_func)signature.m_depth_comparison;
-					pipeline_desc.m_format_dsv = translate((graphics_pipeline_signature::format)signature.m_depth_format);
-					for (uint8 i = 0u; i < 8u; ++i)
-					{
-						pipeline_desc.m_blends[i].m_enabled = signature.m_blend_actives[i];
-						pipeline_desc.m_blends[i].m_src = (graphics::e_blend)signature.m_blend_sources[i];
-						pipeline_desc.m_blends[i].m_dest = (graphics::e_blend)signature.m_blend_dests[i];
-						pipeline_desc.m_blends[i].m_op = (graphics::e_blendop)signature.m_blend_ops[i];
-						pipeline_desc.m_blends[i].m_srcalpha = (graphics::e_blend)signature.m_alpha_sources[i];
-						pipeline_desc.m_blends[i].m_destalpha = (graphics::e_blend)signature.m_alpha_dests[i];
-						pipeline_desc.m_blends[i].m_op_alpha = (graphics::e_blendop)signature.m_alpha_ops[i];
-						pipeline_desc.m_blends[i].m_write_mask = signature.m_blend_writemasks[i];
-						pipeline_desc.m_rtvs[i].m_enabled = signature.m_rtv_actives[i];
-						pipeline_desc.m_rtvs[i].m_format = translate((graphics_pipeline_signature::format)signature.m_rtv_formats[i]);
-					}
-
 					// parse the input elements from vertex shader reflection:
 					constexpr uint8 vertex_shader_idx = static_cast<uint8>(graphics::e_graphics_shader_slots::vs);
 					const shader_data& vertex_shader = *m_shaders[vertex_shader_idx];
@@ -666,4 +728,31 @@ namespace influx::renderer
 	using graphics_pipeline = detail::tpipeline<graphics::e_pipeline_type::graphics>;
 	using compute_pipeline = detail::tpipeline<graphics::e_pipeline_type::compute>;
 	using raytracing_pipeline = detail::tpipeline<graphics::e_pipeline_type::raytracing>;
+}
+
+// Specialize std::hash for shader_signature
+namespace std {
+	template <>
+	struct hash<influx::renderer::graphics_pipeline_signature> {
+		std::size_t operator()(const influx::renderer::graphics_pipeline_signature& sig) const 
+		{
+			return sig.get_hash();
+		}
+	};
+
+	template <>
+	struct hash<influx::renderer::compute_pipeline_signature> {
+		std::size_t operator()(const influx::renderer::compute_pipeline_signature& sig) const
+		{
+			return sig.get_hash();
+		}
+	};
+
+	template <>
+	struct hash<influx::renderer::raytracing_pipeline_signature> {
+		std::size_t operator()(const influx::renderer::raytracing_pipeline_signature& sig) const
+		{
+			return sig.get_hash();
+		}
+	};
 }

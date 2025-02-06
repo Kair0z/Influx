@@ -1,22 +1,7 @@
 #pragma once
 
-// influx::graphics
-#include "influx_graphics/descriptors.h"
-
-// influx::core
-#include "core/container/ringBuffer.h"
-
 // heavily inspired by
 // https://simonstechblog.blogspot.com/2019/06/d3d12-descriptor-heap-management.html
-
-namespace influx::graphics
-{
-	class descriptor_heap;
-	class device;
-	class commandlist;
-	class render_target_view;
-	class resource;
-}
 
 namespace influx::renderer
 {
