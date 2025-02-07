@@ -7,6 +7,7 @@
 #include "influx_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
 #include "influx_renderer/multimesh.h"
+#include "influx_renderer/resources/resource_manager.h"
 
 // influx::graphics
 #include "influx_graphics/resource.h"
@@ -82,6 +83,8 @@ namespace influx::renderer
 		void draw_2D(const scene2D& scene, const target& target);
 		void draw_debug(const scene_debug& scene, const target& target);
 		void draw_shadertoy(const scene_shadertoy& scene, const target& target);
+		void draw_postprocess(const scene_postprocess& scene, const target& target);
+
 		void copy_target(const target& source, const target& dest);
 		void clear_target(const target&, const clear_args&);
 		void present_swapchain(const present_args& args);
@@ -101,7 +104,9 @@ namespace influx::renderer
 		bool has_shader(const shader::shader_signature& signature) const;
 		bool has_material(const string& title) const;
 
-		time::point get_shader_load_timepoint(const shader::shader_signature& signature) const;
+		time::point get_time_loaded_shader(const shader::shader_signature& signature) const;
+		time::point get_time_loaded_texture(const string& title) const;
+		time::point get_time_loaded_mesh(const string& title) const;
 
 		void set_settings(const render_settings& settings);
 		const render_settings& get_settings() const;
@@ -122,11 +127,6 @@ namespace influx::renderer
 
 		memory_info get_memory_info() const;
 		pipeline_info get_pipeline_info() const;
-
-		shader_map<shader::e_shader_type::vs>& get_vertex_shaders();
-		shader_map<shader::e_shader_type::ps>& get_pixel_shaders();
-		shader_map<shader::e_shader_type::cs>& get_compute_shaders();
-
 		void* get_imgui_texture_id(const string& title);
 
 		template <typename _tvtx>
@@ -183,6 +183,7 @@ namespace influx::renderer
 		umap<string, vector<index>> m_index_buffer_contents;
 		umap<string, vector<vertex_data>> m_vertex_buffer_contents; // can be any type
 		umap<string, material> m_materials;
+		resource_manager m_resource_manager;
 
 		// texture data
 		umap<string, texture*> m_textures;

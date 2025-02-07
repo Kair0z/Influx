@@ -10,7 +10,7 @@
 #include "core/string.h"
 #include "core/container/vector.h"
 #include "core/shader.h"
-
+;
 namespace influx::shader
 {
 	struct compile_args final

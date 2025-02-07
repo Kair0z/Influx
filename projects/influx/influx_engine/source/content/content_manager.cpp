@@ -130,7 +130,7 @@ namespace influx::engine
 				shader_item& vs_item = m_shaders[file.m_filename + "_vs"];
 				compile_args.m_signature.m_type = shader::e_shader_type::vs;
 				compile_args.m_signature.m_entrypoint = "main_vs";
-				compile_args.m_signature.update_id();
+				compile_args.m_signature.cache_id();
 				vs_item.load(file.m_path_full, compile_args);
 			}
 
@@ -139,7 +139,7 @@ namespace influx::engine
 				shader_item& ps_item = m_shaders[file.m_filename + "_ps"];
 				compile_args.m_signature.m_type = shader::e_shader_type::ps;
 				compile_args.m_signature.m_entrypoint = "main_ps";
-				compile_args.m_signature.update_id();
+				compile_args.m_signature.cache_id();
 				ps_item.load(file.m_path_full, compile_args);
 			}
 
@@ -148,7 +148,7 @@ namespace influx::engine
 				shader_item& cs_item = m_shaders[file.m_filename + "_cs"];
 				compile_args.m_signature.m_type = shader::e_shader_type::cs;
 				compile_args.m_signature.m_entrypoint = "main_cs";
-				compile_args.m_signature.update_id();
+				compile_args.m_signature.cache_id();
 				cs_item.load(file.m_path_full, compile_args);
 			}
 		});

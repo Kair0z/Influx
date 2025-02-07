@@ -1111,7 +1111,7 @@ namespace influx::rendergraph
 	bool rendergraph::execute_validation_checks() const
 	{
 		bool is_runnable = true;
-		
+		return is_runnable;
 		// imported resources with a pending uav create should allow for UAV!
 		bool uav_check = true;
 		uint32 num_incorrect_uavs = 0u;

@@ -22,23 +22,22 @@ namespace influx::math
 	template <typename _t>
 	using complex = std::complex<_t>;
 
-#if 0
-	class quaternion final
+	class _quaternion final
 	{
 	public:
-		quaternion() = default;
-		quaternion(const vectorf3& forward, const vectorf3& up = vectorf3::up())
+		_quaternion() = default;
+		_quaternion(const vectorf3& forward, const vectorf3& up = vectorf3::up())
 		{
 			m_forward = forward.normalized();
 			m_right = vectorf3::cross(up, m_forward);
 			m_up = vectorf3::cross(m_right, m_forward);
 		}
 
-		virtual ~quaternion() = default;
+		virtual ~_quaternion() = default;
 
-		const static quaternion identity()
+		const static _quaternion identity()
 		{
-			static quaternion q{};
+			static _quaternion q{};
 			q.m_up = { 0.0f, 1.0f, 0.0f };
 			q.m_forward = { 0.0f, 0.0f, 1.0f };
 			q.m_right = { 1.0f, 0.0f, 0.0f };
@@ -128,7 +127,6 @@ namespace influx::math
 
 		math::matrix3x3f m_rotation_matrix;
 	};
-#endif
 
 	template <typename _t>
 	class quaternion final
@@ -388,7 +386,7 @@ namespace influx::math
 
 	using quatf = quaternion<float>;
 	using quatd = quaternion<double>;
-	using rotation = quatf;
+	using rotation = _quaternion;
 }
 
 #endif

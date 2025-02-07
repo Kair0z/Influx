@@ -324,6 +324,11 @@ namespace influx::renderer
         mp_shadertoy_renderer->render(mp_commandlist, scene, target);
     }
 
+    void renderer_backend::draw_postprocess(const scene_postprocess& scene, const target& target)
+    {
+
+    }
+
     void renderer_backend::copy_target(const target& source, const target& dest)
     {
         const bool keep_source = true;
@@ -371,6 +376,8 @@ namespace influx::renderer
     // mesh
     void renderer_backend::load(const string& title, const mesh_data& data, bool reload)
     {
+        m_resource_manager.load<e_resource_type::mesh>(title, data);
+
         create_vertexbuffer<vertex_data>(title, data.m_vertices, reload);
         create_indexbuffer(title, data.m_indices, reload);
     }
@@ -378,6 +385,8 @@ namespace influx::renderer
     // texture
     void renderer_backend::load(const string& title, const texture_data& data, bool reload)
     {
+        m_resource_manager.load<e_resource_type::texture>(title, data);
+
         texture_desc create_args{};
         create_args.m_width = data.get_width();
         create_args.m_heigth = data.get_height();
@@ -389,6 +398,8 @@ namespace influx::renderer
     // shader
     void renderer_backend::load(const shader::shader_signature& signature, const shader_data& data, bool reload)
     {
+        m_resource_manager.load<e_resource_type::shader>(signature, data);
+
         get_shader_manager().load(signature, data, reload);
     }
 
@@ -421,9 +432,17 @@ namespace influx::renderer
         return m_materials.contains(title);
     }
 
-    time::point renderer_backend::get_shader_load_timepoint(const shader::shader_signature& signature) const
+    time::point renderer_backend::get_time_loaded_shader(const shader::shader_signature& signature) const
     {
-        return get_shader_manager().get_shader_load_timepoint(signature);
+        return m_resource_manager.get_time_loaded<e_resource_type::shader>(signature);
+    }
+    time::point renderer_backend::get_time_loaded_texture(const string& title) const
+    {
+        return m_resource_manager.get_time_loaded<e_resource_type::texture>(title);
+    }
+    time::point renderer_backend::get_time_loaded_mesh(const string& title) const
+    {
+        return m_resource_manager.get_time_loaded<e_resource_type::mesh>(title);
     }
 
     void renderer_backend::set_settings(const render_settings& settings)
@@ -718,6 +737,11 @@ namespace influx::renderer
         renderer_backend::get_instance().draw_shadertoy(scene, target);
     }
 
+    INFLUX_RENDER_API void draw_postprocess(const scene_postprocess& scene, const target& target)
+    {
+        renderer_backend::get_instance().draw_postprocess(scene, target);
+    }
+
     void load(const string& title, const mesh_data& data, bool reload)
     {
         renderer_backend::get_instance().load(title, data, reload);
@@ -738,9 +762,17 @@ namespace influx::renderer
         renderer_backend::get_instance().load(title, data, reload);
     }
 
-    time::point get_shader_load_timepoint(const shader::shader_signature& signature)
+    time::point get_time_loaded_shader(const shader::shader_signature& signature)
     {
-        return renderer_backend::get_instance().get_shader_load_timepoint(signature);
+        return renderer_backend::get_instance().get_time_loaded_shader(signature);
+    }
+    time::point get_time_loaded_texture(const string& title)
+    {
+        return renderer_backend::get_instance().get_time_loaded_texture(title);
+    }
+    time::point get_time_loaded_mesh(const string& title)
+    {
+        return renderer_backend::get_instance().get_time_loaded_mesh(title);
     }
 
     bool has_mesh(const string& title)

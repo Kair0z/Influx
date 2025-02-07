@@ -105,10 +105,12 @@ namespace influx::shader
 }
 
 // Specialize std::hash for shader_signature
-namespace std {
-	template <>
-	struct hash<influx::shader::shader_signature> {
-		std::size_t operator()(const influx::shader::shader_signature& sig) const {
+namespace std 
+{
+	template <> struct hash<influx::shader::shader_signature> 
+	{
+		std::size_t operator()(const influx::shader::shader_signature& sig) const 
+		{
 			return sig.get_id();
 		}
 	};

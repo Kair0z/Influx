@@ -473,7 +473,13 @@ namespace influx::engine
 			{
 				const imp::shader_data shader_data = asset.second.m_resource;
 				const shader::shader_signature& signature = shader_data.m_signature;
-				influx::renderer::load(signature, translate(shader_data), true);
+
+				const time::point render_load_time = renderer::get_time_loaded_shader(signature);
+				if (!renderer::has_shader(signature) || asset.second.m_time_loadend > render_load_time)
+				{
+					// if load time is newer than previous render load time, reload
+					influx::renderer::load(signature, translate(shader_data), true);
+				}
 			}
 		}
 	}

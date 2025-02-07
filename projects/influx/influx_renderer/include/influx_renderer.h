@@ -34,10 +34,12 @@ struct ImDrawData;
 #include "influx_renderer/scene.h"
 #include "influx_renderer/stats.h"
 #include "influx_renderer/shadertoy.h"
+#include "influx_renderer/postprocess.h"
 
 // influx::shader
 #include "influx_shader.h"
 
+;
 namespace influx::renderer
 {
 	// shader data
@@ -104,6 +106,9 @@ namespace influx::renderer
 	// - shadertoy rendering
 	INFLUX_RENDER_API void draw_shadertoy(const scene_shadertoy& scene, const target& target);
 
+	// - postprocess rendering
+	INFLUX_RENDER_API void draw_postprocess(const scene_postprocess& scene, const target& target);
+
 	// 3. (optional) copy intermediate data
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
 
@@ -122,7 +127,9 @@ namespace influx::renderer
 	INFLUX_RENDER_API void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const string& title, const material& data, bool reload = false);
 
-	INFLUX_RENDER_API time::point get_shader_load_timepoint(const shader::shader_signature& signature);
+	INFLUX_RENDER_API time::point get_time_loaded_shader(const shader::shader_signature& signature);
+	INFLUX_RENDER_API time::point get_time_loaded_texture(const string& title);
+	INFLUX_RENDER_API time::point get_time_loaded_mesh(const string& title);
 
 	INFLUX_RENDER_API bool has_mesh(const string& title);
 	INFLUX_RENDER_API bool has_texture(const string& title);
