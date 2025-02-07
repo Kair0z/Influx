@@ -58,35 +58,45 @@ void test_math_vector_all()
 	test_math_vector<uint32, 3u>();
 	test_math_vector<uint32, 4u>();
 }
-template <typename _t, typename _x, typename _y>
+
+template <typename _t, uint32 _x, uint32 _y>
 void test_math_matrix()
 {
 	using value_type = _t;
-	using num_rows = _x;
-	using num_cols = _y;
+	constexpr uint32 num_rows = _x;
+	constexpr uint32 num_cols = _y;
 
-	// addition
-		
-	// subtraction
-	
-	// multiplication
-	
-	// division
-	
-	// translation
+	if constexpr (num_rows == num_cols)
+	{
+		// uniform matrix tests
 
-	// scaling
-
-	// rotation
+	}
 }
 void test_math_matrix_all()
 {
-
+	test_math_matrix<double, 1u, 1u>();
+	test_math_matrix<double, 2u, 2u>();
+	test_math_matrix<double, 3u, 3u>();
+	test_math_matrix<double, 4u, 4u>();
+	test_math_matrix<float, 1u, 1u>();
+	test_math_matrix<float, 2u, 2u>();
+	test_math_matrix<float, 3u, 3u>();
+	test_math_matrix<float, 4u, 4u>();
+	test_math_matrix<int, 1u, 1u>();
+	test_math_matrix<int, 2u, 2u>();
+	test_math_matrix<int, 3u, 3u>();
+	test_math_matrix<int, 4u, 4u>();
+	test_math_matrix<uint32, 1u, 1u>();
+	test_math_matrix<uint32, 2u, 2u>();
+	test_math_matrix<uint32, 3u, 3u>();
+	test_math_matrix<uint32, 4u, 4u>();
 }
+
 void test_basetypes()
 {
 	// todo
 }
+
 void test_cache()
 {
 	// todo
@@ -97,6 +107,5 @@ int main()
 	test_basetypes();
 	test_cache();
 	test_math_vector_all();
-	
 	test_math_matrix_all();
 }
