@@ -1,5 +1,5 @@
 
-#include "core/debug.h"
+#include "core/debug.h"	// influx_assert
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
