@@ -9,6 +9,9 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 #include "influx_graphics/device.h"
 #include "influx_renderer.h"
 
+#include "core/math/vectortools.h"
+#include "core/math/random.h"
+
 #include "influx_import.h"
 
 const influx::renderer::mesh_data& get_mesh_data()
@@ -123,15 +126,23 @@ int main()
 	renderer::load("my_mesh", get_mesh_data());
 	load_shaders();
 
+	// setup camera
 	renderer::scene scene_to_draw{};
 	scene_to_draw.m_camera.m_fov = 90.0f;
 	scene_to_draw.m_camera.m_near_plane = 0.01f;
 	scene_to_draw.m_camera.m_far_plane = 1000.0f;
-	scene_to_draw.m_camera.m_transform.set_position({ 0,0, 10.0f });
+	scene_to_draw.m_camera.m_transform.set_position({ 0, 10.0f, 10.0f });
 	scene_to_draw.m_camera.m_transform.look_at({});
 	scene_to_draw.m_camera.m_transform.update_matrix();
-	scene_to_draw.add_mesh("my_mesh");
 
+	// spawn some meshes in a circle
+	for (const auto& point : math::get_points_in_circle(5.0f, 32u))
+	{
+		static const math::vectorf3 offset = { 0,0,0 };
+		scene_to_draw.add_mesh("my_mesh", math::matrix4x4f::make_transform_RH(offset + point, point.normalized()));
+		scene_to_draw.m_meshes.back().m_per_instance_colour = random::get_random_unit_vectorf3();
+	}
+	
 	while (true)
 	{
 		// attach a window target
@@ -140,7 +151,7 @@ int main()
 		renderer::start_frame();
 
 		renderer::clear_args clear{};
-		clear.m_colour = colour::k_red;
+		clear.m_colour = colour::k_black;
 		renderer::clear_target(*window_target, clear);
 
 		renderer::draw_scene(scene_to_draw, *window_target);

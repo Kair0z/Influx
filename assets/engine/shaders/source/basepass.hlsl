@@ -105,7 +105,7 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
     ps_input output = (ps_input)0;
 
     // get instance data
-    instance_id = g_perdraw.start_instance;
+    instance_id += g_perdraw.start_instance;
     per_instance_data instance_data = get_instance_buffer()[instance_id];
     
     // get vertex data
@@ -141,14 +141,11 @@ ps_output main_ps(ps_input input)
     // float3 normal = get_normal(input.texcoord).rgb;
     float3 normal = input.normal;
 
-    float epsilon = 5.96e-4;
-    if (abs(normal.x) < epsilon) normal.x = 0;
-    if (abs(normal.y) < epsilon) normal.y = 0;
-    if (abs(normal.z) < epsilon) normal.z = 0;
+    normal = snap_normal(normal);
     normal = normalize(normal);
 
     ps_output output = (ps_output)0;
-    output.gbuffer_data.set_albedo(albedo.rgb);
+    output.gbuffer_data.set_albedo(lerp(albedo.rgb, input.colour.rgb, 0.5f));
     output.gbuffer_data.set_normal(normal.rgb);
     output.gbuffer_data.set_depth(input.position.z);
     return output;

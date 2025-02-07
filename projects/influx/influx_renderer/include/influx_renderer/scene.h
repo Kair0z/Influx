@@ -31,8 +31,8 @@ namespace influx::renderer
 	struct camera final
 	{
 		float m_fov = 90.0f;
-		float m_near_plane = 0.0001f;
-		float m_far_plane = 100.0f;
+		float m_near_plane	= 0.0001f;
+		float m_far_plane	= 1000.0f;
 
 		math::transform3D m_transform;
 	};
