@@ -151,16 +151,17 @@ namespace influx::math
 			"Invalid scalar type for Quaternion");
 
 	public:
-		quaternion(_t a = 0, _t b = 0, _t c = 0, _t d = 0);
+		quaternion(_t a = 0, _t b = 0, _t c = 0, _t d = 0)
+		: m_a{a}, m_b{b}, m_c{c}, m_d{d}{}
 		// todo more constructors...
 
 		template <typename _t2>
 		quaternion& operator=(const quaternion<_t2>& other);
 
-		const _t& get_a() const;
-		const _t& get_b() const;
-		const _t& get_c() const;
-		const _t& get_d() const;
+		const _t& get_a() const { return m_a; }
+		const _t& get_b() const { return m_b; }
+		const _t& get_c() const { return m_c; }
+		const _t& get_d() const { return m_d; }
 
 		const _t& get_real() const
 		{ return m_a; }
@@ -336,6 +337,9 @@ namespace influx::math
 			mat.set_row(2, float3{2 * (bd - ac)		, 2 * (cd + ab)		, a2 - b2 - c2 + d2} );
 			return mat;
 		}
+
+		static quaternion identity() 
+		{ static quaternion g_identity{ 1,0,0,0 }; return g_identity; }
 
 		template <typename _t2>
 		static quaternion<_t2> make_quaternion(const matrix<_t2, 3u, 3u>& mat)

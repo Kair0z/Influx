@@ -152,7 +152,8 @@ namespace influx::math
 		static float cross(const vector<_t, 2u>& a, const vector<_t, 2u>& b);
 		static vector<_t, 3u> cross(const vector<_t, 3u>& a, const vector<_t, 3u>& b);
 
-		// Comparison
+		// Comparison+		a	{...}	const influx::math::vector<float,3> &
+
 		bool operator==(const vector& other) const;
 		bool operator!=(const vector& other) const;
 
@@ -176,6 +177,10 @@ namespace influx::math
 		static vector zero();
 		static vector one();
 		static vector get_max();
+
+		// makes a vector filled with value
+		static vector fill(const _t&);
+
 		bool is_zero() const;
 		static bool is_zero(const vector& v);
 

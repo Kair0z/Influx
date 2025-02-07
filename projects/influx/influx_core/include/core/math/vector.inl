@@ -417,6 +417,16 @@ namespace influx::math
 		}
 		return result;
 	}
+	template<typename _t, _vector_dim_t _dim>
+	inline vector<_t, _dim> vector<_t, _dim>::fill(const _t& value)
+	{
+		vector<_t, _dim> result{};
+		for (_vector_dim_t i{}; i < _dim; ++i)
+		{
+			result[i] = value;
+		}
+		return result;
+	}
 #pragma endregion
 
 	// Comparison:
@@ -500,7 +510,8 @@ namespace influx::math
 	template<typename _t, _vector_dim_t _dim>
 	vector<_t, _dim> operator/(const vector<_t, _dim>& a, const vector<_t, _dim>& b)
 	{
-		FLX_ASSERT(b.x != static_cast<_t>(0) && b.y != static_cast<_t>(0) && b.z != static_cast<_t>(0));
+		for (_vector_dim_t i =0u; i < _dim; ++i)
+			influx_assert(b[i] != static_cast<_t>(0));
 
 		vector<_t, _dim> res{};
 		for (_vector_dim_t i{}; i < _dim; ++i)

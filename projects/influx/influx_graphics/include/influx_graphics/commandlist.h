@@ -104,7 +104,6 @@ namespace influx::graphics
 		const debug_name& get_name() const;
 
 		INFLUX_GFX_API
-		// starts a commandlist, using the device to allocate the memory internally
 		virtual void renderpass_begin(const renderpass_args& args) = 0;
 	
 		INFLUX_GFX_API
