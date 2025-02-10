@@ -56,6 +56,11 @@ namespace influx
 
 			return false;
 		}
+
+		void foo()
+		{
+			
+		}
 	};
 }
 #endif

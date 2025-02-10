@@ -82,115 +82,79 @@ namespace influx::graphics
 			count
 		};
 		
-		INFLUX_GFX_API
-		void start(device* device, detail::pipeline* init_state = nullptr);
+		INFLUX_GFX_API void start(device* device, detail::pipeline* init_state = nullptr);
 
-		INFLUX_GFX_API
-		void submit(queue*);
+		INFLUX_GFX_API void submit(queue*);
 
-		INFLUX_GFX_API
-		void wait_for_completion();
+		INFLUX_GFX_API void wait_for_completion();
 
-		INFLUX_GFX_API
-		bool is_completed();
+		INFLUX_GFX_API bool is_completed();
 
-		INFLUX_GFX_API
-		e_state get_state();
+		INFLUX_GFX_API e_state get_state();
 
-		INFLUX_GFX_API
-		void set_name(const debug_name& name);
+		INFLUX_GFX_API void set_name(const debug_name& name);
 
-		INFLUX_GFX_API
-		const debug_name& get_name() const;
+		INFLUX_GFX_API const debug_name& get_name() const;
 
-		INFLUX_GFX_API
-		virtual void renderpass_begin(const renderpass_args& args) = 0;
+		INFLUX_GFX_API virtual void renderpass_begin(const renderpass_args& args) = 0;
 	
-		INFLUX_GFX_API
-		virtual void renderpass_end() = 0;
+		INFLUX_GFX_API virtual void renderpass_end() = 0;
 
-		INFLUX_GFX_API
-		virtual void draw_instanced(const draw_instanced_args& args) = 0;
+		INFLUX_GFX_API virtual void draw_instanced(const draw_instanced_args& args) = 0;
 		
-		INFLUX_GFX_API
-		virtual void draw_indexed(const draw_indexed_args& args) = 0;
+		INFLUX_GFX_API virtual void draw_indexed(const draw_indexed_args& args) = 0;
 
-		INFLUX_GFX_API
-		virtual void dispatch(const dispatch_args& args) = 0;
+		INFLUX_GFX_API virtual void dispatch(const dispatch_args& args) = 0;
 
-		INFLUX_GFX_API
-		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) = 0;
+		INFLUX_GFX_API virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) = 0;
 
-		INFLUX_GFX_API
-		virtual void set_indexbuffer(resource* index_buffer) = 0;
+		INFLUX_GFX_API virtual void set_indexbuffer(resource* index_buffer) = 0;
 		
-		INFLUX_GFX_API
-		virtual void set_vertexbuffer(resource* vertex_buffer) = 0;
+		INFLUX_GFX_API virtual void set_vertexbuffer(resource* vertex_buffer) = 0;
 		
 
-		INFLUX_GFX_API
-		virtual void clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value) = 0;
+		INFLUX_GFX_API virtual void clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value) = 0;
 
-		INFLUX_GFX_API
-		virtual void clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil) = 0;
+		INFLUX_GFX_API virtual void clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil) = 0;
 
-		INFLUX_GFX_API
-		virtual void set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu) = 0;
+		INFLUX_GFX_API virtual void set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu) = 0;
 
-		INFLUX_GFX_API
-		virtual void set_srv(descriptor_handle srv_gpu, uint32 param_idx) = 0;
+		INFLUX_GFX_API virtual void set_srv(descriptor_handle srv_gpu, uint32 param_idx) = 0;
 
 
-		INFLUX_GFX_API
-		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) = 0;
+		INFLUX_GFX_API virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) = 0;
 
-		INFLUX_GFX_API
-		virtual void buffer_barrier(resource* resource, e_resource_state before, e_resource_state after) = 0;
+		INFLUX_GFX_API virtual void buffer_barrier(resource* resource, e_resource_state before, e_resource_state after) = 0;
 
-		INFLUX_GFX_API
-		virtual void texture_barrier(resource* resource, e_resource_state before, e_resource_state after) = 0;
+		INFLUX_GFX_API virtual void texture_barrier(resource* resource, e_resource_state before, e_resource_state after) = 0;
 
-		INFLUX_GFX_API 
-		virtual void global_barrier(e_resource_state before, e_resource_state after) = 0;
+		INFLUX_GFX_API virtual void global_barrier(e_resource_state before, e_resource_state after) = 0;
 
-		INFLUX_GFX_API
-		virtual void flush_barriers() = 0;
+		INFLUX_GFX_API virtual void flush_barriers() = 0;
 
-		INFLUX_GFX_API
-		virtual void copy_resource(resource* source, resource* dest) = 0;
+		INFLUX_GFX_API virtual void copy_resource(resource* source, resource* dest) = 0;
 
-		INFLUX_GFX_API
-		virtual void copy_texture(resource* src, resource* dest, const copy_texture_args& = {}) = 0;
+		INFLUX_GFX_API virtual void copy_texture(resource* src, resource* dest, const copy_texture_args& = {}) = 0;
 
-		INFLUX_GFX_API
-		virtual void copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args & = {}) = 0;
+		INFLUX_GFX_API virtual void copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args & = {}) = 0;
 
-		INFLUX_GFX_API
-		virtual void set(descriptor_heap* heap) = 0;
+		INFLUX_GFX_API virtual void set(descriptor_heap* heap) = 0;
 
-		INFLUX_GFX_API
-		virtual void set(const vector<descriptor_heap*>& heap) = 0;
+		INFLUX_GFX_API virtual void set(const vector<descriptor_heap*>& heap) = 0;
 
-		INFLUX_GFX_API
-		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) = 0;
+		INFLUX_GFX_API virtual void set(const descriptor_range& gpu_range, uint32 param_idx) = 0;
 
-		INFLUX_GFX_API
-		virtual void set(rootsignature* rootsig, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
+		INFLUX_GFX_API virtual void set(rootsignature* rootsig, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
 		
-		INFLUX_GFX_API
-		virtual void set(detail::pipeline* pipeline) = 0;
+		INFLUX_GFX_API virtual void set(detail::pipeline* pipeline) = 0;
 
-		INFLUX_GFX_API
-		virtual void set(const viewport& viewport) = 0;
+		INFLUX_GFX_API virtual void set(const viewport& viewport) = 0;
 
-		INFLUX_GFX_API
-		virtual void set(const rect& rect) = 0;
+		INFLUX_GFX_API virtual void set(const rect& rect) = 0;
 
-		INFLUX_GFX_API
-		virtual void set(e_primitive_topology topo) = 0;
+		INFLUX_GFX_API virtual void set(e_primitive_topology topo) = 0;
 
-		INFLUX_GFX_API
-		virtual void end() = 0;
+		INFLUX_GFX_API virtual void end() = 0;
 
 	private:
 		virtual void start_impl(device* device, detail::pipeline* init_state = nullptr) = 0;

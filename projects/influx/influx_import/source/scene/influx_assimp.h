@@ -40,14 +40,6 @@ namespace influx
 			}
 		}
 
-		//new_matrix[0][0] = -new_matrix[0][0];
-		// new_matrix[1][1] = -new_matrix[1][1];
-		new_matrix[2][2] = -new_matrix[2][2];
-
-		//new_matrix[3][0] = -new_matrix[3][0];
-		new_matrix[3][1] = -new_matrix[3][1];
-		new_matrix[3][2] = -new_matrix[3][2];
-
 		return new_matrix;
 	}
 
@@ -125,7 +117,7 @@ namespace influx
 	{
 		if (node.mParent) 
 		{
-			return calc_world_matrix_recursive(*node.mParent) * node.mTransformation;
+			return node.mTransformation * calc_world_matrix_recursive(*node.mParent);
 		}
 		return node.mTransformation;
 	}

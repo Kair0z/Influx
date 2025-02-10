@@ -238,6 +238,9 @@ namespace influx::engine
 			return item.m_name + "_" + to_string(idx);
 		}
 
+		// update externally changed files
+		void update_filechanges();
+
 	private:
 		umap<string, scene_item> m_scenes;
 		umap<string, image_item> m_images;

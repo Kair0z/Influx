@@ -84,6 +84,15 @@ namespace influx::engine
 		load_assets(engine, e_asset_origin::game, game_assets_dir);
 	}
 
+	void content_manager::update_filechanges()
+	{
+		for (auto& pair : touch_shaders())
+		{
+			const string& path = pair.second.m_path;
+			
+		}
+	}
+
 	void content_manager::load_assets(engine* engine, e_asset_origin origin, const file& root)
 	{	
 		vector<file> fbx_files = get_files_in_directory(root.m_path_full, true, ".fbx");

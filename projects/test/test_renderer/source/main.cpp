@@ -14,7 +14,7 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
 #include "influx_import.h"
 
-const influx::renderer::mesh_data& get_mesh_data()
+const influx::renderer::mesh_data& get_mesh_data(influx::math::matrix4x4f& out_transform)
 {
 	using namespace influx;
 
@@ -27,6 +27,7 @@ const influx::renderer::mesh_data& get_mesh_data()
 	influx_assert(imp::load_scene_file("D:/Git/Influx/assets/engine/meshes/box.fbx", loaded_scene, args));
 
 	const imp::mesh_data& main_mesh = loaded_scene.get_main_mesh();
+	out_transform = main_mesh.m_world_transform;
 	static influx::renderer::mesh_data result{};
 	{
 		result.m_vertices.reserve(main_mesh.m_positions.size());
@@ -59,7 +60,7 @@ void load_shaders()
 
 	// global args
 	shader::compile_args args{};
-	args.m_include_folder = shaders_folder + "/include/";
+	args.m_include_folder = shaders_folder;
 	args.m_signature.m_target = shader::e_shader_target::_6_6;
 	args.m_reflection = true;
 	args.m_defines = {};
@@ -123,7 +124,9 @@ int main()
 	present_args.m_vsync = false;
 
 	// load assets
-	renderer::load("my_mesh", get_mesh_data());
+	math::matrix4x4f mesh_transform{};
+	const auto& mesh_data = get_mesh_data(mesh_transform);
+	renderer::load("my_mesh", mesh_data);
 	load_shaders();
 
 	// setup camera
@@ -131,10 +134,11 @@ int main()
 	scene_to_draw.m_camera.m_fov = 90.0f;
 	scene_to_draw.m_camera.m_near_plane = 0.01f;
 	scene_to_draw.m_camera.m_far_plane = 1000.0f;
-	scene_to_draw.m_camera.m_transform.set_position({ 0, 10.0f, 10.0f });
+	scene_to_draw.m_camera.m_transform.set_position({ 0, 0, 500.0f });
 	scene_to_draw.m_camera.m_transform.look_at({});
 	scene_to_draw.m_camera.m_transform.update_matrix();
 
+#if 0
 	// spawn some meshes in a circle
 	for (const auto& point : math::get_points_in_circle(5.0f, 32u))
 	{
@@ -142,7 +146,10 @@ int main()
 		scene_to_draw.add_mesh("my_mesh", math::matrix4x4f::make_transform_RH(offset + point, point.normalized()));
 		scene_to_draw.m_meshes.back().m_per_instance_colour = random::get_random_unit_vectorf3();
 	}
-	
+#endif
+
+	scene_to_draw.add_mesh("my_mesh", mesh_transform);
+
 	while (true)
 	{
 		// attach a window target

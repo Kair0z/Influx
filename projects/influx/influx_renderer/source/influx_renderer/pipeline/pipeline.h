@@ -440,8 +440,8 @@ namespace influx::renderer
 			}
 
 			update_shaders(signature);
-			build_rootsignature(device, signature);
-			build_pipeline(device, signature);
+			rebuild_rootsignature(device, signature);
+			rebuild_pipeline(device, signature);
 		}
 
 		void update_shaders(graphics::device& device)
@@ -450,8 +450,8 @@ namespace influx::renderer
 
 			if (m_needs_rebuild)
 			{
-				build_rootsignature(device, m_signature);
-				build_pipeline(device, m_signature);
+				rebuild_rootsignature(device, m_signature);
+				rebuild_pipeline(device, m_signature);
 			}
 		}
 
@@ -477,11 +477,20 @@ namespace influx::renderer
 				// get the appropriate shadermap and store into slot
 				shader_map& shadermap = shaderman.get_shadermap(type, shader_signature_copy.m_target);
 				const shader_data* new_shader = shadermap.get_shader(shader_signature_copy);
-				store_shaderdata(slot, new_shader);
+
+				// if new data is newer than previous loadpoint, flag rebuild
+				if (new_shader->m_time_loaded > m_shader_loadpoints[slot_index])
+				{
+					m_needs_rebuild = true;
+				}
+
+				// re-store the pointer & update the loadpoint
+				m_shaders[slot_index] = new_shader;
+				m_shader_loadpoints[slot_index] = time::get_now();
 			}
 		}
 
-		// call this to re-fetch shaders from shader_manager to rebuild the pipeline
+		// call this to re-fetch shaders from shader_manager and possibly rebuild the pipeline
 		void update_shaders(const signature_type& signature)
 		{
 			shader::shader_signature shader_sig = {};
@@ -508,7 +517,7 @@ namespace influx::renderer
 				update_shader(shader_sig, shader::e_shader_type::ins);
 			}
 
-			// final gather
+			// collect reflections
 			for (uint8 i = 0u; i < k_num_shaders; ++i)
 			{
 				// assert the non-optional stages
@@ -522,18 +531,7 @@ namespace influx::renderer
 			}
 		}
 
-		template <graphics::shader_slots<_t>::enum_type _s>
-		bool is_shader_dirty()
-		{
-			static constexpr uint32 index = static_cast<uint32>(_s);
-			if (m_shaders[index] == nullptr)
-			{
-				return true;
-			}
-
-			return false;
-		}
-
+		// pipeline interfact:
 		void set_state(graphics::commandlist& commandlist)
 		{
 			commandlist.set(m_rootsig, _t);
@@ -582,7 +580,7 @@ namespace influx::renderer
 		}
 
 	private:
-		void build_rootsignature(graphics::device& device, const signature_type& signature)
+		void rebuild_rootsignature(graphics::device& device, const signature_type& signature)
 		{
 			// build the root signature:
 			graphics::rootsignature_desc rootsig_desc{};
@@ -678,7 +676,7 @@ namespace influx::renderer
 			m_rootsig_desc = rootsig_desc;
 		}
 
-		void build_pipeline(graphics::device& device, const signature_type& signature)
+		void rebuild_pipeline(graphics::device& device, const signature_type& signature)
 		{
 			pipeline_desc_type pipeline_desc{};
 			pipeline_desc = translate(signature);
@@ -742,20 +740,6 @@ namespace influx::renderer
 			}
 
 			m_desc = pipeline_desc;
-		}
-
-		void store_shaderdata(graphics::shader_slots<_t>::enum_type slot, shader_data const* data)
-		{
-			const uint8 slot_index = static_cast<uint8>(slot);
-
-			// if new data is newer than previous loadpoint, flag rebuild
-			if (data->m_time_loaded > m_shader_loadpoints[slot_index])
-			{
-				m_needs_rebuild = true;
-			}
-			
-			m_shaders[slot_index] = data;
-			m_shader_loadpoints[slot_index] = time::get_now();
 		}
 
 		shader_data const* get_shader(graphics::shader_slots<_t>::enum_type slot) const
