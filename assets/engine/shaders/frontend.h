@@ -12,6 +12,9 @@ typedef influx::math::matrix4x4f	float4x4;
 typedef influx::math::float4		float4;
 typedef influx::math::float3		float3;
 typedef influx::math::float2		float2;
+typedef influx::math::uint4			uint4;
+typedef influx::math::uint3			uint3;
+typedef influx::math::uint2			uint2;
 typedef influx::uint32				uint;
 #else
 
@@ -43,8 +46,14 @@ struct per_instance
 {
 	float4x4 m_transform;
 	float4 m_colour;
-	uint m_albedo_index;
-	uint m_normal_index;
+
+	void set_albedo_index(uint index) { m_texture_indices[0] = index; }
+	uint get_albedo_index() { return m_texture_indices[0]; }
+
+	void set_normal_index(uint index) { m_texture_indices[1] = index; }
+	uint get_normal_index() { return m_texture_indices[1]; }
+
+	uint4 m_texture_indices;
 };
 
 struct per_vertex

@@ -6,21 +6,11 @@ namespace influx::renderer::frontend
 	#include "frontend.h"
 }
 
-#pragma region forward_decl
-// influx::core
-namespace influx
-{
-	class material;
-}
-
 // influx::graphics
 namespace influx::graphics
 {
-	class device;
 	class commandlist;
-	class descriptor_heap;
 	class resource;
-	class shader_resource_view;
 }
 
 // influx::rendergraph
@@ -30,14 +20,6 @@ namespace influx::rendergraph
 	class rgpass_builder;
 	class rgpass_context;
 }
-
-// influx::renderer
-namespace influx::renderer
-{
-	class renderer_backend;
-	class pipeline;
-}
-#pragma endregion
 
 namespace influx::renderer
 {
@@ -51,11 +33,7 @@ namespace influx::renderer
 	class scene_renderer final
 	{
 	public:
-		scene_renderer(
-			renderer_backend* backend,
-			graphics::device* device,
-			pipeline* pipeline);
-
+		scene_renderer();
 		~scene_renderer();
 
 		void render(rendergraph::rendergraph& graph, const scene& scene, const target& target);
@@ -73,9 +51,6 @@ namespace influx::renderer
 
 	private:
 		static constexpr uint32 k_num_light_types = 3u;
-
-		renderer_backend* mp_backend;
-		graphics::device* mp_device;
 
 		graphics::resource* mp_instancebuffer;
 		graphics::resource* mp_lightbuffers[k_num_light_types];

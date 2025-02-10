@@ -1,3 +1,4 @@
+#include "include/common.hlsli"
 
 struct vs_input 
 {

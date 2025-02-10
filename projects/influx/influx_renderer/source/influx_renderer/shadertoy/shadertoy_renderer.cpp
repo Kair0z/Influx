@@ -57,24 +57,22 @@ namespace influx::renderer
 	{
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipelineman = *backend.get_pipeline_manager();
-        graphics_pipeline* pipeline = pipelineman.get_or_create_pipeline(get_pipeline_sig());
-        if (pipeline)
-        {
-            logonce(e_log_category::warning, "influx::renderer::shadertoy_renderer: first render!");
+        graphics_pipeline& pipeline = pipelineman.get_or_create_pipeline(get_pipeline_sig());
+        
+        logonce(e_log_category::warning, "influx::renderer::shadertoy_renderer: first render!");
 
-            pipeline->set_state(*commandlist);
-            commandlist->set(graphics::e_primitive_topology::trilist);
-            commandlist->set_vertexbuffer(mp_vertexbuffer);
-            commandlist->set_indexbuffer(mp_indexbuffer);
-            commandlist->draw_indexed(
-            {
-                .m_num_indexes_per_instance{6u},
-                .m_num_instances{1u},
-                .m_start_index{0u},
-                .m_start_vertex{0u},
-                .m_start_instance{0u}
-            });
-        }
+        pipeline.set_state(*commandlist);
+        commandlist->set(graphics::e_primitive_topology::trilist);
+        commandlist->set_vertexbuffer(mp_vertexbuffer);
+        commandlist->set_indexbuffer(mp_indexbuffer);
+        commandlist->draw_indexed(
+        {
+            .m_num_indexes_per_instance{6u},
+            .m_num_instances{1u},
+            .m_start_index{0u},
+            .m_start_vertex{0u},
+            .m_start_instance{0u}
+        });
 	}
 
     shadertoy_renderer::shadertoy_renderer()

@@ -89,14 +89,13 @@ namespace influx::renderer
         return signature;
     };
 
-    scene_renderer::scene_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
-        : mp_backend{ backend }
-        , mp_device{ device }
+    scene_renderer::scene_renderer()
     {
-        m_instance_data = new frontend::per_instance[k_max_num_instances]{};
+        renderer_backend& backend = renderer_backend::get_instance();
+        graphics::device& device = backend.get_device();
+        static descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
 
-        static descriptor_manager& descriptor_manager = *backend->get_descriptor_manager();
-        m_sampler_view = descriptor_manager.create_sampler();
+        m_instance_data = new frontend::per_instance[k_max_num_instances]{};
 
         // instance buffer
         {
@@ -107,7 +106,7 @@ namespace influx::renderer
             desc.m_bytesize = k_max_num_instances * sizeof(frontend::per_instance);
             desc.m_bytestride = sizeof(frontend::per_instance);
             desc.m_init_state = graphics::e_resource_state::gen_read;
-            mp_instancebuffer = device->create_resource(desc, heap_desc);
+            mp_instancebuffer = device.create_resource(desc, heap_desc);
             mp_instancebuffer->set_name({ "scene_instance_buffer" });
 
             // create srv
@@ -133,12 +132,14 @@ namespace influx::renderer
                 desc.m_bytestride = buffer_strides[i];
                 desc.m_bytesize = k_max_num_lights * desc.m_bytestride;
 
-                mp_lightbuffers[i] = device->create_resource(desc, heap_desc);
+                mp_lightbuffers[i] = device.create_resource(desc, heap_desc);
                 mp_lightbuffers[i]->set_name("lightbuffer_" + to_string(i));
 
                 m_lightbuffer_srvs[i] = descriptor_manager.create_buffer_srv(mp_lightbuffers[i]);
             }
         }
+
+        m_sampler_view = descriptor_manager.create_sampler();
     }
 
     scene_renderer::~scene_renderer()
@@ -224,7 +225,7 @@ namespace influx::renderer
                 diffuse_name = material.get_texture_diffuse_name();
             }
 
-            gpu_data.m_albedo_index = tex_to_idx[backend.find_texture(diffuse_name)];
+            gpu_data.set_albedo_index( tex_to_idx[backend.find_texture(diffuse_name)] );
             meshname_to_instances[instance.m_name].push_back(gpu_data);
         }
 
@@ -363,8 +364,8 @@ namespace influx::renderer
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
 
         apply_pipeline_settings(target);
-        graphics_pipeline* pipeline = pipeline_man.get_or_create_pipeline(get_scene_basepass_pipeline_signature());
-        if (pipeline == nullptr || scene.is_empty())
+        graphics_pipeline& pipeline = pipeline_man.get_or_create_pipeline( get_scene_basepass_pipeline_signature() );
+        if (scene.is_empty())
         {
             return;
         }
@@ -379,7 +380,7 @@ namespace influx::renderer
         update_instance_buffer(batches);
 
         // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
-        pipeline->set_state(commandlist);
+        pipeline.set_state(commandlist);
         commandlist.set(graphics::e_primitive_topology::trilist);
 
         // per-scene
@@ -395,8 +396,8 @@ namespace influx::renderer
 
             const float ar = (float)target.get_width() / target.get_height();
             m_gpu_perview.m_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
-            pipeline->set_constants<frontend::per_scene>(commandlist, "g_perscene", m_gpu_perscene);
-            pipeline->set_constants<frontend::per_view>(commandlist, "g_perview", m_gpu_perview);
+            pipeline.set_constants<frontend::per_scene>(commandlist, "g_perscene", m_gpu_perscene);
+            pipeline.set_constants<frontend::per_view>(commandlist, "g_perview", m_gpu_perview);
         }
 
         for (const batch& batch : batches)
@@ -404,8 +405,8 @@ namespace influx::renderer
             // per draw constants
             m_gpu_perdraw.m_base_instance = static_cast<uint32>(batch.m_base_instance);
             m_gpu_permaterial.m_colour = {};
-            pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
-            pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
+            pipeline.set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
+            pipeline.set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
             // bind index buffer
             graphics::resource* index_buffer = batch.m_indexbuffer;
@@ -466,69 +467,68 @@ namespace influx::renderer
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
         descriptor_manager& descriptor_man = *backend.get_descriptor_manager();
+        compute_pipeline& pipeline = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
+        graphics::commandlist& commandlist = context.get_commandlist();
 
-        auto* compute_pipeline = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
-        if (compute_pipeline)
+        // hot-reload our shaders if necessary:
+        pipeline.update_shaders(backend.get_device());
+
+        // update buffers for deferred lights
+        update_lightbuffers(scene);
+
+        // build resolve args
+        struct resolve_args final
         {
-            graphics::commandlist& commandlist = context.get_commandlist();
+            int texture_indices[4u];
+            int buffer_indices[4u];
+            math::float4 screen_size;
+            math::float4 camera_position;
+            math::matrix4x4f inv_viewprojection;
+            int num_lights[4u];
+        } args{};
 
-            update_lightbuffers(scene);
-
-            struct resolve_args final
-            {
-                int texture_indices[4u];
-                int buffer_indices[4u];
-                math::float4 screen_size;
-                math::float4 camera_position;
-                math::matrix4x4f inv_viewprojection;
-                int num_lights[4u];
-            } args{};
-
-            for (uint32 i = 0u; i < k_num_light_types; ++i)
-            {
-                args.num_lights[i] = scene.get_num_lights(static_cast<influx::scene::e_light_type>(i));
-            }
-            
-            args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
-            const camera& camera = scene.m_camera;
-            math::transform3D transform = camera.m_transform;
-            transform.update_matrix();
-            const float ar = (float)target.get_width() / target.get_height();
-            args.inv_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane).inverted();
-            
-            args.camera_position.x = transform.get_position().x;
-            args.camera_position.y = transform.get_position().y;
-            args.camera_position.z = transform.get_position().z;
-            args.camera_position.w = 1.0f;
-
-            // stage the descriptors onto the gpu heap
-            graphics::descriptor_range gpu_range = descriptor_man.stage({
-                    context.get_read_texture(gbuffer_reads[0]),
-                    context.get_read_texture(gbuffer_reads[1]),
-                    context.get_read_texture(gbuffer_reads[2]),
-                    context.get_write_texture(resolve_write),
-                    m_lightbuffer_srvs[0],
-                    m_lightbuffer_srvs[1],
-                    m_lightbuffer_srvs[2]
-                });
-
-            compute_pipeline->set_state(commandlist);
-
-            // set the descriptorheap bindless indices
-            args.texture_indices[0] = gpu_range.m_start_idx;
-            args.texture_indices[1] = gpu_range.m_start_idx + 1u;
-            args.texture_indices[2] = gpu_range.m_start_idx + 2u;
-            args.texture_indices[3] = gpu_range.m_start_idx + 3u;
-            args.buffer_indices[0]  = gpu_range.m_start_idx + 4u;
-            args.buffer_indices[1]  = gpu_range.m_start_idx + 5u;
-            args.buffer_indices[2]  = gpu_range.m_start_idx + 6u;
-
-            compute_pipeline->set_constants<resolve_args>(commandlist, "g_resolve_args", args);
-
-            const uint32 num_groups_x = target.get_width() / 8u;
-            const uint32 num_groups_y = target.get_height() / 8u;
-            commandlist.dispatch({ {num_groups_x, num_groups_y, 1u} });
+        for (uint32 i = 0u; i < k_num_light_types; ++i)
+        {
+            args.num_lights[i] = scene.get_num_lights(static_cast<influx::scene::e_light_type>(i));
         }
+
+        args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
+        const camera& camera = scene.m_camera;
+        math::transform3D transform = camera.m_transform;
+        transform.update_matrix();
+        const float ar = (float)target.get_width() / target.get_height();
+        args.inv_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane).inverted();
+
+        args.camera_position = transform.get_position().get_xyz();
+        args.camera_position.w = 1.0f;
+
+        // stage the descriptors onto the gpu heap
+        graphics::descriptor_range gpu_range = descriptor_man.stage({
+                context.get_read_texture(gbuffer_reads[0]),
+                context.get_read_texture(gbuffer_reads[1]),
+                context.get_read_texture(gbuffer_reads[2]),
+                context.get_write_texture(resolve_write),
+                m_lightbuffer_srvs[0],
+                m_lightbuffer_srvs[1],
+                m_lightbuffer_srvs[2]
+            });
+
+        pipeline.set_state(commandlist);
+
+        // set the descriptorheap bindless indices
+        args.texture_indices[0] = gpu_range.m_start_idx;
+        args.texture_indices[1] = gpu_range.m_start_idx + 1u;
+        args.texture_indices[2] = gpu_range.m_start_idx + 2u;
+        args.texture_indices[3] = gpu_range.m_start_idx + 3u;
+        args.buffer_indices[0] = gpu_range.m_start_idx + 4u;
+        args.buffer_indices[1] = gpu_range.m_start_idx + 5u;
+        args.buffer_indices[2] = gpu_range.m_start_idx + 6u;
+
+        pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", args);
+
+        const uint32 num_groups_x = target.get_width() / 8u;
+        const uint32 num_groups_y = target.get_height() / 8u;
+        commandlist.dispatch({ {num_groups_x, num_groups_y, 1u} });
     }
 
     void scene_renderer::render(rendergraph::rendergraph& graph, const scene& scene, const target& target)

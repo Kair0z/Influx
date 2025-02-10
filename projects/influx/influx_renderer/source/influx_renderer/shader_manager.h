@@ -21,16 +21,21 @@ namespace influx::renderer
 
 		void load(const shader::shader_signature& signature, const shader_data& data, bool allow_reload)
 		{
-			if (m_num_times_loaded == 0u)
+			const bool do_the_load = !m_shaders.contains(signature) || allow_reload;
+			if (do_the_load)
 			{
-				m_shaders[signature] = data;
-			}
-			else if (allow_reload)
-			{
-				m_shaders[signature] = data;
-			}
+				if (signature.m_type == shader::e_shader_type::cs)
+				{
+					printf("help");
+				}
+				shader_data& the_shader = m_shaders[signature];
+				uint32 num_times_loaded = the_shader.m_num_times_loaded;
 
-			++m_num_times_loaded;
+				// copy the stuff
+				the_shader = data;
+				the_shader.m_time_loaded = time::get_now();
+				the_shader.m_num_times_loaded = num_times_loaded + 1u;
+			}
 		}
 
 		bool has_shader(const shader::shader_signature& sig) const
@@ -52,8 +57,6 @@ namespace influx::renderer
 		umap<shader::shader_signature, shader_data> m_shaders{};
 		shader::e_shader_type m_type{};
 		shader::e_shader_target m_target{};
-		time::point m_last_loaded = time::get_now();
-		uint32 m_num_times_loaded = 0u;
 	};
 
 	class shader_manager final

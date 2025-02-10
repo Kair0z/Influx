@@ -1,4 +1,5 @@
-#include "common.hlsli"
+#include "include/common.hlsli"
+#include "frontend.h"
 
 // root constants
 struct resolve_args
@@ -21,15 +22,15 @@ RWTexture2D<float4> get_output()
 }
 
 // light buffers
-StructuredBuffer<pointlight_data> get_pointlights()
+StructuredBuffer<per_pointlight> get_pointlights()
 {
     return ResourceDescriptorHeap[g_resolve_args.buffer_desc_indices[1]];
 }
-StructuredBuffer<spotlight_data> get_spotlights()
+StructuredBuffer<per_spotlight> get_spotlights()
 {
     return ResourceDescriptorHeap[g_resolve_args.buffer_desc_indices[2]];
 }
-StructuredBuffer<dirlight_data> get_dirlights()
+StructuredBuffer<per_dirlight> get_dirlights()
 {
     return ResourceDescriptorHeap[g_resolve_args.buffer_desc_indices[0]];
 }
@@ -101,14 +102,14 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
         float3 worldpos = get_worldpos(thread_id.xy * g_resolve_args.screen_size.zw, depth);
 
         // get the pointlights
-        StructuredBuffer<pointlight_data> pointlights = get_pointlights();
+        StructuredBuffer<per_pointlight> pointlights = get_pointlights();
         for (uint i = 0; i < g_resolve_args.num_lights[1]; ++i)
         {
-            diffuse += pointlight(pointlights[i].position.rgb, pointlights[i].colour.rgb, pointlights[i].attenuation.r, worldpos, normal).rgb;
+            diffuse += pointlight(pointlights[i].m_position.rgb, pointlights[i].m_colour.rgb, pointlights[i].m_attenuation.r, worldpos, normal).rgb;
         }
 
         // figure out the final color
-        output_color.rgb = albedo.rgb * diffuse.rgb;
+        output_color.rgb = albedo.rgb * diffuse.rgb * float3(1,1,1);
         get_output()[thread_id.xy].rgba = float4(clamp(output_color.rgb, 0, 1), 1.0f);
     }
 }

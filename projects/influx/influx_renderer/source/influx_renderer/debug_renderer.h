@@ -9,10 +9,7 @@ namespace influx::renderer
 		struct gpu_perview;
 
 	public:
-		debug_renderer(
-			renderer_backend* backend,
-			graphics::device* device);
-
+		debug_renderer();
 		~debug_renderer();
 
 		void render(

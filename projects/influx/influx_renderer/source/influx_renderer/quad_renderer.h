@@ -4,7 +4,6 @@
 namespace influx::renderer
 {
 	class renderer_backend;
-	class pipeline;
 	class target;
 }
 

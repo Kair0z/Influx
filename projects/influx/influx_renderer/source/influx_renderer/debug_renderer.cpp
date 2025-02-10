@@ -68,10 +68,11 @@ namespace influx::renderer
         return signature;
     }
 
-    debug_renderer::debug_renderer(renderer_backend* backend, graphics::device* device)
-        : mp_backend{backend}
-        , mp_device{device}
+    debug_renderer::debug_renderer()
     {
+        renderer_backend& backend = renderer_backend::get_instance();
+        graphics::device& device = backend.get_device();
+
         m_instance_data.clear();
         m_instance_data.reserve(k_max_instances);
         
@@ -83,9 +84,9 @@ namespace influx::renderer
             desc.m_bytesize = k_max_instances * sizeof(gpu_instance_data);
             desc.m_bytestride = sizeof(gpu_instance_data);
             desc.m_init_state = graphics::e_resource_state::gen_read;
-            mp_instancebuffer = device->create_resource(desc, heap_desc);
+            mp_instancebuffer = device.create_resource(desc, heap_desc);
             mp_instancebuffer->set_name({ "debug_instance_buffer" });
-            m_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
+            m_instance_buffer_srv = backend.get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
         }
         
         // create 2-element vertexbuffer
@@ -100,7 +101,7 @@ namespace influx::renderer
             desc.m_init_state = graphics::e_resource_state::gen_read;
             desc.m_bytesize = vertices.size() * sizeof(vertex);
             desc.m_bytestride = sizeof(vertex);
-            mp_vertexbuffer = mp_device->create_resource(desc, heap_desc);
+            mp_vertexbuffer = device.create_resource(desc, heap_desc);
             mp_vertexbuffer->map([&vertices](void* target)
             {
                 memcpy(target, vertices.data(), vertices.size() * sizeof(vertex));
@@ -118,11 +119,8 @@ namespace influx::renderer
     void debug_renderer::render(graphics::commandlist* commandlist, const scene_debug& scene, const target& target)
     {
         // get the pipeline
-        graphics_pipeline* pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline(get_pipeline_sig());
-        if (pipeline == nullptr)
-        {
-            return;
-        }
+        renderer_backend& backend = renderer_backend::get_instance();
+        graphics_pipeline& pipeline = backend.get_pipeline_manager()->get_or_create_pipeline(get_pipeline_sig());
 
         logonce(e_log_category::warning, "influx::renderer::debug_renderer: first debug render!");
 
@@ -136,16 +134,16 @@ namespace influx::renderer
             m_gpu_perview->m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
         }
 
-        pipeline->set_state(*commandlist);
+        pipeline.set_state(*commandlist);
         commandlist->set(graphics::e_primitive_topology::linelist);
-        pipeline->set_constants<gpu_perview>(*commandlist, "g_perview", *m_gpu_perview);
+        pipeline.set_constants<gpu_perview>(*commandlist, "g_perview", *m_gpu_perview);
         commandlist->set_vertexbuffer(mp_vertexbuffer);
 
         update_instance_buffer(scene);
 
         // stage the instance buffer and set as resource table
         const graphics::descriptor_range gpu_range = mp_backend->get_descriptor_manager()->stage(m_instance_buffer_srv);
-        pipeline->set_resource_table(*commandlist, "g_instancebuffer", gpu_range);
+        pipeline.set_resource_table(*commandlist, "g_instancebuffer", gpu_range);
 
         const uint32 num_instances = (uint32)m_instance_data.size();
         commandlist->draw_instanced(

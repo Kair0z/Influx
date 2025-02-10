@@ -45,10 +45,11 @@ namespace influx::renderer
 	// shader data
 	struct shader_data final
 	{
-		shader::e_shader_type m_type;
-		shader::reflection m_reflection;
-		vector<byte> m_bytecode;
-		time::point m_time_loaded;
+		shader::e_shader_type	m_type;
+		shader::reflection		m_reflection;
+		vector<byte>			m_bytecode;
+		time::point				m_time_loaded;
+		uint32					m_num_times_loaded = 0u;
 	};
 
 	// arguments to pass to backend initialization

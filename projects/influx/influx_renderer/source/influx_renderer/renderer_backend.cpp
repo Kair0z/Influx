@@ -63,8 +63,10 @@ namespace influx::renderer
         mp_pipeline_manager = new pipeline_manager(mp_device);
         mp_upload_manager = new upload_manager(mp_device);
         mp_imgui = new imgui_manager(mp_device);
-        mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
-        mp_debug_renderer = new debug_renderer(this, mp_device);
+
+        // sub-renderers
+        mp_scene_renderer = new scene_renderer();
+        mp_debug_renderer = new debug_renderer();
         mp_quad_renderer = new quad_renderer();
         mp_shadertoy_renderer = new shadertoy_renderer();
         mp_shader_manager = new shader_manager();
@@ -102,6 +104,7 @@ namespace influx::renderer
     {
         m_rendergraph = new rendergraph::rendergraph(mp_device);
 
+        // acquire window backbuffer
         if (get_current_window_target())
         {
             auto* window_target = get_current_window_target();
@@ -112,6 +115,7 @@ namespace influx::renderer
             logonce(e_log_category::warning, "influx_renderer::start_frame() >> starting a frame without a window target!");
         }
 
+        // start the commandlist
         mp_commandlist->start(mp_device, nullptr);
         mp_commandlist->set_name("frame");
         get_descriptor_manager()->start_commandlist(mp_commandlist);
@@ -371,6 +375,11 @@ namespace influx::renderer
     pipeline_manager* renderer_backend::get_pipeline_manager()
     {
         return get_instance().mp_pipeline_manager;
+    }
+
+    graphics::device& renderer_backend::get_device()
+    {
+        return *get_instance().mp_device;
     }
 
     // mesh

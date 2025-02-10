@@ -102,7 +102,7 @@ namespace influx::engine
 		static shader::compile_args compile_args{};
 		if (origin == e_asset_origin::engine)
 		{
-			compile_args.m_include_folder = root.m_path_full + "/engine/shaders/include/";
+			compile_args.m_include_folder = root.m_path_full + "/engine/shaders/";
 		}
 		
 		compile_args.m_signature.m_target = shader::e_shader_target::_6_6;

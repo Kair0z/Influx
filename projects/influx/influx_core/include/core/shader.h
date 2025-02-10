@@ -99,7 +99,7 @@ namespace influx::shader
 
 		bool operator==(const shader_signature& other) const
 		{
-			return (m_type == other.m_type && m_target == other.m_target && m_entrypoint == other.m_entrypoint);
+			return m_id == other.m_id;
 		}
 	};
 }
