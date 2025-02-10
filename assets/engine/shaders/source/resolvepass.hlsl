@@ -105,7 +105,7 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
         StructuredBuffer<per_pointlight> pointlights = get_pointlights();
         for (uint i = 0; i < g_resolve_args.num_lights[1]; ++i)
         {
-            diffuse += pointlight(pointlights[i].m_position.rgb, pointlights[i].m_colour.rgb, pointlights[i].m_attenuation.r, worldpos, normal).rgb;
+            diffuse += pointlight(pointlights[i].m_position.rgb, pointlights[i].m_colour.rgb, pointlights[i].m_attenuation.r * 100.0f, worldpos, normal).rgb;
         }
 
         // figure out the final color
