@@ -83,7 +83,7 @@ namespace influx::engine
 		shader::compile_args make_compile_args(shader::e_shader_type type, const string& entrypoint)
 		{
 			shader::compile_args compile_args{};
-			compile_args.m_target = shader::e_shader_target::_6_6;
+			compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
 #if INFLUX_DEBUG
 			compile_args.m_compile_debug = true;
 #else
@@ -94,8 +94,8 @@ namespace influx::engine
 			compile_args.m_defines = {};
 			compile_args.m_pdb_folder = get_engine_directory(engine_directory::intermediate).m_path_full + "/shaderdebug/";
 			compile_args.m_include_folder = get_engine_directory(engine_directory::assets).m_path_full + "/shaders/include/";
-			compile_args.m_type = type;
-			compile_args.m_entrypoint = entrypoint;
+			compile_args.m_signature.m_type = type;
+			compile_args.m_signature.m_entrypoint = entrypoint;
 			return compile_args;
 		}
 
@@ -311,12 +311,16 @@ namespace influx::engine
 			const bool reload = true;
 
 			renderer::shader_data vs_data{};
+			shader::shader_signature vs_signature{};
+			vs_signature.m_entrypoint = "shadertoy_vs";
 			translate(editor.get_compiled_vs(), vs_data);
-			renderer::load("shadertoy_vs", vs_data, reload);
+			renderer::load(vs_signature, vs_data, reload);
 
 			renderer::shader_data ps_data{};
+			shader::shader_signature ps_signature{};
+			ps_signature.m_entrypoint = "shadertoy_ps";
 			translate(editor.get_compiled_ps(), ps_data);
-			renderer::load("shadertoy_ps", ps_data, reload);
+			renderer::load(ps_signature, ps_data, reload);
 
 			renderer::scene_shadertoy shadertoy{};
 			renderer::draw_shadertoy(shadertoy, *mp_scene_target);
@@ -340,9 +344,9 @@ namespace influx::engine
 		influx::renderer::end_frame();
 	}
 
-	bool render_manager::has_shader_loaded(const string& name) const
+	bool render_manager::has_shader_loaded(const shader::shader_signature& signature) const
 	{
-		return influx::renderer::has_shader(name);
+		return influx::renderer::has_shader(signature);
 	}
 
 	bool render_manager::has_mesh_loaded(const string& name) const
@@ -393,6 +397,21 @@ namespace influx::engine
 		}
 	}
 
+	renderer::shader_data translate(const imp::shader_data& imp_data)
+	{
+		renderer::shader_data result{};
+		result.m_bytecode.resize(imp_data.m_compile_result.m_bytecode.size());
+
+		for (uint64 i = 0u; i < imp_data.m_compile_result.m_bytecode.size(); ++i)
+		{
+			result.m_bytecode[i] = imp_data.m_compile_result.m_bytecode[i];
+		}
+
+		result.m_type = imp_data.m_type;
+		result.m_reflection = imp_data.m_compile_result.m_reflection;
+		return result;
+	}
+
 	void translate(const imp::shader_data& imp_data, renderer::shader_data& out_data)
 	{
 		out_data.m_bytecode.resize(imp_data.m_compile_result.m_bytecode.size());
@@ -427,7 +446,7 @@ namespace influx::engine
 			out_data.m_bytecode[i] = shader_data.m_bytecode[i];
 		}
 
-		out_data.m_type = shader_data.m_type;
+		out_data.m_type = shader_data.m_signature.m_type;
 		out_data.m_reflection = shader_data.m_reflection;
 	}
 #pragma endregion
@@ -452,22 +471,14 @@ namespace influx::engine
 		{
 			if (asset.second.is_loaded())
 			{
-				if (influx::renderer::has_shader(asset.first) == false)
+				const imp::shader_data shader_data = asset.second.m_resource;
+				const shader::shader_signature& signature = shader_data.m_signature;
+
+				const time::point render_load_time = renderer::get_time_loaded_shader(signature);
+				if (!renderer::has_shader(signature) || asset.second.m_time_loadend > render_load_time)
 				{
-					// first load
-					const imp::shader_data& vs_shader = asset.second.m_resource;
-					translate(vs_shader, m_shader_data);
-					influx::renderer::load(asset.first, m_shader_data, false);
-				}
-				else
-				{
-					// if dirty, reload
-					if (asset.second.m_time_loadend > renderer::get_shader_load_timepoint(asset.first))
-					{
-						const imp::shader_data& vs_shader = asset.second.m_resource;
-						translate(vs_shader, m_shader_data);
-						influx::renderer::load(asset.first, m_shader_data, true);
-					}
+					// if load time is newer than previous render load time, reload
+					influx::renderer::load(signature, translate(shader_data), true);
 				}
 			}
 		}

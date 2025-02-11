@@ -15,11 +15,10 @@ namespace influx::renderer
 
 	uint32 pipeline_manager::get_num_pipelines() const
 	{
-		uint32 sum = 0u;
-		for (const auto& pair : get_map<graphics::e_pipeline_type::graphics>())
-		{
-			sum += static_cast<uint32>(pair.second.size());
-		}
-		return sum;
+		return
+			static_cast<uint32>(
+			get_map<graphics::e_pipeline_type::graphics>().size() +
+			get_map<graphics::e_pipeline_type::compute>().size() +
+			get_map<graphics::e_pipeline_type::raytracing>().size());
 	}
 }

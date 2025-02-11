@@ -6,7 +6,7 @@ namespace influx::graphics
 {
 	// shader slots per type of pipeline
 #pragma region shaderslots
-	enum class graphics_shader_slots : uint8
+	enum class e_graphics_shader_slots : uint8
 	{
 		vs,
 		ps,
@@ -15,14 +15,18 @@ namespace influx::graphics
 		hs,
 		count
 	};
-	enum class compute_shader_slots : uint8
+	enum class e_compute_shader_slots : uint8
 	{
 		cs,
 		count
 	};
-	enum class raytracing_shader_slots : uint8
+	enum class e_raytracing_shader_slots : uint8
 	{
 		rgs,
+		mss,
+		chs,
+		ahs,
+		ins,
 		count
 	};
 
@@ -30,28 +34,70 @@ namespace influx::graphics
 	class shader_slots
 	{
 	public:
-		using slot_enum = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
-			graphics_shader_slots,
-			compute_shader_slots,
-			raytracing_shader_slots>>;
+		using enum_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+			e_graphics_shader_slots,
+			e_compute_shader_slots,
+			e_raytracing_shader_slots>>;
 
-		inline void set(slot_enum slot, const vector<byte>& shader_bytecode)
+		static constexpr bool is_optional(const enum_type type)
+		{
+			if constexpr (_t == e_pipeline_type::graphics)
+			{
+				switch (type)
+				{
+				case e_graphics_shader_slots::vs: return false;
+				case e_graphics_shader_slots::ps: return true;
+				case e_graphics_shader_slots::ds: return true;
+				case e_graphics_shader_slots::gs: return true;
+				case e_graphics_shader_slots::hs: return true;
+				default: return false;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::compute)
+			{
+				switch (type)
+				{
+				case e_compute_shader_slots::cs: return false;
+				default: return false;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::raytracing)
+			{
+				switch (type)
+				{
+				case e_raytracing_shader_slots::rgs: return false;
+				case e_raytracing_shader_slots::mss: return true;
+				case e_raytracing_shader_slots::chs: return true;
+				case e_raytracing_shader_slots::ahs: return true;
+				case e_raytracing_shader_slots::ins: return true;
+				default: return false;
+				}
+			}
+		}
+
+		inline void set(enum_type slot, const vector<byte>& shader_bytecode)
 		{
 			m_shaders[static_cast<uint8>(slot)] = shader_bytecode;
 		}
 
-		inline const vector<byte>& get(slot_enum slot) const
+		inline const vector<byte>& get(enum_type slot) const
 		{
 			return m_shaders[static_cast<uint8>(slot)];
 		}
 
-		static constexpr uint8 count = static_cast<uint8>(slot_enum::count);
+		static constexpr uint8 count = static_cast<uint8>(enum_type::count);
+		static constexpr uint8 num = count;
 
 	private:
 		vector<byte> m_shaders[count]{};
 	};
+
+	using graphics_shaderslots = shader_slots<e_pipeline_type::graphics>;
+	using compute_shaderslots = shader_slots<e_pipeline_type::compute>;
+	using raytracing_shaderslots = shader_slots<e_pipeline_type::raytracing>;
 #pragma endregion
 
+	// pipeline description
 #pragma region pipelinedesc
 	struct graphics_pipeline_desc final
 	{

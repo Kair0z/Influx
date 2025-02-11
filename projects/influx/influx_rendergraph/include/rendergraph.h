@@ -66,6 +66,11 @@ namespace influx::rendergraph
 		rendergraph& m_graph;
 	};
 
+	struct clear_args final
+	{
+		math::colour_rgba m_colour;
+	};
+
 	class rendergraph final
 	{
 		friend class rgpass_builder;
@@ -87,7 +92,7 @@ namespace influx::rendergraph
 
 		// simple add_pass that resolves source into dest
 		INFLUX_RG_API rgpass* add_copypass(graphics::resource* source, graphics::resource* dest, bool keep_source);
-		INFLUX_RG_API rgpass* add_clear_pass(graphics::resource* dest);
+		INFLUX_RG_API rgpass* add_clear_pass(graphics::resource* dest, const clear_args& args = {});
 
 		// in/out resources
 		INFLUX_RG_API void import_texture(const rgname& name, graphics::resource* resource);
@@ -171,5 +176,7 @@ namespace influx::rendergraph
 		rgbuffer_id get_buffer_id(const rgname& name) const;
 		texture_desc get_texture_desc(const rgname& name) const;
 		buffer_desc get_buffer_desc(const rgname& name) const;
+
+		bool execute_validation_checks() const;
 	};
 }

@@ -1,27 +1,5 @@
 #pragma once 
 
-// influx::core
-#include "core/container/vector.h"
-
-// influx::graphics
-namespace influx::graphics
-{
-	class device;
-	class commandlist;
-	class descriptor_heap;
-	class resource;
-	class shader_resource_view;
-}
-
-// influx::renderer
-#include "influx_renderer/pipeline/pipeline.h"
-namespace influx::renderer
-{
-	class renderer_backend;
-	struct scene_debug;
-	class target;
-}
-
 namespace influx::renderer
 {
 	// renders instanced debug lines
@@ -31,10 +9,7 @@ namespace influx::renderer
 		struct gpu_perview;
 
 	public:
-		debug_renderer(
-			renderer_backend* backend,
-			graphics::device* device);
-
+		debug_renderer();
 		~debug_renderer();
 
 		void render(

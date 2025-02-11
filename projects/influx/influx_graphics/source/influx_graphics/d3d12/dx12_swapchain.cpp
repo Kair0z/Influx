@@ -58,6 +58,7 @@ namespace influx::graphics
 
 			resource* new_resource = device->import_texture(dxresource, desc);
 			resources.push_back(new_resource);
+			new_resource;
 		}
 		
 		get_resources() = resources;

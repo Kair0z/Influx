@@ -23,6 +23,16 @@ float3 hash(uint3 x)
     return (float3(x) * (1.0 / float(0xffffffffU)));
 }
 
+// snap the very low normal values (packing could otherwise mess them up)
+float3 snap_normal(float3 normal)
+{
+    float epsilon = 5.96e-4;
+    if (abs(normal.x) < epsilon) normal.x = 0;
+    if (abs(normal.y) < epsilon) normal.y = 0;
+    if (abs(normal.z) < epsilon) normal.z = 0;
+    return normal;
+}
+
 // lights
 struct pointlight_data
 {

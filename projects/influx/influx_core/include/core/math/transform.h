@@ -227,12 +227,31 @@ namespace influx::math
 			return m_matrix;
 		}
 
+		void set_matrix(const math::matrix4x4f& matrix)
+		{
+			m_matrix = matrix;
+			m_is_components_dirty = true;
+			update_components();
+		}
+
 		void update_matrix()
 		{
 			if (m_is_matrix_dirty)
+			{
 				m_matrix = matrix4x4f::make_scale(m_scale) * matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward());
-			
+			}
 			m_is_matrix_dirty = false;
+		}
+
+		void update_components()
+		{
+			if (m_is_components_dirty)
+			{
+				math::matrix3x3f out_rotation_mat{};
+				m_matrix.decompose(m_position, out_rotation_mat, m_scale);
+				m_rotation.set_matrix(out_rotation_mat);
+			}
+			m_is_components_dirty = false;
 		}
 
 		bool is_gimbal_locked() const
@@ -272,6 +291,7 @@ namespace influx::math
 		math::rotation m_rotation = rotation::identity();
 		matrix4x4f m_matrix = matrix4x4f::identity();
 		bool m_is_matrix_dirty = false;
+		bool m_is_components_dirty = false;
 	};
 }
 

@@ -1,20 +1,16 @@
 #pragma once
 
-#pragma region forward_decl
-// influx::core
-namespace influx
+// engine shader frontend
+namespace influx::renderer::frontend
 {
-	class material;
+	#include "frontend.h"
 }
 
 // influx::graphics
 namespace influx::graphics
 {
-	class device;
 	class commandlist;
-	class descriptor_heap;
 	class resource;
-	class shader_resource_view;
 }
 
 // influx::rendergraph
@@ -25,84 +21,19 @@ namespace influx::rendergraph
 	class rgpass_context;
 }
 
-// influx::renderer
 namespace influx::renderer
 {
-	class renderer_backend;
-	class pipeline;
-}
-#pragma endregion
-
-namespace influx::renderer
-{
+	// todo: elegantly remove these caps
 	constexpr static uint32 k_max_num_instances = 4096u;
 	constexpr static uint32 k_max_num_lights = 512u;
 	constexpr static uint32 k_max_num_vertices = 24u * 1024u;
-
-	// [LAYOUT]
-	struct gpu_perscene final
-	{
-		math::vectorf4 m_time = {};
-		math::vectorf4 m_light_direction = { -0.5f, -0.5f, -0.5f };
-		math::vectorf4 m_light_colour = { 1.0f, 1.0f, 1.0f, 1.0f };
-	};
-
-	struct gpu_perview final
-	{
-		math::matrix4x4f m_vp;
-	};
-
-	struct gpu_permaterial final
-	{
-		math::colour_rgba m_colour;
-	};
-
-	struct gpu_perdraw final
-	{
-		uint32 m_start_instance = 0u;
-	};
-
-	struct gpu_instance_data final
-	{
-		math::matrix4x4f	m_transform;
-		math::vectorf4		m_colour;
-		uint32 m_albedo_index;
-		uint32 m_normal_index;
-	};
-
-	struct gpu_vertex_data final
-	{
-		math::float3 m_position;
-		math::float4 m_colour;
-		math::float3 m_normal;
-		math::float2 m_texcoord;
-	};
-
-	struct pointlight_data final
-	{
-		math::float4 position;
-		math::float4 colour;
-		math::float4 attenuation;
-	};
-	struct spotlight_data final
-	{
-		math::float4 position;
-	};
-	struct dirlight_data final
-	{
-		math::float4 colour;
-	};
 
 	class batch;
 
 	class scene_renderer final
 	{
 	public:
-		scene_renderer(
-			renderer_backend* backend,
-			graphics::device* device,
-			pipeline* pipeline);
-
+		scene_renderer();
 		~scene_renderer();
 
 		void render(rendergraph::rendergraph& graph, const scene& scene, const target& target);
@@ -111,7 +42,7 @@ namespace influx::renderer
 		vector<batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
 		void update_instance_buffer(const vector<batch>& batches);
 		void update_lightbuffers(const scene& scene);
-		void apply_pipeline_settings();
+		void apply_pipeline_settings(const target& target);
 
 		void build_basepass(rendergraph::rgpass_builder&, const target& target);
 		void build_resolvepass(rendergraph::rgpass_builder&, const target& target, const scene& scene);
@@ -121,9 +52,6 @@ namespace influx::renderer
 	private:
 		static constexpr uint32 k_num_light_types = 3u;
 
-		renderer_backend* mp_backend;
-		graphics::device* mp_device;
-
 		graphics::resource* mp_instancebuffer;
 		graphics::resource* mp_lightbuffers[k_num_light_types];
 		graphics::descriptor_handle m_instance_buffer_srv;
@@ -131,10 +59,10 @@ namespace influx::renderer
 		graphics::descriptor_handle m_sampler_view;
 
 		// gpu data
-		gpu_perscene m_gpu_perscene;
-		gpu_perview m_gpu_perview;
-		gpu_permaterial m_gpu_permaterial;
-		gpu_perdraw m_gpu_perdraw;
-		gpu_instance_data* m_instance_data;
+		frontend::per_scene m_gpu_perscene;
+		frontend::per_view m_gpu_perview;
+		frontend::per_material m_gpu_permaterial;
+		frontend::per_draw m_gpu_perdraw;
+		frontend::per_instance* m_instance_data;
 	};
 }

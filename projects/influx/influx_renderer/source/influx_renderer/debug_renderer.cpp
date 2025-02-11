@@ -33,47 +33,46 @@ namespace influx::renderer
         uint32 m_id;
     };
 
-    static const graphics_pipeline_signature k_debug_pipeline_signature
+    static graphics_pipeline_signature& get_pipeline_sig()
     {
-        .m_vs_name              { "debug_shaders_vs" },
-        .m_ps_name              { "debug_shaders_ps" },
+        static graphics_pipeline_signature signature{};
+        {
+            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::vs] = "debug_shaders::main_vs";
+            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::ps] = "debug_shaders::main_ps";
 
-        .m_primitive_type       { 2u }, // line
-        .m_cullmode             { 2u }, // nocull
-        .m_fillmode             { 0u }, // wireframe
-        .m_forced_samplecount   { 0u },
-        .m_sample_mask          { (uint32)-1 },
-        .m_sample_count         { 1u },
-        .m_front_ccw            { false },
-        .m_depthclip            { false },
-        .m_multisample          { false },
-        .m_antialiased_line     { false },
-        .m_conservative_raster  { false },
-        .m_depthbias            { 0 },
-        .m_depthbias_clamp      { 0.0f },
-        .m_slope_depthbias      { 0.0f },
+            signature.m_primitive_type = graphics::e_primitive_topology_type::line;
+            signature.m_cullmode = graphics::e_cull_mode::nocull;
+            signature.m_fillmode = graphics::e_fill_mode::wireframe;
+            signature.m_forced_samplecount = 0u;
+            signature.m_sample_mask = (uint32)-1;
+            signature.m_sample_count = 1u;
+            signature.m_front_ccw = false;
+            signature.m_depthclip = false;
+            signature.m_multisample = false;
+            signature.m_antialiased_line = false;
+            signature.m_conservative_raster = false;
+            signature.m_depthbias = 0;
+            signature.m_depthbias_clamp = 0.0f;
+            signature.m_slope_depthbias = 0.0f;
 
-        .m_depth_enable         { false },
-        .m_stencil_enable       { false },
-        .m_depth_comparison     { 0u },
-        .m_depth_format         { 5u }, // d32
+            signature.m_depth_enable = false;
+            signature.m_stencil_enable = false;
+            signature.m_depth_comparison = graphics::e_comparison_func::less;
+            signature.m_depth_format = graphics::e_format::d32;
 
-        .m_rtv_actives          { true, false, false, false, false, false, false, false },
-        .m_rtv_formats          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
-        .m_blend_actives        { false, false, false, false, false, false, false, false },
-        .m_blend_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_writemasks     { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
-    };
+            signature.m_rtv_actives[0] = true;
+            signature.m_rtv_formats[0] = graphics::e_format::rgba8;
 
-    debug_renderer::debug_renderer(renderer_backend* backend, graphics::device* device)
-        : mp_backend{backend}
-        , mp_device{device}
+            signature.m_blend_actives[0] = false;
+        }
+        return signature;
+    }
+
+    debug_renderer::debug_renderer()
     {
+        renderer_backend& backend = renderer_backend::get_instance();
+        graphics::device& device = backend.get_device();
+
         m_instance_data.clear();
         m_instance_data.reserve(k_max_instances);
         
@@ -85,9 +84,9 @@ namespace influx::renderer
             desc.m_bytesize = k_max_instances * sizeof(gpu_instance_data);
             desc.m_bytestride = sizeof(gpu_instance_data);
             desc.m_init_state = graphics::e_resource_state::gen_read;
-            mp_instancebuffer = device->create_resource(desc, heap_desc);
+            mp_instancebuffer = device.create_resource(desc, heap_desc);
             mp_instancebuffer->set_name({ "debug_instance_buffer" });
-            m_instance_buffer_srv = backend->get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
+            m_instance_buffer_srv = backend.get_descriptor_manager()->create_buffer_srv(mp_instancebuffer);
         }
         
         // create 2-element vertexbuffer
@@ -102,7 +101,7 @@ namespace influx::renderer
             desc.m_init_state = graphics::e_resource_state::gen_read;
             desc.m_bytesize = vertices.size() * sizeof(vertex);
             desc.m_bytestride = sizeof(vertex);
-            mp_vertexbuffer = mp_device->create_resource(desc, heap_desc);
+            mp_vertexbuffer = device.create_resource(desc, heap_desc);
             mp_vertexbuffer->map([&vertices](void* target)
             {
                 memcpy(target, vertices.data(), vertices.size() * sizeof(vertex));
@@ -120,11 +119,8 @@ namespace influx::renderer
     void debug_renderer::render(graphics::commandlist* commandlist, const scene_debug& scene, const target& target)
     {
         // get the pipeline
-        graphics_pipeline* pipeline = mp_backend->get_pipeline_manager()->get_or_create_pipeline("pip_debug", k_debug_pipeline_signature);
-        if (pipeline == nullptr)
-        {
-            return;
-        }
+        renderer_backend& backend = renderer_backend::get_instance();
+        graphics_pipeline& pipeline = backend.get_pipeline_manager()->get_or_create_pipeline(get_pipeline_sig());
 
         logonce(e_log_category::warning, "influx::renderer::debug_renderer: first debug render!");
 
@@ -138,16 +134,16 @@ namespace influx::renderer
             m_gpu_perview->m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
         }
 
-        pipeline->set_state(*commandlist);
+        pipeline.set_state(*commandlist);
         commandlist->set(graphics::e_primitive_topology::linelist);
-        pipeline->set_constants<gpu_perview>(*commandlist, "g_perview", *m_gpu_perview);
+        pipeline.set_constants<gpu_perview>(*commandlist, "g_perview", *m_gpu_perview);
         commandlist->set_vertexbuffer(mp_vertexbuffer);
 
         update_instance_buffer(scene);
 
         // stage the instance buffer and set as resource table
         const graphics::descriptor_range gpu_range = mp_backend->get_descriptor_manager()->stage(m_instance_buffer_srv);
-        pipeline->set_resource_table(*commandlist, "g_instancebuffer", gpu_range);
+        pipeline.set_resource_table(*commandlist, "g_instancebuffer", gpu_range);
 
         const uint32 num_instances = (uint32)m_instance_data.size();
         commandlist->draw_instanced(

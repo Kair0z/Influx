@@ -88,6 +88,9 @@ namespace influx::math
 		matrix& operator+=(const matrix& other);
 		matrix& operator-=(const matrix& other);
 
+		template <matrix_dim_t _c, matrix_dim_t _r>
+		matrix& operator*=(const matrix<_t, _c, _r>& other);
+
 		matrix& member_multiply(const matrix& other);
 		static matrix member_multiply(const matrix& a, const matrix& b);
 
@@ -123,6 +126,8 @@ namespace influx::math
 
 		// Transformation:
 		static matrix<_t, 3u, 3u> make_rotation(const vector<_t, 3u>& axis, float angle);
+		static matrix<_t, 4u, 4u> make_rotation_RH(float euler_x, float euler_y, float euler_z);
+		static matrix<_t, 4u, 4u> make_rotation_LH(float euler_x, float euler_y, float euler_z);
 		static matrix<_t, 3u, 3u> make_translation(const vector<_t, 2u>& translation);
 		static matrix<_t, 4u, 4u> make_translation(const vector<_t, 3u>& translation);
 		static matrix<_t, 3u, 3u> make_scale(const vector<_t, 2u>& scale);
@@ -136,10 +141,14 @@ namespace influx::math
 		static matrix<_t, 4u, 4u> make_projection_LH(const float fov, const float ar, const float n, const float f);
 		static matrix<_t, 4u, 4u> make_projection_RH(const float fov, const float ar, const float n, const float f); // Todo: [Orthographic vs Perspective]
 
-		// 
+		static matrix make_diagonal(const _t& x, const _t& y, const _t& z, const _t& w = 1.0f);
+
+		// decomposition
 		vector<_t, 3u> get_translation() const;
 		vector<_t, 3u> get_scale() const;
 		vector<_t, 3u> get_scale_sqr() const;
+
+		void decompose(vector<_t, 3u>& out_translation, matrix<_t, 3u, 3u>& out_rotation, vector<_t, 3u>& out_scale) const;
 
 		matrix<_t, 3u, 3u> get_rotation_matrix() const;
 

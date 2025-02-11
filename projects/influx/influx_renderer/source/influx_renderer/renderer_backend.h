@@ -7,6 +7,7 @@
 #include "influx_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
 #include "influx_renderer/multimesh.h"
+#include "influx_renderer/resources/resource_manager.h"
 
 // influx::graphics
 #include "influx_graphics/resource.h"
@@ -34,6 +35,7 @@ namespace influx::rendergraph
 namespace influx::renderer
 {
 	class descriptor_manager;
+	class shader_manager;
 	class upload_manager;
 	class imgui_manager;
 	class pipeline_manager;
@@ -53,7 +55,7 @@ namespace influx::platform
 #pragma endregion
 
 namespace influx::renderer
-{
+{	
 	class renderer_backend final : public singleton<renderer_backend>
 	{
 		// konstants
@@ -81,25 +83,31 @@ namespace influx::renderer
 		void draw_2D(const scene2D& scene, const target& target);
 		void draw_debug(const scene_debug& scene, const target& target);
 		void draw_shadertoy(const scene_shadertoy& scene, const target& target);
+		void draw_postprocess(const scene_postprocess& scene, const target& target);
+
 		void copy_target(const target& source, const target& dest);
 		void clear_target(const target&, const clear_args&);
 		void present_swapchain(const present_args& args);
 
+		static shader_manager& get_shader_manager();
 		static descriptor_manager* get_descriptor_manager();
 		static upload_manager* get_upload_manager();
 		static pipeline_manager* get_pipeline_manager();
+		static graphics::device& get_device();
 
 		void load(const string& title, const mesh_data& data, bool reload = false);
 		void load(const string& title, const texture_data& data, bool reload = false);
-		void load(const string& title, const shader_data& data, bool reload = false);
+		void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
 		void load(const string& title, const material& data, bool reload = false);
 
 		bool has_mesh(const string& title) const;
 		bool has_texture(const string& title) const;
-		bool has_shader(const string& title) const;
+		bool has_shader(const shader::shader_signature& signature) const;
 		bool has_material(const string& title) const;
 
-		time::point get_shader_load_timepoint(const string& title) const;
+		time::point get_time_loaded_shader(const shader::shader_signature& signature) const;
+		time::point get_time_loaded_texture(const string& title) const;
+		time::point get_time_loaded_mesh(const string& title) const;
 
 		void set_settings(const render_settings& settings);
 		const render_settings& get_settings() const;
@@ -120,13 +128,6 @@ namespace influx::renderer
 
 		memory_info get_memory_info() const;
 		pipeline_info get_pipeline_info() const;
-
-		template <shader::e_shader_type _t>
-		shader_map<_t>& get_shadermap();
-		shader_map<shader::e_shader_type::vs>& get_vertex_shaders();
-		shader_map<shader::e_shader_type::ps>& get_pixel_shaders();
-		shader_map<shader::e_shader_type::cs>& get_compute_shaders();
-
 		void* get_imgui_texture_id(const string& title);
 
 		template <typename _tvtx>
@@ -166,6 +167,7 @@ namespace influx::renderer
 
 		// managers
 		descriptor_manager* mp_desc_manager = nullptr;
+		shader_manager* mp_shader_manager = nullptr;
 		upload_manager* mp_upload_manager = nullptr;
 		pipeline_manager* mp_pipeline_manager = nullptr;
 		imgui_manager* mp_imgui = nullptr;
@@ -175,19 +177,16 @@ namespace influx::renderer
 		shadertoy_renderer* mp_shadertoy_renderer = nullptr;
 
 		// resources
+		// mesh data
 		multimesh m_multimesh{};
 		umap<string, graphics::resource*> m_vertex_buffers;
 		umap<string, graphics::resource*> m_index_buffers;
 		umap<string, vector<index>> m_index_buffer_contents;
 		umap<string, vector<vertex_data>> m_vertex_buffer_contents; // can be any type
 		umap<string, material> m_materials;
+		resource_manager m_resource_manager;
 
-		shader_map<shader::e_shader_type::vs> m_vertex_shaders;
-		shader_map<shader::e_shader_type::ps> m_pixel_shaders;
-		shader_map<shader::e_shader_type::cs> m_compute_shaders;
-		shader_map<shader::e_shader_type::ds> m_domain_shaders;
-		shader_map<shader::e_shader_type::gs> m_geometry_shaders;
-		shader_map<shader::e_shader_type::hs> m_hull_shaders;
+		// texture data
 		umap<string, texture*> m_textures;
 
 		render_settings m_settings;
@@ -196,19 +195,8 @@ namespace influx::renderer
 		target* get_current_window_target();
 	};
 
-	template<shader::e_shader_type _t>
-	inline renderer_backend::shader_map<_t>& renderer::renderer_backend::get_shadermap()
-	{
-		if constexpr (_t == shader::e_shader_type::vs) return m_vertex_shaders;
-		else if constexpr (_t == shader::e_shader_type::ps) return m_pixel_shaders;
-		else if constexpr (_t == shader::e_shader_type::ds) return m_domain_shaders;
-		else if constexpr (_t == shader::e_shader_type::gs) return m_geometry_shaders;
-		else if constexpr (_t == shader::e_shader_type::hs) return m_hull_shaders;
-		else if constexpr (_t == shader::e_shader_type::cs) return m_compute_shaders;
-	}
-
 	template<typename _tvtx>
-	inline graphics::resource* renderer::renderer_backend::create_vertexbuffer(const string& title, const vector<_tvtx>& data, bool reload)
+	inline graphics::resource* renderer_backend::create_vertexbuffer(const string& title, const vector<_tvtx>& data, bool reload)
 	{
 		using vertex_type = _tvtx;
 

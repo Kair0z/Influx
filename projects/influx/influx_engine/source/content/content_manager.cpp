@@ -84,6 +84,15 @@ namespace influx::engine
 		load_assets(engine, e_asset_origin::game, game_assets_dir);
 	}
 
+	void content_manager::update_filechanges()
+	{
+		for (auto& pair : touch_shaders())
+		{
+			const string& path = pair.second.m_path;
+			
+		}
+	}
+
 	void content_manager::load_assets(engine* engine, e_asset_origin origin, const file& root)
 	{	
 		vector<file> fbx_files = get_files_in_directory(root.m_path_full, true, ".fbx");
@@ -94,50 +103,63 @@ namespace influx::engine
 		async::dispatch_for<file>(fbx_files, [this](const file& file)
 		{
 			imp::scene_load_args args{};
+			args.m_bake_transforms = false;
+			args.m_pre_scale = 1;
 			scene_item& item = m_scenes[file.m_filename];
 			item.load(file.m_path_full, args);
 		});
 
 		// load hlsls
+		static shader::compile_args compile_args{};
+		if (origin == e_asset_origin::engine)
+		{
+			compile_args.m_include_folder = root.m_path_full + "/engine/shaders/";
+		}
+		
+		compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
+		compile_args.m_reflection = true;
+		compile_args.m_defines = {};
+#if INFLUX_DEBUG
+		compile_args.m_compile_debug = true;
+		compile_args.m_pbd = true;
+		compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
+#else
+		compile_args.m_compile_debug = false;
+		compile_args.m_pbd = false;
+#endif
+
 		async::dispatch_for<file>(hlsl_files, [this, root](const file& file)
 		{
-			shader::compile_args compile_args{};
-			compile_args.m_target = shader::e_shader_target::_6_6;
-			compile_args.m_include_folder = root.m_path_full + "/shaders/include/";
-			compile_args.m_reflection = true;
-			compile_args.m_defines = {};
 #if INFLUX_DEBUG
-			compile_args.m_compile_debug = true;
-			compile_args.m_pbd = true;
-			compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
 			compile_args.m_pdb_filename = file.m_filename;
-#else
-			compile_args.m_compile_debug = false;
-			compile_args.m_pbd = false;
-#endif	
-			
+#endif
+			compile_args.m_signature.m_filename = file.m_filename;
+
 			const string& file_content = textfile::read_all(file.m_path_full);
 			if (str::contains(file_content, "[shader(\"vertex\")]", false))
 			{
 				shader_item& vs_item = m_shaders[file.m_filename + "_vs"];
-				compile_args.m_type = shader::e_shader_type::vs;
-				compile_args.m_entrypoint = "main_vs";
+				compile_args.m_signature.m_type = shader::e_shader_type::vs;
+				compile_args.m_signature.m_entrypoint = "main_vs";
+				compile_args.m_signature.cache_id();
 				vs_item.load(file.m_path_full, compile_args);
 			}
 
 			if (str::contains(file_content, "[shader(\"pixel\")]", false))
 			{
 				shader_item& ps_item = m_shaders[file.m_filename + "_ps"];
-				compile_args.m_type = shader::e_shader_type::ps;
-				compile_args.m_entrypoint = "main_ps";
+				compile_args.m_signature.m_type = shader::e_shader_type::ps;
+				compile_args.m_signature.m_entrypoint = "main_ps";
+				compile_args.m_signature.cache_id();
 				ps_item.load(file.m_path_full, compile_args);
 			}
 
 			if (str::contains(file_content, "[shader(\"compute\")]", false))
 			{
 				shader_item& cs_item = m_shaders[file.m_filename + "_cs"];
-				compile_args.m_type = shader::e_shader_type::cs;
-				compile_args.m_entrypoint = "main_cs";
+				compile_args.m_signature.m_type = shader::e_shader_type::cs;
+				compile_args.m_signature.m_entrypoint = "main_cs";
+				compile_args.m_signature.cache_id();
 				cs_item.load(file.m_path_full, compile_args);
 			}
 		});

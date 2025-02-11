@@ -22,64 +22,80 @@
 
 namespace influx::renderer
 {
-    static compute_pipeline_signature k_scene_resolve_pipsig
+    static constexpr uint32 k_num_gbuffers = 3u;
+    static constexpr graphics::e_format k_gbuffer_formats[k_num_gbuffers]
     {
-        .m_bindless { true },
-        .m_cs_name  {"resolvepass_cs"}
+        graphics::e_format::rgba_u32,
+        graphics::e_format::u32,
+        graphics::e_format::u32,
     };
 
-    constexpr graphics_pipeline_signature::format gbuffer_formatA = graphics_pipeline_signature::format::u32_4;
-    constexpr graphics_pipeline_signature::format gbuffer_formatB = graphics_pipeline_signature::format::u32;
-    constexpr graphics_pipeline_signature::format gbuffer_formatC = graphics_pipeline_signature::format::u32;
-    constexpr graphics_pipeline_signature::blendmask blendmask = graphics_pipeline_signature::blendmask::blend_all;
-
-    static graphics_pipeline_signature k_scene_basepass_pipsig
+    static graphics_pipeline_signature& get_scene_basepass_pipeline_signature()
     {
-        .m_bindless             { true },
-        .m_vs_name              { "basepass_vs" },
-        .m_ps_name              { "basepass_ps" },
+        static graphics_pipeline_signature signature{};
+        static bool once = true;
+        if (once)
+        {
+            signature.m_bindless = true;
+            signature.set_shader_id(graphics_pipeline::e_shader_slot::vs, "basepass::main_vs");
+            signature.set_shader_id(graphics_pipeline::e_shader_slot::ps, "basepass::main_ps");
 
-        .m_primitive_type       { graphics_pipeline_signature::primitive_type::triangle },
-        .m_cullmode             { graphics_pipeline_signature::cullmode::none },
-        .m_fillmode             { graphics_pipeline_signature::fillmode::solid },
-        .m_forced_samplecount   { 0u },
-        .m_sample_mask          { (uint32)-1 },
-        .m_sample_count         { 1u },
-        .m_front_ccw            { false },
-        .m_depthclip            { false },
-        .m_multisample          { false },
-        .m_antialiased_line     { false },
-        .m_conservative_raster  { false },
-        .m_depthbias            { 0 },
-        .m_depthbias_clamp      { 0.0f },
-        .m_slope_depthbias      { 0.0f },
+            signature.m_primitive_type = graphics::e_primitive_topology_type::triangle;
+            signature.m_cullmode = graphics::e_cull_mode::nocull;
+            signature.m_fillmode = graphics::e_fill_mode::solid;
 
-        .m_depth_enable         { true },
-        .m_stencil_enable       { false },
-        .m_depth_comparison     { 0u },
-        .m_depth_format         { graphics_pipeline_signature::format::default_depth },
+            signature.m_forced_samplecount = 0u;
+            signature.m_sample_mask = (uint32)-1;
+            signature.m_sample_count = 1u;
+            signature.m_front_ccw = false;
+            signature.m_depthclip = false;
+            signature.m_multisample = false;
+            signature.m_antialiased_line = false;
+            signature.m_conservative_raster = false;
+            signature.m_depthbias = 0;
+            signature.m_depthbias_clamp = 0.0f;
+            signature.m_slope_depthbias = 0.0f;
 
+            signature.m_depth_enable = true;
+            signature.m_stencil_enable = false;
+            signature.m_depth_comparison = graphics::e_comparison_func::less;
+            signature.m_depth_format = graphics::e_format::d32;
 
-        .m_rtv_actives          { true, true, true, false, false, false, false, false },
-        .m_rtv_formats          { gbuffer_formatA, gbuffer_formatB, gbuffer_formatC, 0u, 0u, 0u, 0u, 0u},
-        .m_blend_actives        { false, false, false, false, false, false, false, false },
-        .m_blend_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_sources        { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_dests          { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_ops            { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_writemasks     { blendmask, blendmask, blendmask, 0u, 0u, 0u, 0u, 0u}
+            for (uint32 i = 0u; i < 8u; ++i)
+            {
+                if (i < k_num_gbuffers)
+                {
+                    signature.m_rtv_actives[i] = true;
+                    signature.m_rtv_formats[i] = k_gbuffer_formats[i];
+                    signature.m_blend_writemasks[i] = graphics_pipeline_signature::blendmask::blend_all;
+                }
+                else
+                {
+                    signature.m_rtv_actives[i] = false;
+                }
+            }
+
+            once = false;
+        }
+        
+        return signature;
+    }
+
+    static compute_pipeline_signature& get_scene_resolve_pipeline_signature()
+    {
+        static compute_pipeline_signature signature{};
+        signature.m_bindless = true;
+        signature.set_shader_id(compute_pipeline::e_shader_slot::cs, "resolvepass::main_cs");
+        return signature;
     };
 
-    scene_renderer::scene_renderer(renderer_backend* backend, graphics::device* device, pipeline* pipeline)
-        : mp_backend{ backend }
-        , mp_device{ device }
+    scene_renderer::scene_renderer()
     {
-        m_instance_data = new gpu_instance_data[k_max_num_instances]{};
+        renderer_backend& backend = renderer_backend::get_instance();
+        graphics::device& device = backend.get_device();
+        static descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
 
-        static descriptor_manager& descriptor_manager = *backend->get_descriptor_manager();
-        m_sampler_view = descriptor_manager.create_sampler();
+        m_instance_data = new frontend::per_instance[k_max_num_instances]{};
 
         // instance buffer
         {
@@ -87,10 +103,10 @@ namespace influx::renderer
             heap_desc.m_type = graphics::e_heap_type::shared;
 
             graphics::buffer_desc desc{};
-            desc.m_bytesize = k_max_num_instances * sizeof(gpu_instance_data);
-            desc.m_bytestride = sizeof(gpu_instance_data);
+            desc.m_bytesize = k_max_num_instances * sizeof(frontend::per_instance);
+            desc.m_bytestride = sizeof(frontend::per_instance);
             desc.m_init_state = graphics::e_resource_state::gen_read;
-            mp_instancebuffer = device->create_resource(desc, heap_desc);
+            mp_instancebuffer = device.create_resource(desc, heap_desc);
             mp_instancebuffer->set_name({ "scene_instance_buffer" });
 
             // create srv
@@ -101,9 +117,9 @@ namespace influx::renderer
         {
             constexpr static uint64 buffer_strides[k_num_light_types]
             {
-                sizeof(pointlight_data),
-                sizeof(spotlight_data),
-                sizeof(dirlight_data)
+                sizeof(frontend::per_pointlight),
+                sizeof(frontend::per_spotlight),
+                sizeof(frontend::per_dirlight)
             };
 
             for (uint32 i = 0u; i < k_num_light_types; ++i)
@@ -116,12 +132,14 @@ namespace influx::renderer
                 desc.m_bytestride = buffer_strides[i];
                 desc.m_bytesize = k_max_num_lights * desc.m_bytestride;
 
-                mp_lightbuffers[i] = device->create_resource(desc, heap_desc);
+                mp_lightbuffers[i] = device.create_resource(desc, heap_desc);
                 mp_lightbuffers[i]->set_name("lightbuffer_" + to_string(i));
 
                 m_lightbuffer_srvs[i] = descriptor_manager.create_buffer_srv(mp_lightbuffers[i]);
             }
         }
+
+        m_sampler_view = descriptor_manager.create_sampler();
     }
 
     scene_renderer::~scene_renderer()
@@ -136,16 +154,16 @@ namespace influx::renderer
     public:
         string m_mesh_name;
         string m_material_name;
-        vector<gpu_instance_data> m_instances;
+        vector<frontend::per_instance> m_instances;
         graphics::resource* m_vertexbuffer;
         graphics::resource* m_indexbuffer;
         uint64 m_base_instance{};
     };
 #pragma endregion
 
-    inline gpu_instance_data translate(const mesh_instance& mesh)
+    inline frontend::per_instance translate(const mesh_instance& mesh)
     {
-        gpu_instance_data instance_data{};
+        frontend::per_instance instance_data{};
         instance_data.m_transform = mesh.m_transform;
         instance_data.m_colour = mesh.m_per_instance_colour;
         return instance_data;
@@ -153,8 +171,6 @@ namespace influx::renderer
 
     vector<batch> scene_renderer::create_batches(const scene& scene, graphics::commandlist* commandlist)
     {
-        influx_scope("scene_renderer::create_batches");
-
         renderer_backend& backend = renderer_backend::get_instance();
         umap<texture*, uint32> tex_to_idx{};
 
@@ -167,8 +183,14 @@ namespace influx::renderer
             uint32 texture_count = 0u;
             for (const mesh_instance& instance : scene.m_meshes)
             {
-                const material& material = *instance.m_material;
-                texture* diffuse_texture = backend.find_texture(material.get_texture_diffuse_name());
+                string diffuse_name = "";
+                if (instance.m_material != nullptr)
+                {
+                    const material& material = *instance.m_material;
+                    diffuse_name = material.get_texture_diffuse_name();
+                }
+                
+                texture* diffuse_texture = backend.find_texture(diffuse_name);
                 if (diffuse_texture != nullptr && !tex_to_idx.contains(diffuse_texture))
                 {
                     // add to list of unique srvs
@@ -186,7 +208,7 @@ namespace influx::renderer
             backend.get_descriptor_manager()->start_commandlist(commandlist);
         }
 
-        using mesh_to_instance_map = umap<string, vector<gpu_instance_data>>;
+        using mesh_to_instance_map = umap<string, vector<frontend::per_instance>>;
         mesh_to_instance_map meshname_to_instances{};
 
         for (const mesh_instance& instance : scene.m_meshes)
@@ -194,14 +216,20 @@ namespace influx::renderer
             graphics::resource* indexbuffer = nullptr;
             graphics::resource* vertexbuffer = nullptr;
 
-            gpu_instance_data gpu_data = translate(instance);
-            gpu_data.m_albedo_index = tex_to_idx[backend.find_texture(instance.m_material->get_texture_diffuse_name())];
+            frontend::per_instance gpu_data = translate(instance);
+
+            string diffuse_name = "";
+            if (instance.m_material != nullptr)
+            {
+                const material& material = *instance.m_material;
+                diffuse_name = material.get_texture_diffuse_name();
+            }
+
+            gpu_data.set_albedo_index( tex_to_idx[backend.find_texture(diffuse_name)] );
             meshname_to_instances[instance.m_name].push_back(gpu_data);
         }
 
         vector<batch> batches{};
-        batches.reserve(meshname_to_instances.size());
-
         uint64 offset = 0u;
         for (const auto& pair : meshname_to_instances)
         {
@@ -225,11 +253,9 @@ namespace influx::renderer
 
     void scene_renderer::update_instance_buffer(const vector<batch>& batches)
     {
-        influx_scope("scene_renderer::update_instance_buffer");
-
         mp_instancebuffer->map([&batches](void* dest)
         {
-            gpu_instance_data* data = reinterpret_cast<gpu_instance_data*>(dest);
+            frontend::per_instance* data = reinterpret_cast<frontend::per_instance*>(dest);
             for (const batch& batch : batches)
             {
                 for (size_t i = 0u; i < batch.m_instances.size(); ++i)
@@ -242,8 +268,6 @@ namespace influx::renderer
 
     void scene_renderer::update_lightbuffers(const scene& scene)
     {
-        influx_scope("scene_renderer::update_lightbuffers");
-
         // map lightbuffers
         const uint32 num_lights = scene.get_num_lights();
         for (uint32 i = 0u; i < k_num_light_types; ++i)
@@ -261,24 +285,24 @@ namespace influx::renderer
                     {
                     case influx::scene::e_light_type::directional:
                     {
-                        dirlight_data* data = reinterpret_cast<dirlight_data*>(dest);
-                        data[index].colour = scene.m_lights[l].m_light.get_colour();
+                        frontend::per_dirlight* data = reinterpret_cast<frontend::per_dirlight*>(dest);
+                        data[index].m_colour = scene.m_lights[l].m_light.get_colour();
                         break;
                     }
 
                     case influx::scene::e_light_type::point:
                     {
-                        pointlight_data* data = reinterpret_cast<pointlight_data*>(dest);
-                        data[index].attenuation = scene.m_lights[l].m_light.get_attenuation();
-                        data[index].colour      = scene.m_lights[l].m_light.get_colour();
-                        data[index].position    = scene.m_lights[l].m_world_position;
+                        frontend::per_pointlight* data = reinterpret_cast<frontend::per_pointlight*>(dest);
+                        data[index].m_attenuation = scene.m_lights[l].m_light.get_attenuation();
+                        data[index].m_colour      = scene.m_lights[l].m_light.get_colour();
+                        data[index].m_position    = scene.m_lights[l].m_world_position;
                         break;
                     }
 
                     case influx::scene::e_light_type::spot:
                     {
-                        spotlight_data* data = reinterpret_cast<spotlight_data*>(dest);
-                        data[index].position = scene.m_lights[l].m_world_position;
+                        frontend::per_spotlight* data = reinterpret_cast<frontend::per_spotlight*>(dest);
+                        data[index].m_position = scene.m_lights[l].m_world_position;
                         break;
                     }
                     }
@@ -289,25 +313,23 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::apply_pipeline_settings()
+    void scene_renderer::apply_pipeline_settings(const target& target)
     {
         const render_settings& settings = renderer_backend::get_instance().get_settings();
+        graphics_pipeline_signature& signature = get_scene_basepass_pipeline_signature();
         
-        // fillmode
-        k_scene_basepass_pipsig.m_fillmode = settings.m_wireframe ? graphics_pipeline_signature::fillmode::wireframe : graphics_pipeline_signature::fillmode::solid;
-        
-        // cullmode
+        signature.m_depth_enable = target.has_depth_stencil();
+        signature.m_fillmode = settings.m_wireframe ? graphics::e_fill_mode::wireframe : graphics::e_fill_mode::solid;
         switch (settings.m_cullmode)
         {
-        case render_settings::cullmode::back:  k_scene_basepass_pipsig.m_cullmode = graphics_pipeline_signature::cullmode::back; break;
-        case render_settings::cullmode::front: k_scene_basepass_pipsig.m_cullmode = graphics_pipeline_signature::cullmode::front; break;
-        case render_settings::cullmode::none:  k_scene_basepass_pipsig.m_cullmode = graphics_pipeline_signature::cullmode::none; break;
+        case render_settings::cullmode::back:  signature.m_cullmode = graphics::e_cull_mode::back; break;
+        case render_settings::cullmode::front: signature.m_cullmode = graphics::e_cull_mode::front; break;
+        case render_settings::cullmode::none:  signature.m_cullmode = graphics::e_cull_mode::nocull; break;
         }
     }
 
     void scene_renderer::build_basepass(rendergraph::rgpass_builder& builder, const target& target)
     {
-        influx_scope("scene_renderer::build_basepass");
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         static string depth_name{}; depth_name = color_name + "_depth";
 
@@ -328,24 +350,27 @@ namespace influx::renderer
         builder.write_rendertarget(RGNAME("gbuffer_b"), access);
         builder.write_rendertarget(RGNAME("gbuffer_c"), access);
 
-        access.m_load = rendergraph::e_rg_load::clear;
-        builder.write_depthtarget(depth_name, access);
+        if (target.has_depth_stencil())
+        {
+            access.m_load = rendergraph::e_rg_load::clear;
+            builder.write_depthtarget(depth_name, access);
+        }
         builder.set_viewport(target.get_width(), target.get_height());
     }
 
     void scene_renderer::execute_basepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
-        influx_scope("scene_renderer::execute_basepass");
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
 
-        apply_pipeline_settings();
-        graphics_pipeline* pipeline = pipeline_man.get_or_create_pipeline("pip_scene_basepass", k_scene_basepass_pipsig);
-        if (pipeline == nullptr || scene.is_empty())
+        apply_pipeline_settings(target);
+        graphics_pipeline& pipeline = pipeline_man.get_or_create_pipeline( get_scene_basepass_pipeline_signature() );
+        if (scene.is_empty())
         {
             return;
         }
 
+        influx_scope("renderer_backend::draw_scene::record");
         logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
 
         graphics::commandlist& commandlist = context.get_commandlist();
@@ -355,7 +380,7 @@ namespace influx::renderer
         update_instance_buffer(batches);
 
         // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
-        pipeline->set_state(commandlist);
+        pipeline.set_state(commandlist);
         commandlist.set(graphics::e_primitive_topology::trilist);
 
         // per-scene
@@ -370,18 +395,18 @@ namespace influx::renderer
             transform.update_matrix();
 
             const float ar = (float)target.get_width() / target.get_height();
-            m_gpu_perview.m_vp = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
-            pipeline->set_constants<gpu_perscene>(commandlist, "g_perscene", m_gpu_perscene);
-            pipeline->set_constants<gpu_perview>(commandlist, "g_perview", m_gpu_perview);
+            m_gpu_perview.m_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane);
+            pipeline.set_constants<frontend::per_scene>(commandlist, "g_perscene", m_gpu_perscene);
+            pipeline.set_constants<frontend::per_view>(commandlist, "g_perview", m_gpu_perview);
         }
 
         for (const batch& batch : batches)
         {
             // per draw constants
-            m_gpu_perdraw.m_start_instance = static_cast<uint32>(batch.m_base_instance);
+            m_gpu_perdraw.m_base_instance = static_cast<uint32>(batch.m_base_instance);
             m_gpu_permaterial.m_colour = {};
-            pipeline->set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
-            pipeline->set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
+            pipeline.set_constants(commandlist, "g_permaterial", m_gpu_permaterial);
+            pipeline.set_constants(commandlist, "g_perdraw", m_gpu_perdraw);
 
             // bind index buffer
             graphics::resource* index_buffer = batch.m_indexbuffer;
@@ -396,20 +421,20 @@ namespace influx::renderer
                 .m_num_instances = num_instances,
                 .m_start_index = 0u,
                 .m_start_vertex = 0u,
-                .m_start_instance = m_gpu_perdraw.m_start_instance
+                .m_start_instance = m_gpu_perdraw.m_base_instance
             });
         }
     }
 
-    static constexpr uint32 num_gbuffers = 3u;
-    static rendergraph::rgtexture_readonly_id gbuffer_reads[num_gbuffers]{};
+    static rendergraph::rgtexture_readonly_id gbuffer_reads[k_num_gbuffers]{};
     static rendergraph::rgtexture_readwrite_id resolve_write{};
+
+    static bool g_use_proxy_pass = false;
+    static rendergraph::rgname g_proxy_name = RGNAME("uav_proxy");
 
     void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target, const scene& scene)
     {
-        influx_scope("scene_renderer::build_resolvepass");
-
-        rendergraph::rgname gbuffernames[num_gbuffers]
+        rendergraph::rgname gbuffernames[k_num_gbuffers]
         {
             RGNAME("gbuffer_a"),
             RGNAME("gbuffer_b"),
@@ -418,85 +443,92 @@ namespace influx::renderer
 
         // read gbuffers and write into target buffer as result
         static string color_name{}; color_name = target.get_resource()->get_name().get();
-        for (uint32 i = 0; i < num_gbuffers; ++i)
+        for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
             gbuffer_reads[i] = builder.read_texture(gbuffernames[i]);
         }
 
         builder.set_viewport(target.get_width(), target.get_height());
-        resolve_write = builder.write_texture(color_name);
+
+        if (g_use_proxy_pass)
+        {
+            // write to proxy
+            resolve_write = builder.write_texture(g_proxy_name);
+        }
+        else
+        {
+            // write to target
+            resolve_write = builder.write_texture(target.get_name().get());
+        }
     }
 
     void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
-        influx_scope("scene_renderer::execute_resolvepass");
-
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
         descriptor_manager& descriptor_man = *backend.get_descriptor_manager();
+        compute_pipeline& pipeline = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
+        graphics::commandlist& commandlist = context.get_commandlist();
 
-        auto* compute_pipeline = pipeline_man.get_or_create_pipeline("resolvepass_pip", k_scene_resolve_pipsig);
-        if (compute_pipeline)
+        // hot-reload our shaders if necessary:
+        pipeline.update_shaders(backend.get_device());
+
+        // update buffers for deferred lights
+        update_lightbuffers(scene);
+
+        // build resolve args
+        struct resolve_args final
         {
-            update_lightbuffers(scene);
+            int texture_indices[4u];
+            int buffer_indices[4u];
+            math::float4 screen_size;
+            math::float4 camera_position;
+            math::matrix4x4f inv_viewprojection;
+            int num_lights[4u];
+        } args{};
 
-            struct resolve_args final
-            {
-                int texture_indices[4u];
-                int buffer_indices[4u];
-                math::float4 screen_size;
-                math::float4 camera_position;
-                math::matrix4x4f inv_viewprojection;
-                int num_lights[4u];
-            } args{};
-
-            for (uint32 i = 0u; i < k_num_light_types; ++i)
-            {
-                args.num_lights[i] = scene.get_num_lights(static_cast<influx::scene::e_light_type>(i));
-            }
-            
-            args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
-            const camera& camera = scene.m_camera;
-            math::transform3D transform = camera.m_transform;
-            transform.update_matrix();
-            const float ar = (float)target.get_width() / target.get_height();
-            args.inv_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane).inverted();
-            
-            args.camera_position.x = transform.get_position().x;
-            args.camera_position.y = transform.get_position().y;
-            args.camera_position.z = transform.get_position().z;
-            args.camera_position.w = 1.0f;
-
-            graphics::commandlist& commandlist = context.get_commandlist();
-
-            // stage the descriptors onto the gpu heap
-            graphics::descriptor_range gpu_range = descriptor_man.stage({
-                    context.get_read_texture(gbuffer_reads[0]),
-                    context.get_read_texture(gbuffer_reads[1]),
-                    context.get_read_texture(gbuffer_reads[2]),
-                    context.get_write_texture(resolve_write),
-                    m_lightbuffer_srvs[0],
-                    m_lightbuffer_srvs[1],
-                    m_lightbuffer_srvs[2]
-                });
-
-            compute_pipeline->set_state(commandlist);
-
-            // set the descriptorheap bindless indices
-            args.texture_indices[0] = gpu_range.m_start_idx;
-            args.texture_indices[1] = gpu_range.m_start_idx + 1u;
-            args.texture_indices[2] = gpu_range.m_start_idx + 2u;
-            args.texture_indices[3] = gpu_range.m_start_idx + 3u;
-            args.buffer_indices[0]  = gpu_range.m_start_idx + 4u;
-            args.buffer_indices[1]  = gpu_range.m_start_idx + 5u;
-            args.buffer_indices[2]  = gpu_range.m_start_idx + 6u;
-
-            compute_pipeline->set_constants<resolve_args>(commandlist, "g_resolve_args", args);
-
-            const uint32 num_groups_x = target.get_width() / 8u;
-            const uint32 num_groups_y = target.get_height() / 8u;
-            commandlist.dispatch({ {num_groups_x, num_groups_y, 1u} });
+        for (uint32 i = 0u; i < k_num_light_types; ++i)
+        {
+            args.num_lights[i] = scene.get_num_lights(static_cast<influx::scene::e_light_type>(i));
         }
+
+        args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
+        const camera& camera = scene.m_camera;
+        math::transform3D transform = camera.m_transform;
+        transform.update_matrix();
+        const float ar = (float)target.get_width() / target.get_height();
+        args.inv_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane).inverted();
+
+        args.camera_position = transform.get_position().get_xyz();
+        args.camera_position.w = 1.0f;
+
+        // stage the descriptors onto the gpu heap
+        graphics::descriptor_range gpu_range = descriptor_man.stage({
+                context.get_read_texture(gbuffer_reads[0]),
+                context.get_read_texture(gbuffer_reads[1]),
+                context.get_read_texture(gbuffer_reads[2]),
+                context.get_write_texture(resolve_write),
+                m_lightbuffer_srvs[0],
+                m_lightbuffer_srvs[1],
+                m_lightbuffer_srvs[2]
+            });
+
+        pipeline.set_state(commandlist);
+
+        // set the descriptorheap bindless indices
+        args.texture_indices[0] = gpu_range.m_start_idx;
+        args.texture_indices[1] = gpu_range.m_start_idx + 1u;
+        args.texture_indices[2] = gpu_range.m_start_idx + 2u;
+        args.texture_indices[3] = gpu_range.m_start_idx + 3u;
+        args.buffer_indices[0] = gpu_range.m_start_idx + 4u;
+        args.buffer_indices[1] = gpu_range.m_start_idx + 5u;
+        args.buffer_indices[2] = gpu_range.m_start_idx + 6u;
+
+        pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", args);
+
+        const uint32 num_groups_x = target.get_width() / 8u;
+        const uint32 num_groups_y = target.get_height() / 8u;
+        commandlist.dispatch({ {num_groups_x, num_groups_y, 1u} });
     }
 
     void scene_renderer::render(rendergraph::rendergraph& graph, const scene& scene, const target& target)
@@ -506,8 +538,13 @@ namespace influx::renderer
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         static string depth_name{}; depth_name = color_name + "_depth";
         graph.import_texture(color_name, target.get_resource());
-        graph.import_texture(depth_name, target.get_depth_resource());
+        if (target.has_depth_stencil()) graph.import_texture(depth_name, target.get_depth_resource());
+        else
+        {
+            logonce(e_log_category::warning, "influx_renderer::scene_renderer::render >> rendering scene without depth because specified target has no depth!");
+        }
 
+        // deferred gbuffer basepass
         auto* basepass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
             [this, &target](rendergraph::rgpass_builder& builder)
             {
@@ -518,7 +555,42 @@ namespace influx::renderer
                 execute_basepass(context, target, scene);
             });
         basepass->set_name(RGNAME("basepass"));
-        
+       
+        // if we're directly writing to the swapchain, we need to write to a intermediate that allows for uav writes
+        g_use_proxy_pass = target.is_swapchain_target() || !target.get_resource()->allows_uav();
+        if (g_use_proxy_pass)
+        {
+            static rendergraph::rgtex_copysrc_id src_tex_id{};
+            static rendergraph::rgtex_copydst_id dst_tex_id{};
+            auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
+                [&target](rendergraph::rgpass_builder& builder)
+                {
+                    rendergraph::texture_desc proxy_desc{};
+                    proxy_desc.m_allow_uav = true;
+                    proxy_desc.m_array_size = 1u;
+                    proxy_desc.m_bindflags = graphics::e_bind_flags::uav;
+                    proxy_desc.m_depth = 1u;
+                    proxy_desc.m_format = target.get_resource()->get_format();
+                    proxy_desc.m_width = target.get_width();
+                    proxy_desc.m_heigth = target.get_height();
+                    proxy_desc.m_num_mips = 1u;
+                    proxy_desc.m_sample_count = 1u;
+                    builder.declare_texture(g_proxy_name, proxy_desc);
+
+                    src_tex_id = builder.read_copysrc_texture(target.get_name().get());
+                    dst_tex_id = builder.write_copydst_texture(g_proxy_name);
+                    builder.set_viewport(target.get_width(), target.get_height());
+                },
+                [](rendergraph::rgpass_context& context)
+                {
+                    graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
+                    graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+                    context.get_commandlist().copy_resource(src_resource, dst_resource);
+                });
+            proxypass->set_name(RGNAME("proxypass_a"));
+        }
+
+        // resolve gbuffer to the target
         auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
             [this, &target, &scene](rendergraph::rgpass_builder& builder)
             {
@@ -529,5 +601,25 @@ namespace influx::renderer
                 execute_resolvepass(ctx, target, scene);
             });
         resolvepass->set_name(RGNAME("resolvepass"));
+
+        if (g_use_proxy_pass)
+        {
+            static rendergraph::rgtex_copysrc_id src_tex_id{};
+            static rendergraph::rgtex_copydst_id dst_tex_id{};
+            auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
+                [&target](rendergraph::rgpass_builder& builder)
+                {
+                    src_tex_id = builder.read_copysrc_texture(g_proxy_name);
+                    dst_tex_id = builder.write_copydst_texture(target.get_name().get());
+                    builder.set_viewport(target.get_width(), target.get_height());
+                },
+                [](rendergraph::rgpass_context& context)
+                {
+                    graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
+                    graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+                    context.get_commandlist().copy_resource(src_resource, dst_resource);
+                });
+            proxypass->set_name(RGNAME("proxypass_b"));
+        }
     }
 }

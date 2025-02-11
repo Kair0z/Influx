@@ -17,42 +17,46 @@ namespace influx::renderer
         math::matrix4x4f m_vp;
     };
 
-    static const graphics_pipeline_signature k_quad_pipeline_signature
+    static graphics_pipeline_signature& get_pipeline_sig()
     {
-        .m_vs_name              { "quad_shaders_vs" },
-        .m_ps_name              { "quad_shaders_ps" },
+        static graphics_pipeline_signature signature{};
+        {
+            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::vs] = "quad_shaders::main_vs";
+            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::ps] = "quad_shaders::main_ps";
 
-        .m_primitive_type       { graphics_pipeline_signature::primitive_type::triangle },
-        .m_cullmode             { graphics_pipeline_signature::cullmode::none },
-        .m_fillmode             { graphics_pipeline_signature::fillmode::solid },
-        .m_forced_samplecount   { 0u },
-        .m_sample_mask          { (uint32)-1 },
-        .m_sample_count         { 1u },
-        .m_front_ccw            { false },
-        .m_depthclip            { false },
-        .m_multisample          { false },
-        .m_antialiased_line     { false },
-        .m_conservative_raster  { false },
-        .m_depthbias            { 0 },
-        .m_depthbias_clamp      { 0.0f },
-        .m_slope_depthbias      { 0.0f },
+            signature.m_primitive_type = graphics::e_primitive_topology_type::triangle;
+            signature.m_cullmode = graphics::e_cull_mode::nocull;
+            signature.m_fillmode = graphics::e_fill_mode::solid;
+            signature.m_forced_samplecount = 0u;
+            signature.m_sample_mask = (uint32)-1;
+            signature.m_sample_count = 1u;
+            signature.m_front_ccw = false;
+            signature.m_depthclip = false;
+            signature.m_multisample = false;
+            signature.m_antialiased_line = false;
+            signature.m_conservative_raster = false;
+            signature.m_depthbias = 0;
+            signature.m_depthbias_clamp = 0.0f;
+            signature.m_slope_depthbias = 0.0f;
 
-        .m_depth_enable         { false },
-        .m_stencil_enable       { false },
-        .m_depth_comparison     { 0u },
-        .m_depth_format         { graphics_pipeline_signature::format::d32 },
+            signature.m_depth_enable = false;
+            signature.m_stencil_enable = false;
+            signature.m_depth_comparison = graphics::e_comparison_func::less;
+            signature.m_depth_format = graphics::e_format::d32;
 
-        .m_rtv_actives          { true, false, false, false, false, false, false, false },
-        .m_rtv_formats          { graphics_pipeline_signature::rgba8, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
-        .m_blend_actives        { true, false, false, false, false, false, false, false },
-        .m_blend_sources        { graphics_pipeline_signature::bl_src_alpha, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_dests          { graphics_pipeline_signature::bl_inv_src_alpha, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_ops            { graphics_pipeline_signature::op_add, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_sources        { graphics_pipeline_signature::bl_one, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_dests          { graphics_pipeline_signature::bl_zero, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_alpha_ops            { graphics_pipeline_signature::op_add, 0u, 0u, 0u, 0u, 0u, 0u, 0u },
-        .m_blend_writemasks     { graphics_pipeline_signature::blend_all, 15u, 15u, 15u, 15u, 15u, 15u, 15u }
-    };
+            signature.m_rtv_actives[0] = true;
+            signature.m_rtv_formats[0] = graphics::e_format::rgba8;
+            signature.m_blend_actives[0] = true;
+            signature.m_blend_sources[0] = graphics::e_blend::src_alpha;
+            signature.m_blend_dests[0] = graphics::e_blend::inv_src_alpha;
+            signature.m_blend_ops[0] = graphics::e_blendop::add;
+            signature.m_alpha_sources[0] = graphics::e_blend::one;
+            signature.m_alpha_dests[0] = graphics::e_blend::zero;
+            signature.m_alpha_ops[0] = graphics::e_blendop::add;
+            signature.m_blend_writemasks[0] = graphics_pipeline_signature::blend_all;
+        }
+        return signature;
+    }
 
 	quad_renderer::quad_renderer()
 	{
@@ -83,23 +87,21 @@ namespace influx::renderer
 	{
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipelineman = *backend.get_pipeline_manager();
-        graphics_pipeline* pipeline = pipelineman.get_or_create_pipeline("pip_quad", k_quad_pipeline_signature);
-        if (pipeline != nullptr)
-        {
-            logonce(e_log_category::warning, "influx::renderer::quad_renderer: first quad render!");
+        graphics_pipeline& pipeline = pipelineman.get_or_create_pipeline(get_pipeline_sig());
+        
+        logonce(e_log_category::warning, "influx::renderer::quad_renderer: first quad render!");
 
-            pipeline->set_state(*commandlist);
-            commandlist->set(graphics::e_primitive_topology::trilist);
-            commandlist->set_vertexbuffer(mp_vertexbuffer);
-            commandlist->set_indexbuffer(mp_indexbuffer);
-            commandlist->draw_indexed(
-            {
-                .m_num_indexes_per_instance{6u},
-                .m_num_instances{1u},
-                .m_start_index{0u},
-                .m_start_vertex{0u},
-                .m_start_instance{0u}
-            });
-        }
+        pipeline.set_state(*commandlist);
+        commandlist->set(graphics::e_primitive_topology::trilist);
+        commandlist->set_vertexbuffer(mp_vertexbuffer);
+        commandlist->set_indexbuffer(mp_indexbuffer);
+        commandlist->draw_indexed(
+        {
+            .m_num_indexes_per_instance{6u},
+            .m_num_instances{1u},
+            .m_start_index{0u},
+            .m_start_vertex{0u},
+            .m_start_instance{0u}
+        });
 	}
 }

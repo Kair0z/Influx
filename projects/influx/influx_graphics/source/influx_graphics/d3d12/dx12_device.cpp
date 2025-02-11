@@ -595,11 +595,11 @@ namespace influx::graphics
 			return CD3DX12_SHADER_BYTECODE(data.data(), data.size());
 		};
 
-		pso_desc.VS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::vs));
-		pso_desc.PS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::ps));
-		pso_desc.DS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::ds));
-		pso_desc.GS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::gs));
-		pso_desc.HS = get_shader_code(desc.m_shaders.get(graphics_shader_slots::hs));
+		pso_desc.VS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::vs));
+		pso_desc.PS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::ps));
+		pso_desc.DS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::ds));
+		pso_desc.GS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::gs));
+		pso_desc.HS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::hs));
 		pso_desc.RasterizerState = rasterizer_desc;
 		pso_desc.BlendState = blend_desc;
 		pso_desc.DepthStencilState = depth_stencil_desc;
@@ -630,7 +630,7 @@ namespace influx::graphics
 			return CD3DX12_SHADER_BYTECODE(data.data(), data.size());
 		};
 
-		pso_desc.CS = get_shader_code(desc.m_shaders.get(compute_shader_slots::cs));
+		pso_desc.CS = get_shader_code(desc.m_shaders.get(e_compute_shader_slots::cs));
 		pso_desc.pRootSignature = rootsig->get_native<ID3D12RootSignature>();
 		pso_desc.CachedPSO;
 		pso_desc.Flags;

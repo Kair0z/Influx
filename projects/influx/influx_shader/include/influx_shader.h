@@ -9,35 +9,10 @@
 #include "core/basetypes.h"
 #include "core/string.h"
 #include "core/container/vector.h"
-
+#include "core/shader.h"
+;
 namespace influx::shader
 {
-	enum class e_shader_type : uint8
-	{
-		// graphics
-		vs,
-		ps,
-		ds,
-		gs,
-		hs,
-
-		// compute
-		cs,
-
-		// raytracing
-
-		//
-		count
-	};
-
-	enum class e_shader_target : uint8
-	{
-		_6_2,
-		_6_5,
-		_6_6,
-		count
-	};
-
 	struct compile_args final
 	{
 	public:
@@ -48,14 +23,11 @@ namespace influx::shader
 
 		inline bool is_valid() const
 		{
-			return !m_entrypoint.empty()
-				&& m_target != e_shader_target::count
-				&& m_type != e_shader_type::count;
+			return m_signature.is_valid();
 		}
 
-		e_shader_type m_type;
-		e_shader_target m_target;
-		string m_entrypoint;
+		shader_signature m_signature;
+
 		vector<string> m_defines;
 		string m_pdb_folder;
 		string m_pdb_filename;
@@ -107,8 +79,7 @@ namespace influx::shader
 
 	struct compile_output final
 	{
-		e_shader_target m_target;
-		e_shader_type m_type;
+		shader_signature m_signature;
 		vector<byte> m_bytecode;
 		reflection m_reflection;
 		vector<string> m_log;

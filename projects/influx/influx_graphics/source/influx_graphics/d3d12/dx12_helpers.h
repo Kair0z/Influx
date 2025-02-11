@@ -104,10 +104,10 @@ namespace influx::graphics::dx12helpers
         desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         desc.SampleDesc.Count = 1;
-
+        desc.Flags;
         _swapchain_t* result_swapchain = nullptr;
         IDXGISwapChain1* int_swapchain;
-        factory->CreateSwapChainForHwnd(
+        HRESULT res = factory->CreateSwapChainForHwnd(
             queue,
             window,
             &desc,

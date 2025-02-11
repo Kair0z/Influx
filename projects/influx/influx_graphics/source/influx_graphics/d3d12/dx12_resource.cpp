@@ -22,6 +22,11 @@ namespace influx::graphics
 		mpdx_resource->SetName(to_wstring(name.get()).c_str());
 	}
 
+	bool dx12_resource::allows_uav() const
+	{
+		return (mpdx_resource->GetDesc().Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) != 0;
+	}
+
 	void dx12_resource::release_impl(device*)
 	{
 		mpdx_resource->Release();

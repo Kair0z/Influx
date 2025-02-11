@@ -4,6 +4,9 @@
 #include "core/macros.h"
 #include "core/math/vector.h"
 
+// influx::shader
+#include "influx_shader.h"
+
 // influx::renderer
 namespace influx::renderer
 {
@@ -45,7 +48,7 @@ namespace influx::engine
 		void stream_content(const content_manager& cont_man);
 
 		// shaders:
-		bool has_shader_loaded(const string& name) const;
+		bool has_shader_loaded(const shader::shader_signature& signature) const;
 
 		// meshes:
 		bool has_mesh_loaded(const string& name) const;

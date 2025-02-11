@@ -26,6 +26,7 @@ workspace "influx"
     g_dir_resources     = g_dir_root .. "/resources/"
     g_dir_assets        = g_dir_root .. "/assets/"
     g_dir_vendor        = g_dir_root .. "/vendor/"
+    g_dir_shaders_engine = g_dir_assets .. "/engine/shaders/"
 
     -- /influx/projects/influx/<projectname>/include/...
     g_dir_core_include      = g_dir_projects_engine .. "/influx_core/include/"

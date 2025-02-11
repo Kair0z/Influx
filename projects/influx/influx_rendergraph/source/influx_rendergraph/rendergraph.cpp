@@ -3,6 +3,7 @@
 // influx::core
 #include "core/scope.h"
 #include "core/enum.h" // has_any_flag()...
+#include "core/log.h"
 
 // influx::rendergraph
 #include "rendergraph.h"
@@ -230,13 +231,16 @@ namespace influx::rendergraph
 
 	void rendergraph::execute(graphics::commandlist* commandlist)
 	{
+		const bool can_run = execute_validation_checks();
+		if (!can_run) return;
+
 		get_resource_pool(m_device).tick();
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
 			const rglayer& layer = m_layers[layer_idx];
 
-			// texture / buffer creates
+			// texture / buffer creates (and views)
 			{
 				for (const rgtexture_id& tex_id : layer.m_texture_creates)
 				{
@@ -395,12 +399,14 @@ namespace influx::rendergraph
 				for (const rgtexture_id& tex_id : layer.m_texture_destroys)
 				{
 					rgtexture* texture = get_texture(tex_id);
-					get_resource_pool(m_device).release_texture(texture->m_resource);
+					if (texture->is_imported() == false)
+						get_resource_pool(m_device).release_texture(texture->m_resource);
 				}
 				for (const rgbuffer_id& buff_id : layer.m_buffer_destroys)
 				{
 					rgbuffer* buffer = get_buffer(buff_id);
-					get_resource_pool(m_device).release_buffer(buffer->m_resource);
+					if (buffer->is_imported() == false)
+						get_resource_pool(m_device).release_buffer(buffer->m_resource);
 				}
 			}
 		}
@@ -450,16 +456,17 @@ namespace influx::rendergraph
 		return pass;
 	}
 
-	rgpass* rendergraph::add_clear_pass(graphics::resource* dest)
+	rgpass* rendergraph::add_clear_pass(graphics::resource* dest, const clear_args& args)
 	{
 		import_texture(dest->get_name().get(), dest);
 
 		auto* pass = add_pass(e_rgpass_type::graphics,
-			[dest](rgpass_builder& builder)
+			[dest, &args](rgpass_builder& builder)
 			{
 				rgaccess access{};
 				access.m_load = e_rg_load::clear;
 				access.m_store = e_rg_store::preserve;
+				access.m_load_clear.m_colour = args.m_colour;
 				builder.write_rendertarget(dest->get_name().get(), access);
 				builder.set_viewport(dest->get_width(), dest->get_height());
 			},
@@ -509,6 +516,9 @@ namespace influx::rendergraph
 		auto& descriptors = m_texid_to_descriptors_map[id];
 		auto& device_children = m_texid_to_deviceobjects_map[id];
 		rgtexture* texture = get_texture(id);
+
+		graphics::resource& resource = *texture->m_resource;
+		
 		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
 		{
 			if (viewdescs[i].m_is_active && device_children[i] == nullptr)
@@ -518,19 +528,20 @@ namespace influx::rendergraph
 				{
 				case rgdescriptor_type::render_target:
 					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_rtv(descriptors[i], texture->m_resource);
+					m_device->create_rtv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::depth_target:
 					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_dsv(descriptors[i], texture->m_resource);
+					m_device->create_dsv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::read_only:
 					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_texture_srv(descriptors[i], texture->m_resource);
+					m_device->create_texture_srv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::read_write:
+					influx_assert(resource.allows_uav());
 					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_texture_uav(descriptors[i], texture->m_resource);
+					m_device->create_texture_uav(descriptors[i], &resource);
 					break;
 				}
 			}
@@ -1095,6 +1106,69 @@ namespace influx::rendergraph
 		rgbuffer_id id = m_buffer_name_to_id_map.at(name);
 		rgbuffer* buffer = m_id_to_buffer_map.at(id);
 		return buffer->m_desc;
+	}
+
+	bool rendergraph::execute_validation_checks() const
+	{
+		bool is_runnable = true;
+		return is_runnable;
+		// imported resources with a pending uav create should allow for UAV!
+		bool uav_check = true;
+		uint32 num_incorrect_uavs = 0u;
+		{
+			constexpr uint32 uav_index = static_cast<uint32>(rgdescriptor_type::read_write);
+			for (uint64 i = 0; i < m_textures.size(); ++i)
+			{
+				if (m_textures[i]->m_is_imported)
+				{
+					rgtexture_id id = m_textures[i]->m_id;
+					const graphics::resource& resource = *m_textures[i]->m_resource;
+					const bool wants_uav = m_texid_to_viewdesc_map.at(id)[uav_index].m_is_active;
+					if (wants_uav && resource.allows_uav() == false)
+					{
+						++num_incorrect_uavs;
+					}
+				}
+			}
+			for (uint64 i = 0; i < m_buffers.size(); ++i)
+			{
+				if (m_buffers[i]->m_is_imported)
+				{
+					rgbuffer_id id = m_buffers[i]->m_id;
+					const graphics::resource& resource = *m_buffers[i]->m_resource;
+					const bool wants_uav = m_bufid_to_viewdesc_map.at(id)[uav_index].m_is_active;
+					if (wants_uav && resource.allows_uav() == false)
+					{
+						++num_incorrect_uavs;
+					}
+				}
+			}
+
+			uav_check = num_incorrect_uavs == 0u;
+		}
+		if (!uav_check)
+		{
+			logonce(e_log_category::warning, "rendergraph::validate() >> {} imported resources are marked readwrite (uav) but are created as non-uav compatible!", 
+				num_incorrect_uavs);
+
+			is_runnable = false;
+		}
+		
+#if 0
+		for (uint64 layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
+		{
+			const rglayer& layer = m_layers[layer_idx];
+			for (uint64 pass_idx = 0u; pass_idx < layer.m_passes.size(); ++pass_idx)
+			{
+				const rgpass& pass = layer.m_passes[pass_idx];
+
+				
+
+			}
+		}
+#endif
+
+		return is_runnable;
 	}
 
 	graphics::descriptor_handle rendergraph::get_rtv(rgtexture_id id)

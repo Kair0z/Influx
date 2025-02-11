@@ -52,7 +52,7 @@ namespace influx::imp
 		}
 
 		// Processing aiScene:
-		out_scene = parse(aiscene);
+		out_scene = parse(aiscene, args);
 		return true;
 	}
 }

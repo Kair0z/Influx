@@ -1,3 +1,6 @@
+#include "include/common.hlsli"
+#include "frontend.h"
+
 struct vs_input
 {
     float2 uv : TEXCOORD;

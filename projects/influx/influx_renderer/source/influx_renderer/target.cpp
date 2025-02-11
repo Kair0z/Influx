@@ -231,5 +231,10 @@ namespace influx::renderer
 	{
 		return m_debug_name;
 	}
+
+	bool target::is_swapchain_target() const
+	{
+		return m_is_swapchain_target;
+	}
 }
 

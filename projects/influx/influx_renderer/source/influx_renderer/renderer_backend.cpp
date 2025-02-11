@@ -2,6 +2,7 @@
 #include "renderer_backend.h"
 
 // influx::renderer
+#include "influx_renderer/shader_manager.h"
 #include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
@@ -62,10 +63,13 @@ namespace influx::renderer
         mp_pipeline_manager = new pipeline_manager(mp_device);
         mp_upload_manager = new upload_manager(mp_device);
         mp_imgui = new imgui_manager(mp_device);
-        mp_scene_renderer = new scene_renderer(this, mp_device, nullptr);
-        mp_debug_renderer = new debug_renderer(this, mp_device);
+
+        // sub-renderers
+        mp_scene_renderer = new scene_renderer();
+        mp_debug_renderer = new debug_renderer();
         mp_quad_renderer = new quad_renderer();
         mp_shadertoy_renderer = new shadertoy_renderer();
+        mp_shader_manager = new shader_manager();
 
         get_default_texture();
         get_default_material();
@@ -100,9 +104,18 @@ namespace influx::renderer
     {
         m_rendergraph = new rendergraph::rendergraph(mp_device);
 
-        auto* window_target = get_current_window_target();
-        m_rendergraph->import_texture(window_target->get_name().get(), window_target->get_resource());
+        // acquire window backbuffer
+        if (get_current_window_target())
+        {
+            auto* window_target = get_current_window_target();
+            m_rendergraph->import_texture(window_target->get_name().get(), window_target->get_resource());
+        }
+        else
+        {
+            logonce(e_log_category::warning, "influx_renderer::start_frame() >> starting a frame without a window target!");
+        }
 
+        // start the commandlist
         mp_commandlist->start(mp_device, nullptr);
         mp_commandlist->set_name("frame");
         get_descriptor_manager()->start_commandlist(mp_commandlist);
@@ -119,9 +132,19 @@ namespace influx::renderer
             m_rendergraph->execute(mp_commandlist);
         }
 
+        const bool has_swapchain = get_current_window_target() != nullptr;
+        if (!has_swapchain)
+        {
+            logonce(e_log_category::warning, "influx_renderer::end_frame() >> ending a frame without a window target!");
+        }
+
         // transition backbuffer to present state
-        graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
-        backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
+        if (has_swapchain)
+        {
+            graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
+            backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
+        }
+
         mp_commandlist->end();
 
         influx_scope("renderer_backend::end_frame");
@@ -140,11 +163,11 @@ namespace influx::renderer
             mp_commandlist->wait_for_completion();
         }
 
+        if (has_swapchain)
         {
-            influx_scope("renderer_backend::end_frame::present");
             present_swapchain({ .m_vsync = false });
         }
-        
+
         delete m_rendergraph;
         m_rendergraph = nullptr;
 
@@ -311,6 +334,11 @@ namespace influx::renderer
         mp_shadertoy_renderer->render(mp_commandlist, scene, target);
     }
 
+    void renderer_backend::draw_postprocess(const scene_postprocess& scene, const target& target)
+    {
+
+    }
+
     void renderer_backend::copy_target(const target& source, const target& dest)
     {
         const bool keep_source = true;
@@ -320,7 +348,7 @@ namespace influx::renderer
     void renderer_backend::clear_target(const target& target, const clear_args& args)
     {
         influx_scope("renderer_backend::clear_target::record");
-        m_rendergraph->add_clear_pass(target.get_resource());
+        m_rendergraph->add_clear_pass(target.get_resource(), { args.m_colour });
     }
 
     void renderer_backend::present_swapchain(const present_args& args)
@@ -333,6 +361,11 @@ namespace influx::renderer
         }
     }
 
+
+    shader_manager& renderer_backend::get_shader_manager()
+    {
+        return *get_instance().mp_shader_manager;
+    }
 
     descriptor_manager* renderer_backend::get_descriptor_manager()
     {
@@ -349,9 +382,16 @@ namespace influx::renderer
         return get_instance().mp_pipeline_manager;
     }
 
+    graphics::device& renderer_backend::get_device()
+    {
+        return *get_instance().mp_device;
+    }
+
     // mesh
     void renderer_backend::load(const string& title, const mesh_data& data, bool reload)
     {
+        m_resource_manager.load<e_resource_type::mesh>(title, data);
+
         create_vertexbuffer<vertex_data>(title, data.m_vertices, reload);
         create_indexbuffer(title, data.m_indices, reload);
     }
@@ -359,6 +399,8 @@ namespace influx::renderer
     // texture
     void renderer_backend::load(const string& title, const texture_data& data, bool reload)
     {
+        m_resource_manager.load<e_resource_type::texture>(title, data);
+
         texture_desc create_args{};
         create_args.m_width = data.get_width();
         create_args.m_heigth = data.get_height();
@@ -368,24 +410,11 @@ namespace influx::renderer
     }
 
     // shader
-    void renderer_backend::load(const string& title, const shader_data& data, bool reload)
+    void renderer_backend::load(const shader::shader_signature& signature, const shader_data& data, bool reload)
     {
-        umap<string, shader_data>* target_map = nullptr;
-        switch (data.m_type)
-        {
-        case shader::e_shader_type::vs: target_map = &m_vertex_shaders; break;
-        case shader::e_shader_type::ps: target_map = &m_pixel_shaders; break;
-        case shader::e_shader_type::cs: target_map = &m_compute_shaders; break;
-        case shader::e_shader_type::ds: target_map = &m_domain_shaders; break;
-        case shader::e_shader_type::hs: target_map = &m_hull_shaders; break;
-        case shader::e_shader_type::gs: target_map = &m_geometry_shaders; break;
-        }
+        m_resource_manager.load<e_resource_type::shader>(signature, data);
 
-        if (!target_map->contains(title) || reload)
-        {
-            (*target_map)[title] = data;
-            (*target_map)[title].m_time_loaded = time::get_now();
-        }
+        get_shader_manager().load(signature, data, reload);
     }
 
     // material
@@ -407,15 +436,9 @@ namespace influx::renderer
         return m_textures.contains(title);
     }
 
-    bool renderer_backend::has_shader(const string& title) const
+    bool renderer_backend::has_shader(const shader::shader_signature& signature) const
     {
-        return
-            m_pixel_shaders.contains(title) ||
-            m_compute_shaders.contains(title) ||
-            m_vertex_shaders.contains(title) ||
-            m_domain_shaders.contains(title) ||
-            m_geometry_shaders.contains(title) ||
-            m_hull_shaders.contains(title);
+        return get_shader_manager().has_shader(signature);
     }
 
     bool renderer_backend::has_material(const string& title) const
@@ -423,15 +446,17 @@ namespace influx::renderer
         return m_materials.contains(title);
     }
 
-    time::point renderer_backend::get_shader_load_timepoint(const string& title) const
+    time::point renderer_backend::get_time_loaded_shader(const shader::shader_signature& signature) const
     {
-        if (m_compute_shaders.contains(title)) return m_compute_shaders.at(title).m_time_loaded;
-        if (m_vertex_shaders  .contains(title)) return m_vertex_shaders.at(title).m_time_loaded;
-        if (m_pixel_shaders   .contains(title)) return m_pixel_shaders.at(title).m_time_loaded;
-        if (m_domain_shaders  .contains(title)) return m_domain_shaders.at(title).m_time_loaded;
-        if (m_geometry_shaders.contains(title)) return m_geometry_shaders.at(title).m_time_loaded;
-        if (m_hull_shaders    .contains(title)) return m_hull_shaders.at(title).m_time_loaded;
-        return {};
+        return m_resource_manager.get_time_loaded<e_resource_type::shader>(signature);
+    }
+    time::point renderer_backend::get_time_loaded_texture(const string& title) const
+    {
+        return m_resource_manager.get_time_loaded<e_resource_type::texture>(title);
+    }
+    time::point renderer_backend::get_time_loaded_mesh(const string& title) const
+    {
+        return m_resource_manager.get_time_loaded<e_resource_type::mesh>(title);
     }
 
     void renderer_backend::set_settings(const render_settings& settings)
@@ -564,21 +589,6 @@ namespace influx::renderer
         pipeline_info info{};
         info.m_num_pipelines = mp_pipeline_manager->get_num_pipelines();
         return info;
-    }
-
-    umap<string, shader_data>& renderer_backend::get_vertex_shaders()
-    {
-        return m_vertex_shaders;
-    }
-
-    umap<string, shader_data>& renderer_backend::get_pixel_shaders()
-    {
-        return m_pixel_shaders;
-    }
-
-    umap<string, shader_data>& renderer_backend::get_compute_shaders()
-    {
-        return m_compute_shaders;
     }
 
     void* renderer_backend::get_imgui_texture_id(const string& title)
@@ -741,6 +751,11 @@ namespace influx::renderer
         renderer_backend::get_instance().draw_shadertoy(scene, target);
     }
 
+    INFLUX_RENDER_API void draw_postprocess(const scene_postprocess& scene, const target& target)
+    {
+        renderer_backend::get_instance().draw_postprocess(scene, target);
+    }
+
     void load(const string& title, const mesh_data& data, bool reload)
     {
         renderer_backend::get_instance().load(title, data, reload);
@@ -751,9 +766,9 @@ namespace influx::renderer
         renderer_backend::get_instance().load(title, data, reload);
     }
 
-    void load(const string& title, const shader_data& data, bool reload)
+    void load(const shader::shader_signature& signature, const shader_data& data, bool reload)
     {
-        renderer_backend::get_instance().load(title, data, reload);
+        renderer_backend::get_instance().load(signature, data, reload);
     }
 
     void load(const string& title, const material& data, bool reload)
@@ -761,9 +776,17 @@ namespace influx::renderer
         renderer_backend::get_instance().load(title, data, reload);
     }
 
-    time::point get_shader_load_timepoint(const string& title)
+    time::point get_time_loaded_shader(const shader::shader_signature& signature)
     {
-        return renderer_backend::get_instance().get_shader_load_timepoint(title);
+        return renderer_backend::get_instance().get_time_loaded_shader(signature);
+    }
+    time::point get_time_loaded_texture(const string& title)
+    {
+        return renderer_backend::get_instance().get_time_loaded_texture(title);
+    }
+    time::point get_time_loaded_mesh(const string& title)
+    {
+        return renderer_backend::get_instance().get_time_loaded_mesh(title);
     }
 
     bool has_mesh(const string& title)
@@ -776,9 +799,9 @@ namespace influx::renderer
         return renderer_backend::get_instance().has_texture(title);
     }
     
-    bool has_shader(const string& title)
+    bool has_shader(const shader::shader_signature& signature)
     {
-        return renderer_backend::get_instance().has_shader(title);
+        return renderer_backend::get_instance().has_shader(signature);
     }
     
     bool has_material(const string& title)
