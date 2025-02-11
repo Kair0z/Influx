@@ -297,6 +297,52 @@ namespace influx::math
 		};
 	}
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_rotation_RH(float euler_x, float euler_y, float euler_z)
+	{
+		float cp = cosf(euler_x); // cos(Pitch)
+		float sp = sinf(euler_x); // sin(Pitch)
+		float cy = cosf(euler_y);   // cos(Yaw)
+		float sy = sinf(euler_y);   // sin(Yaw)
+		float cr = cosf(euler_z);  // cos(Roll)
+		float sr = sinf(euler_z);  // sin(Roll)
+
+		matrix<_t, 4u, 4u> result{};
+		result[0][0] = cy * cr;
+		result[0][1] = -cy * sr;
+		result[0][2] = sy;
+		result[1][0] = sp * sy * cr + cp * sr;
+		result[1][1] = -sp * sy * sr + cp * cr;
+		result[1][2] = -sp * cy;
+		result[2][0] = -cp * sy * cr + sp * sr;
+		result[2][1] = cp * sy * sr + sp * cr;
+		result[2][2] = cp * cy;
+		result[3][3] = 1.0f;
+		return result;
+	}
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	static matrix<_t, 4u, 4u> make_rotation_LH(float euler_x, float euler_y, float euler_z)
+	{
+		float cp = cosf(euler_x); // cos(Pitch)
+		float sp = sinf(euler_x); // sin(Pitch)
+		float cy = cosf(euler_y);   // cos(Yaw)
+		float sy = -sinf(euler_y);   // sin(Yaw)
+		float cr = cosf(euler_z);  // cos(Roll)
+		float sr = -sinf(euler_z);  // sin(Roll)
+
+		matrix<_t, 4u, 4u> result{};
+		result[0][0] = cy * cr;
+		result[0][1] = -cy * sr;
+		result[0][2] = sy;
+		result[1][0] = sp * sy * cr + cp * sr;
+		result[1][1] = -sp * sy * sr + cp * cr;
+		result[1][2] = -sp * cy;
+		result[2][0] = -cp * sy * cr + sp * sr;
+		result[2][1] = cp * sy * sr + sp * cr;
+		result[2][2] = cp * cy;
+		result[3][3] = 1.0f;
+		return result;
+	}
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 3, 3> matrix<_t, _C, _R>::make_scale(const vector<_t, 2>& s)
 	{
 		return
@@ -630,7 +676,17 @@ namespace influx::math
 			(_t)0, (_t)0, (_t)pos_z, (_t)0
 		};
 	}
-
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	matrix<_t, _C, _R> matrix<_t, _C, _R>::make_diagonal(const _t& x, const _t& y, const _t& z, const _t& w)
+	{
+		return
+		{
+			x, 0, 0, 0,
+			0, y, 0, 0,
+			0, 0, z, 0,
+			0, 0, 0, w
+		};
+	}
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_projection_LH(const float fov, const float ar, const float n, const float f)
 	{

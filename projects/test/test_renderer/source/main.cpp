@@ -140,8 +140,8 @@ int main()
 	scene_to_draw.m_camera.m_near_plane = 0.01f;
 	scene_to_draw.m_camera.m_far_plane = 1000.0f;
 	scene_to_draw.m_camera.m_transform.set_matrix(cam_transform);
-	//scene_to_draw.m_camera.m_transform.set_position({ 0,0,10 });
-	//scene_to_draw.m_camera.m_transform.update_matrix();
+	scene_to_draw.m_camera.m_transform.set_position({ 0,0,10 });
+	scene_to_draw.m_camera.m_transform.update_matrix();
 	scene_to_draw.m_camera.m_transform.look_at({});
 	scene_to_draw.m_camera.m_transform.update_matrix();
 	

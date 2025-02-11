@@ -104,7 +104,7 @@ namespace influx::engine
 		{
 			imp::scene_load_args args{};
 			args.m_bake_transforms = false;
-			args.m_pre_scale = 1.0f;
+			args.m_pre_scale = 1;
 			scene_item& item = m_scenes[file.m_filename];
 			item.load(file.m_path_full, args);
 		});

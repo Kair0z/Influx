@@ -93,7 +93,7 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
         float3 lightDir = float3(0.5, -0.5, -0.5);
         float3 lightCol = float3(1.0, 1.0, 1.0);
 
-        float3 ambient = 0.2f;
+        float3 ambient = 0.5f;
         float3 diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
 
         float3 lightpos = g_resolve_args.camera_position.xyz;
@@ -105,7 +105,7 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
         StructuredBuffer<per_pointlight> pointlights = get_pointlights();
         for (uint i = 0; i < g_resolve_args.num_lights[1]; ++i)
         {
-            diffuse += pointlight(pointlights[i].m_position.rgb, pointlights[i].m_colour.rgb, pointlights[i].m_attenuation.r * 100.0f, worldpos, normal).rgb;
+            diffuse += pointlight(pointlights[i].m_position.rgb, pointlights[i].m_colour.rgb, pointlights[i].m_attenuation.r * 1000.0f, worldpos, normal).rgb;
         }
 
         // figure out the final color

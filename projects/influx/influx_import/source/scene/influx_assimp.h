@@ -42,45 +42,25 @@ namespace influx
 
 	math::matrix4x4f translate(const aiMatrix4x4& mat, const metadata_info& metadata_info)
 	{
-		int axis_flips[4u] = {
-			metadata_info.m_right_sign,
-			metadata_info.m_up_sign,
-			metadata_info.m_forward_sign, 1u };
+		int flips[] = { metadata_info.m_right_sign, metadata_info.m_up_sign, metadata_info.m_forward_sign, 1u };
+		uint32 axes[] = { metadata_info.m_axis_right, metadata_info.m_axis_up, metadata_info.m_axis_forward, 3u };
 
-		uint32 axes[3u] = { metadata_info.m_axis_right, metadata_info.m_axis_up, metadata_info.m_axis_forward };
+		// this is ugly, but we're trying to handle blender exporting from yzx space...
+		aiVector3D out_scale{};
+		aiVector3D out_position{};
+		aiQuaternion out_rotation{};
+		mat.Decompose(out_scale, out_rotation, out_position);
+		aiVector3D out_forward{}; out_forward[axes[2]] = 1.0f;
+		aiVector3D out_up{}; out_up[axes[1]] = 1.0f;
+		out_forward = out_rotation.Rotate(out_forward);
+		out_up = out_rotation.Rotate(out_up);
 
-		// .. despite what assimp docs say, 
-		// it's a col major matrix and needs to be transposed :)
-		aiMatrix4x4 transposed = mat;
-		transposed.Transpose();
-
-		// scale + rotation
-		math::matrix4x4f new_matrix{};
-		for (uint32 y = 0u; y < 3u; ++y)
-		{
-			const float* row = transposed[y];
-			for (uint32 x = 0u; x < 3u; ++x)
-			{
-				new_matrix[y][x] = row[axes[x]] * axis_flips[x];
-			}
-		}
-
-		// translation
-		uint32 transaxes[4] = { metadata_info.m_axis_up, metadata_info.m_axis_forward, metadata_info.m_axis_right };
-		for (uint32 i = 0u; i < 4u; ++i)
-		{
-			new_matrix[3u][i] = transposed[3u][transaxes[i]] * axis_flips[i];
-		}
-		new_matrix[3u][3u] = 1.0f;
-
-		// scale the axes & the translation
-		for (uint32 i = 0u; i < 3u; ++i)
-		{
-			new_matrix[i][i] *= metadata_info.m_scale;
-			new_matrix[3][i] *= metadata_info.m_scale;
-		}
-
-		return new_matrix;
+		math::vectorf3 position			= { out_position[axes[0u]] * flips[0], out_position[axes[1u]] * flips[1], out_position[axes[2u]] * flips[2] };
+		const math::vectorf3 scale		= { out_scale[axes[0u]], out_scale[axes[1u]], out_scale[axes[2u]]};
+		const math::vectorf3 forward	= { out_forward[axes[0u]]	* flips[0], out_forward[axes[1]]	* flips[1], out_forward[axes[2]]	* flips[2]};
+		const math::vectorf3 up			= { out_up[axes[0u]]		* flips[0], out_up[axes[1]]			* flips[1], out_up[axes[2]]			* flips[2]};
+		auto mat_scale			= math::matrix4x4f::make_scale(scale);
+		return math::matrix4x4f::make_transform_RH(position, forward, up) * mat_scale;
 	}
 
 	string translate(const aiString& string)
