@@ -18,21 +18,6 @@
 
 namespace influx::renderer
 {
-    enum class e_frame_phase : uint8
-    {
-        scene = 0,
-        scene2D = 1,
-        debug = 2,
-        imgui = 3,
-        present = 4,
-        count
-    };
-
-    uint64 get_signal_value(uint64 frame, e_frame_phase phase)
-    {
-        return (frame * (uint64)e_frame_phase::count) + (uint64)phase;
-    }
-
 #pragma region translation
     constexpr static e_render_api translate(graphics::e_api_type type)
     {
@@ -125,33 +110,41 @@ namespace influx::renderer
 
     void renderer_backend::end_frame()
     {
-        influx_scope("renderer_backend::end_frame");
-
-        m_rendergraph->build();
-        m_rendergraph->execute(mp_commandlist);
+        {
+            influx_scope("renderer::rendergraph_build");
+            m_rendergraph->build();
+        }
+        {
+            influx_scope("renderer::rendergraph_execute");
+            m_rendergraph->execute(mp_commandlist);
+        }
 
         // transition backbuffer to present state
         graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
         backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
-
         mp_commandlist->end();
 
+        influx_scope("renderer_backend::end_frame");
         {
             influx_scope("renderer_backend::end_frame::submit");
             mp_commandlist->submit(mp_graphics_queue);
         }
 
         {
-            influx_scope("renderer_backend::descriptor_deallocate");
+            influx_scope("renderer_backend::end_frame::descriptor_deallocate");
             get_descriptor_manager()->end_frame();
         }
         
         {
+            influx_scope("renderer_backend::end_frame::wait_for_gpu");
             mp_commandlist->wait_for_completion();
         }
 
-        present_swapchain({ .m_vsync = false });
-
+        {
+            influx_scope("renderer_backend::end_frame::present");
+            present_swapchain({ .m_vsync = false });
+        }
+        
         delete m_rendergraph;
         m_rendergraph = nullptr;
 
@@ -332,7 +325,6 @@ namespace influx::renderer
 
     void renderer_backend::present_swapchain(const present_args& args)
     {
-        influx_scope("renderer_backend::present");
         if (mp_swapchain)
         {
             graphics::present_args p_args{};

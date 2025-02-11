@@ -153,6 +153,8 @@ namespace influx::renderer
 
     vector<batch> scene_renderer::create_batches(const scene& scene, graphics::commandlist* commandlist)
     {
+        influx_scope("scene_renderer::create_batches");
+
         renderer_backend& backend = renderer_backend::get_instance();
         umap<texture*, uint32> tex_to_idx{};
 
@@ -198,6 +200,8 @@ namespace influx::renderer
         }
 
         vector<batch> batches{};
+        batches.reserve(meshname_to_instances.size());
+
         uint64 offset = 0u;
         for (const auto& pair : meshname_to_instances)
         {
@@ -221,6 +225,8 @@ namespace influx::renderer
 
     void scene_renderer::update_instance_buffer(const vector<batch>& batches)
     {
+        influx_scope("scene_renderer::update_instance_buffer");
+
         mp_instancebuffer->map([&batches](void* dest)
         {
             gpu_instance_data* data = reinterpret_cast<gpu_instance_data*>(dest);
@@ -236,6 +242,8 @@ namespace influx::renderer
 
     void scene_renderer::update_lightbuffers(const scene& scene)
     {
+        influx_scope("scene_renderer::update_lightbuffers");
+
         // map lightbuffers
         const uint32 num_lights = scene.get_num_lights();
         for (uint32 i = 0u; i < k_num_light_types; ++i)
@@ -299,6 +307,7 @@ namespace influx::renderer
 
     void scene_renderer::build_basepass(rendergraph::rgpass_builder& builder, const target& target)
     {
+        influx_scope("scene_renderer::build_basepass");
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         static string depth_name{}; depth_name = color_name + "_depth";
 
@@ -326,6 +335,7 @@ namespace influx::renderer
 
     void scene_renderer::execute_basepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
+        influx_scope("scene_renderer::execute_basepass");
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
 
@@ -336,7 +346,6 @@ namespace influx::renderer
             return;
         }
 
-        influx_scope("renderer_backend::draw_scene::record");
         logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
 
         graphics::commandlist& commandlist = context.get_commandlist();
@@ -398,6 +407,8 @@ namespace influx::renderer
 
     void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target, const scene& scene)
     {
+        influx_scope("scene_renderer::build_resolvepass");
+
         rendergraph::rgname gbuffernames[num_gbuffers]
         {
             RGNAME("gbuffer_a"),
@@ -418,6 +429,8 @@ namespace influx::renderer
 
     void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
+        influx_scope("scene_renderer::execute_resolvepass");
+
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
         descriptor_manager& descriptor_man = *backend.get_descriptor_manager();

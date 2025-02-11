@@ -15,8 +15,15 @@ namespace influx::graphics
 	{
 		ID3D12DescriptorHeap* mpdx_heap;
 		uint64 m_descriptor_stride;
-		list<void*> m_freelist_cpu = {};
-		list<void*> m_freelist_gpu = {};
+
+		struct entry final
+		{
+			void* pointer = nullptr;
+			bool is_allocated = false;
+		};
+
+		vector<entry> m_freelist_cpu = {};
+		vector<entry> m_freelist_gpu = {};
 
 		friend class dx12_device;
 

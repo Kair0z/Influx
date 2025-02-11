@@ -11,32 +11,60 @@ namespace influx::graphics
 	{
 		mp_native = mpdx_heap = dxheap;
 
-		clear_gpu();
-		clear_cpu();
+		if (args.m_shader_visible)
+		{
+			m_freelist_gpu.reserve(get_capacity());
+			for (uint32 i = 0u; i < get_capacity(); ++i)
+			{
+				m_freelist_gpu.push_back({ .pointer = index_to_gpu_handle(i), .is_allocated = false });
+			}
+		}
+
+		m_freelist_cpu.reserve(get_capacity());
+		for (uint32 i = 0u; i < get_capacity(); ++i)
+		{
+			m_freelist_cpu.push_back({ .pointer = index_to_cpu_handle(i), .is_allocated = false });
+		}
 	}
 
 	descriptor_handle dx12_descriptor_heap::allocate_cpu()
 	{
-		descriptor_handle handle = m_freelist_cpu.front();
-		m_freelist_cpu.pop_front();
-		return handle;
+		for (uint32 i = 0u; i < get_capacity(); ++i)
+		{
+			if (m_freelist_cpu[i].is_allocated == false)
+			{
+				m_freelist_cpu[i].is_allocated = true;
+				return m_freelist_cpu[i].pointer;
+			}
+		}
+		
+		influx_assert(false); // uh oh
+		return nullptr;
 	}
 
 	descriptor_handle dx12_descriptor_heap::allocate_gpu()
 	{
-		descriptor_handle handle = m_freelist_gpu.front();
-		m_freelist_gpu.pop_front();
-		return handle;
+		for (uint32 i = 0u; i < get_capacity(); ++i)
+		{
+			if (m_freelist_gpu[i].is_allocated == false)
+			{
+				m_freelist_gpu[i].is_allocated = true;
+				return m_freelist_gpu[i].pointer;
+			}
+		}
+
+		influx_assert(false); // uh oh
+		return nullptr;
 	}
 
 	void dx12_descriptor_heap::free_cpu(descriptor_handle handle)
 	{
-		m_freelist_cpu.push_back(handle);
+		m_freelist_cpu[get_heap_index_cpu(handle)].is_allocated = false;
 	}
 
 	void dx12_descriptor_heap::free_gpu(descriptor_handle handle)
 	{
-		m_freelist_gpu.push_back(handle);
+		m_freelist_gpu[get_heap_index_gpu(handle)].is_allocated = false;
 	}
 
 	void dx12_descriptor_heap::free_cpu(uint32 at_index)
@@ -76,24 +104,19 @@ namespace influx::graphics
 
 	void dx12_descriptor_heap::clear_cpu()
 	{
-		m_freelist_cpu.clear();
-		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = mpdx_heap->GetCPUDescriptorHandleForHeapStart();
-		for (size_t i = 0; i < get_capacity(); ++i)
+		for (uint32 i = 0u; i < get_capacity(); ++i)
 		{
-			m_freelist_cpu.push_back(reinterpret_cast<void*>(cpu_handle.ptr + (i * m_descriptor_stride)));
+			m_freelist_cpu[i].is_allocated = false;
 		}
 	}
 
 	void dx12_descriptor_heap::clear_gpu()
 	{
-		m_freelist_gpu.clear();
-
 		if (m_create_args.m_shader_visible)
 		{
-			D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = mpdx_heap->GetGPUDescriptorHandleForHeapStart();
-			for (size_t i = 0; i < get_capacity(); ++i)
+			for (uint32 i = 0u; i < get_capacity(); ++i)
 			{
-				m_freelist_gpu.push_back(reinterpret_cast<void*>(gpu_handle.ptr + (i * m_descriptor_stride)));
+				m_freelist_gpu[i].is_allocated = false;
 			}
 		}
 	}

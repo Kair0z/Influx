@@ -34,10 +34,10 @@ namespace influx::renderer
 			const auto& existing_pipelines = get_map<_t>()[name];
 			auto found = std::find_if(existing_pipelines.cbegin(), existing_pipelines.cend(), [&signature](const pipeline_type* pip)
 			{
-				return pip->get_signature() == signature;
+				return static_cast<detail::tpipeline<_t>*>(pip)->get_signature() == signature;
 			});
 
-			return found != existing_pipelines.cend() ? *found : nullptr;
+			return found != existing_pipelines.cend() ? static_cast<detail::tpipeline<_t>*>(*found) : nullptr;
 		}
 
 		template <graphics::e_pipeline_type _t>
@@ -74,42 +74,20 @@ namespace influx::renderer
 
 	private:
 		graphics::device* mp_device;
-		umap<string, vector<graphics_pipeline*>> m_graphics_map;
-		umap<string, vector<compute_pipeline*>> m_compute_map;
-		umap<string, vector<raytracing_pipeline*>> m_raytracing_map;
+
+		// detail::tpipeline<graphics::e_pipeline_type::graphics> = graphics_pipeline
+		umap<string, vector<pipeline*>> m_maps[graphics::e_pipeline_type::count];
 
 		template <graphics::e_pipeline_type _t>
-		umap<string, vector<detail::tpipeline<_t>*>>& get_map()
+		umap<string, vector<pipeline*>>& get_map()
 		{
-			if constexpr (_t == graphics::e_pipeline_type::graphics)
-			{
-				return m_graphics_map;
-			}
-			else if constexpr (_t == graphics::e_pipeline_type::compute)
-			{
-				return m_compute_map;
-			}
-			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
-			{
-				return m_raytracing_map;
-			}
+			return m_maps[int(_t)];
 		}
 
 		template <graphics::e_pipeline_type _t>
-		const umap<string, vector<detail::tpipeline<_t>*>>& get_map() const
+		const umap<string, vector<pipeline*>>& get_map() const
 		{
-			if constexpr (_t == graphics::e_pipeline_type::graphics)
-			{
-				return m_graphics_map;
-			}
-			else if constexpr (_t == graphics::e_pipeline_type::compute)
-			{
-				return m_compute_map;
-			}
-			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
-			{
-				return m_raytracing_map;
-			}
+			return m_maps[int(_t)];
 		}
 	};
 }
