@@ -303,7 +303,7 @@ namespace influx::engine
 				const float scale_multiplier = 1.0;
 				math::matrix4x4f copy_transform = mesh.m_world_transform * math::matrix4x4f::make_scale( math::float3{ scale_multiplier , scale_multiplier , scale_multiplier });
 
-				trans_comp.set_position(copy_transform.get_translation() * 10);
+				trans_comp.set_position(copy_transform.get_translation());
 				trans_comp.set_scale(copy_transform.get_scale());
 				trans_comp.set_rotation(copy_transform.get_rotation_matrix());
 				trans_comp.update_matrix();
