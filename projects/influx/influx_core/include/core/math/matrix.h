@@ -139,10 +139,12 @@ namespace influx::math
 		static matrix<_t, 4u, 4u> make_projection_LH(const float fov, const float ar, const float n, const float f);
 		static matrix<_t, 4u, 4u> make_projection_RH(const float fov, const float ar, const float n, const float f); // Todo: [Orthographic vs Perspective]
 
-		// 
+		// decomposition
 		vector<_t, 3u> get_translation() const;
 		vector<_t, 3u> get_scale() const;
 		vector<_t, 3u> get_scale_sqr() const;
+
+		void decompose(vector<_t, 3u>& out_translation, matrix<_t, 3u, 3u>& out_rotation, vector<_t, 3u>& out_scale) const;
 
 		matrix<_t, 3u, 3u> get_rotation_matrix() const;
 

@@ -7,6 +7,19 @@
 
 namespace influx
 {
+	struct metadata_info final
+	{
+		uint32 m_axis_right = 0;
+		uint32 m_axis_up = 1;
+		uint32 m_axis_forward = 2;
+
+		int m_right_sign = 1;
+		int m_up_sign = 1;
+		int m_forward_sign = 1;
+
+		float m_scale = 1.0f;
+	};
+
 	math::vectorf2 translate(const aiVector2D& vector)
 	{
 		return { vector.x, vector.y };
@@ -27,17 +40,44 @@ namespace influx
 		return { vector.r, vector.g, vector.b, vector.a };
 	}
 
-	math::matrix4x4f translate(const aiMatrix4x4& mat)
+	math::matrix4x4f translate(const aiMatrix4x4& mat, const metadata_info& metadata_info)
 	{
-		// influx::math::matrix assumes row-major
-		// aiMatrix4x4 is col-major
+		int axis_flips[4u] = {
+			metadata_info.m_right_sign,
+			metadata_info.m_up_sign,
+			metadata_info.m_forward_sign, 1u };
+
+		uint32 axes[3u] = { metadata_info.m_axis_right, metadata_info.m_axis_up, metadata_info.m_axis_forward };
+
+		// .. despite what assimp docs say, 
+		// it's a col major matrix and needs to be transposed :)
+		aiMatrix4x4 transposed = mat;
+		transposed.Transpose();
+
+		// scale + rotation
 		math::matrix4x4f new_matrix{};
-		for (uint32 y = 0u; y < 4u; ++y)
+		for (uint32 y = 0u; y < 3u; ++y)
 		{
-			for (uint32 x = 0u; x < 4u; ++x)
+			const float* row = transposed[y];
+			for (uint32 x = 0u; x < 3u; ++x)
 			{
-				new_matrix[y][x] = mat[x][y];
+				new_matrix[y][x] = row[axes[x]] * axis_flips[x];
 			}
+		}
+
+		// translation
+		uint32 transaxes[4] = { metadata_info.m_axis_up, metadata_info.m_axis_forward, metadata_info.m_axis_right };
+		for (uint32 i = 0u; i < 4u; ++i)
+		{
+			new_matrix[3u][i] = transposed[3u][transaxes[i]] * axis_flips[i];
+		}
+		new_matrix[3u][3u] = 1.0f;
+
+		// scale the axes & the translation
+		for (uint32 i = 0u; i < 3u; ++i)
+		{
+			new_matrix[i][i] *= metadata_info.m_scale;
+			new_matrix[3][i] *= metadata_info.m_scale;
 		}
 
 		return new_matrix;
@@ -89,6 +129,10 @@ namespace influx
 		}
 	}
 
+	static const aiNode* find_node(const aiScene& scene, const aiNode& parent, const aiCamera& camera)
+	{
+		return parent.FindNode(camera.mName);
+	}
 	static const aiNode* find_node_recursive(const aiScene& scene, const aiNode& parent, const aiMesh& mesh)
 	{
 		// find in this node...
@@ -307,9 +351,61 @@ namespace influx
 		return result;
 	}
 
-	inline influx::imp::scene_data parse(const aiScene* pScene)
+	metadata_info parse_metadata(imp::scene_data& out_result, const aiMetadata& data)
+	{
+		metadata_info out_info{};
+
+		umap<string, int> int_props{};
+		umap<string, float> fl_props{};
+		for (uint32 i = 0u; i < data.mNumProperties; ++i)
+		{
+			const aiString* out_string = nullptr;
+			const aiMetadataEntry* out_entry = nullptr;
+			if (data.Get(i, out_string, out_entry))
+			{
+				switch (out_entry->mType)
+				{
+				case aiMetadataType::AI_INT32: 
+					memcpy(&int_props[out_string->C_Str()], out_entry->mData, sizeof(int));
+					break;
+				case aiMetadataType::AI_FLOAT:
+					memcpy(&fl_props[out_string->C_Str()], out_entry->mData, sizeof(float));
+					break;
+				}
+				printf(out_string->C_Str());
+				printf("\n");
+			}
+		}
+
+		if (int_props.contains("UpAxis"))
+			out_info.m_axis_up = int_props["UpAxis"];
+		if (int_props.contains("FrontAxis"))
+			out_info.m_axis_forward = int_props["FrontAxis"];
+		if (int_props.contains("CoordAxis"))
+			out_info.m_axis_right = int_props["CoordAxis"];
+
+		if (int_props.contains("UpAxisSign"))
+			out_info.m_up_sign = int_props["UpAxisSign"];
+		if (int_props.contains("FrontAxisSign"))
+			out_info.m_forward_sign = int_props["FrontAxisSign"];
+		if (int_props.contains("CoordAxisSign"))
+			out_info.m_right_sign = int_props["CoordAxisSign"];
+
+		printf("lol");
+		return out_info;
+	}
+
+	inline influx::imp::scene_data parse(const aiScene* pScene, const imp::scene_load_args& load_args)
 	{
 		imp::scene_data result{};
+
+		metadata_info metadata_info = {};
+		if (pScene->mMetaData)
+		{
+			metadata_info = parse_metadata(result, *pScene->mMetaData);
+		}
+		metadata_info.m_scale = load_args.m_pre_scale;
+		
 		for (uint32 i = 0u; i < pScene->mNumMeshes; ++i)
 		{
 			const aiMesh* mesh = pScene->mMeshes[i];
@@ -328,7 +424,7 @@ namespace influx
 				if (mesh_node)
 				{
 					const aiMatrix4x4& world_matrix = calc_world_matrix_recursive(*mesh_node);
-					mesh_data.m_world_transform = translate(world_matrix);
+					mesh_data.m_world_transform = translate(world_matrix, metadata_info);
 				}
 				else
 				{
@@ -347,7 +443,20 @@ namespace influx
 				logwar("influx::imp::scene_data::parse >> nullptr camera!");
 				continue;
 			}
-			result.m_cameras.push_back(translate(*camera));
+
+			imp::scene_data::camera camera_data{};
+			camera_data.m_camera = translate(*camera);
+			const aiNode* cam_node = find_node(*pScene, *pScene->mRootNode, *camera);
+			if (cam_node)
+			{
+				const aiMatrix4x4& world_matrix = calc_world_matrix_recursive(*cam_node);
+				camera_data.m_world_transform = translate(world_matrix, metadata_info);
+			}
+			else
+			{
+				camera_data.m_world_transform = math::matrix4x4f::identity();
+			}
+			result.m_cameras.push_back(camera_data);
 		}
 #if 0
 		for (uint32 i = 0u; i < pScene->mNumMaterials; ++i)

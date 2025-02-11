@@ -693,7 +693,10 @@ namespace influx::renderer
 			}
 
 			// destroy previous
-			if (m_pipeline) device.release(m_pipeline);
+			if (m_pipeline)
+			{
+				device.release(m_pipeline);
+			}
 
 			// set vs input layout
 			if constexpr (_t == graphics::e_pipeline_type::graphics)

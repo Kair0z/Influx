@@ -35,7 +35,7 @@ namespace influx::imp
 
 	struct scene_data final
 	{
-		struct mesh
+		struct mesh final
 		{
 			vector<uint32> m_indices{};
 			vector<math::vectorf3> m_positions{};
@@ -50,6 +50,12 @@ namespace influx::imp
 			math::matrix4x4f m_world_transform{};
 		};
 
+		struct camera final
+		{
+			scene::camera m_camera;
+			math::matrix4x4f m_world_transform{};
+		};
+
 		const mesh& get_main_mesh() const { return m_meshes[0]; }
 		const mesh& get_mesh(const uint32 i) const { return m_meshes[i % m_meshes.size()]; }
 		mesh& get_mesh(const uint32 i) { return m_meshes[i % m_meshes.size()]; }
@@ -58,7 +64,7 @@ namespace influx::imp
 
 		vector<mesh> m_meshes{};
 		vector<scene::light> m_lights{};
-		vector<scene::camera> m_cameras{};
+		vector<camera> m_cameras{};
 		vector<influx::material> m_materials{};
 		uint32 m_num_materials{};
 	};

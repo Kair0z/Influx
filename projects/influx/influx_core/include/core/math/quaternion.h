@@ -62,6 +62,8 @@ namespace influx::math
 		void set_forward(const vectorf3& newForward)
 		{
 			m_forward = newForward;
+			set_right(math::vectorf3::cross(m_forward, vectorf3::up()).normalized());
+			set_up(math::vectorf3::cross(m_right, m_forward).normalized());
 		}
 
 		void set_right(const vectorf3& newRight)
@@ -120,7 +122,7 @@ namespace influx::math
 			m_forward	= m_rotation_matrix.get_row(2u).normalized();
 		}
 
-	private:
+	public:
 		vectorf3 m_forward;
 		vectorf3 m_right;
 		vectorf3 m_up;

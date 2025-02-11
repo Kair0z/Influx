@@ -685,6 +685,16 @@ namespace influx::math
 	}
 
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	void matrix<_t, _C, _R>::decompose(vector<_t, 3u>& out_translation, matrix<_t, 3u, 3u>& out_rotation, vector<_t, 3u>& out_scale) const
+	{
+		static_assert(_C == 4u && _R == 4u);
+
+		out_translation = get_translation();
+		out_rotation	= get_rotation_matrix();
+		out_scale		= get_scale();
+	}
+
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	matrix<_t, 3u, 3u> matrix<_t, _C, _R>::get_rotation_matrix() const
 	{
 		static_assert(_C == 4u && _R == 4u);

@@ -227,11 +227,22 @@ namespace influx::math
 			return m_matrix;
 		}
 
+		void set_matrix(const math::matrix4x4f& matrix)
+		{
+			m_matrix = matrix;
+
+			matrix.decompose(m_position, m_rotation.m_rotation_matrix, m_scale);
+
+			m_rotation.m_forward = (m_rotation.m_rotation_matrix * m_rotation.m_forward).normalized();
+			m_rotation.m_right = math::vectorf3::cross(m_rotation.m_forward, vectorf3::up()).normalized();
+			m_rotation.m_up = math::vectorf3::cross(m_rotation.m_right, m_rotation.m_forward).normalized();
+		}
+
 		void update_matrix()
 		{
 			if (m_is_matrix_dirty)
 				m_matrix = matrix4x4f::make_scale(m_scale) * matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward());
-			
+
 			m_is_matrix_dirty = false;
 		}
 
