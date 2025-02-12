@@ -363,6 +363,33 @@ namespace influx::math
 			0, 0, 0, 1
 		};
 	}
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline vector<_t, 3u> matrix<_t, _C, _R>::get_euler_angles() const
+	{
+#if 1
+		float r21 = this->m_rows[1][0];
+		float r11 = this->m_rows[0][0];
+		float r31 = this->m_rows[2][0];
+		float r32 = this->m_rows[2][1];
+		float r33 = this->m_rows[2][2];
+		return
+		{
+			atan2f(r32, r33),
+			atan2f(-r31, sqrtf(powf(r32,2) + powf(r33,2))),
+			atan2f(r21, r11)
+		};
+#else
+		if (math::abs(this->m_rows[2][0]) < 1.0) 
+		{
+			return vector<_t, 3u>
+			{
+				asinf(-this->m_rows[2][0]),
+				atan2f(this->m_rows[2][1], this->m_rows[2][2]),
+				atan2f(this->m_rows[1][0], this->m_rows[0][0])
+			};	
+		}
+#endif
+	}
 
 #pragma endregion
 	// _Constructor:

@@ -147,6 +147,7 @@ namespace influx::math
 		vector<_t, 3u> get_translation() const;
 		vector<_t, 3u> get_scale() const;
 		vector<_t, 3u> get_scale_sqr() const;
+		vector<_t, 3u> get_euler_angles() const;
 
 		void decompose(vector<_t, 3u>& out_translation, matrix<_t, 3u, 3u>& out_rotation, vector<_t, 3u>& out_scale) const;
 

@@ -370,6 +370,9 @@ namespace influx::renderer
             return;
         }
 
+        // hot-reload our shaders if necessary:
+        pipeline.update_shaders(backend.get_device());
+
         influx_scope("renderer_backend::draw_scene::record");
         logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
 

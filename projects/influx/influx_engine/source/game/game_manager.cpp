@@ -282,7 +282,7 @@ namespace influx::engine
 	{
 		world& world = get_engine()->get_world();
 
-		const string& scene_name = "CafeLeBlanc";
+		const string& scene_name = "Altarf";
 		const content_manager& contman = get_engine()->get_content();
 		const scene_asset* leblanc_asset = contman.find<scene_asset>(scene_name);
 		if (leblanc_asset == nullptr)

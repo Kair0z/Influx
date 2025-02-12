@@ -26,9 +26,9 @@ const influx::renderer::mesh_data& get_mesh_data(
 	imp::scene_load_args args{};
 	args.m_bake_transforms = false;
 	args.m_pre_scale = 1;
-	influx_assert(imp::load_scene_file("D:/Git/Influx/assets/engine/meshes/box.fbx", loaded_scene, args));
+	influx_assert(imp::load_scene_file("E:/Git/Influx/assets/engine/meshes/box.fbx", loaded_scene, args));
 
-	out_cam_transform = loaded_scene.m_cameras[0u].m_world_transform;
+	//out_cam_transform = loaded_scene.m_cameras[0u].m_world_transform;
 
 	const imp::mesh_data& main_mesh = loaded_scene.get_main_mesh();
 	out_transform = main_mesh.m_world_transform;
@@ -60,7 +60,7 @@ void load_shaders()
 	using namespace influx;
 
 	// shaders
-	static const string shaders_folder = "D:/Git/Influx/assets/engine/shaders/";
+	static const string shaders_folder = "E:/Git/Influx/assets/engine/shaders/";
 
 	// global args
 	shader::compile_args args{};
@@ -70,7 +70,7 @@ void load_shaders()
 	args.m_defines = {};
 	args.m_compile_debug = INFLUX_DEBUG;
 	args.m_pbd = INFLUX_DEBUG;
-	args.m_pdb_folder = "D:/Git/Influx/int/shaderdebug/";
+	args.m_pdb_folder = "E:/Git/Influx/int/shaderdebug/";
 
 	imp::shader_data loaded_shaders[3u]{};
 
@@ -139,7 +139,7 @@ int main()
 	scene_to_draw.m_camera.m_fov = 90.0f;
 	scene_to_draw.m_camera.m_near_plane = 0.01f;
 	scene_to_draw.m_camera.m_far_plane = 1000.0f;
-	scene_to_draw.m_camera.m_transform.set_matrix(cam_transform);
+	//scene_to_draw.m_camera.m_transform.set_matrix(cam_transform);
 	scene_to_draw.m_camera.m_transform.set_position({ 0,0,10 });
 	scene_to_draw.m_camera.m_transform.update_matrix();
 	scene_to_draw.m_camera.m_transform.look_at({});

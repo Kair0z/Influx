@@ -30,7 +30,7 @@ float3 snap_normal(float3 normal)
     if (abs(normal.x) < epsilon) normal.x = 0;
     if (abs(normal.y) < epsilon) normal.y = 0;
     if (abs(normal.z) < epsilon) normal.z = 0;
-    return normal;
+    return normalize(normal);
 }
 
 // lights
@@ -85,12 +85,17 @@ float2 pack_normal(float3 normal)
 {
     float2 result;
     result.xy = normalize(normal.xy) * sqrt(normal.z * 0.5f + 0.5f);
+    return float2(normal.x, normal.y);
     return result;
 }
 
 float3 unpack_normal(float2 packed)
 {
     float3 result;
+    result.x = packed.x;
+    result.y = packed.y;
+    result.z = sqrt(1 - packed.x * packed.x - packed.y * packed.y);
+    return result;
     result.z = (packed.x * packed.x + packed.y * packed.y) * 2.0f - 1.0f;
     result.xy = normalize(packed.xy) * sqrt(1.0 - result.z * result.z);
     return result;

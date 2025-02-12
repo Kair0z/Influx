@@ -96,10 +96,19 @@ namespace influx::engine
 	void content_manager::load_assets(engine* engine, e_asset_origin origin, const file& root)
 	{	
 		vector<file> fbx_files = get_files_in_directory(root.m_path_full, true, ".fbx");
+		vector<file> obj_files = get_files_in_directory(root.m_path_full, true, ".obj");
 		vector<file> png_files = get_files_in_directory(root.m_path_full, true, ".png");
 		vector<file> hlsl_files = get_files_in_directory(root.m_path_full, true, ".hlsl");
 
 		// load fbxs
+		async::dispatch_for<file>(obj_files, [this](const file& file)
+		{
+			imp::scene_load_args args{};
+			args.m_bake_transforms = false;
+			args.m_pre_scale = 1;
+			scene_item& item = m_scenes[file.m_filename];
+			item.load(file.m_path_full, args);
+		});
 		async::dispatch_for<file>(fbx_files, [this](const file& file)
 		{
 			imp::scene_load_args args{};

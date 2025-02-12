@@ -157,12 +157,6 @@ namespace influx::engine
             for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
             {
                 math::transform3D transform_copy = transform_comp.get_transform();
-                math::float3 final_scale = transform_copy.get_scale();
-
-                // update the copy 
-                transform_copy.set_scale(final_scale);
-                transform_copy.update_matrix();
-
                 const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_copy.get_matrix());
                 debugscene.add_box(transformed_bounds, { 1,0,0,1 });
             }
@@ -197,8 +191,7 @@ namespace influx::engine
 
         bool hit_any = false;
         for (auto [entity, transform_comp, mesh_comp] : m_registry.view<
-            transform_component, 
-            mesh_component>().each())
+            transform_component, mesh_component>().each())
         {
             math::transform3D transform = transform_comp.get_transform();
             transform.set_scale(1.0f / mesh_comp.m_mesh_boundsphere.m_radius);

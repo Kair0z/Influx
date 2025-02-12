@@ -37,7 +37,7 @@ namespace influx::imp
 			aiProcess_FlipUVs				|
 			aiProcess_SortByPType;
 
-		if (args.m_bake_transforms || true)
+		if (args.m_bake_transforms)
 		{
 			step_flags |= aiProcess_PreTransformVertices;
 		}

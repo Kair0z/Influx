@@ -108,7 +108,7 @@ ps_output main_ps(ps_input input)
     // float3 normal = get_normal(input.texcoord).rgb;
     float3 normal = input.normal;
 
-    normal = snap_normal(normal);
+    //normal = snap_normal(normal);
     normal = normalize(normal);
 
     ps_output output = (ps_output)0;

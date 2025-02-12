@@ -85,16 +85,17 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
     float albedo_scale = 1.0f;
 
     float3 albedo = _gbuffer.get_albedo() * albedo_scale;
-    float3 normal = _gbuffer.get_normal().rgb;
+    float3 normal = normalize(_gbuffer.get_normal().rgb);
     float depth = _gbuffer.get_depth().r;
 
     if (depth > 0)
     {
-        float3 lightDir = float3(0.5, -0.5, -0.5);
+        float3 lightDir = float3(0, -1, 0);
         float3 lightCol = float3(1.0, 1.0, 1.0);
-
+        lightCol *= 2.0f;
+        
         float3 ambient = 0.5f;
-        float3 diffuse = max(ambient, dot(normalize(normal), normalize(lightDir)));
+        float3 diffuse = max(ambient, lightCol.rgb * dot(normalize(normal), normalize(lightDir)));
 
         float3 lightpos = g_resolve_args.camera_position.xyz;
         float light_radius = 2.0f;
@@ -105,11 +106,19 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
         StructuredBuffer<per_pointlight> pointlights = get_pointlights();
         for (uint i = 0; i < g_resolve_args.num_lights[1]; ++i)
         {
-            diffuse += pointlight(pointlights[i].m_position.rgb, pointlights[i].m_colour.rgb, pointlights[i].m_attenuation.r * 1000.0f, worldpos, normal).rgb;
+            #if 0
+            diffuse += pointlight(
+                pointlights[i].m_position.xyz,
+                pointlights[i].m_colour.rgb, 
+                pointlights[i].m_attenuation.r, 
+                worldpos, 
+                normal).rgb;
+#endif
         }
 
         // figure out the final color
-        output_color.rgb = albedo.rgb * diffuse.rgb * float3(1,1,1);
+        output_color.rgb = diffuse.rgb * float3(1,1,1);
+        output_color.rgb = (normal * 0.5) + 0.5;
         get_output()[thread_id.xy].rgba = float4(clamp(output_color.rgb, 0, 1), 1.0f);
     }
 }

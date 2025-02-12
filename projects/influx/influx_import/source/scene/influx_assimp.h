@@ -48,24 +48,29 @@ namespace influx
 
 		aiVector3D out_scale{};
 		aiVector3D out_position{};
-		aiQuaternion out_rotation{};
+		aiVector3D out_rotation{};
 		mat.Decompose(out_scale, out_rotation, out_position);
-
-		// rotate the axis vectors
-		aiVector3D out_forward{};	out_forward[axes[2]] = 1.0f;	out_forward = out_rotation.Rotate(out_forward).Normalize();
-		aiVector3D out_up{};		out_up[axes[1]] = 1.0f;			out_up = out_rotation.Rotate(out_up).Normalize();
 
 		// setup the flipped transform matrix
 		math::vectorf3 position			= { out_position[axes[0u]] * flips[0], out_position[axes[1u]] * flips[1], out_position[axes[2u]] * flips[2] };
 		const math::vectorf3 scale		= { out_scale[axes[0u]], out_scale[axes[1u]], out_scale[axes[2u]]};
-		const math::vectorf3 forward	= { out_forward[axes[0u]], out_forward[axes[1]], out_forward[axes[2]]};
-		const math::vectorf3 up			= { out_up[axes[0u]], out_up[axes[1]], out_up[axes[2]]};
-		
-		const math::vectorf3 new_forward	= { forward[axes[0]] * flips[0], forward[axes[1]] * flips[1], forward[axes[2]] * flips[2] };
-		const math::vectorf3 new_up			= { up[axes[0]] * flips[0], up[axes[1]] * flips[1], up[axes[2]] * flips[2] };
-
+		const math::vectorf3 rotation	= { out_rotation[axes[0u]] * flips[0], out_rotation[axes[1u]] * flips[1], out_rotation[axes[2u]] * flips[2]};
 		auto mat_scale			= math::matrix4x4f::make_scale(scale);
-		return mat_scale * math::matrix4x4f::make_transform_RH(position, new_forward, new_up);
+		auto mat_rot			= math::matrix4x4f::make_rotation_RH(rotation.x, rotation.y, rotation.z);
+
+		math::vectorf3 eulers1 = mat_rot.get_euler_angles();
+		mat_rot = math::matrix4x4f::make_rotation_RH(eulers1.x, eulers1.y, eulers1.z);
+		eulers1.x = math::to_degrees(eulers1.x);
+		eulers1.y = math::to_degrees(eulers1.y);
+		eulers1.z = math::to_degrees(eulers1.z);
+
+		math::vectorf3 eulers2 = mat_rot.get_euler_angles();
+		eulers2.x = math::to_degrees(eulers2.x);
+		eulers2.y = math::to_degrees(eulers2.y);
+		eulers2.z = math::to_degrees(eulers2.z);
+
+		auto mat_trans			= math::matrix4x4f::make_translation(position);
+		return mat_scale * mat_rot * mat_trans;
 	}
 
 	string translate(const aiString& string)
@@ -203,12 +208,12 @@ namespace influx
 		if (num_positions > 0)
 		{
 			result.m_average_position = sum_position / num_positions;
-			math::vectorf3 local_max = max_position - result.m_average_position;
-			math::vectorf3 local_min = min_position - result.m_average_position;
-			result.m_bounding_box.grow_to_contain(local_max);
-			result.m_bounding_box.grow_to_contain(local_min);
-			result.m_bounding_sphere.grow_to(local_max);
-			result.m_bounding_sphere.grow_to(local_min);
+			result.m_bounding_box = math::boxf(result.m_average_position, result.m_average_position);
+			result.m_bounding_box.grow_to_contain(max_position);
+			result.m_bounding_box.grow_to_contain(min_position);
+			result.m_bounding_sphere.m_position = result.m_average_position;
+			result.m_bounding_sphere.grow_to(max_position);
+			result.m_bounding_sphere.grow_to(min_position);
 		}
 		
 		result.m_material_index = mesh.mMaterialIndex;

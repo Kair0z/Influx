@@ -38,7 +38,7 @@ ps_input main_vs(vs_input input, uint instanceID : SV_InstanceID)
     float3 world_position = lerp(world_start, world_end, input.position.x);
     
     result.position = mul(g_perview.mat_vp, float4(world_position.xyz, 1.0f));
-    result.colour = float4(1, 1, 1, 1);// instance_data.colour;
+    result.colour = instance_data.colour;
 
     return result;
 }
