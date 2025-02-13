@@ -13,6 +13,8 @@ namespace influx::colour
 {
 	const static math::colour_rgba k_white{ 1.0f, 1.0f, 1.0f, 1.0f };
 	const static math::colour_rgba k_red{ 1.0f, 0.0f, 0.0f, 1.0f };
+	const static math::colour_rgba k_blue{ 0.0f, 0.0f, 1.0f, 1.0f };
+	const static math::colour_rgba k_green{ 0.0f, 1.0f, 0.0f, 1.0f };
 	const static math::colour_rgba k_black{ 0.0f, 0.0f, 0.0f, 1.0f };
 	const static math::colour_rgba k_gray{ 0.2f, 0.2f, 0.2f, 1.0f };
 

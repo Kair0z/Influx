@@ -135,6 +135,38 @@ namespace influx::engine
             influx_scope("build_gizmos");
             debugscene.add_gizmo_transform(math::transform3D::identity());
 
+            // grid render
+            {
+                const uint32 num_lines = 30u;
+                const math::colour_rgba line_colour = { 0.2f, 0.2f, 0.2f };
+                const float line_distance = 1.0f;
+                const float line_length = num_lines * line_distance;
+                const float half_offset = line_length * 0.5f;
+                for (uint32 z = 0u; z < num_lines; ++z)
+                {
+                    const math::float3 basepos = math::float3{ -half_offset, 0.0f, -half_offset + (z * line_distance) };
+                    const math::float3 endpos = basepos + math::float3{ half_offset * 2, 0, 0 };
+                    if (z != num_lines / 2)
+                    {
+                        debugscene.add_line(basepos, endpos, line_colour);
+                    }
+                }
+                for (uint32 x = 0u; x < num_lines; ++x)
+                {
+                    const math::float3 basepos = math::float3{ -half_offset + (x * line_distance), 0.0f, -half_offset };
+                    const math::float3 endpos = basepos + math::float3{ 0, 0, half_offset * 2 };
+                    if (x != num_lines / 2)
+                    {
+                        debugscene.add_line(basepos, endpos, line_colour);
+                    }
+                }
+                
+                const math::float3 origin = math::float3{ 0, 0, 0 };
+                debugscene.add_line(origin, math::float3{ half_offset, 0, 0 }, colour::k_red);
+                debugscene.add_line(origin, math::float3{ 0, half_offset, 0 }, colour::k_green);
+                debugscene.add_line(origin, math::float3{ 0, 0, half_offset }, colour::k_blue);
+            }
+
             // ray
             if (g_lastray)
             {
