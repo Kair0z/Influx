@@ -1,13 +1,12 @@
 #pragma once
-
 #include "core/string.h"
 #include "core/file.h"
 #include "core/container/list.h"
 
-// rttr
-#if 0
+// https://www.youtube.com/watch?v=DiXyTylhrGw
+
 #include "rttr/registration.h"
-#endif 
+
 namespace influx::script
 {
 	struct xvariable
@@ -47,5 +46,5 @@ namespace influx::script
 RTTR_REGISTRATION
 {
 	using namespace rttr;
-	registration::method("f", &f);
+	registration::method("f", &);
 }
