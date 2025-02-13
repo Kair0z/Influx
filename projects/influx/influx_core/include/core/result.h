@@ -45,41 +45,20 @@ namespace influx
 		inline constexpr bool is_booleable_v = is_booleable<T>::value;
 	}
 
-	template <typename _t = bool>
+	template <typename _t, typename _e = e_result>
 	class result final
 	{
+		using ex_type = _t;
+		using unex_type = _e;
+
+		ex_type m_expected = {};
+		unex_type m_unexpected = {};
+
 	public:
-		using underlying = _t;
-
-		// default constructor 
-		result() : m_value{}, m_return{true} {}
-
-		// takes the underlying value, default means success
-		result(_t& value) : m_return{ value } { set_state(e_result::success); }
-		result(const _t& value) : m_return{ value } { set_state(e_result::success);  }
-		result(_t&& value) : m_return{ value } { set_state(e_result::success); }
-
-		template <typename ..._args>
-		result(_args&&... args) : m_return{ args... }
-		{
-			set_state(e_result::success);
-		}
-
-		result(e_result result) { m_value = (uint64)result; }
-		result(uint64 value) { m_value = value; }
-		result(void* ptr) { m_value = (ptr == nullptr) ? (uint64)e_result::error : (uint64)e_result::success; }
-
-		static result make_error()
-		{
-			result new_result = result(e_result::error);
-			return new_result;
-		}
-
-		static result make_warning()
-		{
-			result new_result = result(e_result::warning);
-			return new_result;
-		}
+		// constructors
+		result() : m_expected{}, m_unexpected{} {}
+		result(const _t& value) { m_expected = value; }
+		result(const _e& error) { m_unexpected = error; }
 
 		// if underlying _t is 'boolable' that plays a part in the evaluation of this result
 		operator bool() const
@@ -87,7 +66,7 @@ namespace influx
 			// Compile-time branch if T has operator bool
 			if constexpr (detail::has_bool_operator_v<_t> || detail::is_booleable_v<_t>) 
 			{
-				return is_success() && m_return;
+				return is_success() && m_expected;
 			}
 			
 			return is_success();
@@ -95,94 +74,27 @@ namespace influx
 
 		bool is_success() const
 		{
-			return m_value == (uint64)e_result::success;
-		}
-
-		const char* to_string() const
-		{
-			return detail::error_codes[m_value];
-		}
-
-		void set_error()
-		{
-			set_state(e_result::error);
-		}
-
-		void set_warning()
-		{
-			set_state(e_result::warning);
-		}
-
-		bool is_error() const
-		{
-			return get_state() == e_result::error;
-		}
-
-		bool is_warning() const
-		{
-			return get_state() == e_result::warning;
-		}
-
-		void set_state(e_result result)
-		{
-			m_value = (uint64)result;
-		}
-
-		e_result get_state() const
-		{
-			return (e_result)m_value;
+			return m_unexpected == _e{};
 		}
 
 		const _t& get() const
 		{
-			return m_return;
+			return m_expected;
 		}
 
 		void set(const _t& value)
 		{
-			m_return = value;
-		}
-
-		// appending results to eachother
-		template <typename _tresult>
-		const _tresult& operator+=(const _tresult& other)
-		{
-			return append<_tresult>(other);
-		}
-
-		template <typename _tresult>
-		const _tresult& append(const _tresult& other)
-		{
-			if (other.is_error())
-			{
-				(*this).set_error();
-			}
-			else if (other.is_warning() && !this->is_error())
-			{
-				(*this).set_warning();
-			}
-
-			return other;
-		}
-
-		template <typename _tresult, typename _t = _tresult::underlying>
-		const _t& append_and_get(const _tresult& other)
-		{
-			return append<_tresult>(other).get();
+			m_expected = value;
 		}
 
 		_t& operator->()
 		{
-			return m_return;
+			return m_expected;
 		}
 
 		const _t& operator->() const
 		{
-			return m_return;
+			return m_expected;
 		}
-
-	private:
-		uint64 m_value = 0u;
-		_t m_return{};
 	};
 }

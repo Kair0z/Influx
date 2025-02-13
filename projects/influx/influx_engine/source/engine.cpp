@@ -34,34 +34,24 @@ namespace influx::engine
 
 		m_t_init = time::get_now();
 
-		// setup engine config
 		m_config.m_file_influx_root = get_engine_directory(engine_directory::root);
 		m_config.m_file_influx_assets = get_engine_directory(engine_directory::assets);
 		m_config.m_file_influx_staged = get_engine_directory(engine_directory::staged);
 
-		// initialize job system:
 		m_taskman = new task_manager();
-
-		// initialize input manager
 		m_inputman = new input_manager();
-
-		// initialize content
 		m_contentman = new content_manager(this);
-
-		// initialize editor
 		if (m_runtype == run_type::editor)
 		{
 			m_editorman = new editor_manager(nullptr);
 		}
-
 		m_gameman = new game_manager();
 
 		// initialize render
 		string render_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
-		const math::vectoru2 window_dimensions = { 1920, 1080 };
+		const math::vectoru2 window_dimensions = { 640u, 480u };
 		initialize_renderer(render_name, window_dimensions);
 
-		// init world
 		m_world = new world();
 	}
 
@@ -119,7 +109,7 @@ namespace influx::engine
 
 			// world builds renderscene 
 			{
-				influx_scope("build_renderscene");
+				influx_scope("build_render");
 				scene.m_seconds = m_time.get_time_seconds();
 				scene.m_delta_seconds = m_time.get_delta_seconds();
 				m_world->build_renderscene(scene, scene2D, debug);

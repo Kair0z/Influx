@@ -3,6 +3,7 @@
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
+#include "core/result.h"
 
 using namespace influx;
 
@@ -92,6 +93,14 @@ void test_math_matrix_all()
 	test_math_matrix<uint32, 4u, 4u>();
 }
 
+void test_result()
+{
+	result<float> float_result = { 1.0f };
+	result<bool> bool_result = { false };
+	result<int> int_result = e_result::error;
+
+	assert(float_result);
+}
 void test_basetypes()
 {
 	// todo
@@ -105,6 +114,7 @@ void test_cache()
 int main()
 {
 	test_basetypes();
+	test_result();
 	test_cache();
 	test_math_vector_all();
 	test_math_matrix_all();

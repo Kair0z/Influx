@@ -282,7 +282,7 @@ namespace influx::engine
 	{
 		world& world = get_engine()->get_world();
 
-		const string& scene_name = "Altarf";
+		const string& scene_name = "CafeLeBlanc";
 		const content_manager& contman = get_engine()->get_content();
 		const scene_asset* leblanc_asset = contman.find<scene_asset>(scene_name);
 		if (leblanc_asset == nullptr)
@@ -300,7 +300,7 @@ namespace influx::engine
 
 			transform_component& trans_comp = world.create_component<transform_component>(sword);
 			{
-				const float scale_multiplier = 1.0;
+				const float scale_multiplier = 0.01f;
 				math::matrix4x4f copy_transform = mesh.m_world_transform * math::matrix4x4f::make_scale( math::float3{ scale_multiplier , scale_multiplier , scale_multiplier });
 
 				trans_comp.set_position(copy_transform.get_translation());

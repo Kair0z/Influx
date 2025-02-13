@@ -104,7 +104,7 @@ namespace influx::engine
 		async::dispatch_for<file>(obj_files, [this](const file& file)
 		{
 			imp::scene_load_args args{};
-			args.m_bake_transforms = false;
+			args.m_bake_transforms = true;
 			args.m_pre_scale = 1;
 			scene_item& item = m_scenes[file.m_filename];
 			item.load(file.m_path_full, args);
@@ -112,7 +112,7 @@ namespace influx::engine
 		async::dispatch_for<file>(fbx_files, [this](const file& file)
 		{
 			imp::scene_load_args args{};
-			args.m_bake_transforms = false;
+			args.m_bake_transforms = true;
 			args.m_pre_scale = 1;
 			scene_item& item = m_scenes[file.m_filename];
 			item.load(file.m_path_full, args);

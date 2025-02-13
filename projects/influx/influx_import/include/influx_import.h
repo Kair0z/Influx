@@ -52,7 +52,7 @@ namespace influx::imp
 
 		struct camera final
 		{
-			scene::camera m_camera;
+			scene::camera m_camera = {};
 			math::matrix4x4f m_world_transform{};
 		};
 

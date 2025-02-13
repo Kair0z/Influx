@@ -729,7 +729,14 @@ namespace influx::math
 			(_t)0, (_t)0, static_cast<_t>(-(f * n) / intv), (_t)0
 		};
 	}
-
+	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	inline void matrix<_t, _C, _R>::set_translation(const vector<_t, 3u>& translation)
+	{
+		static_assert(_C == 4u && _R == 4u);
+		this->m_rows[3u].x = translation.x;
+		this->m_rows[3u].y = translation.y;
+		this->m_rows[3u].z = translation.z;
+	}
 	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
 	inline vector<_t, 3u> matrix<_t, _C, _R>::get_translation() const
 	{

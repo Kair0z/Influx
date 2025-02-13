@@ -286,9 +286,7 @@ namespace influx::renderer
     void renderer_backend::draw_debug(const scene_debug& scene, const target& target)
     {
         static string color_name{}; color_name = target.get_resource()->get_name().get();
-        static string depth_name{}; depth_name = color_name + "_depth";
         m_rendergraph->import_texture(color_name, target.get_resource());
-        m_rendergraph->import_texture(depth_name, target.get_depth_resource());
 
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
             [&target](rendergraph::rgpass_builder& builder)
@@ -297,7 +295,6 @@ namespace influx::renderer
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;
                 builder.write_rendertarget(color_name, access);
-                builder.write_depthtarget(depth_name, access);
 
                 builder.set_viewport(target.get_width(), target.get_height());
             },

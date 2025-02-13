@@ -46,31 +46,20 @@ namespace influx
 		int flips[] = { metadata_info.m_right_sign, metadata_info.m_up_sign, metadata_info.m_forward_sign, 1u };
 		uint32 axes[] = { metadata_info.m_axis_right, metadata_info.m_axis_up, metadata_info.m_axis_forward, 3u };
 
-		aiVector3D out_scale{};
-		aiVector3D out_position{};
-		aiVector3D out_rotation{};
-		mat.Decompose(out_scale, out_rotation, out_position);
+		math::matrix4x4f result{};
+		for (uint32 y = 0u; y < 3u; ++y)
+			for (uint32 x = 0u; x < 3u; ++x)
+			{
+				result[y][x] = mat[y][axes[x]];
+			}
 
-		// setup the flipped transform matrix
-		math::vectorf3 position			= { out_position[axes[0u]] * flips[0], out_position[axes[1u]] * flips[1], out_position[axes[2u]] * flips[2] };
-		const math::vectorf3 scale		= { out_scale[axes[0u]], out_scale[axes[1u]], out_scale[axes[2u]]};
-		const math::vectorf3 rotation	= { out_rotation[axes[0u]] * flips[0], out_rotation[axes[1u]] * flips[1], out_rotation[axes[2u]] * flips[2]};
-		auto mat_scale			= math::matrix4x4f::make_scale(scale);
-		auto mat_rot			= math::matrix4x4f::make_rotation_RH(rotation.x, rotation.y, rotation.z);
+		for (uint32 x = 0u; x < 3u; ++x)
+			result[3][x] = mat[x][3];
 
-		math::vectorf3 eulers1 = mat_rot.get_euler_angles();
-		mat_rot = math::matrix4x4f::make_rotation_RH(eulers1.x, eulers1.y, eulers1.z);
-		eulers1.x = math::to_degrees(eulers1.x);
-		eulers1.y = math::to_degrees(eulers1.y);
-		eulers1.z = math::to_degrees(eulers1.z);
+		result[3][2] = -result[3][2];
+		result[3][3] = 1.0f;
 
-		math::vectorf3 eulers2 = mat_rot.get_euler_angles();
-		eulers2.x = math::to_degrees(eulers2.x);
-		eulers2.y = math::to_degrees(eulers2.y);
-		eulers2.z = math::to_degrees(eulers2.z);
-
-		auto mat_trans			= math::matrix4x4f::make_translation(position);
-		return mat_scale * mat_rot * mat_trans;
+		return result;
 	}
 
 	string translate(const aiString& string)

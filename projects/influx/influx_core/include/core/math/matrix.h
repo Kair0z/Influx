@@ -144,6 +144,7 @@ namespace influx::math
 		static matrix make_diagonal(const _t& x, const _t& y, const _t& z, const _t& w = 1.0f);
 
 		// decomposition
+		void set_translation(const vector<_t, 3u>& translation);
 		vector<_t, 3u> get_translation() const;
 		vector<_t, 3u> get_scale() const;
 		vector<_t, 3u> get_scale_sqr() const;

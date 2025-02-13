@@ -190,6 +190,7 @@ namespace influx::math
 		{
 			m_is_matrix_dirty = true;
 			set_forward((location - get_position()).normalized());
+			update_matrix();
 		}
 
 		const rotation& get_rotation() const

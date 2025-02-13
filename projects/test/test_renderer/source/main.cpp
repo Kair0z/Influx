@@ -14,45 +14,83 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
 #include "influx_import.h"
 
-const influx::renderer::mesh_data& get_mesh_data(
-	influx::math::matrix4x4f& out_transform,
-	influx::math::matrix4x4f& out_cam_transform)
+using namespace influx;
+
+void load_scene(const string& filepath, imp::scene_load_args& args, renderer::scene& out_scene)
 {
-	using namespace influx;
+	const string filename = str::split(str::split(filepath, "/").back(), ".").front();
+	static vector<renderer::camera> cameras{};
+	static vector<math::matrix4x4f> transforms{};
+	static vector<string> names{};
 
-	// load the fbx
-	imp::scene_data loaded_scene{};
-
-	imp::scene_load_args args{};
-	args.m_bake_transforms = false;
-	args.m_pre_scale = 1;
-	influx_assert(imp::load_scene_file("E:/Git/Influx/assets/engine/meshes/box.fbx", loaded_scene, args));
-
-	//out_cam_transform = loaded_scene.m_cameras[0u].m_world_transform;
-
-	const imp::mesh_data& main_mesh = loaded_scene.get_main_mesh();
-	out_transform = main_mesh.m_world_transform;
-	static influx::renderer::mesh_data result{};
+	static bool once = true;
+	if (once)
 	{
-		result.m_vertices.reserve(main_mesh.m_positions.size());
-		result.m_indices.reserve(main_mesh.m_indices.size());
+		// load the fbx
+		imp::scene_data loaded_scene{};
+		influx_assert(imp::load_scene_file(filepath, loaded_scene, args));
 
-		for (uint64 i = 0u; i < main_mesh.m_positions.size(); ++i)
+		for (uint32 i = 0u; i < loaded_scene.m_cameras.size(); ++i)
 		{
-			renderer::vertex_data data{};
-			data.m_position = main_mesh.m_positions[i];
-			// data.m_colour	= main_mesh.m_colours[i];
-			data.m_normal	= main_mesh.m_normals[i];
-			data.m_texcoords = main_mesh.m_uvs[i];
-			result.m_vertices.push_back(data);
+			const imp::scene_data::camera& camera = loaded_scene.m_cameras[i];
+
+			renderer::camera render_camera{};
+			render_camera.m_fov = 90.0f;// camera.m_camera.get_fov();
+			render_camera.m_far_plane = camera.m_camera.get_farplane();
+			render_camera.m_near_plane = camera.m_camera.get_nearplane();
+			render_camera.m_transform.set_matrix(camera.m_world_transform);
+			//render_camera.m_transform.set_position({ 0,0,10 });
+			//render_camera.m_transform.look_at({});
+			cameras.push_back(render_camera);
 		}
 
-		for (uint64 i = 0u; i < main_mesh.m_indices.size(); ++i)
+		renderer::camera custom_camera{};
+		custom_camera.m_transform = math::transform3D::identity();
+		custom_camera.m_transform.set_position({ 0,0,500 });
+		custom_camera.m_transform.look_at({});
+		custom_camera.m_far_plane = 1000.0f;
+		custom_camera.m_near_plane = 0.001f;
+		custom_camera.m_fov = 110.0f;
+		cameras.push_back(custom_camera);
+
+		for (uint32 i = 0u; i < loaded_scene.get_num_meshes(); ++i)
 		{
-			result.m_indices.push_back(main_mesh.m_indices[i]);
+			const imp::mesh_data& mesh = loaded_scene.get_mesh(i);
+
+			// convert imp:: to renderer::
+			influx::renderer::mesh_data render_data{};
+			render_data.m_vertices.reserve(mesh.m_positions.size());
+			render_data.m_indices.reserve(mesh.m_indices.size());
+			for (uint64 i = 0u; i < mesh.m_positions.size(); ++i)
+			{
+				renderer::vertex_data data{};
+				data.m_position = mesh.m_positions[i];
+				// data.m_colour	= main_mesh.m_colours[i];
+				data.m_normal = mesh.m_normals[i];
+				data.m_texcoords = mesh.m_uvs[i];
+				render_data.m_vertices.push_back(data);
+			}
+			for (uint64 i = 0u; i < mesh.m_indices.size(); ++i)
+			{
+				render_data.m_indices.push_back(mesh.m_indices[i]);
+			}
+
+			const string mesh_name = filename + "_" + to_string(i);
+			names.push_back(mesh_name);
+			transforms.push_back(mesh.m_world_transform);
+
+			// load to renderer
+			renderer::load(mesh_name, render_data, false);
 		}
+		once = false;
 	}
-	return result;
+
+	// load the scene with the stuff
+	out_scene.m_camera = cameras[0u];
+	for (uint32 i = 0u; i < names.size(); ++i)
+	{
+		out_scene.add_mesh(names[i], transforms[i]);
+	}
 }
 
 void load_shaders()
@@ -60,7 +98,7 @@ void load_shaders()
 	using namespace influx;
 
 	// shaders
-	static const string shaders_folder = "E:/Git/Influx/assets/engine/shaders/";
+	static const string shaders_folder = "D:/Git/Influx/assets/engine/shaders/";
 
 	// global args
 	shader::compile_args args{};
@@ -70,31 +108,44 @@ void load_shaders()
 	args.m_defines = {};
 	args.m_compile_debug = INFLUX_DEBUG;
 	args.m_pbd = INFLUX_DEBUG;
-	args.m_pdb_folder = "E:/Git/Influx/int/shaderdebug/";
+	args.m_pdb_folder = "D:/Git/Influx/int/shaderdebug/";
 
-	imp::shader_data loaded_shaders[3u]{};
+	imp::shader_data loaded_shaders[5u]{};
 
 	// vs
 	args.m_signature.m_type = shader::e_shader_type::vs;
 	args.m_signature.m_entrypoint = "main_vs";
+	args.m_signature.m_filename = "debug_shaders";
+	args.m_signature.cache_id();
+	influx_assert(imp::load_shader_file(shaders_folder + "/source/debug_shaders.hlsl", loaded_shaders[0], args));
+
+	args.m_signature.m_type = shader::e_shader_type::ps;
+	args.m_signature.m_filename = "debug_shaders";
+	args.m_signature.m_entrypoint = "main_ps";
+	args.m_signature.cache_id();
+	influx_assert(imp::load_shader_file(shaders_folder + "/source/debug_shaders.hlsl", loaded_shaders[1], args));
+
+
+	args.m_signature.m_type = shader::e_shader_type::vs;
+	args.m_signature.m_entrypoint = "main_vs";
 	args.m_signature.m_filename = "basepass";
 	args.m_signature.cache_id();
-	influx_assert(imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", loaded_shaders[0], args));
+	influx_assert(imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", loaded_shaders[2], args));
 
 	args.m_signature.m_type = shader::e_shader_type::ps;
 	args.m_signature.m_filename = "basepass";
 	args.m_signature.m_entrypoint = "main_ps";
 	args.m_signature.cache_id();
-	influx_assert(imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", loaded_shaders[1], args));
+	influx_assert(imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", loaded_shaders[3], args));
 
 	args.m_signature.m_type = shader::e_shader_type::cs;
 	args.m_signature.m_filename = "resolvepass";
 	args.m_signature.m_entrypoint = "main_cs";
 	args.m_signature.cache_id();
-	influx_assert(imp::load_shader_file(shaders_folder + "/source/resolvepass.hlsl", loaded_shaders[2], args));
+	influx_assert(imp::load_shader_file(shaders_folder + "/source/resolvepass.hlsl", loaded_shaders[4], args));
 
-	renderer::shader_data render_shaders[3u]{};
-	for (uint32 i = 0u; i < 3u; ++i)
+	renderer::shader_data render_shaders[5u]{};
+	for (uint32 i = 0u; i < 5u; ++i)
 	{
 		render_shaders[i].m_bytecode = loaded_shaders[i].m_compile_result.m_bytecode;
 		render_shaders[i].m_reflection = loaded_shaders[i].m_compile_result.m_reflection;
@@ -105,6 +156,8 @@ void load_shaders()
 	renderer::load(loaded_shaders[0].m_signature, render_shaders[0]);
 	renderer::load(loaded_shaders[1].m_signature, render_shaders[1]);
 	renderer::load(loaded_shaders[2].m_signature, render_shaders[2]);
+	renderer::load(loaded_shaders[3].m_signature, render_shaders[3]);
+	renderer::load(loaded_shaders[4].m_signature, render_shaders[4]);
 }
 
 int main()
@@ -123,39 +176,23 @@ int main()
 	render_init.m_api_type = renderer::e_render_api::dx12;
 	influx::renderer::initialize(render_init);
 
+	// load shaders
+	load_shaders();
+
 	// present
 	renderer::present_args present_args{};
 	present_args.m_vsync = false;
 
-	// load assets
-	math::matrix4x4f mesh_transform{};
-	math::matrix4x4f cam_transform{};
-	const auto& mesh_data = get_mesh_data(mesh_transform, cam_transform);
-	renderer::load("my_mesh", mesh_data);
-	load_shaders();
-
-	// setup camera
+	// setup the render-scene
 	renderer::scene scene_to_draw{};
-	scene_to_draw.m_camera.m_fov = 90.0f;
-	scene_to_draw.m_camera.m_near_plane = 0.01f;
-	scene_to_draw.m_camera.m_far_plane = 1000.0f;
-	//scene_to_draw.m_camera.m_transform.set_matrix(cam_transform);
-	scene_to_draw.m_camera.m_transform.set_position({ 0,0,10 });
-	scene_to_draw.m_camera.m_transform.update_matrix();
-	scene_to_draw.m_camera.m_transform.look_at({});
-	scene_to_draw.m_camera.m_transform.update_matrix();
-	
-#if 0
-	// spawn some meshes in a circle
-	for (const auto& point : math::get_points_in_circle(5.0f, 32u))
-	{
-		static const math::vectorf3 offset = { 0,0,0 };
-		scene_to_draw.add_mesh("my_mesh", math::matrix4x4f::make_transform_RH(offset + point, point.normalized()));
-		scene_to_draw.m_meshes.back().m_per_instance_colour = random::get_random_unit_vectorf3();
-	}
-#endif
+	imp::scene_load_args scene_load_args{};
+	scene_load_args.m_bake_transforms = false;
+	scene_load_args.m_pre_scale = 1.0f;
+	load_scene("D:/Git/Influx/assets/engine/meshes/box.fbx", scene_load_args, scene_to_draw);
 
-	scene_to_draw.add_mesh("my_mesh", mesh_transform);
+	renderer::scene_debug debug_scene{};
+	debug_scene.m_camera = scene_to_draw.m_camera;
+	debug_scene.add_gizmo_transform(math::transform3D::identity());
 
 	while (true)
 	{
@@ -169,6 +206,8 @@ int main()
 		renderer::clear_target(*window_target, clear);
 
 		renderer::draw_scene(scene_to_draw, *window_target);
+
+		renderer::draw_debug(debug_scene, *window_target);
 
 		renderer::end_frame();
 	}
