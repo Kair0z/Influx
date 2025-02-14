@@ -9,7 +9,7 @@ namespace influx::math
 	template <typename _t, rotdim _d>
 	class rotor final
 	{
-		constexpr rotdim k_dimension = _d;
+		static constexpr rotdim k_dimension = _d;
 		static_assert(k_dimension > 1u, "rotors are not useable in a space without planes!");
 
 		// a multivec (bivector / trivector)
@@ -18,7 +18,7 @@ namespace influx::math
 		// so there's only 1 multivector component
 		// in 3D space, there's suddenly 3 planes of rotation
 		// so there's 3 multivector components
-		rotdim k_num_bivectors = _d * (_d - 1) / 2;
+		static constexpr rotdim k_num_bivectors = _d * (_d - 1) / 2;
 		using multivec = vector<_t, k_num_bivectors>;
 
 		_t			m_scalar{};

@@ -27,6 +27,7 @@ namespace influx::math
 	public:
 		_quaternion() = default;
 		_quaternion(const vectorf3& forward, const vectorf3& up = vectorf3::up())
+			: m_rotation_matrix{}
 		{
 			m_forward = forward.normalized();
 			m_right = vectorf3::cross(up, m_forward);

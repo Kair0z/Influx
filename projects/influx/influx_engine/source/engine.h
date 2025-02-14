@@ -14,13 +14,6 @@
 // influx::engine
 #include "file/engine_files.h"
 
-// influx::platform
-namespace influx::platform
-{
-	class window;
-	class window_event;
-}
-
 namespace influx::engine
 {
 	class render_manager;
@@ -29,6 +22,7 @@ namespace influx::engine
 	class game_manager;
 	class input_manager;
 	class task_manager;
+	class window_manager;
 	class world;
 
 	class engine final : public singleton<engine>
@@ -49,6 +43,7 @@ namespace influx::engine
 		editor_manager& get_editor();
 		render_manager& get_renderer();
 		input_manager& get_input();
+		window_manager& get_windowman();
 
 		const frame_time& get_time() const;
 		float get_fps() const;
@@ -78,7 +73,7 @@ namespace influx::engine
 		time::point m_t_start;
 		float m_fps;
 
-		platform::window* m_window = nullptr;
+		window_manager* m_windowman = nullptr;
 		content_manager* m_contentman = nullptr;
 		render_manager* m_renderman = nullptr;
 		editor_manager* m_editorman = nullptr;

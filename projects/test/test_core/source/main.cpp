@@ -106,7 +106,7 @@ template <typename _t, uint32 _d>
 void test_math_rotor()
 {
 	using value_t = _t;
-	using rotor = rotor<_t, _d>;
+	using rotor = math::rotor<_t, _d>;
 }
 void test_math_rotor_all()
 {
@@ -122,6 +122,8 @@ void test_result()
 	result<float> float_result = { 1.0f };
 	result<bool> bool_result = { false };
 	result<int> int_result = e_result::error;
+
+	result<> nothing = {};
 
 	assert(float_result);
 }

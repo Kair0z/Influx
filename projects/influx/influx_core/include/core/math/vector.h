@@ -23,6 +23,7 @@ namespace influx::math
 				_t m_data[_s];
 			};
 
+			base_vector() = default;
 			template <typename... _V>
 			base_vector(const _V&... components)
 				: m_data{components...}
@@ -40,7 +41,8 @@ namespace influx::math
 				struct { _t r; };
 				_t m_data[1];
 			};
-			base_vector<_t, 1u>(const _t _x = 0) : x{ _x } {}
+			base_vector() = default;
+			base_vector<_t, 1u>(const _t _x) : x{ _x } {}
 		};
 
 		template <typename _t>
@@ -52,8 +54,8 @@ namespace influx::math
 				struct { _t r, g; };
 				_t m_data[2];
 			};
-
-			base_vector<_t, 2u>(const _t _x = 0, const _t _y = 0) : x{ _x }, y{ _y } {}
+			base_vector() = default;
+			base_vector<_t, 2u>(const _t _x, const _t _y = 0) : x{ _x }, y{ _y } {}
 		};
 
 		template <typename _t>
@@ -65,8 +67,8 @@ namespace influx::math
 				struct { _t r, g, b; };
 				_t m_data[3];
 			};
-
-			base_vector<_t, 3u>(const _t _x = 0, const _t _y = 0, const _t _z = 0) : x{ _x }, y{ _y }, z{ _z } {}
+			base_vector() = default;
+			base_vector<_t, 3u>(const _t _x, const _t _y = 0, const _t _z = 0) : x{ _x }, y{ _y }, z{ _z } {}
 		};
 
 		template <typename _t>
@@ -78,8 +80,8 @@ namespace influx::math
 				struct { _t r, g, b, a; };
 				_t m_data[4];
 			};
-
-			base_vector<_t, 4u>(const _t _x = 0, const _t _y = 0, const _t _z = 0, const _t _w = 0) : x{ _x }, y{ _y }, z{ _z }, w{ _w } {}
+			base_vector() = default;
+			base_vector<_t, 4u>(const _t _x, const _t _y = 0, const _t _z = 0, const _t _w = 0) : x{ _x }, y{ _y }, z{ _z }, w{ _w } {}
 		};
 	}
 
@@ -95,8 +97,8 @@ namespace influx::math
 	public:
 		// constructors
 		vector() = default;
-		vector(const vector& other) = default;
-		vector(vector&& other) = default;
+		vector(const vector&) = default;
+		vector(vector&&) = default;
 		vector& operator=(const vector& other) = default;
 		vector& operator=(vector&& other) = default;
 		template <typename... _v>		vector(const _v&... components);		// Initializer list

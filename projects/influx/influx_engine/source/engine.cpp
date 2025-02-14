@@ -21,6 +21,7 @@
 #include "world/world.h"
 #include "input/input_manager.h"
 #include "tasks/task_manager.h"
+#include "window/window_manager.h"
 
 // influx::core
 #include "core/math/vectortools.h"
@@ -41,17 +42,24 @@ namespace influx::engine
 		m_taskman = new task_manager();
 		m_inputman = new input_manager();
 		m_contentman = new content_manager(this);
+		m_gameman = new game_manager();
 		if (m_runtype == run_type::editor)
 		{
 			m_editorman = new editor_manager(nullptr);
 		}
-		m_gameman = new game_manager();
 
 		// initialize render
-		string render_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
+		const string window_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
 		const math::vectoru2 window_dimensions = { 640u, 480u };
-		initialize_renderer(render_name, window_dimensions);
+		platform::window_desc window_desc{};
+		window_desc
+			.set_dimensions(window_dimensions)
+			.set_name(window_name);
 
+		m_windowman = new window_manager();
+		m_windowman->spawn(window_desc); // main window
+
+		m_renderman = new render_manager(this);
 		m_world = new world();
 	}
 
@@ -151,6 +159,12 @@ namespace influx::engine
 			m_renderman = nullptr;
 		}
 
+		if (m_windowman)
+		{
+			delete m_windowman;
+			m_windowman = nullptr;
+		}
+
 		if (m_contentman)
 		{
 			delete m_contentman;
@@ -174,31 +188,12 @@ namespace influx::engine
 		}
 	}
 
-	void engine::initialize_renderer(const string& window_name, const math::vectoru2& size)
-	{
-		platform::window_desc window_desc{};
-		window_desc
-			.set_dimensions(size)
-			.set_name(window_name);
-
-		m_window = platform::window::create(window_desc);
-		if (m_window == nullptr)
-		{
-			logonce(e_log_category::warning, "influx_engine::engine: window::create() failed!");
-		}
-
-		m_window->set_event_callback([this](const platform::window_event& ev)
-		{
-			on_window_event(ev);
-		});
-
-		m_renderman = new render_manager(this);
-	}
-
 	void engine::poll_platform_events()
 	{
-		m_window->poll_events(m_is_quit_requested);
-		m_is_quit_requested |= m_window->has_quit_request();
+		window_manager::poll_result result = m_windowman->poll_main();
+		m_is_quit_requested = result.m_is_quited;
+
+		m_is_quit_requested |= m_windowman->get_main_window().has_quit_request();
 	}
 
 	void engine::on_window_event(const platform::window_event& ev)
@@ -214,6 +209,11 @@ namespace influx::engine
 	input_manager& engine::get_input()
 	{
 		return *m_inputman;
+	}
+
+	window_manager& engine::get_windowman()
+	{
+		return *m_windowman;
 	}
 
 	content_manager& engine::get_content()
@@ -233,7 +233,7 @@ namespace influx::engine
 
 	platform::window& engine::get_window()
 	{
-		return *m_window;
+		return get_windowman().get_main_window();
 	}
 
 	editor_manager& engine::get_editor()

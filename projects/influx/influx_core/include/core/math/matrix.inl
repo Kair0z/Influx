@@ -464,12 +464,12 @@ namespace influx::math
 	}
 
 	template<typename _t, matsize _x, matsize _y>
-	inline void matrix<_t, _x, _y>::set_column(matsize c_index, const matrix<_t, _x, _y>::column& column)
+	inline void matrix<_t, _x, _y>::set_column(matsize index, const matrix<_t, _x, _y>::column& column)
 	{
-		influx_assert(c_index < num_columns);
-		for (matsize r{}; r < num_rows; ++r)
+		influx_assert(index < k_num_columns);
+		for (matsize r{}; r < k_num_rows; ++r)
 		{
-			this->m_yows[r][c_index] = column[r];
+			this->m_yows[r][index] = column[r];
 		}
 	}
 
@@ -654,7 +654,7 @@ namespace influx::math
 		vector<_t, 3u> res{};
 		for (matsize c{}; c < 3u; ++c)
 		{
-			res[c] = vector<_t, 3u>::dot(mat.get_xollumn(c), cpy);
+			res[c] = vector<_t, 3u>::dot(mat.get_column(c), cpy);
 		}
 
 		return { res.x, res.y, res.z };
@@ -665,7 +665,7 @@ namespace influx::math
 		vector<_t, 4u> cpy = { v.x, v.y, v.z, 1.f };
 		vector<_t, 4u> res{};
 		for (matsize c{}; c < 4u; ++c)
-			res[c] = vector<_t, 4u>::dot(mat.get_xollumn(c), cpy);
+			res[c] = vector<_t, 4u>::dot(mat.get_column(c), cpy);
 
 		return { res.x, res.y, res.z };
 	}

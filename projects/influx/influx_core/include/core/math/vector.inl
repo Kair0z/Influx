@@ -28,7 +28,8 @@ namespace influx::math
 {
 	// Constructors:
 	template<typename _t, vecsize _s> // Initializer list...
-	template<typename ..._V> inline TVEC::vector(const _V& ...components)
+	template<typename ..._V> 
+	inline TVEC::vector(const _V& ...components)
 		: detail::base_vector<_t, _s>(static_cast<_t>(components) ...) 
 	{
 
