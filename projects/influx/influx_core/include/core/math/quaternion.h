@@ -156,7 +156,8 @@ namespace influx::math
 		// todo more constructors...
 
 		template <typename _t2>
-		quaternion& operator=(const quaternion<_t2>& other);
+		quaternion& operator=(const quaternion<_t2>& other)
+		{ m_a = other.m_a; m_b = other.m_b; m_c = other.m_c; m_d = other.m_d; return *this; }
 
 		const _t& get_a() const { return m_a; }
 		const _t& get_b() const { return m_b; }
@@ -231,17 +232,10 @@ namespace influx::math
 		quaternion operator-=(const _t& y)
 		{ m_a -= y; return *this; }
 		quaternion operator*=(const _t& k)
-		{
-			m_a *= k;
-			m_b *= k;
-			m_c *= k;
-			m_d *= k;
-			return *this;
-		}
+		{ m_a *= k; m_b *= k; m_c *= k; m_d *= k; return *this; }
 		quaternion operator/=(const _t& k)
 		{
-			const _t inv_k = 1 / k;
-			return (*this)*= inv_k;
+			const _t inv_k = 1 / k; return (*this)*= inv_k;
 		}
 
 		// quaternion x complex

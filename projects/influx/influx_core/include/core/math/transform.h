@@ -46,6 +46,12 @@ namespace influx::math
 		transform3D(const math::vectorf3& position, const math::rotation& rotation, const math::vectorf3& scale)
 			: m_position{ position }, m_rotation{ rotation }, m_scale { scale } {}
 		
+		transform3D& operator=(const math::matrix4x4f& matrix)
+		{
+			set_matrix(matrix);
+			return *this;
+		}
+
 		const static transform3D identity()
 		{
 			const static transform3D identity{ math::vectorf3::zero(), math::rotation::identity(), math::vectorf3::one()};

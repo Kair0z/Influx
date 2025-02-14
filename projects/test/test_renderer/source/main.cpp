@@ -160,6 +160,24 @@ void load_shaders()
 	renderer::load(loaded_shaders[4].m_signature, render_shaders[4]);
 }
 
+void render_quaternion_tests(renderer::scene_debug& debug_scene)
+{
+	static math::matrix4x4f transform = math::matrix4x4f::identity();
+	static bool once = true;
+	if (once)
+	{
+		debug_scene.m_camera.m_transform = math::matrix4x4f::make_transform_RH(
+			{ 0, 0, 10 }, // position
+			{ 0, 0, -1 }  // forward
+		);
+
+		math::boxf box = math::boxf::identity();
+		debug_scene.add_gizmo_transform(math::transform3D::identity());
+		debug_scene.add_box(box.get_transformed3D(transform), colour::k_red);
+		once = false;
+	}
+}
+
 int main()
 {
 	using namespace influx;
@@ -188,14 +206,13 @@ int main()
 	imp::scene_load_args scene_load_args{};
 	scene_load_args.m_bake_transforms = false;
 	scene_load_args.m_pre_scale = 1.0f;
-	load_scene("D:/Git/Influx/assets/engine/meshes/box.fbx", scene_load_args, scene_to_draw);
+	// load_scene("D:/Git/Influx/assets/engine/meshes/box.fbx", scene_load_args, scene_to_draw);
 
 	renderer::scene_debug debug_scene{};
-	debug_scene.m_camera = scene_to_draw.m_camera;
-	debug_scene.add_gizmo_transform(math::transform3D::identity());
-
 	while (true)
 	{
+		render_quaternion_tests(debug_scene);
+
 		// attach a window target
 		renderer::target* window_target = renderer::get_window_target(*window);
 
