@@ -1,82 +1,77 @@
 #pragma once
 
+#include "core/basetypes.h"
 #include "core/math/vector.h"
-#include <functional>
 
 #pragma warning(disable : 4201)
 
 namespace influx::math
 {
-	using matrix_dim_t = size_t;
+	using matsize = uint32;
+	#define INFLUX_MATRIX_COLUMN_MAJOR 1
 
-	namespace detail
+	template <typename _t, matsize _x, matsize _y>
+	struct matrix final
 	{
-		template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
-		struct base_matrix
+	private:
+		using value_type = _t;
+		using row 		= vector<_t, _x>;
+		using column 	= vector<_t, _y>;
+		using vector3 	= vector<_t, 3u>;
+		using vector4 	= vector<_t, 4u>;
+
+		static constexpr matsize num_columns = _x;
+		static constexpr matsize num_rows = _y;
+		union
 		{
-			constexpr matrix_dim_t get_num_collumns() { return _C; };
-			constexpr matrix_dim_t get_num_rows() { return _R; };
-
-			union
-			{
-				struct { _t m_data[_C * _R]; };
-				struct { math::vector<_t, _C> m_rows[_R]; };
-			};
-
-			template <class... _Init>
-			base_matrix(_Init...values) : m_data{ static_cast<_t>(values)... } {}
+			struct { value_type m_data[_x * _y]; };
+			struct { row m_rows[num_columns]; };
 		};
-	}
-
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	struct matrix : public detail::base_matrix<_t, _C, _R>
-	{
-		using vector3 = vector<_t, 3u>;
-		using vector4 = vector<_t, 4u>;
-
+		
 	public:
+		// constructors
 		matrix() = default;
 		matrix(const matrix& other) = default;
 		matrix(matrix && other) = default;
 		matrix& operator=(const matrix & other) = default;
 		matrix& operator=(matrix && other) = default;
 
-		template <class... _I>	matrix(_I... values) : detail::base_matrix<_t, _C, _R>(values...) {} // Initializer list
-		template <typename _D>	matrix(const matrix<_D, _C, _R>& other); // Typecasting
-		template <typename _D>	matrix(matrix<_D, _C, _R>&& other); // Typecasting
+		// typecasting
+		template <typename _o> matrix(const matrix<_o, _x, _y>& other); 
+		template <typename _o> matrix(matrix<_o, _x, _y>&& other);
 
-		static const matrix_dim_t get_num_rows() { return _R; }
-		static const matrix_dim_t get_num_collumns() { return _C; };
+		template <class... _init>
+		matrix(_init...values) : m_data{ static_cast<_t>(values)... } {}
 
-		// Data Access:
-		const vector<_t, _C>& operator[](matrix_dim_t r) const;
-		const vector<_t, _C>& get_row(matrix_dim_t r) const;
-		vector<_t, _R> get_collumn(matrix_dim_t c) const;
-		inline void set_collumn(matrix_dim_t c_index, const vector<_t, _R>& collumn)
+		static constexpr matsize get_num_collumns() { return num_columns; };
+		static constexpr matsize get_num_rows() { return num_rows; };
+
+		// data access
+		const row& operator[](matsize index) const;
+		row& operator[](matsize index);
+		const row& get_row(matsize index) const;
+		row& get_row(matsize index);
+		column get_column(matsize index) const;
+		void set_column(matsize index, const column&);
+
+		inline void set_row(matsize r_index, const vector<_t, num_columns>& row)
 		{
-			influx_assert(c_index < _C);
-			for (matrix_dim_t r{}; r < _R; ++r)
-				this->m_rows[r][c_index] = collumn[r];
-		}
-
-		inline void set_row(matrix_dim_t r_index, const vector<_t, _C>& row)
-		{
-			influx_assert(r_index < _R);
-			for (matrix_dim_t c{}; c < _C; ++c)
+			influx_assert(r_index < num_rows);
+			for (matsize c{}; c < num_columns; ++c)
 			{
-				const uint32 index = (r_index * _C) + c;
+				const uint32 index = (r_index * num_columns) + c;
 				this->m_data[index] = row[c];
 			}
 		}
 
-		vector<_t, _C>& operator[](matrix_dim_t r);
-		vector<_t, _C>& get_row(matrix_dim_t r);
+		vector<_t, num_columns>& operator[](matsize r);
+		vector<_t, num_columns>& get_row(matsize r);
 
-		_t& get_element(matrix_dim_t c, matrix_dim_t r);
-		_t& get_element(matrix_dim_t idx);
+		_t& get_element(matsize c, matsize r);
+		_t& get_element(matsize idx);
 
-		const _t& get_element(matrix_dim_t c, matrix_dim_t r) const;
-		const _t& get_element(matrix_dim_t idx) const;
+		const _t& get_element(matsize c, matsize r) const;
+		const _t& get_element(matsize idx) const;
 
 		bool operator==(const matrix& other) const;
 		bool operator!=(const matrix& other) const;
@@ -88,7 +83,7 @@ namespace influx::math
 		matrix& operator+=(const matrix& other);
 		matrix& operator-=(const matrix& other);
 
-		template <matrix_dim_t _c, matrix_dim_t _r>
+		template <matsize _c, matsize _r>
 		matrix& operator*=(const matrix<_t, _c, _r>& other);
 
 		matrix& member_multiply(const matrix& other);
@@ -153,19 +148,14 @@ namespace influx::math
 		void decompose(vector<_t, 3u>& out_translation, matrix<_t, 3u, 3u>& out_rotation, vector<_t, 3u>& out_scale) const;
 
 		matrix<_t, 3u, 3u> get_rotation_matrix() const;
-
-		void for_each_element(std::function<void(_t&)> operation);
-		void for_each_element(std::function<void(_t&, matrix_dim_t idx)> operation);
-		void for_each_element(std::function<void(const _t&)> operation) const;
-		void for_each_element(std::function<void(const _t&, matrix_dim_t idx)> operation) const;
 	};
 
 	// Matrix - Matrix
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _R> operator+(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b);
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _R> operator-(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b);
+	template <typename _t, matsize num_columns, matsize num_rows> matrix<_t, num_columns, num_rows> operator+(const matrix<_t, num_columns, num_rows>& a, const matrix<_t, num_columns, num_rows>& b);
+	template <typename _t, matsize num_columns, matsize num_rows> matrix<_t, num_columns, num_rows> operator-(const matrix<_t, num_columns, num_rows>& a, const matrix<_t, num_columns, num_rows>& b);
 
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R, matrix_dim_t _OC, matrix_dim_t _OR>
-	matrix<_t, _R, _OR> operator*(const matrix<_t, _C, _R>& a, const matrix<_t, _OC, _OR>& b);
+	template <typename _t, matsize num_columns, matsize num_rows, matsize _OC, matsize _OR>
+	matrix<_t, num_rows, _OR> operator*(const matrix<_t, num_columns, num_rows>& a, const matrix<_t, _OC, _OR>& b);
 
 	// Matrix - Vector
 	template<typename _t> math::vector<_t, 2u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 2u>& v);
@@ -173,10 +163,10 @@ namespace influx::math
 	template<typename _t> math::vector<_t, 3u> operator*(const matrix<_t, 4u, 4u>& mat, const vector<_t, 3u>& v);
 
 	// Matrix - scalar
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator*(const matrix<_t, _C, _R>& a, float b);
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator/(const matrix<_t, _C, _R>& a, float b);
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator*(float a, const matrix<_t, _C, _R>& b);
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R> matrix<_t, _C, _C> operator/(float a, const matrix<_t, _C, _R>& b);
+	template <typename _t, matsize num_columns, matsize num_rows> matrix<_t, num_columns, num_columns> operator*(const matrix<_t, num_columns, num_rows>& a, float b);
+	template <typename _t, matsize num_columns, matsize num_rows> matrix<_t, num_columns, num_columns> operator/(const matrix<_t, num_columns, num_rows>& a, float b);
+	template <typename _t, matsize num_columns, matsize num_rows> matrix<_t, num_columns, num_columns> operator*(float a, const matrix<_t, num_columns, num_rows>& b);
+	template <typename _t, matsize num_columns, matsize num_rows> matrix<_t, num_columns, num_columns> operator/(float a, const matrix<_t, num_columns, num_rows>& b);
 
 	
 	// Aliases:

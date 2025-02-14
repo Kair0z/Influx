@@ -9,18 +9,18 @@
 
 namespace influx::math
 {
-	using _vector_dim_t = size_t;
+	using vecsize = uint32;
 
 	namespace detail
 	{
-		template <typename _t, _vector_dim_t _dim>
+		template <typename _t, vecsize _s>
 		struct base_vector
 		{
 			union
 			{
 				struct { _t x, y, z, w; };
 				struct { _t r, g, b, a; };
-				_t m_data[_dim];
+				_t m_data[_s];
 			};
 
 			template <typename... _V>
@@ -83,30 +83,33 @@ namespace influx::math
 		};
 	}
 
-	template <typename _t, _vector_dim_t _dim>
-	class vector final : public detail::base_vector<_t, _dim>
+	template <typename _t, vecsize _s>
+	class vector final : public detail::base_vector<_t, _s>
 	{
-		static_assert(_dim != 0u, "influx::vector<_t, _dim> ¬ Cannot instantiate zero-sized vector (_dim == 0)! ");
+		static_assert(_s != 0u, "influx::vector<_t, _s> ï¿½ Cannot instantiate zero-sized vector (_s == 0)! ");
+		static_assert(_s <= 4u, "influx::vector<_t, _s> ï¿½ Cannot instantiate vector bigger than 4 (_s > 4)! ");
+
+		static constexpr vecsize k_size = _s;
+		using value_type = _t;
 
 	public:
-		// Constructors:
+		// constructors
 		vector() = default;
 		vector(const vector& other) = default;
 		vector(vector&& other) = default;
 		vector& operator=(const vector& other) = default;
 		vector& operator=(vector&& other) = default;
+		template <typename... _v>		vector(const _v&... components);		// Initializer list
+		template <typename _u>			vector(const vector<_u, _s>& other);	// Typecasting
+		template <vecsize _d>			vector(const vector<_t, _d>& other);	// Sizecasting
 
-		template <typename... _V>		vector(const _V&... components);		// Initializer list
-		template <typename _U>			vector(const vector<_U, _dim>& other);	// Typecasting
-		template <_vector_dim_t _D>		vector(const vector<_t, _D>& other);	// Sizecasting
-
-		constexpr static _vector_dim_t dimension();
+		constexpr static vecsize size();
 
 		// Accessing data:
-		_t& operator[](_vector_dim_t i);
-		const _t& operator[](_vector_dim_t i) const;
-		_t& at(_vector_dim_t i);
-		const _t& at(_vector_dim_t i) const;
+		_t& operator[](vecsize i);
+		const _t& operator[](vecsize i) const;
+		_t& at(vecsize i);
+		const _t& at(vecsize i) const;
 
 		const _t* data() const;
 		_t* data();
@@ -117,13 +120,16 @@ namespace influx::math
 		static void normalize(vector& vec);
 		static vector normalized(const vector& vec);
 
-		// Clamp:
-		vector clamped(float min, float max);
-		void clamp(float min, float max);
-		static void clamp(vector& vec, float min, float max);
-		static vector clamped(const vector& vec, float min, float max);
+		// clamp:
+		vector&			clamp_values(_t min, _t max);
+		vector			get_clamped_values(_t min, _t max) const;
+		static void		clamp_values(vector& vec, _t min, _t max);
+		static vector	get_clamped_values(const vector& vec, _t min, _t max);
 
-		void clamp_length(float length);
+		vector&			clamp_length(_t length);
+		vector			get_clamped_length(_t length) const;
+		static void		clamp_length(vector& vec, _t length);
+		static vector	get_clamped_length(const vector& vec, _t length);
 
 		// Angle:
 		float radians_between(const vector& other) const;
@@ -144,10 +150,10 @@ namespace influx::math
 		static vector scaled(const vector& vec, float mag);
 
 		// Cross & dot:
-		float dot(const vector& other) const;
-		static float dot(const vector& a, const vector& b);
+		_t dot(const vector& other) const;
+		static _t dot(const vector& a, const vector& b);
 
-		float cross(const vector<_t, 2u>& other) const;
+		_t cross(const vector<_t, 2u>& other) const;
 		vector<_t, 3u> cross(const vector<_t, 3u>& other) const;
 		static float cross(const vector<_t, 2u>& a, const vector<_t, 2u>& b);
 		static vector<_t, 3u> cross(const vector<_t, 3u>& a, const vector<_t, 3u>& b);
@@ -209,47 +215,47 @@ namespace influx::math
 	};
 
 	// Per-Component operators:
-	template <typename _t, _vector_dim_t _dim>
-	vector<_t, _dim> operator+(const vector<_t, _dim>& a, const vector<_t, _dim>& b);
-	template <typename _t, _vector_dim_t _dim>
-	vector<_t, _dim> operator-(const vector<_t, _dim>& a, const vector<_t, _dim>& b);
-	template <typename _t, _vector_dim_t _dim>
-	vector<_t, _dim> operator*(const vector<_t, _dim>& a, const vector<_t, _dim>& b);
-	template <typename _t, _vector_dim_t _dim>
-	vector<_t, _dim> operator/(const vector<_t, _dim>& a, const vector<_t, _dim>& b);
+	template <typename _t, vecsize _s>
+	vector<_t, _s> operator+(const vector<_t, _s>& a, const vector<_t, _s>& b);
+	template <typename _t, vecsize _s>
+	vector<_t, _s> operator-(const vector<_t, _s>& a, const vector<_t, _s>& b);
+	template <typename _t, vecsize _s>
+	vector<_t, _s> operator*(const vector<_t, _s>& a, const vector<_t, _s>& b);
+	template <typename _t, vecsize _s>
+	vector<_t, _s> operator/(const vector<_t, _s>& a, const vector<_t, _s>& b);
 
 	// Scalar operators:
-	template <typename _t, _vector_dim_t _dim>
-	vector<_t, _dim> operator*(const vector<_t, _dim>& a, const float b);
-	template <typename _t, _vector_dim_t _dim>
-	vector<_t, _dim> operator/(const vector<_t, _dim>& a, const float b);
-	template <typename _t, _vector_dim_t _dim>
-	vector<_t, _dim> operator*(const float a, const vector<_t, _dim>& b);
-	template <typename _t, _vector_dim_t _dim>
-	vector<_t, _dim> operator-(const vector<_t, _dim>& v);
+	template <typename _t, vecsize _s>
+	vector<_t, _s> operator*(const vector<_t, _s>& a, const float b);
+	template <typename _t, vecsize _s>
+	vector<_t, _s> operator/(const vector<_t, _s>& a, const float b);
+	template <typename _t, vecsize _s>
+	vector<_t, _s> operator*(const float a, const vector<_t, _s>& b);
+	template <typename _t, vecsize _s>
+	vector<_t, _s> operator-(const vector<_t, _s>& v);
 
-	template <typename _t, _vector_dim_t _dim>
-	vector<_t, _dim> operator/(const float a, const vector<_t, _dim>& b);
+	template <typename _t, vecsize _s>
+	vector<_t, _s> operator/(const float a, const vector<_t, _s>& b);
 
 
 #pragma region Aliases
-	template <typename _vector_dim_t _dim>
-	using vectoru8 = vector<uint8, _dim>;
+	template <typename vecsize _s>
+	using vectoru8 = vector<uint8, _s>;
 
-	template <typename _vector_dim_t _dim>
-	using vectoru32 = vector<uint32, _dim>;
+	template <typename vecsize _s>
+	using vectoru32 = vector<uint32, _s>;
 
-	template <typename _vector_dim_t _dim>
-	using vectoru64 = vector<uint64, _dim>;
+	template <typename vecsize _s>
+	using vectoru64 = vector<uint64, _s>;
 
-	template <typename _vector_dim_t _dim>
-	using vectori = vector<int, _dim>;
+	template <typename vecsize _s>
+	using vectori = vector<int, _s>;
 
-	template <typename _vector_dim_t _dim>
-	using vectorf = vector<float, _dim>;
+	template <typename vecsize _s>
+	using vectorf = vector<float, _s>;
 
-	template <typename _vector_dim_t _dim>
-	using vectorl = vector<long, _dim>;
+	template <typename vecsize _s>
+	using vectorl = vector<long, _s>;
 
 	using vectorf2 = vectorf<2u>;
 	using vectorf3 = vectorf<3u>;

@@ -2,42 +2,60 @@
 #include "core/debug.h"
 #include "core/math/math.h"
 
+#include <algorithm>
 #include <cmath>
+
+namespace influx
+{
+	template <typename _t>
+	inline void swap(_t& a, _t& b)
+	{
+		std::swap(a, b);
+	}
+
+	template <typename _t>
+	inline void to_radians(const _t& degrees)
+	{
+		return math::to_radians(degrees);
+	}
+}
 
 namespace influx::math
 {
 #pragma region transpose
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	matrix<_t, _C, _R>& matrix<_t, _C, _R>::transpose()
+	template<typename _t, matsize _x, matsize _y>
+	matrix<_t, _x, _y>& matrix<_t, _x, _y>::transpose()
 	{
-
+		swap(operator[][0][1], operator[][1][0]);
+		return *this;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	matrix<_t, _C, _R> matrix<_t, _C, _R>::transposed() const
+	template<typename _t, matsize _x, matsize _y>
+	matrix<_t, _x, _y> matrix<_t, _x, _y>::transposed() const
 	{
-
+		matrix<_t, _x, _y> copy = *this;
+		return transpose(copy);
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	static void matrix<_t, _C, _R>::transpose(matrix& matrix)
+	template<typename _t, matsize _x, matsize _y>
+	static void matrix<_t, _x, _y>::transpose(matrix& matrix)
 	{
-
+		matrix.transpose();
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	static matrix<_t, _C, _R> matrix<_t, _C, _R>::transposed(const matrix& matrix)
+	template<typename _t, matsize _x, matsize _y>
+	static matrix<_t, _x, _y> matrix<_t, _x, _y>::transposed(const matrix& matrix)
 	{
-
+		return matrix.transposed();
 	}
 #pragma endregion
 
 #pragma region determinant
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline float matrix<_t, _C, _R>::determinant(const matrix<_t, 2, 2>& m)
+	template<typename _t, matsize _x, matsize _y>
+	inline float matrix<_t, _x, _y>::determinant(const matrix<_t, 2, 2>& m)
 	{
 		return m[0][0] * m[1][1] - m[0][1] * m[1][0];
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline float matrix<_t, _C, _R>::determinant(const matrix<_t, 3, 3>& m)
+	template<typename _t, matsize _x, matsize _y>
+	inline float matrix<_t, _x, _y>::determinant(const matrix<_t, 3, 3>& m)
 	{
 		// From wikipedia
 		return m[0][0] * m[1][1] * m[2][2] +
@@ -47,30 +65,30 @@ namespace influx::math
 			m[0][1] * m[1][0] * m[2][2] -
 			m[0][0] * m[1][2] * m[2][1];
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline float matrix<_t, _C, _R>::determinant(const matrix<_t, 4, 4>& m)
+	template<typename _t, matsize _x, matsize _y>
+	inline float matrix<_t, _x, _y>::determinant(const matrix<_t, 4, 4>& m)
 	{
 		return 0.0f;
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline float matrix<_t, _C, _R>::determinant() const
+	template<typename _t, matsize _x, matsize _y>
+	inline float matrix<_t, _x, _y>::determinant() const
 	{
 		return determinant(*this);
 	}
 #pragma endregion
 
 #pragma region Inversion
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::inverse(const matrix<_t, 4, 4>& m)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4, 4> matrix<_t, _x, _y>::inverse(const matrix<_t, 4, 4>& m)
 	{
 		matrix<_t, 4, 4> cpy = m;
 		invert(cpy);
 		return cpy;
 	}
 	// _The real one ;)
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline float matrix<_t, _C, _R>::invert(matrix<_t, 4, 4>& m)
+	template<typename _t, matsize _x, matsize _y>
+	inline float matrix<_t, _x, _y>::invert(matrix<_t, 4, 4>& m)
 	{
 		matrix<_t, 4, 4> inverse{};
 		float det{};
@@ -190,25 +208,25 @@ namespace influx::math
 		det = m.m_data[0] * inverse.m_data[0] + m.m_data[1] * inverse.m_data[4] + m.m_data[2] * inverse.m_data[8] + m.m_data[3] * inverse.m_data[12];
 		det = 1.0f / det;
 
-		for (matrix_dim_t i = 0; i < 16; i++)
+		for (matsize i = 0; i < 16; i++)
 			m.m_data[i] = inverse.m_data[i] * det;
 
 		return det;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::inverted() const
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4, 4> matrix<_t, _x, _y>::inverted() const
 	{
 		return inverse(*this);
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline float matrix<_t, _C, _R>::invert()
+	template<typename _t, matsize _x, matsize _y>
+	inline float matrix<_t, _x, _y>::invert()
 	{
 		return invert(*this);
 	}
 #pragma endregion
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline _t matrix<_t, _C, _R>::get_sum() const
+	template<typename _t, matsize _x, matsize _y>
+	inline _t matrix<_t, _x, _y>::get_sum() const
 	{
 		_t sum{};
 		for_each_element([&sum](const _t& element)
@@ -218,16 +236,16 @@ namespace influx::math
 
 		return sum;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline _t matrix<_t, _C, _R>::get_sum(const matrix& matrix)
+	template<typename _t, matsize _x, matsize _y>
+	inline _t matrix<_t, _x, _y>::get_sum(const matrix& matrix)
 	{
 		return matrix.get_sum();
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline bool matrix<_t, _C, _R>::is_null() const
+	template<typename _t, matsize _x, matsize _y>
+	inline bool matrix<_t, _x, _y>::is_null() const
 	{
-		for (matrix_dim_t r{}; r < _R; ++r)
-			for (matrix_dim_t c{}; c < _C; ++c)
+		for (matsize r{}; r < _y; ++r)
+			for (matsize c{}; c < _x; ++c)
 			{
 				if (get_element(c, r) != (_t)0)
 					return false;
@@ -235,19 +253,19 @@ namespace influx::math
 
 		return true;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline bool matrix<_t, _C, _R>::is_null(const matrix& matrix)
+	template<typename _t, matsize _x, matsize _y>
+	inline bool matrix<_t, _x, _y>::is_null(const matrix& matrix)
 	{
 		return matrix.is_null();
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R> matrix<_t, _C, _R>::identity()
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y> matrix<_t, _x, _y>::identity()
 	{
-		matrix<_t, _C, _R> result{};
-		for (matrix_dim_t r{}; r < _R; ++r)
-			for (matrix_dim_t c{}; c < _C; ++c)
+		matrix<_t, _x, _y> result{};
+		for (matsize r{}; r < _y; ++r)
+			for (matsize c{}; c < _x; ++c)
 			{
-				matrix_dim_t i = c + (_C * r);
+				matsize i = c + (_x * r);
 				if (r == c) result.m_data[i] = (_t)1;
 			}
 
@@ -256,8 +274,8 @@ namespace influx::math
 
 #pragma region _Transformation
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 3, 3> matrix<_t, _C, _R>::make_translation(const vector<_t, 2>& t)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 3, 3> matrix<_t, _x, _y>::make_translation(const vector<_t, 2>& t)
 	{
 		return
 		{
@@ -266,8 +284,8 @@ namespace influx::math
 			t.x, t.y, 1
 		};
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_translation(const vector<_t, 3>& t)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4, 4> matrix<_t, _x, _y>::make_translation(const vector<_t, 3>& t)
 	{
 		return
 		{
@@ -277,8 +295,8 @@ namespace influx::math
 			t.x, t.y, t.z, 1
 		};
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 3u, 3u> matrix<_t, _C, _R>::make_rotation(const vector<_t, 3>& axis, float angle)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 3u, 3u> matrix<_t, _x, _y>::make_rotation(const vector<_t, 3>& axis, float angle)
 	{
 		// http://www.fastgraph.com/makegames/3drotation/3dsrce.html
 
@@ -296,8 +314,8 @@ namespace influx::math
 			t * x * z - s * y, t * y * z + s * x, t * z * z + c
 		};
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_rotation_RH(float euler_x, float euler_y, float euler_z)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_rotation_RH(float euler_x, float euler_y, float euler_z)
 	{
 		float cp = cosf(euler_x); // cos(Pitch)
 		float sp = sinf(euler_x); // sin(Pitch)
@@ -319,7 +337,7 @@ namespace influx::math
 		result[3][3] = 1.0f;
 		return result;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	template<typename _t, matsize _x, matsize _y>
 	static matrix<_t, 4u, 4u> make_rotation_LH(float euler_x, float euler_y, float euler_z)
 	{
 		float cp = cosf(euler_x); // cos(Pitch)
@@ -342,8 +360,8 @@ namespace influx::math
 		result[3][3] = 1.0f;
 		return result;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 3, 3> matrix<_t, _C, _R>::make_scale(const vector<_t, 2>& s)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 3, 3> matrix<_t, _x, _y>::make_scale(const vector<_t, 2>& s)
 	{
 		return
 		{
@@ -352,8 +370,8 @@ namespace influx::math
 			0, 0, 1
 		};
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4, 4> matrix<_t, _C, _R>::make_scale(const vector<_t, 3>& s)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4, 4> matrix<_t, _x, _y>::make_scale(const vector<_t, 3>& s)
 	{
 		return
 		{
@@ -363,15 +381,15 @@ namespace influx::math
 			0, 0, 0, 1
 		};
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline vector<_t, 3u> matrix<_t, _C, _R>::get_euler_angles() const
+	template<typename _t, matsize _x, matsize _y>
+	inline vector<_t, 3u> matrix<_t, _x, _y>::get_euler_angles() const
 	{
 #if 1
-		float r21 = this->m_rows[1][0];
-		float r11 = this->m_rows[0][0];
-		float r31 = this->m_rows[2][0];
-		float r32 = this->m_rows[2][1];
-		float r33 = this->m_rows[2][2];
+		float r21 = this->m_yows[1][0];
+		float r11 = this->m_yows[0][0];
+		float r31 = this->m_yows[2][0];
+		float r32 = this->m_yows[2][1];
+		float r33 = this->m_yows[2][2];
 		return
 		{
 			atan2f(r32, r33),
@@ -379,118 +397,128 @@ namespace influx::math
 			atan2f(r21, r11)
 		};
 #else
-		if (math::abs(this->m_rows[2][0]) < 1.0) 
+		if (math::abs(this->m_yows[2][0]) < 1.0) 
 		{
 			return vector<_t, 3u>
 			{
-				asinf(-this->m_rows[2][0]),
-				atan2f(this->m_rows[2][1], this->m_rows[2][2]),
-				atan2f(this->m_rows[1][0], this->m_rows[0][0])
+				asinf(-this->m_yows[2][0]),
+				atan2f(this->m_yows[2][1], this->m_yows[2][2]),
+				atan2f(this->m_yows[1][0], this->m_yows[0][0])
 			};	
 		}
 #endif
 	}
 
 #pragma endregion
-	// _Constructor:
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	// _xonstructor:
+	template<typename _t, matsize _x, matsize _y>
 	template <typename Other_T>
-	matrix<_t, _C, _R>::matrix(const matrix<Other_T, _C, _R>& other)
+	matrix<_t, _x, _y>::matrix(const matrix<Other_T, _x, _y>& other)
 	{
-		for_each_element([&other](_t& element, matrix_dim_t idx) { element = static_cast<_t>(other.get_element(idx)); });
+		for_each_element([&other](_t& element, matsize idx) { element = static_xast<_t>(other.get_element(idx)); });
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
+	template<typename _t, matsize _x, matsize _y>
 	template <typename Other_T>
-	matrix<_t, _C, _R>::matrix(matrix<Other_T, _C, _R>&& other)
+	matrix<_t, _x, _y>::matrix(matrix<Other_T, _x, _y>&& other)
 	{
-		for_each_element([&other](_t& element, matrix_dim_t idx) { element = static_cast<_t>(other.get_element(idx)); });
+		for_each_element([&other](_t& element, matsize idx) { element = static_xast<_t>(other.get_element(idx)); });
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline const vector<_t, _C>& matrix<_t, _C, _R>::operator[](matrix_dim_t r) const
+	template<typename _t, matsize _x, matsize _y>
+	inline const vector<_t, _x>& matrix<_t, _x, _y>::operator[](matsize index) const
 	{
-		influx_assert(r < _R);
-		return this->m_rows[r];
+		influx_assert(index < _y);
+		return this->m_rows[index];
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline vector<_t, _C>& matrix<_t, _C, _R>::operator[](matrix_dim_t r)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y>::row& matrix<_t, _x, _y>::operator[](matsize index)
 	{
-		influx_assert(r < _R);
-		return this->m_rows[r];
+		influx_assert(index < _y);
+		return this->m_rows[index];
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline const vector<_t, _C>& matrix<_t, _C, _R>::get_row(matrix_dim_t r) const
+	template<typename _t, matsize _x, matsize _y>
+	inline const vector<_t, _x>& matrix<_t, _x, _y>::get_row(matsize index) const
 	{
-		influx_assert(r < _R);
-		return this->m_rows[r];
+		influx_assert(index < _y);
+		return this->m_rows[index];
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline vector<_t, _C>& matrix<_t, _C, _R>::get_row(matrix_dim_t r)
+	template<typename _t, matsize _x, matsize _y>
+	inline vector<_t, _x>& matrix<_t, _x, _y>::get_row(matsize index)
 	{
-		influx_assert(r < _R);
-		return this->m_rows[r];
+		influx_assert(index < _y);
+		return this->m_rows[index];
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline vector<_t, _R> matrix<_t, _C, _R>::get_collumn(matrix_dim_t c) const
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y>::column matrix<_t, _x, _y>::get_column(matsize index) const
 	{
-		influx_assert(c < _C);
-		vector<_t, _R> collumn{};
-		for (matrix_dim_t r{}; r < _R; ++r)
-			collumn[r] = this->m_rows[r][c];
+		influx_assert(index < _x);
+		vector<_t, _y> collumn{};
+		for (matsize r{}; r < _y; ++r)
+			collumn[r] = this->m_rows[r][index];
 
 		return collumn;
 	}
 
-	// Data Access:
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline _t& matrix<_t, _C, _R>::get_element(matrix_dim_t c, matrix_dim_t r)
+	template<typename _t, matsize _x, matsize _y>
+	inline void matrix<_t, _x, _y>::set_column(matsize c_index, const matrix<_t, _x, _y>::column& column)
 	{
-		influx_assert(r < _R&& c < _C);
-		return (*this)[r][c];
-	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline const _t& matrix<_t, _C, _R>::get_element(matrix_dim_t c, matrix_dim_t r) const
-	{
-		influx_assert(r < _R&& c < _C);
-		return (*this)[r][c];
-	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline _t& matrix<_t, _C, _R>::get_element(matrix_dim_t idx)
-	{
-		influx_assert(idx < _C* _R);
-		return get_element(idx % _C, idx / _R);
-	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline const _t& matrix<_t, _C, _R>::get_element(matrix_dim_t idx) const
-	{
-		influx_assert(idx < _C* _R);
-		return get_element(idx % _C, idx / _R);
+		influx_assert(c_index < num_columns);
+		for (matsize r{}; r < num_rows; ++r)
+		{
+			this->m_yows[r][c_index] = column[r];
+		}
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	bool matrix<_t, _C, _R>::operator==(const matrix& other) const
+	// Data Access:
+	template<typename _t, matsize _x, matsize _y>
+	inline _t& matrix<_t, _x, _y>::get_element(matsize c, matsize r)
 	{
-		for (matrix_dim_t r{}; r < _R; ++r)
-			for (matrix_dim_t c{}; c < _C; ++c)
+		influx_assert(r < _y&& c < _x);
+		return (*this)[r][c];
+	}
+	template<typename _t, matsize _x, matsize _y>
+	inline const _t& matrix<_t, _x, _y>::get_element(matsize c, matsize r) const
+	{
+		influx_assert(r < _y&& c < _x);
+		return (*this)[r][c];
+	}
+	template<typename _t, matsize _x, matsize _y>
+	inline _t& matrix<_t, _x, _y>::get_element(matsize idx)
+	{
+		influx_assert(idx < _x* _y);
+		return get_element(idx % _x, idx / _y);
+	}
+	template<typename _t, matsize _x, matsize _y>
+	inline const _t& matrix<_t, _x, _y>::get_element(matsize idx) const
+	{
+		influx_assert(idx < _x* _y);
+		return get_element(idx % _x, idx / _y);
+	}
+
+	template<typename _t, matsize _x, matsize _y>
+	bool matrix<_t, _x, _y>::operator==(const matrix& other) const
+	{
+		for (matsize r{}; r < _y; ++r)
+			for (matsize c{}; c < _x; ++c)
 			{
-				const matrix_dim_t idx = c + (_C * r);
+				const matsize idx = c + (_x * r);
 				if (this->m_data[idx] != other.m_data[idx]) return false;
 			}
 
 		return true;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	bool matrix<_t, _C, _R>::operator!=(const matrix& other) const
+	template<typename _t, matsize _x, matsize _y>
+	bool matrix<_t, _x, _y>::operator!=(const matrix& other) const
 	{
 		return !(*this == other);
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::operator*=(const float scalar)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y>& matrix<_t, _x, _y>::operator*=(const float scalar)
 	{
 		for_each_element([](_t& element)
 		{
@@ -499,8 +527,8 @@ namespace influx::math
 
 		return *this;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::operator/=(const float scalar)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y>& matrix<_t, _x, _y>::operator/=(const float scalar)
 	{
 		for_each_element([](_t& element)
 		{
@@ -510,76 +538,76 @@ namespace influx::math
 		return *this;
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::operator*=(const matrix& other)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y>& matrix<_t, _x, _y>::operator*=(const matrix& other)
 	{
 		*this = *this * other;
 		return *this;
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R>& matrix<_t, _C, _R>::member_multiply(const matrix<_t, _C, _R>& other)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y>& matrix<_t, _x, _y>::member_multiply(const matrix<_t, _x, _y>& other)
 	{
-		for (matrix_dim_t i{}; i < _R * _C; ++i)
+		for (matsize i{}; i < _y * _x; ++i)
 			this->m_data[i] = other.m_data[i];
 
 		return *this;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R> matrix<_t, _C, _R>::member_multiply(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y> matrix<_t, _x, _y>::member_multiply(const matrix<_t, _x, _y>& a, const matrix<_t, _x, _y>& b)
 	{
-		matrix<_t, _C, _R> res = a;
+		matrix<_t, _x, _y> res = a;
 		res.member_multiply(b);
 		return res;
 	}
 
 	// Operations: matrix - Scalar
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R> operator*(const matrix<_t, _C, _R>& a, float b)
+	template <typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y> operator*(const matrix<_t, _x, _y>& a, float b)
 	{
-		matrix<_t, _C, _R> result = a;
+		matrix<_t, _x, _y> result = a;
 		result.for_each_element([](_t& el) { el *= b; });
 		return result;
 	}
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R> operator/(const matrix<_t, _C, _R>& a, float b)
+	template <typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y> operator/(const matrix<_t, _x, _y>& a, float b)
 	{
-		matrix<_t, _C, _R> result = a;
+		matrix<_t, _x, _y> result = a;
 		result.for_each_element([](_t& el) { el /= b; });
 		return result;
 	}
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R> operator*(float a, const matrix<_t, _C, _R>& b)
+	template <typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y> operator*(float a, const matrix<_t, _x, _y>& b)
 	{
-		matrix<_t, _C, _R> result = b;
+		matrix<_t, _x, _y> result = b;
 		result.for_each_element([](_t& el) { el *= a; });
 		return result;
 	}
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R> operator/(float a, const matrix<_t, _C, _R>& b)
+	template <typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y> operator/(float a, const matrix<_t, _x, _y>& b)
 	{
-		matrix<_t, _C, _R> result = b;
+		matrix<_t, _x, _y> result = b;
 		result.for_each_element([](_t& el) { el /= a; });
 		return result;
 	}
 
 	// Operations: matrix - matrix
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R> operator+(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y> operator+(const matrix<_t, _x, _y>& a, const matrix<_t, _x, _y>& b)
 	{
-		matrix<_t, _C, _R> result = a;
-		result.for_each_element([=, &result](_t& element, matrix_dim_t idx)
+		matrix<_t, _x, _y> result = a;
+		result.for_each_element([=, &result](_t& element, matsize idx)
 		{
 			result.get_element(idx) += b.get_element(idx);
 		});
 
 		return result;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, _C, _R> operator-(const matrix<_t, _C, _R>& a, const matrix<_t, _C, _R>& b)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, _x, _y> operator-(const matrix<_t, _x, _y>& a, const matrix<_t, _x, _y>& b)
 	{
-		matrix<_t, _C, _R> result = a;
-		result.for_each_element([=, &result](_t& element, matrix_dim_t idx)
+		matrix<_t, _x, _y> result = a;
+		result.for_each_element([=, &result](_t& element, matsize idx)
 		{
 			result.get_element(idx) -= b.get_element(idx);
 		});
@@ -589,16 +617,16 @@ namespace influx::math
 
 #pragma warning(push)
 #pragma warning(disable : 4267)
-	template <typename _t, matrix_dim_t _C, matrix_dim_t _R, matrix_dim_t _OC, matrix_dim_t _OR>
-	inline matrix<_t, _R, _OR> operator*(const matrix<_t, _C, _R>& a, const matrix<_t, _OC, _OR>& b)
+	template <typename _t, matsize _x, matsize _y, matsize _OC, matsize _OR>
+	inline matrix<_t, _y, _OR> operator*(const matrix<_t, _x, _y>& a, const matrix<_t, _OC, _OR>& b)
 	{
-		influx_assert(_C == _OR);
+		influx_assert(_x == _OR);
 
-		matrix<_t, _R, _OC> result{};
+		matrix<_t, _y, _OC> result{};
 
-		for (matrix_dim_t r{}; r < _R; ++r)
-			for (matrix_dim_t c{}; c < _OC; ++c)
-				for (matrix_dim_t i = 0; i < _OR; ++i)
+		for (matsize r{}; r < _y; ++r)
+			for (matsize c{}; c < _OC; ++c)
+				for (matsize i = 0; i < _OR; ++i)
 				{
 					result[r][c] += a[r][i] * b[i][c];
 				}
@@ -612,9 +640,9 @@ namespace influx::math
 	inline vector<_t, 2u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 2>& v)
 	{
 		vector<_t, 3> result{ v.x, v.y, 1.f };
-		for (matrix_dim_t c{}; c < 3; ++c)
+		for (matsize c{}; c < 3; ++c)
 		{
-			for (matrix_dim_t r{}; r < 3; ++r)
+			for (matsize r{}; r < 3; ++r)
 				result[c] += mat[r][c] * result[c];
 		}
 		return { result.x, result.y };
@@ -624,9 +652,9 @@ namespace influx::math
 	{
 		vector<_t, 3u> cpy = { v.x, v.y, v.z };
 		vector<_t, 3u> res{};
-		for (matrix_dim_t c{}; c < 3u; ++c)
+		for (matsize c{}; c < 3u; ++c)
 		{
-			res[c] = vector<_t, 3u>::dot(mat.get_collumn(c), cpy);
+			res[c] = vector<_t, 3u>::dot(mat.get_xollumn(c), cpy);
 		}
 
 		return { res.x, res.y, res.z };
@@ -636,14 +664,14 @@ namespace influx::math
 	{
 		vector<_t, 4u> cpy = { v.x, v.y, v.z, 1.f };
 		vector<_t, 4u> res{};
-		for (matrix_dim_t c{}; c < 4u; ++c)
-			res[c] = vector<_t, 4u>::dot(mat.get_collumn(c), cpy);
+		for (matsize c{}; c < 4u; ++c)
+			res[c] = vector<_t, 4u>::dot(mat.get_xollumn(c), cpy);
 
 		return { res.x, res.y, res.z };
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
 		vector<_t, 3u> lRight = vector<_t, 3u>::cross(up, forward);
 		vector<_t, 3u> lUp = vector<_t, 3u>::cross(forward, lRight);
@@ -657,8 +685,8 @@ namespace influx::math
 			pos.x, pos.y, pos.z, 1
 		};
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
 		vector<_t, 3u> lRight = vector<_t, 3u>::cross(forward, up).normalized();
 		vector<_t, 3u> lUp = vector<_t, 3u>::cross(lRight, forward).normalized();
@@ -673,23 +701,23 @@ namespace influx::math
 		};
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
 		return make_transform_LH(pos, forward, up).inverted();
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		return make_transform_RH(pos, forward, up).inverted();
+		return make_transform_yH(pos, forward, up).inverted();
 	}
 
 	// assuming [0, 1] depth range
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_projection_RH(const float fov, const float ar, const float n, const float f)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_projection_RH(const float fov, const float ar, const float n, const float f)
 	{
-		float y = 1.0f / tanf(math::to_radians(fov) * 0.5f);
+		float y = 1.0f / tanf(to_radians(fov) * 0.5f);
 		float x = y / ar;
 		float intv = f - n;
 		float z = -(_t)f / intv;
@@ -703,8 +731,8 @@ namespace influx::math
 			(_t)0, (_t)0, (_t)pos_z, (_t)0
 		};
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	matrix<_t, _C, _R> matrix<_t, _C, _R>::make_diagonal(const _t& x, const _t& y, const _t& z, const _t& w)
+	template<typename _t, matsize _x, matsize _y>
+	matrix<_t, _x, _y> matrix<_t, _x, _y>::make_diagonal(const _t& x, const _t& y, const _t& z, const _t& w)
 	{
 		return
 		{
@@ -714,8 +742,8 @@ namespace influx::math
 			0, 0, 0, w
 		};
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline matrix<_t, 4u, 4u> matrix<_t, _C, _R>::make_projection_LH(const float fov, const float ar, const float n, const float f)
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_projection_LH(const float fov, const float ar, const float n, const float f)
 	{
 		float y = 1.0f / tanf(math::to_radians(fov) / 2.f);
 		float x = y / ar;
@@ -726,29 +754,29 @@ namespace influx::math
 			(_t)x, (_t)0, (_t)0, (_t)0,
 			(_t)0, (_t)y, (_t)0, (_t)0,
 			(_t)0, (_t)0, (_t)f / intv, (_t)1,
-			(_t)0, (_t)0, static_cast<_t>(-(f * n) / intv), (_t)0
+			(_t)0, (_t)0, static_xast<_t>(-(f * n) / intv), (_t)0
 		};
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline void matrix<_t, _C, _R>::set_translation(const vector<_t, 3u>& translation)
+	template<typename _t, matsize _x, matsize _y>
+	inline void matrix<_t, _x, _y>::set_translation(const vector<_t, 3u>& translation)
 	{
-		static_assert(_C == 4u && _R == 4u);
-		this->m_rows[3u].x = translation.x;
-		this->m_rows[3u].y = translation.y;
-		this->m_rows[3u].z = translation.z;
+		static_assert(_x == 4u && _y == 4u);
+		this->m_yows[3u].x = translation.x;
+		this->m_yows[3u].y = translation.y;
+		this->m_yows[3u].z = translation.z;
 	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline vector<_t, 3u> matrix<_t, _C, _R>::get_translation() const
+	template<typename _t, matsize _x, matsize _y>
+	inline vector<_t, 3u> matrix<_t, _x, _y>::get_translation() const
 	{
-		static_assert(_C == 4u && _R == 4u);
+		static_assert(_x == 4u && _y == 4u);
 		const auto& row = get_row(3u);
 		return { row.x, row.y, row.z };
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	vector<_t, 3u> matrix<_t, _C, _R>::get_scale() const
+	template<typename _t, matsize _x, matsize _y>
+	vector<_t, 3u> matrix<_t, _x, _y>::get_scale() const
 	{
-		static_assert(_C == 4u && _R == 4u);
+		static_assert(_x == 4u && _y == 4u);
 		vector<_t, 3u> scale_sqr = get_scale_sqr();
 		return 
 		{
@@ -760,10 +788,10 @@ namespace influx::math
 		return scale_sqr;
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	vector<_t, 3u> matrix<_t, _C, _R>::get_scale_sqr() const
+	template<typename _t, matsize _x, matsize _y>
+	vector<_t, 3u> matrix<_t, _x, _y>::get_scale_sqr() const
 	{
-		static_assert(_C == 4u && _R == 4u);
+		static_assert(_x == 4u && _y == 4u);
 		const auto& rowX = get_row(0u);
 		const auto& rowY = get_row(1u);
 		const auto& rowZ = get_row(2u);
@@ -774,20 +802,20 @@ namespace influx::math
 			rowZ.sqr_magnitude()};
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	void matrix<_t, _C, _R>::decompose(vector<_t, 3u>& out_translation, matrix<_t, 3u, 3u>& out_rotation, vector<_t, 3u>& out_scale) const
+	template<typename _t, matsize _x, matsize _y>
+	void matrix<_t, _x, _y>::decompose(vector<_t, 3u>& out_translation, matrix<_t, 3u, 3u>& out_yotation, vector<_t, 3u>& out_scale) const
 	{
-		static_assert(_C == 4u && _R == 4u);
+		static_assert(_x == 4u && _y == 4u);
 
 		out_translation = get_translation();
-		out_rotation	= get_rotation_matrix();
+		out_yotation	= get_rotation_matrix();
 		out_scale		= get_scale();
 	}
 
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	matrix<_t, 3u, 3u> matrix<_t, _C, _R>::get_rotation_matrix() const
+	template<typename _t, matsize _x, matsize _y>
+	matrix<_t, 3u, 3u> matrix<_t, _x, _y>::get_rotation_matrix() const
 	{
-		static_assert(_C == 4u && _R == 4u);
+		static_assert(_x == 4u && _y == 4u);
 		auto rowX = get_row(0u);
 		auto rowY = get_row(1u);
 		auto rowZ = get_row(2u);
@@ -802,46 +830,5 @@ namespace influx::math
 			rowY.x, rowY.y, rowY.z,
 			rowZ.x, rowZ.y, rowZ.z,
 		};
-	}
-
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline void matrix<_t, _C, _R>::for_each_element(std::function<void(_t&)> operation)
-	{
-		for (matrix_dim_t r{}; r < _R; ++r)
-			for (matrix_dim_t c{}; c < _C; ++c)
-			{
-				matrix_dim_t i = c + (_C * r);
-				operation(this->m_data[i]);
-			}
-	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline void matrix<_t, _C, _R>::for_each_element(std::function<void(_t&, matrix_dim_t idx)> operation)
-	{
-		for (matrix_dim_t r{}; r < _R; ++r)
-			for (matrix_dim_t c{}; c < _C; ++c)
-			{
-				matrix_dim_t i = c + (_C * r);
-				operation(this->m_data[i], i);
-			}
-	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline void matrix<_t, _C, _R>::for_each_element(std::function<void(const _t&)> operation) const
-	{
-		for (matrix_dim_t r{}; r < _R; ++r)
-			for (matrix_dim_t c{}; c < _C; ++c)
-			{
-				matrix_dim_t i = c + (_C * r);
-				operation(this->m_data[i]);
-			}
-	}
-	template<typename _t, matrix_dim_t _C, matrix_dim_t _R>
-	inline void matrix<_t, _C, _R>::for_each_element(std::function<void(const _t&, matrix_dim_t idx)> operation) const
-	{
-		for (matrix_dim_t r{}; r < _R; ++r)
-			for (matrix_dim_t c{}; c < _C; ++c)
-			{
-				matrix_dim_t i = c + (_C * r);
-				operation(this->m_data[i], i);
-			}
 	}
 }

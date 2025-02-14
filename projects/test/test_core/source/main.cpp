@@ -3,34 +3,29 @@
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
+#include "core/math/quaternion.h"
+#include "core/math/rotor.h"
 #include "core/result.h"
 
 using namespace influx;
 
+#pragma region test_math
 template <typename _t, uint32 _n>
 void test_math_vector()
 {
 	using value_type = _t;
-	constexpr uint32 dimensions = _n;
+	constexpr uint32 size = _n;
 	using vector = math::vector<_t, _n>;
 
-	// addition
+	// basic vec x vec
 	influx_assert(vector::fill(1) + vector::fill(1) == vector::fill(2));
-
-	// subtraction
 	influx_assert(vector::fill(1) - vector::fill(1) == vector::fill(0));
-	
-	// multiplication
 	influx_assert(vector::fill(4) * vector::fill(4) == vector::fill(16));
-
-	// division
 	influx_assert(vector::fill(8) / vector::fill(4) == vector::fill(2));
-
-	// dot
-	influx_assert(vector::dot(vector::fill(1), vector::fill(1)) == dimensions);
+	influx_assert(vector::dot(vector::fill(1), vector::fill(1)) == size);
 
 	// 3D section
-	if constexpr (dimensions == 3u)
+	if constexpr (size == 3u)
 	{
 		// cross
 		const vector cross = vector::cross(vector{ 1, 0, 0 }, vector{ 0, 1, 0 });
@@ -93,6 +88,35 @@ void test_math_matrix_all()
 	test_math_matrix<uint32, 4u, 4u>();
 }
 
+template <typename _t>
+void test_math_quaternion()
+{
+
+}
+void test_math_quaternion_all()
+{
+	test_math_quaternion<bool>();
+	test_math_quaternion<int>();
+	test_math_quaternion<float>();
+	test_math_quaternion<double>();
+	test_math_quaternion<long double>();
+}
+
+template <typename _t, uint32 _d>
+void test_math_rotor()
+{
+	using value_t = _t;
+	using rotor = rotor<_t, _d>;
+}
+void test_math_rotor_all()
+{
+	test_math_rotor<float, 2u>();
+	test_math_rotor<double, 2u>();
+	test_math_rotor<int, 2u>();
+	test_math_rotor<uint32, 2u>();
+}
+#pragma endregion
+
 void test_result()
 {
 	result<float> float_result = { 1.0f };
@@ -105,7 +129,6 @@ void test_basetypes()
 {
 	// todo
 }
-
 void test_cache()
 {
 	// todo
@@ -116,6 +139,8 @@ int main()
 	test_basetypes();
 	test_result();
 	test_cache();
+
 	test_math_vector_all();
 	test_math_matrix_all();
+	test_math_quaternion_all();
 }
