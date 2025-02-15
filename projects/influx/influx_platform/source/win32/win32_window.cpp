@@ -101,6 +101,7 @@ namespace influx::platform
 			new_event.m_wParam = wParam;
 			new_event.m_lParam = lParam;
 			new_event.m_type = translate_umsg(message);
+			new_event.m_window = target_window;
 
 			for (const event_callback& callback : target_window->m_event_callbacks)
 			{
@@ -146,7 +147,10 @@ namespace influx::platform
 		const uint32 height = desc.m_dimensions.y;
 
 		// [ REGISTER WINDOW CLASS ]
+		static bool once = true;
+		if (true)
 		{
+			once = false;
 			// https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes
 			::UINT class_style = CS_HREDRAW | CS_VREDRAW;
 			::HBRUSH classBackgroundBrush = ::CreateSolidBrush(0x00000000);
@@ -201,6 +205,10 @@ namespace influx::platform
 				xPos, yPos, width, height,
 				parentWindow, parentMenu, instance, NULL);
 
+			if (newWindowHandle == NULL)
+			{
+				logerr(parse_error(GetLastError()));
+			}
 			influx_assert(newWindowHandle != NULL);
 
 			m_handle = newWindowHandle;

@@ -28,11 +28,13 @@
 
 namespace influx::engine
 {
+#pragma region translation
 	ImGuiKey translate(const input::e_key key);
 	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data);
 	void translate(const imp::shader_data& imp_data, renderer::shader_data& out_data);
 	void translate(const imp::image_data& imp_data, renderer::texture_data& out_data);
 	void translate(const shader::compile_output& shader_data, renderer::shader_data& out_data);
+#pragma endregion
 
 	struct
 	{

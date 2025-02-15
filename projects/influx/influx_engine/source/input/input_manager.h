@@ -17,6 +17,7 @@ namespace influx::engine
 
 		void tick();
 		void flush();
+		void push_window_event(const platform::window_event&);
 
 	private:
 		void on_keydown(input::e_key);

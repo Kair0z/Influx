@@ -45,7 +45,6 @@ namespace influx::platform
 			quit,
 			count
 		};
-
 		enum class mouse_button : uint8
 		{
 			left,
@@ -54,7 +53,6 @@ namespace influx::platform
 			x,
 			count
 		};
-
 		enum class key_type : uint8
 		{
 			left,right,up,down,

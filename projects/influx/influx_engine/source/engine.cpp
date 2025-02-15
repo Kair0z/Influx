@@ -76,6 +76,7 @@ namespace influx::engine
 
 		m_windowman = new window_manager();
 		m_windowman->spawn(window_desc); // main window
+		m_windowman->spawn(window_desc.set_name("log")); // main window
 
 		m_renderman = new render_manager(this);
 		m_world = new world();
@@ -209,15 +210,10 @@ namespace influx::engine
 
 	void engine::poll_platform_events()
 	{
-		window_manager::poll_result result = m_windowman->poll_main();
+		window_manager::poll_result result = m_windowman->poll_all();
 		m_is_quit_requested = result.m_is_quited;
 
 		m_is_quit_requested |= m_windowman->get_main_window().has_quit_request();
-	}
-
-	void engine::on_window_event(const platform::window_event& ev)
-	{
-		input::push_window_event(ev);
 	}
 
 	render_manager& engine::get_renderer()

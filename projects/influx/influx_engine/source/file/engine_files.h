@@ -37,7 +37,7 @@ namespace influx::engine
 	{
 		// temp: HARDCODED builds are ran in /influx/bin/[config]/influx_game/
 		const string exe_directory = engine::get_run_argument("exe_dir");
-		const string& root = platform::platform::get_current_directory() + "/../../../";
+		const string& root = exe_directory + "/../../../";
 		switch (directory)
 		{
 			case engine_directory::root:			return root;

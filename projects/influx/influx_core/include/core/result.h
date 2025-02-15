@@ -72,6 +72,26 @@ namespace influx
 			return is_success();
 		}
 
+		bool operator==(unex_type result)
+		{
+			return result == m_unexpected;
+		}
+
+		bool operator!=(unex_type result)
+		{
+			return result != m_unexpected;
+		}
+
+		bool operator==(ex_type type)
+		{
+			return type == m_expected;
+		}
+
+		bool operator!=(ex_type type)
+		{
+			return type != m_expected;
+		}
+
 		bool is_success() const
 		{
 			return m_unexpected == _e{};

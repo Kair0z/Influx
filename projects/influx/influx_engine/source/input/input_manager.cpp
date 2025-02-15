@@ -52,6 +52,11 @@ namespace influx::engine
 		m_deferred_mouseups.clear();
 	}
 
+	void input_manager::push_window_event(const platform::window_event& ev)
+	{
+		input::push_window_event(ev);
+	}
+
 	void input_manager::on_keydown(input::e_key)
 	{
 

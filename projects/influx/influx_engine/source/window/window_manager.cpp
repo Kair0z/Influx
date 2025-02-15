@@ -2,12 +2,28 @@
 #include "window_manager.h"
 
 #include "influx_platform/window.h"
+#include "input/input_manager.h"
 
 namespace influx::engine
 {
 	window_manager::window_manager()
 	{	
+
 		
+	}
+
+	void window_manager::on_window_event(const platform::window_event& ev)
+	{
+		platform::window* owner = ev.m_window;
+		
+		result<window_id> id = get_window_id(owner);
+		if (id.is_success())
+		{
+			if (is_main(id))
+			{
+				get_engine()->get_input().push_window_event(ev);
+			}
+		}
 	}
 
 	result<window_manager::window_id> window_manager::spawn(const platform::window_desc& desc)
@@ -15,7 +31,7 @@ namespace influx::engine
 		platform::window* new_window = platform::window::create(desc);
 		new_window->set_event_callback([this](const platform::window_event& ev)
 		{
-			// on_window_event(ev);
+			on_window_event(ev);
 		});
 
 		// find an invalid removed slot:
@@ -23,14 +39,14 @@ namespace influx::engine
 		{
 			if (!is_valid(i))
 			{
-				m_windows[i] = new_window;
+				m_windows[i].m_window = new_window;
 				return i;
 			}
 		}
 
 		// create new
 		uint32 new_id = static_cast<uint32>(m_windows.size());
-		m_windows.push_back(new_window);
+		m_windows.push_back({.m_state = e_window_state::active, .m_window = new_window});
 		return new_id;
 	}
 
@@ -49,25 +65,38 @@ namespace influx::engine
 		return poll(m_main_window_id);
 	}
 
+	window_manager::poll_result window_manager::poll_all()
+	{
+		poll_result result{};
+
+		for (uint64 i = 0u; i < m_windows.size(); ++i)
+		{
+			poll_result this_result = poll(i);
+			result.m_is_quited |= this_result.m_is_quited;
+		}
+
+		return result;
+	}
+
 	result<> window_manager::destroy(window_id id)
 	{
 		if (!is_valid(id)) return e_result::error;
 
 		// 'destroy'
 		// m_windows[id]
-		m_windows[id] = nullptr;
+		m_windows[id].m_window = nullptr;
 
 		return {};
 	}
 
 	platform::window& window_manager::get_window(window_id id)
 	{
-		return *m_windows[id];
+		return *m_windows[id].m_window;
 	}
 
 	const platform::window& window_manager::get_window(window_id id) const
 	{
-		return *m_windows[id];
+		return *m_windows[id].m_window;
 	}
 
 	platform::window& window_manager::get_main_window()
@@ -87,6 +116,32 @@ namespace influx::engine
 
 	bool window_manager::is_valid(window_id id) const
 	{
-		return id < m_windows.size() && m_windows[id] != nullptr;
+		return id < m_windows.size() && m_windows[id].m_window != nullptr;
+	}
+
+	bool window_manager::is_main(window_id id) const
+	{
+		return id == m_main_window_id;
+	}
+
+	bool window_manager::is_active(window_id id) const
+	{
+		return m_windows[id].m_state == e_window_state::active;
+	}
+
+	result<window_manager::window_id> window_manager::get_window_id(platform::window* window) const
+	{
+		auto found = std::find_if(m_windows.cbegin(), m_windows.cend(), 
+			[window](const window_manager::window& wind)
+			{
+				return wind.m_window->get_platform_handle() == window->get_platform_handle();
+			});
+
+		if (found != m_windows.cend())
+		{
+			return found - m_windows.cbegin();
+		}
+
+		return e_result::error;
 	}
 }
