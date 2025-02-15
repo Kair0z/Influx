@@ -22,6 +22,7 @@ namespace influx::math
 
 		static constexpr matsize k_num_columns = _x;
 		static constexpr matsize k_num_rows = _y;
+		static constexpr matsize k_num_elements = k_num_columns * k_num_rows;
 		union
 		{
 			struct { value_type m_data[_x * _y]; };

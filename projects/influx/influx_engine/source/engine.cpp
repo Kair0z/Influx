@@ -22,6 +22,7 @@
 #include "input/input_manager.h"
 #include "tasks/task_manager.h"
 #include "window/window_manager.h"
+#include "file/engine_files.h"
 
 // influx::core
 #include "core/math/vectortools.h"
@@ -29,6 +30,23 @@
 
 namespace influx::engine
 {
+	void engine::process_runarguments(int argc, char* argv[])
+	{
+		for (int i = 0u; i < argc; ++i)
+		{
+			const string& argument = argv[i];
+
+			if (str::contains(argument, ".exe"))
+			{
+				m_parsed_run_args["exe_dir"] = file(argument).m_directory;
+				m_parsed_run_args["exe"] = argument;
+			}
+			if (str::contains(argument, ".flx")) m_parsed_run_args["projectfile"] = argument;
+
+			m_run_args.push_back(argv[i]);
+		}
+	}
+
 	void engine::initialize()
 	{
 		random::seed_random(0u);
@@ -63,9 +81,10 @@ namespace influx::engine
 		m_world = new world();
 	}
 
-	void engine::run(run_type type)
+	void engine::run(run_type type, int argc, char* argv[])
 	{
 		m_runtype = type;
+		process_runarguments(argc, argv);
 		initialize();
 
 		while (!m_is_quit_requested)
@@ -265,18 +284,27 @@ namespace influx::engine
 	{
 		return m_runtype == run_type::game;
 	}
+
+	string engine::get_run_argument(const string& title)
+	{
+		if (get_engine()->m_parsed_run_args.contains(title))
+		{
+			return get_engine()->m_parsed_run_args[title];
+		}
+		return "";
+	}
 }
 
 #include "influx_engine.h"
 namespace influx::engine
 {
-	void run_editor()
+	void run_editor(int argc, char* argv[])
 	{
-		get_engine()->run(engine::run_type::editor);
+		get_engine()->run(engine::run_type::editor, argc, argv);
 	}
 
-	void run_game()
+	void run_game(int argc, char* argv[])
 	{
-		get_engine()->run(engine::run_type::game);
+		get_engine()->run(engine::run_type::game, argc, argv);
 	}
 }

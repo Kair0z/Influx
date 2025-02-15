@@ -8,6 +8,7 @@ namespace influx::platform
 {
 	class window;
 	class window_event;
+	struct window_desc;
 }
 
 namespace influx::engine

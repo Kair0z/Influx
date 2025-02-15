@@ -25,6 +25,7 @@ namespace influx
 			std::filesystem::path path(filepath);
 
 			m_filename = path.filename().string();
+			m_directory = path.parent_path().string();
 			m_path_full = path.string();
 			m_extension = path.extension().string();
 		}
@@ -99,6 +100,7 @@ namespace influx
 		string m_path_full;
 		string m_filename;
 		string m_extension;
+		string m_directory;
 	};
 
 	inline bool create_file(const string& file)

@@ -8,9 +8,9 @@
 namespace influx
 {
 	template <typename _t>
-	inline void swap(_t& a, _t& b)
+	inline void do_swap(_t& a, _t& b)
 	{
-		std::swap(a, b);
+		std::swap<_t>(a, b);
 	}
 
 	template <typename _t>
@@ -24,24 +24,33 @@ namespace influx::math
 {
 #pragma region transpose
 	template<typename _t, matsize _x, matsize _y>
-	matrix<_t, _x, _y>& matrix<_t, _x, _y>::transpose()
+	inline matrix<_t, _x, _y>& matrix<_t, _x, _y>::transpose()
 	{
-		swap(operator[][0][1], operator[][1][0]);
+		// todo: how about non-uniform matrices?
+		static_assert(_x == _y);
+
+		for (matsize y = 0u; y < _y; ++y)
+		{
+			for (matsize x = 0u; x < _x; ++x)
+			{
+				do_swap(this->m_rows[y][x], this->m_rows[x][y]);
+			}
+		}
 		return *this;
 	}
 	template<typename _t, matsize _x, matsize _y>
-	matrix<_t, _x, _y> matrix<_t, _x, _y>::transposed() const
+	inline matrix<_t, _x, _y> matrix<_t, _x, _y>::transposed() const
 	{
 		matrix<_t, _x, _y> copy = *this;
 		return transpose(copy);
 	}
 	template<typename _t, matsize _x, matsize _y>
-	static void matrix<_t, _x, _y>::transpose(matrix& matrix)
+	inline void matrix<_t, _x, _y>::transpose(matrix& matrix)
 	{
 		matrix.transpose();
 	}
 	template<typename _t, matsize _x, matsize _y>
-	static matrix<_t, _x, _y> matrix<_t, _x, _y>::transposed(const matrix& matrix)
+	inline matrix<_t, _x, _y> matrix<_t, _x, _y>::transposed(const matrix& matrix)
 	{
 		return matrix.transposed();
 	}
@@ -469,7 +478,7 @@ namespace influx::math
 		influx_assert(index < k_num_columns);
 		for (matsize r{}; r < k_num_rows; ++r)
 		{
-			this->m_yows[r][index] = column[r];
+			this->m_rows[r][index] = column[r];
 		}
 	}
 

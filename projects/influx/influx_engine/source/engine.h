@@ -1,5 +1,12 @@
 #pragma once
 
+// influx::platform
+namespace influx::platform
+{
+	class window;
+	class window_event;
+}
+
 // influx::engine
 #include "common.h"
 #include "config/config.h"
@@ -10,9 +17,7 @@
 #include "core/file.h"
 #include "core/result.h"
 #include "core/pointer.h"
-
-// influx::engine
-#include "file/engine_files.h"
+#include "core/container/map.h"
 
 namespace influx::engine
 {
@@ -34,7 +39,7 @@ namespace influx::engine
 			editor,
 			count
 		};
-		void run(run_type);
+		void run(run_type, int argc, char* argv[]);
 
 		content_manager& get_content();
 		game_manager& get_game();
@@ -52,11 +57,13 @@ namespace influx::engine
 		bool is_editor() const;
 		bool is_game() const;
 
+		static string get_run_argument(const string&);
+
 	private:
+		void process_runarguments(int argc, char* argv[]);
 		void initialize();
 		void cleanup();
 
-		void initialize_renderer(const string& window_name, const math::vectoru2& size);
 		void poll_platform_events();
 		
 		void on_window_event(const platform::window_event& ev);
@@ -68,6 +75,8 @@ namespace influx::engine
 		run_type m_runtype;
 		thread m_inputthread;
 		thread m_contentthread;
+		vector<string> m_run_args;
+		umap<string, string> m_parsed_run_args;
 
 		time::point m_t_init;
 		time::point m_t_start;

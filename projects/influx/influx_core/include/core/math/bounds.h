@@ -17,7 +17,7 @@ namespace influx::math
 {
 	namespace detail
 	{
-		using dim_t = size_t;
+		using dim_t = uint32;
 	}
 
 	template <typename _t, detail::dim_t _dim>

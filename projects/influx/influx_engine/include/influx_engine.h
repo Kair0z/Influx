@@ -8,7 +8,7 @@
 
 namespace influx::engine
 {
-	INFLUX_ENGINE_API void run_editor();
+	INFLUX_ENGINE_API void run_editor(int argc = 0, char* argv[] = nullptr);
 
-	INFLUX_ENGINE_API void run_game();
+	INFLUX_ENGINE_API void run_game(int argc = 0, char* argv[] = nullptr);
 }

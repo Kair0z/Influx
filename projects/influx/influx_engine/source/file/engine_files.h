@@ -7,6 +7,9 @@
 // influx::platform
 #include "influx_platform/platform.h"
 
+// influx::engine
+#include "engine.h"
+
 namespace influx::engine
 {
 	enum class engine_directory : uint8
@@ -33,6 +36,7 @@ namespace influx::engine
 	static file get_engine_directory(engine_directory directory)
 	{
 		// temp: HARDCODED builds are ran in /influx/bin/[config]/influx_game/
+		const string exe_directory = engine::get_run_argument("exe_dir");
 		const string& root = platform::platform::get_current_directory() + "/../../../";
 		switch (directory)
 		{

@@ -5,7 +5,7 @@
 extern "C" { __declspec(dllexport) extern const uint32_t D3D12SDKVersion = 614u; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
-int main()
+int main(int argc, char* argv[])
 {
-	influx::engine::run_editor();
+	influx::engine::run_editor(argc, argv);
 }

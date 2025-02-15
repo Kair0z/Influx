@@ -142,6 +142,7 @@ namespace influx::math
 		{
 			scale(length);
 		}
+		return *this;
 	}
 
 	template<typename _t, vecsize _s>

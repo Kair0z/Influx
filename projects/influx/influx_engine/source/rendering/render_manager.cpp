@@ -8,6 +8,7 @@
 // influx::engine
 #include "content/content_manager.h"
 #include "editor/editor_manager.h"
+#include "file/engine_files.h"
 
 // influx::platform
 #include "influx_platform/window.h"

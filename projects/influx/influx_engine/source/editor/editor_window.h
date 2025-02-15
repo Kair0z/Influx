@@ -3,6 +3,7 @@
 // influx::core
 #include "core/function.h"
 #include "core/basetypes.h"
+#include "core/geometry/rect.h"
 
 namespace influx::engine
 {
