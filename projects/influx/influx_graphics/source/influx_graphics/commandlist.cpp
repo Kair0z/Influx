@@ -14,6 +14,8 @@ namespace influx::graphics
 
     void commandlist::start(device* device, detail::pipeline* init_state)
     {
+        wait_for_completion();
+
         const e_state state = get_state();
         influx_assert(state == e_state::created || state == e_state::completed);
 

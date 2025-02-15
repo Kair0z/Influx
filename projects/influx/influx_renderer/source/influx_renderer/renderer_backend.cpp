@@ -104,20 +104,11 @@ namespace influx::renderer
     {
         m_rendergraph = new rendergraph::rendergraph(mp_device);
 
-        // acquire window backbuffer
-        if (get_current_window_target())
-        {
-            auto* window_target = get_current_window_target();
-            m_rendergraph->import_texture(window_target->get_name().get(), window_target->get_resource());
-        }
-        else
-        {
-            logonce(e_log_category::warning, "influx_renderer::start_frame() >> starting a frame without a window target!");
-        }
-
         // start the commandlist
         mp_commandlist->start(mp_device, nullptr);
         mp_commandlist->set_name("frame");
+
+        // bind gpu heaps
         get_descriptor_manager()->start_commandlist(mp_commandlist);
     }
 
@@ -130,19 +121,6 @@ namespace influx::renderer
         {
             influx_scope("renderer::rendergraph_execute");
             m_rendergraph->execute(mp_commandlist);
-        }
-
-        const bool has_swapchain = get_current_window_target() != nullptr;
-        if (!has_swapchain)
-        {
-            logonce(e_log_category::warning, "influx_renderer::end_frame() >> ending a frame without a window target!");
-        }
-
-        // transition backbuffer to present state
-        if (has_swapchain)
-        {
-            graphics::resource* backbuffer = mp_swapchain->get_current_backbuffer_resource();
-            backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
         }
 
         mp_commandlist->end();
@@ -163,11 +141,6 @@ namespace influx::renderer
             mp_commandlist->wait_for_completion();
         }
 
-        if (has_swapchain)
-        {
-            present_swapchain({ .m_vsync = false });
-        }
-
         delete m_rendergraph;
         m_rendergraph = nullptr;
 
@@ -179,10 +152,10 @@ namespace influx::renderer
         return new target(mp_device, args);
     }
 
-    void renderer_backend::recreate_backbuffer_targets()
+    void renderer_backend::recreate_backbuffer_targets(swapchain& swapchain)
     {
         // delete old
-        for (target*& target : m_swapchain_targets)
+        for (target*& target : swapchain.m_targets)
         {
             if (target != nullptr)
             {
@@ -190,24 +163,24 @@ namespace influx::renderer
                 target = nullptr;
             }
         }
-        m_swapchain_targets.clear();
+        swapchain.m_targets.clear();
 
         // create new
-        const uint8 num_swapchain_buffers = mp_swapchain->get_num_backbuffers();
+        const uint8 num_swapchain_buffers = swapchain.mp_swapchain->get_num_backbuffers();
         for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
         {
-            target* new_target = new target(mp_device, mp_swapchain, i);
-            new_target->set_name("window_target_" + to_string(i));
-            m_swapchain_targets.push_back(new_target);
+            target* new_target = new target(mp_device, swapchain.mp_swapchain, i);
+            new_target->set_name("window_target_" + swapchain.m_windowtitle + "_" + to_string(i));
+            swapchain.m_targets.push_back(new_target);
         }
     }
 
-    target* renderer_backend::get_current_window_target()
+    target* renderer_backend::get_current_window_target(swapchain& swapchain)
     {
-        if (mp_swapchain != nullptr)
+        if (swapchain.mp_swapchain != nullptr)
         {
-            const uint8 current_swapchain_index = mp_swapchain->get_current_backbuffer_index();
-            return m_swapchain_targets[current_swapchain_index];
+            const uint8 current_swapchain_index = swapchain.mp_swapchain->get_current_backbuffer_index();
+            return swapchain.m_targets[current_swapchain_index];
         }
 
         return nullptr;
@@ -215,39 +188,38 @@ namespace influx::renderer
 
     target* renderer_backend::get_window_target(const platform::window& window)
     {
-        // stall
-        wait_gpu_finished();
+        swapchain& swapchain = m_swapchains[&window];
+        swapchain.m_windowtitle = window.get_title();
 
         // create the swapchain for the first time
-        if (mp_swapchain == nullptr)
+        if (swapchain.mp_swapchain == nullptr)
         {
             graphics::swapchain_desc desc{};
             desc.m_num_buffers = get_num_buffers(k_buffering);
             desc.m_format; //  todo
             desc.m_dimensions; // todo
-            mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
+            swapchain.mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
 
-            recreate_backbuffer_targets();
+            recreate_backbuffer_targets(swapchain);
         }
 
         // if need, recreate the swapchain
-        if (mp_swapchain->needs_recreate(window))
+        if (swapchain.mp_swapchain->needs_recreate(window))
         {
-            mp_swapchain->resize(mp_device, window);
+            swapchain.mp_swapchain->resize(mp_device, window);
 
-            recreate_backbuffer_targets();
+            recreate_backbuffer_targets(swapchain);
         }
 
-        // acquire the frame
-        acquire_swapchain_frame();
+        acquire_swapchain_frame(swapchain);
         
-        return get_current_window_target();
+        return get_current_window_target(swapchain);
     }
 
-    void renderer_backend::acquire_swapchain_frame()
+    void renderer_backend::acquire_swapchain_frame(swapchain& swapchain)
     {
         influx_scope("renderer_backend::acquire_swapchain_frame");
-        mp_swapchain->acquire_backbuffer();
+        swapchain.mp_swapchain->acquire_backbuffer();
     }
 
     void renderer_backend::draw_scene(const scene& scene, const target& target)
@@ -348,16 +320,25 @@ namespace influx::renderer
         m_rendergraph->add_clear_pass(target.get_resource(), { args.m_colour });
     }
 
-    void renderer_backend::present_swapchain(const present_args& args)
+    void renderer_backend::present(const platform::window& window, const present_args& args)
     {
-        if (mp_swapchain)
+        swapchain& swapchain = m_swapchains.at(&window);
+
+        // run a commandlist to transition the backbuffer-resource to presentable
+
+        mp_commandlist->start(mp_device);
+        graphics::resource* backbuffer = swapchain.mp_swapchain->get_current_backbuffer_resource();
+        backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
+        mp_commandlist->end();
+        mp_commandlist->submit(mp_graphics_queue);
+
+        if (swapchain.mp_swapchain)
         {
             graphics::present_args p_args{};
             p_args.m_vsync = args.m_vsync;
-            mp_swapchain->present(p_args);
+            swapchain.mp_swapchain->present(p_args);
         }
     }
-
 
     shader_manager& renderer_backend::get_shader_manager()
     {
@@ -698,6 +679,11 @@ namespace influx::renderer
         renderer_backend::get_instance().start_frame();
     }
 
+    void end_frame()
+    {
+        renderer_backend::get_instance().end_frame();
+    }
+
     void draw_scene(const scene& scene, const target& target)
     {
         renderer_backend::get_instance().draw_scene(scene, target);
@@ -713,14 +699,9 @@ namespace influx::renderer
         renderer_backend::get_instance().clear_target(target, args);
     }
 
-    void present_swapchain(const present_args& args)
+    void present(const platform::window& window, const present_args& args)
     {
-        renderer_backend::get_instance().present_swapchain(args);
-    }
-
-    void end_frame()
-    {
-        renderer_backend::get_instance().end_frame();
+        renderer_backend::get_instance().present(window, args);
     }
 
     void wait_gpu_finished()

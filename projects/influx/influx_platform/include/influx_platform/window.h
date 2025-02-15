@@ -161,6 +161,9 @@ namespace influx::platform
 		virtual rect get_rect(e_space) const { return {}; };
 
 		INFLUX_PLATFORM_API
+		virtual string get_title() const { return "";};
+
+		INFLUX_PLATFORM_API
 		virtual ~window() = default;
 
 		void INFLUX_PLATFORM_API request_quit();

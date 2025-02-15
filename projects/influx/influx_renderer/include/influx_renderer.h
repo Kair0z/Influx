@@ -115,10 +115,11 @@ namespace influx::renderer
 
 	INFLUX_RENDER_API void clear_target(const target&, const clear_args&);
 
-	// 4. present to window swapchain
-	INFLUX_RENDER_API void present_swapchain(const present_args& args);
-
+	// 3. 
 	INFLUX_RENDER_API void end_frame();
+
+	// 4. present to window swapchain
+	INFLUX_RENDER_API void present(const platform::window&, const present_args& args);
 
 	INFLUX_RENDER_API void wait_gpu_finished();
 

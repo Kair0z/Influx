@@ -11,7 +11,7 @@
 namespace influx::renderer
 {
 	// https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-support
-	constexpr static uint64 k_max_num_rtvs = 4u;
+	constexpr static uint64 k_max_num_rtvs = 64u;
 	constexpr static uint64 k_max_num_srvs = 1024u;
 	constexpr static uint64 k_max_num_samplers = 2048u;
 	constexpr static uint64 k_max_num_dsvs = 64u;

@@ -21,6 +21,8 @@ namespace influx::platform
 		virtual math::vectoru2 get_previous_dimensions(e_space) const override;
 
 		virtual rect get_rect(e_space) const override;
+		
+		virtual string get_title() const override;
 
 		virtual void set_event_callback(const event_callback&) override;
 

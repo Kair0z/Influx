@@ -340,6 +340,11 @@ namespace influx::platform
 		return translate(res);
 	}
 
+	string win32_window::get_title() const
+	{
+		return m_desc.m_name;
+	}
+
 	void win32_window::set_event_callback(const event_callback& callback)
 	{
 		m_event_callbacks.push_back(callback);

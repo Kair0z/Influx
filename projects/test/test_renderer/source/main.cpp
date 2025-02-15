@@ -98,7 +98,7 @@ void load_shaders()
 	using namespace influx;
 
 	// shaders
-	static const string shaders_folder = "D:/Git/Influx/assets/engine/shaders/";
+	static const string shaders_folder = "E:/Git/Influx/assets/engine/shaders/";
 
 	// global args
 	shader::compile_args args{};
@@ -108,7 +108,7 @@ void load_shaders()
 	args.m_defines = {};
 	args.m_compile_debug = INFLUX_DEBUG;
 	args.m_pbd = INFLUX_DEBUG;
-	args.m_pdb_folder = "D:/Git/Influx/int/shaderdebug/";
+	args.m_pdb_folder = "E:/Git/Influx/int/shaderdebug/";
 
 	imp::shader_data loaded_shaders[5u]{};
 
@@ -187,7 +187,13 @@ int main()
 	window_desc.m_dimensions = { 640u, 480u };
 	window_desc.m_name = "renderer";
 
-	platform::window* window = platform::window::create(window_desc);
+	static constexpr uint32 num_windows = 3u;
+	platform::window* windows[num_windows] =
+	{
+		platform::window::create(window_desc.set_name("A")),
+		platform::window::create(window_desc.set_name("B")),
+		platform::window::create(window_desc.set_name("c")),
+	};
 
 	// initialize renderer
 	renderer::init_args render_init{};
@@ -213,19 +219,37 @@ int main()
 	{
 		render_quaternion_tests(debug_scene);
 
-		// attach a window target
-		renderer::target* window_target = renderer::get_window_target(*window);
+		renderer::target* window_targets[num_windows]
+		{
+			renderer::get_window_target(*windows[0u]),
+			renderer::get_window_target(*windows[1u]),
+			renderer::get_window_target(*windows[2u]),
+		};
 
 		renderer::start_frame();
 
-		renderer::clear_args clear{};
-		clear.m_colour = colour::k_black;
-		renderer::clear_target(*window_target, clear);
+		math::colour_rgba clear_colours[num_windows]
+		{
+			colour::k_red,
+			colour::k_green,
+			colour::k_blue
+		};
 
-		renderer::draw_scene(scene_to_draw, *window_target);
+		for (uint32 i = 0u; i < num_windows; ++i)
+		{
+			renderer::clear_args clear{ .m_colour = clear_colours[i] };
+			renderer::clear_target(*window_targets[i], clear);
+		}
+		
+		renderer::draw_scene(scene_to_draw, *window_targets[1]);
 
-		renderer::draw_debug(debug_scene, *window_target);
+		renderer::draw_debug(debug_scene, *window_targets[2]);
 
 		renderer::end_frame();
+
+		for (uint32 i = 0u; i < num_windows; ++i)
+		{
+			renderer::present(*windows[i], present_args);
+		}
 	}
 }

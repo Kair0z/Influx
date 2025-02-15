@@ -58,6 +58,8 @@ namespace influx::renderer
 {	
 	class renderer_backend final : public singleton<renderer_backend>
 	{
+		struct swapchain;
+
 		// konstants
 		constexpr static uint32 k_max_instances = 1024u;
 		constexpr static e_buffering k_buffering = e_buffering::tripple;
@@ -76,7 +78,7 @@ namespace influx::renderer
 
 		target* create_target(const target_create_args& args);
 		target* get_window_target(const platform::window& window);
-		void acquire_swapchain_frame();
+		void acquire_swapchain_frame(swapchain& swapchain);
 
 		void draw_scene(const scene& scene, const target& target);
 		void draw_imgui(ImDrawData* draw_data, const target& target);
@@ -87,7 +89,7 @@ namespace influx::renderer
 
 		void copy_target(const target& source, const target& dest);
 		void clear_target(const target&, const clear_args&);
-		void present_swapchain(const present_args& args);
+		void present(const platform::window& window, const present_args& args);
 
 		static shader_manager& get_shader_manager();
 		static descriptor_manager* get_descriptor_manager();
@@ -161,9 +163,14 @@ namespace influx::renderer
 		graphics::fence* mp_fence = nullptr;
 		graphics::fence* mp_copyfence = nullptr;
 
-		// swapchain
-		graphics::swapchain* mp_swapchain = nullptr;
-		vector<target*> m_swapchain_targets{};
+		// swapchains
+		struct swapchain final
+		{
+			graphics::swapchain*	mp_swapchain = nullptr;
+			vector<target*>			m_targets{};
+			string					m_windowtitle{};
+		};
+		umap<platform::window const*, swapchain> m_swapchains{};
 
 		// managers
 		descriptor_manager* mp_desc_manager = nullptr;
@@ -191,8 +198,8 @@ namespace influx::renderer
 
 		render_settings m_settings;
 
-		void recreate_backbuffer_targets();
-		target* get_current_window_target();
+		void recreate_backbuffer_targets(swapchain& swapchain);
+		target* get_current_window_target(swapchain& swapchain);
 	};
 
 	template<typename _tvtx>

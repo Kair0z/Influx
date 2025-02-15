@@ -81,11 +81,11 @@ namespace influx::rendergraph
 			// non-shader heaps:
 			args.m_shader_visible = false;
 
-			args.m_capacity = 8u;
+			args.m_capacity = 32;
 			args.m_type = graphics::e_descriptor_heap_type::rtv;
 			m_rtv_heap = device->create_descriptor_heap(args);
 			
-			args.m_capacity = 8u;
+			args.m_capacity = 32;
 			args.m_type = graphics::e_descriptor_heap_type::dsv;
 			m_dsv_heap = device->create_descriptor_heap(args);
 		}
