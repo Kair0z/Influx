@@ -293,58 +293,70 @@ namespace influx::engine
 		const renderer::scene_imgui& imgui, 
 		const renderer::scene_debug& debug)
 	{
-		platform::window& window = get_engine()->get_window();
+		platform::window& main_window = get_engine()->get_window();
 
-		// get our targets set up
-		mp_window_target = renderer::get_window_target(window);
-		mp_scene_target->resize(*mp_window_target);
-
+		// starts the underlying rendergraph
 		renderer::start_frame();
-		renderer::clear_target(*mp_scene_target, {});
-
-		if (scene.is_empty() == false)
 		{
-			renderer::draw_scene(scene, *mp_scene_target);
+			renderer::target* window_target = renderer::get_window_target(main_window);
+			mp_scene_target->resize(*mp_window_target);
+
+			renderer::clear_target(*mp_scene_target, {});
+
+			// scene render
+			if (scene.is_empty() == false)
+			{
+				renderer::draw_scene(scene, *mp_scene_target);
+			}
+
+			// shadertoy render
+			shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");
+			if (editor.can_render())
+			{
+				// flags the renderer to overwrite previous shader on this name
+				const bool reload = true;
+
+				renderer::shader_data vs_data{};
+				shader::shader_signature vs_signature{};
+				vs_signature.m_entrypoint = "shadertoy_vs";
+				translate(editor.get_compiled_vs(), vs_data);
+				renderer::load(vs_signature, vs_data, reload);
+
+				renderer::shader_data ps_data{};
+				shader::shader_signature ps_signature{};
+				ps_signature.m_entrypoint = "shadertoy_ps";
+				translate(editor.get_compiled_ps(), ps_data);
+				renderer::load(ps_signature, ps_data, reload);
+
+				renderer::scene_shadertoy shadertoy{};
+				renderer::draw_shadertoy(shadertoy, *mp_scene_target);
+			}
+
+			// debug render
+			if (debug.is_empty() == false && get_render_debug())
+			{
+				renderer::draw_debug(debug, *mp_scene_target);
+			}
+
+			// imgui render
+			if (imgui.is_empty() == false)
+			{
+				ImGui::NewFrame();
+				imgui.m_imgui_stacks[0u](*ImGui::GetCurrentContext());
+				ImGui::Render();
+
+				renderer::draw_imgui(ImGui::GetDrawData(), *mp_scene_target);
+			}
+
+			// scene target to window target
+			influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
 		}
 
-		shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");
-		if (editor.can_render())
-		{
-			// flags the renderer to overwrite previous shader on this name
-			const bool reload = true;
-
-			renderer::shader_data vs_data{};
-			shader::shader_signature vs_signature{};
-			vs_signature.m_entrypoint = "shadertoy_vs";
-			translate(editor.get_compiled_vs(), vs_data);
-			renderer::load(vs_signature, vs_data, reload);
-
-			renderer::shader_data ps_data{};
-			shader::shader_signature ps_signature{};
-			ps_signature.m_entrypoint = "shadertoy_ps";
-			translate(editor.get_compiled_ps(), ps_data);
-			renderer::load(ps_signature, ps_data, reload);
-
-			renderer::scene_shadertoy shadertoy{};
-			renderer::draw_shadertoy(shadertoy, *mp_scene_target);
-		}
-
-		if (debug.is_empty() == false && get_render_debug())
-		{
-			renderer::draw_debug(debug, *mp_scene_target);
-		}
-
-		if (imgui.is_empty() == false)
-		{
-			ImGui::NewFrame();
-			imgui.m_imgui_stacks[0u](*ImGui::GetCurrentContext());
-			ImGui::Render();
-
-			renderer::draw_imgui(ImGui::GetDrawData(), *mp_scene_target);
-		}
-
-		influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
+		// submits the gpu commands
 		influx::renderer::end_frame();
+
+		// present the window backbuffers
+		renderer::present(main_window, {.m_vsync = false });
 	}
 
 	bool render_manager::has_shader_loaded(const shader::shader_signature& signature) const
