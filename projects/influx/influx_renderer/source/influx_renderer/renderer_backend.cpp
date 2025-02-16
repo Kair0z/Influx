@@ -188,6 +188,9 @@ namespace influx::renderer
 
     target* renderer_backend::get_window_target(const platform::window& window)
     {
+        wait_gpu_finished();
+        mp_commandlist->wait_for_completion();
+
         swapchain& swapchain = m_swapchains[&window];
         swapchain.m_windowtitle = window.get_title();
 
@@ -229,7 +232,8 @@ namespace influx::renderer
 
     void renderer_backend::draw_imgui(ImDrawData* draw_data, const target& target)
     {
-        influx_scope("renderer_backend::draw_imgui::record");
+        static string color_name{}; color_name = target.get_resource()->get_name().get();
+        m_rendergraph->import_texture(color_name, target.get_resource());
 
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
             [&target](rendergraph::rgpass_builder& builder)
@@ -243,6 +247,7 @@ namespace influx::renderer
             },
             [this, draw_data, &target](rendergraph::rgpass_context& context)
             {
+                influx_scope("renderer_backend::draw_imgui::record");
                 mp_imgui->render(&context.get_commandlist(), draw_data, target);
             });
 

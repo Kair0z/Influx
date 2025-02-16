@@ -9,6 +9,7 @@
 #include "content/content_manager.h"
 #include "editor/editor_manager.h"
 #include "file/engine_files.h"
+#include "window/window_manager.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -25,6 +26,7 @@
 
 // imgui
 #include "influx_imgui/imgui_widgets.h"
+#include "imgui/imgui_impl_win32.h"
 
 namespace influx::engine
 {
@@ -199,6 +201,10 @@ namespace influx::engine
 		// docking
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+#if INFLUX_PLATFORM_WINDOWS
+		platform::window& main_window = get_engine()->get_windowman().get_main_window();
+		ImGui_ImplWin32_Init(main_window.get_platform_handle());
+
 		// mouse events
 		input::subscribe([this, &io](const input::mouse_event& ev)
 		{
@@ -274,10 +280,15 @@ namespace influx::engine
 				io.AddInputCharacter(key.m_ascii_char);
 			}
 		});
+#endif
 	}
 
 	render_manager::~render_manager()
 	{
+#if INFLUX_PLATFORM_WINDOWS
+		ImGui_ImplWin32_Shutdown();
+#endif
+
 		influx::renderer::cleanup();
 	}
 
@@ -293,13 +304,17 @@ namespace influx::engine
 		const renderer::scene_imgui& imgui, 
 		const renderer::scene_debug& debug)
 	{
+#if INFLUX_PLATFORM_WINDOWS
+		ImGui_ImplWin32_NewFrame();
+#endif
+
 		platform::window& main_window = get_engine()->get_window();
+		renderer::target* window_target = renderer::get_window_target(main_window);
 
 		// starts the underlying rendergraph
 		renderer::start_frame();
 		{
-			renderer::target* window_target = renderer::get_window_target(main_window);
-			mp_scene_target->resize(*mp_window_target);
+			mp_scene_target->resize(*window_target);
 
 			renderer::clear_target(*mp_scene_target, {});
 
@@ -349,7 +364,7 @@ namespace influx::engine
 			}
 
 			// scene target to window target
-			influx::renderer::copy_target(*mp_scene_target, *mp_window_target);
+			influx::renderer::copy_target(*mp_scene_target, *window_target);
 		}
 
 		// submits the gpu commands

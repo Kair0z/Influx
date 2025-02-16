@@ -139,7 +139,7 @@ namespace influx::engine
 
 		if (found != m_windows.cend())
 		{
-			return found - m_windows.cbegin();
+			return static_cast<uint32>(found - m_windows.cbegin());
 		}
 
 		return e_result::error;
