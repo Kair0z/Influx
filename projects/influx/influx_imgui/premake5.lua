@@ -15,10 +15,5 @@ new_influx_library("influx_imgui")
     set_influx_includes(dependencies)
     set_influx_links(dependencies)
 
-    includedirs
-    {
-        "vendor/imgui/"
-    }
-
     filter "files:**/imgui/**.cpp"
         flags {"NoPCH"}

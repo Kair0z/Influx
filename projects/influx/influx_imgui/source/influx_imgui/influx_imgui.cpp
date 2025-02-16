@@ -2,7 +2,7 @@
 #include "influx_imgui.h"
 
 // imgui dependency (duh)
-#include "imgui.h"
+#include "imgui/imgui.h"
 
 // influx::core
 #include "core/singleton.h"

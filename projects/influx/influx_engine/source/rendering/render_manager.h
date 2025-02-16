@@ -7,6 +7,9 @@
 // influx::shader
 #include "influx_shader.h"
 
+// influx::engine
+#include "imgui/imgui_manager.h"
+
 // influx::renderer
 namespace influx::renderer
 {
@@ -62,13 +65,12 @@ namespace influx::engine
 	private:
 		renderer::target* mp_window_target;
 		renderer::target* mp_scene_target;
-		ImDrawData* mp_imgui_drawdata = nullptr;
+		imgui_manager m_imgui;
+
 		renderer::scene_debug* mp_debug_scene = nullptr;
 
 		void stream_shaders(const content_manager& content);
 		void stream_images(const content_manager& content);
 		void stream_meshes(const content_manager& content);
-
-		void initialize_imgui();
 	};
 }

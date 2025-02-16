@@ -111,7 +111,7 @@ namespace influx::engine
 								ImGui::TableNextColumn();
 
 								const string& name = pair.first;
-								ImGui::Image(renderer.get_loaded_texture_id(name), { size, size });
+								// ImGui::Image(reinterpret_cast<ImTextureID>(renderer.get_loaded_texture_id(name)), { size, size });
 
 								const image_asset& image = pair.second;
 								const math::vectori2& image_dims = image.m_resource.m_dimensions;
