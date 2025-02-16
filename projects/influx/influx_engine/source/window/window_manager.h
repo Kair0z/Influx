@@ -4,6 +4,7 @@
 #include "core/string.h"
 
 // influx::platform
+#include "influx_platform/monitor.h"
 namespace influx::platform
 {
 	class window;
@@ -22,10 +23,10 @@ namespace influx::engine
 
 	class window_manager final
 	{
+	public:
 		using window_id = uint32;
 		static constexpr window_id k_invalid_id = (uint32)-1;
 
-	public:
 		window_manager();
 		~window_manager() = default;
 
@@ -53,7 +54,7 @@ namespace influx::engine
 		bool is_main(window_id id) const;
 		bool is_active(window_id id) const;
 		result<window_id> get_window_id(platform::window*) const;
-
+		result<window_id> get_main_id() const;
 	private:
 		void on_window_event(const platform::window_event& ev);
 
@@ -63,6 +64,7 @@ namespace influx::engine
 			platform::window* m_window;
 		};
 		vector<window> m_windows{};
+		vector<platform::monitor> m_monitors{};
 		window_id m_main_window_id = 0u;
 	};
 }

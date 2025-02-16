@@ -20,8 +20,23 @@ namespace influx::platform
 
 		virtual math::vectoru2 get_previous_dimensions(e_space) const override;
 
+		virtual void set_position(const math::vectoru2&) override;
+		virtual math::vectoru2 get_position() const override;
+
 		virtual rect get_rect(e_space) const override;
-		
+
+		virtual void set_title(const string& new_title) override;
+		virtual bool is_foreground() const override;
+		virtual void set_foreground() override;
+		virtual bool is_focus() const override;
+		virtual void set_focus() override;
+		virtual bool is_minimized() const override;
+
+		virtual void set_alpha(float) override;
+		virtual float get_alpha() const override;
+
+		virtual float get_dpi() const override;
+
 		virtual string get_title() const override;
 
 		virtual void set_event_callback(const event_callback&) override;
@@ -35,6 +50,8 @@ namespace influx::platform
 		math::vectoru2 m_current_dimensions_full;
 		math::vectoru2 m_previous_dimensions_client;
 		math::vectoru2 m_previous_dimensions_full;
+		uint32 m_style;
+		uint32 m_style_ext;
 
 	public:
 		static uint64 window_proc(window_handle handle, uint32 message, uint64 wParam, uint64 lParam);

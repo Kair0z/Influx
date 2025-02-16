@@ -325,12 +325,32 @@ namespace influx::renderer
         m_rendergraph->add_clear_pass(target.get_resource(), { args.m_colour });
     }
 
+    void renderer_backend::present_all(const present_args& args)
+    {
+        mp_commandlist->start(mp_device);
+
+        for (const auto& swapchain : m_swapchains)
+        {
+            graphics::resource* backbuffer = swapchain.second.mp_swapchain->get_current_backbuffer_resource();
+            backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
+        }
+
+        mp_commandlist->end();
+        mp_commandlist->submit(mp_graphics_queue);
+
+        for (const auto& swapchain : m_swapchains)
+        {
+            graphics::present_args p_args{};
+            p_args.m_vsync = args.m_vsync;
+            swapchain.second.mp_swapchain->present(p_args);
+        }
+    }
+
     void renderer_backend::present(const platform::window& window, const present_args& args)
     {
         swapchain& swapchain = m_swapchains.at(&window);
 
         // run a commandlist to transition the backbuffer-resource to presentable
-
         mp_commandlist->start(mp_device);
         graphics::resource* backbuffer = swapchain.mp_swapchain->get_current_backbuffer_resource();
         backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
@@ -702,6 +722,11 @@ namespace influx::renderer
     void clear_target(const target& target, const clear_args& args)
     {
         renderer_backend::get_instance().clear_target(target, args);
+    }
+
+    void present_all(const present_args& args)
+    {
+        renderer_backend::get_instance().present_all(args);
     }
 
     void present(const platform::window& window, const present_args& args)

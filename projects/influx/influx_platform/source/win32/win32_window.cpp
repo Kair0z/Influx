@@ -148,9 +148,10 @@ namespace influx::platform
 
 		// [ REGISTER WINDOW CLASS ]
 		static bool once = true;
-		if (true)
+		static umap<string, bool> onces{};
+		if (onces[desc.m_name] == false)
 		{
-			once = false;
+			onces[desc.m_name] = true;
 			// https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes
 			::UINT class_style = CS_HREDRAW | CS_VREDRAW;
 			::HBRUSH classBackgroundBrush = ::CreateSolidBrush(0x00000000);
@@ -323,6 +324,20 @@ namespace influx::platform
 		return {};
 	}
 
+	void win32_window::set_position(const math::vectoru2& pos)
+	{
+		RECT rect = { (LONG)pos.x, (LONG)pos.y, (LONG)pos.x, (LONG)pos.y };
+		::AdjustWindowRectEx(&rect, m_style, FALSE, m_style_ext);
+		::SetWindowPos((HWND)m_handle, nullptr, rect.left, rect.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+
+	math::vectoru2 win32_window::get_position() const
+	{
+		POINT pos = { 0, 0 };
+		::ClientToScreen((HWND)m_handle, &pos);
+		return math::vectoru2((uint32)pos.x, (uint32)pos.y);
+	}
+
 	window::rect win32_window::get_rect(e_space space) const
 	{
 		::RECT res{};
@@ -338,6 +353,60 @@ namespace influx::platform
 		}
 
 		return translate(res);
+	}
+
+	void win32_window::set_title(const string& new_title)
+	{
+		wstring wtitle = to_wstring(new_title);
+		::SetWindowTextW((HWND)m_handle, wtitle.c_str());
+	}
+	bool win32_window::is_foreground() const
+	{
+		return ::GetForegroundWindow() == (HWND)m_handle;
+	}
+	void win32_window::set_foreground()
+	{
+		::BringWindowToTop((HWND)m_handle);
+		::SetForegroundWindow((HWND)m_handle);
+	}
+	bool win32_window::is_focus() const
+	{
+		return ::GetFocus() == (HWND)m_handle;
+	}
+	void win32_window::set_focus()
+	{
+		::SetFocus((HWND)m_handle);
+	}
+	bool win32_window::is_minimized() const
+	{
+		return ::IsIconic((HWND)m_handle) != 0;
+	}
+	void win32_window::set_alpha(float alpha)
+	{
+		HWND handle = (HWND)m_handle;
+		alpha = math::clamp(alpha, 0.0f, 1.0f);
+
+		if (alpha < 1.0f)
+		{
+			DWORD ex_style = ::GetWindowLongW(handle, GWL_EXSTYLE) | WS_EX_LAYERED;
+			::SetWindowLongW(handle, GWL_EXSTYLE, ex_style);
+			::SetLayeredWindowAttributes(handle, 0, (BYTE)(255 * alpha), LWA_ALPHA);
+		}
+		else
+		{
+			DWORD ex_style = ::GetWindowLongW(handle, GWL_EXSTYLE) & ~WS_EX_LAYERED;
+			::SetWindowLongW(handle, GWL_EXSTYLE, ex_style);
+		}
+	}
+	float win32_window::get_alpha() const
+	{
+		return 1.0f;
+	}
+
+	float win32_window::get_dpi() const
+	{
+		HMONITOR monitor = ::MonitorFromWindow((HWND)m_handle, MONITOR_DEFAULTTONEAREST);
+		return 1.0f;
 	}
 
 	string win32_window::get_title() const

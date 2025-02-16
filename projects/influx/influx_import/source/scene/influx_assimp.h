@@ -351,8 +351,6 @@ namespace influx
 					memcpy(&fl_props[out_string->C_Str()], out_entry->mData, sizeof(float));
 					break;
 				}
-				printf(out_string->C_Str());
-				printf("\n");
 			}
 		}
 
@@ -370,7 +368,6 @@ namespace influx
 		if (int_props.contains("CoordAxisSign"))
 			out_info.m_right_sign = int_props["CoordAxisSign"];
 
-		printf("lol");
 		return out_info;
 	}
 

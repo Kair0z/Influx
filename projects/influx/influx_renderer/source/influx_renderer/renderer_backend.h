@@ -89,6 +89,7 @@ namespace influx::renderer
 
 		void copy_target(const target& source, const target& dest);
 		void clear_target(const target&, const clear_args&);
+		void present_all(const present_args& args);
 		void present(const platform::window& window, const present_args& args);
 
 		static shader_manager& get_shader_manager();

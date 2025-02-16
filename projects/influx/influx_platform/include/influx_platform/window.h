@@ -158,10 +158,43 @@ namespace influx::platform
 		virtual math::vectoru2 get_previous_dimensions(e_space) const { return {}; }
 
 		INFLUX_PLATFORM_API
+		virtual void set_position(const math::vectoru2& ) { }
+
+		INFLUX_PLATFORM_API 
+		virtual math::vectoru2 get_position() const { return {}; }
+
+		INFLUX_PLATFORM_API
 		virtual rect get_rect(e_space) const { return {}; };
 
 		INFLUX_PLATFORM_API
+		virtual void set_title(const string& new_title) {}
+
+		INFLUX_PLATFORM_API
+		virtual bool is_foreground() const { return false;}
+
+		INFLUX_PLATFORM_API
+		virtual void set_foreground() {}
+
+		INFLUX_PLATFORM_API 
+		virtual bool is_focus() const { return false; }
+
+		INFLUX_PLATFORM_API
+		virtual void set_focus() {}
+
+		INFLUX_PLATFORM_API
+		virtual bool is_minimized() const { return false; }
+
+		INFLUX_PLATFORM_API
 		virtual string get_title() const { return "";};
+
+		INFLUX_PLATFORM_API
+		virtual void set_alpha(float) { }
+
+		INFLUX_PLATFORM_API
+		virtual float get_alpha() const { return 1.0f; }
+
+		INFLUX_PLATFORM_API
+		virtual float get_dpi() const { return 1.0f; }
 
 		INFLUX_PLATFORM_API
 		virtual ~window() = default;

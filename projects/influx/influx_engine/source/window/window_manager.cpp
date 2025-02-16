@@ -3,13 +3,12 @@
 
 #include "influx_platform/window.h"
 #include "input/input_manager.h"
-
+#include "influx_platform/monitor.h"
 namespace influx::engine
 {
 	window_manager::window_manager()
 	{	
-
-		
+		m_monitors = platform::monitor::query_monitors();
 	}
 
 	void window_manager::on_window_event(const platform::window_event& ev)
@@ -143,5 +142,9 @@ namespace influx::engine
 		}
 
 		return e_result::error;
+	}
+	result<window_manager::window_id> window_manager::get_main_id() const
+	{
+		return m_main_window_id;
 	}
 }

@@ -1,8 +1,14 @@
 #include "engine_pch.h"
 #include "imgui_manager.h"
 
+// influx::engine
+#include "window/window_manager.h"
+
 // influx::input
 #include "influx_input.h"
+
+// influx::platform
+#include "influx_platform/window.h"
 
 // imgui
 #include "imgui/imgui.h"
@@ -50,20 +56,207 @@ namespace influx::engine
 		// create ImGui context
 		ImGui::CreateContext();
 
-		// Build texture atlas
+		// Setup backend capabilities flags
+		ImGuiIO& io = ImGui::GetIO();
+		io.BackendPlatformUserData = (void*)this;
+		io.BackendPlatformName = "imgui_impl_influx";
+		io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
+		io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
+		io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;    // We can create multi-viewports on the Platform side (optional)
+		io.BackendFlags |= ImGuiBackendFlags_HasMouseHoveredViewport; // We can call io.AddMouseViewportEvent() with correct data (optional)
+		io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
+
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		
+		update_monitors();
+		initialize_font_atlas();
+		initialize_input();
+		initialize_multiviewport();
+	}
+
+	void imgui_manager::on_window_resize(const math::vectoru2& new_size)
+	{
+		// update imgui IO
+		ImGui::GetIO().DisplaySize = { (float)new_size.x, (float)new_size.y };
+	}
+
+	void imgui_manager::new_frame()
+	{
+		ImGuiContext* context = ImGui::GetCurrentContext();
+		ImGuiPlatformIO& platio = ImGui::GetPlatformIO();
+		ImGui::NewFrame();
+	}
+
+	void imgui_manager::render()
+	{
+		ImGui::Render();
+		ImGui::UpdatePlatformWindows();
+	}
+
+	void imgui_manager::present()
+	{
+		auto platio = ImGui::GetPlatformIO();
+#if INFLUX_PLATFORM_WINDOWS
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			// TODO for OpenGL: restore current GL context.
+
+			for (const auto& viewport : platio.Viewports)
+			{
+				// for each viewport render to a target
+				// renderer::draw_imgui(ImGui::GetDrawData(), *mp_scene_target);
+			}
+		}
+#endif
+	}
+
+	void imgui_manager::initialize_font_atlas()
+	{
 		ImGuiIO& io = ImGui::GetIO();
 		unsigned char* pixels;
 		int width, height;
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+	}
 
-		// docking
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
+#pragma region multiviewport hooks
+	ImVec2 translate(const math::vectoru2& f2)
+	{
+		return ImVec2((float)f2.x, (float)f2.y);
+	}
+	ImVec2 translate(const math::vectorf2& f2)
+	{
+		return ImVec2((float)f2.x, (float)f2.y);
+	}
+
+	static window_manager*	g_windowman = nullptr;
+	static imgui_manager*	g_imguiman = nullptr;
+	void imgui_manager::create_window(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+	
+		platform::window_desc new_desc{};
+		new_desc.m_name = "viewport";
+		data.m_window_id = g_windowman->spawn(new_desc);
+	}
+	void imgui_manager::destroy_window(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		g_windowman->destroy(data.m_window_id);
+	}
+	void imgui_manager::show_window(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		window.set_visibility(platform::window::e_visibility::showed);
+	}
+	void imgui_manager::set_windowpos(ImGuiViewport* viewport, ImVec2 position)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		window.set_position({ position.x, position.y });
+	}
+	ImVec2 imgui_manager::get_windowpos(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		return translate(window.get_position());
+	}
+	void imgui_manager::set_windowsize(ImGuiViewport* viewport, ImVec2 size)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		window.set_dimensions({ size.x, size.y });
+	}
+	ImVec2 imgui_manager::get_windowsize(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		return translate(window.get_dimensions(platform::window::e_space::full));
+	}
+	void imgui_manager::set_windowfocus(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		window.set_foreground();
+		window.set_focus();
+	}
+	bool imgui_manager::get_windowfocus(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		return window.is_focus();
+	}
+	bool imgui_manager::get_windowminimized(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		return window.is_minimized();
+	}
+	void imgui_manager::set_windowtitle(ImGuiViewport* viewport, const char* new_title)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		window.set_title(new_title);
+	}
+	void imgui_manager::set_windowalpha(ImGuiViewport* viewport, float alpha)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		window.set_alpha(alpha);
+	}
+	void imgui_manager::update_window(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		// todo
+	}
+	float imgui_manager::get_window_dpi(ImGuiViewport* viewport)
+	{
+		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		return window.get_dpi();
+	}
+	void imgui_manager::on_changed_viewport(ImGuiViewport*)
+	{
 		
-#if INFLUX_PLATFORM_WINDOWS
-		platform::window& main_window = get_engine()->get_windowman().get_main_window();
-		ImGui_ImplWin32_Init(main_window.get_platform_handle());
+	}
+#pragma endregion
+
+	void imgui_manager::initialize_multiviewport()
+	{
+		g_windowman = &get_engine()->get_windowman();
+		g_imguiman = this;
+
+		// Register main window handle (which is owned by the main application, not by us)
+		// This is mostly for simplicity and consistency, so that our code (e.g. mouse handling etc.) can use same logic for main and secondary viewports.
+		ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+		m_viewports[main_viewport->ID].m_window_id = g_windowman->get_main_id();
+		main_viewport->PlatformUserData = &m_viewports.at(main_viewport->ID);
+
+		// Register platform interface
+		ImGuiPlatformIO& platio = ImGui::GetPlatformIO();
+		platio.Platform_CreateWindow	= create_window;
+		platio.Platform_DestroyWindow	= destroy_window;
+		platio.Platform_ShowWindow		= show_window;
+		platio.Platform_SetWindowPos	= set_windowpos;
+		platio.Platform_GetWindowPos	= get_windowpos;
+		platio.Platform_SetWindowSize	= set_windowsize;
+		platio.Platform_GetWindowSize	= get_windowsize;
+		platio.Platform_SetWindowFocus	= set_windowfocus;
+		platio.Platform_GetWindowFocus	= get_windowfocus;
+		platio.Platform_GetWindowMinimized	= get_windowminimized;
+		platio.Platform_SetWindowTitle		= set_windowtitle;
+		platio.Platform_SetWindowAlpha		= set_windowalpha;
+		platio.Platform_UpdateWindow		= update_window;
+		platio.Platform_GetWindowDpiScale	= get_window_dpi;
+		platio.Platform_OnChangedViewport	= on_changed_viewport;
+	}
+
+	void imgui_manager::initialize_input()
+	{
+		ImGuiIO& io = ImGui::GetIO();
 
 		// mouse events
 		input::subscribe([this, &io](const input::mouse_event& ev)
@@ -140,55 +333,35 @@ namespace influx::engine
 				io.AddInputCharacter(key.m_ascii_char);
 			}
 		});
-#endif
 	}
 
-	void imgui_manager::on_window_resize(const math::vectoru2& new_size)
+	void imgui_manager::update_monitors()
 	{
-		// update imgui IO
-		ImGui::GetIO().DisplaySize = { (float)new_size.x, (float)new_size.y };
-	}
-
-	void imgui_manager::new_frame()
-	{
-#if INFLUX_PLATFORM_WINDOWS
-		ImGui_ImplWin32_NewFrame();
-#endif
-	}
-
-	void imgui_manager::render()
-	{
-		auto platio = ImGui::GetPlatformIO();
-		for (const auto& viewport : platio.Viewports)
+		ImGuiPlatformIO& platformio = ImGui::GetPlatformIO();
+		platformio.Monitors.clear();
+		
+		for (const platform::monitor& monitor: platform::monitor::query_monitors())
 		{
-			// for each viewport render to a target
-			// renderer::draw_imgui(ImGui::GetDrawData(), *mp_scene_target);
-		}
-	}
+			ImGuiPlatformMonitor imgui_monitor{};
+			imgui_monitor.DpiScale = monitor.m_dpi_scale;
+			imgui_monitor.MainPos = translate(monitor.m_mainpos);
+			imgui_monitor.MainSize = translate(monitor.m_mainsize);
+			imgui_monitor.WorkPos = translate(monitor.m_workpos);
+			imgui_monitor.WorkSize = translate(monitor.m_worksize);
+			imgui_monitor.PlatformHandle = monitor.m_platform_handle;
 
-	void imgui_manager::present()
-	{
-		auto platio = ImGui::GetPlatformIO();
-#if INFLUX_PLATFORM_WINDOWS
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			// TODO for OpenGL: restore current GL context.
-
-			for (const auto& viewport : platio.Viewports)
+			if (monitor.m_is_primary)
 			{
-				// for each viewport render to a target
-				// renderer::draw_imgui(ImGui::GetDrawData(), *mp_scene_target);
+				platformio.Monitors.push_front(imgui_monitor);
+			}
+			else
+			{
+				platformio.Monitors.push_back(imgui_monitor);
 			}
 		}
-#endif
 	}
 
 	imgui_manager::~imgui_manager()
 	{
-#if INFLUX_PLATFORM_WINDOWS
-		ImGui_ImplWin32_Shutdown();
-#endif
 	}
 }

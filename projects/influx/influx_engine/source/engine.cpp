@@ -76,7 +76,6 @@ namespace influx::engine
 
 		m_windowman = new window_manager();
 		m_windowman->spawn(window_desc); // main window
-		m_windowman->spawn(window_desc.set_name("log")); // main window
 
 		m_renderman = new render_manager(this);
 		m_world = new world();

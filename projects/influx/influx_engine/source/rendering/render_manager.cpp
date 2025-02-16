@@ -30,6 +30,7 @@ namespace influx::engine
 	void translate(const shader::compile_output& shader_data, renderer::shader_data& out_data);
 #pragma endregion
 
+#pragma region editors
 	struct
 	{
 		bool m_render_debug;
@@ -143,6 +144,7 @@ namespace influx::engine
 		bool m_enable_render = false;
 		vector<string> m_compile_errors{};
 	};
+#pragma endregion
 	
 	render_manager::render_manager(engine* engine)
 		: m_imgui{}
@@ -240,10 +242,8 @@ namespace influx::engine
 			// imgui render
 			if (imgui.is_empty() == false)
 			{
-				ImGui::NewFrame();
 				m_imgui.new_frame();
 				imgui.m_imgui_stacks[0u](*ImGui::GetCurrentContext());
-				ImGui::Render();
 				m_imgui.render();
 			}
 
@@ -251,11 +251,10 @@ namespace influx::engine
 			influx::renderer::copy_target(*mp_scene_target, *window_target);
 		}
 
-		// submits the gpu commands
+		// submits all gpu commands
 		influx::renderer::end_frame();
 
-		// present the window backbuffers
-		renderer::present(main_window, {.m_vsync = false });
+		renderer::present_all({ .m_vsync = false });
 	}
 
 	bool render_manager::has_shader_loaded(const shader::shader_signature& signature) const
