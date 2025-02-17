@@ -14,14 +14,11 @@ namespace influx::engine
 	void window_manager::on_window_event(const platform::window_event& ev)
 	{
 		platform::window* owner = ev.m_window;
-		
+		input_manager& inputman = get_engine()->get_input();
 		result<window_id> id = get_window_id(owner);
 		if (id.is_success())
 		{
-			if (is_main(id))
-			{
-				get_engine()->get_input().push_window_event(ev);
-			}
+			inputman.push_window_event(ev);
 		}
 	}
 
@@ -82,7 +79,7 @@ namespace influx::engine
 		if (!is_valid(id)) return e_result::error;
 
 		// 'destroy'
-		// m_windows[id]
+		delete m_windows[id].m_window;
 		m_windows[id].m_window = nullptr;
 
 		return {};

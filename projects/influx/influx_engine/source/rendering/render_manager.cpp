@@ -210,7 +210,14 @@ namespace influx::engine
 				renderer::draw_scene(scene, *mp_scene_target);
 			}
 
+			// debug render
+			if (debug.is_empty() == false && get_render_debug())
+			{
+				renderer::draw_debug(debug, *mp_scene_target);
+			}
+
 			// shadertoy render
+#if 0
 			shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");
 			if (editor.can_render())
 			{
@@ -232,28 +239,22 @@ namespace influx::engine
 				renderer::scene_shadertoy shadertoy{};
 				renderer::draw_shadertoy(shadertoy, *mp_scene_target);
 			}
+#endif
 
-			// debug render
-			if (debug.is_empty() == false && get_render_debug())
-			{
-				renderer::draw_debug(debug, *mp_scene_target);
-			}
+			// scene target -> main window target
+			influx::renderer::copy_target(*mp_scene_target, *window_target);
 
-			// imgui render
+			// imgui render (renders straight to its own window targets)
 			if (imgui.is_empty() == false)
 			{
-				m_imgui.new_frame();
-				imgui.m_imgui_stacks[0u](*ImGui::GetCurrentContext());
-				m_imgui.render();
+				m_imgui.render(imgui);
 			}
-
-			// scene target to window target
-			influx::renderer::copy_target(*mp_scene_target, *window_target);
 		}
 
 		// submits all gpu commands
 		influx::renderer::end_frame();
 
+		// present each swapchain registered
 		renderer::present_all({ .m_vsync = false });
 	}
 

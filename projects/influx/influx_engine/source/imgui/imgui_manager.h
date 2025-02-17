@@ -10,6 +10,12 @@
 struct ImVec2;
 struct ImGuiViewport;
 
+// influx::renderer
+namespace influx::renderer
+{
+	struct scene_imgui;
+}
+
 namespace influx::engine
 {
 	class imgui_manager final
@@ -18,11 +24,15 @@ namespace influx::engine
 		imgui_manager();
 
 		void on_window_resize(const math::vectoru2& new_size);
-		void new_frame();
-		void render();
-		void present();
+		void render(const renderer::scene_imgui&);
 
 		~imgui_manager();
+
+		struct viewport_data final
+		{
+			window_manager::window_id m_window_id = window_manager::k_invalid_id;
+		};
+		viewport_data& get_viewportdata(uint32 id);
 
 	private:
 		void initialize_font_atlas();
@@ -46,10 +56,6 @@ namespace influx::engine
 		static float get_window_dpi(ImGuiViewport* viewport);
 		static void on_changed_viewport(ImGuiViewport* viewport);
 
-		struct viewport_data final
-		{
-			window_manager::window_id m_window_id = window_manager::k_invalid_id;
-		};
 		umap<uint32, viewport_data> m_viewports{};
 	};
 }

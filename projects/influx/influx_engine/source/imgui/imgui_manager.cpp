@@ -1,6 +1,9 @@
 #include "engine_pch.h"
 #include "imgui_manager.h"
 
+// influx::core
+#include "core/string.h"
+
 // influx::engine
 #include "window/window_manager.h"
 
@@ -9,6 +12,9 @@
 
 // influx::platform
 #include "influx_platform/window.h"
+
+// influx::renderer
+#include "influx_renderer.h"
 
 // imgui
 #include "imgui/imgui.h"
@@ -81,36 +87,33 @@ namespace influx::engine
 		ImGui::GetIO().DisplaySize = { (float)new_size.x, (float)new_size.y };
 	}
 
-	void imgui_manager::new_frame()
+	void imgui_manager::render(const renderer::scene_imgui& scene)
 	{
-		ImGuiContext* context = ImGui::GetCurrentContext();
-		ImGuiPlatformIO& platio = ImGui::GetPlatformIO();
-		ImGui::NewFrame();
-	}
-
-	void imgui_manager::render()
-	{
-		ImGui::Render();
-		ImGui::UpdatePlatformWindows();
-	}
-
-	void imgui_manager::present()
-	{
-		auto platio = ImGui::GetPlatformIO();
-#if INFLUX_PLATFORM_WINDOWS
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		if (scene.is_empty() == false)
 		{
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			// TODO for OpenGL: restore current GL context.
+			window_manager& windowman = get_engine()->get_windowman();
+			ImGuiContext* context = ImGui::GetCurrentContext();
 
+			// do the full render
+			ImGui::NewFrame();
+			scene.m_imgui_stacks[0u](*ImGui::GetCurrentContext());
+			ImGui::Render();
+			ImGui::UpdatePlatformWindows();
+
+			// execute the draw for each viewport
+			ImGuiPlatformIO& platio = ImGui::GetPlatformIO();
 			for (const auto& viewport : platio.Viewports)
 			{
-				// for each viewport render to a target
-				// renderer::draw_imgui(ImGui::GetDrawData(), *mp_scene_target);
+				viewport_data& data = m_viewports[viewport->ID];
+				platform::window& window = windowman.get_window(data.m_window_id);
+				renderer::draw_imgui(viewport->DrawData, *renderer::get_window_target(window));
 			}
 		}
-#endif
+	}
+
+	imgui_manager::viewport_data& imgui_manager::get_viewportdata(uint32 id)
+	{
+		return m_viewports[id];
 	}
 
 	void imgui_manager::initialize_font_atlas()
@@ -121,100 +124,168 @@ namespace influx::engine
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 	}
 
-#pragma region multiviewport hooks
-	ImVec2 translate(const math::vectoru2& f2)
-	{
-		return ImVec2((float)f2.x, (float)f2.y);
-	}
-	ImVec2 translate(const math::vectorf2& f2)
-	{
-		return ImVec2((float)f2.x, (float)f2.y);
-	}
+	static window_manager* g_windowman = nullptr;
+	static imgui_manager* g_imguiman = nullptr;
 
-	static window_manager*	g_windowman = nullptr;
-	static imgui_manager*	g_imguiman = nullptr;
+#pragma region multiviewport hooks
+	inline static ImVec2 translate(const math::vectoru2& f2)
+	{
+		return ImVec2((float)f2.x, (float)f2.y);
+	}
+	inline static ImVec2 translate(const math::vectorf2& f2)
+	{
+		return ImVec2((float)f2.x, (float)f2.y);
+	}
+	inline static platform::window_style get_windowstyle(ImGuiViewportFlags flags)
+	{
+		platform::window_style new_style{};
+		new_style.set_decoration((flags & ImGuiViewportFlags_NoDecoration) == false);
+		new_style.set_taskicon_enabled((flags & ImGuiViewportFlags_NoTaskBarIcon) == false);
+		new_style.set_topmost(flags & ImGuiViewportFlags_TopMost);
+		return new_style;
+	}
+	inline static imgui_manager::viewport_data& get_data(ImGuiViewport* viewport)
+	{
+		return g_imguiman->get_viewportdata(viewport->ID);
+		//return *reinterpret_cast<imgui_manager::viewport_data*>(viewport->PlatformUserData);
+	}
+	inline static ImGuiViewport* find_viewport(platform::window_handle handle)
+	{
+		ImGuiPlatformIO& platformio = ImGui::GetPlatformIO();
+		for (ImGuiViewport* viewport : platformio.Viewports)
+		{
+			if (viewport->PlatformHandle == handle) return viewport;
+		}
+		return nullptr;
+	}
+	inline static window_manager& get_windowman();
 	void imgui_manager::create_window(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
-	
+		viewport_data& data = get_data(viewport);
+		math::rectu rect = 
+		{ 
+			(uint32)viewport->Pos.x, 
+			(uint32)viewport->Pos.y, 
+			(uint32)(viewport->Pos.x + viewport->Size.x), 
+			(uint32)(viewport->Pos.y + viewport->Size.y) 
+		};
+
+		// create the window
 		platform::window_desc new_desc{};
-		new_desc.m_name = "viewport";
-		data.m_window_id = g_windowman->spawn(new_desc);
+		new_desc.m_name = "viewport_" + to_string(viewport->ID);
+		new_desc.m_style = get_windowstyle(viewport->Flags);
+		new_desc.m_dimensions = rect.get_dimensions();
+		new_desc.m_position = rect.get_leftbottom();
+		data.m_window_id = g_windowman->spawn(new_desc).get();
+
+		// setup window event callback
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		viewport->PlatformHandle = window.get_platform_handle();
+		window.set_event_callback([](const platform::window_event& ev)
+		{
+			platform::window_handle handle = ev.m_window->get_platform_handle();
+			ImGuiViewport* viewport = find_viewport(handle);
+			if (viewport)
+			{
+				switch (ev.m_type)
+				{
+				case platform::window_event::type::quit: viewport->PlatformRequestClose = true; break;
+				case platform::window_event::type::move: viewport->PlatformRequestMove = true; break;
+				case platform::window_event::type::size: viewport->PlatformRequestResize = true; break;
+				case platform::window_event::type::mouse_activate: break;
+				}
+			}
+		});
 	}
 	void imgui_manager::destroy_window(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		g_windowman->destroy(data.m_window_id);
 	}
 	void imgui_manager::show_window(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		window.set_visibility(platform::window::e_visibility::showed);
 	}
 	void imgui_manager::set_windowpos(ImGuiViewport* viewport, ImVec2 position)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		window.set_position({ position.x, position.y });
 	}
 	ImVec2 imgui_manager::get_windowpos(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		return translate(window.get_position());
 	}
 	void imgui_manager::set_windowsize(ImGuiViewport* viewport, ImVec2 size)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		window.set_dimensions({ size.x, size.y });
 	}
 	ImVec2 imgui_manager::get_windowsize(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		return translate(window.get_dimensions(platform::window::e_space::full));
 	}
 	void imgui_manager::set_windowfocus(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		window.set_foreground();
 		window.set_focus();
 	}
 	bool imgui_manager::get_windowfocus(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		return window.is_focus();
 	}
 	bool imgui_manager::get_windowminimized(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		return window.is_minimized();
 	}
 	void imgui_manager::set_windowtitle(ImGuiViewport* viewport, const char* new_title)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		window.set_title(new_title);
 	}
 	void imgui_manager::set_windowalpha(ImGuiViewport* viewport, float alpha)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		window.set_alpha(alpha);
 	}
 	void imgui_manager::update_window(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
-		// todo
+		viewport_data& parent_data = g_imguiman->get_viewportdata(viewport->ParentViewportId);
+		viewport_data& data = get_data(viewport);
+
+		platform::window& window = g_windowman->get_window(data.m_window_id);
+		platform::window& parent = g_windowman->get_window(parent_data.m_window_id);
+
+		math::rectu rect =
+		{
+			(uint32)viewport->Pos.x,
+			(uint32)viewport->Pos.y,
+			(uint32)(viewport->Pos.x + viewport->Size.x),
+			(uint32)(viewport->Pos.y + viewport->Size.y)
+		};
+
+		window.set_style(get_windowstyle(viewport->Flags));
+		window.set_owner(parent);
+		window.adjust_rect(rect);
 	}
 	float imgui_manager::get_window_dpi(ImGuiViewport* viewport)
 	{
-		viewport_data& data = g_imguiman->m_viewports[viewport->ID];
+		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		return window.get_dpi();
 	}
@@ -226,8 +297,8 @@ namespace influx::engine
 
 	void imgui_manager::initialize_multiviewport()
 	{
-		g_windowman = &get_engine()->get_windowman();
 		g_imguiman = this;
+		g_windowman = &get_engine()->get_windowman();
 
 		// Register main window handle (which is owned by the main application, not by us)
 		// This is mostly for simplicity and consistency, so that our code (e.g. mouse handling etc.) can use same logic for main and secondary viewports.

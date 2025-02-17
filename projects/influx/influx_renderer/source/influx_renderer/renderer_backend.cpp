@@ -188,11 +188,10 @@ namespace influx::renderer
 
     target* renderer_backend::get_window_target(const platform::window& window)
     {
-        wait_gpu_finished();
-        mp_commandlist->wait_for_completion();
-
+        influx_assert(window.is_valid());
+        
         swapchain& swapchain = m_swapchains[&window];
-        swapchain.m_windowtitle = window.get_title();
+        swapchain.m_windowtitle = window.get_title() + to_string(reinterpret_cast<uint64>(&window));
 
         // create the swapchain for the first time
         if (swapchain.mp_swapchain == nullptr)
@@ -200,15 +199,17 @@ namespace influx::renderer
             graphics::swapchain_desc desc{};
             desc.m_num_buffers = get_num_buffers(k_buffering);
             desc.m_format; //  todo
-            desc.m_dimensions; // todo
+            desc.m_dimensions = window.get_dimensions(platform::window::e_space::client);
             swapchain.mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
-
             recreate_backbuffer_targets(swapchain);
         }
 
         // if need, recreate the swapchain
         if (swapchain.mp_swapchain->needs_recreate(window))
         {
+            mp_commandlist->wait_for_completion();
+            wait_gpu_finished();
+
             swapchain.mp_swapchain->resize(mp_device, window);
 
             recreate_backbuffer_targets(swapchain);
@@ -235,6 +236,10 @@ namespace influx::renderer
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         m_rendergraph->import_texture(color_name, target.get_resource());
 
+#if 1
+        const math::colour_rgba colour = math::colour_rgba{ (float)target.get_width() / 1000, 0.0f, 0.0f, 1.0f };
+        m_rendergraph->add_clear_pass(target.get_resource(), { .m_colour = colour });
+#else
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
             [&target](rendergraph::rgpass_builder& builder)
             {
@@ -252,6 +257,7 @@ namespace influx::renderer
             });
 
         pass->set_name(RGNAME("draw_imgui"));
+#endif
     }
 
     void renderer_backend::draw_2D(const scene2D& scene, const target& target)

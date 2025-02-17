@@ -43,6 +43,10 @@ namespace influx::platform
 			// general
 			activate,
 			quit,
+			close,
+			move,
+			size,
+			mouse_activate,
 			count
 		};
 		enum class mouse_button : uint8
@@ -85,11 +89,29 @@ namespace influx::platform
 		type m_type;
 	};
 
+	struct window_style final
+	{
+		INFLUX_PLATFORM_API void set_decoration(bool enabled);
+		INFLUX_PLATFORM_API bool get_decoration() const;
+		INFLUX_PLATFORM_API void set_taskicon_enabled(bool enabled);
+		INFLUX_PLATFORM_API bool get_taskicon_enabled() const;
+		INFLUX_PLATFORM_API void set_topmost(bool enabled);
+
+		uint32 m_style;
+		uint32 m_style_ext;
+	};
+
 	struct window_desc final
 	{
 		window_desc& set_dimensions(const math::vectoru2& dim)
 		{
 			m_dimensions = dim;
+			return *this;
+		}
+
+		window_desc& set_position(const math::vectorf2& pos)
+		{
+			m_position = pos;
 			return *this;
 		}
 
@@ -99,8 +121,16 @@ namespace influx::platform
 			return *this;
 		}
 
+		window_desc& set_style(const window_style& style)
+		{
+			m_style = style;
+			return *this;
+		}
+
+		math::vectorf2 m_position;
 		math::vectoru2 m_dimensions;
 		string m_name;
+		window_style m_style;
 	};
 
 	class window
@@ -132,8 +162,10 @@ namespace influx::platform
 
 		virtual void poll_events(bool& is_quit) const { };
 
+		INFLUX_PLATFORM_API
 		virtual bool is_valid() const { return false; };
 
+		INFLUX_PLATFORM_API
 		virtual void set_event_callback(const event_callback&) { };
 
 		virtual void set_visibility(e_visibility) { };
@@ -195,6 +227,21 @@ namespace influx::platform
 
 		INFLUX_PLATFORM_API
 		virtual float get_dpi() const { return 1.0f; }
+
+		INFLUX_PLATFORM_API
+		virtual window_style get_style() const { return {}; }
+
+		INFLUX_PLATFORM_API
+		virtual void set_style(const window_style&) { }
+
+		INFLUX_PLATFORM_API
+		virtual void set_parent(window& parent) {}
+
+		INFLUX_PLATFORM_API
+		virtual void set_owner(window& owner) {}
+
+		INFLUX_PLATFORM_API
+		virtual rect adjust_rect(const rect& rect) { return rect; }
 
 		INFLUX_PLATFORM_API
 		virtual ~window() = default;

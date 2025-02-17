@@ -39,19 +39,28 @@ namespace influx::platform
 
 		virtual string get_title() const override;
 
+		virtual window_style get_style() const override;
+		virtual void set_style(const window_style&) override;
+
+		virtual void set_parent(window& parent) override;
+		virtual void set_owner(window& owner) override;
+
+		virtual rect adjust_rect(const rect& rect) override;
+		
+		virtual bool is_valid() const override;
+
 		virtual void set_event_callback(const event_callback&) override;
 
 		~win32_window();
 
 	private:
 		window_handle m_handle;
+		window_handle m_parent;
 		list<event_callback> m_event_callbacks;
 		math::vectoru2 m_current_dimensions_client;
 		math::vectoru2 m_current_dimensions_full;
 		math::vectoru2 m_previous_dimensions_client;
 		math::vectoru2 m_previous_dimensions_full;
-		uint32 m_style;
-		uint32 m_style_ext;
 
 	public:
 		static uint64 window_proc(window_handle handle, uint32 message, uint64 wParam, uint64 lParam);

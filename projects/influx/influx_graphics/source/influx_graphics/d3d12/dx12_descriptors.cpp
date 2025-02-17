@@ -59,12 +59,14 @@ namespace influx::graphics
 
 	void dx12_descriptor_heap::free_cpu(descriptor_handle handle)
 	{
-		m_freelist_cpu[get_heap_index_cpu(handle)].is_allocated = false;
+		const uint32 index = get_heap_index_cpu(handle);
+		m_freelist_cpu[index].is_allocated = false;
 	}
 
 	void dx12_descriptor_heap::free_gpu(descriptor_handle handle)
 	{
-		m_freelist_gpu[get_heap_index_gpu(handle)].is_allocated = false;
+		const uint32 index = get_heap_index_gpu(handle);
+		m_freelist_gpu[index].is_allocated = false;
 	}
 
 	void dx12_descriptor_heap::free_cpu(uint32 at_index)
@@ -136,7 +138,7 @@ namespace influx::graphics
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
 		cpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
 
-		return (uint32)(cpu_handle.ptr - cpu_base.ptr);
+		return (uint32)(cpu_handle.ptr - cpu_base.ptr) / m_descriptor_stride;
 	}
 
 	descriptor_handle dx12_descriptor_heap::index_to_gpu_handle(uint32 index) const

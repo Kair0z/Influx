@@ -13,6 +13,17 @@ namespace influx::platform
 {
 	static umap<::HWND, win32_window*> g_handle_to_window_map{};
 
+	static ::RECT translate(const window::rect& rect)
+	{
+		return
+		{
+			(LONG)rect.get_left(),
+			(LONG)rect.get_bottom(), 
+			(LONG)rect.get_width(), 
+			(LONG)rect.get_height()
+		};
+	}
+
 	static window::rect translate(const ::RECT& rect)
 	{
 		return window::rect(
@@ -33,6 +44,11 @@ namespace influx::platform
 		case WM_KEYUP: return window_event::type::keyup;
 		case WM_MOUSEWHEEL: return window_event::type::wheel;
 		
+		case WM_CLOSE: return window_event::type::close;
+		case WM_MOVE: return window_event::type::move;
+		case WM_SIZE: return window_event::type::size;
+		case WM_MOUSEACTIVATE: return window_event::type::mouse_activate;
+
 		case WM_MOUSEMOVE:
 		case WM_NCMOUSEMOVE:
 			return window_event::type::mouse_move;
@@ -105,10 +121,7 @@ namespace influx::platform
 
 			for (const event_callback& callback : target_window->m_event_callbacks)
 			{
-				if (callback)
-				{
-					callback(new_event);
-				}
+				if (callback) callback(new_event);
 			}
 		}
 
@@ -153,8 +166,8 @@ namespace influx::platform
 		{
 			onces[desc.m_name] = true;
 			// https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes
-			::UINT class_style = CS_HREDRAW | CS_VREDRAW;
-			::HBRUSH classBackgroundBrush = ::CreateSolidBrush(0x00000000);
+			::UINT class_style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+			::HBRUSH classBackgroundBrush = (HBRUSH)(COLOR_BACKGROUND + 1);
 
 			::WNDCLASSEX windowClassExtended;
 			windowClassExtended.cbSize = sizeof(WNDCLASSEX);
@@ -173,15 +186,12 @@ namespace influx::platform
 			influx_assert(::RegisterClassEx(&windowClassExtended));
 		}
 
-		// [ CREATE WINDOW CLASS ]
+		// [ CREATE WINDOW ]
 		::HWND newWindowHandle = NULL;
 		{
 			// https://learn.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
-			::DWORD extendedWindowStyle{};
-			::DWORD windowStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
-			// Window-Frameless
-			// style = WS_POPUP | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_CAPTION; 
-			//style = style & (~WS_SIZEBOX);
+			::DWORD extendedWindowStyle = desc.m_style.m_style_ext;
+			::DWORD windowStyle = desc.m_style.m_style;
 			windowStyle &= ~WS_VISIBLE;
 
 			// Middle of screen
@@ -326,8 +336,8 @@ namespace influx::platform
 
 	void win32_window::set_position(const math::vectoru2& pos)
 	{
-		RECT rect = { (LONG)pos.x, (LONG)pos.y, (LONG)pos.x, (LONG)pos.y };
-		::AdjustWindowRectEx(&rect, m_style, FALSE, m_style_ext);
+		RECT rect = { (LONG)pos.x, (LONG)pos.y, get_dimensions(e_space::full).x, get_dimensions(e_space::full).y };
+		::AdjustWindowRectEx(&rect, m_desc.m_style.m_style, FALSE, m_desc.m_style.m_style_ext);
 		::SetWindowPos((HWND)m_handle, nullptr, rect.left, rect.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 
@@ -414,6 +424,58 @@ namespace influx::platform
 		return m_desc.m_name;
 	}
 
+	window_style win32_window::get_style() const
+	{
+		return m_desc.m_style;
+	}
+
+	void win32_window::set_style(const window_style& new_style)
+	{
+		if (m_desc.m_style.m_style != new_style.m_style || 
+			m_desc.m_style.m_style_ext != new_style.m_style_ext)
+		{
+			m_desc.m_style = new_style;
+
+			::SetWindowLong((HWND)m_handle, GWL_STYLE, new_style.m_style);
+			::SetWindowLong((HWND)m_handle, GWL_EXSTYLE, new_style.m_style_ext);
+
+			::ShowWindow((HWND)m_handle, SW_SHOWNA); // This is necessary when we alter the style
+		}
+	}
+
+	void win32_window::set_parent(window& parent)
+	{
+		if (m_parent != parent.get_platform_handle())
+		{
+			m_parent = parent.get_platform_handle();
+
+			// Win32 windows can either have a "Parent" (for WS_CHILD window) or an "Owner" (which among other thing keeps window above its owner).
+			// Our Dear Imgui-side concept of parenting only mostly care about what Win32 call "Owner".
+			// The parent parameter of CreateWindowEx() sets up Parent OR Owner depending on WS_CHILD flag. In our case an Owner as we never use WS_CHILD.
+			// Calling ::SetParent() here would be incorrect: it will create a full child relation, alter coordinate system and clipping.
+			// Calling ::SetWindowLongPtr() with GWLP_HWNDPARENT seems correct although poorly documented.
+			// https://devblogs.microsoft.com/oldnewthing/20100315-00/?p=14613
+			::SetWindowLongPtr((HWND)m_handle, GWLP_HWNDPARENT, (LONG_PTR)parent.get_platform_handle());
+		}
+	}
+
+	void win32_window::set_owner(window& owner)
+	{
+		set_parent(owner);
+	}
+
+	window::rect win32_window::adjust_rect(const rect& rect)
+	{
+		RECT Rect = translate(rect);
+		::AdjustWindowRectEx(&Rect, m_desc.m_style.m_style, FALSE, m_desc.m_style.m_style_ext);
+		return translate(Rect);
+	}
+
+	bool win32_window::is_valid() const
+	{
+		return ::IsWindow((HWND)m_handle);
+	}
+
 	void win32_window::set_event_callback(const event_callback& callback)
 	{
 		m_event_callbacks.push_back(callback);
@@ -421,6 +483,9 @@ namespace influx::platform
 
 	win32_window::~win32_window()
 	{
+		if (g_handle_to_window_map.contains((::HWND)m_handle))
+			g_handle_to_window_map.erase((::HWND)m_handle);
+
 		::DestroyWindow((::HWND)m_handle);
 	}
 
@@ -532,6 +597,48 @@ namespace influx::platform
 	{
 		return
 			m_type == type::wheel;
+	}
+
+	void window_style::set_decoration(bool enabled)
+	{
+		if (enabled)
+		{
+			m_style |= WS_OVERLAPPEDWINDOW;
+		}
+		else
+		{
+			m_style |= WS_POPUP;
+		}
+	}
+
+	bool window_style::get_decoration() const
+	{
+		return m_style & WS_OVERLAPPEDWINDOW;
+	}
+
+	void window_style::set_taskicon_enabled(bool enabled)
+	{
+		if (enabled)
+		{
+			m_style_ext |= WS_EX_TOOLWINDOW;
+		}
+		else
+		{
+			m_style_ext |= WS_EX_APPWINDOW;
+		}
+	}
+
+	bool window_style::get_taskicon_enabled() const
+	{
+		return m_style_ext & WS_EX_APPWINDOW;
+	}
+
+	void window_style::set_topmost(bool enabled)
+	{
+		if (enabled)
+		{
+			m_style_ext |= WS_EX_TOPMOST;
+		}
 	}
 
 	window_event::mouse_button window_event::parse_mouse_button() const

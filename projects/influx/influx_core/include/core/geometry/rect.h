@@ -66,6 +66,10 @@ namespace influx::math
 			return !(*this == other);
 		}
 
+		inline vector2 get_leftbottom() const
+		{
+			return m_leftBottom;
+		}
 		inline _t get_left() const
 		{
 			return m_leftBottom.x;
