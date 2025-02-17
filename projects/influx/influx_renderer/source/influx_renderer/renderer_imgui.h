@@ -26,12 +26,15 @@ namespace influx::renderer
 	public:
 		imgui_manager(graphics::device* device);
 		void render(graphics::commandlist* commandlist, ImDrawData* draw_data, const target& target);
+		void render(graphics::commandlist* commandlist, vector<ImDrawData*> draws, const vector<target*>& targets);
 
 	private:
 		void create_fonts_texture(graphics::device* device);
 		void create_shaders();
 		void create_pipeline(graphics::device* device);
-		void update_buffers(ImDrawData* draw_data);
+		void update_buffers(const vector<ImDrawData*>& draws);
+		void setup_state(graphics::commandlist*, 
+			const vector<ImDrawData*>& draws);
 
 		graphics::device* mp_device = nullptr;
 		graphics::graphics_pipeline* mp_pipeline = nullptr;
@@ -42,5 +45,8 @@ namespace influx::renderer
 
 		shader::compile_output m_vertex_shader;
 		shader::compile_output m_pixel_shader;
+
+		vector<uint32> m_per_draw_vertex_offsets{};
+		vector<uint32> m_per_draw_index_offsets{};
 	};
 }

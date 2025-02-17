@@ -102,12 +102,17 @@ namespace influx::engine
 
 			// execute the draw for each viewport
 			ImGuiPlatformIO& platio = ImGui::GetPlatformIO();
+			vector<ImDrawData*> draws{}; 
+			vector<renderer::target*> targets{};
 			for (const auto& viewport : platio.Viewports)
 			{
 				viewport_data& data = m_viewports[viewport->ID];
 				platform::window& window = windowman.get_window(data.m_window_id);
-				renderer::draw_imgui(viewport->DrawData, *renderer::get_window_target(window));
+				draws.push_back(viewport->DrawData);
+				targets.push_back(renderer::get_window_target(window));
 			}
+
+			renderer::draw_imgui(draws, targets);
 		}
 	}
 

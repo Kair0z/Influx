@@ -236,7 +236,7 @@ namespace influx::renderer
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         m_rendergraph->import_texture(color_name, target.get_resource());
 
-#if 1
+#if 0
         const math::colour_rgba colour = math::colour_rgba{ (float)target.get_width() / 1000, 0.0f, 0.0f, 1.0f };
         m_rendergraph->add_clear_pass(target.get_resource(), { .m_colour = colour });
 #else
@@ -258,6 +258,38 @@ namespace influx::renderer
 
         pass->set_name(RGNAME("draw_imgui"));
 #endif
+    }
+
+    void renderer_backend::draw_imgui(vector<ImDrawData*> draws, const vector<target*>& targets)
+    {
+        static string color_name{}; 
+
+        for (const target* target : targets)
+        {
+            color_name = target->get_resource()->get_name().get();
+            m_rendergraph->import_texture(color_name, target->get_resource());
+        }
+
+         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
+            [targets](rendergraph::rgpass_builder& builder)
+            {
+                rendergraph::rgaccess access{};
+                access.m_load = rendergraph::e_rg_load::preserve;
+                access.m_store = rendergraph::e_rg_store::preserve;
+
+                for (const target* target : targets)
+                {
+                    builder.write_rendertarget(target->get_resource()->get_name().get(), access);
+                    builder.set_viewport(target->get_width(), target->get_height());
+                }
+            },
+            [this, draws, targets](rendergraph::rgpass_context& context)
+            {
+                influx_scope("renderer_backend::draw_imgui::record");
+                mp_imgui->render(&context.get_commandlist(), draws, targets);
+            });
+
+        pass->set_name(RGNAME("draw_imgui"));
     }
 
     void renderer_backend::draw_2D(const scene2D& scene, const target& target)
@@ -748,6 +780,11 @@ namespace influx::renderer
     void draw_imgui(ImDrawData* draw_data, const target& target)
     {
         renderer_backend::get_instance().draw_imgui(draw_data, target);
+    }
+
+    void draw_imgui(vector<ImDrawData*> draws, const vector<target*>& targets)
+    {
+        renderer_backend::get_instance().draw_imgui(draws, targets);
     }
 
     void draw_2D(const scene2D& scene, const target& target)

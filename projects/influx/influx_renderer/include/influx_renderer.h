@@ -97,6 +97,7 @@ namespace influx::renderer
 
 	// - imgui rendering
 	INFLUX_RENDER_API void draw_imgui(ImDrawData* draw_data, const target& target);
+	INFLUX_RENDER_API void draw_imgui(vector<ImDrawData*> draws, const vector<target*>& targets);
 
 	// - sprite rendering
 	INFLUX_RENDER_API void draw_2D(const scene2D& scene, const target& target);
