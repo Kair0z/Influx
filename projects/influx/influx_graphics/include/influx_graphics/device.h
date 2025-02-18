@@ -14,7 +14,6 @@
 
 // influx::core
 #include "core/pointer.h"
-#include "core/platform/window.h"
 
 namespace influx::graphics
 {

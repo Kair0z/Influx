@@ -4,9 +4,6 @@
 #include "influx_graphics/swapchain.h"
 #include "influx_graphics/resource.h"
 
-// influx::platform
-#include "core/platform/win32/win32_window.h"
-
 namespace influx::graphics
 {
 	swapchain::swapchain(const swapchain_desc& desc, const swapchain_dependencies& dependencies)

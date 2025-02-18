@@ -22,7 +22,6 @@ struct ImGuiContext;
 
 namespace influx::engine
 {
-	class editor_module;
 	class engine;
 
 #pragma region helpers
@@ -149,11 +148,13 @@ namespace influx::engine
 	class editor_manager final
 	{
 	public:
-		editor_manager(editor_module* editor);
-		virtual ~editor_manager();
+		editor_manager();
+		~editor_manager();
 
-		void update_imgui(ImGuiContext& ctx);
+		// editor imgui configuration
+		void on_imgui(ImGuiContext& ctx);
 
+		// register an imgui window to run
 		template <typename _t>
 		static _t& static_window(const string& tag);
 
@@ -161,14 +162,11 @@ namespace influx::engine
 		bool has_project() const;
 		string get_projectname() const;
 		string get_editor_filepath() const;
-
 		void save_editor();
 		void load_editor();
 		files::editorfile& get_editorfile();
 
 	private:
-		editor_module* m_editor = nullptr;
-		
 		compound_keybind_tracker m_keybinds;
 		cooldown_toggle m_content_toggle = 0.5f;
 		cooldown_toggle m_fps_toggle = 0.5f;

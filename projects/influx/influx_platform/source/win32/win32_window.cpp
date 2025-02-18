@@ -353,18 +353,14 @@ namespace influx::platform
 		RECT rect;
 		if (GetWindowRect(handle, &rect))
 		{
-			// Calculate current position
-			int x = rect.left;
-			int y = rect.top;
-
 			bool res = ::SetWindowPos(
 				handle,				// Handle to the window
-				0,					// Z-order placement (NULL or special values)
-				x,					// New X-coordinate of the top-left corner
-				y,					// New Y-coordinate of the top-left corner
+				NULL,					// Z-order placement (NULL or special values)
+				0,					// New X-coordinate of the top-left corner
+				0,					// New Y-coordinate of the top-left corner
 				dimensions.x,       // New width
 				dimensions.y,       // New height
-				0u					// Flags for window positioning
+				SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE // Flags for window positioning
 			);
 		}
 

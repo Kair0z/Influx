@@ -23,6 +23,8 @@
 
 namespace influx::engine
 {
+#define INFLUX_IMGUI_VIEWPORTS 0
+
 	inline ImGuiKey translate(const input::e_key key)
 	{
 		switch (key)
@@ -69,12 +71,16 @@ namespace influx::engine
 		io.BackendPlatformName = "imgui_impl_influx";
 		io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
 		io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
-		io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;    // We can create multi-viewports on the Platform side (optional)
-		io.BackendFlags |= ImGuiBackendFlags_HasMouseHoveredViewport; // We can call io.AddMouseViewportEvent() with correct data (optional)
-		io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
-
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+		const bool enable_viewports = false;
+		if (enable_viewports)
+		{
+			io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;    // We can create multi-viewports on the Platform side (optional)
+			io.BackendFlags |= ImGuiBackendFlags_HasMouseHoveredViewport; // We can call io.AddMouseViewportEvent() with correct data (optional)
+			io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
+			io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		}
 		
 		update_monitors();
 		initialize_font_atlas();
@@ -90,32 +96,43 @@ namespace influx::engine
 
 	void imgui_manager::render(const renderer::scene_imgui& scene)
 	{
-		ImGuiIO& io = ImGui::GetIO();
-		logn("mouse viewport: {}", io.MouseHoveredViewport);
-
 		if (scene.is_empty() == false)
 		{
+			ImGuiIO& io = ImGui::GetIO();
 			window_manager& windowman = get_engine()->get_windowman();
 			ImGuiContext* context = ImGui::GetCurrentContext();
-
+			
+			// update mouse position and such
 			update_mousedata();
 
-			// do the full render
 			ImGui::NewFrame();
 			scene.m_imgui_stacks[0u](*ImGui::GetCurrentContext());
 			ImGui::Render();
 			ImGui::UpdatePlatformWindows();
-
+			
 			// execute the draw for each viewport
 			ImGuiPlatformIO& platio = ImGui::GetPlatformIO();
 			vector<ImDrawData const*> draws{};  draws.reserve(platio.Viewports.Size);
 			vector<renderer::target const*> targets{}; targets.reserve(platio.Viewports.Size);
 			for (const auto& viewport : platio.Viewports)
 			{
+				if (viewport->Flags & ImGuiViewportFlags_IsMinimized)
+					continue;
+
+				// get the rendertarget
 				viewport_data& data = m_viewports[viewport->ID];
 				platform::window& window = windowman.get_window(data.m_window_id);
+				auto* window_target = renderer::get_window_target(window);
+
+				// clear if non-main
+				const bool is_non_main = !windowman.is_main(data.m_window_id);
+				if (is_non_main)
+				{
+					renderer::clear_target(*window_target, {});
+				}
+
 				draws.push_back(viewport->DrawData);
-				targets.push_back(renderer::get_window_target(window));
+				targets.push_back(window_target);
 			}
 
 			renderer::draw_imgui(draws, targets);
@@ -248,7 +265,7 @@ namespace influx::engine
 	{
 		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
-		return translate(window.get_dimensions(platform::window::e_space::full));
+		return translate(window.get_dimensions(platform::window::e_space::client));
 	}
 	void imgui_manager::set_windowfocus(ImGuiViewport* viewport)
 	{
@@ -323,6 +340,7 @@ namespace influx::engine
 		ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 		m_viewports[main_viewport->ID].m_window_id = g_windowman->get_main_id();
 		main_viewport->PlatformUserData = &m_viewports.at(main_viewport->ID);
+		main_viewport->PlatformHandle = g_windowman->get_main_window().get_platform_handle();
 
 		// Register platform interface
 		ImGuiPlatformIO& platio = ImGui::GetPlatformIO();

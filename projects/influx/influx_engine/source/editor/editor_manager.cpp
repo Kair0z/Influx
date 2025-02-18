@@ -149,15 +149,15 @@ namespace influx::engine
 		}
 	};
 #pragma endregion
+
+	// all static windows of the engine
 	umap<string, editor_window*> editor_manager::m_static_windows{};
 
-	editor_manager::editor_manager(editor_module* editor)
-		: m_editor{ editor }
-		, m_static_windows_radial{}
+	editor_manager::editor_manager()
+		: m_static_windows_radial{}
 		, m_edit_radial{}
 	{
 		initialize_inputs();
-
 		load_editor();
 	}
 
@@ -166,12 +166,11 @@ namespace influx::engine
 		save_editor();
 	}
 
-	void editor_manager::update_imgui(ImGuiContext& ctx)
+	void editor_manager::on_imgui(ImGuiContext& ctx)
 	{
 		update_context();
 		update_inputs();
 		//update_background_dockspace();
-		
 		update_mainmenu();
 		update_static_windows();
 		update_edit_radial();
@@ -186,6 +185,7 @@ namespace influx::engine
 			m_engine_toggle = !m_engine_toggle;
 		}
 
+		// 
 		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::lalt))
 		{
 			m_editor_toggle = !m_editor_toggle;

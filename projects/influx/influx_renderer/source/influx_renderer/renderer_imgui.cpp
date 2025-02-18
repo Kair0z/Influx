@@ -100,8 +100,6 @@ namespace influx::renderer
 		if (draws.size() <= 0u) return;
 		if (targets.size() <= 0u) return;
 
-		setup_state(commandlist, draws);
-
 		renderer_backend& backend = renderer_backend::get_instance();
 		descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
 
@@ -110,6 +108,8 @@ namespace influx::renderer
 		{
 			const ImDrawData& draw = *draws[i];
 			const target& target = *targets[i];
+
+			setup_state(commandlist, vector<const ImDrawData*>{draws[i]});
 
 			// Avoid rendering when minimized
 			if (draw.DisplaySize.x <= 0.0f || draw.DisplaySize.y <= 0.0f)

@@ -63,7 +63,7 @@ namespace influx::engine
 		m_gameman = new game_manager();
 		if (m_runtype == run_type::editor)
 		{
-			m_editorman = new editor_manager(nullptr);
+			m_editorman = new editor_manager();
 		}
 
 		// initialize render
@@ -130,7 +130,7 @@ namespace influx::engine
 			{
 				imgui.m_imgui_stacks.push_back([this](ImGuiContext& ctx)
 				{
-					m_editorman->update_imgui(ctx);
+					m_editorman->on_imgui(ctx);
 				});
 			}
 
@@ -211,7 +211,6 @@ namespace influx::engine
 	{
 		window_manager::poll_result result = m_windowman->poll_all();
 		m_is_quit_requested = result.m_is_quited;
-
 		m_is_quit_requested |= m_windowman->get_main_window().has_quit_request();
 	}
 

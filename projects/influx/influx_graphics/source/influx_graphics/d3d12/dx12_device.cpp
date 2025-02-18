@@ -16,9 +16,6 @@
 #include "influx_graphics/d3d12/dx12_pipeline.h"
 #include "influx_graphics/d3d12/dx12_rootsignature.h"
 
-// core win32
-#include "core/platform/win32/win32_window.h"
-
 namespace influx::graphics
 {
 	dx12_device::dx12_device(const device_desc& desc)

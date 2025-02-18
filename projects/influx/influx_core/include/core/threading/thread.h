@@ -5,9 +5,6 @@
 #include "../container/map.h"
 #include "../debug.h"
 
-// influx::core::platform
-#include "../platform/platform_thread.h"
-
 // stl
 #include <thread>
 

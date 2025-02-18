@@ -2,7 +2,6 @@
 
 // influx::core
 #include "core/basetypes.h"
-#include "core/platform/window.h"
 
 // influx::graphics
 #include "influx_graphics/descriptors.h"
