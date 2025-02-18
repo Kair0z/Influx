@@ -81,8 +81,8 @@ namespace influx::renderer
 		void acquire_swapchain_frame(swapchain& swapchain);
 
 		void draw_scene(const scene& scene, const target& target);
-		void draw_imgui(ImDrawData* draw_data, const target& target);
-		void draw_imgui(vector<ImDrawData*> draws, const vector<target*>& targets);
+		void draw_imgui(ImDrawData const* draw_data, const target& target);
+		void draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
 
 		void draw_2D(const scene2D& scene, const target& target);
 		void draw_debug(const scene_debug& scene, const target& target);

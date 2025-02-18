@@ -9,12 +9,14 @@
 // influx::core
 #include "core/basetypes.h"
 #include "core/string.h"
+#include "core/math/vector.h"
 
+// influx::platform
 #include "thread.h"
-#include "window.h"
 
 namespace influx::platform
 {
+	using window_handle = void*;
 	using process_handle = void*;
 	using instance_handle = void*;
 	using event_handle = void*;
@@ -49,5 +51,9 @@ namespace influx::platform
 		static string get_current_directory();
 
 		static void set_current_directory(const string& path);
+
+		static math::vectoru2 get_cursor_screenpos();
+
+		static window_handle find_window_from_cursor();
 	};
 }

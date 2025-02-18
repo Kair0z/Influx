@@ -84,7 +84,7 @@ namespace influx::engine
 
 						if (scene_asset.is_loaded() && scene_asset.is_engine())
 						{
-							if (ImGui::TreeNode("scene:%s - ms:%f", name.c_str(), scene_asset.get_load_ms()))
+							if (ImGui::TreeNode(name.c_str(), "scene: %s - ms : % f", name.c_str(), scene_asset.get_load_ms()))
 							{
 								for (uint32 i = 0u; i < scene_asset.get_resource().get_num_meshes(); ++i)
 								{

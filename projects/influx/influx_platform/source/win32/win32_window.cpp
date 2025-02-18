@@ -89,6 +89,45 @@ namespace influx::platform
 		return to_string(message);
 	}
 
+	inline static math::vectoru2 get_dimensions(::HWND handle)
+	{
+		::RECT res{};
+		::GetWindowRect(handle, &res);
+		return translate(res).get_dimensions();
+	}
+
+	inline static string get_title(::HWND handle)
+	{
+		LPWSTR result{};
+		::GetWindowTextW(handle, result, 500000u);
+		return to_string(result);
+	}
+
+	inline static math::vectoru2 get_position(::HWND handle)
+	{
+		::RECT res{};
+		::GetWindowRect(handle, &res);
+		return translate(res).get_leftbottom();
+	}
+
+	inline static window_style get_style(::HWND handle)
+	{
+		window_style new_style{};
+		new_style.m_style = ::GetWindowLong(handle, GWL_STYLE);
+		new_style.m_style_ext = ::GetWindowLong(handle, GWL_EXSTYLE);
+		return new_style;
+	}
+
+	inline static window_desc parse_desc(::HWND handle)
+	{
+		window_desc desc{};
+		desc.m_dimensions = get_dimensions(handle);
+		desc.m_name = get_title(handle);
+		desc.m_position = get_position(handle);
+		desc.m_style = get_style(handle);
+		return desc;
+	}
+
 	uint64 win32_window::window_proc(window_handle handle, uint32 message, uint64 wParam, uint64 lParam)
 	{
 		DWORD error = ::GetLastError();
@@ -148,6 +187,11 @@ namespace influx::platform
 	window* window::create(const window_desc& desc)
 	{
 		return new win32_window(desc);
+	}
+
+	window* window::import_window(const window_handle& handle)
+	{
+		return new win32_window(handle);
 	}
 
 	win32_window::win32_window(const window_desc& desc)
@@ -233,6 +277,16 @@ namespace influx::platform
 		set_visibility(e_visibility::showed);
 
 		set_dimensions(desc.m_dimensions);
+	}
+
+	win32_window::win32_window(const window_handle& handle)
+		: window( parse_desc( (::HWND)handle ))
+	{
+		HWND windowhandle = (HWND)handle;
+
+		// shouldnt been made yet...
+		influx_assert(!g_handle_to_window_map.contains(windowhandle));
+		g_handle_to_window_map[windowhandle] = this;
 	}
 
 	void win32_window::set_visibility(e_visibility vis)

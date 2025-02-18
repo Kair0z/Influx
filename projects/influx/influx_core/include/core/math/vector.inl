@@ -39,7 +39,7 @@ namespace influx::math
 	template <typename _u> inline TVEC::vector(const vector<_u, _s>& other)
 	{
 		for (size_t i{}; i < _s; ++i)
-			this->m_data[i] = other.m_data[i];
+			this->m_data[i] = static_cast<_t>(other.m_data[i]);
 	}
 
 	template<typename _t, vecsize _s> // Sizecast constructor

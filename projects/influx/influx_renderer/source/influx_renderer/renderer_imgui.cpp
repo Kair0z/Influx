@@ -74,7 +74,7 @@ namespace influx::renderer
 
 	void imgui_manager::setup_state(
 		graphics::commandlist* commandlist,
-		const vector<ImDrawData*>& draws)
+		const vector<ImDrawData const*>& draws)
 	{
 		// update vertex / index buffers
 		update_buffers(draws);
@@ -90,12 +90,12 @@ namespace influx::renderer
 		commandlist->set(mp_rootsig);
 	}
 
-	void imgui_manager::render(graphics::commandlist* commandlist, ImDrawData* draw_data, const target& target)
+	void imgui_manager::render(graphics::commandlist* commandlist, const ImDrawData& draw, const target& target)
 	{
-		render(commandlist, { draw_data }, { target });
+		render(commandlist, vector<ImDrawData const*>{ &draw }, vector<renderer::target const*>{ &target });
 	}
 
-	void imgui_manager::render(graphics::commandlist* commandlist, vector<ImDrawData*> draws, const vector<target*>& targets)
+	void imgui_manager::render(graphics::commandlist* commandlist, const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
 	{
 		if (draws.size() <= 0u) return;
 		if (targets.size() <= 0u) return;
@@ -162,11 +162,11 @@ namespace influx::renderer
 				const ImDrawList* cmd_list = draw.CmdLists[n];
 				for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; ++cmd_i)
 				{
-					const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
+					const ImDrawCmd& command = cmd_list->CmdBuffer[cmd_i];
 
 					// Project scissor/clipping rectangles into framebuffer space
-					ImVec2 clip_min(pcmd->ClipRect.x - clip_off.x, pcmd->ClipRect.y - clip_off.y);
-					ImVec2 clip_max(pcmd->ClipRect.z - clip_off.x, pcmd->ClipRect.w - clip_off.y);
+					ImVec2 clip_min(command.ClipRect.x - clip_off.x, command.ClipRect.y - clip_off.y);
+					ImVec2 clip_max(command.ClipRect.z - clip_off.x, command.ClipRect.w - clip_off.y);
 					if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
 						continue;
 
@@ -183,10 +183,10 @@ namespace influx::renderer
 					// if this command has a bound TexID (texture*/void*),
 					// we should stage the texture (allocate gpu descriptor)
 					// and bind that range to the commandlist
-					const bool command_has_texture = pcmd->GetTexID() != 0u;
+					const bool command_has_texture = command.GetTexID() != 0u;
 					if (command_has_texture)
 					{
-						texture* tex = reinterpret_cast<texture*>(pcmd->GetTexID());
+						texture* tex = reinterpret_cast<texture*>(command.GetTexID());
 						if (tex != nullptr)
 						{
 							tex_gpu_range = descriptor_manager.stage(tex);
@@ -199,10 +199,10 @@ namespace influx::renderer
 
 					commandlist->set(tex_gpu_range, 1u);
 					commandlist->draw_indexed({
-						.m_num_indexes_per_instance = pcmd->ElemCount,
+						.m_num_indexes_per_instance = command.ElemCount,
 						.m_num_instances = 1u,
-						.m_start_index = pcmd->IdxOffset + global_idx_offset,
-						.m_start_vertex = (int)pcmd->VtxOffset + global_vtx_offset,
+						.m_start_index = command.IdxOffset + global_idx_offset,
+						.m_start_vertex = (int)command.VtxOffset + global_vtx_offset,
 						.m_start_instance = 0u
 						});
 				}
@@ -362,7 +362,7 @@ namespace influx::renderer
 		mp_pipeline = device->create_graphics_pipeline(mp_rootsig, pipeline_desc);
 	}
 
-	void imgui_manager::update_buffers(const vector<ImDrawData*>& draws)
+	void imgui_manager::update_buffers(const vector<ImDrawData const*>& draws)
 	{
 		uint32 total_num_vertices = 0u;
 		uint32 total_num_indices = 0u;

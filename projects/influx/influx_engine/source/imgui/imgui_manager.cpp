@@ -12,6 +12,7 @@
 
 // influx::platform
 #include "influx_platform/window.h"
+#include "influx_platform/platform.h"
 
 // influx::renderer
 #include "influx_renderer.h"
@@ -89,10 +90,15 @@ namespace influx::engine
 
 	void imgui_manager::render(const renderer::scene_imgui& scene)
 	{
+		ImGuiIO& io = ImGui::GetIO();
+		logn("mouse viewport: {}", io.MouseHoveredViewport);
+
 		if (scene.is_empty() == false)
 		{
 			window_manager& windowman = get_engine()->get_windowman();
 			ImGuiContext* context = ImGui::GetCurrentContext();
+
+			update_mousedata();
 
 			// do the full render
 			ImGui::NewFrame();
@@ -102,8 +108,8 @@ namespace influx::engine
 
 			// execute the draw for each viewport
 			ImGuiPlatformIO& platio = ImGui::GetPlatformIO();
-			vector<ImDrawData*> draws{}; 
-			vector<renderer::target*> targets{};
+			vector<ImDrawData const*> draws{};  draws.reserve(platio.Viewports.Size);
+			vector<renderer::target const*> targets{}; targets.reserve(platio.Viewports.Size);
 			for (const auto& viewport : platio.Viewports)
 			{
 				viewport_data& data = m_viewports[viewport->ID];
@@ -133,6 +139,7 @@ namespace influx::engine
 	static imgui_manager* g_imguiman = nullptr;
 
 #pragma region multiviewport hooks
+	const bool g_mute = true;
 	inline static ImVec2 translate(const math::vectoru2& f2)
 	{
 		return ImVec2((float)f2.x, (float)f2.y);
@@ -215,6 +222,8 @@ namespace influx::engine
 	}
 	void imgui_manager::set_windowpos(ImGuiViewport* viewport, ImVec2 position)
 	{
+		if (!g_mute) logn("viewport:set_windowpos {},{}", position.x, position.y);
+
 		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
 		window.set_position({ position.x, position.y });
@@ -223,7 +232,11 @@ namespace influx::engine
 	{
 		viewport_data& data = get_data(viewport);
 		platform::window& window = g_windowman->get_window(data.m_window_id);
-		return translate(window.get_position());
+		const math::vectoru2 windowpos = window.get_position();
+
+		if (!g_mute) logn("viewport:get_windowpos {},{}", windowpos.x, windowpos.y);
+
+		return translate(windowpos);
 	}
 	void imgui_manager::set_windowsize(ImGuiViewport* viewport, ImVec2 size)
 	{
@@ -433,6 +446,19 @@ namespace influx::engine
 			else
 			{
 				platformio.Monitors.push_back(imgui_monitor);
+			}
+		}
+	}
+
+	void imgui_manager::update_mousedata()
+	{
+		platform::window_handle cursored_window = platform::platform::find_window_from_cursor();
+		if (cursored_window != nullptr)
+		{
+			ImGuiViewport* viewport = find_viewport(cursored_window);
+			if (viewport)
+			{
+				ImGui::GetIO().AddMouseViewportEvent(viewport->ID);
 			}
 		}
 	}

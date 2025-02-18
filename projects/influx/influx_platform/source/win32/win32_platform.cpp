@@ -23,4 +23,24 @@ namespace influx::platform
 	{
 		::SetCurrentDirectory(to_wstring(path).c_str());
 	}
+
+	math::vectoru2 platform::get_cursor_screenpos()
+	{
+		POINT mouse_screen_pos;
+		bool has_mouse_screen_pos = ::GetCursorPos(&mouse_screen_pos) != 0;
+
+		return math::vectoru2(mouse_screen_pos.x, mouse_screen_pos.y);
+	}
+
+	window_handle platform::find_window_from_cursor()
+	{
+		POINT mouse_screen_pos;
+		bool has_mouse_screen_pos = ::GetCursorPos(&mouse_screen_pos) != 0;
+		if (has_mouse_screen_pos)
+		{
+			return (window_handle)::WindowFromPoint(mouse_screen_pos);
+		}
+		
+		return nullptr;
+	}
 }

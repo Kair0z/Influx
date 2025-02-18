@@ -7,6 +7,7 @@ namespace influx::platform
 	{
 	public:
 		win32_window(const window_desc& desc);
+		win32_window(const window_handle& handle);
 
 		virtual void set_visibility(e_visibility) override;
 

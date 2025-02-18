@@ -149,7 +149,8 @@ namespace influx::rendergraph
 			m_namehash = hasher(name);
 
 #if INFLUX_DEBUG
-			m_name = name.c_str();
+			m_namestr = name;
+			m_name = m_namestr.c_str();
 #endif
 		}
 
@@ -170,6 +171,7 @@ namespace influx::rendergraph
 		}
 
 #if INFLUX_DEBUG
+		string m_namestr = "";
 		char const* m_name;
 #endif
 		uint64 m_namehash;

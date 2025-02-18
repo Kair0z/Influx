@@ -19,6 +19,13 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
+	struct target_signature final
+	{
+		string m_name;
+		math::vectoru2 m_dimensions;
+		uint64 m_uid{};
+	};
+
 	struct target_create_args final
 	{
 		target_create_args() = default;

@@ -25,16 +25,15 @@ namespace influx::renderer
 	{
 	public:
 		imgui_manager(graphics::device* device);
-		void render(graphics::commandlist* commandlist, ImDrawData* draw_data, const target& target);
-		void render(graphics::commandlist* commandlist, vector<ImDrawData*> draws, const vector<target*>& targets);
-
+		void render(graphics::commandlist* commandlist, const ImDrawData& draw, const target& target);
+		void render(graphics::commandlist* commandlist, const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
+		
 	private:
 		void create_fonts_texture(graphics::device* device);
 		void create_shaders();
 		void create_pipeline(graphics::device* device);
-		void update_buffers(const vector<ImDrawData*>& draws);
-		void setup_state(graphics::commandlist*, 
-			const vector<ImDrawData*>& draws);
+		void update_buffers(const vector<ImDrawData const*>& draws);
+		void setup_state(graphics::commandlist*, const vector<ImDrawData const*>& draws);
 
 		graphics::device* mp_device = nullptr;
 		graphics::graphics_pipeline* mp_pipeline = nullptr;

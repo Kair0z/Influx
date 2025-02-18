@@ -10,7 +10,6 @@
 namespace influx::platform
 {
 	class window;
-	using window_handle = void*;
 
 	enum class e_messagebox : uint8
 	{
@@ -137,6 +136,7 @@ namespace influx::platform
 	{
 	public:
 		INFLUX_PLATFORM_API static window* create(const window_desc& desc);
+		INFLUX_PLATFORM_API static window* import_window(const window_handle& handle);
 
 		// gets the main current window
 		static window& get_current();
