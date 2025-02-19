@@ -162,8 +162,9 @@ namespace influx::renderer
         shader_manager& shaderman = backend.get_shader_manager();
         
         bool has_all_shaders = true;
-        vector<shader::shader_signature> shader_dependencies = pipelineman.get_pipeline_shader_dependencies();
-        for (const shader::shader_signature& shadersig : shader_dependencies)
+        
+        const auto& pipeline_signature = get_pipeline_sig();
+        for (const shader::shader_signature& shadersig : pipeline_signature.get_shader_signatures())
         {
             if (shaderman.has_shader(shadersig) == false)
             {

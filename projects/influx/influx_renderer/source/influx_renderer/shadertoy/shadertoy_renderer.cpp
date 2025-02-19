@@ -48,7 +48,7 @@ namespace influx::renderer
             signature.m_alpha_sources[0]   = graphics::e_blend::one;
             signature.m_alpha_dests[0]     = graphics::e_blend::zero;
             signature.m_alpha_ops[0]       = graphics::e_blendop::add;
-            signature.m_blend_writemasks[0] = graphics_pipeline_signature::blend_all;
+            signature.m_blend_writemasks[0] = 15u;
         }
         return signature;
     }

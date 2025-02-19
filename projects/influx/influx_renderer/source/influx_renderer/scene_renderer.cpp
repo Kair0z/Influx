@@ -36,7 +36,7 @@ namespace influx::renderer
         static bool once = true;
         if (once)
         {
-            signature.m_bindless = true;
+            signature.m_is_bindless = true;
             signature.set_shader_id(graphics_pipeline::e_shader_slot::vs, "basepass::main_vs");
             signature.set_shader_id(graphics_pipeline::e_shader_slot::ps, "basepass::main_ps");
 
@@ -67,7 +67,7 @@ namespace influx::renderer
                 {
                     signature.m_rtv_actives[i] = true;
                     signature.m_rtv_formats[i] = k_gbuffer_formats[i];
-                    signature.m_blend_writemasks[i] = graphics_pipeline_signature::blendmask::blend_all;
+                    signature.m_blend_writemasks[i] = 15u;
                 }
                 else
                 {
@@ -84,7 +84,7 @@ namespace influx::renderer
     static compute_pipeline_signature& get_scene_resolve_pipeline_signature()
     {
         static compute_pipeline_signature signature{};
-        signature.m_bindless = true;
+        signature.m_is_bindless = true;
         signature.set_shader_id(compute_pipeline::e_shader_slot::cs, "resolvepass::main_cs");
         return signature;
     };
@@ -371,7 +371,7 @@ namespace influx::renderer
         }
 
         // hot-reload our shaders if necessary:
-        pipeline.update_shaders(backend.get_device());
+        pipeline.rebuild(backend.get_device());
 
         influx_scope("renderer_backend::draw_scene::record");
         logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
@@ -474,7 +474,7 @@ namespace influx::renderer
         graphics::commandlist& commandlist = context.get_commandlist();
 
         // hot-reload our shaders if necessary:
-        pipeline.update_shaders(backend.get_device());
+        pipeline.rebuild(backend.get_device());
 
         // update buffers for deferred lights
         update_lightbuffers(scene);

@@ -4,6 +4,7 @@
 // influx::core
 #include "core/string.h"
 #include "core/container/map.h"
+#include "core/container/array.h"
 
 // influx::renderer
 #include "influx_renderer/renderer_backend.h"
@@ -87,7 +88,7 @@ namespace influx::renderer
 		{
 			switch (slot)
 			{
-			case graphics::compute_shaderslots::cs: return shader::e_shader_type::cs;
+			case graphics::e_compute_shader_slots::cs: return shader::e_shader_type::cs;
 			}
 		}
 		else if constexpr (_t == graphics::e_pipeline_type::raytracing)
@@ -97,145 +98,162 @@ namespace influx::renderer
 		{
 			static_assert(false, "unsupported pipeline type");
 		}
+
+		return shader::e_shader_type::count;
+	}
+
+	template <graphics::e_pipeline_type _t>
+	static constexpr uint32 slot_to_index(typename graphics::shader_slots<_t>::enum_type slot)
+	{
+		return static_cast<uint32>(slot);
+	}
+
+	template <graphics::e_pipeline_type _t>
+	static constexpr graphics::shader_slots<_t>::enum_type index_to_slot(uint32 index)
+	{
+		return static_cast<graphics::shader_slots<_t>::enum_type>(index);
 	}
 #pragma endregion
 
 #pragma region pipeline signatures
-	struct graphics_pipeline_signature final
+	template <graphics::e_pipeline_type _t>
+	struct pipeline_signature
 	{
+		using shader_slots = graphics::shader_slots<_t>;
+		using e_shader_slot = shader_slots::enum_type;
+		constexpr static uint8 k_num_shaders = graphics::shader_slots<_t>::count;
+
+		bool		m_is_bindless = false;
+		string		m_shader_identifiers[k_num_shaders]{};
+		bool operator==(const pipeline_signature<_t>&) const = default; // Automatically generates an equality operator
+
+		inline static shader::shader_signature make_shader_signature(const shader::e_shader_type type, const shader::e_shader_target target, const string& identifier)
+		{
+			shader::shader_signature shader_signature{};
+			shader_signature.m_type = type;
+			shader_signature.m_target = target;
+
+			if (!identifier.empty())
+			{
+				auto split = str::split(identifier, "::");
+				shader_signature.m_entrypoint = split[1];
+				shader_signature.m_filename = split[0];
+				shader_signature.cache_id();
+			}
+
+			return shader_signature;
+		}
+
+		inline stat_array<shader::shader_signature, k_num_shaders> get_shader_signatures() const
+		{
+			stat_array<shader::shader_signature, k_num_shaders> signatures{};
+
+			// for each shader id in our shader slots, build a shader signature
+			for (uint32 i = 0u; i < k_num_shaders; ++i)
+			{
+				const string& id_string = m_shader_identifiers[i];
+				const e_shader_slot slot = static_cast<e_shader_slot>(i);
+				signatures[i] = make_shader_signature(slot_to_type<_t>(slot), shader::e_shader_target::_6_6, id_string);
+			}
+
+			return signatures;
+		}
+
+		inline static constexpr uint32 get_num_shaderslots()
+		{
+			return k_num_shaders;
+		}
+
 		inline uint64 get_hash() const
 		{
 			uint64 result_hash = 0u;
 			std::hash<byte> hasher{};
 			std::hash<string> string_hasher{};
 
-			// let's be lazy here :)))
+			// let's be lazy AND generic here :)))
 			byte const* raw_data = reinterpret_cast<byte const*>(this);
-			for (uint64 i = 0u; i < sizeof(graphics_pipeline_signature); ++i)
+			for (uint64 i = 0u; i < sizeof(pipeline_signature<_t>); ++i)
 			{
 				const byte current_byte = raw_data[i];
 				result_hash = result_hash ^ (hasher(current_byte) + 0x9e3779b9 + (result_hash << 6) + (result_hash >> 2));
 			}
-
-			for (uint32 i = 0u; i < graphics::graphics_shaderslots::num; ++i)
+			for (uint32 i = 0u; i < k_num_shaders; ++i)
 			{
 				result_hash ^= string_hasher(m_shader_identifiers[i]);
 			}
-			
 			return result_hash;
 		}
 
+		inline void set_shader_id(const e_shader_slot slot, const string& identifier)
+		{
+			m_shader_identifiers[slot_to_index<_t>(slot)] = identifier;
+		}
+
+		inline const string& get_shader_id(const e_shader_slot slot) const
+		{
+			return m_shader_identifiers[slot_to_index<_t>(slot)];
+		}
+
+		inline bool is_valid() const
+		{
+			if constexpr (_t == graphics::e_pipeline_type::graphics)
+			{
+				// any graphics pipeline requires a valid vs!
+				const bool vs_valid = get_shader_id(graphics::e_graphics_shader_slots::vs).empty() == false;
+				const bool rtvs_valid = get_num_active_rtvs() > 0u;
+
+				return vs_valid && rtvs_valid;
+			}
+			else return true;
+		}
+
+		inline static constexpr bool is_shader_optional(const shader::e_shader_type type)
+		{
+			return shader_slots::is_optional(type_to_slot<_t>(type));
+		}
+
+		// todo: this should not be stored inside non-graphics signatures...
+#pragma region GRAPHICS_BIT
 		// rtvs & dsvs
 		static constexpr uint8 k_max_num_rendertargets = graphics::k_max_render_targets;
 
-#pragma region enums
-		enum samplemask : uint32
-		{
-			all = (uint32)-1
-		};
-		enum blendmask : uint32
-		{
-			blend_all = 15u
-		};
-		enum format : uint32
-		{
-			rgba8	= 0u,
-			default_color = rgba8,
-			r32		= 1u,
-			rg32	= 2u,
-			rgb32	= 3u,
-			rgba32	= 4u,
-			d32		= 5u,
-			default_depth = d32,
-			u16		= 6u,
-			u32		= 7u,
-			u32_4	= 8u,
-		};
-		enum blendop : uint32
-		{
-			op_add				= 1,
-			op_subtract			= 2,
-			op_rev_subtract		= 3,
-			op_min				= 4,
-			op_max				= 5
-		};
-		enum blend : uint32
-		{
-			bl_zero				= 1,
-			bl_one				= 2,
-			bl_src_color		= 3,
-			bl_inv_src_color	= 4,
-			bl_src_alpha		= 5,
-			bl_inv_src_alpha	= 6,
-			bl_dest_alpha		= 7,
-			bl_inv_dest_alpha	= 8,
-			bl_dest_color		= 9,
-			bl_inv_dest_color	= 10,
-			bl_src_alpha_sat	= 11,
-			bl_blend_factor		= 14,
-			bl_inv_blend_factor = 15,
-			bl_src1_color		= 16,
-			bl_inv_src1_color	= 17,
-			bl_src1_alpha		= 18,
-			bl_inv_src1_alpha	= 19,
-			bl_alpha_factor		= 20,
-			bl_inv_alpha_factor = 21,
-		};
-#pragma endregion
-		bool m_bindless = false;
-
-		// shaders
-		string m_shader_identifiers[ graphics::graphics_shaderslots::num ]{};
-
 		// rasterizer
-		graphics::e_primitive_topology_type m_primitive_type		= graphics::e_primitive_topology_type::triangle;
-		graphics::e_cull_mode				m_cullmode				= graphics::e_cull_mode::back;
-		graphics::e_fill_mode				m_fillmode				= graphics::e_fill_mode::solid;
-		uint32								m_forced_samplecount	= 0u;
-		uint32								m_sample_mask			= samplemask::all;
-		uint32								m_sample_count			= 1u;
-		bool								m_front_ccw				= true;
-		bool								m_depthclip				= true;
-		bool								m_multisample			= false;
-		bool								m_antialiased_line		= false;
-		bool								m_conservative_raster	= false;
-		int									m_depthbias				= 0;
-		float								m_depthbias_clamp		= 0.0f;
-		float								m_slope_depthbias		= 0.0f;
+		graphics::e_primitive_topology_type m_primitive_type = graphics::e_primitive_topology_type::triangle;
+		graphics::e_cull_mode				m_cullmode = graphics::e_cull_mode::back;
+		graphics::e_fill_mode				m_fillmode = graphics::e_fill_mode::solid;
+		uint32								m_forced_samplecount = 0u;
+		uint32								m_sample_mask = 15u; // all
+		uint32								m_sample_count = 1u;
+		bool								m_front_ccw = true;
+		bool								m_depthclip = true;
+		bool								m_multisample = false;
+		bool								m_antialiased_line = false;
+		bool								m_conservative_raster = false;
+		int									m_depthbias = 0;
+		float								m_depthbias_clamp = 0.0f;
+		float								m_slope_depthbias = 0.0f;
 
 		// depth target
-		bool						m_depth_enable		= false;
-		bool						m_stencil_enable	= false;
-		graphics::e_comparison_func	m_depth_comparison	= graphics::e_comparison_func::less;
-		graphics::e_format			m_depth_format		= graphics::e_format::d32;
+		bool						m_depth_enable = false;
+		bool						m_stencil_enable = false;
+		graphics::e_comparison_func	m_depth_comparison = graphics::e_comparison_func::less;
+		graphics::e_format			m_depth_format = graphics::e_format::d32;
 
 		// render targets
-		bool				m_rtv_actives[graphics::k_max_render_targets]	= { true };
-		graphics::e_format	m_rtv_formats[graphics::k_max_render_targets]	= { graphics::e_format::rgba8 };
+		bool				m_rtv_actives[graphics::k_max_render_targets] = { true };
+		graphics::e_format	m_rtv_formats[graphics::k_max_render_targets] = { graphics::e_format::rgba8 };
 
 		// blend
-		bool m_blend_actives				[graphics::k_max_render_targets] = { false };
-		graphics::e_blend	m_blend_sources	[graphics::k_max_render_targets] = { graphics::e_blend::one };
-		graphics::e_blend	m_blend_dests	[graphics::k_max_render_targets] = { graphics::e_blend::zero };
-		graphics::e_blendop m_blend_ops		[graphics::k_max_render_targets] = { graphics::e_blendop::add };
-		graphics::e_blend	m_alpha_sources	[graphics::k_max_render_targets] = { graphics::e_blend::one };
-		graphics::e_blend	m_alpha_dests	[graphics::k_max_render_targets] = { graphics::e_blend::zero };
-		graphics::e_blendop m_alpha_ops		[graphics::k_max_render_targets] = { graphics::e_blendop::add };
-		blendmask m_blend_writemasks		[graphics::k_max_render_targets] = { blendmask::blend_all };
+		bool m_blend_actives[graphics::k_max_render_targets] = { false };
+		graphics::e_blend	m_blend_sources[graphics::k_max_render_targets] = { graphics::e_blend::one };
+		graphics::e_blend	m_blend_dests[graphics::k_max_render_targets] = { graphics::e_blend::zero };
+		graphics::e_blendop m_blend_ops[graphics::k_max_render_targets] = { graphics::e_blendop::add };
+		graphics::e_blend	m_alpha_sources[graphics::k_max_render_targets] = { graphics::e_blend::one };
+		graphics::e_blend	m_alpha_dests[graphics::k_max_render_targets] = { graphics::e_blend::zero };
+		graphics::e_blendop m_alpha_ops[graphics::k_max_render_targets] = { graphics::e_blendop::add };
+		uint32 m_blend_writemasks[graphics::k_max_render_targets] = { 15u };
 
-		bool operator==(const graphics_pipeline_signature&) const = default; // Automatically generates an equality operator
-		
-		void set_shader_id(graphics::e_graphics_shader_slots slot, const string& identifier)
-		{
-			m_shader_identifiers[static_cast<uint8>(slot)] = identifier;
-		}
-
-		string get_shader_id(graphics::e_graphics_shader_slots slot) const
-		{
-			return m_shader_identifiers[static_cast<uint8>(slot)];
-		}
-
-		uint32 get_num_active_rtvs() const
+		inline uint32 get_num_active_rtvs() const
 		{
 			uint32 count = 0u;
 			for (uint8 i = 0u; i < k_max_num_rendertargets; ++i)
@@ -244,100 +262,12 @@ namespace influx::renderer
 			}
 			return count;
 		}
-
-		bool is_valid() const
-		{
-			// any graphics pipeline requires a valid vs!
-			const bool vs_valid = get_shader_id(graphics::e_graphics_shader_slots::vs).empty() == false;
-			const bool rtvs_valid = get_num_active_rtvs() > 0u;
-
-			return vs_valid && rtvs_valid;
-		}
+#pragma endregion
 	};
 
-	struct compute_pipeline_signature final
-	{
-		inline uint64 get_hash() const
-		{
-			uint64 result_hash = 0u;
-			std::hash<byte> hasher{};
-			std::hash<string> string_hasher{};
-
-			// let's be lazy here :)))
-			byte const* raw_data = reinterpret_cast<byte const*>(this);
-			for (uint64 i = 0u; i < sizeof(graphics_pipeline_signature); ++i)
-			{
-				const byte current_byte = raw_data[i];
-				result_hash = result_hash ^ (hasher(current_byte) + 0x9e3779b9 + (result_hash << 6) + (result_hash >> 2));
-			}
-
-			for (uint32 i = 0u; i < graphics::compute_shaderslots::num; ++i)
-			{
-				result_hash ^= string_hasher(m_shader_identifiers[i]);
-			}
-
-			return result_hash;
-		}
-
-		void set_shader_id(graphics::e_compute_shader_slots slot, const string& identifier)
-		{
-			m_shader_identifiers[static_cast<uint8>(slot)] = identifier;
-		}
-
-		const string& get_shader_id(graphics::e_compute_shader_slots slot) const
-		{
-			return m_shader_identifiers[static_cast<uint8>(slot)];
-		}
-
-		bool m_bindless = false;
-		string m_shader_identifiers[graphics::compute_shaderslots::num]{};
-		bool operator==(const compute_pipeline_signature&) const = default; // Automatically generates an equality operator
-		
-		bool is_valid() const
-		{
-			return true;
-		}
-	};
-
-	struct raytracing_pipeline_signature final
-	{
-		inline uint64 get_hash() const
-		{
-			uint64 result_hash = 0u;
-			std::hash<byte> hasher{};
-			std::hash<string> string_hasher{};
-
-			// let's be lazy here :)))
-			byte const* raw_data = reinterpret_cast<byte const*>(this);
-			for (uint64 i = 0u; i < sizeof(graphics_pipeline_signature); ++i)
-			{
-				const byte current_byte = raw_data[i];
-				result_hash = result_hash ^ (hasher(current_byte) + 0x9e3779b9 + (result_hash << 6) + (result_hash >> 2));
-			}
-
-			for (uint32 i = 0u; i < graphics::raytracing_shaderslots::num; ++i)
-			{
-				result_hash ^= string_hasher(m_shader_identifiers[i]);
-			}
-
-			return result_hash;
-		}
-
-		bool m_bindless = false;
-		string m_shader_identifiers[graphics::raytracing_shaderslots::num]{};
-		bool operator==(const raytracing_pipeline_signature&) const = default; // Automatically generates an equality operator
-		
-		bool is_valid() const
-		{
-			return true;
-		}
-	};
-
-	template <graphics::e_pipeline_type _t>
-	using pipeline_signature = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
-		graphics_pipeline_signature,
-		compute_pipeline_signature,
-		raytracing_pipeline_signature>>;
+	using graphics_pipeline_signature = pipeline_signature<graphics::e_pipeline_type::graphics>;
+	using compute_pipeline_signature = pipeline_signature<graphics::e_pipeline_type::compute>;
+	using raytracing_pipeline_signature = pipeline_signature<graphics::e_pipeline_type::raytracing>;
 #pragma endregion
 
 #pragma region translation
@@ -393,6 +323,7 @@ namespace influx::renderer
 	}
 #pragma endregion
 
+	// templated wrapper around graphics::e_pipeline_type
 	template <graphics::e_pipeline_type _t>
 	class pipeline final
 	{
@@ -403,69 +334,28 @@ namespace influx::renderer
 
 		using signature_type = pipeline_signature<_t>;
 		using pipeline_desc = graphics::pipeline_desc<_t>;
-		using pipeline_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
-			graphics::graphics_pipeline,
-			graphics::compute_pipeline,
-			graphics::raytracing_pipeline>>;
+		using pipeline_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple< 
+			graphics::graphics_pipeline, graphics::compute_pipeline, graphics::raytracing_pipeline>>;
 
-		graphics::rootsignature_desc m_rootsig_desc{};
-		graphics::rootsignature* m_rootsig = nullptr;
-		pipeline_desc_type m_desc{};
-		pipeline_type* m_pipeline = nullptr;
-
-		// info
+		graphics::rootsignature_desc	m_rootsig_desc{};
+		graphics::rootsignature*		m_rootsig = nullptr;
+		pipeline_desc					m_desc{};
+		pipeline_type*					m_pipeline = nullptr;
+		signature_type					m_signature{};
 		umap<string, uint32>			m_name_to_register;
 		umap<string, uint32>			m_name_to_param_idx;
 		debug_name						m_name;
 
-		// signature & desc
-		signature_type m_signature{};
-		
 		// shaders
-		
 		shader_data const*			m_shaders[k_num_shaders]{};
 		shader::reflection const*	m_shader_reflections[k_num_shaders]{};
 		time::point					m_shader_loadpoints[k_num_shaders]{};
-		bool m_needs_rebuild = false;
+		bool						m_needs_rebuild = false;
+
+		// todo: fix hardcoding
+		static constexpr shader::e_shader_target k_hardcoded_target = shader::e_shader_target::_6_6;
 
 	public:
-		// STATIC api
-		// WARNING: identifier does not specify shader TARGET
-		inline static shader::shader_signature make_shader_signature(
-			const shader::e_shader_type type,
-			const shader::e_shader_target target,
-			const string& identifier)
-		{
-			auto split = str::split(id_string, "::");
-
-			shader::shader_signature shader_signature{};
-			shader_signature.m_entrypoint = split[1];
-			shader_signature.m_filename = split[0];
-			shader_signature.m_type = type;
-			shader_signature.m_target = target;
-			shader_signature.cache_id();
-			return shader_signature;
-		}
-
-		inline static constexpr shader::shader_signature[k_num_shaders] get_shader_signatures(const signature_type& signature)
-		{
-			shader::shader_signature signatures[k_num_shaders]{};
-
-			// for each shader id in our shader slots, build a shader signature
-			for (uint32 i = 0u; i < k_num_shaders; ++i)
-			{
-				const string& id_string = signature.m_shader_identifier[i];
-				const e_shader_slot slot = static_cast<e_shader_slot>(i);
-				shader_signatures[i] = make_signature(slot_to_type(slot), shader::e_shader_target::_6_6, id_string);
-			}
-
-			return shader_signatures;
-		}
-		inline static constexpr uint32 get_num_shaderslots()
-		{
-			return k_num_shaders;
-		}
-
 		// RUNTIME api
 		pipeline() = default;
 		pipeline(graphics::device & device, const signature_type & signature)
@@ -478,98 +368,64 @@ namespace influx::renderer
 				m_shader_loadpoints[i] = begin;
 			}
 
-			update_shaders(signature);
-			rebuild_rootsignature(device, signature);
-			rebuild_pipeline(device, signature);
+			m_needs_rebuild = true;
+			rebuild(device);
 		}
 
 		// call this to re-fetch shaders from shader_manager and possibly rebuild the pipeline
-		void update_shaders(graphics::device & device)
+		void rebuild(graphics::device& device)
 		{
-			update_shaders(m_signature);
+			update_shaders();
 
 			if (m_needs_rebuild)
 			{
 				rebuild_rootsignature(device, m_signature);
 				rebuild_pipeline(device, m_signature);
 			}
+
+			m_needs_rebuild = false;
 		}
-		void update_shader(const shader::shader_signature & shader_sig, shader::e_shader_type type)
+
+		void update_shaders()
 		{
 			static renderer_backend& backend = renderer_backend::get_instance();
 			static shader_manager& shaderman = backend.get_shader_manager();
 
-			const e_shader_slot slot = type_to_slot<_t>(type);
-			const uint8 slot_index = static_cast<uint8>(slot);
+			influx_assert(m_signature.is_valid());
 
-			// setup entrypoint & type
-			string shader_id = m_signature.m_shader_identifiers[static_cast<uint8>(slot)];
-			if (!shader_id.empty())
+			// update shader in each slot
+			for (uint32 i = 0u; i < m_signature.get_num_shaderslots(); ++i)
 			{
-				shader::shader_signature shader_signature_copy = shader_sig;
-				auto split = str::split(shader_id, "::");
-				shader_signature_copy.m_entrypoint = split[1];
-				shader_signature_copy.m_filename = split[0];
-				shader_signature_copy.m_type = type;
-				shader_signature_copy.cache_id();
+				const e_shader_slot slot = index_to_slot<_t>(i);
+				const shader::e_shader_type shader_type = slot_to_type<_t>(slot);
+
+				// gather the shader signature based off the pipeline signature
+				const shader::shader_signature shader_signature 
+					= m_signature.make_shader_signature(shader_type, k_hardcoded_target, m_signature.m_shader_identifiers[i]);
 
 				// get the appropriate shadermap and store into slot
-				shader_map& shadermap = shaderman.get_shadermap(type, shader_signature_copy.m_target);
-				const shader_data* new_shader = shadermap.get_shader(shader_signature_copy);
+				const shader_map& shadermap = shaderman.get_shadermap(shader_type, k_hardcoded_target);
+				const shader_data* new_shader = shadermap.get_shader(shader_signature);
+				const bool is_optional = m_signature.is_shader_optional(shader_type);
 				if (new_shader == nullptr)
 				{
-					logerr("pipeline::update_shader() >> shadermap has no shader of type {}", shader_signature_copy.m_tag);
-					influx_assert(false);
+					if (is_optional == false)
+					{
+						logerr("pipeline::update_shader() >> shader_manager is missing a non-optional shader! {}", shader_signature.m_tag);
+						influx_assert(false);
+					}
 				}
-
-
-				// if new data is newer than previous loadpoint, flag rebuild
-				if (new_shader->m_time_loaded > m_shader_loadpoints[slot_index])
+				else
 				{
-					m_needs_rebuild = true;
-				}
+					// if new data is newer than previous loadpoint, flag a rebuild
+					if (new_shader->is_newer_than(m_shader_loadpoints[i]))
+					{
+						m_needs_rebuild = true;
+					}
 
-				// re-store the pointer & update the loadpoint
-				m_shaders[slot_index] = new_shader;
-				m_shader_loadpoints[slot_index] = time::get_now();
-			}
-		}
-		void update_shaders(const signature_type & signature)
-		{
-			shader::shader_signature shader_sig = {};
-			shader_sig.m_target = shader::e_shader_target::_6_6;
-
-			if constexpr (_t == graphics::e_pipeline_type::graphics)
-			{
-				update_shader(shader_sig, shader::e_shader_type::vs);
-				update_shader(shader_sig, shader::e_shader_type::ps);
-				update_shader(shader_sig, shader::e_shader_type::gs);
-				update_shader(shader_sig, shader::e_shader_type::ds);
-				update_shader(shader_sig, shader::e_shader_type::hs);
-			}
-			else if constexpr (_t == graphics::e_pipeline_type::compute)
-			{
-				update_shader(shader_sig, shader::e_shader_type::cs);
-			}
-			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
-			{
-				update_shader(shader_sig, shader::e_shader_type::rgs);
-				update_shader(shader_sig, shader::e_shader_type::mss);
-				update_shader(shader_sig, shader::e_shader_type::chs);
-				update_shader(shader_sig, shader::e_shader_type::ahs);
-				update_shader(shader_sig, shader::e_shader_type::ins);
-			}
-
-			// collect reflections
-			for (uint8 i = 0u; i < k_num_shaders; ++i)
-			{
-				// assert the non-optional stages
-				const bool is_slot_optional = shader_slots::is_optional(static_cast<e_shader_slot>(i));
-				influx_assert(m_shaders[i] != nullptr || is_slot_optional);
-
-				if (m_shaders[i] != nullptr)
-				{
-					m_shader_reflections[i] = &m_shaders[i]->m_reflection;
+					// re-store the pointer & update the loadpoint
+					m_shaders[i] = new_shader;
+					m_shader_loadpoints[i] = time::get_now();
 				}
 			}
 		}
@@ -581,27 +437,27 @@ namespace influx::renderer
 		}
 
 		template <typename _constants>
-		void set_constants(graphics::commandlist& cmdlist, const string& name, _constants& constants)
+		void set_constants(graphics::commandlist& cmdlist, const string& name, _constants& constants) const
 		{
 			set_constants(cmdlist, name, sizeof(_constants) / sizeof(uint32), &constants);
 		}
-		void set_constants(graphics::commandlist& cmdlist, const string& name, uint32 num_dwords, void* data)
+		void set_constants(graphics::commandlist& cmdlist, const string& name, uint32 num_dwords, void* data) const
 		{
 			cmdlist.set_constants(get_param_index(name), num_dwords, data, _t);
 		}
 
-		void set_resource_table(graphics::commandlist& cmdlist, const string& name, const graphics::descriptor_range& gpu_range)
+		void set_resource_table(graphics::commandlist& cmdlist, const string& name, const graphics::descriptor_range& gpu_range) const
 		{
 			cmdlist.set(gpu_range, get_param_index(name));
 		}
 
-		uint32 get_shader_register(const string& resource_name)
+		uint32 get_shader_register(const string& resource_name) const
 		{
-			return m_name_to_register[resource_name];
+			return m_name_to_register.at(resource_name);
 		}
-		uint32 get_param_index(const string& resource_name)
+		uint32 get_param_index(const string& resource_name) const
 		{
-			return m_name_to_param_idx[resource_name];
+			return m_name_to_param_idx.at(resource_name);
 		}
 
 		const debug_name& get_name() const
@@ -618,96 +474,89 @@ namespace influx::renderer
 			return m_signature;
 		}
 
+		bool is_valid() const
+		{
+			const bool are_graphics_objects_valid = m_pipeline != nullptr && m_rootsig != nullptr;
+
+			// assert / crash if a non-optional stage is empty
+			bool are_required_shaders_valid = true;
+			for (uint8 i = 0u; i < k_num_shaders; ++i)
+			{
+				const bool is_slot_optional = shader_slots::is_optional(static_cast<e_shader_slot>(i));
+				are_required_shaders_valid &= m_shaders[i] != nullptr || is_slot_optional;
+			}
+
+			return are_graphics_objects_valid && are_required_shaders_valid;
+		}
+
 	private:
+		void reflect_resource(graphics::rootsignature_desc& rootsig_desc, const shader::reflection::resource& resource, const e_shader_slot shaderslot)
+		{
+			if (!resource.m_name.empty())
+				m_name_to_register[resource.m_name] = resource.m_shader_register;
+
+			graphics::e_shader_visibility shader_vis{};
+			if constexpr (_t == graphics::e_pipeline_type::graphics)
+			{
+				if (shaderslot == graphics::e_graphics_shader_slots::vs) shader_vis |= graphics::e_shader_visibility::vertex;
+				if (shaderslot == graphics::e_graphics_shader_slots::ps) shader_vis |= graphics::e_shader_visibility::pixel;
+				if (shaderslot == graphics::e_graphics_shader_slots::ds) shader_vis |= graphics::e_shader_visibility::domain;
+				if (shaderslot == graphics::e_graphics_shader_slots::gs) shader_vis |= graphics::e_shader_visibility::geometry;
+				if (shaderslot == graphics::e_graphics_shader_slots::hs) shader_vis |= graphics::e_shader_visibility::hull;
+			}
+			else if constexpr (_t == graphics::e_pipeline_type::compute)
+			{
+				if (shaderslot == graphics::e_compute_shader_slots::cs) shader_vis |= graphics::e_shader_visibility::compute;
+			}
+			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
+			{
+			}
+
+			switch (resource.m_type)
+			{
+			case shader::reflection::resource::e_type::cbv:
+				rootsig_desc.add_root_constants((uint32)resource.m_bytesize / sizeof(uint32), resource.m_shader_register, resource.m_register_space, shader_vis);
+				rootsig_desc.name_last_constants(resource.m_name);
+				break;
+
+			case shader::reflection::resource::e_type::structured:
+				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+				rootsig_desc.name_last_resource_table(resource.m_name);
+				break;
+
+			case shader::reflection::resource::e_type::texture:
+				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+				rootsig_desc.name_last_resource_table(resource.m_name);
+				break;
+
+			case shader::reflection::resource::e_type::sampler:
+				rootsig_desc.add_root_sampler(resource.m_shader_register, resource.m_register_space, shader_vis);
+				rootsig_desc.name_last_sampler(resource.m_name);
+				break;
+			}
+		}
+
 		void rebuild_rootsignature(graphics::device& device, const signature_type& signature)
 		{
 			// build the root signature:
 			graphics::rootsignature_desc rootsig_desc{};
-			rootsig_desc.m_direct_indexing = signature.m_bindless;
+			rootsig_desc.m_direct_indexing = signature.m_is_bindless;
 
-			auto reflect_resource = [&rootsig_desc, this]
-			(const shader::reflection::resource& resource, graphics::e_shader_visibility shader_vis)
+			// reflect (if possible) the bound resources of each shader
+			for (uint8 i = 0u; i < k_num_shaders; ++i)
 			{
-				if (!resource.m_name.empty())
-					m_name_to_register[resource.m_name] = resource.m_shader_register;
-
-				switch (resource.m_type)
+				if (m_shaders[i] != nullptr)
 				{
-				case shader::reflection::resource::e_type::cbv:
-					rootsig_desc.add_root_constants((uint32)resource.m_bytesize / sizeof(uint32),
-						resource.m_shader_register, resource.m_register_space, shader_vis);
-					rootsig_desc.name_last_constants(resource.m_name);
-					break;
-
-				case shader::reflection::resource::e_type::structured:
-					rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
-						resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
-					rootsig_desc.name_last_resource_table(resource.m_name);
-					break;
-
-				case shader::reflection::resource::e_type::texture:
-					rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
-						resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
-					rootsig_desc.name_last_resource_table(resource.m_name);
-					break;
-
-				case shader::reflection::resource::e_type::sampler:
-					rootsig_desc.add_root_sampler(resource.m_shader_register, resource.m_register_space, shader_vis);
-					rootsig_desc.name_last_sampler(resource.m_name);
-					break;
-				}
-			};
-
-			if constexpr (_t == graphics::e_pipeline_type::graphics)
-			{
-				graphics::e_shader_visibility shader_visibilities[k_num_shaders]
-				{
-					graphics::e_shader_visibility::vertex,
-					graphics::e_shader_visibility::pixel,
-					graphics::e_shader_visibility::domain,
-					graphics::e_shader_visibility::geometry,
-					graphics::e_shader_visibility::hull
-				};
-
-				// reflect resources of each shader
-				for (uint8 i = 0u; i < k_num_shaders; ++i)
-				{
-					if (m_shader_reflections[i] != nullptr)
+					const shader::reflection& reflection = m_shaders[i]->m_reflection;
+					for (const shader::reflection::resource& resource : reflection.m_bound_resources)
 					{
-						for (const shader::reflection::resource& resource : m_shader_reflections[i]->m_bound_resources)
-						{
-							reflect_resource(resource, shader_visibilities[i]);
-						}
+						reflect_resource(rootsig_desc, resource, index_to_slot<_t>(i));
 					}
 				}
 			}
-			else if constexpr (_t == graphics::e_pipeline_type::compute)
-			{
-				graphics::e_shader_visibility shader_visibilities[k_num_shaders]
-				{
-					graphics::e_shader_visibility::compute
-				};
 
-				// reflect resources of each shader
-				for (uint8 i = 0u; i < k_num_shaders; ++i)
-				{
-					if (m_shader_reflections[i] != nullptr)
-					{
-						for (const shader::reflection::resource& resource : m_shader_reflections[i]->m_bound_resources)
-						{
-							reflect_resource(resource, shader_visibilities[i]);
-						}
-					}
-				}
-			}
-			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
-			{
-				influx_assert(false);
-			}
-
-			// create root signature (destroy previous
+			// create root signature (& destroy previous)
 			if (m_rootsig) device.release(m_rootsig);
-
 			m_rootsig = device.create_rootsignature(rootsig_desc);
 			m_name_to_param_idx = m_rootsig->get_param_idx_table();
 			influx_assert(m_rootsig->is_valid());
@@ -716,7 +565,7 @@ namespace influx::renderer
 		}
 		void rebuild_pipeline(graphics::device& device, const signature_type& signature)
 		{
-			pipeline_desc_type pipeline_desc{};
+			pipeline_desc pipeline_desc{};
 			pipeline_desc = translate(signature);
 
 			// set shaders
@@ -742,7 +591,7 @@ namespace influx::renderer
 				// parse the input elements from vertex shader reflection:
 				constexpr uint8 vertex_shader_idx = static_cast<uint8>(graphics::e_graphics_shader_slots::vs);
 				const shader_data& vertex_shader = *m_shaders[vertex_shader_idx];
-				const shader::reflection& vertex_reflection = *m_shader_reflections[vertex_shader_idx];
+				const shader::reflection& vertex_reflection = m_shaders[vertex_shader_idx]->m_reflection;
 				for (uint32 i = 0u; i < vertex_reflection.m_input_params.size(); ++i)
 				{
 					const shader::reflection::input_param& param = vertex_reflection.m_input_params[i];

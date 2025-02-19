@@ -50,6 +50,11 @@ namespace influx::renderer
 		vector<byte>			m_bytecode;
 		time::point				m_time_loaded;
 		uint32					m_num_times_loaded = 0u;
+
+		inline bool is_newer_than(const time::point& timepoint) const
+		{
+			return m_time_loaded > timepoint;
+		}
 	};
 
 	// arguments to pass to backend initialization

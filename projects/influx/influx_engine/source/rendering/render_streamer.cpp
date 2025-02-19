@@ -27,6 +27,9 @@ namespace influx::engine
 
 	void render_streamer::stream(const content_manager& content)
 	{
+		stream_images(content);
+		stream_shaders(content);
+		stream_meshes(content);
 	}
 	bool render_streamer::has_shader_loaded(const shader::shader_signature& signature) const
 	{

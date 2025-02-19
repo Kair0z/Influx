@@ -286,14 +286,15 @@ namespace influx::graphics
 
 	enum class e_shader_visibility : uint32
 	{
-		all = 0,
-		vertex = 1,
-		hull = 2,
-		domain = 3,
-		geometry = 4,
-		pixel = 5,
-		compute = 6,
-		count
+		none		= 0,
+		vertex		= 1 << 0,
+		hull		= 1 << 1,
+		domain		= 1 << 2,
+		geometry	= 1 << 3,
+		pixel		= 1 << 4,
+		compute		= 1 << 5,
+
+		all			= vertex | hull | domain | geometry | pixel | compute
 	};
 
 	enum class e_bind_flags : uint32
@@ -345,3 +346,4 @@ namespace influx::graphics
 ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_command);
 ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_resource_state);
 ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_bind_flags);
+ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_shader_visibility);

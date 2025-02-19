@@ -162,6 +162,8 @@ namespace influx::graphics
 
 	inline D3D12_SHADER_VISIBILITY translate(e_shader_visibility vis)
 	{
+		D3D12_SHADER_VISIBILITY result{};
+
 		switch (vis)
 		{
 		case e_shader_visibility::all: return D3D12_SHADER_VISIBILITY_ALL;
@@ -171,8 +173,8 @@ namespace influx::graphics
 		case e_shader_visibility::hull: return D3D12_SHADER_VISIBILITY_HULL;
 		case e_shader_visibility::geometry: return D3D12_SHADER_VISIBILITY_GEOMETRY;
 		case e_shader_visibility::compute:	return D3D12_SHADER_VISIBILITY_ALL;
-		default:
-		case e_shader_visibility::count:
+
+		default: 
 			influx_assert(false);
 			return D3D12_SHADER_VISIBILITY_ALL;
 		}
