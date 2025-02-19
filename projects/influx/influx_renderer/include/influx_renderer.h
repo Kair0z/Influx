@@ -20,6 +20,7 @@ struct ImDrawData;
 #include "core/shader.h"
 #include "core/material/material.h"
 #include "core/time.h"
+#include "core/result.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -42,6 +43,9 @@ struct ImDrawData;
 ;
 namespace influx::renderer
 {
+	template <typename _t>
+	using result = influx::result<_t, const char*>;
+
 	// shader data
 	struct shader_data final
 	{
@@ -57,74 +61,69 @@ namespace influx::renderer
 		}
 	};
 
-	// arguments to pass to backend initialization
+	// 1. initialize the renderer
 	struct init_args final
 	{
 		e_render_api m_api_type = e_render_api::dx12;
 	};
-
-	// arguments passed to swapchain presenting
-	struct present_args final
-	{
-		bool m_vsync = false;
-	};
-	
-	struct clear_args final
-	{
-		math::vectorf4 m_colour = {};
-	};
-
-	struct render_settings final
-	{
-		enum class cullmode { back, front, none };
-		cullmode m_cullmode		= cullmode::back;
-		bool m_wireframe		= false;
-	};
-
-	// initialize renderer first!
 	INFLUX_RENDER_API void initialize(const init_args& args);
-
 	INFLUX_RENDER_API bool is_initialized();
 
+	// end. release your resources!
 	INFLUX_RENDER_API void cleanup();
 
+	// 1. acquire the frame to render
+	INFLUX_RENDER_API void start_frame();
+
+	INFLUX_RENDER_API // - 3D scene rendering
+	result<bool> draw_scene(const scene& scene, const target& target);
+
+	INFLUX_RENDER_API // - imgui rendering
+	result<bool> draw_imgui(ImDrawData const* draw_data, const target& target);
+	INFLUX_RENDER_API 
+	result<bool> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
+
+	INFLUX_RENDER_API // - sprite rendering
+	result<bool> draw_2D(const scene2D& scene, const target& target);
+
+	INFLUX_RENDER_API // - debug line rendering
+	result<bool> draw_debug(const scene_debug& scene, const target& target);
+
+ 	INFLUX_RENDER_API // - shadertoy rendering
+	result<bool> draw_shadertoy(const scene_shadertoy& scene, const target& target);
+
+	INFLUX_RENDER_API // - postprocess rendering
+	result<bool> draw_postprocess(const scene_postprocess& scene, const target& target);
+
+	INFLUX_RENDER_API result<bool> can_draw_postprocess();
+	INFLUX_RENDER_API result<bool> can_draw_imgui();
+	INFLUX_RENDER_API result<bool> can_draw_scene();
+	INFLUX_RENDER_API result<bool> can_draw_2D();
+	INFLUX_RENDER_API result<bool> can_draw_debug();
+
+	// targets
 	INFLUX_RENDER_API target* create_target(const target_create_args& args);
 
 	// creates / switches to the appropriate target representation of our window backbuffer
 	INFLUX_RENDER_API target* get_window_target(const platform::window& window);
 
-
-	// 1. acquire the frame to render
-	INFLUX_RENDER_API void start_frame();
-
-	// 2. draw the scene to window / intermediate target
-	INFLUX_RENDER_API void draw_scene(const scene& scene, const target& target);
-
-	// - imgui rendering
-	INFLUX_RENDER_API void draw_imgui(ImDrawData const* draw_data, const target& target);
-	INFLUX_RENDER_API void draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
-
-	// - sprite rendering
-	INFLUX_RENDER_API void draw_2D(const scene2D& scene, const target& target);
-
-	// - debug line rendering
-	INFLUX_RENDER_API void draw_debug(const scene_debug& scene, const target& target);
-
-	// - shadertoy rendering
-	INFLUX_RENDER_API void draw_shadertoy(const scene_shadertoy& scene, const target& target);
-
-	// - postprocess rendering
-	INFLUX_RENDER_API void draw_postprocess(const scene_postprocess& scene, const target& target);
-
 	// 3. (optional) copy intermediate data
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);
 
+	struct clear_args final
+	{
+		math::vectorf4 m_colour = {};
+	};
 	INFLUX_RENDER_API void clear_target(const target&, const clear_args&);
 
 	// 3. 
 	INFLUX_RENDER_API void end_frame();
 
 	// 4. present to window swapchain
+	struct present_args final
+	{
+		bool m_vsync = false;
+	};
 	INFLUX_RENDER_API void present_all(const present_args& args);
 	INFLUX_RENDER_API void present(const platform::window&, const present_args& args);
 
@@ -145,6 +144,12 @@ namespace influx::renderer
 	INFLUX_RENDER_API bool has_shader(const shader::shader_signature& signature);
 	INFLUX_RENDER_API bool has_material(const string& title);
 
+	struct render_settings final
+	{
+		enum class cullmode { back, front, none };
+		cullmode m_cullmode = cullmode::back;
+		bool m_wireframe = false;
+	};
 	INFLUX_RENDER_API void set_settings(const render_settings& settings);
 	INFLUX_RENDER_API render_settings get_settings();
 

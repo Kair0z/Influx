@@ -40,11 +40,19 @@ namespace influx::engine
 			ImGui::Text("memory: %.2f/%.2fMB", video_mem_used, video_mem_budget);
 
 			renderer::render_settings settings = renderer::get_settings();
-			ImGui::Checkbox("wireframe: ", &settings.m_wireframe);
-			ImGui::Checkbox("debug render: ", &g_global_settings.m_render_debug);
-			ImGui::SliderInt("cullmode: ", (int*)&settings.m_cullmode, 0, 2);
-			ImGui::ColorEdit3("clear colour: ", &g_global_settings.m_clearcolour.r);
+			
+			if (renderer::can_draw_scene())
+			{
+				ImGui::Checkbox("wireframe: ", &settings.m_wireframe);
+				ImGui::SliderInt("cullmode: ", (int*)&settings.m_cullmode, 0, 2);
+				ImGui::ColorEdit3("clear colour: ", &g_global_settings.m_clearcolour.r);
+			}
 
+			if (renderer::can_draw_debug())
+			{
+				ImGui::Checkbox("debug render: ", &g_global_settings.m_render_debug);
+			}
+			
 			renderer::set_settings(settings);
 		}
 
@@ -196,7 +204,7 @@ namespace influx::engine
 			{
 				renderer::draw_scene(scene, *mp_scene_target);
 			}
-			if (debug.is_empty() == false && get_render_debug())
+			if (debug.is_empty() == false && is_debug_render_enabled())
 			{
 				renderer::draw_debug(debug, *mp_scene_target);
 			}
@@ -251,8 +259,10 @@ namespace influx::engine
 		return m_streamer.get_loaded_texture_id(name);
 	}
 
-	bool render_manager::get_render_debug() const
+	bool render_manager::is_debug_render_enabled() const
 	{
-		return g_global_settings.m_render_debug;
+		const bool user = g_global_settings.m_render_debug;
+		const bool render = renderer::can_draw_debug();
+		return render && user;
 	}
 }

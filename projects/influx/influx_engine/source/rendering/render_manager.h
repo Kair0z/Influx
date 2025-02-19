@@ -3,6 +3,7 @@
 // influx::core
 #include "core/macros.h"
 #include "core/math/vector.h"
+#include "core/enum.h"
 
 // influx::engine
 #include "imgui/imgui_manager.h"
@@ -22,6 +23,14 @@ namespace influx::engine
 {
 	class engine;
 	class content_manager;
+
+	enum class e_render_flags : uint8
+	{
+		none			= 0,
+		render_debug	= 1 << 0,
+		render_scene	= 1 << 1,
+		all				= render_debug | render_scene
+	};
 
 	class render_manager final
 	{
@@ -45,12 +54,15 @@ namespace influx::engine
 		void stream_content(const content_manager& cont_man);
 
 		void* get_loaded_texture_id(const string& name) const;
-		bool get_render_debug() const;
+		bool is_debug_render_enabled() const;
 
 	private:
+		e_render_flags m_render_flags{};
 		imgui_manager m_imgui;
 		render_streamer m_streamer{};
 		renderer::target* mp_window_target;
 		renderer::target* mp_scene_target;
 	};
 }
+
+ENABLE_ENUM_BIT_OPERATORS(influx::engine::e_render_flags);

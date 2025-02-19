@@ -80,14 +80,19 @@ namespace influx::renderer
 		target* get_window_target(const platform::window& window);
 		void acquire_swapchain_frame(swapchain& swapchain);
 
-		void draw_scene(const scene& scene, const target& target);
-		void draw_imgui(ImDrawData const* draw_data, const target& target);
-		void draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
+		result<bool> draw_scene(const scene& scene, const target& target);
+		result<bool> draw_imgui(ImDrawData const* draw_data, const target& target);
+		result<bool> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
+		result<bool> draw_2D(const scene2D& scene, const target& target);
+		result<bool> draw_debug(const scene_debug& scene, const target& target);
+		result<bool> draw_shadertoy(const scene_shadertoy& scene, const target& target);
+		result<bool> draw_postprocess(const scene_postprocess& scene, const target& target);
 
-		void draw_2D(const scene2D& scene, const target& target);
-		void draw_debug(const scene_debug& scene, const target& target);
-		void draw_shadertoy(const scene_shadertoy& scene, const target& target);
-		void draw_postprocess(const scene_postprocess& scene, const target& target);
+		result<bool> can_draw_postprocess() const;
+		result<bool> can_draw_imgui() const;
+		result<bool> can_draw_scene() const;
+		result<bool> can_draw_2D() const;
+		result<bool> can_draw_debug() const;
 
 		void copy_target(const target& source, const target& dest);
 		void clear_target(const target&, const clear_args&);

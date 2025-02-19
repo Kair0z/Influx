@@ -54,7 +54,6 @@ namespace influx::engine
 			return 0u;
 		}
 	}
-	
 
 #pragma region content_streaming
 #pragma region translation layer

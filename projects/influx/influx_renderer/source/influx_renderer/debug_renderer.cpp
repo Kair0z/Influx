@@ -121,6 +121,7 @@ namespace influx::renderer
         // get the pipeline
         renderer_backend& backend = renderer_backend::get_instance();
         graphics_pipeline& pipeline = backend.get_pipeline_manager()->get_or_create_pipeline(get_pipeline_sig());
+        descriptor_manager& descriptorman = *backend.get_descriptor_manager();
 
         logonce(e_log_category::warning, "influx::renderer::debug_renderer: first debug render!");
 
@@ -142,7 +143,7 @@ namespace influx::renderer
         update_instance_buffer(scene);
 
         // stage the instance buffer and set as resource table
-        const graphics::descriptor_range gpu_range = mp_backend->get_descriptor_manager()->stage(m_instance_buffer_srv);
+        const graphics::descriptor_range gpu_range = descriptorman.stage(m_instance_buffer_srv);
         pipeline.set_resource_table(*commandlist, "g_instancebuffer", gpu_range);
 
         const uint32 num_instances = (uint32)m_instance_data.size();
@@ -166,7 +167,8 @@ namespace influx::renderer
         const auto& pipeline_signature = get_pipeline_sig();
         for (const shader::shader_signature& shadersig : pipeline_signature.get_shader_signatures())
         {
-            if (shaderman.has_shader(shadersig) == false)
+            const bool is_shader_optional = pipeline_signature.is_shader_optional(shadersig.m_type);
+            if (shaderman.has_shader(shadersig) == false && !is_shader_optional)
             {
                 // ... missing shader
                 has_all_shaders = false;

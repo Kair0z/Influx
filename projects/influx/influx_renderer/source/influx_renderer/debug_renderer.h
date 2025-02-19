@@ -20,9 +20,6 @@ namespace influx::renderer
 		bool can_build_pipeline() const;
 
 	private:
-		renderer_backend* mp_backend;
-		graphics::device* mp_device;
-
 		constexpr static uint32 k_max_instances = 4096u;
 		
 		vector<gpu_instance_data> m_instance_data;

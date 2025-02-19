@@ -226,12 +226,13 @@ namespace influx::renderer
         swapchain.mp_swapchain->acquire_backbuffer();
     }
 
-    void renderer_backend::draw_scene(const scene& scene, const target& target)
+    result<bool> renderer_backend::draw_scene(const scene& scene, const target& target)
     {
         mp_scene_renderer->render(*m_rendergraph, scene, target);
+        return true;
     }
 
-    void renderer_backend::draw_imgui(ImDrawData const* draw_data, const target& target)
+    result<bool> renderer_backend::draw_imgui(ImDrawData const* draw_data, const target& target)
     {
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         m_rendergraph->import_texture(color_name, target.get_resource());
@@ -258,9 +259,10 @@ namespace influx::renderer
 
         pass->set_name(RGNAME("draw_imgui"));
 #endif
+        return true;
     }
 
-    void renderer_backend::draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
+    result<bool> renderer_backend::draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
     {
         static string color_name{}; 
 
@@ -302,15 +304,17 @@ namespace influx::renderer
             const rendergraph::rgname rgname{ name };
             pass->set_name(rgname);
         }
+
+        return true;
     }
 
-    void renderer_backend::draw_2D(const scene2D& scene, const target& target)
+    result<bool> renderer_backend::draw_2D(const scene2D& scene, const target& target)
     {
         influx_scope("renderer_backend::draw2D::record");
-
+        return true;
     }
 
-    void renderer_backend::draw_debug(const scene_debug& scene, const target& target)
+    result<bool> renderer_backend::draw_debug(const scene_debug& scene, const target& target)
     {
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         m_rendergraph->import_texture(color_name, target.get_resource());
@@ -334,9 +338,11 @@ namespace influx::renderer
             });
 
         pass->set_name(RGNAME("draw_debug"));
+
+        return true;
     }
 
-    void renderer_backend::draw_shadertoy(const scene_shadertoy& scene, const target& target)
+    result<bool> renderer_backend::draw_shadertoy(const scene_shadertoy& scene, const target& target)
     {
         graphics::resource* target_resource = target.get_resource();
         graphics::descriptor_handle target_rtv = target.get_rtv();
@@ -356,11 +362,43 @@ namespace influx::renderer
         mp_commandlist->set_rtv(target_rtv, target_dsv);
 
         mp_shadertoy_renderer->render(mp_commandlist, scene, target);
+        return true;
     }
 
-    void renderer_backend::draw_postprocess(const scene_postprocess& scene, const target& target)
+    result<bool> renderer_backend::draw_postprocess(const scene_postprocess& scene, const target& target)
     {
+        return true;
+    }
 
+    result<bool> renderer_backend::can_draw_postprocess() const
+    {
+        return true;
+    }
+
+    result<bool> renderer_backend::can_draw_imgui() const
+    {
+        return true;
+    }
+
+    result<bool> renderer_backend::can_draw_scene() const
+    {
+        return true;
+    }
+
+    result<bool> renderer_backend::can_draw_2D() const
+    {
+        return true;
+    }
+
+    result<bool> renderer_backend::can_draw_debug() const
+    {
+        if (mp_debug_renderer == nullptr) return "no debug renderer";
+        if (!mp_debug_renderer->can_build_pipeline())
+        {
+            return "debug renderer : missing shaders";
+        }
+
+        return true;
     }
 
     void renderer_backend::copy_target(const target& source, const target& dest)
@@ -759,11 +797,6 @@ namespace influx::renderer
         renderer_backend::get_instance().end_frame();
     }
 
-    void draw_scene(const scene& scene, const target& target)
-    {
-        renderer_backend::get_instance().draw_scene(scene, target);
-    }
-
     void copy_target(const target& source, const target& dest)
     {
         renderer_backend::get_instance().copy_target(source, dest);
@@ -789,34 +822,60 @@ namespace influx::renderer
         renderer_backend::get_instance().wait_gpu_finished();
     }
 
-    void draw_imgui(ImDrawData const* draw_data, const target& target)
+    result<bool> draw_scene(const scene& scene, const target& target)
     {
-        renderer_backend::get_instance().draw_imgui(draw_data, target);
+        return renderer_backend::get_instance().draw_scene(scene, target);
     }
 
-    void draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
+    result<bool> draw_imgui(ImDrawData const* draw_data, const target& target)
     {
-        renderer_backend::get_instance().draw_imgui(draws, targets);
+        return renderer_backend::get_instance().draw_imgui(draw_data, target);
     }
 
-    void draw_2D(const scene2D& scene, const target& target)
+    result<bool> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
     {
-        renderer_backend::get_instance().draw_2D(scene, target);
+        return renderer_backend::get_instance().draw_imgui(draws, targets);
     }
 
-    void draw_debug(const scene_debug& scene, const target& target)
+    result<bool> draw_2D(const scene2D& scene, const target& target)
     {
-        renderer_backend::get_instance().draw_debug(scene, target);
+        return renderer_backend::get_instance().draw_2D(scene, target);
     }
 
-    void draw_shadertoy(const scene_shadertoy& scene, const target& target)
+    result<bool> draw_debug(const scene_debug& scene, const target& target)
     {
-        renderer_backend::get_instance().draw_shadertoy(scene, target);
+        return renderer_backend::get_instance().draw_debug(scene, target);
     }
 
-    void draw_postprocess(const scene_postprocess& scene, const target& target)
+    result<bool> draw_shadertoy(const scene_shadertoy& scene, const target& target)
     {
-        renderer_backend::get_instance().draw_postprocess(scene, target);
+        return renderer_backend::get_instance().draw_shadertoy(scene, target);
+    }
+
+    result<bool> draw_postprocess(const scene_postprocess& scene, const target& target)
+    {
+        return renderer_backend::get_instance().draw_postprocess(scene, target);
+    }
+
+    result<bool> can_draw_postprocess()
+    {
+        return renderer_backend::get_instance().can_draw_postprocess();
+    }
+    result<bool> can_draw_imgui()
+    {
+        return renderer_backend::get_instance().can_draw_imgui();
+    }
+    result<bool> can_draw_scene()
+    {
+        return renderer_backend::get_instance().can_draw_scene();
+    }
+    result<bool> can_draw_2D()
+    {
+        return renderer_backend::get_instance().can_draw_2D();
+    }
+    result<bool> can_draw_debug()
+    {
+        return renderer_backend::get_instance().can_draw_debug();
     }
 
     void load(const string& title, const mesh_data& data, bool reload)
