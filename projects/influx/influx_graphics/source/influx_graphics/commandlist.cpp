@@ -12,7 +12,7 @@ namespace influx::graphics
 {
     const bool g_mute = true;
 
-    void commandlist::start(device* device, detail::pipeline* init_state)
+    void commandlist::start(device* device, detail::base_pipeline* init_state)
     {
         wait_for_completion();
 
@@ -25,7 +25,7 @@ namespace influx::graphics
             const uint32 incomplete_value = (m_complete_value == 1u) ? 0u : 1u;
             m_fence = device->create_fence(incomplete_value);
         }
-        
+
         // if we've completed previous, time to flip the value to wait for
         if (state == e_state::completed)
         {
@@ -34,9 +34,10 @@ namespace influx::graphics
 
         // starts allocator
         m_state = e_state::recording;
-        start_impl(device, init_state);
 
         if (!g_mute) logwar("commandlist start: {}", m_name.get().c_str());
+
+        start_impl(device, init_state);
     }
 
     void commandlist::submit(queue* queue)

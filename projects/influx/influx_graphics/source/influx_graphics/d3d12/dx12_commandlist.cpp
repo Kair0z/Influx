@@ -26,7 +26,7 @@ namespace influx::graphics
 		mpdx_allocator = allocator;
 	}
 
-	void dx12_commandlist::start_impl(device* device, detail::pipeline* init_state)
+	void dx12_commandlist::start_impl(device* device, detail::base_pipeline* init_state)
 	{
 		dx12_device* dxdevice = ((dx12_device*)device);
 
@@ -445,7 +445,7 @@ namespace influx::graphics
 		
 	}
 
-	void dx12_commandlist::set(detail::pipeline* pipeline)
+	void dx12_commandlist::set(detail::base_pipeline* pipeline)
 	{
 		auto dxpipeline = pipeline->get_native<ID3D12PipelineState>();
 		mpdx_graphics_commandlist->SetPipelineState(dxpipeline);

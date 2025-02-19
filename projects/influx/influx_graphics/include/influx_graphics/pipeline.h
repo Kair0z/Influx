@@ -222,28 +222,22 @@ namespace influx::graphics
 
 	namespace detail
 	{
-		class pipeline : public base
-		{
-		protected:
-			virtual e_pipeline_type get_type() const = 0;
-		};
-
-		template <e_pipeline_type _t>
-		class tpipeline : public detail::pipeline
-		{
-		public:
-			using desc_type = pipeline_desc<_t>;
-
-		protected:
-			static constexpr e_pipeline_type k_type = _t;
-			virtual e_pipeline_type get_type() const override { return _t; };
-
-			tpipeline(const desc_type& desc) : m_desc{desc} {}
-			desc_type m_desc{};
-		};
+		class base_pipeline : public graphics::base {};
 	}
 
-	using graphics_pipeline		= detail::tpipeline<e_pipeline_type::graphics>;
-	using compute_pipeline		= detail::tpipeline<e_pipeline_type::compute>;
-	using raytracing_pipeline	= detail::tpipeline<e_pipeline_type::raytracing>;
+	template <e_pipeline_type _t>
+	class pipeline : public detail::base_pipeline
+	{
+	public:
+		using desc_type = pipeline_desc<_t>;
+
+	protected:
+		static constexpr e_pipeline_type k_type = _t;
+		pipeline(const desc_type& desc) : m_desc{ desc } {}
+		desc_type m_desc{};
+	};
+
+	using graphics_pipeline		= pipeline<e_pipeline_type::graphics>;
+	using compute_pipeline		= pipeline<e_pipeline_type::compute>;
+	using raytracing_pipeline	= pipeline<e_pipeline_type::raytracing>;
 }

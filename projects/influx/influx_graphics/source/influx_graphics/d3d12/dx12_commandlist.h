@@ -12,7 +12,6 @@ struct ID3D12GraphicsCommandList;
 
 namespace influx::graphics
 {
-	class pipeline;
 	class render_target_view;
 	class dx12_device;
 
@@ -33,7 +32,7 @@ namespace influx::graphics
 		friend class dx12_device;
 
 		// starts a commandlist, using the device to allocate the memory internally
-		virtual void start_impl(device*, detail::pipeline* init_state = nullptr) override;
+		virtual void start_impl(device* device, detail::base_pipeline* init_state = nullptr) override;
 
 		virtual void renderpass_begin(const renderpass_args&) override;
 
@@ -84,7 +83,7 @@ namespace influx::graphics
 
 		virtual void set(rootsignature* rootsig, const e_pipeline_type type) override;
 
-		virtual void set(detail::pipeline* pipeline) override;
+		virtual void set(detail::base_pipeline* pipeline) override;
 
 		virtual void set(const viewport& viewport) override;
 

@@ -16,7 +16,7 @@ namespace influx::graphics
 {
 	namespace detail
 	{
-		class pipeline;
+		class base_pipeline;
 	}
 
 	class command_allocator;
@@ -82,7 +82,7 @@ namespace influx::graphics
 			count
 		};
 		
-		INFLUX_GFX_API void start(device* device, detail::pipeline* init_state = nullptr);
+		INFLUX_GFX_API void start(device* device, detail::base_pipeline* init_state = nullptr);
 
 		INFLUX_GFX_API void submit(queue*);
 
@@ -146,7 +146,7 @@ namespace influx::graphics
 
 		INFLUX_GFX_API virtual void set(rootsignature* rootsig, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
 		
-		INFLUX_GFX_API virtual void set(detail::pipeline* pipeline) = 0;
+		INFLUX_GFX_API virtual void set(detail::base_pipeline* pipeline) = 0;
 
 		INFLUX_GFX_API virtual void set(const viewport& viewport) = 0;
 
@@ -157,7 +157,7 @@ namespace influx::graphics
 		INFLUX_GFX_API virtual void end() = 0;
 
 	private:
-		virtual void start_impl(device* device, detail::pipeline* init_state = nullptr) = 0;
+		virtual void start_impl(device* device, detail::base_pipeline* init_state = nullptr) = 0;
 
 	private:
 		e_state m_state = e_state::created;

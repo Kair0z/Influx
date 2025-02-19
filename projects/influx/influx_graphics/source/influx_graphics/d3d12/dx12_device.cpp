@@ -221,49 +221,32 @@ namespace influx::graphics
 		return new_child<dx12_descriptor_heap, descriptor_heap>(args, dxheap, get_descriptor_stride(args.m_type));
 	}
 
-	ptr<commandlist> dx12_device::create_commandlist(e_commandlist_type type, detail::pipeline* init_state)
+	ptr<commandlist> dx12_device::create_graphics_commandlist(graphics_pipeline* init_state)
 	{
-		D3D12_COMMAND_LIST_TYPE dxtype = translate(type);
+		D3D12_COMMAND_LIST_TYPE dxtype = D3D12_COMMAND_LIST_TYPE_DIRECT;
 		ID3D12CommandAllocator* dxallocator = new_allocator(dxtype);
-		ID3D12PipelineState* dxpipeline = (init_state != nullptr) 
+		ID3D12PipelineState* dxpipeline = (init_state != nullptr)
 			? init_state->get_native<ID3D12PipelineState>() : nullptr;
 
-		commandlist* result = nullptr;
-		switch (type)
-		{
-		case e_commandlist_type::graphics:
-		{
-			ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
-				mpdx_devices[0u], dxallocator, dxtype, dxpipeline);
-			dxcommandlist->Close();
+		ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
+			mpdx_devices[0u], dxallocator, dxtype, dxpipeline);
+		dxcommandlist->Close();
 
-			return new_child<dx12_commandlist, commandlist>(dxcommandlist, dxallocator);
-		}
-		break;
-
-		case e_commandlist_type::compute:
-		{
-			ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
-				mpdx_devices[0u], dxallocator, dxtype, dxpipeline);
-			dxcommandlist->Close();
-
-			return new_child<dx12_commandlist, commandlist>(dxcommandlist, dxallocator);
-		}
-		break;
-		}
-		
-		influx_assert(false);
-		return nullptr;
+		return new_child<dx12_commandlist, commandlist>(dxcommandlist, dxallocator);
 	}
 
-	ptr<commandlist> dx12_device::create_graphics_commandlist(detail::pipeline* init_state)
+	ptr<commandlist> dx12_device::create_compute_commandlist(compute_pipeline* init_state)
 	{
-		return create_commandlist(e_commandlist_type::graphics, init_state);
-	}
+		D3D12_COMMAND_LIST_TYPE dxtype = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+		ID3D12CommandAllocator* dxallocator = new_allocator(dxtype);
+		ID3D12PipelineState* dxpipeline = (init_state != nullptr)
+			? init_state->get_native<ID3D12PipelineState>() : nullptr;
 
-	ptr<commandlist> dx12_device::create_compute_commandlist(detail::pipeline* init_state)
-	{
-		return create_commandlist(e_commandlist_type::compute, init_state);
+		ID3D12GraphicsCommandList* dxcommandlist = dx12helpers::create_command_list<ID3D12GraphicsCommandList>(
+			mpdx_devices[0u], dxallocator, dxtype, dxpipeline);
+		dxcommandlist->Close();
+
+		return new_child<dx12_commandlist, commandlist>(dxcommandlist, dxallocator);
 	}
 
 	ptr<fence> dx12_device::create_fence(uint64 init_value)

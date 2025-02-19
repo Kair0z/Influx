@@ -75,7 +75,7 @@ namespace influx::renderer
 		}, args);
 
 		// start a commandlist that copies the texture from intermediate -> gpu resource
-		mp_commandlist->start(mp_device, nullptr);
+		mp_commandlist->start(mp_device);
 		{
 			target_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
 

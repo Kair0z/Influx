@@ -37,9 +37,8 @@ namespace influx::graphics
 		virtual ptr<swapchain> create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) override;
 		virtual ptr<descriptor_heap> create_descriptor_heap(const descriptor_heap::create_args& args) override;
 
-		virtual ptr<commandlist> create_commandlist(e_commandlist_type type, detail::pipeline* init_state = nullptr) override;
-		virtual ptr<commandlist> create_graphics_commandlist(detail::pipeline* init_state = nullptr) override;
-		virtual ptr<commandlist> create_compute_commandlist(detail::pipeline* init_state = nullptr) override;
+		virtual ptr<commandlist> create_graphics_commandlist(graphics_pipeline* init_state = nullptr) override;
+		virtual ptr<commandlist> create_compute_commandlist(compute_pipeline* init_state = nullptr) override;
 
 		virtual ptr<fence> create_fence(uint64 init_value = 0u) override;
 		virtual ptr<resource> create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
