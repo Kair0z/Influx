@@ -170,7 +170,7 @@ namespace influx::engine
 	{
 		update_context();
 		update_inputs();
-		//update_background_dockspace();
+		update_background_dockspace();
 		update_mainmenu();
 		update_static_windows();
 		update_edit_radial();
@@ -201,6 +201,7 @@ namespace influx::engine
 
 	void editor_manager::update_mainmenu()
 	{
+		m_is_mainmenu_active = true;
 		if (ImGui::BeginMainMenuBar())
 		{
 			if (ImGui::BeginMenu("project"))
@@ -217,29 +218,35 @@ namespace influx::engine
 		// Get the current viewport
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
 
+		const float mainmenu_height = get_mainmenu_height();
+
 		// Set up a window that spans the entire viewport
-		ImGui::SetNextWindowPos(viewport->Pos);
-		ImGui::SetNextWindowSize(viewport->Size);
+		ImVec2 windowpos = viewport->Pos; windowpos.y += mainmenu_height;
+		ImVec2 windowsize = viewport->Size; windowsize.y -= mainmenu_height;
+		ImGui::SetNextWindowPos(windowpos);
+		ImGui::SetNextWindowSize(windowsize);
 		ImGui::SetNextWindowViewport(viewport->ID);
+		ImGui::SetNextWindowBgAlpha(0.0f);
 
 		// Set window flags to make it invisible and non-interactive
-		ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_NoNavFocus;
-
-		window_flags |= ImGuiWindowFlags_NoBackground;
+		ImGuiWindowFlags window_flags = 
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoCollapse | 
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove | 
+			ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoNavFocus |
+			ImGuiWindowFlags_NoBackground;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-		ImGui::Begin("InvisibleDockSpace", nullptr, window_flags);
+		ImGui::Begin("InvisibleDockSpaceX", nullptr, window_flags);
 		ImGui::PopStyleVar(3);
 
 		// Create the dock space
 		ImGuiID dockspace_id = ImGui::GetID("InvisibleDockSpace");
-		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
 
 		ImGui::End();
 	}
@@ -450,6 +457,11 @@ namespace influx::engine
 	files::editorfile& editor_manager::get_editorfile()
 	{
 		return m_editorfile;
+	}
+
+	float editor_manager::get_mainmenu_height() const
+	{
+		return m_is_mainmenu_active ? ImGui::GetFrameHeight() : 0.0f;
 	}
 
 	void editor_manager::initialize_inputs()

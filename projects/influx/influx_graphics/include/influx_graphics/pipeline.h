@@ -200,6 +200,7 @@ namespace influx::graphics
 			uint8 m_write_mask = 15u; // all
 		};
 		blend_desc m_blends[k_max_render_targets]{};
+		bool m_blend_alpha_to_coverage_enabled = false;
 	};
 
 	struct compute_pipeline_desc final

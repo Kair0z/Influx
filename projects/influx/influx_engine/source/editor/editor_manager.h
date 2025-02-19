@@ -166,12 +166,18 @@ namespace influx::engine
 		void load_editor();
 		files::editorfile& get_editorfile();
 
+		float get_mainmenu_height() const;
+
 	private:
 		compound_keybind_tracker m_keybinds;
 		cooldown_toggle m_content_toggle = 0.5f;
 		cooldown_toggle m_fps_toggle = 0.5f;
 		cooldown_toggle m_engine_toggle = 0.5f;
 		cooldown_toggle m_editor_toggle = 0.5f;
+
+		math::vectorf2 m_mousepos;
+
+		bool m_is_mainmenu_active = false;
 
 		// static windows
 		imgui::popup_radial<editor_window*> m_static_windows_radial;
@@ -188,8 +194,6 @@ namespace influx::engine
 		void update_background_dockspace();
 		void update_static_windows();
 		void update_edit_radial();
-
-		math::vectorf2 m_mousepos;
 
 		void on_keydown(input::e_key);
 		void on_keyup(input::e_key);

@@ -155,6 +155,26 @@ namespace influx::renderer
         });
     }
 
+    bool debug_renderer::can_build_pipeline() const
+    {
+        renderer_backend& backend = renderer_backend::get_instance();
+        pipeline_manager& pipelineman = *backend.get_pipeline_manager();
+        shader_manager& shaderman = backend.get_shader_manager();
+        
+        bool has_all_shaders = true;
+        vector<shader::shader_signature> shader_dependencies = pipelineman.get_pipeline_shader_dependencies();
+        for (const shader::shader_signature& shadersig : shader_dependencies)
+        {
+            if (shaderman.has_shader(shadersig) == false)
+            {
+                // ... missing shader
+                has_all_shaders = false;
+            }
+        }
+
+        return has_all_shaders;
+    }
+
     void debug_renderer::update_instance_buffer(const scene_debug& scene)
     {
         m_instance_data.clear();

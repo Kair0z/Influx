@@ -79,12 +79,12 @@ namespace influx::renderer
 		// update vertex / index buffers
 		update_buffers(draws);
 
-		// setup state
-		renderer_backend& backend = renderer_backend::get_instance();
-		descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
-		commandlist->set_vertexbuffer(mp_vertexbuffer);
-		commandlist->set_indexbuffer(mp_indexbuffer);
-		
+		if (mp_vertexbuffer && mp_indexbuffer)
+		{
+			commandlist->set_vertexbuffer(mp_vertexbuffer);
+			commandlist->set_indexbuffer(mp_indexbuffer);
+		}
+
 		commandlist->set(graphics::e_primitive_topology::trilist);
 		commandlist->set(mp_pipeline);
 		commandlist->set(mp_rootsig);
@@ -331,7 +331,8 @@ namespace influx::renderer
 		pipeline_desc.add_input_element("COLOR", 0u, graphics::e_format::rgba8, 0u, false, 0u);
 
 		// blend setup
-		pipeline_desc.m_blends[0u].m_enabled = true;
+		pipeline_desc.m_blend_alpha_to_coverage_enabled = false;
+		pipeline_desc.m_blends[0u].m_enabled	= true;
 		pipeline_desc.m_blends[0u].m_src		= graphics::e_blend::src_alpha;
 		pipeline_desc.m_blends[0u].m_dest		= graphics::e_blend::inv_src_alpha;
 		pipeline_desc.m_blends[0u].m_op			= graphics::e_blendop::add;
@@ -339,8 +340,6 @@ namespace influx::renderer
 		pipeline_desc.m_blends[0u].m_destalpha	= graphics::e_blend::inv_src_alpha;
 		pipeline_desc.m_blends[0u].m_op_alpha	= graphics::e_blendop::add;
 		pipeline_desc.m_blends[0u].m_write_mask = 15u; // all
-
-		pipeline_desc;
 
 		// rasterizer
 		pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;

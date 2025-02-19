@@ -571,8 +571,11 @@ namespace influx::graphics
 
 		// blend state
 		CD3DX12_BLEND_DESC blend_desc(D3D12_DEFAULT);
+		bool has_multiple_blends = false;
 		for (size_t i = 0u; i < k_max_render_targets; ++i)
 		{
+			if (i > 0u) has_multiple_blends |= desc.m_blends[i].m_enabled;
+
 			blend_desc.RenderTarget[i].BlendEnable		= desc.m_blends[i].m_enabled;
 			blend_desc.RenderTarget[i].SrcBlend			= translate(desc.m_blends[i].m_src);
 			blend_desc.RenderTarget[i].DestBlend		= translate(desc.m_blends[i].m_dest);
@@ -582,6 +585,8 @@ namespace influx::graphics
 			blend_desc.RenderTarget[i].BlendOpAlpha		= translate(desc.m_blends[i].m_op_alpha);
 			blend_desc.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL; // desc.m_blends[i].m_write_mask;
 		}
+		blend_desc.AlphaToCoverageEnable = desc.m_blend_alpha_to_coverage_enabled;
+		blend_desc.IndependentBlendEnable = has_multiple_blends; // implicit independent blend
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
 		pso_desc.InputLayout = input_layout_desc;

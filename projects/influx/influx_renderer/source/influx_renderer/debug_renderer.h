@@ -17,6 +17,8 @@ namespace influx::renderer
 			const scene_debug& scene,
 			const target& target);
 
+		bool can_build_pipeline() const;
+
 	private:
 		renderer_backend* mp_backend;
 		graphics::device* mp_device;
