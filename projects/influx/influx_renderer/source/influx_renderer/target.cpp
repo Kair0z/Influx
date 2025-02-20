@@ -58,6 +58,9 @@ namespace influx::renderer
 		graphics::swapchain* swapchain, 
 		uint8 swapchain_index)
 	{
+		m_args.m_has_colour = true;
+		m_args.m_has_depth_stencil = false;
+
 		influx_assert(swapchain_index < swapchain->get_num_backbuffers());
 
 		// get the existing backbuffer resource, and allocate + create a new rtv

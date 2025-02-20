@@ -3,6 +3,9 @@
 // entt
 #include "entt/entt.hpp"
 
+// influx::core
+#include "core/enum.h"
+
 namespace influx::engine
 {
 	class entity final
@@ -39,3 +42,5 @@ namespace influx::engine
 		entt::entity m_handle;
 	};
 }
+
+ENABLE_ENUM_BIT_OPERATORS(influx::engine::entity::render_flag);

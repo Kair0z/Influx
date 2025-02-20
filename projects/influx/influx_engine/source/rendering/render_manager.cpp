@@ -198,7 +198,7 @@ namespace influx::engine
 		{
 			mp_scene_target->resize(*window_target);
 
-			renderer::clear_target(*mp_scene_target, {});
+			renderer::clear_target(*mp_scene_target, {.m_colour = g_global_settings.m_clearcolour });
 
 			if (scene.is_empty() == false)
 			{

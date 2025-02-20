@@ -1,9 +1,6 @@
 #include "engine_pch.h"
 #include "entity.h"
 
-// influx::core
-#include "core/flag.h"
-
 namespace influx::engine
 {
 	entity::entity(const entt::entity& handle)
@@ -19,22 +16,22 @@ namespace influx::engine
 
 	void entity::set_invisible(bool enabled)
 	{
-		m_renderflags = set_flag(m_renderflags, render_flag::render_invisible, enabled);
+		m_renderflags |= render_flag::render_invisible;
 	}
 
 	void entity::set_debug_render(bool enabled)
 	{
-		m_renderflags = set_flag(m_renderflags, render_flag::render_debug, enabled);
+		m_renderflags |= render_flag::render_debug;
 	}
 
 	bool entity::is_invisible() const
 	{
-		return is_flag_set(m_renderflags, render_flag::render_invisible);
+		return has_flag(m_renderflags, render_flag::render_invisible);
 	}
 
 	bool entity::is_debug_render() const
 	{
-		return is_flag_set(m_renderflags, render_flag::render_debug);
+		return has_flag(m_renderflags, render_flag::render_debug);
 	}
 	entt::entity entity::get_handle() const
 	{
