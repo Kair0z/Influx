@@ -23,6 +23,7 @@
 #include "tasks/task_manager.h"
 #include "window/window_manager.h"
 #include "file/engine_files.h"
+#include "log/log_manager.h"
 
 // influx::core
 #include "core/math/vectortools.h"
@@ -61,6 +62,7 @@ namespace influx::engine
 		m_inputman = new input_manager();
 		m_contentman = new content_manager(this);
 		m_gameman = new game_manager();
+		m_logman = new log_manager();
 		if (m_runtype == run_type::editor)
 		{
 			m_editorman = new editor_manager();
@@ -84,7 +86,9 @@ namespace influx::engine
 	void engine::run(run_type type, int argc, char* argv[])
 	{
 		m_runtype = type;
+		
 		process_runarguments(argc, argv);
+
 		initialize();
 
 		while (!m_is_quit_requested)
@@ -147,6 +151,12 @@ namespace influx::engine
 				influx_scope("render");
 				m_renderman->render(scene, scene2D, imgui, debug);
 			}
+
+			// log tick
+			{
+				influx_scope("log");
+				m_logman->tick();
+			}
 		}
 
 #if INFLUX_DEBUG
@@ -205,6 +215,12 @@ namespace influx::engine
 			delete m_world;
 			m_world = nullptr;
 		}
+
+		if (m_logman)
+		{
+			delete m_logman;
+			m_logman = nullptr;
+		}
 	}
 
 	void engine::poll_platform_events()
@@ -227,6 +243,11 @@ namespace influx::engine
 	window_manager& engine::get_windowman()
 	{
 		return *m_windowman;
+	}
+
+	log_manager& engine::get_logman()
+	{
+		return *get_engine()->m_logman;
 	}
 
 	content_manager& engine::get_content()

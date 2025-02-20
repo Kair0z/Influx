@@ -10,6 +10,7 @@ namespace influx::platform
 // influx::engine
 #include "common.h"
 #include "config/config.h"
+#include "log/log_manager.h"
 
 // influx::core
 #include "core/singleton.h"
@@ -49,6 +50,7 @@ namespace influx::engine
 		render_manager& get_renderer();
 		input_manager& get_input();
 		window_manager& get_windowman();
+		static log_manager& get_logman();
 
 		const frame_time& get_time() const;
 		float get_fps() const;
@@ -89,10 +91,18 @@ namespace influx::engine
 		game_manager* m_gameman = nullptr;
 		input_manager* m_inputman = nullptr;
 		task_manager* m_taskman = nullptr;
+		log_manager* m_logman = nullptr;
 		world* m_world = nullptr;
 		frame_time m_time{};
 
 		bool m_is_quit = false;
+
+	public:
+		template <typename ..._args>
+		static inline void log(e_log_category category, const string& format, const _args&... args)
+		{
+			get_logman().log(category, format, args...);
+		}
 	};
 
 	inline static engine* get_engine()

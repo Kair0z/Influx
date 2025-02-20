@@ -1,7 +1,9 @@
 #pragma once
-#include "basetypes.h"
-#include "string.h"
+// influx::core
+#include "core/basetypes.h"
+#include "core/string.h"
 
+// STL
 #include <iostream>
 #include <format>
 
@@ -15,7 +17,7 @@ namespace influx
 	};
 
 	template <typename ..._args>
-	inline void log(e_log_category category, const string& format, const _args&... args)
+	inline string log(e_log_category category, const string& format, const _args&... args)
 	{
 		string prefix = "";
 		switch (category)
@@ -35,6 +37,7 @@ namespace influx
 		
 		const string log_string = prefix + std::vformat(format, std::make_format_args(args...));
 		printf((log_string + "\n").c_str());
+		return log_string;
 	}
 
 	template <typename ..._args>

@@ -216,16 +216,35 @@ namespace influx::engine
 
 	void editor_manager::update_mainmenu()
 	{
+		static ImGui::FileBrowser browser{};
+
 		m_is_mainmenu_active = true;
 		if (ImGui::BeginMainMenuBar())
 		{
 			if (ImGui::BeginMenu("project"))
 			{
+				if (ImGui::Button("import fbx"))
+				{
+					browser.SetTitle("select file");
+					browser.SetTypeFilters({ ".fbx" });
+
+					browser.Open();
+
+					if (browser.HasSelected())
+					{
+						logn("importing fbx ... {}", browser.GetSelected().string());
+						browser.ClearSelected();
+					}
+				}
+
 				ImGui::EndMenu();
 			}
 
 			ImGui::EndMainMenuBar();
+
+			
 		}
+		browser.Display();
 	}
 
 	void editor_manager::update_background_dockspace()

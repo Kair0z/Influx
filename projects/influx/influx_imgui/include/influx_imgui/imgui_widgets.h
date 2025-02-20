@@ -9,14 +9,15 @@
 #include "core/math/transform.h"
 #include "core/enum.h"
 
+// imgui
+#include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
+
 // influx::imgui
 #include "influx_imgui/imgui_translation.h"
 #include "influx_imgui/widgets/popup_radial.h"
 #include "influx_imgui/widgets/text_editor.h"
-
-// imgui
-#include "imgui/imgui.h"
-#include "imgui/imgui_internal.h"
+#include "influx_imgui/widgets/imfilebrowser.h"
 
 namespace influx::imgui
 {

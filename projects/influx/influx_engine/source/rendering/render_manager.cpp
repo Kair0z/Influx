@@ -190,6 +190,9 @@ namespace influx::engine
 		const renderer::scene_imgui& imgui, 
 		const renderer::scene_debug& debug)
 	{
+		static uint32 frame = 0u;
+		engine::log(e_log_category::info, "render_manager:render[{}]", frame++);
+
 		const platform::window& main_window = get_engine()->get_window();
 		renderer::target* window_target = renderer::get_window_target(main_window);
 

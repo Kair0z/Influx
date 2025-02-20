@@ -66,6 +66,44 @@ namespace influx
 			return std::filesystem::exists(path);
 		}
 
+		// creates a file at path_x
+		static bool duplicate(const string& path)
+		{
+			uint32 count = 0u; string new_path = path;
+			while (exists(path) && count < 1000)
+			{
+				new_path = new_path + "_" + to_string(count++);
+				if (!exists(new_path)) return create(new_path);
+			}
+			return false;
+		}
+
+		static bool clear(const string& path)
+		{
+			if (exists(path))
+			{
+				std::ofstream file(path, std::ios::trunc); // Open in truncation mode
+				file.close(); // Closing the file ensures changes are save
+			}
+			return false;
+		}
+
+		static bool push_line(const string& path, const string& line)
+		{
+			return push_lines(path, { line });
+		}
+
+		static bool push_lines(const string& path, const vector<string>& lines)
+		{
+			std::ofstream file(path, std::ios::app);
+			for (const string& str : lines)
+			{
+				file << str << "\n";
+			}
+			file.close();
+			return true;
+		}
+
 		static bool is_text(const string& file)
 		{
 			std::filesystem::path path(file);
