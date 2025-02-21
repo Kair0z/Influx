@@ -70,7 +70,7 @@ namespace influx::engine
 
 		// initialize render
 		const string window_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
-		const math::vectoru2 window_dimensions = { 640u, 480u };
+		const math::vectoru2 window_dimensions = { 720, 480u};
 		platform::window_desc window_desc{};
 		window_desc
 			.set_dimensions(window_dimensions)
