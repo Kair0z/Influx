@@ -30,7 +30,7 @@ namespace influx::engine
 		static constexpr uint32 k_capacity = 4096u;
 		vector<e_log_category> m_categories{};
 		vector<string> m_lines{};
-		uint32 m_counter = 0u;
+		uint32 m_linecount = 0u;
 
 	public:
 		log_manager();
@@ -40,14 +40,14 @@ namespace influx::engine
 		inline void log(e_log_category category, const string& format, const _args&... args)
 		{
 			const string logstr = influx::log( translate(category), format, args...);
-			m_categories[m_counter] = category;
-			m_lines[m_counter] = logstr;
-			m_counter++;
-			influx_assert(m_counter < k_capacity);
+			m_categories[m_linecount] = category;
+			m_lines[m_linecount] = logstr;
+			m_linecount++;
+			influx_assert(m_linecount < k_capacity);
 		}
 
 		void tick();
-		void flush_to_file();
+		void flush_to_file(uint32 max_num_lines = (uint32)-1);
 	};
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::engine::e_log_category);

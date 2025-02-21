@@ -148,21 +148,6 @@ namespace influx::engine
 			ImGui::Text("fps: %f", get_engine()->get_fps());
 		}
 	};
-
-	class log_editor final : public editor_window
-	{
-	public:
-		virtual void on_run() override
-		{
-			set_name("log");
-			m_logger.draw();
-
-			m_logger.push("fixme\n", {});
-		}
-
-	private:
-		imgui::logger m_logger;
-	};
 #pragma endregion
 
 	// all static windows of the engine
@@ -290,7 +275,7 @@ namespace influx::engine
 		static_window<game_manager_ui>("game");
 		static_window<fps_ui>("fps");
 		static_window<content_ui>("content");
-		static_window<log_editor>("log");
+
 		const float max_radius = 50.0f;
 		const float seconds = get_engine()->get_time().get_time_seconds();
 		const float anim_speed = 5.0f;

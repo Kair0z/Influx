@@ -104,19 +104,16 @@ namespace influx::engine
 				poll_platform_events();
 				if (m_is_quit_requested) break;
 			}
-
 			// input tick
 			{
 				influx_scope("input");
 				m_inputman->tick();
 			}
-
 			// main update
 			{
 				influx_scope("update");
 				m_world->update();
 			}
-
 			// stream available assets from content into the renderer
 			{
 				influx_scope("stream_to_render");

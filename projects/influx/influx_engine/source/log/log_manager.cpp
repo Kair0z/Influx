@@ -3,13 +3,36 @@
 
 // influx::engine
 #include "file/engine_files.h"
+#include "influx_imgui/imgui_widgets.h"
+#include "editor/editor_manager.h"
 
 // influx::core
 #include "core/log.h"
+#include "core/math/math.h"
 
 namespace influx::engine
 {
 	static string g_filepath = "";
+
+	class log_editor final : public editor_window
+	{
+	public:
+		virtual void on_run() override
+		{
+			set_name("log");
+			m_logger.draw();
+
+			for (const string& line : file::get_lines(g_filepath, m_num_lines_read))
+			{
+				m_logger.push((line + "\n").c_str(), {});
+				++m_num_lines_read;
+			}
+		}
+
+	private:
+		imgui::logger m_logger;
+		uint32 m_num_lines_read = 0u;
+	};
 
 	log_manager::log_manager()
 	{
@@ -28,6 +51,10 @@ namespace influx::engine
 		{
 			file::create(g_filepath);
 		}
+
+		m_linecount = 0;
+
+		editor_manager::static_window<log_editor>("log");
 	}
 
 	log_manager::~log_manager()
@@ -40,9 +67,20 @@ namespace influx::engine
 		flush_to_file();
 	}
 
-	void log_manager::flush_to_file()
+	void log_manager::flush_to_file(uint32 max_num_lines)
 	{
-		influx_assert(file::push_lines(g_filepath, m_lines));
-		m_counter = 0u;
+		uint32 num_flushed = 0u;
+		max_num_lines = math::minimum(m_linecount, max_num_lines);
+
+		file::scoped_push_lines(g_filepath, [this, &num_flushed, max_num_lines]
+		(std::ofstream& file)
+		{
+			for (num_flushed; num_flushed < max_num_lines; ++num_flushed)
+			{
+				file << m_lines[num_flushed] << "\n";
+			}
+		});
+
+		m_linecount -= num_flushed;
 	}
 }

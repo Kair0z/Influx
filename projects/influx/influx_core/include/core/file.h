@@ -56,8 +56,12 @@ namespace influx
 		static bool create(const string& file)
 		{
 			std::filesystem::path path(file);
+
+			// create the directory chain
 			std::filesystem::create_directories(path.parent_path());
-			return true;
+
+			std::ofstream open_file(file);
+			return open_file.is_open();
 		}
 
 		static bool exists(const string& file)
@@ -66,16 +70,91 @@ namespace influx
 			return std::filesystem::exists(path);
 		}
 
-		// creates a file at path_x
+		static bool copy_file(const string& source, const string& dest)
+		{
+			std::ifstream ifs(source);
+			std::ofstream ofs(dest);
+			if (!ifs.is_open() || !ofs.is_open())
+			{
+				return false;
+			}
+
+			string line = "";
+			while (std::getline(ifs, line))
+			{
+				ofs << line << "\n";
+			}
+			return true;
+		}
+
+		// creates a duplicate file with number appended
 		static bool duplicate(const string& path)
 		{
-			uint32 count = 0u; string new_path = path;
-			while (exists(path) && count < 1000)
+			if (!exists(path)) return false;
+
+			const file to_file = file(path);
+			const string& directory = to_file.m_directory;
+			const string& filename = to_file.m_filename;
+			
+			size_t insert_point = filename.find_last_of('.');
+			uint32 count = 0u; string new_name = filename;
+			while (exists(directory + new_name) && count < 1000)
 			{
-				new_path = new_path + "_" + to_string(count++);
-				if (!exists(new_path)) return create(new_path);
+				uint64 found = new_name.find_last_of('_');
+				if (found < new_name.size())
+				{
+					// if the path has a version tag,
+					// parse the version tag and increment it
+					const uint32 number = std::stoul(new_name.substr(found + 1u));
+					new_name = new_name.substr(0u, found) + "_" + to_string(number + 1u) + to_file.m_extension;
+				}
+				else
+				{
+					// if path doesnt have a version number yet...
+					// "file" -> "file_0"
+					new_name = new_name.insert(insert_point, "_" + to_string(count++));
+				}
 			}
+
+			const string new_path = directory + new_name;
+
+			// create new file with new path, and copy old contents
+			create(new_path);
+			copy_file(path, new_path);
+
 			return false;
+		}
+
+		static uint32 get_num_lines(const string& path)
+		{
+			std::ifstream file(path, std::ios::binary);
+			if (!file) 
+			{
+				return 0u;
+			}
+
+			return std::count(std::istreambuf_iterator<char>(file),
+				std::istreambuf_iterator<char>(), '\n');
+		}
+
+		// o(n): direct indexing is not supported :sad:
+		static vector<string> get_lines(const string& path, const uint32 start_index, const uint32 max_index = uint32(-1))
+		{
+			std::ifstream file(path);
+			if (!file) { return {}; }
+
+			vector<string> result_lines{};
+			uint32 index = 0u;
+			string line = "";
+			while (index < max_index && std::getline(file, line))
+			{
+				if (index >= start_index)
+				{
+					result_lines.push_back(line);
+				}
+				index++;
+			}
+			return result_lines;
 		}
 
 		static bool clear(const string& path)
@@ -100,6 +179,15 @@ namespace influx
 			{
 				file << str << "\n";
 			}
+			file.close();
+			return true;
+		}
+
+		template <typename _func>
+		static bool scoped_push_lines(const string& path, _func&& func)
+		{
+			std::ofstream file(path, std::ios::app);
+			func(file);
 			file.close();
 			return true;
 		}
