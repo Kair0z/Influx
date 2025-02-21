@@ -1,9 +1,11 @@
 #include "engine_pch.h"
 #include "window_manager.h"
 
+// influx::engine
 #include "influx_platform/window.h"
 #include "input/input_manager.h"
 #include "influx_platform/monitor.h"
+
 namespace influx::engine
 {
 	window_manager::window_manager()

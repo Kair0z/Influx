@@ -29,7 +29,8 @@ namespace influx::engine
 		none			= 0,
 		render_debug	= 1 << 0,
 		render_scene	= 1 << 1,
-		all				= render_debug | render_scene
+		render_imgui	= 1 << 2,
+		all				= render_debug | render_scene | render_imgui
 	};
 
 	class render_manager final
@@ -54,7 +55,10 @@ namespace influx::engine
 		void stream_content(const content_manager& cont_man);
 
 		void* get_loaded_texture_id(const string& name) const;
+
 		bool is_debug_render_enabled() const;
+		bool is_imgui_render_enabled() const;
+		bool is_scene_render_enabled() const;
 
 	private:
 		e_render_flags m_render_flags{};

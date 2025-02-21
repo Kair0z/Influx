@@ -190,9 +190,6 @@ namespace influx::engine
 		const renderer::scene_imgui& imgui, 
 		const renderer::scene_debug& debug)
 	{
-		static uint32 frame = 0u;
-		engine::log(e_log_category::info, "render_manager:render[{}]", frame++);
-
 		const platform::window& main_window = get_engine()->get_window();
 		renderer::target* window_target = renderer::get_window_target(main_window);
 
@@ -239,7 +236,7 @@ namespace influx::engine
 			influx::renderer::copy_target(*mp_scene_target, *window_target);
 
 			// imgui render (renders straight to its own created window targets)
-			if (imgui.is_empty() == false)
+			if (imgui.is_empty() == false && is_imgui_render_enabled())
 			{
 				m_imgui.render(imgui);
 			}
@@ -267,5 +264,15 @@ namespace influx::engine
 		const bool user = g_global_settings.m_render_debug;
 		const bool render = renderer::can_draw_debug();
 		return render && user;
+	}
+	bool render_manager::is_imgui_render_enabled() const
+	{
+		const bool render = renderer::can_draw_imgui();
+		return render;
+	}
+	bool render_manager::is_scene_render_enabled() const
+	{
+		const bool render = renderer::can_draw_scene();
+		return render;
 	}
 }

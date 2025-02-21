@@ -74,6 +74,7 @@ namespace influx::imgui
 		e_flags m_flags{};
         bool m_is_open = true;
         int m_skipped;
+        bool m_is_minimal = true;
 
 		inline void push(const char* fmt, va_list args)
 		{
@@ -160,25 +161,28 @@ namespace influx::imgui
                 ImGui::End();
                 return;
             }
-
-            checkbox_flags("All", &m_flags, e_flags::all);
-            draw_flag("errors", e_flags::error);
-            draw_flag("info", e_flags::info);
-            draw_flag("warning", e_flags::warning);
-
-            if (ImGui::SmallButton("Clear"))
             {
-                m_textbuffer.clear();
-                m_textindex.clear();
-                g.DebugLogSkippedErrors = 0;
-            }
+                if (m_is_minimal == false)
+                {
+                    checkbox_flags("All", &m_flags, e_flags::all);
+                    draw_flag("errors", e_flags::error);
+                    draw_flag("info", e_flags::info);
+                    draw_flag("warning", e_flags::warning);
 
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Copy"))
-                ImGui::SetClipboardText(m_textbuffer.c_str());
-            ImGui::SameLine();
+                    if (ImGui::SmallButton("Clear"))
+                    {
+                        m_textbuffer.clear();
+                        m_textindex.clear();
+                        g.DebugLogSkippedErrors = 0;
+                    }
 
-            ImGui::BeginChild("##log", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar);
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("Copy"))
+                        ImGui::SetClipboardText(m_textbuffer.c_str());
+                    ImGui::SameLine();
+                }
+
+                ImGui::BeginChild("##log", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar);
                 const e_flags backup_log_flags = m_flags;
                 ImGuiListClipper clipper;
                 clipper.Begin(m_textindex.size());
@@ -194,8 +198,9 @@ namespace influx::imgui
                 {
                     ImGui::SetScrollHereY(1.0f);
                 }
-            ImGui::EndChild();
-
+                ImGui::EndChild();
+            }
+            
             ImGui::End();
 		}
 	};
