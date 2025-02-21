@@ -36,9 +36,6 @@ namespace influx::engine
 		input::service_args args{};
 		args.m_max_events_to_service = 64u;
 		input::service(args);
-
-		//
-
 	}
 
 	void input_manager::flush()

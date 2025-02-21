@@ -209,13 +209,13 @@ namespace influx::platform
 		if (onces[desc.m_name] == false)
 		{
 			onces[desc.m_name] = true;
+
 			// https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-classes
-			::UINT class_style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 			::HBRUSH classBackgroundBrush = (HBRUSH)(COLOR_BACKGROUND + 1);
 
 			::WNDCLASSEX windowClassExtended;
 			windowClassExtended.cbSize = sizeof(WNDCLASSEX);
-			windowClassExtended.style = class_style;
+			windowClassExtended.style = CS_HREDRAW | CS_VREDRAW;
 			windowClassExtended.lpfnWndProc = _window_proc;
 			windowClassExtended.cbClsExtra = 0;
 			windowClassExtended.cbWndExtra = 0;
@@ -227,7 +227,12 @@ namespace influx::platform
 			windowClassExtended.lpszClassName = wname.c_str();
 			windowClassExtended.hIconSm = ::LoadIcon(NULL, IDI_APPLICATION);
 
-			influx_assert(::RegisterClassEx(&windowClassExtended));
+			auto res = ::RegisterClassEx(&windowClassExtended);
+			if (!res)
+			{
+				logerr(parse_error(::GetLastError()));
+				influx_assert(false);
+			}
 		}
 
 		// [ CREATE WINDOW ]
@@ -386,7 +391,8 @@ namespace influx::platform
 
 	void win32_window::set_position(const math::vectoru2& pos)
 	{
-		RECT rect = { (LONG)pos.x, (LONG)pos.y, get_dimensions(e_space::full).x, get_dimensions(e_space::full).y };
+		const math::vectoru2 full_dimensions = get_dimensions(e_space::full);
+		RECT rect = { (LONG)pos.x, (LONG)pos.y, (LONG)full_dimensions.x, (LONG)full_dimensions.y };
 		::AdjustWindowRectEx(&rect, m_desc.m_style.m_style, FALSE, m_desc.m_style.m_style_ext);
 		::SetWindowPos((HWND)m_handle, nullptr, rect.left, rect.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
@@ -688,6 +694,26 @@ namespace influx::platform
 		if (enabled)
 		{
 			m_style_ext |= WS_EX_TOPMOST;
+		}
+	}
+
+	void window_style::set_generic_window(bool enabled)
+	{
+		if (enabled)
+		{
+			m_style = WS_OVERLAPPEDWINDOW;
+		}
+	}
+
+	void window_style::set_exit_button(bool enabled)
+	{
+		if (enabled)
+		{
+			m_style |= WS_SYSMENU;
+		}
+		else
+		{
+			m_style &= ~WS_SYSMENU;
 		}
 	}
 

@@ -90,11 +90,22 @@ namespace influx::platform
 
 	struct window_style final
 	{
+		static const window_style& get_generic()
+		{
+			static window_style generic_style{};
+			generic_style.set_generic_window(true);
+			return generic_style;
+		}
+
 		INFLUX_PLATFORM_API void set_decoration(bool enabled);
 		INFLUX_PLATFORM_API bool get_decoration() const;
 		INFLUX_PLATFORM_API void set_taskicon_enabled(bool enabled);
 		INFLUX_PLATFORM_API bool get_taskicon_enabled() const;
 		INFLUX_PLATFORM_API void set_topmost(bool enabled);
+
+		// WS_OVERLAPPEDWINDOW
+		INFLUX_PLATFORM_API void set_generic_window(bool enabled);
+		INFLUX_PLATFORM_API void set_exit_button(bool enabled);
 
 		uint32 m_style;
 		uint32 m_style_ext;
@@ -102,34 +113,36 @@ namespace influx::platform
 
 	struct window_desc final
 	{
-		window_desc& set_dimensions(const math::vectoru2& dim)
+		inline window_desc& set_dimensions(const math::vectoru2& dim)
 		{
 			m_dimensions = dim;
 			return *this;
 		}
 
-		window_desc& set_position(const math::vectorf2& pos)
+		inline window_desc& set_position(const math::vectorf2& pos)
 		{
 			m_position = pos;
 			return *this;
 		}
 
-		window_desc& set_name(const string& name)
+		inline window_desc& set_name(const string& name)
 		{
 			m_name = name;
 			return *this;
 		}
 
-		window_desc& set_style(const window_style& style)
+		inline window_desc& set_style(const window_style& style)
 		{
 			m_style = style;
 			return *this;
 		}
 
+		inline window_style& style() { return m_style; }
+
 		math::vectorf2 m_position;
 		math::vectoru2 m_dimensions;
 		string m_name;
-		window_style m_style;
+		window_style m_style = window_style::get_generic();
 	};
 
 	class window
