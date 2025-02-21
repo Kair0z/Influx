@@ -4,6 +4,7 @@
 // influx::core
 #include "core/log.h"
 #include "core/time.h"
+#include "core/file.h"
 
 // influx::engine
 #include "file/engine_files.h"
@@ -19,6 +20,17 @@
 
 namespace influx::engine
 {
+	static const load_args<e_asset_type::scene> k_default_scene_import_args
+	{
+		.m_pre_scale = 1.0f,
+		.m_bake_transforms = false
+	};
+
+	static const load_args<e_asset_type::image> k_default_image_import_args
+	{
+		
+	};
+
 	imp::scene_data content_manager::load_scene_data(const string& path, const imp::scene_load_args& args)
 	{
 		imp::scene_data data{};
@@ -82,6 +94,23 @@ namespace influx::engine
 		logn("loading {} resources ...", game_name.c_str());
 		const auto game_assets_dir = get_game_directory(game_name, game_directory::assets);
 		load_assets(engine, e_asset_origin::game, game_assets_dir);
+	}
+
+	void content_manager::import(const string& path)
+	{
+		file as_file = file(path);
+		e_asset_type asset_type = e_asset_type::count;
+
+		if (as_file.m_extension == ".fbx") asset_type = e_asset_type::scene;
+		if (as_file.m_extension == ".png") asset_type = e_asset_type::scene;
+		if (as_file.m_extension == ".hlsl") asset_type = e_asset_type::scene;
+
+		switch (asset_type)
+		{
+		case e_asset_type::scene: 
+			m_scenes[as_file.m_filename].load(path, k_default_scene_import_args);
+			break;
+		}
 	}
 
 	void content_manager::update_filechanges()

@@ -8,24 +8,15 @@
 #include "scene/scene.h"
 #include "content/content_manager.h"
 #include "editor/editor_manager.h"
+#include "input/input_manager.h"
 
 // influx::renderer
 #include "influx_renderer/scene.h"
-
-// influx::input
-#include "influx_input.h"
 
 namespace influx::engine
 {
     world::world()
     {
-        input::subscribe_keydown([this](input::e_key key) { m_deferred_keydowns.push(key); });
-        input::subscribe_keyup([this](input::e_key key) { m_deferred_keyups.push(key); });
-        input::subscribe_asciidown([this](char ascii) { m_deferred_ascii_downs.push(ascii); });
-        input::subscribe_asciiup([this](char ascii) { m_deferred_ascii_ups.push(ascii); });
-        input::subscribe_mousemove([this](const input::mouse_position& position) { m_deferred_mousemoves.push(position);  });
-        input::subscribe_mousedown([this](input::e_mouse_button button, const input::mouse_position& position) { m_deferred_mousedowns.push({ button, position }); });
-        input::subscribe_mouseup([this](input::e_mouse_button button, const input::mouse_position& position) { m_deferred_mouseups.push({ button, position }); });
     }
 
     world::~world()
@@ -342,72 +333,79 @@ namespace influx::engine
     {
         influx_scope("input_system");
         auto view = m_registry.view<input_component>();
-        for (auto [entity, input] : view.each())
+        static input_manager& inputman = get_engine()->get_input();
+
+        input::for_each_ascii([&view](char ascii)
         {
-            if (input.m_on_keydown)
+            const buttonstate& state = inputman.get_keystate(ascii);
+            bool is_new = state.m_num_frames == 0u;
+            if (state.m_is_down && is_new)
             {
-                m_deferred_keydowns.get_copy().read([&input](input::e_key keydown)
-                    {
-                        input.m_on_keydown(keydown);
-                    });
+                for (auto [entity, input] : view.each())
+                {
+                    if (input.m_on_ascii_down) input.m_on_ascii_down(ascii);
+                }
             }
-
-            if (input.m_on_keyup)
+            if (!state.m_is_down && is_new)
             {
-                m_deferred_keyups.get_copy().read([&input](const auto& val)
-                    {
-                        input.m_on_keyup(val);
-                    });
+                for (auto [entity, input] : view.each())
+                {
+                    if (input.m_on_ascii_up) input.m_on_ascii_up(ascii);
+                }
             }
-
-            if (input.m_on_ascii_down)
+        });
+        input::for_each_key([&view](input::e_key key)
+        {
+            const buttonstate& state = inputman.get_keystate(key);
+            bool is_new = state.m_num_frames == 0u;
+            if (state.m_is_down && is_new)
             {
-                m_deferred_ascii_downs.get_copy().read([&input](const auto& val)
-                    {
-                        input.m_on_ascii_down(val);
-                    });
+                for (auto [entity, input] : view.each())
+                {
+                    if (input.m_on_keydown) input.m_on_keydown(key);
+                }
             }
-
-            if (input.m_on_ascii_up)
+            if (!state.m_is_down && is_new)
             {
-                m_deferred_ascii_ups.get_copy().read([&input](const auto& val)
-                    {
-                        input.m_on_ascii_up(val);
-                    });
+                for (auto [entity, input] : view.each())
+                {
+                    if (input.m_on_keyup) input.m_on_keyup(key);
+                }
             }
+        });
 
-            if (input.m_on_mouse_move)
-            {
-                m_deferred_mousemoves.get_copy().read([&input](const auto& val)
-                    {
-                        input.m_on_mouse_move(val);
-                    });
-            }
+        // mouse
+        input::mouse_position position{};
+        position.m_client = inputman.get_mouse_position_client();
+        position.m_screen = inputman.get_mouse_position_screen();
 
-            if (input.m_on_mouse_down)
+        if (inputman.get_mouse_delta().sqr_magnitude() > 0.0f)
+        {
+            for (auto [entity, input] : view.each())
             {
-                m_deferred_mousedowns.get_copy().read([&input](const auto& val)
-                    {
-                        input.m_on_mouse_down(val.first, val.second);
-                    });
-            }
-
-            if (input.m_on_mouse_up)
-            {
-                m_deferred_mouseups.get_copy().read([&input](const auto& val)
-                    {
-                        input.m_on_mouse_up(val.first, val.second);
-                    });
+                if (input.m_on_mouse_move) input.m_on_mouse_move(position);
             }
         }
-
-        m_deferred_keydowns.clear();
-        m_deferred_keyups.clear();
-        m_deferred_ascii_downs.clear();
-        m_deferred_ascii_ups.clear();
-        m_deferred_mousemoves.clear();
-        m_deferred_mousedowns.clear();
-        m_deferred_mouseups.clear();
+        
+        input::for_each_mousebutton([&view, &position](input::e_mouse_button button)
+        {
+             const buttonstate& state = inputman.get_mousebutton_state(button);
+             bool is_new = state.m_num_frames == 0u;
+             if (state.m_is_down && is_new)
+             {
+                 for (auto [entity, input] : view.each())
+                 {
+                     if (input.m_on_mouse_down) input.m_on_mouse_down(button, position);
+                 }
+             }
+             if (!state.m_is_down && is_new)
+             {
+                 for (auto [entity, input] : view.each())
+                 {
+                     if (input.m_on_mouse_up) input.m_on_mouse_up(button, position);
+                 }
+             }
+        });
     }
 
     void world::update_bounds_system()

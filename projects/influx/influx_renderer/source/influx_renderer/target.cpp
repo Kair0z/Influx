@@ -11,6 +11,32 @@
 
 namespace influx::renderer
 {
+	static graphics::tex2D_desc get_default_color_desc(const math::vectoru2& dimensions)
+	{
+		graphics::tex2D_desc desc{};
+		desc.m_arraysize = 1u;
+		desc.m_dimensions = dimensions;
+		desc.m_format = graphics::e_format::rgba8;
+		desc.m_num_mips = 1u;
+		desc.m_sample_count = 1u;
+		desc.m_bindflags = graphics::e_bind_flags::rtv | graphics::e_bind_flags::uav;
+		desc.m_init_state = graphics::e_resource_state::render_target;
+		return desc;
+	};
+
+	static graphics::tex2D_desc get_default_depth_desc(const math::vectoru2& dimensions)
+	{
+		graphics::tex2D_desc desc{};
+		desc.m_arraysize = 1u;
+		desc.m_dimensions = dimensions;
+		desc.m_format = graphics::e_format::d32;
+		desc.m_num_mips = 1u;
+		desc.m_sample_count = 1u;
+		desc.m_bindflags = graphics::e_bind_flags::dsv;
+		desc.m_init_state = graphics::e_resource_state::depth_target;
+		return desc;
+	};
+
 	// constructs a target from create_args, allocating new graphics resources
 	target::target(graphics::device* device, const target_create_args& args)
 		: mp_device{device}
@@ -22,28 +48,14 @@ namespace influx::renderer
 		if (args.m_has_colour)
 		{
 			// create the colour resource
-			graphics::tex2D_desc desc{};
-			desc.m_arraysize = 1u;
-			desc.m_dimensions = { args.m_width, args.m_heigth };
-			desc.m_format = graphics::e_format::rgba8;
-			desc.m_num_mips = 1u;
-			desc.m_sample_count = 1u;
-			desc.m_bindflags = graphics::e_bind_flags::rtv | graphics::e_bind_flags::uav;
-			desc.m_init_state = graphics::e_resource_state::render_target;
+			graphics::tex2D_desc desc = get_default_color_desc({ args.m_width, args.m_heigth });
 			mp_resource = device->create_resource(desc);
 
 			m_rtv_cpu = desc_manager.create_rtv(mp_resource);
 		}
 		if (args.m_has_depth_stencil)
 		{
-			graphics::tex2D_desc desc{};
-			desc.m_arraysize = 1u;
-			desc.m_dimensions = { args.m_width, args.m_heigth };
-			desc.m_format = graphics::e_format::d32;
-			desc.m_num_mips = 1u;
-			desc.m_sample_count = 1u;
-			desc.m_bindflags = graphics::e_bind_flags::dsv;
-			desc.m_init_state = graphics::e_resource_state::depth_target;
+			graphics::tex2D_desc desc = get_default_depth_desc({ args.m_width, args.m_heigth });
 			mp_depth_resource = device->create_resource(desc);
 
 			m_dsv_cpu = desc_manager.create_dsv(mp_depth_resource);
@@ -170,30 +182,15 @@ namespace influx::renderer
 			if (m_args.m_has_colour)
 			{
 				// create new resource
-				graphics::tex2D_desc desc{};
-				desc.m_arraysize = 1u;
-				desc.m_dimensions = { dimensions.x, dimensions.y };
-				desc.m_bindflags = graphics::e_bind_flags::rtv;
-				desc.m_format = graphics::e_format::rgba8;
-				desc.m_num_mips = 1u;
-				desc.m_sample_count = 1u;
+				graphics::tex2D_desc desc = get_default_color_desc(dimensions);
 				mp_resource = mp_device->create_resource(desc);
-
 				recreate_rtv();
 			}
 
 			if (m_args.m_has_depth_stencil)
 			{
-				graphics::tex2D_desc desc{};
-				desc.m_arraysize = 1u;
-				desc.m_dimensions = { dimensions.x, dimensions.y };
-				desc.m_format = graphics::e_format::d32;
-				desc.m_num_mips = 1u;
-				desc.m_sample_count = 1u;
-				desc.m_bindflags = graphics::e_bind_flags::dsv;
-				desc.m_init_state = graphics::e_resource_state::depth_target;
+				graphics::tex2D_desc desc = get_default_depth_desc(dimensions);
 				mp_depth_resource = mp_device->create_resource(desc);
-
 				recreate_dsv();
 			}
 		}

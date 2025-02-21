@@ -443,12 +443,14 @@ namespace influx::renderer
 		}
 		void set_constants(graphics::commandlist& cmdlist, const string& name, uint32 num_dwords, void* data) const
 		{
-			cmdlist.set_constants(get_param_index(name), num_dwords, data, _t);
+			if (is_param_bound(name))
+				cmdlist.set_constants(get_param_index(name), num_dwords, data, _t);
 		}
 
 		void set_resource_table(graphics::commandlist& cmdlist, const string& name, const graphics::descriptor_range& gpu_range) const
 		{
-			cmdlist.set(gpu_range, get_param_index(name));
+			if (is_param_bound(name))
+				cmdlist.set(gpu_range, get_param_index(name));
 		}
 
 		uint32 get_shader_register(const string& resource_name) const
@@ -458,6 +460,10 @@ namespace influx::renderer
 		uint32 get_param_index(const string& resource_name) const
 		{
 			return m_name_to_param_idx.at(resource_name);
+		}
+		bool is_param_bound(const string& param_name) const
+		{
+			return m_name_to_param_idx.contains(param_name);
 		}
 
 		const debug_name& get_name() const

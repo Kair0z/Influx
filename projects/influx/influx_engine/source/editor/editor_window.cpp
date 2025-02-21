@@ -13,6 +13,8 @@ namespace influx::engine
 	{
 		if (m_is_visible)
 		{
+			on_prerun();
+
 			if (m_force_position.is_forced())
 				ImGui::SetNextWindowPos(imgui::translate(m_force_position.get()));
 

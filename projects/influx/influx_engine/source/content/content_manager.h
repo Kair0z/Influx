@@ -20,39 +20,40 @@ namespace influx::engine
 
 namespace influx::engine
 {
+	enum class e_asset_type : uint8
+	{
+		scene,
+		image,
+		shader,
+		count
+	};
+
+	template <e_asset_type _t>
+	using data_type = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
+		imp::scene_data,
+		imp::image_data,
+		imp::shader_data>>;
+
+	template <e_asset_type _t>
+	using load_args = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
+		imp::scene_load_args,
+		imp::image_load_args,
+		shader::compile_args>>;
+
+	enum class e_asset_origin : uint8
+	{
+		engine,
+		game,
+		imported,
+		count
+	};
+
 	// content in influx::engine
 	// differentiates between 2 categories.
 	// - resources: the raw input items that the engine accepts and can convert into assets
 	// - assets: influx-native representations of resources (.flx)
 	class content_manager final
 	{
-		enum class e_asset_type : uint8
-		{
-			scene,
-			image,
-			shader,
-			count
-		};
-
-		template <e_asset_type _t>
-		using data_type = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
-			imp::scene_data,
-			imp::image_data,
-			imp::shader_data>>;
-
-		template <e_asset_type _t>
-		using load_args = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
-			imp::scene_load_args,
-			imp::image_load_args,
-			shader::compile_args>>;
-
-		enum class e_asset_origin : uint8
-		{
-			engine,
-			game,
-			count
-		};
-
 		enum class e_load_state : uint8
 		{
 			unloaded,
@@ -77,6 +78,8 @@ namespace influx::engine
 				if (get_loadstate() == e_load_state::count) return;
 				if (get_loadstate() == e_load_state::loading) return;
 				if (get_loadstate() == e_load_state::loaded && reload == false) return;
+
+				engine::log(e_log_category::info, "content:loading {}", path.c_str());
 
 				m_path = path;
 				m_time_loadstart = time::get_now();
@@ -213,6 +216,8 @@ namespace influx::engine
 
 		// loads /influx/games/'game_name'/assets/
 		void load_game_assets(const string& game_name, engine* engine);
+
+		void import(const string& path);
 
 		// finding meshes
 		imp::scene_data::mesh* find_mesh(const string& mesh_name)

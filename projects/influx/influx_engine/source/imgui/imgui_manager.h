@@ -40,6 +40,7 @@ namespace influx::engine
 		void initialize_input();
 		void update_monitors();
 		void update_mousedata();
+		void update_input();
 
 		static void create_window(ImGuiViewport*);
 		static void destroy_window(ImGuiViewport*);

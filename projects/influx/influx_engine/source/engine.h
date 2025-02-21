@@ -22,9 +22,12 @@ namespace influx::platform
 
 namespace influx::engine
 {
+	namespace editor
+	{
+		class editor_manager;
+	}
 	class render_manager;
 	class content_manager;
-	class editor_manager;
 	class game_manager;
 	class input_manager;
 	class task_manager;
@@ -46,7 +49,7 @@ namespace influx::engine
 		game_manager& get_game();
 		world& get_world();
 		platform::window& get_window();
-		editor_manager& get_editor();
+		editor::editor_manager& get_editor();
 		render_manager& get_renderer();
 		input_manager& get_input();
 		window_manager& get_windowman();
@@ -87,7 +90,7 @@ namespace influx::engine
 		window_manager* m_windowman = nullptr;
 		content_manager* m_contentman = nullptr;
 		render_manager* m_renderman = nullptr;
-		editor_manager* m_editorman = nullptr;
+		editor::editor_manager* m_editorman = nullptr;
 		game_manager* m_gameman = nullptr;
 		input_manager* m_inputman = nullptr;
 		task_manager* m_taskman = nullptr;

@@ -170,8 +170,8 @@ namespace influx::engine
 		on_window_resize(clientrect.get_dimensions());
 
 		// static editor
-		editor_manager::static_window<render_editor>("renderer").set_name("renderer");
-		editor_manager::static_window<shadertoy_editor>("shadertoy").set_name("shadertoy");
+		editor::editor_manager::static_window<render_editor>("renderer").set_name("renderer");
+		editor::editor_manager::static_window<shadertoy_editor>("shadertoy").set_name("shadertoy");
 	}
 
 	render_manager::~render_manager()

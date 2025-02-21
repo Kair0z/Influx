@@ -17,6 +17,11 @@ namespace influx::engine
 	class log_editor final : public editor_window
 	{
 	public:
+		virtual void on_prerun() override
+		{
+			ImGui::SetNextWindowBgAlpha(0.0);
+		}
+
 		virtual void on_run() override
 		{
 			set_name("log");
@@ -54,7 +59,7 @@ namespace influx::engine
 
 		m_linecount = 0;
 
-		editor_manager::static_window<log_editor>("log");
+		editor::editor_manager::static_window<log_editor>("log");
 	}
 
 	log_manager::~log_manager()

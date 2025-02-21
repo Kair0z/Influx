@@ -39,10 +39,15 @@ namespace influx::engine
 
 			if (str::contains(argument, ".exe"))
 			{
+				// loading the editor by running the .exe
 				m_parsed_run_args["exe_dir"] = file(argument).m_directory;
 				m_parsed_run_args["exe"] = argument;
 			}
-			if (str::contains(argument, ".flx")) m_parsed_run_args["projectfile"] = argument;
+			if (str::contains(argument, ".flx"))
+			{
+				// loading an .flx project
+				m_parsed_run_args["projectfile"] = argument;
+			}
 
 			m_run_args.push_back(argv[i]);
 		}
@@ -50,6 +55,8 @@ namespace influx::engine
 
 	void engine::initialize()
 	{
+		m_logman = new log_manager();
+
 		random::seed_random(0u);
 
 		m_t_init = time::get_now();
@@ -62,10 +69,9 @@ namespace influx::engine
 		m_inputman = new input_manager();
 		m_contentman = new content_manager(this);
 		m_gameman = new game_manager();
-		m_logman = new log_manager();
 		if (m_runtype == run_type::editor)
 		{
-			m_editorman = new editor_manager();
+			m_editorman = new editor::editor_manager();
 		}
 
 		// initialize render
@@ -267,7 +273,7 @@ namespace influx::engine
 		return get_windowman().get_main_window();
 	}
 
-	editor_manager& engine::get_editor()
+	editor::editor_manager& engine::get_editor()
 	{
 		return *m_editorman;
 	}

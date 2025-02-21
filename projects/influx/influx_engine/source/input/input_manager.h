@@ -1,7 +1,10 @@
 #pragma once
 
+#include "input_state.h"
+
 // influx::core
 #include "core/container/map.h"
+#include "core/container/array.h"
 
 // influx::input
 #include "influx_input.h"
@@ -16,58 +19,22 @@ namespace influx::engine
 		~input_manager();
 
 		void tick();
-		void flush();
 		void push_window_event(const platform::window_event&);
+		
+		const math::vectoru2& get_mouse_position_client() const;
+		const math::vectoru2& get_mouse_position_screen() const;
+
+		math::vectorf2 get_mouse_delta() const;
+		const buttonstate& get_keystate(const input::key_event& ev) const;
+		const buttonstate& get_keystate(input::e_key key) const;
+		const buttonstate& get_keystate(char ascii) const;
+		const buttonstate& get_mousebutton_state(input::e_mouse_button) const;
+
+		bool is_down(input::e_key key, uint32* out_num_frames = nullptr) const;
+		bool is_down(char ascii, uint32* out_num_frames = nullptr) const;
+		bool is_down(input::e_mouse_button, uint32* out_num_frames = nullptr) const;
 
 	private:
-		void on_keydown(input::e_key);
-		void on_keyup(input::e_key);
-		void on_ascii_down(char);
-		void on_ascii_up(char);
-		void on_mouse_move(const input::mouse_position& position);
-		void on_mouse_down(input::e_mouse_button button, const input::mouse_position& position);
-		void on_mouse_up(input::e_mouse_button button, const input::mouse_position& position);
-
-		template <typename _t>
-		struct lock_queue
-		{
-			void push(const _t& val)
-			{
-				m_lock.lock();
-				m_data.push(val);
-				m_lock.unlock();
-			}
-
-			template <typename _readfunc>
-			void read(_readfunc&& func) const
-			{
-				m_data.read(func);
-			}
-
-			void clear()
-			{
-				m_lock.lock();
-				m_data.clear();
-				m_lock.unlock();
-			}
-
-			queue<_t> get_copy()
-			{
-				return m_data;
-			}
-
-			queue<_t> m_data{};
-			std::mutex m_lock;
-		};
-		lock_queue<input::e_key> m_deferred_keydowns{};
-		lock_queue<input::e_key> m_deferred_keyups{};
-		lock_queue<char> m_deferred_ascii_downs{};
-		lock_queue<char> m_deferred_ascii_ups{};
-		lock_queue<input::mouse_position> m_deferred_mousemoves{};
-		lock_queue<std::pair<input::e_mouse_button, input::mouse_position>> m_deferred_mousedowns{};
-		lock_queue<std::pair<input::e_mouse_button, input::mouse_position>> m_deferred_mouseups{};
-
-		math::float2 m_mousepos = {};
-		math::float2 m_mousedelta = {};
+		input_state m_state{};
 	};
 }

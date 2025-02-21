@@ -16,13 +16,18 @@
 
 // influx::engine
 #include "editor_window.h"
+#include "scene_editor/scene_editor.h"
+namespace influx::engine
+{
+	class engine;
+}
 
 // imgui
 struct ImGuiContext;
 
-namespace influx::engine
+namespace influx::engine::editor
 {
-	class engine;
+	
 
 #pragma region helpers
 	class compound_keybind_tracker final
@@ -179,9 +184,7 @@ namespace influx::engine
 
 		bool m_is_mainmenu_active = false;
 
-		// static windows
-		imgui::popup_radial<editor_window*> m_static_windows_radial;
-		imgui::popup_radial<function<void()>> m_edit_radial{};
+		scene_editor m_scene_editor;
 		static umap<string, editor_window*> m_static_windows;
 
 		files::projectfile m_projectfile;
@@ -193,7 +196,6 @@ namespace influx::engine
 		void update_mainmenu();
 		void update_background_dockspace();
 		void update_static_windows();
-		void update_edit_radial();
 
 		void on_keydown(input::e_key);
 		void on_keyup(input::e_key);

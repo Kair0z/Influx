@@ -56,6 +56,7 @@ namespace influx::engine
 		void set_size(const math::float2& new_size);
 
 		virtual void on_run() {}
+		virtual void on_prerun() {}
 
 	private:
 		string m_title;

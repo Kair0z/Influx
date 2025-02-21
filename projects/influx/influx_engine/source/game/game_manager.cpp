@@ -103,7 +103,7 @@ namespace influx::engine
 
 		if (get_engine()->is_editor() && false)
 		{
-			editor_manager& editorman = get_engine()->get_editor();
+			editor::editor_manager& editorman = get_engine()->get_editor();
 			const math::matrix4x4f& cam_transform = editorman.get_editorfile().m_camera_transform;;
 			start_position = cam_transform.get_translation();
 			start_rotation = cam_transform.get_rotation_matrix();

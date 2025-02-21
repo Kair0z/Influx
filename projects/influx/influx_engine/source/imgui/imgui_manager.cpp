@@ -6,6 +6,7 @@
 
 // influx::engine
 #include "window/window_manager.h"
+#include "input/input_manager.h"
 
 // influx::input
 #include "influx_input.h"
@@ -60,6 +61,18 @@ namespace influx::engine
 		return ImGuiKey::ImGuiKey_None;
 	}
 
+	inline int translate(const input::e_mouse_button button)
+	{
+		int result = 0;
+		switch (ev.m_button)
+		{
+		case input::e_mouse_button::left: button_value = 0; break;
+		case input::e_mouse_button::middle: button_value = 2; break;
+		case input::e_mouse_button::right: button_value = 1; break;
+		}
+		return result;
+	}
+
 	imgui_manager::imgui_manager()
 	{
 		// create ImGui context
@@ -98,6 +111,8 @@ namespace influx::engine
 	{
 		if (scene.is_empty() == false)
 		{
+			update_input();
+
 			ImGuiIO& io = ImGui::GetIO();
 			window_manager& windowman = get_engine()->get_windowman();
 			ImGuiContext* context = ImGui::GetCurrentContext();
@@ -361,85 +376,35 @@ namespace influx::engine
 		platio.Platform_OnChangedViewport	= on_changed_viewport;
 	}
 
-	void imgui_manager::initialize_input()
+	void imgui_manager::update_input()
 	{
+		static input_manager& inputman = get_engine()->get_input();
 		ImGuiIO& io = ImGui::GetIO();
-
-		// mouse events
-		input::subscribe([this, &io](const input::mouse_event& ev)
+		input::for_each_key([&io](input::e_key key)
 		{
-			switch (ev.m_type)
-			{
-			case input::mouse_event::type::move:
-			{
-				bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
-				if (want_absolute_pos)
-				{
-					io.AddMousePosEvent(ev.m_position.m_screen.x, ev.m_position.m_screen.y);
-				}
-				else
-				{
-					io.AddMousePosEvent(ev.m_position.m_client.x, ev.m_position.m_client.y);
-				}
-			}
-			break;
-
-			case input::mouse_event::type::leave:
-			{
-				io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
-			}
-			break;
-
-			case input::mouse_event::type::scroll:
-			{
-				io.AddMouseWheelEvent(0.0f, ev.m_wheel_delta);
-			}
-			break;
-
-			case input::mouse_event::type::button_down:
-			{
-				int button_value = 0;
-				switch (ev.m_button)
-				{
-				case input::e_mouse_button::left: button_value = 0; break;
-				case input::e_mouse_button::middle: button_value = 2; break;
-				case input::e_mouse_button::right: button_value = 1; break;
-				}
-
-				io.AddMouseButtonEvent(button_value, true);
-			}
-			break;
-
-			case input::mouse_event::type::button_up:
-			{
-				int button_value = 0;
-				switch (ev.m_button)
-				{
-				case input::e_mouse_button::left: button_value = 0; break;
-				case input::e_mouse_button::middle: button_value = 2; break;
-				case input::e_mouse_button::right: button_value = 1; break;
-				}
-
-				io.AddMouseButtonEvent(button_value, false);
-			}
-			break;
-			}
+			const buttonstate& state = inputman.get_keystate(key);
+			if (state.is_firstframe_down()) io.AddKeyEvent(translate(key), true);
+			if (state.is_firstframe_up()) io.AddKeyEvent(translate(key), false);
 		});
 
-		// keyboard events
-		input::subscribe([this, &io](const input::key_event& key)
+		input::for_each_ascii([&io](char ascii)
 		{
-			const bool is_ascii = key.is_ascii();
-			const bool is_key_down = key.m_type != input::key_event::e_type::keyup;
-			if (!is_ascii)
-			{
-				io.AddKeyEvent(translate(key.m_key), is_key_down);
-			}
-			else
-			{
-				io.AddInputCharacter(key.m_ascii_char);
-			}
+			const buttonstate& state = inputman.get_keystate(ascii);
+			if (state.is_firstframe_down()) io.AddInputCharacter(ascii);
 		});
+
+		input::for_each_mousebutton([&io](input::e_mouse_button button)
+		{
+			const buttonstate& state = inputman.get_mousebutton_state(button);
+			if (state.is_firstframe_down()) io.AddMouseButtonEvent(translate(button), true);
+		});
+
+		if (inputman.get_mouse_delta().sqr_magnitude() > 0.0f)
+		{
+			const bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
+			const math::vectorf2 mousepos = want_absolute_pos ? inputman.get_mouse_position_screen() : inputman.get_mouse_position_client();
+			io.AddMousePosEvent(mousepos.x, mousepos.y);
+		}
 	}
 
 	void imgui_manager::update_monitors()

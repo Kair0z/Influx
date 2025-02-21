@@ -880,7 +880,8 @@ namespace influx::rendergraph
 	{
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
-		
+		influx_assert(texture != nullptr);
+
 		texture_desc& desc = texture->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::rtv;
 		if (desc.m_init_state == graphics::e_resource_state::common)
@@ -907,6 +908,7 @@ namespace influx::rendergraph
 	{
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
+		influx_assert(texture != nullptr);
 
 		texture_desc& desc = texture->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::dsv;
@@ -934,6 +936,7 @@ namespace influx::rendergraph
 	{
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
+		influx_assert(texture != nullptr);
 
 		texture_desc& desc = texture->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::srv;
@@ -961,6 +964,7 @@ namespace influx::rendergraph
 	{
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
+		influx_assert(texture != nullptr);
 
 		texture_desc& desc = texture->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::uav;
@@ -988,6 +992,7 @@ namespace influx::rendergraph
 	{
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		rgbuffer* buffer = get_buffer(id);
+		influx_assert(buffer != nullptr);
 
 		buffer_desc& desc = buffer->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::srv;
@@ -1011,6 +1016,7 @@ namespace influx::rendergraph
 	{
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		rgbuffer* buffer = get_buffer(id);
+		influx_assert(buffer != nullptr);
 
 		buffer_desc& desc = buffer->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::uav;
@@ -1037,6 +1043,7 @@ namespace influx::rendergraph
 
 		rgbuffer* buffer = get_buffer(id);
 		rgbuffer* cnt_buffer = get_buffer(id);
+		influx_assert(buffer != nullptr);
 
 		buffer_desc& desc = buffer->m_desc;
 		buffer_desc& cnt_desc = cnt_buffer->m_desc;

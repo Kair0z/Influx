@@ -540,6 +540,7 @@ namespace influx::renderer
 
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         static string depth_name{}; depth_name = color_name + "_depth";
+
         graph.import_texture(color_name, target.get_resource());
         if (target.has_depth_stencil()) graph.import_texture(depth_name, target.get_depth_resource());
         else

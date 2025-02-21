@@ -90,7 +90,29 @@ namespace influx::input
 		ascii_char,
 		count
 	};
-	
+	static constexpr uint32 k_num_ascii = 256u;
+	static constexpr uint32 k_num_ascii_numbers = 128;
+	static constexpr uint32 k_num_non_ascii_keys = static_cast<uint8>(e_key::count) - 2u; // ascii_num & ascii_char are categories
+	static constexpr uint32 k_num_keys = k_num_ascii + k_num_non_ascii_keys;
+
+	template <typename _func>
+	inline void for_each_key(_func&& func)
+	{
+		for (uint32 i = 0u; i < k_num_non_ascii_keys; ++i)
+		{
+			func(static_cast<input::e_key>(i));
+		}
+	}
+
+	template <typename _func>
+	inline void for_each_ascii(_func&& func)
+	{
+		for (char i = 0u; i < k_num_ascii; ++i)
+		{
+			func(i);
+		}
+	}
+
 	constexpr const char* to_cstr(const e_key key)
 	{
 		switch (key)
@@ -157,6 +179,16 @@ namespace influx::input
 		x,
 		count
 	};
+	static constexpr uint8 k_num_mousebuttons = static_cast<uint8>(e_mouse_button::count);
+
+	template <typename _func>
+	void for_each_mousebutton(_func&& func)
+	{
+		for (uint32 i = 0u; i < k_num_mousebuttons; ++i)
+		{
+			func(static_cast<e_mouse_button>(i));
+		}
+	}
 
 	struct mouse_position final
 	{

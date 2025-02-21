@@ -84,46 +84,6 @@ namespace influx::engine
 		void update_bounds_system();
 		void update_stream_system();
 		void update_rigidbody_system();
-
-		// deferred input: this is a bit ugly
-		template <typename _t>
-		struct lock_queue
-		{
-			void push(const _t& val)
-			{
-				m_lock.lock();
-				m_data.push(val);
-				m_lock.unlock();
-			}
-
-			template <typename _readfunc>
-			void read(_readfunc&& func) const
-			{
-				m_data.read(func);
-			}
-
-			void clear()
-			{
-				m_lock.lock();
-				m_data.clear();
-				m_lock.unlock();
-			}
-
-			queue<_t> get_copy()
-			{
-				return m_data;
-			}
-
-			queue<_t> m_data{};
-			std::mutex m_lock;
-		};
-		lock_queue<input::e_key> m_deferred_keydowns{};
-		lock_queue<input::e_key> m_deferred_keyups{};
-		lock_queue<char> m_deferred_ascii_downs{};
-		lock_queue<char> m_deferred_ascii_ups{};
-		lock_queue<input::mouse_position> m_deferred_mousemoves{};
-		lock_queue<std::pair<input::e_mouse_button, input::mouse_position>> m_deferred_mousedowns{};
-		lock_queue<std::pair<input::e_mouse_button, input::mouse_position>> m_deferred_mouseups{};
 	};
 
 	template<typename _ctype, typename... _args>

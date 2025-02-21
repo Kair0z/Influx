@@ -37,6 +37,12 @@ namespace influx::platform
 		count
 	};
 
+	struct file_dialog_result final
+	{
+		bool m_has_selected = false;
+		string m_selection = "";
+	};
+
 	class INFLUX_PLATFORM_API platform
 	{
 	public:
@@ -55,5 +61,7 @@ namespace influx::platform
 		static math::vectoru2 get_cursor_screenpos();
 
 		static window_handle find_window_from_cursor();
+
+		static file_dialog_result open_file_dialog(const string& path);
 	};
 }

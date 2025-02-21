@@ -24,7 +24,7 @@
 // imgui
 #include "imgui/imgui.h"
 
-namespace influx::engine
+namespace influx::engine::editor
 {
 #pragma region uis
 	class game_manager_ui final : public editor_window
@@ -154,8 +154,6 @@ namespace influx::engine
 	umap<string, editor_window*> editor_manager::m_static_windows{};
 
 	editor_manager::editor_manager()
-		: m_static_windows_radial{}
-		, m_edit_radial{}
 	{
 		initialize_inputs();
 		load_editor();
@@ -173,7 +171,8 @@ namespace influx::engine
 		update_background_dockspace();
 		update_mainmenu();
 		update_static_windows();
-		update_edit_radial();
+		
+		m_scene_editor.on_imgui(ctx);
 	}
 
 	void editor_manager::update_inputs()
@@ -201,8 +200,6 @@ namespace influx::engine
 
 	void editor_manager::update_mainmenu()
 	{
-		static ImGui::FileBrowser browser{};
-
 		m_is_mainmenu_active = true;
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -210,15 +207,11 @@ namespace influx::engine
 			{
 				if (ImGui::Button("import fbx"))
 				{
-					browser.SetTitle("select file");
-					browser.SetTypeFilters({ ".fbx" });
-
-					browser.Open();
-
-					if (browser.HasSelected())
+					platform::file_dialog_result result = platform::platform::open_file_dialog("");
+					if (result.m_has_selected)
 					{
-						logn("importing fbx ... {}", browser.GetSelected().string());
-						browser.ClearSelected();
+						static content_manager& content = get_engine()->get_content();
+						content.import(result.m_selection);
 					}
 				}
 
@@ -226,10 +219,7 @@ namespace influx::engine
 			}
 
 			ImGui::EndMainMenuBar();
-
-			
 		}
-		browser.Display();
 	}
 
 	void editor_manager::update_background_dockspace()
@@ -276,81 +266,12 @@ namespace influx::engine
 		static_window<fps_ui>("fps");
 		static_window<content_ui>("content");
 
-		const float max_radius = 50.0f;
-		const float seconds = get_engine()->get_time().get_time_seconds();
-		const float anim_speed = 5.0f;
-		const float radius = math::pingpong(seconds * anim_speed, max_radius * 0.95f, max_radius);
-
-		m_static_windows_radial.set_id("##piepopup");
-		m_static_windows_radial.set_radius(radius);
-		m_static_windows_radial.render(m_mousepos);
-
-		for (auto& pair : m_static_windows)
-		{
-			if (!pair.first.empty() && pair.second != nullptr)
-			{
-				m_static_windows_radial.set_item(pair.first, pair.second);
-			}
-		}
-
-		if (m_static_windows_radial.has_selection())
-		{
-			editor_window* selected = *m_static_windows_radial.get_selected();
-			selected->toggle();
-		}
-
 		for (auto& pair : m_static_windows)
 		{
 			if (pair.second && pair.second->is_visible())
 			{
 				pair.second->run({});
 			}
-		}
-	}
-
-	void editor_manager::update_edit_radial()
-	{
-		static entity custom_entity{};
-
-		const float max_radius = 50.0f;
-		const float seconds = get_engine()->get_time().get_time_seconds();
-		const float anim_speed = 5.0f;
-		const float radius = math::pingpong(seconds * anim_speed, max_radius * 0.95f, max_radius);
-
-		static world& world = get_engine()->get_world();
-		m_edit_radial.set_item("create", []()
-		{
-			custom_entity = world.create_entity();
-			
-			transform_component& ent_transform = world.create_component<transform_component>(custom_entity);
-			ent_transform.set_position({});
-			ent_transform.set_scale(0.001f);
-			ent_transform.update_matrix();
-
-			// mesh
-			mesh_component& ent_mesh = world.create_component<mesh_component>(custom_entity);
-			ent_mesh.set_mesh_name("esphere");
-			ent_mesh.set_use_normalized_scale(true); // scales to bounding sphere
-			ent_mesh.set_invert_normals(false);
-
-			// material
-			material_component& ent_mat = world.create_component<material_component>(custom_entity);
-			ent_mat.set_texture(e_texture_semantic::basecolor, "lego");
-			ent_mat.set_texture(e_texture_semantic::normals, "");
-			ent_mat.set_texture(e_texture_semantic::roughness, "");
-		});
-
-		m_edit_radial.set_item("destroy", []()
-		{
-			world.destroy_entity(custom_entity);
-		});
-
-		m_edit_radial.set_id("##piepopup_edit");
-		m_edit_radial.set_radius(radius);
-		m_edit_radial.render(m_mousepos);
-		if (m_edit_radial.has_selection())
-		{
-			m_edit_radial.get_selected()->operator()();
 		}
 	}
 
@@ -376,11 +297,12 @@ namespace influx::engine
 
 	void editor_manager::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
 	{
+		m_scene_editor.on_mouse_down(button, position);
+
 		switch (button)
 		{
 		case input::e_mouse_button::right: 
-			m_edit_radial.set_visible(true);
-			m_edit_radial.set_position(position.m_client);
+			
 			break;
 
 		case input::e_mouse_button::left:
@@ -428,10 +350,11 @@ namespace influx::engine
 
 	void editor_manager::on_mouse_up(input::e_mouse_button button, const input::mouse_position& position)
 	{
+		m_scene_editor.on_mouse_up(button, position);
+
 		switch (button)
 		{
-		case input::e_mouse_button::right:
-			m_edit_radial.set_visible(false);
+		case input::e_mouse_button::right:	
 			break;
 		}
 	}

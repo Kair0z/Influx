@@ -3,6 +3,7 @@
 // Include Windows
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <commdlg.h>
 
 namespace influx::platform
 {
@@ -42,5 +43,36 @@ namespace influx::platform
 		}
 		
 		return nullptr;
+	}
+
+	file_dialog_result platform::open_file_dialog(const string& path)
+	{
+		file_dialog_result result{};
+		
+		::OPENFILENAME ofn;       // Common dialog box structure
+		wchar_t filePath[MAX_PATH] = L""; // Buffer to store the selected file path
+
+		// Initialize OPENFILENAME structure
+		ZeroMemory(&ofn, sizeof(ofn));
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = NULL;  // No parent window
+		ofn.lpstrFilter = L"FBX Files\0*.fbx\0All Files\0*.*\0"; // Filter for .fbx files
+		ofn.lpstrFile = filePath; // File path buffer
+		ofn.nMaxFile = MAX_PATH;
+		ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST; // Ensure the file exists
+		ofn.lpstrDefExt = L"fbx"; // Default extension
+
+		// Open the file dialog
+		if (GetOpenFileName(&ofn)) 
+		{
+			result.m_has_selected = true;
+			result.m_selection = to_string(filePath);
+		}
+		else 
+		{
+			result.m_has_selected = false;
+		}
+
+		return result;
 	}
 }
