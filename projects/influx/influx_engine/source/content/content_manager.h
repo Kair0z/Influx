@@ -200,7 +200,7 @@ namespace influx::engine
 		umap<string, shader_item>& touch_shaders();
 		
 		template <typename _t>
-		_t const* find(const string& asset_name) const
+		inline _t const* find(const string& asset_name) const
 		{
 			if constexpr (std::is_same_v<_t, scene_item>) 
 			{

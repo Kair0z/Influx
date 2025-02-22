@@ -58,6 +58,16 @@ namespace influx::imp
 			all_success &= load_image_file((*args.m_hacky_paths)[i], side_datas[i], side_args);
 		}
 
+		out_cubemap.m_dimensions.x =
+			out_cubemap.m_dimensions.y =
+			out_cubemap.m_dimensions.z = side_datas[0].m_dimensions.x;
+
+		for (uint32 i = 0u; i < 6u; ++i)
+		{
+			for (uint64 p = 0u; p < side_datas[i].m_pixels.size(); ++p)
+				out_cubemap.m_pixels.push_back(side_datas[i].m_pixels[p]);
+		}
+
 		return all_success;
 	}
 }

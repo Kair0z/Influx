@@ -126,8 +126,10 @@ namespace influx::renderer
 		const render_settings& get_settings() const;
 
 		texture* create_texture(const string& title, const texture_desc& args);
+		texturecube* create_texturecube(const string& title, const texturecube_desc& args);
 		const umap<string, texture*>& get_textures() const;
 		texture* find_texture(const string& name);
+		texturecube* find_texturecube(const string& name);
 		texture& get_default_texture(); // "none"
 
 		const umap<string, material> get_materials() const;
@@ -206,6 +208,7 @@ namespace influx::renderer
 
 		// texture data
 		umap<string, texture*> m_textures;
+		umap<string, texturecube*> m_texcubes;
 
 		render_settings m_settings;
 

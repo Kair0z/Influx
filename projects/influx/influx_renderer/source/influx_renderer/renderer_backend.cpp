@@ -502,6 +502,14 @@ namespace influx::renderer
 
     void renderer_backend::load(const string& title, const texturecube_data& data, bool reload)
     {
+        texturecube_desc create_args{};
+        create_args.m_width = data.get_width();
+        create_args.m_heigth = data.get_height();
+        create_args.m_depth = data.get_depth();
+        texturecube* texture = create_texturecube(title, create_args);
+
+        mp_upload_manager->upload_texture(mp_graphics_queue, data, texture->get_resource());
+
         return m_resource_manager.load<e_resource_type::texturecube>(title, data);
     }
 
@@ -588,6 +596,18 @@ namespace influx::renderer
         return m_textures[title];
     }
 
+    texturecube* renderer_backend::create_texturecube(const string& title, const texturecube_desc& args)
+    {
+        if (!m_resource_manager.contains<e_resource_type::texturecube>(title))
+        {
+            texturecube* new_texture = new texturecube(mp_device, args);
+            new_texture->set_name(title);
+            m_texcubes[title] = new_texture;
+        }
+
+        return m_texcubes[title];
+    }
+
     const umap<string, texture*>& renderer_backend::get_textures() const
     {
         return m_textures;
@@ -601,6 +621,15 @@ namespace influx::renderer
         }
 
         return &get_default_texture();
+    }
+
+    texturecube* renderer_backend::find_texturecube(const string& name)
+    {
+        if (m_texcubes.contains(name))
+        {
+            return m_texcubes[name];
+        }
+        return nullptr;
     }
 
     texture& renderer_backend::get_default_texture()

@@ -94,6 +94,44 @@ namespace influx::renderer
 		mp_commandlist->wait_for_completion();
 	}
 
+	void upload_manager::upload_texture(graphics::queue* queue, const texturecube_data& data, graphics::resource* target_resource)
+	{
+		const size_t texture_bytesize = data.m_pixels.size() * sizeof(pixel32);
+		static uint32 num_textures = 0u;
+
+		const range<size_t> upload_subrange{
+			(num_textures++ * texture_bytesize), texture_bytesize };
+
+		// MAP texture data onto the upload resource
+		graphics::map_args args{};
+		args.m_begin = upload_subrange.get_start();
+		args.m_end = upload_subrange.get_end();
+		mp_texture_upload_resource->map([&data, texture_bytesize](void* target)
+		{
+			memcpy(target, data.m_pixels.data(), texture_bytesize);
+
+		}, args);
+
+		// start a commandlist that copies the texture from intermediate -> gpu resource
+		mp_commandlist->start(mp_device);
+		{
+			target_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
+
+			graphics::copy_texture_args copy_args{};
+			copy_args.m_src.m_range = upload_subrange;
+			copy_args.m_dest.m_range = target_resource->get_full_range();
+
+			mp_commandlist->copy_texture(
+				mp_texture_upload_resource, target_resource, copy_args);
+
+			// transition our gpu texture to shader resource usage
+			target_resource->transition(mp_commandlist, graphics::e_resource_state::all_srv);
+		}
+		mp_commandlist->end();
+		mp_commandlist->submit(queue);
+		mp_commandlist->wait_for_completion();
+	}
+
 	upload_manager::~upload_manager()
 	{
 		mp_texture_upload_resource->release(mp_device);

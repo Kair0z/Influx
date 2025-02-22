@@ -97,14 +97,6 @@ namespace influx::renderer
 
         m_instance_data = new frontend::per_instance[k_max_num_instances]{};
 
-        // skybox
-        {
-            graphics::tex3D_desc desc{};   
-            mp_skybox = device.create_resource(desc);
-
-            m_skybox_srv = descriptor_manager.create_srv(mp_skybox);
-        }
-
         // instance buffer
         {
             graphics::heap_desc heap_desc{};
@@ -370,6 +362,20 @@ namespace influx::renderer
     {
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
+
+        // skybox
+        if (mp_skybox == nullptr)
+        {
+            if (texturecube* cube = backend.find_texturecube("graycloud"))
+            {
+                graphics::tex3D_desc desc{};
+                desc.m_dimensions = cube->get_dimensions();
+                desc.m_format = graphics::e_format::rgba8;
+                mp_skybox = backend.get_device().create_resource(desc);
+
+                m_skybox_srv = backend.get_descriptor_manager()->create_srv(mp_skybox);
+            }
+        }
 
         apply_pipeline_settings(target);
         graphics_pipeline& pipeline = pipeline_man.get_or_create_pipeline( get_scene_basepass_pipeline_signature() );

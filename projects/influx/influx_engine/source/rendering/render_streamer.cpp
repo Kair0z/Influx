@@ -30,6 +30,7 @@ namespace influx::engine
 		stream_images(content);
 		stream_shaders(content);
 		stream_meshes(content);
+		stream_cubemaps(content);
 	}
 	bool render_streamer::has_shader_loaded(const shader::shader_signature& signature) const
 	{

@@ -155,7 +155,7 @@ namespace influx::engine
 
 			cubemap_item& item = m_cubemaps["graycloud"];
 			args.m_hacky_paths = &cubemap_side_files;
-			item.load("", args);
+			item.load(cubemap_side_files[0], args);
 		}
 		
 		// load fbxs

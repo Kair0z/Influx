@@ -124,6 +124,20 @@ namespace influx::renderer
 		}
 
 		template <e_resource_type _t>
+		const entry<_t>& get(const resource_sign<_t>& signature) const
+		{
+			const auto& map = get_resource_map<_t>();
+			return map.at(signature);
+		}
+
+		template <e_resource_type _t>
+		entry<_t>& get(const resource_sign<_t>& signature)
+		{
+			const auto& map = get_resource_map<_t>();
+			return map.at(signature);
+		}
+
+		template <e_resource_type _t>
 		time::point get_time_loaded(const resource_sign<_t>& signature) const
 		{
 			auto& map = get_resource_map<_t>();

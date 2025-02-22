@@ -103,6 +103,28 @@ namespace influx::renderer
 		return true;
 	}
 
+	// constructs a target from create_args, allocating new graphics resources
+	texturecube::texturecube(graphics::device* device, const texturecube_desc& args)
+		: mp_device{ device }
+		, m_args{ args }
+		, m_current_dimensions{ args.m_width, args.m_heigth, args.m_depth }
+	{
+		// create the resource
+		graphics::tex3D_desc desc{};
+		desc.m_arraysize = 1u;
+		desc.m_dimensions = { args.m_width, args.m_heigth, args.m_depth };
+		desc.m_format = graphics::e_format::rgba8;
+		desc.m_num_mips = 1u;
+		desc.m_sample_count = 1u;
+		desc.m_init_state = graphics::e_resource_state::all_srv;
+
+		// create the underlying resource
+		mp_resource = device->create_resource(desc);
+
+		// create srv:
+		m_srv = renderer_backend::get_descriptor_manager()->create_srv(mp_resource);
+	}
+
 	graphics::resource* texturecube::get_resource() const
 	{
 		return mp_resource;
