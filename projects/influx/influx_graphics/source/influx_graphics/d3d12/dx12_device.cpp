@@ -254,29 +254,143 @@ namespace influx::graphics
 		return new_child<dx12_fence, fence>(dx12helpers::create_fence<ID3D12Fence>(mpdx_devices[0u], init_value));
 	}
 
+	ptr<resource> dx12_device::create_resource(const cubemap_desc& desc, const heap_desc& heap_desc)
+	{
+		ID3D12Resource* dxresource = nullptr;
+
+		auto heap_properties = D3D12_HEAP_PROPERTIES{};
+		heap_properties.Type = translate(heap_desc.m_type);
+		
+		auto layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		auto alignment = 0u;
+		D3D12_RESOURCE_DESC resource_desc{};
+		{
+			resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+			resource_desc.Format = translate(desc.m_format);
+			resource_desc.MipLevels = 1u;
+			resource_desc.Alignment = 0u;
+			resource_desc.DepthOrArraySize = 6u;
+			resource_desc.Flags = translate(desc.m_bindflags);
+			resource_desc.Height = desc.m_dimensions.y;
+			resource_desc.Width = desc.m_dimensions.x;
+			resource_desc.SampleDesc.Count = 1;
+			resource_desc.SampleDesc.Quality = 0u;
+		}
+
+		// only set clear val when resource is flagged as depthstencil or target
+		D3D12_CLEAR_VALUE* p_clear_val = nullptr;
+		D3D12_CLEAR_VALUE clear_val{};
+		{
+			clear_val.Format = translate(desc.m_format);
+			if (resource_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+			{
+				clear_val.DepthStencil.Depth = 1.0f;
+				clear_val.DepthStencil.Stencil = 0u;
+				p_clear_val = &clear_val;
+			}
+			else if (resource_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+			{
+				clear_val.Color[0] = clear_val.Color[1] = clear_val.Color[2] = clear_val.Color[3] = 0;
+				p_clear_val = &clear_val;
+			}
+		}
+
+		mpdx_devices[0u]->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE,
+			&resource_desc, translate(desc.m_init_state), p_clear_val, IID_PPV_ARGS(&dxresource));
+
+		return new_child<dx12_resource, resource>(dxresource, desc);
+	}
+
 	ptr<resource> dx12_device::create_resource(const struct tex3D_desc& desc, const heap_desc& heap_desc)
 	{
-		auto dxresource = dx12helpers::create_texture3D_resource<ID3D12Resource>(mpdx_devices[0u],
-			translate(heap_desc.m_type),
-			translate(desc.m_format),
-			desc.m_dimensions.x, desc.m_dimensions.y, desc.m_dimensions.z,
-			desc.m_num_mips,
-			translate(desc.m_bindflags),
-			translate(desc.m_init_state));
+		ID3D12Resource* dxresource = nullptr;
+
+		auto heap_properties = D3D12_HEAP_PROPERTIES{};
+		heap_properties.Type = translate(heap_desc.m_type);
+
+		auto layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		auto alignment = 0u;
+		D3D12_RESOURCE_DESC resource_desc{};
+		{
+			resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+			resource_desc.Format = translate(desc.m_format);
+			resource_desc.MipLevels = 1u;
+			resource_desc.Alignment = 0u;
+			resource_desc.DepthOrArraySize = 6u;
+			resource_desc.Flags = translate(desc.m_bindflags);
+			resource_desc.Height = desc.m_dimensions.y;
+			resource_desc.Width = desc.m_dimensions.x;
+			resource_desc.SampleDesc.Count = 1;
+			resource_desc.SampleDesc.Quality = 0u;
+		}
+
+		// only set clear val when resource is flagged as depthstencil or target
+		D3D12_CLEAR_VALUE* p_clear_val = nullptr;
+		D3D12_CLEAR_VALUE clear_val{};
+		{
+			clear_val.Format = translate(desc.m_format);
+			if (resource_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+			{
+				clear_val.DepthStencil.Depth = 1.0f;
+				clear_val.DepthStencil.Stencil = 0u;
+				p_clear_val = &clear_val;
+			}
+			else if (resource_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+			{
+				clear_val.Color[0] = clear_val.Color[1] = clear_val.Color[2] = clear_val.Color[3] = 0;
+				p_clear_val = &clear_val;
+			}
+		}
+
+		mpdx_devices[0u]->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE,
+			&resource_desc, translate(desc.m_init_state), p_clear_val, IID_PPV_ARGS(&dxresource));
 
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
 	ptr<resource> dx12_device::create_resource(const tex2D_desc& desc, const heap_desc& heap_desc)
 	{
-		auto dxresource = dx12helpers::create_tex2d_resource<ID3D12Resource>(mpdx_devices[0u],
-			translate(heap_desc.m_type),
-			translate(desc.m_format), 
-			desc.m_dimensions.x, desc.m_dimensions.y, 
-			desc.m_arraysize, desc.m_num_mips,
-			desc.m_sample_count, 
-			translate(desc.m_bindflags), 
-			translate(desc.m_init_state));
+		ID3D12Resource* dxresource = nullptr;
+
+		auto heap_properties = D3D12_HEAP_PROPERTIES{};
+		heap_properties.Type = translate(heap_desc.m_type);
+
+		auto layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		auto alignment = 0u;
+		D3D12_RESOURCE_DESC resource_desc{};
+		{
+			resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			resource_desc.Format = translate(desc.m_format);
+			resource_desc.MipLevels = 1u;
+			resource_desc.Alignment = 0u;
+			resource_desc.DepthOrArraySize = 6u;
+			resource_desc.Flags = translate(desc.m_bindflags);
+			resource_desc.Height = desc.m_dimensions.y;
+			resource_desc.Width = desc.m_dimensions.x;
+			resource_desc.SampleDesc.Count = 1;
+			resource_desc.SampleDesc.Quality = 0u;
+		}
+
+		// only set clear val when resource is flagged as depthstencil or target
+		D3D12_CLEAR_VALUE* p_clear_val = nullptr;
+		D3D12_CLEAR_VALUE clear_val{};
+		{
+			clear_val.Format = translate(desc.m_format);
+			if (resource_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+			{
+				clear_val.DepthStencil.Depth = 1.0f;
+				clear_val.DepthStencil.Stencil = 0u;
+				p_clear_val = &clear_val;
+			}
+			else if (resource_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+			{
+				clear_val.Color[0] = clear_val.Color[1] = clear_val.Color[2] = clear_val.Color[3] = 0;
+				p_clear_val = &clear_val;
+			}
+		}
+
+		mpdx_devices[0u]->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE,
+			&resource_desc, translate(desc.m_init_state), p_clear_val, IID_PPV_ARGS(&dxresource));
 
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}

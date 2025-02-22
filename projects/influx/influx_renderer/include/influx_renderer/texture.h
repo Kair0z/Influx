@@ -6,6 +6,9 @@
 #include "core/container/vector.h"
 #include "core/string.h"
 
+// influx::graphics
+#include "influx_graphics/device.h"
+#include "influx_graphics/descriptors.h"
 namespace influx::graphics
 {
 	class resource;
@@ -16,30 +19,15 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
-	struct texturecube_data final
+	enum class e_texture_type : uint8
 	{
-		vector<pixel32> m_pixels{};
-		uint32 m_width = 0u;
-		uint32 m_height = 0u;
-
-		uint32 get_width() const
-		{
-			return m_width;
-		}
-
-		uint32 get_height() const
-		{
-			return m_height;
-		}
-
-		uint32 get_depth() const
-		{
-			return static_cast<uint32>(m_pixels.size() / (get_width() * get_height()));
-		}
-
-		bool is_valid() const;
+		texture2D,
+		texture3D,
+		cubemap,
+		count
 	};
 
+#pragma region raw_data
 	struct texture_data final
 	{
 		vector<pixel32> m_pixels{};
@@ -58,6 +46,50 @@ namespace influx::renderer
 		bool is_valid() const;
 	};
 
+	struct texture3D_data final
+	{
+		vector<pixel32> m_pixels{};
+		uint32 m_width = 0u;
+		uint32 m_height = 0u;
+
+		uint32 get_width() const
+		{
+			return m_width;
+		}
+		uint32 get_height() const
+		{
+			return m_height;
+		}
+		uint32 get_depth() const
+		{
+			return static_cast<uint32>((m_pixels.size() / (get_width() * get_height())));
+		}
+
+		bool is_valid() const;
+	};
+
+	struct cubemap_data final
+	{
+		vector<pixel32> m_pixels{};
+		uint32 m_width = 0u;
+		uint32 m_height = 0u;
+
+		uint32 get_width() const
+		{
+			return m_width;
+		}
+		uint32 get_height() const
+		{
+			return m_height;
+		}
+		uint32 get_depth() const
+		{
+			return 6u;
+		}
+	};
+#pragma endregion
+
+#pragma region desc
 	struct texture_desc final
 	{
 		texture_desc() = default;
@@ -70,11 +102,10 @@ namespace influx::renderer
 		uint32 m_num_mips = 1u;
 		uint32 m_sample_count = 1u;
 	};
-
-	struct texturecube_desc final
+	struct texture3D_desc final
 	{
-		texturecube_desc() = default;
-		texturecube_desc(uint32 w, uint32 h, uint32 d)
+		texture3D_desc() = default;
+		texture3D_desc(uint32 w, uint32 h, uint32 d)
 			: m_width{ w }, m_heigth{ h }, m_depth{ d } {
 		}
 
@@ -85,36 +116,117 @@ namespace influx::renderer
 		uint32 m_num_mips = 1u;
 		uint32 m_sample_count = 1u;
 	};
-
-	class texture
+	struct cubemap_desc final
 	{
+		cubemap_desc() = default;
+		cubemap_desc(uint32 w, uint32 h)
+			: m_width{ w }, m_heigth{ h } 
+		{
+		}
+
+		uint32 m_width = 1u;
+		uint32 m_heigth = 1u;
+		uint32 m_depth = 6u;
+		uint32 m_array_size = 1u;
+		uint32 m_num_mips = 1u;
+		uint32 m_sample_count = 1u;
+	};
+
+	inline graphics::tex2D_desc translate(const texture_desc& desc)
+	{
+		graphics::tex2D_desc result{};
+		result.m_arraysize = 1u;
+		result.m_dimensions = { desc.m_width, desc.m_heigth };
+		result.m_format = graphics::e_format::rgba8;
+		result.m_num_mips = 1u;
+		result.m_sample_count = 1u;
+		result.m_init_state = graphics::e_resource_state::all_srv;
+		return result;
+	}
+	inline graphics::tex3D_desc translate(const texture3D_desc& desc)
+	{
+		graphics::tex3D_desc result{};
+		result.m_arraysize = 1u;
+		result.m_dimensions = { desc.m_width, desc.m_heigth, desc.m_depth };
+		result.m_format = graphics::e_format::rgba8;
+		result.m_num_mips = 1u;
+		result.m_sample_count = 1u;
+		return result;
+	}
+	inline graphics::cubemap_desc translate(const cubemap_desc& desc)
+	{
+		graphics::cubemap_desc result{};
+		return result;
+	}
+#pragma endregion
+
+	template <e_texture_type _t>
+	class texture final
+	{
+		using dim_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+			math::vectoru2,
+			math::vectoru3,
+			math::vectoru3>>;
+		using desc_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+			texture_desc,
+			texture3D_desc,
+			cubemap_desc>>;
+
 	public:
-		graphics::resource* get_resource() const;
-		graphics::descriptor_handle get_srv() const;
+		graphics::resource* get_resource() const
+		{ return mp_resource; }
 
-		math::vectoru2 get_dimensions() const;
+		graphics::descriptor_handle get_srv() const
+		{ return m_srv; }
 
-		uint32 get_num_pixels() const;
-		uint32 get_srv_heap_idx() const;
+		dim_type get_dimensions() const
+		{ return m_current_dimensions; }
 
-		// useful for ImTextureID (imgui)
-		void* get_cpu_handle() const;
+		uint32 get_num_pixels() const
+		{ return dim_type::get_summed(m_current_dimensions); }
 
-		void set_name(const debug_name& name);
-		const debug_name& get_name() const;
+		uint32 get_srv_heap_idx() const
+		{ return 0u; }
+		void* get_cpu_handle() const
+		{ return nullptr; }
+
+		void set_name(const debug_name& name)
+		{ m_debug_name = name; }
+		const debug_name& get_name() const
+		{ return m_debug_name; }
 
 	private:
 		// constructs a texture from create_args, allocating new graphics resources
-		explicit texture(graphics::device* device, const texture_desc& args);
+		inline explicit texture(graphics::device* device, const desc_type& args)
+			: mp_device{ device }
+			, m_args{ args }
+		{
+			mp_resource = device->create_resource(translate(args));
+			m_srv = renderer_backend::get_descriptor_manager()->create_srv(mp_resource);
+		}
 
 		// re-allocates graphics resource
-		void resize(const math::vectoru2& new_dimensions);
+		void resize(const dim_type& new_dimensions)
+		{
+			if (new_dimensions != m_current_dimensions)
+			{
+				if (mp_resource) mp_resource->release(mp_device);
+
+				// update size:
+				m_current_dimensions = new_dimensions;
+
+				// create new resource
+				desc_type desc_cpy = m_args;
+				desc_cpy.m_dimensions = new_dimensions;
+				mp_resource = mp_device->create_resource(translate(desc_cpy));
+			}
+		}
 
 		graphics::resource* mp_resource;
 		graphics::descriptor_handle m_srv;
 
-		texture_desc m_args;
-		math::vectoru2 m_current_dimensions;
+		desc_type m_args;
+		dim_type m_current_dimensions;
 		graphics::device* mp_device;
 		debug_name m_debug_name;
 
@@ -122,38 +234,7 @@ namespace influx::renderer
 		friend class renderer_backend;
 	};
 
-	class texturecube final
-	{
-	public:
-		graphics::resource* get_resource() const;
-		graphics::descriptor_handle get_srv() const;
-
-		math::vectoru3 get_dimensions() const;
-		uint32 get_num_pixels() const;
-		uint32 get_srv_heap_idx() const;
-
-		// useful for ImTextureID (imgui)
-		void* get_cpu_handle() const;
-
-		void set_name(const debug_name& name);
-		const debug_name& get_name() const;
-
-	private:
-		// constructs a texture from create_args, allocating new graphics resources
-		explicit texturecube(graphics::device* device, const texturecube_desc& args);
-
-		// re-allocates graphics resource
-		void resize(const math::vectoru3& new_dimensions);
-
-		graphics::resource* mp_resource;
-		graphics::descriptor_handle m_srv;
-
-		texturecube_desc m_args;
-		math::vectoru3 m_current_dimensions;
-		graphics::device* mp_device;
-		debug_name m_name;
-
-		// only backend can create textures
-		friend class renderer_backend;
-	};
+	using texture2D	= texture<e_texture_type::texture2D>;
+	using texture3D = texture<e_texture_type::texture3D>;
+	using cubemap	= texture<e_texture_type::cubemap>;
 }

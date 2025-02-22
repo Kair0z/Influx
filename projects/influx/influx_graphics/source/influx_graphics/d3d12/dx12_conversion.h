@@ -21,6 +21,17 @@ namespace influx::graphics
 		}
 	}
 
+	inline D3D12_SRV_DIMENSION translate(resource::e_type type)
+	{
+		switch (type)
+		{
+		case resource::e_type::buffer: return D3D12_SRV_DIMENSION_BUFFER;
+		case resource::e_type::tex2D: return D3D12_SRV_DIMENSION_TEXTURE2D;
+		case resource::e_type::tex3D: return D3D12_SRV_DIMENSION_TEXTURE3D;
+		case resource::e_type::cubemap: return D3D12_SRV_DIMENSION_TEXTURECUBE;
+		}
+	}
+
 	inline DXGI_FORMAT translate(e_format format)
 	{
 		switch (format)

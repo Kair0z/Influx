@@ -154,7 +154,7 @@ namespace influx::renderer
 		return stage(handles);
 	}
 
-	graphics::descriptor_range descriptor_manager::stage(const vector<texture*>& textures)
+	graphics::descriptor_range descriptor_manager::stage(const vector<texture2D*>& textures)
 	{
 		vector<graphics::descriptor_handle> cpu_handles{};
 		cpu_handles.reserve(textures.size());
@@ -169,9 +169,9 @@ namespace influx::renderer
 		return stage(cpu_handles);
 	}
 
-	graphics::descriptor_range descriptor_manager::stage(texture* texture)
+	graphics::descriptor_range descriptor_manager::stage(texture2D* texture)
 	{
-		vector<renderer::texture*> textures{ texture };
+		vector<renderer::texture2D*> textures{ texture };
 		return stage(textures);
 	}
 

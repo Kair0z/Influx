@@ -41,6 +41,7 @@ namespace influx::graphics
 		virtual ptr<commandlist> create_compute_commandlist(compute_pipeline* init_state = nullptr) override;
 
 		virtual ptr<fence> create_fence(uint64 init_value = 0u) override;
+		virtual ptr<resource> create_resource(const struct cubemap_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual ptr<resource> create_resource(const struct tex3D_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual ptr<resource> create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual ptr<resource> create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) override;

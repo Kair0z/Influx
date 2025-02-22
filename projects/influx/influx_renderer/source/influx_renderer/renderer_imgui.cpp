@@ -186,7 +186,7 @@ namespace influx::renderer
 					const bool command_has_texture = command.GetTexID() != 0u;
 					if (command_has_texture)
 					{
-						texture* tex = reinterpret_cast<texture*>(command.GetTexID());
+						texture2D* tex = reinterpret_cast<texture2D*>(command.GetTexID());
 						if (tex != nullptr)
 						{
 							tex_gpu_range = descriptor_manager.stage(tex);

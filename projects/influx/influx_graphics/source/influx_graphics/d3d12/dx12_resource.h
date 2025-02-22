@@ -14,7 +14,9 @@ namespace influx::graphics
 	private:
 		dx12_resource(ID3D12Resource* resource, const tex2D_desc& desc);
 		dx12_resource(ID3D12Resource* resource, const tex3D_desc& desc);
+		dx12_resource(ID3D12Resource* resource, const cubemap_desc& desc);
 		dx12_resource(ID3D12Resource* resource, const buffer_desc& desc);
+
 		virtual void release_impl(device*) override;
 		friend class dx12_device;
 

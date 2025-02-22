@@ -107,7 +107,7 @@ namespace influx::renderer
 
 		void load(const string& title, const mesh_data& data, bool reload = false);
 		void load(const string& title, const texture_data& data, bool reload = false);
-		void load(const string& title, const texturecube_data& data, bool reload = false);
+		void load(const string& title, const cubemap_data& data, bool reload = false);
 		void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
 		void load(const string& title, const material& data, bool reload = false);
 
@@ -125,18 +125,18 @@ namespace influx::renderer
 		void set_settings(const render_settings& settings);
 		const render_settings& get_settings() const;
 
-		texture* create_texture(const string& title, const texture_desc& args);
-		texturecube* create_texturecube(const string& title, const texturecube_desc& args);
-		const umap<string, texture*>& get_textures() const;
-		texture* find_texture(const string& name);
-		texturecube* find_texturecube(const string& name);
-		texture& get_default_texture(); // "none"
+		texture2D* create_texture(const string& title, const texture_desc& args);
+		cubemap* create_texturecube(const string& title, const cubemap_desc& args);
+		const umap<string, texture2D*>& get_textures() const;
+		texture2D* find_texture(const string& name);
+		cubemap* find_texturecube(const string& name);
+		texture2D& get_default_texture(); // "none"
 
 		const umap<string, material> get_materials() const;
 		material* get_material(const string& name);
 		static material& get_default_material(); // "none"
 
-		void upload_texture_data(texture* target_tex, const texture_data& data);
+		void upload_texture_data(texture2D* target_tex, const texture_data& data);
 
 		vector<string> get_mesh_names() const;
 		bool get_mesh_buffers(const string& name, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
@@ -207,8 +207,8 @@ namespace influx::renderer
 		resource_manager m_resource_manager;
 
 		// texture data
-		umap<string, texture*> m_textures;
-		umap<string, texturecube*> m_texcubes;
+		umap<string, texture2D*> m_textures;
+		umap<string, cubemap*> m_texcubes;
 
 		render_settings m_settings;
 

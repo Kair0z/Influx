@@ -206,7 +206,8 @@ namespace influx::math
 		vector<_t, 3u> get_rgb() const;
 
 		static vector abs(const vector& vec);
-		
+		static _t get_summed(const vector& vec);
+
 		// Arithmatics:
 		vector& operator+=(const vector& other);
 		vector& operator-=(const vector& other);

@@ -47,6 +47,23 @@ namespace influx::graphics
 		m_state = desc.m_init_state;
 	}
 
+	resource::resource(const cubemap_desc& desc)
+		: m_type{ e_type::cubemap }
+		, m_cube_desc{ desc }
+	{
+		m_bytestride = deduce_bytesize(desc.m_format);
+		m_bytesize =
+			size_t(desc.m_dimensions.x)
+			* size_t(desc.m_dimensions.y)
+			* size_t(6u)
+			* size_t(desc.m_num_mips)
+			* size_t(desc.m_arraysize)
+			* m_bytestride;
+
+		m_format = desc.m_format;
+		m_state = desc.m_init_state;
+	}
+
 	e_format resource::get_format() const
 	{
 		return m_format;

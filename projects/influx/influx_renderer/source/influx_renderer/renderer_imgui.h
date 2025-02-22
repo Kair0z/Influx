@@ -17,10 +17,11 @@ namespace influx::graphics
 // influx::shader
 #include "influx_shader.h"
 
+// influx::renderer
+#include "influx_renderer/texture.h"
+
 namespace influx::renderer
 {
-	class texture;
-
 	class imgui_manager final
 	{
 	public:
@@ -40,7 +41,7 @@ namespace influx::renderer
 		graphics::rootsignature* mp_rootsig = nullptr;
 		graphics::resource* mp_indexbuffer = nullptr;
 		graphics::resource* mp_vertexbuffer = nullptr;
-		texture* mp_fonts_texture = nullptr;
+		texture2D* mp_fonts_texture = nullptr;
 
 		shader::compile_output m_vertex_shader;
 		shader::compile_output m_pixel_shader;

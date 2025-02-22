@@ -121,7 +121,7 @@ namespace influx::engine
 		out_data.m_width = imp_data.m_dimensions.x;
 	}
 
-	void translate(const imp::cubemap_data& imp_data, renderer::texturecube_data& out_data)
+	void translate(const imp::cubemap_data& imp_data, renderer::cubemap_data& out_data)
 	{
 		out_data.m_pixels.resize(imp_data.m_pixels.size());
 		for (uint64 i = 0u; i < imp_data.m_pixels.size(); ++i)
@@ -149,7 +149,7 @@ namespace influx::engine
 	// staging buffers
 	static renderer::shader_data m_shader_data{};
 	static renderer::texture_data m_tex_data{};
-	static renderer::texturecube_data m_texcube_data{};
+	static renderer::cubemap_data m_texcube_data{};
 	static renderer::mesh_data m_mesh_data{};
 	static material m_material_data{};
 

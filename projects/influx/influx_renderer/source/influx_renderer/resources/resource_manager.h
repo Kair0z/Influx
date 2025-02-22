@@ -9,7 +9,7 @@ namespace influx::renderer
 {
 	enum class e_resource_type
 	{
-		texturecube,
+		cubemap,
 		texture,
 		shader,
 		mesh,
@@ -19,7 +19,7 @@ namespace influx::renderer
 
 	template <e_resource_type _t>
 	using resource_data = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
-		texturecube_data,
+		cubemap_data,
 		texture_data,
 		shader_data,
 		mesh_data
@@ -49,7 +49,7 @@ namespace influx::renderer
 
 		template <e_resource_type _t>
 		using resource_map = umap<resource_sign<_t>, entry<_t>>;
-		resource_map<e_resource_type::texturecube> m_texturecube_map;
+		resource_map<e_resource_type::cubemap> m_texturecube_map;
 		resource_map<e_resource_type::texture> m_texture_map;
 		resource_map<e_resource_type::shader> m_shader_map;
 		resource_map<e_resource_type::mesh> m_mesh_map;
@@ -61,7 +61,7 @@ namespace influx::renderer
 			{
 				return m_texture_map;
 			}
-			else if constexpr (_t == e_resource_type::texturecube)
+			else if constexpr (_t == e_resource_type::cubemap)
 			{
 				return m_texturecube_map;
 			}
@@ -81,7 +81,7 @@ namespace influx::renderer
 			{
 				return m_texture_map;
 			}
-			else if constexpr (_t == e_resource_type::texturecube)
+			else if constexpr (_t == e_resource_type::cubemap)
 			{
 				return m_texturecube_map;
 			}

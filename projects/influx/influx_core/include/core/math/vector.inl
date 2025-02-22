@@ -420,6 +420,17 @@ namespace influx::math
 		return result;
 	}
 
+	template <typename _t, vecsize _s>
+	static _t TVEC::get_summed(const vector& vec)
+	{
+		_t result{};
+		for (vecsize i = 0u; i < _s; ++i)
+		{
+			result += vec[i];
+		}
+		return result;
+	}
+
 	template<typename _t, vecsize _s>
 	inline vector<_t, _s> TVEC::zero()
 	{

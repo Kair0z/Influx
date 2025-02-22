@@ -94,7 +94,7 @@ namespace influx::renderer
 		mp_commandlist->wait_for_completion();
 	}
 
-	void upload_manager::upload_texture(graphics::queue* queue, const texturecube_data& data, graphics::resource* target_resource)
+	void upload_manager::upload_texture(graphics::queue* queue, const cubemap_data& data, graphics::resource* target_resource)
 	{
 		const size_t texture_bytesize = data.m_pixels.size() * sizeof(pixel32);
 		static uint32 num_textures = 0u;

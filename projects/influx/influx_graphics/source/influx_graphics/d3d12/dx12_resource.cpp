@@ -17,6 +17,12 @@ namespace influx::graphics
 		mp_native = mpdx_resource = resource;
 	}
 
+	dx12_resource::dx12_resource(ID3D12Resource* resource, const cubemap_desc& desc)
+		: resource(desc)
+	{
+		mp_native = mpdx_resource = resource;
+	}
+
 	dx12_resource::dx12_resource(ID3D12Resource* resource, const buffer_desc& desc)
 		: resource(desc)
 	{

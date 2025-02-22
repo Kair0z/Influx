@@ -495,22 +495,22 @@ namespace influx::renderer
         texture_desc create_args{};
         create_args.m_width = data.get_width();
         create_args.m_heigth = data.get_height();
-        texture* texture = create_texture(title, create_args);
+        texture2D* texture = create_texture(title, create_args);
 
         mp_upload_manager->upload_texture(mp_graphics_queue, data, texture->get_resource());
     }
 
-    void renderer_backend::load(const string& title, const texturecube_data& data, bool reload)
+    void renderer_backend::load(const string& title, const cubemap_data& data, bool reload)
     {
-        texturecube_desc create_args{};
+        cubemap_desc create_args{};
         create_args.m_width = data.get_width();
         create_args.m_heigth = data.get_height();
         create_args.m_depth = data.get_depth();
-        texturecube* texture = create_texturecube(title, create_args);
+        cubemap* texture = create_texturecube(title, create_args);
 
         mp_upload_manager->upload_texture(mp_graphics_queue, data, texture->get_resource());
 
-        return m_resource_manager.load<e_resource_type::texturecube>(title, data);
+        return m_resource_manager.load<e_resource_type::cubemap>(title, data);
     }
 
     // shader
@@ -542,7 +542,7 @@ namespace influx::renderer
 
     bool renderer_backend::has_texturecube(const string& title) const
     {
-        return m_resource_manager.contains<e_resource_type::texturecube>(title);
+        return m_resource_manager.contains<e_resource_type::cubemap>(title);
     }
 
     bool renderer_backend::has_shader(const shader::shader_signature& signature) const
@@ -565,7 +565,7 @@ namespace influx::renderer
     }
     time::point renderer_backend::get_time_loaded_texturecube(const string& title) const
     {
-        return m_resource_manager.get_time_loaded<e_resource_type::texturecube>(title);
+        return m_resource_manager.get_time_loaded<e_resource_type::cubemap>(title);
     }
     time::point renderer_backend::get_time_loaded_mesh(const string& title) const
     {
@@ -582,11 +582,11 @@ namespace influx::renderer
         return m_settings;
     }
 
-    texture* renderer_backend::create_texture(const string& title, const texture_desc& args)
+    texture2D* renderer_backend::create_texture(const string& title, const texture_desc& args)
     {
         if (!m_textures.contains(title))
         {
-            texture* new_texture = new texture(mp_device, args);
+            texture2D* new_texture = new texture2D(mp_device, args);
 #if _DEBUG
             new_texture->set_name(title);
 #endif
@@ -596,11 +596,11 @@ namespace influx::renderer
         return m_textures[title];
     }
 
-    texturecube* renderer_backend::create_texturecube(const string& title, const texturecube_desc& args)
+    cubemap* renderer_backend::create_texturecube(const string& title, const cubemap_desc& args)
     {
-        if (!m_resource_manager.contains<e_resource_type::texturecube>(title))
+        if (!m_resource_manager.contains<e_resource_type::cubemap>(title))
         {
-            texturecube* new_texture = new texturecube(mp_device, args);
+            cubemap* new_texture = new cubemap(mp_device, args);
             new_texture->set_name(title);
             m_texcubes[title] = new_texture;
         }
@@ -608,12 +608,12 @@ namespace influx::renderer
         return m_texcubes[title];
     }
 
-    const umap<string, texture*>& renderer_backend::get_textures() const
+    const umap<string, texture2D*>& renderer_backend::get_textures() const
     {
         return m_textures;
     }
 
-    texture* renderer_backend::find_texture(const string& name)
+    texture2D* renderer_backend::find_texture(const string& name)
     {
         if (m_textures.contains(name))
         {
@@ -623,7 +623,7 @@ namespace influx::renderer
         return &get_default_texture();
     }
 
-    texturecube* renderer_backend::find_texturecube(const string& name)
+    cubemap* renderer_backend::find_texturecube(const string& name)
     {
         if (m_texcubes.contains(name))
         {
@@ -632,9 +632,9 @@ namespace influx::renderer
         return nullptr;
     }
 
-    texture& renderer_backend::get_default_texture()
+    texture2D& renderer_backend::get_default_texture()
     {
-        static texture* default_texture = nullptr;
+        static texture2D* default_texture = nullptr;
         if (!default_texture)
         {
             texture_desc args{};
@@ -679,7 +679,7 @@ namespace influx::renderer
         return k_default;
     }
 
-    void renderer_backend::upload_texture_data(texture* target_tex, const texture_data& data)
+    void renderer_backend::upload_texture_data(texture2D* target_tex, const texture_data& data)
     {
         mp_upload_manager->upload_texture(mp_graphics_queue, data, target_tex->get_resource());
     }
@@ -931,7 +931,7 @@ namespace influx::renderer
         renderer_backend::get_instance().load(title, data, reload);
     }
 
-    void load(const string& title, const texturecube_data& data, bool reload)
+    void load(const string& title, const cubemap_data& data, bool reload)
     {
         renderer_backend::get_instance().load(title, data, reload);
     }

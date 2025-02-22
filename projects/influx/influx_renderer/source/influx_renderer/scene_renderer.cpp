@@ -172,7 +172,7 @@ namespace influx::renderer
     vector<batch> scene_renderer::create_batches(const scene& scene, graphics::commandlist* commandlist)
     {
         renderer_backend& backend = renderer_backend::get_instance();
-        umap<texture*, uint32> tex_to_idx{};
+        umap<texture2D*, uint32> tex_to_idx{};
 
         // stage all srv/uav/const descriptors on the bindless heap
         // in bindless, MUST happen before setting descriptor (mp_pipeline->set_state)
@@ -190,7 +190,7 @@ namespace influx::renderer
                     diffuse_name = material.get_texture_diffuse_name();
                 }
                 
-                texture* diffuse_texture = backend.find_texture(diffuse_name);
+                texture2D* diffuse_texture = backend.find_texture(diffuse_name);
                 if (diffuse_texture != nullptr && !tex_to_idx.contains(diffuse_texture))
                 {
                     // add to list of unique srvs
@@ -366,7 +366,7 @@ namespace influx::renderer
         // skybox
         if (mp_skybox == nullptr)
         {
-            if (texturecube* cube = backend.find_texturecube("graycloud"))
+            if (cubemap* cube = backend.find_texturecube("graycloud"))
             {
                 graphics::tex3D_desc desc{};
                 desc.m_dimensions = cube->get_dimensions();

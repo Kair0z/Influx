@@ -1,5 +1,8 @@
 #pragma once
 
+// influx::texture
+#include "influx_renderer/texture.h"
+
 // heavily inspired by
 // https://simonstechblog.blogspot.com/2019/06/d3d12-descriptor-heap-management.html
 
@@ -29,8 +32,8 @@ namespace influx::renderer
 		// and returns the address of that range of descriptors
 		graphics::descriptor_range stage(const vector<graphics::descriptor_handle>& cpu_descriptors);
 		graphics::descriptor_range stage(const graphics::descriptor_handle& cpu_descriptor);
-		graphics::descriptor_range stage(const vector<texture*>& textures);
-		graphics::descriptor_range stage(texture* texture);
+		graphics::descriptor_range stage(const vector<texture2D*>& textures);
+		graphics::descriptor_range stage(texture2D* texture);
 
 		graphics::descriptor_range stage_sampler(graphics::descriptor_handle handle);
 		graphics::descriptor_range stage_samplers(const vector<graphics::descriptor_handle>& samplers);
