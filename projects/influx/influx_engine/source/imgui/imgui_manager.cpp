@@ -64,11 +64,11 @@ namespace influx::engine
 	inline int translate(const input::e_mouse_button button)
 	{
 		int result = 0;
-		switch (ev.m_button)
+		switch (button)
 		{
-		case input::e_mouse_button::left: button_value = 0; break;
-		case input::e_mouse_button::middle: button_value = 2; break;
-		case input::e_mouse_button::right: button_value = 1; break;
+		case input::e_mouse_button::left: result = 0; break;
+		case input::e_mouse_button::middle: result = 2; break;
+		case input::e_mouse_button::right: result = 1; break;
 		}
 		return result;
 	}
@@ -97,7 +97,6 @@ namespace influx::engine
 		
 		update_monitors();
 		initialize_font_atlas();
-		initialize_input();
 		initialize_multiviewport();
 	}
 

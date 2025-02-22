@@ -43,6 +43,10 @@ namespace influx::engine
 	{
 		return influx::renderer::has_texture(name);
 	}
+	bool render_streamer::has_texturecube_loaded(const string& name) const
+	{
+		return influx::renderer::has_texturecube(name);
+	}
 	void* render_streamer::get_loaded_texture_id(const string& name) const
 	{
 		if (has_texture_loaded(name))
@@ -116,6 +120,17 @@ namespace influx::engine
 		out_data.m_width = imp_data.m_dimensions.x;
 	}
 
+	void translate(const imp::cubemap_data& imp_data, renderer::texturecube_data& out_data)
+	{
+		out_data.m_pixels.resize(imp_data.m_pixels.size());
+		for (uint64 i = 0u; i < imp_data.m_pixels.size(); ++i)
+		{
+			out_data.m_pixels[i] = imp_data.m_pixels[i];
+		}
+		out_data.m_width = imp_data.m_dimensions.x;
+		out_data.m_height = imp_data.m_dimensions.y;
+	}
+
 	void translate(const shader::compile_output& shader_data, renderer::shader_data& out_data)
 	{
 		out_data.m_bytecode.resize(shader_data.m_bytecode.size());
@@ -133,6 +148,7 @@ namespace influx::engine
 	// staging buffers
 	static renderer::shader_data m_shader_data{};
 	static renderer::texture_data m_tex_data{};
+	static renderer::texturecube_data m_texcube_data{};
 	static renderer::mesh_data m_mesh_data{};
 	static material m_material_data{};
 
@@ -165,6 +181,21 @@ namespace influx::engine
 				{
 					translate(asset.second.m_resource, m_tex_data);
 					influx::renderer::load(asset.first, m_tex_data);
+				}
+			}
+		}
+	}
+
+	void render_streamer::stream_cubemaps(const content_manager& content)
+	{
+		for (const auto& asset : content.get_cubemaps())
+		{
+			if (renderer::has_texturecube(asset.first) == false)
+			{
+				if (asset.second.is_loaded())
+				{
+					translate(asset.second.m_resource, m_texcube_data);
+					influx::renderer::load(asset.first, m_texcube_data);
 				}
 			}
 		}

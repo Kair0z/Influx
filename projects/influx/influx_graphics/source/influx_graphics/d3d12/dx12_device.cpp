@@ -254,6 +254,19 @@ namespace influx::graphics
 		return new_child<dx12_fence, fence>(dx12helpers::create_fence<ID3D12Fence>(mpdx_devices[0u], init_value));
 	}
 
+	ptr<resource> dx12_device::create_resource(const struct tex3D_desc& desc, const heap_desc& heap_desc)
+	{
+		auto dxresource = dx12helpers::create_texture3D_resource<ID3D12Resource>(mpdx_devices[0u],
+			translate(heap_desc.m_type),
+			translate(desc.m_format),
+			desc.m_dimensions.x, desc.m_dimensions.y, desc.m_dimensions.z,
+			desc.m_num_mips,
+			translate(desc.m_bindflags),
+			translate(desc.m_init_state));
+
+		return new_child<dx12_resource, resource>(dxresource, desc);
+	}
+
 	ptr<resource> dx12_device::create_resource(const tex2D_desc& desc, const heap_desc& heap_desc)
 	{
 		auto dxresource = dx12helpers::create_tex2d_resource<ID3D12Resource>(mpdx_devices[0u],

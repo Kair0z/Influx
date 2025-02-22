@@ -500,6 +500,11 @@ namespace influx::renderer
         mp_upload_manager->upload_texture(mp_graphics_queue, data, texture->get_resource());
     }
 
+    void renderer_backend::load(const string& title, const texturecube_data& data, bool reload)
+    {
+        return m_resource_manager.load<e_resource_type::texturecube>(title, data);
+    }
+
     // shader
     void renderer_backend::load(const shader::shader_signature& signature, const shader_data& data, bool reload)
     {
@@ -527,6 +532,11 @@ namespace influx::renderer
         return m_textures.contains(title);
     }
 
+    bool renderer_backend::has_texturecube(const string& title) const
+    {
+        return m_resource_manager.contains<e_resource_type::texturecube>(title);
+    }
+
     bool renderer_backend::has_shader(const shader::shader_signature& signature) const
     {
         return get_shader_manager().has_shader(signature);
@@ -544,6 +554,10 @@ namespace influx::renderer
     time::point renderer_backend::get_time_loaded_texture(const string& title) const
     {
         return m_resource_manager.get_time_loaded<e_resource_type::texture>(title);
+    }
+    time::point renderer_backend::get_time_loaded_texturecube(const string& title) const
+    {
+        return m_resource_manager.get_time_loaded<e_resource_type::texturecube>(title);
     }
     time::point renderer_backend::get_time_loaded_mesh(const string& title) const
     {
@@ -888,6 +902,11 @@ namespace influx::renderer
         renderer_backend::get_instance().load(title, data, reload);
     }
 
+    void load(const string& title, const texturecube_data& data, bool reload)
+    {
+        renderer_backend::get_instance().load(title, data, reload);
+    }
+
     void load(const shader::shader_signature& signature, const shader_data& data, bool reload)
     {
         renderer_backend::get_instance().load(signature, data, reload);
@@ -906,6 +925,10 @@ namespace influx::renderer
     {
         return renderer_backend::get_instance().get_time_loaded_texture(title);
     }
+    time::point get_time_loaded_texturecube(const string& title)
+    {
+        return renderer_backend::get_instance().get_time_loaded_texturecube(title);
+    }
     time::point get_time_loaded_mesh(const string& title)
     {
         return renderer_backend::get_instance().get_time_loaded_mesh(title);
@@ -921,6 +944,11 @@ namespace influx::renderer
         return renderer_backend::get_instance().has_texture(title);
     }
     
+    bool has_texturecube(const string& title)
+    {
+        return renderer_backend::get_instance().has_texturecube(title);
+    }
+
     bool has_shader(const shader::shader_signature& signature)
     {
         return renderer_backend::get_instance().has_shader(signature);

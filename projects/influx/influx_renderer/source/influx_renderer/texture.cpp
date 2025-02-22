@@ -41,19 +41,14 @@ namespace influx::renderer
 		return m_srv;
 	}
 
-	uint32 texture::get_width() const
+	math::vectoru2 texture::get_dimensions() const
 	{
-		return m_current_dimensions.x;
-	}
-
-	uint32 texture::get_height() const
-	{
-		return m_current_dimensions.y;
+		return m_current_dimensions;
 	}
 
 	uint32 texture::get_num_pixels() const
 	{
-		return get_width() * get_height();
+		return m_current_dimensions.x * m_current_dimensions.y;
 	}
 
 	uint32 texture::get_srv_heap_idx() const
@@ -73,17 +68,15 @@ namespace influx::renderer
 		}
 	}
 
-#if _DEBUG
-	void texture::set_name(const string& name)
+	void texture::set_name(const debug_name& name)
 	{
 		m_debug_name = name;
 	}
 
-	const string& texture::get_name() const
+	const debug_name& texture::get_name() const
 	{
 		return m_debug_name;
 	}
-#endif
 
 	void texture::resize(const math::vectoru2& new_dimensions)
 	{
@@ -106,6 +99,65 @@ namespace influx::renderer
 	}
 
 	bool texture_data::is_valid() const
+	{
+		return true;
+	}
+
+	graphics::resource* texturecube::get_resource() const
+	{
+		return mp_resource;
+	}
+	graphics::descriptor_handle texturecube::get_srv() const
+	{
+		return m_srv;
+	}
+	math::vectoru3 texturecube::get_dimensions() const
+	{
+		return m_current_dimensions;
+	}
+	uint32 texturecube::get_num_pixels() const
+	{
+		return m_current_dimensions.x
+			* m_current_dimensions.y
+			* m_current_dimensions.z;
+	}
+	uint32 texturecube::get_srv_heap_idx() const
+	{
+		return 0u;
+	}
+	void* texturecube::get_cpu_handle() const
+	{
+		return nullptr;
+	}
+	void texturecube::set_name(const debug_name& name)
+	{
+		m_name = name;
+	}
+	const debug_name& texturecube::get_name() const
+	{
+		return m_name;
+	}
+
+	void texturecube::resize(const math::vectoru3& new_dimensions)
+	{
+		if (new_dimensions != m_current_dimensions)
+		{
+			mp_resource->release(mp_device);
+
+			// update size:
+			m_current_dimensions = new_dimensions;
+
+			// create new resource
+			graphics::tex3D_desc desc{};
+			desc.m_arraysize = 1u;
+			desc.m_dimensions = { new_dimensions.x, new_dimensions.y, new_dimensions.z };
+			desc.m_format = graphics::e_format::rgba8;
+			desc.m_num_mips = 1u;
+			desc.m_sample_count = 1u;
+			mp_resource = mp_device->create_resource(desc);
+		}
+	}
+	bool texturecube_data::is_valid() const
 	{
 		return true;
 	}

@@ -97,6 +97,14 @@ namespace influx::renderer
 
         m_instance_data = new frontend::per_instance[k_max_num_instances]{};
 
+        // skybox
+        {
+            graphics::tex3D_desc desc{};   
+            mp_skybox = device.create_resource(desc);
+
+            m_skybox_srv = descriptor_manager.create_srv(mp_skybox);
+        }
+
         // instance buffer
         {
             graphics::heap_desc heap_desc{};

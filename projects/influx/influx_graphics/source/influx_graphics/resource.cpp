@@ -30,6 +30,23 @@ namespace influx::graphics
 		m_format = desc.m_format;
 	}
 
+	resource::resource(const tex3D_desc& desc)
+		: m_type{ e_type::tex3D }
+		, m_tex3D_desc{ desc }
+	{
+		m_bytestride = deduce_bytesize(desc.m_format);
+		m_bytesize =
+			size_t(desc.m_dimensions.x)
+			* size_t(desc.m_dimensions.y)
+			* size_t(desc.m_dimensions.z)
+			* size_t(desc.m_num_mips)
+			* size_t(desc.m_arraysize)
+			* m_bytestride;
+
+		m_format = desc.m_format;
+		m_state = desc.m_init_state;
+	}
+
 	e_format resource::get_format() const
 	{
 		return m_format;

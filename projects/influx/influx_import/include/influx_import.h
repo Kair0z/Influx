@@ -16,6 +16,7 @@
 #include "core/material/material.h"
 #include "core/math/bounds.h"
 #include "core/geometry/sphere.h"
+#include "core/container/array.h"
 
 // influx::shader
 #include "influx_shader.h"
@@ -109,4 +110,19 @@ namespace influx::imp
 
 	INFLUX_ASSETS_API bool load_image_file(const string& filepath, 
 		image_data& out_image, const image_load_args& args = {});
+
+	struct cubemap_load_args final
+	{
+		stat_array<string, 6u>* m_hacky_paths = nullptr;
+	};
+
+	struct cubemap_data final
+	{
+		vector<pixel32> m_pixels{};
+		math::vectoru3 m_dimensions{};
+	};
+
+	/* Loads a 3D-image (cubemap) */
+	INFLUX_ASSETS_API bool load_cubemap(
+		const string& filepath, cubemap_data& out_cubemap, const cubemap_load_args& args = {});
 }

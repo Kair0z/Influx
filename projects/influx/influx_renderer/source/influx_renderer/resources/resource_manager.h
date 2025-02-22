@@ -9,6 +9,7 @@ namespace influx::renderer
 {
 	enum class e_resource_type
 	{
+		texturecube,
 		texture,
 		shader,
 		mesh,
@@ -18,6 +19,7 @@ namespace influx::renderer
 
 	template <e_resource_type _t>
 	using resource_data = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
+		texturecube_data,
 		texture_data,
 		shader_data,
 		mesh_data
@@ -25,6 +27,7 @@ namespace influx::renderer
 
 	template <e_resource_type _t>
 	using resource_sign = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
+		string,
 		string,
 		shader::shader_signature,
 		string
@@ -46,6 +49,7 @@ namespace influx::renderer
 
 		template <e_resource_type _t>
 		using resource_map = umap<resource_sign<_t>, entry<_t>>;
+		resource_map<e_resource_type::texturecube> m_texturecube_map;
 		resource_map<e_resource_type::texture> m_texture_map;
 		resource_map<e_resource_type::shader> m_shader_map;
 		resource_map<e_resource_type::mesh> m_mesh_map;
@@ -56,6 +60,10 @@ namespace influx::renderer
 			if constexpr (_t == e_resource_type::texture)
 			{
 				return m_texture_map;
+			}
+			else if constexpr (_t == e_resource_type::texturecube)
+			{
+				return m_texturecube_map;
 			}
 			else if constexpr (_t == e_resource_type::shader)
 			{
@@ -72,6 +80,10 @@ namespace influx::renderer
 			if constexpr (_t == e_resource_type::texture)
 			{
 				return m_texture_map;
+			}
+			else if constexpr (_t == e_resource_type::texturecube)
+			{
+				return m_texturecube_map;
 			}
 			else if constexpr (_t == e_resource_type::shader)
 			{
@@ -102,6 +114,13 @@ namespace influx::renderer
 				new_entry.m_load_time = time::get_now();
 				map[signature] = new_entry;
 			}
+		}
+
+		template <e_resource_type _t>
+		bool contains(const resource_sign<_t>& signature) const
+		{
+			const auto& map = get_resource_map<_t>();
+			return map.contains(signature);
 		}
 
 		template <e_resource_type _t>

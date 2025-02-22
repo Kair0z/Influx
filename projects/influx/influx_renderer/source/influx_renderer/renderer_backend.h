@@ -107,16 +107,19 @@ namespace influx::renderer
 
 		void load(const string& title, const mesh_data& data, bool reload = false);
 		void load(const string& title, const texture_data& data, bool reload = false);
+		void load(const string& title, const texturecube_data& data, bool reload = false);
 		void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
 		void load(const string& title, const material& data, bool reload = false);
 
 		bool has_mesh(const string& title) const;
 		bool has_texture(const string& title) const;
+		bool has_texturecube(const string& title) const;
 		bool has_shader(const shader::shader_signature& signature) const;
 		bool has_material(const string& title) const;
 
 		time::point get_time_loaded_shader(const shader::shader_signature& signature) const;
 		time::point get_time_loaded_texture(const string& title) const;
+		time::point get_time_loaded_texturecube(const string& title) const;
 		time::point get_time_loaded_mesh(const string& title) const;
 
 		void set_settings(const render_settings& settings);

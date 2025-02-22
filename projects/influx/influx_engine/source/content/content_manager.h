@@ -24,6 +24,7 @@ namespace influx::engine
 	{
 		scene,
 		image,
+		cubemap,
 		shader,
 		count
 	};
@@ -32,12 +33,14 @@ namespace influx::engine
 	using data_type = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
 		imp::scene_data,
 		imp::image_data,
+		imp::cubemap_data,
 		imp::shader_data>>;
 
 	template <e_asset_type _t>
 	using load_args = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
 		imp::scene_load_args,
 		imp::image_load_args,
+		imp::cubemap_load_args,
 		shader::compile_args>>;
 
 	enum class e_asset_origin : uint8
@@ -91,6 +94,10 @@ namespace influx::engine
 				else if constexpr (_t == e_asset_type::image)
 				{
 					m_resource = load_image_data(m_path, args);
+				}
+				else if constexpr (_t == e_asset_type::cubemap)
+				{
+					m_resource = load_cubemap_data(m_path, args);
 				}
 				else if constexpr (_t == e_asset_type::shader)
 				{
@@ -174,12 +181,14 @@ namespace influx::engine
 
 		static imp::scene_data load_scene_data(const string& path, const imp::scene_load_args& args);
 		static imp::image_data load_image_data(const string& path, const imp::image_load_args& args);
+		static imp::cubemap_data load_cubemap_data(const string& path, const imp::cubemap_load_args& args);
 		static imp::shader_data load_shader_data(const string& path, const shader::compile_args& args);
 
 	public:
 		using scene_item = asset_item< e_asset_type::scene >;
 		using image_item = asset_item< e_asset_type::image >;
 		using shader_item = asset_item< e_asset_type::shader >;
+		using cubemap_item = asset_item< e_asset_type::cubemap>;
 
 		content_manager(engine* engine);
 		~content_manager();
@@ -187,6 +196,7 @@ namespace influx::engine
 		const umap<string, scene_item>& get_scenes() const;
 		const umap<string, image_item>& get_images() const;
 		const umap<string, shader_item>& get_shaders() const;
+		const umap<string, cubemap_item>& get_cubemaps() const;
 		umap<string, shader_item>& touch_shaders();
 		
 		template <typename _t>
@@ -206,6 +216,11 @@ namespace influx::engine
 			{
 				if (get_shaders().contains(asset_name))
 					return { &get_shaders().at(asset_name) };
+			}
+			else if constexpr (std::is_same_v<_t, cubemap_item>)
+			{
+				if (get_cubemaps().contains(asset_name))
+					return { &get_cubemaps().at(asset_name) };
 			}
 			
 			return nullptr;
@@ -250,6 +265,7 @@ namespace influx::engine
 		umap<string, scene_item> m_scenes;
 		umap<string, image_item> m_images;
 		umap<string, shader_item> m_shaders;
+		umap<string, cubemap_item> m_cubemaps;
 
 		thread m_loading_thread;
 
@@ -261,4 +277,5 @@ namespace influx::engine
 	using image_asset = content_manager::image_item;
 	using scene_asset = content_manager::scene_item;
 	using shader_asset = content_manager::shader_item;
+	using cubemap_asset = content_manager::cubemap_item;
 }

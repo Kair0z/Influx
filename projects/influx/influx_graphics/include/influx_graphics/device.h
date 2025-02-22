@@ -52,6 +52,7 @@ namespace influx::graphics
 
 		virtual ptr<fence> create_fence(uint64 init_value = 0u) = 0;
 
+		virtual ptr<resource> create_resource(const struct tex3D_desc& desc, const heap_desc& heap_desc = {}) = 0;
 		virtual ptr<resource> create_resource(const struct tex2D_desc& desc, const heap_desc& heap_desc = {}) = 0;
 		virtual ptr<resource> create_resource(const struct buffer_desc& desc, const heap_desc& heap_desc = {}) = 0;
 		virtual ptr<resource> import_buffer(void* native_ptr, const buffer_desc& desc) = 0;

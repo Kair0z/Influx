@@ -57,6 +57,18 @@ namespace influx::graphics
 		bool m_allow_uav = false;
 	};
 
+	struct tex3D_desc final
+	{
+		e_format m_format = e_format::rgba8;
+		math::vectoru3 m_dimensions = { 64u, 64u, 64u };
+		uint16 m_arraysize = 1u;
+		uint16 m_num_mips = 1u;
+		uint32 m_sample_count = 1u;
+		e_bind_flags m_bindflags = e_bind_flags::none;
+		e_resource_state m_init_state = e_resource_state::common;
+		bool m_allow_uav = false;
+	};
+
 	struct map_args final
 	{
 		uint32 m_subres = 0u;
@@ -69,6 +81,7 @@ namespace influx::graphics
 		enum class e_type : uint8
 		{
 			tex2D,
+			tex3D,
 			buffer,
 			count
 		};
@@ -109,12 +122,14 @@ namespace influx::graphics
 	protected:
 		resource(const tex2D_desc& desc);
 		resource(const buffer_desc& desc);
+		resource(const tex3D_desc& desc);
 		virtual ~resource() = default;
 		
 	private:
 		e_type m_type{};
 		tex2D_desc m_tex2D_desc{};
 		buffer_desc m_buffer_desc{};
+		tex3D_desc m_tex3D_desc{};
 		e_resource_state m_previous_state = e_resource_state::common;
 		e_resource_state m_state = e_resource_state::common;
 		size_t m_bytesize{};

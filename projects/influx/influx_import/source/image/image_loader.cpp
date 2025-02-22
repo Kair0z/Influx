@@ -46,4 +46,18 @@ namespace influx::imp
 
 		return error;
 	}
+
+	/* Loads a 3D-image (cubemap) */
+	bool load_cubemap(const string& path, cubemap_data& out_cubemap, const cubemap_load_args& args)
+	{
+		imp::image_data side_datas[6u]{};
+		imp::image_load_args side_args{};
+		bool all_success = true;
+		for (uint32 i = 0u; i < 6u; ++i)
+		{
+			all_success &= load_image_file((*args.m_hacky_paths)[i], side_datas[i], side_args);
+		}
+
+		return all_success;
+	}
 }

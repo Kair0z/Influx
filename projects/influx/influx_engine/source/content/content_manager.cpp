@@ -43,6 +43,12 @@ namespace influx::engine
 		imp::load_image_file(path, data, args);
 		return data;
 	}
+	imp::cubemap_data content_manager::load_cubemap_data(const string& path, const imp::cubemap_load_args& args)
+	{
+		imp::cubemap_data data{};
+		imp::load_cubemap(path, data, args);
+		return data;
+	}
 	imp::shader_data content_manager::load_shader_data(const string& path, const shader::compile_args& args)
 	{
 		imp::shader_data result{};
@@ -73,6 +79,11 @@ namespace influx::engine
 	const umap<string, content_manager::shader_item>& content_manager::get_shaders() const
 	{
 		return m_shaders;
+	}
+
+	const umap<string, content_manager::cubemap_item>& content_manager::get_cubemaps() const
+	{
+		return m_cubemaps;
 	}
 
 	umap<string, content_manager::shader_item>& content_manager::touch_shaders()
@@ -129,6 +140,24 @@ namespace influx::engine
 		vector<file> png_files = get_files_in_directory(root.m_path_full, true, ".png");
 		vector<file> hlsl_files = get_files_in_directory(root.m_path_full, true, ".hlsl");
 
+		// load cubemap (hack)
+		{
+			imp::cubemap_load_args args{};
+			stat_array<string, 6u> cubemap_side_files{};
+			uint32 i = 0u;
+			for (const file& png : png_files)
+			{
+				if (str::contains(png.m_filename, "graycloud"))
+				{
+					cubemap_side_files[i++] = png.m_path_full;
+				}
+			}
+
+			cubemap_item& item = m_cubemaps["graycloud"];
+			args.m_hacky_paths = &cubemap_side_files;
+			item.load("", args);
+		}
+		
 		// load fbxs
 		async::dispatch_for<file>(obj_files, [this](const file& file)
 		{

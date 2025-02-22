@@ -37,7 +37,6 @@ namespace influx::engine
 	private:
 		void initialize_font_atlas();
 		void initialize_multiviewport();
-		void initialize_input();
 		void update_monitors();
 		void update_mousedata();
 		void update_input();

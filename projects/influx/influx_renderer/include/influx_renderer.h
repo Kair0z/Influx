@@ -132,15 +132,18 @@ namespace influx::renderer
 	// loading assets into the renderer
 	INFLUX_RENDER_API void load(const string& title, const mesh_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const string& title, const texture_data& data, bool reload = false);
+	INFLUX_RENDER_API void load(const string& title, const texturecube_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const string& title, const material& data, bool reload = false);
 
 	INFLUX_RENDER_API time::point get_time_loaded_shader(const shader::shader_signature& signature);
 	INFLUX_RENDER_API time::point get_time_loaded_texture(const string& title);
+	INFLUX_RENDER_API time::point get_time_loaded_texturecube(const string& title);
 	INFLUX_RENDER_API time::point get_time_loaded_mesh(const string& title);
 
 	INFLUX_RENDER_API bool has_mesh(const string& title);
 	INFLUX_RENDER_API bool has_texture(const string& title);
+	INFLUX_RENDER_API bool has_texturecube(const string& title);
 	INFLUX_RENDER_API bool has_shader(const shader::shader_signature& signature);
 	INFLUX_RENDER_API bool has_material(const string& title);
 
