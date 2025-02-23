@@ -91,6 +91,20 @@ namespace influx::graphics
 	class resource : public base
 	{
 	public:
+		struct footprint final
+		{
+			uint32 m_subresource_index = 0u;
+			uint32 m_num_rows = 0u;
+			uint64 m_row_bytesize = 0u; // aka pitch
+			uint64 m_bytesize = 0u;
+
+			uint64 m_offset = 0u;
+			graphics::e_format m_format;
+			uint32 m_width;
+			uint32 m_height;
+			uint32 m_depth;
+		};
+
 		enum class e_type : uint8
 		{
 			tex2D,
@@ -103,6 +117,7 @@ namespace influx::graphics
 		INFLUX_GFX_API virtual void* map(const map_args& args) = 0;
 		INFLUX_GFX_API virtual void unmap(const map_args& args) = 0;
 		INFLUX_GFX_API virtual bool allows_uav() const = 0;
+		INFLUX_GFX_API virtual vector<footprint> get_footprints() const = 0;
 
 		void map(const function<void(void*)> map_func, const map_args& args = {})
 		{
@@ -116,6 +131,12 @@ namespace influx::graphics
 		INFLUX_GFX_API uint32 get_width() const;
 
 		INFLUX_GFX_API uint32 get_height() const;
+
+		INFLUX_GFX_API uint32 get_depth() const;
+
+		INFLUX_GFX_API uint32 get_arraysize() const;
+
+		INFLUX_GFX_API uint32 get_num_subresources() const;
 
 		INFLUX_GFX_API size_t get_bytesize() const;
 
@@ -132,6 +153,8 @@ namespace influx::graphics
 		INFLUX_GFX_API void transition(commandlist* cmdlist, e_resource_state new_state);
 		
 		INFLUX_GFX_API void revert_transition(commandlist* cmdlist);
+
+		INFLUX_GFX_API e_type get_type() const;
 
 	protected:
 		resource(const tex2D_desc& desc);
@@ -151,5 +174,6 @@ namespace influx::graphics
 		size_t m_bytesize{};
 		size_t m_bytestride{};
 		e_format m_format{};
+		vector<footprint> m_footprints{};
 	};
 }

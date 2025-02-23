@@ -79,6 +79,39 @@ namespace influx::graphics
 		return m_tex2D_desc.m_dimensions.y;
 	}
 
+	uint32 resource::get_depth() const
+	{
+		switch (get_type())
+		{
+		case resource::e_type::cubemap: return 1u;
+		case resource::e_type::tex2D: return 1u;
+		case resource::e_type::tex3D: return m_tex3D_desc.m_dimensions.z;
+		}
+		return 1u;
+	}
+
+	uint32 resource::get_arraysize() const
+	{
+		switch (get_type())
+		{
+		case resource::e_type::cubemap: return m_cube_desc.m_arraysize;
+		case resource::e_type::tex2D: return m_tex2D_desc.m_arraysize;
+		case resource::e_type::tex3D: return m_tex3D_desc.m_arraysize;
+		}
+		return 1u;
+	}
+
+	uint32 resource::get_num_subresources() const
+	{
+		switch (get_type())
+		{
+		case resource::e_type::cubemap: return m_cube_desc.m_arraysize;
+		case resource::e_type::tex2D: return m_tex2D_desc.m_arraysize;
+		case resource::e_type::tex3D: return m_tex3D_desc.m_arraysize;
+		}
+		return 1u;
+	}
+
 	size_t resource::get_bytesize() const
 	{
 		return m_bytesize;
@@ -131,5 +164,10 @@ namespace influx::graphics
 		e_resource_state state_before = m_state;
 		m_state = m_previous_state;
 		m_previous_state = state_before;
+	}
+
+	resource::e_type resource::get_type() const
+	{
+		return m_type;
 	}
 }

@@ -156,6 +156,12 @@ namespace influx::renderer
 	inline graphics::cubemap_desc translate(const cubemap_desc& desc)
 	{
 		graphics::cubemap_desc result{};
+		result.m_arraysize = 6u;
+		result.m_dimensions = { desc.m_width, desc.m_heigth, 1u };
+		result.m_format = graphics::e_format::rgba8;
+		result.m_num_mips = 1u;
+		result.m_sample_count = 1u;
+		result.m_init_state = graphics::e_resource_state::all_srv;
 		return result;
 	}
 #pragma endregion
@@ -171,6 +177,10 @@ namespace influx::renderer
 			texture_desc,
 			texture3D_desc,
 			cubemap_desc>>;
+		using data_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+			texture_data,
+			texture3D_data,
+			cubemap_data>>;
 
 	public:
 		graphics::resource* get_resource() const
@@ -222,7 +232,38 @@ namespace influx::renderer
 			}
 		}
 
+		void upload(graphics::commandlist& commandlist, const data_type& data)
+		{
+			if (mp_upload == nullptr)
+			{
+				const size_t resource_bytesize = mp_resource->get_bytesize();
+				graphics::heap_desc heap_desc{};
+				heap_desc.m_type = graphics::e_heap_type::shared;
+				graphics::buffer_desc texture_desc{};
+				texture_desc.m_bytesize = resource_bytesize;
+				texture_desc.m_init_state = graphics::e_resource_state::gen_read;
+				mp_upload = mp_device->create_resource(texture_desc, heap_desc);
+			}
+
+			// map data to shared
+			{
+				const size_t data_bytesize = data.m_pixels.size() * sizeof(pixel32);
+				graphics::map_args args{ .m_subres = 0u, .m_begin = 0u, .m_end = data_bytesize };
+				mp_upload->map([&data, data_bytesize](void* target)
+					{
+						memcpy(target, data.m_pixels.data(), data_bytesize);
+					}, args);
+			}
+
+			// copy shared -> GPU
+			mp_upload->transition(&commandlist, graphics::e_resource_state::copy_src);
+			mp_resource->transition(&commandlist, graphics::e_resource_state::copy_dst);
+			graphics::copy_texture_args args{};
+			commandlist.copy_texture(mp_upload, mp_resource, args);
+		}
+
 		graphics::resource* mp_resource;
+		graphics::resource* mp_upload = nullptr;
 		graphics::descriptor_handle m_srv;
 
 		desc_type m_args;
@@ -232,6 +273,7 @@ namespace influx::renderer
 
 		// only backend can create textures
 		friend class renderer_backend;
+		friend class resource_manager;
 	};
 
 	using texture2D	= texture<e_texture_type::texture2D>;

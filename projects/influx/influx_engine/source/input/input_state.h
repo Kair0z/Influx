@@ -16,12 +16,12 @@ namespace influx::engine
 
 		inline bool is_firstframe_up() const
 		{ 
-			return !m_is_down && m_num_frames == 0u;
+			return !m_is_down && m_num_frames < 2u;
 		}
 
 		inline bool is_firstframe_down() const
 		{
-			return m_is_down && m_num_frames == 0u;
+			return m_is_down && m_num_frames < 2u;
 		}
 	};
 

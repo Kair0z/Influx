@@ -265,7 +265,7 @@ namespace influx::graphics
 		auto alignment = 0u;
 		D3D12_RESOURCE_DESC resource_desc{};
 		{
-			resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+			resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 			resource_desc.Format = translate(desc.m_format);
 			resource_desc.MipLevels = 1u;
 			resource_desc.Alignment = 0u;
@@ -363,7 +363,7 @@ namespace influx::graphics
 			resource_desc.Format = translate(desc.m_format);
 			resource_desc.MipLevels = 1u;
 			resource_desc.Alignment = 0u;
-			resource_desc.DepthOrArraySize = 6u;
+			resource_desc.DepthOrArraySize = 1u;
 			resource_desc.Flags = translate(desc.m_bindflags);
 			resource_desc.Height = desc.m_dimensions.y;
 			resource_desc.Width = desc.m_dimensions.x;
@@ -460,15 +460,38 @@ namespace influx::graphics
 	void dx12_device::create_texture_srv(descriptor_handle cpu_handle, resource* resource)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { .ptr = (size_t)(cpu_handle) };
+		ID3D12Resource* dxresource = resource->get_native<ID3D12Resource>();
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+		switch (resource->get_type())
+		{
+		case resource::e_type::tex2D:
+			srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srv_desc.Texture2D.MipLevels = 1;
+			srv_desc.Texture2D.MostDetailedMip;
+			srv_desc.Texture2D.PlaneSlice;
+			srv_desc.Texture2D.ResourceMinLODClamp;
+			break;
+
+		case resource::e_type::tex3D:
+			srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+			srv_desc.Texture3D.MipLevels;
+			srv_desc.Texture3D.MostDetailedMip;
+			srv_desc.Texture3D.ResourceMinLODClamp;
+			break;
+
+		case resource::e_type::cubemap:
+			srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			srv_desc.TextureCube.MipLevels = 1;
+			srv_desc.TextureCube.MostDetailedMip = 0;
+			srv_desc.TextureCube.ResourceMinLODClamp;
+			break;
+		}
+
 		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srv_desc.Format = translate(resource->get_format());
-		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srv_desc.Texture2D.MipLevels = 1;
 
-		mpdx_devices[0u]->CreateShaderResourceView(resource->get_native<ID3D12Resource>(),
-			&srv_desc, dxcpu_descriptor);
+		mpdx_devices[0u]->CreateShaderResourceView(dxresource, &srv_desc, dxcpu_descriptor);
 	}
 	void dx12_device::create_texture_uav(descriptor_handle cpu_handle, resource* resource)
 	{

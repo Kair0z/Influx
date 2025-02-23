@@ -6,11 +6,13 @@ struct resolve_args
 {
     int4 texture_desc_indices;
     int4 buffer_desc_indices;
+    int4 skybox_indices;
 
     float4 screen_size;
     float4 camera_position;
-    
+
     float4x4 inv_viewprojection;
+    float4x4 inv_projection;
     int4 num_lights;
 };
 ConstantBuffer<resolve_args> g_resolve_args : register(b0);
@@ -33,6 +35,45 @@ StructuredBuffer<per_spotlight> get_spotlights()
 StructuredBuffer<per_dirlight> get_dirlights()
 {
     return ResourceDescriptorHeap[g_resolve_args.buffer_desc_indices[0]];
+}
+
+// skycube
+SamplerState get_skycube_sampler()
+{
+    return SamplerDescriptorHeap[0];
+}
+TextureCube get_skycube()
+{
+    return ResourceDescriptorHeap[g_resolve_args.skybox_indices[0]];
+}
+
+// skycube
+float2 get_uv(uint2 thread_id)
+{
+    return float2(thread_id) * float2(g_resolve_args.screen_size.zw);
+}
+float2 get_ndc(uint2 thread_id)
+{
+    float2 uv = get_uv(thread_id);
+    float2 ndc = uv * 2.0 - 1.0;
+    ndc.y *= -1.0;
+    return ndc.xy;
+}
+float3 get_viewdirection(uint2 thread_id)
+{
+    float2 ndc = get_ndc(thread_id);
+    
+    // Step 3: Reconstruct View Direction
+    float4 clipSpacePos = float4(ndc.xy, 1.0, 1.0); // Homogeneous clip-space position at far plane
+    float4 viewSpacePos = mul(clipSpacePos, g_resolve_args.inv_projection); // Transform to view space
+    viewSpacePos /= viewSpacePos.w; // Perspective divide
+
+    return normalize(viewSpacePos.xyz);
+}
+
+float3 sample_sky(uint2 thread_id)
+{
+    return get_skycube().Sample(get_skycube_sampler(), get_viewdirection(thread_id)).rgb;
 }
 
 gbuffer get_gbuffer(uint2 thread_id)
@@ -71,6 +112,11 @@ float3 pointlight(float3 light_position, float3 light_color, float const_att, fl
     float diffuse = max(dot(normal, to_light), 0.0f); 
     
     return diffuse * light_color * attenuation; // Diffuse lighting contribution
+}
+
+void set_output(uint2 thread_id, float3 colour)
+{
+    get_output()[thread_id.xy].rgba = float4(clamp(colour.rgb, 0, 1), 1.0f);
 }
 
 [shader("compute")]
@@ -119,6 +165,10 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
         // figure out the final color
         output_color.rgb = diffuse.rgb * float3(1,1,1);
         output_color.rgb = (normal * 0.5) + 0.5;
-        get_output()[thread_id.xy].rgba = float4(clamp(output_color.rgb, 0, 1), 1.0f);
+        set_output(thread_id.xy, output_color.rgb);
+    }
+    else
+    {
+        set_output(thread_id.xy, sample_sky(thread_id.xy));
     }
 }

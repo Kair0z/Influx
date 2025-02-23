@@ -395,7 +395,14 @@ namespace influx::engine
 		input::for_each_mousebutton([&io](input::e_mouse_button button)
 		{
 			const buttonstate& state = inputman.get_mousebutton_state(button);
-			if (state.is_firstframe_down()) io.AddMouseButtonEvent(translate(button), true);
+			if (state.is_firstframe_down())
+			{
+				io.AddMouseButtonEvent(translate(button), true);
+			}
+			if (state.is_firstframe_up())
+			{
+				io.AddMouseButtonEvent(translate(button), false);
+			}
 		});
 
 		if (inputman.get_mouse_delta().sqr_magnitude() > 0.0f)

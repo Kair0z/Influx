@@ -18,7 +18,6 @@ namespace influx::renderer
 
 		void upload_buffer(graphics::queue* queue, const vector<byte>& data, graphics::resource* target);
 		void upload_texture(graphics::queue* queue, const texture_data& data, graphics::resource* target_resource);
-		void upload_texture(graphics::queue* queue, const cubemap_data& data, graphics::resource* target_resource);
 
 		virtual ~upload_manager();
 

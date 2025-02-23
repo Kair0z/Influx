@@ -10,12 +10,12 @@ int main()
 {
 	using namespace influx;
 
-	const string path = "D:/Git/Influx/assets/engine/shaders/source/basepass.hlsl";
+	const string path = "E:/Git/Influx/assets/engine/shaders/source/resolvepass.hlsl";
 	shader::compile_args args{};
-	args.m_signature.m_entrypoint = "main_vs";
-	args.m_signature.m_filename = "basepass";
-	args.m_include_folder = "D:/Git/Influx/assets/engine/shaders/";
-	args.m_signature.m_type = shader::e_shader_type::vs;
+	args.m_signature.m_entrypoint = "main_cs";
+	args.m_signature.m_filename = "resolvepass";
+	args.m_include_folder = "E:/Git/Influx/assets/engine/shaders/";
+	args.m_signature.m_type = shader::e_shader_type::cs;
 	args.m_signature.m_target = shader::e_shader_target::_6_6;
 	args.m_reflection = true;
 

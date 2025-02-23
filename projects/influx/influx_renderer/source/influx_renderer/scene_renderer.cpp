@@ -11,6 +11,7 @@
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/renderer_common.h"
+#include "influx_renderer/resources/resource_manager.h"
 
 // influx::graphics
 #include "influx_graphics/commandlist.h"
@@ -140,6 +141,7 @@ namespace influx::renderer
         }
 
         m_sampler_view = descriptor_manager.create_sampler();
+        m_skybox_sampler = descriptor_manager.create_sampler();
     }
 
     scene_renderer::~scene_renderer()
@@ -194,7 +196,7 @@ namespace influx::renderer
                 if (diffuse_texture != nullptr && !tex_to_idx.contains(diffuse_texture))
                 {
                     // add to list of unique srvs
-                    all_srvs.push_back(diffuse_texture->get_cpu_handle());
+                    all_srvs.push_back(diffuse_texture->get_srv());
 
                     // keep the idx of the srv
                     tex_to_idx[diffuse_texture] = texture_count;
@@ -486,6 +488,7 @@ namespace influx::renderer
         descriptor_manager& descriptor_man = *backend.get_descriptor_manager();
         compute_pipeline& pipeline = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
         graphics::commandlist& commandlist = context.get_commandlist();
+        resource_manager& resourceman = backend.get_resource_manager();
 
         // hot-reload our shaders if necessary:
         pipeline.rebuild(backend.get_device());
@@ -498,9 +501,11 @@ namespace influx::renderer
         {
             int texture_indices[4u];
             int buffer_indices[4u];
+            int skybox_indices[4u];
             math::float4 screen_size;
             math::float4 camera_position;
             math::matrix4x4f inv_viewprojection;
+            math::matrix4x4f inv_projection;
             int num_lights[4u];
         } args{};
 
@@ -515,7 +520,7 @@ namespace influx::renderer
         transform.update_matrix();
         const float ar = (float)target.get_width() / target.get_height();
         args.inv_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane).inverted();
-
+        args.inv_projection = math::matrix4x4f::make_projection_RH(camera.m_fov, ar, camera.m_near_plane, camera.m_far_plane).inverted();
         args.camera_position = transform.get_position().get_xyz();
         args.camera_position.w = 1.0f;
 
@@ -525,10 +530,13 @@ namespace influx::renderer
                 context.get_read_texture(gbuffer_reads[1]),
                 context.get_read_texture(gbuffer_reads[2]),
                 context.get_write_texture(resolve_write),
+                resourceman.get<e_resource_type::cubemap>("graycloud").m_resource->get_srv(),
                 m_lightbuffer_srvs[0],
                 m_lightbuffer_srvs[1],
                 m_lightbuffer_srvs[2]
             });
+
+        descriptor_man.stage_sampler(m_skybox_sampler);
 
         pipeline.set_state(commandlist);
 
@@ -537,9 +545,10 @@ namespace influx::renderer
         args.texture_indices[1] = gpu_range.m_start_idx + 1u;
         args.texture_indices[2] = gpu_range.m_start_idx + 2u;
         args.texture_indices[3] = gpu_range.m_start_idx + 3u;
-        args.buffer_indices[0] = gpu_range.m_start_idx + 4u;
-        args.buffer_indices[1] = gpu_range.m_start_idx + 5u;
-        args.buffer_indices[2] = gpu_range.m_start_idx + 6u;
+        args.skybox_indices[0] = gpu_range.m_start_idx + 4u;
+        args.buffer_indices[0] = gpu_range.m_start_idx + 5u;
+        args.buffer_indices[1] = gpu_range.m_start_idx + 6u;
+        args.buffer_indices[2] = gpu_range.m_start_idx + 7u;
 
         pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", args);
 

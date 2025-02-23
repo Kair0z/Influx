@@ -32,6 +32,25 @@ namespace influx::graphics
 		}
 	}
 
+	inline e_format translate(DXGI_FORMAT format)
+	{
+		switch (format)
+		{
+		case DXGI_FORMAT_R8G8B8A8_UNORM:		return e_format::rgba8;
+		case DXGI_FORMAT_R32_FLOAT:				return e_format::r32;
+		case DXGI_FORMAT_R32G32_FLOAT:			return e_format::rg32;
+		case DXGI_FORMAT_R32G32B32_FLOAT:		return e_format::rgb32;
+		case DXGI_FORMAT_R32G32B32A32_FLOAT:	return e_format::rgba32;
+		case DXGI_FORMAT_D32_FLOAT:				return e_format::d32;
+		case DXGI_FORMAT_R16_UINT:				return e_format::u16;
+		case DXGI_FORMAT_R32_UINT:				return e_format::u32;
+		case DXGI_FORMAT_R32G32B32A32_UINT:		return e_format::rgba_u32;
+		default:
+			influx_assert(false);
+			return e_format::count;
+		}
+	}
+
 	inline DXGI_FORMAT translate(e_format format)
 	{
 		switch (format)

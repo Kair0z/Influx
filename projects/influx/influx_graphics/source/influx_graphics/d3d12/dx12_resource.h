@@ -26,5 +26,6 @@ namespace influx::graphics
 		virtual void set_name_impl(const debug_name& name) override;
 
 		virtual bool allows_uav() const override;
+		virtual vector<footprint> get_footprints() const override;
 	};
 }

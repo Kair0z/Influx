@@ -350,6 +350,8 @@ namespace influx::graphics
 	void dx12_commandlist::copy_resource(resource* source, resource* dest)
 	{
 		renderpass_check(e_command::copy_resource);
+		influx_assert(source->get_width() == dest->get_width());
+		influx_assert(source->get_height() == dest->get_height());
 
 		auto dxsource = source->get_native<ID3D12Resource>();
 		auto dxdest = dest->get_native<ID3D12Resource>();
@@ -360,30 +362,24 @@ namespace influx::graphics
 	void dx12_commandlist::copy_texture(resource* src, resource* dest, 
 		const copy_texture_args& args)
 	{
+		// https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12graphicscommandlist-copytextureregion
 		renderpass_check(e_command::copy_texture);
 
-		CD3DX12_TEXTURE_COPY_LOCATION src_loc{ src->get_native<ID3D12Resource>() };
-		src_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		src_loc.PlacedFootprint.Offset = 0;
-		src_loc.PlacedFootprint.Footprint.Width = dest->get_width();
-		src_loc.PlacedFootprint.Footprint.Height = dest->get_height();
-		src_loc.PlacedFootprint.Footprint.Depth = 1;
-		src_loc.PlacedFootprint.Footprint.Format = translate(dest->get_format());
-		src_loc.PlacedFootprint.Footprint.RowPitch = dest->get_width() * (uint32)dest->get_bytestride();
+		const uint32 num_subresources = math::maximum(1u, src->get_arraysize());
+		vector<resource::footprint> dest_footprints = dest->get_footprints();
 
-		CD3DX12_TEXTURE_COPY_LOCATION dest_loc{ dest->get_native<ID3D12Resource>() };
-		
 		D3D12_BOX src_box{};
 		src_box.left = 0u;
-		src_box.right = dest->get_width();
-		src_box.bottom = dest->get_height();
 		src_box.top = 0u;
 		src_box.front = 0u;
-		src_box.back = 1u;
+		src_box.right = dest->get_width();
+		src_box.bottom = dest->get_height();
+		src_box.back = dest->get_depth();
 
-		mpdx_graphics_commandlist->CopyTextureRegion(
-			&dest_loc, 0u, 0u, 0u,
-			&src_loc, &src_box);
+		for (uint32 i = 0u; i < num_subresources; ++i)
+		{
+			
+		}
 	}
 
 	void dx12_commandlist::copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& args)

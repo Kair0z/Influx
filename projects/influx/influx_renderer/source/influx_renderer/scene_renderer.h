@@ -57,6 +57,7 @@ namespace influx::renderer
 		graphics::descriptor_handle m_instance_buffer_srv;
 		graphics::descriptor_handle m_lightbuffer_srvs[k_num_light_types];
 		graphics::descriptor_handle m_sampler_view;
+		graphics::descriptor_handle m_skybox_sampler;
 
 		graphics::resource* mp_skybox;
 		graphics::descriptor_handle m_skybox_srv;

@@ -7,7 +7,6 @@
 #include "influx_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
 #include "influx_renderer/multimesh.h"
-#include "influx_renderer/resources/resource_manager.h"
 
 // influx::graphics
 #include "influx_graphics/resource.h"
@@ -44,6 +43,7 @@ namespace influx::renderer
 	class quad_renderer;
 	class shadertoy_renderer;
 	class target;
+	class resource_manager;
 	class multimesh;
 }
 
@@ -103,6 +103,8 @@ namespace influx::renderer
 		static descriptor_manager* get_descriptor_manager();
 		static upload_manager* get_upload_manager();
 		static pipeline_manager* get_pipeline_manager();
+		static resource_manager& get_resource_manager();
+		static graphics::queue& get_graphics_queue();
 		static graphics::device& get_device();
 
 		void load(const string& title, const mesh_data& data, bool reload = false);
@@ -204,7 +206,7 @@ namespace influx::renderer
 		umap<string, vector<index>> m_index_buffer_contents;
 		umap<string, vector<vertex_data>> m_vertex_buffer_contents; // can be any type
 		umap<string, material> m_materials;
-		resource_manager m_resource_manager;
+		resource_manager* m_resource_manager;
 
 		// texture data
 		umap<string, texture2D*> m_textures;

@@ -10,6 +10,7 @@
 #include "influx_renderer/debug_renderer.h"
 #include "influx_renderer/quad_renderer.h"
 #include "influx_renderer/shadertoy/shadertoy_renderer.h"
+#include "influx_renderer/resources/resource_manager.h"
 
 // influx::rendergraph
 #include "rendergraph.h"
@@ -59,6 +60,7 @@ namespace influx::renderer
         mp_fence = mp_device->create_fence((uint64)-1);
         mp_copyfence = mp_device->create_fence(0u);
 
+        m_resource_manager = new resource_manager();
         mp_desc_manager = new descriptor_manager(mp_device);
         mp_pipeline_manager = new pipeline_manager(mp_device);
         mp_upload_manager = new upload_manager(mp_device);
@@ -93,6 +95,8 @@ namespace influx::renderer
     {
         wait_gpu_finished();
         mp_device->cleanup();
+
+        delete m_resource_manager;
 
         delete mp_device;
         mp_device = nullptr;
@@ -473,6 +477,16 @@ namespace influx::renderer
         return get_instance().mp_pipeline_manager;
     }
 
+    resource_manager& renderer_backend::get_resource_manager()
+    {
+        return *get_instance().m_resource_manager;
+    }
+
+    graphics::queue& renderer_backend::get_graphics_queue()
+    {
+        return *get_instance().mp_graphics_queue;
+    }
+
     graphics::device& renderer_backend::get_device()
     {
         return *get_instance().mp_device;
@@ -481,42 +495,24 @@ namespace influx::renderer
     // mesh
     void renderer_backend::load(const string& title, const mesh_data& data, bool reload)
     {
-        m_resource_manager.load<e_resource_type::mesh>(title, data);
-
-        create_vertexbuffer<vertex_data>(title, data.m_vertices, reload);
-        create_indexbuffer(title, data.m_indices, reload);
+        m_resource_manager->load<e_resource_type::mesh>(title, data, reload);
     }
 
     // texture
     void renderer_backend::load(const string& title, const texture_data& data, bool reload)
     {
-        m_resource_manager.load<e_resource_type::texture>(title, data);
-
-        texture_desc create_args{};
-        create_args.m_width = data.get_width();
-        create_args.m_heigth = data.get_height();
-        texture2D* texture = create_texture(title, create_args);
-
-        mp_upload_manager->upload_texture(mp_graphics_queue, data, texture->get_resource());
+        m_resource_manager->load<e_resource_type::texture>(title, data, reload);
     }
 
     void renderer_backend::load(const string& title, const cubemap_data& data, bool reload)
     {
-        cubemap_desc create_args{};
-        create_args.m_width = data.get_width();
-        create_args.m_heigth = data.get_height();
-        create_args.m_depth = data.get_depth();
-        cubemap* texture = create_texturecube(title, create_args);
-
-        mp_upload_manager->upload_texture(mp_graphics_queue, data, texture->get_resource());
-
-        return m_resource_manager.load<e_resource_type::cubemap>(title, data);
+        m_resource_manager->load<e_resource_type::cubemap>(title, data, reload);
     }
 
     // shader
     void renderer_backend::load(const shader::shader_signature& signature, const shader_data& data, bool reload)
     {
-        m_resource_manager.load<e_resource_type::shader>(signature, data);
+        m_resource_manager->load<e_resource_type::shader>(signature, data, reload);
 
         get_shader_manager().load(signature, data, reload);
     }
@@ -537,12 +533,12 @@ namespace influx::renderer
 
     bool renderer_backend::has_texture(const string& title) const
     {
-        return m_textures.contains(title);
+        return m_resource_manager->contains<e_resource_type::texture>(title);
     }
 
     bool renderer_backend::has_texturecube(const string& title) const
     {
-        return m_resource_manager.contains<e_resource_type::cubemap>(title);
+        return m_resource_manager->contains<e_resource_type::cubemap>(title);
     }
 
     bool renderer_backend::has_shader(const shader::shader_signature& signature) const
@@ -557,19 +553,19 @@ namespace influx::renderer
 
     time::point renderer_backend::get_time_loaded_shader(const shader::shader_signature& signature) const
     {
-        return m_resource_manager.get_time_loaded<e_resource_type::shader>(signature);
+        return m_resource_manager->get_time_loaded<e_resource_type::shader>(signature);
     }
     time::point renderer_backend::get_time_loaded_texture(const string& title) const
     {
-        return m_resource_manager.get_time_loaded<e_resource_type::texture>(title);
+        return m_resource_manager->get_time_loaded<e_resource_type::texture>(title);
     }
     time::point renderer_backend::get_time_loaded_texturecube(const string& title) const
     {
-        return m_resource_manager.get_time_loaded<e_resource_type::cubemap>(title);
+        return m_resource_manager->get_time_loaded<e_resource_type::cubemap>(title);
     }
     time::point renderer_backend::get_time_loaded_mesh(const string& title) const
     {
-        return m_resource_manager.get_time_loaded<e_resource_type::mesh>(title);
+        return m_resource_manager->get_time_loaded<e_resource_type::mesh>(title);
     }
 
     void renderer_backend::set_settings(const render_settings& settings)
@@ -598,7 +594,7 @@ namespace influx::renderer
 
     cubemap* renderer_backend::create_texturecube(const string& title, const cubemap_desc& args)
     {
-        if (!m_resource_manager.contains<e_resource_type::cubemap>(title))
+        if (!m_resource_manager->contains<e_resource_type::cubemap>(title))
         {
             cubemap* new_texture = new cubemap(mp_device, args);
             new_texture->set_name(title);
@@ -615,9 +611,9 @@ namespace influx::renderer
 
     texture2D* renderer_backend::find_texture(const string& name)
     {
-        if (m_textures.contains(name))
+        if (m_resource_manager->contains<e_resource_type::texture>(name))
         {
-            return m_textures[name];
+            return m_resource_manager->get<e_resource_type::texture>(name).m_resource;
         }
 
         return &get_default_texture();
@@ -625,9 +621,9 @@ namespace influx::renderer
 
     cubemap* renderer_backend::find_texturecube(const string& name)
     {
-        if (m_texcubes.contains(name))
+        if (m_resource_manager->contains<e_resource_type::cubemap>(name))
         {
-            return m_texcubes[name];
+            return m_resource_manager->get<e_resource_type::cubemap>(name).m_resource;
         }
         return nullptr;
     }

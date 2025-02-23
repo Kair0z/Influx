@@ -3,6 +3,7 @@
 
 // influx::core
 #include "core/material/material.h"
+#include "core/scope.h"
 
 // influx::engine
 #include "content/content_manager.h"
@@ -27,6 +28,7 @@ namespace influx::engine
 
 	void render_streamer::stream(const content_manager& content)
 	{
+		influx_scope("render_stream");
 		stream_images(content);
 		stream_shaders(content);
 		stream_meshes(content);
@@ -60,7 +62,6 @@ namespace influx::engine
 		}
 	}
 
-#pragma region content_streaming
 #pragma region translation layer
 	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data)
 	{
@@ -155,6 +156,7 @@ namespace influx::engine
 
 	void render_streamer::stream_shaders(const content_manager& content)
 	{
+		influx_scope("render_stream_shaders");
 		for (const auto& asset : content.get_shaders())
 		{
 			if (asset.second.is_loaded())
@@ -174,6 +176,7 @@ namespace influx::engine
 
 	void render_streamer::stream_images(const content_manager& content)
 	{
+		influx_scope("render_stream_images");
 		for (const auto& asset : content.get_images())
 		{
 			if (renderer::has_texture(asset.first) == false)
@@ -189,6 +192,7 @@ namespace influx::engine
 
 	void render_streamer::stream_cubemaps(const content_manager& content)
 	{
+		influx_scope("render_stream_cubemaps");
 		for (const auto& asset : content.get_cubemaps())
 		{
 			if (renderer::has_texturecube(asset.first) == false)
@@ -204,6 +208,7 @@ namespace influx::engine
 
 	void render_streamer::stream_meshes(const content_manager& content)
 	{
+		influx_scope("render_stream_meshes");
 		// content meshes
 		for (const auto& asset : content.get_scenes())
 		{
@@ -237,5 +242,4 @@ namespace influx::engine
 			influx::renderer::load("esphere", renderer::get_inline_mesh_sphere());
 		}
 	}
-#pragma endregion
 }
