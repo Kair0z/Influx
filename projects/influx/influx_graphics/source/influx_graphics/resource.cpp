@@ -71,12 +71,24 @@ namespace influx::graphics
 
 	uint32 resource::get_width() const
 	{
-		return m_tex2D_desc.m_dimensions.x;
+		switch (get_type())
+		{
+		case resource::e_type::cubemap: return m_cube_desc.m_dimensions.x;
+		case resource::e_type::tex2D: return m_tex2D_desc.m_dimensions.x;
+		case resource::e_type::tex3D: return m_tex3D_desc.m_dimensions.x;
+		}
+		return 1u;
 	}
 
 	uint32 resource::get_height() const
 	{
-		return m_tex2D_desc.m_dimensions.y;
+		switch (get_type())
+		{
+		case resource::e_type::cubemap: return m_cube_desc.m_dimensions.y;
+		case resource::e_type::tex2D: return m_tex2D_desc.m_dimensions.y;
+		case resource::e_type::tex3D: return m_tex3D_desc.m_dimensions.y;
+		}
+		return 1u;
 	}
 
 	uint32 resource::get_depth() const

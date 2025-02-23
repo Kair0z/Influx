@@ -87,7 +87,6 @@ int main()
 	graphics::present_args pres_args{};
 	while (!is_quit)
 	{
-
 		commandlist->start(device);
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{

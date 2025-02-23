@@ -236,11 +236,7 @@ namespace influx::renderer
 		{
 			if (mp_upload == nullptr)
 			{
-				const size_t resource_bytesize = mp_resource->get_bytesize();
-				graphics::heap_desc heap_desc{};
-				heap_desc.m_type = graphics::e_heap_type::shared;
-				graphics::cubemap_desc texture_desc = translate(m_args);
-				mp_upload = mp_device->create_resource(texture_desc, heap_desc);
+				mp_upload = mp_device->create_upload_resource(mp_resource);
 			}
 
 			// map data to shared

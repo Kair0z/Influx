@@ -380,9 +380,9 @@ namespace influx::graphics
 		src_box.left = 0u;
 		src_box.top = 0u;
 		src_box.front = 0u;
-		src_box.right = src->get_width();
-		src_box.bottom = src->get_height();
-		src_box.back = src->get_depth();
+		src_box.right = dest->get_width();
+		src_box.bottom = dest->get_height();
+		src_box.back = dest->get_depth();
 
 		for (uint32 i = 0u; i < num_subresources; ++i)
 		{
@@ -392,6 +392,7 @@ namespace influx::graphics
 			src_location.PlacedFootprint.Footprint.Height = src_footprints[i].m_height;
 			src_location.PlacedFootprint.Footprint.RowPitch	= src_footprints[i].m_row_bytesize;
 			src_location.PlacedFootprint.Footprint.Width = src_footprints[i].m_width;
+			src_location.PlacedFootprint.Offset = src_footprints[i].m_offset;
 			src_location.SubresourceIndex = i;
 			src_location.Type = source_is_texture ? D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX : D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 			src_location.pResource = src->get_native<ID3D12Resource>();
@@ -402,6 +403,7 @@ namespace influx::graphics
 			dst_location.PlacedFootprint.Footprint.Height = dest_footprints[i].m_height;
 			dst_location.PlacedFootprint.Footprint.RowPitch = dest_footprints[i].m_row_bytesize;
 			dst_location.PlacedFootprint.Footprint.Width = dest_footprints[i].m_width;
+			dst_location.PlacedFootprint.Offset = dest_footprints[i].m_offset;
 			dst_location.SubresourceIndex = i;
 			dst_location.Type = dest_is_texture ? D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX : D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 			dst_location.pResource = dest->get_native<ID3D12Resource>();
