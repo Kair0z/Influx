@@ -239,9 +239,7 @@ namespace influx::renderer
 				const size_t resource_bytesize = mp_resource->get_bytesize();
 				graphics::heap_desc heap_desc{};
 				heap_desc.m_type = graphics::e_heap_type::shared;
-				graphics::buffer_desc texture_desc{};
-				texture_desc.m_bytesize = resource_bytesize;
-				texture_desc.m_init_state = graphics::e_resource_state::gen_read;
+				graphics::cubemap_desc texture_desc = translate(m_args);
 				mp_upload = mp_device->create_resource(texture_desc, heap_desc);
 			}
 
@@ -250,9 +248,9 @@ namespace influx::renderer
 				const size_t data_bytesize = data.m_pixels.size() * sizeof(pixel32);
 				graphics::map_args args{ .m_subres = 0u, .m_begin = 0u, .m_end = data_bytesize };
 				mp_upload->map([&data, data_bytesize](void* target)
-					{
-						memcpy(target, data.m_pixels.data(), data_bytesize);
-					}, args);
+				{
+					memcpy(target, data.m_pixels.data(), data_bytesize);
+				}, args);
 			}
 
 			// copy shared -> GPU

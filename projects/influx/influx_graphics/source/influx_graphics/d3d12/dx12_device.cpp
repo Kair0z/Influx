@@ -260,7 +260,11 @@ namespace influx::graphics
 
 		auto heap_properties = D3D12_HEAP_PROPERTIES{};
 		heap_properties.Type = translate(heap_desc.m_type);
-		
+		if (heap_desc.m_type == e_heap_type::shared)
+		{
+			//heap_properties.Type = D3D12_HEAP_TYPE_GPU_UPLOAD;
+		}
+
 		auto layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		auto alignment = 0u;
 		D3D12_RESOURCE_DESC resource_desc{};
@@ -404,6 +408,16 @@ namespace influx::graphics
 			translate(desc.m_init_state));
 
 		return new_child<dx12_resource, resource>(dxresource, desc);
+	}
+
+	ptr<resource> dx12_device::create_upload_resource(resource* resource)
+	{
+		heap_desc uploadheap{};
+		uploadheap.m_type = graphics::e_heap_type::shared;
+		buffer_desc upload_desc{};
+		upload_desc.m_bytesize = resource->get_bytesize();
+		upload_desc.m_bytestride = resource->get_bytestride();
+		return create_resource(upload_desc, uploadheap);
 	}
 
 	ptr<resource> dx12_device::import_buffer(void* native_ptr, const buffer_desc& desc)

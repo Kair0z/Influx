@@ -365,20 +365,48 @@ namespace influx::graphics
 		// https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12graphicscommandlist-copytextureregion
 		renderpass_check(e_command::copy_texture);
 
-		const uint32 num_subresources = math::maximum(1u, src->get_arraysize());
-		vector<resource::footprint> dest_footprints = dest->get_footprints();
+		const bool source_is_texture = src->get_type() != resource::e_type::buffer;
+		const bool dest_is_texture = dest->get_type() != resource::e_type::buffer;
+		influx_assert(source_is_texture || dest_is_texture);
+
+		const uint32 num_subresources = math::maximum(1u, dest->get_arraysize());
+		
+		vector<resource::footprint> src_footprints = source_is_texture ? src->get_footprints() : vector<resource::footprint>{};
+		vector<resource::footprint> dest_footprints = dest_is_texture ? dest->get_footprints() : vector<resource::footprint>{};
+		if (src_footprints.empty()) src_footprints = dest_footprints;
+		if (dest_footprints.empty()) dest_footprints = src_footprints;
 
 		D3D12_BOX src_box{};
 		src_box.left = 0u;
 		src_box.top = 0u;
 		src_box.front = 0u;
-		src_box.right = dest->get_width();
-		src_box.bottom = dest->get_height();
-		src_box.back = dest->get_depth();
+		src_box.right = src->get_width();
+		src_box.bottom = src->get_height();
+		src_box.back = src->get_depth();
 
 		for (uint32 i = 0u; i < num_subresources; ++i)
 		{
-			
+			D3D12_TEXTURE_COPY_LOCATION src_location{};
+			src_location.PlacedFootprint.Footprint.Depth = src_footprints[i].m_depth;
+			src_location.PlacedFootprint.Footprint.Format = translate(src_footprints[i].m_format);
+			src_location.PlacedFootprint.Footprint.Height = src_footprints[i].m_height;
+			src_location.PlacedFootprint.Footprint.RowPitch	= src_footprints[i].m_row_bytesize;
+			src_location.PlacedFootprint.Footprint.Width = src_footprints[i].m_width;
+			src_location.SubresourceIndex = i;
+			src_location.Type = source_is_texture ? D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX : D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			src_location.pResource = src->get_native<ID3D12Resource>();
+
+			D3D12_TEXTURE_COPY_LOCATION dst_location{};
+			dst_location.PlacedFootprint.Footprint.Depth = dest_footprints[i].m_depth;
+			dst_location.PlacedFootprint.Footprint.Format = translate(dest_footprints[i].m_format);
+			dst_location.PlacedFootprint.Footprint.Height = dest_footprints[i].m_height;
+			dst_location.PlacedFootprint.Footprint.RowPitch = dest_footprints[i].m_row_bytesize;
+			dst_location.PlacedFootprint.Footprint.Width = dest_footprints[i].m_width;
+			dst_location.SubresourceIndex = i;
+			dst_location.Type = dest_is_texture ? D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX : D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			dst_location.pResource = dest->get_native<ID3D12Resource>();
+
+			mpdx_graphics_commandlist->CopyTextureRegion(&dst_location, 0u, 0u, 0u, &src_location, &src_box);
 		}
 	}
 
