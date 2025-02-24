@@ -185,9 +185,9 @@ namespace influx::engine
 		static imp::shader_data load_shader_data(const string& path, const shader::compile_args& args);
 
 	public:
-		using scene_item = asset_item< e_asset_type::scene >;
-		using image_item = asset_item< e_asset_type::image >;
-		using shader_item = asset_item< e_asset_type::shader >;
+		using scene_item = asset_item< e_asset_type::scene>;
+		using image_item = asset_item< e_asset_type::image>;
+		using shader_item = asset_item< e_asset_type::shader>;
 		using cubemap_item = asset_item< e_asset_type::cubemap>;
 
 		content_manager(engine* engine);

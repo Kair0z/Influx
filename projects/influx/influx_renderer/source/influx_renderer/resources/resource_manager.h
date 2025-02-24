@@ -146,107 +146,18 @@ namespace influx::renderer
 				entry.m_signature = signature;
 				entry.m_load_time = time::get_now();
 
-				// 
-				renderer_backend& backend = renderer_backend::get_instance();
-				graphics::device& device = renderer_backend::get_device();
-				upload_manager& uploadman = *renderer_backend::get_upload_manager();
-				graphics::queue& queue = renderer_backend::get_graphics_queue();
-
+				// recreate stuff
 				if constexpr (_t == e_resource_type::cubemap)
 				{
-					cubemap*& resource = map[signature].m_resource;
-					if (resource == nullptr)
-					{
-						cubemap_desc create_args{};
-						create_args.m_width = data.get_width();
-						create_args.m_heigth = data.get_height();
-						create_args.m_depth = data.get_depth();
-						resource = new cubemap(&device, create_args);
-						resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->mp_resource);
-
-						graphics::commandlist& commandlist = *device.create_graphics_commandlist();
-						commandlist.start(&device);
-						resource->upload(commandlist, data);
-						commandlist.end();
-						commandlist.submit(&queue);
-						commandlist.wait_for_completion();
-					}
+					recreate_cubemap(signature, data);
 				}
 				else if constexpr (_t == e_resource_type::texture)
 				{
-					texture2D*& resource = map[signature].m_resource;
-					texture_desc create_args{};
-					create_args.m_width = data.get_width();
-					create_args.m_heigth = data.get_height();
-					resource = new texture2D(&device, create_args);
-
-					resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->mp_resource);
-					uploadman.upload_texture(&queue, data, resource->get_resource());
+					recreate_texture(signature, data);
 				}
 				else if constexpr (_t == e_resource_type::mesh)
 				{
-					detail::base_mesh_data* mesh_data = data;
-					mesh_buffers*& meshbuffers = map[signature].m_resource;
-					if (meshbuffers == nullptr) meshbuffers = new mesh_buffers();
-
-					// vertex buffer
-					{
-						const uint64 old_bytesize = meshbuffers->m_vertexbuffer ? meshbuffers->m_vertexbuffer->get_bytesize() : 0u;
-						const uint64 new_bytesize = mesh_data->get_vert_bytesize();
-						if (old_bytesize < new_bytesize)
-						{
-							// destroy old resource
-							if (meshbuffers->m_vertexbuffer)
-								device.release(meshbuffers->m_vertexbuffer);
-
-							// create new vertex buffer on the shared heap
-							graphics::heap_desc heap_desc{};
-							heap_desc.m_type = graphics::e_heap_type::shared;
-							graphics::buffer_desc desc{};
-							desc.m_init_state = graphics::e_resource_state::gen_read;
-
-							// create resource
-							desc.m_bytesize = new_bytesize;
-							desc.m_bytestride = mesh_data->get_vert_bytestride();
-							meshbuffers->m_vertexbuffer = device.create_resource(desc, heap_desc);
-							meshbuffers->m_vertexbuffer->set_name("vb_" + signature);
-						}
-
-						// map new data to resource
-						meshbuffers->m_vertexbuffer->map([mesh_data, new_bytesize](void* target)
-						{
-							memcpy(target, mesh_data->get_vert_data(), new_bytesize);
-						});
-					}
-					// index buffer
-					{
-						const uint64 old_bytesize = meshbuffers->m_indexbuffer ? meshbuffers->m_indexbuffer->get_bytesize() : 0u;
-						const uint64 new_bytesize = mesh_data->get_indx_bytesize();
-						if (old_bytesize < new_bytesize)
-						{
-							// create index / vertex buffer on the shared heap (so cpu can write to it)
-							graphics::heap_desc heap_desc{};
-							heap_desc.m_type = graphics::e_heap_type::shared;
-							graphics::buffer_desc desc{};
-							desc.m_init_state = graphics::e_resource_state::gen_read;
-
-							// create index buffer resource
-							desc.m_bytesize = new_bytesize;
-							desc.m_bytestride = mesh_data->get_indx_bytestride();
-							desc.m_format = graphics::e_format::u32;
-							meshbuffers->m_indexbuffer = device.create_resource(desc, heap_desc);
-							meshbuffers->m_indexbuffer->set_name("ib_" + signature);
-						}
-
-						// map content regardless
-						if (old_bytesize < new_bytesize || reload)
-						{
-							meshbuffers->m_indexbuffer->map([mesh_data, new_bytesize](void* target)
-							{
-								memcpy(target, mesh_data->get_indx_data(), new_bytesize);
-							});
-						}
-					}
+					recreate_mesh(signature, data);
 				}
 			}
 
@@ -264,14 +175,22 @@ namespace influx::renderer
 		const entry<_t>& get(const resource_sign<_t>& signature) const
 		{
 			const auto& map = get_resource_map<_t>();
-			return map.at(signature);
+			if (map.contains(signature))
+			{
+				return map.at(signature);
+			}
+			else
+			{
+				return get_default<_t>();
+			}
 		}
 
 		template <e_resource_type _t>
-		entry<_t>& get(const resource_sign<_t>& signature)
+		const entry<_t>& get_default() const
 		{
-			auto& map = get_resource_map<_t>();
-			return map[signature];
+			static_assert(_t != e_resource_type::shader);
+
+			return get<_t>("none");
 		}
 
 		template <e_resource_type _t>
@@ -303,6 +222,11 @@ namespace influx::renderer
 				return time::get_now();
 			}
 		}
+
+	private:
+		void recreate_mesh(const string& title, detail::base_mesh_data* data);
+		void recreate_texture(const string& title, const texture_data& data);
+		void recreate_cubemap(const string& title, const cubemap_data& data);
 	};
 
 	using mesh_resource = resource_manager::entry<e_resource_type::mesh>;

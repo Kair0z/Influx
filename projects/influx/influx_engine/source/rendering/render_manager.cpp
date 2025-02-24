@@ -31,6 +31,9 @@ namespace influx::engine
 	public:
 		virtual void on_run() override
 		{
+			set_visible(false);
+			return;
+
 			const auto& pipeline_info = renderer::get_pipeline_info();
 			ImGui::Text("num_pipelines: %i", pipeline_info.m_num_pipelines);
 
@@ -95,6 +98,9 @@ namespace influx::engine
 
 		virtual void on_run() override
 		{
+			set_visible(false);
+			return;
+
 			// render text editor
 			m_texteditor.SetLanguageDefinition(imgui::TextEditor::LanguageDefinition::HLSL());
 			m_texteditor.Render("file");

@@ -8,6 +8,8 @@
 
 // influx::engine
 #include "file/engine_files.h"
+#include "editor/editor_manager.h"
+#include "imgui/imgui.h"
 
 // influx::async
 #include "influx_async.h"
@@ -20,6 +22,93 @@
 
 namespace influx::engine
 {
+	class content_ui final : public editor_window
+	{
+	public:
+		virtual void on_run() override
+		{
+			set_visible(false);
+			return;
+
+			static content_manager& content = get_engine()->get_content();
+			static render_manager& renderer = get_engine()->get_renderer();
+
+			set_name("engine:content");
+
+			if (ImGui::Button("recomp_shaders"))
+			{
+				for (auto& pair : content.touch_shaders())
+				{
+					pair.second.reload();
+				}
+			}
+
+			if (ImGui::BeginTabBar("content"))
+			{
+				if (ImGui::BeginTabItem("scenes"))
+				{
+					// "scene:filepath"
+					for (const auto& pair : content.get_scenes())
+					{
+						const string& name = pair.first;
+						const scene_asset& scene_asset = pair.second;
+
+						if (scene_asset.is_loaded() && scene_asset.is_engine())
+						{
+							if (ImGui::TreeNode(name.c_str(), "scene: %s - ms : % f", name.c_str(), scene_asset.get_load_ms()))
+							{
+								for (uint32 i = 0u; i < scene_asset.get_resource().get_num_meshes(); ++i)
+								{
+									const string& mesh_name = name + "_" + to_string(i);
+									ImGui::Text(mesh_name.c_str());
+								}
+								ImGui::TreePop();
+							}
+						}
+					}
+					ImGui::EndTabItem();
+				}
+
+				if (ImGui::BeginTabItem("textures"))
+				{
+					const float size = 50.0f;
+
+					if (ImGui::BeginTable("ed_texture_grid", 4u))
+					{
+						for (const auto& pair : content.get_images())
+						{
+							if (pair.second.is_loaded() && pair.second.is_engine())
+							{
+								ImGui::TableNextColumn();
+
+								const string& name = pair.first;
+								// ImGui::Image(reinterpret_cast<ImTextureID>(renderer.get_loaded_texture_id(name)), { size, size });
+
+								const image_asset& image = pair.second;
+								const math::vectori2& image_dims = image.m_resource.m_dimensions;
+								ImGui::TextWrapped("%s", name.c_str());
+							}
+						}
+						ImGui::EndTable();
+					}
+
+					ImGui::EndTabItem();
+				}
+
+				if (ImGui::BeginTabItem("shaders"))
+				{
+					// "shader:filepath"
+					for (const auto& pair : content.get_shaders())
+						if (pair.second.is_loaded() && pair.second.is_engine())
+							ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+					ImGui::EndTabItem();
+				}
+
+				ImGui::EndTabBar();
+			}
+		}
+	};
+
 	static const load_args<e_asset_type::scene> k_default_scene_import_args
 	{
 		.m_pre_scale = 1.0f,
@@ -60,6 +149,8 @@ namespace influx::engine
 	{
 		// immediately start kicking loading
 		load_engine_assets(engine);
+
+		editor::editor_manager::static_window<content_ui>("content");
 	}
 
 	content_manager::~content_manager()
@@ -70,17 +161,14 @@ namespace influx::engine
 	{
 		return m_scenes;
 	}
-
 	const umap<string, content_manager::image_item>& content_manager::get_images() const
 	{
 		return m_images;
 	}
-
 	const umap<string, content_manager::shader_item>& content_manager::get_shaders() const
 	{
 		return m_shaders;
 	}
-
 	const umap<string, content_manager::cubemap_item>& content_manager::get_cubemaps() const
 	{
 		return m_cubemaps;
