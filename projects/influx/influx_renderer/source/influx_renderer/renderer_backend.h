@@ -107,7 +107,7 @@ namespace influx::renderer
 		static graphics::queue& get_graphics_queue();
 		static graphics::device& get_device();
 
-		void load(const string& title, const mesh_data& data, bool reload = false);
+		void load(const string& title, const mesh_data<vertex_data>& data, bool reload = false);
 		void load(const string& title, const texture_data& data, bool reload = false);
 		void load(const string& title, const cubemap_data& data, bool reload = false);
 		void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
@@ -146,15 +146,6 @@ namespace influx::renderer
 		memory_info get_memory_info() const;
 		pipeline_info get_pipeline_info() const;
 		void* get_imgui_texture_id(const string& title);
-
-		template <typename _tvtx>
-		graphics::resource* create_vertexbuffer(const string& title, const vector<_tvtx>& data, bool reload = false);
-		graphics::resource* create_indexbuffer(const string& title, const vector<index>& data, bool reload = false);
-
-		vector<vertex_data> get_vertexbuffer_content(const string& title) const;
-		vector<index> get_indexbuffer_content(const string& title) const;
-
-		const multimesh& get_multimesh() const;
 
 		static bool allow_bindless();
 
@@ -197,69 +188,10 @@ namespace influx::renderer
 		debug_renderer* mp_debug_renderer = nullptr;
 		quad_renderer* mp_quad_renderer = nullptr;
 		shadertoy_renderer* mp_shadertoy_renderer = nullptr;
-
-		// resources
-		// mesh data
-		multimesh m_multimesh{};
-		umap<string, graphics::resource*> m_vertex_buffers;
-		umap<string, graphics::resource*> m_index_buffers;
-		umap<string, vector<index>> m_index_buffer_contents;
-		umap<string, vector<vertex_data>> m_vertex_buffer_contents; // can be any type
-		umap<string, material> m_materials;
 		resource_manager* m_resource_manager;
-
-		// texture data
-		umap<string, texture2D*> m_textures;
-		umap<string, cubemap*> m_texcubes;
-
 		render_settings m_settings;
 
 		void recreate_backbuffer_targets(swapchain& swapchain);
 		target* get_current_window_target(swapchain& swapchain);
 	};
-
-	template<typename _tvtx>
-	inline graphics::resource* renderer_backend::create_vertexbuffer(const string& title, const vector<_tvtx>& data, bool reload)
-	{
-		using vertex_type = _tvtx;
-
-		const uint64 old_bytesize = m_vertex_buffers.contains(title) ? m_vertex_buffers[title]->get_bytesize() : 0u;
-		const uint64 new_bytesize = data.size() * sizeof(vertex_type);
-		if (old_bytesize < new_bytesize)
-		{
-			if (m_vertex_buffers[title])
-			{
-				// release previous if existing
-				mp_device->release(m_vertex_buffers[title]);
-			}
-
-			// create vertex buffer on the shared heap (so cpu can write to it)
-			graphics::heap_desc heap_desc{};
-			heap_desc.m_type = graphics::e_heap_type::shared;
-
-			// set default resource state to read
-			graphics::buffer_desc desc{};
-			desc.m_init_state = graphics::e_resource_state::gen_read;
-
-			// create resource
-			desc.m_bytesize = new_bytesize;
-			desc.m_bytestride = sizeof(vertex_type);
-			m_vertex_buffers[title] = mp_device->create_resource(desc, heap_desc);
-			m_vertex_buffers[title]->set_name("vb_" + title);
-
-			m_vertex_buffer_contents[title].resize(data.size());
-		}
-
-		if (old_bytesize < new_bytesize || reload)
-		{
-			m_vertex_buffers[title]->map([&data, new_bytesize](void* target)
-			{
-				memcpy(target, data.data(), new_bytesize);
-			});
-
-			memcpy(m_vertex_buffer_contents[title].data(), data.data(), new_bytesize);
-		}
-
-		return m_vertex_buffers[title];
-	}
 }

@@ -60,21 +60,18 @@ namespace influx::renderer
         mp_fence = mp_device->create_fence((uint64)-1);
         mp_copyfence = mp_device->create_fence(0u);
 
-        m_resource_manager = new resource_manager();
         mp_desc_manager = new descriptor_manager(mp_device);
         mp_pipeline_manager = new pipeline_manager(mp_device);
         mp_upload_manager = new upload_manager(mp_device);
-        mp_imgui = new imgui_manager(mp_device);
+        m_resource_manager = new resource_manager();
 
         // sub-renderers
+        mp_imgui = new imgui_manager(mp_device);
         mp_scene_renderer = new scene_renderer();
         mp_debug_renderer = new debug_renderer();
         mp_quad_renderer = new quad_renderer();
         mp_shadertoy_renderer = new shadertoy_renderer();
         mp_shader_manager = new shader_manager();
-
-        get_default_texture();
-        get_default_material();
 
         m_is_initialized = true;
     }
@@ -493,9 +490,10 @@ namespace influx::renderer
     }
 
     // mesh
-    void renderer_backend::load(const string& title, const mesh_data& data, bool reload)
+    void renderer_backend::load(const string& title, const mesh_data<vertex_data>& data, bool reload)
     {
-        m_resource_manager->load<e_resource_type::mesh>(title, data, reload);
+        mesh_data<vertex_data>* new_copy = new mesh_data<vertex_data>(data);
+        m_resource_manager->load<e_resource_type::mesh>(title, new_copy, reload);
     }
 
     // texture
@@ -520,15 +518,11 @@ namespace influx::renderer
     // material
     void renderer_backend::load(const string& title, const material& data, bool reload)
     {
-        if (!m_materials.contains(title) || reload)
-        {
-            m_materials[title] = data;
-        }
     }
 
     bool renderer_backend::has_mesh(const string& title) const
     {
-        return m_vertex_buffers.contains(title);
+        return m_resource_manager->contains<e_resource_type::mesh>(title);
     }
 
     bool renderer_backend::has_texture(const string& title) const
@@ -548,7 +542,7 @@ namespace influx::renderer
 
     bool renderer_backend::has_material(const string& title) const
     {
-        return m_materials.contains(title);
+        return true;
     }
 
     time::point renderer_backend::get_time_loaded_shader(const shader::shader_signature& signature) const
@@ -578,101 +572,19 @@ namespace influx::renderer
         return m_settings;
     }
 
-    texture2D* renderer_backend::create_texture(const string& title, const texture_desc& args)
-    {
-        if (!m_textures.contains(title))
-        {
-            texture2D* new_texture = new texture2D(mp_device, args);
-#if _DEBUG
-            new_texture->set_name(title);
-#endif
-            m_textures[title] = new_texture;
-        }
-
-        return m_textures[title];
-    }
-
-    cubemap* renderer_backend::create_texturecube(const string& title, const cubemap_desc& args)
-    {
-        if (!m_resource_manager->contains<e_resource_type::cubemap>(title))
-        {
-            cubemap* new_texture = new cubemap(mp_device, args);
-            new_texture->set_name(title);
-            m_texcubes[title] = new_texture;
-        }
-
-        return m_texcubes[title];
-    }
-
-    const umap<string, texture2D*>& renderer_backend::get_textures() const
-    {
-        return m_textures;
-    }
-
     texture2D* renderer_backend::find_texture(const string& name)
     {
-        if (m_resource_manager->contains<e_resource_type::texture>(name))
-        {
-            return m_resource_manager->get<e_resource_type::texture>(name).m_resource;
-        }
-
-        return &get_default_texture();
+        return m_resource_manager->get<e_resource_type::texture>(name).m_resource;
     }
 
     cubemap* renderer_backend::find_texturecube(const string& name)
     {
-        if (m_resource_manager->contains<e_resource_type::cubemap>(name))
-        {
-            return m_resource_manager->get<e_resource_type::cubemap>(name).m_resource;
-        }
-        return nullptr;
+        return m_resource_manager->get<e_resource_type::cubemap>(name).m_resource;
     }
 
     texture2D& renderer_backend::get_default_texture()
     {
-        static texture2D* default_texture = nullptr;
-        if (!default_texture)
-        {
-            texture_desc args{};
-            args.m_width = 256u;
-            args.m_heigth = 256u;
-            default_texture = create_texture("none", args);
-
-            texture_data dummy_data{};
-            dummy_data.m_width = 256u;
-            for (size_t i = 0u; i < 256u * 256u; ++i)
-            {
-                dummy_data.m_pixels.push_back(make_pixel32(255u, 255u, 255u, 255u));
-            }
-
-            mp_upload_manager->upload_texture(mp_graphics_queue, dummy_data,
-                default_texture->get_resource());
-
-            influx_assert(default_texture != nullptr);
-        }
-        
-        m_textures["none"] = default_texture;
-        return *default_texture;
-    }
-
-    const umap<string, material> renderer_backend::get_materials() const
-    {
-        return m_materials;
-    }
-
-    material* renderer_backend::get_material(const string& name)
-    {
-        if (m_materials.contains(name))
-            return &m_materials.at(name);
-
-        return &get_default_material();
-    }
-
-    material& renderer_backend::get_default_material()
-    {
-        static material k_default{};
-        k_default.set_basecolour(colour::k_white);
-        return k_default;
+        return *m_resource_manager->get<e_resource_type::texture>("none").m_resource;
     }
 
     void renderer_backend::upload_texture_data(texture2D* target_tex, const texture_data& data)
@@ -682,24 +594,16 @@ namespace influx::renderer
 
     vector<string> renderer_backend::get_mesh_names() const
     {
-        vector<string> out_names{};
-        out_names.reserve(m_vertex_buffers.size());
-
-        for (const auto& vertex_buffer : m_vertex_buffers)
-        {
-            out_names.push_back(vertex_buffer.first);
-        }
-
-        return out_names;
+        return m_resource_manager->get_signatures<e_resource_type::mesh>();
     }
 
     bool renderer_backend::get_mesh_buffers(const string& name, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer)
     {
-        influx_assert(m_vertex_buffers.contains(name) && m_index_buffers.contains(name));
+        const mesh_buffers* buffers = m_resource_manager->get<e_resource_type::mesh>(name).m_resource;
+        influx_assert(buffers != nullptr);
 
-        out_vertex_buffer = m_vertex_buffers[name];
-        out_index_buffer = m_index_buffers[name];
-
+        out_vertex_buffer = buffers->m_vertexbuffer;
+        out_index_buffer = buffers->m_indexbuffer;
         return true;
     }
 
@@ -723,75 +627,11 @@ namespace influx::renderer
 
     void* renderer_backend::get_imgui_texture_id(const string& title)
     {
-        if (has_texture(title))
+        if (m_resource_manager->contains<e_resource_type::texture>(title))
         {
-            return m_textures.at(title);
+            return m_resource_manager->get<e_resource_type::texture>(title).m_resource;
         }
-        else
-        {
-            return nullptr;
-        }
-    }
-
-    graphics::resource* renderer_backend::create_indexbuffer(const string& title, const vector<index>& data, bool reload)
-    {
-        const uint64 old_bytesize = m_index_buffers.contains(title) ? m_index_buffers[title]->get_bytesize() : 0u;
-        const uint64 new_bytesize = data.size() * sizeof(index);
-        if (old_bytesize < new_bytesize)
-        {
-            // create index / vertex buffer on the shared heap (so cpu can write to it)
-            graphics::heap_desc heap_desc{};
-            heap_desc.m_type = graphics::e_heap_type::shared;
-
-            // set default resource state to read
-            graphics::buffer_desc desc{};
-            desc.m_init_state = graphics::e_resource_state::gen_read;
-
-            // create index buffer resource
-            desc.m_bytesize = data.size() * sizeof(index);
-            desc.m_bytestride = sizeof(index);
-            desc.m_format = graphics::e_format::u32;
-            m_index_buffers[title] = mp_device->create_resource(desc, heap_desc);
-            m_index_buffers[title]->set_name("ib_" + title);
-
-            m_index_buffer_contents[title].resize(data.size());
-        }
-        
-        if (old_bytesize < new_bytesize || reload)
-        {
-            m_index_buffers[title]->map([&data, new_bytesize](void* target)
-            {
-                 memcpy(target, data.data(), new_bytesize);
-            });
-
-            memcpy(m_index_buffer_contents[title].data(), data.data(), new_bytesize);
-        }
-
-        return m_index_buffers[title];
-    }
-
-    vector<vertex_data> renderer_backend::get_vertexbuffer_content(const string& title) const
-    {
-        if (m_vertex_buffer_contents.contains(title))
-        {
-            return m_vertex_buffer_contents.at(title);
-        }
-        return {};
-    }
-
-    vector<index> renderer_backend::get_indexbuffer_content(const string& title) const
-    {
-        if (m_index_buffer_contents.contains(title))
-        {
-            return m_index_buffer_contents.at(title);
-        }
-
-        return {};
-    }
-
-    const multimesh& renderer_backend::get_multimesh() const
-    {
-        return m_multimesh;
+        else return nullptr;
     }
 
     bool renderer_backend::allow_bindless()
@@ -917,7 +757,7 @@ namespace influx::renderer
         return renderer_backend::get_instance().can_draw_debug();
     }
 
-    void load(const string& title, const mesh_data& data, bool reload)
+    void load(const string& title, const mesh_data<vertex_data>& data, bool reload)
     {
         renderer_backend::get_instance().load(title, data, reload);
     }

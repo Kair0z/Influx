@@ -4,6 +4,7 @@
 // influx::renderer
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/descriptor_manager.h"
+#include "influx_renderer/resources/resource_manager.h"
 
 namespace influx::renderer
 {
@@ -103,10 +104,15 @@ namespace influx::renderer
 				}
 			}
 
-			// re-build resources
+			// re-load
 			renderer_backend& backend = renderer_backend::get_instance();
-			m_multi_vertexbuffer = backend.create_vertexbuffer("multi_mesh", m_multi_vertex_content, true);
-			m_multi_indexbuffer = backend.create_indexbuffer("multi_mesh", m_multi_index_content, true);
+			resource_manager& resourceman = backend.get_resource_manager();
+
+			mesh_data<vertex_data>* data = new mesh_data(); data->m_vertices = m_multi_vertex_content; data->m_indices = m_multi_index_content;
+			resourceman.load<e_resource_type::mesh>("multi_mesh", data, true);
+
+			m_multi_vertexbuffer = resourceman.get<e_resource_type::mesh>("multi_mesh").m_resource->m_vertexbuffer;
+			m_multi_indexbuffer = resourceman.get<e_resource_type::mesh>("multi_mesh").m_resource->m_indexbuffer;
 
 			m_multidescriptor = backend.get_descriptor_manager()->create_buffer_srv(m_multi_vertexbuffer);
 		}

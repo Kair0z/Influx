@@ -18,17 +18,40 @@ namespace influx::renderer
 		math::vectorf2 m_texcoords{};
 	};
 
-	struct mesh_data final
+	namespace detail
 	{
-		vector<vertex_data> m_vertices{};
-		vector<index> m_indices{};
+		class base_mesh_data
+		{
+		public:
+			virtual uint64 get_vert_bytesize() const = 0;
+			virtual uint64 get_vert_bytestride() const = 0;
+			virtual void* get_vert_data() = 0;
 
-		bool is_valid() const;
+			virtual uint64 get_indx_bytesize() const = 0;
+			virtual uint64 get_indx_bytestride() const = 0;
+			virtual void* get_indx_data() = 0;
+		};
+	}
+
+	template <typename _vt = vertex_data>
+	class mesh_data final : public detail::base_mesh_data
+	{
+		virtual uint64 get_vert_bytesize() const override { return m_vertices.size() * get_vert_bytestride(); }
+		virtual uint64 get_vert_bytestride() const override { return sizeof(_vt); }
+		virtual void* get_vert_data() override { return reinterpret_cast<void*>(&m_vertices); }
+		
+		virtual uint64 get_indx_bytesize() const override { return m_indices.size() * get_indx_bytestride(); }
+		virtual uint64 get_indx_bytestride() const override { return sizeof(index); }
+		virtual void* get_indx_data() override { return reinterpret_cast<void*>(&m_indices); }
+
+	public:
+		vector<_vt>		m_vertices{};
+		vector<index>	m_indices{};
 	};
 
-	static const mesh_data& get_inline_mesh_plane()
+	static const mesh_data<vertex_data>& get_inline_mesh_plane()
 	{
-		static mesh_data inline_mesh{};
+		static mesh_data<vertex_data> inline_mesh{};
 		if (inline_mesh.m_vertices.size() == 0u)
 		{
 			const static math::vectorf3 positions[4u]
@@ -83,9 +106,9 @@ namespace influx::renderer
 		return inline_mesh;
 	}
 
-	static const mesh_data& get_inline_mesh_box()
+	static const mesh_data<vertex_data>& get_inline_mesh_box()
 	{
-		static mesh_data inline_mesh{};
+		static mesh_data<vertex_data> inline_mesh{};
 		if (inline_mesh.m_vertices.size() == 0u)
 		{
 			const static float offset = 0.5f;
@@ -230,9 +253,9 @@ namespace influx::renderer
 		return inline_mesh;
 	}
 
-	static const mesh_data& get_inline_mesh_sphere()
+	static const mesh_data<vertex_data>& get_inline_mesh_sphere()
 	{
-		static mesh_data inline_mesh{};
+		static mesh_data<vertex_data> inline_mesh{};
 		if (inline_mesh.m_vertices.size() == 0u)
 		{
 			inline_mesh.m_vertices;

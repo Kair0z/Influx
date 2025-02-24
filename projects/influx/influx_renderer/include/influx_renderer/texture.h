@@ -212,7 +212,6 @@ namespace influx::renderer
 			, m_args{ args }
 		{
 			mp_resource = device->create_resource(translate(args));
-			m_srv = renderer_backend::get_descriptor_manager()->create_srv(mp_resource);
 		}
 
 		// re-allocates graphics resource

@@ -7,6 +7,7 @@
 #include "influx_renderer/upload_manager.h"
 #include "influx_renderer/mesh.h"
 #include "influx_renderer/renderer_backend.h"
+#include "influx_renderer/descriptor_manager.h"
 
 namespace influx::graphics
 {
@@ -31,14 +32,17 @@ namespace influx::renderer
 		graphics::resource* m_indexbuffer;
 	};
 
+#pragma region typedefs
+	// resource-data: the user input data struct matching the resource type
 	template <e_resource_type _t>
 	using resource_data = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		cubemap_data,
 		texture_data,
 		shader_data,
-		mesh_data
+		detail::base_mesh_data*
 		>>;
 
+	// resource-signature: the unique signature struct used as the key for the map
 	template <e_resource_type _t>
 	using resource_sign = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		string,
@@ -47,6 +51,7 @@ namespace influx::renderer
 		string
 		>>;
 
+	// resource-type: the graphics::resource objects matching the resource type
 	template <e_resource_type _t>
 	using resource_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		cubemap,
@@ -54,9 +59,14 @@ namespace influx::renderer
 		void,
 		mesh_buffers
 		>>;
+#pragma endregion
 
 	class resource_manager final
 	{
+	public:
+		resource_manager();
+		~resource_manager();
+
 		template <e_resource_type _t>
 		struct entry final
 		{
@@ -72,6 +82,8 @@ namespace influx::renderer
 
 		template <e_resource_type _t>
 		using resource_map = umap<resource_sign<_t>, entry<_t>>;
+
+	private:
 		resource_map<e_resource_type::cubemap> m_texturecube_map;
 		resource_map<e_resource_type::texture> m_texture_map;
 		resource_map<e_resource_type::shader> m_shader_map;
@@ -120,7 +132,9 @@ namespace influx::renderer
 
 	public:
 		template <e_resource_type _t>
-		void load(const resource_sign<_t>& signature, const resource_data<_t>& data, bool reload = false)
+		entry<_t>& load(
+			const resource_sign<_t>& signature, 
+			const resource_data<_t>& data, bool reload = false)
 		{
 			auto& map = get_resource_map<_t>();
 			const bool is_recreate = !map.contains(signature) || reload;
@@ -148,6 +162,7 @@ namespace influx::renderer
 						create_args.m_heigth = data.get_height();
 						create_args.m_depth = data.get_depth();
 						resource = new cubemap(&device, create_args);
+						resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->mp_resource);
 
 						graphics::commandlist& commandlist = *device.create_graphics_commandlist();
 						commandlist.start(&device);
@@ -164,16 +179,78 @@ namespace influx::renderer
 					create_args.m_width = data.get_width();
 					create_args.m_heigth = data.get_height();
 					resource = new texture2D(&device, create_args);
+
+					resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->mp_resource);
 					uploadman.upload_texture(&queue, data, resource->get_resource());
 				}
 				else if constexpr (_t == e_resource_type::mesh)
 				{
+					detail::base_mesh_data* mesh_data = data;
 					mesh_buffers*& meshbuffers = map[signature].m_resource;
-					meshbuffers = new mesh_buffers();
-					meshbuffers->m_indexbuffer = backend.create_indexbuffer(signature, data.m_indices);
-					meshbuffers->m_vertexbuffer = backend.create_vertexbuffer(signature, data.m_vertices);
+					if (meshbuffers == nullptr) meshbuffers = new mesh_buffers();
+
+					// vertex buffer
+					{
+						const uint64 old_bytesize = meshbuffers->m_vertexbuffer ? meshbuffers->m_vertexbuffer->get_bytesize() : 0u;
+						const uint64 new_bytesize = mesh_data->get_vert_bytesize();
+						if (old_bytesize < new_bytesize)
+						{
+							// destroy old resource
+							if (meshbuffers->m_vertexbuffer)
+								device.release(meshbuffers->m_vertexbuffer);
+
+							// create new vertex buffer on the shared heap
+							graphics::heap_desc heap_desc{};
+							heap_desc.m_type = graphics::e_heap_type::shared;
+							graphics::buffer_desc desc{};
+							desc.m_init_state = graphics::e_resource_state::gen_read;
+
+							// create resource
+							desc.m_bytesize = new_bytesize;
+							desc.m_bytestride = mesh_data->get_vert_bytestride();
+							meshbuffers->m_vertexbuffer = device.create_resource(desc, heap_desc);
+							meshbuffers->m_vertexbuffer->set_name("vb_" + signature);
+						}
+
+						// map new data to resource
+						meshbuffers->m_vertexbuffer->map([mesh_data, new_bytesize](void* target)
+						{
+							memcpy(target, mesh_data->get_vert_data(), new_bytesize);
+						});
+					}
+					// index buffer
+					{
+						const uint64 old_bytesize = meshbuffers->m_indexbuffer ? meshbuffers->m_indexbuffer->get_bytesize() : 0u;
+						const uint64 new_bytesize = mesh_data->get_indx_bytesize();
+						if (old_bytesize < new_bytesize)
+						{
+							// create index / vertex buffer on the shared heap (so cpu can write to it)
+							graphics::heap_desc heap_desc{};
+							heap_desc.m_type = graphics::e_heap_type::shared;
+							graphics::buffer_desc desc{};
+							desc.m_init_state = graphics::e_resource_state::gen_read;
+
+							// create index buffer resource
+							desc.m_bytesize = new_bytesize;
+							desc.m_bytestride = mesh_data->get_indx_bytestride();
+							desc.m_format = graphics::e_format::u32;
+							meshbuffers->m_indexbuffer = device.create_resource(desc, heap_desc);
+							meshbuffers->m_indexbuffer->set_name("ib_" + signature);
+						}
+
+						// map content regardless
+						if (old_bytesize < new_bytesize || reload)
+						{
+							meshbuffers->m_indexbuffer->map([mesh_data, new_bytesize](void* target)
+							{
+								memcpy(target, mesh_data->get_indx_data(), new_bytesize);
+							});
+						}
+					}
 				}
 			}
+
+			return map[signature];
 		}
 
 		template <e_resource_type _t>
@@ -198,6 +275,22 @@ namespace influx::renderer
 		}
 
 		template <e_resource_type _t>
+		vector<resource_sign<_t>> get_signatures() const
+		{
+			const auto& map = get_resource_map<_t>();
+
+			vector<resource_sign<_t>> result{};
+			result.reserve(map.size());
+			
+			for (const auto& pair : map)
+			{
+				result.push_back(pair.first);
+			}
+
+			return result;
+		}
+
+		template <e_resource_type _t>
 		time::point get_time_loaded(const resource_sign<_t>& signature) const
 		{
 			auto& map = get_resource_map<_t>();
@@ -211,4 +304,7 @@ namespace influx::renderer
 			}
 		}
 	};
+
+	using mesh_resource = resource_manager::entry<e_resource_type::mesh>;
+	using texture_resource = resource_manager::entry<e_resource_type::texture>;
 }

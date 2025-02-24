@@ -1,10 +1,14 @@
 #pragma once
 
-// influx::texture
 #include "influx_renderer/texture.h"
 
 // heavily inspired by
 // https://simonstechblog.blogspot.com/2019/06/d3d12-descriptor-heap-management.html
+
+namespace influx::graphics
+{
+	class commandlist;
+}
 
 namespace influx::renderer
 {

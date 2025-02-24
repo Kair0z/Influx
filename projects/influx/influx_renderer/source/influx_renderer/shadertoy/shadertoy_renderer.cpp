@@ -5,6 +5,7 @@
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/pipeline/pipeline.h"
+#include "influx_renderer/resources/resource_manager.h"
 
 // influx::graphics
 #include "influx_graphics/commandlist.h"
@@ -91,9 +92,15 @@ namespace influx::renderer
         };
         vector<index> indices = { 0u, 1u, 2u, 2u, 1u, 3u };
 
+        mesh_data<vertex>* data = new mesh_data<vertex>();
+        data->m_vertices = vertices;
+        data->m_indices = indices;
         renderer_backend& backend = renderer_backend::get_instance();
-        mp_vertexbuffer = backend.create_vertexbuffer("shadertoy_quad", vertices);
-        mp_indexbuffer = backend.create_indexbuffer("shadertoy_quad", indices);
+        resource_manager& resourceman = backend.get_resource_manager();
+
+        mesh_resource& resource = resourceman.load<e_resource_type::mesh>("shadertoy_quad", data, true);
+        mp_vertexbuffer = resource.m_resource->m_vertexbuffer;
+        mp_indexbuffer = resource.m_resource->m_indexbuffer;
     }
 
     shadertoy_renderer::~shadertoy_renderer()

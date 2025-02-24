@@ -20,7 +20,7 @@
 namespace influx::engine
 {
 #pragma region translation
-	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data);
+	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data<renderer::vertex_data>& out_data);
 	void translate(const imp::shader_data& imp_data, renderer::shader_data& out_data);
 	void translate(const imp::image_data& imp_data, renderer::texture_data& out_data);
 	void translate(const shader::compile_output& shader_data, renderer::shader_data& out_data);
@@ -63,7 +63,7 @@ namespace influx::engine
 	}
 
 #pragma region translation layer
-	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data& out_data)
+	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data<renderer::vertex_data>& out_data)
 	{
 		out_data.m_indices.resize(imp_data.m_indices.size());
 		out_data.m_vertices.resize(imp_data.m_positions.size());
@@ -151,7 +151,7 @@ namespace influx::engine
 	static renderer::shader_data m_shader_data{};
 	static renderer::texture_data m_tex_data{};
 	static renderer::cubemap_data m_texcube_data{};
-	static renderer::mesh_data m_mesh_data{};
+	static renderer::mesh_data<renderer::vertex_data> m_mesh_data{};
 	static material m_material_data{};
 
 	void render_streamer::stream_shaders(const content_manager& content)
