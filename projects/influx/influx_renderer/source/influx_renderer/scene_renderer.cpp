@@ -362,36 +362,33 @@ namespace influx::renderer
 
     void scene_renderer::execute_basepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
+        if (scene.is_empty())
+        {
+            return;
+        }
+
+        influx_scope("renderer_backend::draw_scene::record");
+        logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
+
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
+
+        // pipeline
+        apply_pipeline_settings(target);
+        graphics_pipeline& pipeline = pipeline_man.get_or_create_pipeline(get_scene_basepass_pipeline_signature());
+        
+        // hot-reload our shaders if necessary:
+        pipeline.rebuild(backend.get_device());
 
         // skybox
         if (mp_skybox == nullptr)
         {
             if (cubemap* cube = backend.find_texturecube("graycloud"))
             {
-                graphics::tex3D_desc desc{};
-                desc.m_dimensions = cube->get_dimensions();
-                desc.m_format = graphics::e_format::rgba8;
-                mp_skybox = backend.get_device().create_resource(desc);
-
-                m_skybox_srv = backend.get_descriptor_manager()->create_srv(mp_skybox);
+                mp_skybox = cube->get_resource();
             }
         }
-
-        apply_pipeline_settings(target);
-        graphics_pipeline& pipeline = pipeline_man.get_or_create_pipeline( get_scene_basepass_pipeline_signature() );
-        if (scene.is_empty())
-        {
-            return;
-        }
-
-        // hot-reload our shaders if necessary:
-        pipeline.rebuild(backend.get_device());
-
-        influx_scope("renderer_backend::draw_scene::record");
-        logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
-
+ 
         graphics::commandlist& commandlist = context.get_commandlist();
 
         // setup batches & instance buffer
