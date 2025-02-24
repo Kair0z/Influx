@@ -489,9 +489,7 @@ namespace influx::renderer
 
         // hot-reload our shaders if necessary:
         pipeline.rebuild(backend.get_device());
-
-        // update buffers for deferred lights
-        update_lightbuffers(scene);
+        pipeline.set_state(commandlist);
 
         // build resolve args
         struct resolve_args final
@@ -505,24 +503,32 @@ namespace influx::renderer
             math::matrix4x4f inv_projection;
             int num_lights[4u];
         } args{};
+        args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
 
-        for (uint32 i = 0u; i < k_num_light_types; ++i)
+        // update buffers for deferred lights
         {
-            args.num_lights[i] = scene.get_num_lights(static_cast<influx::scene::e_light_type>(i));
+            update_lightbuffers(scene);
+            for (uint32 i = 0u; i < k_num_light_types; ++i)
+            {
+                args.num_lights[i] = scene.get_num_lights(static_cast<influx::scene::e_light_type>(i));
+            }
         }
 
-        args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
-        const camera& camera = scene.m_camera;
-        math::transform3D transform = camera.m_transform;
-        transform.update_matrix();
-        const float ar = (float)target.get_width() / target.get_height();
-        args.inv_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane).inverted();
-        args.inv_projection = math::matrix4x4f::make_projection_RH(camera.m_fov, ar, camera.m_near_plane, camera.m_far_plane).inverted();
-        args.camera_position = transform.get_position().get_xyz();
-        args.camera_position.w = 1.0f;
+        // camera
+        {
+            const camera& camera = scene.m_camera;
+            math::transform3D transform = camera.m_transform;
+            transform.update_matrix();
+            const float ar = (float)target.get_width() / target.get_height();
+            args.inv_viewprojection = make_viewprojection(transform.get_matrix(), ar, camera.m_fov, camera.m_near_plane, camera.m_far_plane).inverted();
+            args.inv_projection = math::matrix4x4f::make_projection_RH(camera.m_fov, ar, camera.m_near_plane, camera.m_far_plane).inverted();
+            args.camera_position = transform.get_position().get_xyz();
+            args.camera_position.w = 1.0f;
+        }
 
         // stage the descriptors onto the gpu heap
-        graphics::descriptor_range gpu_range = descriptor_man.stage({
+        {
+            graphics::descriptor_range gpu_range = descriptor_man.stage({
                 context.get_read_texture(gbuffer_reads[0]),
                 context.get_read_texture(gbuffer_reads[1]),
                 context.get_read_texture(gbuffer_reads[2]),
@@ -531,22 +537,19 @@ namespace influx::renderer
                 m_lightbuffer_srvs[0],
                 m_lightbuffer_srvs[1],
                 m_lightbuffer_srvs[2]
-            });
-
-        descriptor_man.stage_sampler(m_skybox_sampler);
-
-        pipeline.set_state(commandlist);
-
-        // set the descriptorheap bindless indices
-        args.texture_indices[0] = gpu_range.m_start_idx;
-        args.texture_indices[1] = gpu_range.m_start_idx + 1u;
-        args.texture_indices[2] = gpu_range.m_start_idx + 2u;
-        args.texture_indices[3] = gpu_range.m_start_idx + 3u;
-        args.skybox_indices[0] = gpu_range.m_start_idx + 4u;
-        args.buffer_indices[0] = gpu_range.m_start_idx + 5u;
-        args.buffer_indices[1] = gpu_range.m_start_idx + 6u;
-        args.buffer_indices[2] = gpu_range.m_start_idx + 7u;
-
+                });
+            // set the descriptorheap bindless indices
+            args.texture_indices[0] = gpu_range.m_start_idx;
+            args.texture_indices[1] = gpu_range.m_start_idx + 1u;
+            args.texture_indices[2] = gpu_range.m_start_idx + 2u;
+            args.texture_indices[3] = gpu_range.m_start_idx + 3u;
+            args.skybox_indices[0] = gpu_range.m_start_idx + 4u;
+            args.buffer_indices[0] = gpu_range.m_start_idx + 5u;
+            args.buffer_indices[1] = gpu_range.m_start_idx + 6u;
+            args.buffer_indices[2] = gpu_range.m_start_idx + 7u;
+            descriptor_man.stage_sampler(m_skybox_sampler);
+        }
+       
         pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", args);
 
         const uint32 num_groups_x = target.get_width() / 8u;
