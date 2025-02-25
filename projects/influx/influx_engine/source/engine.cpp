@@ -24,6 +24,7 @@
 #include "window/window_manager.h"
 #include "file/engine_files.h"
 #include "log/log_manager.h"
+#include "scene/scene.h"
 
 // influx::core
 #include "core/math/vectortools.h"
@@ -87,6 +88,8 @@ namespace influx::engine
 
 		m_renderman = new render_manager(this);
 		m_world = new world();
+
+		m_sceneman = new scene_manager();
 	}
 
 	void engine::run(run_type type, int argc, char* argv[])
@@ -246,6 +249,11 @@ namespace influx::engine
 	window_manager& engine::get_windowman()
 	{
 		return *m_windowman;
+	}
+
+	scene_manager& engine::get_sceneman()
+	{
+		return *get_engine()->m_sceneman;
 	}
 
 	log_manager& engine::get_logman()

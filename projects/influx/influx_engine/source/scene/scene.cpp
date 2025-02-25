@@ -3,12 +3,23 @@
 
 namespace influx::engine
 {
-	scene_view::scene_view()
+	scene::scene()
+	{
+	}
+
+	scene::~scene()
+	{
+	}
+
+	void scene::serialize(const string& path, bool is_loading)
+	{
+	}
+
+	scene_manager::scene_manager()
 	{
 
 	}
-
-	scene_view::~scene_view()
+	scene_manager::~scene_manager()
 	{
 
 	}

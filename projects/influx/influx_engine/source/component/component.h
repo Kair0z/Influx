@@ -20,13 +20,38 @@
 
 namespace influx::engine
 {
-	class component
+	enum class e_component : uint8
 	{
-	protected:
-		component() = default;
+		transform,
+		sprite,
+		mesh,
+		material,
+		light,
+		camera,
+		input,
+		rigidbody,
+		collider,
+		count
 	};
 
-	class transform_component final : public component
+	namespace detail
+	{
+		class base_component
+		{
+		protected:
+			base_component() = default;
+		};
+
+		template <e_component _t>
+		class component : public base_component
+		{
+		protected:
+			component() = default;
+		};
+	}
+
+	class transform_component final 
+		: public detail::component<e_component::transform>
 	{
 	public:
 		transform_component() = default;
@@ -192,7 +217,8 @@ namespace influx::engine
 		math::transform3D m_transform;
 	};
 
-	class sprite_component final : public component
+	class sprite_component final 
+		: public detail::component<e_component::sprite>
 	{
 	public:
 		sprite_component() = default;
@@ -215,7 +241,8 @@ namespace influx::engine
 		friend class world;
 	};
 
-	class mesh_component final : public component
+	class mesh_component final 
+		: public detail::component<e_component::mesh>
 	{
 	public:
 		mesh_component() = default;
@@ -254,7 +281,8 @@ namespace influx::engine
 		friend class world;
 	};
 
-	class material_component final : public component
+	class material_component final 
+		: public detail::component<e_component::material>
 	{
 	public:
 		void set_color(const math::vectorf4& color)
@@ -296,6 +324,7 @@ namespace influx::engine
 	};
 
 	class light_component final
+		: public detail::component<e_component::light>
 	{
 	public:
 		light_component() = default;
@@ -359,7 +388,8 @@ namespace influx::engine
 		influx::scene::light m_light;
 	};
 
-	class camera_component final : public component
+	class camera_component final 
+		: public detail::component<e_component::camera>
 	{
 	public:
 		void set_fov(float fov)
@@ -411,7 +441,8 @@ namespace influx::engine
 		influx::scene::camera m_camera{};
 	};
 
-	class input_component final : public component
+	class input_component final 
+		: public detail::component<e_component::input>
 	{
 	public:
 		function<void(input::e_key)>	m_on_keydown = {};
@@ -423,7 +454,8 @@ namespace influx::engine
 		function<void(input::e_mouse_button button, const input::mouse_position&)> m_on_mouse_up = {};
 	};
 
-	class rigidbody_component final : public component
+	class rigidbody_component final 
+		: public detail::component<e_component::rigidbody>
 	{
 	public:
 		void add_force(const math::float3& force)
@@ -458,7 +490,8 @@ namespace influx::engine
 		influx_property_readwrite(float, max_speed);
 	};
 
-	class collider_component final : public component
+	class collider_component final 
+		: public detail::component<e_component::collider>
 	{
 	public:
 		void grow(const math::float3& position)
@@ -489,13 +522,5 @@ namespace influx::engine
 		influx_property_read(math::boxf, bounding_box);
 		influx_property_read(math::spheref, bounding_sphere);
 		influx_property_readwrite(e_collision_layer, layer);
-	};
-
-	class select_component final
-	{
-	public:
-
-	private:
-		influx_property_readwrite(bool, is_selected);
 	};
 }

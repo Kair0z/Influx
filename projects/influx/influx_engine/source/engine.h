@@ -32,6 +32,7 @@ namespace influx::engine
 	class input_manager;
 	class task_manager;
 	class window_manager;
+	class scene_manager;
 	class world;
 
 	class engine final : public singleton<engine>
@@ -53,6 +54,7 @@ namespace influx::engine
 		render_manager& get_renderer();
 		input_manager& get_input();
 		window_manager& get_windowman();
+		static scene_manager& get_sceneman();
 		static log_manager& get_logman();
 
 		const frame_time& get_time() const;
@@ -87,6 +89,7 @@ namespace influx::engine
 		time::point m_t_start;
 		float m_fps;
 
+		scene_manager* m_sceneman = nullptr;
 		window_manager* m_windowman = nullptr;
 		content_manager* m_contentman = nullptr;
 		render_manager* m_renderman = nullptr;

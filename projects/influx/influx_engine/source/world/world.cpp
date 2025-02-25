@@ -21,7 +21,6 @@ namespace influx::engine
 
     world::~world()
     {
-
     }
     
     void world::update()
