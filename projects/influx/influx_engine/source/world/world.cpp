@@ -185,18 +185,15 @@ namespace influx::engine
         }
     }
 
-    entity world::create_entity()
+    entt::entity world::create_entity()
     {
-        entity result = m_registry.create();
-        m_entities.push_back(result);
+        entt::entity result = m_registry.create();
         return result;
     }
 
-    void world::destroy_entity(entity e)
+    void world::destroy_entity(entt::entity e)
     {
-        remove(m_entities, e);
-
-        m_registry.destroy(e.get_handle());
+        m_registry.destroy(e);
     }
 
     bool world::trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer)
@@ -205,8 +202,7 @@ namespace influx::engine
 
         struct hit_result final
         {
-            entity* m_entity;
-            select_component* m_component;
+            entt::entity* m_entity;
             float m_hit_distance;
         };
         vector<hit_result> hit_results{};
@@ -226,8 +222,7 @@ namespace influx::engine
             if (bounds.trace(ray, out_distance))
             {
                 hit_result new_result{};
-                new_result.m_component = nullptr;
-                new_result.m_entity = reinterpret_cast<influx::engine::entity*>(&entity);
+                new_result.m_entity = &entity;
                 new_result.m_hit_distance = out_distance;
                 hit_results.push_back(new_result);
 
@@ -255,7 +250,6 @@ namespace influx::engine
 
     void world::clear()
     {
-        m_entities.clear();
         m_registry.clear();
     }
 

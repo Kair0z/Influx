@@ -33,25 +33,26 @@ namespace influx::engine
 		collider,
 		count
 	};
+	constexpr static uint32 k_num_component_types = static_cast<uint32>(e_component::count);
+
+	class component
+	{
+	public:
+
+	};
 
 	namespace detail
 	{
-		class base_component
-		{
-		protected:
-			base_component() = default;
-		};
-
 		template <e_component _t>
-		class component : public base_component
+		class tcomponent : public component
 		{
 		protected:
-			component() = default;
+			tcomponent() = default;
 		};
 	}
 
 	class transform_component final 
-		: public detail::component<e_component::transform>
+		: public detail::tcomponent<e_component::transform>
 	{
 	public:
 		transform_component() = default;
@@ -218,7 +219,7 @@ namespace influx::engine
 	};
 
 	class sprite_component final 
-		: public detail::component<e_component::sprite>
+		: public detail::tcomponent<e_component::sprite>
 	{
 	public:
 		sprite_component() = default;
@@ -242,7 +243,7 @@ namespace influx::engine
 	};
 
 	class mesh_component final 
-		: public detail::component<e_component::mesh>
+		: public detail::tcomponent<e_component::mesh>
 	{
 	public:
 		mesh_component() = default;
@@ -282,7 +283,7 @@ namespace influx::engine
 	};
 
 	class material_component final 
-		: public detail::component<e_component::material>
+		: public detail::tcomponent<e_component::material>
 	{
 	public:
 		void set_color(const math::vectorf4& color)
@@ -324,7 +325,7 @@ namespace influx::engine
 	};
 
 	class light_component final
-		: public detail::component<e_component::light>
+		: public detail::tcomponent<e_component::light>
 	{
 	public:
 		light_component() = default;
@@ -389,7 +390,7 @@ namespace influx::engine
 	};
 
 	class camera_component final 
-		: public detail::component<e_component::camera>
+		: public detail::tcomponent<e_component::camera>
 	{
 	public:
 		void set_fov(float fov)
@@ -442,7 +443,7 @@ namespace influx::engine
 	};
 
 	class input_component final 
-		: public detail::component<e_component::input>
+		: public detail::tcomponent<e_component::input>
 	{
 	public:
 		function<void(input::e_key)>	m_on_keydown = {};
@@ -455,7 +456,7 @@ namespace influx::engine
 	};
 
 	class rigidbody_component final 
-		: public detail::component<e_component::rigidbody>
+		: public detail::tcomponent<e_component::rigidbody>
 	{
 	public:
 		void add_force(const math::float3& force)
@@ -491,7 +492,7 @@ namespace influx::engine
 	};
 
 	class collider_component final 
-		: public detail::component<e_component::collider>
+		: public detail::tcomponent<e_component::collider>
 	{
 	public:
 		void grow(const math::float3& position)

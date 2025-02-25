@@ -11,15 +11,16 @@
 
 // influx::engine
 #include "component/component.h"
-#include "entity.h"
-
-// influx::files
-#include "influx_file.h"
-
 namespace influx::engine
 {
 	class scene;
 }
+
+// influx::files
+#include "influx_file.h"
+
+// entt
+#include "entt/entt.hpp"
 
 // influx::renderer
 namespace influx::renderer
@@ -46,23 +47,23 @@ namespace influx::engine
 			renderer::scene_debug&) const;
 
 		// entities / components
-		entity create_entity();
+		entt::entity create_entity();
 
-		void destroy_entity(entity);
+		void destroy_entity(entt::entity);
 
 		template<typename _ctype, typename... _args>
-		_ctype& create_component(const entity e, _args&&... args);
+		_ctype& create_component(entt::entity, _args&&... args);
 
 		template<typename _ctype>
-		_ctype* get_component(const entity& e);
+		_ctype* get_component(entt::entity);
 
 		template<typename _ctype>
-		bool has_component(const entity& e);
+		bool has_component(entt::entity);
 
 		void clear();
 
 		// scene picking
-		struct trace_result { entity* m_entity = nullptr; };
+		struct trace_result { entt::entity* m_entity = nullptr; };
 		bool trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer = e_collision_layer::all);
 
 		// project file management
@@ -76,8 +77,7 @@ namespace influx::engine
 
 	private:
 		entt::registry m_registry;
-		list<entity> m_entities;
-		
+
 		// update
 		void update_transform_system();
 		void update_input_system();
@@ -87,26 +87,26 @@ namespace influx::engine
 	};
 
 	template<typename _ctype, typename... _args>
-	inline _ctype& world::create_component(const entity e, _args&&... args)
+	inline _ctype& world::create_component(entt::entity e, _args&&... args)
 	{
-		return m_registry.emplace<_ctype>(e.get_handle(), std::forward<_args&&>(args)...);
+		return m_registry.emplace<_ctype>(e), std::forward<_args&&>(args)...);
 	}
 
 	template<typename _ctype>
-	inline _ctype* world::get_component(const entity& e)
+	inline _ctype* world::get_component(entt::entity e)
 	{
 		if (m_registry.valid(e.get_handle()))
 		{
-			return m_registry.try_get<_ctype>(e.get_handle());
+			return m_registry.try_get<_ctype>(e);
 		}
 
 		return nullptr;
 	}
 
 	template<typename _ctype>
-	inline bool world::has_component(const entity& e)
+	inline bool world::has_component(entt::entity e)
 	{
-		if (m_registry.valid(e.get_handle()) && m_registry.try_get<_ctype>(e.get_handle()))
+		if (m_registry.valid(e) && m_registry.try_get<_ctype>(e))
 		{
 			return true;
 		}
