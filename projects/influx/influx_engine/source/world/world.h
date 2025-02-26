@@ -1,39 +1,38 @@
 #pragma once
 
-// influx::core
-#include "core/container/pool.h"
-#include "core/container/list.h"
-#include "core/container/vector.h"
-#include "core/pointer.h"
-#include "core/result.h"
-#include "core/flag.h"
-#include "core/geometry/ray.h"
-
 // influx::engine
+#pragma region influx::engine
 #include "component/component.h"
 namespace influx::engine
 {
 	class scene;
 }
+#pragma endregion
 
 // influx::files
+#pragma region influx::files
 #include "influx_file.h"
-
-// entt
-#include "entt/entt.hpp"
+#pragma endregion
 
 // influx::renderer
+#pragma region influx::renderer
 namespace influx::renderer
 {
 	struct scene;
 	struct scene2D;
 	struct scene_debug;
 }
+#pragma endregion
+
+// entt
+#include "entt/entt.hpp"
 
 namespace influx::engine
 {
 	class world final
 	{
+		entt::registry m_registry;
+
 	public:
 		world();
 		virtual ~world();
@@ -51,14 +50,19 @@ namespace influx::engine
 
 		void destroy_entity(entt::entity);
 
-		template<typename _ctype, typename... _args>
-		_ctype& create_component(entt::entity, _args&&... args);
+		template<typename _c, typename... _args>
+		_c& create_component(entt::entity e, _args&&... args);
 
-		template<typename _ctype>
-		_ctype* get_component(entt::entity);
+		template<typename _c>
+		void destroy_component(entt::entity);
 
-		template<typename _ctype>
-		bool has_component(entt::entity);
+		template<typename _c>
+		_c* get_component(entt::entity);
+
+		template<typename _c>
+		bool has_component(entt::entity) const;
+
+		bool is_valid(entt::entity) const;
 
 		void clear();
 
@@ -76,9 +80,6 @@ namespace influx::engine
 		math::float3 get_main_cameraposition() const;
 
 	private:
-		entt::registry m_registry;
-
-		// update
 		void update_transform_system();
 		void update_input_system();
 		void update_bounds_system();
@@ -86,27 +87,33 @@ namespace influx::engine
 		void update_rigidbody_system();
 	};
 
-	template<typename _ctype, typename... _args>
-	inline _ctype& world::create_component(entt::entity e, _args&&... args)
+	template<typename _c, typename... _args>
+	inline _c& world::create_component(entt::entity e, _args&&... args)
 	{
-		return m_registry.emplace<_ctype>(e), std::forward<_args&&>(args)...);
+		return m_registry.emplace<_c>(e, std::forward(args)...);
 	}
 
-	template<typename _ctype>
-	inline _ctype* world::get_component(entt::entity e)
+	template<typename _c>
+	inline void world::destroy_component(entt::entity e)
 	{
-		if (m_registry.valid(e.get_handle()))
+		m_registry.remove<_c>(e);
+	}
+
+	template<typename _c>
+	inline _c* world::get_component(entt::entity e)
+	{
+		if (m_registry.valid(e))
 		{
-			return m_registry.try_get<_ctype>(e);
+			return m_registry.try_get<_c>(e);
 		}
 
 		return nullptr;
 	}
 
-	template<typename _ctype>
-	inline bool world::has_component(entt::entity e)
+	template<typename _c>
+	inline bool world::has_component(entt::entity e) const
 	{
-		if (m_registry.valid(e) && m_registry.try_get<_ctype>(e))
+		if (m_registry.valid(e) && m_registry.try_get<_c>(e))
 		{
 			return true;
 		}

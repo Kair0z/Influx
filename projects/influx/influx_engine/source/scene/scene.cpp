@@ -3,7 +3,7 @@
 
 namespace influx::engine
 {
-	uint32 get_component_index(e_component type)
+	inline static uint32 get_component_index(e_component type)
 	{
 		return static_cast<uint32>(type);
 	}
@@ -20,7 +20,7 @@ namespace influx::engine
 	{
 	}
 
-	entity_id scene::create_entity()
+	scene::entity_id scene::create_entity()
 	{
 		static world& world = get_engine()->get_world();
 
@@ -37,38 +37,20 @@ namespace influx::engine
 		static world& world = get_engine()->get_world();
 		world.destroy_entity(m_entities[handle].m_entity);
 	}
-	void scene::create_component(entity_id handle, e_component comp)
-	{
-		if (is_valid(handle) == false) return;
-
-		m_entities[handle].m_components[get_component_index(comp)] = 1u;
-	}
-	void scene::destroy_component(entity_id handle, e_component comp)
-	{
-		if (is_valid(handle) == false) return;
-		m_entities[handle].m_components[get_component_index(comp)] = 0u;
-	}
-	component* scene::get_component(entity_id handle, e_component comp) const
-	{
-		if (is_valid(handle) == false) return nullptr;
-
-		if (has_component(handle, comp))
-		{
-			
-		}
-		else
-		{
-			return nullptr;
-		}
-	}
-	bool scene::has_component(entity_id handle, e_component comp) const
-	{
-		if (is_valid(handle) == false) return false;
-		return m_entities[handle].m_components[get_component_index(comp)] > 0u;
-	}
+	
 	bool scene::is_valid(entity_id handle) const
 	{
 		return handle < m_entities.size();
+	}
+
+	bool scene::is_active(entity_id) const
+	{
+		return true;
+	}
+
+	bool scene::is_active() const
+	{
+		return m_is_active;
 	}
 
 #pragma region scene manager
@@ -82,20 +64,33 @@ namespace influx::engine
 
 	}
 
+	scene& scene_manager::get_current_scene()
+	{
+		return m_scenes[m_current_index];
+	}
+
 	bool scene_manager::is_active(scene_id id) const
 	{
 		if (is_valid(id) == false) return false;
+		
+		return m_scenes[id].is_active();
 	}
+
 	bool scene_manager::is_valid(scene_id id) const
 	{
 		return id < m_scenes.size();
 	}
-	scene_id scene_manager::create_scene()
+
+	scene_manager::scene_id scene_manager::create_scene(bool make_current)
 	{
 		scene new_scene{};
 		m_scenes.push_back(new_scene);
-		return static_cast<uint32>(m_scenes.size() - 1u);
+
+		uint32 new_index = static_cast<uint32>(m_scenes.size() - 1u);
+		if (make_current) m_current_index = new_index;
+		return new_index;
 	}
+
 	void scene_manager::destroy_scene(scene_id id)
 	{
 		if (is_valid(id))
@@ -104,12 +99,16 @@ namespace influx::engine
 			m_scenes.pop_back();
 		}
 	}
-	scene_id scene_manager::import_scene(const string& path)
+
+	scene_manager::scene_id scene_manager::import_scene(const string& path, bool make_current)
 	{
 		scene new_scene{};
 
 		m_scenes.push_back(new_scene);
-		return static_cast<uint32>(m_scenes.size() - 1u);
+
+		uint32 new_index = static_cast<uint32>(m_scenes.size() - 1u);
+		if (make_current) m_current_index = new_index;
+		return new_index;
 	}
 #pragma endregion
 }

@@ -12,14 +12,6 @@ namespace influx::platform
 #include "config/config.h"
 #include "log/log_manager.h"
 
-// influx::core
-#include "core/singleton.h"
-#include "core/threading/thread.h"
-#include "core/file.h"
-#include "core/result.h"
-#include "core/pointer.h"
-#include "core/container/map.h"
-
 namespace influx::engine
 {
 	namespace editor
@@ -33,6 +25,7 @@ namespace influx::engine
 	class task_manager;
 	class window_manager;
 	class scene_manager;
+	class scene;
 	class world;
 
 	class engine final : public singleton<engine>
@@ -54,7 +47,10 @@ namespace influx::engine
 		render_manager& get_renderer();
 		input_manager& get_input();
 		window_manager& get_windowman();
+
 		static scene_manager& get_sceneman();
+		static scene& get_current_scene();
+
 		static log_manager& get_logman();
 
 		const frame_time& get_time() const;

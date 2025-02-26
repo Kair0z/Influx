@@ -256,6 +256,11 @@ namespace influx::engine
 		return *get_engine()->m_sceneman;
 	}
 
+	scene& engine::get_current_scene()
+	{
+		return get_sceneman().get_current_scene();
+	}
+
 	log_manager& engine::get_logman()
 	{
 		return *get_engine()->m_logman;

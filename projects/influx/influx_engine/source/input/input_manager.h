@@ -2,10 +2,6 @@
 
 #include "input_state.h"
 
-// influx::core
-#include "core/container/map.h"
-#include "core/container/array.h"
-
 // influx::input
 #include "influx_input.h"
 

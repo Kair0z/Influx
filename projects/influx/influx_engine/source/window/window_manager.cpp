@@ -69,7 +69,7 @@ namespace influx::engine
 
 		for (uint64 i = 0u; i < m_windows.size(); ++i)
 		{
-			poll_result this_result = poll(i);
+			poll_result this_result = poll(static_cast<uint32>(i));
 			result.m_is_quited |= this_result.m_is_quited;
 		}
 

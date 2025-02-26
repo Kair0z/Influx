@@ -74,13 +74,13 @@ namespace influx::engine
 		if (get_engine()->is_editor())
 		{
 			const entity& camera = m_entities[0];
-			transform_component* cam_transform = world.get_component<transform_component>(camera);
+			transform_component* cam_transform = world.get_component<transform_component>(camera.get_handle());
 			get_engine()->get_editor().get_editorfile().m_camera_transform = cam_transform->get_matrix();
 		}
 		
 		for (const entity& e : m_entities)
 		{
-			world.destroy_entity(e);
+			world.destroy_entity(e.get_handle());
 		}
 		m_entities.clear();
 
@@ -111,13 +111,13 @@ namespace influx::engine
 		
 		entity camera = create_entity();
 		{
-			transform_component& trans_comp = world.create_component<transform_component>(camera);
+			transform_component& trans_comp = world.create_component<transform_component>(camera.get_handle());
 			{
 				trans_comp.set_position(start_position);
 				trans_comp.set_rotation(start_rotation);
 			}
 
-			camera_component& cam_comp = world.create_component<camera_component>(camera);
+			camera_component& cam_comp = world.create_component<camera_component>(camera.get_handle());
 			{
 				cam_comp.set_aspect_ratio(window.get_aspect_ratio());
 				cam_comp.set_fov(fov);
@@ -125,20 +125,20 @@ namespace influx::engine
 				cam_comp.set_nearplane(0.001f);
 			}
 
-			rigidbody_component& rigid_comp = world.create_component<rigidbody_component>(camera);
+			rigidbody_component& rigid_comp = world.create_component<rigidbody_component>(camera.get_handle());
 			{
 				rigid_comp.set_drag(damp_rate);
 				rigid_comp.set_max_speed(max_speed);
 			}
 
-			light_component& light_comp = world.create_component<light_component>(camera);
+			light_component& light_comp = world.create_component<light_component>(camera.get_handle());
 			{
 				light_comp.set_colour(colour::k_white);
 				light_comp.set_attenuation(2.0f);
 				light_comp.set_type(influx::scene::e_light_type::point);
 			}
 
-			input_component& input_comp = world.create_component<input_component>(camera);
+			input_component& input_comp = world.create_component<input_component>(camera.get_handle());
 			{
 				static bool locks[6u]{ false, false, false, false, false, false };
 				static math::vectorf3 acceleration{};
@@ -260,18 +260,18 @@ namespace influx::engine
 			entity sword = create_entity();
 
 			const float angle = i * (360.0f / num_swords);
-			transform_component& trans_comp = world.create_component<transform_component>(sword);
+			transform_component& trans_comp = world.create_component<transform_component>(sword.get_handle());
 			{
 				trans_comp.set_position(circle.get_point_at_degrees(angle));
 			}
 
-			mesh_component& mesh_comp = world.create_component<mesh_component>(sword);
+			mesh_component& mesh_comp = world.create_component<mesh_component>(sword.get_handle());
 			{
 				mesh_comp.set_mesh_name("transistor_0");
 				mesh_comp.set_use_normalized_scale(true);
 			}
 
-			material_component& mat_comp = world.create_component<material_component>(sword);
+			material_component& mat_comp = world.create_component<material_component>(sword.get_handle());
 			{
 				mat_comp.set_texture(e_texture_semantic::basecolor, "T_Sword_Opaque_BC");
 			}
@@ -298,7 +298,7 @@ namespace influx::engine
 			const imp::mesh_data& mesh = scene_data.get_mesh(i);
 			entity sword = create_entity();
 
-			transform_component& trans_comp = world.create_component<transform_component>(sword);
+			transform_component& trans_comp = world.create_component<transform_component>(sword.get_handle());
 			{
 				const float scale_multiplier = 0.01f;
 				math::matrix4x4f copy_transform = mesh.m_world_transform * math::matrix4x4f::make_scale( math::float3{ scale_multiplier , scale_multiplier , scale_multiplier });
@@ -309,12 +309,12 @@ namespace influx::engine
 				trans_comp.update_matrix();
 			}
 
-			mesh_component& mesh_comp = world.create_component<mesh_component>(sword);
+			mesh_component& mesh_comp = world.create_component<mesh_component>(sword.get_handle());
 			{
 				mesh_comp.set_mesh_name(scene_name + "_" + to_string(i));
 			}
 
-			material_component& mat_comp = world.create_component<material_component>(sword);
+			material_component& mat_comp = world.create_component<material_component>(sword.get_handle());
 			{
 				mat_comp.set_texture(e_texture_semantic::diffuse, i % 2 == 0u ? "wood_albedo" : "wood_albedo");
 			}
@@ -326,16 +326,16 @@ namespace influx::engine
 		world& world = get_engine()->get_world();
 		entity cube = create_entity();
 
-		transform_component& trans_comp = world.create_component<transform_component>(cube);
+		transform_component& trans_comp = world.create_component<transform_component>(cube.get_handle());
 		{
 		}
 
-		mesh_component& mesh_comp = world.create_component<mesh_component>(cube);
+		mesh_component& mesh_comp = world.create_component<mesh_component>(cube.get_handle());
 		{
 			mesh_comp.set_mesh_name("box_0");
 		}
 
-		material_component& mat_comp = world.create_component<material_component>(cube);
+		material_component& mat_comp = world.create_component<material_component>(cube.get_handle());
 		{
 			mat_comp.set_texture(e_texture_semantic::basecolor, "T_Sword_Opaque_BC");
 		}

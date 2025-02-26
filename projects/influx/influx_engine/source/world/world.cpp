@@ -1,9 +1,6 @@
 #include "engine_pch.h"
 #include "world/world.h"
 
-// influx::core
-#include "core/scope.h"
-
 // influx::engine
 #include "scene/scene.h"
 #include "content/content_manager.h"
@@ -246,6 +243,11 @@ namespace influx::engine
         }
 
         return hit_results.size() != 0u;
+    }
+
+    bool world::is_valid(entt::entity e) const
+    {
+        return m_registry.valid(e);
     }
 
     void world::clear()

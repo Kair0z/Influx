@@ -29,6 +29,7 @@ namespace influx
 	template <typename _t>
 	using weak_ptr = std::weak_ptr<_t>;
 
+#if 0
 	// lightweight ref counting pointer
 	// it DOES NOT de-allocate the pointed object
 	template <typename _t>
@@ -119,6 +120,7 @@ namespace influx
 		_t* get_ptr() const { return m_ptr; }
 		_t const* get_ptr() { return m_ptr; }
 	};
+#endif
 }
 
 #endif

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "core/debug.h"
+#include "core/container/vector.h"
+#include "core/container/list.h"
 
 #include <queue>
 #include <atomic>
@@ -235,6 +237,10 @@ namespace influx
 	template <class _t, size_t _c>
 	class pool final
 	{
+		_t m_data[_c]{};
+		list<size_t> m_freelist{};
+		std::mutex m_mutex{};
+
 	public:
 		inline pool()
 		{
@@ -323,17 +329,12 @@ namespace influx
 			return m_data[index];
 		}
 
-		void reset()
+		inline void reset()
 		{
 			m_freelist.clear();
 
 			for (size_t i = 0u; i < _c; ++i)
 				m_freelist.push_back(i);
 		}
-
-	private:
-		_t m_data[_c]{};
-		std::list<size_t> m_freelist{};
-		std::mutex m_mutex{};
 	};
 }
