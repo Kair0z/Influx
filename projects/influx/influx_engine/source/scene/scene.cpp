@@ -10,6 +10,24 @@ namespace influx::engine
 
 	scene::scene()
 	{
+		static world& world = get_engine()->get_world();
+
+		// create camera by default
+		{
+			entity_id id = create_entity();
+			camera_component& camera = world.create_component<camera_component>(m_entities[id].m_entity);
+			transform_component& transform = *world.get_component<transform_component>(m_entities[id].m_entity);
+			transform.set_position({ 0,10,10 });
+			transform.look_at({});
+			transform.update_matrix();
+		}
+		
+		// create sphere in middle
+		{
+			entity_id id = create_entity();
+			mesh_component& mesh = world.create_component<mesh_component>(m_entities[id].m_entity);
+			mesh.set_mesh_name("sphere_0");
+		}
 	}
 
 	scene::~scene()
@@ -27,12 +45,10 @@ namespace influx::engine
 		entity_info info{};
 		info.m_entity = world.create_entity();
 
-		// create scene component
+		// create scene component & transform component by default
 		scene_component& scene_comp = world.create_component<scene_component>(info.m_entity);
 		scene_comp.set_scene_active(m_is_active);
 		transform_component& trans_comp = world.create_component<transform_component>(info.m_entity);
-		mesh_component& mesh_comp = world.create_component<mesh_component>(info.m_entity);
-		mesh_comp.set_mesh_name("sphere_0");
 
 		m_entities.push_back(info);
 		return static_cast<uint32>(m_entities.size() - 1);

@@ -134,7 +134,7 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
     float3 normal = normalize(_gbuffer.get_normal().rgb);
     float depth = _gbuffer.get_depth().r;
 
-    if (depth > 0)
+    if (depth > 0.0f)
     {
         float3 lightDir = float3(0, -1, 0);
         float3 lightCol = float3(1.0, 1.0, 1.0);
@@ -152,7 +152,9 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
         StructuredBuffer<per_pointlight> pointlights = get_pointlights();
         for (uint i = 0; i < g_resolve_args.num_lights[1]; ++i)
         {
-            #if 0
+
+#define ENABLE_POINT_LIGHT 0
+#if ENABLE_POINT_LIGHT
             diffuse += pointlight(
                 pointlights[i].m_position.xyz,
                 pointlights[i].m_colour.rgb, 
@@ -162,9 +164,9 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
 #endif
         }
 
+        output_color.rgb = albedo;
+
         // figure out the final color
-        output_color.rgb = diffuse.rgb * float3(1,1,1);
-        output_color.rgb = (normal * 0.5) + 0.5;
         set_output(thread_id.xy, output_color.rgb);
     }
     else

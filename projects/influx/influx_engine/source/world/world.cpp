@@ -56,7 +56,6 @@ namespace influx::engine
         }
     };
 
-
     world::world()
     {
         editor::editor_manager::static_window<world_ui>("world");

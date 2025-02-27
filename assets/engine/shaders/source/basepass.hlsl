@@ -107,8 +107,6 @@ ps_output main_ps(ps_input input)
     float4 albedo = get_texture(input.texid_albedo).Sample(get_sampler(0), input.texcoord).rgba;
     // float3 normal = get_normal(input.texcoord).rgb;
     float3 normal = input.normal;
-
-    //normal = snap_normal(normal);
     normal = normalize(normal);
 
     ps_output output = (ps_output)0;
