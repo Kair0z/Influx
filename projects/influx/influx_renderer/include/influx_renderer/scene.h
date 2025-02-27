@@ -23,7 +23,7 @@ namespace influx::renderer
 {
 	struct light final
 	{
-		influx::scene::light m_light;
+		influx::light m_light;
 		math::float3 m_world_position;
 		math::float3 m_world_forward;
 	};
@@ -71,7 +71,7 @@ namespace influx::renderer
 		bool has_materials() const;
 
 		uint32 get_num_lights() const { return static_cast<uint32>(m_lights.size());  }
-		uint32 get_num_lights(influx::scene::e_light_type type) const
+		uint32 get_num_lights(influx::e_light_type type) const
 		{
 			uint32 counter = 0u;
 			for (const light& light : m_lights)

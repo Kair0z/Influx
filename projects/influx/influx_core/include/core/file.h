@@ -133,7 +133,7 @@ namespace influx
 				return 0u;
 			}
 
-			return std::count(std::istreambuf_iterator<char>(file),
+			return (uint32)std::count(std::istreambuf_iterator<char>(file),
 				std::istreambuf_iterator<char>(), '\n');
 		}
 

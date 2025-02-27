@@ -67,15 +67,15 @@ namespace influx
 		return { string.C_Str() };
 	}
 
-	constexpr influx::scene::e_light_type translate(const aiLightSourceType& lightType)
+	constexpr influx::e_light_type translate(const aiLightSourceType& lightType)
 	{
 		switch (lightType)
 		{
-		case aiLightSource_DIRECTIONAL: return influx::scene::e_light_type::directional;
-		case aiLightSource_POINT:		return influx::scene::e_light_type::point;
-		case aiLightSource_SPOT:		return influx::scene::e_light_type::spot;
+		case aiLightSource_DIRECTIONAL: return influx::e_light_type::directional;
+		case aiLightSource_POINT:		return influx::e_light_type::point;
+		case aiLightSource_SPOT:		return influx::e_light_type::spot;
 		default:
-		case aiLightSource_UNDEFINED: return influx::scene::e_light_type::count;
+		case aiLightSource_UNDEFINED: return influx::e_light_type::count;
 		}
 	}
 
@@ -306,7 +306,7 @@ namespace influx
 		return result;
 	}
 
-	influx::scene::light translate(const aiLight& light)
+	light translate(const aiLight& light)
 	{
 		// result.Position = FromAssimp(pLight->mPosition); // position
 		// result.Direction = FromAssimp(pLight->mDirection); // forward
@@ -314,7 +314,7 @@ namespace influx
 		// result.Up = FromAssimp(pLight->mUp);
 		// result.AreaSize = FromAssimp(pLight->mSize);
 
-		influx::scene::light result{};
+		influx::light result{};
 		result.set_type(translate(light.mType));
 		result.set_attenuation(light.mAttenuationConstant);
 		// result.AttenuationLinear = pLight->mAttenuationLinear;

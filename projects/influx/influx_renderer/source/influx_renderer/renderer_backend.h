@@ -68,6 +68,8 @@ namespace influx::renderer
 		using shader_map = umap<string, shader_data>;
 
 	public:
+		static void log(e_log, const char* message);
+
 		void initialize(const init_args& args);
 		bool is_initialized() const;
 		void wait_gpu_finished() const;
@@ -150,6 +152,7 @@ namespace influx::renderer
 		static bool allow_bindless();
 
 	private:
+		init_args m_init_args{};
 		uint64 m_frame_count = 0u;
 		bool m_is_initialized = false;
 

@@ -85,7 +85,7 @@ namespace influx::engine
 								// ImGui::Image(reinterpret_cast<ImTextureID>(renderer.get_loaded_texture_id(name)), { size, size });
 
 								const image_asset& image = pair.second;
-								const math::vectori2& image_dims = image.m_resource.m_dimensions;
+								const math::vectoru2& image_dims = image.m_resource.m_dimensions;
 								ImGui::TextWrapped("%s", name.c_str());
 							}
 						}
@@ -120,31 +120,6 @@ namespace influx::engine
 		
 	};
 
-	imp::scene_data content_manager::load_scene_data(const string& path, const imp::scene_load_args& args)
-	{
-		imp::scene_data data{};
-		imp::load_scene_file(path, data, args);
-		return data;
-	}
-	imp::image_data content_manager::load_image_data(const string& path, const imp::image_load_args& args)
-	{
-		imp::image_data data{};
-		imp::load_image_file(path, data, args);
-		return data;
-	}
-	imp::cubemap_data content_manager::load_cubemap_data(const string& path, const imp::cubemap_load_args& args)
-	{
-		imp::cubemap_data data{};
-		imp::load_cubemap(path, data, args);
-		return data;
-	}
-	imp::shader_data content_manager::load_shader_data(const string& path, const shader::compile_args& args)
-	{
-		imp::shader_data result{};
-		bool success = imp::load_shader_file(path, result, args);
-		return result;
-	}
-
 	content_manager::content_manager(engine* engine)
 	{
 		// immediately start kicking loading
@@ -157,24 +132,23 @@ namespace influx::engine
 	{
 	}
 
-	const umap<string, content_manager::scene_item>& content_manager::get_scenes() const
+	const umap<string, scene_asset>& content_manager::get_scenes() const
 	{
 		return m_scenes;
 	}
-	const umap<string, content_manager::image_item>& content_manager::get_images() const
+	const umap<string, image_asset>& content_manager::get_images() const
 	{
 		return m_images;
 	}
-	const umap<string, content_manager::shader_item>& content_manager::get_shaders() const
+	const umap<string, shader_asset>& content_manager::get_shaders() const
 	{
 		return m_shaders;
 	}
-	const umap<string, content_manager::cubemap_item>& content_manager::get_cubemaps() const
+	const umap<string, cubemap_asset>& content_manager::get_cubemaps() const
 	{
 		return m_cubemaps;
 	}
-
-	umap<string, content_manager::shader_item>& content_manager::touch_shaders()
+	umap<string, shader_asset>& content_manager::touch_shaders()
 	{
 		return m_shaders;
 	}
@@ -195,7 +169,7 @@ namespace influx::engine
 		load_assets(engine, e_asset_origin::game, game_assets_dir);
 	}
 
-	void content_manager::import(const string& path)
+	void content_manager::load(const string& path)
 	{
 		file as_file = file(path);
 		e_asset_type asset_type = e_asset_type::count;
@@ -241,18 +215,18 @@ namespace influx::engine
 				}
 			}
 
-			cubemap_item& item = m_cubemaps["graycloud"];
+			cubemap_asset& item = m_cubemaps["graycloud"];
 			args.m_hacky_paths = &cubemap_side_files;
 			item.load(cubemap_side_files[0], args);
 		}
 		
-		// load fbxs
+		// load fbxs & objs
 		async::dispatch_for<file>(obj_files, [this](const file& file)
 		{
 			imp::scene_load_args args{};
 			args.m_bake_transforms = true;
 			args.m_pre_scale = 1;
-			scene_item& item = m_scenes[file.m_filename];
+			scene_asset& item = m_scenes[file.m_filename];
 			item.load(file.m_path_full, args);
 		});
 		async::dispatch_for<file>(fbx_files, [this](const file& file)
@@ -260,7 +234,7 @@ namespace influx::engine
 			imp::scene_load_args args{};
 			args.m_bake_transforms = true;
 			args.m_pre_scale = 1;
-			scene_item& item = m_scenes[file.m_filename];
+			scene_asset& item = m_scenes[file.m_filename];
 			item.load(file.m_path_full, args);
 		});
 
@@ -293,7 +267,7 @@ namespace influx::engine
 			const string& file_content = textfile::read_all(file.m_path_full);
 			if (str::contains(file_content, "[shader(\"vertex\")]", false))
 			{
-				shader_item& vs_item = m_shaders[file.m_filename + "_vs"];
+				shader_asset& vs_item = m_shaders[file.m_filename + "_vs"];
 				compile_args.m_signature.m_type = shader::e_shader_type::vs;
 				compile_args.m_signature.m_entrypoint = "main_vs";
 				compile_args.m_signature.cache_id();
@@ -302,7 +276,7 @@ namespace influx::engine
 
 			if (str::contains(file_content, "[shader(\"pixel\")]", false))
 			{
-				shader_item& ps_item = m_shaders[file.m_filename + "_ps"];
+				shader_asset& ps_item = m_shaders[file.m_filename + "_ps"];
 				compile_args.m_signature.m_type = shader::e_shader_type::ps;
 				compile_args.m_signature.m_entrypoint = "main_ps";
 				compile_args.m_signature.cache_id();
@@ -311,7 +285,7 @@ namespace influx::engine
 
 			if (str::contains(file_content, "[shader(\"compute\")]", false))
 			{
-				shader_item& cs_item = m_shaders[file.m_filename + "_cs"];
+				shader_asset& cs_item = m_shaders[file.m_filename + "_cs"];
 				compile_args.m_signature.m_type = shader::e_shader_type::cs;
 				compile_args.m_signature.m_entrypoint = "main_cs";
 				compile_args.m_signature.cache_id();
@@ -323,7 +297,7 @@ namespace influx::engine
 		async::dispatch_for<file>(png_files, [this](const file& file)
 		{
 			imp::image_load_args args{};
-			image_item& item = m_images[file.m_filename];
+			image_asset& item = m_images[file.m_filename];
 			item.load(file.m_path_full, args);
 		});
 	}

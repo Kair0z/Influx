@@ -64,7 +64,7 @@ namespace influx::imp
 		const uint32 get_num_meshes() const { return static_cast<uint32>(m_meshes.size()); }
 
 		vector<mesh> m_meshes{};
-		vector<scene::light> m_lights{};
+		vector<light> m_lights{};
 		vector<camera> m_cameras{};
 		vector<influx::material> m_materials{};
 		uint32 m_num_materials{};

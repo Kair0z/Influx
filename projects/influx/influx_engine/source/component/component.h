@@ -31,6 +31,7 @@ namespace influx::engine
 		input,
 		rigidbody,
 		collider,
+		scene,
 		count
 	};
 	constexpr static uint32 k_num_component_types = static_cast<uint32>(e_component::count);
@@ -330,12 +331,12 @@ namespace influx::engine
 	public:
 		light_component() = default;
 
-		void set_type(scene::e_light_type type)
+		void set_type(e_light_type type)
 		{
 			m_light.set_type(type);
 		}
 
-		scene::e_light_type get_type() const
+		e_light_type get_type() const
 		{
 			return m_light.get_type();
 		}
@@ -380,13 +381,13 @@ namespace influx::engine
 			return m_light.get_attenuation();
 		}
 
-		const influx::scene::light& get_light() const
+		const influx::light& get_light() const
 		{
 			return m_light;
 		}
 
 	private:
-		influx::scene::light m_light;
+		influx::light m_light;
 	};
 
 	class camera_component final 
@@ -523,5 +524,12 @@ namespace influx::engine
 		influx_property_read(math::boxf, bounding_box);
 		influx_property_read(math::spheref, bounding_sphere);
 		influx_property_readwrite(e_collision_layer, layer);
+	};
+
+	class scene_component final
+		: public detail::tcomponent<e_component::scene>
+	{
+	public:
+		influx_property_readwrite(bool, scene_active);
 	};
 }

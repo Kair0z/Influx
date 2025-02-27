@@ -62,8 +62,11 @@ namespace influx::renderer
 	};
 
 	// 1. initialize the renderer
+	enum class e_log { info, warning, error, count };
+	typedef void (*log_function)(e_log, const char*);
 	struct init_args final
 	{
+		log_function m_log_func = nullptr;
 		e_render_api m_api_type = e_render_api::dx12;
 	};
 	INFLUX_RENDER_API void initialize(const init_args& args);

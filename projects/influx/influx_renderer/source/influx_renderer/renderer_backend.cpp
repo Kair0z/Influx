@@ -44,34 +44,44 @@ namespace influx::renderer
     }
 #pragma endregion
 
+    void renderer_backend::log(e_log type, const char* message)
+    {
+        log_function user_func = get_instance().m_init_args.m_log_func;
+        if (user_func)
+        {
+            user_func(type, message);
+        }
+    }
+
     void renderer_backend::initialize(const init_args& args)
     {
         influx_scope("renderer_backend::initialize");
+        m_init_args = args;
 
-        using namespace influx::graphics;
-        mp_device = device::create(translate(args.m_api_type));
+        {
+            using namespace influx::graphics;
+            mp_device = device::create(translate(args.m_api_type));
 
-        queue_desc desc{};
-        desc.m_type = e_queue_type::graphics;
-        desc.m_priority = graphics::e_queue_priority::normal;
-        mp_graphics_queue = mp_device->create_queue(desc);
+            queue_desc desc{};
+            desc.m_type = e_queue_type::graphics;
+            desc.m_priority = graphics::e_queue_priority::normal;
+            mp_graphics_queue = mp_device->create_queue(desc);
+            mp_commandlist = mp_device->create_graphics_commandlist();
+            mp_fence = mp_device->create_fence((uint64)-1);
+            mp_copyfence = mp_device->create_fence(0u);
+        }
 
-        mp_commandlist = mp_device->create_graphics_commandlist();
-        mp_fence = mp_device->create_fence((uint64)-1);
-        mp_copyfence = mp_device->create_fence(0u);
+        mp_desc_manager         = new descriptor_manager(mp_device);
+        mp_pipeline_manager     = new pipeline_manager(mp_device);
+        mp_upload_manager       = new upload_manager(mp_device);
+        m_resource_manager      = new resource_manager();
 
-        mp_desc_manager = new descriptor_manager(mp_device);
-        mp_pipeline_manager = new pipeline_manager(mp_device);
-        mp_upload_manager = new upload_manager(mp_device);
-        m_resource_manager = new resource_manager();
-
-        // sub-renderers
-        mp_imgui = new imgui_manager(mp_device);
-        mp_scene_renderer = new scene_renderer();
-        mp_debug_renderer = new debug_renderer();
-        mp_quad_renderer = new quad_renderer();
-        mp_shadertoy_renderer = new shadertoy_renderer();
-        mp_shader_manager = new shader_manager();
+        mp_imgui                = new imgui_manager(mp_device);
+        mp_scene_renderer       = new scene_renderer();
+        mp_debug_renderer       = new debug_renderer();
+        mp_quad_renderer        = new quad_renderer();
+        mp_shadertoy_renderer   = new shadertoy_renderer();
+        mp_shader_manager       = new shader_manager();
 
         m_is_initialized = true;
     }
@@ -189,7 +199,11 @@ namespace influx::renderer
 
     target* renderer_backend::get_window_target(const platform::window& window)
     {
-        influx_assert(window.is_valid());
+        if (!window.is_valid())
+        {
+            log(e_log::error, "renderer_backend::get_window_target(window) >> window is not valid!");
+            return nullptr;
+        }
         
         swapchain& swapchain = m_swapchains[&window];
         swapchain.m_windowtitle = window.get_title() + to_string(reinterpret_cast<uint64>(&window));

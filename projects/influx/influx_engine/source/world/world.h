@@ -47,21 +47,15 @@ namespace influx::engine
 
 		// entities / components
 		entt::entity create_entity();
-
 		void destroy_entity(entt::entity);
-
 		template<typename _c, typename... _args>
 		_c& create_component(entt::entity e, _args&&... args);
-
 		template<typename _c>
 		void destroy_component(entt::entity);
-
 		template<typename _c>
 		_c* get_component(entt::entity);
-
 		template<typename _c>
 		bool has_component(entt::entity) const;
-
 		bool is_valid(entt::entity) const;
 
 		void clear();

@@ -33,7 +33,7 @@ namespace influx::engine
 		count
 	};
 
-	static file get_engine_directory(engine_directory directory)
+	inline static file get_engine_directory(engine_directory directory)
 	{
 		// temp: HARDCODED builds are ran in /influx/bin/[config]/influx_game/
 		const string exe_directory = engine::get_run_argument("exe_dir");
@@ -52,7 +52,7 @@ namespace influx::engine
 		return {};
 	}
 
-	static file get_game_directory(const string& game_name, game_directory directory)
+	inline static file get_game_directory(const string& game_name, game_directory directory)
 	{
 		const file& games_directory = get_engine_directory(engine_directory::games);
 		const file game_directory = games_directory.m_path_full + "/" + game_name + "/";
@@ -64,5 +64,19 @@ namespace influx::engine
 			case game_directory::binaries:	return game_directory.m_path_full + "/binaries/";
 		}
 		return {};
+	}
+
+	inline static string get_friendly_name(const string& path)
+	{
+		// temp: HARDCODED builds are ran in /influx/bin/[config]/influx_game/
+		const string exe_directory = engine::get_run_argument("exe_dir");
+		const string& root = exe_directory + "/../../../";
+
+		if (str::contains(path, root))
+		{
+			return path.substr(root.size());
+		}
+
+		return path;
 	}
 }

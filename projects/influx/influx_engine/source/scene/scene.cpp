@@ -26,6 +26,11 @@ namespace influx::engine
 
 		entity_info info{};
 		info.m_entity = world.create_entity();
+
+		// create scene component
+		scene_component& scene_comp = world.create_component<scene_component>(info.m_entity);
+		scene_comp.set_scene_active(m_is_active);
+
 		m_entities.push_back(info);
 		return static_cast<uint32>(m_entities.size() - 1);
 	}
@@ -46,6 +51,17 @@ namespace influx::engine
 	bool scene::is_active(entity_id) const
 	{
 		return true;
+	}
+
+	void scene::set_active(bool new_active)
+	{
+		if (new_active == is_active()) return;
+
+		static world& world = get_engine()->get_world();
+		for (const entity_info& ent : m_entities)
+		{
+			world.get_component<scene_component>(ent.m_entity)->set_scene_active(new_active);
+		}
 	}
 
 	bool scene::is_active() const

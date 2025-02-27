@@ -129,7 +129,7 @@ namespace influx::renderer
                 heap_desc.m_type = graphics::e_heap_type::shared;
 
                 graphics::buffer_desc desc{};
-                const influx::scene::e_light_type type = static_cast<influx::scene::e_light_type>(i);
+                const influx::e_light_type type = static_cast<influx::e_light_type>(i);
                 desc.m_bytestride = buffer_strides[i];
                 desc.m_bytesize = k_max_num_lights * desc.m_bytestride;
 
@@ -274,7 +274,7 @@ namespace influx::renderer
         const uint32 num_lights = scene.get_num_lights();
         for (uint32 i = 0u; i < k_num_light_types; ++i)
         {
-            const auto current_type = static_cast<influx::scene::e_light_type>(i);
+            const auto current_type = static_cast<influx::e_light_type>(i);
 
             mp_lightbuffers[i]->map([num_lights, current_type, i, &scene](void* dest)
             {
@@ -285,14 +285,14 @@ namespace influx::renderer
                     
                     switch (current_type)
                     {
-                    case influx::scene::e_light_type::directional:
+                    case influx::e_light_type::directional:
                     {
                         frontend::per_dirlight* data = reinterpret_cast<frontend::per_dirlight*>(dest);
                         data[index].m_colour = scene.m_lights[l].m_light.get_colour();
                         break;
                     }
 
-                    case influx::scene::e_light_type::point:
+                    case influx::e_light_type::point:
                     {
                         frontend::per_pointlight* data = reinterpret_cast<frontend::per_pointlight*>(dest);
                         data[index].m_attenuation = scene.m_lights[l].m_light.get_attenuation();
@@ -301,7 +301,7 @@ namespace influx::renderer
                         break;
                     }
 
-                    case influx::scene::e_light_type::spot:
+                    case influx::e_light_type::spot:
                     {
                         frontend::per_spotlight* data = reinterpret_cast<frontend::per_spotlight*>(dest);
                         data[index].m_position = scene.m_lights[l].m_world_position;
@@ -510,7 +510,7 @@ namespace influx::renderer
             update_lightbuffers(scene);
             for (uint32 i = 0u; i < k_num_light_types; ++i)
             {
-                args.num_lights[i] = scene.get_num_lights(static_cast<influx::scene::e_light_type>(i));
+                args.num_lights[i] = scene.get_num_lights(static_cast<influx::e_light_type>(i));
             }
         }
 

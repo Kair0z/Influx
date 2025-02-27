@@ -135,7 +135,7 @@ namespace influx::engine
 			{
 				light_comp.set_colour(colour::k_white);
 				light_comp.set_attenuation(2.0f);
-				light_comp.set_type(influx::scene::e_light_type::point);
+				light_comp.set_type(influx::e_light_type::point);
 			}
 
 			input_component& input_comp = world.create_component<input_component>(camera.get_handle());

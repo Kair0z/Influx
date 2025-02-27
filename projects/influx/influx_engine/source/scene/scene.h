@@ -69,6 +69,7 @@ namespace influx::engine
 		bool is_active(entity_id) const;
 		bool is_visible(entity_id) const;
 
+		void set_active(bool new_active);
 		bool is_active() const;
 	};
 

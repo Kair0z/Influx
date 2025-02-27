@@ -5,7 +5,7 @@
 #ifndef __CORE_SCENE_LIGHT_H_
 #define __CORE_SCENE_LIGHT_H_
 
-namespace influx::scene
+namespace influx
 {
 	enum class e_light_type
 	{
