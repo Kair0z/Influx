@@ -217,8 +217,7 @@ namespace influx::engine
             // bounds boxes
             for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
             {
-                math::transform3D transform_copy = transform_comp.get_transform();
-                const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_copy.get_matrix());
+                const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_comp.get_matrix());
                 debugscene.add_box(transformed_bounds, { 1,0,0,1 });
             }
         }
@@ -235,56 +234,51 @@ namespace influx::engine
         m_registry.destroy(e);
     }
 
-    bool world::trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer)
+    world::trace_result world::trace(const math::ray& ray, e_collision_layer layer) const
     {
-        out_result.m_entity = nullptr;
+        trace_result result{};
+        result.m_is_hit = false;
+        result.m_entity = nullptr;
 
         struct hit_result final
         {
-            entt::entity* m_entity;
-            float m_hit_distance;
+            entt::entity* m_entity = nullptr;
+            float m_hit_distance   = -1.0f;
         };
         vector<hit_result> hit_results{};
-
         bool hit_any = false;
-        for (auto [entity, transform_comp, mesh_comp] : m_registry.view<
-            transform_component, mesh_component>().each())
+        
+        for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
         {
-            math::transform3D transform = transform_comp.get_transform();
-            transform.set_scale(1.0f / mesh_comp.m_mesh_boundsphere.m_radius);
-            transform.update_matrix();
-
-            math::boxf bounds = mesh_comp.m_mesh_boundbox;
-            bounds = bounds.get_transformed3D(transform.get_matrix());
+            math::boxf bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_comp.get_matrix());
 
             float out_distance{};
             if (bounds.trace(ray, out_distance))
             {
-                hit_result new_result{};
-                new_result.m_entity = &entity;
-                new_result.m_hit_distance = out_distance;
+                hit_result new_result
+                {
+                    .m_entity = &entity,
+                    .m_hit_distance = out_distance
+                };
                 hit_results.push_back(new_result);
-
-                if (g_lastray == nullptr)
-                    g_lastray = new math::ray();
-
-                (*g_lastray) = ray;
-                // transform_comp.move({ 0.0f, 1.0f, 0.0f });
             }
         }
 
-        // find the closest one
-        if (hit_results.size() > 0u)
+        if (hit_any)
         {
-            std::sort(hit_results.begin(), hit_results.end(), [](const hit_result& a, const hit_result& b)
+            if (hit_results.size() > 1u)
             {
-                return a.m_hit_distance < b.m_hit_distance;
-            });
-
-            out_result.m_entity = hit_results[0u].m_entity;
+                std::sort(hit_results.begin(), hit_results.end(),
+                    [](const hit_result& a, const hit_result& b)
+                    {
+                        return a.m_hit_distance < b.m_hit_distance;
+                    });
+            }
+            result.m_is_hit = true;
+            result.m_entity = hit_results[0u].m_entity;
         }
 
-        return hit_results.size() != 0u;
+        return result;
     }
 
     bool world::is_valid(entt::entity e) const
@@ -354,6 +348,41 @@ namespace influx::engine
             position = transform_comp.get_position();
         }
         return position;
+    }
+
+    math::ray world::make_viewray(const transform_component& transform, const camera_component& camera, const math::vectorf2& uv)
+    {
+        // get camera matrices
+        const math::matrix4x4f projection = camera.get_projection();
+        const math::matrix4x4f view = transform.get_matrix().inverted();
+        const math::float3 camera_pos = transform.get_position();
+
+        // convert pixel to ndc space
+        math::float3 mouse_ndc =
+        {
+            (2.0f * uv.x) - 1.0f,
+            1.0f - (2.0f * uv.y),
+            -1.0f
+        };
+
+        mouse_ndc.x = -mouse_ndc.x;
+        mouse_ndc.y = -mouse_ndc.y;
+
+        // unproject ndc -> view
+        const math::float3 raypos_ndc = math::float4(mouse_ndc.x, mouse_ndc.y, mouse_ndc.z);
+        math::float3 raypos_view = projection.inverted() * raypos_ndc;
+        raypos_view.z = -1.0f;
+
+        // unview view -> world
+        math::float4 raypoint_world = view.inverted() * raypos_view;
+
+        // make the ray
+        math::ray ray_from_eye{};
+        ray_from_eye.m_direction = -(raypoint_world.get_xyz() - camera_pos).normalized();
+        ray_from_eye.m_origin = camera_pos;
+        ray_from_eye.m_min = 0.0f;
+        ray_from_eye.m_max = FLT_MAX;
+        return ray_from_eye;
     }
 
     void world::update_transform_system()

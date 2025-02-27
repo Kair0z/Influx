@@ -4,6 +4,9 @@
 #include "core/container/map.h"
 #include "core/log.h"
 
+// influx::platform
+#include "influx_platform/monitor.h"
+
 // Include Windows
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -414,7 +417,7 @@ namespace influx::platform
 			::GetClientRect((::HWND)m_handle, &res);
 			break;
 		case e_space::full: 		
-			::GetWindowRect((::HWND)m_handle, &res); 
+			::GetWindowRect((::HWND)m_handle, &res);
 			break;
 		}
 
@@ -631,6 +634,25 @@ namespace influx::platform
 		}
 
 		return { (float)mouse_pos.x, (float)mouse_pos.y };
+	}
+
+	math::vectorf2 window_event::parse_position_window_normalized() const
+	{
+		const auto rect = m_window->get_rect(window::e_space::client);
+		math::vectorf2 position = parse_position_window();
+		position.x /= rect.get_width();
+		position.y /= rect.get_height();
+		return position;
+	}
+	math::vectorf2 window_event::parse_position_screen_normalized() const
+	{
+		monitor current_mon = monitor::from_window(*m_window);
+		const auto screen_rect = current_mon.get_rect();
+
+		math::vectorf2 position = parse_position_screen();
+		position.x /= screen_rect.get_width();
+		position.y /= screen_rect.get_height();
+		return position;
 	}
 
 	bool window_event::is_mouse_event() const

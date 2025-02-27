@@ -78,9 +78,12 @@ namespace influx::engine
 
 		void clear();
 
-		// scene picking
-		struct trace_result { entt::entity* m_entity = nullptr; };
-		bool trace(const math::ray& ray, trace_result& out_result, e_collision_layer layer = e_collision_layer::all);
+		struct trace_result final
+		{ 
+			bool m_is_hit = false;
+			cptr<entt::entity> m_entity = nullptr; 
+		};
+		trace_result trace(const math::ray& ray, e_collision_layer layer = e_collision_layer::all) const;
 
 		// project file management
 		void load_project(const influx::files::projectfile& proj);
@@ -90,6 +93,11 @@ namespace influx::engine
 		math::matrix4x4f get_main_projection_matrix() const;
 		math::matrix4x4f get_main_viewmatrix() const;
 		math::float3 get_main_cameraposition() const;
+
+		static math::ray make_viewray(
+			const transform_component& transform,
+			const camera_component& camera,
+			const math::vectorf2& uv);
 
 	private:
 		void update_transform_system();

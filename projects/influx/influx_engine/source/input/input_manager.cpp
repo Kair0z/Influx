@@ -1,10 +1,27 @@
 #include "engine_pch.h"
 #include "input_manager.h"
 
+#include "editor/editor_manager.h"
+
 namespace influx::engine
 {
+	static input::mouse_position g_mouse_position{};
+	class input_editor final : public editor_window
+	{
+	public:
+		virtual void on_run() override
+		{
+			ImGui::Text("client: %.2f,%.2f", g_mouse_position.m_client.x, g_mouse_position.m_client.y);
+			ImGui::Text("screen: %.2f,%.2f", g_mouse_position.m_screen.x, g_mouse_position.m_screen.y);
+			ImGui::Text("screen norm: %.2f,%.2f", g_mouse_position.m_screen_normalized.x, g_mouse_position.m_screen_normalized.y);
+			ImGui::Text("client norm: %.2f,%.2f", g_mouse_position.m_client_normalized.x, g_mouse_position.m_client_normalized.y);
+		}
+	};
+
 	input_manager::input_manager()
 	{
+		// editor::editor_manager::static_window<input_editor>("input");
+
 		influx::input::init();
 
 		input::subscribe([this](const input::key_event& ev)
@@ -15,6 +32,8 @@ namespace influx::engine
 		input::subscribe([this](const input::mouse_event& ev)
 		{
 			m_state.on_mousevent(ev);
+
+			g_mouse_position = ev.m_position;
 		});
 	}
 

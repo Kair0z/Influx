@@ -4,6 +4,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include "influx_platform/window.h"
+
 namespace influx::platform
 {
     typedef enum { MDT_EFFECTIVE_DPI = 0, MDT_ANGULAR_DPI = 1, MDT_RAW_DPI = 2, MDT_DEFAULT = MDT_EFFECTIVE_DPI } MONITOR_DPI_TYPE;
@@ -89,4 +91,40 @@ namespace influx::platform
 
 		return result;
 	}
+    monitor monitor::from_window(const window& window)
+    {
+        HMONITOR mon = MonitorFromWindow((::HWND)window.get_platform_handle(), MONITOR_DEFAULTTONEAREST);
+        MONITORINFO info = {};
+        info.cbSize = sizeof(MONITORINFO);
+        if (!::GetMonitorInfo(mon, &info))
+        {
+            return {};
+        }
+
+        monitor new_monitor{};
+        new_monitor.m_mainpos = math::vectorf2((float)info.rcMonitor.left, (float)info.rcMonitor.top);
+        new_monitor.m_mainsize = math::vectoru2((uint32)(info.rcMonitor.right - info.rcMonitor.left), (uint32)(info.rcMonitor.bottom - info.rcMonitor.top));
+        new_monitor.m_workpos = math::vectorf2((float)info.rcWork.left, (float)info.rcWork.top);
+        new_monitor.m_worksize = math::vectoru2((uint32)(info.rcWork.right - info.rcWork.left), (uint32)(info.rcWork.bottom - info.rcWork.top));
+        new_monitor.m_dpi_scale = get_dpi(mon);
+        new_monitor.m_is_primary = info.dwFlags & MONITORINFOF_PRIMARY;
+        new_monitor.m_platform_handle = (void*)mon;
+        return new_monitor;
+    }
+    math::rectu monitor::get_rect(e_space space) const
+    {
+        math::rectu result{};
+        switch (space)
+        {
+        case e_space::work:
+            result.m_leftBottom = m_workpos;
+            result.m_width_height = m_worksize;
+            break;
+        case e_space::full:
+            result.m_leftBottom = m_mainpos;
+            result.m_width_height = m_mainsize;
+            break;
+        }
+        return result;
+    }
 }

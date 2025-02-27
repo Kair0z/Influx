@@ -76,6 +76,8 @@ namespace influx::platform
 		float		INFLUX_PLATFORM_API parse_wheel_delta() const;
 		math::vectorf2 INFLUX_PLATFORM_API parse_position_window() const;
 		math::vectorf2 INFLUX_PLATFORM_API parse_position_screen() const;
+		math::vectorf2 INFLUX_PLATFORM_API parse_position_window_normalized() const;
+		math::vectorf2 INFLUX_PLATFORM_API parse_position_screen_normalized() const;
 		mouse_button INFLUX_PLATFORM_API parse_mouse_button() const;
 		bool INFLUX_PLATFORM_API is_mouse_event() const;
 		bool INFLUX_PLATFORM_API is_key_event() const;
@@ -156,8 +158,8 @@ namespace influx::platform
 
 		enum class e_space : uint8
 		{
-			client,
-			full,
+			client,		// space of the client area
+			full,		// space of the client + non-client area
 			count
 		};
 

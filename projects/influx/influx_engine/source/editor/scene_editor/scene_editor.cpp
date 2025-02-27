@@ -7,12 +7,19 @@
 #include "scene/scene.h"
 #include "component/component.h"
 
+// influx::platform
+#include "influx_platform/window.h"
+
 namespace influx::engine::editor
 {
+	static transform_component* g_transform = nullptr;
+	static camera_component* g_camera = nullptr;
+
 	void scene_editor::on_edit_place()
 	{
 		world& world = get_engine()->get_world();
 		scene& scene = get_engine()->get_current_scene();
+		platform::window& window = get_engine()->get_window();
 
 		// create camera by default
 		{
@@ -20,11 +27,14 @@ namespace influx::engine::editor
 			scene::entity_id id = scene.create_entity();
 			camera_component& camera = scene.create_component<camera_component>(id);
 			camera.set_priority(1.0f);
+			camera.set_aspect_ratio(window.get_aspect_ratio());
+			g_camera = &camera;
 
 			transform_component& transform = *scene.get_component<transform_component>(id);
 			transform.set_position(start_position);
 			transform.look_at({});
 			transform.update_matrix();
+			g_transform = &transform;
 
 			rigidbody_component& body = scene.create_component<rigidbody_component>(id);
 			input_component& input_comp = scene.create_component<input_component>(id);
@@ -174,10 +184,26 @@ namespace influx::engine::editor
 
 	void scene_editor::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
 	{
+		world& world = get_engine()->get_world();
 		scene& scene = get_engine()->get_current_scene();
 
 		switch (button)
 		{
+		case input::e_mouse_button::left:
+		{
+			if (g_camera && g_transform)
+			{
+				math::ray ray = world.make_viewray(
+					*g_transform, *g_camera, position.m_client_normalized);
+
+				world::trace_result result = world.trace(ray);
+				if (result.m_is_hit)
+				{
+					engine::log(e_log_category::info, "trace hit!");
+				}
+			}
+		}
+		break;
 		case input::e_mouse_button::right:
 			m_edit_radial.set_visible(true);
 			m_edit_radial.set_position(position.m_client);

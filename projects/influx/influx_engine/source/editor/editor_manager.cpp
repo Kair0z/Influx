@@ -256,8 +256,7 @@ namespace influx::engine::editor
 			ray_from_eye.m_max = FLT_MAX;
 
 			// trace the world with the ray
-			world::trace_result result{};
-			world.trace(ray_from_eye, result);
+			world::trace_result result = world.trace(ray_from_eye);
 			break;
 		}
 	}

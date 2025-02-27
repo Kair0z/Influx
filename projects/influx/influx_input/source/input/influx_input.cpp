@@ -195,11 +195,14 @@ namespace influx::input
 		{
 			mouse_event ev{};
 			ev.m_type = translate_mouse(platform_ev.m_type);
-			ev.m_position = { platform_ev.parse_position_window(), platform_ev.parse_position_screen() };
+			ev.m_position.m_client = platform_ev.parse_position_window();
+			ev.m_position.m_screen = platform_ev.parse_position_screen();
+			ev.m_position.m_client_normalized = platform_ev.parse_position_window_normalized();
+			ev.m_position.m_screen_normalized = platform_ev.parse_position_screen_normalized();
 			ev.m_button = translate(platform_ev.parse_mouse_button());
 			ev.m_wheel_delta = platform_ev.parse_wheel_delta();
 			global_state::get_queue()->push<mouse_event>(ev);
-		}
+		};
 	}
 
 	void push_external_event(const key_event& ev)

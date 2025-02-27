@@ -26,9 +26,6 @@ namespace influx::renderer
 			}
 			load<e_resource_type::cubemap>(dummy_titles, dummy_data, false);
 		}
-		{
-
-		}
 	}
 
     void resource_manager::recreate_mesh(const string& title, detail::base_mesh_data* data)

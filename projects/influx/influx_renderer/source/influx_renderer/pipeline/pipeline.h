@@ -377,13 +377,12 @@ namespace influx::renderer
 		{
 			update_shaders();
 
-			if (m_needs_rebuild)
+			if (m_needs_rebuild && are_required_shaders_valid())
 			{
 				rebuild_rootsignature(device, m_signature);
 				rebuild_pipeline(device, m_signature);
+				m_needs_rebuild = false;
 			}
-
-			m_needs_rebuild = false;
 		}
 
 		void update_shaders()
@@ -409,11 +408,7 @@ namespace influx::renderer
 				const bool is_optional = m_signature.is_shader_optional(shader_type);
 				if (new_shader == nullptr)
 				{
-					if (is_optional == false)
-					{
-						logerr("pipeline::update_shader() >> shader_manager is missing a non-optional shader! {}", shader_signature.m_tag);
-						influx_assert(false);
-					}
+					m_needs_rebuild = true;
 				}
 				else
 				{
@@ -480,19 +475,22 @@ namespace influx::renderer
 			return m_signature;
 		}
 
+		bool are_required_shaders_valid() const
+		{
+			bool result = true;
+			for (uint8 i = 0u; i < k_num_shaders; ++i)
+			{
+				const bool is_slot_optional = shader_slots::is_optional(static_cast<e_shader_slot>(i));
+				result &= m_shaders[i] != nullptr || is_slot_optional;
+			}
+			return result;
+		}
+
 		bool is_valid() const
 		{
 			const bool are_graphics_objects_valid = m_pipeline != nullptr && m_rootsig != nullptr;
 
-			// assert / crash if a non-optional stage is empty
-			bool are_required_shaders_valid = true;
-			for (uint8 i = 0u; i < k_num_shaders; ++i)
-			{
-				const bool is_slot_optional = shader_slots::is_optional(static_cast<e_shader_slot>(i));
-				are_required_shaders_valid &= m_shaders[i] != nullptr || is_slot_optional;
-			}
-
-			return are_graphics_objects_valid && are_required_shaders_valid;
+			return are_graphics_objects_valid && are_required_shaders_valid() && m_needs_rebuild == false;
 		}
 
 	private:
