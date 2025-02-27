@@ -78,7 +78,6 @@ namespace influx::engine
 
     void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D, renderer::scene_debug& debugscene) const
     {
-        const bool is_editor = get_engine()->is_editor();
         const float delta_time = get_engine()->get_time().get_delta_seconds();
 
         debugscene.clear();
@@ -160,6 +159,7 @@ namespace influx::engine
         }
 
         // editor render
+        const bool is_editor = get_engine()->is_editor();
         if (is_editor)
         {
             influx_scope("build_gizmos");
@@ -195,12 +195,6 @@ namespace influx::engine
                 debugscene.add_line(origin, math::float3{ half_offset, 0, 0 }, colour::k_red);
                 debugscene.add_line(origin, math::float3{ 0, half_offset, 0 }, colour::k_green);
                 debugscene.add_line(origin, math::float3{ 0, 0, half_offset }, colour::k_blue);
-            }
-
-            // ray
-            if (g_lastray)
-            {
-                // debugscene.add_line(g_lastray->get_origin(), g_lastray->get_origin() + g_lastray->get_direction() * 100.0f, colour::k_white);
             }
 
             // transform gizmos

@@ -394,6 +394,13 @@ namespace influx::engine
 		: public detail::tcomponent<e_component::camera>
 	{
 	public:
+		camera_component()
+		{
+			m_camera.set_fov(90.0f);
+			m_camera.set_farplane(1000.0f);
+			m_camera.set_nearplane(0.0001f);
+		}
+
 		void set_fov(float fov)
 		{
 			m_camera.set_fov(fov);
