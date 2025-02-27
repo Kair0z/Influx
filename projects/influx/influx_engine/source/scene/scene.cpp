@@ -25,8 +25,12 @@ namespace influx::engine
 		// create sphere in middle
 		{
 			entity_id id = create_entity();
+
 			mesh_component& mesh = world.create_component<mesh_component>(m_entities[id].m_entity);
 			mesh.set_mesh_name("sphere_0");
+			transform_component& transform = *world.get_component<transform_component>(m_entities[id].m_entity);
+			transform.set_scale(0.01f);
+			transform.update_matrix();
 		}
 	}
 
