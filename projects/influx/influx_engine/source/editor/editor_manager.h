@@ -27,8 +27,6 @@ struct ImGuiContext;
 
 namespace influx::engine::editor
 {
-	
-
 #pragma region helpers
 	class compound_keybind_tracker final
 	{
@@ -176,7 +174,6 @@ namespace influx::engine::editor
 	private:
 		compound_keybind_tracker m_keybinds;
 		cooldown_toggle m_content_toggle = 0.5f;
-		cooldown_toggle m_fps_toggle = 0.5f;
 		cooldown_toggle m_engine_toggle = 0.5f;
 		cooldown_toggle m_editor_toggle = 0.5f;
 

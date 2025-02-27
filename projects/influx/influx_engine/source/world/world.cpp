@@ -75,8 +75,8 @@ namespace influx::engine
         // render meshes
         {
             influx_scope("build_meshes");
-            auto view = m_registry.view<transform_component, mesh_component, material_component>();
-            for (auto [entity, transform_comp, mesh_comp, material_comp] : view.each())
+            auto view = m_registry.view<transform_component, mesh_component>();
+            for (auto [entity, transform_comp, mesh_comp] : view.each())
             {
                 math::transform3D transform = transform_comp.get_transform();
 
@@ -93,8 +93,6 @@ namespace influx::engine
                 render_mesh.m_per_instance_colour = {};
                 render_mesh.m_transform = transform.get_matrix();
 
-                // bind material to mesh
-                render_mesh.m_material = &material_comp.get_material();
                 scene.m_meshes.push_back(render_mesh);
             }
         }

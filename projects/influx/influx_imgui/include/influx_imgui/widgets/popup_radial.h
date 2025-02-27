@@ -3,6 +3,9 @@
 // influx::core
 #include "core/container/map.h"
 
+// influx::imgui
+#include "influx_imgui/imgui_translation.h"
+
 // imgui
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -105,6 +108,15 @@ namespace influx::imgui
 		using item_type = _t;
 		static constexpr uint32 capacity = _c;
 
+		bool m_is_visible = false;
+		math::vectorf2 m_position = {};
+		const char* m_id = "##piepopup";
+
+		umap<string, item_type> m_items{};
+
+		string m_selected = "";
+		float m_radius = 10.0f;
+
 	public:
 		popup_radial() = default;
 		popup_radial(const math::vectorf2& spawn_position);
@@ -132,14 +144,7 @@ namespace influx::imgui
 		_t* get_selected();
 
 	private:
-		bool m_is_visible = false;
-		math::vectorf2 m_position = {};
-		const char* m_id = "##piepopup";
-
-		umap<string, item_type> m_items{};
-
-		string m_selected = "";
-		float m_radius = 10.0f;
+		
 	};
 
 #pragma region impl

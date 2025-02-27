@@ -27,9 +27,6 @@ namespace influx::engine
 	public:
 		virtual void on_run() override
 		{
-			set_visible(false);
-			return;
-
 			static content_manager& content = get_engine()->get_content();
 			static render_manager& renderer = get_engine()->get_renderer();
 

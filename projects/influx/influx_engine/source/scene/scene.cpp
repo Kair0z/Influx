@@ -30,6 +30,9 @@ namespace influx::engine
 		// create scene component
 		scene_component& scene_comp = world.create_component<scene_component>(info.m_entity);
 		scene_comp.set_scene_active(m_is_active);
+		transform_component& trans_comp = world.create_component<transform_component>(info.m_entity);
+		mesh_component& mesh_comp = world.create_component<mesh_component>(info.m_entity);
+		mesh_comp.set_mesh_name("sphere_0");
 
 		m_entities.push_back(info);
 		return static_cast<uint32>(m_entities.size() - 1);
@@ -82,6 +85,9 @@ namespace influx::engine
 
 	scene& scene_manager::get_current_scene()
 	{
+		if (m_scenes.empty())
+			create_scene(true);
+
 		return m_scenes[m_current_index];
 	}
 

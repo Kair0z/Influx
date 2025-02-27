@@ -30,6 +30,22 @@ namespace influx::engine
 		bool is_down(char ascii, uint32* out_num_frames = nullptr) const;
 		bool is_down(input::e_mouse_button, uint32* out_num_frames = nullptr) const;
 
+		template <typename _t>
+		inline bool is_down(const _t& input, uint32* out_num_frames = nullptr) const
+		{
+			return get_keystate(input).is_down(input, out_num_frames);
+		}
+		template <typename _t>
+		inline bool is_firstframe_up(const _t& input) const
+		{
+			return get_keystate(input).is_firstframe_up();
+		}
+		template <typename _t>
+		inline bool is_firstframe_down(const _t&) const
+		{
+			return get_keystate(input).is_firstframe_down();
+		}
+
 	private:
 		input_state m_state{};
 	};
