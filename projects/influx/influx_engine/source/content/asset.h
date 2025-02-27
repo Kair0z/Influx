@@ -81,6 +81,7 @@ namespace influx::engine
 		e_asset_origin m_origin{};
 		string m_name;
 		string m_path;
+		string m_extension;
 		load_args m_last_args{};
 
 		time::point m_time_loadstart{};
@@ -91,16 +92,19 @@ namespace influx::engine
 			set_loadstate(e_load_state::unloaded);
 		}
 
-		inline void load(const string& path, const load_args& args, bool reload = false)
+		inline void load(const file& path, const load_args& args, bool reload = false)
 		{
-			// use reload instead
+			if (!file::exists(path.m_path_full)) return;
 			if (get_loadstate() == e_load_state::count) return;
 			if (get_loadstate() == e_load_state::loading) return;
 			if (get_loadstate() == e_load_state::loaded && reload == false) return;
 
-			engine::log(e_log_category::info, "content:loading {}", get_friendly_name(path).c_str());
+			m_name = path.m_filename;
+			m_path = path.m_path_full;
+			m_extension = path.m_extension;
 
-			m_path = path;
+			engine::log(e_log_category::info, "content:loading {}", get_friendly_name(m_path).c_str());
+
 			m_time_loadstart = time::get_now();
 			set_loadstate(e_load_state::loading);
 			if constexpr (_t == e_asset_type::scene)
@@ -120,6 +124,9 @@ namespace influx::engine
 				m_resource = load_shader_data(m_path, args);
 			}
 			set_loadstate(e_load_state::loaded);
+
+			write_native();
+
 			m_time_loadend = time::get_now();
 			m_last_args = args;
 		}
@@ -182,6 +189,23 @@ namespace influx::engine
 		inline float get_load_ms() const
 		{
 			return time::get_ms_between<float>(m_time_loadend, m_time_loadstart);
+		}
+
+		inline void write_native()
+		{
+			const string& og_path = m_path;
+			const string og_friendly = get_friendly_name(og_path);
+
+			const string old_extension = m_extension;
+			const string new_extension = ".flx";
+
+			const string prestring = "/assets/";
+			string relative = og_friendly.substr(prestring.size());
+			relative = relative.substr(0u, relative.size() - old_extension.size()) + new_extension;
+
+			const string generated_assets = get_engine_directory(engine_directory::assets_gen).m_path_full;
+			const string new_path = generated_assets + relative;
+			file::create(new_path);
 		}
 	};
 

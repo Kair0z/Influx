@@ -227,7 +227,7 @@ namespace influx::engine
 			args.m_bake_transforms = true;
 			args.m_pre_scale = 1;
 			scene_asset& item = m_scenes[file.m_filename];
-			item.load(file.m_path_full, args);
+			item.load(file, args);
 		});
 		async::dispatch_for<file>(fbx_files, [this](const file& file)
 		{
@@ -235,7 +235,7 @@ namespace influx::engine
 			args.m_bake_transforms = true;
 			args.m_pre_scale = 1;
 			scene_asset& item = m_scenes[file.m_filename];
-			item.load(file.m_path_full, args);
+			item.load(file, args);
 		});
 
 		// load hlsls
@@ -271,7 +271,7 @@ namespace influx::engine
 				compile_args.m_signature.m_type = shader::e_shader_type::vs;
 				compile_args.m_signature.m_entrypoint = "main_vs";
 				compile_args.m_signature.cache_id();
-				vs_item.load(file.m_path_full, compile_args);
+				vs_item.load(file, compile_args);
 			}
 
 			if (str::contains(file_content, "[shader(\"pixel\")]", false))
@@ -280,7 +280,7 @@ namespace influx::engine
 				compile_args.m_signature.m_type = shader::e_shader_type::ps;
 				compile_args.m_signature.m_entrypoint = "main_ps";
 				compile_args.m_signature.cache_id();
-				ps_item.load(file.m_path_full, compile_args);
+				ps_item.load(file, compile_args);
 			}
 
 			if (str::contains(file_content, "[shader(\"compute\")]", false))
@@ -289,7 +289,7 @@ namespace influx::engine
 				compile_args.m_signature.m_type = shader::e_shader_type::cs;
 				compile_args.m_signature.m_entrypoint = "main_cs";
 				compile_args.m_signature.cache_id();
-				cs_item.load(file.m_path_full, compile_args);
+				cs_item.load(file, compile_args);
 			}
 		});
 
@@ -298,7 +298,12 @@ namespace influx::engine
 		{
 			imp::image_load_args args{};
 			image_asset& item = m_images[file.m_filename];
-			item.load(file.m_path_full, args);
+			item.load(file, args);
 		});
+	}
+	
+	void content_manager::write_native(const image_asset& asset)
+	{
+		
 	}
 }

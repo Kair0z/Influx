@@ -92,5 +92,7 @@ namespace influx::engine
 
 	private:
 		void load_assets(engine* engine, e_asset_origin, const file& root);
+
+		void write_native(const image_asset& asset);
 	};
 }

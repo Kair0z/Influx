@@ -16,6 +16,7 @@ namespace influx::engine
 	{
 		root,
 		assets,
+		assets_gen,
 		staged,
 		intermediate,
 		binaries,
@@ -42,6 +43,7 @@ namespace influx::engine
 		{
 			case engine_directory::root:			return root;
 			case engine_directory::assets:			return root + "/assets/";
+			case engine_directory::assets_gen:		return root + "/assets/generated/";
 			case engine_directory::staged:			return root + "/staged/";
 			case engine_directory::binaries:		return root + "/bin/";
 			case engine_directory::intermediate:	return root + "/int/";

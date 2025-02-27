@@ -126,7 +126,7 @@ namespace influx::engine::editor
 					if (result.m_has_selected)
 					{
 						static content_manager& content = get_engine()->get_content();
-						content.import(result.m_selection);
+						content.load(result.m_selection);
 					}
 				}
 
