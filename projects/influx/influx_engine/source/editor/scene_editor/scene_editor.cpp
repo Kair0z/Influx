@@ -11,8 +11,136 @@ namespace influx::engine::editor
 {
 	void scene_editor::on_edit_place()
 	{
+		world& world = get_engine()->get_world();
 		scene& scene = get_engine()->get_current_scene();
-		scene.create_entity();
+
+		// create camera by default
+		{
+			static math::vectorf3 start_position = { 0,10,10 };
+			scene::entity_id id = scene.create_entity();
+			camera_component& camera = scene.create_component<camera_component>(id);
+			camera.set_priority(1.0f);
+
+			transform_component& transform = *scene.get_component<transform_component>(id);
+			transform.set_position(start_position);
+			transform.look_at({});
+			transform.update_matrix();
+
+			rigidbody_component& body = scene.create_component<rigidbody_component>(id);
+			input_component& input_comp = scene.create_component<input_component>(id);
+			{
+				static bool locks[6u]{ false, false, false, false, false, false };
+				static math::vectorf3 acceleration{};
+
+				static auto update_acceleration = [&body, &transform]()
+				{
+					// translate the force
+					math::float3 transf_acceleration =
+					{
+						acceleration.x * transform.get_right() +
+						acceleration.y * math::vectorf3::up() +
+						acceleration.z * transform.get_forward()
+					};
+					if (!transf_acceleration.is_zero()) transf_acceleration = transf_acceleration.normalized();
+					body.set_acceleration(transf_acceleration * 1.0f);
+				};
+
+				input_comp.m_on_keydown = [](input::e_key key)
+				{
+					switch (key)
+					{
+					case input::e_key::space:   if (!locks[4u]) { acceleration.y += +1.0f;		locks[4u] = true; } break;
+					case input::e_key::lshift:  if (!locks[5u]) { acceleration.y += -1.0f;		locks[5u] = true; } break;
+					}
+					update_acceleration();
+				};
+				input_comp.m_on_keyup = [](input::e_key key)
+				{
+					switch (key)
+					{
+					case input::e_key::space:   if (locks[4u]) { acceleration.y -= +1.0f;		locks[4u] = false; } break;
+					case input::e_key::lshift:	if (locks[5u]) { acceleration.y -= -1.0f;		locks[5u] = false; } break;
+					}
+
+					update_acceleration();
+				};
+				input_comp.m_on_ascii_down = [&transform](const char ascii)
+				{
+					switch (ascii)
+					{
+					case 'W': if (!locks[0u]) { acceleration.z += +1.0f;		locks[0u] = true; } break;
+					case 'A': if (!locks[1u]) { acceleration.x += -1.0f;		locks[1u] = true; } break;
+					case 'S': if (!locks[2u]) { acceleration.z += -1.0f;		locks[2u] = true; } break;
+					case 'D': if (!locks[3u]) { acceleration.x += +1.0f;		locks[3u] = true; } break;
+					}
+
+					update_acceleration();
+
+					// reset position
+					switch (ascii)
+					{
+					case 'R': 
+						transform.set_position(start_position); 
+						transform.look_at({});
+						break;
+					}
+				};
+				input_comp.m_on_ascii_up = [](const char ascii)
+				{
+					switch (ascii)
+					{
+					case 'W': if (locks[0u]) { acceleration.z -= +1.0f; locks[0u] = false; } break;
+					case 'A': if (locks[1u]) { acceleration.x -= -1.0f; locks[1u] = false; } break;
+					case 'S': if (locks[2u]) { acceleration.z -= -1.0f; locks[2u] = false; } break;
+					case 'D': if (locks[3u]) { acceleration.x -= +1.0f; locks[3u] = false; } break;
+					}
+
+					update_acceleration();
+				};
+
+				static bool mouse_down = false;
+				static math::float2 mousepos_prev{};
+				static math::float2 angular_position{};
+				input_comp.m_on_mouse_down = [](input::e_mouse_button button, const input::mouse_position& position)
+				{
+					switch (button)
+					{
+					case input::e_mouse_button::left: mouse_down = true; break;
+					}
+				};
+				input_comp.m_on_mouse_up = [](input::e_mouse_button button, const input::mouse_position& position)
+				{
+					switch (button)
+					{
+					case input::e_mouse_button::left: mouse_down = false; break;
+					}
+				};
+				input_comp.m_on_mouse_move = [&transform](const input::mouse_position& position)
+				{
+					math::float2 mousepos_current = position.m_client;
+					math::float2 mousepos_delta = mousepos_current - mousepos_prev;
+#if 0
+					static platform::window& window = get_engine()->get_window();
+					const float ar = window.get_aspect_ratio();
+					mousepos_delta.y *= ar; // normalize mousemove
+#endif
+
+					if (mouse_down && mousepos_delta.is_zero() == false)
+					{
+						const frame_time& time = get_engine()->get_time();
+						const float seconds = time.get_time_seconds();
+						const float delta_seconds = time.get_delta_seconds();
+
+						transform.rotate(
+							mousepos_delta.y * delta_seconds,
+							mousepos_delta.x * delta_seconds,
+							0.0f);
+					}
+
+					mousepos_prev = mousepos_current;
+				};
+			}
+		}
 	}
 
 	void scene_editor::on_edit_remove()
@@ -29,6 +157,7 @@ namespace influx::engine::editor
 
 	scene_editor::~scene_editor()
 	{
+
 	}
 
 	void scene_editor::on_imgui(ImGuiContext& ctx)
@@ -45,6 +174,8 @@ namespace influx::engine::editor
 
 	void scene_editor::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
 	{
+		scene& scene = get_engine()->get_current_scene();
+
 		switch (button)
 		{
 		case input::e_mouse_button::right:
@@ -56,6 +187,8 @@ namespace influx::engine::editor
 
 	void scene_editor::on_mouse_up(input::e_mouse_button button, const input::mouse_position& position)
 	{
+		scene& scene = get_engine()->get_current_scene();
+
 		switch (button)
 		{
 		case input::e_mouse_button::right:

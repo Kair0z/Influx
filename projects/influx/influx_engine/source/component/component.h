@@ -446,6 +446,8 @@ namespace influx::engine
 			return m_camera.get_farplane();
 		}
 
+		influx_property_readwrite(float, priority);
+
 	private:
 		influx::scene::camera m_camera{};
 	};

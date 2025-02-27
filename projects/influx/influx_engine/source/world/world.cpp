@@ -85,15 +85,20 @@ namespace influx::engine
         // choose camera
         {
             influx_scope("build_camera");
+            float priority = 0.0f;
             for (auto [entity, transform_comp, camera_comp] 
                 : m_registry.view<const transform_component, camera_component>().each())
             {
-                math::transform3D transform = transform_comp.get_transform();
-                scene.m_camera.m_fov = camera_comp.get_fov();
-                scene.m_camera.m_far_plane = camera_comp.get_farplane();
-                scene.m_camera.m_near_plane = camera_comp.get_nearplane();
-                scene.m_camera.m_transform = transform;
-                scene.m_camera.m_transform.update_matrix();
+                if (camera_comp.get_priority() > priority)
+                {
+                    math::transform3D transform = transform_comp.get_transform();
+                    scene.m_camera.m_fov = camera_comp.get_fov();
+                    scene.m_camera.m_far_plane = camera_comp.get_farplane();
+                    scene.m_camera.m_near_plane = camera_comp.get_nearplane();
+                    scene.m_camera.m_transform = transform;
+                    scene.m_camera.m_transform.update_matrix();
+                    priority = camera_comp.get_priority();
+                }
             }
             debugscene.m_camera = scene.m_camera;
         }
@@ -371,14 +376,14 @@ namespace influx::engine
         {
             const buttonstate& state = inputman.get_keystate(ascii);
             bool is_new = state.m_num_frames == 0u;
-            if (state.m_is_down && is_new)
+            if (state.is_firstframe_down())
             {
                 for (auto [entity, input] : view.each())
                 {
                     if (input.m_on_ascii_down) input.m_on_ascii_down(ascii);
                 }
             }
-            if (!state.m_is_down && is_new)
+            if (state.is_firstframe_up())
             {
                 for (auto [entity, input] : view.each())
                 {
@@ -390,14 +395,14 @@ namespace influx::engine
         {
             const buttonstate& state = inputman.get_keystate(key);
             bool is_new = state.m_num_frames == 0u;
-            if (state.m_is_down && is_new)
+            if (state.is_firstframe_down())
             {
                 for (auto [entity, input] : view.each())
                 {
                     if (input.m_on_keydown) input.m_on_keydown(key);
                 }
             }
-            if (!state.m_is_down && is_new)
+            if (state.is_firstframe_up())
             {
                 for (auto [entity, input] : view.each())
                 {
@@ -422,15 +427,14 @@ namespace influx::engine
         input::for_each_mousebutton([&view, &position](input::e_mouse_button button)
         {
              const buttonstate& state = inputman.get_mousebutton_state(button);
-             bool is_new = state.m_num_frames == 0u;
-             if (state.m_is_down && is_new)
+             if (state.is_firstframe_down())
              {
                  for (auto [entity, input] : view.each())
                  {
                      if (input.m_on_mouse_down) input.m_on_mouse_down(button, position);
                  }
              }
-             if (!state.m_is_down && is_new)
+             if (state.is_firstframe_up())
              {
                  for (auto [entity, input] : view.each())
                  {
