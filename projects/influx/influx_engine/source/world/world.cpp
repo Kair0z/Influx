@@ -6,14 +6,60 @@
 #include "content/content_manager.h"
 #include "editor/editor_manager.h"
 #include "input/input_manager.h"
+#include "editor/editor_manager.h"
 
 // influx::renderer
 #include "influx_renderer/scene.h"
 
 namespace influx::engine
 {
+    class world_ui final : public editor_window
+    {
+    public:
+        virtual void on_run() override
+        {
+            world& world = get_engine()->get_world();
+            set_name("engine:world");
+
+            bool tabbar = ImGui::BeginTabBar("world");
+
+            if (ImGui::BeginTabItem("entities") && tabbar)
+            {
+                uint32 index = 0u;
+                world.visit_entities([&index](const entt::entity& entity)
+                {
+                    const string tag = "entity" + to_string(index++);
+                    if (ImGui::TreeNode(tag.c_str()))
+                    {
+                        ImGui::TreePop();
+                    }
+                });
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("transforms") && tabbar)
+            {
+                uint32 index = 0u;
+                world.visit_components<transform_component>([&index](const transform_component& transform)
+                {
+                    const string tag = "transform" + to_string(index++);
+                    if (ImGui::TreeNode(tag.c_str()))
+                    {
+                        ImGui::TreePop();
+                    }
+                });
+
+                ImGui::EndTabItem();
+            }
+
+            if (tabbar) ImGui::EndTabBar();
+        }
+    };
+
+
     world::world()
     {
+        editor::editor_manager::static_window<world_ui>("world");
     }
 
     world::~world()

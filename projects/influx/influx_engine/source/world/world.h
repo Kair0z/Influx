@@ -58,6 +58,24 @@ namespace influx::engine
 		bool has_component(entt::entity) const;
 		bool is_valid(entt::entity) const;
 
+		template <typename _func>
+		inline void visit_entities(_func&& visit_func) const
+		{
+			for (auto entity : m_registry.view<entt::entity>())
+			{
+				visit_func(entity);
+			}
+		}
+
+		template <typename _c, typename _func>
+		inline void visit_components(_func&& visit_func) const
+		{
+			for (auto [entity, comp] : m_registry.view<const _c>().each())
+			{
+				visit_func(comp);
+			}
+		}
+
 		void clear();
 
 		// scene picking
