@@ -81,7 +81,7 @@ namespace influx::engine
 		struct trace_result final
 		{ 
 			bool m_is_hit = false;
-			cptr<entt::entity> m_entity = nullptr; 
+			cptr<entt::entity> m_entity = nullptr;
 		};
 		trace_result trace(const math::ray& ray, e_collision_layer layer = e_collision_layer::all) const;
 

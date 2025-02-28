@@ -158,6 +158,24 @@ namespace influx::engine::editor
 		
 	}
 
+	void scene_editor::pick_scene(const input::mouse_position& position) const
+	{
+		if (g_camera && g_transform)
+		{
+			world& world = get_engine()->get_world();
+
+			math::ray ray = world.make_viewray(
+				*g_transform, *g_camera, 
+				position.m_client_normalized);
+
+			world::trace_result result = world.trace(ray);
+			if (result.m_is_hit)
+			{
+				engine::log(e_log_category::info, "trace hit!");
+			}
+		}
+	}
+
 	scene_editor::scene_editor()
 	{
 		m_edit_radial.set_radius(60.0f);
@@ -184,26 +202,9 @@ namespace influx::engine::editor
 
 	void scene_editor::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
 	{
-		world& world = get_engine()->get_world();
-		scene& scene = get_engine()->get_current_scene();
-
 		switch (button)
 		{
-		case input::e_mouse_button::left:
-		{
-			if (g_camera && g_transform)
-			{
-				math::ray ray = world.make_viewray(
-					*g_transform, *g_camera, position.m_client_normalized);
-
-				world::trace_result result = world.trace(ray);
-				if (result.m_is_hit)
-				{
-					engine::log(e_log_category::info, "trace hit!");
-				}
-			}
-		}
-		break;
+		case input::e_mouse_button::left: pick_scene(position); break;
 		case input::e_mouse_button::right:
 			m_edit_radial.set_visible(true);
 			m_edit_radial.set_position(position.m_client);
@@ -213,8 +214,6 @@ namespace influx::engine::editor
 
 	void scene_editor::on_mouse_up(input::e_mouse_button button, const input::mouse_position& position)
 	{
-		scene& scene = get_engine()->get_current_scene();
-
 		switch (button)
 		{
 		case input::e_mouse_button::right:

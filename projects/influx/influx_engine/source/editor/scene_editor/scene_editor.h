@@ -28,5 +28,7 @@ namespace influx::engine::editor
 
 		static void on_edit_place();
 		static void on_edit_remove();
+
+		void pick_scene(const input::mouse_position& position) const;
 	};
 }
