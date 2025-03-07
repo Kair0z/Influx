@@ -1,4 +1,21 @@
 
+// test math against glm
+#include "glm/glm.hpp"
+namespace glm
+{
+	template <typename _t, uint32_t _n>
+	inline glm::vec<_n, _t> fill(const _t& value)
+	{
+		glm::vec<_n, _t> result{};
+		for (uint32_t i = 0u; i < _n; ++i)
+		{
+			result[i] = value;
+		}
+		return result;
+	}
+}
+
+
 #include "core/debug.h"	// influx_assert
 #include "core/basetypes.h"
 #include "core/math/vector.h"
@@ -9,19 +26,36 @@
 
 using namespace influx;
 
+template <typename _t>
+static bool is_almost_equal(const _t& a, const _t& b)
+{
+	return math::abs(a - b) < 0.0001f;
+}
+
 #pragma region test_math
+template <typename _t, uint32 _n>
+static bool operator==(const math::vector<_t, _n>& a, const glm::vec<_n, _t>& b)
+{
+	for (uint32 i = 0u; i < _n; ++i)
+	{
+		if (a[i] != b[i]) return false;
+	}
+	return true;
+}
 template <typename _t, uint32 _n>
 void test_math_vector()
 {
 	using value_type = _t;
 	constexpr uint32 size = _n;
 	using vector = math::vector<_t, _n>;
+	using glmvec = glm::vec<_n, _t>;
 
 	// basic vec x vec
 	influx_assert(vector::fill(1) + vector::fill(1) == vector::fill(2));
 	influx_assert(vector::fill(1) - vector::fill(1) == vector::fill(0));
 	influx_assert(vector::fill(4) * vector::fill(4) == vector::fill(16));
 	influx_assert(vector::fill(8) / vector::fill(4) == vector::fill(2));
+
 	influx_assert(vector::dot(vector::fill(1), vector::fill(1)) == size);
 
 	// 3D section
@@ -29,7 +63,8 @@ void test_math_vector()
 	{
 		// cross
 		const vector cross = vector::cross(vector{ 1, 0, 0 }, vector{ 0, 1, 0 });
-		influx_assert(cross == vector(0, 0, 1));
+		influx_assert(is_almost_equal(cross, vector(0, 0, 1)));
+		influx_assert(cross == glm::vec3(0, 0, 1));
 	}
 }
 void test_math_vector_all()
