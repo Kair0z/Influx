@@ -13,13 +13,13 @@ workspace "influx"
     g_dir_root      = "%{wks.location}/../../"
     g_config_string = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
-    -- /influx/projects/...
-    g_dir_projects      = g_dir_root .. "/projects/"
-    g_dir_projects_apps = g_dir_projects .. "/apps/"
-    g_dir_projects_engine = g_dir_projects .. "/influx/"
-    g_dir_projects_misc = g_dir_projects .. "/misc/"
-    g_dir_projects_test = g_dir_projects .. "/test/"
-    g_dir_projects_tools = g_dir_projects .. "/tools/"
+    -- /influx/source/...
+    g_dir_source      = g_dir_root .. "/source/"
+    g_dir_source_apps = g_dir_source .. "/apps/"
+    g_dir_source_engine = g_dir_source .. "/influx/"
+    g_dir_source_misc = g_dir_source .. "/misc/"
+    g_dir_source_test = g_dir_source .. "/test/"
+    g_dir_source_tools = g_dir_source .. "/tools/"
     g_dir_binaries      = g_dir_root .. "/bin/" .. g_config_string .. "/"
     g_dir_int           = g_dir_root .. "/int/" .. g_config_string .. "/"
     g_dir_scripts       = g_dir_root .. "/scripts/"
@@ -28,20 +28,20 @@ workspace "influx"
     g_dir_vendor        = g_dir_root .. "/vendor/"
     g_dir_shaders_engine = g_dir_assets .. "/engine/shaders/"
 
-    -- /influx/projects/influx/<projectname>/include/...
-    g_dir_core_include      = g_dir_projects_engine .. "/influx_core/include/"
-    g_dir_platform_include  = g_dir_projects_engine .. "/influx_platform/include/"
-    g_dir_app_include       = g_dir_projects_engine .. "/influx_application/include/"
-    g_dir_input_include     = g_dir_projects_engine .. "/influx_input/include/"
-    g_dir_async_include     = g_dir_projects_engine .. "/influx_async/include/"
-    g_dir_assets_include    = g_dir_projects_engine .. "/influx_assets/include/"
-    g_dir_render_include    = g_dir_projects_engine .. "/influx_renderer/include/"
-    g_dir_graphics_include  = g_dir_projects_engine .. "/influx_graphics/include/"
-    g_dir_rhi_include       = g_dir_projects_engine .. "/influx_rhi/include/"
-    g_dir_shader_include    = g_dir_projects_engine .. "/influx_shader/include/"
-    g_dir_imgui_include     = g_dir_projects_engine .. "/influx_imgui/include/"
-    g_dir_vulkan_include    = g_dir_projects_engine .. "/influx_graphics/foreign/vulkan/"
-    g_dir_rendergraph_include = g_dir_projects_engine .. "/influx_rendergraph/include/"
+    -- /influx/source/influx/<projectname>/include/...
+    g_dir_core_include      = g_dir_source_engine .. "/influx_core/include/"
+    g_dir_platform_include  = g_dir_source_engine .. "/influx_platform/include/"
+    g_dir_app_include       = g_dir_source_engine .. "/influx_application/include/"
+    g_dir_input_include     = g_dir_source_engine .. "/influx_input/include/"
+    g_dir_async_include     = g_dir_source_engine .. "/influx_async/include/"
+    g_dir_assets_include    = g_dir_source_engine .. "/influx_assets/include/"
+    g_dir_render_include    = g_dir_source_engine .. "/influx_renderer/include/"
+    g_dir_graphics_include  = g_dir_source_engine .. "/influx_graphics/include/"
+    g_dir_rhi_include       = g_dir_source_engine .. "/influx_rhi/include/"
+    g_dir_shader_include    = g_dir_source_engine .. "/influx_shader/include/"
+    g_dir_imgui_include     = g_dir_source_engine .. "/influx_imgui/include/"
+    g_dir_vulkan_include    = g_dir_source_engine .. "/influx_graphics/foreign/vulkan/"
+    g_dir_rendergraph_include = g_dir_source_engine .. "/influx_rendergraph/include/"
     
     -- vendor libraries
     g_dir_vendor_libraries = g_dir_vendor .. "/lib/x64/"
@@ -72,33 +72,33 @@ workspace "influx"
     -- projects
     printf(".. influx engine")
     group "influx engine"
-    for _, dir in ipairs(os.matchdirs("../projects/influx/" .. "/*")) do
+    for _, dir in ipairs(os.matchdirs("../source/influx/" .. "/*")) do
         include(dir)
     end
     group ""
 
     printf(".. apps ")
     group "apps"
-    for _, dir in ipairs(os.matchdirs("../projects/apps/" .. "/*")) do
+    for _, dir in ipairs(os.matchdirs("../source/apps/" .. "/*")) do
         include(dir)
     end
     group ""
 
     printf(".. test ")
     group "test"
-    for _, dir in ipairs(os.matchdirs("../projects/test/" .. "/*")) do
+    for _, dir in ipairs(os.matchdirs("../source/test/" .. "/*")) do
         include(dir)
     end
 
     printf(".. tools ")
     group "tools"
-    for _, dir in ipairs(os.matchdirs("../projects/tools/" .. "/*")) do
+    for _, dir in ipairs(os.matchdirs("../source/tools/" .. "/*")) do
         include(dir)
     end
 
     printf(".. misc ")
     group "misc"
-    for _, dir in ipairs(os.matchdirs("../projects/misc/" .. "/*")) do
+    for _, dir in ipairs(os.matchdirs("../source/misc/" .. "/*")) do
         include(dir)
     end
     group ""

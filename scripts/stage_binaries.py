@@ -12,8 +12,8 @@ parser.add_argument('--deps', nargs='*')
 args = parser.parse_args()
 
 influx_root = "../"
-influx_projects = influx_root + "projects/influx/"
-influx_projects_engine = influx_projects
+influx_source = influx_root + "projects/influx/"
+influx_source_engine = influx_source
 influx_staged = influx_root + "/staged/"
 influx_bin = influx_root + "/bin/" + args.config + "/"
 influx_bin_game = influx_bin + args.game + "/"

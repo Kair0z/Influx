@@ -52,35 +52,35 @@ function new_influx_project(_name, _kind)
 end
 
 function new_influx_app(name)
-    project_dir = g_dir_projects_apps .. "/%{prj.name}/"
+    project_dir = g_dir_source_apps .. "/%{prj.name}/"
     new_influx_project(name, "ConsoleApp")
     fastuptodate(false)
 end
 
 function new_influx_game(name)
-    project_dir = g_dir_projects_apps .. "/%{prj.name}/"
+    project_dir = g_dir_source_apps .. "/%{prj.name}/"
     new_influx_project(name, "SharedLib")
 end
 
 function new_influx_test(name)
-    project_dir = g_dir_projects_test .. "/%{prj.name}/"
+    project_dir = g_dir_source_test .. "/%{prj.name}/"
     new_influx_project(name, "ConsoleApp")
     fastuptodate(false)
 end
 
 function new_influx_tool(name)
-    project_dir = g_dir_projects_tools .. "/%{prj.name}/"
+    project_dir = g_dir_source_tools .. "/%{prj.name}/"
     new_influx_project(name, "ConsoleApp")
     fastuptodate(false)
 end
 
 function new_influx_dll(name)
-    project_dir = g_dir_projects_engine .. "/%{prj.name}/"
+    project_dir = g_dir_source_engine .. "/%{prj.name}/"
     new_influx_project(name, "SharedLib")
 end
 
 function new_influx_statlib(name)
-    project_dir = g_dir_projects_engine .. "/%{prj.name}/"
+    project_dir = g_dir_source_engine .. "/%{prj.name}/"
     new_influx_project(name, "StaticLib")
 end
 
@@ -127,7 +127,7 @@ end
 
 function set_influx_includes(...)
     for i, str in ipairs(...) do
-        includedirs( g_dir_projects_engine .. "/" .. str .. "/include/" )
+        includedirs( g_dir_source_engine .. "/" .. str .. "/include/" )
     end
 end
 
