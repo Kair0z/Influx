@@ -166,7 +166,7 @@ namespace influx::renderer
     inline frontend::per_instance translate(const mesh_instance& mesh, const scene& scene)
     {
         frontend::per_instance instance_data{};
-        instance_data.m_transform = mesh.get_transform(scene);
+        instance_data.m_transform = scene.get_transform( mesh.m_transform_id );
         instance_data.m_colour = mesh.m_per_instance_colour;
         return instance_data;
     }

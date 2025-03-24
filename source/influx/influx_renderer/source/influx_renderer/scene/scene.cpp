@@ -3,11 +3,6 @@
 
 namespace influx::renderer
 {
-	const math::matrix4x4f& mesh_instance::get_transform(const scene& scene) const
-	{
-		return scene.get_transform(m_transform_id);
-	}
-
 	bool scene::is_empty() const
 	{
 		return !has_meshes();

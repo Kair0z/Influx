@@ -449,7 +449,7 @@ namespace influx::engine
 		influx_property_readwrite(float, priority);
 
 	private:
-		influx::scene::camera m_camera{};
+		influx::camera m_camera{};
 	};
 
 	class input_component final 

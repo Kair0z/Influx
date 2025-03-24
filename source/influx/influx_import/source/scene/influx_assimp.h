@@ -210,9 +210,9 @@ namespace influx
 		return result;
 	}
 
-	influx::scene::camera translate(const aiCamera& camera)
+	influx::camera translate(const aiCamera& camera)
 	{
-		influx::scene::camera result{};
+		influx::camera result{};
 		result.set_nearplane(camera.mClipPlaneNear);
 		result.set_farplane(camera.mClipPlaneFar);
 		result.set_fov(camera.mHorizontalFOV);

@@ -12,6 +12,7 @@
 #include "core/math/transform.h"
 #include "core/material/material.h"
 #include "core/scene/light.h"
+#include "core/scene/camera.h"
 
 // influx::renderer
 #include "types.h"
@@ -21,30 +22,26 @@ struct ImGuiContext;
 
 namespace influx::renderer
 {
-	struct scene;
+	class scene;
 
 	static constexpr uint32 k_invalid_id = (uint32)-1;
-	using material_id	= uint32;
-	using camera_id		= uint32;
-	using mesh_inst_id	= uint32;
-	using mesh_id		= uint32;
-	using light_id		= uint32;
-	using transform_id	= uint32;
+	using object_id		= uint32;
+	using material_id	= object_id;
+	using camera_id		= object_id;
+	using mesh_inst_id	= object_id;
+	using mesh_id		= object_id;
+	using light_id		= object_id;
+	using transform_id	= object_id;
 
 	struct light final
 	{
-		light_id m_id = k_invalid_id;
 		influx::light m_light;
-		math::float3 m_world_position;
-		math::float3 m_world_forward;
+		transform_id m_transform_id = k_invalid_id;
 	};
 
 	struct camera final
 	{
-		camera_id m_id = k_invalid_id;
-		float m_fov = 90.0f;
-		float m_near_plane	= 0.0001f;
-		float m_far_plane	= 1000.0f;
+		influx::camera m_camera;
 		transform_id m_transform_id = k_invalid_id;
 	};
 
@@ -67,41 +64,26 @@ namespace influx::renderer
 		material_id	m_mat_id		= k_invalid_id;
 		transform_id m_transform_id	= k_invalid_id;
 		math::vectorf4 m_per_instance_colour = {};
-
-		const math::matrix4x4f& get_transform(const scene&) const;
 	};
 
-	struct scene final
+	class scene final
 	{
 	public:
 		scene() = default;
 		
-		INFLUX_RENDER_API
-		bool is_empty() const;
+		INFLUX_RENDER_API bool is_empty() const;
 
-		// adding transforms
-		INFLUX_RENDER_API
-		transform_id add_transform(const math::matrix4x4f& matrix);
-		
-		INFLUX_RENDER_API
-		math::matrix4x4f& get_transform(const transform_id& id);
-		
-		INFLUX_RENDER_API
-		const math::matrix4x4f& get_transform(const transform_id& id) const;
+		INFLUX_RENDER_API transform_id add_transform(const math::matrix4x4f& matrix);
+		INFLUX_RENDER_API math::matrix4x4f& get_transform(const transform_id& id);
+		INFLUX_RENDER_API const math::matrix4x4f& get_transform(const transform_id& id) const;
 
 		// adding meshes
-		INFLUX_RENDER_API 
-		mesh_instance& add_mesh(const mesh_id& mesh_id, const math::matrix4x4f& transform = math::matrix4x4f::identity());
-		INFLUX_RENDER_API 
-		mesh_instance& get_mesh(const mesh_inst_id& id);
-		INFLUX_RENDER_API 
-		mesh_instance& get_last_mesh();
-		INFLUX_RENDER_API 
-		uint32 get_num_meshes() const;
-		INFLUX_RENDER_API 
-		bool has_meshes() const;
-		INFLUX_RENDER_API 
-		const vector<mesh_instance>& get_meshes() const;
+		INFLUX_RENDER_API mesh_instance& add_mesh(const mesh_id& mesh_id, const math::matrix4x4f& transform = math::matrix4x4f::identity());
+		INFLUX_RENDER_API mesh_instance& get_mesh(const mesh_inst_id& id);
+		INFLUX_RENDER_API mesh_instance& get_last_mesh();
+		INFLUX_RENDER_API uint32 get_num_meshes() const;
+		INFLUX_RENDER_API bool has_meshes() const;
+		INFLUX_RENDER_API const vector<mesh_instance>& get_meshes() const;
 		
 		// adding lights
 		light& add_light(const influx::light& light, const math::matrix4x4f& transform = math::matrix4x4f::identity());

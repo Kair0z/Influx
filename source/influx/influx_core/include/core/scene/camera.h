@@ -3,7 +3,7 @@
 #include "core/macros.h"
 #include "core/math/matrix.h"
 
-namespace influx::scene
+namespace influx
 {
 	class camera final
 	{

@@ -15,7 +15,6 @@ namespace glm
 	}
 }
 
-
 #include "core/debug.h"	// influx_assert
 #include "core/basetypes.h"
 #include "core/math/vector.h"
@@ -69,7 +68,7 @@ void test_math_vector()
 }
 void test_math_vector_all()
 {
-	// static_assert(_dim != 0u, "influx::vector<_t, _dim> ¬ Cannot instantiate zero-sized vector (_dim == 0)! ");
+	// static_assert(_dim != 0u, "influx::vector<_t, _dim> ï¿½ Cannot instantiate zero-sized vector (_dim == 0)! ");
 	// test_math_vector<float, 0u>();
 
 	test_math_vector<double, 1u>();
