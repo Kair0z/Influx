@@ -183,12 +183,12 @@ namespace influx::renderer
 
 	bool scene::is_debug_render_enabled() const
 	{
-		return has_flag(m_renderflags, e_scene_render_flags::debug_enabled);
+		return has_flag(m_renderflags, e_scene_render_flags::enable_debug);
 	}
 
 	void scene::set_debug_render_enabled(bool enabled)
 	{
-		set_flag(m_renderflags, e_scene_render_flags::debug_enabled, enabled);
+		set_flag(m_renderflags, e_scene_render_flags::enable_debug, enabled);
 	}
 
 	view_matrices::view_matrices(const math::matrix4x4f& transform, const camera& camera)

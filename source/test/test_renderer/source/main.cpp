@@ -21,7 +21,9 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 	const string filename = str::split(str::split(filepath, "/").back(), ".").front();
 	static vector<renderer::camera> cameras{};
 	static vector<math::matrix4x4f> transforms{};
-	static vector<string> names{};
+	static vector<uint32> mesh_ids{};
+	uint32 chosen_camera_transform_idx = 0u;
+	uint32 chosen_camera_idx = 0u;
 
 	static bool once = true;
 	if (once)
@@ -30,28 +32,33 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 		imp::scene_data loaded_scene{};
 		influx_assert(imp::load_scene_file(filepath, loaded_scene, args));
 
+		// get the cameras
 		for (uint32 i = 0u; i < loaded_scene.m_cameras.size(); ++i)
 		{
 			const imp::scene_data::camera& camera = loaded_scene.m_cameras[i];
 
 			renderer::camera render_camera{};
-			render_camera.m_fov = 90.0f;// camera.m_camera.get_fov();
-			render_camera.m_far_plane = camera.m_camera.get_farplane();
-			render_camera.m_near_plane = camera.m_camera.get_nearplane();
-			render_camera.m_transform.set_matrix(camera.m_world_transform);
-			//render_camera.m_transform.set_position({ 0,0,10 });
-			//render_camera.m_transform.look_at({});
+			render_camera.m_camera.set_fov(90.0f);// camera.m_camera.get_fov();
+			render_camera.m_camera.set_farplane(camera.m_camera.get_farplane());
+			render_camera.m_camera.set_nearplane(camera.m_camera.get_nearplane());
 			cameras.push_back(render_camera);
+			transforms.push_back(camera.m_world_transform);
 		}
 
-		renderer::camera custom_camera{};
-		custom_camera.m_transform = math::transform3D::identity();
-		custom_camera.m_transform.set_position({ 0,0,500 });
-		custom_camera.m_transform.look_at({});
-		custom_camera.m_far_plane = 1000.0f;
-		custom_camera.m_near_plane = 0.001f;
-		custom_camera.m_fov = 110.0f;
-		cameras.push_back(custom_camera);
+		// our own camera
+		{
+			math::transform3D custom_transform = math::transform3D::identity();
+			custom_transform.set_position({ 0,0,500 });
+			custom_transform.look_at({});
+			transforms.push_back(custom_transform.get_matrix());
+			
+			renderer::camera custom_camera{};
+			custom_camera.m_camera.set_farplane(1000.0f);
+			custom_camera.m_camera.set_nearplane(0.001f);
+			custom_camera.m_camera.set_fov(110.0f);
+			cameras.push_back(custom_camera);
+		}
+		
 
 		for (uint32 i = 0u; i < loaded_scene.get_num_meshes(); ++i)
 		{
@@ -76,7 +83,7 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 			}
 
 			const string mesh_name = filename + "_" + to_string(i);
-			names.push_back(mesh_name);
+			mesh_ids.push_back(i);
 			transforms.push_back(mesh.m_world_transform);
 
 			// load to renderer
@@ -86,10 +93,13 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 	}
 
 	// load the scene with the stuff
-	out_scene.m_camera = cameras[0u];
-	for (uint32 i = 0u; i < names.size(); ++i)
+	out_scene.set_camera(
+		cameras[chosen_camera_idx], 
+		transforms[chosen_camera_transform_idx]);
+
+	for (uint32 i = 0u; i < mesh_ids.size(); ++i)
 	{
-		out_scene.add_mesh(names[i], transforms[i]);
+		out_scene.add_mesh(mesh_ids[i], transforms[i]);
 	}
 }
 
@@ -160,20 +170,22 @@ void load_shaders()
 	renderer::load(loaded_shaders[4].m_signature, render_shaders[4]);
 }
 
-void render_quaternion_tests(renderer::scene_debug& debug_scene)
+void render_quaternion_tests(renderer::scene& scene)
 {
 	static math::matrix4x4f transform = math::matrix4x4f::identity();
 	static bool once = true;
 	if (once)
 	{
-		debug_scene.m_camera.m_transform = math::matrix4x4f::make_transform_RH(
+		scene.set_camera({}, 
+		
+			math::matrix4x4f::make_transform_RH(
 			{ 0, 0, 10 }, // position
 			{ 0, 0, -1 }  // forward
-		);
+		));
 
 		math::boxf box = math::boxf::identity();
-		debug_scene.add_gizmo_transform(math::transform3D::identity());
-		debug_scene.add_box(box.get_transformed3D(transform), colour::k_red);
+		scene.add_gizmo_transform(math::transform3D::identity());
+		scene.add_box(box.get_transformed3D(transform), colour::k_red);
 		once = false;
 	}
 }
@@ -214,10 +226,9 @@ int main()
 	scene_load_args.m_pre_scale = 1.0f;
 	// load_scene("D:/Git/Influx/assets/engine/meshes/box.fbx", scene_load_args, scene_to_draw);
 
-	renderer::scene_debug debug_scene{};
 	while (true)
 	{
-		render_quaternion_tests(debug_scene);
+		render_quaternion_tests(scene_to_draw);
 
 		renderer::target* window_targets[num_windows]
 		{
@@ -242,8 +253,6 @@ int main()
 		}
 		
 		renderer::draw_scene(scene_to_draw, *window_targets[1]);
-
-		renderer::draw_debug(debug_scene, *window_targets[2]);
 
 		renderer::end_frame();
 

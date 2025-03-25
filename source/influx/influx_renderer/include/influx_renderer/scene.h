@@ -80,7 +80,8 @@ namespace influx::renderer
 	enum class e_scene_render_flags : uint8
 	{
 		none = 0,
-		debug_enabled = 1 << 0
+		enable_debug = 1 << 0,
+		enable_all = enable_debug
 	};
 
 	class scene final

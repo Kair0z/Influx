@@ -205,6 +205,7 @@ namespace influx::engine
 				renderer::draw_scene(world_scene, *mp_scene_target);
 			}
 
+			// shader toy thingy
 #if 0
 			shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");
 			if (editor.can_render())
