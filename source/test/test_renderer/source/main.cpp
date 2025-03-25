@@ -20,11 +20,13 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 {
 	const string filename = str::split(str::split(filepath, "/").back(), ".").front();
 	static vector<renderer::camera> cameras{};
-	static vector<math::matrix4x4f> transforms{};
+	static vector<math::matrix4x4f> mesh_transforms{};
+	static vector<math::matrix4x4f> camera_transforms{};
 	static vector<uint32> mesh_ids{};
-	uint32 chosen_camera_transform_idx = 0u;
+
 	uint32 chosen_camera_idx = 0u;
 
+	// load the scene with the stuff only once
 	static bool once = true;
 	if (once)
 	{
@@ -36,21 +38,19 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 		for (uint32 i = 0u; i < loaded_scene.m_cameras.size(); ++i)
 		{
 			const imp::scene_data::camera& camera = loaded_scene.m_cameras[i];
-
+			camera_transforms.push_back(camera.m_world_transform);
 			renderer::camera render_camera{};
 			render_camera.m_camera.set_fov(90.0f);// camera.m_camera.get_fov();
 			render_camera.m_camera.set_farplane(camera.m_camera.get_farplane());
 			render_camera.m_camera.set_nearplane(camera.m_camera.get_nearplane());
 			cameras.push_back(render_camera);
-			transforms.push_back(camera.m_world_transform);
 		}
-
 		// our own camera
 		{
 			math::transform3D custom_transform = math::transform3D::identity();
 			custom_transform.set_position({ 0,0,500 });
 			custom_transform.look_at({});
-			transforms.push_back(custom_transform.get_matrix());
+			camera_transforms.push_back(custom_transform.get_matrix());
 			
 			renderer::camera custom_camera{};
 			custom_camera.m_camera.set_farplane(1000.0f);
@@ -59,7 +59,7 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 			cameras.push_back(custom_camera);
 		}
 		
-
+		// convert the meshes
 		for (uint32 i = 0u; i < loaded_scene.get_num_meshes(); ++i)
 		{
 			const imp::mesh_data& mesh = loaded_scene.get_mesh(i);
@@ -84,7 +84,7 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 
 			const string mesh_name = filename + "_" + to_string(i);
 			mesh_ids.push_back(i);
-			transforms.push_back(mesh.m_world_transform);
+			mesh_transforms.push_back(mesh.m_world_transform);
 
 			// load to renderer
 			renderer::load(mesh_name, render_data, false);
@@ -92,14 +92,15 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 		once = false;
 	}
 
-	// load the scene with the stuff
+	// choose the camera
 	out_scene.set_camera(
-		cameras[chosen_camera_idx], 
-		transforms[chosen_camera_transform_idx]);
+		cameras[chosen_camera_idx],
+		camera_transforms[chosen_camera_idx]);
 
+	// add all meshes
 	for (uint32 i = 0u; i < mesh_ids.size(); ++i)
 	{
-		out_scene.add_mesh(mesh_ids[i], transforms[i]);
+		out_scene.add_mesh(mesh_ids[i], mesh_transforms[i]);
 	}
 }
 
@@ -176,8 +177,9 @@ void render_quaternion_tests(renderer::scene& scene)
 	static bool once = true;
 	if (once)
 	{
-		scene.set_camera({}, 
-		
+		scene.set_camera(
+			renderer::camera{},
+			
 			math::matrix4x4f::make_transform_RH(
 			{ 0, 0, 10 }, // position
 			{ 0, 0, -1 }  // forward

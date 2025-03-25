@@ -146,6 +146,12 @@ namespace influx::renderer
 		void set_camera(const camera& camera, const math::matrix4x4f& transform);
 		
 		INFLUX_RENDER_API
+		void set_camera(const camera& camera);
+
+		INFLUX_RENDER_API
+		void set_camera_transform(const math::matrix4x4f& transform);
+
+		INFLUX_RENDER_API
 		const view_matrices& get_view_matrices() const;
 
 		// debug lines

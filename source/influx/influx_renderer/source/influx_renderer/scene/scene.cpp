@@ -98,9 +98,24 @@ namespace influx::renderer
 
 	void scene::set_camera(const camera& camera, const math::matrix4x4f& transform)
 	{
-		m_camera = camera;
+		set_camera(camera);
+
 		m_camera.m_transform_id = add_transform(transform);
 		m_viewmatrices = view_matrices(get_transform(m_camera.m_transform_id), camera);
+	}
+
+	void scene::set_camera(const camera& camera)
+	{
+		// preserve the existing transform id!
+		transform_id trans_id = m_camera.m_transform_id;
+		m_camera = camera;
+		m_camera.m_transform_id = trans_id;
+	}
+
+	void scene::set_camera_transform(const math::matrix4x4f& transform)
+	{
+		math::matrix4x4f& matrix = get_transform(m_camera.m_transform_id);
+		matrix = transform;
 	}
 
 	const view_matrices& scene::get_view_matrices() const
