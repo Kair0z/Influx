@@ -2,6 +2,7 @@
 #include "influx_platform/platform.h"
 
 // influx::core
+#include "core/string.h"
 #include "core/container/vector.h"
 #include "core/math/vector.h"
 #include "core/geometry/rect.h"
@@ -29,6 +30,7 @@ namespace influx::platform
 		INFLUX_PLATFORM_API
 		math::rectu get_rect(e_space space = e_space::work) const;
 
+		string m_name;
 		math::vectorf2 m_mainpos;
 		math::vectoru2 m_mainsize;
 		math::vectorf2 m_workpos;

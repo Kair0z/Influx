@@ -65,8 +65,8 @@ namespace influx::platform
 
         ::EnumDisplayMonitors(nullptr, nullptr, [](HMONITOR mon, HDC, LPRECT, LPARAM) -> BOOL
         {
-            MONITORINFO info = {};
-            info.cbSize = sizeof(MONITORINFO);
+            MONITORINFOEX info = {};
+            info.cbSize = sizeof(MONITORINFOEX);
             if (!::GetMonitorInfo(mon, &info))
             {
                 return TRUE;
@@ -80,7 +80,7 @@ namespace influx::platform
             new_monitor.m_dpi_scale = get_dpi(mon);
             new_monitor.m_is_primary = info.dwFlags & MONITORINFOF_PRIMARY;
             new_monitor.m_platform_handle = (void*)mon;
-
+            new_monitor.m_name = to_string(info.szDevice);
             if (new_monitor.m_dpi_scale <= 0.0f)
                 return TRUE; // Some accessibility applications are declaring virtual monitors with a DPI of 0, see #7902.
             

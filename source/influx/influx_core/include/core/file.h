@@ -28,6 +28,7 @@ namespace influx
 			m_directory = path.parent_path().string() + "/";
 			m_path_full = path.string();
 			m_extension = path.extension().string();
+			m_filename_without_extension = m_filename.substr(0u, m_filename.size() - m_extension.size());
 		}
 
 		file(const char* path)
@@ -157,6 +158,15 @@ namespace influx
 			return result_lines;
 		}
 
+		static string content_to_string(const string& path)
+		{
+			std::ifstream file(path); // Open the file
+
+			std::stringstream buffer;
+			buffer << file.rdbuf(); // Read the entire file into the buffer
+			return buffer.str();
+		}
+
 		static bool clear(const string& path)
 		{
 			if (exists(path))
@@ -225,6 +235,7 @@ namespace influx
 
 		string m_path_full;
 		string m_filename;
+		string m_filename_without_extension;
 		string m_extension;
 		string m_directory;
 	};

@@ -88,6 +88,8 @@ namespace influx::imp
 	INFLUX_ASSETS_API bool load_shader_file(const string& filepath, 
 		shader_data& out_shader, const shader::compile_args& args = {});
 
+	INFLUX_ASSETS_API bool load_shader_file(const string& filepath,
+		vector<shader_data>& out_shaders, const shader::compile_args& args = {});
 
 	/* Loads an 2D-image (.png, .jpeg) */
 	struct image_load_args final

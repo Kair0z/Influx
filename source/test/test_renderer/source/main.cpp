@@ -6,11 +6,14 @@ extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion =
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
 #include "influx_platform/window.h"
+#include "influx_platform/monitor.h"
+
 #include "influx_graphics/device.h"
 #include "influx_renderer.h"
 
 #include "core/math/vectortools.h"
 #include "core/math/random.h"
+#include "core/time.h"
 
 #include "influx_import.h"
 
@@ -109,7 +112,7 @@ void load_shaders()
 	using namespace influx;
 
 	// shaders
-	static const string shaders_folder = "E:/Git/Influx/assets/engine/shaders/";
+	static const string shaders_folder = "D:/Git/Influx/assets/engine/shaders/";
 
 	// global args
 	shader::compile_args args{};
@@ -119,9 +122,12 @@ void load_shaders()
 	args.m_defines = {};
 	args.m_compile_debug = INFLUX_DEBUG;
 	args.m_pbd = INFLUX_DEBUG;
-	args.m_pdb_folder = "E:/Git/Influx/int/shaderdebug/";
+	args.m_pdb_folder = "D:/Git/Influx/int/shaderdebug/";
 
 	imp::shader_data loaded_shaders[5u]{};
+
+	vector<imp::shader_data> all_shaders{};
+	imp::load_shader_file(shaders_folder + "/source/debug_shaders.hlsl", all_shaders, args);
 
 	// vs
 	args.m_signature.m_type = shader::e_shader_type::vs;
@@ -171,7 +177,7 @@ void load_shaders()
 	renderer::load(loaded_shaders[4].m_signature, render_shaders[4]);
 }
 
-void render_quaternion_tests(renderer::scene& scene)
+void set_quaternion_scene(renderer::scene& scene)
 {
 	static math::matrix4x4f transform = math::matrix4x4f::identity();
 	static bool once = true;
@@ -197,8 +203,10 @@ int main()
 	using namespace influx;
 	using namespace influx::renderer;
 
+	vector<platform::monitor> monitors = platform::monitor::query_monitors();
 	platform::window_desc window_desc{};
-	window_desc.m_dimensions = { 640u, 480u };
+	window_desc.m_dimensions = { 360, 360 };
+	const math::vectoru2 window_half_size = window_desc.m_dimensions / 2;
 	window_desc.m_name = "renderer";
 
 	static constexpr uint32 num_windows = 3u;
@@ -226,12 +234,38 @@ int main()
 	imp::scene_load_args scene_load_args{};
 	scene_load_args.m_bake_transforms = false;
 	scene_load_args.m_pre_scale = 1.0f;
-	// load_scene("D:/Git/Influx/assets/engine/meshes/box.fbx", scene_load_args, scene_to_draw);
+	load_scene("D:/Git/Influx/assets/engine/meshes/box.fbx", scene_load_args, scene_to_draw);
+	set_quaternion_scene(scene_to_draw);
 
+	static const math::colour_rgba clear_colours[num_windows]
+	{
+		colour::k_red,
+		colour::k_green,
+		colour::k_blue
+	};
+
+	time::point time_last_tick = time::get_now();
+	float delta_seconds = 0.0f;
+	float seconds = 0.0f;
 	while (true)
 	{
-		render_quaternion_tests(scene_to_draw);
+		delta_seconds = time::get_ms_since<float>(time_last_tick) * 0.001;
+		time_last_tick = time::get_now();
+		seconds += delta_seconds;
 
+		// update:
+		const uint32 radius = 200;
+		for (uint32 i = 0u; i < num_windows; ++i)
+		{
+			const platform::monitor& monitor = monitors[2];
+			const math::vectoru2 monitor_center = monitor.get_rect().get_mid();
+			const float angle = seconds + (i * math::k_PIDouble * 0.33f);
+			uint32 x = radius * math::cos(angle);
+			uint32 y = radius * math::sin(angle);
+			windows[i]->set_position(monitor_center + math::vectoru2{ x,y } - window_half_size);
+		}
+
+		// render:
 		renderer::target* window_targets[num_windows]
 		{
 			renderer::get_window_target(*windows[0u]),
@@ -240,13 +274,6 @@ int main()
 		};
 
 		renderer::start_frame();
-
-		math::colour_rgba clear_colours[num_windows]
-		{
-			colour::k_red,
-			colour::k_green,
-			colour::k_blue
-		};
 
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
