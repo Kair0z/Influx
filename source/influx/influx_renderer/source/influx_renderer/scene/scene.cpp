@@ -62,8 +62,7 @@ namespace influx::renderer
 	{
 		light result{};
 		result.m_light = _light;
-		result.m_world_forward;
-		result.m_world_position;
+		result.m_transform_id = add_transform(transform);
 		m_lights.push_back(result);
 		return m_lights.back();
 	}
@@ -94,7 +93,7 @@ namespace influx::renderer
 	}
 	const math::matrix4x4f& scene::get_camera_transform() const
 	{
-		return m_transforms[m_camera.m_id];
+		return m_transforms[m_camera.m_transform_id];
 	}
 
 	void scene::set_camera(const camera& camera, const math::matrix4x4f& transform)
@@ -109,28 +108,98 @@ namespace influx::renderer
 		return m_viewmatrices;
 	}
 
+	void scene::add_box(const math::boxf& box, const math::colour_rgba& colour)
+	{
+		const math::vectorf3& max = box.get_maximum();
+		const math::vectorf3& min = box.get_minimum();
+		const math::vectorf3& mid = box.get_middle();
+		const math::vectorf3 dimensions = max - min;
+
+		// bottom square
+		const math::float3 bottoms[4] =
+		{
+			min,
+			min + dimensions * math::float3{+1.0f,0.0f,0.0f},
+			min + dimensions * math::float3{0.0f,0.0f,+1.0f},
+			min + dimensions * math::float3{+1.0f,0.0f,+1.0f}
+		};
+		add_line(bottoms[0], bottoms[1], colour);
+		add_line(bottoms[0], bottoms[2], colour);
+		add_line(bottoms[2], bottoms[3], colour);
+		add_line(bottoms[1], bottoms[3], colour);
+
+		// top square
+		const math::float3 tops[4] =
+		{
+			max + dimensions * math::float3{-1.0f,0.0f,-1.0f},
+			max + dimensions * math::float3{0.0f,0.0f,-1.0f},
+			max + dimensions * math::float3{-1.0f,0.0f,0.0f},
+			max
+		};
+		add_line(tops[0], tops[1], colour);
+		add_line(tops[0], tops[2], colour);
+		add_line(tops[2], tops[3], colour);
+		add_line(tops[1], tops[3], colour);
+
+		// vertical lines
+		for (uint8 i = 0u; i < 4u; ++i)
+		{
+			add_line(bottoms[i], tops[i], colour);
+		}
+	}
+
+	void scene::add_line(const line& line)
+	{
+		m_lines.push_back(line);
+	}
+
+	void scene::add_line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour)
+	{
+		add_line({ start, end, colour });
+	}
+
+	void scene::add_point(const math::float3& point, const math::colour_rgba& colour)
+	{
+		add_line({ point, point, colour });
+	}
+
+	void scene::add_gizmo_transform(const math::transform3D& transform)
+	{
+		const math::float3& position = transform.get_position();
+		add_line(position, position + transform.get_right(), { 1,0,0,1 });
+		add_line(position, position + transform.get_up(), { 0,1,0,1 });
+		add_line(position, position + transform.get_forward(), { 0,0,1,1 });
+	}
+
+	const vector<line>& scene::get_lines() const
+	{
+		return m_lines;
+	}
+
+	bool scene::has_debug_primitives() const
+	{
+		return !m_lines.empty();
+	}
+
+	bool scene::is_debug_render_enabled() const
+	{
+		return has_flag(m_renderflags, e_scene_render_flags::debug_enabled);
+	}
+
+	void scene::set_debug_render_enabled(bool enabled)
+	{
+		set_flag(m_renderflags, e_scene_render_flags::debug_enabled, enabled);
+	}
+
 	view_matrices::view_matrices(const math::matrix4x4f& transform, const camera& camera)
 	{
 		float aspect_ratio = 0.0f;
 		m_transform = transform;
-		m_projection = math::matrix4x4f::make_projection_RH(camera.m_fov, aspect_ratio, camera.m_near_plane, camera.m_far_plane);
+		m_projection = camera.m_camera.get_projection();
 		m_view = transform.inverted();
 		m_view.set_column(2u, -m_view.get_column(2u));
 		m_viewprojection = m_view * m_projection;
 		m_inv_viewprojection = m_viewprojection.inverted();
 		m_inv_projection = m_projection.inverted();
-	}
-
-	void scene_debug::set_camera(const camera& camera, const math::matrix4x4f& transform)
-	{
-		m_viewmatrices = view_matrices(transform, camera);
-	}
-	const view_matrices& scene_debug::get_view_matrices() const
-	{
-		return m_viewmatrices;
-	}
-	const vector<scene_debug::line>& scene_debug::get_lines() const
-	{
-		return m_lines;
 	}
 }

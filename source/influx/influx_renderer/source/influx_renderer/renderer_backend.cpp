@@ -243,7 +243,35 @@ namespace influx::renderer
 
     result<bool> renderer_backend::draw_scene(const scene& scene, const target& target)
     {
+        // scene render
         mp_scene_renderer->render(*m_rendergraph, scene, target);
+
+        // debug render
+        {
+            static string color_name{}; color_name = target.get_resource()->get_name().get();
+            m_rendergraph->import_texture(color_name, target.get_resource());
+
+            auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
+                [&target](rendergraph::rgpass_builder& builder)
+                {
+                    rendergraph::rgaccess access{};
+                    access.m_load = rendergraph::e_rg_load::preserve;
+                    access.m_store = rendergraph::e_rg_store::preserve;
+                    builder.write_rendertarget(color_name, access);
+
+                    builder.set_viewport(target.get_width(), target.get_height());
+                },
+                [this, &scene, &target](rendergraph::rgpass_context& context)
+                {
+                    influx_scope("renderer_backend::draw_debug::record");
+                    graphics::commandlist& commandlist = context.get_commandlist();
+
+                    mp_debug_renderer->render(&commandlist, scene, target);
+                });
+
+            pass->set_name(RGNAME("draw_debug"));
+        }
+
         return true;
     }
 
@@ -274,6 +302,7 @@ namespace influx::renderer
 
         pass->set_name(RGNAME("draw_imgui"));
 #endif
+
         return true;
     }
 
@@ -326,34 +355,6 @@ namespace influx::renderer
     result<bool> renderer_backend::draw_2D(const scene2D& scene, const target& target)
     {
         influx_scope("renderer_backend::draw2D::record");
-        return true;
-    }
-
-    result<bool> renderer_backend::draw_debug(const scene_debug& scene, const target& target)
-    {
-        static string color_name{}; color_name = target.get_resource()->get_name().get();
-        m_rendergraph->import_texture(color_name, target.get_resource());
-
-        auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-            [&target](rendergraph::rgpass_builder& builder)
-            {
-                rendergraph::rgaccess access{};
-                access.m_load = rendergraph::e_rg_load::preserve;
-                access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(color_name, access);
-
-                builder.set_viewport(target.get_width(), target.get_height());
-            },
-            [this, &scene, &target](rendergraph::rgpass_context& context)
-            {
-                influx_scope("renderer_backend::draw_debug::record");
-                graphics::commandlist& commandlist = context.get_commandlist();
-
-                mp_debug_renderer->render(&commandlist, scene, target);
-            });
-
-        pass->set_name(RGNAME("draw_debug"));
-
         return true;
     }
 
@@ -738,11 +739,6 @@ namespace influx::renderer
     result<bool> draw_2D(const scene2D& scene, const target& target)
     {
         return renderer_backend::get_instance().draw_2D(scene, target);
-    }
-
-    result<bool> draw_debug(const scene_debug& scene, const target& target)
-    {
-        return renderer_backend::get_instance().draw_debug(scene, target);
     }
 
     result<bool> draw_shadertoy(const scene_shadertoy& scene, const target& target)

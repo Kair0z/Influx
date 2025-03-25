@@ -272,6 +272,7 @@ namespace influx::renderer
                     const light& light = scene.get_lights()[l];
                     if (light.m_light.get_type() != current_type) continue;
                     
+                    const math::matrix4x4f light_transform = scene.get_transform(light.m_transform_id);
                     switch (current_type)
                     {
                     case influx::e_light_type::directional:
@@ -285,15 +286,15 @@ namespace influx::renderer
                     {
                         frontend::per_pointlight* data = reinterpret_cast<frontend::per_pointlight*>(dest);
                         data[index].m_attenuation = light.m_light.get_attenuation();
-                        data[index].m_colour      = light.m_light.get_colour();
-                        data[index].m_position    = light.m_world_position;
+                        data[index].m_colour = light.m_light.get_colour();
+                        data[index].m_position = light_transform.get_translation();
                         break;
                     }
 
                     case influx::e_light_type::spot:
                     {
                         frontend::per_spotlight* data = reinterpret_cast<frontend::per_spotlight*>(dest);
-                        data[index].m_position = light.m_world_position;
+                        data[index].m_position = light_transform.get_translation();
                         break;
                     }
                     }

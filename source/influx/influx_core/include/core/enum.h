@@ -22,7 +22,7 @@ namespace influx
 		return static_cast<E>(static_cast<T>(lhs) | static_cast<T>(rhs));
 	}
 	template <typename E>
-	inline typename std::enable_if_t<enable_bitmask_operators<E>, E> operator&(E lhs, E rhs)
+	inline typename std::enable_if_t<enable_bitmask_operators<E>, E>::type operator&(E lhs, E rhs)
 	{
 		using T = std::underlying_type_t<E>;
 		return static_cast<E>(static_cast<T>(lhs) & static_cast<T>(rhs));
@@ -76,6 +76,19 @@ namespace influx
 		using T = std::underlying_type_t<_enum>;
 		influx_assert(std::has_single_bit((T)flag));
 		return has_any_flag(value, flag);
+	}
+	template<typename _enum> requires std::is_enum_v<_enum>
+	inline _enum& set_flag(_enum& value, _enum flag, bool enabled)
+	{
+		if (enabled)
+		{
+			value |= flag;
+		}
+		else
+		{
+			value &= ~flag;
+		}
+		return value;
 	}
 }
 

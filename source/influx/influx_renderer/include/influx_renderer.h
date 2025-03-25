@@ -1,11 +1,5 @@
 #pragma once
 
-#if _DLL
-	#define INFLUX_RENDER_API __declspec(dllexport)
-#else
-	#define INFLUX_RENDER_API __declspec(dllimport)
-#endif
-
 #define INFLUX_RENDER_BINDLESS 1
 
 // Imgui
@@ -88,9 +82,6 @@ namespace influx::renderer
 
 	INFLUX_RENDER_API // - sprite rendering
 	result<bool> draw_2D(const scene2D& scene, const target& target);
-
-	INFLUX_RENDER_API // - debug line rendering
-	result<bool> draw_debug(const scene_debug& scene, const target& target);
 
  	INFLUX_RENDER_API // - shadertoy rendering
 	result<bool> draw_shadertoy(const scene_shadertoy& scene, const target& target);

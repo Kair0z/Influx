@@ -2,6 +2,8 @@
 
 namespace influx::renderer
 {
+	class scene;
+
 	// renders instanced debug lines
 	class debug_renderer final
 	{
@@ -14,7 +16,7 @@ namespace influx::renderer
 
 		void render(
 			graphics::commandlist* commandlist,
-			const scene_debug& scene,
+			const scene& scene,
 			const target& target);
 
 		bool can_build_pipeline() const;
@@ -29,6 +31,6 @@ namespace influx::renderer
 		graphics::resource* mp_vertexbuffer;
 		graphics::descriptor_handle m_instance_buffer_srv;
 
-		void update_instance_buffer(const scene_debug& scene);
+		void update_instance_buffer(const scene& scene);
 	};
 }

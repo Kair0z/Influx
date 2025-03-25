@@ -1,4 +1,12 @@
 #pragma once
+
+#if _DLL
+#define INFLUX_RENDER_API __declspec(dllexport)
+#else
+#define INFLUX_RENDER_API __declspec(dllimport)
+#endif
+
+// influx::core
 #include "core/basetypes.h"
 
 namespace influx::renderer

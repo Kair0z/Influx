@@ -190,8 +190,7 @@ namespace influx::engine
 	void render_manager::render(
 		const renderer::scene& scene,
 		const renderer::scene2D& scene2D,
-		const renderer::scene_imgui& imgui, 
-		const renderer::scene_debug& debug)
+		const renderer::scene_imgui& imgui)
 	{
 		const platform::window& main_window = get_engine()->get_window();
 		renderer::target* window_target = renderer::get_window_target(main_window);
@@ -206,10 +205,6 @@ namespace influx::engine
 			if (scene.is_empty() == false)
 			{
 				renderer::draw_scene(scene, *mp_scene_target);
-			}
-			if (debug.is_empty() == false && is_debug_render_enabled())
-			{
-				renderer::draw_debug(debug, *mp_scene_target);
 			}
 #if 0
 			shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");

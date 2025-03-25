@@ -75,12 +75,10 @@ namespace influx::engine
 
     static math::ray* g_lastray = nullptr;
 
-    void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D, renderer::scene_debug& debugscene) const
+    void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D) const
     {
         const float delta_time = get_engine()->get_time().get_delta_seconds();
 
-        debugscene.clear();
-        
         // choose camera
         {
             influx_scope("build_camera");
@@ -92,12 +90,9 @@ namespace influx::engine
                 {
                     renderer::camera render_camera{};
                     math::transform3D transform = transform_comp.get_transform();
-                    render_camera.m_fov = camera_comp.get_fov();
-                    render_camera.m_far_plane = camera_comp.get_farplane();
-                    render_camera.m_near_plane = camera_comp.get_nearplane();
+                    render_camera.m_camera = camera_comp.get_camera();
 
                     scene.set_camera(render_camera, transform.get_matrix());
-                    debugscene.set_camera(render_camera, transform.get_matrix());
 
                     priority = camera_comp.get_priority();
                 }
@@ -160,7 +155,7 @@ namespace influx::engine
         if (is_editor)
         {
             influx_scope("build_gizmos");
-            debugscene.add_gizmo_transform(math::transform3D::identity());
+            scene.add_gizmo_transform(math::transform3D::identity());
 
             // grid render
             {
@@ -175,7 +170,7 @@ namespace influx::engine
                     const math::float3 endpos = basepos + math::float3{ half_offset * 2, 0, 0 };
                     if (z != num_lines / 2)
                     {
-                        debugscene.add_line(basepos, endpos, line_colour);
+                        scene.add_line(basepos, endpos, line_colour);
                     }
                 }
                 for (uint32 x = 0u; x < num_lines; ++x)
@@ -184,14 +179,14 @@ namespace influx::engine
                     const math::float3 endpos = basepos + math::float3{ 0, 0, half_offset * 2 };
                     if (x != num_lines / 2)
                     {
-                        debugscene.add_line(basepos, endpos, line_colour);
+                        scene.add_line(basepos, endpos, line_colour);
                     }
                 }
                 
                 const math::float3 origin = math::float3{ 0, 0, 0 };
-                debugscene.add_line(origin, math::float3{ half_offset, 0, 0 }, colour::k_red);
-                debugscene.add_line(origin, math::float3{ 0, half_offset, 0 }, colour::k_green);
-                debugscene.add_line(origin, math::float3{ 0, 0, half_offset }, colour::k_blue);
+                scene.add_line(origin, math::float3{ half_offset, 0, 0 }, colour::k_red);
+                scene.add_line(origin, math::float3{ 0, half_offset, 0 }, colour::k_green);
+                scene.add_line(origin, math::float3{ 0, 0, half_offset }, colour::k_blue);
             }
 
             // transform gizmos
@@ -203,14 +198,14 @@ namespace influx::engine
                     continue;
                 }
 
-                debugscene.add_gizmo_transform(transform_comp.get_transform());
+                scene.add_gizmo_transform(transform_comp.get_transform());
             }
 
             // bounds boxes
             for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
             {
                 const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_comp.get_matrix());
-                debugscene.add_box(transformed_bounds, { 1,0,0,1 });
+                scene.add_box(transformed_bounds, { 1,0,0,1 });
             }
         }
     }

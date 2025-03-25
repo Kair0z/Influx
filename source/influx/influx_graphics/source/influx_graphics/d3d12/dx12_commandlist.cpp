@@ -390,7 +390,7 @@ namespace influx::graphics
 			src_location.PlacedFootprint.Footprint.Depth = src_footprints[i].m_depth;
 			src_location.PlacedFootprint.Footprint.Format = translate(src_footprints[i].m_format);
 			src_location.PlacedFootprint.Footprint.Height = src_footprints[i].m_height;
-			src_location.PlacedFootprint.Footprint.RowPitch	= src_footprints[i].m_row_bytesize;
+			src_location.PlacedFootprint.Footprint.RowPitch	= static_cast<uint32>(src_footprints[i].m_row_bytesize);
 			src_location.PlacedFootprint.Footprint.Width = src_footprints[i].m_width;
 			src_location.PlacedFootprint.Offset = src_footprints[i].m_offset;
 			src_location.SubresourceIndex = i;
@@ -401,7 +401,7 @@ namespace influx::graphics
 			dst_location.PlacedFootprint.Footprint.Depth = dest_footprints[i].m_depth;
 			dst_location.PlacedFootprint.Footprint.Format = translate(dest_footprints[i].m_format);
 			dst_location.PlacedFootprint.Footprint.Height = dest_footprints[i].m_height;
-			dst_location.PlacedFootprint.Footprint.RowPitch = dest_footprints[i].m_row_bytesize;
+			dst_location.PlacedFootprint.Footprint.RowPitch = static_cast<uint32>(dest_footprints[i].m_row_bytesize);
 			dst_location.PlacedFootprint.Footprint.Width = dest_footprints[i].m_width;
 			dst_location.PlacedFootprint.Offset = dest_footprints[i].m_offset;
 			dst_location.SubresourceIndex = i;

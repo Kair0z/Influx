@@ -13,6 +13,7 @@
 #include "core/material/material.h"
 #include "core/scene/light.h"
 #include "core/scene/camera.h"
+#include "core/enum.h"
 
 // influx::renderer
 #include "types.h"
@@ -66,36 +67,113 @@ namespace influx::renderer
 		math::vectorf4 m_per_instance_colour = {};
 	};
 
+	struct line final
+	{
+		line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour)
+			: m_points{ start, end }
+			, m_colour{ colour } {}
+
+		math::float3 m_points[2]{};
+		math::colour_rgba m_colour;
+	};
+
+	enum class e_scene_render_flags : uint8
+	{
+		none = 0,
+		debug_enabled = 1 << 0
+	};
+
 	class scene final
 	{
 	public:
 		scene() = default;
 		
-		INFLUX_RENDER_API bool is_empty() const;
+		INFLUX_RENDER_API 
+		bool is_empty() const;
 
-		INFLUX_RENDER_API transform_id add_transform(const math::matrix4x4f& matrix);
-		INFLUX_RENDER_API math::matrix4x4f& get_transform(const transform_id& id);
-		INFLUX_RENDER_API const math::matrix4x4f& get_transform(const transform_id& id) const;
+		INFLUX_RENDER_API 
+		transform_id add_transform(const math::matrix4x4f& matrix);
+		
+		INFLUX_RENDER_API 
+		math::matrix4x4f& get_transform(const transform_id& id);
+		
+		INFLUX_RENDER_API 
+		const math::matrix4x4f& get_transform(const transform_id& id) const;
 
 		// adding meshes
-		INFLUX_RENDER_API mesh_instance& add_mesh(const mesh_id& mesh_id, const math::matrix4x4f& transform = math::matrix4x4f::identity());
-		INFLUX_RENDER_API mesh_instance& get_mesh(const mesh_inst_id& id);
-		INFLUX_RENDER_API mesh_instance& get_last_mesh();
-		INFLUX_RENDER_API uint32 get_num_meshes() const;
-		INFLUX_RENDER_API bool has_meshes() const;
-		INFLUX_RENDER_API const vector<mesh_instance>& get_meshes() const;
+		INFLUX_RENDER_API 
+		mesh_instance& add_mesh(const mesh_id& mesh_id, const math::matrix4x4f& transform = math::matrix4x4f::identity());
+		
+		INFLUX_RENDER_API
+		mesh_instance& get_mesh(const mesh_inst_id& id);
+		
+		INFLUX_RENDER_API
+		mesh_instance& get_last_mesh();
+		
+		INFLUX_RENDER_API 
+		uint32 get_num_meshes() const;
+		
+		INFLUX_RENDER_API 
+		bool has_meshes() const;
+		
+		INFLUX_RENDER_API 
+		const vector<mesh_instance>& get_meshes() const;
 		
 		// adding lights
+		INFLUX_RENDER_API
 		light& add_light(const influx::light& light, const math::matrix4x4f& transform = math::matrix4x4f::identity());
+		
+		INFLUX_RENDER_API
 		uint32 get_num_lights() const;
+		
+		INFLUX_RENDER_API
 		uint32 get_num_lights(influx::e_light_type type) const;
+		
+		INFLUX_RENDER_API
 		bool has_lights() const;
+		
+		INFLUX_RENDER_API
 		const vector<light>& get_lights() const;
 
+		INFLUX_RENDER_API
 		const camera& get_camera() const;
+		
+		INFLUX_RENDER_API
 		const math::matrix4x4f& get_camera_transform() const;
+		
+		INFLUX_RENDER_API
 		void set_camera(const camera& camera, const math::matrix4x4f& transform);
+		
+		INFLUX_RENDER_API
 		const view_matrices& get_view_matrices() const;
+
+		// debug lines
+		INFLUX_RENDER_API
+		void add_box(const math::boxf& box, const math::colour_rgba& colour);
+
+		INFLUX_RENDER_API
+		void add_line(const line& line);
+
+		INFLUX_RENDER_API
+		void add_line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour);
+
+		INFLUX_RENDER_API
+		void add_point(const math::float3& point, const math::colour_rgba& colour);
+
+		INFLUX_RENDER_API
+		void add_gizmo_transform(const math::transform3D& transform);
+
+		INFLUX_RENDER_API
+		const vector<line>& get_lines() const;
+
+		INFLUX_RENDER_API
+		bool has_debug_primitives() const;
+		
+		INFLUX_RENDER_API
+		void set_debug_render_enabled(bool enabled);
+
+		INFLUX_RENDER_API
+		bool is_debug_render_enabled() const;
 
 		float m_delta_seconds;
 		float m_seconds;
@@ -104,8 +182,10 @@ namespace influx::renderer
 		vector<math::matrix4x4f>	m_transforms{};
 		vector<mesh_instance>		m_meshes = {};
 		vector<light>				m_lights = {};
+		vector<line>				m_lines{};	
 		camera						m_camera = {};
 		view_matrices				m_viewmatrices{};
+		e_scene_render_flags		m_renderflags;
 	};
 
 	struct sprite2D final
@@ -136,102 +216,5 @@ namespace influx::renderer
 
 		vector<function<void(ImGuiContext&)>> m_imgui_stacks{};
 	};
-
-	struct scene_debug final
-	{
-	public:
-		inline bool is_empty() const
-		{
-			return m_lines.size() == 0u;
-		}
-
-		struct line final
-		{
-			line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour)
-				: m_points{start, end}
-				, m_colour{ colour } {}
-
-			math::float3 m_points[2]{};
-			math::colour_rgba m_colour;
-		};
-
-		void add_box(const math::boxf& box, const math::colour_rgba& colour)
-		{
-			const math::vectorf3& max = box.get_maximum();
-			const math::vectorf3& min = box.get_minimum();
-			const math::vectorf3& mid = box.get_middle();
-			const math::vectorf3 dimensions = max - min;
-
-			// bottom square
-			const math::float3 bottoms[4] =
-			{
-				min,
-				min + dimensions * math::float3{+1.0f,0.0f,0.0f},
-				min + dimensions * math::float3{0.0f,0.0f,+1.0f},
-				min + dimensions * math::float3{+1.0f,0.0f,+1.0f}
-			};
-			add_line(bottoms[0], bottoms[1], colour);
-			add_line(bottoms[0], bottoms[2], colour);
-			add_line(bottoms[2], bottoms[3], colour);
-			add_line(bottoms[1], bottoms[3], colour);
-
-			// top square
-			const math::float3 tops[4] =
-			{
-				max + dimensions * math::float3{-1.0f,0.0f,-1.0f},
-				max + dimensions * math::float3{0.0f,0.0f,-1.0f},
-				max + dimensions * math::float3{-1.0f,0.0f,0.0f},
-				max
-			};
-			add_line(tops[0], tops[1], colour);
-			add_line(tops[0], tops[2], colour);
-			add_line(tops[2], tops[3], colour);
-			add_line(tops[1], tops[3], colour);
-
-			// vertical lines
-			for (uint8 i = 0u; i < 4u; ++i)
-			{
-				add_line(bottoms[i], tops[i], colour);
-			}
-		}
-
-		void add_line(const line& line)
-		{
-			m_lines.push_back(line);
-		}
-
-		void add_line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour)
-		{
-			add_line({ start, end, colour});
-		}
-		
-		void add_point(const math::float3& point, const math::colour_rgba& colour)
-		{
-			add_line({ point, point, colour });
-		}
-
-		void add_gizmo_transform(const math::transform3D& transform)
-		{
-			const math::float3& position = transform.get_position();
-			add_line(position, position + transform.get_right(), { 1,0,0,1 });
-			add_line(position, position + transform.get_up(), { 0,1,0,1 });
-			add_line(position, position + transform.get_forward(), { 0,0,1,1 });
-		}
-
-		void clear()
-		{
-			m_lines.clear();
-		}
-
-		void set_camera(const camera& camera, const math::matrix4x4f& transform);
-
-		const view_matrices& get_view_matrices() const;
-
-		const vector<line>& get_lines() const;
-
-	private:
-		vector<line> m_lines{};
-		camera m_camera = {};
-		view_matrices m_viewmatrices{};
-	};
 }
+ENABLE_ENUM_BIT_OPERATORS(influx::renderer::e_scene_render_flags);

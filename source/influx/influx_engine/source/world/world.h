@@ -18,7 +18,7 @@ namespace influx::engine
 #pragma region influx::renderer
 namespace influx::renderer
 {
-	struct scene;
+	class scene;
 	struct scene2D;
 	struct scene_debug;
 }
@@ -42,8 +42,7 @@ namespace influx::engine
 		// rendering
 		void build_renderscene(
 			renderer::scene&, 
-			renderer::scene2D&,
-			renderer::scene_debug&) const;
+			renderer::scene2D&) const;
 
 		// entities / components
 		entt::entity create_entity();

@@ -131,7 +131,6 @@ namespace influx::engine
 			
 			// build a render-scene
 			renderer::scene scene{};
-			renderer::scene_debug debug{};
 			renderer::scene2D scene2D{};
 			renderer::scene_imgui imgui{};
 
@@ -149,13 +148,13 @@ namespace influx::engine
 				influx_scope("build_render");
 				scene.m_seconds = m_time.get_time_seconds();
 				scene.m_delta_seconds = m_time.get_delta_seconds();
-				m_world->build_renderscene(scene, scene2D, debug);
+				m_world->build_renderscene(scene, scene2D);
 			}
 
 			// render
 			{
 				influx_scope("render");
-				m_renderman->render(scene, scene2D, imgui, debug);
+				m_renderman->render(scene, scene2D, imgui);
 			}
 
 			// log tick

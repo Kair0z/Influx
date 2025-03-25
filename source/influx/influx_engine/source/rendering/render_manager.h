@@ -13,8 +13,7 @@
 namespace influx::renderer
 {
 	class target;
-	struct scene;
-	struct scene_debug;
+	class scene;
 	struct scene_imgui;
 	struct scene2D;
 }
@@ -45,8 +44,7 @@ namespace influx::engine
 		void render(
 			const renderer::scene& scene,
 			const renderer::scene2D& scene2D,
-			const renderer::scene_imgui& imgui,
-			const renderer::scene_debug& debug);
+			const renderer::scene_imgui& imgui);
 
 		// takes care of backbuffer resizing
 		void on_window_resize(const math::vectoru2& new_dimensions);

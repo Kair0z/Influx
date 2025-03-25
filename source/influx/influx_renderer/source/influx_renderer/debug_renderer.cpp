@@ -116,7 +116,7 @@ namespace influx::renderer
         delete m_gpu_perview;
     }
 
-    void debug_renderer::render(graphics::commandlist* commandlist, const scene_debug& scene, const target& target)
+    void debug_renderer::render(graphics::commandlist* commandlist, const scene& scene, const target& target)
     {
         // get the pipeline
         renderer_backend& backend = renderer_backend::get_instance();
@@ -171,11 +171,11 @@ namespace influx::renderer
         return has_all_shaders;
     }
 
-    void debug_renderer::update_instance_buffer(const scene_debug& scene)
+    void debug_renderer::update_instance_buffer(const scene& scene)
     {
         m_instance_data.clear();
 
-        for (const scene_debug::line& line : scene.get_lines())
+        for (const line& line : scene.get_lines())
         {
             gpu_instance_data instance_data{};
             instance_data.m_colour = line.m_colour;
