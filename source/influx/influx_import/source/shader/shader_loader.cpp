@@ -32,18 +32,18 @@ namespace influx::imp
 		static const char* type_to_signature[shader::k_num_shadertypes] =
 		{
 			R"(\[shader\(\"vertex\"\)\])",
-			R"(\[shader\("pixel"\)\])",
-			R"(\[shader\("domain"\)\])",
-			R"(\[shader\("geometry"\)\])",
-			R"(\[shader\("hull"\)\])",
+			R"(\[shader\(\"pixel\"\)\])",
+			R"(\[shader\(\"domain\"\)\])",
+			R"(\[shader\(\"geometry\"\)\])",
+			R"(\[shader\(\"hull\"\)\])",
 
-			R"(\[shader\("compute"\)\])",
+			R"(\[shader\(\"compute\"\)\])",
 
-			R"(\[shader\("raygen"\)\])",
-			R"(\[shader\("miss"\)\])",
-			R"(\[shader\("closesthit"\)\])",
-			R"(\[shader\("anyhit"\)\])",
-			R"(\[shader\("intersection"\)\])"
+			R"(\[shader\(\"raygen\"\)\])",
+			R"(\[shader\(\"miss\"\)\])",
+			R"(\[shader\(\"closesthit\"\)\])",
+			R"(\[shader\(\"anyhit\"\)\])",
+			R"(\[shader\(\"intersection\"\)\])"
 		};
 
 		// gather all shader compiles

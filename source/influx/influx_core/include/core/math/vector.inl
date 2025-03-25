@@ -572,7 +572,7 @@ namespace influx::math
 	{
 		vector<_t, _s> res{};
 		for (vecsize i{}; i < _s; ++i)
-			res[i] = a[i] / b;
+			res[i] = static_cast<_t>(a[i] / b);
 
 		return res;
 	}

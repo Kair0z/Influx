@@ -11,13 +11,15 @@ namespace influx
 	using vector = std::vector<_t>;
 
 	template <typename _t>
-	inline static void append(vector<_t>& a, const vector<_t>& b)
+	inline static vector<_t>& append(vector<_t>& a, const vector<_t>& b)
 	{
 		a.reserve(a.size() + b.size());
 		for (size_t i = 0u; i < b.size(); ++i)
 		{
 			a.push_back(b[i]);
 		}
+
+		return a;
 	}
 
 	template <typename _t>

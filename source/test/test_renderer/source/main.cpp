@@ -124,57 +124,28 @@ void load_shaders()
 	args.m_pbd = INFLUX_DEBUG;
 	args.m_pdb_folder = "D:/Git/Influx/int/shaderdebug/";
 
-	imp::shader_data loaded_shaders[5u]{};
 
-	vector<imp::shader_data> all_shaders{};
-	imp::load_shader_file(shaders_folder + "/source/debug_shaders.hlsl", all_shaders, args);
+	vector<imp::shader_data> debug_shaders{};
+	imp::load_shader_file(shaders_folder + "/source/debug_shaders.hlsl", debug_shaders, args);
 
-	// vs
-	args.m_signature.m_type = shader::e_shader_type::vs;
-	args.m_signature.m_entrypoint = "main_vs";
-	args.m_signature.m_filename = "debug_shaders";
-	args.m_signature.cache_id();
-	influx_assert(imp::load_shader_file(shaders_folder + "/source/debug_shaders.hlsl", loaded_shaders[0], args));
+	vector<imp::shader_data> basepass_shaders{};
+	imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", basepass_shaders, args);
 
-	args.m_signature.m_type = shader::e_shader_type::ps;
-	args.m_signature.m_filename = "debug_shaders";
-	args.m_signature.m_entrypoint = "main_ps";
-	args.m_signature.cache_id();
-	influx_assert(imp::load_shader_file(shaders_folder + "/source/debug_shaders.hlsl", loaded_shaders[1], args));
+	vector<imp::shader_data> resolvepass_shaders{};
+	imp::load_shader_file(shaders_folder + "/source/resolvepass.hlsl", basepass_shaders, args);
 
+	vector<imp::shader_data> all_shaders = merged(resolvepass_shaders, merged(basepass_shaders, debug_shaders));
 
-	args.m_signature.m_type = shader::e_shader_type::vs;
-	args.m_signature.m_entrypoint = "main_vs";
-	args.m_signature.m_filename = "basepass";
-	args.m_signature.cache_id();
-	influx_assert(imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", loaded_shaders[2], args));
-
-	args.m_signature.m_type = shader::e_shader_type::ps;
-	args.m_signature.m_filename = "basepass";
-	args.m_signature.m_entrypoint = "main_ps";
-	args.m_signature.cache_id();
-	influx_assert(imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", loaded_shaders[3], args));
-
-	args.m_signature.m_type = shader::e_shader_type::cs;
-	args.m_signature.m_filename = "resolvepass";
-	args.m_signature.m_entrypoint = "main_cs";
-	args.m_signature.cache_id();
-	influx_assert(imp::load_shader_file(shaders_folder + "/source/resolvepass.hlsl", loaded_shaders[4], args));
-
-	renderer::shader_data render_shaders[5u]{};
-	for (uint32 i = 0u; i < 5u; ++i)
+	vector<renderer::shader_data> render_shaders{};
+	for (const imp::shader_data& shader : all_shaders)
 	{
-		render_shaders[i].m_bytecode = loaded_shaders[i].m_compile_result.m_bytecode;
-		render_shaders[i].m_reflection = loaded_shaders[i].m_compile_result.m_reflection;
-		render_shaders[i].m_type = loaded_shaders[i].m_signature.m_type;
-		render_shaders[i].m_time_loaded = time::get_now();
+		renderer::shader_data render_shader{};
+		render_shader.m_bytecode = shader.m_compile_result.m_bytecode;
+		render_shader.m_reflection = shader.m_compile_result.m_reflection;
+		render_shader.m_type = shader.m_signature.m_type;
+		render_shader.m_time_loaded = time::get_now();
+		renderer::load(shader.m_signature, render_shader);
 	}
-
-	renderer::load(loaded_shaders[0].m_signature, render_shaders[0]);
-	renderer::load(loaded_shaders[1].m_signature, render_shaders[1]);
-	renderer::load(loaded_shaders[2].m_signature, render_shaders[2]);
-	renderer::load(loaded_shaders[3].m_signature, render_shaders[3]);
-	renderer::load(loaded_shaders[4].m_signature, render_shaders[4]);
 }
 
 void set_quaternion_scene(renderer::scene& scene)
@@ -249,12 +220,12 @@ int main()
 	float seconds = 0.0f;
 	while (true)
 	{
-		delta_seconds = time::get_ms_since<float>(time_last_tick) * 0.001;
+		delta_seconds = time::get_ms_since<float>(time_last_tick) * 0.001f;
 		time_last_tick = time::get_now();
 		seconds += delta_seconds;
 
 		// update:
-		const uint32 radius = 200;
+		const float radius = 200;
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
 			const platform::monitor& monitor = monitors[2];
