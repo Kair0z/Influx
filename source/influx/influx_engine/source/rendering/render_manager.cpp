@@ -187,25 +187,24 @@ namespace influx::engine
 		m_imgui.on_window_resize(new_dimensions);
 	}
 
-	void render_manager::render(
-		const renderer::scene& scene,
-		const renderer::scene2D& scene2D,
-		const renderer::scene_imgui& imgui)
+	void render_manager::render()
 	{
 		const platform::window& main_window = get_engine()->get_window();
 		renderer::target* window_target = renderer::get_window_target(main_window);
 
-		// starts the underlying rendergraph
 		renderer::start_frame();
 		{
 			mp_scene_target->resize(*window_target);
 
 			renderer::clear_target(*mp_scene_target, {.m_colour = g_global_settings.m_clearcolour });
 
-			if (scene.is_empty() == false)
+			renderer::scene& world_scene = get_scene();
+			world_scene.set_debug_render_enabled(is_debug_render_enabled());
+			if (world_scene.is_empty() == false)
 			{
-				renderer::draw_scene(scene, *mp_scene_target);
+				renderer::draw_scene(world_scene, *mp_scene_target);
 			}
+
 #if 0
 			shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");
 			if (editor.can_render())
@@ -234,13 +233,14 @@ namespace influx::engine
 			influx::renderer::copy_target(*mp_scene_target, *window_target);
 
 			// imgui render (renders straight to its own created window targets)
-			if (imgui.is_empty() == false && is_imgui_render_enabled())
+			renderer::scene_imgui& imgui_scene = get_scene_imgui();
+			if (imgui_scene.is_empty() == false && is_imgui_render_enabled())
 			{
-				m_imgui.render(imgui);
+				m_imgui.render(imgui_scene);
 			}
 		}
 
-		// submits all gpu commands
+		// submits all gpu commands to the GPU
 		influx::renderer::end_frame();
 
 		// present each swapchain registered
@@ -272,5 +272,17 @@ namespace influx::engine
 	{
 		const bool render = renderer::can_draw_scene();
 		return render;
+	}
+	renderer::scene& render_manager::get_scene()
+	{
+		return m_scene;
+	}
+	renderer::scene2D& render_manager::get_scene2D()
+	{
+		return m_scene2D;
+	}
+	renderer::scene_imgui& render_manager::get_scene_imgui()
+	{
+		return m_imgui_scene;
 	}
 }

@@ -128,16 +128,11 @@ namespace influx::engine
 				influx_scope("stream_to_render");
 				m_renderman->stream_content(*m_contentman);
 			}
-			
-			// build a render-scene
-			renderer::scene scene{};
-			renderer::scene2D scene2D{};
-			renderer::scene_imgui imgui{};
 
 			// record imgui if editor
 			if (m_runtype == run_type::editor)
 			{
-				imgui.m_imgui_stacks.push_back([this](ImGuiContext& ctx)
+				m_renderman->get_scene_imgui().m_imgui_stacks.push_back([this](ImGuiContext& ctx)
 				{
 					m_editorman->on_imgui(ctx);
 				});
@@ -146,15 +141,15 @@ namespace influx::engine
 			// world builds renderscene 
 			{
 				influx_scope("build_render");
-				scene.m_seconds = m_time.get_time_seconds();
-				scene.m_delta_seconds = m_time.get_delta_seconds();
-				m_world->build_renderscene(scene, scene2D);
+				m_renderman->get_scene().m_seconds = m_time.get_time_seconds();
+				m_renderman->get_scene().m_delta_seconds = m_time.get_delta_seconds();
+				m_world->build_renderscene(m_renderman->get_scene(), m_renderman->get_scene2D());
 			}
 
 			// render
 			{
 				influx_scope("render");
-				m_renderman->render(scene, scene2D, imgui);
+				m_renderman->render();
 			}
 
 			// log tick

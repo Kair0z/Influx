@@ -247,6 +247,7 @@ namespace influx::renderer
         mp_scene_renderer->render(*m_rendergraph, scene, target);
 
         // debug render
+        if (scene.has_debug_primitives() && scene.is_debug_render_enabled())
         {
             static string color_name{}; color_name = target.get_resource()->get_name().get();
             m_rendergraph->import_texture(color_name, target.get_resource());

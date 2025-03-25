@@ -10,12 +10,10 @@
 #include "rendering/render_streamer.h"
 
 // influx::renderer
+#include "influx_renderer/scene.h"
 namespace influx::renderer
 {
 	class target;
-	class scene;
-	struct scene_imgui;
-	struct scene2D;
 }
 
 namespace influx::engine
@@ -41,10 +39,7 @@ namespace influx::engine
 		render_manager(engine* engine);
 		~render_manager();
 
-		void render(
-			const renderer::scene& scene,
-			const renderer::scene2D& scene2D,
-			const renderer::scene_imgui& imgui);
+		void render();
 
 		// takes care of backbuffer resizing
 		void on_window_resize(const math::vectoru2& new_dimensions);
@@ -58,12 +53,20 @@ namespace influx::engine
 		bool is_imgui_render_enabled() const;
 		bool is_scene_render_enabled() const;
 
+		renderer::scene& get_scene();
+		renderer::scene2D& get_scene2D();
+		renderer::scene_imgui& get_scene_imgui();
+
 	private:
 		e_render_flags m_render_flags{};
 		imgui_manager m_imgui;
 		render_streamer m_streamer{};
 		renderer::target* mp_window_target;
 		renderer::target* mp_scene_target;
+
+		renderer::scene m_scene{};
+		renderer::scene2D m_scene2D{};
+		renderer::scene_imgui m_imgui_scene{};
 	};
 }
 
