@@ -167,6 +167,8 @@ namespace influx::renderer
 	INFLUX_RENDER_API bool has_shader(const shader::shader_signature& signature);
 	INFLUX_RENDER_API bool has_material(const string& title);
 
+	INFLUX_RENDER_API mesh_id get_mesh_id(e_mesh);
+
 	struct render_settings final
 	{
 		enum class cullmode { back, front, none };

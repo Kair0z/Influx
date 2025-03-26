@@ -79,6 +79,7 @@ namespace influx::renderer
 		void initialize(const init_args& args);
 		bool is_initialized() const;
 		void wait_gpu_finished() const;
+		void load_resources();
 		void cleanup();
 
 		void start_frame();
@@ -125,6 +126,8 @@ namespace influx::renderer
 		bool has_shader(const shader::shader_signature& signature) const;
 		bool has_material(const string& title) const;
 
+		mesh_id get_mesh_id(e_mesh) const;
+
 		time::point get_time_loaded_shader(const shader::shader_signature& signature) const;
 		time::point get_time_loaded_texture(const string& title) const;
 		time::point get_time_loaded_texturecube(const string& title) const;
@@ -133,16 +136,9 @@ namespace influx::renderer
 		void set_settings(const render_settings& settings);
 		const render_settings& get_settings() const;
 
-		texture2D* create_texture(const string& title, const texture_desc& args);
-		cubemap* create_texturecube(const string& title, const cubemap_desc& args);
-		const umap<string, texture2D*>& get_textures() const;
 		texture2D* find_texture(const string& name);
 		cubemap* find_texturecube(const string& name);
 		texture2D& get_default_texture(); // "none"
-
-		const umap<string, material> get_materials() const;
-		material* get_material(const string& name);
-		static material& get_default_material(); // "none"
 
 		void upload_texture_data(texture2D* target_tex, const texture_data& data);
 

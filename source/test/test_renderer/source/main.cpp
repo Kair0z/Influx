@@ -25,7 +25,7 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 	static vector<renderer::camera> cameras{};
 	static vector<math::matrix4x4f> mesh_transforms{};
 	static vector<math::matrix4x4f> camera_transforms{};
-	static vector<uint32> mesh_ids{};
+	static vector<string> mesh_ids{};
 
 	uint32 chosen_camera_idx = 0u;
 
@@ -42,6 +42,7 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 		{
 			const imp::scene_data::camera& camera = loaded_scene.m_cameras[i];
 			camera_transforms.push_back(camera.m_world_transform);
+
 			renderer::camera render_camera{};
 			render_camera.m_camera.set_fov(90.0f);// camera.m_camera.get_fov();
 			render_camera.m_camera.set_farplane(camera.m_camera.get_farplane());
@@ -86,7 +87,7 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 			}
 
 			const string mesh_name = filename + "_" + to_string(i);
-			mesh_ids.push_back(i);
+			mesh_ids.push_back(mesh_name);
 			mesh_transforms.push_back(mesh.m_world_transform);
 
 			// load to renderer
@@ -128,6 +129,23 @@ void set_quaternion_scene(renderer::scene& scene)
 	}
 }
 
+renderer::scene make_the_scene()
+{
+	renderer::scene result{};
+	if (true) // load an fbx scene
+	{
+		result.add_mesh(renderer::e_mesh::triangle);
+	}
+	else
+	{
+		imp::scene_load_args scene_load_args{};
+		scene_load_args.m_bake_transforms = false;
+		scene_load_args.m_pre_scale = 1.0f;
+		load_scene("D:/Git/Influx/assets/engine/meshes/box.fbx", scene_load_args, result);
+	}
+	return result;
+}
+
 int main()
 {
 	using namespace influx;
@@ -158,19 +176,7 @@ int main()
 	present_args.m_vsync = false;
 
 	// setup the render-scene
-	renderer::scene scene_to_draw{};
-	imp::scene_load_args scene_load_args{};
-	scene_load_args.m_bake_transforms = false;
-	scene_load_args.m_pre_scale = 1.0f;
-	load_scene("D:/Git/Influx/assets/engine/meshes/box.fbx", scene_load_args, scene_to_draw);
-	set_quaternion_scene(scene_to_draw);
-
-	static const math::colour_rgba clear_colours[num_windows]
-	{
-		colour::k_red,
-		colour::k_green,
-		colour::k_blue
-	};
+	renderer::scene scene_to_draw = make_the_scene();
 
 	time::point time_last_tick = time::get_now();
 	float delta_seconds = 0.0f;
@@ -202,9 +208,16 @@ int main()
 		};
 
 		renderer::start_frame();
-
 		for (uint32 i = 0u; i < num_windows; ++i)
+
 		{
+			static const math::colour_rgba clear_colours[num_windows]
+			{
+				colour::k_red,
+				colour::k_green,
+				colour::k_blue
+			};
+
 			renderer::clear_args clear{ .m_colour = clear_colours[i] };
 			renderer::clear_target(*window_targets[i], clear);
 		}
@@ -218,4 +231,6 @@ int main()
 			renderer::present(*windows[i], present_args);
 		}
 	}
+
+	renderer::cleanup();
 }

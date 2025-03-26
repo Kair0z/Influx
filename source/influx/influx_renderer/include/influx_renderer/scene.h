@@ -30,7 +30,7 @@ namespace influx::renderer
 	using material_id	= object_id;
 	using camera_id		= object_id;
 	using mesh_inst_id	= object_id;
-	using mesh_id		= object_id;
+	using mesh_id		= string;
 	using light_id		= object_id;
 	using transform_id	= object_id;
 
@@ -61,7 +61,7 @@ namespace influx::renderer
 
 	struct mesh_instance final
 	{
-		mesh_id	m_mesh_id			= k_invalid_id;
+		mesh_id	m_mesh_id			= "";
 		material_id	m_mat_id		= k_invalid_id;
 		transform_id m_transform_id	= k_invalid_id;
 		math::vectorf4 m_per_instance_colour = {};
@@ -102,9 +102,12 @@ namespace influx::renderer
 		const math::matrix4x4f& get_transform(const transform_id& id) const;
 
 		// adding meshes
-		INFLUX_RENDER_API 
+		INFLUX_RENDER_API
 		mesh_instance& add_mesh(const mesh_id& mesh_id, const math::matrix4x4f& transform = math::matrix4x4f::identity());
 		
+		INFLUX_RENDER_API
+		mesh_instance& add_mesh(e_mesh mesh, const math::matrix4x4f& transform = math::matrix4x4f::identity());
+
 		INFLUX_RENDER_API
 		mesh_instance& get_mesh(const mesh_inst_id& id);
 		

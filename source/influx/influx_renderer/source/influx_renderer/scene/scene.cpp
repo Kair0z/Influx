@@ -50,6 +50,11 @@ namespace influx::renderer
 		return m_meshes.back();
 	}
 
+	mesh_instance& scene::add_mesh(e_mesh mesh, const math::matrix4x4f& transform)
+	{
+		return add_mesh(renderer::get_internal_mesh_name(mesh), transform);
+	}
+
 	mesh_instance& scene::get_mesh(const mesh_inst_id& id)
 	{
 		return m_meshes[id];

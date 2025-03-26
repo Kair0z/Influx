@@ -94,20 +94,22 @@ namespace influx::renderer
         }
 
         // create renderers & managers
-        mp_desc_manager         = new descriptor_manager(mp_device);
-        mp_pipeline_manager     = new pipeline_manager(mp_device);
-        mp_upload_manager       = new upload_manager(mp_device);
-        m_resource_manager      = new resource_manager();
+        {
+            mp_desc_manager = new descriptor_manager(mp_device);
+            mp_pipeline_manager = new pipeline_manager(mp_device);
+            mp_upload_manager = new upload_manager(mp_device);
+            m_resource_manager = new resource_manager();
 
-        mp_imgui                = new imgui_manager(mp_device);
-        mp_scene_renderer       = new scene_renderer();
-        mp_debug_renderer       = new debug_renderer();
-        mp_quad_renderer        = new quad_renderer();
-        mp_shadertoy_renderer   = new shadertoy_renderer();
+            mp_imgui = new imgui_manager(mp_device);
+            mp_scene_renderer = new scene_renderer();
+            mp_debug_renderer = new debug_renderer();
+            mp_quad_renderer = new quad_renderer();
+            mp_shadertoy_renderer = new shadertoy_renderer();
 
-        m_rendergraph = new rendergraph::rendergraph(mp_device);
-
-        mp_scene_renderer->load_shaders();
+            m_rendergraph = new rendergraph::rendergraph(mp_device);
+        }
+        
+        load_resources();
 
         m_is_initialized = true;
     }
@@ -122,6 +124,21 @@ namespace influx::renderer
         const uint64 finished_value = (uint64)-1;
         mp_fence->queue_signal(finished_value, mp_graphics_queue);
         mp_fence->wait_for_value(finished_value);
+    }
+
+    void renderer_backend::load_resources()
+    {
+        influx_scope("renderer_backend::load_resources");
+
+        // in-house shaders
+        mp_scene_renderer->load_shaders();
+
+        // in-house geometry
+        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::box), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::box>(), true);
+        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::plane), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::plane>(), true);
+        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::quad), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::quad>(), true);
+        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::sphere), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::sphere>(), true);
+        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::triangle), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::triangle>(), true);
     }
 
     void renderer_backend::cleanup()
@@ -581,6 +598,15 @@ namespace influx::renderer
         return true;
     }
 
+    mesh_id renderer_backend::get_mesh_id(e_mesh mesh) const
+    {
+        switch (mesh)
+        {
+        default:
+            return 0u;
+        }
+    }
+
     time::point renderer_backend::get_time_loaded_shader(const shader::shader_signature& signature) const
     {
         return m_resource_manager->get_time_loaded<e_resource_type::shader>(signature);
@@ -870,6 +896,11 @@ namespace influx::renderer
     bool has_material(const string& title)
     {
         return renderer_backend::get_instance().has_material(title);
+    }
+
+    mesh_id get_mesh_id(e_mesh mesh)
+    {
+        return renderer_backend::get_instance().get_mesh_id(mesh);
     }
 
     void set_settings(const render_settings& settings)

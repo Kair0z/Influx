@@ -179,6 +179,7 @@ namespace influx::renderer
         compile_args.m_compile_debug = false;
         compile_args.m_pbd = false;
 
+        // assert basepass shader file has a vs & ps, and assert the resolve pass has a cs
         shader::parse_output basepass_parsed_file = shader::parse_shaderfile(basepass_sourcefile_path, compile_args);
         {
             const bool has_vertex_shader = vector_helpers::contains(basepass_parsed_file.m_shaders,
@@ -189,7 +190,7 @@ namespace influx::renderer
             const bool has_pixel_shader = vector_helpers::contains(basepass_parsed_file.m_shaders,
             [](const shader::parse_output::per_shader& shader)
             {
-                return shader.m_type == shader::e_shader_type::ps; 
+                return shader.m_type == shader::e_shader_type::ps;
             });
             influx_assert(has_vertex_shader && has_pixel_shader);
         }
@@ -203,7 +204,7 @@ namespace influx::renderer
             influx_assert(has_compute_shader);
         }
 
-        // now finally compile the shaders and load them into our shader manager:
+        // now finally compile the shaders and load them into our resource manager:
         for (const shader::parse_output::per_shader& shader_parse : basepass_parsed_file.m_shaders)
         {
             shader::compile_output compile_output = shader::compile_shader(basepass_sourcefile_path, shader_parse.m_compile_args);

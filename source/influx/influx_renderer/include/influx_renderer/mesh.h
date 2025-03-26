@@ -18,6 +18,31 @@ namespace influx::renderer
 		math::vectorf2 m_texcoords{};
 	};
 
+	enum class e_mesh : uint8
+	{
+		plane,
+		box,
+		sphere,
+		triangle,
+		quad,
+		count
+	};
+	static constexpr uint8 k_num_internal_meshes = static_cast<uint32>(e_mesh::count);
+	static const char* k_internal_mesh_names[k_num_internal_meshes] =
+	{
+		"internal_plane",
+		"internal_box",
+		"internal_sphere",
+		"internal_triangle",
+		"internal_quad",
+	};
+
+	inline constexpr const char* get_internal_mesh_name(const e_mesh& mesh)
+	{
+		return k_internal_mesh_names[static_cast<uint32>(mesh)];
+	}
+
+
 	namespace detail
 	{
 		class base_mesh_data
@@ -309,5 +334,78 @@ namespace influx::renderer
 			}
 		}
 		return inline_mesh;
+	}
+
+	static const mesh_data<vertex_data>& get_inline_mesh_triangle()
+	{
+		static mesh_data<vertex_data> inline_mesh{};
+		if (inline_mesh.m_vertices.size() == 0u)
+		{
+			const static math::vectorf3 positions[3u]
+			{
+				{ 1.0f, 0.0f, 0.0f },
+				{ -1.0f, 0.0f, 0.0f },
+				{ 0.0f, 1.0f, 0.0f }
+			};
+			const static math::vectorf4 colours[3u]
+			{
+				{ 1.0f, 0.0f, 0.0f, 1.0f },
+				{ 0.0f, 1.0f, 0.0f, 1.0f },
+				{ 0.0f, 0.0f, 1.0f, 1.0f }
+			};
+			const static math::vectorf2 uvs[3u]
+			{
+				{ 1.0f, 1.0f },
+				{ 0.0f, 1.0f },
+				{ 0.0f, 0.0f }
+			};
+			const static math::vectorf3 normals[3u]
+			{
+				{ 0.0f, 0.0f, 1.0f },
+				{ 0.0f, 0.0f, 1.0f },
+				{ 0.0f, 0.0f, 1.0f }
+			};
+
+			inline_mesh.m_vertices.resize(3u);
+			inline_mesh.m_indices.resize(3u);
+
+			for (uint8 i = 0u; i < 3u; ++i)
+			{
+				inline_mesh.m_vertices[i] = {
+					.m_position{positions[i]},
+					.m_colour{colours[i]},
+					.m_normal{normals[i]},
+					.m_texcoords{uvs[i]} };
+			}
+
+			inline_mesh.m_indices[0] = 0u;
+			inline_mesh.m_indices[1] = 1u;
+			inline_mesh.m_indices[2] = 2u;
+		}
+		return inline_mesh;
+	}
+
+	static const mesh_data<vertex_data>& get_inline_mesh_quad()
+	{
+		static mesh_data<vertex_data> inline_mesh{};
+		if (inline_mesh.m_vertices.size() == 0u)
+		{
+			inline_mesh = get_inline_mesh_triangle(); // todo: fix
+		}
+		return inline_mesh;
+	}
+
+	template <e_mesh _e>
+	static const mesh_data<vertex_data>& get_inline_mesh()
+	{
+		if constexpr (_e == e_mesh::box) return get_inline_mesh_box();
+		else if constexpr (_e == e_mesh::plane) return get_inline_mesh_plane();
+		else if constexpr (_e == e_mesh::sphere) return get_inline_mesh_sphere();
+		else if constexpr (_e == e_mesh::triangle) return get_inline_mesh_triangle();
+		else if constexpr (_e == e_mesh::quad) return get_inline_mesh_quad();
+		else
+		{
+			static_assert(false);
+		}
 	}
 }
