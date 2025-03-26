@@ -163,7 +163,7 @@ void set_quaternion_scene(renderer::scene& scene)
 
 		math::boxf box = math::boxf::identity();
 		scene.add_gizmo_transform(math::transform3D::identity());
-		scene.add_box(box.get_transformed3D(transform), colour::k_red);
+		scene.add_line_box(box.get_transformed3D(transform), colour::k_red);
 		once = false;
 	}
 }
@@ -250,7 +250,7 @@ int main()
 			renderer::clear_args clear{ .m_colour = clear_colours[i] };
 			renderer::clear_target(*window_targets[i], clear);
 		}
-		
+
 		renderer::draw_scene(scene_to_draw, *window_targets[1]);
 
 		renderer::end_frame();

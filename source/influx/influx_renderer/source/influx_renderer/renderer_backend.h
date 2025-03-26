@@ -56,6 +56,13 @@ namespace influx::platform
 
 namespace influx::renderer
 {	
+	enum class e_shadersource_directory : uint8
+	{
+		base,
+		include,
+		source
+	};
+
 	class renderer_backend final : public singleton<renderer_backend>
 	{
 		struct swapchain;
@@ -151,10 +158,13 @@ namespace influx::renderer
 
 		static bool allow_bindless();
 
+		string get_shadersource_directory(e_shadersource_directory _enum = e_shadersource_directory::base) const;
+
 	private:
 		init_args m_init_args{};
 		uint64 m_frame_count = 0u;
 		bool m_is_initialized = false;
+		string m_shadersource_directory = "";
 
 		// rendergraph
 		rendergraph::rendergraph* m_rendergraph = nullptr;

@@ -1,6 +1,9 @@
 #include "renderer_pch.h"
 #include "renderer_backend.h"
 
+// influx::core
+#include "core/file.h"
+
 // influx::renderer
 #include "influx_renderer/shader_manager.h"
 #include "influx_renderer/pipeline/pipeline_manager.h"
@@ -21,6 +24,15 @@
 namespace influx::renderer
 {
 #pragma region translation
+    shader_data shader_data::translate(const shader::compile_output& compile_output)
+    {
+        shader_data result{};
+        result.m_bytecode = compile_output.m_bytecode;
+        result.m_reflection = compile_output.m_reflection;
+        result.m_type = compile_output.m_signature.m_type;
+        return result;
+    }
+
     constexpr static e_render_api translate(graphics::e_api_type type)
     {
         switch (type)
@@ -59,6 +71,18 @@ namespace influx::renderer
         m_init_args = args;
 
         {
+            static const string k_default_shadersource_directory = "/shaders/";
+            m_shadersource_directory = !args.m_shader_source_folder.empty() && file::is_directory(args.m_shader_source_folder)
+                ? args.m_shader_source_folder : k_default_shadersource_directory;
+            
+            influx_assert(file::exists(m_shadersource_directory));
+            if (!file::is_directory(m_shadersource_directory))
+            {
+                file::make_directory(m_shadersource_directory);
+            }
+        }
+
+        {
             using namespace influx::graphics;
             mp_device = device::create(translate(args.m_api_type));
 
@@ -84,6 +108,8 @@ namespace influx::renderer
         mp_shader_manager       = new shader_manager();
 
         m_rendergraph = new rendergraph::rendergraph(mp_device);
+
+        mp_scene_renderer->load_shaders();
 
         m_is_initialized = true;
     }
@@ -661,6 +687,18 @@ namespace influx::renderer
     bool renderer_backend::allow_bindless()
     {
         return INFLUX_RENDER_BINDLESS;
+    }
+
+    string renderer_backend::get_shadersource_directory(e_shadersource_directory _enum) const
+    {
+        switch (_enum)
+        {
+        case e_shadersource_directory::base: return m_shadersource_directory;
+        case e_shadersource_directory::include: return m_shadersource_directory + "/include/";
+        case e_shadersource_directory::source: return m_shadersource_directory + "/source/";
+        }
+
+        return m_shadersource_directory;
     }
 
 #pragma region frontend_api

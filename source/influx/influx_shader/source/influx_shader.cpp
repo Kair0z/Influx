@@ -2,6 +2,7 @@
 
 #include "core/file.h"
 #include "core/container/map.h"
+#include "core/regex.h"
 
 // dx12 compiler
 #include <d3dcompiler.h>
@@ -364,5 +365,78 @@ namespace influx::shader
 		sourceBuffer.Encoding = 0u; // ANSI
 
 		return compile_shader_dxcbuffer(sourceBuffer, args);
+	}
+
+	// parse out potential shader types
+	static const char* type_to_signature[shader::k_num_shadertypes] =
+	{
+		R"(\[shader\(\"vertex\"\)\])",
+		R"(\[shader\(\"pixel\"\)\])",
+		R"(\[shader\(\"domain\"\)\])",
+		R"(\[shader\(\"geometry\"\)\])",
+		R"(\[shader\(\"hull\"\)\])",
+
+		R"(\[shader\(\"compute\"\)\])",
+
+		R"(\[shader\(\"raygen\"\)\])",
+		R"(\[shader\(\"miss\"\)\])",
+		R"(\[shader\(\"closesthit\"\)\])",
+		R"(\[shader\(\"anyhit\"\)\])",
+		R"(\[shader\(\"intersection\"\)\])"
+	};
+
+	parse_output parse_shaderfile(const string& filepath, const compile_args& args)
+	{
+		influx_assert(file::exists(filepath));
+
+		compile_args args_copy = args;
+		args_copy.m_signature.m_filename = file(filepath).m_filename_without_extension;
+
+		return parse_shader_source(file::content_to_string(filepath), args_copy);
+	}
+
+	parse_output parse_shader_source(const string& shader_source, const compile_args& args)
+	{
+		influx_assert(shader_source.empty() == false);
+
+		parse_output result{};
+
+		vector<string> source_lines = str::split(shader_source, "\n");
+		for (uint32 i = 0u; i < shader::k_num_shadertypes; ++i)
+		{
+			for (uint32 l = 0u; l < source_lines.size(); ++l)
+			{
+				const string& line = source_lines[l];
+
+				// search each line for the current type's signature ([shader("vertex")])
+				influx::regex::for_each_match(line, type_to_signature[i],
+				[&args, i, &source_lines, l, &result](const string& str)
+				{
+					// now figure out the function entrypoint name:
+					// todo: make this a bit more error-proof
+					uint32 next_idx = l + 1;
+					string next_line = source_lines[next_idx];
+					static uint32 max_it = l + 100;
+					while ((next_line.empty() || next_line[0] == '[') && next_idx < max_it) next_line = source_lines[next_idx++];
+
+					vector<string> entrypoints = regex::get_all_matches(next_line, R"(\b\w+\s+(\w+)\()");
+					if (entrypoints.size() > 0 && entrypoints[0].empty() == false)
+					{
+						const string& entrypoint = entrypoints[0];
+						const e_shader_type current_shader_type = static_cast<shader::e_shader_type>(i);
+
+						parse_output::per_shader new_shader_parse{};
+						new_shader_parse.m_type = current_shader_type;
+						new_shader_parse.m_entrypoint = entrypoint;
+						new_shader_parse.m_compile_args = args;
+						new_shader_parse.m_compile_args.m_signature.m_type = current_shader_type;
+						new_shader_parse.m_compile_args.m_signature.m_entrypoint = entrypoint;
+						result.m_shaders.push_back(new_shader_parse);
+					}
+				});
+			}
+		}
+
+		return result;
 	}
 }

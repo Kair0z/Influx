@@ -123,7 +123,7 @@ namespace influx::renderer
 		return m_viewmatrices;
 	}
 
-	void scene::add_box(const math::boxf& box, const math::colour_rgba& colour)
+	void scene::add_line_box(const math::boxf& box, const math::colour_rgba& colour)
 	{
 		const math::vectorf3& max = box.get_maximum();
 		const math::vectorf3& min = box.get_minimum();

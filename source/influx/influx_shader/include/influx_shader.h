@@ -91,4 +91,21 @@ namespace influx::shader
 
 	// compiles from text source in a string
 	INFLUX_SHADER_API compile_output compile_shader_source(const string& shader_source, const compile_args& args);
+
+	// parses information about a shader without compiling
+	struct parse_output final
+	{
+		struct per_shader final
+		{
+			shader::e_shader_type m_type;
+			string m_entrypoint;
+
+			// partially filled compile args (containing type, filename, entrypoint)
+			compile_args m_compile_args;
+		};
+		vector<per_shader> m_shaders;
+	};
+
+	INFLUX_SHADER_API parse_output parse_shaderfile(const string& filepath, const compile_args& args);
+	INFLUX_SHADER_API parse_output parse_shader_source(const string& shader_source, const compile_args& args);
 }

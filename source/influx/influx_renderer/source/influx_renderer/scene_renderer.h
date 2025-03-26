@@ -38,6 +38,8 @@ namespace influx::renderer
 
 		void render(rendergraph::rendergraph& graph, const scene& scene, const target& target);
 
+		void load_shaders();
+
 	private:
 		vector<batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
 		void update_instance_buffer(const vector<batch>& batches);

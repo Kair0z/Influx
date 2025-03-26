@@ -154,6 +154,7 @@ namespace influx::engine
 		influx::renderer::init_args render_init_args{};
 		render_init_args.m_api_type = influx::renderer::e_render_api::dx12;
 		// render_init_args.m_api_type = influx::renderer::e_render_api::vulkan;
+		render_init_args.m_shader_source_folder = get_engine_directory(engine_directory::assets).m_path_full + "/engine/shaders/";
 		influx::renderer::initialize(render_init_args);
 
 		// window render target:

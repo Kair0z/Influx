@@ -156,7 +156,7 @@ namespace influx::renderer
 
 		// debug lines
 		INFLUX_RENDER_API
-		void add_box(const math::boxf& box, const math::colour_rgba& colour);
+		void add_line_box(const math::boxf& box, const math::colour_rgba& colour);
 
 		INFLUX_RENDER_API
 		void add_line(const line& line);

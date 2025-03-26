@@ -34,7 +34,6 @@ struct ImDrawData;
 // influx::shader
 #include "influx_shader.h"
 
-;
 namespace influx::renderer
 {
 	template <typename _t>
@@ -53,6 +52,9 @@ namespace influx::renderer
 		{
 			return m_time_loaded > timepoint;
 		}
+
+		INFLUX_RENDER_API
+		static shader_data translate(const shader::compile_output& compile_output);
 	};
 
 	// 1. initialize the renderer
@@ -61,7 +63,11 @@ namespace influx::renderer
 	struct init_args final
 	{
 		log_function m_log_func = nullptr;
+
 		e_render_api m_api_type = e_render_api::dx12;
+
+		// if empty, the default source folder is used
+		string m_shader_source_folder = "";
 	};
 	INFLUX_RENDER_API void initialize(const init_args& args);
 	INFLUX_RENDER_API bool is_initialized();

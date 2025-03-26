@@ -21,8 +21,17 @@
 // influx::rendergraph
 #include "rendergraph.h"
 
+// influx::shader
+#include "influx_shader.h"
+
 namespace influx::renderer
 {
+#if 0
+    static const char* k_basepass_sourcefile =
+    {
+        #include "source/basepass.hlsl"
+    };
+#endif
     static constexpr uint32 k_num_gbuffers = 3u;
     static constexpr graphics::e_format k_gbuffer_formats[k_num_gbuffers]
     {
@@ -147,6 +156,69 @@ namespace influx::renderer
     scene_renderer::~scene_renderer()
     {
         delete[] m_instance_data;
+    }
+
+    void scene_renderer::load_shaders()
+    {
+        renderer_backend& backend = renderer_backend::get_instance();
+        shader_manager& shaderman = backend.get_shader_manager();
+        resource_manager& resourceman = backend.get_resource_manager();
+
+        string base_dir = backend.get_shadersource_directory(e_shadersource_directory::base);
+        string src_dir = backend.get_shadersource_directory(e_shadersource_directory::source);
+        string inc_dir = backend.get_shadersource_directory(e_shadersource_directory::include);
+
+        string basepass_sourcefile_path = src_dir + "/basepass.hlsl";
+        string resolvepass_sourcefile_path = src_dir + "/resolvepass.hlsl";
+
+        // parse the shader files for their necessary shaders
+        shader::compile_args compile_args{};
+        compile_args.m_include_folder = base_dir;
+        compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
+        compile_args.m_reflection = true;
+        compile_args.m_defines = {};
+        compile_args.m_compile_debug = false;
+        compile_args.m_pbd = false;
+
+        shader::parse_output basepass_parsed_file = shader::parse_shaderfile(basepass_sourcefile_path, compile_args);
+        {
+            const bool has_vertex_shader = vector_helpers::contains(basepass_parsed_file.m_shaders,
+            [](const shader::parse_output::per_shader& shader)
+            {
+                return shader.m_type == shader::e_shader_type::vs;
+            });
+            const bool has_pixel_shader = vector_helpers::contains(basepass_parsed_file.m_shaders,
+            [](const shader::parse_output::per_shader& shader)
+            {
+                return shader.m_type == shader::e_shader_type::ps; 
+            });
+            influx_assert(has_vertex_shader && has_pixel_shader);
+        }
+        shader::parse_output resolvepass_parsed_file = shader::parse_shaderfile(resolvepass_sourcefile_path, compile_args);
+        {
+            const bool has_compute_shader = vector_helpers::contains(resolvepass_parsed_file.m_shaders,
+            [](const shader::parse_output::per_shader& shader)
+            {
+                return shader.m_type == shader::e_shader_type::cs;
+            });
+            influx_assert(has_compute_shader);
+        }
+
+        // now finally compile the shaders and load them into our shader manager:
+        for (const shader::parse_output::per_shader& shader_parse : basepass_parsed_file.m_shaders)
+        {
+            shader::compile_output compile_output = shader::compile_shader(basepass_sourcefile_path, shader_parse.m_compile_args);
+            influx_assert(compile_output.m_success);
+            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+        }
+        for (const shader::parse_output::per_shader& shader_parse : resolvepass_parsed_file.m_shaders)
+        {
+            shader::compile_output compile_output = shader::compile_shader(resolvepass_sourcefile_path, shader_parse.m_compile_args);
+            influx_assert(compile_output.m_success);
+            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+        }
+
+        printf("a");
     }
 
 #pragma region batch

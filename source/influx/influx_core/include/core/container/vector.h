@@ -10,6 +10,21 @@ namespace influx
 	template <typename _t>
 	using vector = std::vector<_t>;
 
+	namespace vector_helpers
+	{
+		template <typename _t>
+		inline bool contains(const vector<_t>& vec, const _t& value)
+		{
+			return std::find(vec.cbegin(), vec.cend(), value) != vec.cend();
+		}
+
+		template <typename _t, typename _func>
+		inline bool contains(const vector<_t>& vec, _func&& func)
+		{
+			return std::find_if(vec.cbegin(), vec.cend(), func) != vec.cend();
+		}
+	}
+	
 	template <typename _t>
 	inline static vector<_t>& append(vector<_t>& a, const vector<_t>& b)
 	{

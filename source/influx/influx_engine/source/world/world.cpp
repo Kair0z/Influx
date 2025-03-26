@@ -205,7 +205,7 @@ namespace influx::engine
             for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
             {
                 const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_comp.get_matrix());
-                scene.add_box(transformed_bounds, { 1,0,0,1 });
+                scene.add_line_box(transformed_bounds, { 1,0,0,1 });
             }
         }
     }

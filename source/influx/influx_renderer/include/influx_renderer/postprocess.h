@@ -35,4 +35,4 @@ namespace influx::renderer
 		}
 	};
 }
-ENABLE_ENUM_BIT_OPERATORS(influx::renderer::postprocess_flags)
+ENABLE_ENUM_BIT_OPERATORS(influx::renderer::postprocess_flags);
