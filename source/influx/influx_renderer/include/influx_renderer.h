@@ -40,6 +40,21 @@ namespace influx::renderer
 	using result = influx::result<_t, const char*>;
 
 	// shader data
+	static inline shader::compile_args get_default_compile_args()
+	{
+		static bool once = true;
+		static shader::compile_args compile_args{};
+		if (once)
+		{
+			compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
+			compile_args.m_reflection = true;
+			compile_args.m_defines = {};
+			compile_args.m_compile_debug = false;
+			compile_args.m_pbd = false;
+			once = false;
+		}
+		return compile_args;
+	}
 	struct shader_data final
 	{
 		shader::e_shader_type	m_type;

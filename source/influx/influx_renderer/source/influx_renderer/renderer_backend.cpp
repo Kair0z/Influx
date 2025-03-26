@@ -70,18 +70,17 @@ namespace influx::renderer
         influx_scope("renderer_backend::initialize");
         m_init_args = args;
 
+        // setup the shader source directory
         {
-            static const string k_default_shadersource_directory = "/shaders/";
+            static const string k_default_shadersource_directory = "./shaderslol/";
             m_shadersource_directory = !args.m_shader_source_folder.empty() && file::is_directory(args.m_shader_source_folder)
                 ? args.m_shader_source_folder : k_default_shadersource_directory;
             
-            influx_assert(file::exists(m_shadersource_directory));
             if (!file::is_directory(m_shadersource_directory))
-            {
                 file::make_directory(m_shadersource_directory);
-            }
         }
 
+        // create graphics objects
         {
             using namespace influx::graphics;
             mp_device = device::create(translate(args.m_api_type));
@@ -95,6 +94,7 @@ namespace influx::renderer
             mp_copyfence = mp_device->create_fence(0u);
         }
 
+        // create renderers & managers
         mp_desc_manager         = new descriptor_manager(mp_device);
         mp_pipeline_manager     = new pipeline_manager(mp_device);
         mp_upload_manager       = new upload_manager(mp_device);
