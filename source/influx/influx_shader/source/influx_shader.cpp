@@ -332,6 +332,7 @@ namespace influx::shader
 		}
 
 		output.m_signature = args.m_signature;
+		output.m_signature.cache_id();
 		output.m_success = true;
 		return output;
 	}

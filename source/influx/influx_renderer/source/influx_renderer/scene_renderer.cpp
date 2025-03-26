@@ -161,7 +161,6 @@ namespace influx::renderer
     void scene_renderer::load_shaders()
     {
         renderer_backend& backend = renderer_backend::get_instance();
-        shader_manager& shaderman = backend.get_shader_manager();
         resource_manager& resourceman = backend.get_resource_manager();
 
         string base_dir = backend.get_shadersource_directory(e_shadersource_directory::base);
@@ -441,6 +440,7 @@ namespace influx::renderer
         
         // hot-reload our shaders if necessary:
         pipeline.rebuild(backend.get_device());
+        influx_assert(pipeline.is_valid());
 
         // skybox
         if (mp_skybox == nullptr)

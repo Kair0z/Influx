@@ -15,6 +15,13 @@ namespace influx::rendergraph
 			return m_is_imported;
 		}
 
+		inline void reset()
+		{
+			m_writer = nullptr;
+			m_last_user = nullptr;
+			m_refcount = 0u;
+		}
+
 	protected:
 		rgchild() = default;
 

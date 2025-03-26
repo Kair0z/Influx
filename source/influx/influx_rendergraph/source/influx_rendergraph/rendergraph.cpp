@@ -518,6 +518,8 @@ namespace influx::rendergraph
 		m_id_to_pass_map.clear();
 		m_topo_sorted_passes.clear();
 
+		get_view_manager(m_device).end_frame();
+
 		if (keep_resources == false)
 		{
 			m_buffers.clear();
@@ -530,6 +532,18 @@ namespace influx::rendergraph
 
 			m_texid_to_deviceobjects_map.clear();
 			m_bufid_to_deviceobjects_map.clear();
+		}
+		else
+		{
+			// insert destroy points at the 'last user pass' of the resources
+			for (uint64 i = 0; i < m_textures.size(); ++i)
+			{
+				m_textures[i]->reset();
+			}
+			for (uint64 i = 0; i < m_buffers.size(); ++i)
+			{
+				m_buffers[i]->reset();
+			}
 		}
 
 		m_buffer_uav_counter_map.clear();

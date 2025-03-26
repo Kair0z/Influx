@@ -11,6 +11,7 @@
 #include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/pipeline/pipeline.h"
 #include "influx_renderer/renderer_common.h"
+#include "influx_renderer/resources/resource_manager.h"
 
 namespace influx::renderer
 {
@@ -153,7 +154,7 @@ namespace influx::renderer
     {
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipelineman = *backend.get_pipeline_manager();
-        shader_manager& shaderman = backend.get_shader_manager();
+        resource_manager& resourceman = backend.get_resource_manager();
         
         bool has_all_shaders = true;
         
@@ -161,7 +162,7 @@ namespace influx::renderer
         for (const shader::shader_signature& shadersig : pipeline_signature.get_shader_signatures())
         {
             const bool is_shader_optional = pipeline_signature.is_shader_optional(shadersig.m_type);
-            if (shaderman.has_shader(shadersig) == false && !is_shader_optional)
+            if (resourceman.contains<e_resource_type::shader>(shadersig) == false && !is_shader_optional)
             {
                 // ... missing shader
                 has_all_shaders = false;

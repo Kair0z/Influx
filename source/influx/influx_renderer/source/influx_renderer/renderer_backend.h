@@ -34,7 +34,6 @@ namespace influx::rendergraph
 namespace influx::renderer
 {
 	class descriptor_manager;
-	class shader_manager;
 	class upload_manager;
 	class imgui_manager;
 	class pipeline_manager;
@@ -107,7 +106,6 @@ namespace influx::renderer
 		void present_all(const present_args& args);
 		void present(const platform::window& window, const present_args& args);
 
-		static shader_manager& get_shader_manager();
 		static descriptor_manager* get_descriptor_manager();
 		static upload_manager* get_upload_manager();
 		static pipeline_manager* get_pipeline_manager();
@@ -193,7 +191,6 @@ namespace influx::renderer
 
 		// managers
 		descriptor_manager* mp_desc_manager = nullptr;
-		shader_manager* mp_shader_manager = nullptr;
 		upload_manager* mp_upload_manager = nullptr;
 		pipeline_manager* mp_pipeline_manager = nullptr;
 		imgui_manager* mp_imgui = nullptr;

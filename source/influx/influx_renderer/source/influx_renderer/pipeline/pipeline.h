@@ -8,7 +8,7 @@
 
 // influx::renderer
 #include "influx_renderer/renderer_backend.h"
-#include "influx_renderer/shader_manager.h"
+#include "influx_renderer/resources/resource_manager.h"
 
 // influx::graphics
 #include "influx_graphics/pipeline.h"
@@ -372,7 +372,7 @@ namespace influx::renderer
 			rebuild(device);
 		}
 
-		// call this to re-fetch shaders from shader_manager and possibly rebuild the pipeline
+		// call this to re-fetch shaders from resource_manager and possibly rebuild the pipeline
 		void rebuild(graphics::device& device)
 		{
 			update_shaders();
@@ -388,7 +388,7 @@ namespace influx::renderer
 		void update_shaders()
 		{
 			static renderer_backend& backend = renderer_backend::get_instance();
-			static shader_manager& shaderman = backend.get_shader_manager();
+			static resource_manager& resourceman = backend.get_resource_manager();
 
 			influx_assert(m_signature.is_valid());
 
@@ -402,24 +402,22 @@ namespace influx::renderer
 				const shader::shader_signature shader_signature 
 					= m_signature.make_shader_signature(shader_type, k_hardcoded_target, m_signature.m_shader_identifiers[i]);
 
-				// get the appropriate shadermap and store into slot
-				const shader_map& shadermap = shaderman.get_shadermap(shader_type, k_hardcoded_target);
-				const shader_data* new_shader = shadermap.get_shader(shader_signature);
+				const shader_data& new_shader = resourceman.get<e_resource_type::shader>(shader_signature).m_data;
 				const bool is_optional = m_signature.is_shader_optional(shader_type);
-				if (new_shader == nullptr)
+				if (new_shader.is_valid() == false)
 				{
 					m_needs_rebuild = true;
 				}
 				else
 				{
 					// if new data is newer than previous loadpoint, flag a rebuild
-					if (new_shader->is_newer_than(m_shader_loadpoints[i]))
+					if (new_shader.is_newer_than(m_shader_loadpoints[i]))
 					{
 						m_needs_rebuild = true;
 					}
 
 					// re-store the pointer & update the loadpoint
-					m_shaders[i] = new_shader;
+					m_shaders[i] = &new_shader;
 					m_shader_loadpoints[i] = time::get_now();
 				}
 			}

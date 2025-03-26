@@ -159,6 +159,10 @@ namespace influx::renderer
 				{
 					recreate_mesh(signature, data);
 				}
+				else if constexpr (_t == e_resource_type::shader)
+				{
+					recreate_shader(signature, data);
+				}
 			}
 
 			return map[signature];
@@ -188,9 +192,7 @@ namespace influx::renderer
 		template <e_resource_type _t>
 		const entry<_t>& get_default() const
 		{
-			static_assert(_t != e_resource_type::shader);
-
-			return get<_t>("none");
+			return get<_t>({});
 		}
 
 		template <e_resource_type _t>
@@ -227,6 +229,7 @@ namespace influx::renderer
 		void recreate_mesh(const string& title, detail::base_mesh_data* data);
 		void recreate_texture(const string& title, const texture_data& data);
 		void recreate_cubemap(const string& title, const cubemap_data& data);
+		void recreate_shader(const shader::shader_signature& sig, const shader_data& data);
 	};
 
 	using mesh_resource = resource_manager::entry<e_resource_type::mesh>;

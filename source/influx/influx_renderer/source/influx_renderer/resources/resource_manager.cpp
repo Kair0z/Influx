@@ -6,7 +6,7 @@ namespace influx::renderer
 	resource_manager::resource_manager()
 	{
         // dummy datas
-		const string dummy_titles = "none";
+		const string dummy_titles = "";
         {
             texture_data dummy_data{};
             dummy_data.m_width = 256u;
@@ -25,6 +25,9 @@ namespace influx::renderer
 				dummy_data.m_pixels.push_back(make_pixel32(255u, 255u, 255u, 255u));
 			}
 			load<e_resource_type::cubemap>(dummy_titles, dummy_data, false);
+		}
+		{
+			load<e_resource_type::shader>({}, {}, false);
 		}
 	}
 
@@ -134,6 +137,11 @@ namespace influx::renderer
 		commandlist.submit(&queue);
 		commandlist.wait_for_completion();
     }
+
+	void resource_manager::recreate_shader(const shader::shader_signature& sig, const shader_data& data)
+	{
+
+	}
 
 	resource_manager::~resource_manager()
 	{

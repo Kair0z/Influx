@@ -5,7 +5,6 @@
 #include "core/file.h"
 
 // influx::renderer
-#include "influx_renderer/shader_manager.h"
 #include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
@@ -105,7 +104,6 @@ namespace influx::renderer
         mp_debug_renderer       = new debug_renderer();
         mp_quad_renderer        = new quad_renderer();
         mp_shadertoy_renderer   = new shadertoy_renderer();
-        mp_shader_manager       = new shader_manager();
 
         m_rendergraph = new rendergraph::rendergraph(mp_device);
 
@@ -499,11 +497,6 @@ namespace influx::renderer
         }
     }
 
-    shader_manager& renderer_backend::get_shader_manager()
-    {
-        return *get_instance().mp_shader_manager;
-    }
-
     descriptor_manager* renderer_backend::get_descriptor_manager()
     {
         return get_instance().mp_desc_manager;
@@ -556,8 +549,6 @@ namespace influx::renderer
     void renderer_backend::load(const shader::shader_signature& signature, const shader_data& data, bool reload)
     {
         m_resource_manager->load<e_resource_type::shader>(signature, data, reload);
-
-        get_shader_manager().load(signature, data, reload);
     }
 
     // material
@@ -582,7 +573,7 @@ namespace influx::renderer
 
     bool renderer_backend::has_shader(const shader::shader_signature& signature) const
     {
-        return get_shader_manager().has_shader(signature);
+        return m_resource_manager->contains<e_resource_type::shader>(signature);
     }
 
     bool renderer_backend::has_material(const string& title) const

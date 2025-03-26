@@ -70,6 +70,11 @@ namespace influx::renderer
 
 		INFLUX_RENDER_API
 		static shader_data translate(const shader::compile_output& compile_output);
+
+		inline bool is_valid() const
+		{
+			return m_bytecode.empty() == false;
+		}
 	};
 
 	// 1. initialize the renderer
