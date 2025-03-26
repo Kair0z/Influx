@@ -107,46 +107,6 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 	}
 }
 
-void load_shaders()
-{
-	using namespace influx;
-
-	// shaders
-	static const string shaders_folder = "D:/Git/Influx/assets/engine/shaders/";
-
-	// global args
-	shader::compile_args args{};
-	args.m_include_folder = shaders_folder;
-	args.m_signature.m_target = shader::e_shader_target::_6_6;
-	args.m_reflection = true;
-	args.m_defines = {};
-	args.m_compile_debug = INFLUX_DEBUG;
-	args.m_pbd = INFLUX_DEBUG;
-	args.m_pdb_folder = "D:/Git/Influx/int/shaderdebug/";
-
-	vector<imp::shader_data> debug_shaders{};
-	imp::load_shader_file(shaders_folder + "/source/debug_shaders.hlsl", debug_shaders, args);
-
-	vector<imp::shader_data> basepass_shaders{};
-	imp::load_shader_file(shaders_folder + "/source/basepass.hlsl", basepass_shaders, args);
-
-	vector<imp::shader_data> resolvepass_shaders{};
-	imp::load_shader_file(shaders_folder + "/source/resolvepass.hlsl", basepass_shaders, args);
-
-	vector<imp::shader_data> all_shaders = merged(resolvepass_shaders, merged(basepass_shaders, debug_shaders));
-
-	vector<renderer::shader_data> render_shaders{};
-	for (const imp::shader_data& shader : all_shaders)
-	{
-		renderer::shader_data render_shader{};
-		render_shader.m_bytecode = shader.m_compile_result.m_bytecode;
-		render_shader.m_reflection = shader.m_compile_result.m_reflection;
-		render_shader.m_type = shader.m_signature.m_type;
-		render_shader.m_time_loaded = time::get_now();
-		renderer::load(shader.m_signature, render_shader);
-	}
-}
-
 void set_quaternion_scene(renderer::scene& scene)
 {
 	static math::matrix4x4f transform = math::matrix4x4f::identity();
