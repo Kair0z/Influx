@@ -124,7 +124,6 @@ void load_shaders()
 	args.m_pbd = INFLUX_DEBUG;
 	args.m_pdb_folder = "D:/Git/Influx/int/shaderdebug/";
 
-
 	vector<imp::shader_data> debug_shaders{};
 	imp::load_shader_file(shaders_folder + "/source/debug_shaders.hlsl", debug_shaders, args);
 

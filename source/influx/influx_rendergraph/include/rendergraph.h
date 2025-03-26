@@ -100,6 +100,8 @@ namespace influx::rendergraph
 		INFLUX_RG_API void export_texture(const rgname& name, graphics::resource* resource);
 		INFLUX_RG_API void export_buffer(const rgname& name, graphics::resource* resource);
 
+		INFLUX_RG_API void reset(bool keep_resources);
+
 	private:
 		vector<rgpass> m_passes{};
 		vector<rglayer> m_layers{};

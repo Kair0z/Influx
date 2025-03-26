@@ -510,6 +510,38 @@ namespace influx::rendergraph
 		}
 	}
 
+	void rendergraph::reset(bool keep_resources)
+	{
+		m_passes.clear();
+		m_layers.clear();
+		m_adjacency_lists.clear();
+		m_id_to_pass_map.clear();
+		m_topo_sorted_passes.clear();
+
+		if (keep_resources == false)
+		{
+			m_buffers.clear();
+			m_textures.clear();
+			m_id_to_texture_map.clear();
+			m_id_to_buffer_map.clear();
+
+			m_texture_name_to_id_map.clear();
+			m_buffer_name_to_id_map.clear();
+
+			m_texid_to_deviceobjects_map.clear();
+			m_bufid_to_deviceobjects_map.clear();
+		}
+
+		m_buffer_uav_counter_map.clear();
+		m_rtid_to_clear_map.clear();
+
+		m_texid_to_viewdesc_map.clear();
+		m_texid_to_descriptors_map.clear();
+
+		m_bufid_to_viewdesc_map.clear();
+		m_bufid_to_descriptors_map.clear();
+	}
+
 	void rendergraph::create_texture_views(rgtexture_id id)
 	{
 		const auto& viewdescs = m_texid_to_viewdesc_map[id];

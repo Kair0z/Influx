@@ -83,6 +83,8 @@ namespace influx::renderer
         mp_shadertoy_renderer   = new shadertoy_renderer();
         mp_shader_manager       = new shader_manager();
 
+        m_rendergraph = new rendergraph::rendergraph(mp_device);
+
         m_is_initialized = true;
     }
 
@@ -105,6 +107,9 @@ namespace influx::renderer
 
         delete m_resource_manager;
 
+        delete m_rendergraph;
+        m_rendergraph = nullptr;
+
         delete mp_device;
         mp_device = nullptr;
 
@@ -113,7 +118,8 @@ namespace influx::renderer
 
     void renderer_backend::start_frame()
     {
-        m_rendergraph = new rendergraph::rendergraph(mp_device);
+        const bool keep_rendergraph_resource = true;
+        m_rendergraph->reset(keep_rendergraph_resource);
 
         // start the commandlist
         mp_commandlist->start(mp_device, nullptr);
@@ -151,9 +157,6 @@ namespace influx::renderer
             influx_scope("renderer_backend::end_frame::wait_for_gpu");
             mp_commandlist->wait_for_completion();
         }
-
-        delete m_rendergraph;
-        m_rendergraph = nullptr;
 
         ++m_frame_count;
     }
