@@ -86,7 +86,7 @@ namespace influx::engine
 		io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-		const bool enable_viewports = false;
+		const bool enable_viewports = true;
 		if (enable_viewports)
 		{
 			io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;    // We can create multi-viewports on the Platform side (optional)

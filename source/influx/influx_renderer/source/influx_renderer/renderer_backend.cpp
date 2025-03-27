@@ -603,11 +603,7 @@ namespace influx::renderer
 
     mesh_id renderer_backend::get_mesh_id(e_mesh mesh) const
     {
-        switch (mesh)
-        {
-        default:
-            return 0u;
-        }
+        return get_internal_mesh_name(mesh);
     }
 
     time::point renderer_backend::get_time_loaded_shader(const shader::shader_signature& signature) const

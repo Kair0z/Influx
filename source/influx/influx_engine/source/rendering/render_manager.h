@@ -30,6 +30,16 @@ namespace influx::engine
 		all				= render_debug | render_scene | render_imgui
 	};
 
+	// a view contains a renderer::target to render to and data it wants rendered
+	// an example of a view is the main scene view
+	class render_view final
+	{
+	private:
+		renderer::target*	m_target{};
+		renderer::scene		m_scene{};
+		renderer::scene2D	m_scene2D{};
+	};
+
 	class render_manager final
 	{
 		INFLUX_NO_MOVE(render_manager);
