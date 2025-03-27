@@ -16,40 +16,11 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
-	enum class e_resource_type
-	{
-		cubemap,
-		texture,
-		shader,
-		mesh,
-		count
-	};
-	static constexpr uint32 k_num_resource_types = static_cast<uint32>(e_resource_type::count);
-
 	struct mesh_buffers final
 	{
 		graphics::resource* m_vertexbuffer;
 		graphics::resource* m_indexbuffer;
 	};
-
-#pragma region typedefs
-	// resource-data: the user input data struct matching the resource type
-	template <e_resource_type _t>
-	using resource_data = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
-		cubemap_data,
-		texture_data,
-		shader_data,
-		detail::base_mesh_data*
-		>>;
-
-	// resource-signature: the unique signature struct used as the key for the map
-	template <e_resource_type _t>
-	using resource_sign = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
-		string,
-		string,
-		shader::shader_signature,
-		string
-		>>;
 
 	// resource-type: the graphics::resource objects matching the resource type
 	template <e_resource_type _t>
@@ -59,7 +30,6 @@ namespace influx::renderer
 		void,
 		mesh_buffers
 		>>;
-#pragma endregion
 
 	class resource_manager final
 	{

@@ -9,6 +9,9 @@
 // influx::core
 #include "core/basetypes.h"
 
+// influx::renderer
+#include "resource.h"
+
 namespace influx::renderer
 {
 	// num backbuffers held by a swapchain

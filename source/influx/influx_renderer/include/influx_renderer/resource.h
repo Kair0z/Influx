@@ -1,0 +1,49 @@
+#pragma once
+
+// influx::renderer
+#include "shader.h"
+#include "texture.h"
+#include "mesh.h"
+
+/*
+	in influx::renderer, a resource is any big piece of data the renderer needs to build API-structures around.
+	for meshes this is vertex buffers & index buffers
+	for textures this is texture resources
+	for shaders, this is pipeline state objects
+
+	we define resource_data as the raw input data the user provides
+	we define resource_sign as the identifier as a key to user resource_data
+*/
+
+namespace influx::renderer
+{
+	enum class e_resource_type
+	{
+		cubemap,
+		texture,
+		shader,
+		mesh,
+		count
+	};
+	static constexpr uint32 k_num_resource_types = static_cast<uint32>(e_resource_type::count);
+
+	// resource-data: 
+	// the struct type the user inputs into the backend::load functions (raw data)
+	template <e_resource_type _t>
+	using resource_data = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
+		cubemap_data,
+		texture_data,
+		shader_data,
+		detail::base_mesh_data*
+		>>;
+
+	// resource-signature:
+	// the unique signature struct used as the key for the map
+	template <e_resource_type _t>
+	using resource_sign = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
+		string,
+		string,
+		shader::shader_signature,
+		string
+		>>;
+}
