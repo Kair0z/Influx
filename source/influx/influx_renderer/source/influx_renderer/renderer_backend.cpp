@@ -497,6 +497,9 @@ namespace influx::renderer
 
     void renderer_backend::present(const platform::window& window, const present_args& args)
     {
+        // make sure the swapchain has been created before
+        influx_assert(m_swapchains.contains(&window));
+
         swapchain& swapchain = m_swapchains.at(&window);
 
         // run a commandlist to transition the backbuffer-resource to presentable
@@ -659,19 +662,14 @@ namespace influx::renderer
         return m_resource_manager->get_signatures<e_resource_type::mesh>();
     }
 
-    bool renderer_backend::get_mesh_buffers(const string& name, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer)
+    bool renderer_backend::get_mesh_buffers(const mesh_id& id, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer)
     {
-        const mesh_buffers* buffers = m_resource_manager->get<e_resource_type::mesh>(name).m_resource;
+        const mesh_buffers* buffers = m_resource_manager->get<e_resource_type::mesh>(id).m_resource;
         influx_assert(buffers != nullptr);
 
         out_vertex_buffer = buffers->m_vertexbuffer;
         out_index_buffer = buffers->m_indexbuffer;
         return true;
-    }
-
-    bool renderer_backend::get_mesh_buffers(const mesh_id& id, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer)
-    {
-        return false;
     }
 
     memory_info renderer_backend::get_memory_info() const

@@ -143,7 +143,6 @@ namespace influx::renderer
 		void upload_texture_data(texture2D* target_tex, const texture_data& data);
 
 		vector<string> get_mesh_names() const;
-		bool get_mesh_buffers(const string& name, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
 		bool get_mesh_buffers(const mesh_id& id, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
 
 		memory_info get_memory_info() const;

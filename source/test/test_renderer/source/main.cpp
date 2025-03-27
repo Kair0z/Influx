@@ -5,16 +5,19 @@
 extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
+// influx::platform
 #include "influx_platform/window.h"
 #include "influx_platform/monitor.h"
 
-#include "influx_graphics/device.h"
+// influx::renderer
 #include "influx_renderer.h"
 
+// influx::core
 #include "core/math/vectortools.h"
 #include "core/math/random.h"
 #include "core/time.h"
 
+// influx::import
 #include "influx_import.h"
 
 using namespace influx;
@@ -157,6 +160,7 @@ int main()
 	const math::vectoru2 window_half_size = window_desc.m_dimensions / 2;
 	window_desc.m_name = "renderer";
 
+	// create 3 windows
 	static constexpr uint32 num_windows = 3u;
 	platform::window* windows[num_windows] =
 	{
@@ -193,7 +197,7 @@ int main()
 		{
 			const platform::monitor& monitor = monitors[2];
 			const math::vectoru2 monitor_center = monitor.get_rect().get_mid();
-			const float angle = seconds + (i * math::k_PIDouble * 0.33f);
+			const float angle = 0.0f/*seconds*/ + (i * math::k_PIDouble * 0.33f);
 			uint32 x = radius * math::cos(angle);
 			uint32 y = radius * math::sin(angle);
 			windows[i]->set_position(monitor_center + math::vectoru2{ x,y } - window_half_size);
