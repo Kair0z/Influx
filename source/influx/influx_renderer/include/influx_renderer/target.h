@@ -62,6 +62,8 @@ namespace influx::renderer
 
 		INFLUX_RENDER_API bool is_swapchain_target() const;
 
+		INFLUX_RENDER_API ~target();
+
 	private:
 		// constructs a target from create_args, allocating new graphics resources
 		explicit target(
@@ -72,8 +74,6 @@ namespace influx::renderer
 			graphics::device* device,
 			graphics::swapchain* swapchain,
 			uint8 swapchain_index);
-
-		~target();
 
 		// does not allocate a new descriptor handle, but recreates the view
 		void recreate_rtv();

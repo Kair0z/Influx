@@ -287,4 +287,55 @@ namespace influx::engine
 	{
 		return m_imgui_scene;
 	}
+
+	render_view& render_manager::get_renderview(const render_view_id& id, const math::vectoru2& size)
+	{
+		influx_assert(size.x > 0 && size.y > 0);
+
+		renderer::target_create_args create_args{};
+		create_args.m_has_colour = true;
+		create_args.m_has_depth_stencil = false;
+		create_args.m_width = size.x;
+		create_args.m_heigth = size.y;
+
+		// create for the first time, or recreate if dimensions are different
+		if (!m_views.contains(id) || !m_views[id].is_valid())
+		{
+			m_views[id].m_target = renderer::create_target(create_args);
+		}
+		else
+		{
+			uint32 width = m_views[id].m_target->get_width();
+			uint32 height = m_views[id].m_target->get_height();
+			if (width != size.x || height != size.y)
+			{
+				// recreate target
+				delete m_views[id].m_target;
+				m_views[id].m_target = renderer::create_target(create_args);
+			}
+		}
+
+		return m_views[id];
+	}
+
+	render_view::render_view(const renderer::target_create_args& create_args)
+	{
+		m_target = renderer::create_target(create_args);
+	}
+	render_view::~render_view()
+	{
+		delete m_target;
+	}
+	const renderer::target& render_view::get_target() const
+	{
+		return *m_target;
+	}
+	renderer::scene& render_view::get_scene()
+	{
+		return m_scene;
+	}
+	renderer::scene2D& render_view::get_scene2D()
+	{
+		return m_scene2D;
+	}
 }

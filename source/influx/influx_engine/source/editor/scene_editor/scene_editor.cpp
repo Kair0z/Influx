@@ -6,6 +6,7 @@
 #include "world/world.h"
 #include "scene/scene.h"
 #include "component/component.h"
+#include "rendering/render_manager.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -198,6 +199,11 @@ namespace influx::engine::editor
 			on_radial_select* ptr_ptr = m_edit_radial.get_selected();
 			if (ptr_ptr) (*ptr_ptr)();
 		}
+
+		// handle the rendering
+		render_manager& renderman = get_engine()->get_renderer();
+		render_view& scene_view = renderman.get_renderview("scene_view", { 640u, 480 });
+		scene_view.get_scene();
 	}
 
 	void scene_editor::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)

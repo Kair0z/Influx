@@ -14,6 +14,7 @@
 namespace influx::renderer
 {
 	class target;
+	struct target_create_args;
 }
 
 namespace influx::engine
@@ -32,12 +33,28 @@ namespace influx::engine
 
 	// a view contains a renderer::target to render to and data it wants rendered
 	// an example of a view is the main scene view
+	using render_view_id = string;
 	class render_view final
 	{
+	public:
+		render_view() = default;
+		render_view(const renderer::target_create_args& create_args);
+		~render_view();
+
+		const renderer::target& get_target() const;
+		renderer::scene& get_scene();
+		renderer::scene2D& get_scene2D();
+
+		inline bool is_valid() const
+		{
+			return m_target != nullptr;
+		}
+
 	private:
 		renderer::target*	m_target{};
 		renderer::scene		m_scene{};
 		renderer::scene2D	m_scene2D{};
+		friend class render_manager;
 	};
 
 	class render_manager final
@@ -67,6 +84,9 @@ namespace influx::engine
 		renderer::scene2D& get_scene2D();
 		renderer::scene_imgui& get_scene_imgui();
 
+		/* gets or (re)creates a target view that can be rendered to */
+		render_view& get_renderview(const render_view_id& id, const math::vectoru2& size);
+
 	private:
 		e_render_flags m_render_flags{};
 		imgui_manager m_imgui;
@@ -77,6 +97,8 @@ namespace influx::engine
 		renderer::scene m_scene{};
 		renderer::scene2D m_scene2D{};
 		renderer::scene_imgui m_imgui_scene{};
+
+		umap<render_view_id, render_view> m_views{};
 	};
 }
 
