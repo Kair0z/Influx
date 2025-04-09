@@ -35,16 +35,24 @@ namespace influx::graphics
 	class device
 	{
 	public:
-		INFLUX_GFX_API static device* create(e_api_type type, const device_desc& desc = device_desc{});
-	
+		/* create a device */
+		INFLUX_GFX_API 
+		static device* create(e_api_type type, const device_desc& desc = device_desc{});
+
+		/* */
+		INFLUX_GFX_API
+		void set_log_function(log_function function);
+		
 		void set_api_type(e_api_type type);
 
 		virtual void release(base*);
 
 		virtual void cleanup() = 0;
+
+		virtual feature_info get_feature_info() const = 0;
 		
 		virtual ptr<queue>				create_queue(const queue_desc& desc = queue_desc::default_graphics()) = 0;
-		virtual ptr<swapchain>			create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc) = 0;
+		virtual ptr<swapchain>			create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc = swapchain_desc::default_tripple()) = 0;
 		virtual ptr<descriptor_heap>	create_descriptor_heap(const descriptor_heap::create_args&) = 0;
 
 		virtual ptr<commandlist> create_graphics_commandlist(graphics_pipeline* init_state = nullptr) = 0;
@@ -72,6 +80,7 @@ namespace influx::graphics
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) = 0;
 		virtual ptr<graphics_pipeline> create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc) = 0;
 		virtual ptr<compute_pipeline> create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc) = 0;
+		virtual ptr<raytracing_pipeline> create_raytracing_pipeline(rootsignature* rootsig, const raytracing_pipeline_desc& desc) = 0;
 
 		virtual void copy_descriptors(
 			const descriptor_range& source, const descriptor_range& dest,
@@ -88,6 +97,7 @@ namespace influx::graphics
 	private:
 		e_api_type m_type{};
 		bool m_is_initialized = false;
+		log_function m_log_function = {};
 
 	protected:
 		device(const device_desc& desc);
@@ -98,5 +108,6 @@ namespace influx::graphics
 		queue* m_copy_queue = nullptr;
 
 		void set_initialized(bool initialized);
+		void log(e_log, const char*) const;
 	};
 }

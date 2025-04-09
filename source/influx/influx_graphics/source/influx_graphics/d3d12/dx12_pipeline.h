@@ -9,11 +9,21 @@ namespace influx::graphics
 	class dx12_pipeline final : public pipeline<_t>
 	{
 		ID3D12PipelineState* mpdx_pipeline;
+		ID3D12StateObject* mpdx_raytracing_state_object; // I hate Dx12
+
+		dx12_pipeline(ID3D12StateObject* rtdxpipeline, const pipeline_desc<_t>& desc)
+			: pipeline<_t>(desc)
+		{
+			static_assert(_t == e_pipeline_type::raytracing);
+			base::mp_native = mpdx_raytracing_state_object = rtdxpipeline;
+			mpdx_pipeline = nullptr;
+		}
 
 		dx12_pipeline(ID3D12PipelineState* dxpipeline, const pipeline_desc<_t>& desc)
 			: pipeline<_t>(desc)
 		{
 			base::mp_native = mpdx_pipeline = dxpipeline;
+			mpdx_raytracing_state_object = nullptr;
 		}
 
 		virtual void release_impl(device*) override

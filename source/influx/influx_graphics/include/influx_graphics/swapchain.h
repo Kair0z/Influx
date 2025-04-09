@@ -22,6 +22,22 @@ namespace influx::graphics
 
 	struct swapchain_desc final
 	{
+		static swapchain_desc default_double()
+		{
+			static swapchain_desc result{};
+			result.m_format = e_format::rgba8;
+			result.m_num_buffers = 2u;
+			return result;
+		}
+
+		static swapchain_desc default_tripple()
+		{
+			static swapchain_desc result{};
+			result.m_format = e_format::rgba8;
+			result.m_num_buffers = 3u;
+			return result;
+		}
+
 		e_format m_format = e_format::rgba8;
 		math::vectoru2 m_dimensions{};
 		uint8 m_num_buffers = 2u;

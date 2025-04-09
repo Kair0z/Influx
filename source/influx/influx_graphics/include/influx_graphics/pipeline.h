@@ -15,11 +15,13 @@ namespace influx::graphics
 		hs,
 		count
 	};
+
 	enum class e_compute_shader_slots : uint8
 	{
 		cs,
 		count
 	};
+
 	enum class e_raytracing_shader_slots : uint8
 	{
 		rgs,
@@ -210,6 +212,7 @@ namespace influx::graphics
 
 	struct raytracing_pipeline_desc final
 	{
+		uint32 m_max_recursion_depth = 8u;
 		shader_slots<e_pipeline_type::raytracing> m_shaders{};
 	};
 

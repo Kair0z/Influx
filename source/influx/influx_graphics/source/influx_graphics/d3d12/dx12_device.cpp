@@ -18,23 +18,37 @@
 
 namespace influx::graphics
 {
+	void dx12_device::check(long res, const char* message_if_fail) const
+	{
+		bool success = res == S_OK;
+		if (!success)
+		{
+			log(e_log::error, message_if_fail);
+#if INFLUX_DEBUG
+			assert(false);
+#endif
+		}
+	}
+
 	dx12_device::dx12_device(const device_desc& desc)
 		: device(desc)
 	{
-		// create factory
-		::CreateDXGIFactory2(0u, IID_PPV_ARGS(&mpdxgi_factory));
+		HRESULT 
+		res = ::CreateDXGIFactory2(0u, IID_PPV_ARGS(&mpdxgi_factory));
+		check(res, "dx12 error: failed creating dxgi factory!");
 
 #if INFLUX_DEBUG
 		dx12helpers::set_debug_layer_enabled(true);
 #endif
-		// query adapters
+
+		// query all physical adapters
 		auto adapters = dx12helpers::get_hardware_adapters<IDXGIAdapter1>(mpdxgi_factory);
 		for (uint64 i = 0u; i < adapters.size(); ++i)
 		{
 			mpdxgi_adapters.push_back(adapters[i]);
 		}
 
-		// create 1 dx12 logical device of first adapter
+		// create 1 dx12 logical device for the first adapter
 		mpdx_devices.push_back(
 			dx12helpers::create_logical_device<ID3D12Device>(mpdxgi_adapters[0u]));
 
@@ -42,7 +56,7 @@ namespace influx::graphics
 		for (uint64 i = 0u; i < mpdx_devices.size(); ++i)
 		{
 			ID3D12InfoQueue* info_queue;
-			HRESULT res = mpdx_devices[i]->QueryInterface(IID_PPV_ARGS(&info_queue));
+			res = mpdx_devices[i]->QueryInterface(IID_PPV_ARGS(&info_queue));
 			if (res == S_OK)
 			{
 				D3D12_MESSAGE_ID hide[] =
@@ -147,6 +161,13 @@ namespace influx::graphics
 		set_initialized(false);
 	}
 
+	feature_info dx12_device::get_feature_info() const
+	{
+		feature_info info{};
+		info.m_supported_flags = query_supported();
+		return info;
+	}
+
 	// get info about physical devices:
 	vector<physical_device_info> dx12_device::get_gpu_infos()
 	{
@@ -165,8 +186,9 @@ namespace influx::graphics
 		memory_info result_info{};
 
 		DXGI_QUERY_VIDEO_MEMORY_INFO out_info{};
-		HRESULT res = ((IDXGIAdapter3*)mpdxgi_adapters[0u])->QueryVideoMemoryInfo(0u,
-			DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &out_info);
+
+		HRESULT res = ((IDXGIAdapter3*)mpdxgi_adapters[0u])->QueryVideoMemoryInfo(0u, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &out_info);
+		check(res, "dx12 error: QueryVideoMemoryInfo failed!");
 
 		if (res == S_OK)
 		{
@@ -668,8 +690,13 @@ namespace influx::graphics
 
 		ID3DBlob* signature;
 		ID3DBlob* error;
-		HRESULT res = ::D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
+		
+		HRESULT 
+		res = ::D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
+		check(res, "dx12 error: D3DX12SerializeVersionedRootSignature failed! ");
+
 		res = mpdx_devices[0]->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&dxrootsignature));
+		check(res, "dx12 error: CreateRootSignature failed! ");
 
 		return new_child<dx12_rootsignature, rootsignature>(dxrootsignature, desc, name_to_param_idx);
 	}
@@ -767,7 +794,10 @@ namespace influx::graphics
 		}
 
 		// create the pipeline
-		HRESULT res = mpdx_devices[0]->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
+		HRESULT 
+		res = mpdx_devices[0]->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
+		check(res, "dx12 error: CreateGraphicsPipelineState failed!");
+
 		return new_child<dx12_pipeline<e_pipeline_type::graphics>, graphics_pipeline>(dxpipeline, desc);
 	}
 
@@ -785,8 +815,74 @@ namespace influx::graphics
 		pso_desc.Flags;
 
 		ID3D12PipelineState* dxpipeline = nullptr;
-		HRESULT res = mpdx_devices[0]->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
+		HRESULT 
+		res = mpdx_devices[0]->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
+		check(res, "dx12 error: CreateComputePipelineState failed!");
+
 		return new_child<dx12_pipeline<e_pipeline_type::compute>, compute_pipeline>(dxpipeline, desc);
+	}
+
+	ptr<raytracing_pipeline> dx12_device::create_raytracing_pipeline(rootsignature* rootsig, const raytracing_pipeline_desc& desc)
+	{
+		constexpr UINT64 NUM_SHADER_IDS = 3;
+		ID3D12RootSignature* dx_rootsignature = rootsig->get_native<ID3D12RootSignature>();
+
+		D3D12_DXIL_LIBRARY_DESC shader_library = 
+		{
+			.DXILLibrary = 
+			{
+				/*
+				.pShaderBytecode = compiledShader,
+				.BytecodeLength = std::size(compiledShader)
+				*/
+			} 
+		};
+
+		D3D12_HIT_GROUP_DESC hitgroup = 
+		{ 
+			.HitGroupExport = L"HitGroup",
+			.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES,
+			.ClosestHitShaderImport = L"ClosestHit"
+		};
+
+		D3D12_RAYTRACING_SHADER_CONFIG shader_config = 
+		{
+			.MaxPayloadSizeInBytes = 20,
+			.MaxAttributeSizeInBytes = 8,
+		};
+
+		D3D12_GLOBAL_ROOT_SIGNATURE global_signature = 
+		{ 
+			.pGlobalRootSignature = dx_rootsignature  
+		};
+
+		D3D12_RAYTRACING_PIPELINE_CONFIG config = 
+		{ 
+			.MaxTraceRecursionDepth = desc.m_max_recursion_depth 
+		};
+
+		D3D12_STATE_SUBOBJECT subobjects[] = 
+		{
+			{.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, .pDesc = &shader_library},
+			{.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, .pDesc = &hitgroup},
+			{.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, .pDesc = &shader_config},
+			{.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE, .pDesc = &global_signature},
+			{.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, .pDesc = &config}
+		};
+
+		D3D12_STATE_OBJECT_DESC state_object = 
+		{ 
+			.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE,
+			.NumSubobjects = std::size(subobjects),
+			.pSubobjects = subobjects 
+		};
+
+		ID3D12StateObject* dx12_pso = nullptr;
+		HRESULT
+		res = get_main_device<ID3D12Device5>()->CreateStateObject(&state_object, IID_PPV_ARGS(&dx12_pso));
+		check(res, "dx12 error: CreateStateObject failed!");
+
+		return new_child<dx12_pipeline<e_pipeline_type::raytracing>, raytracing_pipeline>(dx12_pso, desc);
 	}
 
 	void dx12_device::copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type)
@@ -878,5 +974,22 @@ namespace influx::graphics
 				allocators[i].m_allocator->Reset();
 			}
 		}
+	}
+
+	e_feature_flags dx12_device::query_supported() const
+	{
+		e_feature_flags supported_flags = {};
+		HRESULT res = {};
+
+		D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
+		// D3D12_FEATURE_DATA_D3D12_OPTIONS21 options21 = {};
+
+		res = mpdx_devices[0u]->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5));
+		check(res, "dx12 error: CheckFeatureSupport failed!");
+
+		if (options5.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
+			supported_flags |= e_feature_flags::raytracing;
+
+		return supported_flags;
 	}
 }

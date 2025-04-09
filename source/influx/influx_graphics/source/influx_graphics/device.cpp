@@ -87,4 +87,12 @@ namespace influx::graphics
 	{
 		m_is_initialized = initialized;
 	}
+
+	void device::log(e_log category, const char* text) const
+	{
+		if (m_log_function != nullptr)
+		{
+			m_log_function(category, text);
+		}
+	}
 }

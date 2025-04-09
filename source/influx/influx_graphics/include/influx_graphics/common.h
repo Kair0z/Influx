@@ -10,9 +10,28 @@
 #include "core/string.h"
 #include "core/basetypes.h"
 #include "core/enum.h"
+#include "core/result.h"
 
 namespace influx::graphics
 {
+	enum class e_log { info, warning, error, count };
+	typedef void (*log_function)(e_log, const char*);
+
+	template <typename _t>
+	using result = influx::result<_t, const char*>;
+
+	enum class e_feature_flags : uint8
+	{
+		none				= 0 << 0,
+		raytracing			= 1 << 0,
+		all = raytracing
+	};
+
+	struct feature_info final
+	{
+		e_feature_flags m_supported_flags;
+	};
+
 	enum class e_command : uint32
 	{
 		none,
@@ -343,6 +362,7 @@ namespace influx::graphics
 	};
 }
 
+ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_feature_flags);
 ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_command);
 ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_resource_state);
 ENABLE_ENUM_BIT_OPERATORS(influx::graphics::e_bind_flags);

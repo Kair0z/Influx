@@ -6,6 +6,9 @@
 // influx::core
 #include "core/pointer.h"
 
+// dx12
+#include "dx12_headers.h"
+
 struct IDXGIFactory2;
 struct IDXGIAdapter1;
 struct ID3D12Device;
@@ -31,6 +34,7 @@ namespace influx::graphics
 
 		virtual void release(base*) override;
 		virtual void cleanup() override;
+		virtual feature_info get_feature_info() const;
 
 		// creation:
 		virtual ptr<queue> create_queue(const queue_desc& desc) override;
@@ -61,6 +65,7 @@ namespace influx::graphics
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) override;
 		virtual ptr<graphics_pipeline> create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc) override;
 		virtual ptr<compute_pipeline> create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc) override;
+		virtual ptr<raytracing_pipeline> create_raytracing_pipeline(rootsignature* rootsig, const raytracing_pipeline_desc& desc) override;
 
 		// misc:
 		virtual vector<physical_device_info> get_gpu_infos() override;
@@ -71,7 +76,18 @@ namespace influx::graphics
 		ID3D12CommandAllocator* new_allocator(const D3D12_COMMAND_LIST_TYPE& type);
 		void free_allocator(const D3D12_COMMAND_LIST_TYPE& type, ID3D12CommandAllocator*);
 		
+		template <typename _t>
+		inline _t* get_main_device()
+		{
+			_t* result = nullptr;
+			HRESULT res = mpdx_devices[0]->QueryInterface(IID_PPV_ARGS(&result));
+			check(res, "dx12 error: QueryInterface failed!");
+			return result;
+		}
+
 	private:
+		e_feature_flags query_supported() const;
+
 		IDXGIFactory2* mpdxgi_factory;
 		vector<IDXGIAdapter1*> mpdxgi_adapters;
 		vector<ID3D12Device*> mpdx_devices;
@@ -105,5 +121,8 @@ namespace influx::graphics
 			m_children.push_back(new_child);
 			return (_ret*)new_child;
 		}
+
+		// check a HRESULT
+		void check(long res, const char* message_if_fail) const;
 	};
 }
