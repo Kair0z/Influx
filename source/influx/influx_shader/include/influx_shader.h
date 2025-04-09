@@ -26,6 +26,9 @@ namespace influx::shader
 			return m_signature.is_valid();
 		}
 
+		inline compile_args& set_target(e_shader_target target) { m_signature.m_target = target; return *this; }
+		inline compile_args& set_type(e_shader_type type) { m_signature.m_type = type; return *this; }
+
 		shader_signature m_signature;
 
 		vector<string> m_defines;

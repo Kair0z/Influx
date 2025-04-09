@@ -1,4 +1,9 @@
 #pragma once
+
+// influx::core
+#include "core/shader.h"
+
+// influx::graphics
 #include "influx_graphics/base.h"
 #include "influx_graphics/common.h"
 
@@ -77,6 +82,44 @@ namespace influx::graphics
 			}
 		}
 
+		static constexpr bool is_optional(uint8 index)
+		{
+			return is_optional(static_cast<enum_type>(index));
+		}
+
+		inline void set(shader::e_shader_type type, const vector<byte>& shader_bytecode)
+		{
+			if constexpr (_t == e_pipeline_type::graphics)
+			{
+				switch (type)
+				{
+				case shader::e_shader_type::vs: set(e_graphics_shader_slots::vs, shader_bytecode); break;
+				case shader::e_shader_type::ps: set(e_graphics_shader_slots::ps, shader_bytecode); break;
+				case shader::e_shader_type::ds: set(e_graphics_shader_slots::ds, shader_bytecode); break;
+				case shader::e_shader_type::gs: set(e_graphics_shader_slots::gs, shader_bytecode); break;
+				case shader::e_shader_type::hs: set(e_graphics_shader_slots::hs, shader_bytecode); break;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::compute)
+			{
+				switch (type)
+				{
+				case shader::e_shader_type::cs: set(e_compute_shader_slots::cs, shader_bytecode); break;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::raytracing)
+			{
+				switch (type)
+				{
+				case shader::e_shader_type::rgs: set(e_raytracing_shader_slots::rgs, shader_bytecode); break;
+				case shader::e_shader_type::mss: set(e_raytracing_shader_slots::mss, shader_bytecode); break;
+				case shader::e_shader_type::chs: set(e_raytracing_shader_slots::chs, shader_bytecode); break;
+				case shader::e_shader_type::ahs: set(e_raytracing_shader_slots::ahs, shader_bytecode); break;
+				case shader::e_shader_type::ins: set(e_raytracing_shader_slots::ins, shader_bytecode); break;
+				}
+			}
+		}
+
 		inline void set(enum_type slot, const vector<byte>& shader_bytecode)
 		{
 			m_shaders[static_cast<uint8>(slot)] = shader_bytecode;
@@ -85,6 +128,11 @@ namespace influx::graphics
 		inline const vector<byte>& get(enum_type slot) const
 		{
 			return m_shaders[static_cast<uint8>(slot)];
+		}
+
+		inline const vector<byte>& get(uint8 idx) const
+		{
+			return m_shaders[idx];
 		}
 
 		static constexpr uint8 count = static_cast<uint8>(enum_type::count);

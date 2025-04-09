@@ -20,9 +20,23 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 // influx::import
 #include "influx_import.h"
 
-void compile_shaders()
-{
+using namespace influx;
 
+void compile_shaders(graphics::raytracing_pipeline_desc& out_desc)
+{
+	vector<imp::shader_data> loaded_shaders{};
+
+	shader::compile_args compile_args{};
+	compile_args.set_target(shader::e_shader_target::_6_6);
+
+	compile_args.m_include_folder = "D:/Git/Influx/assets/engine/shaders/include/";
+	bool load_success = imp::load_shader_file("D:/Git/Influx/assets/engine/shaders/source/raytracing.hlsl", loaded_shaders, compile_args);
+	influx_assert(load_success);
+
+	for (const imp::shader_data& shader : loaded_shaders)
+	{
+		out_desc.m_shaders.set(shader.m_type, shader.m_compile_result.m_bytecode);
+	}
 }
 
 int main()
@@ -46,6 +60,7 @@ int main()
 	// create pipeline
 	graphics::rootsignature_desc rootsig_desc{};
 	graphics::raytracing_pipeline_desc ray_pipeline_desc{};
+	compile_shaders(ray_pipeline_desc);
 	graphics::rootsignature& ray_rootsignature = *device.create_rootsignature(rootsig_desc);
 	graphics::raytracing_pipeline& ray_pipeline = *device.create_raytracing_pipeline(&ray_rootsignature, ray_pipeline_desc);
 

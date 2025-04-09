@@ -4,6 +4,8 @@
 #include "core/container/map.h"
 #include "core/regex.h"
 
+// https://strontic.github.io/xcyclopedia/library/dxc.exe-0C1709D4E1787E3EB3E6A35C85714824.html
+
 // dx12 compiler
 #include <d3dcompiler.h>
 #include <dxcapi.h>
@@ -77,8 +79,23 @@ namespace influx::shader
 		{
 		case e_shader_type::vs: result += L"vs"; break;
 		case e_shader_type::ps: result += L"ps"; break;
+		case e_shader_type::ds: result += L"ds"; break;
+		case e_shader_type::gs: result += L"gs"; break;
+		case e_shader_type::hs: result += L"hs"; break;
+
 		case e_shader_type::cs: result += L"cs"; break;
-		case e_shader_type::count: result += L"LLLL"; break;
+
+		// raytracing shaders are compiled as part of a 'library'
+		case e_shader_type::rgs: result += L"lib"; break;
+		case e_shader_type::mss: result += L"lib"; break;
+		case e_shader_type::chs: result += L"lib"; break;
+		case e_shader_type::ahs: result += L"lib"; break;
+		case e_shader_type::ins: result += L"lib"; break;
+		
+		default:
+		case e_shader_type::count: result += L"LLLL";
+			influx_assert(false);
+			break;
 		}
 
 		result += L"_";
@@ -379,7 +396,7 @@ namespace influx::shader
 
 		R"(\[shader\(\"compute\"\)\])",
 
-		R"(\[shader\(\"raygen\"\)\])",
+		R"(\[shader\(\"raygeneration\"\)\])",
 		R"(\[shader\(\"miss\"\)\])",
 		R"(\[shader\(\"closesthit\"\)\])",
 		R"(\[shader\(\"anyhit\"\)\])",

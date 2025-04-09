@@ -827,16 +827,25 @@ namespace influx::graphics
 		constexpr UINT64 NUM_SHADER_IDS = 3;
 		ID3D12RootSignature* dx_rootsignature = rootsig->get_native<ID3D12RootSignature>();
 
-		D3D12_DXIL_LIBRARY_DESC shader_library = 
+		// gather shader 'libraries'
+		vector<D3D12_DXIL_LIBRARY_DESC> shader_libraries{};
+		shader_libraries.reserve(desc.m_shaders.count);
+		for (uint32 i = 0u; i < desc.m_shaders.count; ++i)
 		{
-			.DXILLibrary = 
+			const auto& bytecode = desc.m_shaders.get(i);
+			const bool is_bytecode_valid = bytecode.empty() == false;
+			influx_assert(is_bytecode_valid || desc.m_shaders.is_optional(i));
+
+			if (is_bytecode_valid)
 			{
-				/*
-				.pShaderBytecode = compiledShader,
-				.BytecodeLength = std::size(compiledShader)
-				*/
-			} 
-		};
+				D3D12_DXIL_LIBRARY_DESC library_desc{};
+				library_desc.DXILLibrary.BytecodeLength = bytecode.size();
+				library_desc.DXILLibrary.pShaderBytecode = bytecode.data();
+				library_desc.NumExports;
+				library_desc.pExports;
+				shader_libraries.push_back(library_desc);
+			}
+		}
 
 		D3D12_HIT_GROUP_DESC hitgroup = 
 		{ 
@@ -861,20 +870,24 @@ namespace influx::graphics
 			.MaxTraceRecursionDepth = desc.m_max_recursion_depth 
 		};
 
-		D3D12_STATE_SUBOBJECT subobjects[] = 
+		vector<D3D12_STATE_SUBOBJECT> subobjects
 		{
-			{.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, .pDesc = &shader_library},
 			{.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, .pDesc = &hitgroup},
 			{.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, .pDesc = &shader_config},
 			{.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE, .pDesc = &global_signature},
 			{.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, .pDesc = &config}
 		};
+		for (auto& library : shader_libraries)
+		{
+			subobjects.push_back(
+				{ .Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, .pDesc = &library });
+		}
 
 		D3D12_STATE_OBJECT_DESC state_object = 
 		{ 
 			.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE,
-			.NumSubobjects = std::size(subobjects),
-			.pSubobjects = subobjects 
+			.NumSubobjects = (uint32)subobjects.size(),
+			.pSubobjects = subobjects.data()
 		};
 
 		ID3D12StateObject* dx12_pso = nullptr;
