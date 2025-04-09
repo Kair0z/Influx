@@ -432,6 +432,26 @@ namespace influx::graphics
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
+	ptr<resource> dx12_device::create_resource(const acc_str_desc& desc, const heap_desc& heap_desc)
+	{
+		ID3D12Resource* dxresource = nullptr;
+		ID3D12Device5* maindevice5 = get_main_device<ID3D12Device5>();
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs{};
+		
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuild_info{};
+		maindevice5->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuild_info);
+
+		// "First, we’ll need to ask how much space is required in these buffers. 
+		// we’re not concerned with updating scratch data for now, so just pass it back to the caller."
+		if (desc.m_update_scratch_size)
+		{
+			*desc.m_update_scratch_size = prebuild_info.UpdateScratchDataSizeInBytes;
+		}
+
+		return new_child<dx12_resource, resource>(dxresource, desc);
+	}
+
 	ptr<resource> dx12_device::create_upload_resource(resource* resource)
 	{
 		heap_desc uploadheap{};

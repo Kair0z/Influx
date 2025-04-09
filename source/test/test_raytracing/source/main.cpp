@@ -28,6 +28,7 @@ void compile_shaders(graphics::raytracing_pipeline_desc& out_desc)
 
 	shader::compile_args compile_args{};
 	compile_args.set_target(shader::e_shader_target::_6_6);
+	compile_args.m_reflection = false;
 
 	compile_args.m_include_folder = "D:/Git/Influx/assets/engine/shaders/include/";
 	bool load_success = imp::load_shader_file("D:/Git/Influx/assets/engine/shaders/source/raytracing.hlsl", loaded_shaders, compile_args);
@@ -37,6 +38,57 @@ void compile_shaders(graphics::raytracing_pipeline_desc& out_desc)
 	{
 		out_desc.m_shaders.set(shader.m_type, shader.m_compile_result.m_bytecode);
 	}
+}
+
+struct pipeline final
+{
+	graphics::rootsignature* m_rootsig = nullptr;
+	graphics::raytracing_pipeline* m_pipeline = nullptr;
+};
+void create_pipeline(graphics::device& device, pipeline& out_pipeline)
+{
+	graphics::rootsignature_desc rootsig_desc{};
+	rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, 1u, 0u); // output uav
+	rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::srv, 0u); // tlas srv
+
+	graphics::raytracing_pipeline_desc ray_pipeline_desc{};
+	compile_shaders(ray_pipeline_desc);
+	graphics::rootsignature& ray_rootsignature = *device.create_rootsignature(rootsig_desc);
+	graphics::raytracing_pipeline& ray_pipeline = *device.create_raytracing_pipeline(&ray_rootsignature, ray_pipeline_desc);
+}
+
+struct mesh_buffers final
+{
+	graphics::resource* m_quad_vtx_buffer = nullptr;
+	graphics::resource* m_cube_vtx_buffer = nullptr;
+	graphics::resource* m_cube_idx_buffer = nullptr;
+};
+void create_meshbuffers(graphics::device& device, mesh_buffers& out_buffers)
+{
+	constexpr float quadVtx[] = { -1, 0, -1, -1, 0,  1, 1, 0, 1,
+							 -1, 0, -1,  1, 0, -1, 1, 0, 1 };
+	constexpr float cubeVtx[] = { -1, -1, -1, 1, -1, -1, -1, 1, -1, 1, 1, -1,
+								 -1, -1,  1, 1, -1,  1, -1, 1,  1, 1, 1,  1 };
+	constexpr short cubeIdx[] = { 4, 6, 0, 2, 0, 6, 0, 1, 4, 5, 4, 1,
+								 0, 2, 1, 3, 1, 2, 1, 3, 5, 7, 5, 3,
+								 2, 6, 3, 7, 3, 6, 4, 5, 6, 7, 6, 5 };
+
+	auto make_and_upload = [&device](auto& data) -> graphics::resource*
+	{
+		graphics::buffer_desc buffer_desc{};
+		buffer_desc.m_bytesize = sizeof(data);
+		buffer_desc.m_bytestride = sizeof(data[0]);
+		graphics::resource* resource = device.create_resource(buffer_desc, graphics::heap_desc::shared_heap());
+		resource->map([&data](void* target)
+		{
+			memcpy(target, data, sizeof(data));
+		});
+		return resource;
+	};
+
+	out_buffers.m_quad_vtx_buffer = make_and_upload(quadVtx);
+	out_buffers.m_cube_vtx_buffer = make_and_upload(cubeVtx);
+	out_buffers.m_cube_idx_buffer = make_and_upload(cubeIdx);
 }
 
 int main()
@@ -56,13 +108,14 @@ int main()
 	graphics::commandlist& commandlist = *device.create_graphics_commandlist();
 	graphics::queue& queue = *device.create_queue();
 	graphics::swapchain& swapchain = *device.create_swapchain(&queue, window);
-	
+
+	// create mesh buffers
+	mesh_buffers mesh_buffers{};
+	create_meshbuffers(device, mesh_buffers);
+
 	// create pipeline
-	graphics::rootsignature_desc rootsig_desc{};
-	graphics::raytracing_pipeline_desc ray_pipeline_desc{};
-	compile_shaders(ray_pipeline_desc);
-	graphics::rootsignature& ray_rootsignature = *device.create_rootsignature(rootsig_desc);
-	graphics::raytracing_pipeline& ray_pipeline = *device.create_raytracing_pipeline(&ray_rootsignature, ray_pipeline_desc);
+	pipeline pipeline{};
+	create_pipeline(device, pipeline);
 
 	graphics::present_args present_args{};
 	present_args.m_vsync = false;

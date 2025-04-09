@@ -24,6 +24,17 @@ namespace influx::shader
 
 		count
 	};
+
+	inline static constexpr bool is_raytracing_shader(e_shader_type type)
+	{
+		return
+			type == e_shader_type::rgs ||
+			type == e_shader_type::mss ||
+			type == e_shader_type::chs ||
+			type == e_shader_type::ahs ||
+			type == e_shader_type::ins;
+	}
+
 	static constexpr uint8 k_num_shadertypes = static_cast<uint8>(e_shader_type::count);
 	static const char* k_shadertype_strings[k_num_shadertypes]
 	{

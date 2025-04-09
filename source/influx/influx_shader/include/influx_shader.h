@@ -6,29 +6,26 @@
 	#define INFLUX_SHADER_API __declspec(dllimport)
 #endif
 
+// influx::core
 #include "core/basetypes.h"
 #include "core/string.h"
 #include "core/container/vector.h"
 #include "core/shader.h"
-;
+
 namespace influx::shader
 {
 	struct compile_args final
 	{
 	public:
-		inline void add_define(const string& define)
-		{
-			m_defines.push_back(define);
-		}
-
 		inline bool is_valid() const
 		{
 			return m_signature.is_valid();
 		}
 
+		inline compile_args& add_define(const string& define) { m_defines.push_back(define); return *this; }
 		inline compile_args& set_target(e_shader_target target) { m_signature.m_target = target; return *this; }
 		inline compile_args& set_type(e_shader_type type) { m_signature.m_type = type; return *this; }
-
+		
 		shader_signature m_signature;
 
 		vector<string> m_defines;
@@ -83,18 +80,24 @@ namespace influx::shader
 	struct compile_output final
 	{
 		shader_signature m_signature;
+
 		vector<byte> m_bytecode;
+
 		reflection m_reflection;
+		
 		vector<string> m_log;
+
 		bool m_success = false;
 	};
 
-	// compiles from a .hlsl filepath
-	INFLUX_SHADER_API compile_output compile_shader(const string& filepath, const compile_args& args);
+	/* compiles from a.hlsl filepath */
+	INFLUX_SHADER_API 
+	compile_output compile_shader(const string& filepath, const compile_args& args);
 
-	// compiles from text source in a string
-	INFLUX_SHADER_API compile_output compile_shader_source(const string& shader_source, const compile_args& args);
-
+	/* compiles from source stored in a string */
+	INFLUX_SHADER_API 
+	compile_output compile_shader_source(const string& shader_source, const compile_args& args);
+	
 	// parses information about a shader without compiling
 	struct parse_output final
 	{
@@ -109,6 +112,10 @@ namespace influx::shader
 		vector<per_shader> m_shaders;
 	};
 
-	INFLUX_SHADER_API parse_output parse_shaderfile(const string& filepath, const compile_args& args);
-	INFLUX_SHADER_API parse_output parse_shader_source(const string& shader_source, const compile_args& args);
+	/* parses an .hlsl file to find out shader information without compiling */
+	INFLUX_SHADER_API 
+	parse_output parse_shaderfile(const string& filepath, const compile_args& args);
+
+	INFLUX_SHADER_API 
+	parse_output parse_shader_source(const string& shader_source, const compile_args& args);
 }

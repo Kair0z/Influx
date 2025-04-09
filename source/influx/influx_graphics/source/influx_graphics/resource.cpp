@@ -64,6 +64,13 @@ namespace influx::graphics
 		m_state = desc.m_init_state;
 	}
 
+	resource::resource(const acc_str_desc& desc)
+		: m_type{ e_type::acc_struct }
+		, m_as_desc{ desc }
+	{
+
+	}
+
 	e_format resource::get_format() const
 	{
 		return m_format;

@@ -49,6 +49,7 @@ namespace influx::graphics
 		virtual ptr<resource> create_resource(const struct tex3D_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual ptr<resource> create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual ptr<resource> create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) override;
+		virtual ptr<resource> create_resource(const struct acc_str_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual ptr<resource> create_upload_resource(resource* resource) override;
 
 		virtual ptr<resource> import_buffer(void* native_ptr, const buffer_desc& desc) override;

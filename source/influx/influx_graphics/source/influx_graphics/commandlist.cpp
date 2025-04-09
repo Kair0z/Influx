@@ -42,6 +42,8 @@ namespace influx::graphics
 
     void commandlist::submit(queue* queue)
     {
+        end();
+
         queue->submit({ this });
         if (!g_mute) logwar("commandlist submit: {}", m_name.get().c_str());
     }

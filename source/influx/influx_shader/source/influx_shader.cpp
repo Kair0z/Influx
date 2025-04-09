@@ -232,6 +232,13 @@ namespace influx::shader
 		arguments.push_back(L"-E");
 		arguments.push_back(wentrypoint.c_str());
 
+		const bool compile_as_shaderlib = shader::is_raytracing_shader(args.m_signature.m_type);
+		if (compile_as_shaderlib)
+		{
+			arguments.push_back(L"-exports ");
+			arguments.push_back(wentrypoint.c_str());
+		}
+
 		//-T for the target profile (eg. ps_6_2)
 		arguments.push_back(L"-T");
 		wstring target_profile = make_shader_type_wstring(args.m_signature.m_type, args.m_signature.m_target);

@@ -23,6 +23,13 @@ namespace influx::graphics
 
 	struct heap_desc final
 	{
+		inline static heap_desc shared_heap()
+		{
+			heap_desc result{};
+			result.m_type = e_heap_type::shared;
+			return result;
+		}
+
 		e_heap_type m_type = e_heap_type::gpu;
 	};
 
@@ -33,8 +40,6 @@ namespace influx::graphics
 		render_target,
 		count
 	};
-
-	
 
 	struct buffer_desc final
 	{
@@ -81,6 +86,22 @@ namespace influx::graphics
 		bool m_allow_uav = false;
 	};
 
+	enum class e_acc_str_type : uint8
+	{
+		bottom,
+		top,
+		count
+	};
+
+	struct acc_str_desc final
+	{
+		e_acc_str_type m_type = e_acc_str_type::bottom;
+		e_bind_flags m_bindflags = e_bind_flags::uav;
+		uint64 m_bytesize = 0u;
+		e_resource_state m_init_state = e_resource_state::common;
+		UINT64* m_update_scratch_size = nullptr
+	};
+
 	struct map_args final
 	{
 		uint32 m_subres = 0u;
@@ -111,6 +132,7 @@ namespace influx::graphics
 			tex3D,
 			cubemap,
 			buffer,
+			acc_struct,
 			count
 		};
 	public:
@@ -161,6 +183,7 @@ namespace influx::graphics
 		resource(const buffer_desc& desc);
 		resource(const tex3D_desc& desc);
 		resource(const cubemap_desc& desc);
+		resource(const acc_str_desc& desc);
 		virtual ~resource() = default;
 		
 	private:
@@ -168,6 +191,7 @@ namespace influx::graphics
 		tex2D_desc m_tex2D_desc{};
 		buffer_desc m_buffer_desc{};
 		tex3D_desc m_tex3D_desc{};
+		acc_str_desc m_as_desc{};
 		cubemap_desc m_cube_desc{};
 		e_resource_state m_previous_state = e_resource_state::common;
 		e_resource_state m_state = e_resource_state::common;
