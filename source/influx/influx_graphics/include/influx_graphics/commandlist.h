@@ -70,6 +70,11 @@ namespace influx::graphics
 		uint32 m_src_offset = 0u;
 	};
 
+	struct build_acc_str_args final
+	{
+		e_acc_str_type m_type;
+	};
+
 	class commandlist : public base
 	{
 	public:
@@ -121,6 +126,7 @@ namespace influx::graphics
 
 		INFLUX_GFX_API virtual void set_srv(descriptor_handle srv_gpu, uint32 param_idx) = 0;
 
+		INFLUX_GFX_API virtual void build_acceleration_struct(resource* dest_resource, resource* scratch_resource, const build_acc_str_args& args) = 0;
 
 		INFLUX_GFX_API virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) = 0;
 

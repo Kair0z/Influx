@@ -257,6 +257,66 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, srv_gpu_handle);
 	}
 
+	void dx12_commandlist::build_acceleration_struct(
+		resource* dest_resource, 
+		resource* scratch_resource, 
+		const build_acc_str_args& args)
+	{
+		renderpass_check(e_command::build_as);
+
+		ID3D12Resource* dxdest = dest_resource->get_native<ID3D12Resource>();
+		ID3D12Resource* dxscratch = scratch_resource->get_native<ID3D12Resource>();
+		ID3D12Resource* dxindexbuffer = nullptr;
+		ID3D12Resource* dxvertexbuffer = nullptr;
+
+		// describe the geometry
+		D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc =
+		{
+			.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES,
+			.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
+			.Triangles =
+			{
+				.Transform3x4 = 0,
+				.IndexFormat = dxindexbuffer ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_UNKNOWN,
+				.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT,
+				.IndexCount = 0u,
+				.VertexCount = /*vertexFloats*/ 3 / 3,
+				.IndexBuffer = true ? dxindexbuffer->GetGPUVirtualAddress() : 0,
+				.VertexBuffer = 
+				{
+					.StartAddress = dxvertexbuffer->GetGPUVirtualAddress(),
+					.StrideInBytes = sizeof(float) * 3
+				}
+			} 
+		};
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc{};
+		desc.DestAccelerationStructureData = dxdest->GetGPUVirtualAddress();
+		desc.ScratchAccelerationStructureData = dxscratch->GetGPUVirtualAddress();
+		//desc.SourceAccelerationStructureData;
+
+		// choose the type
+		switch (args.m_type)
+		{
+		case e_acc_str_type::bottom: desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL; break;
+		case e_acc_str_type::top: desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL; break;
+		default:
+			influx_assert(false);
+		}
+
+		// misc setup
+		desc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+		desc.Inputs.NumDescs = 1u;
+		desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+		desc.Inputs.pGeometryDescs = &geometryDesc;
+
+		ID3D12GraphicsCommandList4* dxcommandlist4 = nullptr;
+		if ( mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList4>(&dxcommandlist4) )
+		{
+			dxcommandlist4->BuildRaytracingAccelerationStructure(&desc, 0u, nullptr);
+		}
+	}
+
 	void dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		renderpass_check(e_command::barrier_transition);

@@ -99,7 +99,7 @@ namespace influx::graphics
 		e_bind_flags m_bindflags = e_bind_flags::uav;
 		uint64 m_bytesize = 0u;
 		e_resource_state m_init_state = e_resource_state::common;
-		UINT64* m_update_scratch_size = nullptr
+		uint64* m_update_scratch_size = nullptr;
 	};
 
 	struct map_args final

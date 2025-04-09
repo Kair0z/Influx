@@ -49,6 +49,8 @@ namespace influx::graphics
 		clear_state,
 		clear_uav,
 
+		build_as,
+
 		copy_any,
 		copy_buffer,
 		copy_resource,

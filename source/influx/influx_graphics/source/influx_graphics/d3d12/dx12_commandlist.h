@@ -58,6 +58,8 @@ namespace influx::graphics
 
 		virtual void set_srv(descriptor_handle srv_gpu, uint32 param_idx) override;
 
+		virtual void build_acceleration_struct(resource* dest_resource, resource* scratch_resource, const build_acc_str_args& args) override;
+
 		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
 
 		// https://microsoft.github.io/DirectX-Specs/d3d/D3D12EnhancedBarriers.html
