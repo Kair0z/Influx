@@ -1,5 +1,3 @@
-#include "include/common.hlsli"
-
 // source:
 // https://github.com/chaoticbob/GraphicsExperiments/blob/main/assets/projects/111_mesh_shader_meshlets/shaders.hlsl
 
@@ -11,6 +9,7 @@ struct mesh_output
 
 [outputtopology("triangle")]
 [numthreads(128, 1, 1)]
+[shader("mesh")]
 void main_ms(
     out indices  uint3      triangles[128],
     out vertices mesh_output vertices[64])
@@ -30,6 +29,7 @@ void main_ms(
     vertices[2].color = float3(0.0, 0.0, 1.0);
 }
 
+[shader("pixel")]
 float4 main_ps(mesh_output input) : SV_TARGET
 {
     return float4(input.color, 1);

@@ -30,8 +30,8 @@ void compile_shaders(graphics::mesh_pipeline_desc& out_desc)
 	compile_args.set_target(shader::e_shader_target::_6_6);
 	compile_args.m_reflection = false;
 
-	compile_args.m_include_folder = "D:/Git/Influx/assets/engine/shaders/include/";
-	bool load_success = imp::load_shader_file("D:/Git/Influx/assets/engine/shaders/source/mesh_shaders.hlsl", loaded_shaders, compile_args);
+	compile_args.m_include_folder = "E:/Git/Influx/assets/engine/shaders/include/";
+	bool load_success = imp::load_shader_file("E:/Git/Influx/assets/engine/shaders/source/mesh_shaders.hlsl", loaded_shaders, compile_args);
 	influx_assert(load_success);
 
 	for (const imp::shader_data& shader : loaded_shaders)
@@ -51,41 +51,33 @@ void create_pipeline(graphics::device& device, pipeline& out_pipeline)
 	graphics::mesh_pipeline_desc pipeline_desc{};
 	compile_shaders(pipeline_desc);
 	out_pipeline.m_rootsig = device.create_rootsignature(rootsig_desc);
+
+	pipeline_desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
+	pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
+	pipeline_desc.m_rasterizer.m_fillmode = graphics::e_fill_mode::solid;
+
+	pipeline_desc.m_rasterizer.m_forced_samplecount = 0u;
+	pipeline_desc.m_sample_mask = (uint32)-1;
+	pipeline_desc.m_sample_count = 1u;
+	pipeline_desc.m_rasterizer.m_front_ccw = false;
+	pipeline_desc.m_rasterizer.m_depth_clip_enable = false;
+	pipeline_desc.m_rasterizer.m_multisample = false;
+	pipeline_desc.m_rasterizer.m_antialiased_line = false;
+	pipeline_desc.m_rasterizer.m_conservative = false;
+	pipeline_desc.m_rasterizer.m_depth_bias = 0;
+	pipeline_desc.m_rasterizer.m_depth_bias_clamp = 0.0f;
+	pipeline_desc.m_rasterizer.m_slope_depth_bias = 0.0f;
+
+	pipeline_desc.m_depth_stencil.m_depth_enable = true;
+	pipeline_desc.m_depth_stencil.m_stencil_enable = false;
+	pipeline_desc.m_depth_stencil.m_depth_func = graphics::e_comparison_func::less;
+	pipeline_desc.m_depth_stencil.m_format = graphics::e_format::d32;
+
+	pipeline_desc.m_rtvs[0].m_enabled = true;
+	pipeline_desc.m_rtvs[0].m_format = graphics::e_format::rgba8;
+	pipeline_desc.m_blends[0].m_write_mask = 15u;
+
 	out_pipeline.m_pipeline = device.create_mesh_pipeline(out_pipeline.m_rootsig, pipeline_desc);
-}
-
-struct mesh_buffers final
-{
-	graphics::resource* m_quad_vtx_buffer = nullptr;
-	graphics::resource* m_cube_vtx_buffer = nullptr;
-	graphics::resource* m_cube_idx_buffer = nullptr;
-};
-void create_meshbuffers(graphics::device& device, mesh_buffers& out_buffers)
-{
-	constexpr float quadVtx[] = { -1, 0, -1, -1, 0,  1, 1, 0, 1,
-							 -1, 0, -1,  1, 0, -1, 1, 0, 1 };
-	constexpr float cubeVtx[] = { -1, -1, -1, 1, -1, -1, -1, 1, -1, 1, 1, -1,
-								 -1, -1,  1, 1, -1,  1, -1, 1,  1, 1, 1,  1 };
-	constexpr short cubeIdx[] = { 4, 6, 0, 2, 0, 6, 0, 1, 4, 5, 4, 1,
-								 0, 2, 1, 3, 1, 2, 1, 3, 5, 7, 5, 3,
-								 2, 6, 3, 7, 3, 6, 4, 5, 6, 7, 6, 5 };
-
-	auto make_and_upload = [&device](auto& data) -> graphics::resource*
-	{
-		graphics::buffer_desc buffer_desc{};
-		buffer_desc.m_bytesize = sizeof(data);
-		buffer_desc.m_bytestride = sizeof(data[0]);
-		graphics::resource* resource = device.create_resource(buffer_desc, graphics::heap_desc::shared_heap());
-		resource->map([&data](void* target)
-		{
-			memcpy(target, data, sizeof(data));
-		});
-		return resource;
-	};
-
-	out_buffers.m_quad_vtx_buffer = make_and_upload(quadVtx);
-	out_buffers.m_cube_vtx_buffer = make_and_upload(cubeVtx);
-	out_buffers.m_cube_idx_buffer = make_and_upload(cubeIdx);
 }
 
 int main()
@@ -105,11 +97,11 @@ int main()
 	graphics::commandlist& commandlist = *device.create_graphics_commandlist();
 	graphics::queue& queue = *device.create_queue();
 	graphics::swapchain& swapchain = *device.create_swapchain(&queue, window);
+	graphics::descriptor_heap& rtv_heap = *device.create_descriptor_heap(
+		graphics::descriptor_heap::create_args::rtv_heap(1));
 
-	// create mesh buffers
-	mesh_buffers mesh_buffers{};
-	create_meshbuffers(device, mesh_buffers);
-
+	graphics::descriptor_handle rtv_handle = rtv_heap.allocate_cpu();
+	
 	// create pipeline
 	pipeline pipeline{};
 	create_pipeline(device, pipeline);
@@ -129,12 +121,39 @@ int main()
 		window.poll_events(is_quit);
 
 		// render
+		swapchain.acquire_backbuffer();
 		commandlist.start(&device);
+
+		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource();
+		backbuffer->transition(
+			&commandlist, graphics::e_resource_state::render_target);
+
+		commandlist.set(graphics::viewport
+		{
+			.m_left = 0.0f,
+			.m_top = 0.0f,
+			.m_width = 640.0f,
+			.m_height = 480.0f
+		});
+		commandlist.set(graphics::rect
+		{
+			.m_left = 0u,
+			.m_top = 0u,
+			.m_right = 640u,
+			.m_bottom = 480u
+		});
+
+		device.create_rtv(rtv_handle, backbuffer);
+		commandlist.clear_rtv(rtv_handle, {1,0,0,1});
+		commandlist.set_rtv(rtv_handle, nullptr);
 
 		commandlist.set(pipeline.m_rootsig);
 		commandlist.set(pipeline.m_pipeline);
 		commandlist.dispatch_mesh(1,1,1);
 		
+		backbuffer->transition(
+			&commandlist, graphics::e_resource_state::present);
+
 		commandlist.submit(&queue);
 
 		swapchain.present(present_args);

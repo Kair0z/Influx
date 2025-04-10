@@ -957,10 +957,11 @@ namespace influx::graphics
 			state_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 		}
 
+		CD3DX12_PIPELINE_STATE_STREAM5 state_stream = CD3DX12_PIPELINE_STATE_STREAM5(state_desc);
 		ID3D12PipelineState* dxpipeline = nullptr;
 		D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
-		streamDesc.SizeInBytes = sizeof(state_desc);
-		streamDesc.pPipelineStateSubobjectStream = &state_desc;
+		streamDesc.SizeInBytes = sizeof(state_stream);
+		streamDesc.pPipelineStateSubobjectStream = &state_stream;
 
 		HRESULT
 		res = get_main_device<ID3D12Device2>()->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&dxpipeline));

@@ -11,6 +11,8 @@
 #include "core/basetypes.h"
 #include "core/enum.h"
 #include "core/result.h"
+#include "core/math/vector.h"
+#include "core/geometry/rect.h"
 
 namespace influx::graphics
 {

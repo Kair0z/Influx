@@ -387,7 +387,10 @@ namespace influx::shader
 		R"(\[shader\(\"miss\"\)\])",
 		R"(\[shader\(\"closesthit\"\)\])",
 		R"(\[shader\(\"anyhit\"\)\])",
-		R"(\[shader\(\"intersection\"\)\])"
+		R"(\[shader\(\"intersection\"\)\])",
+
+		R"(\[shader\(\"amp\"\)\])",
+		R"(\[shader\(\"mesh\"\)\])",
 	};
 
 	parse_output parse_shaderfile(const string& filepath, const compile_args& args)
