@@ -160,6 +160,9 @@ namespace influx::graphics
 
 		INFLUX_GFX_API virtual void set(e_primitive_topology topo) = 0;
 
+		/* mesh shaders */
+		INFLUX_GFX_API virtual void dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z) = 0;
+
 		INFLUX_GFX_API virtual void end() = 0;
 
 	private:

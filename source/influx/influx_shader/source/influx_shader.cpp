@@ -73,41 +73,22 @@ namespace influx::shader
 
 	inline static wstring make_shader_type_wstring(e_shader_type type, e_shader_target target)
 	{
-		wstring result{};
+		string result{};
 
-		switch (type)
+		if (is_raytracing_shader(type))
 		{
-		case e_shader_type::vs: result += L"vs"; break;
-		case e_shader_type::ps: result += L"ps"; break;
-		case e_shader_type::ds: result += L"ds"; break;
-		case e_shader_type::gs: result += L"gs"; break;
-		case e_shader_type::hs: result += L"hs"; break;
+			// raytracing shaders are compiled as libs!!
+			result += "lib";
+		}
+		else
+		{
+			result += shader::k_shadertype_strings[static_cast<uint32>(type)];
+		}
 
-		case e_shader_type::cs: result += L"cs"; break;
-
-		// raytracing shaders are compiled as part of a 'library'
-		case e_shader_type::rgs: result += L"lib"; break;
-		case e_shader_type::mss: result += L"lib"; break;
-		case e_shader_type::chs: result += L"lib"; break;
-		case e_shader_type::ahs: result += L"lib"; break;
-		case e_shader_type::ins: result += L"lib"; break;
+		result += "_";
+		result += shader::k_shadertarget_strings[static_cast<uint32>(target)];
 		
-		default:
-		case e_shader_type::count: result += L"LLLL";
-			influx_assert(false);
-			break;
-		}
-
-		result += L"_";
-
-		switch (target)
-		{
-		case e_shader_target::_6_2: result += L"6_2"; break;
-		case e_shader_target::_6_5: result += L"6_5"; break;
-		case e_shader_target::_6_6: result += L"6_6"; break;
-		}
-
-		return result;
+		return to_wstring(result);
 	}
 
 	inline uint32 calc_num_floats_from_mask(uint32 mask)
@@ -210,7 +191,6 @@ namespace influx::shader
 	{
 		wstring type = make_shader_type_wstring(args.m_signature.m_type, args.m_signature.m_target);
 		wstring entry = to_wstring(args.m_signature.m_entrypoint);
-
 		return type + entry;
 	}
 

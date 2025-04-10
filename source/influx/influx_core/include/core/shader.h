@@ -22,6 +22,10 @@ namespace influx::shader
 		ahs,			// any hit shader
 		ins,			// intersection shader
 
+		// mesh shading
+		as,
+		ms,
+
 		count
 	};
 
@@ -50,7 +54,10 @@ namespace influx::shader
 		"mss",
 		"chs",
 		"ahs",
-		"ins"
+		"ins",
+
+		"as",
+		"ms"
 	};
 
 	enum class e_shader_target : uint8

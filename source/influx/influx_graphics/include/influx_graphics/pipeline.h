@@ -141,9 +141,9 @@ namespace influx::graphics
 			{
 				switch (type)
 				{
-				case e_mesh_shader_slots::as: set(e_mesh_shader_slots::as, shader_bytecode); break;
-				case e_mesh_shader_slots::ms: set(e_mesh_shader_slots::ms, shader_bytecode); break;
-				case e_mesh_shader_slots::ps: set(e_mesh_shader_slots::ps, shader_bytecode); break;
+				case shader::e_shader_type::as: set(e_mesh_shader_slots::as, shader_bytecode); break;
+				case shader::e_shader_type::ms: set(e_mesh_shader_slots::ms, shader_bytecode); break;
+				case shader::e_shader_type::ps: set(e_mesh_shader_slots::ps, shader_bytecode); break;
 				}
 			}
 		}
