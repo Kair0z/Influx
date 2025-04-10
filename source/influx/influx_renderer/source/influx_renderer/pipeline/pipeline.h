@@ -303,7 +303,7 @@ namespace influx::renderer
 		result.m_depth_stencil.m_depth_enable = signature.m_depth_enable;
 		result.m_depth_stencil.m_stencil_enable = signature.m_stencil_enable;
 		result.m_depth_stencil.m_depth_func = signature.m_depth_comparison;
-		result.m_format_dsv = signature.m_depth_format;
+		result.m_depth_stencil.m_format = signature.m_depth_format;
 
 		for (uint8 i = 0u; i < graphics::k_max_render_targets; ++i)
 		{

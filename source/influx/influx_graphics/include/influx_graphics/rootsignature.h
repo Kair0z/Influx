@@ -169,22 +169,25 @@ namespace influx::graphics
 		e_border_color m_border_color = e_border_color::white;
 	};
 
+	using e_root_range = root_param_resource_range::e_type;
+	using e_root_resource = root_param_resource::e_type;
+	
+	/* */
 	struct rootsignature_desc final
 	{
-		// internally adds to the root table
+		// resource ranges are stored in a resource table
 		inline void add_root_range(root_param_resource_range::e_type type, uint32 num_resources, uint32 sh_reg, uint32 space = 0u, e_shader_visibility vis = e_shader_visibility::all)
 		{
 			root_param_resource_range range{ num_resources, type, sh_reg, space };
-
 			root_param_resource_table table{};
 			table.m_common.m_register_space = space;
 			table.m_common.m_shader_register = sh_reg;
 			table.m_common.m_visibility = vis;
 			table.m_resource_ranges.push_back(range);
-
 			m_resource_tables.push_back(table);
 		}
 
+		// root resources are individual resources not stored in a tables
 		inline void add_root_resource(root_param_resource::e_type type, uint32 sh_reg, uint32 space = 0u, e_shader_visibility vis = e_shader_visibility::all)
 		{
 			m_resources.push_back({ type, sh_reg, space, vis });
@@ -226,6 +229,7 @@ namespace influx::graphics
 				border_color});
 		}
 
+		/* sets the name of the last constants added */
 		inline void name_last_constants(const string& name)
 		{
 			if (m_constants.empty())
@@ -234,6 +238,7 @@ namespace influx::graphics
 			m_constants.back().m_common.m_name = name;
 		}
 
+		/* sets the name of the last resource added */
 		inline void name_last_resource(const string& name)
 		{
 			if (m_resources.empty())
@@ -242,6 +247,7 @@ namespace influx::graphics
 			m_resources.back().m_common.m_name = name;
 		}
 
+		/* sets the name of the last resource table added */
 		inline void name_last_resource_table(const string& name)
 		{
 			if (m_resource_tables.empty())
@@ -250,6 +256,7 @@ namespace influx::graphics
 			m_resource_tables.back().m_common.m_name = name;
 		}
 
+		/* sets the name of the last sampler added */
 		inline void name_last_sampler(const string& name)
 		{
 			if (m_static_samplers.empty())
