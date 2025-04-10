@@ -721,6 +721,54 @@ namespace influx::graphics
 		return new_child<dx12_rootsignature, rootsignature>(dxrootsignature, desc, name_to_param_idx);
 	}
 
+	static D3D12_RASTERIZER_DESC translate(const rasterizer_desc& desc)
+	{
+		CD3DX12_RASTERIZER_DESC rasterizer_desc(D3D12_DEFAULT);
+		rasterizer_desc.CullMode = translate(desc.m_cullmode);
+		rasterizer_desc.FillMode = translate(desc.m_fillmode);
+		rasterizer_desc.MultisampleEnable = desc.m_multisample;
+		rasterizer_desc.FrontCounterClockwise = desc.m_front_ccw;
+		rasterizer_desc.DepthBias = desc.m_depth_bias;
+		rasterizer_desc.DepthBiasClamp = desc.m_depth_bias_clamp;
+		rasterizer_desc.SlopeScaledDepthBias = desc.m_slope_depth_bias;
+		rasterizer_desc.DepthClipEnable = desc.m_depth_clip_enable;
+		rasterizer_desc.AntialiasedLineEnable = desc.m_antialiased_line;
+		rasterizer_desc.ForcedSampleCount = desc.m_forced_samplecount;
+		rasterizer_desc.ConservativeRaster = desc.m_conservative ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+		return rasterizer_desc;
+	}
+	static D3D12_BLEND_DESC translate(
+		const blend_desc* desc, uint32 num_blends,
+		bool is_alpha_to_coverage_enabled)
+	{
+		CD3DX12_BLEND_DESC blend_desc(D3D12_DEFAULT);
+		bool has_multiple_blends = false;
+		for (size_t i = 0u; i < num_blends; ++i)
+		{
+			if (i > 0u) has_multiple_blends |= desc[i].m_enabled;
+			blend_desc.RenderTarget[i].BlendEnable = desc[i].m_enabled;
+			blend_desc.RenderTarget[i].SrcBlend = translate(desc[i].m_src);
+			blend_desc.RenderTarget[i].DestBlend = translate(desc[i].m_dest);
+			blend_desc.RenderTarget[i].BlendOp = translate(desc[i].m_op);
+			blend_desc.RenderTarget[i].SrcBlendAlpha = translate(desc[i].m_srcalpha);
+			blend_desc.RenderTarget[i].DestBlendAlpha = translate(desc[i].m_destalpha);
+			blend_desc.RenderTarget[i].BlendOpAlpha = translate(desc[i].m_op_alpha);
+			blend_desc.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL; // desc.m_blends[i].m_write_mask;
+		}
+		blend_desc.AlphaToCoverageEnable = is_alpha_to_coverage_enabled;
+		blend_desc.IndependentBlendEnable = has_multiple_blends; // implicit independent blend
+		return blend_desc;
+	}
+	static D3D12_DEPTH_STENCIL_DESC translate(const depth_stencil_desc& desc)
+	{
+		CD3DX12_DEPTH_STENCIL_DESC depth_stencil_desc(D3D12_DEFAULT);
+		depth_stencil_desc.DepthEnable = desc.m_depth_enable;
+		depth_stencil_desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		depth_stencil_desc.DepthFunc = translate(desc.m_depth_func);
+		depth_stencil_desc.StencilEnable = desc.m_stencil_enable;
+		return depth_stencil_desc;
+	}
+
 	ptr<graphics_pipeline> dx12_device::create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc)
 	{
 		ID3D12PipelineState* dxpipeline = nullptr;
@@ -742,67 +790,27 @@ namespace influx::graphics
 		input_layout_desc.pInputElementDescs = input_elements.data();
 		input_layout_desc.NumElements = (uint32)input_elements.size();
 
-		// depth stencil
-		CD3DX12_DEPTH_STENCIL_DESC depth_stencil_desc(D3D12_DEFAULT);
-		depth_stencil_desc.DepthEnable = desc.m_depth_stencil.m_depth_enable;
-		depth_stencil_desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		depth_stencil_desc.DepthFunc = translate(desc.m_depth_stencil.m_depth_func);
-		depth_stencil_desc.StencilEnable = desc.m_depth_stencil.m_stencil_enable;
-
-		// rasterizer
-		CD3DX12_RASTERIZER_DESC rasterizer_desc(D3D12_DEFAULT);
-		rasterizer_desc.CullMode = translate(desc.m_rasterizer.m_cullmode);
-		rasterizer_desc.FillMode = translate(desc.m_rasterizer.m_fillmode);
-		rasterizer_desc.MultisampleEnable = desc.m_rasterizer.m_multisample;
-		rasterizer_desc.FrontCounterClockwise = desc.m_rasterizer.m_front_ccw;
-		rasterizer_desc.DepthBias = desc.m_rasterizer.m_depth_bias;
-		rasterizer_desc.DepthBiasClamp = desc.m_rasterizer.m_depth_bias_clamp;
-		rasterizer_desc.SlopeScaledDepthBias = desc.m_rasterizer.m_slope_depth_bias;
-		rasterizer_desc.DepthClipEnable = desc.m_rasterizer.m_depth_clip_enable;
-		rasterizer_desc.AntialiasedLineEnable = desc.m_rasterizer.m_antialiased_line;
-		rasterizer_desc.ForcedSampleCount = desc.m_rasterizer.m_forced_samplecount;
-		rasterizer_desc.ConservativeRaster = desc.m_rasterizer.m_conservative ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-
-		// blend state
-		CD3DX12_BLEND_DESC blend_desc(D3D12_DEFAULT);
-		bool has_multiple_blends = false;
-		for (size_t i = 0u; i < k_max_render_targets; ++i)
-		{
-			if (i > 0u) has_multiple_blends |= desc.m_blends[i].m_enabled;
-
-			blend_desc.RenderTarget[i].BlendEnable		= desc.m_blends[i].m_enabled;
-			blend_desc.RenderTarget[i].SrcBlend			= translate(desc.m_blends[i].m_src);
-			blend_desc.RenderTarget[i].DestBlend		= translate(desc.m_blends[i].m_dest);
-			blend_desc.RenderTarget[i].BlendOp			= translate(desc.m_blends[i].m_op);
-			blend_desc.RenderTarget[i].SrcBlendAlpha	= translate(desc.m_blends[i].m_srcalpha);
-			blend_desc.RenderTarget[i].DestBlendAlpha	= translate(desc.m_blends[i].m_destalpha);
-			blend_desc.RenderTarget[i].BlendOpAlpha		= translate(desc.m_blends[i].m_op_alpha);
-			blend_desc.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL; // desc.m_blends[i].m_write_mask;
-		}
-		blend_desc.AlphaToCoverageEnable = desc.m_blend_alpha_to_coverage_enabled;
-		blend_desc.IndependentBlendEnable = has_multiple_blends; // implicit independent blend
-
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
-		pso_desc.InputLayout = input_layout_desc;
-		pso_desc.pRootSignature = rootsig->get_native<ID3D12RootSignature>();
-
+		// helper
 		auto get_shader_code = [](const vector<byte>& data)
 		{
 			return CD3DX12_SHADER_BYTECODE(data.data(), data.size());
 		};
+
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
+		pso_desc.InputLayout = input_layout_desc;
+		pso_desc.pRootSignature = rootsig->get_native<ID3D12RootSignature>();
 
 		pso_desc.VS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::vs));
 		pso_desc.PS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::ps));
 		pso_desc.DS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::ds));
 		pso_desc.GS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::gs));
 		pso_desc.HS = get_shader_code(desc.m_shaders.get(e_graphics_shader_slots::hs));
-		pso_desc.RasterizerState = rasterizer_desc;
-		pso_desc.BlendState = blend_desc;
-		pso_desc.DepthStencilState = depth_stencil_desc;
+		pso_desc.RasterizerState = translate(desc.m_rasterizer);
+		pso_desc.BlendState = translate(desc.m_blends, k_max_render_targets, desc.m_blend_alpha_to_coverage_enabled);
+		pso_desc.DepthStencilState = translate(desc.m_depth_stencil);
 		pso_desc.SampleMask = desc.m_sample_mask;
 		pso_desc.PrimitiveTopologyType = translate(desc.m_prim_type);
-		pso_desc;
-		pso_desc.DSVFormat = translate(desc.m_format_dsv);
+		pso_desc.DSVFormat = translate(desc.m_depth_stencil.m_format);
 		pso_desc.SampleDesc.Count = desc.m_sample_count;
 
 		// rtvs
@@ -916,6 +924,49 @@ namespace influx::graphics
 		check(res, "dx12 error: CreateStateObject failed!");
 
 		return new_child<dx12_pipeline<e_pipeline_type::raytracing>, raytracing_pipeline>(dx12_pso, desc);
+	}
+
+	ptr<mesh_pipeline> dx12_device::create_mesh_pipeline(rootsignature* rootsig, const mesh_pipeline_desc& desc)
+	{
+		auto get_shader_code = [](const vector<byte>& data)
+		{
+			return CD3DX12_SHADER_BYTECODE(data.data(), data.size());
+		};
+
+		D3DX12_MESH_SHADER_PIPELINE_STATE_DESC state_desc{};
+		state_desc.pRootSignature = rootsig->get_native<ID3D12RootSignature>();
+		state_desc.AS = get_shader_code(desc.m_shaders.get(e_mesh_shader_slots::as));
+		state_desc.MS = get_shader_code(desc.m_shaders.get(e_mesh_shader_slots::ms));
+		state_desc.PS = get_shader_code(desc.m_shaders.get(e_mesh_shader_slots::ps));
+		state_desc.BlendState = translate(desc.m_blends, k_max_render_targets, desc.m_blend_alpha_to_coverage_enabled);
+		state_desc.SampleMask = desc.m_sample_mask;
+		state_desc.RasterizerState = translate(desc.m_rasterizer);
+		state_desc.DepthStencilState = translate(desc.m_depth_stencil);
+		state_desc.PrimitiveTopologyType = translate(desc.m_prim_type);
+		state_desc.DSVFormat = translate(desc.m_depth_stencil.m_format);
+		state_desc.SampleDesc.Count = desc.m_sample_count;
+		state_desc.NodeMask;
+		state_desc.CachedPSO;
+		state_desc.Flags;
+
+		// rtvs
+		for (size_t i = 0u; i < k_max_render_targets; ++i)
+		{
+			state_desc.NumRenderTargets++;
+			state_desc.RTVFormats[i] = translate(desc.m_rtvs[i].m_format);
+			state_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+		}
+
+		ID3D12PipelineState* dxpipeline = nullptr;
+		D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
+		streamDesc.SizeInBytes = sizeof(state_desc);
+		streamDesc.pPipelineStateSubobjectStream = &state_desc;
+
+		HRESULT
+		res = get_main_device<ID3D12Device2>()->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&dxpipeline));
+		check(res, "dx12 error: CreatePipelineState failed!");
+
+		return new_child<dx12_pipeline<e_pipeline_type::mesh>, mesh_pipeline>(dxpipeline, desc);
 	}
 
 	void dx12_device::copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type)

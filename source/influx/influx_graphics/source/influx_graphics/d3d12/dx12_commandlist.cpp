@@ -574,6 +574,22 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->Release();
 	}
 
+	void dx12_commandlist::dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z)
+	{
+		renderpass_check(e_command::dispatch_mesh);
+
+		ID3D12GraphicsCommandList6* dxcommandlist6 = nullptr;
+		HRESULT res = mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList6>(&dxcommandlist6);
+		if (res == S_OK)
+		{
+			dxcommandlist6->DispatchMesh(
+				groupcount_x,
+				groupcount_y,
+				groupcount_z
+			);
+		}
+	}
+
 	ID3D12CommandAllocator* dx12_commandlist::obtain_allocator(dx12_device* dxdevice)
 	{
 		influx_assert(dxdevice);

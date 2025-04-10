@@ -67,6 +67,7 @@ namespace influx::graphics
 		virtual ptr<graphics_pipeline> create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc) override;
 		virtual ptr<compute_pipeline> create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc) override;
 		virtual ptr<raytracing_pipeline> create_raytracing_pipeline(rootsignature* rootsig, const raytracing_pipeline_desc& desc) override;
+		virtual ptr<mesh_pipeline> create_mesh_pipeline(rootsignature* rootsig, const mesh_pipeline_desc& desc) override;
 
 		// misc:
 		virtual vector<physical_device_info> get_gpu_infos() override;

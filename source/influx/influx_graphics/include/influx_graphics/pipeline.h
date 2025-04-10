@@ -37,6 +37,14 @@ namespace influx::graphics
 		count
 	};
 
+	enum class e_mesh_shader_slots : uint8
+	{
+		as, // amplification shader
+		ms, // mesh shader
+		ps, // pixel shader
+		count
+	};
+
 	template <e_pipeline_type _t>
 	class shader_slots
 	{
@@ -44,7 +52,8 @@ namespace influx::graphics
 		using enum_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
 			e_graphics_shader_slots,
 			e_compute_shader_slots,
-			e_raytracing_shader_slots>>;
+			e_raytracing_shader_slots,
+			e_mesh_shader_slots>>;
 
 		static constexpr bool is_optional(const enum_type type)
 		{
@@ -78,6 +87,16 @@ namespace influx::graphics
 				case e_raytracing_shader_slots::ahs: return true;
 				case e_raytracing_shader_slots::ins: return true;
 				default: return false;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::mesh)
+			{
+				switch (type)
+				{
+					case e_mesh_shader_slots::as: return true;
+					case e_mesh_shader_slots::ms: return false;
+					case e_mesh_shader_slots::ps: return false;
+					default: return false;
 				}
 			}
 		}
@@ -118,6 +137,15 @@ namespace influx::graphics
 				case shader::e_shader_type::ins: set(e_raytracing_shader_slots::ins, shader_bytecode); break;
 				}
 			}
+			else if constexpr (_t == e_pipeline_type::mesh)
+			{
+				switch (type)
+				{
+				case e_mesh_shader_slots::as: set(e_mesh_shader_slots::as, shader_bytecode); break;
+				case e_mesh_shader_slots::ms: set(e_mesh_shader_slots::ms, shader_bytecode); break;
+				case e_mesh_shader_slots::ps: set(e_mesh_shader_slots::ps, shader_bytecode); break;
+				}
+			}
 		}
 
 		inline void set(enum_type slot, const vector<byte>& shader_bytecode)
@@ -145,10 +173,47 @@ namespace influx::graphics
 	using graphics_shaderslots = shader_slots<e_pipeline_type::graphics>;
 	using compute_shaderslots = shader_slots<e_pipeline_type::compute>;
 	using raytracing_shaderslots = shader_slots<e_pipeline_type::raytracing>;
+	using mesh_shaderslots = shader_slots<e_pipeline_type::mesh>;
+
 #pragma endregion
 
 	// pipeline description
 #pragma region pipelinedesc
+	struct depth_stencil_desc final
+	{
+		bool m_depth_enable;
+		bool m_stencil_enable;
+		e_comparison_func m_depth_func;
+		e_format m_format = e_format::d32;
+	};
+
+	struct rasterizer_desc final
+	{
+		e_cull_mode m_cullmode = e_cull_mode::back;
+		e_fill_mode m_fillmode = e_fill_mode::solid;
+		bool m_front_ccw = false;
+		int m_depth_bias = 0;
+		float m_depth_bias_clamp = 0.0f;
+		float m_slope_depth_bias = 0.0f;
+		bool m_depth_clip_enable = true;
+		bool m_multisample = false;
+		bool m_antialiased_line = false;
+		uint32 m_forced_samplecount = 0u;
+		bool m_conservative = false;
+	};
+
+	struct blend_desc final
+	{
+		bool m_enabled = false;
+		e_blend m_src;
+		e_blend m_dest;
+		e_blendop m_op;
+		e_blend m_srcalpha;
+		e_blend m_destalpha;
+		e_blendop m_op_alpha;
+		uint8 m_write_mask = 15u; // all
+	};
+
 	struct graphics_pipeline_desc final
 	{
 		// shaders
@@ -159,35 +224,11 @@ namespace influx::graphics
 		uint32 m_sample_count = 1u;
 		e_primitive_topology_type m_prim_type = e_primitive_topology_type::triangle;
 
-		// DSV
-		e_format m_format_dsv = e_format::d32;
-
 		// depth / stencil
-		struct depth_stencil final
-		{
-			bool m_depth_enable;
-			bool m_stencil_enable;
-			e_comparison_func m_depth_func;
-			// depth write mask
-		};
-		depth_stencil m_depth_stencil;
+		depth_stencil_desc m_depth_stencil;
 
 		// rasterizer
-		struct rasterizer final
-		{
-			e_cull_mode m_cullmode = e_cull_mode::back;
-			e_fill_mode m_fillmode = e_fill_mode::solid;
-			bool m_front_ccw = false;
-			int m_depth_bias = 0;
-			float m_depth_bias_clamp = 0.0f;
-			float m_slope_depth_bias = 0.0f;
-			bool m_depth_clip_enable = true;
-			bool m_multisample = false;
-			bool m_antialiased_line = false;
-			uint32 m_forced_samplecount = 0u;
-			bool m_conservative = false;
-		};
-		rasterizer m_rasterizer;
+		rasterizer_desc m_rasterizer;
 
 		// input layout
 		struct pipeline_input_element final
@@ -201,6 +242,7 @@ namespace influx::graphics
 			bool m_is_per_instance; // if not, per vertex
 			uint32 m_instance_data_steprate;
 		};
+
 		vector<pipeline_input_element> m_input_elements{};
 		inline void add_input_element(
 			const string& semantic_name,
@@ -238,17 +280,6 @@ namespace influx::graphics
 		rtv_desc m_rtvs[k_max_render_targets]{};
 
 		// blends
-		struct blend_desc final
-		{
-			bool m_enabled = false;
-			e_blend m_src;
-			e_blend m_dest;
-			e_blendop m_op;
-			e_blend m_srcalpha;
-			e_blend m_destalpha;
-			e_blendop m_op_alpha;
-			uint8 m_write_mask = 15u; // all
-		};
 		blend_desc m_blends[k_max_render_targets]{};
 		bool m_blend_alpha_to_coverage_enabled = false;
 	};
@@ -264,11 +295,40 @@ namespace influx::graphics
 		shader_slots<e_pipeline_type::raytracing> m_shaders{};
 	};
 
+	struct mesh_pipeline_desc final
+	{
+		shader_slots<e_pipeline_type::mesh> m_shaders{};
+
+		uint32 m_sample_mask = (uint32)-1;
+		uint32 m_sample_count = 1u;
+		e_primitive_topology_type m_prim_type = e_primitive_topology_type::triangle;
+
+		// depth / stencil
+		depth_stencil_desc m_depth_stencil;
+
+		// rasterizer
+		rasterizer_desc m_rasterizer;
+
+		// RTVs
+		struct rtv_desc
+		{
+			bool m_enabled = false;
+			e_format m_format = e_format::rgba8;
+		};
+		rtv_desc m_rtvs[k_max_render_targets]{};
+
+		// blends
+		blend_desc m_blends[k_max_render_targets]{};
+		bool m_blend_alpha_to_coverage_enabled = false;
+	};
+
 	template <e_pipeline_type _t>
 	using pipeline_desc = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
 		graphics::graphics_pipeline_desc,
 		graphics::compute_pipeline_desc,
-		graphics::raytracing_pipeline_desc>>;
+		graphics::raytracing_pipeline_desc,
+		graphics::mesh_pipeline_desc>>;
+
 #pragma endregion
 
 	namespace detail
@@ -291,4 +351,5 @@ namespace influx::graphics
 	using graphics_pipeline		= pipeline<e_pipeline_type::graphics>;
 	using compute_pipeline		= pipeline<e_pipeline_type::compute>;
 	using raytracing_pipeline	= pipeline<e_pipeline_type::raytracing>;
+	using mesh_pipeline			= pipeline<e_pipeline_type::mesh>;
 }

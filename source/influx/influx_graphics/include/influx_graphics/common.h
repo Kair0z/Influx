@@ -49,8 +49,13 @@ namespace influx::graphics
 		clear_state,
 		clear_uav,
 
+		/* raytracing acceleration structures */
 		build_as,
 
+		/* mesh shaders */
+		dispatch_mesh,
+
+		/* copy */
 		copy_any,
 		copy_buffer,
 		copy_resource,
@@ -113,6 +118,7 @@ namespace influx::graphics
 		graphics,
 		compute,
 		raytracing,
+		mesh,
 		count
 	};
 	constexpr static uint8 k_num_pipeline_types = static_cast<uint8>(e_pipeline_type::count);

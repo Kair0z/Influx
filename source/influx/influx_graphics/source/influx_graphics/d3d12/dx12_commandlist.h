@@ -95,6 +95,9 @@ namespace influx::graphics
 
 		virtual void end() override;
 
+		/* mesh shaders */
+		virtual void dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z);
+
 		ID3D12CommandAllocator* obtain_allocator(dx12_device*);
 
 		void free_allocator(dx12_device*);

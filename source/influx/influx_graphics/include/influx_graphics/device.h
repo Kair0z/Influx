@@ -39,7 +39,7 @@ namespace influx::graphics
 		INFLUX_GFX_API 
 		static device* create(e_api_type type, const device_desc& desc = device_desc{});
 
-		/* */
+		/* optional */
 		INFLUX_GFX_API
 		void set_log_function(log_function function);
 		
@@ -57,9 +57,9 @@ namespace influx::graphics
 
 		virtual ptr<commandlist> create_graphics_commandlist(graphics_pipeline* init_state = nullptr) = 0;
 		virtual ptr<commandlist> create_compute_commandlist(compute_pipeline* init_state = nullptr) = 0;
-
 		virtual ptr<fence> create_fence(uint64 init_value = 0u) = 0;
 
+		/* resources */
 		virtual ptr<resource> create_resource(const struct tex3D_desc& desc, const heap_desc& heap_desc = {}) = 0;
 		virtual ptr<resource> create_resource(const struct cubemap_desc& desc, const heap_desc& heap_desc = {}) = 0;
 		virtual ptr<resource> create_resource(const struct tex2D_desc& desc, const heap_desc& heap_desc = {}) = 0;
@@ -71,6 +71,7 @@ namespace influx::graphics
 		virtual ptr<resource> import_buffer(void* native_ptr, const buffer_desc& desc) = 0;
 		virtual ptr<resource> import_texture(void* native_ptr, const tex2D_desc& desc) = 0;
 
+		/* descriptors */
 		virtual void create_rtv(descriptor_handle cpu_handle, resource* resource) = 0;
 		virtual void create_dsv(descriptor_handle cpu_handle, resource* resource) = 0;
 		virtual void create_buffer_srv(descriptor_handle cpu_handle, resource* resource) = 0;
@@ -79,10 +80,12 @@ namespace influx::graphics
 		virtual void create_texture_uav(descriptor_handle cpu_handle, resource* resource) = 0;
 		virtual void create_sampler_view(descriptor_handle cpu_handle, resource* resource) = 0;
 
+		/* pipeline state objects */
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) = 0;
 		virtual ptr<graphics_pipeline> create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc) = 0;
 		virtual ptr<compute_pipeline> create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc) = 0;
 		virtual ptr<raytracing_pipeline> create_raytracing_pipeline(rootsignature* rootsig, const raytracing_pipeline_desc& desc) = 0;
+		virtual ptr<mesh_pipeline> create_mesh_pipeline(rootsignature* rootsig, const mesh_pipeline_desc& desc) = 0;
 
 		virtual void copy_descriptors(
 			const descriptor_range& source, const descriptor_range& dest,
