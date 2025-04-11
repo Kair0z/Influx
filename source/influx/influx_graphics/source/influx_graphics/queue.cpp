@@ -10,18 +10,27 @@ namespace influx::graphics
 	{
 	}
 
-	void queue::submit(const vector<commandlist*>& commandlists)
+	result<> queue::submit(const vector<commandlist*>& commandlists)
 	{
-		submit_commandlists(commandlists);
-		post_submit(commandlists);
+		result<> res = {};
+		
+		res = submit_commandlists(commandlists);
+		if (!res) return result<>::make_error("error: queue failed submitting commandlists.");
+
+		res = post_submit(commandlists);
+		if (!res) return result<>::make_error("error: queue post_submit failed.");
+
+		return res;
 	}
 
-	void queue::post_submit(const vector<commandlist*>& commandlists)
+	result<> queue::post_submit(const vector<commandlist*>& commandlists)
 	{
+		result<> res = {};
 		for (commandlist* list : commandlists)
 		{
-			list->post_submit(this);
+			res = list->post_submit(this);
 		}
+		return res;
 	}
 }
 

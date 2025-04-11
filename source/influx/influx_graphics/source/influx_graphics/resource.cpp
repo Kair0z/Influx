@@ -161,28 +161,32 @@ namespace influx::graphics
 		return range<size_t>(0u, m_bytesize);
 	}
 
-	void resource::transition(commandlist* cmdlist, e_resource_state new_state)
+	result<> resource::transition(commandlist* cmdlist, e_resource_state new_state)
 	{
+		result<> res = {};
 		if (m_state == new_state)
 		{
-			return;
+			return result<>::make_error("warning: skipping transition to already current state.");
 		}
 
-		cmdlist->transition_resource(this, m_state, new_state);
+		res = cmdlist->transition_resource(this, m_state, new_state);
 
 		m_previous_state = m_state;
 		m_state = new_state;
+		return res;
 	}
 
-	void resource::revert_transition(commandlist* cmdlist)
+	result<> resource::revert_transition(commandlist* cmdlist)
 	{
+		result<> res = {};
 		influx_assert(m_previous_state != m_state);
 
-		cmdlist->transition_resource(this, m_state, m_previous_state);
+		res = cmdlist->transition_resource(this, m_state, m_previous_state);
 
 		e_resource_state state_before = m_state;
 		m_state = m_previous_state;
 		m_previous_state = state_before;
+		return res;
 	}
 
 	resource::e_type resource::get_type() const

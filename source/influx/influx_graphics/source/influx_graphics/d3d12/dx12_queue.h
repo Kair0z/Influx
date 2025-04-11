@@ -15,9 +15,9 @@ namespace influx::graphics
 		dx12_queue(const queue_desc& desc, ID3D12CommandQueue* queue);
 		~dx12_queue();
 
-		virtual void submit_commandlists(const vector<commandlist*>& commandlists) override;
+		virtual result<> submit_commandlists(const vector<commandlist*>& commandlists) override;
 
-		virtual void queue_signal(fence* fence, uint64 value) override;
+		virtual result<> queue_signal(fence* fence, uint64 value) override;
 
 		virtual void release_impl(device*) override;
 		

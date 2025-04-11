@@ -373,7 +373,7 @@ namespace influx::shader
 	}
 
 	// parse out potential shader types
-	static const char* type_to_signature[shader::k_num_shadertypes] =
+	static const char* type_to_signature[] =
 	{
 		R"(\[shader\(\"vertex\"\)\])",
 		R"(\[shader\(\"pixel\"\)\])",
@@ -392,6 +392,7 @@ namespace influx::shader
 		R"(\[shader\(\"amp\"\)\])",
 		R"(\[shader\(\"mesh\"\)\])",
 	};
+	static_assert(_countof(type_to_signature) == shader::k_num_shadertypes);
 
 	parse_output parse_shaderfile(const string& filepath, const compile_args& args)
 	{

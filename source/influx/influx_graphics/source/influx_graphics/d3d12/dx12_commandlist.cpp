@@ -16,8 +16,7 @@ namespace influx::graphics
 	#define renderpass_check(command) \
 		if (!is_renderpass_valid(command)) \
 		{ \
-			if (!g_mute) logwar("{} is not allowed inside a renderpass!", #command);\
-			return;\
+			return result<>::make_error("error: this command is not allowed inside a renderpass!"); \
 		}\
 		
 	dx12_commandlist::dx12_commandlist(ID3D12GraphicsCommandList* commandlist, ID3D12CommandAllocator* allocator)
@@ -41,12 +40,11 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->Reset(mpdx_allocator, dxpipeline);
 	}
 
-	void dx12_commandlist::renderpass_begin(const renderpass_args& args)
+	result<> dx12_commandlist::renderpass_begin(const renderpass_args& args)
 	{
 		if (!is_renderpass_valid(e_command::begin_renderpass))
 		{
-			if (!g_mute) logwar("renderpass_begin is not allowed inside a renderpass!");
-			return;
+			return result<>::make_error("renderpass_begin is not allowed inside a renderpass!");
 		}
 
 		ID3D12GraphicsCommandList7* gfx_commandlist7 = nullptr;
@@ -122,11 +120,11 @@ namespace influx::graphics
 		else
 		{
 			// legacy / manual render passes...
-			
 		}
+		return {};
 	}
 
-	void dx12_commandlist::renderpass_end()
+	result<> dx12_commandlist::renderpass_end()
 	{
 		ID3D12GraphicsCommandList7* gfx_commandlist7 = nullptr;
 		HRESULT res = mpdx_graphics_commandlist->QueryInterface(&gfx_commandlist7);
@@ -135,22 +133,28 @@ namespace influx::graphics
 			gfx_commandlist7->EndRenderPass();
 			m_is_in_renderpass = false;
 		}
+		return {};
 	}
 
-	void dx12_commandlist::draw_instanced(const draw_instanced_args& args)
+	result<> dx12_commandlist::draw_instanced(const draw_instanced_args& args)
 	{
 		renderpass_check(e_command::draw_any);
+
+		pre_draw();
 
 		mpdx_graphics_commandlist->DrawInstanced(
 			args.m_num_vertices_per_instance,
 			args.m_num_instances,
 			args.m_start_vertex,
 			args.m_start_instance);
+		return {};
 	}
 
-	void dx12_commandlist::draw_indexed(const draw_indexed_args& args)
+	result<> dx12_commandlist::draw_indexed(const draw_indexed_args& args)
 	{
 		renderpass_check(e_command::draw_any);
+
+		pre_draw();
 
 		mpdx_graphics_commandlist->DrawIndexedInstanced(
 			args.m_num_indexes_per_instance,
@@ -158,9 +162,10 @@ namespace influx::graphics
 			args.m_start_index,
 			args.m_start_vertex,
 			args.m_start_instance);
+		return {};
 	}
 
-	void dx12_commandlist::dispatch(const dispatch_args& args)
+	result<> dx12_commandlist::dispatch(const dispatch_args& args)
 	{
 		renderpass_check(e_command::dispatch);
 
@@ -168,9 +173,10 @@ namespace influx::graphics
 			args.m_threadgroup_count.x,
 			args.m_threadgroup_count.y,
 			args.m_threadgroup_count.z);
+		return {};
 	}
 
-	void dx12_commandlist::set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type)
+	result<> dx12_commandlist::set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type)
 	{
 		renderpass_check(e_command::set_root_constants);
 
@@ -191,9 +197,10 @@ namespace influx::graphics
 				source_data, 0u);
 			break;
 		}
+		return {};
 	}
 
-	void dx12_commandlist::set_indexbuffer(resource* index_buffer)
+	result<> dx12_commandlist::set_indexbuffer(resource* index_buffer)
 	{
 		renderpass_check(e_command::set_indexbuffer);
 
@@ -205,9 +212,10 @@ namespace influx::graphics
 		ib_view.Format = translate(index_buffer->get_format());
 
 		mpdx_graphics_commandlist->IASetIndexBuffer(&ib_view);
+		return {};
 	}
 
-	void dx12_commandlist::set_vertexbuffer(resource* vertex_buffer)
+	result<> dx12_commandlist::set_vertexbuffer(resource* vertex_buffer)
 	{
 		renderpass_check(e_command::set_vertexbuffer);
 
@@ -219,27 +227,30 @@ namespace influx::graphics
 		vb_view.StrideInBytes = (uint32)vertex_buffer->get_bytestride();
 
 		mpdx_graphics_commandlist->IASetVertexBuffers(0u, 1u, &vb_view);
+		return {};
 	}
 
-	void dx12_commandlist::clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value)
+	result<> dx12_commandlist::clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value)
 	{
 		renderpass_check(e_command::clear_rtv);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE dx12_handle{};
 		dx12_handle.ptr = (SIZE_T)rtv_cpu;
 		mpdx_graphics_commandlist->ClearRenderTargetView(dx12_handle, clear_value.data(), 0u, nullptr);
+		return {};
 	}
 
-	void dx12_commandlist::clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil)
+	result<> dx12_commandlist::clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil)
 	{
 		renderpass_check(e_command::clear_dsv);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
 		cpu_handle.ptr = (SIZE_T)dsv_cpu;
 		mpdx_graphics_commandlist->ClearDepthStencilView(cpu_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, clear_depth, clear_stencil, 0u, nullptr);
+		return {};
 	}
 
-	void dx12_commandlist::set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu)
+	result<> dx12_commandlist::set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu)
 	{
 		renderpass_check(e_command::set_rtv);
 
@@ -247,17 +258,19 @@ namespace influx::graphics
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle{ .ptr = (SIZE_T)dsv_cpu  };
 
 		mpdx_graphics_commandlist->OMSetRenderTargets(1u, &rtv_handle, FALSE, dsv_cpu != nullptr ? &dsv_handle : nullptr);
+		return {};
 	}
 
-	void dx12_commandlist::set_srv(descriptor_handle srv_gpu, uint32 param_idx)
+	result<> dx12_commandlist::set_srv(descriptor_handle srv_gpu, uint32 param_idx)
 	{
 		renderpass_check(e_command::set_srv);
 
 		D3D12_GPU_DESCRIPTOR_HANDLE srv_gpu_handle{ .ptr = (SIZE_T)srv_gpu };
 		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, srv_gpu_handle);
+		return {};
 	}
 
-	void dx12_commandlist::build_acceleration_struct(
+	result<> dx12_commandlist::build_acceleration_struct(
 		resource* dest_resource, 
 		resource* scratch_resource, 
 		const build_acc_str_args& args)
@@ -302,6 +315,7 @@ namespace influx::graphics
 		case e_acc_str_type::top: desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL; break;
 		default:
 			influx_assert(false);
+			return result<>::make_error("error: build_acc_str_args::type unsupported!");
 		}
 
 		// misc setup
@@ -315,18 +329,23 @@ namespace influx::graphics
 		{
 			dxcommandlist4->BuildRaytracingAccelerationStructure(&desc, 0u, nullptr);
 		}
+		else
+		{
+			return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList4> failed!");
+		}
 	}
 
-	void dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)
+	result<> dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		renderpass_check(e_command::barrier_transition);
 
 		auto dxresource = resource->get_native<ID3D12Resource>();
 		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(dxresource, translate(before), translate(after));
 		mpdx_graphics_commandlist->ResourceBarrier(1u, &barrier);
+		return {};
 	}
 
-	void dx12_commandlist::buffer_barrier(resource* resource, e_resource_state before, e_resource_state after)
+	result<> dx12_commandlist::buffer_barrier(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		renderpass_check(e_command::barrier_any);
 
@@ -339,9 +358,10 @@ namespace influx::graphics
 		barrier.Size = UINT64_MAX;
 		barrier.pResource = resource->get_native<ID3D12Resource>();
 		m_buffer_barriers.push_back(barrier);
+		return {};
 	}
 
-	void dx12_commandlist::texture_barrier(resource* resource, e_resource_state before, e_resource_state after)
+	result<> dx12_commandlist::texture_barrier(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		renderpass_check(e_command::barrier_any);
 
@@ -356,9 +376,10 @@ namespace influx::graphics
 		barrier.Subresources = CD3DX12_BARRIER_SUBRESOURCE_RANGE(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 		if (has_any_flag(before, e_resource_state::discard)) barrier.Flags = D3D12_TEXTURE_BARRIER_FLAG_DISCARD;
 		m_texture_barriers.push_back(barrier);
+		return {};
 	}
 
-	void dx12_commandlist::global_barrier(e_resource_state before, e_resource_state after)
+	result<> dx12_commandlist::global_barrier(e_resource_state before, e_resource_state after)
 	{
 		renderpass_check(e_command::barrier_any);
 
@@ -368,9 +389,10 @@ namespace influx::graphics
 		barrier.AccessBefore = get_barrier_access(before);
 		barrier.AccessAfter = get_barrier_access(after);
 		m_global_barriers.push_back(barrier);
+		return {};
 	}
 
-	void dx12_commandlist::flush_barriers()
+	result<> dx12_commandlist::flush_barriers()
 	{
 		vector<D3D12_BARRIER_GROUP> barrier_groups{};
 		barrier_groups.reserve(3);
@@ -405,9 +427,10 @@ namespace influx::graphics
 		m_texture_barriers.clear();
 		m_buffer_barriers.clear();
 		m_global_barriers.clear();
+		return {};
 	}
 
-	void dx12_commandlist::copy_resource(resource* source, resource* dest)
+	result<> dx12_commandlist::copy_resource(resource* source, resource* dest)
 	{
 		renderpass_check(e_command::copy_resource);
 		influx_assert(source->get_width() == dest->get_width());
@@ -417,9 +440,10 @@ namespace influx::graphics
 		auto dxdest = dest->get_native<ID3D12Resource>();
 
 		mpdx_graphics_commandlist->CopyResource(dxdest, dxsource);
+		return {};
 	}
 
-	void dx12_commandlist::copy_texture(resource* src, resource* dest, 
+	result<> dx12_commandlist::copy_texture(resource* src, resource* dest,
 		const copy_texture_args& args)
 	{
 		// https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12graphicscommandlist-copytextureregion
@@ -470,9 +494,11 @@ namespace influx::graphics
 
 			mpdx_graphics_commandlist->CopyTextureRegion(&dst_location, 0u, 0u, 0u, &src_location, &src_box);
 		}
+
+		return {};
 	}
 
-	void dx12_commandlist::copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& args)
+	result<> dx12_commandlist::copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& args)
 	{
 		renderpass_check(e_command::copy_buffer);
 
@@ -480,17 +506,21 @@ namespace influx::graphics
 			dest->get_native<ID3D12Resource>(), args.m_dest_offset,
 			src->get_native<ID3D12Resource>(), args.m_src_offset,
 			bytesize);
+
+		return {};
 	}
 
-	void dx12_commandlist::set(descriptor_heap* heap)
+	result<> dx12_commandlist::set(descriptor_heap* heap)
 	{
 		renderpass_check(e_command::set_descriptor_heap);
 
 		auto dxheap = heap->get_native<ID3D12DescriptorHeap>();
 		mpdx_graphics_commandlist->SetDescriptorHeaps(1u, &dxheap);
+
+		return {};
 	}
 
-	void dx12_commandlist::set(const vector<descriptor_heap*>& heaps)
+	result<> dx12_commandlist::set(const vector<descriptor_heap*>& heaps)
 	{
 		renderpass_check(e_command::set_descriptor_heap);
 
@@ -502,16 +532,18 @@ namespace influx::graphics
 		}
 
 		mpdx_graphics_commandlist->SetDescriptorHeaps(static_cast<uint32>(native_heaps.size()), native_heaps.data());
+		return {};
 	}
 
-	void dx12_commandlist::set(const descriptor_range& gpu_range, uint32 param_idx)
+	result<> dx12_commandlist::set(const descriptor_range& gpu_range, uint32 param_idx)
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
 		gpu_handle.ptr = (size_t)gpu_range.m_start;
 		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, gpu_handle);
+		return {};
 	}
 
-	void dx12_commandlist::set(rootsignature* rootsig, const e_pipeline_type type)
+	result<> dx12_commandlist::set(rootsignature* rootsig, const e_pipeline_type type)
 	{
 		auto dxrootsig = rootsig->get_native<ID3D12RootSignature>();
 	
@@ -525,20 +557,26 @@ namespace influx::graphics
 			mpdx_graphics_commandlist->SetComputeRootSignature(dxrootsig);
 			break;
 
+		default:
 		case e_pipeline_type::raytracing:
+		case e_pipeline_type::mesh:
 			break;
 		}
-		
+
+		return {};
 	}
 
-	void dx12_commandlist::set(detail::base_pipeline* pipeline)
+	result<> dx12_commandlist::set(detail::base_pipeline* pipeline)
 	{
 		auto dxpipeline = pipeline->get_native<ID3D12PipelineState>();
 		mpdx_graphics_commandlist->SetPipelineState(dxpipeline);
+		return {};
 	}
 
-	void dx12_commandlist::set(const viewport& viewport)
+	result<> dx12_commandlist::set(const viewport& viewport)
 	{
+		commandlist::set(viewport);
+
 		D3D12_VIEWPORT dxviewport{};
 		dxviewport.TopLeftX = viewport.m_left;
 		dxviewport.TopLeftY = viewport.m_top;
@@ -547,26 +585,32 @@ namespace influx::graphics
 		dxviewport.MinDepth = viewport.m_depth_min;
 		dxviewport.MaxDepth = viewport.m_depth_max;
 		mpdx_graphics_commandlist->RSSetViewports(1u, &dxviewport);
+		return {};
 	}
 
-	void dx12_commandlist::set(const rect& rect)
+	result<> dx12_commandlist::set(const rect& rect)
 	{
+		commandlist::set(rect);
+
 		D3D12_RECT dxrect{};
 		dxrect.left = rect.m_left;
 		dxrect.top = rect.m_top;
 		dxrect.right = rect.m_right;
 		dxrect.bottom = rect.m_bottom;
 		mpdx_graphics_commandlist->RSSetScissorRects(1u, &dxrect);
+		return {};
 	}
 
-	void dx12_commandlist::set(e_primitive_topology topo)
+	result<> dx12_commandlist::set(e_primitive_topology topo)
 	{
 		mpdx_graphics_commandlist->IASetPrimitiveTopology(translate(topo));
+		return {};
 	}
 
-	void dx12_commandlist::end()
+	result<> dx12_commandlist::end()
 	{
 		mpdx_graphics_commandlist->Close();
+		return {};
 	}
 
 	void dx12_commandlist::release_impl(device*)
@@ -574,7 +618,7 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->Release();
 	}
 
-	void dx12_commandlist::dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z)
+	result<> dx12_commandlist::dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z)
 	{
 		renderpass_check(e_command::dispatch_mesh);
 
@@ -582,12 +626,19 @@ namespace influx::graphics
 		HRESULT res = mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList6>(&dxcommandlist6);
 		if (res == S_OK)
 		{
+			const bool is_viewport_valid = m_viewport.m_width > 0.0f && m_viewport.m_height > 0.0f;
+			const bool is_rect_valid = m_scissor_rect.m_right > 0u && m_scissor_rect.m_bottom > 0u;
+
 			dxcommandlist6->DispatchMesh(
 				groupcount_x,
 				groupcount_y,
 				groupcount_z
 			);
+
+			return {};
 		}
+
+		return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList6> failed!");
 	}
 
 	ID3D12CommandAllocator* dx12_commandlist::obtain_allocator(dx12_device* dxdevice)

@@ -18,10 +18,12 @@ namespace influx::graphics
 	class dx12_commandlist final : public commandlist
 	{
 	private:
+		/* dx objects */
 		ID3D12CommandList* mpdx_commandlist;
 		ID3D12GraphicsCommandList* mpdx_graphics_commandlist;
 		ID3D12CommandAllocator* mpdx_allocator;
 
+		/* cache barriers to batch them together */
 		vector<D3D12_TEXTURE_BARRIER>		  m_texture_barriers;
 		vector<D3D12_BUFFER_BARRIER>		  m_buffer_barriers;
 		vector<D3D12_GLOBAL_BARRIER>		  m_global_barriers;
@@ -34,69 +36,70 @@ namespace influx::graphics
 		// starts a commandlist, using the device to allocate the memory internally
 		virtual void start_impl(device* device, detail::base_pipeline* init_state = nullptr) override;
 
-		virtual void renderpass_begin(const renderpass_args&) override;
+		/* commands */
+		virtual result<> renderpass_begin(const renderpass_args&) override;
 
-		virtual void renderpass_end() override;
+		virtual result<> renderpass_end() override;
 
-		virtual void draw_instanced(const draw_instanced_args&) override;
+		virtual result<> draw_instanced(const draw_instanced_args&) override;
 
-		virtual void draw_indexed(const draw_indexed_args&) override;
+		virtual result<> draw_indexed(const draw_indexed_args&) override;
 
-		virtual void dispatch(const dispatch_args&) override;
+		virtual result<> dispatch(const dispatch_args&) override;
 
-		virtual void set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) override;
+		virtual result<> set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) override;
 
-		virtual void set_indexbuffer(resource* index_buffer) override;
+		virtual result<> set_indexbuffer(resource* index_buffer) override;
 
-		virtual void set_vertexbuffer(resource* vertex_buffer) override;
+		virtual result<> set_vertexbuffer(resource* vertex_buffer) override;
 
-		virtual void clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value) override;
+		virtual result<> clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value) override;
 
-		virtual void clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil) override;
+		virtual result<> clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil) override;
 
-		virtual void set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu) override;
+		virtual result<> set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu) override;
 
-		virtual void set_srv(descriptor_handle srv_gpu, uint32 param_idx) override;
+		virtual result<> set_srv(descriptor_handle srv_gpu, uint32 param_idx) override;
 
-		virtual void build_acceleration_struct(resource* dest_resource, resource* scratch_resource, const build_acc_str_args& args) override;
+		virtual result<> build_acceleration_struct(resource* dest_resource, resource* scratch_resource, const build_acc_str_args& args) override;
 
-		virtual void transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
+		virtual result<> transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
 
 		// https://microsoft.github.io/DirectX-Specs/d3d/D3D12EnhancedBarriers.html
-		virtual void buffer_barrier(resource* resource, e_resource_state before, e_resource_state after) override;
+		virtual result<> buffer_barrier(resource* resource, e_resource_state before, e_resource_state after) override;
 
-		virtual void texture_barrier(resource* resource, e_resource_state before, e_resource_state after) override;
+		virtual result<> texture_barrier(resource* resource, e_resource_state before, e_resource_state after) override;
 
-		virtual void global_barrier(e_resource_state before, e_resource_state after) override;
+		virtual result<> global_barrier(e_resource_state before, e_resource_state after) override;
 
-		virtual void flush_barriers() override;
+		virtual result<> flush_barriers() override;
 
-		virtual void copy_resource(resource* source, resource* dest) override;
+		virtual result<> copy_resource(resource* source, resource* dest) override;
 
-		virtual void copy_texture(resource* src, resource* dest, const copy_texture_args& = {}) override;
+		virtual result<> copy_texture(resource* src, resource* dest, const copy_texture_args& = {}) override;
 
-		virtual void copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& = {}) override;
+		virtual result<> copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& = {}) override;
 
-		virtual void set(descriptor_heap* heap) override;
+		virtual result<> set(descriptor_heap* heap) override;
 
-		virtual void set(const vector<descriptor_heap*>& heap) override;
+		virtual result<> set(const vector<descriptor_heap*>& heap) override;
 
-		virtual void set(const descriptor_range& gpu_range, uint32 param_idx) override;
+		virtual result<> set(const descriptor_range& gpu_range, uint32 param_idx) override;
 
-		virtual void set(rootsignature* rootsig, const e_pipeline_type type) override;
+		virtual result<> set(rootsignature* rootsig, const e_pipeline_type type) override;
 
-		virtual void set(detail::base_pipeline* pipeline) override;
+		virtual result<> set(detail::base_pipeline* pipeline) override;
 
-		virtual void set(const viewport& viewport) override;
+		virtual result<> set(const viewport& viewport) override;
 
-		virtual void set(const rect& rect) override;
+		virtual result<> set(const rect& rect) override;
 
-		virtual void set(e_primitive_topology topo) override;
+		virtual result<> set(e_primitive_topology topo) override;
 
-		virtual void end() override;
+		virtual result<> end() override;
 
 		/* mesh shaders */
-		virtual void dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z) override;
+		virtual result<> dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z) override;
 
 		ID3D12CommandAllocator* obtain_allocator(dx12_device*);
 

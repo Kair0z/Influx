@@ -19,7 +19,7 @@ namespace influx::graphics
 	enum class e_log { info, warning, error, count };
 	typedef void (*log_function)(e_log, const char*);
 
-	template <typename _t>
+	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
 
 	enum class e_feature_flags : uint8

@@ -60,7 +60,15 @@ namespace influx
 		result(const _t& value) { m_expected = value; }
 		result(const _e& error) { m_unexpected = error; }
 
-		// if underlying _t is 'boolable' that plays a part in the evaluation of this result
+		inline static result make_error(const _e& error)
+		{
+			return result(error);
+		}
+
+		// if underlying _t is 'boolable', this will only return true if
+		//		this is success (expected)
+		//		AND this value == true
+		// else, this returns only this is success
 		operator bool() const
 		{
 			// Compile-time branch if T has operator bool
@@ -100,6 +108,11 @@ namespace influx
 		const _t& get() const
 		{
 			return m_expected;
+		}
+
+		const unex_type& get_unex() const
+		{
+			return m_unexpected;
 		}
 
 		void set(const _t& value)

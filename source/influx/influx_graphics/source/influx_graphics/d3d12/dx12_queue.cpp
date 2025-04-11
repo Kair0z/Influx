@@ -18,8 +18,9 @@ namespace influx::graphics
 	{
 	}
 
-	void dx12_queue::submit_commandlists(const vector<commandlist*>& commandlists)
+	result<> dx12_queue::submit_commandlists(const vector<commandlist*>& commandlists)
 	{
+		result<> res = {};
 		vector<ID3D12CommandList*> dxcmdlists = {};
 		for (commandlist* list : commandlists)
 		{
@@ -28,13 +29,19 @@ namespace influx::graphics
 
 		mpdx_queue->ExecuteCommandLists(
 			static_cast<uint32>(commandlists.size()), dxcmdlists.data());
+
+		return res;
 	}
 
 	// queues a signal which the fence can later wait for
-	void dx12_queue::queue_signal(fence* fence, uint64 value)
+	result<> dx12_queue::queue_signal(fence* fence, uint64 value)
 	{
+		result<> res = {};
 		ID3D12Fence* dxfence = fence->get_native<ID3D12Fence>();
-		mpdx_queue->Signal(dxfence, value);
+		auto dxres = mpdx_queue->Signal(dxfence, value);
+		if (dxres != S_OK) return result<>::make_error("error: Dx12 Queue Signal failed");
+
+		return res;
 	}
 
 	void dx12_queue::release_impl(device*)

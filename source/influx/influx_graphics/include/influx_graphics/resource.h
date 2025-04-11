@@ -172,9 +172,9 @@ namespace influx::graphics
 
 		INFLUX_GFX_API range<size_t> get_full_range() const;
 
-		INFLUX_GFX_API void transition(commandlist* cmdlist, e_resource_state new_state);
+		INFLUX_GFX_API result<> transition(commandlist* cmdlist, e_resource_state new_state);
 		
-		INFLUX_GFX_API void revert_transition(commandlist* cmdlist);
+		INFLUX_GFX_API result<> revert_transition(commandlist* cmdlist);
 
 		INFLUX_GFX_API e_type get_type() const;
 

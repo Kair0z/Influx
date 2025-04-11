@@ -10,20 +10,28 @@
 
 namespace influx::graphics
 {
-    const bool g_mute = true;
-
-    void commandlist::start(device* device, detail::base_pipeline* init_state)
+    result<> commandlist::start(device* device, detail::base_pipeline* init_state)
     {
+        result<> res = {};
+
         wait_for_completion();
 
         const e_state state = get_state();
-        influx_assert(state == e_state::created || state == e_state::completed);
+        const bool is_ready_to_start = state == e_state::created || state == e_state::completed;
+        if (is_ready_to_start == false)
+        {
+            return result<>::make_error("error: starting an in-flight / recording commandlist.");
+        }
 
-        // create fence if this commandlist is just created
+        // create fence if this commandlist is newly created
         if (state == e_state::created && m_fence == nullptr)
         {
             const uint32 incomplete_value = (m_complete_value == 1u) ? 0u : 1u;
             m_fence = device->create_fence(incomplete_value);
+            if (m_fence == nullptr)
+            {
+                return result<>::make_error("error: failed creating fence for this commandlist.");
+            }
         }
 
         // if we've completed previous, time to flip the value to wait for
@@ -35,17 +43,27 @@ namespace influx::graphics
         // starts allocator
         m_state = e_state::recording;
 
-        if (!g_mute) logwar("commandlist start: {}", m_name.get().c_str());
-
         start_impl(device, init_state);
+        return res;
     }
 
-    void commandlist::submit(queue* queue)
+    result<> commandlist::submit(queue* queue)
     {
-        end();
+        result<> res = {};
+        
+        res = end();
+        if (!res.is_success())
+        {
+            return result<>::make_error("error: failed ending current commandlist!");
+        }
 
-        queue->submit({ this });
-        if (!g_mute) logwar("commandlist submit: {}", m_name.get().c_str());
+        res = queue->submit({ this });
+        if (!res.is_success())
+        {
+            return result<>::make_error("error: failed submitting current commandlist!");
+        }
+
+        return res;
     }
 
     void commandlist::wait_for_completion()
@@ -55,8 +73,6 @@ namespace influx::graphics
         {
             // ...
         }
-
-        if (!g_mute) logwar("commandlist complete: {}", m_name.get().c_str());
     }
 
     bool commandlist::is_completed()
@@ -84,10 +100,30 @@ namespace influx::graphics
         return m_name;
     }
 
-    void commandlist::post_submit(queue* queue)
+    result<> commandlist::post_submit(queue* queue)
     {
+        result<> res = {};
         m_state = e_state::submitted;
-        queue->queue_signal(m_fence, m_complete_value);
-        if (!g_mute) logwar("commandlist signal: {}", m_name.get().c_str());
+        res = queue->queue_signal(m_fence, m_complete_value);
+        return res;
+    }
+
+    result<> commandlist::set(const viewport& viewport)
+    {
+        m_viewport = viewport;
+        return {};
+    }
+
+    result<> commandlist::set(const rect& rect)
+    {
+        m_scissor_rect = rect;
+        return {};
+    }
+
+    void commandlist::pre_draw()
+    {
+        const bool is_viewport_valid = m_viewport.m_width > 0.0f && m_viewport.m_height > 0.0f;
+        const bool is_rect_valid = m_scissor_rect.m_right > 0u && m_scissor_rect.m_bottom > 0u;
+        // todo..
     }
 }

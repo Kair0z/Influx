@@ -10,6 +10,7 @@ namespace influx::graphics
 {
 	class device;
 
+	/* rhi object base interface */
 	class base
 	{
 		virtual void set_name_impl(const debug_name& name) {}

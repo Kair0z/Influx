@@ -5,6 +5,8 @@
 extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
+#include <iostream>
+
 // influx::platform
 #include "influx_platform/window.h"
 #include "influx_platform/monitor.h"
@@ -30,8 +32,8 @@ void compile_shaders(graphics::mesh_pipeline_desc& out_desc)
 	compile_args.set_target(shader::e_shader_target::_6_6);
 	compile_args.m_reflection = false;
 
-	compile_args.m_include_folder = "E:/Git/Influx/assets/engine/shaders/include/";
-	bool load_success = imp::load_shader_file("E:/Git/Influx/assets/engine/shaders/source/mesh_shaders.hlsl", loaded_shaders, compile_args);
+	compile_args.m_include_folder = "D:/Git/Influx/assets/engine/shaders/include/";
+	bool load_success = imp::load_shader_file("D:/Git/Influx/assets/engine/shaders/source/mesh_shaders.hlsl", loaded_shaders, compile_args);
 	influx_assert(load_success);
 
 	for (const imp::shader_data& shader : loaded_shaders)
@@ -80,6 +82,23 @@ void create_pipeline(graphics::device& device, pipeline& out_pipeline)
 	out_pipeline.m_pipeline = device.create_mesh_pipeline(out_pipeline.m_rootsig, pipeline_desc);
 }
 
+void print(const char* message)
+{
+	std::cout << "[] " << message << "\n";
+}
+void print_if_unex(const graphics::result<>& result)
+{
+	if (result.is_success() == false) print(result.get_unex());
+}
+
+struct result_printer final
+{
+	void operator<<(const graphics::result<>& result)
+	{
+		print_if_unex(result);
+	}
+};
+
 int main()
 {
 	using namespace influx;
@@ -112,6 +131,8 @@ int main()
 	float delta_seconds = 0.0f;
 	float seconds = 0.0f;
 	bool is_quit = false;
+
+	result_printer res{};
 	while (is_quit == false)
 	{
 		delta_seconds = time::get_ms_since<float>(time_last_tick) * 0.001f;
@@ -125,17 +146,16 @@ int main()
 		commandlist.start(&device);
 
 		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource();
-		backbuffer->transition(
-			&commandlist, graphics::e_resource_state::render_target);
+		res << backbuffer->transition(&commandlist, graphics::e_resource_state::render_target);
 
-		commandlist.set(graphics::viewport
+		res << commandlist.set(graphics::viewport
 		{
 			.m_left = 0.0f,
 			.m_top = 0.0f,
 			.m_width = 640.0f,
 			.m_height = 480.0f
 		});
-		commandlist.set(graphics::rect
+		res << commandlist.set(graphics::rect
 		{
 			.m_left = 0u,
 			.m_top = 0u,
@@ -144,15 +164,15 @@ int main()
 		});
 
 		device.create_rtv(rtv_handle, backbuffer);
-		commandlist.clear_rtv(rtv_handle, {1,0,0,1});
-		commandlist.set_rtv(rtv_handle, nullptr);
 
-		commandlist.set(pipeline.m_rootsig);
-		commandlist.set(pipeline.m_pipeline);
-		commandlist.dispatch_mesh(1,1,1);
-		
-		backbuffer->transition(
-			&commandlist, graphics::e_resource_state::present);
+		res << commandlist.clear_rtv(rtv_handle, {1,0,0,1});
+		res << commandlist.set_rtv(rtv_handle, nullptr);
+
+		res << commandlist.set(pipeline.m_rootsig);
+		res << commandlist.set(pipeline.m_pipeline);
+		res << commandlist.dispatch_mesh(1,1,1);
+
+		res << backbuffer->transition(&commandlist, graphics::e_resource_state::present);
 
 		commandlist.submit(&queue);
 
