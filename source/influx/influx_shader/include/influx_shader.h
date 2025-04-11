@@ -7,6 +7,7 @@
 #endif
 
 // influx::core
+#include "core/result.h"
 #include "core/basetypes.h"
 #include "core/string.h"
 #include "core/container/vector.h"
@@ -14,6 +15,9 @@
 
 namespace influx::shader
 {
+	template <typename _t>
+	using result = influx::result<_t, const char*>;
+
 	struct compile_args final
 	{
 	public:
@@ -90,32 +94,32 @@ namespace influx::shader
 		bool m_success = false;
 	};
 
-	/* compiles from a.hlsl filepath */
-	INFLUX_SHADER_API 
-	compile_output compile_shader(const string& filepath, const compile_args& args);
-
-	/* compiles from source stored in a string */
-	INFLUX_SHADER_API 
-	compile_output compile_shader_source(const string& shader_source, const compile_args& args);
-	
 	// parses information about a shader without compiling
 	struct parse_output final
 	{
-		struct per_shader final
-		{
-			shader::e_shader_type m_type;
-			string m_entrypoint;
+		/* type of the shader */
+		shader::e_shader_type m_type;
 
-			// partially filled compile args (containing type, filename, entrypoint)
-			compile_args m_compile_args;
-		};
-		vector<per_shader> m_shaders;
+		/* entrypoint name of the shader */
+		string m_entrypoint;
+
+		// partially filled compile args (containing type, filename, entrypoint)
+		compile_args m_compile_args;
 	};
 
-	/* parses an .hlsl file to find out shader information without compiling */
+	/* finds & compiles a shader (based on args) from a.hlsl filepath */
 	INFLUX_SHADER_API 
-	parse_output parse_shaderfile(const string& filepath, const compile_args& args);
+	result<compile_output> compile_shader_in_file(const string& filepath, const compile_args& args);
 
+	/* finds & compiles a shader (based on args) from a string */
 	INFLUX_SHADER_API 
-	parse_output parse_shader_source(const string& shader_source, const compile_args& args);
+	result<compile_output> compile_shader(const string& shader_source, const compile_args& args);
+	
+	/* finds & parses an .hlsl file to detect shaders it contains without compiling them */
+	INFLUX_SHADER_API 
+	result<vector<parse_output>> parse_shaders_in_file(const string& filepath);
+
+	/* finds & parses all shaders in a given string */
+	INFLUX_SHADER_API 
+	result<vector<parse_output>> parse_shader(const string& shader_source);
 }

@@ -115,8 +115,8 @@ namespace influx::engine
 			if (ImGui::Button("compile"))
 			{
 				const string source = m_texteditor.GetText();
-				m_compiled_vs = shader::compile_shader_source(source, make_compile_args(shader::e_shader_type::vs, "main_vs"));
-				m_compiled_ps = shader::compile_shader_source(source, make_compile_args(shader::e_shader_type::ps, "main_ps"));
+				m_compiled_vs = shader::compile_shader(source, make_compile_args(shader::e_shader_type::vs, "main_vs")).get();
+				m_compiled_ps = shader::compile_shader(source, make_compile_args(shader::e_shader_type::ps, "main_ps")).get();
 				m_compile_errors = merged(m_compiled_vs.m_log, m_compiled_ps.m_log);
 				m_compile_success = m_compiled_vs.m_success && m_compiled_ps.m_success;
 			}

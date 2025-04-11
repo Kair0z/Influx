@@ -261,10 +261,10 @@ namespace influx::renderer
 		args.m_reflection;
 
 		args.m_signature.m_type = shader::e_shader_type::vs;
-		m_vertex_shader = shader::compile_shader_source(k_vertex_shader, args);
+		m_vertex_shader = shader::compile_shader(k_vertex_shader, args).get();
 
 		args.m_signature.m_type = shader::e_shader_type::ps;
-		m_pixel_shader = shader::compile_shader_source(k_pixel_shader, args);
+		m_pixel_shader = shader::compile_shader(k_pixel_shader, args).get();
 	}
 
 	void imgui_manager::create_pipeline(graphics::device* device)

@@ -179,46 +179,63 @@ namespace influx::renderer
         compile_args.m_compile_debug = false;
         compile_args.m_pbd = false;
 
-        // assert basepass shader file has a vs & ps, and assert the resolve pass has a cs
-        shader::parse_output basepass_parsed_file = shader::parse_shaderfile(basepass_sourcefile_path, compile_args);
-        {
-            const bool has_vertex_shader = vector_helpers::contains(basepass_parsed_file.m_shaders,
-            [](const shader::parse_output::per_shader& shader)
-            {
-                return shader.m_type == shader::e_shader_type::vs;
-            });
-            const bool has_pixel_shader = vector_helpers::contains(basepass_parsed_file.m_shaders,
-            [](const shader::parse_output::per_shader& shader)
-            {
-                return shader.m_type == shader::e_shader_type::ps;
-            });
-            influx_assert(has_vertex_shader && has_pixel_shader);
-        }
-        shader::parse_output resolvepass_parsed_file = shader::parse_shaderfile(resolvepass_sourcefile_path, compile_args);
-        {
-            const bool has_compute_shader = vector_helpers::contains(resolvepass_parsed_file.m_shaders,
-            [](const shader::parse_output::per_shader& shader)
-            {
-                return shader.m_type == shader::e_shader_type::cs;
-            });
-            influx_assert(has_compute_shader);
-        }
+        using parse_result =
+            shader::result<vector<shader::parse_output>>;
 
-        // now finally compile the shaders and load them into our resource manager:
-        for (const shader::parse_output::per_shader& shader_parse : basepass_parsed_file.m_shaders)
-        {
-            shader::compile_output compile_output = shader::compile_shader(basepass_sourcefile_path, shader_parse.m_compile_args);
-            influx_assert(compile_output.m_success);
-            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
-        }
-        for (const shader::parse_output::per_shader& shader_parse : resolvepass_parsed_file.m_shaders)
-        {
-            shader::compile_output compile_output = shader::compile_shader(resolvepass_sourcefile_path, shader_parse.m_compile_args);
-            influx_assert(compile_output.m_success);
-            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
-        }
+        parse_result basepass_parse = shader::parse_shaders_in_file(basepass_sourcefile_path);
+        parse_result resolvepass_parse = shader::parse_shaders_in_file(resolvepass_sourcefile_path);
 
-        printf("a");
+        if (basepass_parse.is_success() && resolvepass_parse.is_success())
+        {
+            // assert basepass shader file has a vs & ps, and assert the resolve pass has a cs
+            vector<shader::parse_output> basepass_parsed_file = basepass_parse.get();
+            {
+                const bool has_vertex_shader = vector_helpers::contains(basepass_parsed_file,
+                [](const shader::parse_output& shader)
+                {
+                    return shader.m_type == shader::e_shader_type::vs;
+                });
+                const bool has_pixel_shader = vector_helpers::contains(basepass_parsed_file,
+                [](const shader::parse_output& shader)
+                {
+                    return shader.m_type == shader::e_shader_type::ps;
+                });
+                influx_assert(has_vertex_shader && has_pixel_shader);
+            }
+            vector<shader::parse_output> resolvepass_parsed_file = resolvepass_parse.get();
+            {
+                const bool has_compute_shader = vector_helpers::contains(resolvepass_parsed_file,
+                [](const shader::parse_output& shader)
+                {
+                    return shader.m_type == shader::e_shader_type::cs;
+                });
+                influx_assert(has_compute_shader);
+            }
+
+            // now finally compile the shaders and load them into our resource manager:
+            for (const shader::parse_output& shader_parse : basepass_parsed_file)
+            {
+                auto compile_result = shader::compile_shader_in_file(basepass_sourcefile_path, shader_parse.m_compile_args);
+                influx_assert(compile_result.is_success());
+
+                shader::compile_output compile_output = compile_result.get();
+                influx_assert(compile_output.m_success);
+                resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+            }
+            for (const shader::parse_output& shader_parse : resolvepass_parsed_file)
+            {
+                auto compile_result = shader::compile_shader_in_file(resolvepass_sourcefile_path, shader_parse.m_compile_args);
+                influx_assert(compile_result.is_success());
+
+                shader::compile_output compile_output = compile_result.get();
+                influx_assert(compile_output.m_success);
+                resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+            }
+        }
+        else
+        {
+
+        }
     }
 
 #pragma region batch

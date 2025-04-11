@@ -15,7 +15,10 @@ namespace influx::imp
 		shader::compile_args args_copy = args;
 		args_copy.m_signature.m_filename = file(filepath).m_filename_without_extension;
 
-		out_shader.m_compile_result = shader::compile_shader(filepath, args_copy);
+		auto compile_result = shader::compile_shader_in_file(filepath, args_copy);
+		influx_assert(compile_result.is_success());
+
+		out_shader.m_compile_result = compile_result.get();
 		out_shader.m_type = args.m_signature.m_type;
 		out_shader.m_signature = args.m_signature;
 		return true;
@@ -28,12 +31,13 @@ namespace influx::imp
 		influx_assert(file::exists(args.m_include_folder));
 		influx_assert(args.m_pbd == false || file::exists(args.m_pdb_folder));
 
-		shader::parse_output parsed_file = shader::parse_shaderfile(filepath, args);
-		
-		out_shaders.clear();
-		out_shaders.reserve(parsed_file.m_shaders.size());
+		auto parsed_file = shader::parse_shaders_in_file(filepath);
+		influx_assert(parsed_file.is_success());
 
-		for (const shader::parse_output::per_shader& parsed_shader : parsed_file.m_shaders)
+		out_shaders.clear();
+		out_shaders.reserve(parsed_file.get().size());
+
+		for (const shader::parse_output& parsed_shader : parsed_file.get())
 		{
 			shader_data new_shader_data{};
 			if (load_shader_file(filepath, new_shader_data, parsed_shader.m_compile_args))

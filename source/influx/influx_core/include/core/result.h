@@ -105,6 +105,11 @@ namespace influx
 			return m_unexpected == _e{};
 		}
 
+		_t& get()
+		{
+			return m_expected;
+		}
+
 		const _t& get() const
 		{
 			return m_expected;
