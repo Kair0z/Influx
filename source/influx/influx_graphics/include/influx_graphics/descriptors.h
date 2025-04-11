@@ -50,16 +50,15 @@ namespace influx::graphics
 			e_descriptor_heap_type m_type{};
 			uint32 m_capacity{};
 			bool m_shader_visible = false;
-
-			inline static create_args rtv_heap(uint32 capacity)
-			{
-				create_args args{};
-				args.m_capacity = capacity;
-				args.m_type = e_descriptor_heap_type::rtv;
-				args.m_shader_visible = false;
-				return args;
-			}
 		};
+		inline static create_args create_rtv_heap(uint32 capacity)
+		{
+			create_args args{};
+			args.m_capacity = capacity;
+			args.m_type = e_descriptor_heap_type::rtv;
+			args.m_shader_visible = false;
+			return args;
+		}
 
 		virtual descriptor_handle allocate_cpu() = 0;
 		virtual descriptor_handle allocate_gpu() = 0;

@@ -15,10 +15,10 @@ namespace influx::graphics
 		result<> res = {};
 		
 		res = submit_commandlists(commandlists);
-		if (!res) return result<>::make_error("error: queue failed submitting commandlists.");
+		if (!res.is_success()) return result<>::make_error("error: queue failed submitting commandlists.");
 
 		res = post_submit(commandlists);
-		if (!res) return result<>::make_error("error: queue post_submit failed.");
+		if (!res.is_success()) return result<>::make_error("error: queue post_submit failed.");
 
 		return res;
 	}

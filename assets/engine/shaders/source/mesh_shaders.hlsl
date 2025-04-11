@@ -11,22 +11,48 @@ struct mesh_output
 [numthreads(128, 1, 1)]
 [shader("mesh")]
 void main_ms(
-    out indices  uint3      triangles[128],
-    out vertices mesh_output vertices[64])
+    uint tid : SV_GroupThreadID,
+    out indices  uint3      triangles[64],  // max 128 per group
+    out vertices mesh_output vertices[192]) // max 256 per group
 {
+    float2 g_window_size = float2(640.0, 480.0);
+    uint g_num_triangles = 64;
+
+    if (tid >= g_num_triangles) return;
+
     // Must be called before writing the geometry output
-    SetMeshOutputCounts(3, 1); // 3 vertices, 1 primitive
+    SetMeshOutputCounts(g_num_triangles * 3, g_num_triangles); // 3 vertices, 1 primitive
 
-    triangles[0] = uint3(0, 1, 2);
+    // Grid dimensions (change for aspect ratio)
+    uint grid_w = 16;
+    uint grid_h = g_num_triangles / grid_w;
+    float2 cell_size = float2(2.0 / grid_w, 2.0 / grid_h);
+    uint x = tid % grid_w;
+    uint y = tid / grid_w;
 
-    vertices[0].position = float4(-0.5, 0.5, 0.0, 1.0);
-    vertices[0].color = float3(1.0, 0.0, 0.0);
+    float2 origin = float2(-1.0 + x * cell_size.x, -1.0 + y * cell_size.y);
 
-    vertices[1].position = float4(0.5, 0.5, 0.0, 1.0);
-    vertices[1].color = float3(0.0, 1.0, 0.0);
+    // Simple upright triangle in cell
+    float2 p0 = origin + float2(0.1, 0.2) * cell_size;
+    float2 p1 = origin + float2(0.9, 0.2) * cell_size;
+    float2 p2 = origin + float2(0.5, 0.8) * cell_size;
 
-    vertices[2].position = float4(0.0, -0.5, 0.0, 1.0);
-    vertices[2].color = float3(0.0, 0.0, 1.0);
+    uint vtx_base = tid * 3;
+    triangles[tid] = uint3(vtx_base, vtx_base + 1, vtx_base + 2);
+
+    vertices[vtx_base + 0].position = float4(p0, 0.0, 1.0);
+    vertices[vtx_base + 1].position = float4(p1, 0.0, 1.0);
+    vertices[vtx_base + 2].position = float4(p2, 0.0, 1.0);
+
+    float3 base_color = float3(
+        float(x) / grid_w,
+        float(y) / grid_h,
+        1.0 - float(x + y) / (grid_w + grid_h)
+        );
+
+    vertices[vtx_base + 0].color = base_color;
+    vertices[vtx_base + 1].color = base_color;
+    vertices[vtx_base + 2].color = base_color;
 }
 
 [shader("pixel")]
