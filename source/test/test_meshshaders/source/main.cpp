@@ -55,7 +55,7 @@ void create_pipeline(graphics::device& device, pipeline& out_pipeline)
 
 	pipeline_desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
 	pipeline_desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
-	pipeline_desc.m_rasterizer.m_fillmode = graphics::e_fill_mode::wireframe;
+	pipeline_desc.m_rasterizer.m_fillmode = graphics::e_fill_mode::solid;
 	pipeline_desc.m_rasterizer.m_forced_samplecount = 0u;
 	pipeline_desc.m_sample_mask = (uint32)-1;
 	pipeline_desc.m_sample_count = 1u;

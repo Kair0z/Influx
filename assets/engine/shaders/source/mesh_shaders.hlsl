@@ -11,6 +11,7 @@ struct mesh_output
 [numthreads(128, 1, 1)]
 [shader("mesh")]
 void main_ms(
+    uint gid : SV_GroupID,
     uint tid : SV_GroupThreadID,
     out indices  uint3      triangles[64],  // max 128 per group
     out vertices mesh_output vertices[192]) // max 256 per group
@@ -40,9 +41,10 @@ void main_ms(
     uint vtx_base = tid * 3;
     triangles[tid] = uint3(vtx_base, vtx_base + 1, vtx_base + 2);
 
-    vertices[vtx_base + 0].position = float4(p0, 0.0, 1.0);
-    vertices[vtx_base + 1].position = float4(p1, 0.0, 1.0);
-    vertices[vtx_base + 2].position = float4(p2, 0.0, 1.0);
+    float4 group_offset = float4(0.01f, 0.0f, 0.0f, 0.0f) * gid;
+    vertices[vtx_base + 0].position = float4(p0, 0.0, 1.0) + group_offset;
+    vertices[vtx_base + 1].position = float4(p1, 0.0, 1.0) + group_offset;
+    vertices[vtx_base + 2].position = float4(p2, 0.0, 1.0) + group_offset;
 
     float3 base_color = float3(
         float(x) / grid_w,
