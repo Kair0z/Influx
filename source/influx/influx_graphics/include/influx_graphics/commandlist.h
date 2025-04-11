@@ -159,6 +159,8 @@ namespace influx::graphics
 		
 		INFLUX_GFX_API virtual result<> set(detail::base_pipeline* pipeline) = 0;
 
+		INFLUX_GFX_API virtual result<> set_vp_and_rect(const math::float2& min, const math::float2& max);
+
 		INFLUX_GFX_API virtual result<> set(const viewport& viewport);
 
 		INFLUX_GFX_API virtual result<> set(const rect& rect);

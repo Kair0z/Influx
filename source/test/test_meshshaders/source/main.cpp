@@ -151,24 +151,14 @@ int main()
 		res << backbuffer->transition(&commandlist, graphics::e_resource_state::render_target);
 
 		// set viewport & rect
-		res << commandlist.set(graphics::viewport
-		{
-			.m_left = 0.0f,
-			.m_top = 0.0f,
-			.m_width = 640.0f,
-			.m_height = 480.0f
-		});
-		res << commandlist.set(graphics::rect
-		{
-			.m_left = 0u,
-			.m_top = 0u,
-			.m_right = 640u,
-			.m_bottom = 480u
-		});
+		res << commandlist.set_vp_and_rect
+		(
+			{ 0.0f, 0.0f },			// min
+			{ 640.0f , 480.0f }		// max
+		);
 
 		// create backbuffer rtv (ideally don't recreate each frame, but on DX12, this is cool-ish)
 		device.create_rtv(rtv_handle, backbuffer);
-
 		res << commandlist.set_rtv(rtv_handle, nullptr);
 		res << commandlist.clear_rtv(rtv_handle, {1,0,0,1});
 
@@ -177,6 +167,7 @@ int main()
 		res << commandlist.set(pipeline.m_pipeline);
 		res << commandlist.dispatch_mesh(1,1,1);
 
+		// transition backbuffer to present
 		res << backbuffer->transition(&commandlist, graphics::e_resource_state::present);
 
 		commandlist.submit(&queue);
