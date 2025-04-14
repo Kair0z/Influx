@@ -16,24 +16,32 @@ namespace influx::graphics
 		: swapchain(desc, swapchain_dependencies)
 	{
 		mp_native = mpdxgi_swapchain4 = swapchain4;
-
-		get_resources() = create_resources(swapchain_dependencies.mp_device);
+		mp_resources = create_resources(swapchain_dependencies.mp_device).get();
 	}
 
 	dx12_swapchain::~dx12_swapchain()
 	{
 	}
 
-	void dx12_swapchain::present(const present_args& args)
+	result<> dx12_swapchain::present(const present_args& args)
 	{
-		mpdxgi_swapchain4->Present(args.m_vsync ? 1 : 0, 0u);
+		HRESULT res = mpdxgi_swapchain4->Present(args.m_vsync ? 1 : 0, 0u);
+		if (res != S_OK)
+		{
+			return result<>::make_error("error: IDXGISwapchain->Present() failed!");
+		}
+		return {};
 	}
 
-	uint8 dx12_swapchain::acquire_backbuffer()
+	result<> dx12_swapchain::acquire_backbuffer()
 	{
-		const uint8 index = mpdxgi_swapchain4->GetCurrentBackBufferIndex();
-		update_backbuffer_index(index);
-		return index;
+		return {};
+	}
+
+	result<uint8> dx12_swapchain::get_current_backbuffer_index()
+	{
+		m_current_backbuffer_index = mpdxgi_swapchain4->GetCurrentBackBufferIndex();
+		return m_current_backbuffer_index;
 	}
 
 	void dx12_swapchain::release_impl(device*)
@@ -41,33 +49,40 @@ namespace influx::graphics
 		mpdxgi_swapchain4->Release();
 	}
 
-	vector<resource*> dx12_swapchain::create_resources(device* device)
+	result<vector<resource*>> dx12_swapchain::create_resources(device* device)
 	{
+		using result_type = result<vector<resource*>>;
 		const auto& dimensions = get_dimensions();
 	
+		HRESULT hres = {};
+
 		vector<resource*> resources{};
 		for (uint8 i = 0u; i < get_num_backbuffers(); ++i)
 		{
 			ID3D12Resource* dxresource = nullptr;
-			mpdxgi_swapchain4->GetBuffer(i, IID_PPV_ARGS(&dxresource));
+			hres = mpdxgi_swapchain4->GetBuffer(i, IID_PPV_ARGS(&dxresource));
+			if (hres != S_OK)
+			{
+				return result_type::make_error("error: IDXGISwapchain->GetBuffer() failed!");
+			}
 
 			tex2D_desc desc{};
 			desc.m_format = get_format();
 			desc.m_dimensions = dimensions;
 			desc.m_init_state = e_resource_state::present;
 
+			// import the acquired resource to our device for bookkeeping
 			resource* new_resource = device->import_texture(dxresource, desc);
 			resources.push_back(new_resource);
-			new_resource;
 		}
 		
-		get_resources() = resources;
+		mp_resources = resources;
 		return resources;
 	}
 
-	void dx12_swapchain::resize_impl(const math::vectoru2& old_dim, const math::vectoru2& new_dim)
+	result<> dx12_swapchain::resize_impl(const math::vectoru2& old_dim, const math::vectoru2& new_dim)
 	{
-		HRESULT res = mpdxgi_swapchain4->ResizeBuffers(
+		HRESULT hres = mpdxgi_swapchain4->ResizeBuffers(
 			get_num_backbuffers(),
 			new_dim.x,
 			new_dim.y,
@@ -75,14 +90,21 @@ namespace influx::graphics
 			0u // flags
 			);
 
-		influx_assert(res == S_OK);
+		if (hres != S_OK)
+		{
+			return result<>::make_error("error: IDXGISwapchain::ResizeBuffers() failed!");
+		}
+
+		return {};
 	}
 
-	void dx12_swapchain::destroy_resources(device* device)
+	result<> dx12_swapchain::destroy_resources(device* device)
 	{
 		for (auto& resource : get_resources())
 		{
 			resource->release(device);
 		}
+
+		return {};
 	}
 }

@@ -76,7 +76,7 @@ namespace influx::renderer
 		influx_assert(swapchain_index < swapchain->get_num_backbuffers());
 
 		// get the existing backbuffer resource, and allocate + create a new rtv
-		mp_resource = swapchain->get_backbuffer_resource(swapchain_index);
+		mp_resource = swapchain->get_backbuffer_resource(swapchain_index).get();
 		m_rtv_cpu = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
 		m_dsv_cpu = nullptr;
 

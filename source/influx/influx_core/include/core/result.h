@@ -51,8 +51,8 @@ namespace influx
 		using ex_type = _t;
 		using unex_type = _e;
 
-		ex_type m_expected = {};
 		unex_type m_unexpected = {};
+		ex_type m_expected = {};
 
 	public:
 		// constructors
@@ -105,6 +105,11 @@ namespace influx
 			return m_unexpected == _e{};
 		}
 
+		bool is_unex() const
+		{
+			return !is_success();
+		}
+
 		_t& get()
 		{
 			return m_expected;
@@ -116,6 +121,11 @@ namespace influx
 		}
 
 		const unex_type& get_unex() const
+		{
+			return m_unexpected;
+		}
+
+		unex_type& get_unex()
 		{
 			return m_unexpected;
 		}

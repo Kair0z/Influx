@@ -20,11 +20,6 @@ namespace influx::graphics
 		
 	}
 
-	void swapchain::update_backbuffer_index(uint8 new_index)
-	{
-		m_current_backbuffer_index = new_index;
-	}
-
 	device* swapchain::get_parent_device()
 	{
 		return mp_parent_device;
@@ -35,34 +30,61 @@ namespace influx::graphics
 		return mp_resources;
 	}
 
-	void swapchain::resize(device* device, const math::vectoru2& new_dimensions)
+	result<> swapchain::resize(device* device, const math::vectoru2& new_dimensions)
 	{
 		// destroy previous
-		destroy_resources(device);
-
+		{
+			auto res = destroy_resources(device);
+			if (res.is_unex())
+			{
+				return result<>::make_error("error: failed destroying resources!");
+			}
+		}
+		
 		// resize
-		const math::vectoru2 old_dimensions = m_current_dimensions;
-		m_current_dimensions = new_dimensions;
-		resize_impl(old_dimensions, new_dimensions);
+		{
+			const math::vectoru2 old_dimensions = m_current_dimensions;
+			m_current_dimensions = new_dimensions;
+			auto res = resize_impl(old_dimensions, new_dimensions);
+			if (res.is_unex())
+			{
+				return result<>::make_error("error: failed resize_impl!");
+			}
+		}
 
-		// call impl creation function
-		create_resources(device);
+		// create resources
+		{
+			auto res = create_resources(device);
+			if (res.is_unex()) return result<>::make_error("error: failed creating resources!");
+		}
+		
+		return {};
 	}
 
-	void swapchain::resize(device* device, const platform::window& window)
+	result<> swapchain::resize(device* device, const platform::window& window)
 	{
-		resize(device, window.get_dimensions(platform::window::e_space::client));
+		return resize(device, window.get_dimensions(platform::window::e_space::client));
 	}
 
-	resource* swapchain::get_backbuffer_resource(uint8 at_index) const
+	result<resource*> swapchain::get_backbuffer_resource(uint8 at_index) const
 	{
-		influx_assert(at_index < mp_resources.size());
+		if (at_index >= mp_resources.size())
+		{
+			return result<resource*>::make_error("error: at_index is larger than the amount of backbuffers!");
+		}
+
 		return mp_resources[at_index];
 	}
 
-	resource* swapchain::get_current_backbuffer_resource() const
+	result<resource*> swapchain::get_current_backbuffer_resource()
 	{
-		return get_backbuffer_resource(get_current_backbuffer_index());
+		auto res = get_current_backbuffer_index();
+		if (res.is_unex())
+		{
+			return result<resource*>::make_error("error: get_current_backbuffer_index() failed!");
+		}
+
+		return get_backbuffer_resource(res.get());
 	}
 
 	uint8 swapchain::get_num_backbuffers() const

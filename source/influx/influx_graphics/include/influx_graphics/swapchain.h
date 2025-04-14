@@ -60,19 +60,23 @@ namespace influx::graphics
 	class swapchain : public base
 	{
 	public:
-		INFLUX_GFX_API virtual void present(const present_args& args) = 0;
+		/* flips the backbuffer into the window visible buffer  */
+		INFLUX_GFX_API virtual result<> present(const present_args& args) = 0;
 
-		// acquires the next available backbuffer (and returns the index)
-		INFLUX_GFX_API virtual uint8 acquire_backbuffer() = 0;
+		/* acquires the next available backbuffer(and returns the index) */
+		INFLUX_GFX_API virtual result<> acquire_backbuffer() = 0;
 
-		// recreates resources according to the new dimensions of the window
-		INFLUX_GFX_API void resize(device*, const math::vectoru2& new_dimensions);
-		INFLUX_GFX_API void resize(device*, const platform::window& window);
+		/* recreates resources according to the new dimensions of the window */
+		INFLUX_GFX_API result<> resize(device*, const math::vectoru2& new_dimensions);
+		INFLUX_GFX_API result<> resize(device*, const platform::window& window);
 
-		INFLUX_GFX_API resource* get_backbuffer_resource(uint8 at_index) const;
+		/* */
+		INFLUX_GFX_API result<resource*> get_backbuffer_resource(uint8 at_index) const;
 
-		INFLUX_GFX_API resource* get_current_backbuffer_resource() const;
+		/* */
+		INFLUX_GFX_API result<resource*> get_current_backbuffer_resource();
 
+		/* */
 		INFLUX_GFX_API uint8 get_num_backbuffers() const;
 
 		INFLUX_GFX_API const swapchain_desc& get_desc() const;
@@ -80,6 +84,8 @@ namespace influx::graphics
 		// checks the window handle to find wether a recreate of resources is necessary
 		INFLUX_GFX_API bool needs_recreate(const platform::window& window) const;
 
+		/* */
+		INFLUX_GFX_API virtual result<uint8> get_current_backbuffer_index() = 0;
 		INFLUX_GFX_API uint8 get_current_backbuffer_index() const;
 
 		INFLUX_GFX_API const math::vectoru2& get_dimensions() const;
@@ -87,31 +93,32 @@ namespace influx::graphics
 		INFLUX_GFX_API e_format get_format() const;
 
 	protected:
-		// creates the resources by default
 		swapchain(
 			const swapchain_desc& desc, 
 			const swapchain_dependencies& dependencies);
 
 		virtual ~swapchain();
 
-		void update_backbuffer_index(uint8 new_index);
-
 		device* get_parent_device();
 
 		vector<resource*>& get_resources();
+		uint32 m_current_backbuffer_index = 0u;
 
-	private:
 		swapchain_desc m_desc{};
 		math::vectoru2 m_current_dimensions{};
-		uint32 m_current_backbuffer_index = 0u;
 		vector<resource*> mp_resources;
 
 		// dependencies
 		device* mp_parent_device;
 		queue* mp_queue;
 
-		virtual vector<resource*> create_resources(device*) = 0;
-		virtual void resize_impl(const math::vectoru2& old_dim, const math::vectoru2& new_dim) = 0;
-		virtual void destroy_resources(device*) = 0;
+		/* (re)creates graphics api resources using the passed device */
+		virtual result<vector<resource*>> create_resources(device*) = 0;
+
+		/* */
+		virtual result<> resize_impl(const math::vectoru2& old_dim, const math::vectoru2& new_dim) = 0;
+
+		/* destroys graphics api resources using the passed device */
+		virtual result<> destroy_resources(device*) = 0;
 	};
 }

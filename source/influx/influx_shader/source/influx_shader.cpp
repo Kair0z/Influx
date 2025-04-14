@@ -194,97 +194,134 @@ namespace influx::shader
 		return type + entry;
 	}
 
-	inline vector<string> build_dxc_compile_args_strings(const compile_args& args)
+	inline vector<string> make_compile_args_strings(const compile_args& args)
 	{
 		vector<string> result{};
 
 		// entrypoint (-E)
 		const string& entrypoint = args.m_signature.m_entrypoint;
-		result.push_back("-E ");
-		result.push_back(entrypoint.c_str());
+		result.push_back( "-E ");
+		result.push_back( entrypoint.c_str());
+		result.push_back( " ");
 
 		// exports (-exports)
 		// (in case of raytracing, we compile a single shader as a shader lib and so declare a single export)
 		const bool compile_as_shaderlib = shader::is_raytracing_shader(args.m_signature.m_type);
 		if (compile_as_shaderlib)
 		{
-			result.push_back("-exports ");
-			result.push_back(entrypoint.c_str());
+			result.push_back( "-exports ");
+			result.push_back( entrypoint.c_str());
+			result.push_back( " ");
 		}
 
 		// target (-T) (eg. ps_6_2)
-		result.push_back("-T ");
 		string profile = build_shader_target_string(args.m_signature.m_type, args.m_signature.m_target);
-		result.push_back(profile.c_str());
+		result.push_back( "-T ");
+		result.push_back( profile.c_str());
+		result.push_back( " ");
 
 		// includes (-I)
-		result.push_back("-I ");
 		const string& include_folder = args.m_include_folder;
-		result.push_back(include_folder.c_str());
+		result.push_back( "-I ");
+		result.push_back( include_folder.c_str());
+		result.push_back( " ");
 
 		// defines (-D)
 		for (const string& define : args.m_defines)
 		{
-			result.push_back("-D");
-			result.push_back(define.c_str());
+			result.push_back( "-D ");
+			result.push_back( define.c_str());
+			result.push_back( " ");
 		}
 
 		// misc
 		const bool row_major = false;
-		result.push_back("dxc -help | findstr Version");
-		result.push_back(row_major ? "-Zp" : "Zpc");
-		if (!args.m_pbd) result.push_back("-Qstrip_debug");
-		if (!args.m_reflection) result.push_back("-Qstrip_reflect");
-		if (args.m_compile_debug) result.push_back("-Od"); // DXC_ARG_SKIP_OPTIMIZATIONS
-		if (args.m_compile_debug) result.push_back("-O0"); // DXC_ARG_OPTIMIZATION_LEVEL0
-		if (args.m_compile_debug) result.push_back("-Zi"); // DXC_ARG_DEBUG
+		result								.push_back("dxc -help | findstr Version ");
+		result								.push_back(row_major ? "-Zp " : "Zpc ");
+		if (!args.m_pbd) result				.push_back("-Qstrip_debug");
+		if (!args.m_reflection) result		.push_back("-Qstrip_reflect");
+		if (args.m_compile_debug) result	.push_back("-Od "); // DXC_ARG_SKIP_OPTIMIZATIONS
+		if (args.m_compile_debug) result	.push_back("-O0 "); // DXC_ARG_OPTIMIZATION_LEVEL0
+		if (args.m_compile_debug) result	.push_back("-Zi "); // DXC_ARG_DEBUG
 
 		return result;
 	}
 
-	inline compile_output compile_shader_dxcbuffer(const DxcBuffer& buffer, const compile_args& args)
+	inline string make_compile_args_string(const compile_args& args)
 	{
-		HRESULT result{};
-		compile_output output = {};
+		return "";
+	}
+
+	inline result<compile_output> compile_shader_dxcbuffer(const DxcBuffer& buffer, const compile_args& args)
+	{
+		using result_type = result<compile_output>;
+		result_type result = {};
+		HRESULT hres{};
 
 		// https://simoncoenen.com/blog/programming/graphics/DxcCompiling
 		// create the Dxc Compiler
 		IDxcCompiler3* pCompiler;
-		result = ::DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler));
-
-		// convert arguments to warguments
-		vector<string> arguments = build_dxc_compile_args_strings(args);
-		vector<LPCWSTR> warguments{};
-		warguments.reserve(arguments.size());
-		for (const string& arg : arguments)
+		hres = ::DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler));
+		if (hres != S_OK)
 		{
-			warguments.push_back(to_wstring(arg).c_str());
+			return result_type::make_error("error: DxcCreateInstance failed");
 		}
 
-		//
+		// convert arguments to warguments (i hate this i hate this i hate this)
+		vector<string> arguments = make_compile_args_strings(args);
+		vector<wstring> warguments{}; warguments.resize(arguments.size());
+		vector<LPCWSTR> lwarguments{}; lwarguments.resize(arguments.size());
+		for (uint64 i = 0u; i < arguments.size(); ++i)
+		{
+			warguments[i] = to_wstring(arguments[i]);
+			lwarguments[i] = warguments[i].c_str();
+		}
+
 		influx_include_handler include_handler{};
 		include_handler.set_include_folder(args.m_include_folder);
 
 		// COMPILE
 		IDxcResult* pCompileResult;
-		result = pCompiler->Compile(&buffer, warguments.data(),
-			(uint32)warguments.size(), &include_handler, IID_PPV_ARGS(&pCompileResult));
+		hres = pCompiler->Compile(&buffer, lwarguments.data(),
+			(uint32)lwarguments.size(), &include_handler, IID_PPV_ARGS(&pCompileResult));
+		if (hres != S_OK)
+		{
+			return result_type::make_error("error: Compile failed");
+		}
 
 		// [OUTPUT: COMPILE ERRORS]
 		IDxcBlobUtf8* pErrors = nullptr;
-		result = pCompileResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
-		if (pErrors && pErrors->GetStringLength() > 0)
+		hres = pCompileResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+		if (hres != S_OK || (pErrors && pErrors->GetStringLength() > 0))
 		{
-			output.m_log.push_back(string((char*)pErrors->GetBufferPointer()));
-			printf(output.m_log.back().c_str());
+			result.get().m_log.push_back(string((char*)pErrors->GetBufferPointer()));
+			printf(result.get().m_log.back().c_str());
 			printf("\n");
-			output.m_success = false;
-			return output;
+			result.get().m_success = false;
+			result.get_unex() = "error: compile failed!";
+			return result;
+		}
+
+		// [OUTPUT: RESULT SHADER BYTE CODE]
+		IDxcBlob* pResultData = nullptr;
+		IDxcBlobUtf16* pResultOutputName = nullptr;
+		hres = pCompileResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pResultData), &pResultOutputName);
+		if (hres == S_OK && pResultData)
+		{
+			for (uint32 i = 0; i < pResultData->GetBufferSize(); ++i)
+			{
+				result.get().m_bytecode.push_back(reinterpret_cast<byte*>(pResultData->GetBufferPointer())[i]);
+			}
+		}
+		else
+		{
+			return result_type::make_error("error: GetOutput(DXC_OUT_OBJECT) failed!");
 		}
 
 		// [OUTPUT: DEBUG INFO]
 		if (args.m_pbd && !args.m_pdb_folder.empty())
 		{
+			// ensure the directory exists
 			if (!influx::file::is_directory(args.m_pdb_folder))
 			{
 				influx::file::make_directory(args.m_pdb_folder);
@@ -292,15 +329,19 @@ namespace influx::shader
 
 			IDxcBlob* pDebugData = nullptr;
 			IDxcBlobUtf16* pDebugDataPath = nullptr;
-			result = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugData), &pDebugDataPath);
-			if (result == S_OK && pDebugData != nullptr)
+			hres = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugData), &pDebugDataPath);
+			if (hres == S_OK && pDebugData != nullptr)
 			{
 				wstring foldername = to_wstring(args.m_pdb_folder);
 				wstring filename = to_wstring(args.m_pdb_filename) + make_shader_name_string(args);
 				wstring filepath = foldername + L"/" + filename + L".pdb";
 
-				result = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData, 
+				hres = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData,
 					filepath.c_str(), true);
+			}
+			else
+			{
+				return result_type::make_error("error: GetOutput(DXC_OUT_PDB) failed!");
 			}
 		}
 
@@ -309,10 +350,14 @@ namespace influx::shader
 		{
 			IDxcBlob* pRootSignature = nullptr;
 			IDxcBlobUtf16* pRootSignatureDataPath = nullptr;
-			result = pCompileResult->GetOutput(DXC_OUT_ROOT_SIGNATURE, IID_PPV_ARGS(&pRootSignature), &pRootSignatureDataPath);
-			if (pRootSignature)
+			hres = pCompileResult->GetOutput(DXC_OUT_ROOT_SIGNATURE, IID_PPV_ARGS(&pRootSignature), &pRootSignatureDataPath);
+			if (hres == S_OK && pRootSignature)
 			{
-
+				// ... todo
+			}
+			else
+			{
+				return result_type::make_error("error: GetOutput(DXC_OUT_ROOT_SIGNATURE) failed!");
 			}
 		}
 		
@@ -321,35 +366,28 @@ namespace influx::shader
 		{
 			IDxcBlob* pReflectionData = nullptr;
 			ID3D12ShaderReflection* pShaderReflection = nullptr;
-			result = pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
-			if (pReflectionData)
+			hres = pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
+			if (hres == S_OK && pReflectionData)
 			{
 				DxcBuffer reflectionBuffer;
 				reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
 				reflectionBuffer.Size = pReflectionData->GetBufferSize();
 				reflectionBuffer.Encoding = 0;
 
-				result = get_utils()->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&pShaderReflection));
-				output.m_reflection = reflect_shader(pShaderReflection);
+				hres = get_utils()->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&pShaderReflection));
+				result.get().m_reflection = reflect_shader(pShaderReflection);
 			}
-		}
-
-		// [OUTPUT: RESULT SHADER BYTE CODE]
-		IDxcBlob* pResultData = nullptr;
-		IDxcBlobUtf16* pResultOutputName = nullptr;
-		result = pCompileResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pResultData), &pResultOutputName);
-		if (pResultData)
-		{
-			for (uint32 i = 0; i < pResultData->GetBufferSize(); ++i)
+			else
 			{
-				output.m_bytecode.push_back(reinterpret_cast<byte*>(pResultData->GetBufferPointer())[i]);
+				return result_type::make_error("error: GetOutput(DXC_OUT_REFLECTION) failed!");
 			}
 		}
 
-		output.m_signature = args.m_signature;
-		output.m_signature.cache_id();
-		output.m_success = true;
-		return output;
+		// ULTIMATE SUCCESS
+		result.get().m_signature = args.m_signature;
+		result.get().m_signature.cache_id();
+		result.get().m_success = true;
+		return result;
 	}
 
 	result<compile_output> compile_shader_in_file(const string& filepath, const compile_args& args)
@@ -357,14 +395,18 @@ namespace influx::shader
 		using result_type = result<compile_output>;
 
 		if (filepath.empty()) return result_type::make_error("error: empty filepath!");
-		if (file::exists(filepath)) return result_type::make_error("error: non-exist filepath!");
-		if (args.is_valid()) return result_type::make_error("error: compile args are invalid!");
+		if (!file::exists(filepath)) return result_type::make_error("error: non-exist filepath!");
+		if (!args.is_valid()) return result_type::make_error("error: compile args are invalid!");
 
 		// load the file
 		HRESULT hresult{};
 		wstring wfilepath = to_wstring(filepath);
 		IDxcBlobEncoding* pShaderSourceFile;
 		hresult = get_utils()->LoadFile(wfilepath.c_str(), nullptr, &pShaderSourceFile);
+		if (hresult != S_OK)
+		{
+			return result_type::make_error("error: IDxcUtils->LoadFile failed!");
+		}
 
 		DxcBuffer sourceBuffer;
 		sourceBuffer.Ptr = pShaderSourceFile->GetBufferPointer();
@@ -380,6 +422,7 @@ namespace influx::shader
 		{
 			return result<compile_output>::make_error("error: emtpy shader source!");
 		}
+
 		DxcBuffer sourceBuffer;
 		sourceBuffer.Ptr = shader_source.c_str();
 		sourceBuffer.Size = shader_source.size();
@@ -427,7 +470,19 @@ namespace influx::shader
 			return result_type::make_error("error: file is empty!");
 		}
 
-		return parse_shader(file_content);
+		result = parse_shader(file_content);
+		if (result.is_success())
+		{
+			// if success, update each parsed shader's filename in its compile-args
+			for (auto& parse : result.get())
+			{
+				file as_file = file(filepath);
+				parse.m_compile_args.m_signature.m_filename = as_file.m_filename_without_extension;
+				parse.m_compile_args.m_signature.cache_id();
+			}
+		}
+
+		return result;
 	}
 
 	result<vector<parse_output>> parse_shader(const string& shader_source)

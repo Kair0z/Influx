@@ -480,7 +480,9 @@ namespace influx::renderer
 
         for (const auto& swapchain : m_swapchains)
         {
-            graphics::resource* backbuffer = swapchain.second.mp_swapchain->get_current_backbuffer_resource();
+            auto res = swapchain.second.mp_swapchain->get_current_backbuffer_resource();
+            influx_assert(res.is_success());
+            graphics::resource* backbuffer = res.get();
             backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
         }
 
@@ -504,7 +506,9 @@ namespace influx::renderer
 
         // run a commandlist to transition the backbuffer-resource to presentable
         mp_commandlist->start(mp_device);
-        graphics::resource* backbuffer = swapchain.mp_swapchain->get_current_backbuffer_resource();
+        auto res = swapchain.mp_swapchain->get_current_backbuffer_resource();
+        influx_assert(res.is_success());
+        graphics::resource* backbuffer = res.get();
         backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
         mp_commandlist->end();
         mp_commandlist->submit(mp_graphics_queue);

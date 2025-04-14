@@ -321,6 +321,12 @@ namespace influx::platform
 	{
 		vector<window_event::type> events{};
 
+		if (is_valid() == false)
+		{
+			is_quit = true;
+			return;
+		}
+
 		// http://www.directxtutorial.com/Lesson.aspx?lessonid=9-1-4
 		MSG msg;
 		events.clear();

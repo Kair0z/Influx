@@ -181,6 +181,16 @@ namespace influx::graphics
 #pragma region pipelinedesc
 	struct depth_stencil_desc final
 	{
+		inline static depth_stencil_desc default_no_stencil()
+		{
+			depth_stencil_desc desc{};
+			desc.m_depth_enable = true;
+			desc.m_stencil_enable = false;
+			desc.m_depth_func = graphics::e_comparison_func::less;
+			desc.m_format = graphics::e_format::d32;
+			return desc;
+		}
+
 		bool m_depth_enable;
 		bool m_stencil_enable;
 		e_comparison_func m_depth_func;
@@ -189,6 +199,23 @@ namespace influx::graphics
 
 	struct rasterizer_desc final
 	{
+		inline static rasterizer_desc default_graphics()
+		{
+			rasterizer_desc desc{};
+			desc.m_cullmode = graphics::e_cull_mode::nocull;
+			desc.m_fillmode = graphics::e_fill_mode::solid;
+			desc.m_front_ccw = false;
+			desc.m_depth_clip_enable = false;
+			desc.m_multisample = false;
+			desc.m_antialiased_line = false;
+			desc.m_conservative = false;
+			desc.m_depth_bias = 0;
+			desc.m_depth_bias_clamp = 0.0f;
+			desc.m_slope_depth_bias = 0.0f;
+			desc.m_forced_samplecount = 0u;
+			return desc;
+		}
+
 		e_cull_mode m_cullmode = e_cull_mode::back;
 		e_fill_mode m_fillmode = e_fill_mode::solid;
 		bool m_front_ccw = false;
@@ -204,6 +231,20 @@ namespace influx::graphics
 
 	struct blend_desc final
 	{
+		inline static blend_desc default_write_all()
+		{
+			blend_desc desc{};
+			desc.m_enabled = false;
+			desc.m_src;
+			desc.m_dest;
+			desc.m_op;
+			desc.m_srcalpha;
+			desc.m_destalpha;
+			desc.m_op_alpha;
+			desc.m_write_mask = 15u; // all
+			return desc;
+		}
+
 		bool m_enabled = false;
 		e_blend m_src;
 		e_blend m_dest;
@@ -222,6 +263,13 @@ namespace influx::graphics
 		// misc
 		uint32 m_sample_mask = (uint32)-1;
 		uint32 m_sample_count = 1u;
+		inline graphics_pipeline_desc& set_sample_desc(uint32 sample_count, uint32 sample_mask = -1)
+		{
+			m_sample_mask = sample_mask;
+			m_sample_count = sample_count;
+			return *this;
+		}
+
 		e_primitive_topology_type m_prim_type = e_primitive_topology_type::triangle;
 
 		// depth / stencil
@@ -279,9 +327,24 @@ namespace influx::graphics
 		};
 		rtv_desc m_rtvs[k_max_render_targets]{};
 
+		inline graphics_pipeline_desc& set_rendertarget_desc(uint8 index, bool enabled, e_format format)
+		{
+			influx_assert(index < k_max_render_targets);
+
+			m_rtvs[index].m_enabled = enabled;
+			m_rtvs[index].m_format = format;
+			return *this;
+		}
+
 		// blends
-		blend_desc m_blends[k_max_render_targets]{};
 		bool m_blend_alpha_to_coverage_enabled = false;
+		blend_desc m_blends[k_max_render_targets]{};
+		inline graphics_pipeline_desc& set_blend_desc(uint8 index, const blend_desc& desc)
+		{
+			influx_assert(index < k_max_render_targets);
+			m_blends[index] = desc;
+			return *this;
+		}
 	};
 
 	struct compute_pipeline_desc final
@@ -301,6 +364,13 @@ namespace influx::graphics
 
 		uint32 m_sample_mask = (uint32)-1;
 		uint32 m_sample_count = 1u;
+		inline mesh_pipeline_desc& set_sample_desc(uint32 sample_count, uint32 sample_mask = -1)
+		{
+			m_sample_mask = sample_mask;
+			m_sample_count = sample_count;
+			return *this;
+		}
+
 		e_primitive_topology_type m_prim_type = e_primitive_topology_type::triangle;
 
 		// depth / stencil
@@ -316,10 +386,26 @@ namespace influx::graphics
 			e_format m_format = e_format::rgba8;
 		};
 		rtv_desc m_rtvs[k_max_render_targets]{};
+		
+		inline mesh_pipeline_desc& set_rendertarget_desc(uint8 index, bool enabled, e_format format)
+		{
+			influx_assert(index < k_max_render_targets);
+
+			m_rtvs[index].m_enabled = enabled;
+			m_rtvs[index].m_format = format;
+			return *this;
+		}
 
 		// blends
-		blend_desc m_blends[k_max_render_targets]{};
 		bool m_blend_alpha_to_coverage_enabled = false;
+		blend_desc m_blends[k_max_render_targets]{};
+
+		inline mesh_pipeline_desc& set_blend_desc(uint8 index, const blend_desc& desc)
+		{
+			influx_assert(index < k_max_render_targets);
+			m_blends[index] = desc;
+			return *this;
+		}
 	};
 
 	template <e_pipeline_type _t>

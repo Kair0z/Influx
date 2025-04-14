@@ -175,6 +175,7 @@ namespace influx::platform
 
 		virtual window_handle get_platform_handle() const { return nullptr; }
 
+		INFLUX_PLATFORM_API
 		virtual void poll_events(bool& is_quit) const { };
 
 		INFLUX_PLATFORM_API
