@@ -150,7 +150,7 @@ int main()
 		res << commandlist.set_vp_and_rect
 		(
 			{ 0.0f, 0.0f },			// min
-			{ 640.0f , 480.0f }		// max
+			{ 320.0f , 480.0f }		// max
 		);
 
 		// create backbuffer rtv (ideally don't recreate each frame, but on DX12, this is cool-ish)
