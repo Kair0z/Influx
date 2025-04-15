@@ -134,6 +134,15 @@ namespace influx::math
 		static matrix<_t, 4u, 4u> make_projection_LH(const float fov, const float ar, const float n, const float f);
 		static matrix<_t, 4u, 4u> make_projection_RH(const float fov, const float ar, const float n, const float f); // Todo: [Orthographic vs Perspective]
 
+		static matrix<_t, 4u, 4u> make_viewprojection_RH(
+			const vector3& pos,
+			const vector3& forward,
+			const float fov,
+			const float aspect_ratio,
+			const float near = 0.001f,
+			const float far = 1000.0f,
+			const vector3& up = vector3::up());
+
 		static matrix make_diagonal(const _t& x, const _t& y, const _t& z, const _t& w = 1.0f);
 
 		// decomposition

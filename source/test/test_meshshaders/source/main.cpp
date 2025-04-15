@@ -3,6 +3,7 @@
 #include "core/math/random.h"
 #include "core/time.h"
 #include "core/basetypes.h"
+#include "core/math/matrix.h"
 
 // DX12 SDK 1.614.1
 extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
@@ -22,6 +23,12 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 #include "influx_shader.h"
 
 using namespace influx;
+
+struct constants
+{
+	math::matrix4x4f mat_vp = math::matrix4x4f::identity();
+	math::float3 light_direction{};
+} g_constants{};
 
 void compile_shaders(graphics::mesh_pipeline_desc& out_desc)
 {
@@ -57,6 +64,7 @@ void create_pipeline(graphics::device& device, pipeline& out_pipeline)
 {
 	// empty root signature (no bound resources)
 	graphics::rootsignature_desc rootsig_desc{};
+	rootsig_desc.add_root_constants(sizeof(constants) / sizeof(float), 0u);
 	out_pipeline.m_rootsig = device.create_rootsignature(rootsig_desc);
 
 	// describe the pipeline & compile shaders
@@ -130,6 +138,16 @@ int main()
 	float seconds = 0.0f;
 	bool is_quit = false;
 
+	// update constants
+	g_constants.light_direction = { 0.5f, -0.5f, -0.5f };
+	g_constants.light_direction.normalize();
+	g_constants.mat_vp = math::matrix4x4f::make_viewprojection_RH(
+		{ 0, 0, 50.0f }, // pos
+		{ 0, 0, -1.0f }, // forward
+		90.0f,	// fov
+		(640.0f / 480.0f) // ar
+	);
+
 	result_printer res{};
 	while (is_quit == false)
 	{
@@ -145,12 +163,12 @@ int main()
 		// transition backbuffer to render target
 		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();
 		res << backbuffer->transition(&commandlist, graphics::e_resource_state::render_target);
-
+		
 		// set viewport & rect
 		res << commandlist.set_vp_and_rect
 		(
 			{ 0.0f, 0.0f },			// min
-			{ 320.0f , 480.0f }		// max
+			{ 640.0f , 480.0f }		// max
 		);
 
 		// create backbuffer rtv (ideally don't recreate each frame, but on DX12, this is cool-ish)
@@ -161,7 +179,8 @@ int main()
 		// set pipeline & sig, then dispatch the mesh shader
 		res << commandlist.set(pipeline.m_rootsig);
 		res << commandlist.set(pipeline.m_pipeline);
-		res << commandlist.dispatch_mesh(1,1,1);
+		res << commandlist.set_constants(0u, sizeof(constants) / sizeof(float), &g_constants, graphics::e_pipeline_type::mesh);
+		res << commandlist.dispatch_mesh(16,1,1);
 
 		// transition backbuffer to present
 		res << backbuffer->transition(&commandlist, graphics::e_resource_state::present);

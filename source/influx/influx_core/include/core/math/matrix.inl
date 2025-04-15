@@ -719,7 +719,7 @@ namespace influx::math
 	template<typename _t, matsize _x, matsize _y>
 	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		return make_transform_yH(pos, forward, up).inverted();
+		return make_transform_RH(pos, forward, up).inverted();
 	}
 
 	// assuming [0, 1] depth range
@@ -740,6 +740,22 @@ namespace influx::math
 			(_t)0, (_t)0, (_t)pos_z, (_t)0
 		};
 	}
+
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_viewprojection_RH(
+		const vector3& pos,
+		const vector3& forward,
+		const float fov,
+		const float aspect_ratio,
+		const float _near,
+		const float _far,
+		const vector3& up)
+	{
+		const math::matrix4x4f mat_view = math::matrix4x4f::make_view_RH(pos, forward, up);
+		const math::matrix4x4f mat_proj = math::matrix4x4f::make_projection_RH(fov, aspect_ratio, _near, _far);
+		return mat_view * mat_proj;
+	}
+
 	template<typename _t, matsize _x, matsize _y>
 	matrix<_t, _x, _y> matrix<_t, _x, _y>::make_diagonal(const _t& x, const _t& y, const _t& z, const _t& w)
 	{

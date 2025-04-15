@@ -190,6 +190,7 @@ namespace influx::graphics
 				0u);
 			break;
 
+		case graphics::e_pipeline_type::mesh:
 		case graphics::e_pipeline_type::graphics:
 			mpdx_graphics_commandlist->SetGraphicsRoot32BitConstants(
 				param_index,
