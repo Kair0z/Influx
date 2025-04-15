@@ -48,9 +48,14 @@ float3 get_cube_vertex(int index)
 {
     return k_cube_verts[index];
 }
+uint3 get_cube_triangle(int index)
+{
+    return k_cube_tris[index];
+}
 uint get_cube_index(int index)
 {
-    return k_cube_tris[index / 3][index % 3];
+    uint3 tri = get_cube_triangle(index / 3);
+    return tri[index % 3];
 }
 
 #define MAX_NUM_TRIANGLES_PER_GROUP     128
@@ -114,10 +119,7 @@ void main_ms(
     for (uint t = 0; t < NUM_TRIANGLES_PER_CUBE; ++t)
     {
         uint triangle_index = base_triangle + t;
-        triangles[triangle_index] = uint3(
-            get_cube_index((3 * triangle_index) + 0),
-            get_cube_index((3 * triangle_index) + 1),
-            get_cube_index((3 * triangle_index) + 2));
+        triangles[triangle_index] = get_cube_triangle(triangle_index);
     }
 }
 
