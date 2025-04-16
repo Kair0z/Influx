@@ -46,7 +46,7 @@ uint3 get_cube_triangle(uint index)
 #define MAX_NUM_CUBES_PER_GROUP         10  // MAX_NUM_TRIANGLES_PER_GROUP / NUM_TRIANGLES_PER_CUBE
 
 // settings:
-#define GRID_DIMENSIONS             10
+#define GRID_DIMENSIONS             5
 #define TOTAL_NUM_CUBES             GRID_DIMENSIONS * GRID_DIMENSIONS * GRID_DIMENSIONS
 #define TOTAL_NUM_TRIANGLES         TOTAL_NUM_CUBES * NUM_TRIANGLES_PER_CUBE
 
@@ -60,7 +60,7 @@ uint3 linear_to_grid(uint index)
 }
 float3 get_grid_position(int x, int y, int z)
 {
-    float padding = 1.0f;
+    float padding = 1.5f;
     return float3(x, y, z) * padding;
 }
 
@@ -99,12 +99,13 @@ void main_ms(
     for (uint i = 0; i < NUM_CUBE_VERTICES; ++i)
     {
         // transform to camera
-        float4 position = float4(grid_position.xyz + get_cube_vertex(i), 1.0f);
+        float4 position = float4(grid_position.xyz + get_cube_vertex(i).xyz, 1.0f);
         position = mul(g_constants.mat_vp, float4(position.xyz, 1.0f));
 
-        // todo: fix this z-direction issue
-        position.z = -position.z;
-        position.w = -position.w;
+        // todo: fix this!
+        float other = -position.z;
+        position.z = -position.w;
+        position.w = other;
 
         // color vertices
         vertices[base_vertex + i].position = position;

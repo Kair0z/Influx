@@ -167,6 +167,7 @@ namespace influx::math
 	template<typename _t> math::vector<_t, 2u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 2u>& v);
 	template<typename _t> math::vector<_t, 3u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 3u>& v);
 	template<typename _t> math::vector<_t, 3u> operator*(const matrix<_t, 4u, 4u>& mat, const vector<_t, 3u>& v);
+	template<typename _t> math::vector<_t, 4u> operator*(const matrix<_t, 4u, 4u>& mat, const vector<_t, 4u>& v);
 
 	// Matrix - scalar
 	template <typename _t, matsize k_num_columns, matsize num_rows> matrix<_t, k_num_columns, k_num_columns> operator*(const matrix<_t, k_num_columns, num_rows>& a, float b);

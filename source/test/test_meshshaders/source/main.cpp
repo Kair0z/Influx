@@ -43,7 +43,7 @@ void compile_shaders(graphics::mesh_pipeline_desc& out_desc)
 		compile_args.set_target(shader::e_shader_target::_6_6);
 		compile_args.m_reflection = false;
 		compile_args.m_include_folder = include_folder;
-
+		
 		auto res = shader::compile_shader_in_file(filepath, compile_args);
 		influx_assert(res.is_success());
 		compiled_shaders.push_back(res.get());
@@ -75,6 +75,7 @@ void create_pipeline(graphics::device& device, pipeline& out_pipeline)
 	pipeline_desc.set_sample_desc(1u, (uint32)-1);
 	pipeline_desc.m_rasterizer = graphics::rasterizer_desc::default_graphics();
 	pipeline_desc.m_depth_stencil = graphics::depth_stencil_desc::default_no_stencil();
+	pipeline_desc.m_depth_stencil.m_depth_func = graphics::e_comparison_func::less;
 	// pipeline_desc.m_rasterizer.m_front_ccw = !pipeline_desc.m_rasterizer.m_front_ccw;
 
 	pipeline_desc.set_rendertarget_desc(0, true, graphics::e_format::rgba8);
@@ -123,10 +124,8 @@ int main()
 	graphics::swapchain& swapchain = *device.create_swapchain(&queue, window);
 	
 	// we need only 1 single rtv allocated (backbuffer)
-	graphics::descriptor_heap& rtv_heap = *device.create_descriptor_heap(
-		graphics::descriptor_heap::create_rtv_heap(1u));
-	graphics::descriptor_heap& dsv_heap = *device.create_descriptor_heap(
-		graphics::descriptor_heap::create_dsv_heap(1u));
+	graphics::descriptor_heap& rtv_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_rtv_heap(1u));
+	graphics::descriptor_heap& dsv_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_dsv_heap(1u));
 	graphics::descriptor_handle rtv_handle = rtv_heap.allocate_cpu();
 	graphics::descriptor_handle dsv_handle = dsv_heap.allocate_cpu();
 
@@ -141,7 +140,6 @@ int main()
 		desc.m_bindflags = graphics::e_bind_flags::dsv;
 		desc.m_init_state = graphics::e_resource_state::depth_target;
 		depth_target = device.create_resource(desc);
-
 		device.create_dsv(dsv_handle, depth_target);
 	}
 	
@@ -158,23 +156,28 @@ int main()
 	bool is_quit = false;
 
 	// update constants
-	const float camera_distance = 20.0f;
+	const float camera_distance = 30;
 	math::float3 camera_pos = { 1, 1, 1 };
 	camera_pos = camera_pos.normalized() * camera_distance;
 	math::float3 camera_lookat = math::float3::zero() - camera_pos;
 	camera_lookat.normalize();
 
+	const float nearp = 0.001f;
+	const float farp = 1000.0f;
 	g_constants.mat_vp = math::matrix4x4f::make_viewprojection_RH(
 		camera_pos,					// pos
 		camera_lookat,				// forward
 		90.0f,						// fov
-		window.get_aspect_ratio()	// ar
+		window.get_aspect_ratio(),	// ar
+		nearp,
+		farp
 	);
 
 	g_constants.light_direction = { 0.5f, -0.5f, -0.5f };
 	g_constants.light_direction.normalize();
 
-	uint32 grid_dim = 10;
+	// settings
+	uint32 grid_dim = 5;
 	uint32 num_cubes = grid_dim * grid_dim * grid_dim;
 	uint32 num_cubes_per_group = 10;
 	uint32 num_groups = math::ceil<uint32>((float)num_cubes / num_cubes_per_group);
@@ -205,7 +208,7 @@ int main()
 		// create backbuffer rtv (ideally don't recreate each frame, but on DX12, this is cool-ish)
 		device.create_rtv(rtv_handle, backbuffer);
 		res << commandlist.set_rtv(rtv_handle, dsv_handle);
-		res << commandlist.clear_rtv(rtv_handle, {1,0,0,1});
+		res << commandlist.clear_rtv(rtv_handle, {0,0,0,1});
 		res << commandlist.clear_dsv(dsv_handle, 1.0f, 0u);
 
 		// set pipeline & sig, then dispatch the mesh shader

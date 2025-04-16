@@ -236,8 +236,8 @@ namespace influx::shader
 
 		// misc
 		const bool row_major = false;
-		result								.push_back("dxc -help | findstr Version ");
-		result								.push_back(row_major ? "-Zp " : "Zpc ");
+		result								.push_back("dxc -help | findstr Version");
+		result								.push_back(row_major ? "-Zpr" : "Zpc");
 		if (!args.m_pbd) result				.push_back("-Qstrip_debug");
 		if (!args.m_reflection) result		.push_back("-Qstrip_reflect");
 		if (args.m_compile_debug) result	.push_back("-Od "); // DXC_ARG_SKIP_OPTIMIZATIONS

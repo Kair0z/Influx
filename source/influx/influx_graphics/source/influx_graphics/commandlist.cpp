@@ -116,7 +116,9 @@ namespace influx::graphics
 			.m_left = min.x,
 			.m_top = min.y,
 			.m_width = max.x - min.x,
-			.m_height = max.y - min.y
+			.m_height = max.y - min.y,
+            .m_depth_min = 0.0f,
+            .m_depth_max = 1.0f
 		});
         if (!res.is_success()) return result<>::make_error("error: failed setting viewport");
 

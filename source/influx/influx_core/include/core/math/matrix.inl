@@ -678,7 +678,16 @@ namespace influx::math
 
 		return { res.x, res.y, res.z };
 	}
+	template<typename _t> 
+	inline vector<_t, 4u> operator*(const matrix<_t, 4u, 4u>& mat, const vector<_t, 4u>& v)
+	{
+		vector<_t, 4u> cpy = { v.x, v.y, v.z, v.w };
+		vector<_t, 4u> res{};
+		for (matsize c{}; c < 4u; ++c)
+			res[c] = vector<_t, 4u>::dot(mat.get_column(c), cpy);
 
+		return { res.x, res.y, res.z, res.w };
+	}
 	template<typename _t, matsize _x, matsize _y>
 	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
@@ -728,16 +737,15 @@ namespace influx::math
 	{
 		float y = 1.0f / tanf(to_radians(fov) * 0.5f);
 		float x = y / ar;
-		float intv = f - n;
-		float z = -(_t)f / intv;
-		float pos_z = -(_t)f * n / intv;
+
+		float z = f / (n - f);
 
 		return
 		{
 			(_t)x, (_t)0, (_t)0,	(_t)0,
 			(_t)0, (_t)y, (_t)0,	(_t)0,
-			(_t)0, (_t)0, z,		(_t)-1.0f,
-			(_t)0, (_t)0, (_t)pos_z, (_t)0
+			(_t)0, (_t)0, (_t)z,	(_t)-1.0f,
+			(_t)0, (_t)0, (_t)z * n, (_t)0
 		};
 	}
 
