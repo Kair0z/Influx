@@ -28,6 +28,8 @@ struct constants
 {
 	math::matrix4x4f mat_vp = math::matrix4x4f::identity();
 	math::float3 light_direction{};
+	float delta_seconds = 0.0f;
+	float seconds = 0.0f;
 } g_constants{};
 
 void compile_shaders(graphics::mesh_pipeline_desc& out_desc)
@@ -156,14 +158,14 @@ int main()
 	bool is_quit = false;
 
 	// update constants
-	const float camera_distance = 30;
+	const float camera_distance = 150;
 	math::float3 camera_pos = { 1, 1, 1 };
 	camera_pos = camera_pos.normalized() * camera_distance;
 	math::float3 camera_lookat = math::float3::zero() - camera_pos;
 	camera_lookat.normalize();
 
 	const float nearp = 0.001f;
-	const float farp = 1000.0f;
+	const float farp = 2000.0f;
 	g_constants.mat_vp = math::matrix4x4f::make_viewprojection_RH(
 		camera_pos,					// pos
 		camera_lookat,				// forward
@@ -177,7 +179,7 @@ int main()
 	g_constants.light_direction.normalize();
 
 	// settings
-	uint32 grid_dim = 5;
+	uint32 grid_dim = 50;
 	uint32 num_cubes = grid_dim * grid_dim * grid_dim;
 	uint32 num_cubes_per_group = 10;
 	uint32 num_groups = math::ceil<uint32>((float)num_cubes / num_cubes_per_group);
@@ -188,6 +190,9 @@ int main()
 		delta_seconds = time::get_ms_since<float>(time_last_tick) * 0.001f;
 		time_last_tick = time::get_now();
 		seconds += delta_seconds;
+
+		g_constants.seconds = seconds;
+		g_constants.delta_seconds = delta_seconds;
 
 		// poll OS
 		window.poll_events(is_quit);

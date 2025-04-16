@@ -13,6 +13,8 @@ struct constants
 {
     float4x4 mat_vp;
     float3 light_direction;
+    float delta_seconds;
+    float seconds;
 };
 ConstantBuffer<constants> g_constants : register(b0);
 
@@ -46,7 +48,7 @@ uint3 get_cube_triangle(uint index)
 #define MAX_NUM_CUBES_PER_GROUP         10  // MAX_NUM_TRIANGLES_PER_GROUP / NUM_TRIANGLES_PER_CUBE
 
 // settings:
-#define GRID_DIMENSIONS             5
+#define GRID_DIMENSIONS             50
 #define TOTAL_NUM_CUBES             GRID_DIMENSIONS * GRID_DIMENSIONS * GRID_DIMENSIONS
 #define TOTAL_NUM_TRIANGLES         TOTAL_NUM_CUBES * NUM_TRIANGLES_PER_CUBE
 
@@ -61,6 +63,8 @@ uint3 linear_to_grid(uint index)
 float3 get_grid_position(int x, int y, int z)
 {
     float padding = 1.5f;
+
+    padding *= 1.0f + (0.05 * sin(g_constants.seconds * 3.14 * 8));
     return float3(x, y, z) * padding;
 }
 
