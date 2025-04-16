@@ -75,6 +75,7 @@ void create_pipeline(graphics::device& device, pipeline& out_pipeline)
 	pipeline_desc.set_sample_desc(1u, (uint32)-1);
 	pipeline_desc.m_rasterizer = graphics::rasterizer_desc::default_graphics();
 	pipeline_desc.m_depth_stencil = graphics::depth_stencil_desc::default_no_stencil();
+	// pipeline_desc.m_rasterizer.m_front_ccw = !pipeline_desc.m_rasterizer.m_front_ccw;
 
 	pipeline_desc.set_rendertarget_desc(0, true, graphics::e_format::rgba8);
 	pipeline_desc.set_blend_desc(0, graphics::blend_desc::default_write_all());
@@ -124,7 +125,25 @@ int main()
 	// we need only 1 single rtv allocated (backbuffer)
 	graphics::descriptor_heap& rtv_heap = *device.create_descriptor_heap(
 		graphics::descriptor_heap::create_rtv_heap(1u));
+	graphics::descriptor_heap& dsv_heap = *device.create_descriptor_heap(
+		graphics::descriptor_heap::create_dsv_heap(1u));
 	graphics::descriptor_handle rtv_handle = rtv_heap.allocate_cpu();
+	graphics::descriptor_handle dsv_handle = dsv_heap.allocate_cpu();
+
+	graphics::resource* depth_target = nullptr;
+	{
+		graphics::tex2D_desc desc{};
+		desc.m_arraysize = 1u;
+		desc.m_dimensions = window_desc.m_dimensions;
+		desc.m_format = graphics::e_format::d32;
+		desc.m_num_mips = 1u;
+		desc.m_sample_count = 1u;
+		desc.m_bindflags = graphics::e_bind_flags::dsv;
+		desc.m_init_state = graphics::e_resource_state::depth_target;
+		depth_target = device.create_resource(desc);
+
+		device.create_dsv(dsv_handle, depth_target);
+	}
 	
 	// create mesh shader pipeline
 	pipeline pipeline{};
@@ -139,14 +158,26 @@ int main()
 	bool is_quit = false;
 
 	// update constants
+	const float camera_distance = 20.0f;
+	math::float3 camera_pos = { 1, 1, 1 };
+	camera_pos = camera_pos.normalized() * camera_distance;
+	math::float3 camera_lookat = math::float3::zero() - camera_pos;
+	camera_lookat.normalize();
+
+	g_constants.mat_vp = math::matrix4x4f::make_viewprojection_RH(
+		camera_pos,					// pos
+		camera_lookat,				// forward
+		90.0f,						// fov
+		window.get_aspect_ratio()	// ar
+	);
+
 	g_constants.light_direction = { 0.5f, -0.5f, -0.5f };
 	g_constants.light_direction.normalize();
-	g_constants.mat_vp = math::matrix4x4f::make_viewprojection_RH(
-		{ 0, 0, 50.0f }, // pos
-		{ 0, 0, -1.0f }, // forward
-		90.0f,	// fov
-		(640.0f / 480.0f) // ar
-	);
+
+	uint32 grid_dim = 10;
+	uint32 num_cubes = grid_dim * grid_dim * grid_dim;
+	uint32 num_cubes_per_group = 10;
+	uint32 num_groups = math::ceil<uint32>((float)num_cubes / num_cubes_per_group);
 
 	result_printer res{};
 	while (is_quit == false)
@@ -173,14 +204,15 @@ int main()
 
 		// create backbuffer rtv (ideally don't recreate each frame, but on DX12, this is cool-ish)
 		device.create_rtv(rtv_handle, backbuffer);
-		res << commandlist.set_rtv(rtv_handle, nullptr);
+		res << commandlist.set_rtv(rtv_handle, dsv_handle);
 		res << commandlist.clear_rtv(rtv_handle, {1,0,0,1});
+		res << commandlist.clear_dsv(dsv_handle, 1.0f, 0u);
 
 		// set pipeline & sig, then dispatch the mesh shader
 		res << commandlist.set(pipeline.m_rootsig);
 		res << commandlist.set(pipeline.m_pipeline);
 		res << commandlist.set_constants(0u, sizeof(constants) / sizeof(float), &g_constants, graphics::e_pipeline_type::mesh);
-		res << commandlist.dispatch_mesh(16,1,1);
+		res << commandlist.dispatch_mesh(num_groups,1,1);
 
 		// transition backbuffer to present
 		res << backbuffer->transition(&commandlist, graphics::e_resource_state::present);

@@ -334,6 +334,8 @@ namespace influx::graphics
 		{
 			return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList4> failed!");
 		}
+
+		return {};
 	}
 
 	result<> dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)

@@ -1,12 +1,14 @@
 // source:
 // https://github.com/chaoticbob/GraphicsExperiments/blob/main/assets/projects/111_mesh_shader_meshlets/shaders.hlsl
 
+// mesh output -> pixelshader
 struct mesh_output
 {
     float4 position : SV_POSITION;
     float3 color    : COLOR;
 };
 
+// root constants
 struct constants
 {
     float4x4 mat_vp;
@@ -14,63 +16,52 @@ struct constants
 };
 ConstantBuffer<constants> g_constants : register(b0);
 
-// var indexData = new short[]
-// {
-//     0, 1, 2, // Side 0
-//         2, 1, 3,
-//         4, 0, 6, // Side 1
-//         6, 0, 2,
-//         7, 5, 6, // Side 2
-//         6, 5, 4,
-//         3, 1, 7, // Side 3 
-//         7, 1, 5,
-//         4, 5, 0, // Side 4 
-//         0, 5, 1,
-//         3, 7, 2, // Side 5 
-//         2, 7, 6
-// };
+// hard-coded-cubes
+#define NUM_CUBE_VERTICES           8
+#define NUM_TRIANGLES_PER_CUBE      12
+#define NUM_CUBE_INDICES            NUM_TRIANGLES_PER_CUBE * 3
 
-static const float3 k_cube_verts[8] = {
+static const float3 k_cube_verts[NUM_CUBE_VERTICES] = {
         float3(0,0,0), float3(1,0,0), float3(1,1,0), float3(0,1,0),
         float3(0,0,1), float3(1,0,1), float3(1,1,1), float3(0,1,1)
 };
+float3 get_cube_vertex(int index)
+{
+    return k_cube_verts[index % NUM_CUBE_VERTICES];
+}
 
-static const uint3 k_cube_tris[12] = {
+static const uint3 k_cube_tris[NUM_TRIANGLES_PER_CUBE] = {
     {0,1,2}, {0,2,3}, {1,5,6}, {1,6,2},
     {5,4,7}, {5,7,6}, {4,0,3}, {4,3,7},
     {3,2,6}, {3,6,7}, {1,0,4}, {1,4,5}
 };
-
-#define NUM_CUBE_VERTICES           8
-#define NUM_CUBE_INDICES            36
-#define NUM_TRIANGLES_PER_CUBE      12 // NUM_CUBE_INDICES / 3
-float3 get_cube_vertex(int index)
+uint3 get_cube_triangle(uint index)
 {
-    return k_cube_verts[index];
-}
-uint3 get_cube_triangle(int index)
-{
-    return k_cube_tris[index];
-}
-uint get_cube_index(int index)
-{
-    uint3 tri = get_cube_triangle(index / 3);
-    return tri[index % 3];
+    return k_cube_tris[index % NUM_TRIANGLES_PER_CUBE];
 }
 
+// hardware limits:
 #define MAX_NUM_TRIANGLES_PER_GROUP     128
 #define MAX_NUM_VERTICES_PER_GROUP      256
 #define MAX_NUM_CUBES_PER_GROUP         10  // MAX_NUM_TRIANGLES_PER_GROUP / NUM_TRIANGLES_PER_CUBE
 
-#define GRID_DIMENSIONS             5       // 5x5x5
-#define TOTAL_NUM_CUBES             125     // 5x5x5
-#define TOTAL_NUM_TRIANGLES         1500    // TOTAL_NUM_CUBES x NUM_TRIANGLES_PER_CUBE
-#define NUM_THREADS                 128
+// settings:
+#define GRID_DIMENSIONS             10
+#define TOTAL_NUM_CUBES             GRID_DIMENSIONS * GRID_DIMENSIONS * GRID_DIMENSIONS
+#define TOTAL_NUM_TRIANGLES         TOTAL_NUM_CUBES * NUM_TRIANGLES_PER_CUBE
 
+uint3 linear_to_grid(uint index)
+{
+    uint3 grid_position;
+    grid_position.z = index % GRID_DIMENSIONS;
+    grid_position.y = (index / GRID_DIMENSIONS) % GRID_DIMENSIONS;
+    grid_position.x = index / (GRID_DIMENSIONS * GRID_DIMENSIONS);
+    return grid_position;
+}
 float3 get_grid_position(int x, int y, int z)
 {
-    float offset = 10.0f / GRID_DIMENSIONS;
-    return float3(x * offset, y * offset, z * offset);
+    float padding = 1.0f;
+    return float3(x, y, z) * padding;
 }
 
 // 1 thread -> 1 cube -> 12 triangles && 8 vertices
@@ -79,47 +70,57 @@ float3 get_grid_position(int x, int y, int z)
 [numthreads(MAX_NUM_CUBES_PER_GROUP, 1, 1)]
 [shader("mesh")]
 void main_ms(
-    uint gid : SV_GroupID,
-    uint gtid : SV_GroupThreadID,
+    uint3 gid : SV_GroupID,
+    uint3 gtid : SV_GroupThreadID,
     out indices  uint3      triangles[MAX_NUM_TRIANGLES_PER_GROUP],     // max 128 per group
     out vertices mesh_output vertices[MAX_NUM_VERTICES_PER_GROUP])      // max 256 per group
 {
-    float2 k_window_size = float2(640.0, 480.0);
-    
+    // cube_index_group -> index of the cube in this group
+    // cube_index_global -> index of the cube in total
     uint cube_index_group = gtid.x;
     uint cube_index_global = (gid.x * MAX_NUM_CUBES_PER_GROUP) + gtid.x;
-    if (cube_index_global >= TOTAL_NUM_CUBES) return;
 
-    // get the position in the grid
-    uint cube_y = cube_index_global / (GRID_DIMENSIONS * GRID_DIMENSIONS);
-    uint cube_z = (cube_index_global / GRID_DIMENSIONS) % GRID_DIMENSIONS;
-    uint cube_x = cube_index_global % GRID_DIMENSIONS;
-    float3 grid_position = get_grid_position(cube_x, cube_y, cube_z);
+    // avoid over-writing
+    if (cube_index_global   >= TOTAL_NUM_CUBES) return;
+    if (cube_index_group    >= MAX_NUM_CUBES_PER_GROUP) return;
 
+    // transform the global index to a grid position
+    uint3 grid_index        = linear_to_grid(cube_index_global);
+    float3 grid_position    = get_grid_position(grid_index.x, grid_index.y, grid_index.z);
+
+    // base vertex/triangle of this cube
     uint base_vertex        = cube_index_group * NUM_CUBE_VERTICES;
     uint base_triangle      = cube_index_group * NUM_TRIANGLES_PER_CUBE;
 
     // Must be called before writing the geometry output
     SetMeshOutputCounts(MAX_NUM_CUBES_PER_GROUP * NUM_CUBE_VERTICES, MAX_NUM_CUBES_PER_GROUP * NUM_TRIANGLES_PER_CUBE);
 
-    // each thread outputs NUM_CUBE_VERTICES (12)
+    // each thread outputs NUM_CUBE_VERTICES (8)
     for (uint i = 0; i < NUM_CUBE_VERTICES; ++i)
     {
+        // transform to camera
         float4 position = float4(grid_position.xyz + get_cube_vertex(i), 1.0f);
         position = mul(g_constants.mat_vp, float4(position.xyz, 1.0f));
 
+        // todo: fix this z-direction issue
         position.z = -position.z;
         position.w = -position.w;
 
+        // color vertices
         vertices[base_vertex + i].position = position;
-        vertices[base_vertex + i].color = float3(1, 1, 1);
+        vertices[base_vertex + i].color.xyz = float3(0, 0, 0);
+        vertices[base_vertex + i].color[i % 3] = 1.0f;
     }
 
     // each thread outputs NUM_TRIANGLES_PER_CUBE (12)
     for (uint t = 0; t < NUM_TRIANGLES_PER_CUBE; ++t)
     {
-        uint triangle_index = base_triangle + t;
-        triangles[triangle_index] = get_cube_triangle(triangle_index);
+        uint triangle_idx = base_triangle + t;
+        uint3 cube_triangle = get_cube_triangle(triangle_idx);
+        cube_triangle.x += base_vertex;
+        cube_triangle.y += base_vertex;
+        cube_triangle.z += base_vertex;
+        triangles[triangle_idx] = cube_triangle;
     }
 }
 
