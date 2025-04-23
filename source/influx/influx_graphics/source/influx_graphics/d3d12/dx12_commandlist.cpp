@@ -538,11 +538,26 @@ namespace influx::graphics
 		return {};
 	}
 
-	result<> dx12_commandlist::set(const descriptor_range& gpu_range, uint32 param_idx)
+	result<> dx12_commandlist::set(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type)
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
 		gpu_handle.ptr = (size_t)gpu_range.m_start;
-		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, gpu_handle);
+
+		switch (type)
+		{
+		default:
+		case e_pipeline_type::graphics:
+		{
+			mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, gpu_handle);
+		}break;
+
+		case e_pipeline_type::compute:
+		case e_pipeline_type::raytracing:
+		{
+			mpdx_graphics_commandlist->SetComputeRootDescriptorTable(param_idx, gpu_handle);
+		}break;
+		}
+		
 		return {};
 	}
 

@@ -84,7 +84,7 @@ namespace influx::graphics
 
 		virtual result<> set(const vector<descriptor_heap*>& heap) override;
 
-		virtual result<> set(const descriptor_range& gpu_range, uint32 param_idx) override;
+		virtual result<> set(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type = e_pipeline_type::graphics) override;
 
 		virtual result<> set(rootsignature* rootsig, const e_pipeline_type type) override;
 

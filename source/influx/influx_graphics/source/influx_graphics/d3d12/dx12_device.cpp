@@ -938,6 +938,7 @@ namespace influx::graphics
 		dx12_pipeline<e_pipeline_type::raytracing>* as_dx12_pipeline = (dx12_pipeline<e_pipeline_type::raytracing>*)result_pipeline;
 
 		// post-creation: setup raytracing shader tables
+		// todo: this needs to be cleaner
 		{
 			const wchar_t* c_hitGroupName = L"HitGroup";
 			const wchar_t* c_raygenShaderName = L"RayGeneration";
@@ -964,8 +965,8 @@ namespace influx::graphics
 
 				dx12_raytracing_shader_record record
 				{
-					.m_shader_id{.m_ptr{&raygen_id}, .m_size{shader_id_size}},
-					.m_root_args{.m_ptr{&root_args}, .m_size{sizeof(root_args)}}
+					.m_shader_id{.m_ptr{&raygen_id}, .m_size{shader_id_size}}
+					//.m_root_args{.m_ptr{&root_args}, .m_size{sizeof(root_args)}}
 				};
 				as_dx12_pipeline->m_raygen_shadertable.initialize(*this, { record });
 			}

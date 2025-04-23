@@ -8,7 +8,7 @@ namespace influx::graphics
 	// Shader record = {{Shader ID}, {RootArguments}}
 	struct dx12_raytracing_shader_record final
 	{
-		struct pointer_and_size { void* m_ptr; uint64 m_size; };
+		struct pointer_and_size { void* m_ptr = nullptr; uint64 m_size = 0u; };
 
 		pointer_and_size m_shader_id{};
 		pointer_and_size m_root_args{};

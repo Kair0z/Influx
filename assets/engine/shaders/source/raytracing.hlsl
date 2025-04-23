@@ -7,7 +7,7 @@ struct Payload
     bool missed;
 };
 
-RaytracingAccelerationStructure scene : register(t0);
+//RaytracingAccelerationStructure scene : register(t0);
 RWTexture2D<float4> uav : register(u0);
 
 static const float3 camera = float3(0, 1.5, -7);
@@ -19,6 +19,9 @@ static const float3 skyBottom = float3(0.75, 0.86, 0.93);
 void RayGeneration()
 {
     uint2 idx = DispatchRaysIndex().xy;
+    uav[idx].rgba = float4(0, 1, 0, 1);
+    return;
+    
     float2 size = DispatchRaysDimensions().xy;
     float2 uv = idx / size;
     float3 target = float3((uv.x * 2 - 1) * 1.8 * (size.x / size.y),
@@ -35,8 +38,8 @@ void RayGeneration()
     payload.allowReflection = true;
     payload.missed = false;
 
-    TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, ray, payload);
-    uav[idx] = float4(payload.color, 1);
+    // TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, ray, payload);
+    uav[idx].rgba = float4(0,1,0,1);
 }
 
 [shader("miss")]
@@ -97,7 +100,7 @@ void HitMirror(inout Payload payload, float2 uv)
     mirrorRay.TMax = 1000;
 
     payload.allowReflection = false;
-    TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, mirrorRay, payload);
+    // TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, mirrorRay, payload);
 }
 
 void HitFloor(inout Payload payload, float2 uv)
@@ -115,7 +118,7 @@ void HitFloor(inout Payload payload, float2 uv)
     Payload shadow;
     shadow.allowReflection = false;
     shadow.missed = false;
-    TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, shadowRay, shadow);
+    // TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, shadowRay, shadow);
 
     if (!shadow.missed)
         payload.color /= 2;

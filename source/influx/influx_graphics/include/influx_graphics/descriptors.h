@@ -67,6 +67,14 @@ namespace influx::graphics
 			args.m_shader_visible = false;
 			return args;
 		}
+		inline static create_args create_uav_heap(uint32 capacity)
+		{
+			create_args args{};
+			args.m_capacity = capacity;
+			args.m_type = e_descriptor_heap_type::srv;
+			args.m_shader_visible = true;
+			return args;
+		}
 
 		virtual descriptor_handle allocate_cpu() = 0;
 		virtual descriptor_handle allocate_gpu() = 0;

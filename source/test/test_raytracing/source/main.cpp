@@ -110,6 +110,25 @@ int main()
 	graphics::commandlist& commandlist = *device.create_graphics_commandlist();
 	graphics::queue& queue = *device.create_queue();
 	graphics::swapchain& swapchain = *device.create_swapchain(&queue, window);
+	
+	// we need only 1 single rtv allocated (backbuffer)
+	graphics::descriptor_heap& rtv_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_rtv_heap(1u));
+	graphics::descriptor_heap& uav_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_uav_heap(1u));
+	graphics::descriptor_handle rtv_handle = rtv_heap.allocate_cpu();
+	graphics::descriptor_handle uav_cpu_handle = uav_heap.allocate_cpu();
+	graphics::descriptor_handle uav_gpu_handle = uav_heap.allocate_gpu();
+
+	// create raytracing target
+	graphics::resource* raytracing_target = nullptr;
+	{
+		graphics::tex2D_desc desc{};
+		desc.m_allow_uav = true;
+		desc.m_dimensions = swapchain.get_dimensions();
+		desc.m_bindflags = graphics::e_bind_flags::uav;
+		desc.m_init_state = graphics::e_resource_state::cs_uav;
+		raytracing_target = device.create_resource(desc);
+		device.create_texture_uav(uav_cpu_handle, raytracing_target);
+	}
 
 	// create mesh buffers
 	mesh_buffers mesh_buffers{};
@@ -135,9 +154,35 @@ int main()
 
 		commandlist.start(&device);
 		
+		// set viewport & rect
+		commandlist.set_vp_and_rect
+		(
+			{ 0.0f, 0.0f },			// min
+			{ 640.0f , 480.0f }		// max
+		);
+
+		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();
+		// backbuffer->transition(&commandlist, graphics::e_resource_state::render_target);
+		// create backbuffer rtv (ideally don't recreate each frame, but on DX12, this is cheap)
+		// device.create_rtv(rtv_handle, backbuffer);
+		// commandlist.set_rtv(rtv_handle, nullptr);
+		// commandlist.clear_rtv(rtv_handle, { 1,0,0,1 });
+
+		// dispatch rays
+		raytracing_target->transition(&commandlist, graphics::e_resource_state::cs_uav);
 		commandlist.set(pipeline.m_rootsig, graphics::e_pipeline_type::raytracing);
 		commandlist.set(pipeline.m_pipeline);
-		commandlist.dispatch_rays(pipeline.m_pipeline, windowsize.x, windowsize.y);
+		commandlist.set(&uav_heap);
+		commandlist.set(uav_gpu_handle, 1u, graphics::e_pipeline_type::raytracing);
+		commandlist.dispatch_rays(pipeline.m_pipeline,
+			raytracing_target->get_width(), raytracing_target->get_height());
+
+		// copy raytracetarget -> backbuffer
+		backbuffer->transition(&commandlist, graphics::e_resource_state::copy_dst);
+		raytracing_target->transition(&commandlist, graphics::e_resource_state::copy_src);
+		commandlist.copy_resource(raytracing_target, backbuffer);
+
+		backbuffer->transition(&commandlist, graphics::e_resource_state::present);
 
 		commandlist.submit(&queue);
 		swapchain.present(present_args);
