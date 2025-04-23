@@ -7,6 +7,7 @@
 #include "influx_graphics/descriptors.h"
 #include "influx_graphics/renderpass.h"
 #include "influx_graphics/queue.h"
+#include "influx_graphics/pipeline.h"
 
 // influx::core
 #include "core/math/vector.h"
@@ -169,6 +170,9 @@ namespace influx::graphics
 
 		/* mesh shaders */
 		INFLUX_GFX_API virtual result<> dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z) = 0;
+
+		/* raytracing */
+		INFLUX_GFX_API virtual result<> dispatch_rays(raytracing_pipeline* pipeline, uint32 width, uint32 height, uint32 depth = 1) = 0;
 
 		INFLUX_GFX_API virtual result<> end() = 0;
 

@@ -51,8 +51,9 @@ namespace influx::graphics
 		clear_state,
 		clear_uav,
 
-		/* raytracing acceleration structures */
+		/* raytracing */
 		build_as,
+		dispatch_rays,
 
 		/* mesh shaders */
 		dispatch_mesh,

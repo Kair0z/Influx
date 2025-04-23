@@ -14,6 +14,7 @@ namespace influx::graphics
     {
         result<> res = {};
 
+        /* wait until previous submit finished */
         wait_for_completion();
 
         const e_state state = get_state();

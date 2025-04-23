@@ -101,6 +101,9 @@ namespace influx::graphics
 		/* mesh shaders */
 		virtual result<> dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z) override;
 
+		/* raytracing */
+		virtual result<> dispatch_rays(raytracing_pipeline* pipeline, uint32 width, uint32 height, uint32 depth = 1) override;
+
 		ID3D12CommandAllocator* obtain_allocator(dx12_device*);
 
 		void free_allocator(dx12_device*);

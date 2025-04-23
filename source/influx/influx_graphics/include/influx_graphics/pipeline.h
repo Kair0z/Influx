@@ -352,10 +352,16 @@ namespace influx::graphics
 		shader_slots<e_pipeline_type::compute> m_shaders{};
 	};
 
+	struct raytracing_hitgroup_desc final
+	{
+
+	};
+
 	struct raytracing_pipeline_desc final
 	{
 		uint32 m_max_recursion_depth = 8u;
 		shader_slots<e_pipeline_type::raytracing> m_shaders{};
+		vector<raytracing_hitgroup_desc> m_hitgroups{};
 	};
 
 	struct mesh_pipeline_desc final
@@ -419,7 +425,11 @@ namespace influx::graphics
 
 	namespace detail
 	{
-		class base_pipeline : public graphics::base {};
+		class base_pipeline : public graphics::base 
+		{
+		public:
+			virtual e_pipeline_type get_type() const = 0;
+		};
 	}
 
 	template <e_pipeline_type _t>
@@ -427,6 +437,11 @@ namespace influx::graphics
 	{
 	public:
 		using desc_type = pipeline_desc<_t>;
+
+		inline virtual e_pipeline_type get_type() const override final
+		{
+			return k_type;
+		}
 
 	protected:
 		static constexpr e_pipeline_type k_type = _t;

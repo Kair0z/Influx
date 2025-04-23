@@ -549,7 +549,7 @@ namespace influx::graphics
 	result<> dx12_commandlist::set(rootsignature* rootsig, const e_pipeline_type type)
 	{
 		auto dxrootsig = rootsig->get_native<ID3D12RootSignature>();
-	
+		
 		switch (type)
 		{
 		case e_pipeline_type::graphics:
@@ -557,11 +557,11 @@ namespace influx::graphics
 			break;
 
 		case e_pipeline_type::compute:
+		case e_pipeline_type::raytracing:
 			mpdx_graphics_commandlist->SetComputeRootSignature(dxrootsig);
 			break;
 
 		default:
-		case e_pipeline_type::raytracing:
 		case e_pipeline_type::mesh:
 			break;
 		}
@@ -571,8 +571,27 @@ namespace influx::graphics
 
 	result<> dx12_commandlist::set(detail::base_pipeline* pipeline)
 	{
-		auto dxpipeline = pipeline->get_native<ID3D12PipelineState>();
-		mpdx_graphics_commandlist->SetPipelineState(dxpipeline);
+		switch (pipeline->get_type())
+		{
+		case e_pipeline_type::raytracing:
+		{
+			ID3D12GraphicsCommandList4* dxcommandlist4 = nullptr;
+			HRESULT hres = mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList4>(&dxcommandlist4);
+			if (hres == S_OK)
+			{
+				auto dxstateobject = pipeline->get_native<ID3D12StateObject>();
+				dxcommandlist4->SetPipelineState1(dxstateobject);
+			}
+			else return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList4> failed!");
+		}break;
+
+		default:
+		{
+			auto dxpipeline = pipeline->get_native<ID3D12PipelineState>();
+			mpdx_graphics_commandlist->SetPipelineState(dxpipeline);
+		}break;
+		}
+		
 		return {};
 	}
 
@@ -642,6 +661,43 @@ namespace influx::graphics
 		}
 
 		return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList6> failed!");
+	}
+
+	result<> dx12_commandlist::dispatch_rays(raytracing_pipeline* pipeline, uint32 width, uint32 height, uint32 depth)
+	{
+		renderpass_check(e_command::dispatch_rays);
+
+		ID3D12GraphicsCommandList4* dxcommandlist4 = nullptr;
+		HRESULT hres = mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList4>(&dxcommandlist4);
+		if (hres == S_OK)
+		{
+			dx12_pipeline<e_pipeline_type::raytracing>* dx12_raypipeline = (dx12_pipeline<e_pipeline_type::raytracing>*)pipeline;
+			ID3D12StateObject* dxstateobject = pipeline->get_native<ID3D12StateObject>();
+
+			D3D12_DISPATCH_RAYS_DESC desc{};
+
+			ID3D12Resource* HitGroupTableResource = dx12_raypipeline->m_hitgroup_shadertable.mpdx_resource;
+			ID3D12Resource* MissTableResource = dx12_raypipeline->m_miss_shadertable.mpdx_resource;
+			ID3D12Resource* RayGenTableResource = dx12_raypipeline->m_raygen_shadertable.mpdx_resource;
+
+			desc.HitGroupTable.StartAddress = HitGroupTableResource->GetGPUVirtualAddress();
+			desc.HitGroupTable.SizeInBytes = HitGroupTableResource->GetDesc().Width;
+			desc.HitGroupTable.StrideInBytes = desc.HitGroupTable.SizeInBytes;
+			desc.MissShaderTable.StartAddress = MissTableResource->GetGPUVirtualAddress();
+			desc.MissShaderTable.SizeInBytes = MissTableResource->GetDesc().Width;
+			desc.MissShaderTable.StrideInBytes = desc.MissShaderTable.SizeInBytes;
+			desc.RayGenerationShaderRecord.StartAddress = RayGenTableResource->GetGPUVirtualAddress();
+			desc.RayGenerationShaderRecord.SizeInBytes = RayGenTableResource->GetDesc().Width;
+
+			desc.Width = width;
+			desc.Height = height;
+			desc.Depth = depth;
+
+			dxcommandlist4->DispatchRays(&desc);
+			return {};
+		}
+
+		return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList4> failed!");
 	}
 
 	ID3D12CommandAllocator* dx12_commandlist::obtain_allocator(dx12_device* dxdevice)

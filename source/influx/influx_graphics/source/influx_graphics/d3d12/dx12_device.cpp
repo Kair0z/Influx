@@ -855,7 +855,7 @@ namespace influx::graphics
 		constexpr UINT64 NUM_SHADER_IDS = 3;
 		ID3D12RootSignature* dx_rootsignature = rootsig->get_native<ID3D12RootSignature>();
 
-		// gather shader 'libraries'
+		// setup shader-lib subobjects
 		vector<D3D12_DXIL_LIBRARY_DESC> shader_libraries{};
 		shader_libraries.reserve(desc.m_shaders.count);
 		for (uint32 i = 0u; i < desc.m_shaders.count; ++i)
@@ -875,42 +875,52 @@ namespace influx::graphics
 			}
 		}
 
-		D3D12_HIT_GROUP_DESC hitgroup = 
-		{ 
-			.HitGroupExport = L"HitGroup",
-			.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES,
-			.ClosestHitShaderImport = L"ClosestHit"
-		};
+		// setup hitgroup subobjects
+		vector<D3D12_HIT_GROUP_DESC> hitgroups{}; hitgroups.reserve(desc.m_hitgroups.size());
+		for (uint32 i = 0u; i < desc.m_hitgroups.size(); ++i)
+		{
+			D3D12_HIT_GROUP_DESC hitgroup =
+			{
+				.HitGroupExport = L"HitGroup",
+				.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES,
+				.ClosestHitShaderImport = L"ClosestHit"
+			};
 
+			hitgroups.push_back(hitgroup);
+		}
+
+		// setup config & rootsig subobjects
 		D3D12_RAYTRACING_SHADER_CONFIG shader_config = 
 		{
 			.MaxPayloadSizeInBytes = 20,
 			.MaxAttributeSizeInBytes = 8,
 		};
-
+		D3D12_RAYTRACING_PIPELINE_CONFIG config =
+		{
+			.MaxTraceRecursionDepth = desc.m_max_recursion_depth
+		};
 		D3D12_GLOBAL_ROOT_SIGNATURE global_signature = 
 		{ 
 			.pGlobalRootSignature = dx_rootsignature  
 		};
 
-		D3D12_RAYTRACING_PIPELINE_CONFIG config = 
-		{ 
-			.MaxTraceRecursionDepth = desc.m_max_recursion_depth 
-		};
-
+		// assemble the subobjects into a final D3D12_STATE_OBJECT_DESC
 		vector<D3D12_STATE_SUBOBJECT> subobjects
 		{
-			{.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, .pDesc = &hitgroup},
 			{.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, .pDesc = &shader_config},
 			{.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE, .pDesc = &global_signature},
 			{.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, .pDesc = &config}
 		};
+		for (auto& hitgroup : hitgroups)
+		{
+			subobjects.push_back(
+				{ .Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, .pDesc = &hitgroup });
+		}
 		for (auto& library : shader_libraries)
 		{
 			subobjects.push_back(
 				{ .Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, .pDesc = &library });
 		}
-
 		D3D12_STATE_OBJECT_DESC state_object = 
 		{ 
 			.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE,
@@ -918,12 +928,68 @@ namespace influx::graphics
 			.pSubobjects = subobjects.data()
 		};
 
+		// create the final pipeline object
 		ID3D12StateObject* dx12_pso = nullptr;
 		HRESULT
 		res = get_main_device<ID3D12Device5>()->CreateStateObject(&state_object, IID_PPV_ARGS(&dx12_pso));
 		check(res, "dx12 error: CreateStateObject failed!");
 
-		return new_child<dx12_pipeline<e_pipeline_type::raytracing>, raytracing_pipeline>(dx12_pso, desc);
+		raytracing_pipeline* result_pipeline = new_child<dx12_pipeline<e_pipeline_type::raytracing>, raytracing_pipeline>(dx12_pso, desc);
+		dx12_pipeline<e_pipeline_type::raytracing>* as_dx12_pipeline = (dx12_pipeline<e_pipeline_type::raytracing>*)result_pipeline;
+
+		// post-creation: setup raytracing shader tables
+		{
+			const wchar_t* c_hitGroupName = L"HitGroup";
+			const wchar_t* c_raygenShaderName = L"RayGeneration";
+			const wchar_t* c_closestHitShaderName = L"ClosestHit";
+			const wchar_t* c_missShaderName = L"Miss";
+
+			// query the state properties
+			ID3D12StateObjectProperties* dxstate_properties;
+			dx12_pso->QueryInterface<ID3D12StateObjectProperties>(&dxstate_properties);
+			auto raygen_id = dxstate_properties->GetShaderIdentifier(c_raygenShaderName);
+			auto miss_id = dxstate_properties->GetShaderIdentifier(c_missShaderName);
+			auto hitgroup_id = dxstate_properties->GetShaderIdentifier(c_hitGroupName);
+			const uint64 shader_id_size = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+
+			// Ray gen shader table
+			{
+				struct raygen_root_args final
+				{
+					float left;
+					float top;
+					float right;
+					float bottom;
+				} root_args{};
+
+				dx12_raytracing_shader_record record
+				{
+					.m_shader_id{.m_ptr{&raygen_id}, .m_size{shader_id_size}},
+					.m_root_args{.m_ptr{&root_args}, .m_size{sizeof(root_args)}}
+				};
+				as_dx12_pipeline->m_raygen_shadertable.initialize(*this, { record });
+			}
+
+			// Miss shader table
+			{
+				dx12_raytracing_shader_record record
+				{
+					.m_shader_id{.m_ptr{&miss_id}, .m_size{shader_id_size}},
+				};
+				as_dx12_pipeline->m_miss_shadertable.initialize(*this, { record });
+			}
+
+			// Hit group shader table
+			{
+				dx12_raytracing_shader_record record
+				{
+					.m_shader_id{.m_ptr{&hitgroup_id}, .m_size{shader_id_size}},
+				};
+				as_dx12_pipeline->m_hitgroup_shadertable.initialize(*this, { record });
+			}
+		}
+
+		return result_pipeline;
 	}
 
 	ptr<mesh_pipeline> dx12_device::create_mesh_pipeline(rootsignature* rootsig, const mesh_pipeline_desc& desc)

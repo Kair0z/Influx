@@ -175,7 +175,6 @@ int main()
 	test_basetypes();
 	test_result();
 	test_cache();
-
 	test_math_vector_all();
 	test_math_matrix_all();
 	test_math_quaternion_all();

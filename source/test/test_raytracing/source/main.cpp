@@ -52,9 +52,10 @@ void create_pipeline(graphics::device& device, pipeline& out_pipeline)
 	rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::srv, 0u); // tlas srv
 
 	graphics::raytracing_pipeline_desc ray_pipeline_desc{};
+	ray_pipeline_desc.m_hitgroups.push_back({});
 	compile_shaders(ray_pipeline_desc);
-	graphics::rootsignature& ray_rootsignature = *device.create_rootsignature(rootsig_desc);
-	graphics::raytracing_pipeline& ray_pipeline = *device.create_raytracing_pipeline(&ray_rootsignature, ray_pipeline_desc);
+	out_pipeline.m_rootsig = device.create_rootsignature(rootsig_desc);
+	out_pipeline.m_pipeline = device.create_raytracing_pipeline(out_pipeline.m_rootsig, ray_pipeline_desc);
 }
 
 struct mesh_buffers final
@@ -99,7 +100,8 @@ int main()
 	vector<platform::monitor> monitors = platform::monitor::query_monitors();
 	platform::window_desc window_desc{};
 	window_desc.m_dimensions = { 640u, 480u };
-	const math::vectoru2 window_half_size = window_desc.m_dimensions / 2;
+	const math::vectoru2& windowsize = window_desc.m_dimensions;
+	const math::vectoru2 window_half_size = windowsize / 2;
 	window_desc.m_name = "raytracing";
 	platform::window& window = *platform::window::create(window_desc);
 
@@ -131,11 +133,13 @@ int main()
 
 		window.poll_events(is_quit);
 
-		// render
 		commandlist.start(&device);
 		
-		commandlist.submit(&queue);
+		commandlist.set(pipeline.m_rootsig, graphics::e_pipeline_type::raytracing);
+		commandlist.set(pipeline.m_pipeline);
+		commandlist.dispatch_rays(pipeline.m_pipeline, windowsize.x, windowsize.y);
 
+		commandlist.submit(&queue);
 		swapchain.present(present_args);
 	}
 

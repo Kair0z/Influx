@@ -31,6 +31,7 @@ namespace influx::imp
 		influx_assert(file::exists(args.m_include_folder));
 		influx_assert(args.m_pbd == false || file::exists(args.m_pdb_folder));
 
+		// parse all shaders in file
 		auto parsed_file = shader::parse_shaders_in_file(filepath);
 		influx_assert(parsed_file.is_success());
 
