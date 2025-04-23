@@ -49,7 +49,7 @@ void create_pipeline(graphics::device& device, pipeline& out_pipeline)
 {
 	graphics::rootsignature_desc rootsig_desc{};
 	rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, 1u, 0u); // output uav
-	rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::srv, 0u); // tlas srv
+	// rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::srv, 0u); // tlas srv
 
 	graphics::raytracing_pipeline_desc ray_pipeline_desc{};
 	ray_pipeline_desc.m_hitgroups.push_back({});
@@ -173,7 +173,7 @@ int main()
 		commandlist.set(pipeline.m_rootsig, graphics::e_pipeline_type::raytracing);
 		commandlist.set(pipeline.m_pipeline);
 		commandlist.set(&uav_heap);
-		commandlist.set(uav_gpu_handle, 1u, graphics::e_pipeline_type::raytracing);
+		commandlist.set(uav_gpu_handle, 0u, graphics::e_pipeline_type::raytracing);
 		commandlist.dispatch_rays(pipeline.m_pipeline,
 			raytracing_target->get_width(), raytracing_target->get_height());
 
