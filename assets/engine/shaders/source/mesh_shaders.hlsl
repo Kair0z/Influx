@@ -5,6 +5,7 @@
 struct mesh_output
 {
     float4 position : SV_POSITION;
+    float3 normal   : NORMAL;
     float3 color    : COLOR;
 };
 
@@ -27,11 +28,18 @@ static const float3 k_cube_verts[NUM_CUBE_VERTICES] = {
         float3(0,0,0), float3(1,0,0), float3(1,1,0), float3(0,1,0),
         float3(0,0,1), float3(1,0,1), float3(1,1,1), float3(0,1,1)
 };
+static const float3 k_cube_normals[NUM_CUBE_VERTICES] = {
+        float3(0,0,0), float3(1,0,0), float3(1,1,0), float3(0,1,0),
+        float3(0,0,1), float3(1,0,1), float3(1,1,1), float3(0,1,1)
+};
 float3 get_cube_vertex(int index)
 {
     return k_cube_verts[index % NUM_CUBE_VERTICES];
 }
-
+float3 get_cube_normal(int index)
+{
+    return k_cube_normals[index % NUM_CUBE_VERTICES];
+}
 static const uint3 k_cube_tris[NUM_TRIANGLES_PER_CUBE] = {
     {0,1,2}, {0,2,3}, {1,5,6}, {1,6,2},
     {5,4,7}, {5,7,6}, {4,0,3}, {4,3,7},
@@ -111,8 +119,12 @@ void main_ms(
         position.z = -position.w;
         position.w = other;
 
+        float3 normal = get_cube_normal(i).xyz;
+        // todo: transform normal with matrix
+        
         // color vertices
         vertices[base_vertex + i].position = position;
+        vertices[base_vertex + i].normal.xyz = normal.xyz;
         vertices[base_vertex + i].color.xyz = float3(0, 0, 0);
         vertices[base_vertex + i].color[i % 3] = 1.0f;
     }
@@ -122,9 +134,11 @@ void main_ms(
     {
         uint triangle_idx = base_triangle + t;
         uint3 cube_triangle = get_cube_triangle(triangle_idx);
+
         cube_triangle.x += base_vertex;
         cube_triangle.y += base_vertex;
         cube_triangle.z += base_vertex;
+        
         triangles[triangle_idx] = cube_triangle;
     }
 }

@@ -106,7 +106,7 @@ namespace influx::graphics
 	{
 		uint32 m_subres = 0u;
 		uint64 m_begin = 0u;
-		uint64 m_end = (size_t)-1;
+		uint64 m_end = (uint64)-1;
 	};
 
 	class resource : public base
@@ -135,6 +135,7 @@ namespace influx::graphics
 			acc_struct,
 			count
 		};
+
 	public:
 		INFLUX_GFX_API virtual void* map(const map_args& args) = 0;
 		INFLUX_GFX_API virtual void unmap(const map_args& args) = 0;
@@ -160,9 +161,9 @@ namespace influx::graphics
 
 		INFLUX_GFX_API uint32 get_num_subresources() const;
 
-		INFLUX_GFX_API size_t get_bytesize() const;
+		INFLUX_GFX_API uint64 get_bytesize() const;
 
-		INFLUX_GFX_API size_t get_bytestride() const;
+		INFLUX_GFX_API uint64 get_bytestride() const;
 
 		INFLUX_GFX_API uint32 get_num_elements() const;
 
@@ -170,7 +171,7 @@ namespace influx::graphics
 
 		INFLUX_GFX_API e_resource_state get_previous_state() const;
 
-		INFLUX_GFX_API range<size_t> get_full_range() const;
+		INFLUX_GFX_API range<uint64> get_full_range() const;
 
 		INFLUX_GFX_API result<> transition(commandlist* cmdlist, e_resource_state new_state);
 		
@@ -195,8 +196,8 @@ namespace influx::graphics
 		cubemap_desc m_cube_desc{};
 		e_resource_state m_previous_state = e_resource_state::common;
 		e_resource_state m_state = e_resource_state::common;
-		size_t m_bytesize{};
-		size_t m_bytestride{};
+		uint64 m_bytesize{};
+		uint64 m_bytestride{};
 		e_format m_format{};
 		vector<footprint> m_footprints{};
 	};

@@ -477,8 +477,8 @@ namespace influx::shader
 			for (auto& parse : result.get())
 			{
 				file as_file = file(filepath);
-				parse.m_compile_args.m_signature.m_filename = as_file.m_filename_without_extension;
-				parse.m_compile_args.m_signature.cache_id();
+				parse.m_signature.m_filename = as_file.m_filename_without_extension;
+				parse.m_signature.cache_id();
 			}
 		}
 
@@ -520,10 +520,8 @@ namespace influx::shader
 						const e_shader_type current_shader_type = static_cast<shader::e_shader_type>(i);
 
 						parse_output new_shader_parse{};
-						new_shader_parse.m_type = current_shader_type;
-						new_shader_parse.m_entrypoint = entrypoint;
-						new_shader_parse.m_compile_args.m_signature.m_type = current_shader_type;
-						new_shader_parse.m_compile_args.m_signature.m_entrypoint = entrypoint;
+						new_shader_parse.m_signature.m_type = current_shader_type;
+						new_shader_parse.m_signature.m_entrypoint = entrypoint;
 						result.get().push_back(new_shader_parse);
 					}
 				});

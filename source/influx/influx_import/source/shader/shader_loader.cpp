@@ -34,13 +34,19 @@ namespace influx::imp
 		auto parsed_file = shader::parse_shaders_in_file(filepath);
 		influx_assert(parsed_file.is_success());
 
-		out_shaders.clear();
-		out_shaders.reserve(parsed_file.get().size());
+		vector<shader::parse_output>& parsed_shaders = parsed_file.get();
 
-		for (const shader::parse_output& parsed_shader : parsed_file.get())
+		out_shaders.clear();
+		out_shaders.reserve(parsed_shaders.size());
+
+		for (shader::parse_output& parsed_shader : parsed_shaders)
 		{
+			shader::compile_args args_copy = args;
+			parsed_shader.m_signature.m_target = args.m_signature.m_target;
+			args_copy.m_signature = parsed_shader.m_signature;
+
 			shader_data new_shader_data{};
-			if (load_shader_file(filepath, new_shader_data, parsed_shader.m_compile_args))
+			if (load_shader_file(filepath, new_shader_data, args_copy))
 			{
 				out_shaders.push_back(new_shader_data);
 			}

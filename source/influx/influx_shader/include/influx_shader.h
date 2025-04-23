@@ -97,14 +97,17 @@ namespace influx::shader
 	// parses information about a shader without compiling
 	struct parse_output final
 	{
-		/* type of the shader */
-		shader::e_shader_type m_type;
+		shader_signature m_signature;
 
-		/* entrypoint name of the shader */
-		string m_entrypoint;
+		inline const string& get_entrypoint() const
+		{
+			return m_signature.m_entrypoint;
+		}
 
-		// partially filled compile args (containing type, filename, entrypoint)
-		compile_args m_compile_args;
+		inline const shader::e_shader_type& get_shader_type() const
+		{
+			return m_signature.m_type;
+		}
 	};
 
 	/* finds & compiles a shader (based on args) from a.hlsl filepath */

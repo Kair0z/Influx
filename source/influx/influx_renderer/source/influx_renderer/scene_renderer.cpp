@@ -193,12 +193,12 @@ namespace influx::renderer
                 const bool has_vertex_shader = vector_helpers::contains(basepass_parsed_file,
                 [](const shader::parse_output& shader)
                 {
-                    return shader.m_type == shader::e_shader_type::vs;
+                    return shader.get_shader_type() == shader::e_shader_type::vs;
                 });
                 const bool has_pixel_shader = vector_helpers::contains(basepass_parsed_file,
                 [](const shader::parse_output& shader)
                 {
-                    return shader.m_type == shader::e_shader_type::ps;
+                    return shader.get_shader_type() == shader::e_shader_type::ps;
                 });
                 influx_assert(has_vertex_shader && has_pixel_shader);
             }
@@ -207,7 +207,7 @@ namespace influx::renderer
                 const bool has_compute_shader = vector_helpers::contains(resolvepass_parsed_file,
                 [](const shader::parse_output& shader)
                 {
-                    return shader.m_type == shader::e_shader_type::cs;
+                    return shader.get_shader_type() == shader::e_shader_type::cs;
                 });
                 influx_assert(has_compute_shader);
             }
@@ -215,7 +215,8 @@ namespace influx::renderer
             // now finally compile the shaders and load them into our resource manager:
             for (const shader::parse_output& shader_parse : basepass_parsed_file)
             {
-                auto compile_result = shader::compile_shader_in_file(basepass_sourcefile_path, shader_parse.m_compile_args);
+                compile_args.m_signature = shader_parse.m_signature;
+                auto compile_result = shader::compile_shader_in_file(basepass_sourcefile_path, compile_args);
                 influx_assert(compile_result.is_success());
 
                 shader::compile_output compile_output = compile_result.get();
@@ -224,7 +225,8 @@ namespace influx::renderer
             }
             for (const shader::parse_output& shader_parse : resolvepass_parsed_file)
             {
-                auto compile_result = shader::compile_shader_in_file(resolvepass_sourcefile_path, shader_parse.m_compile_args);
+                compile_args.m_signature = shader_parse.m_signature;
+                auto compile_result = shader::compile_shader_in_file(resolvepass_sourcefile_path, compile_args);
                 influx_assert(compile_result.is_success());
 
                 shader::compile_output compile_output = compile_result.get();

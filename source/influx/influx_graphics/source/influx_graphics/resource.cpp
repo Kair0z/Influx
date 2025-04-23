@@ -11,10 +11,10 @@ namespace influx::graphics
 	{
 		m_bytestride = deduce_bytesize(desc.m_format);
 		m_bytesize =
-			size_t(desc.m_dimensions.x) 
-			* size_t(desc.m_dimensions.y)
-			* size_t(desc.m_num_mips)
-			* size_t(desc.m_arraysize)
+			uint64(desc.m_dimensions.x) 
+			* uint64(desc.m_dimensions.y)
+			* uint64(desc.m_num_mips)
+			* uint64(desc.m_arraysize)
 			* m_bytestride;
 
 		m_format = desc.m_format;
@@ -36,11 +36,11 @@ namespace influx::graphics
 	{
 		m_bytestride = deduce_bytesize(desc.m_format);
 		m_bytesize =
-			size_t(desc.m_dimensions.x)
-			* size_t(desc.m_dimensions.y)
-			* size_t(desc.m_dimensions.z)
-			* size_t(desc.m_num_mips)
-			* size_t(desc.m_arraysize)
+			uint64(desc.m_dimensions.x)
+			* uint64(desc.m_dimensions.y)
+			* uint64(desc.m_dimensions.z)
+			* uint64(desc.m_num_mips)
+			* uint64(desc.m_arraysize)
 			* m_bytestride;
 
 		m_format = desc.m_format;
@@ -53,11 +53,11 @@ namespace influx::graphics
 	{
 		m_bytestride = deduce_bytesize(desc.m_format);
 		m_bytesize =
-			size_t(desc.m_dimensions.x)
-			* size_t(desc.m_dimensions.y)
-			* size_t(6u)
-			* size_t(desc.m_num_mips)
-			* size_t(desc.m_arraysize)
+			uint64(desc.m_dimensions.x)
+			* uint64(desc.m_dimensions.y)
+			* uint64(6u)
+			* uint64(desc.m_num_mips)
+			* uint64(desc.m_arraysize)
 			* m_bytestride;
 
 		m_format = desc.m_format;
@@ -131,12 +131,12 @@ namespace influx::graphics
 		return 1u;
 	}
 
-	size_t resource::get_bytesize() const
+	uint64 resource::get_bytesize() const
 	{
 		return m_bytesize;
 	}
 
-	size_t resource::get_bytestride() const
+	uint64 resource::get_bytestride() const
 	{
 		return m_bytestride;
 	}
@@ -156,9 +156,9 @@ namespace influx::graphics
 		return m_previous_state;
 	}
 
-	range<size_t> resource::get_full_range() const
+	range<uint64> resource::get_full_range() const
 	{
-		return range<size_t>(0u, m_bytesize);
+		return range<uint64>(0u, m_bytesize);
 	}
 
 	result<> resource::transition(commandlist* cmdlist, e_resource_state new_state)
