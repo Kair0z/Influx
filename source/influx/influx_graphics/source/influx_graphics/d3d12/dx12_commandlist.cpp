@@ -271,73 +271,6 @@ namespace influx::graphics
 		return {};
 	}
 
-	result<> dx12_commandlist::build_acceleration_struct(
-		resource* dest_resource, 
-		resource* scratch_resource, 
-		const build_acc_str_args& args)
-	{
-		renderpass_check(e_command::build_as);
-
-		ID3D12Resource* dxdest = dest_resource->get_native<ID3D12Resource>();
-		ID3D12Resource* dxscratch = scratch_resource->get_native<ID3D12Resource>();
-		ID3D12Resource* dxindexbuffer = nullptr;
-		ID3D12Resource* dxvertexbuffer = nullptr;
-
-		// describe the geometry
-		D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc =
-		{
-			.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES,
-			.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
-			.Triangles =
-			{
-				.Transform3x4 = 0,
-				.IndexFormat = dxindexbuffer ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_UNKNOWN,
-				.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT,
-				.IndexCount = 0u,
-				.VertexCount = /*vertexFloats*/ 3 / 3,
-				.IndexBuffer = true ? dxindexbuffer->GetGPUVirtualAddress() : 0,
-				.VertexBuffer = 
-				{
-					.StartAddress = dxvertexbuffer->GetGPUVirtualAddress(),
-					.StrideInBytes = sizeof(float) * 3
-				}
-			} 
-		};
-
-		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc{};
-		desc.DestAccelerationStructureData = dxdest->GetGPUVirtualAddress();
-		desc.ScratchAccelerationStructureData = dxscratch->GetGPUVirtualAddress();
-		//desc.SourceAccelerationStructureData;
-
-		// choose the type
-		switch (args.m_type)
-		{
-		case e_acc_str_type::bottom: desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL; break;
-		case e_acc_str_type::top: desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL; break;
-		default:
-			influx_assert(false);
-			return result<>::make_error("error: build_acc_str_args::type unsupported!");
-		}
-
-		// misc setup
-		desc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-		desc.Inputs.NumDescs = 1u;
-		desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-		desc.Inputs.pGeometryDescs = &geometryDesc;
-
-		ID3D12GraphicsCommandList4* dxcommandlist4 = nullptr;
-		if ( mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList4>(&dxcommandlist4) )
-		{
-			dxcommandlist4->BuildRaytracingAccelerationStructure(&desc, 0u, nullptr);
-		}
-		else
-		{
-			return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList4> failed!");
-		}
-
-		return {};
-	}
-
 	result<> dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		renderpass_check(e_command::barrier_transition);
@@ -430,6 +363,68 @@ namespace influx::graphics
 		m_texture_barriers.clear();
 		m_buffer_barriers.clear();
 		m_global_barriers.clear();
+		return {};
+	}
+
+	result<> dx12_commandlist::update_blas(blas_resources* blas, const blas_update_args& args)
+	{
+		ID3D12Resource* dxblas = blas->m_blas_buffer->get_native<ID3D12Resource>();
+		ID3D12Resource* dxscratch = blas->m_scratch_buffer->get_native<ID3D12Resource>();
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc{};
+		desc.DestAccelerationStructureData = dxblas->GetGPUVirtualAddress();
+		desc.ScratchAccelerationStructureData = dxscratch->GetGPUVirtualAddress();
+		desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+		// ...
+		ID3D12GraphicsCommandList4* dxcommandlist4 = nullptr;
+		HRESULT
+		hres = mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList4>(&dxcommandlist4);
+		if (hres == S_OK && dxcommandlist4 != nullptr)
+		{
+			dxcommandlist4->BuildRaytracingAccelerationStructure(&desc, 0u, nullptr);
+		}
+		else
+		{
+			return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList4> failed!");
+		}
+
+		return {};
+	}
+
+	result<> dx12_commandlist::update_tlas(tlas_resources* tlas, const tlas_update_args& args)
+	{
+		ID3D12Resource* dxblas = args.m_blas->m_blas_buffer->get_native<ID3D12Resource>();
+		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
+		instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
+		instanceDesc.InstanceMask = 1;
+		instanceDesc.AccelerationStructure = dxblas->GetGPUVirtualAddress();
+
+		tlas->m_instances_buffer->map([&instanceDesc](void* dest)
+		{
+			memcpy(dest, &instanceDesc, sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
+		});
+
+		ID3D12Resource* dxtlas = tlas->m_tlas_buffer->get_native<ID3D12Resource>();
+		ID3D12Resource* dxscratch = tlas->m_scratch_buffer->get_native<ID3D12Resource>();
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc{};
+		desc.DestAccelerationStructureData = dxtlas->GetGPUVirtualAddress();
+		desc.ScratchAccelerationStructureData = dxscratch->GetGPUVirtualAddress();
+		desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+		// ...
+
+		ID3D12GraphicsCommandList4* dxcommandlist4 = nullptr;
+		HRESULT
+			hres = mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList4>(&dxcommandlist4);
+		if (hres == S_OK && dxcommandlist4 != nullptr)
+		{
+			dxcommandlist4->BuildRaytracingAccelerationStructure(&desc, 0u, nullptr);
+		}
+		else
+		{
+			return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList4> failed!");
+		}
+
 		return {};
 	}
 

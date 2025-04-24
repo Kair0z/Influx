@@ -86,16 +86,9 @@ namespace influx::graphics
 		bool m_allow_uav = false;
 	};
 
-	enum class e_acc_str_type : uint8
-	{
-		bottom,
-		top,
-		count
-	};
-
 	struct acc_str_desc final
 	{
-		e_acc_str_type m_type = e_acc_str_type::bottom;
+		// e_acc_str_type m_type = e_acc_str_type::bottom;
 		e_bind_flags m_bindflags = e_bind_flags::uav;
 		uint64 m_bytesize = 0u;
 		e_resource_state m_init_state = e_resource_state::common;

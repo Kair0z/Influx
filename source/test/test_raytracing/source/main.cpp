@@ -138,6 +138,26 @@ int main()
 	pipeline pipeline{};
 	create_pipeline(device, pipeline);
 
+	// create acceleration struct resources
+	graphics::blas_resources blas{};
+	graphics::tlas_resources tlas{};
+	{
+		graphics::blas_create_args blas_args{};
+		blas_args.m_worst_case_update.m_indices;
+		blas_args.m_worst_case_update.m_vertices;
+		blas = device.create_blas(blas_args).get();
+		
+		graphics::tlas_create_args tlas_args{};
+		tlas = device.create_tlas(tlas_args).get();
+
+		graphics::blas_update_args blas_update{};
+		graphics::tlas_update_args tlas_update{};
+		commandlist.start(&device);
+		commandlist.update_blas(&blas, blas_update);
+		commandlist.update_tlas(&tlas, tlas_update);
+		commandlist.submit(&queue);
+	}
+
 	graphics::present_args present_args{};
 	present_args.m_vsync = false;
 	time::point time_last_tick = time::get_now();

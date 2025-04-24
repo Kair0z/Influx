@@ -452,6 +452,127 @@ namespace influx::graphics
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 
+	result<blas_resources> dx12_device::create_blas(const blas_create_args& args)
+	{
+		using result_type = result<blas_resources>;
+
+		// create geometry buffers
+		resource* index_buffer = nullptr;
+		resource* vertex_buffer = nullptr;
+		{
+			heap_desc upload_desc = heap_desc::shared_heap();
+			buffer_desc desc{}; desc.m_init_state = e_resource_state::gen_read;
+
+			const vector<blas_update_args::vertex>& vertices = args.m_worst_case_update.m_vertices;
+			const vector<blas_update_args::index>& indices = args.m_worst_case_update.m_indices;
+
+			desc.m_bytestride = sizeof(blas_update_args::index);
+			desc.m_bytesize = indices.size() * desc.m_bytestride;
+			index_buffer = create_resource(desc, upload_desc);
+
+			desc.m_bytestride = sizeof(blas_update_args::vertex);
+			desc.m_bytesize = vertices.size() * desc.m_bytestride;
+			vertex_buffer = create_resource(desc, upload_desc);
+
+			// map initial datas
+			index_buffer->map([&args, &indices](void* dest)
+			{
+				memcpy(dest, indices.data(), indices.size() * sizeof(blas_update_args::index));
+			});
+			vertex_buffer->map([&args, &vertices](void* dest)
+			{
+				memcpy(dest, vertices.data(), vertices.size() * sizeof(blas_update_args::vertex));
+			});
+		}
+
+		if (vertex_buffer == nullptr)
+			return result_type::make_error("error: failed creating vertex buffer!");
+		if (index_buffer == nullptr)
+			return result_type::make_error("error: failed creating index buffer!");
+
+		ID3D12Resource* dxindexbuffer = index_buffer->get_native<ID3D12Resource>();
+		ID3D12Resource* dxvertexbuffer = vertex_buffer->get_native<ID3D12Resource>();
+
+		// describe the geometry
+		// PERFORMANCE TIP: mark geometry as opaque whenever applicable as it can enable important ray processing optimizations.
+		// Note: When rays encounter opaque geometry an any hit shader will not be executed whether it is present or not.
+		D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc =
+		{
+			.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES,
+			.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
+			.Triangles =
+			{
+				.Transform3x4 = 0,
+				.IndexFormat = DXGI_FORMAT_R16_UINT,
+				.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT,
+				.IndexCount = index_buffer->get_num_elements(),
+				.VertexCount = vertex_buffer->get_num_elements(),
+				.IndexBuffer = dxindexbuffer->GetGPUVirtualAddress(),
+				.VertexBuffer =
+				{
+					.StartAddress = dxvertexbuffer->GetGPUVirtualAddress(),
+					.StrideInBytes = vertex_buffer->get_bytestride()
+				}
+			}
+		};
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs{};
+		inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+		inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+		inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+		inputs.NumDescs = 1u;
+		inputs.pGeometryDescs = &geometryDesc;
+
+		// query driver for prebuild info
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuild_info{};
+		get_main_device<ID3D12Device5>()->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuild_info);
+		if (prebuild_info.ResultDataMaxSizeInBytes == 0u)
+			return result_type::make_error("error: failed GetRaytracingAccelerationStructurePrebuildInfo()!");
+
+		// create scratch & blas buffer
+		resource* scratch_buffer = nullptr;
+		resource* blas_buffer = nullptr;
+		{
+			buffer_desc desc{}; 
+			desc.m_init_state = e_resource_state::cs_uav;
+			desc.m_bytesize = prebuild_info.ScratchDataSizeInBytes;
+			scratch_buffer = create_resource(desc);
+
+			desc.m_init_state = e_resource_state::all_as; // acc struct
+			desc.m_bytesize = prebuild_info.ResultDataMaxSizeInBytes;
+			blas_buffer = create_resource(desc);
+		}
+
+		blas_resources out_result{};
+		out_result.m_index_buffer = index_buffer;
+		out_result.m_vertex_buffer = vertex_buffer;
+		out_result.m_scratch_buffer = scratch_buffer;
+		out_result.m_blas_buffer = blas_buffer;
+		return out_result;
+	}
+
+	result<tlas_resources> dx12_device::create_tlas(const tlas_create_args& args)
+	{
+		using result_type = result<tlas_resources>;
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs{};
+		inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+		inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+		inputs.NumDescs = 1u; // top: num instances, bott: num geometries
+
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuild_info{};
+		get_main_device<ID3D12Device5>()->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuild_info);
+		if (prebuild_info.ResultDataMaxSizeInBytes == 0u)
+			return result_type::make_error("error: failed GetRaytracingAccelerationStructurePrebuildInfo()!");
+
+		tlas_resources result_resources{};
+		{
+			buffer_desc desc{}; desc.m_bytesize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+			result_resources.m_instances_buffer = create_resource(desc, heap_desc::shared_heap());
+		}
+		return result_resources;
+	}
+
 	ptr<resource> dx12_device::create_upload_resource(resource* resource)
 	{
 		heap_desc uploadheap{};

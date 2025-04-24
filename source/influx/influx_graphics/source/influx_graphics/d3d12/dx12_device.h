@@ -50,6 +50,8 @@ namespace influx::graphics
 		virtual ptr<resource> create_resource(const tex2D_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual ptr<resource> create_resource(const buffer_desc& desc, const heap_desc& heap_desc = {}) override;
 		virtual ptr<resource> create_resource(const struct acc_str_desc& desc, const heap_desc& heap_desc = {}) override;
+		virtual result<blas_resources> create_blas(const blas_create_args& args) override;
+		virtual result<tlas_resources> create_tlas(const tlas_create_args& args) override;
 		virtual ptr<resource> create_upload_resource(resource* resource) override;
 
 		virtual ptr<resource> import_buffer(void* native_ptr, const buffer_desc& desc) override;

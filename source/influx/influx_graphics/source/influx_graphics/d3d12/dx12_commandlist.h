@@ -61,8 +61,6 @@ namespace influx::graphics
 
 		virtual result<> set_srv(descriptor_handle srv_gpu, uint32 param_idx) override;
 
-		virtual result<> build_acceleration_struct(resource* dest_resource, resource* scratch_resource, const build_acc_str_args& args) override;
-
 		virtual result<> transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
 
 		// https://microsoft.github.io/DirectX-Specs/d3d/D3D12EnhancedBarriers.html
@@ -73,6 +71,10 @@ namespace influx::graphics
 		virtual result<> global_barrier(e_resource_state before, e_resource_state after) override;
 
 		virtual result<> flush_barriers() override;
+
+		virtual result<> update_blas(blas_resources* blas, const blas_update_args& args) override;
+
+		virtual result<> update_tlas(tlas_resources* tlas, const tlas_update_args& args) override;
 
 		virtual result<> copy_resource(resource* source, resource* dest) override;
 

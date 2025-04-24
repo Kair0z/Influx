@@ -6,6 +6,7 @@
 // influx::graphics
 #include "influx_graphics/base.h"
 #include "influx_graphics/common.h"
+#include "influx_graphics/raytracing.h"
 
 namespace influx::graphics
 {
@@ -352,16 +353,11 @@ namespace influx::graphics
 		shader_slots<e_pipeline_type::compute> m_shaders{};
 	};
 
-	struct raytracing_hitgroup_desc final
-	{
-
-	};
-
 	struct raytracing_pipeline_desc final
 	{
 		uint32 m_max_recursion_depth = 8u;
 		shader_slots<e_pipeline_type::raytracing> m_shaders{};
-		vector<raytracing_hitgroup_desc> m_hitgroups{};
+		vector<hitgroup> m_hitgroups{};
 	};
 
 	struct mesh_pipeline_desc final

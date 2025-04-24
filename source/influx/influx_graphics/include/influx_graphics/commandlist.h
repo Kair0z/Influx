@@ -75,10 +75,6 @@ namespace influx::graphics
 		uint32 m_src_offset = 0u;
 	};
 
-	struct build_acc_str_args final
-	{
-		e_acc_str_type m_type;
-	};
 #pragma endregion
 
 	class commandlist : public base
@@ -132,8 +128,6 @@ namespace influx::graphics
 
 		INFLUX_GFX_API virtual result<> set_srv(descriptor_handle srv_gpu, uint32 param_idx) = 0;
 
-		INFLUX_GFX_API virtual result<> build_acceleration_struct(resource* dest_resource, resource* scratch_resource, const build_acc_str_args& args) = 0;
-
 		INFLUX_GFX_API virtual result<> transition_resource(resource* resource, e_resource_state before, e_resource_state after) = 0;
 
 		INFLUX_GFX_API virtual result<> buffer_barrier(resource* resource, e_resource_state before, e_resource_state after) = 0;
@@ -143,6 +137,10 @@ namespace influx::graphics
 		INFLUX_GFX_API virtual result<> global_barrier(e_resource_state before, e_resource_state after) = 0;
 
 		INFLUX_GFX_API virtual result<> flush_barriers() = 0;
+
+		INFLUX_GFX_API virtual result<> update_blas(blas_resources* blas, const blas_update_args& args) = 0;
+
+		INFLUX_GFX_API virtual result<> update_tlas(tlas_resources* tlas, const tlas_update_args& args) = 0;
 
 		INFLUX_GFX_API virtual result<> copy_resource(resource* source, resource* dest) = 0;
 
