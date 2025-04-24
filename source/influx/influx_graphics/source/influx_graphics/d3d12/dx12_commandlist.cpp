@@ -787,14 +787,17 @@ namespace influx::graphics
 			ID3D12Resource* RayGenTableResource = dx12_raypipeline->m_raygen_shadertable.mpdx_resource;
 
 			D3D12_DISPATCH_RAYS_DESC desc{};
-			//desc.HitGroupTable.StartAddress = HitGroupTableResource->GetGPUVirtualAddress();
-			//desc.HitGroupTable.SizeInBytes = HitGroupTableResource->GetDesc().Width;
-			//desc.HitGroupTable.StrideInBytes = desc.HitGroupTable.SizeInBytes;
-			//desc.MissShaderTable.StartAddress = MissTableResource->GetGPUVirtualAddress();
-			//desc.MissShaderTable.SizeInBytes = MissTableResource->GetDesc().Width;
-			//desc.MissShaderTable.StrideInBytes = desc.MissShaderTable.SizeInBytes;
+			desc.HitGroupTable.StartAddress = HitGroupTableResource->GetGPUVirtualAddress();
+			desc.HitGroupTable.SizeInBytes = HitGroupTableResource->GetDesc().Width;
+			desc.HitGroupTable.StrideInBytes = desc.HitGroupTable.SizeInBytes;
+			desc.MissShaderTable.StartAddress = MissTableResource->GetGPUVirtualAddress();
+			desc.MissShaderTable.SizeInBytes = MissTableResource->GetDesc().Width;
+			desc.MissShaderTable.StrideInBytes = desc.MissShaderTable.SizeInBytes;
 			desc.RayGenerationShaderRecord.StartAddress = RayGenTableResource->GetGPUVirtualAddress();
 			desc.RayGenerationShaderRecord.SizeInBytes = RayGenTableResource->GetDesc().Width;
+			desc.CallableShaderTable.SizeInBytes = 0u;
+			desc.CallableShaderTable.StartAddress = 0u;
+			desc.CallableShaderTable.StrideInBytes = 0u;
 			desc.Width = width;
 			desc.Height = height;
 			desc.Depth = depth;

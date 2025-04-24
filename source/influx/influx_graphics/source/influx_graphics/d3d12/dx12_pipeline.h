@@ -23,7 +23,7 @@ namespace influx::graphics
 	class dx12_raytracing_shadertable final
 	{
 	public:
-		void initialize(device& device, const vector<dx12_raytracing_shader_record>& records)
+		inline void initialize(device& device, const vector<dx12_raytracing_shader_record>& records)
 		{
 			if (records.empty() == false)
 			{
@@ -62,7 +62,7 @@ namespace influx::graphics
 			m_records = records;
 		}
 
-		void cleanup(device& device)
+		inline void cleanup(device& device)
 		{
 			device.release(m_resource);
 		}

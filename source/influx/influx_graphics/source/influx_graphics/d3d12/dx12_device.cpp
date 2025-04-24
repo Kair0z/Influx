@@ -1069,7 +1069,7 @@ namespace influx::graphics
 		};
 		D3D12_RAYTRACING_PIPELINE_CONFIG config =
 		{
-			.MaxTraceRecursionDepth = 1 // desc.m_max_recursion_depth
+			.MaxTraceRecursionDepth = desc.m_max_recursion_depth
 		};
 		D3D12_GLOBAL_ROOT_SIGNATURE global_signature = 
 		{ 

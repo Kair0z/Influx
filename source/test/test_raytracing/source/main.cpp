@@ -201,26 +201,13 @@ int main()
 		device.is_device_removed();
 
 		commandlist.start(&device);
+		commandlist.set_vp_and_rect({ 0.0f, 0.0f }, { 640.0f , 480.0f });
 		
-		// set viewport & rect
-		commandlist.set_vp_and_rect
-		(
-			{ 0.0f, 0.0f },			// min
-			{ 640.0f , 480.0f }		// max
-		);
-
-		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();
-		// backbuffer->transition(&commandlist, graphics::e_resource_state::render_target);
-		// create backbuffer rtv (ideally don't recreate each frame, but on DX12, this is cheap)
-		// device.create_rtv(rtv_handle, backbuffer);
-		// commandlist.set_rtv(rtv_handle, nullptr);
-		// commandlist.clear_rtv(rtv_handle, { 1,0,0,1 });
-
 		raytracing_target->transition(&commandlist, graphics::e_resource_state::cs_uav);
 
 		// set pipeline
-		commandlist.set(pipeline.m_pipeline);
 		commandlist.set(pipeline.m_rootsig, graphics::e_pipeline_type::raytracing);
+		commandlist.set(pipeline.m_pipeline);
 
 		// set resources
 		commandlist.set(&uav_heap);
@@ -230,6 +217,8 @@ int main()
 		// dispatch rays
 		commandlist.dispatch_rays(pipeline.m_pipeline, raytracing_target->get_width(), raytracing_target->get_height(), 1);
 
+		// copy target uav into window backbuffer
+		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();
 		backbuffer->transition(&commandlist, graphics::e_resource_state::copy_dst);
 		raytracing_target->transition(&commandlist, graphics::e_resource_state::copy_src);
 		commandlist.copy_resource(raytracing_target, backbuffer);
