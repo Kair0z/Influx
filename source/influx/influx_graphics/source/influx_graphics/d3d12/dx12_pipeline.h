@@ -32,12 +32,11 @@ namespace influx::graphics
 				m_bytesize = records.size() * stride;
 
 				// create a cpu-writable gpu buffer for the table
-				heap_desc heap_desc = heap_desc::shared_heap();
 				buffer_desc buffer_desc = {};
 				buffer_desc.m_bytesize = m_bytesize;
 				buffer_desc.m_bytestride = stride;
 				buffer_desc.m_init_state = e_resource_state::gen_read;
-				m_resource = device.create_resource(buffer_desc, heap_desc);
+				m_resource = device.create_resource(buffer_desc, heap_desc::shared_heap());
 				mpdx_resource = m_resource->get_native<ID3D12Resource>();
 
 				// map records
