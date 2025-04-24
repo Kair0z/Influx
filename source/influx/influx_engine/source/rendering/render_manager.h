@@ -54,6 +54,7 @@ namespace influx::engine
 		renderer::target*	m_target{};
 		renderer::scene		m_scene{};
 		renderer::scene2D	m_scene2D{};
+		uint64 m_frame_counter = 0u;
 		friend class render_manager;
 	};
 

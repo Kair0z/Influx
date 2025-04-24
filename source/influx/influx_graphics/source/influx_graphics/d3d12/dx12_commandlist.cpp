@@ -361,6 +361,8 @@ namespace influx::graphics
 
 	result<> dx12_commandlist::update_blas(blas_resources* blas, const blas_update_args& args)
 	{
+		renderpass_check(e_command::build_as);
+
 		ID3D12Resource* dxblas = blas->m_blas_buffer->get_native<ID3D12Resource>();
 		ID3D12Resource* dxscratch = blas->m_scratch_buffer->get_native<ID3D12Resource>();
 

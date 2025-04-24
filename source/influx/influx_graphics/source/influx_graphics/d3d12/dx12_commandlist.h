@@ -41,22 +41,29 @@ namespace influx::graphics
 
 		virtual result<> renderpass_end() override;
 
+		/* draw indexed instanced */
 		virtual result<> draw_instanced(const draw_instanced_args&) override;
 
+		/* draw indexed */
 		virtual result<> draw_indexed(const draw_indexed_args&) override;
 
+		/* dispatch compute */
 		virtual result<> dispatch(const dispatch_args&) override;
 
+		/* set root constants at root param index 'x' (must match root signature param idx) */
 		virtual result<> set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) override;
 
+		/* Input Assembler */
 		virtual result<> set_indexbuffer(resource* index_buffer) override;
-
 		virtual result<> set_vertexbuffer(resource* vertex_buffer) override;
 
+		/* */
 		virtual result<> clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value) override;
 
+		/* */
 		virtual result<> clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil) override;
 
+		/* Output Merger - dsv_cpu is optional*/
 		virtual result<> set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu) override;
 
 		virtual result<> transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;

@@ -206,6 +206,18 @@ namespace influx::engine
 				renderer::draw_scene(world_scene, *mp_scene_target);
 			}
 
+			// render child views
+			for (auto& pair : m_views)
+			{
+				render_view_id id = pair.first;
+				render_view& view = pair.second;
+				if (view.is_valid() == false) continue;
+
+				renderer::draw_scene(view.get_scene(), view.get_target());
+				renderer::draw_2D(view.get_scene2D(), view.get_target());
+				++view.m_frame_counter;
+			}
+
 			// shader toy thingy
 #if 0
 			shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");
@@ -234,7 +246,7 @@ namespace influx::engine
 			// scene target -> main window target
 			influx::renderer::copy_target(*mp_scene_target, *window_target);
 
-			// imgui render (renders straight to its own created window targets)
+			// imgui render (renders straight to its own managed window targets)
 			renderer::scene_imgui& imgui_scene = get_scene_imgui();
 			if (imgui_scene.is_empty() == false && is_imgui_render_enabled())
 			{

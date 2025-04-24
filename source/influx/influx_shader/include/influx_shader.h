@@ -18,6 +18,7 @@ namespace influx::shader
 	template <typename _t>
 	using result = influx::result<_t, const char*>;
 
+	/* */
 	struct compile_args final
 	{
 	public:
@@ -42,6 +43,7 @@ namespace influx::shader
 		bool m_pbd;
 	};
 
+	/* */
 	struct reflection final
 	{
 		struct input_param final
@@ -81,6 +83,7 @@ namespace influx::shader
 		vector<resource> m_bound_resources{};
 	};
 
+	/* */
 	struct compile_output final
 	{
 		shader_signature m_signature;
