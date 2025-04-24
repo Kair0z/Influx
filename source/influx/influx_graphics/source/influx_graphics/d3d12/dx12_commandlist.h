@@ -34,7 +34,7 @@ namespace influx::graphics
 		friend class dx12_device;
 
 		// starts a commandlist, using the device to allocate the memory internally
-		virtual void start_impl(device* device, detail::base_pipeline* init_state = nullptr) override;
+		virtual result<> start_impl(device* device, detail::base_pipeline* init_state = nullptr) override;
 
 		/* commands */
 		virtual result<> renderpass_begin(const renderpass_args&) override;
@@ -58,8 +58,6 @@ namespace influx::graphics
 		virtual result<> clear_dsv(descriptor_handle dsv_cpu, float clear_depth, uint32 clear_stencil) override;
 
 		virtual result<> set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu) override;
-
-		virtual result<> set_srv(descriptor_handle srv_gpu, uint32 param_idx) override;
 
 		virtual result<> transition_resource(resource* resource, e_resource_state before, e_resource_state after) override;
 
@@ -85,6 +83,10 @@ namespace influx::graphics
 		virtual result<> set(descriptor_heap* heap) override;
 
 		virtual result<> set(const vector<descriptor_heap*>& heap) override;
+
+		virtual result<> set_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type) override;
+
+		virtual result<> set_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type) override;
 
 		virtual result<> set(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type = e_pipeline_type::graphics) override;
 

@@ -41,6 +41,7 @@ namespace influx::graphics
 
 		set_rtv,
 		set_srv,
+		set_uav,
 		set_descriptor_heap,
 		set_root_constants,
 		set_indexbuffer,

@@ -126,8 +126,6 @@ namespace influx::graphics
 
 		INFLUX_GFX_API virtual result<> set_rtv(descriptor_handle rtv_cpu, descriptor_handle dsv_cpu) = 0;
 
-		INFLUX_GFX_API virtual result<> set_srv(descriptor_handle srv_gpu, uint32 param_idx) = 0;
-
 		INFLUX_GFX_API virtual result<> transition_resource(resource* resource, e_resource_state before, e_resource_state after) = 0;
 
 		INFLUX_GFX_API virtual result<> buffer_barrier(resource* resource, e_resource_state before, e_resource_state after) = 0;
@@ -152,6 +150,10 @@ namespace influx::graphics
 
 		INFLUX_GFX_API virtual result<> set(const vector<descriptor_heap*>& heap) = 0;
 
+		INFLUX_GFX_API virtual result<> set_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type) = 0;
+
+		INFLUX_GFX_API virtual result<> set_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type) = 0;
+
 		INFLUX_GFX_API virtual result<> set(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
 
 		INFLUX_GFX_API virtual result<> set(rootsignature* rootsig, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
@@ -175,9 +177,8 @@ namespace influx::graphics
 		INFLUX_GFX_API virtual result<> end() = 0;
 
 	private:
-		virtual void start_impl(device* device, detail::base_pipeline* init_state = nullptr) = 0;
+		virtual result<> start_impl(device* device, detail::base_pipeline* init_state = nullptr) = 0;
 
-	private:
 		e_state m_state = e_state::created;
 		fence* m_fence = nullptr;
 

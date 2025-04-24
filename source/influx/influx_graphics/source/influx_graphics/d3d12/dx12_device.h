@@ -35,6 +35,7 @@ namespace influx::graphics
 		virtual void release(base*) override;
 		virtual void cleanup() override;
 		virtual feature_info get_feature_info() const;
+		virtual bool is_device_removed() override;
 
 		// creation:
 		virtual ptr<queue> create_queue(const queue_desc& desc) override;
@@ -64,6 +65,7 @@ namespace influx::graphics
 		virtual void create_texture_srv(descriptor_handle cpu_handle, resource* resource) override;
 		virtual void create_texture_uav(descriptor_handle cpu_handle, resource* resource) override;
 		virtual void create_sampler_view(descriptor_handle cpu_handle, resource* resource) override;
+		virtual void create_accstruct_view(descriptor_handle cpu_handle, resource* resource) override;
 
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) override;
 		virtual ptr<graphics_pipeline> create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc) override;
@@ -119,7 +121,7 @@ namespace influx::graphics
 		vector<base*>::iterator find_child(base*);
 
 		template <typename _nat, typename _ret, typename ..._args>
-		_ret* new_child(_args&&... args)
+		inline _ret* new_child(_args&&... args)
 		{
 			_nat* new_child = new _nat(std::forward<_args&&>(args)...);
 			m_children.push_back(new_child);

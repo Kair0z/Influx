@@ -26,25 +26,7 @@ namespace influx::graphics
 		count
 	};
 
-	class tlas_resources final
-	{
-	public:
-		resource* m_instances_buffer = nullptr;
-		resource* m_scratch_buffer = nullptr;
-		resource* m_tlas_buffer = nullptr;
-	};
-
-	class blas_resources final
-	{
-	public:
-		// created vertex / index buffers
-		// these are in cpu-writable state!
-		resource* m_vertex_buffer = nullptr;
-		resource* m_index_buffer = nullptr;
-		
-		resource* m_scratch_buffer = nullptr;
-		resource* m_blas_buffer = nullptr;
-	};
+	class blas_resources;
 
 	struct blas_update_args final
 	{
@@ -68,7 +50,43 @@ namespace influx::graphics
 
 	struct tlas_create_args final
 	{
+		tlas_update_args m_worst_case_update{};
+	};
+
+	class tlas_resources final
+	{
+	public:
+		resource* m_instances_buffer = nullptr;
+		resource* m_scratch_buffer = nullptr;
+		resource* m_tlas_buffer = nullptr;
+
+		inline bool does_update_fit(const tlas_update_args& args) const
+		{
+			return args.m_instances.size() <= m_worst_case_update.m_instances.size();
+		}
+
+		tlas_update_args m_worst_case_update{};
+	};
+
+	class blas_resources final
+	{
+	public:
+		// created vertex / index buffers
+		// these are in cpu-writable state!
+		resource* m_vertex_buffer = nullptr;
+		resource* m_index_buffer = nullptr;
 		
+		resource* m_scratch_buffer = nullptr;
+		resource* m_blas_buffer = nullptr;
+
+		inline bool does_update_fit(const blas_update_args& args) const
+		{
+			return 
+				args.m_vertices.size() <= m_worst_case_update.m_vertices.size() &&
+				args.m_indices.size() <= m_worst_case_update.m_indices.size();
+		}
+
+		blas_update_args m_worst_case_update{};
 	};
 
 	template <e_acceleration_structure_type _t>

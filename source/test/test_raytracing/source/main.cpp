@@ -48,9 +48,10 @@ struct pipeline final
 void create_pipeline(graphics::device& device, pipeline& out_pipeline)
 {
 	graphics::rootsignature_desc rootsig_desc{};
-	rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, 1u, 0u); // output uav
-	// rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::srv, 0u); // tlas srv
-
+	uint32 num_uavs = 1u;
+	rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::srv, 0u);					// tlas srv
+	rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, num_uavs, 0u);	// output uav
+	
 	graphics::raytracing_pipeline_desc ray_pipeline_desc{};
 	ray_pipeline_desc.m_hitgroups.push_back({});
 	compile_shaders(ray_pipeline_desc);
@@ -92,6 +93,47 @@ void create_meshbuffers(graphics::device& device, mesh_buffers& out_buffers)
 	out_buffers.m_cube_idx_buffer = make_and_upload(cubeIdx);
 }
 
+struct acceleration_structures final
+{
+	graphics::blas_resources m_blas{};
+	graphics::tlas_resources m_tlas{};
+};
+void create_acc_buffers(graphics::device& device, graphics::commandlist& commandlist, graphics::queue& queue, acceleration_structures& out_result)
+{
+	// create a blas from geometry
+	vector<graphics::blas_update_args::vertex> vertices{};
+	vertices.push_back({ 1.0f, 0.0f, 0.0f });
+	vertices.push_back({ -1.0f, 0.0f, 0.0f });
+	vertices.push_back({ 0.0f, 1.0f, 0.0f });
+	vector<graphics::blas_update_args::index> indices{};
+	indices.push_back(0);
+	indices.push_back(1);
+	indices.push_back(2);
+	vector<graphics::tlas_update_args::instance> instances{};
+	instances.push_back(math::matrix4x4f::identity());
+
+	graphics::blas_create_args blas_args{};
+	blas_args.m_worst_case_update.m_indices = indices;
+	blas_args.m_worst_case_update.m_vertices = vertices;
+	out_result.m_blas = device.create_blas(blas_args).get();
+
+	graphics::tlas_create_args tlas_args{};
+	tlas_args.m_worst_case_update.m_instances = instances;
+	out_result.m_tlas = device.create_tlas(tlas_args).get();
+
+	graphics::blas_update_args blas_update{};
+	blas_update.m_vertices = vertices;
+	blas_update.m_indices = indices;
+	graphics::tlas_update_args tlas_update{};
+	tlas_update.m_instances = instances;
+	tlas_update.m_blas = &out_result.m_blas;
+
+	commandlist.start(&device);
+	commandlist.update_blas(&out_result.m_blas, blas_update);
+	commandlist.update_tlas(&out_result.m_tlas, tlas_update);
+	commandlist.submit(&queue);
+}
+
 int main()
 {
 	using namespace influx;
@@ -113,7 +155,7 @@ int main()
 	
 	// we need only 1 single rtv allocated (backbuffer)
 	graphics::descriptor_heap& rtv_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_rtv_heap(1u));
-	graphics::descriptor_heap& uav_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_uav_heap(1u));
+	graphics::descriptor_heap& uav_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_uav_heap(2u));
 	graphics::descriptor_handle rtv_handle = rtv_heap.allocate_cpu();
 	graphics::descriptor_handle uav_cpu_handle = uav_heap.allocate_cpu();
 	graphics::descriptor_handle uav_gpu_handle = uav_heap.allocate_gpu();
@@ -139,24 +181,8 @@ int main()
 	create_pipeline(device, pipeline);
 
 	// create acceleration struct resources
-	graphics::blas_resources blas{};
-	graphics::tlas_resources tlas{};
-	{
-		graphics::blas_create_args blas_args{};
-		blas_args.m_worst_case_update.m_indices;
-		blas_args.m_worst_case_update.m_vertices;
-		blas = device.create_blas(blas_args).get();
-		
-		graphics::tlas_create_args tlas_args{};
-		tlas = device.create_tlas(tlas_args).get();
-
-		graphics::blas_update_args blas_update{};
-		graphics::tlas_update_args tlas_update{};
-		commandlist.start(&device);
-		commandlist.update_blas(&blas, blas_update);
-		commandlist.update_tlas(&tlas, tlas_update);
-		commandlist.submit(&queue);
-	}
+	acceleration_structures acc_structs{};
+	create_acc_buffers(device, commandlist, queue, acc_structs);
 
 	graphics::present_args present_args{};
 	present_args.m_vsync = false;
@@ -171,6 +197,8 @@ int main()
 		seconds += delta_seconds;
 
 		window.poll_events(is_quit);
+
+		device.is_device_removed();
 
 		commandlist.start(&device);
 		
@@ -188,16 +216,21 @@ int main()
 		// commandlist.set_rtv(rtv_handle, nullptr);
 		// commandlist.clear_rtv(rtv_handle, { 1,0,0,1 });
 
-		// dispatch rays
 		raytracing_target->transition(&commandlist, graphics::e_resource_state::cs_uav);
+
+		// set pipeline
 		commandlist.set(pipeline.m_rootsig, graphics::e_pipeline_type::raytracing);
 		commandlist.set(pipeline.m_pipeline);
-		commandlist.set(&uav_heap);
-		commandlist.set(uav_gpu_handle, 0u, graphics::e_pipeline_type::raytracing);
-		commandlist.dispatch_rays(pipeline.m_pipeline,
-			raytracing_target->get_width(), raytracing_target->get_height());
 
-		// copy raytracetarget -> backbuffer
+		// set resources
+		commandlist.set(&uav_heap);
+		commandlist.set(uav_gpu_handle, 1u, graphics::e_pipeline_type::raytracing);
+		commandlist.set_srv(acc_structs.m_tlas.m_tlas_buffer, 0u, graphics::e_pipeline_type::raytracing);
+		
+		// dispatch rays
+		commandlist.dispatch_rays(pipeline.m_pipeline,
+			1, 1, 1);
+
 		backbuffer->transition(&commandlist, graphics::e_resource_state::copy_dst);
 		raytracing_target->transition(&commandlist, graphics::e_resource_state::copy_src);
 		commandlist.copy_resource(raytracing_target, backbuffer);

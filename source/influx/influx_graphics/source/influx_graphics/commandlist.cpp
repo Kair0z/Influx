@@ -44,7 +44,9 @@ namespace influx::graphics
         // starts allocator
         m_state = e_state::recording;
 
-        start_impl(device, init_state);
+        if (start_impl(device, init_state).is_unex()) 
+            return result<>::make_error("error: start_impl failed!");
+        
         return res;
     }
 
@@ -83,9 +85,14 @@ namespace influx::graphics
 
     commandlist::e_state commandlist::get_state()
     {
-        if (m_fence != nullptr && m_fence->query_value() == m_complete_value)
+        if (m_fence != nullptr)
         {
-            m_state = e_state::completed;
+            const auto query_value = m_fence->query_value();
+            influx_assert(query_value != (uint64)-1);
+            if (query_value == m_complete_value)
+            {
+                m_state = e_state::completed;
+            }
         }
 
         return m_state;

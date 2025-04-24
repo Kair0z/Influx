@@ -168,6 +168,19 @@ namespace influx::graphics
 		return info;
 	}
 
+	bool dx12_device::is_device_removed()
+	{
+		HRESULT 
+		hres = get_main_device<ID3D12Device>()->GetDeviceRemovedReason();
+		if (hres != S_OK)
+		{
+			printf("oei");
+			return true;
+		}
+
+		return false;
+	}
+
 	// get info about physical devices:
 	vector<physical_device_info> dx12_device::get_gpu_infos()
 	{
@@ -456,6 +469,11 @@ namespace influx::graphics
 	{
 		using result_type = result<blas_resources>;
 
+		if (args.m_worst_case_update.m_indices.empty())
+			return result_type::make_error("error: worst case indices is empty!");
+		if (args.m_worst_case_update.m_vertices.empty())
+			return result_type::make_error("error: worst case vertices is empty!");
+
 		// create geometry buffers
 		resource* index_buffer = nullptr;
 		resource* vertex_buffer = nullptr;
@@ -534,11 +552,12 @@ namespace influx::graphics
 		resource* blas_buffer = nullptr;
 		{
 			buffer_desc desc{}; 
-			desc.m_init_state = e_resource_state::cs_uav;
+			desc.m_init_state = e_resource_state::common;
 			desc.m_bytesize = prebuild_info.ScratchDataSizeInBytes;
 			scratch_buffer = create_resource(desc);
 
 			desc.m_init_state = e_resource_state::all_as; // acc struct
+			desc.m_bindflags = e_bind_flags::uav;
 			desc.m_bytesize = prebuild_info.ResultDataMaxSizeInBytes;
 			blas_buffer = create_resource(desc);
 		}
@@ -555,6 +574,9 @@ namespace influx::graphics
 	{
 		using result_type = result<tlas_resources>;
 
+		if (args.m_worst_case_update.m_instances.empty())
+			return result_type::make_error("error: worst case instances is empty!");
+
 		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs{};
 		inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 		inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
@@ -567,8 +589,26 @@ namespace influx::graphics
 
 		tlas_resources result_resources{};
 		{
-			buffer_desc desc{}; desc.m_bytesize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+			// instances
+			const vector<tlas_update_args::instance>& instances = args.m_worst_case_update.m_instances;
+			const uint64 worst_case_bytesize = instances.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+			buffer_desc desc{}; desc.m_bytesize = worst_case_bytesize;
 			result_resources.m_instances_buffer = create_resource(desc, heap_desc::shared_heap());
+			result_resources.m_instances_buffer->map([&instances, worst_case_bytesize](void* dest)
+			{
+				memcpy(dest, instances.data(), worst_case_bytesize);
+			});
+
+			// scratch
+			desc.m_init_state = e_resource_state::common;
+			desc.m_bytesize = prebuild_info.ScratchDataSizeInBytes;
+			result_resources.m_scratch_buffer = create_resource(desc);
+
+			// tlas
+			desc.m_init_state = e_resource_state::all_as; // acc struct
+			desc.m_bindflags = e_bind_flags::uav;
+			desc.m_bytesize = prebuild_info.ResultDataMaxSizeInBytes;
+			result_resources.m_tlas_buffer = create_resource(desc);
 		}
 		return result_resources;
 	}
@@ -697,6 +737,20 @@ namespace influx::graphics
 
 		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { .ptr = (size_t)(cpu_handle) };
 		mpdx_devices[0u]->CreateSampler(&desc, dxcpu_descriptor);
+	}
+
+	void dx12_device::create_accstruct_view(descriptor_handle cpu_handle, resource* resource)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { .ptr = (size_t)(cpu_handle) };
+		ID3D12Resource* dxresource = resource->get_native<ID3D12Resource>();
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+		srv_desc.RaytracingAccelerationStructure.Location = dxresource->GetGPUVirtualAddress();
+		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		//srv_desc.Format = translate(resource->get_format());
+
+		mpdx_devices[0u]->CreateShaderResourceView(dxresource, &srv_desc, dxcpu_descriptor);
 	}
 
 	ptr<rootsignature> dx12_device::create_rootsignature(const rootsignature_desc& desc)
@@ -1018,7 +1072,7 @@ namespace influx::graphics
 		};
 		D3D12_RAYTRACING_PIPELINE_CONFIG config =
 		{
-			.MaxTraceRecursionDepth = desc.m_max_recursion_depth
+			.MaxTraceRecursionDepth = 1 // desc.m_max_recursion_depth
 		};
 		D3D12_GLOBAL_ROOT_SIGNATURE global_signature = 
 		{ 
@@ -1076,18 +1130,9 @@ namespace influx::graphics
 
 			// Ray gen shader table
 			{
-				struct raygen_root_args final
-				{
-					float left;
-					float top;
-					float right;
-					float bottom;
-				} root_args{};
-
 				dx12_raytracing_shader_record record
 				{
 					.m_shader_id{.m_ptr{&raygen_id}, .m_size{shader_id_size}}
-					//.m_root_args{.m_ptr{&root_args}, .m_size{sizeof(root_args)}}
 				};
 				as_dx12_pipeline->m_raygen_shadertable.initialize(*this, { record });
 			}

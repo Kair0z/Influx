@@ -51,7 +51,8 @@ namespace influx::graphics
 		virtual void cleanup() = 0;
 
 		virtual feature_info get_feature_info() const = 0;
-		
+		virtual bool is_device_removed() = 0;
+
 		virtual ptr<queue>				create_queue(const queue_desc& desc = queue_desc::default_graphics()) = 0;
 		virtual ptr<swapchain>			create_swapchain(queue* queue, const platform::window& window, const swapchain_desc& desc = swapchain_desc::default_tripple()) = 0;
 		virtual ptr<descriptor_heap>	create_descriptor_heap(const descriptor_heap::create_args&) = 0;
@@ -81,6 +82,7 @@ namespace influx::graphics
 		virtual void create_texture_srv(descriptor_handle cpu_handle, resource* resource) = 0;
 		virtual void create_texture_uav(descriptor_handle cpu_handle, resource* resource) = 0;
 		virtual void create_sampler_view(descriptor_handle cpu_handle, resource* resource) = 0;
+		virtual void create_accstruct_view(descriptor_handle cpu_handle, resource* resource) = 0;
 
 		/* pipeline state objects */
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) = 0;

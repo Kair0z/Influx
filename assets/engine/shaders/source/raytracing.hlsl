@@ -7,8 +7,8 @@ struct Payload
     bool missed;
 };
 
-//RaytracingAccelerationStructure scene : register(t0);
-RWTexture2D<float4> uav : register(u0);
+RaytracingAccelerationStructure scene   : register(t0);
+RWTexture2D<float4> uav                 : register(u0);
 
 static const float3 camera = float3(0, 1.5, -7);
 static const float3 light = float3(0, 200, 0);
@@ -19,9 +19,10 @@ static const float3 skyBottom = float3(0.75, 0.86, 0.93);
 void RayGeneration()
 {
     uint2 idx = DispatchRaysIndex().xy;
-    uav[idx].rgba = float4(0, 1, 0, 1);
+    uav[idx].rgba = float4(1, 1, 1, 1);
     return;
-    
+
+#if 0
     float2 size = DispatchRaysDimensions().xy;
     float2 uv = idx / size;
     float3 target = float3((uv.x * 2 - 1) * 1.8 * (size.x / size.y),
@@ -39,6 +40,7 @@ void RayGeneration()
     payload.missed = false;
 
     // TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, ray, payload);
+#endif
     uav[idx].rgba = float4(0,1,0,1);
 }
 

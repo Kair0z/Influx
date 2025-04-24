@@ -25,7 +25,7 @@ namespace influx::graphics
 		mpdx_allocator = allocator;
 	}
 
-	void dx12_commandlist::start_impl(device* device, detail::base_pipeline* init_state)
+	result<> dx12_commandlist::start_impl(device* device, detail::base_pipeline* init_state)
 	{
 		dx12_device* dxdevice = ((dx12_device*)device);
 
@@ -38,6 +38,8 @@ namespace influx::graphics
 
 		ID3D12PipelineState* dxpipeline = (init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr);
 		mpdx_graphics_commandlist->Reset(mpdx_allocator, dxpipeline);
+
+		return {};
 	}
 
 	result<> dx12_commandlist::renderpass_begin(const renderpass_args& args)
@@ -262,15 +264,6 @@ namespace influx::graphics
 		return {};
 	}
 
-	result<> dx12_commandlist::set_srv(descriptor_handle srv_gpu, uint32 param_idx)
-	{
-		renderpass_check(e_command::set_srv);
-
-		D3D12_GPU_DESCRIPTOR_HANDLE srv_gpu_handle{ .ptr = (SIZE_T)srv_gpu };
-		mpdx_graphics_commandlist->SetGraphicsRootDescriptorTable(param_idx, srv_gpu_handle);
-		return {};
-	}
-
 	result<> dx12_commandlist::transition_resource(resource* resource, e_resource_state before, e_resource_state after)
 	{
 		renderpass_check(e_command::barrier_transition);
@@ -371,11 +364,55 @@ namespace influx::graphics
 		ID3D12Resource* dxblas = blas->m_blas_buffer->get_native<ID3D12Resource>();
 		ID3D12Resource* dxscratch = blas->m_scratch_buffer->get_native<ID3D12Resource>();
 
+		if (blas->does_update_fit(args))
+			return result<>::make_error("error: blas is not big enough for this update!");
+
+		// map new data into buffer
+		const vector<blas_update_args::vertex>& vertices = args.m_vertices;
+		const vector<blas_update_args::index>& indices = args.m_indices;
+		resource* index_buffer = blas->m_index_buffer;
+		resource* vertex_buffer = blas->m_vertex_buffer;
+		index_buffer->map([&args, &indices](void* dest)
+		{
+			memcpy(dest, indices.data(), indices.size() * sizeof(blas_update_args::index));
+		});
+		vertex_buffer->map([&args, &vertices](void* dest)
+		{
+			memcpy(dest, vertices.data(), vertices.size() * sizeof(blas_update_args::vertex));
+		});
+
+		// describe geometry
+		ID3D12Resource* dxvertexbuffer = vertex_buffer->get_native<ID3D12Resource>();
+		ID3D12Resource* dxindexbuffer = index_buffer->get_native<ID3D12Resource>();
+		D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc =
+		{
+			.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES,
+			.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
+			.Triangles =
+			{
+				.Transform3x4 = 0,
+				.IndexFormat = DXGI_FORMAT_R16_UINT,
+				.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT,
+				.IndexCount = index_buffer->get_num_elements(),
+				.VertexCount = vertex_buffer->get_num_elements(),
+				.IndexBuffer = dxindexbuffer->GetGPUVirtualAddress(),
+				.VertexBuffer =
+				{
+					.StartAddress = dxvertexbuffer->GetGPUVirtualAddress(),
+					.StrideInBytes = vertex_buffer->get_bytestride()
+				}
+			}
+		};
+
 		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc{};
 		desc.DestAccelerationStructureData = dxblas->GetGPUVirtualAddress();
 		desc.ScratchAccelerationStructureData = dxscratch->GetGPUVirtualAddress();
 		desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-		// ...
+		desc.Inputs.pGeometryDescs = &geometryDesc;
+		desc.Inputs.NumDescs = 1u;
+		desc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+		desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+
 		ID3D12GraphicsCommandList4* dxcommandlist4 = nullptr;
 		HRESULT
 		hres = mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList4>(&dxcommandlist4);
@@ -393,12 +430,20 @@ namespace influx::graphics
 
 	result<> dx12_commandlist::update_tlas(tlas_resources* tlas, const tlas_update_args& args)
 	{
+		if (args.m_blas == nullptr)
+			return result<>::make_error("error: invalid blas!");
+		if (tlas == nullptr || tlas->m_instances_buffer == nullptr || tlas->m_scratch_buffer == nullptr || tlas->m_tlas_buffer == nullptr)
+			return result<>::make_error("error: invalid tlas!");
+		if (tlas->does_update_fit(args))
+			return result<>::make_error("error: tlas is not big enough for this update!");
+
 		ID3D12Resource* dxblas = args.m_blas->m_blas_buffer->get_native<ID3D12Resource>();
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
 		instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
 		instanceDesc.InstanceMask = 1;
 		instanceDesc.AccelerationStructure = dxblas->GetGPUVirtualAddress();
 
+		// map new data into buffer
 		tlas->m_instances_buffer->map([&instanceDesc](void* dest)
 		{
 			memcpy(dest, &instanceDesc, sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
@@ -406,12 +451,16 @@ namespace influx::graphics
 
 		ID3D12Resource* dxtlas = tlas->m_tlas_buffer->get_native<ID3D12Resource>();
 		ID3D12Resource* dxscratch = tlas->m_scratch_buffer->get_native<ID3D12Resource>();
+		ID3D12Resource* dxinstances = tlas->m_instances_buffer->get_native<ID3D12Resource>();
 
 		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc{};
 		desc.DestAccelerationStructureData = dxtlas->GetGPUVirtualAddress();
 		desc.ScratchAccelerationStructureData = dxscratch->GetGPUVirtualAddress();
 		desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-		// ...
+		desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+		desc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+		desc.Inputs.InstanceDescs = dxinstances->GetGPUVirtualAddress();
+		desc.Inputs.NumDescs = 1u;
 
 		ID3D12GraphicsCommandList4* dxcommandlist4 = nullptr;
 		HRESULT
@@ -530,6 +579,52 @@ namespace influx::graphics
 		}
 
 		mpdx_graphics_commandlist->SetDescriptorHeaps(static_cast<uint32>(native_heaps.size()), native_heaps.data());
+		return {};
+	}
+
+	result<> dx12_commandlist::set_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type)
+	{
+		renderpass_check(e_command::set_srv);
+
+		ID3D12Resource* dxresource = root_resource->get_native<ID3D12Resource>();
+		switch (type)
+		{
+		default:
+		case e_pipeline_type::graphics:
+		{
+			mpdx_graphics_commandlist->SetGraphicsRootShaderResourceView(param_idx, dxresource->GetGPUVirtualAddress());
+		}break;
+
+		case e_pipeline_type::compute:
+		case e_pipeline_type::raytracing:
+		{
+			mpdx_graphics_commandlist->SetComputeRootShaderResourceView(param_idx, dxresource->GetGPUVirtualAddress());
+		}break;
+		}
+
+		return {};
+	}
+
+	result<> dx12_commandlist::set_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type)
+	{
+		renderpass_check(e_command::set_uav);
+
+		ID3D12Resource* dxresource = root_resource->get_native<ID3D12Resource>();
+		switch (type)
+		{
+		default:
+		case e_pipeline_type::graphics:
+		{
+			mpdx_graphics_commandlist->SetGraphicsRootUnorderedAccessView(param_idx, dxresource->GetGPUVirtualAddress());
+		}break;
+
+		case e_pipeline_type::compute:
+		case e_pipeline_type::raytracing:
+		{
+			mpdx_graphics_commandlist->SetComputeRootUnorderedAccessView(param_idx, dxresource->GetGPUVirtualAddress());
+		}break;
+		}
+
 		return {};
 	}
 
