@@ -1044,8 +1044,6 @@ namespace influx::graphics
 				D3D12_DXIL_LIBRARY_DESC library_desc{};
 				library_desc.DXILLibrary.BytecodeLength = bytecode.size();
 				library_desc.DXILLibrary.pShaderBytecode = bytecode.data();
-				library_desc.NumExports;
-				library_desc.pExports;
 				shader_libraries.push_back(library_desc);
 			}
 		}
@@ -1057,8 +1055,7 @@ namespace influx::graphics
 			D3D12_HIT_GROUP_DESC hitgroup =
 			{
 				.HitGroupExport = L"HitGroup",
-				.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES,
-				.ClosestHitShaderImport = L"ClosestHit"
+				.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES
 			};
 
 			hitgroups.push_back(hitgroup);

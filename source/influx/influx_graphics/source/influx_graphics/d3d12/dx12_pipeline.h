@@ -28,13 +28,14 @@ namespace influx::graphics
 			if (records.empty() == false)
 			{
 				m_shader_record_size = records[0].get_record_size();
-				m_bytesize = records.size() * m_shader_record_size;
+				const auto stride = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT;
+				m_bytesize = records.size() * stride;
 
 				// create a cpu-writable gpu buffer for the table
 				heap_desc heap_desc = heap_desc::shared_heap();
 				buffer_desc buffer_desc = {};
 				buffer_desc.m_bytesize = m_bytesize;
-				buffer_desc.m_bytestride = m_shader_record_size;
+				buffer_desc.m_bytestride = stride;
 				buffer_desc.m_init_state = e_resource_state::gen_read;
 				m_resource = device.create_resource(buffer_desc, heap_desc);
 				mpdx_resource = m_resource->get_native<ID3D12Resource>();
@@ -45,13 +46,16 @@ namespace influx::graphics
 					byte* byte_target = static_cast<byte*>(target);
 					for (const auto& record : records)
 					{
-						// copy the shader id, after it copy the root args
+						// copy the shader id
 						memcpy(byte_target, record.m_shader_id.m_ptr, record.m_shader_id.m_size);
+
+						// copy the optional root arguments
 						if (record.m_root_args.m_ptr)
 						{
 							memcpy(byte_target + record.m_shader_id.m_size, record.m_root_args.m_ptr, record.m_root_args.m_size);
 						}
 					}
+
 					byte_target += m_shader_record_size;
 				});
 			}

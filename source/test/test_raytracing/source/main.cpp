@@ -219,8 +219,8 @@ int main()
 		raytracing_target->transition(&commandlist, graphics::e_resource_state::cs_uav);
 
 		// set pipeline
-		commandlist.set(pipeline.m_rootsig, graphics::e_pipeline_type::raytracing);
 		commandlist.set(pipeline.m_pipeline);
+		commandlist.set(pipeline.m_rootsig, graphics::e_pipeline_type::raytracing);
 
 		// set resources
 		commandlist.set(&uav_heap);
@@ -228,8 +228,7 @@ int main()
 		commandlist.set_srv(acc_structs.m_tlas.m_tlas_buffer, 0u, graphics::e_pipeline_type::raytracing);
 		
 		// dispatch rays
-		commandlist.dispatch_rays(pipeline.m_pipeline,
-			1, 1, 1);
+		commandlist.dispatch_rays(pipeline.m_pipeline, raytracing_target->get_width(), raytracing_target->get_height(), 1);
 
 		backbuffer->transition(&commandlist, graphics::e_resource_state::copy_dst);
 		raytracing_target->transition(&commandlist, graphics::e_resource_state::copy_src);

@@ -357,6 +357,7 @@ namespace influx::graphics
 	{
 		uint32 m_max_recursion_depth = 8u;
 		shader_slots<e_pipeline_type::raytracing> m_shaders{};
+		vector<string> m_shader_export_names{};
 		vector<hitgroup> m_hitgroups{};
 	};
 

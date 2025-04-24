@@ -772,6 +772,9 @@ namespace influx::graphics
 	{
 		renderpass_check(e_command::dispatch_rays);
 
+		if (pipeline == nullptr)
+			return result<>::make_error("error: invalid pipeline!");
+
 		ID3D12GraphicsCommandList4* dxcommandlist4 = nullptr;
 		HRESULT hres = mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList4>(&dxcommandlist4);
 		if (hres == S_OK)
@@ -779,21 +782,19 @@ namespace influx::graphics
 			dx12_pipeline<e_pipeline_type::raytracing>* dx12_raypipeline = (dx12_pipeline<e_pipeline_type::raytracing>*)pipeline;
 			ID3D12StateObject* dxstateobject = pipeline->get_native<ID3D12StateObject>();
 
-			D3D12_DISPATCH_RAYS_DESC desc{};
-
 			ID3D12Resource* HitGroupTableResource = dx12_raypipeline->m_hitgroup_shadertable.mpdx_resource;
 			ID3D12Resource* MissTableResource = dx12_raypipeline->m_miss_shadertable.mpdx_resource;
 			ID3D12Resource* RayGenTableResource = dx12_raypipeline->m_raygen_shadertable.mpdx_resource;
 
-			desc.HitGroupTable.StartAddress = HitGroupTableResource->GetGPUVirtualAddress();
-			desc.HitGroupTable.SizeInBytes = HitGroupTableResource->GetDesc().Width;
-			desc.HitGroupTable.StrideInBytes = desc.HitGroupTable.SizeInBytes;
-			desc.MissShaderTable.StartAddress = MissTableResource->GetGPUVirtualAddress();
-			desc.MissShaderTable.SizeInBytes = MissTableResource->GetDesc().Width;
-			desc.MissShaderTable.StrideInBytes = desc.MissShaderTable.SizeInBytes;
+			D3D12_DISPATCH_RAYS_DESC desc{};
+			//desc.HitGroupTable.StartAddress = HitGroupTableResource->GetGPUVirtualAddress();
+			//desc.HitGroupTable.SizeInBytes = HitGroupTableResource->GetDesc().Width;
+			//desc.HitGroupTable.StrideInBytes = desc.HitGroupTable.SizeInBytes;
+			//desc.MissShaderTable.StartAddress = MissTableResource->GetGPUVirtualAddress();
+			//desc.MissShaderTable.SizeInBytes = MissTableResource->GetDesc().Width;
+			//desc.MissShaderTable.StrideInBytes = desc.MissShaderTable.SizeInBytes;
 			desc.RayGenerationShaderRecord.StartAddress = RayGenTableResource->GetGPUVirtualAddress();
 			desc.RayGenerationShaderRecord.SizeInBytes = RayGenTableResource->GetDesc().Width;
-
 			desc.Width = width;
 			desc.Height = height;
 			desc.Depth = depth;
