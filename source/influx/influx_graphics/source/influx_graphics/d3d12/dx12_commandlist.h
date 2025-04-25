@@ -123,6 +123,7 @@ namespace influx::graphics
 
 	private:
 		bool m_is_in_renderpass = false;
+		bool m_is_closed = true;
 
 		bool is_renderpass_valid(e_command command) const;
 

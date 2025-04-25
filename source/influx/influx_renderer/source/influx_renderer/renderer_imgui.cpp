@@ -247,28 +247,46 @@ namespace influx::renderer
 		mp_fonts_texture = tex_resource.m_resource;
 	}
 
-	void imgui_manager::create_shaders()
+	result<> imgui_manager::create_shaders()
 	{
 		shader::compile_args args{};
 		args.m_signature.m_entrypoint = "main";
+		args.m_signature.m_filename = "imgui_shaders";
 #if INFLUX_DEBUG
 		args.m_compile_debug = true;
 #else
 		args.m_compile_debug = false;
 #endif
-		args.m_signature.m_target = shader::e_shader_target::_6_2;
+		args.m_signature.m_target = shader::e_shader_target::_6_6;
 		args.m_pbd = true;
 		args.m_reflection;
 
 		args.m_signature.m_type = shader::e_shader_type::vs;
-		m_vertex_shader = shader::compile_shader(k_vertex_shader, args).get();
+		auto res = shader::compile_shader(k_vertex_shader, args);
+		if (res.is_unex())
+		{
+			return result<>::make_error("error: failed compiling vertex shader!");
+		}
+
+		m_vertex_shader = res.get();
 
 		args.m_signature.m_type = shader::e_shader_type::ps;
-		m_pixel_shader = shader::compile_shader(k_pixel_shader, args).get();
+		res = shader::compile_shader(k_pixel_shader, args);
+		if (res.is_unex())
+		{
+			return result<>::make_error("error: failed compiling pixel shader!");
+		}
+		
+		m_pixel_shader = res.get();
+
+		return {};
 	}
 
-	void imgui_manager::create_pipeline(graphics::device* device)
+	result<> imgui_manager::create_pipeline(graphics::device* device)
 	{
+		if (device == nullptr)
+			return result<>::make_error("error: invalid device!");
+
 		// setup root signature
 #pragma region root_signature
 		graphics::rootsignature_desc rootsig_desc{};
@@ -309,7 +327,8 @@ namespace influx::renderer
 #pragma endregion
 
 		// create shaders
-		create_shaders();
+		auto res = create_shaders();
+		influx_assert(res.is_success());
 
 		// setup pipeline
 		graphics::graphics_pipeline_desc pipeline_desc{};

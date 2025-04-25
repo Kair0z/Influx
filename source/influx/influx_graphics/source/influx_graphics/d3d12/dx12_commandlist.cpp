@@ -39,6 +39,8 @@ namespace influx::graphics
 		ID3D12PipelineState* dxpipeline = (init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr);
 		mpdx_graphics_commandlist->Reset(mpdx_allocator, dxpipeline);
 
+		m_is_closed = false;
+
 		return {};
 	}
 
@@ -738,7 +740,13 @@ namespace influx::graphics
 
 	result<> dx12_commandlist::end()
 	{
-		mpdx_graphics_commandlist->Close();
+		if (m_is_closed == false)
+		{
+			mpdx_graphics_commandlist->Close();
+		}
+
+		m_is_closed = true;
+
 		return {};
 	}
 

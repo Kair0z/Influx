@@ -88,7 +88,7 @@ namespace influx::graphics
         if (m_fence != nullptr)
         {
             const auto query_value = m_fence->query_value();
-            influx_assert(query_value != (uint64)-1);
+            //influx_assert(query_value != (uint64)-1);
             if (query_value == m_complete_value)
             {
                 m_state = e_state::completed;

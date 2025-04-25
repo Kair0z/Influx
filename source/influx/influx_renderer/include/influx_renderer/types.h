@@ -8,12 +8,16 @@
 
 // influx::core
 #include "core/basetypes.h"
+#include "core/result.h"
 
 // influx::renderer
 #include "resource.h"
 
 namespace influx::renderer
 {
+	template <typename _t = char>
+	using result = influx::result<_t, const char*>;
+
 	// num backbuffers held by a swapchain
 	enum class e_buffering : uint8
 	{

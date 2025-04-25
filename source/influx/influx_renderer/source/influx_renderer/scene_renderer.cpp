@@ -173,7 +173,7 @@ namespace influx::renderer
         // parse the shader files for their necessary shaders
         shader::compile_args compile_args{};
         compile_args.m_include_folder = base_dir;
-        compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
+        const auto target = shader::e_shader_target::_6_6;
         compile_args.m_reflection = true;
         compile_args.m_defines = {};
         compile_args.m_compile_debug = false;
@@ -185,58 +185,63 @@ namespace influx::renderer
         parse_result basepass_parse = shader::parse_shaders_in_file(basepass_sourcefile_path);
         parse_result resolvepass_parse = shader::parse_shaders_in_file(resolvepass_sourcefile_path);
 
-        if (basepass_parse.is_success() && resolvepass_parse.is_success())
+        if (basepass_parse.is_unex() || resolvepass_parse.is_unex())
+            return;
+
+        // assert basepass has vs & ps
+        vector<shader::parse_output> basepass_parsed_file = basepass_parse.get();
         {
-            // assert basepass shader file has a vs & ps, and assert the resolve pass has a cs
-            vector<shader::parse_output> basepass_parsed_file = basepass_parse.get();
+            const bool has_vertex_shader = vector_helpers::contains(basepass_parsed_file,
+            [](const shader::parse_output& shader)
             {
-                const bool has_vertex_shader = vector_helpers::contains(basepass_parsed_file,
-                [](const shader::parse_output& shader)
-                {
-                    return shader.get_shader_type() == shader::e_shader_type::vs;
-                });
-                const bool has_pixel_shader = vector_helpers::contains(basepass_parsed_file,
-                [](const shader::parse_output& shader)
-                {
-                    return shader.get_shader_type() == shader::e_shader_type::ps;
-                });
-                influx_assert(has_vertex_shader && has_pixel_shader);
-            }
-            vector<shader::parse_output> resolvepass_parsed_file = resolvepass_parse.get();
+                return shader.get_shader_type() == shader::e_shader_type::vs;
+            });
+            const bool has_pixel_shader = vector_helpers::contains(basepass_parsed_file,
+            [](const shader::parse_output& shader)
             {
-                const bool has_compute_shader = vector_helpers::contains(resolvepass_parsed_file,
-                [](const shader::parse_output& shader)
-                {
-                    return shader.get_shader_type() == shader::e_shader_type::cs;
-                });
-                influx_assert(has_compute_shader);
-            }
-
-            // now finally compile the shaders and load them into our resource manager:
-            for (const shader::parse_output& shader_parse : basepass_parsed_file)
-            {
-                compile_args.m_signature = shader_parse.m_signature;
-                auto compile_result = shader::compile_shader_in_file(basepass_sourcefile_path, compile_args);
-                influx_assert(compile_result.is_success());
-
-                shader::compile_output compile_output = compile_result.get();
-                influx_assert(compile_output.m_success);
-                resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
-            }
-            for (const shader::parse_output& shader_parse : resolvepass_parsed_file)
-            {
-                compile_args.m_signature = shader_parse.m_signature;
-                auto compile_result = shader::compile_shader_in_file(resolvepass_sourcefile_path, compile_args);
-                influx_assert(compile_result.is_success());
-
-                shader::compile_output compile_output = compile_result.get();
-                influx_assert(compile_output.m_success);
-                resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
-            }
+                return shader.get_shader_type() == shader::e_shader_type::ps;
+            });
+            influx_assert(has_vertex_shader && has_pixel_shader);
         }
-        else
+        // assert resolvepass has cs
+        vector<shader::parse_output> resolvepass_parsed_file = resolvepass_parse.get();
         {
+            const bool has_compute_shader = vector_helpers::contains(resolvepass_parsed_file,
+            [](const shader::parse_output& shader)
+            {
+                return shader.get_shader_type() == shader::e_shader_type::cs;
+            });
+            influx_assert(has_compute_shader);
+        }
 
+        // COMPILE: now finally compile the shaders and load them into our resource manager:
+        for (const shader::parse_output& shader_parse : basepass_parsed_file)
+        {
+            compile_args.m_signature = shader_parse.m_signature;
+            compile_args.m_signature.m_target = target;
+
+            // compile
+            auto compile_result = shader::compile_shader_in_file(basepass_sourcefile_path, compile_args);
+            influx_assert(compile_result.is_success());
+
+            // load into resource_manager
+            shader::compile_output compile_output = compile_result.get();
+            influx_assert(compile_output.m_success);
+            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+        }
+        for (const shader::parse_output& shader_parse : resolvepass_parsed_file)
+        {
+            compile_args.m_signature = shader_parse.m_signature;
+            compile_args.m_signature.m_target = target;
+
+            // compile
+            auto compile_result = shader::compile_shader_in_file(resolvepass_sourcefile_path, compile_args);
+            influx_assert(compile_result.is_success());
+
+            // load into resource_manager
+            shader::compile_output compile_output = compile_result.get();
+            influx_assert(compile_output.m_success);
+            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
         }
     }
 
@@ -626,6 +631,9 @@ namespace influx::renderer
     {
         renderer_backend& backend = renderer_backend::get_instance();
 
+        if (scene.is_empty())
+            return;
+
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         static string depth_name{}; depth_name = color_name + "_depth";
 
@@ -638,14 +646,14 @@ namespace influx::renderer
 
         // deferred gbuffer basepass
         auto* basepass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
-            [this, &target](rendergraph::rgpass_builder& builder)
-            {
-                build_basepass(builder, target);
-            },
-            [this, &scene, &target](rendergraph::rgpass_context& context)
-            {
-                execute_basepass(context, target, scene);
-            });
+        [this, &target](rendergraph::rgpass_builder& builder)
+        {
+            build_basepass(builder, target);
+        },
+        [this, &scene, &target](rendergraph::rgpass_context& context)
+        {
+            execute_basepass(context, target, scene);
+        });
         basepass->set_name(RGNAME("basepass"));
        
         // if we're directly writing to the swapchain, we need to write to a intermediate that allows for uav writes
@@ -655,43 +663,43 @@ namespace influx::renderer
             static rendergraph::rgtex_copysrc_id src_tex_id{};
             static rendergraph::rgtex_copydst_id dst_tex_id{};
             auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
-                [&target](rendergraph::rgpass_builder& builder)
-                {
-                    rendergraph::texture_desc proxy_desc{};
-                    proxy_desc.m_allow_uav = true;
-                    proxy_desc.m_array_size = 1u;
-                    proxy_desc.m_bindflags = graphics::e_bind_flags::uav;
-                    proxy_desc.m_depth = 1u;
-                    proxy_desc.m_format = target.get_resource()->get_format();
-                    proxy_desc.m_width = target.get_width();
-                    proxy_desc.m_heigth = target.get_height();
-                    proxy_desc.m_num_mips = 1u;
-                    proxy_desc.m_sample_count = 1u;
-                    builder.declare_texture(g_proxy_name, proxy_desc);
+            [&target](rendergraph::rgpass_builder& builder)
+            {
+                rendergraph::texture_desc proxy_desc{};
+                proxy_desc.m_allow_uav = true;
+                proxy_desc.m_array_size = 1u;
+                proxy_desc.m_bindflags = graphics::e_bind_flags::uav;
+                proxy_desc.m_depth = 1u;
+                proxy_desc.m_format = target.get_resource()->get_format();
+                proxy_desc.m_width = target.get_width();
+                proxy_desc.m_heigth = target.get_height();
+                proxy_desc.m_num_mips = 1u;
+                proxy_desc.m_sample_count = 1u;
+                builder.declare_texture(g_proxy_name, proxy_desc);
 
-                    src_tex_id = builder.read_copysrc_texture(target.get_name().get());
-                    dst_tex_id = builder.write_copydst_texture(g_proxy_name);
-                    builder.set_viewport(target.get_width(), target.get_height());
-                },
-                [](rendergraph::rgpass_context& context)
-                {
-                    graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
-                    graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
-                    context.get_commandlist().copy_resource(src_resource, dst_resource);
-                });
+                src_tex_id = builder.read_copysrc_texture(target.get_name().get());
+                dst_tex_id = builder.write_copydst_texture(g_proxy_name);
+                builder.set_viewport(target.get_width(), target.get_height());
+            },
+            [](rendergraph::rgpass_context& context)
+            {
+                graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
+                graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+                context.get_commandlist().copy_resource(src_resource, dst_resource);
+            });
             proxypass->set_name(RGNAME("proxypass_a"));
         }
 
         // resolve gbuffer to the target
         auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
-            [this, &target, &scene](rendergraph::rgpass_builder& builder)
-            {
-                build_resolvepass(builder, target, scene);
-            },
-            [this, &target, &scene](rendergraph::rgpass_context& ctx)
-            {
-                execute_resolvepass(ctx, target, scene);
-            });
+        [this, &target, &scene](rendergraph::rgpass_builder& builder)
+        {
+            build_resolvepass(builder, target, scene);
+        },
+        [this, &target, &scene](rendergraph::rgpass_context& ctx)
+        {
+            execute_resolvepass(ctx, target, scene);
+        });
         resolvepass->set_name(RGNAME("resolvepass"));
 
         if (g_use_proxy_pass)
@@ -699,18 +707,18 @@ namespace influx::renderer
             static rendergraph::rgtex_copysrc_id src_tex_id{};
             static rendergraph::rgtex_copydst_id dst_tex_id{};
             auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
-                [&target](rendergraph::rgpass_builder& builder)
-                {
-                    src_tex_id = builder.read_copysrc_texture(g_proxy_name);
-                    dst_tex_id = builder.write_copydst_texture(target.get_name().get());
-                    builder.set_viewport(target.get_width(), target.get_height());
-                },
-                [](rendergraph::rgpass_context& context)
-                {
-                    graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
-                    graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
-                    context.get_commandlist().copy_resource(src_resource, dst_resource);
-                });
+            [&target](rendergraph::rgpass_builder& builder)
+            {
+                src_tex_id = builder.read_copysrc_texture(g_proxy_name);
+                dst_tex_id = builder.write_copydst_texture(target.get_name().get());
+                builder.set_viewport(target.get_width(), target.get_height());
+            },
+            [](rendergraph::rgpass_context& context)
+            {
+                graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
+                graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+                context.get_commandlist().copy_resource(src_resource, dst_resource);
+            });
             proxypass->set_name(RGNAME("proxypass_b"));
         }
     }

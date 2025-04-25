@@ -240,9 +240,9 @@ namespace influx::shader
 		result								.push_back(row_major ? "-Zpr" : "Zpc");
 		if (!args.m_pbd) result				.push_back("-Qstrip_debug");
 		if (!args.m_reflection) result		.push_back("-Qstrip_reflect");
-		if (args.m_compile_debug) result	.push_back("-Od "); // DXC_ARG_SKIP_OPTIMIZATIONS
-		if (args.m_compile_debug) result	.push_back("-O0 "); // DXC_ARG_OPTIMIZATION_LEVEL0
-		if (args.m_compile_debug) result	.push_back("-Zi "); // DXC_ARG_DEBUG
+		if (args.m_compile_debug) result	.push_back("-Od"); // DXC_ARG_SKIP_OPTIMIZATIONS
+		if (args.m_compile_debug) result	.push_back("-O0"); // DXC_ARG_OPTIMIZATION_LEVEL0
+		if (args.m_compile_debug) result	.push_back("-Zi"); // DXC_ARG_DEBUG
 
 		return result;
 	}

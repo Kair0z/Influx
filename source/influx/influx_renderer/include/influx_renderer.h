@@ -34,9 +34,6 @@ struct ImDrawData;
 
 namespace influx::renderer
 {
-	template <typename _t>
-	using result = influx::result<_t, const char*>;
-
 	/* 
 		initialize the renderer backend 
 		- optional logger callback

@@ -58,91 +58,6 @@ namespace influx::engine
 
 		uint32 m_num_pipelines = 0u;
 	};
-
-	class shadertoy_editor final : public editor_window
-	{
-	public:
-		const char* filepath = "D:/Git/Influx/assets/Shaders/shadertoy.hlsl";
-
-		shadertoy_editor()
-		{
-			m_texteditor.SetHandleKeyboardInputs(true);
-			m_texteditor.SetHandleMouseInputs(true);
-			m_texteditor.SetReadOnly(false);
-
-			// const string& file_content = textfile::read_all(string(filepath));
-			// m_texteditor.InsertText(file_content.c_str());
-		}
-
-		shader::compile_args make_compile_args(shader::e_shader_type type, const string& entrypoint)
-		{
-			shader::compile_args compile_args{};
-			compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
-#if INFLUX_DEBUG
-			compile_args.m_compile_debug = true;
-#else
-			compile_args.m_compile_debug = false;
-#endif
-			compile_args.m_pbd = true;
-			compile_args.m_reflection = true;
-			compile_args.m_defines = {};
-			compile_args.m_pdb_folder = get_engine_directory(engine_directory::intermediate).m_path_full + "/shaderdebug/";
-			compile_args.m_include_folder = get_engine_directory(engine_directory::assets).m_path_full + "/shaders/include/";
-			compile_args.m_signature.m_type = type;
-			compile_args.m_signature.m_entrypoint = entrypoint;
-			return compile_args;
-		}
-
-		virtual void on_run() override
-		{
-			set_visible(false);
-			return;
-
-			// render text editor
-			m_texteditor.SetLanguageDefinition(imgui::TextEditor::LanguageDefinition::HLSL());
-			m_texteditor.Render("file");
-
-			// render log
-			string log_text = {};
-			for (const string& str : m_compile_errors)
-			{
-				log_text.append(str + "\n");
-			}
-			ImVec4 TextColor = m_compile_errors.size() > 0u ? ImVec4(1, 0, 0, 1) : ImVec4(1, 1, 1, 1);
-			ImGui::TextColored(TextColor, log_text.c_str());
-
-			// buttons
-			if (ImGui::Button("compile"))
-			{
-				const string source = m_texteditor.GetText();
-				m_compiled_vs = shader::compile_shader(source, make_compile_args(shader::e_shader_type::vs, "main_vs")).get();
-				m_compiled_ps = shader::compile_shader(source, make_compile_args(shader::e_shader_type::ps, "main_ps")).get();
-				m_compile_errors = merged(m_compiled_vs.m_log, m_compiled_ps.m_log);
-				m_compile_success = m_compiled_vs.m_success && m_compiled_ps.m_success;
-			}
-
-			if (ImGui::Button("render"))
-			{
-				m_enable_render = m_compile_success && !m_enable_render;
-			}
-		}
-
-		bool can_render() const
-		{
-			return m_enable_render && m_compile_success;
-		}
-
-		const shader::compile_output& get_compiled_vs() const { return m_compiled_vs; }
-		const shader::compile_output& get_compiled_ps() const { return m_compiled_ps; }
-
-	private:
-		imgui::TextEditor m_texteditor{};
-		shader::compile_output m_compiled_vs{};
-		shader::compile_output m_compiled_ps{};
-		bool m_compile_success = false;
-		bool m_enable_render = false;
-		vector<string> m_compile_errors{};
-	};
 #pragma endregion
 	
 	render_manager::render_manager(engine* engine)
@@ -175,7 +90,6 @@ namespace influx::engine
 
 		// static editor
 		editor::editor_manager::static_window<render_editor>("renderer").set_name("renderer");
-		editor::editor_manager::static_window<shadertoy_editor>("shadertoy").set_name("shadertoy");
 	}
 
 	render_manager::~render_manager()
@@ -206,7 +120,7 @@ namespace influx::engine
 				renderer::draw_scene(world_scene, *mp_scene_target);
 			}
 
-			// render child views
+#if 0
 			for (auto& pair : m_views)
 			{
 				render_view_id id = pair.first;
@@ -217,30 +131,6 @@ namespace influx::engine
 				renderer::draw_2D(view.get_scene2D(), view.get_target());
 				++view.m_frame_counter;
 			}
-
-			// shader toy thingy
-#if 0
-			shadertoy_editor& editor = editor_manager::static_window<shadertoy_editor>("shadertoy");
-			if (editor.can_render())
-			{
-				// flags the renderer to overwrite previous shader on this name
-				const bool reload = true;
-
-				renderer::shader_data vs_data{};
-				shader::shader_signature vs_signature{};
-				vs_signature.m_entrypoint = "shadertoy_vs";
-				translate(editor.get_compiled_vs(), vs_data);
-				renderer::load(vs_signature, vs_data, reload);
-
-				renderer::shader_data ps_data{};
-				shader::shader_signature ps_signature{};
-				ps_signature.m_entrypoint = "shadertoy_ps";
-				translate(editor.get_compiled_ps(), ps_data);
-				renderer::load(ps_signature, ps_data, reload);
-
-				renderer::scene_shadertoy shadertoy{};
-				renderer::draw_shadertoy(shadertoy, *mp_scene_target);
-			}
 #endif
 
 			// scene target -> main window target
@@ -248,7 +138,7 @@ namespace influx::engine
 
 			// imgui render (renders straight to its own managed window targets)
 			renderer::scene_imgui& imgui_scene = get_scene_imgui();
-			if (imgui_scene.is_empty() == false && is_imgui_render_enabled())
+			if (!imgui_scene.is_empty() && is_imgui_render_enabled())
 			{
 				m_imgui.render(imgui_scene);
 			}

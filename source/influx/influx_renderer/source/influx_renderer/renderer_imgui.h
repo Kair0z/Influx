@@ -18,6 +18,7 @@ namespace influx::graphics
 #include "influx_shader.h"
 
 // influx::renderer
+#include "influx_renderer/types.h"
 #include "influx_renderer/texture.h"
 
 namespace influx::renderer
@@ -31,8 +32,8 @@ namespace influx::renderer
 		
 	private:
 		void create_fonts_texture(graphics::device* device);
-		void create_shaders();
-		void create_pipeline(graphics::device* device);
+		result<> create_shaders();
+		result<> create_pipeline(graphics::device* device);
 		void update_buffers(const vector<ImDrawData const*>& draws);
 		void setup_state(graphics::commandlist*, const vector<ImDrawData const*>& draws);
 
