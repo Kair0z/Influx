@@ -75,23 +75,55 @@ namespace influx::graphics
 		friend class dx12_device;
 	};
 
+	struct dx12_stateobject_properties final
+	{
+		string m_program_name = "";
+
+		using program_id = uint64[4]; // wow
+		program_id m_program_id{};				// GetProgramIdentifier()
+	};
+	struct dx12_workgraph_properties final
+	{
+		uint32 m_graph_index = 0u;				// GetWorkGraphIndex()
+		uint64 m_backing_memory_bytesize = 0u;	// GetWorkGraphMemoryRequirements()
+		uint32 m_num_entrypoints = 0u;			// GetNumEntrypoints()
+	};
+	struct dx12_workgraph_resources final
+	{
+		resource* m_backing_memory = nullptr;
+		inline void initialize(graphics::device& device, const dx12_workgraph_properties& props)
+		{
+			buffer_desc desc{};
+			desc.m_bindflags = e_bind_flags::uav;
+			desc.m_bytesize = props.m_backing_memory_bytesize;
+			m_backing_memory = device.create_resource(desc);
+		}
+		inline void cleanup(graphics::device& device)
+		{
+			m_backing_memory->release(&device);
+		}
+	};
+
 	template <e_pipeline_type _t>
 	class dx12_pipeline final : public pipeline<_t>
 	{
 		ID3D12PipelineState* mpdx_pipeline;
-		ID3D12StateObject* mpdx_raytracing_state_object; // I hate Dx12 >:(
+		ID3D12StateObject* mpdx_stateobject; // I hate Dx12 >:(
 
 	public:
 		dx12_raytracing_shadertable m_raygen_shadertable;
 		dx12_raytracing_shadertable m_miss_shadertable;
 		dx12_raytracing_shadertable m_hitgroup_shadertable;
+		dx12_stateobject_properties m_stateobject_props;
+		dx12_workgraph_properties m_workgraph_props;
+		dx12_workgraph_resources m_workgraph_resources;
 
 	private:
 		dx12_pipeline(ID3D12StateObject* rtdxpipeline, const pipeline_desc<_t>& desc)
 			: pipeline<_t>(desc)
 		{
-			static_assert(_t == e_pipeline_type::raytracing);
-			base::mp_native = mpdx_raytracing_state_object = rtdxpipeline;
+			static_assert(_t == e_pipeline_type::raytracing || _t == e_pipeline_type::workgraph);
+			base::mp_native = mpdx_stateobject = rtdxpipeline;
 			mpdx_pipeline = nullptr;
 		}
 
@@ -99,19 +131,20 @@ namespace influx::graphics
 			: pipeline<_t>(desc)
 		{
 			base::mp_native = mpdx_pipeline = dxpipeline;
-			mpdx_raytracing_state_object = nullptr;
+			mpdx_stateobject = nullptr;
 		}
 
 		virtual void release_impl(device* device) override
 		{
 			if (mpdx_pipeline)
 				mpdx_pipeline->Release();
-			if (mpdx_raytracing_state_object)
-				mpdx_raytracing_state_object->Release();
+			if (mpdx_stateobject)
+				mpdx_stateobject->Release();
 
 			m_raygen_shadertable.cleanup(*device);
 			m_miss_shadertable.cleanup(*device);
 			m_hitgroup_shadertable.cleanup(*device);
+			m_workgraph_resources.cleanup(*device);
 		}
 
 		friend class dx12_device;

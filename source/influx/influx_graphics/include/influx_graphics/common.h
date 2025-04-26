@@ -26,7 +26,8 @@ namespace influx::graphics
 	{
 		none				= 0 << 0,
 		raytracing			= 1 << 0,
-		all = raytracing
+		workgraphs			= 1 << 1,
+		all = raytracing | workgraphs
 	};
 
 	struct feature_info final
@@ -123,6 +124,7 @@ namespace influx::graphics
 		compute,
 		raytracing,
 		mesh,
+		workgraph,
 		count
 	};
 	constexpr static uint8 k_num_pipeline_types = static_cast<uint8>(e_pipeline_type::count);

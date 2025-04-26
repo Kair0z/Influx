@@ -90,6 +90,7 @@ namespace influx::graphics
 		virtual ptr<compute_pipeline> create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc) = 0;
 		virtual ptr<raytracing_pipeline> create_raytracing_pipeline(rootsignature* rootsig, const raytracing_pipeline_desc& desc) = 0;
 		virtual ptr<mesh_pipeline> create_mesh_pipeline(rootsignature* rootsig, const mesh_pipeline_desc& desc) = 0;
+		virtual ptr<graph_pipeline> create_workgraph_pipeline(rootsignature* rootsig, const graph_pipeline_desc& desc) = 0;
 
 		virtual void copy_descriptors(
 			const descriptor_range& source, const descriptor_range& dest,

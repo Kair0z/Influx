@@ -34,17 +34,20 @@ struct constants
 
 void compile_shaders(graphics::mesh_pipeline_desc& out_desc)
 {
-	const char* include_folder = "D:/Git/Influx/assets/engine/shaders/include/";
-	const char* filepath = "D:/Git/Influx/assets/engine/shaders/source/mesh_shaders.hlsl";
+	const char* include_folder = "E:/Git/Influx/assets/engine/shaders/include/";
+	const char* filepath = "E:/Git/Influx/assets/engine/shaders/source/mesh_shaders.hlsl";
+
+	shader::compile_args compile_args{};
+	compile_args.set_target(shader::e_shader_target::_6_6);
+	compile_args.m_reflection = false;
+	compile_args.m_include_folder = include_folder;
 
 	auto parsed_shaders = shader::parse_shaders_in_file(filepath).get();
 	vector<shader::compile_output> compiled_shaders{};
 	for (const auto& shader : parsed_shaders)
 	{
-		shader::compile_args compile_args = shader.m_compile_args;
-		compile_args.set_target(shader::e_shader_target::_6_6);
-		compile_args.m_reflection = false;
-		compile_args.m_include_folder = include_folder;
+		compile_args.m_signature = shader.m_signature;
+		compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
 		
 		auto res = shader::compile_shader_in_file(filepath, compile_args);
 		influx_assert(res.is_success());
@@ -158,7 +161,7 @@ int main()
 	bool is_quit = false;
 
 	// update constants
-	const float camera_distance = 150;
+	const float camera_distance = 50;
 	math::float3 camera_pos = { 1, 1, 1 };
 	camera_pos = camera_pos.normalized() * camera_distance;
 	math::float3 camera_lookat = math::float3::zero() - camera_pos;
@@ -179,7 +182,7 @@ int main()
 	g_constants.light_direction.normalize();
 
 	// settings
-	uint32 grid_dim = 50;
+	uint32 grid_dim = 10;
 	uint32 num_cubes = grid_dim * grid_dim * grid_dim;
 	uint32 num_cubes_per_group = 10;
 	uint32 num_groups = math::ceil<uint32>((float)num_cubes / num_cubes_per_group);

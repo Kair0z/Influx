@@ -1200,6 +1200,64 @@ namespace influx::graphics
 		return new_child<dx12_pipeline<e_pipeline_type::mesh>, mesh_pipeline>(dxpipeline, desc);
 	}
 
+	ptr<graph_pipeline> dx12_device::create_workgraph_pipeline(rootsignature* rootsig, const graph_pipeline_desc& desc)
+	{
+		ID3D12StateObject* dxstateobject = nullptr;
+		
+		ID3D12RootSignature* dxrootsignature = rootsig->get_native<ID3D12RootSignature>();
+
+		string program_name = "todo: program name";
+		wstring wprogram_name = to_wstring(program_name);
+
+		// rootsignature
+		CD3DX12_STATE_OBJECT_DESC state_desc(D3D12_STATE_OBJECT_TYPE_EXECUTABLE);
+		CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT* rootsig_desc = state_desc.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+		rootsig_desc->SetRootSignature(dxrootsignature);
+
+		// shader library
+		CD3DX12_DXIL_LIBRARY_SUBOBJECT* LibraryDesc = state_desc.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+		CD3DX12_SHADER_BYTECODE gwgLibraryCode{/*todo*/ };
+		LibraryDesc->SetDXILLibrary(&gwgLibraryCode);
+
+		// work graph desc
+		CD3DX12_WORK_GRAPH_SUBOBJECT* workgraph_desc = state_desc.CreateSubobject<CD3DX12_WORK_GRAPH_SUBOBJECT>();
+		workgraph_desc->IncludeAllAvailableNodes();
+		workgraph_desc->SetProgramName(wprogram_name.c_str());
+
+		HRESULT 
+		hres = get_main_device<ID3D12Device9>()->CreateStateObject(state_desc, IID_PPV_ARGS(&dxstateobject));
+		check(hres, "dx12 error: CreateStateObject failed!");
+		
+		// post:
+		graph_pipeline* result = new_child<dx12_pipeline<e_pipeline_type::workgraph>, graph_pipeline>(dxstateobject, desc);
+		using dx12_graph_pipeline = dx12_pipeline<e_pipeline_type::workgraph>;
+		dx12_graph_pipeline* as_dx12_pipeline = (dx12_graph_pipeline*)result;
+
+		ID3D12StateObjectProperties1* stateobj_props = (ID3D12StateObjectProperties1*)dxstateobject;
+		ID3D12WorkGraphProperties* workgraph_props = (ID3D12WorkGraphProperties*)dxstateobject;
+		// todo: check valid...
+
+		// setup state object info
+		as_dx12_pipeline->m_stateobject_props.m_program_name = program_name;
+		const auto program_id = stateobj_props->GetProgramIdentifier(wprogram_name.c_str());
+		memcpy(as_dx12_pipeline->m_stateobject_props.m_program_id, program_id.OpaqueData, sizeof(program_id.OpaqueData));
+
+		// setup workgraph info
+		const uint32 graph_index = workgraph_props->GetWorkGraphIndex(wprogram_name.c_str());
+		as_dx12_pipeline->m_workgraph_props.m_graph_index = graph_index;
+
+		D3D12_WORK_GRAPH_MEMORY_REQUIREMENTS workgraph_mem_req{};
+		workgraph_props->GetWorkGraphMemoryRequirements(graph_index, &workgraph_mem_req);
+
+		const uint32 num_entrypoints = workgraph_props->GetNumEntrypoints(graph_index);
+		as_dx12_pipeline->m_workgraph_props.m_num_entrypoints = num_entrypoints;
+
+		// initialize extra workgraph resources
+		as_dx12_pipeline->m_workgraph_resources.initialize(*this, as_dx12_pipeline->m_workgraph_props);
+
+		return result;
+	}
+
 	void dx12_device::copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE source_start{};
@@ -1304,6 +1362,13 @@ namespace influx::graphics
 
 		if (options5.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
 			supported_flags |= e_feature_flags::raytracing;
+
+		D3D12_FEATURE_DATA_D3D12_OPTIONS21 options21 = {};
+		res = get_main_device<ID3D12Device>()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS21, &options21, sizeof(options21));
+		check(res, "dx12 error: CheckFeatureSupport failed!");
+
+		if (options21.WorkGraphsTier != D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED)
+			supported_flags |= e_feature_flags::workgraphs;
 
 		return supported_flags;
 	}

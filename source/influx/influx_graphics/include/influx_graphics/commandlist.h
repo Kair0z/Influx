@@ -174,6 +174,9 @@ namespace influx::graphics
 		/* raytracing */
 		INFLUX_GFX_API virtual result<> dispatch_rays(raytracing_pipeline* pipeline, uint32 width, uint32 height, uint32 depth = 1) = 0;
 
+		/* workgraphs */
+		INFLUX_GFX_API virtual result<> dispatch_workgraph(graph_pipeline* pipeline) = 0;
+
 		INFLUX_GFX_API virtual result<> end() = 0;
 
 	private:

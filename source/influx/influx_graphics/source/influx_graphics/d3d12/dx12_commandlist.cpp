@@ -187,6 +187,8 @@ namespace influx::graphics
 		switch (type)
 		{
 		case graphics::e_pipeline_type::compute:
+		case graphics::e_pipeline_type::raytracing:
+		case graphics::e_pipeline_type::workgraph:
 			mpdx_graphics_commandlist->SetComputeRoot32BitConstants(
 				param_index,
 				num_dwords,
@@ -601,6 +603,7 @@ namespace influx::graphics
 
 		case e_pipeline_type::compute:
 		case e_pipeline_type::raytracing:
+		case e_pipeline_type::workgraph:
 		{
 			mpdx_graphics_commandlist->SetComputeRootShaderResourceView(param_idx, dxresource->GetGPUVirtualAddress());
 		}break;
@@ -624,6 +627,7 @@ namespace influx::graphics
 
 		case e_pipeline_type::compute:
 		case e_pipeline_type::raytracing:
+		case e_pipeline_type::workgraph:
 		{
 			mpdx_graphics_commandlist->SetComputeRootUnorderedAccessView(param_idx, dxresource->GetGPUVirtualAddress());
 		}break;
@@ -647,6 +651,7 @@ namespace influx::graphics
 
 		case e_pipeline_type::compute:
 		case e_pipeline_type::raytracing:
+		case e_pipeline_type::workgraph:
 		{
 			mpdx_graphics_commandlist->SetComputeRootDescriptorTable(param_idx, gpu_handle);
 		}break;
@@ -667,6 +672,7 @@ namespace influx::graphics
 
 		case e_pipeline_type::compute:
 		case e_pipeline_type::raytracing:
+		case e_pipeline_type::workgraph:
 			mpdx_graphics_commandlist->SetComputeRootSignature(dxrootsig);
 			break;
 
@@ -814,6 +820,42 @@ namespace influx::graphics
 		desc.Depth = depth;
 
 		dxcommandlist4->DispatchRays(&desc);
+		return {};
+	}
+
+	result<> dx12_commandlist::dispatch_workgraph(graph_pipeline* pipeline)
+	{
+		using dx12_graph_pipeline = dx12_pipeline<e_pipeline_type::workgraph>;
+		dx12_graph_pipeline* dx12_pipeline = (dx12_graph_pipeline*)pipeline;
+
+		ID3D12GraphicsCommandList10* dxcommandlist10 = nullptr;
+		HRESULT
+			hres = mpdx_graphics_commandlist->QueryInterface<ID3D12GraphicsCommandList10>(&dxcommandlist10);
+		if (hres != S_OK)
+			return result<>::make_error("error: QueryInterface<ID3D12GraphicsCommandList10> failed!");
+
+		D3D12_SET_PROGRAM_DESC program_desc = {};
+		program_desc.Type = D3D12_PROGRAM_TYPE_WORK_GRAPH;
+		memcpy(&program_desc.WorkGraph.ProgramIdentifier.OpaqueData, &dx12_pipeline->m_stateobject_props.m_program_id, sizeof(D3D12_PROGRAM_IDENTIFIER));
+		program_desc.WorkGraph.Flags = D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE;
+
+		// backing memory
+		resource* backing_memory = dx12_pipeline->m_workgraph_resources.m_backing_memory;
+		ID3D12Resource* dxbacking_memory = backing_memory->get_native<ID3D12Resource>();
+		if (dxbacking_memory)
+		{
+			program_desc.WorkGraph.BackingMemory = { dxbacking_memory->GetGPUVirtualAddress(), backing_memory->get_bytesize() };
+		}
+
+		dxcommandlist10->SetProgram(&program_desc);
+
+		D3D12_DISPATCH_GRAPH_DESC dispatch_desc = {};
+		dispatch_desc.Mode = D3D12_DISPATCH_MODE_NODE_CPU_INPUT;
+		dispatch_desc.NodeCPUInput = { };
+		dispatch_desc.NodeCPUInput.EntrypointIndex = 0;
+		dispatch_desc.NodeCPUInput.NumRecords = 1;
+		dxcommandlist10->DispatchGraph(&dispatch_desc);
+
 		return {};
 	}
 

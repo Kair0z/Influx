@@ -56,7 +56,7 @@ uint3 get_cube_triangle(uint index)
 #define MAX_NUM_CUBES_PER_GROUP         10  // MAX_NUM_TRIANGLES_PER_GROUP / NUM_TRIANGLES_PER_CUBE
 
 // settings:
-#define GRID_DIMENSIONS             50
+#define GRID_DIMENSIONS             10
 #define TOTAL_NUM_CUBES             GRID_DIMENSIONS * GRID_DIMENSIONS * GRID_DIMENSIONS
 #define TOTAL_NUM_TRIANGLES         TOTAL_NUM_CUBES * NUM_TRIANGLES_PER_CUBE
 

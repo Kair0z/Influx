@@ -411,13 +411,18 @@ namespace influx::graphics
 		}
 	};
 
+	struct graph_pipeline_desc final
+	{
+
+	};
+
 	template <e_pipeline_type _t>
 	using pipeline_desc = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
 		graphics::graphics_pipeline_desc,
 		graphics::compute_pipeline_desc,
 		graphics::raytracing_pipeline_desc,
-		graphics::mesh_pipeline_desc>>;
-
+		graphics::mesh_pipeline_desc,
+		graphics::graph_pipeline_desc>>;
 #pragma endregion
 
 	namespace detail
@@ -450,4 +455,5 @@ namespace influx::graphics
 	using compute_pipeline		= pipeline<e_pipeline_type::compute>;
 	using raytracing_pipeline	= pipeline<e_pipeline_type::raytracing>;
 	using mesh_pipeline			= pipeline<e_pipeline_type::mesh>;
+	using graph_pipeline		= pipeline<e_pipeline_type::workgraph>;
 }

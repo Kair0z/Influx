@@ -153,6 +153,9 @@ int main()
 	graphics::queue& queue = *device.create_queue();
 	graphics::swapchain& swapchain = *device.create_swapchain(&queue, window);
 	
+	graphics::feature_info features = device.get_feature_info();
+	influx_assert(has_flag(features.m_supported_flags, graphics::e_feature_flags::raytracing));
+
 	// we need only 1 single rtv allocated (backbuffer)
 	graphics::descriptor_heap& rtv_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_rtv_heap(1u));
 	graphics::descriptor_heap& uav_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_uav_heap(2u));

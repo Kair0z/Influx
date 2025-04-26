@@ -128,4 +128,20 @@ namespace influx::shader
 	/* finds & parses all shaders in a given string */
 	INFLUX_SHADER_API 
 	result<vector<parse_output>> parse_shader(const string& shader_source);
+
+	struct shader_library_compile_args final
+	{
+		e_shader_target m_target;
+	};
+
+	struct shader_library final
+	{
+		vector<byte> m_bytecode;
+		vector<string> m_log;
+
+		bool m_success = false;
+	};
+
+	INFLUX_SHADER_API
+	result<shader_library> compile_shader_library(const string& filepath, const shader_library_compile_args& args);
 }

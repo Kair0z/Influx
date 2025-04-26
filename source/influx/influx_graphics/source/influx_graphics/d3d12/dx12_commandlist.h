@@ -115,6 +115,9 @@ namespace influx::graphics
 		/* raytracing */
 		virtual result<> dispatch_rays(raytracing_pipeline* pipeline, uint32 width, uint32 height, uint32 depth = 1) override;
 
+		/* workgraphs */
+		virtual result<> dispatch_workgraph(graph_pipeline* pipeline) override;
+
 		ID3D12CommandAllocator* obtain_allocator(dx12_device*);
 
 		void free_allocator(dx12_device*);

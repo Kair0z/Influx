@@ -72,7 +72,8 @@ namespace influx::graphics
 		virtual ptr<compute_pipeline> create_compute_pipeline(rootsignature* rootsig, const compute_pipeline_desc& desc) override;
 		virtual ptr<raytracing_pipeline> create_raytracing_pipeline(rootsignature* rootsig, const raytracing_pipeline_desc& desc) override;
 		virtual ptr<mesh_pipeline> create_mesh_pipeline(rootsignature* rootsig, const mesh_pipeline_desc& desc) override;
-
+		virtual ptr<graph_pipeline> create_workgraph_pipeline(rootsignature* rootsig, const graph_pipeline_desc& desc) override;
+		
 		// misc:
 		virtual vector<physical_device_info> get_gpu_infos() override;
 		virtual memory_info get_memory_info() const override;
@@ -83,7 +84,7 @@ namespace influx::graphics
 		void free_allocator(const D3D12_COMMAND_LIST_TYPE& type, ID3D12CommandAllocator*);
 		
 		template <typename _t>
-		inline _t* get_main_device()
+		inline _t* get_main_device() const
 		{
 			_t* result = nullptr;
 			HRESULT res = mpdx_devices[0]->QueryInterface(IID_PPV_ARGS(&result));
