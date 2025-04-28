@@ -25,6 +25,7 @@ namespace influx::engine
 	class task_manager;
 	class window_manager;
 	class scene_manager;
+	class module_manager;
 	class scene;
 	class world;
 
@@ -56,7 +57,7 @@ namespace influx::engine
 		const frame_time& get_time() const;
 		float get_fps() const;
 		bool is_quit() const;
-
+		
 		bool is_editor() const;
 		bool is_game() const;
 
@@ -94,6 +95,7 @@ namespace influx::engine
 		input_manager* m_inputman = nullptr;
 		task_manager* m_taskman = nullptr;
 		log_manager* m_logman = nullptr;
+		module_manager* m_moduleman = nullptr;
 		world* m_world = nullptr;
 		frame_time m_time{};
 

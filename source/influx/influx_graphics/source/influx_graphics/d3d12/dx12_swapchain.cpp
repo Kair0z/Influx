@@ -38,7 +38,7 @@ namespace influx::graphics
 		return {};
 	}
 
-	result<uint8> dx12_swapchain::get_current_backbuffer_index()
+	uint8 dx12_swapchain::get_current_backbuffer_index()
 	{
 		m_current_backbuffer_index = mpdxgi_swapchain4->GetCurrentBackBufferIndex();
 		return m_current_backbuffer_index;

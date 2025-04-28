@@ -72,13 +72,14 @@ namespace influx::shader
 		string m_include_folder{};
 	};
 
+	/* e.g.: vs_6_2*/
 	inline static string build_shader_target_string(e_shader_type type, e_shader_target target)
 	{
 		string result{};
 
 		if (is_raytracing_shader(type))
 		{
-			// raytracing shaders are compiled as libs!!
+			// raytracing shaders msut be compiled as libs!!
 			result += "lib";
 		}
 		else
@@ -89,6 +90,14 @@ namespace influx::shader
 		result += "_";
 		result += shader::k_shadertarget_strings[static_cast<uint32>(target)];
 
+		return result;
+	}
+
+	/* e.g.: vs_6_2*/
+	inline static string build_shaderlib_target_string(e_shader_target target)
+	{
+		string result = "lib_";
+		result += shader::k_shadertarget_strings[static_cast<uint32>(target)];
 		return result;
 	}
 
@@ -267,6 +276,44 @@ namespace influx::shader
 		return compiler;
 	}
 
+	inline string get_compile_errors(IDxcResult& compile_result)
+	{
+		IDxcBlobUtf8* pErrors = nullptr;
+		HRESULT hres = compile_result.GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+		if (hres != S_OK || (pErrors && pErrors->GetStringLength() > 0))
+		{
+			string all_errors_string = {};
+			all_errors_string.append((char*)pErrors->GetBufferPointer());
+			return all_errors_string;
+		}
+
+		return "";
+	}
+
+	inline result<vector<byte>> get_compile_bytecode(IDxcResult& compile_result)
+	{
+		using result_type = result<vector<byte>>;
+		result_type result{};
+
+		// [OUTPUT: RESULT SHADER BYTE CODE]
+		IDxcBlob* pResultData = nullptr;
+		IDxcBlobUtf16* pResultOutputName = nullptr;
+		HRESULT hres = compile_result.GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pResultData), &pResultOutputName);
+		if (hres == S_OK && pResultData)
+		{
+			vector<byte> bytecode{}; bytecode.reserve(pResultData->GetBufferSize());
+			for (uint32 i = 0; i < pResultData->GetBufferSize(); ++i)
+			{
+				bytecode.push_back(reinterpret_cast<byte*>(pResultData->GetBufferPointer())[i]);
+			}
+			return bytecode;
+		}
+		else
+		{
+			return result_type::make_error("error: GetOutput(DXC_OUT_OBJECT) failed!");
+		}
+	}
+
 	inline result<compile_output> compile_shader_dxcbuffer(const DxcBuffer& buffer, const compile_args& args)
 	{
 		using result_type = result<compile_output>;
@@ -303,33 +350,28 @@ namespace influx::shader
 			return result_type::make_error("error: Compile failed");
 		}
 
-		// [OUTPUT: COMPILE ERRORS]
-		IDxcBlobUtf8* pErrors = nullptr;
-		hres = pCompileResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
-		if (hres != S_OK || (pErrors && pErrors->GetStringLength() > 0))
+		// compile errors
 		{
-			result.get().m_log.push_back(string((char*)pErrors->GetBufferPointer()));
-			printf(result.get().m_log.back().c_str());
-			printf("\n");
-			result.get().m_success = false;
-			result.get_unex() = "error: compile failed!";
-			return result;
-		}
-
-		// [OUTPUT: RESULT SHADER BYTE CODE]
-		IDxcBlob* pResultData = nullptr;
-		IDxcBlobUtf16* pResultOutputName = nullptr;
-		hres = pCompileResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pResultData), &pResultOutputName);
-		if (hres == S_OK && pResultData)
-		{
-			for (uint32 i = 0; i < pResultData->GetBufferSize(); ++i)
+			string errors = get_compile_errors(*pCompileResult);
+			if (errors.empty() == false)
 			{
-				result.get().m_bytecode.push_back(reinterpret_cast<byte*>(pResultData->GetBufferPointer())[i]);
+				result.get().m_log.push_back(errors);
+				printf(errors.c_str()); printf("\n");
+				result.get().m_success = false;
+				result.get_unex() = "error: compile failed!";
+				return result;
 			}
 		}
-		else
+
+		// shader bytecode
 		{
-			return result_type::make_error("error: GetOutput(DXC_OUT_OBJECT) failed!");
+			auto res = get_compile_bytecode(*pCompileResult);
+			if (res.is_success())
+			{
+				result.get().m_bytecode = res.get();
+				result.get().m_success = true;
+			}
+			else return result_type::make_error("error: get_compile_bytecode() failed!");
 		}
 
 		// [OUTPUT: DEBUG INFO]
@@ -564,6 +606,7 @@ namespace influx::shader
 		if (filepath.empty())
 			return result_type::make_error("error: invalid filepath!");
 
+		// filepath -> buffer
 		DxcBuffer buffer{};
 		{
 			auto res = filepath_to_buffer(filepath);
@@ -572,6 +615,7 @@ namespace influx::shader
 			buffer = res.get();
 		}	
 		
+		// make the compiler
 		IDxcCompiler3* compiler = nullptr;
 		{
 			auto res = create_compiler();
@@ -580,9 +624,14 @@ namespace influx::shader
 			compiler = res.get();
 		}
 
+		// setup the arguments
 		vector<LPCWSTR> warguments{};
-		warguments.push_back(L"-T lib_6_8");
+		const string target = build_shaderlib_target_string(args.m_target);
+		const wstring wtarget = to_wstring(target);
+		warguments.push_back(L"-T ");
+		warguments.push_back(wtarget.c_str());
 
+		// compile!
 		IDxcResult* compile_result = nullptr;
 		HRESULT 
 		hres = compiler->Compile(&buffer, warguments.data(), (uint32)warguments.size(), nullptr, IID_PPV_ARGS(&compile_result));
@@ -591,33 +640,25 @@ namespace influx::shader
 
 		result_type result{};
 
-		// [OUTPUT: COMPILE ERRORS]
-		IDxcBlobUtf8* pErrors = nullptr;
-		hres = compile_result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
-		if (hres != S_OK || (pErrors && pErrors->GetStringLength() > 0))
+		// compile errors:
 		{
-			result.get().m_log.push_back(string((char*)pErrors->GetBufferPointer()));
-			printf(result.get().m_log.back().c_str());
-			printf("\n");
-			result.get().m_success = false;
-			result.get_unex() = "error: compile failed!";
-			return result;
-		}
-
-		// [OUTPUT: RESULT SHADER BYTE CODE]
-		IDxcBlob* pResultData = nullptr;
-		IDxcBlobUtf16* pResultOutputName = nullptr;
-		hres = compile_result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pResultData), &pResultOutputName);
-		if (hres == S_OK && pResultData)
-		{
-			for (uint32 i = 0; i < pResultData->GetBufferSize(); ++i)
+			// if have errors, add to result
+			const string& errors = get_compile_errors(*compile_result);
+			if (errors.empty() == false)
 			{
-				result.get().m_bytecode.push_back(reinterpret_cast<byte*>(pResultData->GetBufferPointer())[i]);
+				result.get().m_success = false;
+				result.get().m_log.push_back(errors);
+				return result_type::make_error("error: compile failed with errors!");
 			}
 		}
-		else
+
+		// compile bytecode:
 		{
-			return result_type::make_error("error: GetOutput(DXC_OUT_OBJECT) failed!");
+			auto res = get_compile_bytecode(*compile_result);
+			if (res.is_unex())
+				return result_type::make_error("error: failed parsing compiled bytecode!");
+			
+			result.get().m_bytecode = res.get();
 		}
 
 		return result;

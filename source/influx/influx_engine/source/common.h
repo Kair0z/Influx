@@ -2,9 +2,13 @@
 
 // influx::core
 #include "core/time.h"
+#include "core/result.h"
 
 namespace influx::engine
 {
+	template <typename _t = char>
+	using result = result<_t, const char*>;
+
 	struct frame_time final
 	{
 	public:

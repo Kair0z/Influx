@@ -129,6 +129,7 @@ namespace influx::shader
 	INFLUX_SHADER_API 
 	result<vector<parse_output>> parse_shader(const string& shader_source);
 
+	/* compiling a shader library */
 	struct shader_library_compile_args final
 	{
 		e_shader_target m_target;
@@ -137,6 +138,9 @@ namespace influx::shader
 	struct shader_library final
 	{
 		vector<byte> m_bytecode;
+
+		vector<shader_signature> m_shader_signatures{};
+		
 		vector<string> m_log;
 
 		bool m_success = false;

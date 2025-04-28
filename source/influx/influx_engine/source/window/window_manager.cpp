@@ -78,7 +78,8 @@ namespace influx::engine
 
 	result<> window_manager::destroy(window_id id)
 	{
-		if (!is_valid(id)) return e_result::error;
+		if (!is_valid(id))
+			return result<>::make_error("error: invalid id!");
 
 		// 'destroy'
 		delete m_windows[id].m_window;
@@ -129,18 +130,20 @@ namespace influx::engine
 
 	result<window_manager::window_id> window_manager::get_window_id(platform::window* window) const
 	{
+		using result_type = result<window_manager::window_id>;
+
 		auto found = std::find_if(m_windows.cbegin(), m_windows.cend(), 
-			[window](const window_manager::window& wind)
-			{
-				return wind.m_window->get_platform_handle() == window->get_platform_handle();
-			});
+		[window](const window_manager::window& wind)
+		{
+			return wind.m_window->get_platform_handle() == window->get_platform_handle();
+		});
 
 		if (found != m_windows.cend())
 		{
 			return static_cast<uint32>(found - m_windows.cbegin());
 		}
 
-		return e_result::error;
+		return result_type::make_error("error: could not find the window id of this window!");
 	}
 	result<window_manager::window_id> window_manager::get_main_id() const
 	{

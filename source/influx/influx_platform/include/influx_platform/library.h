@@ -22,6 +22,8 @@ namespace influx::platform
 
 		virtual void call(const string& func_name) = 0;
 
+		virtual ~library() = default;
+
 	protected:
 		vector<string> m_functions;
 		string m_name;

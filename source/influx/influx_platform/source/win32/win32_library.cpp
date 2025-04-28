@@ -19,6 +19,12 @@ namespace influx::platform
 		return new win32_library(path);
 	}
 
+	void library::free(library* lib)
+	{
+		delete lib;
+		lib = nullptr;
+	}
+
 	win32_library::win32_library(const string& path)
 	{
 		wstring wpath = to_wstring(path);

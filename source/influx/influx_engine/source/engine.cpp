@@ -22,6 +22,7 @@
 #include "input/input_manager.h"
 #include "tasks/task_manager.h"
 #include "window/window_manager.h"
+#include "module/module_manager.h"
 #include "file/engine_files.h"
 #include "log/log_manager.h"
 #include "scene/scene.h"
@@ -70,6 +71,7 @@ namespace influx::engine
 		m_inputman = new input_manager();
 		m_contentman = new content_manager(this);
 		m_gameman = new game_manager();
+		m_moduleman = new module_manager();
 		if (m_runtype == run_type::editor)
 		{
 			m_editorman = new editor::editor_manager();
@@ -112,6 +114,11 @@ namespace influx::engine
 				influx_scope("poll_window");
 				poll_platform_events();
 				if (m_is_quit_requested) break;
+			}
+			// module tick
+			{
+				influx_scope("module update");
+				m_moduleman->update();
 			}
 			// input tick
 			{
@@ -198,6 +205,12 @@ namespace influx::engine
 		{
 			delete m_contentman;
 			m_contentman = nullptr;
+		}
+
+		if (m_moduleman)
+		{
+			delete m_moduleman;
+			m_moduleman = nullptr;
 		}
 
 		if (m_inputman)

@@ -374,6 +374,8 @@ namespace influx::renderer
 		pipeline_desc.m_depth_stencil.m_stencil_enable = false;
 
 		mp_pipeline = device->create_graphics_pipeline(mp_rootsig, pipeline_desc);
+
+		return {};
 	}
 
 	void imgui_manager::update_buffers(const vector<ImDrawData const*>& draws)

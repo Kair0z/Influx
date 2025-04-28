@@ -198,8 +198,8 @@ int main()
 			const platform::monitor& monitor = monitors[2];
 			const math::vectoru2 monitor_center = monitor.get_rect().get_mid();
 			const float angle = 0.0f/*seconds*/ + (i * math::k_PIDouble * 0.33f);
-			uint32 x = radius * math::cos(angle);
-			uint32 y = radius * math::sin(angle);
+			uint32 x = (uint32)(radius * math::cos(angle));
+			uint32 y = (uint32)(radius * math::sin(angle));
 			windows[i]->set_position(monitor_center + math::vectoru2{ x,y } - window_half_size);
 		}
 

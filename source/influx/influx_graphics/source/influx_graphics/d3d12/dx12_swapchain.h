@@ -23,7 +23,7 @@ namespace influx::graphics
 		// swapchain interface begin
 		virtual result<>					present(const present_args& args) override;
 		virtual result<>					acquire_backbuffer() override;
-		virtual result<uint8>				get_current_backbuffer_index() override;
+		virtual uint8						get_current_backbuffer_index() override;
 		virtual result<vector<resource*>>	create_resources(device*) override;
 		virtual result<>					resize_impl(const math::vectoru2& old_dim, const math::vectoru2& new_dim) override;
 		virtual result<>					destroy_resources(device*) override;

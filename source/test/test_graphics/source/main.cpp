@@ -91,7 +91,7 @@ int main()
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
 			swapchains[i]->acquire_backbuffer();
-			graphics::resource* backbuffer = swapchains[i]->get_current_backbuffer_resource();
+			graphics::resource* backbuffer = swapchains[i]->get_current_backbuffer_resource().get();
 
 			texture->transition(commandlist, graphics::e_resource_state::copy_src);
 			backbuffer->transition(commandlist, graphics::e_resource_state::copy_dst);

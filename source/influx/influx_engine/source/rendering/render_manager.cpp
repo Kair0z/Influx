@@ -120,6 +120,7 @@ namespace influx::engine
 				renderer::draw_scene(world_scene, *mp_scene_target);
 			}
 
+			// multi-view rendering
 #if 0
 			for (auto& pair : m_views)
 			{

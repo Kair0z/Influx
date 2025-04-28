@@ -78,13 +78,7 @@ namespace influx::graphics
 
 	result<resource*> swapchain::get_current_backbuffer_resource()
 	{
-		auto res = get_current_backbuffer_index();
-		if (res.is_unex())
-		{
-			return result<resource*>::make_error("error: get_current_backbuffer_index() failed!");
-		}
-
-		return get_backbuffer_resource(res.get());
+		return get_backbuffer_resource(get_current_backbuffer_index());
 	}
 
 	uint8 swapchain::get_num_backbuffers() const

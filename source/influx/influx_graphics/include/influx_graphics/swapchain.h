@@ -85,7 +85,7 @@ namespace influx::graphics
 		INFLUX_GFX_API bool needs_recreate(const platform::window& window) const;
 
 		/* */
-		INFLUX_GFX_API virtual result<uint8> get_current_backbuffer_index() = 0;
+		INFLUX_GFX_API virtual uint8 get_current_backbuffer_index() = 0;
 		INFLUX_GFX_API uint8 get_current_backbuffer_index() const;
 
 		INFLUX_GFX_API const math::vectoru2& get_dimensions() const;
