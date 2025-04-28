@@ -33,18 +33,20 @@ pipeline create_pipeline(graphics::device& device)
 	pipeline result{};
 
 	// compile shaders
-	const string shader_filepath = "E:/Git/Influx/assets/engine/shaders/source/workgraph.hlsl";
+	const string shader_filepath = "D:/Git/Influx/assets/engine/shaders/source/workgraph.hlsl";
 	auto res = shader::compile_shader_library(shader_filepath, {});
 	influx_assert(res.is_success());
 
 	// create rootsig
 	{
 		graphics::rootsignature_desc desc{};
+		desc.add_root_resource(graphics::root_param_resource::e_type::uav, 0u);
 		result.m_rootsignature = device.create_rootsignature(desc);
 	}
 	// create pipeline
 	{
 		graphics::graph_pipeline_desc desc{};
+		desc.m_library_bytecode = res.get().m_bytecode;
 		result.m_pipeline = device.create_workgraph_pipeline(result.m_rootsignature, desc);
 	}
 

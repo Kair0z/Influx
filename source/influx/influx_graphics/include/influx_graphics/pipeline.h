@@ -413,7 +413,7 @@ namespace influx::graphics
 
 	struct graph_pipeline_desc final
 	{
-
+		vector<byte> m_library_bytecode{};
 	};
 
 	template <e_pipeline_type _t>

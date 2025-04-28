@@ -1206,7 +1206,7 @@ namespace influx::graphics
 		
 		ID3D12RootSignature* dxrootsignature = rootsig->get_native<ID3D12RootSignature>();
 
-		string program_name = "todo: program name";
+		string program_name = "programname";
 		wstring wprogram_name = to_wstring(program_name);
 
 		// rootsignature
@@ -1216,7 +1216,7 @@ namespace influx::graphics
 
 		// shader library
 		CD3DX12_DXIL_LIBRARY_SUBOBJECT* LibraryDesc = state_desc.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-		CD3DX12_SHADER_BYTECODE gwgLibraryCode{/*todo*/ };
+		CD3DX12_SHADER_BYTECODE gwgLibraryCode { desc.m_library_bytecode.data(), desc.m_library_bytecode.size() };
 		LibraryDesc->SetDXILLibrary(&gwgLibraryCode);
 
 		// work graph desc
@@ -1235,7 +1235,6 @@ namespace influx::graphics
 
 		ID3D12StateObjectProperties1* stateobj_props = (ID3D12StateObjectProperties1*)dxstateobject;
 		ID3D12WorkGraphProperties* workgraph_props = (ID3D12WorkGraphProperties*)dxstateobject;
-		// todo: check valid...
 
 		// setup state object info
 		as_dx12_pipeline->m_stateobject_props.m_program_name = program_name;

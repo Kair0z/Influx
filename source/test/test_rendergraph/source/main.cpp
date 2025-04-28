@@ -34,9 +34,11 @@ int main()
 	while (true)
 	{
 		influx::rendergraph::rendergraph graph{ device };
-		buffer_index = swapchain->acquire_backbuffer();
 
-		graph.import_texture(RGNAME("backbuffer"), swapchain->get_current_backbuffer_resource());
+		auto res = swapchain->get_current_backbuffer_resource();
+		if (res.is_unex()) continue;
+
+		graph.import_texture(RGNAME("backbuffer"), res.get());
 
 		// clear backbuffer pass
 		graph.add_pass(e_rgpass_type::graphics,
@@ -58,8 +60,7 @@ int main()
 		graph.execute(commandlist);
 
 		// transition backbuffer to present
-		auto* backbuffer = swapchain->get_current_backbuffer_resource();
-		backbuffer->transition(commandlist, graphics::e_resource_state::present);
+		res.get()->transition(commandlist, graphics::e_resource_state::present);
 		commandlist->end();
 		commandlist->submit(queue);
 		commandlist->wait_for_completion();
