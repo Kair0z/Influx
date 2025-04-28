@@ -200,8 +200,8 @@ namespace influx::input
 
 		math::vectorf2 m_client; // relative to window
 		math::vectorf2 m_screen; // relative to screen
-		math::vectorf2 m_client_normalized;
-		math::vectorf2 m_screen_normalized;
+		math::vectorf2 m_client_normalized; // [0,1]
+		math::vectorf2 m_screen_normalized; // [0,1]
 	};
 
 	struct mouse_event

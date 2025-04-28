@@ -5,7 +5,10 @@
 #include "core/basetypes.h"
 #include "core/geometry/rect.h"
 
-namespace influx::engine
+// influx::engine
+#include "editor_common.h"
+
+namespace influx::engine::editor
 {
 	class editor_window
 	{
@@ -60,6 +63,7 @@ namespace influx::engine
 
 	private:
 		string m_title;
+		e_group_flags m_flags = e_group_flags::none;
 		optional_property<math::float2> m_force_position;
 		optional_property<math::float2> m_force_size;
 		bool m_is_visible = true;

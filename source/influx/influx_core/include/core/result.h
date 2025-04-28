@@ -4,6 +4,7 @@
 #include "basetypes.h"
 #include "core/string.h"
 #include "core/container/map.h"
+#include "core/debug.h"
 
 namespace influx
 {
@@ -112,6 +113,9 @@ namespace influx
 
 		_t& get()
 		{
+#if INFLUX_DEBUG
+			influx_assert(is_success());
+#endif
 			return m_expected;
 		}
 

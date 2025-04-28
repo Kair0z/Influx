@@ -30,6 +30,7 @@ namespace influx::engine
 	public:
 		uint64 m_frame = 0u;
 
+		const input::mouse_position& get_mouse_position() const;
 		const math::vectoru2& get_mouse_position_client() const;
 		const math::vectoru2& get_mouse_position_screen() const;
 		math::vectorf2 get_mouse_delta() const;
@@ -45,6 +46,8 @@ namespace influx::engine
 		struct
 		{
 			stat_array<buttonstate, input::k_num_mousebuttons> m_buttonstates{};
+
+			input::mouse_position m_mouse_position;
 			math::vectoru2 m_mouse_position_client;
 			math::vectoru2 m_prev_mouse_position_client;
 			math::vectoru2 m_mouse_position_screen;

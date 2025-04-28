@@ -26,7 +26,7 @@ namespace influx::engine
 
 	} g_global_settings{};
 
-	class render_editor final : public editor_window
+	class render_editor final : public editor::editor_window
 	{
 	public:
 		virtual void on_run() override

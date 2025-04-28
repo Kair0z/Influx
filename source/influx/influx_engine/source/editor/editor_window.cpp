@@ -7,7 +7,7 @@
 // imgui
 #include "imgui/imgui.h"
 
-namespace influx::engine
+namespace influx::engine::editor
 {
 	void editor_window::run(const callback& clb)
 	{

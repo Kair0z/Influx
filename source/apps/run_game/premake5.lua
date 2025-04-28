@@ -11,8 +11,10 @@ new_influx_app("run_game")
         "influx_async",
         "influx_import",
         "influx_renderer",
+        "influx_rendergraph",
         "influx_shader",
         "influx_graphics",
+        "influx_file"
     }
     set_influx_app_dependencies(dependencies)
     staticruntime "off"

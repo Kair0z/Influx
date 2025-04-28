@@ -6,7 +6,7 @@
 namespace influx::engine
 {
 	static input::mouse_position g_mouse_position{};
-	class input_editor final : public editor_window
+	class input_editor final : public editor::editor_window
 	{
 	public:
 		virtual void on_run() override
@@ -54,6 +54,11 @@ namespace influx::engine
 	void input_manager::push_window_event(const platform::window_event& ev)
 	{
 		input::push_window_event(ev);
+	}
+
+	const input::mouse_position& input_manager::get_mouse_position() const
+	{
+		return m_state.get_mouse_position();
 	}
 
 	const math::vectoru2& input_manager::get_mouse_position_client() const

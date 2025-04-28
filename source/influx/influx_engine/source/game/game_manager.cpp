@@ -10,6 +10,7 @@
 #include "world/world.h"
 #include "component/component.h"
 #include "content/content_manager.h"
+#include "module/module_manager.h"
 
 // influx::platform
 #include "influx_platform/library.h"
@@ -20,31 +21,20 @@
 
 namespace influx::engine
 {
-	inline platform::library* get_game_library()
-	{
-		// call game module dll start
-		string dll_dir = "E:/Git/Influx/bin/debug-windows-x86_64/influx_game/";
-		string dll_path = dll_dir + "influx_game.dll";
-
-		// load dll
-		static platform::library* lib = nullptr;
-		if (lib == nullptr)
-		{
-			lib = platform::library::load(dll_path);
-		}
-		return lib;
-	}
-
 	void game_manager::start()
 	{
 		if (m_state == state::idle)
 		{
-			get_game_library()->call("start");
-
+			// hardcoded layer
 			setup_camera();
 			// setup_swords();
-			setup_cafe();
+			// setup_cafe();
 			setup_unitcube();
+
+			// script layer
+			engine::get_moduleman()
+				.call_module_function("influx_game", "start");
+
 			m_state = state::running;
 		}
 	}
@@ -56,7 +46,8 @@ namespace influx::engine
 			return;
 		}
 
-		get_game_library()->call("tick");
+		engine::get_moduleman()
+			.call_module_function("influx_game", "tick");
 	}
 
 	void game_manager::end()
@@ -66,7 +57,9 @@ namespace influx::engine
 			return;
 		}
 
-		get_game_library()->call("end");
+		// script layer
+		engine::get_moduleman()
+			.call_module_function("influx_game", "end");
 
 		world& world = get_engine()->get_world();
 

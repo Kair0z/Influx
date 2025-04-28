@@ -81,6 +81,11 @@ namespace influx::engine
 		}
 	}
 
+	const input::mouse_position& input_state::get_mouse_position() const
+	{
+		return m_mouse_data.m_mouse_position;
+	}
+
 	const math::vectoru2& input_state::get_mouse_position_client() const
 	{
 		return m_mouse_data.m_mouse_position_client;

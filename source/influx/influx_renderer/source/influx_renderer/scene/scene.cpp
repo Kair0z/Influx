@@ -96,8 +96,12 @@ namespace influx::renderer
 	{
 		return m_camera;
 	}
-	const math::matrix4x4f& scene::get_camera_transform() const
+	result<math::matrix4x4f> scene::get_camera_transform() const
 	{
+		using result_type = result<math::matrix4x4f>;
+		if (m_camera.m_transform_id == k_invalid_id)
+			return result_type::make_error("error: no camera transform set, probably no valid camera!");
+
 		return m_transforms[m_camera.m_transform_id];
 	}
 

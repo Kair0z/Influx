@@ -97,10 +97,15 @@ namespace influx::engine
 	void engine::run(run_type type, int argc, char* argv[])
 	{
 		m_runtype = type;
-		
 		process_runarguments(argc, argv);
-
 		initialize();
+
+		// auto-start game
+		if (type == run_type::game)
+		{
+			if (m_gameman) 
+				m_gameman->start();
+		}
 
 		while (!m_is_quit_requested)
 		{
@@ -120,6 +125,11 @@ namespace influx::engine
 				influx_scope("module update");
 				m_moduleman->update();
 			}
+			// stream assets from content -> renderer
+			{
+				influx_scope("stream_to_render");
+				m_renderman->stream_content(*m_contentman);
+			}
 			// input tick
 			{
 				influx_scope("input");
@@ -128,14 +138,9 @@ namespace influx::engine
 			// main update
 			{
 				influx_scope("update");
+				if (m_gameman) m_gameman->tick();
 				m_world->update();
 			}
-			// stream available assets from content into the renderer
-			{
-				influx_scope("stream_to_render");
-				m_renderman->stream_content(*m_contentman);
-			}
-
 			// record imgui if editor
 			if (m_runtype == run_type::editor)
 			{
@@ -145,7 +150,7 @@ namespace influx::engine
 				});
 			}
 
-			// world builds renderscene 
+			// world builds renderscene (pre-render)
 			{
 				influx_scope("build_render");
 				m_renderman->get_scene().m_seconds = m_time.get_time_seconds();
@@ -164,6 +169,11 @@ namespace influx::engine
 				influx_scope("log");
 				m_logman->tick();
 			}
+		}
+
+		if (type == run_type::game)
+		{
+			if (m_gameman) m_gameman->end();
 		}
 
 #if INFLUX_DEBUG
@@ -266,6 +276,11 @@ namespace influx::engine
 	scene& engine::get_current_scene()
 	{
 		return get_sceneman().get_current_scene();
+	}
+
+	module_manager& engine::get_moduleman()
+	{
+		return *get_engine()->m_moduleman;
 	}
 
 	log_manager& engine::get_logman()

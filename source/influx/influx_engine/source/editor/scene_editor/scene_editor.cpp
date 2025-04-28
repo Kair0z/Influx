@@ -164,12 +164,7 @@ namespace influx::engine::editor
 		if (g_camera && g_transform)
 		{
 			world& world = get_engine()->get_world();
-
-			math::ray ray = world.make_viewray(
-				*g_transform, *g_camera, 
-				position.m_client_normalized);
-
-			world::trace_result result = world.trace(ray);
+			world::trace_result result = world.trace_main_scene(position.m_client_normalized).get();
 			if (result.m_is_hit)
 			{
 				engine::log(e_log_category::info, "trace hit!");
@@ -210,7 +205,9 @@ namespace influx::engine::editor
 	{
 		switch (button)
 		{
-		case input::e_mouse_button::left: pick_scene(position); break;
+		case input::e_mouse_button::left: 
+			pick_scene(position);
+			break;
 		case input::e_mouse_button::right:
 			m_edit_radial.set_visible(true);
 			m_edit_radial.set_position(position.m_client);

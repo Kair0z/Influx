@@ -119,7 +119,7 @@ namespace influx::renderer
 		
 		INFLUX_RENDER_API 
 		bool has_meshes() const;
-		
+
 		INFLUX_RENDER_API 
 		const vector<mesh_instance>& get_meshes() const;
 		
@@ -143,7 +143,7 @@ namespace influx::renderer
 		const camera& get_camera() const;
 		
 		INFLUX_RENDER_API
-		const math::matrix4x4f& get_camera_transform() const;
+		result<math::matrix4x4f> get_camera_transform() const;
 		
 		INFLUX_RENDER_API
 		void set_camera(const camera& camera, const math::matrix4x4f& transform);

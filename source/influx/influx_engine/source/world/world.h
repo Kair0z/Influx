@@ -88,10 +88,11 @@ namespace influx::engine
 		void load_project(const influx::files::projectfile& proj);
 		void save_project(influx::files::projectfile& proj);
 
-		// gets the viewmatrix of the main camera
-		math::matrix4x4f get_main_projection_matrix() const;
-		math::matrix4x4f get_main_viewmatrix() const;
-		math::float3 get_main_cameraposition() const;
+		// gets the viewmatrix of the first camera of the scene
+		result<cptr<camera_component>> get_main_scene_camera() const;
+		result<cptr<transform_component>> get_main_scene_camera_transform() const;
+		result<trace_result> trace_main_scene(const math::float2& uv) const;
+		result<math::ray> make_main_scene_viewray(const math::float2& uv) const;
 
 		static math::ray make_viewray(
 			const transform_component& transform,

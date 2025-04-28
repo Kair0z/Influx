@@ -22,7 +22,7 @@
 
 namespace influx::engine
 {
-	class content_ui final : public editor_window
+	class content_ui final : public editor::editor_window
 	{
 	public:
 		virtual void on_run() override

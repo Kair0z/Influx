@@ -14,7 +14,7 @@ namespace influx::engine
 {
 	static string g_filepath = "";
 
-	class log_editor final : public editor_window
+	class log_editor final : public editor::editor_window
 	{
 	public:
 		virtual void on_prerun() override

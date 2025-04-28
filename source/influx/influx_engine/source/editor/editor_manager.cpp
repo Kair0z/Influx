@@ -9,13 +9,11 @@
 #include "file/engine_files.h"
 #include "content/content_manager.h"
 #include "world/world.h"
-#include "scene/scene.h"
 #include "game/game_manager.h"
-#include "rendering/render_manager.h"
+#include "input/input_manager.h"
 
 // influx::platform
 #include "influx_platform/window.h"
-#include "influx_platform/library.h"
 
 // influx::imgui
 #include "influx_imgui/imgui_translation.h"
@@ -70,7 +68,6 @@ namespace influx::engine::editor
 
 	editor_manager::editor_manager()
 	{
-		initialize_inputs();
 		load_editor();
 	}
 
@@ -81,8 +78,8 @@ namespace influx::engine::editor
 
 	void editor_manager::on_imgui(ImGuiContext& ctx)
 	{
-		update_context();
 		update_inputs();
+		update_context();
 		update_background_dockspace();
 		update_mainmenu();
 		update_static_windows();
@@ -92,17 +89,29 @@ namespace influx::engine::editor
 
 	void editor_manager::update_inputs()
 	{
-		// ctrl + space: engine + content
-		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::space))
-		{
-			m_content_toggle = !m_content_toggle;
-			m_engine_toggle = !m_engine_toggle;
-		}
+		input_manager& inputman = get_engine()->get_input();
 
-		// 
-		if (m_keybinds.is_dualbind_new(input::e_key::lctrl, input::e_key::lalt))
+		const input::mouse_position mouse_position = inputman.get_mouse_position();
+		m_mousepos = mouse_position.m_client;
+
+		// mouse updates
+		const buttonstate& lm_button = inputman.get_mousebutton_state(input::e_mouse_button::left);
+		if (lm_button.is_firstframe_down())
 		{
-			m_editor_toggle = !m_editor_toggle;
+			m_scene_editor.on_mouse_down(input::e_mouse_button::left, mouse_position);
+		}
+		if (lm_button.is_firstframe_up())
+		{
+			m_scene_editor.on_mouse_up(input::e_mouse_button::left, mouse_position);
+		}
+		const buttonstate& rm_button = inputman.get_mousebutton_state(input::e_mouse_button::right);
+		if (rm_button.is_firstframe_down())
+		{
+			m_scene_editor.on_mouse_up(input::e_mouse_button::right, mouse_position);
+		}
+		if (rm_button.is_firstframe_up())
+		{
+			m_scene_editor.on_mouse_up(input::e_mouse_button::right, mouse_position);
 		}
 	}
 
@@ -189,94 +198,6 @@ namespace influx::engine::editor
 		}
 	}
 
-	void editor_manager::on_keydown(input::e_key key)
-	{
-		m_keybinds.set(key, true);
-	}
-
-	void editor_manager::on_keyup(input::e_key key)
-	{
-		m_keybinds.set(key, false);
-	}
-
-	void editor_manager::on_ascii_down(char ascii)
-	{
-		m_keybinds.set(ascii, true);
-	}
-
-	void editor_manager::on_ascii_up(char ascii)
-	{
-		m_keybinds.set(ascii, false);
-	}
-
-	void editor_manager::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)
-	{
-		m_scene_editor.on_mouse_down(button, position);
-
-		switch (button)
-		{
-		case input::e_mouse_button::right: 
-			
-			break;
-
-		case input::e_mouse_button::left:
-			
-			world& world = get_engine()->get_world();
-
-			// get camera matrices
-			const math::matrix4x4f projection = world.get_main_projection_matrix();
-			const math::matrix4x4f view = world.get_main_viewmatrix();
-			const math::float3 camera_pos = world.get_main_cameraposition();
-
-			// convert pixel to ndc space
-			const math::float2 clientpos = position.m_client;
-			math::float3 mouse_ndc =
-			{
-				(2.0f * clientpos.x / 1280.0f) - 1.0f,
-				1.0f - (2.0f * clientpos.y / 720.0f),
-				-1.0f
-			};
-
-			mouse_ndc.x = -mouse_ndc.x;
-			mouse_ndc.y = -mouse_ndc.y;
-
-			// unproject ndc -> view
-			const math::float3 raypos_ndc = math::float4(mouse_ndc.x, mouse_ndc.y, mouse_ndc.z);
-			math::float3 raypos_view = projection.inverted() * raypos_ndc;
-			raypos_view.z = -1.0f;
-
-			// unview view -> world
-			math::float4 raypoint_world = view.inverted() * raypos_view;
-			
-			// make the ray
-			math::ray ray_from_eye{};
-			ray_from_eye.m_direction = -(raypoint_world.get_xyz() - camera_pos).normalized();
-			ray_from_eye.m_origin = camera_pos;
-			ray_from_eye.m_min = 0.0f;
-			ray_from_eye.m_max = FLT_MAX;
-
-			// trace the world with the ray
-			world::trace_result result = world.trace(ray_from_eye);
-			break;
-		}
-	}
-
-	void editor_manager::on_mouse_up(input::e_mouse_button button, const input::mouse_position& position)
-	{
-		m_scene_editor.on_mouse_up(button, position);
-
-		switch (button)
-		{
-		case input::e_mouse_button::right:	
-			break;
-		}
-	}
-
-	void editor_manager::on_mouse_move(const input::mouse_position& position)
-	{
-		m_mousepos = position.m_client;
-	}
-
 	bool editor_manager::has_project() const
 	{
 		return m_projectfile.m_name != "";
@@ -317,25 +238,5 @@ namespace influx::engine::editor
 	float editor_manager::get_mainmenu_height() const
 	{
 		return m_is_mainmenu_active ? ImGui::GetFrameHeight() : 0.0f;
-	}
-
-	void editor_manager::initialize_inputs()
-	{
-		input::subscribe_keydown([this](input::e_key key) { on_keydown(key); });
-		input::subscribe_keyup([this](input::e_key key) { on_keyup(key); });
-		input::subscribe_asciidown([this](char ascii) { on_ascii_down(ascii); });
-		input::subscribe_asciiup([this](char ascii) { on_ascii_up(ascii); });
-		input::subscribe_mousemove([this](const input::mouse_position& position)
-		{
-			on_mouse_move(position);
-		});
-		input::subscribe_mousedown([this](input::e_mouse_button button, const input::mouse_position& position)
-		{
-			on_mouse_down(button, position);
-		});
-		input::subscribe_mouseup([this](input::e_mouse_button button, const input::mouse_position& position)
-		{
-			on_mouse_up(button, position);
-		});
 	}
 }

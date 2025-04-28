@@ -13,7 +13,7 @@
 
 namespace influx::engine
 {
-    class world_ui final : public editor_window
+    class world_ui final : public editor::editor_window
     {
     public:
         virtual void on_run() override
@@ -134,7 +134,7 @@ namespace influx::engine
                 
                 // setup mesh
                 renderer::mesh_instance render_mesh{};
-                scene.add_mesh(0u, transform.get_matrix());
+                scene.add_mesh(mesh_comp.get_mesh_name(), transform.get_matrix());
             }
         }
 
@@ -303,38 +303,60 @@ namespace influx::engine
         }
     }
 
-    math::matrix4x4f world::get_main_projection_matrix() const
+    result<cptr<camera_component>> world::get_main_scene_camera() const
     {
-        math::matrix4x4f projection_matrix{};
+        using result_type = result<cptr<camera_component>>;
+
         for (auto [entity, transform_comp, camera_comp]
-            : m_registry.view<const transform_component, camera_component>().each())
+            : m_registry.view<const transform_component, const camera_component>().each())
         {
-            projection_matrix = camera_comp.get_projection();
+            return &camera_comp;
         }
-        return projection_matrix;
+
+        return result_type::make_error("error: no camera in scene!");
     }
 
-    math::matrix4x4f world::get_main_viewmatrix() const
+    result<cptr<transform_component>> world::get_main_scene_camera_transform() const
     {
-        math::matrix4x4f view_matrix = {};
+        using result_type = result<cptr<transform_component>>;
+
         for (auto [entity, transform_comp, camera_comp]
-            : m_registry.view<const transform_component, camera_component>().each())
+            : m_registry.view<const transform_component, const camera_component>().each())
         {
-            math::transform3D transform = transform_comp.get_transform();
-            view_matrix = transform.get_matrix().inverted();
+            return &transform_comp;
         }
-        return view_matrix;
+
+        return result_type::make_error("error: no camera in scene!");
+    }
+    
+    result<math::ray> world::make_main_scene_viewray(const math::float2& uv) const
+    {
+        using result_type = result<math::ray>;
+
+        auto res_cam = get_main_scene_camera();
+        auto res_transform = get_main_scene_camera_transform();
+        if (res_cam.is_success() && res_transform.is_success())
+        {
+            const camera_component& camera = *res_cam.get();
+            const transform_component& transform = *res_transform.get();
+            return make_viewray(transform, camera, uv);
+        }
+        else
+        {
+            return result_type::make_error("error: failed fetching main camera from scene!");
+        }
     }
 
-    math::float3 world::get_main_cameraposition() const
+    result<world::trace_result> world::trace_main_scene(const math::float2& uv) const
     {
-        math::float3 position{};
-        for (auto [entity, transform_comp, camera_comp]
-            : m_registry.view<const transform_component, camera_component>().each())
+        using result_type = result<world::trace_result>;
+
+        auto res = make_main_scene_viewray(uv);
+        if (res.is_success())
         {
-            position = transform_comp.get_position();
+            trace_result result = trace(res.get());
         }
-        return position;
+        else return result_type::make_error("error: failed making main scene viewray!");
     }
 
     math::ray world::make_viewray(const transform_component& transform, const camera_component& camera, const math::vectorf2& uv)

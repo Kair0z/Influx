@@ -51,6 +51,7 @@ namespace influx::engine
 
 		static scene_manager& get_sceneman();
 		static scene& get_current_scene();
+		static module_manager& get_moduleman();
 
 		static log_manager& get_logman();
 

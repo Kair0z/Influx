@@ -141,10 +141,18 @@ namespace influx::graphics
 			if (mpdx_stateobject)
 				mpdx_stateobject->Release();
 
-			m_raygen_shadertable.cleanup(*device);
-			m_miss_shadertable.cleanup(*device);
-			m_hitgroup_shadertable.cleanup(*device);
-			m_workgraph_resources.cleanup(*device);
+			switch (_t)
+			{
+			case e_pipeline_type::raytracing:
+				m_raygen_shadertable.cleanup(*device);
+				m_miss_shadertable.cleanup(*device);
+				m_hitgroup_shadertable.cleanup(*device);
+				break;
+
+			case e_pipeline_type::workgraph:
+				m_workgraph_resources.cleanup(*device);
+				break;
+			}
 		}
 
 		friend class dx12_device;

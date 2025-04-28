@@ -17,6 +17,7 @@ namespace influx::engine
 		void tick();
 		void push_window_event(const platform::window_event&);
 		
+		const input::mouse_position& get_mouse_position() const;
 		const math::vectoru2& get_mouse_position_client() const;
 		const math::vectoru2& get_mouse_position_screen() const;
 

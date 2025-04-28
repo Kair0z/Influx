@@ -45,9 +45,12 @@ namespace influx::engine
 	class module final
 	{
 	public:
+		string m_name = "";
 		e_module_state m_state;
 		platform::library* m_library = nullptr;
 		uint32 m_num_times_loaded = 0u;
+
+		void call_function(const string& function_name) const;
 	};
 
 	class module_manager final
@@ -57,7 +60,11 @@ namespace influx::engine
 		~module_manager();
 
 		void update();
+
 		result<module> find_module(const string& filepath);
+		result<module> find_module_with_name(const string& name) const;
+
+		result<> call_module_function(const string& module_name, const string& func_name) const;
 
 	private:
 		umap<module_signature, module> m_modules{};
