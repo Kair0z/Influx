@@ -593,7 +593,7 @@ namespace influx::renderer
 
         args.inv_viewprojection = scene.get_view_matrices().m_inv_viewprojection;
         args.inv_projection = scene.get_view_matrices().m_inv_projection;
-        args.camera_position = scene.get_camera_transform().get_row(3);
+        args.camera_position = scene.get_camera_transform().get().get_row(3);
         args.camera_position.w = 1.0f;
 
         // stage the descriptors onto the gpu heap
