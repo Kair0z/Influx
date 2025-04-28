@@ -5,7 +5,7 @@ namespace influx::renderer
 {
 	bool scene::is_empty() const
 	{
-		return !has_meshes();
+		return !has_meshes() || !has_camera();
 	}
 
 	uint32 scene::get_num_meshes() const
@@ -16,6 +16,11 @@ namespace influx::renderer
 	bool scene::has_meshes() const
 	{
 		return get_num_meshes() > 0u;
+	}
+
+	bool scene::has_camera() const
+	{
+		return m_camera.m_transform_id != k_invalid_id;
 	}
 
 	const vector<mesh_instance>& scene::get_meshes() const

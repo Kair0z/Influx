@@ -120,6 +120,9 @@ namespace influx::renderer
 		INFLUX_RENDER_API 
 		bool has_meshes() const;
 
+		INFLUX_RENDER_API
+		bool has_camera() const;
+
 		INFLUX_RENDER_API 
 		const vector<mesh_instance>& get_meshes() const;
 		

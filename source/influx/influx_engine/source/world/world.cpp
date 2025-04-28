@@ -354,9 +354,10 @@ namespace influx::engine
         auto res = make_main_scene_viewray(uv);
         if (res.is_success())
         {
-            trace_result result = trace(res.get());
+            return trace(res.get());
         }
-        else return result_type::make_error("error: failed making main scene viewray!");
+        else 
+            return result_type::make_error("error: failed making main scene viewray!");
     }
 
     math::ray world::make_viewray(const transform_component& transform, const camera_component& camera, const math::vectorf2& uv)
