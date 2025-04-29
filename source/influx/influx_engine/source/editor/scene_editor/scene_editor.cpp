@@ -208,7 +208,7 @@ namespace influx::engine::editor
 
 		// just add a gizmo
 		renderer::camera camera{};
-		math::matrix4x4f cam_transform = math::matrix4x4f::identity();
+		math::matrix4x4f cam_transform = math::matrix4x4f::make_transform_RH({ 0,0,10 }, { 0,0,-1 });
 		scene.set_camera(camera, cam_transform);
 		scene.add_gizmo_transform(math::transform3D::identity());
 		
