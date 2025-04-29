@@ -593,7 +593,19 @@ namespace influx::rendergraph
 		result += "// rendergraph resources //\n";
 		result += "// ====================  //\n";
 
-		result += "// textures: ";
+		result += "// textures: \n";
+		for (const auto& texture : m_textures)
+		{
+			result += "- " + to_string(texture->m_id.m_id);
+			result += "\n";
+		}
+
+		result += "// buffers: \n";
+		for (const auto& buffer : m_buffers)
+		{
+			result += "- " + to_string(buffer->m_id.m_id);
+			result += "\n";
+		}
 
 		return result;
 	}
