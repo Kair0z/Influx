@@ -100,8 +100,16 @@ namespace influx::rendergraph
 		INFLUX_RG_API void export_texture(const rgname& name, graphics::resource* resource);
 		INFLUX_RG_API void export_buffer(const rgname& name, graphics::resource* resource);
 
-		INFLUX_RG_API void reset(bool keep_resources);
+		/* resets all resources (also resets graph) */
+		INFLUX_RG_API void reset_resources();
 
+		/* resets passes & connections, but keeps listed resources around (imported) */
+		INFLUX_RG_API void reset_graph();
+
+		/* debug info dumps */
+		INFLUX_RG_API string make_dump();
+		INFLUX_RG_API string make_resources_dump();
+		
 	private:
 		vector<rgpass> m_passes{};
 		vector<rglayer> m_layers{};

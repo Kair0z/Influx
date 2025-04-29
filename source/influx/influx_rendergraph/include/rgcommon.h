@@ -139,9 +139,16 @@ namespace influx::rendergraph
 	};
 
 	// -- rgname
+	// in debug builds, keeps an actual string
+	// in everything else, keeps a hash of the string that was passed on creation
 	struct rgname final
 	{
 		static constexpr uint64 k_invalid_hash = uint64(-1);
+#if INFLUX_DEBUG
+		string m_namestr = "";
+		char const* m_name;
+#endif
+		uint64 m_namehash;
 
 		rgname(const string& name)
 		{
@@ -169,12 +176,6 @@ namespace influx::rendergraph
 		{
 			return m_namehash != k_invalid_hash;
 		}
-
-#if INFLUX_DEBUG
-		string m_namestr = "";
-		char const* m_name;
-#endif
-		uint64 m_namehash;
 	};
 
 	inline bool operator==(const rgname& name1, const rgname& name2)

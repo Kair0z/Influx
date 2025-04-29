@@ -126,6 +126,8 @@ namespace influx::renderer
 		bool has_shader(const shader::shader_signature& signature) const;
 		bool has_material(const string& title) const;
 
+		string get_last_executed_rendergraph_dump();
+
 		mesh_id get_mesh_id(e_mesh) const;
 
 		time::point get_time_loaded_shader(const shader::shader_signature& signature) const;

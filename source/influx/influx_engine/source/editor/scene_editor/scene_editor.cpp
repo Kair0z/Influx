@@ -8,6 +8,9 @@
 #include "component/component.h"
 #include "rendering/render_manager.h"
 
+// influx::renderer
+#include "influx_renderer/target.h"
+
 // influx::platform
 #include "influx_platform/window.h"
 
@@ -195,10 +198,25 @@ namespace influx::engine::editor
 			if (ptr_ptr) (*ptr_ptr)();
 		}
 
-		// handle the rendering
+		math::uint2 view_dimensions = { 640u, 480 };
+
 		render_manager& renderman = get_engine()->get_renderer();
-		render_view& scene_view = renderman.get_renderview("scene_view", { 640u, 480 });
-		scene_view.get_scene();
+		render_view& scene_view = renderman.get_renderview("scene_view", view_dimensions);
+		const renderer::target& target = scene_view.get_target();
+		renderer::scene& scene = scene_view.get_scene();
+		scene = renderer::scene();
+
+		// just add a gizmo
+		renderer::camera camera{};
+		math::matrix4x4f cam_transform = math::matrix4x4f::identity();
+		scene.set_camera(camera, cam_transform);
+		scene.add_gizmo_transform(math::transform3D::identity());
+		
+		if (ImGui::Begin("scene"))
+		{
+			ImGui::Image(reinterpret_cast<ImTextureID>(target.get_imgui_texid()), { (float)view_dimensions.x, (float)view_dimensions.y });
+			ImGui::End();
+		}
 	}
 
 	void scene_editor::on_mouse_down(input::e_mouse_button button, const input::mouse_position& position)

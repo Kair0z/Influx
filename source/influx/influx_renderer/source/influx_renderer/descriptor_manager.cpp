@@ -212,4 +212,9 @@ namespace influx::renderer
 	{
 		mp_dsv_heap->free_cpu(dsv);
 	}
+
+	void descriptor_manager::cleanup_srv(graphics::descriptor_handle srv)
+	{
+		mp_srv_heap->free_cpu(srv);
+	}
 }

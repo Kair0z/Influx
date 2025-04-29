@@ -159,8 +159,7 @@ namespace influx::renderer
 
     void renderer_backend::start_frame()
     {
-        const bool keep_rendergraph_resource = true;
-        m_rendergraph->reset(keep_rendergraph_resource);
+        m_rendergraph->reset_graph();
 
         // start the commandlist
         mp_commandlist->start(mp_device, nullptr);
@@ -336,7 +335,6 @@ namespace influx::renderer
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;
                 builder.write_rendertarget(target.get_resource()->get_name().get(), access);
-
                 builder.set_viewport(target.get_width(), target.get_height());
             },
             [this, draw_data, &target](rendergraph::rgpass_context& context)
@@ -555,29 +553,47 @@ namespace influx::renderer
     void renderer_backend::load(const string& title, const mesh_data<vertex_data>& data, bool reload)
     {
         mesh_data<vertex_data>* new_copy = new mesh_data<vertex_data>(data);
-        m_resource_manager->load<e_resource_type::mesh>(title, new_copy, reload);
+        auto& entry = m_resource_manager->load<e_resource_type::mesh>(title, new_copy, reload);
+
+        // keep track in the rendergraph
+        m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_vertexbuffer);
+        m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_indexbuffer);
+
+        log(renderer::e_log::info, "loaded mesh");
     }
 
     // texture
     void renderer_backend::load(const string& title, const texture_data& data, bool reload)
     {
-        m_resource_manager->load<e_resource_type::texture>(title, data, reload);
+        auto& entry = m_resource_manager->load<e_resource_type::texture>(title, data, reload);
+
+        // keep track in the rendergraph
+        m_rendergraph->import_texture("tex_" + title, entry.m_resource->mp_resource);
+
+        log(renderer::e_log::info, "loaded texture");
     }
 
     void renderer_backend::load(const string& title, const cubemap_data& data, bool reload)
     {
-        m_resource_manager->load<e_resource_type::cubemap>(title, data, reload);
+        auto& entry = m_resource_manager->load<e_resource_type::cubemap>(title, data, reload);
+
+        m_rendergraph->import_texture("cubetex_" + title, entry.m_resource->mp_resource);
+
+        log(renderer::e_log::info, "loaded cubemap");
     }
 
     // shader
     void renderer_backend::load(const shader::shader_signature& signature, const shader_data& data, bool reload)
     {
         m_resource_manager->load<e_resource_type::shader>(signature, data, reload);
+
+        log(renderer::e_log::info, "loaded shader");
     }
 
     // material
     void renderer_backend::load(const string& title, const material& data, bool reload)
     {
+        // nothing here
     }
 
     bool renderer_backend::has_mesh(const string& title) const
@@ -603,6 +619,14 @@ namespace influx::renderer
     bool renderer_backend::has_material(const string& title) const
     {
         return true;
+    }
+
+    string renderer_backend::get_last_executed_rendergraph_dump()
+    {
+        if (m_rendergraph)
+            return m_rendergraph->make_dump();
+
+        return "";
     }
 
     mesh_id renderer_backend::get_mesh_id(e_mesh mesh) const
@@ -694,7 +718,7 @@ namespace influx::renderer
     {
         if (m_resource_manager->contains<e_resource_type::texture>(title))
         {
-            return m_resource_manager->get<e_resource_type::texture>(title).m_resource;
+            return m_resource_manager->get<e_resource_type::texture>(title).m_resource->get_cpu_handle();
         }
         else return nullptr;
     }
@@ -914,6 +938,11 @@ namespace influx::renderer
     void* get_imgui_texture_id(const string& title)
     {
         return renderer_backend::get_instance().get_imgui_texture_id(title);
+    }
+
+    string get_last_rendergraph_dump()
+    {
+        return renderer_backend::get_instance().get_last_executed_rendergraph_dump();
     }
 
     memory_info get_memory_info()

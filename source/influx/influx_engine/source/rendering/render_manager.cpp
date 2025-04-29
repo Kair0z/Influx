@@ -121,7 +121,6 @@ namespace influx::engine
 			}
 
 			// multi-view rendering
-#if 0
 			for (auto& pair : m_views)
 			{
 				render_view_id id = pair.first;
@@ -129,10 +128,11 @@ namespace influx::engine
 				if (view.is_valid() == false) continue;
 
 				renderer::draw_scene(view.get_scene(), view.get_target());
-				renderer::draw_2D(view.get_scene2D(), view.get_target());
+				// renderer::draw_2D(view.get_scene2D(), view.get_target());
+
+				view.m_target;
 				++view.m_frame_counter;
 			}
-#endif
 
 			// scene target -> main window target
 			influx::renderer::copy_target(*mp_scene_target, *window_target);
@@ -150,6 +150,15 @@ namespace influx::engine
 
 		// present each swapchain registered
 		renderer::present_all({ .m_vsync = false });
+
+		static bool once = true;
+		if (once)
+		{
+			string filepath = "./rendergraph_dump.md";
+			file::create(filepath);
+			file::push_line(filepath, renderer::get_last_rendergraph_dump());
+			once = false;
+		}
 	}
 
 	void render_manager::stream_content(const content_manager& cont_man)

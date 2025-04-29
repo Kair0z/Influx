@@ -175,6 +175,9 @@ namespace influx::renderer
 	/* get ImTextureID from a loaded - in texture */
 	INFLUX_RENDER_API void* get_imgui_texture_id(const string& title);
 
+	/* */
+	INFLUX_RENDER_API string get_last_rendergraph_dump();
+
 	/* graphics info */
 	struct memory_info final
 	{

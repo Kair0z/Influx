@@ -52,6 +52,7 @@ namespace influx::renderer
 			mp_resource = device->create_resource(desc);
 
 			m_rtv_cpu = desc_manager.create_rtv(mp_resource);
+			m_srv_cpu = desc_manager.create_srv(mp_resource);
 		}
 		if (args.m_has_depth_stencil)
 		{
@@ -78,8 +79,9 @@ namespace influx::renderer
 		// get the existing backbuffer resource, and allocate + create a new rtv
 		mp_resource = swapchain->get_backbuffer_resource(swapchain_index).get();
 		m_rtv_cpu = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
+		m_srv_cpu = renderer_backend::get_descriptor_manager()->create_srv(mp_resource);
 		m_dsv_cpu = nullptr;
-
+		
 		m_args.m_width = swapchain->get_dimensions().x;
 		m_args.m_heigth = swapchain->get_dimensions().y;
 		m_current_dimensions = swapchain->get_dimensions();
@@ -89,6 +91,11 @@ namespace influx::renderer
 		m_is_swapchain_target = true;
 	}
 
+	void* target::get_imgui_texid() const
+	{
+		return m_srv_cpu;
+	}
+
 	target::~target()
 	{
 		descriptor_manager* desc_man = renderer_backend::get_descriptor_manager();
@@ -96,6 +103,11 @@ namespace influx::renderer
 		{
 			desc_man->cleanup_rtv(m_rtv_cpu);
 			m_rtv_cpu = nullptr;
+		}
+		if (m_srv_cpu)
+		{
+			desc_man->cleanup_srv(m_srv_cpu);
+			m_srv_cpu = nullptr;
 		}
 		if (m_dsv_cpu)
 		{
@@ -138,6 +150,11 @@ namespace influx::renderer
 	graphics::descriptor_handle target::get_dsv() const
 	{
 		return m_dsv_cpu;
+	}
+
+	graphics::descriptor_handle target::get_srv() const
+	{
+		return m_srv_cpu;
 	}
 
 	uint32 target::get_width() const
@@ -185,6 +202,7 @@ namespace influx::renderer
 				graphics::tex2D_desc desc = get_default_color_desc(dimensions);
 				mp_resource = mp_device->create_resource(desc);
 				recreate_rtv();
+				recreate_srv();
 			}
 
 			if (m_args.m_has_depth_stencil)
@@ -209,6 +227,14 @@ namespace influx::renderer
 		if (m_dsv_cpu)
 		{
 			mp_device->create_dsv(m_dsv_cpu, mp_depth_resource);
+		}
+	}
+
+	void target::recreate_srv()
+	{
+		if (m_srv_cpu)
+		{
+			mp_device->create_texture_srv(m_srv_cpu, mp_resource);
 		}
 	}
 

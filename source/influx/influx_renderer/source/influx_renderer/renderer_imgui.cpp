@@ -181,17 +181,14 @@ namespace influx::renderer
 					};
 					commandlist->set(rect);
 
-					// if this command has a bound TexID (texture*/void*),
+					// if this command has a bound TexID (descriptor*/void*),
 					// we should stage the texture (allocate gpu descriptor)
 					// and bind that range to the commandlist
 					const bool command_has_texture = command.GetTexID() != 0u;
 					if (command_has_texture)
 					{
-						texture2D* tex = reinterpret_cast<texture2D*>(command.GetTexID());
-						if (tex != nullptr)
-						{
-							tex_gpu_range = descriptor_manager.stage(tex);
-						}
+						graphics::descriptor_handle cpu_descriptor = reinterpret_cast<graphics::descriptor_handle>(command.GetTexID());
+						tex_gpu_range = descriptor_manager.stage(cpu_descriptor);
 					}
 					else
 					{

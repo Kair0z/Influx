@@ -46,6 +46,7 @@ namespace influx::renderer
 		graphics::resource* get_depth_resource() const;
 		graphics::descriptor_handle get_rtv() const;
 		graphics::descriptor_handle get_dsv() const;
+		graphics::descriptor_handle get_srv() const;
 
 		INFLUX_RENDER_API uint32 get_width() const;
 		INFLUX_RENDER_API uint32 get_height() const;
@@ -61,6 +62,9 @@ namespace influx::renderer
 		INFLUX_RENDER_API const debug_name& get_name() const;
 
 		INFLUX_RENDER_API bool is_swapchain_target() const;
+
+		// cpu descriptor handle (graphics::descriptor_handle)
+		INFLUX_RENDER_API void* get_imgui_texid() const;
 
 		INFLUX_RENDER_API ~target();
 
@@ -78,12 +82,14 @@ namespace influx::renderer
 		// does not allocate a new descriptor handle, but recreates the view
 		void recreate_rtv();
 		void recreate_dsv();
+		void recreate_srv();
 
 		graphics::resource* mp_resource = nullptr;
 		graphics::resource* mp_depth_resource = nullptr;
 
 		graphics::descriptor_handle m_rtv_cpu;
 		graphics::descriptor_handle m_dsv_cpu;
+		graphics::descriptor_handle m_srv_cpu;
 		bool m_is_swapchain_target = false;
 
 		target_create_args m_args;

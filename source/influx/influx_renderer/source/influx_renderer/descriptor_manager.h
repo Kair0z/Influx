@@ -44,6 +44,7 @@ namespace influx::renderer
 
 		void cleanup_rtv(graphics::descriptor_handle rtv);
 		void cleanup_dsv(graphics::descriptor_handle dsv);
+		void cleanup_srv(graphics::descriptor_handle srv);
 
 	private:
 		// GPU heaps (shader-visible)

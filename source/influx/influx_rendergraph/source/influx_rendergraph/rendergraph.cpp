@@ -510,41 +510,32 @@ namespace influx::rendergraph
 		}
 	}
 
-	void rendergraph::reset(bool keep_resources)
+	void rendergraph::reset_resources()
 	{
+		m_buffers.clear();
+		m_textures.clear();
+		m_id_to_texture_map.clear();
+		m_id_to_buffer_map.clear();
+
+		m_texture_name_to_id_map.clear();
+		m_buffer_name_to_id_map.clear();
+
+		m_texid_to_deviceobjects_map.clear();
+		m_bufid_to_deviceobjects_map.clear();
+
+		// if all our resources are reset, our graph also is required to reset
+		reset_graph();
+	}
+
+	void rendergraph::reset_graph()
+	{
+		get_view_manager(m_device).end_frame();
+
 		m_passes.clear();
 		m_layers.clear();
 		m_adjacency_lists.clear();
 		m_id_to_pass_map.clear();
 		m_topo_sorted_passes.clear();
-
-		get_view_manager(m_device).end_frame();
-
-		if (keep_resources == false)
-		{
-			m_buffers.clear();
-			m_textures.clear();
-			m_id_to_texture_map.clear();
-			m_id_to_buffer_map.clear();
-
-			m_texture_name_to_id_map.clear();
-			m_buffer_name_to_id_map.clear();
-
-			m_texid_to_deviceobjects_map.clear();
-			m_bufid_to_deviceobjects_map.clear();
-		}
-		else
-		{
-			// insert destroy points at the 'last user pass' of the resources
-			for (uint64 i = 0; i < m_textures.size(); ++i)
-			{
-				m_textures[i]->reset();
-			}
-			for (uint64 i = 0; i < m_buffers.size(); ++i)
-			{
-				m_buffers[i]->reset();
-			}
-		}
 
 		m_buffer_uav_counter_map.clear();
 		m_rtid_to_clear_map.clear();
@@ -554,6 +545,57 @@ namespace influx::rendergraph
 
 		m_bufid_to_viewdesc_map.clear();
 		m_bufid_to_descriptors_map.clear();
+
+		// reset the graph references inside the existing resources
+		for (uint64 i = 0; i < m_textures.size(); ++i)
+		{
+			m_textures[i]->reset();
+		}
+		for (uint64 i = 0; i < m_buffers.size(); ++i)
+		{
+			m_buffers[i]->reset();
+		}
+	}
+
+	string rendergraph::make_dump()
+	{
+		string result{};
+
+		result += "// ====================	//\n";
+		result += "// rendergraph dump		//\n";
+		result += "// ====================  //\n";
+
+		for (rglayer& layer : m_layers)
+		{
+			uint32 counter = 0u;
+			for (rgpass& pass : layer.m_passes)
+			{
+				result += pass.m_name.m_namestr;
+				result += "\t";
+
+				counter++;
+			}
+
+			result += "\n";
+		}
+
+		result += "\n\n";
+		result += make_resources_dump();
+
+		return result;
+	}
+
+	string rendergraph::make_resources_dump()
+	{
+		string result{};
+
+		result += "// ====================	//\n";
+		result += "// rendergraph resources //\n";
+		result += "// ====================  //\n";
+
+		result += "// textures: ";
+
+		return result;
 	}
 
 	void rendergraph::create_texture_views(rgtexture_id id)
