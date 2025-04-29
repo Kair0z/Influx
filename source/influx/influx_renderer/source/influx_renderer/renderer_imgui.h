@@ -23,13 +23,22 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
+	struct drawdata_dependencies final
+	{
+		vector<graphics::descriptor_handle> m_texture_cpu_handles;
+		vector<graphics::resource*> m_textures;
+	};
+
 	class imgui_manager final
 	{
 	public:
 		imgui_manager(graphics::device* device);
 		void render(graphics::commandlist* commandlist, const ImDrawData& draw, const target& target);
 		void render(graphics::commandlist* commandlist, const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
-		
+
+		/* fetches all textures imgui wants readable */
+		static vector<drawdata_dependencies> get_dependencies(const vector<ImDrawData const*>& draws);
+
 	private:
 		void create_fonts_texture(graphics::device* device);
 		result<> create_shaders();

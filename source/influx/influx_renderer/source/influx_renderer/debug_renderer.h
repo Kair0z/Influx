@@ -21,6 +21,8 @@ namespace influx::renderer
 
 		bool can_build_pipeline() const;
 
+		void load_shaders();
+
 	private:
 		constexpr static uint32 k_max_instances = 4096u;
 		

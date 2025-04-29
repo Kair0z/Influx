@@ -132,6 +132,7 @@ namespace influx::renderer
 
         // in-house shaders
         mp_scene_renderer->load_shaders();
+        mp_debug_renderer->load_shaders();
 
         // in-house geometry
         m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::box), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::box>(), true);
@@ -316,6 +317,17 @@ namespace influx::renderer
             pass->set_name(RGNAME("draw_debug"));
         }
 
+        // transition target to readable
+        {
+            auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
+                [](rendergraph::rgpass_builder& builder) { },
+                [this, &target](rendergraph::rgpass_context& context)
+                {
+                    graphics::commandlist& commandlist = context.get_commandlist();
+                    target.get_resource()->transition(&commandlist, graphics::e_resource_state::all_srv);
+                });
+        }
+
         return true;
     }
 
@@ -324,10 +336,6 @@ namespace influx::renderer
         static string color_name{}; color_name = target.get_resource()->get_name().get();
         m_rendergraph->import_texture(color_name, target.get_resource());
 
-#if 0
-        const math::colour_rgba colour = math::colour_rgba{ (float)target.get_width() / 1000, 0.0f, 0.0f, 1.0f };
-        m_rendergraph->add_clear_pass(target.get_resource(), { .m_colour = colour });
-#else
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
             [&target](rendergraph::rgpass_builder& builder)
             {
@@ -344,7 +352,6 @@ namespace influx::renderer
             });
 
         pass->set_name(RGNAME("draw_imgui"));
-#endif
 
         return true;
     }
@@ -357,16 +364,6 @@ namespace influx::renderer
         {
             const target& target = *targets[i];
             const ImDrawData& draw = *draws[i];
-
-#if 0
-            // clear this imgui
-            if (i == 1u)
-            {
-                const math::colour_rgba colour = math::colour_rgba{ (float)target.get_width() / 1000, 0.0f, 0.0f, 1.0f };
-                m_rendergraph->add_clear_pass(target.get_resource(), { .m_colour = colour });
-                return;
-            }
-#endif
 
             // import the texture
             color_name = target.get_resource()->get_name().get();

@@ -127,6 +127,7 @@ namespace influx::engine
 				render_view& view = pair.second;
 				if (view.is_valid() == false) continue;
 
+				view.m_scene.set_debug_render_enabled(true);
 				renderer::draw_scene(view.get_scene(), view.get_target());
 				// renderer::draw_2D(view.get_scene2D(), view.get_target());
 

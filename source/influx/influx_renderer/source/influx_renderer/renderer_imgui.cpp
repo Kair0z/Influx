@@ -211,6 +211,13 @@ namespace influx::renderer
 		}
 	}
 
+	vector<drawdata_dependencies> imgui_manager::get_dependencies(const vector<ImDrawData const*>& draws)
+	{
+		vector<drawdata_dependencies> result{};
+		result.reserve(draws.size());
+		return result;
+	}
+
 	void imgui_manager::create_fonts_texture(graphics::device* device)
 	{
 		renderer_backend& backend = renderer_backend::get_instance();

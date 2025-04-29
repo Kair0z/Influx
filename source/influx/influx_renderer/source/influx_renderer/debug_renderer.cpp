@@ -121,8 +121,13 @@ namespace influx::renderer
     {
         // get the pipeline
         renderer_backend& backend = renderer_backend::get_instance();
-        graphics_pipeline& pipeline = backend.get_pipeline_manager()->get_or_create_pipeline(get_pipeline_sig());
+        pipeline_manager& pipelineman = *backend.get_pipeline_manager();
+        graphics_pipeline& pipeline = pipelineman.get_or_create_pipeline(get_pipeline_sig());
         descriptor_manager& descriptorman = *backend.get_descriptor_manager();
+
+        // hot-reload our shaders if necessary:
+        pipeline.rebuild(backend.get_device());
+        influx_assert(pipeline.is_valid());
 
         logonce(e_log_category::warning, "influx::renderer::debug_renderer: first debug render!");
 
@@ -170,6 +175,67 @@ namespace influx::renderer
         }
 
         return has_all_shaders;
+    }
+
+    void debug_renderer::load_shaders()
+    {
+        renderer_backend& backend = renderer_backend::get_instance();
+        resource_manager& resourceman = backend.get_resource_manager();
+
+        string base_dir = backend.get_shadersource_directory(e_shadersource_directory::base);
+        string src_dir = backend.get_shadersource_directory(e_shadersource_directory::source);
+        string inc_dir = backend.get_shadersource_directory(e_shadersource_directory::include);
+
+        string sourcefilepath = src_dir + "/debug_shaders.hlsl";
+
+        // parse the shader files for their necessary shaders
+        shader::compile_args compile_args{};
+        compile_args.m_include_folder = base_dir;
+        const auto target = shader::e_shader_target::_6_6;
+        compile_args.m_reflection = true;
+        compile_args.m_defines = {};
+        compile_args.m_compile_debug = false;
+        compile_args.m_pbd = false;
+
+        using parse_result =
+            shader::result<vector<shader::parse_output>>;
+
+        parse_result basepass_parse = shader::parse_shaders_in_file(sourcefilepath);
+
+        if (basepass_parse.is_unex())
+            return;
+
+        // assert basepass has vs & ps
+        vector<shader::parse_output> basepass_parsed_file = basepass_parse.get();
+        {
+            const bool has_vertex_shader = vector_helpers::contains(basepass_parsed_file,
+            [](const shader::parse_output& shader)
+            {
+                return shader.get_shader_type() == shader::e_shader_type::vs;
+            });
+            const bool has_pixel_shader = vector_helpers::contains(basepass_parsed_file,
+            [](const shader::parse_output& shader)
+            {
+                return shader.get_shader_type() == shader::e_shader_type::ps;
+            });
+            influx_assert(has_vertex_shader && has_pixel_shader);
+        }
+
+        // COMPILE: now finally compile the shaders and load them into our resource manager:
+        for (const shader::parse_output& shader_parse : basepass_parsed_file)
+        {
+            compile_args.m_signature = shader_parse.m_signature;
+            compile_args.m_signature.m_target = target;
+
+            // compile
+            auto compile_result = shader::compile_shader_in_file(sourcefilepath, compile_args);
+            influx_assert(compile_result.is_success());
+
+            // load into resource_manager
+            shader::compile_output compile_output = compile_result.get();
+            influx_assert(compile_output.m_success);
+            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+        }
     }
 
     void debug_renderer::update_instance_buffer(const scene& scene)
