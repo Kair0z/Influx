@@ -38,9 +38,11 @@ namespace influx::renderer
 		scene_renderer();
 		~scene_renderer();
 
-		void render(rendergraph::rendergraph& graph, const scene& scene, const target& target);
-
+		/* compile & load internal shaders */
 		void load_shaders();
+
+		/* add passes to render graph */
+		void render(rendergraph::rendergraph& graph, const scene& scene, const target& target);
 
 	private:
 		vector<batch> create_batches(const scene& scene, graphics::commandlist* commandlist);

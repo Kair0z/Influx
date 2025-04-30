@@ -247,8 +247,7 @@ namespace influx::renderer
         compile_args.m_compile_debug = false;
         compile_args.m_pbd = false;
 
-        using parse_result =
-            shader::result<vector<shader::parse_output>>;
+        using parse_result = shader::result<vector<shader::parse_output>>;
 
         // 1. parse each shader from file
         parse_result basepass_parse = shader::parse_shaders_in_file(basepass_sourcefile_path);
@@ -629,7 +628,6 @@ namespace influx::renderer
         };
 
         // read gbuffers and write into target buffer as result
-        static string color_name{}; color_name = target.get_resource()->get_name().get();
         for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
             gbuffer_reads[i] = builder.read_texture(gbuffernames[i]);
@@ -644,8 +642,8 @@ namespace influx::renderer
         }
         else
         {
-            // write to target
-            resolve_write = builder.write_texture(target.get_name().get());
+            // write directly to target
+            resolve_write = builder.write_texture(target.get_rendergraph_name());
         }
     }
 

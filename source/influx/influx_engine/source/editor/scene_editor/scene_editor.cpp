@@ -208,6 +208,11 @@ namespace influx::engine::editor
 
 		// just add a gizmo
 		renderer::camera camera{};
+		camera.m_camera.set_aspect_ratio(640.0f / 480.0f);
+		camera.m_camera.set_fov(90.0f);
+		camera.m_camera.set_farplane(1000.0f);
+		camera.m_camera.set_nearplane(0.001f);
+		
 		math::matrix4x4f cam_transform = math::matrix4x4f::make_transform_RH({ 0,0,10 }, { 0,0,-1 });
 		scene.set_camera(camera, cam_transform);
 		scene.add_gizmo_transform(math::transform3D::identity());

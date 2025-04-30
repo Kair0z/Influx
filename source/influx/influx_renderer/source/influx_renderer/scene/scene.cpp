@@ -5,7 +5,7 @@ namespace influx::renderer
 {
 	bool scene::is_empty() const
 	{
-		return !has_meshes() || !has_camera();
+		return !has_camera();
 	}
 
 	uint32 scene::get_num_meshes() const
