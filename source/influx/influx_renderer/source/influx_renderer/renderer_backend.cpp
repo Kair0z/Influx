@@ -129,12 +129,11 @@ namespace influx::renderer
         // in-house shaders
         mp_scene_renderer->load_shaders();
 
-        // in-house geometry
-        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::box), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::box>(), true);
-        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::plane), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::plane>(), true);
-        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::quad), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::quad>(), true);
-        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::sphere), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::sphere>(), true);
-        m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::triangle), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::triangle>(), true);
+        load(get_internal_mesh_name(e_mesh::box), get_inline_mesh<e_mesh::box>(), true);
+        load(get_internal_mesh_name(e_mesh::plane), get_inline_mesh<e_mesh::plane>(), true);
+        load(get_internal_mesh_name(e_mesh::quad), get_inline_mesh<e_mesh::quad>(), true);
+        load(get_internal_mesh_name(e_mesh::sphere), get_inline_mesh<e_mesh::sphere>(), true);
+        load(get_internal_mesh_name(e_mesh::triangle), get_inline_mesh<e_mesh::triangle>(), true);
     }
 
     void renderer_backend::cleanup()
@@ -325,16 +324,20 @@ namespace influx::renderer
     result<> renderer_backend::draw_scene(const scene& scene, const target& target)
     {
         using result_type = result<>;
+
         if (scene.is_empty())
         {
             return result_type::make_error("error: cannot draw an empty scene!");
         }
 
         auto res = import_to_graph(target);
-        influx_assert(res.is_success());
+        if (res.is_unex())
+        {
+            return result_type::make_error("error: failed importing target!");
+        }
 
         mp_scene_renderer->render(*m_rendergraph, scene, target);
-        return true;
+        return {};
     }
 
     result<> renderer_backend::draw_imgui(ImDrawData const* draw_data, const target& target)
@@ -529,7 +532,7 @@ namespace influx::renderer
 
         // keep track in the rendergraph
         m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_vertexbuffer);
-        m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_indexbuffer);
+        m_rendergraph->import_buffer("ib_" + title, entry.m_resource->m_indexbuffer);
 
         log(renderer::e_log::info, "loaded mesh");
     }
