@@ -23,10 +23,12 @@ namespace influx::rendergraph
 
 namespace influx::renderer
 {
-	// todo: elegantly remove these caps
+	// todo: some of these can be made flexible
 	constexpr static uint32 k_max_num_instances = 4096u;
 	constexpr static uint32 k_max_num_lights = 512u;
 	constexpr static uint32 k_max_num_vertices = 24u * 1024u;
+	constexpr static uint32 k_num_light_types = 3u;
+	constexpr static uint32 k_max_lines = 4096u;
 
 	class batch;
 
@@ -53,8 +55,6 @@ namespace influx::renderer
 		void execute_resolvepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
 
 	private:
-		static constexpr uint32 k_num_light_types = 3u;
-
 		graphics::resource* mp_instancebuffer;
 		graphics::resource* mp_lightbuffers[k_num_light_types];
 		graphics::descriptor_handle m_instance_buffer_srv;
@@ -64,27 +64,12 @@ namespace influx::renderer
 
 		graphics::resource* mp_skybox;
 		graphics::descriptor_handle m_skybox_srv;
-
-		struct line_gpu_instance_data final
-		{
-			math::vectorf3	m_start_wp;
-			math::vectorf3	m_end_wp;
-			math::colour_rgba m_colour;
-		};
-		struct line_vertex final
-		{
-			math::float3 m_position;
-			math::colour_rgba m_colour;
-			uint32 m_id;
-		};
-
-		constexpr static uint32 k_max_lines = 4096u;
-		vector<line_gpu_instance_data> m_line_instance_data;
+		
 		graphics::resource* m_line_instance_buffer;
 		graphics::resource* m_line_vertex_buffer;
 		graphics::descriptor_handle m_line_instance_buffer_srv;
 
-		// gpu data
+		vector<frontend::line_gpu_instance_data> m_line_instance_data;
 		frontend::per_scene m_gpu_perscene;
 		frontend::per_view m_gpu_perview;
 		frontend::per_material m_gpu_permaterial;

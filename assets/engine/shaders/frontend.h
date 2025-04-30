@@ -56,6 +56,19 @@ struct per_instance
 	uint4 m_texture_indices;
 };
 
+struct line_gpu_instance_data final
+{
+	float3 m_start_wp;
+	float3 m_end_wp;
+	float4 m_colour;
+};
+struct line_vertex final
+{
+	float3 m_position;
+	float4 m_colour;
+	uint m_id;
+};
+
 struct per_vertex
 {
 	float3 m_position;

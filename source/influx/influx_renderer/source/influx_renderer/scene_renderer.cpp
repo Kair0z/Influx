@@ -34,6 +34,7 @@ namespace influx::renderer
         graphics::e_format::u32,
     };
 
+#pragma region shaders
     static graphics_pipeline_signature& get_scene_basepass_pipeline_signature()
     {
         static graphics_pipeline_signature signature{};
@@ -127,6 +128,7 @@ namespace influx::renderer
         }
         return signature;
     }
+#pragma endregion
 
     scene_renderer::scene_renderer()
     {
@@ -187,8 +189,8 @@ namespace influx::renderer
             graphics::heap_desc heap_desc{};
             heap_desc.m_type = graphics::e_heap_type::shared;
             graphics::buffer_desc desc{};
-            desc.m_bytesize = k_max_lines * sizeof(line_gpu_instance_data);
-            desc.m_bytestride = sizeof(line_gpu_instance_data);
+            desc.m_bytesize = k_max_lines * sizeof(frontend::line_gpu_instance_data);
+            desc.m_bytestride = sizeof(frontend::line_gpu_instance_data);
             desc.m_init_state = graphics::e_resource_state::gen_read;
             m_line_instance_buffer = device.create_resource(desc, heap_desc);
             m_line_instance_buffer->set_name({ "line_instance_buffer" });
@@ -197,7 +199,7 @@ namespace influx::renderer
 
         // line-render: create 2-element vertexbuffer
         {
-            vector<line_vertex> vertices = {
+            vector<frontend::line_vertex> vertices = {
                 {.m_position{0.0f, 0.0f, 0.0f}, .m_colour{1,1,1,1}},
                 {.m_position{1.0f, 0.0f, 0.0f}, .m_colour{1,1,1,1}} };
 
@@ -205,12 +207,12 @@ namespace influx::renderer
             heap_desc.m_type = graphics::e_heap_type::shared;
             graphics::buffer_desc desc{};
             desc.m_init_state = graphics::e_resource_state::gen_read;
-            desc.m_bytesize = vertices.size() * sizeof(line_vertex);
-            desc.m_bytestride = sizeof(line_vertex);
+            desc.m_bytesize = vertices.size() * sizeof(frontend::line_vertex);
+            desc.m_bytestride = sizeof(frontend::line_vertex);
             m_line_vertex_buffer = device.create_resource(desc, heap_desc);
             m_line_vertex_buffer->map([&vertices](void* target)
             {
-                memcpy(target, vertices.data(), vertices.size() * sizeof(line_vertex));
+                memcpy(target, vertices.data(), vertices.size() * sizeof(frontend::line_vertex));
             });
         }
 
@@ -427,7 +429,7 @@ namespace influx::renderer
 
         for (const line& line : scene.get_lines())
         {
-            line_gpu_instance_data instance_data{};
+            frontend::line_gpu_instance_data instance_data{};
             instance_data.m_colour = line.m_colour;
             instance_data.m_start_wp = line.m_points[0u];
             instance_data.m_end_wp = line.m_points[1u];
@@ -436,7 +438,7 @@ namespace influx::renderer
 
         m_line_instance_buffer->map([this](void* dest)
         {
-            line_gpu_instance_data* data = reinterpret_cast<line_gpu_instance_data*>(dest);
+            frontend::line_gpu_instance_data* data = reinterpret_cast<frontend::line_gpu_instance_data*>(dest);
             for (uint64 i = 0u; i < m_line_instance_data.size(); ++i)
             {
                 data[i] = m_line_instance_data[i];
@@ -816,7 +818,10 @@ namespace influx::renderer
             proxypass->set_name(RGNAME("proxypass_b"));
         }
 
-        // | LINE RENDER (DEBUG)
+        // | POST PROCESSING PASS
+        // ...
+        
+        // | LINE RENDER PASS (DEBUG)
         if (scene.has_debug_primitives() && scene.is_debug_render_enabled())
         {
             auto* pass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
