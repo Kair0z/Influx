@@ -10,6 +10,7 @@
 #include "core/string.h"
 #include "core/container/vector.h"
 #include "core/container/map.h"
+#include "core/result.h"
 
 // influx::graphics
 #include "influx_graphics/descriptors.h"
@@ -25,6 +26,9 @@ namespace influx::graphics
 
 namespace influx::rendergraph
 {
+	template <typename _t = char>
+	using result = influx::result<_t, const char*>;
+
 	class rgbuffer;
 	class rgtexture;
 	class rgpool;
@@ -95,10 +99,14 @@ namespace influx::rendergraph
 		INFLUX_RG_API rgpass* add_clear_pass(graphics::resource* dest, const clear_args& args = {});
 
 		// in/out resources
-		INFLUX_RG_API void import_texture(const rgname& name, graphics::resource* resource);
-		INFLUX_RG_API void import_buffer(const rgname& name, graphics::resource* resource);
-		INFLUX_RG_API void export_texture(const rgname& name, graphics::resource* resource);
-		INFLUX_RG_API void export_buffer(const rgname& name, graphics::resource* resource);
+		INFLUX_RG_API result<> import_texture(const rgname& name, graphics::resource* resource);
+		INFLUX_RG_API result<> import_buffer(const rgname& name, graphics::resource* resource);
+		INFLUX_RG_API result<> export_texture(const rgname& name, graphics::resource* resource);
+		INFLUX_RG_API result<> export_buffer(const rgname& name, graphics::resource* resource);
+
+		/* removes imported resources from book-keeping ! does not de-allocate their resources !*/
+		INFLUX_RG_API result<> remove_imported_texture(const rgname& name);
+		INFLUX_RG_API result<> remove_imported_buffer(const rgname& name);
 
 		/* resets all resources (also resets graph) */
 		INFLUX_RG_API void reset_resources();

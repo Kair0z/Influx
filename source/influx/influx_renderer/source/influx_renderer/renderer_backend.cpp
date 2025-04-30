@@ -9,7 +9,6 @@
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
 #include "influx_renderer/scene_renderer.h"
-#include "influx_renderer/debug_renderer.h"
 #include "influx_renderer/quad_renderer.h"
 #include "influx_renderer/shadertoy/shadertoy_renderer.h"
 #include "influx_renderer/resources/resource_manager.h"
@@ -89,8 +88,7 @@ namespace influx::renderer
             desc.m_priority = graphics::e_queue_priority::normal;
             mp_graphics_queue = mp_device->create_queue(desc);
             mp_commandlist = mp_device->create_graphics_commandlist();
-            mp_fence = mp_device->create_fence((uint64)-1);
-            mp_copyfence = mp_device->create_fence(0u);
+            m_gpu_finished_fence = mp_device->create_fence(0u);
         }
 
         // create renderers & managers
@@ -99,16 +97,14 @@ namespace influx::renderer
             mp_pipeline_manager = new pipeline_manager(mp_device);
             mp_upload_manager = new upload_manager(mp_device);
             m_resource_manager = new resource_manager();
-
             mp_imgui = new imgui_manager(mp_device);
             mp_scene_renderer = new scene_renderer();
-            mp_debug_renderer = new debug_renderer();
             mp_quad_renderer = new quad_renderer();
             mp_shadertoy_renderer = new shadertoy_renderer();
-
             m_rendergraph = new rendergraph::rendergraph(mp_device);
         }
         
+        // load internal resources (shaders, geometry & textures)
         load_resources();
 
         m_is_initialized = true;
@@ -122,8 +118,8 @@ namespace influx::renderer
     void renderer_backend::wait_gpu_finished() const
     {
         const uint64 finished_value = (uint64)-1;
-        mp_fence->queue_signal(finished_value, mp_graphics_queue);
-        mp_fence->wait_for_value(finished_value);
+        m_gpu_finished_fence->queue_signal(finished_value, mp_graphics_queue);
+        m_gpu_finished_fence->wait_for_value(finished_value);
     }
 
     void renderer_backend::load_resources()
@@ -132,7 +128,6 @@ namespace influx::renderer
 
         // in-house shaders
         mp_scene_renderer->load_shaders();
-        mp_debug_renderer->load_shaders();
 
         // in-house geometry
         m_resource_manager->load<e_resource_type::mesh>(get_internal_mesh_name(e_mesh::box), (detail::base_mesh_data*)&get_inline_mesh<e_mesh::box>(), true);
@@ -202,9 +197,47 @@ namespace influx::renderer
         ++m_frame_count;
     }
 
-    target* renderer_backend::create_target(const target_create_args& args)
+    result<target*> renderer_backend::create_target(const target_create_args& args)
     {
-        return new target(mp_device, args);
+        using result_type = result<target*>;
+
+        target* new_target = new target(mp_device, args);
+        m_targets[new_target->m_id] = new_target;
+
+        auto res = import_to_graph(*new_target);
+        influx_assert(res.is_success());
+
+        return new_target;
+    }
+
+    result<> renderer_backend::destroy_target(target*& target)
+    {
+        // remove resources from rendergraph book-keeping
+        m_rendergraph->remove_imported_texture(target->get_rendergraph_name());
+        if (target->has_depth_stencil())
+        {
+            m_rendergraph->remove_imported_texture(target->get_depth_rendergraph_name());
+        }
+
+        delete target;
+        target = nullptr;
+
+        return {};
+    }
+
+    result<> renderer_backend::import_to_graph(const target& target)
+    {
+        // import resources to rendergraph
+        m_rendergraph->import_texture(target.get_rendergraph_name(),
+            target.get_resource());
+
+        if (target.has_depth_stencil())
+        {
+            m_rendergraph->import_texture(target.get_depth_rendergraph_name(),
+                target.get_depth_resource());
+        }
+
+        return {};
     }
 
     void renderer_backend::recreate_backbuffer_targets(swapchain& swapchain)
@@ -212,11 +245,7 @@ namespace influx::renderer
         // delete old
         for (target*& target : swapchain.m_targets)
         {
-            if (target != nullptr)
-            {
-                delete target;
-                target = nullptr;
-            }
+            destroy_target(target);
         }
         swapchain.m_targets.clear();
 
@@ -224,8 +253,16 @@ namespace influx::renderer
         const uint8 num_swapchain_buffers = swapchain.mp_swapchain->get_num_backbuffers();
         for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
         {
+            string target_name = "wintar_" + swapchain.m_windowtitle + "_" + to_string(i);
             target* new_target = new target(mp_device, swapchain.mp_swapchain, i);
-            new_target->set_name("window_target_" + swapchain.m_windowtitle + "_" + to_string(i));
+            new_target->set_name(target_name);
+
+            target_id new_id{ target_name };
+            new_target->m_id = new_id;
+            m_targets[new_id] = new_target;
+
+            import_to_graph(*new_target);
+
             swapchain.m_targets.push_back(new_target);
         }
     }
@@ -285,56 +322,24 @@ namespace influx::renderer
         swapchain.mp_swapchain->acquire_backbuffer();
     }
 
-    result<bool> renderer_backend::draw_scene(const scene& scene, const target& target)
+    result<> renderer_backend::draw_scene(const scene& scene, const target& target)
     {
-        // scene render
+        using result_type = result<>;
+        if (scene.is_empty())
+        {
+            return result_type::make_error("error: cannot draw an empty scene!");
+        }
+
+        auto res = import_to_graph(target);
+        influx_assert(res.is_success());
+
         mp_scene_renderer->render(*m_rendergraph, scene, target);
-
-        // debug render
-        if (scene.has_debug_primitives() && scene.is_debug_render_enabled())
-        {
-            static string color_name{}; color_name = target.get_resource()->get_name().get();
-            m_rendergraph->import_texture(color_name, target.get_resource());
-
-            auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-                [&target](rendergraph::rgpass_builder& builder)
-                {
-                    rendergraph::rgaccess access{};
-                    access.m_load = rendergraph::e_rg_load::preserve;
-                    access.m_store = rendergraph::e_rg_store::preserve;
-                    builder.write_rendertarget(color_name, access);
-
-                    builder.set_viewport(target.get_width(), target.get_height());
-                },
-                [this, &scene, &target](rendergraph::rgpass_context& context)
-                {
-                    influx_scope("renderer_backend::draw_debug::record");
-                    graphics::commandlist& commandlist = context.get_commandlist();
-
-                    mp_debug_renderer->render(&commandlist, scene, target);
-                });
-
-            pass->set_name(RGNAME("draw_debug"));
-        }
-
-        // transition target to readable
-        {
-            auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-                [](rendergraph::rgpass_builder& builder) { },
-                [this, &target](rendergraph::rgpass_context& context)
-                {
-                    graphics::commandlist& commandlist = context.get_commandlist();
-                    target.get_resource()->transition(&commandlist, graphics::e_resource_state::all_srv);
-                });
-        }
-
         return true;
     }
 
-    result<bool> renderer_backend::draw_imgui(ImDrawData const* draw_data, const target& target)
+    result<> renderer_backend::draw_imgui(ImDrawData const* draw_data, const target& target)
     {
-        static string color_name{}; color_name = target.get_resource()->get_name().get();
-        m_rendergraph->import_texture(color_name, target.get_resource());
+        import_to_graph(target);
 
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
             [&target](rendergraph::rgpass_builder& builder)
@@ -356,18 +361,17 @@ namespace influx::renderer
         return true;
     }
 
-    result<bool> renderer_backend::draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
+    result<> renderer_backend::draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
     {
-        static string color_name{}; 
+        for (const auto& target : targets)
+        {
+            import_to_graph(*target);
+        }
 
         for (uint32 i = 0u; i < draws.size(); ++i)
         {
             const target& target = *targets[i];
             const ImDrawData& draw = *draws[i];
-
-            // import the texture
-            color_name = target.get_resource()->get_name().get();
-            m_rendergraph->import_texture(color_name, target.get_resource());
 
             auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
             [&target](rendergraph::rgpass_builder& builder)
@@ -375,7 +379,7 @@ namespace influx::renderer
                 rendergraph::rgaccess access{};
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(target.get_resource()->get_name().get(), access);
+                builder.write_rendertarget(target.get_rendergraph_name(), access);
                 builder.set_viewport(target.get_width(), target.get_height());
             },
             [this, &draw, &target](rendergraph::rgpass_context& context)
@@ -392,68 +396,39 @@ namespace influx::renderer
         return true;
     }
 
-    result<bool> renderer_backend::draw_2D(const scene2D& scene, const target& target)
+    result<> renderer_backend::draw_2D(const scene2D& scene, const target& target)
     {
         influx_scope("renderer_backend::draw2D::record");
         return true;
     }
 
-    result<bool> renderer_backend::draw_shadertoy(const scene_shadertoy& scene, const target& target)
-    {
-        graphics::resource* target_resource = target.get_resource();
-        graphics::descriptor_handle target_rtv = target.get_rtv();
-        graphics::descriptor_handle target_dsv = target.get_dsv();
-
-        influx_scope("renderer_backend::draw_shadertoy::record");
-        const uint32 target_width = target.get_width();
-        const uint32 target_height = target.get_height();
-
-        target_resource->transition(mp_commandlist, graphics::e_resource_state::render_target);
-
-        // bind gpu descriptor heaps
-        get_descriptor_manager()->start_commandlist(mp_commandlist);
-
-        mp_commandlist->set(graphics::viewport{ 0.0f, 0.0f, (float)target_width, (float)target_height, 0.0f, 1.0f });
-        mp_commandlist->set(graphics::rect{ 0u, 0u, target_width, target_height });
-        mp_commandlist->set_rtv(target_rtv, target_dsv);
-
-        mp_shadertoy_renderer->render(mp_commandlist, scene, target);
-        return true;
-    }
-
-    result<bool> renderer_backend::draw_postprocess(const scene_postprocess& scene, const target& target)
+    result<> renderer_backend::draw_postprocess(const scene_postprocess& scene, const target& target)
     {
         return true;
     }
 
-    result<bool> renderer_backend::can_draw_postprocess() const
+    bool renderer_backend::can_draw_postprocess() const
     {
         return true;
     }
 
-    result<bool> renderer_backend::can_draw_imgui() const
+    bool renderer_backend::can_draw_imgui() const
     {
         return true;
     }
 
-    result<bool> renderer_backend::can_draw_scene() const
+    bool renderer_backend::can_draw_scene() const
     {
         return true;
     }
 
-    result<bool> renderer_backend::can_draw_2D() const
+    bool renderer_backend::can_draw_2D() const
     {
         return true;
     }
 
-    result<bool> renderer_backend::can_draw_debug() const
+    bool renderer_backend::can_draw_debug() const
     {
-        if (mp_debug_renderer == nullptr) return "no debug renderer";
-        if (!mp_debug_renderer->can_build_pipeline())
-        {
-            return "debug renderer : missing shaders";
-        }
-
         return true;
     }
 
@@ -565,7 +540,7 @@ namespace influx::renderer
         auto& entry = m_resource_manager->load<e_resource_type::texture>(title, data, reload);
 
         // keep track in the rendergraph
-        m_rendergraph->import_texture("tex_" + title, entry.m_resource->mp_resource);
+        m_rendergraph->import_texture("texture_" + title, entry.m_resource->mp_resource);
 
         log(renderer::e_log::info, "loaded texture");
     }
@@ -755,7 +730,7 @@ namespace influx::renderer
 
     target* create_target(const target_create_args& args)
     {
-        return renderer_backend::get_instance().create_target(args);
+        return renderer_backend::get_instance().create_target(args).get();
     }
 
     // creates / switches to the appropriate target representation of our window backbuffer
@@ -799,53 +774,48 @@ namespace influx::renderer
         renderer_backend::get_instance().wait_gpu_finished();
     }
 
-    result<bool> draw_scene(const scene& scene, const target& target)
+    result<> draw_scene(const scene& scene, const target& target)
     {
         return renderer_backend::get_instance().draw_scene(scene, target);
     }
 
-    result<bool> draw_imgui(ImDrawData const* draw_data, const target& target)
+    result<> draw_imgui(ImDrawData const* draw_data, const target& target)
     {
         return renderer_backend::get_instance().draw_imgui(draw_data, target);
     }
 
-    result<bool> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
+    result<> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
     {
         return renderer_backend::get_instance().draw_imgui(draws, targets);
     }
 
-    result<bool> draw_2D(const scene2D& scene, const target& target)
+    result<> draw_2D(const scene2D& scene, const target& target)
     {
         return renderer_backend::get_instance().draw_2D(scene, target);
     }
 
-    result<bool> draw_shadertoy(const scene_shadertoy& scene, const target& target)
-    {
-        return renderer_backend::get_instance().draw_shadertoy(scene, target);
-    }
-
-    result<bool> draw_postprocess(const scene_postprocess& scene, const target& target)
+    result<> draw_postprocess(const scene_postprocess& scene, const target& target)
     {
         return renderer_backend::get_instance().draw_postprocess(scene, target);
     }
 
-    result<bool> can_draw_postprocess()
+    bool can_draw_postprocess()
     {
         return renderer_backend::get_instance().can_draw_postprocess();
     }
-    result<bool> can_draw_imgui()
+    bool can_draw_imgui()
     {
         return renderer_backend::get_instance().can_draw_imgui();
     }
-    result<bool> can_draw_scene()
+    bool can_draw_scene()
     {
         return renderer_backend::get_instance().can_draw_scene();
     }
-    result<bool> can_draw_2D()
+    bool can_draw_2D()
     {
         return renderer_backend::get_instance().can_draw_2D();
     }
-    result<bool> can_draw_debug()
+    bool can_draw_debug()
     {
         return renderer_backend::get_instance().can_draw_debug();
     }

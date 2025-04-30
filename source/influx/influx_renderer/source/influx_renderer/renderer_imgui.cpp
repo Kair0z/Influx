@@ -8,6 +8,7 @@
 #include "influx_renderer/upload_manager.h"
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/resources/resource_manager.h"
+#include "influx_renderer/types.h"
 
 // influx::graphics
 #include "influx_graphics/device.h"
@@ -187,8 +188,15 @@ namespace influx::renderer
 					const bool command_has_texture = command.GetTexID() != 0u;
 					if (command_has_texture)
 					{
-						graphics::descriptor_handle cpu_descriptor = reinterpret_cast<graphics::descriptor_handle>(command.GetTexID());
+						imgui_texid_provider* tex_provider = reinterpret_cast<imgui_texid_provider*>(command.GetTexID());
+						graphics::descriptor_handle cpu_descriptor = tex_provider->get_tex_descriptor();
+						graphics::resource* resource = reinterpret_cast<graphics::resource*>(tex_provider->get_tex_resource());
+						
+						// stage the descriptor
 						tex_gpu_range = descriptor_manager.stage(cpu_descriptor);
+
+						// ensure transition resource to readable
+						resource->transition(commandlist, graphics::e_resource_state::ps_srv);
 					}
 					else
 					{

@@ -43,6 +43,7 @@ namespace influx::renderer
 	private:
 		vector<batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
 		void update_instance_buffer(const vector<batch>& batches);
+		void update_line_instance_buffer(const scene& scene);
 		void update_lightbuffers(const scene& scene);
 		void apply_pipeline_settings(const target& target);
 
@@ -63,6 +64,25 @@ namespace influx::renderer
 
 		graphics::resource* mp_skybox;
 		graphics::descriptor_handle m_skybox_srv;
+
+		struct line_gpu_instance_data final
+		{
+			math::vectorf3	m_start_wp;
+			math::vectorf3	m_end_wp;
+			math::colour_rgba m_colour;
+		};
+		struct line_vertex final
+		{
+			math::float3 m_position;
+			math::colour_rgba m_colour;
+			uint32 m_id;
+		};
+
+		constexpr static uint32 k_max_lines = 4096u;
+		vector<line_gpu_instance_data> m_line_instance_data;
+		graphics::resource* m_line_instance_buffer;
+		graphics::resource* m_line_vertex_buffer;
+		graphics::descriptor_handle m_line_instance_buffer_srv;
 
 		// gpu data
 		frontend::per_scene m_gpu_perscene;

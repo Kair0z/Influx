@@ -3,8 +3,16 @@
 // influx::core
 #include "core/basetypes.h"
 
+// influx::renderer
+#include "influx_renderer/types.h"
+
 // influx::graphics
 #include "influx_graphics/descriptors.h"
+
+// STL
+#include <iostream>
+#include <random>
+#include <cstdint>
 
 namespace influx::graphics
 {
@@ -18,12 +26,34 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
-	struct target_signature final
+	struct target_id final
 	{
-		string m_name;
-		math::vectoru2 m_dimensions;
-		uint64 m_uid{};
+		explicit target_id()
+		{
+			// generate random uid
+			std::random_device rd;
+			std::mt19937 gen(rd());  // Mersenne Twister 32-bit
+			std::uniform_int_distribution<uint32_t> dis;
+			m_uid = dis(gen);
+		}
+
+		explicit target_id(const string& name)
+			: m_uid{ (uint32)std::hash<string>()(name) }
+			, m_name{ name }
+		{
+
+		}
+
+		uint32 m_uid = 0u;
+#if INFLUX_DEBUG 
+		string m_name{};
+#endif
 	};
+
+	inline bool operator==(const target_id& id0, const target_id& id1)
+	{
+		return id0.m_uid == id1.m_uid;
+	}
 
 	struct target_create_args final
 	{
@@ -39,7 +69,7 @@ namespace influx::renderer
 
 	// contains a texture resource, as well as a render target view and an optional depth stencil view
 	// serving as a target for draw commands
-	class target final
+	class target final : public imgui_texid_provider
 	{
 	public:
 		graphics::resource* get_resource() const;
@@ -63,10 +93,15 @@ namespace influx::renderer
 
 		INFLUX_RENDER_API bool is_swapchain_target() const;
 
-		// cpu descriptor handle (graphics::descriptor_handle)
-		INFLUX_RENDER_API void* get_imgui_texid() const;
+		INFLUX_RENDER_API string get_rendergraph_name() const;
+		INFLUX_RENDER_API string get_depth_rendergraph_name() const;
 
 		INFLUX_RENDER_API ~target();
+
+		// ~imgui_texid_provider begin
+		virtual void* get_tex_descriptor() const override final { return m_srv_cpu; }
+		virtual void* get_tex_resource() const override final { return mp_resource; };
+		// ~imgui_texid_provider end
 
 	private:
 		// constructs a target from create_args, allocating new graphics resources
@@ -96,9 +131,16 @@ namespace influx::renderer
 		math::vectoru2 m_current_dimensions;
 		graphics::device* mp_device;
 
-		debug_name m_debug_name;
+		target_id m_id;
 
 		// only backend can create targets
 		friend class renderer_backend;
 	};
 }
+template <> struct std::hash<influx::renderer::target_id>
+{
+	influx::uint64 operator()(const influx::renderer::target_id& id) const
+	{
+		return std::hash<decltype(id.m_uid)>()(id.m_uid);
+	}
+};

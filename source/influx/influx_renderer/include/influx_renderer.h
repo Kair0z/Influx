@@ -23,12 +23,10 @@ struct ImDrawData;
 #include "influx_renderer/types.h"
 #include "influx_renderer/constants.h"
 #include "influx_renderer/target.h"
-#include "influx_renderer/depth_stencil.h"
 #include "influx_renderer/mesh.h"
 #include "influx_renderer/texture.h"
 #include "influx_renderer/scene.h"
 #include "influx_renderer/stats.h"
-#include "influx_renderer/shadertoy.h"
 #include "influx_renderer/postprocess.h"
 #include "influx_renderer/shader.h"
 
@@ -42,6 +40,7 @@ namespace influx::renderer
 	*/
 	enum class e_log { info, warning, error, count };
 	typedef void (*log_function)(e_log, const char*);
+
 	struct init_args final
 	{
 		log_function m_log_func = nullptr;
@@ -66,32 +65,28 @@ namespace influx::renderer
 
 	/* draw a 3D scene onto a given render target */
 	INFLUX_RENDER_API
-	result<bool> draw_scene(const scene& scene, const target& target);
+	result<> draw_scene(const scene& scene, const target& target);
 
 	/* draw ImDrawData contents onto a given render target */
 	INFLUX_RENDER_API
-	result<bool> draw_imgui(ImDrawData const* draw_data, const target& target);
+	result<> draw_imgui(ImDrawData const* draw_data, const target& target);
 	INFLUX_RENDER_API 
-	result<bool> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
+	result<> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
 
 	/* draw a screen-space scene onto a given render target (sprite rendering)*/
 	INFLUX_RENDER_API
-	result<bool> draw_2D(const scene2D& scene, const target& target);
-
-	/* draw a shadertoy compute shader onto a given render target */
- 	INFLUX_RENDER_API
-	result<bool> draw_shadertoy(const scene_shadertoy& scene, const target& target);
+	result<> draw_2D(const scene2D& scene, const target& target);
 
 	/* draw a post-processing stack onto a given render target*/
 	INFLUX_RENDER_API
-	result<bool> draw_postprocess(const scene_postprocess& scene, const target& target);
+	result<> draw_postprocess(const scene_postprocess& scene, const target& target);
 
 	/* query whether the internal shaders & resources required for render-operations are available */
-	INFLUX_RENDER_API result<bool> can_draw_postprocess();
-	INFLUX_RENDER_API result<bool> can_draw_imgui();
-	INFLUX_RENDER_API result<bool> can_draw_scene();
-	INFLUX_RENDER_API result<bool> can_draw_2D();
-	INFLUX_RENDER_API result<bool> can_draw_debug();
+	INFLUX_RENDER_API bool can_draw_postprocess();
+	INFLUX_RENDER_API bool can_draw_imgui();
+	INFLUX_RENDER_API bool can_draw_scene();
+	INFLUX_RENDER_API bool can_draw_2D();
+	INFLUX_RENDER_API bool can_draw_debug();
 
 	/* create a render target */
 	INFLUX_RENDER_API target* create_target(const target_create_args& args);

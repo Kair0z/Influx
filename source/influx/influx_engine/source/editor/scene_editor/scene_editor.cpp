@@ -214,7 +214,7 @@ namespace influx::engine::editor
 		
 		if (ImGui::Begin("scene"))
 		{
-			ImGui::Image(reinterpret_cast<ImTextureID>(target.get_imgui_texid()), { (float)view_dimensions.x, (float)view_dimensions.y });
+			ImGui::Image(reinterpret_cast<ImTextureID>(&target), { (float)view_dimensions.x, (float)view_dimensions.y });
 			ImGui::End();
 		}
 	}

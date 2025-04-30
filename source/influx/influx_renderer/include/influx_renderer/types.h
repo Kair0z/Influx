@@ -10,13 +10,20 @@
 #include "core/basetypes.h"
 #include "core/result.h"
 
-// influx::renderer
-#include "resource.h"
-
 namespace influx::renderer
 {
+	// the result type
 	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
+
+	// imgui type
+	class imgui_texid_provider
+	{
+	public:
+		virtual void* get_tex_descriptor() const = 0;
+		virtual void* get_tex_resource() const = 0;
+	};
+	using imgui_tex_id = imgui_texid_provider*;
 
 	// num backbuffers held by a swapchain
 	enum class e_buffering : uint8

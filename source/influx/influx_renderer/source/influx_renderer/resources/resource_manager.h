@@ -8,6 +8,7 @@
 #include "influx_renderer/mesh.h"
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/descriptor_manager.h"
+#include "influx_renderer/resource.h"
 
 namespace influx::graphics
 {

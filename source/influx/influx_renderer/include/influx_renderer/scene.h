@@ -16,7 +16,8 @@
 #include "core/enum.h"
 
 // influx::renderer
-#include "types.h"
+#include "influx_renderer/types.h"
+#include "influx_renderer/mesh.h"
 
 // imgui
 struct ImGuiContext;

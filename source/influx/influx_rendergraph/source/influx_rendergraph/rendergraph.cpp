@@ -476,8 +476,11 @@ namespace influx::rendergraph
 		return pass;
 	}
 
-	void rendergraph::import_texture(const rgname& name, graphics::resource* resource)
+	result<> rendergraph::import_texture(const rgname& name, graphics::resource* resource)
 	{
+		if (resource == nullptr || resource->is_valid() == false)
+			return result<>::make_error("error: importing invalid resource!");
+
 		if (m_texture_name_to_id_map.contains(name) == false)
 		{
 			rgtexture* new_texture = new rgtexture();
@@ -490,10 +493,13 @@ namespace influx::rendergraph
 			m_textures.emplace_back(new_texture);
 			m_texture_name_to_id_map[name] = new_id;
 			m_id_to_texture_map[new_id] = m_textures.back();
+
+			return {};
 		}
+		else return result<>::make_error("error: texture already exists!");
 	}
 
-	void rendergraph::import_buffer(const rgname& name, graphics::resource* resource)
+	result<> rendergraph::import_buffer(const rgname& name, graphics::resource* resource)
 	{
 		if (m_buffer_name_to_id_map.contains(name) == false)
 		{
@@ -507,7 +513,40 @@ namespace influx::rendergraph
 			m_buffers.emplace_back(new_buffer);
 			m_buffer_name_to_id_map[name] = new_id;
 			m_id_to_buffer_map[new_id] = m_buffers.back();
+
+			return {};
 		}
+		else return result<>::make_error("error: buffer already exists!");
+	}
+
+	result<> rendergraph::remove_imported_texture(const rgname& name)
+	{
+		if (m_texture_name_to_id_map.contains(name) == true)
+		{
+			const auto& texid = m_texture_name_to_id_map[name];
+			if (m_id_to_texture_map[texid]->is_imported())
+			{
+				m_id_to_texture_map.erase(texid);
+				m_texture_name_to_id_map.erase(name);
+			}
+			else return result<>::make_error("error: found texture is not imported!");
+		}
+		return result<>::make_error("error: texture not found!");
+	}
+
+	result<> rendergraph::remove_imported_buffer(const rgname& name)
+	{
+		if (m_buffer_name_to_id_map.contains(name) == true)
+		{
+			const auto& bufferid = m_buffer_name_to_id_map[name];
+			if (m_id_to_buffer_map[bufferid]->is_imported())
+			{
+				m_id_to_buffer_map.erase(bufferid);
+				m_buffer_name_to_id_map.erase(name);
+			}
+			else return result<>::make_error("error: found buffer is not imported!");
+		}
+		return result<>::make_error("error: buffer not found!");
 	}
 
 	void rendergraph::reset_resources()

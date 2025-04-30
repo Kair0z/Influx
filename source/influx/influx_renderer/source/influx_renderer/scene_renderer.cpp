@@ -26,12 +26,6 @@
 
 namespace influx::renderer
 {
-#if 0
-    static const char* k_basepass_sourcefile =
-    {
-        #include "source/basepass.hlsl"
-    };
-#endif
     static constexpr uint32 k_num_gbuffers = 3u;
     static constexpr graphics::e_format k_gbuffer_formats[k_num_gbuffers]
     {
@@ -99,6 +93,41 @@ namespace influx::renderer
         return signature;
     };
 
+    static graphics_pipeline_signature& get_debug_pipeline_signature()
+    {
+        static graphics_pipeline_signature signature{};
+        {
+            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::vs] = "debug_shaders::main_vs";
+            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::ps] = "debug_shaders::main_ps";
+
+            signature.m_primitive_type = graphics::e_primitive_topology_type::line;
+            signature.m_cullmode = graphics::e_cull_mode::nocull;
+            signature.m_fillmode = graphics::e_fill_mode::wireframe;
+            signature.m_forced_samplecount = 0u;
+            signature.m_sample_mask = (uint32)-1;
+            signature.m_sample_count = 1u;
+            signature.m_front_ccw = false;
+            signature.m_depthclip = false;
+            signature.m_multisample = false;
+            signature.m_antialiased_line = false;
+            signature.m_conservative_raster = false;
+            signature.m_depthbias = 0;
+            signature.m_depthbias_clamp = 0.0f;
+            signature.m_slope_depthbias = 0.0f;
+
+            signature.m_depth_enable = false;
+            signature.m_stencil_enable = false;
+            signature.m_depth_comparison = graphics::e_comparison_func::less;
+            signature.m_depth_format = graphics::e_format::d32;
+
+            signature.m_rtv_actives[0] = true;
+            signature.m_rtv_formats[0] = graphics::e_format::rgba8;
+
+            signature.m_blend_actives[0] = false;
+        }
+        return signature;
+    }
+
     scene_renderer::scene_renderer()
     {
         renderer_backend& backend = renderer_backend::get_instance();
@@ -149,6 +178,42 @@ namespace influx::renderer
             }
         }
 
+        // LINE RENDER
+        m_line_instance_data.clear();
+        m_line_instance_data.reserve(k_max_lines);
+
+        // line-render: create instance buffer & srv
+        {
+            graphics::heap_desc heap_desc{};
+            heap_desc.m_type = graphics::e_heap_type::shared;
+            graphics::buffer_desc desc{};
+            desc.m_bytesize = k_max_lines * sizeof(line_gpu_instance_data);
+            desc.m_bytestride = sizeof(line_gpu_instance_data);
+            desc.m_init_state = graphics::e_resource_state::gen_read;
+            m_line_instance_buffer = device.create_resource(desc, heap_desc);
+            m_line_instance_buffer->set_name({ "line_instance_buffer" });
+            m_line_instance_buffer_srv = backend.get_descriptor_manager()->create_buffer_srv(m_line_instance_buffer);
+        }
+
+        // line-render: create 2-element vertexbuffer
+        {
+            vector<line_vertex> vertices = {
+                {.m_position{0.0f, 0.0f, 0.0f}, .m_colour{1,1,1,1}},
+                {.m_position{1.0f, 0.0f, 0.0f}, .m_colour{1,1,1,1}} };
+
+            graphics::heap_desc heap_desc{};
+            heap_desc.m_type = graphics::e_heap_type::shared;
+            graphics::buffer_desc desc{};
+            desc.m_init_state = graphics::e_resource_state::gen_read;
+            desc.m_bytesize = vertices.size() * sizeof(line_vertex);
+            desc.m_bytestride = sizeof(line_vertex);
+            m_line_vertex_buffer = device.create_resource(desc, heap_desc);
+            m_line_vertex_buffer->map([&vertices](void* target)
+            {
+                memcpy(target, vertices.data(), vertices.size() * sizeof(line_vertex));
+            });
+        }
+
         m_sampler_view = descriptor_manager.create_sampler();
         m_skybox_sampler = descriptor_manager.create_sampler();
     }
@@ -169,11 +234,12 @@ namespace influx::renderer
 
         string basepass_sourcefile_path = src_dir + "/basepass.hlsl";
         string resolvepass_sourcefile_path = src_dir + "/resolvepass.hlsl";
+        string debugpass_sourcefile_path = src_dir + "/debug_shaders.hlsl";
 
         // parse the shader files for their necessary shaders
         shader::compile_args compile_args{};
         compile_args.m_include_folder = base_dir;
-        const auto target = shader::e_shader_target::_6_6;
+        compile_args.m_signature.m_target = shader::e_shader_target::_6_6;;
         compile_args.m_reflection = true;
         compile_args.m_defines = {};
         compile_args.m_compile_debug = false;
@@ -182,70 +248,73 @@ namespace influx::renderer
         using parse_result =
             shader::result<vector<shader::parse_output>>;
 
+        // 1. parse each shader from file
         parse_result basepass_parse = shader::parse_shaders_in_file(basepass_sourcefile_path);
         parse_result resolvepass_parse = shader::parse_shaders_in_file(resolvepass_sourcefile_path);
+        parse_result debugpass_parse = shader::parse_shaders_in_file(debugpass_sourcefile_path);
+        const bool all_shaders_parsed = !(basepass_parse.is_unex() || resolvepass_parse.is_unex() || debugpass_parse.is_unex());
+        influx_assert(all_shaders_parsed);
 
-        if (basepass_parse.is_unex() || resolvepass_parse.is_unex())
-            return;
+        // 2. assert no missing shaders
+        auto has_all_shaders = 
+        [](const vector<shader::parse_output>& parsed_shaders, shader::e_shader_type_flags flags) -> bool
+        {
+            // check for each type that is flagged
+            for (uint32 i = 0u; i < shader::k_num_shadertypes; ++i)
+            {
+                shader::e_shader_type current_type = static_cast<shader::e_shader_type>(i);
+                if (has_flag(flags, shader::get_shader_flag(current_type)))
+                {
+                    const bool has_shader = vector_helpers::contains(parsed_shaders,
+                    [&current_type](const shader::parse_output& shader)
+                    {
+                        return shader.get_shader_type() == current_type;
+                    });
 
-        // assert basepass has vs & ps
+                    if (!has_shader) return false;
+                }
+            }
+            return true;
+        };
+
+        // assert required shaders are present
         vector<shader::parse_output> basepass_parsed_file = basepass_parse.get();
-        {
-            const bool has_vertex_shader = vector_helpers::contains(basepass_parsed_file,
-            [](const shader::parse_output& shader)
-            {
-                return shader.get_shader_type() == shader::e_shader_type::vs;
-            });
-            const bool has_pixel_shader = vector_helpers::contains(basepass_parsed_file,
-            [](const shader::parse_output& shader)
-            {
-                return shader.get_shader_type() == shader::e_shader_type::ps;
-            });
-            influx_assert(has_vertex_shader && has_pixel_shader);
-        }
-        // assert resolvepass has cs
+        influx_assert(has_all_shaders(basepass_parsed_file,
+            shader::e_shader_type_flags::vs | shader::e_shader_type_flags::ps));
         vector<shader::parse_output> resolvepass_parsed_file = resolvepass_parse.get();
+        influx_assert(has_all_shaders(resolvepass_parsed_file,
+            shader::e_shader_type_flags::cs));
+        const auto& debugpass_parsed_file = debugpass_parse.get();
+        influx_assert(has_all_shaders(debugpass_parsed_file,
+            shader::e_shader_type_flags::vs | shader::e_shader_type_flags::ps));
+
+        // compile all shaders
+        auto compile_shaders =
+        [&resourceman](const vector<shader::parse_output>& parsed_shaders,
+            const string& filepath, const shader::compile_args& master_args)
         {
-            const bool has_compute_shader = vector_helpers::contains(resolvepass_parsed_file,
-            [](const shader::parse_output& shader)
+            for (const shader::parse_output& shader_parse : parsed_shaders)
             {
-                return shader.get_shader_type() == shader::e_shader_type::cs;
-            });
-            influx_assert(has_compute_shader);
-        }
+                shader::compile_args local_args = master_args;
+                local_args.m_signature = shader_parse.m_signature;
+                local_args.m_signature.m_target = master_args.m_signature.m_target;
 
-        // COMPILE: now finally compile the shaders and load them into our resource manager:
-        for (const shader::parse_output& shader_parse : basepass_parsed_file)
-        {
-            compile_args.m_signature = shader_parse.m_signature;
-            compile_args.m_signature.m_target = target;
+                // compile
+                auto compile_result = shader::compile_shader_in_file(filepath, local_args);
+                influx_assert(compile_result.is_success());
 
-            // compile
-            auto compile_result = shader::compile_shader_in_file(basepass_sourcefile_path, compile_args);
-            influx_assert(compile_result.is_success());
-
-            // load into resource_manager
-            shader::compile_output compile_output = compile_result.get();
-            influx_assert(compile_output.m_success);
-            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
-        }
-        for (const shader::parse_output& shader_parse : resolvepass_parsed_file)
-        {
-            compile_args.m_signature = shader_parse.m_signature;
-            compile_args.m_signature.m_target = target;
-
-            // compile
-            auto compile_result = shader::compile_shader_in_file(resolvepass_sourcefile_path, compile_args);
-            influx_assert(compile_result.is_success());
-
-            // load into resource_manager
-            shader::compile_output compile_output = compile_result.get();
-            influx_assert(compile_output.m_success);
-            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
-        }
+                // load into resource_manager
+                shader::compile_output compile_output = compile_result.get();
+                influx_assert(compile_output.m_success);
+                resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+            }
+        };
+        compile_shaders(basepass_parsed_file, basepass_sourcefile_path, compile_args);
+        compile_shaders(resolvepass_parsed_file, resolvepass_sourcefile_path, compile_args);
+        compile_shaders(debugpass_parsed_file, debugpass_sourcefile_path, compile_args);
     }
 
-#pragma region batch
+#pragma region batching
     // 1 draw-call == 1 batch
     class batch final
     {
@@ -348,6 +417,29 @@ namespace influx::renderer
                 {
                     data[batch.m_base_instance + i] = batch.m_instances[i];
                 }
+            }
+        });
+    }
+
+    void scene_renderer::update_line_instance_buffer(const scene& scene)
+    {
+        m_line_instance_data.clear();
+
+        for (const line& line : scene.get_lines())
+        {
+            line_gpu_instance_data instance_data{};
+            instance_data.m_colour = line.m_colour;
+            instance_data.m_start_wp = line.m_points[0u];
+            instance_data.m_end_wp = line.m_points[1u];
+            m_line_instance_data.push_back(instance_data);
+        }
+
+        m_line_instance_buffer->map([this](void* dest)
+        {
+            line_gpu_instance_data* data = reinterpret_cast<line_gpu_instance_data*>(dest);
+            for (uint64 i = 0u; i < m_line_instance_data.size(); ++i)
+            {
+                data[i] = m_line_instance_data[i];
             }
         });
     }
@@ -629,22 +721,16 @@ namespace influx::renderer
 
     void scene_renderer::render(rendergraph::rendergraph& graph, const scene& scene, const target& target)
     {
-        renderer_backend& backend = renderer_backend::get_instance();
-
         if (scene.is_empty())
-            return;
-
-        static string color_name{}; color_name = target.get_resource()->get_name().get();
-        static string depth_name{}; depth_name = color_name + "_depth";
-
-        graph.import_texture(color_name, target.get_resource());
-        if (target.has_depth_stencil()) graph.import_texture(depth_name, target.get_depth_resource());
-        else
         {
-            logonce(e_log_category::warning, "influx_renderer::scene_renderer::render >> rendering scene without depth because specified target has no depth!");
+            return;
         }
 
-        // deferred gbuffer basepass
+        renderer_backend& backend = renderer_backend::get_instance();
+        backend.import_to_graph(target);
+
+        // | BASEPASS
+        // | renders a couple of deferred gbuffers
         auto* basepass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
         [this, &target](rendergraph::rgpass_builder& builder)
         {
@@ -656,10 +742,14 @@ namespace influx::renderer
         });
         basepass->set_name(RGNAME("basepass"));
        
+        // | PROXY PASS (in case target isn't UAV compatible)
         // if we're directly writing to the swapchain, we need to write to a intermediate that allows for uav writes
-        g_use_proxy_pass = target.is_swapchain_target() || !target.get_resource()->allows_uav();
+        // the proxy pass copies the existing target contents into proxy (UAV) target
+        const bool target_is_uav_compatible = !target.is_swapchain_target() && target.get_resource()->allows_uav();
+        g_use_proxy_pass = target_is_uav_compatible == false;
         if (g_use_proxy_pass)
         {
+            // copy target -> proxy
             static rendergraph::rgtex_copysrc_id src_tex_id{};
             static rendergraph::rgtex_copydst_id dst_tex_id{};
             auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
@@ -677,8 +767,9 @@ namespace influx::renderer
                 proxy_desc.m_sample_count = 1u;
                 builder.declare_texture(g_proxy_name, proxy_desc);
 
-                src_tex_id = builder.read_copysrc_texture(target.get_name().get());
+                src_tex_id = builder.read_copysrc_texture(target.get_rendergraph_name());
                 dst_tex_id = builder.write_copydst_texture(g_proxy_name);
+
                 builder.set_viewport(target.get_width(), target.get_height());
             },
             [](rendergraph::rgpass_context& context)
@@ -690,7 +781,8 @@ namespace influx::renderer
             proxypass->set_name(RGNAME("proxypass_a"));
         }
 
-        // resolve gbuffer to the target
+        // | RESOLVE PASS
+        // | compute shader that resolves lighting into a final scene colour UAV
         auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
         [this, &target, &scene](rendergraph::rgpass_builder& builder)
         {
@@ -702,6 +794,8 @@ namespace influx::renderer
         });
         resolvepass->set_name(RGNAME("resolvepass"));
 
+        // | PROXY PASS
+        // | proxy -> target
         if (g_use_proxy_pass)
         {
             static rendergraph::rgtex_copysrc_id src_tex_id{};
@@ -720,6 +814,62 @@ namespace influx::renderer
                 context.get_commandlist().copy_resource(src_resource, dst_resource);
             });
             proxypass->set_name(RGNAME("proxypass_b"));
+        }
+
+        // | LINE RENDER (DEBUG)
+        if (scene.has_debug_primitives() && scene.is_debug_render_enabled())
+        {
+            auto* pass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
+            [&target](rendergraph::rgpass_builder& builder)
+            {
+                rendergraph::rgaccess access{};
+                access.m_load = rendergraph::e_rg_load::preserve;
+                access.m_store = rendergraph::e_rg_store::preserve;
+                builder.write_rendertarget(target.get_rendergraph_name(), access);
+                builder.set_viewport(target.get_width(), target.get_height());
+            },
+            [this, &scene, &target](rendergraph::rgpass_context& context)
+            {
+                influx_scope("renderer_backend::draw_debug::record");
+                graphics::commandlist& commandlist = context.get_commandlist();
+                
+                // get the pipeline
+                renderer_backend& backend = renderer_backend::get_instance();
+                pipeline_manager& pipelineman = *backend.get_pipeline_manager();
+                graphics_pipeline& pipeline = pipelineman.get_or_create_pipeline(get_debug_pipeline_signature());
+                descriptor_manager& descriptorman = *backend.get_descriptor_manager();
+
+                // hot-reload our shaders if necessary:
+                pipeline.rebuild(backend.get_device());
+                influx_assert(pipeline.is_valid());
+
+                logonce(e_log_category::warning, "influx::renderer::debug_renderer: first debug render!");
+
+                // update viewprojection matrix
+                m_gpu_perview.m_viewprojection = scene.get_view_matrices().m_viewprojection;
+
+                pipeline.set_state(commandlist);
+                commandlist.set(graphics::e_primitive_topology::linelist);
+                pipeline.set_constants<frontend::per_view>(commandlist, "g_perview", m_gpu_perview);
+                commandlist.set_vertexbuffer(m_line_vertex_buffer);
+
+                update_line_instance_buffer(scene);
+
+                // stage the instance buffer and set as resource table
+                const graphics::descriptor_range gpu_range = descriptorman.stage(m_instance_buffer_srv);
+                pipeline.set_resource_table(commandlist, "g_instancebuffer", gpu_range);
+
+                const uint32 num_instances = (uint32)m_line_instance_data.size();
+                commandlist.draw_instanced(
+                {
+                    .m_num_vertices_per_instance = 2u,
+                    .m_num_instances = num_instances,
+                    .m_start_vertex = 0u,
+                    .m_start_instance = 0u
+                });
+            });
+
+            pass->set_name(RGNAME("draw_debug"));
         }
     }
 }

@@ -6,6 +6,9 @@
 #include "core/container/vector.h"
 #include "core/string.h"
 
+// influx::renderer
+#include "influx_renderer/types.h"
+
 // influx::graphics
 #include "influx_graphics/device.h"
 #include "influx_graphics/descriptors.h"
@@ -27,6 +30,7 @@ namespace influx::renderer
 		count
 	};
 
+	/* input data structs */
 #pragma region raw_data
 	struct texture_data final
 	{
@@ -89,6 +93,7 @@ namespace influx::renderer
 	};
 #pragma endregion
 
+	/* texture descriptions */
 #pragma region desc
 	struct texture_desc final
 	{
@@ -167,7 +172,7 @@ namespace influx::renderer
 #pragma endregion
 
 	template <e_texture_type _t>
-	class texture final
+	class texture final : public imgui_texid_provider
 	{
 		using dim_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
 			math::vectoru2,
@@ -183,26 +188,26 @@ namespace influx::renderer
 			cubemap_data>>;
 
 	public:
-		graphics::resource* get_resource() const
+		inline graphics::resource* get_resource() const
 		{ return mp_resource; }
 
-		graphics::descriptor_handle get_srv() const
+		inline graphics::descriptor_handle get_srv() const
 		{ return m_srv; }
 
-		dim_type get_dimensions() const
+		inline dim_type get_dimensions() const
 		{ return m_current_dimensions; }
 
-		uint32 get_num_pixels() const
+		inline uint32 get_num_pixels() const
 		{ return dim_type::get_summed(m_current_dimensions); }
 
-		uint32 get_srv_heap_idx() const
+		inline uint32 get_srv_heap_idx() const
 		{ return 0u; }
-		void* get_cpu_handle() const
+		inline void* get_cpu_handle() const
 		{ return nullptr; }
 
-		void set_name(const debug_name& name)
+		inline void set_name(const debug_name& name)
 		{ m_debug_name = name; }
-		const debug_name& get_name() const
+		inline const debug_name& get_name() const
 		{ return m_debug_name; }
 
 	private:
@@ -215,7 +220,7 @@ namespace influx::renderer
 		}
 
 		// re-allocates graphics resource
-		void resize(const dim_type& new_dimensions)
+		inline void resize(const dim_type& new_dimensions)
 		{
 			if (new_dimensions != m_current_dimensions)
 			{
@@ -231,7 +236,7 @@ namespace influx::renderer
 			}
 		}
 
-		void upload(graphics::commandlist& commandlist, const data_type& data)
+		inline void upload(graphics::commandlist& commandlist, const data_type& data)
 		{
 			if (mp_upload == nullptr)
 			{
@@ -264,6 +269,11 @@ namespace influx::renderer
 		graphics::device* mp_device;
 		debug_name m_debug_name;
 
+		// ~imgui_texid_provider begin
+		virtual void* get_tex_descriptor() const override final { return m_srv; }
+		virtual void* get_tex_resource() const override final { return mp_resource; };
+		// ~imgui_texid_provider end
+		
 		// only backend can create textures
 		friend class renderer_backend;
 		friend class resource_manager;

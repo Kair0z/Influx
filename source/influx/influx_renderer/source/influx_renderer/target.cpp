@@ -91,9 +91,15 @@ namespace influx::renderer
 		m_is_swapchain_target = true;
 	}
 
-	void* target::get_imgui_texid() const
+	string target::get_rendergraph_name() const
 	{
-		return m_srv_cpu;
+		string id_string = to_string(m_id.m_uid);
+		return "target_" + id_string;
+	}
+	string target::get_depth_rendergraph_name() const
+	{
+		string id_string = to_string(m_id.m_uid);
+		return "target_depth_" + id_string;
 	}
 
 	target::~target()
@@ -240,22 +246,20 @@ namespace influx::renderer
 
 	void target::set_name(const debug_name& name)
 	{
-		m_debug_name = name;
-
 		if (mp_resource && mp_resource->is_valid())
 		{
-			mp_resource->set_name(m_debug_name);
+			mp_resource->set_name(name);
 		}
 
 		if (mp_depth_resource && mp_depth_resource->is_valid())
 		{
-			mp_depth_resource->set_name(m_debug_name);
+			mp_depth_resource->set_name(name);
 		}
 	}
 
 	const debug_name& target::get_name() const
 	{
-		return m_debug_name;
+		return mp_resource->get_name();
 	}
 
 	bool target::is_swapchain_target() const
