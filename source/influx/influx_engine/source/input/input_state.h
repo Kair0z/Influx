@@ -14,14 +14,24 @@ namespace influx::engine
 		uint32 m_num_frames = 0u;
 		bool m_is_down = false;
 
-		inline bool is_firstframe_up() const
-		{ 
-			return !m_is_down && m_num_frames < 2u;
+		inline bool is_down_for_frames(uint32 num_frames = 1) const
+		{
+			return m_is_down && m_num_frames >= num_frames;
 		}
 
-		inline bool is_firstframe_down() const
+		inline bool is_up_for_frames(uint32 num_frames = 1) const
 		{
-			return m_is_down && m_num_frames < 2u;
+			return !m_is_down && m_num_frames >= num_frames;
+		}
+
+		inline bool is_firstframe_up(uint32 num_frames = 2u) const
+		{ 
+			return !m_is_down && m_num_frames < num_frames;
+		}
+
+		inline bool is_firstframe_down(uint32 num_frames = 2u) const
+		{
+			return m_is_down && m_num_frames < num_frames;
 		}
 	};
 

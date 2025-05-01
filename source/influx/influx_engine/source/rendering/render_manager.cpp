@@ -104,63 +104,36 @@ namespace influx::engine
 
 	void render_manager::render()
 	{
-		const platform::window& main_window = get_engine()->get_window();
-		renderer::target* window_target = renderer::get_window_target(main_window);
-
 		renderer::start_frame();
+		
+		// render the various views
+		for (auto& pair : m_views)
 		{
-			mp_scene_target->resize(*window_target);
+			render_view_id id = pair.first;
+			render_view& view = pair.second;
+			if (view.is_valid() == false) continue;
 
-			renderer::clear_target(*mp_scene_target, {.m_colour = g_global_settings.m_clearcolour });
+			view.m_scene.set_debug_render_enabled(true);
+			renderer::clear_target(view.get_target(), { .m_colour{1,0,0,1} });
+			renderer::draw_scene(view.get_scene(), view.get_target());
+			// renderer::draw_2D(view.get_scene2D(), view.get_target());
 
-			renderer::scene& world_scene = get_scene();
-			world_scene.set_debug_render_enabled(is_debug_render_enabled());
-			if (world_scene.is_empty() == false)
-			{
-				renderer::draw_scene(world_scene, *mp_scene_target);
-			}
+			view.m_target;
+			++view.m_frame_counter;
+		}
 
-			// multi-view rendering
-			for (auto& pair : m_views)
-			{
-				render_view_id id = pair.first;
-				render_view& view = pair.second;
-				if (view.is_valid() == false) continue;
-
-				view.m_scene.set_debug_render_enabled(true);
-				renderer::clear_target(view.get_target(), { .m_colour{1,0,0,1} });
-				renderer::draw_scene(view.get_scene(), view.get_target());
-				// renderer::draw_2D(view.get_scene2D(), view.get_target());
-
-				view.m_target;
-				++view.m_frame_counter;
-			}
-
-			// scene target -> main window target
-			influx::renderer::copy_target(*mp_scene_target, *window_target);
-
-			// imgui render (renders straight to its own managed window targets)
-			renderer::scene_imgui& imgui_scene = get_scene_imgui();
-			if (!imgui_scene.is_empty() && is_imgui_render_enabled())
-			{
-				m_imgui.render(imgui_scene);
-			}
+		// imgui render (renders straight to window backbuffer)
+		renderer::scene_imgui& imgui_scene = get_scene_imgui();
+		if (!imgui_scene.is_empty() && is_imgui_render_enabled())
+		{
+			m_imgui.render(imgui_scene);
 		}
 
 		// submits all gpu commands to the GPU
 		influx::renderer::end_frame();
 
-		// present each swapchain registered
+		// presents each registered swapchain
 		renderer::present_all({ .m_vsync = false });
-
-		static bool once = true;
-		if (once)
-		{
-			string filepath = "./rendergraph_dump.md";
-			file::create(filepath);
-			file::push_line(filepath, renderer::get_last_rendergraph_dump());
-			once = false;
-		}
 	}
 
 	void render_manager::stream_content(const content_manager& cont_man)
@@ -200,6 +173,11 @@ namespace influx::engine
 	renderer::scene_imgui& render_manager::get_scene_imgui()
 	{
 		return m_imgui_scene;
+	}
+
+	render_view& render_manager::get_renderview(e_render_view view)
+	{
+		
 	}
 
 	render_view& render_manager::get_renderview(const render_view_id& id, const math::vectoru2& size)

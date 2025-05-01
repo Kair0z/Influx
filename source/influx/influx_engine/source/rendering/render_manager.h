@@ -31,6 +31,13 @@ namespace influx::engine
 		all				= render_debug | render_scene | render_imgui
 	};
 
+	enum class e_render_view : uint8
+	{
+		scene_editor,
+		game,
+		count
+	};
+
 	// a view contains a renderer::target to render to and data it wants rendered
 	// an example of a view is the main scene view
 	using render_view_id = string;
@@ -86,14 +93,18 @@ namespace influx::engine
 		renderer::scene_imgui& get_scene_imgui();
 
 		/* gets or (re)creates a target view that can be rendered to */
+		render_view& get_renderview(e_render_view view);
 		render_view& get_renderview(const render_view_id& id, const math::vectoru2& size);
 
 	private:
 		e_render_flags m_render_flags{};
 		imgui_manager m_imgui;
 		render_streamer m_streamer{};
-		renderer::target* mp_window_target;
-		renderer::target* mp_scene_target;
+
+		// internal targets
+		renderer::target* mp_window_target = nullptr;
+		renderer::target* mp_scene_target = nullptr;
+		renderer::target* mp_scene_editor_target = nullptr;
 
 		renderer::scene m_scene{};
 		renderer::scene2D m_scene2D{};

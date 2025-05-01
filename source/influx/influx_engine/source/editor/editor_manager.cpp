@@ -113,6 +113,14 @@ namespace influx::engine::editor
 		{
 			m_scene_editor.on_mouse_up(input::e_mouse_button::right, mouse_position);
 		}
+
+		// 
+		const buttonstate& lalt_button = inputman.get_keystate(input::e_key::lalt);
+		const buttonstate& space_button = inputman.get_keystate(input::e_key::space);
+		if (lalt_button.m_is_down && space_button.m_is_down)
+		{
+			// alt + space
+		}
 	}
 
 	void editor_manager::update_context()

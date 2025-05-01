@@ -1,0 +1,40 @@
+#pragma once 
+
+namespace influx::renderer
+{
+	class scene;
+
+	// renders instanced debug lines
+	class debug_renderer final
+	{
+		struct gpu_instance_data;
+		struct gpu_perview;
+
+	public:
+		debug_renderer();
+		~debug_renderer();
+
+		void render(rendergraph::rendergraph& graph, const scene& scene, const target& target);
+
+		void render(
+			graphics::commandlist* commandlist,
+			const scene& scene,
+			const target& target);
+
+		bool can_build_pipeline() const;
+
+		void load_shaders();
+
+	private:
+		constexpr static uint32 k_max_instances = 4096u;
+		
+		vector<gpu_instance_data> m_instance_data;
+		gpu_perview* m_gpu_perview;
+
+		graphics::resource* mp_instancebuffer;
+		graphics::resource* mp_vertexbuffer;
+		graphics::descriptor_handle m_instance_buffer_srv;
+
+		void update_instance_buffer(const scene& scene);
+	};
+}
