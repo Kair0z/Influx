@@ -74,7 +74,7 @@ namespace influx::engine
 		renderer::target*	m_target{};
 		renderer::scene		m_scene{};
 		renderer::scene2D	m_scene2D{};
-		math::float4 m_clear_colour = {};
+		math::float4 m_clear_colour = { 0,0,0,1 };
 
 		math::uint2 m_dimensions = { 64u, 64u };
 		math::uint2 m_prev_dimensions{};

@@ -229,7 +229,7 @@ namespace influx::engine
             // gather camera
             {
                 influx_scope("gather_camera");
-                float priority = 0.0f;
+                float priority = -1.0f;
                 for (auto [entity, transform_comp, camera_comp]
                     : m_registry.view<const transform_component, camera_component>().each())
                 {

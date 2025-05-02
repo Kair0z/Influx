@@ -34,7 +34,7 @@ namespace influx::renderer
 		cubemap_data,
 		texture_data,
 		shader_data,
-		detail::base_mesh_data*
+		detail::base_mesh_data const*
 		>>;
 
 	// resource-signature:

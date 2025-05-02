@@ -104,8 +104,8 @@ namespace influx::renderer
             m_rendergraph = new rendergraph::rendergraph(mp_device);
         }
         
-        // load internal resources (shaders, geometry & textures)
-        load_resources();
+        // load internal shaders
+        mp_scene_renderer->load_shaders();
 
         m_is_initialized = true;
     }
@@ -120,20 +120,6 @@ namespace influx::renderer
         const uint64 finished_value = (uint64)-1;
         m_gpu_finished_fence->queue_signal(finished_value, mp_graphics_queue);
         m_gpu_finished_fence->wait_for_value(finished_value);
-    }
-
-    void renderer_backend::load_resources()
-    {
-        influx_scope("renderer_backend::load_resources");
-
-        // in-house shaders
-        mp_scene_renderer->load_shaders();
-
-        load(get_internal_mesh_name(e_mesh::box), get_inline_mesh<e_mesh::box>(), true);
-        load(get_internal_mesh_name(e_mesh::plane), get_inline_mesh<e_mesh::plane>(), true);
-        load(get_internal_mesh_name(e_mesh::quad), get_inline_mesh<e_mesh::quad>(), true);
-        load(get_internal_mesh_name(e_mesh::sphere), get_inline_mesh<e_mesh::sphere>(), true);
-        load(get_internal_mesh_name(e_mesh::triangle), get_inline_mesh<e_mesh::triangle>(), true);
     }
 
     void renderer_backend::cleanup()

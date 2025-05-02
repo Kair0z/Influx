@@ -701,12 +701,11 @@ namespace influx::graphics
 		}break;
 
 		default:
-		{
-			auto dxpipeline = pipeline->get_native<ID3D12PipelineState>();
+			ID3D12PipelineState* dxpipeline = pipeline->get_native<ID3D12PipelineState>();
 			mpdx_graphics_commandlist->SetPipelineState(dxpipeline);
-		}break;
+			break;
 		}
-		
+
 		return {};
 	}
 

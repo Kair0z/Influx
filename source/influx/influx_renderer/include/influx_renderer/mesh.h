@@ -50,11 +50,11 @@ namespace influx::renderer
 		public:
 			virtual uint64 get_vert_bytesize() const = 0;
 			virtual uint64 get_vert_bytestride() const = 0;
-			virtual void* get_vert_data() = 0;
+			virtual void const* get_vert_data() const = 0;
 
 			virtual uint64 get_indx_bytesize() const = 0;
 			virtual uint64 get_indx_bytestride() const = 0;
-			virtual void* get_indx_data() = 0;
+			virtual void const* get_indx_data() const = 0;
 		};
 	}
 
@@ -63,11 +63,11 @@ namespace influx::renderer
 	{
 		virtual uint64 get_vert_bytesize() const override { return m_vertices.size() * get_vert_bytestride(); }
 		virtual uint64 get_vert_bytestride() const override { return sizeof(_vt); }
-		virtual void* get_vert_data() override { return reinterpret_cast<void*>(m_vertices.data()); }
+		virtual void const* get_vert_data() const override { return reinterpret_cast<void const*>(m_vertices.data()); }
 		
 		virtual uint64 get_indx_bytesize() const override { return m_indices.size() * get_indx_bytestride(); }
 		virtual uint64 get_indx_bytestride() const override { return sizeof(index); }
-		virtual void* get_indx_data() override { return reinterpret_cast<void*>(m_indices.data()); }
+		virtual void const* get_indx_data() const override { return reinterpret_cast<void const*>(m_indices.data()); }
 
 	public:
 		vector<_vt>		m_vertices{};

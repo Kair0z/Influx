@@ -38,6 +38,8 @@ namespace influx::renderer
 		resource_manager();
 		~resource_manager();
 
+		void load_internal_resources();
+
 		template <e_resource_type _t>
 		struct entry final
 		{
@@ -197,7 +199,7 @@ namespace influx::renderer
 		}
 
 	private:
-		void recreate_mesh(const string& title, detail::base_mesh_data* data);
+		void recreate_mesh(const string& title, detail::base_mesh_data const* data);
 		void recreate_texture(const string& title, const texture_data& data);
 		void recreate_cubemap(const string& title, const cubemap_data& data);
 		void recreate_shader(const shader::shader_signature& sig, const shader_data& data);

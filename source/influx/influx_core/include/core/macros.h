@@ -5,7 +5,7 @@
 
 #define influx_property_read(Type, Name) \
 		private: \
-			Type m_##Name; \
+			Type m_##Name = {}; \
 		public: \
 			const Type& get_##Name() const \
 			{ \
@@ -15,7 +15,7 @@
 
 #define influx_property_readwrite(Type, Name) \
 		private: \
-			Type m_##Name; \
+			Type m_##Name = {}; \
 		public: \
 			const Type& get_##Name() const \
 			{ \

@@ -424,8 +424,8 @@ namespace influx::renderer
 
     void scene_renderer::update_line_instance_buffer(const scene& scene)
     {
+        // load up the instance data
         m_line_instance_data.clear();
-
         for (const line& line : scene.get_lines())
         {
             frontend::line_gpu_instance_data instance_data{};
@@ -435,6 +435,7 @@ namespace influx::renderer
             m_line_instance_data.push_back(instance_data);
         }
 
+        // map the cpu data to the shared gpu resource
         m_line_instance_buffer->map([this](void* dest)
         {
             frontend::line_gpu_instance_data* data = reinterpret_cast<frontend::line_gpu_instance_data*>(dest);
@@ -511,15 +512,13 @@ namespace influx::renderer
 
     void scene_renderer::build_basepass(rendergraph::rgpass_builder& builder, const target& target)
     {
-        static string color_name{}; color_name = target.get_resource()->get_name().get();
-        static string depth_name{}; depth_name = color_name + "_depth";
-
         // declare gbuffer rendertargets
         rendergraph::texture_desc gbuffer_desc{};
         gbuffer_desc.m_width = target.get_width();
         gbuffer_desc.m_heigth = target.get_height();
         gbuffer_desc.m_format = graphics::e_format::rgba_u32;
         builder.declare_texture(RGNAME("gbuffer_a"), gbuffer_desc);
+
         gbuffer_desc.m_format = graphics::e_format::u32;
         builder.declare_texture(RGNAME("gbuffer_b"), gbuffer_desc);
         builder.declare_texture(RGNAME("gbuffer_c"), gbuffer_desc);
@@ -534,7 +533,7 @@ namespace influx::renderer
         if (target.has_depth_stencil())
         {
             access.m_load = rendergraph::e_rg_load::clear;
-            builder.write_depthtarget(depth_name, access);
+            builder.write_depthtarget(target.get_depth_rendergraph_name(), access);
         }
         builder.set_viewport(target.get_width(), target.get_height());
     }
@@ -552,14 +551,18 @@ namespace influx::renderer
         renderer_backend& backend = renderer_backend::get_instance();
         pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
 
-        // pipeline
         apply_pipeline_settings(target);
         graphics_pipeline& pipeline = pipeline_man.get_or_create_pipeline(get_scene_basepass_pipeline_signature());
         
         // hot-reload our shaders if necessary:
-        pipeline.rebuild(backend.get_device());
-        influx_assert(pipeline.is_valid());
-
+        static bool once = true;
+        if (once)
+        {
+            pipeline.rebuild(backend.get_device());
+            influx_assert(pipeline.is_valid());
+            once = false;
+        }
+        
         // skybox
         if (mp_skybox == nullptr)
         {
