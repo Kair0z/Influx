@@ -22,7 +22,7 @@ namespace influx
 		return static_cast<E>(static_cast<T>(lhs) | static_cast<T>(rhs));
 	}
 	template <typename E>
-	inline typename std::enable_if_t<enable_bitmask_operators<E>, E>::type operator&(E lhs, E rhs)
+	inline typename std::enable_if_t<enable_bitmask_operators<E>, E>::type operator&(const E& lhs, const E& rhs)
 	{
 		using T = std::underlying_type_t<E>;
 		return static_cast<E>(static_cast<T>(lhs) & static_cast<T>(rhs));

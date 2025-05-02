@@ -62,8 +62,6 @@ namespace influx::engine
 	
 	render_manager::render_manager(engine* engine)
 		: m_imgui{}
-		, mp_window_target{ nullptr }
-		, mp_scene_target{ nullptr }
 	{
 		// create renderer
 		influx::renderer::init_args render_init_args{};
@@ -71,22 +69,6 @@ namespace influx::engine
 		// render_init_args.m_api_type = influx::renderer::e_render_api::vulkan;
 		render_init_args.m_shader_source_folder = get_engine_directory(engine_directory::assets).m_path_full + "/engine/shaders/";
 		influx::renderer::initialize(render_init_args);
-
-		// window render target:
-		platform::window& window = engine->get_window();
-		mp_window_target = renderer::get_window_target(window);
-
-		// scene render target:
-		influx::renderer::target_create_args target_args{};
-		target_args.m_has_depth_stencil = true;
-		target_args.m_width = mp_window_target->get_width();
-		target_args.m_heigth = mp_window_target->get_height();
-		mp_scene_target = influx::renderer::create_target(target_args);
-		mp_scene_target->set_name("scene_target");
-
-		// signal window resize once
-		const auto& clientrect = window.get_rect(platform::window::e_space::client);
-		on_window_resize(clientrect.get_dimensions());
 
 		// static editor
 		editor::editor_manager::static_window<render_editor>("renderer").set_name("renderer");
@@ -111,19 +93,46 @@ namespace influx::engine
 		{
 			render_view_id id = pair.first;
 			render_view& view = pair.second;
-			if (view.is_valid() == false) continue;
+			
+			// cannot render invalid dimensions
+			if (view.has_valid_dimensions() == false)
+				continue;
 
-			view.m_scene.set_debug_render_enabled(true);
-			renderer::clear_target(view.get_target(), { .m_colour{1,0,0,1} });
-			renderer::draw_scene(view.get_scene(), view.get_target());
-			// renderer::draw_2D(view.get_scene2D(), view.get_target());
+			// create target if first time
+			if (view.m_target == nullptr)
+			{
+				renderer::target_create_args args{};
+				args.m_has_colour = true;
+				args.m_has_depth_stencil = true;
+				args.m_width = view.m_dimensions.x;
+				args.m_heigth = view.m_dimensions.y;
+				view.m_target = renderer::create_target(args);
+			}
 
-			view.m_target;
-			++view.m_frame_counter;
+			// resize target if dimensions different
+			if (view.m_prev_dimensions != view.m_dimensions)
+			{
+				view.m_target->resize(view.m_dimensions);
+			}
+			view.m_prev_dimensions = view.m_dimensions;
+			
+			// render view
+			if (view.is_valid())
+			{
+				renderer::clear_target(view.get_target(), { .m_colour = view.m_clear_colour });
+
+				renderer::scene& view_scene = view.get_scene();
+				renderer::draw_scene(view_scene, view.get_target());
+
+				renderer::scene2D& view_scene2D = view.get_scene2D();
+				renderer::draw_2D(view_scene2D, view.get_target());
+
+				++view.m_frame_counter;
+			}
 		}
 
 		// imgui render (renders straight to window backbuffer)
-		renderer::scene_imgui& imgui_scene = get_scene_imgui();
+		renderer::scene_imgui& imgui_scene = get_imgui_scene();
 		if (!imgui_scene.is_empty() && is_imgui_render_enabled())
 		{
 			m_imgui.render(imgui_scene);
@@ -162,22 +171,10 @@ namespace influx::engine
 		const bool render = renderer::can_draw_scene();
 		return render;
 	}
-	renderer::scene& render_manager::get_scene()
-	{
-		return m_scene;
-	}
-	renderer::scene2D& render_manager::get_scene2D()
-	{
-		return m_scene2D;
-	}
-	renderer::scene_imgui& render_manager::get_scene_imgui()
-	{
-		return m_imgui_scene;
-	}
 
 	render_view& render_manager::get_renderview(e_render_view view)
 	{
-		
+		return m_views[k_render_view_names[static_cast<uint8>(view)]];
 	}
 
 	render_view& render_manager::get_renderview(const render_view_id& id, const math::vectoru2& size)

@@ -17,6 +17,7 @@
 
 // influx::engine
 #include "collision/collision.h"
+#include "rendering/render_manager.h"
 
 namespace influx::engine
 {
@@ -32,6 +33,7 @@ namespace influx::engine
 		rigidbody,
 		collider,
 		scene,
+		render,
 		count
 	};
 	constexpr static uint32 k_num_component_types = static_cast<uint32>(e_component::count);
@@ -550,5 +552,22 @@ namespace influx::engine
 	{
 	public:
 		influx_property_readwrite(bool, scene_active);
+	};
+
+	class render_component final
+		: public detail::tcomponent<e_component::render>
+	{
+	public:
+		inline bool is_in_view(e_view_visibility_flags view_flags) const
+		{
+			return has_flag(m_view_visible_flags, view_flags);
+		}
+
+		inline void set_view_visibility(e_view_visibility_flags flags)
+		{
+			m_view_visible_flags |= flags;
+		}
+
+		e_view_visibility_flags m_view_visible_flags;
 	};
 }

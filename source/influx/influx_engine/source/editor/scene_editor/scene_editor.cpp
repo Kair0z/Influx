@@ -180,6 +180,31 @@ namespace influx::engine::editor
 		m_edit_radial.set_radius(60.0f);
 		m_edit_radial.set_item("place", scene_editor::on_edit_place);
 		m_edit_radial.set_item("remove", scene_editor::on_edit_remove);
+
+		// temp: 
+		{
+			world& world = get_engine()->get_world();
+			auto cube = world.create_entity();
+			{
+				transform_component& trans_comp = world.create_component<transform_component>(cube);
+				render_component& render_comp = world.create_component<render_component>(cube);
+				render_comp.set_view_visibility(e_view_visibility_flags::all);
+				mesh_component& mesh_comp = world.create_component<mesh_component>(cube);
+				mesh_comp.set_mesh_name("cube");
+			}
+
+			auto camera = world.create_entity();
+			{
+				transform_component& trans_comp = world.create_component<transform_component>(camera);
+				trans_comp.set_position({ 0,0,10 });
+				trans_comp.set_forward({ 0,0,-1 });
+				camera_component& camera_comp = world.create_component<camera_component>(camera);
+				camera_comp.set_farplane(1000.0f);
+				camera_comp.set_nearplane(0.001f);
+				camera_comp.set_fov(90.0f);
+				camera_comp.set_aspect_ratio(1.0f);
+			}
+		}
 	}
 
 	scene_editor::~scene_editor()
@@ -201,25 +226,11 @@ namespace influx::engine::editor
 		math::uint2 view_dimensions = { 640u, 480 };
 
 		render_manager& renderman = get_engine()->get_renderer();
-		render_view& scene_view = renderman.get_renderview("scene_view", view_dimensions);
-		const renderer::target& target = scene_view.get_target();
-		renderer::scene& scene = scene_view.get_scene();
-		scene = renderer::scene();
+		render_view& scene_view = renderman.get_renderview(render_manager::e_render_view::scene_editor);
 
-		// just add a gizmo
-		renderer::camera camera{};
-		camera.m_camera.set_aspect_ratio(640.0f / 480.0f);
-		camera.m_camera.set_fov(90.0f);
-		camera.m_camera.set_farplane(1000.0f);
-		camera.m_camera.set_nearplane(0.001f);
-		
-		math::matrix4x4f cam_transform = math::matrix4x4f::make_transform_RH({ 0,0,10 }, { 0,0,-1 });
-		scene.set_camera(camera, cam_transform);
-		scene.add_gizmo_transform(math::transform3D::identity());
-		
 		if (ImGui::Begin("scene"))
 		{
-			ImGui::Image(reinterpret_cast<ImTextureID>(&target), { (float)view_dimensions.x, (float)view_dimensions.y });
+			ImGui::Image(reinterpret_cast<ImTextureID>(&scene_view.get_target()), { (float)view_dimensions.x, (float)view_dimensions.y });
 			ImGui::End();
 		}
 	}

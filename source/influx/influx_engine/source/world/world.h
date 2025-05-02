@@ -44,6 +44,8 @@ namespace influx::engine
 			renderer::scene&, 
 			renderer::scene2D&) const;
 
+		void build_renderviews() const;
+
 		// entities / components
 		entt::entity create_entity();
 		void destroy_entity(entt::entity);

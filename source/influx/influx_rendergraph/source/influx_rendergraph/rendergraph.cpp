@@ -90,6 +90,11 @@ namespace influx::rendergraph
 			m_dsv_heap = device->create_descriptor_heap(args);
 		}
 
+		~view_manager()
+		{
+			end_frame();
+		}
+
 		graphics::descriptor_handle alloc_cpu_handle(rgdescriptor_type type)
 		{
 			switch (type)
@@ -162,7 +167,6 @@ namespace influx::rendergraph
 	rendergraph::~rendergraph()
 	{
 		get_resource_pool(m_device);
-		get_view_manager(m_device).end_frame();
 
 		for (rgtexture* texture : m_textures)
 		{

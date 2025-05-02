@@ -111,11 +111,16 @@ namespace influx::engine
 		if (scene.is_empty() == false)
 		{
 			update_input();
-
+			
+			ImGuiPlatformIO& platio = ImGui::GetPlatformIO();
 			ImGuiIO& io = ImGui::GetIO();
 			window_manager& windowman = get_engine()->get_windowman();
 			ImGuiContext* context = ImGui::GetCurrentContext();
-			
+
+			const platform::window& main_window = windowman.get_main_window();
+			const math::uint2& main_window_dimensions = main_window.get_dimensions(platform::window::e_space::client);
+			io.DisplaySize = { (float)main_window_dimensions.x, (float)main_window_dimensions.y };
+
 			// update mouse position and such
 			update_mousedata();
 
@@ -123,9 +128,8 @@ namespace influx::engine
 			scene.m_imgui_stacks[0u](*ImGui::GetCurrentContext());
 			ImGui::Render();
 			ImGui::UpdatePlatformWindows();
-			
+
 			// execute the draw for each viewport
-			ImGuiPlatformIO& platio = ImGui::GetPlatformIO();
 			vector<ImDrawData const*> draws{};  draws.reserve(platio.Viewports.Size);
 			vector<renderer::target const*> targets{}; targets.reserve(platio.Viewports.Size);
 			for (const auto& viewport : platio.Viewports)

@@ -72,10 +72,6 @@ namespace influx::engine
 		m_contentman = new content_manager(this);
 		m_gameman = new game_manager();
 		m_moduleman = new module_manager();
-		if (m_runtype == run_type::editor)
-		{
-			m_editorman = new editor::editor_manager();
-		}
 
 		// initialize render
 		const string window_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
@@ -92,6 +88,11 @@ namespace influx::engine
 		m_world = new world();
 
 		m_sceneman = new scene_manager();
+
+		if (m_runtype == run_type::editor)
+		{
+			m_editorman = new editor::editor_manager();
+		}
 	}
 
 	void engine::run(run_type type, int argc, char* argv[])
@@ -141,21 +142,20 @@ namespace influx::engine
 				if (m_gameman) m_gameman->tick();
 				m_world->update();
 			}
+
 			// record imgui if editor
 			if (m_runtype == run_type::editor)
 			{
-				m_renderman->get_scene_imgui().m_imgui_stacks.push_back([this](ImGuiContext& ctx)
+				m_renderman->get_imgui_scene().m_imgui_stacks.push_back([this](ImGuiContext& ctx)
 				{
 					m_editorman->on_imgui(ctx);
 				});
 			}
 
-			// world builds renderscene (pre-render)
+			// world builds renderscenes (pre-render)
 			{
-				influx_scope("build_render");
-				m_renderman->get_scene().m_seconds = m_time.get_time_seconds();
-				m_renderman->get_scene().m_delta_seconds = m_time.get_delta_seconds();
-				m_world->build_renderscene(m_renderman->get_scene(), m_renderman->get_scene2D());
+				influx_scope("pre-render");
+				m_world->build_renderviews();
 			}
 
 			// render
