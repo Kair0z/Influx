@@ -694,10 +694,10 @@ namespace influx::renderer
         // stage the descriptors onto the gpu heap
         {
             graphics::descriptor_range gpu_range = descriptor_man.stage({
-                context.get_read_texture(gbuffer_reads[0]),
-                context.get_read_texture(gbuffer_reads[1]),
-                context.get_read_texture(gbuffer_reads[2]),
-                context.get_write_texture(resolve_write),
+                context.get_read_texture(gbuffer_reads[0]).get(),
+                context.get_read_texture(gbuffer_reads[1]).get(),
+                context.get_read_texture(gbuffer_reads[2]).get(),
+                context.get_write_texture(resolve_write).get(),
                 resourceman.get<e_resource_type::cubemap>("graycloud").m_resource->get_srv(),
                 m_lightbuffer_srvs[0],
                 m_lightbuffer_srvs[1],
@@ -777,8 +777,8 @@ namespace influx::renderer
             },
             [](rendergraph::rgpass_context& context)
             {
-                graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
-                graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+                graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id).get();
+                graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id).get();
                 context.get_commandlist().copy_resource(src_resource, dst_resource);
             });
             proxypass->set_name(RGNAME("proxypass_a"));
@@ -812,8 +812,8 @@ namespace influx::renderer
             },
             [](rendergraph::rgpass_context& context)
             {
-                graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
-                graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+                graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id).get();
+                graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id).get();
                 context.get_commandlist().copy_resource(src_resource, dst_resource);
             });
             proxypass->set_name(RGNAME("proxypass_b"));

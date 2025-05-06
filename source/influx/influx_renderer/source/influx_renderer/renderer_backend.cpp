@@ -101,7 +101,7 @@ namespace influx::renderer
             mp_scene_renderer = new scene_renderer();
             mp_quad_renderer = new quad_renderer();
             mp_shadertoy_renderer = new shadertoy_renderer();
-            m_rendergraph = new rendergraph::rendergraph(mp_device);
+            m_rendergraph = new rendergraph::rendergraph({}, *mp_device);
         }
         
         // load internal shaders
@@ -158,7 +158,7 @@ namespace influx::renderer
         }
         {
             influx_scope("renderer::rendergraph_execute");
-            m_rendergraph->execute(mp_commandlist);
+            m_rendergraph->execute(*mp_commandlist, *mp_device);
         }
 
         mp_commandlist->end();

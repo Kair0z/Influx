@@ -31,28 +31,31 @@ namespace influx::graphics
 		dx12_descriptor_heap(const descriptor_heap::create_args& args, 
 			ID3D12DescriptorHeap* dxheap, uint64 descriptor_stride);
 
-		virtual void release_impl(device*) override;
+		/* allocate ranges */
+		virtual result<descriptor_handle> allocate_cpu() override;
+		virtual result<descriptor_handle> allocate_gpu() override;
 
-		virtual descriptor_handle allocate_cpu() override;
-		virtual descriptor_handle allocate_gpu() override;
+		/* de-allocate descriptors */
+		virtual result<> free_cpu(descriptor_handle handle) override;
+		virtual result<> free_gpu(descriptor_handle handle) override;
+		virtual result<> free_cpu(uint32 at_index) override;
+		virtual result<> free_gpu(uint32 at_index) override;
+		virtual result<> free_all_cpu() override;
+		virtual result<> free_all_gpu() override;
 
-		virtual void free_cpu(descriptor_handle handle) override;
-		virtual void free_gpu(descriptor_handle handle) override;
-		virtual void free_cpu(uint32 at_index) override;
-		virtual void free_gpu(uint32 at_index) override;
-		virtual uint32 get_heap_index_cpu(descriptor_handle handle) const override;
-		virtual uint32 get_heap_index_gpu(descriptor_handle handle) const override;
-		virtual void free_all_cpu() override;
-		virtual void free_all_gpu() override;
+		/* get the index of a given handle that is allocated in this heap */
+		virtual result<uint32> get_heap_index_cpu(descriptor_handle handle) const override;
+		virtual result<uint32> get_heap_index_gpu(descriptor_handle handle) const override;
 
 	private:
 		void clear_cpu();
 		void clear_gpu();
+		virtual void release_impl(device*) override;
 
-		uint32 gpu_handle_to_index(descriptor_handle handle) const;
-		uint32 cpu_handle_to_index(descriptor_handle handle) const;
-		descriptor_handle index_to_gpu_handle(uint32 index) const;
-		descriptor_handle index_to_cpu_handle(uint32 index) const;
+		result<uint32> gpu_handle_to_index(descriptor_handle handle) const;
+		result<uint32> cpu_handle_to_index(descriptor_handle handle) const;
+		result<descriptor_handle> index_to_gpu_handle(uint32 index) const;
+		result<descriptor_handle> index_to_cpu_handle(uint32 index) const;
 	};
 
 	class dx12_render_target_view : public render_target_view

@@ -16,18 +16,18 @@ namespace influx::graphics
 			m_freelist_gpu.reserve(get_capacity());
 			for (uint32 i = 0u; i < get_capacity(); ++i)
 			{
-				m_freelist_gpu.push_back({ .pointer = index_to_gpu_handle(i), .is_allocated = false });
+				m_freelist_gpu.push_back({ .pointer = index_to_gpu_handle(i).get(), .is_allocated = false });
 			}
 		}
 
 		m_freelist_cpu.reserve(get_capacity());
 		for (uint32 i = 0u; i < get_capacity(); ++i)
 		{
-			m_freelist_cpu.push_back({ .pointer = index_to_cpu_handle(i), .is_allocated = false });
+			m_freelist_cpu.push_back({ .pointer = index_to_cpu_handle(i).get(), .is_allocated = false });
 		}
 	}
 
-	descriptor_handle dx12_descriptor_heap::allocate_cpu()
+	result<descriptor_handle> dx12_descriptor_heap::allocate_cpu()
 	{
 		for (uint32 i = 0u; i < get_capacity(); ++i)
 		{
@@ -38,11 +38,10 @@ namespace influx::graphics
 			}
 		}
 		
-		influx_assert(false); // uh oh
-		return nullptr;
+		return result<descriptor_handle>::make_error("error: failed to allocate cpu because we ran out of available slots!");
 	}
 
-	descriptor_handle dx12_descriptor_heap::allocate_gpu()
+	result<descriptor_handle> dx12_descriptor_heap::allocate_gpu()
 	{
 		for (uint32 i = 0u; i < get_capacity(); ++i)
 		{
@@ -53,50 +52,63 @@ namespace influx::graphics
 			}
 		}
 
-		influx_assert(false); // uh oh
-		return nullptr;
+		return result<descriptor_handle>::make_error("error: failed to allocate cpu because we ran out of available slots!");
 	}
 
-	void dx12_descriptor_heap::free_cpu(descriptor_handle handle)
+	result<> dx12_descriptor_heap::free_cpu(descriptor_handle handle)
 	{
-		const uint32 index = get_heap_index_cpu(handle);
-		m_freelist_cpu[index].is_allocated = false;
+		auto res = cpu_handle_to_index(handle);
+		if (res.is_unex()) return result<>::make_error("error: failed finding appropriate cpu index! this handle probably doesn't belong to this heap...");
+
+		return free_cpu(res.get());
 	}
 
-	void dx12_descriptor_heap::free_gpu(descriptor_handle handle)
+	result<> dx12_descriptor_heap::free_gpu(descriptor_handle handle)
 	{
-		const uint32 index = get_heap_index_gpu(handle);
-		m_freelist_gpu[index].is_allocated = false;
+		auto res = gpu_handle_to_index(handle);
+		if (res.is_unex()) return result<>::make_error("error: failed finding appropriate gpu index! this handle probably doesn't belong to this heap...");
+
+		return free_gpu(res.get());
 	}
 
-	void dx12_descriptor_heap::free_cpu(uint32 at_index)
+	result<> dx12_descriptor_heap::free_cpu(uint32 at_index)
 	{
-		free_cpu(index_to_cpu_handle(at_index));
+		if (at_index >= m_freelist_cpu.size())
+			return result<>::make_error("error: failed freeing cpu at index out of range!");
+
+		m_freelist_cpu[at_index].is_allocated = false;
+		return {};
 	}
 
-	void dx12_descriptor_heap::free_gpu(uint32 at_index)
+	result<> dx12_descriptor_heap::free_gpu(uint32 at_index)
 	{
-		free_gpu(index_to_gpu_handle(at_index));
+		if (at_index >= m_freelist_gpu.size())
+			return result<>::make_error("error: failed freeing gpu at index out of range!");
+
+		m_freelist_gpu[at_index].is_allocated = false;
+		return {};
 	}
 
-	uint32 dx12_descriptor_heap::get_heap_index_cpu(descriptor_handle handle) const
+	result<uint32> dx12_descriptor_heap::get_heap_index_cpu(descriptor_handle handle) const
 	{
 		return cpu_handle_to_index(handle);
 	}
 
-	uint32 dx12_descriptor_heap::get_heap_index_gpu(descriptor_handle handle) const
+	result<uint32> dx12_descriptor_heap::get_heap_index_gpu(descriptor_handle handle) const
 	{
 		return gpu_handle_to_index(handle);
 	}
 
-	void dx12_descriptor_heap::free_all_cpu()
+	result<> dx12_descriptor_heap::free_all_cpu()
 	{
 		clear_cpu();
+		return {};
 	}
 
-	void dx12_descriptor_heap::free_all_gpu()
+	result<> dx12_descriptor_heap::free_all_gpu()
 	{
 		clear_gpu();
+		return {};
 	}
 
 	void dx12_descriptor_heap::release_impl(device*)
@@ -123,33 +135,47 @@ namespace influx::graphics
 		}
 	}
 
-	uint32 dx12_descriptor_heap::gpu_handle_to_index(descriptor_handle handle) const
+	result<uint32> dx12_descriptor_heap::gpu_handle_to_index(descriptor_handle handle) const
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_base = mpdx_heap->GetGPUDescriptorHandleForHeapStart();
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
 		gpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
 
-		return (uint32)(gpu_handle.ptr - gpu_base.ptr) / static_cast<uint32>(m_descriptor_stride);
+		uint32 index = (uint32)(gpu_handle.ptr - gpu_base.ptr) / static_cast<uint32>(m_descriptor_stride);
+		if (index >= get_capacity())
+			return result<uint32>::make_error("error: handle does not translate to a valid index! (it probably doesn't belong here)");
+
+		return index;
 	}
 
-	uint32 dx12_descriptor_heap::cpu_handle_to_index(descriptor_handle handle) const
+	result<uint32> dx12_descriptor_heap::cpu_handle_to_index(descriptor_handle handle) const
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_base = mpdx_heap->GetCPUDescriptorHandleForHeapStart();
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
 		cpu_handle.ptr = reinterpret_cast<SIZE_T>(handle);
 
-		return (uint32)(cpu_handle.ptr - cpu_base.ptr) / static_cast<uint32>(m_descriptor_stride);
+		uint32 index = (uint32)(cpu_handle.ptr - cpu_base.ptr) / static_cast<uint32>(m_descriptor_stride);
+		if (index >= get_capacity())
+			return result<uint32>::make_error("error: handle does not translate to a valid index! (it probably doesn't belong here)");
+
+		return index;
 	}
 
-	descriptor_handle dx12_descriptor_heap::index_to_gpu_handle(uint32 index) const
+	result<descriptor_handle> dx12_descriptor_heap::index_to_gpu_handle(uint32 index) const
 	{
+		if (index >= get_capacity())
+			return result<descriptor_handle>::make_error("error: invalid index! exceeding capacity!");
+
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = mpdx_heap->GetGPUDescriptorHandleForHeapStart();
 		gpu_handle.ptr += index * m_descriptor_stride;
 		return reinterpret_cast<descriptor_handle>(gpu_handle.ptr);
 	}
 
-	descriptor_handle dx12_descriptor_heap::index_to_cpu_handle(uint32 index) const
+	result<descriptor_handle> dx12_descriptor_heap::index_to_cpu_handle(uint32 index) const
 	{
+		if (index >= get_capacity())
+			return result<descriptor_handle>::make_error("error: invalid index! exceeding capacity!");
+
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = mpdx_heap->GetCPUDescriptorHandleForHeapStart();
 		cpu_handle.ptr += index * m_descriptor_stride;
 		return reinterpret_cast<descriptor_handle>(cpu_handle.ptr);

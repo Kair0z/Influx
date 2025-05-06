@@ -5,6 +5,7 @@
 #include "core/hash.h"
 #include "core/string.h"
 #include "core/math/colour.h"
+#include "core/result.h"
 
 // influx::graphics
 #include "influx_graphics/resource.h"
@@ -19,6 +20,22 @@
 
 namespace influx::rendergraph
 {
+	template <typename _t = char>
+	using result = influx::result<_t, const char*>;
+
+	/* configuration settings */
+	struct global_config final
+	{
+		/* num frames to tick before we recycle an inactive resource for another */
+		uint32 m_frames_until_resource_recycle = 64u;
+
+		/* resource descriptor heap capacities */
+		uint32 m_max_num_samplers = 8u;
+		uint32 m_max_num_srvs = 64u;
+		uint32 m_max_num_rtvs = 32;
+		uint32 m_max_num_dsvs = 32;
+	};
+
 	// -- textures & buffers
 	struct texture_desc final
 	{
@@ -40,11 +57,12 @@ namespace influx::rendergraph
 
 	struct texture_view_desc final
 	{
+		bool m_is_active = false;
+		bool m_is_created = false;
 		uint32 m_first_slice = 0u;
 		uint32 m_num_slices = uint32(-1);
 		uint32 m_first_mip = 0u;
 		uint32 m_num_mips = uint32(-1);
-		bool m_is_active = false;
 
 		// flags
 		// channel mapping
@@ -64,9 +82,10 @@ namespace influx::rendergraph
 
 	struct buffer_view_desc final
 	{
+		bool m_is_active = false;
+		bool m_is_created = false;
 		uint64 m_offset = 0u;
 		uint64 m_size = uint64(-1);
-		bool m_is_active = false;
 		std::strong_ordering operator<=>(const buffer_view_desc& other) const = default;
 	};
 
@@ -324,6 +343,36 @@ namespace influx::rendergraph
 		{
 			// ...
 		} m_store_preserve;
+
+		/* [load:preserve | store:resolve] */
+		inline static rgaccess keep_and_copy(rgtexture_id src, rgtexture_id dst, graphics::e_format dest_format, bool keep_source = true)
+		{
+			static rgaccess access{};
+			access.m_load = e_rg_load::preserve;
+			access.m_store = e_rg_store::resolve;
+			access.m_store_resolve.m_dest_texture = dst;
+			access.m_store_resolve.m_source_texture = src;
+			access.m_store_resolve.m_keep_source = keep_source;
+			access.m_store_resolve.m_dest_format = dest_format;
+			return access;
+		}
+		/* [load:preserve | store:preserve] */
+		inline static rgaccess keep_and_keep()
+		{
+			static rgaccess access{};
+			access.m_load = e_rg_load::preserve;
+			access.m_store = e_rg_store::preserve;
+			return access;
+		}
+		/* [load:clear | store:preserve] */
+		inline static rgaccess clear_and_keep(const math::colour_rgba& clear_value) 
+		{
+			static rgaccess access{};
+			access.m_load_clear.m_colour = clear_value;
+			access.m_load = e_rg_load::clear;
+			access.m_store = e_rg_store::preserve;
+			return access;
+		}
 	};
 }
 

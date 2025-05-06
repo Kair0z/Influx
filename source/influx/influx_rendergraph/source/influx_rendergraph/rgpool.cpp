@@ -1,7 +1,7 @@
 #include "rendergraph_pch.h"
 #include "rgpool.h"
-#include "rgcommon.h"
 
+// influx::graphics
 #include "influx_graphics/device.h"
 
 namespace influx::rendergraph
@@ -32,21 +32,79 @@ namespace influx::rendergraph
 	}
 #pragma endregion
 
-	rgpool::rgpool(graphics::device* device)
-		: m_device{device}
+	rgpool::rgpool(graphics::device& device, const global_config& config)
+		: m_config{ config }
 	{
-
+		create_descriptor_heaps(device, config);
 	}
 
-	void rgpool::tick()
+	rgpool::~rgpool()
 	{
+		free_all_descriptors();
+	}
+
+	void rgpool::create_descriptor_heaps(graphics::device& device, const global_config& config)
+	{
+		graphics::descriptor_heap::create_args args{};
+		args.m_shader_visible = false;
+
+		args.m_capacity = config.m_max_num_samplers;
+		args.m_type = graphics::e_descriptor_heap_type::sampler;
+		m_sampler_heap = device.create_descriptor_heap(args);
+
+		args.m_capacity = config.m_max_num_srvs;
+		args.m_type = graphics::e_descriptor_heap_type::srv;
+		m_srv_heap = device.create_descriptor_heap(args);
+
+		// non-shader heaps:
+		args.m_shader_visible = false;
+
+		args.m_capacity = config.m_max_num_rtvs;
+		args.m_type = graphics::e_descriptor_heap_type::rtv;
+		m_rtv_heap = device.create_descriptor_heap(args);
+
+		args.m_capacity = config.m_max_num_dsvs;
+		args.m_type = graphics::e_descriptor_heap_type::dsv;
+		m_dsv_heap = device.create_descriptor_heap(args);
+	}
+
+	void rgpool::free_all_descriptors()
+	{
+		free_all_gpu_descriptors();
+		m_rtv_heap->free_all_cpu();
+		m_dsv_heap->free_all_cpu();
+	}
+
+	void rgpool::free_all_gpu_descriptors()
+	{
+		m_srv_heap->free_all_gpu();
+		m_srv_heap->free_all_cpu();
+		m_sampler_heap->free_all_cpu();
+		m_sampler_heap->free_all_gpu();
+	}
+
+	void rgpool::cleanup(graphics::device& device)
+	{
+		device.release(m_srv_heap);
+		device.release(m_sampler_heap);
+		device.release(m_rtv_heap);
+		device.release(m_dsv_heap);
+	}
+
+	void rgpool::recycle_resources()
+	{
+		const uint32 frames_until_recycle = m_config.m_frames_until_resource_recycle;
 		for (uint64 i = 0; i < m_texture_pool.size();)
 		{
 			pooled_resource& resource = m_texture_pool[i];
-			if (!resource.m_is_active && resource.m_last_used_frame + 4 < m_frame)
+			const bool is_expired = m_frame > resource.m_last_used_frame + frames_until_recycle;
+
+			if (!resource.m_is_active && is_expired)
 			{
+				// remove element from the texture pool
 				std::swap(m_texture_pool[i], m_texture_pool.back());
 				m_texture_pool.pop_back();
+				break;
 			}
 			else ++i;
 		}
@@ -54,7 +112,7 @@ namespace influx::rendergraph
 		++m_frame;
 	}
 
-	graphics::resource* rgpool::allocate_texture_resource(const texture_desc& args)
+	result<graphics::resource*> rgpool::allocate_texture_resource(graphics::device& device, const texture_desc& args)
 	{
 		for (pooled_resource& item : m_texture_pool)
 		{
@@ -70,12 +128,12 @@ namespace influx::rendergraph
 		pooled_resource new_item{};
 		new_item.m_is_active = true;
 		new_item.m_last_used_frame = m_frame;
-		new_item.m_resource = m_device->create_resource(translate(args));
+		new_item.m_resource = device.create_resource(translate(args));
 		m_texture_pool.push_back(new_item);
 		return new_item.m_resource;
 	}
 
-	graphics::resource* rgpool::allocate_buffer_resource(const buffer_desc& args)
+	result<graphics::resource*> rgpool::allocate_buffer_resource(graphics::device& device, const buffer_desc& args)
 	{
 		for (pooled_resource& item : m_buffer_pool)
 		{
@@ -91,34 +149,59 @@ namespace influx::rendergraph
 		pooled_resource new_item{};
 		new_item.m_is_active = true;
 		new_item.m_last_used_frame = m_frame;
-		new_item.m_resource = m_device->create_resource(translate(args));
+		new_item.m_resource = device.create_resource(translate(args));
 		m_buffer_pool.push_back(new_item);
 		return new_item.m_resource;
 	}
 
-	bool rgpool::release_texture(graphics::resource* resource)
+	result<> rgpool::release_texture(graphics::device& device, graphics::resource& resource)
 	{
 		for (pooled_resource& item : m_texture_pool)
 		{
-			if (item.m_is_active && item.m_resource == resource)
+			if (item.m_is_active && item.m_resource == &resource)
 			{
 				item.m_is_active = false;
-				return true;
+				device.release(&resource);
+				return {};
 			}
 		}
-		return false;
+		return result<>::make_error("error: release failed!");
 	}
 
-	bool rgpool::release_buffer(graphics::resource* resource)
+	result<> rgpool::release_buffer(graphics::device& device, graphics::resource& resource)
 	{
 		for (pooled_resource& item : m_buffer_pool)
 		{
-			if (item.m_is_active && item.m_resource == resource)
+			if (item.m_is_active && item.m_resource == &resource)
 			{
 				item.m_is_active = false;
-				return true;
+				device.release(&resource);
+				return {};
 			}
 		}
-		return false;
+		return result<>::make_error("error: release failed!");
+	}
+
+	result<graphics::descriptor_handle> rgpool::alloc_cpu_handle(rgdescriptor_type type)
+	{
+		switch (type)
+		{
+		case rgdescriptor_type::render_target: return m_rtv_heap->allocate_cpu();
+		case rgdescriptor_type::depth_target: return m_dsv_heap->allocate_cpu();
+		case rgdescriptor_type::read_only: return m_srv_heap->allocate_cpu();
+		case rgdescriptor_type::read_write: return m_srv_heap->allocate_cpu();
+		}
+
+		return {};
+	}
+
+	result<graphics::descriptor_handle> rgpool::alloc_gpu_srv()
+	{
+		return m_srv_heap->allocate_gpu();
+	}
+
+	result<graphics::descriptor_handle> rgpool::alloc_gpu_sampler()
+	{
+		return m_sampler_heap->allocate_gpu();
 	}
 }

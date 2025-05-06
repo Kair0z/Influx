@@ -95,12 +95,15 @@ namespace influx::rendergraph
 			rgaccess m_stencil_access;
 			bool m_depth_read_only;
 			bool m_is_enabled = false;
+			float m_depth_clear = 1.0f;
+			uint8 m_stencil_clear = 0u;
 		};
 		depth_stencil m_dsv{};
 
 		friend class rendergraph;
 		friend class rglayer;
 		friend class rgpass_builder;
+		friend class rgpass_context;
 	};
 
 	class rglayer final

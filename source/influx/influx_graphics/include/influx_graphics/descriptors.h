@@ -36,6 +36,7 @@ namespace influx::graphics
 	public:
 		virtual ~descriptor_heap() = default;
 
+		/* creation utillities */
 		struct create_args final
 		{
 			create_args() = default;
@@ -76,48 +77,60 @@ namespace influx::graphics
 			return args;
 		}
 
-		virtual descriptor_handle allocate_cpu() = 0;
-		virtual descriptor_handle allocate_gpu() = 0;
-		
-		inline descriptor_range allocate_range_cpu(uint32 num_descriptors)
+		/* allocate ranges */
+		virtual result<descriptor_handle> allocate_cpu() = 0;
+		virtual result<descriptor_handle> allocate_gpu() = 0;
+		inline result<descriptor_range> allocate_range_cpu(uint32 num_descriptors)
 		{
+			using result_type = result<descriptor_range>;
+
+			auto res = allocate_cpu();
+			if (res.is_unex()) return result_type::make_error("error: failed allocating first cpu handle!");
+
 			descriptor_range range{};
-			range.m_start = allocate_cpu();
+			range.m_start = res.get();
 			range.m_num_descriptors = num_descriptors;
 			for (uint32 i = 0u; i < num_descriptors - 1u; ++i)
 			{
-				allocate_cpu();
+				res = allocate_cpu();
+				if (res.is_unex()) return result_type::make_error("error: failed allocating cpu handle!");
 			}
 			return range;
 		}
-		inline descriptor_range allocate_range_gpu(uint32 num_descriptors)
+		inline result<descriptor_range> allocate_range_gpu(uint32 num_descriptors)
 		{
+			using result_type = result<descriptor_range>;
+
+			auto res = allocate_gpu();
+			if (res.is_unex()) return result_type::make_error("error: failed allocating first gpu handle!");
+
 			descriptor_range range{};
-			range.m_start = allocate_gpu();
+			range.m_start = res.get();
 			range.m_num_descriptors = num_descriptors;
 			for (uint32 i = 0u; i < num_descriptors - 1u; ++i)
 			{
-				allocate_gpu();
+				res = allocate_gpu();
+				if (res.is_unex()) return result_type::make_error("error: failed allocating gpu handle!");
 			}
 			return range;
 		}
 
-		virtual void free_cpu(descriptor_handle handle) = 0;
-		virtual void free_gpu(descriptor_handle handle) = 0;
+		/* de-allocate descriptors */
+		virtual result<> free_cpu(descriptor_handle handle) = 0;
+		virtual result<> free_gpu(descriptor_handle handle) = 0;
+		virtual result<> free_cpu(uint32 at_index) = 0;
+		virtual result<> free_gpu(uint32 at_index) = 0;
+		virtual result<> free_all_cpu() = 0;
+		virtual result<> free_all_gpu() = 0;
 
-		virtual void free_cpu(uint32 at_index) = 0;
-		virtual void free_gpu(uint32 at_index) = 0;
-
-		virtual uint32 get_heap_index_cpu(descriptor_handle handle) const = 0;
-		virtual uint32 get_heap_index_gpu(descriptor_handle handle) const = 0;
+		/* get the index of a given handle that is allocated in this heap */
+		virtual result<uint32> get_heap_index_cpu(descriptor_handle handle) const = 0;
+		virtual result<uint32> get_heap_index_gpu(descriptor_handle handle) const = 0;
 
 		inline uint32 get_capacity() const
 		{
 			return m_create_args.m_capacity;
 		}
-
-		virtual void free_all_cpu() = 0;
-		virtual void free_all_gpu() = 0;
 
 	protected:
 		descriptor_heap(const create_args& args)

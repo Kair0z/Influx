@@ -49,10 +49,12 @@ namespace influx::rendergraph
 	rgtex_copysrc_id rgpass_builder::read_copysrc_texture(const rgname& name)
 	{
 		rgtex_copysrc_id copy_src_id = m_graph.read_copysrc_texture(name);
-		
-		// get the texture id from the copysrc id
 		rgtexture_id res_id(copy_src_id);
+
+		// register a state transition
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::copy_src;
+
+		// register a tex-read
 		m_pass.m_texture_reads.insert(res_id);
 
 		return copy_src_id;
@@ -60,17 +62,26 @@ namespace influx::rendergraph
 	rgtex_copydst_id rgpass_builder::write_copydst_texture(const rgname& name)
 	{
 		rgtex_copydst_id copy_dest_id = m_graph.write_copydst_texture(name);
-
 		rgtexture_id res_id(copy_dest_id);
+		rgtexture* texture = m_graph.get_texture(res_id);
+
+		// register a state transition
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::copy_dst;
+		
+		// register a tex-write
+		m_pass.m_texture_writes.insert(res_id);
+		
+		// if the pass is not creating this texture... ? I dont remember why...
 		if (!m_pass.m_texture_creates.contains(res_id))
 		{
 			dummy_read_texture(name);
 		}
 
-		m_pass.m_texture_writes.insert(res_id);
-		rgtexture* texture = m_graph.get_texture(res_id);
-		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		// writing to imported textures should never be culled
+		if (texture->is_imported())
+		{
+			m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		}
 
 		return copy_dest_id;
 	}
@@ -78,38 +89,62 @@ namespace influx::rendergraph
 	{
 		rgbuf_copysrc_id copy_src_id = m_graph.read_copysrc_buffer(name);
 		rgbuffer_id res_id(copy_src_id);
+
+		// register a state transition
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::copy_src;
+		
+		// register a buff-read
 		m_pass.m_buffer_reads.insert(res_id);
+		
 		return copy_src_id;
 	}
 	rgbuf_copydst_id rgpass_builder::write_copydst_buffer(const rgname& name)
 	{
 		rgbuf_copydst_id copy_dst_id = m_graph.write_copydst_buffer(name);
 		rgbuffer_id res_id(copy_dst_id);
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+
+		// register a state transition
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::copy_dst;
+
+		// register a buff-write
+		m_pass.m_buffer_writes.insert(res_id);
+
+		// ...
 		if (!m_pass.m_buffer_creates.contains(res_id))
 		{
 			dummy_read_buffer(name);
 		}
-		m_pass.m_buffer_writes.insert(res_id);
-		rgbuffer* buffer = m_graph.get_buffer(res_id);
-		if (buffer->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		
+		if (buffer->is_imported()) 
+			m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		
 		return copy_dst_id;
 	}
 	rgbuf_indargs_id rgpass_builder::read_indirect_args_buffer(const rgname& name)
 	{
 		rgbuf_indargs_id ind_args_id = m_graph.read_indirect_args_buffer(name);
 		rgbuffer_id res_id(ind_args_id);
+
+		// register a state transition
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::indirect_args;
+		
+		// register a buff-read
 		m_pass.m_buffer_reads.insert(res_id);
+		
 		return ind_args_id;
 	}
 	rgbuf_index_id rgpass_builder::read_index_buffer(const rgname& name)
 	{
 		rgbuf_index_id index_id = m_graph.read_index_buffer(name);
 		rgbuffer_id res_id(index_id);
+
+		// register a state transition
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::indexbuffer;
+		
+		// register a buff-read
 		m_pass.m_buffer_reads.insert(res_id);
+		
 		return index_id;
 	}
 
@@ -211,6 +246,7 @@ namespace influx::rendergraph
 		m_pass.m_width = width;
 		m_pass.m_height = height;
 	}
+
 	texture_desc rgpass_builder::get_texture_desc(const rgname& name) const
 	{
 		return m_graph.get_texture_desc(name);
@@ -224,7 +260,6 @@ namespace influx::rendergraph
 	{
 		return m_graph.get_texture_id(name);
 	}
-
 	rgbuffer_id rgpass_builder::get_buffer_id(const rgname& name) const
 	{
 		return m_graph.get_buffer_id(name);
@@ -236,6 +271,7 @@ namespace influx::rendergraph
 		rgtexture_readonly_id read_id = m_graph.read_texture(name, view_desc);
 		rgtexture_id res_id = read_id.get_resource_id();
 
+		// register the state transition
 		switch (m_pass.m_type)
 		{
 		case e_rgpass_type::graphics:
@@ -253,24 +289,32 @@ namespace influx::rendergraph
 			break;
 		}
 
+		// register the tex-read
 		m_pass.m_texture_reads.insert(res_id);
+
 		return read_id;
 	}
 	rgtexture_readwrite_id rgpass_builder::write_texture_impl(const rgname& name, const texture_view_desc& view_desc)
 	{
 		rgtexture_readwrite_id rw_id = m_graph.write_texture(name, view_desc);
 		rgtexture_id res_id = rw_id.get_resource_id();
+		rgtexture* texture = m_graph.get_texture(res_id);
 
+		// register the state transition
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::cs_uav;
 		
+		// register tex-write
+		m_pass.m_texture_writes.insert(res_id);
+
+		// ...
 		if (!m_pass.m_texture_creates.contains(res_id))
 		{
 			dummy_read_texture(name);
 		}
-		
-		m_pass.m_texture_writes.insert(res_id);
-		rgtexture* texture = m_graph.get_texture(res_id);
-		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+
+		// write to imported resource should not be culled
+		if (texture->is_imported()) 
+			m_pass.m_flags |= e_rgpass_flags::force_no_cull;
 
 		return rw_id;
 	}
@@ -278,37 +322,55 @@ namespace influx::rendergraph
 	{
 		rgrendertarget_id rt_id = m_graph.rendertarget(name, view_desc);
 		rgtexture_id res_id = rt_id.get_resource_id();
+		rgtexture* texture = m_graph.get_texture(res_id);
 
+		// register state transition
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::render_target;
+		
+		// register tex-write
+		m_pass.m_texture_writes.insert(res_id);
+
+		// register rtv
 		m_pass.m_rtvs.push_back(rgpass::render_target{ .m_texture_id = res_id, .m_access = load_store_op });
 
+		// ...
 		if (!m_pass.m_texture_creates.contains(res_id))
 		{
 			dummy_read_texture(name);
 		}
 
-		m_pass.m_texture_writes.insert(res_id);
-		rgtexture* texture = m_graph.get_texture(res_id);
-		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		// write to imported resource should not be culled
+		if (texture->is_imported()) 
+			m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+
 		return rt_id;
 	}
 	rgdepthtarget_id rgpass_builder::write_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
 	{
 		rgdepthtarget_id dt_id = m_graph.depthtarget(name, view_desc);
 		rgtexture_id res_id = dt_id.get_resource_id();
+		rgtexture* texture = m_graph.get_texture(res_id);
 
+		// register the state transition
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::depth_target;
+
+		// register tex-write
+		m_pass.m_texture_writes.insert(res_id);
+
+		// register dsv
 		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
 			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = false, .m_is_enabled = true };
 
+		// ...
 		if (!m_pass.m_texture_creates.contains(res_id))
 		{
 			dummy_read_texture(name);
 		}
 
-		m_pass.m_texture_writes.insert(res_id);
-		rgtexture* texture = m_graph.get_texture(res_id);
-		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		// write to imported resource should not be culled
+		if (texture->is_imported()) 
+			m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+
 		return dt_id;
 	}
 	rgdepthtarget_id rgpass_builder::read_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
@@ -333,7 +395,6 @@ namespace influx::rendergraph
 		if (m_pass.is_compute_any())
 		{
 			read_access = rgread_access::non_ps;
-
 			m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_srv;
 		}
 		else

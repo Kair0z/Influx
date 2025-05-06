@@ -266,7 +266,7 @@ namespace influx::imgui
 		get_fence()->wait_for_value(1u, wait);
 
 		// create srv
-		get_device()->create_texture_srv(get_srv_heap()->allocate_cpu(), fonts_tex.mp_resource);
+		get_device()->create_texture_srv(get_srv_heap()->allocate_cpu().get(), fonts_tex.mp_resource);
 	}
 
 	inline void create_shaders()

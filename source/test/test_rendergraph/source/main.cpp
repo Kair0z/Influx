@@ -29,42 +29,50 @@ int main()
 	swpchain_desc.m_num_buffers = 3u;
 	graphics::swapchain* swapchain = device->create_swapchain(queue, *window, swpchain_desc);
 
-	static int buffer_index = 0u;
+	influx::rendergraph::rendergraph graph{ {}, *device };
 
 	while (true)
 	{
-		influx::rendergraph::rendergraph graph{ device };
-
 		auto res = swapchain->get_current_backbuffer_resource();
 		if (res.is_unex()) continue;
 
-		graph.import_texture(RGNAME("backbuffer"), res.get());
+		uint8 backbuffer_index = swapchain->get_current_backbuffer_index();
+		const string& current_backbuffer_name = "backbuffer_" + to_string(backbuffer_index);
+		graph.import_texture(current_backbuffer_name, res.get());
 
 		// clear backbuffer pass
-		graph.add_pass(e_rgpass_type::graphics,
-			[](rgpass_builder& builder)
-			{
-				rgaccess access{};
-				access.m_load = e_rg_load::clear;
-				access.m_store = e_rg_store::preserve;
-				builder.write_rendertarget(RGNAME("backbuffer"), access);
-			},
-			[&graph](rgpass_context& ctx)
-			{
+		graph.add_graphics_pass([&current_backbuffer_name](auto& builder)
+		{
+			// simply load the rendertarget with a clear
+			builder.write_rendertarget(current_backbuffer_name, rgaccess::clear_and_keep({ 1,0,0,1 }));
+		});
 
-			});
+		// simple draw pass
+		graph.add_graphics_pass(
+		[&current_backbuffer_name](auto& builder) // build
+		{
+			builder.write_rendertarget(current_backbuffer_name, rgaccess::keep_and_keep());
+		},
+		[](auto& ctx) // execute
+		{
+			graphics::commandlist& cmdlist = ctx.get_commandlist();
+			// cmdlist.draw_instanced
+		});
 
 		commandlist->start(device);
 
 		graph.build();
-		graph.execute(commandlist);
+		graph.execute(*commandlist, *device);
 
 		// transition backbuffer to present
 		res.get()->transition(commandlist, graphics::e_resource_state::present);
 		commandlist->end();
 		commandlist->submit(queue);
 		commandlist->wait_for_completion();
+		
+		graph.reset_graph();
 
 		swapchain->present({ .m_vsync = false });
+		
 	}
 }

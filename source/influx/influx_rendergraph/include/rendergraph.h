@@ -26,14 +26,10 @@ namespace influx::graphics
 
 namespace influx::rendergraph
 {
-	template <typename _t = char>
-	using result = influx::result<_t, const char*>;
-
+	class rgpool;
 	class rgbuffer;
 	class rgtexture;
-	class rgpool;
 	class rglayer;
-	class view_manager;
 	class rendergraph;
 
 	class rgpass_context final
@@ -46,28 +42,31 @@ namespace influx::rendergraph
 			return m_commandlist;
 		}
 
-		INFLUX_RG_API graphics::resource* get_copysrc_resource(rgtex_copysrc_id id);
-		INFLUX_RG_API graphics::resource* get_copysrc_resource(rgbuf_copysrc_id id);
-		INFLUX_RG_API graphics::resource* get_copydst_resource(rgtex_copydst_id id);
-		INFLUX_RG_API graphics::resource* get_copydst_resource(rgbuf_copydst_id id);
+		INFLUX_RG_API result<graphics::resource*> get_copysrc_resource(rgtex_copysrc_id id);
+		INFLUX_RG_API result<graphics::resource*> get_copysrc_resource(rgbuf_copysrc_id id);
+		INFLUX_RG_API result<graphics::resource*> get_copydst_resource(rgtex_copydst_id id);
+		INFLUX_RG_API result<graphics::resource*> get_copydst_resource(rgbuf_copydst_id id);
 
-		INFLUX_RG_API graphics::resource* get_vertexbuffer_resource(rgbuf_vertex_id id);
-		INFLUX_RG_API graphics::resource* get_indexbuffer_resource(rgbuf_index_id id);
-		INFLUX_RG_API graphics::resource* get_constbuffer_resource(rgbuf_const_id id);
-		INFLUX_RG_API graphics::resource* get_indirect_args_resource(rgbuf_indargs_id id);
+		INFLUX_RG_API result<graphics::resource*> get_vertexbuffer_resource(rgbuf_vertex_id id);
+		INFLUX_RG_API result<graphics::resource*> get_indexbuffer_resource(rgbuf_index_id id);
+		INFLUX_RG_API result<graphics::resource*> get_constbuffer_resource(rgbuf_const_id id);
+		INFLUX_RG_API result<graphics::resource*> get_indirect_args_resource(rgbuf_indargs_id id);
 
-		INFLUX_RG_API graphics::descriptor_handle get_rtv(rgrendertarget_id id);
-		INFLUX_RG_API graphics::descriptor_handle get_dsv(rgrendertarget_id id);
-		INFLUX_RG_API graphics::descriptor_handle get_read_texture(rgtexture_readonly_id id);
-		INFLUX_RG_API graphics::descriptor_handle get_write_texture(rgtexture_readwrite_id id);
+		INFLUX_RG_API result<graphics::descriptor_handle> get_rtv(uint32 at_index = 0u);
+		INFLUX_RG_API result<graphics::descriptor_handle> get_dsv();
+		INFLUX_RG_API result<graphics::descriptor_handle> get_rtv(rgrendertarget_id id);
+		INFLUX_RG_API result<graphics::descriptor_handle> get_dsv(rgrendertarget_id id);
+		INFLUX_RG_API result<graphics::descriptor_handle> get_read_texture(rgtexture_readonly_id id);
+		INFLUX_RG_API result<graphics::descriptor_handle> get_write_texture(rgtexture_readwrite_id id);
 
-		INFLUX_RG_API graphics::descriptor_handle get_read_buffer(rgbuffer_readonly_id id);
-		INFLUX_RG_API graphics::descriptor_handle get_write_buffer(rgbuffer_readwrite_id id);
+		INFLUX_RG_API result<graphics::descriptor_handle> get_read_buffer(rgbuffer_readonly_id id);
+		INFLUX_RG_API result<graphics::descriptor_handle> get_write_buffer(rgbuffer_readwrite_id id);
 
 	private:
-		rgpass_context(rendergraph& rg, graphics::commandlist& cmdlist) : m_graph{ rg }, m_commandlist{ cmdlist } {}
+		rgpass_context(rendergraph& rg, graphics::commandlist& cmdlist, const rgpass& pass) : m_graph{ rg }, m_commandlist{ cmdlist }, m_pass{ pass }{}
 		graphics::commandlist& m_commandlist;
 		rendergraph& m_graph;
+		const rgpass& m_pass;
 	};
 
 	struct clear_args final
@@ -81,26 +80,48 @@ namespace influx::rendergraph
 		friend class rgpass_context;
 
 	public:
-		INFLUX_RG_API rendergraph(graphics::device* device);
+		INFLUX_RG_API rendergraph(const global_config& config, graphics::device& device);
+		INFLUX_RG_API void cleanup(graphics::device& device);
 		INFLUX_RG_API ~rendergraph();
 
 		INFLUX_RG_API void build();
 
 		// single threaded, single command list...
-		INFLUX_RG_API void execute(graphics::commandlist* commandlist);
+		INFLUX_RG_API void execute(
+			graphics::commandlist& commandlist,
+			graphics::device& device);
 
 		// adds a node outputting to root
 		INFLUX_RG_API rgpass* add_pass(e_rgpass_type type,
 			const rgpass_builder_clb& builder_clb,
-			const rgpass_process_clb& context_clb);
+			const rgpass_process_clb& context_clb = nullptr);
 
-		// simple add_pass that resolves source into dest
+		inline rgpass* add_graphics_pass(
+			const rgpass_builder_clb& builder_clb,
+			const rgpass_process_clb& context_clb = nullptr)
+		{
+			return add_pass(e_rgpass_type::graphics, builder_clb, context_clb);
+		}
+
+		inline rgpass* add_compute_pass(
+			const rgpass_builder_clb& builder_clb,
+			const rgpass_process_clb& context_clb = nullptr)
+		{
+			return add_pass(e_rgpass_type::compute, builder_clb, context_clb);
+		}
+
+		// [utility] pre-made pass that resolves source into dest
 		INFLUX_RG_API rgpass* add_copypass(graphics::resource* source, graphics::resource* dest, bool keep_source);
+
+		// [utility] pre-made pass that clears dest resource
 		INFLUX_RG_API rgpass* add_clear_pass(graphics::resource* dest, const clear_args& args = {});
 
-		// in/out resources
+		// importing resources allows rendergraph to operate on the given resource.
+		// it will not (de)allocate
 		INFLUX_RG_API result<> import_texture(const rgname& name, graphics::resource* resource);
 		INFLUX_RG_API result<> import_buffer(const rgname& name, graphics::resource* resource);
+		
+		// todo >>
 		INFLUX_RG_API result<> export_texture(const rgname& name, graphics::resource* resource);
 		INFLUX_RG_API result<> export_buffer(const rgname& name, graphics::resource* resource);
 
@@ -119,13 +140,15 @@ namespace influx::rendergraph
 		INFLUX_RG_API string make_resources_dump();
 		
 	private:
+		global_config m_config{};
+		rgpool* m_pool{};
+
 		vector<rgpass> m_passes{};
 		vector<rglayer> m_layers{};
 		vector<rgbuffer*> m_buffers{};
 		vector<rgtexture*> m_textures{};
 
 		vector<vector<uint64>> m_adjacency_lists{};
-		graphics::device* m_device;
 
 		umap<rgtexture_id, rgtexture*> m_id_to_texture_map;
 		umap<rgbuffer_id, rgbuffer*> m_id_to_buffer_map;
@@ -146,14 +169,18 @@ namespace influx::rendergraph
 		umap<rgbuffer_id, graphics::descriptor_handle[k_num_descriptor_types]> m_bufid_to_descriptors_map;
 		umap<rgbuffer_id, graphics::base* [k_num_descriptor_types]> m_bufid_to_deviceobjects_map;
 
+		/* building the render graph */
 		void build_adjacency();
 		void sort_topological();
 		void build_layers();
 		void cull_passes();
 		void calc_resource_lifetimes();
 		void depth_search(uint64 parent_idx, vector<bool>& visited_list, vector<uint64>& topo_sorted_passes);
-		void create_texture_views(rgtexture_id);
-		void create_buffer_views(rgbuffer_id);
+
+		/* creates views (rtv/dsv/srv/samp) based on how the resource will be used in our rendergraph */
+		result<> create_texture_views(graphics::device&, rgtexture_id);
+		result<> create_buffer_views(graphics::device&, rgbuffer_id);
+
 		vector<uint64> m_topo_sorted_passes;
 
 		// misc

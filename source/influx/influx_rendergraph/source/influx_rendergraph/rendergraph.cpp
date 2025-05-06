@@ -60,114 +60,44 @@ namespace influx::rendergraph
 	}
 #pragma endregion
 
-	// allocates descriptors
-	class view_manager final
+	rendergraph::rendergraph(const global_config& config, graphics::device& device)
 	{
-	public:
-		view_manager(graphics::device* device)
+		m_config = config;
+		m_pool = new rgpool(device, config);
+	}
+
+	void rendergraph::cleanup(graphics::device& device)
+	{
+		// release the device objects
+		for (auto& pair : m_texid_to_deviceobjects_map)
 		{
-			graphics::descriptor_heap::create_args args{};
-			// shader heaps:
-			args.m_shader_visible = false;
-
-			args.m_capacity = 8u;
-			args.m_type = graphics::e_descriptor_heap_type::sampler;
-			m_sampler_heap = device->create_descriptor_heap(args);
-
-			args.m_capacity = 64u;
-			args.m_type = graphics::e_descriptor_heap_type::srv;
-			m_resource_heap = device->create_descriptor_heap(args);
-
-			// non-shader heaps:
-			args.m_shader_visible = false;
-
-			args.m_capacity = 32;
-			args.m_type = graphics::e_descriptor_heap_type::rtv;
-			m_rtv_heap = device->create_descriptor_heap(args);
-			
-			args.m_capacity = 32;
-			args.m_type = graphics::e_descriptor_heap_type::dsv;
-			m_dsv_heap = device->create_descriptor_heap(args);
-		}
-
-		~view_manager()
-		{
-			end_frame();
-		}
-
-		graphics::descriptor_handle alloc_cpu_handle(rgdescriptor_type type)
-		{
-			switch (type)
+			for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
 			{
-			case rgdescriptor_type::render_target: return m_rtv_heap->allocate_cpu();
-			case rgdescriptor_type::depth_target: return m_dsv_heap->allocate_cpu();
-			case rgdescriptor_type::read_only: return m_resource_heap->allocate_cpu();
-			case rgdescriptor_type::read_write: return m_resource_heap->allocate_cpu();
+				if (pair.second[i] != nullptr)
+				{
+					device.release(pair.second[i]);
+					pair.second[i] = nullptr;
+				}
 			}
-
-			return {};
 		}
-
-		graphics::descriptor_handle alloc_gpu_resource()
+		for (auto& pair : m_bufid_to_deviceobjects_map)
 		{
-			return m_resource_heap->allocate_gpu();
+			for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
+			{
+				if (pair.second[i] != nullptr)
+				{
+					device.release(pair.second[i]);
+					pair.second[i] = nullptr;
+				}
+			}
 		}
 
-		graphics::descriptor_handle alloc_gpu_sampler()
-		{
-			return m_sampler_heap->allocate_gpu();
-		}
-
-		void end_frame()
-		{
-			m_resource_heap->free_all_gpu();
-			m_resource_heap->free_all_cpu();
-			m_sampler_heap->free_all_cpu();
-			m_sampler_heap->free_all_gpu();
-			m_rtv_heap->free_all_cpu();
-			m_rtv_heap->free_all_gpu();
-			m_dsv_heap->free_all_gpu();
-			m_dsv_heap->free_all_cpu();
-		}
-
-	private:
-		graphics::descriptor_heap* m_resource_heap;
-		graphics::descriptor_heap* m_sampler_heap;
-		graphics::descriptor_heap* m_rtv_heap;
-		graphics::descriptor_heap* m_dsv_heap;
-	};
-
-	static rgpool& get_resource_pool(graphics::device* device)
-	{
-		static rgpool* g_pool = nullptr;
-		if (g_pool == nullptr)
-		{
-			g_pool = new rgpool(device);
-		}
-
-		return *g_pool;
-	}
-
-	static view_manager& get_view_manager(graphics::device* device)
-	{
-		static view_manager* g_manager = nullptr;
-		if (g_manager == nullptr)
-		{
-			g_manager = new view_manager(device);
-		}
-
-		return *g_manager;
-	}
-
-	rendergraph::rendergraph(graphics::device* device)
-		: m_device{ device }
-	{
+		// cleanup pool descriptor heaps & such
+		m_pool->cleanup(device);
 	}
 
 	rendergraph::~rendergraph()
 	{
-		get_resource_pool(m_device);
-
 		for (rgtexture* texture : m_textures)
 		{
 			delete texture;
@@ -180,17 +110,8 @@ namespace influx::rendergraph
 			buffer = nullptr;
 		}
 
-		for (auto& pair : m_texid_to_deviceobjects_map)
-		{
-			for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
-			{
-				if (pair.second[i] != nullptr)
-				{
-					m_device->release(pair.second[i]);
-					pair.second[i] = nullptr;
-				}
-			}
-		}
+		delete m_pool;
+		m_pool = nullptr;
 	}
 	
 	void rendergraph::build()
@@ -233,185 +154,183 @@ namespace influx::rendergraph
 		}
 	}
 
-	void rendergraph::execute(graphics::commandlist* commandlist)
+	void rendergraph::execute(
+		graphics::commandlist& commandlist,
+		graphics::device& device)
 	{
 		const bool can_run = execute_validation_checks();
 		if (!can_run) return;
 
-		get_resource_pool(m_device).tick();
+		m_pool->recycle_resources();
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
 			const rglayer& layer = m_layers[layer_idx];
 
-			// texture / buffer creates (and views)
+			// create resources & create descriptors/views for said resources
+			for (const rgtexture_id& tex_id : layer.m_texture_creates)
 			{
-				for (const rgtexture_id& tex_id : layer.m_texture_creates)
-				{
-					rgtexture* texture = get_texture(tex_id);
-					texture->m_resource = get_resource_pool(m_device).allocate_texture_resource(texture->m_desc);
-					create_texture_views(tex_id);
-					// todo: set name
-				}
-				for (const rgbuffer_id& buff_id : layer.m_buffer_creates)
-				{
-					rgbuffer* buffer = get_buffer(buff_id);
-					buffer->m_resource = get_resource_pool(m_device).allocate_buffer_resource(buffer->m_desc);
-					create_buffer_views(buff_id);
-					// todo: set name
-				}
-
-				// create views for imported textures
-				for (uint64 i = 0; i < m_textures.size(); ++i)
-				{
-					if (m_textures[i]->m_is_imported) create_texture_views(m_textures[i]->m_id);
-				}
-				for (uint64 i = 0; i < m_buffers.size(); ++i)
-				{
-					if (m_buffers[i]->m_is_imported) create_buffer_views(m_buffers[i]->m_id);
-				}
+				rgtexture* texture = get_texture(tex_id);
+				texture->m_resource = m_pool->allocate_texture_resource(device, texture->m_desc).get();
+				create_texture_views(device, tex_id);
+				// todo: set name
+			}
+			for (const rgbuffer_id& buff_id : layer.m_buffer_creates)
+			{
+				rgbuffer* buffer = get_buffer(buff_id);
+				buffer->m_resource = m_pool->allocate_buffer_resource(device, buffer->m_desc).get();
+				create_buffer_views(device, buff_id);
+				// todo: set name
 			}
 
-			// todo: resource transitions
+			// only create views for already created, imported textures
+			for (uint64 i = 0; i < m_textures.size(); ++i)
 			{
-				for (auto const& [tex_id, state] : layer.m_texture_to_state_map)
-				{
-					rgtexture* texture = get_texture(tex_id);
-					graphics::resource* resource = texture->m_resource;
-
-					if (resource->get_state() != state)
-					{
-						resource->transition(commandlist, state);
-					}
-				}
-				for (auto const& [buff_id, state] : layer.m_buffer_to_state_map)
-				{
-					rgbuffer* buffer = get_buffer(buff_id);
-					graphics::resource* resource = buffer->m_resource;
-
-					if (resource->get_state() != state)
-					{
-						resource->transition(commandlist, state);
-					}
-				}
-				commandlist->flush_barriers();
+				if (m_textures[i]->m_is_imported) create_texture_views(device, m_textures[i]->m_id);
 			}
+			for (uint64 i = 0; i < m_buffers.size(); ++i)
+			{
+				if (m_buffers[i]->m_is_imported) create_buffer_views(device, m_buffers[i]->m_id);
+			}
+
+			// transition resources to appropriate state
+			for (auto const& [tex_id, state] : layer.m_texture_to_state_map)
+			{
+				rgtexture* texture = get_texture(tex_id);
+				graphics::resource* resource = texture->m_resource;
+				if (resource->get_state() != state)
+				{
+					resource->transition(&commandlist, state);
+				}
+			}
+			for (auto const& [buff_id, state] : layer.m_buffer_to_state_map)
+			{
+				rgbuffer* buffer = get_buffer(buff_id);
+				graphics::resource* resource = buffer->m_resource;
+				if (resource->get_state() != state)
+				{
+					resource->transition(&commandlist, state);
+				}
+			}
+			commandlist.flush_barriers();
 
 			// execute passes
+			for (size_t pass_idx = 0u; pass_idx < layer.m_passes.size(); ++pass_idx)
 			{
-				for (size_t pass_idx = 0u; pass_idx < layer.m_passes.size(); ++pass_idx)
+				const rgpass& pass = layer.m_passes[pass_idx];
+				if (pass.is_culled())
 				{
-					const rgpass& pass = layer.m_passes[pass_idx];
+					// todo... (for now we're not culling passes)
+				}
 
-					if (pass.is_culled())
+				rgpass_context context{ *this, commandlist, pass };
+				if (pass.get_type() == e_rgpass_type::graphics)
+				{
+					// construct renderpass arguments
+					graphics::renderpass_args args{};
+					args.m_width = pass.get_width();
+					args.m_height = pass.get_height();
+					args.m_legacy = false;
+
+					// gather colour target attachment infos
+					args.m_color_attachments.reserve(pass.m_rtvs.size());
+					for (const auto& rtv : pass.m_rtvs)
 					{
-						//continue;
+						influx::graphics::color_attachment attachment{};
+						attachment.m_load = translate(rtv.m_access.m_load);
+						attachment.m_store = translate(rtv.m_access.m_store);
+						attachment.m_rtv_descriptor = get_rtv(rtv.m_texture_id);
+
+						// load:preserve info
+						if (rtv.m_access.m_load == e_rg_load::preserve) {} // nothing to declare
+
+						// load:clear info
+						if (rtv.m_access.m_load == e_rg_load::clear)
+						{
+							memcpy(attachment.m_clear.m_data, rtv.m_access.m_load_clear.m_colour.m_data, sizeof(FLOAT[4]));
+						}
+
+						// store:resolve info
+						if (rtv.m_access.m_store == e_rg_store::resolve)
+						{
+							rgtexture* resolve_source_texture = get_texture(rtv.m_access.m_store_resolve.m_source_texture);
+							rgtexture* resolve_dest_texture = get_texture(rtv.m_access.m_store_resolve.m_dest_texture);
+
+							auto& resolve = attachment.m_resolve;
+							resolve.m_format = rtv.m_access.m_store_resolve.m_dest_format;
+							resolve.m_source = resolve_source_texture->m_resource;
+							resolve.m_dest = resolve_dest_texture->m_resource;
+							resolve.m_keep_source = rtv.m_access.m_store_resolve.m_keep_source;
+						}
+
+						// store:preserve
+						if (rtv.m_access.m_store == e_rg_store::preserve) {} // nothing to declare
+
+						args.m_color_attachments.push_back(attachment);
 					}
 
-					rgpass_context context {*this, *commandlist};
-					if (pass.get_type() == e_rgpass_type::graphics)
+					// gather single depth attachment info
+					auto& depth_attachment = args.m_depth_attachment;
+					depth_attachment.m_is_enabled = pass.m_dsv.m_is_enabled;
+					if (depth_attachment.m_is_enabled)
 					{
-						graphics::renderpass_args args{};
-						args.m_width = pass.get_width();
-						args.m_height = pass.get_height();
-						args.m_legacy = false;
+						const auto& dsv = pass.m_dsv;
+						depth_attachment.m_dsv_descriptor = get_dsv(dsv.m_texture_id);
+						depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
+						depth_attachment.m_depth_store = translate(dsv.m_depth_access.m_store);
+						depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
+						depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
+						depth_attachment.m_depth_clear = dsv.m_depth_clear;
+						depth_attachment.m_stencil_clear = dsv.m_stencil_clear;
+					}
 
-						args.m_color_attachments.reserve(pass.m_rtvs.size());
-						for (const auto& rtv : pass.m_rtvs)
-						{
-							args.m_color_attachments.push_back({});
-							auto& attachment = args.m_color_attachments.back();
+					// dispatch the renderpass
+					influx_scope("renderpass");
+					commandlist.renderpass_begin(args);
 
-							attachment.m_load = translate(rtv.m_access.m_load);
-							attachment.m_store = translate(rtv.m_access.m_store);
-							attachment.m_rtv_descriptor = get_rtv(rtv.m_texture_id);
-
-							// load: preserve
-							if (rtv.m_access.m_load == e_rg_load::preserve)
-							{
-							}
-
-							// load: clear
-							if (rtv.m_access.m_load == e_rg_load::clear)
-							{
-								memcpy(attachment.m_clear.m_data, rtv.m_access.m_load_clear.m_colour.m_data, sizeof(FLOAT[4]));
-							}
-
-							// store: resolve
-							if (rtv.m_access.m_store == e_rg_store::resolve)
-							{
-								auto resolve_source_texture = get_texture(rtv.m_access.m_store_resolve.m_source_texture);
-								auto resolve_dest_texture = get_texture(rtv.m_access.m_store_resolve.m_dest_texture);
-
-								auto& resolve = attachment.m_resolve;
-								resolve.m_format = rtv.m_access.m_store_resolve.m_dest_format;
-								resolve.m_source = resolve_source_texture->m_resource;
-								resolve.m_dest = resolve_dest_texture->m_resource;
-								resolve.m_keep_source = rtv.m_access.m_store_resolve.m_keep_source;
-							}
-
-							// store : preserve
-							if (rtv.m_access.m_store == e_rg_store::preserve)
-							{
-							}
-						}
-
-						auto& depth_attachment = args.m_depth_attachment;
-						depth_attachment.m_is_enabled = pass.m_dsv.m_is_enabled;
-						if (depth_attachment.m_is_enabled)
-						{
-							const auto& dsv = pass.m_dsv;
-							depth_attachment.m_dsv_descriptor = get_dsv(dsv.m_texture_id);
-							depth_attachment.m_depth_load = translate(dsv.m_depth_access.m_load);
-							depth_attachment.m_depth_store = translate(dsv.m_depth_access.m_store);
-							depth_attachment.m_stencil_load = translate(dsv.m_stencil_access.m_load);
-							depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
-							depth_attachment.m_depth_clear = 1.0f;
-							depth_attachment.m_stencil_clear = 0u;
-						}
-
-						influx_scope("renderpass");
-						commandlist->renderpass_begin(args);
-
+					if (args.m_allow_implicit_viewport_set)
+					{
 						graphics::viewport viewport{};
 						viewport.m_width = (float)args.m_width;
 						viewport.m_height = (float)args.m_height;
 						viewport.m_depth_max = 1.0f;
 						viewport.m_depth_min = 0.0f;
-						commandlist->set(viewport);
-						
+						commandlist.set(viewport);
+					}
+
+					if (args.m_allow_implicit_viewrect_set)
+					{
 						graphics::rect rect{};
 						rect.m_right = args.m_width;
 						rect.m_bottom = args.m_height;
 						rect.m_top = 0u;
 						rect.m_left = 0u;
-						commandlist->set(rect);
+						commandlist.set(rect);
+					}
 
-						pass.execute(context);
-						commandlist->renderpass_end();
-					}
-					else
-					{
-						// compute doesnt do much here...
-						pass.execute(context);
-					}
+					pass.execute(context);
+					commandlist.renderpass_end();
+				}
+				else
+				{
+					// compute / raytracing passes have nothing fancy going on 
+					// in terms of renderpasses, just call their execute
+					pass.execute(context);
 				}
 			}
 
 			// execute destroys
+			for (const rgtexture_id& tex_id : layer.m_texture_destroys)
 			{
-				for (const rgtexture_id& tex_id : layer.m_texture_destroys)
-				{
-					rgtexture* texture = get_texture(tex_id);
-					if (texture->is_imported() == false)
-						get_resource_pool(m_device).release_texture(texture->m_resource);
-				}
-				for (const rgbuffer_id& buff_id : layer.m_buffer_destroys)
-				{
-					rgbuffer* buffer = get_buffer(buff_id);
-					if (buffer->is_imported() == false)
-						get_resource_pool(m_device).release_buffer(buffer->m_resource);
-				}
+				rgtexture* texture = get_texture(tex_id);
+				if (texture->is_imported() == false)
+					m_pool->release_texture(device, *texture->m_resource);
+			}
+			for (const rgbuffer_id& buff_id : layer.m_buffer_destroys)
+			{
+				rgbuffer* buffer = get_buffer(buff_id);
+				if (buffer->is_imported() == false)
+					m_pool->release_buffer(device, *buffer->m_resource);
 			}
 		}
 	}
@@ -451,8 +370,8 @@ namespace influx::rendergraph
 			},
 			[](rgpass_context& context) 
 			{
-				graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id);
-				graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id);
+				graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id).get();
+				graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id).get();
 				context.get_commandlist().copy_resource(src_resource, dst_resource);
 			});
 
@@ -572,7 +491,8 @@ namespace influx::rendergraph
 
 	void rendergraph::reset_graph()
 	{
-		get_view_manager(m_device).end_frame();
+		// free only the gpu views since they're more cramped than cpu ones
+		m_pool->free_all_descriptors();
 
 		m_passes.clear();
 		m_layers.clear();
@@ -653,71 +573,80 @@ namespace influx::rendergraph
 		return result;
 	}
 
-	void rendergraph::create_texture_views(rgtexture_id id)
+	/* creates views (rtv/dsv/srv/samp) based on how the resource will be used in our rendergraph */
+	result<> rendergraph::create_texture_views(graphics::device& device, rgtexture_id id)
 	{
-		const auto& viewdescs = m_texid_to_viewdesc_map[id];
+		auto& viewdescs = m_texid_to_viewdesc_map[id];
 		auto& descriptors = m_texid_to_descriptors_map[id];
-		auto& device_children = m_texid_to_deviceobjects_map[id];
-		rgtexture* texture = get_texture(id);
 
+		rgtexture* texture = get_texture(id);
 		graphics::resource& resource = *texture->m_resource;
 		
+		// for each type of descriptor, allocate a cpu-handle and create the view
 		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
 		{
-			if (viewdescs[i].m_is_active && device_children[i] == nullptr)
+			if (viewdescs[i].m_is_active && viewdescs[i].m_is_created == false)
 			{
 				const rgdescriptor_type type = static_cast<rgdescriptor_type>(i);
 				switch (type)
 				{
 				case rgdescriptor_type::render_target:
-					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_rtv(descriptors[i], &resource);
+					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+					device.create_rtv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::depth_target:
-					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_dsv(descriptors[i], &resource);
+					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+					device.create_dsv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::read_only:
-					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_texture_srv(descriptors[i], &resource);
+					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+					device.create_texture_srv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::read_write:
 					influx_assert(resource.allows_uav());
-					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_texture_uav(descriptors[i], &resource);
+					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+					device.create_texture_uav(descriptors[i], &resource);
 					break;
 				}
+
+				viewdescs[i].m_is_created = true;
 			}
 		}
+		return {};
 	}
 
-	void rendergraph::create_buffer_views(rgbuffer_id id)
+	/* creates views (rtv/dsv/srv/samp) based on how the resource will be used in our rendergraph */
+	result<> rendergraph::create_buffer_views(graphics::device& device, rgbuffer_id id)
 	{
-		const auto& viewdescs = m_bufid_to_viewdesc_map[id];
+		auto& viewdescs = m_bufid_to_viewdesc_map[id];
 		auto& descriptors = m_bufid_to_descriptors_map[id];
-		auto& device_children = m_bufid_to_deviceobjects_map[id];
+
 		rgbuffer* buffer = get_buffer(id);
+		
 		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
 		{
-			if (viewdescs[i].m_is_active && device_children[i] == nullptr)
+			if (viewdescs[i].m_is_active && viewdescs[i].m_is_created == false)
 			{
 				const rgdescriptor_type type = static_cast<rgdescriptor_type>(i);
 				switch (type)
 				{
 				case rgdescriptor_type::read_only:
-					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_buffer_srv(descriptors[i], buffer->m_resource);
+					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+					device.create_buffer_srv(descriptors[i], buffer->m_resource);
 					break;
 				case rgdescriptor_type::read_write:
-					descriptors[i] = get_view_manager(m_device).alloc_cpu_handle(type);
-					m_device->create_buffer_uav(descriptors[i], buffer->m_resource);
+					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+					device.create_buffer_uav(descriptors[i], buffer->m_resource);
 					break;
 
 				default:
-					influx_assert(false);
+					return result<>::make_error("error: non-supported descriptor type for buffer!");
 				}
+
+				viewdescs[i].m_is_created = true;
 			}
 		}
+		return {};
 	}
 
 	void rendergraph::build_adjacency()
@@ -904,6 +833,11 @@ namespace influx::rendergraph
 
 		topo_sorted_passes.push_back(parent_idx);
 	}
+
+
+
+
+
 
 	// -- rgpass_builder uses these
 	rgtexture_id rendergraph::declare_texture(const rgname& name, const texture_desc& desc)
@@ -1346,69 +1280,88 @@ namespace influx::rendergraph
 	}
 
 #pragma region rgpass_context
-	graphics::resource* rgpass_context::get_copysrc_resource(rgtex_copysrc_id id)
+	result<graphics::resource*> rgpass_context::get_copysrc_resource(rgtex_copysrc_id id)
 	{
 		return m_graph.get_texture(rgtexture_id(id))->m_resource;
 	}
-	graphics::resource* rgpass_context::get_copysrc_resource(rgbuf_copysrc_id id)
+	result<graphics::resource*> rgpass_context::get_copysrc_resource(rgbuf_copysrc_id id)
 	{
 		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
 	}
-	graphics::resource* rgpass_context::get_copydst_resource(rgtex_copydst_id id)
+	result<graphics::resource*> rgpass_context::get_copydst_resource(rgtex_copydst_id id)
 	{
 		return m_graph.get_texture(rgtexture_id(id))->m_resource;
 	}
-	graphics::resource* rgpass_context::get_copydst_resource(rgbuf_copydst_id id)
+	result<graphics::resource*> rgpass_context::get_copydst_resource(rgbuf_copydst_id id)
 	{
 		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
 	}
-	graphics::resource* rgpass_context::get_vertexbuffer_resource(rgbuf_vertex_id id)
+	result<graphics::resource*> rgpass_context::get_vertexbuffer_resource(rgbuf_vertex_id id)
 	{
 		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
 	}
-	graphics::resource* rgpass_context::get_indexbuffer_resource(rgbuf_index_id id)
+	result<graphics::resource*> rgpass_context::get_indexbuffer_resource(rgbuf_index_id id)
 	{
 		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
 	}
-	graphics::resource* rgpass_context::get_constbuffer_resource(rgbuf_const_id id)
+	result<graphics::resource*> rgpass_context::get_constbuffer_resource(rgbuf_const_id id)
 	{
 		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
 	}
-	graphics::resource* rgpass_context::get_indirect_args_resource(rgbuf_indargs_id id)
+	result<graphics::resource*> rgpass_context::get_indirect_args_resource(rgbuf_indargs_id id)
 	{
 		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
 	}
-	graphics::descriptor_handle rgpass_context::get_rtv(rgrendertarget_id id)
+	result<graphics::descriptor_handle> rgpass_context::get_rtv(uint32 at_index)
+	{
+		uint32 num_rtvs = m_pass.m_rtvs.size();
+		if (at_index >= num_rtvs)
+			return result<graphics::descriptor_handle>::make_error("error: this pass has no render target at this index!");
+
+		rgtexture_id res_id = m_pass.m_rtvs[at_index].m_texture_id;
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		return views[static_cast<uint32>(rgdescriptor_type::render_target)];
+	}
+	result<graphics::descriptor_handle> rgpass_context::get_dsv()
+	{
+		if (m_pass.m_dsv.m_is_enabled == false)
+			return result<graphics::descriptor_handle>::make_error("error: this pass has no depth target!");
+
+		rgtexture_id res_id = m_pass.m_dsv.m_texture_id;
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		return views[static_cast<uint32>(rgdescriptor_type::depth_target)];
+	}
+	result<graphics::descriptor_handle> rgpass_context::get_rtv(rgrendertarget_id id)
 	{
 		rgtexture_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
 		return views[static_cast<uint32>(rgdescriptor_type::render_target)];
 	}
-	graphics::descriptor_handle rgpass_context::get_dsv(rgrendertarget_id id)
+	result<graphics::descriptor_handle> rgpass_context::get_dsv(rgrendertarget_id id)
 	{
 		rgtexture_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
 		return views[static_cast<uint32>(rgdescriptor_type::depth_target)];
 	}
-	graphics::descriptor_handle rgpass_context::get_read_texture(rgtexture_readonly_id id)
+	result<graphics::descriptor_handle> rgpass_context::get_read_texture(rgtexture_readonly_id id)
 	{
 		rgtexture_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
 		return views[static_cast<uint32>(rgdescriptor_type::read_only)];
 	}
-	graphics::descriptor_handle rgpass_context::get_write_texture(rgtexture_readwrite_id id)
+	result<graphics::descriptor_handle> rgpass_context::get_write_texture(rgtexture_readwrite_id id)
 	{
 		rgtexture_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
 		return views[static_cast<uint32>(rgdescriptor_type::read_write)];
 	}
-	graphics::descriptor_handle rgpass_context::get_read_buffer(rgbuffer_readonly_id id)
+	result<graphics::descriptor_handle> rgpass_context::get_read_buffer(rgbuffer_readonly_id id)
 	{
 		rgbuffer_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
 		return views[static_cast<uint32>(rgdescriptor_type::read_only)];
 	}
-	graphics::descriptor_handle rgpass_context::get_write_buffer(rgbuffer_readwrite_id id)
+	result<graphics::descriptor_handle> rgpass_context::get_write_buffer(rgbuffer_readwrite_id id)
 	{
 		rgbuffer_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
