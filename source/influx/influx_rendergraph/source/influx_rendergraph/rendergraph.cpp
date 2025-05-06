@@ -232,6 +232,8 @@ namespace influx::rendergraph
 					args.m_height = pass.get_height();
 					args.m_legacy = false;
 
+					bool is_pass_dimensions_valid = args.m_width <= 0u || args.m_height <= 0u;
+
 					// gather colour target attachment infos
 					args.m_color_attachments.reserve(pass.m_rtvs.size());
 					for (const auto& rtv : pass.m_rtvs)
@@ -265,7 +267,6 @@ namespace influx::rendergraph
 
 						// store:preserve
 						if (rtv.m_access.m_store == e_rg_store::preserve) {} // nothing to declare
-
 						args.m_color_attachments.push_back(attachment);
 					}
 

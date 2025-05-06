@@ -1,5 +1,7 @@
 
+// influx::core
 #include "core/basetypes.h"
+#include "core/math/vector.h"
 
 // SDK 1.614.1
 extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
@@ -19,7 +21,20 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
 using namespace influx;
 
-struct pipeline
+using index = uint32;
+struct vertex final
+{
+	math::float3 m_position;
+};
+static const index k_indexbuffer[3u]{ 0,1,2 };
+static const vertex k_vertexbuffer[3u]
+{
+	{{1, 0, 0}},
+	{{0, 0, 0}},
+	{{0, 1, 0}}
+};
+
+struct pipeline final
 {
 	graphics::graphics_pipeline* m_pipeline = nullptr;
 	graphics::rootsignature* m_signature = nullptr;
@@ -51,6 +66,37 @@ struct pipeline
 	}
 };
 
+struct geometry final
+{
+	graphics::resource* m_vertexbuffer = nullptr;
+	graphics::resource* m_indexbuffer= nullptr;
+
+	geometry(graphics::device& device)
+	{
+		{
+			graphics::buffer_desc desc{};
+			desc.m_bytesize = sizeof(k_vertexbuffer);
+			desc.m_bytestride = sizeof(vertex);
+			m_vertexbuffer = device.create_resource(desc, graphics::heap_desc::shared_heap());
+
+			m_vertexbuffer->map([](void* target)
+			{
+				memcpy(target, k_vertexbuffer, sizeof(k_vertexbuffer));
+			});
+		}
+		{
+			graphics::buffer_desc desc{};
+			desc.m_bytesize = sizeof(k_indexbuffer);
+			desc.m_bytestride = sizeof(index);
+			m_indexbuffer = device.create_resource(desc, graphics::heap_desc::shared_heap());
+			m_indexbuffer->map([](void* target)
+			{
+				memcpy(target, k_indexbuffer, sizeof(k_indexbuffer));
+			});
+		}
+	}
+};
+
 int main()
 {
 	using namespace influx::rendergraph;
@@ -73,6 +119,7 @@ int main()
 	influx::rendergraph::rendergraph graph{ {}, *device };
 
 	pipeline pipeline{ *device };
+	geometry geometry{ *device };
 
 	while (true)
 	{
@@ -92,14 +139,25 @@ int main()
 
 		// simple draw pass
 		graph.add_graphics_pass(
-		[&current_backbuffer_name](auto& builder) // build
+		[&current_backbuffer_name, &swapchain](auto& builder) // build
 		{
+			builder.set_viewport(swapchain->get_dimensions().x, swapchain->get_dimensions().y);
 			builder.write_rendertarget(current_backbuffer_name, rgaccess::keep_and_keep());
 		},
-		[&pipeline](auto& ctx) // execute
+		[&pipeline, &geometry](auto& ctx) // execute
 		{
 			graphics::commandlist& cmdlist = ctx.get_commandlist();
-			cmdlist.set(&pipeline.m_pipeline,);
+			cmdlist.set(pipeline.m_signature);
+			cmdlist.set(pipeline.m_pipeline);
+			cmdlist.set_vertexbuffer(geometry.m_vertexbuffer);
+			cmdlist.set_indexbuffer(geometry.m_indexbuffer);
+			cmdlist.draw_indexed({
+				.m_num_indexes_per_instance = 3u,
+				.m_num_instances = 1u,
+				.m_start_index = 0u,
+				.m_start_vertex = 0,
+				.m_start_instance = 0u
+			});
 		});
 
 		commandlist->start(device);
