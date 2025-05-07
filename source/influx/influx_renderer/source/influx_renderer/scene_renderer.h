@@ -14,6 +14,7 @@ namespace influx::graphics
 }
 
 // influx::rendergraph
+#include "rendergraph.h"
 namespace influx::rendergraph
 {
 	class rendergraph;
@@ -57,6 +58,9 @@ namespace influx::renderer
 		void execute_resolvepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
 
 	private:
+		bool m_use_uav_proxy = true;
+		rendergraph::rgname m_uav_proxy_name = { "uav_proxy" };
+
 		graphics::resource* mp_instancebuffer;
 		graphics::resource* mp_lightbuffers[k_num_light_types];
 		graphics::descriptor_handle m_instance_buffer_srv;

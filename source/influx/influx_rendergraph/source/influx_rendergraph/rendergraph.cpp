@@ -48,14 +48,15 @@ namespace influx::rendergraph
 	texture_desc get_desc_from_resource(const graphics::resource& resource)
 	{
 		texture_desc desc{};
-		desc.m_array_size = 1u;
-		desc.m_bindflags;
-		desc.m_depth = 1u;
+		desc.m_array_size = resource.get_arraysize();
+		desc.m_bindflags = {};
+		desc.m_depth = resource.get_depth();
 		desc.m_width = resource.get_width();
 		desc.m_heigth = resource.get_height();
-		desc.m_init_state;
+		desc.m_init_state = resource.get_state();
 		desc.m_num_mips = 1u;
-		desc.m_sample_count;
+		desc.m_sample_count = 1u;
+		desc.m_allow_uav = resource.allows_uav();
 		return desc;
 	}
 #pragma endregion
@@ -816,11 +817,11 @@ namespace influx::rendergraph
 		// insert destroy points at the 'last user pass' of the resources
 		for (uint64 i = 0; i < m_textures.size(); ++i)
 		{
-			if (m_textures[i]->m_last_user != nullptr) m_textures[i]->m_last_user->m_texture_destroys.insert(rgtexture_id(i));
+			if (m_textures[i]->m_last_user != nullptr) m_textures[i]->m_last_user->m_texture_destroys.push_back(rgtexture_id(i));
 		}
 		for (uint64 i = 0; i < m_buffers.size(); ++i)
 		{
-			if (m_buffers[i]->m_last_user != nullptr) m_buffers[i]->m_last_user->m_buffer_destroys.insert(rgbuffer_id(i));
+			if (m_buffers[i]->m_last_user != nullptr) m_buffers[i]->m_last_user->m_buffer_destroys.push_back(rgbuffer_id(i));
 		}
 	}
 
@@ -1356,6 +1357,42 @@ namespace influx::rendergraph
 		result.m_descriptor = nullptr;
 		return result;
 	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_copysrc_texture(const rgname& name)
+	{
+		resource_and_view result{};
+		rgtexture_id res_id = m_graph.m_texture_name_to_id_map[name];
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_copysrc_buffer(const rgname& name)
+	{
+		resource_and_view result{};
+		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_copydst_texture(const rgname& name)
+	{
+		resource_and_view result{};
+		rgtexture_id res_id = m_graph.m_texture_name_to_id_map[name];
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_copydst_buffer(const rgname& name)
+	{
+		resource_and_view result{};
+		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
+	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_rtv(uint32 at_index)
 	{
 		using result_type = result<rgpass_context::resource_and_view>;
@@ -1469,6 +1506,58 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
+		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_read_texture(uint32 index)
+	{
+		using result_type = result<rgpass_context::resource_and_view>;
+		if (index >= m_pass.m_texture_reads.size())
+			return result_type::make_error("error: index out of bounds!");
+
+		resource_and_view result{};
+		rgtexture_id res_id = m_pass.m_texture_reads[index];
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_write_texture(uint32 index)
+	{
+		using result_type = result<rgpass_context::resource_and_view>;
+		if (index >= m_pass.m_texture_writes.size())
+			return result_type::make_error("error: index out of bounds!");
+
+		resource_and_view result{};
+		rgtexture_id res_id = m_pass.m_texture_writes[index];
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_read_buffer(uint32 index)
+	{
+		using result_type = result<rgpass_context::resource_and_view>;
+		if (index >= m_pass.m_buffer_reads.size())
+			return result_type::make_error("error: index out of bounds!");
+
+		resource_and_view result{};
+		rgbuffer_id res_id = m_pass.m_buffer_reads[index];
+		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_write_buffer(uint32 index)
+	{
+		using result_type = result<rgpass_context::resource_and_view>;
+		if (index >= m_pass.m_buffer_writes.size())
+			return result_type::make_error("error: index out of bounds!");
+
+		resource_and_view result{};
+		rgbuffer_id res_id = m_pass.m_buffer_writes[index];
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
 		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];

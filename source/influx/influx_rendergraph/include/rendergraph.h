@@ -57,6 +57,11 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<resource_and_view> get_constbuffer(rgbuf_const_id);
 		INFLUX_RG_API result<resource_and_view> get_indirect_args_resource(rgbuf_indargs_id);
 
+		INFLUX_RG_API result<resource_and_view> get_copysrc_texture(const rgname&);
+		INFLUX_RG_API result<resource_and_view> get_copysrc_buffer(const rgname&);
+		INFLUX_RG_API result<resource_and_view> get_copydst_texture(const rgname&);
+		INFLUX_RG_API result<resource_and_view> get_copydst_buffer(const rgname&);
+
 		INFLUX_RG_API result<resource_and_view> get_rtv(uint32 at_index = 0u);
 		INFLUX_RG_API result<resource_and_view> get_dsv();
 		INFLUX_RG_API result<resource_and_view> get_rtv(rgrendertarget_id id);
@@ -66,10 +71,16 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<resource_and_view> get_write_texture(rgtexture_readwrite_id id);
 		INFLUX_RG_API result<resource_and_view> get_read_buffer(rgbuffer_readonly_id id);
 		INFLUX_RG_API result<resource_and_view> get_write_buffer(rgbuffer_readwrite_id id);
+		
 		INFLUX_RG_API result<resource_and_view> get_read_texture(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_write_texture(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_read_buffer(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_write_buffer(const rgname&);
+
+		INFLUX_RG_API result<resource_and_view> get_read_texture(uint32 index);
+		INFLUX_RG_API result<resource_and_view> get_write_texture(uint32 index);
+		INFLUX_RG_API result<resource_and_view> get_read_buffer(uint32 index);
+		INFLUX_RG_API result<resource_and_view> get_write_buffer(uint32 index);
 
 	private:
 		rgpass_context(rendergraph& rg, graphics::commandlist& cmdlist, const rgpass& pass) : m_graph{ rg }, m_commandlist{ cmdlist }, m_pass{ pass }{}

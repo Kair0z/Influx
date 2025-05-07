@@ -4,6 +4,7 @@
 #include "core/math/vector.h"
 #include "core/container/map.h"
 #include "core/function.h"
+#include "core/container/vector.h"
 
 // influx::rendergraph
 #include "rgcommon.h"
@@ -57,6 +58,15 @@ namespace influx::rendergraph
 		uint32 get_width() const;
 		uint32 get_height() const;
 
+		bool has_read(rgtexture_id) const;
+		bool has_read(rgbuffer_id) const;
+		bool has_write(rgtexture_id) const;
+		bool has_write(rgbuffer_id) const;
+		bool has_create(rgtexture_id) const;
+		bool has_create(rgbuffer_id) const;
+		bool has_destroy(rgtexture_id) const;
+		bool has_destroy(rgbuffer_id) const;
+
 		rgname m_name;
 		rgpass_builder_clb m_builder_clb;
 		rgpass_process_clb m_process_clb;
@@ -69,16 +79,16 @@ namespace influx::rendergraph
 		uint32 m_refcount;
 		bool m_is_culled;
 
-		uset<rgtexture_id> m_texture_creates;
-		uset<rgtexture_id> m_texture_reads;
-		uset<rgtexture_id> m_texture_writes;
-		uset<rgtexture_id> m_texture_destroys;
-		umap<rgtexture_id, graphics::e_resource_state> m_texture_state_map;
+		vector<rgtexture_id> m_texture_creates;
+		vector<rgtexture_id> m_texture_reads;
+		vector<rgtexture_id> m_texture_writes;
+		vector<rgtexture_id> m_texture_destroys;
+		vector<rgbuffer_id> m_buffer_creates;
+		vector<rgbuffer_id> m_buffer_reads;
+		vector<rgbuffer_id> m_buffer_writes;
+		vector<rgbuffer_id> m_buffer_destroys;
 
-		uset<rgbuffer_id> m_buffer_creates;
-		uset<rgbuffer_id> m_buffer_reads;
-		uset<rgbuffer_id> m_buffer_writes;
-		uset<rgbuffer_id> m_buffer_destroys;
+		umap<rgtexture_id, graphics::e_resource_state> m_texture_state_map;
 		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_state_map;
 
 		struct render_target final

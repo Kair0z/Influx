@@ -84,7 +84,7 @@ namespace influx::rendergraph
 		// if 'b' reads a texture that 'a' writes, then we have a dependency
 		for (auto other_node_read : b.m_texture_reads)
 		{
-			if (a.m_texture_writes.find(other_node_read) != a.m_texture_writes.end())
+			if (a.has_write(other_node_read))
 			{
 				return true;
 			}
@@ -93,7 +93,7 @@ namespace influx::rendergraph
 		// if 'b' reads a buffer that 'a' writes, then we have a dependency
 		for (auto other_node_read : b.m_buffer_reads)
 		{
-			if (a.m_buffer_writes.find(other_node_read) != a.m_buffer_writes.end())
+			if (a.has_write(other_node_read))
 			{
 				return true;
 			}
@@ -130,6 +130,71 @@ namespace influx::rendergraph
 	uint32 rgpass::get_height() const
 	{
 		return m_height;
+	}
+
+	bool rgpass::has_read(rgtexture_id id) const
+	{
+		for (const auto& value : m_texture_reads)
+		{
+			if (value == id) return true;
+		}
+		return false;
+	}
+	bool rgpass::has_read(rgbuffer_id id) const
+	{
+		for (const auto& value : m_buffer_reads)
+		{
+			if (value == id) return true;
+		}
+		return false;
+	}
+	bool rgpass::has_write(rgtexture_id id) const
+	{
+		for (const auto& value : m_texture_writes)
+		{
+			if (value == id) return true;
+		}
+		return false;
+	}
+	bool rgpass::has_write(rgbuffer_id id) const
+	{
+		for (const auto& value : m_buffer_writes)
+		{
+			if (value == id) return true;
+		}
+		return false;
+	}
+	bool rgpass::has_create(rgtexture_id id) const
+	{
+		for (const auto& value : m_texture_creates)
+		{
+			if (value == id) return true;
+		}
+		return false;
+	}
+	bool rgpass::has_create(rgbuffer_id id) const
+	{
+		for (const auto& value : m_buffer_creates)
+		{
+			if (value == id) return true;
+		}
+		return false;
+	}
+	bool rgpass::has_destroy(rgtexture_id id) const
+	{
+		for (const auto& value : m_texture_destroys)
+		{
+			if (value == id) return true;
+		}
+		return false;
+	}
+	bool rgpass::has_destroy(rgbuffer_id id) const
+	{
+		for (const auto& value : m_buffer_destroys)
+		{
+			if (value == id) return true;
+		}
+		return false;
 	}
 }
 

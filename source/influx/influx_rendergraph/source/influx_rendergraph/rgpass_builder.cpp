@@ -23,32 +23,32 @@ namespace influx::rendergraph
 	}
 	result<> rgpass_builder::declare_texture(const rgname& name, const texture_desc& desc)
 	{
-		m_pass.m_texture_creates.insert(m_graph.declare_texture(name, desc));
+		m_pass.m_texture_creates.push_back(m_graph.declare_texture(name, desc));
 		return {};
 	}
 	result<> rgpass_builder::declare_buffer(const rgname& name, const buffer_desc& desc)
 	{
-		m_pass.m_buffer_creates.insert(m_graph.declare_buffer(name, desc));
+		m_pass.m_buffer_creates.push_back(m_graph.declare_buffer(name, desc));
 		return {};
 	}
 	result<> rgpass_builder::dummy_write_texture(const rgname& name)
 	{
-		m_pass.m_texture_writes.insert(m_graph.get_texture_id(name));
+		m_pass.m_texture_writes.push_back(m_graph.get_texture_id(name));
 		return {};
 	}
 	result<> rgpass_builder::dummy_read_texture(const rgname& name)
 	{
-		m_pass.m_texture_reads.insert(m_graph.get_texture_id(name));
+		m_pass.m_texture_reads.push_back(m_graph.get_texture_id(name));
 		return {};
 	}
 	result<> rgpass_builder::dummy_write_buffer(const rgname& name)
 	{
-		m_pass.m_buffer_writes.insert(m_graph.get_buffer_id(name));
+		m_pass.m_buffer_writes.push_back(m_graph.get_buffer_id(name));
 		return {};
 	}
 	result<> rgpass_builder::dummy_read_buffer(const rgname& name)
 	{
-		m_pass.m_buffer_reads.insert(m_graph.get_buffer_id(name));
+		m_pass.m_buffer_reads.push_back(m_graph.get_buffer_id(name));
 		return {};
 	}
 
@@ -61,7 +61,7 @@ namespace influx::rendergraph
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::copy_src;
 
 		// register a tex-read
-		m_pass.m_texture_reads.insert(res_id);
+		m_pass.m_texture_reads.push_back(res_id);
 
 		return copy_src_id;
 	}
@@ -75,10 +75,10 @@ namespace influx::rendergraph
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::copy_dst;
 		
 		// register a tex-write
-		m_pass.m_texture_writes.insert(res_id);
+		m_pass.m_texture_writes.push_back(res_id);
 		
 		// if the pass is not creating this texture... ? I dont remember why...
-		if (!m_pass.m_texture_creates.contains(res_id))
+		if (!m_pass.has_create(res_id))
 		{
 			dummy_read_texture(name);
 		}
@@ -100,7 +100,7 @@ namespace influx::rendergraph
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::copy_src;
 		
 		// register a buff-read
-		m_pass.m_buffer_reads.insert(res_id);
+		m_pass.m_buffer_reads.push_back(res_id);
 		
 		return copy_src_id;
 	}
@@ -114,10 +114,10 @@ namespace influx::rendergraph
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::copy_dst;
 
 		// register a buff-write
-		m_pass.m_buffer_writes.insert(res_id);
+		m_pass.m_buffer_writes.push_back(res_id);
 
 		// ...
-		if (!m_pass.m_buffer_creates.contains(res_id))
+		if (!m_pass.has_create(res_id))
 		{
 			dummy_read_buffer(name);
 		}
@@ -136,7 +136,7 @@ namespace influx::rendergraph
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::indirect_args;
 		
 		// register a buff-read
-		m_pass.m_buffer_reads.insert(res_id);
+		m_pass.m_buffer_reads.push_back(res_id);
 		
 		return ind_args_id;
 	}
@@ -149,7 +149,7 @@ namespace influx::rendergraph
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::indexbuffer;
 		
 		// register a buff-read
-		m_pass.m_buffer_reads.insert(res_id);
+		m_pass.m_buffer_reads.push_back(res_id);
 		
 		return index_id;
 	}
@@ -296,7 +296,7 @@ namespace influx::rendergraph
 		}
 
 		// register the tex-read
-		m_pass.m_texture_reads.insert(res_id);
+		m_pass.m_texture_reads.push_back(res_id);
 
 		return read_id;
 	}
@@ -317,10 +317,10 @@ namespace influx::rendergraph
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::cs_uav;
 		
 		// register tex-write
-		m_pass.m_texture_writes.insert(res_id);
+		m_pass.m_texture_writes.push_back(res_id);
 
 		// ...
-		if (!m_pass.m_texture_creates.contains(res_id))
+		if (!m_pass.has_create(res_id))
 		{
 			dummy_read_texture(name);
 		}
@@ -343,12 +343,12 @@ namespace influx::rendergraph
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::render_target;
 		
 		// register tex-write
-		m_pass.m_texture_writes.insert(res_id);
+		m_pass.m_texture_writes.push_back(res_id);
 
 		// register rtv
 		m_pass.m_rtvs.push_back(rgpass::render_target{ .m_texture_id = res_id, .m_access = load_store_op });
 
-		if (!m_pass.m_texture_creates.contains(res_id))
+		if (!m_pass.has_create(res_id))
 		{
 			dummy_read_texture(name);
 		}
@@ -369,13 +369,13 @@ namespace influx::rendergraph
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::depth_target;
 
 		// register tex-write
-		m_pass.m_texture_writes.insert(res_id);
+		m_pass.m_texture_writes.push_back(res_id);
 
 		// register dsv
 		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
 			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = false, .m_is_enabled = true };
 
-		if (!m_pass.m_texture_creates.contains(res_id))
+		if (!m_pass.has_create(res_id))
 		{
 			dummy_read_texture(name);
 		}
@@ -395,7 +395,7 @@ namespace influx::rendergraph
 		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
 			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = true, .m_is_enabled = true };
 
-		m_pass.m_texture_reads.insert(res_id);
+		m_pass.m_texture_reads.push_back(res_id);
 		rgtexture* texture = m_graph.get_texture(res_id);
 		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
 		return dt_id;
@@ -420,7 +420,7 @@ namespace influx::rendergraph
 			}
 		}
 
-		m_pass.m_buffer_reads.insert(res_id);
+		m_pass.m_buffer_reads.push_back(res_id);
 		return read_id;
 	}
 	result<rgbuffer_readwrite_id> rgpass_builder::write_buffer_impl(const rgname& name, const buffer_view_desc& view_desc)
@@ -430,12 +430,12 @@ namespace influx::rendergraph
 
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_uav;
 
-		if (!m_pass.m_buffer_creates.contains(res_id))
+		if (!m_pass.has_create(res_id))
 		{
 			dummy_read_buffer(name);
 		}
 
-		m_pass.m_buffer_writes.insert(res_id);
+		m_pass.m_buffer_writes.push_back(res_id);
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		if (buffer->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
 		return rw_id;
@@ -452,13 +452,13 @@ namespace influx::rendergraph
 
 		dummy_write_buffer(counter_name);
 
-		if (!m_pass.m_buffer_creates.contains(res_id))
+		if (!m_pass.has_create(res_id))
 		{
 			dummy_read_buffer(name);
 			dummy_read_buffer(counter_name);
 		}
 
-		m_pass.m_buffer_writes.insert(res_id);
+		m_pass.m_buffer_writes.push_back(res_id);
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		if (buffer->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
 		return rw_id;

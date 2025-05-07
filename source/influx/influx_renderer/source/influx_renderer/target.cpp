@@ -21,6 +21,7 @@ namespace influx::renderer
 		desc.m_sample_count = 1u;
 		desc.m_bindflags = graphics::e_bind_flags::rtv | graphics::e_bind_flags::uav;
 		desc.m_init_state = graphics::e_resource_state::render_target;
+		desc.m_allow_uav = true;
 		return desc;
 	};
 
