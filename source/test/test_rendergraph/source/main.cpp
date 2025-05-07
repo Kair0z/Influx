@@ -25,13 +25,14 @@ using index = uint32;
 struct vertex final
 {
 	math::float3 m_position;
+	math::float2 m_uv;
 };
 static const index k_indexbuffer[3u]{ 0,1,2 };
 static const vertex k_vertexbuffer[3u]
 {
-	{{1, 0, 0}},
-	{{0, 0, 0}},
-	{{0, 1, 0}}
+	{{3, -1, 0}		, { 0, 2}},
+	{{-1, -1, 0}	, { 0, 0}},
+	{{-1, 3, 0}		, { 2, 0}}
 };
 
 struct pipeline final
@@ -55,7 +56,8 @@ struct pipeline final
 		graphics::graphics_pipeline_desc desc{};
 		
 		// input layout
-		desc.add_input_element("SV_POSITION", 0u, graphics::e_format::rgb32, 0u, false, 0u);
+		desc.add_input_element("SV_POSITION", 0u, graphics::e_format::rgb32	, 0u, false, 0u);
+		desc.add_input_element("TEXCOORD"	, 0u, graphics::e_format::rg32	, 1u, false, 0u);
 
 		// rasterizer
 		desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
@@ -127,7 +129,6 @@ struct geometry final
 			desc.m_bytesize = sizeof(k_vertexbuffer);
 			desc.m_bytestride = sizeof(vertex);
 			m_vertexbuffer = device.create_resource(desc, graphics::heap_desc::shared_heap());
-
 			m_vertexbuffer->map([](void* target)
 			{
 				memcpy(target, k_vertexbuffer, sizeof(k_vertexbuffer));
@@ -137,6 +138,7 @@ struct geometry final
 			graphics::buffer_desc desc{};
 			desc.m_bytesize = sizeof(k_indexbuffer);
 			desc.m_bytestride = sizeof(index);
+			desc.m_format = graphics::e_format::u32;
 			m_indexbuffer = device.create_resource(desc, graphics::heap_desc::shared_heap());
 			m_indexbuffer->map([](void* target)
 			{
@@ -198,6 +200,7 @@ int main()
 			graphics::commandlist& cmdlist = ctx.get_commandlist();
 			cmdlist.set(pipeline.m_signature);
 			cmdlist.set(pipeline.m_pipeline);
+			cmdlist.set(graphics::e_primitive_topology::trilist);
 			cmdlist.set_vertexbuffer(geometry.m_vertexbuffer);
 			cmdlist.set_indexbuffer(geometry.m_indexbuffer);
 			cmdlist.draw_indexed({
@@ -210,6 +213,7 @@ int main()
 		});
 
 		// add a compute pass
+#if 0
 		graph.add_compute_pass(
 		[&current_backbuffer_name](auto& builder)
 		{
@@ -229,6 +233,7 @@ int main()
 			const auto num_thread_groups = math::uint3{ 1,1,1 };
 			cmdlist.dispatch({ num_thread_groups });
 		});
+#endif
 
 		commandlist->start(device);
 
