@@ -261,17 +261,16 @@ namespace influx::graphics
 		// shaders
 		shader_slots<e_pipeline_type::graphics> m_shaders{};
 
-		// misc
+		// settings
 		uint32 m_sample_mask = (uint32)-1;
 		uint32 m_sample_count = 1u;
+		e_primitive_topology_type m_prim_type = e_primitive_topology_type::triangle;
 		inline graphics_pipeline_desc& set_sample_desc(uint32 sample_count, uint32 sample_mask = -1)
 		{
 			m_sample_mask = sample_mask;
 			m_sample_count = sample_count;
 			return *this;
 		}
-
-		e_primitive_topology_type m_prim_type = e_primitive_topology_type::triangle;
 
 		// depth / stencil
 		depth_stencil_desc m_depth_stencil;
@@ -318,6 +317,11 @@ namespace influx::graphics
 			}
 			
 			m_input_elements.push_back(new_element);
+		}
+
+		inline bool is_input_layout_valid()
+		{
+			return !m_input_elements.empty();
 		}
 
 		// RTVs

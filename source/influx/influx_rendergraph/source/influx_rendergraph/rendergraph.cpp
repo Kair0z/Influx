@@ -365,14 +365,14 @@ namespace influx::rendergraph
 		auto* pass = add_pass( e_rgpass_type::compute,
 			[&source, &dest, keep_source](rgpass_builder& builder)
 			{
-				src_tex_id = builder.read_copysrc_texture(source->get_name().get());
-				dst_tex_id = builder.write_copydst_texture(dest->get_name().get());
+				src_tex_id = builder.read_copysrc_texture(source->get_name().get()).get();
+				dst_tex_id = builder.write_copydst_texture(dest->get_name().get()).get();
 				builder.set_viewport(dest->get_width(), dest->get_height());
 			},
 			[](rgpass_context& context) 
 			{
-				graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id).get();
-				graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id).get();
+				graphics::resource* src_resource = context.get_copysrc(src_tex_id).get().m_resource;
+				graphics::resource* dst_resource = context.get_copydst(dst_tex_id).get().m_resource;
 				context.get_commandlist().copy_resource(src_resource, dst_resource);
 			});
 
@@ -604,7 +604,10 @@ namespace influx::rendergraph
 					device.create_texture_srv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::read_write:
-					influx_assert(resource.allows_uav());
+
+					if (resource.allows_uav() == false)
+						return result<>::make_error("error: cannot create a uav for a texture that doesn't allow it!");
+					
 					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
 					device.create_texture_uav(descriptors[i], &resource);
 					break;
@@ -1281,92 +1284,195 @@ namespace influx::rendergraph
 	}
 
 #pragma region rgpass_context
-	result<graphics::resource*> rgpass_context::get_copysrc_resource(rgtex_copysrc_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_copysrc(rgtex_copysrc_id id)
 	{
-		return m_graph.get_texture(rgtexture_id(id))->m_resource;
+		resource_and_view result{};
+		rgtexture_id res_id = rgtexture_id(id);
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
 	}
-	result<graphics::resource*> rgpass_context::get_copysrc_resource(rgbuf_copysrc_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_copysrc(rgbuf_copysrc_id id)
 	{
-		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+		resource_and_view result{};
+		rgbuffer_id res_id = rgbuffer_id(id);
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
 	}
-	result<graphics::resource*> rgpass_context::get_copydst_resource(rgtex_copydst_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_copydst(rgtex_copydst_id id)
 	{
-		return m_graph.get_texture(rgtexture_id(id))->m_resource;
+		resource_and_view result{};
+		rgtexture_id res_id = rgtexture_id(id);
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
 	}
-	result<graphics::resource*> rgpass_context::get_copydst_resource(rgbuf_copydst_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_copydst(rgbuf_copydst_id id)
 	{
-		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+		resource_and_view result{};
+		rgbuffer_id res_id = rgbuffer_id(id);
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
 	}
-	result<graphics::resource*> rgpass_context::get_vertexbuffer_resource(rgbuf_vertex_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_vertexbuffer(rgbuf_vertex_id id)
 	{
-		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+		resource_and_view result{};
+		rgbuffer_id res_id = rgbuffer_id(id);
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
 	}
-	result<graphics::resource*> rgpass_context::get_indexbuffer_resource(rgbuf_index_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_indexbuffer(rgbuf_index_id id)
 	{
-		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+		resource_and_view result{};
+		rgbuffer_id res_id = rgbuffer_id(id);
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
 	}
-	result<graphics::resource*> rgpass_context::get_constbuffer_resource(rgbuf_const_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_constbuffer(rgbuf_const_id id)
 	{
-		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+		resource_and_view result{};
+		rgbuffer_id res_id = rgbuffer_id(id);
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
 	}
-	result<graphics::resource*> rgpass_context::get_indirect_args_resource(rgbuf_indargs_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_indirect_args_resource(rgbuf_indargs_id id)
 	{
-		return m_graph.get_buffer(rgbuffer_id(id))->m_resource;
+		resource_and_view result{};
+		rgbuffer_id res_id = rgbuffer_id(id);
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
+		result.m_descriptor = nullptr;
+		return result;
 	}
-	result<graphics::descriptor_handle> rgpass_context::get_rtv(uint32 at_index)
+	result<rgpass_context::resource_and_view> rgpass_context::get_rtv(uint32 at_index)
 	{
-		uint32 num_rtvs = m_pass.m_rtvs.size();
+		using result_type = result<rgpass_context::resource_and_view>;
+		const uint64 num_rtvs = m_pass.m_rtvs.size();
 		if (at_index >= num_rtvs)
-			return result<graphics::descriptor_handle>::make_error("error: this pass has no render target at this index!");
+			return result_type::make_error("error: this pass has no render target at this index!");
 
+		resource_and_view result{};
 		rgtexture_id res_id = m_pass.m_rtvs[at_index].m_texture_id;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		return views[static_cast<uint32>(rgdescriptor_type::render_target)];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::render_target)];
+		return result;
 	}
-	result<graphics::descriptor_handle> rgpass_context::get_dsv()
+	result<rgpass_context::resource_and_view> rgpass_context::get_dsv()
 	{
-		if (m_pass.m_dsv.m_is_enabled == false)
-			return result<graphics::descriptor_handle>::make_error("error: this pass has no depth target!");
+		using result_type = result<rgpass_context::resource_and_view>;
 
+		if (m_pass.m_dsv.m_is_enabled == false)
+			return result_type::make_error("error: this pass has no depth target!");
+
+		resource_and_view result{};
 		rgtexture_id res_id = m_pass.m_dsv.m_texture_id;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		return views[static_cast<uint32>(rgdescriptor_type::depth_target)];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::depth_target)];
+		return result;
 	}
-	result<graphics::descriptor_handle> rgpass_context::get_rtv(rgrendertarget_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_rtv(rgrendertarget_id id)
 	{
+		resource_and_view result{};
 		rgtexture_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		return views[static_cast<uint32>(rgdescriptor_type::render_target)];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::render_target)];
+		return result;
 	}
-	result<graphics::descriptor_handle> rgpass_context::get_dsv(rgrendertarget_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_dsv(rgrendertarget_id id)
 	{
+		resource_and_view result{};
 		rgtexture_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		return views[static_cast<uint32>(rgdescriptor_type::depth_target)];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::depth_target)];
+		return result;
 	}
-	result<graphics::descriptor_handle> rgpass_context::get_read_texture(rgtexture_readonly_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_read_texture(rgtexture_readonly_id id)
 	{
+		resource_and_view result{};
 		rgtexture_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		return views[static_cast<uint32>(rgdescriptor_type::read_only)];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
+		return result;
 	}
-	result<graphics::descriptor_handle> rgpass_context::get_write_texture(rgtexture_readwrite_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_write_texture(rgtexture_readwrite_id id)
 	{
+		resource_and_view result{};
 		rgtexture_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		return views[static_cast<uint32>(rgdescriptor_type::read_write)];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
+		return result;
 	}
-	result<graphics::descriptor_handle> rgpass_context::get_read_buffer(rgbuffer_readonly_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_read_buffer(rgbuffer_readonly_id id)
 	{
+		resource_and_view result{};
 		rgbuffer_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
-		return views[static_cast<uint32>(rgdescriptor_type::read_only)];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
+		return result;
 	}
-	result<graphics::descriptor_handle> rgpass_context::get_write_buffer(rgbuffer_readwrite_id id)
+	result<rgpass_context::resource_and_view> rgpass_context::get_write_buffer(rgbuffer_readwrite_id id)
 	{
+		resource_and_view result{};
 		rgbuffer_id res_id = id.get_resource_id();
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
-		return views[static_cast<uint32>(rgdescriptor_type::read_write)];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_read_texture(const rgname& name)
+	{
+		resource_and_view result{};
+		rgtexture_id res_id = m_graph.m_texture_name_to_id_map[name];
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_write_texture(const rgname& name)
+	{
+		resource_and_view result{};
+		rgtexture_id res_id = m_graph.m_texture_name_to_id_map[name];
+		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_read_buffer(const rgname& name)
+	{
+		resource_and_view result{};
+		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
+		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
+		return result;
+	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_write_buffer(const rgname& name)
+	{
+		resource_and_view result{};
+		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
+		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
+		result.m_resource = nullptr;
+		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
+		return result;
 	}
 #pragma endregion
 }

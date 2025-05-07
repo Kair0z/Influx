@@ -35,6 +35,7 @@ namespace influx::rendergraph
 	class rgtexture final : public rgchild
 	{
 		friend class rendergraph;
+		friend class rgpass_builder;
 
 	private:
 		rgtexture() = default;
@@ -46,6 +47,7 @@ namespace influx::rendergraph
 	class rgbuffer final : public rgchild
 	{
 		friend class rendergraph;
+		friend class rgpass_builder;
 
 	private:
 		rgbuffer() = default;

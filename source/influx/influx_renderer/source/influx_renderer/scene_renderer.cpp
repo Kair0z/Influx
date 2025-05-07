@@ -633,7 +633,7 @@ namespace influx::renderer
         // read gbuffers and write into target buffer as result
         for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
-            gbuffer_reads[i] = builder.read_texture(gbuffernames[i]);
+            gbuffer_reads[i] = builder.read_texture(gbuffernames[i]).get();
         }
 
         builder.set_viewport(target.get_width(), target.get_height());
@@ -641,12 +641,12 @@ namespace influx::renderer
         if (g_use_proxy_pass)
         {
             // write to proxy
-            resolve_write = builder.write_texture(g_proxy_name);
+            resolve_write = builder.write_texture(g_proxy_name).get();
         }
         else
         {
             // write directly to target
-            resolve_write = builder.write_texture(target.get_rendergraph_name());
+            resolve_write = builder.write_texture(target.get_rendergraph_name()).get();
         }
     }
 
@@ -694,10 +694,10 @@ namespace influx::renderer
         // stage the descriptors onto the gpu heap
         {
             graphics::descriptor_range gpu_range = descriptor_man.stage({
-                context.get_read_texture(gbuffer_reads[0]).get(),
-                context.get_read_texture(gbuffer_reads[1]).get(),
-                context.get_read_texture(gbuffer_reads[2]).get(),
-                context.get_write_texture(resolve_write).get(),
+                context.get_read_texture(gbuffer_reads[0]).get().m_descriptor,
+                context.get_read_texture(gbuffer_reads[1]).get().m_descriptor,
+                context.get_read_texture(gbuffer_reads[2]).get().m_descriptor,
+                context.get_write_texture(resolve_write).get().m_descriptor,
                 resourceman.get<e_resource_type::cubemap>("graycloud").m_resource->get_srv(),
                 m_lightbuffer_srvs[0],
                 m_lightbuffer_srvs[1],
@@ -770,15 +770,15 @@ namespace influx::renderer
                 proxy_desc.m_sample_count = 1u;
                 builder.declare_texture(g_proxy_name, proxy_desc);
 
-                src_tex_id = builder.read_copysrc_texture(target.get_rendergraph_name());
-                dst_tex_id = builder.write_copydst_texture(g_proxy_name);
+                src_tex_id = builder.read_copysrc_texture(target.get_rendergraph_name()).get();
+                dst_tex_id = builder.write_copydst_texture(g_proxy_name).get();
 
                 builder.set_viewport(target.get_width(), target.get_height());
             },
             [](rendergraph::rgpass_context& context)
             {
-                graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id).get();
-                graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id).get();
+                graphics::resource* src_resource = context.get_copysrc(src_tex_id).get().m_resource;
+                graphics::resource* dst_resource = context.get_copydst(dst_tex_id).get().m_resource;
                 context.get_commandlist().copy_resource(src_resource, dst_resource);
             });
             proxypass->set_name(RGNAME("proxypass_a"));
@@ -806,14 +806,14 @@ namespace influx::renderer
             auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
             [&target](rendergraph::rgpass_builder& builder)
             {
-                src_tex_id = builder.read_copysrc_texture(g_proxy_name);
-                dst_tex_id = builder.write_copydst_texture(target.get_name().get());
+                src_tex_id = builder.read_copysrc_texture(g_proxy_name).get();
+                dst_tex_id = builder.write_copydst_texture(target.get_name().get()).get();
                 builder.set_viewport(target.get_width(), target.get_height());
             },
             [](rendergraph::rgpass_context& context)
             {
-                graphics::resource* src_resource = context.get_copysrc_resource(src_tex_id).get();
-                graphics::resource* dst_resource = context.get_copydst_resource(dst_tex_id).get();
+                graphics::resource* src_resource = context.get_copysrc(src_tex_id).get().m_resource;
+                graphics::resource* dst_resource = context.get_copydst(dst_tex_id).get().m_resource;
                 context.get_commandlist().copy_resource(src_resource, dst_resource);
             });
             proxypass->set_name(RGNAME("proxypass_b"));

@@ -245,6 +245,7 @@ namespace influx::rendergraph
 		friend class rgbuilder;
 		friend class rendergraph;
 
+		rgbuffermode_id() = default;
 		rgbuffermode_id(const rgbuffer_id& id) : rgbuffer_id(id) {}
 	};
 

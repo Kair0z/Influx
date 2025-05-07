@@ -38,17 +38,50 @@ struct pipeline final
 {
 	graphics::graphics_pipeline* m_pipeline = nullptr;
 	graphics::rootsignature* m_signature = nullptr;
+	graphics::compute_pipeline* m_compute_pipeline = nullptr;
+	graphics::rootsignature* m_compute_signature = nullptr;
 
 	pipeline(graphics::device& device)
 	{
 		{
 			graphics::rootsignature_desc desc{};
 			m_signature = device.create_rootsignature(desc);
-		}
-		{
-			graphics::graphics_pipeline_desc desc{};
 
-			const string filepath = "";
+			// ...
+			m_compute_signature = device.create_rootsignature(desc);
+		}
+		
+		// create the pipelines
+		graphics::graphics_pipeline_desc desc{};
+		
+		// input layout
+		desc.add_input_element("SV_POSITION", 0u, graphics::e_format::rgb32, 0u, false, 0u);
+
+		// rasterizer
+		desc.m_prim_type = graphics::e_primitive_topology_type::triangle;
+		desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
+		desc.m_rasterizer.m_fillmode = graphics::e_fill_mode::solid;
+		desc.m_rasterizer.m_forced_samplecount = 0u;
+		desc.m_rasterizer.m_front_ccw = false;
+		desc.m_rasterizer.m_multisample = false;
+		desc.m_rasterizer.m_antialiased_line = false;
+		desc.m_rasterizer.m_depth_clip_enable = false;
+		desc.m_rasterizer.m_conservative = false;
+		desc.m_rasterizer.m_depth_bias = 0;
+		desc.m_rasterizer.m_depth_bias_clamp = 0.0f;
+		desc.m_rasterizer.m_slope_depth_bias = 0.0f;
+
+		desc.m_sample_mask = (uint32)-1;
+		desc.m_sample_count = 1u;
+
+		desc.m_depth_stencil.m_depth_enable = false;
+		desc.m_depth_stencil.m_stencil_enable = false;
+
+		graphics::compute_pipeline_desc compute_desc{};
+
+		// gather shaders
+		const string filepath = "D:/Git/Influx/source/test/test_rendergraph/resources/shaders.hlsl";
+		{
 			shader::compile_args args{};
 			auto res = shader::parse_shaders_in_file(filepath);
 			influx_assert(res.is_success());
@@ -59,10 +92,26 @@ struct pipeline final
 				args.m_signature.m_target = shader::e_shader_target::_6_6;
 				auto comp_res = shader::compile_shader_in_file(filepath, args);
 				influx_assert(comp_res.is_success());
-			}
 
-			m_pipeline = device.create_graphics_pipeline(m_signature, desc);
+				switch (args.m_signature.m_type)
+				{
+				case shader::e_shader_type::vs:
+					desc.m_shaders.set(graphics::e_graphics_shader_slots::vs, comp_res.get().m_bytecode);
+					break;
+
+				case shader::e_shader_type::ps:
+					desc.m_shaders.set(graphics::e_graphics_shader_slots::ps, comp_res.get().m_bytecode);
+					break;
+
+				case shader::e_shader_type::cs:
+					compute_desc.m_shaders.set(graphics::e_compute_shader_slots::cs, comp_res.get().m_bytecode);
+					break;
+				}
+			}
 		}
+		
+		m_pipeline = device.create_graphics_pipeline(m_signature, desc);
+		m_compute_pipeline = device.create_compute_pipeline(m_compute_signature, compute_desc);
 	}
 };
 
@@ -139,7 +188,7 @@ int main()
 
 		// simple draw pass
 		graph.add_graphics_pass(
-		[&current_backbuffer_name, &swapchain](auto& builder) // build
+		[&current_backbuffer_name, &swapchain](rgpass_builder& builder) // build
 		{
 			builder.set_viewport(swapchain->get_dimensions().x, swapchain->get_dimensions().y);
 			builder.write_rendertarget(current_backbuffer_name, rgaccess::keep_and_keep());
@@ -158,6 +207,27 @@ int main()
 				.m_start_vertex = 0,
 				.m_start_instance = 0u
 			});
+		});
+
+		// add a compute pass
+		graph.add_compute_pass(
+		[&current_backbuffer_name](auto& builder)
+		{
+			builder.write_texture(current_backbuffer_name);
+		},
+		[&pipeline, &current_backbuffer_name](rgpass_context& context)
+		{
+			graphics::commandlist& cmdlist = context.get_commandlist();
+			
+			/* get the write texture */
+			auto write_texture = context.get_write_texture(current_backbuffer_name);
+			
+			cmdlist.set(pipeline.m_compute_pipeline);
+			cmdlist.set(pipeline.m_compute_signature);
+			cmdlist.set_uav(write_texture.get().m_resource, 0u, graphics::e_pipeline_type::compute);
+
+			const auto num_thread_groups = math::uint3{ 1,1,1 };
+			cmdlist.dispatch({ num_thread_groups });
 		});
 
 		commandlist->start(device);

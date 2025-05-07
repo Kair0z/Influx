@@ -13,40 +13,46 @@ namespace influx::rendergraph
 
 	}
 
-	bool rgpass_builder::is_texture_declared(const rgname& name) const
+	result<bool> rgpass_builder::is_texture_declared(const rgname& name) const
 	{
 		return m_graph.is_texture_declared(name);
 	}
-	bool rgpass_builder::is_buffer_declared(const rgname& name) const
+	result<bool> rgpass_builder::is_buffer_declared(const rgname& name) const
 	{
 		return m_graph.is_buffer_declared(name);
 	}
-	void rgpass_builder::declare_texture(const rgname& name, const texture_desc& desc)
+	result<> rgpass_builder::declare_texture(const rgname& name, const texture_desc& desc)
 	{
 		m_pass.m_texture_creates.insert(m_graph.declare_texture(name, desc));
+		return {};
 	}
-	void rgpass_builder::declare_buffer(const rgname& name, const buffer_desc& desc)
+	result<> rgpass_builder::declare_buffer(const rgname& name, const buffer_desc& desc)
 	{
 		m_pass.m_buffer_creates.insert(m_graph.declare_buffer(name, desc));
+		return {};
 	}
-	void rgpass_builder::dummy_write_texture(const rgname& name)
+	result<> rgpass_builder::dummy_write_texture(const rgname& name)
 	{
 		m_pass.m_texture_writes.insert(m_graph.get_texture_id(name));
+		return {};
 	}
-	void rgpass_builder::dummy_read_texture(const rgname& name)
+	result<> rgpass_builder::dummy_read_texture(const rgname& name)
 	{
 		m_pass.m_texture_reads.insert(m_graph.get_texture_id(name));
+		return {};
 	}
-	void rgpass_builder::dummy_write_buffer(const rgname& name)
+	result<> rgpass_builder::dummy_write_buffer(const rgname& name)
 	{
 		m_pass.m_buffer_writes.insert(m_graph.get_buffer_id(name));
+		return {};
 	}
-	void rgpass_builder::dummy_read_buffer(const rgname& name)
+	result<> rgpass_builder::dummy_read_buffer(const rgname& name)
 	{
 		m_pass.m_buffer_reads.insert(m_graph.get_buffer_id(name));
+		return {};
 	}
 
-	rgtex_copysrc_id rgpass_builder::read_copysrc_texture(const rgname& name)
+	result<rgtex_copysrc_id> rgpass_builder::read_copysrc_texture(const rgname& name)
 	{
 		rgtex_copysrc_id copy_src_id = m_graph.read_copysrc_texture(name);
 		rgtexture_id res_id(copy_src_id);
@@ -59,7 +65,7 @@ namespace influx::rendergraph
 
 		return copy_src_id;
 	}
-	rgtex_copydst_id rgpass_builder::write_copydst_texture(const rgname& name)
+	result<rgtex_copydst_id> rgpass_builder::write_copydst_texture(const rgname& name)
 	{
 		rgtex_copydst_id copy_dest_id = m_graph.write_copydst_texture(name);
 		rgtexture_id res_id(copy_dest_id);
@@ -85,7 +91,7 @@ namespace influx::rendergraph
 
 		return copy_dest_id;
 	}
-	rgbuf_copysrc_id rgpass_builder::read_copysrc_buffer(const rgname& name)
+	result<rgbuf_copysrc_id> rgpass_builder::read_copysrc_buffer(const rgname& name)
 	{
 		rgbuf_copysrc_id copy_src_id = m_graph.read_copysrc_buffer(name);
 		rgbuffer_id res_id(copy_src_id);
@@ -98,7 +104,7 @@ namespace influx::rendergraph
 		
 		return copy_src_id;
 	}
-	rgbuf_copydst_id rgpass_builder::write_copydst_buffer(const rgname& name)
+	result<rgbuf_copydst_id> rgpass_builder::write_copydst_buffer(const rgname& name)
 	{
 		rgbuf_copydst_id copy_dst_id = m_graph.write_copydst_buffer(name);
 		rgbuffer_id res_id(copy_dst_id);
@@ -121,7 +127,7 @@ namespace influx::rendergraph
 		
 		return copy_dst_id;
 	}
-	rgbuf_indargs_id rgpass_builder::read_indirect_args_buffer(const rgname& name)
+	result<rgbuf_indargs_id> rgpass_builder::read_indirect_args_buffer(const rgname& name)
 	{
 		rgbuf_indargs_id ind_args_id = m_graph.read_indirect_args_buffer(name);
 		rgbuffer_id res_id(ind_args_id);
@@ -134,7 +140,7 @@ namespace influx::rendergraph
 		
 		return ind_args_id;
 	}
-	rgbuf_index_id rgpass_builder::read_index_buffer(const rgname& name)
+	result<rgbuf_index_id> rgpass_builder::read_index_buffer(const rgname& name)
 	{
 		rgbuf_index_id index_id = m_graph.read_index_buffer(name);
 		rgbuffer_id res_id(index_id);
@@ -148,47 +154,47 @@ namespace influx::rendergraph
 		return index_id;
 	}
 
-	rgtexture_readonly_id rgpass_builder::read_texture(const rgname& name, rgread_access read_acc, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
+	result<rgtexture_readonly_id> rgpass_builder::read_texture(const rgname& name, rgread_access read_acc, const texture_desc_options& options)
 	{
 		texture_view_desc view_desc
 		{
-			.m_first_slice = first_slice,
-			.m_num_slices = slice_count,
-			.m_first_mip = first_mip,
-			.m_num_mips = num_mips
+			.m_first_slice = options.m_first_slice,
+			.m_num_slices = options.m_slice_count,
+			.m_first_mip = options.m_first_mip,
+			.m_num_mips = options.m_num_mips
 		};
 		return read_texture_impl(name, read_acc, view_desc);
 	}
-	rgtexture_readwrite_id rgpass_builder::write_texture(const rgname& name, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
+	result<rgtexture_readwrite_id> rgpass_builder::write_texture(const rgname& name, const texture_desc_options& options)
 	{
 		texture_view_desc view_desc
 		{
-			.m_first_slice = first_slice,
-			.m_num_slices = slice_count,
-			.m_first_mip = first_mip,
-			.m_num_mips = num_mips
+			.m_first_slice = options.m_first_slice,
+			.m_num_slices = options.m_slice_count,
+			.m_first_mip = options.m_first_mip,
+			.m_num_mips = options.m_num_mips
 		};
 		return write_texture_impl(name, view_desc);
 	}
-	rgrendertarget_id rgpass_builder::write_rendertarget(const rgname& name, rgaccess load_store_op, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
+	result<rgrendertarget_id> rgpass_builder::write_rendertarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& options)
 	{
 		texture_view_desc view_desc
 		{
-			.m_first_slice = first_slice,
-			.m_num_slices = slice_count,
-			.m_first_mip = first_mip,
-			.m_num_mips = num_mips
+			.m_first_slice = options.m_first_slice,
+			.m_num_slices = options.m_slice_count,
+			.m_first_mip = options.m_first_mip,
+			.m_num_mips = options.m_num_mips
 		};
 		return write_rendertarget_impl(name, load_store_op, view_desc);
 	}
-	rgdepthtarget_id rgpass_builder::write_depthtarget(const rgname& name, rgaccess load_store_op, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
+	result<rgdepthtarget_id> rgpass_builder::write_depthtarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& options)
 	{
 		texture_view_desc view_desc
 		{
-			.m_first_slice = first_slice,
-			.m_num_slices = slice_count,
-			.m_first_mip = first_mip,
-			.m_num_mips = num_mips
+			.m_first_slice = options.m_first_slice,
+			.m_num_slices = options.m_slice_count,
+			.m_first_mip = options.m_first_mip,
+			.m_num_mips = options.m_num_mips
 		};
 		rgaccess stencil_access
 		{
@@ -197,14 +203,14 @@ namespace influx::rendergraph
 		};
 		return write_depthtarget_impl(name, load_store_op, stencil_access, view_desc);
 	}
-	rgdepthtarget_id rgpass_builder::read_depthtarget(const rgname& name, rgaccess load_store_op, uint32 first_mip, uint32 num_mips, uint32 first_slice, uint32 slice_count)
+	result<rgdepthtarget_id> rgpass_builder::read_depthtarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& options)
 	{
 		texture_view_desc view_desc
 		{
-			.m_first_slice = first_slice,
-			.m_num_slices = slice_count,
-			.m_first_mip = first_mip,
-			.m_num_mips = num_mips
+			.m_first_slice = options.m_first_slice,
+			.m_num_slices = options.m_slice_count,
+			.m_first_mip = options.m_first_mip,
+			.m_num_mips = options.m_num_mips
 		};
 		rgaccess stencil_access
 		{
@@ -213,7 +219,7 @@ namespace influx::rendergraph
 		};
 		return read_depthtarget_impl(name, load_store_op, stencil_access, view_desc);
 	}
-	rgbuffer_readonly_id rgpass_builder::read_buffer(const rgname& name, rgread_access read_acc, uint32 offset, uint32 size)
+	result<rgbuffer_readonly_id> rgpass_builder::read_buffer(const rgname& name, rgread_access read_acc, uint32 offset, uint32 size)
 	{
 		buffer_view_desc view_desc
 		{
@@ -222,7 +228,7 @@ namespace influx::rendergraph
 		};
 		return read_buffer_impl(name, read_acc, view_desc);
 	}
-	rgbuffer_readwrite_id rgpass_builder::write_buffer(const rgname& name, uint32 offset, uint32 size)
+	result<rgbuffer_readwrite_id> rgpass_builder::write_buffer(const rgname& name, uint32 offset, uint32 size)
 	{
 		buffer_view_desc view_desc
 		{
@@ -231,7 +237,7 @@ namespace influx::rendergraph
 		};
 		return write_buffer_impl(name, view_desc);
 	}
-	rgbuffer_readwrite_id rgpass_builder::write_buffer(const rgname& name, const rgname& counter_name, uint32 offset, uint32 size)
+	result<rgbuffer_readwrite_id> rgpass_builder::write_buffer(const rgname& name, const rgname& counter_name, uint32 offset, uint32 size)
 	{
 		buffer_view_desc view_desc
 		{
@@ -247,26 +253,26 @@ namespace influx::rendergraph
 		m_pass.m_height = height;
 	}
 
-	texture_desc rgpass_builder::get_texture_desc(const rgname& name) const
+	result<texture_desc> rgpass_builder::get_texture_desc(const rgname& name) const
 	{
 		return m_graph.get_texture_desc(name);
 	}
-	buffer_desc rgpass_builder::get_buffer_desc(const rgname& name) const
+	result<buffer_desc> rgpass_builder::get_buffer_desc(const rgname& name) const
 	{
 		return m_graph.get_buffer_desc(name);
 	}
 
-	rgtexture_id rgpass_builder::get_texture_id(const rgname& name) const
+	result<rgtexture_id> rgpass_builder::get_texture_id(const rgname& name) const
 	{
 		return m_graph.get_texture_id(name);
 	}
-	rgbuffer_id rgpass_builder::get_buffer_id(const rgname& name) const
+	result<rgbuffer_id> rgpass_builder::get_buffer_id(const rgname& name) const
 	{
 		return m_graph.get_buffer_id(name);
 	}
 
 #pragma region impl
-	rgtexture_readonly_id rgpass_builder::read_texture_impl(const rgname& name, rgread_access read_access, const texture_view_desc& view_desc)
+	result<rgtexture_readonly_id> rgpass_builder::read_texture_impl(const rgname& name, rgread_access read_access, const texture_view_desc& view_desc)
 	{
 		rgtexture_readonly_id read_id = m_graph.read_texture(name, view_desc);
 		rgtexture_id res_id = read_id.get_resource_id();
@@ -294,11 +300,18 @@ namespace influx::rendergraph
 
 		return read_id;
 	}
-	rgtexture_readwrite_id rgpass_builder::write_texture_impl(const rgname& name, const texture_view_desc& view_desc)
+	result<rgtexture_readwrite_id> rgpass_builder::write_texture_impl(const rgname& name, const texture_view_desc& view_desc)
 	{
+		using result_type = result<rgtexture_readwrite_id>;
+
 		rgtexture_readwrite_id rw_id = m_graph.write_texture(name, view_desc);
 		rgtexture_id res_id = rw_id.get_resource_id();
 		rgtexture* texture = m_graph.get_texture(res_id);
+
+		if (texture->m_desc.m_allow_uav == false)
+		{
+			return result_type::make_error("error: failed to register a write-texture for a texture that's flagged !allowUAV");
+		}
 
 		// register the state transition
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::cs_uav;
@@ -313,12 +326,14 @@ namespace influx::rendergraph
 		}
 
 		// write to imported resource should not be culled
-		if (texture->is_imported()) 
+		if (texture->is_imported())
+		{
 			m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+		}
 
 		return rw_id;
 	}
-	rgrendertarget_id rgpass_builder::write_rendertarget_impl(const rgname& name, rgaccess load_store_op, const texture_view_desc& view_desc)
+	result<rgrendertarget_id> rgpass_builder::write_rendertarget_impl(const rgname& name, rgaccess load_store_op, const texture_view_desc& view_desc)
 	{
 		rgrendertarget_id rt_id = m_graph.rendertarget(name, view_desc);
 		rgtexture_id res_id = rt_id.get_resource_id();
@@ -333,7 +348,6 @@ namespace influx::rendergraph
 		// register rtv
 		m_pass.m_rtvs.push_back(rgpass::render_target{ .m_texture_id = res_id, .m_access = load_store_op });
 
-		// ...
 		if (!m_pass.m_texture_creates.contains(res_id))
 		{
 			dummy_read_texture(name);
@@ -345,7 +359,7 @@ namespace influx::rendergraph
 
 		return rt_id;
 	}
-	rgdepthtarget_id rgpass_builder::write_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
+	result<rgdepthtarget_id> rgpass_builder::write_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
 	{
 		rgdepthtarget_id dt_id = m_graph.depthtarget(name, view_desc);
 		rgtexture_id res_id = dt_id.get_resource_id();
@@ -361,7 +375,6 @@ namespace influx::rendergraph
 		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
 			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = false, .m_is_enabled = true };
 
-		// ...
 		if (!m_pass.m_texture_creates.contains(res_id))
 		{
 			dummy_read_texture(name);
@@ -373,7 +386,7 @@ namespace influx::rendergraph
 
 		return dt_id;
 	}
-	rgdepthtarget_id rgpass_builder::read_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
+	result<rgdepthtarget_id> rgpass_builder::read_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
 	{
 		rgdepthtarget_id dt_id = m_graph.depthtarget(name, view_desc);
 		rgtexture_id res_id = dt_id.get_resource_id();
@@ -387,7 +400,7 @@ namespace influx::rendergraph
 		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
 		return dt_id;
 	}
-	rgbuffer_readonly_id rgpass_builder::read_buffer_impl(const rgname& name, rgread_access read_access, const buffer_view_desc& view_desc)
+	result<rgbuffer_readonly_id> rgpass_builder::read_buffer_impl(const rgname& name, rgread_access read_access, const buffer_view_desc& view_desc)
 	{
 		rgbuffer_readonly_id read_id = m_graph.read_buffer(name, view_desc);
 		rgbuffer_id res_id = read_id.get_resource_id();
@@ -410,7 +423,7 @@ namespace influx::rendergraph
 		m_pass.m_buffer_reads.insert(res_id);
 		return read_id;
 	}
-	rgbuffer_readwrite_id rgpass_builder::write_buffer_impl(const rgname& name, const buffer_view_desc& view_desc)
+	result<rgbuffer_readwrite_id> rgpass_builder::write_buffer_impl(const rgname& name, const buffer_view_desc& view_desc)
 	{
 		rgbuffer_readwrite_id rw_id = m_graph.write_buffer(name, view_desc);
 		rgbuffer_id res_id = rw_id.get_resource_id();
@@ -427,7 +440,7 @@ namespace influx::rendergraph
 		if (buffer->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
 		return rw_id;
 	}
-	rgbuffer_readwrite_id rgpass_builder::write_buffer_impl(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc)
+	result<rgbuffer_readwrite_id> rgpass_builder::write_buffer_impl(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc)
 	{
 		rgbuffer_readwrite_id rw_id = m_graph.write_buffer(name, counter_name, view_desc);
 
