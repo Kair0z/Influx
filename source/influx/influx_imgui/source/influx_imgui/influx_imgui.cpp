@@ -436,11 +436,11 @@ namespace influx::imgui
 		// setup state
 		get_commandlist()->set_vertexbuffer(get_buffers().mp_vertexbuffer);
 		get_commandlist()->set_indexbuffer(get_buffers().mp_indexbuffer);
-		get_commandlist()->set(viewport);
-		get_commandlist()->set(graphics::e_primitive_topology::trilist);
-		get_commandlist()->set(get_pipeline());
-		get_commandlist()->set(get_rootsig());
-		get_commandlist()->set_constants(0u, 16u, &vertex_constant_buffer);
+		get_commandlist()->set_viewport(viewport);
+		get_commandlist()->set_primitive_topology(graphics::e_primitive_topology::trilist);
+		get_commandlist()->set_pipeline(get_pipeline());
+		get_commandlist()->set_rootsignature(get_rootsig());
+		get_commandlist()->set_root_constants(0u, 16u, &vertex_constant_buffer);
 
 		// setup draw
 		// (Because we merged all buffers into a single one, we maintain our own offset into them)
@@ -468,7 +468,7 @@ namespace influx::imgui
 					.m_right = (uint32)clip_max.x,
 					.m_bottom = (uint32)clip_min.y,
 				};
-				get_commandlist()->set(rect);
+				get_commandlist()->set_scissor_rect(rect);
 
 				get_commandlist()->draw_indexed({
 					.m_num_indexes_per_instance = pcmd->ElemCount,

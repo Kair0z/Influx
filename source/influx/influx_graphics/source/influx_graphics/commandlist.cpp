@@ -119,7 +119,7 @@ namespace influx::graphics
     result<> commandlist::set_vp_and_rect(const math::float2& min, const math::float2& max)
     {
         result<> res = {};
-        res = set(graphics::viewport
+        res = set_viewport(graphics::viewport
 		{
 			.m_left = min.x,
 			.m_top = min.y,
@@ -130,7 +130,7 @@ namespace influx::graphics
 		});
         if (!res.is_success()) return result<>::make_error("error: failed setting viewport");
 
-		res = set(graphics::rect
+		res = set_scissor_rect(graphics::rect
 		{
 			.m_left = math::round<uint32>(min.x),
 			.m_top = math::round<uint32>(min.y),
@@ -142,13 +142,13 @@ namespace influx::graphics
         return res;
     }
 
-    result<> commandlist::set(const viewport& viewport)
+    result<> commandlist::set_viewport(const viewport& viewport)
     {
         m_viewport = viewport;
         return {};
     }
 
-    result<> commandlist::set(const rect& rect)
+    result<> commandlist::set_scissor_rect(const rect& rect)
     {
         m_scissor_rect = rect;
         return {};

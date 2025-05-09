@@ -50,9 +50,6 @@ namespace influx::graphics
 		/* dispatch compute */
 		virtual result<> dispatch(const dispatch_args&) override;
 
-		/* set root constants at root param index 'x' (must match root signature param idx) */
-		virtual result<> set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) override;
-
 		/* Input Assembler */
 		virtual result<> set_indexbuffer(resource* index_buffer) override;
 		virtual result<> set_vertexbuffer(resource* vertex_buffer) override;
@@ -87,25 +84,28 @@ namespace influx::graphics
 
 		virtual result<> copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args& = {}) override;
 
-		virtual result<> set(descriptor_heap* heap) override;
+		virtual result<> set_descriptorheap(descriptor_heap* heap) override;
 
-		virtual result<> set(const vector<descriptor_heap*>& heap) override;
+		virtual result<> set_descriptorheaps(const vector<descriptor_heap*>& heap) override;
 
-		virtual result<> set_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type) override;
+		virtual result<> set_root_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type) override;
 
-		virtual result<> set_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type) override;
+		virtual result<> set_root_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type) override;
 
-		virtual result<> set(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type = e_pipeline_type::graphics) override;
+		/* set root constants at root param index 'x' (must match root signature param idx) */
+		virtual result<> set_root_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) override;
 
-		virtual result<> set(rootsignature* rootsig, const e_pipeline_type type) override;
+		virtual result<> set_descriptor_range(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type = e_pipeline_type::graphics) override;
 
-		virtual result<> set(detail::base_pipeline* pipeline) override;
+		virtual result<> set_rootsignature(rootsignature* rootsig, const e_pipeline_type type) override;
 
-		virtual result<> set(const viewport& viewport) override;
+		virtual result<> set_pipeline(detail::base_pipeline* pipeline) override;
 
-		virtual result<> set(const rect& rect) override;
+		virtual result<> set_viewport(const viewport& viewport) override;
 
-		virtual result<> set(e_primitive_topology topo) override;
+		virtual result<> set_scissor_rect(const rect& rect) override;
+
+		virtual result<> set_primitive_topology(e_primitive_topology topo) override;
 
 		virtual result<> end() override;
 

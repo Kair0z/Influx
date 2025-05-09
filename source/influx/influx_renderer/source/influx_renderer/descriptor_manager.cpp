@@ -23,7 +23,7 @@ namespace influx::renderer
 
 	void descriptor_manager::start_commandlist(graphics::commandlist* commandlist)
 	{
-		commandlist->set({ mp_samp_gpu_heap, mp_srv_gpu_heap });
+		commandlist->set_descriptorheaps({ mp_samp_gpu_heap, mp_srv_gpu_heap });
 	}
 
 	void descriptor_manager::end_frame()

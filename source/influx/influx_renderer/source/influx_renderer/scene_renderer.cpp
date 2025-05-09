@@ -580,7 +580,7 @@ namespace influx::renderer
 
         // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
         pipeline.set_state(commandlist);
-        commandlist.set(graphics::e_primitive_topology::trilist);
+        commandlist.set_primitive_topology(graphics::e_primitive_topology::trilist);
 
         // constants
         m_gpu_perscene.m_time.x = scene.m_delta_seconds;
@@ -847,7 +847,7 @@ namespace influx::renderer
                 m_gpu_perview.m_viewprojection = scene.get_view_matrices().m_viewprojection;
 
                 pipeline.set_state(commandlist);
-                commandlist.set(graphics::e_primitive_topology::linelist);
+                commandlist.set_primitive_topology(graphics::e_primitive_topology::linelist);
                 pipeline.set_constants<frontend::per_view>(commandlist, "g_perview", m_gpu_perview);
                 commandlist.set_vertexbuffer(m_line_vertex_buffer);
 

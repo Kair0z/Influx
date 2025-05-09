@@ -180,33 +180,6 @@ namespace influx::graphics
 		return {};
 	}
 
-	result<> dx12_commandlist::set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type)
-	{
-		renderpass_check(e_command::set_root_constants);
-
-		switch (type)
-		{
-		case graphics::e_pipeline_type::compute:
-		case graphics::e_pipeline_type::raytracing:
-		case graphics::e_pipeline_type::workgraph:
-			mpdx_graphics_commandlist->SetComputeRoot32BitConstants(
-				param_index,
-				num_dwords,
-				source_data,
-				0u);
-			break;
-
-		case graphics::e_pipeline_type::mesh:
-		case graphics::e_pipeline_type::graphics:
-			mpdx_graphics_commandlist->SetGraphicsRoot32BitConstants(
-				param_index,
-				num_dwords,
-				source_data, 0u);
-			break;
-		}
-		return {};
-	}
-
 	result<> dx12_commandlist::set_indexbuffer(resource* index_buffer)
 	{
 		renderpass_check(e_command::set_indexbuffer);
@@ -562,8 +535,7 @@ namespace influx::graphics
 
 		return {};
 	}
-
-	result<> dx12_commandlist::set(descriptor_heap* heap)
+	result<> dx12_commandlist::set_descriptorheap(descriptor_heap* heap)
 	{
 		renderpass_check(e_command::set_descriptor_heap);
 
@@ -572,8 +544,7 @@ namespace influx::graphics
 
 		return {};
 	}
-
-	result<> dx12_commandlist::set(const vector<descriptor_heap*>& heaps)
+	result<> dx12_commandlist::set_descriptorheaps(const vector<descriptor_heap*>& heaps)
 	{
 		renderpass_check(e_command::set_descriptor_heap);
 
@@ -587,8 +558,7 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->SetDescriptorHeaps(static_cast<uint32>(native_heaps.size()), native_heaps.data());
 		return {};
 	}
-
-	result<> dx12_commandlist::set_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type)
+	result<> dx12_commandlist::set_root_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type)
 	{
 		renderpass_check(e_command::set_srv);
 
@@ -611,8 +581,7 @@ namespace influx::graphics
 
 		return {};
 	}
-
-	result<> dx12_commandlist::set_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type)
+	result<> dx12_commandlist::set_root_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type)
 	{
 		renderpass_check(e_command::set_uav);
 
@@ -635,8 +604,33 @@ namespace influx::graphics
 
 		return {};
 	}
+	result<> dx12_commandlist::set_root_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type)
+	{
+		renderpass_check(e_command::set_root_constants);
 
-	result<> dx12_commandlist::set(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type)
+		switch (type)
+		{
+		case graphics::e_pipeline_type::compute:
+		case graphics::e_pipeline_type::raytracing:
+		case graphics::e_pipeline_type::workgraph:
+			mpdx_graphics_commandlist->SetComputeRoot32BitConstants(
+				param_index,
+				num_dwords,
+				source_data,
+				0u);
+			break;
+
+		case graphics::e_pipeline_type::mesh:
+		case graphics::e_pipeline_type::graphics:
+			mpdx_graphics_commandlist->SetGraphicsRoot32BitConstants(
+				param_index,
+				num_dwords,
+				source_data, 0u);
+			break;
+		}
+		return {};
+	}
+	result<> dx12_commandlist::set_descriptor_range(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type)
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
 		gpu_handle.ptr = (size_t)gpu_range.m_start;
@@ -659,8 +653,7 @@ namespace influx::graphics
 		
 		return {};
 	}
-
-	result<> dx12_commandlist::set(rootsignature* rootsig, const e_pipeline_type type)
+	result<> dx12_commandlist::set_rootsignature(rootsignature* rootsig, const e_pipeline_type type)
 	{
 		auto dxrootsig = rootsig->get_native<ID3D12RootSignature>();
 		
@@ -683,8 +676,7 @@ namespace influx::graphics
 
 		return {};
 	}
-
-	result<> dx12_commandlist::set(detail::base_pipeline* pipeline)
+	result<> dx12_commandlist::set_pipeline(detail::base_pipeline* pipeline)
 	{
 		switch (pipeline->get_type())
 		{
@@ -708,10 +700,9 @@ namespace influx::graphics
 
 		return {};
 	}
-
-	result<> dx12_commandlist::set(const viewport& viewport)
+	result<> dx12_commandlist::set_viewport(const viewport& viewport)
 	{
-		commandlist::set(viewport);
+		commandlist::set_viewport(viewport);
 
 		D3D12_VIEWPORT dxviewport{};
 		dxviewport.TopLeftX = viewport.m_left;
@@ -723,10 +714,9 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->RSSetViewports(1u, &dxviewport);
 		return {};
 	}
-
-	result<> dx12_commandlist::set(const rect& rect)
+	result<> dx12_commandlist::set_scissor_rect(const rect& rect)
 	{
-		commandlist::set(rect);
+		commandlist::set_scissor_rect(rect);
 
 		D3D12_RECT dxrect{};
 		dxrect.left = rect.m_left;
@@ -736,13 +726,11 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->RSSetScissorRects(1u, &dxrect);
 		return {};
 	}
-
-	result<> dx12_commandlist::set(e_primitive_topology topo)
+	result<> dx12_commandlist::set_primitive_topology(e_primitive_topology topo)
 	{
 		mpdx_graphics_commandlist->IASetPrimitiveTopology(translate(topo));
 		return {};
 	}
-
 	result<> dx12_commandlist::end()
 	{
 		if (m_is_closed == false)
@@ -754,12 +742,10 @@ namespace influx::graphics
 
 		return {};
 	}
-
 	void dx12_commandlist::release_impl(device*)
 	{
 		mpdx_graphics_commandlist->Release();
 	}
-
 	result<> dx12_commandlist::dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z)
 	{
 		renderpass_check(e_command::dispatch_mesh);

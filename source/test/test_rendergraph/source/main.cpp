@@ -198,9 +198,9 @@ int main()
 		[&pipeline, &geometry](auto& ctx) // execute
 		{
 			graphics::commandlist& cmdlist = ctx.get_commandlist();
-			cmdlist.set(pipeline.m_signature);
-			cmdlist.set(pipeline.m_pipeline);
-			cmdlist.set(graphics::e_primitive_topology::trilist);
+			cmdlist.set_rootsignature(pipeline.m_signature);
+			cmdlist.set_pipeline(pipeline.m_pipeline);
+			cmdlist.set_primitive_topology(graphics::e_primitive_topology::trilist);
 			cmdlist.set_vertexbuffer(geometry.m_vertexbuffer);
 			cmdlist.set_indexbuffer(geometry.m_indexbuffer);
 			cmdlist.draw_indexed({

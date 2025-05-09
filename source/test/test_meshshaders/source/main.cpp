@@ -131,8 +131,8 @@ int main()
 	// we need only 1 single rtv allocated (backbuffer)
 	graphics::descriptor_heap& rtv_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_rtv_heap(1u));
 	graphics::descriptor_heap& dsv_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_dsv_heap(1u));
-	graphics::descriptor_handle rtv_handle = rtv_heap.allocate_cpu();
-	graphics::descriptor_handle dsv_handle = dsv_heap.allocate_cpu();
+	graphics::descriptor_handle rtv_handle = rtv_heap.allocate_cpu().get();
+	graphics::descriptor_handle dsv_handle = dsv_heap.allocate_cpu().get();
 
 	graphics::resource* depth_target = nullptr;
 	{
@@ -220,9 +220,9 @@ int main()
 		res << commandlist.clear_dsv(dsv_handle, 1.0f, 0u);
 
 		// set pipeline & sig, then dispatch the mesh shader
-		res << commandlist.set(pipeline.m_rootsig);
-		res << commandlist.set(pipeline.m_pipeline);
-		res << commandlist.set_constants(0u, sizeof(constants) / sizeof(float), &g_constants, graphics::e_pipeline_type::mesh);
+		res << commandlist.set_rootsignature(pipeline.m_rootsig);
+		res << commandlist.set_pipeline(pipeline.m_pipeline);
+		res << commandlist.set_root_constants(0u, sizeof(constants) / sizeof(float), &g_constants, graphics::e_pipeline_type::mesh);
 		res << commandlist.dispatch_mesh(num_groups,1,1);
 
 		// transition backbuffer to present

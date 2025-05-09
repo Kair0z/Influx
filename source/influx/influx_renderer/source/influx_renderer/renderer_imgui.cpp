@@ -87,9 +87,9 @@ namespace influx::renderer
 			commandlist->set_indexbuffer(mp_indexbuffer);
 		}
 
-		commandlist->set(graphics::e_primitive_topology::trilist);
-		commandlist->set(mp_pipeline);
-		commandlist->set(mp_rootsig);
+		commandlist->set_primitive_topology(graphics::e_primitive_topology::trilist);
+		commandlist->set_pipeline(mp_pipeline);
+		commandlist->set_rootsignature(mp_rootsig);
 	}
 
 	void imgui_manager::render(graphics::commandlist* commandlist, const ImDrawData& draw, const target& target)
@@ -126,7 +126,7 @@ namespace influx::renderer
 			viewport.m_height = target_dim.y;
 			viewport.m_depth_min = 0.0f;
 			viewport.m_depth_max = 1.0f;
-			commandlist->set(viewport);
+			commandlist->set_viewport(viewport);
 
 			// set constants
 			struct vertex_const_buffer
@@ -148,7 +148,7 @@ namespace influx::renderer
 				};
 				memcpy(&vertex_constant_buffer.m_mvp, mvp, sizeof(mvp));
 			}
-			commandlist->set_constants(0u, 16u, &vertex_constant_buffer);
+			commandlist->set_root_constants(0u, 16u, &vertex_constant_buffer);
 
 			// stage the font srv onto the gpu heap
 			graphics::descriptor_range font_gpu_range = descriptor_manager.stage(mp_fonts_texture->get_srv());
@@ -180,7 +180,7 @@ namespace influx::renderer
 						.m_right = (uint32)clip_max.x,
 						.m_bottom = (uint32)clip_max.y,
 					};
-					commandlist->set(rect);
+					commandlist->set_scissor_rect(rect);
 
 					// if this command has a bound TexID (descriptor*/void*),
 					// we should stage the texture (allocate gpu descriptor)
@@ -203,7 +203,7 @@ namespace influx::renderer
 						tex_gpu_range = font_gpu_range;
 					}
 
-					commandlist->set(tex_gpu_range, 1u);
+					commandlist->set_descriptor_range(tex_gpu_range, 1u);
 					commandlist->draw_indexed({
 						.m_num_indexes_per_instance = command.ElemCount,
 						.m_num_instances = 1u,

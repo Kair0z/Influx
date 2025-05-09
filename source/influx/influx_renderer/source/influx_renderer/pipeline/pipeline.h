@@ -425,8 +425,8 @@ namespace influx::renderer
 
 		void set_state(graphics::commandlist& commandlist)
 		{
-			commandlist.set(m_rootsig, _t);
-			commandlist.set(m_pipeline);
+			commandlist.set_rootsignature(m_rootsig, _t);
+			commandlist.set_pipeline(m_pipeline);
 		}
 
 		template <typename _constants>
@@ -437,13 +437,13 @@ namespace influx::renderer
 		void set_constants(graphics::commandlist& cmdlist, const string& name, uint32 num_dwords, void* data) const
 		{
 			if (is_param_bound(name))
-				cmdlist.set_constants(get_param_index(name), num_dwords, data, _t);
+				cmdlist.set_root_constants(get_param_index(name), num_dwords, data, _t);
 		}
 
 		void set_resource_table(graphics::commandlist& cmdlist, const string& name, const graphics::descriptor_range& gpu_range) const
 		{
 			if (is_param_bound(name))
-				cmdlist.set(gpu_range, get_param_index(name));
+				cmdlist.set_descriptor_range(gpu_range, get_param_index(name));
 		}
 
 		uint32 get_shader_register(const string& resource_name) const

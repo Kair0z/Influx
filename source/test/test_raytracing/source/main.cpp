@@ -159,9 +159,9 @@ int main()
 	// we need only 1 single rtv allocated (backbuffer)
 	graphics::descriptor_heap& rtv_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_rtv_heap(1u));
 	graphics::descriptor_heap& uav_heap = *device.create_descriptor_heap(graphics::descriptor_heap::create_uav_heap(2u));
-	graphics::descriptor_handle rtv_handle = rtv_heap.allocate_cpu();
-	graphics::descriptor_handle uav_cpu_handle = uav_heap.allocate_cpu();
-	graphics::descriptor_handle uav_gpu_handle = uav_heap.allocate_gpu();
+	graphics::descriptor_handle rtv_handle = rtv_heap.allocate_cpu().get();
+	graphics::descriptor_handle uav_cpu_handle = uav_heap.allocate_cpu().get();
+	graphics::descriptor_handle uav_gpu_handle = uav_heap.allocate_gpu().get();
 
 	// create raytracing target
 	graphics::resource* raytracing_target = nullptr;
@@ -209,13 +209,13 @@ int main()
 		raytracing_target->transition(&commandlist, graphics::e_resource_state::cs_uav);
 
 		// set pipeline
-		commandlist.set(pipeline.m_rootsig, graphics::e_pipeline_type::raytracing);
-		commandlist.set(pipeline.m_pipeline);
+		commandlist.set_rootsignature(pipeline.m_rootsig, graphics::e_pipeline_type::raytracing);
+		commandlist.set_pipeline(pipeline.m_pipeline);
 
 		// set resources
-		commandlist.set(&uav_heap);
-		commandlist.set(uav_gpu_handle, 1u, graphics::e_pipeline_type::raytracing);
-		commandlist.set_srv(acc_structs.m_tlas.m_tlas_buffer, 0u, graphics::e_pipeline_type::raytracing);
+		commandlist.set_descriptorheap(&uav_heap);
+		commandlist.set_descriptor_range(uav_gpu_handle, 1u, graphics::e_pipeline_type::raytracing);
+		commandlist.set_root_srv(acc_structs.m_tlas.m_tlas_buffer, 0u, graphics::e_pipeline_type::raytracing);
 		
 		// dispatch rays
 		commandlist.dispatch_rays(pipeline.m_pipeline, raytracing_target->get_width(), raytracing_target->get_height(), 1);

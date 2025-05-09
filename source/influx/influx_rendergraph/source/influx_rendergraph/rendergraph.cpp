@@ -297,7 +297,7 @@ namespace influx::rendergraph
 						viewport.m_height = (float)args.m_height;
 						viewport.m_depth_max = 1.0f;
 						viewport.m_depth_min = 0.0f;
-						commandlist.set(viewport);
+						commandlist.set_viewport(viewport);
 					}
 
 					if (args.m_allow_implicit_viewrect_set)
@@ -307,7 +307,7 @@ namespace influx::rendergraph
 						rect.m_bottom = args.m_height;
 						rect.m_top = 0u;
 						rect.m_left = 0u;
-						commandlist.set(rect);
+						commandlist.set_scissor_rect(rect);
 					}
 
 					pass.execute(context);

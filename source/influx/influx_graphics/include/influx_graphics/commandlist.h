@@ -17,6 +17,15 @@
 
 namespace influx::graphics
 {
+	// helper class that keeps track of command history and validation
+	class commandlist_state_object final
+	{
+	private:
+		commandlist_state_object() = default;
+
+		friend class commandlist;
+	};
+
 #pragma region declarations
 	namespace detail
 	{
@@ -85,7 +94,7 @@ namespace influx::graphics
 			created,		// the commandlist is recently created, but not in any active state
 			recording,		// the commandlist is recording commands on the CPU
 			submitted,		// the commandlist is in-flight and being processed by the GPU
-			completed,
+			completed,		// the commandlist is completed on the GPU
 			count
 		};
 		
@@ -105,19 +114,17 @@ namespace influx::graphics
 
 		/* commands */
 		INFLUX_GFX_API virtual result<> renderpass_begin(const renderpass_args& args) = 0;
-		
+
 		INFLUX_GFX_API virtual result<> renderpass_end() = 0;
 
 		INFLUX_GFX_API virtual result<> draw_instanced(const draw_instanced_args& args) = 0;
-		
+
 		INFLUX_GFX_API virtual result<> draw_indexed(const draw_indexed_args& args) = 0;
 
 		INFLUX_GFX_API virtual result<> dispatch(const dispatch_args& args) = 0;
 
-		INFLUX_GFX_API virtual result<> set_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) = 0;
-
 		INFLUX_GFX_API virtual result<> set_indexbuffer(resource* index_buffer) = 0;
-		
+
 		INFLUX_GFX_API virtual result<> set_vertexbuffer(resource* vertex_buffer) = 0;
 
 		INFLUX_GFX_API virtual result<> clear_rtv(descriptor_handle rtv_cpu, const math::vectorf4& clear_value) = 0;
@@ -146,27 +153,30 @@ namespace influx::graphics
 
 		INFLUX_GFX_API virtual result<> copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args & = {}) = 0;
 
-		INFLUX_GFX_API virtual result<> set(descriptor_heap* heap) = 0;
+		INFLUX_GFX_API virtual result<> set_descriptorheap(descriptor_heap* heap) = 0;
 
-		INFLUX_GFX_API virtual result<> set(const vector<descriptor_heap*>& heap) = 0;
+		INFLUX_GFX_API virtual result<> set_descriptorheaps(const vector<descriptor_heap*>& heap) = 0;
 
-		INFLUX_GFX_API virtual result<> set_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type) = 0;
+		INFLUX_GFX_API virtual result<> set_root_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type) = 0;
 
-		INFLUX_GFX_API virtual result<> set_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type) = 0;
+		INFLUX_GFX_API virtual result<> set_root_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type) = 0;
 
-		INFLUX_GFX_API virtual result<> set(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
+		/* set root constants at root param index 'x' (must match root signature param idx) */
+		INFLUX_GFX_API virtual result<> set_root_constants(uint32 param_index, uint32 num_dwords, void* source_data, graphics::e_pipeline_type type = e_pipeline_type::graphics) = 0;
 
-		INFLUX_GFX_API virtual result<> set(rootsignature* rootsig, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
+		INFLUX_GFX_API virtual result<> set_descriptor_range(const descriptor_range& gpu_range, uint32 param_idx, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
+
+		INFLUX_GFX_API virtual result<> set_rootsignature(rootsignature* rootsig, const e_pipeline_type type = e_pipeline_type::graphics) = 0;
 		
-		INFLUX_GFX_API virtual result<> set(detail::base_pipeline* pipeline) = 0;
+		INFLUX_GFX_API virtual result<> set_pipeline(detail::base_pipeline* pipeline) = 0;
 
 		INFLUX_GFX_API virtual result<> set_vp_and_rect(const math::float2& min, const math::float2& max);
 
-		INFLUX_GFX_API virtual result<> set(const viewport& viewport);
+		INFLUX_GFX_API virtual result<> set_viewport(const viewport& viewport);
 
-		INFLUX_GFX_API virtual result<> set(const rect& rect);
+		INFLUX_GFX_API virtual result<> set_scissor_rect(const rect& rect);
 
-		INFLUX_GFX_API virtual result<> set(e_primitive_topology topo) = 0;
+		INFLUX_GFX_API virtual result<> set_primitive_topology(e_primitive_topology topo) = 0;
 
 		/* mesh shaders */
 		INFLUX_GFX_API virtual result<> dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z) = 0;
@@ -184,6 +194,7 @@ namespace influx::graphics
 
 		e_state m_state = e_state::created;
 		fence* m_fence = nullptr;
+		commandlist_state_object m_state_object{};
 
 		// the queue will inform this commandlist its been submitted
 		friend result<> queue::post_submit(const vector<commandlist*>& commandlists);
@@ -191,7 +202,6 @@ namespace influx::graphics
 
 		// first submit has complete value 1
 		uint32 m_complete_value = 1u;
-		
 		debug_name m_name;
 
 	protected:

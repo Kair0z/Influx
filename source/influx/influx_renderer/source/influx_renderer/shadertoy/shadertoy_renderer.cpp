@@ -63,7 +63,7 @@ namespace influx::renderer
         logonce(e_log_category::warning, "influx::renderer::shadertoy_renderer: first render!");
 
         pipeline.set_state(*commandlist);
-        commandlist->set(graphics::e_primitive_topology::trilist);
+        commandlist->set_primitive_topology(graphics::e_primitive_topology::trilist);
         commandlist->set_vertexbuffer(mp_vertexbuffer);
         commandlist->set_indexbuffer(mp_indexbuffer);
         commandlist->draw_indexed(
