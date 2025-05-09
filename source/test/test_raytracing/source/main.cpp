@@ -218,7 +218,10 @@ int main()
 		commandlist.set_root_srv(acc_structs.m_tlas.m_tlas_buffer, 0u, graphics::e_pipeline_type::raytracing);
 		
 		// dispatch rays
-		commandlist.dispatch_rays(pipeline.m_pipeline, raytracing_target->get_width(), raytracing_target->get_height(), 1);
+		commandlist.dispatch_rays(pipeline.m_pipeline, 
+			raytracing_target->get_width(),
+			raytracing_target->get_height(),
+			1);
 
 		// copy target uav into window backbuffer
 		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();

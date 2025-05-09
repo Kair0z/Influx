@@ -330,20 +330,34 @@ namespace influx::renderer
     {
         import_to_graph(target);
 
+        // ensure dependency textures are imported!
+        auto texture_dependencies = imgui_manager::get_texture_dependencies(draw_data);
+        for (const auto& texture : texture_dependencies)
+        {
+            m_rendergraph->import_texture(
+                texture->get_rendergraph_id(),
+                (graphics::resource*)texture->get_tex_resource());
+        }
+
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-            [&target](rendergraph::rgpass_builder& builder)
+        [&target, texture_dependencies](rendergraph::rgpass_builder& builder)
+        {
+            rendergraph::rgaccess access{};
+            access.m_load = rendergraph::e_rg_load::preserve;
+            access.m_store = rendergraph::e_rg_store::preserve;
+            builder.write_rendertarget(target.get_resource()->get_name().get(), access);
+            builder.set_viewport(target.get_width(), target.get_height());
+
+            for (const auto& texture : texture_dependencies)
             {
-                rendergraph::rgaccess access{};
-                access.m_load = rendergraph::e_rg_load::preserve;
-                access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(target.get_resource()->get_name().get(), access);
-                builder.set_viewport(target.get_width(), target.get_height());
-            },
-            [this, draw_data, &target](rendergraph::rgpass_context& context)
-            {
-                influx_scope("renderer_backend::draw_imgui::record");
-                mp_imgui->render(&context.get_commandlist(), *draw_data, target);
-            });
+                builder.read_texture(texture->get_rendergraph_id());
+            }
+        },
+        [this, draw_data, &target](rendergraph::rgpass_context& context)
+        {
+            influx_scope("renderer_backend::draw_imgui::record");
+            mp_imgui->render(&context.get_commandlist(), *draw_data, target);
+        });
 
         pass->set_name(RGNAME("draw_imgui"));
 
@@ -352,24 +366,41 @@ namespace influx::renderer
 
     result<> renderer_backend::draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
     {
+        // ensure targets are imported
         for (const auto& target : targets)
         {
             import_to_graph(*target);
         }
 
+        // execute draws
         for (uint32 i = 0u; i < draws.size(); ++i)
         {
             const target& target = *targets[i];
             const ImDrawData& draw = *draws[i];
 
+            // ensure dependency textures are imported!
+            auto texture_dependencies = imgui_manager::get_texture_dependencies(&draw);
+            for (const auto& texture : texture_dependencies)
+            {
+                m_rendergraph->import_texture(
+                    texture->get_rendergraph_id(),
+                    (graphics::resource*)texture->get_tex_resource());
+            }
+
             auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-            [&target](rendergraph::rgpass_builder& builder)
+            [&target, texture_dependencies](rendergraph::rgpass_builder& builder)
             {
                 rendergraph::rgaccess access{};
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;
                 builder.write_rendertarget(target.get_rendergraph_name(), access);
                 builder.set_viewport(target.get_width(), target.get_height());
+
+                // set read-dependencies
+                for (const auto& texture : texture_dependencies)
+                {
+                    builder.read_texture(texture->get_rendergraph_id());
+                }
             },
             [this, &draw, &target](rendergraph::rgpass_context& context)
             {
@@ -423,14 +454,44 @@ namespace influx::renderer
 
     void renderer_backend::copy_target(const target& source, const target& dest)
     {
+        import_to_graph(source);
+        import_to_graph(dest);
+
         const bool keep_source = true;
-        m_rendergraph->add_copypass(source.get_resource(), dest.get_resource(), keep_source);
+        
+        auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::compute,
+        [&source, &dest, keep_source](rendergraph::rgpass_builder& builder)
+        {
+            builder.read_copysrc_texture(source.get_rendergraph_name()).get();
+            builder.write_copydst_texture(dest.get_rendergraph_name()).get();
+            builder.set_viewport(dest.get_width(), dest.get_height());
+        },
+        [&source, &dest](rendergraph::rgpass_context& context)
+        {
+            graphics::resource* src_resource = context.get_copysrc_texture(source.get_rendergraph_name()).get().m_resource;
+            graphics::resource* dst_resource = context.get_copydst_texture(dest.get_rendergraph_name()).get().m_resource;
+            context.get_commandlist().copy_resource(src_resource, dst_resource);
+        });
+        pass->set_name(RGNAME("copy"));
     }
 
     void renderer_backend::clear_target(const target& target, const clear_args& args)
     {
-        influx_scope("renderer_backend::clear_target::record");
-        m_rendergraph->add_clear_pass(target.get_resource(), { args.m_colour });
+        import_to_graph(target);
+
+        auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
+        [&target, &args](rendergraph::rgpass_builder& builder)
+        {
+            rendergraph::rgaccess access{};
+            access.m_load = rendergraph::e_rg_load::clear;
+            access.m_store = rendergraph::e_rg_store::preserve;
+            access.m_load_clear.m_colour = args.m_colour;
+            builder.write_rendertarget(target.get_rendergraph_name(), access);
+            builder.set_viewport(target.get_width(), target.get_height());
+        },
+        [](rendergraph::rgpass_context& context) {});
+
+        pass->set_name(RGNAME("clear"));
     }
 
     void renderer_backend::present_all(const present_args& args)

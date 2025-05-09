@@ -223,10 +223,12 @@ namespace influx::engine::editor
 			if (ptr_ptr) (*ptr_ptr)();
 		}
 
-		math::uint2 view_dimensions = { 640u, 480 };
+		math::uint2 view_dimensions = { 512, 512 };
 
 		render_manager& renderman = get_engine()->get_renderer();
 		render_view& scene_view = renderman.get_renderview(render_manager::e_render_view::scene_editor);
+		scene_view.set_render_enabled(true);
+		scene_view.set_dimensions(view_dimensions);
 
 		if (ImGui::Begin("scene"))
 		{

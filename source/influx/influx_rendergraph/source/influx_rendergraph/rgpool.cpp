@@ -161,7 +161,7 @@ namespace influx::rendergraph
 			if (item.m_is_active && item.m_resource == &resource)
 			{
 				item.m_is_active = false;
-				device.release(&resource);
+				// device.release(&resource);
 				return {};
 			}
 		}
@@ -175,7 +175,7 @@ namespace influx::rendergraph
 			if (item.m_is_active && item.m_resource == &resource)
 			{
 				item.m_is_active = false;
-				device.release(&resource);
+				// device.release(&resource);
 				return {};
 			}
 		}

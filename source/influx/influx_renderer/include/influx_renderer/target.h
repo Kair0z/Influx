@@ -95,12 +95,13 @@ namespace influx::renderer
 
 		INFLUX_RENDER_API string get_rendergraph_name() const;
 		INFLUX_RENDER_API string get_depth_rendergraph_name() const;
-
+		
 		INFLUX_RENDER_API ~target();
 
 		// ~imgui_texid_provider begin
 		virtual void* get_tex_descriptor() const override final { return m_srv_cpu; }
 		virtual void* get_tex_resource() const override final { return mp_resource; };
+		virtual string get_rendergraph_id() const override final { return get_rendergraph_name(); };
 		// ~imgui_texid_provider end
 
 	private:

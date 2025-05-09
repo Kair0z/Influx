@@ -817,11 +817,13 @@ namespace influx::rendergraph
 		// insert destroy points at the 'last user pass' of the resources
 		for (uint64 i = 0; i < m_textures.size(); ++i)
 		{
-			if (m_textures[i]->m_last_user != nullptr) m_textures[i]->m_last_user->m_texture_destroys.push_back(rgtexture_id(i));
+			if (m_textures[i]->m_last_user != nullptr) 
+				m_textures[i]->m_last_user->m_texture_destroys.push_back(rgtexture_id(i));
 		}
 		for (uint64 i = 0; i < m_buffers.size(); ++i)
 		{
-			if (m_buffers[i]->m_last_user != nullptr) m_buffers[i]->m_last_user->m_buffer_destroys.push_back(rgbuffer_id(i));
+			if (m_buffers[i]->m_last_user != nullptr) 
+				m_buffers[i]->m_last_user->m_buffer_destroys.push_back(rgbuffer_id(i));
 		}
 	}
 

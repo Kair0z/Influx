@@ -219,10 +219,38 @@ namespace influx::renderer
 		}
 	}
 
-	vector<drawdata_dependencies> imgui_manager::get_dependencies(const vector<ImDrawData const*>& draws)
+	vector<imgui_texid_provider*> imgui_manager::get_texture_dependencies(const vector<ImDrawData const*>& draws)
 	{
-		vector<drawdata_dependencies> result{};
-		result.reserve(draws.size());
+		vector<imgui_texid_provider*> result{};
+		for (const auto& group : draws)
+		{
+			for (const auto& dependencies : get_texture_dependencies(group))
+			{
+				result.push_back(dependencies);
+			}
+		}
+		return result;
+	}
+
+	vector<imgui_texid_provider*> imgui_manager::get_texture_dependencies(ImDrawData const* draw)
+	{
+		vector<imgui_texid_provider*> result{};
+		
+		for (int n = 0; n < draw->CmdListsCount; ++n)
+		{
+			const ImDrawList* cmd_list = draw->CmdLists[n];
+			for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; ++cmd_i)
+			{
+				const ImDrawCmd& command = cmd_list->CmdBuffer[cmd_i];
+				const bool command_has_texture = command.GetTexID() != 0u;
+				if (command_has_texture)
+				{
+					imgui_texid_provider* tex_provider = reinterpret_cast<imgui_texid_provider*>(command.GetTexID());
+					result.push_back(tex_provider);
+				}
+			}
+		}
+
 		return result;
 	}
 

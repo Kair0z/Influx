@@ -67,6 +67,10 @@ namespace influx::engine
 		influx::renderer::init_args render_init_args{};
 		render_init_args.m_api_type = influx::renderer::e_render_api::dx12;
 		// render_init_args.m_api_type = influx::renderer::e_render_api::vulkan;
+		render_init_args.m_log_func = [](renderer::e_log, const char* message)
+		{
+			engine::log(e_log_category::info, message);
+		};
 		render_init_args.m_shader_source_folder = get_engine_directory(engine_directory::assets).m_path_full + "/engine/shaders/";
 		influx::renderer::initialize(render_init_args);
 
@@ -94,6 +98,8 @@ namespace influx::engine
 			render_view_id id = pair.first;
 			render_view& view = pair.second;
 			
+			if (view.should_render() == false)
+				continue;
 			// cannot render invalid dimensions
 			if (view.has_valid_dimensions() == false)
 				continue;
@@ -125,7 +131,7 @@ namespace influx::engine
 				renderer::draw_scene(view_scene, view.get_target());
 
 				renderer::scene2D& view_scene2D = view.get_scene2D();
-				renderer::draw_2D(view_scene2D, view.get_target());
+				// renderer::draw_2D(view_scene2D, view.get_target());
 
 				++view.m_frame_counter;
 			}

@@ -22,6 +22,7 @@ namespace influx::renderer
 	public:
 		virtual void* get_tex_descriptor() const = 0;
 		virtual void* get_tex_resource() const = 0;
+		virtual string get_rendergraph_id() const = 0;
 	};
 	using imgui_tex_id = imgui_texid_provider*;
 

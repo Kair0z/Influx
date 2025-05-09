@@ -70,6 +70,16 @@ namespace influx::engine
 			return m_dimensions.x >= 64u && m_dimensions.y >= 64u;
 		}
 
+		inline void set_render_enabled(bool enabled)
+		{
+			m_should_render = enabled;
+		}
+
+		inline bool should_render() const
+		{
+			return m_should_render;
+		}
+
 	private:
 		renderer::target*	m_target{};
 		renderer::scene		m_scene{};
@@ -81,6 +91,7 @@ namespace influx::engine
 
 		uint64 m_frame_counter = 0u;
 		e_render_flags m_flags = e_render_flags::all;
+		bool m_should_render = false;
 		friend class render_manager;
 	};
 
