@@ -197,7 +197,6 @@ namespace influx::renderer
 			// wait for gpu to stop rendering
 			renderer_backend::get_instance().wait_gpu_finished();
 
-			mp_resource->release(mp_device);
 			mp_device->release(mp_resource);
 
 			// update size:

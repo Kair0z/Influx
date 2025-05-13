@@ -74,8 +74,6 @@ namespace influx::engine
         update_rigidbody_system();
     }
 
-    static math::ray* g_lastray = nullptr;
-
     void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D) const
     {
         const float delta_time = get_engine()->get_time().get_delta_seconds();
@@ -221,8 +219,7 @@ namespace influx::engine
 
             renderer::scene& scene = render_view.get_scene();
             renderer::scene2D& scene2D = render_view.get_scene2D();
-            scene = {};
-            scene2D = {};
+            scene = {}; scene2D = {}; // reset the scenes
 
             const e_view_visibility_flags view_flags = static_cast<e_view_visibility_flags>(1u << i);
 
@@ -231,16 +228,14 @@ namespace influx::engine
                 influx_scope("gather_camera");
                 float priority = -1.0f;
                 for (auto [entity, transform_comp, camera_comp]
-                    : m_registry.view<const transform_component, camera_component>().each())
+                : m_registry.view<const transform_component, camera_component>().each())
                 {
                     if (camera_comp.get_priority() > priority)
                     {
                         renderer::camera render_camera{};
                         math::transform3D transform = transform_comp.get_transform();
                         render_camera.m_camera = camera_comp.get_camera();
-
                         scene.set_camera(render_camera, transform.get_matrix());
-
                         priority = camera_comp.get_priority();
                     }
                 }

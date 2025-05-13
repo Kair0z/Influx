@@ -207,13 +207,19 @@ namespace influx::engine::editor
 		}
 #endif
 		// manage scene view
-		math::uint2 view_dimensions = { 512, 512 };
-		get_renderview().set_render_enabled(true);
-		get_renderview().set_dimensions(view_dimensions);
 		if (ImGui::Begin("scene"))
 		{
+			const auto current_size = ImGui::GetWindowSize();
+			math::uint2 view_dimensions = { current_size.x, current_size.y };
+			get_renderview().set_dimensions(view_dimensions);
+			get_renderview().set_render_enabled(true);
+
 			ImGui::Image(reinterpret_cast<ImTextureID>(&get_renderview().get_target()), { (float)view_dimensions.x, (float)view_dimensions.y });
 			ImGui::End();
+		}
+		else
+		{
+			get_renderview().set_render_enabled(false);
 		}
 	}
 
@@ -247,6 +253,7 @@ namespace influx::engine::editor
 		if (m_is_controlling_camera)
 		{
 			const math::float2 mouse_delta = new_position.m_client - m_last_mouse_position.m_client;
+
 		}
 		m_last_mouse_position = new_position;
 	}

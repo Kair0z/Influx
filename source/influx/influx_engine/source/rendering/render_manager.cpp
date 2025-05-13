@@ -92,7 +92,7 @@ namespace influx::engine
 	{
 		renderer::start_frame();
 		
-		// render the various views
+		// render each view
 		for (auto& pair : m_views)
 		{
 			render_view_id id = pair.first;
@@ -138,14 +138,15 @@ namespace influx::engine
 			}
 		}
 
-		// imgui render (renders straight to window backbuffer)
+		// render imgui 
+		// (internally renders into potentially multiple windows backbuffers)
 		renderer::scene_imgui& imgui_scene = get_imgui_scene();
 		if (!imgui_scene.is_empty() && is_imgui_render_enabled())
 		{
 			m_imgui.render(imgui_scene);
 		}
 
-		// submits all gpu commands to the GPU
+		// submits all frame gpu commands to the GPU
 		influx::renderer::end_frame();
 
 		// presents each registered swapchain

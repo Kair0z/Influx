@@ -59,6 +59,13 @@ namespace influx::rendergraph
 		desc.m_allow_uav = resource.allows_uav();
 		return desc;
 	}
+	buffer_desc get_buffer_desc_from_resource(const graphics::resource& resource)
+	{
+		buffer_desc desc{};
+		desc.m_bytesize = resource.get_bytesize();
+		desc.m_bytestride = resource.get_bytestride();
+		return desc;
+	}
 #pragma endregion
 
 	rendergraph::rendergraph(const global_config& config, graphics::device& device)
@@ -418,30 +425,43 @@ namespace influx::rendergraph
 			m_textures.emplace_back(new_texture);
 			m_texture_name_to_id_map[name] = new_id;
 			m_id_to_texture_map[new_id] = m_textures.back();
-
-			return {};
 		}
-		else return result<>::make_error("error: texture already exists!");
+		else
+		{
+			// overwrite existing
+			rgtexture_id id = m_texture_name_to_id_map[name];
+			rgtexture*& texture = m_id_to_texture_map[id];
+			texture->m_desc = get_desc_from_resource(*resource);
+			texture->m_resource = resource;
+		}
+
+		return {};
 	}
 
 	result<> rendergraph::import_buffer(const rgname& name, graphics::resource* resource)
 	{
 		if (m_buffer_name_to_id_map.contains(name) == false)
 		{
-			buffer_desc desc{};
 			rgbuffer* new_buffer = new rgbuffer();
 			rgbuffer_id new_id = m_buffers.size();
-			new_buffer->m_desc = desc;
+			new_buffer->m_desc = get_buffer_desc_from_resource(*resource);
 			new_buffer->m_id = new_id;
 			new_buffer->m_is_imported = true;
 			new_buffer->m_resource = resource;
 			m_buffers.emplace_back(new_buffer);
 			m_buffer_name_to_id_map[name] = new_id;
 			m_id_to_buffer_map[new_id] = m_buffers.back();
-
-			return {};
 		}
-		else return result<>::make_error("error: buffer already exists!");
+		else
+		{
+			// overwrite existing
+			rgbuffer_id id = m_buffer_name_to_id_map[name];
+			rgbuffer*& buffer = m_id_to_buffer_map[id];
+			buffer->m_desc = get_buffer_desc_from_resource(*resource);
+			buffer->m_resource = resource;
+		}
+
+		return {};
 	}
 
 	result<> rendergraph::remove_imported_texture(const rgname& name)
