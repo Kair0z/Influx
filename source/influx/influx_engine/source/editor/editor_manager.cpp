@@ -95,6 +95,7 @@ namespace influx::engine::editor
 		m_mousepos = mouse_position.m_client;
 
 		// mouse updates
+		m_scene_editor.on_mouse_move(mouse_position);
 		const buttonstate& lm_button = inputman.get_mousebutton_state(input::e_mouse_button::left);
 		if (lm_button.is_firstframe_down())
 		{

@@ -19,6 +19,12 @@ namespace influx::engine::editor
 	static transform_component* g_transform = nullptr;
 	static camera_component* g_camera = nullptr;
 
+	inline render_view& get_renderview()
+	{
+		render_manager& renderman = get_engine()->get_renderer();
+		return renderman.get_renderview(render_manager::e_render_view::scene_editor);
+	}
+
 	void scene_editor::on_edit_place()
 	{
 		world& world = get_engine()->get_world();
@@ -180,31 +186,6 @@ namespace influx::engine::editor
 		m_edit_radial.set_radius(60.0f);
 		m_edit_radial.set_item("place", scene_editor::on_edit_place);
 		m_edit_radial.set_item("remove", scene_editor::on_edit_remove);
-
-		// temp: 
-		{
-			world& world = get_engine()->get_world();
-			auto cube = world.create_entity();
-			{
-				transform_component& trans_comp = world.create_component<transform_component>(cube);
-				render_component& render_comp = world.create_component<render_component>(cube);
-				render_comp.set_view_visibility(e_view_visibility_flags::all);
-				mesh_component& mesh_comp = world.create_component<mesh_component>(cube);
-				mesh_comp.set_mesh_name("cube");
-			}
-
-			auto camera = world.create_entity();
-			{
-				transform_component& trans_comp = world.create_component<transform_component>(camera);
-				trans_comp.set_position({ 0,0,10 });
-				trans_comp.set_forward({ 0,0,-1 });
-				camera_component& camera_comp = world.create_component<camera_component>(camera);
-				camera_comp.set_farplane(1000.0f);
-				camera_comp.set_nearplane(0.001f);
-				camera_comp.set_fov(90.0f);
-				camera_comp.set_aspect_ratio(1.0f);
-			}
-		}
 	}
 
 	scene_editor::~scene_editor()
@@ -215,24 +196,23 @@ namespace influx::engine::editor
 	void scene_editor::on_imgui(ImGuiContext& ctx)
 	{
 		input_manager& inputman = get_engine()->get_input();
-		m_edit_radial.render(inputman.get_mouse_position_client());
 
+		// cute edit radial
+#if 0
+		m_edit_radial.render(inputman.get_mouse_position_client());
 		if (m_edit_radial.has_selection())
 		{
 			on_radial_select* ptr_ptr = m_edit_radial.get_selected();
 			if (ptr_ptr) (*ptr_ptr)();
 		}
-
+#endif
+		// manage scene view
 		math::uint2 view_dimensions = { 512, 512 };
-
-		render_manager& renderman = get_engine()->get_renderer();
-		render_view& scene_view = renderman.get_renderview(render_manager::e_render_view::scene_editor);
-		scene_view.set_render_enabled(true);
-		scene_view.set_dimensions(view_dimensions);
-
+		get_renderview().set_render_enabled(true);
+		get_renderview().set_dimensions(view_dimensions);
 		if (ImGui::Begin("scene"))
 		{
-			ImGui::Image(reinterpret_cast<ImTextureID>(&scene_view.get_target()), { (float)view_dimensions.x, (float)view_dimensions.y });
+			ImGui::Image(reinterpret_cast<ImTextureID>(&get_renderview().get_target()), { (float)view_dimensions.x, (float)view_dimensions.y });
 			ImGui::End();
 		}
 	}
@@ -241,12 +221,11 @@ namespace influx::engine::editor
 	{
 		switch (button)
 		{
-		case input::e_mouse_button::left: 
+		case input::e_mouse_button::left:
 			pick_scene(position);
 			break;
 		case input::e_mouse_button::right:
-			m_edit_radial.set_visible(true);
-			m_edit_radial.set_position(position.m_client);
+			m_is_controlling_camera = true;
 			break;
 		}
 	}
@@ -255,9 +234,20 @@ namespace influx::engine::editor
 	{
 		switch (button)
 		{
+		case input::e_mouse_button::left:
+			break;
 		case input::e_mouse_button::right:
-			m_edit_radial.set_visible(false);
+			m_is_controlling_camera = false;
 			break;
 		}
+	}
+
+	void scene_editor::on_mouse_move(const input::mouse_position& new_position)
+	{
+		if (m_is_controlling_camera)
+		{
+			const math::float2 mouse_delta = new_position.m_client - m_last_mouse_position.m_client;
+		}
+		m_last_mouse_position = new_position;
 	}
 }

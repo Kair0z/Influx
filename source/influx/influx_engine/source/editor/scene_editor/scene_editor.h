@@ -21,10 +21,13 @@ namespace influx::engine::editor
 
 		void on_mouse_down(input::e_mouse_button button, const input::mouse_position& position);
 		void on_mouse_up(input::e_mouse_button button, const input::mouse_position& position);
+		void on_mouse_move(const input::mouse_position& new_position);
 
 	private:
 		typedef void (*on_radial_select)();
 		imgui::popup_radial<on_radial_select, 4u> m_edit_radial{};
+		bool m_is_controlling_camera = false;
+		input::mouse_position m_last_mouse_position{};
 
 		static void on_edit_place();
 		static void on_edit_remove();
