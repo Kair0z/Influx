@@ -311,7 +311,7 @@ namespace influx::engine
                 // grid render
                 {
                     const uint32 num_lines = 30u;
-                    const math::colour_rgba line_colour = { 0.2f, 0.2f, 0.2f };
+                    const math::colour_rgba line_colour = { 0.2f, 0.2f, 0.2f, 1.0f };
                     const float line_distance = 1.0f;
                     const float line_length = num_lines * line_distance;
                     const float half_offset = line_length * 0.5f;

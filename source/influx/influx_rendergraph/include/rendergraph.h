@@ -93,7 +93,7 @@ namespace influx::rendergraph
 	{
 		math::colour_rgba m_colour;
 	};
-
+	
 	class rendergraph final
 	{
 		friend class rgpass_builder;

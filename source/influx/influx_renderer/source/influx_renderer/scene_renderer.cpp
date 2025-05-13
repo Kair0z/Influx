@@ -820,6 +820,7 @@ namespace influx::renderer
             auto* pass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
             [&target](rendergraph::rgpass_builder& builder)
             {
+                // no read, 1 write
                 rendergraph::rgaccess access{};
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;

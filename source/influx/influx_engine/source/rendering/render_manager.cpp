@@ -128,6 +128,7 @@ namespace influx::engine
 				renderer::clear_target(view.get_target(), { .m_colour = view.m_clear_colour });
 
 				renderer::scene& view_scene = view.get_scene();
+				view_scene.set_debug_render_enabled(true);
 				renderer::draw_scene(view_scene, view.get_target());
 
 				renderer::scene2D& view_scene2D = view.get_scene2D();

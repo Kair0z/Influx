@@ -390,17 +390,19 @@ namespace influx::renderer
             auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
             [&target, texture_dependencies](rendergraph::rgpass_builder& builder)
             {
+                // register write
                 rendergraph::rgaccess access{};
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;
                 builder.write_rendertarget(target.get_rendergraph_name(), access);
-                builder.set_viewport(target.get_width(), target.get_height());
 
-                // set read-dependencies
+                // register reads
                 for (const auto& texture : texture_dependencies)
                 {
                     builder.read_texture(texture->get_rendergraph_id());
                 }
+
+                builder.set_viewport(target.get_width(), target.get_height());
             },
             [this, &draw, &target](rendergraph::rgpass_context& context)
             {
