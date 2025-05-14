@@ -210,26 +210,31 @@ namespace influx::engine::editor
 			if (ptr_ptr) (*ptr_ptr)();
 		}
 #endif
+		render_view& render_view = get_renderview();
+
 		// manage scene view
 		if (ImGui::Begin("scene"))
 		{
+			renderer::camera& view_camera = render_view.get_camera();
+
 			const auto current_size = ImGui::GetWindowSize();
 			math::uint2 view_dimensions = { current_size.x, current_size.y };
-			get_renderview().set_dimensions(view_dimensions);
-			get_renderview().set_render_enabled(true);
-			get_renderview().get_camera_transform() = m_camera_transform;
-			get_renderview().get_camera().m_camera.set_aspect_ratio(current_size.x / current_size.y);
-			get_renderview().get_camera().m_camera.set_fov(90.0f);
-			get_renderview().get_camera().m_camera.set_is_orthographic(false);
-			get_renderview().get_camera().m_camera.set_nearplane(0.001f);
-			get_renderview().get_camera().m_camera.set_farplane(1000.0f);
+			render_view.set_dimensions(view_dimensions);
+			render_view.set_render_enabled(true);
+			render_view.get_camera_transform() = m_camera_transform;
+			view_camera.m_camera.set_aspect_ratio(current_size.x / current_size.y);
+			view_camera.m_camera.set_fov(90.0f);
+			view_camera.m_camera.set_is_orthographic(false);
+			view_camera.m_camera.set_nearplane(0.001f);
+			view_camera.m_camera.set_farplane(1000.0f);
 
-			ImGui::Image(reinterpret_cast<ImTextureID>(&get_renderview().get_target()), { (float)view_dimensions.x, (float)view_dimensions.y });
+			ImGui::Image(reinterpret_cast<ImTextureID>(&render_view.get_target()), 
+				current_size);
 			ImGui::End();
 		}
 		else
 		{
-			get_renderview().set_render_enabled(false);
+			render_view.set_render_enabled(false);
 		}
 	}
 

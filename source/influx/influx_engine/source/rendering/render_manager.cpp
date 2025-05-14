@@ -135,9 +135,6 @@ namespace influx::engine
 				view_scene.set_debug_render_enabled(true);
 				renderer::draw_scene(view_scene, view.get_target());
 
-				renderer::scene2D& view_scene2D = view.get_scene2D();
-				// renderer::draw_2D(view_scene2D, view.get_target());
-
 				++view.m_frame_counter;
 			}
 		}

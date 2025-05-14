@@ -855,7 +855,7 @@ namespace influx::renderer
                 update_line_instance_buffer(scene);
 
                 // stage the instance buffer and set as resource table
-                const graphics::descriptor_range gpu_range = descriptorman.stage(m_instance_buffer_srv);
+                const graphics::descriptor_range gpu_range = descriptorman.stage(m_line_instance_buffer_srv);
                 pipeline.set_resource_table(commandlist, "g_instancebuffer", gpu_range);
 
                 const uint32 num_instances = (uint32)m_line_instance_data.size();
