@@ -22,7 +22,7 @@ namespace influx::engine::editor
 	inline render_view& get_renderview()
 	{
 		render_manager& renderman = get_engine()->get_renderer();
-		return renderman.get_renderview(render_manager::e_render_view::scene_editor);
+		return renderman.get_renderview(e_render_view::scene_editor);
 	}
 
 	void scene_editor::on_edit_place()
@@ -183,6 +183,10 @@ namespace influx::engine::editor
 
 	scene_editor::scene_editor()
 	{
+		m_camera_transform = math::transform3D::identity();
+		m_camera_transform.set_position(0, 10, 10);
+		m_camera_transform.look_at({});
+
 		m_edit_radial.set_radius(60.0f);
 		m_edit_radial.set_item("place", scene_editor::on_edit_place);
 		m_edit_radial.set_item("remove", scene_editor::on_edit_remove);
@@ -213,6 +217,12 @@ namespace influx::engine::editor
 			math::uint2 view_dimensions = { current_size.x, current_size.y };
 			get_renderview().set_dimensions(view_dimensions);
 			get_renderview().set_render_enabled(true);
+			get_renderview().get_camera_transform() = m_camera_transform;
+			get_renderview().get_camera().m_camera.set_aspect_ratio(current_size.x / current_size.y);
+			get_renderview().get_camera().m_camera.set_fov(90.0f);
+			get_renderview().get_camera().m_camera.set_is_orthographic(false);
+			get_renderview().get_camera().m_camera.set_nearplane(0.001f);
+			get_renderview().get_camera().m_camera.set_farplane(1000.0f);
 
 			ImGui::Image(reinterpret_cast<ImTextureID>(&get_renderview().get_target()), { (float)view_dimensions.x, (float)view_dimensions.y });
 			ImGui::End();
@@ -253,7 +263,7 @@ namespace influx::engine::editor
 		if (m_is_controlling_camera)
 		{
 			const math::float2 mouse_delta = new_position.m_client - m_last_mouse_position.m_client;
-
+			m_camera_transform.rotate_y(mouse_delta.x);
 		}
 		m_last_mouse_position = new_position;
 	}

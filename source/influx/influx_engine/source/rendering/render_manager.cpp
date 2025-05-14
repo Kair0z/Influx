@@ -125,6 +125,10 @@ namespace influx::engine
 			// render view
 			if (view.is_valid())
 			{
+				// update camera
+				view.get_scene().set_camera(
+					view.get_camera(), view.get_camera_transform().get_matrix());
+				
 				renderer::clear_target(view.get_target(), { .m_colour = view.m_clear_colour });
 
 				renderer::scene& view_scene = view.get_scene();
@@ -213,26 +217,5 @@ namespace influx::engine
 		}
 
 		return m_views[id];
-	}
-
-	render_view::render_view(const renderer::target_create_args& create_args)
-	{
-		m_target = renderer::create_target(create_args);
-	}
-	render_view::~render_view()
-	{
-		delete m_target;
-	}
-	const renderer::target& render_view::get_target() const
-	{
-		return *m_target;
-	}
-	renderer::scene& render_view::get_scene()
-	{
-		return m_scene;
-	}
-	renderer::scene2D& render_view::get_scene2D()
-	{
-		return m_scene2D;
 	}
 }

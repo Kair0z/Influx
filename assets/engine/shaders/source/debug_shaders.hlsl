@@ -28,6 +28,7 @@ ps_input main_vs(vs_input input, uint instanceID : SV_InstanceID)
     
     result.position = mul(g_perview.m_viewprojection, float4(world_position.xyz, 1.0f));
     result.colour = instance_data.m_colour;
+    result.colour = float4(1, 0, 0, 1);
 
     return result;
 }

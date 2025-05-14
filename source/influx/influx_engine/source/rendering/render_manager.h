@@ -1,117 +1,24 @@
 #pragma once
 
 // influx::core
-#include "core/macros.h"
 #include "core/math/vector.h"
-#include "core/enum.h"
 
 // influx::engine
+#include "rendering/render_common.h"
+#include "rendering/render_view.h"
 #include "imgui/imgui_manager.h"
 #include "rendering/render_streamer.h"
 
 // influx::renderer
 #include "influx_renderer/scene.h"
-namespace influx::renderer
-{
-	class target;
-	struct target_create_args;
-}
 
 namespace influx::engine
 {
 	class engine;
 	class content_manager;
 
-	enum class e_render_flags : uint8
-	{
-		none			= 0,
-		render_debug	= 1 << 0,
-		render_scene	= 1 << 1,
-		render_imgui	= 1 << 2,
-		all				= render_debug | render_scene | render_imgui
-	};
-
-	enum class e_view_visibility_flags : uint8
-	{
-		none = 0,
-		editor = 1 << 0,
-		game = 1 << 1,
-		all = game | editor
-	};
-
-	// a view contains a renderer::target to render to and data it wants rendered
-	using render_view_id = string;
-	class render_view final
-	{
-	public:
-		render_view() = default;
-		render_view(const renderer::target_create_args& create_args);
-		~render_view();
-
-		const renderer::target& get_target() const;
-
-		renderer::scene& get_scene();
-		renderer::scene2D& get_scene2D();
-
-		inline bool is_valid() const
-		{
-			return m_target != nullptr;
-		}
-
-		e_render_flags get_render_flags() const { return m_flags; }
-
-		inline void set_dimensions(const math::uint2& dimensions)
-		{
-			m_dimensions = dimensions;
-		}
-
-		inline bool has_valid_dimensions() const
-		{
-			return m_dimensions.x >= 64u && m_dimensions.y >= 64u;
-		}
-
-		inline void set_render_enabled(bool enabled)
-		{
-			m_should_render = enabled;
-		}
-
-		inline bool should_render() const
-		{
-			return m_should_render;
-		}
-
-	private:
-		renderer::target*	m_target{};
-		renderer::scene		m_scene{};
-		renderer::scene2D	m_scene2D{};
-		math::float4 m_clear_colour = { 0,0,0,1 };
-
-		math::uint2 m_dimensions = { 64u, 64u };
-		math::uint2 m_prev_dimensions{};
-
-		uint64 m_frame_counter = 0u;
-		e_render_flags m_flags = e_render_flags::all;
-		bool m_should_render = false;
-		friend class render_manager;
-	};
-
 	class render_manager final
 	{
-	public:
-		/* main views supported by this engine */
-		enum class e_render_view : uint8
-		{
-			scene_editor,
-			game,
-			count
-		};
-		static constexpr uint8 k_num_render_views = static_cast<uint8>(e_render_view::count);
-		constexpr static const char* k_render_view_names[k_num_render_views]
-		{
-			"scene_editor",
-			"game"
-		};
-
 	public:
 		render_manager(engine* engine);
 		~render_manager();
@@ -144,6 +51,3 @@ namespace influx::engine
 		umap<render_view_id, render_view> m_views{};
 	};
 }
-
-ENABLE_ENUM_BIT_OPERATORS(influx::engine::e_render_flags);
-ENABLE_ENUM_BIT_OPERATORS(influx::engine::e_view_visibility_flags);

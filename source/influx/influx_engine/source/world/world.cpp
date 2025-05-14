@@ -212,16 +212,14 @@ namespace influx::engine
     void world::build_renderviews() const
     {
         render_manager& renderman = get_engine()->get_renderer();
-        for (uint32 i = 0u; i < render_manager::k_num_render_views; ++i)
+        for (uint32 i = 0u; i < k_num_render_views; ++i)
         {
-            render_manager::e_render_view view_enum = static_cast<render_manager::e_render_view>(i);
+            e_render_view view_enum = static_cast<e_render_view>(i);
             render_view& render_view = renderman.get_renderview(view_enum);
 
             renderer::scene& scene = render_view.get_scene();
             renderer::scene2D& scene2D = render_view.get_scene2D();
             scene = {}; scene2D = {}; // reset the scenes
-
-            const e_view_visibility_flags view_flags = static_cast<e_view_visibility_flags>(1u << i);
 
             // gather camera
             {
@@ -240,6 +238,8 @@ namespace influx::engine
                     }
                 }
             }
+
+            const e_view_visibility_flags view_flags = static_cast<e_view_visibility_flags>(1u << i);
 
             // gather meshes
             {
