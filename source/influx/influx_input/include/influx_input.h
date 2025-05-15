@@ -86,8 +86,10 @@ namespace influx::input
 		backslash, slash, semicolon, equal, lbracket, rbracket,
 		lshift,rshift,lctrl,rctrl,lalt,ralt,
 		space,backspace,enter,
+
 		ascii_num,
 		ascii_char,
+		
 		count
 	};
 	static constexpr uint32 k_num_ascii = 256u;
@@ -193,13 +195,13 @@ namespace influx::input
 	struct mouse_position final
 	{
 		mouse_position() = default;
-		mouse_position(const math::vectorf2& client, const math::vectorf2& screen)
+		mouse_position(const math::uint2& client, const math::uint2& screen)
 			: m_client{client}
 			, m_screen(screen)
 		{}
 
-		math::vectorf2 m_client; // relative to window
-		math::vectorf2 m_screen; // relative to screen
+		math::uint2 m_client; // relative to window
+		math::uint2 m_screen; // relative to screen
 		math::vectorf2 m_client_normalized; // [0,1]
 		math::vectorf2 m_screen_normalized; // [0,1]
 	};

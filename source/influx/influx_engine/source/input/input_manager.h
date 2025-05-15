@@ -21,7 +21,7 @@ namespace influx::engine
 		const math::vectoru2& get_mouse_position_client() const;
 		const math::vectoru2& get_mouse_position_screen() const;
 
-		math::vectorf2 get_mouse_delta() const;
+		math::vectorf2 get_mouse_delta_pixels() const;
 		const buttonstate& get_keystate(const input::key_event& ev) const;
 		const buttonstate& get_keystate(input::e_key key) const;
 		const buttonstate& get_keystate(char ascii) const;

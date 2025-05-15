@@ -108,7 +108,7 @@ namespace influx::engine::editor
 		const buttonstate& rm_button = inputman.get_mousebutton_state(input::e_mouse_button::right);
 		if (rm_button.is_firstframe_down())
 		{
-			m_scene_editor.on_mouse_up(input::e_mouse_button::right, mouse_position);
+			m_scene_editor.on_mouse_down(input::e_mouse_button::right, mouse_position);
 		}
 		if (rm_button.is_firstframe_up())
 		{

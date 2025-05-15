@@ -41,9 +41,9 @@ namespace influx::engine
 		uint64 m_frame = 0u;
 
 		const input::mouse_position& get_mouse_position() const;
-		const math::vectoru2& get_mouse_position_client() const;
-		const math::vectoru2& get_mouse_position_screen() const;
-		math::vectorf2 get_mouse_delta() const;
+		const math::uint2& get_mouse_position_client() const;
+		const math::uint2& get_mouse_position_screen() const;
+		math::vectorf2 get_mouse_delta_pixels() const;
 		const buttonstate& get_keystate(const input::key_event& ev) const;
 		const buttonstate& get_keystate(input::e_key key) const;
 		const buttonstate& get_keystate(char ascii) const;
@@ -58,13 +58,11 @@ namespace influx::engine
 			stat_array<buttonstate, input::k_num_mousebuttons> m_buttonstates{};
 
 			input::mouse_position m_mouse_position;
-			math::vectoru2 m_mouse_position_client;
-			math::vectoru2 m_prev_mouse_position_client;
-			math::vectoru2 m_mouse_position_screen;
+			input::mouse_position m_prev_mouse_position;
 
-			math::vectorf2 get_mouse_delta() const
+			math::vectorf2 get_mouse_delta_pixels() const
 			{
-				return m_mouse_position_client - m_prev_mouse_position_client;
+				return m_mouse_position.m_client - m_prev_mouse_position.m_client;
 			}
 		} m_mouse_data;
 		struct

@@ -27,145 +27,10 @@ namespace influx::engine::editor
 
 	void scene_editor::on_edit_place()
 	{
-		world& world = get_engine()->get_world();
-		scene& scene = get_engine()->get_current_scene();
-		platform::window& window = get_engine()->get_window();
-
-		// create camera by default
-		{
-			static math::vectorf3 start_position = { 0,10,10 };
-			scene::entity_id id = scene.create_entity();
-			camera_component& camera = scene.create_component<camera_component>(id);
-			camera.set_priority(1.0f);
-			camera.set_aspect_ratio(window.get_aspect_ratio());
-			g_camera = &camera;
-
-			transform_component& transform = *scene.get_component<transform_component>(id);
-			transform.set_position(start_position);
-			transform.look_at({});
-			transform.update_matrix();
-			g_transform = &transform;
-
-			movement_component& body = scene.create_component<movement_component>(id);
-			input_component& input_comp = scene.create_component<input_component>(id);
-			{
-				static bool locks[6u]{ false, false, false, false, false, false };
-				static math::vectorf3 acceleration{};
-
-				static auto update_acceleration = [&body, &transform]()
-				{
-					// translate the force
-					math::float3 transf_acceleration =
-					{
-						acceleration.x * transform.get_right() +
-						acceleration.y * math::vectorf3::up() +
-						acceleration.z * transform.get_forward()
-					};
-					if (!transf_acceleration.is_zero()) transf_acceleration = transf_acceleration.normalized();
-					body.set_acceleration(transf_acceleration * 1.0f);
-				};
-
-				input_comp.m_on_keydown = [](input::e_key key)
-				{
-					switch (key)
-					{
-					case input::e_key::space:   if (!locks[4u]) { acceleration.y += +1.0f;		locks[4u] = true; } break;
-					case input::e_key::lshift:  if (!locks[5u]) { acceleration.y += -1.0f;		locks[5u] = true; } break;
-					}
-					update_acceleration();
-				};
-				input_comp.m_on_keyup = [](input::e_key key)
-				{
-					switch (key)
-					{
-					case input::e_key::space:   if (locks[4u]) { acceleration.y -= +1.0f;		locks[4u] = false; } break;
-					case input::e_key::lshift:	if (locks[5u]) { acceleration.y -= -1.0f;		locks[5u] = false; } break;
-					}
-
-					update_acceleration();
-				};
-				input_comp.m_on_ascii_down = [&transform](const char ascii)
-				{
-					switch (ascii)
-					{
-					case 'W': if (!locks[0u]) { acceleration.z += +1.0f;		locks[0u] = true; } break;
-					case 'A': if (!locks[1u]) { acceleration.x += -1.0f;		locks[1u] = true; } break;
-					case 'S': if (!locks[2u]) { acceleration.z += -1.0f;		locks[2u] = true; } break;
-					case 'D': if (!locks[3u]) { acceleration.x += +1.0f;		locks[3u] = true; } break;
-					}
-
-					update_acceleration();
-
-					// reset position
-					switch (ascii)
-					{
-					case 'R': 
-						transform.set_position(start_position); 
-						transform.look_at({});
-						break;
-					}
-				};
-				input_comp.m_on_ascii_up = [](const char ascii)
-				{
-					switch (ascii)
-					{
-					case 'W': if (locks[0u]) { acceleration.z -= +1.0f; locks[0u] = false; } break;
-					case 'A': if (locks[1u]) { acceleration.x -= -1.0f; locks[1u] = false; } break;
-					case 'S': if (locks[2u]) { acceleration.z -= -1.0f; locks[2u] = false; } break;
-					case 'D': if (locks[3u]) { acceleration.x -= +1.0f; locks[3u] = false; } break;
-					}
-
-					update_acceleration();
-				};
-
-				static bool mouse_down = false;
-				static math::float2 mousepos_prev{};
-				static math::float2 angular_position{};
-				input_comp.m_on_mouse_down = [](input::e_mouse_button button, const input::mouse_position& position)
-				{
-					switch (button)
-					{
-					case input::e_mouse_button::left: mouse_down = true; break;
-					}
-				};
-				input_comp.m_on_mouse_up = [](input::e_mouse_button button, const input::mouse_position& position)
-				{
-					switch (button)
-					{
-					case input::e_mouse_button::left: mouse_down = false; break;
-					}
-				};
-				input_comp.m_on_mouse_move = [&transform](const input::mouse_position& position)
-				{
-					math::float2 mousepos_current = position.m_client;
-					math::float2 mousepos_delta = mousepos_current - mousepos_prev;
-#if 0
-					static platform::window& window = get_engine()->get_window();
-					const float ar = window.get_aspect_ratio();
-					mousepos_delta.y *= ar; // normalize mousemove
-#endif
-
-					if (mouse_down && mousepos_delta.is_zero() == false)
-					{
-						const frame_time& time = get_engine()->get_time();
-						const float seconds = time.get_time_seconds();
-						const float delta_seconds = time.get_delta_seconds();
-
-						transform.rotate(
-							mousepos_delta.y * delta_seconds,
-							mousepos_delta.x * delta_seconds,
-							0.0f);
-					}
-
-					mousepos_prev = mousepos_current;
-				};
-			}
-		}
 	}
 
 	void scene_editor::on_edit_remove()
 	{
-		
 	}
 
 	void scene_editor::pick_scene(const input::mouse_position& position) const
@@ -183,9 +48,7 @@ namespace influx::engine::editor
 
 	scene_editor::scene_editor()
 	{
-		m_camera_transform = math::transform3D::identity();
-		m_camera_transform.set_position(0, 10, 10);
-		m_camera_transform.look_at({});
+		reset_camera();
 
 		m_edit_radial.set_radius(60.0f);
 		m_edit_radial.set_item("place", scene_editor::on_edit_place);
@@ -197,9 +60,72 @@ namespace influx::engine::editor
 
 	}
 
-	void scene_editor::on_imgui(ImGuiContext& ctx)
+	void scene_editor::update_inputs()
 	{
 		input_manager& inputman = get_engine()->get_input();
+
+		// unreal camera controls
+		float camera_sprint_input = 0.0f;
+		math::float3 camera_move_input = {};
+		if (inputman.is_down('E'))
+		{
+			camera_move_input += math::float3(0, -1, 0);
+		}
+		if (inputman.is_down('Q'))
+		{
+			camera_move_input += math::float3(0, 1, 0);
+		}
+		if (inputman.is_down('W'))
+		{
+			camera_move_input += math::float3(0, 0, 1);
+		}
+		if (inputman.is_down('A'))
+		{
+			camera_move_input += math::float3(-1, 0, 0);
+		}
+		if (inputman.is_down('S'))
+		{
+			camera_move_input += math::float3(0, 0, -1);
+		}
+		if (inputman.is_down('D'))
+		{
+			camera_move_input += math::float3(1, 0, 0);
+		}
+		if (inputman.is_down('R'))
+		{
+			reset_camera();
+		}
+		if (inputman.is_down(input::e_key::lshift))
+		{
+			camera_sprint_input = 1.0f;
+		}
+
+		math::float3 camera_world_delta_move = 
+			camera_move_input.x * m_camera_transform.get_right() +
+			camera_move_input.y * math::float3(0,1,0) +
+			camera_move_input.z * m_camera_transform.get_forward();
+		if (camera_world_delta_move.is_zero() == false) camera_world_delta_move.normalize();
+
+		float camera_move_speed = 10.0f;
+		camera_move_speed += camera_move_speed * camera_sprint_input * 1.5f;
+
+		auto& time = get_engine()->get_time();
+		const float delta_seconds = time.get_delta_seconds();
+		camera_world_delta_move *= camera_move_speed * delta_seconds;
+		
+		m_camera_transform.move(camera_world_delta_move);
+	}
+
+	void scene_editor::reset_camera()
+	{
+		m_camera_transform = math::transform3D::identity();
+		m_camera_transform.set_position(10, 10, 10);
+		m_camera_transform.look_at({});
+	}
+
+	void scene_editor::on_imgui(ImGuiContext& ctx)
+	{
+		update_inputs();
 
 		// cute edit radial
 #if 0
@@ -210,12 +136,14 @@ namespace influx::engine::editor
 			if (ptr_ptr) (*ptr_ptr)();
 		}
 #endif
+
 		render_view& render_view = get_renderview();
 
-		// manage scene view
 		if (ImGui::Begin("scene"))
 		{
 			renderer::camera& view_camera = render_view.get_camera();
+
+			m_camera_transform.update_matrix();
 
 			const auto current_size = ImGui::GetWindowSize();
 			math::uint2 view_dimensions = { current_size.x, current_size.y };
@@ -267,8 +195,17 @@ namespace influx::engine::editor
 	{
 		if (m_is_controlling_camera)
 		{
+			auto& time = get_engine()->get_time();
+			const float delta_seconds = time.get_delta_seconds();
+
 			const math::float2 mouse_delta = new_position.m_client - m_last_mouse_position.m_client;
-			m_camera_transform.rotate_y(mouse_delta.x);
+			if (mouse_delta.is_zero() == false)
+			{
+				m_camera_transform.rotate(
+					mouse_delta.y * delta_seconds,
+					mouse_delta.x * delta_seconds,
+					0.0f);
+			}
 		}
 		m_last_mouse_position = new_position;
 	}

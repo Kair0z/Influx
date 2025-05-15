@@ -76,6 +76,11 @@ namespace influx::math
 			}
 		}
 
+		void move(const vectorf3& delta_pos, bool blocal = false)
+		{
+			translate(delta_pos, blocal);
+		}
+
 		void rotate(float x, float y, float z, bool blocal = true)
 		{
 			m_is_matrix_dirty = true;

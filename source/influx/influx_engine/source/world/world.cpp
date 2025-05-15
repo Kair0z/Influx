@@ -601,7 +601,7 @@ namespace influx::engine
         input::mouse_position position{};
         position.m_client = inputman.get_mouse_position_client();
         position.m_screen = inputman.get_mouse_position_screen();
-        if (inputman.get_mouse_delta().sqr_magnitude() > 0.0f)
+        if (inputman.get_mouse_delta_pixels().sqr_magnitude() > 0.0f)
         {
             for (auto [entity, input] : view.each())
             {

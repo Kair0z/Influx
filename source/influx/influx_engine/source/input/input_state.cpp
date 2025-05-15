@@ -14,7 +14,7 @@ namespace influx::engine
 	inline uint32 key_to_index(const char ascii)
 	{
 		uint32 base = input::k_num_non_ascii_keys;
-		return base + static_cast<uint32>(ascii);
+		return base + static_cast<uint32>(ascii + 127);
 	}
 
 	inline uint32 button_to_index(const input::e_mouse_button button)
@@ -60,9 +60,8 @@ namespace influx::engine
 	}
 	void input_state::on_mousevent(const input::mouse_event& ev)
 	{
-		m_mouse_data.m_prev_mouse_position_client = m_mouse_data.m_mouse_position_client;
-		m_mouse_data.m_mouse_position_client = ev.m_position.m_client;
-		m_mouse_data.m_mouse_position_screen = ev.m_position.m_screen;
+		m_mouse_data.m_prev_mouse_position = m_mouse_data.m_mouse_position;
+		m_mouse_data.m_mouse_position = ev.m_position;
 
 		if (ev.m_button != input::e_mouse_button::count)
 		{
@@ -86,17 +85,17 @@ namespace influx::engine
 		return m_mouse_data.m_mouse_position;
 	}
 
-	const math::vectoru2& input_state::get_mouse_position_client() const
+	const math::uint2& input_state::get_mouse_position_client() const
 	{
-		return m_mouse_data.m_mouse_position_client;
+		return m_mouse_data.m_mouse_position.m_client;
 	}
-	const math::vectoru2& input_state::get_mouse_position_screen() const
+	const math::uint2& input_state::get_mouse_position_screen() const
 	{
-		return m_mouse_data.m_mouse_position_screen;
+		return m_mouse_data.m_mouse_position.m_screen;
 	}
-	math::vectorf2 input_state::get_mouse_delta() const
+	math::vectorf2 input_state::get_mouse_delta_pixels() const
 	{
-		return m_mouse_data.get_mouse_delta();
+		return m_mouse_data.get_mouse_delta_pixels();
 	}
 
 	const buttonstate& input_state::get_keystate(const input::key_event& ev) const
