@@ -194,11 +194,13 @@ namespace influx::rendergraph
 			// only create views for already created, imported textures
 			for (uint64 i = 0; i < m_textures.size(); ++i)
 			{
-				if (m_textures[i]->m_is_imported) create_texture_views(device, m_textures[i]->m_id);
+				if (m_textures[i]->m_is_imported) 
+					create_texture_views(device, m_textures[i]->m_id);
 			}
 			for (uint64 i = 0; i < m_buffers.size(); ++i)
 			{
-				if (m_buffers[i]->m_is_imported) create_buffer_views(device, m_buffers[i]->m_id);
+				if (m_buffers[i]->m_is_imported) 
+					create_buffer_views(device, m_buffers[i]->m_id);
 			}
 
 			// transition resources to appropriate state
@@ -607,21 +609,23 @@ namespace influx::rendergraph
 		// for each type of descriptor, allocate a cpu-handle and create the view
 		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
 		{
-			if (viewdescs[i].m_is_active && viewdescs[i].m_is_created == false)
+			if (viewdescs[i].m_is_active)
 			{
 				const rgdescriptor_type type = static_cast<rgdescriptor_type>(i);
+				if (viewdescs[i].m_is_created == false)
+				{
+					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+				}
+
 				switch (type)
 				{
 				case rgdescriptor_type::render_target:
-					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
 					device.create_rtv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::depth_target:
-					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
 					device.create_dsv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::read_only:
-					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
 					device.create_texture_srv(descriptors[i], &resource);
 					break;
 				case rgdescriptor_type::read_write:
@@ -629,7 +633,6 @@ namespace influx::rendergraph
 					if (resource.allows_uav() == false)
 						return result<>::make_error("error: cannot create a uav for a texture that doesn't allow it!");
 					
-					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
 					device.create_texture_uav(descriptors[i], &resource);
 					break;
 				}
@@ -880,6 +883,11 @@ namespace influx::rendergraph
 			m_texture_name_to_id_map[name] = new_id;
 			m_id_to_texture_map[new_id] = new_texture;
 		}
+		else
+		{
+			rgtexture_id id = m_texture_name_to_id_map[name];
+			m_id_to_texture_map[id]->m_desc = desc;
+		}
 
 		return m_texture_name_to_id_map[name];
 	}
@@ -895,6 +903,11 @@ namespace influx::rendergraph
 			m_buffers.push_back(new_buffer);
 			m_buffer_name_to_id_map[name] = new_id;
 			m_id_to_buffer_map[new_id] = new_buffer;
+		}
+		else
+		{
+			rgbuffer_id id = m_buffer_name_to_id_map[name];
+			m_id_to_buffer_map[id]->m_desc = desc;
 		}
 
 		return m_buffer_name_to_id_map[name];

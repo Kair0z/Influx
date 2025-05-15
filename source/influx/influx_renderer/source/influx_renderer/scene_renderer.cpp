@@ -615,9 +615,6 @@ namespace influx::renderer
         }
     }
 
-    static rendergraph::rgtexture_readonly_id gbuffer_reads[k_num_gbuffers]{};
-    static rendergraph::rgtexture_readwrite_id resolve_write{};
-
     void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target, const scene& scene)
     {
         rendergraph::rgname gbuffernames[k_num_gbuffers]
@@ -628,7 +625,7 @@ namespace influx::renderer
         };
         for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
-            gbuffer_reads[i] = builder.read_texture(gbuffernames[i]).get();
+            builder.read_texture(gbuffernames[i]).get();
         }
 
         builder.set_viewport(target.get_width(), target.get_height());
@@ -645,12 +642,12 @@ namespace influx::renderer
 
     void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
-        renderer_backend& backend = renderer_backend::get_instance();
-        pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
-        descriptor_manager& descriptor_man = *backend.get_descriptor_manager();
-        compute_pipeline& pipeline = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
-        graphics::commandlist& commandlist = context.get_commandlist();
-        resource_manager& resourceman = backend.get_resource_manager();
+        renderer_backend& backend           = renderer_backend::get_instance();
+        pipeline_manager& pipeline_man      = *backend.get_pipeline_manager();
+        descriptor_manager& descriptor_man  = *backend.get_descriptor_manager();
+        compute_pipeline& pipeline          = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
+        graphics::commandlist& commandlist  = context.get_commandlist();
+        resource_manager& resourceman       = backend.get_resource_manager();
 
         // hot-reload our shaders if necessary:
         pipeline.rebuild(backend.get_device());

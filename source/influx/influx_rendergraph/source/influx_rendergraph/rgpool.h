@@ -57,6 +57,7 @@ namespace influx::rendergraph
 		result<graphics::descriptor_handle> alloc_cpu_handle(rgdescriptor_type type);
 		result<graphics::descriptor_handle> alloc_gpu_srv();
 		result<graphics::descriptor_handle> alloc_gpu_sampler();
+		result<> free_cpu_handle(rgdescriptor_type type, graphics::descriptor_handle handle);
 
 		/* (de)allocating new resources */
 		result<graphics::resource*> allocate_texture_resource(graphics::device&, const texture_desc& args);

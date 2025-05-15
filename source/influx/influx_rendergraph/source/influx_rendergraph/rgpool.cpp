@@ -116,7 +116,13 @@ namespace influx::rendergraph
 	{
 		for (pooled_resource& item : m_texture_pool)
 		{
-			if (!item.m_is_active)
+			const bool are_dimensions_same = 
+				args.m_width == item.m_resource->get_width() &&
+				args.m_heigth== item.m_resource->get_height() &&
+				args.m_depth == item.m_resource->get_depth() &&;
+			const bool is_format_same = args.m_format == item.m_resource->get_format();
+
+			if (!item.m_is_active && are_dimensions_same && is_format_same)
 			{
 				item.m_last_used_frame = m_frame;
 				item.m_is_active = true;
@@ -203,5 +209,18 @@ namespace influx::rendergraph
 	result<graphics::descriptor_handle> rgpool::alloc_gpu_sampler()
 	{
 		return m_sampler_heap->allocate_gpu();
+	}
+
+	result<> rgpool::free_cpu_handle(rgdescriptor_type type, graphics::descriptor_handle handle)
+	{
+		switch (type)
+		{
+		case rgdescriptor_type::render_target: return m_rtv_heap->free_cpu(handle);
+		case rgdescriptor_type::depth_target: return m_dsv_heap->free_cpu(handle);
+		case rgdescriptor_type::read_only: return m_srv_heap->free_cpu(handle);
+		case rgdescriptor_type::read_write: return m_srv_heap->free_cpu(handle);
+		}
+
+		return {};
 	}
 }

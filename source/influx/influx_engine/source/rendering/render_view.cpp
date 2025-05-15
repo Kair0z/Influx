@@ -35,4 +35,8 @@ namespace influx::engine
 	{
 		return m_camera;
 	}
+	math::float4& render_view::get_clear_colour()
+	{
+		return m_clear_colour;
+	}
 }

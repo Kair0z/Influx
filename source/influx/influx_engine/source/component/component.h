@@ -62,6 +62,11 @@ namespace influx::engine
 		transform_component(const math::transform3D & transform)
 			: m_transform{ transform } {}
 
+		void set_identity()
+		{
+			m_transform = math::transform3D::identity();
+		}
+
 		const math::transform3D& get_transform() const
 		{
 			return m_transform;

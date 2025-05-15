@@ -27,6 +27,18 @@ namespace influx::engine::editor
 
 	void scene_editor::on_edit_place()
 	{
+		world& world = get_engine()->get_world();
+		auto entity = world.create_entity();
+		{
+			transform_component& transform = world.create_component<transform_component>(entity);
+			transform.set_identity();
+
+			mesh_component& mesh = world.create_component<mesh_component>(entity);
+			mesh.set_mesh_name("sphere_0");
+
+			render_component& render = world.create_component<render_component>(entity);
+			render.set_view_visibility(e_view_visibility_flags::all);
+		}
 	}
 
 	void scene_editor::on_edit_remove()
@@ -53,6 +65,8 @@ namespace influx::engine::editor
 		m_edit_radial.set_radius(60.0f);
 		m_edit_radial.set_item("place", scene_editor::on_edit_place);
 		m_edit_radial.set_item("remove", scene_editor::on_edit_remove);
+
+		on_edit_place();
 	}
 
 	scene_editor::~scene_editor()
@@ -147,6 +161,7 @@ namespace influx::engine::editor
 
 			const auto current_size = ImGui::GetWindowSize();
 			math::uint2 view_dimensions = { current_size.x, current_size.y };
+			render_view.get_clear_colour() = { 0.1,0.1,0.1,1 };
 			render_view.set_dimensions(view_dimensions);
 			render_view.set_render_enabled(true);
 			render_view.get_camera_transform() = m_camera_transform;

@@ -583,7 +583,7 @@ namespace influx::renderer
         m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_vertexbuffer);
         m_rendergraph->import_buffer("ib_" + title, entry.m_resource->m_indexbuffer);
 
-        log(renderer::e_log::info, "loaded mesh");
+        // log(renderer::e_log::info, "loaded mesh");
     }
 
     // texture

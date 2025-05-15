@@ -55,6 +55,8 @@ namespace influx::engine
 		
 		renderer::camera& get_camera();
 
+		math::float4& get_clear_colour();
+
 		inline void clear_scenes()
 		{
 
