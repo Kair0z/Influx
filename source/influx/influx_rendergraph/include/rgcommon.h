@@ -43,6 +43,19 @@ namespace influx::rendergraph
 		texture_desc(uint32 w, uint32 h)
 			: m_width{ w }, m_heigth{ h } {}
 
+		inline bool is_recycle_match(const texture_desc& other) const
+		{
+			return m_width == other.m_width &&
+				m_heigth == other.m_heigth &&
+				m_depth == other.m_depth &&
+				m_array_size == other.m_array_size &&
+				m_num_mips == other.m_num_mips &&
+				m_sample_count == other.m_sample_count &&
+				m_format == other.m_format &&
+				m_bindflags == other.m_bindflags &&
+				m_allow_uav == other.m_allow_uav;
+		}
+
 		uint32 m_width = 1u;
 		uint32 m_heigth = 1u;
 		uint32 m_depth = 1u;
@@ -72,6 +85,15 @@ namespace influx::rendergraph
 
 	struct buffer_desc final
 	{
+		inline bool is_recycle_match(const buffer_desc& other) const
+		{
+			return m_bytesize == other.m_bytesize &&
+				m_bytestride == other.m_bytestride &&
+				m_flags == other.m_flags &&
+				m_format == other.m_format &&
+				m_bindflags == other.m_bindflags;
+		}
+
 		size_t m_bytesize;
 		size_t m_bytestride;
 		graphics::e_resource_flags m_flags;

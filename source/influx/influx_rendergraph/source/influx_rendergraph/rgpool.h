@@ -24,16 +24,24 @@ namespace influx::rendergraph
 	*/
 	class rgpool final
 	{
-		struct pooled_resource final
+		struct pooled_buffer final
 		{
+			buffer_desc m_desc;
+			graphics::resource* m_resource;
+			uint64 m_last_used_frame;
+			bool m_is_active;
+		};
+		struct pooled_texture final
+		{
+			texture_desc m_desc;
 			graphics::resource* m_resource;
 			uint64 m_last_used_frame;
 			bool m_is_active;
 		};
 
 		uint64 m_frame = 0u;
-		vector<pooled_resource> m_texture_pool;
-		vector<pooled_resource> m_buffer_pool;
+		vector<pooled_texture> m_texture_pool;
+		vector<pooled_buffer> m_buffer_pool;
 		global_config m_config;
 
 		graphics::descriptor_heap* m_srv_heap;
@@ -46,8 +54,6 @@ namespace influx::rendergraph
 		rgpool(graphics::device& device, const global_config& config);
 		~rgpool();
 
-		/* never deallocates, but if a resource expires, */
-		void recycle_resources();
 		void create_descriptor_heaps(graphics::device& device, const global_config&);
 		void free_all_descriptors();
 		void free_all_gpu_descriptors();

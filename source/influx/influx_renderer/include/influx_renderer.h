@@ -32,6 +32,19 @@ struct ImDrawData;
 
 namespace influx::renderer
 {
+	/*
+		global render settings
+		- these can be changed at runtime anytime
+	*/
+	struct render_settings final
+	{
+		enum class cullmode { back, front, none };
+		cullmode m_cullmode = cullmode::back;
+		bool m_wireframe = false;
+	};
+	INFLUX_RENDER_API void set_settings(const render_settings& settings);
+	INFLUX_RENDER_API render_settings get_settings();
+
 	/* 
 		initialize the renderer backend 
 		- optional logger callback
@@ -47,13 +60,19 @@ namespace influx::renderer
 
 		e_render_api m_api_type = e_render_api::dx12;
 
+		render_settings m_init_settings = {};
+
 		// if empty, the default source folder is used
 		string m_shader_source_folder = "";
 	};
+
 	INFLUX_RENDER_API void initialize(const init_args& args);
 	INFLUX_RENDER_API bool is_initialized();
 
-	/* cleanup your resources! past this point it's unsafe to call any of the rest of the API! */
+	/* 
+		cleanup your resources!
+		past this point it's unsafe to call any of the rest of the API! 
+	*/
 	INFLUX_RENDER_API void cleanup();
 
 	/* 
@@ -63,23 +82,26 @@ namespace influx::renderer
 	*/
 	INFLUX_RENDER_API void start_frame();
 
+	/*
+		submits all rendering work recorded since last begin_frame
+		- build & executes the internal render graph
+		- submit the commandlists onto the GPU to kick off work
+		- stalls the current thread until rendering work is finished
+	*/
+	INFLUX_RENDER_API void end_frame();
+
 	/* draw a 3D scene onto a given render target */
-	INFLUX_RENDER_API
-	result<> draw_scene(const scene& scene, const target& target);
+	INFLUX_RENDER_API result<> draw_scene(const scene& scene, const target& target);
 
 	/* draw ImDrawData contents onto a given render target */
-	INFLUX_RENDER_API
-	result<> draw_imgui(ImDrawData const* draw_data, const target& target);
-	INFLUX_RENDER_API 
-	result<> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
+	INFLUX_RENDER_API result<> draw_imgui(ImDrawData const* draw_data, const target& target);
+	INFLUX_RENDER_API result<> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
 
 	/* draw a screen-space scene onto a given render target (sprite rendering)*/
-	INFLUX_RENDER_API
-	result<> draw_2D(const scene2D& scene, const target& target);
+	INFLUX_RENDER_API result<> draw_2D(const scene2D& scene, const target& target);
 
 	/* draw a post-processing stack onto a given render target*/
-	INFLUX_RENDER_API
-	result<> draw_postprocess(const scene_postprocess& scene, const target& target);
+	INFLUX_RENDER_API result<> draw_postprocess(const scene_postprocess& scene, const target& target);
 
 	/* query whether the internal shaders & resources required for render-operations are available */
 	INFLUX_RENDER_API bool can_draw_postprocess();
@@ -102,16 +124,7 @@ namespace influx::renderer
 	{
 		math::vectorf4 m_colour = {};
 	};
-
 	INFLUX_RENDER_API void clear_target(const target&, const clear_args&);
-
-	/*
-		submits all rendering work recorded since last begin_frame
-		- build & executes the internal render graph
-		- submit the commandlists onto the GPU to kick off work
-		- waits until rendering work is finished
-	*/
-	INFLUX_RENDER_API void end_frame();
 
 	/* presents a swapchain tied to a given platform window */
 	struct present_args final
@@ -156,16 +169,6 @@ namespace influx::renderer
 
 	/* returns the signature of internal meshes represented by e_mesh */
 	INFLUX_RENDER_API mesh_id get_mesh_id(e_mesh);
-
-	/* global render settings */
-	struct render_settings final
-	{
-		enum class cullmode { back, front, none };
-		cullmode m_cullmode = cullmode::back;
-		bool m_wireframe = false;
-	};
-	INFLUX_RENDER_API void set_settings(const render_settings& settings);
-	INFLUX_RENDER_API render_settings get_settings();
 
 	/* get ImTextureID from a loaded - in texture */
 	INFLUX_RENDER_API void* get_imgui_texture_id(const string& title);

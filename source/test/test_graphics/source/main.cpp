@@ -103,6 +103,8 @@ int main()
 		commandlist->submit(queue);
 		commandlist->wait_for_completion();
 
+		device->get_memory_info().get();
+
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
 			swapchains[i]->present(pres_args);

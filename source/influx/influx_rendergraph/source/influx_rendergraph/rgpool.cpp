@@ -91,38 +91,12 @@ namespace influx::rendergraph
 		device.release(m_dsv_heap);
 	}
 
-	void rgpool::recycle_resources()
-	{
-		const uint32 frames_until_recycle = m_config.m_frames_until_resource_recycle;
-		for (uint64 i = 0; i < m_texture_pool.size();)
-		{
-			pooled_resource& resource = m_texture_pool[i];
-			const bool is_expired = m_frame > resource.m_last_used_frame + frames_until_recycle;
-
-			if (!resource.m_is_active && is_expired)
-			{
-				// remove element from the texture pool
-				std::swap(m_texture_pool[i], m_texture_pool.back());
-				m_texture_pool.pop_back();
-				break;
-			}
-			else ++i;
-		}
-
-		++m_frame;
-	}
-
 	result<graphics::resource*> rgpool::allocate_texture_resource(graphics::device& device, const texture_desc& args)
 	{
-		for (pooled_resource& item : m_texture_pool)
+		for (pooled_texture& item : m_texture_pool)
 		{
-			const bool are_dimensions_same = 
-				args.m_width == item.m_resource->get_width() &&
-				args.m_heigth== item.m_resource->get_height() &&
-				args.m_depth == item.m_resource->get_depth() &&;
-			const bool is_format_same = args.m_format == item.m_resource->get_format();
-
-			if (!item.m_is_active && are_dimensions_same && is_format_same)
+			// if an item is active && matches most settings of args, just pass the existing resource
+			if (!item.m_is_active && item.m_desc.is_recycle_match(args))
 			{
 				item.m_last_used_frame = m_frame;
 				item.m_is_active = true;
@@ -130,18 +104,18 @@ namespace influx::rendergraph
 			}
 		}
 
-		// create new
-		pooled_resource new_item{};
+		// we failed recycling, time to allocate a new resource
+		pooled_texture new_item{};
 		new_item.m_is_active = true;
 		new_item.m_last_used_frame = m_frame;
-		new_item.m_resource = device.create_resource(translate(args));
+		new_item.m_resource = device.create_resource( translate(args) );
 		m_texture_pool.push_back(new_item);
 		return new_item.m_resource;
 	}
 
 	result<graphics::resource*> rgpool::allocate_buffer_resource(graphics::device& device, const buffer_desc& args)
 	{
-		for (pooled_resource& item : m_buffer_pool)
+		for (pooled_buffer& item : m_buffer_pool)
 		{
 			if (!item.m_is_active)
 			{
@@ -152,7 +126,7 @@ namespace influx::rendergraph
 		}
 
 		// create new
-		pooled_resource new_item{};
+		pooled_buffer new_item{};
 		new_item.m_is_active = true;
 		new_item.m_last_used_frame = m_frame;
 		new_item.m_resource = device.create_resource(translate(args));
@@ -162,7 +136,7 @@ namespace influx::rendergraph
 
 	result<> rgpool::release_texture(graphics::device& device, graphics::resource& resource)
 	{
-		for (pooled_resource& item : m_texture_pool)
+		for (pooled_texture& item : m_texture_pool)
 		{
 			if (item.m_is_active && item.m_resource == &resource)
 			{
@@ -176,7 +150,7 @@ namespace influx::rendergraph
 
 	result<> rgpool::release_buffer(graphics::device& device, graphics::resource& resource)
 	{
-		for (pooled_resource& item : m_buffer_pool)
+		for (pooled_buffer& item : m_buffer_pool)
 		{
 			if (item.m_is_active && item.m_resource == &resource)
 			{

@@ -724,7 +724,7 @@ namespace influx::renderer
     {
         memory_info info{};
 
-        graphics::memory_info graphics_info = mp_device->get_memory_info();
+        graphics::memory_info graphics_info = mp_device->get_memory_info().get();
         info.m_gpu_budget = graphics_info.m_gpu_budget;
         info.m_gpu_usage = graphics_info.m_gpu_usage;
 

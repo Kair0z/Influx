@@ -33,10 +33,12 @@ namespace influx::graphics
 	dx12_device::dx12_device(const device_desc& desc)
 		: device(desc)
 	{
+		// create dxgi factory
 		HRESULT 
 		res = ::CreateDXGIFactory2(0u, IID_PPV_ARGS(&mpdxgi_factory));
 		check(res, "dx12 error: failed creating dxgi factory!");
 
+		// enable the debug layer
 #if INFLUX_DEBUG
 		dx12helpers::set_debug_layer_enabled(true);
 #endif
@@ -52,6 +54,7 @@ namespace influx::graphics
 		mpdx_devices.push_back(
 			dx12helpers::create_logical_device<ID3D12Device>(mpdxgi_adapters[0u]));
 
+		// configure info queue
 #if INFLUX_DEBUG
 		for (uint64 i = 0u; i < mpdx_devices.size(); ++i)
 		{
@@ -194,21 +197,16 @@ namespace influx::graphics
 		return result_infos;
 	}
 
-	memory_info dx12_device::get_memory_info() const
+	result<memory_info> dx12_device::get_memory_info() const
 	{
-		memory_info result_info{};
-
 		DXGI_QUERY_VIDEO_MEMORY_INFO out_info{};
-
 		HRESULT res = ((IDXGIAdapter3*)mpdxgi_adapters[0u])->QueryVideoMemoryInfo(0u, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &out_info);
-		check(res, "dx12 error: QueryVideoMemoryInfo failed!");
+		if (res != S_OK)
+			return result<memory_info>::make_error("IDXGIAdapter3::QueryVideoMemoryInfo failed!");
 
-		if (res == S_OK)
-		{
-			result_info.m_gpu_budget = out_info.Budget;
-			result_info.m_gpu_usage = out_info.CurrentUsage;
-		}
-
+		memory_info result_info{};
+		result_info.m_gpu_budget = out_info.Budget;
+		result_info.m_gpu_usage = out_info.CurrentUsage;
 		return result_info;
 	}
 

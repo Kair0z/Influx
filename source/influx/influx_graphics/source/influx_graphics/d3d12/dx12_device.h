@@ -76,7 +76,7 @@ namespace influx::graphics
 		
 		// misc:
 		virtual vector<physical_device_info> get_gpu_infos() override;
-		virtual memory_info get_memory_info() const override;
+		virtual result<memory_info> get_memory_info() const override;
 		virtual void copy_descriptors(const descriptor_range& source, const descriptor_range& dest, const graphics::e_descriptor_heap_type& heap_type);
 		virtual void* get_native() override final;
 

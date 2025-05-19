@@ -166,41 +166,35 @@ namespace influx::rendergraph
 		graphics::commandlist& commandlist,
 		graphics::device& device)
 	{
-		const bool can_run = execute_validation_checks();
-		if (!can_run) return;
-
-		m_pool->recycle_resources();
+		const bool is_valid = execute_validation_checks();
+		if (!is_valid) return;
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
 			const rglayer& layer = m_layers[layer_idx];
 
-			// create resources & create descriptors/views for said resources
+			// create declared resources & create descriptors/views
 			for (const rgtexture_id& tex_id : layer.m_texture_creates)
 			{
 				rgtexture* texture = get_texture(tex_id);
 				texture->m_resource = m_pool->allocate_texture_resource(device, texture->m_desc).get();
-				create_texture_views(device, tex_id);
-				// todo: set name
+				create_texture_views(device, tex_id).get();
 			}
 			for (const rgbuffer_id& buff_id : layer.m_buffer_creates)
 			{
 				rgbuffer* buffer = get_buffer(buff_id);
 				buffer->m_resource = m_pool->allocate_buffer_resource(device, buffer->m_desc).get();
-				create_buffer_views(device, buff_id);
-				// todo: set name
+				create_buffer_views(device, buff_id).get();
 			}
 
-			// only create views for already created, imported textures
+			// create imported resources descriptors/views
 			for (uint64 i = 0; i < m_textures.size(); ++i)
 			{
-				if (m_textures[i]->m_is_imported) 
-					create_texture_views(device, m_textures[i]->m_id);
+				if (m_textures[i]->m_is_imported) create_texture_views(device, m_textures[i]->m_id);
 			}
 			for (uint64 i = 0; i < m_buffers.size(); ++i)
 			{
-				if (m_buffers[i]->m_is_imported) 
-					create_buffer_views(device, m_buffers[i]->m_id);
+				if (m_buffers[i]->m_is_imported) create_buffer_views(device, m_buffers[i]->m_id);
 			}
 
 			// transition resources to appropriate state
@@ -334,14 +328,12 @@ namespace influx::rendergraph
 			for (const rgtexture_id& tex_id : layer.m_texture_destroys)
 			{
 				rgtexture* texture = get_texture(tex_id);
-				if (texture->is_imported() == false)
-					m_pool->release_texture(device, *texture->m_resource);
+				if (!texture->is_imported()) m_pool->release_texture(device, *texture->m_resource);
 			}
 			for (const rgbuffer_id& buff_id : layer.m_buffer_destroys)
 			{
 				rgbuffer* buffer = get_buffer(buff_id);
-				if (buffer->is_imported() == false)
-					m_pool->release_buffer(device, *buffer->m_resource);
+				if (!buffer->is_imported()) m_pool->release_buffer(device, *buffer->m_resource);
 			}
 		}
 	}

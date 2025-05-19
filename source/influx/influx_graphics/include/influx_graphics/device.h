@@ -99,7 +99,7 @@ namespace influx::graphics
 		virtual void* get_native() = 0;
 
 		virtual vector<physical_device_info> get_gpu_infos() = 0;
-		virtual memory_info get_memory_info() const = 0;
+		virtual result<memory_info> get_memory_info() const = 0;
 
 		bool is_initialized() const;
 		virtual ~device() = default;
