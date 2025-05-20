@@ -187,6 +187,15 @@ namespace influx::renderer
 			texture3D_data,
 			cubemap_data>>;
 
+		graphics::resource* mp_resource;
+		graphics::resource* mp_upload = nullptr;
+		graphics::descriptor_handle m_srv;
+
+		desc_type m_args;
+		dim_type m_current_dimensions;
+		graphics::device* mp_device;
+		debug_name m_debug_name;
+
 	public:
 		inline graphics::resource* get_resource() const
 		{ return mp_resource; }
@@ -259,15 +268,6 @@ namespace influx::renderer
 			graphics::copy_texture_args args{};
 			commandlist.copy_texture(mp_upload, mp_resource, args);
 		}
-
-		graphics::resource* mp_resource;
-		graphics::resource* mp_upload = nullptr;
-		graphics::descriptor_handle m_srv;
-
-		desc_type m_args;
-		dim_type m_current_dimensions;
-		graphics::device* mp_device;
-		debug_name m_debug_name;
 
 		// ~imgui_texid_provider begin
 		virtual void* get_tex_descriptor() const override final { return m_srv; }
