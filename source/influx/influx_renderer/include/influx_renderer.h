@@ -190,4 +190,26 @@ namespace influx::renderer
 		uint32 m_num_pipelines;
 	};
 	INFLUX_RENDER_API pipeline_info get_pipeline_info();
+
+	struct rendergraph_info final
+	{
+		struct pass final
+		{
+			string m_name;
+		};
+		using layer = vector<pass>;
+		vector<layer> m_layers{};
+
+		struct buffer final
+		{
+			string m_name;
+		};
+		struct texture final
+		{
+			string m_name;
+		};
+		vector<buffer> m_buffers{};
+		vector<texture> m_textures{};
+	};
+	INFLUX_RENDER_API rendergraph_info get_rendergraph_info();
 }

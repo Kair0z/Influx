@@ -3,6 +3,18 @@
 
 namespace influx::rendergraph
 {
+	class rgpass;
+
+	struct rgtexture_info final
+	{
+		string m_name;
+	};
+
+	struct rgbuffer_info final
+	{
+		string m_name;
+	};
+
 	class rgchild
 	{
 		friend class rendergraph;
@@ -30,6 +42,7 @@ namespace influx::rendergraph
 		uint32 m_refcount;
 		graphics::resource* m_resource;
 		bool m_is_imported;
+		rgname m_name;
 	};
 
 	class rgtexture final : public rgchild

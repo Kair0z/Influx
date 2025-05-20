@@ -738,6 +738,24 @@ namespace influx::renderer
         return info;
     }
 
+    rendergraph_info renderer_backend::get_rendergraph_info() const
+    {
+        rendergraph_info info{};
+        for (const auto& texture : m_rendergraph->get_textures())
+        {
+            info.m_textures.push_back({
+                .m_name = texture.m_name
+                });
+        }
+        for (const auto& buffer : m_rendergraph->get_buffers())
+        {
+            info.m_buffers.push_back({
+                .m_name = buffer.m_name
+                });
+        }
+        return info;
+    }
+
     void* renderer_backend::get_imgui_texture_id(const string& title)
     {
         if (m_resource_manager->contains<e_resource_type::texture>(title))
@@ -972,6 +990,10 @@ namespace influx::renderer
     pipeline_info get_pipeline_info()
     {
         return renderer_backend::get_instance().get_pipeline_info();
+    }
+    rendergraph_info get_rendergraph_info()
+    {
+        return renderer_backend::get_instance().get_rendergraph_info();
     }
 #pragma endregion
 }

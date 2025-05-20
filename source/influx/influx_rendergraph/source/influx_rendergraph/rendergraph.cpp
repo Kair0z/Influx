@@ -416,6 +416,7 @@ namespace influx::rendergraph
 			new_texture->m_resource = resource;
 			new_texture->m_resource->set_name(name.m_name);
 			new_texture->m_is_imported = true;
+			new_texture->m_name = name;
 			m_textures.emplace_back(new_texture);
 			m_texture_name_to_id_map[name] = new_id;
 			m_id_to_texture_map[new_id] = m_textures.back();
@@ -425,6 +426,7 @@ namespace influx::rendergraph
 			// overwrite existing
 			rgtexture_id id = m_texture_name_to_id_map[name];
 			rgtexture*& texture = m_id_to_texture_map[id];
+			texture->m_name = name;
 			texture->m_desc = get_desc_from_resource(*resource);
 			texture->m_resource = resource;
 		}
@@ -442,6 +444,7 @@ namespace influx::rendergraph
 			new_buffer->m_id = new_id;
 			new_buffer->m_is_imported = true;
 			new_buffer->m_resource = resource;
+			new_buffer->m_name = name;
 			m_buffers.emplace_back(new_buffer);
 			m_buffer_name_to_id_map[name] = new_id;
 			m_id_to_buffer_map[new_id] = m_buffers.back();
@@ -589,6 +592,30 @@ namespace influx::rendergraph
 		return result;
 	}
 
+	vector<rgtexture_info> rendergraph::get_textures() const
+	{
+		vector<rgtexture_info> result{};
+		for (const auto& texture : m_textures)
+		{
+			result.push_back({
+				.m_name = (const char*)texture->m_name
+				});
+		}
+		return result;
+	}
+
+	vector<rgbuffer_info> rendergraph::get_buffers() const
+	{
+		vector<rgbuffer_info> result{};
+		for (const auto& buffer : m_buffers)
+		{
+			result.push_back({
+				.m_name = (const char*)buffer->m_name
+				});
+		}
+		return result;
+	}
+
 	/* creates views (rtv/dsv/srv/samp) based on how the resource will be used in our rendergraph */
 	result<> rendergraph::create_texture_views(graphics::device& device, rgtexture_id id)
 	{
@@ -603,12 +630,14 @@ namespace influx::rendergraph
 		{
 			if (viewdescs[i].m_is_active)
 			{
+				// allocate the handle on the CPU heap
 				const rgdescriptor_type type = static_cast<rgdescriptor_type>(i);
 				if (viewdescs[i].m_is_created == false)
 				{
 					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
 				}
 
+				// write the view onto the handle
 				switch (type)
 				{
 				case rgdescriptor_type::render_target:
@@ -632,6 +661,7 @@ namespace influx::rendergraph
 				viewdescs[i].m_is_created = true;
 			}
 		}
+
 		return {};
 	}
 
@@ -857,10 +887,6 @@ namespace influx::rendergraph
 	}
 
 
-
-
-
-
 	// -- rgpass_builder uses these
 	rgtexture_id rendergraph::declare_texture(const rgname& name, const texture_desc& desc)
 	{
@@ -868,8 +894,10 @@ namespace influx::rendergraph
 		{
 			rgtexture_id new_id = m_textures.size();
 			rgtexture* new_texture = new rgtexture();
+
 			new_texture->m_id = new_id;
 			new_texture->m_desc = desc;
+			new_texture->m_name = name;
 			m_textures.push_back(new_texture);
 
 			m_texture_name_to_id_map[name] = new_id;
@@ -890,9 +918,12 @@ namespace influx::rendergraph
 		{
 			rgbuffer_id new_id = m_buffers.size();
 			rgbuffer* new_buffer = new rgbuffer();
+
 			new_buffer->m_id = new_id;
 			new_buffer->m_desc = desc;
+			new_buffer->m_name = name;
 			m_buffers.push_back(new_buffer);
+
 			m_buffer_name_to_id_map[name] = new_id;
 			m_id_to_buffer_map[new_id] = new_buffer;
 		}

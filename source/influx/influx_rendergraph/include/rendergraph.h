@@ -11,6 +11,7 @@
 #include "core/container/vector.h"
 #include "core/container/map.h"
 #include "core/result.h"
+#include "core/pointer.h"
 
 // influx::graphics
 #include "influx_graphics/descriptors.h"
@@ -22,6 +23,7 @@ namespace influx::graphics
 
 // influx::rendergraph
 #include "rgcommon.h"
+#include "rgresources.h"
 #include "rgpass.h"
 
 namespace influx::rendergraph
@@ -159,6 +161,9 @@ namespace influx::rendergraph
 		INFLUX_RG_API string make_dump();
 		INFLUX_RG_API string make_resources_dump();
 		
+		INFLUX_RG_API vector<rgtexture_info> get_textures() const;
+		INFLUX_RG_API vector<rgbuffer_info> get_buffers() const;
+
 	private:
 		global_config m_config{};
 		rgpool* m_pool{};

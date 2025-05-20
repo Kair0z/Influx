@@ -31,9 +31,23 @@ namespace influx::engine
 	public:
 		virtual void on_run() override
 		{
+			// rendergraph info
+			const auto& rendergraph_info = renderer::get_rendergraph_info();
+			ImGui::Text("resources:");
+			for (const auto& texture : rendergraph_info.m_textures)
+			{
+				ImGui::Text("texture: %s", texture.m_name.c_str());
+			}
+			for (const auto& buffer : rendergraph_info.m_buffers)
+			{
+				ImGui::Text("buffer: %s", buffer.m_name.c_str());
+			}
+
+			// pipeline info
 			const auto& pipeline_info = renderer::get_pipeline_info();
 			ImGui::Text("num_pipelines: %i", pipeline_info.m_num_pipelines);
 
+			// memory info
 			const auto& memory_info = renderer::get_memory_info();
 			const float video_mem_used = memory_info.m_gpu_usage / (float)(1024 * 1024 * 1024);
 			const float video_mem_budget = memory_info.m_gpu_budget / (float)(1024 * 1024 * 1024);

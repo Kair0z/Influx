@@ -70,15 +70,19 @@ namespace influx::rendergraph
 
 	struct texture_view_desc final
 	{
+		/* is texture view expected in a pass */
 		bool m_is_active = false;
+		
+		/* is texture view created already */
 		bool m_is_created = false;
+
 		uint32 m_first_slice = 0u;
 		uint32 m_num_slices = uint32(-1);
 		uint32 m_first_mip = 0u;
 		uint32 m_num_mips = uint32(-1);
 
-		// flags
-		// channel mapping
+		// todo: flags
+		// todo: channel mapping
 
 		std::strong_ordering operator<=>(const texture_view_desc& other) const = default;
 	};
