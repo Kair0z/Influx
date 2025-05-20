@@ -517,18 +517,18 @@ namespace influx::renderer
         gbuffer_desc.m_width = target.get_width();
         gbuffer_desc.m_heigth = target.get_height();
         gbuffer_desc.m_format = graphics::e_format::rgba_u32;
-        builder.declare_texture(RGNAME("gbuffer_a"), gbuffer_desc);
+        builder.declare_texture("gbuffer_a", gbuffer_desc);
 
         gbuffer_desc.m_format = graphics::e_format::u32;
-        builder.declare_texture(RGNAME("gbuffer_b"), gbuffer_desc);
-        builder.declare_texture(RGNAME("gbuffer_c"), gbuffer_desc);
+        builder.declare_texture("gbuffer_b", gbuffer_desc);
+        builder.declare_texture("gbuffer_c", gbuffer_desc);
 
         rendergraph::rgaccess access{};
         access.m_load = rendergraph::e_rg_load::clear;
         access.m_store = rendergraph::e_rg_store::preserve;
-        builder.write_rendertarget(RGNAME("gbuffer_a"), access);
-        builder.write_rendertarget(RGNAME("gbuffer_b"), access);
-        builder.write_rendertarget(RGNAME("gbuffer_c"), access);
+        builder.write_rendertarget("gbuffer_a", access);
+        builder.write_rendertarget("gbuffer_b", access);
+        builder.write_rendertarget("gbuffer_c", access);
 
         if (target.has_depth_stencil())
         {
@@ -619,9 +619,9 @@ namespace influx::renderer
     {
         rendergraph::rgname gbuffernames[k_num_gbuffers]
         {
-            RGNAME("gbuffer_a"),
-            RGNAME("gbuffer_b"),
-            RGNAME("gbuffer_c")
+            "gbuffer_a",
+            "gbuffer_b",
+            "gbuffer_c"
         };
         for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
@@ -737,7 +737,7 @@ namespace influx::renderer
         {
             execute_basepass(context, target, scene);
         });
-        basepass->set_name(RGNAME("basepass"));
+        basepass->set_name("basepass");
        
         // | PROXY PASS
         // if we're directly writing to the swapchain, we need to write to a intermediate that allows for uav writes
@@ -772,7 +772,7 @@ namespace influx::renderer
                 graphics::resource* dst_resource = context.get_copydst_texture(m_uav_proxy_name).get().m_resource;
                 context.get_commandlist().copy_resource(src_resource, dst_resource);
             });
-            proxypass->set_name(RGNAME("target_to_uav"));
+            proxypass->set_name("target_to_uav");
         }
 
         // | RESOLVE PASS
@@ -786,7 +786,7 @@ namespace influx::renderer
         {
             execute_resolvepass(ctx, target, scene);
         });
-        resolvepass->set_name(RGNAME("resolvepass"));
+        resolvepass->set_name("resolvepass");
 
         // | PROXY PASS
         // | proxy -> target
@@ -805,7 +805,7 @@ namespace influx::renderer
                 graphics::resource* dst_resource = context.get_copydst_texture(target.get_rendergraph_name()).get().m_resource;
                 context.get_commandlist().copy_resource(src_resource, dst_resource);
             });
-            proxypass->set_name(RGNAME("uav_to_target"));
+            proxypass->set_name("uav_to_target");
         }
 
         // | POST PROCESSING PASS
@@ -865,7 +865,7 @@ namespace influx::renderer
                 });
             });
 
-            pass->set_name(RGNAME("draw_debug"));
+            pass->set_name("draw_debug");
         }
     }
 }

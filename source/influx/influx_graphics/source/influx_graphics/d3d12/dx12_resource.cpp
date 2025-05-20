@@ -38,7 +38,7 @@ namespace influx::graphics
 
 	void dx12_resource::set_name_impl(const debug_name& name)
 	{
-		mpdx_resource->SetName(to_wstring(name.get()).c_str());
+		mpdx_resource->SetName(to_wstring(string(name)).c_str());
 	}
 
 	bool dx12_resource::allows_uav() const

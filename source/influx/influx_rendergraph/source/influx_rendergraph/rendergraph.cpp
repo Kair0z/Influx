@@ -359,16 +359,16 @@ namespace influx::rendergraph
 
 	rgpass* rendergraph::add_copypass(graphics::resource* source, graphics::resource* dest, bool keep_source)
 	{
-		import_texture(dest->get_name().get(), dest);
-		import_texture(source->get_name().get(), source);
+		import_texture(dest->get_name(), dest);
+		import_texture(source->get_name(), source);
 
 		static rgtex_copysrc_id src_tex_id{};
 		static rgtex_copydst_id dst_tex_id{};
 		auto* pass = add_pass( e_rgpass_type::compute,
 			[&source, &dest, keep_source](rgpass_builder& builder)
 			{
-				src_tex_id = builder.read_copysrc_texture(source->get_name().get()).get();
-				dst_tex_id = builder.write_copydst_texture(dest->get_name().get()).get();
+				src_tex_id = builder.read_copysrc_texture(source->get_name()).get();
+				dst_tex_id = builder.write_copydst_texture(dest->get_name()).get();
 				builder.set_viewport(dest->get_width(), dest->get_height());
 			},
 			[](rgpass_context& context) 
@@ -378,13 +378,13 @@ namespace influx::rendergraph
 				context.get_commandlist().copy_resource(src_resource, dst_resource);
 			});
 
-		pass->set_name(RGNAME("copy"));
+		pass->set_name("copy");
 		return pass;
 	}
 
 	rgpass* rendergraph::add_clear_pass(graphics::resource* dest, const clear_args& args)
 	{
-		import_texture(dest->get_name().get(), dest);
+		import_texture(dest->get_name(), dest);
 
 		auto* pass = add_pass(e_rgpass_type::graphics,
 			[dest, &args](rgpass_builder& builder)
@@ -393,12 +393,12 @@ namespace influx::rendergraph
 				access.m_load = e_rg_load::clear;
 				access.m_store = e_rg_store::preserve;
 				access.m_load_clear.m_colour = args.m_colour;
-				builder.write_rendertarget(dest->get_name().get(), access);
+				builder.write_rendertarget(dest->get_name(), access);
 				builder.set_viewport(dest->get_width(), dest->get_height());
 			},
 			[](rgpass_context& context) {});
 
-		pass->set_name(RGNAME("clear"));
+		pass->set_name("clear");
 		return pass;
 	}
 
@@ -414,7 +414,7 @@ namespace influx::rendergraph
 			new_texture->m_desc = get_desc_from_resource(*resource);
 			new_texture->m_id = new_id;
 			new_texture->m_resource = resource;
-			new_texture->m_resource->set_name(name.m_name);
+			new_texture->m_resource->set_name(name);
 			new_texture->m_is_imported = true;
 			new_texture->m_name = name;
 			m_textures.emplace_back(new_texture);
@@ -552,7 +552,7 @@ namespace influx::rendergraph
 			uint32 counter = 0u;
 			for (rgpass& pass : layer.m_passes)
 			{
-				result += pass.m_name.m_namestr;
+				result;
 				result += "\t";
 
 				counter++;

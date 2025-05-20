@@ -41,7 +41,7 @@ namespace influx::renderer
 	// constructs a target from create_args, allocating new graphics resources
 	target::target(graphics::device* device, const target_create_args& args)
 		: mp_device{device}
-		, m_args{args}
+		, m_createargs{args}
 	{
 		influx_assert(args.m_has_colour || args.m_has_depth_stencil);
 
@@ -72,8 +72,8 @@ namespace influx::renderer
 		graphics::swapchain* swapchain, 
 		uint8 swapchain_index)
 	{
-		m_args.m_has_colour = true;
-		m_args.m_has_depth_stencil = false;
+		m_createargs.m_has_colour = true;
+		m_createargs.m_has_depth_stencil = false;
 
 		influx_assert(swapchain_index < swapchain->get_num_backbuffers());
 
@@ -83,8 +83,8 @@ namespace influx::renderer
 		m_srv_cpu = renderer_backend::get_descriptor_manager()->create_srv(mp_resource);
 		m_dsv_cpu = nullptr;
 		
-		m_args.m_width = swapchain->get_dimensions().x;
-		m_args.m_heigth = swapchain->get_dimensions().y;
+		m_createargs.m_width = swapchain->get_dimensions().x;
+		m_createargs.m_heigth = swapchain->get_dimensions().y;
 		m_current_dimensions = swapchain->get_dimensions();
 
 		mp_device = device;
@@ -92,15 +92,13 @@ namespace influx::renderer
 		m_is_swapchain_target = true;
 	}
 
-	string target::get_rendergraph_name() const
+	debug_name target::get_rendergraph_name() const
 	{
-		string id_string = to_string(m_id.m_uid);
-		return "target_" + id_string;
+		return "target_" + string(get_name());
 	}
-	string target::get_depth_rendergraph_name() const
+	debug_name target::get_depth_rendergraph_name() const
 	{
-		string id_string = to_string(m_id.m_uid);
-		return "target_depth_" + id_string;
+		return "depth_" + string(get_name());
 	}
 
 	target::~target()
@@ -181,7 +179,7 @@ namespace influx::renderer
 
 	bool target::is_depth_only() const
 	{
-		return !m_args.m_has_colour && m_args.m_has_depth_stencil;
+		return !m_createargs.m_has_colour && m_createargs.m_has_depth_stencil;
 	}
 
 	void target::resize(const target& target)
@@ -202,7 +200,7 @@ namespace influx::renderer
 			// update size:
 			m_current_dimensions = dimensions;
 
-			if (m_args.m_has_colour)
+			if (m_createargs.m_has_colour)
 			{
 				// create new resource
 				graphics::tex2D_desc desc = get_default_color_desc(dimensions);
@@ -211,7 +209,7 @@ namespace influx::renderer
 				recreate_srv();
 			}
 
-			if (m_args.m_has_depth_stencil)
+			if (m_createargs.m_has_depth_stencil)
 			{
 				graphics::tex2D_desc desc = get_default_depth_desc(dimensions);
 				mp_depth_resource = mp_device->create_resource(desc);
@@ -255,6 +253,8 @@ namespace influx::renderer
 		{
 			mp_depth_resource->set_name(name);
 		}
+
+		m_createargs.m_name = name;
 	}
 
 	const debug_name& target::get_name() const

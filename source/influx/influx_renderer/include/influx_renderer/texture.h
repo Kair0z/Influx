@@ -272,7 +272,7 @@ namespace influx::renderer
 		// ~imgui_texid_provider begin
 		virtual void* get_tex_descriptor() const override final { return m_srv; }
 		virtual void* get_tex_resource() const override final { return mp_resource; };
-		virtual string get_rendergraph_id() const override final { return ""; };
+		virtual debug_name get_rendergraph_id() const override final { return m_debug_name; };
 		// ~imgui_texid_provider end
 		
 		// only backend can create textures

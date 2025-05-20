@@ -184,8 +184,10 @@ namespace influx::rendergraph
 	};
 
 	// -- rgname
-	// in debug builds, keeps an actual string
-	// in everything else, keeps a hash of the string that was passed on creation
+#if 1
+	using rgname = debug_name;
+
+#else
 	struct rgname final
 	{
 		static constexpr uint64 k_invalid_hash = uint64(-1);
@@ -222,11 +224,7 @@ namespace influx::rendergraph
 			return m_namehash != k_invalid_hash;
 		}
 	};
-
-	inline bool operator==(const rgname& name1, const rgname& name2)
-	{
-		return name1.m_namehash == name2.m_namehash;
-	}
+#endif
 
 	// -- handles
 	using rghandle = uint64;
@@ -409,13 +407,6 @@ ENABLE_ENUM_BIT_OPERATORS(influx::rendergraph::e_rgpass_flags);
 // -- hashes
 namespace std
 {
-	template <> struct hash<influx::rendergraph::rgname>
-	{
-		influx::uint64 operator()(const influx::rendergraph::rgname& res_name) const
-		{
-			return hash<decltype(res_name.m_namehash)>()(res_name.m_namehash);
-		}
-	};
 	template <> struct hash<influx::rendergraph::rgtexture_id>
 	{
 		influx::uint64 operator()(const influx::rendergraph::rgtexture_id& h) const

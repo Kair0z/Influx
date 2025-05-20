@@ -187,7 +187,7 @@ namespace influx::renderer
         using result_type = result<target*>;
 
         target* new_target = new target(mp_device, args);
-        m_targets[new_target->m_id] = new_target;
+        m_targets[new_target->get_name()] = new_target;
 
         auto res = import_to_graph(*new_target);
         influx_assert(res.is_success());
@@ -238,16 +238,14 @@ namespace influx::renderer
         const uint8 num_swapchain_buffers = swapchain.mp_swapchain->get_num_backbuffers();
         for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
         {
-            string target_name = "wintar_" + swapchain.m_windowtitle + "_" + to_string(i);
+            string target_name = "bb" + swapchain.m_windowtitle + "_" + std::to_string(i);
             target* new_target = new target(mp_device, swapchain.mp_swapchain, i);
             new_target->set_name(target_name);
 
-            target_id new_id{ target_name };
-            new_target->m_id = new_id;
-            m_targets[new_id] = new_target;
+            // add to book keeping
+            m_targets[new_target->get_name()] = new_target;
 
             import_to_graph(*new_target);
-
             swapchain.m_targets.push_back(new_target);
         }
     }
@@ -272,7 +270,7 @@ namespace influx::renderer
         }
         
         swapchain& swapchain = m_swapchains[&window];
-        swapchain.m_windowtitle = window.get_title() + to_string(reinterpret_cast<uint64>(&window));
+        swapchain.m_windowtitle = window.get_title(); /*  +to_string(reinterpret_cast<uint64>(&window)); */
 
         // create the swapchain for the first time
         if (swapchain.mp_swapchain == nullptr)
@@ -345,7 +343,7 @@ namespace influx::renderer
             rendergraph::rgaccess access{};
             access.m_load = rendergraph::e_rg_load::preserve;
             access.m_store = rendergraph::e_rg_store::preserve;
-            builder.write_rendertarget(target.get_resource()->get_name().get(), access);
+            builder.write_rendertarget(target.get_resource()->get_name(), access);
             builder.set_viewport(target.get_width(), target.get_height());
 
             for (const auto& texture : texture_dependencies)
@@ -359,7 +357,7 @@ namespace influx::renderer
             mp_imgui->render(&context.get_commandlist(), *draw_data, target);
         });
 
-        pass->set_name(RGNAME("draw_imgui"));
+        pass->set_name("draw_imgui");
 
         return true;
     }
@@ -410,7 +408,7 @@ namespace influx::renderer
                 mp_imgui->render(&context.get_commandlist(), draw, target);
             });
 
-            const string name = string("draw_imgui_") + target.get_name().get();
+            const string name = string("draw_imgui_") + string(target.get_name());
             const rendergraph::rgname rgname{ name };
             pass->set_name(rgname);
         }
@@ -474,7 +472,7 @@ namespace influx::renderer
             graphics::resource* dst_resource = context.get_copydst_texture(dest.get_rendergraph_name()).get().m_resource;
             context.get_commandlist().copy_resource(src_resource, dst_resource);
         });
-        pass->set_name(RGNAME("copy"));
+        pass->set_name("copy");
     }
 
     void renderer_backend::clear_target(const target& target, const clear_args& args)
@@ -493,7 +491,7 @@ namespace influx::renderer
         },
         [](rendergraph::rgpass_context& context) {});
 
-        pass->set_name(RGNAME("clear"));
+        pass->set_name("clear");
     }
 
     void renderer_backend::present_all(const present_args& args)
@@ -580,8 +578,8 @@ namespace influx::renderer
         auto& entry = m_resource_manager->load<e_resource_type::mesh>(title, new_copy, reload);
 
         // keep track in the rendergraph
-        m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_vertexbuffer);
-        m_rendergraph->import_buffer("ib_" + title, entry.m_resource->m_indexbuffer);
+        // m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_vertexbuffer);
+        // m_rendergraph->import_buffer("ib_" + title, entry.m_resource->m_indexbuffer);
 
         // log(renderer::e_log::info, "loaded mesh");
     }
@@ -592,7 +590,7 @@ namespace influx::renderer
         auto& entry = m_resource_manager->load<e_resource_type::texture>(title, data, reload);
 
         // keep track in the rendergraph
-        m_rendergraph->import_texture("texture_" + title, entry.m_resource->mp_resource);
+        // m_rendergraph->import_texture("texture_" + title, entry.m_resource->mp_resource);
 
         log(renderer::e_log::info, "loaded texture");
     }
@@ -601,7 +599,7 @@ namespace influx::renderer
     {
         auto& entry = m_resource_manager->load<e_resource_type::cubemap>(title, data, reload);
 
-        m_rendergraph->import_texture("cubetex_" + title, entry.m_resource->mp_resource);
+        // m_rendergraph->import_texture("cubetex_" + title, entry.m_resource->mp_resource);
 
         log(renderer::e_log::info, "loaded cubemap");
     }

@@ -2,6 +2,7 @@
 
 // influx::core
 #include "core/basetypes.h"
+#include "core/string.h"
 
 // influx::renderer
 #include "influx_renderer/types.h"
@@ -26,37 +27,10 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
-	struct target_id final
-	{
-		explicit target_id()
-		{
-			// generate random uid
-			std::random_device rd;
-			std::mt19937 gen(rd());  // Mersenne Twister 32-bit
-			std::uniform_int_distribution<uint32_t> dis;
-			m_uid = dis(gen);
-		}
-
-		explicit target_id(const string& name)
-			: m_uid{ (uint32)std::hash<string>()(name) }
-			, m_name{ name }
-		{
-
-		}
-
-		uint32 m_uid = 0u;
-#if INFLUX_DEBUG 
-		string m_name{};
-#endif
-	};
-
-	inline bool operator==(const target_id& id0, const target_id& id1)
-	{
-		return id0.m_uid == id1.m_uid;
-	}
-
 	struct target_create_args final
 	{
+		debug_name m_name{};
+
 		target_create_args() = default;
 		target_create_args(uint32 w, uint32 h)
 			: m_width{ w }, m_heigth{ h } {}
@@ -93,15 +67,15 @@ namespace influx::renderer
 
 		INFLUX_RENDER_API bool is_swapchain_target() const;
 
-		INFLUX_RENDER_API string get_rendergraph_name() const;
-		INFLUX_RENDER_API string get_depth_rendergraph_name() const;
+		INFLUX_RENDER_API debug_name get_rendergraph_name() const;
+		INFLUX_RENDER_API debug_name get_depth_rendergraph_name() const;
 		
 		INFLUX_RENDER_API ~target();
 
 		// ~imgui_texid_provider begin
 		virtual void* get_tex_descriptor() const override final { return m_srv_cpu; }
 		virtual void* get_tex_resource() const override final { return mp_resource; };
-		virtual string get_rendergraph_id() const override final { return get_rendergraph_name(); };
+		virtual debug_name get_rendergraph_id() const override final { return get_rendergraph_name(); };
 		// ~imgui_texid_provider end
 
 	private:
@@ -128,20 +102,11 @@ namespace influx::renderer
 		graphics::descriptor_handle m_srv_cpu;
 		bool m_is_swapchain_target = false;
 
-		target_create_args m_args;
+		target_create_args m_createargs;
 		math::vectoru2 m_current_dimensions;
 		graphics::device* mp_device;
-
-		target_id m_id;
 
 		// only backend can create targets
 		friend class renderer_backend;
 	};
 }
-template <> struct std::hash<influx::renderer::target_id>
-{
-	influx::uint64 operator()(const influx::renderer::target_id& id) const
-	{
-		return std::hash<decltype(id.m_uid)>()(id.m_uid);
-	}
-};

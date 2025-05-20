@@ -6,6 +6,8 @@
 #include <string>
 #include <algorithm>
 #include <sstream>
+#include <cstdio> // snprintf
+#include <cinttypes> // PRIu64
 
 #include "core/container/vector.h"
 #include "core/basetypes.h"
@@ -90,55 +92,99 @@ namespace influx
 	// string that is only represented as string in debug
 	class debug_name final
 	{
-	public:
-#if INFLUX_DEBUG
-		using name = string;
-#else
-		using name = uint8;
-#endif
+	private:
+		static constexpr uint64 k_invalid = (uint64)-1;
+		static constexpr uint64 k_num_digits_per_uint64 = 20; 
+		static constexpr uint64 k_hashcstr_buffersize = k_num_digits_per_uint64 + 1u;
 
+#if INFLUX_DEBUG
+		string m_string = "";
+#endif
+		uint64 m_hash = k_invalid;
+		char m_hash_cstr[k_num_digits_per_uint64]{};
+
+		inline void format_hash()
+		{
+			int written = std::snprintf(m_hash_cstr, sizeof(m_hash_cstr), "%" PRIu64, m_hash);
+			if (written < 0 || written >= sizeof(m_hash_cstr))
+			{
+				// Handle error (buffer too small or formatting failed)
+			}
+		}
+
+	public:
 		debug_name() = default;
+		debug_name(const char* cstr)
+		{
+			set(cstr);
+		}
+		debug_name(const string& str)
+		{
+			set(str);
+		}
+
+		// set the hash manually
+		inline void set(uint64 hash)
+		{
+			m_hash = hash;
+#if INFLUX_DEBUG
+			m_string = to_string(hash);
+#endif
+			format_hash();
+		}
+
+		inline void set(const char* cstr)
+		{
+			set(string(cstr));
+		}
+
+		// set the string manually
+		inline void set(const string& str)
+		{
+			m_hash = std::hash<string>()(str);
+#if INFLUX_DEBUG
+			m_string = str;
+#endif
+			format_hash();
+		}
+
+		inline uint64 get_hash() const
+		{
+			return m_hash;
+		}
+
+		inline bool is_valid() const
+		{
+			return m_hash != k_invalid;
+		}
+
+		inline operator char const* () const
+		{ 
+#if INFLUX_DEBUG
+			return m_string.c_str();
+#else
+			return m_hash_cstr;
+#endif
+		}
+
 		debug_name(const debug_name&) = default;
 		debug_name(debug_name&&) = default;
 		debug_name& operator=(const debug_name&) = default;
 		debug_name& operator=(debug_name&&) = default;
 		~debug_name() = default;
-
-#if INFLUX_DEBUG
-		debug_name(const string& name) { set(name); }
-		debug_name(const char* name) { set(name); }
-#else
-		debug_name(const string& name) { set(""); }
-		debug_name(const char* name) { set(""); }
-#endif
-
-#if INFLUX_DEBUG
-		inline void set(const name& name)
-		{
-			m_name = name;
-		}
-
-		inline const name& get() const
-		{
-			return m_name;
-		}
-
-		// treating this class as a string in non-debug config will result in a no-op
-#else
-		inline void set(const string& str)
-		{
-
-		}
-
-		inline string get() const
-		{
-			return "";
-		}
-#endif
-
-	private:
-		name m_name;
 	};
+	inline bool operator==(const debug_name& name1, const debug_name& name2)
+	{
+		return name1.get_hash() == name2.get_hash();
+	}
+
 }
+template <> struct std::hash<influx::debug_name>
+{
+	inline influx::uint64 operator()(const influx::debug_name& res_name) const
+	{
+		return std::hash<decltype(res_name.get_hash())>()(res_name.get_hash());
+	}
+};
 
 #endif

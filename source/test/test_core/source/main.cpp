@@ -22,6 +22,7 @@ namespace glm
 #include "core/math/quaternion.h"
 #include "core/math/rotor.h"
 #include "core/result.h"
+#include "core/string.h"
 
 using namespace influx;
 
@@ -151,6 +152,10 @@ void test_math_rotor_all()
 }
 #pragma endregion
 
+void test_names()
+{
+
+}
 void test_result()
 {
 	result<float> float_result = { 1.0f };

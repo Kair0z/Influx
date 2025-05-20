@@ -163,7 +163,7 @@ namespace influx::renderer
 		string m_shadersource_directory = "";
 
 		// targets
-		umap<target_id, target*> m_targets{};
+		umap<debug_name, target*> m_targets{};
 
 		// rendergraph
 		rendergraph::rendergraph* m_rendergraph = nullptr;
