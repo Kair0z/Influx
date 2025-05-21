@@ -173,11 +173,6 @@ namespace influx::engine
 		m_streamer.stream(cont_man);
 	}
 
-	void* render_manager::get_loaded_texture_id(const string& name) const
-	{
-		return m_streamer.get_loaded_texture_id(name);
-	}
-
 	bool render_manager::is_debug_render_enabled() const
 	{
 		const bool user = g_global_settings.m_render_debug;

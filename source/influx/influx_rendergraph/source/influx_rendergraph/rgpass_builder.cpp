@@ -54,8 +54,14 @@ namespace influx::rendergraph
 
 	result<rgtex_copysrc_id> rgpass_builder::read_copysrc_texture(const rgname& name)
 	{
-		rgtex_copysrc_id copy_src_id = m_graph.read_copysrc_texture(name);
-		rgtexture_id res_id(copy_src_id);
+		auto copy_src_id = m_graph.read_copysrc_texture(name);
+		if (copy_src_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgtex_copysrc_id>::make_error("read_copysrc_texture failed!");
+		}
+
+		rgtexture_id res_id(copy_src_id.get());
 
 		// register a state transition
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::copy_src;
@@ -67,7 +73,13 @@ namespace influx::rendergraph
 	}
 	result<rgtex_copydst_id> rgpass_builder::write_copydst_texture(const rgname& name)
 	{
-		rgtex_copydst_id copy_dest_id = m_graph.write_copydst_texture(name);
+		auto copy_dest_id = m_graph.write_copydst_texture(name);
+		if (copy_dest_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgtex_copydst_id>::make_error("write_copydst_texture failed!");
+		}
+
 		rgtexture_id res_id(copy_dest_id);
 		rgtexture* texture = m_graph.get_texture(res_id);
 
@@ -93,7 +105,13 @@ namespace influx::rendergraph
 	}
 	result<rgbuf_copysrc_id> rgpass_builder::read_copysrc_buffer(const rgname& name)
 	{
-		rgbuf_copysrc_id copy_src_id = m_graph.read_copysrc_buffer(name);
+		auto copy_src_id = m_graph.read_copysrc_buffer(name);
+		if (copy_src_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgbuf_copysrc_id>::make_error("read_copysrc_buffer failed!");
+		}
+
 		rgbuffer_id res_id(copy_src_id);
 
 		// register a state transition
@@ -106,7 +124,13 @@ namespace influx::rendergraph
 	}
 	result<rgbuf_copydst_id> rgpass_builder::write_copydst_buffer(const rgname& name)
 	{
-		rgbuf_copydst_id copy_dst_id = m_graph.write_copydst_buffer(name);
+		auto copy_dst_id = m_graph.write_copydst_buffer(name);
+		if (copy_dst_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgbuf_copydst_id>::make_error("write_copydst_buffer failed!");
+		}
+
 		rgbuffer_id res_id(copy_dst_id);
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 
@@ -129,7 +153,13 @@ namespace influx::rendergraph
 	}
 	result<rgbuf_indargs_id> rgpass_builder::read_indirect_args_buffer(const rgname& name)
 	{
-		rgbuf_indargs_id ind_args_id = m_graph.read_indirect_args_buffer(name);
+		auto ind_args_id = m_graph.read_indirect_args_buffer(name);
+		if (ind_args_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgbuf_indargs_id>::make_error("read_indirect_args_buffer failed!");
+		}
+
 		rgbuffer_id res_id(ind_args_id);
 
 		// register a state transition
@@ -142,7 +172,13 @@ namespace influx::rendergraph
 	}
 	result<rgbuf_index_id> rgpass_builder::read_index_buffer(const rgname& name)
 	{
-		rgbuf_index_id index_id = m_graph.read_index_buffer(name);
+		auto index_id = m_graph.read_index_buffer(name);
+		if (index_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgbuf_index_id>::make_error("read_index_buffer failed!");
+		}
+
 		rgbuffer_id res_id(index_id);
 
 		// register a state transition
@@ -247,6 +283,11 @@ namespace influx::rendergraph
 		return write_buffer_impl(name, counter_name, view_desc);
 	}
 
+	void rgpass_builder::register_error_to_current_pass()
+	{
+		m_pass.m_num_errors += 1u;
+	}
+
 	void rgpass_builder::set_viewport(uint32 width, uint32 height)
 	{
 		m_pass.m_width = width;
@@ -274,8 +315,14 @@ namespace influx::rendergraph
 #pragma region impl
 	result<rgtexture_readonly_id> rgpass_builder::read_texture_impl(const rgname& name, rgread_access read_access, const texture_view_desc& view_desc)
 	{
-		rgtexture_readonly_id read_id = m_graph.read_texture(name, view_desc);
-		rgtexture_id res_id = read_id.get_resource_id();
+		auto read_id = m_graph.read_texture(name, view_desc);
+		if (read_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgtexture_readonly_id>::make_error("read_texture failed!");
+		}
+
+		rgtexture_id res_id = read_id.get().get_resource_id();
 
 		// register the state transition
 		switch (m_pass.m_type)
@@ -304,8 +351,14 @@ namespace influx::rendergraph
 	{
 		using result_type = result<rgtexture_readwrite_id>;
 
-		rgtexture_readwrite_id rw_id = m_graph.write_texture(name, view_desc);
-		rgtexture_id res_id = rw_id.get_resource_id();
+		auto rw_id = m_graph.write_texture(name, view_desc);
+		if (rw_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result_type::make_error("write_texture failed!");
+		}
+
+		rgtexture_id res_id = rw_id.get().get_resource_id();
 		rgtexture* texture = m_graph.get_texture(res_id);
 
 		if (texture->m_desc.m_allow_uav == false)
@@ -335,8 +388,14 @@ namespace influx::rendergraph
 	}
 	result<rgrendertarget_id> rgpass_builder::write_rendertarget_impl(const rgname& name, rgaccess load_store_op, const texture_view_desc& view_desc)
 	{
-		rgrendertarget_id rt_id = m_graph.rendertarget(name, view_desc);
-		rgtexture_id res_id = rt_id.get_resource_id();
+		auto rt_id = m_graph.rendertarget(name, view_desc);
+		if (rt_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgrendertarget_id>::make_error("rendertarget failed!");
+		}
+
+		rgtexture_id res_id = rt_id.get().get_resource_id();
 		rgtexture* texture = m_graph.get_texture(res_id);
 
 		// register state transition
@@ -361,8 +420,14 @@ namespace influx::rendergraph
 	}
 	result<rgdepthtarget_id> rgpass_builder::write_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
 	{
-		rgdepthtarget_id dt_id = m_graph.depthtarget(name, view_desc);
-		rgtexture_id res_id = dt_id.get_resource_id();
+		auto dt_id = m_graph.depthtarget(name, view_desc);
+		if (dt_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgdepthtarget_id>::make_error("depthtarget_write failed!");
+		}
+
+		rgtexture_id res_id = dt_id.get().get_resource_id();
 		rgtexture* texture = m_graph.get_texture(res_id);
 
 		// register the state transition
@@ -388,8 +453,14 @@ namespace influx::rendergraph
 	}
 	result<rgdepthtarget_id> rgpass_builder::read_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
 	{
-		rgdepthtarget_id dt_id = m_graph.depthtarget(name, view_desc);
-		rgtexture_id res_id = dt_id.get_resource_id();
+		auto dt_id = m_graph.depthtarget(name, view_desc);
+		if (dt_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgdepthtarget_id>::make_error("depthtarget_read failed!");
+		}
+
+		rgtexture_id res_id = dt_id.get().get_resource_id();
 
 		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::depth_readonly;
 		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
@@ -397,13 +468,22 @@ namespace influx::rendergraph
 
 		m_pass.m_texture_reads.push_back(res_id);
 		rgtexture* texture = m_graph.get_texture(res_id);
-		if (texture->is_imported()) m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+
+		if (texture->is_imported()) 
+			m_pass.m_flags |= e_rgpass_flags::force_no_cull;
+
 		return dt_id;
 	}
 	result<rgbuffer_readonly_id> rgpass_builder::read_buffer_impl(const rgname& name, rgread_access read_access, const buffer_view_desc& view_desc)
 	{
-		rgbuffer_readonly_id read_id = m_graph.read_buffer(name, view_desc);
-		rgbuffer_id res_id = read_id.get_resource_id();
+		auto read_id = m_graph.read_buffer(name, view_desc);
+		if (read_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgbuffer_readonly_id>::make_error("read_buffer failed!");
+		}
+
+		rgbuffer_id res_id = read_id.get().get_resource_id();
 
 		if (m_pass.is_compute_any())
 		{
@@ -425,8 +505,14 @@ namespace influx::rendergraph
 	}
 	result<rgbuffer_readwrite_id> rgpass_builder::write_buffer_impl(const rgname& name, const buffer_view_desc& view_desc)
 	{
-		rgbuffer_readwrite_id rw_id = m_graph.write_buffer(name, view_desc);
-		rgbuffer_id res_id = rw_id.get_resource_id();
+		auto rw_id = m_graph.write_buffer(name, view_desc);
+		if (rw_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgbuffer_readwrite_id>::make_error("write_buffer failed!");
+		}
+
+		rgbuffer_id res_id = rw_id.get().get_resource_id();
 
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_uav;
 
@@ -442,10 +528,15 @@ namespace influx::rendergraph
 	}
 	result<rgbuffer_readwrite_id> rgpass_builder::write_buffer_impl(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc)
 	{
-		rgbuffer_readwrite_id rw_id = m_graph.write_buffer(name, counter_name, view_desc);
+		auto rw_id = m_graph.write_buffer(name, counter_name, view_desc);
+		if (rw_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgbuffer_readwrite_id>::make_error("write_buffer failed!");
+		}
 
 		rgbuffer_id counter_id = m_graph.get_buffer_id(counter_name);
-		rgbuffer_id res_id = rw_id.get_resource_id();
+		rgbuffer_id res_id = rw_id.get().get_resource_id();
 
 		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_uav;
 		m_pass.m_buffer_state_map[counter_id] = graphics::e_resource_state::cs_uav;

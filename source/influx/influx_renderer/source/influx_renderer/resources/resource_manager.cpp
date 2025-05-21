@@ -116,18 +116,19 @@ namespace influx::renderer
 		graphics::queue& queue = renderer_backend::get_graphics_queue();
 		texture2D*& resource = get_resource_map<e_resource_type::texture>()[title].m_resource;
 
-		if (resource != nullptr) delete resource;
+		if (resource != nullptr)
+			delete resource;
 		
-		texture_desc create_args{};
-		create_args.m_width = data.get_width();
-		create_args.m_heigth = data.get_height();
-		resource = new texture2D(&device, create_args);
+		texture_desc create_desc{};
+		create_desc.m_width = data.get_width();
+		create_desc.m_heigth = data.get_height();
+		resource = new texture2D(device, create_desc);
 
 		// make srv
-		resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->mp_resource);
+		resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->m_resource);
 
 		// upload to gpu
-		uploadman.upload_texture(&queue, data, resource->get_resource());
+		uploadman.upload_texture(&queue, data, resource->get_resource().get());
     }
     void resource_manager::recreate_cubemap(const string& title, const cubemap_data& data)
     {
@@ -135,21 +136,21 @@ namespace influx::renderer
 		cubemap*& resource = get_resource_map<e_resource_type::cubemap>()[title].m_resource;
 		graphics::queue& queue = renderer_backend::get_graphics_queue();
 
-		if (resource != nullptr) delete resource;
+		if (resource != nullptr) 
+			delete resource;
 
-		cubemap_desc create_args{};
-		create_args.m_width = data.get_width();
-		create_args.m_heigth = data.get_height();
-		create_args.m_depth = data.get_depth();
-		resource = new cubemap(&device, create_args);
+		cubemap_desc create_desc{};
+		create_desc.m_width = data.get_width();
+		create_desc.m_heigth = data.get_height();
+		resource = new cubemap(device, create_desc);
 
 		// make srv
-		resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->mp_resource);
+		resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->m_resource);
 
 		// upload to gpu
 		graphics::commandlist& commandlist = *device.create_graphics_commandlist();
 		commandlist.start(&device);
-		resource->upload(commandlist, data);
+		resource->upload(device, commandlist, data);
 		commandlist.end();
 		commandlist.submit(&queue);
 		commandlist.wait_for_completion();

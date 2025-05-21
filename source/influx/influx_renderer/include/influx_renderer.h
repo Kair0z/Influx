@@ -170,9 +170,6 @@ namespace influx::renderer
 	/* returns the signature of internal meshes represented by e_mesh */
 	INFLUX_RENDER_API mesh_id get_mesh_id(e_mesh);
 
-	/* get ImTextureID from a loaded - in texture */
-	INFLUX_RENDER_API void* get_imgui_texture_id(const string& title);
-
 	/* */
 	INFLUX_RENDER_API string get_last_rendergraph_dump();
 

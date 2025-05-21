@@ -50,17 +50,6 @@ namespace influx::engine
 	{
 		return influx::renderer::has_texturecube(name);
 	}
-	void* render_streamer::get_loaded_texture_id(const string& name) const
-	{
-		if (has_texture_loaded(name))
-		{
-			return influx::renderer::get_imgui_texture_id(name);
-		}
-		else
-		{
-			return 0u;
-		}
-	}
 
 #pragma region translation layer
 	void translate(const imp::scene_data::mesh& imp_data, renderer::mesh_data<renderer::vertex_data>& out_data)

@@ -356,7 +356,7 @@ namespace influx::renderer
                 if (diffuse_texture != nullptr && !tex_to_idx.contains(diffuse_texture))
                 {
                     // add to list of unique srvs
-                    all_srvs.push_back(diffuse_texture->get_srv());
+                    all_srvs.push_back(diffuse_texture->get_srv().get());
 
                     // keep the idx of the srv
                     tex_to_idx[diffuse_texture] = texture_count;
@@ -568,7 +568,7 @@ namespace influx::renderer
         {
             if (cubemap* cube = backend.find_texturecube("graycloud"))
             {
-                mp_skybox = cube->get_resource();
+                mp_skybox = cube->get_resource().get();
             }
         }
  
@@ -690,7 +690,7 @@ namespace influx::renderer
                 context.get_read_texture(2).get().m_descriptor,
                 context.get_write_texture(0).get().m_descriptor,
 
-                resourceman.get<e_resource_type::cubemap>("graycloud").m_resource->get_srv(),
+                resourceman.get<e_resource_type::cubemap>("graycloud").m_resource->get_srv().get(),
 
                 m_lightbuffer_srvs[0],
                 m_lightbuffer_srvs[1],

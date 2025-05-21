@@ -20,6 +20,7 @@ namespace influx::rendergraph
 	class rgpass_builder final
 	{
 	public:
+		INFLUX_RG_API void register_error_to_current_pass();
 		INFLUX_RG_API void set_viewport(uint32 width, uint32 height);
 
 		INFLUX_RG_API result<bool> is_texture_declared(const rgname& name) const;

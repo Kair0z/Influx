@@ -77,8 +77,8 @@ namespace influx::graphics
 	struct cubemap_desc final
 	{
 		e_format m_format = e_format::rgba8;
-		math::vectoru3 m_dimensions = { 64u, 64u, 64u };
-		uint16 m_arraysize = 1u;
+		math::vectoru2 m_dimensions = { 64u, 64u };
+		constexpr static uint16 m_arraysize = 6u; // always 6
 		uint16 m_num_mips = 1u;
 		uint32 m_sample_count = 1u;
 		e_bind_flags m_bindflags = e_bind_flags::none;

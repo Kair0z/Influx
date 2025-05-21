@@ -162,12 +162,12 @@ namespace influx::rendergraph
 		}
 	}
 
-	void rendergraph::execute(
+	result<> rendergraph::execute(
 		graphics::commandlist& commandlist,
 		graphics::device& device)
 	{
 		const bool is_valid = execute_validation_checks();
-		if (!is_valid) return;
+		if (!is_valid) return result<>::make_error("rendergraph failed validation checks!");
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
@@ -414,7 +414,6 @@ namespace influx::rendergraph
 			new_texture->m_desc = get_desc_from_resource(*resource);
 			new_texture->m_id = new_id;
 			new_texture->m_resource = resource;
-			new_texture->m_resource->set_name(name);
 			new_texture->m_is_imported = true;
 			new_texture->m_name = name;
 			m_textures.emplace_back(new_texture);
@@ -956,10 +955,15 @@ namespace influx::rendergraph
 		return m_buffer_name_to_id_map.contains(name);
 	}
 
-	rgtex_copysrc_id rendergraph::read_copysrc_texture(const rgname& name)
+	result<rgtex_copysrc_id> rendergraph::read_copysrc_texture(const rgname& name)
 	{
+		using result_type = result<rgtex_copysrc_id>;
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
+		if (texture == nullptr)
+		{
+			return result_type::make_error("texture by name not declared/imported!");
+		}
 
 		if (texture->m_desc.m_init_state == graphics::e_resource_state::common)
 		{
@@ -968,10 +972,15 @@ namespace influx::rendergraph
 		return rgtex_copysrc_id(id);
 	}
 
-	rgtex_copydst_id rendergraph::write_copydst_texture(const rgname& name)
+	result<rgtex_copydst_id> rendergraph::write_copydst_texture(const rgname& name)
 	{
+		using result_type = result<rgtex_copydst_id>;
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
+		if (texture == nullptr)
+		{
+			return result_type::make_error("texture by name not declared/imported!");
+		}
 
 		if (texture->m_desc.m_init_state == graphics::e_resource_state::common)
 		{
@@ -980,47 +989,87 @@ namespace influx::rendergraph
 		return rgtex_copydst_id(id);
 	}
 
-	rgbuf_copysrc_id rendergraph::read_copysrc_buffer(const rgname& name)
+	result<rgbuf_copysrc_id> rendergraph::read_copysrc_buffer(const rgname& name)
 	{
+		using result_type = result<rgbuf_copysrc_id>;
+		if (m_buffer_name_to_id_map.contains(name) == false)
+		{
+			return result_type::make_error("buffer by name not declared/imported!");
+		}
+
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		return rgbuf_copysrc_id(id);
 	}
 
-	rgbuf_copydst_id rendergraph::write_copydst_buffer(const rgname& name)
+	result<rgbuf_copydst_id> rendergraph::write_copydst_buffer(const rgname& name)
 	{
+		using result_type = result<rgbuf_copydst_id>;
+		if (m_buffer_name_to_id_map.contains(name) == false)
+		{
+			return result_type::make_error("buffer by name not declared/imported!");
+		}
+
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		return rgbuf_copydst_id(id);
 	}
 
-	rgbuf_indargs_id rendergraph::read_indirect_args_buffer(const rgname& name)
+	result<rgbuf_indargs_id> rendergraph::read_indirect_args_buffer(const rgname& name)
 	{
+		using result_type = result<rgbuf_indargs_id>;
+		if (m_buffer_name_to_id_map.contains(name) == false)
+		{
+			return result_type::make_error("buffer by name not declared/imported!");
+		}
+
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		return rgbuf_indargs_id(id);
 	}
 
-	rgbuf_vertex_id rendergraph::read_vertex_buffer(const rgname& name)
+	result<rgbuf_vertex_id> rendergraph::read_vertex_buffer(const rgname& name)
 	{
+		using result_type = result<rgbuf_vertex_id>;
+		if (m_buffer_name_to_id_map.contains(name) == false)
+		{
+			return result_type::make_error("buffer by name not declared/imported!");
+		}
+
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		return rgbuf_vertex_id(id);
 	}
 
-	rgbuf_index_id rendergraph::read_index_buffer(const rgname& name)
+	result<rgbuf_index_id> rendergraph::read_index_buffer(const rgname& name)
 	{
+		using result_type = result<rgbuf_index_id>;
+		if (m_buffer_name_to_id_map.contains(name) == false)
+		{
+			return result_type::make_error("buffer by name not declared/imported!");
+		}
+
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		return rgbuf_index_id(id);
 	}
 
-	rgbuf_const_id rendergraph::read_constant_buffer(const rgname& name)
+	result<rgbuf_const_id> rendergraph::read_constant_buffer(const rgname& name)
 	{
+		using result_type = result<rgbuf_const_id>;
+		if (m_buffer_name_to_id_map.contains(name) == false)
+		{
+			return result_type::make_error("buffer by name not declared/imported!");
+		}
+
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		return rgbuf_const_id(id);
 	}
 
-	rgrendertarget_id rendergraph::rendertarget(const rgname& name, const texture_view_desc& view_desc)
+	result<rgrendertarget_id> rendergraph::rendertarget(const rgname& name, const texture_view_desc& view_desc)
 	{
+		using result_type = result<rgrendertarget_id>;
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
-		influx_assert(texture != nullptr);
+		if (texture == nullptr)
+		{
+			return result_type::make_error("texture by name not declared/imported!");
+		}
 
 		texture_desc& desc = texture->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::rtv;
@@ -1044,11 +1093,16 @@ namespace influx::rendergraph
 		return rgrendertarget_id(desc_type_idx, id);
 	}
 
-	rgdepthtarget_id rendergraph::depthtarget(const rgname& name, const texture_view_desc& view_desc)
+	result<rgdepthtarget_id> rendergraph::depthtarget(const rgname& name, const texture_view_desc& view_desc)
 	{
+		using result_type = result<rgdepthtarget_id>;
+
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
-		influx_assert(texture != nullptr);
+		if (texture == nullptr)
+		{
+			return result_type::make_error("texture by name not declared/imported!");
+		}
 
 		texture_desc& desc = texture->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::dsv;
@@ -1072,11 +1126,16 @@ namespace influx::rendergraph
 		return rgdepthtarget_id(desc_type_idx, id);
 	}
 
-	rgtexture_readonly_id rendergraph::read_texture(const rgname& name, const texture_view_desc& view_desc)
+	result<rgtexture_readonly_id> rendergraph::read_texture(const rgname& name, const texture_view_desc& view_desc)
 	{
+		using result_type = result<rgtexture_readonly_id>;
+
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
-		influx_assert(texture != nullptr);
+		if (texture == nullptr)
+		{
+			return result_type::make_error("texture by name not declared/imported!");
+		}
 
 		texture_desc& desc = texture->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::srv;
@@ -1100,11 +1159,16 @@ namespace influx::rendergraph
 		return rgtexture_readonly_id(desc_type_idx, id);
 	}
 
-	rgtexture_readwrite_id rendergraph::write_texture(const rgname& name, const texture_view_desc& view_desc)
+	result<rgtexture_readwrite_id> rendergraph::write_texture(const rgname& name, const texture_view_desc& view_desc)
 	{
+		using result_type = result<rgtexture_readwrite_id>;
+
 		rgtexture_id id = m_texture_name_to_id_map[name];
 		rgtexture* texture = get_texture(id);
-		influx_assert(texture != nullptr);
+		if (texture == nullptr)
+		{
+			return result_type::make_error("texture by name not declared/imported!");
+		}
 
 		texture_desc& desc = texture->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::uav;
@@ -1128,11 +1192,16 @@ namespace influx::rendergraph
 		return rgtexture_readwrite_id(desc_type_idx, id);
 	}
 
-	rgbuffer_readonly_id rendergraph::read_buffer(const rgname& name, const buffer_view_desc& view_desc)
+	result<rgbuffer_readonly_id> rendergraph::read_buffer(const rgname& name, const buffer_view_desc& view_desc)
 	{
+		using result_type = result<rgbuffer_readonly_id>;
+
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		rgbuffer* buffer = get_buffer(id);
-		influx_assert(buffer != nullptr);
+		if (buffer == nullptr)
+		{
+			return result_type::make_error("buffer by name not declared/imported!");
+		}
 
 		buffer_desc& desc = buffer->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::srv;
@@ -1152,11 +1221,16 @@ namespace influx::rendergraph
 		return rgbuffer_readonly_id(desc_type_idx, id);
 	}
 
-	rgbuffer_readwrite_id rendergraph::write_buffer(const rgname& name, const buffer_view_desc& view_desc)
+	result<rgbuffer_readwrite_id> rendergraph::write_buffer(const rgname& name, const buffer_view_desc& view_desc)
 	{
+		using result_type = result<rgbuffer_readwrite_id>;
+		
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		rgbuffer* buffer = get_buffer(id);
-		influx_assert(buffer != nullptr);
+		if (buffer == nullptr)
+		{
+			return result_type::make_error("buffer by name not declared/imported!");
+		}
 
 		buffer_desc& desc = buffer->m_desc;
 		desc.m_bindflags |= graphics::e_bind_flags::uav;
@@ -1176,14 +1250,19 @@ namespace influx::rendergraph
 		return rgbuffer_readwrite_id(desc_type_idx, id);
 	}
 
-	rgbuffer_readwrite_id rendergraph::write_buffer(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc)
+	result<rgbuffer_readwrite_id> rendergraph::write_buffer(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc)
 	{
+		using result_type = result<rgbuffer_readwrite_id>;
+
 		rgbuffer_id id = m_buffer_name_to_id_map[name];
 		rgbuffer_id cnt_id = m_buffer_name_to_id_map[counter_name];
 
 		rgbuffer* buffer = get_buffer(id);
 		rgbuffer* cnt_buffer = get_buffer(id);
-		influx_assert(buffer != nullptr);
+		if (buffer == nullptr)
+		{
+			return result_type::make_error("buffer by name not declared/imported!");
+		}
 
 		buffer_desc& desc = buffer->m_desc;
 		buffer_desc& cnt_desc = cnt_buffer->m_desc;
@@ -1258,7 +1337,22 @@ namespace influx::rendergraph
 	bool rendergraph::execute_validation_checks() const
 	{
 		bool is_runnable = true;
-		return is_runnable;
+
+		// any pass that has errors renders the validation!
+		for (uint64 layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
+		{
+			const rglayer& layer = m_layers[layer_idx];
+			for (uint64 pass_idx = 0u; pass_idx < layer.m_passes.size(); ++pass_idx)
+			{
+				const rgpass& pass = layer.m_passes[pass_idx];
+
+				if (pass.m_num_errors > 0u)
+				{
+					return false;
+				}
+			}
+		}
+
 		// imported resources with a pending uav create should allow for UAV!
 		bool uav_check = true;
 		uint32 num_incorrect_uavs = 0u;
@@ -1290,7 +1384,6 @@ namespace influx::rendergraph
 					}
 				}
 			}
-
 			uav_check = num_incorrect_uavs == 0u;
 		}
 		if (!uav_check)
@@ -1301,20 +1394,6 @@ namespace influx::rendergraph
 			is_runnable = false;
 		}
 		
-#if 0
-		for (uint64 layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
-		{
-			const rglayer& layer = m_layers[layer_idx];
-			for (uint64 pass_idx = 0u; pass_idx < layer.m_passes.size(); ++pass_idx)
-			{
-				const rgpass& pass = layer.m_passes[pass_idx];
-
-				
-
-			}
-		}
-#endif
-
 		return is_runnable;
 	}
 

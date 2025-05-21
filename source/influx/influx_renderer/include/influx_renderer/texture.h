@@ -77,6 +77,7 @@ namespace influx::renderer
 		vector<pixel32> m_pixels{};
 		uint32 m_width = 0u;
 		uint32 m_height = 0u;
+		static constexpr uint32 k_depth = 6u;
 
 		uint32 get_width() const
 		{
@@ -86,15 +87,20 @@ namespace influx::renderer
 		{
 			return m_height;
 		}
-		uint32 get_depth() const
-		{
-			return 6u;
-		}
 	};
 #pragma endregion
 
 	/* texture descriptions */
 #pragma region desc
+	struct common_texture_desc final
+	{
+		graphics::e_format m_texelformat = graphics::e_format::rgba8;
+		uint32 m_array_size = 1u;
+		uint32 m_num_mips = 1u;
+		uint32 m_sample_count = 1u;
+		graphics::e_bind_flags m_bindflags{};
+		bool m_allow_uav = false;
+	};
 	struct texture_desc final
 	{
 		texture_desc() = default;
@@ -103,9 +109,7 @@ namespace influx::renderer
 
 		uint32 m_width = 1u;
 		uint32 m_heigth = 1u;
-		uint32 m_array_size = 1u;
-		uint32 m_num_mips = 1u;
-		uint32 m_sample_count = 1u;
+		common_texture_desc m_common{};
 	};
 	struct texture3D_desc final
 	{
@@ -117,55 +121,60 @@ namespace influx::renderer
 		uint32 m_width = 1u;
 		uint32 m_heigth = 1u;
 		uint32 m_depth = 1u;
-		uint32 m_array_size = 1u;
-		uint32 m_num_mips = 1u;
-		uint32 m_sample_count = 1u;
+		common_texture_desc m_common{};
 	};
 	struct cubemap_desc final
 	{
 		cubemap_desc() = default;
 		cubemap_desc(uint32 w, uint32 h)
-			: m_width{ w }, m_heigth{ h } 
+			: m_width{ w }, m_heigth{ h }
 		{
 		}
 
 		uint32 m_width = 1u;
 		uint32 m_heigth = 1u;
-		uint32 m_depth = 6u;
-		uint32 m_array_size = 1u;
-		uint32 m_num_mips = 1u;
-		uint32 m_sample_count = 1u;
+		common_texture_desc m_common{};
 	};
 
+	// graphics:: translations
 	inline graphics::tex2D_desc translate(const texture_desc& desc)
 	{
 		graphics::tex2D_desc result{};
-		result.m_arraysize = 1u;
+		result.m_arraysize = desc.m_common.m_array_size;
+		result.m_allow_uav = desc.m_common.m_allow_uav;
+		result.m_bindflags = desc.m_common.m_bindflags;
+		result.m_format = desc.m_common.m_texelformat;
+		result.m_num_mips = desc.m_common.m_num_mips;
+		result.m_sample_count = desc.m_common.m_sample_count;
+
 		result.m_dimensions = { desc.m_width, desc.m_heigth };
-		result.m_format = graphics::e_format::rgba8;
-		result.m_num_mips = 1u;
-		result.m_sample_count = 1u;
 		result.m_init_state = graphics::e_resource_state::all_srv;
 		return result;
 	}
 	inline graphics::tex3D_desc translate(const texture3D_desc& desc)
 	{
 		graphics::tex3D_desc result{};
-		result.m_arraysize = 1u;
+		result.m_arraysize = desc.m_common.m_array_size;
+		result.m_allow_uav = desc.m_common.m_allow_uav;
+		result.m_bindflags = desc.m_common.m_bindflags;
+		result.m_format = desc.m_common.m_texelformat;
+		result.m_num_mips = desc.m_common.m_num_mips;
+		result.m_sample_count = desc.m_common.m_sample_count;
+
 		result.m_dimensions = { desc.m_width, desc.m_heigth, desc.m_depth };
-		result.m_format = graphics::e_format::rgba8;
-		result.m_num_mips = 1u;
-		result.m_sample_count = 1u;
+		result.m_init_state = graphics::e_resource_state::all_srv;
 		return result;
 	}
 	inline graphics::cubemap_desc translate(const cubemap_desc& desc)
 	{
 		graphics::cubemap_desc result{};
-		result.m_arraysize = 6u;
-		result.m_dimensions = { desc.m_width, desc.m_heigth, 1u };
-		result.m_format = graphics::e_format::rgba8;
-		result.m_num_mips = 1u;
-		result.m_sample_count = 1u;
+		result.m_allow_uav = desc.m_common.m_allow_uav;
+		result.m_bindflags = desc.m_common.m_bindflags;
+		result.m_format = desc.m_common.m_texelformat;
+		result.m_num_mips = desc.m_common.m_num_mips;
+		result.m_sample_count = desc.m_common.m_sample_count;
+
+		result.m_dimensions = { desc.m_width, desc.m_heigth };
 		result.m_init_state = graphics::e_resource_state::all_srv;
 		return result;
 	}
@@ -174,34 +183,47 @@ namespace influx::renderer
 	template <e_texture_type _t>
 	class texture final : public imgui_texid_provider
 	{
+		// dim_type represents size type for the number of pixels
 		using dim_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
-			math::vectoru2,
-			math::vectoru3,
-			math::vectoru3>>;
+			math::uint2,		// e_texture_type::texture2D
+			math::uint3,		// e_texture_type::texture3D
+			math::uint2>>;		// e_texture_type::cubemap
+
+		// desc_type is the struct type that describes the texture (size, nummips etc.)
 		using desc_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
-			texture_desc,
-			texture3D_desc,
-			cubemap_desc>>;
+			texture_desc,		// e_texture_type::texture2D
+			texture3D_desc,		// e_texture_type::texture3D
+			cubemap_desc>>;		// e_texture_type::cubemap
+
+		// data_type is the struct type that contains the raw data as input for a texture
 		using data_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
-			texture_data,
-			texture3D_data,
-			cubemap_data>>;
+			texture_data,		// e_texture_type::texture2D
+			texture3D_data,		// e_texture_type::texture3D
+			cubemap_data>>;		// e_texture_type::cubemap
 
-		graphics::resource* mp_resource;
-		graphics::resource* mp_upload = nullptr;
-		graphics::descriptor_handle m_srv;
+		graphics::resource*			m_resource = nullptr;
+		graphics::resource*			m_upload = nullptr;
 
-		desc_type m_args;
-		dim_type m_current_dimensions;
-		graphics::device* mp_device;
-		debug_name m_debug_name;
+		graphics::descriptor_handle m_rtv = nullptr;
+		graphics::descriptor_handle m_dsv = nullptr;
+		graphics::descriptor_handle m_srv = nullptr;
+
+		desc_type m_desc{};
+		dim_type m_current_dimensions{};
+		debug_name m_debug_name{};
 
 	public:
-		inline graphics::resource* get_resource() const
-		{ return mp_resource; }
+		inline result<graphics::resource*> get_resource() const
+		{ return m_resource; }
 
-		inline graphics::descriptor_handle get_srv() const
+		inline result<graphics::descriptor_handle> get_srv() const
 		{ return m_srv; }
+
+		inline result<graphics::descriptor_handle> get_rtv() const
+		{ return m_rtv; }
+
+		inline result<graphics::descriptor_handle> get_dsv() const
+		{ return m_dsv; }
 
 		inline dim_type get_dimensions() const
 		{ return m_current_dimensions; }
@@ -209,69 +231,78 @@ namespace influx::renderer
 		inline uint32 get_num_pixels() const
 		{ return dim_type::get_summed(m_current_dimensions); }
 
-		inline uint32 get_srv_heap_idx() const
-		{ return 0u; }
-		inline void* get_cpu_handle() const
-		{ return nullptr; }
+		inline uint32 get_array_size() const
+		{ return m_desc.m_array_size; }
 
 		inline void set_name(const debug_name& name)
 		{ m_debug_name = name; }
+
 		inline const debug_name& get_name() const
 		{ return m_debug_name; }
 
 	private:
-		// constructs a texture from create_args, allocating new graphics resources
-		inline explicit texture(graphics::device* device, const desc_type& args)
-			: mp_device{ device }
-			, m_args{ args }
+		inline explicit texture(graphics::device& device, const desc_type& desc) : m_desc{ desc }
 		{
-			mp_resource = device->create_resource(translate(args));
+			m_resource = device.create_resource(translate(desc));
 		}
 
 		// re-allocates graphics resource
-		inline void resize(const dim_type& new_dimensions)
+		inline void resize(graphics::device& device, const dim_type& new_dimensions)
 		{
 			if (new_dimensions != m_current_dimensions)
 			{
-				if (mp_resource) mp_resource->release(mp_device);
+				if (m_resource)
+				{
+					device.release(m_resource);
+				}
 
-				// update size:
-				m_current_dimensions = new_dimensions;
-
-				// create new resource
-				desc_type desc_cpy = m_args;
+				// make a copy of our current desc, with altered dimensions
+				desc_type desc_cpy = m_desc;
 				desc_cpy.m_dimensions = new_dimensions;
-				mp_resource = mp_device->create_resource(translate(desc_cpy));
+				m_resource = device.create_resource(translate(desc_cpy));
+
+				m_current_dimensions = new_dimensions;
 			}
 		}
 
-		inline void upload(graphics::commandlist& commandlist, const data_type& data)
+		// uploads the data to an upload-heap resource, then copies that resource to the GPU resource
+		inline result<> upload(graphics::device& device, graphics::commandlist& commandlist, const data_type& data)
 		{
-			if (mp_upload == nullptr)
+			if (m_upload == nullptr)
 			{
-				mp_upload = mp_device->create_upload_resource(mp_resource);
+				m_upload = device.create_upload_resource(m_resource);
+				if (m_upload == nullptr)
+				{
+					return result<>::make_error("failed creating upload heap for resource");
+				}
 			}
 
-			// map data to shared
+			// map data to upload resource
 			{
 				const size_t data_bytesize = data.m_pixels.size() * sizeof(pixel32);
 				graphics::map_args args{ .m_subres = 0u, .m_begin = 0u, .m_end = data_bytesize };
-				mp_upload->map([&data, data_bytesize](void* target)
+				m_upload->map([&data, data_bytesize](void* target)
 				{
 					memcpy(target, data.m_pixels.data(), data_bytesize);
 				}, args);
 			}
 
 			// copy shared -> GPU
-			mp_upload->transition(&commandlist, graphics::e_resource_state::copy_src);
-			mp_resource->transition(&commandlist, graphics::e_resource_state::copy_dst);
+			m_upload->transition(&commandlist, graphics::e_resource_state::copy_src);
+			m_resource->transition(&commandlist, graphics::e_resource_state::copy_dst);
+			
 			graphics::copy_texture_args args{};
-			commandlist.copy_texture(mp_upload, mp_resource, args);
+			if (!commandlist.copy_texture(m_upload, m_resource, args))
+			{
+				return result<>::make_error("upload -> resource commandlist copy_texture failed");
+			}
+
+			return {};
 		}
 
 		// ~imgui_texid_provider begin
 		virtual void* get_tex_descriptor() const override final { return m_srv; }
-		virtual void* get_tex_resource() const override final { return mp_resource; };
+		virtual void* get_tex_resource() const override final { return m_resource; };
 		virtual debug_name get_rendergraph_id() const override final { return m_debug_name; };
 		// ~imgui_texid_provider end
 		

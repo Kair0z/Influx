@@ -31,8 +31,6 @@ namespace influx::engine
 		// funnels assets from content_manager into the influx::renderer
 		void stream_content(const content_manager& cont_man);
 
-		void* get_loaded_texture_id(const string& name) const;
-
 		bool is_debug_render_enabled() const;
 		bool is_imgui_render_enabled() const;
 		bool is_scene_render_enabled() const;

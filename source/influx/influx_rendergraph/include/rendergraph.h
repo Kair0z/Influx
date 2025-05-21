@@ -109,7 +109,7 @@ namespace influx::rendergraph
 		INFLUX_RG_API void build();
 
 		// single threaded, single command list...
-		INFLUX_RG_API void execute(
+		INFLUX_RG_API result<> execute(
 			graphics::commandlist& commandlist,
 			graphics::device& device);
 
@@ -222,22 +222,22 @@ namespace influx::rendergraph
 		bool is_texture_declared(const rgname& name) const;
 		bool is_buffer_declared(const rgname& name) const;
 		
-		rgtex_copysrc_id read_copysrc_texture(const rgname& name);
-		rgtex_copydst_id write_copydst_texture(const rgname& name);
-		rgbuf_copysrc_id read_copysrc_buffer(const rgname& name);
-		rgbuf_copydst_id write_copydst_buffer(const rgname& name);
-		rgbuf_indargs_id read_indirect_args_buffer(const rgname& name);
-		rgbuf_vertex_id read_vertex_buffer(const rgname& name);
-		rgbuf_index_id read_index_buffer(const rgname& name);
-		rgbuf_const_id read_constant_buffer(const rgname& name);
+		result<rgtex_copysrc_id> read_copysrc_texture(const rgname& name);
+		result<rgtex_copydst_id> write_copydst_texture(const rgname& name);
+		result<rgbuf_copysrc_id> read_copysrc_buffer(const rgname& name);
+		result<rgbuf_copydst_id> write_copydst_buffer(const rgname& name);
+		result<rgbuf_indargs_id> read_indirect_args_buffer(const rgname& name);
+		result<rgbuf_vertex_id> read_vertex_buffer(const rgname& name);
+		result<rgbuf_index_id> read_index_buffer(const rgname& name);
+		result<rgbuf_const_id> read_constant_buffer(const rgname& name);
 
-		rgrendertarget_id rendertarget(const rgname& name, const texture_view_desc& view_desc);
-		rgdepthtarget_id depthtarget(const rgname& name, const texture_view_desc& view_desc);
-		rgtexture_readonly_id read_texture(const rgname& name, const texture_view_desc& view_desc);
-		rgtexture_readwrite_id write_texture(const rgname& name, const texture_view_desc& view_desc);
-		rgbuffer_readonly_id read_buffer(const rgname& name, const buffer_view_desc& view_desc);
-		rgbuffer_readwrite_id write_buffer(const rgname& name, const buffer_view_desc& view_desc);
-		rgbuffer_readwrite_id write_buffer(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc);
+		result<rgrendertarget_id> rendertarget(const rgname& name, const texture_view_desc& view_desc);
+		result<rgdepthtarget_id> depthtarget(const rgname& name, const texture_view_desc& view_desc);
+		result<rgtexture_readonly_id> read_texture(const rgname& name, const texture_view_desc& view_desc);
+		result<rgtexture_readwrite_id> write_texture(const rgname& name, const texture_view_desc& view_desc);
+		result<rgbuffer_readonly_id> read_buffer(const rgname& name, const buffer_view_desc& view_desc);
+		result<rgbuffer_readwrite_id> write_buffer(const rgname& name, const buffer_view_desc& view_desc);
+		result<rgbuffer_readwrite_id> write_buffer(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc);
 
 		// lookups
 		rgtexture* get_texture(rgtexture_id id);

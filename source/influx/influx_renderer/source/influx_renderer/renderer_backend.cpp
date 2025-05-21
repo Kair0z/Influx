@@ -158,7 +158,11 @@ namespace influx::renderer
         }
         {
             influx_scope("renderer::rendergraph_execute");
-            m_rendergraph->execute(*mp_commandlist, *mp_device);
+            auto res = m_rendergraph->execute(*mp_commandlist, *mp_device);
+            if (res.is_unex())
+            {
+                log(e_log::warning, "rendergraph execute failed!");
+            }
         }
 
         mp_commandlist->end();
@@ -186,11 +190,17 @@ namespace influx::renderer
     {
         using result_type = result<target*>;
 
-        target* new_target = new target(mp_device, args);
+        target_create_args create_args_copy = args;
+        if (create_args_copy.m_name.is_valid() == false)
+        {
+            create_args_copy.m_name = to_string(m_targets.size());
+        }
+
+        target* new_target = new target(mp_device, create_args_copy);
         m_targets[new_target->get_name()] = new_target;
 
         auto res = import_to_graph(*new_target);
-        influx_assert(res.is_success());
+        if (res.is_unex()) return result_type::make_error("failed importing to graph!");
 
         return new_target;
     }
@@ -700,7 +710,7 @@ namespace influx::renderer
 
     void renderer_backend::upload_texture_data(texture2D* target_tex, const texture_data& data)
     {
-        mp_upload_manager->upload_texture(mp_graphics_queue, data, target_tex->get_resource());
+        mp_upload_manager->upload_texture(mp_graphics_queue, data, target_tex->get_resource().get());
     }
 
     vector<string> renderer_backend::get_mesh_names() const
@@ -752,15 +762,6 @@ namespace influx::renderer
                 });
         }
         return info;
-    }
-
-    void* renderer_backend::get_imgui_texture_id(const string& title)
-    {
-        if (m_resource_manager->contains<e_resource_type::texture>(title))
-        {
-            return m_resource_manager->get<e_resource_type::texture>(title).m_resource->get_cpu_handle();
-        }
-        else return nullptr;
     }
 
     bool renderer_backend::allow_bindless()
@@ -968,11 +969,6 @@ namespace influx::renderer
     render_settings get_settings()
     {
         return renderer_backend::get_instance().get_settings();
-    }
-
-    void* get_imgui_texture_id(const string& title)
-    {
-        return renderer_backend::get_instance().get_imgui_texture_id(title);
     }
 
     string get_last_rendergraph_dump()

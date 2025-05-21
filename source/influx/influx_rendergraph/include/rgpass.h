@@ -77,6 +77,7 @@ namespace influx::rendergraph
 		uint32 m_width{};
 		uint32 m_height{};
 		uint32 m_refcount;
+		uint32 m_num_errors{};
 		bool m_is_culled;
 
 		vector<rgtexture_id> m_texture_creates;

@@ -151,7 +151,7 @@ namespace influx::renderer
 			commandlist->set_root_constants(0u, 16u, &vertex_constant_buffer);
 
 			// stage the font srv onto the gpu heap
-			graphics::descriptor_range font_gpu_range = descriptor_manager.stage(mp_fonts_texture->get_srv());
+			graphics::descriptor_range font_gpu_range = descriptor_manager.stage(mp_fonts_texture->get_srv().get());
 			graphics::descriptor_range tex_gpu_range = font_gpu_range;
 
 			// setup draw

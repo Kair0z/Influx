@@ -165,9 +165,9 @@ namespace influx::renderer
 		for (size_t i = 0u; i < textures.size(); ++i)
 		{
 			influx_assert(textures[i] != nullptr);
-			influx_assert(textures[i]->get_srv() != nullptr);
+			influx_assert(textures[i]->get_srv().get() != nullptr);
 
-			cpu_handles.push_back(textures[i]->get_srv());
+			cpu_handles.push_back(textures[i]->get_srv().get());
 		}
 
 		return stage(cpu_handles);

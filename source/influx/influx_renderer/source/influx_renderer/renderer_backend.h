@@ -150,8 +150,6 @@ namespace influx::renderer
 		pipeline_info get_pipeline_info() const;
 		rendergraph_info get_rendergraph_info() const;
 
-		void* get_imgui_texture_id(const string& title);
-
 		static bool allow_bindless();
 
 		string get_shadersource_directory(e_shadersource_directory _enum = e_shadersource_directory::base) const;
