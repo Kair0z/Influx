@@ -6,7 +6,7 @@
 
 namespace influx::async
 {
-	void async_manager::initialize(const init_args& args)
+	result<> async_manager::initialize(const init_args& args)
 	{
 		m_is_initialized = true;
 
@@ -26,9 +26,10 @@ namespace influx::async
 #if _DEBUG
 		gp_global_manager_state = this;
 #endif
+		return {};
 	}
 
-	void async_manager::shutdown()
+	result<> async_manager::shutdown()
 	{
 		m_is_initialized = false;
 
@@ -43,6 +44,8 @@ namespace influx::async
 		influx_delete(mp_global_cleanup_queue);
 		influx_delete(mp_global_queue);
 		influx_delete(mp_taskpool);
+
+		return {};
 	}
 
 	bool async_manager::is_shutdown()
@@ -69,7 +72,7 @@ namespace influx::async
 		}
 	}
 
-	bool async_manager::grab_and_clean_a_task()
+	result<bool> async_manager::grab_and_clean_a_task()
 	{
 		influx_assert_not_null(mp_global_cleanup_queue);
 
@@ -83,7 +86,7 @@ namespace influx::async
 		return false;
 	}
 
-	bool async_manager::grab_and_process_a_task()
+	result<bool> async_manager::grab_and_process_a_task()
 	{
 		influx_assert_not_null(mp_global_queue);
 
@@ -98,12 +101,12 @@ namespace influx::async
 	}
 
 
-	task_handle async_manager::create_task(const task_create_args& args)
+	result<task_handle> async_manager::create_task(const task_create_args& args)
 	{
-		return create_tasks({ args }).front();
+		return create_tasks({ args }).get().front();
 	}
 
-	std::vector<task_handle> async_manager::create_tasks(const std::vector<task_create_args>& args)
+	result<std::vector<task_handle>> async_manager::create_tasks(const std::vector<task_create_args>& args)
 	{
 		std::vector<task_handle> result{};
 		vector<task_data*> allocated_tasks = mp_taskpool->allocate(args.size());
@@ -125,7 +128,7 @@ namespace influx::async
 		return result;
 	}
 
-	void async_manager::do_process_task(task_data* data)
+	result<> async_manager::do_process_task(task_data* data)
 	{
 		data->m_time_started = time::get_now();
 		data->m_state = e_task_state::running;
@@ -141,81 +144,87 @@ namespace influx::async
 
 		// add to cleanup queue
 		mp_global_cleanup_queue->push(data);
+
+		return {};
 	}
 
-	void async_manager::do_cleanup_task(task_data* data)
+	result<> async_manager::do_cleanup_task(task_data* data)
 	{
 		influx_assert_not_null(data);
 
 		// free from task_pool
 		if (mp_taskpool->free(data))
 		{
-			return;
+			return {};
 		}
 		
 		influx_assert(false);
+		return result<>::make_error("clean failed!");
 	}
 
-	void async_manager::do_cleanup_task(const task_handle& handle)
+	result<> async_manager::do_cleanup_task(const task_handle& handle)
 	{
-		do_cleanup_task(get_task_from_handle(handle));
+		return do_cleanup_task(get_task_from_handle(handle).get());
 	}
 
-	task_data* async_manager::get_task_from_handle(const task_handle& handle)
+	result<task_data*> async_manager::get_task_from_handle(const task_handle& handle)
 	{
+		using result_type = result<task_data*>;
+
 		assert(handle.is_valid());
 		auto& data = mp_taskpool->get_data_at(handle.m_task_data_idx);
 		
-		if (data.m_state == e_task_state::invalid)
-		{
-			return nullptr;
-		}
-		else
+		if (data.m_state != e_task_state::invalid)
 		{
 			return &data;
 		}
+		else
+		{
+			return result_type::make_error("data at given handle is invalid!");
+		}
 	}
 
-	uint64 async_manager::get_num_queued() const
+	result<uint64> async_manager::get_num_queued() const
 	{
 		return mp_global_queue->size();
 	}
 
-	uint64 async_manager::get_num_processing() const
+	result<uint64> async_manager::get_num_processing() const
 	{
-		return m_num_processing;
+		return m_num_processing.load();
 	}
 
-	uint64 async_manager::get_num_toclean() const
+	result<uint64> async_manager::get_num_toclean() const
 	{
 		return mp_global_cleanup_queue->size();
 	}
 
-	bool async_manager::has_unfinished_work() const
+	result<bool> async_manager::has_unfinished_work() const
 	{
 		return (get_num_queued() > 0u || get_num_processing() > 0u);
 	}
 
-	void async_manager::dispatch(const task_handle& handle)
+	result<> async_manager::dispatch(const task_handle& handle)
 	{
-		task_data* data = get_task_from_handle(handle);
+		task_data* data = get_task_from_handle(handle).get();
 		influx_assert_not_null(data);
 
-		dispatch(data);
+		return dispatch(data);
 	}
 
-	void async_manager::dispatch(task_data* data)
+	result<> async_manager::dispatch(task_data* data)
 	{
 		data->set_state(e_task_state::queued);
 		influx_assert(mp_global_queue->push(data));
+		return {};
 	}
 
-	void async_manager::wait_for(const task_handle& handle, const wait_args& args)
+	result<> async_manager::wait_for(const task_handle& handle, const wait_args& args)
 	{
-		wait_for(vector<task_handle>{ handle });
+		return wait_for(vector<task_handle>{ handle });
 	}
 
-	void async_manager::wait_for(const vector<task_handle>& handles, const wait_args& args)
+	result<> async_manager::wait_for(const vector<task_handle>& handles, const wait_args& args)
 	{
 		time::point wait_start = time::get_now();
 		float ms_waited = 0.0f;
@@ -223,7 +232,7 @@ namespace influx::async
 		{
 			influx_assert(handle.is_valid());
 
-			task_data* data = get_task_from_handle(handle);
+			task_data* data = get_task_from_handle(handle).get();
 			influx_assert_not_null(data);
 
 			while (!data->is_finished() && ms_waited < args.m_max_ms)
@@ -244,9 +253,10 @@ namespace influx::async
 		{
 			(*args.mp_out_ms) = ms_waited;
 		}
+		return {};
 	}
 
-	void async_manager::wait_for_all(const wait_args& args)
+	result<>  async_manager::wait_for_all(const wait_args& args)
 	{
 		time::point wait_start = time::get_now();
 		float ms_waited = 0.0f;
@@ -263,6 +273,7 @@ namespace influx::async
 		{
 			(*args.mp_out_ms) = ms_waited;
 		}
+		return {};
 	}
 
 	task_queue& async_manager::get_global_queue()
@@ -280,33 +291,33 @@ namespace influx::async
 	{
 		return sizeof(async_manager::get_instance());
 	}
-	void initialize(const init_args& args)
+	result<> initialize(const init_args& args)
 	{
 		return async_manager::get_instance().initialize(args);
 	}
-	task_handle create_task(const task_create_args& args)
+	result<task_handle> create_task(const task_create_args& args)
 	{
 		return async_manager::get_instance().create_task(args);
 	}
-	void dispatch(const task_handle& handle)
+	result<> dispatch(const task_handle& handle)
 	{
-		async_manager::get_instance().dispatch(handle);
+		return async_manager::get_instance().dispatch(handle);
 	}
-	void wait_for(const task_handle& handle, const wait_args& args)
+	result<> wait_for(const task_handle& handle, const wait_args& args)
 	{
-		async_manager::get_instance().wait_for(handle, args);
+		return async_manager::get_instance().wait_for(handle, args);
 	}
-	void wait_for(const vector<task_handle>& handles, const wait_args& args)
+	result<> wait_for(const vector<task_handle>& handles, const wait_args& args)
 	{
-		async_manager::get_instance().wait_for(handles, args);
+		return async_manager::get_instance().wait_for(handles, args);
 	}
-	void wait_for_all(const wait_args& args)
+	result<> wait_for_all(const wait_args& args)
 	{
-		async_manager::get_instance().wait_for_all(args);
+		return async_manager::get_instance().wait_for_all(args);
 	}
-	void shutdown()
+	result<> shutdown()
 	{
-		async_manager::get_instance().shutdown();
+		return async_manager::get_instance().shutdown();
 	}
 
 	// [task handle]
@@ -399,7 +410,7 @@ namespace influx::async
 	}
 	task_data* task_handle::get_task_data() const
 	{
-		return async_manager::get_instance().get_task_from_handle(*this);
+		return async_manager::get_instance().get_task_from_handle(*this).get();
 	}
 #pragma endregion
 }

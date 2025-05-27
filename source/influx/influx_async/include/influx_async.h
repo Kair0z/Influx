@@ -10,9 +10,13 @@
 #include "core/container/vector.h"
 #include "core/function.h"
 #include "core/string.h"
+#include "core/result.h"
 
 namespace influx::async
 {
+	template <typename _t = char>
+	using result = influx::result<_t, const char*>;
+
 	constexpr static uint64 k_max_num_tasks_in_flight = 4096u;
 	extern constexpr uint64 INFLUX_ASYNC_API get_static_num_bytes();
 
@@ -42,12 +46,12 @@ namespace influx::async
 
 	struct task_create_args final
 	{
+		string m_name = "task";
+		function<void()> m_func_execute = {};
+
 		task_create_args() = default;
 		task_create_args(const string& name, const function<void()>& func)
 			: m_name{ name }, m_func_execute{ func } { }
-
-		function<void()> m_func_execute = {};
-		string m_name = "task";
 	};
 
 	class task_handle final
@@ -76,8 +80,9 @@ namespace influx::async
 
 		friend class async_manager;
 		friend struct task_data;
-		task_handle(size_t task_idx = (size_t)-1);
+		task_handle(size_t task_idx);
 		task_data* get_task_data() const;
+		task_handle() = default;
 	};
 
 	// global API
@@ -86,41 +91,47 @@ namespace influx::async
 		int m_num_workers = 2u;
 	};
 
-	INFLUX_ASYNC_API 
-	void initialize(const init_args& args);
+	INFLUX_ASYNC_API
+	result<> initialize(const init_args& args);
 
 	INFLUX_ASYNC_API
-	task_handle create_task(const task_create_args& args = {});
+	result<task_handle> create_task(const task_create_args& args = {});
 	
-	inline task_handle create_task(const string& name, const function<void()>& func)
+	inline
+	result<task_handle> create_task(const string& name, const function<void()>& func)
 	{
 		return create_task(task_create_args{ name, func });
 	}
 
 	INFLUX_ASYNC_API 
-	void dispatch(const task_handle& handle);
+	result<> dispatch(const task_handle& handle);
 
-	inline void dispatch(const vector<task_handle>& handles)
+	inline 
+	result<> dispatch(const vector<task_handle>& handles)
 	{
 		for (const task_handle& handle : handles)
 		{
 			dispatch(handle);
 		}
+		return{};
 	}
 
-	inline task_handle dispatch(const task_create_args& args)
+	inline 
+	result<> dispatch(const task_create_args& args)
 	{
-		task_handle handle = create_task(args);
+		task_handle handle = create_task(args).get();
 		dispatch(handle);
-		return handle;
+		return {};
 	}
 
-	inline task_handle dispatch(const function<void()>& func)
+	inline 
+	result<> dispatch(const function<void()>& func)
 	{
 		return dispatch({ "", func });
 	}
 
-	inline vector<task_handle> dispatch_for(uint64 range, const function<void(uint64 i)>& func)
+	inline 
+	result<vector<task_handle>> dispatch_for(uint64 range, const function<void(uint64 i)>& func)
 	{
 		if (func == nullptr)
 			return {};
@@ -134,7 +145,7 @@ namespace influx::async
 				func(i);
 			};
 
-			handles.push_back(create_task({ "foreach_" + to_string(i) }, sub_func));
+			handles.push_back(create_task({ "foreach_" + to_string(i) }, sub_func).get());
 		}
 
 		dispatch(handles);
@@ -143,7 +154,8 @@ namespace influx::async
 
 	// iterates over a const vector<_t>&
 	template <typename _t>
-	inline vector<task_handle> dispatch_for(const vector<_t>& vector, const function<void(const _t& i)>& func)
+	inline 
+	result<vector<task_handle>> dispatch_for(const vector<_t>& vector, const function<void(const _t& i)>& func)
 	{
 		auto sub_func = [vector, func](uint64 i)
 		{
@@ -153,13 +165,13 @@ namespace influx::async
 		return dispatch_for(vector.size(), sub_func);
 	}
 
-	INFLUX_ASYNC_API void wait_for(const task_handle& handle, const wait_args& args = {});
+	INFLUX_ASYNC_API result<> wait_for(const task_handle& handle, const wait_args& args = {});
 
-	INFLUX_ASYNC_API void wait_for(const vector<task_handle>& handles, const wait_args& args = {});
+	INFLUX_ASYNC_API result<> wait_for(const vector<task_handle>& handles, const wait_args& args = {});
 
-	INFLUX_ASYNC_API void wait_for_all(const wait_args& args = {});
+	INFLUX_ASYNC_API result<> wait_for_all(const wait_args& args = {});
 
-	INFLUX_ASYNC_API void shutdown();
+	INFLUX_ASYNC_API result<> shutdown();
 	
 #if _DEBUG
 	// DONT TOUCH THIS, IN DEBUG BUILDS GIVES US A PEAK TO PRIVATE GLOBAL STATE
