@@ -456,6 +456,7 @@ namespace influx::async
 	result<task_stats> task_handle::get_stats() const
 	{
 		using result_type = result<task_stats>;
+
 		if (is_valid() == false)
 			return result_type::make_error("this handle isn't valid!");
 

@@ -13,7 +13,7 @@ namespace influx::async
 		{
 		}
 
-		void set_state(e_task_state new_state)
+		inline void set_state(e_task_state new_state)
 		{
 			switch (new_state)
 			{
@@ -37,7 +37,7 @@ namespace influx::async
 			m_state = new_state;
 		}
 
-		void reset(e_task_state new_state)
+		inline void reset(e_task_state new_state)
 		{
 			m_time_allocated = m_time_queued = m_time_started = m_time_finished = time::get_now();
 			m_refcount = 0u;

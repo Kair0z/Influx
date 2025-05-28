@@ -39,7 +39,7 @@ namespace influx::async
 
 	struct task_stats final
 	{
-		float m_seconds_pending = 0.0f;
+		float m_seconds_queued = 0.0f;
 		float m_seconds_running = 0.0f;
 		float m_seconds_total = 0.0f;
 	};
@@ -112,7 +112,10 @@ namespace influx::async
 	inline
 	result<task_handle> create_task(const string& name, const function<void()>& func)
 	{
-		return create_task(task_create_args{ name, func });
+		task_create_args new_args{};
+		new_args.m_func_execute = func;
+		new_args.m_name = name;
+		return create_task(new_args);
 	}
 
 	INFLUX_ASYNC_API 
@@ -131,9 +134,12 @@ namespace influx::async
 	inline 
 	result<> dispatch(const task_create_args& args)
 	{
-		task_handle handle = create_task(args).get();
-		dispatch(handle);
-		return {};
+		auto create_result = create_task(args);
+		
+		if (create_result.is_success() == false)
+			return result<>::make_error("failed creating task with these args");
+
+		return dispatch(create_result.get());
 	}
 
 	inline 
