@@ -58,8 +58,11 @@ namespace influx::async
 		task_queue* mp_global_queue = nullptr;
 		task_queue* mp_global_cleanup_queue = nullptr;
 
-		result<bool> grab_and_clean_a_task();
-		result<bool> grab_and_process_a_task();
+		// tries to grab a task off  the cleanup queue, and 'recycle' it
+		result<bool> try_grab_and_clean_a_task();
+
+		// tries to a task off the given queue, and executes it
+		result<bool> try_grab_and_process_a_task(task_queue& queue);
 
 		result<> do_cleanup_task(const task_handle& handle);
 		result<> do_process_task(task_data* data);

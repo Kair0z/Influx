@@ -12,8 +12,8 @@ namespace influx::async
 
 		// create queues & pool
 		mp_global_cleanup_queue = new task_queue();
-		mp_global_queue = new task_queue();
-		mp_taskpool = new task_pool();
+		mp_global_queue			= new task_queue();
+		mp_taskpool				= new task_pool();
 
 		// spin worker threads:
 		for (uint64 i = 0u; i < args.m_num_workers; ++i)
@@ -55,24 +55,23 @@ namespace influx::async
 
 	void async_manager::worker_thread_method(worker_state& state)
 	{
-		async_manager& manager = async_manager::get_instance();
-		task_queue& global_queue = manager.get_global_queue();
-		task_queue& global_cleanup = manager.get_global_cleanup_queue();
-		task_data* cur_task_data = nullptr;
-		task_handle* cur_task_handle = nullptr;
+		// routine:
+		// 1. check if manager is still active
+		// 2. grab/process a task, 
+		// 3. if no task was processed, try cleaning one up instead
 
+		async_manager& manager = async_manager::get_instance();
 		while (manager.is_shutdown() == false)
 		{
-			if (!manager.grab_and_process_a_task())
+			const bool processed_task = manager.try_grab_and_process_a_task(manager.get_global_queue()).get();
+			if (!processed_task)
 			{
-				// if we failed to grab/process a task, 
-				// try cleaning one up instead...
-				manager.grab_and_clean_a_task();
+				manager.try_grab_and_clean_a_task();
 			}
 		}
 	}
 
-	result<bool> async_manager::grab_and_clean_a_task()
+	result<bool> async_manager::try_grab_and_clean_a_task()
 	{
 		influx_assert_not_null(mp_global_cleanup_queue);
 
@@ -86,23 +85,29 @@ namespace influx::async
 		return false;
 	}
 
-	result<bool> async_manager::grab_and_process_a_task()
+	result<bool> async_manager::try_grab_and_process_a_task(task_queue& queue)
 	{
-		influx_assert_not_null(mp_global_queue);
+		using result_type = result<bool>;
 
 		task_data* task = nullptr;
-		if (mp_global_queue->try_grab(task))
+		if (queue.try_grab(task))
 		{
-			do_process_task(task);
-			return true;
+			// grabbed a task, now process (execute it)
+			auto res = do_process_task(task);
+			return res.is_success();
 		}
 
+		// failed to grab a task
 		return false;
 	}
 
-
 	result<task_handle> async_manager::create_task(const task_create_args& args)
 	{
+		using result_type = result<task_handle>;
+
+		if (m_is_initialized == false)
+			return result_type::make_error("async API not intialized!");
+
 		return create_tasks({ args }).get().front();
 	}
 
@@ -238,7 +243,7 @@ namespace influx::async
 			while (!data->is_finished() && ms_waited < args.m_max_ms)
 			{
 				// might as well clean up a bit
-				grab_and_clean_a_task();
+				try_grab_and_clean_a_task();
 
 				if (args.m_wait_func)
 				{
@@ -330,6 +335,12 @@ namespace influx::async
 			data->m_refcount++;
 		}
 	}
+
+	task_handle::task_handle()
+		: m_task_data_idx{(uint64)-1}
+	{
+	}
+
 	task_handle::task_handle(const task_handle& other)
 	{
 		m_task_data_idx = other.m_task_data_idx;

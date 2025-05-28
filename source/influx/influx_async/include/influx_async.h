@@ -70,24 +70,30 @@ namespace influx::async
 		INFLUX_ASYNC_API task_stats get_stats() const;
 		
 		// copy & move constructable
+		INFLUX_ASYNC_API task_handle();
 		INFLUX_ASYNC_API task_handle(const task_handle& other);
 		INFLUX_ASYNC_API task_handle(task_handle&& other) noexcept;
 		INFLUX_ASYNC_API task_handle& operator=(const task_handle& other);
 		INFLUX_ASYNC_API task_handle& operator=(task_handle&& other) noexcept;
 
 	private:
-		size_t m_task_data_idx = -1;
+		uint64 m_task_data_idx = -1;
 
 		friend class async_manager;
 		friend struct task_data;
-		task_handle(size_t task_idx);
+		task_handle(uint64 task_idx);
 		task_data* get_task_data() const;
-		task_handle() = default;
 	};
 
-	// global API
-	struct INFLUX_ASYNC_API init_args final
+	enum class e_log { info, warning, error, count };
+	typedef void (*log_function)(e_log, const char*);
+
+	struct init_args final
 	{
+		// optional log callback
+		log_function m_log_callback = nullptr;
+
+		// max num threads occupied to do work
 		int m_num_workers = 2u;
 	};
 
