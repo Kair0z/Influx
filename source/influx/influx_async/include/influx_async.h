@@ -66,8 +66,12 @@ namespace influx::async
 		INFLUX_ASYNC_API bool operator==(const task_handle& other) const;
 		INFLUX_ASYNC_API bool operator!=(const task_handle& other) const;
 		INFLUX_ASYNC_API bool is_equal(const task_handle& other) const;
-		INFLUX_ASYNC_API e_task_state get_state() const;
-		INFLUX_ASYNC_API task_stats get_stats() const;
+
+		// returns state if is_valid() == true, else returns error result
+		INFLUX_ASYNC_API result<e_task_state> get_state() const;
+
+		// returns stats if is_valid() == true, else returns error result
+		INFLUX_ASYNC_API result<task_stats> get_stats() const;
 		
 		// copy & move constructable
 		INFLUX_ASYNC_API task_handle();
@@ -82,7 +86,9 @@ namespace influx::async
 		friend class async_manager;
 		friend struct task_data;
 		task_handle(uint64 task_idx);
-		task_data* get_task_data() const;
+
+		// queries the manager to find the data associated with this handle
+		result<struct task_data*> find_task_data() const;
 	};
 
 	enum class e_log { info, warning, error, count };

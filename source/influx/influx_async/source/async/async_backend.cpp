@@ -78,8 +78,8 @@ namespace influx::async
 		task_data* task = nullptr;
 		if (mp_global_cleanup_queue->try_grab(task))
 		{
-			do_cleanup_task(task);
-			return true;
+			auto res = do_cleanup_task(task);
+			return res.is_success();
 		}
 
 		return false;
@@ -108,20 +108,35 @@ namespace influx::async
 		if (m_is_initialized == false)
 			return result_type::make_error("async API not intialized!");
 
-		return create_tasks({ args }).get().front();
+		auto result = create_tasks({ args });
+		if (result.is_unex()) 
+			return result_type::make_error("failed creating tasks!");
+		else
+		{
+			return result.get().front();
+		}
 	}
 
 	result<std::vector<task_handle>> async_manager::create_tasks(const std::vector<task_create_args>& args)
 	{
+		using result_type = result<std::vector<task_handle>>;
+
 		std::vector<task_handle> result{};
 		vector<task_data*> allocated_tasks = mp_taskpool->allocate(args.size());
 
-		influx_assert(allocated_tasks.size() == args.size());
+		const uint64 num_allocated = allocated_tasks.size();
+		if (num_allocated != args.size())
+		{
+			return result_type::make_error("failed allocating tasks!");
+		}
 
+		// initialize the allocated tasks and create the handles
+		result.reserve(num_allocated);
 		for (uint64 i = 0u; i < allocated_tasks.size(); ++i)
 		{
 			task_data* new_task_data = allocated_tasks[i];
-			influx_assert_not_null(new_task_data);
+			if (new_task_data == nullptr)
+				return result_type::make_error("failed allocating tasks");
 
 			// initialize the allocated task
 			new_task_data->reset(e_task_state::allocated);
@@ -130,24 +145,26 @@ namespace influx::async
 			// push handle to data
 			result.push_back(task_handle(mp_taskpool->get_index(new_task_data)));
 		}
+
 		return result;
 	}
 
 	result<> async_manager::do_process_task(task_data* data)
 	{
-		data->m_time_started = time::get_now();
 		data->m_state = e_task_state::running;
 		m_num_processing++;
+		data->m_time_started = time::get_now();
 		{
-			// do the work
 			if (data->m_args.m_func_execute)
+			{
 				data->m_args.m_func_execute();
+			}
 		}
+		data->m_time_finished = time::get_now();
 		m_num_processing--;
 		data->m_state = e_task_state::finished;
-		data->m_time_finished = time::get_now();
 
-		// add to cleanup queue
+		// move to the cleanup queue
 		mp_global_cleanup_queue->push(data);
 
 		return {};
@@ -155,37 +172,39 @@ namespace influx::async
 
 	result<> async_manager::do_cleanup_task(task_data* data)
 	{
-		influx_assert_not_null(data);
+		if (data == nullptr)
+			return result<>::make_error("data to cleanup is nullptr!");
 
-		// free from task_pool
 		if (mp_taskpool->free(data))
 		{
 			return {};
 		}
-		
-		influx_assert(false);
-		return result<>::make_error("clean failed!");
+		else
+		{
+			return result<>::make_error("cleaning given task failed!");
+		}
 	}
 
 	result<> async_manager::do_cleanup_task(const task_handle& handle)
 	{
-		return do_cleanup_task(get_task_from_handle(handle).get());
+		return do_cleanup_task( get_task_from_handle(handle).get() );
 	}
 
 	result<task_data*> async_manager::get_task_from_handle(const task_handle& handle)
 	{
 		using result_type = result<task_data*>;
 
-		assert(handle.is_valid());
+		if (handle.is_valid() == false)
+			return result_type::make_error("invalid handle!");
+
 		auto& data = mp_taskpool->get_data_at(handle.m_task_data_idx);
-		
-		if (data.m_state != e_task_state::invalid)
+		if (data.m_state == e_task_state::invalid)
 		{
-			return &data;
+			return result_type::make_error("data at given handle is invalid!");
 		}
 		else
 		{
-			return result_type::make_error("data at given handle is invalid!");
+			return &data;
 		}
 	}
 
@@ -211,16 +230,31 @@ namespace influx::async
 
 	result<> async_manager::dispatch(const task_handle& handle)
 	{
+		if (handle.is_valid() == false)
+			return result<>::make_error("handle passed is invalid!");
+
 		task_data* data = get_task_from_handle(handle).get();
-		influx_assert_not_null(data);
+		if (data == nullptr)
+			return result<>::make_error("task data at handle is nullptr!");
 
 		return dispatch(data);
 	}
 
 	result<> async_manager::dispatch(task_data* data)
 	{
-		data->set_state(e_task_state::queued);
-		influx_assert(mp_global_queue->push(data));
+		if (data == nullptr)
+			return result<>::make_error("data passed is nullptr!");
+
+		const bool is_pushed_to_queue = mp_global_queue->push(data);
+		if (!is_pushed_to_queue)
+		{
+			return result<>::make_error("failed pushing data to queue!");
+		}
+		else
+		{
+			data->set_state(e_task_state::queued);
+		}
+
 		return {};
 	}
 
@@ -231,37 +265,45 @@ namespace influx::async
 
 	result<> async_manager::wait_for(const vector<task_handle>& handles, const wait_args& args)
 	{
+		using result_type = result<>;
+
 		time::point wait_start = time::get_now();
 		float ms_waited = 0.0f;
 		for (const task_handle& handle : handles)
 		{
-			influx_assert(handle.is_valid());
+			if (handle.is_valid() == false)
+				continue;
 
-			task_data* data = get_task_from_handle(handle).get();
-			influx_assert_not_null(data);
+			const auto task_data_res = get_task_from_handle(handle);
+			if (task_data_res.is_unex() || task_data_res.get() == nullptr)
+				continue;
 
-			while (!data->is_finished() && ms_waited < args.m_max_ms)
+			const task_data& data = *task_data_res.get();
+			while (!data.is_finished() && ms_waited < args.m_max_ms)
 			{
-				// might as well clean up a bit
+				// this thread may as well help clean up a bit
 				try_grab_and_clean_a_task();
 
+				// wait callback
 				if (args.m_wait_func)
 				{
 					args.m_wait_func();
 				}
-				
+
 				ms_waited = time::get_ms_between<float>(time::get_now(), wait_start);
 			}
 		}
 
+		// store the milliseconds waited
 		if (args.mp_out_ms != nullptr)
 		{
 			(*args.mp_out_ms) = ms_waited;
 		}
+
 		return {};
 	}
 
-	result<>  async_manager::wait_for_all(const wait_args& args)
+	result<> async_manager::wait_for_all(const wait_args& args)
 	{
 		time::point wait_start = time::get_now();
 		float ms_waited = 0.0f;
@@ -329,10 +371,10 @@ namespace influx::async
 	task_handle::task_handle(size_t data_idx)
 		: m_task_data_idx{ data_idx }
 	{
-		task_data* data = get_task_data();
-		if (data != nullptr)
+		auto found_data = find_task_data();
+		if (found_data.is_success() && found_data.get() != nullptr)
 		{
-			data->m_refcount++;
+			found_data.get()->m_refcount++;
 		}
 	}
 
@@ -344,60 +386,86 @@ namespace influx::async
 	task_handle::task_handle(const task_handle& other)
 	{
 		m_task_data_idx = other.m_task_data_idx;
-		task_data* data = get_task_data();
-		if (data != nullptr)
+
+		auto found_data = find_task_data();
+		if (found_data.is_success() && found_data.get() != nullptr)
 		{
-			data->m_refcount++;
+			found_data.get()->m_refcount++;
 		}
 	}
 	task_handle::task_handle(task_handle&& other) noexcept
 	{
 		m_task_data_idx = other.m_task_data_idx;
-		task_data* data = get_task_data();
-		if (data != nullptr)
+		
+		auto found_data = find_task_data();
+		if (found_data.is_success() && found_data.get() != nullptr)
 		{
-			data->m_refcount++;
+			found_data.get()->m_refcount++;
 		}
 	}
 	task_handle& task_handle::operator=(const task_handle& other)
 	{
 		m_task_data_idx = other.m_task_data_idx;
-		task_data* data = get_task_data();
-		if (data != nullptr)
+		
+		auto found_data = find_task_data();
+		if (found_data.is_success() && found_data.get() != nullptr)
 		{
-			data->m_refcount++;
+			found_data.get()->m_refcount++;
 		}
+
 		return *this;
 	}
 	task_handle& task_handle::operator=(task_handle&& other) noexcept
 	{
 		m_task_data_idx = other.m_task_data_idx;
-		task_data* data = get_task_data();
-		if (data != nullptr)
+		
+		auto found_data = find_task_data();
+		if (found_data.is_success() && found_data.get() != nullptr)
 		{
-			data->m_refcount++;
+			found_data.get()->m_refcount++;
 		}
+
 		return *this;
 	}
+
 	bool task_handle::is_valid() const
 	{
 		return (m_task_data_idx != k_task_invalid_idx);
 	}
+
 	bool task_handle::is_equal(const task_handle& other) const
 	{
 		return m_task_data_idx == other.m_task_data_idx;
 	}
-	e_task_state task_handle::get_state() const
+
+	result<e_task_state> task_handle::get_state() const
 	{
-		influx_assert(is_valid());
-		task_data* data = get_task_data();
-		return (data != nullptr) ? data->m_state : e_task_state::invalid;
+		using result_type = result<e_task_state>;
+		if (is_valid() == false)
+			return result_type::make_error("this handle isn't valid!");
+
+		auto found_data = find_task_data();
+		if (found_data.is_unex() || found_data.get() == nullptr)
+		{
+			return e_task_state::invalid;
+		}
+
+		return found_data.get()->m_state;
 	}
-	task_stats task_handle::get_stats() const
+
+	result<task_stats> task_handle::get_stats() const
 	{
-		influx_assert(is_valid());
-		task_data* data = get_task_data();
-		return (data != nullptr) ? data->m_stats : task_stats{};
+		using result_type = result<task_stats>;
+		if (is_valid() == false)
+			return result_type::make_error("this handle isn't valid!");
+
+		auto found_data = find_task_data();
+		if (found_data.is_unex() || found_data.get() == nullptr)
+		{
+			return result_type::make_error("the data pointed by this handle isn't valid!");
+		}
+
+		return found_data.get()->m_stats;
 	}
 	void task_handle::wait(const wait_args& args) const
 	{
@@ -405,7 +473,7 @@ namespace influx::async
 	}
 	bool task_handle::is_finished() const
 	{
-		return get_state() == e_task_state::finished;
+		return get_state().get() == e_task_state::finished;
 	}
 	void task_handle::dispatch() const
 	{
@@ -419,9 +487,10 @@ namespace influx::async
 	{
 		return !is_equal(other);
 	}
-	task_data* task_handle::get_task_data() const
+	result<task_data*> task_handle::find_task_data() const
 	{
-		return async_manager::get_instance().get_task_from_handle(*this).get();
+		async_manager& manager = async_manager::get_instance();
+		return manager.get_task_from_handle(*this);
 	}
 #pragma endregion
 }
