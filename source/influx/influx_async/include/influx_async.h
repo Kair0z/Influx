@@ -151,22 +151,36 @@ namespace influx::async
 	inline 
 	result<vector<task_handle>> dispatch_for(uint64 range, const function<void(uint64 i)>& func)
 	{
+		using result_type = result<vector<task_handle>>;
 		if (func == nullptr)
-			return {};
-
-		vector<task_handle> handles{};
-		handles.reserve(range);
-		for (uint64 i = 0u; i < range; ++i)
 		{
-			auto sub_func = [i, func]()
-			{
-				func(i);
-			};
-
-			handles.push_back(create_task({ "foreach_" + to_string(i) }, sub_func).get());
+			return result_type::make_error("func is null, not queueing tasks");
 		}
 
-		dispatch(handles);
+		vector<task_handle> handles{}; handles.reserve(range);
+		for (uint64 i = 0u; i < range; ++i)
+		{
+			// make a sub-function that passes the index as parameter
+			auto sub_func = [i, func]() { func(i); };
+
+			// create the task
+			auto created_result = create_task({ "foreach_" + to_string(i) }, sub_func);
+			if (created_result.is_success() == false)
+			{
+				return result_type::make_error("failed allocating task to dispatch!");
+			}
+
+			// collect the handle
+			handles.push_back(created_result.get());
+		}
+
+		// dispatch the handles
+		auto dispatch_res = dispatch(handles);
+		if (dispatch_res.is_success() == false)
+		{
+			return result_type::make_error("failed dispatching the created tasks");
+		}
+
 		return handles;
 	}
 
@@ -175,10 +189,8 @@ namespace influx::async
 	inline 
 	result<vector<task_handle>> dispatch_for(const vector<_t>& vector, const function<void(const _t& i)>& func)
 	{
-		auto sub_func = [vector, func](uint64 i)
-		{
-			func(vector[i]);
-		};
+		// make a sub-function that passes the index
+		auto sub_func = [vector, func](uint64 i) { func(vector[i]); };
 
 		return dispatch_for(vector.size(), sub_func);
 	}

@@ -47,11 +47,11 @@ void test_sums()
 		time::point before = time::get_now();
 		std::mutex mutex{};
 		auto tasks = async::dispatch_for(num_iterations, [&mutex, &async_sum](uint64 i)
-			{
-				mutex.lock();
-				async_sum += (i + 1) * 2;
-				mutex.unlock();
-			});
+		{
+			mutex.lock();
+			async_sum += (i + 1) * 2;
+			mutex.unlock();
+		});
 		async::wait_for(tasks.get());
 		async_time_in_seconds = time::get_ms_between<double>(time::get_now(), before) * 0.001;
 	}
