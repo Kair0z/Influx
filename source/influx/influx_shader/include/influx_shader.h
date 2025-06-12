@@ -18,29 +18,62 @@ namespace influx::shader
 	template <typename _t>
 	using result = influx::result<_t, const char*>;
 
+	enum class e_compile_debug_level : uint8
+	{
+		release,
+		debug,
+		num
+	};
+
 	/* */
 	struct compile_args final
 	{
 	public:
+		shader_signature		m_signature;
+		vector<string>			m_defines;
+		string					m_pdb_folder;
+		string					m_pdb_filename;
+		string					m_include_folder;
+		e_compile_debug_level	m_debug_level;
+
+		bool m_reflection_enabled;
+		bool m_pbd_enabled;
+
+		inline bool is_non_debug()
+		{ return m_debug_level == e_compile_debug_level::release; }
+
 		inline bool is_valid() const
-		{
-			return m_signature.is_valid();
-		}
+		{ return m_signature.is_valid(); }
 
-		inline compile_args& add_define(const string& define) { m_defines.push_back(define); return *this; }
-		inline compile_args& set_target(e_shader_target target) { m_signature.m_target = target; return *this; }
-		inline compile_args& set_type(e_shader_type type) { m_signature.m_type = type; return *this; }
+		inline compile_args& add_define(const string& define) 
+		{ m_defines.push_back(define); return *this; }
 		
-		shader_signature m_signature;
+		inline compile_args& set_target(e_shader_target target) 
+		{ m_signature.m_target = target; return *this; }
+		
+		inline compile_args& set_type(e_shader_type type)
+		{ m_signature.m_type = type; return *this; }
 
-		vector<string> m_defines;
-		string m_pdb_folder;
-		string m_pdb_filename;
-		string m_include_folder;
+		inline compile_args& set_pdb_folder(const string& folder)
+		{ m_pdb_folder = folder; return *this; }
 
-		bool m_compile_debug;
-		bool m_reflection;
-		bool m_pbd;
+		inline compile_args& set_pdb_fname(const string& name)
+		{ m_pdb_filename = name; return *this; }
+
+		inline compile_args& set_include_folder(const string& folder)
+		{ m_include_folder = folder; return *this; }
+
+		inline compile_args& set_debug_level(const bool enabled)
+		{ m_debug_level = enabled ? e_compile_debug_level::debug : e_compile_debug_level::release; return *this; }
+
+		inline compile_args& set_debug_level(const e_compile_debug_level lvl)
+		{ m_debug_level = lvl; return *this; }
+
+		inline compile_args& set_reflection_enabled(const bool enabled)
+		{ m_reflection_enabled = enabled; return *this; }
+
+		inline compile_args& set_pdb_enabled(const bool enabled)
+		{ m_pbd_enabled = enabled; return *this; }
 	};
 
 	/* */

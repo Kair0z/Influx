@@ -6,6 +6,7 @@
 
 namespace influx::shader
 {
+	/* supported shader types */
 	enum class e_shader_type : uint8
 	{
 		// graphics
@@ -14,8 +15,10 @@ namespace influx::shader
 		ds,				// domain shader
 		gs,				// geometry shader
 		hs,				// hull shader
+
 		// compute
 		cs,
+
 		// raytracing
 		rgs,			// ray-gen shader
 		mss,			// miss shader
@@ -24,15 +27,49 @@ namespace influx::shader
 		ins,			// intersection shader
 
 		// mesh shading
-		as,
-		ms,
+		as,				// amplification shader
+		ms,				// mesh shader
 
 		count
+	};
+	static constexpr uint8 k_num_shadertypes = static_cast<uint8>(e_shader_type::count);
+	static const char* k_shadertype_strings[k_num_shadertypes]
+	{
+		"vs",
+		"ps",
+		"ds",
+		"gs",
+		"hs",
+		"cs",
+		"rgs",
+		"mss",
+		"chs",
+		"ahs",
+		"ins",
+		"as",
+		"ms"
+	};
+	static const char* k_shadertype_friendnames[k_num_shadertypes]
+	{
+		"vertex",
+		"pixel",
+		"domain",
+		"geometry",
+		"hull",
+		"compute",
+		"raygen",
+		"miss",
+		"closest_hit",
+		"any_hit",
+		"intersection",
+		"amplification",
+		"mesh"
 	};
 
 	enum class e_shader_type_flags : uint32
 	{
 		none	= 0,
+
 		vs		= 1 << static_cast<uint8>(e_shader_type::vs),
 		ps		= 1 << static_cast<uint8>(e_shader_type::ps),
 		ds		= 1 << static_cast<uint8>(e_shader_type::ds),
@@ -60,6 +97,22 @@ namespace influx::shader
 		return static_cast<e_shader_type_flags>(1u << static_cast<uint8>(type));
 	}
 
+	/* pipeline shader groups */
+	inline static constexpr bool is_compute_shader(e_shader_type type)
+	{
+		return type == e_shader_type::cs;
+	}
+
+	inline static constexpr bool is_graphics_shader(e_shader_type type)
+	{
+		return
+			type == e_shader_type::vs ||
+			type == e_shader_type::ps ||
+			type == e_shader_type::ds ||
+			type == e_shader_type::gs ||
+			type == e_shader_type::hs;
+	}
+
 	inline static constexpr bool is_raytracing_shader(e_shader_type type)
 	{
 		return
@@ -70,27 +123,14 @@ namespace influx::shader
 			type == e_shader_type::ins;
 	}
 
-	static constexpr uint8 k_num_shadertypes = static_cast<uint8>(e_shader_type::count);
-	static const char* k_shadertype_strings[k_num_shadertypes]
+	inline static constexpr bool is_mesh_shader(e_shader_type type)
 	{
-		"vs",
-		"ps",
-		"ds",
-		"gs",
-		"hs",
+		return
+			type == e_shader_type::as ||
+			type == e_shader_type::ms;
+	}
 
-		"cs",
-
-		"rgs",
-		"mss",
-		"chs",
-		"ahs",
-		"ins",
-
-		"as",
-		"ms"
-	};
-
+	/* supported shader targets */
 	enum class e_shader_target : uint8
 	{
 		_6_2,
@@ -106,10 +146,23 @@ namespace influx::shader
 		"6_6"
 	};
 
+	/*	
+		signature identifier of a single shader
+		built from filename+entrypoint+shader+target
+	*/
 	using shader_id = uint64;
-
 	struct shader_signature final
 	{
+		/* tag & id are derived */
+		string			m_tag;
+		shader_id		m_id;
+
+		/* these 4 components make the identifier */
+		e_shader_type		m_type;
+		e_shader_target		m_target;
+		string				m_entrypoint;
+		string				m_filename;
+
 		bool is_valid() const
 		{
 			return m_type != e_shader_type::count
@@ -118,7 +171,7 @@ namespace influx::shader
 				&& !m_filename.empty();
 		}
 
-		string get_tag()
+		const string& get_tag() const
 		{
 			return m_tag;
 		}
@@ -138,13 +191,6 @@ namespace influx::shader
 			m_tag = m_filename + "::" + m_entrypoint + "::" + type_str + targ_str;
 			m_id = std::hash<string>{}(m_tag);
 		}
-
-		e_shader_type m_type;
-		e_shader_target m_target;
-		string m_entrypoint;
-		string m_filename;
-		string m_tag;
-		shader_id m_id;
 
 		bool operator==(const shader_signature& other) const
 		{

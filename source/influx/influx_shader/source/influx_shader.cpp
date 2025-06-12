@@ -245,14 +245,15 @@ namespace influx::shader
 		}
 
 		// misc
+		const bool compile_debug = args.m_debug_level == shader::e_compile_debug_level::debug;
 		const bool row_major = false;
 		result								.push_back("dxc -help | findstr Version");
 		result								.push_back(row_major ? "-Zpr" : "Zpc");
-		if (!args.m_pbd) result				.push_back("-Qstrip_debug");
-		if (!args.m_reflection) result		.push_back("-Qstrip_reflect");
-		if (args.m_compile_debug) result	.push_back("-Od"); // DXC_ARG_SKIP_OPTIMIZATIONS
-		if (args.m_compile_debug) result	.push_back("-O0"); // DXC_ARG_OPTIMIZATION_LEVEL0
-		if (args.m_compile_debug) result	.push_back("-Zi"); // DXC_ARG_DEBUG
+		if (!args.m_pbd_enabled) result				.push_back("-Qstrip_debug");
+		if (!args.m_reflection_enabled) result		.push_back("-Qstrip_reflect");
+		if (compile_debug) result	.push_back("-Od"); // DXC_ARG_SKIP_OPTIMIZATIONS
+		if (compile_debug) result	.push_back("-O0"); // DXC_ARG_OPTIMIZATION_LEVEL0
+		if (compile_debug) result	.push_back("-Zi"); // DXC_ARG_DEBUG
 
 		return result;
 	}
@@ -375,7 +376,7 @@ namespace influx::shader
 		}
 
 		// [OUTPUT: DEBUG INFO]
-		if (args.m_pbd && !args.m_pdb_folder.empty())
+		if (args.m_pbd_enabled && !args.m_pdb_folder.empty())
 		{
 			// ensure the directory exists
 			if (!influx::file::is_directory(args.m_pdb_folder))
@@ -418,7 +419,7 @@ namespace influx::shader
 		}
 		
 		// [OUTPUT: REFLECTION DATA]
-		if (args.m_reflection)
+		if (args.m_reflection_enabled)
 		{
 			IDxcBlob* pReflectionData = nullptr;
 			ID3D12ShaderReflection* pShaderReflection = nullptr;

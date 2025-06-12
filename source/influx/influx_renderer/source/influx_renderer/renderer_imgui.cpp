@@ -293,13 +293,13 @@ namespace influx::renderer
 		args.m_signature.m_entrypoint = "main";
 		args.m_signature.m_filename = "imgui_shaders";
 #if INFLUX_DEBUG
-		args.m_compile_debug = true;
+		args.set_debug_level(true);
 #else
-		args.m_compile_debug = false;
+		args.set_debug_level(false);
 #endif
 		args.m_signature.m_target = shader::e_shader_target::_6_6;
-		args.m_pbd = true;
-		args.m_reflection;
+		args.m_pbd_enabled = true;
+		args.m_reflection_enabled = true;
 
 		args.m_signature.m_type = shader::e_shader_type::vs;
 		auto res = shader::compile_shader(k_vertex_shader, args);

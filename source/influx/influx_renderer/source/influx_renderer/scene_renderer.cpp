@@ -242,10 +242,10 @@ namespace influx::renderer
         shader::compile_args compile_args{};
         compile_args.m_include_folder = base_dir;
         compile_args.m_signature.m_target = shader::e_shader_target::_6_6;;
-        compile_args.m_reflection = true;
+        compile_args.m_reflection_enabled = true;
         compile_args.m_defines = {};
-        compile_args.m_compile_debug = false;
-        compile_args.m_pbd = false;
+        compile_args.set_debug_level(false);
+        compile_args.m_pbd_enabled = false;
 
         using parse_result = shader::result<vector<shader::parse_output>>;
 

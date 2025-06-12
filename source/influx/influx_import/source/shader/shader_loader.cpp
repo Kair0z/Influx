@@ -10,7 +10,9 @@ namespace influx::imp
 	{
 		influx_assert(file::exists(filepath));
 		influx_assert(file::exists(args.m_include_folder));
-		influx_assert(args.m_pbd == false || file::exists(args.m_pdb_folder));
+
+		const bool valid_pbd_path = file::exists(args.m_pdb_folder) && !args.m_pdb_filename.empty();
+		influx_assert(args.m_pbd_enabled == false || valid_pbd_path);
 
 		shader::compile_args args_copy = args;
 		args_copy.m_signature.m_filename = file(filepath).m_filename_without_extension;
@@ -29,7 +31,9 @@ namespace influx::imp
 	{
 		influx_assert(file::exists(filepath));
 		influx_assert(file::exists(args.m_include_folder));
-		influx_assert(args.m_pbd == false || file::exists(args.m_pdb_folder));
+
+		const bool valid_pbd_path = file::exists(args.m_pdb_folder) && !args.m_pdb_filename.empty();
+		influx_assert(args.m_pbd_enabled == false || valid_pbd_path);
 
 		// parse all shaders in file
 		auto parsed_file = shader::parse_shaders_in_file(filepath);

@@ -241,11 +241,11 @@ namespace influx::engine
 		}
 		
 		compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
-		compile_args.m_reflection = true;
+		compile_args.m_reflection_enabled = true;
 		compile_args.m_defines = {};
 #if INFLUX_DEBUG
-		compile_args.m_compile_debug = true;
-		compile_args.m_pbd = true;
+		compile_args.set_debug_level(true);
+		compile_args.m_pbd_enabled = true;
 		compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
 #else
 		compile_args.m_compile_debug = false;
