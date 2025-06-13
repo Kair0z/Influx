@@ -122,7 +122,6 @@ namespace influx::imp
 	INFLUX_ASSETS_API
 	result<image_data> load_image_file(const string& filepath, const image_load_args& args = {});
 
-
 	/* Loads a 3D-image (cubemap) */
 	struct cubemap_load_args final
 	{

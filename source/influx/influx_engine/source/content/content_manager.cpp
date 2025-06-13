@@ -192,10 +192,10 @@ namespace influx::engine
 
 	void content_manager::load_assets(engine* engine, e_asset_origin origin, const file& root)
 	{	
-		vector<file> fbx_files = get_files_in_directory(root.m_path_full, true, ".fbx");
-		vector<file> obj_files = get_files_in_directory(root.m_path_full, true, ".obj");
-		vector<file> png_files = get_files_in_directory(root.m_path_full, true, ".png");
-		vector<file> hlsl_files = get_files_in_directory(root.m_path_full, true, ".hlsl");
+		const vector<file> fbx_files = get_files_in_directory(root.m_path_full, true, ".fbx");
+		const vector<file> obj_files = get_files_in_directory(root.m_path_full, true, ".obj");
+		const vector<file> png_files = get_files_in_directory(root.m_path_full, true, ".png");
+		const vector<file> hlsl_files = get_files_in_directory(root.m_path_full, true, ".hlsl");
 
 		// load cubemap (hack)
 		{

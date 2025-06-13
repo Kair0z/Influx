@@ -10,7 +10,7 @@ namespace influx::imp
 	{
 		using result_type = result<shader_data>;
 
-		if (!file::exists(filepath)) 
+		if (!file::exists(filepath))
 			return result_type::make_error("in filepath doesn't exist!");
 
 		const shader::compile_args& compile_args = load_args.m_compile_args;
@@ -39,42 +39,45 @@ namespace influx::imp
 	{
 		using result_type = result<vector<shader_data>>;
 
-		if (!file::exists(filepath)) 
+		if (!file::exists(filepath))
 			return result_type::make_error("in filepath doesn't exist!");
 
 		const shader::compile_args& compile_args = load_args.m_compile_args;
 		if (!file::exists(compile_args.m_include_folder))
-			return result_type::make_error("args.m_include_folder doesn't exist!");
+			return result_type::make_error("m_include_folder doesn't exist!");
 
 		const bool valid_pbd_path = file::exists(compile_args.m_pdb_folder) && !compile_args.m_pdb_filename.empty();
 		if (compile_args.m_pbd_enabled && valid_pbd_path == false)
-			return result_type::make_error("args.m_pbd_enabled is true but the input pbd filepath is invalid!");
+			return result_type::make_error("m_pbd_enabled is true but the input pbd filepath is invalid!");
 
 		// parse all shaders in file
 		auto parsed_file = shader::parse_shaders_in_file(filepath);
 		if (parsed_file.is_unex())
 			return result_type::make_error("shader::parse_shaders_in_file(filepath) failed!");
-
-		vector<shader::parse_output>& parsed_shaders = parsed_file.get();
-
-		// for each parsed shader, load it and add it to the list		
-		vector<shader_data> out_shaders{};
-		out_shaders.reserve(parsed_shaders.size());
-		for (shader::parse_output& parsed_shader : parsed_shaders)
+		
+		else
 		{
-			shader::compile_args args_copy = compile_args;
-			parsed_shader.m_signature.m_target = compile_args.m_signature.m_target;
-			args_copy.m_signature = parsed_shader.m_signature;
+			vector<shader::parse_output>& parsed_shaders = parsed_file.get();
 
-			result<shader_data> new_shader_data = load_shader_file(filepath, { args_copy });
-			if (new_shader_data.is_unex())
-				return result_type::make_error("one of the load_shader's failed!");
-			else
+			// for each parsed shader, load it and add it to the list		
+			vector<shader_data> out_shaders{};
+			out_shaders.reserve(parsed_shaders.size());
+			for (shader::parse_output& parsed_shader : parsed_shaders)
 			{
-				out_shaders.push_back(new_shader_data.get());
-			}
-		}
+				shader::compile_args args_copy = compile_args;
+				parsed_shader.m_signature.m_target = compile_args.m_signature.m_target;
+				args_copy.m_signature = parsed_shader.m_signature;
 
-		return out_shaders;
+				result<shader_data> new_shader_data = load_shader_file(filepath, { args_copy });
+				if (new_shader_data.is_unex())
+					return result_type::make_error("one of the load_shader's failed!");
+				else
+				{
+					out_shaders.push_back(new_shader_data.get());
+				}
+			}
+
+			return out_shaders;
+		}
 	}
 }
