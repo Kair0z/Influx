@@ -266,7 +266,7 @@ namespace influx::engine
 				compile_args.m_signature.m_type = shader::e_shader_type::vs;
 				compile_args.m_signature.m_entrypoint = "main_vs";
 				compile_args.m_signature.cache_id();
-				vs_item.load(file, compile_args);
+				vs_item.load(file, { compile_args });
 			}
 
 			if (str::contains(file_content, "[shader(\"pixel\")]", false))
@@ -275,7 +275,7 @@ namespace influx::engine
 				compile_args.m_signature.m_type = shader::e_shader_type::ps;
 				compile_args.m_signature.m_entrypoint = "main_ps";
 				compile_args.m_signature.cache_id();
-				ps_item.load(file, compile_args);
+				ps_item.load(file, { compile_args });
 			}
 
 			if (str::contains(file_content, "[shader(\"compute\")]", false))
@@ -284,7 +284,7 @@ namespace influx::engine
 				compile_args.m_signature.m_type = shader::e_shader_type::cs;
 				compile_args.m_signature.m_entrypoint = "main_cs";
 				compile_args.m_signature.cache_id();
-				cs_item.load(file, compile_args);
+				cs_item.load(file, { compile_args });
 			}
 		});
 

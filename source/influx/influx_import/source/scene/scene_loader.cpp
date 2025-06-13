@@ -21,15 +21,16 @@
 
 namespace influx::imp
 {
-	bool load_scene_file(const string& filepath, scene_data& out_scene, const scene_load_args& args)
+	result<scene_data> load_scene_file(const string& filepath, const scene_load_args& args)
 	{
+		using result_type = result<scene_data>;
+
 		// Create an instance of the Importer class
 		Assimp::Importer importer;
 
 		// And have it read the given file with some example postprocessing
 		// Usually - if speed is not the most important aspect for you - you'll
 		// probably to request more postprocessing than we do in this example.
-
 		int step_flags = 
 			aiProcess_CalcTangentSpace		|
 			aiProcess_Triangulate			|
@@ -43,16 +44,13 @@ namespace influx::imp
 		}
 		
 		const aiScene* aiscene = importer.ReadFile(filepath.c_str(), step_flags);
-
-		// If the import failed, report it
 		if (aiscene == nullptr)
 		{
-			// DoTheErrorLogging(importer.GetErrorString());
-			return false;
+			return result_type::make_error("Asimp::Importer::ReadFile() failed!");
 		}
 
-		// Processing aiScene:
+		scene_data out_scene{};
 		out_scene = parse(aiscene, args);
-		return true;
+		return out_scene;
 	}
 }

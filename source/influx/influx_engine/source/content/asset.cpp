@@ -4,33 +4,22 @@
 // influx::imp
 #include "influx_import.h"
 
-// influx::shader
-#include "influx_shader.h"
-
 namespace influx::engine
 {
-	imp::scene_data load_scene_data(const string& path, const imp::scene_load_args& args)
+	result<imp::scene_data> load_scene_data(const string& path, const imp::scene_load_args& args)
 	{
-		imp::scene_data data{};
-		imp::load_scene_file(path, data, args);
-		return data;
+		return imp::load_scene_file(path, args);
 	}
-	imp::image_data load_image_data(const string& path, const imp::image_load_args& args)
+	result<imp::image_data> load_image_data(const string& path, const imp::image_load_args& args)
 	{
-		imp::image_data data{};
-		imp::load_image_file(path, data, args);
-		return data;
+		return imp::load_image_file(path, args);
 	}
-	imp::cubemap_data load_cubemap_data(const string& path, const imp::cubemap_load_args& args)
+	result<imp::cubemap_data> load_cubemap_data(const string& path, const imp::cubemap_load_args& args)
 	{
-		imp::cubemap_data data{};
-		imp::load_cubemap(path, data, args);
-		return data;
+		return imp::load_cubemap(path, args);
 	}
-	imp::shader_data load_shader_data(const string& path, const shader::compile_args& args)
+	result<imp::shader_data> load_shader_data(const string& path, const imp::shader_load_args& args)
 	{
-		imp::shader_data result{};
-		bool success = imp::load_shader_file(path, result, args);
-		return result;
+		return imp::load_shader_file(path, args);
 	}
 }

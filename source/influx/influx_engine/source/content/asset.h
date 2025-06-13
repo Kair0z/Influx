@@ -11,6 +11,7 @@ namespace influx::imp
 	struct scene_load_args;
 	struct image_load_args;
 	struct cubemap_load_args;
+	struct shader_load_args;
 	struct shader_data;
 	struct scene_data;
 	struct image_data;
@@ -18,44 +19,20 @@ namespace influx::imp
 	struct shader_data;
 }
 
-// influx::shader
-namespace influx::shader
-{
-	struct compile_args;
-}
-
 namespace influx::engine
 {
-	imp::scene_data load_scene_data(const string& path, const imp::scene_load_args& args);
-	imp::image_data load_image_data(const string& path, const imp::image_load_args& args);
-	imp::cubemap_data load_cubemap_data(const string& path, const imp::cubemap_load_args& args);
-	imp::shader_data load_shader_data(const string& path, const shader::compile_args& args);
-
 	enum class e_asset_type : uint8
 	{
-		scene,
-		image,
-		cubemap,
-		shader,
+		scene,		// fbx files
+		image,		// png files
+		cubemap,	
+		shader,		// hlsl files
 		count
 	};
 
-	template <e_asset_type _t>
-	using data_type = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
-		imp::scene_data,
-		imp::image_data,
-		imp::cubemap_data,
-		imp::shader_data>>;
-
-	template <e_asset_type _t>
-	using load_args = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
-		imp::scene_load_args,
-		imp::image_load_args,
-		imp::cubemap_load_args,
-		shader::compile_args>>;
-
 	enum class e_asset_origin : uint8
 	{
+		unknown,
 		engine,
 		game,
 		imported,
@@ -67,8 +44,30 @@ namespace influx::engine
 		unloaded,
 		loading,
 		loaded,
+		failed_load,
 		count
 	};
+
+	result<imp::scene_data> load_scene_data(const string& path, const imp::scene_load_args& args);
+	result<imp::image_data> load_image_data(const string& path, const imp::image_load_args& args);
+	result<imp::cubemap_data> load_cubemap_data(const string& path, const imp::cubemap_load_args& args);
+	result<imp::shader_data> load_shader_data(const string& path, const imp::shader_load_args& args);
+
+	/* type of data obtained after loading */
+	template <e_asset_type _t>
+	using data_type = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
+		imp::scene_data,
+		imp::image_data,
+		imp::cubemap_data,
+		imp::shader_data>>;
+
+	/* type of arguments for loading */
+	template <e_asset_type _t>
+	using load_args = std::tuple_element_t<static_cast<uint64>(_t), std::tuple<
+		imp::scene_load_args,
+		imp::image_load_args,
+		imp::cubemap_load_args,
+		imp::shader_load_args>>;
 
 	template <e_asset_type _t>
 	struct asset_item final
@@ -76,69 +75,101 @@ namespace influx::engine
 		using load_args = load_args<_t>;
 		using data_type = data_type<_t>;
 
-		data_type m_resource{}; // the raw resource
-		e_load_state m_state{};
-		e_asset_origin m_origin{};
-		string m_name;
-		string m_path;
-		string m_extension;
+		/* arguments by which this asset was last loaded */
 		load_args m_last_args{};
 
+		/* data of the asset loaded */
+		data_type m_resource{};
+
+		e_load_state m_state	= e_load_state::unloaded;
+		e_asset_origin m_origin = e_asset_origin::unknown;
+
+		string m_name = "";
+		string m_path = "";
+		string m_extension = "";
+		
 		time::point m_time_loadstart{};
 		time::point m_time_loadend{};
 
-		inline asset_item()
+		inline result<> load(const file& path, const load_args& args, bool allow_reload = false)
 		{
-			set_loadstate(e_load_state::unloaded);
-		}
+			using result_type = result<>;
 
-		inline void load(const file& path, const load_args& args, bool reload = false)
-		{
-			if (!file::exists(path.m_path_full)) return;
-			if (get_loadstate() == e_load_state::count) return;
-			if (get_loadstate() == e_load_state::loading) return;
-			if (get_loadstate() == e_load_state::loaded && reload == false) return;
+			const e_load_state current_load_state = get_loadstate();
 
+			if (!file::exists(path.m_path_full)) 
+				return result_type::make_error("file at path doesn't exist!");
+
+			if (current_load_state == e_load_state::loading)
+				return result_type::make_error("this asset is already currently loading. Skipping load.");
+
+			if (current_load_state == e_load_state::loaded && allow_reload == false)
+				return result_type::make_error("this asset is already loaded, and allow_reload is false. Skipping load.");
+
+			// store path-based string data
 			m_name = path.m_filename;
 			m_path = path.m_path_full;
 			m_extension = path.m_extension;
 
-			engine::log(e_log_category::info, "content:loading {}", get_friendly_name(m_path).c_str());
-
+			// do the load
+			bool is_load_success = false;
 			m_time_loadstart = time::get_now();
 			set_loadstate(e_load_state::loading);
 			if constexpr (_t == e_asset_type::scene)
 			{
-				m_resource = load_scene_data(m_path, args);
+				if (auto res = load_scene_data(m_path, args))
+				{
+					m_resource = res.get();
+				}
 			}
 			else if constexpr (_t == e_asset_type::image)
 			{
-				m_resource = load_image_data(m_path, args);
+				if (auto res = load_image_data(m_path, args))
+				{
+					m_resource = res.get();
+				}
 			}
 			else if constexpr (_t == e_asset_type::cubemap)
 			{
-				m_resource = load_cubemap_data(m_path, args);
+				if (auto res = load_cubemap_data(m_path, args))
+				{
+					m_resource = res.get();
+				}
 			}
 			else if constexpr (_t == e_asset_type::shader)
 			{
-				m_resource = load_shader_data(m_path, args);
+				if (auto res = load_shader_data(m_path, args))
+				{
+					m_resource = res.get();
+				}
 			}
-			set_loadstate(e_load_state::loaded);
-
-			write_native();
-
 			m_time_loadend = time::get_now();
 			m_last_args = args;
+
+			// post-load
+			// on success, create a mirror flx file
+			if (is_load_success)
+			{
+				set_loadstate(e_load_state::loaded);
+				create_flx_file();
+				return {};
+			}
+			else
+			{
+				set_loadstate(e_load_state::failed_load);
+				return result_type::make_error("file at path failed to load as a valid resource.");
+			}
+			return {};
 		}
 
-		inline void reload(const load_args& args)
+		inline result<> reload(const load_args& args)
 		{
-			load(m_path, args, true);
+			return load(m_path, args, true);
 		}
 
-		inline void reload()
+		inline result<> reload()
 		{
-			reload(m_last_args);
+			return reload(m_last_args);
 		}
 
 		inline bool is_loaded() const
@@ -171,6 +202,12 @@ namespace influx::engine
 			return m_resource;
 		}
 
+		inline float get_load_ms() const
+		{
+			return time::get_ms_between<float>(m_time_loadend, m_time_loadstart);
+		}
+
+	private:
 		inline void set_loadstate(e_load_state new_state)
 		{
 			if (new_state == e_load_state::loading)
@@ -186,12 +223,7 @@ namespace influx::engine
 			m_state = new_state;
 		}
 
-		inline float get_load_ms() const
-		{
-			return time::get_ms_between<float>(m_time_loadend, m_time_loadstart);
-		}
-
-		inline void write_native()
+		inline void create_flx_file()
 		{
 			const string& og_path = m_path;
 			const string og_friendly = get_friendly_name(og_path);

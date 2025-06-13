@@ -13,6 +13,7 @@
 #include "core/container/vector.h"
 #include "core/basetypes.h"
 #include "core/shader.h"
+#include "core/result.h"
 #include "core/material/material.h"
 #include "core/math/bounds.h"
 #include "core/geometry/sphere.h"
@@ -26,6 +27,10 @@
 
 namespace influx::imp
 {
+	template <typename _t = char>
+	using result = influx::result<_t, const char*>;
+
+	/* Loads an 3D-model scene file (.fbx, .obj) */
 	struct scene_load_args final
 	{
 		float	m_pre_scale = 1.0f;
@@ -72,12 +77,15 @@ namespace influx::imp
 
 	using mesh_data = scene_data::mesh;
 
-	/* Loads an 3D-model scene file (.fbx, .obj) */
-	INFLUX_ASSETS_API bool load_scene_file(const string& filepath, 
-		scene_data& out_scene, const scene_load_args& args = {});
-
+	INFLUX_ASSETS_API 
+	result<scene_data> load_scene_file(const string& filepath, const scene_load_args& args = {});
 
 	/* Loads a Shader file (.hlsl) */
+	struct shader_load_args final
+	{
+		shader::compile_args m_compile_args{};
+	};
+
 	struct shader_data final
 	{
 		shader::shader_signature m_signature;
@@ -85,11 +93,12 @@ namespace influx::imp
 		shader::e_shader_type m_type;
 	};
 	
-	INFLUX_ASSETS_API bool load_shader_file(const string& filepath, 
-		shader_data& out_shader, const shader::compile_args& args = {});
+	INFLUX_ASSETS_API /* loads a single shader in a given file */
+	result<shader_data> load_shader_file(const string& filepath, const shader_load_args& load_args = {});
 
-	INFLUX_ASSETS_API bool load_shader_file(const string& filepath,
-		vector<shader_data>& out_shaders, const shader::compile_args& args = {});
+	INFLUX_ASSETS_API /* loads all shaders in a given file */
+	result<vector<shader_data>> load_shaders_in_file(const string& filepath, const shader_load_args& load_args = {});
+
 
 	/* Loads an 2D-image (.png, .jpeg) */
 	struct image_load_args final
@@ -110,9 +119,11 @@ namespace influx::imp
 		math::vectoru2 m_dimensions{};
 	};
 
-	INFLUX_ASSETS_API bool load_image_file(const string& filepath, 
-		image_data& out_image, const image_load_args& args = {});
+	INFLUX_ASSETS_API
+	result<image_data> load_image_file(const string& filepath, const image_load_args& args = {});
 
+
+	/* Loads a 3D-image (cubemap) */
 	struct cubemap_load_args final
 	{
 		stat_array<string, 6u>* m_hacky_paths = nullptr;
@@ -124,7 +135,6 @@ namespace influx::imp
 		math::vectoru3 m_dimensions{};
 	};
 
-	/* Loads a 3D-image (cubemap) */
-	INFLUX_ASSETS_API bool load_cubemap(
-		const string& filepath, cubemap_data& out_cubemap, const cubemap_load_args& args = {});
+	INFLUX_ASSETS_API 
+	result<cubemap_data> load_cubemap(const string& filepath, const cubemap_load_args& args = {});
 }

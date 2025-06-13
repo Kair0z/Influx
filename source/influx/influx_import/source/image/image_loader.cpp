@@ -18,10 +18,12 @@ namespace influx::imp
 	}
 
 	/* Loads an 2D-image (.png, .jpeg) */
-	bool load_image_file(const string& filepath, image_data& out_image, const image_load_args& args)
+	result<image_data> load_image_file(const string& filepath, const image_load_args& args)
 	{
-		vector<byte> data{};
+		using result_type = result<image_data>;
 
+		vector<byte> data{};
+		image_data out_image{};
 		bool error = lodepng::decode(
 			data,
 			(unsigned&)out_image.m_dimensions.x,
@@ -29,6 +31,9 @@ namespace influx::imp
 			filepath.c_str(), 
 			LCT_RGBA, 
 			8u);
+
+		if (error == false)
+			return result_type::make_error("lodepng::decode() failed!");
 
 		constexpr uint32 k_num_channels = 4u;
 		for (uint32 i = 0u; i < data.size() / k_num_channels; ++i)
@@ -44,20 +49,35 @@ namespace influx::imp
 			pixel = make_pixel32(r, g, b, a);
 		}
 
-		return error;
+		return out_image;
 	}
 
 	/* Loads a 3D-image (cubemap) */
-	bool load_cubemap(const string& path, cubemap_data& out_cubemap, const cubemap_load_args& args)
+	result<cubemap_data> load_cubemap(const string& path, const cubemap_load_args& args)
 	{
+		using result_type = result<cubemap_data>;
+
 		imp::image_data side_datas[6u]{};
 		imp::image_load_args side_args{};
+
 		bool all_success = true;
 		for (uint32 i = 0u; i < 6u; ++i)
 		{
-			all_success &= load_image_file((*args.m_hacky_paths)[i], side_datas[i], side_args);
+			result<image_data> load_image_result = load_image_file((*args.m_hacky_paths)[i], side_args);
+			if (load_image_result.is_success())
+			{
+				side_datas[i] = load_image_result.get();
+			}
+			else
+			{
+				all_success = false;
+			}
 		}
 
+		if (!all_success)
+			return result_type::make_error("not all images loaded correctly!");
+
+		cubemap_data out_cubemap{};
 		out_cubemap.m_dimensions.x =
 			out_cubemap.m_dimensions.y =
 			out_cubemap.m_dimensions.z = side_datas[0].m_dimensions.x;
@@ -68,6 +88,6 @@ namespace influx::imp
 				out_cubemap.m_pixels.push_back(side_datas[i].m_pixels[p]);
 		}
 
-		return all_success;
+		return out_cubemap;
 	}
 }
