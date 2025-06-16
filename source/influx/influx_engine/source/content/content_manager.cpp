@@ -104,6 +104,22 @@ namespace influx::engine
 		}
 	};
 
+	static const load_args<e_asset_type::shader> k_default_shader_import_args
+	{ {
+		.m_signature{},
+		.m_defines{},
+		.m_pdb_folder{},
+		.m_pdb_filename{},
+		.m_include_folder{},
+#if INFLUX_DEBUG
+		.m_debug_level = shader::e_compile_debug_level::debug,
+#else
+		.m_debug_level = shader::e_compile_debug_level::release,
+#endif
+		.m_reflection_enabled = true,
+		.m_pbd_enabled = true
+	}};
+
 	static const load_args<e_asset_type::scene> k_default_scene_import_args
 	{
 		.m_pre_scale = 1.0f,
@@ -115,10 +131,10 @@ namespace influx::engine
 		
 	};
 
-	content_manager::content_manager(engine* engine)
+	content_manager::content_manager()
 	{
-		// immediately start kicking loading
-		load_engine_assets(engine);
+		// immediately start kicking engine loading (may as well)
+		load_engine_assets();
 
 		editor::editor_manager::static_window<content_ui>("content");
 	}
@@ -131,67 +147,76 @@ namespace influx::engine
 	{
 		return m_scenes;
 	}
+
 	const umap<string, image_asset>& content_manager::get_images() const
 	{
 		return m_images;
 	}
+
 	const umap<string, shader_asset>& content_manager::get_shaders() const
 	{
 		return m_shaders;
 	}
+
 	const umap<string, cubemap_asset>& content_manager::get_cubemaps() const
 	{
 		return m_cubemaps;
 	}
+
+	/* get all shaders as mutable reference */
 	umap<string, shader_asset>& content_manager::touch_shaders()
 	{
 		return m_shaders;
 	}
 
-	void content_manager::load_engine_assets(engine* engine)
+	/* loads all engine assets (/engine/assets/...) */
+	void content_manager::load_engine_assets()
 	{
-		m_start_engine_resources = time::get_now();
-
-		logn("loading engine resources ...");
 		const auto engine_assets_dir = get_engine_directory(engine_directory::assets);
-		load_assets(engine, e_asset_origin::engine, engine_assets_dir);
+		load_assets(e_asset_origin::engine, engine_assets_dir);
 	}
 
-	void content_manager::load_game_assets(const string& game_name, engine* engine)
+	/* loads all game assets (/game_name/assets/...) */
+	void content_manager::load_game_assets(const string& game_name)
 	{
-		logn("loading {} resources ...", game_name.c_str());
 		const auto game_assets_dir = get_game_directory(game_name, game_directory::assets);
-		load_assets(engine, e_asset_origin::game, game_assets_dir);
+		load_assets(e_asset_origin::game, game_assets_dir);
 	}
 
-	void content_manager::load(const string& path)
+	/* loads a single asset file at path into the content manager */
+	result<> content_manager::load_file(const string& path)
 	{
+		using result_type = result<>;
+
 		file as_file = file(path);
 		e_asset_type asset_type = e_asset_type::count;
 
 		if (as_file.m_extension == ".fbx") asset_type = e_asset_type::scene;
-		if (as_file.m_extension == ".png") asset_type = e_asset_type::scene;
-		if (as_file.m_extension == ".hlsl") asset_type = e_asset_type::scene;
+		if (as_file.m_extension == ".png") asset_type = e_asset_type::image;
+		if (as_file.m_extension == ".hlsl") asset_type = e_asset_type::shader;
 
 		switch (asset_type)
 		{
-		case e_asset_type::scene: 
+		case e_asset_type::scene:
 			m_scenes[as_file.m_filename].load(path, k_default_scene_import_args);
+			return {};
+			break;
+
+		case e_asset_type::image:
+			return result_type::make_error("deducting image load args not supported yet...");
+			break;
+
+		case e_asset_type::shader:
+			return result_type::make_error("deducting image load args not supported yet...");
 			break;
 		}
+
+		return result_type::make_error("failed loading file...");
 	}
 
-	void content_manager::update_filechanges()
+	/* given an origin (category), load all assets in that category */
+	void content_manager::load_assets(e_asset_origin origin, const file& root)
 	{
-		for (auto& pair : touch_shaders())
-		{
-			const string& path = pair.second.m_path;
-			
-		}
-	}
-
-	void content_manager::load_assets(engine* engine, e_asset_origin origin, const file& root)
-	{	
 		const vector<file> fbx_files = get_files_in_directory(root.m_path_full, true, ".fbx");
 		const vector<file> obj_files = get_files_in_directory(root.m_path_full, true, ".obj");
 		const vector<file> png_files = get_files_in_directory(root.m_path_full, true, ".png");
@@ -251,7 +276,6 @@ namespace influx::engine
 		compile_args.m_compile_debug = false;
 		compile_args.m_pbd = false;
 #endif
-
 		async::dispatch_for<file>(hlsl_files, [this, root](const file& file)
 		{
 #if INFLUX_DEBUG

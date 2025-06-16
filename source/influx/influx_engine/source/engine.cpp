@@ -38,7 +38,6 @@ namespace influx::engine
 		for (int i = 0u; i < argc; ++i)
 		{
 			const string& argument = argv[i];
-
 			if (str::contains(argument, ".exe"))
 			{
 				// loading the editor by running the .exe
@@ -57,38 +56,41 @@ namespace influx::engine
 
 	void engine::initialize()
 	{
+		/* firstly, create a logger */
 		m_logman = new log_manager();
 
 		random::seed_random(0u);
 
 		m_t_init = time::get_now();
 
-		m_config.m_file_influx_root = get_engine_directory(engine_directory::root);
-		m_config.m_file_influx_assets = get_engine_directory(engine_directory::assets);
-		m_config.m_file_influx_staged = get_engine_directory(engine_directory::staged);
+		/* setup root file structure */
+		m_config.m_file_influx_root		= get_engine_directory(engine_directory::root);
+		m_config.m_file_influx_assets	= get_engine_directory(engine_directory::assets);
+		m_config.m_file_influx_staged	= get_engine_directory(engine_directory::staged);
 
-		m_taskman = new task_manager();
-		m_inputman = new input_manager();
-		m_contentman = new content_manager(this);
-		m_gameman = new game_manager();
-		m_moduleman = new module_manager();
+		/* make misc managers (order matters here :) )*/
+		m_taskman		= new task_manager();
+		m_inputman		= new input_manager();
+		m_contentman	= new content_manager();
+		m_gameman		= new game_manager();
+		m_moduleman		= new module_manager();
 
-		// initialize render
+		// initialize window & render
 		const string window_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
 		const math::vectoru2 window_dimensions = { 720, 480u};
 		platform::window_desc window_desc{};
 		window_desc
 			.set_dimensions(window_dimensions)
 			.set_name(window_name);
-
 		m_windowman = new window_manager();
 		m_windowman->spawn(window_desc); // main window
-
 		m_renderman = new render_manager(this);
-		m_world = new world();
 
+		/* create world & scene_manager */
+		m_world = new world();
 		m_sceneman = new scene_manager();
 
+		/* if editor, make editor_manager */
 		if (m_runtype == run_type::editor)
 		{
 			m_editorman = new editor::editor_manager();
@@ -142,7 +144,6 @@ namespace influx::engine
 				if (m_gameman) m_gameman->tick();
 				m_world->update();
 			}
-
 			// record imgui if editor
 			if (m_runtype == run_type::editor)
 			{
@@ -151,19 +152,16 @@ namespace influx::engine
 					m_editorman->on_imgui(ctx);
 				});
 			}
-
 			// world builds renderscenes (pre-render)
 			{
-				influx_scope("pre-render");
+				influx_scope("pre_render");
 				m_world->build_renderviews();
 			}
-
 			// render
 			{
 				influx_scope("render");
 				m_renderman->render();
 			}
-
 			// log tick
 			{
 				influx_scope("log");

@@ -19,17 +19,12 @@ namespace influx::engine
 		umap<string, image_asset> m_images;
 		umap<string, shader_asset> m_shaders;
 		umap<string, cubemap_asset> m_cubemaps;
-		thread m_loading_thread;
-		time::point m_start_engine_resources;
 
 	public:
-		content_manager(engine* engine);
+		content_manager();
 		~content_manager();
 
-		const umap<string, scene_asset>& get_scenes() const;
-		const umap<string, image_asset>& get_images() const;
-		const umap<string, shader_asset>& get_shaders() const;
-		const umap<string, cubemap_asset>& get_cubemaps() const;
+		/* get all shaders as mutable reference */
 		umap<string, shader_asset>& touch_shaders();
 		
 		template <typename _t>
@@ -59,13 +54,21 @@ namespace influx::engine
 			return nullptr;
 		}
 
-		void load(const string& path);
-		void load_engine_assets(engine* engine);
-		void load_game_assets(const string& game_name, engine* engine);
+		/* loads a single asset file at path into the content manager */
+		result<> load_file(const string& path);
+
+		/* loads all engine assets (/engine/assets/...) */
+		void load_engine_assets();
+
+		/* loads all game assets (/game_name/assets/...) */
+		void load_game_assets(const string& game_name);
 		
-		// finding individual meshes
-		inline imp::scene_data::mesh* find_mesh(const string& mesh_name)
+		/* finds a loaded mesh given a mesh_name*/
+		inline result<imp::scene_data::mesh*> find_mesh(const string& mesh_name)
 		{
+			using result_type = result<imp::scene_data::mesh*>;
+
+			/* split the mesh_name into parts */
 			const vector<string>& parts = str::split(mesh_name, "_");
 			const string scene_name = parts.size() > 0u ? parts[0u] : "";
 			const string index_str = parts.size() > 1u ? parts[1u] : "";
@@ -73,25 +76,36 @@ namespace influx::engine
 
 			return find_mesh(scene_name, mesh_idx);
 		}
-		inline imp::scene_data::mesh* find_mesh(const string& scene_name, uint32 mesh_idx)
+
+		/* finds a loaded mesh given a scene_name & index */
+		inline result<imp::scene_data::mesh*> find_mesh(const string& scene_name, uint32 mesh_idx)
 		{
+			using result_type = result<imp::scene_data::mesh*>;
+
 			if (m_scenes.contains(scene_name))
 			{
 				return &m_scenes[scene_name].m_resource.get_mesh(mesh_idx);
 			}
 
-			return nullptr;
+			return result_type::make_error("could not find scene at scene_name, so a mesh was not found");
 		}
-		static string get_scene_mesh_name(const scene_asset& item, const uint32 idx)
+		
+		/* given a scene_asset (fbx) and an index, returns the mesh name at that index */
+		static result<string> get_scene_mesh_name(const scene_asset& item, const uint32 idx)
 		{
+			using result_type = result<string>;
+
 			return item.m_name + "_" + to_string(idx);
 		}
 
-		// update externally changed files
-		void update_filechanges();
+		const umap<string, scene_asset>& get_scenes() const;
+		const umap<string, image_asset>& get_images() const;
+		const umap<string, shader_asset>& get_shaders() const;
+		const umap<string, cubemap_asset>& get_cubemaps() const;
 
 	private:
-		void load_assets(engine* engine, e_asset_origin, const file& root);
+		/* given an origin (category), load all assets in that category */
+		void load_assets(e_asset_origin origin, const file& root);
 
 		void write_native(const image_asset& asset);
 	};
