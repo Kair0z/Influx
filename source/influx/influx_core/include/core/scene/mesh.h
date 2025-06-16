@@ -7,29 +7,49 @@
 
 namespace influx::scene
 {
+	enum class e_vertex_attribute : uint8
+	{
+		position,
+		colour,
+		normal,
+		texcoord_array,
+		count
+	};
+	static constexpr uint8 k_max_num_vertex_attributes = static_cast<uint8>(e_vertex_attribute::count);
+	static constexpr uint8 k_max_num_texcoords_per_vertex = 8u;
+	static constexpr uint8 k_max_num_colours_per_vertex = 8u;
+	static const uint8 k_num_floats_per_attribute[k_max_num_vertex_attributes]
+	{
+		3u,									// position
+		k_max_num_colours_per_vertex * 4u,  // colour
+		3u,									// normal
+		k_max_num_texcoords_per_vertex * 2u // texcoord_array
+	};
+
 	namespace detail
 	{
-		struct i_mesh
-		{
-
-		};
-
 		template <class _vertex_t, class _index_t = uint32>
-		struct mesh final
+		class mesh final
 		{
+		public:
 			using triangle = _vertex_t[3u];
 			using vertex = _vertex_t;
 			using index = _index_t;
-
-		public:
 			mesh() = default;
 
+		private:
+			vector<_vertex_t> m_vertices;
+			vector<_index_t> m_indices;
+
+		public:
+			/* construct a mesh from vertices + indices */
 			inline mesh(const vector<_vertex_t>& vertices, const vector<_index_t>& indices)
-				: m_vertices{ vertices }
-				, m_indices{ indices }
 			{
+				m_vertices = vertices;
+				m_indices = indices;
 			}
 
+			/* construct a mesh from a list of triangles */
 			inline mesh(const vector<triangle>& triangles)
 			{
 				m_vertices.reserve(triangles.dimension() * 3u);
@@ -77,10 +97,6 @@ namespace influx::scene
 			{
 				return m_indices;
 			}
-
-		private:
-			vector<_vertex_t> m_vertices;
-			vector<_index_t> m_indices;
 		};
 	}
 

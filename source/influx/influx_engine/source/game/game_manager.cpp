@@ -294,7 +294,7 @@ namespace influx::engine
 			transform_component& trans_comp = world.create_component<transform_component>(sword.get_handle());
 			{
 				const float scale_multiplier = 0.01f;
-				math::matrix4x4f copy_transform = mesh.m_world_transform * math::matrix4x4f::make_scale( math::float3{ scale_multiplier , scale_multiplier , scale_multiplier });
+				math::matrix4x4f copy_transform = scene_data.get_transform(mesh) * math::matrix4x4f::make_scale( math::float3{ scale_multiplier , scale_multiplier , scale_multiplier });
 
 				trans_comp.set_position(copy_transform.get_translation());
 				trans_comp.set_scale(copy_transform.get_scale());

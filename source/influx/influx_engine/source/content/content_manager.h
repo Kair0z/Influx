@@ -107,6 +107,5 @@ namespace influx::engine
 		/* given an origin (category), load all assets in that category */
 		void load_assets(e_asset_origin origin, const file& root);
 
-		void write_native(const image_asset& asset);
 	};
 }

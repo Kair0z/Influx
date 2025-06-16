@@ -268,16 +268,22 @@ namespace influx::math
 		return matrix.is_null();
 	}
 	template<typename _t, matsize _x, matsize _y>
-	inline matrix<_t, _x, _y> matrix<_t, _x, _y>::identity()
+	inline const matrix<_t, _x, _y>& matrix<_t, _x, _y>::identity()
 	{
-		matrix<_t, _x, _y> result{};
-		for (matsize r{}; r < _y; ++r)
-			for (matsize c{}; c < _x; ++c)
-			{
-				matsize i = c + (_x * r);
-				if (r == c) result.m_data[i] = (_t)1;
-			}
-
+		static matrix<_t, _x, _y> result{};
+		static bool once = true;
+		if (once == true)
+		{
+			for (matsize r{}; r < _y; ++r)
+				for (matsize c{}; c < _x; ++c)
+				{
+					matsize i = c + (_x * r);
+					if (r == c) 
+						result.m_data[i] = (_t)1;
+				}
+			once = false;
+		}
+		
 		return result;
 	}
 

@@ -188,26 +188,25 @@ namespace influx::engine
 	{
 		using result_type = result<>;
 
-		file as_file = file(path);
-		e_asset_type asset_type = e_asset_type::count;
+		if (!file::exists(path))
+			return result_type::make_error("file at path not found!");
 
-		if (as_file.m_extension == ".fbx") asset_type = e_asset_type::scene;
-		if (as_file.m_extension == ".png") asset_type = e_asset_type::image;
-		if (as_file.m_extension == ".hlsl") asset_type = e_asset_type::shader;
-
-		switch (asset_type)
+		const file as_file = file(path);
+		auto asset_type_res = get_asset_type_from_extension(as_file.m_extension);
+		if (asset_type_res.is_unex())
 		{
+			return result_type::make_error("failed finding asset_type from file's extension!");
+		}
+
+		switch (asset_type_res.get())
+		{
+		default:
+		case e_asset_type::count:
+			return result_type::make_error("deducting image load args for this file extension not supported yet...");
+
 		case e_asset_type::scene:
 			m_scenes[as_file.m_filename].load(path, k_default_scene_import_args);
 			return {};
-			break;
-
-		case e_asset_type::image:
-			return result_type::make_error("deducting image load args not supported yet...");
-			break;
-
-		case e_asset_type::shader:
-			return result_type::make_error("deducting image load args not supported yet...");
 			break;
 		}
 
@@ -319,10 +318,5 @@ namespace influx::engine
 			image_asset& item = m_images[file.m_filename];
 			item.load(file, args);
 		});
-	}
-	
-	void content_manager::write_native(const image_asset& asset)
-	{
-		
 	}
 }

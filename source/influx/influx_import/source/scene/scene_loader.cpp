@@ -21,6 +21,36 @@
 
 namespace influx::imp
 {
+	const math::matrix4x4f& scene_data::get_transform(const mesh& mesh) const
+	{
+		if (mesh.m_transform_index < m_world_transforms.size())
+		{
+			return m_world_transforms[mesh.m_transform_index];
+		}
+
+		return math::matrix4x4f::identity();
+	}
+
+	const math::matrix4x4f& scene_data::get_transform(const light& light) const
+	{
+		if (light.m_transform_index < m_world_transforms.size())
+		{
+			return m_world_transforms[light.m_transform_index];
+		}
+
+		return math::matrix4x4f::identity();
+	}
+
+	const math::matrix4x4f& scene_data::get_transform(const camera& camera) const
+	{
+		if (camera.m_transform_index < m_world_transforms.size())
+		{
+			return m_world_transforms[camera.m_transform_index];
+		}
+
+		return math::matrix4x4f::identity();
+	}
+
 	result<scene_data> load_scene_file(const string& filepath, const scene_load_args& args)
 	{
 		using result_type = result<scene_data>;

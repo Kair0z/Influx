@@ -10,6 +10,7 @@
 #include "core/scene/mesh.h"
 #include "core/scene/camera.h"
 #include "core/scene/light.h"
+#include "core/math/matrix.h"
 #include "core/container/vector.h"
 #include "core/basetypes.h"
 #include "core/shader.h"
@@ -48,31 +49,45 @@ namespace influx::imp
 			vector<math::vectorf4> m_colours{};
 			vector<math::vectorf3> m_normals{};
 			vector<math::vectorf2> m_uvs{};
-			math::boxf m_bounding_box{};
-			math::spheref m_bounding_sphere{};
-			math::vectorf3 m_average_position;
-			uint32 m_material_index{};
 
-			math::matrix4x4f m_world_transform{};
+			/* bounding box/sphere are local! scale with the matrix to get the world bounds! */
+			math::boxf		m_bounding_box{};
+			math::spheref	m_bounding_sphere{};
+			math::vectorf3 m_average_position;
+
+			uint32 m_material_index{};
+			uint32 m_transform_index{};
 		};
 
 		struct camera final
 		{
 			influx::camera m_camera = {};
-			math::matrix4x4f m_world_transform{};
+			uint32 m_transform_index{};
 		};
 
-		const mesh& get_main_mesh() const { return m_meshes[0]; }
-		const mesh& get_mesh(const uint32 i) const { return m_meshes[i % m_meshes.size()]; }
-		mesh& get_mesh(const uint32 i) { return m_meshes[i % m_meshes.size()]; }
-		const vector<mesh>& get_meshes() const { return m_meshes; }
-		const uint32 get_num_meshes() const { return static_cast<uint32>(m_meshes.size()); }
+		struct light final
+		{
+			influx::light m_light = {};
+			uint32 m_transform_index{};
+		};
 
-		vector<mesh> m_meshes{};
-		vector<light> m_lights{};
-		vector<camera> m_cameras{};
-		vector<influx::material> m_materials{};
-		uint32 m_num_materials{};
+		vector<mesh>				m_meshes{};
+		vector<light>				m_lights{};
+		vector<camera>				m_cameras{};
+		vector<influx::material>	m_materials{};
+		vector<math::matrix4x4f>	m_world_transforms;
+		uint32						m_num_materials{};
+
+		/* returns identity if the index for some reason isn't sound... */
+		INFLUX_ASSETS_API const math::matrix4x4f& get_transform(const mesh& mesh) const;
+		INFLUX_ASSETS_API const math::matrix4x4f& get_transform(const light& light) const;
+		INFLUX_ASSETS_API const math::matrix4x4f& get_transform(const camera& camera) const;
+		
+		inline const mesh& get_main_mesh() const { return m_meshes[0]; }
+		inline const mesh& get_mesh(const uint32 i) const { return m_meshes[i % m_meshes.size()]; }
+		inline mesh& get_mesh(const uint32 i) { return m_meshes[i % m_meshes.size()]; }
+		inline const vector<mesh>& get_meshes() const { return m_meshes; }
+		inline const uint32 get_num_meshes() const { return static_cast<uint32>(m_meshes.size()); }
 	};
 
 	using mesh_data = scene_data::mesh;

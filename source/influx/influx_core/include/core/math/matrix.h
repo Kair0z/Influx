@@ -115,7 +115,7 @@ namespace influx::math
 		bool is_null() const;
 		static bool is_null(const matrix& matrix);
 
-		static matrix identity();
+		static const matrix& identity();
 
 		// Transformation:
 		static matrix<_t, 3u, 3u> make_rotation(const vector<_t, 3u>& axis, float angle);

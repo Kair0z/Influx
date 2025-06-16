@@ -30,6 +30,17 @@ namespace influx::engine
 		count
 	};
 
+	static result<e_asset_type> get_asset_type_from_extension(const string& extension)
+	{
+		using result_type = result<e_asset_type>;
+
+		if (extension == ".fbx") return e_asset_type::scene;
+		if (extension == ".png") return e_asset_type::image;
+		if (extension == ".hlsl") return e_asset_type::shader;
+
+		return result_type::make_error("asset_type not deducable for this extension!");
+	}
+
 	enum class e_asset_origin : uint8
 	{
 		unknown,

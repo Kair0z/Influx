@@ -111,9 +111,10 @@ namespace influx::engine
 		{
 			render_view_id id = pair.first;
 			render_view& view = pair.second;
-			
+
 			if (view.should_render() == false)
 				continue;
+
 			// cannot render invalid dimensions
 			if (view.has_valid_dimensions() == false)
 				continue;
@@ -129,7 +130,7 @@ namespace influx::engine
 				view.m_target = renderer::create_target(args);
 			}
 
-			// resize target if dimensions different
+			// resize target if dimensions changed
 			if (view.m_prev_dimensions != view.m_dimensions)
 			{
 				view.m_target->resize(view.m_dimensions);

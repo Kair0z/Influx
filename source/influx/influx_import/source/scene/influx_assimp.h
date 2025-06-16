@@ -396,17 +396,22 @@ namespace influx
 				imp::scene_data::mesh mesh_data = translate(*mesh);
 
 				// calc world matrix:
+				result.m_world_transforms.push_back({});
+				const uint32 new_matrix_index = result.m_world_transforms.size() - 1u;
+				math::matrix4x4f& new_matrix = result.m_world_transforms.back();
+
 				const aiNode* mesh_node = find_node_recursive(*pScene, *pScene->mRootNode, *mesh);
 				if (mesh_node)
 				{
 					const aiMatrix4x4& world_matrix = calc_world_matrix_recursive(*mesh_node);
-					mesh_data.m_world_transform = translate(world_matrix, metadata_info);
+					new_matrix = translate(world_matrix, metadata_info);
 				}
 				else
 				{
-					mesh_data.m_world_transform = math::matrix4x4f::identity();
+					new_matrix = math::matrix4x4f::identity();
 				}
 
+				mesh_data.m_transform_index = new_matrix_index;
 				result.m_meshes.push_back(mesh_data);				
 			}
 			
@@ -422,16 +427,22 @@ namespace influx
 
 			imp::scene_data::camera camera_data{};
 			camera_data.m_camera = translate(*camera);
+
+			result.m_world_transforms.push_back({});
+			const uint32 new_matrix_index = result.m_world_transforms.size() - 1u;
+			math::matrix4x4f& new_matrix = result.m_world_transforms.back();
+
 			const aiNode* cam_node = find_node(*pScene, *pScene->mRootNode, *camera);
 			if (cam_node)
 			{
 				const aiMatrix4x4& world_matrix = calc_world_matrix_recursive(*cam_node);
-				camera_data.m_world_transform = translate(world_matrix, metadata_info);
+				new_matrix = translate(world_matrix, metadata_info);
 			}
 			else
 			{
-				camera_data.m_world_transform = math::matrix4x4f::identity();
+				new_matrix = math::matrix4x4f::identity();
 			}
+			camera_data.m_transform_index = new_matrix_index;
 			result.m_cameras.push_back(camera_data);
 		}
 #if 0
@@ -456,7 +467,10 @@ namespace influx
 				logwar("influx::imp::scene_data::parse >> nullptr light!");
 				continue;
 			}
-			result.m_lights.push_back(translate(*light));
+
+			imp::scene_data::light light_data = { translate(*light) };
+			light_data.m_transform_index = 0u; // todo
+			result.m_lights.push_back(light_data);
 		}
 
 		return result;

@@ -336,6 +336,8 @@ namespace influx::rendergraph
 				if (!buffer->is_imported()) m_pool->release_buffer(device, *buffer->m_resource);
 			}
 		}
+
+		return {};
 	}
 
 	rgpass* rendergraph::add_pass( e_rgpass_type type,
@@ -503,6 +505,12 @@ namespace influx::rendergraph
 		m_texid_to_deviceobjects_map.clear();
 		m_bufid_to_deviceobjects_map.clear();
 
+		m_texid_to_viewdesc_map.clear();
+		m_texid_to_descriptors_map.clear();
+
+		m_bufid_to_viewdesc_map.clear();
+		m_bufid_to_descriptors_map.clear();
+
 		// if all our resources are reset, our graph also is required to reset
 		reset_graph();
 	}
@@ -520,12 +528,6 @@ namespace influx::rendergraph
 
 		m_buffer_uav_counter_map.clear();
 		m_rtid_to_clear_map.clear();
-
-		m_texid_to_viewdesc_map.clear();
-		m_texid_to_descriptors_map.clear();
-
-		m_bufid_to_viewdesc_map.clear();
-		m_bufid_to_descriptors_map.clear();
 
 		// reset the graph references inside the existing resources
 		for (uint64 i = 0; i < m_textures.size(); ++i)
@@ -1345,8 +1347,7 @@ namespace influx::rendergraph
 			for (uint64 pass_idx = 0u; pass_idx < layer.m_passes.size(); ++pass_idx)
 			{
 				const rgpass& pass = layer.m_passes[pass_idx];
-
-				if (pass.m_num_errors > 0u)
+				if (pass.m_num_errors != 0u)
 				{
 					return false;
 				}
@@ -1364,10 +1365,13 @@ namespace influx::rendergraph
 				{
 					rgtexture_id id = m_textures[i]->m_id;
 					const graphics::resource& resource = *m_textures[i]->m_resource;
-					const bool wants_uav = m_texid_to_viewdesc_map.at(id)[uav_index].m_is_active;
-					if (wants_uav && resource.allows_uav() == false)
+					if (m_texid_to_viewdesc_map.contains(id))
 					{
-						++num_incorrect_uavs;
+						const bool wants_uav = m_texid_to_viewdesc_map.at(id)[uav_index].m_is_active;
+						if (wants_uav && resource.allows_uav() == false)
+						{
+							++num_incorrect_uavs;
+						}
 					}
 				}
 			}
@@ -1377,15 +1381,19 @@ namespace influx::rendergraph
 				{
 					rgbuffer_id id = m_buffers[i]->m_id;
 					const graphics::resource& resource = *m_buffers[i]->m_resource;
-					const bool wants_uav = m_bufid_to_viewdesc_map.at(id)[uav_index].m_is_active;
-					if (wants_uav && resource.allows_uav() == false)
+					if (m_bufid_to_viewdesc_map.contains(id))
 					{
-						++num_incorrect_uavs;
+						const bool wants_uav = m_bufid_to_viewdesc_map.at(id)[uav_index].m_is_active;
+						if (wants_uav && resource.allows_uav() == false)
+						{
+							++num_incorrect_uavs;
+						}
 					}
 				}
 			}
 			uav_check = num_incorrect_uavs == 0u;
 		}
+
 		if (!uav_check)
 		{
 			logonce(e_log_category::warning, "rendergraph::validate() >> {} imported resources are marked readwrite (uav) but are created as non-uav compatible!", 
