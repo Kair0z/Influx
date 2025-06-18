@@ -105,7 +105,7 @@ namespace influx::engine
 
 	private:
 		/* given an origin (category), load all assets in that category */
-		void load_assets(e_asset_origin origin, const file& root);
+		void load_assets(e_asset_origin origin, const path& root);
 
 	};
 }

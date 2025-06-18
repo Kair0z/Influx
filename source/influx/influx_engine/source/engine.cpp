@@ -41,7 +41,7 @@ namespace influx::engine
 			if (str::contains(argument, ".exe"))
 			{
 				// loading the editor by running the .exe
-				m_parsed_run_args["exe_dir"] = file(argument).m_directory;
+				m_parsed_run_args["exe_dir"] = to_string(path(argument).get_directory());
 				m_parsed_run_args["exe"] = argument;
 			}
 			if (str::contains(argument, ".flx"))

@@ -18,14 +18,14 @@ namespace influx::script
 	struct xclass
 	{
 		string m_name;
-		file m_file;
+		path m_file;
 		list<xvariable> m_vars;
 	};
 
 	struct xstruct
 	{
 		string m_name;
-		file m_file;
+		path m_file;
 		list<xvariable> m_vars;
 	};
 
@@ -37,7 +37,7 @@ namespace influx::script
 		virtual const char* print() {}
 
 	private:
-		file m_file;
+		path m_file;
 		vector<xclass> m_classes;
 		vector<xstruct> m_structs;
 	};

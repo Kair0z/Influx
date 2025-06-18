@@ -102,13 +102,13 @@ namespace influx::engine
 		time::point m_time_loadstart{};
 		time::point m_time_loadend{};
 
-		inline result<> load(const file& path, const load_args& args, bool allow_reload = false)
+		inline result<> load(const path& path, const load_args& args, bool allow_reload = false)
 		{
 			using result_type = result<>;
 
 			const e_load_state current_load_state = get_loadstate();
 
-			if (!file::exists(path.m_path_full)) 
+			if (!path.exists())
 				return result_type::make_error("file at path doesn't exist!");
 
 			if (current_load_state == e_load_state::loading)
@@ -118,9 +118,10 @@ namespace influx::engine
 				return result_type::make_error("this asset is already loaded, and allow_reload is false. Skipping load.");
 
 			// store path-based string data
-			m_name = path.m_filename;
-			m_path = path.m_path_full;
-			m_extension = path.m_extension;
+			const bool without_extension = false;
+			m_name = to_string(path.get_filename(without_extension));
+			m_path = to_string(path.get_full_path());
+			m_extension = to_string(path.get_extension());
 
 			// do the load
 			bool is_load_success = false;
@@ -246,9 +247,10 @@ namespace influx::engine
 			string relative = og_friendly.substr(prestring.size());
 			relative = relative.substr(0u, relative.size() - old_extension.size()) + new_extension;
 
-			const string generated_assets = get_engine_directory(engine_directory::assets_gen).m_path_full;
+			const string generated_assets = to_string(get_engine_directory(engine_directory::assets_gen).get_full_path());
 			const string new_path = generated_assets + relative;
-			file::create(new_path);
+
+			path::create_file(new_path);
 		}
 	};
 

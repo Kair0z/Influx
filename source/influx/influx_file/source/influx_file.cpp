@@ -24,24 +24,29 @@ namespace influx::files
 
 	namespace detail
 	{
-		std::ofstream start_save(const file& file)
+		std::ofstream start_save(const path& file)
 		{
 			// make sure the file exists
-			create_file(file.m_path_full);
+			auto res = path::create_file(file.get_full_path());
+			if (res.is_unex())
+			{
+				// error here...
+				return {};
+			}
 
 			std::ofstream ofs{};
 			ofs.close();
-			ofs.open(file.m_path_full);
+			ofs.open(file.get_full_path());
 			influx_assert(ofs.is_open());
 
 			return ofs;
 		}
 
-		std::ifstream start_load(const file& file)
+		std::ifstream start_load(const path& file)
 		{
 			std::ifstream ifs{};
 			ifs.close();
-			ifs.open(file.m_path_full);
+			ifs.open(file.get_full_path());
 			influx_assert(ifs.is_open());
 
 			return ifs;
@@ -127,7 +132,7 @@ namespace influx::files
 	}
 
 	template <typename _t>
-	bool load_impl(const file& file, _t& result)
+	bool load_impl(const path& file, _t& result)
 	{
 		auto fstream = detail::start_load(file);
 		auto archive = arch_type<true>(fstream);
@@ -135,19 +140,19 @@ namespace influx::files
 	}
 
 	template <typename _t>
-	bool save_impl(const file& file, _t& result)
+	bool save_impl(const path& file, _t& result)
 	{
 		auto fstream = detail::start_save(file);
 		auto archive = arch_type<false>(fstream);
 		return serialize(result, archive);
 	}
 
-	void projectfile::save(const file& file)
+	void projectfile::save(const path& file)
 	{
 		save_impl(file, *this);
 	}
 
-	void projectfile::load(const file& file)
+	void projectfile::load(const path& file)
 	{
 		load_impl(file, *this);
 	}
@@ -158,22 +163,22 @@ namespace influx::files
 		m_entities.clear();
 	}
 
-	void componentfile::save(const file& file)
+	void componentfile::save(const path& file)
 	{
 		save_impl(file, *this);
 	}
 
-	void componentfile::load(const file& file)
+	void componentfile::load(const path& file)
 	{
 		load_impl(file, *this);
 	}
 
-	void entityfile::save(const file& file)
+	void entityfile::save(const path& file)
 	{
 		save_impl(file, *this);
 	}
 
-	void entityfile::load(const file& file)
+	void entityfile::load(const path& file)
 	{
 		load_impl(file, *this);
 	}
@@ -184,11 +189,11 @@ namespace influx::files
 		m_components.clear();
 	}
 
-	void editorfile::save(const file& file)
+	void editorfile::save(const path& file)
 	{
 		save_impl(file, *this);
 	}
-	void editorfile::load(const file& file)
+	void editorfile::load(const path& file)
 	{
 		load_impl(file, *this);
 	}

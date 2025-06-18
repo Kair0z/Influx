@@ -224,7 +224,8 @@ namespace influx::engine::editor
 
 	string editor_manager::get_editor_filepath() const
 	{
-		return get_engine_directory(engine_directory::editor).m_path_full + "editor.flx";
+		const string engine_editor_dir_str = to_string(get_engine_directory(engine_directory::editor).get_full_path());
+		return engine_editor_dir_str + "editor.flx";
 	}
 
 	void editor_manager::save_editor()
@@ -235,7 +236,7 @@ namespace influx::engine::editor
 	void editor_manager::load_editor()
 	{
 		const string& filepath = get_editor_filepath();
-		if (file::exists(filepath))
+		if (path::exists(filepath))
 			m_editorfile.load(filepath);
 	}
 

@@ -285,20 +285,20 @@ namespace influx
 					continue;
 				}
 
-				string path = translate(*out_path);
-				if (!file::exists(path))
+				string path_str = translate(*out_path);
+				if (!path::exists(path_str))
 				{
 					logwar("influx::imp::scene_data::parse >> failed to find texture path!");
 					continue;
 				}
 
-				file to_file = file(path);
+				path to_file = path(path_str);
 				const auto semantic = translate(type);
 				result.add_texture(semantic,
 				{
 					.m_semantic = semantic,
 					.m_texture_index = i,
-					.m_path = to_file.m_path_full
+					.m_path = to_string(to_file.get_full_path())
 				});
 			}
 		}

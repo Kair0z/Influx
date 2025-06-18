@@ -184,15 +184,19 @@ namespace influx::engine
 	}
 
 	/* loads a single asset file at path into the content manager */
-	result<> content_manager::load_file(const string& path)
+	result<> content_manager::load_file(const string& path_str)
 	{
 		using result_type = result<>;
 
-		if (!file::exists(path))
+		if (!path::exists(path_str))
 			return result_type::make_error("file at path not found!");
 
-		const file as_file = file(path);
-		auto asset_type_res = get_asset_type_from_extension(as_file.m_extension);
+		const path as_path = path(path_str);
+
+		const bool without_extension = false;
+		const string& filename = to_string(as_path.get_filename(without_extension));
+
+		auto asset_type_res = get_asset_type_from_extension(to_string(as_path.get_extension()));
 		if (asset_type_res.is_unex())
 		{
 			return result_type::make_error("failed finding asset_type from file's extension!");
@@ -205,7 +209,7 @@ namespace influx::engine
 			return result_type::make_error("deducting image load args for this file extension not supported yet...");
 
 		case e_asset_type::scene:
-			m_scenes[as_file.m_filename].load(path, k_default_scene_import_args);
+			m_scenes[filename].load(path_str, k_default_scene_import_args);
 			return {};
 			break;
 		}
@@ -214,23 +218,28 @@ namespace influx::engine
 	}
 
 	/* given an origin (category), load all assets in that category */
-	void content_manager::load_assets(e_asset_origin origin, const file& root)
+	void content_manager::load_assets(e_asset_origin origin, const path& root)
 	{
-		const vector<file> fbx_files = get_files_in_directory(root.m_path_full, true, ".fbx");
-		const vector<file> obj_files = get_files_in_directory(root.m_path_full, true, ".obj");
-		const vector<file> png_files = get_files_in_directory(root.m_path_full, true, ".png");
-		const vector<file> hlsl_files = get_files_in_directory(root.m_path_full, true, ".hlsl");
+		const string& root_path_str = to_string(root.get_full_path());
+		const vector<path> fbx_files = path::get_files_in_directory(root_path_str, true, ".fbx").get();
+		const vector<path> obj_files = path::get_files_in_directory(root_path_str, true, ".obj").get();
+		const vector<path> png_files = path::get_files_in_directory(root_path_str, true, ".png").get();
+		const vector<path> hlsl_files = path::get_files_in_directory(root_path_str, true, ".hlsl").get();
 
 		// load cubemap (hack)
 		{
 			imp::cubemap_load_args args{};
 			stat_array<string, 6u> cubemap_side_files{};
 			uint32 i = 0u;
-			for (const file& png : png_files)
+			for (const path& png : png_files)
 			{
-				if (str::contains(png.m_filename, "graycloud"))
+				const bool without_extension = false;
+				const string& filename = to_string(png.get_filename(without_extension));
+				const string& full_path = to_string(png.get_full_path());
+
+				if (str::contains(filename, "graycloud"))
 				{
-					cubemap_side_files[i++] = png.m_path_full;
+					cubemap_side_files[i++] = full_path;
 				}
 			}
 
@@ -240,20 +249,22 @@ namespace influx::engine
 		}
 		
 		// load fbxs & objs
-		async::dispatch_for<file>(obj_files, [this](const file& file)
+		async::dispatch_for<path>(obj_files, [this](const path& file)
 		{
 			imp::scene_load_args args{};
 			args.m_bake_transforms = true;
 			args.m_pre_scale = 1;
-			scene_asset& item = m_scenes[file.m_filename];
+			const bool without_extension = false;
+			scene_asset& item = m_scenes[to_string(file.get_filename(without_extension))];
 			item.load(file, args);
 		});
-		async::dispatch_for<file>(fbx_files, [this](const file& file)
+		async::dispatch_for<path>(fbx_files, [this](const path& file)
 		{
 			imp::scene_load_args args{};
 			args.m_bake_transforms = true;
 			args.m_pre_scale = 1;
-			scene_asset& item = m_scenes[file.m_filename];
+			const bool without_extension = false;
+			scene_asset& item = m_scenes[to_string(file.get_filename(without_extension))];
 			item.load(file, args);
 		});
 
@@ -261,7 +272,7 @@ namespace influx::engine
 		static shader::compile_args compile_args{};
 		if (origin == e_asset_origin::engine)
 		{
-			compile_args.m_include_folder = root.m_path_full + "/engine/shaders/";
+			compile_args.m_include_folder = to_string(root.get_full_path()) + "/engine/shaders/";
 		}
 		
 		compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
@@ -270,22 +281,26 @@ namespace influx::engine
 #if INFLUX_DEBUG
 		compile_args.set_debug_level(true);
 		compile_args.m_pbd_enabled = true;
-		compile_args.m_pdb_folder = get_engine_directory(engine_directory::shaderpdb).m_path_full.c_str();
+		compile_args.m_pdb_folder = to_string(get_engine_directory(engine_directory::shaderpdb).get_full_path()).c_str();
 #else
 		compile_args.m_compile_debug = false;
 		compile_args.m_pbd = false;
 #endif
-		async::dispatch_for<file>(hlsl_files, [this, root](const file& file)
+		async::dispatch_for<path>(hlsl_files, [this, root](const path& file)
 		{
-#if INFLUX_DEBUG
-			compile_args.m_pdb_filename = file.m_filename;
-#endif
-			compile_args.m_signature.m_filename = file.m_filename;
+			const bool without_extension = false;
+			const string& filename = to_string(file.get_filename(without_extension));
+			const string& full_path = to_string(file.get_full_path());
 
-			const string& file_content = textfile::read_all(file.m_path_full);
+#if INFLUX_DEBUG
+			compile_args.m_pdb_filename = filename;
+#endif
+			compile_args.m_signature.m_filename = filename;
+
+			const string& file_content = path::read_all_to_string(full_path).get();
 			if (str::contains(file_content, "[shader(\"vertex\")]", false))
 			{
-				shader_asset& vs_item = m_shaders[file.m_filename + "_vs"];
+				shader_asset& vs_item = m_shaders[filename + "_vs"];
 				compile_args.m_signature.m_type = shader::e_shader_type::vs;
 				compile_args.m_signature.m_entrypoint = "main_vs";
 				compile_args.m_signature.cache_id();
@@ -294,7 +309,7 @@ namespace influx::engine
 
 			if (str::contains(file_content, "[shader(\"pixel\")]", false))
 			{
-				shader_asset& ps_item = m_shaders[file.m_filename + "_ps"];
+				shader_asset& ps_item = m_shaders[filename + "_ps"];
 				compile_args.m_signature.m_type = shader::e_shader_type::ps;
 				compile_args.m_signature.m_entrypoint = "main_ps";
 				compile_args.m_signature.cache_id();
@@ -303,7 +318,7 @@ namespace influx::engine
 
 			if (str::contains(file_content, "[shader(\"compute\")]", false))
 			{
-				shader_asset& cs_item = m_shaders[file.m_filename + "_cs"];
+				shader_asset& cs_item = m_shaders[filename + "_cs"];
 				compile_args.m_signature.m_type = shader::e_shader_type::cs;
 				compile_args.m_signature.m_entrypoint = "main_cs";
 				compile_args.m_signature.cache_id();
@@ -312,10 +327,13 @@ namespace influx::engine
 		});
 
 		// load pngs
-		async::dispatch_for<file>(png_files, [this](const file& file)
+		async::dispatch_for<path>(png_files, [this](const path& file)
 		{
+			const bool without_extension = false;
+			const string& filename = to_string(file.get_filename(without_extension));
+
 			imp::image_load_args args{};
-			image_asset& item = m_images[file.m_filename];
+			image_asset& item = m_images[filename];
 			item.load(file, args);
 		});
 	}

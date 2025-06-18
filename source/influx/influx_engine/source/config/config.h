@@ -12,10 +12,10 @@ namespace influx::engine
 {
 	struct engine_config
 	{
-		file m_file_influx_root;
-		file m_file_influx_assets;
-		file m_file_influx_staged;
-		file m_file_influx_resources;
+		path m_file_influx_root;
+		path m_file_influx_assets;
+		path m_file_influx_staged;
+		path m_file_influx_resources;
 	};
 
 	struct app_config

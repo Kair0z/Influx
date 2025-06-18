@@ -71,11 +71,11 @@ namespace influx::renderer
         // setup the shader source directory
         {
             static const string k_default_shadersource_directory = "./shaderslol/";
-            m_shadersource_directory = !args.m_shader_source_folder.empty() && file::is_directory(args.m_shader_source_folder)
+            m_shadersource_directory = !args.m_shader_source_folder.empty() && path::is_directory(args.m_shader_source_folder)
                 ? args.m_shader_source_folder : k_default_shadersource_directory;
             
-            if (!file::is_directory(m_shadersource_directory))
-                file::make_directory(m_shadersource_directory);
+            if (!path::is_directory(m_shadersource_directory))
+                path::create_directory(m_shadersource_directory);
         }
 
         // create graphics objects

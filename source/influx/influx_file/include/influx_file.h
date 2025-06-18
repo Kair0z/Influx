@@ -17,8 +17,8 @@ namespace influx::files
 	class componentfile final
 	{
 	public:
-		void INFLUX_FILE_API save(const file& file);
-		void INFLUX_FILE_API load(const file& file);
+		void INFLUX_FILE_API save(const path& file);
+		void INFLUX_FILE_API load(const path& file);
 
 		string m_name;
 	};
@@ -26,8 +26,8 @@ namespace influx::files
 	class entityfile final
 	{
 	public:
-		void INFLUX_FILE_API save(const file& file);
-		void INFLUX_FILE_API load(const file& file);
+		void INFLUX_FILE_API save(const path& file);
+		void INFLUX_FILE_API load(const path& file);
 		void INFLUX_FILE_API clear();
 
 		string m_name;
@@ -37,8 +37,8 @@ namespace influx::files
 	class projectfile final
 	{
 	public:
-		void INFLUX_FILE_API save(const file& file);
-		void INFLUX_FILE_API load(const file& file);
+		void INFLUX_FILE_API save(const path& file);
+		void INFLUX_FILE_API load(const path& file);
 		void INFLUX_FILE_API clear();
 
 		string m_name;
@@ -49,8 +49,8 @@ namespace influx::files
 	class editorfile final
 	{
 	public:
-		void INFLUX_FILE_API save(const file& file);
-		void INFLUX_FILE_API load(const file& file);
+		void INFLUX_FILE_API save(const path& file);
+		void INFLUX_FILE_API load(const path& file);
 		void INFLUX_FILE_API clear();
 
 		math::matrix4x4f m_camera_transform{};

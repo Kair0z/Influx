@@ -14,25 +14,25 @@ namespace influx
 	template <typename _t>
 	using list = std::list<_t>;
 	using string = std::string;
-	struct file
+	struct path
 	{
 		string m_path_full;
 		string m_filename;
 
-		file() = default;
-		file(const string& filepath)
+		path() = default;
+		path(const string& filepath)
 		{
 			std::filesystem::path path(filepath);
 			m_filename = path.filename().string();
 			m_path_full = path.string();
 		}
 
-		static bool exists(const file& file)
+		static bool exists(const path& file)
 		{
 			return std::filesystem::exists(file.m_path_full);
 		}
 
-		static bool is_file_renamed(const file& file, const std::filesystem::file_time_type& last_time, string& out_new_name)
+		static bool is_file_renamed(const path& file, const std::filesystem::file_time_type& last_time, string& out_new_name)
 		{
 			std::filesystem::path path(file.m_path_full);
 			std::filesystem::directory_iterator dir_it(path.parent_path());
@@ -70,10 +70,10 @@ namespace influx
 	class file_watcher final
 	{
 	public:
-		typedef void (*on_change)(const file&);
-		typedef void (*on_rename)(const file&);
-		typedef void (*on_delete)(const file&);
-		typedef void (*on_create)(const file&);
+		typedef void (*on_change)(const path&);
+		typedef void (*on_rename)(const path&);
+		typedef void (*on_delete)(const path&);
+		typedef void (*on_create)(const path&);
 
 		enum notify_filters : uint8_t
 		{
@@ -89,27 +89,27 @@ namespace influx
 
 		file_watcher() = default;
 
-		file_watcher(const file& target)
+		file_watcher(const path& target)
 			: m_target{ target }
 		{
 			set_target(target);
 		}
 
-		void set_target(const file& file)
+		void set_target(const path& file)
 		{
 			auto path = std::filesystem::path(file.m_path_full);
 			m_target = file;
 			m_last_write = std::filesystem::last_write_time(path);
 		}
 
-		const file& get_target() const
+		const path& get_target() const
 		{
 			return m_target;
 		}
 
 		bool is_watching_valid_file()
 		{
-			return file::exists(m_target);
+			return path::exists(m_target);
 		}
 
 		void check_file()
@@ -122,7 +122,7 @@ namespace influx
 				auto last_write = std::filesystem::last_write_time(path);
 
 				string new_name = "";
-				if (file::is_file_renamed(m_target, m_last_write, new_name))
+				if (path::is_file_renamed(m_target, m_last_write, new_name))
 				{
 					dispatch<on_rename>();
 				}
@@ -168,7 +168,7 @@ namespace influx
 		bool m_include_subdirs = false;
 
 		//
-		file m_target;
+		path m_target;
 
 		// last check was valid
 		bool m_was_valid;

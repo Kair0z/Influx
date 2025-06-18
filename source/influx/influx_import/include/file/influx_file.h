@@ -13,8 +13,8 @@ namespace influx::imp
 	class flx_asset
 	{
 	public:
-		INFLUX_ASSETS_API void save(const file& file);
-		INFLUX_ASSETS_API void load(const file& file);
+		INFLUX_ASSETS_API void save(const path& file);
+		INFLUX_ASSETS_API void load(const path& file);
 
 		INFLUX_ASSETS_API bool is_loading() const;
 
@@ -26,7 +26,7 @@ namespace influx::imp
 		virtual bool serialize() = 0;
 		void serialize_base();
 
-		file m_file = {};
+		path m_file = {};
 		string m_name = {};
 		bool m_is_loading = false;
 		std::ofstream m_ofstream{};

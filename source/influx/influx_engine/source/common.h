@@ -65,4 +65,15 @@ namespace influx::engine
 	{
 		frame_time m_frametime;
 	};
+
+	enum class e_file_type : uint8
+	{
+		project,
+		unknown
+	};
+
+	static result<e_file_type> get_filetype(const path& path)
+	{
+
+	}
 }

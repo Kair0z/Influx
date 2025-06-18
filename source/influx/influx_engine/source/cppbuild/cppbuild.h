@@ -18,7 +18,7 @@ namespace influx::engine
 			count
 		};
 
-		void set_target_folder(const file& folder)
+		void set_target_folder(const path& folder)
 		{
 			m_target_folder = folder;
 		}
@@ -41,7 +41,7 @@ namespace influx::engine
 		}
 
 	private:
-		file m_target_folder;
+		path m_target_folder;
 		e_state m_state;
 	};
 }

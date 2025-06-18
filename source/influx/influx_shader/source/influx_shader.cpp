@@ -37,7 +37,7 @@ namespace influx::shader
 		HRESULT STDMETHODCALLTYPE LoadSource(_In_ LPCWSTR pFilename, _COM_Outptr_result_maybenull_ IDxcBlob** ppIncludeSource) override
 		{
 			IDxcBlobEncoding* pEncoding;
-			string filename = file(to_string(pFilename)).m_filename;
+			string filename = to_string( path(pFilename).get_full_path() );
 			
 			if (m_included_map.contains(filename))
 			{
@@ -379,9 +379,9 @@ namespace influx::shader
 		if (args.m_pbd_enabled && !args.m_pdb_folder.empty())
 		{
 			// ensure the directory exists
-			if (!influx::file::is_directory(args.m_pdb_folder))
+			if (!influx::path::is_directory(args.m_pdb_folder))
 			{
-				influx::file::make_directory(args.m_pdb_folder);
+				influx::path::create_directory(args.m_pdb_folder);
 			}
 
 			IDxcBlob* pDebugData = nullptr;
@@ -452,7 +452,7 @@ namespace influx::shader
 		using result_type = result<DxcBuffer>;
 
 		if (filepath.empty()) return result_type::make_error("error: empty filepath!");
-		if (!file::exists(filepath)) return result_type::make_error("error: non-exist filepath!");
+		if (!path::exists(filepath)) return result_type::make_error("error: non-exist filepath!");
 
 		// load the file
 		wstring wfilepath = to_wstring(filepath);
@@ -528,12 +528,12 @@ namespace influx::shader
 		using result_type = result<vector<parse_output>>;
 		result_type result{};
 
-		if (file::exists(filepath) == false)
+		if (path::exists(filepath) == false)
 		{
 			return result_type::make_error("error: filepath doesnt exist!");
 		}
 
-		string file_content = file::content_to_string(filepath);
+		string file_content = path::content_to_string(filepath);
 		if (file_content.empty())
 		{
 			return result_type::make_error("error: file is empty!");
@@ -545,8 +545,9 @@ namespace influx::shader
 			// if success, update each parsed shader's filename in its compile-args
 			for (auto& parse : result.get())
 			{
-				file as_file = file(filepath);
-				parse.m_signature.m_filename = as_file.m_filename_without_extension;
+				path as_file = path(filepath);
+				const bool without_extension = true;
+				parse.m_signature.m_filename = to_string(as_file.get_filename(without_extension));
 				parse.m_signature.cache_id();
 			}
 		}

@@ -9,11 +9,11 @@ namespace influx::assets
 	class serializeable
 	{
 	public:
-		void save(const file& file);
-		void load(const file& file);
+		void save(const path& file);
+		void load(const path& file);
 
 	protected:
-		const file& get_file() const;
+		const path& get_file() const;
 		const string& get_filename() const;
 		bool has_file() const;
 
@@ -24,7 +24,7 @@ namespace influx::assets
 		std::ofstream m_ofstream;
 		std::ifstream m_ifstream;
 
-		file m_file = {};
+		path m_file = {};
 		string m_name = {};
 	};
 

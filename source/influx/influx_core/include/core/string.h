@@ -83,6 +83,11 @@ namespace influx
 		return std::to_string(i);
 	}
 
+	inline wstring to_wstring(uint32 i)
+	{
+		return std::to_wstring(i);
+	}
+
 	inline string to_string(uint64 i)
 	{
 		return std::to_string(i);

@@ -10,7 +10,7 @@ namespace influx::engine
 	{
 		using result_type = result<module>;
 
-		const bool file_exists = file::exists(filepath);
+		const bool file_exists = path::exists(filepath);
 		if (!file_exists)
 			return result_type::make_error("error: file doesn't exist!");
 
@@ -18,8 +18,9 @@ namespace influx::engine
 		if (!is_dll_path)
 			return result_type::make_error("error: path doesn't point to a dll!");
 
-		file as_file{ filepath };
-		const string filename = as_file.m_filename_without_extension;
+		path as_file{ filepath };
+		const bool without_extension = true;
+		const string filename = to_string(as_file.get_filename(without_extension));
 
 		// load the dll module
 		platform::library* lib = platform::library::load(filepath);

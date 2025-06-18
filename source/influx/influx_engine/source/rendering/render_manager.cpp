@@ -85,7 +85,8 @@ namespace influx::engine
 		{
 			engine::log(e_log_category::info, message);
 		};
-		render_init_args.m_shader_source_folder = get_engine_directory(engine_directory::assets).m_path_full + "/engine/shaders/";
+		const string& engine_assets_directory = to_string(get_engine_directory(engine_directory::assets).get_full_path());
+		render_init_args.m_shader_source_folder = engine_assets_directory + "/engine/shaders/";
 		influx::renderer::initialize(render_init_args);
 
 		// static editor

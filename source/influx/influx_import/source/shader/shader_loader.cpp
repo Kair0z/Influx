@@ -10,19 +10,20 @@ namespace influx::imp
 	{
 		using result_type = result<shader_data>;
 
-		if (!file::exists(filepath))
+		if (!path::exists(filepath))
 			return result_type::make_error("in filepath doesn't exist!");
 
 		const shader::compile_args& compile_args = load_args.m_compile_args;
-		if (!file::exists(compile_args.m_include_folder))
+		if (!path::exists(compile_args.m_include_folder))
 			return result_type::make_error("args.m_include_folder doesn't exist!");
 
-		const bool valid_pbd_path = file::exists(compile_args.m_pdb_folder) && !compile_args.m_pdb_filename.empty();
+		const bool valid_pbd_path = path::exists(compile_args.m_pdb_folder) && !compile_args.m_pdb_filename.empty();
 		if (compile_args.m_pbd_enabled && valid_pbd_path == false)
 			return result_type::make_error("args.m_pbd_enabled is true but the input pbd filepath is invalid!");
 
 		shader::compile_args args_copy = compile_args;
-		args_copy.m_signature.m_filename = file(filepath).m_filename_without_extension;
+		const bool without_extension = true;
+		args_copy.m_signature.m_filename = to_string(path(filepath).get_filename(without_extension));
 
 		auto compile_result = shader::compile_shader_in_file(filepath, args_copy);
 		influx_assert(compile_result.is_success());
@@ -39,14 +40,14 @@ namespace influx::imp
 	{
 		using result_type = result<vector<shader_data>>;
 
-		if (!file::exists(filepath))
+		if (!path::exists(filepath))
 			return result_type::make_error("in filepath doesn't exist!");
 
 		const shader::compile_args& compile_args = load_args.m_compile_args;
-		if (!file::exists(compile_args.m_include_folder))
+		if (!path::exists(compile_args.m_include_folder))
 			return result_type::make_error("m_include_folder doesn't exist!");
 
-		const bool valid_pbd_path = file::exists(compile_args.m_pdb_folder) && !compile_args.m_pdb_filename.empty();
+		const bool valid_pbd_path = path::exists(compile_args.m_pdb_folder) && !compile_args.m_pdb_filename.empty();
 		if (compile_args.m_pbd_enabled && valid_pbd_path == false)
 			return result_type::make_error("m_pbd_enabled is true but the input pbd filepath is invalid!");
 

@@ -45,18 +45,19 @@ namespace influx::imp
 
 #define archive(variable) archive_json(variable)
 
-	void flx_asset::save(const file& file)
+	void flx_asset::save(const path& file)
 	{
 		m_is_loading = false;
 
 		// pre-create the file 
-		create_file(file.m_path_full);
+		path::create_file(file.get_full_path());
 
 		m_ofstream.close();
-		m_ofstream.open(file.m_path_full);
+		m_ofstream.open(file.get_full_path());
 		influx_assert(m_ofstream.is_open());
 
-		m_name = file.m_filename;
+		const bool without_extension = false;
+		m_name = to_string(file.get_filename(without_extension));
 
 		serialize_base();
 		serialize();
@@ -64,15 +65,16 @@ namespace influx::imp
 		m_file = file;
 	}
 
-	void flx_asset::load(const file& file)
+	void flx_asset::load(const path& file)
 	{
 		m_is_loading = true;
 		
 		m_ifstream.close();
-		m_ifstream.open(file.m_path_full);
+		m_ifstream.open(file.get_full_path());
 		influx_assert(m_ifstream.is_open());
 
-		m_name = file.m_filename;
+		const bool without_extension = false;
+		m_name = to_string(file.get_filename(without_extension));
 
 		serialize_base();
 		serialize();

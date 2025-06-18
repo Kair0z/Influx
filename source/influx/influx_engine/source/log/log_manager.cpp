@@ -27,7 +27,7 @@ namespace influx::engine
 			set_name("log");
 			m_logger.draw();
 
-			for (const string& line : file::get_lines(g_filepath, m_num_lines_read))
+			for (const string& line : path::get_lines(g_filepath, m_num_lines_read).get())
 			{
 				m_logger.push((line + "\n").c_str(), {});
 				++m_num_lines_read;
@@ -41,20 +41,20 @@ namespace influx::engine
 
 	log_manager::log_manager()
 	{
-		static string intermediate = get_engine_directory(engine_directory::intermediate).m_path_full;
+		static string intermediate = to_string(get_engine_directory(engine_directory::intermediate).get_full_path());
 		g_filepath = intermediate + "/log/engine.log";
 
 		m_categories.resize(k_capacity);
 		m_lines.resize(k_capacity);
 
-		if (file::exists(g_filepath))
+		if (path::exists(g_filepath))
 		{
-			file::duplicate(g_filepath);
-			file::clear(g_filepath);
+			path::duplicate_file(g_filepath);
+			path::clear_content(g_filepath);
 		}
 		else
 		{
-			file::create(g_filepath);
+			path::create_file(g_filepath);
 		}
 
 		m_linecount = 0;
@@ -77,7 +77,7 @@ namespace influx::engine
 		uint32 num_flushed = 0u;
 		max_num_lines = math::minimum(m_linecount, max_num_lines);
 
-		file::scoped_push_lines(g_filepath, [this, &num_flushed, max_num_lines]
+		path::scoped_push_lines(g_filepath, [this, &num_flushed, max_num_lines]
 		(std::ofstream& file)
 		{
 			for (num_flushed; num_flushed < max_num_lines; ++num_flushed)

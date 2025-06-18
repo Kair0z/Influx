@@ -17,12 +17,12 @@ namespace influx::assets
 
 #define archive(variable) archive_json(variable)
 
-	void serializeable::save(const file& file)
+	void serializeable::save(const path& file)
 	{
 		m_is_loading = false;
 
 		// pre-create
-		file::create(file.m_path_full);
+		path::create(file.m_path_full);
 
 		m_ofstream.close();
 		m_ofstream.open(file.m_path_full);
@@ -34,7 +34,7 @@ namespace influx::assets
 		on_serialize();
 	}
 
-	void serializeable::load(const file& file)
+	void serializeable::load(const path& file)
 	{
 		m_is_loading = true;
 
@@ -48,7 +48,7 @@ namespace influx::assets
 		on_serialize();
 	}
 
-	const file& serializeable::get_file() const
+	const path& serializeable::get_file() const
 	{
 		return m_file;
 	}
@@ -60,7 +60,7 @@ namespace influx::assets
 
 	bool serializeable::has_file() const
 	{
-		return file::exists(m_file);
+		return path::exists(m_file);
 	}
 
 	const string& gameproject::get_name() const
