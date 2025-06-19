@@ -528,16 +528,12 @@ namespace influx::shader
 		using result_type = result<vector<parse_output>>;
 		result_type result{};
 
-		if (path::exists(filepath) == false)
-		{
+		if (!path::exists(filepath))
 			return result_type::make_error("error: filepath doesnt exist!");
-		}
 
-		string file_content = path::content_to_string(filepath);
+		string file_content = path::content_to_string(filepath).get();
 		if (file_content.empty())
-		{
 			return result_type::make_error("error: file is empty!");
-		}
 
 		result = parse_shader(file_content);
 		if (result.is_success())

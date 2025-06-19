@@ -15,6 +15,7 @@ namespace influx
 {
 	class path final
 	{
+		/* I hate strings >:( */
 		using char_type = wchar_t;
 		using other_char_type = char;
 		using str_type = wstring;
@@ -103,16 +104,26 @@ namespace influx
 			return is_directory(convert(in_path));
 		}
 
-		inline static bool is_valid_directory_path(const str_type& cstr)
+		// todo...
+		inline static bool is_valid_directory_path(const str_type& in_path)
 		{
-			// todo...
 			return true;
 		}
 
+		inline static bool is_valid_directory_path(const other_str_type& in_path)
+		{
+			return is_valid_directory_path(convert(in_path));
+		}
+
+		// todo...
 		inline static bool is_valid_filepath(const str_type& cstr)
 		{
-			// todo...
 			return true;
+		}
+
+		inline static bool is_valid_filepath(const other_str_type& in_path)
+		{
+			return is_valid_filepath(convert(in_path));
 		}
 
 		inline bool is_directory() const
@@ -354,13 +365,18 @@ namespace influx
 			return get_lines(convert(path), start_index, max_index);
 		}
 
-		inline static string content_to_string(const string& path)
+		inline static result<string> content_to_string(const str_type& path)
 		{
 			std::ifstream file(path); // Open the file
 
 			std::stringstream buffer;
 			buffer << file.rdbuf(); // Read the entire file into the buffer
 			return buffer.str();
+		}
+
+		inline static result<string> content_to_string(const other_str_type& in_path)
+		{
+			return content_to_string(convert(in_path));
 		}
 
 		inline static result<> clear_content(const str_type& path)
@@ -379,29 +395,59 @@ namespace influx
 			return clear_content(convert(path));
 		}
 
-		inline static bool push_line(const string& path, const string& line)
+		inline static result<> push_line(const str_type& path, const string& line)
 		{
 			return push_lines(path, { line });
 		}
 
-		inline static bool push_lines(const string& path, const vector<string>& lines)
+		inline static result<> push_line(const other_str_type& in_path, const string& line)
 		{
-			std::ofstream file(path, std::ios::app);
+			return push_lines(convert(in_path), { line });
+		}
+
+		inline static result<> push_lines(const str_type& in_path, const vector<string>& lines)
+		{
+			std::ofstream fstream(in_path, std::ios::app);
+			if (fstream.is_open() == false)
+				return result<>::make_error("failed opening ofstream to path!");
+
 			for (const string& str : lines)
 			{
-				file << str << "\n";
+				fstream << str << "\n";
 			}
-			file.close();
-			return true;
+			fstream.close();
+			return {};
+		}
+
+		inline static result<> push_lines(const other_str_type& path, const vector<string>& lines)
+		{
+			return push_lines(convert(path), lines);
 		}
 
 		template <typename _func>
-		inline static bool scoped_push_lines(const string& path, _func&& func)
+		inline static result<> scoped_push_lines(const str_type& in_path, _func&& func)
 		{
-			std::ofstream file(path, std::ios::app);
+			std::ofstream file(in_path, std::ios::app);
+
+			if (file.is_open() == false)
+				return result<>::make_error("failed opening fstream to in_path.");
+
 			func(file);
 			file.close();
-			return true;
+			return {};
+		}
+
+		template <typename _func>
+		inline static result<> scoped_push_lines(const other_str_type& in_path, _func&& func)
+		{
+			std::ofstream file(in_path, std::ios::app);
+
+			if (file.is_open() == false)
+				return result<>::make_error("failed opening fstream to in_path.");
+
+			func(file);
+			file.close();
+			return {};
 		}
 
 		inline static bool is_text(const string& file)
