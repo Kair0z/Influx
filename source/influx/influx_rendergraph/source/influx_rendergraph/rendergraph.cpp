@@ -520,6 +520,7 @@ namespace influx::rendergraph
 		// free only the gpu views since they're more cramped than cpu ones
 		m_pool->free_all_descriptors();
 
+		// clear pass relation info
 		m_passes.clear();
 		m_layers.clear();
 		m_adjacency_lists.clear();
@@ -528,6 +529,26 @@ namespace influx::rendergraph
 
 		m_buffer_uav_counter_map.clear();
 		m_rtid_to_clear_map.clear();
+
+		// clear the descriptors of textures & buffers
+		for (auto& pair : m_texid_to_viewdesc_map)
+		{
+			const rgtexture_id& id = pair.first;
+			texture_view_desc* viewdescs = pair.second;
+			for (uint32 i = 0u; i < k_num_descriptor_types; ++i)
+			{
+				viewdescs[i].clear();
+			}
+		}
+		for (auto& pair : m_bufid_to_viewdesc_map)
+		{
+			const rgbuffer_id& id = pair.first;
+			buffer_view_desc* viewdescs = pair.second;
+			for (uint32 i = 0u; i < k_num_descriptor_types; ++i)
+			{
+				viewdescs[i].clear();
+			}
+		}
 
 		// reset the graph references inside the existing resources
 		for (uint64 i = 0; i < m_textures.size(); ++i)
@@ -635,7 +656,13 @@ namespace influx::rendergraph
 				const rgdescriptor_type type = static_cast<rgdescriptor_type>(i);
 				if (viewdescs[i].m_is_created == false)
 				{
-					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+					auto alloc_result = m_pool->alloc_cpu_handle(type);
+					if (alloc_result.is_unex())
+					{
+						return result<>::make_error("error: failed allocating a cpu handle!");
+					}
+
+					descriptors[i] = alloc_result.get();
 				}
 
 				// write the view onto the handle

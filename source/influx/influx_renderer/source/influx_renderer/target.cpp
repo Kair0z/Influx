@@ -79,8 +79,8 @@ namespace influx::renderer
 
 		// get the existing backbuffer resource, and allocate + create a new rtv
 		mp_resource = swapchain->get_backbuffer_resource(swapchain_index).get();
-		m_rtv_cpu = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
 		m_srv_cpu = renderer_backend::get_descriptor_manager()->create_srv(mp_resource);
+		m_rtv_cpu = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
 		m_dsv_cpu = nullptr;
 		
 		m_createargs.m_width = swapchain->get_dimensions().x;
@@ -96,6 +96,7 @@ namespace influx::renderer
 	{
 		return "target_" + string(get_name());
 	}
+
 	debug_name target::get_depth_rendergraph_name() const
 	{
 		return "depth_" + string(get_name());
@@ -190,15 +191,13 @@ namespace influx::renderer
 
 	void target::resize(const math::vectoru2& dimensions)
 	{
+		m_prev_dimensions = m_current_dimensions;
 		if (dimensions != m_current_dimensions)
 		{
 			// wait for gpu to stop rendering
 			renderer_backend::get_instance().wait_gpu_finished();
-
 			mp_device->release(mp_resource);
-
-			// update size:
-			m_current_dimensions = dimensions;
+			mp_device->release(mp_depth_resource);
 
 			if (m_createargs.m_has_colour)
 			{
@@ -215,6 +214,8 @@ namespace influx::renderer
 				mp_depth_resource = mp_device->create_resource(desc);
 				recreate_dsv();
 			}
+
+			m_current_dimensions = dimensions;
 		}
 	}
 

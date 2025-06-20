@@ -22,6 +22,9 @@ namespace influx::engine
 	*/
 	class render_view final
 	{
+		static constexpr uint32 k_minimum_width = 64u;
+		static constexpr uint32 k_minimum_height = 64u;
+
 		renderer::target* m_target{};
 
 		renderer::scene		m_scene{};
@@ -76,7 +79,7 @@ namespace influx::engine
 
 		inline bool has_valid_dimensions() const
 		{
-			return m_dimensions.x >= 64u && m_dimensions.y >= 64u;
+			return m_dimensions.x >= k_minimum_width && m_dimensions.y >= k_minimum_height;
 		}
 
 		inline void set_render_enabled(bool enabled)

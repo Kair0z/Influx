@@ -374,6 +374,13 @@ namespace influx::renderer
 
     result<> renderer_backend::draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
     {
+        static uint32 frame = 0u;
+        if (frame == 3u)
+        {
+            static int a; a++;
+        }
+        ++frame;
+
         // ensure targets are imported
         for (const auto& target : targets)
         {

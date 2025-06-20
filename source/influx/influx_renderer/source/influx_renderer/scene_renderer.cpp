@@ -744,6 +744,7 @@ namespace influx::renderer
         // the proxy pass copies the existing target contents into proxy (UAV) target
         const bool target_is_uav_compatible = !target.is_swapchain_target() && target.get_resource()->allows_uav();
         m_use_uav_proxy = target_is_uav_compatible == false;
+
         if (m_use_uav_proxy)
         {
             auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,

@@ -108,7 +108,7 @@ namespace influx::rendergraph
 
 		INFLUX_RG_API void build();
 
-		// single threaded, single command list...
+		// execute the graph onto a single command list
 		INFLUX_RG_API result<> execute(
 			graphics::commandlist& commandlist,
 			graphics::device& device);

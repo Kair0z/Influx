@@ -104,6 +104,7 @@ namespace influx::renderer
 
 		target_create_args m_createargs;
 		math::vectoru2 m_current_dimensions;
+		math::vectoru2 m_prev_dimensions;
 		graphics::device* mp_device;
 
 		// only backend can create targets

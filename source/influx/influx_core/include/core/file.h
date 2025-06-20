@@ -287,7 +287,7 @@ namespace influx
 		}
 
 		// creates a duplicate file with number appended
-		inline static result<> duplicate_file(const str_type& src_path, const str_type& dup_extension = nullptr)
+		inline static result<> duplicate_file(const str_type& src_path, const str_type& dup_extension = {})
 		{
 			if (!exists(src_path))
 				return result<>::make_error("file at src_path doesn't exist!");
@@ -334,9 +334,9 @@ namespace influx
 			return {};
 		}
 
-		inline static result<> duplicate_file(const other_str_type& src_path, const str_type& dup_extension = nullptr)
+		inline static result<> duplicate_file(const other_str_type& src_path, const other_str_type& dup_extension = {})
 		{
-			return duplicate_file(convert(src_path), dup_extension);
+			return duplicate_file(convert(src_path), convert(dup_extension));
 		}
 
 		// o(n): direct indexing is not supported :sad:

@@ -26,7 +26,7 @@ namespace influx::engine
 
 	} g_global_settings{};
 
-	class render_editor final : public editor::editor_window
+	class rendergraph_editor final : public editor::editor_window
 	{
 	public:
 		virtual void on_run() override
@@ -42,7 +42,14 @@ namespace influx::engine
 			{
 				ImGui::Text("buffer: %s", buffer.m_name.c_str());
 			}
+		}
+	};
 
+	class render_editor final : public editor::editor_window
+	{
+	public:
+		virtual void on_run() override
+		{
 			// pipeline info
 			const auto& pipeline_info = renderer::get_pipeline_info();
 			ImGui::Text("num_pipelines: %i", pipeline_info.m_num_pipelines);
@@ -91,6 +98,7 @@ namespace influx::engine
 
 		// static editor
 		editor::editor_manager::static_window<render_editor>("renderer").set_name("renderer");
+		editor::editor_manager::static_window<rendergraph_editor>("rendergraph").set_name("rendergraph");
 	}
 
 	render_manager::~render_manager()
@@ -131,13 +139,8 @@ namespace influx::engine
 				view.m_target = renderer::create_target(args);
 			}
 
-			// resize target if dimensions changed
-			if (view.m_prev_dimensions != view.m_dimensions)
-			{
-				view.m_target->resize(view.m_dimensions);
-			}
-			view.m_prev_dimensions = view.m_dimensions;
-			
+			view.m_target->resize(view.m_dimensions);
+
 			// render view
 			if (view.is_valid())
 			{

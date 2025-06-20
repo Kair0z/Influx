@@ -84,6 +84,16 @@ namespace influx::rendergraph
 		// todo: flags
 		// todo: channel mapping
 
+		inline void clear()
+		{
+			m_is_created = false;
+			m_is_active = false;
+			m_first_slice = 0u;
+			m_num_slices = uint32(-1);
+			m_first_mip = 0u;
+			m_num_mips = uint32(-1);
+		}
+
 		std::strong_ordering operator<=>(const texture_view_desc& other) const = default;
 	};
 
@@ -113,6 +123,14 @@ namespace influx::rendergraph
 		uint64 m_offset = 0u;
 		uint64 m_size = uint64(-1);
 		std::strong_ordering operator<=>(const buffer_view_desc& other) const = default;
+
+		inline void clear()
+		{
+			m_is_created = false;
+			m_is_active = false;
+			m_offset = 0u;
+			m_size = uint64(-1);
+		}
 	};
 
 	// -- enums
