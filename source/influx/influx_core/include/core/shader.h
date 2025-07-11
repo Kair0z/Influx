@@ -136,6 +136,7 @@ namespace influx::shader
 		_6_2,
 		_6_5,
 		_6_6,
+		_6_8,
 		count
 	};
 	static constexpr uint8 k_num_shadertargets = static_cast<uint8>(e_shader_target::count);
@@ -143,7 +144,8 @@ namespace influx::shader
 	{
 		"6_2",
 		"6_5",
-		"6_6"
+		"6_6",
+		"6_8"
 	};
 
 	/*	

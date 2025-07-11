@@ -111,6 +111,11 @@ namespace influx
 			return !is_success();
 		}
 
+		const _t& get_safe() const
+		{
+			return m_expected;
+		}
+
 		_t& get()
 		{
 #if INFLUX_DEBUG

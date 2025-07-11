@@ -166,6 +166,7 @@ namespace influx::shader
 	struct shader_library_compile_args final
 	{
 		e_shader_target m_target;
+		string m_entrypoint;
 	};
 
 	struct shader_library final

@@ -629,6 +629,10 @@ namespace influx::shader
 		warguments.push_back(L"-T ");
 		warguments.push_back(wtarget.c_str());
 
+		const wstring wentrypoint = to_wstring(args.m_entrypoint);
+		warguments.push_back(L"-E ");
+		warguments.push_back(wentrypoint.c_str());
+
 		// compile!
 		IDxcResult* compile_result = nullptr;
 		HRESULT 
@@ -644,9 +648,10 @@ namespace influx::shader
 			const string& errors = get_compile_errors(*compile_result);
 			if (errors.empty() == false)
 			{
-				result.get().m_success = false;
 				result.get().m_log.push_back(errors);
-				return result_type::make_error("error: compile failed with errors!");
+				result.get().m_success = false;
+				result.get_unex() = "error: compile failed with errors!";
+				return result;
 			}
 		}
 

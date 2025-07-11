@@ -34,12 +34,12 @@ struct constants
 
 void compile_shaders(graphics::mesh_pipeline_desc& out_desc)
 {
-	const char* include_folder = "E:/Git/Influx/assets/engine/shaders/include/";
-	const char* filepath = "E:/Git/Influx/assets/engine/shaders/source/mesh_shaders.hlsl";
+	const char* include_folder = "D:/Git/Influx/assets/engine/shaders/include/";
+	const char* filepath = "D:/Git/Influx/assets/engine/shaders/source/mesh_shaders.hlsl";
 
 	shader::compile_args compile_args{};
 	compile_args.set_target(shader::e_shader_target::_6_6);
-	compile_args.m_reflection = false;
+	compile_args.m_reflection_enabled = false;
 	compile_args.m_include_folder = include_folder;
 
 	auto parsed_shaders = shader::parse_shaders_in_file(filepath).get();

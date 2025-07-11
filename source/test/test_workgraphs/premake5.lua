@@ -1,5 +1,4 @@
 new_influx_test("test_workgraphs")
-
     local dependencies =
     {
         "influx_core",
@@ -9,3 +8,8 @@ new_influx_test("test_workgraphs")
     }
     set_influx_app_dependencies(dependencies)
     staticruntime "off"
+
+    files
+    {
+        project_dir .. "**.hlsl"
+    }

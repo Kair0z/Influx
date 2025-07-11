@@ -23,6 +23,9 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
 using namespace influx;
 
+// tree render
+#include "treerender/treerender.h"
+
 struct pipeline
 {
 	graphics::rootsignature* m_rootsignature;
@@ -53,7 +56,7 @@ pipeline create_pipeline(graphics::device& device)
 	return result;
 }
 
-int main()
+void test_main()
 {
 	using namespace influx;
 
@@ -99,7 +102,7 @@ int main()
 		// transition backbuffer to render target
 		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();
 		backbuffer->transition(&commandlist, graphics::e_resource_state::render_target);
-		
+
 		// set viewport & rect
 		commandlist.set_vp_and_rect
 		(
@@ -119,4 +122,58 @@ int main()
 
 	// cleanup..
 	// eh...
+}
+
+void test_treerender()
+{
+	// create platform window
+	vector<platform::monitor> monitors = platform::monitor::query_monitors();
+	platform::window_desc window_desc{};
+	window_desc.m_dimensions = { 640u, 480u };
+	window_desc.m_name = "treerender";
+	platform::window& window = *platform::window::create(window_desc);
+
+	// create device, a cmdlist, queue & window swapchain
+	graphics::device& device = *graphics::device::create(graphics::e_api_type::dx12);
+	graphics::commandlist& commandlist = *device.create_graphics_commandlist();
+	graphics::queue& queue = *device.create_queue();
+	graphics::swapchain& swapchain = *device.create_swapchain(&queue, window);
+
+	treerender::initialize(device);
+
+	bool is_quit = false;
+	treerender::settings settings{};
+	graphics::present_args present_args{};
+	present_args.m_vsync = false;
+	while (!is_quit)
+	{
+		window.poll_events(is_quit);
+
+		commandlist.start(&device);
+
+		// transition backbuffer to render target
+		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();
+		backbuffer->transition(&commandlist, graphics::e_resource_state::render_target);
+
+		// set viewport & rect
+		commandlist.set_vp_and_rect
+		(
+			{ 0.0f, 0.0f },			// min
+			{ 640.0f , 480.0f }		// max
+		);
+
+		treerender::render(commandlist, *backbuffer, settings);
+
+		// transition backbuffer to present
+		backbuffer->transition(&commandlist, graphics::e_resource_state::present);
+
+		commandlist.submit(&queue);
+
+		swapchain.present(present_args);
+	}
+}
+
+int main()
+{
+	test_treerender();
 }

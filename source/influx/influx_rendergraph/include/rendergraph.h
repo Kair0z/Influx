@@ -103,7 +103,9 @@ namespace influx::rendergraph
 
 	public:
 		INFLUX_RG_API rendergraph(const global_config& config, graphics::device& device);
+
 		INFLUX_RG_API void cleanup(graphics::device& device);
+
 		INFLUX_RG_API ~rendergraph();
 
 		INFLUX_RG_API void build();
