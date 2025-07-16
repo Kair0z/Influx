@@ -15,6 +15,12 @@ namespace influx::platform
 
 		virtual window_handle get_platform_handle() const override;
 
+		virtual result<e_messagebox_result> messagebox(
+			const string& caption,
+			const string& message,
+			const e_messagebox_flags flags,
+			const e_messagebox_icon icon) const;
+
 		virtual void set_dimensions(const math::vectoru2& new_dimensions) override;
 
 		virtual math::vectoru2 get_dimensions(e_space) const override;

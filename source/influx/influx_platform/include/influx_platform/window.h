@@ -6,17 +6,43 @@
 #include "core/math/vector.h"
 #include "core/geometry/rect.h"
 #include "core/function.h"
+#include "core/enum.h"
 
 namespace influx::platform
 {
 	class window;
 
-	enum class e_messagebox : uint8
+	enum e_messagebox_flags : uint32
 	{
-		info,
+		none				= 0,
+		button_ok			= 1 << 1,
+		button_cancel		= 1 << 2,
+
+		all = 0xffff
+	};
+
+	enum class e_messagebox_icon : uint8
+	{
+		exclamation,
 		warning,
+		info,
+		asterisk,
+		question,
+		stop,
 		error,
-		count
+		hand
+	};
+
+	enum class e_messagebox_result : uint8
+	{
+		abort,
+		cancel,
+		continu,
+		ignore,
+		no,
+		ok,
+		retry, // 'try again'
+		yes
 	};
 
 	class window_event final
@@ -190,9 +216,15 @@ namespace influx::platform
 
 		virtual bool is_visible(e_visibility& out_vis) const { return false; };
 
-		virtual void messagebox(e_messagebox type,
+		INFLUX_PLATFORM_API
+		virtual result<e_messagebox_result> messagebox(
 			const string& caption,
-			const string& message) const { };
+			const string& message, 
+			const e_messagebox_flags flags = e_messagebox_flags::none,
+			const e_messagebox_icon icon = e_messagebox_icon::info) const 
+		{
+			return e_messagebox_result::ok; 
+		};
 
 		using rect = math::rect<uint32>;
 
@@ -277,3 +309,5 @@ namespace influx::platform
 		bool m_has_quit_event = false;
 	};
 }
+ENABLE_ENUM_BIT_OPERATORS(influx::platform::e_messagebox_flags);
+

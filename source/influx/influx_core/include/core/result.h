@@ -46,7 +46,7 @@ namespace influx
 		inline constexpr bool is_booleable_v = is_booleable<T>::value;
 	}
 
-	template <typename _t = char, typename _e = e_result>
+	template <typename _t = char, typename _e = const char*>
 	class result final
 	{
 		using ex_type = _t;

@@ -3,17 +3,17 @@
 struct Line
 {
     float a, b;
-}
+};
 
 [Shader("node")]
 [NodeLaunch("thread")]
 void launch(
     ThreadNodeInputRecord<Line> input,
-    [MaxRecords(1)] NodeOutput<Line> line_mesh_node,
+    [MaxRecords(1)] NodeOutput<Line> line_mesh_node
 )
 {
     ThreadNodeOutputRecords<Line> d = 
-        LineMeshNode.GetThreadNodeOutputRecords(1);
+        line_mesh_node.GetThreadNodeOutputRecords(1);
     d.Get(0) = input.Get(); 
     d.OutputComplete();
 }

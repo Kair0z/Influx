@@ -1,4 +1,16 @@
 
+#define TEST_MATH		0
+#define TEST_BASETYPES	0
+#define TEST_STRING		0
+#define TEST_RESULT		0
+#define TEST_CONTAINER	1
+
+#include "core/debug.h"	// influx_assert
+
+#if TEST_BASETYPES
+#include "core/basetypes.h"
+#endif
+#if TEST_MATH
 // test math against glm
 #include "glm/glm.hpp"
 namespace glm
@@ -14,24 +26,27 @@ namespace glm
 		return result;
 	}
 }
-
-#include "core/debug.h"	// influx_assert
-#include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
 #include "core/math/quaternion.h"
 #include "core/math/rotor.h"
+#endif
+#if TEST_RESULT
 #include "core/result.h"
+#endif
+#if TEST_STRING
 #include "core/string.h"
+#endif
+#if TEST_CONTAINER
+#include "core/containers.h"
+#endif
 
-using namespace influx;
-
+#if TEST_MATH
 template <typename _t>
 static bool is_almost_equal(const _t& a, const _t& b)
 {
 	return math::abs(a - b) < (_t)0.0001f;
 }
-
 #pragma region test_math
 template <typename _t, uint32 _n>
 static bool operator==(const math::vector<_t, _n>& a, const glm::vec<_n, _t>& b)
@@ -151,11 +166,29 @@ void test_math_rotor_all()
 	test_math_rotor<uint32, 2u>();
 }
 #pragma endregion
+#endif
 
-void test_names()
+#if TEST_CONTAINER
+void test_containers()
 {
+	using namespace influx;
 
+	static_array<int, 3u> stat_array{};
+	static_array<int, 3u> stat_array2{};
+	// ctr::push(stat_array, 3); // this should never compile!
+	ctr::merge(stat_array2, stat_array);
+	influx_assert(ctr::contains(stat_array, 2));
+
+	dynamic_array<int> dyn_array{};
+	dynamic_array<int> dyn_array2{};
+	ctr::push(dyn_array, 34);
+	ctr::merge(dyn_array2, dyn_array);
+
+	bool contains = ctr::contains(dyn_array, 2);
 }
+#endif
+
+#if TEST_RESULT
 void test_result()
 {
 	result<float> float_result = { 1.0f };
@@ -166,21 +199,22 @@ void test_result()
 
 	assert(float_result);
 }
+#endif
+
+#if TEST_BASETYPES
 void test_basetypes()
 {
 	// todo
 }
-void test_cache()
-{
-	// todo
-}
+#endif
 
 int main()
 {
-	test_basetypes();
-	test_result();
-	test_cache();
-	test_math_vector_all();
-	test_math_matrix_all();
-	test_math_quaternion_all();
+	test_containers();
+	// test_basetypes();
+	// test_result();
+	// test_cache();
+	// test_math_vector_all();
+	// test_math_matrix_all();
+	// test_math_quaternion_all();
 }

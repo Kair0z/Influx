@@ -356,6 +356,70 @@ namespace influx::platform
 		return m_handle;
 	}
 
+	result<e_messagebox_result> win32_window::messagebox(
+		const string& caption,
+		const string& message,
+		const e_messagebox_flags flags,
+		const e_messagebox_icon icon) const
+	{
+		using result_type = result<e_messagebox_result>;
+
+		const wstring wcaption = to_wstring(caption);
+		const wstring wmessage = to_wstring(message);
+
+		// figure out the buttons
+		long winflags = MB_RETRYCANCEL;
+		if (has_flag(flags, e_messagebox_flags::button_ok))
+		{
+			
+		}
+		if (has_flag(flags, e_messagebox_flags::button_cancel))
+		{
+			
+		}
+
+		// figure out the icon
+		switch (icon)
+		{
+		case e_messagebox_icon::exclamation: winflags |= MB_ICONEXCLAMATION; break;
+		case e_messagebox_icon::warning:	 winflags |= MB_ICONWARNING; break;
+		case e_messagebox_icon::info:		 winflags |= MB_ICONINFORMATION; break;
+		case e_messagebox_icon::asterisk:	 winflags |= MB_ICONASTERISK; break;
+		case e_messagebox_icon::question:	 winflags |= MB_ICONQUESTION; break;
+		case e_messagebox_icon::stop:		 winflags |= MB_ICONSTOP; break;
+		case e_messagebox_icon::error:		 winflags |= MB_ICONERROR; break;
+		case e_messagebox_icon::hand:		 winflags |= MB_ICONHAND; break;
+		}
+
+		int winresult = MessageBox(
+			NULL,
+			wmessage.c_str(),
+			wcaption.c_str(),
+			winflags
+		);
+
+		// If the function fails, the return value is zero. 
+		// To get extended error information, call GetLastError.
+		if (winresult == 0)
+			return result_type::make_error("windows messagebox failed!");
+		else
+		{
+			switch (winresult)
+			{
+			default:
+			case IDOK: return e_messagebox_result::ok;
+			case IDABORT: return e_messagebox_result::abort;
+			case IDCANCEL: return e_messagebox_result::cancel;
+			case IDCONTINUE: return e_messagebox_result::continu;
+			case IDIGNORE: return e_messagebox_result::ignore;
+			case IDNO: return e_messagebox_result::no;
+			case IDTRYAGAIN:
+			case IDRETRY: return e_messagebox_result::retry; // 'try again'
+			case IDYES: return e_messagebox_result::yes;
+			}
+		}
+	}
+
 	void win32_window::set_dimensions(const math::vectoru2& dimensions)
 	{
 		::HWND handle = (::HWND)m_handle;

@@ -16,7 +16,7 @@ namespace influx
 {
 	using string = std::string;
 	using wstring = std::wstring;
-
+	
 	namespace str
 	{
 		inline static vector<string> split(const string& str, const string& delimiter) 

@@ -12,6 +12,8 @@ namespace influx
 
 	template <typename _t, size_t _n>
 	using stat_array = std::array<_t, _n>;
+
+	
 }
 
 #endif

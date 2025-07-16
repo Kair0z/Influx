@@ -139,7 +139,7 @@ void test_treerender()
 	graphics::queue& queue = *device.create_queue();
 	graphics::swapchain& swapchain = *device.create_swapchain(&queue, window);
 
-	treerender::initialize(device);
+	treerender::initialize(window, device);
 
 	bool is_quit = false;
 	treerender::settings settings{};

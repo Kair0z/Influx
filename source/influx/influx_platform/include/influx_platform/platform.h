@@ -10,12 +10,16 @@
 #include "core/basetypes.h"
 #include "core/string.h"
 #include "core/math/vector.h"
+#include "core/result.h"
 
 // influx::platform
 #include "thread.h"
 
 namespace influx::platform
 {
+	template <typename _t = unsigned char>
+	using result = influx::result<_t, const char*>;
+
 	using window_handle = void*;
 	using process_handle = void*;
 	using instance_handle = void*;
