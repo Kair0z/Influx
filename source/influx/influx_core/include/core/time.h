@@ -12,22 +12,42 @@ namespace influx::time
 {
 	using point = std::chrono::steady_clock::time_point;
 
+	enum class e_tm : uint8
+	{
+		ns,
+		ms,
+		s,
+		m,
+		h
+	};
+
 	static point get_now() noexcept
 	{
 		return std::chrono::steady_clock::now();
 	}
 
-	template <typename _t>
-	static _t get_ms_between(const point& end, const point& start) noexcept
+	template <typename _t, e_tm _m>
+	static _t get_time_between(const point& end, const point& start) noexcept
 	{
-		return static_cast<_t>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+		_t ns = static_cast<_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
+		if		constexpr (_m == e_tm::ns)	return ns;
+		else if	constexpr (_m == e_tm::ms)	return ns * static_cast<_t>(0.001				);
+		else if constexpr (_m == e_tm::s)	return ns * static_cast<_t>(0.000,001			);
+		else if constexpr (_m == e_tm::m)	return ns * static_cast<_t>(0.000,000,001		);
+		else if constexpr (_m == e_tm::h)	return ns * static_cast<_t>(0.000,000,000,001	);
 	}
 
 	template <typename _t>
+	static _t get_ns_between(const point& end, const point& start) noexcept
+	{ return get_time_between<_t, e_tm::ns>(end, start); }
+
+	template <typename _t>
+	static _t get_ms_between(const point& end, const point& start) noexcept
+	{ return get_time_between<_t, e_tm::ms>(end, start); }
+
+	template <typename _t>
 	static _t get_ms_since(const point& point)
-	{
-		return get_ms_between<_t>(get_now(), point);
-	}
+	{ return get_ms_between<_t>(get_now(), point); }
 
 	template <typename _t>
 	static _t measure_ms(const function<void()>& function)

@@ -1,8 +1,8 @@
-function new_influx_project(_name, _kind)
+function new_influx_project(_name, _kind, _language)
     project(_name)
         kind(_kind)
-        language("C++")
-        cppdialect(g_common_cpp_dialect)
+        language(_language)
+        cppdialect(g_cpp_dialect)
        
         targetdir(g_dir_binaries .. "/%{prj.name}/")
         objdir(g_dir_int .. "/%{prj.name}/")
@@ -26,8 +26,6 @@ function new_influx_project(_name, _kind)
             iif(g_use_pix ~= true, "", g_dir_vendor .. "/include/pix/")
         }
 
-        
-
         -- common defines for each project
         defines
         {
@@ -49,6 +47,14 @@ function new_influx_project(_name, _kind)
 
         -- ending all filters
         filter {}
+end
+
+function new_influx_cpp_project(_name, _kind)
+    new_influx_project(_name, _kind, "C++")
+end
+
+function new_influx_cs_project(_name, _kind)
+    new_influx_project(_name, _kind, "C#")
 end
 
 function new_influx_app(name)
@@ -139,6 +145,10 @@ function set_influx_links(...)
     end
 end
 
+function common_cpp_config()
+    cppdialect "C++17"
+end
+
 function common_debug_config()
     defines "INFLUX_DEBUG"
     runtime "Debug"
@@ -163,4 +173,8 @@ end
 function common_windows_config()
     systemversion "latest"
     defines "INFLUX_PLATFORM_WINDOWS"
+end
+
+function common_linux_config()
+    toolset "gcc"   -- Use GCC (default on Arch)
 end

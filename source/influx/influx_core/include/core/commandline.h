@@ -64,7 +64,7 @@ namespace influx
 			{
 				const char* prefix = k_common_prefixes[i];
 				const string prefix_str = string(prefix);
-				const uint32 prefix_num_characters = prefix_str.size();
+				const uint32 prefix_num_characters = static_cast<uint32>(prefix_str.size());
 
 				vector<argument const*>& filter = m_filtered_arguments[i];
 				for (const argument& arg : m_arguments)

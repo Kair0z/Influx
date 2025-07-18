@@ -6,8 +6,8 @@ workspace "influx"
     startproject "influx_game"
     location "../generated/%{_ACTION}/"
     
-    g_compile_mono_engine = false
-    g_use_pix = true;
+    g_compile_mono_engine   = false
+    g_use_pix               = true;
     
     -- /influx/
     g_dir_root      = "%{wks.location}/../../"
@@ -48,7 +48,7 @@ workspace "influx"
     libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }
     
     -- common
-    g_common_cpp_dialect = "C++20"
+    g_cpp_dialect = "C++20"
     
     filter "system:windows"
         systemversion "latest"
