@@ -3,11 +3,11 @@ REQUIRED_PYTHON = (3, 8)
 if sys.version_info < REQUIRED_PYTHON:
     sys.exit(f"Python {REQUIRED_PYTHON[0]}.{REQUIRED_PYTHON[1]} or above is required. You are using Python {sys.version_info.major}.{sys.version_info.minor}.")
 
-influx_root = "../"
-influx_source = influx_root + "/source/"
-influx_source_apps = influx_source + "/apps/"
-influx_source_engine = influx_source + "/influx/"
-influx_source_misc = influx_source + "/misc/"
+influx_root             = "../"
+influx_source           = influx_root + "/source/"
+influx_source_apps      = influx_source + "/apps/"
+influx_source_engine    = influx_source + "/influx/"
+influx_source_misc      = influx_source + "/misc/"
 
 if len(sys.argv) > 1:  # Ensure there are arguments
     arg1 = sys.argv[1]  # First argument: project name
