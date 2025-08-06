@@ -29,12 +29,27 @@ namespace influx::math
 			struct { row m_rows[k_num_columns]; };
 		};
 		
+		// helpers
+		constexpr static void copy(const matrix& src, matrix& dest)
+		{
+			for (uint32 i = 0u; i < _x * _y; ++i)
+				dest.m_data[i] = src.m_data[i];
+		}
+
 	public:
+		
 		// constructors
 		matrix() = default;
-		matrix(const matrix&) = default;
+		matrix(const matrix& other)
+		{
+			copy(other, *this);
+		}
 		matrix(matrix&&) = default;
-		matrix& operator=(const matrix&) = default;
+		matrix& operator=(const matrix& other)
+		{
+			copy(other, *this);
+			return *this;
+		}
 		matrix& operator=(matrix&&) = default;
 
 		// typecasting

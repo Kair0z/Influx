@@ -5,7 +5,6 @@
 #define _CORE_MATH_VECTOR_H_
 
 #include "core/basetypes.h"
-#include "core/"
 
 namespace influx::math { using vecsize = uint32; }
 
@@ -164,7 +163,7 @@ namespace influx::math
         constexpr static uint32 xy_to_index(uint32 x, uint32 y) { return (y * _x) + x; }
         constexpr static uint32 index_to_x(uint32 index) { return index % _x; }
         constexpr static uint32 index_to_y(uint32 index) { return index / _y; }
-
+        constexpr const _t* data() const { return this->m_data; }
 #if 0
         constexpr _t& x() { return m_data[0]; } constexpr const _t& x() const { return m_data[0]; }
         constexpr _t& y() { return m_data[1]; } constexpr const _t& y() const { return m_data[1]; }

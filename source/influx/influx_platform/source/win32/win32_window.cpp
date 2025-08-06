@@ -200,6 +200,7 @@ namespace influx::platform
 	win32_window::win32_window(const window_desc& desc)
 		: window(desc)
 	{
+		influx_assert(desc.m_name.empty() == false);
 		::HINSTANCE instance = (::HINSTANCE)platform::get_current_instance();
 
 		const wstring wname = to_wstring(desc.m_name);
