@@ -41,8 +41,8 @@ constexpr float gSpheresMaxSize = 1.0f;
 constexpr float gSpheresMinDepth = 80.0f;
 constexpr float gSpheresMaxDepth = 100.0f;
 
-#define THREADED_RENDERING 0
-#if THREADED_RENDERING
+#define MULTITHREADED 0
+#if MULTITHREADED
 constexpr uint8_t gNumThreads = 8u;
 const size_t gThreadRange = (size_t)std::ceil(static_cast<double>(gNumPixels) / static_cast<double>(gNumThreads));
 #endif
@@ -188,7 +188,7 @@ int main()
     renderer.set_camera_forward({ 0.0f, 0.0f, 1.0f });
     renderer.get_render_settings().m_depth_min_max.y = 500.0f;
 
-#if THREADED_RENDERING
+#if MULTITHREADED
     influx::threadpool<gNumThreads>* renderJobPool = new influx::threadpool<gNumThreads>();
 #else
     float uvx{};
@@ -230,7 +230,7 @@ int main()
 
         // ¬ RENDER
         beforeRender = influx::time::get_now();
-#if THREADED_RENDERING
+#if MULTITHREADED
         for (size_t i = 0, jobOffset = 0; i < gNumThreads; ++i)
         {
             jobOffset = i * gThreadRange;
@@ -337,7 +337,7 @@ int main()
         ++currentFrame;
     }
 
-#if THREADED_RENDERING
+#if MULTITHREADED
     delete renderJobPool;
     renderJobPool = nullptr;
 #endif

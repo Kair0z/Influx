@@ -46,7 +46,6 @@ int main(int argc, char* argv[])
 	}
 
 	std::cout << "PROFILE =================\n";
-
 	for (uint32 i = 0u; i < 10u; ++i)
 	{
 		run_profile(num_runs, []()

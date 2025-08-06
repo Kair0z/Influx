@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/math/Math.h"
-#include "core/geometry/plane.h"
-#include "core/geometry/Rect.h"
+#include "core/math/plane.h"
+#include "core/math/Rect.h"
 
 namespace influx::math
 {

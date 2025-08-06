@@ -2,7 +2,7 @@
 
 #include "core/math/vector.h"
 #include "core/container/vector.h"
-#include "core/geometry/circle.h"
+#include "core/math/circle.h"
 
 namespace influx::math
 {

@@ -3,7 +3,7 @@
 // influx::core
 #include "core/function.h"
 #include "core/basetypes.h"
-#include "core/geometry/rect.h"
+#include "core/math/rect.h"
 
 // influx::engine
 #include "editor_common.h"

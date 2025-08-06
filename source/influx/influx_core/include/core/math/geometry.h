@@ -3,7 +3,7 @@
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/container/vector.h"
-#include "core/geometry/quad.h"
+#include "core/math/quad.h"
 #include "core/function.h"
 
 namespace influx::math::geometry

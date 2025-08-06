@@ -11,9 +11,6 @@
 #undef min
 #endif
 
-#include "core/container/vector.h"
-#include "core/math/vector.h"
-
 #include <algorithm>
 #include <type_traits>
 #include <limits>
@@ -30,14 +27,13 @@ namespace influx
 		constexpr float k_PIonTwo	= 1.5707963267948966192313216916398f;
 		constexpr float k_PIonFour	= 0.78539816339744830961566084581988f;
 		constexpr float k_PIonSix	= 0.52359877559829887307710723054658f;
-
 		constexpr float k_epsilon = 0.00001f;
 	}
 
 	namespace math
 	{
-		template <typename _t, typename _F>
-		constexpr inline _t round(const _F& fValue)
+		template <typename _t, typename _f>
+		constexpr inline _t round(const _f& fValue)
 		{
 			return static_cast<_t>(std::round(fValue));
 		}

@@ -4,7 +4,7 @@
 // influx::core
 #include "core/string.h"
 #include "core/math/vector.h"
-#include "core/geometry/rect.h"
+#include "core/math/rect.h"
 #include "core/function.h"
 #include "core/enum.h"
 

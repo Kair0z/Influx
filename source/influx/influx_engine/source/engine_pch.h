@@ -10,7 +10,7 @@
 #include "core/container/array.h"
 #include "core/pointer.h"
 #include "core/flag.h"
-#include "core/geometry/ray.h"
+#include "core/math/ray.h"
 #include "core/time.h"
 #include "core/log.h"
 #include "core/scope.h"

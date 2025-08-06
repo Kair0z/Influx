@@ -6,7 +6,7 @@
 #include "core/scene/camera.h"
 #include "core/function.h"
 #include "core/math/bounds.h"
-#include "core/geometry/sphere.h"
+#include "core/math/sphere.h"
 #include "core/macros.h"
 #include "core/material/material.h"
 #include "core/container/map.h"

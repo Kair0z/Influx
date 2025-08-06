@@ -17,7 +17,7 @@
 #include "core/result.h"
 #include "core/material/material.h"
 #include "core/math/bounds.h"
-#include "core/geometry/sphere.h"
+#include "core/math/sphere.h"
 #include "core/container/array.h"
 
 // influx::shader

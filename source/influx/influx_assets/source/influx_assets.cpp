@@ -1,4 +1,3 @@
-#include "assets_pch.h"
 #include "influx_assets.h"
 
 #include "cereal/types/string.hpp"

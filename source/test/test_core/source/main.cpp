@@ -1,12 +1,17 @@
 
-#define TEST_MATH		0
+// choose your test:
+#define TEST_MATH		1
 #define TEST_BASETYPES	0
 #define TEST_STRING		0
 #define TEST_RESULT		0
-#define TEST_CONTAINER	1
+#define TEST_CONTAINER	0
 
+// common
+#include "core/basetypes.h"
 #include "core/debug.h"	// influx_assert
+using namespace influx;
 
+// includes
 #if TEST_BASETYPES
 #include "core/basetypes.h"
 #endif
@@ -41,13 +46,14 @@ namespace glm
 #include "core/containers.h"
 #endif
 
+// tests
 #if TEST_MATH
 template <typename _t>
 static bool is_almost_equal(const _t& a, const _t& b)
 {
 	return math::abs(a - b) < (_t)0.0001f;
 }
-#pragma region test_math
+
 template <typename _t, uint32 _n>
 static bool operator==(const math::vector<_t, _n>& a, const glm::vec<_n, _t>& b)
 {
@@ -57,29 +63,42 @@ static bool operator==(const math::vector<_t, _n>& a, const glm::vec<_n, _t>& b)
 	}
 	return true;
 }
-template <typename _t, uint32 _n>
+
+template <typename _t, uint32 _x, uint32 _y = 1u>
 void test_math_vector()
 {
 	using value_type = _t;
-	constexpr uint32 size = _n;
-	using vector = math::vector<_t, _n>;
-	using glmvec = glm::vec<_n, _t>;
+	constexpr uint32 k_num = _x * _y;
+	using vector = math::vector<_t, _x, _y>;
+	using glmvec = glm::vec<_x, _t>;
 
-	// basic vec x vec
+	// common
 	influx_assert(vector::fill(1) + vector::fill(1) == vector::fill(2));
 	influx_assert(vector::fill(1) - vector::fill(1) == vector::fill(0));
 	influx_assert(vector::fill(4) * vector::fill(4) == vector::fill(16));
 	influx_assert(vector::fill(8) / vector::fill(4) == vector::fill(2));
 
-	influx_assert(vector::dot(vector::fill(1), vector::fill(1)) == size);
-
-	// 3D section
-	if constexpr (size == 3u)
+	// vector section
+	if constexpr (vector::k_is_vector)
 	{
-		// cross
-		const vector cross = vector::cross(vector{ 1, 0, 0 }, vector{ 0, 1, 0 });
-		// influx_assert(is_almost_equal(cross, vector(0, 0, 1)));
-		// influx_assert(cross == glm::vec3(0, 0, 1));
+		influx_assert(vector::dot(vector::fill(1), vector::fill(1)) == k_num);
+
+		if constexpr (_x == 3u)
+		{
+			const vector cross = vector::cross(vector{ 1, 0, 0 }, vector{ 0, 1, 0 });
+			// influx_assert(is_almost_equal(cross, vector(0, 0, 1)));
+			// influx_assert(cross == glm::vec3(0, 0, 1));
+		}
+	}
+
+	// matrix section
+	if constexpr (vector::k_is_matrix)
+	{
+		if constexpr (_x == 2u) // 2x2
+		{
+			vector a = vector::make_one();
+			a *= 2.0f;
+		}
 	}
 }
 void test_math_vector_all()
@@ -103,6 +122,9 @@ void test_math_vector_all()
 	test_math_vector<uint32, 2u>();
 	test_math_vector<uint32, 3u>();
 	test_math_vector<uint32, 4u>();
+	test_math_vector<float, 2u, 2u>();
+	test_math_vector<float, 3u, 3u>();
+	test_math_vector<float, 4u, 4u>();
 }
 
 template <typename _t, uint32 _x, uint32 _y>
@@ -165,9 +187,7 @@ void test_math_rotor_all()
 	test_math_rotor<int, 2u>();
 	test_math_rotor<uint32, 2u>();
 }
-#pragma endregion
 #endif
-
 #if TEST_CONTAINER
 void test_containers()
 {
@@ -187,7 +207,6 @@ void test_containers()
 	bool contains = ctr::contains(dyn_array, 2);
 }
 #endif
-
 #if TEST_RESULT
 void test_result()
 {
@@ -200,7 +219,6 @@ void test_result()
 	assert(float_result);
 }
 #endif
-
 #if TEST_BASETYPES
 void test_basetypes()
 {
@@ -210,11 +228,14 @@ void test_basetypes()
 
 int main()
 {
-	test_containers();
+	// test_containers();
 	// test_basetypes();
 	// test_result();
 	// test_cache();
-	// test_math_vector_all();
-	// test_math_matrix_all();
-	// test_math_quaternion_all();
+	
+#if TEST_MATH
+	test_math_vector_all();
+	test_math_matrix_all();
+	test_math_quaternion_all();
+#endif
 }

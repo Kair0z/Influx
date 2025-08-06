@@ -8,7 +8,7 @@
 #include "core/math/vector.h"
 #include "core/container/vector.h"
 #include "core/math/matrix.h"
-#include "core/geometry/ray.h"
+#include "core/math/ray.h"
 
 // STL
 #include <algorithm> // swap

@@ -1,7 +1,7 @@
 #include "engine_pch.h"
 
 // influx::core
-#include "core/geometry/circle.h"
+#include "core/math/circle.h"
 
 // influx::engine
 #include "game_manager.h"

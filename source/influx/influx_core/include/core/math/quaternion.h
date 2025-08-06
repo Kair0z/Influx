@@ -24,6 +24,11 @@ namespace influx::math
 
 	class _quaternion final
 	{
+		vectorf3 m_forward;
+		vectorf3 m_right;
+		vectorf3 m_up;
+		math::matrix3x3f m_rotation_matrix;
+
 	public:
 		_quaternion() = default;
 		_quaternion(const vectorf3& forward, const vectorf3& up = vectorf3::up())
@@ -33,9 +38,11 @@ namespace influx::math
 			m_right = vectorf3::cross(up, m_forward);
 			m_up = vectorf3::cross(m_right, m_forward);
 		}
+		_quaternion(const _quaternion& other) = default;
 
 		virtual ~_quaternion() = default;
 
+#if 0
 		const static _quaternion identity()
 		{
 			static _quaternion q{};
@@ -44,7 +51,7 @@ namespace influx::math
 			q.m_right = { 1.0f, 0.0f, 0.0f };
 			return q;
 		}
-
+#endif
 		vectorf3 get_forward() const
 		{
 			return m_forward.normalized();
@@ -77,6 +84,7 @@ namespace influx::math
 			m_up = newUp;
 		}
 
+#if 0
 		void rotate(float delta_angle, const vectorf3& axis)
 		{
 			m_rotation_matrix = math::matrix3x3f::make_rotation(axis, delta_angle);
@@ -85,7 +93,7 @@ namespace influx::math
 			m_right = math::vectorf3::cross(m_forward, vectorf3::up()).normalized();
 			m_up = math::vectorf3::cross(m_right, m_forward).normalized();
 		}
-
+#endif
 		bool is_gimbal_locked() const
 		{
 			return math::abs(m_forward[1]) > 0.9999;
@@ -114,6 +122,7 @@ namespace influx::math
 			return atan2f(m_right.y, m_right.x);
 		}
 
+#if 0
 		void set_matrix(const math::matrix3x3f& matrix)
 		{
 			m_rotation_matrix = matrix;
@@ -122,13 +131,7 @@ namespace influx::math
 			m_up		= m_rotation_matrix.get_row(1u).normalized();
 			m_forward	= m_rotation_matrix.get_row(2u).normalized();
 		}
-
-	public:
-		vectorf3 m_forward;
-		vectorf3 m_right;
-		vectorf3 m_up;
-
-		math::matrix3x3f m_rotation_matrix;
+#endif
 	};
 
 	template <typename _t>
@@ -383,7 +386,7 @@ namespace influx::math
 
 	using quatf = quaternion<float>;
 	using quatd = quaternion<double>;
-	using rotation = _quaternion;
+	using rotation = quatf;
 }
 
 #endif

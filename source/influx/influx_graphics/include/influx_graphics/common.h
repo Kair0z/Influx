@@ -12,7 +12,7 @@
 #include "core/enum.h"
 #include "core/result.h"
 #include "core/math/vector.h"
-#include "core/geometry/rect.h"
+#include "core/math/rect.h"
 
 namespace influx::graphics
 {

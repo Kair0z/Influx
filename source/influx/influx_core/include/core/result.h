@@ -81,6 +81,11 @@ namespace influx
 			return is_success();
 		}
 
+		bool operator!() const
+		{
+			return !*this;
+		}
+
 		bool operator==(unex_type result)
 		{
 			return result == m_unexpected;

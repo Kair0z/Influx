@@ -7,7 +7,7 @@
 #include "core/string.h"
 #include "core/container/vector.h"
 #include "core/math/colour.h"
-#include "core/geometry/rect.h"
+#include "core/math/rect.h"
 #include "core/math/bounds.h"
 #include "core/math/transform.h"
 #include "core/material/material.h"

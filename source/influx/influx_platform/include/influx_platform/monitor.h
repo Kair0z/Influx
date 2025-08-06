@@ -5,7 +5,7 @@
 #include "core/string.h"
 #include "core/container/vector.h"
 #include "core/math/vector.h"
-#include "core/geometry/rect.h"
+#include "core/math/rect.h"
 
 namespace influx::platform
 {

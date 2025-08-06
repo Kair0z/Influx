@@ -5,8 +5,8 @@
 
 #include "core/container/vector.h"
 #include "core/math/vector.h"
-#include "core/geometry/sphere.h"
-#include "Core/Math/Math.h"
+#include "core/math/sphere.h"
+#include "core/math/math.h"
 #include <ctime>
 
 #ifdef min

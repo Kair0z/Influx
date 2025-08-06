@@ -1,16 +1,466 @@
 #pragma once
+#define _CORE_MATH_VECTOR_VERSION_ 1
 
 #ifndef _CORE_MATH_VECTOR_H_
 #define _CORE_MATH_VECTOR_H_
 
 #include "core/basetypes.h"
+#include "core/"
 
-#pragma warning(disable : 4201) // Union warning...
+namespace influx::math { using vecsize = uint32; }
 
+#if _CORE_MATH_VECTOR_VERSION_ == 1
 namespace influx::math
 {
-	using vecsize = uint32;
+    namespace detail
+    {
+        template <typename _t, uint32 _x, uint32 _y>
+        struct base_vector
+        {
+            static constexpr uint32 _n = _x * _y;
+            union
+            {
+                struct { _t x, y, z, w; };
+                struct { _t r, g, b, a; };
+                _t m_data[_n];
+            };
+            constexpr base_vector() = default;
+#if 0
+            template <typename... _args>
+            constexpr base_vector(const _args&... components) 
+                : m_data{ static_cast<_t>(std::forward<const _args&>(args))... }
+#else
+            template <typename... _V>
+            base_vector(const _V&... components)
+                : m_data{ components... }
+            {
 
+            }
+#endif
+        };
+        template <typename _t>
+        struct base_vector<_t, 1u, 1u>
+        {
+            static constexpr uint32 _n = 1u * 1u;
+            union
+            {
+                struct { _t x; };
+                struct { _t r; };
+                _t m_data[_n];
+            };
+            constexpr base_vector() = default;
+            constexpr base_vector<_t, 1u, 1u>(const _t _x) : x{ _x } {}
+        };
+        template <typename _t>
+        struct base_vector<_t, 2u, 1u>
+        {
+            static constexpr uint32 _n = 2u * 1u;
+            union
+            {
+                struct { _t x, y; };
+                struct { _t r, g; };
+                _t m_data[_n];
+            };
+            constexpr base_vector() = default;
+            constexpr base_vector<_t, 2u, 1u>(const _t _x, const _t _y = 0) : x{ _x }, y{ _y } {}
+        };
+        template <typename _t>
+        struct base_vector<_t, 3u, 1u>
+        {
+            static constexpr uint32 _n = 3u * 1u;
+            union
+            {
+                struct { _t x, y, z; };
+                struct { _t r, g, b; };
+                _t m_data[_n];
+            };
+            constexpr base_vector() = default;
+            constexpr base_vector<_t, 3u, 1u>(const _t _x, const _t _y = 0, const _t _z = 0) : x{ _x }, y{ _y }, z{ _z } {}
+        };
+        template <typename _t>
+        struct base_vector<_t, 4u, 1u>
+        {
+            static constexpr uint32 _n = 4u * 1u;
+            union
+            {
+                struct { _t x, y, z, w; };
+                struct { _t r, g, b, a; };
+                _t m_data[_n];
+            };
+            constexpr base_vector() = default;
+            constexpr base_vector<_t, 4u, 1u>(const _t _x, const _t _y = 0, const _t _z = 0, const _t _w = 0) : x{ _x }, y{ _y }, z{ _z }, w{ _w } {}
+        };
+        template <typename _t>
+        struct base_vector<_t, 2u, 2u>
+        {
+            static constexpr uint32 _n = 2u * 2u;
+            union
+            {
+                struct { _t _00, _01, _10, _11; };
+                _t m_data[_n];
+            };
+        };
+    }
+
+    template <typename _t, uint32 _x, uint32 _y = 1u>
+    struct vector final : public detail::base_vector<_t, _x, _y>
+    {
+        static constexpr uint32 _n = _y * _x;
+        using size_t = uint32;
+        using data_t = _t;
+
+        // helpers
+        constexpr static bool is_zero(const _t& value)
+        {
+            return value == 0.0f;
+        }
+        constexpr static bool is_equal(const _t& a, const _t& b)
+        {
+            return a == b;
+        }
+        template <typename _tt, uint32 _nn>
+        constexpr static void copyarr(const _tt* src, _tt* dest)
+        {
+            for (uint32 i = 0u; i < _nn; ++i)
+                dest[i] = src[i];
+        }
+
+        // constructors
+        vector() = default;
+
+        // init list
+        template <typename... _args>
+        vector(const _args&... args) : detail::base_vector<_t, _x, _y>({ static_cast<_t>(args) ...}) {}
+
+        // > typecasting
+        template <typename _u>
+        vector(const vector<_u, _x, _y>& other)
+        {
+            for (uint32 i{}; i < _n; ++i)
+                this->m_data[i] = static_cast<_t>(other.m_data[i]);
+        }
+
+        // > sizecasting
+        // if other smaller, overwrite first elements, set rest to zero
+        // if other bigger, write until our limit
+        template <uint32 _ox, uint32 _oy>
+        vector(const vector<_t, _ox, _oy>& other)
+        {
+            static constexpr uint32 _on = _ox * _oy;
+            for (uint32 i{}; i < _n; ++i)
+                this->m_data[i] = (i < _on) ? other[i] : static_cast<_t>(0);
+        }
+
+        constexpr vector(const vector& other) { copyarr<_t, _n>(other.m_data, this->m_data); }
+        constexpr vector(vector&& other) noexcept { copyarr<_t, _n>(other.m_data, this->m_data); }
+        constexpr vector& operator=(const vector& other) { copyarr<_t, _n>(other.m_data, this->m_data); return *this; }
+        constexpr vector& operator=(vector&& other) noexcept { copyarr<_t, _n>(other.m_data, this->m_data); return *this; }
+
+        // access
+        constexpr _t& operator[](uint32 i) { return this->m_data[i]; }
+        constexpr const _t& operator[](uint32 i) const { return this->m_data[i]; }
+        constexpr _t& at(uint32 x, uint32 y) { return this->m_data[xy_to_index(x, y)]; }
+        constexpr const _t& at(uint32 x, uint32 y) const { return this->m_data[xy_to_index(x, y)]; }
+        constexpr static uint32 xy_to_index(uint32 x, uint32 y) { return (y * _x) + x; }
+        constexpr static uint32 index_to_x(uint32 index) { return index % _x; }
+        constexpr static uint32 index_to_y(uint32 index) { return index / _y; }
+
+#if 0
+        constexpr _t& x() { return m_data[0]; } constexpr const _t& x() const { return m_data[0]; }
+        constexpr _t& y() { return m_data[1]; } constexpr const _t& y() const { return m_data[1]; }
+        constexpr _t& z() { return m_data[2]; } constexpr const _t& z() const { return m_data[2]; }
+        constexpr _t& w() { return m_data[3]; } constexpr const _t& w() const { return m_data[3]; }
+#endif
+
+        // math operations
+        friend constexpr vector operator+(const vector& a, const vector& b)
+        {
+            return add_impl(a, b, std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator+(const vector& a, const _t& sc)
+        {
+            return add_impl(a, fill(sc), std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator+(const _t& sc, const vector& a)
+        {
+            return add_impl(a, fill(sc), std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator-(const vector& a, const vector& b)
+        {
+            return det_impl(a, b, std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator-(const vector& a, const _t& sc)
+        {
+            return det_impl(a, fill(sc), std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator-(const _t& sc, const vector& a)
+        {
+            return det_impl(a, fill(sc), std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator*(const vector& a, const vector& b)
+        {
+            return mult_impl(a, b, std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator*(const vector& a, const _t& sc)
+        {
+            return mult_impl(a, fill(sc), std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator*(const _t& sc, const vector& a)
+        {
+            return mult_impl(a, fill(sc), std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator/(const vector& a, const vector& b)
+        {
+            return div_impl(a, b, std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator/(const vector& a, const _t& sc)
+        {
+            return div_impl(a, fill(sc), std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator/(const _t& sc, const vector& a)
+        {
+            return div_impl(a, fill(sc), std::make_index_sequence<_n>{});
+        }
+        friend constexpr vector operator-(const vector& a)
+        {
+            return neg_impl(a, std::make_index_sequence<_n>{});
+        }
+
+        constexpr vector& operator+=(const vector& other)   { *this = *this + other; return *this; }
+        constexpr vector& operator+=(const _t& other)       { *this = *this + other; return *this; }
+        constexpr vector& operator-=(const vector& other)   { *this = *this - other; return *this; }
+        constexpr vector& operator-=(const _t& other)       { *this = *this - other; return *this; }
+        constexpr vector& operator*=(const vector& other)   { *this = *this * other; return *this; }
+        constexpr vector& operator*=(const _t& other)       { *this = *this * other; return *this; }
+        constexpr vector& operator/=(const vector& other)   { *this = *this / other; return *this; }
+        constexpr vector& operator/=(const _t& other)       { *this = *this / other; return *this; }
+
+        // comparison
+        constexpr bool operator==(const vector& other) const
+        {
+            for (uint32 i = 0u; i < _n; ++i)
+                if (!is_equal(this->m_data[i], other.m_data[i])) return false;
+            return true;
+        }
+        constexpr bool operator!=(const vector& other) const
+        {
+            return !(*this == other);
+        }
+        
+        // misc
+        constexpr static vector fill(const _t& value)
+        {
+            vector result{};
+            for (uint32 i = 0u; i < _n; ++i) result[i] = value;
+            return result;
+        }
+        constexpr static vector make_one() { return fill(1); }
+        constexpr static vector make_zero() { return fill(0); }
+        constexpr bool is_zero() const
+        {
+            for (uint32 i = 0u; i < _n; ++i) 
+                if (!is_zero(this->m_data[i])) return false;
+            return true;
+        }
+        constexpr static vector make_identity()
+        {
+            vector result;
+            for (uint32 y = 0u; y < _y; ++y)
+                for (uint32 x = 0u; x < _x; ++x)
+                    result[xy_to_index(x, y)] = (_t)(x == y);
+
+            return result;
+        }
+        constexpr bool is_identity() const
+        {
+            for (uint32 y = 0u; y < _y; ++y)
+                for (uint32 x = 0u; x < _x; ++x)
+                    if (x == y && at(x, y) != (_t)1) return false;
+
+            return true;
+        }
+
+        // vector operations
+        constexpr static bool k_is_vector       = _y == 1u;
+        constexpr static bool k_supports_dot    = k_is_vector;
+        constexpr static bool k_supports_cross  = k_is_vector;
+
+        constexpr _t get_length_sq() const
+        {
+            static_assert(k_is_vector);
+
+            _t sum = 0u;
+            for (uint32 i = 0u; i < _n; ++i)
+                sum += this->m_data[i] * this->m_data[i];
+            return sum;
+        }
+        constexpr _t get_length() const
+        {
+            static_assert(k_is_vector);
+            return std::sqrt(get_length_sq());
+        }
+        constexpr vector normalized() const
+        {
+            static_assert(k_is_vector);
+            if (is_zero()) return make_zero();
+
+            return *this / get_length();
+        }
+        constexpr static vector up()
+        {
+            static_assert(k_is_vector);
+            return { 0,1,0 };
+        }
+        constexpr static vector right()
+        {
+            static_assert(k_is_vector);
+            return { 1,0,0 };
+        }
+        constexpr static vector forward()
+        {
+            static_assert(k_is_vector);
+            return { 0,0,1 };
+        }
+        constexpr static vector cross(const vector& a, const vector& b)
+        {
+            static_assert(k_supports_cross);
+            if constexpr (_x == 2u)
+            {
+                return {};
+            }
+            else if constexpr (_x == 3u) 
+            {
+                return {};
+            }
+            else
+            {
+                static_assert(false, "not implemented!");
+            }
+            return {};
+        }
+        constexpr static vector dot(const vector& a, const vector& b)
+        {
+            static_assert(k_supports_dot);
+            _t sum = {};
+            for (uint32 i = 0u; i < _n; ++i) sum += (a[i] * b[i]);
+            return sum;
+        }
+
+        // matrix operations
+        constexpr static bool k_is_matrix = _y > 1u;
+        constexpr static bool k_is_square_matrix = k_is_matrix && _y == _x;
+        constexpr static bool k_supports_transpose = k_is_matrix;
+
+        template <uint32 _ox, uint32 _oy>
+        constexpr vector<_t, _ox, _y> mat_mul(const vector<_t, _ox, _oy>& other)
+        {
+            static_assert(k_is_matrix);
+            // matrix multiplication requires Ax (cols) == By (rows)
+            static_assert(_x == _oy);
+
+            vector<_t, _ox, _y> result{};
+            for (uint32 y = 0u; y < _y; ++y)
+                for (uint32 x = 0u; x < _ox; ++x)
+                {
+                    _t sum{};
+                    for (uint32 i = 0u; i < _x; ++i)
+                    {
+                        const _t& at0 = this->at(i, y);
+                        const _t& at1 = other.at(x, i);
+                        _t add = (at0 * at1);
+                        sum += add;
+                    }
+                    result.at(x, y) = sum;
+                }
+            return result;
+        }
+        constexpr vector<_t, _y, _x> get_transposed() const
+        {
+            static_assert(k_supports_transpose);
+
+            vector<_t, _y, _x> result{};
+            for (uint32 y = 0u; y < _y; ++y)
+                for (uint32 x = 0u; x < _x; ++x)
+                    result.at(y, x) = at(x, y);
+
+            return result;
+        }
+        constexpr bool get_inverse(vector& out_inverse) const
+        {
+            static_assert(k_is_square_matrix);
+
+            // 2D matrix inverse
+            if constexpr (_x == 2u)
+            {
+                _t a = at(0, 0);
+                _t b = at(1, 0);
+                _t c = at(0, 1);
+                _t d = at(1, 1);
+                _t det = a * d - b * c;
+
+                if (is_zero(det))
+                    return false;
+
+                out_inverse.at(0, 0) = d / det;
+                out_inverse.at(1, 0) = -b / det;
+                out_inverse.at(0, 1) = -c / det;
+                out_inverse.at(1, 1) = a / det;
+                return true;
+            }
+            else
+            {
+                static_assert("not implemented!");
+            }
+
+            return false;
+        }
+        constexpr _t get_determinant() const
+        {
+            static_assert(k_is_matrix);
+
+            // 2D matrix determinant
+            if constexpr (_x == 2u && _y == 2u)
+            {
+                _t a = at(0, 0);
+                _t b = at(1, 0);
+                _t c = at(0, 1);
+                _t d = at(1, 1);
+                return a * d - b * c;
+            }
+            else
+            {
+                static_assert(false, "not implemented!");
+            }
+        }
+
+    private:
+        template <typename _t, uint32 _x, uint32 _y, uint32... _is>
+        static constexpr vector<_t, _x, _y> add_impl(const vector<_t, _x, _y>& a, const vector<_t, _x, _y>& b, std::index_sequence<_is...>) {
+            return vector<_t, _x, _y>{ (a[_is] + b[_is]) ... };
+        }
+        template <typename _t, uint32 _x, uint32 _y, uint32... _is>
+        static constexpr vector<_t, _x, _y> det_impl(const vector<_t, _x, _y>& a, const vector<_t, _x, _y>& b, std::index_sequence<_is...>) {
+            return vector<_t, _x, _y>{ (a[_is] - b[_is]) ... };
+        }
+        template <typename _t, uint32 _x, uint32 _y, uint32... _is>
+        static constexpr vector<_t, _x, _y> mult_impl(const vector<_t, _x, _y>& a, const vector<_t, _x, _y>& b, std::index_sequence<_is...>) {
+            return vector<_t, _x, _y>{ (a[_is] * b[_is]) ... };
+        }
+        template <typename _t, uint32 _x, uint32 _y, uint32... _is>
+        static constexpr vector<_t, _x, _y> div_impl(const vector<_t, _x, _y>& a, const vector<_t, _x, _y>& b, std::index_sequence<_is...>) {
+            return vector<_t, _x, _y>{ (a[_is] / b[_is]) ... };
+        }
+        template <typename _t, uint32 _x, uint32 _y, uint32... _is>
+        static constexpr vector<_t, _x, _y> neg_impl(const vector<_t, _x, _y>& a, std::index_sequence<_is...>) {
+            return vector<_t, _x, _y>{ (-a[_is]) ... };
+        }
+    };
+}
+#elif _CORE_MATH_VECTOR_VERSION_ == 0
+// disable union-related warning
+#pragma warning(disable : 4201) 
+namespace influx::math
+{
 	namespace detail
 	{
 		template <typename _t, vecsize _s>
@@ -217,7 +667,7 @@ namespace influx::math
 		vector& operator/=(const float scalar);
 	};
 
-	// Per-Component operators:
+	// operators:
 	template <typename _t, vecsize _s>
 	vector<_t, _s> operator+(const vector<_t, _s>& a, const vector<_t, _s>& b);
 	template <typename _t, vecsize _s>
@@ -226,8 +676,6 @@ namespace influx::math
 	vector<_t, _s> operator*(const vector<_t, _s>& a, const vector<_t, _s>& b);
 	template <typename _t, vecsize _s>
 	vector<_t, _s> operator/(const vector<_t, _s>& a, const vector<_t, _s>& b);
-
-	// Scalar operators:
 	template <typename _t, vecsize _s>
 	vector<_t, _s> operator*(const vector<_t, _s>& a, const float b);
 	template <typename _t, vecsize _s>
@@ -236,58 +684,56 @@ namespace influx::math
 	vector<_t, _s> operator*(const float a, const vector<_t, _s>& b);
 	template <typename _t, vecsize _s>
 	vector<_t, _s> operator-(const vector<_t, _s>& v);
-
 	template <typename _t, vecsize _s>
 	vector<_t, _s> operator/(const float a, const vector<_t, _s>& b);
+}
+#include "vector.inl"
+#pragma warning(default : 4201)
+#endif
 
+// aliases
+namespace influx::math
+{
+    template <typename vecsize _s>
+    using vectoru8 = vector<uint8, _s>;
+    template <typename vecsize _s>
+    using vectoru32 = vector<uint32, _s>;
+    template <typename vecsize _s>
+    using vectoru64 = vector<uint64, _s>;
+    template <typename vecsize _s>
+    using vectori = vector<int, _s>;
+    template <typename vecsize _s>
+    using vectorf = vector<float, _s>;
+    template <typename vecsize _s>
+    using vectorl = vector<long, _s>;
 
-#pragma region Aliases
-	template <typename vecsize _s>
-	using vectoru8 = vector<uint8, _s>;
+    using vectorf2 = vectorf<2u>;
+    using vectorf3 = vectorf<3u>;
+    using vectorf4 = vectorf<4u>;
+    using vectoru2 = vectoru32<2u>;
+    using vectoru3 = vectoru32<3u>;
+    using vectoru4 = vectoru32<4u>;
+    using vectori2 = vectori<2u>;
+    using vectori3 = vectori<3u>;
+    using vectori4 = vectori<4u>;
 
-	template <typename vecsize _s>
-	using vectoru32 = vector<uint32, _s>;
+    using float2 = vectorf2;
+    using float3 = vectorf3;
+    using float4 = vectorf4;
+    using uint2 = vectoru2;
+    using uint3 = vectoru3;
+    using uint4 = vectoru4;
+    using int2 = vectori2;
+    using int3 = vectori3;
+    using int4 = vectori4;
 
-	template <typename vecsize _s>
-	using vectoru64 = vector<uint64, _s>;
-
-	template <typename vecsize _s>
-	using vectori = vector<int, _s>;
-
-	template <typename vecsize _s>
-	using vectorf = vector<float, _s>;
-
-	template <typename vecsize _s>
-	using vectorl = vector<long, _s>;
-
-	using vectorf2 = vectorf<2u>;
-	using vectorf3 = vectorf<3u>;
-	using vectorf4 = vectorf<4u>;
-
-	using vectoru2 = vectoru32<2u>;
-	using vectoru3 = vectoru32<3u>;
-	using vectoru4 = vectoru32<4u>;
-
-	using vectori2 = vectori<2u>;
-	using vectori3 = vectori<3u>;
-	using vectori4 = vectori<4u>;
-
-	using float2 = vectorf2;
-	using float3 = vectorf3;
-	using float4 = vectorf4;
-
-	using uint2 = vectoru2;
-	using uint3 = vectoru3;
-	using uint4 = vectoru4;
-
-	using int2 = vectori2;
-	using int3 = vectori3;
-	using int4 = vectori4;
-#pragma endregion
+    using mat23 = vector<float, 2u, 3u>;
+    using mat32 = vector<float, 3u, 2u>;
+    using mat22 = vector<float, 2u, 2u>;
+    using mat33 = vector<float, 3u, 3u>;
+    using mat44 = vector<float, 4u, 4u>;
 }
 
-#include "vector.inl"
 
-#pragma warning(default : 4201)
 
 #endif
