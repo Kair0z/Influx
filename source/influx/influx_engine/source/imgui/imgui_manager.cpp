@@ -140,7 +140,7 @@ namespace influx::engine
 				// get the rendertarget
 				viewport_data& data = m_viewports[viewport->ID];
 				platform::window& window = windowman.get_window(data.m_window_id);
-				auto* window_target = renderer::get_window_target(window);
+				auto* window_target = renderer::get_or_create_window_target(window);
 
 				// clear if non-main
 				const bool is_non_main = !windowman.is_main(data.m_window_id);

@@ -1,7 +1,17 @@
 #pragma once
 
+/*
+	influx renderer
+	is a opaque renderer that just puts things on screen.
+	it's not a DIW RHI wrapper, it renders things its own way.
+
+	If you're looking for a lower-level interface to make your own renderer,
+	take a peek at influx_graphics
+*/
+
 #define INFLUX_RENDER_BINDLESS 1
 
+#pragma region includes
 // Imgui
 struct ImDrawData;
 
@@ -29,6 +39,7 @@ struct ImDrawData;
 #include "influx_renderer/stats.h"
 #include "influx_renderer/postprocess.h"
 #include "influx_renderer/shader.h"
+#pragma endregion
 
 namespace influx::renderer
 {
@@ -114,7 +125,7 @@ namespace influx::renderer
 	INFLUX_RENDER_API target* create_target(const target_create_args& args);
 
 	/* creates or gets the existing target representation of a given window (builds the swapchain) */
-	INFLUX_RENDER_API target* get_window_target(const platform::window& window);
+	INFLUX_RENDER_API target* get_or_create_window_target(const platform::window& window);
 
 	/* copy the contents of a target to another */
 	INFLUX_RENDER_API void copy_target(const target& source, const target& dest);

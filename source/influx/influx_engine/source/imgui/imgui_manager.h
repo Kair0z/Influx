@@ -24,6 +24,8 @@ namespace influx::engine
 		imgui_manager();
 
 		void on_window_resize(const math::vectoru2& new_size);
+
+		/* dispatches draw_imgui commands to influx_renderer based on the imgui scene */
 		void render(const renderer::scene_imgui&);
 
 		~imgui_manager();

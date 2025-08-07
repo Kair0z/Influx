@@ -279,7 +279,7 @@ namespace influx::renderer
         return nullptr;
     }
 
-    target* renderer_backend::get_window_target(const platform::window& window)
+    target* renderer_backend::get_or_create_window_target(const platform::window& window)
     {
         if (!window.is_valid())
         {
@@ -818,9 +818,9 @@ namespace influx::renderer
     }
 
     // creates / switches to the appropriate target representation of our window backbuffer
-    target* get_window_target(const platform::window& window)
+    target* get_or_create_window_target(const platform::window& window)
     {
-        return renderer_backend::get_instance().get_window_target(window);
+        return renderer_backend::get_instance().get_or_create_window_target(window);
     }
 
     void start_frame()

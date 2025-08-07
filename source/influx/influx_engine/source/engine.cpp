@@ -83,7 +83,7 @@ namespace influx::engine
 
 		m_windowman = new window_manager();
 		m_windowman->spawn(window_desc); // main window
-		m_renderman = new render_manager(this);
+		m_renderman = new render_manager();
 
 		/* create world & scene_manager */
 		m_world		= new world();

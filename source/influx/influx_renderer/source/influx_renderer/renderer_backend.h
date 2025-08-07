@@ -84,7 +84,7 @@ namespace influx::renderer
 		result<target*> create_target(const target_create_args& args);
 		result<> destroy_target(target*& target);
 
-		target* get_window_target(const platform::window& window);
+		target* get_or_create_window_target(const platform::window& window);
 		void acquire_swapchain_frame(swapchain& swapchain);
 
 		result<> draw_scene(const scene& scene, const target& target);
