@@ -126,13 +126,20 @@ namespace influx::renderer
     void renderer_backend::cleanup()
     {
         wait_gpu_finished();
-        mp_device->cleanup();
 
-        delete m_resource_manager;
+        delete mp_desc_manager; mp_desc_manager = nullptr;
+        delete mp_pipeline_manager; mp_pipeline_manager = nullptr;
+        delete mp_upload_manager; mp_upload_manager = nullptr;
+        delete mp_imgui; mp_imgui = nullptr;
+        delete mp_scene_renderer; mp_scene_renderer = nullptr;
+        delete mp_quad_renderer; mp_quad_renderer = nullptr;
+        delete mp_shadertoy_renderer; mp_shadertoy_renderer = nullptr;
+        delete m_resource_manager; m_resource_manager = nullptr;
 
         delete m_rendergraph;
         m_rendergraph = nullptr;
 
+        mp_device->cleanup();
         delete mp_device;
         mp_device = nullptr;
 

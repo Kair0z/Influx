@@ -19,7 +19,6 @@ namespace influx
 {
 	class app final
 	{
-		
 	public:
 		enum class e_settings
 		{

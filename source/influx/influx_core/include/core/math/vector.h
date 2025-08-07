@@ -4,7 +4,11 @@
 #ifndef _CORE_MATH_VECTOR_H_
 #define _CORE_MATH_VECTOR_H_
 
+// influx::core
 #include "core/basetypes.h"
+
+// STL
+#include <cmath> // std::sqrt
 
 namespace influx::math { using vecsize = uint32; }
 
@@ -122,6 +126,10 @@ namespace influx::math
         {
             for (uint32 i = 0u; i < _nn; ++i)
                 dest[i] = src[i];
+        }
+        constexpr static _t sqrt(const _t& val)
+        {
+            return std::sqrt(val);
         }
 
         // constructors
@@ -278,6 +286,10 @@ namespace influx::math
 
             return true;
         }
+        constexpr vector<_t, 3u, 1u> get_xyz() const
+        {
+            return { this->m_data[0], this->m_data[1], this->m_data[2] };
+        }
 
         // vector operations
         constexpr static bool k_is_vector       = _y == 1u;
@@ -296,7 +308,24 @@ namespace influx::math
         constexpr _t get_length() const
         {
             static_assert(k_is_vector);
-            return std::sqrt(get_length_sq());
+            return sqrt(get_length_sq());
+        }
+        constexpr _t get_magnitude() const
+        {
+            return get_length();
+        }
+        constexpr _t get_magnitude_sq() const
+        {
+            return get_length_sq();
+        }
+        constexpr vector& normalize()
+        {
+            static_assert(k_is_vector);
+            if (!is_zero())
+            {
+                *this = normalized();
+            }
+            return *this;
         }
         constexpr vector normalized() const
         {
@@ -337,12 +366,21 @@ namespace influx::math
             }
             return {};
         }
-        constexpr static vector dot(const vector& a, const vector& b)
+        constexpr static _t dot(const vector& a, const vector& b)
         {
             static_assert(k_supports_dot);
             _t sum = {};
             for (uint32 i = 0u; i < _n; ++i) sum += (a[i] * b[i]);
             return sum;
+        }
+        constexpr vector& clamp_length(const _t& max)
+        {
+            static_assert(k_is_vector);
+            if (get_magnitude_sq() > (max * max))
+            {
+                *this = this->normalized() * max;
+            }
+            return *this;
         }
 
         // matrix operations

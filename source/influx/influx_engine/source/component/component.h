@@ -494,7 +494,7 @@ namespace influx::engine
 
 		void hard_stop()
 		{
-			m_velocity = math::float3::zero();
+			m_velocity = math::float3::make_zero();
 		}
 
 		void set_force_x(const float x)

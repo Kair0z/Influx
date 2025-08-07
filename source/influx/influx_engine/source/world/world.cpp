@@ -601,7 +601,7 @@ namespace influx::engine
         input::mouse_position position{};
         position.m_client = inputman.get_mouse_position_client();
         position.m_screen = inputman.get_mouse_position_screen();
-        if (inputman.get_mouse_delta_pixels().sqr_magnitude() > 0.0f)
+        if (inputman.get_mouse_delta_pixels().get_magnitude_sq() > 0.0f)
         {
             for (auto [entity, input] : view.each())
             {
@@ -696,7 +696,7 @@ namespace influx::engine
                     if (max_speed > 0.0f)
                     {
                         // dynamic drag, based on max speed use higher drag when slowing down
-                        const float speed_sqr       = new_velocity.sqr_magnitude();
+                        const float speed_sqr       = new_velocity.get_magnitude_sq();
                         const float speed_fraction  = speed_sqr / (max_speed * max_speed);
                         const float damp_factor     = (1.0f - speed_fraction) * one_minus_drag;
                         new_velocity *= damp_factor;

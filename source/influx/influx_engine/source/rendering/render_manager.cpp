@@ -103,6 +103,8 @@ namespace influx::engine
 
 	render_manager::~render_manager()
 	{
+		m_views.clear();
+
 		influx::renderer::cleanup();
 	}
 

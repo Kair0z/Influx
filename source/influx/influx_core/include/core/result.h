@@ -83,7 +83,7 @@ namespace influx
 
 		bool operator!() const
 		{
-			return !*this;
+			return (*this).operator bool();
 		}
 
 		bool operator==(unex_type result)

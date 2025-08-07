@@ -36,7 +36,7 @@ namespace influx::math
 		vector3 diff = (point - m_position);
 		if (diff.is_zero()) return;
 
-		float distance = diff.magnitude();
+		float distance = diff.get_magnitude();
 		if (m_radius < distance)
 		{
 			m_radius = distance;
@@ -52,7 +52,7 @@ namespace influx::math
 			return;
 		}
 
-		float distance = diff.magnitude();
+		float distance = diff.get_magnitude();
 		if (m_radius > distance)
 		{
 			m_radius = distance;

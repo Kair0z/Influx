@@ -425,18 +425,18 @@ namespace influx::math
 	}
 
 #pragma endregion
-	// _xonstructor:
+	// constructor:
 	template<typename _t, matsize _x, matsize _y>
 	template <typename Other_T>
 	matrix<_t, _x, _y>::matrix(const matrix<Other_T, _x, _y>& other)
 	{
-		for_each_element([&other](_t& element, matsize idx) { element = static_xast<_t>(other.get_element(idx)); });
+		// for_each_element([&other](_t& element, matsize idx) { element = static_cast<_t>(other.get_element(idx)); });
 	}
 	template<typename _t, matsize _x, matsize _y>
 	template <typename Other_T>
 	matrix<_t, _x, _y>::matrix(matrix<Other_T, _x, _y>&& other)
 	{
-		for_each_element([&other](_t& element, matsize idx) { element = static_xast<_t>(other.get_element(idx)); });
+		// for_each_element([&other](_t& element, matsize idx) { element = static_cast<_t>(other.get_element(idx)); });
 	}
 
 	template<typename _t, matsize _x, matsize _y>
@@ -836,9 +836,9 @@ namespace influx::math
 		const auto& rowZ = get_row(2u);
 
 		return { 
-			rowX.sqr_magnitude(),
-			rowY.sqr_magnitude(),
-			rowZ.sqr_magnitude()};
+			rowX.get_magnitude_sq(),
+			rowY.get_magnitude_sq(),
+			rowZ.get_magnitude_sq()};
 	}
 
 	template<typename _t, matsize _x, matsize _y>

@@ -386,7 +386,78 @@ namespace influx::math
 
 	using quatf = quaternion<float>;
 	using quatd = quaternion<double>;
-	using rotation = quatf;
+
+	class rotation final
+	{
+		quatf m_quaternion;
+
+	public:
+		static rotation identity()
+		{
+			return {};
+		}
+
+		void set_matrix(const math::matrix3x3f& mat)
+		{
+
+		}
+
+		bool is_gimbal_locked() const
+		{
+			return false;
+		}
+
+		void rotate(float delta_angle, const vectorf3& axis)
+		{
+		}
+
+		vectorf3 get_euler_angles() const
+		{
+			return {};
+		}
+
+		float get_pitch() const
+		{
+			return 0.0f;
+		}
+
+		float get_yaw() const
+		{
+			return 0.0f;
+		}
+
+		float get_roll() const
+		{
+			return 0.0f;
+		}
+
+		vectorf3 get_forward() const
+		{
+			return vectorf3::make_one();
+		}
+
+		vectorf3 get_right() const
+		{
+			return vectorf3::make_one();
+		}
+
+		vectorf3 get_up() const
+		{
+			return vectorf3::make_one();
+		}
+
+		void set_forward(const vectorf3& newForward)
+		{
+		}
+
+		void set_right(const vectorf3& newRight)
+		{
+		}
+
+		void set_up(const vectorf3& newUp)
+		{
+		}
+	};
 }
 
 #endif

@@ -34,13 +34,20 @@ namespace influx::math
 		virtual ~transform2D() = default;
 
 	private:
-		vectorf2 m_position = vectorf2::zero();
-		vectorf2 m_scale = vectorf2::one();
+		vectorf2 m_position = vectorf2::make_zero();
+		vectorf2 m_scale = vectorf2::make_one();
 		float m_rotation = 0.0f;
 	};
 
 	class transform3D final
 	{
+		vectorf3 m_position			= vectorf3::make_zero();
+		vectorf3 m_scale			= vectorf3::make_one();
+		math::rotation m_rotation	= rotation::identity();
+		matrix4x4f m_matrix			= matrix4x4f::identity();
+		bool m_is_matrix_dirty		= false;
+		bool m_is_components_dirty	= false;
+
 	public:
 		transform3D() = default;
 		transform3D(const math::vectorf3& position, const math::rotation& rotation, const math::vectorf3& scale)
@@ -54,7 +61,7 @@ namespace influx::math
 
 		const static transform3D identity()
 		{
-			const static transform3D identity{ math::vectorf3::zero(), math::rotation::identity(), math::vectorf3::one()};
+			const static transform3D identity{ math::vectorf3::make_zero(), math::rotation::identity(), math::vectorf3::make_one()};
 			return identity;
 		}
 
@@ -296,14 +303,6 @@ namespace influx::math
 		transform3D& operator=(const transform3D&) = default;
 		transform3D& operator=(transform3D&&) = default;
 		virtual ~transform3D() = default;
-
-	private:
-		vectorf3 m_position = vectorf3::zero();
-		vectorf3 m_scale = vectorf3::one();
-		math::rotation m_rotation = rotation::identity();
-		matrix4x4f m_matrix = matrix4x4f::identity();
-		bool m_is_matrix_dirty = false;
-		bool m_is_components_dirty = false;
 	};
 }
 

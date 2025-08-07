@@ -409,7 +409,7 @@ namespace influx::engine
 			}
 		});
 
-		if (inputman.get_mouse_delta_pixels().sqr_magnitude() > 0.0f)
+		if (inputman.get_mouse_delta_pixels().get_magnitude_sq() > 0.0f)
 		{
 			const bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
 			const math::vectorf2 mousepos = want_absolute_pos ? inputman.get_mouse_position_screen() : inputman.get_mouse_position_client();

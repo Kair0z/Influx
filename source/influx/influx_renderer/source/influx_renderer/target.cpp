@@ -105,17 +105,17 @@ namespace influx::renderer
 	target::~target()
 	{
 		descriptor_manager* desc_man = renderer_backend::get_descriptor_manager();
-		if (m_rtv_cpu)
+		if (desc_man && m_rtv_cpu)
 		{
 			desc_man->cleanup_rtv(m_rtv_cpu);
 			m_rtv_cpu = nullptr;
 		}
-		if (m_srv_cpu)
+		if (desc_man && m_srv_cpu)
 		{
 			desc_man->cleanup_srv(m_srv_cpu);
 			m_srv_cpu = nullptr;
 		}
-		if (m_dsv_cpu)
+		if (desc_man && m_dsv_cpu)
 		{
 			desc_man->cleanup_dsv(m_dsv_cpu);
 			m_dsv_cpu = nullptr;

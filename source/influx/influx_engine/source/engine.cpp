@@ -56,7 +56,6 @@ namespace influx::engine
 
 	void engine::initialize()
 	{
-		/* firstly, create a logger */
 		m_logman = new log_manager();
 
 		random::seed_random(0u);
@@ -79,16 +78,16 @@ namespace influx::engine
 		const string window_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
 		const math::vectoru2 window_dimensions = { 720, 480u};
 		platform::window_desc window_desc{};
-		window_desc
-			.set_dimensions(window_dimensions)
-			.set_name(window_name);
+		window_desc	.set_dimensions(window_dimensions)
+					.set_name(window_name);
+
 		m_windowman = new window_manager();
 		m_windowman->spawn(window_desc); // main window
 		m_renderman = new render_manager(this);
 
 		/* create world & scene_manager */
-		m_world = new world();
-		m_sceneman = new scene_manager();
+		m_world		= new world();
+		m_sceneman	= new scene_manager();
 
 		/* if editor, make editor_manager */
 		if (m_runtype == run_type::editor)

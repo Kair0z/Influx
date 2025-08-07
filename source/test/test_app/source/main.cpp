@@ -17,7 +17,7 @@ int main()
     app::console_settings consettings{};
     app.set_settings<app::e_settings::console>(consettings);
 
-    // run the app on a thread
+    // run the app on a different thread
     app.run(app::e_runmode::run_on_thread);
 
     // on click, quit the app and end the process
