@@ -81,7 +81,7 @@ namespace influx::engine
 	};
 #pragma endregion
 	
-	render_manager::render_manager(engine* engine)
+	render_manager::render_manager()
 		: m_imgui{}
 	{
 		// create renderer

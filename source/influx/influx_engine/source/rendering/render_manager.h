@@ -17,10 +17,14 @@ namespace influx::engine
 	class engine;
 	class content_manager;
 
+	/*
+		engine level manager of the renderer
+		initializes and keeps track of influx_renderer global state
+	*/
 	class render_manager final
 	{
 	public:
-		render_manager(engine* engine);
+		render_manager();
 		~render_manager();
 
 		void render();
