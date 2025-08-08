@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 
 #if _DLL
 #define INFLUX_GAME_API __declspec(dllexport)
@@ -7,9 +6,14 @@
 #define INFLUX_GAME_API __declspec(dllimport)
 #endif
 
-class INFLUX_GAME_API game final
+namespace influx { struct engine_api; }
+
+class INFLUX_GAME_API pong final
 {
+	static influx::engine_api* m_engine;
+
 public:
+	static void engine_init(influx::engine_api* api);
 	static void start();
 	static void tick();
 	static void end();

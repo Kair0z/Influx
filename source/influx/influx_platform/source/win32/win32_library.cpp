@@ -58,7 +58,7 @@ namespace influx::platform
 		m_functions = functions;
 	}
 
-	void win32_library::call(const string& func_name)
+	void* win32_library::get_func_address(const string& func_name)
 	{
 		auto contains = [&func_name](const string& str) -> bool
 		{
@@ -71,9 +71,20 @@ namespace influx::platform
 			::FARPROC func_address = GetProcAddress(m_instance, found->c_str());
 			if (func_address)
 			{
-				typedef void(__stdcall* function)();
-				((function)func_address)();
+				return func_address;
 			}
+		}
+
+		return nullptr;
+	}
+
+	void win32_library::call(const string& func_name)
+	{
+		void* fn_address = get_func_address(func_name);
+		if (fn_address)
+		{
+			typedef void(__stdcall* function)();
+			((function)fn_address)();
 		}
 	}
 

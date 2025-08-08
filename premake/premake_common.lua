@@ -11,7 +11,8 @@ function new_influx_project(_name, _kind, _language)
             project_dir .. "**.cpp",
             project_dir .. "**.hpp",
             project_dir .. "**.lua",
-            project_dir .. "**.hlsli"
+            project_dir .. "**.hlsli",
+            project_dir .. "**.flx"
         }
 
         -- common includes for each project
@@ -143,8 +144,24 @@ function set_influx_app_dependencies(...)
 end
 
 function set_influx_includes(...)
-    for i, str in ipairs(...) do
-        includedirs( g_dir_source_engine .. "/" .. str .. "/include/" )
+
+    local base = path.getabsolute("../..")
+
+    -- check in /source/influx/...
+    for i, dep in ipairs(...) do
+        local incdir = base .. "/influx/" .. dep .. "/include/"
+        if os.isdir(incdir) then
+            -- print(incdir)
+            includedirs(incdir)
+        end
+    end
+    -- check in /source/thirdparty/...
+    for i, dep in ipairs(...) do
+        local incdir = base .. "/thirdparty/" .. dep .. "/include/"
+        if os.isdir(incdir) then
+            print(incdir)
+            includedirs(incdir)
+        end
     end
 end
 

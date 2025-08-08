@@ -24,6 +24,11 @@ namespace influx::engine
 		}
 	}
 
+	void engine::log(const char* mssg)
+	{
+		log(e_log_category::info, mssg);
+	}
+
 	result<window_manager::window_id> window_manager::spawn(const platform::window_desc& desc)
 	{
 		platform::window* new_window = platform::window::create(desc);

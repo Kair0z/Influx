@@ -15,10 +15,11 @@ new_influx_dll("influx_engine")
         "influx_renderer",
         "influx_graphics",
         "influx_imgui",
-        "influx_file"
+        "influx_file",
 
         -- thirdparty
-        "json"
+        "json",
+        "tom++"
     }
 
     set_influx_includes(dependencies)

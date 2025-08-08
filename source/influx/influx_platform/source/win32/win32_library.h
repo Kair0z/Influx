@@ -9,6 +9,7 @@ namespace influx::platform
 		win32_library(const string& path);
 		~win32_library();
 
+		virtual void* get_func_address(const string& func_name) override;
 		virtual void call(const string& func_name) override;
 	};
 }

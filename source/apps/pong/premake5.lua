@@ -1,8 +1,8 @@
-new_influx_game("influx_game")
+new_influx_game("pong")
 
     local dependencies =
     {
-        "influx_core"
+        "influx_engine"
     }
 
     set_influx_includes(dependencies)

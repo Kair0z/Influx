@@ -20,6 +20,8 @@ namespace influx::platform
 			return m_functions;
 		}
 
+		virtual void* get_func_address(const string& func_name) = 0;
+
 		virtual void call(const string& func_name) = 0;
 
 		virtual ~library() = default;

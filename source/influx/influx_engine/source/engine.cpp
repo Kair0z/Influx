@@ -22,7 +22,6 @@
 #include "input/input_manager.h"
 #include "tasks/task_manager.h"
 #include "window/window_manager.h"
-#include "module/module_manager.h"
 #include "file/engine_files.h"
 #include "log/log_manager.h"
 #include "scene/scene.h"
@@ -30,6 +29,9 @@
 // influx::core
 #include "core/math/vectortools.h"
 #include "core/math/random.h"
+
+// tom++
+#include "toml.h"
 
 namespace influx::engine
 {
@@ -48,6 +50,9 @@ namespace influx::engine
 			{
 				// loading an .flx project
 				m_parsed_run_args["projectfile"] = argument;
+
+				// load the .flx project file
+				m_project = project::load(argument).get();
 			}
 
 			m_run_args.push_back(argv[i]);
@@ -72,7 +77,6 @@ namespace influx::engine
 		m_inputman		= new input_manager();
 		m_contentman	= new content_manager();
 		m_gameman		= new game_manager();
-		m_moduleman		= new module_manager();
 
 		// initialize window & render
 		const string window_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
@@ -121,11 +125,6 @@ namespace influx::engine
 				influx_scope("poll_window");
 				poll_platform_events();
 				if (m_is_quit_requested) break;
-			}
-			// module tick
-			{
-				influx_scope("module update");
-				m_moduleman->update();
 			}
 			// stream assets from content -> renderer
 			{
@@ -215,12 +214,6 @@ namespace influx::engine
 			m_contentman = nullptr;
 		}
 
-		if (m_moduleman)
-		{
-			delete m_moduleman;
-			m_moduleman = nullptr;
-		}
-
 		if (m_inputman)
 		{
 			delete m_inputman;
@@ -266,6 +259,11 @@ namespace influx::engine
 		return *m_windowman;
 	}
 
+	project& engine::get_current_project()
+	{
+		return get_engine()->m_project;
+	}
+
 	scene_manager& engine::get_sceneman()
 	{
 		return *get_engine()->m_sceneman;
@@ -274,11 +272,6 @@ namespace influx::engine
 	scene& engine::get_current_scene()
 	{
 		return get_sceneman().get_current_scene();
-	}
-
-	module_manager& engine::get_moduleman()
-	{
-		return *get_engine()->m_moduleman;
 	}
 
 	log_manager& engine::get_logman()

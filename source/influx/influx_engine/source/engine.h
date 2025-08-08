@@ -11,6 +11,7 @@ namespace influx::platform
 #include "common.h"
 #include "config/config.h"
 #include "log/log_manager.h"
+#include "file/project.h"
 
 namespace influx::engine
 {
@@ -25,7 +26,6 @@ namespace influx::engine
 	class task_manager;
 	class window_manager;
 	class scene_manager;
-	class module_manager;
 	class scene;
 	class world;
 
@@ -49,9 +49,9 @@ namespace influx::engine
 		input_manager& get_input();
 		window_manager& get_windowman();
 
+		static project& get_current_project();
 		static scene_manager& get_sceneman();
 		static scene& get_current_scene();
-		static module_manager& get_moduleman();
 
 		static log_manager& get_logman();
 
@@ -82,6 +82,7 @@ namespace influx::engine
 		thread m_contentthread;
 		vector<string> m_run_args;
 		umap<string, string> m_parsed_run_args;
+		project m_project;
 
 		time::point m_t_init;
 		time::point m_t_start;
@@ -96,7 +97,6 @@ namespace influx::engine
 		input_manager* m_inputman = nullptr;
 		task_manager* m_taskman = nullptr;
 		log_manager* m_logman = nullptr;
-		module_manager* m_moduleman = nullptr;
 		world* m_world = nullptr;
 		frame_time m_time{};
 
@@ -108,6 +108,7 @@ namespace influx::engine
 		{
 			get_logman().log(category, format, args...);
 		}
+		static void log(const char*);
 	};
 
 	inline static engine* get_engine()

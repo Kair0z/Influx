@@ -94,7 +94,9 @@ workspace "influx"
     printf(".. tools ")
     group "tools"
     for _, dir in ipairs(os.matchdirs("../source/tools/" .. "/*")) do
-        include(dir)
+        if not string.find(dir, "buildtool") then
+            include(dir)
+        end
     end
 
     printf(".. thirdparty ")

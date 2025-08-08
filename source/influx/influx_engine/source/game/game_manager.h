@@ -6,6 +6,12 @@
 // influx::engine
 #include "world/entity.h"
 
+// influx::platform
+namespace influx::platform
+{
+	class library;
+}
+
 namespace influx::engine
 {
 	class game_manager final
@@ -17,6 +23,8 @@ namespace influx::engine
 		};
 
 	public:
+		game_manager();
+
 		void start();
 		void tick();
 		void end();
@@ -25,8 +33,9 @@ namespace influx::engine
 		~game_manager();
 		
 	private:
-		state m_state;
-		vector<entity> m_entities{};
+		state m_state = state::idle;
+		vector<entity> m_entities = {};
+		platform::library* m_game_library = nullptr;
 
 		void setup_camera();
 		void setup_swords();

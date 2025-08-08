@@ -1,3 +1,4 @@
+#include "influx_game.h"
 #include "engine_pch.h"
 
 // influx::core
@@ -10,7 +11,7 @@
 #include "world/world.h"
 #include "component/component.h"
 #include "content/content_manager.h"
-#include "module/module_manager.h"
+#include "influx_engine/engine_api.h"
 
 // influx::platform
 #include "influx_platform/library.h"
@@ -21,6 +22,27 @@
 
 namespace influx::engine
 {
+	game_manager::game_manager()
+	{
+		// initialize game library
+		const string dll = "D:/Git/Influx/bin/debug-windows-x86_64/influx_game/influx_game.dll";
+		m_game_library = platform::library::load(dll);
+		if (m_game_library)
+		{
+			// get the engine init
+			void* addr = m_game_library->get_func_address("engine_init");
+			if (addr)
+			{
+				static engine_api api{};
+				api.log = engine::log;
+
+				typedef void (*engine_init_func)(engine_api*);
+				engine_init_func engine_init = (engine_init_func)addr;
+				engine_init(&api);
+			}
+		}
+	}
+
 	void game_manager::start()
 	{
 		if (m_state == state::idle)
@@ -31,9 +53,8 @@ namespace influx::engine
 			// setup_cafe();
 			setup_unitcube();
 
-			// script layer
-			engine::get_moduleman()
-				.call_module_function("influx_game", "start");
+			if (m_game_library)
+				m_game_library->call("start");
 
 			m_state = state::running;
 		}
@@ -46,8 +67,8 @@ namespace influx::engine
 			return;
 		}
 
-		engine::get_moduleman()
-			.call_module_function("influx_game", "tick");
+		if (m_game_library)
+			m_game_library->call("tick");
 	}
 
 	void game_manager::end()
@@ -57,9 +78,8 @@ namespace influx::engine
 			return;
 		}
 
-		// script layer
-		engine::get_moduleman()
-			.call_module_function("influx_game", "end");
+		if (m_game_library)
+			m_game_library->call("end");
 
 		world& world = get_engine()->get_world();
 

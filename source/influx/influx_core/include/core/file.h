@@ -71,6 +71,13 @@ namespace influx
 		inline const str_type& get_directory() const
 		{ return m_directory; }
 
+		inline void replace_extension(const char_type* str)
+		{
+			m_extension = str;
+			m_filename = m_filename.substr(0u, m_filename.find(L'.')) + str;
+			m_full_path = m_full_path.substr(0u, m_full_path.find(L'.')) + str;
+		}
+
 		/* OS file query operations */
 		inline static bool exists(const str_type& in_path)
 		{
@@ -379,6 +386,15 @@ namespace influx
 			return content_to_string(convert(in_path));
 		}
 
+		inline static result<> overwrite(const str_type& path, const string& new_content)
+		{
+			if (!clear_content(path))
+				return result<>::make_error("failed clearing file at path!");
+			if (!push_line(path, new_content))
+				return result<>::make_error("failed pushing lines to path!");
+
+			return {};
+		}
 		inline static result<> clear_content(const str_type& path)
 		{
 			if (exists(path.c_str()))
