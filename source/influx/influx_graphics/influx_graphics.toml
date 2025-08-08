@@ -1,0 +1,51 @@
+# based on https://github.com/ChaseSunstrom/cforge
+[project]
+name            = "influx_graphics"
+version         = "2.0.0"
+description     = "C++ Dx12/Vulkan RHI wrapper"
+kind            = "executable" # executable, shared_library, static_library, header_only
+authors         = ["kairoz"]
+
+[language]
+[language.cpp]
+standard = "20"
+
+[build]
+build_config    = "debug"
+directory       = "build"
+source_dirs     = ["src"]
+include_dirs    = ["include"]
+
+[build.config.debug]
+defines             = ["INFLUX_DEBUG=1"]
+compile_flags       = ["DEBUG_INFO", "NO_OPT"]
+
+[build.config.release]
+defines             = ["INFLUX_RELEASE=1"]
+compile_flags       = ["OPTIMIZE"]
+
+[dependencies.project.influx_core]
+include_dirs        = ["include"]   # relative to influx_core directory
+link                = true          # link the influx_core target
+link_type           = "PRIVATE"     # PUBLIC, PRIVATE, or INTERFACE
+
+# premake integration
+[premake]
+
+# cmake integration 
+[cmake]
+generator    = "Ninja"                  # CMake generator
+platform     = "x64"                    # CMake platform for Visual Studio
+toolset      = "ClangCl"                # CMake toolset (Visual Studio or Ninja)
+c_compiler   = "/usr/bin/gcc-10"        # C compiler
+cxx_compiler = "/usr/bin/g++-10"        # C++ compiler
+c_standard   = "11"                     # C standard for C projects (e.g., 11, 17, 23)
+cxx_standard = "17"                     # C++ standard override (e.g., 11, 14, 17, 20)
+
+[platforms.windows]
+defines     = ["INFLUX_WINDOWS", "INFLUX_WIN32"]
+flags       = ["INFLUX_UNICODE"]
+
+[platforms.linux]
+defines     = ["INFLUX_LINUX"]
+flags       = []

@@ -19,6 +19,7 @@ workspace "influx"
     g_dir_source_engine = g_dir_source .. "/influx/"
     g_dir_source_misc   = g_dir_source .. "/misc/"
     g_dir_source_test   = g_dir_source .. "/test/"
+    g_dir_source_thirdparty = g_dir_source .. "/thirdparty/"
     g_dir_source_tools  = g_dir_source .. "/tools/"
     g_dir_binaries      = g_dir_root .. "/bin/" .. g_config_string .. "/"
     g_dir_int           = g_dir_root .. "/int/" .. g_config_string .. "/"
@@ -95,6 +96,13 @@ workspace "influx"
     for _, dir in ipairs(os.matchdirs("../source/tools/" .. "/*")) do
         include(dir)
     end
+
+    printf(".. thirdparty ")
+    group "thirdparty"
+    for _, dir in ipairs(os.matchdirs("../source/thirdparty/" .. "/*")) do
+        include(dir)
+    end
+    group ""
 
     printf(".. misc ")
     group "misc"

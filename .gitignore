@@ -44,3 +44,8 @@
 
 !/premake/premake5.exe
 resources/textures/wood_albedo.png
+
+# Rust
+# Generated files
+**/target/
+**/Cargo.lock

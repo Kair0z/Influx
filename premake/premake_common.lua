@@ -3,7 +3,6 @@ function new_influx_project(_name, _kind, _language)
         kind(_kind)
         language(_language)
         cppdialect(g_cpp_dialect)
-       
         targetdir(g_dir_binaries .. "/%{prj.name}/")
         objdir(g_dir_int .. "/%{prj.name}/")
         files
@@ -57,34 +56,46 @@ function new_influx_cs_project(_name, _kind)
     new_influx_project(_name, _kind, "C#")
 end
 
+-- declares an 'app' (console) project into /source/apps/...
 function new_influx_app(name)
     project_dir = g_dir_source_apps .. "/%{prj.name}/"
     new_influx_project(name, "ConsoleApp")
     fastuptodate(false)
 end
 
+-- declares a 'game' (library) project into /source/apps/...
 function new_influx_game(name)
     project_dir = g_dir_source_apps .. "/%{prj.name}/"
     new_influx_project(name, "SharedLib")
 end
 
+-- declares a 'test' project into /source/test/...
 function new_influx_test(name)
     project_dir = g_dir_source_test .. "/%{prj.name}/"
     new_influx_project(name, "ConsoleApp")
     fastuptodate(false)
 end
 
+-- declares a third party header only library as a project
+function new_thirdparty_headeronly(name)
+    project_dir = g_dir_source_thirdparty .. "/%{prj.name}/"
+    new_influx_project(name, "None")
+end
+
+-- declares a 'tool' project into /source/tools/...
 function new_influx_tool(name)
     project_dir = g_dir_source_tools .. "/%{prj.name}/"
     new_influx_project(name, "ConsoleApp")
     fastuptodate(false)
 end
 
+-- declares a 'dll' project into /source/influx/...
 function new_influx_dll(name)
     project_dir = g_dir_source_engine .. "/%{prj.name}/"
     new_influx_project(name, "SharedLib")
 end
 
+-- declares a 'lib' project into /source/influx/...
 function new_influx_statlib(name)
     project_dir = g_dir_source_engine .. "/%{prj.name}/"
     new_influx_project(name, "StaticLib")

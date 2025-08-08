@@ -16,6 +16,9 @@ new_influx_dll("influx_engine")
         "influx_graphics",
         "influx_imgui",
         "influx_file"
+
+        -- thirdparty
+        "json"
     }
 
     set_influx_includes(dependencies)

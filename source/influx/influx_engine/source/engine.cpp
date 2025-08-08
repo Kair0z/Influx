@@ -146,7 +146,8 @@ namespace influx::engine
 			// record imgui if editor
 			if (m_runtype == run_type::editor)
 			{
-				m_renderman->get_imgui_scene().m_imgui_stacks.push_back([this](ImGuiContext& ctx)
+				m_renderman->get_imgui_scene()
+					.m_imgui_stacks.push_back([this](ImGuiContext& ctx)
 				{
 					m_editorman->on_imgui(ctx);
 				});
