@@ -192,9 +192,9 @@ namespace influx::graphics
 	private:
 		virtual result<> start_impl(device* device, detail::base_pipeline* init_state = nullptr) = 0;
 
-		e_state m_state = e_state::created;
 		fence* m_fence = nullptr;
 		commandlist_state_object m_state_object{};
+		e_state m_state = e_state::created;
 
 		// the queue will inform this commandlist its been submitted
 		friend result<> queue::post_submit(const vector<commandlist*>& commandlists);
@@ -206,7 +206,6 @@ namespace influx::graphics
 
 	protected:
 		void pre_draw();
-
 		viewport m_viewport;
 		rect m_scissor_rect;
 	};

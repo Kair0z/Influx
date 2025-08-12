@@ -739,7 +739,7 @@ namespace influx::graphics
 		}
 
 		m_is_closed = true;
-
+		
 		return {};
 	}
 	void dx12_commandlist::release_impl(device*)

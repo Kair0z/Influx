@@ -172,6 +172,8 @@ namespace influx::graphics
 
 		INFLUX_GFX_API e_type get_type() const;
 
+		INFLUX_GFX_API bool is_texture() const;
+
 	protected:
 		resource(const tex2D_desc& desc);
 		resource(const buffer_desc& desc);

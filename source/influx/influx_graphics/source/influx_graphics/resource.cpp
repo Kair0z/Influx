@@ -193,4 +193,11 @@ namespace influx::graphics
 	{
 		return m_type;
 	}
+
+	bool resource::is_texture() const
+	{
+		return m_type == e_type::tex2D
+			|| m_type == e_type::tex3D
+			|| m_type == e_type::cubemap;
+	}
 }

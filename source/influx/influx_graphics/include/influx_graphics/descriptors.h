@@ -15,6 +15,7 @@ namespace influx::graphics
 		sampler,
 		count
 	};
+	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::count);
 
 	using descriptor_handle = void*;
 
