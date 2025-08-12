@@ -77,6 +77,12 @@ function new_influx_test(name)
     fastuptodate(false)
 end
 
+function new_influx_misc(name)
+    project_dir = g_dir_source_misc .. "/%{prj.name}/"
+    new_influx_project(name, "ConsoleApp")
+    fastuptodate(false)
+end
+
 -- declares a third party header only library as a project
 function new_thirdparty_headeronly(name)
     project_dir = g_dir_source_thirdparty .. "/%{prj.name}/"
