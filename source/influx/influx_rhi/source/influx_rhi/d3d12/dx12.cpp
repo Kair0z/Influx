@@ -124,6 +124,11 @@ namespace influx::rhi
 		ID3D12Device* device = (ID3D12Device*)desc.m_device;
 		ID3D12CommandAllocator* allocator = (ID3D12CommandAllocator*)desc.m_allocator;
 
+		if (desc.m_allocator == nullptr)
+		{
+			// todo
+		}
+
 		HRESULT res = device->CreateCommandList(
 			0u, 
 			translate(desc.m_type),
@@ -151,6 +156,22 @@ namespace influx::rhi
 		return {};
 	}
 
+	result<object_native> create_native(const pipeline_desc& desc)
+	{
+		return {};
+	}
+
+	result<object_native> create_native(const rootsignature_desc& desc)
+	{
+		return {};
+	}
+
+	// [fence - interface]
+	result<> fence::queue_signal(uint64 signal_value, const queue& queue)
+	{
+		return queue.queue_signal(*this, signal_value);
+	}
+
 	// [queue - interface]
 	result<> queue::submit(const vector<const commandlist*>& commandlists) const
 	{
@@ -174,12 +195,18 @@ namespace influx::rhi
 	}
 
 	// [commandlist - interface]
-	result<> commandlist::start()
+	result<> commandlist::start(device& device)
+	{
+		auto new_alloc_res = device.create(commandallocator_desc{});
+		if (!new_alloc_res) return result<>::make_error("failed creating new allocator");
+
+		return start(new_alloc_res.get());
+	}
+	result<> commandlist::start(const command_allocator& allocator)
 	{
 		ID3D12GraphicsCommandList* dxcommandlist = (ID3D12GraphicsCommandList*)m_native_object;
-	
-		// todo: obtain allocator
-		ID3D12CommandAllocator* dxallocator = nullptr;
+		ID3D12CommandAllocator* dxallocator = (ID3D12CommandAllocator*)m_native_object;
+
 		ID3D12PipelineState* dxinitpipeline = nullptr;
 		HRESULT res = dxcommandlist->Reset(dxallocator, dxinitpipeline);
 		return {};
@@ -191,6 +218,7 @@ namespace influx::rhi
 		
 		return {};
 	}
+
 	// [descheap - interface]
 	result<descriptor_range> descheap::allocate(uint32 num_descriptors)
 	{

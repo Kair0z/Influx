@@ -249,6 +249,8 @@ namespace influx::rhi
 	class resource;
 	class commandlist;
 	class queue;
+	class device;
+	class command_allocator;
 
 	class physdevice final : public object<e_object::physdevice>
 	{
@@ -294,7 +296,8 @@ namespace influx::rhi
 	class commandlist final : public object<e_object::commandlist>
 	{
 	public:
-		INFLUX_RHI_API result<> start();
+		INFLUX_RHI_API result<> start(device& device);
+		INFLUX_RHI_API result<> start(const command_allocator& allocator);
 		INFLUX_RHI_API result<> renderpass_begin(const renderpass_args& args);
 		INFLUX_RHI_API result<> renderpass_end();
 		INFLUX_RHI_API result<> draw_instanced();

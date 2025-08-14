@@ -18,7 +18,8 @@ int main()
 	// create a commandallocator
 	auto commandallocator = device.create(rhi::commandallocator_desc{}).get();
 	auto commandlist = device.create(rhi::commandlist_desc{}).get();
-	commandlist.start();
+	
+	commandlist.start(commandallocator);
 	commandlist.end();
 
 	queue.submit({ &commandlist });
