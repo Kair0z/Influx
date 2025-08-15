@@ -2,6 +2,8 @@
 
 #include "core/result.h"
 #include "core/math/vector.h"
+#include "core/enum.h"
+#include "core/container/list.h"
 
 #if _DLL
 #define INFLUX_RHI_API __declspec(dllexport)
@@ -11,6 +13,18 @@
 
 namespace influx::rhi
 {
+	class resource;
+	class commandlist;
+	class queue;
+	class device;
+	class command_allocator;
+	class buffer;
+	class texture2D;
+	class texture3D;
+
+	template <typename _t = char>
+	using result = influx::result<_t, const char*>;
+
 	// [common types]
 	enum class e_commandlist_type : uint8
 	{
@@ -38,7 +52,22 @@ namespace influx::rhi
 		rtv,
 		dsv,
 		resource,
-		sampler
+		sampler,
+		num
+	};
+	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
+
+	enum class e_resource_type
+	{
+		buffer,
+		texture2D,
+		texture3D
+	};
+	enum class e_resource_state : uint32
+	{
+		common			= 0,
+		present			= 1 << 0,
+		rendertarget	= 1 << 1,
 	};
 	struct pixel_format final
 	{
@@ -48,9 +77,10 @@ namespace influx::rhi
 	{
 
 	};
-
-	template <typename _t = char>
-	using result = influx::result<_t, const char*>;
+	struct clear final
+	{
+		math::float4 m_colour;
+	};
 
 	using object_handle = void*;
 	using object_native = void*;
@@ -64,7 +94,6 @@ namespace influx::rhi
 
 	enum class e_object : uint8
 	{
-		physdevice,
 		device,
 		queue,
 		swapchain,
@@ -72,19 +101,21 @@ namespace influx::rhi
 		commandallocator,
 		commandlist,
 		fence,
-		resource,
+		buffer,
+		texture2D,
+		texture3D,
 		pipeline,
 		rootsignature
 	};
 
 	// [data_types] this is the extra data associated to the objects
 #pragma region data
-	struct physdevice_data final
-	{
-	};
 	struct device_data final
 	{
+		object_native m_physical_device;
+		object_native m_factory;
 
+		uint32 m_descriptor_strides[k_num_descriptor_heap_types];
 	};
 	struct queue_data final
 	{
@@ -96,7 +127,8 @@ namespace influx::rhi
 	};
 	struct descheap_data final
 	{
-		
+		vector<bool> m_freelist;
+		uint32 m_desc_stride;
 	};
 	struct commandallocator_data final
 	{
@@ -110,7 +142,17 @@ namespace influx::rhi
 	{
 
 	};
-	struct resource_data final
+	struct buffer_data final
+	{
+		uint64 m_bytesize;
+		uint64 m_bytestride;
+	};
+	struct texture2D_data final
+	{
+		e_resource_state m_previous_state;
+		e_resource_state m_current_state;
+	};
+	struct texture3D_data final
 	{
 
 	};
@@ -125,27 +167,24 @@ namespace influx::rhi
 #pragma endregion
 	template <e_object _t>
 	using data_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
-		physdevice_data,
 		device_data,
 		queue_data,
 		swapchain_data,
 		descheap_data,
-		device_data, 
 		commandallocator_data,
 		commandlist_data,
 		fence_data,
-		resource_data,
+		buffer_data,
+		texture2D_data,
+		texture3D_data,
 		pipeline_data,
 		rootsignature_data>>;
 
 	// [descs] these are the descriptions of objects by which they are created 
 #pragma region create_desc
-	struct physdevice_desc final
-	{
-		
-	};
 	struct device_desc final
 	{
+		bool m_debug = false;
 	};
 	struct queue_desc final
 	{
@@ -155,8 +194,8 @@ namespace influx::rhi
 	};
 	struct swapchain_desc final
 	{
-		object_native m_factory;
-		object_native m_queue;
+		const device* m_device		= nullptr;
+		const queue* m_queue		= nullptr;
 
 		platform_window_handle m_window;
 		pixel_format m_format;
@@ -185,9 +224,17 @@ namespace influx::rhi
 		object_native m_device;
 		uint64 m_init_value = 0u;
 	};
-	struct resource_desc final
+	struct buffer_desc final
 	{
-
+		object_native m_device;
+	};
+	struct texture2D_desc final
+	{
+		object_native m_device;
+	};
+	struct texture3D_desc final
+	{
+		object_native m_device;
 	};
 	struct pipeline_desc final
 	{
@@ -201,7 +248,6 @@ namespace influx::rhi
 
 	template <e_object _t>
 	using desc_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
-		physdevice_desc,
 		device_desc,
 		queue_desc,
 		swapchain_desc,
@@ -209,7 +255,9 @@ namespace influx::rhi
 		commandallocator_desc,
 		commandlist_desc,
 		fence_desc,
-		resource_desc,
+		buffer_desc,
+		texture2D_desc,
+		texture3D_desc,
 		pipeline_desc,
 		rootsignature_desc>>;
 
@@ -235,7 +283,9 @@ namespace influx::rhi
 	INFLUX_RHI_API result<object_native> create_native(const commandallocator_desc& desc);
 	INFLUX_RHI_API result<object_native> create_native(const commandlist_desc& desc);
 	INFLUX_RHI_API result<object_native> create_native(const fence_desc& desc);
-	INFLUX_RHI_API result<object_native> create_native(const resource_desc& desc);
+	INFLUX_RHI_API result<object_native> create_native(const buffer_desc& desc);
+	INFLUX_RHI_API result<object_native> create_native(const texture2D_desc& desc);
+	INFLUX_RHI_API result<object_native> create_native(const texture3D_desc& desc);
 	INFLUX_RHI_API result<object_native> create_native(const pipeline_desc& desc);
 	INFLUX_RHI_API result<object_native> create_native(const rootsignature_desc& desc);
 
@@ -246,14 +296,22 @@ namespace influx::rhi
 	result<object<_t>> create(const desc_type<_t>& desc);
 
 	// [class interfaces]
-	class resource;
-	class commandlist;
-	class queue;
-	class device;
-	class command_allocator;
-
-	class physdevice final : public object<e_object::physdevice>
+	// use these to make API calls onto the internal objects
+	class buffer final : public object<e_object::buffer>
 	{
+	public:
+
+	};
+	
+	class texture2D final : public object<e_object::texture2D>
+	{
+	public:
+		INFLUX_RHI_API result<> transition(commandlist& cmdlist, e_resource_state new_state);
+	};
+
+	class texture3D final : public object<e_object::texture3D>
+	{
+	public:
 
 	};
 
@@ -279,13 +337,22 @@ namespace influx::rhi
 	public:
 		INFLUX_RHI_API result<> present() const;
 		INFLUX_RHI_API result<uint32> get_current_backbuffer_index() const;
+		INFLUX_RHI_API result<texture2D> get_backbuffer_resource(uint32 index) const;
+		INFLUX_RHI_API result<texture2D> get_backbuffer_resource() const;
 		INFLUX_RHI_API result<> resize(const math::uint2& new_dim);
 	};
 
 	class descheap final : public object<e_object::descriptor_heap>
 	{
 	public:
-		INFLUX_RHI_API result<descriptor_range> allocate(uint32 num_descriptors);
+		/* returns a descriptor */
+		INFLUX_RHI_API result<descriptor> get_cpu_descriptor(uint32 index) const;
+		INFLUX_RHI_API result<descriptor> get_gpu_descriptor(uint32 index) const;
+
+		/* allocates a range of descriptors and returns the base index */
+		INFLUX_RHI_API result<uint32> allocate(uint32 num_descriptors);
+
+		INFLUX_RHI_API bool is_allocated(uint32 index) const;
 		INFLUX_RHI_API result<> free(const vector<descriptor_range>& ranges);
 		INFLUX_RHI_API result<> free_all();
 
@@ -305,10 +372,10 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> dispatch();
 		INFLUX_RHI_API result<> bind_vertexbuffer(const resource& vertexbuffer);
 		INFLUX_RHI_API result<> bind_indexbuffer(const resource& indexbuffer);
-		INFLUX_RHI_API result<> clear_rtv(descriptor rtv);
+		INFLUX_RHI_API result<> clear_rtv(descriptor rtv, const clear& clear);
 		INFLUX_RHI_API result<> clear_dsv(descriptor dsv);
 		INFLUX_RHI_API result<> set_draw_output(descriptor rtv, descriptor dsv);
-		INFLUX_RHI_API result<> transition_resource(resource& resource);
+		INFLUX_RHI_API result<> transition_resource(texture2D& resource, e_resource_state new_state);
 		INFLUX_RHI_API result<> update_blas();
 		INFLUX_RHI_API result<> update_tlas();
 		INFLUX_RHI_API result<> copy_resource(const resource& source, resource& desc);
@@ -329,10 +396,15 @@ namespace influx::rhi
 	class device final : public object<e_object::device>
 	{
 	public:
+		INFLUX_RHI_API static result<device> create(const device_desc& desc);
+		
+		result<swapchain>			create(const swapchain_desc& desc) const;
 		result<queue>				create(const queue_desc& desc) const;
 		result<command_allocator>	create(const commandallocator_desc& desc) const;
 		result<commandlist>			create(const commandlist_desc& desc) const;
 		result<descheap>			create(const descheap_desc& desc) const;
+
+		INFLUX_RHI_API result<> create_rtv(const texture2D& texture, descriptor descriptor) const;
 	};
 
 	// [implementations]
@@ -361,6 +433,11 @@ namespace influx::rhi
 	}
 
 #pragma region device creation helpers
+	result<swapchain> device::create(const swapchain_desc& desc) const
+	{
+		auto cpy = desc; cpy.m_device = this;
+		return rhi::create<rhi::swapchain>(desc);
+	}
 	result<queue> device::create(const queue_desc& desc) const
 	{
 		auto cpy = desc; cpy.m_device = this->m_native_object;
@@ -382,4 +459,15 @@ namespace influx::rhi
 		return rhi::create<rhi::descheap>(cpy);
 	}
 #pragma endregion
+
+	// [import]
+	INFLUX_RHI_API result<buffer> import_buffer(object_native native);
+	INFLUX_RHI_API result<texture2D> import_texture2D(object_native native);
+	INFLUX_RHI_API result<texture3D> import_texture3D(object_native native);
+
+	template <typename _t> result<_t> import(object_native);
+	template<> result<buffer> import(object_native native) { return import_buffer(native); }
+	template<> result<texture2D> import(object_native native) { return import_texture2D(native); }
+	template<> result<texture3D> import(object_native native) { return import_texture3D(native); }
 }
+ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);

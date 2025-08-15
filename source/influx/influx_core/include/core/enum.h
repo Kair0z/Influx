@@ -74,7 +74,6 @@ namespace influx
 	inline constexpr bool has_flag(_enum value, _enum flag)
 	{
 		using T = std::underlying_type_t<_enum>;
-		influx_assert(std::has_single_bit((T)flag));
 		return has_any_flag(value, flag);
 	}
 	template<typename _enum> requires std::is_enum_v<_enum>

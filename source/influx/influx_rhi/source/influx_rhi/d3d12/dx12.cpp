@@ -8,6 +8,14 @@
 
 namespace influx::rhi
 {
+	using dx12_factory		= IDXGIFactory2;
+	using dx12_physdevice	= IDXGIAdapter1;
+	using dx12_swapchain	= IDXGISwapChain4;
+	using dx12_device		= ID3D12Device;
+	using dx12_resource		= ID3D12Resource;
+	using dx12_commandlist	= ID3D12GraphicsCommandList;
+	using dx12_descheap		= ID3D12DescriptorHeap;
+
 	D3D12_COMMAND_LIST_TYPE translate(e_queue_type type)
 	{
 		switch (type)
@@ -32,14 +40,32 @@ namespace influx::rhi
 		}
 		return {};
 	}
-	
+	D3D12_RESOURCE_STATES translate(e_resource_state state)
+	{
+		D3D12_RESOURCE_STATES result{};
+		if (has_flag(state, e_resource_state::common))			result |= D3D12_RESOURCE_STATE_COMMON;
+		if (has_flag(state, e_resource_state::rendertarget))	result |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+		if (has_flag(state, e_resource_state::present))			result |= D3D12_RESOURCE_STATE_PRESENT;
+		return result;
+	}
+
+	e_resource_type translate(D3D12_RESOURCE_DIMENSION type)
+	{
+		switch (type)
+		{
+		default:
+		case D3D12_RESOURCE_DIMENSION_UNKNOWN: return {};
+		case D3D12_RESOURCE_DIMENSION_BUFFER: return e_resource_type::buffer;
+		case D3D12_RESOURCE_DIMENSION_TEXTURE2D: return e_resource_type::texture2D;
+		case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return e_resource_type::texture3D;
+		}
+	}
+
 	result<object_native> create_native(const device_desc& desc)
 	{
-		IUnknown* physdevice = nullptr;
-
 		ID3D12Device* result{};
 		HRESULT res = ::D3D12CreateDevice(
-			(IUnknown*)physdevice,
+			nullptr,
 			D3D_FEATURE_LEVEL_11_0,
 			IID_PPV_ARGS(&result));
 		return result;
@@ -75,10 +101,9 @@ namespace influx::rhi
 		dxdesc.SampleDesc.Count = 1;
 		dxdesc.Flags;
 		
-		IDXGIFactory2* factory = (IDXGIFactory2*)desc.m_factory;
-		ID3D12CommandQueue* queue = (ID3D12CommandQueue*)desc.m_queue;
+		IDXGIFactory2* factory = (IDXGIFactory2*)desc.m_device->m_data.m_factory;
+		ID3D12CommandQueue* queue = (ID3D12CommandQueue*)desc.m_queue->m_native_object;
 
-		IDXGISwapChain4* swapchain = nullptr;
 		IDXGISwapChain1* int_swapchain;
 		HRESULT res = factory->CreateSwapChainForHwnd(
 			queue,
@@ -90,7 +115,7 @@ namespace influx::rhi
 
 		// does not support fullscreen transitions...
 		factory->MakeWindowAssociation((::HWND)desc.m_window, DXGI_MWA_NO_ALT_ENTER);
-		return swapchain;
+		return (dx12_swapchain*)int_swapchain;
 	}
 
 	result<object_native> create_native(const descheap_desc& desc)
@@ -151,9 +176,72 @@ namespace influx::rhi
 		return fence;
 	}
 
-	result<object_native> create_native(const resource_desc& desc)
+	result<object_native> create_native(const buffer_desc& desc)
 	{
-		return {};
+		ID3D12Device* device = (ID3D12Device*)desc.m_device;
+		ID3D12Resource* resource = nullptr;
+
+		D3D12_HEAP_PROPERTIES heap_props{};
+		D3D12_HEAP_FLAGS heap_flags{};
+		D3D12_RESOURCE_DESC dxdesc{};
+		D3D12_RESOURCE_STATES dxstates{};
+		D3D12_CLEAR_VALUE dxclear{};
+
+		HRESULT res = device->CreateCommittedResource(
+			&heap_props,
+			heap_flags,
+			&dxdesc,
+			dxstates,
+			&dxclear,
+			IID_PPV_ARGS(&resource));
+
+		return resource;
+	}
+
+	result<object_native> create_native(const texture2D_desc& desc)
+	{
+		ID3D12Device* device = (ID3D12Device*)desc.m_device;
+		ID3D12Resource* resource = nullptr;
+
+		D3D12_HEAP_PROPERTIES heap_props{};
+		D3D12_HEAP_FLAGS heap_flags{};
+		D3D12_RESOURCE_DESC dxdesc{};
+		dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		D3D12_RESOURCE_STATES dxstates{};
+		D3D12_CLEAR_VALUE dxclear{};
+
+		HRESULT res = device->CreateCommittedResource(
+			&heap_props,
+			heap_flags,
+			&dxdesc,
+			dxstates,
+			&dxclear,
+			IID_PPV_ARGS(&resource));
+
+		return resource;
+	}
+
+	result<object_native> create_native(const texture3D_desc& desc)
+	{
+		ID3D12Device* device = (ID3D12Device*)desc.m_device;
+		ID3D12Resource* resource = nullptr;
+
+		D3D12_HEAP_PROPERTIES heap_props{};
+		D3D12_HEAP_FLAGS heap_flags{};
+		D3D12_RESOURCE_DESC dxdesc{};
+		dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+		D3D12_RESOURCE_STATES dxstates{};
+		D3D12_CLEAR_VALUE dxclear{};
+
+		HRESULT res = device->CreateCommittedResource(
+			&heap_props,
+			heap_flags,
+			&dxdesc,
+			dxstates,
+			&dxclear,
+			IID_PPV_ARGS(&resource));
+
+		return resource;
 	}
 
 	result<object_native> create_native(const pipeline_desc& desc)
@@ -163,6 +251,160 @@ namespace influx::rhi
 
 	result<object_native> create_native(const rootsignature_desc& desc)
 	{
+		return {};
+	}
+
+	result<buffer> import_buffer(object_native native)
+	{
+		ID3D12Resource* dxresource = (ID3D12Resource*)native;
+		D3D12_RESOURCE_DESC desc = dxresource->GetDesc();
+
+		buffer imported{};
+		imported.m_data.m_bytesize = desc.Width;
+		imported.m_data.m_bytestride = 1u;
+		imported.m_native_object = native;
+		imported.m_desc.m_device = nullptr;
+		return imported;
+	}
+
+	result<texture2D> import_texture2D(object_native native)
+	{
+		ID3D12Resource* dxresource = (ID3D12Resource*)native;
+		D3D12_RESOURCE_DESC desc = dxresource->GetDesc();
+
+		texture2D imported{};
+		imported.m_data;
+		imported.m_native_object = native;
+		imported.m_desc.m_device = nullptr;
+		return imported;
+	}
+
+	result<texture3D> import_texture3D(object_native native)
+	{
+		ID3D12Resource* dxresource = (ID3D12Resource*)native;
+		D3D12_RESOURCE_DESC desc = dxresource->GetDesc();
+
+		texture3D imported{};
+		imported.m_data;
+		imported.m_native_object = native;
+		imported.m_desc.m_device = nullptr;
+		return imported;
+	}
+
+	// [device]
+	result<device> device::create(const device_desc& desc)
+	{
+		using result_type = result<device>;
+
+		auto native_create_res = create_native(desc);
+		if (!native_create_res)
+			return result_type::make_error("");
+
+		device result{};
+
+		// get the device
+		dx12_device* dxdevice = (dx12_device*)native_create_res.get();
+		result.m_native_object = dxdevice;
+
+		// store a dxgi factory
+		dx12_factory* dxfactory = nullptr;
+		HRESULT res = ::CreateDXGIFactory2(0u, IID_PPV_ARGS(&dxfactory));
+		result.m_data.m_factory = dxfactory;
+
+		// query all physical devices, store the first
+		vector<dx12_physdevice*> physical_devices{};
+		constexpr bool prefer_performance = true;
+		{
+			IDXGIAdapter1* adapter = nullptr;
+			IDXGIFactory6* factory6;
+			if (SUCCEEDED(dxfactory->QueryInterface(IID_PPV_ARGS(&factory6))))
+			{
+				for (UINT adapterIndex = 0;
+					SUCCEEDED(factory6->EnumAdapterByGpuPreference(
+						adapterIndex,
+						prefer_performance ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED,
+						IID_PPV_ARGS(&adapter)));
+						++adapterIndex)
+				{
+					DXGI_ADAPTER_DESC1 desc;
+					adapter->GetDesc1(&desc);
+
+					const bool adapter_is_software = desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE;
+					const bool adapter_supports_dx12 = SUCCEEDED(::D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr));
+
+					if (adapter_is_software)
+					{
+						// Don't select the Basic Render Driver adapter.
+						// If you want a software adapter, pass in "/warp" on the command line.
+						continue;
+					}
+
+					// Check to see whether the adapter supports Direct3D 12, but don't create the
+					// actual device yet.
+					if (adapter_supports_dx12)
+					{
+						physical_devices.push_back(adapter);
+					}
+				}
+			}
+		}
+		result.m_data.m_physical_device = physical_devices[0];
+
+		// enable the debug layer
+		if (desc.m_debug)
+		{
+			ID3D12Debug* debugController;
+			if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
+			{
+				debugController->EnableDebugLayer();
+			}
+			debugController->Release();
+
+			ID3D12InfoQueue* info_queue;
+			res = dxdevice->QueryInterface(IID_PPV_ARGS(&info_queue));
+			if (res == S_OK)
+			{
+				D3D12_MESSAGE_ID hide[] =
+				{
+					D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
+#if 0
+					D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
+					// Workarounds for debug layer issues on hybrid-graphics systems
+					D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE,
+					D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE,
+					D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+					D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE
+#endif
+				};
+				D3D12_INFO_QUEUE_FILTER filter = {};
+				filter.DenyList.NumIDs = _countof(hide);
+				filter.DenyList.pIDList = hide;
+				info_queue->AddStorageFilterEntries(&filter);
+			}
+		}
+		
+		// store descriptor strides:
+		result.m_data.m_descriptor_strides[0] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		result.m_data.m_descriptor_strides[1] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		result.m_data.m_descriptor_strides[2] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		result.m_data.m_descriptor_strides[3] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+		return result;
+	}
+	result<> device::create_rtv(const texture2D& texture, descriptor descriptor) const
+	{
+		dx12_device* dxdevice = (dx12_device*)m_native_object;
+		dx12_resource* dxresource = (dx12_resource*)texture.m_native_object;
+
+		D3D12_RENDER_TARGET_VIEW_DESC desc{};
+		desc.Texture2D.MipSlice;
+		desc.Texture2D.PlaneSlice;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = reinterpret_cast<SIZE_T>(descriptor) };
+		dxdevice->CreateRenderTargetView(dxresource, &desc, dxdescriptor);
+
 		return {};
 	}
 
@@ -194,6 +436,37 @@ namespace influx::rhi
 		return {};
 	}
 
+	// [swapchain - interface]
+	result<> swapchain::present() const
+	{
+		dx12_swapchain* dxswapchain = (dx12_swapchain*)m_native_object;
+		HRESULT res = dxswapchain->Present(0u, 0u);
+		return {};
+	}
+	result<uint32> swapchain::get_current_backbuffer_index() const
+	{
+		dx12_swapchain* dxswapchain = (dx12_swapchain*)m_native_object;
+		return dxswapchain->GetCurrentBackBufferIndex();
+	}
+	result<texture2D> swapchain::get_backbuffer_resource(uint32 index) const
+	{
+		dx12_swapchain* dxswapchain = (dx12_swapchain*)m_native_object;
+
+		ID3D12Resource* buffer = nullptr;
+		HRESULT res = dxswapchain->GetBuffer(index, IID_PPV_ARGS(&buffer));
+		return import_texture2D(buffer);
+	}
+	result<texture2D> swapchain::get_backbuffer_resource() const
+	{
+		uint32 backbuffer_index = get_current_backbuffer_index().get();
+		return get_backbuffer_resource(backbuffer_index);
+	}
+	result<> swapchain::resize(const math::uint2& new_dim)
+	{
+		dx12_swapchain* dxswapchain = (dx12_swapchain*)m_native_object;
+		return {};
+	}
+
 	// [commandlist - interface]
 	result<> commandlist::start(device& device)
 	{
@@ -218,16 +491,98 @@ namespace influx::rhi
 		
 		return {};
 	}
+	result<> commandlist::transition_resource(texture2D& resource, e_resource_state new_state)
+	{
+		dx12_resource* dxresource = (dx12_resource*)resource.m_native_object;
+		dx12_commandlist* dxcmdlist = (dx12_commandlist*)m_native_object;
+		
+		const e_resource_state old_state = resource.m_data.m_current_state;
+		if (new_state == old_state)
+			return result<>::make_error("transition to same state is no-op!");
+
+		D3D12_RESOURCE_BARRIER barrier{};
+		barrier.Transition.pResource = dxresource;
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags;
+		barrier.Transition.StateAfter = translate(new_state);
+		barrier.Transition.StateBefore = translate(old_state);
+		barrier.Transition.Subresource = 0u;
+
+		dxcmdlist->ResourceBarrier(1u, &barrier);
+		resource.m_data.m_previous_state = old_state;
+		resource.m_data.m_current_state = new_state;
+	}
+	result<> commandlist::clear_rtv(descriptor rtv, const clear& clear)
+	{
+		dx12_commandlist* dxcmdlist = (dx12_commandlist*)m_native_object;
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = (SIZE_T)rtv };
+
+		dxcmdlist->ClearRenderTargetView(dxdescriptor, clear.m_colour.data(), 0u, NULL);
+		return {};
+	}
 
 	// [descheap - interface]
-	result<descriptor_range> descheap::allocate(uint32 num_descriptors)
+	result<uint32> descheap::allocate(uint32 num_descriptors)
 	{
+		using result_type = result<uint32>;
+
 		ID3D12DescriptorHeap* dxheap = (ID3D12DescriptorHeap*)m_native_object;
-		return {};
+
+		auto& freelist = m_data.m_freelist;
+		for (uint32 i = 0u; i < freelist.size(); ++i)
+		{
+			// skip non-free ones
+			if (is_allocated(i)) continue;
+
+			bool all_neighbours_free = true;
+			for (uint32 x = 0u; x < num_descriptors; ++i)
+			{
+				all_neighbours_free &= is_allocated(i + x);
+			}
+
+			if (all_neighbours_free)
+			{
+				// set all allocated descriptors unfree
+				for (uint32 x = 0u; x < num_descriptors; ++x)
+					freelist[i + x] = false;
+
+				// return base index
+				return i;
+			}
+		}
+
+		return result_type::make_error("no free ranges found!");
+	}
+	bool descheap::is_allocated(uint32 index) const
+	{
+		if (index >= m_data.m_freelist.size())
+			return false;
+
+		return m_data.m_freelist[index];
 	}
 	result<> descheap::free(const vector<descriptor_range>& ranges)
 	{
 		ID3D12DescriptorHeap* dxheap = (ID3D12DescriptorHeap*)m_native_object;
 		return {};
+	}
+	result<descriptor> descheap::get_cpu_descriptor(uint32 index) const
+	{
+		dx12_descheap* dxheap = (dx12_descheap*)m_native_object;
+		D3D12_CPU_DESCRIPTOR_HANDLE base = dxheap->GetCPUDescriptorHandleForHeapStart();
+		base.ptr += (index) * m_data.m_desc_stride;
+		return reinterpret_cast<descriptor>(base.ptr);
+	}
+	result<descriptor> descheap::get_gpu_descriptor(uint32 index) const
+	{
+		dx12_descheap* dxheap = (dx12_descheap*)m_native_object;
+		D3D12_GPU_DESCRIPTOR_HANDLE base = dxheap->GetGPUDescriptorHandleForHeapStart();
+		base.ptr += (index)*m_data.m_desc_stride;
+		return reinterpret_cast<descriptor>(base.ptr);
+	}
+
+	// [texture2D]
+	result<> texture2D::transition(commandlist& cmdlist, e_resource_state new_state)
+	{
+		return cmdlist.transition_resource(*this, new_state);
 	}
 }
