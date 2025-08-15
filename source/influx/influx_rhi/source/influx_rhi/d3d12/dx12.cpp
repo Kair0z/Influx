@@ -14,7 +14,30 @@ namespace influx::rhi
 	using dx12_device		= ID3D12Device;
 	using dx12_resource		= ID3D12Resource;
 	using dx12_commandlist	= ID3D12GraphicsCommandList;
+	using dx12_allocator	= ID3D12CommandAllocator;
 	using dx12_descheap		= ID3D12DescriptorHeap;
+	using dx12_fence		= ID3D12Fence;
+
+	// [helpers]
+	inline string hres_to_string(HRESULT hr)
+	{
+		char* msgBuf = nullptr;
+
+		DWORD size = FormatMessageA(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			nullptr,
+			hr,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPSTR)&msgBuf,
+			0,
+			nullptr);
+
+		string result = (size && msgBuf) ? msgBuf : "Unknown error";
+		LocalFree(msgBuf);
+		return result;
+	}
+#define return_if_error(result_type, hres) \
+	if (!::SUCCEEDED(hres)) return result_type::make_error(hres_to_string(hres));
 
 	D3D12_COMMAND_LIST_TYPE translate(e_queue_type type)
 	{
@@ -37,6 +60,9 @@ namespace influx::rhi
 		switch (type)
 		{
 		case e_descriptor_heap_type::rtv: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		case e_descriptor_heap_type::dsv: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		case e_descriptor_heap_type::resource: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		case e_descriptor_heap_type::sampler: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		}
 		return {};
 	}
@@ -48,7 +74,16 @@ namespace influx::rhi
 		if (has_flag(state, e_resource_state::present))			result |= D3D12_RESOURCE_STATE_PRESENT;
 		return result;
 	}
-
+	e_descriptor_heap_type translate(D3D12_DESCRIPTOR_HEAP_TYPE type)
+	{
+		switch (type)
+		{
+		case D3D12_DESCRIPTOR_HEAP_TYPE_RTV: return e_descriptor_heap_type::rtv;
+		case D3D12_DESCRIPTOR_HEAP_TYPE_DSV: return e_descriptor_heap_type::dsv;
+		case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV: return e_descriptor_heap_type::resource;
+		case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER: return e_descriptor_heap_type::sampler;
+		}
+	}
 	e_resource_type translate(D3D12_RESOURCE_DIMENSION type)
 	{
 		switch (type)
@@ -60,12 +95,38 @@ namespace influx::rhi
 		case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return e_resource_type::texture3D;
 		}
 	}
+	result<uint32> query_descriptor_stride(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type)
+	{
+		return device->GetDescriptorHandleIncrementSize(type);
+	}
+	result<descriptor> sample_descheap(ID3D12DescriptorHeap* heap, uint32 stride, uint32 index, bool cpu)
+	{
+		if (cpu)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE base = heap->GetCPUDescriptorHandleForHeapStart();
+			base.ptr += (index * stride);
+			return static_cast<descriptor>(base.ptr);
+		}
+		else
+		{
+			D3D12_GPU_DESCRIPTOR_HANDLE base = heap->GetGPUDescriptorHandleForHeapStart();
+			base.ptr += (index * stride);
+			return static_cast<descriptor>(base.ptr);
+		}
+	}
+	result<descriptor> sample_descheap(ID3D12Device* device, ID3D12DescriptorHeap* heap, uint32 index, bool cpu)
+	{
+		uint32 stride = query_descriptor_stride(device, heap->GetDesc().Type).get();
+		return sample_descheap(heap, stride, index, cpu);
+	}
 
 	result<object_native> create_native(const device_desc& desc)
 	{
 		ID3D12Device* result{};
+		dx12_physdevice* dxphys = (dx12_physdevice*)desc.m_physdevice;
+
 		HRESULT res = ::D3D12CreateDevice(
-			nullptr,
+			dxphys,
 			D3D_FEATURE_LEVEL_11_0,
 			IID_PPV_ARGS(&result));
 		return result;
@@ -82,6 +143,8 @@ namespace influx::rhi
 		dxdesc.Flags;
 
 		HRESULT res = device->CreateCommandQueue(&dxdesc, IID_PPV_ARGS(&queue));
+		// return_if_error(result<object_native>, res);
+
 		return queue;
 	}
 
@@ -145,7 +208,7 @@ namespace influx::rhi
 
 	result<object_native> create_native(const commandlist_desc& desc)
 	{
-		ID3D12CommandList* commandlist{};
+		dx12_commandlist* commandlist{};
 		ID3D12Device* device = (ID3D12Device*)desc.m_device;
 		ID3D12CommandAllocator* allocator = (ID3D12CommandAllocator*)desc.m_allocator;
 
@@ -160,6 +223,8 @@ namespace influx::rhi
 			allocator,
 			nullptr,
 			IID_PPV_ARGS(&commandlist));
+
+		commandlist->Close();
 
 		return commandlist;
 	}
@@ -269,13 +334,19 @@ namespace influx::rhi
 
 	result<texture2D> import_texture2D(object_native native)
 	{
+		using result_type = result<texture2D>;
+
 		ID3D12Resource* dxresource = (ID3D12Resource*)native;
 		D3D12_RESOURCE_DESC desc = dxresource->GetDesc();
+		
+		dx12_device* dxdevice = nullptr;
+		HRESULT res = dxresource->GetDevice(IID_PPV_ARGS(&dxdevice));
+		if (dxdevice == nullptr)
+			return result_type::make_error("couldn't fetch owner device from existing resource");
 
 		texture2D imported{};
-		imported.m_data;
 		imported.m_native_object = native;
-		imported.m_desc.m_device = nullptr;
+		imported.m_desc.m_device = dxdevice;
 		return imported;
 	}
 
@@ -291,20 +362,186 @@ namespace influx::rhi
 		return imported;
 	}
 
+	result<descheap> import_descheap(object_native native)
+	{
+		using result_type = result<descheap>;
+
+		dx12_descheap* dxheap = (dx12_descheap*)native;
+		dx12_device* dxdevice = nullptr;
+		HRESULT res = dxheap->GetDevice(IID_PPV_ARGS(&dxdevice));
+		if (dxdevice == nullptr)
+			return result_type::make_error("couldn't fetch owner device from existing heap");
+
+		auto dxdesc = dxheap->GetDesc();		
+		const D3D12_DESCRIPTOR_HEAP_TYPE dxtype = dxdesc.Type;
+		const uint32 num_descriptors = dxdesc.NumDescriptors;
+
+		descheap imported{};
+		imported.m_data.m_desc_stride = query_descriptor_stride(dxdevice, dxtype);
+		imported.m_desc.m_device = dxdevice;
+		imported.m_desc.m_num_descriptors = num_descriptors;
+		imported.m_desc.m_type = translate(dxtype);
+		imported.m_native_object = native;
+		imported.m_data.m_freelist.resize(num_descriptors, true);
+		return imported;
+	}
+	
+	result<commandlist> import_commandlist(object_native native)
+	{
+		using result_type = result<commandlist>;
+
+		dx12_commandlist* dxcommandlist = (dx12_commandlist*)native;
+		dx12_device* dxdevice = nullptr;
+		HRESULT res = dxcommandlist->GetDevice(IID_PPV_ARGS(&dxdevice));
+		if (dxdevice == nullptr)
+			return result_type::make_error("couldn't fetch owner device from existing");
+
+		commandlist imported{};
+		imported.m_desc.m_allocator;
+		imported.m_desc.m_device;
+		imported.m_desc.m_type;
+		imported.m_native_object = native;
+		imported.m_data.m_allocator;
+		return imported;
+	}
+	
+	result<command_allocator> import_allocator(object_native native)
+	{
+		using result_type = result<command_allocator>;
+
+		dx12_allocator* dxallocator = (dx12_allocator*)native;
+		dx12_device* dxdevice = nullptr;
+		HRESULT res = dxallocator->GetDevice(IID_PPV_ARGS(&dxdevice));
+		if (dxdevice == nullptr)
+			return result_type::make_error("couldn't fetch owner device from existing");
+
+		command_allocator imported{};
+		imported.m_desc.m_device = dxdevice;
+		imported.m_desc.m_type;
+		imported.m_native_object = native;
+		return imported;
+	}
+
 	// [device]
+	result<swapchain> device::create(const swapchain_desc& desc) const
+	{
+		using result_type = result<swapchain>;
+
+		// override owning device
+		auto cpy = desc; cpy.m_device = this;
+		result_type result = rhi::create<rhi::swapchain>(desc);
+		if (!result)
+		{
+			return result_type::make_error("failed creating native object");
+		}
+
+		// if specified, own a descriptor heap with rtvs to backbuffers
+		if (desc.m_own_descriptors)
+		{
+			rhi::descheap_desc heap_desc{};
+			heap_desc.m_device = m_native_object;
+			heap_desc.m_num_descriptors = desc.m_num_buffers;
+			heap_desc.m_type = rhi::e_descriptor_heap_type::rtv;
+			auto rtv_heap = create_native(heap_desc);
+			if (!rtv_heap)
+			{
+				return result_type::make_error("own_descriptors: failed creating descriptor heap for rtvs");
+			}
+
+			// set all rtvs as dirty
+			for (uint32 i = 0u; i < desc.m_num_buffers; ++i)
+				result.get().m_data.m_rtv_dirty_list.push_back(true);
+
+			// store an rtv heap
+			result.get().m_data.m_rtv_heap = rtv_heap.get();
+		}
+
+		return result;
+	}
+	result<queue> device::create(const queue_desc& desc) const
+	{
+		auto cpy = desc; cpy.m_device = this->m_native_object;
+		return rhi::create<rhi::queue>(cpy);
+	}
+	result<command_allocator> device::create(const commandallocator_desc& desc) const
+	{
+		using result_type = result<command_allocator>;
+		auto cpy = desc; cpy.m_device = this->m_native_object;
+
+		// create native & import
+		auto native_object = create_native(cpy);
+		if (!native_object)
+			return result_type::make_error("create command_allocator: failed creating native object!");
+
+		auto res = import<command_allocator>(native_object.get());
+		if (!res)
+			return result_type::make_error("import command_allocator: failed importing");
+
+		res.get().m_desc = desc;
+		return res;
+	}
+	result<commandlist> device::create(const commandlist_desc& desc) const
+	{
+		using result_type = result<commandlist>;
+		auto cpy = desc; cpy.m_device = this->m_native_object;
+
+		// if allocator is not provided, we need to create our own
+		if (desc.m_allocator == nullptr)
+		{
+			commandallocator_desc alloc_desc{};
+			alloc_desc.m_type = desc.m_type;
+			alloc_desc.m_device = this->m_native_object;
+			auto res = create_native(alloc_desc);
+			if (!res) return result_type::make_error("failed creating allocator!");
+
+			// store new allocator
+			cpy.m_allocator = res.get();
+		}
+
+		// create native
+		auto native_object = create_native(cpy);
+		if (!native_object)
+			return result_type::make_error("create commandlist: failed creating native object!");
+
+		// import the native object
+		auto res = import<commandlist>(native_object.get());
+		if (!res) return result_type::make_error("failed import!");
+		
+		res.get().m_data.m_allocator = cpy.m_allocator;
+
+		// create fence if instructed
+		if (desc.m_own_fence)
+		{
+			fence_desc fence_desc{};
+			fence_desc.m_device = m_native_object;
+			fence_desc.m_init_value = 0u;
+			auto fence = create_native(fence_desc);
+			if (!fence)
+				return result_type::make_error("create commandlist: failed creating fence!");
+
+			// store new fence
+			res.get().m_data.m_fence = fence.get();
+		}
+		res.get().m_desc = desc;
+		return res;
+	}
+	result<descheap> device::create(const descheap_desc& desc) const
+	{
+		using result_type = result<descheap>;
+		auto cpy = desc; cpy.m_device = this->m_native_object;
+
+		// create native & import
+		auto native_object = create_native(cpy);
+		if (!native_object) 
+			return result_type::make_error("create descheap: failed creating native object!");
+
+		return import<descheap>(native_object.get());
+	}
 	result<device> device::create(const device_desc& desc)
 	{
 		using result_type = result<device>;
 
-		auto native_create_res = create_native(desc);
-		if (!native_create_res)
-			return result_type::make_error("");
-
 		device result{};
-
-		// get the device
-		dx12_device* dxdevice = (dx12_device*)native_create_res.get();
-		result.m_native_object = dxdevice;
 
 		// store a dxgi factory
 		dx12_factory* dxfactory = nullptr;
@@ -349,6 +586,20 @@ namespace influx::rhi
 			}
 		}
 		result.m_data.m_physical_device = physical_devices[0];
+
+		device_desc desc_copy = desc;
+		if (desc.m_physdevice == nullptr)
+		{
+			desc_copy.m_physdevice = result.m_data.m_physical_device;
+		}
+
+		auto native_create_res = create_native(desc);
+		if (!native_create_res)
+			return result_type::make_error("failed creating native");
+
+		// get the device
+		dx12_device* dxdevice = (dx12_device*)native_create_res.get();
+		result.m_native_object = dxdevice;
 
 		// enable the debug layer
 		if (desc.m_debug)
@@ -402,7 +653,7 @@ namespace influx::rhi
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = reinterpret_cast<SIZE_T>(descriptor) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = static_cast<SIZE_T>(descriptor) };
 		dxdevice->CreateRenderTargetView(dxresource, &desc, dxdescriptor);
 
 		return {};
@@ -415,7 +666,7 @@ namespace influx::rhi
 	}
 
 	// [queue - interface]
-	result<> queue::submit(const vector<const commandlist*>& commandlists) const
+	result<> queue::submit(const vector<commandlist*>& commandlists) const
 	{
 		ID3D12CommandQueue* dxqueue = (ID3D12CommandQueue*)this->m_native_object;
 		vector<ID3D12CommandList*> dxcommandlists{};
@@ -425,13 +676,28 @@ namespace influx::rhi
 		}
 
 		dxqueue->ExecuteCommandLists(dxcommandlists.size(), dxcommandlists.data());
+
+		// signal finish
+		for (commandlist* list : commandlists)
+		{
+			if (list->has_fence())
+			{
+				uint32& complete_value = list->m_data.m_fence_complete_value;
+				complete_value += 1u;
+				queue_signal(list->m_data.m_fence, complete_value);
+			}
+		}
+
 		return {};
 	}
 	result<> queue::queue_signal(const fence& fence, uint64 signal_value) const
 	{
+		return queue_signal(fence.m_native_object, signal_value);
+	}
+	result<> queue::queue_signal(object_native fence, uint64 signal_value) const
+	{
 		ID3D12CommandQueue* dxqueue = (ID3D12CommandQueue*)this->m_native_object;
-		ID3D12Fence* dxfence = (ID3D12Fence*)fence.m_native_object;
-
+		ID3D12Fence* dxfence = (ID3D12Fence*)fence;
 		HRESULT res = dxqueue->Signal(dxfence, signal_value);
 		return {};
 	}
@@ -463,33 +729,114 @@ namespace influx::rhi
 	}
 	result<> swapchain::resize(const math::uint2& new_dim)
 	{
+		// flag all rtvs as dirty
+		for (uint32 i = 0u; i < m_data.m_rtv_dirty_list.size(); ++i)
+			m_data.m_rtv_dirty_list[i] = true;
+
 		dx12_swapchain* dxswapchain = (dx12_swapchain*)m_native_object;
+
+		DXGI_SWAP_CHAIN_DESC dxdesc{};
+		HRESULT res = dxswapchain->GetDesc(&dxdesc);
+
+		res = dxswapchain->ResizeBuffers(
+			dxdesc.BufferCount,
+			dxdesc.BufferDesc.Width,
+			dxdesc.BufferDesc.Height,
+			dxdesc.BufferDesc.Format,
+			dxdesc.Flags
+		);
+
 		return {};
 	}
+	bool swapchain::owns_rtvs() const
+	{
+		return m_desc.m_own_descriptors;
+	}
+	result<descriptor> swapchain::get_or_create_backbuffer_rtv(const device& device)
+	{
+		using result_type = result<descriptor>;
+		if (!owns_rtvs())
+			return result_type::make_error("this swapchain does not own its own rtvs!");
 
+		dx12_device* dxdevice = (dx12_device*)device.m_native_object;
+		dx12_descheap* dxheap = (dx12_descheap*)m_data.m_rtv_heap;
+
+		uint32 backbuffer_index = get_current_backbuffer_index().get();
+		result<texture2D> backbuffer = get_backbuffer_resource();
+		result<descriptor> descriptor = sample_descheap(dxdevice, dxheap, backbuffer_index, true);
+		if (!descriptor)
+			return result_type::make_error("failed sampling descheap!");
+
+		if (m_data.m_rtv_dirty_list[backbuffer_index] == true)
+		{
+			device.create_rtv(backbuffer.get(), descriptor.get());
+			m_data.m_rtv_dirty_list[backbuffer_index] = false;
+		}
+
+		return descriptor;
+	}
+	
 	// [commandlist - interface]
 	result<> commandlist::start(device& device)
 	{
-		auto new_alloc_res = device.create(commandallocator_desc{});
-		if (!new_alloc_res) return result<>::make_error("failed creating new allocator");
-
-		return start(new_alloc_res.get());
+		if (m_data.m_allocator == nullptr)
+		{
+			auto new_alloc_res = device.create(commandallocator_desc{});
+			if (!new_alloc_res) return result<>::make_error("failed creating new allocator");
+			return start(new_alloc_res.get());
+		}
+		else
+		{
+			command_allocator alloc = import_allocator(m_data.m_allocator).get();
+			return start(alloc);
+		}
 	}
 	result<> commandlist::start(const command_allocator& allocator)
 	{
 		ID3D12GraphicsCommandList* dxcommandlist = (ID3D12GraphicsCommandList*)m_native_object;
-		ID3D12CommandAllocator* dxallocator = (ID3D12CommandAllocator*)m_native_object;
+		ID3D12CommandAllocator* dxallocator = (ID3D12CommandAllocator*)allocator.m_native_object;
 
-		ID3D12PipelineState* dxinitpipeline = nullptr;
-		HRESULT res = dxcommandlist->Reset(dxallocator, dxinitpipeline);
+		HRESULT res = dxallocator->Reset();
+
+		res = dxcommandlist->Close();
+
+		ID3D12PipelineState* dxinitpipeline = NULL;
+		res = dxcommandlist->Reset(dxallocator, dxinitpipeline);
 		return {};
 	}
 	result<> commandlist::end()
 	{
 		ID3D12GraphicsCommandList* dxcommandlist = (ID3D12GraphicsCommandList*)m_native_object;
 		HRESULT res = dxcommandlist->Close();
-		
 		return {};
+	}
+	result<> commandlist::submit(queue& queue)
+	{
+		return queue.submit({ this });
+	}
+	result<> commandlist::wait_for_finish() const
+	{
+		if (m_desc.m_own_fence && m_data.m_fence != nullptr)
+		{
+			const uint32 max_value = 64 * 1024 * 1024;
+			uint32 i = 0u;
+
+			dx12_fence* dxfence = (dx12_fence*)m_data.m_fence;
+			uint32 complete_value = m_data.m_fence_complete_value;
+
+			while (i < max_value)
+			{
+				const uint32 fence_value = dxfence->GetCompletedValue();
+				if (fence_value >= complete_value) return {};
+
+				i++;
+			}
+		}
+		return {};
+	}
+	bool commandlist::has_fence() const
+	{
+		return m_desc.m_own_fence && m_data.m_fence != nullptr;
 	}
 	result<> commandlist::transition_resource(texture2D& resource, e_resource_state new_state)
 	{
@@ -515,8 +862,7 @@ namespace influx::rhi
 	result<> commandlist::clear_rtv(descriptor rtv, const clear& clear)
 	{
 		dx12_commandlist* dxcmdlist = (dx12_commandlist*)m_native_object;
-		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = (SIZE_T)rtv };
-
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = static_cast<SIZE_T>(rtv) };
 		dxcmdlist->ClearRenderTargetView(dxdescriptor, clear.m_colour.data(), 0u, NULL);
 		return {};
 	}
@@ -568,16 +914,12 @@ namespace influx::rhi
 	result<descriptor> descheap::get_cpu_descriptor(uint32 index) const
 	{
 		dx12_descheap* dxheap = (dx12_descheap*)m_native_object;
-		D3D12_CPU_DESCRIPTOR_HANDLE base = dxheap->GetCPUDescriptorHandleForHeapStart();
-		base.ptr += (index) * m_data.m_desc_stride;
-		return reinterpret_cast<descriptor>(base.ptr);
+		return sample_descheap(dxheap, m_data.m_desc_stride, index, true);
 	}
 	result<descriptor> descheap::get_gpu_descriptor(uint32 index) const
 	{
 		dx12_descheap* dxheap = (dx12_descheap*)m_native_object;
-		D3D12_GPU_DESCRIPTOR_HANDLE base = dxheap->GetGPUDescriptorHandleForHeapStart();
-		base.ptr += (index)*m_data.m_desc_stride;
-		return reinterpret_cast<descriptor>(base.ptr);
+		return sample_descheap(dxheap, m_data.m_desc_stride, index, false);
 	}
 
 	// [texture2D]
