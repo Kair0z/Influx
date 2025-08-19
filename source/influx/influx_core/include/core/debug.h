@@ -1,10 +1,18 @@
 #pragma once
 
 #include <cassert>
-
+#include <iostream>
 namespace influx
 {
 #define influx_assert(x) assert(x)
+#define influx_assert_msg(expr, msg) \
+    do { \
+        if (!(expr)) { \
+            std::cerr << "Assertion failed: " << (msg) << "\n"; \
+            assert(expr); \
+        } \
+    } while (0)
+
 #define influx_assert_not_null(x) assert(x != nullptr)
 #define influx_todo(x) influx_assert(false, x)
 

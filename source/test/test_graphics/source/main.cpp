@@ -1,15 +1,22 @@
+#define USE_GRAPHICS 1
+#define USE_RHI 1
 
-#include "core/basetypes.h"
-
+#if USE_GRAPHICS
+#include "influx_graphics/device.h"
 // SDK 1.614.1
 extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
+#endif
 
+#if USE_RHI
+#include "influx_rhi.h"
+#endif
+
+#include "core/basetypes.h"
 #include "influx_platform/window.h"
-#include "influx_graphics/device.h"
-
 using namespace influx;
 
+#if USE_GRAPHICS
 graphics::resource* create_texture(graphics::device* device, graphics::queue* queue)
 {
 	const uint32 arraysize = 6u;
@@ -19,7 +26,6 @@ graphics::resource* create_texture(graphics::device* device, graphics::queue* qu
 
 	graphics::cubemap_desc desc{};
 	desc.m_dimensions.x = desc.m_dimensions.y = size;
-	desc.m_arraysize = arraysize;
 	desc.m_format = graphics::e_format::rgba8;
 	graphics::resource* result = device->create_resource(desc);
 	graphics::resource* upload_resource = device->create_upload_resource(result);
@@ -58,8 +64,7 @@ graphics::resource* create_texture(graphics::device* device, graphics::queue* qu
 	
 	return result;
 }
-
-int main()
+int graphics_main()
 {
 	graphics::device* device = graphics::device::create(graphics::e_api_type::dx12);
 	graphics::queue* queue = device->create_queue();
@@ -110,4 +115,36 @@ int main()
 			swapchains[i]->present(pres_args);
 		}
 	}
+	return 0;
+}
+#endif
+
+#if USE_RHI
+int rhi_main()
+{
+	platform::window_desc window_desc{};
+	window_desc.m_dimensions = { 640u, 480u };
+	window_desc.m_name = "renderer";
+	platform::window* window = platform::window::create(window_desc.set_name("influx_rhi"));
+
+	rhi::device dev	= rhi::create_device().get();
+	// rhi::queue queue = dev.create().get();
+	rhi::commandlist cmdlist = dev.create(rhi::commandlist_create_args::default_graphics()).get();
+
+	rhi::swapchain_create_args swapchain_args{};
+	swapchain_args.m_window = window->get_platform_handle();
+	swapchain_args.m_dimensions = window->get_dimensions();
+	rhi::swapchain swapchain = dev.create(swapchain_args).get();
+
+	cmdlist.start(dev).get();
+	cmdlist.end().get();
+	cmdlist.submit(queue).get();
+
+	return 0u;
+}
+#endif
+
+int main()
+{
+	rhi_main();
 }

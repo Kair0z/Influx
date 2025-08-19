@@ -232,7 +232,7 @@ namespace influx::platform
 		virtual void set_dimensions(const math::vectoru2& new_dimensions) { }
 
 		INFLUX_PLATFORM_API
-		virtual math::vectoru2 get_dimensions(e_space) const { return {}; }
+		virtual math::vectoru2 get_dimensions(e_space = e_space::client) const { return {}; }
 
 		INFLUX_PLATFORM_API
 		virtual math::vectoru2 get_previous_dimensions(e_space) const { return {}; }

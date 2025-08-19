@@ -55,6 +55,11 @@ namespace influx
 		unex_type m_unexpected = {};
 		ex_type m_expected = {};
 
+		// warnings carry a valid result,
+		// AND an unexpected result,
+		// but return true on success
+		bool m_is_warning = false;
+
 	public:
 		// constructors
 		result() : m_expected{}, m_unexpected{} {}
@@ -64,6 +69,21 @@ namespace influx
 		inline static result make_error(const _e& error)
 		{
 			return result(error);
+		}
+
+		inline static result make_warning(const _t& value, const _e& warning)
+		{
+			result res{};
+			res.m_expected = value;
+			res.m_unexpected = warning;
+			res.m_is_warning = true;
+			return res;
+		}
+
+		template <typename _ot>
+		inline static result make_error(const result<_ot>& error_result)
+		{
+			return result(error_result.get_unex());
 		}
 
 		// if underlying _t is 'boolable', this will only return true if
@@ -108,7 +128,7 @@ namespace influx
 
 		bool is_success() const
 		{
-			return m_unexpected == _e{};
+			return m_unexpected == _e{} || m_is_warning == true;
 		}
 
 		bool is_unex() const
@@ -124,7 +144,7 @@ namespace influx
 		_t& get()
 		{
 #if INFLUX_DEBUG
-			influx_assert(is_success());
+			influx_assert_msg(is_success(), m_unexpected);
 #endif
 			return m_expected;
 		}
