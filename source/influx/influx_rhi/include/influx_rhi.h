@@ -12,6 +12,8 @@
 #define INFLUX_RHI_API __declspec(dllimport)
 #endif
 
+#include "influx_rhi/format.h"
+
 namespace influx::rhi
 {
 	class resource;
@@ -73,10 +75,65 @@ namespace influx::rhi
 		present			= 1 << 0,
 		rendertarget	= 1 << 1,
 	};
-	struct pixel_format final
+	
+	namespace format
 	{
+		enum class e_format : uint8
+		{
+			typeless,
+			uint,
+			sint,
+			unorm,
+			unorm_srgb,
+			snorm,
+			sfloat,
+			ufloat,
+			num
+		};
+		enum class bitsize : uint8
+		{
+			_32,
+			_24,
+			_16,
+			_10,
+			_8,
+			_2,
+			num
+		};
+		enum class semantic : uint8
+		{
+			_r,
+			_g,
+			_b,
+			_a,
+			_x, // additional (unused) (typeless)
+			num,
+		};
+		static constexpr uint32 k_num_semantic_types = static_cast<uint32>(semantic::num);
+		static constexpr uint32 k_num_bitsize_types = static_cast<uint32>(bitsize::num);
+		static constexpr uint32 k_num_format_types = static_cast<uint32>(format::num);
 
-	};
+		template <bitsize _b, semantic _s, e_format _f>
+		struct element final {};
+
+		template <e_format _f>
+		using r32 = element<bitsize::_32, semantic::_r, _f>;
+
+		static constexpr uint32 get_num_bits(format::bitsize _enum)
+		{
+			switch (_enum)
+			{
+			default: return 0u;
+			case bitsize::_2: return 2u;
+			case bitsize::_8: return 8u;
+			case bitsize::_10: return 10u;
+			case bitsize::_16: return 16u;
+			case bitsize::_24: return 24u;
+			case bitsize::_32: return 32u;
+			}
+		}
+	}
+
 	struct renderpass_args final
 	{
 
@@ -412,6 +469,11 @@ namespace influx::rhi
 
 	};
 
+	/* 
+		device class can be used to create objects similar to calling the global create-functions
+		creating through the device class will automatically override the created objects' m_device reference
+		if it has one
+	*/
 	class device final : public object<e_object::device>
 	{
 	public:
@@ -441,26 +503,6 @@ namespace influx::rhi
 	INFLUX_RHI_API result<object_native> create_native(const pipeline_desc& desc);
 	INFLUX_RHI_API result<object_native> create_native(const rootsignature_desc& desc);
 
-	// [import]
-	INFLUX_RHI_API result<buffer>				import_buffer(object_native native);
-	INFLUX_RHI_API result<texture2D>			import_texture2D(object_native native);
-	INFLUX_RHI_API result<texture3D>			import_texture3D(object_native native);
-	INFLUX_RHI_API result<descheap>				import_descheap(object_native native);
-	INFLUX_RHI_API result<commandlist>			import_commandlist(object_native native);
-	INFLUX_RHI_API result<command_allocator>	import_allocator(object_native native);
-
-	template <e_object _t>
-	result<object<_t>> create(const desc_type<_t>& desc)
-	{
-		using obj_type = object<_t>;
-		using result_type = result<obj_type>;
-
-		obj_type obj{};
-		obj.m_native_object = create_native(desc).get();
-		obj.m_desc = desc;
-		return obj;
-	}
-
 	template <typename _t>
 	result<_t> create(const desc_type<_t::k_type>& desc)
 	{
@@ -470,8 +512,17 @@ namespace influx::rhi
 		obj_type obj{};
 		obj.m_native_object = create_native(desc).get();
 		obj.m_desc = desc;
+		obj.m_data = {};
 		return obj;
 	}
+
+	// [import]
+	INFLUX_RHI_API result<buffer>				import_buffer(object_native native);
+	INFLUX_RHI_API result<texture2D>			import_texture2D(object_native native);
+	INFLUX_RHI_API result<texture3D>			import_texture3D(object_native native);
+	INFLUX_RHI_API result<descheap>				import_descheap(object_native native);
+	INFLUX_RHI_API result<commandlist>			import_commandlist(object_native native);
+	INFLUX_RHI_API result<command_allocator>	import_allocator(object_native native);
 
 	template <typename _t> result<_t> import(object_native);
 	template<> inline result<buffer> import(object_native native) { return import_buffer(native); }

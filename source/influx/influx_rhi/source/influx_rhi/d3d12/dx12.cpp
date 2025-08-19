@@ -95,6 +95,162 @@ namespace influx::rhi
 		case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return e_resource_type::texture3D;
 		}
 	}
+
+	static constexpr uint32 k_num_dxgi_formats = 256u;
+
+	const pixelformat& translate(DXGI_FORMAT format)
+	{
+		using namespace format;
+		static pixelformat k_formats[k_num_dxgi_formats]{};
+
+		// initialize formats only once:
+		static bool done_once = false;
+		if (!done_once)
+		{
+			done_once = true;
+			k_formats[DXGI_FORMAT_R32G32B32A32_TYPELESS]	= { e_format::typeless,		{_r,_32}, {_g,_32}, {_b,_32}, {_a,_32} };
+			k_formats[DXGI_FORMAT_R32G32B32A32_FLOAT]		= { e_format::sfloat,		{_r,_32}, {_g,_32}, {_b,_32}, {_a,_32} };
+			k_formats[DXGI_FORMAT_R32G32B32A32_UINT]		= { e_format::uint,			{_r,_32}, {_g,_32}, {_b,_32}, {_a,_32} };
+			k_formats[DXGI_FORMAT_R32G32B32A32_SINT]		= { e_format::sint,			{_r,_32}, {_g,_32}, {_b,_32}, {_a,_32} };
+			k_formats[DXGI_FORMAT_R32G32B32_TYPELESS]		= { e_format::typeless,		{_r,_32}, {_g,_32}, {_b,_32} };
+			k_formats[DXGI_FORMAT_R32G32B32_FLOAT]			= { e_format::sfloat,		{_r,_32}, {_g,_32}, {_b,_32} };
+			k_formats[DXGI_FORMAT_R32G32B32_UINT]			= { e_format::uint,			{_r,_32}, {_g,_32}, {_b,_32} };
+			k_formats[DXGI_FORMAT_R32G32B32_SINT]			= { e_format::sint,			{_r,_32}, {_g,_32}, {_b,_32} };
+			k_formats[DXGI_FORMAT_R16G16B16A16_TYPELESS]	= { e_format::typeless,		{_r,_16}, {_g,_16}, {_b,_16}, {_a,_16} };
+			k_formats[DXGI_FORMAT_R16G16B16A16_FLOAT]		= { e_format::sfloat,		{_r,_16}, {_g,_16}, {_b,_16}, {_a,_16} };
+			k_formats[DXGI_FORMAT_R16G16B16A16_UNORM]		= { e_format::unorm,		{_r,_16}, {_g,_16}, {_b,_16}, {_a,_16} };
+			k_formats[DXGI_FORMAT_R16G16B16A16_UINT]		= { e_format::uint,			{_r,_16}, {_g,_16}, {_b,_16}, {_a,_16} };
+			k_formats[DXGI_FORMAT_R16G16B16A16_SNORM]		= { e_format::snorm,		{_r,_16}, {_g,_16}, {_b,_16}, {_a,_16} };
+			k_formats[DXGI_FORMAT_R16G16B16A16_SINT]		= { e_format::sint,			{_r,_16}, {_g,_16}, {_b,_16}, {_a,_16} };
+			k_formats[DXGI_FORMAT_R32G32_TYPELESS]			= { e_format::typeless,		{_r,_32}, {_g,_32} };
+			k_formats[DXGI_FORMAT_R32G32_FLOAT]				= { e_format::sfloat,		{_r,_32}, {_g,_32} };
+			k_formats[DXGI_FORMAT_R32G32_UINT]				= { e_format::uint,			{_r,_32}, {_g,_32} };
+			k_formats[DXGI_FORMAT_R32G32_SINT]				= { e_format::sint,			{_r,_32}, {_g,_32} };
+			k_formats[DXGI_FORMAT_R32G8X24_TYPELESS]		= { e_format::typeless,		{_r,_32}, {_g,_8}, {_x,_24,typeless} };
+			k_formats[DXGI_FORMAT_D32_FLOAT_S8X24_UINT]		= { e_format::sfloat,		{_d,_32}, {_s,_8}, {_x,_24,uint} };
+			k_formats[DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS] = { e_format::sfloat,		{_r,_32}, {_x,_8}, {_x,_24,typeless} };
+			k_formats[DXGI_FORMAT_X32_TYPELESS_G8X24_UINT]	= { e_format::typeless,		{_x,_32}, {_g,_8}, {_x,_24,uint} };
+			k_formats[DXGI_FORMAT_R10G10B10A2_TYPELESS]		= { e_format::typeless,		{_r,_10}, {_g,_10}, {_b,_10}, {_a,_2} };
+			k_formats[DXGI_FORMAT_R10G10B10A2_UNORM]		= { e_format::unorm,		{_r,_10}, {_g,_10}, {_b,_10}, {_a,_2} };
+			k_formats[DXGI_FORMAT_R10G10B10A2_UINT]			= { e_format::uint,			{_r,_10}, {_g,_10}, {_b,_10}, {_a,_2} };
+			k_formats[DXGI_FORMAT_R11G11B10_FLOAT]			= { e_format::sfloat,		{_r,_11}, {_g,_11}, {_b,_10} };
+			k_formats[DXGI_FORMAT_R8G8B8A8_TYPELESS]		= { e_format::typeless,		{_r,_8}, {_g,_8}, {_b,_8} };
+			k_formats[DXGI_FORMAT_R8G8B8A8_UNORM]			= { e_format::unorm,		{_r,_8}, {_g,_8}, {_b,_8} };
+			k_formats[DXGI_FORMAT_R8G8B8A8_UNORM_SRGB]		= { e_format::unorm_srgb,	{_r,_8}, {_g,_8}, {_b,_8} };
+			k_formats[DXGI_FORMAT_R8G8B8A8_UINT]			= { e_format::uint,			{_r,_8}, {_g,_8}, {_b,_8} };
+			k_formats[DXGI_FORMAT_R8G8B8A8_SNORM]			= { e_format::snorm,		{_r,_8}, {_g,_8}, {_b,_8} };
+			k_formats[DXGI_FORMAT_R8G8B8A8_SINT]			= { e_format::sint,			{_r,_8}, {_g,_8}, {_b,_8} };
+			k_formats[DXGI_FORMAT_R16G16_TYPELESS]			= { e_format::typeless,		{_r,_16}, {_g,_16} };
+			k_formats[DXGI_FORMAT_R16G16_FLOAT]				= { e_format::sfloat,		{_r,_16}, {_g,_16} };
+			k_formats[DXGI_FORMAT_R16G16_UNORM]				= { e_format::unorm,		{_r,_16}, {_g,_16} };
+			k_formats[DXGI_FORMAT_R16G16_UINT]				= { e_format::uint,			{_r,_16}, {_g,_16} };
+			k_formats[DXGI_FORMAT_R16G16_SNORM]				= { e_format::snorm,		{_r,_16}, {_g,_16} };
+			k_formats[DXGI_FORMAT_R16G16_SINT]				= { e_format::sint,			{_r,_16}, {_g,_16} };
+			k_formats[DXGI_FORMAT_R32_TYPELESS]				= { e_format::typeless,		{_r,_32} };
+			k_formats[DXGI_FORMAT_D32_FLOAT]				= { e_format::sfloat,		{_d,_32} };
+			k_formats[DXGI_FORMAT_R32_FLOAT]				= { e_format::sfloat,		{_r,_32} };
+			k_formats[DXGI_FORMAT_R32_UINT]					= { e_format::uint,			{_r,_32} };
+			k_formats[DXGI_FORMAT_R32_SINT]					= { e_format::sint,			{_r,_32} };
+			k_formats[DXGI_FORMAT_R24G8_TYPELESS]			= { e_format::typeless,		{_r,_24}, {_g,_8} };
+			k_formats[DXGI_FORMAT_D24_UNORM_S8_UINT]		= { e_format::unorm,		{_d,_24}, {_s,_8,uint} };
+			k_formats[DXGI_FORMAT_R24_UNORM_X8_TYPELESS]	= { e_format::unorm,		{_r,_24}, {_x,_8,typeless} };
+			k_formats[DXGI_FORMAT_X24_TYPELESS_G8_UINT]		= { e_format::typeless,		{_x,_24}, {_g,_8,uint } };
+			k_formats[DXGI_FORMAT_R8G8_TYPELESS]			= { e_format::typeless,		{_r,_8}, {_g,_8} };
+			k_formats[DXGI_FORMAT_R8G8_UNORM]				= { e_format::unorm,		{_r,_8}, {_g,_8} };
+			k_formats[DXGI_FORMAT_R8G8_UINT]				= { e_format::uint,			{_r,_8}, {_g,_8} };
+			k_formats[DXGI_FORMAT_R8G8_SNORM]				= { e_format::snorm,		{_r,_8}, {_g,_8} };
+			k_formats[DXGI_FORMAT_R8G8_SINT]				= { e_format::sint,			{_r,_8}, {_g,_8} };
+			k_formats[DXGI_FORMAT_R16_TYPELESS]				= { e_format::typeless,		{_r,_16} };
+			k_formats[DXGI_FORMAT_R16_FLOAT]				= { e_format::sfloat,		{_r,_16} };
+			k_formats[DXGI_FORMAT_D16_UNORM]				= { e_format::unorm,		{_d,_16} };
+			k_formats[DXGI_FORMAT_R16_UNORM]				= { e_format::unorm,		{_r,_16} };
+			k_formats[DXGI_FORMAT_R16_UINT]					= { e_format::uint,			{_r,_16} };
+			k_formats[DXGI_FORMAT_R16_SNORM]				= { e_format::snorm,		{_r,_16} };
+			k_formats[DXGI_FORMAT_R16_SINT]					= { e_format::sint,			{_r,_16} };
+			k_formats[DXGI_FORMAT_R8_TYPELESS]				= { e_format::typeless,		{_r,_8} };
+			k_formats[DXGI_FORMAT_R8_UNORM]					= { e_format::unorm,		{_r,_8} };
+			k_formats[DXGI_FORMAT_R8_UINT]					= { e_format::uint,			{_r,_8} };
+			k_formats[DXGI_FORMAT_R8_SNORM]					= { e_format::snorm,		{_r,_8} };
+			k_formats[DXGI_FORMAT_R8_SINT]					= { e_format::sint,			{_r,_8} };
+			k_formats[DXGI_FORMAT_A8_UNORM]					= { e_format::unorm,		{_a,_8} };
+			k_formats[DXGI_FORMAT_R1_UNORM]					= { e_format::unorm,		{_r,_1} };
+			k_formats[DXGI_FORMAT_R9G9B9E5_SHAREDEXP]		= { e_format::shared_exp,	{_r,_9}, {_g,_9}, {_b,_9}, {_e,_5 } };
+			k_formats[DXGI_FORMAT_R8G8_B8G8_UNORM]			= { e_format::unorm,		{_r,_8}, {_g,_8}, {_b,_8}, {_g,_8}};
+			k_formats[DXGI_FORMAT_G8R8_G8B8_UNORM]			= { e_format::unorm,		{_g,_8}, {_r,_8}, {_g,_8}, {_b,_8} };
+			k_formats[DXGI_FORMAT_BC1_TYPELESS]				= { e_format::typeless,		e_spec_format::bc1 }; 
+			k_formats[DXGI_FORMAT_BC1_UNORM]				= { e_format::unorm,		e_spec_format::bc1 }; 
+			k_formats[DXGI_FORMAT_BC1_UNORM_SRGB]			= { e_format::unorm_srgb,	e_spec_format::bc1 }; 
+			k_formats[DXGI_FORMAT_BC2_TYPELESS]				= { e_format::typeless,		e_spec_format::bc2 }; 
+			k_formats[DXGI_FORMAT_BC2_UNORM]				= { e_format::unorm,		e_spec_format::bc2 }; 
+			k_formats[DXGI_FORMAT_BC2_UNORM_SRGB]			= { e_format::unorm_srgb,	e_spec_format::bc2 }; 
+			k_formats[DXGI_FORMAT_BC3_TYPELESS]				= { e_format::typeless,		e_spec_format::bc3 }; 
+			k_formats[DXGI_FORMAT_BC3_UNORM]				= { e_format::unorm,		e_spec_format::bc3 }; 
+			k_formats[DXGI_FORMAT_BC3_UNORM_SRGB]			= { e_format::unorm_srgb,	e_spec_format::bc3 }; 
+			k_formats[DXGI_FORMAT_BC4_TYPELESS]				= { e_format::typeless,		e_spec_format::bc4 }; 
+			k_formats[DXGI_FORMAT_BC4_UNORM]				= { e_format::unorm,		e_spec_format::bc4 }; 
+			k_formats[DXGI_FORMAT_BC4_SNORM]				= { e_format::snorm,		e_spec_format::bc4 }; 
+			k_formats[DXGI_FORMAT_BC5_TYPELESS]				= { e_format::typeless,		e_spec_format::bc5 }; 
+			k_formats[DXGI_FORMAT_BC5_UNORM]				= { e_format::unorm,		e_spec_format::bc5 }; 
+			k_formats[DXGI_FORMAT_BC5_SNORM]				= { e_format::snorm,		e_spec_format::bc5 }; 
+			k_formats[DXGI_FORMAT_BC6H_TYPELESS]			= { e_format::typeless,		e_spec_format::bc6 };
+			k_formats[DXGI_FORMAT_BC6H_UF16]				= { e_format::ufloat,		e_spec_format::bc6 };
+			k_formats[DXGI_FORMAT_BC6H_SF16]				= { e_format::sfloat,		e_spec_format::bc6 };
+			k_formats[DXGI_FORMAT_BC7_TYPELESS]				= { e_format::typeless,		e_spec_format::bc7 };
+			k_formats[DXGI_FORMAT_BC7_UNORM]				= { e_format::unorm,		e_spec_format::bc7 };
+			k_formats[DXGI_FORMAT_BC7_UNORM_SRGB]			= { e_format::unorm_srgb,	e_spec_format::bc7 };
+			k_formats[DXGI_FORMAT_B5G6R5_UNORM]				= { e_format::unorm,		{_b,_5}, {_g,_6}, {_r,_5} };
+			k_formats[DXGI_FORMAT_B5G5R5A1_UNORM]			= { e_format::unorm,		{_b,_5}, {_g,_5}, {_r,_5}, {_a,_1} };
+			k_formats[DXGI_FORMAT_B8G8R8A8_UNORM]			= { e_format::unorm,		{_b,_8}, {_g,_8}, {_r,_8}, {_a,_8} };
+			k_formats[DXGI_FORMAT_B8G8R8X8_UNORM]			= { e_format::unorm,		{_b,_8}, {_g,_8}, {_r,_8}, {_x,_8} };
+			k_formats[DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM] = { e_format::xr_bias,	{_r,_10},{_g,_10},{_b,_10},{_a,_2,unorm} };
+			k_formats[DXGI_FORMAT_B8G8R8A8_TYPELESS]		= { e_format::typeless,		{_b,_8}, {_g,_8}, {_r,_8}, {_a,_8}};
+			k_formats[DXGI_FORMAT_B8G8R8A8_UNORM_SRGB]		= { e_format::unorm_srgb,	{_b,_8}, {_g,_8}, {_r,_8}, {_a,_8}};
+			k_formats[DXGI_FORMAT_B8G8R8X8_TYPELESS]		= { e_format::typeless,		{_b,_8}, {_g,_8}, {_r,_8}, {_x,_8}};
+			k_formats[DXGI_FORMAT_B8G8R8X8_UNORM_SRGB]		= { e_format::unorm_srgb,	{_b,_8}, {_g,_8}, {_r,_8}, {_x,_8}};
+			k_formats[DXGI_FORMAT_B4G4R4A4_UNORM]			= { e_format::unorm,		{_b,_4}, {_g,_4}, {_r,_4}, {_a,_4}};
+			k_formats[DXGI_FORMAT_A4B4G4R4_UNORM]			= { e_format::unorm,		{_a,_4}, {_b,_4}, {_g,_4}, {_r,_4}};
+			k_formats[DXGI_FORMAT_AYUV]						= { e_spec_format::AYUV	};
+			k_formats[DXGI_FORMAT_Y410]						= { e_spec_format::Y410	};
+			k_formats[DXGI_FORMAT_Y416]						= { e_spec_format::Y416	};
+			k_formats[DXGI_FORMAT_NV12]						= { e_spec_format::NV12	};
+			k_formats[DXGI_FORMAT_P010]						= { e_spec_format::P010	};
+			k_formats[DXGI_FORMAT_P016]						= { e_spec_format::P016	};
+			k_formats[DXGI_FORMAT_420_OPAQUE]				= { e_spec_format::OP420};
+			k_formats[DXGI_FORMAT_YUY2]						= { e_spec_format::YUY2	}; 
+			k_formats[DXGI_FORMAT_Y210]						= { e_spec_format::Y210	}; 
+			k_formats[DXGI_FORMAT_Y216]						= { e_spec_format::Y216	}; 
+			k_formats[DXGI_FORMAT_NV11]						= { e_spec_format::NV11	}; 
+			k_formats[DXGI_FORMAT_AI44]						= { e_spec_format::AI44	}; 
+			k_formats[DXGI_FORMAT_IA44]						= { e_spec_format::IA44	}; 
+			k_formats[DXGI_FORMAT_P8]						= { e_spec_format::P8	}; 
+			k_formats[DXGI_FORMAT_A8P8]						= { e_spec_format::A8P8	}; 
+			k_formats[DXGI_FORMAT_P208]						= { e_spec_format::P208 };
+			k_formats[DXGI_FORMAT_V208]						= { e_spec_format::V208 };
+			k_formats[DXGI_FORMAT_V408]						= { e_spec_format::V408 };
+			k_formats[DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE] = { e_spec_format::sampler_feedback_minmip_opaque };
+			k_formats[DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE] = { e_spec_format::sampler_feedback_mip_region_used_opaque };
+			k_formats[DXGI_FORMAT_FORCE_UINT]				= { };
+		}
+
+		return k_formats[format];
+	}
+
+	DXGI_FORMAT translate(const pixelformat& format)
+	{
+		using namespace format;
+
+		// find the translated DXGI format that matches ours
+		// could be slow tbf...
+		for (uint32 i = 0u; i < k_num_dxgi_formats; ++i)
+		{
+			DXGI_FORMAT as_dxgi = (DXGI_FORMAT)i;
+			const pixelformat& form = translate(as_dxgi);
+			if (format == form)
+				return as_dxgi;
+		}
+
+		return DXGI_FORMAT_UNKNOWN;
+	}
 	result<uint32> query_descriptor_stride(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type)
 	{
 		return device->GetDescriptorHandleIncrementSize(type);
@@ -122,9 +278,11 @@ namespace influx::rhi
 
 	result<object_native> create_native(const device_desc& desc)
 	{
-		ID3D12Device* result{};
-		dx12_physdevice* dxphys = (dx12_physdevice*)desc.m_physdevice;
+		using result_type = result<object_native>;
 
+		dx12_physdevice* dxphys = (dx12_physdevice*)desc.m_physdevice;
+		
+		dx12_device* result{};
 		HRESULT res = ::D3D12CreateDevice(
 			dxphys,
 			D3D_FEATURE_LEVEL_11_0,
@@ -134,6 +292,10 @@ namespace influx::rhi
 
 	result<object_native> create_native(const queue_desc& desc)
 	{
+		using result_type = result<object_native>;
+		if (desc.m_device == nullptr)
+			return result_type::make_error("desc.m_device is nullptr!");
+		
 		ID3D12CommandQueue* queue{};
 		ID3D12Device* device = (ID3D12Device*)desc.m_device;
 
@@ -150,6 +312,12 @@ namespace influx::rhi
 
 	result<object_native> create_native(const swapchain_desc& desc)
 	{
+		using result_type = result<object_native>;
+		if (desc.m_device == nullptr)
+			return result_type::make_error("desc.m_device is nullptr!");
+		if (desc.m_dimensions.is_zero())
+			return result_type::make_error("desc.m_dimensions invalid!");
+		
 		const uint32 width = desc.m_dimensions.x;
 		const uint32 height = desc.m_dimensions.y;
 
@@ -183,6 +351,10 @@ namespace influx::rhi
 
 	result<object_native> create_native(const descheap_desc& desc)
 	{
+		using result_type = result<object_native>;
+		if (desc.m_device == nullptr)
+			return result_type::make_error("desc.m_device is nullptr!");
+
 		ID3D12Device* device = (ID3D12Device*)desc.m_device;
 
 		ID3D12DescriptorHeap* descheap{};
@@ -197,6 +369,10 @@ namespace influx::rhi
 
 	result<object_native> create_native(const commandallocator_desc& desc)
 	{
+		using result_type = result<object_native>;
+		if (desc.m_device == nullptr)
+			return result_type::make_error("desc.m_device is nullptr!");
+
 		ID3D12Device* device = (ID3D12Device*)desc.m_device;
 		
 		ID3D12CommandAllocator* allocator{};
@@ -208,6 +384,10 @@ namespace influx::rhi
 
 	result<object_native> create_native(const commandlist_desc& desc)
 	{
+		using result_type = result<object_native>;
+		if (desc.m_device == nullptr)
+			return result_type::make_error("desc.m_device is nullptr!");
+
 		dx12_commandlist* commandlist{};
 		ID3D12Device* device = (ID3D12Device*)desc.m_device;
 		ID3D12CommandAllocator* allocator = (ID3D12CommandAllocator*)desc.m_allocator;
@@ -231,6 +411,10 @@ namespace influx::rhi
 	
 	result<object_native> create_native(const fence_desc& desc)
 	{
+		using result_type = result<object_native>;
+		if (desc.m_device == nullptr)
+			return result_type::make_error("desc.m_device is nullptr!");
+
 		ID3D12Fence* fence{};
 		ID3D12Device* device = (ID3D12Device*)desc.m_device;
 
@@ -243,6 +427,10 @@ namespace influx::rhi
 
 	result<object_native> create_native(const buffer_desc& desc)
 	{
+		using result_type = result<object_native>;
+		if (desc.m_device == nullptr)
+			return result_type::make_error("desc.m_device is nullptr!");
+
 		ID3D12Device* device = (ID3D12Device*)desc.m_device;
 		ID3D12Resource* resource = nullptr;
 

@@ -4,7 +4,17 @@
 // influx::platform
 #include "influx_platform/window.h"
 
-int main()
+template <typename _t>
+void check_result(influx::rhi::result<_t>  result)
+{
+	if (!result.is_success())
+	{
+		printf(result.get_unex());
+		assert(false);
+	}
+}
+
+void old()
 {
 	using namespace influx;
 
@@ -59,4 +69,17 @@ int main()
 		swapchain.present();
 		++frame;
 	}
+}
+int main()
+{
+	using namespace influx;
+
+	rhi::device_desc desc{};
+	desc.m_debug = true;
+	auto device = rhi::create_native(desc);
+	check_result(device);
+
+	rhi::queue_desc queuedesc{};
+	auto queue = rhi::create_native(queuedesc);
+	check_result(queue);
 }
