@@ -110,11 +110,21 @@ namespace influx::rhi
 		pipeline,
 		rootsignature
 	};
-
+	struct present_args final
+	{
+		uint32 m_sync_interval;
+		uint32 m_flags;
+	};
 	// [descs] these are the descriptions of objects by which they are created 
 #pragma region create_create_args
 	struct device_create_args final
 	{
+		const char* m_app_name = "";
+		uint32 m_app_version = 0u;
+		const char* m_engine_name = "";
+		uint32 m_engine_version = 0u;
+		uint32 m_api_version = 0u;
+
 		object_native m_physdevice = nullptr;
 		bool m_debug = false;
 	};
@@ -211,6 +221,7 @@ namespace influx::rhi
 
 	};
 #pragma endregion
+
 	template <e_object _t>
 	using create_args = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		device_create_args,
@@ -230,6 +241,7 @@ namespace influx::rhi
 #pragma region data
 	struct device_data final
 	{
+		object_native m_instance;
 		object_native m_physical_device;
 		object_native m_factory;
 
@@ -287,6 +299,7 @@ namespace influx::rhi
 
 	};
 #pragma endregion
+
 	template <e_object _t>
 	using data_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		device_data,
@@ -314,9 +327,9 @@ namespace influx::rhi
 
 	/* [class interfaces]
 	* these are wrapper classes that provide functionality on top of the data they store in their base object class.
+	* use these to make API calls onto the internal objects
 	*/
-	
-	// use these to make API calls onto the internal objects
+
 	class buffer final : public object<e_object::buffer>
 	{
 	public:
@@ -351,6 +364,9 @@ namespace influx::rhi
 	class queue final : public object<e_object::queue>
 	{
 	public:
+		inline static queue_create_args default_graphics() { return queue_create_args::default_graphics(); }
+		inline static queue_create_args default_compute() { return queue_create_args::default_compute(); }
+
 		INFLUX_RHI_API result<> submit(const vector<commandlist*>& commandlists) const;
 		INFLUX_RHI_API result<> queue_signal(const fence& fence, uint64 signal_value) const;
 		INFLUX_RHI_API result<> queue_signal(object_native fence, uint64 signal_value) const;
@@ -359,7 +375,7 @@ namespace influx::rhi
 	class swapchain final : public object<e_object::swapchain>
 	{
 	public:
-		INFLUX_RHI_API result<> present() const;
+		INFLUX_RHI_API result<> present(const present_args& args) const;
 		INFLUX_RHI_API result<uint32> get_current_backbuffer_index() const;
 		INFLUX_RHI_API result<texture2D> get_backbuffer_resource(uint32 index) const;
 		INFLUX_RHI_API result<texture2D> get_backbuffer_resource() const;
@@ -367,6 +383,9 @@ namespace influx::rhi
 
 		INFLUX_RHI_API bool owns_rtvs() const;
 		INFLUX_RHI_API result<descriptor> get_or_create_backbuffer_rtv(const device& device);
+
+		INFLUX_RHI_API static bool is_swapchain_format_supported(const pixelformat& format);
+		INFLUX_RHI_API static const vector<pixelformat>& get_swapchain_supported_formats();
 	};
 
 	class descheap final : public object<e_object::descriptor_heap>
@@ -418,15 +437,17 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> submit(queue& queue);
 		INFLUX_RHI_API result<> wait_for_finish() const;
 		INFLUX_RHI_API bool has_fence() const;
+
+		inline static commandlist_create_args default_graphics() { return commandlist_create_args::default_graphics(); }
 	};
 
 	class command_allocator final : public object<e_object::commandallocator>
 	{
 
 	};
-
-	/* 
-		device class can be used to create objects similar to calling the global create-functions
+	
+	/*
+		device can be used to create objects similar to calling the global create-functions
 		creating through the device class will automatically override the created objects' m_device reference
 		if it has one
 	*/
@@ -439,7 +460,7 @@ namespace influx::rhi
 		INFLUX_RHI_API result<command_allocator>	create(const commandallocator_create_args& args) const;
 		INFLUX_RHI_API result<commandlist>			create(const commandlist_create_args& args) const;
 		INFLUX_RHI_API result<descheap>				create(const descheap_create_args& args) const;
-		
+
 		INFLUX_RHI_API result<>						create_rtv(const texture2D& texture, descriptor descriptor) const;
 		INFLUX_RHI_API result<>						create_dsv(const texture2D& texture, descriptor descriptor) const;
 		INFLUX_RHI_API result<>						create_sampview(const sampler& sampler, descriptor descriptor) const;
@@ -453,7 +474,7 @@ namespace influx::rhi
 	{
 		return device::create(args);
 	}
-	
+
 	/* [creation methods]
 	* these are the platform-native object creation methods
 	* if you want to work closer to the API, you can just use these to create your objects
@@ -482,7 +503,7 @@ namespace influx::rhi
 		if (!native_create) return result_type::make_error(native_create);
 
 		obj_type obj{};
-		obj.m_native_object = create_native(args).get();
+		obj.m_native_object = native_create.get();
 		obj.m_create_args = args;
 		obj.m_data = {};
 		return obj;

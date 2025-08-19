@@ -12,6 +12,7 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 #include "influx_rhi.h"
 #endif
 
+#include <iostream>
 #include "core/basetypes.h"
 #include "influx_platform/window.h"
 using namespace influx;
@@ -122,23 +123,37 @@ int graphics_main()
 #if USE_RHI
 int rhi_main()
 {
+#if 1
+	rhi::device device = rhi::create_device().get();
+	device.create(rhi::queue::default_graphics()).get();
+#else
 	platform::window_desc window_desc{};
 	window_desc.m_dimensions = { 640u, 480u };
 	window_desc.m_name = "renderer";
 	platform::window* window = platform::window::create(window_desc.set_name("influx_rhi"));
 
-	rhi::device dev	= rhi::create_device().get();
-	// rhi::queue queue = dev.create().get();
-	rhi::commandlist cmdlist = dev.create(rhi::commandlist_create_args::default_graphics()).get();
+	rhi::device dev				= rhi::create_device().get();
+	rhi::queue queue			= dev.create(rhi::queue::default_graphics()).get();
+	rhi::commandlist cmdlist	= dev.create(rhi::commandlist::default_graphics()).get();
 
 	rhi::swapchain_create_args swapchain_args{};
 	swapchain_args.m_window = window->get_platform_handle();
 	swapchain_args.m_dimensions = window->get_dimensions();
+	swapchain_args.m_queue = &queue;
+	swapchain_args.m_format = rhi::pixelformat::rgba_8_unorm();
 	rhi::swapchain swapchain = dev.create(swapchain_args).get();
 
-	cmdlist.start(dev).get();
-	cmdlist.end().get();
-	cmdlist.submit(queue).get();
+	bool is_exit = false;
+	while (!is_exit)
+	{
+		window->poll_events(is_exit);
+		cmdlist.start(dev).get();
+		cmdlist.end().get();
+		cmdlist.submit(queue).get();
+
+		swapchain.present();
+	}
+#endif
 
 	return 0u;
 }

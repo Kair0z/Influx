@@ -6,6 +6,9 @@
 #include "core/container/map.h"
 #include "core/debug.h"
 
+// STL
+#include <iostream>
+
 namespace influx
 {
 	enum class e_result : uint8
@@ -177,6 +180,15 @@ namespace influx
 		const _t& operator->() const
 		{
 			return m_expected;
+		}
+
+		friend std::ostream& operator<<(std::ostream& os, const result& res)
+		{
+			if (res.is_unex())
+			{
+				os << res.get_unex() << " | ";
+			}
+			os << res.get();
 		}
 	};
 }
