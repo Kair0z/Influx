@@ -1,20 +1,38 @@
 # Influx
-:wave: My personal C++ Engine/Sandbox project library!
+:wave: This repository stored my personal C++ Engine/Sandbox project library!
+
+¬ C++ Project Info
+-------------------
+C++ version: C++20
 
 ¬ Projects Overview
 ----------------------
-1. Apps
-- [influx_editor]
-- [influx_game]
+1. apps
+- [pong]: game dll that gets loaded at runtime by either the editor or game application
+- [run_game]: application that runs influx_engine in 'game-mode'
+- [run_editor]: application that runs influx_engine in 'editor-mode'
 
 2. Libraries
-- [influx_import]: Library providing asset-loading functionality (PNGs, FBXs, OBJs, ...)
-- [influx_async]: task scheduling
-- [influx_core]: stateless, header-only library, each other library depends on this one 
-- [influx_engine]: main library the applications link to
-- [influx_graphics]: RHI-library (similar to Unreal Engine) providing an abstraction layer of Graphics APIs (Dx12/Vulkan)
-- [influx_renderer]: the renderer used by the engine, uses influx_graphics
+- [influx_async]: wraps a multithreaded task-manager
+- [influx_core]: stateless header-only library, used by pretty much each influx library 
+- [influx_engine]: main static library the runnable applications link to
+- [influx_graphics]: wraps an abstraction layer of Graphics APIs (Dx12/Vulkan) (similar to Unreal Engine RHI)
+- [influx_rhi]: ALSO wraps an abstraction layer. this is an experimental template-heavy version of influx_graphics
+- [influx_imgui]: wraps imgui to use our RHI abstraction layer
+- [influx_import]: wraps third-party asset-loading (PNGs, FBXs, OBJs, ...)
+- [influx_input]: wraps input handling
+- [influx_platform] wraps platform API (Win32 only for now)
+- [influx_renderer] wraps the influx _standalone_ renderer.
+- [influx_rendergraph] wraps a rendergraph implementation
+- [influx_shader] wraps shader compilation logic
 - ...
+  
+3. misc
+- projects that are minimal standalone (not heavy reliant on the influx_engine structure)
+5. test
+- tests for the corresponding influx_library projects.
+6. thirdparty
+7. tools
 
 ¬ Getting up and running
 ----------------------
@@ -29,14 +47,7 @@ To install the correct components some graphics-related code, make sure the **Ga
 3. Open the existing solution (.sln) file [Influx/Influx.sln]
 
 4. Have fun compiling :)
-- !!! [InfluxGame & InfluxEditor] will currently crash because
-= these projects still expect us to manually copy over dependency-runtime-libraries into the output folder... (residing in 3thParty/lib/(platform)/(configuration)/...)
-= there's no localized paths to shader-assets we're loading in.
-- The Application-projects are grouped together and serve as runnable entrypoints into the various Library-Projects (.exe)
-
 
 ¬ Active Branches
 ------------
 1. main: Should always be properly compiling!
-2. graphics-project-rework: Currently working on approaching the RHI-wrapper functionality of [InfluxGraphics] in a more minimal way.
-3. app-cpu-renderer: General work on [FluxRayTracing]
