@@ -32,6 +32,12 @@ namespace influx::rhi
 	using platform_window_handle = void*;
 
 	// [common types]
+	enum class e_api : uint8
+	{
+		d3d12,
+		vulkan,
+		num
+	};
 	enum class e_commandlist_type : uint8
 	{
 		graphics
@@ -58,7 +64,7 @@ namespace influx::rhi
 	{
 		rtv,
 		dsv,
-		resource,
+		resource, // srv / uav / cbv
 		sampler,
 		num
 	};
@@ -82,6 +88,12 @@ namespace influx::rhi
 	};
 	struct clear final
 	{
+		static clear colour(const math::float4& colour)
+		{
+			clear value{};
+			value.m_colour = colour;
+			return value;
+		}
 		math::float4 m_colour;
 	};
 	using object_native = void*;
@@ -166,6 +178,7 @@ namespace influx::rhi
 		object_native m_device;
 		e_descriptor_heap_type m_type;
 		uint32 m_num_descriptors = 0u;
+		bool m_shader_visible = false;
 	};
 	struct commandallocator_create_args final
 	{
@@ -277,18 +290,22 @@ namespace influx::rhi
 	};
 	struct buffer_data final
 	{
+		e_resource_state	m_previous_state;
+		e_resource_state	m_current_state;
 		uint64 m_bytesize;
 		uint64 m_bytestride;
 	};
 	struct texture2D_data final
 	{
-		e_resource_state	m_previous_state;
-		e_resource_state	m_current_state;
-		pixelformat			m_format;
+		e_resource_state m_previous_state;
+		e_resource_state m_current_state;
+		pixelformat	m_format;
 	};
 	struct texture3D_data final
 	{
-
+		e_resource_state m_previous_state;
+		e_resource_state m_current_state;
+		pixelformat m_format;
 	};
 	struct pipeline_data final
 	{
@@ -319,10 +336,26 @@ namespace influx::rhi
 	class object
 	{
 	public:
+		using data_type = data_type<_t>;
+		using create_args = create_args<_t>;
+
 		static constexpr e_object k_type = _t;
-		object_native		m_native_object;
-		create_args<_t>		m_create_args;
-		data_type<_t>		m_data;
+		
+		inline bool is_valid() const
+		{
+			return m_native_object != nullptr;
+		}
+
+		object() = default;
+		object(const object& other) = default;
+		object(object&& other) = default;
+		object& operator=(const object& other) = default;
+		object& operator=(object&& other) = default;
+		~object() = default;
+
+		object_native		m_native_object = nullptr;
+		create_args			m_create_args = {};
+		data_type			m_data = {};
 	};
 
 	/* [class interfaces]
@@ -330,25 +363,82 @@ namespace influx::rhi
 	* use these to make API calls onto the internal objects
 	*/
 
-	class buffer final : public object<e_object::buffer>
+	class resource
 	{
 	public:
+		INFLUX_RHI_API virtual const e_resource_type get_resource_type() const = 0;
+		INFLUX_RHI_API virtual const object_native get_native_resource() const = 0;
+		INFLUX_RHI_API virtual result<> transition(commandlist& cmdlist, e_resource_state new_state);
+		INFLUX_RHI_API virtual e_resource_state get_resource_state() const = 0;
+		INFLUX_RHI_API virtual e_resource_state get_previous_resource_state() const = 0;
+		INFLUX_RHI_API virtual result<> set_state(e_resource_state new_state) = 0;
+
+		inline bool is_texture() const
+		{
+			return get_resource_type() == e_resource_type::texture2D 
+				|| get_resource_type() == e_resource_type::texture3D;
+		}
+	};
+
+	class buffer final : public object<e_object::buffer>, public resource
+	{
+	public:
+		using data_type = object::data_type;
+
 		INFLUX_RHI_API uint64 get_num_elements() const;
 		INFLUX_RHI_API uint64 get_bytesize() const;
 		INFLUX_RHI_API uint64 get_bytestride() const;
+
+		// resource interface
+		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::buffer; };
+		inline virtual const object_native get_native_resource() const override { return m_native_object; }
+		inline virtual e_resource_state get_resource_state() const override { return m_data.m_current_state; }
+		inline virtual e_resource_state get_previous_resource_state() const override { return m_data.m_previous_state; }
+		inline virtual result<> set_state(e_resource_state new_state) override
+		{
+			m_data.m_previous_state = m_data.m_current_state;
+			m_data.m_current_state = new_state;
+			return {};
+		}
 	};
 
-	class texture2D final : public object<e_object::texture2D>
+	class texture2D final : public object<e_object::texture2D>, public resource
 	{
 	public:
+		using data_type = object::data_type;
+
 		INFLUX_RHI_API result<> transition(commandlist& cmdlist, e_resource_state new_state);
 		INFLUX_RHI_API result<pixelformat const*> get_current_format() const;
+
+		// resource interface
+		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture2D; };
+		inline virtual const object_native get_native_resource() const override { return m_native_object; }
+		inline virtual e_resource_state get_resource_state() const override { return m_data.m_current_state; }
+		inline virtual e_resource_state get_previous_resource_state() const override { return m_data.m_previous_state; }
+		inline virtual result<> set_state(e_resource_state new_state) override
+		{
+			m_data.m_previous_state = m_data.m_current_state;
+			m_data.m_current_state = new_state;
+			return {};
+		}
 	};
 
-	class texture3D final : public object<e_object::texture3D>
+	class texture3D final : public object<e_object::texture3D>, public resource
 	{
 	public:
+		using data_type = object::data_type;
 
+		// resource interface
+		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture3D; };
+		inline virtual const object_native get_native_resource() const override { return m_native_object; }
+		inline virtual e_resource_state get_resource_state() const override { return m_data.m_current_state; }
+		inline virtual e_resource_state get_previous_resource_state() const override { return m_data.m_previous_state; }
+		inline virtual result<> set_state(e_resource_state new_state) override
+		{
+			m_data.m_previous_state = m_data.m_current_state;
+			m_data.m_current_state = new_state;
+			return {};
+		}
 	};
 
 	class fence final : public object<e_object::fence>
@@ -386,11 +476,18 @@ namespace influx::rhi
 
 		INFLUX_RHI_API static bool is_swapchain_format_supported(const pixelformat& format);
 		INFLUX_RHI_API static const vector<pixelformat>& get_swapchain_supported_formats();
+	
+		static pixelformat default_format()
+		{
+			return pixelformat::rgba_8_unorm();
+		}
 	};
 
 	class descheap final : public object<e_object::descriptor_heap>
 	{
 	public:
+		using create_args = descheap_create_args;
+
 		/* returns a descriptor */
 		INFLUX_RHI_API result<descriptor> get_cpu_descriptor(uint32 index) const;
 		INFLUX_RHI_API result<descriptor> get_gpu_descriptor(uint32 index) const;
@@ -422,7 +519,7 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> clear_rtv(descriptor rtv, const clear& clear);
 		INFLUX_RHI_API result<> clear_dsv(descriptor dsv);
 		INFLUX_RHI_API result<> set_draw_output(descriptor rtv, descriptor dsv);
-		INFLUX_RHI_API result<> transition_resource(texture2D& resource, e_resource_state new_state);
+		INFLUX_RHI_API result<> transition_resource(resource& resource, e_resource_state new_state);
 		INFLUX_RHI_API result<> update_blas();
 		INFLUX_RHI_API result<> update_tlas();
 		INFLUX_RHI_API result<> copy_resource(const resource& source, resource& desc);
@@ -456,7 +553,7 @@ namespace influx::rhi
 	public:
 		INFLUX_RHI_API static result<device>		create(const device_create_args& args = {});
 		INFLUX_RHI_API result<swapchain>			create(const swapchain_create_args& args) const;
-		INFLUX_RHI_API result<queue>				create(const queue_create_args& args = queue_create_args::default_graphics()) const;
+		INFLUX_RHI_API result<queue>				create(const queue_create_args& args) const;
 		INFLUX_RHI_API result<command_allocator>	create(const commandallocator_create_args& args) const;
 		INFLUX_RHI_API result<commandlist>			create(const commandlist_create_args& args) const;
 		INFLUX_RHI_API result<descheap>				create(const descheap_create_args& args) const;
@@ -468,12 +565,38 @@ namespace influx::rhi
 		INFLUX_RHI_API result<>						create_uav(const texture2D& texture, descriptor descriptor) const;
 		INFLUX_RHI_API result<>						create_srv(const buffer& buffer, descriptor descriptor) const;
 		INFLUX_RHI_API result<>						create_uav(const buffer& buffer, descriptor descriptor) const;
+
+		inline result<> create_rtv(const object_native native, descriptor descriptor) const;
+		inline result<> create_dsv(const object_native native, descriptor descriptor) const;
+		inline result<> create_srv_texture(const object_native native, descriptor descriptor) const;
+		inline result<> create_uav_texture(const object_native native, descriptor descriptor) const;
+		inline result<> create_srv_buffer(const object_native native, descriptor descriptor) const;
+		inline result<> create_uav_buffer(const object_native native, descriptor descriptor) const;
 	};
 
 	inline static result<device> create_device(const device_create_args& args = {})
 	{
 		return device::create(args);
 	}
+
+	/* [import methods]
+	* when you import an object (native pointer) the RHI will attempt to build a wrapped type
+	* based on the information it can parse from the pointer.
+	*/
+	INFLUX_RHI_API result<buffer>				import_buffer(object_native native);
+	INFLUX_RHI_API result<texture2D>			import_texture2D(object_native native);
+	INFLUX_RHI_API result<texture3D>			import_texture3D(object_native native);
+	INFLUX_RHI_API result<descheap>				import_descheap(object_native native);
+	INFLUX_RHI_API result<commandlist>			import_commandlist(object_native native);
+	INFLUX_RHI_API result<command_allocator>	import_allocator(object_native native);
+
+	template <typename _t> result<_t> import(object_native);
+	template<> inline result<buffer> import(object_native native) { return import_buffer(native); }
+	template<> inline result<texture2D> import(object_native native) { return import_texture2D(native); }
+	template<> inline result<texture3D> import(object_native native) { return import_texture3D(native); }
+	template<> inline result<descheap> import(object_native native) { return import_descheap(native); }
+	template<> inline result<commandlist> import(object_native native) { return import_commandlist(native); }
+	template<> inline result<command_allocator> import(object_native native) { return import_allocator(native); }
 
 	/* [creation methods]
 	* these are the platform-native object creation methods
@@ -509,23 +632,75 @@ namespace influx::rhi
 		return obj;
 	}
 
-	/* [import methods]
-	* when you import an object (native pointer) the RHI will attempt to build a wrapped type 
-	* based on the information it can parse from the pointer.
-	*/
-	INFLUX_RHI_API result<buffer>				import_buffer(object_native native);
-	INFLUX_RHI_API result<texture2D>			import_texture2D(object_native native);
-	INFLUX_RHI_API result<texture3D>			import_texture3D(object_native native);
-	INFLUX_RHI_API result<descheap>				import_descheap(object_native native);
-	INFLUX_RHI_API result<commandlist>			import_commandlist(object_native native);
-	INFLUX_RHI_API result<command_allocator>	import_allocator(object_native native);
+	// [inline]
+	// inline methods
+	inline result<> device::create_rtv(const object_native native, descriptor descriptor) const
+	{
+		using result_type = result<>;
 
-	template <typename _t> result<_t> import(object_native);
-	template<> inline result<buffer> import(object_native native) { return import_buffer(native); }
-	template<> inline result<texture2D> import(object_native native) { return import_texture2D(native); }
-	template<> inline result<texture3D> import(object_native native) { return import_texture3D(native); }
-	template<> inline result<descheap> import(object_native native) { return import_descheap(native); }
-	template<> inline result<commandlist> import(object_native native) { return import_commandlist(native); }
-	template<> inline result<command_allocator> import(object_native native) { return import_allocator(native); }
+		if (native == nullptr)
+			return result_type::make_error("native is nullptr!");
+
+		// import native to functional object
+		auto imported = import<texture2D>(native);
+		if (!imported) return result_type::make_error("failed to import native object as a texture2D!");
+
+		return create_rtv(imported.get(), descriptor);
+	}
+	inline result<> device::create_dsv(const object_native native, descriptor descriptor) const
+	{
+		using result_type = result<>;
+		if (native == nullptr) return result_type::make_error("native is nullptr!");
+
+		// import native to functional object
+		auto imported = import<texture2D>(native);
+		if (!imported) return result_type::make_error("failed to import native object as a texture2D!");
+
+		return device::create_dsv(imported.get(), descriptor);
+	}
+	inline result<> device::create_srv_texture(const object_native native, descriptor descriptor) const
+	{
+		using result_type = result<>;
+		if (native == nullptr) return result_type::make_error("native is nullptr!");
+
+		// import native to functional object
+		auto imported = import<texture2D>(native);
+		if (!imported) return result_type::make_error("failed to import native object as a texture2D!");
+
+		return create_srv(imported.get(), descriptor);
+	}
+	inline result<> device::create_uav_texture(const object_native native, descriptor descriptor) const
+	{
+		using result_type = result<>;
+		if (native == nullptr) return result_type::make_error("native is nullptr!");
+
+		// import native to functional object
+		auto imported = import<texture2D>(native);
+		if (!imported) return result_type::make_error("failed to import native object as a texture2D!");
+
+		return create_uav(imported.get(), descriptor);
+	}
+	inline result<> device::create_srv_buffer(const object_native native, descriptor descriptor) const
+	{
+		using result_type = result<>;
+		if (native == nullptr) return result_type::make_error("native is nullptr!");
+
+		// import native to functional object
+		auto imported = import<buffer>(native);
+		if (!imported) return result_type::make_error("failed to import native object as a buffer!");
+
+		return create_srv(imported.get(), descriptor);
+	}
+	inline result<> device::create_uav_buffer(const object_native native, descriptor descriptor) const
+	{
+		using result_type = result<>;
+		if (native == nullptr) return result_type::make_error("native is nullptr!");
+
+		// import native to functional object
+		auto imported = import<buffer>(native);
+		if (!imported) return result_type::make_error("failed to import native object as a buffer!");
+
+		return create_uav(imported.get(), descriptor);
+	}
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);

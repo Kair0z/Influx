@@ -433,7 +433,6 @@ namespace influx::rhi
 		D3D12_RESOURCE_STATES dxstates{};
 		D3D12_CLEAR_VALUE dxclear{};
 
-		ID3D12Heap
 		dx12_resource* resource = nullptr;
 		HRESULT hres = device->CreateCommittedResource(
 			&heap_props,
@@ -836,6 +835,7 @@ namespace influx::rhi
 		device.m_data.m_descriptor_strides[3] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		return device;
 	}
+
 	result<> device::create_rtv(const texture2D& texture, descriptor descriptor) const
 	{
 		using result_type = result<>;
@@ -843,6 +843,9 @@ namespace influx::rhi
 		auto device = cast<dx12_device>(m_native_object);
 		if (!device)
 			return result_type::make_error("m_native_object failed casting to dx12_device!");
+
+		if (descriptor == 0u)
+			return result_type::make_error("descriptor is nullptr!");
 
 		auto resource = cast<dx12_resource>(texture.m_native_object);
 		if (!resource)
@@ -1227,14 +1230,16 @@ namespace influx::rhi
 	{
 		return m_create_args.m_own_fence && m_data.m_fence != nullptr;
 	}
-	result<> commandlist::transition_resource(texture2D& resource, e_resource_state new_state)
+	result<> commandlist::transition_resource(resource& resource, e_resource_state new_state)
 	{
-		dx12_resource* dxresource = (dx12_resource*)resource.m_native_object;
+		using result_type = result<>;
+
+		dx12_resource* dxresource = (dx12_resource*)resource.get_native_resource();
 		dx12_commandlist* dxcmdlist = (dx12_commandlist*)m_native_object;
 		
-		const e_resource_state old_state = resource.m_data.m_current_state;
+		const e_resource_state old_state = resource.get_resource_state();
 		if (new_state == old_state)
-			return result<>::make_error("transition to same state is no-op!");
+			return result<>::make_error("transition to same state is considered a no-op!");
 
 		D3D12_RESOURCE_BARRIER barrier{};
 		barrier.Transition.pResource = dxresource;
@@ -1245,8 +1250,9 @@ namespace influx::rhi
 		barrier.Transition.Subresource = 0u;
 
 		dxcmdlist->ResourceBarrier(1u, &barrier);
-		resource.m_data.m_previous_state = old_state;
-		resource.m_data.m_current_state = new_state;
+		auto res = resource.set_state(new_state);
+		if (!res) return result_type::make_error("failed updating resource state!");
+
 		return {};
 	}
 	result<> commandlist::clear_rtv(descriptor rtv, const clear& clear)
@@ -1310,6 +1316,12 @@ namespace influx::rhi
 	{
 		dx12_descheap* dxheap = (dx12_descheap*)m_native_object;
 		return sample_descheap(dxheap, m_data.m_descriptor_stride, index, false);
+	}
+
+	// [resource]
+	result<> resource::transition(commandlist& cmdlist, e_resource_state new_state)
+	{
+		return cmdlist.transition_resource(*this, new_state);
 	}
 
 	// [buffer]
