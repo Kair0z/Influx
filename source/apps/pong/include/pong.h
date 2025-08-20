@@ -6,14 +6,14 @@
 #define INFLUX_GAME_API __declspec(dllimport)
 #endif
 
-namespace influx { struct engine_api; }
+namespace influx { class game_api; }
 
 class INFLUX_GAME_API pong final
 {
-	static influx::engine_api* m_engine;
+	static influx::game_api* m_engine;
 
 public:
-	static void engine_init(influx::engine_api* api);
+	static void engine_init(influx::game_api* api);
 	static void start();
 	static void tick();
 	static void end();

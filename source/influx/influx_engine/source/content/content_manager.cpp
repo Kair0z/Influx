@@ -179,8 +179,8 @@ namespace influx::engine
 	/* loads all game assets (/game_name/assets/...) */
 	void content_manager::load_game_assets(const string& game_name)
 	{
-		const auto game_assets_dir = get_game_directory(game_name, game_directory::assets);
-		load_assets(e_asset_origin::game, game_assets_dir);
+		const auto project_assets_dir = get_project_directory(game_name, game_directory::assets);
+		load_assets(e_asset_origin::project, project_assets_dir);
 	}
 
 	/* loads a single asset file at path into the content manager */

@@ -14,15 +14,15 @@ namespace influx::engine
 {
 	enum class engine_directory : uint8
 	{
-		root,
-		assets,
-		assets_gen,
-		staged,
-		intermediate,
-		binaries,
-		games,
-		editor,
-		shaderpdb,
+		root,			/* /Influx/... */
+		assets,			/* /Influx/assets/... */
+		assets_gen,		/* /Influx/assets/generated/... */
+		staged,			/* /Influx/staged/... */
+		intermediate,	/* /Influx/int/... */
+		binaries,		/* /Influx/bin/... */
+		projects,		/* /Influx/influx_projects/... */
+		editor,			/* /Influx/editor/... */
+		shaderpdb,		/* /Influx/int/shaderdebug/... */
 		count
 	};
 
@@ -47,24 +47,24 @@ namespace influx::engine
 			case engine_directory::staged:			return root + "/staged/";
 			case engine_directory::binaries:		return root + "/bin/";
 			case engine_directory::intermediate:	return root + "/int/";
-			case engine_directory::games:			return root + "/games/";
+			case engine_directory::projects:		return root + "/influx_projects/";
 			case engine_directory::editor:			return root + "/editor/";
 			case engine_directory::shaderpdb:		return root + "/int/shaderdebug/";
 		}
 		return {};
 	}
 
-	inline static path get_game_directory(const string& game_name, game_directory directory)
+	inline static path get_project_directory(const string& game_name, game_directory directory)
 	{
-		const path& games_directory = get_engine_directory(engine_directory::games);
-		const string games_dir_path_str = to_string(games_directory.get_full_path());
-		const path game_directory = games_dir_path_str + "/" + game_name + "/";
+		const path& projects_directory = get_engine_directory(engine_directory::projects);
+		const string projects_dir_path = to_string(projects_directory.get_full_path());
+		const path game_directory = projects_dir_path + "/" + game_name + "/";
 		influx_assert(game_directory.is_directory());
 		switch (directory)
 		{
 			case game_directory::root:		return game_directory;
-			case game_directory::assets:	return games_dir_path_str + "/assets/";
-			case game_directory::binaries:	return games_dir_path_str + "/binaries/";
+			case game_directory::assets:	return projects_dir_path + "/assets/";
+			case game_directory::binaries:	return projects_dir_path + "/binaries/";
 		}
 		return {};
 	}

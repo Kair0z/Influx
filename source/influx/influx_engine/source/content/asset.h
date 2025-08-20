@@ -45,7 +45,7 @@ namespace influx::engine
 	{
 		unknown,
 		engine,
-		game,
+		project,
 		imported,
 		count
 	};

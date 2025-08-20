@@ -11,10 +11,8 @@
 #include "world/world.h"
 #include "component/component.h"
 #include "content/content_manager.h"
-#include "influx_engine/engine_api.h"
 
 // influx::platform
-#include "influx_platform/library.h"
 #include "influx_platform/window.h"
 
 // influx::file
@@ -22,25 +20,12 @@
 
 namespace influx::engine
 {
+
 	game_manager::game_manager()
 	{
-		// initialize game library
-		const string dll = "D:/Git/Influx/bin/debug-windows-x86_64/influx_game/influx_game.dll";
-		m_game_library = platform::library::load(dll);
-		if (m_game_library)
-		{
-			// get the engine init
-			void* addr = m_game_library->get_func_address("engine_init");
-			if (addr)
-			{
-				static engine_api api{};
-				api.log = engine::log;
-
-				typedef void (*engine_init_func)(engine_api*);
-				engine_init_func engine_init = (engine_init_func)addr;
-				engine_init(&api);
-			}
-		}
+		wstring path_to_dll = get_engine_directory(engine_directory::binaries).get_full_path() + L"/debug-windows-x86_64/pong/pong.dll";
+		m_game_library.load(to_string(path_to_dll)).get();
+		m_game_library.call_engine_init();
 	}
 
 	void game_manager::start()
@@ -53,8 +38,7 @@ namespace influx::engine
 			// setup_cafe();
 			setup_unitcube();
 
-			if (m_game_library)
-				m_game_library->call("start");
+			m_game_library.call_start();
 
 			m_state = state::running;
 		}
@@ -67,8 +51,7 @@ namespace influx::engine
 			return;
 		}
 
-		if (m_game_library)
-			m_game_library->call("tick");
+		m_game_library.call_tick();
 	}
 
 	void game_manager::end()
@@ -78,8 +61,7 @@ namespace influx::engine
 			return;
 		}
 
-		if (m_game_library)
-			m_game_library->call("end");
+		m_game_library.call_end();
 
 		world& world = get_engine()->get_world();
 
