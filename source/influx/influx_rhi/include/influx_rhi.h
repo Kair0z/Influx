@@ -64,7 +64,7 @@ namespace influx::rhi
 	{
 		rtv,
 		dsv,
-		resource, // srv / uav / cbv
+		rsc, // srv / uav / cbv
 		sampler,
 		num
 	};

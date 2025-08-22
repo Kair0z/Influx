@@ -80,7 +80,7 @@ namespace influx::rhi
 		{
 		case e_descriptor_heap_type::rtv: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		case e_descriptor_heap_type::dsv: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		case e_descriptor_heap_type::resource: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		case e_descriptor_heap_type::rsc: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		case e_descriptor_heap_type::sampler: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		}
 		return {};
@@ -99,7 +99,7 @@ namespace influx::rhi
 		{
 		case D3D12_DESCRIPTOR_HEAP_TYPE_RTV: return e_descriptor_heap_type::rtv;
 		case D3D12_DESCRIPTOR_HEAP_TYPE_DSV: return e_descriptor_heap_type::dsv;
-		case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV: return e_descriptor_heap_type::resource;
+		case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV: return e_descriptor_heap_type::rsc;
 		case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER: return e_descriptor_heap_type::sampler;
 		}
 		return e_descriptor_heap_type::num;

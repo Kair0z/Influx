@@ -21,7 +21,7 @@ namespace influx::renderer
 		
 	}
 
-	void descriptor_manager::start_commandlist(graphics::commandlist* commandlist)
+	void descriptor_manager::start_commandlist(rhi_commandlist* commandlist)
 	{
 		commandlist->set_descriptorheaps({ mp_samp_gpu_heap, mp_srv_gpu_heap });
 	}
@@ -35,11 +35,11 @@ namespace influx::renderer
 		mp_samp_gpu_heap->free_all_gpu();
 	}
 
-	descriptor_manager::descriptor_manager(graphics::device* device)
+	descriptor_manager::descriptor_manager(rhi_device* device)
 		: mp_device{ device }
 	{
 		using namespace influx::graphics;
-		graphics::descriptor_heap::create_args create_args{};
+		rhi_descheap::create_args create_args{};
 
 		// CPU heaps:
 		{	
@@ -93,49 +93,49 @@ namespace influx::renderer
 		delete mp_srv_gpu_heap;
 	}
 
-	graphics::descriptor_handle descriptor_manager::create_rtv(graphics::resource* resource)
+	rhi_descriptor descriptor_manager::create_rtv(rhi_resource* resource)
 	{
-		graphics::descriptor_handle cpu_handle = mp_rtv_heap->allocate_cpu().get();
+		rhi_descriptor cpu_handle = mp_rtv_heap->allocate_cpu().get();
 		mp_device->create_rtv(cpu_handle, resource);
 		return cpu_handle;
 	}
 
-	graphics::descriptor_handle descriptor_manager::create_dsv(graphics::resource* resource)
+	rhi_descriptor descriptor_manager::create_dsv(rhi_resource* resource)
 	{
-		graphics::descriptor_handle cpu_handle = mp_dsv_heap->allocate_cpu().get();
+		rhi_descriptor cpu_handle = mp_dsv_heap->allocate_cpu().get();
 		mp_device->create_dsv(cpu_handle, resource);
 		return cpu_handle;
 	}
 
-	graphics::descriptor_handle descriptor_manager::create_srv(graphics::resource* resource)
+	rhi_descriptor descriptor_manager::create_srv(rhi_resource* resource)
 	{
-		graphics::descriptor_handle cpu_handle = mp_srv_heap->allocate_cpu().get();
+		rhi_descriptor cpu_handle = mp_srv_heap->allocate_cpu().get();
 		mp_device->create_texture_srv(cpu_handle, resource);
 		return cpu_handle;
 	}
 
-	graphics::descriptor_handle descriptor_manager::create_buffer_srv(graphics::resource* resource)
+	rhi_descriptor descriptor_manager::create_buffer_srv(rhi_resource* resource)
 	{
-		graphics::descriptor_handle cpu_handle = mp_srv_heap->allocate_cpu().get();
+		rhi_descriptor cpu_handle = mp_srv_heap->allocate_cpu().get();
 		mp_device->create_buffer_srv(cpu_handle, resource);
 		return cpu_handle;
 	}
 
-	graphics::descriptor_handle descriptor_manager::create_sampler()
+	rhi_descriptor descriptor_manager::create_sampler()
 	{
-		graphics::descriptor_handle cpu_handle = mp_sampler_heap->allocate_cpu().get();
+		rhi_descriptor cpu_handle = mp_sampler_heap->allocate_cpu().get();
 		mp_device->create_sampler_view(cpu_handle, nullptr);
 		return cpu_handle;
 	}
 
-	graphics::descriptor_range descriptor_manager::stage(const vector<graphics::descriptor_handle>& cpu_descriptors)
+	rhi_descriptor_range descriptor_manager::stage(const vector<rhi_descriptor>& cpu_descriptors)
 	{
-		graphics::descriptor_range gpu_range{};
+		rhi_descriptor_range gpu_range{};
 		for (size_t i = 0u; i < cpu_descriptors.size(); ++i)
 		{
 			// allocate a gpu descriptor and 
-			graphics::descriptor_handle gpu_handle = mp_srv_gpu_heap->allocate_gpu().get();
-			graphics::descriptor_handle cpu_handle = mp_srv_gpu_heap->allocate_cpu().get();
+			rhi_descriptor gpu_handle = mp_srv_gpu_heap->allocate_gpu().get();
+			rhi_descriptor cpu_handle = mp_srv_gpu_heap->allocate_cpu().get();
 			gpu_range.m_num_descriptors++;
 
 			// set the first gpu handles as the gpu_range base
@@ -152,15 +152,15 @@ namespace influx::renderer
 		return gpu_range;
 	}
 
-	graphics::descriptor_range descriptor_manager::stage(const graphics::descriptor_handle& cpu_descriptor)
+	rhi_descriptor_range descriptor_manager::stage(const rhi_descriptor& cpu_descriptor)
 	{
-		vector<graphics::descriptor_handle> handles{ cpu_descriptor };
+		vector<rhi_descriptor> handles{ cpu_descriptor };
 		return stage(handles);
 	}
 
-	graphics::descriptor_range descriptor_manager::stage(const vector<texture2D*>& textures)
+	rhi_descriptor_range descriptor_manager::stage(const vector<texture2D*>& textures)
 	{
-		vector<graphics::descriptor_handle> cpu_handles{};
+		vector<rhi_descriptor> cpu_handles{};
 		cpu_handles.reserve(textures.size());
 		for (size_t i = 0u; i < textures.size(); ++i)
 		{
@@ -173,25 +173,25 @@ namespace influx::renderer
 		return stage(cpu_handles);
 	}
 
-	graphics::descriptor_range descriptor_manager::stage(texture2D* texture)
+	rhi_descriptor_range descriptor_manager::stage(texture2D* texture)
 	{
 		vector<renderer::texture2D*> textures{ texture };
 		return stage(textures);
 	}
 
-	graphics::descriptor_range descriptor_manager::stage_sampler(graphics::descriptor_handle handle)
+	rhi_descriptor_range descriptor_manager::stage_sampler(rhi_descriptor handle)
 	{
 		return stage_samplers({ handle });
 	}
 
-	graphics::descriptor_range descriptor_manager::stage_samplers(const vector<graphics::descriptor_handle>& samplers)
+	rhi_descriptor_range descriptor_manager::stage_samplers(const vector<rhi_descriptor>& samplers)
 	{
-		graphics::descriptor_range gpu_range{};
+		rhi_descriptor_range gpu_range{};
 		for (size_t i = 0u; i < samplers.size(); ++i)
 		{
 			// allocate a gpu descriptor and 
-			graphics::descriptor_handle gpu_handle = mp_samp_gpu_heap->allocate_gpu().get();
-			graphics::descriptor_handle cpu_handle = mp_samp_gpu_heap->allocate_cpu().get();
+			rhi_descriptor gpu_handle = mp_samp_gpu_heap->allocate_gpu().get();
+			rhi_descriptor cpu_handle = mp_samp_gpu_heap->allocate_cpu().get();
 			gpu_range.m_num_descriptors++;
 
 			// set the first gpu handles as the gpu_range base
@@ -201,23 +201,23 @@ namespace influx::renderer
 			}
 
 			// copy the cpu descriptor into the gpu-visible descriptor
-			mp_device->copy_descriptors(samplers[i], cpu_handle, graphics::e_descriptor_heap_type::sampler);
+			mp_device->copy_descriptors(samplers[i], cpu_handle, rhi_descheap_type::sampler);
 		}
 
 		return gpu_range;
 	}
 
-	void descriptor_manager::cleanup_rtv(graphics::descriptor_handle rtv)
+	void descriptor_manager::cleanup_rtv(rhi_descriptor rtv)
 	{
 		mp_rtv_heap->free_cpu(rtv);
 	}
 
-	void descriptor_manager::cleanup_dsv(graphics::descriptor_handle dsv)
+	void descriptor_manager::cleanup_dsv(rhi_descriptor dsv)
 	{
 		mp_dsv_heap->free_cpu(dsv);
 	}
 
-	void descriptor_manager::cleanup_srv(graphics::descriptor_handle srv)
+	void descriptor_manager::cleanup_srv(rhi_descriptor srv)
 	{
 		mp_srv_heap->free_cpu(srv);
 	}
