@@ -129,6 +129,11 @@ namespace influx::graphics
 		virtual result<> free_all_cpu() = 0;
 		virtual result<> free_all_gpu() = 0;
 
+		inline result<> free(descriptor_handle handle)
+		{
+			free_cpu(handle);
+			return free_gpu(handle);
+		}
 		inline result<> free(uint32 index)
 		{
 			free_gpu(index);

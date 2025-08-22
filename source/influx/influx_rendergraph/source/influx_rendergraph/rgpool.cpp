@@ -105,8 +105,8 @@ namespace influx::rendergraph
 
 	void rgpool::free_all_gpu_descriptors()
 	{
-		get_descheap(e_descheap_slot::samp_gpu).free_all();
-		get_descheap(e_descheap_slot::rsc_gpu).free_all();
+		get_descheap(e_descheap_slot::samp_gpu)->free_all();
+		get_descheap(e_descheap_slot::rsc_gpu)->free_all();
 	}
 
 	void rgpool::cleanup(rhi_device& device)
@@ -282,7 +282,7 @@ namespace influx::rendergraph
 		list<rhi_descriptor>& descriptors = get_allocated_descriptors(type);
 		if (descriptors.find(handle))
 		{
-			get_descheap(type).free(handle);
+			get_descheap(type)->free(handle);
 			descriptors.remove(handle);
 		}
 		

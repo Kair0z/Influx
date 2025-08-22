@@ -16,8 +16,11 @@ namespace influx::renderer
 	class target;
 }
 
+#define INFLUX_RENDER_BACKEND_RHI 0
+#define INFLUX_RENDER_BACKEND_GRAPHICS 1
+
 // influx::rhi
-#if INFLUX_RG_BACKEND_RHI
+#if INFLUX_RENDER_BACKEND_RHI
 #include "influx_rhi.h"
 namespace influx::renderer
 {
@@ -38,7 +41,7 @@ namespace influx::renderer
 }
 #endif
 // influx::graphics
-#if INFLUX_RG_BACKEND_GRAPHICS
+#if INFLUX_RENDER_BACKEND_GRAPHICS
 #include "influx_graphics/device.h"
 #include "influx_graphics/descriptors.h"
 #include "influx_graphics/resource.h"

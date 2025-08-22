@@ -76,7 +76,7 @@ namespace influx::renderer
 			mp_samp_gpu_heap = device->create_descriptor_heap(create_args);
 
 			// srv heap
-			create_args.m_type = e_descriptor_heap_type::srv;
+			create_args.m_type = e_descriptor_heap_type::rsc;
 			create_args.m_capacity = 2048u;
 			mp_srv_gpu_heap = device->create_descriptor_heap(create_args);
 		}
@@ -146,7 +146,7 @@ namespace influx::renderer
 			}
 
 			// copy the cpu descriptor into the gpu-visible descriptor
-			mp_device->copy_descriptors(cpu_descriptors[i], cpu_handle, graphics::e_descriptor_heap_type::srv);
+			mp_device->copy_descriptors(cpu_descriptors[i], cpu_handle, rhi_descheap_type::rsc);
 		}
 
 		return gpu_range;
