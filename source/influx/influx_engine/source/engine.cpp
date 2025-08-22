@@ -61,11 +61,10 @@ namespace influx::engine
 
 	void engine::initialize()
 	{
+		m_t_init = time::get_now();
 		m_logman = new log_manager();
 
 		random::seed_random(0u);
-
-		m_t_init = time::get_now();
 
 		/* setup root file structure */
 		m_config.m_file_influx_root		= get_engine_directory(engine_directory::root);
