@@ -68,7 +68,7 @@ namespace influx::rhi
 		sampler,
 		num
 	};
-	static constexpr uint32 k_num_create_argsriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
+	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
 	enum class e_resource_type
 	{
 		buffer,
@@ -77,9 +77,65 @@ namespace influx::rhi
 	};
 	enum class e_resource_state : uint32
 	{
-		common			= 0,
-		present			= 1 << 0,
-		rendertarget	= 1 << 1,
+		none = 0 << 0,
+		common = 1 << 0,
+		present = 1 << 1,
+		render_target = 1 << 2,
+		depth_target = 1 << 3,
+		depth_readonly = 1 << 4,
+		vs_srv = 1 << 5,
+		ps_srv = 1 << 6,
+		cs_srv = 1 << 7,
+		vs_uav = 1 << 8,
+		ps_uav = 1 << 9,
+		cs_uav = 1 << 10,
+		clear_uav = 1 << 11,
+		copy_src = 1 << 12,
+		copy_dst = 1 << 13,
+		shading_rate = 1 << 14,
+		indexbuffer = 1 << 15,
+		indirect_args = 1 << 16,
+		as_read = 1 << 17,
+		as_write = 1 << 18,
+		discard = 1 << 19,
+		resolve_dst = 1 << 20,
+		resolve_src = 1 << 21,
+
+		all_vs = vs_srv | vs_uav,
+		all_ps = ps_srv | ps_uav,
+		all_cs = cs_srv | cs_uav,
+		all_srv = vs_srv | ps_srv | cs_srv,
+		all_uav = vs_uav | ps_uav | cs_uav,
+		all_depth = depth_target | depth_readonly,
+		all_copy = copy_src | copy_dst,
+		all_as = as_read | as_write,
+		gen_read = copy_src | all_srv,
+		gen_write = copy_dst | all_uav,
+		all_shading = all_srv | all_uav | shading_rate | as_read
+	};
+	enum class e_resource_bindflags
+	{
+		none,
+		rtv,
+		dsv,
+		srv,
+		uav
+	};
+	enum class e_load_op : uint8
+	{
+		discard,
+		preserve,
+		clear,
+		no_access,
+		count
+	};
+	enum class e_store_op : uint8
+	{
+		discard,
+		preserve,
+		resolve,
+		no_access,
+		count
 	};
 
 	struct renderpass_args final
@@ -214,16 +270,30 @@ namespace influx::rhi
 	struct buffer_create_args final
 	{
 		object_native m_device;
+
+		uint64				m_bytesize;
+		uint64				m_bytestride;
+		e_resource_bindflags m_bindflags;
+		e_resource_state	m_init_state;
+		bool m_allow_uav;
 	};
 	struct texture2D_create_args final
 	{
 		object_native m_device;
 		pixelformat m_format;
 		e_resource_state m_init_state;
+
+		uint32 m_arraysize;
+		math::uint2 m_dimensions;
+		e_resource_bindflags m_bindflags;
+		uint32 m_num_mips;
+		uint32 m_sample_count;
+		bool m_allow_uav;
 	};
 	struct texture3D_create_args final
 	{
 		object_native m_device;
+		bool m_allow_uav;
 	};
 	struct pipeline_create_args final
 	{
@@ -258,7 +328,7 @@ namespace influx::rhi
 		object_native m_physical_device;
 		object_native m_factory;
 
-		uint32 m_descriptor_strides[k_num_create_argsriptor_heap_types];
+		uint32 m_descriptor_strides[k_num_descriptor_heap_types];
 	};
 	struct queue_data final
 	{
@@ -372,6 +442,16 @@ namespace influx::rhi
 		INFLUX_RHI_API virtual e_resource_state get_resource_state() const = 0;
 		INFLUX_RHI_API virtual e_resource_state get_previous_resource_state() const = 0;
 		INFLUX_RHI_API virtual result<> set_state(e_resource_state new_state) = 0;
+		INFLUX_RHI_API virtual bool allows_uav() const = 0;
+		INFLUX_RHI_API virtual bool is_valid() const = 0;
+
+		INFLUX_RHI_API virtual uint32 get_arraysize() const { return 0u; };
+		INFLUX_RHI_API virtual uint32 get_depth() const { return 0u; };
+		INFLUX_RHI_API virtual uint32 get_width() const { return 0u; };
+		INFLUX_RHI_API virtual uint32 get_height() const { return 0u; };
+		INFLUX_RHI_API virtual uint64 get_bytesize() const { return 0u; };
+		INFLUX_RHI_API virtual uint64 get_bytestride() const { return 0u; };
+		INFLUX_RHI_API virtual const char* get_name() const { return "";  }
 
 		inline bool is_texture() const
 		{
@@ -400,6 +480,8 @@ namespace influx::rhi
 			m_data.m_current_state = new_state;
 			return {};
 		}
+		inline virtual bool allows_uav() const override { return m_create_args.m_allow_uav; }
+		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
 	class texture2D final : public object<e_object::texture2D>, public resource
@@ -421,6 +503,8 @@ namespace influx::rhi
 			m_data.m_current_state = new_state;
 			return {};
 		}
+		inline virtual bool allows_uav() const override { return m_create_args.m_allow_uav; }
+		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
 	class texture3D final : public object<e_object::texture3D>, public resource
@@ -439,6 +523,8 @@ namespace influx::rhi
 			m_data.m_current_state = new_state;
 			return {};
 		}
+		inline virtual bool allows_uav() const override { return m_create_args.m_allow_uav; }
+		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
 	class fence final : public object<e_object::fence>
@@ -497,10 +583,26 @@ namespace influx::rhi
 
 		INFLUX_RHI_API bool is_allocated(uint32 index) const;
 		INFLUX_RHI_API result<> free(const vector<descriptor_range>& ranges);
-		INFLUX_RHI_API result<> free_all();
+		INFLUX_RHI_API result<> free(const descriptor& desc);
+		INFLUX_RHI_API result<> free(const uint32 index);
+		inline result<> free_all()
+		{
+			for (uint32 i = 0u; i < m_create_args.m_num_descriptors; ++i)
+			{
+				auto this_free = free(i);
+				if (!this_free) return result<>::make_error("failed freeing all descriptors!");
+			}
+			return {};
+		}
 
 		INFLUX_RHI_API bool owns_descriptor(descriptor desc) const;
+		inline bool contains(descriptor desc) const { return owns_descriptor(desc); }
 		INFLUX_RHI_API result<uint32> get_heap_index(descriptor desc) const;
+
+		inline e_descriptor_heap_type get_type() const
+		{
+			return m_create_args.m_type;
+		}
 	};
 
 	class commandlist final : public object<e_object::commandlist>
@@ -522,7 +624,7 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> transition_resource(resource& resource, e_resource_state new_state);
 		INFLUX_RHI_API result<> update_blas();
 		INFLUX_RHI_API result<> update_tlas();
-		INFLUX_RHI_API result<> copy_resource(const resource& source, resource& desc);
+		INFLUX_RHI_API result<> copy_resource(const resource& source, resource& dest);
 		INFLUX_RHI_API result<> bind_descheaps(const vector<const descheap*>& heaps);
 		INFLUX_RHI_API result<> bind_rootsignature();
 		INFLUX_RHI_API result<> bind_pipeline();
@@ -704,3 +806,4 @@ namespace influx::rhi
 	}
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);
+ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_bindflags);

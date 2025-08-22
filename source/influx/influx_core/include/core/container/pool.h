@@ -238,12 +238,13 @@ namespace influx
 	class pool final
 	{
 		_t m_data[_c]{};
-		list<size_t> m_freelist{};
+		vector<size_t> m_freelist{};
 		std::mutex m_mutex{};
 
 	public:
 		inline pool()
 		{
+		
 			reset();
 		}
 
@@ -332,7 +333,6 @@ namespace influx
 		inline void reset()
 		{
 			m_freelist.clear();
-
 			for (size_t i = 0u; i < _c; ++i)
 				m_freelist.push_back(i);
 		}

@@ -13,11 +13,6 @@
 #include "influx_renderer/renderer_common.h"
 #include "influx_renderer/resources/resource_manager.h"
 
-// influx::graphics
-#include "influx_graphics/commandlist.h"
-#include "influx_graphics/resource.h"
-#include "influx_graphics/device.h"
-
 // influx::rendergraph
 #include "rendergraph.h"
 
@@ -753,7 +748,7 @@ namespace influx::renderer
                 rendergraph::texture_desc proxy_desc{};
                 proxy_desc.m_allow_uav = true;
                 proxy_desc.m_array_size = 1u;
-                proxy_desc.m_bindflags = graphics::e_bind_flags::uav;
+                proxy_desc.m_bindflags = rhi_resource_bindflags::uav;
                 proxy_desc.m_depth = 1u;
                 proxy_desc.m_format = target.get_resource()->get_format();
                 proxy_desc.m_width = target.get_width();

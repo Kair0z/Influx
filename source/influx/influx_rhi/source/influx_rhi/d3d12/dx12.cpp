@@ -89,7 +89,7 @@ namespace influx::rhi
 	{
 		D3D12_RESOURCE_STATES result{};
 		if (has_flag(state, e_resource_state::common))			result |= D3D12_RESOURCE_STATE_COMMON;
-		if (has_flag(state, e_resource_state::rendertarget))	result |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+		if (has_flag(state, e_resource_state::render_target))	result |= D3D12_RESOURCE_STATE_RENDER_TARGET;
 		if (has_flag(state, e_resource_state::present))			result |= D3D12_RESOURCE_STATE_PRESENT;
 		return result;
 	}
@@ -1262,6 +1262,24 @@ namespace influx::rhi
 		dxcmdlist->ClearRenderTargetView(dxdescriptor, clear.m_colour.data(), 0u, NULL);
 		return {};
 	}
+	result<> commandlist::copy_resource(const resource& source, resource& dest)
+	{
+		using result_type = result<>;
+		if (source.get_width() != dest.get_width())
+			return result_type::make_error("cannot copy resources of different width!");
+		if (source.get_height() != dest.get_height())
+			return result_type::make_error("cannot copy resources of different height!");
+
+		auto dxsource = cast<dx12_resource>(source.get_native_resource());
+		if (!dxsource) return result_type::make_error("failed casting source, to dx12_resource");
+		auto dxdest = cast<dx12_resource>(dest.get_native_resource());
+		if (!dxdest) return result_type::make_error("failed casting dest to dx12_resource");
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist) return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		dxcmdlist->CopyResource(dxdest.get(), dxsource.get());
+		return {};
+	}
 
 	// [descheap - interface]
 	result<uint32> descheap::allocate(uint32 num_descriptors)
@@ -1305,6 +1323,19 @@ namespace influx::rhi
 	result<> descheap::free(const vector<descriptor_range>& ranges)
 	{
 		ID3D12DescriptorHeap* dxheap = (ID3D12DescriptorHeap*)m_native_object;
+		return {};
+	}
+	result<> descheap::free(const descriptor& desc)
+	{
+		return {};
+	}
+	result<> descheap::free(const uint32 index)
+	{
+		using result_type = result<>;
+		auto dxheap = cast<dx12_descheap>(m_native_object);
+		if (!dxheap) return result_type::make_error("failed casting m_native to dx12_heap");
+
+		m_data.m_freelist[index] = true;
 		return {};
 	}
 	result<descriptor> descheap::get_cpu_descriptor(uint32 index) const

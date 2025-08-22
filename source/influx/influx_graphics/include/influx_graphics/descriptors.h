@@ -11,7 +11,7 @@ namespace influx::graphics
 	{
 		rtv,
 		dsv,
-		srv,
+		rsc,
 		sampler,
 		count
 	};
@@ -49,6 +49,11 @@ namespace influx::graphics
 
 			}
 
+			inline void set_capacity(uint32 capacity)
+			{
+				m_capacity = capacity;
+			}
+
 			e_descriptor_heap_type m_type{};
 			uint32 m_capacity{};
 			bool m_shader_visible = false;
@@ -73,7 +78,7 @@ namespace influx::graphics
 		{
 			create_args args{};
 			args.m_capacity = capacity;
-			args.m_type = e_descriptor_heap_type::srv;
+			args.m_type = e_descriptor_heap_type::rsc;
 			args.m_shader_visible = true;
 			return args;
 		}
@@ -124,6 +129,16 @@ namespace influx::graphics
 		virtual result<> free_all_cpu() = 0;
 		virtual result<> free_all_gpu() = 0;
 
+		inline result<> free(uint32 index)
+		{
+			free_gpu(index);
+			return free_cpu(index);
+		}
+		inline result<> free_all()
+		{
+			free_all_gpu();
+			return free_all_cpu();
+		}
 		/* get the index of a given handle that is allocated in this heap */
 		virtual result<uint32> get_heap_index_cpu(descriptor_handle handle) const = 0;
 		virtual result<uint32> get_heap_index_gpu(descriptor_handle handle) const = 0;
@@ -131,6 +146,11 @@ namespace influx::graphics
 		inline uint32 get_capacity() const
 		{
 			return m_create_args.m_capacity;
+		}
+
+		inline e_descriptor_heap_type get_type() const
+		{
+			return m_create_args.m_type;
 		}
 
 	protected:

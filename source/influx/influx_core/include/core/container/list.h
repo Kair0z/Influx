@@ -5,11 +5,27 @@
 
 #include <list>
 #include <vector>
+#include <algorithm>
+
+#include "core/result.h"
 
 namespace influx
 {
-	template <typename _T>
-	using list = std::list<_T>;
+	template <typename _t>
+	class list : public std::list<_t>
+	{
+	public:
+		influx::result<_t const*, const char*> find(const _t& value) const
+		{
+			using result_type = influx::result<_t const*, const char*>;
+			auto found = std::find(this->cbegin(), this->cend(), value);
+			if (found != this->cend())
+			{
+				return &(*found);
+			}
+			else return result_type::make_error("value not found in list!");
+		}
+	};
 
 	template <typename _t>
 	inline static std::vector<_t> to_vector(const list<_t>& list)

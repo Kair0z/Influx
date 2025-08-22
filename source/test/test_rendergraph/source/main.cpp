@@ -3,15 +3,19 @@
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 
-// SDK 1.614.1
-extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
-extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
-
 // influx::platform
 #include "influx_platform/window.h"
 
+#define BACKEND_GRAPHICS	0
+#define BACKEND_RHI			1
+
+#if BACKEND_GRAPHICS
+// SDK 1.614.1
+extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 // influx::graphics
 #include "influx_graphics/device.h"
+#endif
 
 // influx::rendergraph
 #include "rendergraph.h"
@@ -35,6 +39,7 @@ static const vertex k_vertexbuffer[3u]
 	{{-1, 3, 0}		, { 2, 0}}
 };
 
+#if BACKEND_GRAPHICS
 struct pipeline final
 {
 	graphics::graphics_pipeline* m_pipeline = nullptr;
@@ -148,7 +153,7 @@ struct geometry final
 	}
 };
 
-int main()
+int graphics_main()
 {
 	using namespace influx::rendergraph;
 
@@ -179,7 +184,7 @@ int main()
 
 		uint8 backbuffer_index = swapchain->get_current_backbuffer_index();
 		const string& current_backbuffer_name = "backbuffer_" + to_string(backbuffer_index);
-		graph.import_texture(current_backbuffer_name, res.get());
+		//graph.import_texture(current_backbuffer_name, &res.get());
 
 		// clear backbuffer pass
 		graph.add_graphics_pass([&current_backbuffer_name](auto& builder)
@@ -251,4 +256,10 @@ int main()
 		swapchain->present({ .m_vsync = false });
 		
 	}
+}
+#endif
+
+int main()
+{
+
 }

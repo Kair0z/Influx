@@ -7,9 +7,6 @@
 #include "core/math/colour.h"
 #include "core/result.h"
 
-// influx::graphics
-#include "influx_graphics/resource.h"
-
 #if INFLUX_DEBUG
 #define RGNAME(name) influx::rendergraph::rgname(#name, influx::crc64(#name)) 
 #define RGNAME_IDX(name, idx) influx::rendergraph::rgname(#name, influx::crc64(#name) + idx)
@@ -18,10 +15,81 @@
 #define RGNAME_IDX(name, idx) influx::rendergraph::rgname(influx::crc64(#name) + idx)
 #endif
 
+// influx::graphics
+#define INFLUX_RG_BACKEND_RHI		0
+#define INFLUX_RG_BACKEND_GRAPHICS  1
+
+// influx::graphics
+#if INFLUX_RG_BACKEND_RHI
+#include "influx_rhi.h"
+namespace influx::rendergraph
+{
+	using rhi_device = rhi::device;
+	using rhi_commandlist = rhi::commandlist;
+	using rhi_resource = rhi::resource;
+	using rhi_descheap = rhi::descheap;
+	using rhi_descriptor = rhi::descriptor;
+	using rhi_descheap_type = rhi::e_descriptor_heap_type;
+	using rhi_bufferdesc = rhi::buffer_create_args;
+	using rhi_texture2Ddesc = rhi::texture2D_create_args;
+	using rhi_pixelformat = rhi::pixelformat;
+	using rhi_resource_state = rhi::e_resource_state;
+	using rhi_resource_bindflags = rhi::e_resource_bindflags;
+	using rhi_store_op = rhi::e_store_op;
+	using rhi_load_op = rhi::e_load_op;
+	static constexpr uint32 k_num_descheap_types = rhi::k_num_descriptor_heap_types;
+}
+#endif
+#if INFLUX_RG_BACKEND_GRAPHICS
+#include "influx_graphics/device.h"
+#include "influx_graphics/descriptors.h"
+#include "influx_graphics/resource.h"
+#include "influx_graphics/commandlist.h"
+namespace influx::graphics
+{
+	class device;
+	class commandlist;
+	class resource;
+	class descriptor_heap;
+}
+
+namespace influx::rendergraph
+{
+	using rhi_device = graphics::device;
+	using rhi_commandlist = graphics::commandlist;
+	using rhi_resource = graphics::resource;
+	using rhi_descheap = graphics::descriptor_heap;
+	using rhi_descriptor = graphics::descriptor_handle;
+	using rhi_descheap_type = graphics::e_descriptor_heap_type;
+	using rhi_bufferdesc = graphics::buffer_desc;
+	using rhi_texture2Ddesc = graphics::tex2D_desc;
+	using rhi_pixelformat = graphics::e_format;
+	using rhi_resource_state = graphics::e_resource_state;
+	using rhi_resource_bindflags = graphics::e_bind_flags;
+	using rhi_store_op = graphics::e_store_op;
+	using rhi_load_op = graphics::e_load_op;
+	static constexpr uint32 k_num_descheap_types = graphics::k_num_descriptor_heap_types;
+}
+#endif
+
 namespace influx::rendergraph
 {
 	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
+
+	/* 
+		external descheaps
+		these are the slots of CPU heaps the rendergraph system can tap into for its allocations.
+	*/
+	enum class e_ext_descheap_slot : uint8
+	{
+		rtv,
+		dsv,
+		resource,
+		sampler,
+		num
+	};
+	static constexpr uint32 k_num_ext_descheap_slots = static_cast<uint32>(e_ext_descheap_slot::num);
 
 	/* configuration settings */
 	struct global_config final
@@ -34,6 +102,13 @@ namespace influx::rendergraph
 		uint32 m_max_num_srvs = 64u;
 		uint32 m_max_num_rtvs = 32;
 		uint32 m_max_num_dsvs = 32;
+
+		/* [optional] external descheaps to tap into */
+		rhi_descheap* m_external_descheaps[k_num_ext_descheap_slots]{};
+		void set_external_descheap(e_ext_descheap_slot slot, rhi_descheap& heap)
+		{
+			m_external_descheaps[static_cast<uint32>(slot)] = &heap;
+		}
 	};
 
 	// -- textures & buffers
@@ -62,9 +137,9 @@ namespace influx::rendergraph
 		uint32 m_array_size = 1u;
 		uint32 m_num_mips = 1u;
 		uint32 m_sample_count = 1u;
-		graphics::e_format m_format;
-		graphics::e_resource_state m_init_state = graphics::e_resource_state::common;
-		graphics::e_bind_flags m_bindflags = graphics::e_bind_flags::none;
+		rhi_pixelformat m_format;
+		rhi_resource_state m_init_state = rhi_resource_state::common;
+		rhi_resource_bindflags m_bindflags = rhi_resource_bindflags::none;
 		bool m_allow_uav = false;
 	};
 
@@ -110,10 +185,10 @@ namespace influx::rendergraph
 
 		size_t m_bytesize;
 		size_t m_bytestride;
-		graphics::e_resource_flags m_flags;
-		graphics::e_format m_format;
-		graphics::e_resource_state m_init_state = graphics::e_resource_state::common;
-		graphics::e_bind_flags m_bindflags = graphics::e_bind_flags::none;
+		uint64 m_flags;
+		rhi_pixelformat m_format;
+		rhi_resource_state m_init_state = rhi_resource_state::common;
+		rhi_resource_bindflags m_bindflags = rhi_resource_bindflags::none;
 	};
 
 	struct buffer_view_desc final
@@ -376,7 +451,7 @@ namespace influx::rendergraph
 
 		struct store_resolve_params final
 		{
-			graphics::e_format m_dest_format;
+			rhi_pixelformat m_dest_format;
 			rgtexture_id m_source_texture;
 			rgtexture_id m_dest_texture;
 			bool m_keep_source = false;
@@ -388,7 +463,7 @@ namespace influx::rendergraph
 		} m_store_preserve;
 
 		/* [load:preserve | store:resolve] */
-		inline static rgaccess keep_and_copy(rgtexture_id src, rgtexture_id dst, graphics::e_format dest_format, bool keep_source = true)
+		inline static rgaccess keep_and_copy(rgtexture_id src, rgtexture_id dst, const rhi_pixelformat& dest_format, bool keep_source = true)
 		{
 			static rgaccess access{};
 			access.m_load = e_rg_load::preserve;

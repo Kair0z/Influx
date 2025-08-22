@@ -40,7 +40,7 @@ namespace influx::rendergraph
 		rgpass* m_writer;
 		rgpass* m_last_user;
 		uint32 m_refcount;
-		graphics::resource* m_resource;
+		rhi_resource* m_resource;
 		bool m_is_imported;
 		rgname m_name;
 	};

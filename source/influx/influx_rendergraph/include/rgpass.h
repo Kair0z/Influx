@@ -89,8 +89,8 @@ namespace influx::rendergraph
 		vector<rgbuffer_id> m_buffer_writes;
 		vector<rgbuffer_id> m_buffer_destroys;
 
-		umap<rgtexture_id, graphics::e_resource_state> m_texture_state_map;
-		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_state_map;
+		umap<rgtexture_id, rhi_resource_state> m_texture_state_map;
+		umap<rgbuffer_id, rhi_resource_state> m_buffer_state_map;
 
 		struct render_target final
 		{
@@ -153,12 +153,12 @@ namespace influx::rendergraph
 		uset<rgtexture_id> m_texture_reads;
 		uset<rgtexture_id> m_texture_writes;
 		uset<rgtexture_id> m_texture_destroys;
-		umap<rgtexture_id, graphics::e_resource_state> m_texture_to_state_map;
+		umap<rgtexture_id, rhi_resource_state> m_texture_to_state_map;
 
 		uset<rgbuffer_id> m_buffer_creates;
 		uset<rgbuffer_id> m_buffer_reads;
 		uset<rgbuffer_id> m_buffer_writes;
 		uset<rgbuffer_id> m_buffer_destroys;
-		umap<rgbuffer_id, graphics::e_resource_state> m_buffer_to_state_map;
+		umap<rgbuffer_id, rhi_resource_state> m_buffer_to_state_map;
 	};
 }

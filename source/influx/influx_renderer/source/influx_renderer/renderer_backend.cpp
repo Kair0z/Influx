@@ -17,9 +17,6 @@
 // influx::rendergraph
 #include "rendergraph.h"
 
-// influx::graphics
-#include "influx_graphics.h"
-
 namespace influx::renderer
 {
 #pragma region translation
@@ -54,6 +51,11 @@ namespace influx::renderer
         }
     }
 #pragma endregion
+
+    renderer_backend::renderer_backend()
+    {
+        printf("");
+    }
 
     void renderer_backend::log(e_log type, const char* message)
     {

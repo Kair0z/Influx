@@ -10,6 +10,8 @@
 
 namespace influx::graphics
 {
+    class resource;
+
     enum e_renderpass_flags : uint32
     {
         none = 0x0,

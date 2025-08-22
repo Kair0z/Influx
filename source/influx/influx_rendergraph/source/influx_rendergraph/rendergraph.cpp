@@ -11,41 +11,37 @@
 #include "rgpool.h"
 #include "rgresources.h"
 
-// influx::graphics
-#include "influx_graphics/commandlist.h"
-#include "influx_graphics/device.h"
-
 // stl
 #include <stack>
 
 namespace influx::rendergraph
 {
 #pragma region translation
-	constexpr graphics::e_load_op translate(const e_rg_load load)
+	constexpr rhi_load_op translate(const e_rg_load load)
 	{
 		switch (load)
 		{
-		case e_rg_load::clear: return graphics::e_load_op::clear;
-		case e_rg_load::discard: return graphics::e_load_op::discard;
-		case e_rg_load::preserve: return graphics::e_load_op::preserve;
-		case e_rg_load::no_access: return graphics::e_load_op::no_access;
+		case e_rg_load::clear: return rhi_load_op::clear;
+		case e_rg_load::discard: return rhi_load_op::discard;
+		case e_rg_load::preserve: return rhi_load_op::preserve;
+		case e_rg_load::no_access: return rhi_load_op::no_access;
 		}
-		return graphics::e_load_op::count;
+		return rhi_load_op::count;
 	}
 
-	constexpr graphics::e_store_op translate(const e_rg_store store)
+	constexpr rhi_store_op translate(const e_rg_store store)
 	{
 		switch (store)
 		{
-		case e_rg_store::resolve: return graphics::e_store_op::resolve;
-		case e_rg_store::discard: return graphics::e_store_op::discard;
-		case e_rg_store::preserve: return graphics::e_store_op::preserve;
-		case e_rg_store::no_access: return graphics::e_store_op::no_access;
+		case e_rg_store::resolve: return rhi_store_op::resolve;
+		case e_rg_store::discard: return rhi_store_op::discard;
+		case e_rg_store::preserve: return rhi_store_op::preserve;
+		case e_rg_store::no_access: return rhi_store_op::no_access;
 		}
-		return graphics::e_store_op::count;
+		return rhi_store_op::count;
 	}
 
-	texture_desc get_desc_from_resource(const graphics::resource& resource)
+	texture_desc get_desc_from_resource(const rhi_resource& resource)
 	{
 		texture_desc desc{};
 		desc.m_array_size = resource.get_arraysize();
@@ -53,13 +49,13 @@ namespace influx::rendergraph
 		desc.m_depth = resource.get_depth();
 		desc.m_width = resource.get_width();
 		desc.m_heigth = resource.get_height();
-		desc.m_init_state = resource.get_state();
+		desc.m_init_state = resource.get_resource_state();
 		desc.m_num_mips = 1u;
 		desc.m_sample_count = 1u;
 		desc.m_allow_uav = resource.allows_uav();
 		return desc;
 	}
-	buffer_desc get_buffer_desc_from_resource(const graphics::resource& resource)
+	buffer_desc get_buffer_desc_from_resource(const rhi_resource& resource)
 	{
 		buffer_desc desc{};
 		desc.m_bytesize = resource.get_bytesize();
@@ -68,13 +64,13 @@ namespace influx::rendergraph
 	}
 #pragma endregion
 
-	rendergraph::rendergraph(const global_config& config, graphics::device& device)
+	rendergraph::rendergraph(const global_config& config, rhi_device& device)
 	{
 		m_config = config;
 		m_pool = new rgpool(device, config);
 	}
 
-	void rendergraph::cleanup(graphics::device& device)
+	void rendergraph::cleanup(rhi_device& device)
 	{
 		// release the device objects
 		for (auto& pair : m_texid_to_deviceobjects_map)
@@ -83,7 +79,7 @@ namespace influx::rendergraph
 			{
 				if (pair.second[i] != nullptr)
 				{
-					device.release(pair.second[i]);
+					// device.release(pair.second[i]);
 					pair.second[i] = nullptr;
 				}
 			}
@@ -94,7 +90,7 @@ namespace influx::rendergraph
 			{
 				if (pair.second[i] != nullptr)
 				{
-					device.release(pair.second[i]);
+					// device.release(pair.second[i]);
 					pair.second[i] = nullptr;
 				}
 			}
@@ -163,8 +159,8 @@ namespace influx::rendergraph
 	}
 
 	result<> rendergraph::execute(
-		graphics::commandlist& commandlist,
-		graphics::device& device)
+		rhi_commandlist& commandlist,
+		rhi_device& device)
 	{
 		const bool is_valid = execute_validation_checks();
 		if (!is_valid) return result<>::make_error("rendergraph failed validation checks!");
@@ -201,24 +197,27 @@ namespace influx::rendergraph
 			for (auto const& [tex_id, state] : layer.m_texture_to_state_map)
 			{
 				rgtexture* texture = get_texture(tex_id);
-				graphics::resource* resource = texture->m_resource;
-				if (resource->get_state() != state)
+				rhi_resource* resource = texture->m_resource;
+				if (resource->get_resource_state() != state)
 				{
-					resource->transition(&commandlist, state);
+					resource->transition(commandlist, state);
 				}
 			}
 			for (auto const& [buff_id, state] : layer.m_buffer_to_state_map)
 			{
 				rgbuffer* buffer = get_buffer(buff_id);
-				graphics::resource* resource = buffer->m_resource;
-				if (resource->get_state() != state)
+				rhi_resource* resource = buffer->m_resource;
+				if (resource->get_resource_state() != state)
 				{
-					resource->transition(&commandlist, state);
+					resource->transition(commandlist, state);
 				}
 			}
+#if INFLUX_RG_BACKEND_GRAPHICS
 			commandlist.flush_barriers();
+#endif
 
 			// execute passes
+#if INFLUX_RG_BACKEND_GRAPHICS
 			for (size_t pass_idx = 0u; pass_idx < layer.m_passes.size(); ++pass_idx)
 			{
 				const rgpass& pass = layer.m_passes[pass_idx];
@@ -323,7 +322,7 @@ namespace influx::rendergraph
 					pass.execute(context);
 				}
 			}
-
+#endif
 			// execute destroys
 			for (const rgtexture_id& tex_id : layer.m_texture_destroys)
 			{
@@ -359,7 +358,7 @@ namespace influx::rendergraph
 		return &new_pass;
 	}
 
-	rgpass* rendergraph::add_copypass(graphics::resource* source, graphics::resource* dest, bool keep_source)
+	rgpass* rendergraph::add_copypass(rhi_resource* source, rhi_resource* dest, bool keep_source)
 	{
 		import_texture(dest->get_name(), dest);
 		import_texture(source->get_name(), source);
@@ -375,16 +374,16 @@ namespace influx::rendergraph
 			},
 			[](rgpass_context& context) 
 			{
-				graphics::resource* src_resource = context.get_copysrc(src_tex_id).get().m_resource;
-				graphics::resource* dst_resource = context.get_copydst(dst_tex_id).get().m_resource;
-				context.get_commandlist().copy_resource(src_resource, dst_resource);
+				rhi_resource* src_resource = context.get_copysrc(src_tex_id).get().m_resource;
+				rhi_resource* dst_resource = context.get_copydst(dst_tex_id).get().m_resource;
+				context.get_commandlist().copy_resource(*src_resource, *dst_resource);
 			});
 
 		pass->set_name("copy");
 		return pass;
 	}
 
-	rgpass* rendergraph::add_clear_pass(graphics::resource* dest, const clear_args& args)
+	rgpass* rendergraph::add_clear_pass(rhi_resource* dest, const clear_args& args)
 	{
 		import_texture(dest->get_name(), dest);
 
@@ -404,7 +403,7 @@ namespace influx::rendergraph
 		return pass;
 	}
 
-	result<> rendergraph::import_texture(const rgname& name, graphics::resource* resource)
+	result<> rendergraph::import_texture(const rgname& name, rhi_resource* resource)
 	{
 		if (resource == nullptr || resource->is_valid() == false)
 			return result<>::make_error("error: importing invalid resource!");
@@ -435,7 +434,7 @@ namespace influx::rendergraph
 		return {};
 	}
 
-	result<> rendergraph::import_buffer(const rgname& name, graphics::resource* resource)
+	result<> rendergraph::import_buffer(const rgname& name, rhi_resource* resource)
 	{
 		if (m_buffer_name_to_id_map.contains(name) == false)
 		{
@@ -638,14 +637,27 @@ namespace influx::rendergraph
 		return result;
 	}
 
+	result<> rendergraph::bind_ext_descheap(e_ext_descheap_slot slot, rhi_descheap& heap, bool allow_override)
+	{
+		return m_pool->bind_ext_descheap(slot, heap, allow_override);
+	}
+	result<> rendergraph::unbind_ext_descheap(e_ext_descheap_slot slot)
+	{
+		return m_pool->unbind_ext_descheap(slot);
+	}
+	bool rendergraph::is_ext_descheap_bound(e_ext_descheap_slot slot) const
+	{
+		return m_pool->is_ext_descheap_bound(slot);
+	}
+
 	/* creates views (rtv/dsv/srv/samp) based on how the resource will be used in our rendergraph */
-	result<> rendergraph::create_texture_views(graphics::device& device, rgtexture_id id)
+	result<> rendergraph::create_texture_views(rhi_device& device, rgtexture_id id)
 	{
 		auto& viewdescs = m_texid_to_viewdesc_map[id];
 		auto& descriptors = m_texid_to_descriptors_map[id];
 
 		rgtexture* texture = get_texture(id);
-		graphics::resource& resource = *texture->m_resource;
+		rhi_resource& resource = *texture->m_resource;
 		
 		// for each type of descriptor, allocate a cpu-handle and create the view
 		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
@@ -656,7 +668,7 @@ namespace influx::rendergraph
 				const rgdescriptor_type type = static_cast<rgdescriptor_type>(i);
 				if (viewdescs[i].m_is_created == false)
 				{
-					auto alloc_result = m_pool->alloc_cpu_handle(type);
+					auto alloc_result = m_pool->alloc_cpu_descriptor(type);
 					if (alloc_result.is_unex())
 					{
 						return result<>::make_error("error: failed allocating a cpu handle!");
@@ -669,20 +681,19 @@ namespace influx::rendergraph
 				switch (type)
 				{
 				case rgdescriptor_type::render_target:
-					device.create_rtv(descriptors[i], &resource);
+					device.create_rtv(&resource, descriptors[i]);
 					break;
 				case rgdescriptor_type::depth_target:
-					device.create_dsv(descriptors[i], &resource);
+					device.create_dsv(&resource, descriptors[i]);
 					break;
 				case rgdescriptor_type::read_only:
-					device.create_texture_srv(descriptors[i], &resource);
+					device.create_srv_texture(&resource, descriptors[i]);
 					break;
 				case rgdescriptor_type::read_write:
-
 					if (resource.allows_uav() == false)
 						return result<>::make_error("error: cannot create a uav for a texture that doesn't allow it!");
 					
-					device.create_texture_uav(descriptors[i], &resource);
+					device.create_uav_texture(&resource, descriptors[i]);
 					break;
 				}
 
@@ -694,7 +705,7 @@ namespace influx::rendergraph
 	}
 
 	/* creates views (rtv/dsv/srv/samp) based on how the resource will be used in our rendergraph */
-	result<> rendergraph::create_buffer_views(graphics::device& device, rgbuffer_id id)
+	result<> rendergraph::create_buffer_views(rhi_device& device, rgbuffer_id id)
 	{
 		auto& viewdescs = m_bufid_to_viewdesc_map[id];
 		auto& descriptors = m_bufid_to_descriptors_map[id];
@@ -709,13 +720,20 @@ namespace influx::rendergraph
 				switch (type)
 				{
 				case rgdescriptor_type::read_only:
-					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+					descriptors[i] = m_pool->alloc_cpu_descriptor(type).get();
+#if INFLUX_RG_BACKEND_RHI
+					device.create_srv_buffer(buffer->m_resource, descriptors[i]);
+#else 
 					device.create_buffer_srv(descriptors[i], buffer->m_resource);
+#endif
 					break;
 				case rgdescriptor_type::read_write:
-					descriptors[i] = m_pool->alloc_cpu_handle(type).get();
+					descriptors[i] = m_pool->alloc_cpu_descriptor(type).get();
+#if INFLUX_RG_BACKEND_RHI
+					device.create_uav_buffer(buffer->m_resource, descriptors[i]);
+#else 
 					device.create_buffer_uav(descriptors[i], buffer->m_resource);
-					break;
+#endif					break;
 
 				default:
 					return result<>::make_error("error: non-supported descriptor type for buffer!");
@@ -994,9 +1012,9 @@ namespace influx::rendergraph
 			return result_type::make_error("texture by name not declared/imported!");
 		}
 
-		if (texture->m_desc.m_init_state == graphics::e_resource_state::common)
+		if (texture->m_desc.m_init_state == rhi_resource_state::common)
 		{
-			texture->m_desc.m_init_state = graphics::e_resource_state::copy_src;
+			texture->m_desc.m_init_state = rhi_resource_state::copy_src;
 		}
 		return rgtex_copysrc_id(id);
 	}
@@ -1011,9 +1029,9 @@ namespace influx::rendergraph
 			return result_type::make_error("texture by name not declared/imported!");
 		}
 
-		if (texture->m_desc.m_init_state == graphics::e_resource_state::common)
+		if (texture->m_desc.m_init_state == rhi_resource_state::common)
 		{
-			texture->m_desc.m_init_state = graphics::e_resource_state::copy_dst;
+			texture->m_desc.m_init_state = rhi_resource_state::copy_dst;
 		}
 		return rgtex_copydst_id(id);
 	}
@@ -1101,10 +1119,10 @@ namespace influx::rendergraph
 		}
 
 		texture_desc& desc = texture->m_desc;
-		desc.m_bindflags |= graphics::e_bind_flags::rtv;
-		if (desc.m_init_state == graphics::e_resource_state::common)
+		desc.m_bindflags |= rhi_resource_bindflags::rtv;
+		if (desc.m_init_state == rhi_resource_state::common)
 		{
-			desc.m_init_state = graphics::e_resource_state::render_target;
+			desc.m_init_state = rhi_resource_state::render_target;
 		}
 
 		// store the viewdesc
@@ -1134,10 +1152,10 @@ namespace influx::rendergraph
 		}
 
 		texture_desc& desc = texture->m_desc;
-		desc.m_bindflags |= graphics::e_bind_flags::dsv;
-		if (desc.m_init_state == graphics::e_resource_state::common)
+		desc.m_bindflags |= rhi_resource_bindflags::dsv;
+		if (desc.m_init_state == rhi_resource_state::common)
 		{
-			desc.m_init_state = graphics::e_resource_state::depth_target;
+			desc.m_init_state = rhi_resource_state::depth_target;
 		}
 
 		// store the viewdesc
@@ -1167,10 +1185,10 @@ namespace influx::rendergraph
 		}
 
 		texture_desc& desc = texture->m_desc;
-		desc.m_bindflags |= graphics::e_bind_flags::srv;
-		if (desc.m_init_state == graphics::e_resource_state::common)
+		desc.m_bindflags |= rhi_resource_bindflags::srv;
+		if (desc.m_init_state == rhi_resource_state::common)
 		{
-			desc.m_init_state = graphics::e_resource_state::cs_srv | graphics::e_resource_state::ps_srv;
+			desc.m_init_state = rhi_resource_state::cs_srv | rhi_resource_state::ps_srv;
 		}
 
 		// store the viewdesc
@@ -1200,10 +1218,10 @@ namespace influx::rendergraph
 		}
 
 		texture_desc& desc = texture->m_desc;
-		desc.m_bindflags |= graphics::e_bind_flags::uav;
-		if (desc.m_init_state == graphics::e_resource_state::common)
+		desc.m_bindflags |= rhi_resource_bindflags::uav;
+		if (desc.m_init_state == rhi_resource_state::common)
 		{
-			desc.m_init_state = graphics::e_resource_state::all_uav;
+			desc.m_init_state = rhi_resource_state::all_uav;
 		}
 
 		// store the viewdesc
@@ -1233,7 +1251,7 @@ namespace influx::rendergraph
 		}
 
 		buffer_desc& desc = buffer->m_desc;
-		desc.m_bindflags |= graphics::e_bind_flags::srv;
+		desc.m_bindflags |= rhi_resource_bindflags::srv;
 
 		// store the viewdesc
 		buffer_view_desc* viewdescs = m_bufid_to_viewdesc_map[id];
@@ -1262,7 +1280,7 @@ namespace influx::rendergraph
 		}
 
 		buffer_desc& desc = buffer->m_desc;
-		desc.m_bindflags |= graphics::e_bind_flags::uav;
+		desc.m_bindflags |= rhi_resource_bindflags::uav;
 
 		// store the viewdesc
 		buffer_view_desc* viewdescs = m_bufid_to_viewdesc_map[id];
@@ -1296,8 +1314,8 @@ namespace influx::rendergraph
 		buffer_desc& desc = buffer->m_desc;
 		buffer_desc& cnt_desc = cnt_buffer->m_desc;
 
-		desc.m_bindflags |= graphics::e_bind_flags::uav;
-		cnt_desc.m_bindflags |= graphics::e_bind_flags::uav;
+		desc.m_bindflags |= rhi_resource_bindflags::uav;
+		cnt_desc.m_bindflags |= rhi_resource_bindflags::uav;
 
 		// store the viewdesc
 		buffer_view_desc* viewdescs = m_bufid_to_viewdesc_map[id];
@@ -1391,7 +1409,7 @@ namespace influx::rendergraph
 				if (m_textures[i]->m_is_imported)
 				{
 					rgtexture_id id = m_textures[i]->m_id;
-					const graphics::resource& resource = *m_textures[i]->m_resource;
+					const rhi_resource& resource = *m_textures[i]->m_resource;
 					if (m_texid_to_viewdesc_map.contains(id))
 					{
 						const bool wants_uav = m_texid_to_viewdesc_map.at(id)[uav_index].m_is_active;
@@ -1407,7 +1425,7 @@ namespace influx::rendergraph
 				if (m_buffers[i]->m_is_imported)
 				{
 					rgbuffer_id id = m_buffers[i]->m_id;
-					const graphics::resource& resource = *m_buffers[i]->m_resource;
+					const rhi_resource& resource = *m_buffers[i]->m_resource;
 					if (m_bufid_to_viewdesc_map.contains(id))
 					{
 						const bool wants_uav = m_bufid_to_viewdesc_map.at(id)[uav_index].m_is_active;
@@ -1432,25 +1450,25 @@ namespace influx::rendergraph
 		return is_runnable;
 	}
 
-	graphics::descriptor_handle rendergraph::get_rtv(rgtexture_id id)
+	rhi_descriptor rendergraph::get_rtv(rgtexture_id id)
 	{
 		influx_assert(m_texid_to_descriptors_map.contains(id));
 		return m_texid_to_descriptors_map[id][static_cast<uint32>(rgdescriptor_type::render_target)];
 	}
 
-	graphics::descriptor_handle rendergraph::get_dsv(rgtexture_id id)
+	rhi_descriptor rendergraph::get_dsv(rgtexture_id id)
 	{
 		influx_assert(m_texid_to_descriptors_map.contains(id));
 		return m_texid_to_descriptors_map[id][static_cast<uint32>(rgdescriptor_type::depth_target)];
 	}
 
-	graphics::descriptor_handle rendergraph::get_readonly(rgtexture_id id)
+	rhi_descriptor rendergraph::get_readonly(rgtexture_id id)
 	{
 		influx_assert(m_texid_to_descriptors_map.contains(id));
 		return m_texid_to_descriptors_map[id][static_cast<uint32>(rgdescriptor_type::read_only)];
 	}
 
-	graphics::descriptor_handle rendergraph::get_readwrite(rgtexture_id id)
+	rhi_descriptor rendergraph::get_readwrite(rgtexture_id id)
 	{
 		influx_assert(m_texid_to_descriptors_map.contains(id));
 		return m_texid_to_descriptors_map[id][static_cast<uint32>(rgdescriptor_type::read_write)];
@@ -1463,7 +1481,7 @@ namespace influx::rendergraph
 		rgtexture_id res_id = rgtexture_id(id);
 		rgtexture* texture = m_graph.get_texture(res_id);
 		result.m_resource = texture->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_copysrc(rgbuf_copysrc_id id)
@@ -1472,7 +1490,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id = rgbuffer_id(id);
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		result.m_resource = buffer->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_copydst(rgtex_copydst_id id)
@@ -1481,7 +1499,7 @@ namespace influx::rendergraph
 		rgtexture_id res_id = rgtexture_id(id);
 		rgtexture* texture = m_graph.get_texture(res_id);
 		result.m_resource = texture->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_copydst(rgbuf_copydst_id id)
@@ -1490,7 +1508,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id = rgbuffer_id(id);
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		result.m_resource = buffer->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_vertexbuffer(rgbuf_vertex_id id)
@@ -1499,7 +1517,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id = rgbuffer_id(id);
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		result.m_resource = buffer->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_indexbuffer(rgbuf_index_id id)
@@ -1508,7 +1526,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id = rgbuffer_id(id);
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		result.m_resource = buffer->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_constbuffer(rgbuf_const_id id)
@@ -1517,7 +1535,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id = rgbuffer_id(id);
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		result.m_resource = buffer->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_indirect_args_resource(rgbuf_indargs_id id)
@@ -1526,7 +1544,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id = rgbuffer_id(id);
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		result.m_resource = buffer->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_copysrc_texture(const rgname& name)
@@ -1535,7 +1553,7 @@ namespace influx::rendergraph
 		rgtexture_id res_id = m_graph.m_texture_name_to_id_map[name];
 		rgtexture* texture = m_graph.get_texture(res_id);
 		result.m_resource = texture->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_copysrc_buffer(const rgname& name)
@@ -1544,7 +1562,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		result.m_resource = buffer->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_copydst_texture(const rgname& name)
@@ -1553,7 +1571,7 @@ namespace influx::rendergraph
 		rgtexture_id res_id = m_graph.m_texture_name_to_id_map[name];
 		rgtexture* texture = m_graph.get_texture(res_id);
 		result.m_resource = texture->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_copydst_buffer(const rgname& name)
@@ -1562,7 +1580,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 		result.m_resource = buffer->m_resource;
-		result.m_descriptor = nullptr;
+		result.m_descriptor = 0u;
 		return result;
 	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_rtv(uint32 at_index)

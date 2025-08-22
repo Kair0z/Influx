@@ -381,7 +381,7 @@ namespace influx::imgui
 		graphics::descriptor_heap::create_args desc_heap_args{};
 		desc_heap_args.m_capacity = 1u;
 		desc_heap_args.m_shader_visible = true;
-		desc_heap_args.m_type = graphics::e_descriptor_heap_type::srv;
+		desc_heap_args.m_type = graphics::e_descriptor_heap_type::rsc;
 		get_srv_heap() = get_device()->create_descriptor_heap(desc_heap_args);
 
 		create_fonts_texture();

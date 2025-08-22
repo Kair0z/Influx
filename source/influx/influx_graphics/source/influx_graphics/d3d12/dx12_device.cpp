@@ -119,7 +119,7 @@ namespace influx::graphics
 		{
 		case e_descriptor_heap_type::rtv: return m_rtv_stride;
 		case e_descriptor_heap_type::dsv: return m_dsv_stride;
-		case e_descriptor_heap_type::srv: return m_srv_stride;
+		case e_descriptor_heap_type::rsc: return m_srv_stride;
 		case e_descriptor_heap_type::sampler: return m_sampler_stride;
 		}
 

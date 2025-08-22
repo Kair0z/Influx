@@ -13,14 +13,6 @@
 #include "core/result.h"
 #include "core/pointer.h"
 
-// influx::graphics
-#include "influx_graphics/descriptors.h"
-namespace influx::graphics
-{
-	class device;
-	class commandlist;
-}
-
 // influx::rendergraph
 #include "rgcommon.h"
 #include "rgresources.h"
@@ -39,15 +31,15 @@ namespace influx::rendergraph
 		friend class rendergraph;
 
 	public:
-		graphics::commandlist& get_commandlist()
+		rhi_commandlist& get_commandlist()
 		{
 			return m_commandlist;
 		}
 
 		struct resource_and_view final
 		{
-			graphics::resource* m_resource = nullptr;
-			graphics::descriptor_handle m_descriptor = nullptr;
+			rhi_resource* m_resource = nullptr;
+			rhi_descriptor m_descriptor = {};
 		};
 
 		INFLUX_RG_API result<resource_and_view> get_copysrc(rgtex_copysrc_id);
@@ -85,8 +77,8 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<resource_and_view> get_write_buffer(uint32 index);
 
 	private:
-		rgpass_context(rendergraph& rg, graphics::commandlist& cmdlist, const rgpass& pass) : m_graph{ rg }, m_commandlist{ cmdlist }, m_pass{ pass }{}
-		graphics::commandlist& m_commandlist;
+		rgpass_context(rendergraph& rg, rhi_commandlist& cmdlist, const rgpass& pass) : m_graph{ rg }, m_commandlist{ cmdlist }, m_pass{ pass }{}
+		rhi_commandlist& m_commandlist;
 		rendergraph& m_graph;
 		const rgpass& m_pass;
 	};
@@ -102,9 +94,10 @@ namespace influx::rendergraph
 		friend class rgpass_context;
 
 	public:
-		INFLUX_RG_API rendergraph(const global_config& config, graphics::device& device);
+		
+		INFLUX_RG_API rendergraph(const global_config& config, rhi_device& device);
 
-		INFLUX_RG_API void cleanup(graphics::device& device);
+		INFLUX_RG_API void cleanup(rhi_device& device);
 
 		INFLUX_RG_API ~rendergraph();
 
@@ -112,8 +105,8 @@ namespace influx::rendergraph
 
 		// execute the graph onto a single command list
 		INFLUX_RG_API result<> execute(
-			graphics::commandlist& commandlist,
-			graphics::device& device);
+			rhi_commandlist& commandlist,
+			rhi_device& device);
 
 		// adds a node outputting to root
 		INFLUX_RG_API rgpass* add_pass(e_rgpass_type type,
@@ -135,19 +128,19 @@ namespace influx::rendergraph
 		}
 
 		// [utility] pre-made pass that resolves source into dest
-		INFLUX_RG_API rgpass* add_copypass(graphics::resource* source, graphics::resource* dest, bool keep_source);
+		INFLUX_RG_API rgpass* add_copypass(rhi_resource* source, rhi_resource* dest, bool keep_source);
 
 		// [utility] pre-made pass that clears dest resource
-		INFLUX_RG_API rgpass* add_clear_pass(graphics::resource* dest, const clear_args& args = {});
+		INFLUX_RG_API rgpass* add_clear_pass(rhi_resource* dest, const clear_args& args = {});
 
 		// importing resources allows rendergraph to operate on the given resource.
 		// it will not (de)allocate
-		INFLUX_RG_API result<> import_texture(const rgname& name, graphics::resource* resource);
-		INFLUX_RG_API result<> import_buffer(const rgname& name, graphics::resource* resource);
+		INFLUX_RG_API result<> import_texture(const rgname& name, rhi_resource* resource);
+		INFLUX_RG_API result<> import_buffer(const rgname& name, rhi_resource* resource);
 		
 		// todo >>
-		INFLUX_RG_API result<> export_texture(const rgname& name, graphics::resource* resource);
-		INFLUX_RG_API result<> export_buffer(const rgname& name, graphics::resource* resource);
+		INFLUX_RG_API result<> export_texture(const rgname& name, rhi_resource* resource);
+		INFLUX_RG_API result<> export_buffer(const rgname& name, rhi_resource* resource);
 
 		/* removes imported resources from book-keeping ! does not de-allocate their resources !*/
 		INFLUX_RG_API result<> remove_imported_texture(const rgname& name);
@@ -165,6 +158,11 @@ namespace influx::rendergraph
 		
 		INFLUX_RG_API vector<rgtexture_info> get_textures() const;
 		INFLUX_RG_API vector<rgbuffer_info> get_buffers() const;
+
+		/* external descriptor heaps */
+		INFLUX_RG_API result<> bind_ext_descheap(e_ext_descheap_slot slot, rhi_descheap& heap, bool allow_override = false);
+		INFLUX_RG_API result<> unbind_ext_descheap(e_ext_descheap_slot slot);
+		INFLUX_RG_API bool is_ext_descheap_bound(e_ext_descheap_slot slot) const;
 
 	private:
 		global_config m_config{};
@@ -187,14 +185,16 @@ namespace influx::rendergraph
 
 		static constexpr uint8 k_num_descriptor_types = static_cast<uint8>(rgdescriptor_type::count);
 		umap<rgtexture_id, texture_view_desc[k_num_descriptor_types]> m_texid_to_viewdesc_map;
-		umap<rgtexture_id, graphics::descriptor_handle[k_num_descriptor_types]> m_texid_to_descriptors_map;
+		umap<rgtexture_id, rhi_descriptor[k_num_descriptor_types]> m_texid_to_descriptors_map;
 		umap<rgtexture_id, graphics::base*[k_num_descriptor_types]> m_texid_to_deviceobjects_map;
 
 		umap<rgrendertarget_id, math::colour_rgba> m_rtid_to_clear_map;
 
 		umap<rgbuffer_id, buffer_view_desc[k_num_descriptor_types]> m_bufid_to_viewdesc_map;
-		umap<rgbuffer_id, graphics::descriptor_handle[k_num_descriptor_types]> m_bufid_to_descriptors_map;
+		umap<rgbuffer_id, rhi_descriptor[k_num_descriptor_types]> m_bufid_to_descriptors_map;
 		umap<rgbuffer_id, graphics::base* [k_num_descriptor_types]> m_bufid_to_deviceobjects_map;
+
+		vector<uint64> m_topo_sorted_passes;
 
 		/* building the render graph */
 		void build_adjacency();
@@ -205,16 +205,14 @@ namespace influx::rendergraph
 		void depth_search(uint64 parent_idx, vector<bool>& visited_list, vector<uint64>& topo_sorted_passes);
 
 		/* creates views (rtv/dsv/srv/samp) based on how the resource will be used in our rendergraph */
-		result<> create_texture_views(graphics::device&, rgtexture_id);
-		result<> create_buffer_views(graphics::device&, rgbuffer_id);
-
-		vector<uint64> m_topo_sorted_passes;
+		result<> create_texture_views(rhi_device&, rgtexture_id);
+		result<> create_buffer_views(rhi_device&, rgbuffer_id);
 
 		// misc
-		graphics::descriptor_handle get_rtv(rgtexture_id id);
-		graphics::descriptor_handle get_dsv(rgtexture_id id);
-		graphics::descriptor_handle get_readonly(rgtexture_id id);
-		graphics::descriptor_handle get_readwrite(rgtexture_id id);
+		rhi_descriptor get_rtv(rgtexture_id id);
+		rhi_descriptor get_dsv(rgtexture_id id);
+		rhi_descriptor get_readonly(rgtexture_id id);
+		rhi_descriptor get_readwrite(rgtexture_id id);
 
 		// rgpass_builder uses these
 		rgtexture_id declare_texture(const rgname& name, const texture_desc& desc);

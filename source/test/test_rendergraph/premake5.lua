@@ -5,6 +5,7 @@ new_influx_test("test_rendergraph")
         "influx_core",
         "influx_platform",
         "influx_graphics",
+        "influx_rhi",
         "influx_rendergraph",
         "influx_shader"
     }

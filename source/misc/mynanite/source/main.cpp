@@ -27,7 +27,6 @@ public:
 	class descriptor_manager final
 	{
 	public:
-		
 		enum class e_descriptorheap : uint8
 		{
 			rtv,
@@ -244,7 +243,6 @@ int main()
 		window->poll_events(is_exit);
 
 		graphics.render_start();
-
 		graphics.backbuffer().transition(graphics.commandlist(), rhi::e_resource_state::rendertarget);
 		
 		// get or create an rtv
@@ -252,8 +250,8 @@ int main()
 
 		graphics.commandlist().clear_rtv(rtv_handle, rhi::clear::colour({ 1,0,0,1 }));
 		graphics.backbuffer().transition(graphics.commandlist(), rhi::e_resource_state::present);
-
 		graphics.render_finish();
+
 		graphics.present(false);
 	}
 }

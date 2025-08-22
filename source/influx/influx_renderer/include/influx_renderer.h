@@ -10,6 +10,8 @@
 */
 
 #define INFLUX_RENDER_BINDLESS 1
+#define INFLUX_RENDER_BACKEND_RHI 1
+#define INFLUX_RENDER_BACKEND_GRAPHICS 0
 
 #pragma region includes
 // Imgui

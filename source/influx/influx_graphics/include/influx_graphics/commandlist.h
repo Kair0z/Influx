@@ -149,6 +149,11 @@ namespace influx::graphics
 
 		INFLUX_GFX_API virtual result<> copy_resource(resource* source, resource* dest) = 0;
 
+		inline virtual result<> copy_resource(resource& source, resource& dest)
+		{
+			return copy_resource(&source, &dest);
+		}
+
 		INFLUX_GFX_API virtual result<> copy_texture(resource* src, resource* dest, const copy_texture_args& = {}) = 0;
 
 		INFLUX_GFX_API virtual result<> copy_buffer(resource* src, resource* dest, uint32 bytesize, const copy_buffer_args & = {}) = 0;

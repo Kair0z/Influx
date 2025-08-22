@@ -8,7 +8,8 @@ new_influx_library("influx_rendergraph")
     {
         "influx_core",
         "influx_platform",
-        "influx_graphics"
+        "influx_graphics",
+        "influx_rhi"
     }
     set_influx_includes(dependencies)
     set_influx_links(dependencies)

@@ -64,7 +64,7 @@ namespace influx::rendergraph
 		rgtexture_id res_id(copy_src_id.get());
 
 		// register a state transition
-		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::copy_src;
+		m_pass.m_texture_state_map[res_id] = rhi_resource_state::copy_src;
 
 		// register a tex-read
 		m_pass.m_texture_reads.push_back(res_id);
@@ -84,7 +84,7 @@ namespace influx::rendergraph
 		rgtexture* texture = m_graph.get_texture(res_id);
 
 		// register a state transition
-		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::copy_dst;
+		m_pass.m_texture_state_map[res_id] = rhi_resource_state::copy_dst;
 		
 		// register a tex-write
 		m_pass.m_texture_writes.push_back(res_id);
@@ -115,7 +115,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id(copy_src_id);
 
 		// register a state transition
-		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::copy_src;
+		m_pass.m_buffer_state_map[res_id] = rhi_resource_state::copy_src;
 		
 		// register a buff-read
 		m_pass.m_buffer_reads.push_back(res_id);
@@ -135,7 +135,7 @@ namespace influx::rendergraph
 		rgbuffer* buffer = m_graph.get_buffer(res_id);
 
 		// register a state transition
-		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::copy_dst;
+		m_pass.m_buffer_state_map[res_id] = rhi_resource_state::copy_dst;
 
 		// register a buff-write
 		m_pass.m_buffer_writes.push_back(res_id);
@@ -163,7 +163,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id(ind_args_id);
 
 		// register a state transition
-		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::indirect_args;
+		m_pass.m_buffer_state_map[res_id] = rhi_resource_state::indirect_args;
 		
 		// register a buff-read
 		m_pass.m_buffer_reads.push_back(res_id);
@@ -182,7 +182,7 @@ namespace influx::rendergraph
 		rgbuffer_id res_id(index_id);
 
 		// register a state transition
-		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::indexbuffer;
+		m_pass.m_buffer_state_map[res_id] = rhi_resource_state::indexbuffer;
 		
 		// register a buff-read
 		m_pass.m_buffer_reads.push_back(res_id);
@@ -330,15 +330,15 @@ namespace influx::rendergraph
 		case e_rgpass_type::graphics:
 			switch (read_access)
 			{
-			case rgread_access::ps: m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::ps_srv; break;
-			case rgread_access::non_ps: m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::cs_srv; break;
-			case rgread_access::all_shader: m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::all_srv; break;
+			case rgread_access::ps: m_pass.m_texture_state_map[res_id] = rhi_resource_state::ps_srv; break;
+			case rgread_access::non_ps: m_pass.m_texture_state_map[res_id] = rhi_resource_state::cs_srv; break;
+			case rgread_access::all_shader: m_pass.m_texture_state_map[res_id] = rhi_resource_state::all_srv; break;
 			}
 			break;
 
 		case e_rgpass_type::compute:
 		case e_rgpass_type::async_compute:
-			m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::cs_srv;
+			m_pass.m_texture_state_map[res_id] = rhi_resource_state::cs_srv;
 			break;
 		}
 
@@ -367,7 +367,7 @@ namespace influx::rendergraph
 		}
 
 		// register the state transition
-		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::cs_uav;
+		m_pass.m_texture_state_map[res_id] = rhi_resource_state::cs_uav;
 		
 		// register tex-write
 		m_pass.m_texture_writes.push_back(res_id);
@@ -399,7 +399,7 @@ namespace influx::rendergraph
 		rgtexture* texture = m_graph.get_texture(res_id);
 
 		// register state transition
-		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::render_target;
+		m_pass.m_texture_state_map[res_id] = rhi_resource_state::render_target;
 		
 		// register tex-write
 		m_pass.m_texture_writes.push_back(res_id);
@@ -431,7 +431,7 @@ namespace influx::rendergraph
 		rgtexture* texture = m_graph.get_texture(res_id);
 
 		// register the state transition
-		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::depth_target;
+		m_pass.m_texture_state_map[res_id] = rhi_resource_state::depth_target;
 
 		// register tex-write
 		m_pass.m_texture_writes.push_back(res_id);
@@ -462,7 +462,7 @@ namespace influx::rendergraph
 
 		rgtexture_id res_id = dt_id.get().get_resource_id();
 
-		m_pass.m_texture_state_map[res_id] = graphics::e_resource_state::depth_readonly;
+		m_pass.m_texture_state_map[res_id] = rhi_resource_state::depth_readonly;
 		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
 			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = true, .m_is_enabled = true };
 
@@ -488,15 +488,15 @@ namespace influx::rendergraph
 		if (m_pass.is_compute_any())
 		{
 			read_access = rgread_access::non_ps;
-			m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_srv;
+			m_pass.m_buffer_state_map[res_id] = rhi_resource_state::cs_srv;
 		}
 		else
 		{
 			switch (read_access)
 			{
-			case rgread_access::ps: m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::ps_srv; break;
-			case rgread_access::non_ps: m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_srv; break;
-			case rgread_access::all_shader: m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::all_srv; break;
+			case rgread_access::ps: m_pass.m_buffer_state_map[res_id] = rhi_resource_state::ps_srv; break;
+			case rgread_access::non_ps: m_pass.m_buffer_state_map[res_id] = rhi_resource_state::cs_srv; break;
+			case rgread_access::all_shader: m_pass.m_buffer_state_map[res_id] = rhi_resource_state::all_srv; break;
 			}
 		}
 
@@ -514,7 +514,7 @@ namespace influx::rendergraph
 
 		rgbuffer_id res_id = rw_id.get().get_resource_id();
 
-		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_uav;
+		m_pass.m_buffer_state_map[res_id] = rhi_resource_state::cs_uav;
 
 		if (!m_pass.has_create(res_id))
 		{
@@ -538,8 +538,8 @@ namespace influx::rendergraph
 		rgbuffer_id counter_id = m_graph.get_buffer_id(counter_name);
 		rgbuffer_id res_id = rw_id.get().get_resource_id();
 
-		m_pass.m_buffer_state_map[res_id] = graphics::e_resource_state::cs_uav;
-		m_pass.m_buffer_state_map[counter_id] = graphics::e_resource_state::cs_uav;
+		m_pass.m_buffer_state_map[res_id] = rhi_resource_state::cs_uav;
+		m_pass.m_buffer_state_map[counter_id] = rhi_resource_state::cs_uav;
 
 		dummy_write_buffer(counter_name);
 

@@ -69,7 +69,38 @@ namespace influx::renderer
 		// konstants
 		constexpr static e_buffering k_buffering = e_buffering::tripple;
 
+		init_args	m_init_args = {};
+		uint64		m_frame_count = 0u;
+		bool		m_is_initialized = false;
+		string		m_shadersource_directory = "";
+
+		umap<debug_name, target*>	m_targets = {};
+		rendergraph::rendergraph*	m_rendergraph = nullptr;
+		graphics::device*			mp_device = nullptr;
+		graphics::queue*			mp_graphics_queue = nullptr;
+		graphics::commandlist*		mp_commandlist = nullptr;
+		graphics::fence*			m_gpu_finished_fence = nullptr;
+
+		struct swapchain final
+		{
+			graphics::swapchain*	mp_swapchain = nullptr;
+			vector<target*>			m_targets{};
+			string					m_windowtitle{};
+		};
+		umap<platform::window const*, swapchain> m_swapchains{};
+
+		descriptor_manager*		mp_desc_manager = nullptr;
+		upload_manager*			mp_upload_manager = nullptr;
+		pipeline_manager*		mp_pipeline_manager = nullptr;
+		imgui_manager*			mp_imgui = nullptr;
+		scene_renderer*			mp_scene_renderer = nullptr;
+		quad_renderer*			mp_quad_renderer = nullptr;
+		shadertoy_renderer*		mp_shadertoy_renderer = nullptr;
+		resource_manager*		m_resource_manager = nullptr;
+		render_settings			m_settings = {};
+
 	public:
+		renderer_backend();
 		static void log(e_log, const char* message);
 
 		void initialize(const init_args& args);
@@ -155,43 +186,6 @@ namespace influx::renderer
 		string get_shadersource_directory(e_shadersource_directory _enum = e_shadersource_directory::base) const;
 
 	private:
-		init_args m_init_args{};
-		uint64 m_frame_count = 0u;
-		bool m_is_initialized = false;
-		string m_shadersource_directory = "";
-
-		// targets
-		umap<debug_name, target*> m_targets{};
-
-		// rendergraph
-		rendergraph::rendergraph* m_rendergraph = nullptr;
-
-		// graphics objects
-		graphics::device* mp_device = nullptr;
-		graphics::queue* mp_graphics_queue = nullptr;
-		graphics::commandlist* mp_commandlist = nullptr;
-		graphics::fence* m_gpu_finished_fence = nullptr;
-
-		// swapchains
-		struct swapchain final
-		{
-			graphics::swapchain*	mp_swapchain = nullptr;
-			vector<target*>			m_targets{};
-			string					m_windowtitle{};
-		};
-		umap<platform::window const*, swapchain> m_swapchains{};
-
-		// managers
-		descriptor_manager* mp_desc_manager = nullptr;
-		upload_manager* mp_upload_manager = nullptr;
-		pipeline_manager* mp_pipeline_manager = nullptr;
-		imgui_manager* mp_imgui = nullptr;
-		scene_renderer* mp_scene_renderer = nullptr;
-		quad_renderer* mp_quad_renderer = nullptr;
-		shadertoy_renderer* mp_shadertoy_renderer = nullptr;
-		resource_manager* m_resource_manager;
-		render_settings m_settings;
-
 		void recreate_backbuffer_targets(swapchain& swapchain);
 		target* get_current_window_target(swapchain& swapchain);
 	};

@@ -56,7 +56,7 @@ namespace influx::renderer
 			mp_dsv_heap = device->create_descriptor_heap(create_args);
 
 			// srv heap
-			create_args.m_type = e_descriptor_heap_type::srv;
+			create_args.m_type = e_descriptor_heap_type::rsc;
 			create_args.m_capacity = k_max_num_srvs;
 			mp_srv_heap = device->create_descriptor_heap(create_args);
 
