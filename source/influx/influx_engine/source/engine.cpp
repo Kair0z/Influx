@@ -77,13 +77,12 @@ namespace influx::engine
 		m_contentman	= new content_manager();
 		m_gameman		= new game_manager();
 
-		// initialize window & render
+		/* create window& renderer */
 		const string window_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
-		const math::vectoru2 window_dimensions = { 720, 480u};
+		const math::vectoru2 window_dimensions = { 720, 480u };
 		platform::window_desc window_desc{};
 		window_desc	.set_dimensions(window_dimensions)
 					.set_name(window_name);
-
 		m_windowman = new window_manager();
 		m_windowman->spawn(window_desc); // main window
 		m_renderman = new render_manager();

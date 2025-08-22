@@ -1,6 +1,7 @@
 [project]
 name = 'pong'
 version = '0.0.1'
+path_to_dll = 'D:\Git\Influx\bin\debug-windows-x86_64\pong\pong.dll'
 
 [graphics]
 empty = 'yeah'
