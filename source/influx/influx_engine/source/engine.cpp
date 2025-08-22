@@ -104,7 +104,7 @@ namespace influx::engine
 		process_runarguments(argc, argv);
 		initialize();
 
-		// auto-start game
+		// when running as game, we auto-start the game-manager
 		if (type == run_type::game)
 		{
 			if (m_gameman) 
@@ -118,7 +118,7 @@ namespace influx::engine
 			m_time.tick();
 			m_fps = 1.0f / m_time.get_delta_seconds();
 
-			// platform window tick
+			// platform window event poll
 			{
 				influx_scope("poll_window");
 				poll_platform_events();
