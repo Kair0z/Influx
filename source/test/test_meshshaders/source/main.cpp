@@ -164,7 +164,7 @@ int main()
 	const float camera_distance = 50;
 	math::float3 camera_pos = { 1, 1, 1 };
 	camera_pos = camera_pos.normalized() * camera_distance;
-	math::float3 camera_lookat = math::float3::zero() - camera_pos;
+	math::float3 camera_lookat = math::float3::make_zero() - camera_pos;
 	camera_lookat.normalize();
 
 	const float nearp = 0.001f;

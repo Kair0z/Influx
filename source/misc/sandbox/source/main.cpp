@@ -1,3 +1,6 @@
+// influx::core
+#include "core/math/random.h"
+
 // influx::rhi
 #include "influx_rhi.h"
 
@@ -14,72 +17,154 @@ void check_result(influx::rhi::result<_t>  result)
 	}
 }
 
-void old()
+using namespace influx;
+
+template <typename _t, uint32 _x, uint32 _y, uint64 _ps>
+class virtual_texture
 {
-	using namespace influx;
+public:
+	static constexpr uint64 k_width = _x;
+	static constexpr uint64 k_height = _y;
+	static constexpr uint64 k_num_pixels = _x * _y;
+	static constexpr uint64 k_bytes_per_page = _ps;
+	static constexpr uint64 k_bytes_per_pixel = sizeof(_t);
+	static constexpr uint64 k_bytes_total = k_num_pixels * k_bytes_per_pixel;
+	static constexpr uint64 k_mbytes_total = k_bytes_total / 1024u / 1024u;
+	static constexpr uint64 k_gbytes_total = k_mbytes_total / 1024u;
+	static constexpr uint64 k_num_pages = k_bytes_total / k_bytes_per_page;
+	static constexpr uint64 k_num_pixels_per_page = k_bytes_per_page / k_bytes_per_pixel;
 
-	// create a window
-	platform::window_desc windesc{};
-	windesc.m_dimensions = { 640u, 480u };
-	windesc.m_name = "sandbox";
-	platform::window* window = platform::window::create(windesc);
+private:
+	// pack our page states into uint32s
+	using packed_pages = uint32;
+	static constexpr uint64 k_num_packed_page_bits = 32u;
+	static constexpr uint32 k_num_packed_pages = k_num_pages / k_num_packed_page_bits;
+	packed_pages m_pagetable[k_num_packed_pages] = {};
 
-	// create a device
-	rhi::device_desc device_desc{};
-	device_desc.m_debug = false;
-	rhi::device device = rhi::device::create(device_desc).get();
-
-	// create queue
-	rhi::queue queue = device.create(rhi::queue_desc::default_graphics()).get();
-
-	// create swapchain
-	rhi::swapchain_desc swpdesc{};
-	swpdesc.m_dimensions = windesc.m_dimensions;
-	swpdesc.m_window = window->get_platform_handle();
-	swpdesc.m_num_buffers = 3u;
-	swpdesc.m_device = &device;
-	swpdesc.m_queue = &queue;
-	swpdesc.m_own_descriptors = true; // swapchain owns an rtv descriptor heap
-	rhi::swapchain swapchain = device.create(swpdesc).get();
-
-	// create a commandlist
-	auto cmd = device.create(rhi::commandlist_desc::default_graphics()).get();
-
-	math::float4 colour = { 1,0,0,1 };
-	bool is_exit = false;
-	uint32 frame = 0u;
-	while (!is_exit)
+	struct page final
 	{
-		window->poll_events(is_exit);
+		_t* m_memory = nullptr;
+		uint32 m_page_index = 0u;
+	};
+	vector<page> m_allocated_pages{};
 
-		swapchain.resize(window->get_dimensions(platform::window::e_space::client));
-
-		cmd.start(device);
-
-		rhi::texture2D backbuffer = swapchain.get_backbuffer_resource().get();
-		backbuffer.transition(cmd, rhi::e_resource_state::rendertarget);
-
-		rhi::descriptor backbuffer_rtv = swapchain.get_or_create_backbuffer_rtv(device).get();
-		cmd.clear_rtv(backbuffer_rtv, { colour });
-		backbuffer.transition(cmd, rhi::e_resource_state::present);
-		cmd.end();
-		cmd.submit(queue);
-		cmd.wait_for_finish();
-
-		swapchain.present();
-		++frame;
+	void set_page_allocated(uint32 page_index, bool allocated)
+	{
+		const uint32 pack_index = page_index / k_num_packed_page_bits;
+		const uint32 bit_index = page_index % k_num_packed_page_bits;
+		m_pagetable[pack_index] |= (1u << bit_index);
 	}
-}
+	bool is_page_allocated(uint32 page_index) const
+	{
+		const uint32 pack_index = page_index / k_num_packed_page_bits;
+		const uint32 bit_index = page_index % k_num_packed_page_bits;
+		return m_pagetable[pack_index] & (1u << bit_index);
+	}
+	static uint32 coordinate_to_index(const math::uint2& coordinate)
+	{
+		return (coordinate.y * k_width) + coordinate.x;
+	}
+
+	_t* allocate_pages(uint32 page_index, uint32 num_pages)
+	{
+		// reserve new size
+		m_allocated_pages.reserve(m_allocated_pages.size() + num_pages);
+
+		// do the first allocation
+		_t* base_ptr = nullptr;
+		page new_page{};
+		base_ptr = new_page.m_memory = new _t[k_num_pixels_per_page];
+		new_page.m_page_index = page_index;
+		m_allocated_pages.push_back(new_page);
+		set_page_allocated(page_index, true);
+
+		// allocate rest
+		for (uint32 i = 1u; i < num_pages; ++i)
+		{
+			// do the allocation
+			new_page.m_memory = new _t[k_num_pixels_per_page];
+			new_page.m_page_index = page_index + i;
+			m_allocated_pages.push_back(new_page);
+
+			// register allocated
+			set_page_allocated(page_index + i, true);
+		}
+
+		return base_ptr;
+	}
+
+public:
+	uint64 get_bytes_allocated() const
+	{
+		return k_bytes_per_page * m_allocated_pages.size();
+	}
+
+	struct sample_info final
+	{
+		bool m_allocation = true;
+	};
+	_t& sample(const math::uint2& coordinate, sample_info* out_info = nullptr)
+	{
+		const uint32 index = coordinate_to_index(coordinate);
+		const uint32 page_index = index / k_num_pixels_per_page;
+		const uint32 local_index = index % k_num_pixels_per_page;
+
+		_t* page_base = nullptr;
+		const bool is_page_cached = is_page_allocated(page_index);
+		if (is_page_cached)
+		{
+			// find the page (todo: maybe a vector isnt the best here)
+			for (const auto& page : m_allocated_pages)
+			{
+				if (page.m_page_index == page_index)
+					page_base = page.m_memory;
+			}
+		}
+		else
+		{
+			page_base = allocate_pages(page_index, 1u);
+		}
+
+		// register info
+		if (out_info) (*out_info).m_allocation = !is_page_cached;
+
+		return page_base[local_index];
+	}
+};
+
 int main()
 {
-	using namespace influx;
+	influx::random::seed_random();
 
-	rhi::device_desc desc{};
-	desc.m_debug = true;
-	auto device = rhi::create_native(desc);
-	check_result(device);
+	// 16K texture / 64kb page
+	// normally, this case is about 256MB of data
+	// virtual paged memory allows us to only allocate pages that are actually sampled.
+	static constexpr uint32 k_dimensions = 16384;
+	using texture_16k = virtual_texture<char, k_dimensions, k_dimensions, 64u * 1024u>;
+	texture_16k texture{};
+	
+	texture_16k::sample_info samp_info{};
+	uint32 num_reused_samples = 0u;
+	static constexpr uint32 k_num_samples = 64u * 1024u;
+	uint32 randomX, randomY;
+	for (uint32 i = 0u; i < k_num_samples; ++i)
+	{
+		// experiment with access patterns
+		randomX = random::get_random<uint32>(0, k_dimensions) % k_dimensions;
+		randomY = random::get_random<uint32>(0, k_dimensions) % k_dimensions;
+		randomX = randomY = i % 4096u;
 
-	rhi::queue_desc queuedesc{};
-	auto queue = rhi::create_native(queuedesc);
-	check_result(queue);
+		// sample & output
+		char& sample = texture.sample({ randomX, randomY }, &samp_info);
+		std::cout << sample << " ";
+
+		// accumulate info
+		if (samp_info.m_allocation == false) 
+			num_reused_samples++;
+	}
+
+	const float sample_reuse_pc = (float)num_reused_samples / k_num_samples;
+	const float memory_footprint_pc = (float)texture.get_bytes_allocated() / texture.k_mbytes_total;
+
+	__debugbreak();
 }

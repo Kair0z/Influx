@@ -1,4 +1,4 @@
-#define USE_GRAPHICS 1
+#define USE_GRAPHICS 0
 #define USE_RHI 1
 
 #if USE_GRAPHICS
@@ -123,17 +123,14 @@ int graphics_main()
 #if USE_RHI
 int rhi_main()
 {
-#if 1
-	rhi::device device = rhi::create_device().get();
-	device.create(rhi::queue::default_graphics()).get();
-#else
+	// make a platform window
 	platform::window_desc window_desc{};
 	window_desc.m_dimensions = { 640u, 480u };
 	window_desc.m_name = "renderer";
 	platform::window* window = platform::window::create(window_desc.set_name("influx_rhi"));
 
-	rhi::device dev				= rhi::create_device().get();
-	rhi::queue queue			= dev.create(rhi::queue::default_graphics()).get();
+	rhi::device dev = rhi::create_device().get();
+	rhi::queue queue = dev.create(rhi::queue::default_graphics()).get();
 	rhi::commandlist cmdlist	= dev.create(rhi::commandlist::default_graphics()).get();
 
 	rhi::swapchain_create_args swapchain_args{};
@@ -151,9 +148,8 @@ int rhi_main()
 		cmdlist.end().get();
 		cmdlist.submit(queue).get();
 
-		swapchain.present();
+		swapchain.present({});
 	}
-#endif
 
 	return 0u;
 }
@@ -161,5 +157,11 @@ int rhi_main()
 
 int main()
 {
+#if USE_RHI
 	rhi_main();
+#endif
+#if USE_GRAPHICS
+	graphics_main();
+	// rhi_main();
+#endif
 }

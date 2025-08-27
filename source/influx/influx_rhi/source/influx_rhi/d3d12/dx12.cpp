@@ -1,6 +1,7 @@
 #include "rhi_pch.h"
 #include "influx_rhi.h"
 
+#if INFLUX_RHI_D3D12
 #include "d3d12.h"
 #include "dxgi1_6.h"
 #include "d3dx12/d3dx12.h"
@@ -8,6 +9,7 @@
 
 namespace influx::rhi
 {
+	using dx12_instance		= IDXGIFactory2;
 	using dx12_factory		= IDXGIFactory2;
 	using dx12_physdevice	= IDXGIAdapter1;
 	using dx12_queue		= ID3D12CommandQueue;
@@ -203,27 +205,127 @@ namespace influx::rhi
 		return sample_descheap(heap, stride, index, cpu);
 	}
 
-	result<object_native> create_native(const device_create_args& args)
+	result<object_native> create_native(const device_create_args& args, device_data* out_data)
 	{
 		using result_type = result<object_native>;
 
-		if (args.m_physdevice == nullptr)
+		// setup a dxgi factory
+		dx12_factory* dxfactory = nullptr;
+		HRESULT hres = ::CreateDXGIFactory2(0u, IID_PPV_ARGS(&dxfactory));
+		auto create_factory_res = hres_to_result<dx12_factory*>(hres, dxfactory);
+		if (!create_factory_res)
+			return result_type::make_error("failed creating DXGI factory!");
+
+		// if no physical device was specified,
+		// find a physical device from querying..
+		device_create_args edited_args = args;
+		if (edited_args.m_physdevice == nullptr)
+		{
+			vector<dx12_physdevice*> physical_devices{};
+			constexpr bool prefer_performance = true;
+
+			IDXGIAdapter1* adapter = nullptr;
+			IDXGIFactory6* factory6;
+			if (SUCCEEDED(dxfactory->QueryInterface(IID_PPV_ARGS(&factory6))))
+			{
+				for (UINT adapterIndex = 0;
+					SUCCEEDED(factory6->EnumAdapterByGpuPreference(
+						adapterIndex,
+						prefer_performance ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED,
+						IID_PPV_ARGS(&adapter)));
+						++adapterIndex)
+				{
+					DXGI_ADAPTER_DESC1 desc;
+					adapter->GetDesc1(&desc);
+
+					const bool adapter_is_software = desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE;
+					const bool adapter_supports_dx12 = SUCCEEDED(::D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr));
+
+					if (adapter_is_software)
+					{
+						// Don't select the Basic Render Driver adapter.
+						// If you want a software adapter, pass in "/warp" on the command line.
+						continue;
+					}
+
+					// Check to see whether the adapter supports Direct3D 12, but don't create the
+					// actual device yet.
+					if (adapter_supports_dx12)
+					{
+						physical_devices.push_back(adapter);
+					}
+				}
+			}
+			
+			// store the first device we found...
+			edited_args.m_physdevice = physical_devices[0];
+		}
+
+		// check if physical device is valid
+		if (edited_args.m_physdevice == nullptr)
 			return result_type::make_error("desc.m_physdevice is nullptr!");
 
-		auto physdevice = cast<dx12_physdevice>(args.m_physdevice);
-		if (!physdevice) 
+		auto dxphysdevice = cast<dx12_physdevice>(edited_args.m_physdevice);
+		if (!dxphysdevice) 
 			return result_type::make_error("args.m_physdevice failed casting to dx12_physdevice!");
 
-		dx12_device* device{};
-		HRESULT hres = ::D3D12CreateDevice(
-			physdevice.get(),
+		// create the logical device
+		dx12_device* dxdevice{};
+		hres = ::D3D12CreateDevice(
+			dxphysdevice.get(),
 			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(&device));
+			IID_PPV_ARGS(&dxdevice));
+
+		// enable the debug layer
+		if (edited_args.m_debug)
+		{
+			ID3D12Debug* debugController;
+			if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
+			{
+				debugController->EnableDebugLayer();
+			}
+			debugController->Release();
+
+			ID3D12InfoQueue* info_queue;
+			hres = dxdevice->QueryInterface(IID_PPV_ARGS(&info_queue));
+			if (hres == S_OK)
+			{
+				D3D12_MESSAGE_ID hide[] =
+				{
+					D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
+#if 0
+					D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
+					// Workarounds for debug layer issues on hybrid-graphics systems
+					D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE,
+					D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE,
+					D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+					D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE
+#endif
+				};
+				D3D12_INFO_QUEUE_FILTER filter = {};
+				filter.DenyList.NumIDs = _countof(hide);
+				filter.DenyList.pIDList = hide;
+				info_queue->AddStorageFilterEntries(&filter);
+			}
+		}
+
+		// setup output data:
+		// - descriptor strides
+		// - dxgi factory
+		if (out_data)
+		{
+			out_data->m_physical_device = dxphysdevice.get();
+			out_data->m_instance = out_data->m_factory = dxfactory;
+			out_data->m_descriptor_strides[0] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			out_data->m_descriptor_strides[1] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+			out_data->m_descriptor_strides[2] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			out_data->m_descriptor_strides[3] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		}
 		
-		return hres_to_result<object_native>(hres, device);
+		return hres_to_result<object_native>(hres, dxdevice);
 	}
 
-	result<object_native> create_native(const queue_create_args& args)
+	result<object_native> create_native(const queue_create_args& args, queue_data* out_data)
 	{
 		using result_type = result<object_native>;
 
@@ -244,20 +346,23 @@ namespace influx::rhi
 		return hres_to_result<object_native>(hres, queue);
 	}
 
-	result<object_native> create_native(const swapchain_create_args& args)
+	result<object_native> create_native(const swapchain_create_args& args, swapchain_data* out_data)
 	{
 		using result_type = result<object_native>;
 
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
-		if (args.m_queue == nullptr)
-			return result_type::make_error("args.m_queue is nullptr!");
-		if (args.m_dimensions.is_zero())
-			return result_type::make_error("args.m_dimensions are invalid!");
-		if (args.m_num_buffers <= 0u || args.m_num_buffers > 3)
-			return result_type::make_error("args.m_num_buffers is not valid!");
-		if (!swapchain::is_swapchain_format_supported(args.m_format))
-			return result_type::make_error("args.m_format is not swapchain supported!");
+
+		auto dxfactory = cast<dx12_factory>(args.m_instance);
+		if (!dxfactory) return result_type::make_error("device carries no owning factory to create swapchain!");
+
+		auto dxqueue = cast<dx12_queue>(args.m_queue);
+		if (!dxqueue) return result_type::make_error("failed casting queue to dx12_queue!");
+
+		if (args.m_queue == nullptr)									return result_type::make_error("args.m_queue is nullptr!");
+		if (args.m_dimensions.is_zero())								return result_type::make_error("args.m_dimensions are invalid!");
+		if (args.m_num_buffers <= 0u || args.m_num_buffers > 3)			return result_type::make_error("args.m_num_buffers is not valid!");
+		if (!swapchain::is_swapchain_format_supported(args.m_format))	return result_type::make_error("args.m_format is not swapchain supported!");
 
 		const uint32 width = args.m_dimensions.x;
 		const uint32 height = args.m_dimensions.y;
@@ -272,14 +377,6 @@ namespace influx::rhi
 		dxdesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		dxdesc.SampleDesc.Count = 1;
 		dxdesc.Flags;
-		
-		auto dxfactory = cast<dx12_factory>(args.m_device->m_data.m_factory);
-		if (!dxfactory)
-			return result_type::make_error("device carries no owning factory to create swapchain!");
-
-		auto dxqueue = cast<dx12_queue>(args.m_queue->m_native_object);
-		if (!dxqueue)
-			return result_type::make_error("failed casting queue to dx12_queue!");
 
 		IDXGISwapChain1* int_swapchain;
 		HRESULT hres = dxfactory->CreateSwapChainForHwnd(
@@ -301,13 +398,32 @@ namespace influx::rhi
 		{
 			return result_type::make_warning(swapchain, "after creating the swapchain, failed making window association! (result is still valid)");
 		}
-		else
+
+		// if specified, create a descriptor heap with rtvs to backbuffers
+		if (out_data != nullptr && args.m_own_descriptors)
 		{
-			return swapchain;
+			rhi::descheap_create_args heap_desc{};
+			heap_desc.m_device = args.m_device;
+			heap_desc.m_num_descriptors = args.m_num_buffers;
+			heap_desc.m_type = rhi::e_descriptor_heap_type::rtv;
+			auto rtv_heap = create_native(heap_desc);
+			if (!rtv_heap)
+			{
+				return result_type::make_error("own_descriptors: failed creating descriptor heap for rtvs");
+			}
+
+			// set all rtvs as dirty
+			for (uint32 i = 0u; i < args.m_num_buffers; ++i)
+				out_data->m_rtv_dirty_list.push_back(true);
+
+			// store an rtv heap
+			out_data->m_rtv_heap = rtv_heap.get();
 		}
+
+		return swapchain;
 	}
 
-	result<object_native> create_native(const descheap_create_args& args)
+	result<object_native> create_native(const descheap_create_args& args, descheap_data* out_data)
 	{
 		using result_type = result<object_native>;
 		if (args.m_device == nullptr)
@@ -328,7 +444,7 @@ namespace influx::rhi
 		return hres_to_result<object_native>(hres, descheap);
 	}
 
-	result<object_native> create_native(const commandallocator_create_args& args)
+	result<object_native> create_native(const commandallocator_create_args& args, commandallocator_data* out_data)
 	{
 		using result_type = result<object_native>;
 		if (args.m_device == nullptr)
@@ -343,36 +459,63 @@ namespace influx::rhi
 		return hres_to_result<object_native>(hres, allocator);
 	}
 
-	result<object_native> create_native(const commandlist_create_args& args)
+	result<object_native> create_native(const commandlist_create_args& args, commandlist_data* out_data)
 	{
 		using result_type = result<object_native>;
+		
 		if (args.m_device == nullptr)
-			return result_type::make_error("desc.m_device is nullptr!");
+			return result_type::make_error("args.m_device is nullptr!");
 
-		auto device = cast<dx12_device>(args.m_device);
-		if (!device)
-			return result_type::make_error("desc.m_device failed casting to dx12_device!");
+		auto dxdevice = cast<dx12_device>(args.m_device);
+		if (!dxdevice) return result_type::make_error("args.m_device failed casting to dx12_device!");
 
-		auto allocator = cast<dx12_allocator>(args.m_allocator);
-		if (args.m_allocator == nullptr)
+		// if allocator is not provided, we need to create our own
+		commandlist_create_args edited_args = args;
+		if (edited_args.m_allocator == nullptr)
 		{
-			// todo
+			commandallocator_create_args alloc_args{};
+			alloc_args.m_type = edited_args.m_type;
+			alloc_args.m_device = edited_args.m_device;
+			auto res = create_native(alloc_args);
+			if (!res) return result_type::make_error("failed creating allocator!");
+
+			edited_args.m_allocator = res.get();
 		}
 
+		auto dxallocator = cast<dx12_allocator>(edited_args.m_allocator);
+		if (!dxallocator) return result_type::make_error("args.m_allocator failed casting to dx12_allocator!");
+
 		dx12_commandlist* commandlist{};
-		HRESULT hres = device->CreateCommandList(
+		HRESULT hres = dxdevice->CreateCommandList(
 			0u, 
-			translate(args.m_type),
-			allocator.get(),
+			translate(edited_args.m_type),
+			dxallocator.get(),
 			nullptr,
 			IID_PPV_ARGS(&commandlist));
-
 		hres = commandlist->Close();
+
+		// store allocator for later use
+		if (out_data != nullptr)
+		{
+			out_data->m_allocator = edited_args.m_allocator;
+		}
+
+		// create & store a new fence if instructed
+		if (args.m_own_fence && out_data != nullptr)
+		{
+			fence_create_args fence_args{};
+			fence_args.m_device = args.m_device;
+			fence_args.m_init_value = 0u;
+			auto fence = create_native(fence_args);
+			if (!fence) return result_type::make_error("create commandlist: failed creating fence!");
+
+			out_data->m_fence = fence.get();
+		}
 
 		return hres_to_result<object_native>(hres, commandlist);
 	}
 	
-	result<object_native> create_native(const fence_create_args& args)
+	result<object_native> create_native(const fence_create_args& args, fence_data* out_data)
 	{
 		using result_type = result<object_native>;
 		if (args.m_device == nullptr)
@@ -388,7 +531,7 @@ namespace influx::rhi
 		return hres_to_result<object_native>(hres, fence);
 	}
 
-	result<object_native> create_native(const buffer_create_args& args)
+	result<object_native> create_native(const buffer_create_args& args, buffer_data* out_data)
 	{
 		using result_type = result<object_native>;
 		if (args.m_device == nullptr)
@@ -416,7 +559,7 @@ namespace influx::rhi
 		return hres_to_result<object_native>(hres, resource);
 	}
 
-	result<object_native> create_native(const texture2D_create_args& args)
+	result<object_native> create_native(const texture2D_create_args& args, texture2D_data* out_data)
 	{
 		using result_type = result<object_native>;
 		if (args.m_device == nullptr)
@@ -445,7 +588,7 @@ namespace influx::rhi
 		return hres_to_result<object_native>(hres, resource);
 	}
 
-	result<object_native> create_native(const texture3D_create_args& args)
+	result<object_native> create_native(const texture3D_create_args& args, texture3D_data* out_data)
 	{
 		using result_type = result<object_native>;
 		if (args.m_device == nullptr)
@@ -474,12 +617,12 @@ namespace influx::rhi
 		return hres_to_result<object_native>(hres, resource);
 	}
 
-	result<object_native> create_native(const pipeline_create_args& args)
+	result<object_native> create_native(const pipeline_create_args& args, pipeline_data* out_data)
 	{
 		return {};
 	}
 
-	result<object_native> create_native(const rootsignature_create_args& args)
+	result<object_native> create_native(const rootsignature_create_args& args, rootsignature_data* out_data)
 	{
 		return {};
 	}
@@ -607,233 +750,6 @@ namespace influx::rhi
 		imported.m_create_args.m_type;
 		imported.m_native_object = native;
 		return imported;
-	}
-
-	// [device]
-	result<swapchain> device::create(const swapchain_create_args& args) const
-	{
-		using result_type = result<swapchain>;
-
-		// override the creator device to 'this'
-		auto cpy = args; cpy.m_device = this;
-		result_type result = rhi::create<rhi::swapchain>(cpy);
-		if (!result) return result_type::make_error(result);
-
-		// if specified, own a descriptor heap with rtvs to backbuffers
-		if (args.m_own_descriptors)
-		{
-			rhi::descheap_create_args heap_desc{};
-			heap_desc.m_device = m_native_object;
-			heap_desc.m_num_descriptors = args.m_num_buffers;
-			heap_desc.m_type = rhi::e_descriptor_heap_type::rtv;
-			auto rtv_heap = create_native(heap_desc);
-			if (!rtv_heap)
-			{
-				return result_type::make_error("own_descriptors: failed creating descriptor heap for rtvs");
-			}
-
-			// set all rtvs as dirty
-			for (uint32 i = 0u; i < args.m_num_buffers; ++i)
-				result.get().m_data.m_rtv_dirty_list.push_back(true);
-
-			// store an rtv heap
-			result.get().m_data.m_rtv_heap = rtv_heap.get();
-		}
-
-		return result;
-	}
-	result<queue> device::create(const queue_create_args& args) const
-	{
-		auto cpy = args; cpy.m_device = this->m_native_object;
-		return rhi::create<rhi::queue>(cpy);
-	}
-	result<command_allocator> device::create(const commandallocator_create_args& args) const
-	{
-		using result_type = result<command_allocator>;
-		auto cpy = args; cpy.m_device = this->m_native_object;
-
-		// create native & import
-		auto native_object = create_native(cpy);
-		if (!native_object)
-			return result_type::make_error("create command_allocator: failed creating native object!");
-
-		auto res = import<command_allocator>(native_object.get());
-		if (!res)
-			return result_type::make_error("import command_allocator: failed importing");
-
-		res.get().m_create_args = args;
-		return res;
-	}
-	result<commandlist> device::create(const commandlist_create_args& args) const
-	{
-		using result_type = result<commandlist>;
-		auto cpy = args; cpy.m_device = this->m_native_object;
-
-		// if allocator is not provided, we need to create our own
-		if (args.m_allocator == nullptr)
-		{
-			commandallocator_create_args alloc_args{};
-			alloc_args.m_type = args.m_type;
-			alloc_args.m_device = this->m_native_object;
-			auto res = create_native(alloc_args);
-			if (!res) return result_type::make_error("failed creating allocator!");
-
-			// store new allocator
-			cpy.m_allocator = res.get();
-		}
-
-		// create native
-		auto native_object = create_native(cpy);
-		if (!native_object)
-			return result_type::make_error("create commandlist: failed creating native object!");
-
-		// import the native object
-		auto res = import<commandlist>(native_object.get());
-		if (!res) 
-			return result_type::make_error("failed import!");
-		
-		res.get().m_data.m_allocator = cpy.m_allocator;
-
-		// create fence if instructed
-		if (args.m_own_fence)
-		{
-			fence_create_args fence_args{};
-			fence_args.m_device = m_native_object;
-			fence_args.m_init_value = 0u;
-			auto fence = create_native(fence_args);
-			if (!fence)
-				return result_type::make_error("create commandlist: failed creating fence!");
-
-			// store new fence
-			res.get().m_data.m_fence = fence.get();
-		}
-		res.get().m_create_args = args;
-		return res;
-	}
-	result<descheap> device::create(const descheap_create_args& args) const
-	{
-		using result_type = result<descheap>;
-		auto cpy = args; cpy.m_device = this->m_native_object;
-
-		// create native & import
-		auto native_object = create_native(cpy);
-		if (!native_object) 
-			return result_type::make_error("create descheap: failed creating native object!");
-
-		return import<descheap>(native_object.get());
-	}
-	result<device> device::create(const device_create_args& args)
-	{
-		using result_type = result<device>;
-
-		// store a dxgi factory
-		dx12_factory* dxfactory = nullptr;
-		HRESULT hres = ::CreateDXGIFactory2(0u, IID_PPV_ARGS(&dxfactory));
-		auto create_factory_res = hres_to_result<dx12_factory*>(hres, dxfactory);
-		if (!create_factory_res)
-			return result_type::make_error("failed creating DXGI factory!");
-
-		// query all physical devices ...
-		vector<dx12_physdevice*> physical_devices{};
-		constexpr bool prefer_performance = true;
-		{
-			IDXGIAdapter1* adapter = nullptr;
-			IDXGIFactory6* factory6;
-			if (SUCCEEDED(dxfactory->QueryInterface(IID_PPV_ARGS(&factory6))))
-			{
-				for (UINT adapterIndex = 0;
-					SUCCEEDED(factory6->EnumAdapterByGpuPreference(
-						adapterIndex,
-						prefer_performance ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED,
-						IID_PPV_ARGS(&adapter)));
-						++adapterIndex)
-				{
-					DXGI_ADAPTER_DESC1 desc;
-					adapter->GetDesc1(&desc);
-
-					const bool adapter_is_software = desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE;
-					const bool adapter_supports_dx12 = SUCCEEDED(::D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr));
-
-					if (adapter_is_software)
-					{
-						// Don't select the Basic Render Driver adapter.
-						// If you want a software adapter, pass in "/warp" on the command line.
-						continue;
-					}
-
-					// Check to see whether the adapter supports Direct3D 12, but don't create the
-					// actual device yet.
-					if (adapter_supports_dx12)
-					{
-						physical_devices.push_back(adapter);
-					}
-				}
-			}
-		}
-
-		// ... store the first
-		dx12_physdevice* dxphysdevice = physical_devices[0];
-
-		// if we didn't specify a physical device, select one!
-		device_create_args edited_args = args;
-		if (args.m_physdevice == nullptr)
-		{
-			edited_args.m_physdevice = dxphysdevice;
-		}
-
-		// create the actual device
-		auto native_create_res = create_native(edited_args);
-		if (!native_create_res)
-			return result_type::make_error("failed creating native device!");
-		dx12_device* dxdevice = (dx12_device*)native_create_res.get();
-
-		// enable the debug layer
-		if (edited_args.m_debug)
-		{
-			ID3D12Debug* debugController;
-			if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
-			{
-				debugController->EnableDebugLayer();
-			}
-			debugController->Release();
-
-			ID3D12InfoQueue* info_queue;
-			hres = dxdevice->QueryInterface(IID_PPV_ARGS(&info_queue));
-			if (hres == S_OK)
-			{
-				D3D12_MESSAGE_ID hide[] =
-				{
-					D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
-#if 0
-					D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
-					// Workarounds for debug layer issues on hybrid-graphics systems
-					D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE,
-					D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE,
-					D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
-					D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE
-#endif
-				};
-				D3D12_INFO_QUEUE_FILTER filter = {};
-				filter.DenyList.NumIDs = _countof(hide);
-				filter.DenyList.pIDList = hide;
-				info_queue->AddStorageFilterEntries(&filter);
-			}
-		}
-
-		// build the result
-		device device{};
-		device.m_native_object = native_create_res.get();
-		device.m_create_args = edited_args;
-
-		// setup initial data:
-		// - descriptor strides
-		// - owning factory
-		device.m_data.m_factory = dxfactory;
-		device.m_data.m_descriptor_strides[0] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		device.m_data.m_descriptor_strides[1] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		device.m_data.m_descriptor_strides[2] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		device.m_data.m_descriptor_strides[3] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		return device;
 	}
 
 	result<> device::create_rtv(const texture2D& texture, descriptor descriptor) const
@@ -1513,3 +1429,4 @@ namespace influx::rhi
 		}
 	}
 }
+#endif // INFLUX_RHI_D3D12

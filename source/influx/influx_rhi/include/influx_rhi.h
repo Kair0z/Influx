@@ -12,6 +12,9 @@
 #define INFLUX_RHI_API __declspec(dllimport)
 #endif
 
+#define INFLUX_RHI_VULKAN	0
+#define INFLUX_RHI_D3D12	1
+
 #include "influx_rhi/format.h"
 
 namespace influx::rhi
@@ -187,13 +190,17 @@ namespace influx::rhi
 #pragma region create_create_args
 	struct device_create_args final
 	{
+		/* unused in D3D12 */
 		const char* m_app_name = "";
-		uint32 m_app_version = 0u;
 		const char* m_engine_name = "";
+		uint32 m_app_version = 0u;
 		uint32 m_engine_version = 0u;
 		uint32 m_api_version = 0u;
 
+		/* optional: specify a physical device for which to create the logic device */
 		object_native m_physdevice = nullptr;
+
+		/* optional: enable debug systems like validation layers */
 		bool m_debug = false;
 	};
 	struct queue_create_args final
@@ -205,7 +212,6 @@ namespace influx::rhi
 			desc.m_type = e_queue_type::graphics;
 			return desc;
 		}
-
 		static queue_create_args default_compute()
 		{
 			queue_create_args desc{};
@@ -213,14 +219,16 @@ namespace influx::rhi
 			desc.m_type = e_queue_type::compute;
 			return desc;
 		}
+
 		object_native m_device = nullptr;
 		e_queue_type m_type = e_queue_type::graphics;
 		int m_priority = 0;
 	};
 	struct swapchain_create_args final
 	{
-		const device* m_device = nullptr;
-		const queue* m_queue = nullptr;
+		object_native m_instance = nullptr;
+		object_native m_device = nullptr;
+		object_native m_queue = nullptr;
 
 		platform_window_handle m_window;
 		pixelformat m_format;
@@ -653,20 +661,13 @@ namespace influx::rhi
 	class device final : public object<e_object::device>
 	{
 	public:
-		INFLUX_RHI_API static result<device>		create(const device_create_args& args = {});
-		INFLUX_RHI_API result<swapchain>			create(const swapchain_create_args& args) const;
-		INFLUX_RHI_API result<queue>				create(const queue_create_args& args) const;
-		INFLUX_RHI_API result<command_allocator>	create(const commandallocator_create_args& args) const;
-		INFLUX_RHI_API result<commandlist>			create(const commandlist_create_args& args) const;
-		INFLUX_RHI_API result<descheap>				create(const descheap_create_args& args) const;
-
-		INFLUX_RHI_API result<>						create_rtv(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<>						create_dsv(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<>						create_sampview(const sampler& sampler, descriptor descriptor) const;
-		INFLUX_RHI_API result<>						create_srv(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<>						create_uav(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<>						create_srv(const buffer& buffer, descriptor descriptor) const;
-		INFLUX_RHI_API result<>						create_uav(const buffer& buffer, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_rtv(const texture2D& texture, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_dsv(const texture2D& texture, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_sampview(const sampler& sampler, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_srv(const texture2D& texture, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_uav(const texture2D& texture, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_srv(const buffer& buffer, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_uav(const buffer& buffer, descriptor descriptor) const;
 
 		inline result<> create_rtv(const object_native native, descriptor descriptor) const;
 		inline result<> create_dsv(const object_native native, descriptor descriptor) const;
@@ -674,6 +675,13 @@ namespace influx::rhi
 		inline result<> create_uav_texture(const object_native native, descriptor descriptor) const;
 		inline result<> create_srv_buffer(const object_native native, descriptor descriptor) const;
 		inline result<> create_uav_buffer(const object_native native, descriptor descriptor) const;
+
+		inline static result<device> create(const device_create_args& args = {});
+		inline result<swapchain> create(const swapchain_create_args& args) const;
+		inline result<queue> create(const queue_create_args& args) const;
+		inline result<command_allocator> create(const commandallocator_create_args& args) const;
+		inline result<commandlist> create(const commandlist_create_args& args) const;
+		inline result<descheap> create(const descheap_create_args& args) const;
 	};
 
 	inline static result<device> create_device(const device_create_args& args = {})
@@ -704,19 +712,21 @@ namespace influx::rhi
 	* these are the platform-native object creation methods
 	* if you want to work closer to the API, you can just use these to create your objects
 	* then cast them to the type you expect them to be...
+	* 
+	* optionally, you can specify an address 'out_data' to which the create function writes various queried information
 	*/ 
-	INFLUX_RHI_API result<object_native> create_native(const device_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const queue_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const swapchain_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const descheap_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const commandallocator_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const commandlist_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const fence_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const buffer_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const texture2D_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const texture3D_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const pipeline_create_args& args);
-	INFLUX_RHI_API result<object_native> create_native(const rootsignature_create_args& args);
+	INFLUX_RHI_API result<object_native> create_native(const device_create_args& args, device_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const queue_create_args& args, queue_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const swapchain_create_args& args, swapchain_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const descheap_create_args& args, descheap_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const commandallocator_create_args& args, commandallocator_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const commandlist_create_args& args, commandlist_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const fence_create_args& args, fence_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const buffer_create_args& args, buffer_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const texture2D_create_args& args, texture2D_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const texture3D_create_args& args, texture3D_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const pipeline_create_args& args, pipeline_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const rootsignature_create_args& args, rootsignature_data* out_data = nullptr);
 
 	template <typename _t>
 	result<_t> create(const create_args<_t::k_type>& args)
@@ -724,13 +734,14 @@ namespace influx::rhi
 		using obj_type = _t;
 		using result_type = result<obj_type>;
 
-		auto native_create = create_native(args);
-		if (!native_create) return result_type::make_error(native_create);
-
 		obj_type obj{};
-		obj.m_native_object = native_create.get();
 		obj.m_create_args = args;
-		obj.m_data = {};
+
+		auto native_create = create_native(args, &obj.m_data);
+		if (!native_create) 
+			return result_type::make_error(native_create);
+
+		obj.m_native_object = native_create.get();
 		return obj;
 	}
 
@@ -804,6 +815,13 @@ namespace influx::rhi
 
 		return create_uav(imported.get(), descriptor);
 	}
+	
+	inline result<device>				device::create(const device_create_args& args)					{ return influx::rhi::create<device>(args); }
+	inline result<swapchain>			device::create(const swapchain_create_args& args) const			{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; args_cpy.m_instance = this->m_data.m_factory; return influx::rhi::create<swapchain>(args_cpy); }
+	inline result<queue>				device::create(const queue_create_args& args) const				{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<queue>(args_cpy); }
+	inline result<command_allocator>	device::create(const commandallocator_create_args& args) const	{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<command_allocator>(args_cpy); }
+	inline result<commandlist>			device::create(const commandlist_create_args& args) const		{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<commandlist>(args_cpy); }
+	inline result<descheap>				device::create(const descheap_create_args& args) const			{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<descheap>(args_cpy); }
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_bindflags);
