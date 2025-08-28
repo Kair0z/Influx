@@ -107,6 +107,7 @@ namespace influx::renderer
 			// re-load
 			renderer_backend& backend = renderer_backend::get_instance();
 			resource_manager& resourceman = backend.get_resource_manager();
+			rhi_device& device = backend.get_device();
 
 			mesh_data<vertex_data>* data = new mesh_data(); data->m_vertices = m_multi_vertex_content; data->m_indices = m_multi_index_content;
 			resourceman.load<e_resource_type::mesh>("multi_mesh", data, true);
@@ -114,7 +115,7 @@ namespace influx::renderer
 			m_multi_vertexbuffer = resourceman.get<e_resource_type::mesh>("multi_mesh").m_resource->m_vertexbuffer;
 			m_multi_indexbuffer = resourceman.get<e_resource_type::mesh>("multi_mesh").m_resource->m_indexbuffer;
 
-			m_multidescriptor = backend.get_descriptor_manager()->create_buffer_srv(m_multi_vertexbuffer);
+			m_multidescriptor = backend.get_descriptor_manager()->create_buffer_srv(device, *m_multi_vertexbuffer);
 		}
 
 		m_is_content_dirty = false;

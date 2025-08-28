@@ -103,6 +103,7 @@ namespace influx::renderer
 		if (targets.size() <= 0u) return;
 
 		renderer_backend& backend = renderer_backend::get_instance();
+		rhi_device& device = backend.get_device();
 		descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
 
 		// execute for each draw
@@ -151,7 +152,7 @@ namespace influx::renderer
 			commandlist->set_root_constants(0u, 16u, &vertex_constant_buffer);
 
 			// stage the font srv onto the gpu heap
-			graphics::descriptor_range font_gpu_range = descriptor_manager.stage(mp_fonts_texture->get_srv().get());
+			graphics::descriptor_range font_gpu_range = descriptor_manager.stage(device, mp_fonts_texture->get_srv().get());
 			graphics::descriptor_range tex_gpu_range = font_gpu_range;
 
 			// setup draw
@@ -193,7 +194,7 @@ namespace influx::renderer
 						graphics::resource* resource = reinterpret_cast<graphics::resource*>(tex_provider->get_tex_resource());
 						
 						// stage the descriptor
-						tex_gpu_range = descriptor_manager.stage(cpu_descriptor);
+						tex_gpu_range = descriptor_manager.stage(device, cpu_descriptor);
 
 						// ensure transition resource to readable
 						resource->transition(commandlist, graphics::e_resource_state::ps_srv);

@@ -146,7 +146,7 @@ namespace influx::renderer
             mp_instancebuffer->set_name({ "scene_instance_buffer" });
 
             // create srv
-            m_instance_buffer_srv = descriptor_manager.create_buffer_srv(mp_instancebuffer);
+            m_instance_buffer_srv = descriptor_manager.create_buffer_srv(device, *mp_instancebuffer);
         }
 
         // lightbuffers
@@ -171,7 +171,7 @@ namespace influx::renderer
                 mp_lightbuffers[i] = device.create_resource(desc, heap_desc);
                 mp_lightbuffers[i]->set_name("lightbuffer_" + to_string(i));
 
-                m_lightbuffer_srvs[i] = descriptor_manager.create_buffer_srv(mp_lightbuffers[i]);
+                m_lightbuffer_srvs[i] = descriptor_manager.create_buffer_srv(device, *mp_lightbuffers[i]);
             }
         }
 
@@ -189,7 +189,7 @@ namespace influx::renderer
             desc.m_init_state = graphics::e_resource_state::gen_read;
             m_line_instance_buffer = device.create_resource(desc, heap_desc);
             m_line_instance_buffer->set_name({ "line_instance_buffer" });
-            m_line_instance_buffer_srv = backend.get_descriptor_manager()->create_buffer_srv(m_line_instance_buffer);
+            m_line_instance_buffer_srv = backend.get_descriptor_manager()->create_buffer_srv(device, *m_line_instance_buffer);
         }
 
         // line-render: create 2-element vertexbuffer
@@ -211,8 +211,8 @@ namespace influx::renderer
             });
         }
 
-        m_sampler_view = descriptor_manager.create_sampler();
-        m_skybox_sampler = descriptor_manager.create_sampler();
+        m_sampler_view = descriptor_manager.create_sampler(device);
+        m_skybox_sampler = descriptor_manager.create_sampler(device);
     }
 
     scene_renderer::~scene_renderer()
@@ -335,6 +335,8 @@ namespace influx::renderer
     vector<batch> scene_renderer::create_batches(const scene& scene, graphics::commandlist* commandlist)
     {
         renderer_backend& backend = renderer_backend::get_instance();
+        rhi_device& device = backend.get_device();
+
         umap<texture2D*, uint32> tex_to_idx{};
 
         // stage all srv/uav/const descriptors on the bindless heap
@@ -359,10 +361,10 @@ namespace influx::renderer
                 }
             }
 
-            graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(all_srvs);
-            graphics::descriptor_range gpu_range_samp = backend.get_descriptor_manager()->stage_sampler(m_sampler_view);
+            graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(device, all_srvs);
+            graphics::descriptor_range gpu_range_samp = backend.get_descriptor_manager()->stage_sampler(device, m_sampler_view);
             // mp_pipeline->set_resource_table(commandlist, "all_descriptors", gpu_range);
-            backend.get_descriptor_manager()->start_commandlist(commandlist);
+            backend.get_descriptor_manager()->bind_gpu_heaps(*commandlist);
         }
 
         using mesh_to_instance_map = umap<mesh_id, vector<frontend::per_instance>>;
@@ -638,6 +640,7 @@ namespace influx::renderer
     void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
         renderer_backend& backend           = renderer_backend::get_instance();
+        rhi_device& device                  = backend.get_device();
         pipeline_manager& pipeline_man      = *backend.get_pipeline_manager();
         descriptor_manager& descriptor_man  = *backend.get_descriptor_manager();
         compute_pipeline& pipeline          = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
@@ -678,7 +681,7 @@ namespace influx::renderer
 
         // stage the descriptors onto the gpu heap
         {
-            graphics::descriptor_range gpu_range = descriptor_man.stage(
+            graphics::descriptor_range gpu_range = descriptor_man.stage(device,
             {   
                 context.get_read_texture(0).get().m_descriptor,
                 context.get_read_texture(1).get().m_descriptor,
@@ -701,7 +704,7 @@ namespace influx::renderer
             args.buffer_indices[0] = gpu_range.m_start_idx + 5u;
             args.buffer_indices[1] = gpu_range.m_start_idx + 6u;
             args.buffer_indices[2] = gpu_range.m_start_idx + 7u;
-            descriptor_man.stage_sampler(m_skybox_sampler);
+            descriptor_man.stage_sampler(device, m_skybox_sampler);
         }
        
         pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", args);
@@ -719,6 +722,7 @@ namespace influx::renderer
         }
 
         renderer_backend& backend = renderer_backend::get_instance();
+        rhi_device& device = renderer_backend::get_device();
         backend.import_to_graph(target);
 
         // | BASEPASS
@@ -820,7 +824,8 @@ namespace influx::renderer
                 builder.write_rendertarget(target.get_rendergraph_name(), access);
                 builder.set_viewport(target.get_width(), target.get_height());
             },
-            [this, &scene, &target](rendergraph::rgpass_context& context)
+            [this, &scene, &target, &device]
+            (rendergraph::rgpass_context& context)
             {
                 influx_scope("renderer_backend::draw_debug::record");
                 graphics::commandlist& commandlist = context.get_commandlist();
@@ -848,7 +853,7 @@ namespace influx::renderer
                 update_line_instance_buffer(scene);
 
                 // stage the instance buffer and set as resource table
-                const graphics::descriptor_range gpu_range = descriptorman.stage(m_line_instance_buffer_srv);
+                const graphics::descriptor_range gpu_range = descriptorman.stage(device, m_line_instance_buffer_srv);
                 pipeline.set_resource_table(commandlist, "g_instancebuffer", gpu_range);
 
                 const uint32 num_instances = (uint32)m_line_instance_data.size();

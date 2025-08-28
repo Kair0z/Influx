@@ -12,36 +12,31 @@ namespace influx::renderer
 	class descriptor_manager final
 	{
 	public:
-		descriptor_manager(rhi_device* device);
+		descriptor_manager(rhi_device& device);
 		virtual ~descriptor_manager();
 
-		void start_frame();
+		void bind_gpu_heaps(rhi_commandlist& commandlist);
+		void reset_gpu_heaps();
 
-		// binds all gpu heaps
-		void start_commandlist(rhi_commandlist* commandlist);
+		rhi_descriptor create_rtv(rhi_device& device, rhi_resource& resource);
+		rhi_descriptor create_dsv(rhi_device& device, rhi_resource& resource);
+		rhi_descriptor create_srv(rhi_device& device, rhi_resource& resource);
+		rhi_descriptor create_buffer_srv(rhi_device& device, rhi_resource& resource);
+		rhi_descriptor create_sampler(rhi_device& device);
 
-		// unstages all gpu heaps
-		void end_frame();
+		// Staging:
+		// stages cpu-descriptors onto their corresponding shader-visible descriptor heaps.
+		// and returns the address of the gpu-descriptors.
+		rhi_descriptor_range stage(rhi_device& device, const vector<rhi_descriptor>& cpu_descriptors);
+		rhi_descriptor_range stage(rhi_device& device, const rhi_descriptor& cpu_descriptor);
+		rhi_descriptor_range stage(rhi_device& device, const vector<texture2D*>& textures);
+		rhi_descriptor_range stage(rhi_device& device, texture2D* texture);
+		rhi_descriptor_range stage_sampler(rhi_device& device, rhi_descriptor handle);
+		rhi_descriptor_range stage_samplers(rhi_device& device, const vector<rhi_descriptor>& samplers);
 
-		rhi_descriptor create_rtv(rhi_resource* resource);
-		rhi_descriptor create_dsv(rhi_resource* resource);
-		rhi_descriptor create_srv(rhi_resource* resource);
-		rhi_descriptor create_buffer_srv(rhi_resource* resource);
-		rhi_descriptor create_sampler();
-
-		// stages descriptors into the appropriate shader-visible descriptor heap
-		// and returns the address of that range of descriptors
-		rhi_descriptor_range stage(const vector<rhi_descriptor>& cpu_descriptors);
-		rhi_descriptor_range stage(const rhi_descriptor& cpu_descriptor);
-		rhi_descriptor_range stage(const vector<texture2D*>& textures);
-		rhi_descriptor_range stage(texture2D* texture);
-
-		rhi_descriptor_range stage_sampler(rhi_descriptor handle);
-		rhi_descriptor_range stage_samplers(const vector<rhi_descriptor>& samplers);
-
-		void cleanup_rtv(graphics::descriptor_handle rtv);
-		void cleanup_dsv(graphics::descriptor_handle dsv);
-		void cleanup_srv(graphics::descriptor_handle srv);
+		void cleanup_rtv(rhi_descriptor rtv);
+		void cleanup_dsv(rhi_descriptor dsv);
+		void cleanup_srv(rhi_descriptor srv);
 
 	private:
 		// GPU heaps (shader-visible)
@@ -53,7 +48,5 @@ namespace influx::renderer
 		rhi_descheap* mp_dsv_heap;
 		rhi_descheap* mp_srv_heap;
 		rhi_descheap* mp_sampler_heap;
-
-		rhi_device* mp_device;
 	};
 }

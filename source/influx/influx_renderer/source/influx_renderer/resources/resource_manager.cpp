@@ -125,7 +125,7 @@ namespace influx::renderer
 		resource = new texture2D(device, create_desc);
 
 		// make srv
-		resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->m_resource);
+		resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(device, *resource->m_resource);
 
 		// upload to gpu
 		uploadman.upload_texture(&queue, data, resource->get_resource().get());
@@ -145,7 +145,7 @@ namespace influx::renderer
 		resource = new cubemap(device, create_desc);
 
 		// make srv
-		resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(resource->m_resource);
+		resource->m_srv = renderer_backend::get_descriptor_manager()->create_srv(device, *resource->m_resource);
 
 		// upload to gpu
 		graphics::commandlist& commandlist = *device.create_graphics_commandlist();

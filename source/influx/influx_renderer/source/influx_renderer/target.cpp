@@ -52,15 +52,15 @@ namespace influx::renderer
 			graphics::tex2D_desc desc = get_default_color_desc({ args.m_width, args.m_heigth });
 			mp_resource = device->create_resource(desc);
 
-			m_rtv_cpu = desc_manager.create_rtv(mp_resource);
-			m_srv_cpu = desc_manager.create_srv(mp_resource);
+			m_rtv_cpu = desc_manager.create_rtv(*device, *mp_resource);
+			m_srv_cpu = desc_manager.create_srv(*device, *mp_resource);
 		}
 		if (args.m_has_depth_stencil)
 		{
 			graphics::tex2D_desc desc = get_default_depth_desc({ args.m_width, args.m_heigth });
 			mp_depth_resource = device->create_resource(desc);
 
-			m_dsv_cpu = desc_manager.create_dsv(mp_depth_resource);
+			m_dsv_cpu = desc_manager.create_dsv(*device, *mp_depth_resource);
 		}
 
 		m_current_dimensions = { args.m_width, args.m_heigth };
@@ -79,8 +79,8 @@ namespace influx::renderer
 
 		// get the existing backbuffer resource, and allocate + create a new rtv
 		mp_resource = swapchain->get_backbuffer_resource(swapchain_index).get();
-		m_srv_cpu = renderer_backend::get_descriptor_manager()->create_srv(mp_resource);
-		m_rtv_cpu = renderer_backend::get_descriptor_manager()->create_rtv(mp_resource);
+		m_srv_cpu = renderer_backend::get_descriptor_manager()->create_srv(*device, *mp_resource);
+		m_rtv_cpu = renderer_backend::get_descriptor_manager()->create_rtv(*device, *mp_resource);
 		m_dsv_cpu = nullptr;
 		
 		m_createargs.m_width = swapchain->get_dimensions().x;

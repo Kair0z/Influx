@@ -96,7 +96,7 @@ namespace influx::renderer
 
         // create renderers & managers
         {
-            mp_desc_manager = new descriptor_manager(mp_device);
+            mp_desc_manager = new descriptor_manager(*mp_device);
             mp_pipeline_manager = new pipeline_manager(mp_device);
             mp_upload_manager = new upload_manager(mp_device);
             m_resource_manager = new resource_manager();
@@ -157,7 +157,7 @@ namespace influx::renderer
         mp_commandlist->set_name("frame");
 
         // bind gpu heaps
-        get_descriptor_manager()->start_commandlist(mp_commandlist);
+        get_descriptor_manager()->bind_gpu_heaps(*mp_commandlist);
     }
 
     void renderer_backend::end_frame()
@@ -182,12 +182,10 @@ namespace influx::renderer
             influx_scope("renderer_backend::end_frame::submit");
             mp_commandlist->submit(mp_graphics_queue);
         }
-
         {
-            influx_scope("renderer_backend::end_frame::descriptor_deallocate");
-            get_descriptor_manager()->end_frame();
+            influx_scope("renderer_backend::end_frame::reset_gpu_heaps");
+            get_descriptor_manager()->reset_gpu_heaps();
         }
-        
         {
             influx_scope("renderer_backend::end_frame::wait_for_gpu");
             mp_commandlist->wait_for_completion();
