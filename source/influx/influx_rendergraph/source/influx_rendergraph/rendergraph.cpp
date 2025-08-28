@@ -102,13 +102,13 @@ namespace influx::rendergraph
 
 	rendergraph::~rendergraph()
 	{
-		for (rgtexture* texture : m_textures)
+		for (rgtexture*& texture : m_textures)
 		{
 			delete texture;
 			texture = nullptr;
 		}
 
-		for (rgbuffer* buffer : m_buffers)
+		for (rgbuffer*& buffer : m_buffers)
 		{
 			delete buffer;
 			buffer = nullptr;
@@ -158,9 +158,7 @@ namespace influx::rendergraph
 		}
 	}
 
-	result<> rendergraph::execute(
-		rhi_commandlist& commandlist,
-		rhi_device& device)
+	result<> rendergraph::execute(rhi_commandlist& commandlist, rhi_device& device)
 	{
 		const bool is_valid = execute_validation_checks();
 		if (!is_valid) return result<>::make_error("rendergraph failed validation checks!");
@@ -339,9 +337,7 @@ namespace influx::rendergraph
 		return {};
 	}
 
-	rgpass* rendergraph::add_pass( e_rgpass_type type,
-		const rgpass_builder_clb& builder_clb,
-		const rgpass_process_clb& process_clb)
+	rgpass* rendergraph::add_pass( e_rgpass_type type, const rgpass_builder_clb& builder_clb, const rgpass_process_clb& process_clb)
 	{
 		m_passes.emplace_back(rgpass(builder_clb, process_clb, type));
 		rgpass& new_pass = m_passes.back();
@@ -360,8 +356,8 @@ namespace influx::rendergraph
 
 	rgpass* rendergraph::add_copypass(rhi_resource* source, rhi_resource* dest, bool keep_source)
 	{
-		import_texture(dest->get_name(), dest);
-		import_texture(source->get_name(), source);
+		import_texture(dest);
+		import_texture(source);
 
 		static rgtex_copysrc_id src_tex_id{};
 		static rgtex_copydst_id dst_tex_id{};
@@ -385,7 +381,7 @@ namespace influx::rendergraph
 
 	rgpass* rendergraph::add_clear_pass(rhi_resource* dest, const clear_args& args)
 	{
-		import_texture(dest->get_name(), dest);
+		import_texture(dest);
 
 		auto* pass = add_pass(e_rgpass_type::graphics,
 			[dest, &args](rgpass_builder& builder)
@@ -401,6 +397,16 @@ namespace influx::rendergraph
 
 		pass->set_name("clear");
 		return pass;
+	}
+
+	result<> rendergraph::import_texture(rhi_resource* resource)
+	{
+		return import_texture(resource->get_name(), resource);
+	}
+
+	result<> rendergraph::import_buffer(rhi_resource* resource)
+	{
+		return import_buffer(resource->get_name(), resource);
 	}
 
 	result<> rendergraph::import_texture(const rgname& name, rhi_resource* resource)

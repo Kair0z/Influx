@@ -1,14 +1,21 @@
-
 // choose your test:
-#define TEST_MATH		1
+#define TEST_MATH		0
 #define TEST_BASETYPES	0
 #define TEST_STRING		0
 #define TEST_RESULT		0
 #define TEST_CONTAINER	0
+#define TEST_POINTER	1
+#define TEST_ASCII_ART	1
 
 // common
 #include "core/basetypes.h"
 #include "core/debug.h"	// influx_assert
+#include "core/ascii_art.h"
+
+void print(const char* fmt, ...)
+{
+	// printf(fmt, ...);
+}
 using namespace influx;
 
 // includes
@@ -44,6 +51,9 @@ namespace glm
 #endif
 #if TEST_CONTAINER
 #include "core/containers.h"
+#endif
+#if TEST_POINTER
+#include "core/pointer.h"
 #endif
 
 // tests
@@ -225,6 +235,50 @@ void test_basetypes()
 	// todo
 }
 #endif
+#if TEST_POINTER
+template <typename _t>
+using shptr		= pointers::shared_ptr<_t>;
+template <typename _t>
+using uniptr	= pointers::unique_ptr<_t>;
+template <typename _t>
+using wptr		= pointers::weak_ptr<_t>;
+
+#include <chrono>
+#include <thread>
+void test_pointers()
+{
+	print("==== testing (smart) pointers ...");
+
+	shptr<uint32> shared = pointers::make_shared<uint32>(3u);
+	shptr<uint32> other = shared;
+	wptr<uint32> wother = shared;
+}
+#endif
+#if TEST_ASCII_ART
+void test_asciiart()
+{
+	for (uint32 j = 0u; j < 10u; ++j)
+	{
+		artscii::progress_bar progress{};
+		
+		// [======C . . . .]
+		progress.get_settings()
+			.set_length(50u)
+			.set_done('=')
+			.set_cursor('C')
+			.set_todo('.')
+			.set_todo(' ', true);
+
+		for (uint32 i = 0u; i < progress.bar_length(); ++i)
+		{
+			progress += 1u;
+			std::cout << "\r[loading] " << progress.get_cstr() << " " << math::round<int, float>(progress.pc() * 100) << "%";
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		}
+		std::cout << "\n";
+	}
+}
+#endif
 
 int main()
 {
@@ -237,5 +291,11 @@ int main()
 	test_math_vector_all();
 	test_math_matrix_all();
 	test_math_quaternion_all();
+#endif
+#if TEST_POINTER
+	test_pointers();
+#endif
+#if TEST_ASCII_ART
+	test_asciiart();
 #endif
 }

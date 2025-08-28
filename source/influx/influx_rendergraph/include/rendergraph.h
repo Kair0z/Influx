@@ -134,13 +134,16 @@ namespace influx::rendergraph
 		INFLUX_RG_API rgpass* add_clear_pass(rhi_resource* dest, const clear_args& args = {});
 
 		// importing resources allows rendergraph to operate on the given resource.
-		// it will not (de)allocate
+		// it will not (de)allocate these, that's the job of the external owner of the resource
+		INFLUX_RG_API result<> import_texture(rhi_resource* resource);
+		INFLUX_RG_API result<> import_buffer(rhi_resource* resource);
 		INFLUX_RG_API result<> import_texture(const rgname& name, rhi_resource* resource);
 		INFLUX_RG_API result<> import_buffer(const rgname& name, rhi_resource* resource);
 		
-		// todo >>
+#if 0 // todo >>
 		INFLUX_RG_API result<> export_texture(const rgname& name, rhi_resource* resource);
 		INFLUX_RG_API result<> export_buffer(const rgname& name, rhi_resource* resource);
+#endif
 
 		/* removes imported resources from book-keeping ! does not de-allocate their resources !*/
 		INFLUX_RG_API result<> remove_imported_texture(const rgname& name);
