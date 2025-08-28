@@ -11,103 +11,66 @@ namespace influx::graphics
 	{
 		mp_native = mpdx_heap = dxheap;
 
-		if (args.m_shader_visible)
-		{
-			m_freelist_gpu.reserve(get_capacity());
-			for (uint32 i = 0u; i < get_capacity(); ++i)
-			{
-				m_freelist_gpu.push_back({ .pointer = index_to_gpu_handle(i).get(), .is_allocated = false });
-			}
-		}
-
-		m_freelist_cpu.reserve(get_capacity());
+		m_freelist.reserve(get_capacity());
 		for (uint32 i = 0u; i < get_capacity(); ++i)
 		{
-			m_freelist_cpu.push_back({ .pointer = index_to_cpu_handle(i).get(), .is_allocated = false });
+			m_freelist.push_back({ .m_index = i, .m_is_allocated = false });
 		}
 	}
 
-	result<descriptor_handle> dx12_descriptor_heap::allocate_cpu()
+	result<descriptor_id> dx12_descriptor_heap::allocate()
 	{
+		using result_type = result<descriptor_id>;
 		for (uint32 i = 0u; i < get_capacity(); ++i)
 		{
-			if (m_freelist_cpu[i].is_allocated == false)
+			if (m_freelist[i].m_is_allocated == false)
 			{
-				m_freelist_cpu[i].is_allocated = true;
-				return m_freelist_cpu[i].pointer;
+				m_freelist[i].m_is_allocated = true;
+				return m_freelist[i].m_index;
 			}
 		}
-		
-		return result<descriptor_handle>::make_error("error: failed to allocate cpu because we ran out of available slots!");
+		return result_type::make_error("error: failed to allocate descriptor because we ran out of available slots!");
 	}
 
-	result<descriptor_handle> dx12_descriptor_heap::allocate_gpu()
+	result<> dx12_descriptor_heap::free(descriptor_id handle)
 	{
-		for (uint32 i = 0u; i < get_capacity(); ++i)
-		{
-			if (m_freelist_gpu[i].is_allocated == false)
-			{
-				m_freelist_gpu[i].is_allocated = true;
-				return m_freelist_gpu[i].pointer;
-			}
-		}
-
-		return result<descriptor_handle>::make_error("error: failed to allocate cpu because we ran out of available slots!");
-	}
-
-	result<> dx12_descriptor_heap::free_cpu(descriptor_handle handle)
-	{
-		auto res = cpu_handle_to_index(handle);
-		if (res.is_unex()) return result<>::make_error("error: failed finding appropriate cpu index! this handle probably doesn't belong to this heap...");
-
-		return free_cpu(res.get());
-	}
-
-	result<> dx12_descriptor_heap::free_gpu(descriptor_handle handle)
-	{
-		auto res = gpu_handle_to_index(handle);
-		if (res.is_unex()) return result<>::make_error("error: failed finding appropriate gpu index! this handle probably doesn't belong to this heap...");
-
-		return free_gpu(res.get());
-	}
-
-	result<> dx12_descriptor_heap::free_cpu(uint32 at_index)
-	{
-		if (at_index >= m_freelist_cpu.size())
+		if (handle >= m_freelist.size())
 			return result<>::make_error("error: failed freeing cpu at index out of range!");
 
-		m_freelist_cpu[at_index].is_allocated = false;
+		m_freelist[handle].m_is_allocated = false;
 		return {};
 	}
 
-	result<> dx12_descriptor_heap::free_gpu(uint32 at_index)
+	result<descriptor_handle> dx12_descriptor_heap::get_cpu(descriptor_id handle) const
 	{
-		if (at_index >= m_freelist_gpu.size())
-			return result<>::make_error("error: failed freeing gpu at index out of range!");
+		using result_type = result<descriptor_handle>;
+		return index_to_cpu_handle(handle);
+	}
+	result<descriptor_handle> dx12_descriptor_heap::get_gpu(descriptor_id handle) const
+	{
+		using result_type = result<descriptor_handle>;
+		return index_to_gpu_handle(handle);
+	}
+	result<descriptor_id> dx12_descriptor_heap::get_id(descriptor_handle handle) const
+	{
+		using result_type = result<descriptor_id>;
 
-		m_freelist_gpu[at_index].is_allocated = false;
-		return {};
+		// if found on cpu_heap, return that index
+		auto handle_to_index = cpu_handle_to_index(handle);
+		if (handle_to_index) return handle_to_index;
+
+		if (m_create_args.m_shader_visible)
+		{
+			handle_to_index = gpu_handle_to_index(handle);
+			if (handle_to_index) return handle_to_index;
+		}
+
+		return result_type::make_error("handle does not fall inside this GPU heap!");
 	}
 
-	result<uint32> dx12_descriptor_heap::get_heap_index_cpu(descriptor_handle handle) const
+	result<> dx12_descriptor_heap::free_all()
 	{
-		return cpu_handle_to_index(handle);
-	}
-
-	result<uint32> dx12_descriptor_heap::get_heap_index_gpu(descriptor_handle handle) const
-	{
-		return gpu_handle_to_index(handle);
-	}
-
-	result<> dx12_descriptor_heap::free_all_cpu()
-	{
-		clear_cpu();
-		return {};
-	}
-
-	result<> dx12_descriptor_heap::free_all_gpu()
-	{
-		clear_gpu();
+		clear();
 		return {};
 	}
 
@@ -116,22 +79,11 @@ namespace influx::graphics
 		mpdx_heap->Release();
 	}
 
-	void dx12_descriptor_heap::clear_cpu()
+	void dx12_descriptor_heap::clear()
 	{
 		for (uint32 i = 0u; i < get_capacity(); ++i)
 		{
-			m_freelist_cpu[i].is_allocated = false;
-		}
-	}
-
-	void dx12_descriptor_heap::clear_gpu()
-	{
-		if (m_create_args.m_shader_visible)
-		{
-			for (uint32 i = 0u; i < get_capacity(); ++i)
-			{
-				m_freelist_gpu[i].is_allocated = false;
-			}
+			m_freelist[i].m_is_allocated = false;
 		}
 	}
 

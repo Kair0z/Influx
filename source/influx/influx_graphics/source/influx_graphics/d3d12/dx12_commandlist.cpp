@@ -60,10 +60,15 @@ namespace influx::graphics
 			for (uint64 i = 0u; i < args.m_color_attachments.size(); ++i)
 			{
 				const auto& attachment = args.m_color_attachments[i];
+				if (attachment.m_rtv_descriptor == 0u)
+				{
+					return result<>::make_error("renderpass_begin() >> null rtv descriptor!");
+				}
+
 				rtvs.push_back({});
-				rtvs[i].cpuDescriptor.ptr = (SIZE_T)args.m_color_attachments[i].m_rtv_descriptor;
-				rtvs[i].BeginningAccess = translate(args.m_color_attachments[i].m_load);
-				rtvs[i].EndingAccess = translate(args.m_color_attachments[i].m_store);
+				rtvs[i].cpuDescriptor.ptr = (SIZE_T)attachment.m_rtv_descriptor;
+				rtvs[i].BeginningAccess = translate(attachment.m_load);
+				rtvs[i].EndingAccess = translate(attachment.m_store);
 
 				// load: preserve
 				if (attachment.m_load == e_load_op::preserve)

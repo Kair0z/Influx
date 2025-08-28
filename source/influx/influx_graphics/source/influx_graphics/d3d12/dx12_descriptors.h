@@ -18,38 +18,30 @@ namespace influx::graphics
 
 		struct entry final
 		{
-			void* pointer = nullptr;
-			bool is_allocated = false;
+			descriptor_id m_index = 0u;
+			bool m_is_allocated = false;
 		};
 
-		vector<entry> m_freelist_cpu = {};
-		vector<entry> m_freelist_gpu = {};
-
+		vector<entry> m_freelist = {};
 		friend class dx12_device;
 
 	private:
 		dx12_descriptor_heap(const descriptor_heap::create_args& args, 
 			ID3D12DescriptorHeap* dxheap, uint64 descriptor_stride);
 
-		/* allocate ranges */
-		virtual result<descriptor_handle> allocate_cpu() override;
-		virtual result<descriptor_handle> allocate_gpu() override;
+		/* allocate descriptors */
+		virtual result<descriptor_id> allocate() override;
 
-		/* de-allocate descriptors */
-		virtual result<> free_cpu(descriptor_handle handle) override;
-		virtual result<> free_gpu(descriptor_handle handle) override;
-		virtual result<> free_cpu(uint32 at_index) override;
-		virtual result<> free_gpu(uint32 at_index) override;
-		virtual result<> free_all_cpu() override;
-		virtual result<> free_all_gpu() override;
+		virtual result<> free(descriptor_id handle) override;
+		virtual result<> free_all() override;
 
-		/* get the index of a given handle that is allocated in this heap */
-		virtual result<uint32> get_heap_index_cpu(descriptor_handle handle) const override;
-		virtual result<uint32> get_heap_index_gpu(descriptor_handle handle) const override;
+		/* get the handles */
+		virtual result<descriptor_handle> get_cpu(descriptor_id handle) const override;
+		virtual result<descriptor_handle> get_gpu(descriptor_id handle) const override;
+		virtual result<descriptor_id> get_id(descriptor_handle handle) const override;
 
 	private:
-		void clear_cpu();
-		void clear_gpu();
+		void clear();
 		virtual void release_impl(device*) override;
 
 		result<uint32> gpu_handle_to_index(descriptor_handle handle) const;

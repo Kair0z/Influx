@@ -39,6 +39,7 @@ namespace influx::renderer
 	using rhi_descheap = graphics::descriptor_heap;
 	using rhi_descriptor = graphics::descriptor_handle;
 	using rhi_descriptor_range = graphics::descriptor_range;
+	using rhi_descriptor_id = graphics::descriptor_id;
 	using rhi_descheap_type = graphics::e_descriptor_heap_type;
 	using rhi_bufferdesc = graphics::buffer_desc;
 	using rhi_texture2Ddesc = graphics::tex2D_desc;

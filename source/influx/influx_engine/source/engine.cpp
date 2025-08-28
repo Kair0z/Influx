@@ -141,7 +141,7 @@ namespace influx::engine
 				m_world->update();
 			}
 			// record imgui if editor
-			if (false && m_runtype == run_type::editor)
+			if (m_runtype == run_type::editor)
 			{
 				m_renderman->get_imgui_scene()
 					.m_imgui_stacks.push_back([this](ImGuiContext& ctx)
@@ -150,13 +150,11 @@ namespace influx::engine
 				});
 			}
 			// world builds renderscenes (pre-render)
-			if (false)
 			{
 				influx_scope("pre_render");
 				m_world->build_renderviews();
 			}
 			// render
-			if (false)
 			{
 				influx_scope("render");
 				m_renderman->render();

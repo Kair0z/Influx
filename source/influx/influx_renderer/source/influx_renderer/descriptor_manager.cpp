@@ -28,11 +28,8 @@ namespace influx::renderer
 
 	void descriptor_manager::end_frame()
 	{
-		mp_srv_gpu_heap->free_all_cpu();
-		mp_srv_gpu_heap->free_all_gpu();
-		
-		mp_samp_gpu_heap->free_all_cpu();
-		mp_samp_gpu_heap->free_all_gpu();
+		mp_srv_gpu_heap->free_all();
+		mp_samp_gpu_heap->free_all();
 	}
 
 	descriptor_manager::descriptor_manager(rhi_device* device)
@@ -131,22 +128,25 @@ namespace influx::renderer
 	rhi_descriptor_range descriptor_manager::stage(const vector<rhi_descriptor>& cpu_descriptors)
 	{
 		rhi_descriptor_range gpu_range{};
+
+		// foreach cpu_descriptor in our list...
 		for (size_t i = 0u; i < cpu_descriptors.size(); ++i)
 		{
-			// allocate a gpu descriptor and 
-			rhi_descriptor gpu_handle = mp_srv_gpu_heap->allocate_gpu().get();
-			rhi_descriptor cpu_handle = mp_srv_gpu_heap->allocate_cpu().get();
+			// allocate a gpu descriptor...
+			rhi_descriptor_id desc_id = mp_srv_gpu_heap->allocate().get();
+			rhi_descriptor gpu_descriptor = mp_srv_gpu_heap->get_gpu(desc_id).get();
+
 			gpu_range.m_num_descriptors++;
 
 			// set the first gpu handles as the gpu_range base
-			if (gpu_range.m_start == nullptr)
+			if (gpu_range.m_start == nullptr || i == 0u)
 			{
-				gpu_range.m_start = gpu_handle;
-				gpu_range.m_start_idx = mp_srv_gpu_heap->get_heap_index_gpu(gpu_handle);
+				gpu_range.m_start = gpu_descriptor;
+				// gpu_range.m_start_idx = mp_srv_gpu_heap->get_heap_index_gpu(gpu_handle);
 			}
 
 			// copy the cpu descriptor into the gpu-visible descriptor
-			mp_device->copy_descriptors(cpu_descriptors[i], cpu_handle, rhi_descheap_type::rsc);
+			mp_device->copy_descriptors(cpu_descriptors[i], gpu_descriptor, rhi_descheap_type::rsc);
 		}
 
 		return gpu_range;
@@ -209,16 +209,16 @@ namespace influx::renderer
 
 	void descriptor_manager::cleanup_rtv(rhi_descriptor rtv)
 	{
-		mp_rtv_heap->free_cpu(rtv);
+		mp_rtv_heap->free(rtv);
 	}
 
 	void descriptor_manager::cleanup_dsv(rhi_descriptor dsv)
 	{
-		mp_dsv_heap->free_cpu(dsv);
+		mp_dsv_heap->free(dsv);
 	}
 
 	void descriptor_manager::cleanup_srv(rhi_descriptor srv)
 	{
-		mp_srv_heap->free_cpu(srv);
+		mp_srv_heap->free(srv);
 	}
 }

@@ -160,6 +160,8 @@ namespace influx::rendergraph
 
 	result<> rendergraph::execute(rhi_commandlist& commandlist, rhi_device& device)
 	{
+		using result_type = result<>;
+
 		const bool is_valid = execute_validation_checks();
 		if (!is_valid) return result<>::make_error("rendergraph failed validation checks!");
 
@@ -184,11 +186,13 @@ namespace influx::rendergraph
 			// create imported resources descriptors/views
 			for (uint64 i = 0; i < m_textures.size(); ++i)
 			{
-				if (m_textures[i]->m_is_imported) create_texture_views(device, m_textures[i]->m_id);
+				if (m_textures[i]->m_is_imported) 
+					create_texture_views(device, m_textures[i]->m_id).get();
 			}
 			for (uint64 i = 0; i < m_buffers.size(); ++i)
 			{
-				if (m_buffers[i]->m_is_imported) create_buffer_views(device, m_buffers[i]->m_id);
+				if (m_buffers[i]->m_is_imported) 
+					create_buffer_views(device, m_buffers[i]->m_id).get();
 			}
 
 			// transition resources to appropriate state
@@ -242,7 +246,12 @@ namespace influx::rendergraph
 						influx::graphics::color_attachment attachment{};
 						attachment.m_load = translate(rtv.m_access.m_load);
 						attachment.m_store = translate(rtv.m_access.m_store);
-						attachment.m_rtv_descriptor = get_rtv(rtv.m_texture_id);
+
+						const rhi_descriptor rtv_descriptor = get_rtv(rtv.m_texture_id);
+						if (rtv_descriptor == 0u) 
+							return result_type::make_error("rendergraph::execute() >> invalid RTV!");
+						
+						attachment.m_rtv_descriptor = rtv_descriptor;
 
 						// load:preserve info
 						if (rtv.m_access.m_load == e_rg_load::preserve) {} // nothing to declare

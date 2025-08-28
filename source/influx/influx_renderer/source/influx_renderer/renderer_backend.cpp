@@ -601,13 +601,19 @@ namespace influx::renderer
     // mesh
     void renderer_backend::load(const string& title, const mesh_data<vertex_data>& data, bool reload)
     {
-        mesh_data<vertex_data>* new_copy = new mesh_data<vertex_data>(data);
-        auto& entry = m_resource_manager->load<e_resource_type::mesh>(title, new_copy, reload);
+        if (m_resource_manager == nullptr)
+            return;
 
-        // keep track in the rendergraph
-        // m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_vertexbuffer);
-        // m_rendergraph->import_buffer("ib_" + title, entry.m_resource->m_indexbuffer);
+        if (!has_mesh(title) || reload)
+        {
+            // we store mesh data as detail::base_mesh_data
+            mesh_data<vertex_data>* copy = new mesh_data<vertex_data>(data);
+            auto& entry = m_resource_manager->load<e_resource_type::mesh>(title, copy, reload);
 
+            // keep track in the rendergraph
+            // m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_vertexbuffer);
+            // m_rendergraph->import_buffer("ib_" + title, entry.m_resource->m_indexbuffer);
+        }
         // log(renderer::e_log::info, "loaded mesh");
     }
 

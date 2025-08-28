@@ -32,6 +32,8 @@ namespace influx::graphics
 		uint32 m_start_idx;
 	};
 
+	using descriptor_id = uint32;
+
 	class descriptor_heap : public base
 	{
 	public:
@@ -83,70 +85,59 @@ namespace influx::graphics
 			return args;
 		}
 
-		/* allocate ranges */
-		virtual result<descriptor_handle> allocate_cpu() = 0;
-		virtual result<descriptor_handle> allocate_gpu() = 0;
-		inline result<descriptor_range> allocate_range_cpu(uint32 num_descriptors)
+		/* allocate descriptors */
+		virtual result<descriptor_id> allocate() = 0;
+		inline result<descriptor_id> allocate_range(uint32 num_descriptors)
 		{
-			using result_type = result<descriptor_range>;
+			using result_type = result<descriptor_id>;
 
-			auto res = allocate_cpu();
-			if (res.is_unex()) return result_type::make_error("error: failed allocating first cpu handle!");
+			auto res = allocate();
+			if (res.is_unex()) 
+				return result_type::make_error("error: failed allocating first descriptor!");
 
-			descriptor_range range{};
-			range.m_start = res.get();
-			range.m_num_descriptors = num_descriptors;
+			descriptor_id first = res.get();
 			for (uint32 i = 0u; i < num_descriptors - 1u; ++i)
 			{
-				res = allocate_cpu();
-				if (res.is_unex()) return result_type::make_error("error: failed allocating cpu handle!");
+				res = allocate();
+				if (res.is_unex()) 
+					return result_type::make_error("error: failed allocating nth descriptor!");
 			}
-			return range;
+
+			return first;
 		}
-		inline result<descriptor_range> allocate_range_gpu(uint32 num_descriptors)
+		virtual result<> free(descriptor_id handle) = 0;
+		virtual result<> free_all() = 0;
+
+		/* get the handles */
+		virtual result<descriptor_handle> get_cpu(descriptor_id handle) const = 0;
+		virtual result<descriptor_handle> get_gpu(descriptor_id handle) const = 0;
+		virtual result<descriptor_id> get_id(descriptor_handle handle) const = 0;
+
+		inline result<descriptor_handle> allocate_cpu()
 		{
-			using result_type = result<descriptor_range>;
+			using result_type = result<descriptor_handle>;
+			auto alloc = allocate();
+			if (!alloc)
+				return result_type::make_error("failed allocating a descriptor!");
 
-			auto res = allocate_gpu();
-			if (res.is_unex()) return result_type::make_error("error: failed allocating first gpu handle!");
-
-			descriptor_range range{};
-			range.m_start = res.get();
-			range.m_num_descriptors = num_descriptors;
-			for (uint32 i = 0u; i < num_descriptors - 1u; ++i)
-			{
-				res = allocate_gpu();
-				if (res.is_unex()) return result_type::make_error("error: failed allocating gpu handle!");
-			}
-			return range;
+			return get_cpu(alloc.get());
 		}
+		inline result<descriptor_handle> allocate_gpu()
+		{
+			using result_type = result<descriptor_handle>;
+			auto alloc = allocate();
+			if (!alloc)
+				return result_type::make_error("failed allocating a descriptor!");
 
-		/* de-allocate descriptors */
-		virtual result<> free_cpu(descriptor_handle handle) = 0;
-		virtual result<> free_gpu(descriptor_handle handle) = 0;
-		virtual result<> free_cpu(uint32 at_index) = 0;
-		virtual result<> free_gpu(uint32 at_index) = 0;
-		virtual result<> free_all_cpu() = 0;
-		virtual result<> free_all_gpu() = 0;
-
+			return get_gpu(alloc.get());
+		}
 		inline result<> free(descriptor_handle handle)
 		{
-			free_cpu(handle);
-			return free_gpu(handle);
+			auto handle_to_id = get_id(handle);
+			if (handle_to_id) free(handle_to_id.get());
+			else
+				return result<>::make_error("handle does not belong to this GPU heap!");
 		}
-		inline result<> free(uint32 index)
-		{
-			free_gpu(index);
-			return free_cpu(index);
-		}
-		inline result<> free_all()
-		{
-			free_all_gpu();
-			return free_all_cpu();
-		}
-		/* get the index of a given handle that is allocated in this heap */
-		virtual result<uint32> get_heap_index_cpu(descriptor_handle handle) const = 0;
-		virtual result<uint32> get_heap_index_gpu(descriptor_handle handle) const = 0;
 
 		inline uint32 get_capacity() const
 		{
