@@ -160,7 +160,7 @@ namespace influx::engine
 			}
 		}
 
-		// render imgui 
+		// render imgui
 		// (internally renders into potentially multiple windows backbuffers)
 		renderer::scene_imgui& imgui_scene = get_imgui_scene();
 		if (!imgui_scene.is_empty() && is_imgui_render_enabled())

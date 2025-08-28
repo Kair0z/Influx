@@ -94,7 +94,6 @@ namespace influx::rendergraph
 		friend class rgpass_context;
 
 	public:
-		
 		INFLUX_RG_API rendergraph(const global_config& config, rhi_device& device);
 
 		INFLUX_RG_API void cleanup(rhi_device& device);

@@ -32,7 +32,13 @@ namespace influx::shader
 
 		count
 	};
+
+	// ===========================================================
+	// please update these arrays when changing e_shader_type!
+	
 	static constexpr uint8 k_num_shadertypes = static_cast<uint8>(e_shader_type::count);
+
+	// "vs", "ps", ...
 	static const char* k_shadertype_strings[k_num_shadertypes]
 	{
 		"vs",
@@ -49,6 +55,8 @@ namespace influx::shader
 		"as",
 		"ms"
 	};
+
+	// "vertex", "pixel", ...
 	static const char* k_shadertype_friendnames[k_num_shadertypes]
 	{
 		"vertex",
@@ -65,33 +73,35 @@ namespace influx::shader
 		"amplification",
 		"mesh"
 	};
-
+	
+	// ===========================================================
+	
+	// shader type flags
 	enum class e_shader_type_flags : uint32
 	{
 		none	= 0,
 
-		vs		= 1 << static_cast<uint8>(e_shader_type::vs),
-		ps		= 1 << static_cast<uint8>(e_shader_type::ps),
-		ds		= 1 << static_cast<uint8>(e_shader_type::ds),
-		gs		= 1 << static_cast<uint8>(e_shader_type::gs),
-		hs		= 1 << static_cast<uint8>(e_shader_type::hs),
-		cs		= 1 << static_cast<uint8>(e_shader_type::cs),
-		rgs		= 1 << static_cast<uint8>(e_shader_type::rgs),
-		mss		= 1 << static_cast<uint8>(e_shader_type::mss),
-		chs		= 1 << static_cast<uint8>(e_shader_type::chs),
-		ahs		= 1 << static_cast<uint8>(e_shader_type::ahs),
-		ins		= 1 << static_cast<uint8>(e_shader_type::ins),
-		as		= 1 << static_cast<uint8>(e_shader_type::as),
-		ms		= 1 << static_cast<uint8>(e_shader_type::ms),
+		vs			= 1 << static_cast<uint8>(e_shader_type::vs),
+		ps			= 1 << static_cast<uint8>(e_shader_type::ps),
+		ds			= 1 << static_cast<uint8>(e_shader_type::ds),
+		gs			= 1 << static_cast<uint8>(e_shader_type::gs),
+		hs			= 1 << static_cast<uint8>(e_shader_type::hs),
+		cs			= 1 << static_cast<uint8>(e_shader_type::cs),
+		rgs			= 1 << static_cast<uint8>(e_shader_type::rgs),
+		mss			= 1 << static_cast<uint8>(e_shader_type::mss),
+		chs			= 1 << static_cast<uint8>(e_shader_type::chs),
+		ahs			= 1 << static_cast<uint8>(e_shader_type::ahs),
+		ins			= 1 << static_cast<uint8>(e_shader_type::ins),
+		as			= 1 << static_cast<uint8>(e_shader_type::as),
+		ms			= 1 << static_cast<uint8>(e_shader_type::ms),
 
+		// compound flags
 		all_gfx		= vs | ps | ds | gs | hs,
 		all_cs		= cs,
 		all_ray		= rgs | mss | chs | ahs | ins,
 		all_mesh	= as | ms,
-
 		all = all_gfx | all_cs | all_ray | all_mesh
 	};
-
 	inline static constexpr e_shader_type_flags get_shader_flag(e_shader_type type)
 	{
 		return static_cast<e_shader_type_flags>(1u << static_cast<uint8>(type));
@@ -139,6 +149,10 @@ namespace influx::shader
 		_6_8,
 		count
 	};
+
+	// ===========================================================
+	// please update these arrays when changing e_shader_target!
+
 	static constexpr uint8 k_num_shadertargets = static_cast<uint8>(e_shader_target::count);
 	static const char* k_shadertarget_strings[k_num_shadertargets]
 	{
@@ -147,6 +161,7 @@ namespace influx::shader
 		"6_6",
 		"6_8"
 	};
+	// ===========================================================
 
 	/*	
 		signature identifier of a single shader
@@ -202,7 +217,7 @@ namespace influx::shader
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::shader::e_shader_type_flags);
 
-// Specialize std::hash for shader_signature
+// specialize std::hash for shader_signature
 namespace std 
 {
 	template <> struct hash<influx::shader::shader_signature> 
