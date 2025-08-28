@@ -45,6 +45,7 @@ namespace influx::rendergraph
 #include "influx_graphics/descriptors.h"
 #include "influx_graphics/resource.h"
 #include "influx_graphics/commandlist.h"
+#include "influx_graphics/renderpass.h"
 namespace influx::graphics
 {
 	class device;

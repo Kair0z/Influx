@@ -56,9 +56,13 @@ namespace influx::rendergraph
 		vector<pooled_buffer>	m_buffer_pool;
 		global_config			m_config;
 
-		rhi_descheap*	m_int_descheaps[k_num_internal_descheaps];
+#if !INFLUX_RG_BACKEND_GRAPHICS
+		rhi_descheap	m_int_descheaps[k_num_internal_descheaps];
 		rhi_descheap*	m_ext_descheaps[k_num_ext_descheap_slots]{};
-
+#else
+		rhi_descheap*	m_int_descheaps[k_num_internal_descheaps];
+		rhi_descheap**  m_ext_descheaps[k_num_ext_descheap_slots]{};
+#endif
 		// all allocated descriptors
 		using descriptor_list = list<rhi_descriptor>;
 		descriptor_list m_allocated_descriptors[k_num_descheaps];
@@ -73,7 +77,12 @@ namespace influx::rendergraph
 		void cleanup(rhi_device& device);
 
 		// descriptors
+#if INFLUX_RG_BACKEND_GRAPHICS
 		rhi_descheap*& get_descheap(e_descheap_slot slot, bool ignore_ext = false);
+#else
+		rhi_descheap& get_descheap(e_descheap_slot slot, bool ignore_ext = false);
+#endif
+
 		result<rhi_descriptor> alloc_cpu_descriptor(rgdescriptor_type type);
 		result<rhi_descriptor> alloc_gpu_srv();
 		result<rhi_descriptor> alloc_gpu_sampler();

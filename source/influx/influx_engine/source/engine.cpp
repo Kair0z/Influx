@@ -35,7 +35,7 @@
 
 namespace influx::engine
 {
-	void engine::process_runarguments(int argc, char* argv[])
+	result<> engine::process_runarguments(int argc, char* argv[])
 	{
 		for (int i = 0u; i < argc; ++i)
 		{
@@ -52,11 +52,15 @@ namespace influx::engine
 				m_parsed_run_args["projectfile"] = argument;
 
 				// load the .flx project file
-				m_project = project::load(argument).get();
+				auto load_project = project::load(argument);
+				if (!load_project) return result<>::make_error("failed loading project at given filepath!");
+
+				m_project = load_project.get();
 			}
 
 			m_run_args.push_back(argv[i]);
 		}
+		return {};
 	}
 
 	void engine::initialize()
@@ -98,10 +102,13 @@ namespace influx::engine
 		}
 	}
 
-	void engine::run(run_type type, int argc, char* argv[])
+	result<> engine::run(run_type type, int argc, char* argv[])
 	{
 		m_runtype = type;
-		process_runarguments(argc, argv);
+
+		auto process_run_args = process_runarguments(argc, argv);
+		if (!process_run_args) return process_run_args;
+
 		initialize();
 
 		// when running as game, we auto-start the game-manager
@@ -177,6 +184,7 @@ namespace influx::engine
 
 		cleanup();
 		m_is_quit = true;
+		return {};
 	}
 
 	void engine::cleanup()
@@ -340,13 +348,13 @@ namespace influx::engine
 #include "influx_engine.h"
 namespace influx::engine
 {
-	void run_editor(int argc, char* argv[])
+	result<> run_editor(int argc, char* argv[])
 	{
-		get_engine()->run(engine::run_type::editor, argc, argv);
+		return get_engine()->run(engine::run_type::editor, argc, argv);
 	}
 
-	void run_game(int argc, char* argv[])
+	result<> run_game(int argc, char* argv[])
 	{
-		get_engine()->run(engine::run_type::game, argc, argv);
+		return get_engine()->run(engine::run_type::game, argc, argv);
 	}
 }

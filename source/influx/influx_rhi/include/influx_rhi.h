@@ -45,6 +45,14 @@ namespace influx::rhi
 	{
 		graphics
 	};
+	enum class e_commandlist_state : uint8
+	{
+		init,
+		recording,
+		closed,
+		inflight,
+		num
+	};
 	enum class e_queue_type : uint8
 	{
 		graphics,
@@ -361,6 +369,7 @@ namespace influx::rhi
 		object_native m_allocator;
 		object_native m_fence;
 		uint32 m_fence_complete_value = 0u;
+		e_commandlist_state m_state = e_commandlist_state::init;
 	};
 	struct fence_data final
 	{
@@ -500,6 +509,14 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> transition(commandlist& cmdlist, e_resource_state new_state);
 		INFLUX_RHI_API result<pixelformat const*> get_current_format() const;
 
+		inline virtual uint32 get_arraysize() const	 override { return 0u; };
+		inline virtual uint32 get_depth() const		 override { return 0u; };
+		inline virtual uint32 get_width() const		 override { return 0u; };
+		inline virtual uint32 get_height() const	 override { return 0u; };
+		inline virtual uint64 get_bytesize() const	 override { return 0u; };
+		inline virtual uint64 get_bytestride() const override { return 0u; };
+		inline virtual const char* get_name() const	override { return ""; }
+
 		// resource interface
 		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture2D; };
 		inline virtual const object_native get_native_resource() const override { return m_native_object; }
@@ -618,6 +635,7 @@ namespace influx::rhi
 	public:
 		INFLUX_RHI_API result<> start(device& device);
 		INFLUX_RHI_API result<> start(const command_allocator& allocator);
+		INFLUX_RHI_API bool is_recording() const;
 
 		INFLUX_RHI_API result<> renderpass_begin(const renderpass_args& args);
 		INFLUX_RHI_API result<> renderpass_end();
@@ -668,13 +686,6 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> create_uav(const texture2D& texture, descriptor descriptor) const;
 		INFLUX_RHI_API result<> create_srv(const buffer& buffer, descriptor descriptor) const;
 		INFLUX_RHI_API result<> create_uav(const buffer& buffer, descriptor descriptor) const;
-
-		inline result<> create_rtv(const object_native native, descriptor descriptor) const;
-		inline result<> create_dsv(const object_native native, descriptor descriptor) const;
-		inline result<> create_srv_texture(const object_native native, descriptor descriptor) const;
-		inline result<> create_uav_texture(const object_native native, descriptor descriptor) const;
-		inline result<> create_srv_buffer(const object_native native, descriptor descriptor) const;
-		inline result<> create_uav_buffer(const object_native native, descriptor descriptor) const;
 
 		inline static result<device> create(const device_create_args& args = {});
 		inline result<swapchain> create(const swapchain_create_args& args) const;
@@ -747,75 +758,6 @@ namespace influx::rhi
 
 	// [inline]
 	// inline methods
-	inline result<> device::create_rtv(const object_native native, descriptor descriptor) const
-	{
-		using result_type = result<>;
-
-		if (native == nullptr)
-			return result_type::make_error("native is nullptr!");
-
-		// import native to functional object
-		auto imported = import<texture2D>(native);
-		if (!imported) return result_type::make_error("failed to import native object as a texture2D!");
-
-		return create_rtv(imported.get(), descriptor);
-	}
-	inline result<> device::create_dsv(const object_native native, descriptor descriptor) const
-	{
-		using result_type = result<>;
-		if (native == nullptr) return result_type::make_error("native is nullptr!");
-
-		// import native to functional object
-		auto imported = import<texture2D>(native);
-		if (!imported) return result_type::make_error("failed to import native object as a texture2D!");
-
-		return device::create_dsv(imported.get(), descriptor);
-	}
-	inline result<> device::create_srv_texture(const object_native native, descriptor descriptor) const
-	{
-		using result_type = result<>;
-		if (native == nullptr) return result_type::make_error("native is nullptr!");
-
-		// import native to functional object
-		auto imported = import<texture2D>(native);
-		if (!imported) return result_type::make_error("failed to import native object as a texture2D!");
-
-		return create_srv(imported.get(), descriptor);
-	}
-	inline result<> device::create_uav_texture(const object_native native, descriptor descriptor) const
-	{
-		using result_type = result<>;
-		if (native == nullptr) return result_type::make_error("native is nullptr!");
-
-		// import native to functional object
-		auto imported = import<texture2D>(native);
-		if (!imported) return result_type::make_error("failed to import native object as a texture2D!");
-
-		return create_uav(imported.get(), descriptor);
-	}
-	inline result<> device::create_srv_buffer(const object_native native, descriptor descriptor) const
-	{
-		using result_type = result<>;
-		if (native == nullptr) return result_type::make_error("native is nullptr!");
-
-		// import native to functional object
-		auto imported = import<buffer>(native);
-		if (!imported) return result_type::make_error("failed to import native object as a buffer!");
-
-		return create_srv(imported.get(), descriptor);
-	}
-	inline result<> device::create_uav_buffer(const object_native native, descriptor descriptor) const
-	{
-		using result_type = result<>;
-		if (native == nullptr) return result_type::make_error("native is nullptr!");
-
-		// import native to functional object
-		auto imported = import<buffer>(native);
-		if (!imported) return result_type::make_error("failed to import native object as a buffer!");
-
-		return create_uav(imported.get(), descriptor);
-	}
-	
 	inline result<device>				device::create(const device_create_args& args)					{ return influx::rhi::create<device>(args); }
 	inline result<swapchain>			device::create(const swapchain_create_args& args) const			{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; args_cpy.m_instance = this->m_data.m_factory; return influx::rhi::create<swapchain>(args_cpy); }
 	inline result<queue>				device::create(const queue_create_args& args) const				{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<queue>(args_cpy); }

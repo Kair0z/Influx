@@ -5,7 +5,7 @@
 
 namespace influx::rendergraph
 {
-	class rendergraph;
+	// class rendergraph;
 	class rgpass;
 
 	// optional specification
@@ -51,12 +51,20 @@ namespace influx::rendergraph
 		result<rgtexture_readwrite_id> write_texture(
 			const rgname& name, 
 			const texture_desc_options& = {});
-
+ 
 		INFLUX_RG_API
 		result<rgrendertarget_id> write_rendertarget(
 			const rgname& name, 
 			rgaccess load_store_op,
 			const texture_desc_options& = {});
+		
+		inline result<rgrendertarget_id> write_rendertarget(
+			rhi_resource* resource,
+			rgaccess load_store_op,
+			const texture_desc_options& ops = {})
+		{
+			return write_rendertarget(resource->get_name(), load_store_op, ops);
+		}
 
 		INFLUX_RG_API
 		result<rgdepthtarget_id> write_depthtarget(

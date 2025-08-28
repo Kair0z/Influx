@@ -108,6 +108,11 @@ namespace influx::graphics
 
 		INFLUX_GFX_API e_state get_state();
 
+		inline bool is_recording()
+		{
+			return get_state() == e_state::recording;
+		}
+
 		INFLUX_GFX_API void set_name(const debug_name& name);
 
 		INFLUX_GFX_API const debug_name& get_name() const;

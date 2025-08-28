@@ -72,6 +72,7 @@ namespace influx::rendergraph
 
 	void rendergraph::cleanup(rhi_device& device)
 	{
+#if 0
 		// release the device objects
 		for (auto& pair : m_texid_to_deviceobjects_map)
 		{
@@ -95,7 +96,7 @@ namespace influx::rendergraph
 				}
 			}
 		}
-
+#endif
 		// cleanup pool descriptor heaps & such
 		m_pool->cleanup(device);
 	}
@@ -162,8 +163,16 @@ namespace influx::rendergraph
 	{
 		using result_type = result<>;
 
+		if (commandlist.is_recording() == false)
+		{
+			auto start_commandlist = commandlist.start(&device);
+			if (!start_commandlist)
+				return result<>::make_error("failed starting the commandlist!");
+		}
+
 		const bool is_valid = execute_validation_checks();
-		if (!is_valid) return result<>::make_error("rendergraph failed validation checks!");
+		if (!is_valid) 
+			return result<>::make_error("rendergraph failed validation checks!");
 
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
@@ -516,8 +525,8 @@ namespace influx::rendergraph
 		m_texture_name_to_id_map.clear();
 		m_buffer_name_to_id_map.clear();
 
-		m_texid_to_deviceobjects_map.clear();
-		m_bufid_to_deviceobjects_map.clear();
+		// m_texid_to_deviceobjects_map.clear();
+		// m_bufid_to_deviceobjects_map.clear();
 
 		m_texid_to_viewdesc_map.clear();
 		m_texid_to_descriptors_map.clear();
@@ -673,7 +682,12 @@ namespace influx::rendergraph
 
 		rgtexture* texture = get_texture(id);
 		rhi_resource& resource = *texture->m_resource;
-		
+#if INFLUX_RG_BACKEND_RHI
+		rhi::texture2D* texture_resource = (rhi::texture2D*)&resource;
+#else 
+		rhi_resource* texture_resource = &resource;
+#endif
+
 		// for each type of descriptor, allocate a cpu-handle and create the view
 		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
 		{
@@ -696,19 +710,19 @@ namespace influx::rendergraph
 				switch (type)
 				{
 				case rgdescriptor_type::render_target:
-					device.create_rtv(&resource, descriptors[i]);
+					device.create_rtv(texture_resource, descriptors[i]);
 					break;
 				case rgdescriptor_type::depth_target:
-					device.create_dsv(&resource, descriptors[i]);
+					device.create_dsv(texture_resource, descriptors[i]);
 					break;
 				case rgdescriptor_type::read_only:
-					device.create_srv_texture(&resource, descriptors[i]);
+					device.create_srv_texture(texture_resource, descriptors[i]);
 					break;
 				case rgdescriptor_type::read_write:
 					if (resource.allows_uav() == false)
 						return result<>::make_error("error: cannot create a uav for a texture that doesn't allow it!");
 					
-					device.create_uav_texture(&resource, descriptors[i]);
+					device.create_uav_texture(texture_resource, descriptors[i]);
 					break;
 				}
 
@@ -726,7 +740,10 @@ namespace influx::rendergraph
 		auto& descriptors = m_bufid_to_descriptors_map[id];
 
 		rgbuffer* buffer = get_buffer(id);
-		
+#if INFLUX_RG_BACKEND_RHI
+		rhi::buffer* buffer_resource = (rhi::buffer*)&buffer;
+#endif
+
 		for (uint8 i = 0u; i < k_num_descriptor_types; ++i)
 		{
 			if (viewdescs[i].m_is_active && viewdescs[i].m_is_created == false)
@@ -737,7 +754,7 @@ namespace influx::rendergraph
 				case rgdescriptor_type::read_only:
 					descriptors[i] = m_pool->alloc_cpu_descriptor(type).get();
 #if INFLUX_RG_BACKEND_RHI
-					device.create_srv_buffer(buffer->m_resource, descriptors[i]);
+					device.create_srv(*buffer_resource, descriptors[i]);
 #else 
 					device.create_buffer_srv(descriptors[i], buffer->m_resource);
 #endif
@@ -745,7 +762,7 @@ namespace influx::rendergraph
 				case rgdescriptor_type::read_write:
 					descriptors[i] = m_pool->alloc_cpu_descriptor(type).get();
 #if INFLUX_RG_BACKEND_RHI
-					device.create_uav_buffer(buffer->m_resource, descriptors[i]);
+					device.create_uav(*buffer_resource, descriptors[i]);
 #else 
 					device.create_buffer_uav(descriptors[i], buffer->m_resource);
 #endif					break;

@@ -10,9 +10,6 @@
 #include "rgcommon.h"
 #include "rgpass_builder.h"
 
-// influx::graphics
-#include "influx_graphics/renderpass.h"
-#include "influx_graphics/resource.h"
 namespace influx::rendergraph
 {
 	class rgpass_builder;

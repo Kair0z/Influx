@@ -68,6 +68,7 @@ namespace influx::rendergraph
 			get_descheap(slot) = device.create(args);
 #endif
 #if INFLUX_RG_BACKEND_RHI
+			args.m_num_descriptors = capacity;
 			get_descheap(slot) = device.create(args).get();
 #endif
 		};
@@ -123,16 +124,20 @@ namespace influx::rendergraph
 		}
 	}
 
-	rhi_descheap*& rgpool::get_descheap(e_descheap_slot slot, bool ignore_external)
+#if INFLUX_RG_BACKEND_GRAPHICS
+	rhi_descheap*& rgpool::get_descheap(e_descheap_slot slot, bool ignore_ext)
+#else
+	rhi_descheap& get_descheap(e_descheap_slot slot, bool ignore_ext = false)
+#endif
 	{
-		if (ignore_external)
+		if (ignore_ext)
 		{
 			const uint32 index = static_cast<uint32>(slot);
 			return m_int_descheaps[index];
 		}
 
 		// do we have an ext heap override?
-		rhi_descheap* ext_heap = nullptr;
+		rhi_descheap** ext_heap = nullptr;
 		switch (slot)
 		{
 		case e_descheap_slot::rtv: ext_heap = m_ext_descheaps[static_cast<uint32>(e_ext_descheap_slot::rtv)]; break;
@@ -143,7 +148,7 @@ namespace influx::rendergraph
 
 		if (ext_heap)
 		{
-			return ext_heap;
+			return *ext_heap;
 		}
 		else
 		{
@@ -245,36 +250,27 @@ namespace influx::rendergraph
 		if (heap == nullptr)
 			return result_type::make_error("invalid descriptor type!");
 
-#if INFLUX_RG_BACKEND_RHI
-		auto alloc = heap->allocate(1u);
-		if (!alloc) return result_type::make_error("failed allocating a descriptor!");
-		return heap->get_cpu_descriptor(alloc.get());
-#else
-		return result_type::make_error("not implemented!");
-#endif
+		auto alloc = heap->allocate();
+		if (!alloc.is_success()) 
+			return result_type::make_error("failed allocating a descriptor!");
+
+		return heap->get_cpu(alloc.get());
 	}
 
 	result<rhi_descriptor> rgpool::alloc_gpu_srv()
 	{
 		using result_type = result<rhi_descriptor>;
-#if INFLUX_RG_BACKEND_RHI
-		rhi_descheap& heap = get_descheap(e_descheap_slot::rsc_gpu);
-		uint32 alloc_index = heap.allocate(1u).get();
-		return heap.get_gpu_descriptor(alloc_index);
-#else
-		return result_type::make_error("no impl!");
-#endif
+		rhi_descheap& heap = *get_descheap(e_descheap_slot::rsc_gpu);
+		uint32 alloc_index = heap.allocate().get();
+		return heap.get_gpu(alloc_index);
 	}
 
 	result<rhi_descriptor> rgpool::alloc_gpu_sampler()
 	{
 		using result_type = result<rhi_descriptor>;
-#if INFLUX_RG_BACKEND_RHI
-		rhi_descheap& heap = get_descheap(e_descheap_slot::samp_gpu);
-		uint32 alloc_index = heap.allocate(1u).get();
-		return heap.get_gpu_descriptor(alloc_index);
-#endif
-		return result_type::make_error("no impl!");
+		rhi_descheap& heap = *get_descheap(e_descheap_slot::samp_gpu);
+		uint32 alloc_index = heap.allocate().get();
+		return heap.get_gpu(alloc_index);
 	}
 
 	result<> rgpool::free_descriptor(e_descheap_slot type, rhi_descriptor handle)
@@ -300,7 +296,7 @@ namespace influx::rendergraph
 			else return result_type::make_error("descheap at slot is already bound!");
 		}
 		
-		m_ext_descheaps[index] = &heap;
+		// m_ext_descheaps[index] = &heap;
 		return {};
 	}
 	result<> rgpool::unbind_ext_descheap(e_ext_descheap_slot slot)

@@ -441,6 +441,13 @@ namespace influx::rhi
 		dxdesc.NodeMask;
 		
 		HRESULT hres = device->CreateDescriptorHeap(&dxdesc, IID_PPV_ARGS(&descheap));
+
+		if (out_data)
+		{
+			out_data->m_descriptor_stride = device->GetDescriptorHandleIncrementSize(translate(args.m_type));
+			out_data->m_freelist.resize(args.m_num_descriptors, false);
+		}
+
 		return hres_to_result<object_native>(hres, descheap);
 	}
 
@@ -1091,6 +1098,7 @@ namespace influx::rhi
 		{
 			auto new_alloc_res = device.create(commandallocator_create_args{});
 			if (!new_alloc_res) return result<>::make_error("failed creating new allocator");
+
 			return start(new_alloc_res.get());
 		}
 		else
@@ -1108,9 +1116,18 @@ namespace influx::rhi
 
 		res = dxcommandlist->Close();
 
+		m_data.m_state = e_commandlist_state::recording;
+
 		ID3D12PipelineState* dxinitpipeline = NULL;
 		res = dxcommandlist->Reset(dxallocator, dxinitpipeline);
 		return {};
+	}
+	bool commandlist::is_recording() const
+	{
+		auto dxcommandlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcommandlist) return false;
+
+		return m_data.m_state == e_commandlist_state::recording;
 	}
 	result<> commandlist::end()
 	{
@@ -1211,9 +1228,9 @@ namespace influx::rhi
 			if (is_allocated(i)) continue;
 
 			bool all_neighbours_free = true;
-			for (uint32 x = 0u; x < num_descriptors; ++i)
+			for (uint32 x = 0u; x < num_descriptors; ++x)
 			{
-				all_neighbours_free &= is_allocated(i + x);
+				all_neighbours_free &= !is_allocated(i + x);
 			}
 
 			if (all_neighbours_free)

@@ -7,5 +7,5 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
 int main(int argc, char* argv[])
 {
-	influx::engine::run_editor(argc, argv);
+	influx::engine::run_editor(argc, argv).get();
 }

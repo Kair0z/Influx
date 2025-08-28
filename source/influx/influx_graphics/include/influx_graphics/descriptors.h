@@ -117,7 +117,7 @@ namespace influx::graphics
 		{
 			using result_type = result<descriptor_handle>;
 			auto alloc = allocate();
-			if (!alloc)
+			if (!alloc.is_success())
 				return result_type::make_error("failed allocating a descriptor!");
 
 			return get_cpu(alloc.get());
@@ -126,7 +126,7 @@ namespace influx::graphics
 		{
 			using result_type = result<descriptor_handle>;
 			auto alloc = allocate();
-			if (!alloc)
+			if (!alloc.is_success())
 				return result_type::make_error("failed allocating a descriptor!");
 
 			return get_gpu(alloc.get());
@@ -134,7 +134,8 @@ namespace influx::graphics
 		inline result<> free(descriptor_handle handle)
 		{
 			auto handle_to_id = get_id(handle);
-			if (handle_to_id) free(handle_to_id.get());
+			if (handle_to_id.is_success()) 
+				return free(handle_to_id.get());
 			else
 				return result<>::make_error("handle does not belong to this GPU heap!");
 		}

@@ -38,7 +38,7 @@ namespace influx::engine
 			editor,
 			count
 		};
-		void run(run_type, int argc, char* argv[]);
+		result<> run(run_type, int argc, char* argv[]);
 
 		content_manager& get_content();
 		game_manager& get_game();
@@ -65,7 +65,7 @@ namespace influx::engine
 		static string get_run_argument(const string&);
 
 	private:
-		void process_runarguments(int argc, char* argv[]);
+		result<> process_runarguments(int argc, char* argv[]);
 		void initialize();
 		void cleanup();
 

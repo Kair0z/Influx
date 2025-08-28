@@ -74,6 +74,7 @@ namespace influx::engine
 
 			path::overwrite(m_filepath.get_full_path(), ss.str());
 		}
+		return {};
 	}
 
 	result<string> project::get_name() const
