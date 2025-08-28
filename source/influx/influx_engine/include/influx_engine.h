@@ -6,6 +6,9 @@
 #define INFLUX_ENGINE_API __declspec(dllimport)
 #endif
 
+// =============================================================================
+// Engine application frontend
+// =============================================================================
 namespace influx::engine
 {
 	INFLUX_ENGINE_API void run_editor(int argc = 0, char* argv[] = nullptr);
