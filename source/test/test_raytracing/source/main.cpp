@@ -28,11 +28,12 @@ void compile_shaders(graphics::raytracing_pipeline_desc& out_desc)
 
 	shader::compile_args compile_args{};
 	compile_args.set_target(shader::e_shader_target::_6_6);
-	compile_args.m_reflection = false;
-
+	compile_args.m_reflection_enabled = false;
 	compile_args.m_include_folder = "D:/Git/Influx/assets/engine/shaders/include/";
-	bool load_success = imp::load_shader_file("D:/Git/Influx/assets/engine/shaders/source/raytracing.hlsl", loaded_shaders, compile_args);
-	influx_assert(load_success);
+	
+	imp::shader_load_args load_args{ compile_args };
+	auto shader_data = imp::load_shader_file("D:/Git/Influx/assets/engine/shaders/source/raytracing.hlsl", load_args);
+	loaded_shaders.push_back(shader_data.get());
 
 	for (const imp::shader_data& shader : loaded_shaders)
 	{

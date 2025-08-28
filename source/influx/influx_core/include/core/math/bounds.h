@@ -40,7 +40,7 @@ namespace influx::math
 
 		static const bounds& identity()
 		{
-			static bounds g_identity{ -point::one(), point::one() };
+			static bounds g_identity{ -point::make_one(), point::make_one() };
 			return g_identity;
 		}
 

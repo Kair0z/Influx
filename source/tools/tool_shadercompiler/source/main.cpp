@@ -11,15 +11,16 @@ int main()
 	using namespace influx;
 
 	const string path = "E:/Git/Influx/assets/engine/shaders/source/resolvepass.hlsl";
+	
 	shader::compile_args args{};
 	args.m_signature.m_entrypoint = "main_cs";
 	args.m_signature.m_filename = "resolvepass";
 	args.m_include_folder = "E:/Git/Influx/assets/engine/shaders/";
 	args.m_signature.m_type = shader::e_shader_type::cs;
 	args.m_signature.m_target = shader::e_shader_target::_6_6;
-	args.m_reflection = true;
+	args.m_reflection_enabled = true;
 
-	shader::compile_output output = shader::compile_shader(path, args);
+	shader::compile_output output = shader::compile_shader(path, args).get();
 
 	if (!output.m_success)
 	{

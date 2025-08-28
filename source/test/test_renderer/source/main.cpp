@@ -37,14 +37,13 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 	if (once)
 	{
 		// load the fbx
-		imp::scene_data loaded_scene{};
-		influx_assert(imp::load_scene_file(filepath, loaded_scene, args));
+		imp::scene_data loaded_scene = imp::load_scene_file(filepath, args).get();
 
 		// get the cameras
 		for (uint32 i = 0u; i < loaded_scene.m_cameras.size(); ++i)
 		{
 			const imp::scene_data::camera& camera = loaded_scene.m_cameras[i];
-			camera_transforms.push_back(camera.m_world_transform);
+			camera_transforms.push_back(loaded_scene.get_transform(camera));
 
 			renderer::camera render_camera{};
 			render_camera.m_camera.set_fov(90.0f);// camera.m_camera.get_fov();
@@ -91,7 +90,7 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 
 			const string mesh_name = filename + "_" + to_string(i);
 			mesh_ids.push_back(mesh_name);
-			mesh_transforms.push_back(mesh.m_world_transform);
+			mesh_transforms.push_back(loaded_scene.get_transform(mesh));
 
 			// load to renderer
 			renderer::load(mesh_name, render_data, false);
@@ -206,9 +205,9 @@ int main()
 		// render:
 		renderer::target* window_targets[num_windows]
 		{
-			renderer::get_window_target(*windows[0u]),
-			renderer::get_window_target(*windows[1u]),
-			renderer::get_window_target(*windows[2u]),
+			renderer::get_or_create_window_target(*windows[0u]),
+			renderer::get_or_create_window_target(*windows[1u]),
+			renderer::get_or_create_window_target(*windows[2u]),
 		};
 
 		renderer::start_frame();
