@@ -17,10 +17,18 @@ typedef influx::uint32				uint;
 typedef influx::math::int4          int4;
 #endif // __cplusplus
 
+#define THREAD_GROUP_SIZE 32
+
+// bindless resource heap
 static const uint k_instancebuffer_id   = 0;
 static const uint k_albedo_id           = 1;
 static const uint k_normals_id          = 2;
 static const uint k_final_target_id     = 3;
+static const uint k_dirlights_id        = 4;
+static const uint k_gbuffer_id          = 5;
+static const uint k_gbuffer_num         = 3;
+// bindless sampler heap
+static const uint k_sampler_id          = 0;
 
 struct per_scene 
 {
@@ -252,7 +260,7 @@ ConstantBuffer<per_draw>        g_perdraw       : register(b2);
 Texture2D get_texture(int index)                        { return ResourceDescriptorHeap[1 + index]; }
 Texture2D get_albedo()                                  { return ResourceDescriptorHeap[k_albedo_id]; }
 Texture2D get_normals()                                 { return ResourceDescriptorHeap[k_normals_id]; }
-SamplerState get_sampler(int index)                     { return SamplerDescriptorHeap[index]; }
+SamplerState get_sampler(int index)                     { return SamplerDescriptorHeap[k_sampler_id]; }
 StructuredBuffer<per_instance> get_instance_buffer()    { return ResourceDescriptorHeap[k_instancebuffer_id]; }
 
 // ================================================================================================
@@ -268,10 +276,10 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
 
     // positions
     float4x4 instance_transform = (float4x4)instance_data.m_transform;
-    float4x4 mvp = mul((float4x4)g_perview.m_viewprojection, instance_transform);
+    float4x4 mvp = mul((float4x4)g_perview.m_viewprojection, (float4x4)instance_transform);
+
     output.m_position = mul(mvp, float4(input.m_position, 1.0f));
     output.m_worldpos = mul(instance_transform, float4(input.m_position, 1.0f)).xyz;
-    // output.m_position.z = -output.m_position.z;
 
     // uvs
     output.m_texcoord = input.m_texcoord;
@@ -309,13 +317,38 @@ ps_output main_ps(ps_input input)
 // shadepass-cs: shades each pixel according to info in packed screen buffers
 ConstantBuffer<cs_shading_args> g_shadingargs : register(b4);
 
-RWTexture2D<float4> get_output() { return ResourceDescriptorHeap[k_final_target_id]; }
+RWTexture2D<float4> get_output()                    { return ResourceDescriptorHeap[k_final_target_id]; }
+StructuredBuffer<per_dirlight> get_dirlights()      { return ResourceDescriptorHeap[k_dirlights_id]; }
+Texture2D<uint4> get_gbufferA()                     { return ResourceDescriptorHeap[k_gbuffer_id + 0]; }
+Texture2D<uint> get_gbufferB()                      { return ResourceDescriptorHeap[k_gbuffer_id + 1]; }
+Texture2D<uint> get_gbufferC()                      { return ResourceDescriptorHeap[k_gbuffer_id + 2]; }
 
 [shader("compute")]
-[numthreads(32,32,1)]
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
 void main_cs(uint3 thread_id : SV_DispatchThreadID)
 {
-    get_output()[thread_id.xy] = float4(1, 1, 1, 1);
+    RWTexture2D<float4> output = get_output();
+
+    // decode gbuffer
+    Texture2D<uint4> GbufferA = get_gbufferA();
+    Texture2D<uint> GBufferB = get_gbufferB();
+    Texture2D<uint> GBufferC = get_gbufferC();
+    gbuffer gbuffer;
+    gbuffer.albedo_emmisive_pbr.rgba    = GbufferA.Load(uint3(thread_id.xy, 0));
+    gbuffer.normal.r                    = GBufferB.Load(uint3(thread_id.xy, 0));
+    gbuffer.depth_stencil.r             = GBufferC.Load(uint3(thread_id.xy, 0));
+
+    // early out if depth fails
+    float depth = gbuffer.get_depth().r;
+    if (depth <= 0.0f)
+    {
+        output[thread_id.xy] = float4(0,0,0,1);
+        return;
+    }
+    
+    // float3 albedo = gbuffer.get_albedo();
+    // float3 normal = normalize(gbuffer.get_normal().rgb);
+    output[thread_id.xy] = float4(1, 1, 1, 1);
 }
 #endif // !__cplusplus
 #endif // SHADER_FRONTEND_H

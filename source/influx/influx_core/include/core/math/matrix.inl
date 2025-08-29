@@ -95,7 +95,6 @@ namespace influx::math
 		invert(cpy);
 		return cpy;
 	}
-	// _The real one ;)
 	template<typename _t, matsize _x, matsize _y>
 	inline float matrix<_t, _x, _y>::invert(matrix<_t, 4, 4>& m)
 	{
@@ -739,19 +738,33 @@ namespace influx::math
 
 	// assuming [0, 1] depth range
 	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_projection_LH(const float fov, const float ar, const float n, const float f)
+	{
+		float y = 1.0f / tanf(math::to_radians(fov) / 2.f);
+		float x = y / ar;
+		float intv = f - n;
+		return
+		{
+			(_t)x, (_t)0, (_t)0, (_t)0,
+			(_t)0, (_t)y, (_t)0, (_t)0,
+			(_t)0, (_t)0, (_t)f / intv, (_t)1,
+			(_t)0, (_t)0, static_cast<_t>(-(f * n) / intv), (_t)0
+		};
+	}
+	template<typename _t, matsize _x, matsize _y>
 	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_projection_RH(const float fov, const float ar, const float n, const float f)
 	{
 		float y = 1.0f / tanf(to_radians(fov) * 0.5f);
 		float x = y / ar;
 
-		float z = f / (n - f);
-
+		float intv = (f - n);
+		float z = f / intv;
 		return
 		{
 			(_t)x, (_t)0, (_t)0,	(_t)0,
 			(_t)0, (_t)y, (_t)0,	(_t)0,
-			(_t)0, (_t)0, (_t)z,	(_t)-1.0f,
-			(_t)0, (_t)0, (_t)z * n, (_t)0
+			(_t)0, (_t)0, (_t)z,	(_t)1.0f,
+			(_t)0, (_t)0, (_t)-(f*n)/intv, (_t)0
 		};
 	}
 
@@ -779,21 +792,6 @@ namespace influx::math
 			0, y, 0, 0,
 			0, 0, z, 0,
 			0, 0, 0, w
-		};
-	}
-	template<typename _t, matsize _x, matsize _y>
-	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_projection_LH(const float fov, const float ar, const float n, const float f)
-	{
-		float y = 1.0f / tanf(math::to_radians(fov) / 2.f);
-		float x = y / ar;
-		float intv = f - n;
-
-		return
-		{
-			(_t)x, (_t)0, (_t)0, (_t)0,
-			(_t)0, (_t)y, (_t)0, (_t)0,
-			(_t)0, (_t)0, (_t)f / intv, (_t)1,
-			(_t)0, (_t)0, static_xast<_t>(-(f * n) / intv), (_t)0
 		};
 	}
 	template<typename _t, matsize _x, matsize _y>

@@ -17,7 +17,7 @@
 // shader frontend
 namespace frontend
 {
-#include "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
+#include "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
 }
 
 using namespace influx;
@@ -30,14 +30,14 @@ int main()
 {
 	// settings
 	static const string k_scene_filepath = "";
-	static const string k_shaders_filepath = "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
-	static const string k_albedo_filepath = "D:/Git/Influx/source/misc/rendering/resources/albedo.png";
-	static const string k_normal_filepath = "D:/Git/Influx/source/misc/rendering/resources/normals.png";
+	static const string k_shaders_filepath = "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
+	static const string k_albedo_filepath = "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
+	static const string k_normal_filepath = "E:/Git/Influx/source/misc/rendering/resources/normals.png";
 
 	static const math::float4 k_clear_colour = math::float4{ 1,0,0,1 };
 
 	// camera
-	static math::float3 s_camera_startpos = { 0,0,500 };
+	static math::float3 s_camera_startpos = { 0,0,5 };
 	static math::float3 s_camera_lookatpos = {};
 	static float s_camera_far = 1000.0f;
 	static float s_camera_near = 0.001f;
@@ -49,7 +49,6 @@ int main()
 
 	// constants
 	static constexpr uint32 k_num_swapchain_buffers = 3u;
-	static const math::uint2 k_threadgroupDimensions = { 32u, 32u };
 	static constexpr shader::e_shader_target k_shadertarget = shader::e_shader_target::_6_6;
 	static constexpr uint32 k_max_num_lights = 512u;
 	static constexpr uint32 k_max_num_instances = 4096u;
@@ -502,10 +501,10 @@ int main()
 					gbuffer_desc.m_width = target_dim.x;
 					gbuffer_desc.m_heigth = target_dim.y;
 					gbuffer_desc.m_format = graphics::e_format::rgba_u32;
-					builder.declare_texture("gbuffer_a", gbuffer_desc);
+					builder.declare_texture(gbuffernames[0], gbuffer_desc);
 					gbuffer_desc.m_format = graphics::e_format::u32;
-					builder.declare_texture("gbuffer_b", gbuffer_desc);
-					builder.declare_texture("gbuffer_c", gbuffer_desc);
+					builder.declare_texture(gbuffernames[1], gbuffer_desc);
+					builder.declare_texture(gbuffernames[2], gbuffer_desc);
 				}
 
 				// declare cbvs
@@ -546,9 +545,9 @@ int main()
 				builder.read_texture("tex_normal");
 
 				rgaccess access = rgaccess::clear_and_keep({});
-				builder.write_rendertarget("gbuffer_a", access);
-				builder.write_rendertarget("gbuffer_b", access);
-				builder.write_rendertarget("gbuffer_c", access);
+				builder.write_rendertarget(gbuffernames[0], access);
+				builder.write_rendertarget(gbuffernames[1], access);
+				builder.write_rendertarget(gbuffernames[2], access);
 				builder.write_depthtarget("depth_target", access);
 			},
 			// [execute]
@@ -570,6 +569,14 @@ int main()
 					dev.copy_descriptors(tex_albedo.m_descriptor, gpu_albedo, rhi_descheap_type::rsc);
 					dev.copy_descriptors(tex_normal.m_descriptor, gpu_normal, rhi_descheap_type::rsc);
 					dev.copy_descriptors(buff_instance.m_descriptor, gpu_instance, rhi_descheap_type::rsc);
+
+					static bool done_once = false;
+					graphics::descriptor_handle gpu_sampler = gpu_sampler_descheap.get_cpu(frontend::k_sampler_id).get();
+					if (!done_once)
+					{
+						dev.create_sampler_view(gpu_sampler, nullptr);
+						done_once = true;
+					}
 				}
 				
 				// bind the gpu descriptor heaps
@@ -625,7 +632,7 @@ int main()
 					.m_start_instance = 0u
 				});
 			});
-
+		
 		// 3. compute shadepass
 		graph.add_pass(e_rgpass_type::compute,
 			// [build]
@@ -666,6 +673,13 @@ int main()
 				cmdlist.set_pipeline(pipeline_shadepass);
 				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
 
+				for (uint32 i = 0; i < k_num_gbuffers; ++i)
+				{
+					auto gbuffer = ctx.get_read_texture(gbuffernames[i]).get();
+					graphics::descriptor_handle gpu_gbuffer = gpu_resource_descheap.get_cpu(frontend::k_gbuffer_id + i).get();
+					dev.copy_descriptors(gbuffer.m_descriptor, gpu_gbuffer, rhi_descheap_type::rsc);
+				}
+					
 				// update & bind cb_shading_args
 				graphics::resource* constbuffer = ctx.get_constbuffer("cb_shading_args").get().m_resource;
 				constbuffer->map<frontend::cs_shading_args>([](frontend::cs_shading_args* args)
@@ -682,8 +696,8 @@ int main()
 				cmdlist.set_root_cbv(constbuffer, 0u, graphics::e_pipeline_type::compute);
 
 				graphics::dispatch_args args{};
-				args.m_threadgroup_count.x = target_dim.x / k_threadgroupDimensions.x;
-				args.m_threadgroup_count.y = target_dim.y / k_threadgroupDimensions.y;
+				args.m_threadgroup_count.x = target_dim.x / THREAD_GROUP_SIZE;
+				args.m_threadgroup_count.y = target_dim.y / THREAD_GROUP_SIZE;
 				args.m_threadgroup_count.z = 1u;
 				cmdlist.dispatch(args);
 			});
