@@ -277,21 +277,16 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
     // positions
     float4x4 instance_transform = (float4x4)instance_data.m_transform;
     float4x4 mvp = mul((float4x4)g_perview.m_viewprojection, (float4x4)instance_transform);
-
     output.m_position = mul(mvp, float4(input.m_position, 1.0f));
     output.m_worldpos = mul(instance_transform, float4(input.m_position, 1.0f)).xyz;
-
     // uvs
     output.m_texcoord = input.m_texcoord;
-
     // normals
     output.m_normal = normalize(mul((float3x3)instance_transform, input.m_normal));
-
     // color
     float4 instance_color = instance_data.m_colour;
     output.m_colour.rgb = lerp(instance_color.rgb, g_permaterial.m_colour.rgb, 0.5f);
-
-    // texids
+    // texids ?
     output.m_texid_albedo = instance_data.get_albedo_index();
     output.m_texid_normal = instance_data.get_normal_index();
     return output;
