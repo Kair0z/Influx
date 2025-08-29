@@ -16,6 +16,12 @@ typedef influx::math::uint2			uint2;
 typedef influx::uint32				uint;
 typedef influx::math::int4          int4;
 #endif // __cplusplus
+
+static const uint k_instancebuffer_id   = 0;
+static const uint k_albedo_id           = 1;
+static const uint k_normals_id          = 2;
+static const uint k_final_target_id     = 3;
+
 struct per_scene 
 {
 	float4 m_time;
@@ -244,8 +250,10 @@ ConstantBuffer<per_draw>        g_perdraw       : register(b2);
 // ConstantBuffer<per_scene>       g_perscene      : register(b1);
 
 Texture2D get_texture(int index)                        { return ResourceDescriptorHeap[1 + index]; }
+Texture2D get_albedo()                                  { return ResourceDescriptorHeap[k_albedo_id]; }
+Texture2D get_normals()                                 { return ResourceDescriptorHeap[k_normals_id]; }
 SamplerState get_sampler(int index)                     { return SamplerDescriptorHeap[index]; }
-StructuredBuffer<per_instance> get_instance_buffer()    { return ResourceDescriptorHeap[0]; }
+StructuredBuffer<per_instance> get_instance_buffer()    { return ResourceDescriptorHeap[k_instancebuffer_id]; }
 
 // ================================================================================================
 // basepass-vs:
@@ -263,6 +271,7 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
     float4x4 mvp = mul((float4x4)g_perview.m_viewprojection, instance_transform);
     output.m_position = mul(mvp, float4(input.m_position, 1.0f));
     output.m_worldpos = mul(instance_transform, float4(input.m_position, 1.0f)).xyz;
+    output.m_position.z = -output.m_position.z;
 
     // uvs
     output.m_texcoord = input.m_texcoord;
@@ -277,7 +286,6 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
     // texids
     output.m_texid_albedo = instance_data.get_albedo_index();
     output.m_texid_normal = instance_data.get_normal_index();
-
     return output;
 }
 // ================================================================================================
@@ -285,7 +293,7 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
 [shader("pixel")]
 ps_output main_ps(ps_input input)
 {
-    float4 albedo = get_texture(input.m_texid_albedo).Sample(get_sampler(0), input.m_texcoord).rgba;
+    float4 albedo = get_albedo().Sample(get_sampler(0), input.m_texcoord).rgba;
     // float3 normal = get_normal(input.texcoord).rgb; // normal mapping
     float3 normal = input.m_normal;
     normal = normalize(normal);
@@ -301,11 +309,13 @@ ps_output main_ps(ps_input input)
 // shadepass-cs: shades each pixel according to info in packed screen buffers
 ConstantBuffer<cs_shading_args> g_shadingargs : register(b4);
 
+RWTexture2D<float4> get_output() { return ResourceDescriptorHeap[k_final_target_id]; }
+
 [shader("compute")]
 [numthreads(32,32,1)]
-void main_cs()
+void main_cs(uint3 thread_id : SV_DispatchThreadID)
 {
-    
+    get_output()[thread_id.xy] = float4(0, 1, 0, 1);
 }
 #endif // !__cplusplus
 #endif // SHADER_FRONTEND_H

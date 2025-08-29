@@ -29,7 +29,7 @@ namespace influx::graphics
 
 		descriptor_handle m_start;
 		uint32 m_num_descriptors;
-		uint32 m_start_idx;
+		uint32 m_start_idx = 0u;
 	};
 
 	using descriptor_id = uint32;

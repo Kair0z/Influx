@@ -32,7 +32,7 @@ namespace influx::imp
 			LCT_RGBA, 
 			8u);
 
-		if (error == false)
+		if (error)
 			return result_type::make_error("lodepng::decode() failed!");
 
 		constexpr uint32 k_num_channels = 4u;
@@ -49,6 +49,7 @@ namespace influx::imp
 			pixel = make_pixel32(r, g, b, a);
 		}
 
+		out_image.m_bytesize = out_image.m_pixels.size() * sizeof(uint32);
 		return out_image;
 	}
 

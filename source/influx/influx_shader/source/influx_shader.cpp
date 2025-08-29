@@ -284,6 +284,10 @@ namespace influx::shader
 		if (compile_debug) result	.push_back("-Od"); // DXC_ARG_SKIP_OPTIMIZATIONS
 		if (compile_debug) result	.push_back("-O0"); // DXC_ARG_OPTIMIZATION_LEVEL0
 		if (compile_debug) result	.push_back("-Zi"); // DXC_ARG_DEBUG
+		if (!args.m_add_args.empty())
+		{
+			for (const auto& arg : args.m_add_args) result.push_back(arg);
+		}
 
 		return result;
 	}

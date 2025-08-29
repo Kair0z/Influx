@@ -132,6 +132,7 @@ namespace influx::imp
 	{
 		vector<pixel32> m_pixels{};
 		math::vectoru2 m_dimensions{};
+		uint64 m_bytesize = 0u;
 	};
 
 	INFLUX_ASSETS_API

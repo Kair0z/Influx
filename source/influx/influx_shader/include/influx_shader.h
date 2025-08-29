@@ -31,6 +31,7 @@ namespace influx::shader
 	public:
 		shader_signature		m_signature;
 		vector<string>			m_defines;
+		vector<string>			m_add_args{};
 		string					m_pdb_folder;
 		string					m_pdb_filename;
 		string					m_include_folder;

@@ -406,6 +406,9 @@ namespace influx::graphics
 			resource_desc.Width = desc.m_dimensions.x;
 			resource_desc.SampleDesc.Count = 1;
 			resource_desc.SampleDesc.Quality = 0u;
+
+			if (desc.m_allow_uav)
+				resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 		}
 
 		// only set clear val when resource is flagged as depthstencil or target
