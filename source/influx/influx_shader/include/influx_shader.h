@@ -90,6 +90,7 @@ namespace influx::shader
 		{
 			enum class e_type : uint8
 			{
+				rootvar,
 				cbv,
 				structured,
 				sampler,

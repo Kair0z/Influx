@@ -163,6 +163,9 @@ namespace influx::rendergraph
 	{
 		using result_type = result<>;
 
+		m_pool->tick();
+
+		// start recording commandlist if not done already
 		if (commandlist.is_recording() == false)
 		{
 			auto start_commandlist = commandlist.start(&device);
@@ -170,10 +173,12 @@ namespace influx::rendergraph
 				return result<>::make_error("failed starting the commandlist!");
 		}
 
+		// validation checks
 		const bool is_valid = execute_validation_checks();
 		if (!is_valid) 
 			return result<>::make_error("rendergraph failed validation checks!");
 
+		// execute layers
 		for (size_t layer_idx = 0u; layer_idx < m_layers.size(); ++layer_idx)
 		{
 			const rglayer& layer = m_layers[layer_idx];
@@ -223,6 +228,7 @@ namespace influx::rendergraph
 					resource->transition(commandlist, state);
 				}
 			}
+
 #if INFLUX_RG_BACKEND_GRAPHICS
 			commandlist.flush_barriers();
 #endif
@@ -308,6 +314,7 @@ namespace influx::rendergraph
 					influx_scope("renderpass");
 					commandlist.renderpass_begin(args);
 
+					// implicit viewport / rect
 					if (args.m_allow_implicit_viewport_set)
 					{
 						graphics::viewport viewport{};
@@ -317,7 +324,6 @@ namespace influx::rendergraph
 						viewport.m_depth_min = 0.0f;
 						commandlist.set_viewport(viewport);
 					}
-
 					if (args.m_allow_implicit_viewrect_set)
 					{
 						graphics::rect rect{};
@@ -1615,6 +1621,15 @@ namespace influx::rendergraph
 		result.m_descriptor = 0u;
 		return result;
 	}
+	result<rgpass_context::resource_and_view> rgpass_context::get_constbuffer(const rgname& name)
+	{
+		resource_and_view result{};
+		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
+		result.m_descriptor = 0u;
+		return result;
+	}
 	result<rgpass_context::resource_and_view> rgpass_context::get_rtv(uint32 at_index)
 	{
 		using result_type = result<rgpass_context::resource_and_view>;
@@ -1784,6 +1799,10 @@ namespace influx::rendergraph
 		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
 		return result;
+	}
+	rhi_descheap& rgpass_context::get_descheap_gpu(e_gpu_descheap slot)
+	{
+		return *m_graph.m_pool->get_gpu_descheap(slot);
 	}
 #pragma endregion
 }

@@ -149,25 +149,54 @@ namespace influx::shader
 			ID3D12ShaderReflectionVariable* variable_refl = dx12_refl->GetVariableByName(shaderInputBindDesc.Name);
 			hres = variable_refl->GetDesc(&variable_desc);
 			
+			bool resource_added = false;
 			switch (shaderInputBindDesc.Type)
 			{
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_STRUCTURED:
 			{
 				resource.m_type = reflection::resource::e_type::structured;
-
 			}
 			break;
 
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_CBUFFER:
 			{
-				resource.m_type = reflection::resource::e_type::cbv;
-
 				D3D12_SHADER_BUFFER_DESC constantBufferDesc{};
 				ID3D12ShaderReflectionConstantBuffer* cbuffer_refl = dx12_refl->GetConstantBufferByIndex(i);
 				hres = cbuffer_refl->GetDesc(&constantBufferDesc);
 
-				resource.m_bytesize = constantBufferDesc.Size;
-				// ...
+				// can be either ROOT CONSTANTS
+				static const char* k_rootglobals_str = "$Globals";
+				const bool is_rootvars = str::contains(constantBufferDesc.Name, k_rootglobals_str, false);
+				if (is_rootvars)
+				{
+					for (uint32 i = 0u; i < constantBufferDesc.Variables; ++i)
+					{
+						reflection::resource rootvar_resource{};
+						rootvar_resource.m_type = reflection::resource::e_type::rootvar;
+						ID3D12ShaderReflectionVariable* cbuffer_var = cbuffer_refl->GetVariableByIndex(i);
+						if (cbuffer_var)
+						{
+							D3D12_SHADER_VARIABLE_DESC var_desc{};
+							hres = cbuffer_var->GetDesc(&var_desc);
+
+							// each c# register is 16 bytes (4 floats)
+							static constexpr uint32 k_bytes_per_register = 16u;
+							const uint32 implicit_register = var_desc.StartOffset / k_bytes_per_register;
+
+							rootvar_resource.m_bytesize = var_desc.Size;
+							rootvar_resource.m_name = var_desc.Name;
+							rootvar_resource.m_register_space = 0;
+							rootvar_resource.m_shader_register = implicit_register;
+							result.m_bound_resources.push_back(rootvar_resource);
+						}
+					}
+					resource_added = true;
+				}
+				else // or CBV resource
+				{
+					resource.m_type = reflection::resource::e_type::cbv;
+					resource.m_bytesize = constantBufferDesc.Size;
+				}
 			}
 			break;
 
@@ -191,7 +220,8 @@ namespace influx::shader
 				break;
 			}
 
-			result.m_bound_resources.push_back(resource);
+			if (!resource_added)
+				result.m_bound_resources.push_back(resource);
 		}
 
 		return result;

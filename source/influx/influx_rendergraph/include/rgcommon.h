@@ -92,6 +92,13 @@ namespace influx::rendergraph
 		num
 	};
 	static constexpr uint32 k_num_ext_descheap_slots = static_cast<uint32>(e_ext_descheap_slot::num);
+	enum class e_gpu_descheap : uint8
+	{
+		resource,
+		sampler,
+		num
+	};
+	static constexpr uint32 k_num_gpu_descheap_slots = static_cast<uint32>(e_gpu_descheap::num);
 
 	/* configuration settings */
 	struct global_config final
@@ -191,6 +198,7 @@ namespace influx::rendergraph
 		rhi_pixelformat m_format;
 		rhi_resource_state m_init_state = rhi_resource_state::common;
 		rhi_resource_bindflags m_bindflags = rhi_resource_bindflags::none;
+		bool m_shared_heap = false;
 	};
 
 	struct buffer_view_desc final

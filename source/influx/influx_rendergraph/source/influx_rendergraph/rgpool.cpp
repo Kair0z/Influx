@@ -59,6 +59,11 @@ namespace influx::rendergraph
 		free_all_descriptors();
 	}
 
+	void rgpool::tick()
+	{
+		m_frame++;
+	}
+
 	void rgpool::init_descriptor_heaps(rhi_device& device, const global_config& config)
 	{
 		auto create_and_store = [this, &device](e_descheap_slot slot, rhi_descheap::create_args args, uint32 capacity)
@@ -157,12 +162,22 @@ namespace influx::rendergraph
 		}
 	}
 
+	rhi_descheap* rgpool::get_gpu_descheap(e_gpu_descheap slot)
+	{
+		switch (slot)
+		{
+		default:
+		case e_gpu_descheap::resource: return m_int_descheaps[static_cast<uint32>(e_descheap_slot::rsc_gpu)];
+		case e_gpu_descheap::sampler: return m_int_descheaps[static_cast<uint32>(e_descheap_slot::samp_gpu)];
+		}
+	}
+
 	result<rhi_resource*> rgpool::allocate_texture_resource(rhi_device& device, const texture_desc& args)
 	{
 		using result_type = result<rhi_resource*>;
 		for (pooled_texture& item : m_texture_pool)
 		{
-			// if an item is active && matches most settings of args, just pass the existing resource
+			// if an item is !active && matches most settings of args, just pass the existing resource
 			if (!item.m_is_active && item.m_desc.is_recycle_match(args))
 			{
 				item.m_last_used_frame = m_frame;
@@ -171,16 +186,14 @@ namespace influx::rendergraph
 			}
 		}
 
-		return result_type::make_error("failed allocating resource!");
-#if 0
 		// we failed recycling, time to allocate a new resource
 		pooled_texture new_item{};
 		new_item.m_is_active = true;
 		new_item.m_last_used_frame = m_frame;
-		new_item.m_resource = device.create( translate(args) );
+		new_item.m_desc = args;
+		new_item.m_resource = device.create_resource( translate(args) );
 		m_texture_pool.push_back(new_item);
 		return new_item.m_resource;
-#endif
 	}
 
 	result<rhi_resource*> rgpool::allocate_buffer_resource(rhi_device& device, const buffer_desc& args)
@@ -195,14 +208,16 @@ namespace influx::rendergraph
 			}
 		}
 
-		// create new
+		// we failed recycling, time to allocate a new resource
+		graphics::heap_desc heap_desc = args.m_shared_heap ?
+			graphics::heap_desc::shared_heap() : graphics::heap_desc{};
+
 		pooled_buffer new_item{};
-#if 0
 		new_item.m_is_active = true;
 		new_item.m_last_used_frame = m_frame;
-		new_item.m_resource = device.create(translate(args));
+		new_item.m_desc = args;
+		new_item.m_resource = device.create_resource( translate(args), heap_desc);
 		m_buffer_pool.push_back(new_item);
-#endif
 		return new_item.m_resource;
 	}
 

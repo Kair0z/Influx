@@ -96,6 +96,8 @@ namespace influx::graphics
 	inline D3D12_RESOURCE_STATES translate(e_resource_state state)
 	{
 		D3D12_RESOURCE_STATES result = D3D12_RESOURCE_STATE_COMMON;
+		if (has_flag(state, e_resource_state::vertexbuffer		)) result |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+		if (has_flag(state, e_resource_state::constbuffer		)) result |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 		if (has_flag(state, e_resource_state::present			)) result |= D3D12_RESOURCE_STATE_PRESENT;
 		if (has_flag(state, e_resource_state::render_target		)) result |= D3D12_RESOURCE_STATE_RENDER_TARGET;
 		if (has_flag(state, e_resource_state::depth_target		)) result |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
@@ -192,22 +194,20 @@ namespace influx::graphics
 
 	inline D3D12_SHADER_VISIBILITY translate(e_shader_visibility vis)
 	{
-		D3D12_SHADER_VISIBILITY result{};
-
-		switch (vis)
-		{
-		case e_shader_visibility::all: return D3D12_SHADER_VISIBILITY_ALL;
-		case e_shader_visibility::vertex: return D3D12_SHADER_VISIBILITY_VERTEX;
-		case e_shader_visibility::pixel: return D3D12_SHADER_VISIBILITY_PIXEL;
-		case e_shader_visibility::domain: return D3D12_SHADER_VISIBILITY_DOMAIN;
-		case e_shader_visibility::hull: return D3D12_SHADER_VISIBILITY_HULL;
-		case e_shader_visibility::geometry: return D3D12_SHADER_VISIBILITY_GEOMETRY;
-		case e_shader_visibility::compute:	return D3D12_SHADER_VISIBILITY_ALL;
-
-		default: 
-			influx_assert(false);
+		uint32 result{};
+		
+		if (vis == e_shader_visibility::all)
 			return D3D12_SHADER_VISIBILITY_ALL;
-		}
+
+		if (has_flag(vis, e_shader_visibility::vertex))		result |= (uint32)D3D12_SHADER_VISIBILITY_VERTEX;
+		if (has_flag(vis, e_shader_visibility::pixel))		result |= (uint32)D3D12_SHADER_VISIBILITY_PIXEL;
+		if (has_flag(vis, e_shader_visibility::domain))		result |= (uint32)D3D12_SHADER_VISIBILITY_DOMAIN;
+		if (has_flag(vis, e_shader_visibility::hull))		result |= (uint32)D3D12_SHADER_VISIBILITY_HULL;
+		if (has_flag(vis, e_shader_visibility::geometry))	result |= (uint32)D3D12_SHADER_VISIBILITY_GEOMETRY;
+		if (has_flag(vis, e_shader_visibility::compute))	result |= (uint32)D3D12_SHADER_VISIBILITY_ALL;
+		if (has_flag(vis, e_shader_visibility::amp))		result |= (uint32)D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+		if (has_flag(vis, e_shader_visibility::mesh))		result |= (uint32)D3D12_SHADER_VISIBILITY_MESH;
+		return (D3D12_SHADER_VISIBILITY)result;
 	}
 
 	inline D3D12_TEXTURE_ADDRESS_MODE translate(e_texture_wrap_mode wrap)

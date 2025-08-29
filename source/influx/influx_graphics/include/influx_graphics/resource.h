@@ -141,6 +141,14 @@ namespace influx::graphics
 			map_func(target);
 			unmap(args);
 		}
+		template <typename _t, class _fn>
+		inline result<> map(_fn&& func, const map_args& args = {})
+		{
+			void* target = map(args);
+			func(reinterpret_cast<_t*>(target));
+			unmap(args);
+			return {};
+		}
 
 		INFLUX_GFX_API e_format get_format() const;
 

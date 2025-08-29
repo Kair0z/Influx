@@ -23,11 +23,13 @@ namespace influx::rendergraph
 		INFLUX_RG_API void register_error_to_current_pass();
 		INFLUX_RG_API void set_viewport(uint32 width, uint32 height);
 
+		// declaring resources CREATION
 		INFLUX_RG_API result<bool> is_texture_declared(const rgname& name) const;
 		INFLUX_RG_API result<bool> is_buffer_declared(const rgname& name) const;
 		INFLUX_RG_API result<> declare_texture(const rgname& name, const texture_desc& desc);
 		INFLUX_RG_API result<> declare_buffer(const rgname& name, const buffer_desc& desc);
 
+		// declaring resource USE
 		INFLUX_RG_API result<> dummy_write_texture(const rgname& name);
 		INFLUX_RG_API result<> dummy_read_texture(const rgname& name);
 		INFLUX_RG_API result<> dummy_write_buffer(const rgname& name);
@@ -40,6 +42,7 @@ namespace influx::rendergraph
 
 		INFLUX_RG_API result<rgbuf_indargs_id> read_indirect_args_buffer(const rgname& name);
 		INFLUX_RG_API result<rgbuf_index_id> read_index_buffer(const rgname&);
+		INFLUX_RG_API result<rgbuf_const_id> read_constbuffer(const rgname&);
 
 		INFLUX_RG_API
 		result<rgtexture_readonly_id> read_texture(
@@ -71,6 +74,14 @@ namespace influx::rendergraph
 			const rgname& name, 
 			rgaccess load_store_op,
 			const texture_desc_options& = {});
+
+		inline result<rgdepthtarget_id> write_depthtarget(
+			rhi_resource* resource,
+			rgaccess load_store_op,
+			const texture_desc_options& ops = {})
+		{
+			return write_depthtarget(resource->get_name(), load_store_op, ops);
+		}
 
 		INFLUX_RG_API
 		result<rgdepthtarget_id> read_depthtarget(

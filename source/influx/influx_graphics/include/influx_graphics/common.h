@@ -42,6 +42,7 @@ namespace influx::graphics
 
 		set_rtv,
 		set_srv,
+		set_cbv,
 		set_uav,
 		set_descriptor_heap,
 		set_root_constants,
@@ -87,23 +88,30 @@ namespace influx::graphics
 		render_target	= 1 << 2,
 		depth_target	= 1 << 3,
 		depth_readonly	= 1 << 4,
+
+		// srv
 		vs_srv			= 1 << 5,
 		ps_srv			= 1 << 6,
 		cs_srv			= 1 << 7,
+		
+		// uav
 		vs_uav			= 1 << 8,
 		ps_uav			= 1 << 9,
 		cs_uav			= 1 << 10,
+		
 		clear_uav		= 1 << 11,
 		copy_src		= 1 << 12,
 		copy_dst		= 1 << 13,
 		shading_rate	= 1 << 14,
 		indexbuffer		= 1 << 15,
-		indirect_args	= 1 << 16,
-		as_read			= 1 << 17,
-		as_write		= 1 << 18,
-		discard			= 1 << 19,
-		resolve_dst		= 1 << 20,
-		resolve_src		= 1 << 21,
+		vertexbuffer	= 1 << 16,
+		constbuffer		= 1 << 17,
+		indirect_args	= 1 << 18,
+		as_read			= 1 << 19,
+		as_write		= 1 << 20,
+		discard			= 1 << 21,
+		resolve_dst		= 1 << 22,
+		resolve_src		= 1 << 23,
 
 		all_vs = vs_srv | vs_uav,
 		all_ps = ps_srv | ps_uav,
@@ -326,8 +334,10 @@ namespace influx::graphics
 		geometry	= 1 << 3,
 		pixel		= 1 << 4,
 		compute		= 1 << 5,
+		amp			= 1 << 6,
+		mesh		= 1 << 7,
 
-		all			= vertex | hull | domain | geometry | pixel | compute
+		all			= vertex | hull | domain | geometry | pixel | compute | amp | mesh
 	};
 
 	enum class e_bind_flags : uint32

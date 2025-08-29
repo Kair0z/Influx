@@ -167,6 +167,8 @@ namespace influx::graphics
 
 		INFLUX_GFX_API virtual result<> set_descriptorheaps(const vector<descriptor_heap*>& heap) = 0;
 
+		INFLUX_GFX_API virtual result<> set_root_cbv(resource* root_resource, uint32 param_idx, const e_pipeline_type type) = 0;
+
 		INFLUX_GFX_API virtual result<> set_root_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type) = 0;
 
 		INFLUX_GFX_API virtual result<> set_root_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type) = 0;

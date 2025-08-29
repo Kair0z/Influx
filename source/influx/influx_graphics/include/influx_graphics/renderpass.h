@@ -85,7 +85,7 @@ namespace influx::graphics
 		bool m_legacy = false;
 
         /* 
-            renderpasses by default call cmmdlist.set_viewport() based on width & height implicitly.
+            renderpasses by default call cmdlist.set_viewport() based on width & height implicitly.
         */
         bool m_allow_implicit_viewport_set = true;
         bool m_allow_implicit_viewrect_set = true;

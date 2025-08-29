@@ -190,6 +190,24 @@ namespace influx::rendergraph
 		return index_id;
 	}
 
+	result<rgbuf_const_id> rgpass_builder::read_constbuffer(const rgname& name)
+	{
+		using result_type = result<rgbuf_const_id>;
+		auto index_id = m_graph.read_constant_buffer(name);
+		if (index_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result_type::make_error("read_constbuffer failed!");
+		}
+
+		rgbuffer_id res_id(index_id);
+		// register a state transition
+		m_pass.m_buffer_state_map[res_id] = rhi_resource_state::constbuffer;
+		// register a buff-read
+		m_pass.m_buffer_reads.push_back(res_id);
+		return index_id;
+	}
+
 	result<rgtexture_readonly_id> rgpass_builder::read_texture(const rgname& name, rgread_access read_acc, const texture_desc_options& options)
 	{
 		texture_view_desc view_desc

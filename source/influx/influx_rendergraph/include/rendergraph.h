@@ -55,6 +55,7 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<resource_and_view> get_copysrc_buffer(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_copydst_texture(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_copydst_buffer(const rgname&);
+		INFLUX_RG_API result<resource_and_view> get_constbuffer(const rgname&);
 
 		INFLUX_RG_API result<resource_and_view> get_rtv(uint32 at_index = 0u);
 		INFLUX_RG_API result<resource_and_view> get_dsv();
@@ -75,6 +76,8 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<resource_and_view> get_write_texture(uint32 index);
 		INFLUX_RG_API result<resource_and_view> get_read_buffer(uint32 index);
 		INFLUX_RG_API result<resource_and_view> get_write_buffer(uint32 index);
+
+		INFLUX_RG_API rhi_descheap& get_descheap_gpu(e_gpu_descheap slot);
 
 	private:
 		rgpass_context(rendergraph& rg, rhi_commandlist& cmdlist, const rgpass& pass) : m_graph{ rg }, m_commandlist{ cmdlist }, m_pass{ pass }{}

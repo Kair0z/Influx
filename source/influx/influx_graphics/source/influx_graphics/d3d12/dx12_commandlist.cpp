@@ -187,6 +187,10 @@ namespace influx::graphics
 
 	result<> dx12_commandlist::set_indexbuffer(resource* index_buffer)
 	{
+		using result_type = result<>;
+		if (index_buffer == nullptr)
+			return result_type::make_error("index_buffer == nullptr");
+
 		renderpass_check(e_command::set_indexbuffer);
 
 		auto dxresource = index_buffer->get_native<ID3D12Resource>();
@@ -202,6 +206,10 @@ namespace influx::graphics
 
 	result<> dx12_commandlist::set_vertexbuffer(resource* vertex_buffer)
 	{
+		using result_type = result<>;
+		if (vertex_buffer == nullptr)
+			return result_type::make_error("vertex_buffer == nullptr");
+
 		renderpass_check(e_command::set_vertexbuffer);
 
 		auto dxresource = vertex_buffer->get_native<ID3D12Resource>();
@@ -563,10 +571,39 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->SetDescriptorHeaps(static_cast<uint32>(native_heaps.size()), native_heaps.data());
 		return {};
 	}
+	result<> dx12_commandlist::set_root_cbv(resource* root_resource, uint32 param_idx, const e_pipeline_type type)
+	{
+		using result_type = result<>;
+		if (root_resource == nullptr)
+			return result_type::make_error("root_resource == nullptr");
+
+		renderpass_check(e_command::set_cbv);
+		ID3D12Resource* dxresource = root_resource->get_native<ID3D12Resource>();
+		switch (type)
+		{
+		default:
+		case e_pipeline_type::graphics:
+		{
+			mpdx_graphics_commandlist->SetGraphicsRootConstantBufferView(param_idx, dxresource->GetGPUVirtualAddress());
+		}break;
+
+		case e_pipeline_type::compute:
+		case e_pipeline_type::raytracing:
+		case e_pipeline_type::workgraph:
+		{
+			mpdx_graphics_commandlist->SetGraphicsRootConstantBufferView(param_idx, dxresource->GetGPUVirtualAddress());
+		}break;
+		}
+
+		return {};
+	}
 	result<> dx12_commandlist::set_root_srv(resource* root_resource, uint32 param_idx, const e_pipeline_type type)
 	{
-		renderpass_check(e_command::set_srv);
+		using result_type = result<>;
+		if (root_resource == nullptr)
+			return result_type::make_error("root_resource == nullptr");
 
+		renderpass_check(e_command::set_srv);
 		ID3D12Resource* dxresource = root_resource->get_native<ID3D12Resource>();
 		switch (type)
 		{
@@ -588,6 +625,10 @@ namespace influx::graphics
 	}
 	result<> dx12_commandlist::set_root_uav(resource* root_resource, uint32 param_idx, const e_pipeline_type type)
 	{
+		using result_type = result<>;
+		if (root_resource == nullptr)
+			return result_type::make_error("root_resource == nullptr");
+
 		renderpass_check(e_command::set_uav);
 
 		ID3D12Resource* dxresource = root_resource->get_native<ID3D12Resource>();

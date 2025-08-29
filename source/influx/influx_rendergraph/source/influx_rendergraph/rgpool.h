@@ -34,6 +34,7 @@ namespace influx::rendergraph
 		static constexpr uint32 k_num_descheaps = static_cast<uint32>(e_descheap_slot::num);
 		static constexpr uint32 k_num_internal_descheaps = k_num_descheaps - 4u;
 
+		friend class rgpass_context;
 		friend class rendergraph;
 
 		struct pooled_buffer final
@@ -71,6 +72,7 @@ namespace influx::rendergraph
 		rgpool(rhi_device& device, const global_config& config);
 		~rgpool();
 
+		void tick();
 		void init_descriptor_heaps(rhi_device& device, const global_config&);
 		void free_all_descriptors();
 		void free_all_gpu_descriptors();
@@ -79,6 +81,7 @@ namespace influx::rendergraph
 		// descriptors
 #if INFLUX_RG_BACKEND_GRAPHICS
 		rhi_descheap*& get_descheap(e_descheap_slot slot, bool ignore_ext = false);
+		rhi_descheap* get_gpu_descheap(e_gpu_descheap slot);
 #else
 		rhi_descheap& get_descheap(e_descheap_slot slot, bool ignore_ext = false);
 #endif
