@@ -29,21 +29,26 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 int main()
 {
 	// settings
-	const string k_scene_filepath = "";
-	const string k_shaders_filepath = "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
-	const string k_albedo_filepath = "D:/Git/Influx/source/misc/rendering/resources/albedo.png";
-	const string k_normal_filepath = "D:/Git/Influx/source/misc/rendering/resources/normals.png";
-	static constexpr uint32 k_num_swapchain_buffers = 3u;
+	static const string k_scene_filepath = "";
+	static const string k_shaders_filepath = "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
+	static const string k_albedo_filepath = "D:/Git/Influx/source/misc/rendering/resources/albedo.png";
+	static const string k_normal_filepath = "D:/Git/Influx/source/misc/rendering/resources/normals.png";
+
 	static const math::float4 k_clear_colour = math::float4{ 1,0,0,1 };
+
+	// camera
 	static math::float3 s_camera_startpos = { 0,0,500 };
 	static math::float3 s_camera_lookatpos = {};
 	static float s_camera_far = 1000.0f;
 	static float s_camera_near = 0.001f;
 	static float s_camera_fov = 110.0f;
+
+	// window dimensions
 	static math::uint2 s_window_dim = { 640u, 480u };
 	//
 
 	// constants
+	static constexpr uint32 k_num_swapchain_buffers = 3u;
 	static const math::uint2 k_threadgroupDimensions = { 32u, 32u };
 	static constexpr shader::e_shader_target k_shadertarget = shader::e_shader_target::_6_6;
 	static constexpr uint32 k_max_num_lights = 512u;
@@ -63,7 +68,7 @@ int main()
 		"gbuffer_b",
 		"gbuffer_c"
 	};
-	//
+	// -----------
 
 	// load a scene file (.fbx)
 	if (false)
@@ -137,7 +142,19 @@ int main()
 	graphics::graphics_pipeline* pipeline_basepass = nullptr;
 	graphics::compute_pipeline* pipeline_shadepass = nullptr;
 	vector<shader::compile_output> compiled_shaders{};
+	compiled_shaders.resize(3u);
+	std::atomic_bool pipelines_compiled = false;
+	auto recompile_shaders = 
+	[&dev, &pipeline_basepass, &pipeline_shadepass, &compiled_shaders, &signature_shadepass, &signature_basepass, &pipelines_compiled]()
 	{
+		pipelines_compiled = false;
+
+		// release old
+		if (signature_basepass) dev.release(signature_basepass);
+		if (signature_shadepass) dev.release(signature_shadepass);
+		if (pipeline_basepass) dev.release(pipeline_basepass);
+		if (pipeline_shadepass) dev.release(pipeline_shadepass);
+
 		// compile shaders
 		{
 			// 1. parse all shaders in file
@@ -147,8 +164,10 @@ int main()
 			influx_assert(res.is_success());
 
 			// 2. for each shader in file, compile
-			for (const auto& parse : res.get())
+			for (uint32 i = 0u; i < 3u; ++i)
 			{
+				const auto& parse = res.get()[i];
+
 				// args has already been partially filled in by parsing...
 				args.m_signature = parse.m_signature;
 				args.m_signature.m_target = k_shadertarget; // force the shader target
@@ -162,7 +181,7 @@ int main()
 				args.m_pdb_folder;
 				auto comp_res = shader::compile_shader_in_file(k_shaders_filepath, args);
 				influx_assert(comp_res.is_success());
-				compiled_shaders.push_back(comp_res.get());
+				compiled_shaders[i] = comp_res.get();
 			}
 		}
 
@@ -177,35 +196,35 @@ int main()
 
 			// reflect shader resources into our signatures
 			auto reflect_resource =
-				[](graphics::rootsignature_desc& rootsig_desc, const shader::reflection::resource& resource, graphics::e_shader_visibility shader_vis)
+			[](graphics::rootsignature_desc& rootsig_desc, const shader::reflection::resource& resource, graphics::e_shader_visibility shader_vis)
+			{
+				switch (resource.m_type)
 				{
-					switch (resource.m_type)
-					{
-					case shader::reflection::resource::e_type::rootvar: // constants
-						rootsig_desc.add_root_constants((uint32)resource.m_bytesize / sizeof(uint32), resource.m_shader_register, resource.m_register_space, shader_vis);
-						rootsig_desc.name_last_constants(resource.m_name);
-						break;
-					case shader::reflection::resource::e_type::cbv: // cbv
-						rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::cbv,
-							resource.m_shader_register, resource.m_register_space, shader_vis);
-						rootsig_desc.name_last_resource(resource.m_name);
-						break;
-					case shader::reflection::resource::e_type::structured: // srv
-						rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
-							resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
-						rootsig_desc.name_last_resource_table(resource.m_name);
-						break;
-					case shader::reflection::resource::e_type::texture:
-						rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
-							resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
-						rootsig_desc.name_last_resource_table(resource.m_name);
-						break;
-					case shader::reflection::resource::e_type::sampler:
-						rootsig_desc.add_root_sampler(resource.m_shader_register, resource.m_register_space, shader_vis);
-						rootsig_desc.name_last_sampler(resource.m_name);
-						break;
-					}
-				};
+				case shader::reflection::resource::e_type::rootvar: // constants
+					rootsig_desc.add_root_constants((uint32)resource.m_bytesize / sizeof(uint32), resource.m_shader_register, resource.m_register_space, shader_vis);
+					rootsig_desc.name_last_constants(resource.m_name);
+					break;
+				case shader::reflection::resource::e_type::cbv: // cbv
+					rootsig_desc.add_root_resource(graphics::root_param_resource::e_type::cbv,
+						resource.m_shader_register, resource.m_register_space, shader_vis);
+					rootsig_desc.name_last_resource(resource.m_name);
+					break;
+				case shader::reflection::resource::e_type::structured: // srv
+					rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
+						resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+					rootsig_desc.name_last_resource_table(resource.m_name);
+					break;
+				case shader::reflection::resource::e_type::texture:
+					rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv,
+						resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+					rootsig_desc.name_last_resource_table(resource.m_name);
+					break;
+				case shader::reflection::resource::e_type::sampler:
+					rootsig_desc.add_root_sampler(resource.m_shader_register, resource.m_register_space, shader_vis);
+					rootsig_desc.name_last_sampler(resource.m_name);
+					break;
+				}
+			};
 			for (const auto& shader : compiled_shaders)
 			{
 				const shader::reflection& reflection = shader.m_reflection;
@@ -316,7 +335,11 @@ int main()
 			pipeline_basepass = dev.create_graphics_pipeline(signature_basepass, desc);
 			pipeline_shadepass = dev.create_compute_pipeline(signature_shadepass, compute_desc);
 		}
-	}
+		
+		if (signature_basepass && signature_shadepass && pipeline_basepass && pipeline_shadepass)
+			pipelines_compiled = true;
+	};
+	recompile_shaders();
 
 	// create (& upload) non-rg textures
 	vector<graphics::resource*> textures{};
@@ -672,7 +695,6 @@ int main()
 	while (!is_quit)
 	{
 		window->poll_events(is_quit);
-
 		cmdlist.start(&dev).get();
 		
 		// render to final target

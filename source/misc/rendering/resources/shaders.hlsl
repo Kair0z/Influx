@@ -315,7 +315,7 @@ RWTexture2D<float4> get_output() { return ResourceDescriptorHeap[k_final_target_
 [numthreads(32,32,1)]
 void main_cs(uint3 thread_id : SV_DispatchThreadID)
 {
-    get_output()[thread_id.xy] = float4(0, 1, 0, 1);
+    get_output()[thread_id.xy] = float4(1, 1, 1, 1);
 }
 #endif // !__cplusplus
 #endif // SHADER_FRONTEND_H
