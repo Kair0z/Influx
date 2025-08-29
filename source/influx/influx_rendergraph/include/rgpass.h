@@ -93,6 +93,7 @@ namespace influx::rendergraph
 		{
 			rgtexture_id m_texture_id;
 			rgaccess m_access;
+			math::uint2 m_dimensions{};
 		};
 		vector<render_target> m_rtvs{};
 
@@ -105,6 +106,7 @@ namespace influx::rendergraph
 			bool m_is_enabled = false;
 			float m_depth_clear = 1.0f;
 			uint8 m_stencil_clear = 0u;
+			math::uint2 m_dimensions{};
 		};
 		depth_stencil m_dsv{};
 

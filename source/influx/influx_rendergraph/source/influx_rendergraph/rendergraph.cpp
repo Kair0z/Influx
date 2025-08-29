@@ -255,6 +255,7 @@ namespace influx::rendergraph
 					bool is_pass_dimensions_valid = args.m_width <= 0u || args.m_height <= 0u;
 
 					// gather colour target attachment infos
+					math::uint2 first_rt_dimensions = {};
 					args.m_color_attachments.reserve(pass.m_rtvs.size());
 					for (const auto& rtv : pass.m_rtvs)
 					{
@@ -267,7 +268,6 @@ namespace influx::rendergraph
 							return result_type::make_error("rendergraph::execute() >> invalid RTV!");
 						
 						attachment.m_rtv_descriptor = rtv_descriptor;
-
 						// load:preserve info
 						if (rtv.m_access.m_load == e_rg_load::preserve) {} // nothing to declare
 
@@ -322,6 +322,10 @@ namespace influx::rendergraph
 						viewport.m_height = (float)args.m_height;
 						viewport.m_depth_max = 1.0f;
 						viewport.m_depth_min = 0.0f;
+
+						viewport.m_width = viewport.m_width == 0u ? pass.m_rtvs[0].m_dimensions.x : viewport.m_width;
+						viewport.m_height = viewport.m_height == 0u ? pass.m_rtvs[0].m_dimensions.y : viewport.m_height;
+
 						commandlist.set_viewport(viewport);
 					}
 					if (args.m_allow_implicit_viewrect_set)
@@ -331,6 +335,10 @@ namespace influx::rendergraph
 						rect.m_bottom = args.m_height;
 						rect.m_top = 0u;
 						rect.m_left = 0u;
+
+						rect.m_right = rect.m_right == 0u ? pass.m_rtvs[0].m_dimensions.x : rect.m_right;
+						rect.m_bottom = rect.m_bottom == 0u ? pass.m_rtvs[0].m_dimensions.y : rect.m_bottom;
+
 						commandlist.set_scissor_rect(rect);
 					}
 

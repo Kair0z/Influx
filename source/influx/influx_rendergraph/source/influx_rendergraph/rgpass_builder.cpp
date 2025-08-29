@@ -424,6 +424,7 @@ namespace influx::rendergraph
 
 		// register rtv
 		m_pass.m_rtvs.push_back(rgpass::render_target{ .m_texture_id = res_id, .m_access = load_store_op });
+		m_pass.m_rtvs.back().m_dimensions = { texture->m_desc.m_width, texture->m_desc.m_heigth };
 
 		if (!m_pass.has_create(res_id))
 		{
@@ -457,6 +458,7 @@ namespace influx::rendergraph
 		// register dsv
 		m_pass.m_dsv = rgpass::depth_stencil{ .m_texture_id = res_id, .m_depth_access = load_store_op,
 			.m_stencil_access = stencil_load_store_op, .m_depth_read_only = false, .m_is_enabled = true };
+		m_pass.m_dsv.m_dimensions = { texture->m_desc.m_width, texture->m_desc.m_heigth };
 
 		if (!m_pass.has_create(res_id))
 		{

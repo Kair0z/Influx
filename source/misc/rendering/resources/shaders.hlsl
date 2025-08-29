@@ -271,7 +271,7 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
     float4x4 mvp = mul((float4x4)g_perview.m_viewprojection, instance_transform);
     output.m_position = mul(mvp, float4(input.m_position, 1.0f));
     output.m_worldpos = mul(instance_transform, float4(input.m_position, 1.0f)).xyz;
-    output.m_position.z = -output.m_position.z;
+    // output.m_position.z = -output.m_position.z;
 
     // uvs
     output.m_texcoord = input.m_texcoord;

@@ -265,7 +265,7 @@ int main()
 			desc.m_rasterizer.m_cullmode = graphics::e_cull_mode::nocull;
 			desc.m_rasterizer.m_fillmode = graphics::e_fill_mode::solid;
 			desc.m_rasterizer.m_forced_samplecount = 0u;
-			desc.m_rasterizer.m_front_ccw = false;
+			desc.m_rasterizer.m_front_ccw = true;
 			desc.m_rasterizer.m_multisample = false;
 			desc.m_rasterizer.m_antialiased_line = false;
 			desc.m_rasterizer.m_depth_clip_enable = false;
