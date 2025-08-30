@@ -28,5 +28,6 @@ namespace influx::graphics
 
 		virtual bool allows_uav() const override;
 		virtual vector<footprint> get_footprints() const override;
+		virtual result<range<uint64>> get_memoryrange() const override;
 	};
 }

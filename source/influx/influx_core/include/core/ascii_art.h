@@ -16,6 +16,7 @@ namespace influx::artscii
             char m_todo_chars[2] = { '.', ' ' };
             bool m_todo_alternate = true;
             bool m_done_alternate = false;
+            bool m_ceil = true;
             uint32 m_bar_length = 12u;
 
             settings& set_cursor(char ch)
@@ -103,7 +104,10 @@ namespace influx::artscii
         inline const char* get_cstr()
         {
             const float t = math::clamp(m_t, 0.0f, 1.0f);
-            uint32 progress_index = math::round<uint32, float>(t * m_settings.m_bar_length);
+
+            uint32 progress_index = m_settings.m_ceil ?
+                math::ceil<uint32, float>(t * m_settings.m_bar_length) :
+                math::round<uint32, float>(t * m_settings.m_bar_length);
             
             uint32 i = 0u;
             m_cstring[i++] = '[';

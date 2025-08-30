@@ -134,6 +134,7 @@ namespace influx::graphics
 		INFLUX_GFX_API virtual void unmap(const map_args& args) = 0;
 		INFLUX_GFX_API virtual bool allows_uav() const = 0;
 		INFLUX_GFX_API virtual vector<footprint> get_footprints() const = 0;
+		INFLUX_GFX_API virtual result<range<uint64>> get_memoryrange() const = 0;
 
 		void map(const function<void(void*)> map_func, const map_args& args = {})
 		{

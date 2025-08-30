@@ -31,10 +31,10 @@ namespace influx::time
 	{
 		_t ns = static_cast<_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
 		if		constexpr (_m == e_tm::ns)	return ns;
-		else if	constexpr (_m == e_tm::ms)	return ns * static_cast<_t>(0.001				);
-		else if constexpr (_m == e_tm::s)	return ns * static_cast<_t>(0.000,001			);
-		else if constexpr (_m == e_tm::m)	return ns * static_cast<_t>(0.000,000,001		);
-		else if constexpr (_m == e_tm::h)	return ns * static_cast<_t>(0.000,000,000,001	);
+		else if	constexpr (_m == e_tm::ms)	return static_cast<_t>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+		else if constexpr (_m == e_tm::s)	return ns * static_cast<_t>(0.000,000,001		);
+		else if constexpr (_m == e_tm::m)	return ns * static_cast<_t>(0.000,000,000,001	);
+		else if constexpr (_m == e_tm::h)	return ns * static_cast<_t>(0.000,000,000,000,001);
 	}
 
 	template <typename _t>

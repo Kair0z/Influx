@@ -49,6 +49,8 @@ namespace influx
 		inline constexpr bool is_booleable_v = is_booleable<T>::value;
 	}
 
+#define CHECK_RESULT_IMMEDIATE 1
+
 	template <typename _t = char, typename _e = const char*>
 	class result final
 	{
@@ -71,7 +73,13 @@ namespace influx
 
 		inline static result make_error(const _e& error)
 		{
+#if CHECK_RESULT_IMMEDIATE
+			result res = result(error);
+			res.get();
+			return res;
+#else
 			return result(error);
+#endif
 		}
 
 		inline static result make_warning(const _t& value, const _e& warning)
@@ -86,7 +94,13 @@ namespace influx
 		template <typename _ot>
 		inline static result make_error(const result<_ot>& error_result)
 		{
+#if CHECK_RESULT_IMMEDIATE
+			result res = result(error_result.get_unex());
+			res.get();
+			return res;
+#else
 			return result(error_result.get_unex());
+#endif
 		}
 
 		// if underlying _t is 'boolable', this will only return true if

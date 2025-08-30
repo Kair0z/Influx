@@ -168,7 +168,6 @@ namespace influx::graphics
 		{
 			return result<>::make_error("warning: skipping transition to already current state.");
 		}
-
 		res = cmdlist->transition_resource(this, m_state, new_state);
 
 		m_previous_state = m_state;

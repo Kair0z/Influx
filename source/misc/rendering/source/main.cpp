@@ -3,6 +3,9 @@
 #include "core/string.h"
 #include "core/scene/camera.h"
 #include "core/math/transform.h"
+#include "core/time.h"
+#include "core/container/map.h"
+#include "core/ascii_art.h"
 // influx::import
 #include "influx_import.h"
 // influx::shader
@@ -13,6 +16,8 @@
 #include "influx_platform/window.h"
 // influx::rendergraph
 #include "rendergraph.h"
+
+#include <iostream>
 
 // shader frontend
 namespace frontend
@@ -28,8 +33,91 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
 int main()
 {
+	struct cpu_timings
+	{
+		umap<const char*, float> m_records{};
+		umap<const char*, uint32> m_record_nums{};
+		void reset()
+		{
+			for (const auto& pair : m_records)
+			{
+				m_records[pair.first] = 0.0f;
+				m_record_nums[pair.first] = 0u;
+			}
+		}
+	};
+
+	static cpu_timings timings{};
+	static uint64 gpu_memory_budget = 0u;
+	static uint64 gpu_memory_used = 0u;
+	class scope final
+	{
+		influx::time::point m_start;
+		const char* m_name;
+	public:
+		scope(const char* name) : m_name{ name }
+		{
+			m_start = time::get_now();
+		}
+		~scope()
+		{
+			float ms = time::get_ms_between<float>(time::get_now(), m_start);
+			timings.m_records[m_name] += ms;
+			timings.m_record_nums[m_name]++;
+		}
+	};
+
+	auto log_timings = []()
+	{
+		std::cout << "\033[H\033[J"; // clear prev
+		using pair = std::pair<const char*, float>;
+		vector<pair> averages{};
+		averages.reserve(timings.m_records.size());
+
+		// gather avgs
+		for (const auto& pair : timings.m_records)
+		{
+			const uint32 num = timings.m_record_nums[pair.first];
+			const float avg = pair.second / (float)num;
+			averages.push_back({ pair.first, avg });
+		}
+		std::sort(averages.begin(), averages.end(), [](const pair& a, const pair& b)
+		{
+			return a.second > b.second;
+		});
+		
+		// print avgs
+		artscii::progress_bar bar{}; 
+		bar.cursor_char() = '=';
+		bar.bar_length() = 64u;
+		const float frame_avg = averages[0].second;
+		for (const auto& pair : averages)
+		{
+			const float avg = pair.second;
+			bar.pc() = avg / frame_avg;
+			std::cout
+				<< "[" << std::left << std::setw(15) << pair.first << "]"			// Label aligned with ']'
+				<< std::setw(10)													// Space between ']' and bar
+				<< std::setw(20) << bar.get_cstr()									// Bar with fixed width
+				<< std::right << std::setw(10) << std::fixed << std::setprecision(4) // Right-align the average
+				<< avg << " ms" << std::endl;
+		}
+		std::cout << std::endl;
+
+		bar.bar_length() = 32u;
+		const float gpu_used = (float)gpu_memory_used;
+		const float gpu_budget = (float)gpu_memory_budget;
+		const float GB_used = gpu_used / (1024 * 1024 * 1024);
+		const float GB_budget = gpu_budget / (1024 * 1024 * 1024);
+		bar.pc() = gpu_used / gpu_budget;
+		std::cout << "[VRAM] " << bar.get_cstr() << " " << std::setprecision(4) << GB_used << "/" << GB_budget<< " GB \n";
+		std::cout << std::flush;
+
+		std::this_thread::sleep_for(std::chrono::seconds(1)); // wait a second per log
+	};
+
 	// settings
-	static const string k_scene_filepath = "";
+	static const string k_scene_filepath = "E:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
 	static const string k_shaders_filepath = "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
 	static const string k_albedo_filepath = "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
 	static const string k_normal_filepath = "E:/Git/Influx/source/misc/rendering/resources/normals.png";
@@ -42,12 +130,7 @@ int main()
 	static float s_camera_far = 1000.0f;
 	static float s_camera_near = 0.001f;
 	static float s_camera_fov = 110.0f;
-
-	// window dimensions
 	static math::uint2 s_window_dim = { 640u, 480u };
-	//
-
-	// constants
 	static constexpr uint32 k_num_swapchain_buffers = 3u;
 	static constexpr shader::e_shader_target k_shadertarget = shader::e_shader_target::_6_6;
 	static constexpr uint32 k_max_num_lights = 512u;
@@ -70,30 +153,28 @@ int main()
 	// -----------
 
 	// load a scene file (.fbx)
-	if (false)
+	imp::scene_data loaded_scene{};
 	{
+		bool finished = false;
+		artscii::progress_bar bar{};
+		bar.bar_length() = 64u;
+		std::thread loading = std::thread([&bar, &finished]()
+		{
+			while (!finished)
+			{
+				bar.increment(1u);
+				std::cout << "\r" << bar.get_cstr() << "loading soldier.fbx ";
+				std::this_thread::sleep_for(std::chrono::milliseconds(180));
+			}
+		});
+
 		imp::scene_load_args scene_load_args{};
 		scene_load_args.m_bake_transforms = false;
 		scene_load_args.m_pre_scale = 1.0f;
-		imp::scene_data loaded_scene = imp::load_scene_file(k_scene_filepath, scene_load_args).get();
+		loaded_scene = imp::load_scene_file(k_scene_filepath, scene_load_args).get();
+		finished = true;
 
-		// foreach mesh
-		for (uint32 i = 0u; i < loaded_scene.get_num_meshes(); ++i)
-		{
-			// foreach position (vertex)
-			const imp::mesh_data& mesh = loaded_scene.get_mesh(i);
-			for (uint64 i = 0u; i < mesh.m_positions.size(); ++i)
-			{
-				mesh.m_positions[i];
-				mesh.m_normals[i];
-				mesh.m_uvs[i];
-			}
-			// foreach (index)
-			for (uint64 i = 0u; i < mesh.m_indices.size(); ++i)
-			{
-				mesh.m_indices[i];
-			}
-		}
+		loading.join();
 	}
 
 	// load images
@@ -483,13 +564,12 @@ int main()
 		graph.import_texture(final_target);
 		graph.import_texture("tex_albedo", textures[0]);
 		graph.import_texture("tex_normal", textures[1]);
+		graph.import_buffer("buff_indices", buff_indices);
+		graph.import_buffer("buff_vertices", buff_vertices);
 		graph.import_buffer("srv_instances", buff_instances);
-
-		// 1. clear to red
-		graph.add_clear_pass(final_target, clear_args{ .m_colour = k_clear_colour });
 		
-		// 2. graphics basepass
-		graph.add_pass(e_rgpass_type::graphics,
+		// 1. graphics basepass
+		auto basepass = graph.add_pass(e_rgpass_type::graphics,
 			// [build]
 			[&final_target](rgpass_builder& builder)
 			{
@@ -511,12 +591,11 @@ int main()
 				{
 					buffer_desc desc{};
 					desc.m_shared_heap = true; // cpu can write to this
-					desc.m_bytestride = sizeof(uint32); // ??
-					desc.m_bytesize = sizeof(frontend::per_view);
+					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_view);
 					builder.declare_buffer("cb_per_view", desc);
-					desc.m_bytesize = sizeof(frontend::per_material);
+					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_material);
 					builder.declare_buffer("cb_per_material", desc);
-					desc.m_bytesize = sizeof(frontend::per_draw);
+					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_draw);
 					builder.declare_buffer("cb_per_draw", desc);
 				}
 
@@ -537,12 +616,12 @@ int main()
 				}
 
 				// finally, declare the rendergraph layout
-				builder.read_constbuffer("cb_per_view");
-				builder.read_constbuffer("cb_per_material");
-				builder.read_constbuffer("cb_per_draw");
-				builder.read_buffer("srv_instances");
-				builder.read_texture("tex_albedo");
-				builder.read_texture("tex_normal");
+				builder.read_constbuffer("cb_per_view").get();
+				builder.read_constbuffer("cb_per_material").get();
+				builder.read_constbuffer("cb_per_draw").get();
+				builder.read_buffer("srv_instances").get();
+				builder.read_texture("tex_albedo").get();
+				builder.read_texture("tex_normal").get();
 
 				rgaccess access = rgaccess::clear_and_keep({});
 				builder.write_rendertarget(gbuffernames[0], access);
@@ -599,13 +678,16 @@ int main()
 
 				constbuffers[0]->map<frontend::per_view>([&camera, &cam_transform](frontend::per_view* view)
 				{
-					view->m_viewprojection = math::matrix4x4f::make_viewprojection_RH(
+					auto vp = math::matrix4x4f::make_viewprojection_RH(
 						cam_transform.get_position(),
 						{ 0,0,-1 },
 						camera.get_fov(),
 						camera.get_aspect_ratio(),
 						camera.get_nearplane(),
 						camera.get_farplane());
+					view->m_viewprojection = vp;
+					view->m_other = { 0.5,0.5,0.5,0.5 };
+					// view->m_viewprojection = vp;
 				});
 				constbuffers[1]->map<frontend::per_material>([](frontend::per_material* mat)
 				{
@@ -632,9 +714,10 @@ int main()
 					.m_start_instance = 0u
 				});
 			});
+		basepass->set_name("basepass");
 		
-		// 3. compute shadepass
-		graph.add_pass(e_rgpass_type::compute,
+		// 2. compute shadepass
+		auto shadepass = graph.add_pass(e_rgpass_type::compute,
 			// [build]
 			[&final_target](rgpass_builder& builder)
 			{
@@ -701,32 +784,60 @@ int main()
 				args.m_threadgroup_count.z = 1u;
 				cmdlist.dispatch(args);
 			});
+		shadepass->set_name("shadepass");
 
 		graph.build();
 	}
 	
 	bool is_quit = false;
+	uint64 frame = 0u;
+#if 0
+	std::thread log_thread = std::thread([&is_quit, &log_timings]()
+	{
+		while (!is_quit) log_timings();
+	});
+#endif
 	while (!is_quit)
 	{
-		window->poll_events(is_quit);
-		cmdlist.start(&dev).get();
-		
-		// render to final target
-		graph.execute(cmdlist, dev).get();
+		auto gpu_mem = dev.get_memory_info().get();
+		gpu_memory_budget = gpu_mem.m_gpu_budget;
+		gpu_memory_used = gpu_mem.m_gpu_usage;
 
-		// copy final target into backbuffer
-		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();
-		backbuffer->transition(cmdlist, graphics::e_resource_state::copy_dst);
-		final_target->transition(cmdlist, graphics::e_resource_state::copy_src);
+		scope sc_frame{ "frame" };
+		{
+			scope sc_poll{ "poll" };
+			window->poll_events(is_quit);
+		}
+		{
+			scope sc_cmdstart{ "cmd_start" };
+			cmdlist.start(&dev).get();
+		}
+		{
+			scope sc_exe{ "graph_exe" };
+			graph.execute(cmdlist, dev).get();
+		}
+		{
+			scope sc_copy{ "cmd_finalcopy " };
+			// copy final target into backbuffer
+			graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();
+			backbuffer->transition(cmdlist, graphics::e_resource_state::copy_dst);
+			final_target->transition(cmdlist, graphics::e_resource_state::copy_src);
+			graphics::copy_texture_args copy_args{};
+			cmdlist.copy_texture(final_target, backbuffer, copy_args);
+			backbuffer->transition(cmdlist, graphics::e_resource_state::present);
+		}
+		{
+			scope sc_submit{ "cmd_submit" };
+			cmdlist.end().get();
+			queue.submit({ &cmdlist }).get();
+		}
+		{
+			scope sc_present{ "cmd_present" };
+			swapchain.present({}).get();
+		}
 
-		graphics::copy_texture_args copy_args{};
-		cmdlist.copy_texture(final_target, backbuffer, copy_args);
-
-		backbuffer->transition(cmdlist, graphics::e_resource_state::present);
-		
-		// submit & present
-		cmdlist.end().get();
-		queue.submit({ &cmdlist }).get();
-		swapchain.present({}).get();
+		if (frame == 64u * 12u) 
+			timings.reset();
+		++frame;
 	}
 }

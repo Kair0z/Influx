@@ -928,40 +928,43 @@ namespace influx::rendergraph
 				{
 					if (!pass.m_texture_state_map.contains(id)) continue;
 					rgtexture* texture = get_texture(id);
-					texture->m_last_user = &pass;
+					texture->m_final_pass = &pass;
 				}
 				for (auto id : pass.m_buffer_writes)
 				{
 					if (!pass.m_buffer_state_map.contains(id)) continue;
 					rgbuffer* buffer = get_buffer(id);
-					buffer->m_last_user = &pass;
+					buffer->m_final_pass = &pass;
 				}
 				for (auto id : pass.m_texture_reads)
 				{
 					if (!pass.m_texture_state_map.contains(id)) continue;
 					rgtexture* texture = get_texture(id);
-					texture->m_last_user = &pass;
+					texture->m_final_pass = &pass;
 				}
 				for (auto id : pass.m_buffer_reads)
 				{
 					if (!pass.m_buffer_state_map.contains(id)) continue;
 					rgbuffer* buffer = get_buffer(id);
-					buffer->m_last_user = &pass;
+					buffer->m_final_pass = &pass;
 				}
 			}
 		}
 
-		// insert destroy points at the 'last user pass' of the resources
+		// insert destroy points at the final pass that uses the resource
 		for (uint64 i = 0; i < m_textures.size(); ++i)
 		{
-			if (m_textures[i]->m_last_user != nullptr) 
-				m_textures[i]->m_last_user->m_texture_destroys.push_back(rgtexture_id(i));
+			if (m_textures[i]->m_final_pass != nullptr && !m_textures[i]->is_imported())
+				m_textures[i]->m_final_pass->m_texture_destroys.push_back(rgtexture_id(i));
 		}
 		for (uint64 i = 0; i < m_buffers.size(); ++i)
 		{
-			if (m_buffers[i]->m_last_user != nullptr) 
-				m_buffers[i]->m_last_user->m_buffer_destroys.push_back(rgbuffer_id(i));
+			if (m_buffers[i]->m_final_pass != nullptr && !m_buffers[i]->is_imported())
+			{
+				m_buffers[i]->m_final_pass->m_buffer_destroys.push_back(rgbuffer_id(i));
+			}
 		}
+		printf("");
 	}
 
 	void rendergraph::depth_search(uint64 parent_idx, vector<bool>& visited_list, vector<uint64>& topo_sorted_passes)

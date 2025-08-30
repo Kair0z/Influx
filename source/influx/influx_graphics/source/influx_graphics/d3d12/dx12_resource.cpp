@@ -112,6 +112,14 @@ namespace influx::graphics
 		return result;
 	}
 
+	result<range<uint64>> dx12_resource::get_memoryrange() const
+	{
+		range<uint64> range{};
+		range.set_start( mpdx_resource->GetGPUVirtualAddress());
+		range.set_size(get_bytesize());
+		return range;
+	}
+
 	void dx12_resource::release_impl(device*)
 	{
 		mpdx_resource->Release();

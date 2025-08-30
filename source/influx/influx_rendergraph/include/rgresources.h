@@ -30,7 +30,7 @@ namespace influx::rendergraph
 		inline void reset()
 		{
 			m_writer = nullptr;
-			m_last_user = nullptr;
+			m_final_pass = nullptr;
 			m_refcount = 0u;
 		}
 
@@ -38,7 +38,7 @@ namespace influx::rendergraph
 		rgchild() = default;
 
 		rgpass* m_writer;
-		rgpass* m_last_user;
+		rgpass* m_final_pass;
 		uint32 m_refcount;
 		rhi_resource* m_resource;
 		bool m_is_imported;

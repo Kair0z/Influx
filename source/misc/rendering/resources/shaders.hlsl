@@ -38,7 +38,9 @@ struct per_scene
 };
 struct per_view
 {
-	float4x4 m_viewprojection;
+    float4x4 padding;
+    float4x4 m_viewprojection;
+    float4 m_other;
 };
 struct per_material 
 {
@@ -337,7 +339,7 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
     float depth = gbuffer.get_depth().r;
     if (depth <= 0.0f)
     {
-        output[thread_id.xy] = float4(0,0,0,1);
+        output[thread_id.xy] = float4(1,0,0,1);
         return;
     }
     
