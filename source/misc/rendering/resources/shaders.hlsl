@@ -339,13 +339,16 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
     float depth = gbuffer.get_depth().r;
     if (depth <= 0.0f)
     {
-        output[thread_id.xy] = float4(1,0,0,1);
+        output[thread_id.xy] = float4(1,1,1,1) * 0.2f;
         return;
     }
     
+    float3 dirlight = normalize(float3(-0.5,-0.5,-0.5)); 
     // float3 albedo = gbuffer.get_albedo();
-    // float3 normal = normalize(gbuffer.get_normal().rgb);
-    output[thread_id.xy] = float4(1, 1, 1, 1);
+    float3 normal = normalize(gbuffer.get_normal().rgb);
+
+    float3 finalcolor = float3(1,1,1) * dot(dirlight, normal);
+    output[thread_id.xy] = float4(finalcolor, 1.0f); 
 }
 #endif // !__cplusplus
 #endif // SHADER_FRONTEND_H

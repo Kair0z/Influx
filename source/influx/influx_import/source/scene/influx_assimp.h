@@ -79,6 +79,19 @@ namespace influx
 		}
 	}
 
+	influx::imp::scene_data::animation translate(const aiAnimation& animation)
+	{
+		imp::scene_data::animation result{};
+		result.m_num_channels = animation.mNumChannels;
+		result.m_seconds_per_tick = 1.0f / math::maximum<float>(animation.mTicksPerSecond, 0.0001f);
+		result.m_duration_ticks = animation.mDuration;
+		for (uint32 i = 0u; i < animation.mNumChannels; ++i)
+		{
+			//animation.mChannels[i]->mPostState
+		}
+		return result;
+	}
+
 	constexpr influx::e_texture_semantic translate(const aiTextureType& type)
 	{
 		switch (type)
@@ -145,6 +158,19 @@ namespace influx
 		return node.mTransformation;
 	}
 
+	influx::imp::scene_data::meshbone translate(const aiBone& bone)
+	{
+		imp::scene_data::meshbone result{};
+		result.m_weights.reserve(bone.mNumWeights);
+		for (uint32 w = 0u; w < bone.mNumWeights; ++w)
+		{
+			result.m_weights.push_back({ 
+				.m_index = bone.mWeights[w].mVertexId, 
+				.m_weight = bone.mWeights[w].mWeight });
+		}
+		return result;
+	}
+
 	influx::imp::scene_data::mesh translate(const aiMesh& mesh)
 	{
 		influx::imp::scene_data::mesh result{};
@@ -153,16 +179,24 @@ namespace influx
 		const bool meshHasPositions = mesh.HasPositions();
 		const bool meshHasNormals = mesh.HasNormals();
 		const bool meshHasVertexColors = mesh.HasVertexColors(vColChannel);
+		const bool meshhasBones = mesh.HasBones();
 
 		bool collectPositions = true && meshHasPositions;
 		bool collectNormals = true && meshHasNormals;
 		bool collectVertexColors = true && meshHasVertexColors;
 		bool collectUvs = true && mesh.HasTextureCoords(0u);
+		bool collectBones = meshhasBones;
 
 		math::vectorf3 max_position;
 		math::vectorf3 min_position;
 		math::vectorf3 sum_position;
 		const uint32 num_positions = mesh.mNumVertices;
+
+		result.m_bones.reserve(mesh.mNumBones);
+		for (uint32 b = 0u; b < mesh.mNumBones; ++b)
+		{
+			result.m_bones.push_back(translate(*mesh.mBones[b]));
+		}
 
 		for (uint32 v = 0u; v < mesh.mNumVertices; ++v)
 		{
@@ -381,6 +415,15 @@ namespace influx
 			metadata_info = parse_metadata(result, *pScene->mMetaData);
 		}
 		metadata_info.m_scale = load_args.m_pre_scale;
+
+		for (uint32 i = 0u; i < pScene->mNumAnimations; ++i)
+		{
+			const aiAnimation* anim = pScene->mAnimations[i];
+			if (anim != nullptr)
+			{
+				result.m_animations.push_back(translate(*anim));
+			}
+		}
 		
 		for (uint32 i = 0u; i < pScene->mNumMeshes; ++i)
 		{

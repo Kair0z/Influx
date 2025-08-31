@@ -57,15 +57,12 @@ namespace influx::imp
 
 		// Create an instance of the Importer class
 		Assimp::Importer importer;
-
-		// And have it read the given file with some example postprocessing
-		// Usually - if speed is not the most important aspect for you - you'll
-		// probably to request more postprocessing than we do in this example.
-		int step_flags = 
+		int step_flags =
 			aiProcess_CalcTangentSpace		|
 			aiProcess_Triangulate			|
 			aiProcess_JoinIdenticalVertices |
 			aiProcess_FlipUVs				|
+			aiProcess_PopulateArmatureData  |
 			aiProcess_SortByPType;
 
 		if (args.m_bake_transforms)

@@ -117,27 +117,26 @@ int main()
 	};
 
 	// settings
+	// https://sketchfab.com/3d-models/silver-soldier-animated-a8f0d843735047b2999fbe4a9d7a1245#download
 	static const string k_scene_filepath = "E:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
 	static const string k_shaders_filepath = "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
 	static const string k_albedo_filepath = "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
 	static const string k_normal_filepath = "E:/Git/Influx/source/misc/rendering/resources/normals.png";
-
 	static const math::float4 k_clear_colour = math::float4{ 1,0,0,1 };
 
-	// camera
-	static math::float3 s_camera_startpos = { 0,0,5 };
+	static math::float3 s_camera_startpos = { 0,0,300 };
 	static math::float3 s_camera_lookatpos = {};
 	static float s_camera_far = 1000.0f;
 	static float s_camera_near = 0.001f;
 	static float s_camera_fov = 110.0f;
+
 	static math::uint2 s_window_dim = { 640u, 480u };
 	static constexpr uint32 k_num_swapchain_buffers = 3u;
 	static constexpr shader::e_shader_target k_shadertarget = shader::e_shader_target::_6_6;
 	static constexpr uint32 k_max_num_lights = 512u;
 	static constexpr uint32 k_max_num_instances = 4096u;
+	static const uint32 num_instances = k_max_num_instances;
 	static constexpr uint32 k_num_gbuffers = 3u;
-	static constexpr uint32 k_num_vertices = 3u; // triangle
-	static constexpr uint32 k_num_indices = 3u; // triangle
 	static constexpr graphics::e_format k_gbuffer_formats[k_num_gbuffers]
 	{
 		graphics::e_format::rgba_u32,
@@ -175,6 +174,13 @@ int main()
 		finished = true;
 
 		loading.join();
+	}
+
+	uint32 total_num_vertices{}; uint32 total_num_indices{};
+	for (const auto& mesh : loaded_scene.get_meshes())
+	{
+		total_num_vertices	+= mesh.m_positions.size();
+		total_num_indices	+= mesh.m_indices.size();
 	}
 
 	// load images
@@ -476,8 +482,8 @@ int main()
 	// create non-rg buffers
 	graphics::resource* buff_instances = nullptr;
 	graphics::resource* buff_lights = nullptr;
-	graphics::resource* buff_vertices = nullptr;
-	graphics::resource* buff_indices = nullptr;
+	graphics::resource* buff_vertices_upload = nullptr;
+	graphics::resource* buff_indices_upload = nullptr;
 	{
 		// all buffers are stored on shared for upload convenience
 		graphics::heap_desc heap_desc = graphics::heap_desc::shared_heap();
@@ -501,16 +507,16 @@ int main()
 		{
 			graphics::buffer_desc desc{};
 			desc.m_bytestride = sizeof(frontend::per_vertex);
-			desc.m_bytesize = desc.m_bytestride * k_num_vertices;
-			buff_vertices = dev.create_resource(desc, heap_desc);
+			desc.m_bytesize = desc.m_bytestride * total_num_vertices;
+			buff_vertices_upload = dev.create_resource(desc, heap_desc);
 		}
 		// indexbuffer
 		{
 			graphics::buffer_desc desc{};
 			desc.m_format = graphics::e_format::u32;
 			desc.m_bytestride = sizeof(uint32);
-			desc.m_bytesize = desc.m_bytestride * k_num_indices;
-			buff_indices = dev.create_resource(desc, heap_desc);
+			desc.m_bytesize = desc.m_bytestride * total_num_indices;
+			buff_indices_upload = dev.create_resource(desc, heap_desc);
 		}
 	}
 
@@ -518,27 +524,83 @@ int main()
 	{
 		buff_instances->map<frontend::per_instance>([](frontend::per_instance* instances)
 		{
-			instances[0].m_colour = {1,1,1,1};
-			instances[0].set_albedo_index(0u);
-			instances[0].set_normal_index(1u);
-			instances[0].m_transform = math::transform3D::identity().get_matrix();
+			for (uint32 i = 0u; i < num_instances; ++i)
+			{
+				instances[i].m_colour = { 1,1,1,1 };
+				instances[i].set_albedo_index(0u);
+				instances[i].set_normal_index(1u);
+				instances[i].m_transform = math::transform3D::identity().get_matrix();
+
+				// rotate & translate a bit
+				instances[i].m_transform[1][1] = 0.0f;
+				instances[i].m_transform[2][2] = 0.0f;
+				instances[i].m_transform[2][1] = 1.0f;
+				instances[i].m_transform[1][2] = -1.0f;
+
+				const uint32 x = i / 64u;
+				const uint32 z = i % 64u;
+				instances[i].m_transform.set_translation({ x * 20.0f, -20.0f, -50 - z * 20.0f});
+			}
 		});
 		buff_lights->map<frontend::per_dirlight>([](frontend::per_dirlight* lights)
 		{
 			lights[0].m_colour;
 		});
-		buff_vertices->map<frontend::per_vertex>([](frontend::per_vertex* vertices)
+		buff_vertices_upload->map<frontend::per_vertex>([&loaded_scene](frontend::per_vertex* vertices)
 		{
-			vertices[0].m_position = {0,0,0};
-			vertices[1].m_position = {1,0,0};
-			vertices[2].m_position = {0,1,0};
+			uint32 vertex_offset = 0u;
+			for (const auto& mesh : loaded_scene.get_meshes())
+			{
+				for (uint64 i = 0u; i < mesh.m_positions.size(); ++i)
+				{
+					vertices[vertex_offset + i].m_position = mesh.m_positions[i];
+					vertices[vertex_offset + i].m_normal = mesh.m_normals[i];
+				}
+				vertex_offset += mesh.m_positions.size();
+			}
 		});
-		buff_indices->map<uint32>([](uint32* indices)
+		buff_indices_upload->map<uint32>([&loaded_scene](uint32* indices)
 		{
-			indices[0] = 0;
-			indices[1] = 1;
-			indices[2] = 2;
+			uint32 index_offset = 0u;
+			for (const auto& mesh : loaded_scene.get_meshes())
+			{
+				for (uint64 i = 0u; i < mesh.m_indices.size(); ++i)
+				{
+					indices[index_offset + i] = mesh.m_indices[i];
+				}
+				index_offset = mesh.m_indices.size();
+			}
 		});
+	}
+	
+	// upload->GPU the static geometry buffers
+	graphics::resource* buff_vertices = nullptr;
+	graphics::resource* buff_indices = nullptr;
+	{
+		graphics::heap_desc heap_desc = graphics::heap_desc{};
+		// vertexbuffer
+		{
+			graphics::buffer_desc desc{};
+			desc.m_bytestride = sizeof(frontend::per_vertex);
+			desc.m_bytesize = desc.m_bytestride * total_num_vertices;
+			buff_vertices = dev.create_resource(desc, heap_desc);
+		}
+		// indexbuffer
+		{
+			graphics::buffer_desc desc{};
+			desc.m_format = graphics::e_format::u32;
+			desc.m_bytestride = sizeof(uint32);
+			desc.m_bytesize = desc.m_bytestride * total_num_indices;
+			buff_indices = dev.create_resource(desc, heap_desc);
+		}
+
+		// upload to GPU
+		cmdlist.start(&dev);
+		cmdlist.copy_buffer(buff_indices_upload, buff_indices, buff_indices->get_bytesize());
+		cmdlist.copy_buffer(buff_vertices_upload, buff_vertices, buff_vertices->get_bytesize());
+		cmdlist.end();
+		queue.submit({ &cmdlist });
+		cmdlist.wait_for_completion();
 	}
 
 	// create final target
@@ -631,7 +693,8 @@ int main()
 			},
 			// [execute]
 			[&signature_basepass, &pipeline_basepass, 
-			buff_vertices, buff_indices, &camera, &cam_transform, &dev](rgpass_context& ctx)
+			buff_vertices, buff_indices, &camera, &cam_transform, 
+			&dev, total_num_indices, &loaded_scene](rgpass_context& ctx)
 			{
 				graphics::commandlist& cmdlist = ctx.get_commandlist();
 				graphics::descriptor_heap& gpu_resource_descheap = ctx.get_descheap_gpu(e_gpu_descheap::resource);
@@ -665,54 +728,66 @@ int main()
 					&gpu_sampler_descheap
 				});
 
+				// bind the pipeline & rootsig
 				cmdlist.set_rootsignature(signature_basepass);
 				cmdlist.set_pipeline(pipeline_basepass);
 				cmdlist.set_primitive_topology(graphics::e_primitive_topology::trilist);
 				
-				graphics::resource* constbuffers[3] =
+				// bind the CBVs
 				{
-					ctx.get_constbuffer("cb_per_view").get().m_resource,
-					ctx.get_constbuffer("cb_per_material").get().m_resource,
-					ctx.get_constbuffer("cb_per_draw").get().m_resource
-				};
-
-				constbuffers[0]->map<frontend::per_view>([&camera, &cam_transform](frontend::per_view* view)
-				{
-					auto vp = math::matrix4x4f::make_viewprojection_RH(
-						cam_transform.get_position(),
-						{ 0,0,-1 },
-						camera.get_fov(),
-						camera.get_aspect_ratio(),
-						camera.get_nearplane(),
-						camera.get_farplane());
-					view->m_viewprojection = vp;
-					view->m_other = { 0.5,0.5,0.5,0.5 };
-					// view->m_viewprojection = vp;
-				});
-				constbuffers[1]->map<frontend::per_material>([](frontend::per_material* mat)
-				{
-					mat->m_colour = { 0,1,0,1 };
-				});
-				constbuffers[2]->map<frontend::per_draw>([](frontend::per_draw* draw)
-				{
-					draw->m_base_instance = 0u;
-				});
-
-				// bind cbvs
-				for (uint32 i = 0u; i < 3u; ++i)
-				{
-					cmdlist.set_root_cbv(constbuffers[i], i, graphics::e_pipeline_type::graphics);
+					graphics::resource* constbuffers[3] =
+					{
+						ctx.get_constbuffer("cb_per_view").get().m_resource,
+						ctx.get_constbuffer("cb_per_material").get().m_resource,
+						ctx.get_constbuffer("cb_per_draw").get().m_resource
+					};
+					constbuffers[0]->map<frontend::per_view>([&camera, &cam_transform](frontend::per_view* view)
+					{
+						auto vp = math::matrix4x4f::make_viewprojection_RH(
+							cam_transform.get_position(),
+							{ 0,0,-1 },
+							camera.get_fov(),
+							camera.get_aspect_ratio(),
+							camera.get_nearplane(),
+							camera.get_farplane());
+						view->m_viewprojection = vp;
+						view->m_other = { 0.5,0.5,0.5,0.5 };
+						// view->m_viewprojection = vp;
+					});
+					constbuffers[1]->map<frontend::per_material>([](frontend::per_material* mat)
+					{
+						mat->m_colour = { 0,1,0,1 };
+					});
+					constbuffers[2]->map<frontend::per_draw>([](frontend::per_draw* draw)
+					{
+						draw->m_base_instance = 0u;
+					});
+					for (uint32 i = 0u; i < 3u; ++i)
+					{
+						cmdlist.set_root_cbv(constbuffers[i], i, graphics::e_pipeline_type::graphics);
+					}
 				}
 
+				// bind the geometry buffers
 				cmdlist.set_vertexbuffer(buff_vertices);
 				cmdlist.set_indexbuffer(buff_indices);
-				cmdlist.draw_indexed({
-					.m_num_indexes_per_instance = k_num_indices,
-					.m_num_instances = 1u,
-					.m_start_index = 0u,
-					.m_start_vertex = 0u,
-					.m_start_instance = 0u
-				});
+
+				int vertex_offset = 0;
+				uint32 index_offset = 0u;
+				for (const auto& mesh : loaded_scene.get_meshes())
+				{
+					const uint32 num_inds = mesh.m_indices.size();
+					const uint32 num_verts = mesh.m_positions.size();
+					cmdlist.draw_indexed({
+						.m_num_indexes_per_instance = num_inds,
+						.m_num_instances = num_instances,
+						.m_start_index = index_offset,
+						.m_start_vertex = vertex_offset,
+						.m_start_instance = 0u
+					});
+					index_offset += num_inds;
+					vertex_offset += num_verts;
+				}
 			});
 		basepass->set_name("basepass");
 		

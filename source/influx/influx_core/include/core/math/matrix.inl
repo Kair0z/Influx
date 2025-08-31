@@ -798,9 +798,9 @@ namespace influx::math
 	inline void matrix<_t, _x, _y>::set_translation(const vector<_t, 3u>& translation)
 	{
 		static_assert(_x == 4u && _y == 4u);
-		this->m_yows[3u].x = translation.x;
-		this->m_yows[3u].y = translation.y;
-		this->m_yows[3u].z = translation.z;
+		this->m_rows[3u].x = translation.x;
+		this->m_rows[3u].y = translation.y;
+		this->m_rows[3u].z = translation.z;
 	}
 	template<typename _t, matsize _x, matsize _y>
 	inline vector<_t, 3u> matrix<_t, _x, _y>::get_translation() const

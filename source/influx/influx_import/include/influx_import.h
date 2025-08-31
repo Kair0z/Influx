@@ -42,6 +42,27 @@ namespace influx::imp
 
 	struct scene_data final
 	{
+		struct animation final
+		{
+			struct channel final
+			{
+				uint32	m_prestate = 0u;
+				uint32	m_poststate = 0u;
+			};
+
+			
+			uint32	m_num_channels	= 0u;
+			float	m_duration_ticks = 0.0f;
+			float	m_seconds_per_tick = 0.0f;
+		};
+		vector<animation> m_animations{};
+
+		struct meshbone final
+		{
+			struct weight { uint32 m_index{}; float m_weight{}; };
+			vector<weight> m_weights{};
+		};
+
 		struct mesh final
 		{
 			vector<uint32> m_indices{};
@@ -49,6 +70,7 @@ namespace influx::imp
 			vector<math::vectorf4> m_colours{};
 			vector<math::vectorf3> m_normals{};
 			vector<math::vectorf2> m_uvs{};
+			vector<meshbone> m_bones{};
 
 			/* bounding box/sphere are local! scale with the matrix to get the world bounds! */
 			math::boxf		m_bounding_box{};
