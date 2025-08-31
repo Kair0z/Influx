@@ -72,7 +72,7 @@ namespace influx::math
 
 		inline void set_row(matsize r_index, const vector<_t, k_num_columns>& row)
 		{
-			influx_assert(r_index < k_num_rows);
+			// influx_assert(r_index < k_num_rows);
 			for (matsize c{}; c < k_num_columns; ++c)
 			{
 				const uint32 index = (r_index * k_num_columns) + c;

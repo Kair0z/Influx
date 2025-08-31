@@ -108,7 +108,7 @@ namespace influx::math
 		void rotate(float delta_angle, const vectorf3& axis)
 		{
 			m_is_matrix_dirty = true;
-			m_rotation.rotate(delta_angle, axis);
+			// m_rotation.rotate(delta_angle, axis);
 		}
 
 		void rotate_y(float delta_angle, bool blocal = false)

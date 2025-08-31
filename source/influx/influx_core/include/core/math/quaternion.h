@@ -22,118 +22,6 @@ namespace influx::math
 	template <typename _t>
 	using complex = std::complex<_t>;
 
-	class _quaternion final
-	{
-		vectorf3 m_forward;
-		vectorf3 m_right;
-		vectorf3 m_up;
-		math::matrix3x3f m_rotation_matrix;
-
-	public:
-		_quaternion() = default;
-		_quaternion(const vectorf3& forward, const vectorf3& up = vectorf3::up())
-			: m_rotation_matrix{}
-		{
-			m_forward = forward.normalized();
-			m_right = vectorf3::cross(up, m_forward);
-			m_up = vectorf3::cross(m_right, m_forward);
-		}
-		_quaternion(const _quaternion& other) = default;
-
-		virtual ~_quaternion() = default;
-
-#if 0
-		const static _quaternion identity()
-		{
-			static _quaternion q{};
-			q.m_up = { 0.0f, 1.0f, 0.0f };
-			q.m_forward = { 0.0f, 0.0f, 1.0f };
-			q.m_right = { 1.0f, 0.0f, 0.0f };
-			return q;
-		}
-#endif
-		vectorf3 get_forward() const
-		{
-			return m_forward.normalized();
-		}
-
-		vectorf3 get_right() const
-		{
-			return m_right;
-		}
-
-		vectorf3 get_up() const
-		{
-			return m_up;
-		}
-
-		void set_forward(const vectorf3& newForward)
-		{
-			m_forward = newForward;
-			set_right(math::vectorf3::cross(m_forward, vectorf3::up()).normalized());
-			set_up(math::vectorf3::cross(m_right, m_forward).normalized());
-		}
-
-		void set_right(const vectorf3& newRight)
-		{
-			m_right = newRight;
-		}
-
-		void set_up(const vectorf3& newUp)
-		{
-			m_up = newUp;
-		}
-
-#if 0
-		void rotate(float delta_angle, const vectorf3& axis)
-		{
-			m_rotation_matrix = math::matrix3x3f::make_rotation(axis, delta_angle);
-
-			m_forward = (m_rotation_matrix * m_forward).normalized();
-			m_right = math::vectorf3::cross(m_forward, vectorf3::up()).normalized();
-			m_up = math::vectorf3::cross(m_right, m_forward).normalized();
-		}
-#endif
-		bool is_gimbal_locked() const
-		{
-			return math::abs(m_forward[1]) > 0.9999;
-		}
-
-		vectorf3 get_euler_angles() const
-		{
-			return { 
-				math::to_degrees(get_pitch()), 
-				math::to_degrees(get_yaw()), 
-				math::to_degrees(get_roll()) };
-		}
-
-		float get_pitch() const
-		{
-			return asinf(-m_forward.y);
-		}
-
-		float get_yaw() const
-		{
-			return atan2f(m_forward.x, m_forward.z);
-		}
-
-		float get_roll() const
-		{
-			return atan2f(m_right.y, m_right.x);
-		}
-
-#if 0
-		void set_matrix(const math::matrix3x3f& matrix)
-		{
-			m_rotation_matrix = matrix;
-
-			m_right		= m_rotation_matrix.get_row(0u).normalized();
-			m_up		= m_rotation_matrix.get_row(1u).normalized();
-			m_forward	= m_rotation_matrix.get_row(2u).normalized();
-		}
-#endif
-	};
-
 	template <typename _t>
 	class quaternion final
 	{
@@ -143,6 +31,7 @@ namespace influx::math
 		_t m_d{};
 
 		using value_type = _t;
+		using vec3 = math::vector<_t, 3u>;
 
 		// these are the supported types
 		static_assert(std::is_same<_t, bool>()
@@ -320,8 +209,37 @@ namespace influx::math
 			return *this;
 		}
 
+		static quaternion make_conjugate(const quaternion& quat)
+		{
+			return { quat.m_d, -quat.m_a, -quat.m_b, -quat.m_c };
+		}
+
+		static quaternion make_angleaxis(const _t& delta_degrees, const math::vector<_t, 3>& axis)
+		{
+			const auto norm_axis = axis.normalized();
+			const float half_angle = to_radians(delta_degrees) * 0.5f;
+			const _t sin_angle = math::sin(half_angle);
+			return {
+				math::cos(half_angle),
+				norm_axis.x * sin_angle,
+				norm_axis.y * sin_angle,
+				norm_axis.z * sin_angle
+			};
+		}
+		
+		static quaternion vec3_to_quat(const math::vector<_t, 3u>& vec)
+		{
+			return { 0.0f, vec.x, vec.y, vec.z };
+		}
+
+		static vec3 rotate(const vec3& vec, const quaternion& quat)
+		{
+			quaternion rotated = {}; // quat* vec3_to_quat(vec)* make_conjugate(quat);
+			return { rotated.m_a, rotated.m_b, rotated.m_c };
+		}
+
 		template <typename _t2>
-		static matrix<_t2, 3u, 3u> make_rotation_matrix(const quaternion<_t2>& quat)
+		static matrix<_t2, 3u, 3u> quat_to_matrix(const quaternion<_t2>& quat)
 		{
 			// 21 operations?
 			_t2 a2 = quat.get_a() * quat.get_a(), b2 = quat.get_b() * quat.get_b(), c2 = quat.get_c() * quat.get_c(), d2 = quat.get_d() * quat.get_d();
@@ -340,7 +258,7 @@ namespace influx::math
 		{ static quaternion g_identity{ 1,0,0,0 }; return g_identity; }
 
 		template <typename _t2>
-		static quaternion<_t2> make_quaternion(const matrix<_t2, 3u, 3u>& mat)
+		static quaternion<_t2> matrix_to_quat(const matrix<_t2, 3u, 3u>& mat)
 		{
 			const _t2 tee = mat[0][0] + mat[1][1] + mat[2][2];
 
@@ -392,14 +310,23 @@ namespace influx::math
 		quatf m_quaternion;
 
 	public:
+		rotation() = default;
+		rotation(const quatf& quat) : m_quaternion{ quat } {}
+
 		static rotation identity()
 		{
-			return {};
+			static rotation rot{ quatf::identity() };
+			return rot;
 		}
 
 		void set_matrix(const math::matrix3x3f& mat)
 		{
+			m_quaternion = quatf::matrix_to_quat(mat);
+		}
 
+		const math::matrix3x3f get_matrix() const
+		{
+			return quatf::quat_to_matrix(m_quaternion);
 		}
 
 		bool is_gimbal_locked() const
@@ -407,12 +334,14 @@ namespace influx::math
 			return false;
 		}
 
-		void rotate(float delta_angle, const vectorf3& axis)
+		math::float3 rotate(const math::float3& vector, float delta_degrees, const vectorf3& axis)
 		{
+			return quatf::rotate( vector, quatf::make_angleaxis(delta_degrees, axis) );
 		}
 
 		vectorf3 get_euler_angles() const
 		{
+			influx_assert(false);
 			return {};
 		}
 
@@ -458,6 +387,8 @@ namespace influx::math
 		{
 		}
 	};
+
+
 }
 
 #endif

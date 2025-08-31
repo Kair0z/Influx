@@ -31,6 +31,58 @@ using namespace influx;
 extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
+class constants final
+{
+public:
+	// https://sketchfab.com/3d-models/silver-soldier-animated-a8f0d843735047b2999fbe4a9d7a1245#download
+	inline static const char* m_scene_filepath		= "E:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
+	inline static const char* m_shaders_filepath	= "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
+	inline static const char* m_albedo_filepath		= "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
+	inline static const char* m_normal_filepath		= "E:/Git/Influx/source/misc/rendering/resources/normals.png";
+
+	inline static const math::uint2 m_window_dim = { 640u, 480u };
+	static const uint32 k_num_swapchain_buffers = 3u;
+	static const shader::e_shader_target k_shadertarget = shader::e_shader_target::_6_6;
+	
+	static const uint32 k_max_num_lights = 512u;
+	static const uint32 k_max_num_instances = 4096u;
+
+	static const uint32 k_num_gbuffers = 3u;
+	inline static const graphics::e_format k_gbuffer_formats[k_num_gbuffers]
+	{
+		graphics::e_format::rgba_u32,
+		graphics::e_format::u32,
+		graphics::e_format::u32,
+	};
+	inline static const rendergraph::rgname gbuffernames[k_num_gbuffers]
+	{
+		"gbuffer_a",
+		"gbuffer_b",
+		"gbuffer_c"
+	};
+};
+struct settings final
+{
+	inline static float m_camera_distance = 10.0f;
+	inline static math::rotation m_camera_rotation = {};
+	inline static float m_camera_far = 1000.0f;
+	inline static float m_camera_near = 0.001f;
+	inline static float m_camera_fov = 110.0f;
+
+	inline static math::float4 m_clear_colour{};
+
+	inline static uint32 m_num_instances = 128u;
+
+	static math::float3 get_camera_position()
+	{
+		return -get_camera_forward() * m_camera_distance;
+	}
+	static math::float3 get_camera_forward()
+	{
+		return m_camera_rotation.rotate({ 0,0,1 }, 45.0f, math::float3::up());
+	}
+};
+
 int main()
 {
 	struct cpu_timings
@@ -116,41 +168,8 @@ int main()
 		std::this_thread::sleep_for(std::chrono::seconds(1)); // wait a second per log
 	};
 
-	// settings
-	// https://sketchfab.com/3d-models/silver-soldier-animated-a8f0d843735047b2999fbe4a9d7a1245#download
-	static const string k_scene_filepath = "E:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
-	static const string k_shaders_filepath = "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
-	static const string k_albedo_filepath = "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
-	static const string k_normal_filepath = "E:/Git/Influx/source/misc/rendering/resources/normals.png";
-	static const math::float4 k_clear_colour = math::float4{ 1,0,0,1 };
-
-	static math::float3 s_camera_startpos = { 0,0,300 };
-	static math::float3 s_camera_lookatpos = {};
-	static float s_camera_far = 1000.0f;
-	static float s_camera_near = 0.001f;
-	static float s_camera_fov = 110.0f;
-
-	static math::uint2 s_window_dim = { 640u, 480u };
-	static constexpr uint32 k_num_swapchain_buffers = 3u;
-	static constexpr shader::e_shader_target k_shadertarget = shader::e_shader_target::_6_6;
-	static constexpr uint32 k_max_num_lights = 512u;
-	static constexpr uint32 k_max_num_instances = 4096u;
-	static const uint32 num_instances = k_max_num_instances;
-	static constexpr uint32 k_num_gbuffers = 3u;
-	static constexpr graphics::e_format k_gbuffer_formats[k_num_gbuffers]
-	{
-		graphics::e_format::rgba_u32,
-		graphics::e_format::u32,
-		graphics::e_format::u32,
-	};
-	static const rendergraph::rgname gbuffernames[k_num_gbuffers]
-	{
-		"gbuffer_a",
-		"gbuffer_b",
-		"gbuffer_c"
-	};
-	// -----------
-
+	static const constants k_constants{};
+	
 	// load a scene file (.fbx)
 	imp::scene_data loaded_scene{};
 	{
@@ -170,7 +189,7 @@ int main()
 		imp::scene_load_args scene_load_args{};
 		scene_load_args.m_bake_transforms = false;
 		scene_load_args.m_pre_scale = 1.0f;
-		loaded_scene = imp::load_scene_file(k_scene_filepath, scene_load_args).get();
+		loaded_scene = imp::load_scene_file(constants::m_scene_filepath, scene_load_args).get();
 		finished = true;
 
 		loading.join();
@@ -187,8 +206,8 @@ int main()
 	uint64 total_bytesize_loaded_images = 0u;
 	vector<imp::image_data> loaded_images{};
 	{
-		loaded_images.push_back(imp::load_image_file(k_albedo_filepath).get());
-		loaded_images.push_back(imp::load_image_file(k_normal_filepath).get());
+		loaded_images.push_back(imp::load_image_file(constants::m_albedo_filepath).get());
+		loaded_images.push_back(imp::load_image_file(constants::m_normal_filepath).get());
 		total_bytesize_loaded_images += loaded_images[0].m_bytesize;
 		total_bytesize_loaded_images += loaded_images[1].m_bytesize;
 	}
@@ -197,18 +216,18 @@ int main()
 	influx::camera camera{};
 	math::transform3D cam_transform = math::transform3D::identity();
 	{
-		cam_transform.look_at(s_camera_lookatpos);
-		cam_transform.set_position(s_camera_startpos);
+		// cam_transform.look_at();
+		// cam_transform.set_position(s_camera_startpos);
 		cam_transform.update_matrix();
-		camera.set_farplane(s_camera_far);
-		camera.set_nearplane(s_camera_near);
-		camera.set_fov(s_camera_fov);
-		camera.set_aspect_ratio((float)s_window_dim.x / (float)s_window_dim.y);
+		camera.set_farplane(settings::m_camera_far);
+		camera.set_nearplane(settings::m_camera_near);
+		camera.set_fov(settings::m_camera_fov);
+		camera.set_aspect_ratio((float)constants::m_window_dim.x / (float)constants::m_window_dim.y);
 	}
 
 	// make platform window
 	platform::window_desc window_desc{};
-	window_desc.m_dimensions = s_window_dim;
+	window_desc.m_dimensions = constants::m_window_dim;
 	window_desc.m_name = "rendering";
 	platform::window* window = platform::window::create(window_desc);
 
@@ -219,7 +238,7 @@ int main()
 	graphics::swapchain_desc swapchain_desc{};
 	swapchain_desc.m_dimensions = window_desc.m_dimensions;
 	swapchain_desc.m_format = graphics::e_format::rgba8;
-	swapchain_desc.m_num_buffers = k_num_swapchain_buffers;
+	swapchain_desc.m_num_buffers = constants::k_num_swapchain_buffers;
 	graphics::swapchain& swapchain = *dev.create_swapchain(&queue, *window, swapchain_desc);
 
 	// load shaders / build pipelines
@@ -245,8 +264,8 @@ int main()
 		{
 			// 1. parse all shaders in file
 			shader::compile_args args{};
-			args.m_signature.m_target = k_shadertarget; // force the shader target
-			auto res = shader::parse_shaders_in_file(k_shaders_filepath);
+			args.m_signature.m_target = constants::k_shadertarget; // force the shader target
+			auto res = shader::parse_shaders_in_file(constants::m_shaders_filepath);
 			influx_assert(res.is_success());
 
 			// 2. for each shader in file, compile
@@ -256,7 +275,7 @@ int main()
 
 				// args has already been partially filled in by parsing...
 				args.m_signature = parse.m_signature;
-				args.m_signature.m_target = k_shadertarget; // force the shader target
+				args.m_signature.m_target = constants::k_shadertarget; // force the shader target
 				args.m_reflection_enabled = true;
 				args.m_debug_level;
 				args.m_defines;
@@ -265,7 +284,7 @@ int main()
 				args.m_pbd_enabled;
 				args.m_pdb_filename;
 				args.m_pdb_folder;
-				auto comp_res = shader::compile_shader_in_file(k_shaders_filepath, args);
+				auto comp_res = shader::compile_shader_in_file(constants::m_shaders_filepath, args);
 				influx_assert(comp_res.is_success());
 				compiled_shaders[i] = comp_res.get();
 			}
@@ -390,10 +409,10 @@ int main()
 			desc.m_depth_stencil.m_format = graphics::e_format::d32;
 			for (uint32 i = 0u; i < 8u; ++i)
 			{
-				if (i < k_num_gbuffers)
+				if (i < constants::k_num_gbuffers)
 				{
 					desc.m_rtvs[i].m_enabled = true;
-					desc.m_rtvs[i].m_format = k_gbuffer_formats[i];
+					desc.m_rtvs[i].m_format = constants::k_gbuffer_formats[i];
 					desc.m_blends[i].m_write_mask = 15u; // write-all
 				}
 				else desc.m_rtvs[i].m_enabled = false;
@@ -492,7 +511,7 @@ int main()
 		{
 			graphics::buffer_desc desc{};
 			desc.m_bytestride = sizeof(frontend::per_instance);
-			desc.m_bytesize = desc.m_bytestride * k_max_num_instances;
+			desc.m_bytesize = desc.m_bytestride * constants::k_max_num_instances;
 			desc.m_init_state = graphics::e_resource_state::gen_read;
 			buff_instances = dev.create_resource(desc, heap_desc);
 		}
@@ -500,7 +519,7 @@ int main()
 		{
 			graphics::buffer_desc desc{};
 			desc.m_bytestride = sizeof(frontend::per_dirlight);
-			desc.m_bytesize = desc.m_bytestride * k_max_num_lights;
+			desc.m_bytesize = desc.m_bytestride * constants::k_max_num_lights;
 			buff_lights = dev.create_resource(desc, heap_desc);
 		}
 		// vertexbuffer
@@ -524,7 +543,7 @@ int main()
 	{
 		buff_instances->map<frontend::per_instance>([](frontend::per_instance* instances)
 		{
-			for (uint32 i = 0u; i < num_instances; ++i)
+			for (uint32 i = 0u; i < settings::m_num_instances; ++i)
 			{
 				instances[i].m_colour = { 1,1,1,1 };
 				instances[i].set_albedo_index(0u);
@@ -643,10 +662,10 @@ int main()
 					gbuffer_desc.m_width = target_dim.x;
 					gbuffer_desc.m_heigth = target_dim.y;
 					gbuffer_desc.m_format = graphics::e_format::rgba_u32;
-					builder.declare_texture(gbuffernames[0], gbuffer_desc);
+					builder.declare_texture(constants::gbuffernames[0], gbuffer_desc);
 					gbuffer_desc.m_format = graphics::e_format::u32;
-					builder.declare_texture(gbuffernames[1], gbuffer_desc);
-					builder.declare_texture(gbuffernames[2], gbuffer_desc);
+					builder.declare_texture(constants::gbuffernames[1], gbuffer_desc);
+					builder.declare_texture(constants::gbuffernames[2], gbuffer_desc);
 				}
 
 				// declare cbvs
@@ -686,9 +705,9 @@ int main()
 				builder.read_texture("tex_normal").get();
 
 				rgaccess access = rgaccess::clear_and_keep({});
-				builder.write_rendertarget(gbuffernames[0], access);
-				builder.write_rendertarget(gbuffernames[1], access);
-				builder.write_rendertarget(gbuffernames[2], access);
+				builder.write_rendertarget(constants::gbuffernames[0], access);
+				builder.write_rendertarget(constants::gbuffernames[1], access);
+				builder.write_rendertarget(constants::gbuffernames[2], access);
 				builder.write_depthtarget("depth_target", access);
 			},
 			// [execute]
@@ -780,7 +799,7 @@ int main()
 					const uint32 num_verts = mesh.m_positions.size();
 					cmdlist.draw_indexed({
 						.m_num_indexes_per_instance = num_inds,
-						.m_num_instances = num_instances,
+						.m_num_instances = settings::m_num_instances,
 						.m_start_index = index_offset,
 						.m_start_vertex = vertex_offset,
 						.m_start_instance = 0u
@@ -812,8 +831,8 @@ int main()
 				builder.write_rendertarget(final_target, rgaccess::keep_and_keep());
 				builder.write_texture("final_target");
 
-				for (uint32 i = 0; i < k_num_gbuffers; ++i)
-					builder.read_texture(gbuffernames[i]).get();
+				for (uint32 i = 0; i < constants::k_num_gbuffers; ++i)
+					builder.read_texture(constants::gbuffernames[i]).get();
 			},
 			// [execute]
 			[&final_target, &signature_shadepass, &pipeline_shadepass, &dev](rgpass_context& ctx)
@@ -831,9 +850,9 @@ int main()
 				cmdlist.set_pipeline(pipeline_shadepass);
 				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
 
-				for (uint32 i = 0; i < k_num_gbuffers; ++i)
+				for (uint32 i = 0; i < constants::k_num_gbuffers; ++i)
 				{
-					auto gbuffer = ctx.get_read_texture(gbuffernames[i]).get();
+					auto gbuffer = ctx.get_read_texture(constants::gbuffernames[i]).get();
 					graphics::descriptor_handle gpu_gbuffer = gpu_resource_descheap.get_cpu(frontend::k_gbuffer_id + i).get();
 					dev.copy_descriptors(gbuffer.m_descriptor, gpu_gbuffer, rhi_descheap_type::rsc);
 				}
@@ -866,7 +885,7 @@ int main()
 	
 	bool is_quit = false;
 	uint64 frame = 0u;
-#if 0
+#if 1
 	std::thread log_thread = std::thread([&is_quit, &log_timings]()
 	{
 		while (!is_quit) log_timings();
