@@ -16,29 +16,29 @@
 #include "influx_platform/window.h"
 // influx::rendergraph
 #include "rendergraph.h"
-
-#include <iostream>
-
-// shader frontend
-namespace frontend
-{
-#include "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
-}
-
-using namespace influx;
-
 // SDK 1.614.1
 extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
+// STL
+#include <iostream>
+// shader frontend
+namespace frontend
+{
+#include "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
+}
 
+#define ENABLE_STATS 0
+
+// [constants & settings]
+using namespace influx;
 class constants final
 {
 public:
 	// https://sketchfab.com/3d-models/silver-soldier-animated-a8f0d843735047b2999fbe4a9d7a1245#download
-	inline static const char* m_scene_filepath		= "E:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
-	inline static const char* m_shaders_filepath	= "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
-	inline static const char* m_albedo_filepath		= "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
-	inline static const char* m_normal_filepath		= "E:/Git/Influx/source/misc/rendering/resources/normals.png";
+	inline static const char* m_scene_filepath		= "D:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
+	inline static const char* m_shaders_filepath	= "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
+	inline static const char* m_albedo_filepath		= "D:/Git/Influx/source/misc/rendering/resources/albedo.png";
+	inline static const char* m_normal_filepath		= "D:/Git/Influx/source/misc/rendering/resources/normals.png";
 
 	inline static const math::uint2 m_window_dim = { 640u, 480u };
 	static const uint32 k_num_swapchain_buffers = 3u;
@@ -79,7 +79,8 @@ struct settings final
 	}
 	static math::float3 get_camera_forward()
 	{
-		return m_camera_rotation.rotate({ 0,0,1 }, 45.0f, math::float3::up());
+		const math::float3 forward = m_camera_rotation.rotate({ 0,0,-1 }, 0.0f, math::float3::up());
+		return forward;
 	}
 };
 
@@ -98,7 +99,6 @@ int main()
 			}
 		}
 	};
-
 	static cpu_timings timings{};
 	static uint64 gpu_memory_budget = 0u;
 	static uint64 gpu_memory_used = 0u;
@@ -118,7 +118,7 @@ int main()
 			timings.m_record_nums[m_name]++;
 		}
 	};
-
+#if ENABLE_STATS
 	auto log_timings = []()
 	{
 		std::cout << "\033[H\033[J"; // clear prev
@@ -167,9 +167,8 @@ int main()
 
 		std::this_thread::sleep_for(std::chrono::seconds(1)); // wait a second per log
 	};
+#endif // ENABLE_STATS
 
-	static const constants k_constants{};
-	
 	// load a scene file (.fbx)
 	imp::scene_data loaded_scene{};
 	{
@@ -198,8 +197,8 @@ int main()
 	uint32 total_num_vertices{}; uint32 total_num_indices{};
 	for (const auto& mesh : loaded_scene.get_meshes())
 	{
-		total_num_vertices	+= mesh.m_positions.size();
-		total_num_indices	+= mesh.m_indices.size();
+		total_num_vertices	+= (uint32)mesh.m_positions.size();
+		total_num_indices	+= (uint32)mesh.m_indices.size();
 	}
 
 	// load images
@@ -216,8 +215,8 @@ int main()
 	influx::camera camera{};
 	math::transform3D cam_transform = math::transform3D::identity();
 	{
-		// cam_transform.look_at();
-		// cam_transform.set_position(s_camera_startpos);
+		cam_transform.set_forward(settings::get_camera_forward());
+		cam_transform.set_position(settings::get_camera_position());
 		cam_transform.update_matrix();
 		camera.set_farplane(settings::m_camera_far);
 		camera.set_nearplane(settings::m_camera_near);
@@ -567,7 +566,7 @@ int main()
 		});
 		buff_vertices_upload->map<frontend::per_vertex>([&loaded_scene](frontend::per_vertex* vertices)
 		{
-			uint32 vertex_offset = 0u;
+			uint64 vertex_offset = 0u;
 			for (const auto& mesh : loaded_scene.get_meshes())
 			{
 				for (uint64 i = 0u; i < mesh.m_positions.size(); ++i)
@@ -580,7 +579,7 @@ int main()
 		});
 		buff_indices_upload->map<uint32>([&loaded_scene](uint32* indices)
 		{
-			uint32 index_offset = 0u;
+			uint64 index_offset = 0u;
 			for (const auto& mesh : loaded_scene.get_meshes())
 			{
 				for (uint64 i = 0u; i < mesh.m_indices.size(); ++i)
@@ -615,8 +614,8 @@ int main()
 
 		// upload to GPU
 		cmdlist.start(&dev);
-		cmdlist.copy_buffer(buff_indices_upload, buff_indices, buff_indices->get_bytesize());
-		cmdlist.copy_buffer(buff_vertices_upload, buff_vertices, buff_vertices->get_bytesize());
+		cmdlist.copy_buffer(buff_indices_upload, buff_indices,		(uint32)buff_indices->get_bytesize());
+		cmdlist.copy_buffer(buff_vertices_upload, buff_vertices,	(uint32)buff_vertices->get_bytesize());
 		cmdlist.end();
 		queue.submit({ &cmdlist });
 		cmdlist.wait_for_completion();
@@ -763,8 +762,8 @@ int main()
 					constbuffers[0]->map<frontend::per_view>([&camera, &cam_transform](frontend::per_view* view)
 					{
 						auto vp = math::matrix4x4f::make_viewprojection_RH(
-							cam_transform.get_position(),
-							{ 0,0,-1 },
+							settings::get_camera_position(),
+							settings::get_camera_forward(),
 							camera.get_fov(),
 							camera.get_aspect_ratio(),
 							camera.get_nearplane(),
@@ -795,8 +794,8 @@ int main()
 				uint32 index_offset = 0u;
 				for (const auto& mesh : loaded_scene.get_meshes())
 				{
-					const uint32 num_inds = mesh.m_indices.size();
-					const uint32 num_verts = mesh.m_positions.size();
+					const uint32 num_inds	= (uint32)mesh.m_indices.size();
+					const uint32 num_verts	= (uint32)mesh.m_positions.size();
 					cmdlist.draw_indexed({
 						.m_num_indexes_per_instance = num_inds,
 						.m_num_instances = settings::m_num_instances,
@@ -885,7 +884,7 @@ int main()
 	
 	bool is_quit = false;
 	uint64 frame = 0u;
-#if 1
+#if ENABLE_STATS
 	std::thread log_thread = std::thread([&is_quit, &log_timings]()
 	{
 		while (!is_quit) log_timings();

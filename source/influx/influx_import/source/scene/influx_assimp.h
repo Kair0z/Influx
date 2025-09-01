@@ -4,6 +4,7 @@
 #include "core/scene/mesh.h"
 #include "core/log.h"
 #include "core/file.h"
+#include "core/threading/thread.h"
 
 namespace influx
 {
@@ -38,6 +39,11 @@ namespace influx
 	math::vectorf4 translate(const aiColor4D& vector)
 	{
 		return { vector.r, vector.g, vector.b, vector.a };
+	}
+
+	math::quatf translate(const aiQuaternion& quat)
+	{
+		return math::quatf{ quat.w, quat.x, quat.y, quat.z };
 	}
 
 	// omg this is ugly, but we're trying to handle blender exporting from yzx space...
@@ -79,15 +85,44 @@ namespace influx
 		}
 	}
 
+	template <typename _t, typename _n>
+	influx::imp::scene_data::animation::channel::key<_t> translate(const _n& native)
+	{
+		using key_type = influx::imp::scene_data::animation::channel::key<_t>;
+		key_type result{};
+		result.m_interpolation = native.mInterpolation;
+		result.m_time = native.mTime;
+		result.m_value = translate(native.mValue);
+		return result;
+	}
+
+	influx::imp::scene_data::animation::channel translate(const aiNodeAnim& channel)
+	{
+		imp::scene_data::animation::channel result{};
+		result.m_keys_position.reserve(channel.mNumPositionKeys);
+		result.m_keys_rotation.reserve(channel.mNumRotationKeys);
+		result.m_keys_scale.reserve(channel.mNumScalingKeys);
+		result.m_poststate = channel.mPostState;
+		result.m_prestate = channel.mPreState;
+		for (uint32 i = 0u; i < channel.mNumPositionKeys; ++i) 
+			result.m_keys_position.push_back(translate<math::float3, aiVectorKey>(channel.mPositionKeys[i]));
+		for (uint32 i = 0u; i < channel.mNumRotationKeys; ++i)
+			result.m_keys_rotation.push_back(translate<math::quatf, aiQuatKey>(channel.mRotationKeys[i]));
+		for (uint32 i = 0u; i < channel.mNumScalingKeys; ++i) 
+			result.m_keys_scale.push_back(translate<math::float3, aiVectorKey>(channel.mScalingKeys[i]));
+		return result;
+	}
+
 	influx::imp::scene_data::animation translate(const aiAnimation& animation)
 	{
 		imp::scene_data::animation result{};
 		result.m_num_channels = animation.mNumChannels;
 		result.m_seconds_per_tick = 1.0f / math::maximum<float>(animation.mTicksPerSecond, 0.0001f);
 		result.m_duration_ticks = animation.mDuration;
+		result.m_channels.reserve(animation.mNumChannels);
 		for (uint32 i = 0u; i < animation.mNumChannels; ++i)
 		{
-			//animation.mChannels[i]->mPostState
+			result.m_channels.push_back(translate(*animation.mChannels[i]));
 		}
 		return result;
 	}
@@ -416,49 +451,75 @@ namespace influx
 		}
 		metadata_info.m_scale = load_args.m_pre_scale;
 
-		for (uint32 i = 0u; i < pScene->mNumAnimations; ++i)
+		// animations
+		auto parse_animations = [&pScene, &result]()
 		{
-			const aiAnimation* anim = pScene->mAnimations[i];
-			if (anim != nullptr)
+			for (uint32 i = 0u; i < pScene->mNumAnimations; ++i)
 			{
-				result.m_animations.push_back(translate(*anim));
-			}
-		}
-		
-		for (uint32 i = 0u; i < pScene->mNumMeshes; ++i)
-		{
-			const aiMesh* mesh = pScene->mMeshes[i];
-			if (mesh == nullptr)
-			{ 
-				logwar("influx::imp::scene_data::parse >> nullptr mesh!");
-				continue;
-			}
-			else
-			{
-				// translate mesh:
-				imp::scene_data::mesh mesh_data = translate(*mesh);
-
-				// calc world matrix:
-				result.m_world_transforms.push_back({});
-				const uint32 new_matrix_index = result.m_world_transforms.size() - 1u;
-				math::matrix4x4f& new_matrix = result.m_world_transforms.back();
-
-				const aiNode* mesh_node = find_node_recursive(*pScene, *pScene->mRootNode, *mesh);
-				if (mesh_node)
+				const aiAnimation* anim = pScene->mAnimations[i];
+				if (anim != nullptr)
 				{
-					const aiMatrix4x4& world_matrix = calc_world_matrix_recursive(*mesh_node);
-					new_matrix = translate(world_matrix, metadata_info);
+					result.m_animations.push_back(translate(*anim));
+				}
+			}
+		};
+		
+		// meshes
+		auto parse_meshes = [&pScene, &result, &metadata_info]()
+		{
+			for (uint32 i = 0u; i < pScene->mNumMeshes; ++i)
+			{
+				const aiMesh* mesh = pScene->mMeshes[i];
+				if (mesh == nullptr)
+				{ 
+					logwar("influx::imp::scene_data::parse >> nullptr mesh!");
+					continue;
 				}
 				else
 				{
-					new_matrix = math::matrix4x4f::identity();
-				}
+					// translate mesh:
+					imp::scene_data::mesh mesh_data = translate(*mesh);
 
-				mesh_data.m_transform_index = new_matrix_index;
-				result.m_meshes.push_back(mesh_data);				
+					// calc world matrix:
+					result.m_world_transforms.push_back({});
+					const uint32 new_matrix_index = result.m_world_transforms.size() - 1u;
+					math::matrix4x4f& new_matrix = result.m_world_transforms.back();
+
+					const aiNode* mesh_node = find_node_recursive(*pScene, *pScene->mRootNode, *mesh);
+					if (mesh_node)
+					{
+						const aiMatrix4x4& world_matrix = calc_world_matrix_recursive(*mesh_node);
+						new_matrix = translate(world_matrix, metadata_info);
+					}
+					else
+					{
+						new_matrix = math::matrix4x4f::identity();
+					}
+
+					mesh_data.m_transform_index = new_matrix_index;
+					result.m_meshes.push_back(mesh_data);				
+				}
 			}
-			
+		};
+		
+		if (load_args.m_multithreading)
+		{
+			thread threads[2]
+			{
+				thread(parse_meshes),
+				thread(parse_animations)
+			};
+
+			for (uint32 i = 0u; i < 2u; ++i)
+				if (threads[i].joinable()) threads[i].join();
 		}
+		else
+		{
+			parse_animations();
+			parse_meshes();
+		}
+
+		// cameras
 		for (uint32 i = 0u; i < pScene->mNumCameras; ++i)
 		{
 			const aiCamera* camera = pScene->mCameras[i];
@@ -488,6 +549,8 @@ namespace influx
 			camera_data.m_transform_index = new_matrix_index;
 			result.m_cameras.push_back(camera_data);
 		}
+	
+		// materials
 #if 0
 		for (uint32 i = 0u; i < pScene->mNumMaterials; ++i)
 		{
@@ -502,6 +565,7 @@ namespace influx
 #endif
 		result.m_num_materials = pScene->mNumMaterials;
 
+		// lights
 		for (uint32 i = 0u; i < pScene->mNumLights; ++i)
 		{
 			const aiLight* light = pScene->mLights[i];

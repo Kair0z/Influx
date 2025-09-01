@@ -19,6 +19,7 @@
 #include "core/math/bounds.h"
 #include "core/math/sphere.h"
 #include "core/container/array.h"
+#include "core/math/quaternion.h"
 
 // influx::shader
 #include "influx_shader.h"
@@ -38,6 +39,8 @@ namespace influx::imp
 
 		// if true, scene_data::mesh::m_world_transform will always end up identity, and the vertex data will be pre-transformed.
 		bool	m_bake_transforms = false;
+
+		bool m_multithreading = true;
 	};
 
 	struct scene_data final
@@ -46,11 +49,25 @@ namespace influx::imp
 		{
 			struct channel final
 			{
+				template <typename _t>
+				struct key
+				{
+					_t m_value;
+					uint32 m_interpolation;
+					double m_time;
+				};
+				using key_position	= key<math::float3>;
+				using key_scale		= key<math::float3>;
+				using key_rotation	= key<math::quatf>;
+
 				uint32	m_prestate = 0u;
 				uint32	m_poststate = 0u;
+				vector<key_position>	m_keys_position{};
+				vector<key_scale>		m_keys_scale{};
+				vector<key_rotation>	m_keys_rotation{};
 			};
 
-			
+			vector<channel> m_channels{};
 			uint32	m_num_channels	= 0u;
 			float	m_duration_ticks = 0.0f;
 			float	m_seconds_per_tick = 0.0f;

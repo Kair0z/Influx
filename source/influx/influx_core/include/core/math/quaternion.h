@@ -25,10 +25,10 @@ namespace influx::math
 	template <typename _t>
 	class quaternion final
 	{
-		_t m_a{};
-		_t m_b{};
-		_t m_c{};
-		_t m_d{};
+		_t m_real{};
+		_t m_x{};
+		_t m_y{};
+		_t m_z{};
 
 		using value_type = _t;
 		using vec3 = math::vector<_t, 3u>;
@@ -44,122 +44,116 @@ namespace influx::math
 			"Invalid scalar type for Quaternion");
 
 	public:
-		quaternion(_t a = 0, _t b = 0, _t c = 0, _t d = 0)
-		: m_a{a}, m_b{b}, m_c{c}, m_d{d}{}
+		quaternion(_t r = 0, _t x = 0, _t y = 0, _t z = 0)
+		: m_real{r}, m_x{x}, m_y{y}, m_z{z}{}
 		// todo more constructors...
 
 		template <typename _t2>
 		quaternion& operator=(const quaternion<_t2>& other)
-		{ m_a = other.m_a; m_b = other.m_b; m_c = other.m_c; m_d = other.m_d; return *this; }
+		{ m_real = other.m_real; m_x = other.m_x; m_y = other.m_y; m_z = other.m_z; return *this; }
 
-		const _t& get_a() const { return m_a; }
-		const _t& get_b() const { return m_b; }
-		const _t& get_c() const { return m_c; }
-		const _t& get_d() const { return m_d; }
+		_t& get_real() { return m_real; }	const _t& get_real() const { return m_real; }
+		_t& get_x() { return m_x; }		const _t& get_x() const { return m_x; }
+		_t& get_y() { return m_y; }		const _t& get_y() const { return m_y; }
+		_t& get_z() { return m_z; }		const _t& get_z() const { return m_z; }
 
-		const _t& get_real() const
-		{ return m_a; }
-
-		quaternion get_unreal() const
-		{ return {0, m_b, m_c, m_d}; }
+		quaternion get_imaginary() const
+		{ return {0, m_x, m_y, m_z}; }
 
 		/**
 		* The square of the norm of the Quaternion.
 		* (The square is sometimes useful, and it avoids paying for a sqrt).
 		*/
 		_t get_norm_sqr() const
-		{ return m_a * m_a + m_b * m_b + m_c * m_c + m_d * m_d; }
+		{ return m_real * m_real + m_x * m_x + m_y * m_y + m_z * m_z; }
 
-		_t get_unreal_norm_sqr() const
-		{ return m_b * m_b + m_c * m_c + m_d * m_d; }
+		_t get_imaginary_norm_sqr() const
+		{ return m_x * m_x + m_y * m_y + m_z * m_z; }
 
 		_t get_abs() const
 		{ return sqrt(get_norm_sqr()); }
 
 		void normalize_real()
-		{ m_a = sqrt((_t)1 - get_unreal_norm_sqr()); }
+		{ m_real = sqrt((_t)1 - get_imaginary_norm_sqr()); }
 
+		// 0 + 0i + 0j + 0k
 		template <typename _t2 = _t>
 		bool is_zero(const _t2& eps = 0) const
 		{ 
 			return
-				is_scalar_zero(m_a, eps) &&
-				is_scalar_zero(m_b, eps) &&
-				is_scalar_zero(m_c, eps) &&
-				is_scalar_zero(m_d, eps);
+				is_scalar_zero(m_real, eps) &&
+				is_scalar_zero(m_x, eps) &&
+				is_scalar_zero(m_y, eps) &&
+				is_scalar_zero(m_z, eps);
 		}
 
 		template <typename _t2 = _t>
 		bool is_unit(const _t2& eps = 0) const
 		{ return is_scalar_zero(get_norm_sqr() - _t(1), eps); }
 
+		// a + 0i + 0j + 0k
 		template <typename _t2 = _t>
 		bool is_real(const _t2& eps = 0) const
 		{ 
 			return
-				is_scalar_zero(m_b) &&
-				is_scalar_zero(m_c) &&
-				is_scalar_zero(m_d);
+				is_scalar_zero(m_x) &&
+				is_scalar_zero(m_y) &&
+				is_scalar_zero(m_z);
 		}
 
+		// a + bi + 0j + 0k
 		template <typename _t2 = _t>
 		bool is_complex(const _t2& eps = 0) const
-		{ return is_scalar_zero(m_c, eps) && is_scalar_zero(m_d, eps); }
+		{ return is_scalar_zero(m_y, eps) && is_scalar_zero(m_z, eps); }
 
+		// m_real == 0, xyz != 0
 		template <typename _t2 = _t>
-		bool is_unreal(const _t2& eps = 0) const
+		bool is_imaginary(const _t2& eps = 0) const
 		{
-			return is_scalar_zero(m_a, eps) && 
-				!(is_scalar_zero(m_b, eps) && is_scalar_zero(m_c, eps) && is_scalar_zero(m_d, eps));
+			return is_scalar_zero(m_real, eps) && 
+				!(is_scalar_zero(m_x, eps) && is_scalar_zero(m_y, eps) && is_scalar_zero(m_z, eps));
 		}
 
-		// unary operators
+		// +q = q
 		quaternion operator+() const
 		{ return *this; }
-		quaternion operator-() const
-		{ return {-m_a, -m_b, -m_c, -m_d}; }
 
-		// quaternion x scalar
-		quaternion operator+=(const _t& y) 
-		{ m_a += y; return *this; }
+		// -q = -a + (-bi) + (-cj) + (-dk)
+		quaternion operator-() const
+		{ return {-m_real, -m_x, -m_y, -m_z}; }
+
+		// quaternion x real (scalar)
+		// a + bi + cj + dk + y = (a+y) + bi + cj + dk
+		quaternion operator+=(const _t& y)
+		{ m_real += y; return *this; }
 		quaternion operator-=(const _t& y)
-		{ m_a -= y; return *this; }
+		{ m_real -= y; return *this; }
 		quaternion operator*=(const _t& k)
-		{ m_a *= k; m_b *= k; m_c *= k; m_d *= k; return *this; }
+		{ m_real *= k; m_x *= k; m_y *= k; m_z *= k; return *this; }
 		quaternion operator/=(const _t& k)
 		{
 			const _t inv_k = 1 / k; return (*this)*= inv_k;
 		}
 
 		// quaternion x complex
+		// (a + bi + cj + dk) + (x + yi) = (a+x) + (b+y)i + cj + dk
 		template <typename _t2>
 		quaternion operator+=(const complex<_t2>& y)
-		{ m_a += y.real(); m_b += y.imag(); return *this; }
+		{ m_real += y.real(); m_x += y.imag(); return *this; }
 		template <typename _t2>
 		quaternion operator-=(const complex<_t2>& y)
-		{ m_a -= y.real(); m_b -= y.imag(); return *this; }
+		{ m_real -= y.real(); m_x -= y.imag(); return *this; }
+
 		template <typename _t2>
 		quaternion operator*=(const complex<_t2>& y)
 		{
-			m_a = m_a * y.real() - m_b * y.imag();
-			m_b = m_a * y.imag() + m_b * y.real();
-			m_c = m_c * y.real() + m_d * y.imag();
-			m_d = -m_c * y.imag()	+ m_d * y.real();
+			*this = *this * y;
 			return *this;
 		}
 		template <typename _t2>
 		quaternion operator/=(const complex<_t2>& y)
 		{
-			_t n2 = y.real() * y.real() + y.imag() * y.imag();
-			_t at = m_a * y.real() + m_b * y.imag();
-			_t bt = -m_a * y.imag() + m_b * y.real();
-			_t ct = m_c * y.real() - m_d * y.imag();
-			_t dt = m_c * y.imag() + m_d * y.real();
-
-			m_a = at / n2;
-			m_b = bt / n2;
-			m_c = ct / n2;
-			m_d = dt / n2;
+			*this = *this / y;
 			return *this;
 		}
 
@@ -167,10 +161,7 @@ namespace influx::math
 		template <typename _t2>
 		quaternion operator+=(const quaternion<_t2>& y)
 		{
-			m_a += y.get_a();
-			m_b += y.get_b();
-			m_c += y.get_c();
-			m_d += y.get_d();
+			*this = *this + y;
 			return *this;
 		}
 		template <typename _t2>
@@ -179,52 +170,37 @@ namespace influx::math
 		template<typename _t2>
 		quaternion operator*=(const quaternion<_t2>& y) 
 		{
-
-			m_a = m_a * y.a() - m_b * y.b() - m_c * y.c() - m_d * y.d();
-			m_b = m_a * y.b() + m_b * y.a() + m_c * y.d() - m_d * y.c();
-			m_c = m_a * y.c() - m_b * y.d() + m_c * y.a() + m_d * y.b();
-			m_d = m_a * y.d() + m_b * y.c() - m_c * y.b() + m_d * y.a();
+			*this = *this * y;
 			return *this;
 		}
 		template <typename _t2>
 		quaternion operator/=(const quaternion<_t2>& y)
 		{
-			/**
-			* Unary division with other Quaternion.
-			*
-			* Warning: if the norm of y is zero, the result is
-			* 4 NaNs, but maybe it should be inf.
-			*/
-
-			_t n2 = y.get_norm_sqr();
-			_t at = m_a * y.a() + m_b * y.b() + m_c * y.c() + m_d * y.d();
-			_t bt = -m_a * y.b() + m_b * y.a() - m_c * y.d() + m_d * y.c();
-			_t ct = -m_a * y.c() + m_b * y.d() + m_c * y.a() - m_d * y.b();
-			_t dt = -m_a * y.d() - m_b * y.c() + m_c * y.b() + m_d * y.a();
-
-			m_a = at / n2;
-			m_b = bt / n2;
-			m_c = ct / n2;
-			m_d = dt / n2;
+			*this = (*this) / y;
 			return *this;
 		}
 
 		static quaternion make_conjugate(const quaternion& quat)
 		{
-			return { quat.m_d, -quat.m_a, -quat.m_b, -quat.m_c };
+			return { quat.m_real, -quat.m_x, -quat.m_y, -quat.m_z };
 		}
-
+		
 		static quaternion make_angleaxis(const _t& delta_degrees, const math::vector<_t, 3>& axis)
 		{
 			const auto norm_axis = axis.normalized();
 			const float half_angle = to_radians(delta_degrees) * 0.5f;
-			const _t sin_angle = math::sin(half_angle);
+			const _t sin = math::sin(half_angle);
 			return {
 				math::cos(half_angle),
-				norm_axis.x * sin_angle,
-				norm_axis.y * sin_angle,
-				norm_axis.z * sin_angle
+				norm_axis.x * sin,
+				norm_axis.y * sin,
+				norm_axis.z * sin
 			};
+		}
+
+		static vec3 quat_to_vec3(const quaternion& quat)
+		{
+			return { quat.m_x, quat.m_y, quat.m_z };
 		}
 		
 		static quaternion vec3_to_quat(const math::vector<_t, 3u>& vec)
@@ -232,20 +208,23 @@ namespace influx::math
 			return { 0.0f, vec.x, vec.y, vec.z };
 		}
 
+		// 3D operations
 		static vec3 rotate(const vec3& vec, const quaternion& quat)
 		{
-			quaternion rotated = {}; // quat* vec3_to_quat(vec)* make_conjugate(quat);
-			return { rotated.m_a, rotated.m_b, rotated.m_c };
+			const auto& vec_as_quat = vec3_to_quat(vec);
+			const auto conj = make_conjugate(quat);
+			const quaternion rotated = quat * vec_as_quat * conj;
+			return quat_to_vec3(rotated);
 		}
 
 		template <typename _t2>
 		static matrix<_t2, 3u, 3u> quat_to_matrix(const quaternion<_t2>& quat)
 		{
 			// 21 operations?
-			_t2 a2 = quat.get_a() * quat.get_a(), b2 = quat.get_b() * quat.get_b(), c2 = quat.get_c() * quat.get_c(), d2 = quat.get_d() * quat.get_d();
-			_t2 ab = quat.get_a() * quat.get_b(), ac = quat.get_a() * quat.get_c(), ad = quat.get_a() * quat.get_d();
-			_t2 bc = quat.get_b() * quat.get_c(), bd = quat.get_b() * quat.get_d();
-			_t2 cd = quat.get_c() * quat.get_d();
+			_t2 a2 = quat.get_real() * quat.get_real(), b2 = quat.get_x() * quat.get_x(), c2 = quat.get_y() * quat.get_y(), d2 = quat.get_z() * quat.get_z();
+			_t2 ab = quat.get_real() * quat.get_x(), ac = quat.get_real() * quat.get_y(), ad = quat.get_real() * quat.get_z();
+			_t2 bc = quat.get_x() * quat.get_y(), bd = quat.get_x() * quat.get_z();
+			_t2 cd = quat.get_y() * quat.get_z();
 
 			matrix<_t2, 3u, 3u> mat{};
 			mat.set_row(0, float3{a2 + b2 - c2 - d2	, 2 * (bc - ad)		, 2 * (bd + ac)} );
@@ -254,7 +233,7 @@ namespace influx::math
 			return mat;
 		}
 
-		static quaternion identity() 
+		static quaternion identity()
 		{ static quaternion g_identity{ 1,0,0,0 }; return g_identity; }
 
 		template <typename _t2>
@@ -301,6 +280,99 @@ namespace influx::math
 			}
 		}
 	};
+	
+	// (a + bi + cj + dk) + (x + yi + zj + wk)
+	template <typename _t> 
+	static quaternion<_t> operator*(const quaternion<_t>& a, const quaternion<_t>& b)
+	{
+		const _t& areal = a.get_real(); const _t& ax = a.get_x(); const _t& ay = a.get_y(); const _t& az = a.get_z();
+		const _t& breal = b.get_real(); const _t& bx = b.get_x(); const _t& by = b.get_y(); const _t& bz = b.get_z();
+		return
+		{
+			areal * breal - ax * bx		- ay * by		- az * bz,
+			areal * bx	+ ax * breal	+ ay * bz		- az * by,
+			areal * by	- ax * bz		+ ay * breal	+ az * bx,
+			areal * bz	+ ax * by		- ay * bx		+ az * breal
+		};
+	}
+	template <typename _t>
+	static quaternion<_t> operator/(const quaternion<_t>& a, const quaternion<_t>& b)
+	{
+		const _t& areal = a.get_real(); const _t& ax = a.get_x(); const _t& ay = a.get_y(); const _t& az = a.get_z();
+		const _t& breal = b.get_real(); const _t& bx = b.get_x(); const _t& by = b.get_y(); const _t& bz = b.get_z();
+
+		/**
+		* Unary division with other Quaternion.
+		*
+		* Warning: if the norm of y is zero, the result is
+		* 4 NaNs, but maybe it should be inf.
+		*/
+
+		_t n2 = b.get_norm_sqr();
+		_t at = areal	* breal + ax * bx		+ ay * by		+ az * bz;
+		_t bt = -areal	* bx	+ ax * breal	- ay * bz		+ az * by;
+		_t ct = -areal	* by	+ ax * bz		+ ay * breal	- az * bx;
+		_t dt = -areal	* bz	- ax * by		+ ay * bx		+ az * breal;
+		return
+		{
+			at / n2,
+			bt / n2,
+			ct / n2,
+			dt / n2
+		};
+	}
+	template <typename _t>
+	static quaternion<_t> operator+(const quaternion<_t>& a, const quaternion<_t>& b)
+	{
+		const _t& areal = a.get_real(); const _t& ax = a.get_x(); const _t& ay = a.get_y(); const _t& az = a.get_z();
+		const _t& breal = b.get_real(); const _t& bx = b.get_x(); const _t& by = b.get_y(); const _t& bz = b.get_z();
+		
+		return  {
+			 areal + breal,
+			 ax + bx,
+			 by + by,
+			 az + bz
+		};
+	}
+
+	template <typename _t>
+	static quaternion<_t> operator*(const quaternion<_t>& a, const complex<_t>& b)
+	{
+		const _t& areal = a.get_real(); const _t& ax = a.get_x(); const _t& ay = a.get_y(); const _t& az = a.get_z();
+
+		return {
+			areal * b.real() - ax * b.imag(),
+			areal * b.imag() + ax * b.real(),
+			ay * b.real() + az * b.imag(),
+			-ay * b.imag() + az * b.real()
+		};
+	}
+	template <typename _t>
+	static quaternion<_t> operator/(const quaternion<_t>& a, const complex<_t>& b)
+	{
+		const _t& areal = a.get_real(); const _t& ax = a.get_x(); const _t& ay = a.get_y(); const _t& az = a.get_z();
+
+		_t n2 = b.real() * b.real() + b.imag() * b.imag();
+		_t at = areal	* b.real() + ax * b.imag();
+		_t bt = -areal	* b.imag() + ax * b.real();
+		_t ct = ay		* b.real() - az * b.imag();
+		_t dt = ay		* b.imag() + az * b.real();
+
+		return {
+			at / n2,
+			bt / n2,
+			ct / n2,
+			dt / n2
+		};
+	}
+
+	template <typename _t>
+	static vector<_t, 3u> operator*(const quaternion<_t>& quat, const vector<_t, 3u>& vec)
+	{
+		using quat_t = quaternion<_t>;
+		return quat_t::quat_to_vec3(quat * quat_t::vec3_to_quat(vec));
+	}
+
 
 	using quatf = quaternion<float>;
 	using quatd = quaternion<double>;
@@ -334,15 +406,24 @@ namespace influx::math
 			return false;
 		}
 
+		// rotate x vector
 		math::float3 rotate(const math::float3& vector, float delta_degrees, const vectorf3& axis)
 		{
 			return quatf::rotate( vector, quatf::make_angleaxis(delta_degrees, axis) );
 		}
 
+		// euler angles
 		vectorf3 get_euler_angles() const
 		{
-			influx_assert(false);
 			return {};
+		}
+		void set_euler_angles(float x, float y, float z)
+		{
+
+		}
+		void add_euler_angles(float delta_x, float delta_y, float delta_z)
+		{
+
 		}
 
 		float get_pitch() const

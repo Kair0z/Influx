@@ -1,11 +1,11 @@
 // choose your test:
-#define TEST_MATH		0
+#define TEST_MATH		1
 #define TEST_BASETYPES	0
 #define TEST_STRING		0
 #define TEST_RESULT		0
 #define TEST_CONTAINER	0
-#define TEST_POINTER	1
-#define TEST_ASCII_ART	1
+#define TEST_POINTER	0
+#define TEST_ASCII_ART	0
 
 // common
 #include "core/basetypes.h"
@@ -282,15 +282,20 @@ void test_asciiart()
 
 int main()
 {
-	// test_containers();
-	// test_basetypes();
-	// test_result();
-	// test_cache();
-	
+#if TEST_BASETYPES
+	test_basetypes();
+#endif
+#if TEST_CONTAINER
+	test_containers();
+#endif
+#if TEST_RESULT
+	test_result();
+#endif
 #if TEST_MATH
-	test_math_vector_all();
-	test_math_matrix_all();
-	test_math_quaternion_all();
+	// test_math_vector_all();
+	// test_math_matrix_all();
+	// test_math_quaternion_all();
+	test_math_rotor_all();
 #endif
 #if TEST_POINTER
 	test_pointers();
