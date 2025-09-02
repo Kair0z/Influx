@@ -675,8 +675,8 @@ int main()
 			{
 				// [CBVs]			
 				{
-					buffer_desc desc{};
-					desc.m_shared_heap = true; // cpu can write to this
+					buffer_desc desc{}; desc.m_shared_heap = true; // cpu can write to these
+
 					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_view);
 					builder.read_constbuffer("cb_per_view", desc).get();
 					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_material);

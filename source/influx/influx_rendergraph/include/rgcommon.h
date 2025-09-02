@@ -183,6 +183,13 @@ namespace influx::rendergraph
 
 	struct buffer_desc final
 	{
+		static buffer_desc bytesize_is_stride(const uint64 size, const uint64 stride)
+		{
+			buffer_desc res{};
+			res.m_bytesize = size;
+			res.m_bytestride = stride;
+			return res;
+		}
 		inline bool is_recycle_match(const buffer_desc& other) const
 		{
 			return m_bytesize == other.m_bytesize &&
