@@ -223,6 +223,7 @@ int main()
 		total_bytesize_loaded_images += loaded_images[1].m_bytesize;
 	}
 	imp::cubemap_data loaded_cubemap{};
+	if (false)
 	{
 		imp::cubemap_load_args args{};
 		loaded_cubemap = imp::load_cubemap(constants::m_skybox_filepath, args).get();
@@ -514,7 +515,9 @@ int main()
 		queue.submit({ &cmdlist });
 		cmdlist.wait_for_completion();
 	}
-
+	textures[0]->set_name("tex_albedo");
+	textures[1]->set_name("tex_normals");
+	
 	// create non-rg buffers
 	graphics::resource* buff_vertices = nullptr;
 	graphics::resource* buff_indices = nullptr;
@@ -638,6 +641,11 @@ int main()
 		}
 	}
 
+	buff_instances->set_name("buff_instances");
+	buff_lights->set_name("buff_lights");
+	buff_indices->set_name("buff_indices");
+	buff_vertices->set_name("buff_vertices");
+
 	// create final target
 	graphics::resource* final_target = nullptr;
 	{
@@ -670,14 +678,14 @@ int main()
 					buffer_desc desc{};
 					desc.m_shared_heap = true; // cpu can write to this
 					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_view);
-					builder.read_constbuffer("cb_per_view").get();
+					builder.read_constbuffer("cb_per_view", desc).get();
 					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_material);
-					builder.read_constbuffer("cb_per_material").get();
+					builder.read_constbuffer("cb_per_material", desc).get();
 					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_draw);
-					builder.read_constbuffer("cb_per_draw").get();
+					builder.read_constbuffer("cb_per_draw", desc).get();
 					desc.m_bytestride = sizeof(frontend::cbones);
 					desc.m_bytesize = desc.m_bytestride * MAX_NUM_BONES;
-					builder.read_constbuffer("cb_bones").get();
+					builder.read_constbuffer("cb_bones", desc).get();
 				}
 				
 				// builder.read_vertex_buffer(buff_vertices);
@@ -722,7 +730,7 @@ int main()
 				// copy the cpu descriptor into the gpu-visible descriptor
 				{
 					auto tex_albedo = ctx.get_read_texture("tex_albedo").get();
-					auto tex_normal = ctx.get_read_texture("tex_normal").get();
+					auto tex_normal = ctx.get_read_texture("tex_normals").get();
 					auto buff_instance = ctx.get_read_buffer("buff_instances").get();
 					graphics::descriptor_handle gpu_albedo = gpu_resource_descheap.get_cpu(frontend::k_albedo_id).get();
 					graphics::descriptor_handle gpu_normal = gpu_resource_descheap.get_cpu(frontend::k_normals_id).get();

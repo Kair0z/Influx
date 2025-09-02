@@ -24,8 +24,8 @@ namespace influx::rendergraph
 		INFLUX_RG_API void set_viewport(uint32 width, uint32 height);
 
 		// CREATE declarations: setting up resources to be created in this pass' layer
-		INFLUX_RG_API result<bool> is_texture_declared(const rgname& name) const;
-		INFLUX_RG_API result<bool> is_buffer_declared(const rgname& name) const;
+		INFLUX_RG_API bool is_texture_declared(const rgname& name) const;
+		INFLUX_RG_API bool is_buffer_declared(const rgname& name) const;
 		INFLUX_RG_API result<> declare_texture(const rgname& name, const texture_desc& desc);
 		INFLUX_RG_API result<> declare_buffer(const rgname& name, const buffer_desc& desc);
 

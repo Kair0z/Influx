@@ -110,11 +110,12 @@ namespace influx
 		operator bool() const
 		{
 			// Compile-time branch if T has operator bool
+#if 0
 			if constexpr (detail::has_bool_operator_v<_t> || detail::is_booleable_v<_t>) 
 			{
 				return is_success() && m_expected;
 			}
-			
+#endif		
 			return is_success();
 		}
 

@@ -13,11 +13,11 @@ namespace influx::rendergraph
 
 	}
 
-	result<bool> rgpass_builder::is_texture_declared(const rgname& name) const
+	bool rgpass_builder::is_texture_declared(const rgname& name) const
 	{
 		return m_graph.is_texture_declared(name);
 	}
-	result<bool> rgpass_builder::is_buffer_declared(const rgname& name) const
+	bool rgpass_builder::is_buffer_declared(const rgname& name) const
 	{
 		return m_graph.is_buffer_declared(name);
 	}

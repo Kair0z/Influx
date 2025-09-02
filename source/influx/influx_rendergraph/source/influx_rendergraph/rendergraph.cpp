@@ -1651,8 +1651,9 @@ namespace influx::rendergraph
 
 		resource_and_view result{};
 		rgtexture_id res_id = m_pass.m_rtvs[at_index].m_texture_id;
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::render_target)];
 		return result;
 	}
@@ -1665,8 +1666,9 @@ namespace influx::rendergraph
 
 		resource_and_view result{};
 		rgtexture_id res_id = m_pass.m_dsv.m_texture_id;
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::depth_target)];
 		return result;
 	}
@@ -1674,8 +1676,9 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgtexture_id res_id = id.get_resource_id();
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::render_target)];
 		return result;
 	}
@@ -1683,8 +1686,9 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgtexture_id res_id = id.get_resource_id();
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::depth_target)];
 		return result;
 	}
@@ -1692,8 +1696,9 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgtexture_id res_id = id.get_resource_id();
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
 		return result;
 	}
@@ -1710,8 +1715,9 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgbuffer_id res_id = id.get_resource_id();
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
 		return result;
 	}
@@ -1719,8 +1725,9 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgbuffer_id res_id = id.get_resource_id();
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
 		return result;
 	}
@@ -1728,8 +1735,9 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgtexture_id res_id = m_graph.m_texture_name_to_id_map[name];
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
 		return result;
 	}
@@ -1737,8 +1745,9 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgtexture_id res_id = m_graph.m_texture_name_to_id_map[name];
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
 		return result;
 	}
@@ -1746,8 +1755,9 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
 		return result;
 	}
@@ -1755,8 +1765,9 @@ namespace influx::rendergraph
 	{
 		resource_and_view result{};
 		rgbuffer_id res_id = m_graph.m_buffer_name_to_id_map[name];
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
 		return result;
 	}
@@ -1768,8 +1779,9 @@ namespace influx::rendergraph
 
 		resource_and_view result{};
 		rgtexture_id res_id = m_pass.m_texture_reads[index];
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
 		return result;
 	}
@@ -1781,8 +1793,9 @@ namespace influx::rendergraph
 
 		resource_and_view result{};
 		rgtexture_id res_id = m_pass.m_texture_writes[index];
+		rgtexture* texture = m_graph.get_texture(res_id);
+		result.m_resource = texture->m_resource;
 		const auto& views = m_graph.m_texid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
 		return result;
 	}
@@ -1794,8 +1807,9 @@ namespace influx::rendergraph
 
 		resource_and_view result{};
 		rgbuffer_id res_id = m_pass.m_buffer_reads[index];
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_only)];
 		return result;
 	}
@@ -1807,8 +1821,9 @@ namespace influx::rendergraph
 
 		resource_and_view result{};
 		rgbuffer_id res_id = m_pass.m_buffer_writes[index];
+		rgbuffer* buffer = m_graph.get_buffer(res_id);
+		result.m_resource = buffer->m_resource;
 		const auto& views = m_graph.m_bufid_to_descriptors_map[res_id];
-		result.m_resource = nullptr;
 		result.m_descriptor = views[static_cast<uint32>(rgdescriptor_type::read_write)];
 		return result;
 	}
