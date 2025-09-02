@@ -3,6 +3,7 @@
 #include "core/string.h"
 #include "core/scene/camera.h"
 #include "core/math/transform.h"
+#pragma region includes
 #include "core/time.h"
 #include "core/container/map.h"
 #include "core/ascii_art.h"
@@ -26,6 +27,16 @@ namespace frontend
 {
 #include "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
 }
+#pragma endregion
+
+// ==================================================================================================================
+// Sample
+// Rendergraph
+// todo: GPU Skinning
+// Instanced Rendering
+// todo: skybox cubemapping
+// todo: PBR lighting
+// ==================================================================================================================
 
 #define ENABLE_STATS 0
 
@@ -39,6 +50,7 @@ public:
 	inline static const char* m_shaders_filepath	= "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
 	inline static const char* m_albedo_filepath		= "D:/Git/Influx/source/misc/rendering/resources/albedo.png";
 	inline static const char* m_normal_filepath		= "D:/Git/Influx/source/misc/rendering/resources/normals.png";
+	inline static const char* m_skybox_filepath		= "";
 
 	inline static const math::uint2 m_window_dim = { 640u, 480u };
 	static const uint32 k_num_swapchain_buffers = 3u;
@@ -209,6 +221,11 @@ int main()
 		loaded_images.push_back(imp::load_image_file(constants::m_normal_filepath).get());
 		total_bytesize_loaded_images += loaded_images[0].m_bytesize;
 		total_bytesize_loaded_images += loaded_images[1].m_bytesize;
+	}
+	imp::cubemap_data loaded_cubemap{};
+	{
+		imp::cubemap_load_args args{};
+		loaded_cubemap = imp::load_cubemap(constants::m_skybox_filepath, args).get();
 	}
 
 	// setup camera
@@ -447,6 +464,7 @@ int main()
 
 	// create (& upload) non-rg textures
 	vector<graphics::resource*> textures{};
+	graphics::resource* skybox_texture = nullptr;
 	textures.reserve(loaded_images.size());
 	{
 		graphics::buffer_desc upload_desc{};
@@ -498,127 +516,126 @@ int main()
 	}
 
 	// create non-rg buffers
-	graphics::resource* buff_instances = nullptr;
-	graphics::resource* buff_lights = nullptr;
-	graphics::resource* buff_vertices_upload = nullptr;
-	graphics::resource* buff_indices_upload = nullptr;
-	{
-		// all buffers are stored on shared for upload convenience
-		graphics::heap_desc heap_desc = graphics::heap_desc::shared_heap();
-		
-		// instance buffer
-		{
-			graphics::buffer_desc desc{};
-			desc.m_bytestride = sizeof(frontend::per_instance);
-			desc.m_bytesize = desc.m_bytestride * constants::k_max_num_instances;
-			desc.m_init_state = graphics::e_resource_state::gen_read;
-			buff_instances = dev.create_resource(desc, heap_desc);
-		}
-		// lightbuffer
-		{
-			graphics::buffer_desc desc{};
-			desc.m_bytestride = sizeof(frontend::per_dirlight);
-			desc.m_bytesize = desc.m_bytestride * constants::k_max_num_lights;
-			buff_lights = dev.create_resource(desc, heap_desc);
-		}
-		// vertexbuffer
-		{
-			graphics::buffer_desc desc{};
-			desc.m_bytestride = sizeof(frontend::per_vertex);
-			desc.m_bytesize = desc.m_bytestride * total_num_vertices;
-			buff_vertices_upload = dev.create_resource(desc, heap_desc);
-		}
-		// indexbuffer
-		{
-			graphics::buffer_desc desc{};
-			desc.m_format = graphics::e_format::u32;
-			desc.m_bytestride = sizeof(uint32);
-			desc.m_bytesize = desc.m_bytestride * total_num_indices;
-			buff_indices_upload = dev.create_resource(desc, heap_desc);
-		}
-	}
-
-	// upload / update non-rg buffers
-	{
-		buff_instances->map<frontend::per_instance>([](frontend::per_instance* instances)
-		{
-			for (uint32 i = 0u; i < settings::m_num_instances; ++i)
-			{
-				instances[i].m_colour = { 1,1,1,1 };
-				instances[i].set_albedo_index(0u);
-				instances[i].set_normal_index(1u);
-				instances[i].m_transform = math::transform3D::identity().get_matrix();
-
-				// rotate & translate a bit
-				instances[i].m_transform[1][1] = 0.0f;
-				instances[i].m_transform[2][2] = 0.0f;
-				instances[i].m_transform[2][1] = 1.0f;
-				instances[i].m_transform[1][2] = -1.0f;
-
-				const uint32 x = i / 64u;
-				const uint32 z = i % 64u;
-				instances[i].m_transform.set_translation({ x * 20.0f, -20.0f, -50 - z * 20.0f});
-			}
-		});
-		buff_lights->map<frontend::per_dirlight>([](frontend::per_dirlight* lights)
-		{
-			lights[0].m_colour;
-		});
-		buff_vertices_upload->map<frontend::per_vertex>([&loaded_scene](frontend::per_vertex* vertices)
-		{
-			uint64 vertex_offset = 0u;
-			for (const auto& mesh : loaded_scene.get_meshes())
-			{
-				for (uint64 i = 0u; i < mesh.m_positions.size(); ++i)
-				{
-					vertices[vertex_offset + i].m_position = mesh.m_positions[i];
-					vertices[vertex_offset + i].m_normal = mesh.m_normals[i];
-				}
-				vertex_offset += mesh.m_positions.size();
-			}
-		});
-		buff_indices_upload->map<uint32>([&loaded_scene](uint32* indices)
-		{
-			uint64 index_offset = 0u;
-			for (const auto& mesh : loaded_scene.get_meshes())
-			{
-				for (uint64 i = 0u; i < mesh.m_indices.size(); ++i)
-				{
-					indices[index_offset + i] = mesh.m_indices[i];
-				}
-				index_offset = mesh.m_indices.size();
-			}
-		});
-	}
-	
-	// upload->GPU the static geometry buffers
 	graphics::resource* buff_vertices = nullptr;
 	graphics::resource* buff_indices = nullptr;
+	graphics::resource* buff_lights = nullptr;
+	graphics::resource* buff_instances = nullptr;
+	graphics::resource** all_buffers[] = { &buff_vertices, &buff_indices, &buff_lights, &buff_instances };
 	{
-		graphics::heap_desc heap_desc = graphics::heap_desc{};
-		// vertexbuffer
+		graphics::resource* buff_instances_upload = nullptr;
+		graphics::resource* buff_lights_upload = nullptr;
+		graphics::resource* buff_vertices_upload = nullptr;
+		graphics::resource* buff_indices_upload = nullptr;
 		{
+			// all buffers are stored on shared for upload convenience
+			graphics::heap_desc heap_desc = graphics::heap_desc::shared_heap();
 			graphics::buffer_desc desc{};
-			desc.m_bytestride = sizeof(frontend::per_vertex);
-			desc.m_bytesize = desc.m_bytestride * total_num_vertices;
-			buff_vertices = dev.create_resource(desc, heap_desc);
-		}
-		// indexbuffer
-		{
-			graphics::buffer_desc desc{};
-			desc.m_format = graphics::e_format::u32;
-			desc.m_bytestride = sizeof(uint32);
-			desc.m_bytesize = desc.m_bytestride * total_num_indices;
-			buff_indices = dev.create_resource(desc, heap_desc);
+			desc.m_init_state = graphics::e_resource_state::gen_read;
+
+			// instance buffer
+			{
+				desc.m_bytestride = sizeof(frontend::per_instance);
+				desc.m_bytesize = desc.m_bytestride * constants::k_max_num_instances;
+				buff_instances_upload = dev.create_resource(desc, heap_desc);
+			}
+			// lightbuffer
+			{
+				desc.m_bytestride = sizeof(frontend::per_dirlight);
+				desc.m_bytesize = desc.m_bytestride * constants::k_max_num_lights;
+				buff_lights_upload = dev.create_resource(desc, heap_desc);
+			}
+			// vertexbuffer
+			{
+				desc.m_bytestride = sizeof(frontend::per_vertex);
+				desc.m_bytesize = desc.m_bytestride * total_num_vertices;
+				buff_vertices_upload = dev.create_resource(desc, heap_desc);
+			}
+			// indexbuffer
+			{
+				desc.m_format = graphics::e_format::u32;
+				desc.m_bytestride = sizeof(uint32);
+				desc.m_bytesize = desc.m_bytestride * total_num_indices;
+				buff_indices_upload = dev.create_resource(desc, heap_desc);
+			}
 		}
 
-		// upload to GPU
-		cmdlist.start(&dev);
-		cmdlist.copy_buffer(buff_indices_upload, buff_indices,		(uint32)buff_indices->get_bytesize());
-		cmdlist.copy_buffer(buff_vertices_upload, buff_vertices,	(uint32)buff_vertices->get_bytesize());
-		cmdlist.end();
-		queue.submit({ &cmdlist });
-		cmdlist.wait_for_completion();
+		// upload / update non-rg buffers
+		{
+			buff_instances_upload->map<frontend::per_instance>([](frontend::per_instance* instances)
+			{
+				for (uint32 i = 0u; i < settings::m_num_instances; ++i)
+				{
+					instances[i].m_colour = { 1,1,1,1 };
+					instances[i].set_albedo_index(0u);
+					instances[i].set_normal_index(1u);
+					instances[i].m_transform = math::transform3D::identity().get_matrix();
+
+					// rotate & translate a bit
+					instances[i].m_transform[1][1] = 0.0f;
+					instances[i].m_transform[2][2] = 0.0f;
+					instances[i].m_transform[2][1] = 1.0f;
+					instances[i].m_transform[1][2] = -1.0f;
+
+					const uint32 x = i / 64u;
+					const uint32 z = i % 64u;
+					instances[i].m_transform.set_translation({ x * 20.0f, -20.0f, -50 - z * 20.0f });
+				}
+			});
+			buff_lights_upload->map<frontend::per_dirlight>([](frontend::per_dirlight* lights)
+			{
+				lights[0].m_colour;
+			});
+			buff_vertices_upload->map<frontend::per_vertex>([&loaded_scene](frontend::per_vertex* vertices)
+			{
+				uint64 vertex_offset = 0u;
+				for (const auto& mesh : loaded_scene.get_meshes())
+				{
+					for (uint64 i = 0u; i < mesh.m_positions.size(); ++i)
+					{
+						vertices[vertex_offset + i].m_position = mesh.m_positions[i];
+						vertices[vertex_offset + i].m_normal = mesh.m_normals[i];
+					}
+					vertex_offset += mesh.m_positions.size();
+				}
+			});
+			buff_indices_upload->map<uint32>([&loaded_scene](uint32* indices)
+			{
+				uint64 index_offset = 0u;
+				for (const auto& mesh : loaded_scene.get_meshes())
+				{
+					for (uint64 i = 0u; i < mesh.m_indices.size(); ++i)
+					{
+						indices[index_offset + i] = mesh.m_indices[i];
+					}
+					index_offset = mesh.m_indices.size();
+				}
+			});
+		}
+
+		// upload->GPU the static geometry buffers
+		graphics::resource* all_upload_buffers[] = { buff_vertices_upload, buff_indices_upload, buff_lights_upload, buff_instances_upload };
+		{
+			// create buffers onto GPU heap (default)
+			graphics::heap_desc heap_desc = graphics::heap_desc{};
+			for (uint32 i = 0u; i < _countof(all_upload_buffers); ++i)
+			{
+				graphics::buffer_desc desc = {};
+				desc.m_bytestride = all_upload_buffers[i]->get_bytestride();
+				desc.m_bytesize = all_upload_buffers[i]->get_bytesize();
+				desc.m_format = all_upload_buffers[i]->get_format();
+				(*all_buffers[i]) = dev.create_resource(desc, heap_desc);
+			}
+
+			// GPU copy the data once
+			cmdlist.start(&dev);
+			for (uint32 i = 0u; i < _countof(all_buffers); ++i)
+			{
+				cmdlist.copy_buffer(all_upload_buffers[i], (*all_buffers[i]), (uint32)(*all_buffers[i])->get_bytesize());
+			}
+			cmdlist.end();
+			queue.submit({ &cmdlist });
+			cmdlist.wait_for_completion();
+		}
 	}
 
 	// create final target
@@ -637,50 +654,50 @@ int main()
 		final_target->set_name("final_target");
 	}
 
-	// build frame rendergraph (deferred renderer)
+	// build frame rendergraph
 	rendergraph::rendergraph graph{ {}, dev };
 	{
 		using namespace influx::rendergraph;
-		graph.import_texture(final_target);
-		graph.import_texture("tex_albedo", textures[0]);
-		graph.import_texture("tex_normal", textures[1]);
 		graph.import_buffer("buff_indices", buff_indices);
 		graph.import_buffer("buff_vertices", buff_vertices);
-		graph.import_buffer("srv_instances", buff_instances);
 		
 		// 1. graphics basepass
 		auto basepass = graph.add_pass(e_rgpass_type::graphics,
-			// [build]
-			[&final_target](rgpass_builder& builder)
+			/*[BUILD]*/[&final_target, &buff_indices, &buff_vertices, &buff_instances, &textures](rgpass_builder& builder)
 			{
-				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
-
-				// declare gbuffer rendertargets
-				{
-					texture_desc gbuffer_desc{};
-					gbuffer_desc.m_width = target_dim.x;
-					gbuffer_desc.m_heigth = target_dim.y;
-					gbuffer_desc.m_format = graphics::e_format::rgba_u32;
-					builder.declare_texture(constants::gbuffernames[0], gbuffer_desc);
-					gbuffer_desc.m_format = graphics::e_format::u32;
-					builder.declare_texture(constants::gbuffernames[1], gbuffer_desc);
-					builder.declare_texture(constants::gbuffernames[2], gbuffer_desc);
-				}
-
-				// declare cbvs
+				// [CBVs]			
 				{
 					buffer_desc desc{};
 					desc.m_shared_heap = true; // cpu can write to this
 					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_view);
-					builder.declare_buffer("cb_per_view", desc);
+					builder.read_constbuffer("cb_per_view").get();
 					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_material);
-					builder.declare_buffer("cb_per_material", desc);
+					builder.read_constbuffer("cb_per_material").get();
 					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_draw);
-					builder.declare_buffer("cb_per_draw", desc);
+					builder.read_constbuffer("cb_per_draw").get();
+					desc.m_bytestride = sizeof(frontend::cbones);
+					desc.m_bytesize = desc.m_bytestride * MAX_NUM_BONES;
+					builder.read_constbuffer("cb_bones").get();
 				}
+				
+				// builder.read_vertex_buffer(buff_vertices);
+				// builder.read_index_buffer(buff_indices);
+				builder.read_buffer(buff_instances).get();
+				builder.read_texture(textures[0]).get();
+				builder.read_texture(textures[1]).get();
 
-				// declare depth buffer
+				// [Rendertargets & Depthtarget]
 				{
+					const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
+					rgaccess access = rgaccess::clear_and_keep({});
+					texture_desc gbuffer_desc{};
+					gbuffer_desc.m_width = target_dim.x; gbuffer_desc.m_heigth = target_dim.y;
+					gbuffer_desc.m_format = graphics::e_format::rgba_u32;
+					builder.write_rendertarget(constants::gbuffernames[0], gbuffer_desc, access);
+					gbuffer_desc.m_format = graphics::e_format::u32;
+					builder.write_rendertarget(constants::gbuffernames[1], gbuffer_desc, access);
+					builder.write_rendertarget(constants::gbuffernames[2], gbuffer_desc, access);
+
 					texture_desc dbuffer_desc{};
 					dbuffer_desc.m_allow_uav = false;
 					dbuffer_desc.m_array_size = 1;
@@ -692,26 +709,10 @@ int main()
 					dbuffer_desc.m_init_state = graphics::e_resource_state::depth_target;
 					dbuffer_desc.m_num_mips = 1u;
 					dbuffer_desc.m_sample_count = 1u;
-					builder.declare_texture("depth_target", dbuffer_desc);
+					builder.write_depthtarget("depth_target", dbuffer_desc, access);
 				}
-
-				// finally, declare the rendergraph layout
-				builder.read_constbuffer("cb_per_view").get();
-				builder.read_constbuffer("cb_per_material").get();
-				builder.read_constbuffer("cb_per_draw").get();
-				builder.read_buffer("srv_instances").get();
-				builder.read_texture("tex_albedo").get();
-				builder.read_texture("tex_normal").get();
-
-				rgaccess access = rgaccess::clear_and_keep({});
-				builder.write_rendertarget(constants::gbuffernames[0], access);
-				builder.write_rendertarget(constants::gbuffernames[1], access);
-				builder.write_rendertarget(constants::gbuffernames[2], access);
-				builder.write_depthtarget("depth_target", access);
 			},
-			// [execute]
-			[&signature_basepass, &pipeline_basepass, 
-			buff_vertices, buff_indices, &camera, &cam_transform, 
+			/*[EXECUTE]*/[&signature_basepass, &pipeline_basepass,buff_vertices, buff_indices, &camera, &cam_transform, 
 			&dev, total_num_indices, &loaded_scene](rgpass_context& ctx)
 			{
 				graphics::commandlist& cmdlist = ctx.get_commandlist();
@@ -722,7 +723,7 @@ int main()
 				{
 					auto tex_albedo = ctx.get_read_texture("tex_albedo").get();
 					auto tex_normal = ctx.get_read_texture("tex_normal").get();
-					auto buff_instance = ctx.get_read_buffer("srv_instances").get();
+					auto buff_instance = ctx.get_read_buffer("buff_instances").get();
 					graphics::descriptor_handle gpu_albedo = gpu_resource_descheap.get_cpu(frontend::k_albedo_id).get();
 					graphics::descriptor_handle gpu_normal = gpu_resource_descheap.get_cpu(frontend::k_normals_id).get();
 					graphics::descriptor_handle gpu_instance = gpu_resource_descheap.get_cpu(frontend::k_instancebuffer_id).get();
@@ -753,11 +754,12 @@ int main()
 				
 				// bind the CBVs
 				{
-					graphics::resource* constbuffers[3] =
+					graphics::resource* constbuffers[] =
 					{
 						ctx.get_constbuffer("cb_per_view").get().m_resource,
 						ctx.get_constbuffer("cb_per_material").get().m_resource,
-						ctx.get_constbuffer("cb_per_draw").get().m_resource
+						ctx.get_constbuffer("cb_per_draw").get().m_resource,
+						ctx.get_constbuffer("cb_bones").get().m_resource
 					};
 					constbuffers[0]->map<frontend::per_view>([&camera, &cam_transform](frontend::per_view* view)
 					{
@@ -780,7 +782,14 @@ int main()
 					{
 						draw->m_base_instance = 0u;
 					});
-					for (uint32 i = 0u; i < 3u; ++i)
+					constbuffers[3]->map<frontend::cbones>([](frontend::cbones* bones)
+					{
+						for (uint32 i = 0u; i < MAX_NUM_BONES; ++i)
+						{
+							bones->m_matrices[i] = math::matrix4x4f::identity();
+						}
+					});
+					for (uint32 i = 0u; i < _countof(constbuffers); ++i)
 					{
 						cmdlist.set_root_cbv(constbuffers[i], i, graphics::e_pipeline_type::graphics);
 					}
@@ -811,30 +820,25 @@ int main()
 		
 		// 2. compute shadepass
 		auto shadepass = graph.add_pass(e_rgpass_type::compute,
-			// [build]
-			[&final_target](rgpass_builder& builder)
+			/*[BUILD]*/ [&final_target, &buff_lights](rgpass_builder& builder)
 			{
 				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
 
-				// declare shading args CBV
-				{
-					buffer_desc desc{};
-					desc.m_bytestride = sizeof(uint32); // ??
-					desc.m_bytesize = sizeof(frontend::cs_shading_args);
-					desc.m_shared_heap = true; // CPU can write
-					builder.declare_buffer("cb_shading_args", desc);
-				}
+				buffer_desc desc{};
+				desc.m_bytestride = desc.m_bytesize = sizeof(frontend::cs_shading_args);
+				desc.m_shared_heap = true; // CPU can write with map
+				builder.read_constbuffer("cb_shading_args", desc).get();
 
-				// declare renderpass layout
-				builder.read_constbuffer("cb_shading_args");
-				builder.write_rendertarget(final_target, rgaccess::keep_and_keep());
-				builder.write_texture("final_target");
+				builder.read_buffer(buff_lights);
 
+				// write to final target
+				builder.write_texture(final_target).get();
+
+				// read gbuffers
 				for (uint32 i = 0; i < constants::k_num_gbuffers; ++i)
 					builder.read_texture(constants::gbuffernames[i]).get();
 			},
-			// [execute]
-			[&final_target, &signature_shadepass, &pipeline_shadepass, &dev](rgpass_context& ctx)
+			/*[EXECUTE]*/[&final_target, &signature_shadepass, &pipeline_shadepass, &dev](rgpass_context& ctx)
 			{
 				graphics::commandlist& cmdlist = ctx.get_commandlist();
 				graphics::descriptor_heap& gpu_resource_descheap = ctx.get_descheap_gpu(e_gpu_descheap::resource);

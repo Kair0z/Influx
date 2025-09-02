@@ -10,6 +10,7 @@
 #include "rgpass.h"
 #include "rgpool.h"
 #include "rgresources.h"
+#include "rgpass_builder.h"
 
 // stl
 #include <stack>
@@ -41,7 +42,7 @@ namespace influx::rendergraph
 		return rhi_store_op::count;
 	}
 
-	texture_desc get_desc_from_resource(const rhi_resource& resource)
+	texture_desc rendergraph::translate_texture_desc(const rhi_resource& resource)
 	{
 		texture_desc desc{};
 		desc.m_array_size = resource.get_arraysize();
@@ -55,7 +56,7 @@ namespace influx::rendergraph
 		desc.m_allow_uav = resource.allows_uav();
 		return desc;
 	}
-	buffer_desc get_buffer_desc_from_resource(const rhi_resource& resource)
+	buffer_desc rendergraph::translate_buffer_desc(const rhi_resource& resource)
 	{
 		buffer_desc desc{};
 		desc.m_bytesize = resource.get_bytesize();
@@ -450,7 +451,7 @@ namespace influx::rendergraph
 		{
 			rgtexture* new_texture = new rgtexture();
 			rgtexture_id new_id = m_textures.size();
-			new_texture->m_desc = get_desc_from_resource(*resource);
+			new_texture->m_desc = translate_texture_desc(*resource);
 			new_texture->m_id = new_id;
 			new_texture->m_resource = resource;
 			new_texture->m_is_imported = true;
@@ -465,7 +466,7 @@ namespace influx::rendergraph
 			rgtexture_id id = m_texture_name_to_id_map[name];
 			rgtexture*& texture = m_id_to_texture_map[id];
 			texture->m_name = name;
-			texture->m_desc = get_desc_from_resource(*resource);
+			texture->m_desc = translate_texture_desc(*resource);
 			texture->m_resource = resource;
 		}
 
@@ -478,7 +479,7 @@ namespace influx::rendergraph
 		{
 			rgbuffer* new_buffer = new rgbuffer();
 			rgbuffer_id new_id = m_buffers.size();
-			new_buffer->m_desc = get_buffer_desc_from_resource(*resource);
+			new_buffer->m_desc = translate_buffer_desc(*resource);
 			new_buffer->m_id = new_id;
 			new_buffer->m_is_imported = true;
 			new_buffer->m_resource = resource;
@@ -492,7 +493,7 @@ namespace influx::rendergraph
 			// overwrite existing
 			rgbuffer_id id = m_buffer_name_to_id_map[name];
 			rgbuffer*& buffer = m_id_to_buffer_map[id];
-			buffer->m_desc = get_buffer_desc_from_resource(*resource);
+			buffer->m_desc = translate_buffer_desc(*resource);
 			buffer->m_resource = resource;
 		}
 

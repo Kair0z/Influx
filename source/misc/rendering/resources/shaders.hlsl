@@ -18,6 +18,7 @@ typedef influx::math::int4          int4;
 #endif // __cplusplus
 
 #define THREAD_GROUP_SIZE 32
+#define MAX_NUM_BONES 512
 
 // bindless resource heap
 static const uint k_instancebuffer_id   = 0;
@@ -25,11 +26,18 @@ static const uint k_albedo_id           = 1;
 static const uint k_normals_id          = 2;
 static const uint k_final_target_id     = 3;
 static const uint k_dirlights_id        = 4;
-static const uint k_gbuffer_id          = 5;
+static const uint k_skybox_id           = 5;
+static const uint k_gbuffer_id          = 6;
 static const uint k_gbuffer_num         = 3;
+
 // bindless sampler heap
 static const uint k_sampler_id          = 0;
+static const uint k_skysampler_id       = 1;
 
+struct cbones
+{
+    float4x4 m_matrices[MAX_NUM_BONES];
+};
 struct per_scene 
 {
 	float4 m_time;
@@ -54,6 +62,8 @@ struct per_vertex
 {
     float3 m_position;
     float4 m_colour;
+    uint4 m_bone_indices;
+    float4 m_bone_weights;
     float3 m_normal;
     float2 m_texcoord;
 };
@@ -232,10 +242,12 @@ struct gbuffer
 // [vs/ps] shader I/O
 struct vs_input
 {
-    float3 m_position : POSITION;
-    float4 m_colour : COLOR;
-    float3 m_normal : NORMAL;
-    float2 m_texcoord : TEXCOORD;
+    float3 m_position       : POSITION;
+    float4 m_colour         : COLOR;
+    uint4  m_bone_indices    : BLENDINDICES;
+    float4 m_bone_weights   : BLENDWEIGHT;
+    float3 m_normal         : NORMAL;
+    float2 m_texcoord       : TEXCOORD;
 };
 struct ps_input
 {
@@ -253,34 +265,48 @@ struct ps_output
     gbuffer m_gbuffer;
 };
 
-ConstantBuffer<per_view>        g_perview       : register(b0);
-ConstantBuffer<per_material>    g_permaterial   : register(b1);
-ConstantBuffer<per_draw>        g_perdraw       : register(b2);
+// bound resources
+ConstantBuffer<per_view>                        g_perview       : register(b0);
+ConstantBuffer<per_material>                    g_permaterial   : register(b1);
+ConstantBuffer<per_draw>                        g_perdraw       : register(b2);
+ConstantBuffer<cbones>                          g_bones         : register(b3);
 
-// ConstantBuffer<per_scene>       g_perscene      : register(b1);
-
+// bindless resources
 Texture2D get_texture(int index)                        { return ResourceDescriptorHeap[1 + index]; }
 Texture2D get_albedo()                                  { return ResourceDescriptorHeap[k_albedo_id]; }
 Texture2D get_normals()                                 { return ResourceDescriptorHeap[k_normals_id]; }
 SamplerState get_sampler(int index)                     { return SamplerDescriptorHeap[k_sampler_id]; }
 StructuredBuffer<per_instance> get_instance_buffer()    { return ResourceDescriptorHeap[k_instancebuffer_id]; }
 
+float4x4 get_skin_matrix(uint4 indices, float4 weights)
+{
+    return  weights.x * g_bones.m_matrices[indices.x] +
+            weights.y * g_bones.m_matrices[indices.y] +
+            weights.z * g_bones.m_matrices[indices.z] +
+            weights.w * g_bones.m_matrices[indices.w];
+}
+
 // ================================================================================================
-// basepass-vs:
+// BASEPASS-VS:
 [shader("vertex")]
 ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
 {
     ps_input output = (ps_input)0;
-
+    
     // get instance data
     instance_id += g_perdraw.m_base_instance;
     per_instance instance_data = get_instance_buffer()[instance_id];
 
-    // positions
-    float4x4 instance_transform = (float4x4)instance_data.m_transform;
-    float4x4 mvp = mul((float4x4)g_perview.m_viewprojection, (float4x4)instance_transform);
-    output.m_position = mul(mvp, float4(input.m_position, 1.0f));
-    output.m_worldpos = mul(instance_transform, float4(input.m_position, 1.0f)).xyz;
+    // skinning
+    float4x4 skin_matrix = get_skin_matrix( input.m_bone_indices, input.m_bone_weights);
+    float3 skinned_position = mul(skin_matrix, float4(input.m_position.xyz, 1.0f)).xyz;
+    
+    // wvp
+    float4x4 instance_transform = (float4x4) instance_data.m_transform;
+    float4x4 mvp = mul((float4x4) g_perview.m_viewprojection, (float4x4) instance_transform);
+    output.m_position = mul(mvp, float4(skinned_position, 1.0f));
+    output.m_worldpos = mul(instance_transform, float4(skinned_position.xyz, 1.0f)).xyz;
+    
     // uvs
     output.m_texcoord = input.m_texcoord;
     // normals
@@ -294,7 +320,7 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
     return output;
 }
 // ================================================================================================
-// basepass-ps: renders geometry data to the packed screen buffers
+// BASEPASS-PS: renders geometry data to the packed screen buffers
 [shader("pixel")]
 ps_output main_ps(ps_input input)
 {
@@ -309,16 +335,42 @@ ps_output main_ps(ps_input input)
     output.m_gbuffer.set_depth(input.m_position.z);
     return output;
 }
-
 // ================================================================================================
-// shadepass-cs: shades each pixel according to info in packed screen buffers
+// SHADEPASS CS: shades each pixel according to info in packed screen buffers
 ConstantBuffer<cs_shading_args> g_shadingargs : register(b4);
 
+// bindless
 RWTexture2D<float4> get_output()                    { return ResourceDescriptorHeap[k_final_target_id]; }
 StructuredBuffer<per_dirlight> get_dirlights()      { return ResourceDescriptorHeap[k_dirlights_id]; }
 Texture2D<uint4> get_gbufferA()                     { return ResourceDescriptorHeap[k_gbuffer_id + 0]; }
 Texture2D<uint> get_gbufferB()                      { return ResourceDescriptorHeap[k_gbuffer_id + 1]; }
 Texture2D<uint> get_gbufferC()                      { return ResourceDescriptorHeap[k_gbuffer_id + 2]; }
+TextureCube get_skybox()                            { return ResourceDescriptorHeap[k_skybox_id]; }
+SamplerState get_skysampler()                       { return SamplerDescriptorHeap[k_skysampler_id]; }
+
+float2 get_uv(uint2 thread_id)
+{
+    return float2(thread_id) * float2(g_shadingargs.m_screen_size.zw);
+}
+float2 get_ndc(uint2 thread_id)
+{
+    float2 uv = get_uv(thread_id.xy);
+    float2 ndc = uv * 2.0 - 1.0;
+    ndc.y *= -1.0;
+    return ndc.xy;
+}
+float3 get_viewdirection(uint2 thread_id)
+{
+    float2 ndc = get_ndc(thread_id.xy);
+    float4 clipSpacePos = float4(ndc.xy, 1.0, 1.0); // Homogeneous clip-space position at far plane
+    float4 viewSpacePos = mul(clipSpacePos, g_shadingargs.m_inv_projection); // Transform to view space
+    viewSpacePos /= viewSpacePos.w; // Perspective divide
+    return normalize(viewSpacePos.xyz);
+}
+float3 sample_sky(uint2 thread_id)
+{
+    return get_skybox().Sample(get_skysampler(), get_viewdirection(thread_id.xy)).rgb;
+}
 
 [shader("compute")]
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
@@ -335,14 +387,16 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
     gbuffer.normal.r                    = GBufferB.Load(uint3(thread_id.xy, 0));
     gbuffer.depth_stencil.r             = GBufferC.Load(uint3(thread_id.xy, 0));
 
-    // early out if depth fails
+    // return skybox colour if z value was never written
     float depth = gbuffer.get_depth().r;
     if (depth <= 0.0f)
     {
-        output[thread_id.xy] = float4(1,1,1,1) * 0.2f;
+        output[thread_id.xy] = float4(sample_sky(thread_id.xy).rgb, 1.0f);;
         return;
     }
     
+    // =============================================================
+    // SHADING
     float3 dirlight = normalize(float3(-0.5,-0.5,-0.5)); 
     // float3 albedo = gbuffer.get_albedo();
     float3 normal = normalize(gbuffer.get_normal().rgb);

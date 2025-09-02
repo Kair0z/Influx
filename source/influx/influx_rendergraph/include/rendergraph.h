@@ -169,6 +169,9 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<> unbind_ext_descheap(e_ext_descheap_slot slot);
 		INFLUX_RG_API bool is_ext_descheap_bound(e_ext_descheap_slot slot) const;
 
+		INFLUX_RG_API static texture_desc translate_texture_desc(const rhi_resource& desc);
+		INFLUX_RG_API static buffer_desc translate_buffer_desc(const rhi_resource& desc);
+
 	private:
 		global_config m_config{};
 		rgpool* m_pool{};
@@ -255,3 +258,5 @@ namespace influx::rendergraph
 		bool execute_validation_checks() const;
 	};
 }
+
+#include "rgpass_builder.h"

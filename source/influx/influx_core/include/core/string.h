@@ -153,6 +153,13 @@ namespace influx
 			format_hash();
 		}
 
+		inline bool is_empty() const
+		{
+#if INFLUX_DEBUG
+			return m_string.empty();
+#endif
+			return m_hash == 0u;
+		}
 		inline uint64 get_hash() const
 		{
 			return m_hash;
