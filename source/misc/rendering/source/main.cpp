@@ -25,7 +25,7 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 // shader frontend
 namespace frontend
 {
-#include "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
+#include "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
 }
 #pragma endregion
 
@@ -46,11 +46,13 @@ class constants final
 {
 public:
 	// https://sketchfab.com/3d-models/silver-soldier-animated-a8f0d843735047b2999fbe4a9d7a1245#download
-	inline static const char* m_scene_filepath		= "D:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
-	inline static const char* m_shaders_filepath	= "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
-	inline static const char* m_albedo_filepath		= "D:/Git/Influx/source/misc/rendering/resources/albedo.png";
-	inline static const char* m_normal_filepath		= "D:/Git/Influx/source/misc/rendering/resources/normals.png";
-	inline static const char* m_skybox_filepath		= "";
+	inline static const char* m_scene_filepath		= "E:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
+	inline static const char* m_shaders_filepath	= "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
+	inline static const char* m_albedo_filepath		= "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
+	inline static const char* m_normal_filepath		= "E:/Git/Influx/source/misc/rendering/resources/normals.png";
+	
+	inline static const char* m_skybox_filepath_base = "E:/Git/Influx/source/misc/rendering/resources/graycloud_";
+	inline static const char* m_skybox_files[] = { "bk", "dn", "ft", "lf", "rt", "up" };
 
 	inline static const math::uint2 m_window_dim = { 640u, 480u };
 	static const uint32 k_num_swapchain_buffers = 3u;
@@ -222,13 +224,21 @@ int main()
 		total_bytesize_loaded_images += loaded_images[0].m_bytesize;
 		total_bytesize_loaded_images += loaded_images[1].m_bytesize;
 	}
-	imp::cubemap_data loaded_cubemap{};
-	if (false)
+
+	// load cubemap
+	imp::cubemap_data loaded_cubemap = {};
+	uint64 total_bytesize_cubemap = 0u;
 	{
 		imp::cubemap_load_args args{};
-		loaded_cubemap = imp::load_cubemap(constants::m_skybox_filepath, args).get();
+		for (uint32 i = 0u; i < 6u; ++i)
+		{
+			args.m_hacky_paths[i] = string(constants::m_skybox_filepath_base) + constants::m_skybox_files[i] + ".png";
+		}
+		loaded_cubemap = imp::load_cubemap("", args).get();
+		total_bytesize_cubemap = loaded_cubemap.m_bytesize;
 	}
-
+	
+	
 	// setup camera
 	influx::camera camera{};
 	math::transform3D cam_transform = math::transform3D::identity();
@@ -387,11 +397,18 @@ int main()
 				case 2u: format = graphics::e_format::rg32; break;
 				case 3u: format = graphics::e_format::rgb32; break;
 				case 4u: format = graphics::e_format::rgba32; break;
-				default:
-					influx_assert(false);
-					break;
+				default: break;
 				}
-
+#if 0
+				switch (param.m_num_uints)
+				{
+				case 1u: format = graphics::e_format::r32; break;
+				case 2u: format = graphics::e_format::; break;
+				case 3u: format = graphics::e_format::rgb32; break;
+				case 4u: format = graphics::e_format::rgba32; break;
+				default: break;
+				}
+#endif
 				desc.add_input_element(
 					param.m_semantic_name,
 					param.m_semantic_index,
@@ -465,7 +482,6 @@ int main()
 
 	// create (& upload) non-rg textures
 	vector<graphics::resource*> textures{};
-	graphics::resource* skybox_texture = nullptr;
 	textures.reserve(loaded_images.size());
 	{
 		graphics::buffer_desc upload_desc{};
@@ -473,7 +489,7 @@ int main()
 		upload_desc.m_init_state = graphics::e_resource_state::gen_read;
 		graphics::resource* uploadheap = dev.create_resource(upload_desc, graphics::heap_desc::shared_heap());
 
-		// create textures & srvs
+		// create textures
 		graphics::tex2D_desc desc{};
 		desc.m_allow_uav = false;
 		desc.m_arraysize = 1u;
@@ -518,6 +534,53 @@ int main()
 	textures[0]->set_name("tex_albedo");
 	textures[1]->set_name("tex_normals");
 	
+	// create (& upload) skybox texture
+	graphics::resource* skybox_texture = nullptr;
+	{
+		// upload resource
+		graphics::buffer_desc upload_desc{};
+		upload_desc.m_bytesize = total_bytesize_cubemap;
+		upload_desc.m_init_state = graphics::e_resource_state::copy_src;
+		graphics::resource* uploadheap = dev.create_resource(upload_desc, graphics::heap_desc::shared_heap());
+
+		graphics::cubemap_desc desc{};
+		desc.m_allow_uav = false;
+		desc.m_bindflags;
+		desc.m_dimensions = loaded_cubemap.m_dimensions;
+		desc.m_format = graphics::e_format::rgba8;
+		desc.m_init_state = graphics::e_resource_state::copy_dst;
+		desc.m_num_mips = 1u;
+		desc.m_sample_count = 1u;
+		skybox_texture = dev.create_resource(desc);
+
+		const uint64 bytesize_per_side = total_bytesize_cubemap / 6u;
+
+		cmdlist.start(&dev);
+		for (uint64 i = 0u; i < 6u; ++i)
+		{
+			const range<size_t> upload_subrange{ (i * bytesize_per_side), bytesize_per_side };
+
+			// write to upload
+			graphics::map_args args{};
+			args.m_begin = upload_subrange.get_start();
+			args.m_end = upload_subrange.get_end();
+			uploadheap->map([&loaded_cubemap, &bytesize_per_side](void* target)
+			{
+				memcpy(target, loaded_cubemap.m_pixels.data(), bytesize_per_side);
+			}, args);
+
+			// copy upload->GPU
+			graphics::copy_texture_args copy_args{};
+			copy_args.m_src.m_range = upload_subrange;
+			copy_args.m_dest.m_range = upload_subrange;
+			cmdlist.copy_texture(uploadheap, skybox_texture, copy_args).get();
+		}
+		cmdlist.end();
+		queue.submit({ &cmdlist });
+		cmdlist.wait_for_completion();
+	}
+	skybox_texture->set_name("tex_skybox");
+
 	// create non-rg buffers
 	graphics::resource* buff_vertices = nullptr;
 	graphics::resource* buff_indices = nullptr;
@@ -828,7 +891,7 @@ int main()
 		
 		// 2. compute shadepass
 		auto shadepass = graph.add_pass(e_rgpass_type::compute,
-			/*[BUILD]*/ [&final_target, &buff_lights](rgpass_builder& builder)
+			/*[BUILD]*/ [&final_target, &buff_lights, &skybox_texture](rgpass_builder& builder)
 			{
 				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
 
@@ -838,6 +901,7 @@ int main()
 				builder.read_constbuffer("cb_shading_args", desc).get();
 
 				builder.read_buffer(buff_lights);
+				builder.read_texture(skybox_texture);
 
 				// write to final target
 				builder.write_texture(final_target).get();
@@ -846,7 +910,7 @@ int main()
 				for (uint32 i = 0; i < constants::k_num_gbuffers; ++i)
 					builder.read_texture(constants::gbuffernames[i]).get();
 			},
-			/*[EXECUTE]*/[&final_target, &signature_shadepass, &pipeline_shadepass, &dev](rgpass_context& ctx)
+			/*[EXECUTE]*/[&final_target, &signature_shadepass, &pipeline_shadepass, &dev, &skybox_texture](rgpass_context& ctx)
 			{
 				graphics::commandlist& cmdlist = ctx.get_commandlist();
 				graphics::descriptor_heap& gpu_resource_descheap = ctx.get_descheap_gpu(e_gpu_descheap::resource);
@@ -856,18 +920,22 @@ int main()
 					graphics::descriptor_handle gpu_target = gpu_resource_descheap.get_cpu(frontend::k_final_target_id).get();
 					dev.copy_descriptors(target_uav.m_descriptor, gpu_target, rhi_descheap_type::rsc);
 				}
-
-				cmdlist.set_rootsignature(signature_shadepass, graphics::e_pipeline_type::compute);
-				cmdlist.set_pipeline(pipeline_shadepass);
-				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
-
+				{
+					auto skybox = ctx.get_read_texture("tex_skybox").get();
+					graphics::descriptor_handle gpu_skybox = gpu_resource_descheap.get_cpu(frontend::k_skybox_id).get();
+					dev.copy_descriptors(skybox.m_descriptor, gpu_skybox, rhi_descheap_type::rsc);
+				}
 				for (uint32 i = 0; i < constants::k_num_gbuffers; ++i)
 				{
 					auto gbuffer = ctx.get_read_texture(constants::gbuffernames[i]).get();
 					graphics::descriptor_handle gpu_gbuffer = gpu_resource_descheap.get_cpu(frontend::k_gbuffer_id + i).get();
 					dev.copy_descriptors(gbuffer.m_descriptor, gpu_gbuffer, rhi_descheap_type::rsc);
 				}
-					
+
+				cmdlist.set_rootsignature(signature_shadepass, graphics::e_pipeline_type::compute);
+				cmdlist.set_pipeline(pipeline_shadepass);
+				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
+
 				// update & bind cb_shading_args
 				graphics::resource* constbuffer = ctx.get_constbuffer("cb_shading_args").get().m_resource;
 				constbuffer->map<frontend::cs_shading_args>([](frontend::cs_shading_args* args)

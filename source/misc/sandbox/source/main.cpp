@@ -7,6 +7,14 @@
 // influx::platform
 #include "influx_platform/window.h"
 
+
+//Malous stuff
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+#include <chrono>
+#include <thread>
+
 template <typename _t>
 void check_result(influx::rhi::result<_t>  result)
 {
@@ -16,6 +24,56 @@ void check_result(influx::rhi::result<_t>  result)
 		assert(false);
 	}
 }
+
+int getRandomNumber() {
+	std::srand(std::time(0)); // Seed the random number generator
+	return std::rand() % 4;
+}
+static auto start = std::chrono::high_resolution_clock::now();
+
+void Malou(){
+	switch (getRandomNumber())
+	{
+	case 0:
+	{
+		printf("Hihi\n");
+		break;
+	}
+	case 1:
+	{
+		// Store the ending time
+		auto end = std::chrono::high_resolution_clock::now();
+
+		// Calculate delta time as float (in seconds)
+		std::chrono::duration<float> delta = end - start;
+		float deltaTime = delta.count();
+
+		
+		printf("This is the amount of time you havent spent with your girlfriend and instead spent compiling! ");
+		printf("%.3f\n", deltaTime);
+		break;
+
+	}
+	case 2:
+	{
+		printf("I Love You!!! <3 <3 <3 \n");
+		break;
+	}
+	case 3:
+	{
+		printf("Malou was here!!!!\n");
+		break;
+
+	}
+	default: {
+
+		break;
+	}
+	}
+
+}
+
+
 
 using namespace influx;
 
@@ -133,6 +191,15 @@ public:
 };
 
 int main()
+{
+	while (true)
+	{
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		Malou();
+	}
+}
+
+void _main()
 {
 	influx::random::seed_random();
 

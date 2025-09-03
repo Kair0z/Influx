@@ -180,13 +180,14 @@ namespace influx::imp
 	/* Loads a 3D-image (cubemap) */
 	struct cubemap_load_args final
 	{
-		stat_array<string, 6u>* m_hacky_paths = nullptr;
+		stat_array<string, 6u> m_hacky_paths{};
 	};
 
 	struct cubemap_data final
 	{
 		vector<pixel32> m_pixels{};
-		math::vectoru3 m_dimensions{};
+		math::vectoru2 m_dimensions{};
+		uint64 m_bytesize = 0u;
 	};
 
 	INFLUX_ASSETS_API 

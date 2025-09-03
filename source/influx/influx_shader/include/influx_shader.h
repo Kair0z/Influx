@@ -85,6 +85,7 @@ namespace influx::shader
 			string m_semantic_name;
 			uint32 m_semantic_index;
 			uint32 m_num_floats;
+			uint32 m_num_uints;
 		};
 
 		struct resource final

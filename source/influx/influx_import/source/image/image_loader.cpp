@@ -64,7 +64,7 @@ namespace influx::imp
 		bool all_success = true;
 		for (uint32 i = 0u; i < 6u; ++i)
 		{
-			result<image_data> load_image_result = load_image_file((*args.m_hacky_paths)[i], side_args);
+			result<image_data> load_image_result = load_image_file(args.m_hacky_paths[i], side_args);
 			if (load_image_result.is_success())
 			{
 				side_datas[i] = load_image_result.get();
@@ -80,8 +80,9 @@ namespace influx::imp
 
 		cubemap_data out_cubemap{};
 		out_cubemap.m_dimensions.x =
-			out_cubemap.m_dimensions.y =
-			out_cubemap.m_dimensions.z = side_datas[0].m_dimensions.x;
+			out_cubemap.m_dimensions.y = side_datas[0].m_dimensions.x;
+
+		out_cubemap.m_bytesize = 6u * side_datas[0].m_bytesize;
 
 		for (uint32 i = 0u; i < 6u; ++i)
 		{
