@@ -67,12 +67,28 @@ public:
 		graphics::e_format::u32,
 		graphics::e_format::u32,
 	};
-	inline static const rendergraph::rgname gbuffernames[k_num_gbuffers]
+
+
+	inline static const rendergraph::rgname k_graph_tex_gbuffers[k_num_gbuffers]
 	{
-		"gbuffer_a",
-		"gbuffer_b",
-		"gbuffer_c"
+		"tex_gbufferA",
+		"tex_gbufferB",
+		"tex_gbufferC"
 	};
+	inline static const char* k_graph_cb_per_view = "cb_per_view";
+	inline static const char* k_graph_cb_per_material = "cb_per_material";
+	inline static const char* k_graph_cb_per_draw = "cb_per_draw";
+	inline static const char* k_graph_cb_bones = "cb_bones";
+	inline static const char* k_graph_cb_shade_args = "cb_shade_args";
+	inline static const char* k_graph_srv_instances = "srv_instances";
+	inline static const char* k_graph_tex_normals = "tex_normals";
+	inline static const char* k_graph_tex_albedo = "tex_albedo";
+	inline static const char* k_graph_cube_skybox = "cube_skybox";
+	inline static const char* k_graph_srv_pointlights = "srv_pointlights";
+	inline static const char* k_graph_srv_dirlights = "srv_dirlights";
+	inline static const char* k_graph_tex_finaltarget = "tex_finaltarget";
+	inline static const char* k_graph_buff_indices = "buff_indices";
+	inline static const char* k_graph_buff_vertices = "buff_vertices";
 };
 struct settings final
 {
@@ -194,60 +210,59 @@ int main()
 	};
 #endif // ENABLE_STATS
 
-	// load a scene file (.fbx)
-	imp::scene_data loaded_scene{};
-	{
-		bool finished = false;
-		artscii::progress_bar bar{};
-		bar.bar_length() = 64u;
-		std::thread loading = std::thread([&bar, &finished]()
-		{
-			while (!finished)
-			{
-				bar.increment(1u);
-				std::cout << "\r" << bar.get_cstr() << "loading soldier.fbx ";
-				std::this_thread::sleep_for(std::chrono::milliseconds(180));
-			}
-		});
+	// setup core graphics objects
+	graphics::device& dev = *graphics::device::create(graphics::e_api_type::dx12);
 
+	// MEGA upload heap
+	graphics::buffer_desc upload_desc{};
+	upload_desc.m_bytesize = 1024u * 1024 * 8u; // 8MB should be fine...
+	upload_desc.m_init_state = graphics::e_resource_state::gen_read;
+	graphics::resource* uploadheap = dev.create_resource(upload_desc, graphics::heap_desc::shared_heap());
+
+	// start loading assets
+	struct loaded_results final
+	{
+		imp::scene_data loaded_scene{};
+		vector<imp::image_data> loaded_images{};
+		imp::cubemap_data loaded_cubemap = {};
+		uint32 total_num_vertices{}; uint32 total_num_indices{};
+		uint64 total_bytesize_loaded_images = 0u;
+		uint64 total_bytesize_cubemap = 0u;
+
+		// graphics resources
+		graphics::rootsignature* signature_basepass = nullptr;
+		graphics::rootsignature* signature_shadepass = nullptr;
+		graphics::graphics_pipeline* pipeline_basepass = nullptr;
+		graphics::compute_pipeline* pipeline_shadepass = nullptr;
+	};
+	loaded_results loaded{};
+	std::thread loading_thread = std::thread([&loaded]()
+	{
 		imp::scene_load_args scene_load_args{};
 		scene_load_args.m_bake_transforms = false;
 		scene_load_args.m_pre_scale = 1.0f;
-		loaded_scene = imp::load_scene_file(constants::m_scene_filepath, scene_load_args).get();
-		finished = true;
+		loaded.loaded_scene = imp::load_scene_file(constants::m_scene_filepath, scene_load_args).get();
+		for (const auto& mesh : loaded.loaded_scene.get_meshes())
+		{
+			loaded.total_num_vertices += (uint32)mesh.m_positions.size();
+			loaded.total_num_indices += (uint32)mesh.m_indices.size();
+		}
 
-		loading.join();
-	}
+		loaded.loaded_images.push_back(imp::load_image_file(constants::m_albedo_filepath).get());
+		loaded.loaded_images.push_back(imp::load_image_file(constants::m_normal_filepath).get());
+		loaded.total_bytesize_loaded_images += loaded.loaded_images[0].m_bytesize;
+		loaded.total_bytesize_loaded_images += loaded.loaded_images[1].m_bytesize;
 
-	uint32 total_num_vertices{}; uint32 total_num_indices{};
-	for (const auto& mesh : loaded_scene.get_meshes())
-	{
-		total_num_vertices	+= (uint32)mesh.m_positions.size();
-		total_num_indices	+= (uint32)mesh.m_indices.size();
-	}
-
-	// load images
-	uint64 total_bytesize_loaded_images = 0u;
-	vector<imp::image_data> loaded_images{};
-	{
-		loaded_images.push_back(imp::load_image_file(constants::m_albedo_filepath).get());
-		loaded_images.push_back(imp::load_image_file(constants::m_normal_filepath).get());
-		total_bytesize_loaded_images += loaded_images[0].m_bytesize;
-		total_bytesize_loaded_images += loaded_images[1].m_bytesize;
-	}
-
-	// load cubemap
-	imp::cubemap_data loaded_cubemap = {};
-	uint64 total_bytesize_cubemap = 0u;
-	{
 		imp::cubemap_load_args args{};
 		for (uint32 i = 0u; i < 6u; ++i)
 		{
 			args.m_hacky_paths[i] = string(constants::m_skybox_filepath_base) + constants::m_skybox_files[i] + ".png";
 		}
-		loaded_cubemap = imp::load_cubemap("", args).get();
-		total_bytesize_cubemap = loaded_cubemap.m_bytesize;
-	}
+		loaded.loaded_cubemap = imp::load_cubemap("", args).get();
+		loaded.total_bytesize_cubemap = loaded.loaded_cubemap.m_bytesize;
+	});
+	
+	loading_thread.join();
 
 	// setup camera
 	influx::camera camera{};
@@ -271,8 +286,6 @@ int main()
 		window = platform::window::create(window_desc);
 	}
 
-	// setup core graphics objects
-	graphics::device& dev = *graphics::device::create(graphics::e_api_type::dx12);
 	graphics::queue& queue = *dev.create_queue();
 	graphics::commandlist& cmdlist = *dev.create_graphics_commandlist();
 	graphics::swapchain_desc swapchain_desc{};
@@ -282,23 +295,20 @@ int main()
 	graphics::swapchain& swapchain = *dev.create_swapchain(&queue, *window, swapchain_desc);
 
 	// load shaders / build pipelines
-	graphics::rootsignature* signature_basepass = nullptr;
-	graphics::rootsignature* signature_shadepass = nullptr;
-	graphics::graphics_pipeline* pipeline_basepass = nullptr;
-	graphics::compute_pipeline* pipeline_shadepass = nullptr;
+	
 	vector<shader::compile_output> compiled_shaders{};
 	compiled_shaders.resize(3u);
 	std::atomic_bool pipelines_compiled = false;
 	auto recompile_shaders = 
-	[&dev, &pipeline_basepass, &pipeline_shadepass, &compiled_shaders, &signature_shadepass, &signature_basepass, &pipelines_compiled]()
+	[&dev, &loaded, &compiled_shaders, &pipelines_compiled]()
 	{
 		pipelines_compiled = false;
 
 		// release old
-		if (signature_basepass) dev.release(signature_basepass);
-		if (signature_shadepass) dev.release(signature_shadepass);
-		if (pipeline_basepass) dev.release(pipeline_basepass);
-		if (pipeline_shadepass) dev.release(pipeline_shadepass);
+		if (loaded.signature_basepass) dev.release(loaded.signature_basepass);
+		if (loaded.signature_shadepass) dev.release(loaded.signature_shadepass);
+		if (loaded.pipeline_basepass) dev.release(loaded.pipeline_basepass);
+		if (loaded.pipeline_shadepass) dev.release(loaded.pipeline_shadepass);
 
 		// compile shaders
 		{
@@ -388,8 +398,8 @@ int main()
 				}
 			}
 
-			signature_basepass = dev.create_rootsignature(basepass_desc);
-			signature_shadepass = dev.create_rootsignature(shadepass_desc);
+			loaded.signature_basepass = dev.create_rootsignature(basepass_desc);
+			loaded.signature_shadepass = dev.create_rootsignature(shadepass_desc);
 		}
 
 		// setup pipelines
@@ -484,24 +494,19 @@ int main()
 					break;
 				}
 			}
-			pipeline_basepass = dev.create_graphics_pipeline(signature_basepass, desc);
-			pipeline_shadepass = dev.create_compute_pipeline(signature_shadepass, compute_desc);
+			loaded.pipeline_basepass = dev.create_graphics_pipeline(loaded.signature_basepass, desc);
+			loaded.pipeline_shadepass = dev.create_compute_pipeline(loaded.signature_shadepass, compute_desc);
 		}
 		
-		if (signature_basepass && signature_shadepass && pipeline_basepass && pipeline_shadepass)
+		if (loaded.signature_basepass && loaded.signature_shadepass && loaded.pipeline_basepass && loaded.pipeline_shadepass)
 			pipelines_compiled = true;
 	};
 	recompile_shaders();
 
 	// create (& upload) non-rg textures
 	vector<graphics::resource*> textures{};
-	textures.reserve(loaded_images.size());
+	textures.reserve(loaded.loaded_images.size());
 	{
-		graphics::buffer_desc upload_desc{};
-		upload_desc.m_bytesize = total_bytesize_loaded_images;
-		upload_desc.m_init_state = graphics::e_resource_state::gen_read;
-		graphics::resource* uploadheap = dev.create_resource(upload_desc, graphics::heap_desc::shared_heap());
-
 		// create textures
 		graphics::tex2D_desc desc{};
 		desc.m_allow_uav = false;
@@ -509,9 +514,9 @@ int main()
 		desc.m_bindflags = graphics::e_bind_flags::srv;
 		desc.m_num_mips = 1u;
 		desc.m_sample_count = 1u;
-		for (uint64 i = 0u; i < loaded_images.size(); ++i)
+		for (uint64 i = 0u; i < loaded.loaded_images.size(); ++i)
 		{
-			const auto& image = loaded_images[i];
+			const auto& image = loaded.loaded_images[i];
 			desc.m_dimensions = image.m_dimensions;
 			desc.m_format = graphics::e_format::rgba8;
 			desc.m_init_state = graphics::e_resource_state::copy_dst;
@@ -519,9 +524,9 @@ int main()
 		}
 
 		cmdlist.start(&dev);
-		for (uint64 i = 0u; i < loaded_images.size(); ++i)
+		for (uint64 i = 0u; i < loaded.loaded_images.size(); ++i)
 		{
-			const imp::image_data& img_data = loaded_images[i];
+			const imp::image_data& img_data = loaded.loaded_images[i];
 			const range<size_t> upload_subrange{ (i * img_data.m_bytesize), img_data.m_bytesize };
 
 			// write to upload
@@ -544,29 +549,29 @@ int main()
 		queue.submit({ &cmdlist });
 		cmdlist.wait_for_completion();
 	}
-	textures[0]->set_name("tex_albedo");
-	textures[1]->set_name("tex_normals");
+	textures[0]->set_name(constants::k_graph_tex_albedo);
+	textures[1]->set_name(constants::k_graph_tex_normals);
 	
 	// create (& upload) skybox texture
 	graphics::resource* skybox_texture = nullptr;
 	{
 		// upload resource
 		graphics::buffer_desc upload_desc{};
-		upload_desc.m_bytesize = total_bytesize_cubemap;
+		upload_desc.m_bytesize = loaded.total_bytesize_cubemap;
 		upload_desc.m_init_state = graphics::e_resource_state::copy_src;
 		graphics::resource* uploadheap = dev.create_resource(upload_desc, graphics::heap_desc::shared_heap());
 
 		graphics::cubemap_desc desc{};
 		desc.m_allow_uav = false;
 		desc.m_bindflags;
-		desc.m_dimensions = loaded_cubemap.m_dimensions;
+		desc.m_dimensions = loaded.loaded_cubemap.m_dimensions;
 		desc.m_format = graphics::e_format::rgba8;
 		desc.m_init_state = graphics::e_resource_state::copy_dst;
 		desc.m_num_mips = 1u;
 		desc.m_sample_count = 1u;
 		skybox_texture = dev.create_resource(desc);
 
-		const uint64 bytesize_per_side = total_bytesize_cubemap / 6u;
+		const uint64 bytesize_per_side = loaded.total_bytesize_cubemap / 6u;
 
 		cmdlist.start(&dev);
 		for (uint64 i = 0u; i < 6u; ++i)
@@ -577,9 +582,9 @@ int main()
 			graphics::map_args args{};
 			args.m_begin = upload_subrange.get_start();
 			args.m_end = upload_subrange.get_end();
-			uploadheap->map([&loaded_cubemap, &bytesize_per_side](void* target)
+			uploadheap->map([&loaded, &bytesize_per_side](void* target)
 			{
-				memcpy(target, loaded_cubemap.m_pixels.data(), bytesize_per_side);
+				memcpy(target, loaded.loaded_cubemap.m_pixels.data(), bytesize_per_side);
 			}, args);
 
 			// copy upload->GPU
@@ -592,7 +597,7 @@ int main()
 		queue.submit({ &cmdlist });
 		cmdlist.wait_for_completion();
 	}
-	skybox_texture->set_name("tex_skybox");
+	skybox_texture->set_name(constants::k_graph_cube_skybox);
 
 	// create non-rg buffers
 	graphics::resource* buff_vertices = nullptr;
@@ -626,14 +631,14 @@ int main()
 			// vertexbuffer
 			{
 				desc.m_bytestride = sizeof(frontend::per_vertex);
-				desc.m_bytesize = desc.m_bytestride * total_num_vertices;
+				desc.m_bytesize = desc.m_bytestride * loaded.total_num_vertices;
 				buff_vertices_upload = dev.create_resource(desc, heap_desc);
 			}
 			// indexbuffer
 			{
 				desc.m_format = graphics::e_format::u32;
 				desc.m_bytestride = sizeof(uint32);
-				desc.m_bytesize = desc.m_bytestride * total_num_indices;
+				desc.m_bytesize = desc.m_bytestride * loaded.total_num_indices;
 				buff_indices_upload = dev.create_resource(desc, heap_desc);
 			}
 		}
@@ -664,10 +669,10 @@ int main()
 			{
 				lights[0].m_colour;
 			});
-			buff_vertices_upload->map<frontend::per_vertex>([&loaded_scene](frontend::per_vertex* vertices)
+			buff_vertices_upload->map<frontend::per_vertex>([&loaded](frontend::per_vertex* vertices)
 			{
 				uint64 vertex_offset = 0u;
-				for (const auto& mesh : loaded_scene.get_meshes())
+				for (const auto& mesh : loaded.loaded_scene.get_meshes())
 				{
 					for (uint64 i = 0u; i < mesh.m_positions.size(); ++i)
 					{
@@ -677,10 +682,10 @@ int main()
 					vertex_offset += mesh.m_positions.size();
 				}
 			});
-			buff_indices_upload->map<uint32>([&loaded_scene](uint32* indices)
+			buff_indices_upload->map<uint32>([&loaded](uint32* indices)
 			{
 				uint64 index_offset = 0u;
-				for (const auto& mesh : loaded_scene.get_meshes())
+				for (const auto& mesh : loaded.loaded_scene.get_meshes())
 				{
 					for (uint64 i = 0u; i < mesh.m_indices.size(); ++i)
 					{
@@ -717,10 +722,10 @@ int main()
 		}
 	}
 
-	buff_instances->set_name("buff_instances");
-	buff_lights->set_name("buff_lights");
-	buff_indices->set_name("buff_indices");
-	buff_vertices->set_name("buff_vertices");
+	buff_instances->set_name(constants::k_graph_srv_instances);
+	buff_lights->set_name(constants::k_graph_srv_dirlights);
+	buff_indices->set_name(constants::k_graph_buff_indices);
+	buff_vertices->set_name(constants::k_graph_buff_vertices);
 
 	// create final target
 	graphics::resource* final_target = nullptr;
@@ -745,53 +750,37 @@ int main()
 
 		// 1. graphics basepass
 		auto basepass = graph.add_pass(e_rgpass_type::graphics,
-			/*[BUILD]*/[&final_target, &buff_indices, &buff_vertices, &buff_instances, &textures](rgpass_builder& builder)
+			/*[BUILD]*/[](rgpass_builder& builder)
 			{
 				// [CBVs]
 				buffer_desc desc{}; desc.m_shared_heap = true; // cpu can write to these
 				desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_view);
-				builder.read_constbuffer("cb_per_view", desc).get();
+				builder.read_constbuffer(constants::k_graph_cb_per_view, desc).get();
 				desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_material);
-				builder.read_constbuffer("cb_per_material", desc).get();
+				builder.read_constbuffer(constants::k_graph_cb_per_material, desc).get();
 				desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_draw);
-				builder.read_constbuffer("cb_per_draw", desc).get();
+				builder.read_constbuffer(constants::k_graph_cb_per_material, desc).get();
 				desc.m_bytestride = sizeof(frontend::cbones);
 				desc.m_bytesize = desc.m_bytestride * MAX_NUM_BONES;
-				builder.read_constbuffer("cb_bones", desc).get();
+				builder.read_constbuffer(constants::k_graph_cb_bones, desc).get();
 				
 				// [SRVs]
-				builder.read_vertexbuffer(buff_vertices);
-				builder.read_indexbuffer(buff_indices);
-				builder.read_buffer(buff_instances).get();
-				builder.read_texture(textures[0]).get();
-				builder.read_texture(textures[1]).get();
+				builder.read_buffer(constants::k_graph_srv_instances).get();
+				builder.read_texture(constants::k_graph_tex_albedo).get();
+				builder.read_texture(constants::k_graph_tex_normals).get();
 
 				// [Rendertargets & Depthtarget]
-				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
+				const math::uint2& target_dim = constants::m_window_dim;
 				rgaccess access = rgaccess::clear_and_keep({});
 				texture_desc gbuffer_desc{};
 				gbuffer_desc.m_width = target_dim.x; gbuffer_desc.m_heigth = target_dim.y;
 				gbuffer_desc.m_format = graphics::e_format::rgba_u32;
-				builder.write_rendertarget(constants::gbuffernames[0], gbuffer_desc, access);
+				builder.write_rendertarget(constants::k_graph_tex_gbuffers[0], gbuffer_desc, access);
 				gbuffer_desc.m_format = graphics::e_format::u32;
-				builder.write_rendertarget(constants::gbuffernames[1], gbuffer_desc, access);
-				builder.write_rendertarget(constants::gbuffernames[2], gbuffer_desc, access);
-
-				texture_desc dbuffer_desc{};
-				dbuffer_desc.m_allow_uav = false;
-				dbuffer_desc.m_array_size = 1;
-				dbuffer_desc.m_bindflags = graphics::e_bind_flags::dsv;
-				dbuffer_desc.m_depth = 1;
-				dbuffer_desc.m_format = graphics::e_format::d32;
-				dbuffer_desc.m_width = target_dim.x;
-				dbuffer_desc.m_heigth = target_dim.y;
-				dbuffer_desc.m_init_state = graphics::e_resource_state::depth_target;
-				dbuffer_desc.m_num_mips = 1u;
-				dbuffer_desc.m_sample_count = 1u;
-				builder.write_depthtarget("depth_target", dbuffer_desc, access);
+				builder.write_rendertarget(constants::k_graph_tex_gbuffers[1], gbuffer_desc, access);
+				builder.write_rendertarget(constants::k_graph_tex_gbuffers[2], gbuffer_desc, access);
 			},
-			/*[EXECUTE]*/[&signature_basepass, &pipeline_basepass,buff_vertices, buff_indices, &camera, &cam_transform, 
-			&dev, total_num_indices, &loaded_scene](rgpass_context& ctx)
+			/*[EXECUTE]*/[buff_vertices, buff_indices, &camera, &cam_transform, &dev, &loaded](rgpass_context& ctx)
 			{
 				graphics::commandlist& cmdlist = ctx.get_commandlist();
 				graphics::descriptor_heap& gpu_resource_descheap = ctx.get_descheap_gpu(e_gpu_descheap::resource);
@@ -862,14 +851,14 @@ int main()
 				}
 				
 				cmdlist.set_descriptorheaps({&gpu_resource_descheap, &gpu_sampler_descheap });
-				cmdlist.set_rootsignature(signature_basepass);
-				cmdlist.set_pipeline(pipeline_basepass);
+				cmdlist.set_rootsignature(loaded.signature_basepass);
+				cmdlist.set_pipeline(loaded.pipeline_basepass);
 				cmdlist.set_primitive_topology(graphics::e_primitive_topology::trilist);
 				cmdlist.set_vertexbuffer(buff_vertices);
 				cmdlist.set_indexbuffer(buff_indices);
 
 				int vertex_offset = 0; uint32 index_offset = 0u;
-				for (const auto& mesh : loaded_scene.get_meshes())
+				for (const auto& mesh : loaded.loaded_scene.get_meshes())
 				{
 					const uint32 num_inds	= (uint32)mesh.m_indices.size();
 					const uint32 num_verts	= (uint32)mesh.m_positions.size();
@@ -888,55 +877,50 @@ int main()
 		
 		// 2. compute shadepass
 		auto shadepass = graph.add_pass(e_rgpass_type::compute,
-			/*[BUILD]*/ [&final_target, &buff_lights, &skybox_texture](rgpass_builder& builder)
+			/*[BUILD]*/ [](rgpass_builder& builder)
 			{
-				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
-
 				buffer_desc desc{};
 				desc.m_bytestride = desc.m_bytesize = sizeof(frontend::cs_shading_args);
 				desc.m_shared_heap = true; // CPU can write with map
-				builder.read_constbuffer("cb_shading_args", desc).get();
+				builder.read_constbuffer(constants::k_graph_cb_shade_args, desc).get();
+				builder.read_buffer(constants::k_graph_srv_pointlights).get();
+				builder.read_buffer(constants::k_graph_srv_dirlights).get();
+				builder.read_texture(constants::k_graph_cube_skybox).get();
+				builder.write_texture(constants::k_graph_tex_finaltarget).get();
 
-				builder.read_buffer(buff_lights).get();
-				builder.read_texture(skybox_texture).get();
-
-				// write to final target
-				builder.write_texture(final_target).get();
-
-				// read gbuffers
 				for (uint32 i = 0; i < constants::k_num_gbuffers; ++i)
 				{
-					builder.read_texture(constants::gbuffernames[i]).get();
+					builder.read_texture(constants::k_graph_tex_gbuffers[i]).get();
 				}
 			},
-			/*[EXECUTE]*/[&final_target, &signature_shadepass, &pipeline_shadepass, &dev, &skybox_texture](rgpass_context& ctx)
+			/*[EXECUTE]*/[&final_target, &loaded, &dev, &skybox_texture](rgpass_context& ctx)
 			{
 				graphics::commandlist& cmdlist = ctx.get_commandlist();
 				graphics::descriptor_heap& gpu_resource_descheap = ctx.get_descheap_gpu(e_gpu_descheap::resource);
 				graphics::descriptor_heap& gpu_sampler_descheap = ctx.get_descheap_gpu(e_gpu_descheap::sampler);
 				{
-					auto target_uav = ctx.get_write_texture("final_target").get();
+					auto target_uav = ctx.get_write_texture(constants::k_graph_tex_finaltarget).get();
 					graphics::descriptor_handle gpu_target = gpu_resource_descheap.get_cpu(frontend::k_final_target_id).get();
 					dev.copy_descriptors(target_uav.m_descriptor, gpu_target, rhi_descheap_type::rsc);
 				}
 				{
-					auto skybox = ctx.get_read_texture("tex_skybox").get();
+					auto skybox = ctx.get_read_texture(constants::k_graph_cube_skybox).get();
 					graphics::descriptor_handle gpu_skybox = gpu_resource_descheap.get_cpu(frontend::k_skybox_id).get();
 					dev.copy_descriptors(skybox.m_descriptor, gpu_skybox, rhi_descheap_type::rsc);
 				}
 				for (uint32 i = 0; i < constants::k_num_gbuffers; ++i)
 				{
-					auto gbuffer = ctx.get_read_texture(constants::gbuffernames[i]).get();
+					auto gbuffer = ctx.get_read_texture(constants::k_graph_tex_gbuffers[i]).get();
 					graphics::descriptor_handle gpu_gbuffer = gpu_resource_descheap.get_cpu(frontend::k_gbuffer_id + i).get();
 					dev.copy_descriptors(gbuffer.m_descriptor, gpu_gbuffer, rhi_descheap_type::rsc);
 				}
 
-				cmdlist.set_rootsignature(signature_shadepass, graphics::e_pipeline_type::compute);
-				cmdlist.set_pipeline(pipeline_shadepass);
+				cmdlist.set_rootsignature(loaded.signature_shadepass, graphics::e_pipeline_type::compute);
+				cmdlist.set_pipeline(loaded.pipeline_shadepass);
 				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
 
 				// update & bind cb_shading_args
-				graphics::resource* constbuffer = ctx.get_constbuffer("cb_shading_args").get().m_resource;
+				graphics::resource* constbuffer = ctx.get_constbuffer(constants::k_graph_cb_shade_args).get().m_resource;
 				constbuffer->map<frontend::cs_shading_args>([](frontend::cs_shading_args* args)
 				{
 					args->m_buffer_desc_indices;
