@@ -25,7 +25,7 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 // shader frontend
 namespace frontend
 {
-#include "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
+#include "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
 }
 #pragma endregion
 
@@ -46,13 +46,12 @@ class constants final
 {
 public:
 	// https://sketchfab.com/3d-models/silver-soldier-animated-a8f0d843735047b2999fbe4a9d7a1245#download
-	inline static const char* m_scene_filepath		= "E:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
-	inline static const char* m_shaders_filepath	= "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
-	inline static const char* m_albedo_filepath		= "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
-	inline static const char* m_normal_filepath		= "E:/Git/Influx/source/misc/rendering/resources/normals.png";
-	
-	inline static const char* m_skybox_filepath_base = "E:/Git/Influx/source/misc/rendering/resources/graycloud_";
-	inline static const char* m_skybox_files[] = { "bk", "dn", "ft", "lf", "rt", "up" };
+	inline static const char* m_scene_filepath			= "D:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
+	inline static const char* m_shaders_filepath		= "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
+	inline static const char* m_albedo_filepath			= "D:/Git/Influx/source/misc/rendering/resources/albedo.png";
+	inline static const char* m_normal_filepath			= "D:/Git/Influx/source/misc/rendering/resources/normals.png";
+	inline static const char* m_skybox_filepath_base	= "D:/Git/Influx/source/misc/rendering/resources/graycloud_";
+	inline static const char* m_skybox_files[]			= { "bk", "dn", "ft", "lf", "rt", "up" };
 
 	inline static const math::uint2 m_window_dim = { 640u, 480u };
 	static const uint32 k_num_swapchain_buffers = 3u;
@@ -98,40 +97,52 @@ struct settings final
 	}
 };
 
+class stats
+{
+public:
+	umap<const char*, float>	m_cpu_records{};
+	umap<const char*, uint32>	m_cpu_record_nums{};
+	uint64 m_gpu_memory_budget = 0u;
+	uint64 m_gpu_memory_used = 0u;
+
+	void reset_cpu_timings()
+	{
+		for (const auto& pair : m_cpu_records)
+		{
+			m_cpu_records[pair.first] = 0.0f;
+			m_cpu_record_nums[pair.first] = 0u;
+		}
+	}
+};
+static stats gstats{};
+class scope final
+{
+	influx::time::point m_start;
+	const char* m_name;
+public:
+	scope(const char* name) : m_name{ name }
+	{
+		m_start = time::get_now();
+	}
+	~scope()
+	{
+		float ms = time::get_ms_between<float>(time::get_now(), m_start);
+		gstats.m_cpu_records[m_name] += ms;
+		gstats.m_cpu_record_nums[m_name]++;
+	}
+};
+
+class content
+{
+	umap<const char*, imp::scene_data> m_loaded_scenes{};
+	umap<const char*, imp::image_data> m_loaded_images{};
+	umap<const char*, imp::cubemap_data> m_loaded_cubemaps{};
+public:
+};
+static content gcontent{};
+
 int main()
 {
-	struct cpu_timings
-	{
-		umap<const char*, float> m_records{};
-		umap<const char*, uint32> m_record_nums{};
-		void reset()
-		{
-			for (const auto& pair : m_records)
-			{
-				m_records[pair.first] = 0.0f;
-				m_record_nums[pair.first] = 0u;
-			}
-		}
-	};
-	static cpu_timings timings{};
-	static uint64 gpu_memory_budget = 0u;
-	static uint64 gpu_memory_used = 0u;
-	class scope final
-	{
-		influx::time::point m_start;
-		const char* m_name;
-	public:
-		scope(const char* name) : m_name{ name }
-		{
-			m_start = time::get_now();
-		}
-		~scope()
-		{
-			float ms = time::get_ms_between<float>(time::get_now(), m_start);
-			timings.m_records[m_name] += ms;
-			timings.m_record_nums[m_name]++;
-		}
-	};
 #if ENABLE_STATS
 	auto log_timings = []()
 	{
@@ -237,8 +248,7 @@ int main()
 		loaded_cubemap = imp::load_cubemap("", args).get();
 		total_bytesize_cubemap = loaded_cubemap.m_bytesize;
 	}
-	
-	
+
 	// setup camera
 	influx::camera camera{};
 	math::transform3D cam_transform = math::transform3D::identity();
@@ -253,10 +263,13 @@ int main()
 	}
 
 	// make platform window
+	platform::window* window = nullptr;
 	platform::window_desc window_desc{};
-	window_desc.m_dimensions = constants::m_window_dim;
-	window_desc.m_name = "rendering";
-	platform::window* window = platform::window::create(window_desc);
+	{
+		window_desc.m_dimensions = constants::m_window_dim;
+		window_desc.m_name = "rendering";
+		window = platform::window::create(window_desc);
+	}
 
 	// setup core graphics objects
 	graphics::device& dev = *graphics::device::create(graphics::e_api_type::dx12);
@@ -729,59 +742,53 @@ int main()
 	rendergraph::rendergraph graph{ {}, dev };
 	{
 		using namespace influx::rendergraph;
-		graph.import_buffer("buff_indices", buff_indices);
-		graph.import_buffer("buff_vertices", buff_vertices);
-		
+
 		// 1. graphics basepass
 		auto basepass = graph.add_pass(e_rgpass_type::graphics,
 			/*[BUILD]*/[&final_target, &buff_indices, &buff_vertices, &buff_instances, &textures](rgpass_builder& builder)
 			{
-				// [CBVs]			
-				{
-					buffer_desc desc{}; desc.m_shared_heap = true; // cpu can write to these
-
-					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_view);
-					builder.read_constbuffer("cb_per_view", desc).get();
-					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_material);
-					builder.read_constbuffer("cb_per_material", desc).get();
-					desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_draw);
-					builder.read_constbuffer("cb_per_draw", desc).get();
-					desc.m_bytestride = sizeof(frontend::cbones);
-					desc.m_bytesize = desc.m_bytestride * MAX_NUM_BONES;
-					builder.read_constbuffer("cb_bones", desc).get();
-				}
+				// [CBVs]
+				buffer_desc desc{}; desc.m_shared_heap = true; // cpu can write to these
+				desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_view);
+				builder.read_constbuffer("cb_per_view", desc).get();
+				desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_material);
+				builder.read_constbuffer("cb_per_material", desc).get();
+				desc.m_bytestride = desc.m_bytesize = sizeof(frontend::per_draw);
+				builder.read_constbuffer("cb_per_draw", desc).get();
+				desc.m_bytestride = sizeof(frontend::cbones);
+				desc.m_bytesize = desc.m_bytestride * MAX_NUM_BONES;
+				builder.read_constbuffer("cb_bones", desc).get();
 				
-				// builder.read_vertex_buffer(buff_vertices);
-				// builder.read_index_buffer(buff_indices);
+				// [SRVs]
+				builder.read_vertexbuffer(buff_vertices);
+				builder.read_indexbuffer(buff_indices);
 				builder.read_buffer(buff_instances).get();
 				builder.read_texture(textures[0]).get();
 				builder.read_texture(textures[1]).get();
 
 				// [Rendertargets & Depthtarget]
-				{
-					const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
-					rgaccess access = rgaccess::clear_and_keep({});
-					texture_desc gbuffer_desc{};
-					gbuffer_desc.m_width = target_dim.x; gbuffer_desc.m_heigth = target_dim.y;
-					gbuffer_desc.m_format = graphics::e_format::rgba_u32;
-					builder.write_rendertarget(constants::gbuffernames[0], gbuffer_desc, access);
-					gbuffer_desc.m_format = graphics::e_format::u32;
-					builder.write_rendertarget(constants::gbuffernames[1], gbuffer_desc, access);
-					builder.write_rendertarget(constants::gbuffernames[2], gbuffer_desc, access);
+				const math::uint2& target_dim = { final_target->get_width(), final_target->get_height() };
+				rgaccess access = rgaccess::clear_and_keep({});
+				texture_desc gbuffer_desc{};
+				gbuffer_desc.m_width = target_dim.x; gbuffer_desc.m_heigth = target_dim.y;
+				gbuffer_desc.m_format = graphics::e_format::rgba_u32;
+				builder.write_rendertarget(constants::gbuffernames[0], gbuffer_desc, access);
+				gbuffer_desc.m_format = graphics::e_format::u32;
+				builder.write_rendertarget(constants::gbuffernames[1], gbuffer_desc, access);
+				builder.write_rendertarget(constants::gbuffernames[2], gbuffer_desc, access);
 
-					texture_desc dbuffer_desc{};
-					dbuffer_desc.m_allow_uav = false;
-					dbuffer_desc.m_array_size = 1;
-					dbuffer_desc.m_bindflags = graphics::e_bind_flags::dsv;
-					dbuffer_desc.m_depth = 1;
-					dbuffer_desc.m_format = graphics::e_format::d32;
-					dbuffer_desc.m_width = target_dim.x;
-					dbuffer_desc.m_heigth = target_dim.y;
-					dbuffer_desc.m_init_state = graphics::e_resource_state::depth_target;
-					dbuffer_desc.m_num_mips = 1u;
-					dbuffer_desc.m_sample_count = 1u;
-					builder.write_depthtarget("depth_target", dbuffer_desc, access);
-				}
+				texture_desc dbuffer_desc{};
+				dbuffer_desc.m_allow_uav = false;
+				dbuffer_desc.m_array_size = 1;
+				dbuffer_desc.m_bindflags = graphics::e_bind_flags::dsv;
+				dbuffer_desc.m_depth = 1;
+				dbuffer_desc.m_format = graphics::e_format::d32;
+				dbuffer_desc.m_width = target_dim.x;
+				dbuffer_desc.m_heigth = target_dim.y;
+				dbuffer_desc.m_init_state = graphics::e_resource_state::depth_target;
+				dbuffer_desc.m_num_mips = 1u;
+				dbuffer_desc.m_sample_count = 1u;
+				builder.write_depthtarget("depth_target", dbuffer_desc, access);
 			},
 			/*[EXECUTE]*/[&signature_basepass, &pipeline_basepass,buff_vertices, buff_indices, &camera, &cam_transform, 
 			&dev, total_num_indices, &loaded_scene](rgpass_context& ctx)
@@ -790,40 +797,7 @@ int main()
 				graphics::descriptor_heap& gpu_resource_descheap = ctx.get_descheap_gpu(e_gpu_descheap::resource);
 				graphics::descriptor_heap& gpu_sampler_descheap = ctx.get_descheap_gpu(e_gpu_descheap::sampler);
 
-				// copy the cpu descriptor into the gpu-visible descriptor
-				{
-					auto tex_albedo = ctx.get_read_texture("tex_albedo").get();
-					auto tex_normal = ctx.get_read_texture("tex_normals").get();
-					auto buff_instance = ctx.get_read_buffer("buff_instances").get();
-					graphics::descriptor_handle gpu_albedo = gpu_resource_descheap.get_cpu(frontend::k_albedo_id).get();
-					graphics::descriptor_handle gpu_normal = gpu_resource_descheap.get_cpu(frontend::k_normals_id).get();
-					graphics::descriptor_handle gpu_instance = gpu_resource_descheap.get_cpu(frontend::k_instancebuffer_id).get();
-					dev.copy_descriptors(tex_albedo.m_descriptor, gpu_albedo, rhi_descheap_type::rsc);
-					dev.copy_descriptors(tex_normal.m_descriptor, gpu_normal, rhi_descheap_type::rsc);
-					dev.copy_descriptors(buff_instance.m_descriptor, gpu_instance, rhi_descheap_type::rsc);
-
-					static bool done_once = false;
-					graphics::descriptor_handle gpu_sampler = gpu_sampler_descheap.get_cpu(frontend::k_sampler_id).get();
-					if (!done_once)
-					{
-						dev.create_sampler_view(gpu_sampler, nullptr);
-						done_once = true;
-					}
-				}
-				
-				// bind the gpu descriptor heaps
-				cmdlist.set_descriptorheaps(
-				{
-					&gpu_resource_descheap,
-					&gpu_sampler_descheap
-				});
-
-				// bind the pipeline & rootsig
-				cmdlist.set_rootsignature(signature_basepass);
-				cmdlist.set_pipeline(pipeline_basepass);
-				cmdlist.set_primitive_topology(graphics::e_primitive_topology::trilist);
-				
-				// bind the CBVs
+				// update the CBV data (mapped on each frame)
 				{
 					graphics::resource* constbuffers[] =
 					{
@@ -866,12 +840,35 @@ int main()
 					}
 				}
 
-				// bind the geometry buffers
+				// copy the cpu descriptor into the gpu-visible descriptor
+				{
+					auto tex_albedo = ctx.get_read_texture("tex_albedo").get();
+					auto tex_normal = ctx.get_read_texture("tex_normals").get();
+					auto buff_instance = ctx.get_read_buffer("buff_instances").get();
+					graphics::descriptor_handle gpu_albedo = gpu_resource_descheap.get_cpu(frontend::k_albedo_id).get();
+					graphics::descriptor_handle gpu_normal = gpu_resource_descheap.get_cpu(frontend::k_normals_id).get();
+					graphics::descriptor_handle gpu_instance = gpu_resource_descheap.get_cpu(frontend::k_instancebuffer_id).get();
+					dev.copy_descriptors(tex_albedo.m_descriptor, gpu_albedo, rhi_descheap_type::rsc);
+					dev.copy_descriptors(tex_normal.m_descriptor, gpu_normal, rhi_descheap_type::rsc);
+					dev.copy_descriptors(buff_instance.m_descriptor, gpu_instance, rhi_descheap_type::rsc);
+
+					static bool done_once = false;
+					graphics::descriptor_handle gpu_sampler = gpu_sampler_descheap.get_cpu(frontend::k_sampler_id).get();
+					if (!done_once)
+					{
+						dev.create_sampler_view(gpu_sampler, nullptr);
+						done_once = true;
+					}
+				}
+				
+				cmdlist.set_descriptorheaps({&gpu_resource_descheap, &gpu_sampler_descheap });
+				cmdlist.set_rootsignature(signature_basepass);
+				cmdlist.set_pipeline(pipeline_basepass);
+				cmdlist.set_primitive_topology(graphics::e_primitive_topology::trilist);
 				cmdlist.set_vertexbuffer(buff_vertices);
 				cmdlist.set_indexbuffer(buff_indices);
 
-				int vertex_offset = 0;
-				uint32 index_offset = 0u;
+				int vertex_offset = 0; uint32 index_offset = 0u;
 				for (const auto& mesh : loaded_scene.get_meshes())
 				{
 					const uint32 num_inds	= (uint32)mesh.m_indices.size();
@@ -900,15 +897,17 @@ int main()
 				desc.m_shared_heap = true; // CPU can write with map
 				builder.read_constbuffer("cb_shading_args", desc).get();
 
-				builder.read_buffer(buff_lights);
-				builder.read_texture(skybox_texture);
+				builder.read_buffer(buff_lights).get();
+				builder.read_texture(skybox_texture).get();
 
 				// write to final target
 				builder.write_texture(final_target).get();
 
 				// read gbuffers
 				for (uint32 i = 0; i < constants::k_num_gbuffers; ++i)
+				{
 					builder.read_texture(constants::gbuffernames[i]).get();
+				}
 			},
 			/*[EXECUTE]*/[&final_target, &signature_shadepass, &pipeline_shadepass, &dev, &skybox_texture](rgpass_context& ctx)
 			{
@@ -973,8 +972,8 @@ int main()
 	while (!is_quit)
 	{
 		auto gpu_mem = dev.get_memory_info().get();
-		gpu_memory_budget = gpu_mem.m_gpu_budget;
-		gpu_memory_used = gpu_mem.m_gpu_usage;
+		gstats.m_gpu_memory_budget = gpu_mem.m_gpu_budget;
+		gstats.m_gpu_memory_used = gpu_mem.m_gpu_usage;
 
 		scope sc_frame{ "frame" };
 		{
@@ -1010,7 +1009,7 @@ int main()
 		}
 
 		if (frame == 64u * 12u) 
-			timings.reset();
+			gstats.reset_cpu_timings();
 		++frame;
 	}
 }

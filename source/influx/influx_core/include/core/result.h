@@ -49,7 +49,7 @@ namespace influx
 		inline constexpr bool is_booleable_v = is_booleable<T>::value;
 	}
 
-#define CHECK_RESULT_IMMEDIATE 1
+#define CHECK_RESULT_IMMEDIATE 0
 
 	template <typename _t = char, typename _e = const char*>
 	class result final

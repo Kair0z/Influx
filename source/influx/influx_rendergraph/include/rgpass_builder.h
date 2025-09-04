@@ -33,17 +33,17 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<rgbuffer_readonly_id> read_buffer(const rgname& name, rgread_access read_acc = rgread_access::all_shader, uint32 offset = 0u, uint32 size = -1);
 		INFLUX_RG_API result<rgbuffer_readwrite_id> write_buffer(const rgname& name, uint32 offset = 0u, uint32 size = -1);
 		INFLUX_RG_API result<rgbuffer_readwrite_id> write_buffer(const rgname& name, const rgname& counter_name, uint32 offset = 0, uint32 size = -1);
+		INFLUX_RG_API result<rgtexture_readonly_id> read_texture(const rgname& name, rgread_access read_acc = rgread_access::all_shader, const texture_desc_options & = {});
+		INFLUX_RG_API result<rgtexture_readwrite_id> write_texture(const rgname& name, const texture_desc_options & = {});
 
 		INFLUX_RG_API result<rgtex_copysrc_id>	read_copysrc_texture(const rgname& name);
 		INFLUX_RG_API result<rgtex_copydst_id>	write_copydst_texture(const rgname& name);
 		INFLUX_RG_API result<rgbuf_copysrc_id>	read_copysrc_buffer(const rgname& name);
 		INFLUX_RG_API result<rgbuf_copydst_id>	write_copydst_buffer(const rgname& name);
 		INFLUX_RG_API result<rgbuf_indargs_id>	read_indirect_args_buffer(const rgname& name);
+		INFLUX_RG_API result<rgbuf_vertex_id>	read_vertex_buffer(const rgname&);
 		INFLUX_RG_API result<rgbuf_index_id>	read_index_buffer(const rgname&);
 		INFLUX_RG_API result<rgbuf_const_id>	read_constbuffer(const rgname&);
-
-		INFLUX_RG_API result<rgtexture_readonly_id> read_texture(const rgname& name, rgread_access read_acc = rgread_access::all_shader, const texture_desc_options& = {});
-		INFLUX_RG_API result<rgtexture_readwrite_id> write_texture(const rgname& name, const texture_desc_options& = {});
  
 		INFLUX_RG_API result<rgrendertarget_id> write_rendertarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& = {});
 		INFLUX_RG_API result<rgdepthtarget_id> write_depthtarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& = {});
@@ -198,6 +198,44 @@ namespace influx::rendergraph
 				if (!imp_res) return result_type::make_error("failed importing texture!");
 			}
 			return read_texture(name, rendergraph::translate_texture_desc(*resource), read_acc, options);
+		}
+		inline result<rgbuf_vertex_id> read_vertexbuffer(rhi_resource* resource) 
+		{
+			using result_type = result<rgbuf_vertex_id>;
+			if (resource->get_name().is_empty())
+				return result_type::make_error("cannot import resource with no name!");
+
+			const rgname name = resource->get_name();
+			if (!m_graph.m_buffer_name_to_id_map.contains(name))
+			{
+				auto imp_res = m_graph.import_buffer(resource);
+				if (!imp_res) return result_type::make_error("failed importing buffer!");
+			}
+			if (!is_buffer_declared(name))
+			{
+				auto decl_res = declare_buffer(name, rendergraph::translate_buffer_desc(*resource));
+				if (!decl_res) return result_type::make_error("failed declaring buffer!");
+			}
+			return read_vertex_buffer(name);
+		}
+		inline result<rgbuf_index_id> read_indexbuffer(rhi_resource* resource)
+		{
+			using result_type = result<rgbuf_index_id>;
+			if (resource->get_name().is_empty())
+				return result_type::make_error("cannot import resource with no name!");
+
+			const rgname name = resource->get_name();
+			if (!m_graph.m_buffer_name_to_id_map.contains(name))
+			{
+				auto imp_res = m_graph.import_buffer(resource);
+				if (!imp_res) return result_type::make_error("failed importing buffer!");
+			}
+			if (!is_buffer_declared(name))
+			{
+				auto decl_res = declare_buffer(name, rendergraph::translate_buffer_desc(*resource));
+				if (!decl_res) return result_type::make_error("failed declaring buffer!");
+			}
+			return read_index_buffer(name);
 		}
 
 		INFLUX_RG_API result<> dummy_write_texture(const rgname& name);

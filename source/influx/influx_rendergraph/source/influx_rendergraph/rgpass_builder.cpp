@@ -170,6 +170,25 @@ namespace influx::rendergraph
 		
 		return ind_args_id.get();
 	}
+	result<rgbuf_vertex_id> rgpass_builder::read_vertex_buffer(const rgname& name)
+	{
+		auto vert_id = m_graph.read_vertex_buffer(name);
+		if (vert_id.is_unex())
+		{
+			register_error_to_current_pass();
+			return result<rgbuf_vertex_id>::make_error("read_vertex_buffer failed!");
+		}
+
+		rgbuffer_id res_id(vert_id.get());
+
+		// register a state transition
+		m_pass.m_buffer_state_map[res_id] = rhi_resource_state::vertexbuffer;
+
+		// register a buff-read
+		m_pass.m_buffer_reads.push_back(res_id);
+
+		return vert_id.get();
+	}
 	result<rgbuf_index_id> rgpass_builder::read_index_buffer(const rgname& name)
 	{
 		auto index_id = m_graph.read_index_buffer(name);

@@ -1,5 +1,6 @@
 // influx::core
 #include "core/math/random.h"
+#include "core/time.h"
 
 // influx::rhi
 #include "influx_rhi.h"
@@ -7,13 +8,10 @@
 // influx::platform
 #include "influx_platform/window.h"
 
+// STL
+#include <cmath>
 
-//Malous stuff
-#include <iostream>
-#include <cstdlib>
-#include <ctime>
-#include <chrono>
-#include <thread>
+using namespace influx;
 
 template <typename _t>
 void check_result(influx::rhi::result<_t>  result)
@@ -25,58 +23,66 @@ void check_result(influx::rhi::result<_t>  result)
 	}
 }
 
+#if MALOU
+//Malous stuff
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+#include <chrono>
+#include <thread>
 int getRandomNumber() {
 	std::srand(std::time(0)); // Seed the random number generator
 	return std::rand() % 4;
 }
 static auto start = std::chrono::high_resolution_clock::now();
-
-void Malou(){
-	switch (getRandomNumber())
+void Malou()
+{
+	while (true)
 	{
-	case 0:
-	{
-		printf("Hihi\n");
-		break;
-	}
-	case 1:
-	{
-		// Store the ending time
-		auto end = std::chrono::high_resolution_clock::now();
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		switch (getRandomNumber())
+		{
+		case 0:
+		{
+			printf("Hihi\n");
+			break;
+		}
+		case 1:
+		{
+			// Store the ending time
+			auto end = std::chrono::high_resolution_clock::now();
 
-		// Calculate delta time as float (in seconds)
-		std::chrono::duration<float> delta = end - start;
-		float deltaTime = delta.count();
+			// Calculate delta time as float (in seconds)
+			std::chrono::duration<float> delta = end - start;
+			float deltaTime = delta.count();
 
-		
-		printf("This is the amount of time you havent spent with your girlfriend and instead spent compiling! ");
-		printf("%.3f\n", deltaTime);
-		break;
 
-	}
-	case 2:
-	{
-		printf("I Love You!!! <3 <3 <3 \n");
-		break;
-	}
-	case 3:
-	{
-		printf("Malou was here!!!!\n");
-		break;
+			printf("This is the amount of time you havent spent with your girlfriend and instead spent compiling! ");
+			printf("%.3f\n", deltaTime);
+			break;
 
-	}
-	default: {
+		}
+		case 2:
+		{
+			printf("I Love You!!! <3 <3 <3 \n");
+			break;
+		}
+		case 3:
+		{
+			printf("Malou was here!!!!\n");
+			break;
 
-		break;
-	}
-	}
+		}
+		default: {
 
+			break;
+		}
+		}
+	}
 }
+#endif
 
-
-
-using namespace influx;
-
+#if VIRTUAL_TEXTURE
 template <typename _t, uint32 _x, uint32 _y, uint64 _ps>
 class virtual_texture
 {
@@ -189,17 +195,7 @@ public:
 		return page_base[local_index];
 	}
 };
-
-int main()
-{
-	while (true)
-	{
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		Malou();
-	}
-}
-
-void _main()
+void virtual_texture_main()
 {
 	influx::random::seed_random();
 
@@ -209,7 +205,7 @@ void _main()
 	static constexpr uint32 k_dimensions = 16384;
 	using texture_16k = virtual_texture<char, k_dimensions, k_dimensions, 64u * 1024u>;
 	texture_16k texture{};
-	
+
 	texture_16k::sample_info samp_info{};
 	uint32 num_reused_samples = 0u;
 	static constexpr uint32 k_num_samples = 64u * 1024u;
@@ -226,7 +222,7 @@ void _main()
 		std::cout << sample << " ";
 
 		// accumulate info
-		if (samp_info.m_allocation == false) 
+		if (samp_info.m_allocation == false)
 			num_reused_samples++;
 	}
 
@@ -234,4 +230,209 @@ void _main()
 	const float memory_footprint_pc = (float)texture.get_bytes_allocated() / texture.k_mbytes_total;
 
 	__debugbreak();
+}
+#endif
+
+#if VIRTUAL_FUNCTIONS
+static float global = 100.0f;
+void the_function()
+{
+	global /= 10.0f;
+}
+class pa
+{
+	virtual void buu() = 0;
+};
+class pb : public pa
+{
+public:
+	virtual void buu() = 0;
+};
+class pc : public pb
+{
+public:
+	virtual void buu() override
+	{
+		the_function();
+	}
+};
+class a
+{
+public:
+	virtual void boo()
+	{
+		the_function();
+	}
+	virtual void ba()
+	{
+		the_function();
+	}
+	virtual void bee()
+	{
+		the_function();
+	}
+};
+class b : public a
+{
+public:
+	virtual void boo() override
+	{
+		the_function();
+	}
+	virtual void ba() override
+	{
+		the_function();
+	}
+	virtual void bee() override
+	{
+		the_function();
+	}
+};
+class c : public b
+{
+public:
+	virtual void boo() override
+	{
+		the_function();
+	}
+	virtual void ba() override
+	{
+		the_function();
+	}
+	virtual void bee() override
+	{
+		the_function();
+	}
+};
+void virtual_functions()
+{
+	auto test = [](uint32 num_iterations)
+	{
+		// basic
+		global = 100.0f;
+		auto before = time::get_now();
+		for (uint32 i = 0u; i < num_iterations; ++i)
+			the_function();
+		float ns_basic = time::get_ns_between<float>(time::get_now(), before);
+		std::cout << "[basic]: " << std::setprecision(4) << ns_basic << " ns\n";
+
+		// virtual
+		global = 100.0f;
+		before = time::get_now(); c the_c{};
+		for (uint32 i = 0u; i < num_iterations; ++i)
+			the_c.bee();
+		float ns_virtual = time::get_ns_between<float>(time::get_now(), before);
+		std::cout << "[virtual]: " << std::setprecision(4) << ns_virtual << " ns\n";
+
+		// pure virtual
+		global = 100.0f;
+		before = time::get_now(); pc the_pc{};
+		for (uint32 i = 0u; i < num_iterations; ++i)
+			the_pc.buu();
+		float ns_pvirtual = time::get_ns_between<float>(time::get_now(), before);
+		std::cout << "[pure virtual]: " << std::setprecision(4) << ns_pvirtual << " ns\n";
+
+		if (ns_basic > ns_virtual)
+		{
+			const int pc = std::abs(std::lround((ns_virtual / ns_basic) * 100) - 100);
+			std::cout << "the virtual method is " << pc << "% faster!\n";
+		}
+		else
+		{
+			const int pc = std::abs(std::lround((ns_virtual / ns_basic) * 100) - 100);
+			std::cout << "the virtual method is " << pc << "% slower!\n";
+		}
+		if (ns_virtual > ns_pvirtual)
+		{
+			const int pc = std::abs(std::lround((ns_virtual / ns_pvirtual) * 100) - 100);
+			std::cout << "the pure virtual method is " << pc << "% faster than virtual!\n";
+		}
+		else
+		{
+			const int pc = std::abs(std::lround((ns_virtual / ns_pvirtual) * 100) - 100);
+			std::cout << "the pure virtual method is " << pc << "% slower than virtual!\n";
+		}
+	};
+
+	std::cout << "[virtual functions]\n";
+
+	int num_iterations = 1;
+	while (num_iterations > 0)
+	{
+		std::cout << "enter num calls: ...\n";
+		std::cin >> num_iterations;
+		if (num_iterations > 0) 
+			test(num_iterations);
+		std::cout << "\n";
+	}
+}
+#endif
+
+#if RESULTS || 1
+static float glob = 100.0f;
+static void the_function()
+{
+	glob /= 3.5f;
+#if 0
+	if (glob > 30)
+		glob = glob + 0.00001f;
+#endif
+}
+static result<> the_function2()
+{
+	glob /= 3.5f;
+#if 0
+	if (glob < 30)
+		return result<>::make_error("fail");
+#endif
+	return {};
+}
+void test_results()
+{
+	auto test = [](uint32 num_iterations)
+	{
+		// basic
+			glob = 100.0f;
+		auto before = time::get_now();
+		for (uint32 i = 0u; i < num_iterations; ++i)
+			the_function();
+		float ns_basic = time::get_ns_between<float>(time::get_now(), before);
+		std::cout << "[basic]: " << std::setprecision(4) << ns_basic << " ns\n";
+
+		// virtual
+		glob = 100.0f;
+		before = time::get_now();
+		for (uint32 i = 0u; i < num_iterations; ++i)
+			the_function2();
+		float ns_result = time::get_ns_between<float>(time::get_now(), before);
+		std::cout << "[result]: " << std::setprecision(4) << ns_result << " ns\n";
+
+		if (ns_basic > ns_result)
+		{
+			const int pc = std::abs(std::lround((ns_result / ns_basic) * 100) - 100);
+			std::cout << "the result method is " << pc << "% faster!\n";
+		}
+		else
+		{
+			const int pc = std::abs(std::lround((ns_result / ns_basic) * 100) - 100);
+			std::cout << "the result method is " << pc << "% slower!\n";
+		}
+	};
+
+	std::cout << "[results]\n";
+
+	int num_iterations = 1;
+	while (num_iterations > 0)
+	{
+		std::cout << "enter num calls: ...\n";
+		std::cin >> num_iterations;
+		if (num_iterations > 0)
+			test(num_iterations);
+		std::cout << "\n";
+	}
+}
+#endif
+int main()
+{
+	test_results();
 }
