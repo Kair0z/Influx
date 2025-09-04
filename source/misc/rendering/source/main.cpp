@@ -25,7 +25,7 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 // shader frontend
 namespace frontend
 {
-#include "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
+#include "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
 }
 #pragma endregion
 
@@ -46,11 +46,11 @@ class constants final
 {
 public:
 	// https://sketchfab.com/3d-models/silver-soldier-animated-a8f0d843735047b2999fbe4a9d7a1245#download
-	inline static const char* m_scene_filepath			= "D:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
-	inline static const char* m_shaders_filepath		= "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
-	inline static const char* m_albedo_filepath			= "D:/Git/Influx/source/misc/rendering/resources/albedo.png";
-	inline static const char* m_normal_filepath			= "D:/Git/Influx/source/misc/rendering/resources/normals.png";
-	inline static const char* m_skybox_filepath_base	= "D:/Git/Influx/source/misc/rendering/resources/graycloud_";
+	inline static const char* m_scene_filepath			= "E:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
+	inline static const char* m_shaders_filepath		= "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
+	inline static const char* m_albedo_filepath			= "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
+	inline static const char* m_normal_filepath			= "E:/Git/Influx/source/misc/rendering/resources/normals.png";
+	inline static const char* m_skybox_filepath_base	= "E:/Git/Influx/source/misc/rendering/resources/graycloud_";
 	inline static const char* m_skybox_files[]			= { "bk", "dn", "ft", "lf", "rt", "up" };
 
 	inline static const math::uint2 m_window_dim = { 640u, 480u };
@@ -121,6 +121,53 @@ public:
 	uint64 m_gpu_memory_budget = 0u;
 	uint64 m_gpu_memory_used = 0u;
 
+	void log_cpu_timings()
+	{
+		std::cout << "\033[H\033[J"; // clear prev
+		using pair = std::pair<const char*, float>;
+		vector<pair> averages{};
+		averages.reserve(m_cpu_records.size());
+
+		// gather avgs
+		for (const auto& pair : m_cpu_records)
+		{
+			const uint32 num = m_cpu_record_nums[pair.first];
+			const float avg = pair.second / (float)num;
+			averages.push_back({ pair.first, avg });
+		}
+		std::sort(averages.begin(), averages.end(), [](const pair& a, const pair& b)
+		{
+			return a.second > b.second;
+		});
+
+		// print avgs
+		artscii::progress_bar bar{};
+		bar.cursor_char() = '=';
+		bar.bar_length() = 64u;
+		const float frame_avg = averages[0].second;
+		for (const auto& pair : averages)
+		{
+			const float avg = pair.second;
+			bar.pc() = avg / frame_avg;
+			std::cout
+				<< "[" << std::left << std::setw(15) << pair.first << "]"			// Label aligned with ']'
+				<< std::setw(10)													// Space between ']' and bar
+				<< std::setw(20) << bar.get_cstr()									// Bar with fixed width
+				<< std::right << std::setw(10) << std::fixed << std::setprecision(4) // Right-align the average
+				<< avg << " ms" << std::endl;
+		}
+		std::cout << std::endl;
+
+		bar.bar_length() = 32u;
+		const float gpu_used = (float)m_gpu_memory_budget;
+		const float gpu_budget = (float)m_gpu_memory_used;
+		const float GB_used = gpu_used / (1024 * 1024 * 1024);
+		const float GB_budget = gpu_budget / (1024 * 1024 * 1024);
+		bar.pc() = gpu_used / gpu_budget;
+		std::cout << "[VRAM] " << bar.get_cstr() << " " << std::setprecision(4) << GB_used << "/" << GB_budget << " GB \n";
+		std::cout << std::flush;
+		// std::this_thread::sleep_for(std::chrono::seconds(1)); // wait a second per log
+	}
 	void reset_cpu_timings()
 	{
 		for (const auto& pair : m_cpu_records)
@@ -147,119 +194,123 @@ public:
 		gstats.m_cpu_record_nums[m_name]++;
 	}
 };
-
-class content
+class content final
 {
 	umap<const char*, imp::scene_data> m_loaded_scenes{};
 	umap<const char*, imp::image_data> m_loaded_images{};
-	umap<const char*, imp::cubemap_data> m_loaded_cubemaps{};
+	umap<const char*, graphics::resource*> m_uploaded_textures{};
+
+	struct geometry_buffers { graphics::resource* m_indexbuffer{}; graphics::resource* m_vertexbuffer{}; };
+	using mesh_vector = vector<geometry_buffers>;
+	umap<const char*, mesh_vector> m_uploaded_meshes{};
+
 public:
+	const umap<const char*, imp::image_data>& get_images() const { return m_loaded_images; }
+
+	result<imp::image_data> load(const char* filepath, const imp::image_load_args& args)
+	{
+		using result_type = result<imp::scene_data>;
+		m_loaded_images[filepath] = imp::load_image_file(filepath, args).get();
+		return m_loaded_images[filepath];
+	}
+	result<imp::scene_data> load(const char* filepath, const imp::scene_load_args& args)
+	{
+		using result_type = result<imp::scene_data>;
+		m_loaded_scenes[filepath] = imp::load_scene_file(filepath, args).get();
+		return m_loaded_scenes[filepath];
+	}
+	result<> register_mesh(const char* filepath, graphics::resource* indexbuffer, graphics::resource* vertexbuffer, uint32 index)
+	{
+		const uint64 old_size = m_uploaded_meshes[filepath].size();
+		m_uploaded_meshes[filepath].resize(std::min(old_size, (uint64)index + 1));
+		m_uploaded_meshes[filepath][index].m_indexbuffer = indexbuffer;
+		m_uploaded_meshes[filepath][index].m_vertexbuffer = vertexbuffer;
+	}
+	result<> register_texture(const char* filepath, const graphics::resource* resource)
+	{
+		m_uploaded_textures[filepath] = resource;
+	}
 };
 static content gcontent{};
 
 int main()
 {
-#if ENABLE_STATS
-	auto log_timings = []()
-	{
-		std::cout << "\033[H\033[J"; // clear prev
-		using pair = std::pair<const char*, float>;
-		vector<pair> averages{};
-		averages.reserve(timings.m_records.size());
-
-		// gather avgs
-		for (const auto& pair : timings.m_records)
-		{
-			const uint32 num = timings.m_record_nums[pair.first];
-			const float avg = pair.second / (float)num;
-			averages.push_back({ pair.first, avg });
-		}
-		std::sort(averages.begin(), averages.end(), [](const pair& a, const pair& b)
-		{
-			return a.second > b.second;
-		});
-		
-		// print avgs
-		artscii::progress_bar bar{}; 
-		bar.cursor_char() = '=';
-		bar.bar_length() = 64u;
-		const float frame_avg = averages[0].second;
-		for (const auto& pair : averages)
-		{
-			const float avg = pair.second;
-			bar.pc() = avg / frame_avg;
-			std::cout
-				<< "[" << std::left << std::setw(15) << pair.first << "]"			// Label aligned with ']'
-				<< std::setw(10)													// Space between ']' and bar
-				<< std::setw(20) << bar.get_cstr()									// Bar with fixed width
-				<< std::right << std::setw(10) << std::fixed << std::setprecision(4) // Right-align the average
-				<< avg << " ms" << std::endl;
-		}
-		std::cout << std::endl;
-
-		bar.bar_length() = 32u;
-		const float gpu_used = (float)gpu_memory_used;
-		const float gpu_budget = (float)gpu_memory_budget;
-		const float GB_used = gpu_used / (1024 * 1024 * 1024);
-		const float GB_budget = gpu_budget / (1024 * 1024 * 1024);
-		bar.pc() = gpu_used / gpu_budget;
-		std::cout << "[VRAM] " << bar.get_cstr() << " " << std::setprecision(4) << GB_used << "/" << GB_budget<< " GB \n";
-		std::cout << std::flush;
-
-		std::this_thread::sleep_for(std::chrono::seconds(1)); // wait a second per log
-	};
-#endif // ENABLE_STATS
-
 	// setup core graphics objects
 	graphics::device& dev = *graphics::device::create(graphics::e_api_type::dx12);
 
-	// MEGA upload heap
+	// upload heap
 	graphics::buffer_desc upload_desc{};
 	upload_desc.m_bytesize = 1024u * 1024 * 8u; // 8MB should be fine...
 	upload_desc.m_init_state = graphics::e_resource_state::gen_read;
 	graphics::resource* uploadheap = dev.create_resource(upload_desc, graphics::heap_desc::shared_heap());
 
-	// start loading assets
-	struct loaded_results final
-	{
-		imp::scene_data loaded_scene{};
-		vector<imp::image_data> loaded_images{};
-		imp::cubemap_data loaded_cubemap = {};
-		uint32 total_num_vertices{}; uint32 total_num_indices{};
-		uint64 total_bytesize_loaded_images = 0u;
-		uint64 total_bytesize_cubemap = 0u;
-
-		// graphics resources
-		graphics::rootsignature* signature_basepass = nullptr;
-		graphics::rootsignature* signature_shadepass = nullptr;
-		graphics::graphics_pipeline* pipeline_basepass = nullptr;
-		graphics::compute_pipeline* pipeline_shadepass = nullptr;
-	};
-	loaded_results loaded{};
-	std::thread loading_thread = std::thread([&loaded]()
+	std::thread loading_thread = std::thread([&dev, &uploadheap]()
 	{
 		imp::scene_load_args scene_load_args{};
 		scene_load_args.m_bake_transforms = false;
 		scene_load_args.m_pre_scale = 1.0f;
-		loaded.loaded_scene = imp::load_scene_file(constants::m_scene_filepath, scene_load_args).get();
-		for (const auto& mesh : loaded.loaded_scene.get_meshes())
-		{
-			loaded.total_num_vertices += (uint32)mesh.m_positions.size();
-			loaded.total_num_indices += (uint32)mesh.m_indices.size();
-		}
-
-		loaded.loaded_images.push_back(imp::load_image_file(constants::m_albedo_filepath).get());
-		loaded.loaded_images.push_back(imp::load_image_file(constants::m_normal_filepath).get());
-		loaded.total_bytesize_loaded_images += loaded.loaded_images[0].m_bytesize;
-		loaded.total_bytesize_loaded_images += loaded.loaded_images[1].m_bytesize;
-
-		imp::cubemap_load_args args{};
+		auto scene = gcontent.load(constants::m_scene_filepath, scene_load_args).get();
+		gcontent.load(constants::m_albedo_filepath, imp::image_load_args{}).get();
+		gcontent.load(constants::m_normal_filepath, imp::image_load_args{}).get();
 		for (uint32 i = 0u; i < 6u; ++i)
 		{
-			args.m_hacky_paths[i] = string(constants::m_skybox_filepath_base) + constants::m_skybox_files[i] + ".png";
+			const string filepath = string(constants::m_skybox_filepath_base) + constants::m_skybox_files[i] + ".png";
+			gcontent.load(filepath.c_str(), imp::image_load_args{}).get();
 		}
-		loaded.loaded_cubemap = imp::load_cubemap("", args).get();
-		loaded.total_bytesize_cubemap = loaded.loaded_cubemap.m_bytesize;
+
+		umap<graphics::resource*, range<uint64>> resource_to_upload_range{};
+
+		// upload to GPU & returns a range inside the upload heap
+		uint32* upload_base = reinterpret_cast<uint32*>(uploadheap->map(graphics::map_args{}));
+		auto push_to_upload = [&upload_base](void* memory, const uint64 bytesize) -> influx::range<uint64>
+			{
+				memcpy(upload_base, memory, bytesize);
+				upload_base += bytesize;
+			};
+
+		for (uint64 i = 0u; i < scene.get_meshes().size(); ++i)
+		{
+			const imp::scene_data::mesh& mesh = scene.get_meshes()[i];
+			const uint64 num_vertices = mesh.m_positions.size();
+			const uint64 num_indices = mesh.m_indices.size();
+			const uint64 vertex_bytesize = num_vertices * sizeof(frontend::per_vertex);
+			const uint64 index_bytesize = num_indices * sizeof(uint32);
+			graphics::buffer_desc desc{}; desc.m_bytesize = vertex_bytesize; desc.m_bytestride = sizeof(frontend::per_vertex);
+			graphics::resource* vertbuffer = dev.create_resource(desc, {});
+			desc.m_format = graphics::e_format::u32;
+			desc.m_bytestride = sizeof(uint32); desc.m_bytesize = desc.m_bytestride * num_indices;
+			graphics::resource* indexbuffer = dev.create_resource(desc, {});
+			gcontent.register_mesh(constants::m_scene_filepath, indexbuffer, vertbuffer, i);
+
+			vector<frontend::per_vertex> vertex_data{};
+			for (uint64 i = 0u; i < num_vertices; ++i) vertex_data.push_back({});
+			resource_to_upload_range[vertbuffer] = push_to_upload((void*)vertex_data.data(), vertex_bytesize);
+
+			vector<uint32> index_data{};
+			for (uint64 i = 0u; i < num_indices; ++i) index_data.push_back({});
+			resource_to_upload_range[indexbuffer] = push_to_upload((void*)index_data.data(), index_bytesize);
+		}
+
+		for (const auto& pair : gcontent.get_images())
+		{
+			const auto& image = pair.second;
+			graphics::tex2D_desc desc{};
+			desc.m_allow_uav = false;
+			desc.m_arraysize = 1u;
+			desc.m_bindflags = graphics::e_bind_flags::srv;
+			desc.m_num_mips = 1u;
+			desc.m_sample_count = 1u;
+			desc.m_dimensions = image.m_dimensions;
+			desc.m_format = graphics::e_format::rgba8;
+			desc.m_init_state = graphics::e_resource_state::copy_dst; // upload -> GPU
+			graphics::resource* resource = dev.create_resource(desc, {});
+			gcontent.register_texture(pair.first, resource);
+			resource_to_upload_range[resource] = push_to_upload((void*)image.m_pixels.data(), image.m_bytesize);
+		}
+	
+		uploadheap->unmap({});
+
+		//auto cmdlist = dev.create_graphics_commandlist();
 	});
 	
 	loading_thread.join();
@@ -295,7 +346,6 @@ int main()
 	graphics::swapchain& swapchain = *dev.create_swapchain(&queue, *window, swapchain_desc);
 
 	// load shaders / build pipelines
-	
 	vector<shader::compile_output> compiled_shaders{};
 	compiled_shaders.resize(3u);
 	std::atomic_bool pipelines_compiled = false;
