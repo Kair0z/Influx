@@ -634,6 +634,11 @@ namespace influx::rhi
 		return {};
 	}
 
+	result<> release_device(object_native native)
+	{
+		ULONG res = cast<dx12_device>(native)->Release();
+	}
+
 	result<buffer> import_buffer(object_native native)
 	{
 		using result_type = result<buffer>;

@@ -140,16 +140,7 @@ int rhi_main()
 	swapchain_args.m_format = rhi::pixelformat::rgba_8_unorm();
 	rhi::swapchain swapchain = dev.create(swapchain_args).get();
 
-	bool is_exit = false;
-	while (!is_exit)
-	{
-		window->poll_events(is_exit);
-		cmdlist.start(dev).get();
-		cmdlist.end().get();
-		cmdlist.submit(queue).get();
-
-		swapchain.present({});
-	}
+	dev.release();
 
 	return 0u;
 }

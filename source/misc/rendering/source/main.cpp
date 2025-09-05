@@ -198,27 +198,66 @@ class content final
 {
 	umap<const char*, imp::scene_data> m_loaded_scenes{};
 	umap<const char*, imp::image_data> m_loaded_images{};
-	umap<const char*, graphics::resource*> m_uploaded_textures{};
-
-	struct geometry_buffers { graphics::resource* m_indexbuffer{}; graphics::resource* m_vertexbuffer{}; };
-	using mesh_vector = vector<geometry_buffers>;
-	umap<const char*, mesh_vector> m_uploaded_meshes{};
-
+	using shader_vector = vector<shader::compile_output>;
+	umap<const char*, shader_vector> m_loaded_shaders{};
 public:
 	const umap<const char*, imp::image_data>& get_images() const { return m_loaded_images; }
+	
+	result<shader::compile_output> get_shader(const char* filepath, const shader::e_shader_type type)
+	{
+		using result_type = result<shader::compile_output>;
+		if (m_loaded_shaders.contains(filepath) == false)
+			return result_type::make_error("loaded_shaders does not contain filepath");
 
-	result<imp::image_data> load(const char* filepath, const imp::image_load_args& args)
+		const auto& shaders = m_loaded_shaders[filepath];
+		for (const auto& sh : shaders) if (sh.m_signature.m_type == type) return sh;
+
+		return result_type::make_error("shader type inside filepath not found!");
+	}
+
+	result<> load(const char* filepath, const shader::compile_args& args, bool reload = false)
+	{
+		using result_type = result<>;
+		if (m_loaded_shaders.contains(filepath) && !reload) return {};
+		m_loaded_shaders[filepath].push_back(shader::compile_shader_in_file(filepath, args).get());
+	}
+
+	result<imp::image_data>	load(const char* filepath, const imp::image_load_args& args, bool reload = false)
 	{
 		using result_type = result<imp::scene_data>;
+		if (m_loaded_images.contains(filepath) && !reload) 
+			return m_loaded_images[filepath];
+		
 		m_loaded_images[filepath] = imp::load_image_file(filepath, args).get();
 		return m_loaded_images[filepath];
 	}
-	result<imp::scene_data> load(const char* filepath, const imp::scene_load_args& args)
+	
+	result<imp::scene_data>	load(const char* filepath, const imp::scene_load_args& args, bool reload = false)
 	{
 		using result_type = result<imp::scene_data>;
+
+		if (m_loaded_scenes.contains(filepath) && !reload) 
+			return m_loaded_scenes[filepath];
+		
 		m_loaded_scenes[filepath] = imp::load_scene_file(filepath, args).get();
 		return m_loaded_scenes[filepath];
 	}
+};
+static content gcontent{};
+
+class uploadheap final
+{
+	struct geometry_buffers { graphics::resource* m_indexbuffer{}; graphics::resource* m_vertexbuffer{}; };
+	using mesh_vector = vector<geometry_buffers>;
+	umap<const char*, mesh_vector> m_uploaded_meshes{};
+	umap<const char*, graphics::resource*> m_uploaded_textures{};
+
+public:
+	void upload_resources(graphics::commandlist& cmdlist)
+	{
+
+	}
+
 	result<> register_mesh(const char* filepath, graphics::resource* indexbuffer, graphics::resource* vertexbuffer, uint32 index)
 	{
 		const uint64 old_size = m_uploaded_meshes[filepath].size();
@@ -226,17 +265,34 @@ public:
 		m_uploaded_meshes[filepath][index].m_indexbuffer = indexbuffer;
 		m_uploaded_meshes[filepath][index].m_vertexbuffer = vertexbuffer;
 	}
+
 	result<> register_texture(const char* filepath, const graphics::resource* resource)
 	{
 		m_uploaded_textures[filepath] = resource;
 	}
 };
-static content gcontent{};
+uploadheap gupload{};
 
 int main()
 {
+	// make platform window
+	platform::window* window = nullptr;
+	platform::window_desc window_desc{};
+	{
+		window_desc.m_dimensions = constants::m_window_dim;
+		window_desc.m_name = "rendering";
+		window = platform::window::create(window_desc);
+	}
+
 	// setup core graphics objects
 	graphics::device& dev = *graphics::device::create(graphics::e_api_type::dx12);
+	graphics::queue& queue = *dev.create_queue();
+	graphics::commandlist& cmdlist = *dev.create_graphics_commandlist();
+	graphics::swapchain_desc swapchain_desc{};
+	swapchain_desc.m_dimensions = window_desc.m_dimensions;
+	swapchain_desc.m_format = graphics::e_format::rgba8;
+	swapchain_desc.m_num_buffers = constants::k_num_swapchain_buffers;
+	graphics::swapchain& swapchain = *dev.create_swapchain(&queue, *window, swapchain_desc);
 
 	// upload heap
 	graphics::buffer_desc upload_desc{};
@@ -244,6 +300,7 @@ int main()
 	upload_desc.m_init_state = graphics::e_resource_state::gen_read;
 	graphics::resource* uploadheap = dev.create_resource(upload_desc, graphics::heap_desc::shared_heap());
 
+	// start loading
 	std::thread loading_thread = std::thread([&dev, &uploadheap]()
 	{
 		imp::scene_load_args scene_load_args{};
@@ -263,10 +320,10 @@ int main()
 		// upload to GPU & returns a range inside the upload heap
 		uint32* upload_base = reinterpret_cast<uint32*>(uploadheap->map(graphics::map_args{}));
 		auto push_to_upload = [&upload_base](void* memory, const uint64 bytesize) -> influx::range<uint64>
-			{
-				memcpy(upload_base, memory, bytesize);
-				upload_base += bytesize;
-			};
+		{
+			memcpy(upload_base, memory, bytesize);
+			upload_base += bytesize;
+		};
 
 		for (uint64 i = 0u; i < scene.get_meshes().size(); ++i)
 		{
@@ -312,7 +369,6 @@ int main()
 
 		//auto cmdlist = dev.create_graphics_commandlist();
 	});
-	
 	loading_thread.join();
 
 	// setup camera
@@ -327,30 +383,12 @@ int main()
 		camera.set_fov(settings::m_camera_fov);
 		camera.set_aspect_ratio((float)constants::m_window_dim.x / (float)constants::m_window_dim.y);
 	}
-
-	// make platform window
-	platform::window* window = nullptr;
-	platform::window_desc window_desc{};
-	{
-		window_desc.m_dimensions = constants::m_window_dim;
-		window_desc.m_name = "rendering";
-		window = platform::window::create(window_desc);
-	}
-
-	graphics::queue& queue = *dev.create_queue();
-	graphics::commandlist& cmdlist = *dev.create_graphics_commandlist();
-	graphics::swapchain_desc swapchain_desc{};
-	swapchain_desc.m_dimensions = window_desc.m_dimensions;
-	swapchain_desc.m_format = graphics::e_format::rgba8;
-	swapchain_desc.m_num_buffers = constants::k_num_swapchain_buffers;
-	graphics::swapchain& swapchain = *dev.create_swapchain(&queue, *window, swapchain_desc);
-
+	
 	// load shaders / build pipelines
 	vector<shader::compile_output> compiled_shaders{};
 	compiled_shaders.resize(3u);
 	std::atomic_bool pipelines_compiled = false;
-	auto recompile_shaders = 
-	[&dev, &loaded, &compiled_shaders, &pipelines_compiled]()
+	auto recompile_shaders = [&dev, &loaded, &compiled_shaders, &pipelines_compiled]()
 	{
 		pipelines_compiled = false;
 
@@ -1017,6 +1055,10 @@ int main()
 		{
 			scope sc_cmdstart{ "cmd_start" };
 			cmdlist.start(&dev).get();
+		}
+		{
+			scope sc_upload{ "cmd_upload" };
+			gupload.upload_resources(cmdlist);
 		}
 		{
 			scope sc_exe{ "graph_exe" };

@@ -29,12 +29,11 @@ namespace influx::rhi
 	class texture3D;
 	class descheap;
 
+	// [common types]
 	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
-
 	using platform_window_handle = void*;
 
-	// [common types]
 	enum class e_api : uint8
 	{
 		d3d12,
@@ -79,7 +78,6 @@ namespace influx::rhi
 		sampler,
 		num
 	};
-	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
 	enum class e_resource_type
 	{
 		buffer,
@@ -149,6 +147,8 @@ namespace influx::rhi
 		count
 	};
 
+	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
+
 	struct renderpass_args final
 	{
 
@@ -194,6 +194,7 @@ namespace influx::rhi
 		uint32 m_sync_interval;
 		uint32 m_flags;
 	};
+	
 	// [descs] these are the descriptions of objects by which they are created 
 #pragma region create_create_args
 	struct device_create_args final
@@ -404,6 +405,8 @@ namespace influx::rhi
 	};
 #pragma endregion
 
+	struct null_data_type {};
+
 	template <e_object _t>
 	using data_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		device_data,
@@ -446,8 +449,8 @@ namespace influx::rhi
 	};
 
 	/* [class interfaces]
-	* these are wrapper classes that provide functionality on top of the data they store in their base object class.
-	* use these to make API calls onto the internal objects
+	* these are wrapper classes that provide FUNCTIONS on top of the data they store in their base object class.
+	* use these to make API calls into the internal objects
 	*/
 
 	class resource
