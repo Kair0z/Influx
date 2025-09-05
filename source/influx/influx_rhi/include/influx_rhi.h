@@ -346,6 +346,8 @@ namespace influx::rhi
 		object_native m_factory;
 
 		uint32 m_descriptor_strides[k_num_descriptor_heap_types];
+
+		uset<object_native> m_children{};
 	};
 	struct queue_data final
 	{
@@ -741,6 +743,8 @@ namespace influx::rhi
 	INFLUX_RHI_API result<object_native> create_native(const texture3D_create_args& args, texture3D_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const pipeline_create_args& args, pipeline_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const rootsignature_create_args& args, rootsignature_data* out_data = nullptr);
+
+	INFLUX_RHI_API result<> release(object_native native);
 
 	template <typename _t>
 	result<_t> create(const create_args<_t::k_type>& args)
