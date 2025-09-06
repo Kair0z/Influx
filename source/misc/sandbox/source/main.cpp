@@ -432,7 +432,27 @@ void test_results()
 	}
 }
 #endif
+
+#define TEMPLATES 1
+#if TEMPLATES 
+enum class e_type
+{
+	a,
+	b,
+	c
+};
+template <e_type _t>
+struct typed { int m_base; };
+
+template <>
+struct typed<e_type::a>
+{
+
+};
+
+#endif
 int main()
 {
-	test_results();
+	typed<e_type::a> data{};
+	
 }

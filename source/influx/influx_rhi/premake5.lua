@@ -7,7 +7,8 @@ new_influx_library("influx_rhi")
     local dependencies =
     {
         "influx_core",
-        "influx_platform"
+        "influx_platform",
+        "influx_shader"
     }
 
     set_influx_includes(dependencies)

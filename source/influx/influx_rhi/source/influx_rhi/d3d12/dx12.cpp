@@ -437,7 +437,7 @@ namespace influx::rhi
 				out_data->m_rtv_dirty_list.push_back(true);
 
 			// store an rtv heap
-			out_data->m_rtv_heap = rtv_heap.get();
+			out_data->m_rtv_heap = (native_descheap)rtv_heap.get();
 		}
 
 		return swapchain;
@@ -506,7 +506,7 @@ namespace influx::rhi
 			auto res = create_native(pool_args);
 			if (!res) return result_type::make_error("failed creating allocator!");
 
-			edited_args.m_pool = res.get();
+			edited_args.m_pool = (native_commandpool)res.get();
 		}
 
 		auto dxallocator = cast<dx12_allocator>(edited_args.m_pool.value());
@@ -536,7 +536,7 @@ namespace influx::rhi
 			auto fence = create_native(fence_args);
 			if (!fence) return result_type::make_error("create commandlist: failed creating fence!");
 
-			out_data->m_fence = fence.get();
+			out_data->m_fence = (native_fence)fence.get();
 		}
 
 		return hres_to_result<object_native>(hres, commandlist);
@@ -624,6 +624,41 @@ namespace influx::rhi
 
 	result<object_native> create_native(const pipeline_create_args& args, pipeline_data* out_data)
 	{
+		using result_type = result<object_native>;
+		if (!args.is_valid())
+			return result_type::make_error("pipeline_create_args are invalid!");
+
+		auto dxdevice = cast<dx12_device>(args.m_device);
+		if (!dxdevice)
+			return result_type::make_error("args.m_device failed casting to dx12_device!");
+
+		HRESULT hres{};
+		switch (args.m_type)
+		{
+		case e_pipeline_type::graphics:
+		{
+			ID3D12PipelineState* dxpipeline = nullptr;
+			hres = dxdevice->CreateGraphicsPipelineState(nullptr, IID_PPV_ARGS(&dxpipeline));
+		}
+		break;
+
+		case e_pipeline_type::compute:
+		{
+			ID3D12PipelineState* dxpipeline = nullptr;
+			hres = dxdevice->CreateComputePipelineState(nullptr, IID_PPV_ARGS(&dxpipeline));
+		}
+		break;
+		case e_pipeline_type::raytracing:
+		{
+
+		}
+		break;
+
+		default:
+			return result_type::make_error("args.m_type is unsupported!");
+		}
+
+		// fill out data
 		return {};
 	}
 
@@ -645,7 +680,7 @@ namespace influx::rhi
 		return {};
 	}
 
-	result<buffer> import_buffer(object_native native)
+	result<buffer> import_buffer(native_buffer native)
 	{
 		using result_type = result<buffer>;
 
@@ -663,7 +698,7 @@ namespace influx::rhi
 		return imported;
 	}
 
-	result<texture> import_texture2D(object_native native)
+	result<texture> import_texture(native_texture native)
 	{
 		using result_type = result<texture>;
 
@@ -684,7 +719,7 @@ namespace influx::rhi
 		return imported;
 	}
 
-	result<descheap> import_descheap(object_native native)
+	result<descheap> import_descheap(native_descheap native)
 	{
 		using result_type = result<descheap>;
 
@@ -711,7 +746,7 @@ namespace influx::rhi
 		return imported;
 	}
 	
-	result<commandlist> import_commandlist(object_native native)
+	result<commandlist> import_commandlist(native_commandlist native)
 	{
 		using result_type = result<commandlist>;
 
@@ -733,7 +768,7 @@ namespace influx::rhi
 		return imported;
 	}
 	
-	result<commandpool> import_commandpool(object_native native)
+	result<commandpool> import_commandpool(native_commandpool native)
 	{
 		using result_type = result<commandpool>;
 
@@ -753,7 +788,7 @@ namespace influx::rhi
 		return imported;
 	}
 
-	result<> device::create_rtv(const texture& texture, descriptor descriptor) const
+	result<> device::create_rtv(const texture& texture, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -782,7 +817,7 @@ namespace influx::rhi
 		device->CreateRenderTargetView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_dsv(const texture& texture, descriptor descriptor) const
+	result<> device::create_dsv(const texture& texture, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -807,11 +842,11 @@ namespace influx::rhi
 		device->CreateDepthStencilView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_sampview(const sampler& sampler, descriptor descriptor) const
+	result<> device::create_sampview(const sampler& sampler, descriptor descriptor)
 	{
 		return {};
 	}
-	result<> device::create_srv(const texture& texture, descriptor descriptor) const
+	result<> device::create_srv(const texture& texture, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -839,7 +874,7 @@ namespace influx::rhi
 		device->CreateShaderResourceView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_uav(const texture& texture, descriptor descriptor) const
+	result<> device::create_uav(const texture& texture, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -865,7 +900,7 @@ namespace influx::rhi
 		device->CreateUnorderedAccessView(resource.get(), nullptr, &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_srv(const buffer& buffer, descriptor descriptor) const
+	result<> device::create_srv(const buffer& buffer, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -889,7 +924,7 @@ namespace influx::rhi
 		device->CreateShaderResourceView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_uav(const buffer& buffer, descriptor descriptor) const
+	result<> device::create_uav(const buffer& buffer, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -1009,7 +1044,7 @@ namespace influx::rhi
 
 		ID3D12Resource* buffer = nullptr;
 		HRESULT res = dxswapchain->GetBuffer(index, IID_PPV_ARGS(&buffer));
-		return import_texture2D(buffer);
+		return import_texture(buffer);
 	}
 	result<texture> swapchain::get_backbuffer_resource() const
 	{
@@ -1041,7 +1076,7 @@ namespace influx::rhi
 	{
 		return m_create_args.m_own_descriptors;
 	}
-	result<descriptor> swapchain::get_or_create_backbuffer_rtv(const device& device)
+	result<descriptor> swapchain::get_or_create_backbuffer_rtv(device& device)
 	{
 		using result_type = result<descriptor>;
 		if (!owns_rtvs())
@@ -1093,12 +1128,12 @@ namespace influx::rhi
 			// create a new command pool (allocator)
 			commandpool_create_args args{};
 			args.m_type = m_create_args.m_type;
-			args.m_device = device.m_native_object;
+			args.m_device = (native_device)device.m_native_object;
 			auto new_alloc_res = device.create(args);
 			if (!new_alloc_res) 
 				return result<>::make_error("failed creating new commandpool");
 
-			return start(new_alloc_res.get().m_native_object);
+			return start((native_commandpool)new_alloc_res.get().m_native_object);
 		}
 		else
 		{
