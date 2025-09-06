@@ -17,23 +17,45 @@
 
 #include "influx_rhi/format.h"
 
+// STL
+#include <optional>
+
 namespace influx::rhi
 {
 	class resource;
 	class commandlist;
 	class queue;
 	class device;
-	class command_allocator;
+	class commandpool;
 	class buffer;
-	class texture2D;
+	class texture;
 	class texture3D;
 	class descheap;
 
-	// [common types]
+	// =============================================
+	// native objects
+	using object_native			= void*;
+	using native_instance		= object_native;	// IDXGIFactory
+	using native_physdevice		= object_native;	// ID3D12Adapter
+	using native_device			= object_native;	// ID3D12Device
+	using native_commandlist	= object_native;	// ID3D12CommandList
+	using native_queue			= object_native;	// ID3D12Queue
+	using native_commandpool	= object_native;	// ID3D12CommandAllocator
+	using native_memoryheap		= object_native;	// ID3D12Heap
+	using native_descheap		= object_native;	// ID3D12DescriptorHeap
+	using native_fence			= object_native;	// ID3D12Fence
+	using native_texture		= object_native;	// ID3D12Resource
+	using native_buffer			= object_native;	// ID3D12Resource
+	using descriptor			= uint64;
+
+	// =============================================
+	// common types
 	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
-	using platform_window_handle = void*;
+	template <typename _t>
+	using optional = std::optional<_t>;
 
+	using platform_window_handle = void*;
 	enum class e_api : uint8
 	{
 		d3d12,
@@ -57,7 +79,7 @@ namespace influx::rhi
 		graphics,
 		compute
 	};
-	enum class e_create_argsriptor : uint8
+	enum class e_create_descriptor : uint8
 	{
 		rtv,
 		dsv,
@@ -81,8 +103,15 @@ namespace influx::rhi
 	enum class e_resource_type
 	{
 		buffer,
+		texture
+	};
+	enum class e_texture_type
+	{
+		texture1D,
 		texture2D,
-		texture3D
+		texture3D,
+		cubemap,
+		num
 	};
 	enum class e_resource_state : uint32
 	{
@@ -146,9 +175,6 @@ namespace influx::rhi
 		no_access,
 		count
 	};
-
-	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
-
 	struct renderpass_args final
 	{
 
@@ -163,8 +189,6 @@ namespace influx::rhi
 		}
 		math::float4 m_colour;
 	};
-	using object_native = void*;
-	using descriptor = uint64;
 	struct sampler final
 	{
 
@@ -180,12 +204,12 @@ namespace influx::rhi
 		queue,
 		swapchain,
 		descriptor_heap,
-		commandallocator,
+		commandpool,
 		commandlist,
 		fence,
 		buffer,
-		texture2D,
-		texture3D,
+		texture,
+		memoryheap,
 		pipeline,
 		rootsignature
 	};
@@ -194,8 +218,10 @@ namespace influx::rhi
 		uint32 m_sync_interval;
 		uint32 m_flags;
 	};
-	
-	// [descs] these are the descriptions of objects by which they are created 
+	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
+
+	// =============================================
+	// [create_args]
 #pragma region create_create_args
 	struct device_create_args final
 	{
@@ -206,10 +232,10 @@ namespace influx::rhi
 		uint32 m_engine_version = 0u;
 		uint32 m_api_version = 0u;
 
-		/* optional: specify a physical device for which to create the logic device */
-		object_native m_physdevice = nullptr;
+		/* (optional) specify a physical device for which to create the logic device */
+		optional<native_physdevice> m_physdevice = nullptr;
 
-		/* optional: enable debug systems like validation layers */
+		/* (optional) enable debug systems like validation layers */
 		bool m_debug = false;
 	};
 	struct queue_create_args final
@@ -229,88 +255,94 @@ namespace influx::rhi
 			return desc;
 		}
 
-		object_native m_device = nullptr;
+		native_device m_device = nullptr;
 		e_queue_type m_type = e_queue_type::graphics;
+
+		// (optional)
 		int m_priority = 0;
 	};
 	struct swapchain_create_args final
 	{
-		object_native m_instance = nullptr;
-		object_native m_device = nullptr;
-		object_native m_queue = nullptr;
+		native_instance m_instance = nullptr;
+		native_device	m_device = nullptr;
+		native_queue	m_queue = nullptr;
 
-		platform_window_handle m_window;
-		pixelformat m_format;
-		uint32 m_num_buffers = 3u;
-		math::uint2 m_dimensions;
+		platform_window_handle	m_window = nullptr;
+		pixelformat				m_format = pixelformat::rgba_8_unorm();
+		uint32					m_num_buffers = 3u;
+		math::uint2				m_dimensions = {};
 
+		// (optional) swapchain will maintain 
+		// its own descriptors to the backbuffers
 		bool m_own_descriptors = false;
 	};
 	struct descheap_create_args final
 	{
-		object_native m_device;
-		e_descriptor_heap_type m_type;
-		uint32 m_num_descriptors = 0u;
-		bool m_shader_visible = false;
+		native_device			m_device;
+		e_descriptor_heap_type	m_type;
+		uint32					m_num_descriptors = 0u;
+		bool					m_shader_visible = false;
 	};
-	struct commandallocator_create_args final
+	struct commandpool_create_args final
 	{
-		object_native m_device;
-		e_commandlist_type m_type;
+		native_device			m_device;
+		e_commandlist_type		m_type;
 	};
 	struct commandlist_create_args final
 	{
 		static commandlist_create_args default_graphics()
 		{
 			commandlist_create_args desc{};
-			desc.m_allocator = nullptr;
+			desc.m_pool = nullptr;
 			desc.m_own_fence = true;
 			desc.m_type = e_commandlist_type::graphics;
 			return desc;
 		}
 
-		object_native m_device;
+		native_device		m_device;
+		e_commandlist_type	m_type;
 
-		// if m_allocator == nullptr, commandlist will create its own
-		object_native m_allocator = nullptr;
+		// (optional) commandlist will create its own pool
+		optional<native_commandpool> m_pool = nullptr;
 
-		// if true, commandlist will own its own fence
+		// (optional) commandlist will own & carry its own fence
 		bool m_own_fence = false;
-		
-		e_commandlist_type m_type;
 	};
 	struct fence_create_args final
 	{
-		object_native m_device;
-		uint64 m_init_value = 0u;
+		native_device	m_device;
+		uint64			m_init_value = 0u;
 	};
 	struct buffer_create_args final
 	{
-		object_native m_device;
-
+		native_device		m_device;
 		uint64				m_bytesize;
 		uint64				m_bytestride;
 		e_resource_bindflags m_bindflags;
 		e_resource_state	m_init_state;
-		bool m_allow_uav;
-	};
-	struct texture2D_create_args final
-	{
-		object_native m_device;
-		pixelformat m_format;
-		e_resource_state m_init_state;
+		bool				m_allow_uav;
 
-		uint32 m_arraysize;
-		math::uint2 m_dimensions;
-		e_resource_bindflags m_bindflags;
-		uint32 m_num_mips;
-		uint32 m_sample_count;
-		bool m_allow_uav;
+		optional<native_memoryheap> m_heap;
 	};
-	struct texture3D_create_args final
+	struct texture_create_args final
 	{
-		object_native m_device;
-		bool m_allow_uav;
+		native_device			m_device;
+		pixelformat				m_format;
+		e_resource_state		m_init_state;
+
+		e_texture_type			m_type;
+		uint32					m_arraysize;
+		math::uint2				m_dimensions;
+		e_resource_bindflags	m_bindflags;
+		uint32					m_num_mips;
+		uint32					m_sample_count;
+		bool					m_allow_uav;
+
+		optional<native_memoryheap> m_heap;
+	};
+	struct memheap_create_args final
+	{
+
 	};
 	struct pipeline_create_args final
 	{
@@ -328,12 +360,12 @@ namespace influx::rhi
 		queue_create_args,
 		swapchain_create_args,
 		descheap_create_args,
-		commandallocator_create_args,
+		commandpool_create_args,
 		commandlist_create_args,
 		fence_create_args,
 		buffer_create_args,
-		texture2D_create_args,
-		texture3D_create_args,
+		texture_create_args,
+		memheap_create_args,
 		pipeline_create_args,
 		rootsignature_create_args>>;
 
@@ -341,12 +373,9 @@ namespace influx::rhi
 #pragma region data
 	struct device_data final
 	{
-		object_native m_instance;
-		object_native m_physical_device;
-		object_native m_factory;
-
-		uint32 m_descriptor_strides[k_num_descriptor_heap_types];
-
+		native_instance		m_instance;
+		native_physdevice	m_physical_device;
+		uint32				m_descriptor_strides[k_num_descriptor_heap_types];
 		uset<object_native> m_children{};
 	};
 	struct queue_data final
@@ -355,7 +384,7 @@ namespace influx::rhi
 	};
 	struct swapchain_data final
 	{
-		object_native	m_rtv_heap;
+		native_descheap	m_rtv_heap;
 		vector<bool>	m_rtv_dirty_list{};
 	};
 	struct descheap_data final
@@ -363,15 +392,15 @@ namespace influx::rhi
 		vector<bool> m_freelist;
 		uint32 m_descriptor_stride;
 	};
-	struct commandallocator_data final
+	struct commandpool_data final
 	{
 
 	};
 	struct commandlist_data final
 	{
-		object_native m_allocator;
-		object_native m_fence;
-		uint32 m_fence_complete_value = 0u;
+		native_commandpool	m_current_pool;
+		native_fence		m_fence;
+		uint32				m_fence_complete_value = 0u;
 		e_commandlist_state m_state = e_commandlist_state::init;
 	};
 	struct fence_data final
@@ -382,20 +411,18 @@ namespace influx::rhi
 	{
 		e_resource_state	m_previous_state;
 		e_resource_state	m_current_state;
-		uint64 m_bytesize;
-		uint64 m_bytestride;
+		uint64				m_bytesize;
+		uint64				m_bytestride;
 	};
-	struct texture2D_data final
+	struct texture_data final
 	{
-		e_resource_state m_previous_state;
-		e_resource_state m_current_state;
-		pixelformat	m_format;
+		e_resource_state	m_previous_state;
+		e_resource_state	m_current_state;
+		pixelformat			m_format;
 	};
-	struct texture3D_data final
+	struct memheap_data final
 	{
-		e_resource_state m_previous_state;
-		e_resource_state m_current_state;
-		pixelformat m_format;
+
 	};
 	struct pipeline_data final
 	{
@@ -407,20 +434,18 @@ namespace influx::rhi
 	};
 #pragma endregion
 
-	struct null_data_type {};
-
 	template <e_object _t>
 	using data_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		device_data,
 		queue_data,
 		swapchain_data,
 		descheap_data,
-		commandallocator_data,
+		commandpool_data,
 		commandlist_data,
 		fence_data,
 		buffer_data,
-		texture2D_data,
-		texture3D_data,
+		texture_data,
+		memheap_data,
 		pipeline_data,
 		rootsignature_data>>;
 
@@ -477,8 +502,7 @@ namespace influx::rhi
 
 		inline bool is_texture() const
 		{
-			return get_resource_type() == e_resource_type::texture2D 
-				|| get_resource_type() == e_resource_type::texture3D;
+			return get_resource_type() == e_resource_type::texture;
 		}
 	};
 
@@ -506,7 +530,7 @@ namespace influx::rhi
 		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
-	class texture2D final : public object<e_object::texture2D>, public resource
+	class texture final : public object<e_object::texture>, public resource
 	{
 	public:
 		using data_type = object::data_type;
@@ -523,7 +547,7 @@ namespace influx::rhi
 		inline virtual const char* get_name() const	override { return ""; }
 
 		// resource interface
-		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture2D; };
+		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture; };
 		inline virtual const object_native get_native_resource() const override { return m_native_object; }
 		inline virtual e_resource_state get_resource_state() const override { return m_data.m_current_state; }
 		inline virtual e_resource_state get_previous_resource_state() const override { return m_data.m_previous_state; }
@@ -537,34 +561,19 @@ namespace influx::rhi
 		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
-	class texture3D final : public object<e_object::texture3D>, public resource
+	class memheap final
 	{
 	public:
-		using data_type = object::data_type;
 
-		// resource interface
-		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture3D; };
-		inline virtual const object_native get_native_resource() const override { return m_native_object; }
-		inline virtual e_resource_state get_resource_state() const override { return m_data.m_current_state; }
-		inline virtual e_resource_state get_previous_resource_state() const override { return m_data.m_previous_state; }
-		inline virtual result<> set_state(e_resource_state new_state) override
-		{
-			m_data.m_previous_state = m_data.m_current_state;
-			m_data.m_current_state = new_state;
-			return {};
-		}
-		inline virtual bool allows_uav() const override { return m_create_args.m_allow_uav; }
-		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
 	class fence final : public object<e_object::fence>
 	{
 	public:
-		// queues a signal command to the queue
-		INFLUX_RHI_API result<> queue_signal(uint64 signal_value, const queue& queue);
-		INFLUX_RHI_API result<> signal(uint64 value);
-		INFLUX_RHI_API result<> wait_for_value(uint64 value);
-		INFLUX_RHI_API result<uint64> query_value() const;
+		INFLUX_RHI_API result<>			queue_signal(uint64 signal_value, const queue& queue);
+		INFLUX_RHI_API result<>			signal(uint64 value);
+		INFLUX_RHI_API result<>			wait_for_value(uint64 value);
+		INFLUX_RHI_API result<uint64>	query_value() const;
 	};
 
 	class queue final : public object<e_object::queue>
@@ -583,8 +592,8 @@ namespace influx::rhi
 	public:
 		INFLUX_RHI_API result<> present(const present_args& args) const;
 		INFLUX_RHI_API result<uint32> get_current_backbuffer_index() const;
-		INFLUX_RHI_API result<texture2D> get_backbuffer_resource(uint32 index) const;
-		INFLUX_RHI_API result<texture2D> get_backbuffer_resource() const;
+		INFLUX_RHI_API result<texture> get_backbuffer_resource(uint32 index) const;
+		INFLUX_RHI_API result<texture> get_backbuffer_resource() const;
 		INFLUX_RHI_API result<> resize(const math::uint2& new_dim);
 
 		INFLUX_RHI_API bool owns_rtvs() const;
@@ -639,7 +648,8 @@ namespace influx::rhi
 	{
 	public:
 		INFLUX_RHI_API result<> start(device& device);
-		INFLUX_RHI_API result<> start(const command_allocator& allocator);
+		INFLUX_RHI_API result<> start(native_commandpool pool);
+
 		INFLUX_RHI_API bool is_recording() const;
 
 		INFLUX_RHI_API result<> renderpass_begin(const renderpass_args& args);
@@ -671,7 +681,7 @@ namespace influx::rhi
 		inline static commandlist_create_args default_graphics() { return commandlist_create_args::default_graphics(); }
 	};
 
-	class command_allocator final : public object<e_object::commandallocator>
+	class commandpool final : public object<e_object::commandpool>
 	{
 
 	};
@@ -684,20 +694,20 @@ namespace influx::rhi
 	class device final : public object<e_object::device>
 	{
 	public:
-		INFLUX_RHI_API result<> create_rtv(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<> create_dsv(const texture2D& texture, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_rtv(const texture& texture, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_dsv(const texture& texture, descriptor descriptor) const;
 		INFLUX_RHI_API result<> create_sampview(const sampler& sampler, descriptor descriptor) const;
-		INFLUX_RHI_API result<> create_srv(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<> create_uav(const texture2D& texture, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_srv(const texture& texture, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_uav(const texture& texture, descriptor descriptor) const;
 		INFLUX_RHI_API result<> create_srv(const buffer& buffer, descriptor descriptor) const;
 		INFLUX_RHI_API result<> create_uav(const buffer& buffer, descriptor descriptor) const;
 
-		inline static result<device> create(const device_create_args& args = {});
-		inline result<swapchain> create(const swapchain_create_args& args) const;
-		inline result<queue> create(const queue_create_args& args) const;
-		inline result<command_allocator> create(const commandallocator_create_args& args) const;
-		inline result<commandlist> create(const commandlist_create_args& args) const;
-		inline result<descheap> create(const descheap_create_args& args) const;
+		inline static result<device>	create(const device_create_args& args = {});
+		inline result<swapchain>		create(const swapchain_create_args& args) const;
+		inline result<queue>			create(const queue_create_args& args) const;
+		inline result<commandpool>		create(const commandpool_create_args& args) const;
+		inline result<commandlist>		create(const commandlist_create_args& args) const;
+		inline result<descheap>			create(const descheap_create_args& args) const;
 	};
 
 	inline static result<device> create_device(const device_create_args& args = {})
@@ -709,20 +719,19 @@ namespace influx::rhi
 	* when you import an object (native pointer) the RHI will attempt to build a wrapped type
 	* based on the information it can parse from the pointer.
 	*/
-	INFLUX_RHI_API result<buffer>				import_buffer(object_native native);
-	INFLUX_RHI_API result<texture2D>			import_texture2D(object_native native);
-	INFLUX_RHI_API result<texture3D>			import_texture3D(object_native native);
-	INFLUX_RHI_API result<descheap>				import_descheap(object_native native);
-	INFLUX_RHI_API result<commandlist>			import_commandlist(object_native native);
-	INFLUX_RHI_API result<command_allocator>	import_allocator(object_native native);
+	INFLUX_RHI_API result<buffer>			import_buffer(native_buffer native);
+	INFLUX_RHI_API result<texture>			import_texture(native_texture native);
+	INFLUX_RHI_API result<descheap>			import_descheap(native_descheap native);
+	INFLUX_RHI_API result<commandlist>		import_commandlist(native_commandlist native);
+	INFLUX_RHI_API result<commandpool>		import_commandpool(native_commandpool native);
 
-	template <typename _t> result<_t> import(object_native);
-	template<> inline result<buffer> import(object_native native) { return import_buffer(native); }
-	template<> inline result<texture2D> import(object_native native) { return import_texture2D(native); }
-	template<> inline result<texture3D> import(object_native native) { return import_texture3D(native); }
-	template<> inline result<descheap> import(object_native native) { return import_descheap(native); }
-	template<> inline result<commandlist> import(object_native native) { return import_commandlist(native); }
-	template<> inline result<command_allocator> import(object_native native) { return import_allocator(native); }
+	template <typename _t> 
+	result<_t> import(object_native);
+	template<> inline result<buffer>		import(object_native native) { return import_buffer(native); }
+	template<> inline result<texture>		import(object_native native) { return import_texture(native); }
+	template<> inline result<descheap>		import(object_native native) { return import_descheap(native); }
+	template<> inline result<commandlist>	import(object_native native) { return import_commandlist(native); }
+	template<> inline result<commandpool>	import(object_native native) { return import_commandpool(native); }
 
 	/* [creation methods]
 	* these are the platform-native object creation methods
@@ -735,12 +744,11 @@ namespace influx::rhi
 	INFLUX_RHI_API result<object_native> create_native(const queue_create_args& args, queue_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const swapchain_create_args& args, swapchain_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const descheap_create_args& args, descheap_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const commandallocator_create_args& args, commandallocator_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const commandpool_create_args& args, commandpool_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const commandlist_create_args& args, commandlist_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const fence_create_args& args, fence_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const buffer_create_args& args, buffer_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const texture2D_create_args& args, texture2D_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const texture3D_create_args& args, texture3D_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const texture_create_args& args, texture_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const pipeline_create_args& args, pipeline_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const rootsignature_create_args& args, rootsignature_data* out_data = nullptr);
 
@@ -764,13 +772,42 @@ namespace influx::rhi
 	}
 
 	// [inline]
-	// inline methods
-	inline result<device>				device::create(const device_create_args& args)					{ return influx::rhi::create<device>(args); }
-	inline result<swapchain>			device::create(const swapchain_create_args& args) const			{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; args_cpy.m_instance = this->m_data.m_factory; return influx::rhi::create<swapchain>(args_cpy); }
-	inline result<queue>				device::create(const queue_create_args& args) const				{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<queue>(args_cpy); }
-	inline result<command_allocator>	device::create(const commandallocator_create_args& args) const	{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<command_allocator>(args_cpy); }
-	inline result<commandlist>			device::create(const commandlist_create_args& args) const		{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<commandlist>(args_cpy); }
-	inline result<descheap>				device::create(const descheap_create_args& args) const			{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<descheap>(args_cpy); }
+	// device creation methods
+	inline result<device> device::create(const device_create_args& args)					
+	{ 
+		return influx::rhi::create<device>(args);
+	}
+	inline result<swapchain> device::create(const swapchain_create_args& args) const			
+	{ 
+		auto args_cpy = args; 
+		args_cpy.m_device = this->m_native_object;
+		args_cpy.m_instance = this->m_data.m_instance;
+		return influx::rhi::create<swapchain>(args_cpy);
+	}
+	inline result<queue> device::create(const queue_create_args& args) const				
+	{ 
+		auto args_cpy = args; 
+		args_cpy.m_device = this->m_native_object; 
+		return influx::rhi::create<queue>(args_cpy); 
+	}
+	inline result<commandpool> device::create(const commandpool_create_args& args) const	
+	{ 
+		auto args_cpy = args; 
+		args_cpy.m_device = this->m_native_object; 
+		return influx::rhi::create<commandpool>(args_cpy); 
+	}
+	inline result<commandlist> device::create(const commandlist_create_args& args) const		
+	{ 
+		auto args_cpy = args; 
+		args_cpy.m_device = this->m_native_object; 
+		return influx::rhi::create<commandlist>(args_cpy); 
+	}
+	inline result<descheap>	device::create(const descheap_create_args& args) const			
+	{ 
+		auto args_cpy = args; 
+		args_cpy.m_device = this->m_native_object; 
+		return influx::rhi::create<descheap>(args_cpy); 
+	}
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_bindflags);
