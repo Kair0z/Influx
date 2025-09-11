@@ -1,9 +1,11 @@
 // https://www.youtube.com/watch?v=n3rcbBdy-BA
 
+#if 0
 struct Line
 {
     float a, b;
 };
+
 
 [Shader("node")]
 [NodeLaunch("thread")]
@@ -36,7 +38,19 @@ void ms_main(
     vertices[1] = float4(input.Get().b, 0, 1);
 }
 
-float4 ps_main() : SV_TARGET
+#endif
+
+struct vs_in
 {
-    return float4(0,0,0,1);
+    
+};
+struct vs_out
+{
+    float4 position : SV_POSITION;
+};
+
+vs_out main(vs_in input)
+{
+    vs_out output = (vs_out)0;
+    return output;
 }

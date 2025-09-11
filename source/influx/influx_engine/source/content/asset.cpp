@@ -18,8 +18,8 @@ namespace influx::engine
 	{
 		return imp::load_cubemap(path, args);
 	}
-	result<imp::shader_data> load_shader_data(const string& path, const imp::shader_load_args& args)
+	result<shader_vector> load_shader_data(const string& path, const imp::shader_load_args& args)
 	{
-		return imp::load_shader_file(path, args);
+		return imp::load_shaders_in_file(path, args);
 	}
 }

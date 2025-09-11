@@ -236,48 +236,32 @@ namespace influx::renderer
         // parse the shader files for their necessary shaders
         shader::compile_args compile_args{};
         compile_args.m_include_folder = base_dir;
-        compile_args.m_signature.m_target = shader::e_shader_target::_6_6;;
+        compile_args.m_target = shader::e_shader_target::_6_6;;
         compile_args.m_reflection_enabled = true;
         compile_args.m_defines = {};
         compile_args.set_debug_level(false);
         compile_args.m_pbd_enabled = false;
 
-        using parse_result = shader::result<vector<shader::parse_output>>;
-
         // 1. parse each shader from file
-        parse_result basepass_parse = shader::parse_shaders_in_file(basepass_sourcefile_path);
-        parse_result resolvepass_parse = shader::parse_shaders_in_file(resolvepass_sourcefile_path);
-        parse_result debugpass_parse = shader::parse_shaders_in_file(debugpass_sourcefile_path);
+        using parse_result = shader::parse_output;
+        auto basepass_parse     = shader::parse_shaders_in_file(basepass_sourcefile_path);
+        auto resolvepass_parse  = shader::parse_shaders_in_file(resolvepass_sourcefile_path);
+        auto debugpass_parse    = shader::parse_shaders_in_file(debugpass_sourcefile_path);
         const bool all_shaders_parsed = !(basepass_parse.is_unex() || resolvepass_parse.is_unex() || debugpass_parse.is_unex());
         influx_assert(all_shaders_parsed);
 
         // 2. assert no missing shaders
         auto has_all_shaders = 
-        [](const vector<shader::parse_output>& parsed_shaders, shader::e_shader_type_flags flags) -> bool
+        [](const shader::parse_output& parsed_shaders, shader::e_shader_type_flags flags) -> bool
         {
-            // check for each type that is flagged
-            for (uint32 i = 0u; i < shader::k_num_shadertypes; ++i)
-            {
-                shader::e_shader_type current_type = static_cast<shader::e_shader_type>(i);
-                if (has_flag(flags, shader::get_shader_flag(current_type)))
-                {
-                    const bool has_shader = vector_helpers::contains(parsed_shaders,
-                    [&current_type](const shader::parse_output& shader)
-                    {
-                        return shader.get_shader_type() == current_type;
-                    });
-
-                    if (!has_shader) return false;
-                }
-            }
-            return true;
+            return has_all_flags(parsed_shaders.m_found_types, flags);
         };
 
         // assert required shaders are present
-        vector<shader::parse_output> basepass_parsed_file = basepass_parse.get();
+        const auto& basepass_parsed_file = basepass_parse.get();
         influx_assert(has_all_shaders(basepass_parsed_file,
             shader::e_shader_type_flags::vs | shader::e_shader_type_flags::ps));
-        vector<shader::parse_output> resolvepass_parsed_file = resolvepass_parse.get();
+        const auto& resolvepass_parsed_file = resolvepass_parse.get();
         influx_assert(has_all_shaders(resolvepass_parsed_file,
             shader::e_shader_type_flags::cs));
         const auto& debugpass_parsed_file = debugpass_parse.get();
@@ -286,24 +270,20 @@ namespace influx::renderer
 
         // compile all shaders
         auto compile_shaders =
-        [&resourceman](const vector<shader::parse_output>& parsed_shaders,
-            const string& filepath, const shader::compile_args& master_args)
+        [&resourceman](const shader::parse_output& parsed_shaders, const string& filepath, const shader::compile_args& master_args)
         {
-            for (const shader::parse_output& shader_parse : parsed_shaders)
-            {
-                shader::compile_args local_args = master_args;
-                local_args.m_signature = shader_parse.m_signature;
-                local_args.m_signature.m_target = master_args.m_signature.m_target;
+            for (const auto& pair : parsed_shaders.m_shadermap)
+                for (const auto& shader_parse : pair.second)
+                {
+                    // compile
+                    auto compile_result = shader::compile_shader_in_file(filepath, shader_parse.m_signature, master_args);
+                    influx_assert(compile_result.is_success());
 
-                // compile
-                auto compile_result = shader::compile_shader_in_file(filepath, local_args);
-                influx_assert(compile_result.is_success());
-
-                // load into resource_manager
-                shader::compile_output compile_output = compile_result.get();
-                influx_assert(compile_output.m_success);
-                resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
-            }
+                    // load into resource_manager
+                    shader::compile_output compile_output = compile_result.get();
+                    influx_assert(compile_output.m_success);
+                    resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+                }
         };
         compile_shaders(basepass_parsed_file, basepass_sourcefile_path, compile_args);
         compile_shaders(resolvepass_parsed_file, resolvepass_sourcefile_path, compile_args);

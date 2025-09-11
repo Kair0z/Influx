@@ -137,7 +137,8 @@ namespace influx::imp
 	/* Loads a Shader file (.hlsl) */
 	struct shader_load_args final
 	{
-		shader::compile_args m_compile_args{};
+		shader::e_shader_type_flags		m_shaderfilter = shader::e_shader_type_flags::all;
+		shader::compile_args			m_compile_args{};
 	};
 
 	struct shader_data final
@@ -147,12 +148,9 @@ namespace influx::imp
 		shader::e_shader_type m_type;
 	};
 	
-	INFLUX_ASSETS_API /* loads a single shader in a given file */
-	result<shader_data> load_shader_file(const string& filepath, const shader_load_args& load_args = {});
-
 	INFLUX_ASSETS_API /* loads all shaders in a given file */
-	result<vector<shader_data>> load_shaders_in_file(const string& filepath, const shader_load_args& load_args = {});
-
+	result<vector<shader_data>> load_shaders_in_file(
+		const string& filepath, const shader_load_args& load_args = {});
 
 	/* Loads an 2D-image (.png, .jpeg) */
 	struct image_load_args final

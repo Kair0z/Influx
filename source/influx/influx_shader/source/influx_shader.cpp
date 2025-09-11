@@ -227,26 +227,30 @@ namespace influx::shader
 		return result;
 	}
 
-	inline static wstring make_shader_name_string(const compile_args& args)
+	inline static wstring make_shader_name_string(
+		const shader_signature& signature,
+		const compile_args& args)
 	{
-		wstring type = to_wstring(build_shader_target_string(args.m_signature.m_type, args.m_signature.m_target));
-		wstring entry = to_wstring(args.m_signature.m_entrypoint);
+		wstring type = to_wstring(build_shader_target_string(signature.m_type, args.m_target));
+		wstring entry = to_wstring(signature.m_entrypoint);
 		return type + entry;
 	}
 
-	inline vector<string> make_compile_args_strings(const compile_args& args)
+	inline vector<string> make_compile_args_strings(
+		const shader_signature& signature,
+		const compile_args& args)
 	{
 		vector<string> result{};
 
 		// entrypoint (-E)
-		const string& entrypoint = args.m_signature.m_entrypoint;
+		const string& entrypoint = signature.m_entrypoint;
 		result.push_back( "-E ");
 		result.push_back( entrypoint.c_str());
 		result.push_back( " ");
 
 		// exports (-exports)
 		// (in case of raytracing, we compile a single shader as a shader lib and so declare a single export)
-		const bool compile_as_shaderlib = shader::is_raytracing_shader(args.m_signature.m_type);
+		const bool compile_as_shaderlib = shader::is_raytracing_shader(signature.m_type);
 		if (compile_as_shaderlib)
 		{
 			result.push_back( "-exports ");
@@ -255,7 +259,7 @@ namespace influx::shader
 		}
 
 		// target (-T) (eg. ps_6_2)
-		string profile = build_shader_target_string(args.m_signature.m_type, args.m_signature.m_target);
+		string profile = build_shader_target_string(signature.m_type, args.m_target);
 		result.push_back( "-T ");
 		result.push_back( profile.c_str());
 		result.push_back( " ");
@@ -349,7 +353,10 @@ namespace influx::shader
 		}
 	}
 
-	inline result<compile_output> compile_shader_dxcbuffer(const DxcBuffer& buffer, const compile_args& args)
+	inline result<compile_output> compile_shader_dxcbuffer(
+		const DxcBuffer& buffer, 
+		const shader_signature& signature, 
+		const compile_args& args)
 	{
 		using result_type = result<compile_output>;
 		result_type result = {};
@@ -364,7 +371,7 @@ namespace influx::shader
 		IDxcCompiler3* pCompiler = res.get();
 		
 		// convert arguments to warguments (i hate this i hate this i hate this)
-		vector<string> arguments = make_compile_args_strings(args);
+		vector<string> arguments = make_compile_args_strings(signature, args);
 		vector<wstring> warguments{}; warguments.resize(arguments.size());
 		vector<LPCWSTR> lwarguments{}; lwarguments.resize(arguments.size());
 		for (uint64 i = 0u; i < arguments.size(); ++i)
@@ -424,7 +431,7 @@ namespace influx::shader
 			if (hres == S_OK && pDebugData != nullptr)
 			{
 				wstring foldername = to_wstring(args.m_pdb_folder);
-				wstring filename = to_wstring(args.m_pdb_filename) + make_shader_name_string(args);
+				wstring filename = to_wstring(args.m_pdb_filename) + make_shader_name_string(signature, args);
 				wstring filepath = foldername + L"/" + filename + L".pdb";
 
 				hres = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData,
@@ -475,7 +482,8 @@ namespace influx::shader
 		}
 
 		// ULTIMATE SUCCESS
-		result.get().m_signature = args.m_signature;
+		result.get().m_signature = signature;
+		result.get().m_signature.m_target = args.m_target;
 		result.get().m_signature.cache_id();
 		result.get().m_success = true;
 		return result;
@@ -505,33 +513,42 @@ namespace influx::shader
 		return sourceBuffer;
 	}
 
-	result<compile_output> compile_shader_in_file(const string& filepath, const compile_args& args)
+	result<compile_output> compile_shader_in_file(
+		const string& filepath, 
+		const shader_signature& signature,
+		const compile_args& args)
 	{
 		using result_type = result<compile_output>;
 
-		if (!args.is_valid()) 
-			return result_type::make_error("error: compile args are invalid!");
+		if (!signature.is_valid()) 
+			return result_type::make_error("error: signature is invalid!");
 
 		auto res = filepath_to_buffer(filepath);
 		if (res.is_unex())
 			return result_type::make_error("error: failed converting file to dxc buffer!");
 
-		return compile_shader_dxcbuffer(res.get(), args);
+		return compile_shader_dxcbuffer(res.get(), signature, args);
 	}
 
-	result<compile_output> compile_shader(const string& shader_source, const compile_args& args)
+	result<compile_output> compile_shader_in_source(
+		const string& shader_source, 
+		const shader_signature& signature,
+		const compile_args& args)
 	{
+		using result_type = result<compile_output>;
+
+		if (!signature.is_valid())
+			return result_type::make_error("error: signature is invalid!");
+
 		if (shader_source.empty())
-		{
-			return result<compile_output>::make_error("error: emtpy shader source!");
-		}
+			return result_type::make_error("error: emtpy shader source!");
 
 		DxcBuffer sourceBuffer;
 		sourceBuffer.Ptr = shader_source.c_str();
 		sourceBuffer.Size = shader_source.size();
 		sourceBuffer.Encoding = 0u; // ANSI
 
-		return compile_shader_dxcbuffer(sourceBuffer, args);
+		return compile_shader_dxcbuffer(sourceBuffer, signature, args);
 	}
 
 	// parse out potential shader types
@@ -557,10 +574,9 @@ namespace influx::shader
 	// see core::shader
 	static_assert(_countof(type_to_signature) == shader::k_num_shadertypes);
 
-	result<vector<parse_output>> parse_shaders_in_file(const string& filepath)
+	result<parse_output> parse_shaders_in_file(const string& filepath)
 	{
-		using result_type = result<vector<parse_output>>;
-		result_type result{};
+		using result_type = result<parse_output>;
 
 		if (!path::exists(filepath))
 			return result_type::make_error("error: filepath doesnt exist!");
@@ -569,31 +585,35 @@ namespace influx::shader
 		if (file_content.empty())
 			return result_type::make_error("error: file is empty!");
 
-		result = parse_shader(file_content);
-		if (result.is_success())
+		auto result = parse_shaders_in_source(file_content);
+		if (result.is_unex())
+			return result_type::make_error("failed parsing shaders in source!");
+
+		// we already parsed the shaders, but their result signatures contain no filename
+		// update each parsed shader's filename
+		for (auto& pair : result.get().m_shadermap)
 		{
-			// if success, update each parsed shader's filename in its compile-args
-			for (auto& parse : result.get())
+			for (auto& shader : pair.second)
 			{
-				path as_file = path(filepath);
-				const bool without_extension = true;
-				parse.m_signature.m_filename = to_string(as_file.get_filename(without_extension));
-				parse.m_signature.cache_id();
+				path as_file = path(filepath); const bool without_extension = true;
+				shader.m_signature.m_filename = to_string(as_file.get_filename(without_extension));
+				shader.m_signature.cache_id();
 			}
 		}
 
 		return result;
 	}
 
-	result<vector<parse_output>> parse_shader(const string& shader_source)
+	result<parse_output> parse_shaders_in_source(const string& shader_source)
 	{
-		using result_type = result<vector<parse_output>>;
+		using result_type = result<parse_output>;
 		if (shader_source.empty())
 		{
 			return result_type::make_error("error: source string is empty!");
 		}
 
-		result_type result{};
+		parse_output result_parse{};
+
 		vector<string> source_lines = str::split(shader_source, "\n");
 		for (uint32 i = 0u; i < shader::k_num_shadertypes; ++i)
 		{
@@ -603,7 +623,7 @@ namespace influx::shader
 
 				// search each line for the current type's signature ([shader("vertex")])
 				influx::regex::for_each_match(line, type_to_signature[i],
-				[i, &source_lines, l, &result](const string& str)
+				[i, &source_lines, l, &result_parse](const string& str)
 				{
 					// now figure out the function entrypoint name:
 					// todo: make this a bit more error-proof
@@ -619,16 +639,19 @@ namespace influx::shader
 						const string& entrypoint = entrypoints[0];
 						const e_shader_type current_shader_type = static_cast<shader::e_shader_type>(i);
 
-						parse_output new_shader_parse{};
-						new_shader_parse.m_signature.m_type = current_shader_type;
-						new_shader_parse.m_signature.m_entrypoint = entrypoint;
-						result.get().push_back(new_shader_parse);
+						parse_output::per_shader shader_parse{};
+						shader_parse.m_signature.m_type = current_shader_type;
+						shader_parse.m_signature.m_entrypoint = entrypoint;
+
+						// flag this type as found
+						result_parse.m_found_types |= get_shader_flag(current_shader_type);
+						result_parse.m_shadermap[current_shader_type].push_back(shader_parse);
 					}
 				});
 			}
 		}
 
-		return result;
+		return result_parse;
 	}
 
 	result<shader_library> compile_shader_library(const string& filepath, const shader_library_compile_args& args)

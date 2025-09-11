@@ -377,6 +377,9 @@ namespace influx::math
 	using quatf = quaternion<float>;
 	using quatd = quaternion<double>;
 
+	/* 
+	*  quaternion-based rotation representation
+	*/
 	class rotation final
 	{
 		quatf m_quaternion;
@@ -391,82 +394,83 @@ namespace influx::math
 			return rot;
 		}
 
-		void set_matrix(const math::matrix3x3f& mat)
+		/* converts the rotation encoded in a 3x3 rotation matrix to our m_quaternion */
+		void set_rotation_matrix(const math::matrix3x3f& mat)
 		{
 			m_quaternion = quatf::matrix_to_quat(mat);
 		}
 
-		const math::matrix3x3f get_matrix() const
+		/* converts the rotation encoded in 3 euler angles (degrees) to our m_quaternion */
+		void set_euler_angles(float x, float y, float z)
+		{
+			m_quaternion;
+		}
+
+		void set_euler_angles(const float3& eulers)
+		{
+			return set_euler_angles(eulers.x, eulers.y, eulers.z);
+		}
+
+		/* converts the rotation encoded in our quaternion into a 3x3 rotation matrix */
+		const math::matrix3x3f get_rotation_matrix() const
 		{
 			return quatf::quat_to_matrix(m_quaternion);
 		}
 
-		bool is_gimbal_locked() const
-		{
-			return false;
-		}
-
-		// rotate x vector
-		math::float3 rotate(const math::float3& vector, float delta_degrees, const vectorf3& axis)
-		{
-			return quatf::rotate( vector, quatf::make_angleaxis(delta_degrees, axis) );
-		}
-
-		// euler angles
+		/* converts the rotation encoded in our quaternion into a vec3 euler angle representation (degrees) */
 		vectorf3 get_euler_angles() const
 		{
 			return {};
 		}
-		void set_euler_angles(float x, float y, float z)
-		{
 
+		/* returns a vector rotated [delta_degrees] around [axis] by our m_quaternion */
+		math::float3 rotate_vector(const math::float3& vector, float delta_degrees, const vectorf3& axis) const
+		{
+			return quatf::rotate( vector, quatf::make_angleaxis(delta_degrees, axis) );
 		}
+		
 		void add_euler_angles(float delta_x, float delta_y, float delta_z)
 		{
-
+			const float3 prev_euler = get_euler_angles();
+			set_euler_angles(prev_euler + float3(delta_x, delta_y, delta_z));
 		}
 
-		float get_pitch() const
+		float get_pitch_degrees() const
 		{
-			return 0.0f;
+			const float3 eulers = get_euler_angles();
+			return eulers.x;
 		}
 
-		float get_yaw() const
+		float get_yaw_degrees() const
 		{
-			return 0.0f;
+			const float3 eulers = get_euler_angles();
+			return eulers.y;
 		}
 
-		float get_roll() const
+		float get_roll_degrees() const
 		{
-			return 0.0f;
+			const float3 eulers = get_euler_angles();
+			return eulers.z;
 		}
 
 		vectorf3 get_forward() const
 		{
-			return vectorf3::make_one();
+			return m_quaternion * float3::make_forward();
 		}
 
 		vectorf3 get_right() const
 		{
-			return vectorf3::make_one();
+			return m_quaternion * float3::make_right();
 		}
 
 		vectorf3 get_up() const
 		{
-			return vectorf3::make_one();
+			return m_quaternion * float3::make_up();
 		}
-
-		void set_forward(const vectorf3& newForward)
-		{
-		}
-
-		void set_right(const vectorf3& newRight)
-		{
-		}
-
-		void set_up(const vectorf3& newUp)
-		{
-		}
+		
+		void set_up(const float3& up) {}
+		void set_forward(const float3& forward) {}
+		void set_right(const float3& right) {}
 	};
 
 

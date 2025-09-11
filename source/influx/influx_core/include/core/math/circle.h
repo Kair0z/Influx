@@ -65,7 +65,7 @@ namespace influx::math
 
 	public:
 		inline circle3D()
-			: m_radius{}, m_position{}, m_normal{ vector3::up() } {}
+			: m_radius{}, m_position{}, m_normal{ vector3::make_up() } {}
 
 		inline circle3D(const vector3& position, const vector3& normal, const _t radius)
 			: m_radius{ radius }, m_position{ position }, m_normal{ normal } {}
@@ -83,14 +83,14 @@ namespace influx::math
 			float angle_radians = math::to_radians(angle_degrees);
 
 			vector3 local_normal{};
-			if (m_normal == vector3::up())
+			if (m_normal == vector3::make_up())
 			{
 				// default case:
 				return { math::cos(angle_radians), 0.0f, math::sin(angle_radians) };
 			}
 			else
 			{
-				const vector3 vec_u = vector3::cross(m_normal, vector3::up());
+				const vector3 vec_u = vector3::cross(m_normal, vector3::make_up());
 				const vector3 vec_v = vector3::cross(vec_u, m_normal);
 				local_normal = (vec_u * math::cos(angle_radians)) + (vec_v * math::sin(angle_radians));
 			}

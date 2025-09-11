@@ -752,19 +752,28 @@ namespace influx::math
 		};
 	}
 	template<typename _t, matsize _x, matsize _y>
-	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_projection_RH(const float fov, const float ar, const float n, const float f)
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_projection_RH(
+		const float fov, const float ar, 
+		const float pnear, const float pfar, 
+		const float dmin, const float dmax)
 	{
-		float y = 1.0f / tanf(to_radians(fov) * 0.5f);
-		float x = y / ar;
+		const float fov_radians = to_radians(fov);
+		const float plane_delta = pfar - pnear;
+		const float depth_delta = dmax - dmin;
 
-		float intv = (f - n);
-		float z = f / intv;
+		const float y = 1.0f / tanf(fov_radians * 0.5f);
+		const float x = y / ar;
+		const float a = -(pfar * dmax - pnear * dmin) / (plane_delta);
+		const float b = -(pfar * pnear * depth_delta) / (plane_delta);
+		const float c = (depth_delta);
+		const float d = -dmin;
+
 		return
 		{
 			(_t)x, (_t)0, (_t)0,	(_t)0,
 			(_t)0, (_t)y, (_t)0,	(_t)0,
-			(_t)0, (_t)0, (_t)z,	(_t)1.0f,
-			(_t)0, (_t)0, (_t)-(f*n)/intv, (_t)0
+			(_t)0, (_t)0, (_t)a,	(_t)c,
+			(_t)0, (_t)0, (_t)b,	(_t)d
 		};
 	}
 

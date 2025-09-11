@@ -59,10 +59,11 @@ namespace influx::engine
 		count
 	};
 
+	using shader_vector = vector<imp::shader_data>;
 	result<imp::scene_data> load_scene_data(const string& path, const imp::scene_load_args& args);
 	result<imp::image_data> load_image_data(const string& path, const imp::image_load_args& args);
 	result<imp::cubemap_data> load_cubemap_data(const string& path, const imp::cubemap_load_args& args);
-	result<imp::shader_data> load_shader_data(const string& path, const imp::shader_load_args& args);
+	result<shader_vector> load_shader_data(const string& path, const imp::shader_load_args& args);
 
 	/* type of data obtained after loading */
 	template <e_asset_type _t>
@@ -70,7 +71,7 @@ namespace influx::engine
 		imp::scene_data,
 		imp::image_data,
 		imp::cubemap_data,
-		imp::shader_data>>;
+		shader_vector>>;
 
 	/* type of arguments for loading */
 	template <e_asset_type _t>

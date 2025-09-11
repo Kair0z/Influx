@@ -43,16 +43,16 @@ void compile_shaders(graphics::mesh_pipeline_desc& out_desc)
 	compile_args.m_include_folder = include_folder;
 
 	auto parsed_shaders = shader::parse_shaders_in_file(filepath).get();
+
 	vector<shader::compile_output> compiled_shaders{};
-	for (const auto& shader : parsed_shaders)
-	{
-		compile_args.m_signature = shader.m_signature;
-		compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
-		
-		auto res = shader::compile_shader_in_file(filepath, compile_args);
-		influx_assert(res.is_success());
-		compiled_shaders.push_back(res.get());
-	}
+	for (const auto& pair : parsed_shaders.m_shadermap)
+		for (const auto& shader : pair.second)
+		{
+			compile_args.m_target = shader::e_shader_target::_6_6;
+			auto res = shader::compile_shader_in_file(filepath, shader.m_signature, compile_args);
+			influx_assert(res.is_success());
+			compiled_shaders.push_back(res.get());
+		}
 
 	for (const shader::compile_output& shader : compiled_shaders)
 	{

@@ -12,7 +12,7 @@ namespace influx::renderer
 	static inline shader::compile_args get_internal_default_compile_args()
 	{
 		static shader::compile_args compile_args{};
-		compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
+		compile_args.m_target = shader::e_shader_target::_6_6;
 		compile_args.m_reflection_enabled = true;
 		compile_args.m_defines = {};
 		compile_args.set_debug_level(false);

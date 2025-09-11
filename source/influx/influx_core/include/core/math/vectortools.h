@@ -20,7 +20,7 @@ namespace influx::math
 		return result;
 	}
 
-	inline influx::vector<math::vectorf3> get_points_in_circle(float radius, uint32 num_points, const math::vectorf3& normal = math::vectorf3::up())
+	inline influx::vector<math::vectorf3> get_points_in_circle(float radius, uint32 num_points, const math::vectorf3& normal = math::vectorf3::make_up())
 	{
 		return get_points_in_circle(circlef3D({}, normal, radius), num_points);
 	}

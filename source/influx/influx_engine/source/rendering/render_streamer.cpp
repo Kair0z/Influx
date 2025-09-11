@@ -150,7 +150,8 @@ namespace influx::engine
 		{
 			if (asset.second.is_loaded())
 			{
-				const imp::shader_data shader_data = asset.second.m_resource;
+				const vector<imp::shader_data>& shader_datas = asset.second.m_resource;
+				const imp::shader_data& shader_data = shader_datas[0];
 				const shader::shader_signature& signature = shader_data.m_signature;
 
 				const time::point render_load_time = renderer::get_time_loaded_shader(signature);

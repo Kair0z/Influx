@@ -334,17 +334,17 @@ namespace influx::math
 
             return *this / get_length();
         }
-        constexpr static vector up()
+        constexpr static vector make_up()
         {
             static_assert(k_is_vector);
             return { 0,1,0 };
         }
-        constexpr static vector right()
+        constexpr static vector make_right()
         {
             static_assert(k_is_vector);
             return { 1,0,0 };
         }
-        constexpr static vector forward()
+        constexpr static vector make_forward()
         {
             static_assert(k_is_vector);
             return { 0,0,1 };

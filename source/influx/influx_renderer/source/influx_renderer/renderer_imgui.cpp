@@ -291,19 +291,21 @@ namespace influx::renderer
 	result<> imgui_manager::create_shaders()
 	{
 		shader::compile_args args{};
-		args.m_signature.m_entrypoint = "main";
-		args.m_signature.m_filename = "imgui_shaders";
+		shader::shader_signature signature{};
+
+		signature.m_entrypoint = "main";
+		signature.m_filename = "imgui_shaders";
 #if INFLUX_DEBUG
 		args.set_debug_level(true);
 #else
 		args.set_debug_level(false);
 #endif
-		args.m_signature.m_target = shader::e_shader_target::_6_6;
+		args.m_target = shader::e_shader_target::_6_6;
 		args.m_pbd_enabled = true;
 		args.m_reflection_enabled = true;
 
-		args.m_signature.m_type = shader::e_shader_type::vs;
-		auto res = shader::compile_shader(k_vertex_shader, args);
+		signature.m_type = shader::e_shader_type::vs;
+		auto res = shader::compile_shader_in_source(k_vertex_shader, signature, args);
 		if (res.is_unex())
 		{
 			return result<>::make_error("error: failed compiling vertex shader!");
@@ -311,8 +313,8 @@ namespace influx::renderer
 
 		m_vertex_shader = res.get();
 
-		args.m_signature.m_type = shader::e_shader_type::ps;
-		res = shader::compile_shader(k_pixel_shader, args);
+		signature.m_type = shader::e_shader_type::ps;
+		res = shader::compile_shader_in_source(k_pixel_shader, signature, args);
 		if (res.is_unex())
 		{
 			return result<>::make_error("error: failed compiling pixel shader!");

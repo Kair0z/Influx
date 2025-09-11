@@ -25,7 +25,7 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 // shader frontend
 namespace frontend
 {
-#include "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
+#include "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl"
 }
 #pragma endregion
 
@@ -46,11 +46,11 @@ class constants final
 {
 public:
 	// https://sketchfab.com/3d-models/silver-soldier-animated-a8f0d843735047b2999fbe4a9d7a1245#download
-	inline static const char* m_scene_filepath			= "E:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
-	inline static const char* m_shaders_filepath		= "E:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
-	inline static const char* m_albedo_filepath			= "E:/Git/Influx/source/misc/rendering/resources/albedo.png";
-	inline static const char* m_normal_filepath			= "E:/Git/Influx/source/misc/rendering/resources/normals.png";
-	inline static const char* m_skybox_filepath_base	= "E:/Git/Influx/source/misc/rendering/resources/graycloud_";
+	inline static const char* m_scene_filepath			= "D:/Git/Influx/source/misc/rendering/resources/soldier.fbx";
+	inline static const char* m_shaders_filepath		= "D:/Git/Influx/source/misc/rendering/resources/shaders.hlsl";
+	inline static const char* m_albedo_filepath			= "D:/Git/Influx/source/misc/rendering/resources/albedo.png";
+	inline static const char* m_normal_filepath			= "D:/Git/Influx/source/misc/rendering/resources/normals.png";
+	inline static const char* m_skybox_filepath_base	= "D:/Git/Influx/source/misc/rendering/resources/graycloud_";
 	inline static const char* m_skybox_files[]			= { "bk", "dn", "ft", "lf", "rt", "up" };
 
 	inline static const math::uint2 m_window_dim = { 640u, 480u };
@@ -194,63 +194,14 @@ public:
 		gstats.m_cpu_record_nums[m_name]++;
 	}
 };
-class content final
-{
-	umap<const char*, imp::scene_data> m_loaded_scenes{};
-	umap<const char*, imp::image_data> m_loaded_images{};
-	using shader_vector = vector<shader::compile_output>;
-	umap<const char*, shader_vector> m_loaded_shaders{};
-public:
-	const umap<const char*, imp::image_data>& get_images() const { return m_loaded_images; }
-	
-	result<shader::compile_output> get_shader(const char* filepath, const shader::e_shader_type type)
-	{
-		using result_type = result<shader::compile_output>;
-		if (m_loaded_shaders.contains(filepath) == false)
-			return result_type::make_error("loaded_shaders does not contain filepath");
-
-		const auto& shaders = m_loaded_shaders[filepath];
-		for (const auto& sh : shaders) if (sh.m_signature.m_type == type) return sh;
-
-		return result_type::make_error("shader type inside filepath not found!");
-	}
-
-	result<> load(const char* filepath, const shader::compile_args& args, bool reload = false)
-	{
-		using result_type = result<>;
-		if (m_loaded_shaders.contains(filepath) && !reload) return {};
-		m_loaded_shaders[filepath].push_back(shader::compile_shader_in_file(filepath, args).get());
-	}
-
-	result<imp::image_data>	load(const char* filepath, const imp::image_load_args& args, bool reload = false)
-	{
-		using result_type = result<imp::scene_data>;
-		if (m_loaded_images.contains(filepath) && !reload) 
-			return m_loaded_images[filepath];
-		
-		m_loaded_images[filepath] = imp::load_image_file(filepath, args).get();
-		return m_loaded_images[filepath];
-	}
-	
-	result<imp::scene_data>	load(const char* filepath, const imp::scene_load_args& args, bool reload = false)
-	{
-		using result_type = result<imp::scene_data>;
-
-		if (m_loaded_scenes.contains(filepath) && !reload) 
-			return m_loaded_scenes[filepath];
-		
-		m_loaded_scenes[filepath] = imp::load_scene_file(filepath, args).get();
-		return m_loaded_scenes[filepath];
-	}
-};
-static content gcontent{};
 
 class uploadheap final
 {
 	struct geometry_buffers { graphics::resource* m_indexbuffer{}; graphics::resource* m_vertexbuffer{}; };
 	using mesh_vector = vector<geometry_buffers>;
-	umap<const char*, mesh_vector> m_uploaded_meshes{};
-	umap<const char*, graphics::resource*> m_uploaded_textures{};
+
+	umap<const char*, mesh_vector>			m_uploaded_meshes{};
+	umap<const char*, graphics::resource*>	m_uploaded_textures{};
 
 public:
 	void upload_resources(graphics::commandlist& cmdlist)
@@ -264,6 +215,7 @@ public:
 		m_uploaded_meshes[filepath].resize(std::min(old_size, (uint64)index + 1));
 		m_uploaded_meshes[filepath][index].m_indexbuffer = indexbuffer;
 		m_uploaded_meshes[filepath][index].m_vertexbuffer = vertexbuffer;
+		return {};
 	}
 
 	result<> register_texture(const char* filepath, const graphics::resource* resource)
@@ -272,6 +224,64 @@ public:
 	}
 };
 uploadheap gupload{};
+
+class content final
+{
+	using shader_vector = vector<shader::compile_output>;
+	umap<const char*, imp::scene_data> m_loaded_scenes{};
+	umap<const char*, imp::image_data> m_loaded_images{};
+	umap<const char*, shader_vector> m_loaded_shaders{};
+
+public:
+	const umap<const char*, imp::image_data>& get_images() const { return m_loaded_images; }
+	const umap<const char*, imp::scene_data>& get_scenes() const { return m_loaded_scenes; }
+	const umap<const char*, shader_vector>& get_shadermaps() const { return m_loaded_shaders; }
+
+	// get a shader in the map at filepath of a specific type
+	result<shader::compile_output> get_shader(const char* filepath, const shader::e_shader_type type)
+	{
+		using result_type = result<shader::compile_output>;
+		if (m_loaded_shaders.contains(filepath) == false)
+			return result_type::make_error("loaded_shaders does not contain filepath");
+
+		const auto& shaders = m_loaded_shaders[filepath];
+		for (const auto& sh : shaders) if (sh.m_signature.m_type == type) return sh;
+
+		return result_type::make_error("shader type inside filepath not found!");
+	}
+
+	result<shader_vector> load(const char* filepath, const shader::compile_args& args, bool reload = false)
+	{
+		using result_type = result<shader_vector>;
+		if (m_loaded_shaders.contains(filepath) && !reload)
+		{
+			return result_type::make_error("hlsl file already loaded!");
+		}
+
+		m_loaded_shaders[filepath].push_back(shader::compile_shader_in_file(filepath, args).get());
+		return m_loaded_shaders[filepath];
+	}
+	result<imp::image_data>	load(const char* filepath, const imp::image_load_args& args, bool reload = false)
+	{
+		using result_type = result<imp::scene_data>;
+		if (m_loaded_images.contains(filepath) && !reload) 
+			return m_loaded_images[filepath];
+		
+		m_loaded_images[filepath] = imp::load_image_file(filepath, args).get();
+		return m_loaded_images[filepath];
+	}
+	result<imp::scene_data>	load(const char* filepath, const imp::scene_load_args& args, bool reload = false)
+	{
+		using result_type = result<imp::scene_data>;
+
+		if (m_loaded_scenes.contains(filepath) && !reload) 
+			return m_loaded_scenes[filepath];
+		
+		m_loaded_scenes[filepath] = imp::load_scene_file(filepath, args).get();
+		return m_loaded_scenes[filepath];
+	}
+};
+static content gcontent{};
 
 int main()
 {
@@ -306,7 +316,11 @@ int main()
 		imp::scene_load_args scene_load_args{};
 		scene_load_args.m_bake_transforms = false;
 		scene_load_args.m_pre_scale = 1.0f;
+
+		// load scene
 		auto scene = gcontent.load(constants::m_scene_filepath, scene_load_args).get();
+		
+		// load all images
 		gcontent.load(constants::m_albedo_filepath, imp::image_load_args{}).get();
 		gcontent.load(constants::m_normal_filepath, imp::image_load_args{}).get();
 		for (uint32 i = 0u; i < 6u; ++i)
@@ -315,6 +329,10 @@ int main()
 			gcontent.load(filepath.c_str(), imp::image_load_args{}).get();
 		}
 
+		// load all shaders
+
+
+		// copy to upload heaps
 		umap<graphics::resource*, range<uint64>> resource_to_upload_range{};
 
 		// upload to GPU & returns a range inside the upload heap
@@ -366,7 +384,6 @@ int main()
 		}
 	
 		uploadheap->unmap({});
-
 		//auto cmdlist = dev.create_graphics_commandlist();
 	});
 	loading_thread.join();

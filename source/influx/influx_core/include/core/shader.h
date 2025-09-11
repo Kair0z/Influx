@@ -107,6 +107,16 @@ namespace influx::shader
 		return static_cast<e_shader_type_flags>(1u << static_cast<uint8>(type));
 	}
 
+	// shader pipeline represents a configuration of inter-dependent shaders
+	// a graphics pipeline depends on a vertex shader to be present for exampl
+	class shader_pipeline final
+	{
+	public:
+		static constexpr bool is_valid_config_gfx(e_shader_type_flags config);
+		static constexpr bool is_valid_config_compute(e_shader_type_flags config);
+		static constexpr bool is_valid_config_raytracing(e_shader_type_flags config);
+	};
+
 	/* pipeline shader groups */
 	inline static constexpr bool is_compute_shader(e_shader_type type)
 	{
@@ -217,6 +227,28 @@ namespace influx::shader
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::shader::e_shader_type_flags);
 
+namespace influx::shader
+{
+	static constexpr bool is_valid_config_gfx(e_shader_type_flags config)
+	{
+		using flags = e_shader_type_flags;
+		return
+			has_all_flags(config, flags::vs)			||
+			has_all_flags(config, flags::vs | flags::ps);
+	}
+	static constexpr bool is_valid_config_compute(e_shader_type_flags config)
+	{
+		using flags = e_shader_type_flags;
+		return
+			has_all_flags(config, flags::cs);
+	}
+	static constexpr bool is_valid_config_raytracing(e_shader_type_flags config)
+	{
+		using flags = e_shader_type_flags;
+		return
+			has_all_flags(config, flags::rgs);
+	}
+}
 // specialize std::hash for shader_signature
 namespace std 
 {

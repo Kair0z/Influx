@@ -99,9 +99,9 @@ namespace influx::math
 			}
 			else
 			{
-				rotate(x, math::vectorf3::right());
-				rotate(y, math::vectorf3::up());
-				rotate(z, math::vectorf3::forward());
+				rotate(x, math::vectorf3::make_right());
+				rotate(y, math::vectorf3::make_up());
+				rotate(z, math::vectorf3::make_forward());
 			}
 		}
 
@@ -120,7 +120,7 @@ namespace influx::math
 			}
 			else
 			{
-				rotate(delta_angle, vectorf3::up());
+				rotate(delta_angle, vectorf3::make_up());
 			}
 		}
 
@@ -134,7 +134,7 @@ namespace influx::math
 			}
 			else
 			{
-				rotate(delta_angle, vectorf3::right());
+				rotate(delta_angle, vectorf3::make_right());
 			}
 		}
 
@@ -189,7 +189,7 @@ namespace influx::math
 		void set_rotation(const math::matrix3x3f& matrix)
 		{
 			m_is_matrix_dirty = true;
-			m_rotation.set_matrix(matrix);
+			m_rotation.set_rotation_matrix(matrix);
 		}
 
 		void set_scale(const vectorf3& scale)
@@ -268,14 +268,15 @@ namespace influx::math
 			{
 				math::matrix3x3f out_rotation_mat{};
 				m_matrix.decompose(m_position, out_rotation_mat, m_scale);
-				m_rotation.set_matrix(out_rotation_mat);
+				m_rotation.set_rotation_matrix(out_rotation_mat);
 			}
 			m_is_components_dirty = false;
 		}
 
 		bool is_gimbal_locked() const
 		{
-			return m_rotation.is_gimbal_locked();
+			return false;
+			//return m_rotation.is_gimbal_locked();
 		}
 
 		vectorf3 get_euler_angles() const
@@ -285,17 +286,17 @@ namespace influx::math
 
 		float get_pitch() const
 		{
-			return m_rotation.get_pitch();
+			return m_rotation.get_pitch_degrees();
 		}
 
 		float get_yaw() const
 		{
-			return m_rotation.get_yaw();
+			return m_rotation.get_yaw_degrees();
 		}
 
 		float get_roll() const
 		{
-			return m_rotation.get_roll();
+			return m_rotation.get_roll_degrees();
 		}
 
 		transform3D(const transform3D&) = default;

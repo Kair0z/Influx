@@ -143,7 +143,7 @@ namespace influx::engine
 					math::float3 transf_acceleration =
 					{
 						acceleration.x * trans_comp.get_right() +
-						acceleration.y * math::vectorf3::up() +
+						acceleration.y * math::vectorf3::make_up() +
 						acceleration.z * trans_comp.get_forward()
 					};
 					if (!transf_acceleration.is_zero()) transf_acceleration = transf_acceleration.normalized();
@@ -248,7 +248,7 @@ namespace influx::engine
 
 		// create swoards
 		const uint32 num_swords = 50u;
-		math::circlef3D circle = math::circlef3D({}, math::vectorf3::up(), 2.0f);
+		math::circlef3D circle = math::circlef3D({}, math::vectorf3::make_up(), 2.0f);
 		for (uint32 i = 0u; i < num_swords; ++i)
 		{
 			entity sword = create_entity();

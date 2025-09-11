@@ -272,21 +272,22 @@ namespace influx::imgui
 	inline void create_shaders()
 	{
 		shader::compile_args args{};
-		args.m_signature.m_entrypoint = "main";
+		shader::shader_signature signature{};
+		signature.m_entrypoint = "main";
 #if INFLUX_DEBUG
 		args.set_debug_level(true);
 #else
 		args.set_debug_level(false);
 #endif
-		args.m_signature.m_target = shader::e_shader_target::_6_2;
+		signature.m_target = shader::e_shader_target::_6_2;
 		args.set_pdb_enabled(true);
 		args.set_reflection_enabled(true);
 
-		args.m_signature.m_type = shader::e_shader_type::vs;
-		get_vertex_shader() = shader::compile_shader(k_vertex_shader, args).get();
+		signature.m_type = shader::e_shader_type::vs;
+		get_vertex_shader() = shader::compile_shader_in_source(k_vertex_shader, signature, args).get();
 
-		args.m_signature.m_type = shader::e_shader_type::ps;
-		get_pixel_shader() = shader::compile_shader(k_pixel_shader, args).get();
+		signature.m_type = shader::e_shader_type::ps;
+		get_pixel_shader() = shader::compile_shader_in_source(k_pixel_shader, signature, args).get();
 	}
 
 	inline void create_pipeline()

@@ -105,19 +105,8 @@ namespace influx::engine
 	};
 
 	static const load_args<e_asset_type::shader> k_default_shader_import_args
-	{ {
-		.m_signature{},
-		.m_defines{},
-		.m_pdb_folder{},
-		.m_pdb_filename{},
-		.m_include_folder{},
-#if INFLUX_DEBUG
-		.m_debug_level = shader::e_compile_debug_level::debug,
-#else
-		.m_debug_level = shader::e_compile_debug_level::release,
-#endif
-		.m_reflection_enabled = true,
-		.m_pbd_enabled = true
+	{{
+		
 	}};
 
 	static const load_args<e_asset_type::scene> k_default_scene_import_args
@@ -224,29 +213,6 @@ namespace influx::engine
 		const vector<path> fbx_files = path::get_files_in_directory(root_path_str, true, ".fbx").get();
 		const vector<path> obj_files = path::get_files_in_directory(root_path_str, true, ".obj").get();
 		const vector<path> png_files = path::get_files_in_directory(root_path_str, true, ".png").get();
-		const vector<path> hlsl_files = path::get_files_in_directory(root_path_str, true, ".hlsl").get();
-
-		// load cubemap (hack)
-		{
-			imp::cubemap_load_args args{};
-			stat_array<string, 6u> cubemap_side_files{};
-			uint32 i = 0u;
-			for (const path& png : png_files)
-			{
-				const bool without_extension = false;
-				const string& filename = to_string(png.get_filename(without_extension));
-				const string& full_path = to_string(png.get_full_path());
-
-				if (str::contains(filename, "graycloud"))
-				{
-					cubemap_side_files[i++] = full_path;
-				}
-			}
-
-			cubemap_asset& item = m_cubemaps["graycloud"];
-			args.m_hacky_paths = &cubemap_side_files;
-			item.load(cubemap_side_files[0], args);
-		}
 		
 		// load fbxs & objs
 		async::dispatch_for<path>(obj_files, [this](const path& file)
@@ -268,63 +234,7 @@ namespace influx::engine
 			item.load(file, args);
 		});
 
-		// load hlsls
-		static shader::compile_args compile_args{};
-		if (origin == e_asset_origin::engine)
-		{
-			compile_args.m_include_folder = to_string(root.get_full_path()) + "/engine/shaders/";
-		}
-		
-		compile_args.m_signature.m_target = shader::e_shader_target::_6_6;
-		compile_args.m_reflection_enabled = true;
-		compile_args.m_defines = {};
-#if INFLUX_DEBUG
-		compile_args.set_debug_level(true);
-		compile_args.m_pbd_enabled = true;
-		compile_args.m_pdb_folder = to_string(get_engine_directory(engine_directory::shaderpdb).get_full_path()).c_str();
-#else
-		compile_args.m_compile_debug = false;
-		compile_args.m_pbd = false;
-#endif
-		async::dispatch_for<path>(hlsl_files, [this, root](const path& file)
-		{
-			const bool without_extension = false;
-			const string& filename = to_string(file.get_filename(without_extension));
-			const string& full_path = to_string(file.get_full_path());
-
-#if INFLUX_DEBUG
-			compile_args.m_pdb_filename = filename;
-#endif
-			compile_args.m_signature.m_filename = filename;
-
-			const string& file_content = path::read_all_to_string(full_path).get();
-			if (str::contains(file_content, "[shader(\"vertex\")]", false))
-			{
-				shader_asset& vs_item = m_shaders[filename + "_vs"];
-				compile_args.m_signature.m_type = shader::e_shader_type::vs;
-				compile_args.m_signature.m_entrypoint = "main_vs";
-				compile_args.m_signature.cache_id();
-				vs_item.load(file, { compile_args });
-			}
-
-			if (str::contains(file_content, "[shader(\"pixel\")]", false))
-			{
-				shader_asset& ps_item = m_shaders[filename + "_ps"];
-				compile_args.m_signature.m_type = shader::e_shader_type::ps;
-				compile_args.m_signature.m_entrypoint = "main_ps";
-				compile_args.m_signature.cache_id();
-				ps_item.load(file, { compile_args });
-			}
-
-			if (str::contains(file_content, "[shader(\"compute\")]", false))
-			{
-				shader_asset& cs_item = m_shaders[filename + "_cs"];
-				compile_args.m_signature.m_type = shader::e_shader_type::cs;
-				compile_args.m_signature.m_entrypoint = "main_cs";
-				compile_args.m_signature.cache_id();
-				cs_item.load(file, { compile_args });
-			}
-		});
+		load_shaders(origin, root);
 
 		// load pngs
 		async::dispatch_for<path>(png_files, [this](const path& file)
@@ -335,6 +245,56 @@ namespace influx::engine
 			imp::image_load_args args{};
 			image_asset& item = m_images[filename];
 			item.load(file, args);
+		});
+	}
+	void content_manager::load_shaders(e_asset_origin origin, const path& root)
+	{
+		const string& root_path_str = to_string(root.get_full_path());
+		const vector<path> hlsl_files = path::get_files_in_directory(root_path_str, true, ".hlsl").get();
+
+		// global compile args
+		static shader::compile_args compile_args{};
+		if (origin == e_asset_origin::engine)
+		{
+			compile_args.m_include_folder = to_string(root.get_full_path()) + "/engine/shaders/";
+		}
+		compile_args.m_target = shader::e_shader_target::_6_6;
+		compile_args.m_reflection_enabled = true;
+		compile_args.m_defines = {};
+#if INFLUX_DEBUG
+		compile_args.set_debug_level(true);
+		compile_args.m_pbd_enabled = true;
+		compile_args.m_pdb_folder = to_string(get_engine_directory(engine_directory::shaderpdb).get_full_path()).c_str();
+#else
+		compile_args.m_compile_debug = false;
+		compile_args.m_pbd = false;
+#endif
+
+		async::dispatch_for<path>(hlsl_files, [this, root](const path& file)
+		{
+			const auto parse_result = shader::parse_shaders_in_file(to_string(file.get_full_path()));
+			if (!parse_result.is_success()) 
+				return;
+
+			// set the individual compile args for each parse result
+			const bool without_extension = false;
+			const string& filename = to_string(file.get_filename(without_extension));
+			compile_args.m_pdb_filename = filename;
+
+			imp::shader_load_args load_args{};
+			load_args.m_compile_args = compile_args;
+
+			// for each parsed shader in shadermap...
+			for (const auto& pair : parse_result.get().m_shadermap)
+				for (const auto& shader : pair.second)
+				{
+					const shader::e_shader_type type = pair.first;
+					const shader::shader_signature parsed_signature = shader.m_signature;
+					const string& parsed_tag = parsed_signature.get_tag();
+
+					shader_asset& cs_item = m_shaders[parsed_tag];
+					cs_item.load(file, load_args, true);
+				}
 		});
 	}
 }

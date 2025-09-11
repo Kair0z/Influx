@@ -290,6 +290,7 @@ namespace influx
 			return unique_ptr<_t>(new _t(std::forward<_args>(args)...));
 		}
 	}
+
 	template <typename _t>
 	using ptr = _t*;
 

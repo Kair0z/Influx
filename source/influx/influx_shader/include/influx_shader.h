@@ -29,7 +29,7 @@ namespace influx::shader
 	struct compile_args final
 	{
 	public:
-		shader_signature		m_signature;
+		e_shader_target			m_target;
 		vector<string>			m_defines;
 		vector<string>			m_add_args{};
 		string					m_pdb_folder;
@@ -43,17 +43,11 @@ namespace influx::shader
 		inline bool is_non_debug()
 		{ return m_debug_level == e_compile_debug_level::release; }
 
-		inline bool is_valid() const
-		{ return m_signature.is_valid(); }
-
 		inline compile_args& add_define(const string& define) 
 		{ m_defines.push_back(define); return *this; }
 		
 		inline compile_args& set_target(e_shader_target target) 
-		{ m_signature.m_target = target; return *this; }
-		
-		inline compile_args& set_type(e_shader_type type)
-		{ m_signature.m_type = type; return *this; }
+		{ m_target = target; return *this; }
 
 		inline compile_args& set_pdb_folder(const string& folder)
 		{ m_pdb_folder = folder; return *this; }
@@ -122,56 +116,78 @@ namespace influx::shader
 	/* */
 	struct compile_output final
 	{
-		shader_signature m_signature;
-
-		vector<byte> m_bytecode;
-
-		reflection m_reflection;
-		
-		vector<string> m_log;
-
-		bool m_success = false;
+		shader_signature	m_signature;
+		vector<byte>		m_bytecode;
+		reflection			m_reflection;
+		vector<string>		m_log;
+		bool m_success		= false;
 	};
 
-	// parses information about a shader without compiling
+	/* */
 	struct parse_output final
 	{
-		shader_signature m_signature;
-
-		inline const string& get_entrypoint() const
+		struct per_shader final
 		{
-			return m_signature.m_entrypoint;
+			shader_signature m_signature;
+		};
+
+		uint32 get_total_num_shaders() const
+		{
+			uint32 result{};
+			for (const auto& pair : m_shadermap)
+				result += (uint32)pair.second.size();
+			return result;
 		}
 
-		inline const shader::e_shader_type& get_shader_type() const
+		void merge(const parse_output& other)
 		{
-			return m_signature.m_type;
+			m_found_types |= other.m_found_types;
+			for (const auto& pair : other.m_shadermap)
+				for (const auto& shader : pair.second)
+				{
+					m_shadermap[pair.first].push_back(shader);
+				}
 		}
+
+		e_shader_type_flags						m_found_types;
+		map<e_shader_type, vector<per_shader>>	m_shadermap{};
 	};
 
 	/* finds & compiles a shader (based on args) from a.hlsl filepath */
 	INFLUX_SHADER_API 
-	result<compile_output> compile_shader_in_file(const string& filepath, const compile_args& args);
+	result<compile_output> compile_shader_in_file(
+		const string& filepath,
+		const shader_signature& signature,
+		const compile_args& args);
 
 	/* finds & compiles a shader (based on args) from a string */
 	INFLUX_SHADER_API 
-	result<compile_output> compile_shader(const string& shader_source, const compile_args& args);
+	result<compile_output> compile_shader_in_source(
+		const string& shader_source,
+		const shader_signature& signature,
+		const compile_args& args);
 	
-	/* finds & parses an .hlsl file to detect shaders it contains without compiling them */
-	INFLUX_SHADER_API 
-	result<vector<parse_output>> parse_shaders_in_file(const string& filepath);
+	/* 
+		finds & parses an .hlsl file 
+		to detect shaders it contains without compiling them 
+	*/
+	INFLUX_SHADER_API
+	result<parse_output> parse_shaders_in_file(const string& filepath);
 
-	/* finds & parses all shaders in a given string */
+	/* 
+		finds & parses all shaders in a given string
+	*/
 	INFLUX_SHADER_API 
-	result<vector<parse_output>> parse_shader(const string& shader_source);
+	result<parse_output> parse_shaders_in_source(const string& shader_source);
 
-	/* compiling a shader library */
+	/* 
+		compiling a shader library 
+	*/
 	struct shader_library_compile_args final
 	{
 		e_shader_target m_target;
 		string m_entrypoint;
 	};
-
 	struct shader_library final
 	{
 		vector<byte> m_bytecode;

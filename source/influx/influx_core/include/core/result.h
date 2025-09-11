@@ -57,8 +57,8 @@ namespace influx
 		using ex_type = _t;
 		using unex_type = _e;
 
-		unex_type m_unexpected = {};
 		ex_type m_expected = {};
+		unex_type m_unexpected = {};
 
 		// warnings carry a valid result,
 		// AND an unexpected result,

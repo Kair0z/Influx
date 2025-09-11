@@ -12,16 +12,17 @@ int main()
 
 	const string path = "E:/Git/Influx/assets/engine/shaders/source/resolvepass.hlsl";
 	
+	shader::shader_signature signature{};
 	shader::compile_args args{};
-	args.m_signature.m_entrypoint = "main_cs";
-	args.m_signature.m_filename = "resolvepass";
+	signature.m_entrypoint = "main_cs";
+	signature.m_filename = "resolvepass";
+	signature.m_type = shader::e_shader_type::cs;
+
 	args.m_include_folder = "E:/Git/Influx/assets/engine/shaders/";
-	args.m_signature.m_type = shader::e_shader_type::cs;
-	args.m_signature.m_target = shader::e_shader_target::_6_6;
+	args.m_target = shader::e_shader_target::_6_6;
 	args.m_reflection_enabled = true;
 
-	shader::compile_output output = shader::compile_shader(path, args).get();
-
+	shader::compile_output output = shader::compile_shader_in_file(path, signature, args).get();
 	if (!output.m_success)
 	{
 		const string first_log = output.m_log.front();

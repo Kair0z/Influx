@@ -698,6 +698,8 @@ namespace influx::rhi
 		inline result<command_allocator> create(const commandallocator_create_args& args) const;
 		inline result<commandlist> create(const commandlist_create_args& args) const;
 		inline result<descheap> create(const descheap_create_args& args) const;
+
+		inline result<> release() { return {}; }
 	};
 
 	inline static result<device> create_device(const device_create_args& args = {})

@@ -106,6 +106,7 @@ namespace influx::engine
 	private:
 		/* given an origin (category), load all assets in that category */
 		void load_assets(e_asset_origin origin, const path& root);
+		void load_shaders(e_asset_origin origin, const path& root);
 
 	};
 }
