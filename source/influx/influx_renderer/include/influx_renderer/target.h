@@ -65,8 +65,6 @@ namespace influx::renderer
 		INFLUX_RENDER_API void set_name(const debug_name& name);
 		INFLUX_RENDER_API const debug_name& get_name() const;
 
-		INFLUX_RENDER_API bool is_swapchain_target() const;
-
 		INFLUX_RENDER_API debug_name get_rendergraph_name() const;
 		INFLUX_RENDER_API debug_name get_depth_rendergraph_name() const;
 		
@@ -83,12 +81,6 @@ namespace influx::renderer
 		explicit target(
 			graphics::device* device, const target_create_args& args);
 
-		// constructs a target from existing swapchain resources
-		explicit target(
-			graphics::device* device,
-			graphics::swapchain* swapchain,
-			uint8 swapchain_index);
-
 		// does not allocate a new descriptor handle, but recreates the view
 		void recreate_rtv();
 		void recreate_dsv();
@@ -100,7 +92,6 @@ namespace influx::renderer
 		graphics::descriptor_handle m_rtv_cpu;
 		graphics::descriptor_handle m_dsv_cpu;
 		graphics::descriptor_handle m_srv_cpu;
-		bool m_is_swapchain_target = false;
 
 		target_create_args m_createargs;
 		math::vectoru2 m_current_dimensions;

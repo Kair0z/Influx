@@ -74,6 +74,7 @@ namespace influx::renderer
 		bool		m_is_initialized = false;
 		string		m_shadersource_directory = "";
 
+		target*						m_finaltarget = nullptr;
 		umap<debug_name, target*>	m_targets = {};
 		rendergraph::rendergraph*	m_rendergraph = nullptr;
 		graphics::device*			mp_device = nullptr;
@@ -83,8 +84,8 @@ namespace influx::renderer
 
 		struct swapchain final
 		{
+			target*					m_finaltarget_proxy = nullptr;
 			graphics::swapchain*	mp_swapchain = nullptr;
-			vector<target*>			m_targets{};
 			string					m_windowtitle{};
 		};
 		umap<platform::window const*, swapchain> m_swapchains{};
@@ -106,7 +107,6 @@ namespace influx::renderer
 		void initialize(const init_args& args);
 		bool is_initialized() const;
 		void wait_gpu_finished() const;
-		void load_resources();
 		void cleanup();
 
 		void start_frame();
@@ -186,7 +186,6 @@ namespace influx::renderer
 		string get_shadersource_directory(e_shadersource_directory _enum = e_shadersource_directory::base) const;
 
 	private:
-		void recreate_backbuffer_targets(swapchain& swapchain);
-		target* get_current_window_target(swapchain& swapchain);
+		void recreate_backbuffer_finaltarget(swapchain& swapchain);
 	};
 }

@@ -150,18 +150,20 @@ namespace influx::renderer
 
     void renderer_backend::start_frame()
     {
+        // todo: one day, we'll be able to only upgrade the graph when the layout of the frame render changes
+        // today is not that day...
         m_rendergraph->reset_graph();
+    }
 
+    void renderer_backend::end_frame()
+    {
         // start the commandlist
         mp_commandlist->start(mp_device, nullptr);
         mp_commandlist->set_name("frame");
 
         // bind gpu heaps
         get_descriptor_manager()->bind_gpu_heaps(*mp_commandlist);
-    }
 
-    void renderer_backend::end_frame()
-    {
         {
             influx_scope("renderer::rendergraph_build");
             m_rendergraph->build();
@@ -243,40 +245,25 @@ namespace influx::renderer
         return {};
     }
 
-    void renderer_backend::recreate_backbuffer_targets(swapchain& swapchain)
+    void renderer_backend::recreate_backbuffer_finaltarget(swapchain& swapchain)
     {
-        // delete old
-        for (target*& target : swapchain.m_targets)
-        {
-            destroy_target(target);
-        }
-        swapchain.m_targets.clear();
+        if (swapchain.m_finaltarget_proxy != nullptr)
+            destroy_target(swapchain.m_finaltarget_proxy).get();
 
-        // create new
-        const uint8 num_swapchain_buffers = swapchain.mp_swapchain->get_num_backbuffers();
-        for (uint8 i = 0u; i < num_swapchain_buffers; ++i)
-        {
-            string target_name = "bb" + swapchain.m_windowtitle + "_" + std::to_string(i);
-            target* new_target = new target(mp_device, swapchain.mp_swapchain, i);
-            new_target->set_name(target_name);
+        const char* name = "tex_finaltarget";
+        renderer::target_create_args args{};
+        args.m_has_colour = true;
+        args.m_has_depth_stencil = true;
+        args.m_width = swapchain.mp_swapchain->get_dimensions().x;
+        args.m_heigth = swapchain.mp_swapchain->get_dimensions().y;
+        args.m_name = name;
 
-            // add to book keeping
-            m_targets[new_target->get_name()] = new_target;
-
-            import_to_graph(*new_target);
-            swapchain.m_targets.push_back(new_target);
-        }
-    }
-
-    target* renderer_backend::get_current_window_target(swapchain& swapchain)
-    {
-        if (swapchain.mp_swapchain != nullptr)
-        {
-            const uint8 current_swapchain_index = swapchain.mp_swapchain->get_current_backbuffer_index();
-            return swapchain.m_targets[current_swapchain_index];
-        }
-
-        return nullptr;
+        target* new_target = new target(mp_device, args);
+        new_target->set_name(name);
+        // add to backend book keeping
+        m_targets[name] = new_target;
+        import_to_graph(*new_target);
+        swapchain.m_finaltarget_proxy = new_target;
     }
 
     target* renderer_backend::get_or_create_window_target(const platform::window& window)
@@ -298,7 +285,7 @@ namespace influx::renderer
             desc.m_format; //  todo
             desc.m_dimensions = window.get_dimensions(platform::window::e_space::client);
             swapchain.mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
-            recreate_backbuffer_targets(swapchain);
+            recreate_backbuffer_finaltarget(swapchain);
         }
 
         // if need, recreate the swapchain
@@ -306,15 +293,11 @@ namespace influx::renderer
         {
             mp_commandlist->wait_for_completion();
             wait_gpu_finished();
-
             swapchain.mp_swapchain->resize(mp_device, window);
-
-            recreate_backbuffer_targets(swapchain);
+            recreate_backbuffer_finaltarget(swapchain);
         }
-
         acquire_swapchain_frame(swapchain);
-        
-        return get_current_window_target(swapchain);
+        return swapchain.m_finaltarget_proxy;
     }
 
     void renderer_backend::acquire_swapchain_frame(swapchain& swapchain)
@@ -326,19 +309,14 @@ namespace influx::renderer
     result<> renderer_backend::draw_scene(const scene& scene, const target& target)
     {
         using result_type = result<>;
-
         if (scene.is_empty())
-        {
             return result_type::make_error("error: cannot draw an empty scene!");
-        }
 
         auto res = import_to_graph(target);
         if (res.is_unex())
-        {
             return result_type::make_error("error: failed importing target!");
-        }
 
-        mp_scene_renderer->render(*m_rendergraph, scene, target);
+        mp_scene_renderer->build(*m_rendergraph, scene, target);
         return {};
     }
 
@@ -525,9 +503,19 @@ namespace influx::renderer
 
         for (const auto& swapchain : m_swapchains)
         {
+            target* proxy = swapchain.second.m_finaltarget_proxy;
+            graphics::resource* proxy_resource = proxy->get_resource();
+
             auto res = swapchain.second.mp_swapchain->get_current_backbuffer_resource();
             influx_assert(res.is_success());
+
             graphics::resource* backbuffer = res.get();
+
+            // transition & copy finaltargetproxy into the backbuffer
+            proxy_resource->transition(mp_commandlist, graphics::e_resource_state::copy_src);
+            mp_commandlist->copy_resource(proxy_resource, backbuffer);
+            backbuffer->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
+
             backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
         }
 

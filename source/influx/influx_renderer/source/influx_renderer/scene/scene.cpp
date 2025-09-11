@@ -128,6 +128,12 @@ namespace influx::renderer
 
 	void scene::set_camera_transform(const math::matrix4x4f& transform)
 	{
+		if (m_transforms.empty())
+		{
+			m_transforms.push_back(transform);
+			m_camera.m_transform_id = 0u;
+			return;
+		}
 		math::matrix4x4f& matrix = get_transform(m_camera.m_transform_id);
 		matrix = transform;
 	}

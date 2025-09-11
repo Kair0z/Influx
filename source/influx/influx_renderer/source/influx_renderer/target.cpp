@@ -64,32 +64,6 @@ namespace influx::renderer
 		}
 
 		m_current_dimensions = { args.m_width, args.m_heigth };
-		m_is_swapchain_target = false;
-	}
-
-	// constructs a target from existing swapchain resources
-	target::target(graphics::device* device, 
-		graphics::swapchain* swapchain, 
-		uint8 swapchain_index)
-	{
-		m_createargs.m_has_colour = true;
-		m_createargs.m_has_depth_stencil = false;
-
-		influx_assert(swapchain_index < swapchain->get_num_backbuffers());
-
-		// get the existing backbuffer resource, and allocate + create a new rtv
-		mp_resource = swapchain->get_backbuffer_resource(swapchain_index).get();
-		m_srv_cpu = renderer_backend::get_descriptor_manager()->create_srv(*device, *mp_resource);
-		m_rtv_cpu = renderer_backend::get_descriptor_manager()->create_rtv(*device, *mp_resource);
-		m_dsv_cpu = nullptr;
-		
-		m_createargs.m_width = swapchain->get_dimensions().x;
-		m_createargs.m_heigth = swapchain->get_dimensions().y;
-		m_current_dimensions = swapchain->get_dimensions();
-
-		mp_device = device;
-
-		m_is_swapchain_target = true;
 	}
 
 	debug_name target::get_rendergraph_name() const
@@ -121,20 +95,16 @@ namespace influx::renderer
 			m_dsv_cpu = nullptr;
 		}
 
-		// all non-swapchain targets own their own resources and so should destroy them
-		if (m_is_swapchain_target == false)
+		if (mp_resource)
 		{
-			if (mp_resource)
-			{
-				mp_device->release(mp_resource);
-				mp_resource = nullptr;
-			}
+			mp_device->release(mp_resource);
+			mp_resource = nullptr;
+		}
 
-			if (mp_depth_resource)
-			{
-				mp_device->release(mp_depth_resource);
-				mp_depth_resource = nullptr;
-			}
+		if (mp_depth_resource)
+		{
+			mp_device->release(mp_depth_resource);
+			mp_depth_resource = nullptr;
 		}
 	}
 
@@ -261,11 +231,6 @@ namespace influx::renderer
 	const debug_name& target::get_name() const
 	{
 		return mp_resource->get_name();
-	}
-
-	bool target::is_swapchain_target() const
-	{
-		return m_is_swapchain_target;
 	}
 }
 

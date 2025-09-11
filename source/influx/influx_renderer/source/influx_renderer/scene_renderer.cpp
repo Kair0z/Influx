@@ -606,15 +606,7 @@ namespace influx::renderer
         }
 
         builder.set_viewport(target.get_width(), target.get_height());
-
-        if (m_use_uav_proxy)
-        {
-            builder.write_texture(m_uav_proxy_name).get();
-        }
-        else
-        {
-            builder.write_texture(target.get_rendergraph_name()).get();
-        }
+        builder.write_texture(target.get_rendergraph_name()).get();
     }
 
     void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
@@ -694,12 +686,16 @@ namespace influx::renderer
         commandlist.dispatch({ {num_groups_x, num_groups_y, 1u} });
     }
 
-    void scene_renderer::render(rendergraph::rendergraph& graph, const scene& scene, const target& target)
+    void scene_renderer::build(rendergraph::rendergraph& graph, const scene& scene, const target& target)
     {
         if (scene.is_empty())
         {
             return;
         }
+
+        // if target doesn't support UAV, we have a problem...
+        if (target.get_resource()->allows_uav() == false)
+            return;
 
         renderer_backend& backend = renderer_backend::get_instance();
         rhi_device& device = renderer_backend::get_device();
@@ -718,43 +714,6 @@ namespace influx::renderer
         });
         basepass->set_name("basepass");
        
-        // | PROXY PASS
-        // if we're directly writing to the swapchain, we need to write to a intermediate that allows for uav writes
-        // the proxy pass copies the existing target contents into proxy (UAV) target
-        const bool target_is_uav_compatible = !target.is_swapchain_target() && target.get_resource()->allows_uav();
-        m_use_uav_proxy = target_is_uav_compatible == false;
-
-        if (m_use_uav_proxy)
-        {
-            auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
-            [&target, this](rendergraph::rgpass_builder& builder)
-            {
-                rendergraph::texture_desc proxy_desc{};
-                proxy_desc.m_allow_uav = true;
-                proxy_desc.m_array_size = 1u;
-                proxy_desc.m_bindflags = rhi_resource_bindflags::uav;
-                proxy_desc.m_depth = 1u;
-                proxy_desc.m_format = target.get_resource()->get_format();
-                proxy_desc.m_width = target.get_width();
-                proxy_desc.m_heigth = target.get_height();
-                proxy_desc.m_num_mips = 1u;
-                proxy_desc.m_sample_count = 1u;
-                builder.declare_texture(m_uav_proxy_name, proxy_desc);
-
-                builder.read_copysrc_texture(target.get_rendergraph_name()).get();
-                builder.write_copydst_texture(m_uav_proxy_name).get();
-
-                builder.set_viewport(target.get_width(), target.get_height());
-            },
-            [this, &target](rendergraph::rgpass_context& context)
-            {
-                graphics::resource* src_resource = context.get_copysrc_texture(target.get_rendergraph_name()).get().m_resource;
-                graphics::resource* dst_resource = context.get_copydst_texture(m_uav_proxy_name).get().m_resource;
-                context.get_commandlist().copy_resource(src_resource, dst_resource);
-            });
-            proxypass->set_name("target_to_uav");
-        }
-
         // | RESOLVE PASS
         // | compute shader that resolves lighting into a final scene colour UAV
         auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
@@ -767,26 +726,6 @@ namespace influx::renderer
             execute_resolvepass(ctx, target, scene);
         });
         resolvepass->set_name("resolvepass");
-
-        // | PROXY PASS
-        // | proxy -> target
-        if (m_use_uav_proxy)
-        {
-            auto* proxypass = graph.add_pass(rendergraph::e_rgpass_type::compute,
-            [&target, this](rendergraph::rgpass_builder& builder)
-            {
-                builder.read_copysrc_texture(m_uav_proxy_name).get();
-                builder.write_copydst_texture(target.get_rendergraph_name()).get();
-                builder.set_viewport(target.get_width(), target.get_height());
-            },
-            [this, &target](rendergraph::rgpass_context& context)
-            {
-                graphics::resource* src_resource = context.get_copysrc_texture(m_uav_proxy_name).get().m_resource;
-                graphics::resource* dst_resource = context.get_copydst_texture(target.get_rendergraph_name()).get().m_resource;
-                context.get_commandlist().copy_resource(src_resource, dst_resource);
-            });
-            proxypass->set_name("uav_to_target");
-        }
 
         // | POST PROCESSING PASS
         // ...

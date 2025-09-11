@@ -136,6 +136,18 @@ renderer::scene make_the_scene()
 	renderer::scene result{};
 	if (true) // load an fbx scene
 	{
+		math::transform3D camera_transform = math::transform3D::identity();
+
+		renderer::camera camera{};
+		camera.m_camera.set_aspect_ratio(1.0f);
+		camera.m_camera.set_farplane(1000.0f);
+		camera.m_camera.set_nearplane(0.001f);
+		camera.m_camera.set_fov(90.0f);
+		camera.m_camera.set_is_orthographic(false);
+		camera.m_transform_id = 0u;
+
+		result.set_camera(camera);
+		result.set_camera_transform(camera_transform.get_matrix());
 		result.add_mesh(renderer::e_mesh::triangle);
 	}
 	else
@@ -212,7 +224,6 @@ int main()
 
 		renderer::start_frame();
 		for (uint32 i = 0u; i < num_windows; ++i)
-
 		{
 			static const math::colour_rgba clear_colours[num_windows]
 			{

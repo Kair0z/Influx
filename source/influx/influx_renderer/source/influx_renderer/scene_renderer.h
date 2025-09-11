@@ -43,7 +43,7 @@ namespace influx::renderer
 		void load_shaders();
 
 		/* add passes to render graph */
-		void render(rendergraph::rendergraph& graph, const scene& scene, const target& target);
+		void build(rendergraph::rendergraph& graph, const scene& scene, const target& target);
 
 	private:
 		vector<batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
@@ -58,7 +58,6 @@ namespace influx::renderer
 		void execute_resolvepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
 
 	private:
-		bool m_use_uav_proxy = true;
 		rendergraph::rgname m_uav_proxy_name = { "uav_proxy" };
 
 		graphics::resource* mp_instancebuffer;
