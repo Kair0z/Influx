@@ -71,6 +71,10 @@ namespace influx
 		result(const _t& value) { m_expected = value; }
 		result(const _e& error) { m_unexpected = error; }
 
+		// forbid implicit conversion!
+		template <typename = std::enable_if_t<!std::is_same_v<_t, bool>>>
+		operator _t() const = delete;
+
 		inline static result make_error(const _e& error)
 		{
 #if CHECK_RESULT_IMMEDIATE

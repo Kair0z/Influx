@@ -6,7 +6,7 @@ int main()
 {
     using namespace influx;
     
-    app app{app::e_component_flags::console | app::e_component_flags::window};
+    app app{ app::e_component_flags::console | app::e_component_flags::window };
 
     // initial settings
     app::window_settings winsettings{};

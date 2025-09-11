@@ -48,7 +48,7 @@ namespace influx::async
 		result<uint64> get_num_toclean() const;
 		
 		// true if we have tasks queued || processing
-		result<bool> has_unfinished_work() const; 
+		bool has_unfinished_work() const; 
 		
 	private:
 		bool m_is_initialized = false;

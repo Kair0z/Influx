@@ -223,9 +223,15 @@ namespace influx::async
 		return mp_global_cleanup_queue->size();
 	}
 
-	result<bool> async_manager::has_unfinished_work() const
+	bool async_manager::has_unfinished_work() const
 	{
-		return (get_num_queued() > 0u || get_num_processing() > 0u);
+		auto num_queued = get_num_queued();
+		if (!num_queued.is_success()) return false;
+
+		auto num_proc = get_num_processing();
+		if (!num_proc.is_success()) return false;
+
+		return (num_queued.get() > 0u || num_proc.get() > 0u);
 	}
 
 	result<> async_manager::dispatch(const task_handle& handle)

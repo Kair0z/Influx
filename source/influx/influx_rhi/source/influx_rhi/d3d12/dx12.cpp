@@ -736,8 +736,12 @@ namespace influx::rhi
 		const D3D12_DESCRIPTOR_HEAP_TYPE dxtype = dxdesc.Type;
 		const uint32 num_descriptors = dxdesc.NumDescriptors;
 
+		auto query = query_descriptor_stride(dxdevice, dxtype);
+		if (!query)
+			return result_type::make_error("failed query_descriptor_stride!");
+
 		descheap imported{};
-		imported.m_data.m_descriptor_stride = query_descriptor_stride(dxdevice, dxtype);
+		imported.m_data.m_descriptor_stride = query.get();
 		imported.m_create_args.m_device = dxdevice;
 		imported.m_create_args.m_num_descriptors = num_descriptors;
 		imported.m_create_args.m_type = translate(dxtype);

@@ -205,7 +205,9 @@ namespace influx::engine
 		}
 		return nullptr;
 	}
+
 	inline static window_manager& get_windowman();
+
 	void imgui_manager::create_window(ImGuiViewport* viewport)
 	{
 		viewport_data& data = get_data(viewport);
@@ -356,7 +358,7 @@ namespace influx::engine
 		// Register main window handle (which is owned by the main application, not by us)
 		// This is mostly for simplicity and consistency, so that our code (e.g. mouse handling etc.) can use same logic for main and secondary viewports.
 		ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-		m_viewports[main_viewport->ID].m_window_id = g_windowman->get_main_id();
+		m_viewports[main_viewport->ID].m_window_id = g_windowman->get_main_id().get();
 		main_viewport->PlatformUserData = &m_viewports.at(main_viewport->ID);
 		main_viewport->PlatformHandle = g_windowman->get_main_window().get_platform_handle();
 

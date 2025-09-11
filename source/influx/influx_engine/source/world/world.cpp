@@ -659,7 +659,7 @@ namespace influx::engine
                 const uint32 mesh_idx = !index_str.empty() ? std::stoi(index_str) : 0u;
 
                 result<scene_asset const*> asset = contman.find<scene_asset>(scene_name);
-                if (asset && asset->is_loaded())
+                if (asset.get() && asset->is_loaded())
                 {
                     // update bounding box / sphere
                     const imp::mesh_data& mesh = asset->m_resource.get_mesh(mesh_idx);
