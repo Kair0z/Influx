@@ -311,6 +311,11 @@ namespace influx::rhi
 			using namespace format;
 			return { e_format::unorm,{_r,_8},{_g,_8},{_b,_8},{_a,_8}};
 		}
+		static pixelformat d32()
+		{
+			using namespace format;
+			return { e_format::ufloat, {_d,_32} };
+		}
 	};
 
 	INFLUX_RHI_API uint32 get_num_supported_pixel_formats();

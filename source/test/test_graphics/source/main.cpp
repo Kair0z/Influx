@@ -129,17 +129,23 @@ int rhi_main()
 	window_desc.m_name = "renderer";
 	platform::window* window = platform::window::create(window_desc.set_name("influx_rhi"));
 
-	rhi::device dev = rhi::create_device().get();
-	rhi::queue queue = dev.create(rhi::queue::default_graphics()).get();
+	rhi::device dev				= rhi::create_device().get();
+	rhi::queue queue			= dev.create(rhi::queue::default_graphics()).get();
 	rhi::commandlist cmdlist	= dev.create(rhi::commandlist::default_graphics()).get();
 
+#if 0
 	rhi::swapchain_create_args swapchain_args{};
 	swapchain_args.m_window = window->get_platform_handle();
 	swapchain_args.m_dimensions = window->get_dimensions();
 	swapchain_args.m_queue = &queue;
 	swapchain_args.m_format = rhi::pixelformat::rgba_8_unorm();
 	rhi::swapchain swapchain = dev.create(swapchain_args).get();
+#endif
 
+	rhi::pipeline_create_args pipeline_args{};
+	pipeline_args.m_type = rhi::e_pipeline_type::graphics;
+	pipeline_args.m_graphics.m_shaderpipeline = rhi::e_graphics_shader_pipeline::vs_ps;
+	auto pipeline = dev.create(pipeline_args);
 	dev.release();
 
 	return 0u;

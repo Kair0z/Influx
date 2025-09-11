@@ -15,6 +15,7 @@ namespace influx::rhi
 	using dx12_queue		= ID3D12CommandQueue;
 	using dx12_swapchain	= IDXGISwapChain4;
 	using dx12_device		= ID3D12Device;
+	using dx12_memheap		= ID3D12Heap;
 	using dx12_resource		= ID3D12Resource;
 	using dx12_commandlist	= ID3D12GraphicsCommandList;
 	using dx12_allocator	= ID3D12CommandAllocator;
@@ -33,6 +34,7 @@ namespace influx::rhi
 	}
 
 	// [helpers]
+#pragma region helpers
 	inline string hres_to_string(HRESULT hr)
 	{
 		char* msgBuf = nullptr;
@@ -113,11 +115,28 @@ namespace influx::rhi
 		default:
 		case D3D12_RESOURCE_DIMENSION_UNKNOWN: return {};
 		case D3D12_RESOURCE_DIMENSION_BUFFER: return e_resource_type::buffer;
-		case D3D12_RESOURCE_DIMENSION_TEXTURE2D: return e_resource_type::texture2D;
-		case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return e_resource_type::texture3D;
+		case D3D12_RESOURCE_DIMENSION_TEXTURE1D: return e_resource_type::texture;
+		case D3D12_RESOURCE_DIMENSION_TEXTURE2D: return e_resource_type::texture;
+		case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return e_resource_type::texture;
 		}
 	}
-
+	D3D12_RESOURCE_DIMENSION translate(e_resource_type res_type, e_texture_type tex_type = e_texture_type::num)
+	{
+		switch (res_type)
+		{
+		case e_resource_type::texture:
+			switch (tex_type)
+			{
+				case e_texture_type::texture1D: return D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+				case e_texture_type::texture2D: return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+				case e_texture_type::texture3D: return D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+			}
+			break;
+		case e_resource_type::buffer:
+			return D3D12_RESOURCE_DIMENSION_BUFFER;
+		}
+		return D3D12_RESOURCE_DIMENSION_UNKNOWN;
+	}
 	static constexpr uint32 k_num_dxgi_formats = 256u;
 	class static_pixel_formats final
 	{
@@ -204,6 +223,7 @@ namespace influx::rhi
 		uint32 stride = query_descriptor_stride(device, heap->GetDesc().Type).get();
 		return sample_descheap(heap, stride, index, cpu);
 	}
+#pragma endregion
 
 	result<object_native> create_native(const device_create_args& args, device_data* out_data)
 	{
@@ -219,7 +239,7 @@ namespace influx::rhi
 		// if no physical device was specified,
 		// find a physical device from querying..
 		device_create_args edited_args = args;
-		if (edited_args.m_physdevice == nullptr)
+		if (!edited_args.m_physdevice.has_value())
 		{
 			vector<dx12_physdevice*> physical_devices{};
 			constexpr bool prefer_performance = true;
@@ -265,7 +285,7 @@ namespace influx::rhi
 		if (edited_args.m_physdevice == nullptr)
 			return result_type::make_error("desc.m_physdevice is nullptr!");
 
-		auto dxphysdevice = cast<dx12_physdevice>(edited_args.m_physdevice);
+		auto dxphysdevice = cast<dx12_physdevice>(edited_args.m_physdevice.value());
 		if (!dxphysdevice) 
 			return result_type::make_error("args.m_physdevice failed casting to dx12_physdevice!");
 
@@ -315,7 +335,7 @@ namespace influx::rhi
 		if (out_data)
 		{
 			out_data->m_physical_device = dxphysdevice.get();
-			out_data->m_instance = out_data->m_factory = dxfactory;
+			out_data->m_instance = out_data->m_instance = dxfactory;
 			out_data->m_descriptor_strides[0] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 			out_data->m_descriptor_strides[1] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 			out_data->m_descriptor_strides[2] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -417,7 +437,7 @@ namespace influx::rhi
 				out_data->m_rtv_dirty_list.push_back(true);
 
 			// store an rtv heap
-			out_data->m_rtv_heap = rtv_heap.get();
+			out_data->m_rtv_heap = (native_descheap)rtv_heap.get();
 		}
 
 		return swapchain;
@@ -451,7 +471,7 @@ namespace influx::rhi
 		return hres_to_result<object_native>(hres, descheap);
 	}
 
-	result<object_native> create_native(const commandallocator_create_args& args, commandallocator_data* out_data)
+	result<object_native> create_native(const commandpool_create_args& args, commandpool_data* out_data)
 	{
 		using result_type = result<object_native>;
 		if (args.m_device == nullptr)
@@ -478,18 +498,18 @@ namespace influx::rhi
 
 		// if allocator is not provided, we need to create our own
 		commandlist_create_args edited_args = args;
-		if (edited_args.m_allocator == nullptr)
+		if (edited_args.m_pool == nullptr)
 		{
-			commandallocator_create_args alloc_args{};
-			alloc_args.m_type = edited_args.m_type;
-			alloc_args.m_device = edited_args.m_device;
-			auto res = create_native(alloc_args);
+			commandpool_create_args pool_args{};
+			pool_args.m_type = edited_args.m_type;
+			pool_args.m_device = edited_args.m_device;
+			auto res = create_native(pool_args);
 			if (!res) return result_type::make_error("failed creating allocator!");
 
-			edited_args.m_allocator = res.get();
+			edited_args.m_pool = (native_commandpool)res.get();
 		}
 
-		auto dxallocator = cast<dx12_allocator>(edited_args.m_allocator);
+		auto dxallocator = cast<dx12_allocator>(edited_args.m_pool.value());
 		if (!dxallocator) return result_type::make_error("args.m_allocator failed casting to dx12_allocator!");
 
 		dx12_commandlist* commandlist{};
@@ -504,7 +524,7 @@ namespace influx::rhi
 		// store allocator for later use
 		if (out_data != nullptr)
 		{
-			out_data->m_allocator = edited_args.m_allocator;
+			out_data->m_current_pool = edited_args.m_pool.value();
 		}
 
 		// create & store a new fence if instructed
@@ -516,7 +536,7 @@ namespace influx::rhi
 			auto fence = create_native(fence_args);
 			if (!fence) return result_type::make_error("create commandlist: failed creating fence!");
 
-			out_data->m_fence = fence.get();
+			out_data->m_fence = (native_fence)fence.get();
 		}
 
 		return hres_to_result<object_native>(hres, commandlist);
@@ -566,7 +586,7 @@ namespace influx::rhi
 		return hres_to_result<object_native>(hres, resource);
 	}
 
-	result<object_native> create_native(const texture2D_create_args& args, texture2D_data* out_data)
+	result<object_native> create_native(const texture_create_args& args, texture_data* out_data)
 	{
 		using result_type = result<object_native>;
 		if (args.m_device == nullptr)
@@ -578,54 +598,67 @@ namespace influx::rhi
 
 		D3D12_HEAP_PROPERTIES heap_props{};
 		D3D12_HEAP_FLAGS heap_flags{};
+		// todo...
 		D3D12_RESOURCE_DESC dxdesc{};
-		dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		dxdesc.Dimension = translate(e_resource_type::texture, args.m_type);
 		D3D12_RESOURCE_STATES dxstates{};
 		D3D12_CLEAR_VALUE dxclear{};
 
 		dx12_resource* resource = nullptr;
-		HRESULT hres = device->CreateCommittedResource(
-			&heap_props,
-			heap_flags,
-			&dxdesc,
-			dxstates,
-			&dxclear,
-			IID_PPV_ARGS(&resource));
-
-		return hres_to_result<object_native>(hres, resource);
-	}
-
-	result<object_native> create_native(const texture3D_create_args& args, texture3D_data* out_data)
-	{
-		using result_type = result<object_native>;
-		if (args.m_device == nullptr)
-			return result_type::make_error("args.m_device is nullptr!");
-
-		auto device = cast<dx12_device>(args.m_device);
-		if (!device)
-			return result_type::make_error("args.m_device failed casting to dx12_device!");
-
-		D3D12_HEAP_PROPERTIES heap_props{};
-		D3D12_HEAP_FLAGS heap_flags{};
-		D3D12_RESOURCE_DESC dxdesc{};
-		dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
-		D3D12_RESOURCE_STATES dxstates{};
-		D3D12_CLEAR_VALUE dxclear{};
-
-		ID3D12Resource* resource = nullptr;
-		HRESULT hres = device->CreateCommittedResource(
-			&heap_props,
-			heap_flags,
-			&dxdesc,
-			dxstates,
-			&dxclear,
-			IID_PPV_ARGS(&resource));
-
+		HRESULT hres = {};
+		if (args.m_heap.has_value())
+		{
+		}
+		else
+		{
+			hres = device->CreateCommittedResource(
+				&heap_props,
+				heap_flags,
+				&dxdesc,
+				dxstates,
+				&dxclear,
+				IID_PPV_ARGS(&resource));
+		}
 		return hres_to_result<object_native>(hres, resource);
 	}
 
 	result<object_native> create_native(const pipeline_create_args& args, pipeline_data* out_data)
 	{
+		using result_type = result<object_native>;
+		if (!args.is_valid())
+			return result_type::make_error("pipeline_create_args are invalid!");
+
+		auto dxdevice = cast<dx12_device>(args.m_device);
+		if (!dxdevice)
+			return result_type::make_error("args.m_device failed casting to dx12_device!");
+
+		HRESULT hres{};
+		switch (args.m_type)
+		{
+		case e_pipeline_type::graphics:
+		{
+			ID3D12PipelineState* dxpipeline = nullptr;
+			hres = dxdevice->CreateGraphicsPipelineState(nullptr, IID_PPV_ARGS(&dxpipeline));
+		}
+		break;
+
+		case e_pipeline_type::compute:
+		{
+			ID3D12PipelineState* dxpipeline = nullptr;
+			hres = dxdevice->CreateComputePipelineState(nullptr, IID_PPV_ARGS(&dxpipeline));
+		}
+		break;
+		case e_pipeline_type::raytracing:
+		{
+
+		}
+		break;
+
+		default:
+			return result_type::make_error("args.m_type is unsupported!");
+		}
+
+		// fill out data
 		return {};
 	}
 
@@ -640,10 +673,14 @@ namespace influx::rhi
 		auto as_unknown = cast<IUnknown>(native);
 		if (!as_unknown) return result_type::make_error("failed casting native to IUnknown");
 
-		as_unknown.get()->Release();
+		ULONG hres = as_unknown.get()->Release();
+		if (!hres)
+			return result_type::make_error("failed releasing native object!");
+		
+		return {};
 	}
 
-	result<buffer> import_buffer(object_native native)
+	result<buffer> import_buffer(native_buffer native)
 	{
 		using result_type = result<buffer>;
 
@@ -661,9 +698,9 @@ namespace influx::rhi
 		return imported;
 	}
 
-	result<texture2D> import_texture2D(object_native native)
+	result<texture> import_texture(native_texture native)
 	{
-		using result_type = result<texture2D>;
+		using result_type = result<texture>;
 
 		auto dxresource = cast<dx12_resource>(native);
 		if (!dxresource)
@@ -676,30 +713,13 @@ namespace influx::rhi
 		if (dxdevice == nullptr || hres != S_OK)
 			return result_type::make_error("couldn't fetch owner device from existing resource");
 
-		texture2D imported{};
+		texture imported{};
 		imported.m_native_object = native;
 		imported.m_create_args.m_device = dxdevice;
 		return imported;
 	}
 
-	result<texture3D> import_texture3D(object_native native)
-	{
-		using result_type = result<texture3D>;
-
-		auto dxresource = cast<dx12_resource>(native);
-		if (!dxresource)
-			return result_type::make_error("native failed casting to dx12_resource!");
-
-		D3D12_RESOURCE_DESC desc = dxresource->GetDesc();
-
-		texture3D imported{};
-		imported.m_data;
-		imported.m_native_object = native;
-		imported.m_create_args.m_device = nullptr;
-		return imported;
-	}
-
-	result<descheap> import_descheap(object_native native)
+	result<descheap> import_descheap(native_descheap native)
 	{
 		using result_type = result<descheap>;
 
@@ -726,7 +746,7 @@ namespace influx::rhi
 		return imported;
 	}
 	
-	result<commandlist> import_commandlist(object_native native)
+	result<commandlist> import_commandlist(native_commandlist native)
 	{
 		using result_type = result<commandlist>;
 
@@ -740,17 +760,17 @@ namespace influx::rhi
 			return result_type::make_error("couldn't fetch owner device from existing");
 
 		commandlist imported{};
-		imported.m_create_args.m_allocator;
+		imported.m_create_args.m_pool;
 		imported.m_create_args.m_device;
 		imported.m_create_args.m_type;
 		imported.m_native_object = native;
-		imported.m_data.m_allocator;
+		imported.m_data.m_current_pool;
 		return imported;
 	}
 	
-	result<command_allocator> import_allocator(object_native native)
+	result<commandpool> import_commandpool(native_commandpool native)
 	{
-		using result_type = result<command_allocator>;
+		using result_type = result<commandpool>;
 
 		auto dxallocator = cast<dx12_allocator>(native);
 		if (!dxallocator)
@@ -761,14 +781,14 @@ namespace influx::rhi
 		if (dxdevice == nullptr)
 			return result_type::make_error("couldn't fetch owner device from existing");
 
-		command_allocator imported{};
+		commandpool imported{};
 		imported.m_create_args.m_device = dxdevice;
 		imported.m_create_args.m_type;
 		imported.m_native_object = native;
 		return imported;
 	}
 
-	result<> device::create_rtv(const texture2D& texture, descriptor descriptor) const
+	result<> device::create_rtv(const texture& texture, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -797,7 +817,7 @@ namespace influx::rhi
 		device->CreateRenderTargetView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_dsv(const texture2D& texture, descriptor descriptor) const
+	result<> device::create_dsv(const texture& texture, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -822,11 +842,11 @@ namespace influx::rhi
 		device->CreateDepthStencilView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_sampview(const sampler& sampler, descriptor descriptor) const
+	result<> device::create_sampview(const sampler& sampler, descriptor descriptor)
 	{
 		return {};
 	}
-	result<> device::create_srv(const texture2D& texture, descriptor descriptor) const
+	result<> device::create_srv(const texture& texture, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -854,7 +874,7 @@ namespace influx::rhi
 		device->CreateShaderResourceView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_uav(const texture2D& texture, descriptor descriptor) const
+	result<> device::create_uav(const texture& texture, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -880,7 +900,7 @@ namespace influx::rhi
 		device->CreateUnorderedAccessView(resource.get(), nullptr, &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_srv(const buffer& buffer, descriptor descriptor) const
+	result<> device::create_srv(const buffer& buffer, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -904,7 +924,7 @@ namespace influx::rhi
 		device->CreateShaderResourceView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
-	result<> device::create_uav(const buffer& buffer, descriptor descriptor) const
+	result<> device::create_uav(const buffer& buffer, descriptor descriptor)
 	{
 		using result_type = result<>;
 
@@ -1014,9 +1034,9 @@ namespace influx::rhi
 
 		return dxswapchain->GetCurrentBackBufferIndex();
 	}
-	result<texture2D> swapchain::get_backbuffer_resource(uint32 index) const
+	result<texture> swapchain::get_backbuffer_resource(uint32 index) const
 	{
-		using result_type = result<texture2D>;
+		using result_type = result<texture>;
 
 		auto dxswapchain = cast<dx12_swapchain>(m_native_object);
 		if (!dxswapchain)
@@ -1024,9 +1044,9 @@ namespace influx::rhi
 
 		ID3D12Resource* buffer = nullptr;
 		HRESULT res = dxswapchain->GetBuffer(index, IID_PPV_ARGS(&buffer));
-		return import_texture2D(buffer);
+		return import_texture(buffer);
 	}
-	result<texture2D> swapchain::get_backbuffer_resource() const
+	result<texture> swapchain::get_backbuffer_resource() const
 	{
 		uint32 backbuffer_index = get_current_backbuffer_index().get();
 		return get_backbuffer_resource(backbuffer_index);
@@ -1056,7 +1076,7 @@ namespace influx::rhi
 	{
 		return m_create_args.m_own_descriptors;
 	}
-	result<descriptor> swapchain::get_or_create_backbuffer_rtv(const device& device)
+	result<descriptor> swapchain::get_or_create_backbuffer_rtv(device& device)
 	{
 		using result_type = result<descriptor>;
 		if (!owns_rtvs())
@@ -1066,7 +1086,7 @@ namespace influx::rhi
 		dx12_descheap* dxheap = (dx12_descheap*)m_data.m_rtv_heap;
 
 		uint32 backbuffer_index = get_current_backbuffer_index().get();
-		result<texture2D> backbuffer = get_backbuffer_resource();
+		result<texture> backbuffer = get_backbuffer_resource();
 		result<descriptor> descriptor = sample_descheap(dxdevice, dxheap, backbuffer_index, true);
 		if (!descriptor)
 			return result_type::make_error("failed sampling descheap!");
@@ -1103,34 +1123,44 @@ namespace influx::rhi
 	// [commandlist - interface]
 	result<> commandlist::start(device& device)
 	{
-		if (m_data.m_allocator == nullptr)
+		if (m_data.m_current_pool == nullptr)
 		{
-			auto new_alloc_res = device.create(commandallocator_create_args{});
-			if (!new_alloc_res) return result<>::make_error("failed creating new allocator");
+			// create a new command pool (allocator)
+			commandpool_create_args args{};
+			args.m_type = m_create_args.m_type;
+			args.m_device = (native_device)device.m_native_object;
+			auto new_alloc_res = device.create(args);
+			if (!new_alloc_res) 
+				return result<>::make_error("failed creating new commandpool");
 
-			return start(new_alloc_res.get());
+			return start((native_commandpool)new_alloc_res.get().m_native_object);
 		}
 		else
 		{
-			command_allocator alloc = import_allocator(m_data.m_allocator).get();
-			return start(alloc);
+			return start(m_data.m_current_pool);
 		}
 	}
-	result<> commandlist::start(const command_allocator& allocator)
+	result<> commandlist::start(native_commandpool pool)
 	{
-		ID3D12GraphicsCommandList* dxcommandlist = (ID3D12GraphicsCommandList*)m_native_object;
-		ID3D12CommandAllocator* dxallocator = (ID3D12CommandAllocator*)allocator.m_native_object;
+		using result_type = result<>;
+		auto dxallocator = cast<dx12_allocator>(pool);
+		if (!dxallocator)
+			return result_type::make_error("failed casting pool to dx12_allocator!");
 
-		HRESULT res = dxallocator->Reset();
+		auto dxcommandlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcommandlist)
+			return result_type::make_error("failed casting this to dx12_commandlist!");
 
-		res = dxcommandlist->Close();
+		// HRESULT res = dxallocator->Reset();
+		HRESULT hres = dxcommandlist.get()->Close();
 
 		m_data.m_state = e_commandlist_state::recording;
 
 		ID3D12PipelineState* dxinitpipeline = NULL;
-		res = dxcommandlist->Reset(dxallocator, dxinitpipeline);
+		hres = dxcommandlist->Reset(dxallocator.get(), dxinitpipeline);
 		return {};
 	}
+
 	bool commandlist::is_recording() const
 	{
 		auto dxcommandlist = cast<dx12_commandlist>(m_native_object);
@@ -1312,12 +1342,12 @@ namespace influx::rhi
 	}
 
 	// [texture2D]
-	result<> texture2D::transition(commandlist& cmdlist, e_resource_state new_state)
+	result<> texture::transition(commandlist& cmdlist, e_resource_state new_state)
 	{
 		return cmdlist.transition_resource(*this, new_state);
 	}
 
-	result<pixelformat const*> texture2D::get_current_format() const
+	result<pixelformat const*> texture::get_current_format() const
 	{
 		using result_type = result<pixelformat const*>;
 		return &m_data.m_format;

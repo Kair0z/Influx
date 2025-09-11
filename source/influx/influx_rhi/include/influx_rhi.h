@@ -1,10 +1,14 @@
 #pragma once
 
+// influx::core
 #include "core/result.h"
 #include "core/math/vector.h"
 #include "core/enum.h"
 #include "core/container/vector.h"
 #include "core/string.h"
+
+// influx::shader
+#include "influx_shader.h"
 
 #if _DLL
 #define INFLUX_RHI_API __declspec(dllexport)
@@ -17,23 +21,85 @@
 
 #include "influx_rhi/format.h"
 
+// STL
+#include <optional>
+
+#if INFLUX_RHI_D3D12
+struct IDXGIFactory;
+struct IDXGIAdapter1;
+struct ID3D12Device;
+struct ID3D12CommandList;
+struct ID3D12CommandQueue;
+struct ID3D12CommandAllocator;
+struct ID3D12Heap;
+struct ID3D12DescriptorHeap;
+struct ID3D12Fence;
+struct ID3D12Resource;
+struct ID3D12Resource;
+struct ID3D12PipelineState;
+struct ID3D12PipelineState;
+#endif
+
 namespace influx::rhi
 {
 	class resource;
 	class commandlist;
 	class queue;
 	class device;
-	class command_allocator;
+	class commandpool;
 	class buffer;
-	class texture2D;
+	class texture;
 	class texture3D;
 	class descheap;
 
-	// [common types]
+	// =============================================
+	// native objects
+	using object_native			= void*;
+
+#if INFLUX_RHI_D3D12
+	using native_instance				= IDXGIFactory*;
+	using native_physdevice				= IDXGIAdapter1*;
+	using native_device					= ID3D12Device*;
+	using native_commandlist			= ID3D12CommandList*;
+	using native_queue					= ID3D12CommandQueue*;
+	using native_commandpool			= ID3D12CommandAllocator*;
+	using native_memoryheap				= ID3D12Heap*;
+	using native_descheap				= ID3D12DescriptorHeap*;
+	using native_fence					= ID3D12Fence*;
+	using native_texture				= ID3D12Resource*;
+	using native_buffer					= ID3D12Resource*;
+	using native_compute_pipeline		= ID3D12PipelineState*;
+	using native_gfx_pipeline			= ID3D12PipelineState*;
+	using native_raytracing_pipeline	= object_native;
+	using descriptor					= uint64;
+#elif INFLUX_RHI_VULKAN
+
+#else
+	using native_instance			= object_native;	// IDXGIFactory
+	using native_physdevice			= object_native;	// IDXGIAdapter1
+	using native_device				= object_native;	// ID3D12Device
+	using native_commandlist		= object_native;	// ID3D12CommandList
+	using native_queue				= object_native;	// ID3D12CommandQueue
+	using native_commandpool		= object_native;	// ID3D12CommandAllocator
+	using native_memoryheap			= object_native;	// ID3D12Heap
+	using native_descheap			= object_native;	// ID3D12DescriptorHeap
+	using native_fence				= object_native;	// ID3D12Fence
+	using native_texture			= object_native;	// ID3D12Resource
+	using native_buffer				= object_native;	// ID3D12Resource
+	using native_compute_pipeline	= object_native;	// ID3D12PipelineState
+	using native_gfx_pipeline		= object_native;
+	using native_raytracing_pipeline = object_native;
+	using descriptor				= uint64;
+#endif
+
+	// =============================================
+	// common types
 	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
-	using platform_window_handle = void*;
+	template <typename _t>
+	using optional = std::optional<_t>;
 
+	using platform_window_handle = void*;
 	enum class e_api : uint8
 	{
 		d3d12,
@@ -57,7 +123,7 @@ namespace influx::rhi
 		graphics,
 		compute
 	};
-	enum class e_create_argsriptor : uint8
+	enum class e_create_descriptor : uint8
 	{
 		rtv,
 		dsv,
@@ -81,8 +147,15 @@ namespace influx::rhi
 	enum class e_resource_type
 	{
 		buffer,
+		texture
+	};
+	enum class e_texture_type
+	{
+		texture1D,
 		texture2D,
-		texture3D
+		texture3D,
+		cubemap,
+		num
 	};
 	enum class e_resource_state : uint32
 	{
@@ -146,9 +219,91 @@ namespace influx::rhi
 		no_access,
 		count
 	};
-
-	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
-
+	enum class e_blend : uint8
+	{
+		zero = 1,
+		one = 2,
+		src_color = 3,
+		inv_src_color = 4,
+		src_alpha = 5,
+		inv_src_alpha = 6,
+		dest_alpha = 7,
+		inv_dest_alpha = 8,
+		dest_color = 9,
+		inv_dest_color = 10,
+		src_alpha_sat = 11,
+		blend_factor = 14,
+		inv_blend_factor = 15,
+		src1_color = 16,
+		inv_src1_color = 17,
+		src1_alpha = 18,
+		inv_src1_alpha = 19,
+		alpha_factor = 20,
+		inv_alpha_factor = 21,
+		count
+	};
+	enum class e_blendop : uint8
+	{
+		add = 1,
+		subtract = 2,
+		rev_subtract = 3,
+		min = 4,
+		max = 5,
+		count
+	};
+	enum class e_primitive_topology_type : uint8
+	{
+		triangle = 0,
+		point = 1,
+		line = 2,
+		patch = 3,
+		count
+	};
+	enum class e_primitive_topology : uint8
+	{
+		trilist,
+		linelist,
+		count
+	};
+	enum class e_pipeline_type
+	{
+		graphics,
+		compute,
+		raytracing,
+		num
+	};
+	enum class e_hitgroup_type
+	{
+		triangles,
+		count
+	};
+	enum class e_cull_mode : uint8
+	{
+		front,
+		back,
+		nocull,
+		count
+	};
+	enum class e_fill_mode : uint8
+	{
+		solid,
+		wireframe,
+		count
+	};
+	enum class e_comparison_func : uint8
+	{
+		less,		// <
+		lequal,		// <=
+		gequal,		// >=
+		greater,	// >
+		always,
+		count
+	};
+	struct hitgroup final
+	{
+	public:
+		e_hitgroup_type m_type;
+	};
 	struct renderpass_args final
 	{
 
@@ -163,8 +318,6 @@ namespace influx::rhi
 		}
 		math::float4 m_colour;
 	};
-	using object_native = void*;
-	using descriptor = uint64;
 	struct sampler final
 	{
 
@@ -180,22 +333,347 @@ namespace influx::rhi
 		queue,
 		swapchain,
 		descriptor_heap,
-		commandallocator,
+		commandpool,
 		commandlist,
 		fence,
 		buffer,
-		texture2D,
-		texture3D,
+		texture,
+		memoryheap,
 		pipeline,
-		rootsignature
+		rootsignature,
+		num
 	};
+
 	struct present_args final
 	{
 		uint32 m_sync_interval;
 		uint32 m_flags;
 	};
+	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
+	static constexpr uint32 k_max_num_rendertargets_per_draw = 8u;
+
+	// =============================================
+	// [shaders]
+	using shadercode = vector<byte>;
+
+	enum class e_graphics_shader_slots : uint8
+	{
+		as,	// amp
+		ms,	// mesh
+		vs,	// vertex
+		ps, // pixel
+		ds, // domain
+		gs,	// geometry
+		hs, // hull
+		num
+	};
+	// useful flag-based config presets that outline the valid shader combinations
+	enum class e_graphics_shader_pipeline : uint8
+	{
+		none = 0,
+		as = 1 << static_cast<uint32>(e_graphics_shader_slots::as),	// amp
+		ms = 1 << static_cast<uint32>(e_graphics_shader_slots::ms),	// mesh
+		vs = 1 << static_cast<uint32>(e_graphics_shader_slots::vs),	// vertex
+		ps = 1 << static_cast<uint32>(e_graphics_shader_slots::ps), // pixel
+		ds = 1 << static_cast<uint32>(e_graphics_shader_slots::ds), // domain
+		gs = 1 << static_cast<uint32>(e_graphics_shader_slots::gs),	// geometry
+		hs = 1 << static_cast<uint32>(e_graphics_shader_slots::hs), // hull
+
+		// graphics + tessellation
+		vs_ps			= vs | ps,
+		vs_hs_ds_ps		= vs | ps | hs | ds,
+		vs_hs_ds_gs_ps	= vs | hs | ds | gs | ps,
+		vs_gs_ps		= vs | gs | ps,
+
+		// graphics + mesh shaders
+		ms_ps			= ms | ps,
+		as_ms_ps		= as | ms | ps,
+		as_ms			= as | ms
+	};
+	static constexpr bool is_graphics_shader_pipeline_valid(e_graphics_shader_pipeline flags)
+	{
+		return flags == e_graphics_shader_pipeline::vs_ps
+			|| flags == e_graphics_shader_pipeline::vs_hs_ds_ps
+			|| flags == e_graphics_shader_pipeline::vs_hs_ds_gs_ps
+			|| flags == e_graphics_shader_pipeline::vs_gs_ps
+			|| flags == e_graphics_shader_pipeline::ms_ps
+			|| flags == e_graphics_shader_pipeline::as_ms_ps
+			|| flags == e_graphics_shader_pipeline::as_ms
+			|| flags == e_graphics_shader_pipeline::vs
+			|| flags == e_graphics_shader_pipeline::ms;
+	}
+	enum class e_compute_shader_slots : uint8
+	{
+		cs,
+		num
+	};
+	enum class e_raytracing_shader_slots : uint8
+	{
+		rgs,
+		mss,
+		chs,
+		ahs,
+		ins,
+		num
+	};
 	
-	// [descs] these are the descriptions of objects by which they are created 
+	static constexpr uint32 k_num_graphics_shaderslots = static_cast<uint32>(e_graphics_shader_slots::num);
+	static constexpr uint32 k_num_compute_shaderslots = static_cast<uint32>(e_compute_shader_slots::num);
+	static constexpr uint32 k_num_raytracing_shaderslots = static_cast<uint32>(e_raytracing_shader_slots::num);
+
+	template <e_pipeline_type _t>
+	class shader_slots final
+	{
+	public:
+		using enum_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
+			e_graphics_shader_slots,
+			e_compute_shader_slots,
+			e_raytracing_shader_slots>>;
+
+		static constexpr bool is_optional(const enum_type type)
+		{
+			if constexpr (_t == e_pipeline_type::graphics)
+			{
+				switch (type)
+				{
+				case e_graphics_shader_slots::ms: return false;
+				case e_graphics_shader_slots::vs: return false;
+				case e_graphics_shader_slots::ps: return true;
+				case e_graphics_shader_slots::ds: return true;
+				case e_graphics_shader_slots::gs: return true;
+				case e_graphics_shader_slots::hs: return true;
+				default: return false;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::compute)
+			{
+				switch (type)
+				{
+				case e_compute_shader_slots::cs: return false;
+				default: return false;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::raytracing)
+			{
+				switch (type)
+				{
+				case e_raytracing_shader_slots::rgs: return false;
+				case e_raytracing_shader_slots::mss: return true;
+				case e_raytracing_shader_slots::chs: return true;
+				case e_raytracing_shader_slots::ahs: return true;
+				case e_raytracing_shader_slots::ins: return true;
+				default: return false;
+				}
+			}
+		}
+
+		static constexpr bool is_optional(uint8 index)
+		{
+			return is_optional(static_cast<enum_type>(index));
+		}
+
+		inline void set(shader::e_shader_type type, const shadercode& shader_bytecode)
+		{
+			if constexpr (_t == e_pipeline_type::graphics)
+			{
+				switch (type)
+				{
+				case shader::e_shader_type::as: set(e_graphics_shader_slots::as, shader_bytecode); break;
+				case shader::e_shader_type::ms: set(e_graphics_shader_slots::ms, shader_bytecode); break;
+				case shader::e_shader_type::vs: set(e_graphics_shader_slots::vs, shader_bytecode); break;
+				case shader::e_shader_type::ps: set(e_graphics_shader_slots::ps, shader_bytecode); break;
+				case shader::e_shader_type::ds: set(e_graphics_shader_slots::ds, shader_bytecode); break;
+				case shader::e_shader_type::gs: set(e_graphics_shader_slots::gs, shader_bytecode); break;
+				case shader::e_shader_type::hs: set(e_graphics_shader_slots::hs, shader_bytecode); break;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::compute)
+			{
+				switch (type)
+				{
+				case shader::e_shader_type::cs: set(e_compute_shader_slots::cs, shader_bytecode); break;
+				}
+			}
+			else if constexpr (_t == e_pipeline_type::raytracing)
+			{
+				switch (type)
+				{
+				case shader::e_shader_type::rgs: set(e_raytracing_shader_slots::rgs, shader_bytecode); break;
+				case shader::e_shader_type::mss: set(e_raytracing_shader_slots::mss, shader_bytecode); break;
+				case shader::e_shader_type::chs: set(e_raytracing_shader_slots::chs, shader_bytecode); break;
+				case shader::e_shader_type::ahs: set(e_raytracing_shader_slots::ahs, shader_bytecode); break;
+				case shader::e_shader_type::ins: set(e_raytracing_shader_slots::ins, shader_bytecode); break;
+				}
+			}
+		}
+
+		inline void set(enum_type slot, const shadercode& shader_bytecode)
+		{
+			m_shaders[static_cast<uint8>(slot)] = shader_bytecode;
+		}
+
+		inline const shadercode& get(enum_type slot) const
+		{
+			return m_shaders[static_cast<uint8>(slot)];
+		}
+
+		inline const shadercode& get(uint8 idx) const
+		{
+			return m_shaders[idx];
+		}
+
+		static constexpr uint8 count = static_cast<uint8>(enum_type::num);
+		static constexpr uint8 num = count;
+
+	private:
+		shadercode m_shaders[count]{};
+	};
+	
+	using graphics_shaderslots		= shader_slots<e_pipeline_type::graphics>;
+	using compute_shaderslots		= shader_slots<e_pipeline_type::compute>;
+	using raytracing_shaderslots	= shader_slots<e_pipeline_type::raytracing>;
+
+	// =============================================
+	// [gfx pipeline]
+	struct blend_desc final
+	{
+		bool m_enabled = false;
+		e_blend m_src;
+		e_blend m_dest;
+		e_blendop m_op;
+		e_blend m_srcalpha;
+		e_blend m_destalpha;
+		e_blendop m_op_alpha;
+		uint8 m_write_mask = 0xf; // all
+
+		inline static blend_desc default_write_all()
+		{
+			blend_desc desc{};
+			desc.m_enabled = false;
+			desc.m_src;
+			desc.m_dest;
+			desc.m_op;
+			desc.m_srcalpha;
+			desc.m_destalpha;
+			desc.m_op_alpha;
+			desc.m_write_mask = 0xf; // all
+			return desc;
+		}
+	};
+	struct sample_desc final
+	{
+
+	};
+	struct output_merger final
+	{
+		struct per_rendertarget final
+		{
+			bool				m_enabled = false;
+			pixelformat			m_format = pixelformat::rgba_8_unorm();
+			blend_desc			m_blend = blend_desc::default_write_all();
+		};
+		struct per_depthtarget final
+		{
+			bool				m_depth_enable	= true;
+			bool				m_stencil_enable = false;
+			e_comparison_func	m_depth_func = e_comparison_func::less;
+			pixelformat			m_format = pixelformat::d32();
+		};
+		per_rendertarget m_rendertargets[k_max_num_rendertargets_per_draw]{};
+		per_depthtarget m_depthtarget{};
+	};
+	struct rasterizer
+	{
+		e_cull_mode m_cullmode = e_cull_mode::back;
+		e_fill_mode m_fillmode = e_fill_mode::solid;
+		bool m_front_ccw = false;
+		int m_depth_bias = 0;
+		float m_depth_bias_clamp = 0.0f;
+		float m_slope_depth_bias = 0.0f;
+		bool m_depth_clip_enable = true;
+		bool m_multisample = false;
+		bool m_antialiased_line = false;
+		uint32 m_forced_samplecount = 0u;
+		bool m_conservative = false;
+
+		inline static rasterizer default_graphics()
+		{
+			rasterizer desc{};
+			desc.m_cullmode = e_cull_mode::nocull;
+			desc.m_fillmode = e_fill_mode::solid;
+			desc.m_front_ccw = false;
+			desc.m_depth_clip_enable = false;
+			desc.m_multisample = false;
+			desc.m_antialiased_line = false;
+			desc.m_conservative = false;
+			desc.m_depth_bias = 0;
+			desc.m_depth_bias_clamp = 0.0f;
+			desc.m_slope_depth_bias = 0.0f;
+			desc.m_forced_samplecount = 0u;
+			return desc;
+		}
+	};
+
+	// TODO PIPELINE ELEMENT FORMATS
+	struct graphics_pipeline_desc final
+	{
+		e_primitive_topology_type	m_primitive_topology_type{};
+		output_merger				m_output_merger{};
+		rasterizer					m_rasterizer{};
+		bool						m_blend_alpha_to_coverage_enabled = false;
+
+		e_graphics_shader_pipeline m_shaderpipeline = e_graphics_shader_pipeline::vs;
+
+		struct input_element final
+		{
+			string m_semantic_name;
+			uint32 m_semantic_idx;
+			// e_format m_format;
+			uint32 m_input_slot;
+			uint32 m_aligned_byteoffset;
+
+			bool m_is_per_instance; // if not, per vertex
+			uint32 m_instance_data_steprate;
+		};
+		vector<input_element> m_input_elements{};
+		inline void add_input_element(
+			const string& semantic_name,
+			uint32 semantic_index,
+			// e_format format,
+			uint32 input_slot,
+			bool is_per_instance,
+			uint32 instance_steprate)
+		{
+			input_element new_element{};
+			// new_element.m_format = format;
+			new_element.m_input_slot = input_slot;
+			new_element.m_instance_data_steprate = instance_steprate;
+			new_element.m_is_per_instance = is_per_instance;
+			new_element.m_semantic_name = semantic_name;
+			new_element.m_semantic_idx = semantic_index;
+
+			// deduce byteoffset
+			if (!m_input_elements.empty())
+			{
+				const input_element& last_element = m_input_elements.back();
+#if 0
+				new_element.m_aligned_byteoffset =
+					last_element.m_aligned_byteoffset + (uint32)deduce_bytesize(last_element.m_format);
+#endif
+			}
+
+			m_input_elements.push_back(new_element);
+		}
+	};
+	struct raytracing_pipeline_desc final
+	{
+		uint32 m_max_recursion_depth = 8u;
+		vector<string> m_shader_export_names{};
+		vector<hitgroup> m_hitgroups{};
+	};
+
+	// =============================================
+	// [create_args]
 #pragma region create_create_args
 	struct device_create_args final
 	{
@@ -206,10 +684,10 @@ namespace influx::rhi
 		uint32 m_engine_version = 0u;
 		uint32 m_api_version = 0u;
 
-		/* optional: specify a physical device for which to create the logic device */
-		object_native m_physdevice = nullptr;
+		/* (optional) specify a physical device for which to create the logic device */
+		optional<native_physdevice> m_physdevice;
 
-		/* optional: enable debug systems like validation layers */
+		/* (optional) enable debug systems like validation layers */
 		bool m_debug = false;
 	};
 	struct queue_create_args final
@@ -229,96 +707,110 @@ namespace influx::rhi
 			return desc;
 		}
 
-		object_native m_device = nullptr;
+		native_device m_device = nullptr;
 		e_queue_type m_type = e_queue_type::graphics;
+
+		// (optional)
 		int m_priority = 0;
 	};
 	struct swapchain_create_args final
 	{
-		object_native m_instance = nullptr;
-		object_native m_device = nullptr;
-		object_native m_queue = nullptr;
+		native_instance m_instance = nullptr;
+		native_device	m_device = nullptr;
+		native_queue	m_queue = nullptr;
 
-		platform_window_handle m_window;
-		pixelformat m_format;
-		uint32 m_num_buffers = 3u;
-		math::uint2 m_dimensions;
+		platform_window_handle	m_window = nullptr;
+		pixelformat				m_format = pixelformat::rgba_8_unorm();
+		uint32					m_num_buffers = 3u;
+		math::uint2				m_dimensions = {};
 
+		// (optional) swapchain will maintain 
+		// its own descriptors to the backbuffers
 		bool m_own_descriptors = false;
 	};
 	struct descheap_create_args final
 	{
-		object_native m_device;
-		e_descriptor_heap_type m_type;
-		uint32 m_num_descriptors = 0u;
-		bool m_shader_visible = false;
+		native_device			m_device;
+		e_descriptor_heap_type	m_type;
+		uint32					m_num_descriptors = 0u;
+		bool					m_shader_visible = false;
 	};
-	struct commandallocator_create_args final
+	struct commandpool_create_args final
 	{
-		object_native m_device;
-		e_commandlist_type m_type;
+		native_device			m_device;
+		e_commandlist_type		m_type;
 	};
 	struct commandlist_create_args final
 	{
 		static commandlist_create_args default_graphics()
 		{
 			commandlist_create_args desc{};
-			desc.m_allocator = nullptr;
+			desc.m_pool = nullptr;
 			desc.m_own_fence = true;
 			desc.m_type = e_commandlist_type::graphics;
 			return desc;
 		}
 
-		object_native m_device;
+		native_device		m_device;
+		e_commandlist_type	m_type;
 
-		// if m_allocator == nullptr, commandlist will create its own
-		object_native m_allocator = nullptr;
+		// (optional) commandlist will create its own pool
+		optional<native_commandpool> m_pool = nullptr;
 
-		// if true, commandlist will own its own fence
+		// (optional) commandlist will own & carry its own fence
 		bool m_own_fence = false;
-		
-		e_commandlist_type m_type;
 	};
 	struct fence_create_args final
 	{
-		object_native m_device;
-		uint64 m_init_value = 0u;
+		native_device	m_device;
+		uint64			m_init_value = 0u;
 	};
 	struct buffer_create_args final
 	{
-		object_native m_device;
-
+		native_device		m_device;
 		uint64				m_bytesize;
 		uint64				m_bytestride;
 		e_resource_bindflags m_bindflags;
 		e_resource_state	m_init_state;
-		bool m_allow_uav;
-	};
-	struct texture2D_create_args final
-	{
-		object_native m_device;
-		pixelformat m_format;
-		e_resource_state m_init_state;
+		bool				m_allow_uav;
 
-		uint32 m_arraysize;
-		math::uint2 m_dimensions;
-		e_resource_bindflags m_bindflags;
-		uint32 m_num_mips;
-		uint32 m_sample_count;
-		bool m_allow_uav;
+		optional<native_memoryheap> m_heap;
 	};
-	struct texture3D_create_args final
+	struct texture_create_args final
 	{
-		object_native m_device;
-		bool m_allow_uav;
+		native_device			m_device;
+		pixelformat				m_format;
+		e_resource_state		m_init_state;
+
+		e_texture_type			m_type;
+		uint32					m_arraysize;
+		math::uint2				m_dimensions;
+		e_resource_bindflags	m_bindflags;
+		uint32					m_num_mips;
+		uint32					m_sample_count;
+		bool					m_allow_uav;
+
+		optional<native_memoryheap> m_heap;
+	};
+	struct memheap_create_args final
+	{
+		native_device			m_device;
 	};
 	struct pipeline_create_args final
 	{
+		native_device								m_device;
+		e_pipeline_type								m_type{};
+		graphics_pipeline_desc						m_graphics{};
+		raytracing_pipeline_desc					m_raytracing{};
+		shader_slots<e_pipeline_type::graphics>		m_graphics_shaders{};
+		shader_slots<e_pipeline_type::compute>		m_compute_shaders{};
+		shader_slots<e_pipeline_type::raytracing>	m_raytracing_shaders{};
 
+		inline bool is_valid() const;
 	};
 	struct rootsignature_create_args final
 	{
-
+		native_device m_device;
 	};
 #pragma endregion
 
@@ -328,25 +820,23 @@ namespace influx::rhi
 		queue_create_args,
 		swapchain_create_args,
 		descheap_create_args,
-		commandallocator_create_args,
+		commandpool_create_args,
 		commandlist_create_args,
 		fence_create_args,
 		buffer_create_args,
-		texture2D_create_args,
-		texture3D_create_args,
+		texture_create_args,
+		memheap_create_args,
 		pipeline_create_args,
 		rootsignature_create_args>>;
 
+	// =============================================
 	// [data_types] this is the extra data associated to the objects
 #pragma region data
 	struct device_data final
 	{
-		object_native m_instance;
-		object_native m_physical_device;
-		object_native m_factory;
-
-		uint32 m_descriptor_strides[k_num_descriptor_heap_types];
-
+		native_instance		m_instance;
+		native_physdevice	m_physical_device;
+		uint32				m_descriptor_strides[k_num_descriptor_heap_types];
 		uset<object_native> m_children{};
 	};
 	struct queue_data final
@@ -355,7 +845,7 @@ namespace influx::rhi
 	};
 	struct swapchain_data final
 	{
-		object_native	m_rtv_heap;
+		native_descheap	m_rtv_heap;
 		vector<bool>	m_rtv_dirty_list{};
 	};
 	struct descheap_data final
@@ -363,15 +853,15 @@ namespace influx::rhi
 		vector<bool> m_freelist;
 		uint32 m_descriptor_stride;
 	};
-	struct commandallocator_data final
+	struct commandpool_data final
 	{
 
 	};
 	struct commandlist_data final
 	{
-		object_native m_allocator;
-		object_native m_fence;
-		uint32 m_fence_complete_value = 0u;
+		native_commandpool	m_current_pool;
+		native_fence		m_fence;
+		uint32				m_fence_complete_value = 0u;
 		e_commandlist_state m_state = e_commandlist_state::init;
 	};
 	struct fence_data final
@@ -382,20 +872,18 @@ namespace influx::rhi
 	{
 		e_resource_state	m_previous_state;
 		e_resource_state	m_current_state;
-		uint64 m_bytesize;
-		uint64 m_bytestride;
+		uint64				m_bytesize;
+		uint64				m_bytestride;
 	};
-	struct texture2D_data final
+	struct texture_data final
 	{
-		e_resource_state m_previous_state;
-		e_resource_state m_current_state;
-		pixelformat	m_format;
+		e_resource_state	m_previous_state;
+		e_resource_state	m_current_state;
+		pixelformat			m_format;
 	};
-	struct texture3D_data final
+	struct memheap_data final
 	{
-		e_resource_state m_previous_state;
-		e_resource_state m_current_state;
-		pixelformat m_format;
+
 	};
 	struct pipeline_data final
 	{
@@ -407,20 +895,18 @@ namespace influx::rhi
 	};
 #pragma endregion
 
-	struct null_data_type {};
-
 	template <e_object _t>
 	using data_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		device_data,
 		queue_data,
 		swapchain_data,
 		descheap_data,
-		commandallocator_data,
+		commandpool_data,
 		commandlist_data,
 		fence_data,
 		buffer_data,
-		texture2D_data,
-		texture3D_data,
+		texture_data,
+		memheap_data,
 		pipeline_data,
 		rootsignature_data>>;
 
@@ -450,6 +936,7 @@ namespace influx::rhi
 		data_type			m_data = {};
 	};
 
+	// =============================================
 	/* [class interfaces]
 	* these are wrapper classes that provide FUNCTIONS on top of the data they store in their base object class.
 	* use these to make API calls into the internal objects
@@ -477,8 +964,7 @@ namespace influx::rhi
 
 		inline bool is_texture() const
 		{
-			return get_resource_type() == e_resource_type::texture2D 
-				|| get_resource_type() == e_resource_type::texture3D;
+			return get_resource_type() == e_resource_type::texture;
 		}
 	};
 
@@ -506,7 +992,7 @@ namespace influx::rhi
 		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
-	class texture2D final : public object<e_object::texture2D>, public resource
+	class texture final : public object<e_object::texture>, public resource
 	{
 	public:
 		using data_type = object::data_type;
@@ -523,7 +1009,7 @@ namespace influx::rhi
 		inline virtual const char* get_name() const	override { return ""; }
 
 		// resource interface
-		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture2D; };
+		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture; };
 		inline virtual const object_native get_native_resource() const override { return m_native_object; }
 		inline virtual e_resource_state get_resource_state() const override { return m_data.m_current_state; }
 		inline virtual e_resource_state get_previous_resource_state() const override { return m_data.m_previous_state; }
@@ -537,34 +1023,19 @@ namespace influx::rhi
 		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
-	class texture3D final : public object<e_object::texture3D>, public resource
+	class memheap final
 	{
 	public:
-		using data_type = object::data_type;
 
-		// resource interface
-		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture3D; };
-		inline virtual const object_native get_native_resource() const override { return m_native_object; }
-		inline virtual e_resource_state get_resource_state() const override { return m_data.m_current_state; }
-		inline virtual e_resource_state get_previous_resource_state() const override { return m_data.m_previous_state; }
-		inline virtual result<> set_state(e_resource_state new_state) override
-		{
-			m_data.m_previous_state = m_data.m_current_state;
-			m_data.m_current_state = new_state;
-			return {};
-		}
-		inline virtual bool allows_uav() const override { return m_create_args.m_allow_uav; }
-		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
 	class fence final : public object<e_object::fence>
 	{
 	public:
-		// queues a signal command to the queue
-		INFLUX_RHI_API result<> queue_signal(uint64 signal_value, const queue& queue);
-		INFLUX_RHI_API result<> signal(uint64 value);
-		INFLUX_RHI_API result<> wait_for_value(uint64 value);
-		INFLUX_RHI_API result<uint64> query_value() const;
+		INFLUX_RHI_API result<>			queue_signal(uint64 signal_value, const queue& queue);
+		INFLUX_RHI_API result<>			signal(uint64 value);
+		INFLUX_RHI_API result<>			wait_for_value(uint64 value);
+		INFLUX_RHI_API result<uint64>	query_value() const;
 	};
 
 	class queue final : public object<e_object::queue>
@@ -583,12 +1054,12 @@ namespace influx::rhi
 	public:
 		INFLUX_RHI_API result<> present(const present_args& args) const;
 		INFLUX_RHI_API result<uint32> get_current_backbuffer_index() const;
-		INFLUX_RHI_API result<texture2D> get_backbuffer_resource(uint32 index) const;
-		INFLUX_RHI_API result<texture2D> get_backbuffer_resource() const;
+		INFLUX_RHI_API result<texture> get_backbuffer_resource(uint32 index) const;
+		INFLUX_RHI_API result<texture> get_backbuffer_resource() const;
 		INFLUX_RHI_API result<> resize(const math::uint2& new_dim);
 
 		INFLUX_RHI_API bool owns_rtvs() const;
-		INFLUX_RHI_API result<descriptor> get_or_create_backbuffer_rtv(const device& device);
+		INFLUX_RHI_API result<descriptor> get_or_create_backbuffer_rtv(device& device);
 
 		INFLUX_RHI_API static bool is_swapchain_format_supported(const pixelformat& format);
 		INFLUX_RHI_API static const vector<pixelformat>& get_swapchain_supported_formats();
@@ -639,7 +1110,8 @@ namespace influx::rhi
 	{
 	public:
 		INFLUX_RHI_API result<> start(device& device);
-		INFLUX_RHI_API result<> start(const command_allocator& allocator);
+		INFLUX_RHI_API result<> start(native_commandpool pool);
+
 		INFLUX_RHI_API bool is_recording() const;
 
 		INFLUX_RHI_API result<> renderpass_begin(const renderpass_args& args);
@@ -671,11 +1143,21 @@ namespace influx::rhi
 		inline static commandlist_create_args default_graphics() { return commandlist_create_args::default_graphics(); }
 	};
 
-	class command_allocator final : public object<e_object::commandallocator>
+	class commandpool final : public object<e_object::commandpool>
+	{
+
+	};
+
+	class pipeline final : public object<e_object::pipeline>
 	{
 
 	};
 	
+	class rootsignature final : public object<e_object::rootsignature>
+	{
+
+	};
+
 	/*
 		device can be used to create objects similar to calling the global create-functions
 		creating through the device class will automatically override the created objects' m_device reference
@@ -684,22 +1166,38 @@ namespace influx::rhi
 	class device final : public object<e_object::device>
 	{
 	public:
-		INFLUX_RHI_API result<> create_rtv(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<> create_dsv(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<> create_sampview(const sampler& sampler, descriptor descriptor) const;
-		INFLUX_RHI_API result<> create_srv(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<> create_uav(const texture2D& texture, descriptor descriptor) const;
-		INFLUX_RHI_API result<> create_srv(const buffer& buffer, descriptor descriptor) const;
-		INFLUX_RHI_API result<> create_uav(const buffer& buffer, descriptor descriptor) const;
+		INFLUX_RHI_API result<> create_rtv(const texture& texture, descriptor descriptor);
+		INFLUX_RHI_API result<> create_dsv(const texture& texture, descriptor descriptor);
+		INFLUX_RHI_API result<> create_sampview(const sampler& sampler, descriptor descriptor);
+		INFLUX_RHI_API result<> create_srv(const texture& texture, descriptor descriptor);
+		INFLUX_RHI_API result<> create_uav(const texture& texture, descriptor descriptor);
+		INFLUX_RHI_API result<> create_srv(const buffer& buffer, descriptor descriptor);
+		INFLUX_RHI_API result<> create_uav(const buffer& buffer, descriptor descriptor);
 
-		inline static result<device> create(const device_create_args& args = {});
-		inline result<swapchain> create(const swapchain_create_args& args) const;
-		inline result<queue> create(const queue_create_args& args) const;
-		inline result<command_allocator> create(const commandallocator_create_args& args) const;
-		inline result<commandlist> create(const commandlist_create_args& args) const;
-		inline result<descheap> create(const descheap_create_args& args) const;
+		inline static result<device>	create(const device_create_args& args = {});
+		inline result<swapchain>		create(const swapchain_create_args& args);
+		inline result<queue>			create(const queue_create_args& args);
+		inline result<commandpool>		create(const commandpool_create_args& args);
+		inline result<commandlist>		create(const commandlist_create_args& args);
+		inline result<descheap>			create(const descheap_create_args& args);
+		inline result<pipeline>			create(const pipeline_create_args& args);
+		inline result<rootsignature>	create(const rootsignature_create_args& args);
 
-		inline result<> release() { return {}; }
+		inline result<> release()
+		{
+			return {};
+		}
+
+	private:
+		inline result<> register_child(const object_native obj)
+		{
+			using result_type = result<>;
+			if (m_data.m_children.contains(obj))
+				return result_type::make_error("native object already registered!");
+
+			m_data.m_children.insert(obj);
+			return {};
+		}
 	};
 
 	inline static result<device> create_device(const device_create_args& args = {})
@@ -707,25 +1205,18 @@ namespace influx::rhi
 		return device::create(args);
 	}
 
+	// =============================================
 	/* [import methods]
 	* when you import an object (native pointer) the RHI will attempt to build a wrapped type
 	* based on the information it can parse from the pointer.
 	*/
-	INFLUX_RHI_API result<buffer>				import_buffer(object_native native);
-	INFLUX_RHI_API result<texture2D>			import_texture2D(object_native native);
-	INFLUX_RHI_API result<texture3D>			import_texture3D(object_native native);
-	INFLUX_RHI_API result<descheap>				import_descheap(object_native native);
-	INFLUX_RHI_API result<commandlist>			import_commandlist(object_native native);
-	INFLUX_RHI_API result<command_allocator>	import_allocator(object_native native);
+	INFLUX_RHI_API result<buffer>			import_buffer(native_buffer native);
+	INFLUX_RHI_API result<texture>			import_texture(native_texture native);
+	INFLUX_RHI_API result<descheap>			import_descheap(native_descheap native);
+	INFLUX_RHI_API result<commandlist>		import_commandlist(native_commandlist native);
+	INFLUX_RHI_API result<commandpool>		import_commandpool(native_commandpool native);
 
-	template <typename _t> result<_t> import(object_native);
-	template<> inline result<buffer> import(object_native native) { return import_buffer(native); }
-	template<> inline result<texture2D> import(object_native native) { return import_texture2D(native); }
-	template<> inline result<texture3D> import(object_native native) { return import_texture3D(native); }
-	template<> inline result<descheap> import(object_native native) { return import_descheap(native); }
-	template<> inline result<commandlist> import(object_native native) { return import_commandlist(native); }
-	template<> inline result<command_allocator> import(object_native native) { return import_allocator(native); }
-
+	// =============================================
 	/* [creation methods]
 	* these are the platform-native object creation methods
 	* if you want to work closer to the API, you can just use these to create your objects
@@ -737,15 +1228,13 @@ namespace influx::rhi
 	INFLUX_RHI_API result<object_native> create_native(const queue_create_args& args, queue_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const swapchain_create_args& args, swapchain_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const descheap_create_args& args, descheap_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const commandallocator_create_args& args, commandallocator_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const commandpool_create_args& args, commandpool_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const commandlist_create_args& args, commandlist_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const fence_create_args& args, fence_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const buffer_create_args& args, buffer_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const texture2D_create_args& args, texture2D_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const texture3D_create_args& args, texture3D_data* out_data = nullptr);
+	INFLUX_RHI_API result<object_native> create_native(const texture_create_args& args, texture_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const pipeline_create_args& args, pipeline_data* out_data = nullptr);
 	INFLUX_RHI_API result<object_native> create_native(const rootsignature_create_args& args, rootsignature_data* out_data = nullptr);
-
 	INFLUX_RHI_API result<> release(object_native native);
 
 	template <typename _t>
@@ -765,14 +1254,164 @@ namespace influx::rhi
 		return obj;
 	}
 
+	// =============================================
 	// [inline]
-	// inline methods
-	inline result<device>				device::create(const device_create_args& args)					{ return influx::rhi::create<device>(args); }
-	inline result<swapchain>			device::create(const swapchain_create_args& args) const			{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; args_cpy.m_instance = this->m_data.m_factory; return influx::rhi::create<swapchain>(args_cpy); }
-	inline result<queue>				device::create(const queue_create_args& args) const				{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<queue>(args_cpy); }
-	inline result<command_allocator>	device::create(const commandallocator_create_args& args) const	{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<command_allocator>(args_cpy); }
-	inline result<commandlist>			device::create(const commandlist_create_args& args) const		{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<commandlist>(args_cpy); }
-	inline result<descheap>				device::create(const descheap_create_args& args) const			{ auto args_cpy = args; args_cpy.m_device = this->m_native_object; return influx::rhi::create<descheap>(args_cpy); }
+	// device creation methods
+	inline result<device> device::create(const device_create_args& args)					
+	{ 
+		return influx::rhi::create<device>(args);
+	}
+	inline result<swapchain> device::create(const swapchain_create_args& args)			
+	{ 
+		using result_type = result<swapchain>;
+
+		auto args_cpy = args; 
+		args_cpy.m_device = (native_device)this->m_native_object;
+		args_cpy.m_instance = (native_instance)this->m_data.m_instance;
+		auto res = influx::rhi::create<swapchain>(args_cpy);
+		if (!res)
+			return result_type::make_error("failed creating swapchain!");
+		
+		auto reg = register_child(res.get().m_native_object);
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	inline result<queue> device::create(const queue_create_args& args)				
+	{ 
+		using result_type = result<queue>;
+
+		auto args_cpy = args; 
+		args_cpy.m_device = (native_device)this->m_native_object; 
+		auto res = influx::rhi::create<queue>(args_cpy);
+		if (!res)
+			return result_type::make_error("failed creating queue!");
+
+		auto reg = register_child(res.get().m_native_object);
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	inline result<commandpool> device::create(const commandpool_create_args& args)	
+	{ 
+		using result_type = result<commandpool>;
+
+		auto args_cpy = args; 
+		args_cpy.m_device = (native_device)this->m_native_object;
+		auto res = influx::rhi::create<commandpool>(args_cpy); 
+		if (!res)
+			return result_type::make_error("failed creating commandpool!");
+
+		auto reg = register_child(res.get().m_native_object);
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	inline result<commandlist> device::create(const commandlist_create_args& args)		
+	{ 
+		using result_type = result<commandlist>;
+
+		auto args_cpy = args; 
+		args_cpy.m_device = (native_device)this->m_native_object;
+		auto res = influx::rhi::create<commandlist>(args_cpy); 
+		if (!res)
+			return result_type::make_error("failed creating commandlist!");
+
+		auto reg = register_child(res.get().m_native_object);
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return {};
+	}
+	inline result<descheap>	device::create(const descheap_create_args& args)			
+	{ 
+		using result_type = result<descheap>;
+
+		auto args_cpy = args; 
+		args_cpy.m_device = (native_device)this->m_native_object;
+		auto res = influx::rhi::create<descheap>(args_cpy); 
+			return result_type::make_error("failed creating descheap!");
+
+		auto reg = register_child(res.get().m_native_object);
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	inline result<pipeline> device::create(const pipeline_create_args& args)
+	{
+		using result_type = result<pipeline>;
+		auto args_cpy = args;
+		args_cpy.m_device = (native_device)this->m_native_object;
+		auto res = influx::rhi::create<pipeline>(args_cpy);
+			return result_type::make_error("failed creating pipeline!");
+
+		auto reg = register_child(res.get().m_native_object);
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	inline result<rootsignature> device::create(const rootsignature_create_args& args)
+	{
+		using result_type = result<rootsignature>;
+		auto args_cpy = args;
+		args_cpy.m_device = (native_device)this->m_native_object;
+		auto res = influx::rhi::create<rootsignature>(args_cpy);
+		if (!res)
+			return result_type::make_error("failed creating rootsignature!");
+
+		auto reg = register_child(res.get().m_native_object);
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_bindflags);
+ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_graphics_shader_pipeline);
+
+namespace influx::rhi
+{
+	bool pipeline_create_args::is_valid() const
+	{
+		if (m_type == e_pipeline_type::graphics)
+		{
+			const e_graphics_shader_pipeline shader_pipeline = m_graphics.m_shaderpipeline;
+
+			// check shader pipeline config...
+			const bool shaderpipeline_valid = is_graphics_shader_pipeline_valid(shader_pipeline);
+			if (!shaderpipeline_valid) return false;
+
+			// check any shaders that are included & not valid...
+			for (uint32 i = 0u; i < k_num_graphics_shaderslots; ++i)
+			{
+				const bool shader_included = (uint32)shader_pipeline & (1u << i);
+				const bool shader_valid = !m_graphics_shaders.get(i).empty();
+				if (!shader_valid && shader_included) return false;
+			}
+
+			// todo...
+			return true;
+		}
+		if (m_type == e_pipeline_type::compute)
+		{
+			for (uint32 i = 0u; i < k_num_compute_shaderslots; ++i)
+			{
+				const bool shader_valid = !m_graphics_shaders.get(i).empty();
+				if (!shader_valid) return false;
+			}
+			return true;
+		}
+		if (m_type == e_pipeline_type::raytracing)
+		{
+			for (uint32 i = 0u; i < k_num_raytracing_shaderslots; ++i)
+			{
+				const bool shader_valid = !m_raytracing_shaders.get(i).empty();
+				const bool shader_optional = m_raytracing_shaders.is_optional(i);
+				if (!shader_valid && !shader_optional) return false;
+			}
+			return true;
+		}
+
+		// unimplemented type...
+		return false;
+	}
+}
