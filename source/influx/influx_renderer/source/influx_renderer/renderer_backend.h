@@ -62,25 +62,49 @@ namespace influx::renderer
 		source
 	};
 
+	static constexpr uint32 k_max_in_flight = 3u;
+	template <typename _t>
+	class inflight final
+	{
+		_t					m_value[k_max_in_flight];
+		renderer_backend&	m_backend;
+
+	public:
+		explicit inflight(renderer_backend& backend) 
+			: m_backend{ backend } { }
+		explicit inflight(const _t& value, renderer_backend& backend)
+			: m_backend{ backend }, m_value{ value } { }
+
+		_t& get()
+		{
+			return m_value[m_backend.get_cpu_frame() % k_max_in_flight];
+		}
+
+		_t& get_gpu()
+		{
+			return m_value[m_backend.query_gpu_frame() % k_max_in_flight];
+		}
+	};
+
 	class renderer_backend final : public singleton<renderer_backend>
 	{
-		struct swapchain;
-
-		// konstants
 		constexpr static e_buffering k_buffering = e_buffering::tripple;
 
 		init_args	m_init_args = {};
-		uint64		m_frame_count = 0u;
+		uint64		m_cpu_frame = 0u;
+		uint64		m_gpu_frame = 0u;
 		bool		m_is_initialized = false;
 		string		m_shadersource_directory = "";
 
-		target*						m_finaltarget = nullptr;
 		umap<debug_name, target*>	m_targets = {};
 		rendergraph::rendergraph*	m_rendergraph = nullptr;
 		graphics::device*			mp_device = nullptr;
-		graphics::queue*			mp_graphics_queue = nullptr;
-		graphics::commandlist*		mp_commandlist = nullptr;
+		graphics::queue*			m_mainqueue = nullptr;
+		graphics::queue*			m_copy_queue = nullptr;
 		graphics::fence*			m_gpu_finished_fence = nullptr;
+		graphics::fence*			m_frame_fence = nullptr;
+
+		inflight<graphics::commandlist*> m_frame_cmdlist{ *this };
 
 		struct swapchain final
 		{
@@ -90,15 +114,15 @@ namespace influx::renderer
 		};
 		umap<platform::window const*, swapchain> m_swapchains{};
 
-		descriptor_manager*		mp_desc_manager = nullptr;
-		upload_manager*			mp_upload_manager = nullptr;
+		descriptor_manager*		mp_desc_manager		= nullptr;
+		upload_manager*			mp_upload_manager	= nullptr;
 		pipeline_manager*		mp_pipeline_manager = nullptr;
-		imgui_manager*			mp_imgui = nullptr;
-		scene_renderer*			mp_scene_renderer = nullptr;
-		quad_renderer*			mp_quad_renderer = nullptr;
+		imgui_manager*			mp_imgui			= nullptr;
+		scene_renderer*			mp_scene_renderer	= nullptr;
+		quad_renderer*			mp_quad_renderer	= nullptr;
 		shadertoy_renderer*		mp_shadertoy_renderer = nullptr;
-		resource_manager*		m_resource_manager = nullptr;
-		render_settings			m_settings = {};
+		resource_manager*		m_resource_manager	= nullptr;
+		render_settings			m_settings			= {};
 
 	public:
 		renderer_backend();
@@ -111,6 +135,8 @@ namespace influx::renderer
 
 		void start_frame();
 		void end_frame();
+		uint64 query_gpu_frame();
+		uint64 get_cpu_frame() const;
 
 		result<target*> create_target(const target_create_args& args);
 		result<> destroy_target(target*& target);

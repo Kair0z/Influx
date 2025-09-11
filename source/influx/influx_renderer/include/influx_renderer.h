@@ -50,8 +50,8 @@ namespace influx::renderer
 	struct render_settings final
 	{
 		enum class cullmode { back, front, none };
-		cullmode m_cullmode = cullmode::back;
-		bool m_wireframe = false;
+		cullmode	m_cullmode = cullmode::back;
+		bool		m_wireframe = false;
 	};
 	INFLUX_RENDER_API void set_settings(const render_settings& settings);
 	INFLUX_RENDER_API render_settings get_settings();
@@ -67,10 +67,8 @@ namespace influx::renderer
 
 	struct init_args final
 	{
-		log_function m_log_func = nullptr;
-
-		e_render_api m_api_type = e_render_api::dx12;
-
+		log_function m_log_func			= nullptr;
+		e_render_api m_api_type			= e_render_api::dx12;
 		render_settings m_init_settings = {};
 
 		// if empty, the default source folder is used

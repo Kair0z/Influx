@@ -196,7 +196,8 @@ int main()
 	time::point time_last_tick = time::get_now();
 	float delta_seconds = 0.0f;
 	float seconds = 0.0f;
-	while (true)
+	bool is_quit = false;
+	while (!is_quit)
 	{
 		delta_seconds = time::get_ms_since<float>(time_last_tick) * 0.001f;
 		time_last_tick = time::get_now();
@@ -212,6 +213,7 @@ int main()
 			uint32 x = (uint32)(radius * math::cos(angle));
 			uint32 y = (uint32)(radius * math::sin(angle));
 			windows[i]->set_position(monitor_center + math::vectoru2{ x,y } - window_half_size);
+			windows[i]->poll_events(is_quit);
 		}
 
 		// render:
@@ -236,14 +238,14 @@ int main()
 			renderer::clear_target(*window_targets[i], clear);
 		}
 
-		renderer::draw_scene(scene_to_draw, *window_targets[1]);
-
+		renderer::draw_scene({}, *window_targets[1]);
 		renderer::end_frame();
-
+#if 0
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
 			renderer::present(*windows[i], present_args);
 		}
+#endif
 	}
 
 	renderer::cleanup();

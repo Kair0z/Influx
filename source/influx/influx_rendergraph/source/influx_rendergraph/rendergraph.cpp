@@ -512,7 +512,7 @@ namespace influx::rendergraph
 			}
 			else return result<>::make_error("error: found texture is not imported!");
 		}
-		return result<>::make_error("error: texture not found!");
+		return result<>::make_warning({}, "warning: texture not found!");
 	}
 
 	result<> rendergraph::remove_imported_buffer(const rgname& name)
@@ -527,7 +527,7 @@ namespace influx::rendergraph
 			}
 			else return result<>::make_error("error: found buffer is not imported!");
 		}
-		return result<>::make_error("error: buffer not found!");
+		return result<>::make_warning({}, "error: buffer not found!");
 	}
 
 	void rendergraph::reset_resources()

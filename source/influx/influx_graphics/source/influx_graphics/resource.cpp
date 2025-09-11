@@ -166,7 +166,7 @@ namespace influx::graphics
 		result<> res = {};
 		if (m_state == new_state)
 		{
-			return result<>::make_error("warning: skipping transition to already current state.");
+			return result<>::make_warning({}, "warning: skipping transition to already current state.");
 		}
 		res = cmdlist->transition_resource(this, m_state, new_state);
 

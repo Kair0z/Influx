@@ -104,9 +104,11 @@ namespace influx::rendergraph
 
 	void rgpool::free_all_descriptors()
 	{
-		free_all_gpu_descriptors();
-
-		// todo free cpu descriptors
+		for (uint32 i = 0u; i < k_num_internal_descheaps; ++i)
+		{
+			auto* heap = get_descheap(static_cast<e_descheap_slot>(i));
+			heap->free_all();
+		}
 	}
 
 	void rgpool::free_all_gpu_descriptors()

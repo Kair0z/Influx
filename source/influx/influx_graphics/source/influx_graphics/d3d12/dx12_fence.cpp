@@ -29,7 +29,8 @@ namespace influx::graphics
 
 	void dx12_fence::wait_for_value(uint64 value, wait_handle& handle)
 	{
-		while (query_value() != value)
+		uint64 query = query_value();
+		while (query != value)
 		{
 			::HANDLE event_handle = ::CreateEventEx(NULL, 0, 0, EVENT_ALL_ACCESS);
 
@@ -39,6 +40,7 @@ namespace influx::graphics
 			// Wait until the GPU hits current fence event is fired.
 			::WaitForSingleObject(event_handle, static_cast<::DWORD>(handle.get_ms_max()));
 			::CloseHandle(event_handle);
+			query = query_value();
 		}
 	}
 

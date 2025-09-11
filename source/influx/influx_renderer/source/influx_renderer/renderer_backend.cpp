@@ -89,9 +89,9 @@ namespace influx::renderer
             queue_desc desc{};
             desc.m_type = e_queue_type::graphics;
             desc.m_priority = graphics::e_queue_priority::normal;
-            mp_graphics_queue = mp_device->create_queue(desc);
-            mp_commandlist = mp_device->create_graphics_commandlist();
+            m_mainqueue = mp_device->create_queue(desc);
             m_gpu_finished_fence = mp_device->create_fence(0u);
+            m_frame_fence = mp_device->create_fence(0u);
         }
 
         // create renderers & managers
@@ -121,7 +121,7 @@ namespace influx::renderer
     void renderer_backend::wait_gpu_finished() const
     {
         const uint64 finished_value = (uint64)-1;
-        m_gpu_finished_fence->queue_signal(finished_value, mp_graphics_queue);
+        m_gpu_finished_fence->queue_signal(finished_value, m_mainqueue);
         m_gpu_finished_fence->wait_for_value(finished_value);
     }
 
@@ -157,43 +157,65 @@ namespace influx::renderer
 
     void renderer_backend::end_frame()
     {
-        // start the commandlist
-        mp_commandlist->start(mp_device, nullptr);
-        mp_commandlist->set_name("frame");
-
-        // bind gpu heaps
-        get_descriptor_manager()->bind_gpu_heaps(*mp_commandlist);
-
+        // build the rendergraph
         {
             influx_scope("renderer::rendergraph_build");
             m_rendergraph->build();
         }
+
+        {
+            influx_scope("renderer_backend::end_frame::wait_for_gpu");
+            // as long as GPU is k_num_inflight_max behind, wait...
+            uint64 gpu_frame = query_gpu_frame();
+            while (m_cpu_frame - gpu_frame > k_num_inflight_max)
+            {
+                if (m_frame_cmdlist.get_gpu())
+                    m_frame_cmdlist.get_gpu()->wait_for_completion();
+                gpu_frame = query_gpu_frame();
+            }
+        }
+        
+        graphics::commandlist*& cmdlist = m_frame_cmdlist.get();
+        if (cmdlist == nullptr) 
+            cmdlist = mp_device->create_graphics_commandlist();
+        
+        cmdlist->start(mp_device, nullptr);
+        cmdlist->set_name("frame");    
+
+        // bind bindless global GPU heaps
+        get_descriptor_manager()->bind_gpu_heaps(*cmdlist);
+        
+        // execute the rendergraph
+#if 0
         {
             influx_scope("renderer::rendergraph_execute");
-            auto res = m_rendergraph->execute(*mp_commandlist, *mp_device);
+            auto res = m_rendergraph->execute(*cmdlist, *mp_device);
             if (res.is_unex())
             {
                 log(e_log::warning, "rendergraph execute failed!");
             }
         }
+#endif
+        cmdlist->end();
 
-        mp_commandlist->end();
-
-        influx_scope("renderer_backend::end_frame");
         {
-            influx_scope("renderer_backend::end_frame::submit");
-            mp_commandlist->submit(mp_graphics_queue);
-        }
-        {
-            influx_scope("renderer_backend::end_frame::reset_gpu_heaps");
-            get_descriptor_manager()->reset_gpu_heaps();
-        }
-        {
-            influx_scope("renderer_backend::end_frame::wait_for_gpu");
-            mp_commandlist->wait_for_completion();
+            influx_scope("renderer_backend::submit");
+            cmdlist->submit(m_mainqueue);
+            m_frame_fence->queue_signal(m_cpu_frame, m_mainqueue);
         }
 
-        ++m_frame_count;
+        ++m_cpu_frame;
+    }
+
+    uint64 renderer_backend::query_gpu_frame()
+    {
+        m_gpu_frame = m_frame_fence->query_value();
+        return m_gpu_frame;
+    }
+
+    uint64 renderer_backend::get_cpu_frame() const
+    {
+        return m_cpu_frame;
     }
 
     result<target*> renderer_backend::create_target(const target_create_args& args)
@@ -284,14 +306,16 @@ namespace influx::renderer
             desc.m_num_buffers = get_num_buffers(k_buffering);
             desc.m_format; //  todo
             desc.m_dimensions = window.get_dimensions(platform::window::e_space::client);
-            swapchain.mp_swapchain = mp_device->create_swapchain(mp_graphics_queue, window, desc);
+            swapchain.mp_swapchain = mp_device->create_swapchain(m_mainqueue, window, desc);
             recreate_backbuffer_finaltarget(swapchain);
         }
 
         // if need, recreate the swapchain
         if (swapchain.mp_swapchain->needs_recreate(window))
         {
-            mp_commandlist->wait_for_completion();
+            m_frame_fence->wait_for_value(
+                math::minimum<uint32>(m_cpu_frame - 1u, 0u));
+
             wait_gpu_finished();
             swapchain.mp_swapchain->resize(mp_device, window);
             recreate_backbuffer_finaltarget(swapchain);
@@ -310,7 +334,7 @@ namespace influx::renderer
     {
         using result_type = result<>;
         if (scene.is_empty())
-            return result_type::make_error("error: cannot draw an empty scene!");
+            return result_type::make_warning({}, "warning: cannot draw an empty scene!");
 
         auto res = import_to_graph(target);
         if (res.is_unex())
@@ -499,7 +523,10 @@ namespace influx::renderer
 
     void renderer_backend::present_all(const present_args& args)
     {
-        mp_commandlist->start(mp_device);
+        // start the commandlist
+        graphics::commandlist* cmdlist = mp_device->create_graphics_commandlist();
+        cmdlist->start(mp_device, nullptr);
+        cmdlist->set_name("present");
 
         for (const auto& swapchain : m_swapchains)
         {
@@ -512,15 +539,15 @@ namespace influx::renderer
             graphics::resource* backbuffer = res.get();
 
             // transition & copy finaltargetproxy into the backbuffer
-            proxy_resource->transition(mp_commandlist, graphics::e_resource_state::copy_src);
-            mp_commandlist->copy_resource(proxy_resource, backbuffer);
-            backbuffer->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
+            proxy_resource->transition(cmdlist, graphics::e_resource_state::copy_src);
+            cmdlist->copy_resource(proxy_resource, backbuffer);
+            backbuffer->transition(cmdlist, graphics::e_resource_state::copy_dst);
 
-            backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
+            backbuffer->transition(cmdlist, graphics::e_resource_state::present);
         }
 
-        mp_commandlist->end();
-        mp_commandlist->submit(mp_graphics_queue);
+        cmdlist->end();
+        cmdlist->submit(m_mainqueue);
 
         for (const auto& swapchain : m_swapchains)
         {
@@ -535,16 +562,19 @@ namespace influx::renderer
         // make sure the swapchain has been created before
         influx_assert(m_swapchains.contains(&window));
 
+        graphics::commandlist* cmdlist = mp_device->create_graphics_commandlist();
+        cmdlist->start(mp_device, nullptr);
+        cmdlist->set_name("present");
+
         swapchain& swapchain = m_swapchains.at(&window);
 
         // run a commandlist to transition the backbuffer-resource to presentable
-        mp_commandlist->start(mp_device);
         auto res = swapchain.mp_swapchain->get_current_backbuffer_resource();
         influx_assert(res.is_success());
         graphics::resource* backbuffer = res.get();
-        backbuffer->transition(mp_commandlist, graphics::e_resource_state::present);
-        mp_commandlist->end();
-        mp_commandlist->submit(mp_graphics_queue);
+        backbuffer->transition(cmdlist, graphics::e_resource_state::present);
+        cmdlist->end();
+        cmdlist->submit(m_mainqueue);
 
         if (swapchain.mp_swapchain)
         {
@@ -576,7 +606,7 @@ namespace influx::renderer
 
     graphics::queue& renderer_backend::get_graphics_queue()
     {
-        return *get_instance().mp_graphics_queue;
+        return *get_instance().m_mainqueue;
     }
 
     graphics::device& renderer_backend::get_device()
@@ -719,7 +749,7 @@ namespace influx::renderer
 
     void renderer_backend::upload_texture_data(texture2D* target_tex, const texture_data& data)
     {
-        mp_upload_manager->upload_texture(mp_graphics_queue, data, target_tex->get_resource().get());
+        mp_upload_manager->upload_texture(m_mainqueue, data, target_tex->get_resource().get());
     }
 
     vector<string> renderer_backend::get_mesh_names() const

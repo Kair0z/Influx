@@ -369,11 +369,11 @@ namespace influx::renderer
 			}
 
 			m_needs_rebuild = true;
-			rebuild(device);
+			reload_shaders(device);
 		}
 
 		// call this to re-fetch shaders from resource_manager and possibly rebuild the pipeline
-		void rebuild(graphics::device& device)
+		void reload_shaders(graphics::device& device)
 		{
 			update_shaders();
 

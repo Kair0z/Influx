@@ -29,7 +29,7 @@ struct ps_input
 struct ps_output
 {
     gbuffer gbuffer_data;
-};  
+};
 
 #define FLX_BINDLESS 1
 

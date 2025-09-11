@@ -28,6 +28,12 @@ namespace influx::renderer
         graphics::e_format::u32,
         graphics::e_format::u32,
     };
+    static constexpr const char* k_gbuffer_names[k_num_gbuffers]
+    {
+        "gbuffer_a",
+        "gbuffer_b",
+        "gbuffer_c",
+    };
 
 #pragma region shaders
     static graphics_pipeline_signature& get_scene_basepass_pipeline_signature()
@@ -292,7 +298,7 @@ namespace influx::renderer
 
 #pragma region batching
     // 1 draw-call == 1 batch
-    class batch final
+    class draw_batch final
     {
     public:
         string m_mesh_name;
@@ -312,9 +318,10 @@ namespace influx::renderer
         return instance_data;
     }
 
-    vector<batch> scene_renderer::create_batches(const scene& scene, graphics::commandlist* commandlist)
+    vector<draw_batch> scene_renderer::create_batches(const scene& scene, graphics::commandlist* commandlist)
     {
         renderer_backend& backend = renderer_backend::get_instance();
+        descriptor_manager& descman = *backend.get_descriptor_manager();
         rhi_device& device = backend.get_device();
 
         umap<texture2D*, uint32> tex_to_idx{};
@@ -341,14 +348,13 @@ namespace influx::renderer
                 }
             }
 
-            graphics::descriptor_range gpu_range = backend.get_descriptor_manager()->stage(device, all_srvs);
-            graphics::descriptor_range gpu_range_samp = backend.get_descriptor_manager()->stage_sampler(device, m_sampler_view);
+            graphics::descriptor_range gpu_range = descman.stage(device, all_srvs);
+            graphics::descriptor_range gpu_range_samp = descman.stage_sampler(device, m_sampler_view);
             // mp_pipeline->set_resource_table(commandlist, "all_descriptors", gpu_range);
-            backend.get_descriptor_manager()->bind_gpu_heaps(*commandlist);
         }
 
         using mesh_to_instance_map = umap<mesh_id, vector<frontend::per_instance>>;
-        mesh_to_instance_map mesh_to_instances{};
+        mesh_to_instance_map meshid_to_instances{};
 
         for (const mesh_instance& instance : scene.get_meshes())
         {
@@ -359,19 +365,19 @@ namespace influx::renderer
 
             string diffuse_name = "";
             gpu_data.set_albedo_index( tex_to_idx[backend.find_texture(diffuse_name)] );
-            mesh_to_instances[instance.m_mesh_id].push_back(gpu_data);
+            meshid_to_instances[instance.m_mesh_id].push_back(gpu_data);
         }
 
-        vector<batch> batches{};
+        vector<draw_batch> batches{};
         uint64 offset = 0u;
-        for (const auto& pair : mesh_to_instances)
+        for (const auto& pair : meshid_to_instances)
         {
             graphics::resource* vertexbuffer = nullptr;
             graphics::resource* indexbuffer = nullptr;
             if (backend.get_mesh_buffers(pair.first, vertexbuffer, indexbuffer))
             {
                 batches.push_back({});
-                batch& batch = batches.back();
+                draw_batch& batch = batches.back();
 
                 batch.m_indexbuffer = indexbuffer;
                 batch.m_vertexbuffer = vertexbuffer;
@@ -384,12 +390,12 @@ namespace influx::renderer
         return batches;
     }
 
-    void scene_renderer::update_instance_buffer(const vector<batch>& batches)
+    void scene_renderer::update_instance_buffer(const vector<draw_batch>& batches)
     {
         mp_instancebuffer->map([&batches](void* dest)
         {
             frontend::per_instance* data = reinterpret_cast<frontend::per_instance*>(dest);
-            for (const batch& batch : batches)
+            for (const draw_batch& batch : batches)
             {
                 for (size_t i = 0u; i < batch.m_instances.size(); ++i)
                 {
@@ -472,45 +478,19 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::apply_pipeline_settings(const target& target)
-    {
-        const render_settings& settings = renderer_backend::get_instance().get_settings();
-        graphics_pipeline_signature& signature = get_scene_basepass_pipeline_signature();
-        
-        signature.m_depth_enable = target.has_depth_stencil();
-        signature.m_fillmode = settings.m_wireframe ? graphics::e_fill_mode::wireframe : graphics::e_fill_mode::solid;
-        switch (settings.m_cullmode)
-        {
-        case render_settings::cullmode::back:  signature.m_cullmode = graphics::e_cull_mode::back; break;
-        case render_settings::cullmode::front: signature.m_cullmode = graphics::e_cull_mode::front; break;
-        case render_settings::cullmode::none:  signature.m_cullmode = graphics::e_cull_mode::nocull; break;
-        }
-    }
-
     void scene_renderer::build_basepass(rendergraph::rgpass_builder& builder, const target& target)
     {
-        // declare gbuffer rendertargets
         rendergraph::texture_desc gbuffer_desc{};
         gbuffer_desc.m_width = target.get_width();
         gbuffer_desc.m_heigth = target.get_height();
-        gbuffer_desc.m_format = graphics::e_format::rgba_u32;
-        builder.declare_texture("gbuffer_a", gbuffer_desc);
-
-        gbuffer_desc.m_format = graphics::e_format::u32;
-        builder.declare_texture("gbuffer_b", gbuffer_desc);
-        builder.declare_texture("gbuffer_c", gbuffer_desc);
-
         rendergraph::rgaccess access{};
         access.m_load = rendergraph::e_rg_load::clear;
         access.m_store = rendergraph::e_rg_store::preserve;
-        builder.write_rendertarget("gbuffer_a", access);
-        builder.write_rendertarget("gbuffer_b", access);
-        builder.write_rendertarget("gbuffer_c", access);
 
-        if (target.has_depth_stencil())
+        for (uint32 i = 0u; i < k_num_gbuffers; ++i)
         {
-            access.m_load = rendergraph::e_rg_load::clear;
-            builder.write_depthtarget(target.get_depth_rendergraph_name(), access);
+            gbuffer_desc.m_format = k_gbuffer_formats[i];
+            builder.write_rendertarget(k_gbuffer_names[i], gbuffer_desc, access);
         }
         builder.set_viewport(target.get_width(), target.get_height());
     }
@@ -518,55 +498,56 @@ namespace influx::renderer
     void scene_renderer::execute_basepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
     {
         if (scene.is_empty())
-        {
             return;
-        }
+
+        renderer_backend& backend = renderer_backend::get_instance();
+        pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
+        descriptor_manager& descman = *backend.get_descriptor_manager();
 
         influx_scope("renderer_backend::draw_scene::record");
         logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
 
-        renderer_backend& backend = renderer_backend::get_instance();
-        pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
+        // apply render global settings to the pipeline signature
+        graphics_pipeline_signature& pipeline_sig = get_scene_basepass_pipeline_signature();
+        {
+            const render_settings&          settings = renderer_backend::get_instance().get_settings();
+            pipeline_sig.m_depth_enable = target.has_depth_stencil();
+            pipeline_sig.m_fillmode = settings.m_wireframe ? graphics::e_fill_mode::wireframe : graphics::e_fill_mode::solid;
+            switch (settings.m_cullmode)
+            {
+            case render_settings::cullmode::back:  pipeline_sig.m_cullmode = graphics::e_cull_mode::back; break;
+            case render_settings::cullmode::front: pipeline_sig.m_cullmode = graphics::e_cull_mode::front; break;
+            case render_settings::cullmode::none:  pipeline_sig.m_cullmode = graphics::e_cull_mode::nocull; break;
+            }
+        }
 
-        apply_pipeline_settings(target);
-        graphics_pipeline& pipeline = pipeline_man.get_or_create_pipeline(get_scene_basepass_pipeline_signature());
-        
-        // hot-reload our shaders if necessary:
+        // load the pipeline signature
+        graphics_pipeline& pipeline = pipeline_man.get_or_create_pipeline(pipeline_sig);
         static bool once = true;
         if (once)
         {
-            pipeline.rebuild(backend.get_device());
+            pipeline.reload_shaders(backend.get_device());
             influx_assert(pipeline.is_valid());
             once = false;
         }
-        
-        // skybox
-        if (mp_skybox == nullptr)
-        {
-            if (cubemap* cube = backend.find_texturecube("graycloud"))
-            {
-                mp_skybox = cube->get_resource().get();
-            }
-        }
- 
+
         graphics::commandlist& commandlist = context.get_commandlist();
-
-        // setup batches & instance buffer
-        vector<batch> batches = create_batches(scene, &commandlist);
-        update_instance_buffer(batches);
-
-        // set generic pipeline state (pipeline, rootsignature, primitive topo, ...)
+        descman.bind_gpu_heaps(commandlist);
         pipeline.set_state(commandlist);
         commandlist.set_primitive_topology(graphics::e_primitive_topology::trilist);
+        
+        // setup draw batches & instance buffer
+        vector<draw_batch> batches = create_batches(scene, &commandlist);
+        update_instance_buffer(batches);
 
-        // constants
+        // update constants
         m_gpu_perscene.m_time.x = scene.m_delta_seconds;
         m_gpu_perscene.m_time.y = scene.m_seconds;
         m_gpu_perview.m_viewprojection = scene.get_view_matrices().m_viewprojection;
         pipeline.set_constants<frontend::per_scene>(commandlist, "g_perscene", m_gpu_perscene);
         pipeline.set_constants<frontend::per_view>(commandlist, "g_perview", m_gpu_perview);
 
-        for (const batch& batch : batches)
+        for (const draw_batch& batch : batches)
         {
             // per draw constants
             m_gpu_perdraw.m_base_instance = static_cast<uint32>(batch.m_base_instance);
@@ -594,19 +575,13 @@ namespace influx::renderer
 
     void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target, const scene& scene)
     {
-        rendergraph::rgname gbuffernames[k_num_gbuffers]
-        {
-            "gbuffer_a",
-            "gbuffer_b",
-            "gbuffer_c"
-        };
         for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
-            builder.read_texture(gbuffernames[i]).get();
+            builder.read_texture(k_gbuffer_names[i]).get();
         }
-
-        builder.set_viewport(target.get_width(), target.get_height());
         builder.write_texture(target.get_rendergraph_name()).get();
+        
+        builder.set_viewport(target.get_width(), target.get_height());
     }
 
     void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
@@ -616,11 +591,11 @@ namespace influx::renderer
         pipeline_manager& pipeline_man      = *backend.get_pipeline_manager();
         descriptor_manager& descriptor_man  = *backend.get_descriptor_manager();
         compute_pipeline& pipeline          = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
-        graphics::commandlist& commandlist  = context.get_commandlist();
         resource_manager& resourceman       = backend.get_resource_manager();
 
-        // hot-reload our shaders if necessary:
-        pipeline.rebuild(backend.get_device());
+        pipeline.reload_shaders(device);
+
+        graphics::commandlist& commandlist = context.get_commandlist();
         pipeline.set_state(commandlist);
 
         // build resolve args
@@ -634,52 +609,50 @@ namespace influx::renderer
             math::matrix4x4f inv_viewprojection;
             math::matrix4x4f inv_projection;
             int num_lights[4u];
-        } args{};
-        args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
-
-        // update buffers for deferred lights
+        } root_args;
         {
-            update_lightbuffers(scene);
-            for (uint32 i = 0u; i < k_num_light_types; ++i)
+            root_args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
+
+            // update buffers for deferred lights
             {
-                args.num_lights[i] = scene.get_num_lights(static_cast<influx::e_light_type>(i));
+                update_lightbuffers(scene);
+                for (uint32 i = 0u; i < k_num_light_types; ++i)
+                {
+                    root_args.num_lights[i] = scene.get_num_lights(static_cast<influx::e_light_type>(i));
+                }
+            }
+
+            root_args.inv_viewprojection = scene.get_view_matrices().m_inv_viewprojection;
+            root_args.inv_projection = scene.get_view_matrices().m_inv_projection;
+            root_args.camera_position = scene.get_camera_transform().get().get_row(3);
+            root_args.camera_position.w = 1.0f;
+
+            // stage the descriptors onto the gpu heap
+            {
+                graphics::descriptor_range gpu_range = descriptor_man.stage(device,
+                {
+                    context.get_read_texture(0).get().m_descriptor,
+                    context.get_read_texture(1).get().m_descriptor,
+                    context.get_read_texture(2).get().m_descriptor,
+                    context.get_write_texture(0).get().m_descriptor,
+                    m_lightbuffer_srvs[0],
+                    m_lightbuffer_srvs[1],
+                    m_lightbuffer_srvs[2]
+                });
+
+                // set the descriptorheap bindless indices
+                root_args.texture_indices[0] = gpu_range.m_start_idx;
+                root_args.texture_indices[1] = gpu_range.m_start_idx + 1u;
+                root_args.texture_indices[2] = gpu_range.m_start_idx + 2u;
+                root_args.texture_indices[3] = gpu_range.m_start_idx + 3u;
+                root_args.skybox_indices[0] = gpu_range.m_start_idx + 4u;
+                root_args.buffer_indices[0] = gpu_range.m_start_idx + 5u;
+                root_args.buffer_indices[1] = gpu_range.m_start_idx + 6u;
+                root_args.buffer_indices[2] = gpu_range.m_start_idx + 7u;
+                descriptor_man.stage_sampler(device, m_skybox_sampler);
             }
         }
-
-        args.inv_viewprojection = scene.get_view_matrices().m_inv_viewprojection;
-        args.inv_projection = scene.get_view_matrices().m_inv_projection;
-        args.camera_position = scene.get_camera_transform().get().get_row(3);
-        args.camera_position.w = 1.0f;
-
-        // stage the descriptors onto the gpu heap
-        {
-            graphics::descriptor_range gpu_range = descriptor_man.stage(device,
-            {   
-                context.get_read_texture(0).get().m_descriptor,
-                context.get_read_texture(1).get().m_descriptor,
-                context.get_read_texture(2).get().m_descriptor,
-                context.get_write_texture(0).get().m_descriptor,
-
-                resourceman.get<e_resource_type::cubemap>("graycloud").m_resource->get_srv().get(),
-
-                m_lightbuffer_srvs[0],
-                m_lightbuffer_srvs[1],
-                m_lightbuffer_srvs[2]
-            });
-
-            // set the descriptorheap bindless indices
-            args.texture_indices[0] = gpu_range.m_start_idx;
-            args.texture_indices[1] = gpu_range.m_start_idx + 1u;
-            args.texture_indices[2] = gpu_range.m_start_idx + 2u;
-            args.texture_indices[3] = gpu_range.m_start_idx + 3u;
-            args.skybox_indices[0] = gpu_range.m_start_idx + 4u;
-            args.buffer_indices[0] = gpu_range.m_start_idx + 5u;
-            args.buffer_indices[1] = gpu_range.m_start_idx + 6u;
-            args.buffer_indices[2] = gpu_range.m_start_idx + 7u;
-            descriptor_man.stage_sampler(device, m_skybox_sampler);
-        }
-       
-        pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", args);
+        pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", root_args);
 
         const uint32 num_groups_x = target.get_width() / 8u;
         const uint32 num_groups_y = target.get_height() / 8u;
@@ -688,18 +661,16 @@ namespace influx::renderer
 
     void scene_renderer::build(rendergraph::rendergraph& graph, const scene& scene, const target& target)
     {
+        // if our scene is empty, dont bother
         if (scene.is_empty())
-        {
             return;
-        }
 
         // if target doesn't support UAV, we have a problem...
         if (target.get_resource()->allows_uav() == false)
             return;
 
-        renderer_backend& backend = renderer_backend::get_instance();
-        rhi_device& device = renderer_backend::get_device();
-        backend.import_to_graph(target);
+        renderer_backend& backend   = renderer_backend::get_instance();
+        rhi_device& device          = backend.get_device();
 
         // | BASEPASS
         // | renders a couple of deferred gbuffers
@@ -756,7 +727,7 @@ namespace influx::renderer
                 descriptor_manager& descriptorman = *backend.get_descriptor_manager();
 
                 // hot-reload our shaders if necessary:
-                pipeline.rebuild(backend.get_device());
+                pipeline.reload_shaders(backend.get_device());
                 influx_assert(pipeline.is_valid());
 
                 logonce(e_log_category::warning, "influx::renderer::debug_renderer: first debug render!");

@@ -31,7 +31,7 @@ namespace influx::renderer
 	constexpr static uint32 k_num_light_types = 3u;
 	constexpr static uint32 k_max_lines = 4096u;
 
-	class batch;
+	class draw_batch;
 
 	class scene_renderer final
 	{
@@ -46,11 +46,10 @@ namespace influx::renderer
 		void build(rendergraph::rendergraph& graph, const scene& scene, const target& target);
 
 	private:
-		vector<batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
-		void update_instance_buffer(const vector<batch>& batches);
+		vector<draw_batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
+		void update_instance_buffer(const vector<draw_batch>& batches);
 		void update_line_instance_buffer(const scene& scene);
 		void update_lightbuffers(const scene& scene);
-		void apply_pipeline_settings(const target& target);
 
 		void build_basepass(rendergraph::rgpass_builder&, const target& target);
 		void build_resolvepass(rendergraph::rgpass_builder&, const target& target, const scene& scene);
