@@ -2,8 +2,8 @@
 #include "core/container/map.h"
 // influx::platform
 #include "influx_platform/window.h"
-// influx::rhi
-#include "influx_rhi.h"
+// influx::graphics
+#include "influx_graphics.h"
 
 using namespace influx;
 inline platform::window* create_window()
@@ -17,6 +17,10 @@ inline platform::window* create_window()
 
 class graphics_manager final
 {
+	using descheap = graphics::descriptor_heap;
+	using descheap_ptr = graphics::descriptor_heap*;
+	using descriptor = graphics::descriptor_handle;
+
 public:
 	enum class e_descriptor : uint8
 	{
@@ -40,17 +44,17 @@ public:
 
 	private:
 		struct descriptor_slots;
-		rhi::descheap m_descheaps[k_num_heaptypes];
-		umap<rhi::object_native, descriptor_slots> m_resource_to_descriptors{};
+		descheap_ptr m_descheaps[k_num_heaptypes];
+		umap<graphics::resource*, descriptor_slots> m_resource_to_descriptors{};
 
 	public:
-		static constexpr rhi::e_descriptor_heap_type k_descheap_types[k_num_heaptypes]
+		static constexpr graphics::e_descriptor_heap_type k_descheap_types[k_num_heaptypes]
 		{
-			rhi::e_descriptor_heap_type::rtv,
-			rhi::e_descriptor_heap_type::dsv,
-			rhi::e_descriptor_heap_type::sampler,
-			rhi::e_descriptor_heap_type::resource,
-			rhi::e_descriptor_heap_type::resource,
+			graphics::e_descriptor_heap_type::rtv,
+			graphics::e_descriptor_heap_type::dsv,
+			graphics::e_descriptor_heap_type::sampler,
+			graphics::e_descriptor_heap_type::rsc,
+			graphics::e_descriptor_heap_type::rsc,
 		};
 		static constexpr bool k_is_descheap_shader_visible[k_num_heaptypes]
 		{
@@ -75,11 +79,11 @@ public:
 			{
 				return m_descriptor_created[static_cast<uint32>(desc)];
 			}
-			rhi::descriptor& get_cpu(e_descriptor desc)
+			descriptor& get_cpu(e_descriptor desc)
 			{
 				return m_cpu_descriptors[static_cast<uint32>(desc)];
 			}
-			rhi::descriptor& get_gpu(e_descriptor desc)
+			descriptor& get_gpu(e_descriptor desc)
 			{
 				return m_gpu_descriptors[static_cast<uint32>(desc)];
 			}
@@ -87,37 +91,37 @@ public:
 			{
 				m_descriptor_created[static_cast<uint32>(desc)] = created;
 			}
-			rhi::descriptor m_gpu_descriptors[k_num_descriptortypes]{};
-			rhi::descriptor m_cpu_descriptors[k_num_descriptortypes]{};
+			descriptor m_gpu_descriptors[k_num_descriptortypes]{};
+			descriptor m_cpu_descriptors[k_num_descriptortypes]{};
 			bool m_descriptor_created[k_num_descriptortypes] = { false, false, false, false };
 		};
 
-		descriptor_manager(rhi::device& device)
+		descriptor_manager(graphics::device& device)
 		{
 			// create descriptor heaps
 			for (uint32 i = 0u; i < k_num_heaptypes; ++i)
 			{
 				e_descriptorheap type = static_cast<e_descriptorheap>(i);
-				rhi::descheap::create_args heap_desc{};
+				descheap::create_args heap_desc{};
 				heap_desc.m_type = k_descheap_types[i];
 				heap_desc.m_shader_visible = k_is_descheap_shader_visible[i];
-				heap_desc.m_num_descriptors = k_capacities[i];
-				m_descheaps[i] = device.create(heap_desc).get();
+				heap_desc.m_capacity = k_capacities[i];
+				m_descheaps[i] = device.create_descriptor_heap(heap_desc);
 			}
 		}
 
-		rhi::descheap& get_heap(e_descriptorheap type)
+		descheap& get_heap(e_descriptorheap type)
 		{
-			return m_descheaps[static_cast<uint32>(type)];
+			return *m_descheaps[static_cast<uint32>(type)];
 		}
 
-		rhi::descriptor get_or_create_descriptor(
-			rhi::device& device, 
-			rhi::resource& resource,
+		descriptor get_or_create_descriptor(
+			graphics::device& device, 
+			graphics::resource& resource,
 			e_descriptor type, 
 			bool recreate = false)
 		{
-			rhi::object_native native_resource = resource.get_native_resource();
+			graphics::resource* native_resource = &resource;
 			if (!m_resource_to_descriptors.contains(native_resource))
 			{
 				m_resource_to_descriptors[native_resource] = {};
@@ -130,24 +134,32 @@ public:
 			}
 			else
 			{
-				rhi::descriptor cpu_descriptor = m_resource_to_descriptors[native_resource].get_cpu(type);
+				descriptor cpu_descriptor = m_resource_to_descriptors[native_resource].get_cpu(type);
 				switch (type)
 				{
 				case e_descriptor::rtv:
-					cpu_descriptor = get_heap(e_descriptorheap::rtv).allocate(1u).get();
+					auto& heap = get_heap(e_descriptorheap::rtv);
+					const uint32 index = heap.allocate().get();
+					cpu_descriptor = heap.get_cpu(index).get();
 					if (resource.is_texture()) device.create_rtv(native_resource, cpu_descriptor);
 					break;
 				case e_descriptor::dsv:
-					cpu_descriptor = get_heap(e_descriptorheap::dsv).allocate(1u).get();
+					auto& heap = get_heap(e_descriptorheap::dsv);
+					const uint32 index = heap.allocate().get();
+					cpu_descriptor = heap.get_cpu(index).get();
 					if (resource.is_texture()) device.create_dsv(native_resource, cpu_descriptor);
 					break;
 				case e_descriptor::srv:
-					cpu_descriptor = get_heap(e_descriptorheap::srv_uav_cpu).allocate(1u).get();
+					auto& heap = get_heap(e_descriptorheap::srv_uav_cpu);
+					const uint32 index = heap.allocate().get();
+					cpu_descriptor = heap.get_cpu(index).get();
 					if (resource.is_texture()) device.create_srv_texture(native_resource, cpu_descriptor);
 					else						device.create_srv_buffer(native_resource, cpu_descriptor);
 					break;
 				case e_descriptor::uav:
-					cpu_descriptor = get_heap(e_descriptorheap::srv_uav_cpu).allocate(1u).get();
+					auto& heap = get_heap(e_descriptorheap::srv_uav_cpu);
+					const uint32 index = heap.allocate().get();
+					cpu_descriptor = heap.get_cpu(index).get();
 					if (resource.is_texture()) device.create_uav_texture(native_resource, cpu_descriptor);
 					else						device.create_uav_buffer(native_resource, cpu_descriptor);
 					break;
@@ -162,73 +174,68 @@ public:
 	};
 
 private:
-	rhi::device m_device;
-	rhi::queue m_queue;
-	rhi::commandlist m_commandlist;
-	rhi::swapchain m_swapchain;
-	descriptor_manager* m_descmanager;
+	graphics::device*		m_device;
+	graphics::queue*		m_queue;
+	graphics::commandlist*	m_commandlist;
+	graphics::swapchain*	m_swapchain;
+	descriptor_manager*		m_descmanager;
 
 public:
 	graphics_manager(const platform::window& window)
 	{
-		rhi::e_api type = rhi::e_api::d3d12;
-		m_device = rhi::device::create().get();
-		m_queue = m_device.create(rhi::queue::default_graphics()).get();
+		graphics::e_api_type type = graphics::e_api_type::dx12;
+		m_device = graphics::device::create({});
+		m_queue = m_device->create_queue(graphics::queue_desc::default_graphics());
 		
-		rhi::swapchain_create_args swapchain_args{};
-		swapchain_args.m_device = &m_device;
+		graphics::swapchain_desc swapchain_args{};
 		swapchain_args.m_dimensions = window.get_dimensions();
-		swapchain_args.m_format = rhi::pixelformat::rgba_8_unorm();
+		swapchain_args.m_format = graphics::e_format::rgba8;
 		swapchain_args.m_num_buffers = 3u;
-		swapchain_args.m_own_descriptors = true;
-		swapchain_args.m_queue = &m_queue;
-		swapchain_args.m_window = window.get_platform_handle();
-		m_swapchain = m_device.create(swapchain_args).get();
-
-		m_descmanager = new descriptor_manager(m_device);
+		m_swapchain = m_device->create_swapchain(m_queue, window, swapchain_args);
+		m_descmanager = new descriptor_manager(*m_device);
 	}
 	~graphics_manager() {} // whatever
 	
 	void render_start()
 	{
-		if (!m_commandlist.is_valid())
-			m_commandlist = m_device.create(rhi::commandlist::default_graphics()).get();
+		if (m_commandlist || !m_commandlist->is_valid())
+			m_commandlist = m_device->create_graphics_commandlist();
 		
-		m_commandlist.start(m_device);
+		m_commandlist->start(m_device);
 	}
 
-	rhi::descriptor get_or_create_descriptor(
-		rhi::resource& resource,
+	descriptor get_or_create_descriptor(
+		graphics::resource& resource,
 		e_descriptor type,
 		bool recreate = false)
 	{
-		return m_descmanager->get_or_create_descriptor(m_device, resource, type, recreate);
+		return m_descmanager->get_or_create_descriptor(*m_device, resource, type, recreate);
 	}
 
-	rhi::resource& backbuffer()
+	graphics::resource& backbuffer()
 	{
-		return m_swapchain.get_backbuffer_resource().get();
+		return *m_swapchain->get_current_backbuffer_resource().get();
 	}
 
-	rhi::descriptor backbuffer_rtv()
+	descriptor backbuffer_rtv()
 	{
-		return m_swapchain.get_or_create_backbuffer_rtv(m_device).get();
+		return {};
 	}
 
-	rhi::commandlist& commandlist()
+	graphics::commandlist& commandlist()
 	{
-		return m_commandlist;
+		return *m_commandlist;
 	}
 
 	void render_finish()
 	{
-		m_commandlist.end();
-		m_queue.submit({ &m_commandlist });
+		m_commandlist->end();
+		m_queue->submit({ m_commandlist });
 	}
 
 	void present(bool vsync)
 	{
-		m_swapchain.present({});
+		m_swapchain->present({});
 	}
 };
 
@@ -243,13 +250,13 @@ int main()
 		window->poll_events(is_exit);
 
 		graphics.render_start();
-		graphics.backbuffer().transition(graphics.commandlist(), rhi::e_resource_state::rendertarget);
+		graphics.backbuffer().transition(graphics.commandlist(), graphics::e_resource_state::render_target);
 		
 		// get or create an rtv
-		rhi::descriptor rtv_handle = graphics.backbuffer_rtv();
+		// graphics_manager::descriptor rtv_handle = graphics.backbuffer_rtv();
 
-		graphics.commandlist().clear_rtv(rtv_handle, rhi::clear::colour({ 1,0,0,1 }));
-		graphics.backbuffer().transition(graphics.commandlist(), rhi::e_resource_state::present);
+		// graphics.commandlist().clear_rtv(rtv_handle, graphics::clear::colour({ 1,0,0,1 }));
+		graphics.backbuffer().transition(graphics.commandlist(), graphics::e_resource_state::present);
 		graphics.render_finish();
 
 		graphics.present(false);
