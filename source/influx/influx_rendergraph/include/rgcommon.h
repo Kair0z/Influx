@@ -508,6 +508,14 @@ namespace influx::rendergraph
 			access.m_store = e_rg_store::preserve;
 			return access;
 		}
+		/* [load:discard | store::discard] */
+		inline static rgaccess discard_all()
+		{
+			static rgaccess access{};
+			access.m_load = e_rg_load::discard;
+			access.m_store = e_rg_store::discard;
+			return access;
+		}
 	};
 }
 

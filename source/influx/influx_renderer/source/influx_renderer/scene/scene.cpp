@@ -113,9 +113,7 @@ namespace influx::renderer
 	void scene::set_camera(const camera& camera, const math::matrix4x4f& transform)
 	{
 		set_camera(camera);
-
-		m_camera.m_transform_id = add_transform(transform);
-		m_viewmatrices = view_matrices(get_transform(m_camera.m_transform_id), camera);
+		set_camera_transform(transform);
 	}
 
 	void scene::set_camera(const camera& camera)
@@ -132,10 +130,14 @@ namespace influx::renderer
 		{
 			m_transforms.push_back(transform);
 			m_camera.m_transform_id = 0u;
-			return;
 		}
-		math::matrix4x4f& matrix = get_transform(m_camera.m_transform_id);
-		matrix = transform;
+		else
+		{
+			vector_helpers::grow(m_transforms, m_camera.m_transform_id);
+			m_transforms[m_camera.m_transform_id] = transform;
+		}
+		
+		m_viewmatrices = view_matrices(transform, m_camera);
 	}
 
 	const view_matrices& scene::get_view_matrices() const
@@ -229,12 +231,11 @@ namespace influx::renderer
 	view_matrices::view_matrices(const math::matrix4x4f& transform, const camera& camera)
 	{
 		float aspect_ratio = 0.0f;
-		m_transform = transform;
-		m_projection = camera.m_camera.get_projection();
-		m_view = transform.inverted();
-		m_view.set_column(2u, -m_view.get_column(2u));
-		m_viewprojection = m_view * m_projection;
+		m_transform			= transform;
+		m_projection		= camera.m_camera.get_projection();
+		m_view				= camera.m_camera.get_view(transform);
+		m_viewprojection	= m_view * m_projection;
 		m_inv_viewprojection = m_viewprojection.inverted();
-		m_inv_projection = m_projection.inverted();
+		m_inv_projection	= m_projection.inverted();
 	}
 }

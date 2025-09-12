@@ -54,7 +54,6 @@ namespace influx::renderer
 
     renderer_backend::renderer_backend()
     {
-        printf("");
     }
 
     void renderer_backend::log(e_log type, const char* message)
@@ -159,34 +158,34 @@ namespace influx::renderer
     {
         // build the rendergraph
         {
-            influx_scope("renderer::rendergraph_build");
+            influx_scope("renderer::build_rendergraph");
             m_rendergraph->build();
         }
 
+        // wait for gpu frame
         {
-            influx_scope("renderer_backend::end_frame::wait_for_gpu");
-            // as long as GPU is k_num_inflight_max behind, wait...
+            influx_scope("renderer::wait_for_gpu_frame");
+
+            // as long as GPU is k_num_inflight_max behind...
             uint64 gpu_frame = query_gpu_frame();
             while (m_cpu_frame - gpu_frame > k_num_inflight_max)
             {
-                if (m_frame_cmdlist.get_gpu())
-                    m_frame_cmdlist.get_gpu()->wait_for_completion();
+                // take the commandlist at the current GPU frame, and wait for it to complete
+                const auto gpu_commandlist = m_frame_cmdlist.get_gpu();
+                if (gpu_commandlist) gpu_commandlist->wait_for_completion();
                 gpu_frame = query_gpu_frame();
             }
         }
         
-        graphics::commandlist*& cmdlist = m_frame_cmdlist.get();
-        if (cmdlist == nullptr) 
-            cmdlist = mp_device->create_graphics_commandlist();
-        
-        cmdlist->start(mp_device, nullptr);
-        cmdlist->set_name("frame");    
+        // get (or create) the commandlist for this cpu frame
+        graphics::commandlist*& cmdlist = m_frame_cmdlist.get_cpu();
+        if (cmdlist == nullptr) cmdlist = mp_device->create_graphics_commandlist();
 
-        // bind bindless global GPU heaps
-        get_descriptor_manager()->bind_gpu_heaps(*cmdlist);
+        cmdlist->start(mp_device, nullptr);
+        cmdlist->set_name("frame");
         
         // execute the rendergraph
-#if 0
+        get_descriptor_manager()->bind_gpu_heaps(*cmdlist);
         {
             influx_scope("renderer::rendergraph_execute");
             auto res = m_rendergraph->execute(*cmdlist, *mp_device);
@@ -195,16 +194,80 @@ namespace influx::renderer
                 log(e_log::warning, "rendergraph execute failed!");
             }
         }
-#endif
         cmdlist->end();
 
         {
             influx_scope("renderer_backend::submit");
-            cmdlist->submit(m_mainqueue);
-            m_frame_fence->queue_signal(m_cpu_frame, m_mainqueue);
+            cmdlist->submit(m_mainqueue).get();
+        }
+    }
+
+    void renderer_backend::present_all(const present_args& args)
+    {
+        // get (or create) the commandlist for this cpu frame
+        graphics::commandlist*& cmdlist = m_present_cmdlist.get_cpu();
+        if (cmdlist == nullptr) cmdlist = mp_device->create_graphics_commandlist();
+
+        cmdlist->start(mp_device, nullptr);
+        cmdlist->set_name("present");
+        for (const auto& swapchain : m_swapchains)
+        {
+            // each swapchain has a final target proxy (uav writable)
+            target* finaltarget = swapchain.second.m_finaltarget_proxy;
+            graphics::resource* finaltarget_resource = finaltarget->get_resource();
+
+            // copy the finaltarget -> current backbuffer:
+            auto res = swapchain.second.mp_swapchain->get_current_backbuffer_resource();
+            influx_assert(res.is_success());
+            graphics::resource* backbuffer = res.get();
+
+            // transition & copy finaltargetproxy into the backbuffer
+            finaltarget_resource->transition(cmdlist, graphics::e_resource_state::copy_src);
+            backbuffer->transition(cmdlist, graphics::e_resource_state::copy_dst);
+            cmdlist->copy_resource(finaltarget_resource, backbuffer);
+
+            // transition to present the backbuffer
+            backbuffer->transition(cmdlist, graphics::e_resource_state::present);
+        }
+        cmdlist->end();
+        cmdlist->submit(m_mainqueue);
+        
+        for (const auto& swapchain : m_swapchains)
+        {
+            graphics::present_args p_args{};
+            p_args.m_vsync = args.m_vsync;
+            swapchain.second.mp_swapchain->present(p_args);
         }
 
+        m_frame_fence->queue_signal(m_cpu_frame + 1u, m_mainqueue);
         ++m_cpu_frame;
+    }
+
+    void renderer_backend::present(const platform::window& window, const present_args& args)
+    {
+        // make sure the swapchain has been created before
+        influx_assert(m_swapchains.contains(&window));
+
+        graphics::commandlist* cmdlist = mp_device->create_graphics_commandlist();
+        cmdlist->start(mp_device, nullptr);
+        cmdlist->set_name("present");
+
+        swapchain& swapchain = m_swapchains.at(&window);
+
+        // run a commandlist to transition the backbuffer-resource to presentable
+        auto res = swapchain.mp_swapchain->get_current_backbuffer_resource();
+        influx_assert(res.is_success());
+        graphics::resource* backbuffer = res.get();
+        backbuffer->transition(cmdlist, graphics::e_resource_state::present);
+        cmdlist->end();
+        cmdlist->submit(m_mainqueue);
+
+        if (swapchain.mp_swapchain)
+        {
+            graphics::present_args p_args{};
+            p_args.m_vsync = args.m_vsync;
+            swapchain.mp_swapchain->present(p_args);
+        }
     }
 
     uint64 renderer_backend::query_gpu_frame()
@@ -272,7 +335,7 @@ namespace influx::renderer
         if (swapchain.m_finaltarget_proxy != nullptr)
             destroy_target(swapchain.m_finaltarget_proxy).get();
 
-        const char* name = "tex_finaltarget";
+        string name = "tex_finaltarget_" + swapchain.m_windowtitle;
         renderer::target_create_args args{};
         args.m_has_colour = true;
         args.m_has_depth_stencil = true;
@@ -313,10 +376,9 @@ namespace influx::renderer
         // if need, recreate the swapchain
         if (swapchain.mp_swapchain->needs_recreate(window))
         {
-            m_frame_fence->wait_for_value(
-                math::minimum<uint32>(m_cpu_frame - 1u, 0u));
+            // WAIT
+            while (m_present_cmdlist.is_inflight()) {};
 
-            wait_gpu_finished();
             swapchain.mp_swapchain->resize(mp_device, window);
             recreate_backbuffer_finaltarget(swapchain);
         }
@@ -509,79 +571,13 @@ namespace influx::renderer
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
         [&target, &args](rendergraph::rgpass_builder& builder)
         {
-            rendergraph::rgaccess access{};
-            access.m_load = rendergraph::e_rg_load::clear;
-            access.m_store = rendergraph::e_rg_store::preserve;
-            access.m_load_clear.m_colour = args.m_colour;
-            builder.write_rendertarget(target.get_rendergraph_name(), access);
+            builder.write_rendertarget(target.get_rendergraph_name(), 
+                rendergraph::rgaccess::clear_and_keep(args.m_colour));
+
             builder.set_viewport(target.get_width(), target.get_height());
         },
         [](rendergraph::rgpass_context& context) {});
-
-        pass->set_name("clear");
-    }
-
-    void renderer_backend::present_all(const present_args& args)
-    {
-        // start the commandlist
-        graphics::commandlist* cmdlist = mp_device->create_graphics_commandlist();
-        cmdlist->start(mp_device, nullptr);
-        cmdlist->set_name("present");
-
-        for (const auto& swapchain : m_swapchains)
-        {
-            target* proxy = swapchain.second.m_finaltarget_proxy;
-            graphics::resource* proxy_resource = proxy->get_resource();
-
-            auto res = swapchain.second.mp_swapchain->get_current_backbuffer_resource();
-            influx_assert(res.is_success());
-
-            graphics::resource* backbuffer = res.get();
-
-            // transition & copy finaltargetproxy into the backbuffer
-            proxy_resource->transition(cmdlist, graphics::e_resource_state::copy_src);
-            cmdlist->copy_resource(proxy_resource, backbuffer);
-            backbuffer->transition(cmdlist, graphics::e_resource_state::copy_dst);
-
-            backbuffer->transition(cmdlist, graphics::e_resource_state::present);
-        }
-
-        cmdlist->end();
-        cmdlist->submit(m_mainqueue);
-
-        for (const auto& swapchain : m_swapchains)
-        {
-            graphics::present_args p_args{};
-            p_args.m_vsync = args.m_vsync;
-            swapchain.second.mp_swapchain->present(p_args);
-        }
-    }
-
-    void renderer_backend::present(const platform::window& window, const present_args& args)
-    {
-        // make sure the swapchain has been created before
-        influx_assert(m_swapchains.contains(&window));
-
-        graphics::commandlist* cmdlist = mp_device->create_graphics_commandlist();
-        cmdlist->start(mp_device, nullptr);
-        cmdlist->set_name("present");
-
-        swapchain& swapchain = m_swapchains.at(&window);
-
-        // run a commandlist to transition the backbuffer-resource to presentable
-        auto res = swapchain.mp_swapchain->get_current_backbuffer_resource();
-        influx_assert(res.is_success());
-        graphics::resource* backbuffer = res.get();
-        backbuffer->transition(cmdlist, graphics::e_resource_state::present);
-        cmdlist->end();
-        cmdlist->submit(m_mainqueue);
-
-        if (swapchain.mp_swapchain)
-        {
-            graphics::present_args p_args{};
-            p_args.m_vsync = args.m_vsync;
-            swapchain.mp_swapchain->present(p_args);
-        }
+        pass->set_name(get_target_pass_name("clear", target));
     }
 
     descriptor_manager* renderer_backend::get_descriptor_manager()

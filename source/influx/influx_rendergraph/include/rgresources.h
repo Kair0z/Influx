@@ -27,7 +27,8 @@ namespace influx::rendergraph
 			return m_is_imported;
 		}
 
-		inline void reset()
+		/* only resets info relating to graph usage */
+		inline void reset_graph()
 		{
 			m_writer = nullptr;
 			m_final_pass = nullptr;
@@ -39,7 +40,8 @@ namespace influx::rendergraph
 
 		rgpass* m_writer;
 		rgpass* m_final_pass;
-		uint32 m_refcount;
+		uint32	m_refcount;
+
 		rhi_resource* m_resource;
 		bool m_is_imported;
 		rgname m_name;

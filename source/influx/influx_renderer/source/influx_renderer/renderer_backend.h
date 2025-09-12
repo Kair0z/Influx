@@ -75,14 +75,19 @@ namespace influx::renderer
 		explicit inflight(const _t& value, renderer_backend& backend)
 			: m_backend{ backend }, m_value{ value } { }
 
-		_t& get()
+		// returns the value that 
+		_t& get_cpu()
 		{
 			return m_value[m_backend.get_cpu_frame() % k_max_in_flight];
 		}
-
 		_t& get_gpu()
 		{
 			return m_value[m_backend.query_gpu_frame() % k_max_in_flight];
+		}
+		bool is_inflight() const
+		{
+			const uint64 distance = m_backend.query_gpu_frame() < m_backend.get_cpu_frame();
+			return distance != 0u;
 		}
 	};
 
@@ -104,7 +109,8 @@ namespace influx::renderer
 		graphics::fence*			m_gpu_finished_fence = nullptr;
 		graphics::fence*			m_frame_fence = nullptr;
 
-		inflight<graphics::commandlist*> m_frame_cmdlist{ *this };
+		inflight<graphics::commandlist*> m_frame_cmdlist	{ *this };
+		inflight<graphics::commandlist*> m_present_cmdlist	{ *this };
 
 		struct swapchain final
 		{

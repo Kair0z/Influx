@@ -181,28 +181,24 @@ namespace influx::rendergraph
 		vector<rgbuffer*> m_buffers{};
 		vector<rgtexture*> m_textures{};
 
+		vector<uint64> m_topo_sorted_passes;
 		vector<vector<uint64>> m_adjacency_lists{};
+		umap<rgpass_id, rgpass*> m_id_to_pass_map;
+		umap<rgbuffer_readwrite_id, rgbuffer_id> m_buffer_uav_counter_map;
 
 		umap<rgtexture_id, rgtexture*> m_id_to_texture_map;
 		umap<rgbuffer_id, rgbuffer*> m_id_to_buffer_map;
-		umap<rgpass_id, rgpass*> m_id_to_pass_map;
-
 		umap<rgname, rgtexture_id> m_texture_name_to_id_map;
 		umap<rgname, rgbuffer_id> m_buffer_name_to_id_map;
-		umap<rgbuffer_readwrite_id, rgbuffer_id> m_buffer_uav_counter_map;
+		umap<rgrendertarget_id, math::colour_rgba> m_rtid_to_clear_map;
 
 		static constexpr uint8 k_num_descriptor_types = static_cast<uint8>(rgdescriptor_type::count);
 		umap<rgtexture_id, texture_view_desc[k_num_descriptor_types]> m_texid_to_viewdesc_map;
 		umap<rgtexture_id, rhi_descriptor[k_num_descriptor_types]> m_texid_to_descriptors_map;
 		//umap<rgtexture_id, graphics::base*[k_num_descriptor_types]> m_texid_to_deviceobjects_map;
-
-		umap<rgrendertarget_id, math::colour_rgba> m_rtid_to_clear_map;
-
 		umap<rgbuffer_id, buffer_view_desc[k_num_descriptor_types]> m_bufid_to_viewdesc_map;
 		umap<rgbuffer_id, rhi_descriptor[k_num_descriptor_types]> m_bufid_to_descriptors_map;
 		//umap<rgbuffer_id, graphics::base* [k_num_descriptor_types]> m_bufid_to_deviceobjects_map;
-
-		vector<uint64> m_topo_sorted_passes;
 
 		/* building the render graph */
 		void build_adjacency();

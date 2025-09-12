@@ -234,7 +234,7 @@ namespace influx::rendergraph
 				return {};
 			}
 		}
-		return result<>::make_error("error: release failed!");
+		return result<>::make_warning({}, "warning: release failed!");
 	}
 
 	result<> rgpool::release_buffer(rhi_device& device, rhi_resource& resource)
@@ -248,7 +248,7 @@ namespace influx::rendergraph
 				return {};
 			}
 		}
-		return result<>::make_error("error: release failed!");
+		return result<>::make_warning({}, "warning: release failed!");
 	}
 
 	result<rhi_descriptor> rgpool::alloc_cpu_descriptor(rgdescriptor_type type)

@@ -189,25 +189,23 @@ namespace influx::rendergraph
 			{
 				rgtexture* texture = get_texture(tex_id);
 				texture->m_resource = m_pool->allocate_texture_resource(device, texture->m_desc).get();
-				create_texture_views(device, tex_id).get();
+				texture->m_resource->set_name(texture->m_name);
 			}
 			for (const rgbuffer_id& buff_id : layer.m_buffer_creates)
 			{
 				rgbuffer* buffer = get_buffer(buff_id);
 				buffer->m_resource = m_pool->allocate_buffer_resource(device, buffer->m_desc).get();
-				create_buffer_views(device, buff_id).get();
+				buffer->m_resource->set_name(buffer->m_name);
 			}
 
 			// create imported resources descriptors/views
 			for (uint64 i = 0; i < m_textures.size(); ++i)
-			{
-				if (m_textures[i]->m_is_imported) 
-					create_texture_views(device, m_textures[i]->m_id).get();
+			{ 
+				create_texture_views(device, m_textures[i]->m_id).get();
 			}
 			for (uint64 i = 0; i < m_buffers.size(); ++i)
 			{
-				if (m_buffers[i]->m_is_imported) 
-					create_buffer_views(device, m_buffers[i]->m_id).get();
+				create_buffer_views(device, m_buffers[i]->m_id).get();
 			}
 
 			// transition resources to appropriate state
@@ -260,6 +258,7 @@ namespace influx::rendergraph
 					args.m_color_attachments.reserve(pass.m_rtvs.size());
 					for (const auto& rtv : pass.m_rtvs)
 					{
+						const rgtexture* texture = m_textures[rtv.m_texture_id.m_id];
 						influx::graphics::color_attachment attachment{};
 						attachment.m_load = translate(rtv.m_access.m_load);
 						attachment.m_store = translate(rtv.m_access.m_store);
@@ -555,20 +554,29 @@ namespace influx::rendergraph
 
 	void rendergraph::reset_graph()
 	{
-		// free only the gpu views since they're more cramped than cpu ones
 		m_pool->free_all_descriptors();
 
 		// clear pass relation info
 		m_passes.clear();
 		m_layers.clear();
+
+		// don't remove the resources
+		for (uint64 i = 0; i < m_textures.size(); ++i)
+		{
+			m_textures[i]->reset_graph();
+		}
+		for (uint64 i = 0; i < m_buffers.size(); ++i)
+		{
+			m_buffers[i]->reset_graph();
+		}
+
 		m_adjacency_lists.clear();
 		m_id_to_pass_map.clear();
 		m_topo_sorted_passes.clear();
-
 		m_buffer_uav_counter_map.clear();
 		m_rtid_to_clear_map.clear();
 
-		// clear the descriptors of textures & buffers
+		// clear the descriptors linked to textures & buffers
 		for (auto& pair : m_texid_to_viewdesc_map)
 		{
 			const rgtexture_id& id = pair.first;
@@ -586,16 +594,6 @@ namespace influx::rendergraph
 			{
 				viewdescs[i].clear();
 			}
-		}
-
-		// reset the graph references inside the existing resources
-		for (uint64 i = 0; i < m_textures.size(); ++i)
-		{
-			m_textures[i]->reset();
-		}
-		for (uint64 i = 0; i < m_buffers.size(); ++i)
-		{
-			m_buffers[i]->reset();
 		}
 	}
 
@@ -692,8 +690,8 @@ namespace influx::rendergraph
 	/* creates views (rtv/dsv/srv/samp) based on how the resource will be used in our rendergraph */
 	result<> rendergraph::create_texture_views(rhi_device& device, rgtexture_id id)
 	{
-		auto& viewdescs = m_texid_to_viewdesc_map[id];
-		auto& descriptors = m_texid_to_descriptors_map[id];
+		texture_view_desc* viewdescs = m_texid_to_viewdesc_map[id];
+		rhi_descriptor* descriptors = m_texid_to_descriptors_map[id];
 
 		rgtexture* texture = get_texture(id);
 		rhi_resource& resource = *texture->m_resource;

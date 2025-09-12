@@ -134,9 +134,11 @@ void set_quaternion_scene(renderer::scene& scene)
 renderer::scene make_the_scene()
 {
 	renderer::scene result{};
-	if (true) // load an fbx scene
+	if (true)
 	{
 		math::transform3D camera_transform = math::transform3D::identity();
+		camera_transform.set_position({ 0,0,10 });
+		camera_transform.look_at({});
 
 		renderer::camera camera{};
 		camera.m_camera.set_aspect_ratio(1.0f);
@@ -207,7 +209,7 @@ int main()
 		const float radius = 200;
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
-			const platform::monitor& monitor = monitors[2];
+			const platform::monitor& monitor = monitors[0];
 			const math::vectoru2 monitor_center = monitor.get_rect().get_mid();
 			const float angle = 0.0f/*seconds*/ + (i * math::k_PIDouble * 0.33f);
 			uint32 x = (uint32)(radius * math::cos(angle));
@@ -217,17 +219,11 @@ int main()
 		}
 
 		// render:
-		renderer::target* window_targets[num_windows]
-		{
-			renderer::get_or_create_window_target(*windows[0u]),
-			renderer::get_or_create_window_target(*windows[1u]),
-			renderer::get_or_create_window_target(*windows[2u]),
-		};
-
 		renderer::start_frame();
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
-			static const math::colour_rgba clear_colours[num_windows]
+			renderer::target* window_target = renderer::get_or_create_window_target(*windows[i]);
+			static const math::colour_rgba clear_colours[]
 			{
 				colour::k_red,
 				colour::k_green,
@@ -235,17 +231,12 @@ int main()
 			};
 
 			renderer::clear_args clear{ .m_colour = clear_colours[i] };
-			renderer::clear_target(*window_targets[i], clear);
+			renderer::clear_target(*window_target, clear);
+			renderer::draw_scene(scene_to_draw, *window_target);
 		}
-
-		renderer::draw_scene({}, *window_targets[1]);
+		
 		renderer::end_frame();
-#if 0
-		for (uint32 i = 0u; i < num_windows; ++i)
-		{
-			renderer::present(*windows[i], present_args);
-		}
-#endif
+		renderer::present_all(present_args);
 	}
 
 	renderer::cleanup();

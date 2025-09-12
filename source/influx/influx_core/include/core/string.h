@@ -164,6 +164,18 @@ namespace influx
 		{
 			return m_hash;
 		}
+		inline string get_string() const
+		{
+			return get_cstr();
+		}
+		inline const char* get_cstr() const
+		{
+#if INFLUX_DEBUG
+			return m_string.c_str();
+#else
+			return m_hash_cstr;
+#endif
+		}
 
 		inline bool is_valid() const
 		{
@@ -172,11 +184,7 @@ namespace influx
 
 		inline operator char const* () const
 		{ 
-#if INFLUX_DEBUG
-			return m_string.c_str();
-#else
-			return m_hash_cstr;
-#endif
+			return get_cstr();
 		}
 
 		debug_name(const debug_name&) = default;

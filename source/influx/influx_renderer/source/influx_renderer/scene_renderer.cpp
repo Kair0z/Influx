@@ -34,6 +34,10 @@ namespace influx::renderer
         "gbuffer_b",
         "gbuffer_c",
     };
+    static string get_target_gbuffer_name(uint32 index, const target& target)
+    {
+        return k_gbuffer_names[index] + ("_" + target.get_name().get_string());
+    }
 
 #pragma region shaders
     static graphics_pipeline_signature& get_scene_basepass_pipeline_signature()
@@ -326,6 +330,7 @@ namespace influx::renderer
 
         umap<texture2D*, uint32> tex_to_idx{};
 
+#if 0
         // stage all srv/uav/const descriptors on the bindless heap
         // in bindless, MUST happen before setting descriptor (mp_pipeline->set_state)
         {
@@ -352,6 +357,7 @@ namespace influx::renderer
             graphics::descriptor_range gpu_range_samp = descman.stage_sampler(device, m_sampler_view);
             // mp_pipeline->set_resource_table(commandlist, "all_descriptors", gpu_range);
         }
+#endif
 
         using mesh_to_instance_map = umap<mesh_id, vector<frontend::per_instance>>;
         mesh_to_instance_map meshid_to_instances{};
@@ -378,12 +384,10 @@ namespace influx::renderer
             {
                 batches.push_back({});
                 draw_batch& batch = batches.back();
-
                 batch.m_indexbuffer = indexbuffer;
                 batch.m_vertexbuffer = vertexbuffer;
                 batch.m_instances = pair.second;
                 batch.m_base_instance = offset;
-
                 offset += batch.m_instances.size();
             }
         }
@@ -484,14 +488,18 @@ namespace influx::renderer
         gbuffer_desc.m_width = target.get_width();
         gbuffer_desc.m_heigth = target.get_height();
         rendergraph::rgaccess access{};
-        access.m_load = rendergraph::e_rg_load::clear;
+        access.m_load = rendergraph::e_rg_load::discard;
         access.m_store = rendergraph::e_rg_store::preserve;
-
         for (uint32 i = 0u; i < k_num_gbuffers; ++i)
         {
             gbuffer_desc.m_format = k_gbuffer_formats[i];
-            builder.write_rendertarget(k_gbuffer_names[i], gbuffer_desc, access);
+            builder.write_rendertarget(get_target_gbuffer_name(i, target), gbuffer_desc, access).get();
         }
+
+        rendergraph::texture_desc depth_desc = gbuffer_desc;
+        depth_desc.m_format = graphics::e_format::d32;
+        builder.write_depthtarget("depth_" + target.get_name().get_string(), depth_desc, 
+            rendergraph::rgaccess::discard_all()).get();
         builder.set_viewport(target.get_width(), target.get_height());
     }
 
@@ -577,7 +585,7 @@ namespace influx::renderer
     {
         for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
-            builder.read_texture(k_gbuffer_names[i]).get();
+            builder.read_texture(get_target_gbuffer_name(i, target)).get();
         }
         builder.write_texture(target.get_rendergraph_name()).get();
         
@@ -610,6 +618,7 @@ namespace influx::renderer
             math::matrix4x4f inv_projection;
             int num_lights[4u];
         } root_args;
+#if 0
         {
             root_args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
 
@@ -652,6 +661,8 @@ namespace influx::renderer
                 descriptor_man.stage_sampler(device, m_skybox_sampler);
             }
         }
+#endif
+
         pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", root_args);
 
         const uint32 num_groups_x = target.get_width() / 8u;
@@ -683,7 +694,7 @@ namespace influx::renderer
         {
             execute_basepass(context, target, scene);
         });
-        basepass->set_name("basepass");
+        basepass->set_name(get_target_pass_name("basepass", target));
        
         // | RESOLVE PASS
         // | compute shader that resolves lighting into a final scene colour UAV
@@ -696,7 +707,7 @@ namespace influx::renderer
         {
             execute_resolvepass(ctx, target, scene);
         });
-        resolvepass->set_name("resolvepass");
+        resolvepass->set_name(get_target_pass_name("resolvepass", target));
 
         // | POST PROCESSING PASS
         // ...
@@ -756,7 +767,7 @@ namespace influx::renderer
                 });
             });
 
-            pass->set_name("draw_debug");
+            pass->set_name(get_target_pass_name("draw_debug", target));
         }
     }
 }

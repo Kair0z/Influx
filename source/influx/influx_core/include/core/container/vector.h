@@ -23,6 +23,13 @@ namespace influx
 		{
 			return std::find_if(vec.cbegin(), vec.cend(), func) != vec.cend();
 		}
+
+		template <typename _t>
+		inline void grow(vector<_t>& vec, const size_t new_size)
+		{
+			if (vec.size() < new_size)
+				vec.resize(new_size);
+		}
 	}
 	
 	template <typename _t>

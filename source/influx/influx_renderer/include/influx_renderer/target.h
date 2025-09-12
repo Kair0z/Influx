@@ -101,4 +101,9 @@ namespace influx::renderer
 		// only backend can create targets
 		friend class renderer_backend;
 	};
+	
+	static string get_target_pass_name(const char* pass_name, const target& target)
+	{
+		return pass_name + ("_" + target.get_name().get_string());
+	}
 }
