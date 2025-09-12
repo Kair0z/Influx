@@ -158,6 +158,12 @@ namespace influx::shader
 			}
 			break;
 
+			case D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWTYPED:
+			{
+				resource.m_type = reflection::resource::e_type::uav;
+			}
+			break;
+
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_CBUFFER:
 			{
 				D3D12_SHADER_BUFFER_DESC constantBufferDesc{};

@@ -4,6 +4,12 @@
 #include "influx_platform/window.h"
 // influx::graphics
 #include "influx_graphics.h"
+// influx::shader
+#include "influx_shader.h"
+
+// SDK 1.614.1
+extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
 using namespace influx;
 inline platform::window* create_window()
@@ -118,7 +124,8 @@ public:
 		descriptor get_or_create_descriptor(
 			graphics::device& device, 
 			graphics::resource& resource,
-			e_descriptor type, 
+			e_descriptor type,
+			bool get_cpu_descriptor = true,
 			bool recreate = false)
 		{
 			graphics::resource* native_resource = &resource;
@@ -130,55 +137,74 @@ public:
 			if (m_resource_to_descriptors[native_resource].is_created(type))
 			{
 				// already created, return cpu
-				return m_resource_to_descriptors[native_resource].get_cpu(type);
+				return get_cpu_descriptor ? m_resource_to_descriptors[native_resource].get_cpu(type)
+					: m_resource_to_descriptors[native_resource].get_gpu(type);
 			}
 			else
 			{
 				descriptor cpu_descriptor = m_resource_to_descriptors[native_resource].get_cpu(type);
+				descriptor gpu_descriptor = m_resource_to_descriptors[native_resource].get_gpu(type);
 				switch (type)
 				{
 				case e_descriptor::rtv:
+				{
 					auto& heap = get_heap(e_descriptorheap::rtv);
 					const uint32 index = heap.allocate().get();
 					cpu_descriptor = heap.get_cpu(index).get();
+					gpu_descriptor = heap.get_gpu(index).get();
 					if (resource.is_texture()) device.create_rtv(native_resource, cpu_descriptor);
 					break;
+				}
 				case e_descriptor::dsv:
+				{
 					auto& heap = get_heap(e_descriptorheap::dsv);
 					const uint32 index = heap.allocate().get();
 					cpu_descriptor = heap.get_cpu(index).get();
+					gpu_descriptor = heap.get_gpu(index).get();
 					if (resource.is_texture()) device.create_dsv(native_resource, cpu_descriptor);
 					break;
+				}
 				case e_descriptor::srv:
-					auto& heap = get_heap(e_descriptorheap::srv_uav_cpu);
+				{
+					auto& heap = get_cpu_descriptor ? get_heap(e_descriptorheap::srv_uav_cpu) : get_heap(e_descriptorheap::srv_uav_gpu);
 					const uint32 index = heap.allocate().get();
 					cpu_descriptor = heap.get_cpu(index).get();
+					gpu_descriptor = heap.get_gpu(index).get();
 					if (resource.is_texture()) device.create_srv_texture(native_resource, cpu_descriptor);
 					else						device.create_srv_buffer(native_resource, cpu_descriptor);
 					break;
+				}
 				case e_descriptor::uav:
-					auto& heap = get_heap(e_descriptorheap::srv_uav_cpu);
+				{
+					auto& heap = get_cpu_descriptor ? get_heap(e_descriptorheap::srv_uav_cpu) : get_heap(e_descriptorheap::srv_uav_gpu);
 					const uint32 index = heap.allocate().get();
 					cpu_descriptor = heap.get_cpu(index).get();
+					gpu_descriptor = heap.get_gpu(index).get();
 					if (resource.is_texture()) device.create_uav_texture(native_resource, cpu_descriptor);
 					else						device.create_uav_buffer(native_resource, cpu_descriptor);
 					break;
+				}	
 				}
 
 				// flag as created
 				m_resource_to_descriptors[native_resource].set_created(type, true);
 
-				return cpu_descriptor;
+				return get_cpu_descriptor ? cpu_descriptor : gpu_descriptor;
 			}
 		}
 	};
 
 private:
-	graphics::device*		m_device;
-	graphics::queue*		m_queue;
-	graphics::commandlist*	m_commandlist;
-	graphics::swapchain*	m_swapchain;
-	descriptor_manager*		m_descmanager;
+	graphics::device*				m_device;
+	graphics::queue*				m_queue;
+	graphics::commandlist*			m_commandlist = nullptr;
+	graphics::swapchain*			m_swapchain;
+	graphics::resource*				m_target;
+	graphics::compute_pipeline*		m_pipeline = nullptr;
+	graphics::rootsignature*		m_rootsignature = nullptr;
+	descriptor_manager*				m_descmanager;
+
+	descriptor m_target_uav{};
 
 public:
 	graphics_manager(const platform::window& window)
@@ -193,23 +219,60 @@ public:
 		swapchain_args.m_num_buffers = 3u;
 		m_swapchain = m_device->create_swapchain(m_queue, window, swapchain_args);
 		m_descmanager = new descriptor_manager(*m_device);
+
+		graphics::tex2D_desc desc{};
+		desc.m_allow_uav = true;
+		desc.m_arraysize = 1u;
+		desc.m_bindflags = graphics::e_bind_flags::uav;
+		desc.m_dimensions = window.get_dimensions();
+		desc.m_format = graphics::e_format::rgba8;
+		desc.m_init_state = graphics::e_resource_state::cs_uav;
+		desc.m_num_mips = 1u;
+		desc.m_sample_count = 1u;
+		m_target = m_device->create_resource(desc);
+
+		m_target_uav = get_or_create_descriptor(*m_target, e_descriptor::uav, false);
 	}
 	~graphics_manager() {} // whatever
 	
 	void render_start()
 	{
-		if (m_commandlist || !m_commandlist->is_valid())
+		if (m_commandlist == nullptr || !m_commandlist->is_valid())
 			m_commandlist = m_device->create_graphics_commandlist();
-		
-		m_commandlist->start(m_device);
+			
+		m_commandlist->wait_for_completion();
+		m_commandlist->start(m_device, m_pipeline);
+		m_commandlist->set_descriptorheap(&m_descmanager->get_heap(descriptor_manager::e_descriptorheap::srv_uav_gpu));
+		m_commandlist->set_rootsignature(m_rootsignature, graphics::e_pipeline_type::compute);
+	}
+
+	bool rebuild_pipeline(const shader::compile_output& compiled_shader)
+	{
+		if (m_pipeline) m_device->release(m_pipeline);
+		if (m_rootsignature) m_device->release(m_rootsignature);
+
+		graphics::rootsignature_desc rootsig_desc{};;
+		rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, 1u, 0u);
+		m_rootsignature = m_device->create_rootsignature(rootsig_desc);
+
+		influx::graphics::compute_pipeline_desc desc{};
+		desc.m_shaders.set(graphics::e_compute_shader_slots::cs, compiled_shader.m_bytecode);
+		m_pipeline = m_device->create_compute_pipeline(m_rootsignature, desc);
+		return true;
 	}
 
 	descriptor get_or_create_descriptor(
 		graphics::resource& resource,
 		e_descriptor type,
+		bool get_cpu = true,
 		bool recreate = false)
 	{
-		return m_descmanager->get_or_create_descriptor(*m_device, resource, type, recreate);
+		return m_descmanager->get_or_create_descriptor(*m_device, resource, type, get_cpu, recreate);
+	}
+
+	graphics::resource& target()
+	{
+		return *m_target;
 	}
 
 	graphics::resource& backbuffer()
@@ -217,9 +280,9 @@ public:
 		return *m_swapchain->get_current_backbuffer_resource().get();
 	}
 
-	descriptor backbuffer_rtv()
+	descriptor target_uav_gpu()
 	{
-		return {};
+		return m_target_uav;
 	}
 
 	graphics::commandlist& commandlist()
@@ -245,20 +308,68 @@ int main()
 	graphics_manager graphics	= graphics_manager(*window);
 
 	bool is_exit = false;
+	bool is_pipeline_valid = false;
+	std::thread commandline_thread = std::thread(
+	[&graphics, &is_exit, &is_pipeline_valid]()
+	{
+		while (!is_exit)
+		{
+			string command;
+			std::cin >> command;
+
+			if (!command.empty() && str::contains(command, "recomp", false))
+			{
+				// do the recompile
+				is_pipeline_valid = false;
+
+				const string filepath = "C:/Users/arnev/OneDrive/Bureaublad/shader.hlsl";
+				auto parsed = shader::parse_shaders_in_file(filepath);
+				if (parsed.is_unex())
+					continue;
+
+				if (!has_flag(parsed.get().m_found_types, shader::e_shader_type_flags::cs))
+					continue;
+
+				const auto& shaders = parsed.get().m_shadermap[shader::e_shader_type::cs];
+				shader::compile_args args{};
+				args.m_reflection_enabled = true;
+				args.m_target = shader::e_shader_target::_6_6;
+				auto compiled = shader::compile_shader_in_file(filepath, shaders[0].m_signature, args);
+				if (compiled.is_unex())
+					continue;
+
+				bool result = graphics.rebuild_pipeline(compiled.get());
+				is_pipeline_valid = result;
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(250));
+		}
+	});
+
 	while (!is_exit)
 	{
 		window->poll_events(is_exit);
 
-		graphics.render_start();
-		graphics.backbuffer().transition(graphics.commandlist(), graphics::e_resource_state::render_target);
-		
-		// get or create an rtv
-		// graphics_manager::descriptor rtv_handle = graphics.backbuffer_rtv();
+		if (is_pipeline_valid)
+		{
+			graphics.render_start();
+			auto& cmdlist = graphics.commandlist();
+			graphics.backbuffer().transition(cmdlist, graphics::e_resource_state::render_target);
 
-		// graphics.commandlist().clear_rtv(rtv_handle, graphics::clear::colour({ 1,0,0,1 }));
-		graphics.backbuffer().transition(graphics.commandlist(), graphics::e_resource_state::present);
-		graphics.render_finish();
+			cmdlist.set_descriptor_range(graphics.target_uav_gpu(), 0u, graphics::e_pipeline_type::compute);
+
+			graphics::dispatch_args args{};
+			args.m_threadgroup_count = { 32,32,1 };
+			cmdlist.dispatch(args);
+
+			graphics.backbuffer().transition(cmdlist, graphics::e_resource_state::copy_dst);
+			graphics.target().transition(cmdlist, graphics::e_resource_state::copy_src);
+			cmdlist.copy_resource(graphics.target(), graphics.backbuffer());
+			graphics.backbuffer().transition(cmdlist, graphics::e_resource_state::present);
+			graphics.render_finish();
+		}
 
 		graphics.present(false);
 	}
+
+	commandline_thread.join();
 }

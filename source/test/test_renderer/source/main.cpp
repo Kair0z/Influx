@@ -194,7 +194,7 @@ int main()
 	// initialize renderer
 	renderer::init_args render_init{};
 	render_init.m_api_type = renderer::e_render_api::dx12;
-	render_init.m_shader_source_folder = "D:/Git/Influx/assets/engine/shaders/";
+	render_init.m_shader_source_folder = "E:/Git/Influx/assets/engine/shaders/";
 	influx::renderer::initialize(render_init);
 
 	// present
