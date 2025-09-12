@@ -15,8 +15,8 @@ namespace influx::renderer
 		descriptor_manager(rhi_device& device);
 		virtual ~descriptor_manager();
 
-		void bind_gpu_heaps(rhi_commandlist& commandlist);
 		void reset_gpu_heaps();
+		void bind_gpu_heaps(rhi_commandlist& commandlist);
 
 		rhi_descriptor create_rtv(rhi_device& device, rhi_resource& resource);
 		rhi_descriptor create_dsv(rhi_device& device, rhi_resource& resource);
@@ -24,9 +24,6 @@ namespace influx::renderer
 		rhi_descriptor create_buffer_srv(rhi_device& device, rhi_resource& resource);
 		rhi_descriptor create_sampler(rhi_device& device);
 
-		// Staging:
-		// stages cpu-descriptors onto their corresponding shader-visible descriptor heaps.
-		// and returns the address of the gpu-descriptors.
 		rhi_descriptor_range stage(rhi_device& device, const vector<rhi_descriptor>& cpu_descriptors);
 		rhi_descriptor_range stage(rhi_device& device, const rhi_descriptor& cpu_descriptor);
 		rhi_descriptor_range stage(rhi_device& device, const vector<texture2D*>& textures);
@@ -40,8 +37,8 @@ namespace influx::renderer
 
 	private:
 		// GPU heaps (shader-visible)
-		rhi_descheap* mp_srv_gpu_heap;
-		rhi_descheap* mp_samp_gpu_heap;
+		inflight<rhi_descheap*> mp_srv_gpu_heap;
+		inflight<rhi_descheap*> mp_samp_gpu_heap;
 
 		// CPU heaps (storage)
 		rhi_descheap* mp_rtv_heap;

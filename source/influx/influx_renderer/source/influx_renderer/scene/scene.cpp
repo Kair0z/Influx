@@ -230,7 +230,6 @@ namespace influx::renderer
 
 	view_matrices::view_matrices(const math::matrix4x4f& transform, const camera& camera)
 	{
-		float aspect_ratio = 0.0f;
 		m_transform			= transform;
 		m_projection		= camera.m_camera.get_projection();
 		m_view				= camera.m_camera.get_view(transform);

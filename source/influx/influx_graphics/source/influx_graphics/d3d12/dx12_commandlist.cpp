@@ -117,7 +117,7 @@ namespace influx::graphics
 				dsv_desc.StencilEndingAccess = translate(args.m_depth_attachment.m_stencil_store);
 				dsv_desc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = args.m_depth_attachment.m_stencil_clear;
 				dsv_desc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = args.m_depth_attachment.m_depth_clear;
-				dsv_desc.DepthBeginningAccess.Clear.ClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+				dsv_desc.DepthBeginningAccess.Clear.ClearValue.Format = translate(args.m_depth_attachment.m_format);
 				dsv = &dsv_desc;
 			}
 			

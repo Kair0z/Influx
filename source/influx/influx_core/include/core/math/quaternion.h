@@ -469,7 +469,12 @@ namespace influx::math
 		}
 		
 		void set_up(const float3& up) {}
-		void set_forward(const float3& forward) {}
+
+		void set_forward(const float3& forward)
+		{
+			
+		}
+
 		void set_right(const float3& right) {}
 	};
 

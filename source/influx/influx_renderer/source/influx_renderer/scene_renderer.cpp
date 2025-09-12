@@ -51,7 +51,7 @@ namespace influx::renderer
             signature.set_shader_id(graphics_pipeline::e_shader_slot::ps, "basepass::main_ps");
 
             signature.m_primitive_type = graphics::e_primitive_topology_type::triangle;
-            signature.m_cullmode = graphics::e_cull_mode::nocull;
+            signature.m_cullmode = graphics::e_cull_mode::back;
             signature.m_fillmode = graphics::e_fill_mode::solid;
 
             signature.m_forced_samplecount = 0u;
@@ -136,6 +136,7 @@ namespace influx::renderer
 #pragma endregion
 
     scene_renderer::scene_renderer()
+        : m_buffered{ renderer_backend::get_instance() }
     {
         renderer_backend& backend = renderer_backend::get_instance();
         graphics::device& device = backend.get_device();
@@ -152,11 +153,14 @@ namespace influx::renderer
             desc.m_bytesize = k_max_num_instances * sizeof(frontend::per_instance);
             desc.m_bytestride = sizeof(frontend::per_instance);
             desc.m_init_state = graphics::e_resource_state::gen_read;
-            mp_instancebuffer = device.create_resource(desc, heap_desc);
-            mp_instancebuffer->set_name({ "scene_instance_buffer" });
-
-            // create srv
-            m_instance_buffer_srv = descriptor_manager.create_buffer_srv(device, *mp_instancebuffer);
+            
+            for (uint32 i = 0u; i < k_max_in_flight; ++i)
+            {
+                auto& buffered = m_buffered.get_at_index(i);
+                buffered.m_instancebuffer = device.create_resource(desc, heap_desc);
+                buffered.m_instancebuffer->set_name(string("scene_instance_buffer_") + to_string(i));
+                buffered.m_instance_buffer_srv = descriptor_manager.create_buffer_srv(device, *buffered.m_instancebuffer);
+            }
         }
 
         // lightbuffers
@@ -168,20 +172,22 @@ namespace influx::renderer
                 sizeof(frontend::per_dirlight)
             };
 
-            for (uint32 i = 0u; i < k_num_light_types; ++i)
+            for (uint32 l = 0u; l < k_num_light_types; ++l)
             {
                 graphics::heap_desc heap_desc{};
                 heap_desc.m_type = graphics::e_heap_type::shared;
 
                 graphics::buffer_desc desc{};
-                const influx::e_light_type type = static_cast<influx::e_light_type>(i);
-                desc.m_bytestride = buffer_strides[i];
+                const influx::e_light_type type = static_cast<influx::e_light_type>(l);
+                desc.m_bytestride = buffer_strides[l];
                 desc.m_bytesize = k_max_num_lights * desc.m_bytestride;
-
-                mp_lightbuffers[i] = device.create_resource(desc, heap_desc);
-                mp_lightbuffers[i]->set_name("lightbuffer_" + to_string(i));
-
-                m_lightbuffer_srvs[i] = descriptor_manager.create_buffer_srv(device, *mp_lightbuffers[i]);
+                for (uint32 i = 0u; i < k_max_in_flight; ++i)
+                {
+                    auto& buffered = m_buffered.get_at_index(i);
+                    buffered.m_lightbuffers[l] = device.create_resource(desc, heap_desc);
+                    buffered.m_lightbuffers[l]->set_name("lightbuffer_" + to_string(l) + "_" + to_string(i));
+                    buffered.m_lightbuffer_srvs[l] = descriptor_manager.create_buffer_srv(device, *buffered.m_lightbuffers[l]);
+                }
             }
         }
 
@@ -190,16 +196,19 @@ namespace influx::renderer
         m_line_instance_data.reserve(k_max_lines);
 
         // line-render: create instance buffer & srv
+        for (uint32 i = 0u; i < k_num_inflight_max; ++i)
         {
+            auto& buffered = m_buffered.get_at_index(i);
+
             graphics::heap_desc heap_desc{};
             heap_desc.m_type = graphics::e_heap_type::shared;
             graphics::buffer_desc desc{};
             desc.m_bytesize = k_max_lines * sizeof(frontend::line_gpu_instance_data);
             desc.m_bytestride = sizeof(frontend::line_gpu_instance_data);
             desc.m_init_state = graphics::e_resource_state::gen_read;
-            m_line_instance_buffer = device.create_resource(desc, heap_desc);
-            m_line_instance_buffer->set_name({ "line_instance_buffer" });
-            m_line_instance_buffer_srv = backend.get_descriptor_manager()->create_buffer_srv(device, *m_line_instance_buffer);
+            buffered.m_line_instance_buffer = device.create_resource(desc, heap_desc);
+            buffered.m_line_instance_buffer->set_name(string("line_instance_buffer_") + to_string(i));
+            buffered.m_line_instance_buffer_srv = backend.get_descriptor_manager()->create_buffer_srv(device, *buffered.m_line_instance_buffer);
         }
 
         // line-render: create 2-element vertexbuffer
@@ -300,7 +309,6 @@ namespace influx::renderer
         compile_shaders(debugpass_parsed_file, debugpass_sourcefile_path, compile_args);
     }
 
-#pragma region batching
     // 1 draw-call == 1 batch
     class draw_batch final
     {
@@ -312,7 +320,6 @@ namespace influx::renderer
         graphics::resource* m_indexbuffer;
         uint64 m_base_instance{};
     };
-#pragma endregion
 
     inline frontend::per_instance translate(const mesh_instance& mesh, const scene& scene)
     {
@@ -328,16 +335,19 @@ namespace influx::renderer
         descriptor_manager& descman = *backend.get_descriptor_manager();
         rhi_device& device = backend.get_device();
 
-        umap<texture2D*, uint32> tex_to_idx{};
-
-#if 0
         // stage all srv/uav/const descriptors on the bindless heap
         // in bindless, MUST happen before setting descriptor (mp_pipeline->set_state)
+        umap<texture2D*, uint32> tex_to_idx{};
         {
-            vector<graphics::descriptor_handle> all_srvs{};
-            all_srvs.push_back(m_instance_buffer_srv);
+            auto& buffered = m_buffered.get_cpu();
 
+            // instance buffer srv always around
+            vector<graphics::descriptor_handle> all_srvs{};
+            all_srvs.push_back(buffered.m_instance_buffer_srv);
+
+            // for each unique texture found in the meshes, we're allocating a descriptor
             uint32 texture_count = 0u;
+#if 0
             for (const mesh_instance& instance : scene.get_meshes())
             {
                 string diffuse_name = ""; // todo: fix
@@ -352,12 +362,13 @@ namespace influx::renderer
                     texture_count++;
                 }
             }
+#endif
+            graphics::descriptor_range gpu_range        = descman.stage(device, all_srvs);
+            graphics::descriptor_range gpu_range_samp   = descman.stage_sampler(device, m_sampler_view);
 
-            graphics::descriptor_range gpu_range = descman.stage(device, all_srvs);
-            graphics::descriptor_range gpu_range_samp = descman.stage_sampler(device, m_sampler_view);
+            // no longer necessary, we're bindless now :) 
             // mp_pipeline->set_resource_table(commandlist, "all_descriptors", gpu_range);
         }
-#endif
 
         using mesh_to_instance_map = umap<mesh_id, vector<frontend::per_instance>>;
         mesh_to_instance_map meshid_to_instances{};
@@ -396,7 +407,8 @@ namespace influx::renderer
 
     void scene_renderer::update_instance_buffer(const vector<draw_batch>& batches)
     {
-        mp_instancebuffer->map([&batches](void* dest)
+        auto& buffered = m_buffered.get_cpu();
+        buffered.m_instancebuffer->map([&batches](void* dest)
         {
             frontend::per_instance* data = reinterpret_cast<frontend::per_instance*>(dest);
             for (const draw_batch& batch : batches)
@@ -423,7 +435,8 @@ namespace influx::renderer
         }
 
         // map the cpu data to the shared gpu resource
-        m_line_instance_buffer->map([this](void* dest)
+        auto& buffered = m_buffered.get_cpu();
+        buffered.m_line_instance_buffer->map([this](void* dest)
         {
             frontend::line_gpu_instance_data* data = reinterpret_cast<frontend::line_gpu_instance_data*>(dest);
             for (uint64 i = 0u; i < m_line_instance_data.size(); ++i)
@@ -435,13 +448,14 @@ namespace influx::renderer
 
     void scene_renderer::update_lightbuffers(const scene& scene)
     {
+        auto& buffered = m_buffered.get_cpu();
+
         // map lightbuffers
         const uint32 num_lights = scene.get_num_lights();
         for (uint32 i = 0u; i < k_num_light_types; ++i)
         {
             const auto current_type = static_cast<influx::e_light_type>(i);
-
-            mp_lightbuffers[i]->map([num_lights, current_type, i, &scene](void* dest)
+            buffered.m_lightbuffers[i]->map([num_lights, current_type, i, &scene](void* dest)
             {
                 uint32 index = 0u;
                 for (uint32 l = 0; l < num_lights; ++l)
@@ -497,9 +511,12 @@ namespace influx::renderer
         }
 
         rendergraph::texture_desc depth_desc = gbuffer_desc;
+        rendergraph::rgaccess depth_access{};
+        depth_access.m_load = rendergraph::e_rg_load::clear;
+        depth_access.m_store = rendergraph::e_rg_store::discard;
+        depth_access.m_load_clear.m_depth = 1.0f;
         depth_desc.m_format = graphics::e_format::d32;
-        builder.write_depthtarget("depth_" + target.get_name().get_string(), depth_desc, 
-            rendergraph::rgaccess::discard_all()).get();
+        builder.write_depthtarget("depth_" + target.get_name().get_string(), depth_desc, depth_access).get();
         builder.set_viewport(target.get_width(), target.get_height());
     }
 
@@ -527,6 +544,7 @@ namespace influx::renderer
             case render_settings::cullmode::front: pipeline_sig.m_cullmode = graphics::e_cull_mode::front; break;
             case render_settings::cullmode::none:  pipeline_sig.m_cullmode = graphics::e_cull_mode::nocull; break;
             }
+            pipeline_sig.m_cullmode = graphics::e_cull_mode::nocull;
         }
 
         // load the pipeline signature
@@ -618,17 +636,14 @@ namespace influx::renderer
             math::matrix4x4f inv_projection;
             int num_lights[4u];
         } root_args;
-#if 0
         {
             root_args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
 
             // update buffers for deferred lights
+            update_lightbuffers(scene);
+            for (uint32 i = 0u; i < k_num_light_types; ++i)
             {
-                update_lightbuffers(scene);
-                for (uint32 i = 0u; i < k_num_light_types; ++i)
-                {
-                    root_args.num_lights[i] = scene.get_num_lights(static_cast<influx::e_light_type>(i));
-                }
+                root_args.num_lights[i] = scene.get_num_lights(static_cast<influx::e_light_type>(i));
             }
 
             root_args.inv_viewprojection = scene.get_view_matrices().m_inv_viewprojection;
@@ -638,30 +653,30 @@ namespace influx::renderer
 
             // stage the descriptors onto the gpu heap
             {
+                auto buffered = m_buffered.get_cpu();
                 graphics::descriptor_range gpu_range = descriptor_man.stage(device,
                 {
                     context.get_read_texture(0).get().m_descriptor,
                     context.get_read_texture(1).get().m_descriptor,
                     context.get_read_texture(2).get().m_descriptor,
                     context.get_write_texture(0).get().m_descriptor,
-                    m_lightbuffer_srvs[0],
-                    m_lightbuffer_srvs[1],
-                    m_lightbuffer_srvs[2]
+                    buffered.m_lightbuffer_srvs[0],
+                    buffered.m_lightbuffer_srvs[1],
+                    buffered.m_lightbuffer_srvs[2]
                 });
 
                 // set the descriptorheap bindless indices
-                root_args.texture_indices[0] = gpu_range.m_start_idx;
-                root_args.texture_indices[1] = gpu_range.m_start_idx + 1u;
-                root_args.texture_indices[2] = gpu_range.m_start_idx + 2u;
-                root_args.texture_indices[3] = gpu_range.m_start_idx + 3u;
-                root_args.skybox_indices[0] = gpu_range.m_start_idx + 4u;
-                root_args.buffer_indices[0] = gpu_range.m_start_idx + 5u;
-                root_args.buffer_indices[1] = gpu_range.m_start_idx + 6u;
-                root_args.buffer_indices[2] = gpu_range.m_start_idx + 7u;
+                root_args.texture_indices[0] = gpu_range.m_heap_index;
+                root_args.texture_indices[1] = gpu_range.m_heap_index + 1u;
+                root_args.texture_indices[2] = gpu_range.m_heap_index + 2u;
+                root_args.texture_indices[3] = gpu_range.m_heap_index + 3u;
+                root_args.skybox_indices[0]  = gpu_range.m_heap_index + 4u;
+                root_args.buffer_indices[0]  = gpu_range.m_heap_index + 5u;
+                root_args.buffer_indices[1]  = gpu_range.m_heap_index + 6u;
+                root_args.buffer_indices[2]  = gpu_range.m_heap_index + 7u;
                 descriptor_man.stage_sampler(device, m_skybox_sampler);
             }
         }
-#endif
 
         pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", root_args);
 
@@ -754,7 +769,8 @@ namespace influx::renderer
                 update_line_instance_buffer(scene);
 
                 // stage the instance buffer and set as resource table
-                const graphics::descriptor_range gpu_range = descriptorman.stage(device, m_line_instance_buffer_srv);
+                auto& buffered = m_buffered.get_cpu();
+                const graphics::descriptor_range gpu_range = descriptorman.stage(device, buffered.m_line_instance_buffer_srv);
                 pipeline.set_resource_table(commandlist, "g_instancebuffer", gpu_range);
 
                 const uint32 num_instances = (uint32)m_line_instance_data.size();

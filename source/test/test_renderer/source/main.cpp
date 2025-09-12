@@ -137,7 +137,7 @@ renderer::scene make_the_scene()
 	if (true)
 	{
 		math::transform3D camera_transform = math::transform3D::identity();
-		camera_transform.set_position({ 0,0,10 });
+		camera_transform.set_position({ 0,0,-10 });
 		camera_transform.look_at({});
 
 		renderer::camera camera{};
@@ -150,7 +150,16 @@ renderer::scene make_the_scene()
 
 		result.set_camera(camera);
 		result.set_camera_transform(camera_transform.get_matrix());
-		result.add_mesh(renderer::e_mesh::triangle);
+
+		math::transform3D triangle_transform = math::transform3D::identity();
+		triangle_transform.set_position_z(100.0f);
+		result.add_mesh(renderer::e_mesh::triangle, triangle_transform.get_matrix());
+
+		math::float3 forward = camera_transform.get_forward();
+		const auto& vwp = result.get_view_matrices().m_viewprojection;
+		math::float4 position{ 1,0,0,1 };
+		math::float4 result = vwp * position;
+		printf("");
 	}
 	else
 	{

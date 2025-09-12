@@ -42,16 +42,16 @@ ConstantBuffer<per_draw>                g_perdraw           : register(b3);
 
 #if !FLX_BINDLESS
 SamplerState                            g_sampler           : register(s0);
-
 #endif
 
 Texture2D get_texture(int index)
 {
 #if FLX_BINDLESS
     return ResourceDescriptorHeap[1 + index];
+#else
+
 #endif
 }
-
 SamplerState get_sampler(int index)
 {
 #if FLX_BINDLESS
@@ -84,6 +84,8 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
     output.position = mul(mvp, float4 ( vertex_data.position, 1.0f ) );
     output.worldPos = mul(instance_transform, float4(vertex_data.position, 1.0f)).xyz;
 
+    output.position.z = 5.0f;
+
     // uvs
     output.texcoord = vertex_data.texcoord;
     
@@ -104,7 +106,7 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
 [shader("pixel")]
 ps_output main_ps(ps_input input)
 {
-    float4 albedo = get_texture(input.texid_albedo).Sample(get_sampler(0), input.texcoord).rgba;
+    float4 albedo = float4(1,1,1,1);// get_texture(input.texid_albedo).Sample(get_sampler(0), input.texcoord).rgba;
     // float3 normal = get_normal(input.texcoord).rgb;
     float3 normal = input.normal;
     normal = normalize(normal);

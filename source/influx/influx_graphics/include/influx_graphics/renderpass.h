@@ -70,6 +70,7 @@ namespace influx::graphics
         e_load_op m_stencil_load = e_load_op::no_access;
         e_store_op m_stencil_store = e_store_op::no_access;
         uint8 m_stencil_clear = 0u;
+        e_format m_format = e_format::d32;
 
         bool m_is_enabled = false;
     };

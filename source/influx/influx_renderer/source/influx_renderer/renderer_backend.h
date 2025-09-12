@@ -89,6 +89,10 @@ namespace influx::renderer
 			const uint64 distance = m_backend.query_gpu_frame() < m_backend.get_cpu_frame();
 			return distance != 0u;
 		}
+		_t& get_at_index(uint32 index)
+		{
+			return m_value[index % k_max_in_flight];
+		}
 	};
 
 	class renderer_backend final : public singleton<renderer_backend>

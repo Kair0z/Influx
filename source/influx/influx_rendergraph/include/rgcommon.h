@@ -464,6 +464,7 @@ namespace influx::rendergraph
 		struct load_clear_params final
 		{
 			math::colour_rgba m_colour;
+			float m_depth;
 		} m_load_clear{};
 
 		struct store_resolve_params final

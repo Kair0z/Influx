@@ -170,8 +170,4 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
         output_color.rgb = float3(1, 1, 1);
         set_output(thread_id.xy, output_color.rgb);
     }
-    else
-    {
-        set_output(thread_id.xy, sample_sky(thread_id.xy));
-    }
 }

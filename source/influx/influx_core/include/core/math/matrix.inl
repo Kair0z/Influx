@@ -754,7 +754,7 @@ namespace influx::math
 	template<typename _t, matsize _x, matsize _y>
 	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_projection_RH(
 		const float fov, const float ar, 
-		const float pnear, const float pfar, 
+		const float pnear, const float pfar,
 		const float dmin, const float dmax)
 	{
 		const float fov_radians = to_radians(fov);
@@ -765,7 +765,7 @@ namespace influx::math
 		const float x = y / ar;
 		const float a = -(pfar * dmax - pnear * dmin) / (plane_delta);
 		const float b = -(pfar * pnear * depth_delta) / (plane_delta);
-		const float c = (depth_delta);
+		const float c = -(depth_delta);
 		const float d = -dmin;
 
 		return

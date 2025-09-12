@@ -308,6 +308,12 @@ namespace influx::rendergraph
 						depth_attachment.m_stencil_store = translate(dsv.m_stencil_access.m_store);
 						depth_attachment.m_depth_clear = dsv.m_depth_clear;
 						depth_attachment.m_stencil_clear = dsv.m_stencil_clear;
+
+						// load:clear info
+						if (dsv.m_depth_access.m_load == e_rg_load::clear)
+						{
+							depth_attachment.m_depth_clear = dsv.m_depth_access.m_load_clear.m_depth;
+						}
 					}
 
 					// dispatch the renderpass

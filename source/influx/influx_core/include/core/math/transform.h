@@ -207,7 +207,8 @@ namespace influx::math
 		void look_at(const vectorf3& location)
 		{
 			m_is_matrix_dirty = true;
-			set_forward((location - get_position()).normalized());
+			const float3& normalized_fwd = (location - get_position()).normalized();
+			set_forward(normalized_fwd);
 			update_matrix();
 		}
 

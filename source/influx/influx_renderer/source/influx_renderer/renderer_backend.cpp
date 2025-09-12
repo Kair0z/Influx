@@ -184,8 +184,12 @@ namespace influx::renderer
         cmdlist->start(mp_device, nullptr);
         cmdlist->set_name("frame");
         
+        // reset & rebind the gpu heaps (of this frame)
+        descriptor_manager* descman = get_descriptor_manager();
+        descman->reset_gpu_heaps();
+        descman->bind_gpu_heaps(*cmdlist);
+
         // execute the rendergraph
-        get_descriptor_manager()->bind_gpu_heaps(*cmdlist);
         {
             influx_scope("renderer::rendergraph_execute");
             auto res = m_rendergraph->execute(*cmdlist, *mp_device);

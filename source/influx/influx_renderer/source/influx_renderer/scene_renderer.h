@@ -57,22 +57,27 @@ namespace influx::renderer
 		void execute_resolvepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
 
 	private:
-		rendergraph::rgname m_uav_proxy_name = { "uav_proxy" };
+		// this is the resources that could change each frame.
+		// they need to be buffered to avoid the cpu writing where the GPU is reading
+		struct buffered final
+		{
+			graphics::resource*				m_instancebuffer;
+			graphics::resource*				m_lightbuffers[k_num_light_types];
+			graphics::descriptor_handle		m_instance_buffer_srv;
+			graphics::descriptor_handle		m_lightbuffer_srvs[k_num_light_types];
+			graphics::resource*				m_line_instance_buffer;
+			graphics::descriptor_handle		m_line_instance_buffer_srv;
+		};
+		inflight<buffered> m_buffered;
 
-		graphics::resource* mp_instancebuffer;
-		graphics::resource* mp_lightbuffers[k_num_light_types];
-		graphics::descriptor_handle m_instance_buffer_srv;
-		graphics::descriptor_handle m_lightbuffer_srvs[k_num_light_types];
-		graphics::descriptor_handle m_sampler_view;
-		graphics::descriptor_handle m_skybox_sampler;
-
+		// these are the resources that are persistent and unchanging
 		graphics::resource* mp_skybox;
 		graphics::descriptor_handle m_skybox_srv;
-		
-		graphics::resource* m_line_instance_buffer;
+		graphics::descriptor_handle m_sampler_view;
+		graphics::descriptor_handle m_skybox_sampler;
 		graphics::resource* m_line_vertex_buffer;
-		graphics::descriptor_handle m_line_instance_buffer_srv;
 
+		// this is the cached CPU-side data
 		vector<frontend::line_gpu_instance_data> m_line_instance_data;
 		frontend::per_scene m_gpu_perscene;
 		frontend::per_view m_gpu_perview;

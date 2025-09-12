@@ -47,11 +47,11 @@ struct per_instance
 	float4x4 m_transform;
 	float4 m_colour;
 
-	void set_albedo_index(uint index) { m_texture_indices[0] = index; }
-	uint get_albedo_index() { return m_texture_indices[0]; }
+	void set_albedo_index(uint index)	{ m_texture_indices[0] = index; }
+	uint get_albedo_index()				{ return m_texture_indices[0]; }
 
-	void set_normal_index(uint index) { m_texture_indices[1] = index; }
-	uint get_normal_index() { return m_texture_indices[1]; }
+	void set_normal_index(uint index)	{ m_texture_indices[1] = index; }
+	uint get_normal_index()				{ return m_texture_indices[1]; }
 
 	uint4 m_texture_indices;
 };
