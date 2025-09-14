@@ -67,6 +67,20 @@ namespace influx::math
 		_t get_norm_sqr() const
 		{ return m_real * m_real + m_x * m_x + m_y * m_y + m_z * m_z; }
 
+		inline void normalize()
+		{
+			_t norm = std::sqrt(m_real * m_real + m_x * m_x + m_y * m_y + m_z * m_z);
+			m_real /= norm;
+			m_x /= norm;
+			m_y /= norm;
+			m_z /= norm;
+		}
+
+		quaternion get_normalized() const
+		{
+			quaternion cpy = *this; cpy.normalize(); return cpy;
+		}
+
 		_t get_imaginary_norm_sqr() const
 		{ return m_x * m_x + m_y * m_y + m_z * m_z; }
 
@@ -218,7 +232,7 @@ namespace influx::math
 		}
 
 		template <typename _t2>
-		static matrix<_t2, 3u, 3u> quat_to_matrix(const quaternion<_t2>& quat)
+		static matrix<_t2, 4u, 4u> quat_to_matrix(const quaternion<_t2>& quat)
 		{
 			// 21 operations?
 			_t2 a2 = quat.get_real() * quat.get_real(), b2 = quat.get_x() * quat.get_x(), c2 = quat.get_y() * quat.get_y(), d2 = quat.get_z() * quat.get_z();
@@ -226,7 +240,7 @@ namespace influx::math
 			_t2 bc = quat.get_x() * quat.get_y(), bd = quat.get_x() * quat.get_z();
 			_t2 cd = quat.get_y() * quat.get_z();
 
-			matrix<_t2, 3u, 3u> mat{};
+			matrix<_t2, 4u, 4u> mat{};
 			mat.set_row(0, float3{a2 + b2 - c2 - d2	, 2 * (bc - ad)		, 2 * (bd + ac)} );
 			mat.set_row(1, float3{2 * (bc + ad)		, a2 - b2 + c2 - d2	, 2 * (cd - ab)} );
 			mat.set_row(2, float3{2 * (bd - ac)		, 2 * (cd + ab)		, a2 - b2 - c2 + d2} );
@@ -237,47 +251,42 @@ namespace influx::math
 		{ static quaternion g_identity{ 1,0,0,0 }; return g_identity; }
 
 		template <typename _t2>
-		static quaternion<_t2> matrix_to_quat(const matrix<_t2, 3u, 3u>& mat)
+		static quaternion<_t2> matrix_to_quat(const matrix<_t2, 4u, 4u>& mat)
 		{
-			const _t2 tee = mat[0][0] + mat[1][1] + mat[2][2];
+			_t fourXSquaredMinus1 = mat[0][0] - mat[1][1] - mat[2][2];
+			_t fourYSquaredMinus1 = mat[1][1] - mat[0][0] - mat[2][2];
+			_t fourZSquaredMinus1 = mat[2][2] - mat[0][0] - mat[1][1];
+			_t fourWSquaredMinus1 = mat[0][0] + mat[1][1] + mat[2][2];
 
-			if (tee > 0)
+			int biggestIndex = 0;
+			_t fourBiggestSquaredMinus1 = fourWSquaredMinus1;
+			if (fourXSquaredMinus1 > fourBiggestSquaredMinus1)
 			{
-				_t2 s = (_t2)0.5 / std::sqrt(tee + 1);
-				return quaternion<_t2>{ (_t2)0.25 / s,
-						(mat[2][1] - mat[1][2]) * s,
-						(mat[0][2] - mat[2][0]) * s,
-						(mat[1][0] - mat[0][1]) * s };
+				fourBiggestSquaredMinus1 = fourXSquaredMinus1;
+				biggestIndex = 1;
 			}
-			else 
+			if (fourYSquaredMinus1 > fourBiggestSquaredMinus1)
 			{
-				if (mat[0][0] > mat[1][1] && mat[0][0] > mat[2][2]) 
-				{
-					_t2 s = (_t)2.0 * std::sqrt((_t2)1.0 + mat[0][0] - mat[1][1] - mat[2][2]);
-					return { (mat[2][1] - mat[1][2]) / s,
-							(_t2)0.25 * s,
-							(mat[0][1] + mat[1][0]) / s,
-							(mat[0][2] + mat[2][0]) / s };
-				}
-				else if (mat[1][1] > mat[2][2]) 
-				{
-					_t2 s = (_t2)2.0 * std::sqrt((_t2)1.0 + mat[1][1] - mat[0][0] - mat[2][2]);
-					return quaternion<_t2>{ 
-						(mat[0][2] - mat[2][0]) / s,
-						(mat[0][1] + mat[1][0]) / s,
-						(_t)0.25 * s,
-						(mat[1][2] + mat[2][1]) / s };
-				}
-				else 
-				{
-					_t2 s = (_t2)2.0 * std::sqrt((_t2)1.0 + mat[2][2] - mat[0][0] - mat[1][1]);
-					return quaternion<_t2>{ 
-						(mat[1][0] - mat[0][1]) / s,
-						(mat[0][2] + mat[2][0]) / s,
-						(mat[1][2] + mat[2][1]) / s,
-						(_t2)0.25 * s };
-				}
+				fourBiggestSquaredMinus1 = fourYSquaredMinus1;
+				biggestIndex = 2;
 			}
+			if (fourZSquaredMinus1 > fourBiggestSquaredMinus1)
+			{
+				fourBiggestSquaredMinus1 = fourZSquaredMinus1;
+				biggestIndex = 3;
+			}
+
+			_t biggestVal = std::sqrt(fourBiggestSquaredMinus1 + static_cast<_t>(1)) * static_cast<_t>(0.5);
+			_t mult = static_cast<_t>(0.25) / biggestVal;
+
+			switch (biggestIndex)
+			{
+			case 0: return quaternion<_t2>(biggestVal, (mat[1][2] - mat[2][1]) * mult, (mat[2][0] - mat[0][2]) * mult, (mat[0][1] - mat[1][0]) * mult).get_normalized();
+			case 1: return quaternion<_t2>((mat[1][2] - mat[2][1]) * mult, biggestVal, (mat[0][1] + mat[1][0]) * mult, (mat[2][0] + mat[0][2]) * mult).get_normalized();
+			case 2: return quaternion<_t2>((mat[2][0] - mat[0][2]) * mult, (mat[0][1] + mat[1][0]) * mult, biggestVal, (mat[1][2] + mat[2][1]) * mult).get_normalized();
+			case 3: return quaternion<_t2>((mat[0][1] - mat[1][0]) * mult, (mat[2][0] + mat[0][2]) * mult, (mat[1][2] + mat[2][1]) * mult, biggestVal).get_normalized();
+			}
+			return {};
 		}
 	};
 	
@@ -369,8 +378,8 @@ namespace influx::math
 	template <typename _t>
 	static vector<_t, 3u> operator*(const quaternion<_t>& quat, const vector<_t, 3u>& vec)
 	{
-		using quat_t = quaternion<_t>;
-		return quat_t::quat_to_vec3(quat * quat_t::vec3_to_quat(vec));
+		using quatt = quaternion<_t>;
+		return quatt::quat_to_vec3(quat * quatt::vec3_to_quat(vec));
 	}
 
 
@@ -395,7 +404,7 @@ namespace influx::math
 		}
 
 		/* converts the rotation encoded in a 3x3 rotation matrix to our m_quaternion */
-		void set_rotation_matrix(const math::matrix3x3f& mat)
+		void set_rotation_matrix(const math::matrix4x4f& mat)
 		{
 			m_quaternion = quatf::matrix_to_quat(mat);
 		}
@@ -412,7 +421,7 @@ namespace influx::math
 		}
 
 		/* converts the rotation encoded in our quaternion into a 3x3 rotation matrix */
-		const math::matrix3x3f get_rotation_matrix() const
+		const math::matrix4x4f get_rotation_matrix() const
 		{
 			return quatf::quat_to_matrix(m_quaternion);
 		}
@@ -455,24 +464,26 @@ namespace influx::math
 
 		vectorf3 get_forward() const
 		{
-			return m_quaternion * float3::make_forward();
+			return quatf::rotate(float3::make_forward(), m_quaternion);
 		}
 
 		vectorf3 get_right() const
 		{
-			return m_quaternion * float3::make_right();
+			return quatf::rotate(float3::make_right(), m_quaternion);
 		}
 
 		vectorf3 get_up() const
 		{
-			return m_quaternion * float3::make_up();
+			return quatf::rotate(float3::make_up(), m_quaternion);
 		}
 		
 		void set_up(const float3& up) {}
 
 		void set_forward(const float3& forward)
 		{
-			
+			const float3 up = get_up();
+			const auto mat = math::matrix4x4f::make_rotation_RH(forward, up);
+			m_quaternion = quatf::matrix_to_quat(mat);
 		}
 
 		void set_right(const float3& right) {}

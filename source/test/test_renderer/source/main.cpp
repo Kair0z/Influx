@@ -136,10 +136,11 @@ renderer::scene make_the_scene()
 	renderer::scene result{};
 	if (true)
 	{
+		// setup camera
 		math::transform3D camera_transform = math::transform3D::identity();
-		camera_transform.set_position({ 0,0,-10 });
+		camera_transform.set_position({ 0,0,10.0f });
 		camera_transform.look_at({});
-
+		const math::float3 fwd = camera_transform.get_forward();
 		renderer::camera camera{};
 		camera.m_camera.set_aspect_ratio(1.0f);
 		camera.m_camera.set_farplane(1000.0f);
@@ -147,19 +148,40 @@ renderer::scene make_the_scene()
 		camera.m_camera.set_fov(90.0f);
 		camera.m_camera.set_is_orthographic(false);
 		camera.m_transform_id = 0u;
-
 		result.set_camera(camera);
 		result.set_camera_transform(camera_transform.get_matrix());
 
-		math::transform3D triangle_transform = math::transform3D::identity();
-		triangle_transform.set_position_z(100.0f);
-		result.add_mesh(renderer::e_mesh::triangle, triangle_transform.get_matrix());
+		static constexpr float room_size = 20.0f;
+		static constexpr float plane_scale = 100.0f;
 
-		math::float3 forward = camera_transform.get_forward();
-		const auto& vwp = result.get_view_matrices().m_viewprojection;
-		math::float4 position{ 1,0,0,1 };
-		math::float4 result = vwp * position;
-		printf("");
+		// setup scene
+		static constexpr uint32 num_boxes = 2u;
+		math::transform3D box_transforms[num_boxes]
+		{
+			math::transform3D(math::float3{-0.2, 0.0f, 0.0f}, math::rotation::identity(), math::float3{1,1,1}),
+			math::transform3D(math::float3{0.2, 0.0f, 0.0f}, math::rotation::identity(), math::float3{1,1,1})
+		};
+		static constexpr uint32 num_planes = 5u;
+		math::transform3D plane_transforms[num_planes]
+		{
+			math::transform3D(math::float3{-room_size, 0.0f, 0.0f}, math::rotation::identity(), math::float3{1,1,1} *plane_scale),
+			math::transform3D(math::float3{0.0f, room_size, 0.0f}, math::rotation::identity(), math::float3{1,1,1}	*plane_scale),
+			math::transform3D(math::float3{room_size, 0.0f, 0.0f}, math::rotation::identity(), math::float3{1,1,1}	*plane_scale),
+			math::transform3D(math::float3{0.0f, -room_size, 0.0f}, math::rotation::identity(), math::float3{1,1,1}	*plane_scale),
+			math::transform3D(math::float3{0.0f, 0.0f, -room_size}, math::rotation::identity(), math::float3{1,1,1} *plane_scale)
+		};
+		static constexpr uint32 num_spheres = 1u;
+		math::transform3D sphere_transforms[num_spheres]
+		{
+			math::transform3D::identity()
+		};
+
+		for (uint32 i = 0u; i < num_boxes; ++i)
+			result.add_mesh(renderer::e_mesh::box, box_transforms[i].get_matrix());
+		for (uint32 i = 0u; i < num_planes; ++i)
+			result.add_mesh(renderer::e_mesh::plane, plane_transforms[i].get_matrix());
+		for (uint32 i = 0u; i < num_spheres; ++i)
+			result.add_mesh(renderer::e_mesh::sphere, sphere_transforms[i].get_matrix());
 	}
 	else
 	{
@@ -183,12 +205,12 @@ int main()
 	window_desc.m_name = "renderer";
 
 	// create 3 windows
-	static constexpr uint32 num_windows = 3u;
+	static constexpr uint32 num_windows = 1u;
 	platform::window* windows[num_windows] =
 	{
 		platform::window::create(window_desc.set_name("A")),
-		platform::window::create(window_desc.set_name("B")),
-		platform::window::create(window_desc.set_name("c")),
+		// platform::window::create(window_desc.set_name("B")),
+		// platform::window::create(window_desc.set_name("c")),
 	};
 
 	// initialize renderer
@@ -220,7 +242,7 @@ int main()
 		{
 			const platform::monitor& monitor = monitors[0];
 			const math::vectoru2 monitor_center = monitor.get_rect().get_mid();
-			const float angle = 0.0f/*seconds*/ + (i * math::k_PIDouble * 0.33f);
+			const float angle = 0.0f + (i * math::k_PIDouble * 0.33f);
 			uint32 x = (uint32)(radius * math::cos(angle));
 			uint32 y = (uint32)(radius * math::sin(angle));
 			windows[i]->set_position(monitor_center + math::vectoru2{ x,y } - window_half_size);

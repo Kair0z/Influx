@@ -51,7 +51,11 @@ namespace influx::math
 	public:
 		transform3D() = default;
 		transform3D(const math::vectorf3& position, const math::rotation& rotation, const math::vectorf3& scale)
-			: m_position{ position }, m_rotation{ rotation }, m_scale { scale } {}
+			: m_position{ position }, m_rotation{ rotation }, m_scale{ scale }
+		{
+			m_is_matrix_dirty = true;
+			update_matrix();
+		}
 		
 		transform3D& operator=(const math::matrix4x4f& matrix)
 		{
@@ -186,7 +190,7 @@ namespace influx::math
 			m_rotation.set_up(newUp);
 		}
 
-		void set_rotation(const math::matrix3x3f& matrix)
+		void set_rotation(const math::matrix4x4f& matrix)
 		{
 			m_is_matrix_dirty = true;
 			m_rotation.set_rotation_matrix(matrix);
@@ -258,7 +262,9 @@ namespace influx::math
 		{
 			if (m_is_matrix_dirty)
 			{
-				m_matrix = matrix4x4f::make_scale(m_scale) * matrix4x4f::make_transform_RH(m_position, m_rotation.get_forward());
+				m_matrix = matrix4x4f::make_transform_RH(m_position,
+					m_rotation.get_forward(), m_rotation.get_up(),
+					m_scale);
 			}
 			m_is_matrix_dirty = false;
 		}
@@ -267,7 +273,7 @@ namespace influx::math
 		{
 			if (m_is_components_dirty)
 			{
-				math::matrix3x3f out_rotation_mat{};
+				math::matrix4x4f out_rotation_mat{};
 				m_matrix.decompose(m_position, out_rotation_mat, m_scale);
 				m_rotation.set_rotation_matrix(out_rotation_mat);
 			}

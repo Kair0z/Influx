@@ -8,7 +8,8 @@
 namespace influx::math
 {
 	using matsize = uint32;
-	#define INFLUX_MATRIX_COLUMN_MAJOR 1
+	#define INFLUX_MATRIX_COLUMN_MAJOR	1
+	#define INFLUX_MATRIX_ROW_MAJOR		0
 
 	template <typename _t, matsize _x, matsize _y>
 	struct matrix final
@@ -25,14 +26,14 @@ namespace influx::math
 		static constexpr matsize k_num_elements = k_num_columns * k_num_rows;
 		union
 		{
-			struct { value_type m_data[_x * _y]; };
-			struct { row m_rows[k_num_columns]; };
+			struct { value_type m_data	[_x * _y];			};
+			struct { row m_rows			[k_num_columns];	};
 		};
 		
 		// helpers
 		constexpr static void copy(const matrix& src, matrix& dest)
 		{
-			for (uint32 i = 0u; i < _x * _y; ++i)
+			for (uint32 i = 0u; i < k_num_elements; ++i)
 				dest.m_data[i] = src.m_data[i];
 		}
 
@@ -133,7 +134,8 @@ namespace influx::math
 		static const matrix& identity();
 
 		// Transformation:
-		static matrix<_t, 3u, 3u> make_rotation(const vector<_t, 3u>& axis, float angle);
+		static matrix<_t, 4u, 4u> make_rotation(const vector<_t, 3u>& axis, float angle);
+		static matrix<_t, 4u, 4u> make_rotation_RH(const vector<_t, 3u>& forward, const vector<_t, 3u>& up);
 		static matrix<_t, 4u, 4u> make_rotation_RH(float euler_x, float euler_y, float euler_z);
 		static matrix<_t, 4u, 4u> make_rotation_LH(float euler_x, float euler_y, float euler_z);
 		static matrix<_t, 3u, 3u> make_translation(const vector<_t, 2u>& translation);
@@ -143,7 +145,11 @@ namespace influx::math
 
 		// More...
 		static matrix<_t, 4u, 4u> make_transform_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector3& up = vector3::make_up());
-		static matrix<_t, 4u, 4u> make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector3::make_up());
+		static matrix<_t, 4u, 4u> make_transform_RH(
+			const vector<_t, 3u>& pos, 
+			const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::make_up(),
+			const vector<_t, 3u>& scale = vector<_t, 3u>::make_one());
+
 		static matrix<_t, 4u, 4u> make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector3::make_up());
 		static matrix<_t, 4u, 4u> make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector3::make_up());
 		static matrix<_t, 4u, 4u> make_projection_LH(const float fov, const float ar, const float n, const float f);
@@ -180,16 +186,29 @@ namespace influx::math
 		vector<_t, 3u> get_scale_sqr() const;
 		vector<_t, 3u> get_euler_angles() const;
 
-		void decompose(vector<_t, 3u>& out_translation, matrix<_t, 3u, 3u>& out_rotation, vector<_t, 3u>& out_scale) const;
-		matrix<_t, 3u, 3u> get_rotation_matrix() const;
+		void decompose(vector<_t, 3u>& out_translation, matrix<_t, 4u, 4u>& out_rotation, vector<_t, 3u>& out_scale) const;
+		matrix<_t, 4u, 4u> get_rotation_matrix() const;
 	};
 
 	// Matrix - Matrix
-	template <typename _t, matsize k_num_columns, matsize num_rows> matrix<_t, k_num_columns, num_rows> operator+(const matrix<_t, k_num_columns, num_rows>& a, const matrix<_t, k_num_columns, num_rows>& b);
-	template <typename _t, matsize k_num_columns, matsize num_rows> matrix<_t, k_num_columns, num_rows> operator-(const matrix<_t, k_num_columns, num_rows>& a, const matrix<_t, k_num_columns, num_rows>& b);
+	template <typename _t, matsize _x, matsize _y> matrix<_t, _x, _y> operator+(const matrix<_t, _x, _y>& a, const matrix<_t, _x, _y>& b);
+	template <typename _t, matsize _x, matsize _y> matrix<_t, _x, _y> operator-(const matrix<_t, _x, _y>& a, const matrix<_t, _x, _y>& b);
 
-	template <typename _t, matsize k_num_columns, matsize num_rows, matsize _OC, matsize _OR>
-	matrix<_t, num_rows, _OR> operator*(const matrix<_t, k_num_columns, num_rows>& a, const matrix<_t, _OC, _OR>& b);
+#pragma warning(push)
+#pragma warning(disable : 4267)
+	template <typename _t, matsize _x, matsize _y, matsize _ox, matsize _oy>
+	inline matrix<_t, _y, _ox> operator*(const matrix<_t, _x, _y>& a, const matrix<_t, _ox, _oy>& b)
+	{
+		static_assert(_x == _oy);
+
+		matrix<_t, _y, _ox> result{};
+		for (matsize y{}; y < _y; ++y)
+			for (matsize x{}; x < _ox; ++x)
+				for (matsize i = 0; i < _oy; ++i)
+					result[y][x] += a[y][i] * b[i][x];
+		return result;
+	}
+#pragma warning(pop)
 
 	// Matrix - Vector
 	template<typename _t> math::vector<_t, 2u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 2u>& v);

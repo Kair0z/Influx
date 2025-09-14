@@ -286,7 +286,7 @@ namespace influx::shader
 
 		// misc
 		const bool compile_debug = args.m_debug_level == shader::e_compile_debug_level::debug;
-		const bool row_major = false;
+		const bool row_major = true;
 		result								.push_back("dxc -help | findstr Version");
 		result								.push_back(row_major ? "-Zpr" : "Zpc");
 		if (!args.m_pbd_enabled) result				.push_back("-Qstrip_debug");

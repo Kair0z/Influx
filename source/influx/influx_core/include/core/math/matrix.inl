@@ -42,7 +42,7 @@ namespace influx::math
 	inline matrix<_t, _x, _y> matrix<_t, _x, _y>::transposed() const
 	{
 		matrix<_t, _x, _y> copy = *this;
-		return transpose(copy);
+		return transposed(copy);
 	}
 	template<typename _t, matsize _x, matsize _y>
 	inline void matrix<_t, _x, _y>::transpose(matrix& matrix)
@@ -310,7 +310,7 @@ namespace influx::math
 		};
 	}
 	template<typename _t, matsize _x, matsize _y>
-	inline matrix<_t, 3u, 3u> matrix<_t, _x, _y>::make_rotation(const vector<_t, 3>& axis, float angle)
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_rotation(const vector<_t, 3>& axis, float angle)
 	{
 		// http://www.fastgraph.com/makegames/3drotation/3dsrce.html
 
@@ -323,9 +323,22 @@ namespace influx::math
 
 		return
 		{
-			t * x * x + c,	 t * x * y - s * z,	 t * x * z + s * y,
-			t * x * y + s * z, t * y * y + c, t * y * z - s * x,
-			t * x * z - s * y, t * y * z + s * x, t * z * z + c
+			t * x * x + c,	 t * x * y - s * z,	 t * x * z + s * y, 0.0f,
+			t * x * y + s * z, t * y * y + c, t * y * z - s * x, 0.0f,
+			t * x * z - s * y, t * y * z + s * x, t * z * z + c, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		};
+	}
+	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_rotation_RH(const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	{
+		const vector<_t, 3u> right = vector3::cross(up, forward);
+		return
+		{
+			right.x, right.y, right.z, 0.0f,
+			up.x, up.y, up.z, 0.0f,
+			forward.x, forward.y, forward.z, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
 		};
 	}
 	template<typename _t, matsize _x, matsize _y>
@@ -629,26 +642,6 @@ namespace influx::math
 		return result;
 	}
 
-#pragma warning(push)
-#pragma warning(disable : 4267)
-	template <typename _t, matsize _x, matsize _y, matsize _OC, matsize _OR>
-	inline matrix<_t, _y, _OR> operator*(const matrix<_t, _x, _y>& a, const matrix<_t, _OC, _OR>& b)
-	{
-		influx_assert(_x == _OR);
-
-		matrix<_t, _y, _OC> result{};
-
-		for (matsize r{}; r < _y; ++r)
-			for (matsize c{}; c < _OC; ++c)
-				for (matsize i = 0; i < _OR; ++i)
-				{
-					result[r][c] += a[r][i] * b[i][c];
-				}
-
-		return result;
-	}
-#pragma warning(pop) 
-
 	// Operations: matrix - Vector
 	template<typename _t>
 	inline vector<_t, 2u> operator*(const matrix<_t, 3u, 3u>& mat, const vector<_t, 2>& v)
@@ -709,19 +702,16 @@ namespace influx::math
 		};
 	}
 	template<typename _t, matsize _x, matsize _y>
-	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_transform_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
+	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_transform_RH(
+		const vector<_t, 3u>& pos, 
+		const vector<_t, 3u>& forward, const vector<_t, 3u>& up,
+		const vector<_t, 3u>& scale)
 	{
-		vector<_t, 3u> lRight = vector<_t, 3u>::cross(forward, up).normalized();
-		vector<_t, 3u> lUp = vector<_t, 3u>::cross(lRight, forward).normalized();
-		vector<_t, 3u> lForward = forward.normalized();
-
-		return
-		{
-			lRight.x, lRight.y, lRight.z, 0.0f,
-			lUp.x, lUp.y, lUp.z, 0.0f,
-			lForward.x, lForward.y, lForward.z, 0.0f,
-			pos.x, pos.y, pos.z, 1
-		};
+		using mat44 = matrix<_t, 4u, 4u>;
+		const mat44 mat_rot = make_rotation_RH(forward, up);
+		const mat44 mat_scale = make_scale(scale);
+		const mat44 mat_pos = make_translation(pos);
+		return mat_scale * mat_rot * mat_pos;
 	}
 
 	template<typename _t, matsize _x, matsize _y>
@@ -766,7 +756,7 @@ namespace influx::math
 		const float a = -(pfar * dmax - pnear * dmin) / (plane_delta);
 		const float b = -(pfar * pnear * depth_delta) / (plane_delta);
 		const float c = -(depth_delta);
-		const float d = -dmin;
+		const float d = dmin;
 
 		return
 		{
@@ -849,17 +839,17 @@ namespace influx::math
 	}
 
 	template<typename _t, matsize _x, matsize _y>
-	void matrix<_t, _x, _y>::decompose(vector<_t, 3u>& out_translation, matrix<_t, 3u, 3u>& out_yotation, vector<_t, 3u>& out_scale) const
+	void matrix<_t, _x, _y>::decompose(vector<_t, 3u>& out_translation, matrix<_t, 4u, 4u>& out_rotation, vector<_t, 3u>& out_scale) const
 	{
 		static_assert(_x == 4u && _y == 4u);
 
 		out_translation = get_translation();
-		out_yotation	= get_rotation_matrix();
+		out_rotation	= get_rotation_matrix();
 		out_scale		= get_scale();
 	}
 
 	template<typename _t, matsize _x, matsize _y>
-	matrix<_t, 3u, 3u> matrix<_t, _x, _y>::get_rotation_matrix() const
+	matrix<_t, 4u, 4u> matrix<_t, _x, _y>::get_rotation_matrix() const
 	{
 		static_assert(_x == 4u && _y == 4u);
 		auto rowX = get_row(0u);
@@ -872,9 +862,10 @@ namespace influx::math
 
 		return
 		{
-			rowX.x, rowX.y, rowX.z,
-			rowY.x, rowY.y, rowY.z,
-			rowZ.x, rowZ.y, rowZ.z,
+			rowX.x, rowX.y, rowX.z, 0.0f,
+			rowY.x, rowY.y, rowY.z, 0.0f,
+			rowZ.x, rowZ.y, rowZ.z, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
 		};
 	}
 }
