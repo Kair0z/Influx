@@ -50,7 +50,7 @@ namespace influx::math
 
 	public:
 		transform3D() = default;
-		transform3D(const math::vectorf3& position, const math::rotation& rotation, const math::vectorf3& scale)
+		transform3D(const math::vectorf3& position, const math::rotation& rotation = math::rotation::identity(), const math::vectorf3& scale = math::vectorf3::make_one())
 			: m_position{ position }, m_rotation{ rotation }, m_scale{ scale }
 		{
 			m_is_matrix_dirty = true;

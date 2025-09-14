@@ -68,7 +68,7 @@ namespace influx::renderer
 			{
 				// sampler heap
 				create_args.m_type = e_descriptor_heap_type::sampler;
-				create_args.m_capacity = 8u;
+				create_args.m_capacity = 256u;
 				mp_samp_gpu_heap.get_at_index(i)  = device.create_descriptor_heap(create_args);
 
 				// srv heap

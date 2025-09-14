@@ -18,6 +18,14 @@ namespace influx
 	class light final
 	{
 	public:
+		static light make_point(const math::float4& colour, float radius)
+		{
+			light result{};
+			result.m_point.m_radius = radius;
+			result.m_type = e_light_type::point;
+			result.m_colour = colour;
+			return result;
+		}
 		struct directional
 		{
 

@@ -152,14 +152,13 @@ void main_cs(uint3 thread_id : SV_DispatchThreadID)
         StructuredBuffer<per_pointlight> pointlights = get_pointlights();
         for (uint i = 0; i < g_resolve_args.num_lights[1]; ++i)
         {
-
-#define ENABLE_POINT_LIGHT 0
+#define ENABLE_POINT_LIGHT 1
 #if ENABLE_POINT_LIGHT
             diffuse += pointlight(
                 pointlights[i].m_position.xyz,
                 pointlights[i].m_colour.rgb, 
                 pointlights[i].m_attenuation.r, 
-                worldpos, 
+                worldpos,
                 normal).rgb;
 #endif
         }

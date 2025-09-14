@@ -664,6 +664,7 @@ namespace influx::renderer
                     buffered.m_lightbuffer_srvs[1],
                     buffered.m_lightbuffer_srvs[2]
                 });
+                descriptor_man.stage_sampler(device, m_skybox_sampler);
 
                 // set the descriptorheap bindless indices
                 root_args.texture_indices[0] = gpu_range.m_heap_index;
@@ -674,7 +675,6 @@ namespace influx::renderer
                 root_args.buffer_indices[0]  = gpu_range.m_heap_index + 5u;
                 root_args.buffer_indices[1]  = gpu_range.m_heap_index + 6u;
                 root_args.buffer_indices[2]  = gpu_range.m_heap_index + 7u;
-                descriptor_man.stage_sampler(device, m_skybox_sampler);
             }
         }
 

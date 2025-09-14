@@ -160,6 +160,7 @@ renderer::scene make_the_scene()
 		static const math::float4 green_colour = math::float4{ 0,1,0,1 };
 
 		// setup scene
+#pragma region geometry
 		static constexpr uint32 num_boxes = 2u;
 		math::transform3D box_transforms[num_boxes]
 		{
@@ -209,6 +210,19 @@ renderer::scene make_the_scene()
 			auto& sphere = result.add_mesh(renderer::e_mesh::sphere, sphere_transforms[i].get_matrix());
 			sphere.m_per_instance_colour = red_colour;
 		}
+#pragma endregion
+#pragma region lights
+		static constexpr uint32 num_pointlights = 1u;
+		math::float3 plight_positions[num_pointlights]
+		{
+			math::float3{0,0,0}
+		};
+		for (uint32 i = 0u; i < num_pointlights; ++i)
+		{
+			const auto light_trans = math::transform3D(plight_positions[i]);
+			auto& light = result.add_light(light::make_point({ 1,1,1,1 }, 1.0f), light_trans.get_matrix());
+		}
+#pragma endregion
 	}
 	else
 	{
@@ -227,18 +241,15 @@ int main()
 
 	vector<platform::monitor> monitors = platform::monitor::query_monitors();
 	platform::window_desc window_desc{};
-	window_desc.m_dimensions = { 360, 360 };
+	window_desc.m_dimensions = { 128u, 128u };
 	const math::vectoru2 window_half_size = window_desc.m_dimensions / 2;
 	window_desc.m_name = "renderer";
 
 	// create 3 windows
-	static constexpr uint32 num_windows = 1u;
-	platform::window* windows[num_windows] =
-	{
-		platform::window::create(window_desc.set_name("A")),
-		// platform::window::create(window_desc.set_name("B")),
-		// platform::window::create(window_desc.set_name("c")),
-	};
+	static constexpr uint32 num_windows = 8u;
+	platform::window* windows[num_windows] = {};
+	for (uint32 i = 0u; i < num_windows; ++i)
+		windows[i] = platform::window::create(window_desc.set_name(to_string(i)));
 
 	// initialize renderer
 	renderer::init_args render_init{};
@@ -269,7 +280,7 @@ int main()
 		{
 			const platform::monitor& monitor = monitors[0];
 			const math::vectoru2 monitor_center = monitor.get_rect().get_mid();
-			const float angle = 0.0f + (i * math::k_PIDouble * 0.33f);
+			const float angle = seconds + (i * math::k_PIDouble / num_windows);
 			uint32 x = (uint32)(radius * math::cos(angle));
 			uint32 y = (uint32)(radius * math::sin(angle));
 			windows[i]->set_position(monitor_center + math::vectoru2{ x,y } - window_half_size);
