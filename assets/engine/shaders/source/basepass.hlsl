@@ -80,11 +80,9 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
 
     // positions
     float4x4 instance_transform = (float4x4)instance_data.m_transform;
-    float4x4 mvp = mul((float4x4)g_perview.m_viewprojection, instance_transform);
-    output.position = mul(mvp, float4 ( vertex_data.position, 1.0f ) );
-    output.worldPos = mul(instance_transform, float4(vertex_data.position, 1.0f)).xyz;
-
-    output.position.z = 5.0f;
+    float4x4 mvp = mul(instance_transform, (float4x4)g_perview.m_viewprojection);
+    output.position = mul(float4(vertex_data.position, 1.0f), mvp);
+    output.worldPos = mul(float4(vertex_data.position, 1.0f), instance_transform).xyz;
 
     // uvs
     output.texcoord = vertex_data.texcoord;
@@ -106,11 +104,13 @@ ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id 
 [shader("pixel")]
 ps_output main_ps(ps_input input)
 {
-    float4 albedo = float4(1,1,1,1);// get_texture(input.texid_albedo).Sample(get_sampler(0), input.texcoord).rgba;
+    float4 albedo = float4(1,1,1,1);
+    // get_texture(input.texid_albedo).Sample(get_sampler(0), input.texcoord).rgba;
+    
     // float3 normal = get_normal(input.texcoord).rgb;
     float3 normal = input.normal;
     normal = normalize(normal);
-
+    
     ps_output output = (ps_output)0;
     output.gbuffer_data.set_albedo(lerp(albedo.rgb, input.colour.rgb, 0.5f));
     output.gbuffer_data.set_normal(normal.rgb);

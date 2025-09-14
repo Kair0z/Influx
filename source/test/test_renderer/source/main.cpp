@@ -153,6 +153,11 @@ renderer::scene make_the_scene()
 
 		static constexpr float room_size = 20.0f;
 		static constexpr float plane_scale = 100.0f;
+		static const math::float3 side_axis = math::float3::make_forward();
+		static const math::float3 back_axis = math::float3::make_right();
+		static const math::float4 white_colour = math::float4{ 1,1,1,1 };
+		static const math::float4 red_colour = math::float4{ 1,0,0,1 };
+		static const math::float4 green_colour = math::float4{ 0,1,0,1 };
 
 		// setup scene
 		static constexpr uint32 num_boxes = 2u;
@@ -161,14 +166,27 @@ renderer::scene make_the_scene()
 			math::transform3D(math::float3{-0.2, 0.0f, 0.0f}, math::rotation::identity(), math::float3{1,1,1}),
 			math::transform3D(math::float3{0.2, 0.0f, 0.0f}, math::rotation::identity(), math::float3{1,1,1})
 		};
+		math::float4 box_colours[num_boxes]
+		{
+			green_colour,
+			red_colour
+		};
 		static constexpr uint32 num_planes = 5u;
 		math::transform3D plane_transforms[num_planes]
 		{
-			math::transform3D(math::float3{-room_size, 0.0f, 0.0f}, math::rotation::identity(), math::float3{1,1,1} *plane_scale),
+			math::transform3D(math::float3{-room_size, 0.0f, 0.0f}, math::rotation::make_angleaxis(side_axis, 90.0f), math::float3{1,1,1} *plane_scale),
 			math::transform3D(math::float3{0.0f, room_size, 0.0f}, math::rotation::identity(), math::float3{1,1,1}	*plane_scale),
-			math::transform3D(math::float3{room_size, 0.0f, 0.0f}, math::rotation::identity(), math::float3{1,1,1}	*plane_scale),
+			math::transform3D(math::float3{room_size, 0.0f, 0.0f}, math::rotation::make_angleaxis(side_axis, -90.0f), math::float3{1,1,1}	*plane_scale),
 			math::transform3D(math::float3{0.0f, -room_size, 0.0f}, math::rotation::identity(), math::float3{1,1,1}	*plane_scale),
-			math::transform3D(math::float3{0.0f, 0.0f, -room_size}, math::rotation::identity(), math::float3{1,1,1} *plane_scale)
+			math::transform3D(math::float3{0.0f, 0.0f, -room_size}, math::rotation::make_angleaxis(back_axis, 90.0f), math::float3{1,1,1} *plane_scale)
+		};
+		math::float4 plane_colours[num_planes]
+		{
+			red_colour,
+			white_colour,
+			green_colour,
+			white_colour,
+			white_colour
 		};
 		static constexpr uint32 num_spheres = 1u;
 		math::transform3D sphere_transforms[num_spheres]
@@ -177,11 +195,20 @@ renderer::scene make_the_scene()
 		};
 
 		for (uint32 i = 0u; i < num_boxes; ++i)
-			result.add_mesh(renderer::e_mesh::box, box_transforms[i].get_matrix());
+		{
+			auto& mesh = result.add_mesh(renderer::e_mesh::box, box_transforms[i].get_matrix());
+			mesh.m_per_instance_colour = box_colours[i];
+		}
 		for (uint32 i = 0u; i < num_planes; ++i)
-			result.add_mesh(renderer::e_mesh::plane, plane_transforms[i].get_matrix());
+		{
+			auto& mesh = result.add_mesh(renderer::e_mesh::plane, plane_transforms[i].get_matrix());
+			mesh.m_per_instance_colour = plane_colours[i];
+		}
 		for (uint32 i = 0u; i < num_spheres; ++i)
-			result.add_mesh(renderer::e_mesh::sphere, sphere_transforms[i].get_matrix());
+		{
+			auto& sphere = result.add_mesh(renderer::e_mesh::sphere, sphere_transforms[i].get_matrix());
+			sphere.m_per_instance_colour = red_colour;
+		}
 	}
 	else
 	{

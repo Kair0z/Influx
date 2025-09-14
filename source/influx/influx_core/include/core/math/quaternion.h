@@ -409,6 +409,11 @@ namespace influx::math
 			m_quaternion = quatf::matrix_to_quat(mat);
 		}
 
+		static rotation make_angleaxis(const math::float3& axis, const float degrees)
+		{
+			return quatf::make_angleaxis(degrees, axis);
+		}
+
 		/* converts the rotation encoded in 3 euler angles (degrees) to our m_quaternion */
 		void set_euler_angles(float x, float y, float z)
 		{
