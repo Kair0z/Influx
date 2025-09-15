@@ -961,7 +961,7 @@ namespace influx::rhi
 	}
 
 	// [queue - interface]
-	result<> queue::submit(const vector<commandlist*>& commandlists) const
+	result<> queue::submit(vector<commandlist*>& commandlists) const
 	{
 		using result_type = result<>;
 
@@ -972,8 +972,9 @@ namespace influx::rhi
 			return result_type::make_error("m_native_object failed casting to dx12_queue!");
 
 		vector<ID3D12CommandList*> dxcommandlists{};
-		for (const commandlist* list : commandlists)
+		for (commandlist* list : commandlists)
 		{
+			if (list->is_recording()) list->end();
 			dxcommandlists.push_back((ID3D12CommandList*)list->m_native_object);
 		}
 
@@ -1176,6 +1177,7 @@ namespace influx::rhi
 	{
 		ID3D12GraphicsCommandList* dxcommandlist = (ID3D12GraphicsCommandList*)m_native_object;
 		HRESULT res = dxcommandlist->Close();
+		m_data.m_state = e_commandlist_state::closed;
 		return {};
 	}
 	result<> commandlist::submit(queue& queue)

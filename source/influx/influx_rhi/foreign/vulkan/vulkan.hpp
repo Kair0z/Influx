@@ -191,6 +191,9 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
   private:
+#ifdef min
+#undef min
+#endif
     VULKAN_HPP_CONSTEXPR_14 void copy( char const * data, size_t len ) VULKAN_HPP_NOEXCEPT
     {
       size_t n = std::min( N, len );

@@ -1,5 +1,5 @@
-#define USE_GRAPHICS 0
-#define USE_RHI 1
+#define USE_GRAPHICS	0
+#define USE_RHI			1
 
 #if USE_GRAPHICS
 #include "influx_graphics/device.h"
@@ -129,25 +129,43 @@ int rhi_main()
 	window_desc.m_name = "renderer";
 	platform::window* window = platform::window::create(window_desc.set_name("influx_rhi"));
 
-	rhi::device dev				= rhi::create_device().get();
+	rhi::device_create_args dev_args{};
+	dev_args.m_debug = true;
+	rhi::device dev				= rhi::create_device(dev_args).get();
 	rhi::queue queue			= dev.create(rhi::queue::default_graphics()).get();
 	rhi::commandlist cmdlist	= dev.create(rhi::commandlist::default_graphics()).get();
 
-#if 0
 	rhi::swapchain_create_args swapchain_args{};
-	swapchain_args.m_window = window->get_platform_handle();
-	swapchain_args.m_dimensions = window->get_dimensions();
-	swapchain_args.m_queue = &queue;
-	swapchain_args.m_format = rhi::pixelformat::rgba_8_unorm();
+	{
+		swapchain_args.m_platform_instance	= platform::platform::get_current_instance();
+		swapchain_args.m_window				= window->get_platform_handle();
+		swapchain_args.m_dimensions			= window->get_dimensions();
+		swapchain_args.m_queue				= queue.m_native_object;
+		swapchain_args.m_format				= rhi::pixelformat::rgba_8_unorm();
+	}
 	rhi::swapchain swapchain = dev.create(swapchain_args).get();
-#endif
 
-	rhi::pipeline_create_args pipeline_args{};
-	pipeline_args.m_type = rhi::e_pipeline_type::graphics;
-	pipeline_args.m_graphics.m_shaderpipeline = rhi::e_graphics_shader_pipeline::vs_ps;
-	auto pipeline = dev.create(pipeline_args);
-	dev.release();
+	bool is_quit = false;
+	while (!is_quit)
+	{
+		window->poll_events(is_quit);
+		if (is_quit) break;
 
+		swapchain.acquire_backbuffer(dev.m_native_object);
+
+		cmdlist.start(dev);
+		rhi::texture& backbuffer = swapchain.get_backbuffer_resource().get();
+		cmdlist.clear_texture(dev, backbuffer, rhi::clear::colour({1,0,0,1}));
+		cmdlist.end();
+		cmdlist.submit(queue);
+
+		rhi::present_args args{};
+		args.m_device = dev.m_native_object;
+		args.m_present_queue = queue.m_native_object;
+		swapchain.present(args);
+
+		cmdlist.wait_for_finish();
+	}
 	return 0u;
 }
 #endif

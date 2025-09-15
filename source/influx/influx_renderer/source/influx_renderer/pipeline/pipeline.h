@@ -521,11 +521,13 @@ namespace influx::renderer
 				rootsig_desc.name_last_constants(resource.m_name);
 				break;
 
-			case shader::reflection::resource::e_type::structured:
-				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+			case shader::reflection::resource::e_type::uav:
+				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
 				rootsig_desc.name_last_resource_table(resource.m_name);
 				break;
 
+			case shader::reflection::resource::e_type::srv:
+			case shader::reflection::resource::e_type::structured:
 			case shader::reflection::resource::e_type::texture:
 				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
 				rootsig_desc.name_last_resource_table(resource.m_name);

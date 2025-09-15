@@ -5,6 +5,7 @@
 #include "core/math/vector.h"
 #include "core/enum.h"
 #include "core/container/vector.h"
+#include "core/container/queue.h"
 #include "core/string.h"
 
 // influx::shader
@@ -16,8 +17,8 @@
 #define INFLUX_RHI_API __declspec(dllimport)
 #endif
 
-#define INFLUX_RHI_VULKAN	0
-#define INFLUX_RHI_D3D12	1
+#define INFLUX_RHI_VULKAN	1
+#define INFLUX_RHI_D3D12	0
 
 #include "influx_rhi/format.h"
 
@@ -38,6 +39,22 @@ struct ID3D12Resource;
 struct ID3D12Resource;
 struct ID3D12PipelineState;
 struct ID3D12PipelineState;
+#elif INFLUX_RHI_VULKAN
+typedef struct VkInstance_T* VkInstance;
+typedef struct VkPhysicalDevice_T* VkPhysicalDevice;
+typedef struct VkDevice_T* VkDevice;
+typedef struct VkCommandBuffer_T* VkCommandBuffer;
+typedef struct VkQueue_T* VkQueue;
+typedef struct VkSwapchainKHR_T* VkSwapchainKHR;
+typedef struct VkCommandPool_T* VkCommandPool;
+struct VkMemoryHeap;
+typedef struct VkDescriptorSet_T* VkDescriptorSet;
+typedef struct VkFence_T* VkFence;
+typedef struct VkSemaphore_T* VkSemaphore;
+typedef struct VkImage_T* VkImage;
+typedef struct VkBuffer_T* VkBuffer;
+typedef struct VkPipeline_T* VkPipeline;
+typedef struct VkPipelineLayout_T* VkPipelineLayout;
 #endif
 
 namespace influx::rhi
@@ -66,6 +83,7 @@ namespace influx::rhi
 	using native_memoryheap				= ID3D12Heap*;
 	using native_descheap				= ID3D12DescriptorHeap*;
 	using native_fence					= ID3D12Fence*;
+	using native_semaphore				= void*;
 	using native_texture				= ID3D12Resource*;
 	using native_buffer					= ID3D12Resource*;
 	using native_compute_pipeline		= ID3D12PipelineState*;
@@ -73,7 +91,21 @@ namespace influx::rhi
 	using native_raytracing_pipeline	= object_native;
 	using descriptor					= uint64;
 #elif INFLUX_RHI_VULKAN
-
+	using native_instance				= VkInstance;
+	using native_physdevice				= VkPhysicalDevice;
+	using native_device					= VkDevice;
+	using native_commandlist			= VkCommandBuffer;
+	using native_queue					= VkQueue;
+	using native_swapchain				= VkSwapchainKHR;
+	using native_commandpool			= VkCommandPool;
+	using native_memoryheap				= VkMemoryHeap*;
+	using native_descheap				= VkDescriptorSet;
+	using native_fence					= VkFence;
+	using native_semaphore				= VkSemaphore;
+	using native_texture				= VkImage;
+	using native_buffer					= VkBuffer;
+	using native_pipeline				= VkPipeline;
+	using native_rootsignature			= VkPipelineLayout;
 #else
 	using native_instance			= object_native;	// IDXGIFactory
 	using native_physdevice			= object_native;	// IDXGIAdapter1
@@ -94,12 +126,14 @@ namespace influx::rhi
 
 	// =============================================
 	// common types
+#pragma region common types
 	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
 	template <typename _t>
 	using optional = std::optional<_t>;
 
 	using platform_window_handle = void*;
+	using platform_instance_handle = void*;
 	enum class e_api : uint8
 	{
 		d3d12,
@@ -121,7 +155,19 @@ namespace influx::rhi
 	enum class e_queue_type : uint8
 	{
 		graphics,
-		compute
+		compute,
+		copy,
+		present,
+		num
+	};
+	static constexpr uint32 k_num_queue_types = static_cast<uint32>(e_queue_type::num);
+	enum class e_queue_flags : uint8
+	{
+		none		= 0,
+		graphics	= 1 << static_cast<uint32>(e_queue_type::graphics),
+		compute		= 1 << static_cast<uint32>(e_queue_type::compute),
+		copy		= 1 << static_cast<uint32>(e_queue_type::copy),
+		all			= graphics | compute | copy
 	};
 	enum class e_create_descriptor : uint8
 	{
@@ -135,6 +181,12 @@ namespace influx::rhi
 	enum class e_command : uint32
 	{
 
+	};
+	enum class e_fence_type : uint8
+	{
+		fence,
+		semaphore,
+		num
 	};
 	enum class e_descriptor_heap_type : uint8
 	{
@@ -299,6 +351,33 @@ namespace influx::rhi
 		always,
 		count
 	};
+	struct queue_families final
+	{
+		static constexpr uint32 k_invalid_index = (uint32)-1;
+		uint32	m_indices[k_num_queue_types]{};
+
+		queue_families()
+		{
+			for (uint32 i = 0u; i < k_num_queue_types; ++i)
+				m_indices[i] = k_invalid_index;
+		}
+		inline bool is_set(e_queue_type type) const
+		{
+			return m_indices[static_cast<uint32>(type)] != k_invalid_index;
+		}
+		inline void set_index(e_queue_type type, uint32 index)
+		{
+			m_indices[static_cast<uint32>(type)] = index;
+		}
+		inline uint32& get_index(e_queue_type type)
+		{
+			return m_indices[static_cast<uint32>(type)];
+		}
+		inline uint32 get_index(e_queue_type type) const
+		{
+			return m_indices[static_cast<uint32>(type)];
+		}
+	};
 	struct hitgroup final
 	{
 	public:
@@ -322,11 +401,29 @@ namespace influx::rhi
 	{
 
 	};
+	struct descriptor final
+	{
+		uint64 m_cpu_address;
+		uint64 m_gpu_address;
+	};
 	struct descriptor_range final
 	{
 		descriptor m_base;
 		uint32 m_num = 1u;
 	};
+	struct present_args final
+	{
+		uint32 m_sync_interval;
+		uint32 m_flags;
+
+		// (vulkan)
+		native_device m_device;
+		native_queue m_present_queue;
+	};
+	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
+	static constexpr uint32 k_max_num_rendertargets_per_draw = 8u;
+#pragma endregion
+
 	enum class e_object : uint8
 	{
 		device,
@@ -336,6 +433,7 @@ namespace influx::rhi
 		commandpool,
 		commandlist,
 		fence,
+		semaphore,
 		buffer,
 		texture,
 		memoryheap,
@@ -344,16 +442,9 @@ namespace influx::rhi
 		num
 	};
 
-	struct present_args final
-	{
-		uint32 m_sync_interval;
-		uint32 m_flags;
-	};
-	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
-	static constexpr uint32 k_max_num_rendertargets_per_draw = 8u;
-
 	// =============================================
 	// [shaders]
+#pragma region shaders
 	using shadercode = vector<byte>;
 
 	enum class e_graphics_shader_slots : uint8
@@ -532,9 +623,11 @@ namespace influx::rhi
 	using graphics_shaderslots		= shader_slots<e_pipeline_type::graphics>;
 	using compute_shaderslots		= shader_slots<e_pipeline_type::compute>;
 	using raytracing_shaderslots	= shader_slots<e_pipeline_type::raytracing>;
+#pragma endregion
 
 	// =============================================
 	// [gfx pipeline]
+#pragma region pipelines
 	struct blend_desc final
 	{
 		bool m_enabled = false;
@@ -671,13 +764,14 @@ namespace influx::rhi
 		vector<string> m_shader_export_names{};
 		vector<hitgroup> m_hitgroups{};
 	};
+#pragma endregion
 
 	// =============================================
 	// [create_args]
 #pragma region create_create_args
 	struct device_create_args final
 	{
-		/* unused in D3D12 */
+		/* (vulkan) */
 		const char* m_app_name = "";
 		const char* m_engine_name = "";
 		uint32 m_app_version = 0u;
@@ -707,8 +801,9 @@ namespace influx::rhi
 			return desc;
 		}
 
-		native_device m_device = nullptr;
-		e_queue_type m_type = e_queue_type::graphics;
+		native_device		m_device = nullptr;
+		e_queue_type		m_type = e_queue_type::graphics;
+		queue_families		m_queue_families{};
 
 		// (optional)
 		int m_priority = 0;
@@ -719,6 +814,10 @@ namespace influx::rhi
 		native_device	m_device = nullptr;
 		native_queue	m_queue = nullptr;
 
+		// (vulkan)
+		queue_families m_queue_families{};
+
+		platform_instance_handle m_platform_instance = nullptr;
 		platform_window_handle	m_window = nullptr;
 		pixelformat				m_format = pixelformat::rgba_8_unorm();
 		uint32					m_num_buffers = 3u;
@@ -739,6 +838,9 @@ namespace influx::rhi
 	{
 		native_device			m_device;
 		e_commandlist_type		m_type;
+
+		// (vulkan)
+		queue_families			m_queue_families{};
 	};
 	struct commandlist_create_args final
 	{
@@ -753,6 +855,9 @@ namespace influx::rhi
 
 		native_device		m_device;
 		e_commandlist_type	m_type;
+		
+		// (vulkan)
+		queue_families		m_queue_families{};
 
 		// (optional) commandlist will create its own pool
 		optional<native_commandpool> m_pool = nullptr;
@@ -762,8 +867,26 @@ namespace influx::rhi
 	};
 	struct fence_create_args final
 	{
+		static fence_create_args semaphore()
+		{
+			fence_create_args args{};
+			args.m_type = e_fence_type::semaphore;
+			return args;
+		}
+		static fence_create_args fence()
+		{
+			fence_create_args args{};
+			args.m_type = e_fence_type::fence;
+			return args;
+		}
+
 		native_device	m_device;
 		uint64			m_init_value = 0u;
+		e_fence_type	m_type = e_fence_type::fence;
+	};
+	struct semaphore_create_args final
+	{
+		native_device m_device;
 	};
 	struct buffer_create_args final
 	{
@@ -823,6 +946,7 @@ namespace influx::rhi
 		commandpool_create_args,
 		commandlist_create_args,
 		fence_create_args,
+		semaphore_create_args,
 		buffer_create_args,
 		texture_create_args,
 		memheap_create_args,
@@ -837,16 +961,27 @@ namespace influx::rhi
 		native_instance		m_instance;
 		native_physdevice	m_physical_device;
 		uint32				m_descriptor_strides[k_num_descriptor_heap_types];
+		queue_families		m_queue_families{};
 		uset<object_native> m_children{};
 	};
 	struct queue_data final
 	{
-
+		
 	};
 	struct swapchain_data final
 	{
+		// internal descriptors
 		native_descheap	m_rtv_heap;
 		vector<bool>	m_rtv_dirty_list{};
+		
+		// (vulkan) image acquire info
+		struct backbuffer_info final
+		{
+			bool	m_is_acquired = false;
+			uint32	m_current_index = 0u;
+		};
+		backbuffer_info m_backbuffer_info{};
+		vector<texture> m_swapchain_textures{};
 	};
 	struct descheap_data final
 	{
@@ -861,10 +996,15 @@ namespace influx::rhi
 	{
 		native_commandpool	m_current_pool;
 		native_fence		m_fence;
-		uint32				m_fence_complete_value = 0u;
+		native_semaphore	m_semaphore;
+		uint32				m_complete_value = 0u;
 		e_commandlist_state m_state = e_commandlist_state::init;
 	};
 	struct fence_data final
+	{
+
+	};
+	struct semaphore_data final
 	{
 
 	};
@@ -904,6 +1044,7 @@ namespace influx::rhi
 		commandpool_data,
 		commandlist_data,
 		fence_data,
+		semaphore_data,
 		buffer_data,
 		texture_data,
 		memheap_data,
@@ -911,11 +1052,29 @@ namespace influx::rhi
 		rootsignature_data>>;
 
 	template <e_object _t>
+	using native_type = std::tuple_element_t < static_cast<uint32>(_t), std::tuple<
+		native_device,
+		native_queue,
+		native_swapchain,
+		native_descheap,
+		native_commandpool,
+		native_commandlist,
+		native_fence,
+		native_semaphore,
+		native_buffer,
+		native_texture,
+		native_memoryheap,
+		native_pipeline,
+		native_rootsignature
+		>>;
+
+	template <e_object _t>
 	class object
 	{
 	public:
 		using data_type = data_type<_t>;
 		using create_args = create_args<_t>;
+		using native_obj = native_type<_t>;
 
 		static constexpr e_object k_type = _t;
 		
@@ -931,9 +1090,10 @@ namespace influx::rhi
 		object& operator=(object&& other) = default;
 		~object() = default;
 
-		object_native		m_native_object = nullptr;
+		native_obj			m_native_object = nullptr;
 		create_args			m_create_args = {};
 		data_type			m_data = {};
+		native_device		m_native_device = nullptr;
 	};
 
 	// =============================================
@@ -947,7 +1107,7 @@ namespace influx::rhi
 	public:
 		INFLUX_RHI_API virtual const e_resource_type get_resource_type() const = 0;
 		INFLUX_RHI_API virtual const object_native get_native_resource() const = 0;
-		INFLUX_RHI_API virtual result<> transition(commandlist& cmdlist, e_resource_state new_state);
+		// INFLUX_RHI_API virtual result<> transition(commandlist& cmdlist, e_resource_state new_state);
 		INFLUX_RHI_API virtual e_resource_state get_resource_state() const = 0;
 		INFLUX_RHI_API virtual e_resource_state get_previous_resource_state() const = 0;
 		INFLUX_RHI_API virtual result<> set_state(e_resource_state new_state) = 0;
@@ -1038,13 +1198,18 @@ namespace influx::rhi
 		INFLUX_RHI_API result<uint64>	query_value() const;
 	};
 
+	class semaphore final : public object<e_object::semaphore>
+	{
+
+	};
+
 	class queue final : public object<e_object::queue>
 	{
 	public:
 		inline static queue_create_args default_graphics() { return queue_create_args::default_graphics(); }
 		inline static queue_create_args default_compute() { return queue_create_args::default_compute(); }
 
-		INFLUX_RHI_API result<> submit(const vector<commandlist*>& commandlists) const;
+		INFLUX_RHI_API result<> submit(vector<commandlist*> commandlists) const;
 		INFLUX_RHI_API result<> queue_signal(const fence& fence, uint64 signal_value) const;
 		INFLUX_RHI_API result<> queue_signal(object_native fence, uint64 signal_value) const;
 	};
@@ -1052,11 +1217,13 @@ namespace influx::rhi
 	class swapchain final : public object<e_object::swapchain>
 	{
 	public:
+		INFLUX_RHI_API result<> acquire_backbuffer(native_device device);
 		INFLUX_RHI_API result<> present(const present_args& args) const;
-		INFLUX_RHI_API result<uint32> get_current_backbuffer_index() const;
-		INFLUX_RHI_API result<texture> get_backbuffer_resource(uint32 index) const;
-		INFLUX_RHI_API result<texture> get_backbuffer_resource() const;
-		INFLUX_RHI_API result<> resize(const math::uint2& new_dim);
+
+		INFLUX_RHI_API result<uint32>	get_current_backbuffer_index() const;
+		INFLUX_RHI_API result<texture>	get_backbuffer_resource(uint32 index) const;
+		INFLUX_RHI_API result<texture>	get_backbuffer_resource() const;
+		INFLUX_RHI_API result<>			resize(const math::uint2& new_dim);
 
 		INFLUX_RHI_API bool owns_rtvs() const;
 		INFLUX_RHI_API result<descriptor> get_or_create_backbuffer_rtv(device& device);
@@ -1111,9 +1278,7 @@ namespace influx::rhi
 	public:
 		INFLUX_RHI_API result<> start(device& device);
 		INFLUX_RHI_API result<> start(native_commandpool pool);
-
-		INFLUX_RHI_API bool is_recording() const;
-
+		INFLUX_RHI_API result<> submit(queue& queue);
 		INFLUX_RHI_API result<> renderpass_begin(const renderpass_args& args);
 		INFLUX_RHI_API result<> renderpass_end();
 		INFLUX_RHI_API result<> draw_instanced();
@@ -1121,8 +1286,13 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> dispatch();
 		INFLUX_RHI_API result<> bind_vertexbuffer(const resource& vertexbuffer);
 		INFLUX_RHI_API result<> bind_indexbuffer(const resource& indexbuffer);
+
+		INFLUX_RHI_API result<> clear_texture(device& device, const texture& texture, const clear& clear);
+
+		/* dx12 only - */
 		INFLUX_RHI_API result<> clear_rtv(descriptor rtv, const clear& clear);
 		INFLUX_RHI_API result<> clear_dsv(descriptor dsv);
+		
 		INFLUX_RHI_API result<> set_draw_output(descriptor rtv, descriptor dsv);
 		INFLUX_RHI_API result<> transition_resource(resource& resource, e_resource_state new_state);
 		INFLUX_RHI_API result<> update_blas();
@@ -1136,9 +1306,13 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> set_primitive_topology();
 		INFLUX_RHI_API result<> end();
 
-		INFLUX_RHI_API result<> submit(queue& queue);
 		INFLUX_RHI_API result<> wait_for_finish() const;
 		INFLUX_RHI_API bool has_fence() const;
+
+		inline bool is_recording() const
+		{
+			return m_data.m_state == e_commandlist_state::recording;
+		}
 
 		inline static commandlist_create_args default_graphics() { return commandlist_create_args::default_graphics(); }
 	};
@@ -1182,6 +1356,8 @@ namespace influx::rhi
 		inline result<descheap>			create(const descheap_create_args& args);
 		inline result<pipeline>			create(const pipeline_create_args& args);
 		inline result<rootsignature>	create(const rootsignature_create_args& args);
+		inline result<fence>			create(const fence_create_args& args);
+		inline result<semaphore>		create(const semaphore_create_args& args);
 
 		inline result<> release()
 		{
@@ -1189,13 +1365,19 @@ namespace influx::rhi
 		}
 
 	private:
-		inline result<> register_child(const object_native obj)
+		template <typename _obj>
+		inline result<> register_child(_obj& obj)
 		{
 			using result_type = result<>;
-			if (m_data.m_children.contains(obj))
+			obj.m_native_device = m_native_object;
+
+			if (obj.m_native_object == nullptr)
+				return result_type::make_error("cannot register nullptr!");
+
+			if (m_data.m_children.contains(obj.m_native_object))
 				return result_type::make_error("native object already registered!");
 
-			m_data.m_children.insert(obj);
+			m_data.m_children.insert(obj.m_native_object);
 			return {};
 		}
 	};
@@ -1209,12 +1391,17 @@ namespace influx::rhi
 	/* [import methods]
 	* when you import an object (native pointer) the RHI will attempt to build a wrapped type
 	* based on the information it can parse from the pointer.
+	* 
+	* Vulkan does not store object metadata in it's handles.
+	* Therefore it is impossible to parse any info from them
 	*/
+#if !INFLUX_RHI_VULKAN
 	INFLUX_RHI_API result<buffer>			import_buffer(native_buffer native);
 	INFLUX_RHI_API result<texture>			import_texture(native_texture native);
 	INFLUX_RHI_API result<descheap>			import_descheap(native_descheap native);
 	INFLUX_RHI_API result<commandlist>		import_commandlist(native_commandlist native);
 	INFLUX_RHI_API result<commandpool>		import_commandpool(native_commandpool native);
+#endif
 
 	// =============================================
 	/* [creation methods]
@@ -1224,17 +1411,18 @@ namespace influx::rhi
 	* 
 	* optionally, you can specify an address 'out_data' to which the create function writes various queried information
 	*/ 
-	INFLUX_RHI_API result<object_native> create_native(const device_create_args& args, device_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const queue_create_args& args, queue_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const swapchain_create_args& args, swapchain_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const descheap_create_args& args, descheap_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const commandpool_create_args& args, commandpool_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const commandlist_create_args& args, commandlist_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const fence_create_args& args, fence_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const buffer_create_args& args, buffer_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const texture_create_args& args, texture_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const pipeline_create_args& args, pipeline_data* out_data = nullptr);
-	INFLUX_RHI_API result<object_native> create_native(const rootsignature_create_args& args, rootsignature_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_device>			create_native(const device_create_args& args, device_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_queue>				create_native(const queue_create_args& args, queue_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_swapchain>			create_native(const swapchain_create_args& args, swapchain_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_descheap>			create_native(const descheap_create_args& args, descheap_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_commandpool>		create_native(const commandpool_create_args& args, commandpool_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_commandlist>		create_native(const commandlist_create_args& args, commandlist_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_fence>				create_native(const fence_create_args& args, fence_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_semaphore>			create_native(const semaphore_create_args& args, semaphore_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_buffer>			create_native(const buffer_create_args& args, buffer_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_texture>			create_native(const texture_create_args& args, texture_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_pipeline>			create_native(const pipeline_create_args& args, pipeline_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_rootsignature>		create_native(const rootsignature_create_args& args, rootsignature_data* out_data = nullptr);
 	INFLUX_RHI_API result<> release(object_native native);
 
 	template <typename _t>
@@ -1268,11 +1456,12 @@ namespace influx::rhi
 		auto args_cpy = args; 
 		args_cpy.m_device = (native_device)this->m_native_object;
 		args_cpy.m_instance = (native_instance)this->m_data.m_instance;
+		args_cpy.m_queue_families = m_data.m_queue_families;
 		auto res = influx::rhi::create<swapchain>(args_cpy);
 		if (!res)
 			return result_type::make_error("failed creating swapchain!");
 		
-		auto reg = register_child(res.get().m_native_object);
+		auto reg = register_child(res.get());
 		if (!reg)
 			return result_type::make_error("failed registering new object!");
 		return res;
@@ -1282,12 +1471,13 @@ namespace influx::rhi
 		using result_type = result<queue>;
 
 		auto args_cpy = args; 
+		args_cpy.m_queue_families = m_data.m_queue_families;
 		args_cpy.m_device = (native_device)this->m_native_object; 
 		auto res = influx::rhi::create<queue>(args_cpy);
 		if (!res)
 			return result_type::make_error("failed creating queue!");
 
-		auto reg = register_child(res.get().m_native_object);
+		auto reg = register_child(res.get());
 		if (!reg)
 			return result_type::make_error("failed registering new object!");
 		return res;
@@ -1302,7 +1492,7 @@ namespace influx::rhi
 		if (!res)
 			return result_type::make_error("failed creating commandpool!");
 
-		auto reg = register_child(res.get().m_native_object);
+		auto reg = register_child(res.get());
 		if (!reg)
 			return result_type::make_error("failed registering new object!");
 		return res;
@@ -1313,14 +1503,15 @@ namespace influx::rhi
 
 		auto args_cpy = args; 
 		args_cpy.m_device = (native_device)this->m_native_object;
-		auto res = influx::rhi::create<commandlist>(args_cpy); 
+		args_cpy.m_queue_families = m_data.m_queue_families;
+		auto res = influx::rhi::create<commandlist>(args_cpy);
 		if (!res)
 			return result_type::make_error("failed creating commandlist!");
 
-		auto reg = register_child(res.get().m_native_object);
+		auto reg = register_child(res.get());
 		if (!reg)
 			return result_type::make_error("failed registering new object!");
-		return {};
+		return res;
 	}
 	inline result<descheap>	device::create(const descheap_create_args& args)			
 	{ 
@@ -1331,7 +1522,7 @@ namespace influx::rhi
 		auto res = influx::rhi::create<descheap>(args_cpy); 
 			return result_type::make_error("failed creating descheap!");
 
-		auto reg = register_child(res.get().m_native_object);
+		auto reg = register_child(res.get());
 		if (!reg)
 			return result_type::make_error("failed registering new object!");
 		return res;
@@ -1344,7 +1535,7 @@ namespace influx::rhi
 		auto res = influx::rhi::create<pipeline>(args_cpy);
 			return result_type::make_error("failed creating pipeline!");
 
-		auto reg = register_child(res.get().m_native_object);
+		auto reg = register_child(res.get());
 		if (!reg)
 			return result_type::make_error("failed registering new object!");
 		return res;
@@ -1358,7 +1549,35 @@ namespace influx::rhi
 		if (!res)
 			return result_type::make_error("failed creating rootsignature!");
 
-		auto reg = register_child(res.get().m_native_object);
+		auto reg = register_child(res.get());
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	inline result<fence> device::create(const fence_create_args& args)
+	{
+		using result_type = result<fence>;
+		auto args_cpy = args;
+		args_cpy.m_device = (native_device)this->m_native_object;
+		auto res = influx::rhi::create<fence>(args_cpy);
+		if (!res)
+			return result_type::make_error("failed creating fence!");
+
+		auto reg = register_child(res.get());
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	inline result<semaphore> device::create(const semaphore_create_args& args)
+	{
+		using result_type = result<semaphore>;
+		auto args_cpy = args;
+		args_cpy.m_device = (native_device)this->m_native_object;
+		auto res = influx::rhi::create<semaphore>(args_cpy);
+		if (!res)
+			return result_type::make_error("failed creating semaphore!");
+
+		auto reg = register_child(res.get());
 		if (!reg)
 			return result_type::make_error("failed registering new object!");
 		return res;
@@ -1367,6 +1586,7 @@ namespace influx::rhi
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_bindflags);
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_graphics_shader_pipeline);
+ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_queue_flags);
 
 namespace influx::rhi
 {
