@@ -1,3 +1,5 @@
+
+// [SDL]
 #pragma region sdl
     #if _DEBUG
 #pragma comment (lib, "SDL2d.lib")
@@ -8,7 +10,9 @@
     #ifdef main
     #undef main
     #endif
-    #pragma endregion
+#pragma endregion
+
+// [INFLUX]
 #pragma region core
     #include "core/basetypes.h"
     #include "core/math/vector.h"
@@ -17,14 +21,22 @@
     #include "core/KDTree.h"
     #include "core/platform/win32/win32_window.h"
 #pragma endregion
+
+// [STL]
 #pragma region stl
     #include <iostream>
     #include <array>
 #pragma endregion
+
+// [PIX]
 #include "PixEvents.h"
 
+// ================================================
+// basic types
 using uint8 = unsigned char;
 
+// ================================================
+// constants
 constexpr size_t  gWindowWidth = 640;
 constexpr size_t  gWindowHeight = 480;
 constexpr size_t  gNumPixels = gWindowWidth * gWindowHeight;

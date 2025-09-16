@@ -1,4 +1,4 @@
-project "flux_raytracing"
+project "cpu_raytracer"
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++20"
@@ -11,7 +11,8 @@ project "flux_raytracing"
 
     files
     {
-        g_project_dir .. "source/*.cpp"
+        g_project_dir .. "/**.cpp",
+        g_project_dir .. "/**.h"
     }
 
     defines
@@ -21,6 +22,7 @@ project "flux_raytracing"
 
     includedirs
     {
+        "include",
         "source",
         g_dir_core_include,
         g_dir_vendor_include
