@@ -37,21 +37,25 @@ using uint8 = unsigned char;
 
 // ================================================
 // constants
-constexpr size_t  gWindowWidth = 640;
-constexpr size_t  gWindowHeight = 480;
-constexpr size_t  gNumPixels = gWindowWidth * gWindowHeight;
+constexpr size_t    gWindowWidth = 640;
+constexpr size_t    gWindowHeight = 480;
+constexpr size_t    gNumPixels = gWindowWidth * gWindowHeight;
 constexpr float     gAspectRatio = static_cast<float>(gWindowWidth) / static_cast<float>(gWindowHeight);
 constexpr uint32_t  gNumFramesPerLog = 10;
 constexpr uint32_t  gNumFramesPerAverage = 60;
 
 // Setup scene:
-constexpr uint32_t gNumSpheres = 1;
-constexpr float gSpheresMin = 0.0f;
-constexpr float gSpheresMax = 0.0f;
-constexpr float gSpheresMinSize = 1.0f;
-constexpr float gSpheresMaxSize = 1.0f;
-constexpr float gSpheresMinDepth = 80.0f;
-constexpr float gSpheresMaxDepth = 100.0f;
+constexpr uint32_t  gNumSpheres = 1;
+constexpr float     gSpheresMin = 0.0f;
+constexpr float     gSpheresMax = 0.0f;
+constexpr float     gSpheresMinSize = 1.0f;
+constexpr float     gSpheresMaxSize = 1.0f;
+constexpr float     gSpheresMinDepth = 80.0f;
+constexpr float     gSpheresMaxDepth = 100.0f;
+
+// ================================================
+// sub-headers
+#include "PixelRaytracer.h"
 
 #define MULTITHREADED 0
 #if MULTITHREADED
@@ -59,7 +63,7 @@ constexpr uint8_t gNumThreads = 8u;
 const size_t gThreadRange = (size_t)std::ceil(static_cast<double>(gNumPixels) / static_cast<double>(gNumThreads));
 #endif
 
-#include "PixelRaytracer.h"
+#define STATS 0
 
 struct timing final
 {
@@ -189,8 +193,8 @@ int main()
             { gSpheresMinSize, gSpheresMaxSize });
 
         scene.m_randoms = influx::random::get_randoms<float, gNumSpheres>(0.0f, 1.0f);
-        scene.m_light.m_colour = vectorf3::one();
-        scene.m_light.m_direction = vectorf3::normalized({ 0.33f, -0.33f, -0.33f });
+        scene.m_light.m_colour      = float3::make_one();
+        scene.m_light.m_direction   = float3{ 0.33f, -0.33f, -0.33f }.normalized();
     }
 
     // Setup Renderer & Camera:
@@ -235,10 +239,12 @@ int main()
         }
 
         // ¬ UPDATE:
+#if STATS
         stats.add<Stats::EStat::Update>(influx::time::measure_ms<double>([&sceneTime, &scene]()
         {
             update_scene(sceneTime, scene);
         }));
+#endif
 
         // ¬ RENDER
         beforeRender = influx::time::get_now();
@@ -248,25 +254,25 @@ int main()
             jobOffset = i * gThreadRange;
 
             renderJobPool->QueueJob([i, jobOffset, &backbufferPixels, &renderer, &scene, &depthBufferPixels, &averageScreenDepth]()
+            {
+                for (size_t p = jobOffset; p < jobOffset + gThreadRange; ++p)
                 {
-                    for (size_t p = jobOffset; p < jobOffset + gThreadRange; ++p)
-                    {
-                        float uvx = float(p % gWindowWidth) / float(gWindowWidth);
-                        float uvy = float(p / gWindowWidth) / float(gWindowHeight);
+                    float uvx = float(p % gWindowWidth) / float(gWindowWidth);
+                    float uvy = float(p / gWindowWidth) / float(gWindowHeight);
 
-                        influx::pixel_renderer::pixel_output pixelResult =
-                            renderer.render_pixel(scene, { uvx, uvy }, gAspectRatio);
+                    influx::pixel_renderer::pixel_output pixelResult =
+                        renderer.render_pixel(scene, { uvx, uvy }, gAspectRatio);
 
-                        const size_t pixelBaseIdx = p * 4u;
+                    const size_t pixelBaseIdx = p * 4u;
 
-                        backbufferPixels[pixelBaseIdx]      = static_cast<uint8>(255.0f * pixelResult.m_rgba.b); // B
-                        backbufferPixels[pixelBaseIdx + 1u] = static_cast<uint8>(255.0f * pixelResult.m_rgba.g); // G
-                        backbufferPixels[pixelBaseIdx + 2u] = static_cast<uint8>(255.0f * pixelResult.m_rgba.r); // R
-                        backbufferPixels[pixelBaseIdx + 3u] = static_cast<uint8>(255.0f * pixelResult.m_rgba.a); // A
+                    backbufferPixels[pixelBaseIdx]      = static_cast<uint8>(255.0f * pixelResult.m_rgba.b); // B
+                    backbufferPixels[pixelBaseIdx + 1u] = static_cast<uint8>(255.0f * pixelResult.m_rgba.g); // G
+                    backbufferPixels[pixelBaseIdx + 2u] = static_cast<uint8>(255.0f * pixelResult.m_rgba.r); // R
+                    backbufferPixels[pixelBaseIdx + 3u] = static_cast<uint8>(255.0f * pixelResult.m_rgba.a); // A
 
-                        depthBufferPixels[p] = pixelResult.m_depth;
-                    }
-                });
+                    depthBufferPixels[p] = pixelResult.m_depth;
+                }
+            });
         }
         renderJobPool->WaitUntilFinished();
 
@@ -288,21 +294,26 @@ int main()
             depthBufferPixels[i] = pxResult.m_depth;
         }
 #endif
+#if STATS
         stats.add<Stats::EStat::Render>(influx::time::get_ms_between<double>(influx::time::get_now(), beforeRender));
-
+#endif
         // ¬ PRESENT
         beforePresent = influx::time::get_now();
         SDL_BlitSurface(backbuffer_surface, NULL, window_surface, NULL);
         SDL_UpdateWindowSurface(window);
+#if STATS
         stats.add<Stats::EStat::Present>(influx::time::get_ms_between<double>(influx::time::get_now(), beforePresent));
-        
+#endif
         // ¬ COMPILE FRAMETIME
         double thisFrame = influx::time::get_ms_between<double>(influx::time::get_now(), beforeFrame);
+#if STATS
         stats.add<Stats::EStat::Frame>(thisFrame);
+#endif
         sceneTime.m_delta_time = static_cast<float>(thisFrame / 1000);
         sceneTime.m_time += sceneTime.m_delta_time;
-        
+
         // ¬ LOG
+#if STATS
         if (currentFrame > 0 && currentFrame % gNumFramesPerLog == 0)
         {
             std::cout << "\x1B[2J\x1B[H";
@@ -341,11 +352,11 @@ int main()
             std::cout << "\n-- Avg FPS: " << avg_fps << " \n";
             std::cout << "Avg Ms Total: " << avg_msFrame << " \n";
         }
-        
+
         // ¬ Reset stats & counters
         if (currentFrame > 0 && currentFrame % gNumFramesPerAverage == 0)
             stats.Reset();
-        
+#endif
         ++currentFrame;
     }
 
