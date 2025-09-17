@@ -324,7 +324,7 @@ int main()
 
 				const string filepath = "C:/Users/arnev/OneDrive/Bureaublad/shader.hlsl";
 				auto parsed = shader::parse_shaders_in_file(filepath);
-				if (parsed.is_unex())
+				if (parsed.is_fail())
 					continue;
 
 				if (!has_flag(parsed.get().m_found_types, shader::e_shader_type_flags::cs))
@@ -335,7 +335,7 @@ int main()
 				args.m_reflection_enabled = true;
 				args.m_target = shader::e_shader_target::_6_6;
 				auto compiled = shader::compile_shader_in_file(filepath, shaders[0].m_signature, args);
-				if (compiled.is_unex())
+				if (compiled.is_fail())
 					continue;
 
 				bool result = graphics.rebuild_pipeline(compiled.get());

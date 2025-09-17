@@ -371,7 +371,7 @@ namespace influx::shader
 		// https://simoncoenen.com/blog/programming/graphics/DxcCompiling
 		// create the Dxc Compiler
 		auto res = create_compiler();
-		if (res.is_unex())
+		if (res.is_fail())
 			return result_type::make_error("error: DxcCreateInstance failed");
 
 		IDxcCompiler3* pCompiler = res.get();
@@ -530,7 +530,7 @@ namespace influx::shader
 			return result_type::make_error("error: signature is invalid!");
 
 		auto res = filepath_to_buffer(filepath);
-		if (res.is_unex())
+		if (res.is_fail())
 			return result_type::make_error("error: failed converting file to dxc buffer!");
 
 		return compile_shader_dxcbuffer(res.get(), signature, args);
@@ -592,7 +592,7 @@ namespace influx::shader
 			return result_type::make_error("error: file is empty!");
 
 		auto result = parse_shaders_in_source(file_content);
-		if (result.is_unex())
+		if (result.is_fail())
 			return result_type::make_error("failed parsing shaders in source!");
 
 		// we already parsed the shaders, but their result signatures contain no filename
@@ -671,7 +671,7 @@ namespace influx::shader
 		DxcBuffer buffer{};
 		{
 			auto res = filepath_to_buffer(filepath);
-			if (res.is_unex())
+			if (res.is_fail())
 				return result_type::make_error("error: failed converting filepath to DxcBuffer!");
 			buffer = res.get();
 		}	
@@ -680,7 +680,7 @@ namespace influx::shader
 		IDxcCompiler3* compiler = nullptr;
 		{
 			auto res = create_compiler();
-			if (res.is_unex())
+			if (res.is_fail())
 				return result_type::make_error("error: DxcCreateInstance failed");
 			compiler = res.get();
 		}
@@ -721,7 +721,7 @@ namespace influx::shader
 		// compile bytecode:
 		{
 			auto res = get_compile_bytecode(*compile_result);
-			if (res.is_unex())
+			if (res.is_fail())
 				return result_type::make_error("error: failed parsing compiled bytecode!");
 			
 			result.get().m_bytecode = res.get();

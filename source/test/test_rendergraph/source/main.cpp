@@ -180,7 +180,7 @@ int graphics_main()
 	while (true)
 	{
 		auto res = swapchain->get_current_backbuffer_resource();
-		if (res.is_unex()) continue;
+		if (res.is_fail()) continue;
 
 		uint8 backbuffer_index = swapchain->get_current_backbuffer_index();
 		const string& current_backbuffer_name = "backbuffer_" + to_string(backbuffer_index);

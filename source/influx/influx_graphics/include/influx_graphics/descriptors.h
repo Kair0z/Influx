@@ -92,14 +92,14 @@ namespace influx::graphics
 			using result_type = result<descriptor_id>;
 
 			auto res = allocate();
-			if (res.is_unex()) 
+			if (res.is_fail()) 
 				return result_type::make_error("error: failed allocating first descriptor!");
 
 			descriptor_id first = res.get();
 			for (uint32 i = 0u; i < num_descriptors - 1u; ++i)
 			{
 				res = allocate();
-				if (res.is_unex()) 
+				if (res.is_fail()) 
 					return result_type::make_error("error: failed allocating nth descriptor!");
 			}
 

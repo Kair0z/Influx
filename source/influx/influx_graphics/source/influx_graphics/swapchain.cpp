@@ -35,7 +35,7 @@ namespace influx::graphics
 		// destroy previous
 		{
 			auto res = destroy_resources(device);
-			if (res.is_unex())
+			if (res.is_fail())
 			{
 				return result<>::make_error("error: failed destroying resources!");
 			}
@@ -46,7 +46,7 @@ namespace influx::graphics
 			const math::vectoru2 old_dimensions = m_current_dimensions;
 			m_current_dimensions = new_dimensions;
 			auto res = resize_impl(old_dimensions, new_dimensions);
-			if (res.is_unex())
+			if (res.is_fail())
 			{
 				return result<>::make_error("error: failed resize_impl!");
 			}
@@ -55,7 +55,7 @@ namespace influx::graphics
 		// create resources
 		{
 			auto res = create_resources(device);
-			if (res.is_unex()) return result<>::make_error("error: failed creating resources!");
+			if (res.is_fail()) return result<>::make_error("error: failed creating resources!");
 		}
 		
 		return {};

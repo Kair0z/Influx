@@ -6,28 +6,10 @@
 #include "core/container/map.h"
 #include "core/debug.h"
 
-// STL
-#include <iostream>
-
 namespace influx
 {
-	enum class e_result : uint8
-	{
-		success,
-		warning,
-		error,
-		count
-	};
-
 	namespace detail
 	{
-		constexpr const char* error_codes[]
-		{
-			"success",
-			"warning",
-			"error"
-		};
-
 		// Helper trait to detect operator bool
 		template <typename T, typename = void>
 		struct has_bool_operator : std::false_type {};
@@ -49,9 +31,13 @@ namespace influx
 		inline constexpr bool is_booleable_v = is_booleable<T>::value;
 	}
 
-#define CHECK_RESULT_IMMEDIATE 1
+	// enable this to sanitize your program.
+	// by default, only in DEBUG when .get() is called on !result.is_success()
+	// will we assert the result is valid.
+	// with this enabled, we assert as soon as any error is made (exactly where it occured)
+#define CHECK_RESULT_IMMEDIATE 0
 
-	template <typename _t = char, typename _e = const char*>
+	template <typename _t = unsigned char, typename _e = const char*>
 	class result final
 	{
 		using ex_type = _t;
@@ -148,14 +134,22 @@ namespace influx
 			return type != m_expected;
 		}
 
-		bool is_success() const
+		// true if unexpected not set || is_warning
+		inline bool is_success() const
 		{
-			return m_unexpected == _e{} || m_is_warning == true;
+			return !is_fail();
 		}
 
-		bool is_unex() const
+		// true if unexpected value is set (can be warning!)
+		inline bool is_unex() const
 		{
-			return !is_success();
+			return m_unexpected != _e{};
+		}
+
+		// true if is_fail() AND !warning
+		inline bool is_fail() const
+		{
+			return is_unex() && m_is_warning == false;
 		}
 
 		const _t& get_safe() const
@@ -163,7 +157,7 @@ namespace influx
 			return m_expected;
 		}
 
-		_t& get()
+		inline _t& get()
 		{
 #if INFLUX_DEBUG
 			influx_assert_msg(is_success(), m_unexpected);
@@ -171,7 +165,7 @@ namespace influx
 			return m_expected;
 		}
 
-		const _t& get() const
+		inline const _t& get() const
 		{
 			return m_expected;
 		}

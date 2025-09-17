@@ -109,7 +109,7 @@ namespace influx::async
 			return result_type::make_error("async API not intialized!");
 
 		auto result = create_tasks({ args });
-		if (result.is_unex()) 
+		if (result.is_fail()) 
 			return result_type::make_error("failed creating tasks!");
 		else
 		{
@@ -281,7 +281,7 @@ namespace influx::async
 				continue;
 
 			const auto task_data_res = get_task_from_handle(handle);
-			if (task_data_res.is_unex() || task_data_res.get() == nullptr)
+			if (task_data_res.is_fail() || task_data_res.get() == nullptr)
 				continue;
 
 			const task_data& data = *task_data_res.get();
@@ -451,7 +451,7 @@ namespace influx::async
 			return result_type::make_error("this handle isn't valid!");
 
 		auto found_data = find_task_data();
-		if (found_data.is_unex() || found_data.get() == nullptr)
+		if (found_data.is_fail() || found_data.get() == nullptr)
 		{
 			return e_task_state::invalid;
 		}
@@ -467,7 +467,7 @@ namespace influx::async
 			return result_type::make_error("this handle isn't valid!");
 
 		auto found_data = find_task_data();
-		if (found_data.is_unex() || found_data.get() == nullptr)
+		if (found_data.is_fail() || found_data.get() == nullptr)
 		{
 			return result_type::make_error("the data pointed by this handle isn't valid!");
 		}

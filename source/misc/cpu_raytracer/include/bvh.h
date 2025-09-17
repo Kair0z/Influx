@@ -8,6 +8,17 @@ namespace influx
 	{
 		_t m_data[_n];
 
+		multi() = default;
+		multi(const _t& x, const _t& y, const _t& z)
+			: m_data[0]{ x }, m_data[1]{ y }, m_data{ z }{}
+
+		static multi make_fill(const _t& val)
+		{
+			multi res{};
+			for (uint32 i = 0u; i < _n; ++i) res.m_data[i] = val;
+			return res;
+		}
+
 		_t& mod(uint32 index)
 		{
 			return m_data[index];
@@ -22,63 +33,84 @@ namespace influx
 	
 	using node_id = uint32;
 
-	struct aabb final
-	{
-
-	};
-
 	namespace detail
 	{
 		template <uint32 _n>
 		struct bvh_node final
 		{
-			using bounds_type = multi<float, _n>;
+			using bounds = multi<float, _n>;
 			static constexpr uint32 k_dim = _n;
 			node_id m_parent = 0u;
-			float2 m_bounds[k_dim]{};
 
-			inline void set_bounds(const bounds_type& min, const bounds_type& max)
+			// aabb
+			bounds m_bounds_min{};
+			bounds m_bounds_max{};
+
+			inline void set_bounds(const bounds& min, const bounds& max)
 			{
 				for (uint32 i = 0u; i < k_dim; ++i)
 				{
-					m_bounds[i][0] = min[i];
-					m_bounds[i][1] = max[i];
+					m_bounds_min = min[i];
+					m_bounds_max = max[i];
 				}
 			}
-			inline bounds_type get_min() const
+			inline bounds get_min() const
 			{
-				bounds_type result{};
-				for (uint32 i = 0u; i < k_dim; ++i) result[i] = m_bounds[i][0];
-				return result;
+				return m_bounds_min;
 			}
-			inline bounds_type get_max() const
+			inline bounds get_max() const
 			{
-				bounds_type result{};
-				for (uint32 i = 0u; i < k_dim; ++i) result[i] = m_bounds[i][1];
-				return result;
+				return m_bounds_max;
 			}
+		};
+
+		template <uint32 _n>
+		struct bvh_primitive final
+		{
+			using point = multi<float, _n>;
+			point m_centroid = {};
 		};
 	}
 
-	template <uint32 _c, uint32 _n>
+	/// <summary>
+	/// BVH implementation
+	/// </summary>
+	/// <typeparam name="_c"> _c - (capacity)	max num primitives in the BVH </typeparam>
+	/// <typeparam name="_n"> _n - (dimension)	2 in 2D, 3 in 3D etc..</typeparam>
+	/// <typeparam name="_d"> _d - (depth)		max recursion depth in the BVH </typeparam>
+	template <uint32 _c, uint32 _n, uint32 _d = 8u>
 	class bvh final
 	{
 		static constexpr uint32 k_dim = _n;
-		static constexpr uint32 k_max_num_triangles = _c;
-		static constexpr uint32 k_max_num_nodes = (k_max_num_triangles * 2) - 1u;
+		static constexpr uint32 k_max_num_primitives = _c;
+		static constexpr uint32 k_max_num_nodes = (k_max_num_primitives * 2) - 1u;
 		static constexpr node_id k_root_node = 0u;
+		static constexpr float k_max_bounds = 1e30f;
+		static constexpr uint32 k_max_depth = _d;
 
-		detail::bvh_node<_n> m_nodes[k_max_num_nodes];
-
+		using node = detail::bvh_node<_n>;
+		node m_nodes[k_max_num_nodes];
+		
 	public:
 		inline void rebuild()
 		{
-			// todo
+			node& root = root_node();
+			root.set_bounds(node::bounds::make_fill(-k_max_bounds), node::bounds::make_fill(k_max_bounds));
+
+			for (uint32 i = 0u; i < k_max_depth; ++i)
+			{
+
+			}
 		}
 
-		inline detail::bvh_node& mod_root()
+		inline node& root_node()
 		{
 			return m_nodes[k_root_node];
 		}
 	};
+
+	template <uint32 _c, uint32 _d>
+	using bvh_2D = bvh<_c, 2u, _d>;
+	template <uint32 _c, uint32 _d>
+	using bvh_3D = bvh<_c, 3u, _d>;
 }

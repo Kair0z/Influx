@@ -55,7 +55,7 @@ namespace influx::rendergraph
 	result<rgtex_copysrc_id> rgpass_builder::read_copysrc_texture(const rgname& name)
 	{
 		auto copy_src_id = m_graph.read_copysrc_texture(name);
-		if (copy_src_id.is_unex())
+		if (copy_src_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgtex_copysrc_id>::make_error("read_copysrc_texture failed!");
@@ -74,7 +74,7 @@ namespace influx::rendergraph
 	result<rgtex_copydst_id> rgpass_builder::write_copydst_texture(const rgname& name)
 	{
 		auto copy_dest_id = m_graph.write_copydst_texture(name);
-		if (copy_dest_id.is_unex())
+		if (copy_dest_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgtex_copydst_id>::make_error("write_copydst_texture failed!");
@@ -106,7 +106,7 @@ namespace influx::rendergraph
 	result<rgbuf_copysrc_id> rgpass_builder::read_copysrc_buffer(const rgname& name)
 	{
 		auto copy_src_id = m_graph.read_copysrc_buffer(name);
-		if (copy_src_id.is_unex())
+		if (copy_src_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgbuf_copysrc_id>::make_error("read_copysrc_buffer failed!");
@@ -125,7 +125,7 @@ namespace influx::rendergraph
 	result<rgbuf_copydst_id> rgpass_builder::write_copydst_buffer(const rgname& name)
 	{
 		auto copy_dst_id = m_graph.write_copydst_buffer(name);
-		if (copy_dst_id.is_unex())
+		if (copy_dst_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgbuf_copydst_id>::make_error("write_copydst_buffer failed!");
@@ -154,7 +154,7 @@ namespace influx::rendergraph
 	result<rgbuf_indargs_id> rgpass_builder::read_indirect_args_buffer(const rgname& name)
 	{
 		auto ind_args_id = m_graph.read_indirect_args_buffer(name);
-		if (ind_args_id.is_unex())
+		if (ind_args_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgbuf_indargs_id>::make_error("read_indirect_args_buffer failed!");
@@ -173,7 +173,7 @@ namespace influx::rendergraph
 	result<rgbuf_vertex_id> rgpass_builder::read_vertex_buffer(const rgname& name)
 	{
 		auto vert_id = m_graph.read_vertex_buffer(name);
-		if (vert_id.is_unex())
+		if (vert_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgbuf_vertex_id>::make_error("read_vertex_buffer failed!");
@@ -192,7 +192,7 @@ namespace influx::rendergraph
 	result<rgbuf_index_id> rgpass_builder::read_index_buffer(const rgname& name)
 	{
 		auto index_id = m_graph.read_index_buffer(name);
-		if (index_id.is_unex())
+		if (index_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgbuf_index_id>::make_error("read_index_buffer failed!");
@@ -213,7 +213,7 @@ namespace influx::rendergraph
 	{
 		using result_type = result<rgbuf_const_id>;
 		auto index_id = m_graph.read_constant_buffer(name);
-		if (index_id.is_unex())
+		if (index_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result_type::make_error("read_constbuffer failed!");
@@ -353,7 +353,7 @@ namespace influx::rendergraph
 	result<rgtexture_readonly_id> rgpass_builder::read_texture_impl(const rgname& name, rgread_access read_access, const texture_view_desc& view_desc)
 	{
 		auto read_id = m_graph.read_texture(name, view_desc);
-		if (read_id.is_unex())
+		if (read_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgtexture_readonly_id>::make_error("read_texture failed!");
@@ -389,7 +389,7 @@ namespace influx::rendergraph
 		using result_type = result<rgtexture_readwrite_id>;
 
 		auto rw_id = m_graph.write_texture(name, view_desc);
-		if (rw_id.is_unex())
+		if (rw_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result_type::make_error("write_texture failed!");
@@ -426,7 +426,7 @@ namespace influx::rendergraph
 	result<rgrendertarget_id> rgpass_builder::write_rendertarget_impl(const rgname& name, rgaccess load_store_op, const texture_view_desc& view_desc)
 	{
 		auto rt_id = m_graph.rendertarget(name, view_desc);
-		if (rt_id.is_unex())
+		if (rt_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgrendertarget_id>::make_error("rendertarget failed!");
@@ -459,7 +459,7 @@ namespace influx::rendergraph
 	result<rgdepthtarget_id> rgpass_builder::write_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
 	{
 		auto dt_id = m_graph.depthtarget(name, view_desc);
-		if (dt_id.is_unex())
+		if (dt_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgdepthtarget_id>::make_error("depthtarget_write failed!");
@@ -493,7 +493,7 @@ namespace influx::rendergraph
 	result<rgdepthtarget_id> rgpass_builder::read_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& view_desc)
 	{
 		auto dt_id = m_graph.depthtarget(name, view_desc);
-		if (dt_id.is_unex())
+		if (dt_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgdepthtarget_id>::make_error("depthtarget_read failed!");
@@ -516,7 +516,7 @@ namespace influx::rendergraph
 	result<rgbuffer_readonly_id> rgpass_builder::read_buffer_impl(const rgname& name, rgread_access read_access, const buffer_view_desc& view_desc)
 	{
 		auto read_id = m_graph.read_buffer(name, view_desc);
-		if (read_id.is_unex())
+		if (read_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgbuffer_readonly_id>::make_error("read_buffer failed!");
@@ -545,7 +545,7 @@ namespace influx::rendergraph
 	result<rgbuffer_readwrite_id> rgpass_builder::write_buffer_impl(const rgname& name, const buffer_view_desc& view_desc)
 	{
 		auto rw_id = m_graph.write_buffer(name, view_desc);
-		if (rw_id.is_unex())
+		if (rw_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgbuffer_readwrite_id>::make_error("write_buffer failed!");
@@ -568,7 +568,7 @@ namespace influx::rendergraph
 	result<rgbuffer_readwrite_id> rgpass_builder::write_buffer_impl(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc)
 	{
 		auto rw_id = m_graph.write_buffer(name, counter_name, view_desc);
-		if (rw_id.is_unex())
+		if (rw_id.is_fail())
 		{
 			register_error_to_current_pass();
 			return result<rgbuffer_readwrite_id>::make_error("write_buffer failed!");

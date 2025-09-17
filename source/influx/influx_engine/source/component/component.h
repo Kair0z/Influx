@@ -157,7 +157,7 @@ namespace influx::engine
 			m_transform.set_scale(scale);
 		}
 
-		void set_rotation(const math::matrix3x3f& rotation)
+		void set_rotation(const math::matrix4x4f& rotation)
 		{
 			m_transform.set_rotation(rotation);
 		}

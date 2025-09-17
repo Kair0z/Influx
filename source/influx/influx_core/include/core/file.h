@@ -327,13 +327,13 @@ namespace influx
 
 			// create new file with new path, and copy old contents
 			auto create_res = create_file(new_path.c_str());
-			if (create_res.is_unex())
+			if (create_res.is_fail())
 			{
 				return result<>::make_error("failed creating a new file!");
 			}
 
 			auto copy_res = copy_file_contents(src_path, new_path.c_str());
-			if (copy_res.is_unex())
+			if (copy_res.is_fail())
 			{
 				return result<>::make_error("failed copying file contents!");
 			}

@@ -93,7 +93,7 @@ namespace influx::engine
 		const static float fov = 90.0f;
 
 		static math::float3 start_position = {};
-		static math::matrix3x3f start_rotation = math::matrix3x3f::identity();
+		static math::matrix4x4f start_rotation = math::matrix4x4f::identity();
 
 		if (get_engine()->is_editor() && false)
 		{

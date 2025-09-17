@@ -23,7 +23,7 @@ namespace influx::imp
 
 		// parse each shader in file
 		auto parsed_file = shader::parse_shaders_in_file(filepath);
-		if (parsed_file.is_unex())
+		if (parsed_file.is_fail())
 			return result_type::make_error("shader::parse_shaders_in_file(filepath) failed!");
 		
 		shader::parse_output& parsed_shaders = parsed_file.get();
@@ -35,7 +35,7 @@ namespace influx::imp
 			for (shader::parse_output::per_shader& parsed_shader : pair.second)
 			{
 				auto new_shader_data = shader::compile_shader_in_file(filepath, parsed_shader.m_signature, compile_args);
-				if (new_shader_data.is_unex()) 
+				if (new_shader_data.is_fail()) 
 					return result_type::make_error("one of the compile_shaders failed!");
 
 				shader_data data{};

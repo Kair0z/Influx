@@ -28,7 +28,7 @@ namespace influx::files
 		{
 			// make sure the file exists
 			auto res = path::create_file(file.get_full_path());
-			if (res.is_unex())
+			if (res.is_fail())
 			{
 				// error here...
 				return {};

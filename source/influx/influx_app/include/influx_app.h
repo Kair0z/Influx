@@ -99,8 +99,8 @@ namespace influx
 	const app::settings_t<_t>& app::get_settings() const
 	{
 		if constexpr (_t == e_settings::window) return m_window_settings;
-		if constexpr (_t == e_settings::console) return m_console_settings;
-		return {};
+		else if constexpr (_t == e_settings::console) return m_console_settings;
+		else static_assert(false);
 	}
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::app::e_component_flags);

@@ -44,7 +44,7 @@ namespace influx::graphics
         // starts allocator
         m_state = e_state::recording;
 
-        if (start_impl(device, init_state).is_unex()) 
+        if (start_impl(device, init_state).is_fail()) 
             return result<>::make_error("error: start_impl failed!");
         
         return res;

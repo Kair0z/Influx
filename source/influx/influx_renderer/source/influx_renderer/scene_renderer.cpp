@@ -266,7 +266,7 @@ namespace influx::renderer
         auto basepass_parse     = shader::parse_shaders_in_file(basepass_sourcefile_path);
         auto resolvepass_parse  = shader::parse_shaders_in_file(resolvepass_sourcefile_path);
         auto debugpass_parse    = shader::parse_shaders_in_file(debugpass_sourcefile_path);
-        const bool all_shaders_parsed = !(basepass_parse.is_unex() || resolvepass_parse.is_unex() || debugpass_parse.is_unex());
+        const bool all_shaders_parsed = !(basepass_parse.is_fail() || resolvepass_parse.is_fail() || debugpass_parse.is_fail());
         influx_assert(all_shaders_parsed);
 
         // 2. assert no missing shaders

@@ -717,7 +717,7 @@ namespace influx::rendergraph
 				if (viewdescs[i].m_is_created == false)
 				{
 					auto alloc_result = m_pool->alloc_cpu_descriptor(type);
-					if (alloc_result.is_unex())
+					if (alloc_result.is_fail())
 					{
 						return result<>::make_error("error: failed allocating a cpu handle!");
 					}

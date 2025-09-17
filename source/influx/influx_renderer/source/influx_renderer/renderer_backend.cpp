@@ -193,7 +193,7 @@ namespace influx::renderer
         {
             influx_scope("renderer::rendergraph_execute");
             auto res = m_rendergraph->execute(*cmdlist, *mp_device);
-            if (res.is_unex())
+            if (res.is_fail())
             {
                 log(e_log::warning, "rendergraph execute failed!");
             }
@@ -299,7 +299,7 @@ namespace influx::renderer
         m_targets[new_target->get_name()] = new_target;
 
         auto res = import_to_graph(*new_target);
-        if (res.is_unex()) return result_type::make_error("failed importing to graph!");
+        if (res.is_fail()) return result_type::make_error("failed importing to graph!");
 
         return new_target;
     }
@@ -403,7 +403,7 @@ namespace influx::renderer
             return result_type::make_warning({}, "warning: cannot draw an empty scene!");
 
         auto res = import_to_graph(target);
-        if (res.is_unex())
+        if (res.is_fail())
             return result_type::make_error("error: failed importing target!");
 
         mp_scene_renderer->build(*m_rendergraph, scene, target);

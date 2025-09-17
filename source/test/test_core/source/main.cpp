@@ -1,11 +1,15 @@
 // choose your test:
-#define TEST_MATH		1
+#define TEST_MATH		0
 #define TEST_BASETYPES	0
 #define TEST_STRING		0
 #define TEST_RESULT		0
 #define TEST_CONTAINER	0
 #define TEST_POINTER	0
 #define TEST_ASCII_ART	0
+#define TEST_SORT		1 
+
+// STL
+#include <array>
 
 // common
 #include "core/basetypes.h"
@@ -54,6 +58,9 @@ namespace glm
 #endif
 #if TEST_POINTER
 #include "core/pointer.h"
+#endif
+#if TEST_SORT
+#include "core/sort.h"
 #endif
 
 // tests
@@ -279,6 +286,77 @@ void test_asciiart()
 	}
 }
 #endif
+#if TEST_SORT
+void test_sort()
+{
+	static constexpr uint32 k_num = 9u;
+	using array = std::array<int, k_num>;
+
+	array array_original{ 6, 8, 2, 3, 4, 10, 100, 32, 87 };
+	array array_target = array_original;
+
+	auto print_array = [](const array& arr)
+	{
+		for (uint32 i = 0u; i < k_num; ++i)
+			std::cout << arr[i] << " ";
+		std::cout << "\n";
+	};
+	auto print_sortinfo = [](const sort::result& res)
+	{
+		if (res.is_success() == false) return;
+		sort::sort_info bubble_info = res ? res.get() : sort::sort_info{};
+		std::cout << "num swaps: " << to_string(bubble_info.num_swaps) << "\n";
+		std::cout << "num comps: " << to_string(bubble_info.num_comparisons) << "\n";
+	};
+
+	std::cout << "[bubble sort]: " << to_string(k_num) << "\n";
+	{
+		array_target = array_original;
+		print_array(array_target);
+		auto sort_res = influx::sort::bubble_sort(array_target);
+		print_array(array_target);
+		print_sortinfo(sort_res);
+	}
+
+	std::cout << "[insert sort]: " << to_string(k_num) << "\n";
+	{
+		array_target = array_original;
+		print_array(array_target);
+		auto sort_res = influx::sort::insert_sort(array_target);
+		print_array(array_target);
+		print_sortinfo(sort_res);
+	}
+
+	std::cout << "[select sort]: " << to_string(k_num) << "\n";
+	{
+		array_target = array_original;
+		print_array(array_target);
+		auto sort_res = influx::sort::select_sort(array_target);
+		print_array(array_target);
+		print_sortinfo(sort_res);
+	}
+
+	std::cout << "[merge sort]: " << to_string(k_num) << "\n";
+	{
+		array_target = array_original;
+		print_array(array_target);
+		auto sort_res = influx::sort::merge_sort(array_target);
+		print_array(array_target);
+		print_sortinfo(sort_res);
+	}
+
+	std::cout << "[quick sort]: " << to_string(k_num) << "\n";
+	{
+		array_target = array_original;
+		print_array(array_target);
+		auto sort_res = influx::sort::quick_sort(array_target);
+		print_array(array_target);
+		print_sortinfo(sort_res);
+	}
+
+	std::cin.get();
+}
+#endif
 
 int main()
 {
@@ -302,5 +380,8 @@ int main()
 #endif
 #if TEST_ASCII_ART
 	test_asciiart();
+#endif
+#if TEST_SORT
+	test_sort();
 #endif
 }

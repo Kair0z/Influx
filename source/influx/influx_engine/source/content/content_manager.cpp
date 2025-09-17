@@ -186,7 +186,7 @@ namespace influx::engine
 		const string& filename = to_string(as_path.get_filename(without_extension));
 
 		auto asset_type_res = get_asset_type_from_extension(to_string(as_path.get_extension()));
-		if (asset_type_res.is_unex())
+		if (asset_type_res.is_fail())
 		{
 			return result_type::make_error("failed finding asset_type from file's extension!");
 		}

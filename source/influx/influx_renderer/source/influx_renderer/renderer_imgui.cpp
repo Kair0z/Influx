@@ -306,7 +306,7 @@ namespace influx::renderer
 
 		signature.m_type = shader::e_shader_type::vs;
 		auto res = shader::compile_shader_in_source(k_vertex_shader, signature, args);
-		if (res.is_unex())
+		if (res.is_fail())
 		{
 			return result<>::make_error("error: failed compiling vertex shader!");
 		}
@@ -315,7 +315,7 @@ namespace influx::renderer
 
 		signature.m_type = shader::e_shader_type::ps;
 		res = shader::compile_shader_in_source(k_pixel_shader, signature, args);
-		if (res.is_unex())
+		if (res.is_fail())
 		{
 			return result<>::make_error("error: failed compiling pixel shader!");
 		}
