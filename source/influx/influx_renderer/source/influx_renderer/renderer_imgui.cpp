@@ -10,6 +10,9 @@
 #include "influx_renderer/resources/resource_manager.h"
 #include "influx_renderer/types.h"
 
+// influx::rendergraph
+#include "rendergraph.h"
+
 // influx::graphics
 #include "influx_graphics/device.h"
 #include "influx_graphics/queue.h"
@@ -68,28 +71,30 @@ static const char* k_pixel_shader =
 namespace influx::renderer
 {
 	imgui_manager::imgui_manager(graphics::device* device)
-		: mp_device{device}
+		: mp_indexbuffer{ renderer_backend::get_instance() }
+		, mp_vertexbuffer{ renderer_backend::get_instance() }
+		, mp_device{device}
 	{
 		create_fonts_texture(device);
 		create_pipeline(device);
 	}
 
-	void imgui_manager::setup_state(
-		graphics::commandlist* commandlist,
-		const vector<ImDrawData const*>& draws)
+	void imgui_manager::build_rendergraph(rendergraph::rgpass_builder& builder, const target& target, const ImDrawData& drawdata)
 	{
-		// update vertex / index buffers
-		update_buffers(draws);
+		// register write
+		rendergraph::rgaccess access{};
+		access.m_load = rendergraph::e_rg_load::preserve;
+		access.m_store = rendergraph::e_rg_store::preserve;
+		builder.write_rendertarget(target.get_rendergraph_name(), access);
 
-		if (mp_vertexbuffer && mp_indexbuffer)
+		// register reads
+		// each texture dependency imgui wants, we should import into the graph as well!
+		auto texture_reads = imgui_manager::get_texture_dependencies(&drawdata);
+		for (const auto& texture : texture_reads)
 		{
-			commandlist->set_vertexbuffer(mp_vertexbuffer);
-			commandlist->set_indexbuffer(mp_indexbuffer);
+			builder.read_texture((graphics::resource*)texture->get_tex_resource());
 		}
-
-		commandlist->set_primitive_topology(graphics::e_primitive_topology::trilist);
-		commandlist->set_pipeline(mp_pipeline);
-		commandlist->set_rootsignature(mp_rootsig);
+		builder.set_viewport(target.get_width(), target.get_height());
 	}
 
 	void imgui_manager::render(graphics::commandlist* commandlist, const ImDrawData& draw, const target& target)
@@ -99,8 +104,10 @@ namespace influx::renderer
 
 	void imgui_manager::render(graphics::commandlist* commandlist, const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
 	{
-		if (draws.size() <= 0u) return;
-		if (targets.size() <= 0u) return;
+		if (draws.size() <= 0u) 
+			return;
+		if (targets.size() <= 0u)
+			return;
 
 		renderer_backend& backend = renderer_backend::get_instance();
 		rhi_device& device = backend.get_device();
@@ -109,10 +116,23 @@ namespace influx::renderer
 		// execute for each draw
 		for (uint32 i = 0u; i < draws.size(); ++i)
 		{
-			const ImDrawData& draw = *draws[i];
-			const target& target = *targets[i];
+			const ImDrawData& draw	= *draws[i];
+			const target& target	= *targets[i];
 
-			setup_state(commandlist, vector<const ImDrawData*>{draws[i]});
+			// update vertex / index buffers
+			update_buffers(draws);
+
+			graphics::resource* indexbuffer = mp_indexbuffer.get_cpu();
+			graphics::resource* vertexbuffer = mp_vertexbuffer.get_cpu();
+			if (vertexbuffer && indexbuffer)
+			{
+				commandlist->set_vertexbuffer(vertexbuffer);
+				commandlist->set_indexbuffer(indexbuffer);
+			}
+
+			commandlist->set_primitive_topology(graphics::e_primitive_topology::trilist);
+			commandlist->set_pipeline(mp_pipeline);
+			commandlist->set_rootsignature(mp_rootsig);
 
 			// Avoid rendering when minimized
 			if (draw.DisplaySize.x <= 0.0f || draw.DisplaySize.y <= 0.0f)
@@ -147,6 +167,17 @@ namespace influx::renderer
 					{ 0.0f,         0.0f,           0.5f,       0.0f },
 					{ (R + L) / (L - R),  (T + B) / (B - T),    0.5f,       1.0f },
 				};
+
+				const bool transpose = true;
+				if (transpose)
+				{
+					std::swap(mvp[0][1], mvp[1][0]);
+					std::swap(mvp[0][2], mvp[2][0]);
+					std::swap(mvp[0][3], mvp[3][0]);
+					std::swap(mvp[2][1], mvp[1][2]);
+					std::swap(mvp[3][1], mvp[1][3]);
+					std::swap(mvp[3][2], mvp[2][3]);
+				}
 				memcpy(&vertex_constant_buffer.m_mvp, mvp, sizeof(mvp));
 			}
 			commandlist->set_root_constants(0u, 16u, &vertex_constant_buffer);
@@ -173,15 +204,7 @@ namespace influx::renderer
 					if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
 						continue;
 
-					// Apply Scissor/clipping rectangle, Bind texture, Draw
-					graphics::rect rect
-					{
-						.m_left = (uint32)clip_min.x,
-						.m_top = (uint32)clip_min.y,
-						.m_right = (uint32)clip_max.x,
-						.m_bottom = (uint32)clip_max.y,
-					};
-					commandlist->set_scissor_rect(rect);
+					commandlist->set_vp_and_rect({clip_min.x, clip_min.y}, {clip_max.x, clip_max.y});
 
 					// if this command has a bound TexID (descriptor*/void*),
 					// we should stage the texture (allocate gpu descriptor)
@@ -236,7 +259,6 @@ namespace influx::renderer
 	vector<imgui_texid_provider*> imgui_manager::get_texture_dependencies(ImDrawData const* draw)
 	{
 		vector<imgui_texid_provider*> result{};
-		
 		for (int n = 0; n < draw->CmdListsCount; ++n)
 		{
 			const ImDrawList* cmd_list = draw->CmdLists[n];
@@ -251,7 +273,6 @@ namespace influx::renderer
 				}
 			}
 		}
-
 		return result;
 	}
 
@@ -327,8 +348,9 @@ namespace influx::renderer
 
 	result<> imgui_manager::create_pipeline(graphics::device* device)
 	{
+		using result_type = result<>;
 		if (device == nullptr)
-			return result<>::make_error("error: invalid device!");
+			return result_type::make_error("error: invalid device!");
 
 		// setup root signature
 #pragma region root_signature
@@ -417,6 +439,8 @@ namespace influx::renderer
 		pipeline_desc.m_depth_stencil.m_stencil_enable = false;
 
 		mp_pipeline = device->create_graphics_pipeline(mp_rootsig, pipeline_desc);
+		if (mp_pipeline == nullptr)
+			return result_type::make_error("failed creating graphics pipeline!");
 
 		return {};
 	}
@@ -440,16 +464,19 @@ namespace influx::renderer
 			total_num_indices += draw.TotalIdxCount;
 		}
 		
-		const uint32 current_num_vertices = (mp_vertexbuffer == nullptr) ?
-			0u : (uint32)(mp_vertexbuffer->get_bytesize() / sizeof(ImDrawVert));
+		graphics::resource*& vertexbuffer = mp_vertexbuffer.get_cpu();
+		graphics::resource*& indexbuffer = mp_indexbuffer.get_cpu();
 
-		const uint32 current_num_indices = mp_indexbuffer == nullptr ?
-			0u : (uint32)(mp_indexbuffer->get_bytesize() / sizeof(ImDrawIdx));
+		const uint32 current_num_vertices = (vertexbuffer == nullptr) ?
+			0u : (uint32)(vertexbuffer->get_bytesize() / sizeof(ImDrawVert));
+
+		const uint32 current_num_indices = indexbuffer == nullptr ?
+			0u : (uint32)(indexbuffer->get_bytesize() / sizeof(ImDrawIdx));
 
 		// recreate resources if necessary
 		if (current_num_vertices < total_num_vertices)
 		{
-			if (mp_vertexbuffer) mp_vertexbuffer->release(mp_device);
+			if (vertexbuffer) vertexbuffer->release(mp_device);
 			const uint32 new_num_vertices = total_num_vertices + 5000u;
 
 			graphics::heap_desc heap_desc{};
@@ -458,11 +485,11 @@ namespace influx::renderer
 			desc.m_bytesize = new_num_vertices * sizeof(ImDrawVert);
 			desc.m_bytestride = sizeof(ImDrawVert);
 			desc.m_init_state = graphics::e_resource_state::gen_read;
-			mp_vertexbuffer = mp_device->create_resource(desc, heap_desc);
+			vertexbuffer = mp_device->create_resource(desc, heap_desc);
 		}
 		if (current_num_indices < total_num_indices)
 		{
-			if (mp_indexbuffer) mp_indexbuffer->release(mp_device);
+			if (indexbuffer) indexbuffer->release(mp_device);
 			const uint32 new_num_indices = total_num_indices + 10000;
 
 			graphics::heap_desc heap_desc{};
@@ -471,13 +498,13 @@ namespace influx::renderer
 			desc.m_bytesize = new_num_indices * sizeof(ImDrawIdx);
 			desc.m_format = graphics::e_format::u16;
 			desc.m_init_state = graphics::e_resource_state::gen_read;
-			mp_indexbuffer = mp_device->create_resource(desc, heap_desc);
+			indexbuffer = mp_device->create_resource(desc, heap_desc);
 		}
 
 		// map buffer data
-		if (mp_vertexbuffer)
+		if (vertexbuffer)
 		{
-			mp_vertexbuffer->map([&draws, this](void* dest)
+			vertexbuffer->map([&draws, this](void* dest)
 			{
 				for (uint32 i = 0u; i < draws.size(); ++i)
 				{
@@ -491,9 +518,9 @@ namespace influx::renderer
 				}
 			});
 		}
-		if (mp_indexbuffer)
+		if (indexbuffer)
 		{
-			mp_indexbuffer->map([&draws, this](void* dest)
+			indexbuffer->map([&draws, this](void* dest)
 			{
 				for (uint32 i = 0u; i < draws.size(); ++i)
 				{

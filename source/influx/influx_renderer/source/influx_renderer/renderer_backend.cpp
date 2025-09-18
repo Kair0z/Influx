@@ -11,7 +11,7 @@
 #include "influx_renderer/upload_manager.h"
 #include "influx_renderer/scene_renderer.h"
 #include "influx_renderer/quad_renderer.h"
-#include "influx_renderer/shadertoy/shadertoy_renderer.h"
+#include "influx_renderer/renderer_imgui.h"
 #include "influx_renderer/resources/resource_manager.h"
 
 // influx::rendergraph
@@ -102,7 +102,6 @@ namespace influx::renderer
             mp_imgui = new imgui_manager(mp_device);
             mp_scene_renderer = new scene_renderer();
             mp_quad_renderer = new quad_renderer();
-            mp_shadertoy_renderer = new shadertoy_renderer();
             m_rendergraph = new rendergraph::rendergraph({}, *mp_device);
         }
         
@@ -134,7 +133,6 @@ namespace influx::renderer
         delete mp_imgui; mp_imgui = nullptr;
         delete mp_scene_renderer; mp_scene_renderer = nullptr;
         delete mp_quad_renderer; mp_quad_renderer = nullptr;
-        delete mp_shadertoy_renderer; mp_shadertoy_renderer = nullptr;
         delete m_resource_manager; m_resource_manager = nullptr;
 
         delete m_rendergraph;
@@ -412,112 +410,72 @@ namespace influx::renderer
 
     result<> renderer_backend::draw_imgui(ImDrawData const* draw_data, const target& target)
     {
+        using result_type = result<>;
         import_to_graph(target);
 
-        // ensure dependency textures are imported!
-        auto texture_dependencies = imgui_manager::get_texture_dependencies(draw_data);
-        for (const auto& texture : texture_dependencies)
-        {
-            m_rendergraph->import_texture(
-                texture->get_rendergraph_id(),
-                (graphics::resource*)texture->get_tex_resource());
-        }
-
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-        [&target, texture_dependencies](rendergraph::rgpass_builder& builder)
+        [this, &target, draw_data](rendergraph::rgpass_builder& builder)
         {
-            rendergraph::rgaccess access{};
-            access.m_load = rendergraph::e_rg_load::preserve;
-            access.m_store = rendergraph::e_rg_store::preserve;
-            builder.write_rendertarget(target.get_resource()->get_name(), access);
-            builder.set_viewport(target.get_width(), target.get_height());
-
-            for (const auto& texture : texture_dependencies)
-            {
-                builder.read_texture(texture->get_rendergraph_id());
-            }
+            mp_imgui->build_rendergraph(builder, target, *draw_data);
         },
         [this, draw_data, &target](rendergraph::rgpass_context& context)
         {
             influx_scope("renderer_backend::draw_imgui::record");
             mp_imgui->render(&context.get_commandlist(), *draw_data, target);
         });
+        const string pass_name = string("draw_imgui_") + string(target.get_name());
+        pass->set_name(pass_name);
 
-        pass->set_name("draw_imgui");
-
-        return true;
+        return {};
     }
 
     result<> renderer_backend::draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
     {
-        static uint32 frame = 0u;
-        if (frame == 3u)
-        {
-            static int a; a++;
-        }
-        ++frame;
+        using result_type = result<>;
 
         // ensure targets are imported
         for (const auto& target : targets)
         {
-            import_to_graph(*target);
+            if (target == nullptr)
+                return result_type::make_error("one of the target resources is nullptr!");
+
+            auto res = import_to_graph(*target);
+            if (!res)
+                return result_type::make_error("failed importing one of the target resources!");
         }
 
-        // execute draws
+        // execute draws (each is a pass)
         for (uint32 i = 0u; i < draws.size(); ++i)
         {
             const target& target = *targets[i];
-            const ImDrawData& draw = *draws[i];
-
-            // ensure dependency textures are imported!
-            auto texture_dependencies = imgui_manager::get_texture_dependencies(&draw);
-            for (const auto& texture : texture_dependencies)
-            {
-                m_rendergraph->import_texture(
-                    texture->get_rendergraph_id(),
-                    (graphics::resource*)texture->get_tex_resource());
-            }
+            const ImDrawData& drawdata = *draws[i];
 
             auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
-            [&target, texture_dependencies](rendergraph::rgpass_builder& builder)
+            [this, &target, &drawdata](rendergraph::rgpass_builder& builder)
             {
-                // register write
-                rendergraph::rgaccess access{};
-                access.m_load = rendergraph::e_rg_load::preserve;
-                access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(target.get_rendergraph_name(), access);
-
-                // register reads
-                for (const auto& texture : texture_dependencies)
-                {
-                    builder.read_texture(texture->get_rendergraph_id());
-                }
-
-                builder.set_viewport(target.get_width(), target.get_height());
+                mp_imgui->build_rendergraph(builder, target, drawdata);
             },
-            [this, &draw, &target](rendergraph::rgpass_context& context)
+            [this, &drawdata, &target](rendergraph::rgpass_context& context)
             {
-                influx_scope("renderer_backend::draw_imgui::record");
-                mp_imgui->render(&context.get_commandlist(), draw, target);
+                mp_imgui->render(&context.get_commandlist(), drawdata, target);
             });
 
-            const string name = string("draw_imgui_") + string(target.get_name());
-            const rendergraph::rgname rgname{ name };
-            pass->set_name(rgname);
+            const string pass_name = string("draw_imgui_") + string(target.get_name());
+            pass->set_name(pass_name);
         }
 
-        return true;
+        return {};
     }
 
     result<> renderer_backend::draw_2D(const scene2D& scene, const target& target)
     {
         influx_scope("renderer_backend::draw2D::record");
-        return true;
+        return {};
     }
 
     result<> renderer_backend::draw_postprocess(const scene_postprocess& scene, const target& target)
     {
-        return true;
+        return {};
     }
 
     bool renderer_backend::can_draw_postprocess() const

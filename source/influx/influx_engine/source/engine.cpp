@@ -111,10 +111,10 @@ namespace influx::engine
 
 		initialize();
 
-		// when running as game, we auto-start the game-manager
+		// if runtype is game, we immediately auto-start the game-manager
 		if (type == run_type::game)
 		{
-			if (m_gameman) 
+			if (m_gameman)
 				m_gameman->start();
 		}
 
@@ -151,7 +151,7 @@ namespace influx::engine
 			if (m_runtype == run_type::editor)
 			{
 				m_renderman->get_imgui_scene()
-					.m_imgui_stacks.push_back([this](ImGuiContext& ctx)
+				.m_imgui_stacks.push_back([this](ImGuiContext& ctx)
 				{
 					m_editorman->on_imgui(ctx);
 				});

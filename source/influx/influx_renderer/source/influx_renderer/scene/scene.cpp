@@ -130,13 +130,20 @@ namespace influx::renderer
 		{
 			m_transforms.push_back(transform);
 			m_camera.m_transform_id = 0u;
+			return;
+		}
+		
+		if (m_camera.m_transform_id == k_invalid_id)
+		{
+			m_camera.m_transform_id = add_transform(transform);
 		}
 		else
 		{
 			vector_helpers::grow(m_transforms, m_camera.m_transform_id);
 			m_transforms[m_camera.m_transform_id] = transform;
 		}
-		
+
+		// update viewmatrices
 		m_viewmatrices = view_matrices(transform, m_camera);
 	}
 

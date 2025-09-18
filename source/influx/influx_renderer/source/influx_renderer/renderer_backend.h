@@ -5,8 +5,6 @@
 
 // influx::renderer
 #include "influx_renderer.h"
-#include "influx_renderer/renderer_imgui.h"
-#include "influx_renderer/multimesh.h"
 
 // influx::graphics
 #include "influx_graphics/resource.h"
@@ -40,10 +38,8 @@ namespace influx::renderer
 	class scene_renderer;
 	class debug_renderer;
 	class quad_renderer;
-	class shadertoy_renderer;
 	class target;
 	class resource_manager;
-	class multimesh;
 }
 
 // influx::platform
@@ -66,7 +62,7 @@ namespace influx::renderer
 	template <typename _t>
 	class inflight final
 	{
-		_t					m_value[k_max_in_flight];
+		_t					m_value[k_max_in_flight]{};
 		renderer_backend&	m_backend;
 
 	public:
@@ -94,6 +90,8 @@ namespace influx::renderer
 			return m_value[index % k_max_in_flight];
 		}
 	};
+
+	using inflight_resource = inflight<graphics::resource*>;
 
 	class renderer_backend final : public singleton<renderer_backend>
 	{
@@ -130,7 +128,6 @@ namespace influx::renderer
 		imgui_manager*			mp_imgui			= nullptr;
 		scene_renderer*			mp_scene_renderer	= nullptr;
 		quad_renderer*			mp_quad_renderer	= nullptr;
-		shadertoy_renderer*		mp_shadertoy_renderer = nullptr;
 		resource_manager*		m_resource_manager	= nullptr;
 		render_settings			m_settings			= {};
 

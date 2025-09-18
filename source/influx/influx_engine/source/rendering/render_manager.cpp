@@ -117,7 +117,7 @@ namespace influx::engine
 	{
 		renderer::start_frame();
 		
-		// render each view
+		// foreach view (window) 
 		for (auto& pair : m_views)
 		{
 			render_view_id id = pair.first;

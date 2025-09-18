@@ -134,8 +134,8 @@ namespace influx::graphics
 		{
 			.m_left = math::round<uint32>(min.x),
 			.m_top = math::round<uint32>(min.y),
-			.m_right = math::round<uint32>(max.x - min.x),
-			.m_bottom = math::round<uint32>(max.y - min.y)
+			.m_right = math::round<uint32>(max.x),
+			.m_bottom = math::round<uint32>(max.y)
 		});
         if (!res.is_success()) return result<>::make_error("error: failed setting scissor rect");
         

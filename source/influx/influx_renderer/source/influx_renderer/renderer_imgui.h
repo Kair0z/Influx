@@ -20,6 +20,13 @@ namespace influx::graphics
 // influx::renderer
 #include "influx_renderer/types.h"
 #include "influx_renderer/texture.h"
+#include "influx_renderer/renderer_backend.h"
+
+// influx::rendergraph
+namespace influx::rendergraph
+{
+	class rgpass_builder;
+}
 
 namespace influx::renderer
 {
@@ -27,11 +34,15 @@ namespace influx::renderer
 	{
 	public:
 		imgui_manager(graphics::device* device);
+
+		void build_rendergraph(rendergraph::rgpass_builder& builder, const target& target, const ImDrawData& drawdata);
+
 		void render(graphics::commandlist* commandlist, const ImDrawData& draw, const target& target);
 		void render(graphics::commandlist* commandlist, const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
 
-		/* fetches all textures imgui wants readable */
+		/* fetches all textures imgui wants readable for rendering */
 		static vector<imgui_texid_provider*> get_texture_dependencies(const vector<ImDrawData const*>& draws);
+		/* fetches all textures imgui wants readable for rendering */
 		static vector<imgui_texid_provider*> get_texture_dependencies(ImDrawData const* draw);
 
 	private:
@@ -39,18 +50,17 @@ namespace influx::renderer
 		result<> create_shaders();
 		result<> create_pipeline(graphics::device* device);
 		void update_buffers(const vector<ImDrawData const*>& draws);
-		void setup_state(graphics::commandlist*, const vector<ImDrawData const*>& draws);
 
 		graphics::device* mp_device = nullptr;
 		graphics::graphics_pipeline* mp_pipeline = nullptr;
 		graphics::rootsignature* mp_rootsig = nullptr;
-		graphics::resource* mp_indexbuffer = nullptr;
-		graphics::resource* mp_vertexbuffer = nullptr;
+
+		inflight_resource mp_indexbuffer;
+		inflight_resource mp_vertexbuffer;
 		texture2D* mp_fonts_texture = nullptr;
 
 		shader::compile_output m_vertex_shader;
 		shader::compile_output m_pixel_shader;
-
 		vector<uint32> m_per_draw_vertex_offsets{};
 		vector<uint32> m_per_draw_index_offsets{};
 	};

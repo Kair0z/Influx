@@ -753,9 +753,14 @@ namespace influx::renderer
                 descriptor_manager& descriptorman = *backend.get_descriptor_manager();
 
                 // hot-reload our shaders if necessary:
-                pipeline.reload_shaders(backend.get_device());
-                influx_assert(pipeline.is_valid());
-
+                static bool done_once = false;
+                if (!done_once)
+                {
+                    pipeline.reload_shaders(backend.get_device());
+                    influx_assert(pipeline.is_valid());
+                    done_once = true;
+                }
+                
                 logonce(e_log_category::warning, "influx::renderer::debug_renderer: first debug render!");
 
                 // update viewprojection matrix
