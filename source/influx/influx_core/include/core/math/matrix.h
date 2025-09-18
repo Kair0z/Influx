@@ -150,6 +150,7 @@ namespace influx::math
 			const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector<_t, 3u>::make_up(),
 			const vector<_t, 3u>& scale = vector<_t, 3u>::make_one());
 
+		static matrix<_t, 4u, 4u> make_view(const matrix<_t, 4u, 4u>& transform);
 		static matrix<_t, 4u, 4u> make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector3::make_up());
 		static matrix<_t, 4u, 4u> make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up = vector3::make_up());
 		static matrix<_t, 4u, 4u> make_projection_LH(const float fov, const float ar, const float n, const float f);

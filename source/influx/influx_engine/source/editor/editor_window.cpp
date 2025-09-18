@@ -15,11 +15,11 @@ namespace influx::engine::editor
 		{
 			on_prerun();
 
-			if (m_force_position.is_forced())
-				ImGui::SetNextWindowPos(imgui::translate(m_force_position.get()));
+			if (m_position_locked.is_locked())
+				ImGui::SetNextWindowPos(imgui::translate(m_position_locked.get()));
 
-			if (m_force_size.is_forced())
-				ImGui::SetNextWindowSize(imgui::translate(m_force_size.get()));
+			if (m_size_locked.is_locked())
+				ImGui::SetNextWindowSize(imgui::translate(m_size_locked.get()));
 
 			const string& name = m_title.empty() ? "-" : m_title;
 			if (ImGui::Begin(name.c_str()))
@@ -54,9 +54,9 @@ namespace influx::engine::editor
 	math::float2 editor_window::get_position() const
 	{
 		math::float2 position = {};
-		if (m_force_position.is_forced())
+		if (m_position_locked.is_locked())
 		{
-			return m_force_position.m_force_value.value();
+			return m_position_locked.m_force_value.value();
 		}
 		else
 		{
@@ -69,9 +69,9 @@ namespace influx::engine::editor
 	math::float2 editor_window::get_size() const
 	{
 		math::float2 size = {};
-		if (m_force_size.is_forced())
+		if (m_size_locked.is_locked())
 		{
-			return m_force_size.m_force_value.value();
+			return m_size_locked.m_force_value.value();
 		}
 		else
 		{
@@ -98,21 +98,21 @@ namespace influx::engine::editor
 
 	void editor_window::set_position(const math::float2& new_position)
 	{
-		m_force_position.force(new_position);
+		m_position_locked.lock(new_position);
 	}
 
 	void editor_window::set_size(const math::float2& new_size)
 	{
-		m_force_size.force(new_size);
+		m_size_locked.lock(new_size);
 	}
 
-	editor_window::optional_property<math::float2>& editor_window::get_size_prop()
+	editor_window::lockable<math::float2>& editor_window::get_size_prop()
 	{
-		return m_force_size;
+		return m_size_locked;
 	}
 
-	editor_window::optional_property<math::float2>& editor_window::get_position_prop()
+	editor_window::lockable<math::float2>& editor_window::get_position_prop()
 	{
-		return m_force_position;
+		return m_position_locked;
 	}
 }

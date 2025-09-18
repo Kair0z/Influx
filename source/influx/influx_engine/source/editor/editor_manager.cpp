@@ -6,7 +6,7 @@
 
 // influx::engine
 #include "engine.h"
-#include "file/engine_files.h"
+#include "engine_files.h"
 #include "content/content_manager.h"
 #include "world/world.h"
 #include "game/game_manager.h"
@@ -63,6 +63,7 @@ namespace influx::engine::editor
 		}
 	};
 #pragma endregion
+
 	// all static windows of the engine
 	umap<string, editor_window*> editor_manager::m_static_windows{};
 
@@ -94,7 +95,6 @@ namespace influx::engine::editor
 		const input::mouse_position mouse_position = inputman.get_mouse_position();
 		m_mousepos = mouse_position.m_client;
 
-		// mouse updates
 		m_scene_editor.on_mouse_move(mouse_position);
 		const buttonstate& lm_button = inputman.get_mousebutton_state(input::e_mouse_button::left);
 		if (lm_button.is_firstframe_down())
@@ -113,14 +113,6 @@ namespace influx::engine::editor
 		if (rm_button.is_firstframe_up())
 		{
 			m_scene_editor.on_mouse_up(input::e_mouse_button::right, mouse_position);
-		}
-
-		// 
-		const buttonstate& lalt_button = inputman.get_keystate(input::e_key::lalt);
-		const buttonstate& space_button = inputman.get_keystate(input::e_key::space);
-		if (lalt_button.m_is_down && space_button.m_is_down)
-		{
-			// alt + space
 		}
 	}
 
@@ -157,10 +149,10 @@ namespace influx::engine::editor
 
 	void editor_manager::update_background_dockspace()
 	{
+		const float mainmenu_height = get_mainmenu_height();
+
 		// Get the current viewport
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
-
-		const float mainmenu_height = get_mainmenu_height();
 
 		// Set up a window that spans the entire viewport
 		ImVec2 windowpos = viewport->Pos; windowpos.y += mainmenu_height;
@@ -195,6 +187,7 @@ namespace influx::engine::editor
 
 	void editor_manager::update_static_windows()
 	{
+#if 1
 		static_window<game_manager_ui>("game");
 		static_window<fps_ui>("fps");
 		
@@ -205,6 +198,7 @@ namespace influx::engine::editor
 				pair.second->run({});
 			}
 		}
+#endif
 	}
 
 	bool editor_manager::has_project() const

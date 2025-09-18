@@ -41,6 +41,7 @@ namespace influx::engine::editor
 		bool has_project() const;
 		string get_projectname() const;
 		string get_editor_filepath() const;
+
 		void save_editor();
 		void load_editor();
 		files::editorfile& get_editorfile();

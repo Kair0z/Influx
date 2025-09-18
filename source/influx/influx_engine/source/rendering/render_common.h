@@ -15,7 +15,7 @@ namespace influx::engine
 	static constexpr uint8 k_num_render_views = static_cast<uint8>(e_render_view::count);
 	constexpr static const char* k_render_view_names[k_num_render_views]
 	{
-		"scene_editor",
+		"scene",
 		"game"
 	};
 

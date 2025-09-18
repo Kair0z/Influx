@@ -2,7 +2,7 @@
 #include "log_manager.h"
 
 // influx::engine
-#include "file/engine_files.h"
+#include "engine_files.h"
 #include "influx_imgui/imgui_widgets.h"
 #include "editor/editor_manager.h"
 

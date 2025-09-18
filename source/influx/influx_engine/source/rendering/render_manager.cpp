@@ -6,7 +6,7 @@
 
 // influx::engine
 #include "editor/editor_manager.h"
-#include "file/engine_files.h"
+#include "engine_files.h"
 #include "window/window_manager.h"
 
 // influx::platform
@@ -122,6 +122,7 @@ namespace influx::engine
 		{
 			render_view_id id = pair.first;
 			render_view& view = pair.second;
+			view.m_name = pair.first;
 
 			if (view.should_render() == false)
 				continue;
@@ -138,6 +139,7 @@ namespace influx::engine
 				args.m_has_depth_stencil = true;
 				args.m_width = view.m_dimensions.x;
 				args.m_heigth = view.m_dimensions.y;
+				args.m_name = view.m_name;
 				view.m_target = renderer::create_target(args);
 			}
 

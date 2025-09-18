@@ -45,6 +45,8 @@ namespace influx::renderer
 	// serving as a target for draw commands
 	class target final : public imgui_texid_provider
 	{
+		inline static const char* k_depth_name_postfix = "_depth";
+
 	public:
 		graphics::resource* get_resource() const;
 		graphics::resource* get_depth_resource() const;
@@ -64,16 +66,15 @@ namespace influx::renderer
 
 		INFLUX_RENDER_API void set_name(const debug_name& name);
 		INFLUX_RENDER_API const debug_name& get_name() const;
+		INFLUX_RENDER_API const debug_name& get_name_depth() const;
+		INFLUX_RENDER_API static debug_name get_name_depth(const debug_name& base);
 
-		INFLUX_RENDER_API debug_name get_rendergraph_name() const;
-		INFLUX_RENDER_API debug_name get_depth_rendergraph_name() const;
-		
 		INFLUX_RENDER_API ~target();
 
 		// ~imgui_texid_provider begin
 		virtual void* get_tex_descriptor() const override final { return m_srv_cpu; }
 		virtual void* get_tex_resource() const override final { return mp_resource; };
-		virtual debug_name get_rendergraph_id() const override final { return get_rendergraph_name(); };
+		virtual debug_name get_rendergraph_id() const override final { return get_name(); };
 		// ~imgui_texid_provider end
 
 	private:

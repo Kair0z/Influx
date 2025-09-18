@@ -11,7 +11,7 @@ namespace influx::platform
 #include "common.h"
 #include "config/config.h"
 #include "log/log_manager.h"
-#include "file/project.h"
+#include "project/project.h"
 
 namespace influx::engine
 {

@@ -305,10 +305,10 @@ namespace influx::renderer
     result<> renderer_backend::destroy_target(target*& target)
     {
         // remove resources from rendergraph book-keeping
-        m_rendergraph->remove_imported_texture(target->get_rendergraph_name());
+        m_rendergraph->remove_imported_texture(target->get_name());
         if (target->has_depth_stencil())
         {
-            m_rendergraph->remove_imported_texture(target->get_depth_rendergraph_name());
+            m_rendergraph->remove_imported_texture(target->get_name_depth());
         }
 
         delete target;
@@ -320,12 +320,12 @@ namespace influx::renderer
     result<> renderer_backend::import_to_graph(const target& target)
     {
         // import resources to rendergraph
-        m_rendergraph->import_texture(target.get_rendergraph_name(),
+        m_rendergraph->import_texture(target.get_name(),
             target.get_resource());
 
         if (target.has_depth_stencil())
         {
-            m_rendergraph->import_texture(target.get_depth_rendergraph_name(),
+            m_rendergraph->import_texture(target.get_name_depth(),
                 target.get_depth_resource());
         }
 
@@ -513,14 +513,14 @@ namespace influx::renderer
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::compute,
         [&source, &dest, keep_source](rendergraph::rgpass_builder& builder)
         {
-            builder.read_copysrc_texture(source.get_rendergraph_name()).get();
-            builder.write_copydst_texture(dest.get_rendergraph_name()).get();
+            builder.read_copysrc_texture(source.get_name()).get();
+            builder.write_copydst_texture(dest.get_name()).get();
             builder.set_viewport(dest.get_width(), dest.get_height());
         },
         [&source, &dest](rendergraph::rgpass_context& context)
         {
-            graphics::resource* src_resource = context.get_copysrc_texture(source.get_rendergraph_name()).get().m_resource;
-            graphics::resource* dst_resource = context.get_copydst_texture(dest.get_rendergraph_name()).get().m_resource;
+            graphics::resource* src_resource = context.get_copysrc_texture(source.get_name()).get().m_resource;
+            graphics::resource* dst_resource = context.get_copydst_texture(dest.get_name()).get().m_resource;
             context.get_commandlist().copy_resource(src_resource, dst_resource);
         });
         pass->set_name("copy");
@@ -533,7 +533,7 @@ namespace influx::renderer
         auto* pass = m_rendergraph->add_pass(rendergraph::e_rgpass_type::graphics,
         [&target, &args](rendergraph::rgpass_builder& builder)
         {
-            builder.write_rendertarget(target.get_rendergraph_name(), 
+            builder.write_rendertarget(target.get_name(),
                 rendergraph::rgaccess::clear_and_keep(args.m_colour));
 
             builder.set_viewport(target.get_width(), target.get_height());

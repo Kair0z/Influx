@@ -85,7 +85,7 @@ namespace influx::renderer
 		rendergraph::rgaccess access{};
 		access.m_load = rendergraph::e_rg_load::preserve;
 		access.m_store = rendergraph::e_rg_store::preserve;
-		builder.write_rendertarget(target.get_rendergraph_name(), access);
+		builder.write_rendertarget(target.get_name(), access);
 
 		// register reads
 		// each texture dependency imgui wants, we should import into the graph as well!
@@ -204,7 +204,14 @@ namespace influx::renderer
 					if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
 						continue;
 
-					commandlist->set_vp_and_rect({clip_min.x, clip_min.y}, {clip_max.x, clip_max.y});
+					graphics::rect rect
+					{
+						.m_left = (uint32)clip_min.x,
+						.m_top = (uint32)clip_min.y,
+						.m_right = (uint32)clip_max.x,
+						.m_bottom = (uint32)clip_max.y,
+					};
+					commandlist->set_scissor_rect(rect);
 
 					// if this command has a bound TexID (descriptor*/void*),
 					// we should stage the texture (allocate gpu descriptor)

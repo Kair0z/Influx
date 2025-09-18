@@ -7,7 +7,7 @@
 #include "core/file.h"
 
 // influx::engine
-#include "file/engine_files.h"
+#include "engine_files.h"
 #include "editor/editor_manager.h"
 #include "imgui/imgui.h"
 

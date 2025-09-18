@@ -118,6 +118,13 @@ namespace influx::platform
 
 	struct window_style final
 	{
+		static const window_style& get_nodecoration()
+		{
+			static window_style generic_style{};
+			generic_style.set_generic_window(true);
+			generic_style.set_decoration(false);
+			return generic_style;
+		}
 		static const window_style& get_generic()
 		{
 			static window_style generic_style{};

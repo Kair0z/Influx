@@ -605,7 +605,7 @@ namespace influx::renderer
         {
             builder.read_texture(get_target_gbuffer_name(i, target)).get();
         }
-        builder.write_texture(target.get_rendergraph_name()).get();
+        builder.write_texture(target.get_name()).get();
         
         builder.set_viewport(target.get_width(), target.get_height());
     }
@@ -737,7 +737,7 @@ namespace influx::renderer
                 rendergraph::rgaccess access{};
                 access.m_load = rendergraph::e_rg_load::preserve;
                 access.m_store = rendergraph::e_rg_store::preserve;
-                builder.write_rendertarget(target.get_rendergraph_name(), access);
+                builder.write_rendertarget(target.get_name(), access);
                 builder.set_viewport(target.get_width(), target.get_height());
             },
             [this, &scene, &target, &device]

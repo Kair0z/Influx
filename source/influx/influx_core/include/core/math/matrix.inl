@@ -715,15 +715,23 @@ namespace influx::math
 	}
 
 	template<typename _t, matsize _x, matsize _y>
+	inline matrix<_t, 4u, 4u> make_view(const math::matrix4x4f& transform)
+	{
+		matrix<_t, 4u, 4u> result = transform.inverted();
+		result.set_column(2u, -result.get_column(2u));
+		return result;
+	}
+
+	template<typename _t, matsize _x, matsize _y>
 	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_view_LH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		return make_transform_LH(pos, forward, up).inverted();
+		return make_view(make_transform_LH(pos, forward, up));
 	}
 
 	template<typename _t, matsize _x, matsize _y>
 	inline matrix<_t, 4u, 4u> matrix<_t, _x, _y>::make_view_RH(const vector<_t, 3u>& pos, const vector<_t, 3u>& forward, const vector<_t, 3u>& up)
 	{
-		return make_transform_RH(pos, forward, up).inverted();
+		return make_view(make_transform_RH(pos, forward, up));
 	}
 
 	// assuming [0, 1] depth range

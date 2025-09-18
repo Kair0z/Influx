@@ -752,11 +752,11 @@ namespace influx::platform
 	{
 		if (enabled)
 		{
-			m_style |= WS_OVERLAPPEDWINDOW;
+			m_style = WS_OVERLAPPEDWINDOW;
 		}
 		else
 		{
-			m_style |= WS_POPUP;
+			m_style = WS_POPUP;
 		}
 	}
 

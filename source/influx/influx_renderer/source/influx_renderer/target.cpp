@@ -59,21 +59,12 @@ namespace influx::renderer
 		{
 			graphics::tex2D_desc desc = get_default_depth_desc({ args.m_width, args.m_heigth });
 			mp_depth_resource = device->create_resource(desc);
-
 			m_dsv_cpu = desc_manager.create_dsv(*device, *mp_depth_resource);
 		}
 
+		set_name(get_name());
+
 		m_current_dimensions = { args.m_width, args.m_heigth };
-	}
-
-	debug_name target::get_rendergraph_name() const
-	{
-		return "target_" + string(get_name());
-	}
-
-	debug_name target::get_depth_rendergraph_name() const
-	{
-		return "depth_" + string(get_name());
 	}
 
 	target::~target()
@@ -185,6 +176,9 @@ namespace influx::renderer
 				recreate_dsv();
 			}
 
+			// re-apply name to resources
+			set_name(get_name());
+
 			m_current_dimensions = dimensions;
 		}
 	}
@@ -222,7 +216,7 @@ namespace influx::renderer
 
 		if (mp_depth_resource && mp_depth_resource->is_valid())
 		{
-			mp_depth_resource->set_name(name);
+			mp_depth_resource->set_name(get_name_depth(name));
 		}
 
 		m_createargs.m_name = name;
@@ -230,7 +224,15 @@ namespace influx::renderer
 
 	const debug_name& target::get_name() const
 	{
-		return mp_resource->get_name();
+		return m_createargs.m_name;
+	}
+	const debug_name& target::get_name_depth() const
+	{
+		return get_name_depth(m_createargs.m_name);
+	}
+	debug_name target::get_name_depth(const debug_name& base)
+	{
+		return string(base) + k_depth_name_postfix;
 	}
 }
 

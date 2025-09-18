@@ -22,9 +22,10 @@
 #include "input/input_manager.h"
 #include "tasks/task_manager.h"
 #include "window/window_manager.h"
-#include "file/engine_files.h"
+#include "engine_files.h"
 #include "log/log_manager.h"
 #include "scene/scene.h"
+#include "project/project.h"
 
 // influx::core
 #include "core/math/vectortools.h"
@@ -84,12 +85,20 @@ namespace influx::engine
 		/* create window& renderer */
 		const string window_name = (m_runtype == run_type::editor) ? "influx_editor" : "influx_game";
 		const math::vectoru2 window_dimensions = { 720, 480u };
+		platform::window_style window_style = platform::window_style::get_nodecoration();
 		platform::window_desc window_desc{};
+		const auto monitors = platform::monitor::query_monitors();
+		
 		window_desc	.set_dimensions(window_dimensions)
-					.set_name(window_name);
+					.set_name(window_name)
+					.set_style(window_style);
 		m_windowman = new window_manager();
 		m_windowman->spawn(window_desc); // main window
 		m_renderman = new render_manager();
+
+		// set to selected monitor
+		const math::vectoru2 monitor_center = monitors[2].get_rect().get_mid();
+		m_windowman->get_main_window().set_position(monitor_center);
 
 		/* create world & scene_manager */
 		m_world		= new world();
@@ -150,8 +159,7 @@ namespace influx::engine
 			// record imgui if editor
 			if (m_runtype == run_type::editor)
 			{
-				m_renderman->get_imgui_scene()
-				.m_imgui_stacks.push_back([this](ImGuiContext& ctx)
+				m_renderman->get_imgui_scene().m_imgui_stacks.push_back([this](ImGuiContext& ctx)
 				{
 					m_editorman->on_imgui(ctx);
 				});
@@ -194,48 +202,43 @@ namespace influx::engine
 		if (m_gameman)
 		{
 			delete m_gameman;
+			m_gameman = nullptr;
 		}
-
 		if (m_editorman)
 		{
 			delete m_editorman;
 			m_editorman = nullptr;
 		}
-
 		if (m_renderman)
 		{
 			delete m_renderman;
 			m_renderman = nullptr;
 		}
-
 		if (m_windowman)
 		{
 			delete m_windowman;
 			m_windowman = nullptr;
 		}
-
 		if (m_contentman)
 		{
 			delete m_contentman;
 			m_contentman = nullptr;
 		}
-
 		if (m_inputman)
 		{
 			delete m_inputman;
+			m_inputman = nullptr;
 		}
-
 		if (m_taskman)
 		{
 			delete m_taskman;
+			m_taskman = nullptr;
 		}
-
 		if (m_world)
 		{
 			delete m_world;
 			m_world = nullptr;
 		}
-
 		if (m_logman)
 		{
 			delete m_logman;
