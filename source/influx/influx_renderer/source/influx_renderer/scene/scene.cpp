@@ -20,7 +20,9 @@ namespace influx::renderer
 
 	bool scene::has_camera() const
 	{
-		return m_camera.m_transform_id != k_invalid_id;
+		bool valid_transform = m_camera.m_transform_id != k_invalid_id;
+		bool valid_settings = m_camera.m_camera.get_fov() > 0.0f;
+		return valid_transform && valid_settings;
 	}
 
 	const vector<mesh_instance>& scene::get_meshes() const
@@ -110,18 +112,15 @@ namespace influx::renderer
 		return m_transforms[m_camera.m_transform_id];
 	}
 
-	void scene::set_camera(const camera& camera, const math::matrix4x4f& transform)
+	void scene::set_camera(const influx::camera& camera, const math::matrix4x4f& transform)
 	{
-		set_camera(camera);
+		set_camera_settings(camera);
 		set_camera_transform(transform);
 	}
 
-	void scene::set_camera(const camera& camera)
+	void scene::set_camera_settings(const influx::camera& camera)
 	{
-		// preserve the existing transform id!
-		transform_id trans_id = m_camera.m_transform_id;
-		m_camera = camera;
-		m_camera.m_transform_id = trans_id;
+		m_camera.m_camera = camera;
 	}
 
 	void scene::set_camera_transform(const math::matrix4x4f& transform)
@@ -130,6 +129,8 @@ namespace influx::renderer
 		{
 			m_transforms.push_back(transform);
 			m_camera.m_transform_id = 0u;
+
+			m_viewmatrices = view_matrices(transform, m_camera);
 			return;
 		}
 		

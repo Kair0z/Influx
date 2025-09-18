@@ -98,6 +98,7 @@ namespace influx::renderer
 		math::vectoru2 m_current_dimensions;
 		math::vectoru2 m_prev_dimensions;
 		graphics::device* mp_device;
+		debug_name m_depth_name;
 
 		// only backend can create targets
 		friend class renderer_backend;

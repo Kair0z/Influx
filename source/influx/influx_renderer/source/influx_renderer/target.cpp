@@ -219,6 +219,7 @@ namespace influx::renderer
 			mp_depth_resource->set_name(get_name_depth(name));
 		}
 
+		m_depth_name = get_name_depth(m_createargs.m_name);
 		m_createargs.m_name = name;
 	}
 
@@ -228,11 +229,11 @@ namespace influx::renderer
 	}
 	const debug_name& target::get_name_depth() const
 	{
-		return get_name_depth(m_createargs.m_name);
+		return m_depth_name;
 	}
 	debug_name target::get_name_depth(const debug_name& base)
 	{
-		return string(base) + k_depth_name_postfix;
+		return string(string(base) + k_depth_name_postfix);
 	}
 }
 

@@ -28,7 +28,7 @@ namespace influx::engine
 		renderer::target*	m_target{};
 		renderer::scene		m_scene{};
 		renderer::scene2D	m_scene2D{};
-		renderer::camera	m_camera{};
+		influx::camera		m_camera_settings{};
 		math::transform3D	m_camera_transform{};
 		math::float4		m_clear_colour = { 0,0,0,1 };
 		math::uint2 m_dimensions		= { k_minimum_width, k_minimum_height };
@@ -53,7 +53,7 @@ namespace influx::engine
 
 		math::transform3D& get_camera_transform();
 		
-		renderer::camera& get_camera();
+		influx::camera& get_camera_settings();
 
 		math::float4& get_clear_colour();
 

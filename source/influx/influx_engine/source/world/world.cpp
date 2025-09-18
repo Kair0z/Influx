@@ -90,8 +90,7 @@ namespace influx::engine
                     renderer::camera render_camera{};
                     math::transform3D transform = transform_comp.get_transform();
                     render_camera.m_camera = camera_comp.get_camera();
-
-                    scene.set_camera(render_camera, transform.get_matrix());
+                    scene.set_camera(render_camera.m_camera, transform.get_matrix());
 
                     priority = camera_comp.get_priority();
                 }
@@ -216,6 +215,8 @@ namespace influx::engine
         {
             e_render_view view_enum = static_cast<e_render_view>(i);
             render_view& render_view = renderman.get_renderview(view_enum);
+            if (!render_view.should_render())
+                continue;
 
             renderer::scene& scene = render_view.get_scene();
             renderer::scene2D& scene2D = render_view.get_scene2D();
@@ -230,10 +231,9 @@ namespace influx::engine
                 {
                     if (camera_comp.get_priority() > priority)
                     {
-                        renderer::camera render_camera{};
                         math::transform3D transform = transform_comp.get_transform();
-                        render_camera.m_camera = camera_comp.get_camera();
-                        scene.set_camera(render_camera, transform.get_matrix());
+                        render_view.get_camera_settings() = camera_comp.get_camera();
+                        render_view.get_camera_transform() = transform;
                         priority = camera_comp.get_priority();
                     }
                 }

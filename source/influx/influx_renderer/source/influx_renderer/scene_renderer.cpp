@@ -516,7 +516,7 @@ namespace influx::renderer
         depth_access.m_store = rendergraph::e_rg_store::discard;
         depth_access.m_load_clear.m_depth = 1.0f;
         depth_desc.m_format = graphics::e_format::d32;
-        builder.write_depthtarget("depth_" + target.get_name().get_string(), depth_desc, depth_access).get();
+        builder.write_depthtarget(target.get_name_depth(), depth_desc, depth_access).get();
         builder.set_viewport(target.get_width(), target.get_height());
     }
 
@@ -654,12 +654,13 @@ namespace influx::renderer
             // stage the descriptors onto the gpu heap
             {
                 auto buffered = m_buffered.get_cpu();
+                auto write_texture = context.get_write_texture(0);
                 graphics::descriptor_range gpu_range = descriptor_man.stage(device,
                 {
                     context.get_read_texture(0).get().m_descriptor,
                     context.get_read_texture(1).get().m_descriptor,
                     context.get_read_texture(2).get().m_descriptor,
-                    context.get_write_texture(0).get().m_descriptor,
+                    write_texture.get().m_descriptor,
                     buffered.m_lightbuffer_srvs[0],
                     buffered.m_lightbuffer_srvs[1],
                     buffered.m_lightbuffer_srvs[2]

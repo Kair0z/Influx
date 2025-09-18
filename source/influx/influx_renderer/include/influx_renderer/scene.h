@@ -150,10 +150,10 @@ namespace influx::renderer
 		result<math::matrix4x4f> get_camera_transform() const;
 		
 		INFLUX_RENDER_API
-		void set_camera(const camera& camera, const math::matrix4x4f& transform);
+		void set_camera(const influx::camera& camera, const math::matrix4x4f& transform);
 		
 		INFLUX_RENDER_API
-		void set_camera(const camera& camera);
+		void set_camera_settings(const influx::camera& camera);
 
 		INFLUX_RENDER_API
 		void set_camera_transform(const math::matrix4x4f& transform);

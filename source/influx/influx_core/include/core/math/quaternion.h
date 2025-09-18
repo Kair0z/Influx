@@ -194,6 +194,29 @@ namespace influx::math
 			return *this;
 		}
 
+		inline vec3 get_euler_angles() const
+		{
+			// Roll (x-axis rotation)
+			_t sinr_cosp = 2.0 * (m_real * m_x + m_y * m_z);
+			_t cosr_cosp = 1.0 - 2.0 * (m_x * m_x + m_y * m_y);
+			_t roll = std::atan2(sinr_cosp, cosr_cosp);
+
+			// Pitch (y-axis rotation)
+			_t sinp = 2.0 * (m_real * m_y - m_z * m_x);
+			_t pitch;
+			if (std::fabs(sinp) >= 1)
+				pitch = std::copysign(math::k_PI / 2, sinp); // use 90 degrees if out of range
+			else
+				pitch = std::asin(sinp);
+
+			// Yaw (z-axis rotation)
+			_t siny_cosp = 2.0 * (m_real * m_z + m_x * m_y);
+			_t cosy_cosp = 1.0 - 2.0 * (m_y * m_y + m_z * m_z);
+			_t yaw = std::atan2(siny_cosp, cosy_cosp);
+
+			return { roll, pitch, yaw };
+		}
+
 		static quaternion make_conjugate(const quaternion& quat)
 		{
 			return { quat.m_real, -quat.m_x, -quat.m_y, -quat.m_z };
@@ -434,7 +457,7 @@ namespace influx::math
 		/* converts the rotation encoded in our quaternion into a vec3 euler angle representation (degrees) */
 		vectorf3 get_euler_angles() const
 		{
-			return {};
+			return m_quaternion.get_euler_angles();
 		}
 
 		/* returns a vector rotated [delta_degrees] around [axis] by our m_quaternion */

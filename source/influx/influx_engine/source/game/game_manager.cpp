@@ -37,8 +37,15 @@ namespace influx::engine
 			// setup_cafe();
 			setup_unitcube();
 
-			m_game_library.call_start();
+			// enable game renderview (and set its dimensions)
+			window_manager& windowman = get_engine()->get_windowman();
+			render_manager& renderman = get_engine()->get_renderer();
+			render_view& render_view = renderman.get_renderview(e_render_view::game);
+			platform::window& mainwindow = windowman.get_main_window();
+			render_view.set_dimensions(mainwindow.get_dimensions());
+			render_view.set_render_enabled(true);
 
+			m_game_library.call_start();
 			m_state = state::running;
 		}
 	}
@@ -92,9 +99,10 @@ namespace influx::engine
 		const static float damp_rate = 0.01f;
 		const static float fov = 90.0f;
 
-		static math::float3 start_position = {};
+		static math::float3 start_position = math::float3{1,1,1} * camera_distance;
 		static math::matrix4x4f start_rotation = math::matrix4x4f::identity();
 
+#if 0
 		if (get_engine()->is_editor() && false)
 		{
 			editor::editor_manager& editorman = get_engine()->get_editor();
@@ -102,13 +110,14 @@ namespace influx::engine
 			start_position = cam_transform.get_translation();
 			start_rotation = cam_transform.get_rotation_matrix();
 		}
-		
+#endif
+
 		entity camera = create_entity();
 		{
 			transform_component& trans_comp = world.create_component<transform_component>(camera.get_handle());
 			{
 				trans_comp.set_position(start_position);
-				trans_comp.set_rotation(start_rotation);
+				trans_comp.look_at(start_position);
 			}
 
 			camera_component& cam_comp = world.create_component<camera_component>(camera.get_handle());

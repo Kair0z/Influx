@@ -21,19 +21,30 @@ namespace influx::engine::editor
 	class sceneview_editor final : public editor::editor_window
 	{
 	public:
-		static math::matrix4x4f m_camera_transform;
+		static math::transform3D m_camera_transform;
 
 	public:
 		virtual void on_run() override
 		{
-			ImGui::Text("camera transform matrix:");
-			ImGui::Text("[%.2f, %.2f, %.2f, %.2f]", m_camera_transform[0][0], m_camera_transform[0][1], m_camera_transform[0][2], m_camera_transform[0][3]);
-			ImGui::Text("[%.2f, %.2f, %.2f, %.2f]", m_camera_transform[1][0], m_camera_transform[1][1], m_camera_transform[1][2], m_camera_transform[1][3]);
-			ImGui::Text("[%.2f, %.2f, %.2f, %.2f]", m_camera_transform[2][0], m_camera_transform[2][1], m_camera_transform[2][2], m_camera_transform[2][3]);
-			ImGui::Text("[%.2f, %.2f, %.2f, %.2f]", m_camera_transform[3][0], m_camera_transform[3][1], m_camera_transform[3][2], m_camera_transform[3][3]);
+			const auto& matrix = m_camera_transform.get_matrix();
+			const auto& position = m_camera_transform.get_position();
+			const auto& eulers = m_camera_transform.get_rotation_eulers();
+			const auto& scale = m_camera_transform.get_scale();
+
+			ImGui::Text("[camera transform]");
+			ImGui::Text("position: [%.2f, %.2f, %.2f]", position.x, position.y, position.z);
+			ImGui::Text("rotation: [%.2f, %.2f, %.2f]", eulers.x, eulers.y, eulers.z);
+			ImGui::Text("scale     [%.2f, %.2f, %.2f]", scale.x, scale.y, scale.z);
+			ImGui::Text("");
+
+			ImGui::Text("[camera transform matrix]");
+			ImGui::Text("[%.2f, %.2f, %.2f, %.2f]", matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3]);
+			ImGui::Text("[%.2f, %.2f, %.2f, %.2f]", matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3]);
+			ImGui::Text("[%.2f, %.2f, %.2f, %.2f]", matrix[2][0], matrix[2][1], matrix[2][2], matrix[2][3]);
+			ImGui::Text("[%.2f, %.2f, %.2f, %.2f]", matrix[3][0], matrix[3][1], matrix[3][2], matrix[3][3]);
 		}
 	};
-	math::matrix4x4f sceneview_editor::m_camera_transform = {};
+	math::transform3D sceneview_editor::m_camera_transform = {};
 #pragma endregion
 
 	static transform_component* g_transform = nullptr;
@@ -177,7 +188,7 @@ namespace influx::engine::editor
 
 		if (ImGui::Begin("scene"))
 		{
-			renderer::camera& view_camera = render_view.get_camera();
+			influx::camera& camera_settings = render_view.get_camera_settings();
 
 			m_camera_transform.update_matrix();
 
@@ -187,11 +198,11 @@ namespace influx::engine::editor
 			render_view.set_dimensions(view_dimensions);
 			render_view.set_render_enabled(true);
 			render_view.get_camera_transform() = m_camera_transform;
-			view_camera.m_camera.set_aspect_ratio(current_size.x / current_size.y);
-			view_camera.m_camera.set_fov(90.0f);
-			view_camera.m_camera.set_is_orthographic(false);
-			view_camera.m_camera.set_nearplane(0.001f);
-			view_camera.m_camera.set_farplane(1000.0f);
+			camera_settings.set_aspect_ratio(current_size.x / current_size.y);
+			camera_settings.set_fov(90.0f);
+			camera_settings.set_is_orthographic(false);
+			camera_settings.set_nearplane(0.001f);
+			camera_settings.set_farplane(1000.0f);
 
 			sceneview_editor::m_camera_transform = m_camera_transform.get_matrix();
 

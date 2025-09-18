@@ -31,9 +31,9 @@ namespace influx::engine
 	{
 		return m_camera_transform;
 	}
-	renderer::camera& render_view::get_camera()
+	influx::camera& render_view::get_camera_settings()
 	{
-		return m_camera;
+		return m_camera_settings;
 	}
 	math::float4& render_view::get_clear_colour()
 	{

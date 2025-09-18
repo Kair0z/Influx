@@ -221,6 +221,11 @@ namespace influx::math
 			return m_rotation;
 		}
 
+		math::float3 get_rotation_eulers() const
+		{
+			return m_rotation.get_euler_angles();
+		}
+
 		vectorf3 get_position() const
 		{
 			return m_position;

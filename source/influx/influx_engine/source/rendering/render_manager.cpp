@@ -104,7 +104,6 @@ namespace influx::engine
 	render_manager::~render_manager()
 	{
 		m_views.clear();
-
 		influx::renderer::cleanup();
 	}
 
@@ -148,9 +147,9 @@ namespace influx::engine
 			// render view
 			if (view.is_valid())
 			{
-				// update camera
-				view.get_scene().set_camera(
-					view.get_camera(), view.get_camera_transform().get_matrix());
+				const auto& view_camera_settings = view.get_camera_settings();
+				const auto& view_camera_transform = view.get_camera_transform().get_matrix();
+				view.get_scene().set_camera(view_camera_settings, view_camera_transform);
 				
 				renderer::clear_target(view.get_target(), { .m_colour = view.m_clear_colour });
 
@@ -165,9 +164,22 @@ namespace influx::engine
 		// render imgui
 		// (internally renders into potentially multiple windows backbuffers)
 		renderer::scene_imgui& imgui_scene = get_imgui_scene();
-		if (!imgui_scene.is_empty() && is_imgui_render_enabled())
+		const bool imgui_finishes_render = !imgui_scene.is_empty() && is_imgui_render_enabled();
+		if (imgui_finishes_render)
 		{
 			m_imgui.render(imgui_scene);
+		}
+		else
+		{
+			// for now, just copy the game target into final
+			window_manager& windowman = get_engine()->get_windowman();
+			render_view& game_view = get_renderview(e_render_view::game);
+			if (game_view.should_render())
+			{
+				platform::window& mainwindow = windowman.get_main_window();
+				renderer::target* final_target = renderer::get_or_create_window_target(mainwindow);
+				renderer::copy_target(game_view.get_target(), *final_target);
+			}
 		}
 
 		// submits all frame gpu commands to the GPU
