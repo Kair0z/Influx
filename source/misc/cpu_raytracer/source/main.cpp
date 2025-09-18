@@ -18,8 +18,6 @@
     #include "core/math/vector.h"
     #include "core/time.h"
     #include "core/math/random.h"
-    #include "core/KDTree.h"
-    #include "core/platform/win32/win32_window.h"
 #pragma endregion
 
 // [STL]
@@ -56,6 +54,7 @@ constexpr float     gSpheresMaxDepth = 100.0f;
 // ================================================
 // sub-headers
 #include "PixelRaytracer.h"
+#include "bvh.h"
 
 #define MULTITHREADED 0
 #if MULTITHREADED
@@ -149,6 +148,16 @@ void update_scene(const timing& sceneTime, influx::render_scene& scene)
 int main()
 {
     using namespace influx::math;
+
+    static constexpr unsigned int k_max_num_triangles = 1024u;
+    using bvh = influx::bvh_3D<k_max_num_triangles, 10u>;
+    bvh the_bvh;
+    bvh::ray the_ray;
+
+    using primitive = bvh::triangle;
+    std::vector<primitive> all_triangles(k_max_num_triangles);
+    the_bvh.rebuild(all_triangles);
+    the_bvh.test_hit(the_ray, all_triangles);
 
 #pragma region Setup
     int a = 0;

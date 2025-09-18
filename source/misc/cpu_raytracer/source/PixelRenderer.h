@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Core/Math/Math.h"
-#include "Core/Scene/Camera.h"
-#include "Core/Geometry/Sphere.h"
-#include "Core/Geometry/Plane.h"
+#include "core/Math/Math.h"
+#include "core/scene/camera.h"
+#include "core/math/sphere.h"
+#include "core/math/plane.h"
 
 #include <vector>
 
@@ -55,7 +55,7 @@ namespace influx
 		void set_camera_forward(const math::vectorf3& newForward) { m_camera_forward = newForward; }
 		void set_render_mode(const e_render_mode renderMode) { m_renderSettings.m_mode = renderMode; }
 
-		const scene::camera& get_camera() const { return m_camera; }
+		const camera& get_camera() const { return m_camera; }
 		const math::vectorf3& get_camera_position() const { return m_camera_position; }
 		const math::vectorf3& get_camera_forward() const { return m_camera_forward; }
 		
@@ -73,7 +73,7 @@ namespace influx
 		}
 
 	private:
-		scene::camera m_camera;
+		camera m_camera;
 		math::vectorf3 m_camera_position;
 		math::vectorf3 m_camera_forward;
 		render_settings m_renderSettings;

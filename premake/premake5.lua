@@ -45,6 +45,7 @@ workspace "influx"
     g_dir_rendergraph_include = g_dir_source_engine .. "/influx_rendergraph/include/"
     
     -- vendor libraries
+    g_dir_vendor_include = g_dir_vendor .. "/include/" 
     g_dir_vendor_libraries = g_dir_vendor .. "/lib/x64/"
     libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }
     

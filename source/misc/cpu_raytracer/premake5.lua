@@ -12,7 +12,8 @@ project "cpu_raytracer"
     files
     {
         g_project_dir .. "/**.cpp",
-        g_project_dir .. "/**.h"
+        g_project_dir .. "/**.h",
+        g_project_dir .. "/**.lua"
     }
 
     defines

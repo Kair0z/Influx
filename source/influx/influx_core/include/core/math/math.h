@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <type_traits>
 #include <limits>
+#include <cmath>
 
 namespace influx
 {

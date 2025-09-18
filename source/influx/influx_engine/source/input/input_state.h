@@ -11,25 +11,22 @@ namespace influx::engine
 {
 	struct buttonstate final
 	{
-		uint32 m_num_frames = 0u;
+		uint8 m_num_frames = 0u;
 		bool m_is_down = false;
 
-		inline bool is_down_for_frames(uint32 num_frames = 1) const
+		inline bool is_down_for_frames(uint8 num_frames = 1) const
 		{
 			return m_is_down && m_num_frames >= num_frames;
 		}
-
-		inline bool is_up_for_frames(uint32 num_frames = 1) const
+		inline bool is_up_for_frames(uint8 num_frames = 1) const
 		{
 			return !m_is_down && m_num_frames >= num_frames;
 		}
-
-		inline bool is_firstframe_up(uint32 num_frames = 2u) const
+		inline bool is_firstframe_up(uint8 num_frames = 2u) const
 		{ 
 			return !m_is_down && m_num_frames < num_frames;
 		}
-
-		inline bool is_firstframe_down(uint32 num_frames = 2u) const
+		inline bool is_firstframe_down(uint8 num_frames = 2u) const
 		{
 			return m_is_down && m_num_frames < num_frames;
 		}
@@ -37,6 +34,11 @@ namespace influx::engine
 
 	struct input_state final
 	{
+		stat_array<buttonstate, input::k_num_keys>			m_keystates{};
+		stat_array<buttonstate, input::k_num_mousebuttons>	m_buttonstates{};
+		input::mouse_position								m_mouse_position;
+		input::mouse_position								m_prev_mouse_position;
+
 	public:
 		uint64 m_frame = 0u;
 
@@ -52,24 +54,6 @@ namespace influx::engine
 		bool is_down(input::e_key key,	uint32* out_num_frames = nullptr) const;
 		bool is_down(char ascii,		uint32* out_num_frames = nullptr) const;
 		bool is_down(input::e_mouse_button, uint32* out_num_frames = nullptr) const;
-
-		struct
-		{
-			stat_array<buttonstate, input::k_num_mousebuttons> m_buttonstates{};
-
-			input::mouse_position m_mouse_position;
-			input::mouse_position m_prev_mouse_position;
-
-			math::vectorf2 get_mouse_delta_pixels() const
-			{
-				return m_mouse_position.m_client - m_prev_mouse_position.m_client;
-			}
-		} m_mouse_data;
-		struct
-		{
-			stat_array<buttonstate, input::k_num_keys> m_keystates{};
-		} m_keyboard_data;
-
 		void tick(float delta_seconds);
 
 	public:

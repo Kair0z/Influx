@@ -79,7 +79,7 @@ namespace influx::BRDF
 		math::vectorf3 reflectVector{ -fromLight + 2 * normalDotFromLight * hitNormal };
 
 		colour diffuse = settings.m_diffuse_colour * lightIntensity * math::clamp(normalDotFromLight, 0.0f, 1.0f);
-		colour specular = math::vectorf3::one() * lightIntensity * powf(math::clamp(math::vectorf3::dot(reflectVector, toView), 0.0f, 1.0f), settings.m_phong_exponent);
+		colour specular = math::vectorf3::make_one() * lightIntensity * powf(math::clamp(math::vectorf3::dot(reflectVector, toView), 0.0f, 1.0f), settings.m_phong_exponent);
 
 		return (settings.m_diffuse * diffuse) + (settings.m_specular * specular);
 	}
@@ -98,7 +98,7 @@ namespace influx::BRDF
 		const math::vectorf3& hitNormal)
 	{
 		math::vectorf3 halfVector{ toView + fromLight };
-		math::vectorf3::normalize(halfVector);
+		halfVector.normalize();
 		// angle between either & halfvector can't be bigger than 90° (PI / 2)
 
 		float remappedRoughness{};

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "PixelRenderer.h"
-#include "Core/Geometry/Ray.h"
+#include "core/math/ray.h"
 
 namespace influx
 {

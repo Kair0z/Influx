@@ -33,12 +33,11 @@ namespace influx::engine
 
 		for (uint32 i = 0u; i < input::k_num_keys; ++i)
 		{
-			m_keyboard_data.m_keystates[i].m_num_frames++;
+			m_keystates[i].m_num_frames++;
 		}
-
 		for (uint32 i = 0u; i < input::k_num_mousebuttons; ++i)
 		{
-			m_mouse_data.m_buttonstates[i].m_num_frames++;
+			m_buttonstates[i].m_num_frames++;
 		}
 	}
 
@@ -60,8 +59,8 @@ namespace influx::engine
 	}
 	void input_state::on_mousevent(const input::mouse_event& ev)
 	{
-		m_mouse_data.m_prev_mouse_position = m_mouse_data.m_mouse_position;
-		m_mouse_data.m_mouse_position = ev.m_position;
+		m_prev_mouse_position = m_mouse_position;
+		m_mouse_position = ev.m_position;
 
 		if (ev.m_button != input::e_mouse_button::count)
 		{
@@ -82,20 +81,20 @@ namespace influx::engine
 
 	const input::mouse_position& input_state::get_mouse_position() const
 	{
-		return m_mouse_data.m_mouse_position;
+		return m_mouse_position;
 	}
 
 	const math::uint2& input_state::get_mouse_position_client() const
 	{
-		return m_mouse_data.m_mouse_position.m_client;
+		return m_mouse_position.m_client;
 	}
 	const math::uint2& input_state::get_mouse_position_screen() const
 	{
-		return m_mouse_data.m_mouse_position.m_screen;
+		return m_mouse_position.m_screen;
 	}
 	math::vectorf2 input_state::get_mouse_delta_pixels() const
 	{
-		return m_mouse_data.get_mouse_delta_pixels();
+		return m_mouse_position.m_client - m_prev_mouse_position.m_client;
 	}
 
 	const buttonstate& input_state::get_keystate(const input::key_event& ev) const
@@ -105,17 +104,17 @@ namespace influx::engine
 
 	const buttonstate& input_state::get_keystate(input::e_key key) const
 	{
-		return m_keyboard_data.m_keystates[key_to_index(key)];
+		return m_keystates[key_to_index(key)];
 	}
 
 	const buttonstate& input_state::get_keystate(char ascii) const
 	{
-		return m_keyboard_data.m_keystates[key_to_index(ascii)];
+		return m_keystates[key_to_index(ascii)];
 	}
 
 	const buttonstate& input_state::get_mousebutton_state(input::e_mouse_button button) const
 	{
-		return m_mouse_data.m_buttonstates[button_to_index(button)];
+		return m_buttonstates[button_to_index(button)];
 	}
 
 	bool input_state::is_down(input::e_key key, uint32* out_num_frames) const
@@ -145,14 +144,14 @@ namespace influx::engine
 	}
 	buttonstate& input_state::get_keystate(input::e_key key)
 	{
-		return m_keyboard_data.m_keystates[key_to_index(key)];
+		return m_keystates[key_to_index(key)];
 	}
 	buttonstate& input_state::get_keystate(char ascii)
 	{
-		return m_keyboard_data.m_keystates[key_to_index(ascii)];
+		return m_keystates[key_to_index(ascii)];
 	}
 	buttonstate& input_state::get_mousebutton_state(input::e_mouse_button button)
 	{
-		return m_mouse_data.m_buttonstates[button_to_index(button)];
+		return m_buttonstates[button_to_index(button)];
 	}
 }
