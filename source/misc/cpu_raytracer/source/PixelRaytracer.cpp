@@ -114,10 +114,10 @@ namespace influx
 		float a = math::vectorf3::dot(ray.get_direction(), ray.get_direction());
 		float b = math::vectorf3::dot(2 * ray.get_direction(), ray.get_direction() - sphere.m_position);
 		float c = math::vectorf3::dot(ray.get_origin() - sphere.m_position, ray.get_origin() - sphere.m_position) - (sphere.m_radius * sphere.m_radius);
+		float d = (b * b) - 4 * a * c;
 
-		float d{ (b * b) - 4 * a * c };
-
-		if (d <= 0.0f) return false;
+		if (d <= 0.0f)
+			return false;
 
 		float dSqrt{ sqrtf(d) };
 

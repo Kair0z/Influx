@@ -754,6 +754,17 @@ namespace influx::graphics
 		mpdx_devices[0u]->CreateShaderResourceView(dxresource, &srv_desc, dxcpu_descriptor);
 	}
 
+	void dx12_device::create_buffer_cbv(descriptor_handle cpu_handle, resource* resource)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE dxcpu_descriptor = { .ptr = (size_t)(cpu_handle) };
+		ID3D12Resource* dxresource = resource->get_native<ID3D12Resource>();
+
+		D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc{};
+		cbv_desc.BufferLocation = dxresource->GetGPUVirtualAddress();
+		cbv_desc.SizeInBytes = resource->get_bytesize();
+		mpdx_devices[0u]->CreateConstantBufferView(&cbv_desc, dxcpu_descriptor);
+	}
+
 	ptr<rootsignature> dx12_device::create_rootsignature(const rootsignature_desc& desc)
 	{
 		ID3D12RootSignature* dxrootsignature = nullptr;

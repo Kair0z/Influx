@@ -66,6 +66,7 @@ namespace influx::graphics
 		virtual void create_texture_uav(descriptor_handle cpu_handle, resource* resource) override;
 		virtual void create_sampler_view(descriptor_handle cpu_handle, resource* resource) override;
 		virtual void create_accstruct_view(descriptor_handle cpu_handle, resource* resource) override;
+		virtual void create_buffer_cbv(descriptor_handle cpu_handle, resource* resource) override;
 
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) override;
 		virtual ptr<graphics_pipeline> create_graphics_pipeline(rootsignature* rootsig, const graphics_pipeline_desc& desc) override;

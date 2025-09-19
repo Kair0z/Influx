@@ -85,6 +85,7 @@ namespace influx::graphics
 		virtual void create_texture_uav(descriptor_handle cpu_handle, resource* resource) = 0;
 		virtual void create_sampler_view(descriptor_handle cpu_handle, resource* resource) = 0;
 		virtual void create_accstruct_view(descriptor_handle cpu_handle, resource* resource) = 0;
+		virtual void create_buffer_cbv(descriptor_handle cpu_handle, resource* resource) = 0;
 
 		virtual void create_rtv(resource* resource, descriptor_handle cpu_handle) { return create_rtv(cpu_handle, resource); }
 		virtual void create_dsv(resource* resource, descriptor_handle cpu_handle) { return create_dsv(cpu_handle, resource); }
@@ -92,6 +93,7 @@ namespace influx::graphics
 		virtual void create_uav_texture(resource* resource, descriptor_handle cpu_handle) { return create_texture_uav(cpu_handle, resource); }
 		virtual void create_uav_buffer(resource* resource, descriptor_handle cpu_handle) { return create_buffer_uav(cpu_handle, resource); }
 		virtual void create_srv_buffer(resource* resource, descriptor_handle cpu_handle) { return create_buffer_srv(cpu_handle, resource); }
+		virtual void create_cbv_buffer(resource* resource, descriptor_handle cpu_handle) { return create_buffer_cbv(cpu_handle, resource); }
 
 		/* pipeline state objects */
 		virtual ptr<rootsignature> create_rootsignature(const rootsignature_desc& desc) = 0;

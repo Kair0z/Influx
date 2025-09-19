@@ -149,15 +149,17 @@ int main()
 {
     using namespace influx::math;
 
-    static constexpr unsigned int k_max_num_triangles = 1024u;
-    using bvh = influx::bvh_3D<k_max_num_triangles, 10u>;
+#if 0
+    static constexpr unsigned int k_max_num_primitives = 1024u;
+    using bvh = influx::bvh_3D<k_max_num_primitives, 10u>;
     bvh the_bvh;
     bvh::ray the_ray;
 
-    using primitive = bvh::triangle;
-    std::vector<primitive> all_triangles(k_max_num_triangles);
-    the_bvh.rebuild(all_triangles);
-    the_bvh.test_hit(the_ray, all_triangles);
+    using primitive = bvh::sphere;
+    std::vector<primitive> all_spheres(k_max_num_primitives);
+    the_bvh.rebuild(all_spheres);
+    the_bvh.test_hit(the_ray, all_spheres);
+#endif
 
 #pragma region Setup
     int a = 0;

@@ -124,8 +124,13 @@ namespace influx
 		struct triangle final
 		{
 			multi<float, _n> m_points[3u]{};
+		};
 
-
+		template <uint32 _n>
+		struct sphere final
+		{
+			multi<float, _n> m_center{};
+			float m_radius = 1.0f;
 		};
 
 		template <uint32 _n>
@@ -147,6 +152,7 @@ namespace influx
 			avg_sum /= 3u;
 			return avg_sum;
 		}
+		
 		template <>
 		inline rayhit<2u> intersect_ray(const ray<2u>& ray, const triangle<2u>& tri)
 		{
@@ -156,6 +162,7 @@ namespace influx
 			res.m_point;
 			return res;
 		}
+		
 		template <>
 		inline rayhit<3u> intersect_ray(const ray<3u>& ray, const triangle<3u>& tri)
 		{
@@ -163,6 +170,28 @@ namespace influx
 			hit_type res{};
 			res.m_is_hit = false;
 			res.m_point;
+			return res;
+		}
+		
+		template <typename _t, uint32 _n>
+		inline multi<float, _n> get_centroid(const sphere<_n>& sphere)
+		{
+			return sphere.m_center;
+		}
+		
+		template <>
+		inline rayhit<2u> intersect_ray(const ray<2u>& ray, const sphere<2u>& sphere)
+		{
+			using hit_type = rayhit<2u>;
+			hit_type res;
+			return res;
+		}
+		
+		template <>
+		inline rayhit<3u> intersect_ray(const ray<3u>& ray, const sphere<3u>& sphere)
+		{
+			using hit_type = rayhit<3u>;
+			hit_type res;
 			return res;
 		}
 	}
@@ -190,18 +219,21 @@ namespace influx
 		static constexpr float k_max_bounds = 1e30f;
 		static constexpr uint32 k_max_depth = _d;
 
+		using mfloat = detail::multi<float, k_dim>;
+		using node = detail::bvh_node<k_dim>;
+		node m_nodes[k_max_num_nodes]{};
+
 		struct primitive_data final
 		{
-			detail::multi<float, k_dim> m_centroid;
+			mfloat m_centroid;
 		};
-		using node = detail::bvh_node<k_dim>;
-		node			m_nodes[k_max_num_nodes];
-		primitive_data	m_primdata[k_max_num_primitives];
+		primitive_data	m_primdata[k_max_num_primitives]{};
 
 	public:
 		using ray = detail::ray<k_dim>;
 		using rayhit = detail::rayhit<k_dim>;
 		using triangle = detail::triangle<k_dim>;
+		using sphere = detail::sphere<k_dim>;
 
 		template <typename _p>
 		inline void rebuild(const vector<_p>& primitives)
@@ -244,25 +276,31 @@ namespace influx
 	template <uint32 _c, uint32 _d>
 	using bvh_3D = bvh<_c, e_dimension::_3D, _d>;
 	
-	//======================================================================================
-	// want to define your own primitives? (non-triangles)
-	// these are the 2 function templates you need to instantiate
-#if 0
-	struct mysphere { detail::multi<float, 3u> m_center; };
+	using float3	= detail::multi<float, 3u>;
+	using ray3D		= detail::ray<3u>;
+	using rayhit3D	= detail::rayhit<3u>;
 
-	template <>
-	inline detail::multi<float, 3u> detail::get_centroid(const mysphere& sphere)
+	//======================================================================================
+	// want to use your own primitives? (non-triangles)
+	// these are the 2 function templates you need to instantiate..
+	// - detail::get_centroid(const _t& primitive) -> float3
+	// - detail::intersect_ray(const ray3D& ray, const _t& primitive) -> rayhit3D
+#if 0
+	// example primitive
+	struct mysphere { float3 m_center; float m_radius; };
+
+	// get_centroid(const mysphere&) ...
+	template <> inline float3 detail::get_centroid(const mysphere& sphere)
 	{
 		return sphere.m_center;
 	}
 
-	template <>
-	inline detail::rayhit<3u> detail::intersect_ray(const detail::ray<3u>& ray, const mysphere& sphere)
+	// intersect_ray(const mysphere&) ...
+	template <> inline rayhit3D detail::intersect_ray(const ray3D& ray, const mysphere& sphere)
 	{
-		using hit_type = detail::rayhit<3u>;
-		hit_type res{};
-		res.m_is_hit = true;
-		return res;
+		rayhit3D hit{};
+		hit.m_is_hit = true;
+		return hit;
 	}
 #endif
 }

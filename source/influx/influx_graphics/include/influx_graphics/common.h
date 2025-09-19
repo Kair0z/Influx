@@ -24,7 +24,7 @@ namespace influx::graphics
 
 	enum class e_feature_flags : uint8
 	{
-		none				= 0 << 0,
+		none				= 0,
 		raytracing			= 1 << 0,
 		workgraphs			= 1 << 1,
 		all = raytracing | workgraphs

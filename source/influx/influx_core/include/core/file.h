@@ -40,6 +40,7 @@ namespace influx
 		str_type m_filename_without_extension = L"";
 		str_type m_extension = L"";
 		str_type m_directory = L"";
+		uint64 m_content_hash = 0u;
 
 	private:
 		inline void initialize(const str_type& str)
@@ -76,6 +77,28 @@ namespace influx
 			m_extension = str;
 			m_filename = m_filename.substr(0u, m_filename.find(L'.')) + str;
 			m_full_path = m_full_path.substr(0u, m_full_path.find(L'.')) + str;
+		}
+
+		inline result<uint64> get_content_hash(bool query)
+		{
+			if (query) query_content_hash();
+			return m_content_hash;
+		}
+
+		inline result<uint64> query_content_hash()
+		{
+			using result_type = result<uint64>;
+
+			if (!exists(m_full_path))
+				return result_type::make_error("m_full_path is not a valid file!");
+
+			auto content = content_to_string(m_full_path);
+			if (!content)
+				return result_type::make_error("content_to_string() failed!");
+
+			std::hash<string> hasher;
+			m_content_hash = hasher(content.get());
+			return m_content_hash;
 		}
 
 		/* OS file query operations */
@@ -395,6 +418,7 @@ namespace influx
 
 			return {};
 		}
+		
 		inline static result<> clear_content(const str_type& path)
 		{
 			if (exists(path.c_str()))

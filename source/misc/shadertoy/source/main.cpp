@@ -1,5 +1,7 @@
 // influx::core
 #include "core/container/map.h"
+#include "core/file.h"
+#include "core/time.h"
 // influx::platform
 #include "influx_platform/window.h"
 // influx::graphics
@@ -17,9 +19,16 @@ inline platform::window* create_window()
 	platform::window_desc win_desc{};
 	win_desc
 		.set_dimensions({ 640u, 480u })
-		.set_name("mynanite");
+		.set_name("shadertoy");
 	return platform::window::create(win_desc);
 }
+
+struct constants final
+{
+	math::float2 m_resolution;
+	float m_seconds;
+	float m_delta_seconds;
+};
 
 class graphics_manager final
 {
@@ -30,7 +39,7 @@ class graphics_manager final
 public:
 	enum class e_descriptor : uint8
 	{
-		rtv, dsv, srv, uav, num
+		rtv, dsv, srv, uav, cbv, num
 	};
 	static constexpr uint32 k_num_descriptortypes = static_cast<uint32>(e_descriptor::num);
 
@@ -184,11 +193,19 @@ public:
 					else						device.create_uav_buffer(native_resource, cpu_descriptor);
 					break;
 				}	
+				case e_descriptor::cbv:
+				{
+					auto& heap = get_cpu_descriptor ? get_heap(e_descriptorheap::srv_uav_cpu) : get_heap(e_descriptorheap::srv_uav_gpu);
+					const uint32 index = heap.allocate().get();
+					cpu_descriptor = heap.get_cpu(index).get();
+					gpu_descriptor = heap.get_gpu(index).get();
+					device.create_cbv_buffer(native_resource, cpu_descriptor);
+					break;
+				}
 				}
 
 				// flag as created
 				m_resource_to_descriptors[native_resource].set_created(type, true);
-
 				return get_cpu_descriptor ? cpu_descriptor : gpu_descriptor;
 			}
 		}
@@ -200,11 +217,13 @@ private:
 	graphics::commandlist*			m_commandlist = nullptr;
 	graphics::swapchain*			m_swapchain;
 	graphics::resource*				m_target;
+	graphics::resource*				m_constants;
 	graphics::compute_pipeline*		m_pipeline = nullptr;
 	graphics::rootsignature*		m_rootsignature = nullptr;
 	descriptor_manager*				m_descmanager;
 
 	descriptor m_target_uav{};
+	descriptor m_constants_cbv{};
 
 public:
 	graphics_manager(const platform::window& window)
@@ -220,18 +239,26 @@ public:
 		m_swapchain = m_device->create_swapchain(m_queue, window, swapchain_args);
 		m_descmanager = new descriptor_manager(*m_device);
 
-		graphics::tex2D_desc desc{};
-		desc.m_allow_uav = true;
-		desc.m_arraysize = 1u;
-		desc.m_bindflags = graphics::e_bind_flags::uav;
-		desc.m_dimensions = window.get_dimensions();
-		desc.m_format = graphics::e_format::rgba8;
-		desc.m_init_state = graphics::e_resource_state::cs_uav;
-		desc.m_num_mips = 1u;
-		desc.m_sample_count = 1u;
-		m_target = m_device->create_resource(desc);
-
-		m_target_uav = get_or_create_descriptor(*m_target, e_descriptor::uav, false);
+		{
+			graphics::buffer_desc desc{};
+			desc.m_bytesize = desc.m_bytestride = 256u; // CBVs are very particular about this
+			m_constants = m_device->create_resource(desc, 
+				graphics::heap_desc::shared_heap());
+			m_constants_cbv = get_or_create_descriptor(*m_constants, e_descriptor::cbv, false);
+		}
+		{
+			graphics::tex2D_desc desc{};
+			desc.m_allow_uav = true;
+			desc.m_arraysize = 1u;
+			desc.m_bindflags = graphics::e_bind_flags::uav;
+			desc.m_dimensions = window.get_dimensions();
+			desc.m_format = graphics::e_format::rgba8;
+			desc.m_init_state = graphics::e_resource_state::cs_uav;
+			desc.m_num_mips = 1u;
+			desc.m_sample_count = 1u;
+			m_target = m_device->create_resource(desc);
+			m_target_uav = get_or_create_descriptor(*m_target, e_descriptor::uav, false);
+		}
 	}
 	~graphics_manager() {} // whatever
 	
@@ -244,6 +271,12 @@ public:
 		m_commandlist->start(m_device, m_pipeline);
 		m_commandlist->set_descriptorheap(&m_descmanager->get_heap(descriptor_manager::e_descriptorheap::srv_uav_gpu));
 		m_commandlist->set_rootsignature(m_rootsignature, graphics::e_pipeline_type::compute);
+
+		auto& cmdlist = commandlist();
+		backbuffer().transition(cmdlist, graphics::e_resource_state::render_target);
+
+		cmdlist.set_descriptor_range(target_uav_gpu(), 0u, graphics::e_pipeline_type::compute);
+		cmdlist.set_descriptor_range(constants_cbv_gpu(), 1u, graphics::e_pipeline_type::compute);
 	}
 
 	bool rebuild_pipeline(const shader::compile_output& compiled_shader)
@@ -253,6 +286,7 @@ public:
 
 		graphics::rootsignature_desc rootsig_desc{};;
 		rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, 1u, 0u);
+		rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::cbv, 1u, 0u);
 		m_rootsignature = m_device->create_rootsignature(rootsig_desc);
 
 		influx::graphics::compute_pipeline_desc desc{};
@@ -284,6 +318,19 @@ public:
 	{
 		return m_target_uav;
 	}
+	
+	descriptor constants_cbv_gpu()
+	{
+		return m_constants_cbv;
+	}
+
+	void update_constants(const constants& consts)
+	{
+		m_constants->map<constants>([&consts](constants* target)
+		{
+			(*target) = consts;
+		});
+	}
 
 	graphics::commandlist& commandlist()
 	{
@@ -292,6 +339,13 @@ public:
 
 	void render_finish()
 	{
+		auto& cmdlist = commandlist();
+
+		backbuffer().transition(cmdlist, graphics::e_resource_state::copy_dst);
+		target().transition(cmdlist, graphics::e_resource_state::copy_src);
+		cmdlist.copy_resource(target(), backbuffer());
+		backbuffer().transition(cmdlist, graphics::e_resource_state::present);
+
 		m_commandlist->end();
 		m_queue->submit({ m_commandlist });
 	}
@@ -309,67 +363,84 @@ int main()
 
 	bool is_exit = false;
 	bool is_pipeline_valid = false;
-	std::thread commandline_thread = std::thread(
-	[&graphics, &is_exit, &is_pipeline_valid]()
+	uint64 last_shader_hash = 0u;
+	path shader_file = "C:/Users/avkerschaver/Desktop/shader.hlsl";
+
+	auto recompile = [&is_pipeline_valid, &graphics, &shader_file]()
+	{
+		// do the recompile
+		is_pipeline_valid = false;
+
+		// parse shaders in the file
+		const string filepath_str = to_string(shader_file.get_full_path());
+		auto parsed = shader::parse_shaders_in_file(filepath_str);
+		if (parsed.is_fail())
+			return;
+
+		// check if the file has a compute shader
+		if (!has_flag(parsed.get().m_found_types, shader::e_shader_type_flags::cs))
+			return;
+
+		// (try) compile the first shader in our list
+		const auto& shaders = parsed.get().m_shadermap[shader::e_shader_type::cs];
+		shader::compile_args args{};
+		args.m_reflection_enabled = true;
+		args.m_target = shader::e_shader_target::_6_6;
+		auto compiled = shader::compile_shader_in_file(filepath_str, shaders[0].m_signature, args);
+		if (compiled.is_fail())
+			return;
+
+		// if the shader compiled, rebuild the pipeline with our shader
+		bool result = graphics.rebuild_pipeline(compiled.get());
+		is_pipeline_valid = result;
+	};
+
+	// hot-reload thread
+	std::thread checkfile_thread = std::thread(
+	[&is_exit, &recompile, &shader_file, &last_shader_hash]
 	{
 		while (!is_exit)
 		{
-			string command;
-			std::cin >> command;
-
-			if (!command.empty() && str::contains(command, "recomp", false))
+			const uint64 shader_hash = shader_file.query_content_hash().get();
+			if (last_shader_hash != shader_hash)
 			{
-				// do the recompile
-				is_pipeline_valid = false;
-
-				const string filepath = "C:/Users/arnev/OneDrive/Bureaublad/shader.hlsl";
-				auto parsed = shader::parse_shaders_in_file(filepath);
-				if (parsed.is_fail())
-					continue;
-
-				if (!has_flag(parsed.get().m_found_types, shader::e_shader_type_flags::cs))
-					continue;
-
-				const auto& shaders = parsed.get().m_shadermap[shader::e_shader_type::cs];
-				shader::compile_args args{};
-				args.m_reflection_enabled = true;
-				args.m_target = shader::e_shader_target::_6_6;
-				auto compiled = shader::compile_shader_in_file(filepath, shaders[0].m_signature, args);
-				if (compiled.is_fail())
-					continue;
-
-				bool result = graphics.rebuild_pipeline(compiled.get());
-				is_pipeline_valid = result;
+				recompile();
+				last_shader_hash = shader_hash;
 			}
-			std::this_thread::sleep_for(std::chrono::milliseconds(250));
 		}
 	});
 
+	// main thread
+	auto start = time::get_now();
+	auto prev_frame = time::get_now();
 	while (!is_exit)
 	{
+		float seconds = time::get_ms_since<float>(start) * 0.001f;
+		float delta_seconds = time::get_ms_since<float>(prev_frame) * 0.001f;
+		prev_frame = time::get_now();
+		
 		window->poll_events(is_exit);
-
 		if (is_pipeline_valid)
 		{
 			graphics.render_start();
+			
 			auto& cmdlist = graphics.commandlist();
-			graphics.backbuffer().transition(cmdlist, graphics::e_resource_state::render_target);
 
-			cmdlist.set_descriptor_range(graphics.target_uav_gpu(), 0u, graphics::e_pipeline_type::compute);
+			// update the consts
+			constants consts{};
+			consts.m_seconds = seconds;
+			consts.m_delta_seconds = delta_seconds;
+			consts.m_resolution = window->get_dimensions();
+			graphics.update_constants(consts);
 
+			// dispatch
 			graphics::dispatch_args args{};
 			args.m_threadgroup_count = { 32,32,1 };
 			cmdlist.dispatch(args);
 
-			graphics.backbuffer().transition(cmdlist, graphics::e_resource_state::copy_dst);
-			graphics.target().transition(cmdlist, graphics::e_resource_state::copy_src);
-			cmdlist.copy_resource(graphics.target(), graphics.backbuffer());
-			graphics.backbuffer().transition(cmdlist, graphics::e_resource_state::present);
 			graphics.render_finish();
 		}
-
 		graphics.present(false);
 	}
-
-	commandline_thread.join();
+	checkfile_thread.join();
 }
