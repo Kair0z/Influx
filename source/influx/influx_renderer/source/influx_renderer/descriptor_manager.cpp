@@ -11,10 +11,9 @@
 namespace influx::renderer
 {
 	// https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-support
-	constexpr static uint64 k_max_num_rtvs = 64u;
-	constexpr static uint64 k_max_num_srvs = 1024u;
-	constexpr static uint64 k_max_num_samplers = 2048u;
-	constexpr static uint64 k_max_num_dsvs = 64u;
+	constexpr static uint64 k_cpu_heap_capacity		= 1024u * 1024u;
+	constexpr static uint64 k_gpu_resource_capacity = 2048u;
+	constexpr static uint64 k_gpu_sampler_capacity	= 2048u;
 
 	void descriptor_manager::reset_gpu_heaps()
 	{
@@ -38,25 +37,15 @@ namespace influx::renderer
 		// CPU heaps:
 		{	
 			create_args.m_shader_visible = false;
+			create_args.m_capacity = k_cpu_heap_capacity;
 
-			// rtv heap
-			create_args.m_capacity = k_max_num_rtvs;
 			create_args.m_type = e_descriptor_heap_type::rtv;
 			mp_rtv_heap = device.create_descriptor_heap(create_args);
-
-			// dsv heap
-			create_args.m_capacity = k_max_num_dsvs;
 			create_args.m_type = e_descriptor_heap_type::dsv;
 			mp_dsv_heap = device.create_descriptor_heap(create_args);
-
-			// srv heap
 			create_args.m_type = e_descriptor_heap_type::rsc;
-			create_args.m_capacity = k_max_num_srvs;
 			mp_srv_heap = device.create_descriptor_heap(create_args);
-
-			// sampler heap
 			create_args.m_type = e_descriptor_heap_type::sampler;
-			create_args.m_capacity = k_max_num_samplers;
 			mp_sampler_heap = device.create_descriptor_heap(create_args);
 		}
 
@@ -66,14 +55,11 @@ namespace influx::renderer
 
 			for (uint32 i = 0u; i < k_num_inflight_max; ++i)
 			{
-				// sampler heap
 				create_args.m_type = e_descriptor_heap_type::sampler;
-				create_args.m_capacity = 256u;
+				create_args.m_capacity = k_gpu_sampler_capacity;
 				mp_samp_gpu_heap.get_at_index(i)  = device.create_descriptor_heap(create_args);
-
-				// srv heap
 				create_args.m_type = e_descriptor_heap_type::rsc;
-				create_args.m_capacity = 512u;
+				create_args.m_capacity = k_gpu_resource_capacity;
 				mp_srv_gpu_heap.get_at_index(i) = device.create_descriptor_heap(create_args);
 			}
 		}
@@ -85,7 +71,6 @@ namespace influx::renderer
 		delete mp_dsv_heap;
 		delete mp_srv_heap;
 		delete mp_sampler_heap;
-
 		for (uint32 i = 0u; i < k_num_inflight_max; ++i)
 		{
 			delete mp_samp_gpu_heap.get_at_index(i);

@@ -18,6 +18,7 @@
 // influx::graphics
 #define INFLUX_RG_BACKEND_RHI		0
 #define INFLUX_RG_BACKEND_GRAPHICS  1
+#define INFLUX_RG_BACKEND_D3D12		0
 
 // influx::graphics
 #if INFLUX_RG_BACKEND_RHI
@@ -53,7 +54,6 @@ namespace influx::graphics
 	class resource;
 	class descriptor_heap;
 }
-
 namespace influx::rendergraph
 {
 	using rhi_device = graphics::device;
@@ -73,15 +73,33 @@ namespace influx::rendergraph
 	static constexpr uint32 k_num_descheap_types = graphics::k_num_descriptor_heap_types;
 }
 #endif
+#if INFLUX_RG_BACKEND_D3D12
+#include <d3d12.h>
+using rhi_device		= ID3D12Device*;
+using rhi_commandlist	= ID3D12GraphicsCommandList*;
+using rhi_resource		= ID3D12Resource*;
+using rhi_descheap		= ID3D12DescriptorHeap*;
+using rhi_descriptor	= uint64;
+enum class rhi_descheap_type { rtv, dsv, uav, rsc, num };
+using rhi_bufferdesc	= rhi::buffer_create_args;
+using rhi_texture2Ddesc = rhi::texture2D_create_args;
+using rhi_pixelformat	= rhi::pixelformat;
+using rhi_resource_state = rhi::e_resource_state;
+using rhi_resource_bindflags = rhi::e_resource_bindflags;
+using rhi_store_op		= rhi::e_store_op;
+using rhi_load_op		= rhi::e_load_op;
+static constexpr uint32 k_num_descheap_types = static_cast<uint32>(rhi_descheap_type::num);
+#endif
 
 namespace influx::rendergraph
 {
 	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
 
-	/* 
-		external descheaps
-		these are the slots of CPU heaps the rendergraph system can tap into for its allocations.
+	/*
+		[external descheaps]
+		these are the slots you can register externally,
+		so that rendergraph allocates / deallocates onto them
 	*/
 	enum class e_ext_descheap_slot : uint8
 	{
@@ -92,6 +110,11 @@ namespace influx::rendergraph
 		num
 	};
 	static constexpr uint32 k_num_ext_descheap_slots = static_cast<uint32>(e_ext_descheap_slot::num);
+
+	/*
+		[GPU descheaps]
+		these are the slots of descriptorheaps that can be bound to the GPU
+	*/
 	enum class e_gpu_descheap : uint8
 	{
 		resource,
@@ -100,20 +123,24 @@ namespace influx::rendergraph
 	};
 	static constexpr uint32 k_num_gpu_descheap_slots = static_cast<uint32>(e_gpu_descheap::num);
 
-	/* configuration settings */
+	/* 
+		[Configuration]
+	*/
 	struct global_config final
 	{
 		/* num frames to tick before we recycle an inactive resource for another */
 		uint32 m_frames_until_resource_recycle = 64u;
 
 		/* resource descriptor heap capacities */
-		uint32 m_max_num_samplers = 8u;
-		uint32 m_max_num_srvs = 64u;
-		uint32 m_max_num_rtvs = 32;
-		uint32 m_max_num_dsvs = 32;
+		uint32 m_max_num_samplers	= 8u;
+		uint32 m_max_num_srvs		= 64u;
+		uint32 m_max_num_rtvs		= 32;
+		uint32 m_max_num_dsvs		= 32;
 
 		/* [optional] external descheaps to tap into */
-		rhi_descheap* m_external_descheaps[k_num_ext_descheap_slots]{};
+		rhi_descheap*	m_external_descheaps[k_num_ext_descheap_slots]{};
+		bool			m_use_external_descheap[k_num_ext_descheap_slots]{};
+
 		void set_external_descheap(e_ext_descheap_slot slot, rhi_descheap& heap)
 		{
 			m_external_descheaps[static_cast<uint32>(slot)] = &heap;
@@ -151,7 +178,6 @@ namespace influx::rendergraph
 		rhi_resource_bindflags m_bindflags = rhi_resource_bindflags::none;
 		bool m_allow_uav = false;
 	};
-
 	struct texture_view_desc final
 	{
 		/* is texture view expected in a pass */
@@ -207,7 +233,6 @@ namespace influx::rendergraph
 		rhi_resource_bindflags m_bindflags = rhi_resource_bindflags::none;
 		bool m_shared_heap = false;
 	};
-
 	struct buffer_view_desc final
 	{
 		bool m_is_active = false;
@@ -239,7 +264,7 @@ namespace influx::rendergraph
 		all_shader
 	};
 
-	// what the renderpass does to the rendertarget when ENTERING
+	// what the renderpass does to the rendertarget when ENTERING the pass
 	enum class e_rg_load : uint8
 	{
 		clear,			// clears the target on load
@@ -249,7 +274,7 @@ namespace influx::rendergraph
 		count
 	};
 
-	// what the renderpass does to the rendertarget when LEAVING
+	// what the renderpass does to the rendertarget when LEAVING the pass
 	enum class e_rg_store : uint8
 	{
 		resolve,		// resolve the target into another dest target
@@ -271,10 +296,10 @@ namespace influx::rendergraph
 
 	enum class rgdescriptor_type : uint8
 	{
-		read_only,
-		read_write,
-		render_target,
-		depth_target,
+		read_only,		// SRV
+		read_write,		// UAV
+		render_target,	// RTV
+		depth_target,	// DSV
 		count
 	};
 
@@ -341,6 +366,7 @@ namespace influx::rendergraph
 	using rgpass_id = rghandle;
 	inline constexpr static uint64 k_invalid_id = uint64(-1);
 
+	// -- resource handles
 	struct rgresource_id
 	{
 		rgresource_id() : m_id{ k_invalid_id }  {}
@@ -352,18 +378,17 @@ namespace influx::rendergraph
 
 		uint64 m_id = k_invalid_id;
 	};
-
 	template <rgresource_type _t>
 	struct trgresource_id : public rgresource_id
 	{
 		using rgresource_id::rgresource_id;
 	};
-
 	using rgbuffer_id = trgresource_id<rgresource_type::buffer>;
 	using rgtexture_id = trgresource_id<rgresource_type::texture>;
 
+	// -- mode handles (handles state transitions)
 	template <rgresource_mode _mode>
-	struct rgtexturemode_id : public rgtexture_id
+	struct rgtexturemode_id final : public rgtexture_id
 	{
 	public:
 		friend class rgbuilder;
@@ -383,15 +408,16 @@ namespace influx::rendergraph
 		rgbuffermode_id(const rgbuffer_id& id) : rgbuffer_id(id) {}
 	};
 
-	using rgtex_copysrc_id = rgtexturemode_id<rgresource_mode::copy_src>;
-	using rgtex_copydst_id = rgtexturemode_id<rgresource_mode::copy_dst>;
-	using rgbuf_copysrc_id = rgbuffermode_id<rgresource_mode::copy_src>;
-	using rgbuf_copydst_id = rgbuffermode_id<rgresource_mode::copy_dst>;
-	using rgbuf_indargs_id = rgbuffermode_id<rgresource_mode::ind_args>;
-	using rgbuf_index_id = rgbuffermode_id<rgresource_mode::index>;
-	using rgbuf_vertex_id = rgbuffermode_id<rgresource_mode::vertex>;
-	using rgbuf_const_id = rgbuffermode_id<rgresource_mode::constant>;
+	using rgtex_copysrc_id	= rgtexturemode_id<rgresource_mode::copy_src>;
+	using rgtex_copydst_id	= rgtexturemode_id<rgresource_mode::copy_dst>;
+	using rgbuf_copysrc_id	= rgbuffermode_id<rgresource_mode::copy_src>;
+	using rgbuf_copydst_id	= rgbuffermode_id<rgresource_mode::copy_dst>;
+	using rgbuf_indargs_id	= rgbuffermode_id<rgresource_mode::ind_args>;
+	using rgbuf_index_id	= rgbuffermode_id<rgresource_mode::index>;
+	using rgbuf_vertex_id	= rgbuffermode_id<rgresource_mode::vertex>;
+	using rgbuf_const_id	= rgbuffermode_id<rgresource_mode::constant>;
 
+	// -- descriptor handles (handles descheap allocations)
 	struct rgdescriptor_id
 	{
 		rgdescriptor_id() : m_id(k_invalid_id) {}
@@ -423,7 +449,6 @@ namespace influx::rendergraph
 
 		uint64 m_id;
 	};
-
 	template <rgresource_type _t, rgdescriptor_type _d>
 	struct trgdescriptor_id : rgdescriptor_id
 	{
@@ -443,14 +468,21 @@ namespace influx::rendergraph
 		}
 	};
 
-	using rgrendertarget_id			= trgdescriptor_id<rgresource_type::texture, rgdescriptor_type::render_target>;
-	using rgdepthtarget_id			= trgdescriptor_id<rgresource_type::texture, rgdescriptor_type::depth_target>;
-	using rgtexture_readonly_id		= trgdescriptor_id<rgresource_type::texture, rgdescriptor_type::read_only>;
-	using rgtexture_readwrite_id	= trgdescriptor_id<rgresource_type::texture, rgdescriptor_type::read_write>;
+	using rgid_rtv					= trgdescriptor_id<rgresource_type::texture, rgdescriptor_type::render_target>;
+	using rgid_dsv					= trgdescriptor_id<rgresource_type::texture, rgdescriptor_type::depth_target>;
+	using rgid_srv_tex				= trgdescriptor_id<rgresource_type::texture, rgdescriptor_type::read_only>;
+	using rgid_uav_tex				= trgdescriptor_id<rgresource_type::texture, rgdescriptor_type::read_write>;
+	using rgid_srv_buff				= trgdescriptor_id<rgresource_type::buffer, rgdescriptor_type::read_only>;
+	using rgid_uav_buff				= trgdescriptor_id<rgresource_type::buffer, rgdescriptor_type::read_write>;
 
-	using rgbuffer_readonly_id		= trgdescriptor_id<rgresource_type::buffer, rgdescriptor_type::read_only>;
-	using rgbuffer_readwrite_id		= trgdescriptor_id<rgresource_type::buffer, rgdescriptor_type::read_write>;
+	// using rgid_uav_buff = rgbuffer_readwrite_id;
+	// using rgid_srv_buff = rgbuffer_readonly_id;
+	// using rgid_srv_tex	= rgtexture_readonly_id;
+	// using rgid_uav_tex	= rgtexture_readwrite_id;
+	// using rgid_rtv		= rgrendertarget_id;
+	// using rgid_dsv		= rgdepthtarget_id;
 
+	// -- access description (manages renderpass entry / exit access)
 	struct rgaccess final
 	{
 		e_rg_load m_load;
@@ -540,46 +572,46 @@ namespace std
 			return hash<decltype(h.m_id)>()(h.m_id);
 		}
 	};
-	template <> struct hash<influx::rendergraph::rgtexture_readonly_id>
+	template <> struct hash<influx::rendergraph::rgid_srv_tex>
 	{
-		influx::uint64 operator()(influx::rendergraph::rgtexture_readonly_id const& h) const
+		influx::uint64 operator()(influx::rendergraph::rgid_srv_tex const& h) const
 		{
 			return hash<decltype(h.m_id)>()(h.m_id);
 		}
 	};
-	template <> struct hash<influx::rendergraph::rgtexture_readwrite_id>
+	template <> struct hash<influx::rendergraph::rgid_uav_tex>
 	{
-		influx::uint64 operator()(influx::rendergraph::rgtexture_readwrite_id const& h) const
+		influx::uint64 operator()(influx::rendergraph::rgid_uav_tex const& h) const
 		{
 			return hash<decltype(h.m_id)>()(h.m_id);
 		}
 	};
-	template <> struct hash<influx::rendergraph::rgrendertarget_id>
+	template <> struct hash<influx::rendergraph::rgid_rtv>
 	{
-		influx::uint64 operator()(influx::rendergraph::rgrendertarget_id const& h) const
+		influx::uint64 operator()(influx::rendergraph::rgid_rtv const& h) const
 		{
 			return hash<decltype(h.m_id)>()(h.m_id);
 		}
 	};
-	template <> struct hash<influx::rendergraph::rgdepthtarget_id>
+	template <> struct hash<influx::rendergraph::rgid_dsv>
 	{
-		influx::uint64 operator()(influx::rendergraph::rgdepthtarget_id const& h) const
-		{
-			return hash<decltype(h.m_id)>()(h.m_id);
-		}
-	};
-
-	template <> struct hash<influx::rendergraph::rgbuffer_readonly_id>
-	{
-		influx::uint64 operator()(influx::rendergraph::rgbuffer_readonly_id const& h) const
+		influx::uint64 operator()(influx::rendergraph::rgid_dsv const& h) const
 		{
 			return hash<decltype(h.m_id)>()(h.m_id);
 		}
 	};
 
-	template <> struct hash<influx::rendergraph::rgbuffer_readwrite_id>
+	template <> struct hash<influx::rendergraph::rgid_srv_buff>
 	{
-		influx::uint64 operator()(influx::rendergraph::rgbuffer_readwrite_id const& h) const
+		influx::uint64 operator()(influx::rendergraph::rgid_srv_buff const& h) const
+		{
+			return hash<decltype(h.m_id)>()(h.m_id);
+		}
+	};
+
+	template <> struct hash<influx::rendergraph::rgid_uav_buff>
+	{
+		influx::uint64 operator()(influx::rendergraph::rgid_uav_buff const& h) const
 		{
 			return hash<decltype(h.m_id)>()(h.m_id);
 		}

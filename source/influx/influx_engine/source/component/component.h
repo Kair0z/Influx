@@ -167,6 +167,11 @@ namespace influx::engine
 			m_transform.look_at(location);
 		}
 
+		void set_matrix(const math::matrix4x4f& matrix)
+		{
+			m_transform.set_matrix(matrix);
+		}
+
 		const math::rotation& get_rotation() const
 		{
 			return m_transform.get_rotation();

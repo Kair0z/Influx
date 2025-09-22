@@ -5,7 +5,6 @@
 
 namespace influx::rendergraph
 {
-	// class rendergraph;
 	class rgpass;
 
 	// optional specification
@@ -20,21 +19,21 @@ namespace influx::rendergraph
 	class rgpass_builder final
 	{
 	public:
-		INFLUX_RG_API void register_error_to_current_pass();
-		INFLUX_RG_API void set_viewport(uint32 width, uint32 height);
-
-		// CREATE declarations: setting up resources to be created in this pass' layer
+		// [declaring resources]
+		// resources that are not declared cannot be used in the rendergraph
+		// they will be logged as warnings, but will be handled by dummy-resources
+		// some of the below methods auto-declare their resources
 		INFLUX_RG_API bool is_texture_declared(const rgname& name) const;
 		INFLUX_RG_API bool is_buffer_declared(const rgname& name) const;
 		INFLUX_RG_API result<> declare_texture(const rgname& name, const texture_desc& desc);
 		INFLUX_RG_API result<> declare_buffer(const rgname& name, const buffer_desc& desc);
 
 		// USE declarations: listing the resources (and their views) in this pass.
-		INFLUX_RG_API result<rgbuffer_readonly_id> read_buffer(const rgname& name, rgread_access read_acc = rgread_access::all_shader, uint32 offset = 0u, uint32 size = -1);
-		INFLUX_RG_API result<rgbuffer_readwrite_id> write_buffer(const rgname& name, uint32 offset = 0u, uint32 size = -1);
-		INFLUX_RG_API result<rgbuffer_readwrite_id> write_buffer(const rgname& name, const rgname& counter_name, uint32 offset = 0, uint32 size = -1);
-		INFLUX_RG_API result<rgtexture_readonly_id> read_texture(const rgname& name, rgread_access read_acc = rgread_access::all_shader, const texture_desc_options & = {});
-		INFLUX_RG_API result<rgtexture_readwrite_id> write_texture(const rgname& name, const texture_desc_options & = {});
+		INFLUX_RG_API result<rgid_srv_buff> read_buffer(const rgname& name, rgread_access read_acc = rgread_access::all_shader, uint32 offset = 0u, uint32 size = -1);
+		INFLUX_RG_API result<rgid_uav_buff> write_buffer(const rgname& name, uint32 offset = 0u, uint32 size = -1);
+		INFLUX_RG_API result<rgid_uav_buff> write_buffer(const rgname& name, const rgname& counter_name, uint32 offset = 0, uint32 size = -1);
+		INFLUX_RG_API result<rgid_srv_tex> read_texture(const rgname& name, rgread_access read_acc = rgread_access::all_shader, const texture_desc_options & = {});
+		INFLUX_RG_API result<rgid_uav_tex> write_texture(const rgname& name, const texture_desc_options & = {});
 
 		INFLUX_RG_API result<rgtex_copysrc_id>	read_copysrc_texture(const rgname& name);
 		INFLUX_RG_API result<rgtex_copydst_id>	write_copydst_texture(const rgname& name);
@@ -45,15 +44,15 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<rgbuf_index_id>	read_index_buffer(const rgname&);
 		INFLUX_RG_API result<rgbuf_const_id>	read_constbuffer(const rgname&);
  
-		INFLUX_RG_API result<rgrendertarget_id> write_rendertarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& = {});
-		INFLUX_RG_API result<rgdepthtarget_id> write_depthtarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& = {});
-		INFLUX_RG_API result<rgdepthtarget_id> read_depthtarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& = {});
+		INFLUX_RG_API result<rgid_rtv> write_rendertarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& = {});
+		INFLUX_RG_API result<rgid_dsv> write_depthtarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& = {});
+		INFLUX_RG_API result<rgid_dsv> read_depthtarget(const rgname& name, rgaccess load_store_op, const texture_desc_options& = {});
 
 		// [auto declare versions]
-		inline result<rgbuffer_readonly_id> read_buffer(const rgname& name, const buffer_desc& resource_desc,
+		inline result<rgid_srv_buff> read_buffer(const rgname& name, const buffer_desc& resource_desc,
 			rgread_access read_acc = rgread_access::all_shader, uint32 offset = 0u, uint32 size = -1)
 		{
-			using result_type = result<rgbuffer_readonly_id>;
+			using result_type = result<rgid_srv_buff>;
 			if (!is_buffer_declared(name))
 			{
 				auto res = declare_buffer(name, resource_desc);
@@ -61,10 +60,10 @@ namespace influx::rendergraph
 			}
 			return read_buffer(name, read_acc, offset, size);
 		}
-		inline result<rgbuffer_readwrite_id> write_buffer(const rgname& name, const buffer_desc& resource_desc,
+		inline result<rgid_uav_buff> write_buffer(const rgname& name, const buffer_desc& resource_desc,
 			const rgname& counter_name, uint32 offset = 0, uint32 size = -1)
 		{
-			using result_type = result<rgbuffer_readwrite_id>;
+			using result_type = result<rgid_uav_buff>;
 			if (!is_buffer_declared(name))
 			{
 				auto res = declare_buffer(name, resource_desc);
@@ -82,30 +81,30 @@ namespace influx::rendergraph
 			}
 			return read_constbuffer(name);
 		}
-		inline result<rgrendertarget_id> write_rendertarget(const rgname& name, const texture_desc& desc,
+		inline result<rgid_rtv> write_rendertarget(const rgname& name, const texture_desc& desc,
 			rgaccess load_store_op, const texture_desc_options& options = {})
 		{
-			using result_type = result<rgrendertarget_id>;
+			using result_type = result<rgid_rtv>;
 			if (!is_texture_declared(name))
 			{
 				auto declare_res = declare_texture(name, desc);
 			}
 			return write_rendertarget(name, load_store_op, options);
 		}
-		inline result<rgdepthtarget_id> write_depthtarget(const rgname& name, const texture_desc& desc,
+		inline result<rgid_dsv> write_depthtarget(const rgname& name, const texture_desc& desc,
 			rgaccess load_store_op, const texture_desc_options& options = {})
 		{
-			using result_type = result<rgdepthtarget_id>;
+			using result_type = result<rgid_dsv>;
 			if (!is_texture_declared(name))
 			{
 				auto declare_res = declare_texture(name, desc);
 			}
 			return write_depthtarget(name, load_store_op, options);
 		}
-		inline result<rgtexture_readonly_id> read_texture(const rgname& name, const texture_desc& desc,
+		inline result<rgid_srv_tex> read_texture(const rgname& name, const texture_desc& desc,
 			rgread_access read_acc = rgread_access::all_shader, const texture_desc_options& options = {})
 		{
-			using result_type = result<rgtexture_readonly_id>;
+			using result_type = result<rgid_srv_tex>;
 			if (!is_texture_declared(name))
 			{
 				auto declare_res = declare_texture(name, desc);
@@ -114,9 +113,13 @@ namespace influx::rendergraph
 		}
 
 		// [auto import versions]
-		inline result<rgbuffer_readonly_id> read_buffer(rhi_resource* resource, rgread_access read_acc = rgread_access::all_shader, uint32 offset = 0u, uint32 size = -1)
+		inline result<rgid_srv_buff> read_buffer(
+			rhi_resource* resource,
+			rgread_access read_acc = rgread_access::all_shader,
+			uint32 offset = 0u,
+			uint32 size = -1)
 		{
-			using result_type = result<rgbuffer_readonly_id>;
+			using result_type = result<rgid_srv_buff>;
 			if (resource->get_name().is_empty())
 				return result_type::make_error("cannot import resource with no name!");
 
@@ -128,9 +131,10 @@ namespace influx::rendergraph
 			}
 			return read_buffer(name, rendergraph::translate_buffer_desc(*resource), read_acc, offset, size);
 		}
-		inline result<rgrendertarget_id> write_rendertarget(rhi_resource* resource, rgaccess load_store_op, const texture_desc_options& ops = {})
+		
+		inline result<rgid_rtv> write_rendertarget(rhi_resource* resource, rgaccess load_store_op, const texture_desc_options& ops = {})
 		{
-			using result_type = result<rgrendertarget_id>;
+			using result_type = result<rgid_rtv>;
 			if (resource->get_name().is_empty())
 				return result_type::make_error("cannot import resource with no name!");
 
@@ -147,9 +151,9 @@ namespace influx::rendergraph
 			}
 			return write_rendertarget(name, load_store_op, ops);
 		}
-		inline result<rgdepthtarget_id> write_depthtarget(rhi_resource* resource, rgaccess load_store_op, const texture_desc_options& ops = {})
+		inline result<rgid_dsv> write_depthtarget(rhi_resource* resource, rgaccess load_store_op, const texture_desc_options& ops = {})
 		{
-			using result_type = result<rgdepthtarget_id>;
+			using result_type = result<rgid_dsv>;
 			if (resource->get_name().is_empty())
 				return result_type::make_error("cannot import resource with no name!");
 
@@ -166,9 +170,9 @@ namespace influx::rendergraph
 			}
 			return write_depthtarget(name, load_store_op, ops);
 		}
-		inline result<rgtexture_readwrite_id> write_texture(rhi_resource* resource, const texture_desc_options& options = {})
+		inline result<rgid_uav_tex> write_texture(rhi_resource* resource, const texture_desc_options& options = {})
 		{
-			using result_type = result<rgtexture_readwrite_id>;
+			using result_type = result<rgid_uav_tex>;
 			if (resource->get_name().is_empty())
 				return result_type::make_error("cannot import resource with no name!");
 
@@ -185,9 +189,9 @@ namespace influx::rendergraph
 			}
 			return write_texture(name, options);
 		}
-		inline result<rgtexture_readonly_id> read_texture(rhi_resource* resource, rgread_access read_acc = rgread_access::all_shader, const texture_desc_options& options = {})
+		inline result<rgid_srv_tex> read_texture(rhi_resource* resource, rgread_access read_acc = rgread_access::all_shader, const texture_desc_options& options = {})
 		{
-			using result_type = result<rgtexture_readonly_id>;
+			using result_type = result<rgid_srv_tex>;
 			if (resource->get_name().is_empty())
 				return result_type::make_error("cannot import resource with no name!");
 
@@ -248,7 +252,12 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<buffer_desc>	get_buffer_desc(const rgname& name) const;
 		INFLUX_RG_API result<rgtexture_id>	get_texture_id(const rgname& name) const;
 		INFLUX_RG_API result<rgbuffer_id>	get_buffer_id(const rgname& name) const;
-
+		
+		// signal this pass as erroneous.
+		// usually not necessary, but if the pass errors, the rendergraph will not be executed!
+		INFLUX_RG_API void register_error_to_current_pass();
+		INFLUX_RG_API void set_viewport(uint32 width, uint32 height);
+	
 	private:
 		friend class rendergraph;
 		rendergraph& m_graph;
@@ -256,14 +265,14 @@ namespace influx::rendergraph
 
 		rgpass_builder(rendergraph& graph, rgpass& pass);
 
-		result<rgtexture_readonly_id>	read_texture_impl(const rgname& name, rgread_access read_access, const texture_view_desc& desc);
-		result<rgtexture_readwrite_id>	write_texture_impl(const rgname& name, const texture_view_desc& desc);
-		result<rgrendertarget_id>		write_rendertarget_impl(const rgname& name, rgaccess load_store_op, const texture_view_desc& desc);
-		result<rgdepthtarget_id>		write_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& desc);
-		result<rgdepthtarget_id>		read_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& desc);
+		result<rgid_srv_tex>	read_texture_impl(const rgname& name, rgread_access read_access, const texture_view_desc& desc);
+		result<rgid_uav_tex>	write_texture_impl(const rgname& name, const texture_view_desc& desc);
+		result<rgid_rtv>		write_rendertarget_impl(const rgname& name, rgaccess load_store_op, const texture_view_desc& desc);
+		result<rgid_dsv>		write_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& desc);
+		result<rgid_dsv>		read_depthtarget_impl(const rgname& name, rgaccess load_store_op, rgaccess stencil_load_store_op, const texture_view_desc& desc);
 
-		result<rgbuffer_readonly_id>	read_buffer_impl(const rgname& name, rgread_access read_access, const buffer_view_desc& desc);
-		result<rgbuffer_readwrite_id>	write_buffer_impl(const rgname& name, const buffer_view_desc& desc);
-		result<rgbuffer_readwrite_id>	write_buffer_impl(const rgname& name, const rgname& counter_name, const buffer_view_desc& desc);
+		result<rgid_srv_buff>	read_buffer_impl(const rgname& name, rgread_access read_access, const buffer_view_desc& desc);
+		result<rgid_uav_buff>	write_buffer_impl(const rgname& name, const buffer_view_desc& desc);
+		result<rgid_uav_buff>	write_buffer_impl(const rgname& name, const rgname& counter_name, const buffer_view_desc& desc);
 	};
 }

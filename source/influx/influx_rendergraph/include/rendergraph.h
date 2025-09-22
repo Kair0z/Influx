@@ -32,9 +32,7 @@ namespace influx::rendergraph
 
 	public:
 		rhi_commandlist& get_commandlist()
-		{
-			return m_commandlist;
-		}
+		{ return m_commandlist; }
 
 		struct resource_and_view final
 		{
@@ -42,6 +40,7 @@ namespace influx::rendergraph
 			rhi_descriptor m_descriptor = {};
 		};
 
+		/* get resources & descriptors by ID */
 		INFLUX_RG_API result<resource_and_view> get_copysrc(rgtex_copysrc_id);
 		INFLUX_RG_API result<resource_and_view> get_copysrc(rgbuf_copysrc_id);
 		INFLUX_RG_API result<resource_and_view> get_copydst(rgtex_copydst_id);
@@ -50,33 +49,33 @@ namespace influx::rendergraph
 		INFLUX_RG_API result<resource_and_view> get_indexbuffer(rgbuf_index_id);
 		INFLUX_RG_API result<resource_and_view> get_constbuffer(rgbuf_const_id);
 		INFLUX_RG_API result<resource_and_view> get_indirect_args_resource(rgbuf_indargs_id);
+		INFLUX_RG_API result<resource_and_view> get_rtv(rgid_rtv id);
+		INFLUX_RG_API result<resource_and_view> get_dsv(rgid_rtv id);
+		INFLUX_RG_API result<resource_and_view> get_read_texture(rgid_srv_tex id);
+		INFLUX_RG_API result<resource_and_view> get_write_texture(rgid_uav_tex id);
+		INFLUX_RG_API result<resource_and_view> get_read_buffer(rgid_srv_buff id);
+		INFLUX_RG_API result<resource_and_view> get_write_buffer(rgid_uav_buff id);
 
+		/* get resources & descriptors by rgname */
 		INFLUX_RG_API result<resource_and_view> get_copysrc_texture(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_copysrc_buffer(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_copydst_texture(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_copydst_buffer(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_constbuffer(const rgname&);
-
-		INFLUX_RG_API result<resource_and_view> get_rtv(uint32 at_index = 0u);
-		INFLUX_RG_API result<resource_and_view> get_dsv();
-		INFLUX_RG_API result<resource_and_view> get_rtv(rgrendertarget_id id);
-		INFLUX_RG_API result<resource_and_view> get_dsv(rgrendertarget_id id);
-
-		INFLUX_RG_API result<resource_and_view> get_read_texture(rgtexture_readonly_id id);
-		INFLUX_RG_API result<resource_and_view> get_write_texture(rgtexture_readwrite_id id);
-		INFLUX_RG_API result<resource_and_view> get_read_buffer(rgbuffer_readonly_id id);
-		INFLUX_RG_API result<resource_and_view> get_write_buffer(rgbuffer_readwrite_id id);
-		
 		INFLUX_RG_API result<resource_and_view> get_read_texture(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_write_texture(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_read_buffer(const rgname&);
 		INFLUX_RG_API result<resource_and_view> get_write_buffer(const rgname&);
 
+		/* get resources & descriptors by written order by rgpass_builder */
+		INFLUX_RG_API result<resource_and_view> get_rtv(uint32 at_index = 0u);
+		INFLUX_RG_API result<resource_and_view> get_dsv();
 		INFLUX_RG_API result<resource_and_view> get_read_texture(uint32 index);
 		INFLUX_RG_API result<resource_and_view> get_write_texture(uint32 index);
 		INFLUX_RG_API result<resource_and_view> get_read_buffer(uint32 index);
 		INFLUX_RG_API result<resource_and_view> get_write_buffer(uint32 index);
 
+		/* get GPU descriptor heap */
 		INFLUX_RG_API rhi_descheap& get_descheap_gpu(e_gpu_descheap slot);
 
 	private:
@@ -184,13 +183,13 @@ namespace influx::rendergraph
 		vector<uint64> m_topo_sorted_passes;
 		vector<vector<uint64>> m_adjacency_lists{};
 		umap<rgpass_id, rgpass*> m_id_to_pass_map;
-		umap<rgbuffer_readwrite_id, rgbuffer_id> m_buffer_uav_counter_map;
+		umap<rgid_uav_buff, rgbuffer_id> m_buffer_uav_counter_map;
 
 		umap<rgtexture_id, rgtexture*> m_id_to_texture_map;
 		umap<rgbuffer_id, rgbuffer*> m_id_to_buffer_map;
 		umap<rgname, rgtexture_id> m_texture_name_to_id_map;
 		umap<rgname, rgbuffer_id> m_buffer_name_to_id_map;
-		umap<rgrendertarget_id, math::colour_rgba> m_rtid_to_clear_map;
+		umap<rgid_rtv, math::colour_rgba> m_rtid_to_clear_map;
 
 		static constexpr uint8 k_num_descriptor_types = static_cast<uint8>(rgdescriptor_type::count);
 		umap<rgtexture_id, texture_view_desc[k_num_descriptor_types]> m_texid_to_viewdesc_map;
@@ -235,13 +234,13 @@ namespace influx::rendergraph
 		result<rgbuf_index_id> read_index_buffer(const rgname& name);
 		result<rgbuf_const_id> read_constant_buffer(const rgname& name);
 
-		result<rgrendertarget_id> rendertarget(const rgname& name, const texture_view_desc& view_desc);
-		result<rgdepthtarget_id> depthtarget(const rgname& name, const texture_view_desc& view_desc);
-		result<rgtexture_readonly_id> read_texture(const rgname& name, const texture_view_desc& view_desc);
-		result<rgtexture_readwrite_id> write_texture(const rgname& name, const texture_view_desc& view_desc);
-		result<rgbuffer_readonly_id> read_buffer(const rgname& name, const buffer_view_desc& view_desc);
-		result<rgbuffer_readwrite_id> write_buffer(const rgname& name, const buffer_view_desc& view_desc);
-		result<rgbuffer_readwrite_id> write_buffer(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc);
+		result<rgid_rtv> rendertarget(const rgname& name, const texture_view_desc& view_desc);
+		result<rgid_dsv> depthtarget(const rgname& name, const texture_view_desc& view_desc);
+		result<rgid_srv_tex> read_texture(const rgname& name, const texture_view_desc& view_desc);
+		result<rgid_uav_tex> write_texture(const rgname& name, const texture_view_desc& view_desc);
+		result<rgid_srv_buff> read_buffer(const rgname& name, const buffer_view_desc& view_desc);
+		result<rgid_uav_buff> write_buffer(const rgname& name, const buffer_view_desc& view_desc);
+		result<rgid_uav_buff> write_buffer(const rgname& name, const rgname& counter_name, const buffer_view_desc& view_desc);
 
 		// lookups
 		rgtexture* get_texture(rgtexture_id id);

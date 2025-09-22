@@ -51,7 +51,6 @@ namespace influx::engine::editor
 	private:
 		bool m_is_running = false;
 	};
-
 	class fps_ui final : public editor_window
 	{
 	public:
@@ -84,7 +83,6 @@ namespace influx::engine::editor
 		update_background_dockspace();
 		update_mainmenu();
 		update_static_windows();
-		
 		m_scene_editor.on_imgui(ctx);
 	}
 
@@ -187,7 +185,6 @@ namespace influx::engine::editor
 
 	void editor_manager::update_static_windows()
 	{
-#if 1
 		static_window<game_manager_ui>("game");
 		static_window<fps_ui>("fps");
 		
@@ -198,7 +195,6 @@ namespace influx::engine::editor
 				pair.second->run({});
 			}
 		}
-#endif
 	}
 
 	bool editor_manager::has_project() const
