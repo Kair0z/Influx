@@ -7,6 +7,7 @@ namespace influx::rendergraph
 	rhi_bufferdesc translate(const buffer_desc& desc)
 	{
 		rhi_bufferdesc new_desc{};
+#if !INFLUX_RG_BACKEND_D3D12
 		new_desc.m_bytesize = desc.m_bytesize;
 		new_desc.m_bytestride = desc.m_bytestride;
 		new_desc.m_bindflags = desc.m_bindflags;
@@ -14,11 +15,13 @@ namespace influx::rendergraph
 		new_desc.m_format = desc.m_format;
 #endif
 		new_desc.m_init_state = desc.m_init_state;
+#endif
 		return new_desc;
 	}
 	rhi_texture2Ddesc translate(const texture_desc& desc)
 	{
 		rhi_texture2Ddesc new_desc{};
+#if !INFLUX_RG_BACKEND_D3D12
 		new_desc.m_arraysize = desc.m_array_size;
 		new_desc.m_dimensions = { desc.m_width, desc.m_heigth };
 		new_desc.m_bindflags = desc.m_bindflags;
@@ -27,6 +30,7 @@ namespace influx::rendergraph
 		new_desc.m_num_mips = desc.m_num_mips;
 		new_desc.m_sample_count = desc.m_sample_count;
 		new_desc.m_allow_uav = desc.m_allow_uav;
+#endif
 		return new_desc;
 	}
 	rhi_descheap_type translate(const rgdescriptor_type& type)
@@ -41,6 +45,8 @@ namespace influx::rendergraph
 		return {};
 	}
 #pragma endregion
+
+
 
 	rgpool::descriptor_list& rgpool::get_allocated_descriptors(e_descheap_slot slot)
 	{
@@ -66,7 +72,16 @@ namespace influx::rendergraph
 
 	void rgpool::init_descriptor_heaps(rhi_device& device, const global_config& config)
 	{
-		auto create_and_store = [this, &device](e_descheap_slot slot, rhi_descheap::create_args args, uint32 capacity)
+#if INFLUX_RG_BACKEND_D3D12
+		struct descheap_args final
+		{
+			bool m_shader_visible = false;
+			rhi_descheap_type m_type;
+		};
+#else
+		using descheap_args = rhi_descheap::create_args;
+#endif
+		auto create_and_store = [this, &device](e_descheap_slot slot, const descheap_args& args, uint32 capacity)
 		{
 #if INFLUX_RG_BACKEND_GRAPHICS
 			args.m_capacity = capacity;
@@ -79,7 +94,7 @@ namespace influx::rendergraph
 		};
 
 		// CPU heaps
-		rhi_descheap::create_args args{};
+		descheap_args args{};
 		args.m_shader_visible = false;
 		args.m_type = rhi_descheap_type::sampler;
 		create_and_store(e_descheap_slot::samp, args, config.m_max_num_samplers);
@@ -107,14 +122,18 @@ namespace influx::rendergraph
 		for (uint32 i = 0u; i < k_num_internal_descheaps; ++i)
 		{
 			auto* heap = get_descheap(static_cast<e_descheap_slot>(i));
+#if !INFLUX_RG_BACKEND_D3D12
 			heap->free_all();
+#endif
 		}
 	}
 
 	void rgpool::free_all_gpu_descriptors()
 	{
+#if !INFLUX_RG_BACKEND_D3D12
 		get_descheap(e_descheap_slot::samp_gpu)->free_all();
 		get_descheap(e_descheap_slot::rsc_gpu)->free_all();
+#endif
 	}
 
 	void rgpool::cleanup(rhi_device& device)
@@ -131,11 +150,7 @@ namespace influx::rendergraph
 		}
 	}
 
-#if INFLUX_RG_BACKEND_GRAPHICS
-	rhi_descheap*& rgpool::get_descheap(e_descheap_slot slot, bool ignore_ext)
-#else
-	rhi_descheap& get_descheap(e_descheap_slot slot, bool ignore_ext = false)
-#endif
+	rhi_descheap& rgpool::get_descheap(e_descheap_slot slot, bool ignore_ext = false)
 	{
 		if (ignore_ext)
 		{
@@ -166,6 +181,7 @@ namespace influx::rendergraph
 
 	rhi_descheap* rgpool::get_gpu_descheap(e_gpu_descheap slot)
 	{
+#if !INFLUX_RG_BACKEND_D3D12
 		switch (slot)
 		{
 		default:
@@ -176,6 +192,7 @@ namespace influx::rendergraph
 
 	result<rhi_resource*> rgpool::allocate_texture_resource(rhi_device& device, const texture_desc& args)
 	{
+#if !INFLUX_RG_BACKEND_D3D12
 		using result_type = result<rhi_resource*>;
 		for (pooled_texture& item : m_texture_pool)
 		{
@@ -196,6 +213,7 @@ namespace influx::rendergraph
 		new_item.m_resource = device.create_resource( translate(args) );
 		m_texture_pool.push_back(new_item);
 		return new_item.m_resource;
+#endif
 	}
 
 	result<rhi_resource*> rgpool::allocate_buffer_resource(rhi_device& device, const buffer_desc& args)
