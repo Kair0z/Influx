@@ -46,6 +46,37 @@ namespace influx::rhi
 		return value_if_success;
 	}
 
+	class static_pixel_formats final
+	{
+		static constexpr uint32 k_num_vkformats = 185u;
+		std::pair<const char*, pixelformat> m_formats[k_num_vkformats];
+		bool m_initialized = false;
+
+	public:
+		static static_pixel_formats& get()
+		{
+			static static_pixel_formats singleton;
+			singleton.initialize();
+			return singleton;
+		}
+
+		static vk_format translate(const pixelformat& format)
+		{
+			static_pixel_formats& formats = get();
+			for (uint32 i = 0u; i < k_num_vkformats; ++i)
+			{
+				if (formats.m_formats[i].second == format)
+					return static_cast<vk_format>(i);
+			}
+			return VkFormat::VK_FORMAT_UNDEFINED;
+		}
+
+		static constexpr uint32 get_num_supported_formats()
+		{ return k_num_vkformats; }
+
+		void initialize();
+	};
+
 	namespace vk_default_callbacks
 	{
 		inline static void* vk_allocate(void* user_data, size_t size, size_t alignment, VkSystemAllocationScope scope)
@@ -82,19 +113,52 @@ namespace influx::rhi
 		};
 	}
 
-	void* pUserData;
-	PFN_vkAllocationFunction                pfnAllocation;
-	PFN_vkReallocationFunction              pfnReallocation;
-	PFN_vkFreeFunction                      pfnFree;
-	PFN_vkInternalAllocationNotification    pfnInternalAllocation;
-	PFN_vkInternalFreeNotification          pfnInternalFree;
-
 	VkBool32 debug_callback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType, uint64_t srcObject, size_t location, int32_t msgCode, const char* pLayerPrefix, const char* pMsg, void* pUserData);
+
+	inline result<VkDeviceMemory> allocate(
+		vk_physdevice phys, 
+		vk_device device, 
+		uint64 bytesize, 
+		VkMemoryPropertyFlags properties,
+		uint32 typefilter)
+	{
+		using result_type = result<VkDeviceMemory>;
+
+		vk_device vkdevice = device;
+		vk_physdevice vkphys = phys;
+
+		uint32 type_index = 0u;
+		
+		VkPhysicalDeviceMemoryProperties memProperties;
+		vkGetPhysicalDeviceMemoryProperties(vkphys, &memProperties);
+
+		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) 
+		{
+			if ((typefilter & (1 << i)) &&
+				(memProperties.memoryTypes[i].propertyFlags & properties) == properties) 
+			{
+				type_index = i;
+				break;
+			}
+		}
+
+		VkMemoryAllocateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		info.allocationSize = bytesize;
+		info.memoryTypeIndex = type_index;
+
+		VkDeviceMemory vkmemory;
+		auto vkres = vkAllocateMemory(vkdevice, &info, nullptr, &vkmemory);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkAllocateMemory failed!");
+
+		return vkmemory;
+	}
 
 	inline static VkImageUsageFlags translate(e_resource_state state)
 	{
 		VkImageUsageFlags flags{};
-		if (has_flag(state, e_resource_state::common)); // nothing
+		// if (has_flag(state, e_resource_state::common));
 		if (has_flag(state, e_resource_state::copy_src)) flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		if (has_flag(state, e_resource_state::copy_dst)) flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		// ...
@@ -111,8 +175,7 @@ namespace influx::rhi
 	}
 	inline static vk_format translate_format(const pixelformat& format)
 	{
-		vk_format result{};
-		return result;
+		return static_pixel_formats::translate(format);
 	}
 	inline static vk_surface_format translate_surface_format(const pixelformat& format)
 	{
@@ -121,7 +184,83 @@ namespace influx::rhi
 		result.format = translate_format(format);
 		return result;
 	}
-
+	inline static uint64 get_pixelformat_bytesize(const pixelformat& format)
+	{
+		return format.get_bytes_per_pixel();
+	}
+	inline static VkImageType translate(const e_texture_type type)
+	{
+		switch (type)
+		{
+		case e_texture_type::texture1D: return VkImageType::VK_IMAGE_TYPE_1D;
+		case e_texture_type::texture2D: return VkImageType::VK_IMAGE_TYPE_2D;
+		case e_texture_type::texture3D: return VkImageType::VK_IMAGE_TYPE_3D;
+		case e_texture_type::cubemap:	return VkImageType::VK_IMAGE_TYPE_2D;
+		}
+		return {};
+	}
+	inline static VkImageUsageFlags translate(const e_resource_bindflags flags)
+	{
+		VkImageUsageFlags result{};
+		if (has_flag(flags, e_resource_bindflags::rtv)) result |= VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		if (has_flag(flags, e_resource_bindflags::dsv)) result |= VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		return result;
+	}
+	inline static VkAttachmentDescription translate(const color_attachment& attachment)
+	{
+		VkAttachmentDescription res{};
+		res.format = translate_format(attachment.m_format);
+		res.samples = VK_SAMPLE_COUNT_1_BIT;
+		res.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;   // clear at start
+		res.storeOp = VK_ATTACHMENT_STORE_OP_STORE;  // store so we can present
+		res.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		res.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		res.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		res.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		return res;
+	}
+	inline static VkAttachmentDescription translate(const depth_attachment& attachment)
+	{
+		VkAttachmentDescription res;
+		res.format = translate_format(attachment.m_format); // e.g. VK_FORMAT_D32_SFLOAT
+		res.samples = VK_SAMPLE_COUNT_1_BIT;
+		res.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;   // clear at start
+		res.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // we don’t need depth after rendering
+		res.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		res.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		res.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		res.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		return res;
+	}
+	inline static VkRenderPassCreateFlags translate(e_renderpass_flags flags)
+	{
+		VkRenderPassCreateFlags res{};
+		//if (has_flag(flags, e_renderpass_flags::allow_uav_write)) res |= VkRenderPassCreateFlagBits::
+		return res;
+	}
+	inline static VkImageViewType translate(e_texture_type type, uint32 arraysize)
+	{
+		if (arraysize > 1u)
+		{
+			switch (type)
+			{
+			case e_texture_type::texture1D: return VkImageViewType::VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+			case e_texture_type::texture2D: return VkImageViewType::VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			case e_texture_type::cubemap: return VkImageViewType::VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+			}
+		}
+		else
+		{
+			switch (type)
+			{
+			case e_texture_type::texture1D: return VkImageViewType::VK_IMAGE_VIEW_TYPE_1D;
+			case e_texture_type::texture2D: return VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+			case e_texture_type::texture3D: return VkImageViewType::VK_IMAGE_VIEW_TYPE_3D;
+			case e_texture_type::cubemap: return VkImageViewType::VK_IMAGE_VIEW_TYPE_CUBE;
+			}
+		}
+		return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+	}
 	inline result<VkSurfaceKHR> create_platform_window_surface(
 		vk_instance instance,
 		platform_window_handle window, 
@@ -485,9 +624,8 @@ namespace influx::rhi
 			{
 				texture& texture = out_data->m_swapchain_textures[i];
 				texture.m_create_args.m_init_state = init_state;
-				texture.m_create_args.m_allow_uav = false;
 				texture.m_create_args.m_arraysize = 1u;
-				texture.m_data.m_format = args.m_format;
+				texture.m_create_args.m_format = args.m_format;
 				texture.m_data.m_current_state = texture.m_data.m_previous_state = init_state;
 				texture.m_native_device = vkdevice;
 				texture.m_native_object = swapchainImages[i];
@@ -640,8 +778,126 @@ namespace influx::rhi
 		}
 		return semaphore;
 	}
-	result<native_buffer> create_native(const buffer_create_args& args, buffer_data* out_data);
-	result<native_texture> create_native(const texture_create_args& args, texture_data* out_data);
+	result<native_buffer> create_native(const buffer_create_args& args, buffer_data* out_data)
+	{
+		using result_type = result<native_buffer>;
+
+		if (args.m_device == nullptr)
+			return result_type::make_error("args.m_device is nullptr!");
+		if (args.m_bytesize == 0u)
+			return result_type::make_error("args.m_bytesize MUST be bigger than 0!");
+
+		VkBuffer vkbuffer;
+		{
+			VkBufferCreateInfo info{};
+			info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			info.size = args.m_bytesize;
+			info.usage = VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			auto vkres = vkCreateBuffer(args.m_device, &info, nullptr, &vkbuffer);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkCreateBuffer failed!");
+		}
+
+		// Allocate memory (not shown in full) and bind
+		VkMemoryRequirements memReq;
+		vkGetBufferMemoryRequirements(args.m_device, vkbuffer, &memReq);
+		VkMemoryPropertyFlags mempropFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		auto allocation = allocate(args.m_physdevice, args.m_device, memReq.size, mempropFlags, memReq.memoryTypeBits);
+		if (!allocation)
+			return result_type::make_error("failed allocating GPU memory for buffer resource!");
+
+		auto vkres = vkBindBufferMemory(args.m_device, vkbuffer, allocation.get(), 0);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkBindBufferMemory failed!");
+
+		VkBufferView vkview;
+		{
+			VkBufferViewCreateInfo info = {};
+			info.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+			info.buffer = vkbuffer;
+			info.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+			info.offset = 0u;
+			info.range = args.m_bytesize;
+			
+			vkres = vkCreateBufferView(args.m_device, &info, nullptr, &vkview);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkCreateBufferView failed!");
+		}
+
+		if (out_data)
+		{
+			out_data->m_buffer_view.m_cpu_address = 0u;
+			out_data->m_buffer_view.m_gpu_address = 0u;
+			out_data->m_buffer_view.m_native_view = vkview;
+		}
+
+		return vkbuffer;
+	}
+	result<native_texture> create_native(const texture_create_args& args, texture_data* out_data)
+	{
+		using result_type = result<native_texture>;
+
+		if (args.m_device == nullptr)
+			return result_type::make_error("args.m_device is nullptr!");
+
+		VkImage vkimage;
+		{
+			VkImageCreateInfo info{};
+			info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			info.imageType = translate(args.m_type);
+			info.format = translate_format(args.m_format);
+			info.extent = { args.m_dimensions.x, args.m_dimensions.y, args.m_dimensions.z };
+			info.mipLevels = args.m_num_mips;
+			info.arrayLayers = args.m_arraysize;
+			info.samples = VK_SAMPLE_COUNT_1_BIT;
+			info.tiling = VK_IMAGE_TILING_OPTIMAL;
+			info.usage = translate(args.m_bindflags);
+			auto vkres = vkCreateImage(args.m_device, &info, nullptr, &vkimage);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkCreateImage failed!");
+		}
+		
+		// allocate VRAM & bind
+		// Allocate memory (not shown in full) and bind
+		VkMemoryRequirements memReq;
+		vkGetImageMemoryRequirements(args.m_device, vkimage, &memReq);
+		VkMemoryPropertyFlags mempropFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		auto allocation = allocate(args.m_physdevice, args.m_device, memReq.size, mempropFlags, memReq.memoryTypeBits);
+		if (!allocation)
+			return result_type::make_error("failed allocating GPU memory for texture resource!");
+
+		auto vkres = vkBindImageMemory(args.m_device, vkimage, allocation.get(), 0u);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkBindImageMemory failed!");
+
+		VkImageView vkview;
+		{
+			VkImageViewCreateInfo viewInfo = {};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = vkimage;
+			viewInfo.viewType = translate(args.m_type, args.m_arraysize);
+			viewInfo.format = translate_format(args.m_format);
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.levelCount = args.m_num_mips;
+			viewInfo.subresourceRange.layerCount = args.m_arraysize;
+
+			vkres = vkCreateImageView(args.m_device, &viewInfo, nullptr, &vkview);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkCreateImageView failed!");
+		}
+
+		if (out_data)
+		{
+			out_data->m_current_state = args.m_init_state;
+			out_data->m_previous_state = args.m_init_state;
+			out_data->m_texture_view.m_cpu_address = 0u;
+			out_data->m_texture_view.m_gpu_address = 0u;
+			out_data->m_texture_view.m_native_view = vkview;
+		}
+		return vkimage;
+	}
 	result<native_pipeline>	create_native(const pipeline_create_args& args, pipeline_data* out_data)
 	{
 		using result_type = result<native_pipeline>;
@@ -842,11 +1098,6 @@ namespace influx::rhi
 #endif 
 		return {};
 	}
-	result<> commandlist::clear_rtv(descriptor rtv, const clear& clear)
-	{
-		using result_type = result<>;
-		return result_type::make_error("NOOP");
-	}
 	result<> commandlist::clear_texture(device& device, const texture& texture, const clear& clear)
 	{
 		using result_type = result<>;
@@ -875,6 +1126,145 @@ namespace influx::rhi
 			static_cast<uint32>(ranges.size()),
 			ranges.data());
 		return {};
+	}
+	result<> commandlist::draw(const draw_args& args)
+	{
+		vkCmdDraw(m_native_object,
+			args.m_num_vertices, args.m_num_instances,
+			args.m_start_vertex, args.m_start_instance);
+		return {};
+	}
+	result<> commandlist::draw_indexed(const draw_indexed_args& args)
+	{
+		vkCmdDrawIndexed(m_native_object, args.m_num_indices, args.m_num_instances,
+			args.m_start_index, args.m_start_vertex, args.m_start_instance);
+		return {};
+	}
+	result<> commandlist::dispatch(const math::uint3& group_nums)
+	{
+		vkCmdDispatch(m_native_object, group_nums.x, group_nums.y, group_nums.z);
+		return {};
+	}
+	result<> commandlist::renderpass_begin(device& device, const renderpass_args& args)
+	{
+		using result_type = result<>;
+
+		if (!device.is_valid())
+			return result_type::make_error("device is not valid!");
+
+		// translate the attachments
+		const bool has_depth = args.m_depth_attachment.m_is_enabled;
+		vector<VkAttachmentDescription> attachments{};
+		uint32 num_colour_attachments = args.m_color_attachments.size();
+		uint32 num_attachments = has_depth ? num_colour_attachments + 1 : num_colour_attachments;
+		attachments.reserve(num_attachments);
+		for (const auto& att : args.m_color_attachments)
+		{
+			attachments.push_back(translate(att));
+		}
+		if (has_depth) attachments.push_back(translate(args.m_depth_attachment));
+
+		// make 1 subpass
+		vector<VkSubpassDescription> subpasses{};
+		vector<VkAttachmentReference> color_refs{};
+		VkAttachmentReference depth_ref = {};
+		{
+			VkSubpassDescription subpass{};
+			// translate the attachment references
+			color_refs.resize(num_colour_attachments);
+			for (uint32 i = 0u; i < num_colour_attachments; ++i)
+			{
+				color_refs[i].attachment = i;
+				color_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
+			depth_ref.attachment = num_colour_attachments;
+			depth_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpass.colorAttachmentCount = 1;
+			subpass.pColorAttachments = color_refs.data();
+			subpass.pDepthStencilAttachment = has_depth ? &depth_ref : nullptr;
+			subpasses.push_back(subpass);
+		}
+
+		// no dependencies (1 subpass)
+		vector<VkSubpassDependency> dependencies{};
+		{
+
+		}
+
+		// make the renderpass
+		VkRenderPass renderpass;
+		{
+			VkRenderPassCreateInfo info{};
+			info.attachmentCount = num_attachments;
+			info.dependencyCount = static_cast<uint32>(dependencies.size());
+			info.flags = translate(args.m_flags);
+			info.pAttachments = attachments.data();
+			info.pDependencies = dependencies.data();
+			info.pSubpasses = subpasses.data();
+			info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			info.subpassCount = static_cast<uint32>(subpasses.size());
+			auto vkres = vkCreateRenderPass(device.m_native_object, &info, nullptr, &renderpass);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkCreateRenderPass failed!");
+		}
+
+		// make the framebuffer
+		VkFramebuffer framebuffer;
+		{
+			vector<VkImageView> attachment_views{}; attachment_views.reserve(num_attachments);
+			for (const auto& att : args.m_color_attachments)
+			{
+				attachment_views.push_back((VkImageView)att.m_rtv_descriptor.m_native_view);
+			}
+			if (has_depth) attachment_views.push_back((VkImageView)args.m_depth_attachment.m_dsv_descriptor.m_native_view);
+			
+			VkFramebufferCreateFlags flags{};
+			VkFramebufferCreateInfo info{};
+			info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			info.attachmentCount = static_cast<uint32>(attachments.size());
+			info.flags = flags;
+			info.width = args.m_width;
+			info.height = args.m_height;
+			info.layers = 1u;
+			info.pAttachments = attachment_views.data();
+			info.renderPass = renderpass;
+			auto vkres = vkCreateFramebuffer(device.m_native_object, &info, nullptr, &framebuffer);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkCreateFramebuffer failed!");
+		}
+
+		// begin the renderpass
+		vector<VkClearValue> clear_values{};
+
+		VkSubpassContents subpass_contents = VK_SUBPASS_CONTENTS_INLINE;
+		VkRenderPassBeginInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		info.framebuffer = framebuffer;
+		info.pClearValues = clear_values.data();
+		info.clearValueCount = static_cast<uint32>(clear_values.size());
+		info.renderArea.extent = { args.m_width, args.m_height };
+		info.renderPass = renderpass;
+		vkCmdBeginRenderPass(m_native_object, &info, subpass_contents);
+
+		return{};
+	}
+	result<> commandlist::renderpass_end()
+	{
+		vkCmdEndRenderPass(m_native_object);
+		return{};
+	}
+
+	// [texture]
+	result<uint64> texture::calculate_bytesize() const
+	{
+		using result_type = result<uint64>;
+		return get_format().get_bytes_per_pixel() * get_num_pixels();
+	}
+	result<uint64> texture::calculate_bytestride() const
+	{
+		return get_format().get_bytes_per_pixel();
 	}
 
 	// [swapchain]
@@ -956,6 +1346,322 @@ namespace influx::rhi
 			std::cerr << "WARNING: [" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg << std::endl;
 		}
 		return VK_FALSE;
+	}
+	
+	void static_pixel_formats::initialize()
+	{
+		if (m_initialized) return;
+		m_initialized = true;
+
+		using namespace format;
+		m_formats[VK_FORMAT_UNDEFINED					  ] = {"VK_FORMAT_UNDEFINED					   ", {} };
+		m_formats[VK_FORMAT_R4G4_UNORM_PACK8			  ] = {"VK_FORMAT_R4G4_UNORM_PACK8			   ", {} };
+		m_formats[VK_FORMAT_R4G4B4A4_UNORM_PACK16		  ] = {"VK_FORMAT_R4G4B4A4_UNORM_PACK16		   ", {} };
+		m_formats[VK_FORMAT_B4G4R4A4_UNORM_PACK16		  ] = {"VK_FORMAT_B4G4R4A4_UNORM_PACK16		   ", {} };
+		m_formats[VK_FORMAT_R5G6B5_UNORM_PACK16			  ] = {"VK_FORMAT_R5G6B5_UNORM_PACK16		   ", {} };
+		m_formats[VK_FORMAT_B5G6R5_UNORM_PACK16			  ] = {"VK_FORMAT_B5G6R5_UNORM_PACK16		   ", {} };
+		m_formats[VK_FORMAT_R5G5B5A1_UNORM_PACK16		  ] = {"VK_FORMAT_R5G5B5A1_UNORM_PACK16		   ", {} };
+		m_formats[VK_FORMAT_B5G5R5A1_UNORM_PACK16		  ] = {"VK_FORMAT_B5G5R5A1_UNORM_PACK16		   ", {} };
+		m_formats[VK_FORMAT_A1R5G5B5_UNORM_PACK16		  ] = {"VK_FORMAT_A1R5G5B5_UNORM_PACK16		   ", {} };
+		m_formats[VK_FORMAT_R8_UNORM					  ] = {"VK_FORMAT_R8_UNORM					   ", {} };
+		m_formats[VK_FORMAT_R8_SNORM					  ] = {"VK_FORMAT_R8_SNORM					   ", {} };
+		m_formats[VK_FORMAT_R8_USCALED					  ] = {"VK_FORMAT_R8_USCALED				   ", {} };
+		m_formats[VK_FORMAT_R8_SSCALED					  ] = {"VK_FORMAT_R8_SSCALED				   ", {} };
+		m_formats[VK_FORMAT_R8_UINT						  ] = {"VK_FORMAT_R8_UINT					   ", {} };
+		m_formats[VK_FORMAT_R8_SINT						  ] = {"VK_FORMAT_R8_SINT					   ", {} };
+		m_formats[VK_FORMAT_R8_SRGB						  ] = {"VK_FORMAT_R8_SRGB					   ", {} };
+		m_formats[VK_FORMAT_R8G8_UNORM					  ] = {"VK_FORMAT_R8G8_UNORM				   ", {} };
+		m_formats[VK_FORMAT_R8G8_SNORM					  ] = {"VK_FORMAT_R8G8_SNORM				   ", {} };
+		m_formats[VK_FORMAT_R8G8_USCALED				  ] = {"VK_FORMAT_R8G8_USCALED				   ", {} };
+		m_formats[VK_FORMAT_R8G8_SSCALED				  ] = {"VK_FORMAT_R8G8_SSCALED				   ", {} };
+		m_formats[VK_FORMAT_R8G8_UINT					  ] = {"VK_FORMAT_R8G8_UINT					   ", {} };
+		m_formats[VK_FORMAT_R8G8_SINT					  ] = {"VK_FORMAT_R8G8_SINT					   ", {} };
+		m_formats[VK_FORMAT_R8G8_SRGB					  ] = {"VK_FORMAT_R8G8_SRGB					   ", {} };
+		m_formats[VK_FORMAT_R8G8B8_UNORM				  ] = {"VK_FORMAT_R8G8B8_UNORM				   ", {} };
+		m_formats[VK_FORMAT_R8G8B8_SNORM				  ] = {"VK_FORMAT_R8G8B8_SNORM				   ", {} };
+		m_formats[VK_FORMAT_R8G8B8_USCALED				  ] = {"VK_FORMAT_R8G8B8_USCALED			   ", {} };
+		m_formats[VK_FORMAT_R8G8B8_SSCALED				  ] = {"VK_FORMAT_R8G8B8_SSCALED			   ", {} };
+		m_formats[VK_FORMAT_R8G8B8_UINT					  ] = {"VK_FORMAT_R8G8B8_UINT				   ", {} };
+		m_formats[VK_FORMAT_R8G8B8_SINT					  ] = {"VK_FORMAT_R8G8B8_SINT				   ", {} };
+		m_formats[VK_FORMAT_R8G8B8_SRGB					  ] = {"VK_FORMAT_R8G8B8_SRGB				   ", {} };
+		m_formats[VK_FORMAT_B8G8R8_UNORM				  ] = {"VK_FORMAT_B8G8R8_UNORM				   ", {} };
+		m_formats[VK_FORMAT_B8G8R8_SNORM				  ] = {"VK_FORMAT_B8G8R8_SNORM				   ", {} };
+		m_formats[VK_FORMAT_B8G8R8_USCALED				  ] = {"VK_FORMAT_B8G8R8_USCALED			   ", {} };
+		m_formats[VK_FORMAT_B8G8R8_SSCALED				  ] = {"VK_FORMAT_B8G8R8_SSCALED			   ", {} };
+		m_formats[VK_FORMAT_B8G8R8_UINT					  ] = {"VK_FORMAT_B8G8R8_UINT				   ", {} };
+		m_formats[VK_FORMAT_B8G8R8_SINT					  ] = {"VK_FORMAT_B8G8R8_SINT				   ", {} };
+		m_formats[VK_FORMAT_B8G8R8_SRGB					  ] = {"VK_FORMAT_B8G8R8_SRGB				   ", {} };
+		m_formats[VK_FORMAT_R8G8B8A8_UNORM				  ] = {"VK_FORMAT_R8G8B8A8_UNORM			   ", {e_format::unorm,	{_r,_8}, {_g,_8}, {_b,_8}, {_a,_8} }};
+		m_formats[VK_FORMAT_R8G8B8A8_SNORM				  ] = {"VK_FORMAT_R8G8B8A8_SNORM			   ", {} };
+		m_formats[VK_FORMAT_R8G8B8A8_USCALED			  ] = {"VK_FORMAT_R8G8B8A8_USCALED			   ", {} };
+		m_formats[VK_FORMAT_R8G8B8A8_SSCALED			  ] = {"VK_FORMAT_R8G8B8A8_SSCALED			   ", {} };
+		m_formats[VK_FORMAT_R8G8B8A8_UINT				  ] = {"VK_FORMAT_R8G8B8A8_UINT				   ", {} };
+		m_formats[VK_FORMAT_R8G8B8A8_SINT				  ] = {"VK_FORMAT_R8G8B8A8_SINT				   ", {} };
+		m_formats[VK_FORMAT_R8G8B8A8_SRGB				  ] = {"VK_FORMAT_R8G8B8A8_SRGB				   ", {} };
+		m_formats[VK_FORMAT_B8G8R8A8_UNORM				  ] = {"VK_FORMAT_B8G8R8A8_UNORM			   ", {} };
+		m_formats[VK_FORMAT_B8G8R8A8_SNORM				  ] = {"VK_FORMAT_B8G8R8A8_SNORM			   ", {} };
+		m_formats[VK_FORMAT_B8G8R8A8_USCALED			  ] = {"VK_FORMAT_B8G8R8A8_USCALED			   ", {} };
+		m_formats[VK_FORMAT_B8G8R8A8_SSCALED			  ] = {"VK_FORMAT_B8G8R8A8_SSCALED			   ", {} };
+		m_formats[VK_FORMAT_B8G8R8A8_UINT				  ] = {"VK_FORMAT_B8G8R8A8_UINT				   ", {} };
+		m_formats[VK_FORMAT_B8G8R8A8_SINT				  ] = {"VK_FORMAT_B8G8R8A8_SINT				   ", {} };
+		m_formats[VK_FORMAT_B8G8R8A8_SRGB				  ] = {"VK_FORMAT_B8G8R8A8_SRGB				   ", {} };
+		m_formats[VK_FORMAT_A8B8G8R8_UNORM_PACK32		  ] = {"VK_FORMAT_A8B8G8R8_UNORM_PACK32		   ", {} };
+		m_formats[VK_FORMAT_A8B8G8R8_SNORM_PACK32		  ] = {"VK_FORMAT_A8B8G8R8_SNORM_PACK32		   ", {} };
+		m_formats[VK_FORMAT_A8B8G8R8_USCALED_PACK32		  ] = {"VK_FORMAT_A8B8G8R8_USCALED_PACK32	   ", {} };
+		m_formats[VK_FORMAT_A8B8G8R8_SSCALED_PACK32		  ] = {"VK_FORMAT_A8B8G8R8_SSCALED_PACK32	   ", {} };
+		m_formats[VK_FORMAT_A8B8G8R8_UINT_PACK32		  ] = {"VK_FORMAT_A8B8G8R8_UINT_PACK32		   ", {} };
+		m_formats[VK_FORMAT_A8B8G8R8_SINT_PACK32		  ] = {"VK_FORMAT_A8B8G8R8_SINT_PACK32		   ", {} };
+		m_formats[VK_FORMAT_A8B8G8R8_SRGB_PACK32		  ] = {"VK_FORMAT_A8B8G8R8_SRGB_PACK32		   ", {} };
+		m_formats[VK_FORMAT_A2R10G10B10_UNORM_PACK32	  ] = {"VK_FORMAT_A2R10G10B10_UNORM_PACK32	   ", {} };
+		m_formats[VK_FORMAT_A2R10G10B10_SNORM_PACK32	  ] = {"VK_FORMAT_A2R10G10B10_SNORM_PACK32	   ", {} };
+		m_formats[VK_FORMAT_A2R10G10B10_USCALED_PACK32	  ] = {"VK_FORMAT_A2R10G10B10_USCALED_PACK32   ", {} };
+		m_formats[VK_FORMAT_A2R10G10B10_SSCALED_PACK32	  ] = {"VK_FORMAT_A2R10G10B10_SSCALED_PACK32   ", {} };
+		m_formats[VK_FORMAT_A2R10G10B10_UINT_PACK32		  ] = {"VK_FORMAT_A2R10G10B10_UINT_PACK32	   ", {} };
+		m_formats[VK_FORMAT_A2R10G10B10_SINT_PACK32		  ] = {"VK_FORMAT_A2R10G10B10_SINT_PACK32	   ", {} };
+		m_formats[VK_FORMAT_A2B10G10R10_UNORM_PACK32	  ] = {"VK_FORMAT_A2B10G10R10_UNORM_PACK32	   ", {} };
+		m_formats[VK_FORMAT_A2B10G10R10_SNORM_PACK32	  ] = {"VK_FORMAT_A2B10G10R10_SNORM_PACK32	   ", {} };
+		m_formats[VK_FORMAT_A2B10G10R10_USCALED_PACK32	  ] = {"VK_FORMAT_A2B10G10R10_USCALED_PACK32   ", {} };
+		m_formats[VK_FORMAT_A2B10G10R10_SSCALED_PACK32	  ] = {"VK_FORMAT_A2B10G10R10_SSCALED_PACK32   ", {} };
+		m_formats[VK_FORMAT_A2B10G10R10_UINT_PACK32		  ] = {"VK_FORMAT_A2B10G10R10_UINT_PACK32	   ", {} };
+		m_formats[VK_FORMAT_A2B10G10R10_SINT_PACK32		  ] = {"VK_FORMAT_A2B10G10R10_SINT_PACK32	   ", {} };
+		m_formats[VK_FORMAT_R16_UNORM					  ] = {"VK_FORMAT_R16_UNORM					   ", {} };
+		m_formats[VK_FORMAT_R16_SNORM					  ] = {"VK_FORMAT_R16_SNORM					   ", {} };
+		m_formats[VK_FORMAT_R16_USCALED					  ] = {"VK_FORMAT_R16_USCALED				   ", {} };
+		m_formats[VK_FORMAT_R16_SSCALED					  ] = {"VK_FORMAT_R16_SSCALED				   ", {} };
+		m_formats[VK_FORMAT_R16_UINT					  ] = {"VK_FORMAT_R16_UINT					   ", {} };
+		m_formats[VK_FORMAT_R16_SINT					  ] = {"VK_FORMAT_R16_SINT					   ", {} };
+		m_formats[VK_FORMAT_R16_SFLOAT					  ] = {"VK_FORMAT_R16_SFLOAT				   ", {} };
+		m_formats[VK_FORMAT_R16G16_UNORM				  ] = {"VK_FORMAT_R16G16_UNORM				   ", {} };
+		m_formats[VK_FORMAT_R16G16_SNORM				  ] = {"VK_FORMAT_R16G16_SNORM				   ", {} };
+		m_formats[VK_FORMAT_R16G16_USCALED				  ] = {"VK_FORMAT_R16G16_USCALED			   ", {} };
+		m_formats[VK_FORMAT_R16G16_SSCALED				  ] = {"VK_FORMAT_R16G16_SSCALED			   ", {} };
+		m_formats[VK_FORMAT_R16G16_UINT					  ] = {"VK_FORMAT_R16G16_UINT				   ", {} };
+		m_formats[VK_FORMAT_R16G16_SINT					  ] = {"VK_FORMAT_R16G16_SINT				   ", {} };
+		m_formats[VK_FORMAT_R16G16_SFLOAT				  ] = {"VK_FORMAT_R16G16_SFLOAT				   ", {} };
+		m_formats[VK_FORMAT_R16G16B16_UNORM				  ] = {"VK_FORMAT_R16G16B16_UNORM			   ", {} };
+		m_formats[VK_FORMAT_R16G16B16_SNORM				  ] = {"VK_FORMAT_R16G16B16_SNORM			   ", {} };
+		m_formats[VK_FORMAT_R16G16B16_USCALED			  ] = {"VK_FORMAT_R16G16B16_USCALED			   ", {} };
+		m_formats[VK_FORMAT_R16G16B16_SSCALED			  ] = {"VK_FORMAT_R16G16B16_SSCALED			   ", {} };
+		m_formats[VK_FORMAT_R16G16B16_UINT				  ] = {"VK_FORMAT_R16G16B16_UINT			   ", {} };
+		m_formats[VK_FORMAT_R16G16B16_SINT				  ] = {"VK_FORMAT_R16G16B16_SINT			   ", {} };
+		m_formats[VK_FORMAT_R16G16B16_SFLOAT			  ] = {"VK_FORMAT_R16G16B16_SFLOAT			   ", {} };
+		m_formats[VK_FORMAT_R16G16B16A16_UNORM			  ] = {"VK_FORMAT_R16G16B16A16_UNORM		   ", {} };
+		m_formats[VK_FORMAT_R16G16B16A16_SNORM			  ] = {"VK_FORMAT_R16G16B16A16_SNORM		   ", {} };
+		m_formats[VK_FORMAT_R16G16B16A16_USCALED		  ] = {"VK_FORMAT_R16G16B16A16_USCALED		   ", {} };
+		m_formats[VK_FORMAT_R16G16B16A16_SSCALED		  ] = {"VK_FORMAT_R16G16B16A16_SSCALED		   ", {} };
+		m_formats[VK_FORMAT_R16G16B16A16_UINT			  ] = {"VK_FORMAT_R16G16B16A16_UINT			   ", {} };
+		m_formats[VK_FORMAT_R16G16B16A16_SINT			  ] = {"VK_FORMAT_R16G16B16A16_SINT			   ", {} };
+		m_formats[VK_FORMAT_R16G16B16A16_SFLOAT			  ] = {"VK_FORMAT_R16G16B16A16_SFLOAT		   ", {} };
+		m_formats[VK_FORMAT_R32_UINT					  ] = {"VK_FORMAT_R32_UINT					   ", {} };
+		m_formats[VK_FORMAT_R32_SINT					  ] = {"VK_FORMAT_R32_SINT					   ", {} };
+		m_formats[VK_FORMAT_R32_SFLOAT					  ] = {"VK_FORMAT_R32_SFLOAT				   ", {} };
+		m_formats[VK_FORMAT_R32G32_UINT					  ] = {"VK_FORMAT_R32G32_UINT				   ", {} };
+		m_formats[VK_FORMAT_R32G32_SINT					  ] = {"VK_FORMAT_R32G32_SINT				   ", {} };
+		m_formats[VK_FORMAT_R32G32_SFLOAT				  ] = {"VK_FORMAT_R32G32_SFLOAT				   ", {} };
+		m_formats[VK_FORMAT_R32G32B32_UINT				  ] = {"VK_FORMAT_R32G32B32_UINT			   ", {} };
+		m_formats[VK_FORMAT_R32G32B32_SINT				  ] = {"VK_FORMAT_R32G32B32_SINT			   ", {} };
+		m_formats[VK_FORMAT_R32G32B32_SFLOAT			  ] = {"VK_FORMAT_R32G32B32_SFLOAT			   ", {} };
+		m_formats[VK_FORMAT_R32G32B32A32_UINT			  ] = {"VK_FORMAT_R32G32B32A32_UINT			   ", {} };
+		m_formats[VK_FORMAT_R32G32B32A32_SINT			  ] = {"VK_FORMAT_R32G32B32A32_SINT			   ", {} };
+		m_formats[VK_FORMAT_R32G32B32A32_SFLOAT			  ] = {"VK_FORMAT_R32G32B32A32_SFLOAT		   ", {} };
+		m_formats[VK_FORMAT_R64_UINT					  ] = {"VK_FORMAT_R64_UINT					   ", {} };
+		m_formats[VK_FORMAT_R64_SINT					  ] = {"VK_FORMAT_R64_SINT					   ", {} };
+		m_formats[VK_FORMAT_R64_SFLOAT					  ] = {"VK_FORMAT_R64_SFLOAT				   ", {} };
+		m_formats[VK_FORMAT_R64G64_UINT					  ] = {"VK_FORMAT_R64G64_UINT				   ", {} };
+		m_formats[VK_FORMAT_R64G64_SINT					  ] = {"VK_FORMAT_R64G64_SINT				   ", {} };
+		m_formats[VK_FORMAT_R64G64_SFLOAT				  ] = {"VK_FORMAT_R64G64_SFLOAT				   ", {} };
+		m_formats[VK_FORMAT_R64G64B64_UINT				  ] = {"VK_FORMAT_R64G64B64_UINT			   ", {} };
+		m_formats[VK_FORMAT_R64G64B64_SINT				  ] = {"VK_FORMAT_R64G64B64_SINT			   ", {} };
+		m_formats[VK_FORMAT_R64G64B64_SFLOAT			  ] = {"VK_FORMAT_R64G64B64_SFLOAT			   ", {} };
+		m_formats[VK_FORMAT_R64G64B64A64_UINT			  ] = {"VK_FORMAT_R64G64B64A64_UINT			   ", {} };
+		m_formats[VK_FORMAT_R64G64B64A64_SINT			  ] = {"VK_FORMAT_R64G64B64A64_SINT			   ", {} };
+		m_formats[VK_FORMAT_R64G64B64A64_SFLOAT			  ] = {"VK_FORMAT_R64G64B64A64_SFLOAT		   ", {} };
+		m_formats[VK_FORMAT_B10G11R11_UFLOAT_PACK32		  ] = {"VK_FORMAT_B10G11R11_UFLOAT_PACK32	   ", {} };
+		m_formats[VK_FORMAT_E5B9G9R9_UFLOAT_PACK32		  ] = {"VK_FORMAT_E5B9G9R9_UFLOAT_PACK32	   ", {} };
+		m_formats[VK_FORMAT_D16_UNORM					  ] = {"VK_FORMAT_D16_UNORM					   ", {} };
+		m_formats[VK_FORMAT_X8_D24_UNORM_PACK32			  ] = {"VK_FORMAT_X8_D24_UNORM_PACK32		   ", {} };
+		m_formats[VK_FORMAT_D32_SFLOAT					  ] = {"VK_FORMAT_D32_SFLOAT				   ", {e_format::sfloat, {_d,_32} }};
+		m_formats[VK_FORMAT_S8_UINT						  ] = {"VK_FORMAT_S8_UINT					   ", {} };
+		m_formats[VK_FORMAT_D16_UNORM_S8_UINT			  ] = {"VK_FORMAT_D16_UNORM_S8_UINT			   ", {} };
+		m_formats[VK_FORMAT_D24_UNORM_S8_UINT			  ] = {"VK_FORMAT_D24_UNORM_S8_UINT			   ", {} };
+		m_formats[VK_FORMAT_D32_SFLOAT_S8_UINT			  ] = {"VK_FORMAT_D32_SFLOAT_S8_UINT		   ", {} };
+		m_formats[VK_FORMAT_BC1_RGB_UNORM_BLOCK			  ] = {"VK_FORMAT_BC1_RGB_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_BC1_RGB_SRGB_BLOCK			  ] = {"VK_FORMAT_BC1_RGB_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_BC1_RGBA_UNORM_BLOCK		  ] = {"VK_FORMAT_BC1_RGBA_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_BC1_RGBA_SRGB_BLOCK			  ] = {"VK_FORMAT_BC1_RGBA_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_BC2_UNORM_BLOCK				  ] = {"VK_FORMAT_BC2_UNORM_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC2_SRGB_BLOCK				  ] = {"VK_FORMAT_BC2_SRGB_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC3_UNORM_BLOCK				  ] = {"VK_FORMAT_BC3_UNORM_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC3_SRGB_BLOCK				  ] = {"VK_FORMAT_BC3_SRGB_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC4_UNORM_BLOCK				  ] = {"VK_FORMAT_BC4_UNORM_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC4_SNORM_BLOCK				  ] = {"VK_FORMAT_BC4_SNORM_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC5_UNORM_BLOCK				  ] = {"VK_FORMAT_BC5_UNORM_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC5_SNORM_BLOCK				  ] = {"VK_FORMAT_BC5_SNORM_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC6H_UFLOAT_BLOCK			  ] = {"VK_FORMAT_BC6H_UFLOAT_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC6H_SFLOAT_BLOCK			  ] = {"VK_FORMAT_BC6H_SFLOAT_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC7_UNORM_BLOCK				  ] = {"VK_FORMAT_BC7_UNORM_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_BC7_SRGB_BLOCK				  ] = {"VK_FORMAT_BC7_SRGB_BLOCK			   ", {} };
+		m_formats[VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK		  ] = {"VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK		  ] = {"VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK	  ] = {"VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK	  ] = {"VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK	  ] = {"VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK	  ] = {"VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_EAC_R11_UNORM_BLOCK			  ] = {"VK_FORMAT_EAC_R11_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_EAC_R11_SNORM_BLOCK			  ] = {"VK_FORMAT_EAC_R11_SNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_EAC_R11G11_UNORM_BLOCK		  ] = {"VK_FORMAT_EAC_R11G11_UNORM_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_EAC_R11G11_SNORM_BLOCK		  ] = {"VK_FORMAT_EAC_R11G11_SNORM_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_ASTC_4x4_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_4x4_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_4x4_SRGB_BLOCK			  ] = {"VK_FORMAT_ASTC_4x4_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_5x4_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_5x4_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_5x4_SRGB_BLOCK			  ] = {"VK_FORMAT_ASTC_5x4_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_5x5_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_5x5_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_5x5_SRGB_BLOCK			  ] = {"VK_FORMAT_ASTC_5x5_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_6x5_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_6x5_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_6x5_SRGB_BLOCK			  ] = {"VK_FORMAT_ASTC_6x5_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_6x6_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_6x6_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_6x6_SRGB_BLOCK			  ] = {"VK_FORMAT_ASTC_6x6_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_8x5_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_8x5_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_8x5_SRGB_BLOCK			  ] = {"VK_FORMAT_ASTC_8x5_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_8x6_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_8x6_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_8x6_SRGB_BLOCK			  ] = {"VK_FORMAT_ASTC_8x6_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_8x8_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_8x8_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_8x8_SRGB_BLOCK			  ] = {"VK_FORMAT_ASTC_8x8_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_10x5_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_10x5_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_10x5_SRGB_BLOCK		  ] = {"VK_FORMAT_ASTC_10x5_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_10x6_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_10x6_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_10x6_SRGB_BLOCK		  ] = {"VK_FORMAT_ASTC_10x6_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_10x8_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_10x8_UNORM_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_10x8_SRGB_BLOCK		  ] = {"VK_FORMAT_ASTC_10x8_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_10x10_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_10x10_UNORM_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_ASTC_10x10_SRGB_BLOCK		  ] = {"VK_FORMAT_ASTC_10x10_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_12x10_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_12x10_UNORM_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_ASTC_12x10_SRGB_BLOCK		  ] = {"VK_FORMAT_ASTC_12x10_SRGB_BLOCK		   ", {} };
+		m_formats[VK_FORMAT_ASTC_12x12_UNORM_BLOCK		  ] = {"VK_FORMAT_ASTC_12x12_UNORM_BLOCK	   ", {} };
+		m_formats[VK_FORMAT_ASTC_12x12_SRGB_BLOCK		  ] = {"VK_FORMAT_ASTC_12x12_SRGB_BLOCK		   ", {} };
+
+#if 0
+		m_formats[VK_FORMAT_G8B8G8R8_422_UNORM = 1000156000,
+		m_formats[VK_FORMAT_B8G8R8G8_422_UNORM = 1000156001,
+		m_formats[VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM = 1000156002,
+		m_formats[VK_FORMAT_G8_B8R8_2PLANE_420_UNORM = 1000156003,
+		m_formats[VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM = 1000156004,
+		m_formats[VK_FORMAT_G8_B8R8_2PLANE_422_UNORM = 1000156005,
+		m_formats[VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM = 1000156006,
+		m_formats[VK_FORMAT_R10X6_UNORM_PACK16 = 1000156007,
+		m_formats[VK_FORMAT_R10X6G10X6_UNORM_2PACK16 = 1000156008,
+		m_formats[VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16 = 1000156009,
+		m_formats[VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16 = 1000156010,
+		m_formats[VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16 = 1000156011,
+		m_formats[VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16 = 1000156012,
+		m_formats[VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16 = 1000156013,
+		m_formats[VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16 = 1000156014,
+		m_formats[VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16 = 1000156015,
+		m_formats[VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16 = 1000156016,
+		m_formats[VK_FORMAT_R12X4_UNORM_PACK16 = 1000156017,
+		m_formats[VK_FORMAT_R12X4G12X4_UNORM_2PACK16 = 1000156018,
+		m_formats[VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16 = 1000156019,
+		m_formats[VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16 = 1000156020,
+		m_formats[VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16 = 1000156021,
+		m_formats[VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16 = 1000156022,
+		m_formats[VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16 = 1000156023,
+		m_formats[VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16 = 1000156024,
+		m_formats[VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16 = 1000156025,
+		m_formats[VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16 = 1000156026,
+		m_formats[VK_FORMAT_G16B16G16R16_422_UNORM = 1000156027,
+		m_formats[VK_FORMAT_B16G16R16G16_422_UNORM = 1000156028,
+		m_formats[VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM = 1000156029,
+		m_formats[VK_FORMAT_G16_B16R16_2PLANE_420_UNORM = 1000156030,
+		m_formats[VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM = 1000156031,
+		m_formats[VK_FORMAT_G16_B16R16_2PLANE_422_UNORM = 1000156032,
+		m_formats[VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM = 1000156033,
+		m_formats[VK_FORMAT_G8_B8R8_2PLANE_444_UNORM = 1000330000,
+		m_formats[VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16 = 1000330001,
+		m_formats[VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16 = 1000330002,
+		m_formats[VK_FORMAT_G16_B16R16_2PLANE_444_UNORM = 1000330003,
+		m_formats[VK_FORMAT_A4R4G4B4_UNORM_PACK16 = 1000340000,
+		m_formats[VK_FORMAT_A4B4G4R4_UNORM_PACK16 = 1000340001,
+		m_formats[VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK = 1000066000,
+		m_formats[VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK = 1000066001,
+		m_formats[VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK = 1000066002,
+		m_formats[VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK = 1000066003,
+		m_formats[VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK = 1000066004,
+		m_formats[VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK = 1000066005,
+		m_formats[VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK = 1000066006,
+		m_formats[VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK = 1000066007,
+		m_formats[VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK = 1000066008,
+		m_formats[VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK = 1000066009,
+		m_formats[VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK = 1000066010,
+		m_formats[VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK = 1000066011,
+		m_formats[VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK = 1000066012,
+		m_formats[VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK = 1000066013,
+		m_formats[VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG = 1000054000,
+		m_formats[VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG = 1000054001,
+		m_formats[VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG = 1000054002,
+		m_formats[VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG = 1000054003,
+		m_formats[VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG = 1000054004,
+		m_formats[VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG = 1000054005,
+		m_formats[VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG = 1000054006,
+		m_formats[VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG = 1000054007,
+		m_formats[VK_FORMAT_R16G16_S10_5_NV = 1000464000,
+		m_formats[VK_FORMAT_A1B5G5R5_UNORM_PACK16_KHR = 1000470000,
+		m_formats[VK_FORMAT_A8_UNORM_KHR = 1000470001,
+		m_formats[VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK,
+		m_formats[VK_FORMAT_G8B8G8R8_422_UNORM_KHR = VK_FORMAT_G8B8G8R8_422_UNORM,
+		m_formats[VK_FORMAT_B8G8R8G8_422_UNORM_KHR = VK_FORMAT_B8G8R8G8_422_UNORM,
+		m_formats[VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM_KHR = VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM,
+		m_formats[VK_FORMAT_G8_B8R8_2PLANE_420_UNORM_KHR = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM,
+		m_formats[VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM_KHR = VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM,
+		m_formats[VK_FORMAT_G8_B8R8_2PLANE_422_UNORM_KHR = VK_FORMAT_G8_B8R8_2PLANE_422_UNORM,
+		m_formats[VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM_KHR = VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM,
+		m_formats[VK_FORMAT_R10X6_UNORM_PACK16_KHR = VK_FORMAT_R10X6_UNORM_PACK16,
+		m_formats[VK_FORMAT_R10X6G10X6_UNORM_2PACK16_KHR = VK_FORMAT_R10X6G10X6_UNORM_2PACK16,
+		m_formats[VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16_KHR = VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16,
+		m_formats[VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16_KHR = VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16,
+		m_formats[VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16_KHR = VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16,
+		m_formats[VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16,
+		m_formats[VK_FORMAT_R12X4_UNORM_PACK16_KHR = VK_FORMAT_R12X4_UNORM_PACK16,
+		m_formats[VK_FORMAT_R12X4G12X4_UNORM_2PACK16_KHR = VK_FORMAT_R12X4G12X4_UNORM_2PACK16,
+		m_formats[VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16_KHR = VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16,
+		m_formats[VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16_KHR = VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16,
+		m_formats[VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16_KHR = VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16,
+		m_formats[VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G16B16G16R16_422_UNORM_KHR = VK_FORMAT_G16B16G16R16_422_UNORM,
+		m_formats[VK_FORMAT_B16G16R16G16_422_UNORM_KHR = VK_FORMAT_B16G16R16G16_422_UNORM,
+		m_formats[VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM_KHR = VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM,
+		m_formats[VK_FORMAT_G16_B16R16_2PLANE_420_UNORM_KHR = VK_FORMAT_G16_B16R16_2PLANE_420_UNORM,
+		m_formats[VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM_KHR = VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM,
+		m_formats[VK_FORMAT_G16_B16R16_2PLANE_422_UNORM_KHR = VK_FORMAT_G16_B16R16_2PLANE_422_UNORM,
+		m_formats[VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM_KHR = VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM,
+		m_formats[VK_FORMAT_G8_B8R8_2PLANE_444_UNORM_EXT = VK_FORMAT_G8_B8R8_2PLANE_444_UNORM,
+		m_formats[VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16_EXT = VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16_EXT = VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16,
+		m_formats[VK_FORMAT_G16_B16R16_2PLANE_444_UNORM_EXT = VK_FORMAT_G16_B16R16_2PLANE_444_UNORM,
+		m_formats[VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT = VK_FORMAT_A4R4G4B4_UNORM_PACK16,
+		m_formats[VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT = VK_FORMAT_A4B4G4R4_UNORM_PACK16,
+		m_formats[VK_FORMAT_MAX_ENUM = 0x7FFFFFFF
+#endif
 	}
 }
 #endif // INFLUX_RHI_VULKAN

@@ -383,9 +383,59 @@ namespace influx::rhi
 	public:
 		e_hitgroup_type m_type;
 	};
+	struct descriptor final
+	{
+		uint64			m_cpu_address;
+		uint64			m_gpu_address;
+		object_native	m_native_view;
+	};
+	enum e_renderpass_flags : uint32
+	{
+		none = 0x0,
+		read_only_depth = 0x1,
+		read_only_stencil = 0x2,
+		allow_uav_write = 0x4,
+		suspending = 0x8,
+		resuming = 0x10,
+	};
+	struct color_attachment final
+	{
+		descriptor			m_rtv_descriptor;
+		e_load_op			m_load;
+		e_store_op			m_store;
+		math::float4		m_clear;
+		pixelformat			m_format;
+
+		struct resolve_params final
+		{
+			resource* m_source;
+			resource* m_dest;
+			bool m_keep_source = false;
+		} m_resolve{};
+	};
+	struct depth_attachment final
+	{
+		descriptor			m_dsv_descriptor;
+		pixelformat			m_format = pixelformat::d32();
+		e_load_op			m_depth_load;
+		e_store_op			m_depth_store;
+		float				m_depth_clear = 0.0f;
+		e_load_op			m_stencil_load = e_load_op::no_access;
+		e_store_op			m_stencil_store = e_store_op::no_access;
+		uint8				m_stencil_clear = 0u;
+		bool				m_is_enabled = false;
+	};
 	struct renderpass_args final
 	{
+		vector<color_attachment>	m_color_attachments;
+		depth_attachment			m_depth_attachment;
 
+		uint32				m_width = 0u;
+		uint32				m_height = 0u;
+		e_renderpass_flags	m_flags = e_renderpass_flags::none;
+		
+		color_attachment& color(const texture& texture);
+		depth_attachment& depth(const texture& texture);
 	};
 	struct clear final
 	{
@@ -400,11 +450,6 @@ namespace influx::rhi
 	struct sampler final
 	{
 
-	};
-	struct descriptor final
-	{
-		uint64 m_cpu_address;
-		uint64 m_gpu_address;
 	};
 	struct descriptor_range final
 	{
@@ -422,6 +467,22 @@ namespace influx::rhi
 	};
 	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
 	static constexpr uint32 k_max_num_rendertargets_per_draw = 8u;
+
+	struct draw_args final
+	{
+		uint32 m_num_vertices;
+		uint32 m_num_instances;
+		uint32 m_start_vertex;
+		uint32 m_start_instance;
+	};
+	struct draw_indexed_args final
+	{
+		uint32 m_num_indices;
+		uint32 m_num_instances;
+		uint32 m_start_index;
+		uint32 m_start_vertex;
+		uint32 m_start_instance;
+	};
 #pragma endregion
 
 	enum class e_object : uint8
@@ -890,30 +951,81 @@ namespace influx::rhi
 	};
 	struct buffer_create_args final
 	{
+		native_physdevice	m_physdevice;
 		native_device		m_device;
 		uint64				m_bytesize;
 		uint64				m_bytestride;
 		e_resource_bindflags m_bindflags;
 		e_resource_state	m_init_state;
-		bool				m_allow_uav;
 
 		optional<native_memoryheap> m_heap;
 	};
 	struct texture_create_args final
 	{
-		native_device			m_device;
-		pixelformat				m_format;
-		e_resource_state		m_init_state;
+		native_physdevice			m_physdevice;
+		native_device				m_device;
+		pixelformat					m_format = pixelformat::rgba_8_unorm();
+		math::uint3					m_dimensions = math::uint3::make_one();
+		uint32						m_arraysize = 1u;
+		uint32						m_num_mips = 1u;
+		uint32						m_sample_count = 1u;
+		e_resource_bindflags		m_bindflags;
+		e_resource_state			m_init_state;
+		e_texture_type				m_type;
 
-		e_texture_type			m_type;
-		uint32					m_arraysize;
-		math::uint2				m_dimensions;
-		e_resource_bindflags	m_bindflags;
-		uint32					m_num_mips;
-		uint32					m_sample_count;
-		bool					m_allow_uav;
-
+		optional<const char*>		m_name;
 		optional<native_memoryheap> m_heap;
+
+		static texture_create_args tex1D(const uint32 num_pixels)
+		{
+			texture_create_args args{};
+			args.m_type = e_texture_type::texture1D;
+			args.m_dimensions.x = num_pixels;
+			return args;
+		}
+		static texture_create_args tex2D(const math::uint2& dimensions)
+		{
+			texture_create_args args{};
+			args.m_type = e_texture_type::texture2D;
+			args.m_dimensions.x = dimensions.x;
+			args.m_dimensions.y = dimensions.y;
+			return args;
+		}
+		static texture_create_args tex3D(const math::uint3& dimensions)
+		{
+			texture_create_args args{};
+			args.m_type = e_texture_type::texture3D;
+			args.m_dimensions = dimensions;
+			return args;
+		}
+		static texture_create_args cubemap(const math::uint2& dimensions)
+		{
+			texture_create_args args{};
+			args.m_type = e_texture_type::cubemap;
+			args.m_dimensions.x = dimensions.x;
+			args.m_dimensions.y = dimensions.y;
+			args.m_arraysize = 6u;
+			return args;
+		}
+
+		texture_create_args& mod_device(native_device dev)
+		{ m_device = dev; return *this; }
+		texture_create_args& mod_format(const pixelformat& format)
+		{ m_format = format; return *this; }
+		texture_create_args& mod_dimensions(const math::uint3& dimensions)
+		{ m_dimensions = dimensions; return *this; }
+		texture_create_args& mod_arraysize(const uint32 arraysize)
+		{ m_arraysize = arraysize; return *this; }
+		texture_create_args& mod_num_mips(const uint32 num_mips)
+		{ m_num_mips = num_mips; return *this; }
+		texture_create_args& mod_samplecount(const uint32 num_samples)
+		{ m_sample_count = num_samples; return *this; }
+		texture_create_args& mod_bindflags(const e_resource_bindflags flags)
+		{ m_bindflags = flags; return *this; }
+		texture_create_args& mod_initstate(const e_resource_state state)
+		{ m_init_state = state; return *this; }
+		texture_create_args& mod_type(const e_texture_type type)
+		{ m_type = type; return *this; }
 	};
 	struct memheap_create_args final
 	{
@@ -999,6 +1111,9 @@ namespace influx::rhi
 		native_semaphore	m_semaphore;
 		uint32				m_complete_value = 0u;
 		e_commandlist_state m_state = e_commandlist_state::init;
+
+		// built on renderpass_begin
+		object_native		m_current_framebuffer;
 	};
 	struct fence_data final
 	{
@@ -1014,12 +1129,13 @@ namespace influx::rhi
 		e_resource_state	m_current_state;
 		uint64				m_bytesize;
 		uint64				m_bytestride;
+		descriptor			m_buffer_view;
 	};
 	struct texture_data final
 	{
 		e_resource_state	m_previous_state;
 		e_resource_state	m_current_state;
-		pixelformat			m_format;
+		descriptor			m_texture_view;
 	};
 	struct memheap_data final
 	{
@@ -1065,8 +1181,7 @@ namespace influx::rhi
 		native_texture,
 		native_memoryheap,
 		native_pipeline,
-		native_rootsignature
-		>>;
+		native_rootsignature>>;
 
 	template <e_object _t>
 	class object
@@ -1102,85 +1217,110 @@ namespace influx::rhi
 	* use these to make API calls into the internal objects
 	*/
 
-	class resource
+	class buffer final : public object<e_object::buffer>
 	{
 	public:
-		INFLUX_RHI_API virtual const e_resource_type get_resource_type() const = 0;
-		INFLUX_RHI_API virtual const object_native get_native_resource() const = 0;
-		// INFLUX_RHI_API virtual result<> transition(commandlist& cmdlist, e_resource_state new_state);
-		INFLUX_RHI_API virtual e_resource_state get_resource_state() const = 0;
-		INFLUX_RHI_API virtual e_resource_state get_previous_resource_state() const = 0;
-		INFLUX_RHI_API virtual result<> set_state(e_resource_state new_state) = 0;
-		INFLUX_RHI_API virtual bool allows_uav() const = 0;
-		INFLUX_RHI_API virtual bool is_valid() const = 0;
+		using data_type = buffer_data;
+		using create_args = buffer_create_args;
 
-		INFLUX_RHI_API virtual uint32 get_arraysize() const { return 0u; };
-		INFLUX_RHI_API virtual uint32 get_depth() const { return 0u; };
-		INFLUX_RHI_API virtual uint32 get_width() const { return 0u; };
-		INFLUX_RHI_API virtual uint32 get_height() const { return 0u; };
-		INFLUX_RHI_API virtual uint64 get_bytesize() const { return 0u; };
-		INFLUX_RHI_API virtual uint64 get_bytestride() const { return 0u; };
-		INFLUX_RHI_API virtual const char* get_name() const { return "";  }
+		inline static constexpr e_resource_type get_resource_type() 
+		{ return e_resource_type::buffer; };
 
-		inline bool is_texture() const
-		{
-			return get_resource_type() == e_resource_type::texture;
-		}
-	};
+		inline uint64 get_bytesize() const
+		{ return m_create_args.m_bytesize; }
 
-	class buffer final : public object<e_object::buffer>, public resource
-	{
-	public:
-		using data_type = object::data_type;
+		inline uint64 get_bytestride() const
+		{ return m_create_args.m_bytestride; }
 
-		INFLUX_RHI_API uint64 get_num_elements() const;
-		INFLUX_RHI_API uint64 get_bytesize() const;
-		INFLUX_RHI_API uint64 get_bytestride() const;
+		inline uint64 get_num_elements() const
+		{ return get_bytesize() / get_bytestride(); }
 
-		// resource interface
-		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::buffer; };
-		inline virtual const object_native get_native_resource() const override { return m_native_object; }
-		inline virtual e_resource_state get_resource_state() const override { return m_data.m_current_state; }
-		inline virtual e_resource_state get_previous_resource_state() const override { return m_data.m_previous_state; }
-		inline virtual result<> set_state(e_resource_state new_state) override
+		inline e_resource_state get_resource_state() const 
+		{ return m_data.m_current_state; }
+		
+		inline e_resource_state get_previous_resource_state() const
+		{ return m_data.m_previous_state; }
+		
+		inline bool allows_uav() const
+		{ return has_flag(m_create_args.m_bindflags, e_resource_bindflags::uav); }
+
+		inline result<> set_state(e_resource_state new_state)
 		{
 			m_data.m_previous_state = m_data.m_current_state;
 			m_data.m_current_state = new_state;
 			return {};
 		}
-		inline virtual bool allows_uav() const override { return m_create_args.m_allow_uav; }
-		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
-	class texture final : public object<e_object::texture>, public resource
+	class texture final : public object<e_object::texture>
 	{
 	public:
-		using data_type = object::data_type;
+		using data_type = texture_data;
+		using create_args = texture_create_args;
 
 		INFLUX_RHI_API result<> transition(commandlist& cmdlist, e_resource_state new_state);
 		INFLUX_RHI_API result<pixelformat const*> get_current_format() const;
+		INFLUX_RHI_API result<uint64> calculate_bytesize() const;
+		INFLUX_RHI_API result<uint64> calculate_bytestride() const;
+		INFLUX_RHI_API result<> set_name(const char* name);
 
-		inline virtual uint32 get_arraysize() const	 override { return 0u; };
-		inline virtual uint32 get_depth() const		 override { return 0u; };
-		inline virtual uint32 get_width() const		 override { return 0u; };
-		inline virtual uint32 get_height() const	 override { return 0u; };
-		inline virtual uint64 get_bytesize() const	 override { return 0u; };
-		inline virtual uint64 get_bytestride() const override { return 0u; };
-		inline virtual const char* get_name() const	override { return ""; }
+		inline uint32 get_arraysize() const
+		{ return m_create_args.m_arraysize; }
+		
+		inline uint32 get_depth() const 
+		{ return m_create_args.m_dimensions.z; }
+		
+		inline uint32 get_width() const 
+		{ return m_create_args.m_dimensions.x; }
+		
+		inline uint32 get_height() const 
+		{ return m_create_args.m_dimensions.y; }
 
-		// resource interface
-		inline virtual const e_resource_type get_resource_type() const override { return e_resource_type::texture; };
-		inline virtual const object_native get_native_resource() const override { return m_native_object; }
-		inline virtual e_resource_state get_resource_state() const override { return m_data.m_current_state; }
-		inline virtual e_resource_state get_previous_resource_state() const override { return m_data.m_previous_state; }
-		inline virtual result<> set_state(e_resource_state new_state) override
+		inline uint64 get_num_pixels() const
+		{ const math::uint3& dim = get_dimensions(); return dim.x * dim.y * dim.z * get_arraysize(); }
+
+		inline math::uint3 get_dimensions() const
+		{ return m_create_args.m_dimensions; }
+		
+		inline uint64 get_bytesize() const 
+		{ return calculate_bytesize().get(); }
+		
+		inline uint64 get_bytestride() const 
+		{ return calculate_bytestride().get(); }
+
+		inline uint32 get_num_mips() const
+		{ return m_create_args.m_num_mips; }
+		
+		inline const pixelformat& get_format() const
+		{ return m_create_args.m_format; }
+
+		inline const char* get_name() const
+		{ return ""; }
+
+		inline static constexpr e_resource_type get_resource_type()
+		{ return e_resource_type::texture; }
+
+		inline e_resource_state get_init_resource_state() const
+		{ return m_create_args.m_init_state; }
+
+		inline e_resource_state get_resource_state() const 
+		{ return m_data.m_current_state; }
+
+		inline e_resource_state get_previous_resource_state() const
+		{ return m_data.m_previous_state; }
+
+		inline bool allows_uav() const
+		{ return has_flag(m_create_args.m_bindflags, e_resource_bindflags::uav); }
+
+		inline bool is_valid() const
+		{ return object::is_valid(); }
+
+		inline result<> set_state(e_resource_state new_state)
 		{
 			m_data.m_previous_state = m_data.m_current_state;
 			m_data.m_current_state = new_state;
 			return {};
 		}
-		inline virtual bool allows_uav() const override { return m_create_args.m_allow_uav; }
-		inline virtual bool is_valid() const override { return object::is_valid(); }
 	};
 
 	class memheap final
@@ -1279,21 +1419,15 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> start(device& device);
 		INFLUX_RHI_API result<> start(native_commandpool pool);
 		INFLUX_RHI_API result<> submit(queue& queue);
-		INFLUX_RHI_API result<> renderpass_begin(const renderpass_args& args);
+		INFLUX_RHI_API result<> renderpass_begin(device& device, const renderpass_args& args);
 		INFLUX_RHI_API result<> renderpass_end();
-		INFLUX_RHI_API result<> draw_instanced();
-		INFLUX_RHI_API result<> draw_indexed();
-		INFLUX_RHI_API result<> dispatch();
+		INFLUX_RHI_API result<> draw(const draw_args& args);
+		INFLUX_RHI_API result<> draw_indexed(const draw_indexed_args& args);
+		INFLUX_RHI_API result<> dispatch(const math::uint3& group_nums);
+		INFLUX_RHI_API result<> clear_texture(device& device, const texture& texture, const clear& clear);
 		INFLUX_RHI_API result<> bind_vertexbuffer(const resource& vertexbuffer);
 		INFLUX_RHI_API result<> bind_indexbuffer(const resource& indexbuffer);
 
-		INFLUX_RHI_API result<> clear_texture(device& device, const texture& texture, const clear& clear);
-
-		/* dx12 only - */
-		INFLUX_RHI_API result<> clear_rtv(descriptor rtv, const clear& clear);
-		INFLUX_RHI_API result<> clear_dsv(descriptor dsv);
-		
-		INFLUX_RHI_API result<> set_draw_output(descriptor rtv, descriptor dsv);
 		INFLUX_RHI_API result<> transition_resource(resource& resource, e_resource_state new_state);
 		INFLUX_RHI_API result<> update_blas();
 		INFLUX_RHI_API result<> update_tlas();
@@ -1310,11 +1444,19 @@ namespace influx::rhi
 		INFLUX_RHI_API bool has_fence() const;
 
 		inline bool is_recording() const
-		{
-			return m_data.m_state == e_commandlist_state::recording;
-		}
+		{ return m_data.m_state == e_commandlist_state::recording; }
 
-		inline static commandlist_create_args default_graphics() { return commandlist_create_args::default_graphics(); }
+		inline static commandlist_create_args default_graphics()
+		{ return commandlist_create_args::default_graphics(); }
+
+		/* D3D12 ONLY */
+		// use clear_texture(device, texture, clear) to get equal result across APIs
+		// under the hood, the wrapped D3D12 device will stage its own rtv/dsv view that translates to the resource
+#if INFLUX_RHI_D3D12
+		INFLUX_RHI_API result<> clear_rtv(descriptor rtv, const clear& clear);
+		INFLUX_RHI_API result<> clear_dsv(descriptor dsv);
+		INFLUX_RHI_API result<> set_draw_output(descriptor rtv, descriptor dsv);
+#endif
 	};
 
 	class commandpool final : public object<e_object::commandpool>
@@ -1358,6 +1500,8 @@ namespace influx::rhi
 		inline result<rootsignature>	create(const rootsignature_create_args& args);
 		inline result<fence>			create(const fence_create_args& args);
 		inline result<semaphore>		create(const semaphore_create_args& args);
+		inline result<texture>			create(const texture_create_args& args);
+		inline result<buffer>			create(const buffer_create_args& args);
 
 		inline result<> release()
 		{
@@ -1581,6 +1725,56 @@ namespace influx::rhi
 		if (!reg)
 			return result_type::make_error("failed registering new object!");
 		return res;
+	}
+	inline result<texture> device::create(const texture_create_args& args)
+	{
+		using result_type = result<texture>;
+		auto args_cpy = args;
+		args_cpy.m_device = (native_device)this->m_native_object;
+		args_cpy.m_physdevice = (native_physdevice)this->m_data.m_physical_device;
+		auto res = influx::rhi::create<texture>(args_cpy);
+		if (!res)
+			return result_type::make_error("failed creating texture!");
+
+		auto reg = register_child(res.get());
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	inline result<buffer> device::create(const buffer_create_args& args)
+	{
+		using result_type = result<buffer>;
+		auto args_cpy = args;
+		args_cpy.m_device = (native_device)this->m_native_object;
+		args_cpy.m_physdevice = (native_physdevice)this->m_data.m_physical_device;
+		auto res = influx::rhi::create<buffer>(args_cpy);
+		if (!res)
+			return result_type::make_error("failed creating buffer!");
+
+		auto reg = register_child(res.get());
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	
+	inline color_attachment& renderpass_args::color(const texture& texture)
+	{
+		color_attachment attach{};
+		attach.m_rtv_descriptor = texture.m_data.m_texture_view;
+		attach.m_store;
+		attach.m_load;
+		attach.m_format = texture.get_format();
+		m_color_attachments.push_back(attach);
+		return m_color_attachments.back();
+	}
+	inline depth_attachment& renderpass_args::depth(const texture& texture)
+	{
+		depth_attachment attach{};
+		attach.m_dsv_descriptor = texture.m_data.m_texture_view;
+		attach.m_format = texture.get_format();
+		attach.m_is_enabled = true;
+		m_depth_attachment = attach;
+		return m_depth_attachment;
 	}
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);

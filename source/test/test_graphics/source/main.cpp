@@ -129,12 +129,18 @@ int rhi_main()
 	window_desc.m_name = "renderer";
 	platform::window* window = platform::window::create(window_desc.set_name("influx_rhi"));
 
+	// creating the device
 	rhi::device_create_args dev_args{};
 	dev_args.m_debug = true;
 	rhi::device dev				= rhi::create_device(dev_args).get();
+	
+	// getting the queue
 	rhi::queue queue			= dev.create(rhi::queue::default_graphics()).get();
+	
+	// getting the commandlist
 	rhi::commandlist cmdlist	= dev.create(rhi::commandlist::default_graphics()).get();
 
+	// getting the swapchain
 	rhi::swapchain_create_args swapchain_args{};
 	{
 		swapchain_args.m_platform_instance	= platform::platform::get_current_instance();
@@ -144,6 +150,29 @@ int rhi_main()
 		swapchain_args.m_format				= rhi::pixelformat::rgba_8_unorm();
 	}
 	rhi::swapchain swapchain = dev.create(swapchain_args).get();
+
+	// creating resources
+	rhi::buffer buffer;
+	rhi::texture texture;
+	{
+		rhi::buffer_create_args buff_args{};
+		buff_args.m_bindflags;
+		buff_args.m_bytesize = 4096u;
+		buff_args.m_bytestride = sizeof(float);
+		buff_args.m_heap;
+		buff_args.m_init_state;
+		buffer = dev.create(buff_args).get();
+
+		rhi::texture_create_args tex_args 
+			= rhi::texture_create_args::tex2D(window_desc.m_dimensions);
+		texture = dev.create(tex_args).get();
+	}
+	
+	rhi::renderpass_args renderpass{};
+	{
+		renderpass.color(texture);
+		renderpass.depth(texture);
+	}
 
 	bool is_quit = false;
 	while (!is_quit)
@@ -155,7 +184,12 @@ int rhi_main()
 
 		cmdlist.start(dev);
 		rhi::texture& backbuffer = swapchain.get_backbuffer_resource().get();
-		cmdlist.clear_texture(dev, backbuffer, rhi::clear::colour({1,0,0,1}));
+		cmdlist.clear_texture(dev, backbuffer, rhi::clear::colour({1,0,0,1})).get();
+		cmdlist.renderpass_begin(dev, renderpass).get();
+		{
+
+		}
+		cmdlist.renderpass_end().get();
 		cmdlist.end();
 		cmdlist.submit(queue);
 
