@@ -45,7 +45,6 @@ namespace influx::rendergraph
 	texture_desc rendergraph::translate_texture_desc(const rhi_resource& resource)
 	{
 		texture_desc desc{};
-#if !INFLUX_RG_BACKEND_D3D12
 		desc.m_array_size = resource.get_arraysize();
 		desc.m_bindflags = {};
 		desc.m_depth = resource.get_depth();
@@ -55,16 +54,13 @@ namespace influx::rendergraph
 		desc.m_num_mips = 1u;
 		desc.m_sample_count = 1u;
 		desc.m_allow_uav = resource.allows_uav();
-#endif
 		return desc;
 	}
 	buffer_desc rendergraph::translate_buffer_desc(const rhi_resource& resource)
 	{
 		buffer_desc desc{};
-#if !INFLUX_RG_BACKEND_D3D12
 		desc.m_bytesize = resource.get_bytesize();
 		desc.m_bytestride = resource.get_bytestride();
-#endif
 		return desc;
 	}
 #pragma endregion

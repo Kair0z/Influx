@@ -17,7 +17,6 @@ namespace influx::rendergraph
 	{
 		enum class e_descheap_slot
 		{
-			// internal slots
 			rtv,
 			dsv,
 			rsc,
@@ -25,7 +24,6 @@ namespace influx::rendergraph
 			rsc_gpu,
 			samp_gpu,
 			
-			// external slots
 			rtv_ext,
 			dsv_ext,
 			samp_ext,
@@ -34,8 +32,7 @@ namespace influx::rendergraph
 			num
 		};
 		static constexpr uint32 k_num_descheaps = static_cast<uint32>(e_descheap_slot::num);
-		static constexpr uint32 k_num_external_descheap_slots = 4u;
-		static constexpr uint32 k_num_internal_descheaps = k_num_descheaps - k_num_external_descheap_slots;
+		static constexpr uint32 k_num_internal_descheaps = k_num_descheaps - 4u;
 
 		friend class rgpass_context;
 		friend class rendergraph;
@@ -60,9 +57,13 @@ namespace influx::rendergraph
 		vector<pooled_buffer>	m_buffer_pool;
 		global_config			m_config;
 
+#if !INFLUX_RG_BACKEND_GRAPHICS
 		rhi_descheap	m_int_descheaps[k_num_internal_descheaps];
 		rhi_descheap*	m_ext_descheaps[k_num_ext_descheap_slots]{};
-
+#else
+		rhi_descheap*	m_int_descheaps[k_num_internal_descheaps];
+		rhi_descheap**  m_ext_descheaps[k_num_ext_descheap_slots]{};
+#endif
 		// all allocated descriptors
 		using descriptor_list = list<rhi_descriptor>;
 		descriptor_list m_allocated_descriptors[k_num_descheaps];
@@ -77,7 +78,14 @@ namespace influx::rendergraph
 		void free_all_gpu_descriptors();
 		void cleanup(rhi_device& device);
 
+		// descriptors
+#if INFLUX_RG_BACKEND_GRAPHICS
+		rhi_descheap*& get_descheap(e_descheap_slot slot, bool ignore_ext = false);
+		rhi_descheap* get_gpu_descheap(e_gpu_descheap slot);
+#else
 		rhi_descheap& get_descheap(e_descheap_slot slot, bool ignore_ext = false);
+#endif
+
 		result<rhi_descriptor> alloc_cpu_descriptor(rgdescriptor_type type);
 		result<rhi_descriptor> alloc_gpu_srv();
 		result<rhi_descriptor> alloc_gpu_sampler();

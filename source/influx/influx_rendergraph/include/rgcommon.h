@@ -6,7 +6,6 @@
 #include "core/string.h"
 #include "core/math/colour.h"
 #include "core/result.h"
-#include "core/enum.h"
 
 #if INFLUX_DEBUG
 #define RGNAME(name) influx::rendergraph::rgname(#name, influx::crc64(#name)) 
@@ -18,8 +17,8 @@
 
 // influx::graphics
 #define INFLUX_RG_BACKEND_RHI		0
-#define INFLUX_RG_BACKEND_GRAPHICS  0
-#define INFLUX_RG_BACKEND_D3D12		1
+#define INFLUX_RG_BACKEND_GRAPHICS  1
+#define INFLUX_RG_BACKEND_D3D12		0
 
 // influx::graphics
 #if INFLUX_RG_BACKEND_RHI
@@ -80,45 +79,16 @@ using rhi_device		= ID3D12Device*;
 using rhi_commandlist	= ID3D12GraphicsCommandList*;
 using rhi_resource		= ID3D12Resource*;
 using rhi_descheap		= ID3D12DescriptorHeap*;
-using rhi_descriptor	= influx::uint64;
-enum class rhi_descheap_type { rtv, dsv, rsc, sampler, num };
-static constexpr influx::uint32 k_num_descheap_types = static_cast<influx::uint32>(rhi_descheap_type::num);
-struct rhi_bufferdesc
-{
-
-};
-struct rhi_texture2Ddesc
-{
-};
-enum class rhi_pixelformat
-{
-
-};
-enum class rhi_resource_state
-{
-	common
-};
-enum class rhi_resource_bindflags
-{
-	uav,
-	all_uav
-};
-enum class rhi_store_op
-{
-	resolve,
-	discard,
-	preserve,
-	no_access,
-	count
-};
-enum class rhi_load_op
-{
-	clear,
-	discard,
-	preserve,
-	no_access,
-	count
-};
+using rhi_descriptor	= uint64;
+enum class rhi_descheap_type { rtv, dsv, uav, rsc, num };
+using rhi_bufferdesc	= rhi::buffer_create_args;
+using rhi_texture2Ddesc = rhi::texture2D_create_args;
+using rhi_pixelformat	= rhi::pixelformat;
+using rhi_resource_state = rhi::e_resource_state;
+using rhi_resource_bindflags = rhi::e_resource_bindflags;
+using rhi_store_op		= rhi::e_store_op;
+using rhi_load_op		= rhi::e_load_op;
+static constexpr uint32 k_num_descheap_types = static_cast<uint32>(rhi_descheap_type::num);
 #endif
 
 namespace influx::rendergraph
@@ -584,7 +554,7 @@ namespace influx::rendergraph
 
 // -- enum bit operators
 ENABLE_ENUM_BIT_OPERATORS(influx::rendergraph::e_rgpass_flags);
-#if INFLUX_RG_BACKEND_D3D12
+
 // -- hashes
 namespace std
 {
