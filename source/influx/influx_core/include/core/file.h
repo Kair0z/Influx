@@ -411,6 +411,13 @@ namespace influx
 
 		inline static result<> overwrite(const str_type& path, const string& new_content)
 		{
+			if (exists(path) == false)
+			{
+				auto created = create_file(path);
+				if (!created)
+					return result<>::make_error("failed creating new file!");
+			}
+			
 			if (!clear_content(path))
 				return result<>::make_error("failed clearing file at path!");
 			if (!push_line(path, new_content))
@@ -425,6 +432,7 @@ namespace influx
 			{
 				std::ofstream file(path, std::ios::trunc); // Open in truncation mode
 				file.close(); // Closing the file ensures changes are save
+				return {};
 			}
 
 			return result<>::make_error("path does not exist!");

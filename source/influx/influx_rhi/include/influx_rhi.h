@@ -1251,7 +1251,8 @@ namespace influx::rhi
 	};
 	struct pipeline_data final
 	{
-
+		native_rootsignature	m_rootsignature;
+		object_native			m_vulkan_renderpass;
 	};
 	struct rootsignature_data final
 	{
@@ -1567,7 +1568,7 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> start(device& device);
 		INFLUX_RHI_API result<> start(native_commandpool pool);
 		INFLUX_RHI_API result<> submit(queue& queue);
-		INFLUX_RHI_API result<> renderpass_begin(device& device, const renderpass_args& args);
+		INFLUX_RHI_API result<> renderpass_begin(device& device, pipeline& pipeline, const renderpass_args& args);
 		INFLUX_RHI_API result<> renderpass_end();
 		INFLUX_RHI_API result<> draw(const draw_args& args);
 		INFLUX_RHI_API result<> draw_indexed(const draw_indexed_args& args);
@@ -1617,7 +1618,21 @@ namespace influx::rhi
 
 	class pipeline final : public object<e_object::pipeline>
 	{
+	public:
+		inline uint32 get_num_colour_targets() const
+		{ return m_create_args.m_graphics.m_output_merger.get_num_enabled_rendertargets(); }
 
+		inline uint32 is_depth_target_enabled() const
+		{ return m_create_args.m_graphics.m_output_merger.m_depthtarget.m_depth_enable; }
+
+		e_pipeline_type get_type() const
+		{ return m_create_args.m_type; }
+
+		const rasterizer& get_rasterizer() const
+		{ return m_create_args.m_graphics.m_rasterizer; }
+
+		const output_merger& get_output_merger() const
+		{ return m_create_args.m_graphics.m_output_merger; }
 	};
 	
 	class rootsignature final : public object<e_object::rootsignature>

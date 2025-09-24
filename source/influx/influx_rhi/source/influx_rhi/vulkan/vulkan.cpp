@@ -1260,7 +1260,8 @@ namespace influx::rhi
 		
 		if (out_data)
 		{
-
+			out_data->m_rootsignature = vklayout;
+			out_data->m_vulkan_renderpass = renderpass;
 		}
 		return vkpipeline;
 	}
@@ -1546,12 +1547,63 @@ namespace influx::rhi
 		vkCmdDispatch(m_native_object, group_nums.x, group_nums.y, group_nums.z);
 		return {};
 	}
-	result<> commandlist::renderpass_begin(device& device, const renderpass_args& args)
+
+	inline result<bool> are_pipeline_renderpass_compatible(const pipeline& pipeline, const renderpass_args& args)
+	{
+		using result_type = result<bool>;
+
+		const bool is_graphics = pipeline.m_create_args.m_type == e_pipeline_type::graphics;
+		if (!is_graphics)
+			return result_type::make_error("not compatible: pipeline is not graphics!");
+
+		const uint32 num_pipeline_colour_targets = pipeline.get_num_colour_targets();
+		const bool num_colourtargets_match = num_pipeline_colour_targets == args.m_color_attachments.size();
+		if (!num_colourtargets_match)
+			return result_type::make_error("not compatible: pipeline has different colour targets!");
+
+		const bool pipeline_has_depth = pipeline.is_depth_target_enabled();
+		const bool depthtargets_match = pipeline_has_depth == args.m_depth_attachment.m_is_enabled;
+		if (!num_colourtargets_match)
+			return result_type::make_error("not compatible: pipeline has different depth targets!");
+
+		const output_merger& output_merger = pipeline.get_output_merger();
+		uint32 j = 0u;
+		for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+		{
+			const auto& current = output_merger.m_rendertargets[i];
+			if (current.m_enabled)
+			{
+				if (current.m_format != args.m_color_attachments[j].m_format)
+					return result_type::make_error("not compatible: pipeline has different colour target formats!");
+				++j;
+			}
+		}
+		
+		if (pipeline_has_depth)
+		{
+			if (output_merger.m_depthtarget.m_format != args.m_depth_attachment.m_format)
+				return result_type::make_error("not compatible: pipeline has different depth target formats!");
+		}
+
+		return true;
+	}
+
+	result<> commandlist::renderpass_begin(device& device, pipeline& pipeline, const renderpass_args& args)
 	{
 		using result_type = result<>;
 
 		if (!device.is_valid())
 			return result_type::make_error("device is not valid!");
+
+		if (!pipeline.is_valid())
+			return result_type::make_error("pipeline is not valid!");
+
+		auto pipeline_compatible = are_pipeline_renderpass_compatible(pipeline, args);
+		if (!pipeline_compatible)
+			return result_type::make_error("pipeline is not compatible with renderpass args");
+
+		// this better work..
+		VkRenderPass vkrenderpass = (VkRenderPass)pipeline.m_data.m_vulkan_renderpass;
 
 		// translate the attachments
 		const bool has_depth = args.m_depth_attachment.m_is_enabled;
@@ -1565,53 +1617,7 @@ namespace influx::rhi
 		}
 		if (has_depth) attachments.push_back(translate(args.m_depth_attachment));
 
-		// make 1 subpass
-		vector<VkSubpassDescription> subpasses{};
-		vector<VkAttachmentReference> color_refs{};
-		VkAttachmentReference depth_ref = {};
-		{
-			VkSubpassDescription subpass{};
-			// translate the attachment references
-			color_refs.resize(num_colour_attachments);
-			for (uint32 i = 0u; i < num_colour_attachments; ++i)
-			{
-				color_refs[i].attachment = i;
-				color_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			}
-			depth_ref.attachment = num_colour_attachments;
-			depth_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-			subpass.colorAttachmentCount = 1;
-			subpass.pColorAttachments = color_refs.data();
-			subpass.pDepthStencilAttachment = has_depth ? &depth_ref : nullptr;
-			subpasses.push_back(subpass);
-		}
-
-		// no dependencies (1 subpass)
-		vector<VkSubpassDependency> dependencies{};
-		{
-
-		}
-
-		// make the renderpass
-		VkRenderPass renderpass;
-		{
-			VkRenderPassCreateInfo info{};
-			info.attachmentCount = num_attachments;
-			info.dependencyCount = static_cast<uint32>(dependencies.size());
-			info.flags = translate(args.m_flags);
-			info.pAttachments = attachments.data();
-			info.pDependencies = dependencies.data();
-			info.pSubpasses = subpasses.data();
-			info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			info.subpassCount = static_cast<uint32>(subpasses.size());
-			auto vkres = vkCreateRenderPass(device.m_native_object, &info, nullptr, &renderpass);
-			if (vkres != VK_SUCCESS)
-				return result_type::make_error("vkCreateRenderPass failed!");
-		}
-
-		// make the framebuffer
+		// create the framebuffer
 		VkFramebuffer framebuffer;
 		{
 			vector<VkImageView> attachment_views{}; attachment_views.reserve(num_attachments);
@@ -1630,13 +1636,12 @@ namespace influx::rhi
 			info.height = args.m_height;
 			info.layers = 1u;
 			info.pAttachments = attachment_views.data();
-			info.renderPass = renderpass;
+			info.renderPass = vkrenderpass;
 			auto vkres = vkCreateFramebuffer(device.m_native_object, &info, nullptr, &framebuffer);
 			if (vkres != VK_SUCCESS)
 				return result_type::make_error("vkCreateFramebuffer failed!");
 		}
 
-		// begin the renderpass
 		vector<VkClearValue> clear_values{};
 
 		VkSubpassContents subpass_contents = VK_SUBPASS_CONTENTS_INLINE;
@@ -1646,7 +1651,7 @@ namespace influx::rhi
 		info.pClearValues = clear_values.data();
 		info.clearValueCount = static_cast<uint32>(clear_values.size());
 		info.renderArea.extent = { args.m_width, args.m_height };
-		info.renderPass = renderpass;
+		info.renderPass = vkrenderpass;
 		vkCmdBeginRenderPass(m_native_object, &info, subpass_contents);
 
 		return{};

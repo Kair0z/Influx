@@ -14,6 +14,7 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
 #include <iostream>
 #include "core/basetypes.h"
+#include "core/file.h"
 #include "influx_platform/window.h"
 #include "influx_shader.h"
 using namespace influx;
@@ -219,7 +220,7 @@ int rhi_main()
 	// create the pipeline
 	rhi::graphics_shaderslots pipeline_shaders{};
 	{
-		const string folder = "D:/Git/Influx/source/test/test_graphics/shaders/";
+		const string folder = "E:/Git/Influx/source/test/test_graphics/shaders/";
 		const shader::e_shader_target target = shader::e_shader_target::_6_5;
 		const shader::e_shader_platform platform = shader::e_shader_platform::SPIRV;
 		
@@ -230,7 +231,6 @@ int rhi_main()
 			.set_reflection_enabled(true)
 			.set_target(target)
 			.set_platform(platform);
-
 		{
 			string filepath = folder + "main_vs.hlsl";
 
@@ -243,10 +243,16 @@ int rhi_main()
 			auto compile = shader::compile_shader_in_file(filepath, signature, args);
 			pipeline_shaders.set(rhi::e_graphics_shader_slots::vs, compile.get().m_bytecode);
 			pipeline_shaders.set(rhi::e_graphics_shader_slots::vs, { "main_vs" });
+
+			string bytecode;
+			for (const auto& byte : compile.get().m_bytecode)
+			{
+				bytecode.append({ static_cast<char>(byte) });
+			}
+			path::overwrite(to_wstring(folder + "debug.spv"), bytecode);
 		}
 		{
 			string filepath = folder + "main_ps.hlsl";
-
 			shader::shader_signature signature;
 			signature.m_entrypoint = "main_ps";
 			signature.m_filename = "main_ps";
@@ -282,7 +288,7 @@ int rhi_main()
 		cmdlist.start(dev);
 		rhi::texture& backbuffer = swapchain.get_backbuffer_resource().get();
 		cmdlist.clear_texture(dev, backbuffer, rhi::clear::colour({1,0,0,1})).get();
-		cmdlist.renderpass_begin(dev, renderpass).get();
+		cmdlist.renderpass_begin(dev, pipeline, renderpass).get();
 		{
 			
 		}
