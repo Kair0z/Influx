@@ -1071,6 +1071,7 @@ namespace influx::rhi
 		vector<VkShaderModule> vkmodules{};
 		{
 			VkShaderModuleCreateInfo info = {};
+			VkPipelineShaderStageCreateInfo stageInfo{};
 			info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 			for (uint32 i = 0u; i < shaders.count; ++i)
 			{
@@ -1083,7 +1084,7 @@ namespace influx::rhi
 					const auto& shaderinfo = shaders.get_info(i);
 					info.codeSize = static_cast<uint32>(shader.size());
 					info.pCode = (uint32*)shader.data();
-
+					info.flags;
 					vkmodules.push_back({});
 					VkShaderModule& current_module = vkmodules.back();
 					auto vkres = vkCreateShaderModule(device, &info, nullptr, &current_module);
@@ -1091,7 +1092,6 @@ namespace influx::rhi
 						return result_type::make_error("vkCreateShaderModule failed!");
 
 					// Set up shader stage info
-					VkPipelineShaderStageCreateInfo stageInfo = {};
 					stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 					stageInfo.stage = translate(shaderslot);
 					stageInfo.module = current_module;

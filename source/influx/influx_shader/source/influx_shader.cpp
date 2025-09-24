@@ -279,7 +279,10 @@ namespace influx::shader
 		if (args.m_platform == e_shader_platform::SPIRV)
 		{
 			result.push_back(" -spirv ");
-			// result.push_back(" -fspv-target-env=vulkan1.2 ");
+			result.push_back(" -fspv-target-env=vulkan1.3 ");
+			// result.push_back(" -fspv-preserve-bindings ");
+			// result.push_back(" -fspv-preserve-interface ");
+			// result.push_back(" -fspv-debug=file ");
 		}
 
 		// defines (-D)
@@ -293,7 +296,7 @@ namespace influx::shader
 		// misc
 		const bool compile_debug = args.m_debug_level == shader::e_compile_debug_level::debug;
 		const bool row_major = true;
-		//result								.push_back("dxc -help | findstr Version");
+		result								.push_back("dxc -help | findstr Version");
 		result								.push_back(row_major ? "-Zpr" : "Zpc");
 		if (!args.m_pbd_enabled) result				.push_back("-Qstrip_debug");
 		if (!args.m_reflection_enabled) result		.push_back("-Qstrip_reflect");
