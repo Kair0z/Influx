@@ -25,7 +25,6 @@ static inline IDxcUtils* get_utils()
 
 namespace influx::shader
 {
-
 	class influx_include_handler : public IDxcIncludeHandler
 	{
 	public:
@@ -276,6 +275,13 @@ namespace influx::shader
 		result.push_back( include_folder.c_str());
 		result.push_back( " ");
 
+		// SPIRV
+		if (args.m_platform == e_shader_platform::SPIRV)
+		{
+			result.push_back(" -spirv ");
+			// result.push_back(" -fspv-target-env=vulkan1.2 ");
+		}
+
 		// defines (-D)
 		for (const string& define : args.m_defines)
 		{
@@ -287,7 +293,7 @@ namespace influx::shader
 		// misc
 		const bool compile_debug = args.m_debug_level == shader::e_compile_debug_level::debug;
 		const bool row_major = true;
-		result								.push_back("dxc -help | findstr Version");
+		//result								.push_back("dxc -help | findstr Version");
 		result								.push_back(row_major ? "-Zpr" : "Zpc");
 		if (!args.m_pbd_enabled) result				.push_back("-Qstrip_debug");
 		if (!args.m_reflection_enabled) result		.push_back("-Qstrip_reflect");
@@ -398,20 +404,43 @@ namespace influx::shader
 			return result_type::make_error("error: Compile failed");
 		}
 
-		// compile errors
+		// handle compile errors / warnings
 		{
 			string errors = get_compile_errors(*pCompileResult);
-			if (errors.empty() == false)
+			std::istringstream stream(errors);
+			string line;
+
+			// parse the whole log
+			bool has_true_error = false;
+			bool has_warning = false;
+			while (std::getline(stream, line))
 			{
-				result.get().m_log.push_back(errors);
-				printf(errors.c_str()); printf("\n");
+				const bool is_empty = line.empty();
+				if (is_empty) continue;
+
+				const bool is_warning = str::contains(line, "warning", false);
+				const bool is_error = str::contains(line, "error", false);
+
+				has_warning |= is_warning;
+				has_true_error |= is_error;
+
+				result.get().m_log.push_back(line);
+				printf(line.c_str()); printf("\n");
+			}
+
+			if (has_true_error)
+			{
 				result.get().m_success = false;
-				result.get_unex() = "error: compile failed!";
-				return result;
+				result.get_unex() = "";
+				return result_type::make_error("error: compile result contains errors!");
+			}
+			else if (has_warning)
+			{
+				result = result_type::make_warning({}, "compile warnings (see log)!");
 			}
 		}
 
-		// shader bytecode
+		// [OUTPUT: SHADER BYTECODE]
 		{
 			auto res = get_compile_bytecode(*pCompileResult);
 			if (res.is_success())

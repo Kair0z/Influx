@@ -30,6 +30,7 @@ namespace influx::shader
 	{
 	public:
 		e_shader_target			m_target;
+		e_shader_platform		m_platform;
 		vector<string>			m_defines;
 		vector<string>			m_add_args{};
 		string					m_pdb_folder;
@@ -48,6 +49,9 @@ namespace influx::shader
 		
 		inline compile_args& set_target(e_shader_target target) 
 		{ m_target = target; return *this; }
+
+		inline compile_args& set_platform(e_shader_platform platform) 
+		{ m_platform = platform; return *this; }
 
 		inline compile_args& set_pdb_folder(const string& folder)
 		{ m_pdb_folder = folder; return *this; }

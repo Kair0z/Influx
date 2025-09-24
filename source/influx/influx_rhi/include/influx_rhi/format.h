@@ -311,10 +311,19 @@ namespace influx::rhi
 			using namespace format;
 			return { e_format::unorm,{_r,_8},{_g,_8},{_b,_8},{_a,_8}};
 		}
-		static pixelformat d32()
+		static pixelformat d32() // depth 32b
 		{
+			// DXGI_FORMAT_D32_FLOAT
+			// VK_FORMAT_D32_SFLOAT
 			using namespace format;
-			return { e_format::ufloat, {_d,_32} };
+			return { e_format::sfloat, {_d,_32} };
+		}
+		static pixelformat d24s8() // depth 24b - stencil 8b
+		{
+			// DXGI_FORMAT_D24_UNORM_S8_UINT
+			// VK_FORMAT_D24_UNORM_S8_UINT
+			using namespace format;
+			return { e_format::unorm, {_d,_24}, {_s,_8,uint} };
 		}
 	};
 

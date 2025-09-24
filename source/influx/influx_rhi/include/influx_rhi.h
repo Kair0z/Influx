@@ -39,6 +39,9 @@ struct ID3D12Resource;
 struct ID3D12Resource;
 struct ID3D12PipelineState;
 struct ID3D12PipelineState;
+struct IDXGISwapChain;
+struct ID3D12RootSignature;
+struct ID3D12PipelineState;
 #elif INFLUX_RHI_VULKAN
 typedef struct VkInstance_T* VkInstance;
 typedef struct VkPhysicalDevice_T* VkPhysicalDevice;
@@ -55,6 +58,7 @@ typedef struct VkImage_T* VkImage;
 typedef struct VkBuffer_T* VkBuffer;
 typedef struct VkPipeline_T* VkPipeline;
 typedef struct VkPipelineLayout_T* VkPipelineLayout;
+typedef struct VkDeviceMemory_T* VkDeviceMemory;
 #endif
 
 namespace influx::rhi
@@ -89,7 +93,11 @@ namespace influx::rhi
 	using native_compute_pipeline		= ID3D12PipelineState*;
 	using native_gfx_pipeline			= ID3D12PipelineState*;
 	using native_raytracing_pipeline	= object_native;
-	using descriptor					= uint64;
+	using native_swapchain				= IDXGISwapChain*;
+	using native_descriptor				= uint64;
+	using native_pipeline				= ID3D12PipelineState*;
+	using native_rootsignature			= ID3D12RootSignature*;
+	using native_gpu_address			= uint64;
 #elif INFLUX_RHI_VULKAN
 	using native_instance				= VkInstance;
 	using native_physdevice				= VkPhysicalDevice;
@@ -106,6 +114,8 @@ namespace influx::rhi
 	using native_buffer					= VkBuffer;
 	using native_pipeline				= VkPipeline;
 	using native_rootsignature			= VkPipelineLayout;
+	using native_descriptor				= uint64;
+	using native_gpu_address			= VkDeviceMemory;
 #else
 	using native_instance			= object_native;	// IDXGIFactory
 	using native_physdevice			= object_native;	// IDXGIAdapter1
@@ -121,7 +131,8 @@ namespace influx::rhi
 	using native_compute_pipeline	= object_native;	// ID3D12PipelineState
 	using native_gfx_pipeline		= object_native;
 	using native_raytracing_pipeline = object_native;
-	using descriptor				= uint64;
+	using native_descriptor			= uint64;
+	using native_gpu_address		= object_native;
 #endif
 
 	// =============================================
@@ -253,7 +264,13 @@ namespace influx::rhi
 		rtv,
 		dsv,
 		srv,
-		uav
+		uav,
+		copysrc,
+		copydst,
+		vertexbuffer,
+		constbuffer,
+		indexbuffer,
+		indirectbuffer,
 	};
 	enum class e_load_op : uint8
 	{
@@ -385,8 +402,8 @@ namespace influx::rhi
 	};
 	struct descriptor final
 	{
-		uint64			m_cpu_address;
-		uint64			m_gpu_address;
+		native_descriptor m_cpu_address;
+		native_descriptor m_gpu_address;
 		object_native	m_native_view;
 	};
 	enum e_renderpass_flags : uint32
@@ -465,6 +482,43 @@ namespace influx::rhi
 		native_device m_device;
 		native_queue m_present_queue;
 	};
+	struct viewport final
+	{
+
+	};
+	struct xrect final
+	{
+
+	};
+	struct map_args final
+	{
+		static map_args full_range()
+		{
+			map_args args{};
+			args.m_offset = 0u;
+			args.m_bytesize = (uint32)-1;
+			return args;
+		}
+		uint32 m_offset;
+		uint32 m_bytesize;
+	};
+	enum class e_memoryheap_flags : uint8
+	{
+		none = 0,
+		cpu_visible = 1
+	};
+	struct memoryheap_desc final
+	{
+		// D3D12_HEAP_PROPERTIES
+		// VK_MEMORY_PROPERTY
+		e_memoryheap_flags m_flags = e_memoryheap_flags::none;
+		static memoryheap_desc shared()
+		{
+			memoryheap_desc res;
+			res.m_flags = e_memoryheap_flags::cpu_visible;
+			return res;
+		}
+	};
 	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
 	static constexpr uint32 k_max_num_rendertargets_per_draw = 8u;
 
@@ -507,16 +561,20 @@ namespace influx::rhi
 	// [shaders]
 #pragma region shaders
 	using shadercode = vector<byte>;
+	struct shaderinfo final
+	{
+		string m_name;
+	};
 
 	enum class e_graphics_shader_slots : uint8
 	{
-		as,	// amp
-		ms,	// mesh
 		vs,	// vertex
 		ps, // pixel
 		ds, // domain
 		gs,	// geometry
 		hs, // hull
+		as,	// amp
+		ms,	// mesh
 		num
 	};
 	// useful flag-based config presets that outline the valid shader combinations
@@ -588,12 +646,13 @@ namespace influx::rhi
 			{
 				switch (type)
 				{
-				case e_graphics_shader_slots::ms: return false;
+				case e_graphics_shader_slots::ms: return true;
 				case e_graphics_shader_slots::vs: return false;
 				case e_graphics_shader_slots::ps: return true;
 				case e_graphics_shader_slots::ds: return true;
 				case e_graphics_shader_slots::gs: return true;
 				case e_graphics_shader_slots::hs: return true;
+				case e_graphics_shader_slots::as: return true;
 				default: return false;
 				}
 			}
@@ -622,6 +681,11 @@ namespace influx::rhi
 		static constexpr bool is_optional(uint8 index)
 		{
 			return is_optional(static_cast<enum_type>(index));
+		}
+
+		static constexpr enum_type get_type_at_index(uint8 index)
+		{
+			return static_cast<enum_type>(index);
 		}
 
 		inline void set(shader::e_shader_type type, const shadercode& shader_bytecode)
@@ -664,6 +728,11 @@ namespace influx::rhi
 			m_shaders[static_cast<uint8>(slot)] = shader_bytecode;
 		}
 
+		inline void set(enum_type slot, const shaderinfo& shader_info)
+		{
+			m_shaderinfos[static_cast<uint8>(slot)] = shader_info;
+		}
+
 		inline const shadercode& get(enum_type slot) const
 		{
 			return m_shaders[static_cast<uint8>(slot)];
@@ -673,12 +742,22 @@ namespace influx::rhi
 		{
 			return m_shaders[idx];
 		}
+		inline const shaderinfo& get_info(uint8 index) const
+		{
+			return m_shaderinfos[index];
+		}
+
+		inline bool is_set(uint8 index) const
+		{
+			return m_shaders[index].size() > 0u;
+		}
 
 		static constexpr uint8 count = static_cast<uint8>(enum_type::num);
 		static constexpr uint8 num = count;
 
 	private:
 		shadercode m_shaders[count]{};
+		shaderinfo m_shaderinfos[count]{};
 	};
 	
 	using graphics_shaderslots		= shader_slots<e_pipeline_type::graphics>;
@@ -733,6 +812,15 @@ namespace influx::rhi
 			e_comparison_func	m_depth_func = e_comparison_func::less;
 			pixelformat			m_format = pixelformat::d32();
 		};
+
+		uint32 get_num_enabled_rendertargets() const
+		{
+			uint32 num = 0u;
+			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+				if (m_rendertargets[i].m_enabled) ++num;
+			return num;
+		}
+
 		per_rendertarget m_rendertargets[k_max_num_rendertargets_per_draw]{};
 		per_depthtarget m_depthtarget{};
 	};
@@ -775,6 +863,9 @@ namespace influx::rhi
 		output_merger				m_output_merger{};
 		rasterizer					m_rasterizer{};
 		bool						m_blend_alpha_to_coverage_enabled = false;
+
+		viewport					m_default_viewport;
+		xrect						m_default_xrect;
 
 		e_graphics_shader_pipeline m_shaderpipeline = e_graphics_shader_pipeline::vs;
 
@@ -951,14 +1042,13 @@ namespace influx::rhi
 	};
 	struct buffer_create_args final
 	{
-		native_physdevice	m_physdevice;
-		native_device		m_device;
-		uint64				m_bytesize;
-		uint64				m_bytestride;
-		e_resource_bindflags m_bindflags;
-		e_resource_state	m_init_state;
-
-		optional<native_memoryheap> m_heap;
+		native_physdevice		m_physdevice;
+		native_device			m_device;
+		uint64					m_bytesize;
+		uint64					m_bytestride;
+		e_resource_bindflags	m_bindflags;
+		e_resource_state		m_init_state;
+		memoryheap_desc			m_memoryheap;
 	};
 	struct texture_create_args final
 	{
@@ -972,9 +1062,10 @@ namespace influx::rhi
 		e_resource_bindflags		m_bindflags;
 		e_resource_state			m_init_state;
 		e_texture_type				m_type;
-
+		memoryheap_desc				m_memoryheap;
+		
 		optional<const char*>		m_name;
-		optional<native_memoryheap> m_heap;
+		bool						m_create_view = true;
 
 		static texture_create_args tex1D(const uint32 num_pixels)
 		{
@@ -1007,6 +1098,20 @@ namespace influx::rhi
 			args.m_arraysize = 6u;
 			return args;
 		}
+		static texture_create_args tex2D_depth(const math::uint2& dimensions)
+		{
+			texture_create_args args = tex2D(dimensions);
+			args.mod_format(pixelformat::d32())
+				.mod_bindflags(e_resource_bindflags::dsv);
+			return args;
+		}
+		static texture_create_args tex2D_depthstencil(const math::uint2& dimensions)
+		{
+			texture_create_args args = tex2D(dimensions);
+			args.mod_format(pixelformat::d24s8())
+				.mod_bindflags(e_resource_bindflags::dsv);
+			return args;
+		}
 
 		texture_create_args& mod_device(native_device dev)
 		{ m_device = dev; return *this; }
@@ -1037,9 +1142,10 @@ namespace influx::rhi
 		e_pipeline_type								m_type{};
 		graphics_pipeline_desc						m_graphics{};
 		raytracing_pipeline_desc					m_raytracing{};
-		shader_slots<e_pipeline_type::graphics>		m_graphics_shaders{};
-		shader_slots<e_pipeline_type::compute>		m_compute_shaders{};
-		shader_slots<e_pipeline_type::raytracing>	m_raytracing_shaders{};
+
+		graphics_shaderslots m_graphics_shaders;
+		compute_shaderslots m_compute_shaders;
+		raytracing_shaderslots m_raytracing_shaders;
 
 		inline bool is_valid() const;
 	};
@@ -1130,12 +1236,14 @@ namespace influx::rhi
 		uint64				m_bytesize;
 		uint64				m_bytestride;
 		descriptor			m_buffer_view;
+		native_gpu_address	m_gpu_memory_address = {};
 	};
 	struct texture_data final
 	{
 		e_resource_state	m_previous_state;
 		e_resource_state	m_current_state;
 		descriptor			m_texture_view;
+		native_gpu_address	m_gpu_memory_address = {};
 	};
 	struct memheap_data final
 	{
@@ -1223,6 +1331,45 @@ namespace influx::rhi
 		using data_type = buffer_data;
 		using create_args = buffer_create_args;
 
+		INFLUX_RHI_API result<void*> map_begin(const map_args& args = map_args::full_range());
+		INFLUX_RHI_API result<> map_end();
+
+		template <typename _t, typename _func>
+		inline result<> map(_func&& func, const map_args& args = map_args::full_range())
+		{
+			using result_type = result<>;
+			auto map_res = map_begin(args);
+			if (!map_res) 
+				return result_type::make_error("map_begin() failed!");
+			
+			func(reinterpret_cast<_t*>(map_res.get()));
+
+			auto map_exit = map_end();
+			if (!map_exit)
+				return result_type::make_error("map_end() failed!");
+			return {};
+		}
+
+		// uses map() to write the base of the address range (index:0) as _t
+		// useful for if your buffer is a single struct (_t)
+		template <typename _t>
+		inline result<> write_data(const _t& data)
+		{
+			return map<_t>([&data](_t* target) { (*target) = data; });
+		}
+
+		template <typename _t>
+		inline result<> write_datas(const vector<_t>& datas)
+		{
+			return map<_t>([&datas](_t* target)
+			{
+				for (uint32 i = 0u; i < datas.size(); ++i)
+				{
+					target[i] = datas[i];
+				}
+			});
+		}
+
 		inline static constexpr e_resource_type get_resource_type() 
 		{ return e_resource_type::buffer; };
 
@@ -1259,10 +1406,11 @@ namespace influx::rhi
 		using create_args = texture_create_args;
 
 		INFLUX_RHI_API result<> transition(commandlist& cmdlist, e_resource_state new_state);
-		INFLUX_RHI_API result<pixelformat const*> get_current_format() const;
 		INFLUX_RHI_API result<uint64> calculate_bytesize() const;
 		INFLUX_RHI_API result<uint64> calculate_bytestride() const;
 		INFLUX_RHI_API result<> set_name(const char* name);
+		INFLUX_RHI_API result<void*> map_begin(const map_args& args);
+		INFLUX_RHI_API result<> map_end();
 
 		inline uint32 get_arraysize() const
 		{ return m_create_args.m_arraysize; }
@@ -1351,7 +1499,7 @@ namespace influx::rhi
 
 		INFLUX_RHI_API result<> submit(vector<commandlist*> commandlists) const;
 		INFLUX_RHI_API result<> queue_signal(const fence& fence, uint64 signal_value) const;
-		INFLUX_RHI_API result<> queue_signal(object_native fence, uint64 signal_value) const;
+		INFLUX_RHI_API result<> queue_signal(native_fence fence, uint64 signal_value) const;
 	};
 
 	class swapchain final : public object<e_object::swapchain>
@@ -1425,13 +1573,16 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> draw_indexed(const draw_indexed_args& args);
 		INFLUX_RHI_API result<> dispatch(const math::uint3& group_nums);
 		INFLUX_RHI_API result<> clear_texture(device& device, const texture& texture, const clear& clear);
-		INFLUX_RHI_API result<> bind_vertexbuffer(const resource& vertexbuffer);
-		INFLUX_RHI_API result<> bind_indexbuffer(const resource& indexbuffer);
+		INFLUX_RHI_API result<> bind_vertexbuffer(const buffer& vertexbuffer);
+		INFLUX_RHI_API result<> bind_indexbuffer(const buffer& indexbuffer);
 
-		INFLUX_RHI_API result<> transition_resource(resource& resource, e_resource_state new_state);
+		INFLUX_RHI_API result<> transition(buffer& buffer, e_resource_state new_state);
+		INFLUX_RHI_API result<> transition(texture& texture, e_resource_state new_state);
+
 		INFLUX_RHI_API result<> update_blas();
 		INFLUX_RHI_API result<> update_tlas();
-		INFLUX_RHI_API result<> copy_resource(const resource& source, resource& dest);
+		INFLUX_RHI_API result<> copy(texture& src, texture& dest);
+		INFLUX_RHI_API result<> copy(buffer& src, buffer& dest);
 		INFLUX_RHI_API result<> bind_descheaps(const vector<const descheap*>& heaps);
 		INFLUX_RHI_API result<> bind_rootsignature();
 		INFLUX_RHI_API result<> bind_pipeline();
@@ -1502,6 +1653,15 @@ namespace influx::rhi
 		inline result<semaphore>		create(const semaphore_create_args& args);
 		inline result<texture>			create(const texture_create_args& args);
 		inline result<buffer>			create(const buffer_create_args& args);
+
+		inline result<pipeline>			create(const graphics_shaderslots& shaders, const graphics_pipeline_desc& desc)
+		{
+			pipeline_create_args args{};
+			args.m_type = e_pipeline_type::graphics;
+			args.m_graphics = desc;
+			args.m_graphics_shaders = shaders;
+			return create(args);
+		}
 
 		inline result<> release()
 		{
@@ -1781,6 +1941,7 @@ ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_bindflags);
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_graphics_shader_pipeline);
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_queue_flags);
+ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_memoryheap_flags);
 
 namespace influx::rhi
 {

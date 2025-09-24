@@ -173,6 +173,21 @@ namespace influx::shader
 	};
 	// ===========================================================
 
+	/* supported shader targets */
+	enum class e_shader_platform : uint8
+	{
+		DXIL,
+		SPIRV,
+		num
+	};
+	static constexpr uint8 k_num_shaderplatforms = static_cast<uint8>(e_shader_platform::num);
+	static const char* k_shaderplatform_strings[k_num_shaderplatforms]
+	{
+		"DXIL",
+		"SPIRV"
+	};
+	// ===========================================================
+
 	/*	
 		signature identifier of a single shader
 		built from filename+entrypoint+shader+target

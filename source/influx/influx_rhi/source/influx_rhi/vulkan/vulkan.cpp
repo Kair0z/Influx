@@ -60,6 +60,16 @@ namespace influx::rhi
 			return singleton;
 		}
 
+		static bool is_supported(const pixelformat& format)
+		{
+			static_pixel_formats& formats = get();
+			for (uint32 i = 0u; i < k_num_vkformats; ++i)
+			{
+				if (formats.m_formats[i].second == format) 
+					return true;
+			}
+			return false;
+		}
 		static vk_format translate(const pixelformat& format)
 		{
 			static_pixel_formats& formats = get();
@@ -177,6 +187,10 @@ namespace influx::rhi
 	{
 		return static_pixel_formats::translate(format);
 	}
+	inline static bool is_format_supported(const pixelformat& format)
+	{
+		return static_pixel_formats::is_supported(format);
+	}
 	inline static vk_surface_format translate_surface_format(const pixelformat& format)
 	{
 		VkSurfaceFormatKHR result{};
@@ -199,12 +213,51 @@ namespace influx::rhi
 		}
 		return {};
 	}
-	inline static VkImageUsageFlags translate(const e_resource_bindflags flags)
+	inline static VkImageUsageFlags translate_image(const e_resource_bindflags flags)
 	{
 		VkImageUsageFlags result{};
 		if (has_flag(flags, e_resource_bindflags::rtv)) result |= VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		if (has_flag(flags, e_resource_bindflags::dsv)) result |= VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		if (has_flag(flags, e_resource_bindflags::copysrc)) result |= VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		if (has_flag(flags, e_resource_bindflags::copydst)) result |= VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		return result;
+	}
+	inline static VkBufferUsageFlags translate_buffer(const e_resource_bindflags flags)
+	{
+		VkBufferUsageFlags result{};
+		if (has_flag(flags, e_resource_bindflags::constbuffer)) result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		if (has_flag(flags, e_resource_bindflags::vertexbuffer)) result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		if (has_flag(flags, e_resource_bindflags::indexbuffer)) result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		if (has_flag(flags, e_resource_bindflags::indirectbuffer)) result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+		if (has_flag(flags, e_resource_bindflags::copysrc)) result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		if (has_flag(flags, e_resource_bindflags::copydst)) result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		return result;
+	}
+	inline static VkAttachmentDescription translate(const output_merger::per_rendertarget& target)
+	{
+		VkAttachmentDescription res{};
+		res.format = translate_format(target.m_format);
+		res.samples = VK_SAMPLE_COUNT_1_BIT;
+		res.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;   // clear at start
+		res.storeOp = VK_ATTACHMENT_STORE_OP_STORE;  // store so we can present
+		res.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		res.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		res.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		res.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		return res;
+	}
+	inline static VkAttachmentDescription translate(const output_merger::per_depthtarget& target)
+	{
+		VkAttachmentDescription res{};
+		res.format = translate_format(target.m_format);
+		res.samples = VK_SAMPLE_COUNT_1_BIT;
+		res.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;   // clear at start
+		res.storeOp = VK_ATTACHMENT_STORE_OP_STORE;  // store so we can present
+		res.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		res.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		res.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		res.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		return res;
 	}
 	inline static VkAttachmentDescription translate(const color_attachment& attachment)
 	{
@@ -238,6 +291,14 @@ namespace influx::rhi
 		//if (has_flag(flags, e_renderpass_flags::allow_uav_write)) res |= VkRenderPassCreateFlagBits::
 		return res;
 	}
+	inline static VkViewport translate(const viewport& viewport)
+	{
+		return {};
+	}
+	inline static VkRect2D translate(const xrect& rect)
+	{
+		return {};
+	}
 	inline static VkImageViewType translate(e_texture_type type, uint32 arraysize)
 	{
 		if (arraysize > 1u)
@@ -260,6 +321,20 @@ namespace influx::rhi
 			}
 		}
 		return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+	}
+	inline static VkShaderStageFlagBits translate(e_graphics_shader_slots shader)
+	{
+		switch (shader)
+		{
+		case e_graphics_shader_slots::vs: return VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT;
+		case e_graphics_shader_slots::ps: return VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
+		case e_graphics_shader_slots::ds: return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+		case e_graphics_shader_slots::gs: return VkShaderStageFlagBits::VK_SHADER_STAGE_GEOMETRY_BIT;
+		case e_graphics_shader_slots::hs: return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+		case e_graphics_shader_slots::as: return VK_SHADER_STAGE_CALLABLE_BIT_NV;
+		case e_graphics_shader_slots::ms: return VkShaderStageFlagBits::VK_SHADER_STAGE_MESH_BIT_EXT;
+		}
+		return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 	}
 	inline result<VkSurfaceKHR> create_platform_window_surface(
 		vk_instance instance,
@@ -485,12 +560,14 @@ namespace influx::rhi
 		}
 
 		// device-layers (validation layer)
+#if 0
 		if (args.m_debug)
 		{
 			const char* k_debug_layer = "VK_LAYER_LUNARG_standard_validation";
 			deviceCreateInfo.enabledLayerCount = 1;
 			deviceCreateInfo.ppEnabledLayerNames = &k_debug_layer;
 		}
+#endif
 
 		// create the device
 		VkDevice vkdevice{};
@@ -787,12 +864,13 @@ namespace influx::rhi
 		if (args.m_bytesize == 0u)
 			return result_type::make_error("args.m_bytesize MUST be bigger than 0!");
 
+		// 1. create the buffer
 		VkBuffer vkbuffer;
 		{
 			VkBufferCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 			info.size = args.m_bytesize;
-			info.usage = VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			info.usage = translate_buffer(args.m_bindflags); // VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 			auto vkres = vkCreateBuffer(args.m_device, &info, nullptr, &vkbuffer);
@@ -800,18 +878,27 @@ namespace influx::rhi
 				return result_type::make_error("vkCreateBuffer failed!");
 		}
 
-		// Allocate memory (not shown in full) and bind
-		VkMemoryRequirements memReq;
-		vkGetBufferMemoryRequirements(args.m_device, vkbuffer, &memReq);
-		VkMemoryPropertyFlags mempropFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-		auto allocation = allocate(args.m_physdevice, args.m_device, memReq.size, mempropFlags, memReq.memoryTypeBits);
-		if (!allocation)
-			return result_type::make_error("failed allocating GPU memory for buffer resource!");
+		// 2. Allocate memory (not shown in full) and bind
+		VkDeviceMemory vkmemory;
+		{
+			VkMemoryRequirements memReq;
+			vkGetBufferMemoryRequirements(args.m_device, vkbuffer, &memReq);
 
-		auto vkres = vkBindBufferMemory(args.m_device, vkbuffer, allocation.get(), 0);
-		if (vkres != VK_SUCCESS)
-			return result_type::make_error("vkBindBufferMemory failed!");
+			VkMemoryPropertyFlags mempropFlags{};
+			if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_visible))
+				mempropFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			
+			auto allocation = allocate(args.m_physdevice, args.m_device, memReq.size, mempropFlags, memReq.memoryTypeBits);
+			if (!allocation)
+				return result_type::make_error("failed allocating GPU memory for buffer resource!");
 
+			vkmemory = allocation.get();
+			auto vkres = vkBindBufferMemory(args.m_device, vkbuffer, vkmemory, 0);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkBindBufferMemory failed!");
+		}
+
+		// 3. create view
 		VkBufferView vkview;
 		{
 			VkBufferViewCreateInfo info = {};
@@ -821,13 +908,14 @@ namespace influx::rhi
 			info.offset = 0u;
 			info.range = args.m_bytesize;
 			
-			vkres = vkCreateBufferView(args.m_device, &info, nullptr, &vkview);
+			auto vkres = vkCreateBufferView(args.m_device, &info, nullptr, &vkview);
 			if (vkres != VK_SUCCESS)
 				return result_type::make_error("vkCreateBufferView failed!");
 		}
 
 		if (out_data)
 		{
+			out_data->m_gpu_memory_address = vkmemory;
 			out_data->m_buffer_view.m_cpu_address = 0u;
 			out_data->m_buffer_view.m_gpu_address = 0u;
 			out_data->m_buffer_view.m_native_view = vkview;
@@ -842,6 +930,10 @@ namespace influx::rhi
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
 
+		if (is_format_supported(args.m_format) == false)
+			return result_type::make_error("args.m_format is not supported!");
+
+		// 1. create the VkImage
 		VkImage vkimage;
 		{
 			VkImageCreateInfo info{};
@@ -853,26 +945,32 @@ namespace influx::rhi
 			info.arrayLayers = args.m_arraysize;
 			info.samples = VK_SAMPLE_COUNT_1_BIT;
 			info.tiling = VK_IMAGE_TILING_OPTIMAL;
-			info.usage = translate(args.m_bindflags);
+			info.usage = translate_image(args.m_bindflags);
 			auto vkres = vkCreateImage(args.m_device, &info, nullptr, &vkimage);
 			if (vkres != VK_SUCCESS)
 				return result_type::make_error("vkCreateImage failed!");
 		}
 		
-		// allocate VRAM & bind
+		// 2. allocate VRAM & bind
 		// Allocate memory (not shown in full) and bind
-		VkMemoryRequirements memReq;
-		vkGetImageMemoryRequirements(args.m_device, vkimage, &memReq);
-		VkMemoryPropertyFlags mempropFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-		auto allocation = allocate(args.m_physdevice, args.m_device, memReq.size, mempropFlags, memReq.memoryTypeBits);
-		if (!allocation)
-			return result_type::make_error("failed allocating GPU memory for texture resource!");
+		VkDeviceMemory vkmemory;
+		{
+			VkMemoryRequirements memReq;
+			vkGetImageMemoryRequirements(args.m_device, vkimage, &memReq);
+			VkMemoryPropertyFlags mempropFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			auto allocation = allocate(args.m_physdevice, args.m_device, memReq.size, mempropFlags, memReq.memoryTypeBits);
+			if (!allocation)
+				return result_type::make_error("failed allocating GPU memory for texture resource!");
 
-		auto vkres = vkBindImageMemory(args.m_device, vkimage, allocation.get(), 0u);
-		if (vkres != VK_SUCCESS)
-			return result_type::make_error("vkBindImageMemory failed!");
-
+			vkmemory = allocation.get();
+			auto vkres = vkBindImageMemory(args.m_device, vkimage, vkmemory, 0u);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkBindImageMemory failed!");
+		}
+		
+		// 3. create the VkImageView
 		VkImageView vkview;
+		if (args.m_create_view)
 		{
 			VkImageViewCreateInfo viewInfo = {};
 			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -883,28 +981,331 @@ namespace influx::rhi
 			viewInfo.subresourceRange.levelCount = args.m_num_mips;
 			viewInfo.subresourceRange.layerCount = args.m_arraysize;
 
-			vkres = vkCreateImageView(args.m_device, &viewInfo, nullptr, &vkview);
+			auto vkres = vkCreateImageView(args.m_device, &viewInfo, nullptr, &vkview);
 			if (vkres != VK_SUCCESS)
 				return result_type::make_error("vkCreateImageView failed!");
 		}
 
+		// 4. store the add. data
 		if (out_data)
 		{
+			out_data->m_gpu_memory_address = vkmemory;
 			out_data->m_current_state = args.m_init_state;
 			out_data->m_previous_state = args.m_init_state;
 			out_data->m_texture_view.m_cpu_address = 0u;
 			out_data->m_texture_view.m_gpu_address = 0u;
 			out_data->m_texture_view.m_native_view = vkview;
 		}
+
 		return vkimage;
 	}
+	
+	result<native_pipeline> create_native_graphics_pipeline(
+		native_device device,
+		const graphics_pipeline_desc& desc, 
+		const graphics_shaderslots& shaders,
+		pipeline_data* out_data)
+	{
+		using result_type = result<native_pipeline>;
+
+		const bool has_depth = desc.m_output_merger.m_depthtarget.m_depth_enable;
+		const uint32 num_colour_targets = desc.m_output_merger.get_num_enabled_rendertargets();
+
+		const output_merger& output_merger = desc.m_output_merger;
+
+		// create an implicit renderpass
+		VkRenderPass renderpass;
+		{
+			// translate the attachments
+			vector<VkAttachmentDescription> attachments{};
+			uint32 num_attachments = has_depth ? num_colour_targets + 1 : num_colour_targets;
+			attachments.reserve(num_attachments);
+			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+			{
+				if (output_merger.m_rendertargets[i].m_enabled)
+					attachments.push_back(translate(output_merger.m_rendertargets[i]));
+			}
+			if (has_depth) attachments.push_back(translate(output_merger.m_depthtarget));
+
+			// make 1 subpass
+			vector<VkSubpassDescription> subpasses{};
+			vector<VkAttachmentReference> color_refs{};
+			VkAttachmentReference depth_ref = {};
+			{
+				VkSubpassDescription subpass{};
+				// translate the attachment references
+				color_refs.resize(num_colour_targets);
+				for (uint32 i = 0u; i < num_colour_targets; ++i)
+				{
+					color_refs[i].attachment = i;
+					color_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				}
+				depth_ref.attachment = num_colour_targets; // at depth index 
+				depth_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+				subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+				subpass.colorAttachmentCount = 1;
+				subpass.pColorAttachments = color_refs.data();
+				subpass.pDepthStencilAttachment = has_depth ? &depth_ref : nullptr;
+				subpasses.push_back(subpass);
+			}
+
+			// no dependencies (1 subpass)
+			vector<VkSubpassDependency> dependencies{};
+			VkRenderPassCreateInfo info{};
+			info.attachmentCount = num_attachments;
+			info.dependencyCount = static_cast<uint32>(dependencies.size());
+			info.flags = {};
+			info.pAttachments = attachments.data();
+			info.pDependencies = dependencies.data();
+			info.pSubpasses = subpasses.data();
+			info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			info.subpassCount = static_cast<uint32>(subpasses.size());
+			auto vkres = vkCreateRenderPass(device, &info, nullptr, &renderpass);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkCreateRenderPass failed!");
+		}
+
+		// create the shader modules
+		vector<VkPipelineShaderStageCreateInfo> vkshaderinfos{};
+		vector<VkShaderModule> vkmodules{};
+		{
+			VkShaderModuleCreateInfo info = {};
+			info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			for (uint32 i = 0u; i < shaders.count; ++i)
+			{
+				const bool is_shader_set = shaders.is_set(i);
+				const bool is_shader_optional = shaders.is_optional(i);
+				const e_graphics_shader_slots shaderslot = shaders.get_type_at_index(i);
+				if (is_shader_set)
+				{
+					const auto& shader = shaders.get(i);
+					const auto& shaderinfo = shaders.get_info(i);
+					info.codeSize = static_cast<uint32>(shader.size());
+					info.pCode = (uint32*)shader.data();
+
+					vkmodules.push_back({});
+					VkShaderModule& current_module = vkmodules.back();
+					auto vkres = vkCreateShaderModule(device, &info, nullptr, &current_module);
+					if (vkres != VK_SUCCESS)
+						return result_type::make_error("vkCreateShaderModule failed!");
+
+					// Set up shader stage info
+					VkPipelineShaderStageCreateInfo stageInfo = {};
+					stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+					stageInfo.stage = translate(shaderslot);
+					stageInfo.module = current_module;
+					stageInfo.pName = shaderinfo.m_name.c_str();
+					vkshaderinfos.push_back(stageInfo);
+				}
+				else if (!is_shader_optional)
+					return result_type::make_error("args is missing non-optional shader!");
+			}
+		}
+
+		// Describe vertex input
+		struct vertex { math::float3 m_position; math::float4 m_colour; };
+		vector<VkVertexInputBindingDescription> vertex_bindings{};
+		{
+			VkVertexInputBindingDescription info{};
+			info.binding = 0;
+			info.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+			info.stride = sizeof(vertex);
+			vertex_bindings.push_back(info);
+		}
+		vector<VkVertexInputAttributeDescription> vertex_attributes{};
+		{
+			VkVertexInputAttributeDescription info{};
+			info.binding = 0;
+			info.format = VK_FORMAT_R32G32B32_SFLOAT;
+			info.location = 0;
+			info.offset = offsetof(vertex, m_position);
+			vertex_attributes.push_back(info);
+
+			info.binding = 0;
+			info.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+			info.location = 1;
+			info.offset = offsetof(vertex, m_colour);
+			vertex_attributes.push_back(info);
+		}
+
+		VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
+		vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertexInputCreateInfo.vertexBindingDescriptionCount = static_cast<uint32>(vertex_bindings.size());
+		vertexInputCreateInfo.pVertexBindingDescriptions = vertex_bindings.data();
+		vertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32>(vertex_attributes.size());
+		vertexInputCreateInfo.pVertexAttributeDescriptions = vertex_attributes.data();
+
+		// Describe input assembly
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = {};
+		inputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		inputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE;
+
+		// Describe viewport and scissor
+		VkViewport viewport = translate(desc.m_default_viewport);
+		VkRect2D scissor = translate(desc.m_default_xrect);
+
+		// Note: scissor test is always enabled (although dynamic scissor is possible)
+		// Number of viewports must match number of scissors
+		VkPipelineViewportStateCreateInfo viewportCreateInfo = {};
+		viewportCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportCreateInfo.viewportCount = 1;
+		viewportCreateInfo.pViewports = &viewport;
+		viewportCreateInfo.scissorCount = 1;
+		viewportCreateInfo.pScissors = &scissor;
+
+		// Describe rasterization
+		// Note: depth bias and using polygon modes other than fill require changes to logical device creation (device features)
+		VkPipelineRasterizationStateCreateInfo rasterizationCreateInfo = {};
+		rasterizationCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizationCreateInfo.depthClampEnable = VK_FALSE;
+		rasterizationCreateInfo.rasterizerDiscardEnable = VK_FALSE;
+		rasterizationCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizationCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		rasterizationCreateInfo.depthBiasEnable = VK_FALSE;
+		rasterizationCreateInfo.depthBiasConstantFactor = 0.0f;
+		rasterizationCreateInfo.depthBiasClamp = 0.0f;
+		rasterizationCreateInfo.depthBiasSlopeFactor = 0.0f;
+		rasterizationCreateInfo.lineWidth = 1.0f;
+
+		// Describe multisampling
+		// Note: using multisampling also requires turning on device features
+		VkPipelineMultisampleStateCreateInfo multisampleCreateInfo = {};
+		multisampleCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampleCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisampleCreateInfo.sampleShadingEnable = VK_FALSE;
+		multisampleCreateInfo.minSampleShading = 1.0f;
+		multisampleCreateInfo.alphaToCoverageEnable = VK_FALSE;
+		multisampleCreateInfo.alphaToOneEnable = VK_FALSE;
+
+		// Describing color blending
+		// Note: all paramaters except blendEnable and colorWriteMask are irrelevant here
+		VkPipelineColorBlendAttachmentState colorBlendAttachmentState = {};
+		colorBlendAttachmentState.blendEnable = VK_FALSE;
+		colorBlendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+		colorBlendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+		colorBlendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+		colorBlendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		colorBlendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		colorBlendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+		colorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+		// Note: all attachments must have the same values unless a device feature is enabled
+		VkPipelineColorBlendStateCreateInfo colorBlendCreateInfo = {};
+		colorBlendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlendCreateInfo.logicOpEnable = VK_FALSE;
+		colorBlendCreateInfo.logicOp = VK_LOGIC_OP_COPY;
+		colorBlendCreateInfo.attachmentCount = 1;
+		colorBlendCreateInfo.pAttachments = &colorBlendAttachmentState;
+		colorBlendCreateInfo.blendConstants[0] = 0.0f;
+		colorBlendCreateInfo.blendConstants[1] = 0.0f;
+		colorBlendCreateInfo.blendConstants[2] = 0.0f;
+		colorBlendCreateInfo.blendConstants[3] = 0.0f;
+
+		// Describe pipeline layout
+		// Note: this describes the mapping between memory and shader resources (descriptor sets)
+		// This is for uniform buffers and samplers
+		VkDescriptorSetLayout vkrootsignature{};
+		{
+			VkDescriptorSetLayoutBinding layoutBinding = {};
+			layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			layoutBinding.descriptorCount = 1;
+			layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+			VkDescriptorSetLayoutCreateInfo descriptorLayoutCreateInfo = {};
+			descriptorLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			descriptorLayoutCreateInfo.bindingCount = 1;
+			descriptorLayoutCreateInfo.pBindings = &layoutBinding;
+
+			auto vkres = vkCreateDescriptorSetLayout(device, &descriptorLayoutCreateInfo, nullptr, &vkrootsignature);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkCreateDescriptorSetLayout failed!");
+		}
+
+		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
+		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		layoutCreateInfo.setLayoutCount = 1;
+		layoutCreateInfo.pSetLayouts = &vkrootsignature;
+
+		VkPipelineLayout vklayout;
+		auto vkres = vkCreatePipelineLayout(device, &layoutCreateInfo, nullptr, &vklayout);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkCreatePipelineLayout failed!");
+
+		// Create the graphics pipeline
+		VkPipeline vkpipeline{};
+		{
+			VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
+			pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			pipelineCreateInfo.stageCount = static_cast<uint32>(vkshaderinfos.size());
+			pipelineCreateInfo.pStages = vkshaderinfos.data();
+			pipelineCreateInfo.pVertexInputState = &vertexInputCreateInfo;
+			pipelineCreateInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
+			pipelineCreateInfo.pViewportState = &viewportCreateInfo;
+			pipelineCreateInfo.pRasterizationState = &rasterizationCreateInfo;
+			pipelineCreateInfo.pMultisampleState = &multisampleCreateInfo;
+			pipelineCreateInfo.pColorBlendState = &colorBlendCreateInfo;
+			pipelineCreateInfo.layout = vklayout;
+			pipelineCreateInfo.renderPass = renderpass;
+			pipelineCreateInfo.subpass = 0;
+			pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+			pipelineCreateInfo.basePipelineIndex = -1;
+
+			vkres = vkCreateGraphicsPipelines(device, nullptr, 1u, &pipelineCreateInfo, nullptr, &vkpipeline);
+			if (vkres != VK_SUCCESS)
+				return result_type::make_error("vkCreateGraphicsPipelines failed!");
+		}
+		
+		if (out_data)
+		{
+
+		}
+		return vkpipeline;
+	}
+
 	result<native_pipeline>	create_native(const pipeline_create_args& args, pipeline_data* out_data)
 	{
 		using result_type = result<native_pipeline>;
-		return {};
+
+		result_type result;
+		switch (args.m_type)
+		{
+		case e_pipeline_type::graphics:
+			result = create_native_graphics_pipeline(args.m_device, args.m_graphics, args.m_graphics_shaders, out_data);
+			break;
+
+		case e_pipeline_type::compute:
+		case e_pipeline_type::raytracing:
+			return result_type::make_error("todo: noimpl!");
+		}
+		return result;
 	}
 	result<native_rootsignature> create_native(const rootsignature_create_args& args, rootsignature_data* out_data);
 
+	// [buffer]
+	result<void*> buffer::map_begin(const map_args& args)
+	{
+		using result_type = result<void*>;
+
+		void* result = nullptr;
+		VkDeviceSize size = args.m_bytesize;
+		VkDeviceSize offset = args.m_offset;
+		VkMemoryMapFlags flags{};
+		VkDeviceMemory memory = m_data.m_gpu_memory_address;
+		auto vkres = vkMapMemory(m_native_device, memory, offset, size, flags, &result);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkMapMemory failed!");
+
+		return result;
+	}
+	result<> buffer::map_end()
+	{
+		VkDeviceMemory memory = m_data.m_gpu_memory_address;
+		vkUnmapMemory(m_native_device, memory);
+		return {};
+	}
 	// [fence]
 	result<> fence::queue_signal(uint64 signal_value, const queue& queue)
 	{
@@ -937,7 +1338,7 @@ namespace influx::rhi
 
 		vector<VkCommandBufferSubmitInfo>	vkbuffer_submit_infos{};
 		vector<VkSemaphoreSubmitInfo>		vksemaphore_submit_infos{};
-		for (commandlist* list : commandlists)
+		for (commandlist*& list : commandlists)
 		{
 			if (list->is_recording())
 			{
@@ -1155,7 +1556,7 @@ namespace influx::rhi
 		// translate the attachments
 		const bool has_depth = args.m_depth_attachment.m_is_enabled;
 		vector<VkAttachmentDescription> attachments{};
-		uint32 num_colour_attachments = args.m_color_attachments.size();
+		uint32 num_colour_attachments = static_cast<uint32>(args.m_color_attachments.size());
 		uint32 num_attachments = has_depth ? num_colour_attachments + 1 : num_colour_attachments;
 		attachments.reserve(num_attachments);
 		for (const auto& att : args.m_color_attachments)

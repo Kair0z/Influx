@@ -154,6 +154,13 @@ namespace influx::rhi
 			return m_num_supported_formats;
 		}
 
+		static bool is_supported(const pixelformat& format)
+		{
+			for (uint32 i = 0u; i < m_num_supported_formats; ++i)
+				if (m_formats[i].second == format) return true;
+			return false;
+		}
+
 		static std::pair<const char*, pixelformat> const* get_formats()
 		{
 			if (!m_initialized) initialize();
@@ -167,6 +174,10 @@ namespace influx::rhi
 	uint32 get_num_supported_pixel_formats()
 	{
 		return static_pixel_formats::get_num_supported_formats();
+	}
+	bool is_format_supported(const pixelformat& format)
+	{
+		return static_pixel_formats::is_supported(format);
 	}
 	DXGI_FORMAT translate(const pixelformat& format);
 	uint32 get_translated_pixelformat(const pixelformat& format)
@@ -225,9 +236,9 @@ namespace influx::rhi
 	}
 #pragma endregion
 
-	result<object_native> create_native(const device_create_args& args, device_data* out_data)
+	result<native_device> create_native(const device_create_args& args, device_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_device>;
 
 		// setup a dxgi factory
 		dx12_factory* dxfactory = nullptr;
@@ -342,12 +353,12 @@ namespace influx::rhi
 			out_data->m_descriptor_strides[3] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		}
 		
-		return hres_to_result<object_native>(hres, dxdevice);
+		return hres_to_result<native_device>(hres, dxdevice);
 	}
 
-	result<object_native> create_native(const queue_create_args& args, queue_data* out_data)
+	result<native_queue> create_native(const queue_create_args& args, queue_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_queue>;
 
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
@@ -363,12 +374,12 @@ namespace influx::rhi
 
 		ID3D12CommandQueue* queue{};
 		HRESULT hres = device->CreateCommandQueue(&dxdesc, IID_PPV_ARGS(&queue));
-		return hres_to_result<object_native>(hres, queue);
+		return hres_to_result<native_queue>(hres, queue);
 	}
 
-	result<object_native> create_native(const swapchain_create_args& args, swapchain_data* out_data)
+	result<native_swapchain> create_native(const swapchain_create_args& args, swapchain_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_swapchain>;
 
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
@@ -414,7 +425,7 @@ namespace influx::rhi
 
 		// associate the swapchain with the passed window
 		hres = dxfactory->MakeWindowAssociation((::HWND)args.m_window, DXGI_MWA_NO_ALT_ENTER);
-		if (!hres_to_result<object_native>(hres, swapchain))
+		if (!hres_to_result<native_swapchain>(hres, swapchain))
 		{
 			return result_type::make_warning(swapchain, "after creating the swapchain, failed making window association! (result is still valid)");
 		}
@@ -443,9 +454,9 @@ namespace influx::rhi
 		return swapchain;
 	}
 
-	result<object_native> create_native(const descheap_create_args& args, descheap_data* out_data)
+	result<native_descheap> create_native(const descheap_create_args& args, descheap_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_descheap>;
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
 
@@ -468,12 +479,12 @@ namespace influx::rhi
 			out_data->m_freelist.resize(args.m_num_descriptors, false);
 		}
 
-		return hres_to_result<object_native>(hres, descheap);
+		return hres_to_result<native_descheap>(hres, descheap);
 	}
 
-	result<object_native> create_native(const commandpool_create_args& args, commandpool_data* out_data)
+	result<native_commandpool> create_native(const commandpool_create_args& args, commandpool_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_commandpool>;
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
 
@@ -483,12 +494,12 @@ namespace influx::rhi
 		
 		ID3D12CommandAllocator* allocator{};
 		HRESULT hres = device->CreateCommandAllocator(translate(args.m_type), IID_PPV_ARGS(&allocator));
-		return hres_to_result<object_native>(hres, allocator);
+		return hres_to_result<native_commandpool>(hres, allocator);
 	}
 
-	result<object_native> create_native(const commandlist_create_args& args, commandlist_data* out_data)
+	result<native_commandlist> create_native(const commandlist_create_args& args, commandlist_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_commandlist>;
 		
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
@@ -504,7 +515,8 @@ namespace influx::rhi
 			pool_args.m_type = edited_args.m_type;
 			pool_args.m_device = edited_args.m_device;
 			auto res = create_native(pool_args);
-			if (!res) return result_type::make_error("failed creating allocator!");
+			if (!res) 
+				return result_type::make_error("failed creating allocator!");
 
 			edited_args.m_pool = (native_commandpool)res.get();
 		}
@@ -539,12 +551,12 @@ namespace influx::rhi
 			out_data->m_fence = (native_fence)fence.get();
 		}
 
-		return hres_to_result<object_native>(hres, commandlist);
+		return hres_to_result<native_commandlist>(hres, commandlist);
 	}
 	
-	result<object_native> create_native(const fence_create_args& args, fence_data* out_data)
+	result<native_fence> create_native(const fence_create_args& args, fence_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_fence>;
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
 
@@ -555,12 +567,12 @@ namespace influx::rhi
 		ID3D12Fence* fence{};
 		D3D12_FENCE_FLAGS flags{};
 		HRESULT hres = device->CreateFence(args.m_init_value, flags, IID_PPV_ARGS(&fence));
-		return hres_to_result<object_native>(hres, fence);
+		return hres_to_result<native_fence>(hres, fence);
 	}
 
-	result<object_native> create_native(const buffer_create_args& args, buffer_data* out_data)
+	result<native_buffer> create_native(const buffer_create_args& args, buffer_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_buffer>;
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
 
@@ -571,6 +583,11 @@ namespace influx::rhi
 		ID3D12Resource* resource = nullptr;
 		D3D12_HEAP_PROPERTIES heap_props{};
 		D3D12_HEAP_FLAGS heap_flags{};
+		if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_visible))
+		{
+			heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
+		}
+
 		D3D12_RESOURCE_DESC dxdesc{};
 		D3D12_RESOURCE_STATES dxstates{};
 		D3D12_CLEAR_VALUE dxclear{};
@@ -583,12 +600,12 @@ namespace influx::rhi
 			&dxclear,
 			IID_PPV_ARGS(&resource));
 
-		return hres_to_result<object_native>(hres, resource);
+		return hres_to_result<native_buffer>(hres, resource);
 	}
 
-	result<object_native> create_native(const texture_create_args& args, texture_data* out_data)
+	result<native_texture> create_native(const texture_create_args& args, texture_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_texture>;
 		if (args.m_device == nullptr)
 			return result_type::make_error("args.m_device is nullptr!");
 
@@ -619,12 +636,12 @@ namespace influx::rhi
 				&dxclear,
 				IID_PPV_ARGS(&resource));
 		}
-		return hres_to_result<object_native>(hres, resource);
+		return hres_to_result<native_texture>(hres, resource);
 	}
 
-	result<object_native> create_native(const pipeline_create_args& args, pipeline_data* out_data)
+	result<native_pipeline> create_native(const pipeline_create_args& args, pipeline_data* out_data)
 	{
-		using result_type = result<object_native>;
+		using result_type = result<native_pipeline>;
 		if (!args.is_valid())
 			return result_type::make_error("pipeline_create_args are invalid!");
 
@@ -633,11 +650,11 @@ namespace influx::rhi
 			return result_type::make_error("args.m_device failed casting to dx12_device!");
 
 		HRESULT hres{};
+		ID3D12PipelineState* dxpipeline = nullptr;
 		switch (args.m_type)
 		{
 		case e_pipeline_type::graphics:
 		{
-			ID3D12PipelineState* dxpipeline = nullptr;
 			hres = dxdevice->CreateGraphicsPipelineState(nullptr, IID_PPV_ARGS(&dxpipeline));
 		}
 		break;
@@ -659,10 +676,15 @@ namespace influx::rhi
 		}
 
 		// fill out data
-		return {};
+		if (out_data)
+		{
+			// ...
+		}
+
+		return dxpipeline;
 	}
 
-	result<object_native> create_native(const rootsignature_create_args& args, rootsignature_data* out_data)
+	result<native_rootsignature> create_native(const rootsignature_create_args& args, rootsignature_data* out_data)
 	{
 		return {};
 	}
@@ -800,24 +822,24 @@ namespace influx::rhi
 		if (!device)
 			return result_type::make_error("m_native_object failed casting to dx12_device!");
 
-		if (descriptor == 0u)
+		if (descriptor.m_cpu_address == 0u)
 			return result_type::make_error("descriptor is nullptr!");
 
 		auto resource = cast<dx12_resource>(texture.m_native_object);
 		if (!resource)
 			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
 
-		auto format = texture.get_current_format();
-		if (!format)
-			return result_type::make_error("texture has an invalid format!");
+		const auto format = texture.get_format();
+		if (!is_format_supported(format))
+			return result_type::make_error("texture has an unsupported format!");
 
 		D3D12_RENDER_TARGET_VIEW_DESC desc{};
 		desc.Texture2D.MipSlice;
 		desc.Texture2D.PlaneSlice;
-		desc.Format = translate(*format.get());
+		desc.Format = translate(format);
 		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = static_cast<SIZE_T>(descriptor) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = descriptor.m_cpu_address };
 		device->CreateRenderTargetView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
@@ -833,16 +855,16 @@ namespace influx::rhi
 		if (!resource)
 			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
 
-		auto format = texture.get_current_format();
-		if (!format)
-			return result_type::make_error("texture has an invalid format!");
+		const auto format = texture.get_format();
+		if (!is_format_supported(format))
+			return result_type::make_error("texture has an unsupported format!");
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC desc{};
 		desc.Texture2D.MipSlice;
-		desc.Format = translate(*format.get());
+		desc.Format = translate(format);
 		desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = static_cast<SIZE_T>(descriptor) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = descriptor.m_cpu_address };
 		device->CreateDepthStencilView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
@@ -862,19 +884,19 @@ namespace influx::rhi
 		if (!resource)
 			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
 
-		auto format = texture.get_current_format();
-		if (!format)
-			return result_type::make_error("texture has an invalid format!");
+		const auto format = texture.get_format();
+		if (!is_format_supported(format))
+			return result_type::make_error("texture has an unsupported format!");
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
 		desc.Texture2D.MipLevels;
 		desc.Texture2D.MostDetailedMip;
 		desc.Texture2D.PlaneSlice;
 		desc.Texture2D.ResourceMinLODClamp;
-		desc.Format = translate(*format.get());
+		desc.Format = translate(format);
 		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = static_cast<SIZE_T>(descriptor) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = descriptor.m_cpu_address };
 		device->CreateShaderResourceView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
@@ -890,17 +912,17 @@ namespace influx::rhi
 		if (!resource)
 			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
 
-		auto format = texture.get_current_format();
-		if (!format)
-			return result_type::make_error("texture has an invalid format!");
+		const auto format = texture.get_format();
+		if (!is_format_supported(format))
+			return result_type::make_error("texture has an unsupported format!");
 
 		D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
 		desc.Texture2D.MipSlice;
 		desc.Texture2D.PlaneSlice;
-		desc.Format = translate(*format.get());
+		desc.Format = translate(format);
 		desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = static_cast<SIZE_T>(descriptor) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = descriptor.m_cpu_address };
 		device->CreateUnorderedAccessView(resource.get(), nullptr, &desc, dxdescriptor);
 		return {};
 	}
@@ -924,7 +946,7 @@ namespace influx::rhi
 		desc.Format = DXGI_FORMAT_UNKNOWN;
 		desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = static_cast<SIZE_T>(descriptor) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = descriptor.m_cpu_address };
 		device->CreateShaderResourceView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
@@ -949,7 +971,7 @@ namespace influx::rhi
 		desc.Format = DXGI_FORMAT_UNKNOWN;
 		desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = static_cast<SIZE_T>(descriptor) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = descriptor.m_cpu_address };
 		device->CreateUnorderedAccessView(resource.get(), nullptr, &desc, dxdescriptor);
 		return {};
 	}
@@ -961,12 +983,13 @@ namespace influx::rhi
 	}
 
 	// [queue - interface]
-	result<> queue::submit(vector<commandlist*>& commandlists) const
+	result<> queue::submit(vector<commandlist*> commandlists) const
 	{
 		using result_type = result<>;
 
 		if (m_native_object == nullptr)
 			return result_type::make_error("m_native_object is nullptr!");
+
 		auto dxqueue = cast<dx12_queue>(m_native_object);
 		if (!dxqueue)
 			return result_type::make_error("m_native_object failed casting to dx12_queue!");
@@ -985,7 +1008,7 @@ namespace influx::rhi
 		{
 			if (list->has_fence())
 			{
-				uint32& complete_value = list->m_data.m_fence_complete_value;
+				uint32& complete_value = list->m_data.m_complete_value;
 				complete_value += 1u;
 				queue_signal(list->m_data.m_fence, complete_value);
 			}
@@ -997,7 +1020,7 @@ namespace influx::rhi
 	{
 		return queue_signal(fence.m_native_object, signal_value);
 	}
-	result<> queue::queue_signal(object_native fence, uint64 signal_value) const
+	result<> queue::queue_signal(native_fence fence, uint64 signal_value) const
 	{
 		using result_type = result<>;
 
@@ -1005,7 +1028,8 @@ namespace influx::rhi
 			return result_type::make_error("m_native_object is nullptr!");
 
 		auto dxqueue = cast<dx12_queue>(m_native_object);
-		if (!dxqueue) return result_type::make_error("m_native_object failed casting to dx12_queue!");
+		if (!dxqueue) 
+			return result_type::make_error("m_native_object failed casting to dx12_queue!");
 
 		if (fence == nullptr)
 			return result_type::make_error("fence is nullptr!");
@@ -1015,6 +1039,34 @@ namespace influx::rhi
 
 		HRESULT hres = dxqueue->Signal(dxfence.get(), signal_value);
 		return hres_to_result<>(hres, {});
+	}
+
+	// [texture]
+	result<uint64> texture::calculate_bytesize() const
+	{
+		using result_type = result<uint64>;
+		return get_format().get_bytes_per_pixel() * get_num_pixels();
+	}
+	result<uint64> texture::calculate_bytestride() const
+	{
+		return get_format().get_bytes_per_pixel();
+	}
+	result<> texture::set_name(const char* name)
+	{
+		using result_type = result<>;
+
+		if (m_native_object == nullptr)
+			return result_type::make_error("m_native_object is nullptr!");
+		auto dxresource = cast<dx12_resource>(m_native_object);
+		if (!dxresource)
+			return result_type::make_error("m_native_object failed casting to dx12_resource!");
+
+		wstring wname = to_wstring(name);
+		HRESULT hres = dxresource->SetName(wname.c_str());
+		if (hres != S_OK)
+			return result_type::make_error("ID3D12Resource::SetName() failed!");
+
+		return {};
 	}
 
 	// [swapchain - interface]
@@ -1166,13 +1218,6 @@ namespace influx::rhi
 		return {};
 	}
 
-	bool commandlist::is_recording() const
-	{
-		auto dxcommandlist = cast<dx12_commandlist>(m_native_object);
-		if (!dxcommandlist) return false;
-
-		return m_data.m_state == e_commandlist_state::recording;
-	}
 	result<> commandlist::end()
 	{
 		ID3D12GraphicsCommandList* dxcommandlist = (ID3D12GraphicsCommandList*)m_native_object;
@@ -1192,7 +1237,7 @@ namespace influx::rhi
 			uint32 i = 0u;
 
 			dx12_fence* dxfence = (dx12_fence*)m_data.m_fence;
-			uint32 complete_value = m_data.m_fence_complete_value;
+			uint32 complete_value = m_data.m_complete_value;
 
 			while (i < max_value)
 			{
@@ -1208,17 +1253,18 @@ namespace influx::rhi
 	{
 		return m_create_args.m_own_fence && m_data.m_fence != nullptr;
 	}
-	result<> commandlist::transition_resource(resource& resource, e_resource_state new_state)
+	result<> commandlist::transition(texture& texture, e_resource_state new_state)
 	{
 		using result_type = result<>;
 
-		dx12_resource* dxresource = (dx12_resource*)resource.get_native_resource();
+		dx12_resource* dxresource = (dx12_resource*)texture.m_native_object;
 		dx12_commandlist* dxcmdlist = (dx12_commandlist*)m_native_object;
 		
-		const e_resource_state old_state = resource.get_resource_state();
+		const e_resource_state old_state = texture.get_resource_state();
 		if (new_state == old_state)
 			return result<>::make_error("transition to same state is considered a no-op!");
 
+		// setup the barrier
 		D3D12_RESOURCE_BARRIER barrier{};
 		barrier.Transition.pResource = dxresource;
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -1226,34 +1272,61 @@ namespace influx::rhi
 		barrier.Transition.StateAfter = translate(new_state);
 		barrier.Transition.StateBefore = translate(old_state);
 		barrier.Transition.Subresource = 0u;
-
 		dxcmdlist->ResourceBarrier(1u, &barrier);
-		auto res = resource.set_state(new_state);
-		if (!res) return result_type::make_error("failed updating resource state!");
+
+		// update the state
+		auto res = texture.set_state(new_state);
+		if (!res) 
+			return result_type::make_error("failed updating resource state!");
 
 		return {};
 	}
 	result<> commandlist::clear_rtv(descriptor rtv, const clear& clear)
 	{
 		dx12_commandlist* dxcmdlist = (dx12_commandlist*)m_native_object;
-		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = static_cast<SIZE_T>(rtv) };
+		D3D12_CPU_DESCRIPTOR_HANDLE dxdescriptor{ .ptr = rtv.m_cpu_address };
 		dxcmdlist->ClearRenderTargetView(dxdescriptor, clear.m_colour.data(), 0u, NULL);
 		return {};
 	}
-	result<> commandlist::copy_resource(const resource& source, resource& dest)
+	result<> commandlist::copy(texture& source, texture& dest)
 	{
 		using result_type = result<>;
 		if (source.get_width() != dest.get_width())
-			return result_type::make_error("cannot copy resources of different width!");
+			return result_type::make_error("cannot copy texture of different width!");
 		if (source.get_height() != dest.get_height())
-			return result_type::make_error("cannot copy resources of different height!");
+			return result_type::make_error("cannot copy texture of different height!");
+		if (source.get_depth() != dest.get_depth())
+			return result_type::make_error("cannot copy texture of different depth!");
 
-		auto dxsource = cast<dx12_resource>(source.get_native_resource());
-		if (!dxsource) return result_type::make_error("failed casting source, to dx12_resource");
-		auto dxdest = cast<dx12_resource>(dest.get_native_resource());
-		if (!dxdest) return result_type::make_error("failed casting dest to dx12_resource");
+		auto dxsource = cast<dx12_resource>(source.m_native_object);
+		if (!dxsource) 
+			return result_type::make_error("failed casting source, to dx12_resource");
+		auto dxdest = cast<dx12_resource>(dest.m_native_object);
+		if (!dxdest) 
+			return result_type::make_error("failed casting dest to dx12_resource");
 		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
-		if (!dxcmdlist) return result_type::make_error("failed casting m_native to dx12_commandlist");
+		if (!dxcmdlist) 
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		dxcmdlist->CopyResource(dxdest.get(), dxsource.get());
+		return {};
+	}
+	result<> commandlist::copy(buffer& source, buffer& dest)
+	{
+		using result_type = result<>;
+
+		if (source.get_bytesize() != dest.get_bytesize())
+			return result_type::make_error("cannot copy buffers of different bytesize!");
+	
+		auto dxsource = cast<dx12_resource>(source.m_native_object);
+		if (!dxsource)
+			return result_type::make_error("failed casting source, to dx12_resource");
+		auto dxdest = cast<dx12_resource>(dest.m_native_object);
+		if (!dxdest)
+			return result_type::make_error("failed casting dest to dx12_resource");
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
 
 		dxcmdlist->CopyResource(dxdest.get(), dxsource.get());
 		return {};
@@ -1327,36 +1400,10 @@ namespace influx::rhi
 		return sample_descheap(dxheap, m_data.m_descriptor_stride, index, false);
 	}
 
-	// [resource]
-	result<> resource::transition(commandlist& cmdlist, e_resource_state new_state)
-	{
-		return cmdlist.transition_resource(*this, new_state);
-	}
-
-	// [buffer]
-	uint64 buffer::get_num_elements() const
-	{
-		return get_bytesize() / get_bytestride();
-	}
-	uint64 buffer::get_bytesize() const
-	{
-		return m_data.m_bytesize;
-	}
-	uint64 buffer::get_bytestride() const
-	{
-		return m_data.m_bytestride;
-	}
-
 	// [texture2D]
 	result<> texture::transition(commandlist& cmdlist, e_resource_state new_state)
 	{
-		return cmdlist.transition_resource(*this, new_state);
-	}
-
-	result<pixelformat const*> texture::get_current_format() const
-	{
-		using result_type = result<pixelformat const*>;
-		return &m_data.m_format;
+		return cmdlist.transition(*this, new_state);
 	}
 
 	void static_pixel_formats::initialize()
@@ -1396,30 +1443,30 @@ namespace influx::rhi
 			m_formats[DXGI_FORMAT_R8G8B8A8_UNORM]			= {"DXGI_FORMAT_R8G8B8A8_UNORM",			{ e_format::unorm,		{_r,_8}, {_g,_8}, {_b,_8}, {_a,_8} }};
 
 			m_formats[DXGI_FORMAT_R8G8B8A8_UNORM_SRGB]		= {"", { e_format::unorm_srgb,	{_r,_8}, {_g,_8}, {_b,_8}, {_a,_8} }};
-			m_formats[DXGI_FORMAT_R8G8B8A8_UINT]			= {"", { e_format::uint,			{_r,_8}, {_g,_8}, {_b,_8}, {_a,_8} }};
+			m_formats[DXGI_FORMAT_R8G8B8A8_UINT]			= {"", { e_format::uint,		{_r,_8}, {_g,_8}, {_b,_8}, {_a,_8} }};
 			m_formats[DXGI_FORMAT_R8G8B8A8_SNORM]			= {"", { e_format::snorm,		{_r,_8}, {_g,_8}, {_b,_8}, {_a,_8} }};
-			m_formats[DXGI_FORMAT_R8G8B8A8_SINT]			= {"", { e_format::sint,			{_r,_8}, {_g,_8}, {_b,_8}, {_a,_8} }};
-			m_formats[DXGI_FORMAT_R16G16_TYPELESS]			= {"", { e_format::typeless,		{_r,_16}, {_g,_16} }};
+			m_formats[DXGI_FORMAT_R8G8B8A8_SINT]			= {"", { e_format::sint,		{_r,_8}, {_g,_8}, {_b,_8}, {_a,_8} }};
+			m_formats[DXGI_FORMAT_R16G16_TYPELESS]			= {"", { e_format::typeless,	{_r,_16}, {_g,_16} }};
 			m_formats[DXGI_FORMAT_R16G16_FLOAT]				= {"", { e_format::sfloat,		{_r,_16}, {_g,_16} }};
 			m_formats[DXGI_FORMAT_R16G16_UNORM]				= {"", { e_format::unorm,		{_r,_16}, {_g,_16} }};
-			m_formats[DXGI_FORMAT_R16G16_UINT]				= {"", { e_format::uint,			{_r,_16}, {_g,_16} }};
+			m_formats[DXGI_FORMAT_R16G16_UINT]				= {"", { e_format::uint,		{_r,_16}, {_g,_16} }};
 			m_formats[DXGI_FORMAT_R16G16_SNORM]				= {"", { e_format::snorm,		{_r,_16}, {_g,_16} }};
-			m_formats[DXGI_FORMAT_R16G16_SINT]				= {"", { e_format::sint,			{_r,_16}, {_g,_16} }};
-			m_formats[DXGI_FORMAT_R32_TYPELESS]				= {"", { e_format::typeless,		{_r,_32} }};
+			m_formats[DXGI_FORMAT_R16G16_SINT]				= {"", { e_format::sint,		{_r,_16}, {_g,_16} }};
+			m_formats[DXGI_FORMAT_R32_TYPELESS]				= {"", { e_format::typeless,	{_r,_32} }};
 			m_formats[DXGI_FORMAT_D32_FLOAT]				= {"", { e_format::sfloat,		{_d,_32} }};
 			m_formats[DXGI_FORMAT_R32_FLOAT]				= {"", { e_format::sfloat,		{_r,_32} }};
-			m_formats[DXGI_FORMAT_R32_UINT]					= {"", { e_format::uint,			{_r,_32} }};
-			m_formats[DXGI_FORMAT_R32_SINT]					= {"", { e_format::sint,			{_r,_32} }};
-			m_formats[DXGI_FORMAT_R24G8_TYPELESS]			= {"", { e_format::typeless,		{_r,_24}, {_g,_8} }};
+			m_formats[DXGI_FORMAT_R32_UINT]					= {"", { e_format::uint,		{_r,_32} }};
+			m_formats[DXGI_FORMAT_R32_SINT]					= {"", { e_format::sint,		{_r,_32} }};
+			m_formats[DXGI_FORMAT_R24G8_TYPELESS]			= {"", { e_format::typeless,	{_r,_24}, {_g,_8} }};
 			m_formats[DXGI_FORMAT_D24_UNORM_S8_UINT]		= {"", { e_format::unorm,		{_d,_24}, {_s,_8,uint} }};
 			m_formats[DXGI_FORMAT_R24_UNORM_X8_TYPELESS]	= {"", { e_format::unorm,		{_r,_24}, {_x,_8,typeless} }};
-			m_formats[DXGI_FORMAT_X24_TYPELESS_G8_UINT]		= {"", { e_format::typeless,		{_x,_24}, {_g,_8,uint } }};
-			m_formats[DXGI_FORMAT_R8G8_TYPELESS]			= {"", { e_format::typeless,		{_r,_8}, {_g,_8} }};
+			m_formats[DXGI_FORMAT_X24_TYPELESS_G8_UINT]		= {"", { e_format::typeless,	{_x,_24}, {_g,_8,uint } }};
+			m_formats[DXGI_FORMAT_R8G8_TYPELESS]			= {"", { e_format::typeless,	{_r,_8}, {_g,_8} }};
 			m_formats[DXGI_FORMAT_R8G8_UNORM]				= {"", { e_format::unorm,		{_r,_8}, {_g,_8} }};
-			m_formats[DXGI_FORMAT_R8G8_UINT]				= {"", { e_format::uint,			{_r,_8}, {_g,_8} }};
+			m_formats[DXGI_FORMAT_R8G8_UINT]				= {"", { e_format::uint,		{_r,_8}, {_g,_8} }};
 			m_formats[DXGI_FORMAT_R8G8_SNORM]				= {"", { e_format::snorm,		{_r,_8}, {_g,_8} }};
-			m_formats[DXGI_FORMAT_R8G8_SINT]				= {"", { e_format::sint,			{_r,_8}, {_g,_8} }};
-			m_formats[DXGI_FORMAT_R16_TYPELESS]				= {"", { e_format::typeless,		{_r,_16} }};
+			m_formats[DXGI_FORMAT_R8G8_SINT]				= {"", { e_format::sint,		{_r,_8}, {_g,_8} }};
+			m_formats[DXGI_FORMAT_R16_TYPELESS]				= {"", { e_format::typeless,	{_r,_16} }};
 			m_formats[DXGI_FORMAT_R16_FLOAT]				= {"", { e_format::sfloat,		{_r,_16} }};
 			m_formats[DXGI_FORMAT_D16_UNORM]				= {"", { e_format::unorm,		{_d,_16} }};
 			m_formats[DXGI_FORMAT_R16_UNORM]				= {"", { e_format::unorm,		{_r,_16} }};

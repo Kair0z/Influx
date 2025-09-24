@@ -10,3 +10,8 @@ new_influx_test("test_graphics")
     }
     set_influx_app_dependencies(dependencies)
     staticruntime "off"
+
+    files
+    {
+        project_dir .. "**.hlsl"
+    }
