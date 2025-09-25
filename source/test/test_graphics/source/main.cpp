@@ -157,9 +157,6 @@ int rhi_main()
 	// creating resources (buffers & textures)
 	rhi::buffer vertexbuffer; rhi::buffer constbuffer; rhi::buffer indexbuffer;
 	rhi::texture tex_color; rhi::texture tex_depth;
-
-	rhi::descriptor rtv;
-	rhi::descriptor dsv;
 	{
 		// create (cpu-visible) buffers
 		rhi::buffer_create_args buff_args{};
