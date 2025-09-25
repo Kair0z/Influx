@@ -73,6 +73,8 @@ namespace influx::rhi
 	class texture;
 	class texture3D;
 	class descheap;
+	class pipeline;
+	class rootsignature;
 
 	// =============================================
 	// [native objects]
@@ -372,6 +374,75 @@ namespace influx::rhi
 		greater,	// >
 		always,
 		count
+	};
+	enum class e_border_color : uint8
+	{
+		black,
+		white,
+		black_transparent,
+		count
+	};
+	enum class e_texture_wrap_mode : uint8
+	{
+		wrap,
+		mirror,
+		clamp,
+		border,
+		mirror_once,
+		count
+	};
+	enum class e_filter : uint32
+	{
+		min_mag_mip_point = 0,
+		min_mag_point_mip_linear = 0x1,
+		min_point_mag_linear_mip_point = 0x4,
+		min_point_mag_mip_linear = 0x5,
+		min_linear_mag_mip_point = 0x10,
+		min_linear_mag_point_mip_linear = 0x11,
+		min_mag_linear_mip_point = 0x14,
+		min_mag_mip_linear = 0x15,
+		anisotropic = 0x55,
+		comparison_min_mag_mip_point = 0x80,
+		comparison_min_mag_point_mip_linear = 0x81,
+		comparison_min_point_mag_linear_mip_point = 0x84,
+		comparison_min_point_mag_mip_linear = 0x85,
+		comparison_min_linear_mag_mip_point = 0x90,
+		comparison_min_linear_mag_point_mip_linear = 0x91,
+		comparison_min_mag_linear_mip_point = 0x94,
+		comparison_min_mag_mip_linear = 0x95,
+		comparison_anisotropic = 0xd5,
+		minimum_min_mag_mip_point = 0x100,
+		minimum_min_mag_point_mip_linear = 0x101,
+		minimum_min_point_mag_linear_mip_point = 0x104,
+		minimum_min_point_mag_mip_linear = 0x105,
+		minimum_min_linear_mag_mip_point = 0x110,
+		minimum_min_linear_mag_point_mip_linear = 0x111,
+		minimum_min_mag_linear_mip_point = 0x114,
+		minimum_min_mag_mip_linear = 0x115,
+		minimum_anisotropic = 0x155,
+		maximum_min_mag_mip_point = 0x180,
+		maximum_min_mag_point_mip_linear = 0x181,
+		maximum_min_point_mag_linear_mip_point = 0x184,
+		maximum_min_point_mag_mip_linear = 0x185,
+		maximum_min_linear_mag_mip_point = 0x190,
+		maximum_min_linear_mag_point_mip_linear = 0x191,
+		maximum_min_mag_linear_mip_point = 0x194,
+		maximum_min_mag_mip_linear = 0x195,
+		maximum_anisotropic = 0x1d5
+	};
+	enum class e_shader_visibility : uint32
+	{
+		none = 0,
+		vertex = 1 << 0,
+		hull = 1 << 1,
+		domain = 1 << 2,
+		geometry = 1 << 3,
+		pixel = 1 << 4,
+		compute = 1 << 5,
+		amp = 1 << 6,
+		mesh = 1 << 7,
+
+		all = vertex | hull | domain | geometry | pixel | compute | amp | mesh
 	};
 	struct queue_families final
 	{
@@ -1158,6 +1229,7 @@ namespace influx::rhi
 	};
 	struct pipeline_create_args final
 	{
+		native_rootsignature						m_rootsignature;
 		native_device								m_device;
 		native_renderpass							m_renderpass;
 		e_pipeline_type								m_type{};
@@ -1170,9 +1242,270 @@ namespace influx::rhi
 
 		inline bool is_valid() const;
 	};
+
+	enum class e_rootparam_type : uint32
+	{
+		descriptor_table,
+		constants,
+		cbv,
+		srv,
+		uav,
+		count
+	};
+
+	struct root_param_common final
+	{
+		e_shader_visibility m_visibility = e_shader_visibility::all;
+		uint32 m_shader_register = 0u;
+		uint32 m_register_space = 0u;
+		string m_name;
+	};
+
+	struct root_param_constants final
+	{
+		root_param_constants() = default;
+		root_param_constants(
+			uint32 num_dwords,
+			uint32 shader_register,
+			uint32 register_space = 0,
+			e_shader_visibility visibility = e_shader_visibility::all)
+		{
+			m_num_dwords = num_dwords;
+			m_common.m_register_space = register_space;
+			m_common.m_shader_register = shader_register;
+			m_common.m_visibility = visibility;
+		}
+
+		root_param_common m_common;
+		uint32 m_num_dwords;
+	};
+
+	struct root_param_resource final
+	{
+		enum class e_type : uint8
+		{
+			srv,
+			cbv,
+			uav,
+			count
+		};
+
+		root_param_resource() = default;
+		root_param_resource(
+			e_type type,
+			uint32 shader_register,
+			uint32 register_space = 0,
+			e_shader_visibility visibility = e_shader_visibility::all)
+		{
+			m_type = type;
+			m_common.m_register_space = register_space;
+			m_common.m_shader_register = shader_register;
+			m_common.m_visibility = visibility;
+		}
+
+		e_type m_type;
+		root_param_common m_common;
+	};
+
+	struct root_param_resource_range final
+	{
+		enum class e_type : uint8
+		{
+			srv,
+			cbv,
+			uav,
+			sampler,
+			count
+		};
+
+		root_param_resource_range() = default;
+		root_param_resource_range(
+			uint32 num_resources,
+			e_type type,
+			uint32 base_shader_register,
+			uint32 register_space)
+		{
+			m_num_resources = num_resources;
+			m_type = type;
+			m_shader_register = base_shader_register;
+			m_register_space = register_space;
+		}
+
+
+		uint32 m_shader_register;
+		uint32 m_register_space;
+
+		uint32 m_num_resources;
+		e_type m_type;
+	};
+
+	struct root_param_resource_table final
+	{
+		root_param_resource_table() = default;
+		root_param_resource_table(const vector<root_param_resource_range>& ranges)
+		{
+			m_resource_ranges = ranges;
+		}
+		root_param_resource_table(const root_param_resource_range& range, uint32 sh_reg, uint32 space = 0u, e_shader_visibility vis = e_shader_visibility::all)
+		{
+			m_common.m_register_space = space;
+			m_common.m_shader_register = sh_reg;
+			m_resource_ranges.push_back(range);
+		}
+
+		root_param_common m_common;
+		vector<root_param_resource_range> m_resource_ranges{};
+	};
+
+	struct root_static_sampler final
+	{
+		root_static_sampler() = default;
+		root_static_sampler(
+			uint32 shader_register,
+			uint32 register_space,
+			e_shader_visibility visibility,
+			float mip_load_bias = 0.0f,
+			float min_lod = 0.0f,
+			float max_lod = FLT_MAX,
+			uint32 max_anisotropy = 16u,
+			e_texture_wrap_mode wrap_u = e_texture_wrap_mode::wrap,
+			e_texture_wrap_mode wrap_v = e_texture_wrap_mode::wrap,
+			e_texture_wrap_mode wrap_w = e_texture_wrap_mode::wrap,
+			e_filter filter = e_filter::anisotropic,
+			e_comparison_func comp_func = e_comparison_func::lequal,
+			e_border_color border_color = e_border_color::white)
+			: m_mip_lod_bias{ mip_load_bias }
+			, m_min_lod{ min_lod }
+			, m_max_lod{ max_lod }
+			, m_max_anisotropy{ max_anisotropy }
+			, m_wrap_u{ wrap_u }
+			, m_wrap_v{ wrap_v }
+			, m_wrap_w{ wrap_w }
+			, m_filter{ filter }
+			, m_comparison_func{ comp_func }
+			, m_border_color{ border_color }
+		{
+			m_common.m_visibility = visibility;
+			m_common.m_register_space = register_space;
+			m_common.m_shader_register = shader_register;
+		}
+
+		root_param_common m_common;
+
+		float m_mip_lod_bias = 0.0f;
+		float m_min_lod = 0.0f;
+		float m_max_lod = FLT_MAX;
+		uint32 m_max_anisotropy = 16u;
+
+		e_texture_wrap_mode m_wrap_u = e_texture_wrap_mode::wrap;
+		e_texture_wrap_mode m_wrap_v = e_texture_wrap_mode::wrap;
+		e_texture_wrap_mode m_wrap_w = e_texture_wrap_mode::wrap;
+
+		e_filter m_filter = e_filter::anisotropic;
+		e_comparison_func m_comparison_func = e_comparison_func::lequal;
+		e_border_color m_border_color = e_border_color::white;
+	};
+
+	using e_root_range = root_param_resource_range::e_type;
+	using e_root_resource = root_param_resource::e_type;
 	struct rootsignature_create_args final
 	{
 		native_device m_device;
+		vector<root_param_constants> m_constants;
+		vector<root_param_resource> m_resources;
+		vector<root_param_resource_table> m_resource_tables;
+		vector<root_static_sampler> m_static_samplers;
+		bool m_direct_indexing = false;
+
+		// resource ranges are stored in a resource table
+		inline void add_root_range(root_param_resource_range::e_type type, uint32 num_resources, uint32 sh_reg, uint32 space = 0u, e_shader_visibility vis = e_shader_visibility::all)
+		{
+			root_param_resource_range range{ num_resources, type, sh_reg, space };
+			root_param_resource_table table{};
+			table.m_common.m_register_space = space;
+			table.m_common.m_shader_register = sh_reg;
+			table.m_common.m_visibility = vis;
+			table.m_resource_ranges.push_back(range);
+			m_resource_tables.push_back(table);
+		}
+
+		// root resources are individual resources not stored in a tables
+		inline void add_root_resource(root_param_resource::e_type type, uint32 sh_reg, uint32 space = 0u, e_shader_visibility vis = e_shader_visibility::all)
+		{
+			m_resources.push_back({ type, sh_reg, space, vis });
+		}
+
+		inline void add_root_constants(uint32 num_dwords, uint32 sh_reg, uint32 space = 0u, e_shader_visibility vis = e_shader_visibility::all)
+		{
+			m_constants.push_back({ num_dwords, sh_reg, space, vis });
+		}
+
+		inline void add_root_sampler(
+			uint32 shader_register,
+			uint32 register_space,
+			e_shader_visibility visibility,
+			float mip_load_bias = 0.0f,
+			float min_lod = 0.0f,
+			float max_lod = FLT_MAX,
+			uint32 max_anisotropy = 16u,
+			e_texture_wrap_mode wrap_u = e_texture_wrap_mode::wrap,
+			e_texture_wrap_mode wrap_v = e_texture_wrap_mode::wrap,
+			e_texture_wrap_mode wrap_w = e_texture_wrap_mode::wrap,
+			e_filter filter = e_filter::anisotropic,
+			e_comparison_func comp_func = e_comparison_func::lequal,
+			e_border_color border_color = e_border_color::white)
+		{
+			m_static_samplers.push_back({
+				shader_register,
+				register_space,
+				visibility,
+				mip_load_bias,
+				min_lod,
+				max_lod,
+				max_anisotropy,
+				wrap_u,
+				wrap_v,
+				wrap_w,
+				filter,
+				comp_func,
+				border_color });
+		}
+
+		/* sets the name of the last constants added */
+		inline void name_last_constants(const string& name)
+		{
+			if (m_constants.empty())
+				return;
+
+			m_constants.back().m_common.m_name = name;
+		}
+
+		/* sets the name of the last resource added */
+		inline void name_last_resource(const string& name)
+		{
+			if (m_resources.empty())
+				return;
+
+			m_resources.back().m_common.m_name = name;
+		}
+
+		/* sets the name of the last resource table added */
+		inline void name_last_resource_table(const string& name)
+		{
+			if (m_resource_tables.empty())
+				return;
+
+			m_resource_tables.back().m_common.m_name = name;
+		}
+
+		/* sets the name of the last sampler added */
+		inline void name_last_sampler(const string& name)
+		{
+			if (m_static_samplers.empty())
+				return;
+
+			m_static_samplers.back().m_common.m_name = name;
+		}
 	};
 	struct renderpass_create_args final
 	{
@@ -1631,12 +1964,8 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> submit(queue& queue);
 		INFLUX_RHI_API result<> renderpass_begin(device& device, renderpass& pass, const begin_renderpass_args& args);
 		INFLUX_RHI_API result<> renderpass_end();
-		INFLUX_RHI_API result<> draw(const draw_args& args);
-		INFLUX_RHI_API result<> draw_indexed(const draw_indexed_args& args);
 		INFLUX_RHI_API result<> dispatch(const math::uint3& group_nums);
 		INFLUX_RHI_API result<> clear_texture(device& device, const texture& texture, const clear& clear);
-		INFLUX_RHI_API result<> bind_vertexbuffer(const buffer& vertexbuffer);
-		INFLUX_RHI_API result<> bind_indexbuffer(const buffer& indexbuffer);
 
 		INFLUX_RHI_API result<> transition(buffer& buffer, e_resource_state new_state);
 		INFLUX_RHI_API result<> transition(texture& texture, e_resource_state new_state);
@@ -1645,9 +1974,21 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> update_tlas();
 		INFLUX_RHI_API result<> copy(texture& src, texture& dest);
 		INFLUX_RHI_API result<> copy(buffer& src, buffer& dest);
-		INFLUX_RHI_API result<> bind_descheaps(const vector<const descheap*>& heaps);
-		INFLUX_RHI_API result<> bind_rootsignature();
-		INFLUX_RHI_API result<> bind_pipeline();
+
+		INFLUX_RHI_API result<> bind_descheaps(descheap const* resource_heap, descheap const* sampler_heap);
+		INFLUX_RHI_API result<> bind_rootsignature(const rootsignature& signature);
+		INFLUX_RHI_API result<> bind_pipeline(const pipeline& pipeline);
+		INFLUX_RHI_API result<> bind_texture_uav(const texture& texture, uint32 param_index);
+		INFLUX_RHI_API result<> bind_texture_srv(const texture& texture, uint32 param_index);
+		INFLUX_RHI_API result<> bind_buffer_uav(const buffer& buffer, uint32 param_index);
+		INFLUX_RHI_API result<> bind_buffer_srv(const buffer& buffer, uint32 param_index);
+		INFLUX_RHI_API result<> bind_buffer_cbv(const buffer& buffer, uint32 param_index);
+		INFLUX_RHI_API result<> bind_vertexbuffer(const buffer& vertexbuffer);
+		INFLUX_RHI_API result<> bind_indexbuffer(const buffer& indexbuffer);
+
+		INFLUX_RHI_API result<> draw(const draw_args& args);
+		INFLUX_RHI_API result<> draw_indexed(const draw_indexed_args& args);
+
 		INFLUX_RHI_API result<> set_viewport();
 		INFLUX_RHI_API result<> set_xrect();
 		INFLUX_RHI_API result<> set_primitive_topology();

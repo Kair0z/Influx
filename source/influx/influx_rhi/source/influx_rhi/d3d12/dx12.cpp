@@ -22,6 +22,8 @@ namespace influx::rhi
 	using dx12_descheap		= ID3D12DescriptorHeap;
 	using dx12_fence		= ID3D12Fence;
 	using dx12_renderpass	= ID3D12Fence;
+	using dx12_pipeline		= ID3D12PipelineState;
+	using dx12_rootsignature = ID3D12RootSignature;
 
 	template <typename _t, typename _p>
 	inline result<_t*> cast(_p* ptr)
@@ -223,6 +225,175 @@ namespace influx::rhi
 		}
 		return access;
 	}
+	inline D3D12_SHADER_VISIBILITY translate(e_shader_visibility vis)
+	{
+		uint32 result{};
+
+		if (vis == e_shader_visibility::all)
+			return D3D12_SHADER_VISIBILITY_ALL;
+
+		if (has_flag(vis, e_shader_visibility::vertex))		result |= (uint32)D3D12_SHADER_VISIBILITY_VERTEX;
+		if (has_flag(vis, e_shader_visibility::pixel))		result |= (uint32)D3D12_SHADER_VISIBILITY_PIXEL;
+		if (has_flag(vis, e_shader_visibility::domain))		result |= (uint32)D3D12_SHADER_VISIBILITY_DOMAIN;
+		if (has_flag(vis, e_shader_visibility::hull))		result |= (uint32)D3D12_SHADER_VISIBILITY_HULL;
+		if (has_flag(vis, e_shader_visibility::geometry))	result |= (uint32)D3D12_SHADER_VISIBILITY_GEOMETRY;
+		if (has_flag(vis, e_shader_visibility::compute))	result |= (uint32)D3D12_SHADER_VISIBILITY_ALL;
+		if (has_flag(vis, e_shader_visibility::amp))		result |= (uint32)D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+		if (has_flag(vis, e_shader_visibility::mesh))		result |= (uint32)D3D12_SHADER_VISIBILITY_MESH;
+		return (D3D12_SHADER_VISIBILITY)result;
+	}
+	inline D3D12_TEXTURE_ADDRESS_MODE translate(e_texture_wrap_mode wrap)
+	{
+		switch (wrap)
+		{
+		case e_texture_wrap_mode::wrap: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		case e_texture_wrap_mode::border: return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		case e_texture_wrap_mode::mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+		case e_texture_wrap_mode::mirror_once: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE;
+		case e_texture_wrap_mode::clamp: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		default:
+		case e_texture_wrap_mode::count:
+			influx_assert(false);
+			return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		}
+	}
+	inline D3D12_STATIC_BORDER_COLOR translate(e_border_color color)
+	{
+		switch (color)
+		{
+		case e_border_color::white: return D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+		case e_border_color::black: return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+		case e_border_color::black_transparent: return D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+		default:
+		case e_border_color::count:
+			return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+		}
+	}
+	inline D3D12_COMPARISON_FUNC translate(e_comparison_func func)
+	{
+		switch (func)
+		{
+		case e_comparison_func::lequal: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		case e_comparison_func::always: return D3D12_COMPARISON_FUNC_ALWAYS;
+		case e_comparison_func::less: return D3D12_COMPARISON_FUNC_LESS;
+		case e_comparison_func::gequal: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		case e_comparison_func::greater: return D3D12_COMPARISON_FUNC_GREATER;
+		default:
+		case e_comparison_func::count:
+			influx_assert(false);
+			return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		}
+	}
+	inline D3D12_FILTER translate(e_filter filter)
+	{
+		return (D3D12_FILTER)filter;
+	}
+	inline D3D12_CULL_MODE translate(e_cull_mode mode)
+	{
+		switch (mode)
+		{
+		case e_cull_mode::back: return D3D12_CULL_MODE_BACK;
+		case e_cull_mode::front: return D3D12_CULL_MODE_FRONT;
+		case e_cull_mode::nocull: return D3D12_CULL_MODE_NONE;
+		default:
+		case e_cull_mode::count: return D3D12_CULL_MODE_NONE;
+		}
+	}
+	inline D3D12_FILL_MODE translate(e_fill_mode mode)
+	{
+		switch (mode)
+		{
+		case e_fill_mode::wireframe: return D3D12_FILL_MODE_WIREFRAME;
+		case e_fill_mode::solid: return D3D12_FILL_MODE_SOLID;
+		default:
+		case e_fill_mode::count:
+			influx_assert(false);
+			return  D3D12_FILL_MODE_SOLID;
+		}
+	}
+	inline D3D12_BLEND translate(e_blend blend)
+	{
+		return (D3D12_BLEND)blend;
+	}
+	inline D3D12_BLEND_OP translate(e_blendop op)
+	{
+		return (D3D12_BLEND_OP)op;
+	}
+	static D3D12_RASTERIZER_DESC translate(const rasterizer& desc)
+	{
+		CD3DX12_RASTERIZER_DESC rasterizer_desc(D3D12_DEFAULT);
+		rasterizer_desc.CullMode = translate(desc.m_cullmode);
+		rasterizer_desc.FillMode = translate(desc.m_fillmode);
+		rasterizer_desc.MultisampleEnable = desc.m_multisample;
+		rasterizer_desc.FrontCounterClockwise = desc.m_front_ccw;
+		rasterizer_desc.DepthBias = desc.m_depth_bias;
+		rasterizer_desc.DepthBiasClamp = desc.m_depth_bias_clamp;
+		rasterizer_desc.SlopeScaledDepthBias = desc.m_slope_depth_bias;
+		rasterizer_desc.DepthClipEnable = desc.m_depth_clip_enable;
+		rasterizer_desc.AntialiasedLineEnable = desc.m_antialiased_line;
+		rasterizer_desc.ForcedSampleCount = desc.m_forced_samplecount;
+		rasterizer_desc.ConservativeRaster = desc.m_conservative ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+		return rasterizer_desc;
+	}
+	static D3D12_BLEND_DESC translate(
+		const blend_desc* desc, uint32 num_blends,
+		bool is_alpha_to_coverage_enabled)
+	{
+		CD3DX12_BLEND_DESC blend_desc(D3D12_DEFAULT);
+		bool has_multiple_blends = false;
+		for (size_t i = 0u; i < num_blends; ++i)
+		{
+			if (i > 0u) has_multiple_blends |= desc[i].m_enabled;
+			blend_desc.RenderTarget[i].BlendEnable = desc[i].m_enabled;
+			blend_desc.RenderTarget[i].SrcBlend = translate(desc[i].m_src);
+			blend_desc.RenderTarget[i].DestBlend = translate(desc[i].m_dest);
+			blend_desc.RenderTarget[i].BlendOp = translate(desc[i].m_op);
+			blend_desc.RenderTarget[i].SrcBlendAlpha = translate(desc[i].m_srcalpha);
+			blend_desc.RenderTarget[i].DestBlendAlpha = translate(desc[i].m_destalpha);
+			blend_desc.RenderTarget[i].BlendOpAlpha = translate(desc[i].m_op_alpha);
+			blend_desc.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL; // desc.m_blends[i].m_write_mask;
+		}
+		blend_desc.AlphaToCoverageEnable = is_alpha_to_coverage_enabled;
+		blend_desc.IndependentBlendEnable = has_multiple_blends; // implicit independent blend
+		return blend_desc;
+	}
+	static D3D12_DEPTH_STENCIL_DESC translate(const output_merger::per_depthtarget& desc)
+	{
+		CD3DX12_DEPTH_STENCIL_DESC depth_stencil_desc(D3D12_DEFAULT);
+		depth_stencil_desc.DepthEnable = desc.m_depth_enable;
+		depth_stencil_desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		depth_stencil_desc.DepthFunc = translate(desc.m_depth_func);
+		depth_stencil_desc.StencilEnable = desc.m_stencil_enable;
+		return depth_stencil_desc;
+	}
+	inline D3D12_PRIMITIVE_TOPOLOGY_TYPE translate(e_primitive_topology_type type)
+	{
+		switch (type)
+		{
+		case e_primitive_topology_type::triangle:	return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		case e_primitive_topology_type::line:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		case e_primitive_topology_type::patch:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+		case e_primitive_topology_type::point:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+		default:
+		case e_primitive_topology_type::count:
+			influx_assert(false);
+			return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+		}
+	}
+	inline D3D_PRIMITIVE_TOPOLOGY translate(e_primitive_topology topo)
+	{
+		switch (topo)
+		{
+		case e_primitive_topology::trilist: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		case e_primitive_topology::linelist: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+		default:
+		case e_primitive_topology::count:
+			influx_assert(false);
+			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		}
+	}
+
+
 	static constexpr uint32 k_num_dxgi_formats = 256u;
 	class static_pixel_formats final
 	{
@@ -779,6 +950,10 @@ namespace influx::rhi
 		if (!args.is_valid())
 			return result_type::make_error("pipeline_create_args are invalid!");
 
+		auto rootsignature = cast<dx12_rootsignature>(args.m_rootsignature);
+		if (!rootsignature)
+			return result_type::make_error("args.m_rootsignature failed casting to dx12_rootsignature!");
+
 		auto dxdevice = cast<dx12_device>(args.m_device);
 		if (!dxdevice)
 			return result_type::make_error("args.m_device failed casting to dx12_device!");
@@ -789,7 +964,57 @@ namespace influx::rhi
 		{
 		case e_pipeline_type::graphics:
 		{
-			hres = dxdevice->CreateGraphicsPipelineState(nullptr, IID_PPV_ARGS(&dxpipeline));
+			// input layout
+			D3D12_INPUT_LAYOUT_DESC input_layout_desc{};
+			vector< D3D12_INPUT_ELEMENT_DESC> input_elements{};
+			for (const graphics_pipeline_desc::input_element& element : args.m_graphics.m_input_elements)
+			{
+				input_elements.push_back({});
+				input_elements.back().AlignedByteOffset = element.m_aligned_byteoffset;
+				// input_elements.back().Format = translate(element.m_format);
+				input_elements.back().InputSlot = element.m_input_slot;
+				input_elements.back().InputSlotClass = element.m_is_per_instance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+				input_elements.back().InstanceDataStepRate = element.m_instance_data_steprate;
+				input_elements.back().SemanticIndex = element.m_semantic_idx;
+				input_elements.back().SemanticName = element.m_semantic_name.c_str();
+			}
+			input_layout_desc.pInputElementDescs = input_elements.data();
+			input_layout_desc.NumElements = (uint32)input_elements.size();
+
+			// helper
+			auto get_shader_code = [](const vector<byte>& data)
+			{
+				return CD3DX12_SHADER_BYTECODE(data.data(), data.size());
+			};
+
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
+			pso_desc.InputLayout = input_layout_desc;
+			pso_desc.pRootSignature = rootsignature.get();
+
+			pso_desc.VS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::vs));
+			pso_desc.PS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::ps));
+			pso_desc.DS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::ds));
+			pso_desc.GS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::gs));
+			pso_desc.HS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::hs));
+			pso_desc.RasterizerState = translate(args.m_graphics.m_rasterizer);
+			// pso_desc.BlendState = translate(args.m_graphics.m_blends, k_max_render_targets, desc.m_blend_alpha_to_coverage_enabled);
+			pso_desc.DepthStencilState = translate(args.m_graphics.m_output_merger.m_depthtarget);
+			// pso_desc.SampleMask = args.m_graphics.m_rasterizer.m_forced_samplecount;
+			pso_desc.PrimitiveTopologyType = translate(args.m_graphics.m_primitive_topology_type);
+			pso_desc.DSVFormat = translate(args.m_graphics.m_output_merger.m_depthtarget.m_format);
+			// pso_desc.SampleDesc.Count = desc.m_sample_count;
+
+			// rtvs
+			for (size_t i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+			{
+				pso_desc.NumRenderTargets++;
+				pso_desc.RTVFormats[i] = translate(args.m_graphics.m_output_merger.m_rendertargets[i].m_format);
+				pso_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+			}
+
+			HRESULT hres = dxdevice->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
+			if (hres != S_OK)
+				return result_type::make_error("CreateGraphicsPipelineState failed!");
 		}
 		break;
 
@@ -820,7 +1045,147 @@ namespace influx::rhi
 
 	result<native_rootsignature> create_native(const rootsignature_create_args& args, rootsignature_data* out_data)
 	{
-		return {};
+		using result_type = result<native_rootsignature>;
+
+		auto device = cast<dx12_device>(args.m_device);
+		if (!device)
+			return result_type::make_error("args.m_device failed casting to dx12_device!");
+		dx12_device* dxdevice = device.get();
+
+		ID3D12RootSignature* dxrootsignature = nullptr;
+
+		// setup versioning
+		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+		// This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
+		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+		if (dxdevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)) != S_OK)
+		{
+			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+		}
+
+		// build a name-to-param-idx map
+		umap<string, uint32> name_to_param_idx{};
+
+		// setup root parameters
+		vector<CD3DX12_ROOT_PARAMETER1> root_parameters{};
+		vector<CD3DX12_STATIC_SAMPLER_DESC> static_samplers{};
+		vector<vector<CD3DX12_DESCRIPTOR_RANGE1>> root_descriptor_ranges(args.m_resource_tables.size());
+
+		// constants
+		for (const root_param_constants& constants : args.m_constants)
+		{
+			name_to_param_idx[constants.m_common.m_name] = (uint32)root_parameters.size();
+
+			root_parameters.push_back({});
+			root_parameters.back().InitAsConstants(constants.m_num_dwords, constants.m_common.m_shader_register,
+				constants.m_common.m_register_space, translate(constants.m_common.m_visibility));
+		}
+
+		// resources
+		for (const root_param_resource& resource : args.m_resources)
+		{
+			name_to_param_idx[resource.m_common.m_name] = (uint32)root_parameters.size();
+
+			root_parameters.push_back({});
+			switch (resource.m_type)
+			{
+			case root_param_resource::e_type::srv:
+				root_parameters.back().InitAsShaderResourceView(
+					resource.m_common.m_shader_register,
+					resource.m_common.m_register_space,
+					D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+					translate(resource.m_common.m_visibility));
+				break;
+
+			case root_param_resource::e_type::cbv:
+				root_parameters.back().InitAsConstantBufferView(
+					resource.m_common.m_shader_register,
+					resource.m_common.m_register_space,
+					D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+					translate(resource.m_common.m_visibility));
+				break;
+
+			case root_param_resource::e_type::uav:
+				root_parameters.back().InitAsUnorderedAccessView(
+					resource.m_common.m_shader_register,
+					resource.m_common.m_register_space,
+					D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+					translate(resource.m_common.m_visibility));
+				break;
+			}
+		}
+
+		// resource tables
+		size_t descriptor_table_idx = 0u;
+		for (const root_param_resource_table& tables : args.m_resource_tables)
+		{
+			name_to_param_idx[tables.m_common.m_name] = (uint32)root_parameters.size();
+
+			vector<CD3DX12_DESCRIPTOR_RANGE1>& ranges = root_descriptor_ranges[descriptor_table_idx++];
+
+			for (const root_param_resource_range& range : tables.m_resource_ranges)
+			{
+				D3D12_DESCRIPTOR_RANGE_TYPE range_type{};
+				switch (range.m_type)
+				{
+				case root_param_resource_range::e_type::cbv: range_type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
+				case root_param_resource_range::e_type::uav: range_type = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; break;
+				case root_param_resource_range::e_type::srv: range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
+				case root_param_resource_range::e_type::sampler: range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
+				}
+
+				ranges.push_back({});
+				ranges.back().Init(range_type,
+					range.m_num_resources,
+					range.m_shader_register,
+					range.m_register_space);
+			}
+
+			root_parameters.push_back({});
+			root_parameters.back().InitAsDescriptorTable((uint32)ranges.size(), ranges.data(), translate(tables.m_common.m_visibility));
+		}
+
+		// samplers
+		for (const root_static_sampler& sampler : args.m_static_samplers)
+		{
+			static_samplers.push_back({});
+			static_samplers.back().Init(
+				sampler.m_common.m_shader_register,
+				translate(sampler.m_filter),
+				translate(sampler.m_wrap_u),
+				translate(sampler.m_wrap_v),
+				translate(sampler.m_wrap_w),
+				sampler.m_mip_lod_bias,
+				sampler.m_max_anisotropy,
+				translate(sampler.m_comparison_func),
+				translate(sampler.m_border_color),
+				sampler.m_min_lod,
+				sampler.m_max_lod,
+				translate(sampler.m_common.m_visibility));
+		}
+
+		// initialize the desc, and create the root signature
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+
+		rootSignatureDesc.Init_1_1(
+			(uint32)root_parameters.size(), root_parameters.data(),
+			(uint32)static_samplers.size(), static_samplers.data(),
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+		// flag direct indexing enabled/disabled
+		if (args.m_direct_indexing)
+		{
+			rootSignatureDesc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+			rootSignatureDesc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+		}
+
+		ID3DBlob* signature;
+		ID3DBlob* error;
+
+		HRESULT res = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
+		res = dxdevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&dxrootsignature));
+
+		return dxrootsignature;
 	}
 
 	result<native_renderpass> create_native(const renderpass_create_args& args, renderpass_data* out_data)
@@ -1728,6 +2093,187 @@ namespace influx::rhi
 		float color[4u] = { clear.m_colour.x, clear.m_colour.y, clear.m_colour.z, clear.m_colour.w };
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = { .ptr = new_rtv.get().m_cpu_address };
 		dxcommandlist->ClearRenderTargetView(handle, color, 0u, nullptr);
+		return {};
+	}
+	result<> commandlist::bind_descheaps(descheap const* resource_heap, descheap const* sampler_heap)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		vector<dx12_descheap*> descheaps;
+		if (resource_heap) descheaps.push_back(resource_heap->m_native_object);
+		if (sampler_heap) descheaps.push_back(sampler_heap->m_native_object);
+
+		if (descheaps.size() == 0u)
+			return result_type::make_error("no valid descheaps were passed!");
+
+		dxcmdlist->SetDescriptorHeaps(static_cast<uint32>(descheaps.size()), descheaps.data());
+		return {};
+	}
+	result<> commandlist::bind_rootsignature(const rootsignature& signature)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		auto dxsignature = cast<dx12_rootsignature>(signature.m_native_object);
+		if (!dxsignature)
+			return result_type::make_error("failed casting signature.m_native_object to dx12_rootsignature");
+
+		dxcmdlist->SetGraphicsRootSignature(dxsignature.get());
+		return {};
+	}
+	result<> commandlist::bind_pipeline(const pipeline& pipeline)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		auto dxpipeline = cast<dx12_pipeline>(pipeline.m_native_object);
+		if (!dxpipeline)
+			return result_type::make_error("failed casting pipeline.m_native to dx12_pipeline");
+
+		dxcmdlist->SetPipelineState(dxpipeline.get());
+		return {};
+	}
+	result<> commandlist::bind_texture_uav(const texture& texture, uint32 param_index)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+		
+		auto dxresource = cast<dx12_resource>(texture.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
+
+		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
+		dxcmdlist->SetGraphicsRootUnorderedAccessView(param_index, gpu_address);
+		return {};
+	}
+	result<> commandlist::bind_texture_srv(const texture& texture, uint32 param_index)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		auto dxresource = cast<dx12_resource>(texture.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
+
+		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
+		dxcmdlist->SetGraphicsRootShaderResourceView(param_index, gpu_address);
+		return {};
+	}
+	result<> commandlist::bind_buffer_uav(const buffer& buffer, uint32 param_index)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		auto dxresource = cast<dx12_resource>(buffer.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("buffer.m_native_object failed casting to dx12_resource!");
+
+		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
+		dxcmdlist->SetGraphicsRootUnorderedAccessView(param_index, gpu_address);
+		return {};
+	}
+	result<> commandlist::bind_buffer_srv(const buffer& buffer, uint32 param_index)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		auto dxresource = cast<dx12_resource>(buffer.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("buffer.m_native_object failed casting to dx12_resource!");
+
+		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
+		dxcmdlist->SetGraphicsRootShaderResourceView(param_index, gpu_address);
+		return {};
+	}
+	result<> commandlist::bind_buffer_cbv(const buffer& buffer, uint32 param_index)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		auto dxresource = cast<dx12_resource>(buffer.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("buffer.m_native_object failed casting to dx12_resource!");
+
+		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
+		dxcmdlist->SetGraphicsRootConstantBufferView(param_index, gpu_address);
+		return {};
+	}
+	result<> commandlist::bind_vertexbuffer(const buffer& vertexbuffer)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		auto dxresource = cast<dx12_resource>(vertexbuffer.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("vertexbuffer.m_native_object failed casting to dx12_resource!");
+
+		D3D12_VERTEX_BUFFER_VIEW dxview{};
+		dxview.BufferLocation = dxresource->GetGPUVirtualAddress();
+		dxview.SizeInBytes = (uint32)vertexbuffer.get_bytesize();
+		dxview.StrideInBytes = (uint32)vertexbuffer.get_bytestride();
+		dxcmdlist->IASetVertexBuffers(0u, 1u, &dxview);
+		return {};
+	}
+	result<> commandlist::bind_indexbuffer(const buffer& indexbuffer)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		auto dxresource = cast<dx12_resource>(indexbuffer.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("indexbuffer.m_native_object failed casting to dx12_resource!");
+
+		D3D12_INDEX_BUFFER_VIEW dxview{};
+		dxview.BufferLocation = dxresource->GetGPUVirtualAddress();
+		dxview.Format = DXGI_FORMAT_R32_UINT;
+		dxview.SizeInBytes = (uint32)indexbuffer.get_bytesize();
+		dxcmdlist->IASetIndexBuffer(&dxview);
+		return {};
+	}
+	result<> commandlist::draw(const draw_args& args)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		dxcmdlist->DrawInstanced(args.m_num_vertices, args.m_num_instances, args.m_start_vertex, args.m_start_instance);
+		return {};
+	}
+	result<> commandlist::draw_indexed(const draw_indexed_args& args)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		dxcmdlist->DrawIndexedInstanced(
+			args.m_num_indices, 
+			args.m_num_instances, 
+			args.m_start_index, 
+			args.m_start_vertex,
+			args.m_start_instance);
 		return {};
 	}
 

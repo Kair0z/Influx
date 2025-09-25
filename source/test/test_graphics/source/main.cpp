@@ -135,22 +135,22 @@ int rhi_main()
 	rhi::device_create_args dev_args{};
 
 	// dev_args.m_debug = true;
-	rhi::device dev				= rhi::create_device(dev_args).get();
-	
+	rhi::device dev = rhi::create_device(dev_args).get();
+
 	// getting the queue
-	rhi::queue queue			= dev.create(rhi::queue::default_graphics()).get();
-	
+	rhi::queue queue = dev.create(rhi::queue::default_graphics()).get();
+
 	// getting the commandlist
-	rhi::commandlist cmdlist	= dev.create(rhi::commandlist::default_graphics()).get();
+	rhi::commandlist cmdlist = dev.create(rhi::commandlist::default_graphics()).get();
 
 	// getting the swapchain
 	rhi::swapchain_create_args swapchain_args{};
 	{
-		swapchain_args.m_platform_instance	= platform::platform::get_current_instance();
-		swapchain_args.m_window				= window->get_platform_handle();
-		swapchain_args.m_dimensions			= window->get_dimensions();
-		swapchain_args.m_queue				= queue.m_native_object;
-		swapchain_args.m_format				= rhi::pixelformat::rgba_8_unorm();
+		swapchain_args.m_platform_instance = platform::platform::get_current_instance();
+		swapchain_args.m_window = window->get_platform_handle();
+		swapchain_args.m_dimensions = window->get_dimensions();
+		swapchain_args.m_queue = queue.m_native_object;
+		swapchain_args.m_format = rhi::pixelformat::rgba_8_unorm();
 	}
 	rhi::swapchain swapchain = dev.create(swapchain_args).get();
 
@@ -163,8 +163,8 @@ int rhi_main()
 		buff_args.m_bytesize = 4096u;
 		buff_args.m_bytestride = sizeof(float);
 		buff_args.m_memoryheap.m_flags |= rhi::e_memoryheap_flags::cpu_visible;
-		buff_args.m_bindflags = rhi::e_resource_bindflags::vertexbuffer;
 		buff_args.m_init_state;
+		buff_args.m_bindflags = rhi::e_resource_bindflags::vertexbuffer;
 		vertexbuffer = dev.create(buff_args).get();
 
 		buff_args.m_bindflags = rhi::e_resource_bindflags::constbuffer;
@@ -192,18 +192,18 @@ int rhi_main()
 			math::float3 m_position;
 			math::float3 m_colour;
 		};
-		struct index_data final 
-		{ 
-			uint32 m_index; 
+		struct index_data final
+		{
+			uint32 m_index;
 		};
 		vector<index_data> idata{};
 		vector<vertex_data> vdata{};
 		vdata.push_back({ { -0.5f, -0.5f,  0.0f }, { 1.0f, 0.0f, 0.0f } });
 		vdata.push_back({ { -0.5f,  0.5f,  0.0f }, { 0.0f, 1.0f, 0.0f } });
 		vdata.push_back({ {  0.5f,  0.5f,  0.0f }, { 0.0f, 0.0f, 1.0f } });
-		idata.push_back({0});
-		idata.push_back({1});
-		idata.push_back({2});
+		idata.push_back({ 0 });
+		idata.push_back({ 1 });
+		idata.push_back({ 2 });
 		vertexbuffer.write_datas(vdata).get();
 		indexbuffer.write_datas(idata).get();
 
@@ -221,14 +221,15 @@ int rhi_main()
 	renderpass_args.set_depth(tex_depth);
 	rhi::renderpass renderpass = dev.create(renderpass_args).get();
 
-#if 0
 	// compile our shaders
 	rhi::graphics_shaderslots pipeline_shaders{};
+	const bool is_vulkan = false;
 	{
 		const string folder = "D:/Git/Influx/source/test/test_graphics/shaders/";
 		const shader::e_shader_target target = shader::e_shader_target::_6_5;
-		const shader::e_shader_platform platform = shader::e_shader_platform::SPIRV;
-		
+		const shader::e_shader_platform platform = 
+			is_vulkan ? shader::e_shader_platform::SPIRV : shader::e_shader_platform::DXIL;
+
 		shader::compile_args args;
 		args.set_debug_level(shader::e_compile_debug_level::debug)
 			.set_include_folder(folder)
@@ -263,14 +264,27 @@ int rhi_main()
 		}
 	}
 
-	// create our pipeline
+	// create our pipeline (& signature)
+	rhi::rootsignature_create_args signature_desc{};
+	signature_desc.add_root_resource(rhi::root_param_resource::e_type::cbv, 0u);
+	rhi::rootsignature signature = dev.create(signature_desc).get();
+
 	rhi::graphics_pipeline_desc pipeline_desc{};
 	pipeline_desc.m_output_merger.m_rendertargets[0].m_enabled = true;
 	pipeline_desc.m_output_merger.m_rendertargets[0].m_blend = rhi::blend_desc::default_write_all();
 	pipeline_desc.m_output_merger.m_rendertargets[0].m_format = tex_color.get_format();
 	rhi::pipeline pipeline = dev.create(pipeline_shaders, pipeline_desc, renderpass).get();
-#endif
 
+	// create GPU descriptor heaps
+	rhi::descheap_create_args descheap_args{};
+	descheap_args.m_shader_visible = true;
+	descheap_args.m_num_descriptors = 1u;
+	descheap_args.m_type = rhi::e_descriptor_heap_type::rsc;
+	rhi::descheap gpu_resource_heap = dev.create(descheap_args).get();
+	descheap_args.m_type = rhi::e_descriptor_heap_type::sampler;
+	rhi::descheap gpu_sampler_heap = dev.create(descheap_args).get();
+
+	rhi::draw_indexed_args draw_args{};
 	bool is_quit = false;
 	while (!is_quit)
 	{
@@ -288,7 +302,15 @@ int rhi_main()
 		begin_args.set_depth(tex_depth);
 		cmdlist.renderpass_begin(dev, renderpass, begin_args).get();
 		{
-			
+			cmdlist.bind_descheaps(&gpu_resource_heap, &gpu_sampler_heap).get();
+			cmdlist.bind_pipeline(pipeline).get();
+			cmdlist.bind_rootsignature(signature).get();
+			cmdlist.bind_buffer_cbv(constbuffer, 0u).get();
+			cmdlist.bind_vertexbuffer(vertexbuffer).get();
+			cmdlist.bind_indexbuffer(indexbuffer).get();
+			draw_args.m_num_indices = (uint32)indexbuffer.get_num_elements();
+			draw_args.m_num_instances = 1u;
+			cmdlist.draw_indexed(draw_args).get();
 		}
 		cmdlist.renderpass_end().get();
 		cmdlist.end();

@@ -879,7 +879,6 @@ namespace influx::graphics
 				translate(sampler.m_common.m_visibility));
 		}
 
-		
 		// initialize the desc, and create the root signature
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 
