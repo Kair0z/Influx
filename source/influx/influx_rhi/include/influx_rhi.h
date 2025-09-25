@@ -17,8 +17,8 @@
 #define INFLUX_RHI_API __declspec(dllimport)
 #endif
 
-#define INFLUX_RHI_VULKAN	1
-#define INFLUX_RHI_D3D12	0
+#define INFLUX_RHI_VULKAN	0
+#define INFLUX_RHI_D3D12	1
 
 #include "influx_rhi/format.h"
 
@@ -59,6 +59,7 @@ typedef struct VkBuffer_T* VkBuffer;
 typedef struct VkPipeline_T* VkPipeline;
 typedef struct VkPipelineLayout_T* VkPipelineLayout;
 typedef struct VkDeviceMemory_T* VkDeviceMemory;
+typedef struct VkRenderPass_T* VkRenderPass;
 #endif
 
 namespace influx::rhi
@@ -74,7 +75,7 @@ namespace influx::rhi
 	class descheap;
 
 	// =============================================
-	// native objects
+	// [native objects]
 	using object_native			= void*;
 
 #if INFLUX_RHI_D3D12
@@ -98,6 +99,8 @@ namespace influx::rhi
 	using native_pipeline				= ID3D12PipelineState*;
 	using native_rootsignature			= ID3D12RootSignature*;
 	using native_gpu_address			= uint64;
+	using native_renderpass				= ID3D12Fence*;
+	
 #elif INFLUX_RHI_VULKAN
 	using native_instance				= VkInstance;
 	using native_physdevice				= VkPhysicalDevice;
@@ -116,6 +119,7 @@ namespace influx::rhi
 	using native_rootsignature			= VkPipelineLayout;
 	using native_descriptor				= uint64;
 	using native_gpu_address			= VkDeviceMemory;
+	using native_renderpass				= VkRenderPass;
 #else
 	using native_instance			= object_native;	// IDXGIFactory
 	using native_physdevice			= object_native;	// IDXGIAdapter1
@@ -133,18 +137,19 @@ namespace influx::rhi
 	using native_raytracing_pipeline = object_native;
 	using native_descriptor			= uint64;
 	using native_gpu_address		= object_native;
+	using native_renderpass			= object_native;
 #endif
 
 	// =============================================
-	// common types
+	// [common types]
 #pragma region common types
 	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
 	template <typename _t>
 	using optional = std::optional<_t>;
-
 	using platform_window_handle = void*;
 	using platform_instance_handle = void*;
+
 	enum class e_api : uint8
 	{
 		d3d12,
@@ -258,19 +263,19 @@ namespace influx::rhi
 		gen_write = copy_dst | all_uav,
 		all_shading = all_srv | all_uav | shading_rate | as_read
 	};
-	enum class e_resource_bindflags
+	enum class e_resource_bindflags : uint16
 	{
-		none,
-		rtv,
-		dsv,
-		srv,
-		uav,
-		copysrc,
-		copydst,
-		vertexbuffer,
-		constbuffer,
-		indexbuffer,
-		indirectbuffer,
+		none			= 0,
+		rtv				= 1 << 0,
+		dsv				= 1 << 1,
+		srv				= 1 << 2,
+		uav				= 1 << 3,
+		copysrc			= 1 << 4,
+		copydst			= 1 << 5,
+		vertexbuffer	= 1 << 6,
+		constbuffer		= 1 << 7,
+		indexbuffer		= 1 << 8,
+		indirectbuffer	= 1 << 9,
 	};
 	enum class e_load_op : uint8
 	{
@@ -417,7 +422,7 @@ namespace influx::rhi
 	};
 	struct color_attachment final
 	{
-		descriptor			m_rtv_descriptor;
+		bool				m_is_enabled;
 		e_load_op			m_load;
 		e_store_op			m_store;
 		math::float4		m_clear;
@@ -432,7 +437,7 @@ namespace influx::rhi
 	};
 	struct depth_attachment final
 	{
-		descriptor			m_dsv_descriptor;
+		bool				m_is_enabled = false;
 		pixelformat			m_format = pixelformat::d32();
 		e_load_op			m_depth_load;
 		e_store_op			m_depth_store;
@@ -440,19 +445,6 @@ namespace influx::rhi
 		e_load_op			m_stencil_load = e_load_op::no_access;
 		e_store_op			m_stencil_store = e_store_op::no_access;
 		uint8				m_stencil_clear = 0u;
-		bool				m_is_enabled = false;
-	};
-	struct renderpass_args final
-	{
-		vector<color_attachment>	m_color_attachments;
-		depth_attachment			m_depth_attachment;
-
-		uint32				m_width = 0u;
-		uint32				m_height = 0u;
-		e_renderpass_flags	m_flags = e_renderpass_flags::none;
-		
-		color_attachment& color(const texture& texture);
-		depth_attachment& depth(const texture& texture);
 	};
 	struct clear final
 	{
@@ -522,6 +514,33 @@ namespace influx::rhi
 	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
 	static constexpr uint32 k_max_num_rendertargets_per_draw = 8u;
 
+	struct framebuffer_desc final
+	{
+		math::uint2 m_dimensions;
+		color_attachment m_color_attachments[k_max_num_rendertargets_per_draw]{};
+		depth_attachment m_depth_attachment{};
+
+		inline bool is_depth_enabled() const
+		{
+			return m_depth_attachment.m_is_enabled;
+		}
+		inline uint32 get_num_enabled_colour_targets() const
+		{
+			uint32 num = 0u;
+			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+				num += (uint32)m_color_attachments[i].m_is_enabled;
+			return num;
+		}
+	};
+	struct begin_renderpass_args final
+	{
+		math::uint2 m_dimensions;
+		texture const* m_color_targets[k_max_num_rendertargets_per_draw];
+		texture const* m_depth_target;
+		
+		void set_color(const uint32 index, const texture& texture);
+		void set_depth(const texture& texture);
+	};
 	struct draw_args final
 	{
 		uint32 m_num_vertices;
@@ -554,6 +573,7 @@ namespace influx::rhi
 		memoryheap,
 		pipeline,
 		rootsignature,
+		renderpass,
 		num
 	};
 
@@ -1139,6 +1159,7 @@ namespace influx::rhi
 	struct pipeline_create_args final
 	{
 		native_device								m_device;
+		native_renderpass							m_renderpass;
 		e_pipeline_type								m_type{};
 		graphics_pipeline_desc						m_graphics{};
 		raytracing_pipeline_desc					m_raytracing{};
@@ -1153,8 +1174,15 @@ namespace influx::rhi
 	{
 		native_device m_device;
 	};
+	struct renderpass_create_args final
+	{
+		framebuffer_desc m_framebuffer_desc;
+		e_renderpass_flags	m_flags = e_renderpass_flags::none;
+		color_attachment& set_color(const uint32 index, const texture& texture);
+		depth_attachment& set_depth(const texture& texture);
+		native_device m_device;
+	};
 #pragma endregion
-
 	template <e_object _t>
 	using create_args = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		device_create_args,
@@ -1169,10 +1197,11 @@ namespace influx::rhi
 		texture_create_args,
 		memheap_create_args,
 		pipeline_create_args,
-		rootsignature_create_args>>;
+		rootsignature_create_args,
+		renderpass_create_args>>;
 
 	// =============================================
-	// [data_types] this is the extra data associated to the objects
+	// [data_types] this is the extra data associated to each API object
 #pragma region data
 	struct device_data final
 	{
@@ -1181,6 +1210,10 @@ namespace influx::rhi
 		uint32				m_descriptor_strides[k_num_descriptor_heap_types];
 		queue_families		m_queue_families{};
 		uset<object_native> m_children{};
+
+		// these are useful for internally creating rtvs / dsvs on the fly
+		native_descheap		m_internal_dsv_heap;
+		native_descheap		m_internal_rtv_heap;
 	};
 	struct queue_data final
 	{
@@ -1258,8 +1291,11 @@ namespace influx::rhi
 	{
 
 	};
-#pragma endregion
+	struct renderpass_data final
+	{
 
+	};
+#pragma endregion
 	template <e_object _t>
 	using data_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		device_data,
@@ -1274,7 +1310,8 @@ namespace influx::rhi
 		texture_data,
 		memheap_data,
 		pipeline_data,
-		rootsignature_data>>;
+		rootsignature_data,
+		renderpass_data>>;
 
 	template <e_object _t>
 	using native_type = std::tuple_element_t < static_cast<uint32>(_t), std::tuple<
@@ -1290,7 +1327,8 @@ namespace influx::rhi
 		native_texture,
 		native_memoryheap,
 		native_pipeline,
-		native_rootsignature>>;
+		native_rootsignature,
+		native_renderpass>>;
 
 	template <e_object _t>
 	class object
@@ -1321,10 +1359,30 @@ namespace influx::rhi
 	};
 
 	// =============================================
-	/* [class interfaces]
-	* these are wrapper classes that provide FUNCTIONS on top of the data they store in their base object class.
-	* use these to make API calls into the internal objects
+	/* [API class interfaces]
+	*	handles to each native API object can be obtained using the 'create_native' functions.
+	*	however the point is to use these handles with their implied shared functionality.
+	*   that's why this library is centered around using these class interfaces.
 	*/
+
+	class renderpass final : public object<e_object::renderpass>
+	{
+	public:
+		using data_type = renderpass_data;
+		using create_args = renderpass_create_args;
+
+		inline bool is_colour_target_enabled(const uint32 slot) const
+		{ return m_create_args.m_framebuffer_desc.m_color_attachments[slot].m_is_enabled; }
+
+		inline uint32 get_num_colour_targets() const
+		{ return m_create_args.m_framebuffer_desc.get_num_enabled_colour_targets(); }
+
+		inline bool is_depth_target_enabled() const
+		{ return m_create_args.m_framebuffer_desc.is_depth_enabled(); }
+
+		const framebuffer_desc& get_framebuffer_desc() const
+		{ return m_create_args.m_framebuffer_desc; }
+	};
 
 	class buffer final : public object<e_object::buffer>
 	{
@@ -1333,7 +1391,7 @@ namespace influx::rhi
 		using create_args = buffer_create_args;
 
 		INFLUX_RHI_API result<void*> map_begin(const map_args& args = map_args::full_range());
-		INFLUX_RHI_API result<> map_end();
+		INFLUX_RHI_API result<> map_end(const map_args& args);
 
 		template <typename _t, typename _func>
 		inline result<> map(_func&& func, const map_args& args = map_args::full_range())
@@ -1345,7 +1403,7 @@ namespace influx::rhi
 			
 			func(reinterpret_cast<_t*>(map_res.get()));
 
-			auto map_exit = map_end();
+			auto map_exit = map_end(args);
 			if (!map_exit)
 				return result_type::make_error("map_end() failed!");
 			return {};
@@ -1448,6 +1506,9 @@ namespace influx::rhi
 
 		inline static constexpr e_resource_type get_resource_type()
 		{ return e_resource_type::texture; }
+
+		inline e_texture_type get_texture_type() const
+		{ return m_create_args.m_type; }
 
 		inline e_resource_state get_init_resource_state() const
 		{ return m_create_args.m_init_state; }
@@ -1568,7 +1629,7 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> start(device& device);
 		INFLUX_RHI_API result<> start(native_commandpool pool);
 		INFLUX_RHI_API result<> submit(queue& queue);
-		INFLUX_RHI_API result<> renderpass_begin(device& device, pipeline& pipeline, const renderpass_args& args);
+		INFLUX_RHI_API result<> renderpass_begin(device& device, renderpass& pass, const begin_renderpass_args& args);
 		INFLUX_RHI_API result<> renderpass_end();
 		INFLUX_RHI_API result<> draw(const draw_args& args);
 		INFLUX_RHI_API result<> draw_indexed(const draw_indexed_args& args);
@@ -1641,13 +1702,19 @@ namespace influx::rhi
 	};
 
 	/*
-		device can be used to create objects similar to calling the global create-functions
-		creating through the device class will automatically override the created objects' m_device reference
-		if it has one
+	*	device has a bunch of create() functions.
+	*   these are helpers that essentially call create_native(obj) AND
+	*		- store their out_data in the wrapper object
+	*		- register their handle to this owning device (for later cleanup)
+	*	
+	*	using this API, use the device to create & clean up your resources!
 	*/
 	class device final : public object<e_object::device>
 	{
 	public:
+		using create_args = device_create_args;
+		using data_type = device_data;
+
 		INFLUX_RHI_API result<> create_rtv(const texture& texture, descriptor descriptor);
 		INFLUX_RHI_API result<> create_dsv(const texture& texture, descriptor descriptor);
 		INFLUX_RHI_API result<> create_sampview(const sampler& sampler, descriptor descriptor);
@@ -1668,13 +1735,17 @@ namespace influx::rhi
 		inline result<semaphore>		create(const semaphore_create_args& args);
 		inline result<texture>			create(const texture_create_args& args);
 		inline result<buffer>			create(const buffer_create_args& args);
-
-		inline result<pipeline>			create(const graphics_shaderslots& shaders, const graphics_pipeline_desc& desc)
+		inline result<renderpass>		create(const renderpass_create_args& args);
+		inline result<pipeline>			create(
+			const graphics_shaderslots& shaders, 
+			const graphics_pipeline_desc& desc,
+			const renderpass& renderpass)
 		{
 			pipeline_create_args args{};
 			args.m_type = e_pipeline_type::graphics;
 			args.m_graphics = desc;
 			args.m_graphics_shaders = shaders;
+			args.m_renderpass = renderpass.m_native_object;
 			return create(args);
 		}
 
@@ -1707,12 +1778,13 @@ namespace influx::rhi
 	}
 
 	// =============================================
-	/* [import methods]
-	* when you import an object (native pointer) the RHI will attempt to build a wrapped type
-	* based on the information it can parse from the pointer.
+	/* [import methods] (DX12 only)
+	* Dx12 handles store their meta-data (GetDesc())
+	* this API can import an object (native pointer) and attempt to build a corresponding wrapped type.
+	* based on what information it can parse from the pointer.
 	* 
 	* Vulkan does not store object metadata in it's handles.
-	* Therefore it is impossible to parse any info from them
+	* That makes this part of the API not supported for Vulkan.
 	*/
 #if !INFLUX_RHI_VULKAN
 	INFLUX_RHI_API result<buffer>			import_buffer(native_buffer native);
@@ -1742,6 +1814,7 @@ namespace influx::rhi
 	INFLUX_RHI_API result<native_texture>			create_native(const texture_create_args& args, texture_data* out_data = nullptr);
 	INFLUX_RHI_API result<native_pipeline>			create_native(const pipeline_create_args& args, pipeline_data* out_data = nullptr);
 	INFLUX_RHI_API result<native_rootsignature>		create_native(const rootsignature_create_args& args, rootsignature_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_renderpass>		create_native(const renderpass_create_args& args, renderpass_data* out_data = nullptr);
 	INFLUX_RHI_API result<> release(object_native native);
 
 	template <typename _t>
@@ -1931,25 +2004,63 @@ namespace influx::rhi
 			return result_type::make_error("failed registering new object!");
 		return res;
 	}
-	
-	inline color_attachment& renderpass_args::color(const texture& texture)
+	inline result<renderpass> device::create(const renderpass_create_args& args)
 	{
-		color_attachment attach{};
-		attach.m_rtv_descriptor = texture.m_data.m_texture_view;
-		attach.m_store;
-		attach.m_load;
-		attach.m_format = texture.get_format();
-		m_color_attachments.push_back(attach);
-		return m_color_attachments.back();
+		using result_type = result<renderpass>;
+		auto args_cpy = args;
+		args_cpy.m_device = (native_device)this->m_native_object;
+		auto res = influx::rhi::create<renderpass>(args_cpy);
+		if (!res)
+			return result_type::make_error("failed creating renderpass!");
+
+		auto reg = register_child(res.get());
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
 	}
-	inline depth_attachment& renderpass_args::depth(const texture& texture)
+
+	inline color_attachment& renderpass_create_args::set_color(const uint32 index, const texture& texture)
 	{
-		depth_attachment attach{};
-		attach.m_dsv_descriptor = texture.m_data.m_texture_view;
-		attach.m_format = texture.get_format();
-		attach.m_is_enabled = true;
-		m_depth_attachment = attach;
-		return m_depth_attachment;
+		color_attachment new_attach{};
+		new_attach.m_store;
+		new_attach.m_load;
+		new_attach.m_format = texture.get_format();
+		
+		if (m_framebuffer_desc.m_dimensions.is_zero())
+		{
+			m_framebuffer_desc.m_dimensions.x = texture.get_dimensions().x;
+			m_framebuffer_desc.m_dimensions.y = texture.get_dimensions().y;
+		}
+
+		color_attachment& target = m_framebuffer_desc.m_color_attachments[index];
+		target = new_attach;
+		target.m_is_enabled = true;
+		return target;
+	}
+	inline depth_attachment& renderpass_create_args::set_depth(const texture& texture)
+	{
+		depth_attachment new_attach{};
+		new_attach.m_format = texture.get_format();
+		new_attach.m_is_enabled = true;
+
+		if (m_framebuffer_desc.m_dimensions.is_zero())
+		{
+			m_framebuffer_desc.m_dimensions.x = texture.get_dimensions().x;
+			m_framebuffer_desc.m_dimensions.y = texture.get_dimensions().y;
+		}
+
+		depth_attachment& target = m_framebuffer_desc.m_depth_attachment;
+		target = new_attach;
+		target.m_is_enabled = true;
+		return target;
+	}
+	inline void begin_renderpass_args::set_color(const uint32 index, const texture& texture)
+	{
+		m_color_targets[index] = &texture;
+	}
+	inline void begin_renderpass_args::set_depth(const texture& texture)
+	{
+		m_depth_target = &texture;
 	}
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);

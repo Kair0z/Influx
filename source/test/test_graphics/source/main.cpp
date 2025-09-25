@@ -133,7 +133,8 @@ int rhi_main()
 
 	// creating the device
 	rhi::device_create_args dev_args{};
-	dev_args.m_debug = true;
+
+	// dev_args.m_debug = true;
 	rhi::device dev				= rhi::create_device(dev_args).get();
 	
 	// getting the queue
@@ -153,12 +154,12 @@ int rhi_main()
 	}
 	rhi::swapchain swapchain = dev.create(swapchain_args).get();
 
-	// creating resources
-	rhi::buffer vertexbuffer;
-	rhi::buffer constbuffer;
-	rhi::buffer indexbuffer;
-	rhi::texture tex_color;
-	rhi::texture tex_depth;
+	// creating resources (buffers & textures)
+	rhi::buffer vertexbuffer; rhi::buffer constbuffer; rhi::buffer indexbuffer;
+	rhi::texture tex_color; rhi::texture tex_depth;
+
+	rhi::descriptor rtv;
+	rhi::descriptor dsv;
 	{
 		// create (cpu-visible) buffers
 		rhi::buffer_create_args buff_args{};
@@ -207,7 +208,7 @@ int rhi_main()
 		idata.push_back({1});
 		idata.push_back({2});
 		vertexbuffer.write_datas(vdata).get();
-		indexbuffer.write_data(idata).get();
+		indexbuffer.write_datas(idata).get();
 
 		struct const_data final
 		{
@@ -217,10 +218,17 @@ int rhi_main()
 		constbuffer.write_data(cdata).get();
 	}
 
-	// create the pipeline
+	// first create the renderpass
+	rhi::renderpass_create_args renderpass_args{};
+	renderpass_args.set_color(0u, tex_color);
+	renderpass_args.set_depth(tex_depth);
+	rhi::renderpass renderpass = dev.create(renderpass_args).get();
+
+#if 0
+	// compile our shaders
 	rhi::graphics_shaderslots pipeline_shaders{};
 	{
-		const string folder = "E:/Git/Influx/source/test/test_graphics/shaders/";
+		const string folder = "D:/Git/Influx/source/test/test_graphics/shaders/";
 		const shader::e_shader_target target = shader::e_shader_target::_6_5;
 		const shader::e_shader_platform platform = shader::e_shader_platform::SPIRV;
 		
@@ -243,13 +251,6 @@ int rhi_main()
 			auto compile = shader::compile_shader_in_file(filepath, signature, args);
 			pipeline_shaders.set(rhi::e_graphics_shader_slots::vs, compile.get().m_bytecode);
 			pipeline_shaders.set(rhi::e_graphics_shader_slots::vs, { "main_vs" });
-
-			string bytecode;
-			for (const auto& byte : compile.get().m_bytecode)
-			{
-				bytecode.append({ static_cast<char>(byte) });
-			}
-			path::overwrite(to_wstring(folder + "debug.spv"), bytecode);
 		}
 		{
 			string filepath = folder + "main_ps.hlsl";
@@ -264,31 +265,31 @@ int rhi_main()
 			pipeline_shaders.set(rhi::e_graphics_shader_slots::ps, { "main_ps" });
 		}
 	}
+
+	// create our pipeline
 	rhi::graphics_pipeline_desc pipeline_desc{};
 	pipeline_desc.m_output_merger.m_rendertargets[0].m_enabled = true;
 	pipeline_desc.m_output_merger.m_rendertargets[0].m_blend = rhi::blend_desc::default_write_all();
 	pipeline_desc.m_output_merger.m_rendertargets[0].m_format = tex_color.get_format();
-	rhi::pipeline pipeline = dev.create(pipeline_shaders, pipeline_desc).get();
-
-	rhi::renderpass_args renderpass{};
-	{
-		renderpass.color(tex_color);
-		renderpass.depth(tex_depth);
-	}
+	rhi::pipeline pipeline = dev.create(pipeline_shaders, pipeline_desc, renderpass).get();
+#endif
 
 	bool is_quit = false;
 	while (!is_quit)
 	{
 		window->poll_events(is_quit);
-		if (is_quit)
-			break;
+		if (is_quit) break;
 
 		swapchain.acquire_backbuffer(dev.m_native_object);
 
 		cmdlist.start(dev);
 		rhi::texture& backbuffer = swapchain.get_backbuffer_resource().get();
-		cmdlist.clear_texture(dev, backbuffer, rhi::clear::colour({1,0,0,1})).get();
-		cmdlist.renderpass_begin(dev, pipeline, renderpass).get();
+		cmdlist.clear_texture(dev, backbuffer, rhi::clear::colour({1,1,0,1})).get();
+
+		rhi::begin_renderpass_args begin_args{};
+		begin_args.set_color(0u, tex_color);
+		begin_args.set_depth(tex_depth);
+		cmdlist.renderpass_begin(dev, renderpass, begin_args).get();
 		{
 			
 		}

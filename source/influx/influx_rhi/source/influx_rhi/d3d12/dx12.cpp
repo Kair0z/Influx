@@ -21,6 +21,7 @@ namespace influx::rhi
 	using dx12_allocator	= ID3D12CommandAllocator;
 	using dx12_descheap		= ID3D12DescriptorHeap;
 	using dx12_fence		= ID3D12Fence;
+	using dx12_renderpass	= ID3D12Fence;
 
 	template <typename _t, typename _p>
 	inline result<_t*> cast(_p* ptr)
@@ -97,6 +98,15 @@ namespace influx::rhi
 		if (has_flag(state, e_resource_state::present))			result |= D3D12_RESOURCE_STATE_PRESENT;
 		return result;
 	}
+	D3D12_RESOURCE_FLAGS translate(e_resource_bindflags flags)
+	{
+		D3D12_RESOURCE_FLAGS result = D3D12_RESOURCE_FLAG_NONE;
+		if (has_flag(flags, e_resource_bindflags::rtv)) result |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		if (has_flag(flags, e_resource_bindflags::dsv)) result |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		if (has_flag(flags, e_resource_bindflags::uav)) result |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		if (has_flag(flags, e_resource_bindflags::srv)) result |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+		return result;
+	}
 	e_descriptor_heap_type translate(D3D12_DESCRIPTOR_HEAP_TYPE type)
 	{
 		switch (type)
@@ -120,6 +130,47 @@ namespace influx::rhi
 		case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return e_resource_type::texture;
 		}
 	}
+	D3D12_DSV_DIMENSION translate_dsv(e_texture_type type, uint32 array_num)
+	{
+		if (array_num > 1u)
+		{
+			switch (type)
+			{
+			case e_texture_type::texture1D: return D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+			case e_texture_type::texture2D: return D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+			}
+		}
+		else
+		{
+			switch (type)
+			{
+			case e_texture_type::texture1D: return D3D12_DSV_DIMENSION_TEXTURE1D;
+			case e_texture_type::texture2D: return D3D12_DSV_DIMENSION_TEXTURE2D;
+			}
+		}
+		return D3D12_DSV_DIMENSION_UNKNOWN;
+	}
+	D3D12_RTV_DIMENSION translate_rtv(e_texture_type type, uint32 array_num)
+	{
+		if (array_num > 1u)
+		{
+			switch (type)
+			{
+			case e_texture_type::texture1D: return D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+			case e_texture_type::texture2D: return D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+			}
+		}
+		else
+		{
+			switch (type)
+			{
+			case e_texture_type::texture1D: return D3D12_RTV_DIMENSION_TEXTURE1D;
+			case e_texture_type::texture2D: return D3D12_RTV_DIMENSION_TEXTURE2D;
+			case e_texture_type::texture3D: return D3D12_RTV_DIMENSION_TEXTURE3D;
+			}
+		}
+		return D3D12_RTV_DIMENSION_UNKNOWN;
+	}
 	D3D12_RESOURCE_DIMENSION translate(e_resource_type res_type, e_texture_type tex_type = e_texture_type::num)
 	{
 		switch (res_type)
@@ -136,6 +187,41 @@ namespace influx::rhi
 			return D3D12_RESOURCE_DIMENSION_BUFFER;
 		}
 		return D3D12_RESOURCE_DIMENSION_UNKNOWN;
+	}
+	constexpr D3D12_RENDER_PASS_FLAGS translate(e_renderpass_flags flags)
+	{
+		D3D12_RENDER_PASS_FLAGS translated = D3D12_RENDER_PASS_FLAG_NONE;
+		if (flags & e_renderpass_flags::read_only_depth) translated |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_DEPTH;
+		if (flags & e_renderpass_flags::read_only_stencil) translated |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_STENCIL;
+		if (flags & e_renderpass_flags::allow_uav_write) translated |= D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES;
+		if (flags & e_renderpass_flags::suspending) translated |= D3D12_RENDER_PASS_FLAG_SUSPENDING_PASS;
+		if (flags & e_renderpass_flags::resuming) translated |= D3D12_RENDER_PASS_FLAG_RESUMING_PASS;
+		return translated;
+	}
+	constexpr D3D12_RENDER_PASS_BEGINNING_ACCESS translate(e_load_op load_op)
+	{
+		D3D12_RENDER_PASS_BEGINNING_ACCESS access{};
+		switch (load_op)
+		{
+		case e_load_op::discard: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD; break;
+		case e_load_op::preserve: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE; break;
+		case e_load_op::clear: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR; break;
+		case e_load_op::no_access: access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS; break;
+		}
+
+		return access;
+	}
+	constexpr D3D12_RENDER_PASS_ENDING_ACCESS translate(e_store_op store_op)
+	{
+		D3D12_RENDER_PASS_ENDING_ACCESS access{};
+		switch (store_op)
+		{
+		case e_store_op::discard: access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD; break;
+		case e_store_op::preserve: access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE; break;
+		case e_store_op::resolve: access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE; break;
+		case e_store_op::no_access: access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS; break;
+		}
+		return access;
 	}
 	static constexpr uint32 k_num_dxgi_formats = 256u;
 	class static_pixel_formats final
@@ -250,7 +336,7 @@ namespace influx::rhi
 		// if no physical device was specified,
 		// find a physical device from querying..
 		device_create_args edited_args = args;
-		if (!edited_args.m_physdevice.has_value())
+		if (!args.m_physdevice.has_value())
 		{
 			vector<dx12_physdevice*> physical_devices{};
 			constexpr bool prefer_performance = true;
@@ -340,10 +426,33 @@ namespace influx::rhi
 			}
 		}
 
+		// create internal descriptor heaps
+		// (only if we can carry that into out_data)
+		dx12_descheap* int_rtv_heap = nullptr;
+		dx12_descheap* int_dsv_heap = nullptr;
+		if (out_data != nullptr)
+		{
+			descheap_create_args descheap_args{};
+			descheap_args.m_device = dxdevice;
+			descheap_args.m_num_descriptors = k_max_num_rendertargets_per_draw;
+			descheap_args.m_shader_visible = false;
+			descheap_args.m_type = e_descriptor_heap_type::rtv;
+			auto rtv_heap = create_native(descheap_args);
+			if (!rtv_heap)
+				return result_type::make_error("dx12 requires creating an internal RTV heap, but that failed (for some reason)");
+			int_rtv_heap = rtv_heap.get();
+
+			descheap_args.m_num_descriptors = 1u;
+			auto dsv_heap = create_native(descheap_args);
+			if (!dsv_heap)
+				return result_type::make_error("dx12 requires creating an internal DSV heap, but that failed (for some reason)");
+			int_dsv_heap = dsv_heap.get();
+		}
+
 		// setup output data:
 		// - descriptor strides
 		// - dxgi factory
-		if (out_data)
+		if (out_data != nullptr)
 		{
 			out_data->m_physical_device = dxphysdevice.get();
 			out_data->m_instance = out_data->m_instance = dxfactory;
@@ -351,6 +460,8 @@ namespace influx::rhi
 			out_data->m_descriptor_strides[1] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 			out_data->m_descriptor_strides[2] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			out_data->m_descriptor_strides[3] = dxdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+			out_data->m_internal_rtv_heap = int_rtv_heap;
+			out_data->m_internal_dsv_heap = int_dsv_heap;
 		}
 		
 		return hres_to_result<native_device>(hres, dxdevice);
@@ -582,6 +693,8 @@ namespace influx::rhi
 
 		ID3D12Resource* resource = nullptr;
 		D3D12_HEAP_PROPERTIES heap_props{};
+		heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
+
 		D3D12_HEAP_FLAGS heap_flags{};
 		if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_visible))
 		{
@@ -589,15 +702,24 @@ namespace influx::rhi
 		}
 
 		D3D12_RESOURCE_DESC dxdesc{};
-		D3D12_RESOURCE_STATES dxstates{};
-		D3D12_CLEAR_VALUE dxclear{};
+		dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		dxdesc.Format = DXGI_FORMAT_UNKNOWN;
+		dxdesc.MipLevels = 1u;
+		dxdesc.Alignment = 0u;
+		dxdesc.Flags = translate(args.m_bindflags);
+		dxdesc.Width = args.m_bytesize;
+		dxdesc.Height = 1u;
+		dxdesc.DepthOrArraySize = 1u;
+		dxdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		dxdesc.SampleDesc.Count = 1u;
+		dxdesc.SampleDesc.Quality = 0u;
 
 		HRESULT hres = device->CreateCommittedResource(
 			&heap_props,
 			heap_flags,
 			&dxdesc,
-			dxstates,
-			&dxclear,
+			translate(args.m_init_state),
+			nullptr,
 			IID_PPV_ARGS(&resource));
 
 		return hres_to_result<native_buffer>(hres, resource);
@@ -614,28 +736,40 @@ namespace influx::rhi
 			return result_type::make_error("args.m_device failed casting to dx12_device!");
 
 		D3D12_HEAP_PROPERTIES heap_props{};
+		heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
+
 		D3D12_HEAP_FLAGS heap_flags{};
-		// todo...
+		if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_visible))
+		{
+			heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
+		}
+
 		D3D12_RESOURCE_DESC dxdesc{};
 		dxdesc.Dimension = translate(e_resource_type::texture, args.m_type);
-		D3D12_RESOURCE_STATES dxstates{};
+		dxdesc.Format = translate(args.m_format);
+		dxdesc.MipLevels = args.m_num_mips;
+		dxdesc.Alignment = 0u;
+		dxdesc.DepthOrArraySize = args.m_arraysize > 1 ? args.m_arraysize : args.m_dimensions.z;
+		dxdesc.Flags = translate(args.m_bindflags);
+		dxdesc.Width = args.m_dimensions.x;
+		dxdesc.Height = args.m_dimensions.y;
+		dxdesc.SampleDesc.Count = 1u;
+		dxdesc.SampleDesc.Quality = 0u;
+
+		D3D12_RESOURCE_STATES dxstates = translate(args.m_init_state);
 		D3D12_CLEAR_VALUE dxclear{};
+		dxclear.Format = translate(args.m_format);
 
 		dx12_resource* resource = nullptr;
 		HRESULT hres = {};
-		if (args.m_heap.has_value())
-		{
-		}
-		else
-		{
-			hres = device->CreateCommittedResource(
-				&heap_props,
-				heap_flags,
-				&dxdesc,
-				dxstates,
-				&dxclear,
-				IID_PPV_ARGS(&resource));
-		}
+		hres = device->CreateCommittedResource(
+			&heap_props,
+			heap_flags,
+			&dxdesc,
+			dxstates,
+			&dxclear,
+			IID_PPV_ARGS(&resource));
+
 		return hres_to_result<native_texture>(hres, resource);
 	}
 
@@ -689,6 +823,26 @@ namespace influx::rhi
 		return {};
 	}
 
+	result<native_renderpass> create_native(const renderpass_create_args& args, renderpass_data* out_data)
+	{
+		using result_type = result<native_renderpass>;
+
+		fence_create_args fargs{};
+		fargs.m_device = args.m_device;
+		fargs.m_init_value = 0u;
+		fargs.m_type;
+		auto native = create_native(fargs);
+		if (!native)
+			return result_type::make_error("failed creating native");
+
+		if (out_data)
+		{
+			out_data;
+		}
+
+		return native;
+	}
+
 	result<> release(object_native native)
 	{
 		using result_type = result<>;
@@ -738,6 +892,8 @@ namespace influx::rhi
 		texture imported{};
 		imported.m_native_object = native;
 		imported.m_create_args.m_device = dxdevice;
+		imported.m_create_args = texture_create_args::tex2D({ desc.Width, desc.Height });
+		imported.m_create_args;
 		return imported;
 	}
 
@@ -843,6 +999,7 @@ namespace influx::rhi
 		device->CreateRenderTargetView(resource.get(), &desc, dxdescriptor);
 		return {};
 	}
+	
 	result<> device::create_dsv(const texture& texture, descriptor descriptor)
 	{
 		using result_type = result<>;
@@ -975,6 +1132,39 @@ namespace influx::rhi
 		device->CreateUnorderedAccessView(resource.get(), nullptr, &desc, dxdescriptor);
 		return {};
 	}
+
+	// [buffer]
+	result<void*> buffer::map_begin(const map_args& args)
+	{
+		using result_type = result<void*>;
+
+		auto resource = cast<dx12_resource>(m_native_object);
+		if (!resource)
+			return result_type::make_error("buffer.m_native_object failed casting to dx12_resource!");
+
+		void* result;
+		D3D12_RANGE range{};
+		range.Begin = args.m_offset;
+		range.End = math::minimum<uint64>((uint64)(args.m_bytesize - args.m_offset), m_data.m_bytesize);
+		HRESULT hres = resource->Map(0u, &range, &result);
+		if (hres != S_OK)
+			return result_type::make_error("ID3D12Resource::Map() failed");
+		return result;
+	}
+	result<> buffer::map_end(const map_args& args)
+	{
+		using result_type = result<>;
+
+		auto resource = cast<dx12_resource>(m_native_object);
+		if (!resource)
+			return result_type::make_error("buffer.m_native_object failed casting to dx12_resource!");
+
+		D3D12_RANGE range{};
+		range.Begin = args.m_offset;
+		range.End = math::minimum<uint64>((uint64)(args.m_bytesize - args.m_offset), m_data.m_bytesize);
+		resource->Unmap(0u, &range);
+		return {};
+	}
 	
 	// [fence - interface]
 	result<> fence::queue_signal(uint64 signal_value, const queue& queue)
@@ -1070,6 +1260,10 @@ namespace influx::rhi
 	}
 
 	// [swapchain - interface]
+	result<> swapchain::acquire_backbuffer(native_device device)
+	{
+		return {};
+	}
 	result<> swapchain::present(const present_args& args) const
 	{
 		using result_type = result<>;
@@ -1177,7 +1371,108 @@ namespace influx::rhi
 		return formats;
 	}
 
+	static result<descriptor> create_rtv(device& device, const texture& texture);
+	static result<descriptor> create_dsv(device& device, const texture& texture);
+
 	// [commandlist - interface]
+	result<> commandlist::renderpass_begin(device& device, renderpass& pass, const begin_renderpass_args& args)
+	{
+		using result_type = result<>;
+
+		ID3D12GraphicsCommandList7* dxcommandlist = (ID3D12GraphicsCommandList7*)m_native_object;
+		if (dxcommandlist == nullptr)
+			return result_type::make_error("failed");
+
+		const auto& pass_color_attachments = pass.m_create_args.m_framebuffer_desc.m_color_attachments;
+		const uint32 num_colour_targets = pass.get_num_colour_targets();
+		vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rtvs{};
+		for (uint64 i = 0u; i < num_colour_targets; ++i)
+		{
+			const auto& attachment = pass_color_attachments[i];
+			if (attachment.m_is_enabled == false)
+				continue;
+
+			auto descriptor = create_rtv(device, *args.m_color_targets[i]);
+			if (!descriptor)
+				return result_type::make_error("failed creating render target view for texture");
+			
+			rtvs.push_back({});
+			rtvs[i].cpuDescriptor.ptr = (SIZE_T)descriptor.get().m_cpu_address;
+			rtvs[i].BeginningAccess = translate(attachment.m_load);
+			rtvs[i].EndingAccess = translate(attachment.m_store);
+
+			// load: preserve
+			if (attachment.m_load == e_load_op::preserve)
+			{
+				rtvs[i].BeginningAccess.PreserveLocal.AdditionalHeight = 0u;
+				rtvs[i].BeginningAccess.PreserveLocal.AdditionalWidth = 0u;
+			}
+			// load: clear
+			if (attachment.m_load == e_load_op::clear)
+			{
+				rtvs[i].BeginningAccess.Clear.ClearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				memcpy(rtvs[i].BeginningAccess.Clear.ClearValue.Color, attachment.m_clear.m_data, sizeof(FLOAT[4]));
+			}
+			// store: resolve
+			if (attachment.m_store == e_store_op::resolve)
+			{
+				const auto& resolve = attachment.m_resolve;
+				rtvs[i].EndingAccess.Resolve.Format = translate(attachment.m_format);
+				// rtvs[i].EndingAccess.Resolve.pSrcResource = resolve.m_source->get_native<ID3D12Resource>();
+				// rtvs[i].EndingAccess.Resolve.pDstResource = resolve.m_dest->get_native<ID3D12Resource>();
+				rtvs[i].EndingAccess.Resolve.PreserveResolveSource = resolve.m_keep_source;
+				rtvs[i].EndingAccess.Resolve.pSubresourceParameters;
+				rtvs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_MIN;
+				rtvs[i].EndingAccess.Resolve.pSubresourceParameters;
+				rtvs[i].EndingAccess.Resolve.SubresourceCount = 0u;
+			}
+
+			// store : preserve
+			if (attachment.m_store == e_store_op::preserve)
+			{
+				rtvs[i].EndingAccess.PreserveLocal.AdditionalHeight = 0u;
+				rtvs[i].EndingAccess.PreserveLocal.AdditionalWidth = 0u;
+			}
+		}
+
+		const auto& depth_attachment = pass.m_create_args.m_framebuffer_desc.m_depth_attachment;
+		D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsv = nullptr;
+		if (depth_attachment.m_is_enabled)
+		{
+			static D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsv_desc{};
+
+			auto descriptor = create_dsv(device, *args.m_depth_target);
+			if (!descriptor)
+				return result_type::make_error("failed creating depth stencil view for texture");
+
+			dsv_desc.cpuDescriptor.ptr		= (SIZE_T)descriptor.get().m_cpu_address;
+			dsv_desc.DepthBeginningAccess	= translate(depth_attachment.m_depth_load);
+			dsv_desc.StencilBeginningAccess = translate(depth_attachment.m_stencil_load);
+			dsv_desc.DepthEndingAccess		= translate(depth_attachment.m_depth_store);
+			dsv_desc.StencilEndingAccess	= translate(depth_attachment.m_stencil_store);
+			dsv_desc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = depth_attachment.m_stencil_clear;
+			dsv_desc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = depth_attachment.m_depth_clear;
+			dsv_desc.DepthBeginningAccess.Clear.ClearValue.Format = translate(depth_attachment.m_format);
+			dsv = &dsv_desc;
+		}
+
+		D3D12_RENDER_PASS_FLAGS flags = translate(pass.m_create_args.m_flags);
+		dxcommandlist->BeginRenderPass((uint32)rtvs.size(), rtvs.data(), dsv, flags);
+
+		// m_is_in_renderpass = true;
+		return {};
+	}
+	result<> commandlist::renderpass_end()
+	{
+		using result_type = result<>;
+
+		ID3D12GraphicsCommandList7* dxcommandlist = (ID3D12GraphicsCommandList7*)m_native_object;
+		if (dxcommandlist == nullptr)
+			return result_type::make_error("failed");
+
+		dxcommandlist->EndRenderPass();
+		return {};
+	}
 	result<> commandlist::start(device& device)
 	{
 		if (m_data.m_current_pool == nullptr)
@@ -1217,7 +1512,6 @@ namespace influx::rhi
 		hres = dxcommandlist->Reset(dxallocator.get(), dxinitpipeline);
 		return {};
 	}
-
 	result<> commandlist::end()
 	{
 		ID3D12GraphicsCommandList* dxcommandlist = (ID3D12GraphicsCommandList*)m_native_object;
@@ -1332,7 +1626,112 @@ namespace influx::rhi
 		return {};
 	}
 
-	// [descheap - interface]
+	inline static result<descriptor> create_rtv(device& device, const texture& texture)
+	{
+		// 1. create RTV on the internal heap
+		dx12_device* dxdevice = device.m_native_object;
+		dx12_resource* dxresource = texture.m_native_object;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = device.m_data.m_internal_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+		D3D12_RENDER_TARGET_VIEW_DESC rtv_desc{};
+		const uint32 arraysize = texture.get_arraysize();
+		rtv_desc.ViewDimension = translate_rtv(texture.get_texture_type(), arraysize);
+		rtv_desc.Format = translate(texture.get_format());
+		const uint32 mipslice = 0u;
+		const uint32 planeslice = 0u;
+		const uint32 firstarrayslice = 0u;
+		switch (rtv_desc.ViewDimension)
+		{
+		case D3D12_RTV_DIMENSION_TEXTURE1D:
+			rtv_desc.Texture1D.MipSlice = mipslice;
+			break;
+		case D3D12_RTV_DIMENSION_TEXTURE2D:
+			rtv_desc.Texture2D.MipSlice = mipslice;
+			rtv_desc.Texture2D.PlaneSlice = planeslice;
+			break;
+		case D3D12_RTV_DIMENSION_TEXTURE1DARRAY:
+			rtv_desc.Texture1DArray.ArraySize = arraysize;
+			rtv_desc.Texture1DArray.FirstArraySlice = firstarrayslice;
+			rtv_desc.Texture1DArray.MipSlice = mipslice;
+			break;
+		case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
+			rtv_desc.Texture2DArray.ArraySize = arraysize;
+			rtv_desc.Texture2DArray.FirstArraySlice = firstarrayslice;
+			rtv_desc.Texture2DArray.MipSlice = mipslice;
+			rtv_desc.Texture2DArray.PlaneSlice = planeslice;
+			break;
+		case D3D12_RTV_DIMENSION_TEXTURE3D:
+			rtv_desc.Texture3D.FirstWSlice = firstarrayslice;
+			rtv_desc.Texture3D.MipSlice = mipslice;
+			rtv_desc.Texture3D.WSize = texture.get_depth();
+			break;
+		}
+		dxdevice->CreateRenderTargetView(dxresource, &rtv_desc, handle);
+		
+		descriptor result{};
+		result.m_cpu_address = handle.ptr;
+		return result;
+	}
+	inline static result<descriptor> create_dsv(device& device, const texture& texture)
+	{
+		// 1. create RTV on the internal heap
+		dx12_device* dxdevice = device.m_native_object;
+		dx12_resource* dxresource = texture.m_native_object;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = device.m_data.m_internal_dsv_heap->GetCPUDescriptorHandleForHeapStart();
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc{};
+		const uint32 arraysize = texture.get_arraysize();
+		dsv_desc.ViewDimension = translate_dsv(texture.get_texture_type(), arraysize);
+		dsv_desc.Format = translate(texture.get_format());
+		dsv_desc.Flags;
+		const uint32 mipslice = 0u;
+		const uint32 planeslice = 0u;
+		const uint32 firstarrayslice = 0u;
+		switch (dsv_desc.ViewDimension)
+		{
+		case D3D12_DSV_DIMENSION_TEXTURE1D:
+			dsv_desc.Texture1D.MipSlice = mipslice;
+			break;
+		case D3D12_DSV_DIMENSION_TEXTURE2D:
+			dsv_desc.Texture2D.MipSlice = mipslice;
+			break;
+		case D3D12_DSV_DIMENSION_TEXTURE1DARRAY:
+			dsv_desc.Texture1DArray.ArraySize = arraysize;
+			dsv_desc.Texture1DArray.FirstArraySlice = firstarrayslice;
+			dsv_desc.Texture1DArray.MipSlice = mipslice;
+			break;
+		case D3D12_DSV_DIMENSION_TEXTURE2DARRAY:
+			dsv_desc.Texture2DArray.ArraySize = arraysize;
+			dsv_desc.Texture2DArray.FirstArraySlice = firstarrayslice;
+			dsv_desc.Texture2DArray.MipSlice = mipslice;
+			break;
+		}
+		dxdevice->CreateDepthStencilView(dxresource, &dsv_desc, handle);
+
+		descriptor result{};
+		result.m_cpu_address = handle.ptr;
+		return result;
+	}
+	
+	result<> commandlist::clear_texture(device& device, const texture& texture, const clear& clear)
+	{
+		using result_type = result<>;
+		dx12_descheap* internal_rtv_heap = device.m_data.m_internal_rtv_heap;
+		if (internal_rtv_heap == nullptr)
+			return result_type::make_error("device.m_data.m_internal_rtv_heap is nullptr!");
+
+		auto new_rtv = create_rtv(device, texture);
+		if (!new_rtv)
+			return result_type::make_error("failed creating RTV");
+
+		dx12_commandlist* dxcommandlist = cast<dx12_commandlist>(m_native_object).get();
+		float color[4u] = { clear.m_colour.x, clear.m_colour.y, clear.m_colour.z, clear.m_colour.w };
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = { .ptr = new_rtv.get().m_cpu_address };
+		dxcommandlist->ClearRenderTargetView(handle, color, 0u, nullptr);
+		return {};
+	}
+
+	// [descheap]
 	result<uint32> descheap::allocate(uint32 num_descriptors)
 	{
 		using result_type = result<uint32>;

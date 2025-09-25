@@ -1001,7 +1001,8 @@ namespace influx::rhi
 	}
 	
 	result<native_pipeline> create_native_graphics_pipeline(
-		native_device device,
+		native_device vkdevice,
+		native_renderpass vkrenderpass,
 		const graphics_pipeline_desc& desc, 
 		const graphics_shaderslots& shaders,
 		pipeline_data* out_data)
@@ -1012,59 +1013,6 @@ namespace influx::rhi
 		const uint32 num_colour_targets = desc.m_output_merger.get_num_enabled_rendertargets();
 
 		const output_merger& output_merger = desc.m_output_merger;
-
-		// create an implicit renderpass
-		VkRenderPass renderpass;
-		{
-			// translate the attachments
-			vector<VkAttachmentDescription> attachments{};
-			uint32 num_attachments = has_depth ? num_colour_targets + 1 : num_colour_targets;
-			attachments.reserve(num_attachments);
-			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
-			{
-				if (output_merger.m_rendertargets[i].m_enabled)
-					attachments.push_back(translate(output_merger.m_rendertargets[i]));
-			}
-			if (has_depth) attachments.push_back(translate(output_merger.m_depthtarget));
-
-			// make 1 subpass
-			vector<VkSubpassDescription> subpasses{};
-			vector<VkAttachmentReference> color_refs{};
-			VkAttachmentReference depth_ref = {};
-			{
-				VkSubpassDescription subpass{};
-				// translate the attachment references
-				color_refs.resize(num_colour_targets);
-				for (uint32 i = 0u; i < num_colour_targets; ++i)
-				{
-					color_refs[i].attachment = i;
-					color_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				}
-				depth_ref.attachment = num_colour_targets; // at depth index 
-				depth_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-				subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-				subpass.colorAttachmentCount = 1;
-				subpass.pColorAttachments = color_refs.data();
-				subpass.pDepthStencilAttachment = has_depth ? &depth_ref : nullptr;
-				subpasses.push_back(subpass);
-			}
-
-			// no dependencies (1 subpass)
-			vector<VkSubpassDependency> dependencies{};
-			VkRenderPassCreateInfo info{};
-			info.attachmentCount = num_attachments;
-			info.dependencyCount = static_cast<uint32>(dependencies.size());
-			info.flags = {};
-			info.pAttachments = attachments.data();
-			info.pDependencies = dependencies.data();
-			info.pSubpasses = subpasses.data();
-			info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			info.subpassCount = static_cast<uint32>(subpasses.size());
-			auto vkres = vkCreateRenderPass(device, &info, nullptr, &renderpass);
-			if (vkres != VK_SUCCESS)
-				return result_type::make_error("vkCreateRenderPass failed!");
-		}
 
 		// create the shader modules
 		vector<VkPipelineShaderStageCreateInfo> vkshaderinfos{};
@@ -1087,7 +1035,7 @@ namespace influx::rhi
 					info.flags;
 					vkmodules.push_back({});
 					VkShaderModule& current_module = vkmodules.back();
-					auto vkres = vkCreateShaderModule(device, &info, nullptr, &current_module);
+					auto vkres = vkCreateShaderModule(vkdevice, &info, nullptr, &current_module);
 					if (vkres != VK_SUCCESS)
 						return result_type::make_error("vkCreateShaderModule failed!");
 
@@ -1219,7 +1167,7 @@ namespace influx::rhi
 			descriptorLayoutCreateInfo.bindingCount = 1;
 			descriptorLayoutCreateInfo.pBindings = &layoutBinding;
 
-			auto vkres = vkCreateDescriptorSetLayout(device, &descriptorLayoutCreateInfo, nullptr, &vkrootsignature);
+			auto vkres = vkCreateDescriptorSetLayout(vkdevice, &descriptorLayoutCreateInfo, nullptr, &vkrootsignature);
 			if (vkres != VK_SUCCESS)
 				return result_type::make_error("vkCreateDescriptorSetLayout failed!");
 		}
@@ -1230,7 +1178,7 @@ namespace influx::rhi
 		layoutCreateInfo.pSetLayouts = &vkrootsignature;
 
 		VkPipelineLayout vklayout;
-		auto vkres = vkCreatePipelineLayout(device, &layoutCreateInfo, nullptr, &vklayout);
+		auto vkres = vkCreatePipelineLayout(vkdevice, &layoutCreateInfo, nullptr, &vklayout);
 		if (vkres != VK_SUCCESS)
 			return result_type::make_error("vkCreatePipelineLayout failed!");
 
@@ -1248,12 +1196,12 @@ namespace influx::rhi
 			pipelineCreateInfo.pMultisampleState = &multisampleCreateInfo;
 			pipelineCreateInfo.pColorBlendState = &colorBlendCreateInfo;
 			pipelineCreateInfo.layout = vklayout;
-			pipelineCreateInfo.renderPass = renderpass;
+			pipelineCreateInfo.renderPass = vkrenderpass;
 			pipelineCreateInfo.subpass = 0;
 			pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 			pipelineCreateInfo.basePipelineIndex = -1;
 
-			vkres = vkCreateGraphicsPipelines(device, nullptr, 1u, &pipelineCreateInfo, nullptr, &vkpipeline);
+			vkres = vkCreateGraphicsPipelines(vkdevice, nullptr, 1u, &pipelineCreateInfo, nullptr, &vkpipeline);
 			if (vkres != VK_SUCCESS)
 				return result_type::make_error("vkCreateGraphicsPipelines failed!");
 		}
@@ -1261,7 +1209,7 @@ namespace influx::rhi
 		if (out_data)
 		{
 			out_data->m_rootsignature = vklayout;
-			out_data->m_vulkan_renderpass = renderpass;
+			out_data->m_vulkan_renderpass = vkrenderpass;
 		}
 		return vkpipeline;
 	}
@@ -1274,7 +1222,8 @@ namespace influx::rhi
 		switch (args.m_type)
 		{
 		case e_pipeline_type::graphics:
-			result = create_native_graphics_pipeline(args.m_device, args.m_graphics, args.m_graphics_shaders, out_data);
+			result = create_native_graphics_pipeline(args.m_device, args.m_renderpass, 
+				args.m_graphics, args.m_graphics_shaders, out_data);
 			break;
 
 		case e_pipeline_type::compute:
@@ -1284,6 +1233,72 @@ namespace influx::rhi
 		return result;
 	}
 	result<native_rootsignature> create_native(const rootsignature_create_args& args, rootsignature_data* out_data);
+	result<native_renderpass> create_native(const renderpass_create_args& args, renderpass_data* out_data)
+	{
+		using result_type = result<native_renderpass>;
+
+		VkDevice vkdevice = args.m_device;
+		const framebuffer_desc& framebuffer_desc = args.m_framebuffer_desc;
+
+		// translate the attachments
+		const uint32 num_colour_targets = framebuffer_desc.get_num_enabled_colour_targets();
+		const bool has_depth = framebuffer_desc.is_depth_enabled();
+		const uint32 num_attachments = has_depth ? num_colour_targets + 1 : num_colour_targets;
+
+		vector<VkAttachmentDescription> attachments{};
+		{
+			attachments.reserve(num_attachments);
+			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+			{
+				if (framebuffer_desc.m_color_attachments[i].m_is_enabled)
+					attachments.push_back(translate(framebuffer_desc.m_color_attachments[i]));
+			}
+			if (has_depth)
+				attachments.push_back(translate(framebuffer_desc.m_depth_attachment));
+		}
+		
+		// make 1 subpass
+		vector<VkSubpassDescription> subpasses{};
+		vector<VkAttachmentReference> color_refs{};
+		VkAttachmentReference depth_ref = {};
+		{
+			VkSubpassDescription subpass{};
+			// translate the attachment references
+			color_refs.resize(num_colour_targets);
+			for (uint32 i = 0u; i < num_colour_targets; ++i)
+			{
+				color_refs[i].attachment = i;
+				color_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
+			depth_ref.attachment = num_colour_targets; // at depth index 
+			depth_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpass.colorAttachmentCount = 1;
+			subpass.pColorAttachments = color_refs.data();
+			subpass.pDepthStencilAttachment = has_depth ? &depth_ref : nullptr;
+			subpasses.push_back(subpass);
+		}
+
+		// no dependencies (1 subpass)
+		vector<VkSubpassDependency> dependencies{};
+		VkRenderPassCreateInfo info{};
+		info.attachmentCount = num_attachments;
+		info.dependencyCount = static_cast<uint32>(dependencies.size());
+		info.flags = {};
+		info.pAttachments = attachments.data();
+		info.pDependencies = dependencies.data();
+		info.pSubpasses = subpasses.data();
+		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		info.subpassCount = static_cast<uint32>(subpasses.size());
+		
+		VkRenderPass vkrenderpass;
+		auto vkres = vkCreateRenderPass(vkdevice, &info, nullptr, &vkrenderpass);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkCreateRenderPass failed!");
+
+		return vkrenderpass;
+	}
 
 	// [buffer]
 	result<void*> buffer::map_begin(const map_args& args)
@@ -1301,7 +1316,7 @@ namespace influx::rhi
 
 		return result;
 	}
-	result<> buffer::map_end()
+	result<> buffer::map_end(const map_args& args)
 	{
 		VkDeviceMemory memory = m_data.m_gpu_memory_address;
 		vkUnmapMemory(m_native_device, memory);
@@ -1548,6 +1563,7 @@ namespace influx::rhi
 		return {};
 	}
 
+#if 0
 	inline result<bool> are_pipeline_renderpass_compatible(const pipeline& pipeline, const renderpass_args& args)
 	{
 		using result_type = result<bool>;
@@ -1587,70 +1603,83 @@ namespace influx::rhi
 
 		return true;
 	}
+#endif
 
-	result<> commandlist::renderpass_begin(device& device, pipeline& pipeline, const renderpass_args& args)
+	result<> commandlist::renderpass_begin(device& device, renderpass& renderpass, const begin_renderpass_args& args)
 	{
 		using result_type = result<>;
+		result_type result{};
 
-		if (!device.is_valid())
-			return result_type::make_error("device is not valid!");
+		if (renderpass.is_valid() == false)
+			return result_type::make_error("renderpass is not valid!");
 
-		if (!pipeline.is_valid())
-			return result_type::make_error("pipeline is not valid!");
+		VkDevice vkdevice = renderpass.m_native_device;
+		if (vkdevice == nullptr)
+			return result_type::make_error("renderpass has no valid parent native device");
 
-		auto pipeline_compatible = are_pipeline_renderpass_compatible(pipeline, args);
-		if (!pipeline_compatible)
-			return result_type::make_error("pipeline is not compatible with renderpass args");
-
-		// this better work..
-		VkRenderPass vkrenderpass = (VkRenderPass)pipeline.m_data.m_vulkan_renderpass;
+		math::uint2 dimensions = args.m_dimensions;
+		const bool args_dimensions_valid = dimensions.x > 0u && dimensions.y > 0u;
+		if (!args_dimensions_valid)
+		{
+			result = result_type::make_warning({}, "args.m_dimensions is invalid! (this is fine, we'll use the framebuffer dimensions)");
+			dimensions = renderpass.get_framebuffer_desc().m_dimensions;
+		}
 
 		// translate the attachments
-		const bool has_depth = args.m_depth_attachment.m_is_enabled;
-		vector<VkAttachmentDescription> attachments{};
-		uint32 num_colour_attachments = static_cast<uint32>(args.m_color_attachments.size());
-		uint32 num_attachments = has_depth ? num_colour_attachments + 1 : num_colour_attachments;
-		attachments.reserve(num_attachments);
-		for (const auto& att : args.m_color_attachments)
-		{
-			attachments.push_back(translate(att));
-		}
-		if (has_depth) attachments.push_back(translate(args.m_depth_attachment));
+		const bool has_depth = renderpass.is_depth_target_enabled();
+		const uint32 num_colour_attachments = renderpass.get_num_colour_targets();
+		const uint32 num_attachments = has_depth ? num_colour_attachments + 1u : num_colour_attachments;
+		const framebuffer_desc& fb_desc = renderpass.get_framebuffer_desc();
 
-		// create the framebuffer
+		// create the (implicit) framebuffer
+		VkRenderPass vkrenderpass = renderpass.m_native_object;
 		VkFramebuffer framebuffer;
 		{
 			vector<VkImageView> attachment_views{}; attachment_views.reserve(num_attachments);
-			for (const auto& att : args.m_color_attachments)
+			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
 			{
-				attachment_views.push_back((VkImageView)att.m_rtv_descriptor.m_native_view);
+				const bool is_enabled = renderpass.is_colour_target_enabled(i);
+				if (!is_enabled) continue;
+
+				VkImageView current_view = (VkImageView)args.m_color_targets[i]->m_data.m_texture_view.m_native_view;
+				const bool is_view_valid = current_view != 0u;
+				if (is_enabled && !is_view_valid)
+					return result_type::make_error("renderpass has a colour target RTV slot that you didn't provide a valid RTV for!");
+				attachment_views.push_back(current_view);
 			}
-			if (has_depth) attachment_views.push_back((VkImageView)args.m_depth_attachment.m_dsv_descriptor.m_native_view);
+			if (has_depth)
+			{
+				VkImageView current_view = (VkImageView)args.m_depth_target->m_data.m_texture_view.m_native_view;
+				const bool is_view_valid = current_view != 0u;
+				if (!is_view_valid)
+					return result_type::make_error("renderpass has a depth target DSV slot that you didn't provide a valid DSV for!");
+				attachment_views.push_back(current_view);
+			}
 			
 			VkFramebufferCreateFlags flags{};
 			VkFramebufferCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			info.attachmentCount = static_cast<uint32>(attachments.size());
+			info.attachmentCount = static_cast<uint32>(attachment_views.size());
 			info.flags = flags;
-			info.width = args.m_width;
-			info.height = args.m_height;
+			info.width = fb_desc.m_dimensions.x;
+			info.height = fb_desc.m_dimensions.y;
 			info.layers = 1u;
 			info.pAttachments = attachment_views.data();
 			info.renderPass = vkrenderpass;
-			auto vkres = vkCreateFramebuffer(device.m_native_object, &info, nullptr, &framebuffer);
+			auto vkres = vkCreateFramebuffer(vkdevice, &info, nullptr, &framebuffer);
 			if (vkres != VK_SUCCESS)
 				return result_type::make_error("vkCreateFramebuffer failed!");
 		}
 
+		// begin the renderpass
 		vector<VkClearValue> clear_values{};
-
 		VkSubpassContents subpass_contents = VK_SUBPASS_CONTENTS_INLINE;
 		VkRenderPassBeginInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		info.framebuffer = framebuffer;
 		info.pClearValues = clear_values.data();
 		info.clearValueCount = static_cast<uint32>(clear_values.size());
-		info.renderArea.extent = { args.m_width, args.m_height };
+		info.renderArea.extent = { dimensions.x, dimensions.y };
 		info.renderPass = vkrenderpass;
 		vkCmdBeginRenderPass(m_native_object, &info, subpass_contents);
 

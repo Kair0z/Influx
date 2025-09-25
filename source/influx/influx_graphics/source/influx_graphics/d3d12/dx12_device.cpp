@@ -761,7 +761,7 @@ namespace influx::graphics
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc{};
 		cbv_desc.BufferLocation = dxresource->GetGPUVirtualAddress();
-		cbv_desc.SizeInBytes = resource->get_bytesize();
+		cbv_desc.SizeInBytes = (uint32)resource->get_bytesize();
 		mpdx_devices[0u]->CreateConstantBufferView(&cbv_desc, dxcpu_descriptor);
 	}
 
