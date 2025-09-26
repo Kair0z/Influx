@@ -188,12 +188,25 @@ int main()
 		window->poll_events(g.is_quit);
 		cmdlist.start(device);
 
+		rhi::texture backbuffer = swapchain.get_backbuffer_resource().get();
+		cmdlist.transition(backbuffer, rhi::e_resource_state::render_target);
+		cmdlist.clear_texture(device, backbuffer, { .m_colour = {1,0,0,1} });
+
+		if (pipeline.is_valid())
+		{
+			cmdlist.bind_pipeline(pipeline);
+			cmdlist.bind_rootsignature(signature);
+		}
+
+		cmdlist.transition(backbuffer, rhi::e_resource_state::present);
 		cmdlist.end();
 		cmdlist.submit(queue);
 
 		rhi::present_args args{};
 		args.m_device = device.m_native_object;
 		args.m_present_queue = queue.m_native_object;
+		args.m_flags;
+		args.m_sync_interval;
 		swapchain.present(args);
 	}
 
