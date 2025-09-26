@@ -110,6 +110,18 @@ namespace influx::shader
 		return num_floats;
 	}
 
+	inline reflection::input_param::e_component_type get_component_type(D3D_REGISTER_COMPONENT_TYPE type)
+	{
+		switch (type)
+		{
+		case D3D_REGISTER_COMPONENT_FLOAT16: return reflection::input_param::e_component_type::f16;
+		case D3D_REGISTER_COMPONENT_FLOAT32: return reflection::input_param::e_component_type::f32;
+		case D3D_REGISTER_COMPONENT_UINT16:	 return reflection::input_param::e_component_type::u16;
+		case D3D_REGISTER_COMPONENT_UINT32:	 return reflection::input_param::e_component_type::u32;
+		}
+		return reflection::input_param::e_component_type::unknown;
+	}
+
 	inline reflection reflect_shader(ID3D12ShaderReflection* dx12_refl)
 	{
 		reflection result{};
@@ -127,6 +139,7 @@ namespace influx::shader
 			reflection::input_param param{};
 			param.m_semantic_name = signatureParameterDesc.SemanticName;
 			param.m_semantic_index = signatureParameterDesc.SemanticIndex;
+			param.m_element_type = get_component_type(signatureParameterDesc.ComponentType);
 			param.m_num_floats = calc_num_floats_from_mask(signatureParameterDesc.Mask);
 			result.m_input_params.push_back(param);
 		}

@@ -142,11 +142,11 @@ namespace influx::rhi
 
 			return value_if_unknown;
 		}
-	}
+		static constexpr e_semantic index_to_semantic(uint32 index)
+		{
+			return (e_semantic)(index % 4u);
+		}
 
-	class pixelformat final
-	{
-	private:
 		struct element final
 		{
 			element() = default;
@@ -165,7 +165,7 @@ namespace influx::rhi
 				m_format_override = override;
 				m_overrides_format = true;
 			}
-			
+
 			bool operator==(const element& el) const
 			{
 				if (m_is_valid != el.m_is_valid)
@@ -193,6 +193,12 @@ namespace influx::rhi
 			bool m_overrides_format = false;
 			bool m_is_valid = false;
 		};
+	}
+
+	class pixelformat final
+	{
+	private:
+		friend class bufferformat;
 		static constexpr uint32 k_max_num_elements = 4u;
 
 		// the format shared for most elements (elements can override this)
@@ -202,7 +208,7 @@ namespace influx::rhi
 		format::e_spec_format m_special = format::e_spec_format::none;
 
 		// descriptions of each element of the pixel
-		element m_elements[k_max_num_elements];
+		format::element m_elements[k_max_num_elements];
 
 		uint32 m_num_elements = 0u;
 		
@@ -218,7 +224,7 @@ namespace influx::rhi
 			if (index >= get_num_elements())
 				return result_type::make_error("index past m_num_elements");
 
-			const element& element = m_elements[index];
+			const format::element& element = m_elements[index];
 			const bool overrides_format = element.m_format_override && element.m_is_valid;
 
 			return overrides_format ? element.m_format_override : m_format;
@@ -243,7 +249,7 @@ namespace influx::rhi
 			return num_bits / 8u;
 		}
 
-		pixelformat& set_element(uint32 element_index, const element& element)
+		pixelformat& set_element(uint32 element_index, const format::element& element)
 		{
 			if (element_index < k_max_num_elements)
 			{
@@ -276,6 +282,7 @@ namespace influx::rhi
 		{
 			return !(*this == format);
 		}
+		
 		pixelformat() = default;
 		pixelformat(format::e_spec_format spec)
 		{
@@ -288,19 +295,17 @@ namespace influx::rhi
 		}
 		pixelformat(
 			format::e_format format,
-			const element& e0,
-			const element& e1 = {},
-			const element& e2 = {},
-			const element& e3 = {})
+			const format::element& e0,
+			const format::element& e1 = {},
+			const format::element& e2 = {},
+			const format::element& e3 = {})
 		{
 			m_format = format;
-
-			element const* elements[4u]{ &e0, &e1, &e2, &e3 };
+			format::element const* elements[4u]{ &e0, &e1, &e2, &e3 };
 			for (uint32 i = 0u; i < 4u; ++i)
 			{
 				if (elements[i]->m_is_valid)
 					m_num_elements++;
-
 				m_elements[i] = *elements[i];
 			}
 		}
@@ -324,6 +329,94 @@ namespace influx::rhi
 			// VK_FORMAT_D24_UNORM_S8_UINT
 			using namespace format;
 			return { e_format::unorm, {_d,_24}, {_s,_8,uint} };
+		}
+	};
+
+	class bufferformat final
+	{
+		static constexpr uint32 k_max_num_elements = 4u;
+		format::element m_elements[k_max_num_elements];
+		format::e_format m_format;
+		uint32 m_num_elements = 0u;
+
+	public:
+		bool operator==(const bufferformat& other) const
+		{
+			if (m_format != other.m_format) return false;
+			if (m_num_elements != other.m_num_elements) return false;
+			for (uint32 i = 0u; i < m_num_elements; ++i)
+			{
+				if (m_elements[i] != other.m_elements[i])
+					return false;
+			}
+			return true;
+		}
+		bool operator==(const pixelformat& other) const
+		{
+			if (m_format != other.m_format) return false;
+			if (m_num_elements != other.m_num_elements) return false;
+			for (uint32 i = 0u; i < m_num_elements; ++i)
+			{
+				if (m_elements[i] != other.m_elements[i])
+					return false;
+			}
+			return true;
+		}
+		bool operator!=(const bufferformat& format) const
+		{
+			return !(*this == format);
+		}
+		bool operator!=(const pixelformat& format) const
+		{
+			return !(*this == format);
+		}
+
+		bufferformat() = default;
+		bufferformat(format::e_format format) : m_format{ format } {}
+		bufferformat(
+			format::e_format format,
+			const format::element& e0,
+			const format::element& e1 = {},
+			const format::element& e2 = {},
+			const format::element& e3 = {})
+		{
+			m_format = format;
+			format::element const* elements[4u]{ &e0, &e1, &e2, &e3 };
+			for (uint32 i = 0u; i < 4u; ++i)
+			{
+				if (elements[i]->m_is_valid)
+					m_num_elements++;
+				m_elements[i] = *elements[i];
+			}
+		}
+
+		uint64 get_bytesize() const
+		{
+			uint32 num_bits = 0u;
+			for (uint32 i = 0u; i < m_num_elements; ++i)
+			{
+				num_bits += format::get_num_bits(m_elements[i].m_bitsize);
+			}
+			return num_bits / 8u;
+		}
+
+		static bufferformat make_uint32(const uint32 num_uints)
+		{
+			bufferformat res{};
+			res.m_num_elements = num_uints;
+			res.m_format = format::e_format::uint;
+			for (uint32 i = 0u; i < num_uints; ++i)
+				res.m_elements[i] = format::element{ format::index_to_semantic(i), format::e_bitsize::_32 };
+			return res;
+		}
+		static bufferformat make_f32(const uint32 num_floats)
+		{
+			bufferformat res{};
+			res.m_num_elements = num_floats;
+			res.m_format = format::e_format::sfloat;
+			for (uint32 i = 0u; i < num_floats; ++i)
+				res.m_elements[i] = format::element{ format::index_to_semantic(i), format::e_bitsize::_32 };
+			return res;
 		}
 	};
 

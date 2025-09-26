@@ -80,10 +80,19 @@ namespace influx::shader
 	{
 		struct input_param final
 		{
+			enum class e_component_type : uint8
+			{
+				unknown,
+				f16,
+				f32,
+				u16,
+				u32,
+				num
+			};
 			string m_semantic_name;
 			uint32 m_semantic_index;
+			e_component_type m_element_type;
 			uint32 m_num_floats;
-			uint32 m_num_uints;
 		};
 
 		struct resource final
@@ -143,6 +152,11 @@ namespace influx::shader
 			return result;
 		}
 
+		const vector<per_shader>& get_shadermap(e_shader_type type) const
+		{
+			return m_shadermap.at(type);
+		}
+
 		void merge(const parse_output& other)
 		{
 			m_found_types |= other.m_found_types;
@@ -151,6 +165,11 @@ namespace influx::shader
 				{
 					m_shadermap[pair.first].push_back(shader);
 				}
+		}
+
+		bool contains(e_shader_type type) const
+		{
+			return has_flag(m_found_types, get_shader_flag(type) );
 		}
 
 		e_shader_type_flags						m_found_types;

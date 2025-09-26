@@ -327,6 +327,25 @@ namespace influx::rhi
 		max = 5,
 		count
 	};
+	enum class e_logic_op : uint8
+	{
+		clear		= 0,
+		set			,
+		copy		,
+		copy_inv	,
+		noop		,
+		invert		,
+		AND			,
+		NAND		,
+		OR			,
+		NOR			,
+		XOR			,
+		EQUIV		,
+		AND_REV		,
+		AND_INV		,
+		OR_REV		,
+		OR_INV		,
+	};
 	enum class e_primitive_topology_type : uint8
 	{
 		triangle = 0,
@@ -862,12 +881,14 @@ namespace influx::rhi
 	struct blend_desc final
 	{
 		bool m_enabled = false;
+		bool m_logic_enabled = false;
 		e_blend m_src;
 		e_blend m_dest;
 		e_blendop m_op;
 		e_blend m_srcalpha;
 		e_blend m_destalpha;
 		e_blendop m_op_alpha;
+		e_logic_op m_logic_op;
 		uint8 m_write_mask = 0xf; // all
 
 		inline static blend_desc default_write_all()
@@ -886,7 +907,9 @@ namespace influx::rhi
 	};
 	struct sample_desc final
 	{
-
+		uint32 m_num_samples = 1u;
+		uint32 m_quality = 0u;
+		uint32 m_sample_mask = 0xffffffff;
 	};
 	struct output_merger final
 	{
@@ -953,35 +976,37 @@ namespace influx::rhi
 		e_primitive_topology_type	m_primitive_topology_type{};
 		output_merger				m_output_merger{};
 		rasterizer					m_rasterizer{};
-		bool						m_blend_alpha_to_coverage_enabled = false;
-
+		sample_desc					m_sample_desc{};
 		viewport					m_default_viewport;
 		xrect						m_default_xrect;
-
 		e_graphics_shader_pipeline m_shaderpipeline = e_graphics_shader_pipeline::vs;
+
+		bool						m_blend_alpha_to_coverage_enabled = false;
+		bool						m_blend_independent;
 
 		struct input_element final
 		{
-			string m_semantic_name;
-			uint32 m_semantic_idx;
-			// e_format m_format;
-			uint32 m_input_slot;
-			uint32 m_aligned_byteoffset;
+			string			m_semantic_name;
+			uint32			m_semantic_idx;
+			bufferformat	m_format;
+			uint32			m_input_slot;
+			uint32			m_aligned_byteoffset;
 
 			bool m_is_per_instance; // if not, per vertex
 			uint32 m_instance_data_steprate;
 		};
 		vector<input_element> m_input_elements{};
+
 		inline void add_input_element(
 			const string& semantic_name,
 			uint32 semantic_index,
-			// e_format format,
+			bufferformat format,
 			uint32 input_slot,
 			bool is_per_instance,
 			uint32 instance_steprate)
 		{
 			input_element new_element{};
-			// new_element.m_format = format;
+			new_element.m_format = format;
 			new_element.m_input_slot = input_slot;
 			new_element.m_instance_data_steprate = instance_steprate;
 			new_element.m_is_per_instance = is_per_instance;
@@ -992,13 +1017,33 @@ namespace influx::rhi
 			if (!m_input_elements.empty())
 			{
 				const input_element& last_element = m_input_elements.back();
-#if 0
 				new_element.m_aligned_byteoffset =
-					last_element.m_aligned_byteoffset + (uint32)deduce_bytesize(last_element.m_format);
-#endif
+					last_element.m_aligned_byteoffset + (uint32)last_element.m_format.get_bytesize();
 			}
 
 			m_input_elements.push_back(new_element);
+		}
+
+		inline void reflect_input_elements(const shader::reflection& reflection)
+		{
+			uint32 index = 0u;
+			for (const auto& element : reflection.m_input_params)
+			{
+				bufferformat format{};
+				switch (element.m_element_type)
+				{
+				case shader::reflection::input_param::e_component_type::f32: format = bufferformat::make_uint32(element.m_num_floats);
+				case shader::reflection::input_param::e_component_type::u32: format = bufferformat::make_f32(element.m_num_floats);
+				}
+
+				add_input_element(
+					element.m_semantic_name,
+					element.m_semantic_index,
+					format,
+					index,
+					false,
+					0u);
+			}
 		}
 	};
 	struct raytracing_pipeline_desc final
@@ -1026,9 +1071,29 @@ namespace influx::rhi
 
 		/* (optional) enable debug systems like validation layers */
 		bool m_debug = false;
+
+		static device_create_args make(const string& name, bool debug)
+		{
+			return device_create_args{
+				.m_app_name = name.c_str(),
+				.m_engine_name = name.c_str(),
+				.m_app_version = {},
+				.m_engine_version = {},
+				.m_api_version = {},
+				.m_physdevice = {},
+				.m_debug = debug
+			};
+		}
 	};
 	struct queue_create_args final
 	{
+		native_device m_device = nullptr;
+		e_queue_type m_type = e_queue_type::graphics;
+		queue_families m_queue_families{};
+
+		// (optional)
+		int m_priority = 0;
+
 		static queue_create_args default_graphics()
 		{
 			queue_create_args desc{};
@@ -1043,13 +1108,6 @@ namespace influx::rhi
 			desc.m_type = e_queue_type::compute;
 			return desc;
 		}
-
-		native_device		m_device = nullptr;
-		e_queue_type		m_type = e_queue_type::graphics;
-		queue_families		m_queue_families{};
-
-		// (optional)
-		int m_priority = 0;
 	};
 	struct swapchain_create_args final
 	{
@@ -1252,7 +1310,6 @@ namespace influx::rhi
 		uav,
 		count
 	};
-
 	struct root_param_common final
 	{
 		e_shader_visibility m_visibility = e_shader_visibility::all;
@@ -1260,7 +1317,6 @@ namespace influx::rhi
 		uint32 m_register_space = 0u;
 		string m_name;
 	};
-
 	struct root_param_constants final
 	{
 		root_param_constants() = default;
@@ -1279,7 +1335,6 @@ namespace influx::rhi
 		root_param_common m_common;
 		uint32 m_num_dwords;
 	};
-
 	struct root_param_resource final
 	{
 		enum class e_type : uint8
@@ -1306,7 +1361,6 @@ namespace influx::rhi
 		e_type m_type;
 		root_param_common m_common;
 	};
-
 	struct root_param_resource_range final
 	{
 		enum class e_type : uint8
@@ -1338,7 +1392,6 @@ namespace influx::rhi
 		uint32 m_num_resources;
 		e_type m_type;
 	};
-
 	struct root_param_resource_table final
 	{
 		root_param_resource_table() = default;
@@ -1356,7 +1409,6 @@ namespace influx::rhi
 		root_param_common m_common;
 		vector<root_param_resource_range> m_resource_ranges{};
 	};
-
 	struct root_static_sampler final
 	{
 		root_static_sampler() = default;
@@ -1405,7 +1457,6 @@ namespace influx::rhi
 		e_comparison_func m_comparison_func = e_comparison_func::lequal;
 		e_border_color m_border_color = e_border_color::white;
 	};
-
 	using e_root_range = root_param_resource_range::e_type;
 	using e_root_resource = root_param_resource::e_type;
 	struct rootsignature_create_args final
@@ -1415,7 +1466,42 @@ namespace influx::rhi
 		vector<root_param_resource> m_resources;
 		vector<root_param_resource_table> m_resource_tables;
 		vector<root_static_sampler> m_static_samplers;
+		umap<string, uint32> m_name_to_register;
+		umap<string, uint32> m_name_to_param_idx;
 		bool m_direct_indexing = false;
+
+		void reflect_shader(const shader::reflection& reflection, shader::e_shader_type type)
+		{
+			const e_shader_visibility shader_vis = e_shader_visibility::all;
+
+			for (const shader::reflection::resource& resource : reflection.m_bound_resources)
+			{
+				if (!resource.m_name.empty())
+					m_name_to_register[resource.m_name] = resource.m_shader_register;
+
+				switch (resource.m_type)
+				{
+				case shader::reflection::resource::e_type::cbv:
+					add_root_range(root_param_resource_range::e_type::cbv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+					name_last_resource_table(resource.m_name);
+					break;
+				case shader::reflection::resource::e_type::uav:
+					add_root_range(root_param_resource_range::e_type::uav, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+					name_last_resource_table(resource.m_name);
+					break;
+				case shader::reflection::resource::e_type::srv:
+				case shader::reflection::resource::e_type::structured:
+				case shader::reflection::resource::e_type::texture:
+					add_root_range(root_param_resource_range::e_type::srv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+					name_last_resource_table(resource.m_name);
+					break;
+				case shader::reflection::resource::e_type::sampler:
+					add_root_sampler(resource.m_shader_register, resource.m_register_space, shader_vis);
+					name_last_sampler(resource.m_name);
+					break;
+				}
+			}
+		}
 
 		// resource ranges are stored in a resource table
 		inline void add_root_range(root_param_resource_range::e_type type, uint32 num_resources, uint32 sh_reg, uint32 space = 0u, e_shader_visibility vis = e_shader_visibility::all)
@@ -2077,15 +2163,18 @@ namespace influx::rhi
 		inline result<texture>			create(const texture_create_args& args);
 		inline result<buffer>			create(const buffer_create_args& args);
 		inline result<renderpass>		create(const renderpass_create_args& args);
-		inline result<pipeline>			create(
+
+		inline result<pipeline>			create_graphics_pipeline(
+			const rootsignature& signature,
+			const renderpass& renderpass,
 			const graphics_shaderslots& shaders, 
-			const graphics_pipeline_desc& desc,
-			const renderpass& renderpass)
+			const graphics_pipeline_desc& desc)
 		{
 			pipeline_create_args args{};
 			args.m_type = e_pipeline_type::graphics;
 			args.m_graphics = desc;
 			args.m_graphics_shaders = shaders;
+			args.m_rootsignature = signature.m_native_object;
 			args.m_renderpass = renderpass.m_native_object;
 			return create(args);
 		}
@@ -2266,6 +2355,7 @@ namespace influx::rhi
 		auto args_cpy = args;
 		args_cpy.m_device = (native_device)this->m_native_object;
 		auto res = influx::rhi::create<pipeline>(args_cpy);
+		if (!res)
 			return result_type::make_error("failed creating pipeline!");
 
 		auto reg = register_child(res.get());

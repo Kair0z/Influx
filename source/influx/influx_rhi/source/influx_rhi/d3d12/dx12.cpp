@@ -392,7 +392,29 @@ namespace influx::rhi
 			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 		}
 	}
-
+	inline D3D12_LOGIC_OP translate(e_logic_op operation)
+	{
+		switch (operation)
+		{
+			case e_logic_op::clear		: return D3D12_LOGIC_OP_CLEAR;
+			case e_logic_op::set		: return D3D12_LOGIC_OP_SET;
+			case e_logic_op::copy		: return D3D12_LOGIC_OP_COPY;
+			case e_logic_op::copy_inv	: return D3D12_LOGIC_OP_COPY_INVERTED;
+			case e_logic_op::noop		: return D3D12_LOGIC_OP_NOOP;
+			case e_logic_op::invert		: return D3D12_LOGIC_OP_INVERT;
+			case e_logic_op::AND		: return D3D12_LOGIC_OP_AND;
+			case e_logic_op::NAND		: return D3D12_LOGIC_OP_NAND;
+			case e_logic_op::OR			: return D3D12_LOGIC_OP_OR;
+			case e_logic_op::NOR		: return D3D12_LOGIC_OP_NOR;
+			case e_logic_op::XOR		: return D3D12_LOGIC_OP_XOR;
+			case e_logic_op::EQUIV		: return D3D12_LOGIC_OP_EQUIV;
+			case e_logic_op::AND_REV	: return D3D12_LOGIC_OP_AND_REVERSE;
+			case e_logic_op::AND_INV	: return D3D12_LOGIC_OP_AND_INVERTED;
+			case e_logic_op::OR_REV		: return D3D12_LOGIC_OP_OR_REVERSE;
+			case e_logic_op::OR_INV		: return D3D12_LOGIC_OP_INVERT;
+		}
+		return D3D12_LOGIC_OP_NOOP;
+	}
 
 	static constexpr uint32 k_num_dxgi_formats = 256u;
 	class static_pixel_formats final
@@ -437,6 +459,7 @@ namespace influx::rhi
 		return static_pixel_formats::is_supported(format);
 	}
 	DXGI_FORMAT translate(const pixelformat& format);
+
 	uint32 get_translated_pixelformat(const pixelformat& format)
 	{
 		return translate(format);
@@ -452,9 +475,6 @@ namespace influx::rhi
 	DXGI_FORMAT translate(const pixelformat& format)
 	{
 		using namespace format;
-
-		// find the translated DXGI format that matches ours
-		// could be slow tbf...
 		for (uint32 i = 0u; i < k_num_dxgi_formats; ++i)
 		{
 			DXGI_FORMAT as_dxgi = (DXGI_FORMAT)i;
@@ -464,7 +484,20 @@ namespace influx::rhi
 				return as_dxgi;
 			}
 		}
-
+		return DXGI_FORMAT_UNKNOWN;
+	}
+	DXGI_FORMAT translate(const bufferformat& format)
+	{
+		using namespace format;
+		for (uint32 i = 0u; i < k_num_dxgi_formats; ++i)
+		{
+			DXGI_FORMAT as_dxgi = (DXGI_FORMAT)i;
+			const pixelformat& form = translate(as_dxgi);
+			if (format == form)
+			{
+				return as_dxgi;
+			}
+		}
 		return DXGI_FORMAT_UNKNOWN;
 	}
 	result<uint32> query_descriptor_stride(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type)
@@ -557,13 +590,6 @@ namespace influx::rhi
 		if (!dxphysdevice) 
 			return result_type::make_error("args.m_physdevice failed casting to dx12_physdevice!");
 
-		// create the logical device
-		dx12_device* dxdevice{};
-		hres = ::D3D12CreateDevice(
-			dxphysdevice.get(),
-			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(&dxdevice));
-
 		// enable the debug layer
 		if (edited_args.m_debug)
 		{
@@ -573,7 +599,17 @@ namespace influx::rhi
 				debugController->EnableDebugLayer();
 			}
 			debugController->Release();
+		}
 
+		// create the logical device
+		dx12_device* dxdevice{};
+		hres = ::D3D12CreateDevice(
+			dxphysdevice.get(),
+			D3D_FEATURE_LEVEL_11_0,
+			IID_PPV_ARGS(&dxdevice));
+
+		if (edited_args.m_debug)
+		{
 			ID3D12InfoQueue* info_queue;
 			hres = dxdevice->QueryInterface(IID_PPV_ARGS(&info_queue));
 			if (hres == S_OK)
@@ -581,14 +617,14 @@ namespace influx::rhi
 				D3D12_MESSAGE_ID hide[] =
 				{
 					D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
-#if 0
-					D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
-					// Workarounds for debug layer issues on hybrid-graphics systems
-					D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE,
-					D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE,
-					D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
-					D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE
-#endif
+	#if 0
+						D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
+						// Workarounds for debug layer issues on hybrid-graphics systems
+						D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE,
+						D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE,
+						D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+						D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE
+	#endif
 				};
 				D3D12_INFO_QUEUE_FILTER filter = {};
 				filter.DenyList.NumIDs = _countof(hide);
@@ -971,7 +1007,7 @@ namespace influx::rhi
 			{
 				input_elements.push_back({});
 				input_elements.back().AlignedByteOffset = element.m_aligned_byteoffset;
-				// input_elements.back().Format = translate(element.m_format);
+				input_elements.back().Format = translate(element.m_format);
 				input_elements.back().InputSlot = element.m_input_slot;
 				input_elements.back().InputSlotClass = element.m_is_per_instance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 				input_elements.back().InstanceDataStepRate = element.m_instance_data_steprate;
@@ -997,19 +1033,30 @@ namespace influx::rhi
 			pso_desc.GS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::gs));
 			pso_desc.HS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::hs));
 			pso_desc.RasterizerState = translate(args.m_graphics.m_rasterizer);
-			// pso_desc.BlendState = translate(args.m_graphics.m_blends, k_max_render_targets, desc.m_blend_alpha_to_coverage_enabled);
 			pso_desc.DepthStencilState = translate(args.m_graphics.m_output_merger.m_depthtarget);
-			// pso_desc.SampleMask = args.m_graphics.m_rasterizer.m_forced_samplecount;
+			pso_desc.SampleMask = args.m_graphics.m_sample_desc.m_sample_mask;
 			pso_desc.PrimitiveTopologyType = translate(args.m_graphics.m_primitive_topology_type);
 			pso_desc.DSVFormat = translate(args.m_graphics.m_output_merger.m_depthtarget.m_format);
-			// pso_desc.SampleDesc.Count = desc.m_sample_count;
-
-			// rtvs
+			pso_desc.SampleDesc.Count = args.m_graphics.m_sample_desc.m_num_samples;
+			pso_desc.SampleDesc.Quality = args.m_graphics.m_sample_desc.m_quality;
+			pso_desc.BlendState.AlphaToCoverageEnable = args.m_graphics.m_blend_alpha_to_coverage_enabled;
+			pso_desc.BlendState.IndependentBlendEnable = args.m_graphics.m_blend_independent;
 			for (size_t i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
 			{
+				const auto& colour_target = args.m_graphics.m_output_merger.m_rendertargets[i];
+				if (colour_target.m_enabled == false) continue;
 				pso_desc.NumRenderTargets++;
-				pso_desc.RTVFormats[i] = translate(args.m_graphics.m_output_merger.m_rendertargets[i].m_format);
+				pso_desc.RTVFormats[i] = translate(colour_target.m_format);
 				pso_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+				pso_desc.BlendState.RenderTarget[i].BlendEnable		= colour_target.m_blend.m_enabled;
+				pso_desc.BlendState.RenderTarget[i].BlendOp			= translate(colour_target.m_blend.m_op);
+				pso_desc.BlendState.RenderTarget[i].BlendOpAlpha	= translate(colour_target.m_blend.m_op_alpha);
+				pso_desc.BlendState.RenderTarget[i].DestBlend		= translate(colour_target.m_blend.m_dest);
+				pso_desc.BlendState.RenderTarget[i].DestBlendAlpha	= translate(colour_target.m_blend.m_destalpha);
+				pso_desc.BlendState.RenderTarget[i].LogicOp			= translate(colour_target.m_blend.m_logic_op);
+				pso_desc.BlendState.RenderTarget[i].LogicOpEnable	= colour_target.m_blend.m_logic_enabled;
+				pso_desc.BlendState.RenderTarget[i].SrcBlend		= translate(colour_target.m_blend.m_src);
+				pso_desc.BlendState.RenderTarget[i].SrcBlendAlpha	= translate(colour_target.m_blend.m_srcalpha);
 			}
 
 			HRESULT hres = dxdevice->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&dxpipeline));
@@ -1869,11 +1916,12 @@ namespace influx::rhi
 			return result_type::make_error("failed casting this to dx12_commandlist!");
 
 		// HRESULT res = dxallocator->Reset();
-		HRESULT hres = dxcommandlist.get()->Close();
+		// HRESULT hres = dxcommandlist.get()->Close();
 
 		m_data.m_state = e_commandlist_state::recording;
 
 		ID3D12PipelineState* dxinitpipeline = NULL;
+		HRESULT
 		hres = dxcommandlist->Reset(dxallocator.get(), dxinitpipeline);
 		return {};
 	}
