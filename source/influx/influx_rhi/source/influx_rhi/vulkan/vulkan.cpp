@@ -165,6 +165,15 @@ namespace influx::rhi
 		return vkmemory;
 	}
 
+	inline static VkPrimitiveTopology translate(e_primitive_topology type)
+	{
+		switch (type)
+		{
+		case e_primitive_topology::trilist: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		case e_primitive_topology::linelist: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+		}
+		return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+	}
 	inline static VkImageUsageFlags translate(e_resource_state state)
 	{
 		VkImageUsageFlags flags{};
@@ -1009,6 +1018,9 @@ namespace influx::rhi
 	{
 		using result_type = result<native_pipeline>;
 
+		if (desc.m_primitive_topology == e_primitive_topology::unknown)
+			return result_type::make_error("no primitive topology specified!");
+
 		const bool has_depth = desc.m_output_merger.m_depthtarget.m_depth_enable;
 		const uint32 num_colour_targets = desc.m_output_merger.get_num_enabled_rendertargets();
 
@@ -1087,7 +1099,7 @@ namespace influx::rhi
 		// Describe input assembly
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = {};
 		inputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		inputAssemblyCreateInfo.topology = translate(desc.m_primitive_topology);
 		inputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE;
 
 		// Describe viewport and scissor
@@ -1232,7 +1244,41 @@ namespace influx::rhi
 		}
 		return result;
 	}
-	result<native_rootsignature> create_native(const rootsignature_create_args& args, rootsignature_data* out_data);
+	result<native_rootsignature> create_native(const rootsignature_create_args& args, rootsignature_data* out_data)
+	{
+		using result_type = result<native_rootsignature>;
+
+		VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+		uboLayoutBinding.binding = 0; // binding in shader
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		uboLayoutBinding.pImmutableSamplers = NULL; // only for samplers
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = 1;
+		layoutInfo.pBindings = &uboLayoutBinding;
+
+		VkDescriptorSetLayout descriptorSetLayout;
+		auto vkres = vkCreateDescriptorSetLayout(args.m_device, &layoutInfo, NULL, &descriptorSetLayout);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkCreateDescriptorSetLayout failed!");
+
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutInfo.setLayoutCount = 1;                    // number of descriptor sets
+		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;    // array of descriptor set layouts
+		pipelineLayoutInfo.pushConstantRangeCount = 0;            // optional push constants
+		pipelineLayoutInfo.pPushConstantRanges = NULL;
+
+		VkPipelineLayout pipelineLayout;
+		vkres = vkCreatePipelineLayout(args.m_device, &pipelineLayoutInfo, NULL, &pipelineLayout);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkCreatePipelineLayout failed!");
+
+		return pipelineLayout;
+	}
 	result<native_renderpass> create_native(const renderpass_create_args& args, renderpass_data* out_data)
 	{
 		using result_type = result<native_renderpass>;
@@ -1542,6 +1588,146 @@ namespace influx::rhi
 			&clear_value,
 			static_cast<uint32>(ranges.size()),
 			ranges.data());
+		return {};
+	}
+	result<> commandlist::transition(buffer& buffer, e_resource_state new_state)
+	{
+		VkBufferMemoryBarrier bufferBarrier{};
+		bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;   // previous usage
+		bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT; // next usage
+		bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		bufferBarrier.buffer = buffer.m_native_object;
+		bufferBarrier.offset = 0;
+		bufferBarrier.size = VK_WHOLE_SIZE;
+		vkCmdPipelineBarrier(
+			m_native_object,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,          // source stage
+			VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,      // destination stage
+			0,
+			0, nullptr,       // memory barriers
+			1, &bufferBarrier, // buffer barriers
+			0, nullptr        // image barriers
+		);
+		return {};
+	}
+	result<> commandlist::transition(texture& texture, e_resource_state new_state)
+	{
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;          // previous state
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // next state
+
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; // if not transferring ownership
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+		barrier.image = texture.m_native_object;  // your VkImage
+
+		// Define which aspects of the image we’re transitioning
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		// Access masks depend on old/new layout
+		barrier.srcAccessMask = 0; // nothing to wait on (UNDEFINED means no previous access)
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT; // we’ll read in shader
+
+		vkCmdPipelineBarrier(
+			m_native_object,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,   // srcStageMask
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // dstStageMask
+			0,                                    // dependencyFlags
+			0, nullptr,                           // memory barriers
+			0, nullptr,                           // buffer barriers
+			1, &barrier                           // image barriers
+		);
+		return {};
+	}
+	result<> commandlist::copy(texture& src, texture& dest)
+	{
+		VkImageCopy copyRegion{};
+		copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		copyRegion.srcSubresource.mipLevel = 0;
+		copyRegion.srcSubresource.baseArrayLayer = 0;
+		copyRegion.srcSubresource.layerCount = 1;
+		copyRegion.srcOffset = { 0, 0, 0 };  // start of source region
+		copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		copyRegion.dstSubresource.mipLevel = 0;
+		copyRegion.dstSubresource.baseArrayLayer = 0;
+		copyRegion.dstSubresource.layerCount = 1;
+		copyRegion.dstOffset = { 0, 0, 0 };  // start of destination region
+		copyRegion.extent.width = dest.get_width();
+		copyRegion.extent.height = dest.get_height();
+		copyRegion.extent.depth = dest.get_depth();
+
+		vkCmdCopyImage(
+			m_native_object,
+			src.m_native_object, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, // source
+			dest.m_native_object, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, // destination
+			1, &copyRegion
+		);
+		return {};
+	}
+	result<> commandlist::copy(buffer& src, buffer& dest)
+	{
+		VkBufferCopy copyRegion{};
+		copyRegion.srcOffset = 0;          // start of source buffer
+		copyRegion.dstOffset = 0;          // start of destination buffer
+		copyRegion.size = dest.get_bytesize();      // number of bytes to copy
+		vkCmdCopyBuffer(
+			m_native_object,
+			src.m_native_object,        // source VkBuffer
+			dest.m_native_object,        // destination VkBuffer
+			1, &copyRegion    // region(s) to copy
+		);
+		return {};
+	}
+	result<> commandlist::bind_descheaps(descheap const* resource_heap, descheap const* sampler_heap)
+	{
+		using result_type = result<>;
+		return result_type::make_error("noimpl");
+	}
+	result<> commandlist::bind_pipeline(const pipeline& pipeline)
+	{
+		VkPipelineBindPoint bindpoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		switch (pipeline.get_type())
+		{
+		case e_pipeline_type::graphics: bindpoint = VK_PIPELINE_BIND_POINT_GRAPHICS; break;
+		case e_pipeline_type::compute: bindpoint = VK_PIPELINE_BIND_POINT_COMPUTE; break;
+		}
+
+		vkCmdBindPipeline(
+			m_native_object,
+			bindpoint,
+			pipeline.m_native_object         // VkPipeline handle
+		);
+		return{};
+	}
+	result<> commandlist::bind_rootsignature(const rootsignature& signature, bool is_compute)
+	{
+		return {};
+	}
+	result<> commandlist::bind_texture_uav(const texture& texture, uint32 param_index, bool is_compute)
+	{
+		return {};
+	}
+	result<> commandlist::bind_texture_srv(const texture& texture, uint32 param_index, bool is_compute)
+	{
+		return {};
+	}
+	result<> commandlist::bind_buffer_uav(const buffer& buffer, uint32 param_index, bool is_compute)
+	{
+		return {};
+	}
+	result<> commandlist::bind_buffer_srv(const buffer& buffer, uint32 param_index, bool is_compute)
+	{
+		return {};
+	}
+	result<> commandlist::bind_buffer_cbv(const buffer& buffer, uint32 param_index, bool is_compute)
+	{
 		return {};
 	}
 	result<> commandlist::draw(const draw_args& args)

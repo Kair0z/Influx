@@ -78,7 +78,8 @@ namespace influx::shader
 	/* */
 	struct reflection final
 	{
-		struct input_param final
+		// inputs & outputs
+		struct io_param final
 		{
 			enum class e_component_type : uint8
 			{
@@ -89,24 +90,42 @@ namespace influx::shader
 				u32,
 				num
 			};
-			string m_semantic_name;
-			uint32 m_semantic_index;
-			e_component_type m_element_type;
-			uint32 m_num_floats;
+
+			enum class e_system_name : uint8
+			{
+				unknown,
+				target,			// D3D_NAME_TARGEt (SV_TARGET)
+				position,		// D3D_NAME_POSITION (SV_POSITION)
+				num
+			};
+
+			string				m_semantic_name;
+			uint32				m_semantic_index;
+			e_system_name		m_system_name;
+			e_component_type	m_component_type;
+			uint32				m_num_floats;
+			bool				m_is_input;
 		};
 
 		struct resource final
 		{
 			enum class e_type : uint8
 			{
-				rootvar,
-				cbv,
-				structured,
-				sampler,
-				uav,
-				srv,
-				texture,
 				unknown,
+				rootconstants,
+				constbuffer,
+				structbuff,
+				structbuff_rw,
+				structbuff_append,
+				structbuff_consume,
+				structbuff_wcounter,
+				byteaddress,
+				byteaddress_rw,
+				texture_rw,
+				texture,
+				sampler,
+				accstruct,
+				feedback_rw,		// D3D_SIT_UAV_FEEDBACKTEXTURE
 				count
 			};
 
@@ -115,6 +134,24 @@ namespace influx::shader
 			uint32 m_shader_register{};
 			uint32 m_register_space{};
 
+			inline bool is_texture() const
+			{
+				return m_type == e_type::texture
+					|| m_type == e_type::texture_rw;
+			}
+			inline bool is_buffer() const
+			{
+				return m_type == e_type::constbuffer
+					|| m_type == e_type::rootconstants
+					|| m_type == e_type::structbuff
+					|| m_type == e_type::structbuff_rw
+					|| m_type == e_type::structbuff_append
+					|| m_type == e_type::structbuff_consume
+					|| m_type == e_type::structbuff_wcounter
+					|| m_type == e_type::byteaddress
+					|| m_type == e_type::byteaddress_rw;
+			}
+
 			// if cbv
 			uint64 m_bytesize{};
 
@@ -122,7 +159,8 @@ namespace influx::shader
 			uint32 m_range_size = 0u;
 		};
 
-		vector<input_param> m_input_params{};
+		vector<io_param> m_output_params{};
+		vector<io_param> m_input_params{};
 		vector<resource> m_bound_resources{};
 	};
 

@@ -17,8 +17,8 @@
 #define INFLUX_RHI_API __declspec(dllimport)
 #endif
 
-#define INFLUX_RHI_VULKAN	0
-#define INFLUX_RHI_D3D12	1
+#define INFLUX_RHI_VULKAN	1
+#define INFLUX_RHI_D3D12	0
 
 #include "influx_rhi/format.h"
 
@@ -358,7 +358,8 @@ namespace influx::rhi
 	{
 		trilist,
 		linelist,
-		count
+		count,
+		unknown = count,
 	};
 	enum class e_pipeline_type
 	{
@@ -973,7 +974,7 @@ namespace influx::rhi
 	// TODO PIPELINE ELEMENT FORMATS
 	struct graphics_pipeline_desc final
 	{
-		e_primitive_topology_type	m_primitive_topology_type{};
+		e_primitive_topology		m_primitive_topology = e_primitive_topology::unknown;
 		output_merger				m_output_merger{};
 		rasterizer					m_rasterizer{};
 		sample_desc					m_sample_desc{};
@@ -1030,10 +1031,10 @@ namespace influx::rhi
 			for (const auto& element : reflection.m_input_params)
 			{
 				bufferformat format{};
-				switch (element.m_element_type)
+				switch (element.m_component_type)
 				{
-				case shader::reflection::input_param::e_component_type::f32: format = bufferformat::make_uint32(element.m_num_floats);
-				case shader::reflection::input_param::e_component_type::u32: format = bufferformat::make_f32(element.m_num_floats);
+				case shader::reflection::io_param::e_component_type::f32: format = bufferformat::make_uint32(element.m_num_floats);
+				case shader::reflection::io_param::e_component_type::u32: format = bufferformat::make_f32(element.m_num_floats);
 				}
 
 				add_input_element(
@@ -1043,6 +1044,22 @@ namespace influx::rhi
 					index,
 					false,
 					0u);
+
+				index++;
+			}
+		}
+		inline void reflect_pixelshader(const shader::reflection& reflection)
+		{
+			for (const auto& output : reflection.m_output_params)
+			{
+				const uint32 index = output.m_semantic_index;
+				if (index >= k_max_num_rendertargets_per_draw)
+					continue;
+				
+				auto& target = m_output_merger.m_rendertargets[index];
+				target.m_blend;
+				target.m_enabled = true;
+				target.m_format = pixelformat::make_f32(output.m_num_floats);
 			}
 		}
 	};
@@ -1474,6 +1491,27 @@ namespace influx::rhi
 		{
 			const e_shader_visibility shader_vis = e_shader_visibility::all;
 
+			auto add_root_resources = [this, shader_vis](const string& name, root_param_resource::e_type type, uint32 range_size, uint32 reg_index, uint32 reg_space)
+			{
+				if (range_size > 1u)
+				{
+					root_param_resource_range::e_type range_type;
+					switch (type)
+					{
+					case root_param_resource::e_type::cbv: range_type = root_param_resource_range::e_type::cbv; break;
+					case root_param_resource::e_type::srv: range_type = root_param_resource_range::e_type::srv; break;
+					case root_param_resource::e_type::uav: range_type = root_param_resource_range::e_type::uav; break;
+					}
+					add_root_range(range_type, range_size, reg_index, reg_space, shader_vis);
+					name_last_resource_table(name);
+				}
+				else
+				{
+					add_root_resource(type, reg_index, reg_space, shader_vis);
+					name_last_resource(name);
+				}
+			};
+
 			for (const shader::reflection::resource& resource : reflection.m_bound_resources)
 			{
 				if (!resource.m_name.empty())
@@ -1481,18 +1519,28 @@ namespace influx::rhi
 
 				switch (resource.m_type)
 				{
-				case shader::reflection::resource::e_type::cbv:
-					add_root_range(root_param_resource_range::e_type::cbv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
-					name_last_resource_table(resource.m_name);
+				case shader::reflection::resource::e_type::constbuffer:
+					add_root_resources(resource.m_name, root_param_resource::e_type::cbv,
+						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
 					break;
-				case shader::reflection::resource::e_type::uav:
-					add_root_range(root_param_resource_range::e_type::uav, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
-					name_last_resource_table(resource.m_name);
+				case shader::reflection::resource::e_type::structbuff:
+					add_root_resources(resource.m_name, root_param_resource::e_type::srv,
+						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
 					break;
-				case shader::reflection::resource::e_type::srv:
-				case shader::reflection::resource::e_type::structured:
+				case shader::reflection::resource::e_type::structbuff_rw:
+					add_root_resources(resource.m_name, root_param_resource::e_type::uav,
+						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
+					break;
 				case shader::reflection::resource::e_type::texture:
-					add_root_range(root_param_resource_range::e_type::srv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+					add_root_range(root_param_resource_range::e_type::srv,
+						resource.m_range_size, resource.m_shader_register,
+						resource.m_register_space, shader_vis);
+					name_last_resource_table(resource.m_name);
+					break;
+				case shader::reflection::resource::e_type::texture_rw:
+					add_root_range(root_param_resource_range::e_type::uav,
+						resource.m_range_size, resource.m_shader_register,
+						resource.m_register_space, shader_vis);
 					name_last_resource_table(resource.m_name);
 					break;
 				case shader::reflection::resource::e_type::sampler:
@@ -1633,6 +1681,11 @@ namespace influx::rhi
 		// these are useful for internally creating rtvs / dsvs on the fly
 		native_descheap		m_internal_dsv_heap;
 		native_descheap		m_internal_rtv_heap;
+
+		uint32 get_descriptor_stride(e_descriptor_heap_type type) const
+		{
+			return m_descriptor_strides[static_cast<uint32>(type)];
+		}
 	};
 	struct queue_data final
 	{
@@ -2062,13 +2115,15 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> copy(buffer& src, buffer& dest);
 
 		INFLUX_RHI_API result<> bind_descheaps(descheap const* resource_heap, descheap const* sampler_heap);
-		INFLUX_RHI_API result<> bind_rootsignature(const rootsignature& signature);
 		INFLUX_RHI_API result<> bind_pipeline(const pipeline& pipeline);
-		INFLUX_RHI_API result<> bind_texture_uav(const texture& texture, uint32 param_index);
-		INFLUX_RHI_API result<> bind_texture_srv(const texture& texture, uint32 param_index);
-		INFLUX_RHI_API result<> bind_buffer_uav(const buffer& buffer, uint32 param_index);
-		INFLUX_RHI_API result<> bind_buffer_srv(const buffer& buffer, uint32 param_index);
-		INFLUX_RHI_API result<> bind_buffer_cbv(const buffer& buffer, uint32 param_index);
+		
+		INFLUX_RHI_API result<> bind_rootsignature(const rootsignature& signature, bool is_compute = false);
+		INFLUX_RHI_API result<> bind_texture_uav(const texture& texture,	uint32 param_index, bool is_compute = false);
+		INFLUX_RHI_API result<> bind_texture_srv(const texture& texture,	uint32 param_index, bool is_compute = false);
+		INFLUX_RHI_API result<> bind_buffer_uav(const buffer& buffer,		uint32 param_index, bool is_compute = false);
+		INFLUX_RHI_API result<> bind_buffer_srv(const buffer& buffer,		uint32 param_index, bool is_compute = false);
+		INFLUX_RHI_API result<> bind_buffer_cbv(const buffer& buffer,		uint32 param_index, bool is_compute = false);
+
 		INFLUX_RHI_API result<> bind_vertexbuffer(const buffer& vertexbuffer);
 		INFLUX_RHI_API result<> bind_indexbuffer(const buffer& indexbuffer);
 
@@ -2077,7 +2132,6 @@ namespace influx::rhi
 
 		INFLUX_RHI_API result<> set_viewport();
 		INFLUX_RHI_API result<> set_xrect();
-		INFLUX_RHI_API result<> set_primitive_topology();
 		INFLUX_RHI_API result<> end();
 
 		INFLUX_RHI_API result<> wait_for_finish() const;
@@ -2093,9 +2147,10 @@ namespace influx::rhi
 		// use clear_texture(device, texture, clear) to get equal result across APIs
 		// under the hood, the wrapped D3D12 device will stage its own rtv/dsv view that translates to the resource
 #if INFLUX_RHI_D3D12
+		INFLUX_RHI_API result<> set_primitive_topology(e_primitive_topology topology);
+		INFLUX_RHI_API result<> set_rendertargets(device& dev, const vector<texture const*>& color_targets, texture const* depth_target);
 		INFLUX_RHI_API result<> clear_rtv(descriptor rtv, const clear& clear);
 		INFLUX_RHI_API result<> clear_dsv(descriptor dsv);
-		INFLUX_RHI_API result<> set_draw_output(descriptor rtv, descriptor dsv);
 #endif
 	};
 
@@ -2125,6 +2180,7 @@ namespace influx::rhi
 	
 	class rootsignature final : public object<e_object::rootsignature>
 	{
+	public:
 
 	};
 
@@ -2163,6 +2219,17 @@ namespace influx::rhi
 		inline result<texture>			create(const texture_create_args& args);
 		inline result<buffer>			create(const buffer_create_args& args);
 		inline result<renderpass>		create(const renderpass_create_args& args);
+
+		inline result<pipeline>			create_compute_pipeline(
+			const rootsignature& signature,
+			const compute_shaderslots& shaders)
+		{
+			pipeline_create_args args{};
+			args.m_type = e_pipeline_type::compute;
+			args.m_compute_shaders = shaders;
+			args.m_rootsignature = signature.m_native_object;
+			return create(args);
+		}
 
 		inline result<pipeline>			create_graphics_pipeline(
 			const rootsignature& signature,
@@ -2527,7 +2594,7 @@ namespace influx::rhi
 		{
 			for (uint32 i = 0u; i < k_num_compute_shaderslots; ++i)
 			{
-				const bool shader_valid = !m_graphics_shaders.get(i).empty();
+				const bool shader_valid = !m_compute_shaders.get(i).empty();
 				if (!shader_valid) return false;
 			}
 			return true;

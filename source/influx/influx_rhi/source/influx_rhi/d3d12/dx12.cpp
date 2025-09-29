@@ -86,7 +86,7 @@ namespace influx::rhi
 		switch (type)
 		{
 		case e_descriptor_heap_type::rtv: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		case e_descriptor_heap_type::dsv: return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		case e_descriptor_heap_type::dsv: return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 		case e_descriptor_heap_type::rsc: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		case e_descriptor_heap_type::sampler: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		}
@@ -649,6 +649,7 @@ namespace influx::rhi
 				return result_type::make_error("dx12 requires creating an internal RTV heap, but that failed (for some reason)");
 			int_rtv_heap = rtv_heap.get();
 
+			descheap_args.m_type = e_descriptor_heap_type::dsv;
 			descheap_args.m_num_descriptors = 1u;
 			auto dsv_heap = create_native(descheap_args);
 			if (!dsv_heap)
@@ -994,6 +995,11 @@ namespace influx::rhi
 		if (!dxdevice)
 			return result_type::make_error("args.m_device failed casting to dx12_device!");
 
+		// helper
+		const auto get_shader_code = [](const vector<byte>& data) {
+				return CD3DX12_SHADER_BYTECODE(data.data(), data.size());
+		};
+
 		HRESULT hres{};
 		ID3D12PipelineState* dxpipeline = nullptr;
 		switch (args.m_type)
@@ -1017,16 +1023,9 @@ namespace influx::rhi
 			input_layout_desc.pInputElementDescs = input_elements.data();
 			input_layout_desc.NumElements = (uint32)input_elements.size();
 
-			// helper
-			auto get_shader_code = [](const vector<byte>& data)
-			{
-				return CD3DX12_SHADER_BYTECODE(data.data(), data.size());
-			};
-
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
 			pso_desc.InputLayout = input_layout_desc;
 			pso_desc.pRootSignature = rootsignature.get();
-
 			pso_desc.VS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::vs));
 			pso_desc.PS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::ps));
 			pso_desc.DS = get_shader_code(args.m_graphics_shaders.get(e_graphics_shader_slots::ds));
@@ -1045,6 +1044,7 @@ namespace influx::rhi
 			{
 				const auto& colour_target = args.m_graphics.m_output_merger.m_rendertargets[i];
 				if (colour_target.m_enabled == false) continue;
+
 				pso_desc.NumRenderTargets++;
 				pso_desc.RTVFormats[i] = translate(colour_target.m_format);
 				pso_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -1067,8 +1067,13 @@ namespace influx::rhi
 
 		case e_pipeline_type::compute:
 		{
-			ID3D12PipelineState* dxpipeline = nullptr;
-			hres = dxdevice->CreateComputePipelineState(nullptr, IID_PPV_ARGS(&dxpipeline));
+			D3D12_COMPUTE_PIPELINE_STATE_DESC desc{};
+			desc.CachedPSO;
+			desc.CS = get_shader_code(args.m_compute_shaders.get(e_compute_shader_slots::cs));
+			desc.Flags;
+			desc.NodeMask;
+			desc.pRootSignature = rootsignature.get();
+			hres = dxdevice->CreateComputePipelineState(&desc, IID_PPV_ARGS(&dxpipeline));
 		}
 		break;
 		case e_pipeline_type::raytracing:
@@ -1783,7 +1788,7 @@ namespace influx::rhi
 		return formats;
 	}
 
-	static result<descriptor> create_rtv(device& device, const texture& texture);
+	static result<descriptor> create_rtvs(device& device, const vector<texture const*>& textures);
 	static result<descriptor> create_dsv(device& device, const texture& texture);
 
 	// [commandlist - interface]
@@ -1797,6 +1802,17 @@ namespace influx::rhi
 
 		const auto& pass_color_attachments = pass.m_create_args.m_framebuffer_desc.m_color_attachments;
 		const uint32 num_colour_targets = pass.get_num_colour_targets();
+		
+		vector<texture const*> color_targets;
+		for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+		{
+			color_targets.push_back(args.m_color_targets[i]);
+		}
+
+		auto descriptors = create_rtvs(device, color_targets);
+		if (!descriptors)
+			return result_type::make_error("failed creating render target view for texture");
+
 		vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rtvs{};
 		for (uint64 i = 0u; i < num_colour_targets; ++i)
 		{
@@ -1804,12 +1820,8 @@ namespace influx::rhi
 			if (attachment.m_is_enabled == false)
 				continue;
 
-			auto descriptor = create_rtv(device, *args.m_color_targets[i]);
-			if (!descriptor)
-				return result_type::make_error("failed creating render target view for texture");
-			
 			rtvs.push_back({});
-			rtvs[i].cpuDescriptor.ptr = (SIZE_T)descriptor.get().m_cpu_address;
+			rtvs[i].cpuDescriptor.ptr = (SIZE_T)descriptors.get().m_cpu_address + i;
 			rtvs[i].BeginningAccess = translate(attachment.m_load);
 			rtvs[i].EndingAccess = translate(attachment.m_store);
 
@@ -2039,50 +2051,60 @@ namespace influx::rhi
 		return {};
 	}
 
-	inline static result<descriptor> create_rtv(device& device, const texture& texture)
+	inline static result<descriptor> create_rtvs(device& device, const vector<texture const*>& textures)
 	{
 		// 1. create RTV on the internal heap
 		dx12_device* dxdevice = device.m_native_object;
-		dx12_resource* dxresource = texture.m_native_object;
-
-		D3D12_CPU_DESCRIPTOR_HANDLE handle = device.m_data.m_internal_rtv_heap->GetCPUDescriptorHandleForHeapStart();
-		D3D12_RENDER_TARGET_VIEW_DESC rtv_desc{};
-		const uint32 arraysize = texture.get_arraysize();
-		rtv_desc.ViewDimension = translate_rtv(texture.get_texture_type(), arraysize);
-		rtv_desc.Format = translate(texture.get_format());
-		const uint32 mipslice = 0u;
-		const uint32 planeslice = 0u;
-		const uint32 firstarrayslice = 0u;
-		switch (rtv_desc.ViewDimension)
-		{
-		case D3D12_RTV_DIMENSION_TEXTURE1D:
-			rtv_desc.Texture1D.MipSlice = mipslice;
-			break;
-		case D3D12_RTV_DIMENSION_TEXTURE2D:
-			rtv_desc.Texture2D.MipSlice = mipslice;
-			rtv_desc.Texture2D.PlaneSlice = planeslice;
-			break;
-		case D3D12_RTV_DIMENSION_TEXTURE1DARRAY:
-			rtv_desc.Texture1DArray.ArraySize = arraysize;
-			rtv_desc.Texture1DArray.FirstArraySlice = firstarrayslice;
-			rtv_desc.Texture1DArray.MipSlice = mipslice;
-			break;
-		case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
-			rtv_desc.Texture2DArray.ArraySize = arraysize;
-			rtv_desc.Texture2DArray.FirstArraySlice = firstarrayslice;
-			rtv_desc.Texture2DArray.MipSlice = mipslice;
-			rtv_desc.Texture2DArray.PlaneSlice = planeslice;
-			break;
-		case D3D12_RTV_DIMENSION_TEXTURE3D:
-			rtv_desc.Texture3D.FirstWSlice = firstarrayslice;
-			rtv_desc.Texture3D.MipSlice = mipslice;
-			rtv_desc.Texture3D.WSize = texture.get_depth();
-			break;
-		}
-		dxdevice->CreateRenderTargetView(dxresource, &rtv_desc, handle);
 		
+		D3D12_CPU_DESCRIPTOR_HANDLE base = device.m_data.m_internal_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = base;
+		for (uint32 i = 0u; i < textures.size(); ++i)
+		{
+			texture const* texture = textures[i];
+			if (texture == nullptr) continue;
+
+			dx12_resource* dxresource = texture->m_native_object;
+
+			D3D12_RENDER_TARGET_VIEW_DESC rtv_desc{};
+			const uint32 arraysize = texture->get_arraysize();
+			rtv_desc.ViewDimension = translate_rtv(texture->get_texture_type(), arraysize);
+			rtv_desc.Format = translate(texture->get_format());
+			const uint32 mipslice = 0u;
+			const uint32 planeslice = 0u;
+			const uint32 firstarrayslice = 0u;
+			switch (rtv_desc.ViewDimension)
+			{
+			case D3D12_RTV_DIMENSION_TEXTURE1D:
+				rtv_desc.Texture1D.MipSlice = mipslice;
+				break;
+			case D3D12_RTV_DIMENSION_TEXTURE2D:
+				rtv_desc.Texture2D.MipSlice = mipslice;
+				rtv_desc.Texture2D.PlaneSlice = planeslice;
+				break;
+			case D3D12_RTV_DIMENSION_TEXTURE1DARRAY:
+				rtv_desc.Texture1DArray.ArraySize = arraysize;
+				rtv_desc.Texture1DArray.FirstArraySlice = firstarrayslice;
+				rtv_desc.Texture1DArray.MipSlice = mipslice;
+				break;
+			case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
+				rtv_desc.Texture2DArray.ArraySize = arraysize;
+				rtv_desc.Texture2DArray.FirstArraySlice = firstarrayslice;
+				rtv_desc.Texture2DArray.MipSlice = mipslice;
+				rtv_desc.Texture2DArray.PlaneSlice = planeslice;
+				break;
+			case D3D12_RTV_DIMENSION_TEXTURE3D:
+				rtv_desc.Texture3D.FirstWSlice = firstarrayslice;
+				rtv_desc.Texture3D.MipSlice = mipslice;
+				rtv_desc.Texture3D.WSize = texture->get_depth();
+				break;
+			}
+			dxdevice->CreateRenderTargetView(dxresource, &rtv_desc, handle);
+			
+			handle.ptr += device.m_data.get_descriptor_stride(e_descriptor_heap_type::rtv);
+		}
+
 		descriptor result{};
-		result.m_cpu_address = handle.ptr;
+		result.m_cpu_address = base.ptr;
 		return result;
 	}
 	inline static result<descriptor> create_dsv(device& device, const texture& texture)
@@ -2133,7 +2155,7 @@ namespace influx::rhi
 		if (internal_rtv_heap == nullptr)
 			return result_type::make_error("device.m_data.m_internal_rtv_heap is nullptr!");
 
-		auto new_rtv = create_rtv(device, texture);
+		auto new_rtv = create_rtvs(device, { &texture });
 		if (!new_rtv)
 			return result_type::make_error("failed creating RTV");
 
@@ -2160,7 +2182,7 @@ namespace influx::rhi
 		dxcmdlist->SetDescriptorHeaps(static_cast<uint32>(descheaps.size()), descheaps.data());
 		return {};
 	}
-	result<> commandlist::bind_rootsignature(const rootsignature& signature)
+	result<> commandlist::bind_rootsignature(const rootsignature& signature, bool is_compute)
 	{
 		using result_type = result<>;
 		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
@@ -2171,7 +2193,8 @@ namespace influx::rhi
 		if (!dxsignature)
 			return result_type::make_error("failed casting signature.m_native_object to dx12_rootsignature");
 
-		dxcmdlist->SetGraphicsRootSignature(dxsignature.get());
+		if (is_compute) dxcmdlist->SetComputeRootSignature(dxsignature.get());
+		else dxcmdlist->SetGraphicsRootSignature(dxsignature.get());
 		return {};
 	}
 	result<> commandlist::bind_pipeline(const pipeline& pipeline)
@@ -2188,7 +2211,7 @@ namespace influx::rhi
 		dxcmdlist->SetPipelineState(dxpipeline.get());
 		return {};
 	}
-	result<> commandlist::bind_texture_uav(const texture& texture, uint32 param_index)
+	result<> commandlist::bind_texture_uav(const texture& texture, uint32 param_index, bool is_compute)
 	{
 		using result_type = result<>;
 		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
@@ -2199,11 +2222,13 @@ namespace influx::rhi
 		if (!dxresource)
 			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
 
+		// dxcmdlist->SetGraphicsRootDescriptorTable(param_index, )
 		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
-		dxcmdlist->SetGraphicsRootUnorderedAccessView(param_index, gpu_address);
+		if (is_compute) dxcmdlist->SetComputeRootUnorderedAccessView(param_index, gpu_address);
+		else dxcmdlist->SetGraphicsRootUnorderedAccessView(param_index, gpu_address);
 		return {};
 	}
-	result<> commandlist::bind_texture_srv(const texture& texture, uint32 param_index)
+	result<> commandlist::bind_texture_srv(const texture& texture, uint32 param_index, bool is_compute)
 	{
 		using result_type = result<>;
 		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
@@ -2215,10 +2240,11 @@ namespace influx::rhi
 			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
 
 		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
-		dxcmdlist->SetGraphicsRootShaderResourceView(param_index, gpu_address);
+		if (is_compute) dxcmdlist->SetComputeRootShaderResourceView(param_index, gpu_address);
+		else dxcmdlist->SetGraphicsRootShaderResourceView(param_index, gpu_address);
 		return {};
 	}
-	result<> commandlist::bind_buffer_uav(const buffer& buffer, uint32 param_index)
+	result<> commandlist::bind_buffer_uav(const buffer& buffer, uint32 param_index, bool is_compute)
 	{
 		using result_type = result<>;
 		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
@@ -2230,10 +2256,11 @@ namespace influx::rhi
 			return result_type::make_error("buffer.m_native_object failed casting to dx12_resource!");
 
 		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
-		dxcmdlist->SetGraphicsRootUnorderedAccessView(param_index, gpu_address);
+		if (is_compute) dxcmdlist->SetComputeRootUnorderedAccessView(param_index, gpu_address);
+		else dxcmdlist->SetGraphicsRootUnorderedAccessView(param_index, gpu_address);
 		return {};
 	}
-	result<> commandlist::bind_buffer_srv(const buffer& buffer, uint32 param_index)
+	result<> commandlist::bind_buffer_srv(const buffer& buffer, uint32 param_index, bool is_compute)
 	{
 		using result_type = result<>;
 		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
@@ -2245,10 +2272,11 @@ namespace influx::rhi
 			return result_type::make_error("buffer.m_native_object failed casting to dx12_resource!");
 
 		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
-		dxcmdlist->SetGraphicsRootShaderResourceView(param_index, gpu_address);
+		if (is_compute) dxcmdlist->SetComputeRootShaderResourceView(param_index, gpu_address);
+		else dxcmdlist->SetGraphicsRootShaderResourceView(param_index, gpu_address);
 		return {};
 	}
-	result<> commandlist::bind_buffer_cbv(const buffer& buffer, uint32 param_index)
+	result<> commandlist::bind_buffer_cbv(const buffer& buffer, uint32 param_index, bool is_compute)
 	{
 		using result_type = result<>;
 		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
@@ -2260,8 +2288,46 @@ namespace influx::rhi
 			return result_type::make_error("buffer.m_native_object failed casting to dx12_resource!");
 
 		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
-		dxcmdlist->SetGraphicsRootConstantBufferView(param_index, gpu_address);
+		if (is_compute) dxcmdlist->SetComputeRootConstantBufferView(param_index, gpu_address);
+		else dxcmdlist->SetGraphicsRootConstantBufferView(param_index, gpu_address);
 		return {};
+	}
+	
+	result<> commandlist::set_rendertargets(device& dev, 
+		const vector<texture const*>& color_targets, 
+		texture const* depth_target)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		uint32 num_valid_targets = 0u;
+		for (const auto& target : color_targets)
+			if (target != nullptr) num_valid_targets++;
+		
+		D3D12_CPU_DESCRIPTOR_HANDLE rtv_range{};
+		if (num_valid_targets > 0u)
+		{
+			auto rtvs = create_rtvs(dev, color_targets);
+			if (!rtvs)
+				return result_type::make_error("failed creating rtvs!");
+			rtv_range = { .ptr = rtvs.get().m_cpu_address };
+		}
+
+		const bool has_depth = depth_target != nullptr;
+		if (!has_depth && num_valid_targets == 0u)
+			return result_type::make_warning({}, "noop");
+
+		D3D12_CPU_DESCRIPTOR_HANDLE dsv_range{};
+		if (has_depth)
+		{
+			auto dsv = create_dsv(dev, *depth_target);
+			if (!dsv)
+				return result_type::make_error("failed creating dsv!");
+			dsv_range = { .ptr = dsv.get().m_cpu_address };
+		}
+		dxcmdlist->OMSetRenderTargets(num_valid_targets, &rtv_range, true, &dsv_range);
 	}
 	result<> commandlist::bind_vertexbuffer(const buffer& vertexbuffer)
 	{
@@ -2322,6 +2388,26 @@ namespace influx::rhi
 			args.m_start_index, 
 			args.m_start_vertex,
 			args.m_start_instance);
+		return {};
+	}
+	result<> commandlist::dispatch(const math::uint3& group_nums)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		dxcmdlist->Dispatch(group_nums.x, group_nums.y, group_nums.z);
+		return {};
+	}
+	result<> commandlist::set_primitive_topology(e_primitive_topology type)
+	{
+		using result_type = result<>;
+		auto dxcmdlist = cast<dx12_commandlist>(m_native_object);
+		if (!dxcmdlist)
+			return result_type::make_error("failed casting m_native to dx12_commandlist");
+
+		dxcmdlist->IASetPrimitiveTopology(translate(type));
 		return {};
 	}
 

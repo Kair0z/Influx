@@ -311,24 +311,42 @@ namespace influx::rhi
 		}
 
 		// common formats
-		static pixelformat rgba_8_unorm()
+		inline static pixelformat rgba_8_unorm()
 		{
 			using namespace format;
 			return { e_format::unorm,{_r,_8},{_g,_8},{_b,_8},{_a,_8}};
 		}
-		static pixelformat d32() // depth 32b
+		inline static pixelformat d32() // depth 32b
 		{
 			// DXGI_FORMAT_D32_FLOAT
 			// VK_FORMAT_D32_SFLOAT
 			using namespace format;
 			return { e_format::sfloat, {_d,_32} };
 		}
-		static pixelformat d24s8() // depth 24b - stencil 8b
+		inline static pixelformat d24s8() // depth 24b - stencil 8b
 		{
 			// DXGI_FORMAT_D24_UNORM_S8_UINT
 			// VK_FORMAT_D24_UNORM_S8_UINT
 			using namespace format;
 			return { e_format::unorm, {_d,_24}, {_s,_8,uint} };
+		}
+		inline static pixelformat make_uint32(const uint32 num_uints)
+		{
+			pixelformat res{};
+			res.m_num_elements = num_uints;
+			res.m_format = format::e_format::uint;
+			for (uint32 i = 0u; i < num_uints; ++i)
+				res.m_elements[i] = format::element{ format::index_to_semantic(i), format::e_bitsize::_32 };
+			return res;
+		}
+		inline static pixelformat make_f32(const uint32 num_floats)
+		{
+			pixelformat res{};
+			res.m_num_elements = num_floats;
+			res.m_format = format::e_format::sfloat;
+			for (uint32 i = 0u; i < num_floats; ++i)
+				res.m_elements[i] = format::element{ format::index_to_semantic(i), format::e_bitsize::_32 };
+			return res;
 		}
 	};
 

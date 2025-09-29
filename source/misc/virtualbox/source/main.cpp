@@ -12,13 +12,20 @@
 #include <functional>
 using namespace influx;
 
+// shader frontend
+namespace frontend
+{
+#include "D:/Git/Influx/source/misc/virtualbox/resources/shaders.hlsl"
+}
+
 struct globals
 {
 	// constants
 	inline static const string appname		= "virtualbox";
 	inline static const string path_assets	= "D:/Git/Influx/assets/misc/";
 	inline static const string path_mesh	= path_assets + "soldier.fbx";
-	inline static const string path_shaders = path_assets + "shaders.hlsl";
+	inline static const string path_resources = "D:/Git/Influx/source/misc/virtualbox/resources/";
+	inline static const string path_shaders = path_resources + "shaders.hlsl";
 
 	inline static umap<string, string> path_aliases =
 	{
@@ -120,10 +127,10 @@ int main()
 	}
 	rhi::swapchain swapchain = device.create(swap_desc).get();
 
-	rhi::pipeline pipeline;
-	rhi::rootsignature signature;
+	rhi::pipeline pip_basepass; rhi::pipeline pip_shadepass;
+	rhi::rootsignature sig_basepass; rhi::rootsignature sig_shadepass;
 	rhi::renderpass renderpass;
-	g.reload_shaders_func = [&device, &pipeline, &signature, &renderpass]()
+	g.reload_shaders_func = [&device, &pip_basepass, &sig_basepass, &pip_shadepass, &sig_shadepass, &renderpass]()
 	{
 		globals& g = globals::get();
 		std::cout << "reloading shaders \n";
@@ -163,26 +170,64 @@ int main()
 			}
 		}
 		
-		// signature
+		// signatures
 		{
 			rhi::rootsignature_create_args rootsig_args{};
 			rootsig_args.m_direct_indexing = true;
 			rootsig_args.reflect_shader(vertexshader.m_reflection, shader::e_shader_type::vs);
 			rootsig_args.reflect_shader(pixelshader.m_reflection, shader::e_shader_type::ps);
-			signature = device.create(rootsig_args).get();
+			sig_basepass = device.create(rootsig_args).get();
+
+			rootsig_args = {};
+			rootsig_args.reflect_shader(computeshader.m_reflection, shader::e_shader_type::cs);
+			sig_shadepass = device.create(rootsig_args).get();
 		}
-		// pipeline
+		// pipelines
 		{
 			rhi::graphics_shaderslots graphics_shaders;
 			rhi::graphics_pipeline_desc args{};
 			args.reflect_input_elements(vertexshader.m_reflection);
+			args.reflect_pixelshader(pixelshader.m_reflection);
 			args.m_shaderpipeline = rhi::e_graphics_shader_pipeline::vs_ps;
 			graphics_shaders.set(shader::e_shader_type::vs, vertexshader.m_bytecode);
 			graphics_shaders.set(shader::e_shader_type::ps, pixelshader.m_bytecode);
-			pipeline = device.create_graphics_pipeline(signature, renderpass, graphics_shaders, args).get();
+			pip_basepass = device.create_graphics_pipeline(sig_basepass, renderpass, graphics_shaders, args).get();
+
+			rhi::compute_shaderslots compute_shaders;
+			compute_shaders.set(shader::e_shader_type::cs, computeshader.m_bytecode);
+			pip_shadepass = device.create_compute_pipeline(sig_shadepass, compute_shaders).get();
 		}
 	};
+	g.reload_shaders_func();
 
+	rhi::texture tex_gbalbedo; 
+	rhi::texture tex_gbdepth;
+	rhi::texture tex_depth;
+	rhi::texture tex_ftarget;
+	{
+		rhi::texture_create_args args = rhi::texture::create_args::tex2D(win_desc.m_dimensions);
+		args.mod_bindflags(rhi::e_resource_bindflags::rtv);
+		tex_ftarget = device.create(args).get();
+
+		args.mod_format(rhi::pixelformat::make_f32(4u));
+		tex_gbalbedo = device.create(args).get();
+		args.mod_format(rhi::pixelformat::make_f32(1u));
+		tex_gbdepth = device.create(args).get();
+		
+		args = rhi::texture_create_args::tex2D_depth(win_desc.m_dimensions);
+		tex_depth = device.create(args).get();
+	}
+
+	rhi::buffer buff_drawcb;
+	{
+		rhi::buffer_create_args args{};
+		args.m_bindflags = rhi::e_resource_bindflags::constbuffer;
+		args.m_bytesize = sizeof(frontend::constants);
+		args.m_init_state = rhi::e_resource_state::gen_read;
+		args.m_memoryheap = rhi::memoryheap_desc::shared();
+		buff_drawcb = device.create(args).get();
+	}
+	
 	while (!g.is_quit)
 	{
 		window->poll_events(g.is_quit);
@@ -192,12 +237,38 @@ int main()
 		cmdlist.transition(backbuffer, rhi::e_resource_state::render_target);
 		cmdlist.clear_texture(device, backbuffer, { .m_colour = {1,0,0,1} });
 
-		if (pipeline.is_valid())
+		if (pip_basepass.is_valid())
 		{
-			cmdlist.bind_pipeline(pipeline);
-			cmdlist.bind_rootsignature(signature);
+			buff_drawcb.write_data<frontend::constants>({ .m_viewprojection = {} });
+
+			rhi::begin_renderpass_args args{};
+			args.set_depth(tex_depth);
+			args.set_color(0u, tex_gbalbedo);
+			args.set_color(0u, tex_gbdepth);
+
+			cmdlist.renderpass_begin(device, renderpass, args);
+			cmdlist.bind_pipeline(pip_basepass);
+			cmdlist.bind_rootsignature(sig_basepass);
+			cmdlist.bind_buffer_cbv(buff_drawcb, 0u);
+			cmdlist.draw_indexed({});
+			cmdlist.renderpass_end();
+		}
+		if (pip_shadepass.is_valid())
+		{
+			const bool is_compute = true;
+			cmdlist.bind_rootsignature(sig_shadepass, is_compute);
+			cmdlist.bind_pipeline(pip_shadepass);
+			cmdlist.bind_texture_uav(tex_ftarget, 0u, is_compute);
+			cmdlist.bind_texture_srv(tex_gbalbedo, 0u, is_compute);
+			cmdlist.bind_texture_srv(tex_gbdepth, 1u, is_compute);
+			const uint32 num_groups_x = win_desc.m_dimensions.x / TGSIZE;
+			const uint32 num_groups_y = win_desc.m_dimensions.y / TGSIZE;
+			cmdlist.dispatch({ num_groups_x,num_groups_y, 1u });
 		}
 
+		cmdlist.transition(tex_ftarget, rhi::e_resource_state::copy_src);
+		cmdlist.transition(backbuffer, rhi::e_resource_state::copy_dst);
+		cmdlist.copy(tex_ftarget, backbuffer);
 		cmdlist.transition(backbuffer, rhi::e_resource_state::present);
 		cmdlist.end();
 		cmdlist.submit(queue);
