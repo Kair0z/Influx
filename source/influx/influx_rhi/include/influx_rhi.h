@@ -101,7 +101,7 @@ namespace influx::rhi
 	using native_pipeline				= ID3D12PipelineState*;
 	using native_rootsignature			= ID3D12RootSignature*;
 	using native_gpu_address			= uint64;
-	using native_renderpass				= ID3D12Fence*;
+	using native_renderpass				= uint64*;
 	
 #elif INFLUX_RHI_VULKAN
 	using native_instance				= VkInstance;
@@ -629,8 +629,8 @@ namespace influx::rhi
 		texture const* m_color_targets[k_max_num_rendertargets_per_draw];
 		texture const* m_depth_target;
 		
-		void set_color(const uint32 index, const texture& texture);
-		void set_depth(const texture& texture);
+		void bind_color(const uint32 index, const texture& texture);
+		void bind_depth(const texture& texture);
 	};
 	struct draw_args final
 	{
@@ -974,13 +974,13 @@ namespace influx::rhi
 	// TODO PIPELINE ELEMENT FORMATS
 	struct graphics_pipeline_desc final
 	{
-		e_primitive_topology		m_primitive_topology = e_primitive_topology::unknown;
+		e_primitive_topology		m_primitive_topology = e_primitive_topology::trilist;
 		output_merger				m_output_merger{};
 		rasterizer					m_rasterizer{};
 		sample_desc					m_sample_desc{};
 		viewport					m_default_viewport;
 		xrect						m_default_xrect;
-		e_graphics_shader_pipeline m_shaderpipeline = e_graphics_shader_pipeline::vs;
+		e_graphics_shader_pipeline	m_shaderpipeline = e_graphics_shader_pipeline::vs;
 
 		bool						m_blend_alpha_to_coverage_enabled = false;
 		bool						m_blend_independent;
@@ -1519,6 +1519,7 @@ namespace influx::rhi
 
 				switch (resource.m_type)
 				{
+				// buffers can either be root descriptors, or referenced through a resource table
 				case shader::reflection::resource::e_type::constbuffer:
 					add_root_resources(resource.m_name, root_param_resource::e_type::cbv,
 						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
@@ -1531,6 +1532,8 @@ namespace influx::rhi
 					add_root_resources(resource.m_name, root_param_resource::e_type::uav,
 						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
 					break;
+
+				// textures MUST be accessed through resource tables
 				case shader::reflection::resource::e_type::texture:
 					add_root_range(root_param_resource_range::e_type::srv,
 						resource.m_range_size, resource.m_shader_register,
@@ -1643,11 +1646,12 @@ namespace influx::rhi
 	};
 	struct renderpass_create_args final
 	{
-		framebuffer_desc m_framebuffer_desc;
+		native_device		m_device;
+		framebuffer_desc	m_framebuffer_desc;
 		e_renderpass_flags	m_flags = e_renderpass_flags::none;
-		color_attachment& set_color(const uint32 index, const texture& texture);
-		depth_attachment& set_depth(const texture& texture);
-		native_device m_device;
+
+		color_attachment& describe_color(const uint32 index, const texture& texture);
+		depth_attachment& describe_depth(const texture& texture);
 	};
 #pragma endregion
 	template <e_object _t>
@@ -2171,6 +2175,9 @@ namespace influx::rhi
 		e_pipeline_type get_type() const
 		{ return m_create_args.m_type; }
 
+		bool is_graphics() const
+		{ return get_type() == e_pipeline_type::graphics; }
+
 		const rasterizer& get_rasterizer() const
 		{ return m_create_args.m_graphics.m_rasterizer; }
 
@@ -2517,13 +2524,13 @@ namespace influx::rhi
 		return res;
 	}
 
-	inline color_attachment& renderpass_create_args::set_color(const uint32 index, const texture& texture)
+	inline color_attachment& renderpass_create_args::describe_color(const uint32 index, const texture& texture)
 	{
 		color_attachment new_attach{};
 		new_attach.m_store;
 		new_attach.m_load;
 		new_attach.m_format = texture.get_format();
-		
+
 		if (m_framebuffer_desc.m_dimensions.is_zero())
 		{
 			m_framebuffer_desc.m_dimensions.x = texture.get_dimensions().x;
@@ -2535,7 +2542,7 @@ namespace influx::rhi
 		target.m_is_enabled = true;
 		return target;
 	}
-	inline depth_attachment& renderpass_create_args::set_depth(const texture& texture)
+	inline depth_attachment& renderpass_create_args::describe_depth(const texture& texture)
 	{
 		depth_attachment new_attach{};
 		new_attach.m_format = texture.get_format();
@@ -2552,11 +2559,11 @@ namespace influx::rhi
 		target.m_is_enabled = true;
 		return target;
 	}
-	inline void begin_renderpass_args::set_color(const uint32 index, const texture& texture)
+	inline void begin_renderpass_args::bind_color(const uint32 index, const texture& texture)
 	{
 		m_color_targets[index] = &texture;
 	}
-	inline void begin_renderpass_args::set_depth(const texture& texture)
+	inline void begin_renderpass_args::bind_depth(const texture& texture)
 	{
 		m_depth_target = &texture;
 	}

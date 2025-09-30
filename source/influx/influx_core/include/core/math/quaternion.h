@@ -197,12 +197,12 @@ namespace influx::math
 		inline vec3 get_euler_angles() const
 		{
 			// Roll (x-axis rotation)
-			_t sinr_cosp = 2.0 * (m_real * m_x + m_y * m_z);
-			_t cosr_cosp = 1.0 - 2.0 * (m_x * m_x + m_y * m_y);
+			_t sinr_cosp = 2.0f * (m_real * m_x + m_y * m_z);
+			_t cosr_cosp = 1.0f - 2.0f * (m_x * m_x + m_y * m_y);
 			_t roll = std::atan2(sinr_cosp, cosr_cosp);
 
 			// Pitch (y-axis rotation)
-			_t sinp = 2.0 * (m_real * m_y - m_z * m_x);
+			_t sinp = 2.0f * (m_real * m_y - m_z * m_x);
 			_t pitch;
 			if (std::fabs(sinp) >= 1)
 				pitch = std::copysign(math::k_PI / 2, sinp); // use 90 degrees if out of range
@@ -210,8 +210,8 @@ namespace influx::math
 				pitch = std::asin(sinp);
 
 			// Yaw (z-axis rotation)
-			_t siny_cosp = 2.0 * (m_real * m_z + m_x * m_y);
-			_t cosy_cosp = 1.0 - 2.0 * (m_y * m_y + m_z * m_z);
+			_t siny_cosp = 2.0f * (m_real * m_z + m_x * m_y);
+			_t cosy_cosp = 1.0f - 2.0f * (m_y * m_y + m_z * m_z);
 			_t yaw = std::atan2(siny_cosp, cosy_cosp);
 
 			return { roll, pitch, yaw };

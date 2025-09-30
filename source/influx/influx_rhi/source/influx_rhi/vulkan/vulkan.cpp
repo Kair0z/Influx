@@ -1110,10 +1110,8 @@ namespace influx::rhi
 		// Number of viewports must match number of scissors
 		VkPipelineViewportStateCreateInfo viewportCreateInfo = {};
 		viewportCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportCreateInfo.viewportCount = 1;
-		viewportCreateInfo.pViewports = &viewport;
-		viewportCreateInfo.scissorCount = 1;
-		viewportCreateInfo.pScissors = &scissor;
+		viewportCreateInfo.viewportCount = 1; viewportCreateInfo.pViewports = &viewport;
+		viewportCreateInfo.scissorCount = 1; viewportCreateInfo.pScissors = &scissor;
 
 		// Describe rasterization
 		// Note: depth bias and using polygon modes other than fill require changes to logical device creation (device features)
@@ -1286,11 +1284,10 @@ namespace influx::rhi
 		VkDevice vkdevice = args.m_device;
 		const framebuffer_desc& framebuffer_desc = args.m_framebuffer_desc;
 
-		// translate the attachments
+		// translate VkAttachmentDescriptions
 		const uint32 num_colour_targets = framebuffer_desc.get_num_enabled_colour_targets();
 		const bool has_depth = framebuffer_desc.is_depth_enabled();
 		const uint32 num_attachments = has_depth ? num_colour_targets + 1 : num_colour_targets;
-
 		vector<VkAttachmentDescription> attachments{};
 		{
 			attachments.reserve(num_attachments);
@@ -1303,7 +1300,7 @@ namespace influx::rhi
 				attachments.push_back(translate(framebuffer_desc.m_depth_attachment));
 		}
 		
-		// make 1 subpass
+		// make 1 single subpass
 		vector<VkSubpassDescription> subpasses{};
 		vector<VkAttachmentReference> color_refs{};
 		VkAttachmentReference depth_ref = {};
@@ -1326,7 +1323,7 @@ namespace influx::rhi
 			subpasses.push_back(subpass);
 		}
 
-		// no dependencies (1 subpass)
+		// no dependencies (since 1 subpass)
 		vector<VkSubpassDependency> dependencies{};
 		VkRenderPassCreateInfo info{};
 		info.attachmentCount = num_attachments;

@@ -366,7 +366,7 @@ namespace influx::rhi
 		depth_stencil_desc.StencilEnable = desc.m_stencil_enable;
 		return depth_stencil_desc;
 	}
-	inline D3D12_PRIMITIVE_TOPOLOGY_TYPE translate(e_primitive_topology_type type)
+	static D3D12_PRIMITIVE_TOPOLOGY_TYPE translate(e_primitive_topology_type type)
 	{
 		switch (type)
 		{
@@ -380,7 +380,18 @@ namespace influx::rhi
 			return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
 		}
 	}
-	inline D3D_PRIMITIVE_TOPOLOGY translate(e_primitive_topology topo)
+	static D3D12_PRIMITIVE_TOPOLOGY_TYPE translate_type(e_primitive_topology type)
+	{
+		switch (type)
+		{
+		case e_primitive_topology::trilist:	return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		case e_primitive_topology::linelist: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		default:
+			influx_assert(false);
+			return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+		}
+	}
+	static D3D_PRIMITIVE_TOPOLOGY translate(e_primitive_topology topo)
 	{
 		switch (topo)
 		{
@@ -1034,7 +1045,7 @@ namespace influx::rhi
 			pso_desc.RasterizerState = translate(args.m_graphics.m_rasterizer);
 			pso_desc.DepthStencilState = translate(args.m_graphics.m_output_merger.m_depthtarget);
 			pso_desc.SampleMask = args.m_graphics.m_sample_desc.m_sample_mask;
-			pso_desc.PrimitiveTopologyType = translate(args.m_graphics.m_primitive_topology_type);
+			pso_desc.PrimitiveTopologyType = translate_type(args.m_graphics.m_primitive_topology);
 			pso_desc.DSVFormat = translate(args.m_graphics.m_output_merger.m_depthtarget.m_format);
 			pso_desc.SampleDesc.Count = args.m_graphics.m_sample_desc.m_num_samples;
 			pso_desc.SampleDesc.Quality = args.m_graphics.m_sample_desc.m_quality;
@@ -1169,13 +1180,12 @@ namespace influx::rhi
 
 		// resource tables
 		size_t descriptor_table_idx = 0u;
-		for (const root_param_resource_table& tables : args.m_resource_tables)
+		for (const root_param_resource_table& table : args.m_resource_tables)
 		{
-			name_to_param_idx[tables.m_common.m_name] = (uint32)root_parameters.size();
+			name_to_param_idx[table.m_common.m_name] = (uint32)root_parameters.size();
 
 			vector<CD3DX12_DESCRIPTOR_RANGE1>& ranges = root_descriptor_ranges[descriptor_table_idx++];
-
-			for (const root_param_resource_range& range : tables.m_resource_ranges)
+			for (const root_param_resource_range& range : table.m_resource_ranges)
 			{
 				D3D12_DESCRIPTOR_RANGE_TYPE range_type{};
 				switch (range.m_type)
@@ -1194,7 +1204,7 @@ namespace influx::rhi
 			}
 
 			root_parameters.push_back({});
-			root_parameters.back().InitAsDescriptorTable((uint32)ranges.size(), ranges.data(), translate(tables.m_common.m_visibility));
+			root_parameters.back().InitAsDescriptorTable((uint32)ranges.size(), ranges.data(), translate(table.m_common.m_visibility));
 		}
 
 		// samplers
@@ -1243,21 +1253,7 @@ namespace influx::rhi
 	result<native_renderpass> create_native(const renderpass_create_args& args, renderpass_data* out_data)
 	{
 		using result_type = result<native_renderpass>;
-
-		fence_create_args fargs{};
-		fargs.m_device = args.m_device;
-		fargs.m_init_value = 0u;
-		fargs.m_type;
-		auto native = create_native(fargs);
-		if (!native)
-			return result_type::make_error("failed creating native");
-
-		if (out_data)
-		{
-			out_data;
-		}
-
-		return native;
+		return new uint64(1);
 	}
 
 	result<> release(object_native native)
@@ -1795,88 +1791,129 @@ namespace influx::rhi
 	result<> commandlist::renderpass_begin(device& device, renderpass& pass, const begin_renderpass_args& args)
 	{
 		using result_type = result<>;
+		result_type result{};
 
 		ID3D12GraphicsCommandList7* dxcommandlist = (ID3D12GraphicsCommandList7*)m_native_object;
 		if (dxcommandlist == nullptr)
 			return result_type::make_error("failed");
 
-		const auto& pass_color_attachments = pass.m_create_args.m_framebuffer_desc.m_color_attachments;
-		const uint32 num_colour_targets = pass.get_num_colour_targets();
-		
-		vector<texture const*> color_targets;
-		for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+		// check if the pass object is valid
+		if (!pass.is_valid())
+			return result_type::make_error("pass is invalid!");
+
+		// this is where the logic gets a bit creative...
+		// the renderpass object was created with a set of color & depth descriptions.
+		// the args contains the resources we'll bind in this renderpass.
+		// for the rest of this function:
+		// - a description refers to what was specified at renderpass CREATION
+		// - a binding refers to the resource we're binding specified in ARGS
+		const auto& color_descriptions = pass.m_create_args.m_framebuffer_desc.m_color_attachments;
+		const uint32 num_colour_descriptions = pass.get_num_colour_targets();
+		const auto& depth_description = pass.m_create_args.m_framebuffer_desc.m_depth_attachment;
+		const bool valid_depth_binding = args.m_depth_target != nullptr && args.m_depth_target->is_valid();
+
+		// check if the args.m_depth_target matches pass.depth_description
+		if (depth_description.m_is_enabled)
 		{
-			color_targets.push_back(args.m_color_targets[i]);
+			if (valid_depth_binding == false)
+				return result_type::make_error("the pass object describes depth enabled, but the args.m_depth_target is not valid!");
+			if (depth_description.m_format != args.m_depth_target->get_format())
+				return result_type::make_error("the pass object describes depth enabled, but the args.m_depth_target has a mismatching format!");
 		}
 
-		auto descriptors = create_rtvs(device, color_targets);
+		// if we have a valid depth binding, but description mentions no depth, depth will NOT be bound!
+		if (valid_depth_binding && depth_description.m_is_enabled == false)
+			result = result_type::make_warning({}, "warning: args.m_depth_target is valid, but our renderpass object has no depth target description. We handle this by simply not binding the depth!");
+	
+		// check if the args.m_color_targets all match pass.color_descriptions
+		for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+		{
+			const bool description_enabled = color_descriptions[i].m_is_enabled;
+			if (description_enabled == false)
+				continue;
+			
+			const bool binding_valid = args.m_color_targets[i] != nullptr && args.m_color_targets[i]->is_valid();
+			if (binding_valid == false)
+				return result_type::make_error("the pass object describes a color target enabled, but the corresponding args.m_color_target is not valid!");
+
+			const bool formats_mismatch = color_descriptions[i].m_format != args.m_color_targets[i]->get_format();
+			if (formats_mismatch)
+				return result_type::make_error("the pass object describes a color target enabled, but the corresponding args.m_color_target has a different format!");
+		}
+
+		// gather all non-null color bindings
+		vector<texture const*> color_bindings;
+		for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+		{
+			if (args.m_color_targets[i] != nullptr)
+				color_bindings.push_back(args.m_color_targets[i]);
+		}
+
+		// create a rtv descriptor for each color binding
+		auto descriptors = create_rtvs(device, color_bindings);
 		if (!descriptors)
 			return result_type::make_error("failed creating render target view for texture");
 
 		vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rtvs{};
-		for (uint64 i = 0u; i < num_colour_targets; ++i)
+		uint32 rtv_index = 0u;
+		const uint32 rtv_stride = device.m_data.get_descriptor_stride(e_descriptor_heap_type::rtv);
+		for (uint64 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
 		{
-			const auto& attachment = pass_color_attachments[i];
-			if (attachment.m_is_enabled == false)
-				continue;
+			const auto& description = color_descriptions[i];
+			if (description.m_is_enabled == false) continue;
+			
+			D3D12_RENDER_PASS_RENDER_TARGET_DESC rtv_desc{};
+			rtv_desc.cpuDescriptor.ptr = (SIZE_T)descriptors.get().m_cpu_address + (rtv_index++ * rtv_stride);
+			rtv_desc.BeginningAccess = translate(description.m_load);
+			rtv_desc.EndingAccess = translate(description.m_store);
 
-			rtvs.push_back({});
-			rtvs[i].cpuDescriptor.ptr = (SIZE_T)descriptors.get().m_cpu_address + i;
-			rtvs[i].BeginningAccess = translate(attachment.m_load);
-			rtvs[i].EndingAccess = translate(attachment.m_store);
-
-			// load: preserve
-			if (attachment.m_load == e_load_op::preserve)
+			if (description.m_load == e_load_op::preserve)
 			{
-				rtvs[i].BeginningAccess.PreserveLocal.AdditionalHeight = 0u;
-				rtvs[i].BeginningAccess.PreserveLocal.AdditionalWidth = 0u;
+				rtv_desc.BeginningAccess.PreserveLocal.AdditionalHeight = 0u;
+				rtv_desc.BeginningAccess.PreserveLocal.AdditionalWidth = 0u;
 			}
-			// load: clear
-			if (attachment.m_load == e_load_op::clear)
+			if (description.m_load == e_load_op::clear)
 			{
-				rtvs[i].BeginningAccess.Clear.ClearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-				memcpy(rtvs[i].BeginningAccess.Clear.ClearValue.Color, attachment.m_clear.m_data, sizeof(FLOAT[4]));
+				rtv_desc.BeginningAccess.Clear.ClearValue.Format = translate(description.m_format);
+				memcpy(rtv_desc.BeginningAccess.Clear.ClearValue.Color, description.m_clear.m_data, sizeof(FLOAT[4]));
 			}
-			// store: resolve
-			if (attachment.m_store == e_store_op::resolve)
+			if (description.m_store == e_store_op::resolve)
 			{
-				const auto& resolve = attachment.m_resolve;
-				rtvs[i].EndingAccess.Resolve.Format = translate(attachment.m_format);
-				// rtvs[i].EndingAccess.Resolve.pSrcResource = resolve.m_source->get_native<ID3D12Resource>();
-				// rtvs[i].EndingAccess.Resolve.pDstResource = resolve.m_dest->get_native<ID3D12Resource>();
-				rtvs[i].EndingAccess.Resolve.PreserveResolveSource = resolve.m_keep_source;
-				rtvs[i].EndingAccess.Resolve.pSubresourceParameters;
-				rtvs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_MIN;
-				rtvs[i].EndingAccess.Resolve.pSubresourceParameters;
-				rtvs[i].EndingAccess.Resolve.SubresourceCount = 0u;
+				const auto& resolve = description.m_resolve;
+				rtv_desc.EndingAccess.Resolve.Format = translate(description.m_format);
+				// rtv_desc.EndingAccess.Resolve.pSrcResource = resolve.m_source->get_native<ID3D12Resource>();
+				// rtv_desc.EndingAccess.Resolve.pDstResource = resolve.m_dest->get_native<ID3D12Resource>();
+				rtv_desc.EndingAccess.Resolve.PreserveResolveSource = resolve.m_keep_source;
+				rtv_desc.EndingAccess.Resolve.pSubresourceParameters;
+				rtv_desc.EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_MIN;
+				rtv_desc.EndingAccess.Resolve.pSubresourceParameters;
+				rtv_desc.EndingAccess.Resolve.SubresourceCount = 0u;
 			}
-
-			// store : preserve
-			if (attachment.m_store == e_store_op::preserve)
+			if (description.m_store == e_store_op::preserve)
 			{
-				rtvs[i].EndingAccess.PreserveLocal.AdditionalHeight = 0u;
-				rtvs[i].EndingAccess.PreserveLocal.AdditionalWidth = 0u;
+				rtv_desc.EndingAccess.PreserveLocal.AdditionalHeight = 0u;
+				rtv_desc.EndingAccess.PreserveLocal.AdditionalWidth = 0u;
 			}
+			rtvs.push_back(rtv_desc);
 		}
 
-		const auto& depth_attachment = pass.m_create_args.m_framebuffer_desc.m_depth_attachment;
 		D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsv = nullptr;
-		if (depth_attachment.m_is_enabled)
+		if (depth_description.m_is_enabled)
 		{
-			static D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsv_desc{};
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsv_desc{};
 
 			auto descriptor = create_dsv(device, *args.m_depth_target);
 			if (!descriptor)
 				return result_type::make_error("failed creating depth stencil view for texture");
 
 			dsv_desc.cpuDescriptor.ptr		= (SIZE_T)descriptor.get().m_cpu_address;
-			dsv_desc.DepthBeginningAccess	= translate(depth_attachment.m_depth_load);
-			dsv_desc.StencilBeginningAccess = translate(depth_attachment.m_stencil_load);
-			dsv_desc.DepthEndingAccess		= translate(depth_attachment.m_depth_store);
-			dsv_desc.StencilEndingAccess	= translate(depth_attachment.m_stencil_store);
-			dsv_desc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = depth_attachment.m_stencil_clear;
-			dsv_desc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = depth_attachment.m_depth_clear;
-			dsv_desc.DepthBeginningAccess.Clear.ClearValue.Format = translate(depth_attachment.m_format);
+			dsv_desc.DepthBeginningAccess	= translate(depth_description.m_depth_load);
+			dsv_desc.StencilBeginningAccess = translate(depth_description.m_stencil_load);
+			dsv_desc.DepthEndingAccess		= translate(depth_description.m_depth_store);
+			dsv_desc.StencilEndingAccess	= translate(depth_description.m_stencil_store);
+			dsv_desc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = depth_description.m_stencil_clear;
+			dsv_desc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = depth_description.m_depth_clear;
+			dsv_desc.DepthBeginningAccess.Clear.ClearValue.Format = translate(depth_description.m_format);
 			dsv = &dsv_desc;
 		}
 
@@ -2208,6 +2245,9 @@ namespace influx::rhi
 		if (!dxpipeline)
 			return result_type::make_error("failed casting pipeline.m_native to dx12_pipeline");
 
+		if (pipeline.is_graphics())
+			set_primitive_topology(pipeline.m_create_args.m_graphics.m_primitive_topology);
+
 		dxcmdlist->SetPipelineState(dxpipeline.get());
 		return {};
 	}
@@ -2226,6 +2266,7 @@ namespace influx::rhi
 		D3D12_GPU_VIRTUAL_ADDRESS gpu_address = dxresource->GetGPUVirtualAddress();
 		if (is_compute) dxcmdlist->SetComputeRootUnorderedAccessView(param_index, gpu_address);
 		else dxcmdlist->SetGraphicsRootUnorderedAccessView(param_index, gpu_address);
+		
 		return {};
 	}
 	result<> commandlist::bind_texture_srv(const texture& texture, uint32 param_index, bool is_compute)

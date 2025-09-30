@@ -130,6 +130,31 @@ int main()
 	rhi::pipeline pip_basepass; rhi::pipeline pip_shadepass;
 	rhi::rootsignature sig_basepass; rhi::rootsignature sig_shadepass;
 	rhi::renderpass renderpass;
+
+	rhi::texture tex_gbalbedo;
+	rhi::texture tex_gbdepth;
+	rhi::texture tex_depth;
+	rhi::texture tex_ftarget;
+	{
+		rhi::texture_create_args args = rhi::texture::create_args::tex2D(win_desc.m_dimensions);
+		args.mod_bindflags(rhi::e_resource_bindflags::rtv);
+		tex_ftarget = device.create(args).get();
+
+		args.mod_format(rhi::pixelformat::make_f32(4u));
+		tex_gbalbedo = device.create(args).get();
+		args.mod_format(rhi::pixelformat::make_f32(1u));
+		tex_gbdepth = device.create(args).get();
+
+		args = rhi::texture_create_args::tex2D_depth(win_desc.m_dimensions);
+		tex_depth = device.create(args).get();
+	}
+
+	rhi::renderpass_create_args pass_args{};
+	pass_args.describe_color(0u, tex_gbalbedo);
+	pass_args.describe_color(1u, tex_gbdepth);
+	pass_args.describe_depth(tex_depth);
+	renderpass = device.create(pass_args).get();
+
 	g.reload_shaders_func = [&device, &pip_basepass, &sig_basepass, &pip_shadepass, &sig_shadepass, &renderpass]()
 	{
 		globals& g = globals::get();
@@ -200,24 +225,6 @@ int main()
 	};
 	g.reload_shaders_func();
 
-	rhi::texture tex_gbalbedo; 
-	rhi::texture tex_gbdepth;
-	rhi::texture tex_depth;
-	rhi::texture tex_ftarget;
-	{
-		rhi::texture_create_args args = rhi::texture::create_args::tex2D(win_desc.m_dimensions);
-		args.mod_bindflags(rhi::e_resource_bindflags::rtv);
-		tex_ftarget = device.create(args).get();
-
-		args.mod_format(rhi::pixelformat::make_f32(4u));
-		tex_gbalbedo = device.create(args).get();
-		args.mod_format(rhi::pixelformat::make_f32(1u));
-		tex_gbdepth = device.create(args).get();
-		
-		args = rhi::texture_create_args::tex2D_depth(win_desc.m_dimensions);
-		tex_depth = device.create(args).get();
-	}
-
 	rhi::buffer buff_drawcb;
 	{
 		rhi::buffer_create_args args{};
@@ -242,9 +249,9 @@ int main()
 			buff_drawcb.write_data<frontend::constants>({ .m_viewprojection = {} });
 
 			rhi::begin_renderpass_args args{};
-			args.set_depth(tex_depth);
-			args.set_color(0u, tex_gbalbedo);
-			args.set_color(0u, tex_gbdepth);
+			args.bind_depth(tex_depth);
+			args.bind_color(0u, tex_gbalbedo);
+			args.bind_color(1u, tex_gbdepth);
 
 			cmdlist.renderpass_begin(device, renderpass, args);
 			cmdlist.bind_pipeline(pip_basepass);
