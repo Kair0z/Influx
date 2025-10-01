@@ -131,6 +131,30 @@ int main()
 	rhi::rootsignature sig_basepass; rhi::rootsignature sig_shadepass;
 	rhi::renderpass renderpass;
 
+	rhi::memheap gpu_memory;
+	{
+		rhi::memheap_create_args args{};
+		args.m_bytesize = 4u * 1024u * 1024u;
+		args.m_bytesize *= 64u;
+		gpu_memory = device.create(args).get();
+	}
+	
+	const math::uint2 virtual_texture_dimensions = math::uint2::make_one() * 8u * 1024u;
+	rhi::texture tex_virtual;
+	{
+		rhi::texture_create_args args 
+			= rhi::texture_create_args::tex2D(virtual_texture_dimensions);
+		args.m_is_virtual = true;
+		tex_virtual = device.create(args).get();
+	}
+	rhi::buffer buff_virtual;
+	{
+		rhi::buffer_create_args args{};
+		args.m_bytesize = 8u * 1024u;
+		args.m_is_virtual = true;
+		buff_virtual = device.create(args).get();
+	}
+
 	rhi::texture tex_gbalbedo;
 	rhi::texture tex_gbdepth;
 	rhi::texture tex_depth;
@@ -223,7 +247,6 @@ int main()
 			pip_shadepass = device.create_compute_pipeline(sig_shadepass, compute_shaders).get();
 		}
 	};
-	g.reload_shaders_func();
 
 	rhi::buffer buff_drawcb;
 	{
@@ -231,7 +254,7 @@ int main()
 		args.m_bindflags = rhi::e_resource_bindflags::constbuffer;
 		args.m_bytesize = sizeof(frontend::constants);
 		args.m_init_state = rhi::e_resource_state::gen_read;
-		args.m_memoryheap = rhi::memoryheap_desc::shared();
+		args.m_memoryheap = rhi::memoryheap_desc::cpu_writable();
 		buff_drawcb = device.create(args).get();
 	}
 	
@@ -243,6 +266,14 @@ int main()
 		rhi::texture backbuffer = swapchain.get_backbuffer_resource().get();
 		cmdlist.transition(backbuffer, rhi::e_resource_state::render_target);
 		cmdlist.clear_texture(device, backbuffer, { .m_colour = {1,0,0,1} });
+
+		rhi::vmemory_map_args map_args{};
+		map_args.m_heap_start = 0u;
+		map_args.m_texelrange_start = { 0,0,0 };
+		map_args.m_texelrange_size = { virtual_texture_dimensions.x, virtual_texture_dimensions.y, 1u };
+		rhi::vmemory_map_result result = queue.map_vmemory(device, tex_virtual, gpu_memory, map_args).get();
+		
+		queue.unmap_vmemory(device, tex_virtual, map_args);
 
 		if (pip_basepass.is_valid())
 		{

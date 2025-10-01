@@ -17,8 +17,8 @@
 #define INFLUX_RHI_API __declspec(dllimport)
 #endif
 
-#define INFLUX_RHI_VULKAN	1
-#define INFLUX_RHI_D3D12	0
+#define INFLUX_RHI_VULKAN	0
+#define INFLUX_RHI_D3D12	1
 
 #include "influx_rhi/format.h"
 
@@ -50,7 +50,6 @@ typedef struct VkCommandBuffer_T* VkCommandBuffer;
 typedef struct VkQueue_T* VkQueue;
 typedef struct VkSwapchainKHR_T* VkSwapchainKHR;
 typedef struct VkCommandPool_T* VkCommandPool;
-struct VkMemoryHeap;
 typedef struct VkDescriptorSet_T* VkDescriptorSet;
 typedef struct VkFence_T* VkFence;
 typedef struct VkSemaphore_T* VkSemaphore;
@@ -80,6 +79,13 @@ namespace influx::rhi
 	// [native objects]
 	using object_native			= void*;
 
+	// =============================================
+	// [abstraction notes]
+	// native_memoryheap
+	// | represents the underlying GPU memory used by resources.
+	// | in D3D12, this is ID3D12Heap.
+	// | in Vulkan, this is VkDeviceMemory. NOT VkMemoryHeap
+
 #if INFLUX_RHI_D3D12
 	using native_instance				= IDXGIFactory*;
 	using native_physdevice				= IDXGIAdapter1*;
@@ -102,7 +108,6 @@ namespace influx::rhi
 	using native_rootsignature			= ID3D12RootSignature*;
 	using native_gpu_address			= uint64;
 	using native_renderpass				= uint64*;
-	
 #elif INFLUX_RHI_VULKAN
 	using native_instance				= VkInstance;
 	using native_physdevice				= VkPhysicalDevice;
@@ -111,7 +116,7 @@ namespace influx::rhi
 	using native_queue					= VkQueue;
 	using native_swapchain				= VkSwapchainKHR;
 	using native_commandpool			= VkCommandPool;
-	using native_memoryheap				= VkMemoryHeap*;
+	using native_memoryheap				= VkDeviceMemory*;
 	using native_descheap				= VkDescriptorSet;
 	using native_fence					= VkFence;
 	using native_semaphore				= VkSemaphore;
@@ -588,23 +593,62 @@ namespace influx::rhi
 	enum class e_memoryheap_flags : uint8
 	{
 		none = 0,
-		cpu_visible = 1
+		cpu_writable = 1
 	};
 	struct memoryheap_desc final
 	{
 		// D3D12_HEAP_PROPERTIES
 		// VK_MEMORY_PROPERTY
 		e_memoryheap_flags m_flags = e_memoryheap_flags::none;
-		static memoryheap_desc shared()
+
+		static memoryheap_desc cpu_writable()
 		{
 			memoryheap_desc res;
-			res.m_flags = e_memoryheap_flags::cpu_visible;
+			res.m_flags = e_memoryheap_flags::cpu_writable;
 			return res;
 		}
 	};
 	static constexpr uint32 k_num_descriptor_heap_types = static_cast<uint32>(e_descriptor_heap_type::num);
 	static constexpr uint32 k_max_num_rendertargets_per_draw = 8u;
 
+	struct vmemory_map_args final
+	{
+		math::uint3 m_texelrange_start = {};
+		math::uint3 m_texelrange_size = {};
+		uint32 m_heap_start = 0u;
+	};
+
+	struct vmemory_unmap_args final
+	{
+		vmemory_unmap_args() = default;
+		vmemory_unmap_args(const vmemory_map_args& map_args)
+		{
+			m_texelrange_start = map_args.m_texelrange_start;
+			m_texelrange_size = map_args.m_texelrange_size;
+		}
+		math::uint3 m_texelrange_start = {};
+		math::uint3 m_texelrange_size = {};
+	};
+	struct vmemory_map_result final
+	{
+		// this is the number of tiles we requested to map from our heap -> virtual memory
+		uint32 m_num_tiles_requested = 0u;
+
+		// this is the number of tiles we ended up mapping from our heap -> virtual memory
+		uint32 m_num_tiles_mapped = 0u;
+	};
+	struct resource_tileinfo final
+	{
+		struct per_subresource final
+		{
+			math::uint3 m_dimension_in_tiles{};
+			uint32 m_tile_offset;
+		};
+		uint32 m_num_tiles_total = 0u;
+		uint32 m_num_packed_mips = 0u;
+		math::uint3 m_texels_per_tile = {};
+		vector<per_subresource> m_subresource_tilings;
+	};
 	struct framebuffer_desc final
 	{
 		math::uint2 m_dimensions;
@@ -1374,6 +1418,10 @@ namespace influx::rhi
 		e_resource_bindflags	m_bindflags;
 		e_resource_state		m_init_state;
 		memoryheap_desc			m_memoryheap;
+
+		// virtual resources don't allocate GPU memory up-front!
+		// VK_IMAGE_CREATE_SPARSE_BINDING_BIT
+		bool					m_is_virtual;
 	};
 	struct texture_create_args final
 	{
@@ -1388,6 +1436,10 @@ namespace influx::rhi
 		e_resource_state			m_init_state;
 		e_texture_type				m_type;
 		memoryheap_desc				m_memoryheap;
+
+		// virtual resources don't allocate GPU memory up-front!
+		// VK_IMAGE_CREATE_SPARSE_BINDING_BIT
+		bool						m_is_virtual;
 		
 		optional<const char*>		m_name;
 		bool						m_create_view = true;
@@ -1459,6 +1511,7 @@ namespace influx::rhi
 	};
 	struct memheap_create_args final
 	{
+		uint64					m_bytesize;
 		native_device			m_device;
 	};
 	struct pipeline_create_args final
@@ -1868,6 +1921,7 @@ namespace influx::rhi
 
 		INFLUX_RHI_API result<void*> map_begin(const map_args& args = map_args::full_range());
 		INFLUX_RHI_API result<> map_end(const map_args& args);
+		INFLUX_RHI_API result<resource_tileinfo> get_tiling_info(const device& device) const;
 
 		template <typename _t, typename _func>
 		inline result<> map(_func&& func, const map_args& args = map_args::full_range())
@@ -1917,6 +1971,9 @@ namespace influx::rhi
 		inline uint64 get_num_elements() const
 		{ return get_bytesize() / get_bytestride(); }
 
+		inline uint32 get_num_subresources() const
+		{ return 1u; }
+
 		inline e_resource_state get_resource_state() const 
 		{ return m_data.m_current_state; }
 		
@@ -1925,6 +1982,9 @@ namespace influx::rhi
 		
 		inline bool allows_uav() const
 		{ return has_flag(m_create_args.m_bindflags, e_resource_bindflags::uav); }
+
+		inline bool is_virtual() const
+		{ return m_create_args.m_is_virtual; }
 
 		inline result<> set_state(e_resource_state new_state)
 		{
@@ -1945,7 +2005,8 @@ namespace influx::rhi
 		INFLUX_RHI_API result<uint64> calculate_bytestride() const;
 		INFLUX_RHI_API result<> set_name(const char* name);
 		INFLUX_RHI_API result<void*> map_begin(const map_args& args);
-		INFLUX_RHI_API result<> map_end();
+		INFLUX_RHI_API result<> map_end(const map_args& args);
+		INFLUX_RHI_API result<resource_tileinfo> get_tiling_info(const device& device) const;
 
 		inline uint32 get_arraysize() const
 		{ return m_create_args.m_arraysize; }
@@ -1980,6 +2041,12 @@ namespace influx::rhi
 		inline const char* get_name() const
 		{ return ""; }
 
+		inline uint32 get_depth_or_arraysize() const
+		{ return m_create_args.m_dimensions.z > 1 ? m_create_args.m_dimensions.z : m_create_args.m_arraysize; }
+
+		inline uint32 get_num_subresources() const
+		{ return get_num_mips() * get_depth_or_arraysize(); }
+
 		inline static constexpr e_resource_type get_resource_type()
 		{ return e_resource_type::texture; }
 
@@ -1998,6 +2065,9 @@ namespace influx::rhi
 		inline bool allows_uav() const
 		{ return has_flag(m_create_args.m_bindflags, e_resource_bindflags::uav); }
 
+		inline bool is_virtual() const
+		{ return m_create_args.m_is_virtual; }
+
 		inline bool is_valid() const
 		{ return object::is_valid(); }
 
@@ -2009,7 +2079,7 @@ namespace influx::rhi
 		}
 	};
 
-	class memheap final
+	class memheap final : public object<e_object::memoryheap>
 	{
 	public:
 
@@ -2038,6 +2108,11 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> submit(vector<commandlist*> commandlists) const;
 		INFLUX_RHI_API result<> queue_signal(const fence& fence, uint64 signal_value) const;
 		INFLUX_RHI_API result<> queue_signal(native_fence fence, uint64 signal_value) const;
+
+		INFLUX_RHI_API result<vmemory_map_result> map_vmemory(const device& device, const texture& texture, memheap& heap, const vmemory_map_args& args) const;
+		INFLUX_RHI_API result<vmemory_map_result> map_vmemory(const device& device, const buffer& buffer, memheap& heap, const vmemory_map_args& args) const;
+		INFLUX_RHI_API result<> unmap_vmemory(const device& device, const texture& texture, const vmemory_unmap_args& args) const;
+		INFLUX_RHI_API result<> unmap_vmemory(const device& device, const buffer& buffer, const vmemory_unmap_args& args) const;
 	};
 
 	class swapchain final : public object<e_object::swapchain>
@@ -2226,6 +2301,7 @@ namespace influx::rhi
 		inline result<texture>			create(const texture_create_args& args);
 		inline result<buffer>			create(const buffer_create_args& args);
 		inline result<renderpass>		create(const renderpass_create_args& args);
+		inline result<memheap>			create(const memheap_create_args& args);
 
 		inline result<pipeline>			create_compute_pipeline(
 			const rootsignature& signature,
@@ -2319,6 +2395,7 @@ namespace influx::rhi
 	INFLUX_RHI_API result<native_pipeline>			create_native(const pipeline_create_args& args, pipeline_data* out_data = nullptr);
 	INFLUX_RHI_API result<native_rootsignature>		create_native(const rootsignature_create_args& args, rootsignature_data* out_data = nullptr);
 	INFLUX_RHI_API result<native_renderpass>		create_native(const renderpass_create_args& args, renderpass_data* out_data = nullptr);
+	INFLUX_RHI_API result<native_memoryheap>		create_native(const memheap_create_args& args, memheap_data* out_data = nullptr);
 	INFLUX_RHI_API result<> release(object_native native);
 
 	template <typename _t>
@@ -2517,6 +2594,20 @@ namespace influx::rhi
 		auto res = influx::rhi::create<renderpass>(args_cpy);
 		if (!res)
 			return result_type::make_error("failed creating renderpass!");
+
+		auto reg = register_child(res.get());
+		if (!reg)
+			return result_type::make_error("failed registering new object!");
+		return res;
+	}
+	inline result<memheap> device::create(const memheap_create_args& args)
+	{
+		using result_type = result<memheap>;
+		auto args_cpy = args;
+		args_cpy.m_device = (native_device)this->m_native_object;
+		auto res = influx::rhi::create<memheap>(args_cpy);
+		if (!res)
+			return result_type::make_error("failed creating memheap!");
 
 		auto reg = register_child(res.get());
 		if (!reg)

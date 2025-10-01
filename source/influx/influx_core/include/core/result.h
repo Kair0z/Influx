@@ -63,9 +63,9 @@ namespace influx
 
 		inline static result make_error(const _e& error)
 		{
-#if CHECK_RESULT_IMMEDIATE
+#if CHECK_RESULT_IMMEDIATE && INFLUX_DEBUG
 			result res = result(error);
-			res.get();
+			influx_assert_msg(res.is_success(), res.m_unexpected);
 			return res;
 #else
 			return result(error);
@@ -157,10 +157,17 @@ namespace influx
 			return m_expected;
 		}
 
+		_t& get_safe()
+		{
+			return m_expected;
+		}
+
 		inline _t& get()
 		{
 #if INFLUX_DEBUG
 			influx_assert_msg(is_success(), m_unexpected);
+			if (m_is_warning)
+				std::cout << "warning!: " << m_unexpected << "\n";
 #endif
 			return m_expected;
 		}

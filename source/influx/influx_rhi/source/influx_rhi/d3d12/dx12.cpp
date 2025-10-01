@@ -915,7 +915,7 @@ namespace influx::rhi
 		heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
 
 		D3D12_HEAP_FLAGS heap_flags{};
-		if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_visible))
+		if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_writable))
 		{
 			heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
 		}
@@ -958,7 +958,7 @@ namespace influx::rhi
 		heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
 
 		D3D12_HEAP_FLAGS heap_flags{};
-		if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_visible))
+		if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_writable))
 		{
 			heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
 		}
@@ -979,15 +979,33 @@ namespace influx::rhi
 		D3D12_CLEAR_VALUE dxclear{};
 		dxclear.Format = translate(args.m_format);
 
+		const bool allow_optimized_clear = 
+			(dxdesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+			|| (dxdesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+
 		dx12_resource* resource = nullptr;
 		HRESULT hres = {};
-		hres = device->CreateCommittedResource(
-			&heap_props,
-			heap_flags,
-			&dxdesc,
-			dxstates,
-			&dxclear,
-			IID_PPV_ARGS(&resource));
+		if (args.m_is_virtual)
+		{
+			// D3D12_RESOURCE_DESC::Layout must be D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE when creating reserved resources.
+			dxdesc.Layout = D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE;
+
+			hres = device->CreateReservedResource(
+				&dxdesc,
+				dxstates,
+				allow_optimized_clear ? &dxclear : nullptr,
+				IID_PPV_ARGS(&resource));
+		}
+		else
+		{
+			hres = device->CreateCommittedResource(
+				&heap_props,
+				heap_flags,
+				&dxdesc,
+				dxstates,
+				allow_optimized_clear ? &dxclear : nullptr,
+				IID_PPV_ARGS(&resource));
+		}
 
 		return hres_to_result<native_texture>(hres, resource);
 	}
@@ -1254,6 +1272,35 @@ namespace influx::rhi
 	{
 		using result_type = result<native_renderpass>;
 		return new uint64(1);
+	}
+	result<native_memoryheap> create_native(const memheap_create_args& args, memheap_data* out_data)
+	{
+		using result_type = result<native_memoryheap>;
+		
+		if (args.m_bytesize <= 0u)
+			return result_type::make_error("args.m_bytesize == 0u, nothing happened...");
+
+		auto device = cast<dx12_device>(args.m_device);
+		if (!device)
+			return result_type::make_error("args.m_device failed casting to dx12_device!");
+
+		D3D12_HEAP_DESC heapDesc = {};
+		heapDesc.SizeInBytes = args.m_bytesize;
+		// heapDesc.SizeInBytes = tileCount * D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+		heapDesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+		// heapDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+		heapDesc.Flags = D3D12_HEAP_FLAG_NONE;
+
+		ID3D12Heap* heap;
+		auto hres = device->CreateHeap(&heapDesc, IID_PPV_ARGS(&heap));
+		if (hres != S_OK)
+			return result_type::make_error("ID3D12Device::CreateHeap failed!");
+
+		if (out_data)
+		{
+
+		}
+		return heap;
 	}
 
 	result<> release(object_native native)
@@ -1546,6 +1593,9 @@ namespace influx::rhi
 		return {};
 	}
 
+	template <typename _t>
+	static result<resource_tileinfo> get_tiling_info(const _t& resource, const device& device);
+
 	// [buffer]
 	result<void*> buffer::map_begin(const map_args& args)
 	{
@@ -1577,6 +1627,10 @@ namespace influx::rhi
 		range.End = math::minimum<uint64>((uint64)(args.m_bytesize - args.m_offset), m_data.m_bytesize);
 		resource->Unmap(0u, &range);
 		return {};
+	}
+	result<resource_tileinfo> buffer::get_tiling_info(const device& device) const
+	{
+		return rhi::get_tiling_info<rhi::buffer>(*this, device);
 	}
 	
 	// [fence - interface]
@@ -1643,6 +1697,228 @@ namespace influx::rhi
 		HRESULT hres = dxqueue->Signal(dxfence.get(), signal_value);
 		return hres_to_result<>(hres, {});
 	}
+	
+	
+	template <typename _t>
+	static result<vmemory_map_result> map_vmemory(
+		const queue& queue,
+		const device& device,
+		const _t& resource,
+		memheap& heap,
+		const vmemory_map_args& args)
+	{
+		using result_type = result<vmemory_map_result>;
+		if (queue.m_native_object == nullptr)
+			return result_type::make_error("queue.m_native_object is nullptr!");
+
+		if (resource.is_virtual() == false)
+			return result_type::make_error("resource is not a virtual resource!");
+
+		auto dxqueue = cast<dx12_queue>(queue.m_native_object);
+		if (!dxqueue)
+			return result_type::make_error("queue.m_native_object failed casting to dx12_queue!");
+
+		auto dxresource = cast<dx12_resource>(resource.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
+
+		auto dxheap = cast<dx12_memheap>(heap.m_native_object);
+		if (!dxheap)
+			return result_type::make_error("heap.m_native_object failed casting to dx12_memheap!");
+
+		auto tiling_info = resource.get_tiling_info(device);
+		if (!tiling_info)
+			return result_type::make_error("texture.get_tiling_info() failed!");
+
+		auto dxdevice = cast<dx12_device>(device.m_native_object);
+		if (!dxdevice)
+			return result_type::make_error("device.m_native_object failed casting to dx12_device!");
+
+		D3D12_RESOURCE_DESC desc = dxresource->GetDesc();
+		D3D12_RESOURCE_ALLOCATION_INFO allocInfo = dxdevice->GetResourceAllocationInfo(
+			0,                  // visible mask
+			1,                  // number of resources
+			&desc               // resource desc
+		);
+		const uint64 total_bytes_in_resource = allocInfo.SizeInBytes;
+		const uint32 tile_bytesize = total_bytes_in_resource / tiling_info.get().m_num_tiles_total;
+
+		const uint32 num_regions = 1u;
+		const uint32 subresource_index = 0u;
+		const uint64 num_texels_total = (uint64)args.m_texelrange_size.x
+			* (uint64)args.m_texelrange_size.y
+			* (uint64)args.m_texelrange_size.z;
+
+		const math::uint3& texels_per_tile = tiling_info.get().m_texels_per_tile;
+		const math::uint3 num_tiles = args.m_texelrange_size / texels_per_tile;
+		const math::uint3 tilesize_max = tiling_info.get().m_subresource_tilings[subresource_index].m_dimension_in_tiles;
+		const math::uint3 clamped_texel_start =
+		{
+			args.m_texelrange_start.x,
+			args.m_texelrange_start.y,
+			args.m_texelrange_start.z
+		};
+		const math::uint3 clamped_tile_range = clamped_texel_start / texels_per_tile;
+		const math::uint3 clamped_num_tiles =
+		{
+			math::minimum(num_tiles.x, tilesize_max.x - clamped_tile_range.x),
+			math::minimum(num_tiles.x, tilesize_max.y - clamped_tile_range.y),
+			math::minimum(num_tiles.x, tilesize_max.z - clamped_tile_range.z)
+		};
+		const uint32 num_tiles_needed = clamped_num_tiles.x * clamped_num_tiles.y * clamped_num_tiles.z;;
+		uint32 num_tiles_to_map = num_tiles_needed;
+		const uint32 num_tiles_in_heap = heap.m_create_args.m_bytesize / tile_bytesize;
+
+		result_type result{};
+		if (num_tiles_to_map > num_tiles_in_heap)
+		{
+			result = result_type::make_warning({}, "heap is not big enough to provide the number of tiles requested by this mapping! This is fine, since we clamp the range, but your virtual memory is not fully mapped!");
+			num_tiles_to_map = num_tiles_in_heap;
+		}
+
+		vector<D3D12_TILED_RESOURCE_COORDINATE> startCoordinates = {};
+		vector<D3D12_TILE_REGION_SIZE> regionSizes = {};
+		startCoordinates.resize(num_regions);
+		regionSizes.resize(num_regions);
+		for (uint32 i = 0u; i < num_regions; ++i)
+		{
+			startCoordinates[i].X = clamped_texel_start.x;
+			startCoordinates[i].Y = clamped_texel_start.y;
+			startCoordinates[i].Z = clamped_texel_start.z;
+			startCoordinates[i].Subresource = subresource_index;
+
+			// regionSizes[i].Width = clamped_num_tiles.x;
+			// regionSizes[i].Height = clamped_num_tiles.y;
+			// regionSizes[i].Depth = clamped_num_tiles.z;
+			regionSizes[i].NumTiles = num_tiles_to_map;
+			regionSizes[i].UseBox = false;
+		}
+
+		const uint32 num_heap_ranges = 1u;
+		vector<uint32> heap_offsets_in_tiles{};
+		vector<uint32> heap_sizes_in_tiles{};
+		vector<D3D12_TILE_RANGE_FLAGS> range_flags{};
+		heap_offsets_in_tiles.resize(num_heap_ranges);
+		heap_sizes_in_tiles.resize(num_heap_ranges);
+		range_flags.resize(num_heap_ranges);
+		for (uint32 i = 0u; i < num_heap_ranges; ++i)
+		{
+			heap_offsets_in_tiles[i] = args.m_heap_start;
+			range_flags[i] = {};
+			heap_sizes_in_tiles[i] = num_tiles_to_map;
+		}
+
+		dxqueue->UpdateTileMappings(
+			dxresource.get(),
+			num_regions,
+			startCoordinates.data(),
+			regionSizes.data(),
+			dxheap.get(),
+			num_heap_ranges,
+			range_flags.data(),
+			heap_offsets_in_tiles.data(),
+			heap_sizes_in_tiles.data(),
+			D3D12_TILE_MAPPING_FLAG_NONE
+		);
+
+		result.get_safe().m_num_tiles_mapped = num_tiles_to_map;
+		result.get_safe().m_num_tiles_requested = num_tiles_needed;
+		return result;
+	}
+	
+	template <typename _t>
+	static result<> unmap_vmemory(
+		const queue& queue,
+		const device& device,
+		const _t& resource,
+		const vmemory_unmap_args& args)
+	{
+		using result_type = result<>;
+		auto dxqueue = cast<dx12_queue>(queue.m_native_object);
+		if (!dxqueue)
+			return result_type::make_error("queue.m_native_object failed casting to dx12_queue!");
+
+		if (resource.is_virtual() == false)
+			return result_type::make_error("resource is not a virtual resource!");
+
+		auto dxresource = cast<dx12_resource>(resource.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("texture.m_native_object failed casting to dx12_resource!");
+
+		auto tiling_info = resource.get_tiling_info(device);
+		if (!tiling_info)
+			return result_type::make_error("texture.get_tiling_info() failed!");
+
+		const uint32 num_regions = 1u;
+		const uint32 subresource_index = 0u;
+		const math::uint3& texels_per_tile = tiling_info.get().m_texels_per_tile;
+		const uint64 num_texels_total = (uint64)args.m_texelrange_size.x * (uint64)args.m_texelrange_size.y * (uint64)args.m_texelrange_size.z;
+		const math::uint3 num_tiles = args.m_texelrange_size / texels_per_tile;
+		const math::uint3 max_num_tiles = tiling_info.get().m_subresource_tilings[subresource_index].m_dimension_in_tiles;
+		const math::uint3 clamped_texel_start = // todo... we should ACTUALLY clamp this ;)
+		{
+			args.m_texelrange_start.x,
+			args.m_texelrange_start.y,
+			args.m_texelrange_start.z
+		};
+		const math::uint3 clamped_tile_start = clamped_texel_start / texels_per_tile;
+		const math::uint3 clamped_num_tiles =
+		{
+			math::minimum(num_tiles.x, max_num_tiles.x - clamped_tile_start.x),
+			math::minimum(num_tiles.x, max_num_tiles.y - clamped_tile_start.y),
+			math::minimum(num_tiles.x, max_num_tiles.z - clamped_tile_start.z)
+		};
+		const uint32 num_tiles_to_unmap = clamped_num_tiles.x * clamped_num_tiles.y * clamped_num_tiles.z;
+
+		vector<D3D12_TILED_RESOURCE_COORDINATE> startCoordinates = {};
+		vector<D3D12_TILE_REGION_SIZE> regionSizes = {};
+		startCoordinates.resize(num_regions);
+		regionSizes.resize(num_regions);
+		for (uint32 i = 0u; i < num_regions; ++i)
+		{
+			startCoordinates[i].X = clamped_texel_start.x;
+			startCoordinates[i].Y = clamped_texel_start.y;
+			startCoordinates[i].Z = clamped_texel_start.z;
+			startCoordinates[i].Subresource = subresource_index;
+			regionSizes[i].NumTiles = num_tiles_to_unmap;
+			regionSizes[i].UseBox = false;
+		}
+
+		vector<D3D12_TILE_RANGE_FLAGS> rangeFlags(1u, D3D12_TILE_RANGE_FLAG_NULL);
+		vector<UINT> rangeTileCounts(num_regions, num_tiles_to_unmap);
+		vector<UINT> rangeStartOffsets(num_regions, 0); // Not used with NULL flag, but still required
+
+		dxqueue->UpdateTileMappings(
+			dxresource.get(),
+			num_regions,
+			startCoordinates.data(),
+			regionSizes.data(),
+			nullptr,
+			1u,
+			rangeFlags.data(),
+			rangeStartOffsets.data(),
+			rangeTileCounts.data(),
+			D3D12_TILE_MAPPING_FLAG_NONE);
+
+		return {};
+	}
+
+	result<vmemory_map_result> queue::map_vmemory(const device& device, const texture& texture, memheap& heap, const vmemory_map_args& args) const
+	{
+		return rhi::map_vmemory<rhi::texture>(*this, device, texture, heap, args);
+	}
+	result<> queue::unmap_vmemory(const device& device, const texture& texture, const vmemory_unmap_args& args) const
+	{
+		return rhi::unmap_vmemory<rhi::texture>(*this, device, texture, args);
+	}
+	result<vmemory_map_result> queue::map_vmemory(const device& device, const buffer& buffer, memheap& heap, const vmemory_map_args& args) const
+	{
+		return rhi::map_vmemory<rhi::buffer>(*this, device, buffer, heap, args);
+	}
+	result<> queue::unmap_vmemory(const device& device, const buffer& buffer, const vmemory_unmap_args& args) const
+	{
+		return rhi::unmap_vmemory<rhi::buffer>(*this, device, buffer, args);
+	}
 
 	// [texture]
 	result<uint64> texture::calculate_bytesize() const
@@ -1670,6 +1946,59 @@ namespace influx::rhi
 			return result_type::make_error("ID3D12Resource::SetName() failed!");
 
 		return {};
+	}
+
+	template <typename _t>
+	static result<resource_tileinfo> get_tiling_info(const _t& resource, const device& device)
+	{
+		using result_type = result<resource_tileinfo>;
+		if (!resource.is_virtual())
+			return result_type::make_error("this resource is not virtual!");
+
+		auto dxresource = cast<dx12_resource>(resource.m_native_object);
+		if (!dxresource)
+			return result_type::make_error("resource.m_native_object failed casting to dx12_resource!");
+
+		auto dxdevice = cast<dx12_device>(device.m_native_object);
+		if (!dxdevice)
+			return result_type::make_error("device.m_native_object failed casting to dx12_device!");
+
+		D3D12_RESOURCE_DESC desc = dxresource->GetDesc();
+		const uint32 plane_count = D3D12GetFormatPlaneCount(dxdevice.get(), desc.Format);
+		const uint32 num_subresources = desc.MipLevels * desc.DepthOrArraySize * plane_count;
+
+		resource_tileinfo info{};
+		uint32 num_subresource_tilings = num_subresources;
+		uint32 total_num_tiles = 0u;
+		D3D12_PACKED_MIP_INFO mip_info;
+		vector<D3D12_SUBRESOURCE_TILING> subresource_tilings;
+		subresource_tilings.resize(num_subresources);
+		D3D12_TILE_SHAPE tile_shape;
+
+		dxdevice.get()->GetResourceTiling(dxresource.get(),
+			&total_num_tiles,
+			&mip_info,
+			&tile_shape,
+			&num_subresource_tilings,
+			0u,
+			subresource_tilings.data());
+
+		info.m_num_packed_mips = mip_info.NumPackedMips;
+		info.m_num_tiles_total = total_num_tiles;
+		info.m_texels_per_tile = { tile_shape.WidthInTexels, tile_shape.HeightInTexels, tile_shape.DepthInTexels };
+		for (uint32 i = 0u; i < num_subresource_tilings; ++i)
+		{
+			resource_tileinfo::per_subresource subtiling{};
+			subtiling.m_dimension_in_tiles = { subresource_tilings[i].WidthInTiles, subresource_tilings[i].HeightInTiles, subresource_tilings[i].DepthInTiles };
+			subtiling.m_tile_offset = subresource_tilings[i].StartTileIndexInOverallResource;
+			info.m_subresource_tilings.push_back(subtiling);
+		}
+		return info;
+	}
+
+	result<resource_tileinfo> texture::get_tiling_info(const device& device) const
+	{
+		return rhi::get_tiling_info<rhi::texture>(*this, device);
 	}
 
 	// [swapchain - interface]

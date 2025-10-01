@@ -882,6 +882,13 @@ namespace influx::rhi
 			info.usage = translate_buffer(args.m_bindflags); // VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+			if (args.m_is_virtual)
+			{
+				info.flags |= VK_BUFFER_CREATE_SPARSE_BINDING_BIT;
+				info.flags |= VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT; // not all memory is required mapped
+				// VK_IMAGE_CREATE_SPARSE_ALIASED_BIT (multiple resources can map onto the same physical memory)
+			}
+
 			auto vkres = vkCreateBuffer(args.m_device, &info, nullptr, &vkbuffer);
 			if (vkres != VK_SUCCESS)
 				return result_type::make_error("vkCreateBuffer failed!");
@@ -894,7 +901,7 @@ namespace influx::rhi
 			vkGetBufferMemoryRequirements(args.m_device, vkbuffer, &memReq);
 
 			VkMemoryPropertyFlags mempropFlags{};
-			if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_visible))
+			if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_writable))
 				mempropFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			
 			auto allocation = allocate(args.m_physdevice, args.m_device, memReq.size, mempropFlags, memReq.memoryTypeBits);
@@ -955,6 +962,14 @@ namespace influx::rhi
 			info.samples = VK_SAMPLE_COUNT_1_BIT;
 			info.tiling = VK_IMAGE_TILING_OPTIMAL;
 			info.usage = translate_image(args.m_bindflags);
+
+			if (args.m_is_virtual)
+			{
+				info.flags |= VK_IMAGE_CREATE_SPARSE_BINDING_BIT;
+				info.flags |= VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT; // not all memory is required mapped
+				// VK_IMAGE_CREATE_SPARSE_ALIASED_BIT (multiple resources can map onto the same physical memory)
+			}
+
 			auto vkres = vkCreateImage(args.m_device, &info, nullptr, &vkimage);
 			if (vkres != VK_SUCCESS)
 				return result_type::make_error("vkCreateImage failed!");
@@ -1341,6 +1356,11 @@ namespace influx::rhi
 			return result_type::make_error("vkCreateRenderPass failed!");
 
 		return vkrenderpass;
+	}
+	result<native_memoryheap> create_native(const memheap_create_args& args, memheap_data* out_data)
+	{
+		using result_type = result<native_memoryheap>;
+		return result_type::make_error("noimpl!");
 	}
 
 	// [buffer]
