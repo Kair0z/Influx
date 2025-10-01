@@ -1417,11 +1417,15 @@ namespace influx::rhi
 		uint64					m_bytestride;
 		e_resource_bindflags	m_bindflags;
 		e_resource_state		m_init_state;
-		memoryheap_desc			m_memoryheap;
 
-		// virtual resources don't allocate GPU memory up-front!
-		// VK_IMAGE_CREATE_SPARSE_BINDING_BIT
-		bool					m_is_virtual;
+		// GPU memory properties
+		bool						m_is_virtual = false;
+		bool						m_map_pages_on_create = false;
+		native_memoryheap			m_memoryheap = nullptr;
+		memoryheap_desc				m_memoryheap_desc = {};
+
+		optional<const char*>		m_name;
+		bool						m_create_view = true;
 	};
 	struct texture_create_args final
 	{
@@ -1435,12 +1439,13 @@ namespace influx::rhi
 		e_resource_bindflags		m_bindflags;
 		e_resource_state			m_init_state;
 		e_texture_type				m_type;
-		memoryheap_desc				m_memoryheap;
 
-		// virtual resources don't allocate GPU memory up-front!
-		// VK_IMAGE_CREATE_SPARSE_BINDING_BIT
+		// GPU memory properties
 		bool						m_is_virtual;
-		
+		bool						m_map_pages_on_create;
+		native_memoryheap			m_memoryheap = nullptr;
+		memoryheap_desc				m_memoryheap_desc = {};
+
 		optional<const char*>		m_name;
 		bool						m_create_view = true;
 
@@ -1508,6 +1513,10 @@ namespace influx::rhi
 		{ m_init_state = state; return *this; }
 		texture_create_args& mod_type(const e_texture_type type)
 		{ m_type = type; return *this; }
+		texture_create_args& mod_is_virtual(const bool is_virtual)
+		{ m_is_virtual = is_virtual; return *this; }
+		texture_create_args& mod_memoryheap(native_memoryheap heap)
+		{ m_memoryheap = heap; return *this; }
 	};
 	struct memheap_create_args final
 	{
@@ -1795,8 +1804,6 @@ namespace influx::rhi
 	{
 		e_resource_state	m_previous_state;
 		e_resource_state	m_current_state;
-		uint64				m_bytesize;
-		uint64				m_bytestride;
 		descriptor			m_buffer_view;
 		native_gpu_address	m_gpu_memory_address = {};
 	};

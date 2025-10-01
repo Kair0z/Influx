@@ -900,114 +900,110 @@ namespace influx::rhi
 		return hres_to_result<native_fence>(hres, fence);
 	}
 
-	result<native_buffer> create_native(const buffer_create_args& args, buffer_data* out_data)
+	template <typename e_object _e>
+	static result<native_type<_e>> create_native(const create_args<_e>& args, data_type<_e>* out_data)
 	{
-		using result_type = result<native_buffer>;
-		if (args.m_device == nullptr)
-			return result_type::make_error("args.m_device is nullptr!");
+		static constexpr bool k_is_texture = _e == e_object::texture;
 
-		auto device = cast<dx12_device>(args.m_device);
-		if (!device)
+		using result_type = result<native_type<_e>>;
+		auto dxdevice = cast<dx12_device>(args.m_device);
+		if (!dxdevice)
 			return result_type::make_error("args.m_device failed casting to dx12_device!");
 
-		ID3D12Resource* resource = nullptr;
-		D3D12_HEAP_PROPERTIES heap_props{};
-		heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-		D3D12_HEAP_FLAGS heap_flags{};
-		if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_writable))
-		{
-			heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
-		}
-
 		D3D12_RESOURCE_DESC dxdesc{};
-		dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		dxdesc.Format = DXGI_FORMAT_UNKNOWN;
-		dxdesc.MipLevels = 1u;
+		if constexpr (k_is_texture)
+		{
+			dxdesc.Dimension = translate(e_resource_type::texture, args.m_type);
+			dxdesc.Format = translate(args.m_format);
+			dxdesc.MipLevels = args.m_num_mips;
+			dxdesc.DepthOrArraySize = (args.m_arraysize > 1 ? args.m_arraysize : args.m_dimensions.z);
+			dxdesc.Width = args.m_dimensions.x;
+			dxdesc.Height = args.m_dimensions.y;
+			dxdesc.SampleDesc.Count = 1u;
+			dxdesc.SampleDesc.Quality = 0u;
+		}
+		else
+		{
+			dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+			dxdesc.Format = DXGI_FORMAT_UNKNOWN;
+			dxdesc.MipLevels = 1u;
+			dxdesc.DepthOrArraySize = 1u;
+			dxdesc.Width = args.m_bytesize;
+			dxdesc.Height = 1u;
+		}
+		
 		dxdesc.Alignment = 0u;
 		dxdesc.Flags = translate(args.m_bindflags);
-		dxdesc.Width = args.m_bytesize;
-		dxdesc.Height = 1u;
-		dxdesc.DepthOrArraySize = 1u;
-		dxdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		dxdesc.SampleDesc.Count = 1u;
-		dxdesc.SampleDesc.Quality = 0u;
-
-		HRESULT hres = device->CreateCommittedResource(
-			&heap_props,
-			heap_flags,
-			&dxdesc,
-			translate(args.m_init_state),
-			nullptr,
-			IID_PPV_ARGS(&resource));
-
-		return hres_to_result<native_buffer>(hres, resource);
-	}
-
-	result<native_texture> create_native(const texture_create_args& args, texture_data* out_data)
-	{
-		using result_type = result<native_texture>;
-		if (args.m_device == nullptr)
-			return result_type::make_error("args.m_device is nullptr!");
-
-		auto device = cast<dx12_device>(args.m_device);
-		if (!device)
-			return result_type::make_error("args.m_device failed casting to dx12_device!");
-
-		D3D12_HEAP_PROPERTIES heap_props{};
-		heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-		D3D12_HEAP_FLAGS heap_flags{};
-		if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_writable))
-		{
-			heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
-		}
-
-		D3D12_RESOURCE_DESC dxdesc{};
-		dxdesc.Dimension = translate(e_resource_type::texture, args.m_type);
-		dxdesc.Format = translate(args.m_format);
-		dxdesc.MipLevels = args.m_num_mips;
-		dxdesc.Alignment = 0u;
-		dxdesc.DepthOrArraySize = args.m_arraysize > 1 ? args.m_arraysize : args.m_dimensions.z;
-		dxdesc.Flags = translate(args.m_bindflags);
-		dxdesc.Width = args.m_dimensions.x;
-		dxdesc.Height = args.m_dimensions.y;
-		dxdesc.SampleDesc.Count = 1u;
-		dxdesc.SampleDesc.Quality = 0u;
-
-		D3D12_RESOURCE_STATES dxstates = translate(args.m_init_state);
+		
 		D3D12_CLEAR_VALUE dxclear{};
-		dxclear.Format = translate(args.m_format);
-
-		const bool allow_optimized_clear = 
-			(dxdesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
-			|| (dxdesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-
-		dx12_resource* resource = nullptr;
+		const bool allow_optimized_clear = k_is_texture && (dxdesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) || (dxdesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+		if constexpr (k_is_texture)
+		{
+			dxclear.Format = translate(args.m_format);
+		}
+		
 		HRESULT hres = {};
+		dx12_resource* dxresource = nullptr;
+		D3D12_RESOURCE_STATES dxstates = translate(args.m_init_state);
+
+		// VIRTUAL (RESERVED) RESOURCE
 		if (args.m_is_virtual)
 		{
 			// D3D12_RESOURCE_DESC::Layout must be D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE when creating reserved resources.
 			dxdesc.Layout = D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE;
-
-			hres = device->CreateReservedResource(
+			hres = dxdevice->CreateReservedResource(
 				&dxdesc,
 				dxstates,
 				allow_optimized_clear ? &dxclear : nullptr,
-				IID_PPV_ARGS(&resource));
+				IID_PPV_ARGS(&dxresource));
 		}
+		// PLACED RESOURCE
+		else if (args.m_memoryheap != nullptr)
+		{
+			// hres = dxdevice->CreatePlacedResource();
+		}
+		// COMMITTED RESOURCE
 		else
 		{
-			hres = device->CreateCommittedResource(
+			D3D12_HEAP_PROPERTIES heap_props{};
+			heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
+			D3D12_HEAP_FLAGS heap_flags{};
+			if (has_flag(args.m_memoryheap_desc.m_flags, e_memoryheap_flags::cpu_writable))
+				heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+			hres = dxdevice->CreateCommittedResource(
 				&heap_props,
 				heap_flags,
 				&dxdesc,
 				dxstates,
 				allow_optimized_clear ? &dxclear : nullptr,
-				IID_PPV_ARGS(&resource));
+				IID_PPV_ARGS(&dxresource));
 		}
 
-		return hres_to_result<native_texture>(hres, resource);
+		if (out_data)
+		{
+			out_data->m_previous_state = out_data->m_current_state = args.m_init_state;
+			if constexpr (_e == e_object::texture)
+			{
+
+			}
+			else
+			{
+				
+			}
+		}
+
+		return hres_to_result<native_type<_e>>(hres, dxresource);
+	}
+
+	result<native_buffer> create_native(const buffer_create_args& args, buffer_data* out_data)
+	{
+		return rhi::create_native<e_object::buffer>(args, out_data);
+	}
+
+	result<native_texture> create_native(const texture_create_args& args, texture_data* out_data)
+	{
+		return rhi::create_native<e_object::texture>(args, out_data);
 	}
 
 	result<native_pipeline> create_native(const pipeline_create_args& args, pipeline_data* out_data)
@@ -1327,8 +1323,8 @@ namespace influx::rhi
 		D3D12_RESOURCE_DESC desc = dxresource->GetDesc();
 
 		buffer imported{};
-		imported.m_data.m_bytesize = desc.Width;
-		imported.m_data.m_bytestride = 1u;
+		imported.m_create_args.m_bytesize = desc.Width;
+		imported.m_create_args.m_bytestride = 1u;
 		imported.m_native_object = native;
 		imported.m_create_args.m_device = nullptr;
 		return imported;
@@ -1608,7 +1604,7 @@ namespace influx::rhi
 		void* result;
 		D3D12_RANGE range{};
 		range.Begin = args.m_offset;
-		range.End = math::minimum<uint64>((uint64)(args.m_bytesize - args.m_offset), m_data.m_bytesize);
+		range.End = math::minimum<uint64>((uint64)(args.m_bytesize - args.m_offset), m_create_args.m_bytesize);
 		HRESULT hres = resource->Map(0u, &range, &result);
 		if (hres != S_OK)
 			return result_type::make_error("ID3D12Resource::Map() failed");
@@ -1624,7 +1620,7 @@ namespace influx::rhi
 
 		D3D12_RANGE range{};
 		range.Begin = args.m_offset;
-		range.End = math::minimum<uint64>((uint64)(args.m_bytesize - args.m_offset), m_data.m_bytesize);
+		range.End = math::minimum<uint64>((uint64)(args.m_bytesize - args.m_offset), m_create_args.m_bytesize);
 		resource->Unmap(0u, &range);
 		return {};
 	}
@@ -1697,7 +1693,6 @@ namespace influx::rhi
 		HRESULT hres = dxqueue->Signal(dxfence.get(), signal_value);
 		return hres_to_result<>(hres, {});
 	}
-	
 	
 	template <typename _t>
 	static result<vmemory_map_result> map_vmemory(
