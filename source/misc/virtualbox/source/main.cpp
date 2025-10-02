@@ -142,8 +142,7 @@ int main()
 	const math::uint2 virtual_texture_dimensions = math::uint2::make_one() * 8u * 1024u;
 	rhi::texture tex_virtual;
 	{
-		rhi::texture_create_args args 
-			= rhi::texture_create_args::tex2D(virtual_texture_dimensions);
+		rhi::texture_create_args args = rhi::texture_create_args::tex2D(virtual_texture_dimensions);
 		args.m_is_virtual = true;
 		tex_virtual = device.create(args).get();
 	}
