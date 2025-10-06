@@ -251,9 +251,9 @@ int main()
 	{
 		rhi::buffer_create_args args{};
 		args.m_bindflags = rhi::e_resource_bindflags::constbuffer;
-		args.m_bytesize = sizeof(frontend::constants);
+		args.m_bytesize	= sizeof(frontend::constants);
 		args.m_init_state = rhi::e_resource_state::gen_read;
-		args.m_memoryheap = rhi::memoryheap_desc::cpu_writable();
+		args.m_memoryheap_desc = rhi::memoryheap_desc::cpu_writable();
 		buff_drawcb = device.create(args).get();
 	}
 	

@@ -473,6 +473,7 @@ namespace influx::rhi
 		uint32 queue_family_present = 0u;
 		uint32 queue_family_compute = 0u;
 		uint32 queue_family_transfer = 0u;
+		// VK_QUEUE_SPARSE_BINDING_BIT
 		{
 			// 1: query num queue families
 			vkGetPhysicalDeviceQueueFamilyProperties(out_vkphysdevice, &num_queue_families, nullptr);
@@ -486,15 +487,18 @@ namespace influx::rhi
 			bool found_graphics_queue_family = false;
 			bool found_present_queue_family = false;
 			bool found_compute_queue_family = false;
-			for (uint32_t i = 0; i < num_queue_families; i++)
+			for (uint32 i = 0; i < num_queue_families; i++)
 			{
+				const uint32 queue_count = queue_fam_props[i].queueCount;
+				if (queue_count <= 0u)
+					continue;
 #if 0
 				VkBool32 support_present = false;
 				vkGetPhysicalDeviceSurfaceSupportKHR(out_vkphysdevice, i, nullptr, &support_present);
 #endif
 
 				// prefer graphics queue WITH present support
-				if (queue_fam_props[i].queueCount > 0 && queue_fam_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+				if (queue_fam_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 				{
 					queue_family_graphics = i;
 					found_graphics_queue_family = true;
@@ -505,12 +509,12 @@ namespace influx::rhi
 						break;
 					}
 				}
-				if (queue_fam_props[i].queueCount > 0u && queue_fam_props[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+				if (queue_fam_props[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
 				{
 					queue_family_compute = i;
 					found_compute_queue_family = true;
 				}
-				if (queue_fam_props[i].queueCount > 0u && queue_fam_props[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
+				if (queue_fam_props[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
 				{
 					queue_family_transfer = i;
 				}
@@ -537,6 +541,8 @@ namespace influx::rhi
 			queue_create_infos[0].queueFamilyIndex = queue_family_graphics;
 			queue_create_infos[0].queueCount = 1;
 			queue_create_infos[0].pQueuePriorities = &queue_prio;
+
+			// VK_QUEUE_SPARSE_BINDING_BIT
 
 #if 0 // separate present queue is optional
 			queue_create_infos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -607,6 +613,8 @@ namespace influx::rhi
 
 		if (!args.m_queue_families.is_set(args.m_type))
 			return result_type::make_error("args.m_queue_families has no args.m_type index set!");
+
+		// VK_QUEUE_SPARSE_BINDING_BIT
 
 		VkDevice device = args.m_device;
 		VkQueue queue{};
@@ -901,7 +909,7 @@ namespace influx::rhi
 			vkGetBufferMemoryRequirements(args.m_device, vkbuffer, &memReq);
 
 			VkMemoryPropertyFlags mempropFlags{};
-			if (has_flag(args.m_memoryheap.m_flags, e_memoryheap_flags::cpu_writable))
+			if (has_flag(args.m_memoryheap_desc.m_flags, e_memoryheap_flags::cpu_writable))
 				mempropFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			
 			auto allocation = allocate(args.m_physdevice, args.m_device, memReq.size, mempropFlags, memReq.memoryTypeBits);
@@ -1472,6 +1480,116 @@ namespace influx::rhi
 			list->m_data.m_state = e_commandlist_state::inflight;
 		}
 
+		return {};
+	}
+
+	result<vmemory_map_result> queue::map_vmemory(const device& device, const texture& texture, memheap& heap, const vmemory_map_args& args) const
+	{
+		using result_type = result<vmemory_map_result>;
+	
+		auto vkimage = texture.m_native_object;
+		if (vkimage == nullptr)
+			return result_type::make_error("texture is invalid!");
+
+		auto vkdevice = device.m_native_object;
+		auto vkqueue = m_native_object;
+
+		uint32_t count;
+		vkGetImageSparseMemoryRequirements(vkdevice, vkimage, &count, nullptr);
+		std::vector<VkSparseImageMemoryRequirements> reqs(count);
+		vkGetImageSparseMemoryRequirements(vkdevice, vkimage, &count, reqs.data());
+
+		vector<VkSparseImageOpaqueMemoryBindInfo> opaqueBinds{};
+		{
+
+		}
+		vector<VkSparseImageMemoryBind> memoryBinds{};
+		{
+			VkSparseImageMemoryBind memorybind{};
+			memorybind.memory;
+			memorybind.extent;
+			memorybind.flags;
+			memorybind.memoryOffset;
+			memorybind.offset;
+			memorybind.subresource;
+			memoryBinds.push_back(memorybind);
+		}
+
+		vector<VkSparseImageMemoryBindInfo> bindInfos{};
+		{
+			VkSparseImageMemoryBindInfo info{};
+			info.bindCount = static_cast<uint32>(memoryBinds.size());
+			info.pBinds = memoryBinds.data();
+			info.image = vkimage;
+			bindInfos.push_back(info);
+		}
+
+		VkBindSparseInfo bindInfo{};
+		bindInfo.imageBindCount = static_cast<uint32>(bindInfos.size());
+		bindInfo.pImageBinds = bindInfos.data();
+		bindInfo.imageOpaqueBindCount = static_cast<uint32>(opaqueBinds.size());
+		bindInfo.pImageOpaqueBinds = opaqueBinds.data();
+
+		auto vkres = vkQueueBindSparse(vkqueue, 1, &bindInfo, nullptr);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkQueueBindSparse failed!");
+
+		vmemory_map_result result{ };
+		return result;
+	}
+	result<vmemory_map_result> queue::map_vmemory(const device& device, const buffer& buffer, memheap& heap, const vmemory_map_args& args) const
+	{
+		using result_type = result<vmemory_map_result>;
+
+		auto vkbuffer = buffer.m_native_object;
+		auto vkqueue = m_native_object;
+
+		vector<VkSparseMemoryBind> membinds{};
+		{
+			VkSparseMemoryBind membind{};
+			membind.flags;
+			membind.memory;
+			membind.memoryOffset;
+			membind.resourceOffset;
+			membind.size;
+			membinds.push_back(membind);
+		}
+		vector<VkSparseBufferMemoryBindInfo> bufferBinds{};
+		{
+			VkSparseBufferMemoryBindInfo bufferbind{};
+			bufferbind.pBinds = membinds.data();
+			bufferbind.buffer = vkbuffer;
+			bufferbind.bindCount = static_cast<uint32>(membinds.size());
+			bufferBinds.push_back(bufferbind);
+		}
+
+		VkBindSparseInfo bindInfo{};
+		bindInfo.bufferBindCount = static_cast<uint32>(bufferBinds.size());
+		bindInfo.pBufferBinds = bufferBinds.data();
+
+		auto vkres = vkQueueBindSparse(vkqueue, 1, &bindInfo, nullptr);
+		if (vkres != VK_SUCCESS)
+			return result_type::make_error("vkQueueBindSparse failed!");
+
+		return {};
+	}
+	result<> queue::unmap_vmemory(const device& device, const texture& texture, const vmemory_unmap_args& args) const
+	{
+		using result_type = result<>;
+
+		VkSparseImageMemoryBind imageBind{};
+		imageBind.subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageBind.subresource.mipLevel = 0;
+		imageBind.subresource.arrayLayer = 0;
+		// imageBind.offset = { tileX, tileY, 0 };
+		// imageBind.extent = { tileWidth, tileHeight, 1 };
+		// imageBind.memory = memory;
+		// imageBind.memoryOffset = tileOffset;
+		return {};
+	}
+	result<> queue::unmap_vmemory(const device& device, const buffer& buffer, const vmemory_unmap_args& args) const
+	{
+		using result_type = result<>;
 		return {};
 	}
 

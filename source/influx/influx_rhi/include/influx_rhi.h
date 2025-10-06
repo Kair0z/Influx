@@ -17,8 +17,8 @@
 #define INFLUX_RHI_API __declspec(dllimport)
 #endif
 
-#define INFLUX_RHI_VULKAN	0
-#define INFLUX_RHI_D3D12	1
+#define INFLUX_RHI_VULKAN	1
+#define INFLUX_RHI_D3D12	0
 
 #include "influx_rhi/format.h"
 
