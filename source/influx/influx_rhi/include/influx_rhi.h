@@ -675,6 +675,14 @@ namespace influx::rhi
 		
 		void bind_color(const uint32 index, const texture& texture);
 		void bind_depth(const texture& texture);
+
+		uint32 get_num_color_targets() const
+		{
+			uint32 num = 0u;
+			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+				num += (m_color_targets[i] != nullptr ? 1u : 0u);
+			return num;
+		}
 	};
 	struct draw_args final
 	{
@@ -1527,7 +1535,6 @@ namespace influx::rhi
 	{
 		native_rootsignature						m_rootsignature;
 		native_device								m_device;
-		native_renderpass							m_renderpass;
 		e_pipeline_type								m_type{};
 		graphics_pipeline_desc						m_graphics{};
 		raytracing_pipeline_desc					m_raytracing{};
@@ -1821,7 +1828,6 @@ namespace influx::rhi
 	struct pipeline_data final
 	{
 		native_rootsignature	m_rootsignature;
-		object_native			m_vulkan_renderpass;
 	};
 	struct rootsignature_data final
 	{
@@ -2187,7 +2193,7 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> start(device& device);
 		INFLUX_RHI_API result<> start(native_commandpool pool);
 		INFLUX_RHI_API result<> submit(queue& queue);
-		INFLUX_RHI_API result<> renderpass_begin(device& device, renderpass& pass, const begin_renderpass_args& args);
+		INFLUX_RHI_API result<> renderpass_begin(device& device, const begin_renderpass_args& args);
 		INFLUX_RHI_API result<> renderpass_end();
 		INFLUX_RHI_API result<> dispatch(const math::uint3& group_nums);
 		INFLUX_RHI_API result<> clear_texture(device& device, const texture& texture, const clear& clear);
@@ -2203,6 +2209,7 @@ namespace influx::rhi
 		INFLUX_RHI_API result<> bind_descheaps(descheap const* resource_heap, descheap const* sampler_heap);
 		INFLUX_RHI_API result<> bind_pipeline(const pipeline& pipeline);
 		
+		INFLUX_RHI_API result<> set_rendertargets(device& dev, const vector<texture const*>& color_targets, texture const* depth_target);
 		INFLUX_RHI_API result<> bind_rootsignature(const rootsignature& signature, bool is_compute = false);
 		INFLUX_RHI_API result<> bind_texture_uav(const texture& texture,	uint32 param_index, bool is_compute = false);
 		INFLUX_RHI_API result<> bind_texture_srv(const texture& texture,	uint32 param_index, bool is_compute = false);
@@ -2234,7 +2241,6 @@ namespace influx::rhi
 		// under the hood, the wrapped D3D12 device will stage its own rtv/dsv view that translates to the resource
 #if INFLUX_RHI_D3D12
 		INFLUX_RHI_API result<> set_primitive_topology(e_primitive_topology topology);
-		INFLUX_RHI_API result<> set_rendertargets(device& dev, const vector<texture const*>& color_targets, texture const* depth_target);
 		INFLUX_RHI_API result<> clear_rtv(descriptor rtv, const clear& clear);
 		INFLUX_RHI_API result<> clear_dsv(descriptor dsv);
 #endif
@@ -2323,7 +2329,6 @@ namespace influx::rhi
 
 		inline result<pipeline>			create_graphics_pipeline(
 			const rootsignature& signature,
-			const renderpass& renderpass,
 			const graphics_shaderslots& shaders, 
 			const graphics_pipeline_desc& desc)
 		{
@@ -2332,7 +2337,6 @@ namespace influx::rhi
 			args.m_graphics = desc;
 			args.m_graphics_shaders = shaders;
 			args.m_rootsignature = signature.m_native_object;
-			args.m_renderpass = renderpass.m_native_object;
 			return create(args);
 		}
 

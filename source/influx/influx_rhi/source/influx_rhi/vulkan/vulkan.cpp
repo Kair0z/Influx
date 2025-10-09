@@ -308,6 +308,13 @@ namespace influx::rhi
 	{
 		return {};
 	}
+	inline static VkRect2D translate_rect(const math::uint2& dimensions)
+	{
+		VkRect2D rect{};
+		rect.extent.width = dimensions.x;
+		rect.extent.height = dimensions.y;
+		return rect;
+	}
 	inline static VkImageViewType translate(e_texture_type type, uint32 arraysize)
 	{
 		if (arraysize > 1u)
@@ -564,14 +571,25 @@ namespace influx::rhi
 		{
 			enabledFeatures.shaderClipDistance = VK_TRUE;
 			enabledFeatures.shaderCullDistance = VK_TRUE;
+			deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
 		}
 		
-		// device-extensions
+		vector<const char*> device_extensions{};
+		const bool enable_dynamic_rendering = true;
 		{
-			const char* deviceExtensions = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-			deviceCreateInfo.enabledExtensionCount = 1;
-			deviceCreateInfo.ppEnabledExtensionNames = &deviceExtensions;
-			deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+			device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+			if (enable_dynamic_rendering) device_extensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+			deviceCreateInfo.enabledExtensionCount = static_cast<uint32>(device_extensions.size());
+			deviceCreateInfo.ppEnabledExtensionNames = device_extensions.data();	
+		}
+
+		if (enable_dynamic_rendering)
+		{
+			static constexpr VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_feature{
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+				.dynamicRendering = VK_TRUE,
+			};
+			deviceCreateInfo.pNext = &dynamic_rendering_feature;
 		}
 
 		// device-layers (validation layer)
@@ -1034,7 +1052,6 @@ namespace influx::rhi
 	
 	result<native_pipeline> create_native_graphics_pipeline(
 		native_device vkdevice,
-		native_renderpass vkrenderpass,
 		const graphics_pipeline_desc& desc, 
 		const graphics_shaderslots& shaders,
 		pipeline_data* out_data)
@@ -1185,6 +1202,8 @@ namespace influx::rhi
 		colorBlendCreateInfo.blendConstants[2] = 0.0f;
 		colorBlendCreateInfo.blendConstants[3] = 0.0f;
 
+		desc.m_output_merger.m_rendertargets[0].m_format;
+
 		// Describe pipeline layout
 		// Note: this describes the mapping between memory and shader resources (descriptor sets)
 		// This is for uniform buffers and samplers
@@ -1218,6 +1237,24 @@ namespace influx::rhi
 		// Create the graphics pipeline
 		VkPipeline vkpipeline{};
 		{
+			const uint32 num_color_attachments = desc.m_output_merger.get_num_enabled_rendertargets();
+			const bool has_depth_attachment = desc.m_output_merger.m_depthtarget.m_depth_enable;
+			const bool has_stencil_attachment = desc.m_output_merger.m_depthtarget.m_stencil_enable;
+
+			vector<VkFormat> color_formats{};
+			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+			{
+				if (desc.m_output_merger.m_rendertargets[i].m_enabled)
+					color_formats.push_back(translate_format(desc.m_output_merger.m_rendertargets[i].m_format));
+			}
+
+			VkPipelineRenderingCreateInfoKHR pipeline_create{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
+			pipeline_create.pNext = VK_NULL_HANDLE;
+			pipeline_create.colorAttachmentCount = static_cast<uint32>(color_formats.size());
+			pipeline_create.pColorAttachmentFormats = color_formats.data();
+			pipeline_create.depthAttachmentFormat = has_depth_attachment ? translate_format(desc.m_output_merger.m_depthtarget.m_format) : VK_FORMAT_UNDEFINED;
+			pipeline_create.stencilAttachmentFormat = has_stencil_attachment ? translate_format(desc.m_output_merger.m_depthtarget.m_format) : VK_FORMAT_UNDEFINED;
+
 			VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
 			pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 			pipelineCreateInfo.stageCount = static_cast<uint32>(vkshaderinfos.size());
@@ -1229,10 +1266,11 @@ namespace influx::rhi
 			pipelineCreateInfo.pMultisampleState = &multisampleCreateInfo;
 			pipelineCreateInfo.pColorBlendState = &colorBlendCreateInfo;
 			pipelineCreateInfo.layout = vklayout;
-			pipelineCreateInfo.renderPass = vkrenderpass;
+			pipelineCreateInfo.renderPass = VK_NULL_HANDLE;
 			pipelineCreateInfo.subpass = 0;
 			pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 			pipelineCreateInfo.basePipelineIndex = -1;
+			pipelineCreateInfo.pNext = &pipeline_create;
 
 			vkres = vkCreateGraphicsPipelines(vkdevice, nullptr, 1u, &pipelineCreateInfo, nullptr, &vkpipeline);
 			if (vkres != VK_SUCCESS)
@@ -1242,7 +1280,6 @@ namespace influx::rhi
 		if (out_data)
 		{
 			out_data->m_rootsignature = vklayout;
-			out_data->m_vulkan_renderpass = vkrenderpass;
 		}
 		return vkpipeline;
 	}
@@ -1255,7 +1292,7 @@ namespace influx::rhi
 		switch (args.m_type)
 		{
 		case e_pipeline_type::graphics:
-			result = create_native_graphics_pipeline(args.m_device, args.m_renderpass, 
+			result = create_native_graphics_pipeline(args.m_device, 
 				args.m_graphics, args.m_graphics_shaders, out_data);
 			break;
 
@@ -1926,10 +1963,15 @@ namespace influx::rhi
 	}
 #endif
 
-	result<> commandlist::renderpass_begin(device& device, renderpass& renderpass, const begin_renderpass_args& args)
+#if 0
+	result<> legacy_renderpass_begin(device& device, renderpass& renderpass, const begin_renderpass_args& args)
 	{
 		using result_type = result<>;
 		result_type result{};
+
+		VkDevice vkdevice = device.m_native_object;
+		if (vkdevice == nullptr)
+			return result_type::make_error("device is not valid!");
 
 		if (renderpass.is_valid() == false)
 			return result_type::make_error("renderpass is not valid!");
@@ -1947,10 +1989,10 @@ namespace influx::rhi
 		}
 
 		// translate the attachments
-		const bool has_depth = renderpass.is_depth_target_enabled();
-		const uint32 num_colour_attachments = renderpass.get_num_colour_targets();
+		const bool has_depth = args.m_depth_target != nullptr;
+		const uint32 num_colour_attachments = args.get_num_color_targets();
 		const uint32 num_attachments = has_depth ? num_colour_attachments + 1u : num_colour_attachments;
-		const framebuffer_desc& fb_desc = renderpass.get_framebuffer_desc();
+		// const framebuffer_desc& fb_desc = renderpass.get_framebuffer_desc();
 
 		// create the (implicit) framebuffer
 		VkRenderPass vkrenderpass = renderpass.m_native_object;
@@ -1976,7 +2018,7 @@ namespace influx::rhi
 					return result_type::make_error("renderpass has a depth target DSV slot that you didn't provide a valid DSV for!");
 				attachment_views.push_back(current_view);
 			}
-			
+
 			VkFramebufferCreateFlags flags{};
 			VkFramebufferCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -2006,6 +2048,85 @@ namespace influx::rhi
 
 		return{};
 	}
+#endif
+
+	result<> commandlist::renderpass_begin(device& device, const begin_renderpass_args& args)
+	{
+		using result_type = result<>;
+		result_type result{};
+
+		const bool has_depth = args.m_depth_target != nullptr;
+		const bool has_stencil = false;
+		const uint32 num_colour_attachments = args.get_num_color_targets();
+		const uint32 num_attachments = has_depth ? num_colour_attachments + 1u : num_colour_attachments;
+		if (num_attachments == 0u)
+			return result_type::make_error("num_attachments_total is 0! (noop)");
+
+		math::uint2 dimensions{};
+		if (num_colour_attachments > 0u)
+			dimensions = args.m_color_targets[0]->get_dimensions();
+
+		// translate the attachments
+		vector<VkRenderingAttachmentInfo> color_attachments = {};
+		{
+			VkRenderingAttachmentInfo info;
+			info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+			info.clearValue;
+			info.imageLayout;
+			info.imageView;
+			info.loadOp;
+			info.pNext;
+			info.resolveImageLayout;
+			info.resolveImageView;
+			info.resolveMode;
+			info.storeOp;
+			color_attachments.push_back(info);
+		}
+		VkRenderingAttachmentInfo depth_attachment{};
+		if (has_depth)
+		{
+			depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+			depth_attachment.clearValue;
+			depth_attachment.imageLayout;
+			depth_attachment.imageView;
+			depth_attachment.loadOp;
+			depth_attachment.pNext;
+			depth_attachment.resolveImageLayout;
+			depth_attachment.resolveImageView;
+			depth_attachment.resolveMode;
+			depth_attachment.storeOp;
+		}
+		VkRenderingAttachmentInfo stencil_attachment{};
+		if (has_stencil)
+		{
+			stencil_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+			stencil_attachment.clearValue;
+			stencil_attachment.imageLayout;
+			stencil_attachment.imageView;
+			stencil_attachment.loadOp;
+			stencil_attachment.pNext;
+			stencil_attachment.resolveImageLayout;
+			stencil_attachment.resolveImageView;
+			stencil_attachment.resolveMode;
+			stencil_attachment.storeOp;
+		}
+
+		VkRenderingInfo render_info{};
+		{
+			render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+			render_info.renderArea = translate_rect(dimensions);
+			render_info.layerCount = 1;
+			render_info.colorAttachmentCount = num_colour_attachments;
+			render_info.pDepthAttachment = has_depth ? &depth_attachment : nullptr;
+			render_info.pColorAttachments = num_colour_attachments > 0 ? color_attachments.data() : nullptr;
+			render_info.pStencilAttachment = has_stencil ? &stencil_attachment : nullptr;
+			render_info.flags;
+			render_info.viewMask;
+		}
+
+		vkCmdBeginRendering(m_native_object, &render_info);
+	}
+	
 	result<> commandlist::renderpass_end()
 	{
 		vkCmdEndRenderPass(m_native_object);

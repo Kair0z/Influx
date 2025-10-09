@@ -129,8 +129,8 @@ int main()
 
 	rhi::pipeline pip_basepass; rhi::pipeline pip_shadepass;
 	rhi::rootsignature sig_basepass; rhi::rootsignature sig_shadepass;
-	rhi::renderpass renderpass;
 
+#if 0
 	rhi::memheap gpu_memory;
 	{
 		rhi::memheap_create_args args{};
@@ -153,32 +153,9 @@ int main()
 		args.m_is_virtual = true;
 		buff_virtual = device.create(args).get();
 	}
+#endif
 
-	rhi::texture tex_gbalbedo;
-	rhi::texture tex_gbdepth;
-	rhi::texture tex_depth;
-	rhi::texture tex_ftarget;
-	{
-		rhi::texture_create_args args = rhi::texture::create_args::tex2D(win_desc.m_dimensions);
-		args.mod_bindflags(rhi::e_resource_bindflags::rtv);
-		tex_ftarget = device.create(args).get();
-
-		args.mod_format(rhi::pixelformat::make_f32(4u));
-		tex_gbalbedo = device.create(args).get();
-		args.mod_format(rhi::pixelformat::make_f32(1u));
-		tex_gbdepth = device.create(args).get();
-
-		args = rhi::texture_create_args::tex2D_depth(win_desc.m_dimensions);
-		tex_depth = device.create(args).get();
-	}
-
-	rhi::renderpass_create_args pass_args{};
-	pass_args.describe_color(0u, tex_gbalbedo);
-	pass_args.describe_color(1u, tex_gbdepth);
-	pass_args.describe_depth(tex_depth);
-	renderpass = device.create(pass_args).get();
-
-	g.reload_shaders_func = [&device, &pip_basepass, &sig_basepass, &pip_shadepass, &sig_shadepass, &renderpass]()
+	g.reload_shaders_func = [&device, &pip_basepass, &sig_basepass, &pip_shadepass, &sig_shadepass]()
 	{
 		globals& g = globals::get();
 		std::cout << "reloading shaders \n";
@@ -239,7 +216,7 @@ int main()
 			args.m_shaderpipeline = rhi::e_graphics_shader_pipeline::vs_ps;
 			graphics_shaders.set(shader::e_shader_type::vs, vertexshader.m_bytecode);
 			graphics_shaders.set(shader::e_shader_type::ps, pixelshader.m_bytecode);
-			pip_basepass = device.create_graphics_pipeline(sig_basepass, renderpass, graphics_shaders, args).get();
+			pip_basepass = device.create_graphics_pipeline(sig_basepass, graphics_shaders, args).get();
 
 			rhi::compute_shaderslots compute_shaders;
 			compute_shaders.set(shader::e_shader_type::cs, computeshader.m_bytecode);
@@ -257,6 +234,24 @@ int main()
 		buff_drawcb = device.create(args).get();
 	}
 	
+	rhi::texture tex_gbalbedo;
+	rhi::texture tex_gbdepth;
+	rhi::texture tex_depth;
+	rhi::texture tex_ftarget;
+	{
+		rhi::texture_create_args args = rhi::texture::create_args::tex2D(win_desc.m_dimensions);
+		args.mod_bindflags(rhi::e_resource_bindflags::rtv);
+		tex_ftarget = device.create(args).get();
+
+		args.mod_format(rhi::pixelformat::make_f32(4u));
+		tex_gbalbedo = device.create(args).get();
+		args.mod_format(rhi::pixelformat::make_f32(1u));
+		tex_gbdepth = device.create(args).get();
+
+		args = rhi::texture_create_args::tex2D_depth(win_desc.m_dimensions);
+		tex_depth = device.create(args).get();
+	}
+
 	while (!g.is_quit)
 	{
 		window->poll_events(g.is_quit);
@@ -266,13 +261,14 @@ int main()
 		cmdlist.transition(backbuffer, rhi::e_resource_state::render_target);
 		cmdlist.clear_texture(device, backbuffer, { .m_colour = {1,0,0,1} });
 
+#if 0
 		rhi::vmemory_map_args map_args{};
 		map_args.m_heap_start = 0u;
 		map_args.m_texelrange_start = { 0,0,0 };
 		map_args.m_texelrange_size = { virtual_texture_dimensions.x, virtual_texture_dimensions.y, 1u };
 		rhi::vmemory_map_result result = queue.map_vmemory(device, tex_virtual, gpu_memory, map_args).get();
-		
 		queue.unmap_vmemory(device, tex_virtual, map_args);
+#endif
 
 		if (pip_basepass.is_valid())
 		{
@@ -283,7 +279,7 @@ int main()
 			args.bind_color(0u, tex_gbalbedo);
 			args.bind_color(1u, tex_gbdepth);
 
-			cmdlist.renderpass_begin(device, renderpass, args);
+			cmdlist.renderpass_begin(device, args);
 			cmdlist.bind_pipeline(pip_basepass);
 			cmdlist.bind_rootsignature(sig_basepass);
 			cmdlist.bind_buffer_cbv(buff_drawcb, 0u);
