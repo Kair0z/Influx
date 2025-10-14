@@ -36,7 +36,6 @@ vs_output main_vs(vs_input input)
 {
 	vs_output result = (vs_output)0;
 	result.m_position = mul(float4(input.m_position, 1.0f), g_consts.m_viewprojection);
-
 	result.m_colour.r = determinant(g_consts.m_viewprojection);
 	result.m_colour.g = g_textures[0].SampleLevel(g_samplers[0], float2(0,0), 0).r;
 	result.m_colour.b = g_structs[0][0].r;

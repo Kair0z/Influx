@@ -107,10 +107,13 @@ int commandline_thread()
 int main()
 {
 	globals& g = globals::get();
-	thread command_thread = thread([]() { commandline_thread(); });
+	thread command_thread = thread([](){ commandline_thread(); });
 
 	platform::window_desc win_desc{};
-	win_desc.set_dimensions({ 640u, 480u }).set_name(g.appname).set_style(platform::window_style::get_nodecoration());
+	win_desc
+		.set_dimensions({ 640u, 480u })
+		.set_name(g.appname)
+		.set_style(platform::window_style::get_nodecoration());
 	platform::window* window = platform::window::create(win_desc);
 
 	rhi::device device = rhi::create_device(rhi::device::create_args::make(g.appname, true)).get();
@@ -173,7 +176,7 @@ int main()
 			args.set_debug_level(shader::e_compile_debug_level::debug)
 				.set_include_folder("")
 				.set_pdb_enabled(false)
-				.set_platform(shader::e_shader_platform::SPIRV)
+				.set_platform(shader::e_shader_platform::DXIL)
 				.set_reflection_enabled(true)
 				.set_target(shader::e_shader_target::_6_6);
 
@@ -198,7 +201,7 @@ int main()
 		// signatures
 		{
 			rhi::rootsignature_create_args rootsig_args{};
-			rootsig_args.m_direct_indexing = true;
+			rootsig_args.m_bindless = true;
 			rootsig_args.reflect_shader(vertexshader.m_reflection, shader::e_shader_type::vs);
 			rootsig_args.reflect_shader(pixelshader.m_reflection, shader::e_shader_type::ps);
 			sig_basepass = device.create(rootsig_args).get();
@@ -225,20 +228,27 @@ int main()
 	};
 	g.reload_shaders_func();
 
-	rhi::buffer buff_drawcb;
+	rhi::buffer buff_consts;
+	rhi::buffer buff_structs;
 	{
 		rhi::buffer_create_args args{};
 		args.m_bindflags = rhi::e_resource_bindflags::constbuffer;
 		args.m_bytesize	= sizeof(frontend::constants);
 		args.m_init_state = rhi::e_resource_state::gen_read;
 		args.m_memoryheap_desc = rhi::memoryheap_desc::cpu_writable();
-		buff_drawcb = device.create(args).get();
+		buff_consts = device.create(args).get();
+
+		args.m_bytesize = args.m_bytestride = sizeof(math::float3);
+		args.m_bindflags = rhi::e_resource_bindflags::srv;
+		args.m_init_state = rhi::e_resource_state::gen_read;
+		buff_structs = device.create(args).get();
 	}
 	
 	rhi::texture tex_gbalbedo;
 	rhi::texture tex_gbdepth;
 	rhi::texture tex_depth;
 	rhi::texture tex_ftarget;
+	rhi::texture tex_array;
 	{
 		rhi::texture_create_args args = rhi::texture::create_args::tex2D(win_desc.m_dimensions);
 		args.mod_bindflags(rhi::e_resource_bindflags::rtv);
@@ -251,6 +261,15 @@ int main()
 
 		args = rhi::texture_create_args::tex2D_depth(win_desc.m_dimensions);
 		tex_depth = device.create(args).get();
+
+		for (uint32 i = 0u; i < 4u; ++i)
+		{
+			args = rhi::texture_create_args::tex2D({ 512u, 512u });
+			args.mod_format(rhi::pixelformat::rgba_8_unorm());
+			args.mod_bindflags(rhi::e_resource_bindflags::srv);
+			args.mod_arraysize(4u);
+			tex_array = device.create(args).get();
+		}
 	}
 
 	while (!g.is_quit)
@@ -273,17 +292,21 @@ int main()
 
 		if (pip_basepass.is_valid())
 		{
-			buff_drawcb.write_data<frontend::constants>({ .m_viewprojection = {} });
-
+			buff_consts.write_data<frontend::constants>({ .m_viewprojection = {} });
+			
 			rhi::begin_renderpass_args args{};
 			args.bind_depth(tex_depth);
 			args.bind_color(0u, tex_gbalbedo);
 			args.bind_color(1u, tex_gbdepth);
 
 			cmdlist.renderpass_begin(device, args);
+
 			cmdlist.bind_pipeline(pip_basepass);
 			cmdlist.bind_rootsignature(sig_basepass);
-			cmdlist.bind_buffer_cbv(buff_drawcb, 0u);
+
+			// bind resources
+			cmdlist.bind_buffer_cbv(buff_consts, 0u);
+
 			cmdlist.draw_indexed({});
 			cmdlist.renderpass_end();
 		}

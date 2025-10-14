@@ -17,8 +17,8 @@
 #define INFLUX_RHI_API __declspec(dllimport)
 #endif
 
-#define INFLUX_RHI_VULKAN	1
-#define INFLUX_RHI_D3D12	0
+#define INFLUX_RHI_VULKAN	0
+#define INFLUX_RHI_D3D12	1
 
 #include "influx_rhi/format.h"
 
@@ -728,8 +728,10 @@ namespace influx::rhi
 		gs = 1 << static_cast<uint32>(e_graphics_shader_slots::gs),	// geometry
 		hs = 1 << static_cast<uint32>(e_graphics_shader_slots::hs), // hull
 
-		// graphics + tessellation
+		// common graphics
 		vs_ps			= vs | ps,
+
+		// graphics + tessellation
 		vs_hs_ds_ps		= vs | ps | hs | ds,
 		vs_hs_ds_gs_ps	= vs | hs | ds | gs | ps,
 		vs_gs_ps		= vs | gs | ps,
@@ -1530,17 +1532,16 @@ namespace influx::rhi
 		vector<root_static_sampler> m_static_samplers;
 		umap<string, uint32> m_name_to_register;
 		umap<string, uint32> m_name_to_param_idx;
-		bool m_direct_indexing = false;
+		bool m_bindless = false;
 
 		void reflect_shader(const shader::reflection& reflection, shader::e_shader_type type)
 		{
 			const e_shader_visibility shader_vis = e_shader_visibility::all;
-
 			auto add_root_resources = [this, shader_vis](const string& name, root_param_resource::e_type type, uint32 range_size, uint32 reg_index, uint32 reg_space)
 			{
 				if (range_size > 1u)
 				{
-					root_param_resource_range::e_type range_type;
+					root_param_resource_range::e_type range_type{};
 					switch (type)
 					{
 					case root_param_resource::e_type::cbv: range_type = root_param_resource_range::e_type::cbv; break;
@@ -1564,7 +1565,7 @@ namespace influx::rhi
 
 				switch (resource.m_type)
 				{
-				// buffers can either be root descriptors, or referenced through a resource table
+				// BUFFERS can EITHER be root descriptors, or referenced through a resource table
 				case shader::reflection::resource::e_type::constbuffer:
 					add_root_resources(resource.m_name, root_param_resource::e_type::cbv,
 						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
@@ -1578,7 +1579,7 @@ namespace influx::rhi
 						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
 					break;
 
-				// textures MUST be accessed through resource tables
+				// TEXTURES can ONLY be accessed through resource tables
 				case shader::reflection::resource::e_type::texture:
 					add_root_range(root_param_resource_range::e_type::srv,
 						resource.m_range_size, resource.m_shader_register,

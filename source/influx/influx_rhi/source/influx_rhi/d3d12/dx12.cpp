@@ -1242,14 +1242,13 @@ namespace influx::rhi
 
 		// initialize the desc, and create the root signature
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-
 		rootSignatureDesc.Init_1_1(
 			(uint32)root_parameters.size(), root_parameters.data(),
 			(uint32)static_samplers.size(), static_samplers.data(),
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		// flag direct indexing enabled/disabled
-		if (args.m_direct_indexing)
+		if (args.m_bindless)
 		{
 			rootSignatureDesc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
 			rootSignatureDesc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
@@ -1258,7 +1257,12 @@ namespace influx::rhi
 		ID3DBlob* signature;
 		ID3DBlob* error;
 
-		HRESULT res = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
+		HRESULT
+		res = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
+		if (res != S_OK && error != nullptr)
+		{
+			return result_type::make_error(static_cast<const char*>(error->GetBufferPointer()));
+		}
 		res = dxdevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&dxrootsignature));
 
 		return dxrootsignature;
@@ -1731,7 +1735,7 @@ namespace influx::rhi
 			&desc               // resource desc
 		);
 		const uint64 total_bytes_in_resource = allocInfo.SizeInBytes;
-		const uint32 tile_bytesize = total_bytes_in_resource / tiling_info.get().m_num_tiles_total;
+		const uint32 tile_bytesize = (uint32)(total_bytes_in_resource / tiling_info.get().m_num_tiles_total);
 
 		const uint32 num_regions = 1u;
 		const uint32 subresource_index = 0u;
@@ -1757,7 +1761,7 @@ namespace influx::rhi
 		};
 		const uint32 num_tiles_needed = clamped_num_tiles.x * clamped_num_tiles.y * clamped_num_tiles.z;;
 		uint32 num_tiles_to_map = num_tiles_needed;
-		const uint32 num_tiles_in_heap = heap.m_create_args.m_bytesize / tile_bytesize;
+		const uint32 num_tiles_in_heap = (uint32)(heap.m_create_args.m_bytesize / tile_bytesize);
 
 		result_type result{};
 		if (num_tiles_to_map > num_tiles_in_heap)
