@@ -243,7 +243,6 @@ int main()
 		args.m_init_state = rhi::e_resource_state::gen_read;
 		buff_structs = device.create(args).get();
 	}
-	
 	rhi::texture tex_gbalbedo;
 	rhi::texture tex_gbdepth;
 	rhi::texture tex_depth;
@@ -254,14 +253,17 @@ int main()
 		args.mod_bindflags(rhi::e_resource_bindflags::rtv);
 		tex_ftarget = device.create(args).get();
 
+		args.mod_initstate(rhi::e_resource_state::render_target);
 		args.mod_format(rhi::pixelformat::make_f32(4u));
 		tex_gbalbedo = device.create(args).get();
 		args.mod_format(rhi::pixelformat::make_f32(1u));
 		tex_gbdepth = device.create(args).get();
 
 		args = rhi::texture_create_args::tex2D_depth(win_desc.m_dimensions);
+		args.mod_initstate(rhi::e_resource_state::depth_target);
 		tex_depth = device.create(args).get();
 
+		args.mod_initstate(rhi::e_resource_state::gen_read);
 		for (uint32 i = 0u; i < 4u; ++i)
 		{
 			args = rhi::texture_create_args::tex2D({ 512u, 512u });
@@ -310,6 +312,7 @@ int main()
 			cmdlist.draw_indexed({});
 			cmdlist.renderpass_end();
 		}
+#if 0
 		if (pip_shadepass.is_valid())
 		{
 			const bool is_compute = true;
@@ -322,7 +325,7 @@ int main()
 			const uint32 num_groups_y = win_desc.m_dimensions.y / TGSIZE;
 			cmdlist.dispatch({ num_groups_x,num_groups_y, 1u });
 		}
-
+#endif
 		cmdlist.transition(tex_ftarget, rhi::e_resource_state::copy_src);
 		cmdlist.transition(backbuffer, rhi::e_resource_state::copy_dst);
 		cmdlist.copy(tex_ftarget, backbuffer);

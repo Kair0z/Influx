@@ -96,7 +96,10 @@ namespace influx::rhi
 	{
 		D3D12_RESOURCE_STATES result{};
 		if (has_flag(state, e_resource_state::common))			result |= D3D12_RESOURCE_STATE_COMMON;
+		if (has_flag(state, e_resource_state::copy_src))		result |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+		if (has_flag(state, e_resource_state::copy_dst))		result |= D3D12_RESOURCE_STATE_COPY_DEST;
 		if (has_flag(state, e_resource_state::render_target))	result |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+		if (has_flag(state, e_resource_state::depth_target))	result |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		if (has_flag(state, e_resource_state::present))			result |= D3D12_RESOURCE_STATE_PRESENT;
 		return result;
 	}
@@ -930,10 +933,17 @@ namespace influx::rhi
 			dxdesc.DepthOrArraySize = 1u;
 			dxdesc.Width = args.m_bytesize;
 			dxdesc.Height = 1u;
+			dxdesc.SampleDesc.Count = 1u;
+			dxdesc.SampleDesc.Quality = 0u;
+			dxdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 		}
 		
 		dxdesc.Alignment = 0u;
 		dxdesc.Flags = translate(args.m_bindflags);
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_resource_flags
+		if constexpr (!k_is_texture)
+			dxdesc.Flags &= ~D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
 		
 		D3D12_CLEAR_VALUE dxclear{};
 		const bool allow_optimized_clear = k_is_texture && (dxdesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) || (dxdesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
@@ -2326,10 +2336,8 @@ namespace influx::rhi
 		dxcmdlist->ResourceBarrier(1u, &barrier);
 
 		// update the state
-		auto res = texture.set_state(new_state);
-		if (!res) 
-			return result_type::make_error("failed updating resource state!");
-
+		texture.m_data.m_previous_state = texture.m_data.m_previous_state;
+		texture.m_data.m_current_state = new_state;
 		return {};
 	}
 	result<> commandlist::clear_rtv(descriptor rtv, const clear& clear)

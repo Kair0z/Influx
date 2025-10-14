@@ -26,10 +26,13 @@ struct gbuffer
 	float 	m_depth : SV_TARGET1;
 };
 
-ConstantBuffer<constants>	g_consts		; // : register(b0);
-Texture2D					g_textures[4]	; // : register(t0);
-StructuredBuffer<float3>	g_structs		; // : register(t5);
-SamplerState				g_samplers[4]	; // : register(s0);
+SamplerState				g_samplers[4]	: register(s0);
+ConstantBuffer<constants>	g_consts		: register(b0);
+Texture2D					g_textures[4]	: register(t0);
+StructuredBuffer<float3>	g_structs		: register(t5);
+Texture2DArray				g_texarray		: register(t6);
+RWTexture2D<float3>			g_textures_rw[2]: register(u0);
+RWStructuredBuffer<float3>  g_structs_rw[2]	: register(u2);
 
 [shader("vertex")]
 vs_output main_vs(vs_input input)
@@ -41,10 +44,6 @@ vs_output main_vs(vs_input input)
 	result.m_colour.b = g_structs[0][0].r;
 	return result;
 }
-
-RWTexture2D<float3>			g_textures_rw[2]	; //
-RWStructuredBuffer<float3>  g_structs_rw[2]		; //
-Texture2DArray				g_texarray			; //: register(t2);
 
 [shader("pixel")]
 gbuffer main_ps(vs_output input)

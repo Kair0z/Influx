@@ -1560,6 +1560,9 @@ namespace influx::rhi
 
 			for (const shader::reflection::resource& resource : reflection.m_bound_resources)
 			{
+				if (m_name_to_register.contains(resource.m_name))
+					continue;
+
 				if (!resource.m_name.empty())
 					m_name_to_register[resource.m_name] = resource.m_shader_register;
 
@@ -1593,14 +1596,16 @@ namespace influx::rhi
 					name_last_resource_table(resource.m_name);
 					break;
 				case shader::reflection::resource::e_type::sampler:
-					add_root_sampler(resource.m_shader_register, resource.m_register_space, shader_vis);
-					name_last_sampler(resource.m_name);
+					add_root_range(root_param_resource_range::e_type::sampler,
+						resource.m_range_size, resource.m_shader_register,
+						resource.m_register_space, shader_vis);
+					name_last_resource_table(resource.m_name);
 					break;
 				}
 			}
 		}
 
-		// resource ranges are stored in a resource table
+		// resource ranges are stored in separate resource tables!
 		inline void add_root_range(root_param_resource_range::e_type type, uint32 num_resources, uint32 sh_reg, uint32 space = 0u, e_shader_visibility vis = e_shader_visibility::all)
 		{
 			root_param_resource_range range{ num_resources, type, sh_reg, space };
@@ -2026,13 +2031,6 @@ namespace influx::rhi
 
 		inline bool is_valid() const
 		{ return object::is_valid(); }
-
-		inline result<> set_state(e_resource_state new_state)
-		{
-			m_data.m_previous_state = m_data.m_current_state;
-			m_data.m_current_state = new_state;
-			return {};
-		}
 	};
 
 	class memheap final : public object<e_object::memoryheap>
