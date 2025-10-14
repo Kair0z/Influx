@@ -58,7 +58,6 @@ typedef struct VkBuffer_T* VkBuffer;
 typedef struct VkPipeline_T* VkPipeline;
 typedef struct VkPipelineLayout_T* VkPipelineLayout;
 typedef struct VkDeviceMemory_T* VkDeviceMemory;
-typedef struct VkRenderPass_T* VkRenderPass;
 #endif
 
 namespace influx::rhi
@@ -107,7 +106,6 @@ namespace influx::rhi
 	using native_pipeline				= ID3D12PipelineState*;
 	using native_rootsignature			= ID3D12RootSignature*;
 	using native_gpu_address			= uint64;
-	using native_renderpass				= uint64*;
 #elif INFLUX_RHI_VULKAN
 	using native_instance				= VkInstance;
 	using native_physdevice				= VkPhysicalDevice;
@@ -126,7 +124,6 @@ namespace influx::rhi
 	using native_rootsignature			= VkPipelineLayout;
 	using native_descriptor				= uint64;
 	using native_gpu_address			= VkDeviceMemory;
-	using native_renderpass				= VkRenderPass;
 #else
 	using native_instance			= object_native;	// IDXGIFactory
 	using native_physdevice			= object_native;	// IDXGIAdapter1
@@ -144,7 +141,6 @@ namespace influx::rhi
 	using native_raytracing_pipeline = object_native;
 	using native_descriptor			= uint64;
 	using native_gpu_address		= object_native;
-	using native_renderpass			= object_native;
 #endif
 
 	// =============================================
@@ -516,32 +512,6 @@ namespace influx::rhi
 		suspending = 0x8,
 		resuming = 0x10,
 	};
-	struct color_attachment final
-	{
-		bool				m_is_enabled;
-		e_load_op			m_load;
-		e_store_op			m_store;
-		math::float4		m_clear;
-		pixelformat			m_format;
-
-		struct resolve_params final
-		{
-			resource* m_source;
-			resource* m_dest;
-			bool m_keep_source = false;
-		} m_resolve{};
-	};
-	struct depth_attachment final
-	{
-		bool				m_is_enabled = false;
-		pixelformat			m_format = pixelformat::d32();
-		e_load_op			m_depth_load;
-		e_store_op			m_depth_store;
-		float				m_depth_clear = 0.0f;
-		e_load_op			m_stencil_load = e_load_op::no_access;
-		e_store_op			m_stencil_store = e_store_op::no_access;
-		uint8				m_stencil_clear = 0u;
-	};
 	struct clear final
 	{
 		static clear colour(const math::float4& colour)
@@ -649,40 +619,47 @@ namespace influx::rhi
 		math::uint3 m_texels_per_tile = {};
 		vector<per_subresource> m_subresource_tilings;
 	};
-	struct framebuffer_desc final
-	{
-		math::uint2 m_dimensions;
-		color_attachment m_color_attachments[k_max_num_rendertargets_per_draw]{};
-		depth_attachment m_depth_attachment{};
-
-		inline bool is_depth_enabled() const
-		{
-			return m_depth_attachment.m_is_enabled;
-		}
-		inline uint32 get_num_enabled_colour_targets() const
-		{
-			uint32 num = 0u;
-			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
-				num += (uint32)m_color_attachments[i].m_is_enabled;
-			return num;
-		}
-	};
 	struct begin_renderpass_args final
 	{
-		math::uint2 m_dimensions;
-		texture const* m_color_targets[k_max_num_rendertargets_per_draw];
-		texture const* m_depth_target;
+		struct color_attachment final
+		{
+			bool				m_is_enabled;
+			e_load_op			m_load;
+			e_store_op			m_store;
+			math::float4		m_clear;
+			pixelformat			m_format;
+
+			struct resolve_params final
+			{
+				resource* m_source;
+				resource* m_dest;
+				bool m_keep_source = false;
+			} m_resolve{};
+		};
+		struct depth_attachment final
+		{
+			bool				m_is_enabled = false;
+			pixelformat			m_format = pixelformat::d32();
+			e_load_op			m_depth_load;
+			e_store_op			m_depth_store;
+			float				m_depth_clear = 0.0f;
+			e_load_op			m_stencil_load = e_load_op::no_access;
+			e_store_op			m_stencil_store = e_store_op::no_access;
+			uint8				m_stencil_clear = 0u;
+		};
+
+		e_renderpass_flags	m_flags = e_renderpass_flags::none;
+
+		math::uint2			m_dimensions;
+		texture const*		m_color_targets[k_max_num_rendertargets_per_draw];
+		texture const*		m_depth_target;
+		color_attachment	m_color_attachments[k_max_num_rendertargets_per_draw];
+		depth_attachment	m_depth_attachment;
 		
 		void bind_color(const uint32 index, const texture& texture);
 		void bind_depth(const texture& texture);
-
-		uint32 get_num_color_targets() const
-		{
-			uint32 num = 0u;
-			for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
-				num += (m_color_targets[i] != nullptr ? 1u : 0u);
-			return num;
-		}
+		uint32 get_num_color_targets() const;
+		bool has_depth() const;
 	};
 	struct draw_args final
 	{
@@ -716,7 +693,6 @@ namespace influx::rhi
 		memoryheap,
 		pipeline,
 		rootsignature,
-		renderpass,
 		num
 	};
 
@@ -1713,15 +1689,7 @@ namespace influx::rhi
 			m_static_samplers.back().m_common.m_name = name;
 		}
 	};
-	struct renderpass_create_args final
-	{
-		native_device		m_device;
-		framebuffer_desc	m_framebuffer_desc;
-		e_renderpass_flags	m_flags = e_renderpass_flags::none;
 
-		color_attachment& describe_color(const uint32 index, const texture& texture);
-		depth_attachment& describe_depth(const texture& texture);
-	};
 #pragma endregion
 	template <e_object _t>
 	using create_args = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
@@ -1737,8 +1705,7 @@ namespace influx::rhi
 		texture_create_args,
 		memheap_create_args,
 		pipeline_create_args,
-		rootsignature_create_args,
-		renderpass_create_args>>;
+		rootsignature_create_args>>;
 
 	// =============================================
 	// [data_types] this is the extra data associated to each API object
@@ -1833,10 +1800,6 @@ namespace influx::rhi
 	{
 
 	};
-	struct renderpass_data final
-	{
-
-	};
 #pragma endregion
 	template <e_object _t>
 	using data_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
@@ -1852,8 +1815,7 @@ namespace influx::rhi
 		texture_data,
 		memheap_data,
 		pipeline_data,
-		rootsignature_data,
-		renderpass_data>>;
+		rootsignature_data>>;
 
 	template <e_object _t>
 	using native_type = std::tuple_element_t < static_cast<uint32>(_t), std::tuple<
@@ -1869,8 +1831,7 @@ namespace influx::rhi
 		native_texture,
 		native_memoryheap,
 		native_pipeline,
-		native_rootsignature,
-		native_renderpass>>;
+		native_rootsignature>>;
 
 	template <e_object _t>
 	class object
@@ -1906,25 +1867,6 @@ namespace influx::rhi
 	*	however the point is to use these handles with their implied shared functionality.
 	*   that's why this library is centered around using these class interfaces.
 	*/
-
-	class renderpass final : public object<e_object::renderpass>
-	{
-	public:
-		using data_type = renderpass_data;
-		using create_args = renderpass_create_args;
-
-		inline bool is_colour_target_enabled(const uint32 slot) const
-		{ return m_create_args.m_framebuffer_desc.m_color_attachments[slot].m_is_enabled; }
-
-		inline uint32 get_num_colour_targets() const
-		{ return m_create_args.m_framebuffer_desc.get_num_enabled_colour_targets(); }
-
-		inline bool is_depth_target_enabled() const
-		{ return m_create_args.m_framebuffer_desc.is_depth_enabled(); }
-
-		const framebuffer_desc& get_framebuffer_desc() const
-		{ return m_create_args.m_framebuffer_desc; }
-	};
 
 	class buffer final : public object<e_object::buffer>
 	{
@@ -2136,7 +2078,7 @@ namespace influx::rhi
 
 		INFLUX_RHI_API result<uint32>	get_current_backbuffer_index() const;
 		INFLUX_RHI_API result<texture>	get_backbuffer_resource(uint32 index) const;
-		INFLUX_RHI_API result<texture>	get_backbuffer_resource() const;
+		INFLUX_RHI_API result<texture>	get_backbuffer_resource(native_device device);
 		INFLUX_RHI_API result<>			resize(const math::uint2& new_dim);
 
 		INFLUX_RHI_API bool owns_rtvs() const;
@@ -2313,7 +2255,6 @@ namespace influx::rhi
 		inline result<semaphore>		create(const semaphore_create_args& args);
 		inline result<texture>			create(const texture_create_args& args);
 		inline result<buffer>			create(const buffer_create_args& args);
-		inline result<renderpass>		create(const renderpass_create_args& args);
 		inline result<memheap>			create(const memheap_create_args& args);
 
 		inline result<pipeline>			create_compute_pipeline(
@@ -2405,7 +2346,6 @@ namespace influx::rhi
 	INFLUX_RHI_API result<native_texture>			create_native(const texture_create_args& args, texture_data* out_data = nullptr);
 	INFLUX_RHI_API result<native_pipeline>			create_native(const pipeline_create_args& args, pipeline_data* out_data = nullptr);
 	INFLUX_RHI_API result<native_rootsignature>		create_native(const rootsignature_create_args& args, rootsignature_data* out_data = nullptr);
-	INFLUX_RHI_API result<native_renderpass>		create_native(const renderpass_create_args& args, renderpass_data* out_data = nullptr);
 	INFLUX_RHI_API result<native_memoryheap>		create_native(const memheap_create_args& args, memheap_data* out_data = nullptr);
 	INFLUX_RHI_API result<> release(object_native native);
 
@@ -2597,20 +2537,6 @@ namespace influx::rhi
 			return result_type::make_error("failed registering new object!");
 		return res;
 	}
-	inline result<renderpass> device::create(const renderpass_create_args& args)
-	{
-		using result_type = result<renderpass>;
-		auto args_cpy = args;
-		args_cpy.m_device = (native_device)this->m_native_object;
-		auto res = influx::rhi::create<renderpass>(args_cpy);
-		if (!res)
-			return result_type::make_error("failed creating renderpass!");
-
-		auto reg = register_child(res.get());
-		if (!reg)
-			return result_type::make_error("failed registering new object!");
-		return res;
-	}
 	inline result<memheap> device::create(const memheap_create_args& args)
 	{
 		using result_type = result<memheap>;
@@ -2625,49 +2551,40 @@ namespace influx::rhi
 			return result_type::make_error("failed registering new object!");
 		return res;
 	}
-
-	inline color_attachment& renderpass_create_args::describe_color(const uint32 index, const texture& texture)
-	{
-		color_attachment new_attach{};
-		new_attach.m_store;
-		new_attach.m_load;
-		new_attach.m_format = texture.get_format();
-
-		if (m_framebuffer_desc.m_dimensions.is_zero())
-		{
-			m_framebuffer_desc.m_dimensions.x = texture.get_dimensions().x;
-			m_framebuffer_desc.m_dimensions.y = texture.get_dimensions().y;
-		}
-
-		color_attachment& target = m_framebuffer_desc.m_color_attachments[index];
-		target = new_attach;
-		target.m_is_enabled = true;
-		return target;
-	}
-	inline depth_attachment& renderpass_create_args::describe_depth(const texture& texture)
-	{
-		depth_attachment new_attach{};
-		new_attach.m_format = texture.get_format();
-		new_attach.m_is_enabled = true;
-
-		if (m_framebuffer_desc.m_dimensions.is_zero())
-		{
-			m_framebuffer_desc.m_dimensions.x = texture.get_dimensions().x;
-			m_framebuffer_desc.m_dimensions.y = texture.get_dimensions().y;
-		}
-
-		depth_attachment& target = m_framebuffer_desc.m_depth_attachment;
-		target = new_attach;
-		target.m_is_enabled = true;
-		return target;
-	}
 	inline void begin_renderpass_args::bind_color(const uint32 index, const texture& texture)
 	{
 		m_color_targets[index] = &texture;
+
+		m_color_attachments[index].m_clear;
+		m_color_attachments[index].m_load;
+		m_color_attachments[index].m_resolve;
+		m_color_attachments[index].m_store;
+		m_color_attachments[index].m_format = texture.get_format();
+		m_color_attachments[index].m_is_enabled = true;
 	}
 	inline void begin_renderpass_args::bind_depth(const texture& texture)
 	{
 		m_depth_target = &texture;
+
+		m_depth_attachment.m_depth_clear;
+		m_depth_attachment.m_depth_load;
+		m_depth_attachment.m_depth_store;
+		m_depth_attachment.m_stencil_clear;
+		m_depth_attachment.m_stencil_load;
+		m_depth_attachment.m_stencil_store;
+		m_depth_attachment.m_format = texture.get_format();
+		m_depth_attachment.m_is_enabled = true;
+	}
+	inline uint32 begin_renderpass_args::get_num_color_targets() const
+	{
+		uint32 num = 0u;
+		for (uint32 i = 0u; i < k_max_num_rendertargets_per_draw; ++i)
+			num += (m_color_targets[i] != nullptr && m_color_targets[i]->is_valid() ? 1u : 0u);
+		return num;
+	}
+	inline bool begin_renderpass_args::has_depth() const
+	{
+		return m_depth_target != nullptr && m_depth_target->is_valid();
 	}
 }
 ENABLE_ENUM_BIT_OPERATORS(influx::rhi::e_resource_state);

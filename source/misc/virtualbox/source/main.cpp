@@ -173,7 +173,7 @@ int main()
 			args.set_debug_level(shader::e_compile_debug_level::debug)
 				.set_include_folder("")
 				.set_pdb_enabled(false)
-				.set_platform(shader::e_shader_platform::DXIL)
+				.set_platform(shader::e_shader_platform::SPIRV)
 				.set_reflection_enabled(true)
 				.set_target(shader::e_shader_target::_6_6);
 
@@ -223,6 +223,7 @@ int main()
 			pip_shadepass = device.create_compute_pipeline(sig_shadepass, compute_shaders).get();
 		}
 	};
+	g.reload_shaders_func();
 
 	rhi::buffer buff_drawcb;
 	{
@@ -257,7 +258,7 @@ int main()
 		window->poll_events(g.is_quit);
 		cmdlist.start(device);
 
-		rhi::texture backbuffer = swapchain.get_backbuffer_resource().get();
+		rhi::texture backbuffer = swapchain.get_backbuffer_resource(device.m_native_object).get();
 		cmdlist.transition(backbuffer, rhi::e_resource_state::render_target);
 		cmdlist.clear_texture(device, backbuffer, { .m_colour = {1,0,0,1} });
 

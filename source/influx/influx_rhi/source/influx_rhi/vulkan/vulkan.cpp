@@ -268,7 +268,7 @@ namespace influx::rhi
 		res.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		return res;
 	}
-	inline static VkAttachmentDescription translate(const color_attachment& attachment)
+	inline static VkAttachmentDescription translate(const begin_renderpass_args::color_attachment& attachment)
 	{
 		VkAttachmentDescription res{};
 		res.format = translate_format(attachment.m_format);
@@ -281,7 +281,7 @@ namespace influx::rhi
 		res.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		return res;
 	}
-	inline static VkAttachmentDescription translate(const depth_attachment& attachment)
+	inline static VkAttachmentDescription translate(const begin_renderpass_args::depth_attachment& attachment)
 	{
 		VkAttachmentDescription res;
 		res.format = translate_format(attachment.m_format); // e.g. VK_FORMAT_D32_SFLOAT
@@ -1019,7 +1019,7 @@ namespace influx::rhi
 		}
 		
 		// 3. create the VkImageView
-		VkImageView vkview;
+		VkImageView vkview{};
 		if (args.m_create_view)
 		{
 			VkImageViewCreateInfo viewInfo = {};
@@ -1337,6 +1337,8 @@ namespace influx::rhi
 
 		return pipelineLayout;
 	}
+
+#if 0
 	result<native_renderpass> create_native(const renderpass_create_args& args, renderpass_data* out_data)
 	{
 		using result_type = result<native_renderpass>;
@@ -1402,6 +1404,8 @@ namespace influx::rhi
 
 		return vkrenderpass;
 	}
+#endif
+
 	result<native_memoryheap> create_native(const memheap_create_args& args, memheap_data* out_data)
 	{
 		using result_type = result<native_memoryheap>;
@@ -2125,6 +2129,7 @@ namespace influx::rhi
 		}
 
 		vkCmdBeginRendering(m_native_object, &render_info);
+		return {};
 	}
 	
 	result<> commandlist::renderpass_end()
@@ -2203,11 +2208,15 @@ namespace influx::rhi
 			return result_type::make_error("index >= num_resources");
 		return m_data.m_swapchain_textures[index];
 	}
-	result<texture>	swapchain::get_backbuffer_resource() const
+	result<texture>	swapchain::get_backbuffer_resource(native_device device)
 	{
 		using result_type = result<texture>;
 		if (m_data.m_backbuffer_info.m_is_acquired == false)
-			return result_type::make_error("backbuffer not yet acquired! call acquire_backbuffer() first!");
+		{
+			auto acquire = acquire_backbuffer(device);
+			if (!acquire)
+				return result_type::make_error("failed acquiring backbuffer!");
+		}
 
 		const uint32 current_index = m_data.m_backbuffer_info.m_current_index;
 		return m_data.m_swapchain_textures[current_index];
@@ -2329,18 +2338,18 @@ namespace influx::rhi
 		m_formats[VK_FORMAT_R16G16B16A16_UINT			  ] = {"VK_FORMAT_R16G16B16A16_UINT			   ", {} };
 		m_formats[VK_FORMAT_R16G16B16A16_SINT			  ] = {"VK_FORMAT_R16G16B16A16_SINT			   ", {} };
 		m_formats[VK_FORMAT_R16G16B16A16_SFLOAT			  ] = {"VK_FORMAT_R16G16B16A16_SFLOAT		   ", {} };
-		m_formats[VK_FORMAT_R32_UINT					  ] = {"VK_FORMAT_R32_UINT					   ", {} };
-		m_formats[VK_FORMAT_R32_SINT					  ] = {"VK_FORMAT_R32_SINT					   ", {} };
-		m_formats[VK_FORMAT_R32_SFLOAT					  ] = {"VK_FORMAT_R32_SFLOAT				   ", {} };
+		m_formats[VK_FORMAT_R32_UINT					  ] = {"VK_FORMAT_R32_UINT					   ", {e_format::uint, {_r,_32} }};
+		m_formats[VK_FORMAT_R32_SINT					  ] = {"VK_FORMAT_R32_SINT					   ", {e_format::sint, {_r,_32} }};
+		m_formats[VK_FORMAT_R32_SFLOAT					  ] = {"VK_FORMAT_R32_SFLOAT				   ", {e_format::sfloat, {_r,_32} }};
 		m_formats[VK_FORMAT_R32G32_UINT					  ] = {"VK_FORMAT_R32G32_UINT				   ", {} };
 		m_formats[VK_FORMAT_R32G32_SINT					  ] = {"VK_FORMAT_R32G32_SINT				   ", {} };
 		m_formats[VK_FORMAT_R32G32_SFLOAT				  ] = {"VK_FORMAT_R32G32_SFLOAT				   ", {} };
 		m_formats[VK_FORMAT_R32G32B32_UINT				  ] = {"VK_FORMAT_R32G32B32_UINT			   ", {} };
 		m_formats[VK_FORMAT_R32G32B32_SINT				  ] = {"VK_FORMAT_R32G32B32_SINT			   ", {} };
 		m_formats[VK_FORMAT_R32G32B32_SFLOAT			  ] = {"VK_FORMAT_R32G32B32_SFLOAT			   ", {} };
-		m_formats[VK_FORMAT_R32G32B32A32_UINT			  ] = {"VK_FORMAT_R32G32B32A32_UINT			   ", {} };
-		m_formats[VK_FORMAT_R32G32B32A32_SINT			  ] = {"VK_FORMAT_R32G32B32A32_SINT			   ", {} };
-		m_formats[VK_FORMAT_R32G32B32A32_SFLOAT			  ] = {"VK_FORMAT_R32G32B32A32_SFLOAT		   ", {} };
+		m_formats[VK_FORMAT_R32G32B32A32_UINT			  ] = {"VK_FORMAT_R32G32B32A32_UINT			   ", {e_format::uint,		{_r,_32},{_g,_32},{_b,_32},{_a,_32} }};
+		m_formats[VK_FORMAT_R32G32B32A32_SINT			  ] = {"VK_FORMAT_R32G32B32A32_SINT			   ", {e_format::sint,		{_r,_32},{_g,_32},{_b,_32},{_a,_32} }};
+		m_formats[VK_FORMAT_R32G32B32A32_SFLOAT			  ] = {"VK_FORMAT_R32G32B32A32_SFLOAT		   ", {e_format::sfloat,	{_r,_32},{_g,_32},{_b,_32},{_a,_32} }};
 		m_formats[VK_FORMAT_R64_UINT					  ] = {"VK_FORMAT_R64_UINT					   ", {} };
 		m_formats[VK_FORMAT_R64_SINT					  ] = {"VK_FORMAT_R64_SINT					   ", {} };
 		m_formats[VK_FORMAT_R64_SFLOAT					  ] = {"VK_FORMAT_R64_SFLOAT				   ", {} };
