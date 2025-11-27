@@ -6,7 +6,8 @@
 #define TEST_CONTAINER	0
 #define TEST_POINTER	0
 #define TEST_ASCII_ART	0
-#define TEST_SORT		1 
+#define TEST_SORT		0
+#define TEST_GRAPH		1
 
 // STL
 #include <array>
@@ -61,6 +62,9 @@ namespace glm
 #endif
 #if TEST_SORT
 #include "core/sort.h"
+#endif
+#if TEST_GRAPH
+#include "core/graph/graph.h"
 #endif
 
 // tests
@@ -357,6 +361,54 @@ void test_sort()
 	std::cin.get();
 }
 #endif
+#if TEST_GRAPH
+void test_graph()
+{
+	srand(time(nullptr));
+
+	static constexpr const char* names[]
+	{
+		"Arne",
+		"Malou",
+		"Jan",
+		"Joseph",
+		"Arnold",
+		"Lisa",
+		"Brad",
+		"Job",
+		"Tom",
+		"Vincent"
+	};
+	static constexpr int num = _countof(names);
+#if 0
+	static constexpr bool digraph = true;
+	using graph = graph<num, digraph>;
+	graph gr{};
+	for (uint32 i = 0u; i < num; ++i)
+	{
+		for (uint32 j = 0u; j < num; ++j)
+		{
+			gr.set_link(i, j, graph::FORW);
+		}
+	}
+
+	gr.swap_links(0, 2);
+
+	graph::to_dotgraph(gr, std::cout, [](const uint32& index, string& out_label)
+	{
+		out_label = names[index];
+	});
+#endif
+
+	graph_array<string, num> arr{};
+	for (uint32 i = 0u; i < num; ++i)
+	{
+		arr.add(names[i]);
+	}
+	arr.remove("Brad");
+	arr.to_dotgraph(std::cout);
+}
+#endif
 
 int main()
 {
@@ -383,5 +435,8 @@ int main()
 #endif
 #if TEST_SORT
 	test_sort();
+#endif
+#if TEST_GRAPH
+	test_graph();
 #endif
 }
