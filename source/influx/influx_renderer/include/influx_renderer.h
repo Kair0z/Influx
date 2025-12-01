@@ -30,7 +30,7 @@ struct ImDrawData;
 #include "influx_platform/window.h"
 
 // influx::renderer
-#include "influx_renderer/types.h"
+#include "influx_renderer/common.h"
 #include "influx_renderer/constants.h"
 #include "influx_renderer/target.h"
 #include "influx_renderer/mesh.h"
@@ -177,7 +177,7 @@ namespace influx::renderer
 	INFLUX_RENDER_API bool has_material(const string& title);
 
 	/* returns the signature of internal meshes represented by e_mesh */
-	INFLUX_RENDER_API mesh_id get_mesh_id(e_mesh);
+	INFLUX_RENDER_API mesh_id get_mesh_id(e_mesh internal_mesh);
 
 	/* */
 	INFLUX_RENDER_API string get_last_rendergraph_dump();

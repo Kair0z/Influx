@@ -10,6 +10,21 @@
 #include "core/basetypes.h"
 #include "core/result.h"
 
+// influx::core
+#include "core/math/vector.h"
+#include "core/math/matrix.h"
+#include "core/math/transform.h"
+#include "core/math/colour.h"
+#include "core/math/rect.h"
+#include "core/math/bounds.h"
+
+#include "core/string.h"
+#include "core/container/vector.h"
+#include "core/material/material.h"
+#include "core/scene/light.h"
+#include "core/scene/camera.h"
+#include "core/enum.h"
+
 namespace influx::renderer
 {
 	// the result type
@@ -53,4 +68,18 @@ namespace influx::renderer
 		unsupported,
 		max
 	};
+
+	using object_id		= uint32;
+	using material_id	= object_id;
+	using camera_id		= object_id;
+	using mesh_instance_id = object_id;
+	using mesh_id		= object_id;
+	using light_id		= object_id;
+	using transform_id	= object_id;
+
+	using camera		= influx::camera;
+	using matrix		= math::matrix4x4f;
+	using colour		= math::vectorf4;
+	using position3D	= math::float3;
+	using light			= influx::light;
 }

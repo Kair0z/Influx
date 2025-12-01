@@ -25,7 +25,7 @@ using namespace influx;
 void load_scene(const string& filepath, imp::scene_load_args& args, renderer::scene& out_scene)
 {
 	const string filename = str::split(str::split(filepath, "/").back(), ".").front();
-	static vector<renderer::camera> cameras{};
+	static vector<camera> cameras{};
 	static vector<math::matrix4x4f> mesh_transforms{};
 	static vector<math::matrix4x4f> camera_transforms{};
 	static vector<string> mesh_ids{};
@@ -39,12 +39,12 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 		// load the fbx
 		imp::scene_data loaded_scene = imp::load_scene_file(filepath, args).get();
 
+#if 0
 		// get the cameras
 		for (uint32 i = 0u; i < loaded_scene.m_cameras.size(); ++i)
 		{
 			const imp::scene_data::camera& camera = loaded_scene.m_cameras[i];
 			camera_transforms.push_back(loaded_scene.get_transform(camera));
-
 			renderer::camera render_camera{};
 			render_camera.m_camera.set_fov(90.0f);// camera.m_camera.get_fov();
 			render_camera.m_camera.set_farplane(camera.m_camera.get_farplane());
@@ -64,7 +64,8 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 			custom_camera.m_camera.set_fov(110.0f);
 			cameras.push_back(custom_camera);
 		}
-		
+#endif
+
 		// convert the meshes
 		for (uint32 i = 0u; i < loaded_scene.get_num_meshes(); ++i)
 		{
@@ -103,11 +104,13 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 		cameras[chosen_camera_idx],
 		camera_transforms[chosen_camera_idx]);
 
+#if 0
 	// add all meshes
 	for (uint32 i = 0u; i < mesh_ids.size(); ++i)
 	{
 		out_scene.add_mesh(mesh_ids[i], mesh_transforms[i]);
 	}
+#endif
 }
 
 void set_quaternion_scene(renderer::scene& scene)
@@ -116,6 +119,7 @@ void set_quaternion_scene(renderer::scene& scene)
 	static bool once = true;
 	if (once)
 	{
+#if 0
 		scene.set_camera(
 			renderer::camera{},
 			
@@ -123,6 +127,7 @@ void set_quaternion_scene(renderer::scene& scene)
 			{ 0, 0, 10 }, // position
 			{ 0, 0, -1 }  // forward
 		));
+#endif
 
 		math::boxf box = math::boxf::identity();
 		scene.add_gizmo_transform(math::transform3D::identity());
@@ -131,11 +136,13 @@ void set_quaternion_scene(renderer::scene& scene)
 	}
 }
 
+#if 0
 renderer::scene make_the_scene()
 {
 	renderer::scene result{};
 	if (true)
 	{
+#if 0
 		// setup camera
 		math::transform3D camera_transform = math::transform3D::identity();
 		camera_transform.set_position({ 0,0,10.0f });
@@ -147,8 +154,9 @@ renderer::scene make_the_scene()
 		camera.m_camera.set_nearplane(0.001f);
 		camera.m_camera.set_fov(90.0f);
 		camera.m_camera.set_is_orthographic(false);
-		camera.m_transform_id = 0u;
+		camera = 0u;
 		result.set_camera(camera);
+#endif
 		result.set_camera_transform(camera_transform.get_matrix());
 
 		static constexpr float room_size = 20.0f;
@@ -233,43 +241,45 @@ renderer::scene make_the_scene()
 	}
 	return result;
 }
+#endif
 
 int main()
 {
 	using namespace influx;
 	using namespace influx::renderer;
 
+	// platform setup:
+	// - allocate windows
 	vector<platform::monitor> monitors = platform::monitor::query_monitors();
+	static constexpr uint32 num_windows = 8u;
+	platform::window* windows[num_windows] = {};
 	platform::window_desc window_desc{};
 	window_desc.m_dimensions = { 128u, 128u };
 	const math::vectoru2 window_half_size = window_desc.m_dimensions / 2;
-	window_desc.m_name = "renderer";
+	{
+		window_desc.m_name = "renderer";
+		for (uint32 i = 0u; i < num_windows; ++i)
+			windows[i] = platform::window::create(window_desc.set_name(to_string(i)));
+	}
 
-	// create 3 windows
-	static constexpr uint32 num_windows = 8u;
-	platform::window* windows[num_windows] = {};
-	for (uint32 i = 0u; i < num_windows; ++i)
-		windows[i] = platform::window::create(window_desc.set_name(to_string(i)));
-
-	// initialize renderer
+	// renderer init:
 	renderer::init_args render_init{};
 	render_init.m_api_type = renderer::e_render_api::dx12;
-	render_init.m_shader_source_folder = "E:/Git/Influx/assets/engine/shaders/";
+	// render_init.m_shader_source_folder = "E:/Git/Influx/assets/engine/shaders/";
 	influx::renderer::initialize(render_init);
 
-	// present
-	renderer::present_args present_args{};
-	present_args.m_vsync = false;
+	renderer::world renderworld{};
+	renderworld.get_transform(0);
 
 	// setup the render-scene
-	renderer::scene scene_to_draw = make_the_scene();
-
+	renderer::present_args present_args{}; present_args.m_vsync = false;
 	time::point time_last_tick = time::get_now();
 	float delta_seconds = 0.0f;
 	float seconds = 0.0f;
 	bool is_quit = false;
 	while (!is_quit)
 	{
+		// tick:
 		delta_seconds = time::get_ms_since<float>(time_last_tick) * 0.001f;
 		time_last_tick = time::get_now();
 		seconds += delta_seconds;
@@ -292,19 +302,19 @@ int main()
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
 			renderer::target* window_target = renderer::get_or_create_window_target(*windows[i]);
-			static const math::colour_rgba clear_colours[]
+			static const renderer::colour clear_colours[]
 			{
-				colour::k_red,
-				colour::k_green,
-				colour::k_blue
+				{1,0,0},
+				{0,1,0},
+				{0,0,1}
 			};
 
-			renderer::clear_args clear{ .m_colour = clear_colours[i] };
+			renderer::clear_args clear{ .m_colour = clear_colours[ i % 3 ] };
 			renderer::clear_target(*window_target, clear);
-			renderer::draw_scene(scene_to_draw, *window_target);
+			// renderer::draw_scene(scene_to_draw, *window_target);
 		}
-		
 		renderer::end_frame();
+
 		renderer::present_all(present_args);
 	}
 

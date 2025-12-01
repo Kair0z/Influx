@@ -1,10 +1,7 @@
 #pragma once
 
 // influx::renderer
-#include "influx_renderer/types.h"
-
-// influx::core
-#include "core/basetypes.h"
+#include "influx_renderer/common.h"
 
 namespace influx::renderer
 {

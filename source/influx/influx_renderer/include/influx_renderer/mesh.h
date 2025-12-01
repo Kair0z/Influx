@@ -42,6 +42,11 @@ namespace influx::renderer
 		return k_internal_mesh_names[static_cast<uint32>(mesh)];
 	}
 
+	static mesh_id get_internal_mesh_id(const e_mesh& mesh)
+	{
+		return static_cast<mesh_id>(mesh);
+	}
+
 	namespace detail
 	{
 		class base_mesh_data

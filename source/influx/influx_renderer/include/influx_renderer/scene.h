@@ -1,22 +1,7 @@
 #pragma once
 
-// influx::core
-#include "core/math/vector.h"
-#include "core/math/matrix.h"
-#include "core/math/transform.h"
-#include "core/string.h"
-#include "core/container/vector.h"
-#include "core/math/colour.h"
-#include "core/math/rect.h"
-#include "core/math/bounds.h"
-#include "core/math/transform.h"
-#include "core/material/material.h"
-#include "core/scene/light.h"
-#include "core/scene/camera.h"
-#include "core/enum.h"
-
 // influx::renderer
-#include "influx_renderer/types.h"
+#include "influx_renderer/common.h"
 #include "influx_renderer/mesh.h"
 
 // imgui
@@ -26,56 +11,36 @@ namespace influx::renderer
 {
 	class scene;
 
-	static constexpr uint32 k_invalid_id = (uint32)-1;
-	using object_id		= uint32;
-	using material_id	= object_id;
-	using camera_id		= object_id;
-	using mesh_inst_id	= object_id;
-	using mesh_id		= string;
-	using light_id		= object_id;
-	using transform_id	= object_id;
-
-	struct light final
-	{
-		influx::light m_light;
-		transform_id m_transform_id = k_invalid_id;
-	};
-
-	struct camera final
-	{
-		influx::camera m_camera;
-		transform_id m_transform_id = k_invalid_id;
-	};
+	static constexpr object_id k_invalid_id = (uint32)-1;
 
 	struct view_matrices final
 	{
-		view_matrices() = default;
-		explicit view_matrices(const math::matrix4x4f& transform, const camera& camera);
+		matrix m_transform;	// transform of the camera
+		matrix m_projection;
+		matrix m_view;				// inv transform
+		matrix m_viewprojection;
+		matrix m_inv_viewprojection;
+		matrix m_inv_projection;
 
-		math::matrix4x4f m_transform;			// transform of the camera
-		math::matrix4x4f m_projection;
-		math::matrix4x4f m_view;				// inv transform
-		math::matrix4x4f m_viewprojection;
-		math::matrix4x4f m_inv_viewprojection;
-		math::matrix4x4f m_inv_projection;
+		view_matrices() = default;
+		explicit view_matrices(const matrix& transform, const camera& camera);
 	};
 
 	struct mesh_instance final
 	{
-		mesh_id	m_mesh_id			= "";
-		material_id	m_mat_id		= k_invalid_id;
-		transform_id m_transform_id	= k_invalid_id;
-		math::vectorf4 m_per_instance_colour = {};
+		mesh_id				m_mesh_id = k_invalid_id;
+		material_id			m_mat_id = k_invalid_id;
+		transform_id		m_transform_id = k_invalid_id;
+		colour				m_per_instance_colour = {};
 	};
 
 	struct line final
 	{
-		line(const math::float3& start, const math::float3& end, const math::colour_rgba& colour)
+		position3D m_points[2]{};
+		colour m_colour;
+		line(const position3D& start, const position3D& end, const colour& colour)
 			: m_points{ start, end }
 			, m_colour{ colour } {}
-
-		math::float3 m_points[2]{};
-		math::colour_rgba m_colour;
 	};
 
 	enum class e_scene_render_flags : uint8
@@ -83,6 +48,65 @@ namespace influx::renderer
 		none = 0,
 		enable_debug = 1 << 0,
 		enable_all = enable_debug
+	};
+
+	class world final
+	{
+	public:
+		vector<matrix>				m_transforms{};
+		vector<mesh_instance>		m_meshes = {};
+		vector<light>				m_lights = {};
+		vector<line>				m_lines{};
+
+	private:
+		template <typename _id>
+		auto& get_container()
+		{
+			if constexpr (std::is_same_v<_id, transform_id>) {
+				return m_transforms;
+			}
+			else if constexpr (std::is_same_v<_id, mesh_instance_id>) {
+				return m_meshes;
+			}
+			else if constexpr (std::is_same_v<_id, light>) {
+				return m_lights;
+			}
+			else if constexpr (std::is_same_v<_id, line>) {
+				return m_lines;
+			}
+			else {
+				static_assert(!std::is_same_v<_id, _id>, "Unsupported ID type passed to get_container");
+			}
+		}
+		template <typename _id>
+		bool in_range(const _id& id)
+		{
+			return id < get_container<_id>().size();
+		}
+
+	public:
+		inline result<matrix> get_transform(const transform_id& id)
+		{
+			using result_type = result<matrix>;
+			if (!in_range(id))
+				return result_type::make_error("id is out of range!");
+			return m_transforms[id];
+		}
+		
+		world() = default;
+
+	private:
+		
+	};
+
+	class worldview final
+	{
+	public:
+		camera					m_camera_settings;
+		view_matrices			m_matrices;
+		e_scene_render_flags	m_renderflags;
+
+		worldview() = default;
 	};
 
 	class scene final
@@ -110,7 +134,7 @@ namespace influx::renderer
 		mesh_instance& add_mesh(e_mesh mesh, const math::matrix4x4f& transform = math::matrix4x4f::identity());
 
 		INFLUX_RENDER_API
-		mesh_instance& get_mesh(const mesh_inst_id& id);
+		mesh_instance& get_mesh(const mesh_instance_id& id);
 		
 		INFLUX_RENDER_API
 		mesh_instance& get_last_mesh();

@@ -3,10 +3,8 @@
 // influx::core
 #include "core/basetypes.h"
 #include "core/string.h"
-
 // influx::renderer
-#include "influx_renderer/types.h"
-
+#include "influx_renderer/common.h"
 // influx::graphics
 #include "influx_graphics/descriptors.h"
 

@@ -241,6 +241,7 @@ namespace influx::renderer
 
     void scene_renderer::load_shaders()
     {
+        return;
         renderer_backend& backend = renderer_backend::get_instance();
         resource_manager& resourceman = backend.get_resource_manager();
 

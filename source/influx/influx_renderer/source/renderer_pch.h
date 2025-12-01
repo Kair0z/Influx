@@ -5,6 +5,7 @@
 #include "core/scope.h"
 #include "core/container/vector.h"
 #include "core/container/ringBuffer.h"
+#include "influx_renderer/common.h"
 
 // influx::renderer
 #include "influx_renderer.h"

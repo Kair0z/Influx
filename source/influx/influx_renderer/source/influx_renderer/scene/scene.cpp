@@ -46,7 +46,7 @@ namespace influx::renderer
 		return m_transforms[id];
 	}
 
-	mesh_instance& scene::add_mesh(const mesh_id& mesh_id, const math::matrix4x4f& transform)
+	mesh_instance& scene::add_mesh(const mesh_id& mesh_id, const matrix& transform)
 	{
 		mesh_instance new_instance{};
 		new_instance.m_transform_id = add_transform(transform);
@@ -57,12 +57,13 @@ namespace influx::renderer
 		return m_meshes.back();
 	}
 
-	mesh_instance& scene::add_mesh(e_mesh mesh, const math::matrix4x4f& transform)
+	mesh_instance& scene::add_mesh(e_mesh mesh, const matrix& transform)
 	{
-		return add_mesh(renderer::get_internal_mesh_name(mesh), transform);
+		// renderer::get_internal_mesh_name(mesh)
+		return add_mesh(0, transform);
 	}
 
-	mesh_instance& scene::get_mesh(const mesh_inst_id& id)
+	mesh_instance& scene::get_mesh(const mesh_instance_id& id)
 	{
 		return m_meshes[id];
 	}
@@ -70,11 +71,11 @@ namespace influx::renderer
 	{
 		return m_meshes.back();
 	}
-	light& scene::add_light(const influx::light& _light, const math::matrix4x4f& transform)
+	light& scene::add_light(const influx::light& _light, const matrix& transform)
 	{
-		light result{};
-		result.m_light = _light;
-		result.m_transform_id = add_transform(transform);
+		light result = _light;
+		// result.m_light = _light;
+		// result.m_transform_id = add_transform(transform);
 		m_lights.push_back(result);
 		return m_lights.back();
 	}
@@ -87,7 +88,7 @@ namespace influx::renderer
 		uint32 count = 0u;
 		for (const light& light : m_lights)
 		{
-			if (light.m_light.get_type() == type) count++;
+			if (light.get_type() == type) count++;
 		}
 		return count;
 	}

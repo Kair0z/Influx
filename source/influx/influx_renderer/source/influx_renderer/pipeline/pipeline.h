@@ -512,22 +512,22 @@ namespace influx::renderer
 			}
 			else if constexpr (_t == graphics::e_pipeline_type::raytracing)
 			{
+				// todo...
 			}
 
 			switch (resource.m_type)
 			{
-			case shader::reflection::resource::e_type::cbv:
+			case shader::reflection::resource::e_type::constbuffer:
 				rootsig_desc.add_root_constants((uint32)resource.m_bytesize / sizeof(uint32), resource.m_shader_register, resource.m_register_space, shader_vis);
 				rootsig_desc.name_last_constants(resource.m_name);
 				break;
 
-			case shader::reflection::resource::e_type::uav:
+			case shader::reflection::resource::e_type::texture_rw:
 				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
 				rootsig_desc.name_last_resource_table(resource.m_name);
 				break;
 
-			case shader::reflection::resource::e_type::srv:
-			case shader::reflection::resource::e_type::structured:
+			case shader::reflection::resource::e_type::structbuff:
 			case shader::reflection::resource::e_type::texture:
 				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
 				rootsig_desc.name_last_resource_table(resource.m_name);
@@ -598,11 +598,11 @@ namespace influx::renderer
 				const shader::reflection& vertex_reflection = m_shaders[vertex_shader_idx]->m_reflection;
 				for (uint32 i = 0u; i < vertex_reflection.m_input_params.size(); ++i)
 				{
-					const shader::reflection::input_param& param = vertex_reflection.m_input_params[i];
+					const shader::reflection::io_param& in_param = vertex_reflection.m_input_params[i];
 
 					// derive the format
 					graphics::e_format format;
-					switch (param.m_num_floats)
+					switch (in_param.m_num_floats)
 					{
 					case 1u: format = graphics::e_format::r32; break;
 					case 2u: format = graphics::e_format::rg32; break;
@@ -614,8 +614,8 @@ namespace influx::renderer
 					}
 
 					pipeline_desc.add_input_element(
-						param.m_semantic_name,
-						param.m_semantic_index,
+						in_param.m_semantic_name,
+						in_param.m_semantic_index,
 						format,
 						0u,
 						false,

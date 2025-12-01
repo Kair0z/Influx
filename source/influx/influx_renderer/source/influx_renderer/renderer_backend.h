@@ -187,7 +187,7 @@ namespace influx::renderer
 		bool has_shader(const shader::shader_signature& signature) const;
 		bool has_material(const string& title) const;
 
-		mesh_id get_mesh_id(e_mesh) const;
+		mesh_id get_mesh_id(e_mesh mesh) const;
 
 		time::point get_time_loaded_shader(const shader::shader_signature& signature) const;
 		time::point get_time_loaded_texture(const string& title) const;
