@@ -3,6 +3,7 @@
 // influx::renderer
 #include "influx_renderer/common.h"
 #include "influx_renderer/mesh.h"
+#include "influx_renderer/material.h"
 
 // imgui
 struct ImGuiContext;
@@ -24,6 +25,12 @@ namespace influx::renderer
 
 		view_matrices() = default;
 		explicit view_matrices(const matrix& transform, const camera& camera);
+	};
+
+	struct light_instance final
+	{
+		light m_light;
+		transform_id m_transform;
 	};
 
 	struct mesh_instance final
@@ -55,8 +62,21 @@ namespace influx::renderer
 	public:
 		vector<matrix>				m_transforms{};
 		vector<mesh_instance>		m_meshes = {};
-		vector<light>				m_lights = {};
-		vector<line>				m_lines{};
+		vector<light_instance>		m_lights = {};
+		vector<line>				m_lines = {};
+
+		INFLUX_RENDER_API 
+		mesh_instance_id add_mesh_instance(
+			const mesh_id& mesh,
+			const matrix& transform,
+			const material_id& material = get_internal_material_id(e_material::none),
+			const colour& colour = {});
+
+		INFLUX_RENDER_API
+		light_instance_id add_light(const light& light, const matrix& transform);
+
+		INFLUX_RENDER_API 
+		result<matrix> get_transform(const transform_id& id);
 
 	private:
 		template <typename _id>
@@ -79,24 +99,35 @@ namespace influx::renderer
 			}
 		}
 		template <typename _id>
-		bool in_range(const _id& id)
+		const auto& get_container() const
+		{
+			if constexpr (std::is_same_v<_id, transform_id>) {
+				return m_transforms;
+			}
+			else if constexpr (std::is_same_v<_id, mesh_instance_id>) {
+				return m_meshes;
+			}
+			else if constexpr (std::is_same_v<_id, light>) {
+				return m_lights;
+			}
+			else if constexpr (std::is_same_v<_id, line>) {
+				return m_lines;
+			}
+			else {
+				static_assert(!std::is_same_v<_id, _id>, "Unsupported ID type passed to get_container");
+			}
+		}
+
+		template <typename _id>
+		bool in_range(const _id& id) const
 		{
 			return id < get_container<_id>().size();
 		}
 
-	public:
-		inline result<matrix> get_transform(const transform_id& id)
-		{
-			using result_type = result<matrix>;
-			if (!in_range(id))
-				return result_type::make_error("id is out of range!");
-			return m_transforms[id];
-		}
-		
-		world() = default;
+		INFLUX_RENDER_API transform_id add_transform(const matrix& mat);
 
-	private:
-		
+	public:
+		world() = default; // create using renderer...
 	};
 
 	class worldview final
@@ -105,6 +136,9 @@ namespace influx::renderer
 		camera					m_camera_settings;
 		view_matrices			m_matrices;
 		e_scene_render_flags	m_renderflags;
+		world*					m_world;
+
+		INFLUX_RENDER_API const world& get_world() const;
 
 		worldview() = default;
 	};

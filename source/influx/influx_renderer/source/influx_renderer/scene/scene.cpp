@@ -3,6 +3,51 @@
 
 namespace influx::renderer
 {
+#pragma region world
+	mesh_instance_id world::add_mesh_instance(
+		const mesh_id& mesh,
+		const matrix& transform,
+		const material_id& material,
+		const colour& colour)
+	{
+		mesh_instance new_instance{};
+		new_instance.m_transform_id = add_transform(transform);
+		new_instance.m_mesh_id = mesh;
+		new_instance.m_per_instance_colour = colour;
+		new_instance.m_mat_id = material;
+		m_meshes.push_back(new_instance);
+		return m_meshes.size() - 1u;
+	}
+
+	light_instance_id world::add_light(const light& light, const matrix& transform)
+	{
+		light_instance new_instance{};
+		new_instance.m_transform = add_transform(transform);
+		new_instance.m_light = light;
+		m_lights.push_back(new_instance);
+		return m_lights.size() - 1u;
+	}
+
+	transform_id world::add_transform(const matrix& mat)
+	{
+		m_transforms.push_back(mat);
+		return m_transforms.size() - 1;
+	}
+
+	result<matrix> world::get_transform(const transform_id& id)
+	{
+		using result_type = result<matrix>;
+		if (!in_range(id))
+			return result_type::make_error("id is out of range!");
+		return m_transforms[id];
+	}
+
+	const world& worldview::get_world() const
+	{
+		return *m_world;
+	}
+#pragma endregion
+
 	bool scene::is_empty() const
 	{
 		return !has_camera();
@@ -20,9 +65,12 @@ namespace influx::renderer
 
 	bool scene::has_camera() const
 	{
+#if 0
 		bool valid_transform = m_camera.m_transform_id != k_invalid_id;
 		bool valid_settings = m_camera.m_camera.get_fov() > 0.0f;
 		return valid_transform && valid_settings;
+#endif
+		return false;
 	}
 
 	const vector<mesh_instance>& scene::get_meshes() const
@@ -106,11 +154,14 @@ namespace influx::renderer
 	}
 	result<math::matrix4x4f> scene::get_camera_transform() const
 	{
+#if 0
 		using result_type = result<math::matrix4x4f>;
 		if (m_camera.m_transform_id == k_invalid_id)
 			return result_type::make_error("error: no camera transform set, probably no valid camera!");
 
 		return m_transforms[m_camera.m_transform_id];
+#endif
+		return {};
 	}
 
 	void scene::set_camera(const influx::camera& camera, const math::matrix4x4f& transform)
@@ -121,11 +172,14 @@ namespace influx::renderer
 
 	void scene::set_camera_settings(const influx::camera& camera)
 	{
+#if 0
 		m_camera.m_camera = camera;
+#endif
 	}
 
 	void scene::set_camera_transform(const math::matrix4x4f& transform)
 	{
+#if 0
 		if (m_transforms.empty())
 		{
 			m_transforms.push_back(transform);
@@ -147,6 +201,7 @@ namespace influx::renderer
 
 		// update viewmatrices
 		m_viewmatrices = view_matrices(transform, m_camera);
+#endif
 	}
 
 	const view_matrices& scene::get_view_matrices() const
@@ -240,8 +295,10 @@ namespace influx::renderer
 	view_matrices::view_matrices(const math::matrix4x4f& transform, const camera& camera)
 	{
 		m_transform			= transform;
+#if 0
 		m_projection		= camera.m_camera.get_projection();
 		m_view				= camera.m_camera.get_view(transform);
+#endif
 		m_viewprojection	= m_view * m_projection;
 		m_inv_viewprojection = m_viewprojection.inverted();
 		m_inv_projection	= m_projection.inverted();

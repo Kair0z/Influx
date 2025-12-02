@@ -41,9 +41,9 @@ namespace influx::renderer
 	// the unique signature struct used as the key for the map
 	template <e_resource_type _t>
 	using resource_sign = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
-		string,
-		string,
+		cubemap_id,
+		tex_id,
 		shader::shader_signature,
-		string
+		mesh_id
 		>>;
 }

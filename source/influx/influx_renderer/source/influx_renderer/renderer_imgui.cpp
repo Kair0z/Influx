@@ -8,7 +8,7 @@
 #include "influx_renderer/upload_manager.h"
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/resources/resource_manager.h"
-#include "influx_renderer/types.h"
+#include "influx_renderer/common.h"
 
 // influx::rendergraph
 #include "rendergraph.h"
@@ -312,7 +312,8 @@ namespace influx::renderer
 			pixel = make_pixel32(r, g, b, a);
 		}
 
-		texture_resource& tex_resource = backend.get_resource_manager().load<e_resource_type::texture>("imgui_font", tex_data, false);
+		const tex_id id = make_id("imgui_font");
+		texture_resource& tex_resource = backend.get_resource_manager().load<e_resource_type::texture>(id, tex_data, false);
 		mp_fonts_texture = tex_resource.m_resource;
 	}
 

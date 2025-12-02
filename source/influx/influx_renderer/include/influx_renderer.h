@@ -112,6 +112,9 @@ namespace influx::renderer
 	/* draw a post-processing stack onto a given render target*/
 	INFLUX_RENDER_API result<> draw_postprocess(const scene_postprocess& scene, const target& target);
 
+	/* draw a world onto a given render target */
+	INFLUX_RENDER_API result<> draw_world(const worldview& view, const target& target);
+
 	/* query whether the internal shaders & resources required for render-operations are available */
 	INFLUX_RENDER_API bool can_draw_postprocess();
 	INFLUX_RENDER_API bool can_draw_imgui();
@@ -157,30 +160,27 @@ namespace influx::renderer
 		- shaders
 		- materials
 	*/
-	INFLUX_RENDER_API void load(const string& title, const mesh_data<vertex_data>& data, bool reload = false);
-	INFLUX_RENDER_API void load(const string& title, const texture_data& data, bool reload = false);
-	INFLUX_RENDER_API void load(const string& title, const cubemap_data& data, bool reload = false);
+	INFLUX_RENDER_API void load(const mesh_id& id, const mesh_data<vertex_data>& data, bool reload = false);
+	INFLUX_RENDER_API void load(const tex_id& id, const texture_data& data, bool reload = false);
+	INFLUX_RENDER_API void load(const cubemap_id& id, const cubemap_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
-	INFLUX_RENDER_API void load(const string& title, const material& data, bool reload = false);
+	INFLUX_RENDER_API void load(const mat_id& id, const material& data, bool reload = false);
 
 	/* get the time at which a resource with a given signature was last loaded in (useful for hot-reloading) */
 	INFLUX_RENDER_API time::point get_time_loaded_shader(const shader::shader_signature& signature);
-	INFLUX_RENDER_API time::point get_time_loaded_texture(const string& title);
-	INFLUX_RENDER_API time::point get_time_loaded_texturecube(const string& title);
-	INFLUX_RENDER_API time::point get_time_loaded_mesh(const string& title);
+	INFLUX_RENDER_API time::point get_time_loaded_texture(const tex_id& id);
+	INFLUX_RENDER_API time::point get_time_loaded_cubemap(const cubemap& id);
+	INFLUX_RENDER_API time::point get_time_loaded_mesh(const mesh_id& id);
 
 	/* returns whether a resource with a given signature is loaded in the backend */
-	INFLUX_RENDER_API bool has_mesh(const string& title);
-	INFLUX_RENDER_API bool has_texture(const string& title);
-	INFLUX_RENDER_API bool has_texturecube(const string& title);
+	INFLUX_RENDER_API bool has_mesh(const mesh_id& id);
+	INFLUX_RENDER_API bool has_texture(const tex_id& id);
+	INFLUX_RENDER_API bool has_cubemap(const cubemap_id& id);
 	INFLUX_RENDER_API bool has_shader(const shader::shader_signature& signature);
-	INFLUX_RENDER_API bool has_material(const string& title);
+	INFLUX_RENDER_API bool has_material(const mat_id& id);
 
 	/* returns the signature of internal meshes represented by e_mesh */
 	INFLUX_RENDER_API mesh_id get_mesh_id(e_mesh internal_mesh);
-
-	/* */
-	INFLUX_RENDER_API string get_last_rendergraph_dump();
 
 	/* graphics info */
 	struct memory_info final
@@ -197,6 +197,7 @@ namespace influx::renderer
 	};
 	INFLUX_RENDER_API pipeline_info get_pipeline_info();
 
+	/* rendergraph info */
 	struct rendergraph_info final
 	{
 		struct pass final
@@ -218,4 +219,7 @@ namespace influx::renderer
 		vector<texture> m_textures{};
 	};
 	INFLUX_RENDER_API rendergraph_info get_rendergraph_info();
+	
+	/* */
+	INFLUX_RENDER_API string get_last_rendergraph_dump();
 }

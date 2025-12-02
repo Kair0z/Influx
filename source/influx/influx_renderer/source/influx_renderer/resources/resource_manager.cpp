@@ -13,16 +13,16 @@ namespace influx::renderer
 
 	void resource_manager::load_internal_resources()
 	{
-		// dummy datas
-		const string dummy_titles = "";
+		const cubemap_id tex_none = get_internal_texture_id(e_texture::none);
 		{
+			const tex_id tex_none = get_internal_texture_id(e_texture::none);
 			texture_data dummy_data{};
 			dummy_data.m_width = 256u;
 			for (size_t i = 0u; i < 256u * 256u; ++i)
 			{
 				dummy_data.m_pixels.push_back(make_pixel32(255u, 255u, 255u, 255u));
 			}
-			load<e_resource_type::texture>(dummy_titles, dummy_data, false);
+			load<e_resource_type::texture>(tex_none, dummy_data, false);
 		}
 		{
 			cubemap_data dummy_data{};
@@ -32,28 +32,33 @@ namespace influx::renderer
 			{
 				dummy_data.m_pixels.push_back(make_pixel32(255u, 255u, 255u, 255u));
 			}
-			load<e_resource_type::cubemap>(dummy_titles, dummy_data, false);
+			load<e_resource_type::cubemap>(tex_none, dummy_data, false);
 		}
 		{
 			load<e_resource_type::shader>({}, {}, false);
 		}
 
-		load<e_resource_type::mesh>( get_internal_mesh_name(e_mesh::box)		, &get_inline_mesh<e_mesh::box>(), true);
-		load<e_resource_type::mesh>( get_internal_mesh_name(e_mesh::plane)		, &get_inline_mesh<e_mesh::plane>(), true);
-		load<e_resource_type::mesh>( get_internal_mesh_name(e_mesh::quad)		, &get_inline_mesh<e_mesh::quad>(), true);
-		load<e_resource_type::mesh>( get_internal_mesh_name(e_mesh::sphere)		, &get_inline_mesh<e_mesh::sphere>(), true);
-		load<e_resource_type::mesh>( get_internal_mesh_name(e_mesh::triangle)	, &get_inline_mesh<e_mesh::triangle>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::box)		, &get_inline_mesh<e_mesh::box>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::plane)	, &get_inline_mesh<e_mesh::plane>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::quad)		, &get_inline_mesh<e_mesh::quad>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::sphere)	, &get_inline_mesh<e_mesh::sphere>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::triangle)	, &get_inline_mesh<e_mesh::triangle>(), true);
 		load<e_resource_type::mesh>({}, &get_inline_mesh<e_mesh::box>(), true); // default mesh box
 	}
 
-    void resource_manager::recreate_mesh(const string& title, detail::base_mesh_data const* data)
+    void resource_manager::recreate_mesh(const mesh_id& id, detail::base_mesh_data const* data)
     {
 		influx_assert(data != nullptr);
 
-		graphics::device& device = renderer_backend::get_device();
-		mesh_buffers*& meshbuffers = get_resource_map<e_resource_type::mesh>()[title].m_resource;
+		mesh_buffers*& meshbuffers = get_resource_map<e_resource_type::mesh>()[id].m_resource;
 		if (meshbuffers == nullptr) meshbuffers = new mesh_buffers();
+		debug_name& name = m_mesh_map[id].m_debugname;
+		
+		if (is_internal_mesh(id))
+			name = get_internal_mesh_name(static_cast<e_mesh>(id));
 
+		graphics::device& device = renderer_backend::get_device();
+		
 		// vertex buffer
 		{
 			const uint64 old_bytesize = meshbuffers->m_vertexbuffer ? meshbuffers->m_vertexbuffer->get_bytesize() : 0u;
@@ -74,10 +79,14 @@ namespace influx::renderer
 				desc.m_bytesize = new_bytesize;
 				desc.m_bytestride = data->get_vert_bytestride();
 				meshbuffers->m_vertexbuffer = device.create_resource(desc, heap_desc);
-				meshbuffers->m_vertexbuffer->set_name("vb_" + title);
+
+				const bool internal_mesh = is_internal_mesh(id);
+				const string mesh_name;
+				meshbuffers->m_vertexbuffer->set_name("vb_" + name.get_string());
 			}
 
 			// map new data to resource
+			if (new_bytesize > 0u)
 			meshbuffers->m_vertexbuffer->map([data, new_bytesize](void* target)
 			{
 				memcpy(target, data->get_vert_data(), new_bytesize);
@@ -100,21 +109,23 @@ namespace influx::renderer
 				desc.m_bytestride = data->get_indx_bytestride();
 				desc.m_format = graphics::e_format::u32;
 				meshbuffers->m_indexbuffer = device.create_resource(desc, heap_desc);
-				meshbuffers->m_indexbuffer->set_name("ib_" + title);
+
+				meshbuffers->m_indexbuffer->set_name("ib_" + name.get_string());
 			}
 
+			if (new_bytesize > 0u)
 			meshbuffers->m_indexbuffer->map([data, new_bytesize](void* target)
 			{
 				memcpy(target, data->get_indx_data(), new_bytesize);
 			});
 		}
     }
-    void resource_manager::recreate_texture(const string& title, const texture_data& data)
+    void resource_manager::recreate_texture(const tex_id& id, const texture_data& data)
     {
 		graphics::device& device = renderer_backend::get_device();
 		upload_manager& uploadman = *renderer_backend::get_upload_manager();
 		graphics::queue& queue = renderer_backend::get_graphics_queue();
-		texture2D*& resource = get_resource_map<e_resource_type::texture>()[title].m_resource;
+		texture2D*& resource = get_resource_map<e_resource_type::texture>()[id].m_resource;
 
 		if (resource != nullptr)
 			delete resource;
@@ -130,10 +141,10 @@ namespace influx::renderer
 		// upload to gpu
 		uploadman.upload_texture(&queue, data, resource->get_resource().get());
     }
-    void resource_manager::recreate_cubemap(const string& title, const cubemap_data& data)
+    void resource_manager::recreate_cubemap(const cubemap_id& id, const cubemap_data& data)
     {
 		graphics::device& device = renderer_backend::get_device();
-		cubemap*& resource = get_resource_map<e_resource_type::cubemap>()[title].m_resource;
+		cubemap*& resource = get_resource_map<e_resource_type::cubemap>()[id].m_resource;
 		graphics::queue& queue = renderer_backend::get_graphics_queue();
 
 		if (resource != nullptr) 

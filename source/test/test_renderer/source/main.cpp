@@ -90,11 +90,12 @@ void load_scene(const string& filepath, imp::scene_load_args& args, renderer::sc
 			}
 
 			const string mesh_name = filename + "_" + to_string(i);
+			const renderer::mesh_id mesh_id = renderer::make_id(mesh_name);
 			mesh_ids.push_back(mesh_name);
 			mesh_transforms.push_back(loaded_scene.get_transform(mesh));
 
 			// load to renderer
-			renderer::load(mesh_name, render_data, false);
+			renderer::load(mesh_id, render_data, false);
 		}
 		once = false;
 	}
@@ -263,20 +264,38 @@ int main()
 	}
 
 	// renderer init:
-	renderer::init_args render_init{};
-	render_init.m_api_type = renderer::e_render_api::dx12;
-	// render_init.m_shader_source_folder = "E:/Git/Influx/assets/engine/shaders/";
-	influx::renderer::initialize(render_init);
+	{
+		renderer::init_args render_init{};
+		render_init.m_api_type = renderer::e_render_api::dx12;
+		// render_init.m_shader_source_folder = "E:/Git/Influx/assets/engine/shaders/";
+		influx::renderer::initialize(render_init);
+	}
 
-	renderer::world renderworld{};
-	renderworld.get_transform(0);
-
+	// load a triangle mesh into the renderer:
+	renderer::mesh_id triangle_id = renderer::make_id("triangle");
+	{
+		using vertex = renderer::vertex_data;
+		using mesh = renderer::mesh_data<vertex>;
+		mesh msh{};
+		renderer::load(triangle_id, msh);
+	}
+	
+	// setup render world & view
+	renderer::world world{};
+	math::matrix4x4f transform{};
+	world.add_mesh_instance(triangle_id, transform);
+	world.add_mesh_instance(triangle_id, transform);
+	world.add_light(renderer::light::make_point({ 1,0,0,1 }, 1.0f), transform);
+	renderer::worldview wview{};
+	wview.m_world = &world;
+	
 	// setup the render-scene
 	renderer::present_args present_args{}; present_args.m_vsync = false;
 	time::point time_last_tick = time::get_now();
 	float delta_seconds = 0.0f;
 	float seconds = 0.0f;
 	bool is_quit = false;
+	
 	while (!is_quit)
 	{
 		// tick:
@@ -302,21 +321,14 @@ int main()
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
 			renderer::target* window_target = renderer::get_or_create_window_target(*windows[i]);
-			static const renderer::colour clear_colours[]
-			{
-				{1,0,0},
-				{0,1,0},
-				{0,0,1}
-			};
-
+			static const renderer::colour clear_colours[] { {1,0,0}, {0,1,0}, {0,0,1} };
 			renderer::clear_args clear{ .m_colour = clear_colours[ i % 3 ] };
+
 			renderer::clear_target(*window_target, clear);
-			// renderer::draw_scene(scene_to_draw, *window_target);
+			renderer::draw_world(wview, *window_target);
 		}
 		renderer::end_frame();
-
 		renderer::present_all(present_args);
 	}
-
 	renderer::cleanup();
 }

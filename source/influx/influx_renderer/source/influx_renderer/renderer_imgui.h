@@ -18,9 +18,8 @@ namespace influx::graphics
 #include "influx_shader.h"
 
 // influx::renderer
-#include "influx_renderer/types.h"
+#include "influx_renderer/common.h"
 #include "influx_renderer/texture.h"
-#include "influx_renderer/renderer_backend.h"
 
 // influx::rendergraph
 namespace influx::rendergraph

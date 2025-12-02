@@ -9,15 +9,12 @@
 // influx::core
 #include "core/basetypes.h"
 #include "core/result.h"
-
-// influx::core
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
 #include "core/math/transform.h"
 #include "core/math/colour.h"
 #include "core/math/rect.h"
 #include "core/math/bounds.h"
-
 #include "core/string.h"
 #include "core/container/vector.h"
 #include "core/material/material.h"
@@ -75,7 +72,17 @@ namespace influx::renderer
 	using mesh_instance_id = object_id;
 	using mesh_id		= object_id;
 	using light_id		= object_id;
+	using light_instance_id = object_id;
 	using transform_id	= object_id;
+	using tex_id		= object_id;
+	using cubemap_id	= tex_id;
+	using mat_id		= object_id;
+
+	static const object_id make_id(const string& name)
+	{
+		std::hash<string> hasher;
+		return hasher(name);
+	}
 
 	using camera		= influx::camera;
 	using matrix		= math::matrix4x4f;

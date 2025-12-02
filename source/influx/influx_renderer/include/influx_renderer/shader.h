@@ -1,7 +1,7 @@
 #pragma once
 
 // influx::renderer
-#include "influx_renderer/types.h"
+#include "influx_renderer/common.h"
 
 // influx::shader
 #include "influx_shader.h"

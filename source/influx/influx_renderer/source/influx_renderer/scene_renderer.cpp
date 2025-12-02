@@ -380,9 +380,10 @@ namespace influx::renderer
             graphics::resource* vertexbuffer = nullptr;
 
             frontend::per_instance gpu_data = translate(instance, scene);
-
+#if 0
             string diffuse_name = "";
             gpu_data.set_albedo_index( tex_to_idx[backend.find_texture(diffuse_name)] );
+#endif
             meshid_to_instances[instance.m_mesh_id].push_back(gpu_data);
         }
 
@@ -462,23 +463,23 @@ namespace influx::renderer
                 for (uint32 l = 0; l < num_lights; ++l)
                 {
                     const light& light = scene.get_lights()[l];
-                    if (light.m_light.get_type() != current_type) continue;
-                    
-                    const math::matrix4x4f light_transform = scene.get_transform(light.m_transform_id);
+                    if (light.get_type() != current_type) continue;
+                    //const math::matrix4x4f light_transform = scene.get_transform(light);
+                    const matrix light_transform = matrix::identity();
                     switch (current_type)
                     {
                     case influx::e_light_type::directional:
                     {
                         frontend::per_dirlight* data = reinterpret_cast<frontend::per_dirlight*>(dest);
-                        data[index].m_colour = light.m_light.get_colour();
+                        data[index].m_colour = light.get_colour();
                         break;
                     }
 
                     case influx::e_light_type::point:
                     {
                         frontend::per_pointlight* data = reinterpret_cast<frontend::per_pointlight*>(dest);
-                        data[index].m_attenuation = light.m_light.get_attenuation();
-                        data[index].m_colour = light.m_light.get_colour();
+                        data[index].m_attenuation = light.get_attenuation();
+                        data[index].m_colour = light.get_colour();
                         data[index].m_position = light_transform.get_translation();
                         break;
                     }
@@ -689,7 +690,6 @@ namespace influx::renderer
 
     void scene_renderer::build(rendergraph::rendergraph& graph, const scene& scene, const target& target)
     {
-        // if our scene is empty, dont bother
         if (scene.is_empty())
             return;
 

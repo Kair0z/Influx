@@ -27,6 +27,7 @@ namespace influx::renderer
 		quad,
 		count
 	};
+
 	static constexpr uint8 k_num_internal_meshes = static_cast<uint32>(e_mesh::count);
 	static const char* k_internal_mesh_names[k_num_internal_meshes] =
 	{
@@ -44,7 +45,12 @@ namespace influx::renderer
 
 	static mesh_id get_internal_mesh_id(const e_mesh& mesh)
 	{
-		return static_cast<mesh_id>(mesh);
+		return static_cast<uint32>(mesh);
+	}
+
+	static bool is_internal_mesh(const mesh_id id)
+	{
+		return static_cast<uint32>(id) < k_num_internal_meshes;
 	}
 
 	namespace detail
@@ -179,30 +185,30 @@ namespace influx::renderer
 			};
 			const static math::vectorf4 colours[num_vertices]
 			{
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red,
-				colour::k_red
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0},
+				{1,0,0}
 			};
 			const static math::vectorf2 uvs[num_vertices]
 			{

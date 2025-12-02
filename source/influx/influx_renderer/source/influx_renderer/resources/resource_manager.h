@@ -51,6 +51,7 @@ namespace influx::renderer
 			resource_sign<_t> m_signature;
 			resource_type<_t>* m_resource = nullptr;
 			time::point m_load_time;
+			debug_name m_debugname;
 		};
 
 		template <e_resource_type _t>
@@ -169,7 +170,18 @@ namespace influx::renderer
 		}
 
 		template <e_resource_type _t>
-		vector<resource_sign<_t>> get_signatures() const
+		const debug_name& get_debugname(const resource_sign<_t>& signature) const
+		{
+			const auto& map = get_resource_map<_t>();
+			if (map.contains(signature))
+			{
+				map.at(signature).m_debugname;
+			}
+			return {};
+		}
+
+		template <e_resource_type _t>
+		vector<resource_sign<_t>> get_all_signatures() const
 		{
 			const auto& map = get_resource_map<_t>();
 
@@ -179,6 +191,21 @@ namespace influx::renderer
 			for (const auto& pair : map)
 			{
 				result.push_back(pair.first);
+			}
+
+			return result;
+		}
+
+		template <e_resource_type _t>
+		vector<debug_name> get_all_debugnames() const
+		{
+			const auto& map = get_resource_map<_t>();
+
+			vector<debug_name> result{};
+			result.reserve(map.size());
+			for (const auto& pair : map)
+			{
+				result.push_back(pair.second.m_debugname);
 			}
 
 			return result;
@@ -199,9 +226,9 @@ namespace influx::renderer
 		}
 
 	private:
-		void recreate_mesh(const string& title, detail::base_mesh_data const* data);
-		void recreate_texture(const string& title, const texture_data& data);
-		void recreate_cubemap(const string& title, const cubemap_data& data);
+		void recreate_mesh(const mesh_id& id, detail::base_mesh_data const* data);
+		void recreate_texture(const tex_id& id, const texture_data& data);
+		void recreate_cubemap(const cubemap_id& id, const cubemap_data& data);
 		void recreate_shader(const shader::shader_signature& sig, const shader_data& data);
 	};
 

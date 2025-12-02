@@ -82,7 +82,8 @@ namespace influx::renderer
         data->m_vertices = vertices;
         data->m_indices = indices;
 
-        mesh_resource& resource = resourceman.load<e_resource_type::mesh>("quadrender_quad", data, true);
+        const mesh_id id = make_id("quadrender_quad");
+        mesh_resource& resource = resourceman.load<e_resource_type::mesh>(id, data, true);
         mp_vertexbuffer = resource.m_resource->m_vertexbuffer;
         mp_indexbuffer = resource.m_resource->m_indexbuffer;
 	}

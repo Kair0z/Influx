@@ -19,4 +19,10 @@ namespace influx::renderer
 
 	// stats
 	constexpr static uint32 k_num_statframes_max = 2048u;
+
+	enum class e_internal_texture : uint8
+	{
+		none,
+		num
+	};
 }

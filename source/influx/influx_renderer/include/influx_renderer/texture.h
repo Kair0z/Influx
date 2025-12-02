@@ -1,13 +1,7 @@
 #pragma once
 
-// influx::core
-#include "core/basetypes.h"
-#include "core/math/vector.h"
-#include "core/container/vector.h"
-#include "core/string.h"
-
 // influx::renderer
-#include "influx_renderer/types.h"
+#include "influx_renderer/common.h"
 
 // influx::graphics
 #include "influx_graphics/device.h"
@@ -314,4 +308,29 @@ namespace influx::renderer
 	using texture2D	= texture<e_texture_type::texture2D>;
 	using texture3D = texture<e_texture_type::texture3D>;
 	using cubemap	= texture<e_texture_type::cubemap>;
+
+	/* internal textures */
+	enum class e_texture : uint8
+	{
+		none,
+		num
+	};
+	static constexpr uint8 k_num_internal_textures = static_cast<uint32>(e_texture::num);
+	static const char* k_internal_texture_names[k_num_internal_textures] =
+	{
+		"none"
+	};
+	static mesh_id get_internal_texture_id(const e_texture& mesh)
+	{
+		return static_cast<mesh_id>(mesh);
+	}
+	inline constexpr const char* get_internal_texture_name(const e_texture& tex)
+	{
+		return k_internal_texture_names[static_cast<uint32>(tex)];
+	}
+	static bool is_internal_texture(const tex_id id)
+	{
+		return static_cast<uint32>(id) < k_num_internal_textures;
+	}
+
 }
