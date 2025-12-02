@@ -10,7 +10,6 @@
 namespace influx
 {
 	using uint32 = unsigned int;
-	using result = unsigned int;
 	using upair = std::pair<uint32, uint32>;
 	using string = std::string;
 

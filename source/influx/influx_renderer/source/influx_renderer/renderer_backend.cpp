@@ -14,6 +14,7 @@
 #include "influx_renderer/renderer_imgui.h"
 #include "influx_renderer/resources/resource_manager.h"
 #include "influx_renderer/submitmanager.h"
+#include "influx_renderer/renderjobs.h"
 
 // influx::rendergraph
 #include "rendergraph.h"
@@ -96,6 +97,7 @@ namespace influx::renderer
 
         // create renderers & managers
         {
+            m_job_manager = new job_manager();
             mp_desc_manager = new descriptor_manager(*mp_device);
             mp_pipeline_manager = new pipeline_manager(mp_device);
             mp_upload_manager = new upload_manager(mp_device);
@@ -129,6 +131,7 @@ namespace influx::renderer
     {
         wait_gpu_finished();
 
+        delete m_job_manager; m_job_manager = nullptr;
         delete mp_desc_manager; mp_desc_manager = nullptr;
         delete mp_pipeline_manager; mp_pipeline_manager = nullptr;
         delete mp_upload_manager; mp_upload_manager = nullptr;
@@ -147,13 +150,23 @@ namespace influx::renderer
 
     void renderer_backend::start_frame()
     {
+        job_string jobs{};
+
         // todo: one day, we'll be able to only upgrade the graph when the layout of the frame render changes
         // today is not that day...
-        m_rendergraph->reset_graph();
+        job_id reset_job = get_jobs().create_job([this]() {
+            m_rendergraph->reset_graph();
+        });
+
+        jobs.append(reset_job);
+
+        get_jobs().link_to_endframe(jobs);
     }
 
     void renderer_backend::end_frame()
     {
+        get_jobs().endframe();
+
         // build the rendergraph
         {
             influx_scope("renderer::build_rendergraph");
@@ -584,6 +597,11 @@ namespace influx::renderer
     graphics::device& renderer_backend::get_device()
     {
         return *get_instance().mp_device;
+    }
+
+    job_manager& renderer_backend::get_jobs()
+    {
+        return *get_instance().m_job_manager;
     }
 
     // mesh

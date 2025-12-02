@@ -8,7 +8,9 @@ new_influx_test("test_renderer")
         "influx_shader",
         "influx_renderer",
         "influx_rendergraph",
-        "influx_import"
+        "influx_import",
+        "influx_async"
     }
     set_influx_app_dependencies(dependencies)
     staticruntime "off"
+

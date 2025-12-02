@@ -41,6 +41,7 @@ namespace influx::renderer
 	class target;
 	class resource_manager;
 	class submit_manager;
+	class job_manager;
 }
 
 // influx::platform
@@ -133,6 +134,7 @@ namespace influx::renderer
 		quad_renderer*			mp_quad_renderer	= nullptr;
 		resource_manager*		m_resource_manager	= nullptr;
 		submit_manager*			m_submit_manager	= nullptr;
+		job_manager*			m_job_manager		= nullptr;
 		render_settings			m_settings			= {};
 
 	public:
@@ -179,6 +181,7 @@ namespace influx::renderer
 		static resource_manager& get_resource_manager();
 		static graphics::queue& get_graphics_queue();
 		static graphics::device& get_device();
+		static job_manager& get_jobs();
 
 		void load(const mesh_id& id, const mesh_data<vertex_data>& data, bool reload = false);
 		void load(const tex_id& id, const texture_data& data, bool reload = false);

@@ -295,7 +295,6 @@ int main()
 	float delta_seconds = 0.0f;
 	float seconds = 0.0f;
 	bool is_quit = false;
-	
 	while (!is_quit)
 	{
 		// tick:

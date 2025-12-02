@@ -166,12 +166,10 @@ namespace influx::renderer
 		commandlist.submit(&queue);
 		commandlist.wait_for_completion();
     }
-
 	void resource_manager::recreate_shader(const shader::shader_signature& sig, const shader_data& data)
 	{
 
 	}
-
 	resource_manager::~resource_manager()
 	{
 	}
