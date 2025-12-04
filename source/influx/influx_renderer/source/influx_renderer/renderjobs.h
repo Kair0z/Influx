@@ -15,7 +15,7 @@ namespace influx::renderer
 	static constexpr job_id k_job_invalid = (job_id)-1;
 	static constexpr uint32 k_jobs_capacity = 4 * 1024u;
 
-	struct job_string final
+	struct job_chain final
 	{
 		job_id m_job_begin = k_job_invalid;
 		job_id m_job_end = k_job_invalid;
@@ -75,17 +75,17 @@ namespace influx::renderer
 			m_graph.set_link(a, b, graph::FORW);
 		}
 		
-		void link(const job_id a, const job_string& str)
+		void link(const job_id a, const job_chain& str)
 		{
 			link(a, str.m_job_begin);
 		}
 
-		void link(const job_string& str, const job_id b)
+		void link(const job_chain& str, const job_id b)
 		{
 			link(str.m_job_end, b);
 		}
 
-		void link_to_endframe(const job_string& str)
+		void link_to_endframe(const job_chain& str)
 		{
 			link(str, get_endframe_job());
 		}

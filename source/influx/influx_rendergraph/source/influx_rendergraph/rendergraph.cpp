@@ -566,7 +566,6 @@ namespace influx::rendergraph
 		m_passes.clear();
 		m_layers.clear();
 
-		// don't remove the resources
 		for (uint64 i = 0; i < m_textures.size(); ++i)
 		{
 			m_textures[i]->reset_graph();

@@ -68,7 +68,8 @@ namespace influx::renderer
 			graphics::resource*				m_line_instance_buffer;
 			graphics::descriptor_handle		m_line_instance_buffer_srv;
 		};
-		inflight<buffered> m_buffered;
+		buffered m_buffered[k_max_in_flight];
+		buffered& get_buffered_current();
 
 		// these are the resources that are persistent and unchanging
 		graphics::resource* mp_skybox;

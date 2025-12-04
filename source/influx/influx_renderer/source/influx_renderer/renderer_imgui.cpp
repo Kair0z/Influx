@@ -71,8 +71,8 @@ static const char* k_pixel_shader =
 namespace influx::renderer
 {
 	imgui_manager::imgui_manager(graphics::device* device)
-		: mp_indexbuffer{ renderer_backend::get_instance() }
-		, mp_vertexbuffer{ renderer_backend::get_instance() }
+		: mp_indexbuffer{}
+		, mp_vertexbuffer{}
 		, mp_device{device}
 	{
 		create_fonts_texture(device);
@@ -113,6 +113,8 @@ namespace influx::renderer
 		rhi_device& device = backend.get_device();
 		descriptor_manager& descriptor_manager = *backend.get_descriptor_manager();
 
+		const uint64 cpu_frame = backend.get_cpu_frame();
+
 		// execute for each draw
 		for (uint32 i = 0u; i < draws.size(); ++i)
 		{
@@ -122,8 +124,8 @@ namespace influx::renderer
 			// update vertex / index buffers
 			update_buffers(draws);
 
-			graphics::resource* indexbuffer = mp_indexbuffer.get_cpu();
-			graphics::resource* vertexbuffer = mp_vertexbuffer.get_cpu();
+			graphics::resource* indexbuffer = mp_indexbuffer[cpu_frame];
+			graphics::resource* vertexbuffer = mp_vertexbuffer[cpu_frame];
 			if (vertexbuffer && indexbuffer)
 			{
 				commandlist->set_vertexbuffer(vertexbuffer);
@@ -472,8 +474,9 @@ namespace influx::renderer
 			total_num_indices += draw.TotalIdxCount;
 		}
 		
-		graphics::resource*& vertexbuffer = mp_vertexbuffer.get_cpu();
-		graphics::resource*& indexbuffer = mp_indexbuffer.get_cpu();
+		const uint64 cpu_frame = renderer_backend::get_instance().get_cpu_frame();
+		graphics::resource*& vertexbuffer = mp_vertexbuffer[cpu_frame];
+		graphics::resource*& indexbuffer = mp_indexbuffer[cpu_frame];
 
 		const uint32 current_num_vertices = (vertexbuffer == nullptr) ?
 			0u : (uint32)(vertexbuffer->get_bytesize() / sizeof(ImDrawVert));

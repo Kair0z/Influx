@@ -17,19 +17,21 @@ namespace influx::renderer
 
 	void descriptor_manager::reset_gpu_heaps()
 	{
-		mp_samp_gpu_heap.get_cpu()->free_all();
-		mp_srv_gpu_heap.get_cpu()->free_all();
+		const uint64 cpu_frame = renderer_backend::get_instance().get_cpu_frame();
+		mp_samp_gpu_heap[cpu_frame]->free_all();
+		mp_srv_gpu_heap[cpu_frame]->free_all();
 	}
 
 	void descriptor_manager::bind_gpu_heaps(rhi_commandlist& commandlist)
 	{
 		// bind the descriptor heaps of THIS cpu frame
-		commandlist.set_descriptorheaps({ mp_samp_gpu_heap.get_cpu(), mp_srv_gpu_heap.get_cpu() });
+		const uint64 cpu_frame = renderer_backend::get_instance().get_cpu_frame();
+		commandlist.set_descriptorheaps({ mp_samp_gpu_heap[cpu_frame], mp_srv_gpu_heap[cpu_frame] });
 	}
 
 	descriptor_manager::descriptor_manager(rhi_device& device)
-		: mp_samp_gpu_heap{ renderer_backend::get_instance() }
-		, mp_srv_gpu_heap{ renderer_backend::get_instance() }
+		: mp_samp_gpu_heap{}
+		, mp_srv_gpu_heap{}
 	{
 		using namespace influx::graphics;
 		rhi_descheap::create_args create_args{};
@@ -52,15 +54,14 @@ namespace influx::renderer
 		// GPU heaps
 		{
 			create_args.m_shader_visible = true;
-
 			for (uint32 i = 0u; i < k_num_inflight_max; ++i)
 			{
 				create_args.m_type = e_descriptor_heap_type::sampler;
 				create_args.m_capacity = k_gpu_sampler_capacity;
-				mp_samp_gpu_heap.get_at_index(i)  = device.create_descriptor_heap(create_args);
+				mp_samp_gpu_heap[i] = device.create_descriptor_heap(create_args);
 				create_args.m_type = e_descriptor_heap_type::rsc;
 				create_args.m_capacity = k_gpu_resource_capacity;
-				mp_srv_gpu_heap.get_at_index(i) = device.create_descriptor_heap(create_args);
+				mp_srv_gpu_heap[i] = device.create_descriptor_heap(create_args);
 			}
 		}
 	}
@@ -73,8 +74,8 @@ namespace influx::renderer
 		delete mp_sampler_heap;
 		for (uint32 i = 0u; i < k_num_inflight_max; ++i)
 		{
-			delete mp_samp_gpu_heap.get_at_index(i);
-			delete mp_srv_gpu_heap.get_at_index(i);
+			delete mp_samp_gpu_heap[i];
+			delete mp_srv_gpu_heap[i];
 		}
 	}
 
@@ -112,7 +113,8 @@ namespace influx::renderer
 	rhi_descriptor_range descriptor_manager::stage(rhi_device& device, const vector<rhi_descriptor>& cpu_descriptors)
 	{
 		rhi_descriptor_range gpu_range{};
-		const auto& heap_this_frame = mp_srv_gpu_heap.get_cpu();
+		const uint64 cpu_frame = renderer_backend::get_instance().get_cpu_frame();
+		const auto& heap_this_frame = mp_srv_gpu_heap[cpu_frame];
 
 		// foreach cpu_descriptor in our list...
 		for (size_t i = 0u; i < cpu_descriptors.size(); ++i)
@@ -171,7 +173,8 @@ namespace influx::renderer
 
 	rhi_descriptor_range descriptor_manager::stage_samplers(rhi_device& device, const vector<rhi_descriptor>& samplers)
 	{
-		const auto& heap_this_frame = mp_samp_gpu_heap.get_cpu();
+		const uint64 cpu_frame = renderer_backend::get_instance().get_cpu_frame();
+		const auto& heap_this_frame = mp_samp_gpu_heap[cpu_frame];
 
 		rhi_descriptor_range gpu_range{};
 		for (size_t i = 0u; i < samplers.size(); ++i)

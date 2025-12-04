@@ -89,4 +89,7 @@ namespace influx::renderer
 	using colour		= math::vectorf4;
 	using position3D	= math::float3;
 	using light			= influx::light;
+
+	// number of GPU frames in flight:
+	static constexpr uint32 k_max_in_flight = 3u;
 }

@@ -37,8 +37,8 @@ namespace influx::renderer
 
 	private:
 		// GPU heaps (shader-visible)
-		inflight<rhi_descheap*> mp_srv_gpu_heap;
-		inflight<rhi_descheap*> mp_samp_gpu_heap;
+		rhi_descheap* mp_srv_gpu_heap	[k_max_in_flight]{};
+		rhi_descheap* mp_samp_gpu_heap	[k_max_in_flight]{};
 
 		// CPU heaps (storage)
 		rhi_descheap* mp_rtv_heap;

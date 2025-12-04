@@ -156,7 +156,7 @@ namespace influx::renderer
 		if (dimensions != m_current_dimensions)
 		{
 			// wait for gpu to stop rendering
-			renderer_backend::get_instance().wait_gpu_finished();
+			renderer_backend::get_instance().wait_until_gpu_idle();
 			mp_device->release(mp_resource);
 			mp_device->release(mp_depth_resource);
 

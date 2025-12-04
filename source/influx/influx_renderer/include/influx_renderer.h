@@ -150,7 +150,7 @@ namespace influx::renderer
 	INFLUX_RENDER_API void present(const platform::window&, const present_args& args);
 
 	/* stalls the calling thread until all GPU work is finished */
-	INFLUX_RENDER_API void wait_gpu_finished();
+	INFLUX_RENDER_API void wait_until_gpu_idle();
 
 	/* 
 		loading resources into the backend renderer:

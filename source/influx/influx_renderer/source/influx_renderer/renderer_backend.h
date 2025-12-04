@@ -60,61 +60,17 @@ namespace influx::renderer
 		source
 	};
 
-	static constexpr uint32 k_max_in_flight = 3u;
-	template <typename _t>
-	class inflight final
-	{
-		_t					m_value[k_max_in_flight]{};
-		renderer_backend&	m_backend;
-
-	public:
-		explicit inflight(renderer_backend& backend) 
-			: m_backend{ backend } { }
-		explicit inflight(const _t& value, renderer_backend& backend)
-			: m_backend{ backend }, m_value{ value } { }
-
-		// returns the value that 
-		_t& get_cpu()
-		{
-			return m_value[m_backend.get_cpu_frame() % k_max_in_flight];
-		}
-		_t& get_gpu()
-		{
-			return m_value[m_backend.query_gpu_frame() % k_max_in_flight];
-		}
-		bool is_inflight() const
-		{
-			const uint64 distance = m_backend.query_gpu_frame() < m_backend.get_cpu_frame();
-			return distance != 0u;
-		}
-		_t& get_at_index(uint32 index)
-		{
-			return m_value[index % k_max_in_flight];
-		}
-	};
-
-	using inflight_resource = inflight<graphics::resource*>;
-
 	class renderer_backend final : public singleton<renderer_backend>
 	{
 		constexpr static e_buffering k_buffering = e_buffering::tripple;
 
 		init_args	m_init_args = {};
-		uint64		m_cpu_frame = 0u;
-		uint64		m_gpu_frame = 0u;
 		bool		m_is_initialized = false;
 		string		m_shadersource_directory = "";
 
 		umap<debug_name, target*>	m_targets = {};
 		rendergraph::rendergraph*	m_rendergraph = nullptr;
 		graphics::device*			mp_device = nullptr;
-		graphics::queue*			m_mainqueue = nullptr;
-		graphics::queue*			m_copy_queue = nullptr;
-		graphics::fence*			m_gpu_finished_fence = nullptr;
-		graphics::fence*			m_frame_fence = nullptr;
-
-		inflight<graphics::commandlist*> m_frame_cmdlist	{ *this };
-		inflight<graphics::commandlist*> m_present_cmdlist	{ *this };
 
 		struct swapchain final
 		{
@@ -143,7 +99,7 @@ namespace influx::renderer
 
 		void initialize(const init_args& args);
 		bool is_initialized() const;
-		void wait_gpu_finished() const;
+		void wait_until_gpu_idle() const;
 		void cleanup();
 
 		void start_frame();
@@ -182,6 +138,7 @@ namespace influx::renderer
 		static graphics::queue& get_graphics_queue();
 		static graphics::device& get_device();
 		static job_manager& get_jobs();
+		static submit_manager& get_submit_manager();
 
 		void load(const mesh_id& id, const mesh_data<vertex_data>& data, bool reload = false);
 		void load(const tex_id& id, const texture_data& data, bool reload = false);

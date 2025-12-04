@@ -86,13 +86,6 @@ namespace influx::renderer
         {
             using namespace influx::graphics;
             mp_device = device::create(translate(args.m_api_type));
-
-            queue_desc desc{};
-            desc.m_type = e_queue_type::graphics;
-            desc.m_priority = graphics::e_queue_priority::normal;
-            m_mainqueue = mp_device->create_queue(desc);
-            m_gpu_finished_fence = mp_device->create_fence(0u);
-            m_frame_fence = mp_device->create_fence(0u);
         }
 
         // create renderers & managers
@@ -102,7 +95,7 @@ namespace influx::renderer
             mp_pipeline_manager = new pipeline_manager(mp_device);
             mp_upload_manager = new upload_manager(mp_device);
             m_resource_manager = new resource_manager();
-            m_submit_manager = new submit_manager();
+            m_submit_manager = new submit_manager(*mp_device);
             mp_imgui = new imgui_manager(mp_device);
             mp_scene_renderer = new scene_renderer();
             mp_quad_renderer = new quad_renderer();
@@ -120,17 +113,17 @@ namespace influx::renderer
         return m_is_initialized;
     }
 
-    void renderer_backend::wait_gpu_finished() const
+    void renderer_backend::wait_until_gpu_idle() const
     {
-        const uint64 finished_value = (uint64)-1;
-        m_gpu_finished_fence->queue_signal(finished_value, m_mainqueue);
-        m_gpu_finished_fence->wait_for_value(finished_value);
+        m_submit_manager->wait_until_gpu_idle();
     }
 
     void renderer_backend::cleanup()
     {
-        wait_gpu_finished();
+        wait_until_gpu_idle();
 
+        m_submit_manager->shutdown(*mp_device);
+        delete m_submit_manager; m_submit_manager = nullptr;
         delete m_job_manager; m_job_manager = nullptr;
         delete mp_desc_manager; mp_desc_manager = nullptr;
         delete mp_pipeline_manager; mp_pipeline_manager = nullptr;
@@ -144,13 +137,12 @@ namespace influx::renderer
         mp_device->cleanup();
         delete mp_device;
         mp_device = nullptr;
-
         m_is_initialized = false;
     }
 
     void renderer_backend::start_frame()
     {
-        job_string jobs{};
+        job_chain jobs{};
 
         // todo: one day, we'll be able to only upgrade the graph when the layout of the frame render changes
         // today is not that day...
@@ -165,6 +157,7 @@ namespace influx::renderer
 
     void renderer_backend::end_frame()
     {
+        // resolve all renderjobs
         get_jobs().endframe();
 
         // build the rendergraph
@@ -173,58 +166,42 @@ namespace influx::renderer
             m_rendergraph->build();
         }
 
-        // wait for gpu frame
+        // wait for last gpu frame 
+        // (strict, ideally we let CPU get on with some of the work already)
+        submit_manager& submanager = get_submit_manager();
         {
             influx_scope("renderer::wait_for_gpu_frame");
-
-            // as long as GPU is k_num_inflight_max behind...
-            uint64 gpu_frame = query_gpu_frame();
-            while (m_cpu_frame - gpu_frame > k_num_inflight_max)
-            {
-                // take the commandlist at the current GPU frame, and wait for it to complete
-                const auto gpu_commandlist = m_frame_cmdlist.get_gpu();
-                if (gpu_commandlist) gpu_commandlist->wait_for_completion();
-                gpu_frame = query_gpu_frame();
-            }
+            submanager.wait_until_last_gpu_frame_finished();
         }
-        
-        // get (or create) the commandlist for this cpu frame
-        graphics::commandlist*& cmdlist = m_frame_cmdlist.get_cpu();
-        if (cmdlist == nullptr) cmdlist = mp_device->create_graphics_commandlist();
 
-        cmdlist->start(mp_device, nullptr);
-        cmdlist->set_name("frame");
-        
+        // get the render commandlist
+        gpu_submission& submission = submanager.get_submission(e_gpusubmit::render);
+        graphics::commandlist& cmdlist = submission.get_commandlist();
+
         // reset & rebind the gpu heaps (of this frame)
         descriptor_manager* descman = get_descriptor_manager();
         descman->reset_gpu_heaps();
-        descman->bind_gpu_heaps(*cmdlist);
+        descman->bind_gpu_heaps(cmdlist);
 
-        // execute the rendergraph
+        // let the rendergraph fill up the render commandlist
         {
             influx_scope("renderer::rendergraph_execute");
-            auto res = m_rendergraph->execute(*cmdlist, *mp_device);
+            auto res = m_rendergraph->execute(cmdlist, *mp_device);
             if (res.is_fail())
-            {
                 log(e_log::warning, "rendergraph execute failed!");
-            }
         }
-        cmdlist->end();
-
         {
-            influx_scope("renderer_backend::submit");
-            cmdlist->submit(m_mainqueue).get();
+            influx_scope("submit_manager::submit_gpu_frame");
+            submanager.submit_gpu_frame();
         }
     }
 
     void renderer_backend::present_all(const present_args& args)
     {
         // get (or create) the commandlist for this cpu frame
-        graphics::commandlist*& cmdlist = m_present_cmdlist.get_cpu();
-        if (cmdlist == nullptr) cmdlist = mp_device->create_graphics_commandlist();
-
-        cmdlist->start(mp_device, nullptr);
-        cmdlist->set_name("present");
+        submit_manager& subman = get_submit_manager();
+        gpu_submission& submission = subman.get_submission(e_gpusubmit::pre_present);
+        graphics::commandlist* cmdlist = submission.m_commandlist;
         for (const auto& swapchain : m_swapchains)
         {
             // each swapchain has a final target proxy (uav writable)
@@ -244,8 +221,8 @@ namespace influx::renderer
             // transition to present the backbuffer
             backbuffer->transition(cmdlist, graphics::e_resource_state::present);
         }
-        cmdlist->end();
-        cmdlist->submit(m_mainqueue);
+
+        subman.submit_pre_present();
         
         for (const auto& swapchain : m_swapchains)
         {
@@ -253,30 +230,26 @@ namespace influx::renderer
             p_args.m_vsync = args.m_vsync;
             swapchain.second.mp_swapchain->present(p_args);
         }
-
-        m_frame_fence->queue_signal(m_cpu_frame + 1u, m_mainqueue);
-        ++m_cpu_frame;
     }
 
     void renderer_backend::present(const platform::window& window, const present_args& args)
     {
         // make sure the swapchain has been created before
         influx_assert(m_swapchains.contains(&window));
-
-        graphics::commandlist* cmdlist = mp_device->create_graphics_commandlist();
-        cmdlist->start(mp_device, nullptr);
-        cmdlist->set_name("present");
-
+        
+        // get the backbuffer
         swapchain& swapchain = m_swapchains.at(&window);
+        auto backbuffer_res = swapchain.mp_swapchain->get_current_backbuffer_resource();
+        influx_assert(backbuffer_res.is_success());
 
-        // run a commandlist to transition the backbuffer-resource to presentable
-        auto res = swapchain.mp_swapchain->get_current_backbuffer_resource();
-        influx_assert(res.is_success());
-        graphics::resource* backbuffer = res.get();
+        // transition the backbuffer to present state
+        submit_manager& subman = get_submit_manager();
+        gpu_submission& endframe_submission = subman.get_submission(e_gpusubmit::frame_end);
+        graphics::commandlist* cmdlist = endframe_submission.m_commandlist;
+        graphics::resource* backbuffer = backbuffer_res.get();
         backbuffer->transition(cmdlist, graphics::e_resource_state::present);
-        cmdlist->end();
-        cmdlist->submit(m_mainqueue);
 
+        // call a backbuffer flip
         if (swapchain.mp_swapchain)
         {
             graphics::present_args p_args{};
@@ -287,13 +260,12 @@ namespace influx::renderer
 
     uint64 renderer_backend::query_gpu_frame()
     {
-        m_gpu_frame = m_frame_fence->query_value();
-        return m_gpu_frame;
+        return m_submit_manager->query_gpu_frame();
     }
 
     uint64 renderer_backend::get_cpu_frame() const
     {
-        return m_cpu_frame;
+        return m_submit_manager->get_cpu_frame();
     }
 
     result<target*> renderer_backend::create_target(const target_create_args& args)
@@ -384,15 +356,16 @@ namespace influx::renderer
             desc.m_num_buffers = get_num_buffers(k_buffering);
             desc.m_format; //  todo
             desc.m_dimensions = window.get_dimensions(platform::window::e_space::client);
-            swapchain.mp_swapchain = mp_device->create_swapchain(m_mainqueue, window, desc);
+            swapchain.mp_swapchain = mp_device->create_swapchain(&get_graphics_queue(), window, desc);
             recreate_backbuffer_finaltarget(swapchain);
         }
 
         // if need, recreate the swapchain
         if (swapchain.mp_swapchain->needs_recreate(window))
         {
-            // WAIT
-            while (m_present_cmdlist.is_inflight()) {};
+            // wait for the last present to be finished
+            submit_manager& subman = get_submit_manager();
+            subman.wait_until_complete(subman.get_submission(e_gpusubmit::pre_present));
 
             swapchain.mp_swapchain->resize(mp_device, window);
             recreate_backbuffer_finaltarget(swapchain);
@@ -591,7 +564,7 @@ namespace influx::renderer
 
     graphics::queue& renderer_backend::get_graphics_queue()
     {
-        return *get_instance().m_mainqueue;
+        return get_instance().m_submit_manager->get_graphics_queue();
     }
 
     graphics::device& renderer_backend::get_device()
@@ -602,6 +575,11 @@ namespace influx::renderer
     job_manager& renderer_backend::get_jobs()
     {
         return *get_instance().m_job_manager;
+    }
+
+    submit_manager& renderer_backend::get_submit_manager()
+    {
+        return *get_instance().m_submit_manager;
     }
 
     // mesh
@@ -727,7 +705,7 @@ namespace influx::renderer
 
     void renderer_backend::upload_texture_data(texture2D* target_tex, const texture_data& data)
     {
-        mp_upload_manager->upload_texture(m_mainqueue, data, target_tex->get_resource().get());
+        mp_upload_manager->upload_texture(&get_graphics_queue(), data, target_tex->get_resource().get());
     }
 
     vector<string> renderer_backend::get_mesh_names() const
@@ -860,9 +838,9 @@ namespace influx::renderer
         renderer_backend::get_instance().present(window, args);
     }
 
-    void wait_gpu_finished()
+    void wait_until_gpu_idle()
     {
-        renderer_backend::get_instance().wait_gpu_finished();
+        renderer_backend::get_instance().wait_until_gpu_idle();
     }
 
     result<> draw_scene(const scene& scene, const target& target)

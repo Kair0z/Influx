@@ -54,8 +54,8 @@ namespace influx::renderer
 		graphics::graphics_pipeline* mp_pipeline = nullptr;
 		graphics::rootsignature* mp_rootsig = nullptr;
 
-		inflight_resource mp_indexbuffer;
-		inflight_resource mp_vertexbuffer;
+		graphics::resource* mp_indexbuffer[k_max_in_flight];
+		graphics::resource* mp_vertexbuffer[k_max_in_flight];
 		texture2D* mp_fonts_texture = nullptr;
 
 		shader::compile_output m_vertex_shader;
