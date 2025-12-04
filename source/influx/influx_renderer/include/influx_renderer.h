@@ -219,7 +219,6 @@ namespace influx::renderer
 		vector<texture> m_textures{};
 	};
 	INFLUX_RENDER_API rendergraph_info get_rendergraph_info();
-	
-	/* */
+	INFLUX_RENDER_API string get_last_rendergraph_dotfile();
 	INFLUX_RENDER_API string get_last_rendergraph_dump();
 }

@@ -176,7 +176,7 @@ namespace influx::renderer
 		memory_info get_memory_info() const;
 		pipeline_info get_pipeline_info() const;
 		rendergraph_info get_rendergraph_info() const;
-
+		string get_last_rendergraph_dotfile() const;
 		static bool allow_bindless();
 
 		string get_shadersource_directory(e_shadersource_directory _enum = e_shadersource_directory::base) const;

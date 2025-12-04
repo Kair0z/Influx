@@ -496,7 +496,7 @@ namespace influx::renderer
         if (res.is_fail())
             return result_type::make_error("error: failed importing target to graph!");
 
-        //mp_scene_renderer->build(*m_rendergraph, view, target);
+        mp_scene_renderer->build(*m_rendergraph, view, target);
         return {};
     }
 
@@ -791,6 +791,11 @@ namespace influx::renderer
         return info;
     }
 
+    string renderer_backend::get_last_rendergraph_dotfile() const
+    {
+        return m_rendergraph->make_dotfile();
+    }
+
     bool renderer_backend::allow_bindless()
     {
         return INFLUX_RENDER_BINDLESS;
@@ -1020,6 +1025,10 @@ namespace influx::renderer
     rendergraph_info get_rendergraph_info()
     {
         return renderer_backend::get_instance().get_rendergraph_info();
+    }
+    string get_last_rendergraph_dotfile()
+    {
+        return renderer_backend::get_instance().get_last_rendergraph_dotfile();
     }
 #pragma endregion
 }

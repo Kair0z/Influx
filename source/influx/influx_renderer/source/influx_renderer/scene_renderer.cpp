@@ -795,6 +795,11 @@ namespace influx::renderer
         }
     }
 
+    void scene_renderer::build(rendergraph::rendergraph& graph, const worldview& world, const target& target)
+    {
+
+    }
+
     scene_renderer::buffered& scene_renderer::get_buffered_current()
     {
         const uint64 cpu_frame = renderer_backend::get_instance().get_cpu_frame();

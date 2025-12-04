@@ -158,6 +158,7 @@ namespace influx::rendergraph
 
 		/* debug info dumps */
 		INFLUX_RG_API string make_dump();
+		INFLUX_RG_API string make_dotfile();
 		INFLUX_RG_API string make_resources_dump();
 		
 		INFLUX_RG_API vector<rgtexture_info> get_textures() const;

@@ -20,6 +20,8 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 // influx::import
 #include "influx_import.h"
 
+#include <iostream>
+
 using namespace influx;
 
 void load_scene(const string& filepath, imp::scene_load_args& args, renderer::scene& out_scene)
@@ -252,7 +254,7 @@ int main()
 	// platform setup:
 	// - allocate windows
 	vector<platform::monitor> monitors = platform::monitor::query_monitors();
-	static constexpr uint32 num_windows = 16u;
+	static constexpr uint32 num_windows = 16;
 	platform::window* windows[num_windows] = {};
 	platform::window_desc window_desc{};
 	window_desc.m_dimensions = { 128u, 128u };
@@ -324,10 +326,13 @@ int main()
 			renderer::clear_args clear{ .m_colour = clear_colours[ i % 3 ] };
 
 			renderer::clear_target(*window_target, clear);
-			// renderer::draw_world(wview, *window_target);
+			renderer::draw_world(wview, *window_target);
 		}
 		renderer::end_frame();
 		renderer::present_all(present_args);
+
+		std::cout << renderer::get_last_rendergraph_dotfile() << "\n";
+		std::cin.get();
 	}
 	renderer::cleanup();
 }

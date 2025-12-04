@@ -630,6 +630,78 @@ namespace influx::rendergraph
 		return result;
 	}
 
+
+	string rendergraph::make_dotfile()
+	{	
+		std::stringstream stream{};
+		stream << "digraph rendergraph {\n";
+		stream << "compound=true;\n";
+		stream << "ranksep=0.4;\n";
+
+		static const auto get_id = [](const debug_name& name)
+			{
+				return std::to_string(name.get_hash());
+			};
+
+		// all resources
+		for (uint32 i = 0u; i < m_passes.size(); ++i)
+		{
+			const rgpass& pass = m_passes[i];
+			stream << get_id(pass.m_name) << " ";
+			stream << "[shape=oval, label=\"" << pass.m_name.get_string() << "\"];";
+			stream << "\n";
+		}
+		for (uint32 i = 0u; i < m_textures.size(); ++i)
+		{
+			const auto& texture = m_textures[i];
+			stream << get_id(texture->m_name) << " ";
+			stream << "[shape=box, label=\"" << texture->m_name.get_string() << "\"];";
+			stream << "\n";
+		}
+		for (uint32 i = 0u; i < m_buffers.size(); ++i)
+		{
+			const auto& buffer = m_buffers[i];
+			stream << get_id(buffer->m_name) << " ";
+			stream << "[shape=box, label=\"" << buffer->m_name.get_string() << "\"];";
+			stream << "\n";
+		}
+
+		for (uint32 i = 0u; i < m_layers.size(); ++i)
+		{
+			for (uint32 i = 0u; i < m_passes.size(); ++i)
+			{
+				const rgpass& pass = m_passes[i];
+				for (const auto& read : pass.m_buffer_reads)
+				{
+					const auto& buffer = get_buffer(read.m_id);
+					stream << get_id(buffer->m_name) << " -> "
+						<< get_id(pass.m_name) << "\n";
+				}
+				for (const auto& read : pass.m_texture_reads)
+				{
+					const auto& texture = get_texture(read.m_id);
+					stream << get_id(texture->m_name) << " -> "
+						<< get_id(pass.m_name) << "\n";
+				}
+				for (const auto& write : pass.m_buffer_writes)
+				{
+					const auto& buffer = get_buffer(write.m_id);
+					stream << get_id(pass.m_name) << " -> "
+						<< get_id(buffer->m_name) << "\n";
+				}
+				for (const auto& write : pass.m_texture_writes)
+				{
+					const auto& texture = get_texture(write.m_id);
+					stream << get_id(pass.m_name) << " -> "
+						<< get_id(texture->m_name) << "\n";
+				}
+			}
+		}
+
+		stream << "}";
+		return stream.str();
+	}
+
 	string rendergraph::make_resources_dump()
 	{
 		string result{};

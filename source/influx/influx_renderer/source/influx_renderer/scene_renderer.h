@@ -45,6 +45,8 @@ namespace influx::renderer
 		/* add passes to render graph */
 		void build(rendergraph::rendergraph& graph, const scene& scene, const target& target);
 
+		void build(rendergraph::rendergraph& graph, const worldview& world, const target& target);
+
 	private:
 		vector<draw_batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
 		void update_instance_buffer(const vector<draw_batch>& batches);
