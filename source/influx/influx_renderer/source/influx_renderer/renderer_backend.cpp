@@ -82,20 +82,17 @@ namespace influx::renderer
                 path::create_directory(m_shadersource_directory);
         }
 
-        // create graphics objects
-        {
-            using namespace influx::graphics;
-            mp_device = device::create(translate(args.m_api_type));
-        }
+        using namespace influx::graphics;
+        mp_device = device::create(translate(args.m_api_type));
 
         // create renderers & managers
         {
             m_job_manager = new job_manager();
+            m_submit_manager = new submit_manager(*mp_device);
             mp_desc_manager = new descriptor_manager(*mp_device);
             mp_pipeline_manager = new pipeline_manager(mp_device);
             mp_upload_manager = new upload_manager(mp_device);
             m_resource_manager = new resource_manager();
-            m_submit_manager = new submit_manager(*mp_device);
             mp_imgui = new imgui_manager(mp_device);
             mp_scene_renderer = new scene_renderer();
             mp_quad_renderer = new quad_renderer();
@@ -160,13 +157,13 @@ namespace influx::renderer
         // resolve all renderjobs
         get_jobs().endframe();
 
-        // build the rendergraph
+        // execute the rendergraph build ( no graphics commands yet )
         {
             influx_scope("renderer::build_rendergraph");
             m_rendergraph->build();
         }
 
-        // wait for last gpu frame 
+        // wait for last gpu frame
         // (strict, ideally we let CPU get on with some of the work already)
         submit_manager& submanager = get_submit_manager();
         {
@@ -174,22 +171,28 @@ namespace influx::renderer
             submanager.wait_until_last_gpu_frame_finished();
         }
 
-        // get the render commandlist
+        // here the rendergraph populates the main render command submission with GPU commands
         gpu_submission& submission = submanager.get_submission(e_gpusubmit::render);
         graphics::commandlist& cmdlist = submission.get_commandlist();
-
-        // reset & rebind the gpu heaps (of this frame)
-        descriptor_manager* descman = get_descriptor_manager();
-        descman->reset_gpu_heaps();
-        descman->bind_gpu_heaps(cmdlist);
-
-        // let the rendergraph fill up the render commandlist
+        cmdlist.start(&get_device(), nullptr);
         {
-            influx_scope("renderer::rendergraph_execute");
-            auto res = m_rendergraph->execute(cmdlist, *mp_device);
-            if (res.is_fail())
-                log(e_log::warning, "rendergraph execute failed!");
+            // reset & rebind the gpu heaps (of this frame)
+            {
+                influx_scope("renderer::bind_gpu_heaps");
+                descriptor_manager* descman = get_descriptor_manager();
+                descman->reset_gpu_heaps();
+                descman->bind_gpu_heaps(cmdlist);
+            }
+            // let the rendergraph fill up the render commandlist
+            {
+                influx_scope("renderer::rendergraph_execute");
+                auto res = m_rendergraph->execute(cmdlist, *mp_device);
+                if (res.is_fail())
+                    log(e_log::warning, "rendergraph execute failed!");
+            }
         }
+        
+        // finally, submit all work to the GPU
         {
             influx_scope("submit_manager::submit_gpu_frame");
             submanager.submit_gpu_frame();
@@ -198,31 +201,50 @@ namespace influx::renderer
 
     void renderer_backend::present_all(const present_args& args)
     {
-        // get (or create) the commandlist for this cpu frame
+        // populate the pre-present commandlist which copies target proxy -> backbuffer
         submit_manager& subman = get_submit_manager();
         gpu_submission& submission = subman.get_submission(e_gpusubmit::pre_present);
         graphics::commandlist* cmdlist = submission.m_commandlist;
+        
+        vector<platform::window const*> window_handles{};
         for (const auto& swapchain : m_swapchains)
         {
-            // each swapchain has a final target proxy (uav writable)
-            target* finaltarget = swapchain.second.m_finaltarget_proxy;
-            graphics::resource* finaltarget_resource = finaltarget->get_resource();
-
-            // copy the finaltarget -> current backbuffer:
-            auto res = swapchain.second.mp_swapchain->get_current_backbuffer_resource();
-            influx_assert(res.is_success());
-            graphics::resource* backbuffer = res.get();
-
-            // transition & copy finaltargetproxy into the backbuffer
-            finaltarget_resource->transition(cmdlist, graphics::e_resource_state::copy_src);
-            backbuffer->transition(cmdlist, graphics::e_resource_state::copy_dst);
-            cmdlist->copy_resource(finaltarget_resource, backbuffer);
-
-            // transition to present the backbuffer
-            backbuffer->transition(cmdlist, graphics::e_resource_state::present);
+            window_handles.push_back(swapchain.first);
         }
 
-        subman.submit_pre_present();
+        static constexpr uint32 k_max_num_swapchains_per_commandlist = 8u;
+        const uint64 num_swapchains = window_handles.size();
+        const uint32 num_submissions = (num_swapchains + k_max_num_swapchains_per_commandlist - 1) / k_max_num_swapchains_per_commandlist;
+        for (uint32 i = 0u; i < num_submissions; ++i)
+        {
+            cmdlist->start(&get_device());
+            for (uint32 j = 0u; j < k_max_num_swapchains_per_commandlist; ++j)
+            {
+                const uint32 swapchain_index = (i * k_max_num_swapchains_per_commandlist) + j;
+                if (swapchain_index >= num_swapchains)
+                    break;
+
+                swapchain& swapchain = m_swapchains[window_handles[swapchain_index]];
+
+                // each swapchain has a final target proxy (uav writable)
+                target* finaltarget = swapchain.m_finaltarget_proxy;
+                graphics::resource* finaltarget_resource = finaltarget->get_resource();
+
+                // copy the finaltarget -> current backbuffer:
+                auto res = swapchain.mp_swapchain->get_current_backbuffer_resource();
+                influx_assert(res.is_success());
+                graphics::resource* backbuffer = res.get();
+
+                // transition & copy finaltargetproxy into the backbuffer
+                finaltarget_resource->transition(cmdlist, graphics::e_resource_state::copy_src);
+                backbuffer->transition(cmdlist, graphics::e_resource_state::copy_dst);
+                cmdlist->copy_resource(finaltarget_resource, backbuffer);
+
+                // transition to present the backbuffer
+                backbuffer->transition(cmdlist, graphics::e_resource_state::present);
+            }
+            subman.submit(e_gpusubmit::pre_present);
+        }
         
         for (const auto& swapchain : m_swapchains)
         {
@@ -565,6 +587,11 @@ namespace influx::renderer
     graphics::queue& renderer_backend::get_graphics_queue()
     {
         return get_instance().m_submit_manager->get_graphics_queue();
+    }
+
+    graphics::queue& renderer_backend::get_copy_queue()
+    {
+        return get_instance().m_submit_manager->get_copy_queue();
     }
 
     graphics::device& renderer_backend::get_device()

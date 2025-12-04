@@ -136,6 +136,7 @@ namespace influx::renderer
 		static pipeline_manager* get_pipeline_manager();
 		static resource_manager& get_resource_manager();
 		static graphics::queue& get_graphics_queue();
+		static graphics::queue& get_copy_queue();
 		static graphics::device& get_device();
 		static job_manager& get_jobs();
 		static submit_manager& get_submit_manager();

@@ -39,11 +39,13 @@ namespace influx::renderer
 
 	class submit_manager final
 	{
-		gpu_submission m_submissions[k_num_submissions_per_frame];
+		static constexpr uint64 k_num_submissions_total = k_num_submissions_per_frame + 1;
+		gpu_submission m_submissions[k_num_submissions_total];
 		uint64 m_cpu_frame = 0u;
 		uint64 m_last_started_gpu_frame = 0u;
 		uint64 m_last_finished_gpu_frame = 0u;
 
+		graphics::fence* m_frame_fence = nullptr;
 		graphics::queue* m_graphics_queue = nullptr;
 		graphics::queue* m_copy_queue = nullptr;
 
@@ -64,11 +66,12 @@ namespace influx::renderer
 
 		uint64 query_gpu_frame() const;
 
-		void wait_until_gpu_frame_finished(const uint64 frame) const;
+		void wait_until_gpu_frame_finished(const uint64 frame);
 
-		void wait_until_last_gpu_frame_finished() const
+		void wait_until_last_gpu_frame_finished()
 		{
 			wait_until_gpu_frame_finished(m_last_started_gpu_frame);
+			m_last_finished_gpu_frame = m_last_started_gpu_frame;
 		}
 
 		void wait_until_complete(const gpu_submission& submission);
@@ -79,9 +82,16 @@ namespace influx::renderer
 
 		void submit(const gpu_submission& submission);
 
+		void submit(const e_gpusubmit submit);
+
 		graphics::queue& get_graphics_queue()
 		{
 			return *m_graphics_queue;
+		}
+
+		graphics::queue& get_copy_queue()
+		{
+			return *m_copy_queue;
 		}
 	};
 }

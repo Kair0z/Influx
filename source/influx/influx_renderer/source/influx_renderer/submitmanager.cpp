@@ -12,10 +12,15 @@ namespace influx::renderer
 			desc.m_type = e_queue_type::graphics;
 			desc.m_priority = graphics::e_queue_priority::normal;
 			m_graphics_queue = device.create_queue(desc);
+
+			desc.m_type = e_queue_type::copy;
+			m_copy_queue = device.create_queue(desc);
+
+			m_frame_fence = device.create_fence(0u);
 		}
 		
 		// create all commandlists up-front
-		for (uint32 i = 0u; i < k_num_submissions_per_frame; ++i)
+		for (uint32 i = 0u; i < k_num_submissions_total; ++i)
 		{
 			graphics::commandlist*& cmdlist = m_submissions[i].m_commandlist;
 			cmdlist = device.create_graphics_commandlist();
@@ -26,7 +31,7 @@ namespace influx::renderer
 
 	void submit_manager::shutdown(graphics::device& device)
 	{
-		for (uint32 i = 0u; i < k_num_submissions_per_frame; ++i)
+		for (uint32 i = 0u; i < k_num_submissions_total; ++i)
 		{
 			device.release(m_submissions[i].m_commandlist);
 			m_submissions[i].m_commandlist = nullptr;
@@ -64,14 +69,14 @@ namespace influx::renderer
 		return 0u;
 	}
 
-	void submit_manager::wait_until_gpu_frame_finished(const uint64 frame) const
+	void submit_manager::wait_until_gpu_frame_finished(const uint64 frame)
 	{
-		
+		m_frame_fence->wait_for_value(frame);
 	}
 
 	void submit_manager::wait_until_complete(const gpu_submission& submission)
 	{
-		// todo...
+		
 	}
 
 	void submit_manager::submit_gpu_frame()
@@ -80,6 +85,9 @@ namespace influx::renderer
 		{
 			submit(m_submissions[i]);
 		}
+
+		m_last_started_gpu_frame++;
+		m_frame_fence->queue_signal(m_last_started_gpu_frame, m_graphics_queue);
 	}
 
 	void submit_manager::submit_pre_present()
@@ -93,5 +101,10 @@ namespace influx::renderer
 		if (cmdlist == nullptr) return;
 		cmdlist->end().get();
 		cmdlist->submit(m_graphics_queue);
+	}
+
+	void submit_manager::submit(const e_gpusubmit sub)
+	{
+		submit( get_submission(sub) );
 	}
 }

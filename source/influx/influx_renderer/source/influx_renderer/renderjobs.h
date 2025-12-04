@@ -9,6 +9,8 @@
 #include "influx_async.h"
 #endif
 
+static constexpr bool k_use_renderjobs = false;
+
 namespace influx::renderer
 {
 	using job_id = uint32;
@@ -51,20 +53,24 @@ namespace influx::renderer
 		template <typename _jobf>
 		job_id create_job(_jobf&& func)
 		{
-#if !WITH_RENDERJOBS
-			func();
-			return k_job_invalid;
-#else
-			async::task_create_args args{};
-			args.m_func_execute = func;
-			args.m_name = "";
-			auto res = influx::async::create_task(args);
-			if (!res.is_success())
-				return k_job_invalid;
+#if WITH_RENDERJOBS
+			if (k_use_renderjobs)
+			{
+				async::task_create_args args{};
+				args.m_func_execute = func;
+				args.m_name = "";
+				auto res = influx::async::create_task(args);
+				if (!res.is_success())
+					return k_job_invalid;
 
-			res.get().dispatch();
-#endif
-			return k_job_invalid;
+				res.get().dispatch();
+			}
+			else
+#endif // WITH_RENDERJOBS
+			{
+				func();
+				return k_job_invalid;
+			}
 		}
 
 		void link(const job_id a, const job_id b)

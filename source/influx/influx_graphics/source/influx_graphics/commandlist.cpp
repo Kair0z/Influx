@@ -18,32 +18,30 @@ namespace influx::graphics
         wait_for_completion();
 
         const e_state state = get_state();
-        const bool is_ready_to_start = state == e_state::created || state == e_state::completed;
-        if (is_ready_to_start == false)
-        {
-            return result<>::make_error("error: starting an in-flight / recording commandlist.");
-        }
+        if (state == e_state::recording)
+            return result<>::make_error("error: cannot start a commandlist in recording state!");
 
-        // create fence if this commandlist is newly created
-        if (state == e_state::created && m_fence == nullptr)
+        if (state == e_state::submitted)
+            return result<>::make_error("error: cannot start a commandlist in submitted (inflight) state!");
+
+        // create fence if this commandlist is freshly created
+        const bool fence_not_created_yet = state == e_state::created && m_fence == nullptr;
+        if (fence_not_created_yet)
         {
             const uint32 incomplete_value = (m_complete_value == 1u) ? 0u : 1u;
             m_fence = device->create_fence(incomplete_value);
             if (m_fence == nullptr)
-            {
-                return result<>::make_error("error: failed creating fence for this commandlist.");
-            }
+                return result<>::make_error("error: failed creating a new fence for this commandlist.");
         }
 
-        // if we've completed previous, time to flip the value to wait for
+        // if previous submit is finished, time to flip the state value
         if (state == e_state::completed)
         {
-            m_complete_value = 1 - m_complete_value;
+            m_complete_value = 1u - m_complete_value;
         }
 
         // starts allocator
         m_state = e_state::recording;
-
         if (start_impl(device, init_state).is_fail()) 
             return result<>::make_error("error: start_impl failed!");
         
@@ -54,14 +52,14 @@ namespace influx::graphics
     {
         result<> res = {};
         
-        res = end();
-        if (!res.is_success())
+        auto end_res = end();
+        if (!end_res.is_success())
         {
             return result<>::make_error("error: failed ending current commandlist!");
         }
 
-        res = queue->submit({ this });
-        if (!res.is_success())
+        auto submit_res = queue->submit({ this });
+        if (!submit_res.is_success())
         {
             return result<>::make_error("error: failed submitting current commandlist!");
         }

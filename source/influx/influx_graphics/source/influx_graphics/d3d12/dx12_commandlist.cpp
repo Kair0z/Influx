@@ -35,7 +35,6 @@ namespace influx::graphics
 		}
 
 		mpdx_allocator = obtain_allocator(dxdevice);
-
 		ID3D12PipelineState* dxpipeline = (init_state ? init_state->get_native<ID3D12PipelineState>() : nullptr);
 		mpdx_graphics_commandlist->Reset(mpdx_allocator, dxpipeline);
 
