@@ -19,6 +19,11 @@
 // influx::shader
 #include "influx_shader.h"
 
+namespace shaders
+{
+#include "../shaders/compiled/basepass.cso.inc"
+}
+
 namespace influx::renderer
 {
     static constexpr uint32 k_num_gbuffers = 3u;
@@ -241,10 +246,16 @@ namespace influx::renderer
 
     void scene_renderer::load_shaders()
     {
-        return;
         renderer_backend& backend = renderer_backend::get_instance();
         resource_manager& resourceman = backend.get_resource_manager();
 
+        // load into resource_manager
+        shader::compile_output compile_output{};
+        compile_output.m_bytecode.resize(shaders::basepass_cso_len);
+        memcpy(compile_output.m_bytecode.data(), shaders::basepass_cso, sizeof(shaders::basepass_cso));
+        resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+
+#if 0
         string base_dir = backend.get_shadersource_directory(e_shadersource_directory::base);
         string src_dir = backend.get_shadersource_directory(e_shadersource_directory::source);
         string inc_dir = backend.get_shadersource_directory(e_shadersource_directory::include);
@@ -308,6 +319,7 @@ namespace influx::renderer
         compile_shaders(basepass_parsed_file, basepass_sourcefile_path, compile_args);
         compile_shaders(resolvepass_parsed_file, resolvepass_sourcefile_path, compile_args);
         compile_shaders(debugpass_parsed_file, debugpass_sourcefile_path, compile_args);
+#endif
     }
 
     // 1 draw-call == 1 batch
@@ -601,14 +613,13 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target, const scene& scene)
+    void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target)
     {
         for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
             builder.read_texture(get_target_gbuffer_name(i, target)).get();
         }
         builder.write_texture(target.get_name()).get();
-        
         builder.set_viewport(target.get_width(), target.get_height());
     }
 
@@ -626,6 +637,8 @@ namespace influx::renderer
         graphics::commandlist& commandlist = context.get_commandlist();
         pipeline.set_state(commandlist);
 
+        context.get_descheap_gpu(rendergraph::e_gpu_descheap::resource);
+
         // build resolve args
         struct resolve_args final
         {
@@ -637,7 +650,7 @@ namespace influx::renderer
             math::matrix4x4f inv_viewprojection;
             math::matrix4x4f inv_projection;
             int num_lights[4u];
-        } root_args;
+        } root_args{};
         {
             root_args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
 
@@ -718,7 +731,7 @@ namespace influx::renderer
         auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
         [this, &target, &scene](rendergraph::rgpass_builder& builder)
         {
-            build_resolvepass(builder, target, scene);
+            build_resolvepass(builder, target);
         },
         [this, &target, &scene](rendergraph::rgpass_context& ctx)
         {
@@ -797,7 +810,38 @@ namespace influx::renderer
 
     void scene_renderer::build(rendergraph::rendergraph& graph, const worldview& world, const target& target)
     {
+        if (world.is_empty())
+            return;
 
+        // our scene renderer uses a compute shader to operate on the target.
+        // so our target is required to support uav access.
+        // (window backbuffers usually don't)
+        if (target.get_resource()->allows_uav() == false)
+            return;
+
+        renderer_backend& backend = renderer_backend::get_instance();
+        rhi_device& device = backend.get_device();
+
+        // | BASEPASS
+        // | renders a couple of deferred gbuffers
+        auto* basepass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
+            [this, &target](rendergraph::rgpass_builder& builder)
+            {
+                build_basepass(builder, target);
+            },
+            nullptr);
+
+        // | RESOLVE PASS
+        // | compute shader that resolves lighting into a final scene colour UAV
+        auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
+            [this, &target](rendergraph::rgpass_builder& builder)
+            {
+                build_resolvepass(builder, target);
+            },
+            nullptr);
+
+        // | POST PROCESSING PASS
+        // ...
     }
 
     scene_renderer::buffered& scene_renderer::get_buffered_current()

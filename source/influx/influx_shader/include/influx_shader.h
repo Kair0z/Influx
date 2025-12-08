@@ -181,6 +181,10 @@ namespace influx::shader
 		{
 			shader_signature m_signature;
 		};
+		using shadermap = map<e_shader_type, vector<per_shader>>;
+
+		e_shader_type_flags	m_found_types;
+		shadermap			m_shadermap{};
 
 		uint32 get_total_num_shaders() const
 		{
@@ -193,6 +197,27 @@ namespace influx::shader
 		const vector<per_shader>& get_shadermap(e_shader_type type) const
 		{
 			return m_shadermap.at(type);
+		}
+
+		const per_shader* get_first_shader() const
+		{
+			for (const auto& pair : m_shadermap)
+				for (const auto& shader : pair.second)
+				{
+					return &shader;
+				}
+			return nullptr;
+		}
+
+		const per_shader* find_shader_by_entrypoint(const string& entrypoint)
+		{
+			for (const auto& pair : m_shadermap)
+				for (const auto& shader : pair.second)
+				{
+					if (shader.m_signature.m_entrypoint == entrypoint)
+						return &shader;
+				}
+			return nullptr;
 		}
 
 		void merge(const parse_output& other)
@@ -209,13 +234,25 @@ namespace influx::shader
 		{
 			return has_flag(m_found_types, get_shader_flag(type) );
 		}
-
-		e_shader_type_flags						m_found_types;
-		map<e_shader_type, vector<per_shader>>	m_shadermap{};
 	};
 
+	static constexpr const char* k_valid_file_extensions[]
+	{
+		".hlsl"
+	};
+	static const bool is_file_extension_valid(const string& extension)
+	{
+		static constexpr int k_num_valid_file_extensions = _countof(k_valid_file_extensions);
+		for (int i = 0u; i < k_num_valid_file_extensions; ++i)
+		{
+			if (strcmp(extension.c_str(), k_valid_file_extensions[i]) == 0)
+				return true;
+		}
+		return false;
+	}
+
 	/* finds & compiles a shader (based on args) from a.hlsl filepath */
-	INFLUX_SHADER_API 
+	INFLUX_SHADER_API
 	result<compile_output> compile_shader_in_file(
 		const string& filepath,
 		const shader_signature& signature,
@@ -230,12 +267,15 @@ namespace influx::shader
 	
 	/* 
 		finds & parses an .hlsl file 
-		to detect shaders it contains without compiling them 
+		to detect shaders it contains without compiling them
 	*/
 	INFLUX_SHADER_API
 	result<parse_output> parse_shaders_in_file(const string& filepath);
 
-	/* 
+	INFLUX_SHADER_API
+	result<parse_output> parse_shaders_in_folder(const string& folderpath, const bool recursive, const char* file_extension = k_valid_file_extensions[0]);
+
+	/*
 		finds & parses all shaders in a given string
 	*/
 	INFLUX_SHADER_API 

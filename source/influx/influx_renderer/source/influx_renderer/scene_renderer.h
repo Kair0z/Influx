@@ -54,7 +54,7 @@ namespace influx::renderer
 		void update_lightbuffers(const scene& scene);
 
 		void build_basepass(rendergraph::rgpass_builder&, const target& target);
-		void build_resolvepass(rendergraph::rgpass_builder&, const target& target, const scene& scene);
+		void build_resolvepass(rendergraph::rgpass_builder&, const target& target);
 		void execute_basepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
 		void execute_resolvepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
 

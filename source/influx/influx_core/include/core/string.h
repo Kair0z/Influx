@@ -92,7 +92,37 @@ namespace influx
 	{
 		return std::to_string(i);
 	}
+
+	inline string to_string(float value)
+	{
+		return std::to_string(value);
+	}
 #pragma warning (pop)
+
+	inline static bool str_to_float(const string& value, float& out_result)
+	{
+		out_result = std::stof(value);
+		return true;
+	}
+	inline static bool str_to_int(const string& value, int& out_result)
+	{
+		out_result = std::stoi(value);
+		return true;
+	}
+
+	template <typename _t>
+	inline static bool from_string(const string& value, _t& out_result)
+	{
+		if constexpr (std::is_same<_t, float>())
+			return str_to_float(value, out_result);
+		else if constexpr (std::is_same<_t, int>())
+			return str_to_int(value, out_result);
+		else
+		{
+			out_result = value;
+		}
+		return false;
+	}
 
 	// string that is only represented as string in debug
 	class debug_name final

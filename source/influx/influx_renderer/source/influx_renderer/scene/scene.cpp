@@ -46,6 +46,10 @@ namespace influx::renderer
 	{
 		return *m_world;
 	}
+	bool worldview::is_empty() const
+	{
+		return m_world == nullptr || m_world->m_meshes.size() == 0u;
+	}
 #pragma endregion
 
 	bool scene::is_empty() const

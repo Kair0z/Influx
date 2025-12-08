@@ -706,6 +706,29 @@ namespace influx::shader
 		return result;
 	}
 
+	
+	result<parse_output> parse_shaders_in_folder(const string& folderpath, const bool recursive, const char* file_extension)
+	{
+		using result_type = result<parse_output>;
+
+		if (!path::exists(folderpath))
+			return result_type::make_error("error: folderpath doesnt exist!");
+		
+		auto found_files_res = path::get_files_in_directory(folderpath, recursive, file_extension);
+		if (!found_files_res.is_success())
+			return result_type::make_error("error: failed getting files in folder!");
+
+		result_type result{};
+		for (const auto& filepath : found_files_res.get())
+		{
+			auto parsed_file_res = parse_shaders_in_file(to_string(filepath.get_full_path()));
+			if (!parsed_file_res.is_success())
+				continue;
+			result.get().merge(parsed_file_res.get());
+		}
+		return result;
+	}
+
 	result<parse_output> parse_shaders_in_source(const string& shader_source)
 	{
 		using result_type = result<parse_output>;

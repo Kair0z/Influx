@@ -140,6 +140,8 @@ namespace influx::renderer
 
 		INFLUX_RENDER_API const world& get_world() const;
 
+		INFLUX_RENDER_API bool is_empty() const;
+
 		worldview() = default;
 	};
 
