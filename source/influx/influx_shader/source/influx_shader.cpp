@@ -56,8 +56,8 @@ namespace influx::shader
 			}
 			else
 			{
-				auto rooted_path = to_wstring(m_include_folder) + pFilename;
-				hr = get_utils()->LoadFile(rooted_path.c_str(), nullptr, &pEncoding);
+				auto rooted_path = m_include_folder + pFilename;
+				hr = get_utils()->LoadFile(rooted_path.c_wstr(), nullptr, &pEncoding);
 			}
 			return hr;
 		}
@@ -218,7 +218,8 @@ namespace influx::shader
 
 				// can be either ROOT CONSTANTS
 				static const char* k_rootglobals_str = "$Globals";
-				const bool is_rootvars = str::contains(constantBufferDesc.Name, k_rootglobals_str, false);
+				string constbuffername = constantBufferDesc.Name;
+				const bool is_rootvars = constbuffername.contains(k_rootglobals_str, false);
 				if (is_rootvars)
 				{
 					for (uint32 i = 0u; i < constantBufferDesc.Variables; ++i)
@@ -401,7 +402,7 @@ namespace influx::shader
 		if (hres != S_OK || (pErrors && pErrors->GetStringLength() > 0))
 		{
 			string all_errors_string = {};
-			all_errors_string.append((char*)pErrors->GetBufferPointer());
+			all_errors_string.add((char*)pErrors->GetBufferPointer());
 			return all_errors_string;
 		}
 
@@ -456,7 +457,7 @@ namespace influx::shader
 		for (uint64 i = 0u; i < arguments.size(); ++i)
 		{
 			warguments[i] = to_wstring(arguments[i]);
-			lwarguments[i] = warguments[i].c_str();
+			lwarguments[i] = warguments[i].c_wstr();
 		}
 
 		influx_include_handler include_handler{};
@@ -474,19 +475,19 @@ namespace influx::shader
 		// handle compile errors / warnings
 		{
 			string errors = get_compile_errors(*pCompileResult);
-			std::istringstream stream(errors);
+			std::wistringstream stream(errors.c_wstr());
 			string line;
 
 			// parse the whole log
 			bool has_true_error = false;
 			bool has_warning = false;
-			while (std::getline(stream, line))
+			while (std::getline(stream, line.get_std_w()))
 			{
 				const bool is_empty = line.empty();
 				if (is_empty) continue;
 
-				const bool is_warning = str::contains(line, "warning", false);
-				const bool is_error = str::contains(line, "error", false);
+				const bool is_warning = line.contains("warning", false);
+				const bool is_error = line.contains("error", false);
 
 				has_warning |= is_warning;
 				has_true_error |= is_error;
@@ -532,12 +533,12 @@ namespace influx::shader
 			hres = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugData), &pDebugDataPath);
 			if (hres == S_OK && pDebugData != nullptr)
 			{
-				wstring foldername = to_wstring(args.m_pdb_folder);
-				wstring filename = to_wstring(args.m_pdb_filename) + make_shader_name_string(signature, args);
+				wstring foldername = args.m_pdb_folder;
+				wstring filename = args.m_pdb_filename + make_shader_name_string(signature, args);
 				wstring filepath = foldername + L"/" + filename + L".pdb";
 
 				hres = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData,
-					filepath.c_str(), true);
+					filepath.c_wstr(), true);
 			}
 			else
 			{
@@ -602,7 +603,7 @@ namespace influx::shader
 		wstring wfilepath = to_wstring(filepath);
 		IDxcBlobEncoding* pShaderSourceFile;
 		HRESULT
-		hresult = get_utils()->LoadFile(wfilepath.c_str(), nullptr, &pShaderSourceFile);
+		hresult = get_utils()->LoadFile(wfilepath.c_wstr(), nullptr, &pShaderSourceFile);
 		if (hresult != S_OK)
 		{
 			return result_type::make_error("error: IDxcUtils->LoadFile failed!");
@@ -739,7 +740,7 @@ namespace influx::shader
 
 		parse_output result_parse{};
 
-		vector<string> source_lines = str::split(shader_source, "\n");
+		vector<string> source_lines = shader_source.split("\n");
 		for (uint32 i = 0u; i < shader::k_num_shadertypes; ++i)
 		{
 			for (uint32 l = 0u; l < source_lines.size(); ++l)
@@ -809,11 +810,11 @@ namespace influx::shader
 		const string target = build_shaderlib_target_string(args.m_target);
 		const wstring wtarget = to_wstring(target);
 		warguments.push_back(L"-T ");
-		warguments.push_back(wtarget.c_str());
+		warguments.push_back(wtarget.c_wstr());
 
 		const wstring wentrypoint = to_wstring(args.m_entrypoint);
 		warguments.push_back(L"-E ");
-		warguments.push_back(wentrypoint.c_str());
+		warguments.push_back(wentrypoint.c_wstr());
 
 		// compile!
 		IDxcResult* compile_result = nullptr;

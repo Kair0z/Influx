@@ -135,7 +135,7 @@ namespace influx::renderer
 
 			if (!identifier.empty())
 			{
-				auto split = str::split(identifier, "::");
+				vector<string> split = identifier.split("::");
 				shader_signature.m_entrypoint = split[1];
 				shader_signature.m_filename = split[0];
 				shader_signature.cache_id();

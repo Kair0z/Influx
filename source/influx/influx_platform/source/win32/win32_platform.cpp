@@ -22,7 +22,7 @@ namespace influx::platform
 
 	void platform::set_current_directory(const string& path)
 	{
-		::SetCurrentDirectory(to_wstring(path).c_str());
+		::SetCurrentDirectory(path.c_wstr());
 	}
 
 	math::vectoru2 platform::get_cursor_screenpos()

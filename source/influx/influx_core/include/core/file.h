@@ -18,13 +18,7 @@ namespace influx
 		/* I hate strings >:( */
 		using char_type = wchar_t;
 		using other_char_type = char;
-		using str_type = wstring;
-		using other_str_type = string;
-
-		inline static str_type convert(const other_str_type& in)
-		{
-			return to_wstring(in);
-		}
+		using str_type = influx::string;
 
 	public:
 		template <typename _t = char>
@@ -45,7 +39,7 @@ namespace influx
 	private:
 		inline void initialize(const str_type& str)
 		{
-			std::filesystem::path path(str);
+			std::filesystem::path path( str );
 
 			const wstring filename = path.filename().wstring();
 			const wstring directory = path.parent_path().wstring() + L"/";
@@ -75,8 +69,8 @@ namespace influx
 		inline void replace_extension(const char_type* str)
 		{
 			m_extension = str;
-			m_filename = m_filename.substr(0u, m_filename.find(L'.')) + str;
-			m_full_path = m_full_path.substr(0u, m_full_path.find(L'.')) + str;
+			m_filename = m_filename.substr(0u, m_filename.find('.')) + str;
+			m_full_path = m_full_path.substr(0u, m_full_path.find('.')) + str;
 		}
 
 		inline result<uint64> get_content_hash(bool query)
@@ -108,11 +102,6 @@ namespace influx
 			return std::filesystem::exists(path);
 		}
 
-		inline static bool exists(const other_str_type& in_path)
-		{
-			return exists(convert(in_path));
-		}
-
 		inline bool exists() const
 		{ 
 			return exists(m_full_path); 
@@ -129,31 +118,16 @@ namespace influx
 			return std::filesystem::is_directory(path);
 		}
 
-		inline static bool is_directory(const other_str_type& in_path)
-		{
-			return is_directory(convert(in_path));
-		}
-
 		// todo...
 		inline static bool is_valid_directory_path(const str_type& in_path)
 		{
 			return true;
 		}
 
-		inline static bool is_valid_directory_path(const other_str_type& in_path)
-		{
-			return is_valid_directory_path(convert(in_path));
-		}
-
 		// todo...
 		inline static bool is_valid_filepath(const str_type& cstr)
 		{
 			return true;
-		}
-
-		inline static bool is_valid_filepath(const other_str_type& in_path)
-		{
-			return is_valid_filepath(convert(in_path));
 		}
 
 		inline bool is_directory() const
@@ -173,11 +147,6 @@ namespace influx
 			return {};
 		}
 
-		inline static result<> create_directory(const other_str_type& in_path)
-		{
-			return create_directory(convert(in_path));
-		}
-
 		inline static result<> create_file(const str_type& in_path)
 		{
 			if (!is_valid_filepath(in_path))
@@ -190,18 +159,13 @@ namespace influx
 			// create the directory chain
 			std::filesystem::create_directories(path.parent_path());
 
-			std::ofstream fstream(in_path);
+			std::ofstream fstream(in_path.get_std_w());
 			if (!fstream.is_open())
 			{
 				return result<>::make_error("failed opening write filestream to path!");
 			}
 
 			return {};
-		}
-
-		inline static result<> create_file(const other_str_type& in_path)
-		{
-			return create_file(convert(in_path));
 		}
 
 		inline static result<vector<path>> get_files_in_directory(const str_type& directory, bool recursive, const str_type& file_extension = {})
@@ -235,7 +199,7 @@ namespace influx
 
 			if (recursive)
 			{
-				for (const auto& entry : std::filesystem::recursive_directory_iterator(directory))
+				for (const auto& entry : std::filesystem::recursive_directory_iterator(directory.get_std_w()))
 				{
 					if (entry.is_regular_file())
 					{
@@ -245,18 +209,13 @@ namespace influx
 			}
 			else
 			{
-				for (const auto& entry : std::filesystem::directory_iterator(directory))
+				for (const auto& entry : std::filesystem::directory_iterator(directory.get_std_w()))
 				{
 					push_file(entry);
 				}
 			}
 
 			return out_files;
-		}
-
-		inline static result<vector<path>> get_files_in_directory(const other_str_type& path_str, bool recursive, const other_str_type& file_extension = {})
-		{
-			return get_files_in_directory(convert(path_str), recursive, convert(file_extension));
 		}
 
 		inline static result<> copy_file_contents(const str_type& src_path, const str_type& dest_path)
@@ -266,18 +225,18 @@ namespace influx
 			if (exists(dest_path) == false)
 				return result<>::make_error("dest_path is not valid!");
 
-			std::ifstream ifs(src_path);
+			std::wifstream ifs(src_path.get_std_w());
 			if (!ifs.is_open())
-				return result<>::make_error("failed opening ifstream!");
+				return result<>::make_error("failed opening wifstream!");
 
-			std::ofstream ofs(dest_path);
+			std::ofstream ofs(dest_path.get_std_w());
 			if (!ofs.is_open())
 				return result<>::make_error("failed opening ofstream!");
 
 			string line = "";
-			while (std::getline(ifs, line))
+			while (std::getline(ifs, line.get_std_w()))
 			{
-				ofs << line << "\n";
+				ofs << line.get_std() << "\n";
 			}
 			return {};
 		}
@@ -285,7 +244,7 @@ namespace influx
 		inline static result<uint32> get_num_lines_in_file(const str_type& src_path)
 		{
 			using result_type = result<uint32>;
-			std::ifstream file(src_path, std::ios::binary);
+			std::ifstream file(src_path.get_std_w(), std::ios::binary);
 			if (!file.is_open())
 			{
 				return result_type::make_error("failed opening ifstream for path!");
@@ -298,22 +257,14 @@ namespace influx
 		inline static result<string> read_all_to_string(const str_type& path)
 		{
 			using result_type = result<string>;
-
-			std::ifstream file(path, std::ios::in | std::ios::binary);
+			std::wifstream file(path.c_wstr(), std::ios::in | std::ios::binary);
 			if (file)
 			{
-				string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+				std_wstr wcontent{ std::istreambuf_iterator<wchar_t>(file), std::istreambuf_iterator<wchar_t>() };
 				file.close();
-
-				return content;
+				return string(wcontent);
 			}
-
 			return result_type::make_error("failed opening file at path!");
-		}
-
-		inline static result<string> read_all_to_string(const other_str_type& path)
-		{
-			return read_all_to_string(convert(path));
 		}
 
 		// creates a duplicate file with number appended
@@ -335,7 +286,7 @@ namespace influx
 				{
 					// if the path has a version tag,
 					// parse the version tag and increment it
-					const uint32 number = std::stoul(new_name.substr(found + 1u));
+					const uint32 number = std::stoul(new_name.substr(found + 1u).c_wstr());
 					new_name = new_name.substr(0u, found) + L"_" + to_wstring(number + 1u) + src_as_path.m_extension;
 				}
 				else
@@ -364,22 +315,17 @@ namespace influx
 			return {};
 		}
 
-		inline static result<> duplicate_file(const other_str_type& src_path, const other_str_type& dup_extension = {})
-		{
-			return duplicate_file(convert(src_path), convert(dup_extension));
-		}
-
 		// o(n): direct indexing is not supported :sad:
 		inline static result<vector<string>> get_lines(const str_type& path, const uint32 start_index, const uint32 max_index = uint32(-1))
 		{
 			using result_type = result<vector<string>>;
-			std::ifstream file(path);
+			std::wifstream file(path.c_wstr());
 			if (!file) { return {}; }
 
 			vector<string> result_lines{};
 			uint32 index = 0u;
 			string line = "";
-			while (index < max_index && std::getline(file, line))
+			while (index < max_index && std::getline(file, line.get_std_w()))
 			{
 				if (index >= start_index)
 				{
@@ -390,23 +336,13 @@ namespace influx
 			return result_lines;
 		}
 
-		inline static result<vector<string>> get_lines(const other_str_type& path, const uint32 start_index, const uint32 max_index = uint32(-1))
-		{
-			return get_lines(convert(path), start_index, max_index);
-		}
-
 		inline static result<string> content_to_string(const str_type& path)
 		{
-			std::ifstream file(path); // Open the file
+			std::wifstream file(path.c_wstr()); // Open the file
 
-			std::stringstream buffer;
+			std::wstringstream buffer;
 			buffer << file.rdbuf(); // Read the entire file into the buffer
-			return buffer.str();
-		}
-
-		inline static result<string> content_to_string(const other_str_type& in_path)
-		{
-			return content_to_string(convert(in_path));
+			return string(buffer.str());
 		}
 
 		inline static result<> overwrite(const str_type& path, const string& new_content)
@@ -430,7 +366,7 @@ namespace influx
 		{
 			if (exists(path.c_str()))
 			{
-				std::ofstream file(path, std::ios::trunc); // Open in truncation mode
+				std::wofstream file(path.c_wstr(), std::ios::trunc); // Open in truncation mode
 				file.close(); // Closing the file ensures changes are save
 				return {};
 			}
@@ -438,55 +374,27 @@ namespace influx
 			return result<>::make_error("path does not exist!");
 		}
 
-		inline static result<> clear_content(const other_str_type& path)
-		{
-			return clear_content(convert(path));
-		}
-
 		inline static result<> push_line(const str_type& path, const string& line)
 		{
 			return push_lines(path, { line });
 		}
 
-		inline static result<> push_line(const other_str_type& in_path, const string& line)
-		{
-			return push_lines(convert(in_path), { line });
-		}
-
 		inline static result<> push_lines(const str_type& in_path, const vector<string>& lines)
 		{
-			std::ofstream fstream(in_path, std::ios::app);
+			std::wofstream fstream(in_path.get_std_w(), std::ios::app);
 			if (fstream.is_open() == false)
 				return result<>::make_error("failed opening ofstream to path!");
 
 			for (const string& str : lines)
 			{
-				fstream << str << "\n";
+				fstream << str.get_std_w() << L"\n";
 			}
 			fstream.close();
 			return {};
 		}
 
-		inline static result<> push_lines(const other_str_type& path, const vector<string>& lines)
-		{
-			return push_lines(convert(path), lines);
-		}
-
 		template <typename _func>
 		inline static result<> scoped_push_lines(const str_type& in_path, _func&& func)
-		{
-			std::ofstream file(in_path, std::ios::app);
-
-			if (file.is_open() == false)
-				return result<>::make_error("failed opening fstream to in_path.");
-
-			func(file);
-			file.close();
-			return {};
-		}
-
-		template <typename _func>
-		inline static result<> scoped_push_lines(const other_str_type& in_path, _func&& func)
 		{
 			std::ofstream file(in_path, std::ios::app);
 
@@ -532,19 +440,9 @@ namespace influx
 		/* constructors */
 		path() = default;
 
-		inline path(const other_str_type& filepath)
-		{
-			initialize(convert(filepath));
-		}
-
 		inline path(const char_type* cstr)
 		{
 			initialize(str_type(cstr));
-		}
-
-		inline path(const other_char_type* cstr)
-		{
-			initialize(convert(other_str_type(cstr)));
 		}
 
 		inline path(const str_type& filepath)

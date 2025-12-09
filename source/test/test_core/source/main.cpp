@@ -1,16 +1,18 @@
 // choose your test:
 #define TEST_MATH		0
 #define TEST_BASETYPES	0
-#define TEST_STRING		0
+#define TEST_STRING		1
 #define TEST_RESULT		0
 #define TEST_CONTAINER	0
 #define TEST_POINTER	0
 #define TEST_ASCII_ART	0
 #define TEST_SORT		0
-#define TEST_GRAPH		1
+#define TEST_GRAPH		0
 
 // STL
 #include <array>
+#include <fstream>
+#include <filesystem>
 
 // common
 #include "core/basetypes.h"
@@ -409,7 +411,22 @@ void test_graph()
 	arr.to_dotgraph(std::cout);
 }
 #endif
+#if TEST_STRING
+void test_string()
+{
+	string str{};
 
+	const std::wstring& wstrcpy = str;
+	std::ofstream ofs{ str.get_std_w() };
+	std::filesystem::path path( str );
+
+	const char* characters{"HAHAHHAkjkda"};
+	string lower = string::make_lowercase(characters);
+
+	std::string other{ "HahahahA" };
+	string lowered = string::make_lowercase(other);
+}
+#endif
 int main()
 {
 #if TEST_BASETYPES
@@ -438,5 +455,8 @@ int main()
 #endif
 #if TEST_GRAPH
 	test_graph();
+#endif
+#if TEST_STRING
+	test_string();
 #endif
 }

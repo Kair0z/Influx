@@ -53,7 +53,7 @@ namespace influx::imp
 		path::create_file(file.get_full_path());
 
 		m_ofstream.close();
-		m_ofstream.open(file.get_full_path());
+		m_ofstream.open(file.get_full_path().c_str());
 		influx_assert(m_ofstream.is_open());
 
 		const bool without_extension = false;
@@ -70,7 +70,7 @@ namespace influx::imp
 		m_is_loading = true;
 		
 		m_ifstream.close();
-		m_ifstream.open(file.get_full_path());
+		m_ifstream.open(file.get_full_path().c_str());
 		influx_assert(m_ifstream.is_open());
 
 		const bool without_extension = false;

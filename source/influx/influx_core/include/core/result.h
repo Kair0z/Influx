@@ -54,6 +54,7 @@ namespace influx
 	public:
 		// constructors
 		result() : m_expected{}, m_unexpected{} {}
+		result(_t&& value) : m_expected{ value }, m_unexpected{} {}
 		result(const _t& value) { m_expected = value; }
 		result(const _e& error) { m_unexpected = error; }
 

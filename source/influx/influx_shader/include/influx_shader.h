@@ -238,7 +238,8 @@ namespace influx::shader
 
 	static constexpr const char* k_valid_file_extensions[]
 	{
-		".hlsl"
+		".hlsl",
+		".slang"
 	};
 	static const bool is_file_extension_valid(const string& extension)
 	{

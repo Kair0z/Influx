@@ -1945,7 +1945,7 @@ namespace influx::rhi
 			return result_type::make_error("m_native_object failed casting to dx12_resource!");
 
 		wstring wname = to_wstring(name);
-		HRESULT hres = dxresource->SetName(wname.c_str());
+		HRESULT hres = dxresource->SetName(wname.c_wstr());
 		if (hres != S_OK)
 			return result_type::make_error("ID3D12Resource::SetName() failed!");
 

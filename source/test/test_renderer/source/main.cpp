@@ -26,7 +26,9 @@ using namespace influx;
 
 void load_scene(const string& filepath, imp::scene_load_args& args, renderer::scene& out_scene)
 {
-	const string filename = str::split(str::split(filepath, "/").back(), ".").front();
+	string filename = filepath.split('/').back();
+	filename = filename.split('.').front();
+
 	static vector<camera> cameras{};
 	static vector<math::matrix4x4f> mesh_transforms{};
 	static vector<math::matrix4x4f> camera_transforms{};
@@ -331,7 +333,7 @@ int main()
 		renderer::end_frame();
 		renderer::present_all(present_args);
 
-		std::cout << renderer::get_last_rendergraph_dotfile() << "\n";
+		std::cout << renderer::get_last_rendergraph_dotfile().c_str() << "\n";
 		std::cin.get();
 	}
 	renderer::cleanup();

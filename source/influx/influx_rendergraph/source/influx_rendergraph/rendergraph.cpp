@@ -648,21 +648,21 @@ namespace influx::rendergraph
 		{
 			const rgpass& pass = m_passes[i];
 			stream << get_id(pass.m_name) << " ";
-			stream << "[shape=oval, label=\"" << pass.m_name.get_string() << "\"];";
+			stream << "[shape=oval, label=\"" << pass.m_name.get_string().c_str() << "\"];";
 			stream << "\n";
 		}
 		for (uint32 i = 0u; i < m_textures.size(); ++i)
 		{
 			const auto& texture = m_textures[i];
 			stream << get_id(texture->m_name) << " ";
-			stream << "[shape=box, label=\"" << texture->m_name.get_string() << "\"];";
+			stream << "[shape=box, label=\"" << texture->m_name.get_string().c_str() << "\"];";
 			stream << "\n";
 		}
 		for (uint32 i = 0u; i < m_buffers.size(); ++i)
 		{
 			const auto& buffer = m_buffers[i];
 			stream << get_id(buffer->m_name) << " ";
-			stream << "[shape=box, label=\"" << buffer->m_name.get_string() << "\"];";
+			stream << "[shape=box, label=\"" << buffer->m_name.get_string().c_str() << "\"];";
 			stream << "\n";
 		}
 

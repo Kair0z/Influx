@@ -11,7 +11,10 @@ namespace influx
 {
 	using uint32 = unsigned int;
 	using upair = std::pair<uint32, uint32>;
+
+#ifndef __CORE_STRING_H_
 	using string = std::string;
+#endif
 
 	// this class keeps connection info between raw indices
 	// 
@@ -257,11 +260,11 @@ namespace influx
 				os << "\n";
 				string label;
 				decorator(nodes.first, label);
-				os << "\"" << label << "\"";
+				os << "\"" << label.c_str() << "\"";
 				os << " -> ";
 				// os << " " << linkstate_cstring[state] << " ";
 				decorator(nodes.second, label);
-				os << "\"" << label << "\"";
+				os << "\"" << label.c_str() << "\"";
 				os << " ";
 
 				// node descriptor

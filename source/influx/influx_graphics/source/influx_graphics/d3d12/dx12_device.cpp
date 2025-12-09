@@ -1233,7 +1233,7 @@ namespace influx::graphics
 		// work graph desc
 		CD3DX12_WORK_GRAPH_SUBOBJECT* workgraph_desc = state_desc.CreateSubobject<CD3DX12_WORK_GRAPH_SUBOBJECT>();
 		workgraph_desc->IncludeAllAvailableNodes();
-		workgraph_desc->SetProgramName(wprogram_name.c_str());
+		workgraph_desc->SetProgramName(wprogram_name.c_wstr());
 
 		HRESULT 
 		hres = get_main_device<ID3D12Device9>()->CreateStateObject(state_desc, IID_PPV_ARGS(&dxstateobject));
@@ -1249,11 +1249,11 @@ namespace influx::graphics
 
 		// setup state object info
 		as_dx12_pipeline->m_stateobject_props.m_program_name = program_name;
-		const auto program_id = stateobj_props->GetProgramIdentifier(wprogram_name.c_str());
+		const auto program_id = stateobj_props->GetProgramIdentifier(wprogram_name.c_wstr());
 		memcpy(as_dx12_pipeline->m_stateobject_props.m_program_id, program_id.OpaqueData, sizeof(program_id.OpaqueData));
 
 		// setup workgraph info
-		const uint32 graph_index = workgraph_props->GetWorkGraphIndex(wprogram_name.c_str());
+		const uint32 graph_index = workgraph_props->GetWorkGraphIndex(wprogram_name.c_wstr());
 		as_dx12_pipeline->m_workgraph_props.m_graph_index = graph_index;
 
 		D3D12_WORK_GRAPH_MEMORY_REQUIREMENTS workgraph_mem_req{};

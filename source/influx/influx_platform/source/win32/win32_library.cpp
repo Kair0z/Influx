@@ -27,8 +27,8 @@ namespace influx::platform
 
 	win32_library::win32_library(const string& path)
 	{
-		wstring wpath = to_wstring(path);
-		m_instance = ::LoadLibrary(wpath.c_str());
+		wstring wpath = path;
+		m_instance = ::LoadLibrary(wpath.c_wstr());
 		if (!m_instance)
 		{
 			// error!
@@ -36,7 +36,7 @@ namespace influx::platform
 
 		// enumerate functions
 		vector<string> functions{};
-		m_module = LoadLibraryEx(wpath.c_str(), nullptr, DONT_RESOLVE_DLL_REFERENCES);
+		m_module = LoadLibraryEx(wpath.c_wstr(), nullptr, DONT_RESOLVE_DLL_REFERENCES);
 		if (m_module)
 		{
 			// find the export directory

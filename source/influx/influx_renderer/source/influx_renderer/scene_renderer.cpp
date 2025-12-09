@@ -637,8 +637,6 @@ namespace influx::renderer
         graphics::commandlist& commandlist = context.get_commandlist();
         pipeline.set_state(commandlist);
 
-        context.get_descheap_gpu(rendergraph::e_gpu_descheap::resource);
-
         // build resolve args
         struct resolve_args final
         {

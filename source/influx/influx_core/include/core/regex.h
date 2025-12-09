@@ -5,7 +5,7 @@
 
 namespace influx
 {
-	using match = std::smatch;
+	using match = std::wsmatch;
 
 	class regex
 	{
@@ -28,7 +28,7 @@ namespace influx
 		{
 			vector<string> results{};
 
-			std::regex reg(pattern);
+			std::wregex reg(pattern.c_wstr());
 			match match{};
 
 			auto start = text.cbegin();

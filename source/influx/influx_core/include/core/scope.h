@@ -88,7 +88,7 @@ namespace influx
 		std::cout << "scopes avg. duration:" << "\n";
 		for (const auto& pair : sorted_scopes)
 		{
-			std::cout << "[" << pair.first << "] " << pair.second << " ms \n";
+			std::cout << "[" << pair.first.get_std() << "] " << pair.second << " ms \n";
 		}
 	}
 }

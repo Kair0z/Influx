@@ -35,7 +35,7 @@ namespace influx
 			break;
 		}
 		
-		const string log_string = prefix + std::vformat(format, std::make_format_args(args...));
+		const string log_string = prefix + std::vformat(format.get_std(), std::make_format_args(args...));
 		printf((log_string + "\n").c_str());
 		return log_string;
 	}

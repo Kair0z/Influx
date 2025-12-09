@@ -29,7 +29,7 @@ struct ps_input
 struct ps_output
 {
     gbuffer gbuffer_data;
-};  
+};
 
 #define FLX_BINDLESS 1
 
@@ -42,8 +42,20 @@ ConstantBuffer<per_draw>                g_perdraw           : register(b3);
 
 #if !FLX_BINDLESS
 SamplerState                            g_sampler           : register(s0);
-
 #endif
+
+[shader("vertex")]
+ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
+{
+    return vs_basepass(
+        input,
+        vertex_id,
+        instance_id,
+        g_perdraw,
+        g_perview,
+        g_permaterial,
+        ResourceDescriptorHeap[0]);
+}
 
 Texture2D get_texture(int index)
 {
@@ -59,46 +71,6 @@ SamplerState get_sampler(int index)
 #else
     return g_sampler;
 #endif
-}
-
-StructuredBuffer<per_instance> get_instance_buffer()
-{
-    return ResourceDescriptorHeap[0];
-}
-
-[shader("vertex")]
-ps_input main_vs(vs_input input, uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
-{
-    ps_input output = (ps_input)0;
-
-    // get instance data
-    instance_id += g_perdraw.m_base_instance;
-    per_instance instance_data = get_instance_buffer()[instance_id];
-    
-    // get vertex data
-    per_vertex_data vertex_data = input.vertex_data;
-
-    // positions
-    float4x4 instance_transform = (float4x4)instance_data.m_transform;
-    float4x4 mvp = mul((float4x4)g_perview.m_viewprojection, instance_transform);
-    output.position = mul(mvp, float4 ( vertex_data.position, 1.0f ) );
-    output.worldPos = mul(instance_transform, float4(vertex_data.position, 1.0f)).xyz;
-
-    // uvs
-    output.texcoord = vertex_data.texcoord;
-    
-    // normals
-    output.normal = normalize(mul((float3x3)instance_transform, vertex_data.normal));
-
-    // color
-    float4 instance_color = instance_data.m_colour;
-    output.colour.rgb = lerp(instance_color.rgb, g_permaterial.m_colour.rgb, 0.5f);
-    
-    // texids
-    output.texid_albedo = instance_data.get_albedo_index();
-    output.texid_normal = instance_data.get_normal_index();
-
-    return output;
 }
 
 [shader("pixel")]

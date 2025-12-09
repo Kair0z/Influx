@@ -178,13 +178,15 @@ namespace influx::shader
 	{
 		DXIL,
 		SPIRV,
+		SLANG,
 		num
 	};
 	static constexpr uint8 k_num_shaderplatforms = static_cast<uint8>(e_shader_platform::num);
 	static const char* k_shaderplatform_strings[k_num_shaderplatforms]
 	{
 		"DXIL",
-		"SPIRV"
+		"SPIRV",
+		"SLANG"
 	};
 	// ===========================================================
 

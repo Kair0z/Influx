@@ -228,7 +228,7 @@ namespace influx::platform
 			windowClassExtended.hCursor = ::LoadCursor(NULL, IDC_ARROW);
 			windowClassExtended.hbrBackground = classBackgroundBrush;
 			windowClassExtended.lpszMenuName = NULL;
-			windowClassExtended.lpszClassName = wname.c_str();
+			windowClassExtended.lpszClassName = wname.c_wstr();
 			windowClassExtended.hIconSm = ::LoadIcon(NULL, IDI_APPLICATION);
 
 			auto res = ::RegisterClassEx(&windowClassExtended);
@@ -263,8 +263,8 @@ namespace influx::platform
 
 			newWindowHandle = ::CreateWindowEx(
 				extendedWindowStyle,
-				wname.c_str(),
-				wname.c_str(),
+				wname.c_wstr(),
+				wname.c_wstr(),
 				windowStyle,
 				xPos, yPos, width, height,
 				parentWindow, parentMenu, instance, NULL);
@@ -394,8 +394,8 @@ namespace influx::platform
 
 		int winresult = MessageBox(
 			NULL,
-			wmessage.c_str(),
-			wcaption.c_str(),
+			wmessage.c_wstr(),
+			wcaption.c_wstr(),
 			winflags
 		);
 
@@ -498,7 +498,7 @@ namespace influx::platform
 	void win32_window::set_title(const string& new_title)
 	{
 		wstring wtitle = to_wstring(new_title);
-		::SetWindowTextW((HWND)m_handle, wtitle.c_str());
+		::SetWindowTextW((HWND)m_handle, wtitle.c_wstr());
 	}
 	bool win32_window::is_foreground() const
 	{
