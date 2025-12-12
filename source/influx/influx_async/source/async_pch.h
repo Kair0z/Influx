@@ -16,5 +16,3 @@
 // STL
 #include <thread>
 #include <mutex>
-
-constexpr static size_t k_task_invalid_idx = (size_t)-1;

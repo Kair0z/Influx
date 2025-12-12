@@ -413,28 +413,29 @@ template <> struct std::hash<influx::string>
 // string that is only represented as string in debug
 namespace influx 
 {
+#if 0
+	inline void format_hash(wcstr& cstr)
+	{
+		static constexpr uint64 k_num_digits_per_uint64 = 20;
+		static constexpr uint64 k_hashcstr_buffersize = k_num_digits_per_uint64 + 1u;
+
+		int written = std::swprintf(cstr, sizeof(m_hash_cstr) / sizeof(wchar_t),
+			L"%llu", static_cast<unsigned long long>(m_hash));
+		if (written < 0 || written >= sizeof(m_hash_cstr))
+		{
+			// todo: Handle error (buffer too small or formatting failed)
+		}
+	}
+#endif
+
 	class debug_name final
 	{
 	private:
 		static constexpr uint64 k_invalid = (uint64)-1;
-		static constexpr uint64 k_num_digits_per_uint64 = 20; 
-		static constexpr uint64 k_hashcstr_buffersize = k_num_digits_per_uint64 + 1u;
-
+		uint64 m_hash = k_invalid;
 #if INFLUX_DEBUG
 		string m_string = "";
 #endif
-		uint64 m_hash = k_invalid;
-		wchar_t m_hash_cstr[k_num_digits_per_uint64]{};
-
-		inline void format_hash()
-		{
-			int written = std::swprintf(m_hash_cstr, sizeof(m_hash_cstr) / sizeof(wchar_t),
-				L"%llu", static_cast<unsigned long long>(m_hash));
-			if (written < 0 || written >= sizeof(m_hash_cstr))
-			{
-				// todo: Handle error (buffer too small or formatting failed)
-			}
-		}
 
 	public:
 		debug_name() = default;
@@ -462,7 +463,6 @@ namespace influx
 #if INFLUX_DEBUG
 			m_string = to_string(hash);
 #endif
-			format_hash();
 		}
 
 		inline void set(cstr cstr)
@@ -477,7 +477,6 @@ namespace influx
 #if INFLUX_DEBUG
 			m_string = str;
 #endif
-			format_hash();
 		}
 
 		inline bool is_empty() const
@@ -492,7 +491,11 @@ namespace influx
 
 		inline string get_string() const
 		{
+#if INFLUX_DEBUG
 			return m_string;
+#else
+			return "";
+#endif		
 		}
 
 		inline wcstr get_wcstr() const
@@ -500,7 +503,7 @@ namespace influx
 #if INFLUX_DEBUG
 			return m_string.c_wstr();
 #else
-			return m_hash_cstr;
+			return L"";
 #endif
 		}
 

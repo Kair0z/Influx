@@ -11,30 +11,37 @@
 #include "core/function.h"
 #include "core/string.h"
 #include "core/result.h"
+#include "core/wait.h"
 
 namespace influx::async
 {
 	template <typename _t = char>
 	using result = influx::result<_t, const char*>;
+	enum class e_log { info, warning, error, count };
+	typedef void (*log_function)(e_log, const char*);
 
-	constexpr static uint64 k_max_num_tasks_in_flight = 4096u;
-	extern constexpr uint64 INFLUX_ASYNC_API get_static_num_bytes();
-
-	struct wait_args final
-	{
-		float m_max_ms = FLT_MAX;
-		float* mp_out_ms = nullptr;
-		function<void()> m_wait_func{};
-	};
+	// task handle
+	constexpr static uint64 k_task_invalid_idx = (uint64)-1;
 
 	enum class e_task_state : uint8
 	{
-		allocated,
-		queued,
-		running,
-		finished,
+		allocated,		// the task is pre-allocated in memory, but won't be ran (yet)
+		queued,			// the task is waiting to be executed
+		running,		// the task is running
+		finished,		// the task has completed
 		max,
 		invalid = max
+	};
+
+	struct task_create_args final
+	{
+		debug_name			m_name = "task";
+		function<void()>	m_func_execute = {};
+
+		task_create_args() = default;
+		task_create_args(const debug_name& name, const function<void()>& func)
+			: m_name{ name }, m_func_execute{ func } {
+		}
 	};
 
 	struct task_stats final
@@ -44,18 +51,9 @@ namespace influx::async
 		float m_seconds_total = 0.0f;
 	};
 
-	struct task_create_args final
-	{
-		string m_name = "task";
-		function<void()> m_func_execute = {};
-
-		task_create_args() = default;
-		task_create_args(const string& name, const function<void()>& func)
-			: m_name{ name }, m_func_execute{ func } { }
-	};
-
 	class task_handle final
 	{
+		uint64 m_task_data_idx = k_task_invalid_idx;
 	public:
 		INFLUX_ASYNC_API bool is_valid() const;
 
@@ -72,7 +70,7 @@ namespace influx::async
 
 		// returns stats if is_valid() == true, else returns error result
 		INFLUX_ASYNC_API result<task_stats> get_stats() const;
-		
+
 		// copy & move constructable
 		INFLUX_ASYNC_API task_handle();
 		INFLUX_ASYNC_API task_handle(const task_handle& other);
@@ -81,8 +79,6 @@ namespace influx::async
 		INFLUX_ASYNC_API task_handle& operator=(task_handle&& other) noexcept;
 
 	private:
-		uint64 m_task_data_idx = -1;
-
 		friend class async_manager;
 		friend struct task_data;
 		task_handle(uint64 task_idx);
@@ -91,8 +87,17 @@ namespace influx::async
 		result<struct task_data*> find_task_data() const;
 	};
 
-	enum class e_log { info, warning, error, count };
-	typedef void (*log_function)(e_log, const char*);
+	// defines & constants
+#define INFLUX_ASYNC_OMIT_STATS 1
+#if INFLUX_ASYNC_OMIT_STATS
+	static constexpr uint64 k_task_data_stats_bytesize = 0u;
+#else
+	static constexpr uint64 k_num_timepoints_per_task_data = 4u;
+	static constexpr uint64 k_task_data_stats_bytesize = sizeof(task_stats) + (k_num_timepoints_per_task_data * 8u);
+#endif
+	static constexpr uint64 k_task_data_bytesize = sizeof(task_create_args) + 12u + k_task_data_stats_bytesize;
+	static constexpr uint64 k_taskbuffer_capacity_bytes = 32u * 4096u * 4096u;
+	static constexpr uint64 k_max_num_tasks_in_flight = k_taskbuffer_capacity_bytes / k_task_data_bytesize;
 
 	struct init_args final
 	{
@@ -157,6 +162,11 @@ namespace influx::async
 			return result_type::make_error("func is null, not queueing tasks");
 		}
 
+		if (range >= k_max_num_tasks_in_flight)
+		{
+			return result_type::make_error("cannot allocate a range of tasks larger than the max allocatable!");
+		}
+
 		vector<task_handle> handles{}; handles.reserve(range);
 		for (uint64 i = 0u; i < range; ++i)
 		{
@@ -207,4 +217,6 @@ namespace influx::async
 	// DONT TOUCH THIS, IN DEBUG BUILDS GIVES US A PEAK TO PRIVATE GLOBAL STATE
 	static class async_manager* gp_global_manager_state = nullptr;
 #endif
+
+	extern constexpr uint64 INFLUX_ASYNC_API get_static_num_bytes();
 }

@@ -73,15 +73,20 @@ namespace influx::async
 
 	result<bool> async_manager::try_grab_and_clean_a_task()
 	{
+		using result_type = result<bool>;
 		influx_assert_not_null(mp_global_cleanup_queue);
 
 		task_data* task = nullptr;
 		if (mp_global_cleanup_queue->try_grab(task))
 		{
-			auto res = do_cleanup_task(task);
-			return res.is_success();
+			auto cleanup_res = do_cleanup_task(task);
+			if (cleanup_res.is_unex())
+				return result_type::make_error("do_cleanup_task failed!");
+			
+			return true;
 		}
-
+		
+		// result success, but try failed (fine)
 		return false;
 	}
 
@@ -93,11 +98,14 @@ namespace influx::async
 		if (queue.try_grab(task))
 		{
 			// grabbed a task, now process (execute it)
-			auto res = do_process_task(task);
-			return res.is_success();
+			auto process_res = do_process_task(task);
+			if (process_res.is_unex())
+				return result_type::make_error("do_process_task failed!");
+
+			return true;
 		}
 
-		// failed to grab a task
+		// failed to grab a task, still result::success though!
 		return false;
 	}
 
@@ -117,11 +125,11 @@ namespace influx::async
 		}
 	}
 
-	result<std::vector<task_handle>> async_manager::create_tasks(const std::vector<task_create_args>& args)
+	result<vector<task_handle>> async_manager::create_tasks(const std::vector<task_create_args>& args)
 	{
 		using result_type = result<std::vector<task_handle>>;
 
-		std::vector<task_handle> result{};
+		vector<task_handle> result{};
 		vector<task_data*> allocated_tasks = mp_taskpool->allocate(args.size());
 
 		const uint64 num_allocated = allocated_tasks.size();
@@ -153,14 +161,18 @@ namespace influx::async
 	{
 		data->m_state = e_task_state::running;
 		m_num_processing++;
+#if !INFLUX_ASYNC_OMIT_STATS
 		data->m_time_started = time::get_now();
+#endif
 		{
 			if (data->m_args.m_func_execute)
 			{
 				data->m_args.m_func_execute();
 			}
 		}
+#if !INFLUX_ASYNC_OMIT_STATS
 		data->m_time_finished = time::get_now();
+#endif
 		m_num_processing--;
 		data->m_state = e_task_state::finished;
 
@@ -172,40 +184,35 @@ namespace influx::async
 
 	result<> async_manager::do_cleanup_task(task_data* data)
 	{
+		using result_type = result<>;
 		if (data == nullptr)
-			return result<>::make_error("data to cleanup is nullptr!");
+			return result_type::make_error("data to cleanup is nullptr!");
 
-		if (mp_taskpool->free(data))
-		{
-			return {};
-		}
-		else
-		{
-			return result<>::make_error("cleaning given task failed!");
-		}
+		const bool free_result = mp_taskpool->free(data);
+		if (!free_result)
+			return result_type::make_error("data deallocate failed!");
+
+		return result_type::make_success();
 	}
 
 	result<> async_manager::do_cleanup_task(const task_handle& handle)
 	{
-		return do_cleanup_task( get_task_from_handle(handle).get() );
+		using result_type = result<>;
+		auto get_data_res = get_task_data(handle);
+		if (!get_data_res.is_success())
+			return result_type::make_error("do_cleanup_task::get_task_data() failed!");
+
+		return do_cleanup_task(get_data_res.get());
 	}
 
-	result<task_data*> async_manager::get_task_from_handle(const task_handle& handle)
+	result<task_data*> async_manager::get_task_data(const task_handle& handle)
 	{
 		using result_type = result<task_data*>;
 
 		if (handle.is_valid() == false)
 			return result_type::make_error("invalid handle!");
 
-		auto& data = mp_taskpool->get_data_at(handle.m_task_data_idx);
-		if (data.m_state == e_task_state::invalid)
-		{
-			return result_type::make_error("data at given handle is invalid!");
-		}
-		else
-		{
-			return &data;
-		}
+		return &mp_taskpool->get_data_at(handle.m_task_data_idx);
 	}
 
 	result<uint64> async_manager::get_num_queued() const
@@ -239,7 +246,7 @@ namespace influx::async
 		if (handle.is_valid() == false)
 			return result<>::make_error("handle passed is invalid!");
 
-		task_data* data = get_task_from_handle(handle).get();
+		task_data* data = get_task_data(handle).get();
 		if (data == nullptr)
 			return result<>::make_error("task data at handle is nullptr!");
 
@@ -280,32 +287,27 @@ namespace influx::async
 			if (handle.is_valid() == false)
 				continue;
 
-			const auto task_data_res = get_task_from_handle(handle);
+			const auto task_data_res = get_task_data(handle);
 			if (task_data_res.is_fail() || task_data_res.get() == nullptr)
 				continue;
 
 			const task_data& data = *task_data_res.get();
 			while (!data.is_finished() && ms_waited < args.m_max_ms)
 			{
-				// this thread may as well help clean up a bit
+				// let the caller thread help clean up a bit...
 				try_grab_and_clean_a_task();
 
-				// wait callback
-				if (args.m_wait_func)
-				{
-					args.m_wait_func();
-				}
+				// run the callback
+				if (args.m_wait_tick)
+					args.m_wait_tick();
 
 				ms_waited = time::get_ms_between<float>(time::get_now(), wait_start);
 			}
 		}
 
 		// store the milliseconds waited
-		if (args.mp_out_ms != nullptr)
-		{
-			(*args.mp_out_ms) = ms_waited;
-		}
-
+		if (args.mp_out_ms_waited != nullptr)
+			(*args.mp_out_ms_waited) = ms_waited;
 		return {};
 	}
 
@@ -316,16 +318,15 @@ namespace influx::async
 
 		while (has_unfinished_work() && ms_waited < args.m_max_ms)
 		{
-			if (args.m_wait_func)
-				args.m_wait_func();
+			if (args.m_wait_tick)
+				args.m_wait_tick();
 
 			ms_waited = time::get_ms_between<float>(time::get_now(), wait_start);
 		}
 		
-		if (args.mp_out_ms != nullptr)
-		{
-			(*args.mp_out_ms) = ms_waited;
-		}
+		if (args.mp_out_ms_waited != nullptr)
+			(*args.mp_out_ms_waited) = ms_waited;
+
 		return {};
 	}
 
@@ -463,6 +464,7 @@ namespace influx::async
 	{
 		using result_type = result<task_stats>;
 
+#if !INFLUX_ASYNC_OMIT_STATS
 		if (is_valid() == false)
 			return result_type::make_error("this handle isn't valid!");
 
@@ -473,6 +475,9 @@ namespace influx::async
 		}
 
 		return found_data.get()->m_stats;
+#else
+		return result_type::make_error("this build does not record stats!");
+#endif
 	}
 	void task_handle::wait(const wait_args& args) const
 	{
@@ -497,7 +502,7 @@ namespace influx::async
 	result<task_data*> task_handle::find_task_data() const
 	{
 		async_manager& manager = async_manager::get_instance();
-		return manager.get_task_from_handle(*this);
+		return manager.get_task_data(*this);
 	}
 #pragma endregion
 }

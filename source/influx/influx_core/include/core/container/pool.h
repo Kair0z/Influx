@@ -244,7 +244,7 @@ namespace influx
 	public:
 		inline pool()
 		{
-		
+			m_freelist.reserve(_c);
 			reset();
 		}
 

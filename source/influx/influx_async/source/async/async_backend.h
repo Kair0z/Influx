@@ -27,7 +27,7 @@ namespace influx::async
 		bool is_shutdown();
 
 		result<task_handle> create_task(const task_create_args& args = {});
-		result<std::vector<task_handle>> create_tasks(const std::vector<task_create_args>& args);
+		result<vector<task_handle>> create_tasks(const vector<task_create_args>& args);
 
 		result<> dispatch(const task_handle& handle);
 		result<> dispatch(const vector<task_handle>& handles);
@@ -41,7 +41,7 @@ namespace influx::async
 		task_queue& get_global_queue();
 		task_queue& get_global_cleanup_queue();
 
-		result<task_data*> get_task_from_handle(const task_handle& handle);
+		result<task_data*> get_task_data(const task_handle& handle);
 
 		result<uint64> get_num_queued() const;
 		result<uint64> get_num_processing() const;
@@ -59,9 +59,13 @@ namespace influx::async
 		task_queue* mp_global_cleanup_queue = nullptr;
 
 		// tries to grab a task off  the cleanup queue, and 'recycle' it
+		// result only errors if something unexpected happens,
+		// the result boolean is whether we in fact DID end up cleaning a task
 		result<bool> try_grab_and_clean_a_task();
 
 		// tries to a task off the given queue, and executes it
+		// result only errors if something unexpected happens,
+		// the result boolean is whether we in fact DID end up processing a task
 		result<bool> try_grab_and_process_a_task(task_queue& queue);
 
 		result<> do_cleanup_task(const task_handle& handle);

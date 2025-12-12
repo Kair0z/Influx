@@ -1,13 +1,13 @@
 #include "core/basetypes.h"
 #include "core/time.h"
 #include "core/math/math.h"
-#include "influx_async.h"
+#include "influx_jobs.h"
 
 #include <iostream>
 
 using namespace influx;
 
-void print_sync_vs_async_comparison(double sync_seconds, double async_seconds)
+void print_cmp(double sync_seconds, double async_seconds)
 {
 	sync_seconds = math::maximum(sync_seconds, 0.0000001);
 	async_seconds = math::maximum(async_seconds, 0.0000001);
@@ -30,18 +30,34 @@ void test_sums()
 
 	uint32 num_iterations = 1024u * 4u;
 
+	jobs::job_queue queue{};
+
 	double async_time_in_seconds{};
 	uint32 async_sum = 0u;
 	{
 		time::point before = time::get_now();
-		std::mutex mutex{};
-		auto tasks = async::dispatch_for(num_iterations, [&mutex, &async_sum](uint64 i)
+		
+		// create the jobs
+		vector<jobs::job_id> jobs{}; jobs.resize(num_iterations);
+		for (uint32 i = 0u; i < num_iterations; ++i)
 		{
-			// mutex.lock();
-			async_sum += (i + 1u) * 2u;
-			// mutex.unlock();
-		});
-		async::wait_for(tasks.get());
+			jobs[i] = queue.create_job({}).get();
+		}
+		// link all jobs
+		for (uint32 i = 0u; i < num_iterations; ++i)
+		{
+			const bool has_next_job = i + 1 < num_iterations;
+			if (has_next_job)
+			{
+				queue.set_dependency(jobs[i], jobs[i + 1]).get();
+			}
+		}
+		// submit the jobs
+		for (uint32 i = 0u; i < num_iterations; ++i)
+		{
+			queue.queue_job(jobs[i]).get();
+		}
+
 		async_time_in_seconds = time::get_ms_between<double>(time::get_now(), before) * 0.001;
 	}
 
@@ -62,13 +78,4 @@ void test_sums()
 
 int main()
 {
-	static uint32 counter = 0u;
-
-	async::init_args init_args{};
-	init_args.m_num_workers = 16u;
-	init_args.m_log_callback = nullptr;
-
-	async::initialize(init_args).get();
-	test_sums();
-	async::shutdown();
 }
