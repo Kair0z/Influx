@@ -10,7 +10,7 @@
 
 namespace influx::graphics
 {
-    result<> commandlist::start(device* device, detail::base_pipeline* init_state)
+    result<> commandlist::start_recording(device* device, detail::base_pipeline* init_state)
     {
         result<> res = {};
 
@@ -52,7 +52,7 @@ namespace influx::graphics
     {
         result<> res = {};
         
-        auto end_res = end();
+        auto end_res = end_recording();
         if (!end_res.is_success())
         {
             return result<>::make_error("error: failed ending current commandlist!");

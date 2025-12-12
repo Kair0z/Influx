@@ -169,7 +169,7 @@ namespace influx::rendergraph
 		// start recording commandlist if not done already
 		if (commandlist.is_recording() == false)
 		{
-			auto start_commandlist = commandlist.start(&device);
+			auto start_commandlist = commandlist.start_recording(&device);
 			if (!start_commandlist)
 				return result<>::make_error("failed starting the commandlist!");
 		}
@@ -648,21 +648,21 @@ namespace influx::rendergraph
 		{
 			const rgpass& pass = m_passes[i];
 			stream << get_id(pass.m_name) << " ";
-			stream << "[shape=oval, label=\"" << pass.m_name.get_string().c_str() << "\"];";
+			stream << "[shape=oval, label=\"" << pass.m_name.get_string().get_std() << "\"];";
 			stream << "\n";
 		}
 		for (uint32 i = 0u; i < m_textures.size(); ++i)
 		{
 			const auto& texture = m_textures[i];
 			stream << get_id(texture->m_name) << " ";
-			stream << "[shape=box, label=\"" << texture->m_name.get_string().c_str() << "\"];";
+			stream << "[shape=box, label=\"" << texture->m_name.get_string().get_std() << "\"];";
 			stream << "\n";
 		}
 		for (uint32 i = 0u; i < m_buffers.size(); ++i)
 		{
 			const auto& buffer = m_buffers[i];
 			stream << get_id(buffer->m_name) << " ";
-			stream << "[shape=box, label=\"" << buffer->m_name.get_string().c_str() << "\"];";
+			stream << "[shape=box, label=\"" << buffer->m_name.get_string().get_std() << "\"];";
 			stream << "\n";
 		}
 
@@ -733,7 +733,7 @@ namespace influx::rendergraph
 		for (const auto& texture : m_textures)
 		{
 			result.push_back({
-				.m_name = (const char*)texture->m_name
+				.m_name = texture->m_name.get_string()
 				});
 		}
 		return result;
@@ -745,7 +745,7 @@ namespace influx::rendergraph
 		for (const auto& buffer : m_buffers)
 		{
 			result.push_back({
-				.m_name = (const char*)buffer->m_name
+				.m_name = buffer->m_name.get_string()
 				});
 		}
 		return result;

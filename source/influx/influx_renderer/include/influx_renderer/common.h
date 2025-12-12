@@ -81,7 +81,19 @@ namespace influx::renderer
 	static const object_id make_id(const string& name)
 	{
 		std::hash<string> hasher;
-		return hasher(name);
+		return static_cast<uint32>(hasher(name));
+	}
+	static const mesh_id make_mesh_id(const string& name)
+	{
+		return make_id(name);
+	}
+	static const tex_id make_tex_id(const string& name)
+	{
+		return make_id(name);
+	}
+	static const cubemap_id make_cubemap_id(const string& name)
+	{
+		return make_id(name);
 	}
 
 	using camera		= influx::camera;

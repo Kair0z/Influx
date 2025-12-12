@@ -70,7 +70,8 @@ namespace influx::imp
 			step_flags |= aiProcess_PreTransformVertices;
 		}
 		
-		const aiScene* aiscene = importer.ReadFile(filepath.c_str(), step_flags);
+		const std_str filepath_std = filepath.get_std();
+		const aiScene* aiscene = importer.ReadFile( filepath_std.c_str(), step_flags);
 		if (aiscene == nullptr)
 		{
 			return result_type::make_error("Asimp::Importer::ReadFile() failed!");

@@ -776,7 +776,7 @@ namespace influx::graphics
 		mpdx_graphics_commandlist->IASetPrimitiveTopology(translate(topo));
 		return {};
 	}
-	result<> dx12_commandlist::end()
+	result<> dx12_commandlist::end_recording()
 	{
 		if (m_is_closed == false)
 		{

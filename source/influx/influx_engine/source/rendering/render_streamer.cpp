@@ -46,9 +46,9 @@ namespace influx::engine
 	{
 		return influx::renderer::has_texture(name);
 	}
-	bool render_streamer::has_texturecube_loaded(const string& name) const
+	bool render_streamer::has_cubemap_loaded(const string& name) const
 	{
-		return influx::renderer::has_texturecube(name);
+		return influx::renderer::has_cubemap(name);
 	}
 
 #pragma region translation layer
@@ -185,7 +185,7 @@ namespace influx::engine
 		influx_scope("render_stream_cubemaps");
 		for (const auto& asset : content.get_cubemaps())
 		{
-			if (renderer::has_texturecube(asset.first) == false)
+			if (renderer::has_cubemap(asset.first) == false)
 			{
 				if (asset.second.is_loaded())
 				{

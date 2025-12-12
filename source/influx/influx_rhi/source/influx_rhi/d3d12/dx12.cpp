@@ -55,12 +55,13 @@ namespace influx::rhi
 		LocalFree(msgBuf);
 		return result;
 	}
+
 	template <class _t = char>
 	inline result<_t> hres_to_result(HRESULT hres, const _t& value_if_success)
 	{
 		using result_type = result<_t>;
 		if (SUCCEEDED(hres) == false)
-			return result_type::make_error(hres_to_string(hres).c_str());
+			return result_type::make_error( hres_to_string(hres) );
 
 		return value_if_success;
 	}
@@ -2672,6 +2673,7 @@ namespace influx::rhi
 			dsv_range = { .ptr = dsv.get().m_cpu_address };
 		}
 		dxcmdlist->OMSetRenderTargets(num_valid_targets, &rtv_range, true, &dsv_range);
+		return {};
 	}
 	result<> commandlist::bind_vertexbuffer(const buffer& vertexbuffer)
 	{
@@ -2689,7 +2691,8 @@ namespace influx::rhi
 		dxview.SizeInBytes = (uint32)vertexbuffer.get_bytesize();
 		dxview.StrideInBytes = (uint32)vertexbuffer.get_bytestride();
 		dxcmdlist->IASetVertexBuffers(0u, 1u, &dxview);
-		return {};
+		
+		return result<>::make_success();
 	}
 	result<> commandlist::bind_indexbuffer(const buffer& indexbuffer)
 	{
@@ -2707,7 +2710,7 @@ namespace influx::rhi
 		dxview.Format = DXGI_FORMAT_R32_UINT;
 		dxview.SizeInBytes = (uint32)indexbuffer.get_bytesize();
 		dxcmdlist->IASetIndexBuffer(&dxview);
-		return {};
+		return result<>::make_success();
 	}
 	result<> commandlist::draw(const draw_args& args)
 	{
@@ -2717,7 +2720,7 @@ namespace influx::rhi
 			return result_type::make_error("failed casting m_native to dx12_commandlist");
 
 		dxcmdlist->DrawInstanced(args.m_num_vertices, args.m_num_instances, args.m_start_vertex, args.m_start_instance);
-		return {};
+		return result<>::make_success();
 	}
 	result<> commandlist::draw_indexed(const draw_indexed_args& args)
 	{
@@ -2732,7 +2735,7 @@ namespace influx::rhi
 			args.m_start_index, 
 			args.m_start_vertex,
 			args.m_start_instance);
-		return {};
+		return result<>::make_success();
 	}
 	result<> commandlist::dispatch(const math::uint3& group_nums)
 	{

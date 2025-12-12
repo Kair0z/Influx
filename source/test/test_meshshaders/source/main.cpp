@@ -200,7 +200,7 @@ int main()
 		// poll OS
 		window.poll_events(is_quit);
 
-		res << commandlist.start(&device);
+		res << commandlist.start_recording(&device);
 
 		// transition backbuffer to render target
 		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();

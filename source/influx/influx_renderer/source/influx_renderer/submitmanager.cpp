@@ -1,5 +1,6 @@
 #include "renderer_pch.h"
 #include "submitmanager.h"
+#include "renderer_backend.h"
 
 namespace influx::renderer
 {
@@ -24,7 +25,6 @@ namespace influx::renderer
 		{
 			graphics::commandlist*& cmdlist = m_submissions[i].m_commandlist;
 			cmdlist = device.create_graphics_commandlist();
-			cmdlist->start(&device, nullptr);
 			cmdlist->set_name(k_submit_names[i]);
 		}
 	}
@@ -38,7 +38,7 @@ namespace influx::renderer
 		}
 	}
 
-	gpu_submission& submit_manager::get_submission(e_gpusubmit submit, uint32 frame)
+	gpu_submission& submit_manager::get_submission(e_gpusubmit submit, uint64 frame)
 	{
 		const uint32 index = static_cast<uint32>(submit);
 		return m_submissions[index];
@@ -76,7 +76,7 @@ namespace influx::renderer
 
 	void submit_manager::wait_until_complete(const gpu_submission& submission)
 	{
-		
+		submission.m_commandlist->wait_for_completion();
 	}
 
 	void submit_manager::submit_gpu_frame()
@@ -98,9 +98,16 @@ namespace influx::renderer
 	void submit_manager::submit(const gpu_submission& submission)
 	{
 		graphics::commandlist* cmdlist = submission.m_commandlist;
-		if (cmdlist == nullptr) return;
-		cmdlist->end().get();
-		cmdlist->submit(m_graphics_queue);
+		if (cmdlist == nullptr)
+			return;
+
+		// if the commandlist never started recording, record it as empty now
+		const bool is_recording = cmdlist->is_recording();
+		if (!is_recording)
+			cmdlist->start_recording(&renderer_backend::get_device(), nullptr).get();
+
+		cmdlist->end_recording().get();
+		cmdlist->submit(m_graphics_queue).get();
 	}
 
 	void submit_manager::submit(const e_gpusubmit sub)

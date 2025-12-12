@@ -131,7 +131,7 @@ void create_acc_buffers(graphics::device& device, graphics::commandlist& command
 	tlas_update.m_instances = instances;
 	tlas_update.m_blas = &out_result.m_blas;
 
-	commandlist.start(&device);
+	commandlist.start_recording(&device);
 	commandlist.update_blas(&out_result.m_blas, blas_update);
 	commandlist.update_tlas(&out_result.m_tlas, tlas_update);
 	commandlist.submit(&queue);
@@ -206,7 +206,7 @@ int main()
 
 		device.is_device_removed();
 
-		commandlist.start(&device);
+		commandlist.start_recording(&device);
 		commandlist.set_vp_and_rect({ 0.0f, 0.0f }, { 640.0f , 480.0f });
 		
 		raytracing_target->transition(&commandlist, graphics::e_resource_state::cs_uav);

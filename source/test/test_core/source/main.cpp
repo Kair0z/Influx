@@ -13,6 +13,7 @@
 #include <array>
 #include <fstream>
 #include <filesystem>
+#include <string>
 
 // common
 #include "core/basetypes.h"
@@ -414,17 +415,43 @@ void test_graph()
 #if TEST_STRING
 void test_string()
 {
-	string str{};
+	// constructors
+	string strings[]
+	{
+		"arne",
+		L"narne",
+		std::string("larne"),
+		std::wstring(L"warne")
+	};
 
-	const std::wstring& wstrcpy = str;
-	std::ofstream ofs{ str.get_std_w() };
-	std::filesystem::path path( str );
+	// add
+	strings[0].append('a');
+	strings[0].append(L'w');
+	strings[0].append("");
+	strings[0].append("arne");
+	strings[0].append(L"");
+	strings[0].append(std::string("b"));
+	strings[0].append(std::wstring(L"c"));
+	
+	// contains
+	assert(strings[0].contains('a'));
+	assert(strings[0].contains(L'w'));
+	assert(strings[0].contains(""));
+	assert(strings[0].contains(L""));
+	assert(strings[0].contains(std::string("b")));
+	assert(strings[0].contains(std::wstring(L"c")));
+
+	const std::wstring& wstrcpy = strings[0];
+	std::ofstream ofs{ strings[0].get_std() };
+	std::filesystem::path path( strings[0].get_std() );
 
 	const char* characters{"HAHAHHAkjkda"};
 	string lower = string::make_lowercase(characters);
 
 	std::string other{ "HahahahA" };
 	string lowered = string::make_lowercase(other);
+
+	auto parts = lowered.split("a");
 }
 #endif
 int main()

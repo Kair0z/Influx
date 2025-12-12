@@ -16,7 +16,7 @@ namespace influx::renderer
 		new_instance.m_per_instance_colour = colour;
 		new_instance.m_mat_id = material;
 		m_meshes.push_back(new_instance);
-		return m_meshes.size() - 1u;
+		return (uint32)m_meshes.size() - 1u;
 	}
 
 	light_instance_id world::add_light(const light& light, const matrix& transform)
@@ -25,13 +25,13 @@ namespace influx::renderer
 		new_instance.m_transform = add_transform(transform);
 		new_instance.m_light = light;
 		m_lights.push_back(new_instance);
-		return m_lights.size() - 1u;
+		return (uint32)m_lights.size() - 1u;
 	}
 
 	transform_id world::add_transform(const matrix& mat)
 	{
 		m_transforms.push_back(mat);
-		return m_transforms.size() - 1;
+		return (uint32) m_transforms.size() - 1;
 	}
 
 	result<matrix> world::get_transform(const transform_id& id)

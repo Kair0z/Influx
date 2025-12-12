@@ -114,8 +114,8 @@ namespace influx::rendergraph
 		/* resource descriptor heap capacities */
 		uint32 m_max_num_samplers	= 8u;
 		uint32 m_max_num_srvs		= 64u;
-		uint32 m_max_num_rtvs		= 32;
-		uint32 m_max_num_dsvs		= 32;
+		uint32 m_max_num_rtvs		= 128u;
+		uint32 m_max_num_dsvs		= 128u;
 
 		/* [optional] external descheaps to tap into */
 		rhi_descheap*	m_external_descheaps[k_num_ext_descheap_slots]{};

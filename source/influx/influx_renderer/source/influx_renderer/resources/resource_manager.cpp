@@ -160,9 +160,9 @@ namespace influx::renderer
 
 		// upload to gpu
 		graphics::commandlist& commandlist = *device.create_graphics_commandlist();
-		commandlist.start(&device);
+		commandlist.start_recording(&device);
 		resource->upload(device, commandlist, data);
-		commandlist.end();
+		commandlist.end_recording();
 		commandlist.submit(&queue);
 		commandlist.wait_for_completion();
     }

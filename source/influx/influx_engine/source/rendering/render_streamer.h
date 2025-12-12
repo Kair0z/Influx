@@ -23,7 +23,7 @@ namespace influx::engine
 
 		// textures:
 		bool has_texture_loaded(const string& name) const;
-		bool has_texturecube_loaded(const string& name) const;
+		bool has_cubemap_loaded(const string& name) const;
 		void* get_loaded_texture_id(const string& name) const;
 
 	private:

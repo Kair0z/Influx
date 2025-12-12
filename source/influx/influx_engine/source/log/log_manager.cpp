@@ -82,7 +82,7 @@ namespace influx::engine
 		{
 			for (num_flushed; num_flushed < max_num_lines; ++num_flushed)
 			{
-				file << m_lines[num_flushed] << "\n";
+				file << m_lines[num_flushed].get_std() << "\n";
 			}
 		});
 

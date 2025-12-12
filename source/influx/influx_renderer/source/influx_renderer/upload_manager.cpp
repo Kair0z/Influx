@@ -32,7 +32,7 @@ namespace influx::renderer
 		const uint32 num_bytes = (uint32)data.size();
 
 		// start a commandlist that copies the buffer from intermediate -> gpu resource
-		mp_commandlist->start(mp_device, nullptr);
+		mp_commandlist->start_recording(mp_device, nullptr);
 		{
 			// transition our gpu buffer to copy_dest
 			target->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
@@ -44,7 +44,7 @@ namespace influx::renderer
 			// transition our gpu texture to shader resource usage
 			target->revert_transition(mp_commandlist);
 		}
-		mp_commandlist->end();
+		mp_commandlist->end_recording();
 
 		queue->submit({ mp_commandlist });
 		queue->queue_signal(mp_fence, 1u);
@@ -75,7 +75,7 @@ namespace influx::renderer
 		}, args);
 
 		// start a commandlist that copies the texture from intermediate -> gpu resource
-		mp_commandlist->start(mp_device);
+		mp_commandlist->start_recording(mp_device);
 		{
 			target_resource->transition(mp_commandlist, graphics::e_resource_state::copy_dst);
 
@@ -89,7 +89,7 @@ namespace influx::renderer
 			// transition our gpu texture to shader resource usage
 			target_resource->transition(mp_commandlist, graphics::e_resource_state::all_srv);
 		}
-		mp_commandlist->end();
+		mp_commandlist->end_recording();
 		mp_commandlist->submit(queue);
 		mp_commandlist->wait_for_completion();
 	}

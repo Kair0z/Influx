@@ -315,7 +315,7 @@ namespace influx::shader
 		// entrypoint (-E)
 		const string& entrypoint = signature.m_entrypoint;
 		result.push_back( "-E ");
-		result.push_back( entrypoint.c_str());
+		result.push_back( entrypoint );
 		result.push_back( " ");
 
 		// exports (-exports)
@@ -324,20 +324,20 @@ namespace influx::shader
 		if (compile_as_shaderlib)
 		{
 			result.push_back( "-exports ");
-			result.push_back( entrypoint.c_str());
+			result.push_back( entrypoint );
 			result.push_back( " ");
 		}
 
 		// target (-T) (eg. ps_6_2)
 		string profile = build_shader_target_string(signature.m_type, args.m_target);
 		result.push_back( "-T ");
-		result.push_back( profile.c_str());
+		result.push_back( profile );
 		result.push_back( " ");
 
 		// includes (-I)
 		const string& include_folder = args.m_include_folder;
 		result.push_back( "-I ");
-		result.push_back( include_folder.c_str());
+		result.push_back( include_folder );
 		result.push_back( " ");
 
 		// SPIRV
@@ -354,7 +354,7 @@ namespace influx::shader
 		for (const string& define : args.m_defines)
 		{
 			result.push_back( "-D ");
-			result.push_back( define.c_str());
+			result.push_back( define );
 			result.push_back( " ");
 		}
 
@@ -402,7 +402,7 @@ namespace influx::shader
 		if (hres != S_OK || (pErrors && pErrors->GetStringLength() > 0))
 		{
 			string all_errors_string = {};
-			all_errors_string.add((char*)pErrors->GetBufferPointer());
+			all_errors_string.append((char*)pErrors->GetBufferPointer());
 			return all_errors_string;
 		}
 
@@ -481,7 +481,7 @@ namespace influx::shader
 			// parse the whole log
 			bool has_true_error = false;
 			bool has_warning = false;
-			while (std::getline(stream, line.get_std_w()))
+			while (std::getline( stream, line.get_wstd() ))
 			{
 				const bool is_empty = line.empty();
 				if (is_empty) continue;
@@ -493,7 +493,7 @@ namespace influx::shader
 				has_true_error |= is_error;
 
 				result.get().m_log.push_back(line);
-				printf(line.c_str()); printf("\n");
+				wprintf( line.c_wstr() ); printf("\n");
 			}
 
 			if (has_true_error)
@@ -646,9 +646,10 @@ namespace influx::shader
 		if (shader_source.empty())
 			return result_type::make_error("error: emtpy shader source!");
 
+		std_str source_std = shader_source.get_std();
 		DxcBuffer sourceBuffer;
-		sourceBuffer.Ptr = shader_source.c_str();
-		sourceBuffer.Size = shader_source.size();
+		sourceBuffer.Ptr = source_std.c_str();
+		sourceBuffer.Size = source_std.size();
 		sourceBuffer.Encoding = 0u; // ANSI
 
 		return compile_shader_dxcbuffer(sourceBuffer, signature, args);

@@ -221,4 +221,32 @@ namespace influx::renderer
 	INFLUX_RENDER_API rendergraph_info get_rendergraph_info();
 	INFLUX_RENDER_API string get_last_rendergraph_dotfile();
 	INFLUX_RENDER_API string get_last_rendergraph_dump();
+
+
+	// inline helpers
+	inline mesh_id load(const string& unique_name, const mesh_data<vertex_data>& data, bool reload = false) {
+		const mesh_id id = make_mesh_id(unique_name);
+		load(id, data, reload);
+		return id;
+	}
+	inline tex_id load(const string& unique_name, const texture_data& data, bool reload = false) {
+		const tex_id id = make_tex_id(unique_name);
+		load(id, data, reload);
+		return id;
+	}
+	inline cubemap_id load(const string& unique_name, const cubemap_data& data, bool reload = false) {
+		const cubemap_id id = make_cubemap_id(unique_name);
+		load(id, data, reload);
+		return id;
+	}
+
+	inline bool has_mesh(const string& unique_name) {
+		return has_mesh(make_mesh_id(unique_name));
+	}
+	inline bool has_texture(const string& unique_name) {
+		return has_texture(make_tex_id(unique_name));
+	}
+	inline bool has_cubemap(const string& unique_name) {
+		return has_cubemap(make_cubemap_id(unique_name));
+	}
 }

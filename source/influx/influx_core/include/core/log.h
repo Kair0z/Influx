@@ -36,7 +36,7 @@ namespace influx
 		}
 		
 		const string log_string = prefix + std::vformat(format.get_std(), std::make_format_args(args...));
-		printf((log_string + "\n").c_str());
+		wprintf( string(log_string + "\n").c_wstr() );
 		return log_string;
 	}
 

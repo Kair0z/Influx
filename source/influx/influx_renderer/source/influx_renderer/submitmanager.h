@@ -54,7 +54,7 @@ namespace influx::renderer
 
 		void shutdown(graphics::device& device);
 
-		gpu_submission& get_submission(e_gpusubmit submit, uint32 frame);
+		gpu_submission& get_submission(e_gpusubmit submit, uint64 frame);
 
 		gpu_submission& get_submission(e_gpusubmit submit);
 

@@ -15,4 +15,12 @@ namespace cereal
 	{
 		arch(matrix.m_data);
 	}
+
+	// influx::string
+	template <typename _archive> void serialize(_archive& arch, influx::string& str)
+	{
+		std::string std_cpy = str.get_std();
+		arch(std_cpy);
+		str = std_cpy;
+	}
 }

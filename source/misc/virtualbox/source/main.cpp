@@ -48,7 +48,7 @@ int commandline_thread()
 	while (!g.is_quit)
 	{
 		std::cout << "> "; // prompt
-		if (!std::getline(std::cin, line)) 
+		if (!std::getline(std::cin, line.get_std()))
 			continue;
 
 		// exit if exit
@@ -59,7 +59,7 @@ int commandline_thread()
 		}
 
 		// parse line tokens
-		std::istringstream iss(line);
+		std::istringstream iss(line.get_std());
 		std::vector<std::string> tokens;
 		std::string token;
 		while (iss >> token) { tokens.push_back(token); }
@@ -77,11 +77,11 @@ int commandline_thread()
 
 			if (g.m_loaded_scenes.contains(path))
 			{
-				std::cout << "> mesh [" << path << "] already loaded! skipping...\n";
+				std::cout << "> mesh [" << path.get_std() << "] already loaded! skipping...\n";
 				continue;
 			}
 
-			std::cout << "> loading mesh [" << path << "]...\n";
+			std::cout << "> loading mesh [" << path.get_std() << "]...\n";
 			imp::scene_load_args args{};
 			auto load_res = imp::load_scene_file(path, args);
 			if (load_res.is_fail())

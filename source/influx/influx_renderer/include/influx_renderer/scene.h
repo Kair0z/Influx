@@ -166,6 +166,10 @@ namespace influx::renderer
 		INFLUX_RENDER_API
 		mesh_instance& add_mesh(const mesh_id& mesh_id, const math::matrix4x4f& transform = math::matrix4x4f::identity());
 		
+		inline mesh_instance& add_mesh(const string& unique_name, const math::matrix4x4f& transform = math::matrix4x4f::identity()) {
+			return add_mesh(make_mesh_id(unique_name), transform);
+		}
+
 		INFLUX_RENDER_API
 		mesh_instance& add_mesh(e_mesh mesh, const math::matrix4x4f& transform = math::matrix4x4f::identity());
 

@@ -246,7 +246,8 @@ namespace influx::shader
 		static constexpr int k_num_valid_file_extensions = _countof(k_valid_file_extensions);
 		for (int i = 0u; i < k_num_valid_file_extensions; ++i)
 		{
-			if (strcmp(extension.c_str(), k_valid_file_extensions[i]) == 0)
+			static constexpr bool case_sensitive = true;
+			if ( string::is_equal(extension, k_valid_file_extensions[i], case_sensitive ) )
 				return true;
 		}
 		return false;

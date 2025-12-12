@@ -68,7 +68,8 @@ namespace influx::platform
 
 		if (found != m_functions.cend())
 		{
-			::FARPROC func_address = GetProcAddress(m_instance, found->c_str());
+			const std_str found_std = found->get_std();
+			::FARPROC func_address = GetProcAddress(m_instance, found_std.c_str());
 			if (func_address)
 			{
 				return func_address;

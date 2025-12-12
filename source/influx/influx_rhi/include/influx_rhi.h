@@ -147,7 +147,7 @@ namespace influx::rhi
 	// [common types]
 #pragma region common types
 	template <typename _t = char>
-	using result = influx::result<_t, const char*>;
+	using result = influx::result<_t, debug_name>;
 	template <typename _t>
 	using optional = std::optional<_t>;
 	using platform_window_handle = void*;
@@ -1266,8 +1266,8 @@ namespace influx::rhi
 	struct device_create_args final
 	{
 		/* (vulkan) */
-		const char* m_app_name = "";
-		const char* m_engine_name = "";
+		string m_app_name = "";
+		string m_engine_name = "";
 		uint32 m_app_version = 0u;
 		uint32 m_engine_version = 0u;
 		uint32 m_api_version = 0u;
@@ -1281,8 +1281,8 @@ namespace influx::rhi
 		static device_create_args make(const string& name, bool debug)
 		{
 			return device_create_args{
-				.m_app_name = name.c_str(),
-				.m_engine_name = name.c_str(),
+				.m_app_name = name,
+				.m_engine_name = name,
 				.m_app_version = {},
 				.m_engine_version = {},
 				.m_api_version = {},
@@ -2357,11 +2357,13 @@ namespace influx::rhi
 		obj_type obj{};
 		obj.m_create_args = args;
 
-		auto native_create = create_native(args, &obj.m_data);
-		if (!native_create) 
-			return result_type::make_error(native_create);
+		auto native_create_res = create_native(args, &obj.m_data);
+		if (!native_create_res.is_success())
+		{
+			return result_type::make_error( native_create_res.get_unex() );
+		}
 
-		obj.m_native_object = native_create.get();
+		obj.m_native_object = native_create_res.get();
 		return obj;
 	}
 

@@ -34,23 +34,23 @@ new_influx_library("influx_renderer")
         flags {"NoPCH"}
 
     -- precompile + embed shaders
-    dir_shaders = project_dir .. "/shaders/"
-    dir_shaders_precompile_output_dir = dir_shaders .. "/compiled/"
-    prebuildmessage "Embedding Shaders..."
-    prebuildcommands
-    {
-        -- compile each shader
-        {"cd " .. g_dir_root .. "/scripts/"},
-        {
-            "python.exe compile_shaders.py "
-                --.. " --config=" .. g_config_string 
-                --.. " --game=" .. "%{prj.name}"
-                --.. " --deps " .. copylist
-        }
-
-        -- convert each shader.cso -> shader.h
-        -- renderer will include these headers
-        {
-
-        }
-    }
+    --dir_shaders = project_dir .. "/shaders/"
+    --dir_shaders_precompile_output_dir = dir_shaders .. "/compiled/"
+    --prebuildmessage "Embedding Shaders..."
+    --prebuildcommands
+    --{
+    --    -- compile each shader
+    --    {"cd " .. g_dir_root .. "/scripts/"},
+    --    {
+    --        "python.exe compile_shaders.py "
+    --            --.. " --config=" .. g_config_string 
+    --            --.. " --game=" .. "%{prj.name}"
+    --            --.. " --deps " .. copylist
+    --    }
+    --
+    --    -- convert each shader.cso -> shader.h
+    --    -- renderer will include these headers
+    --    {
+    --
+    --    }
+    --}

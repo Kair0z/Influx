@@ -252,10 +252,10 @@ namespace influx::imgui
 		});
 
 		// record transfer (upload resource -> gpu resource)
-		get_commandlist()->start(get_device());
+		get_commandlist()->start_recording(get_device());
 		get_commandlist()->copy_texture(
 			fonts_tex.mp_upload, fonts_tex.mp_resource);
-		get_commandlist()->end();
+		get_commandlist()->end_recording();
 
 		// submit transfer
 		get_queue()->submit({ get_commandlist() });
@@ -432,7 +432,7 @@ namespace influx::imgui
 		// update vertex / index buffers
 		update_renderbuffers(draw_data, global_state::get_instance().m_renderbuffers);
 
-		get_commandlist()->start(get_device());
+		get_commandlist()->start_recording(get_device());
 
 		// setup state
 		get_commandlist()->set_vertexbuffer(get_buffers().mp_vertexbuffer);
@@ -484,7 +484,7 @@ namespace influx::imgui
 			global_vtx_offset += cmd_list->VtxBuffer.Size;
 		}
 
-		get_commandlist()->end();
+		get_commandlist()->end_recording();
 	}
 }
 

@@ -174,7 +174,7 @@ namespace influx::renderer
         // here the rendergraph populates the main render command submission with GPU commands
         gpu_submission& submission = submanager.get_submission(e_gpusubmit::render);
         graphics::commandlist& cmdlist = submission.get_commandlist();
-        cmdlist.start(&get_device(), nullptr);
+        cmdlist.start_recording(&get_device(), nullptr);
         {
             // reset & rebind the gpu heaps (of this frame)
             {
@@ -213,11 +213,11 @@ namespace influx::renderer
         }
 
         static constexpr uint32 k_max_num_swapchains_per_commandlist = 8u;
-        const uint64 num_swapchains = window_handles.size();
-        const uint32 num_submissions = (num_swapchains + k_max_num_swapchains_per_commandlist - 1) / k_max_num_swapchains_per_commandlist;
+        const uint32 num_swapchains = static_cast<uint32>(window_handles.size());
+        const uint32 num_submissions = (num_swapchains + k_max_num_swapchains_per_commandlist - 1u) / k_max_num_swapchains_per_commandlist;
         for (uint32 i = 0u; i < num_submissions; ++i)
         {
-            cmdlist->start(&get_device());
+            cmdlist->start_recording(&get_device());
             for (uint32 j = 0u; j < k_max_num_swapchains_per_commandlist; ++j)
             {
                 const uint32 swapchain_index = (i * k_max_num_swapchains_per_commandlist) + j;

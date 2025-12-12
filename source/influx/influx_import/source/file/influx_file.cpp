@@ -53,7 +53,7 @@ namespace influx::imp
 		path::create_file(file.get_full_path());
 
 		m_ofstream.close();
-		m_ofstream.open(file.get_full_path().c_str());
+		m_ofstream.open(file.get_full_path().c_wstr());
 		influx_assert(m_ofstream.is_open());
 
 		const bool without_extension = false;
@@ -70,7 +70,7 @@ namespace influx::imp
 		m_is_loading = true;
 		
 		m_ifstream.close();
-		m_ifstream.open(file.get_full_path().c_str());
+		m_ifstream.open(file.get_full_path().c_wstr());
 		influx_assert(m_ifstream.is_open());
 
 		const bool without_extension = false;
@@ -84,7 +84,7 @@ namespace influx::imp
 
 	void flx_asset::serialize_base()
 	{
-		archive(m_name);
+		// archive(m_name.c_wstr());
 	}
 
 	bool flx_asset::is_loading() const
@@ -92,19 +92,19 @@ namespace influx::imp
 		return m_is_loading;
 	}
 
-	std::ifstream& flx_asset::get_ifs()
+	std::wifstream& flx_asset::get_ifs()
 	{
 		return m_ifstream;
 	}
 
-	std::ofstream& flx_asset::get_ofs()
+	std::wofstream& flx_asset::get_ofs()
 	{
 		return m_ofstream;
 	}
 
 	bool flx_scene::serialize()
 	{
-		archive(*this);
+		// archive(*this);
 		return true;
 	}
 }

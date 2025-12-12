@@ -41,13 +41,13 @@ namespace influx::engine
 		for (int i = 0u; i < argc; ++i)
 		{
 			const string& argument = argv[i];
-			if (str::contains(argument, ".exe"))
+			if (argument.contains(".exe"))
 			{
 				// loading the editor by running the .exe
 				m_parsed_run_args["exe_dir"] = to_string(path(argument).get_directory());
 				m_parsed_run_args["exe"] = argument;
 			}
-			if (str::contains(argument, ".flx"))
+			if (argument.contains(".flx"))
 			{
 				// loading an .flx project
 				m_parsed_run_args["projectfile"] = argument;

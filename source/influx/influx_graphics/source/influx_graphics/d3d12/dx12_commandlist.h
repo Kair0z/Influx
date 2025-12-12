@@ -109,7 +109,7 @@ namespace influx::graphics
 
 		virtual result<> set_primitive_topology(e_primitive_topology topo) override;
 
-		virtual result<> end() override;
+		virtual result<> end_recording() override;
 
 		/* mesh shaders */
 		virtual result<> dispatch_mesh(uint32 groupcount_x, uint32 groupcount_y, uint32 groupcount_z) override;

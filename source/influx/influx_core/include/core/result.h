@@ -35,7 +35,7 @@ namespace influx
 	// by default, only in DEBUG when .get() is called on !result.is_success()
 	// will we assert the result is valid.
 	// with this enabled, we assert as soon as any error is made (exactly where it occured)
-#define CHECK_RESULT_IMMEDIATE 0
+#define CHECK_RESULT_IMMEDIATE 1
 
 	template <typename _t = unsigned char, typename _e = const char*>
 	class result final
@@ -62,6 +62,11 @@ namespace influx
 		template <typename = std::enable_if_t<!std::is_same_v<_t, bool>>>
 		operator _t() const = delete;
 
+		inline static result make_success(const _t& expected = {})
+		{
+			return result( expected );
+		}
+
 		inline static result make_error(const _e& error)
 		{
 #if CHECK_RESULT_IMMEDIATE && INFLUX_DEBUG
@@ -83,14 +88,14 @@ namespace influx
 		}
 
 		template <typename _ot>
-		inline static result make_error(const result<_ot>& error_result)
+		inline static result make_error(const result<_ot>& other_error )
 		{
 #if CHECK_RESULT_IMMEDIATE
-			result res = result(error_result.get_unex());
+			result res = result(other_error.get_unex());
 			res.get();
 			return res;
 #else
-			return result(error_result.get_unex());
+			return result( other_error.get_unex() );
 #endif
 		}
 
@@ -168,7 +173,7 @@ namespace influx
 #if INFLUX_DEBUG
 			influx_assert_msg(is_success(), m_unexpected);
 			if (m_is_warning)
-				std::cout << "warning!: " << m_unexpected << "\n";
+				std::wcout << L"warning!: " << m_unexpected << L"\n";
 #endif
 			return m_expected;
 		}

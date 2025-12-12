@@ -97,7 +97,7 @@ void test_main()
 		// poll OS
 		window.poll_events(is_quit);
 
-		commandlist.start(&device);
+		commandlist.start_recording(&device);
 
 		// transition backbuffer to render target
 		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();
@@ -149,7 +149,7 @@ void test_treerender()
 	{
 		window.poll_events(is_quit);
 
-		commandlist.start(&device);
+		commandlist.start_recording(&device);
 
 		// transition backbuffer to render target
 		graphics::resource* backbuffer = swapchain.get_current_backbuffer_resource().get();

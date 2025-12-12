@@ -22,7 +22,7 @@ namespace influx
 	using chr		= char;
 	using wchr		= wchar_t;
 
-#pragma region string operations
+#pragma region string converters
 #pragma warning (push)
 #pragma warning (disable : 4244)
 	inline std_str to_string(const std_wstr& wstring)
@@ -37,6 +37,21 @@ namespace influx
 		std_wstr res(string.length(), L' ');
 		std::copy(string.cbegin(), string.cend(), res.begin());
 		return res;
+	}
+
+	inline std_wstr to_wstring(const std_wstr& wstring)
+	{
+		return wstring;
+	}
+
+	inline std_wstr to_wstring(const char& chr)
+	{
+		return to_wstring(std_str(1, chr));
+	}
+
+	inline std_wstr to_wstring(const wchr& wchr)
+	{
+		return std_wstr(1, wchr);
 	}
 
 	inline std_str to_string(int i)
@@ -74,6 +89,11 @@ namespace influx
 		out_result = std::stoi(value);
 		return true;
 	}
+	inline static bool str_to_uint(const std_str& value, uint32& out_result)
+	{
+		out_result = std::stoul(value);
+		return true;
+	}
 	template <typename _t>
 	inline static bool from_string(const std_str& value, _t& out_result)
 	{
@@ -81,6 +101,8 @@ namespace influx
 			return str_to_float(value, out_result);
 		else if constexpr (std::is_same<_t, int>())
 			return str_to_int(value, out_result);
+		else if constexpr (std::is_same<_t, uint32>())
+			return str_to_uint(value, out_result);
 		else
 		{
 			out_result = value;
@@ -94,16 +116,25 @@ namespace influx
 	template <typename _t>
 	static string operator+(const string& str, const _t& element);
 
+	// influx string wrapper that converts each UTF8 string AND wstring
+	// and wraps it finally as a wstring.
 	class string final
 	{
 		std_wstr m_wstr{};
-		using citerator = std_wstr::const_iterator;
-		using iterator = std_wstr::iterator;
+		std_str m_utf8_cache{};
+		bool m_utf8_cache_dirty = true;
+
+		void on_content_change()
+		{
+			m_utf8_cache_dirty = true;
+		}
 
 	public:
 		static constexpr uint64 k_not_found = (uint64)-1;
 		static constexpr uint64 k_max_length = (uint64)-1;
+		static constexpr bool k_default_case_sensitive = true;
 
+		// construction (conversion from other types)
 		string() = default;
 		string(const std_str& std_str)
 		{
@@ -121,44 +152,123 @@ namespace influx
 		{
 			m_wstr = wcstr;
 		}
-		string(std_wstr&& std_wstr) { m_wstr = std_wstr; }
+		string(const chr& chr) 
+		{ 
+			m_wstr = to_wstring(chr);
+		}
+		string(const wchr& wchr)
+		{
+			m_wstr = to_wstring(wchr);
+		}
+		string(std_wstr&& std_wstr) 
+		{ 
+			m_wstr = std_wstr; 
+		}
 		virtual ~string() = default;
 
-		// implicit conversion back to wstring type
-		operator const std_wstr&() const { return m_wstr; }
-		operator std_wstr() const { return m_wstr; }
-		operator std_str() const { return to_string(m_wstr); }
-#if 0
-		explicit operator cstr() const { return get_std().c_str(); }
-		explicit operator wcstr() const { return m_wstr.c_str(); }
-#endif
-
-		citerator cbegin() const 
-		{ return m_wstr.cbegin(); }
-		citerator cend() const
-		{ return m_wstr.cend(); }
-		iterator begin()
-		{ return m_wstr.begin(); }
-		iterator end()
-		{ return m_wstr.end(); }
-
+		// access
 		wchr& operator[](uint64 i)
-		{ return m_wstr[i]; }
-
-		uint64 size() const
-		{
-			return m_wstr.size();
+		{ 
+			return m_wstr[i];
+		}
+		const wchr& operator[](uint64 i) const
+		{ 
+			return m_wstr[i]; 
 		}
 
-		string get_lowercase() const
+		// implicit conversions
+		operator const std_wstr&() const { return m_wstr; }
+		operator std_wstr() const { return m_wstr; }
+		explicit operator std_str() const { return to_string(m_wstr); }
+
+		std_wstr& get_wstd()
+		{ return m_wstr; }
+		const std_wstr& get_wstd() const
+		{ return m_wstr; }
+		std_str get_std() const
+		{ return to_string(m_wstr); }
+		wcstr c_wstr() const
+		{ return m_wstr.c_str(); }
+		cstr c_str() const
 		{
-			return make_lowercase<string, wchr>(*this);
+			// before you say anything...
+			// this is the only time I will EVER const_cast a thing.
+			// it's either this, or update our UTF8 cache every time we modify our string
+			// I'd rather do it when it's used.
+			string& non_const_this = *const_cast<string*>(this);
+			if (m_utf8_cache_dirty)
+				non_const_this.m_utf8_cache = to_string(m_wstr);
+
+			non_const_this.m_utf8_cache_dirty = false;
+			return m_utf8_cache.c_str();
+		}
+
+		// iterators
+		std_wstr::const_iterator cbegin() const
+		{ return m_wstr.cbegin(); }
+		std_wstr::const_iterator cend() const
+		{ return m_wstr.cend(); }
+		std_wstr::iterator begin()
+		{ return m_wstr.begin(); }
+		std_wstr::iterator end()
+		{ return m_wstr.end(); }
+
+		uint64 size() const
+		{ return m_wstr.size(); }
+
+		bool empty() const
+		{ return size() == 0u; }
+
+		template <typename _c, uint64 _n, typename _f>
+		static void foreach_char(const _c(&arr)[_n], _f&& fn) {
+			for (uint64 i = 0; i < _n - 1; ++i) { // skip null terminator
+				fn(arr[i]);
+			}
+		}
+
+		template <typename _c, typename _f>
+		static void foreach_char(const _c& arr, _f&& fn) {
+			for (uint64 i = 0u; i < arr.size(); ++i) {
+				fn(arr[i]);
+			}
 		}
 
 		template <typename _t>
-		uint64 find(const _t& value, uint64 range_begin = 0u) const
+		static constexpr bool is_single_character()
 		{
-			return k_not_found;
+			return std::is_same<_t, char>() || std::is_same<_t, wchar_t>();
+		}
+
+		template <typename _t>
+		static consteval bool is_cstring()
+		{
+			using U = std::remove_cvref_t<_t>;
+			// case 1: char[N] or wchar_t[N]
+			if constexpr (std::is_array_v<U>) {
+				using E = std::remove_cv_t<std::remove_extent_t<U>>;
+				return std::is_same_v<E, char> || std::is_same_v<E, wchar_t>;
+			}
+			// case 2: char* or wchar_t*
+			else if constexpr (std::is_pointer_v<U>) {
+				using E = std::remove_cv_t<std::remove_pointer_t<U>>;
+				return std::is_same_v<E, char> || std::is_same_v<E, wchar_t>;
+			}
+			else {
+				return false;
+			}
+		}
+
+		template <typename _t>
+		uint64 find(const _t& value, bool case_sensitive = k_default_case_sensitive, uint64 range_begin = 0u) const
+		{
+			if constexpr (is_single_character<_t>())
+			{
+				return m_wstr.find((wchr)value, range_begin);
+			}
+			else
+			{
+				return m_wstr.find(to_wstring(value), range_begin);
+			}
 		}
 
 		template <typename _t>
@@ -169,85 +279,75 @@ namespace influx
 
 		string substr(const uint64 range_begin, const uint64 range_length = k_max_length) const
 		{
-			const string& source = *this;
+			return m_wstr.substr(range_begin, range_length);
+		}
+
+		template <typename _t>
+		bool contains(const _t& element, bool case_sensitive = k_default_case_sensitive) const
+		{
+			return find<_t>(element, case_sensitive) != std::string::npos;
+		}
+
+		static string make_lowercase(const string& str)
+		{
 			string result{};
-			// memcpy(&result[0], &source)
+			foreach_char(str, [&result](const wchr& ele) {
+				result.append( (wchr)std::tolower(ele));
+				});
 			return result;
 		}
 
-		template <typename _t>
-		bool contains(const _t& element, bool case_sensitive) const
+		// < 0: a is less than b
+		// = 0: a is equal to b
+		// > 0: a is greater than b
+		static int compare(const string& a, const string& b, const bool case_sensitive = k_default_case_sensitive)
 		{
-			if (case_sensitive)
-				return find(element) != std::string::npos;
-			else
+			if (case_sensitive == false)
 			{
-				string low_a = this->get_lowercase();
-				string low_b = element.get_lowercase();
-				return low_a.find(low_b) != std::string::npos;
+				string acpy = make_lowercase(a);
+				string bcpy = make_lowercase(b);
+				return std::wcscmp(acpy.c_wstr(), bcpy.c_wstr());
 			}
+			return std::wcscmp(a.c_wstr(), b.c_wstr());
 		}
 
-		bool empty() const
-		{ return size() == 0u; }
-
-		template <typename _t>
-		static constexpr bool is_single_character()
-		{ return std::is_same<_t, char>() || std::is_same<_t, wchar_t>(); }
-
-		template <typename _t>
-		static constexpr bool is_cstring()
-		{ return std::is_same<_t, cstr>() || std::is_same<_t, wcstr>(); }
-
-		template <typename _t, typename _func>
-		static const void foreach(const _t& values, _func&& func)
+		static bool is_equal(const string& a, const string& b, const bool case_sensitive = k_default_case_sensitive)
 		{
-			if constexpr (is_single_character<_t>()) {
-				func(values);
-			}
-			else if constexpr (is_cstring<_t>()) {
-				
-			}
+			return compare(a, b, case_sensitive) == 0;
 		}
 
-		template <typename _c, uint64 _n, typename F>
-		constexpr void for_each_char(const _c(&arr)[N], F&& fn) {
-			for (std::size_t i = 0; i < N - 1; ++i) { // skip null terminator
-				fn(arr[i]);
-			}
-		}
-
-
-		template <typename _t, typename _el>
-		static string make_lowercase(const _t& str)
+		int compare(const string& other, const bool case_sensitive = k_default_case_sensitive) const
 		{
-			string result{};
-			iterate<_t>([&result](const _el& ele) {
-					result.add(ele);
-				});
+			return compare(*this, other, case_sensitive);
+		}
 
-			string lower_str = m_wstr;
-			for (uint32 i = 0u; i < lower_str.size(); ++i)
-			{
-				lower_str[i] = std::tolower(lower_str[i]);
-			}
-			return lower_str;
+		bool is_equal(const string& other, const bool case_sensitive = k_default_case_sensitive) const
+		{
+			return is_equal(*this, other, case_sensitive);
+		}
+
+		string get_lowercase() const
+		{
+			return make_lowercase(*this);
 		}
 
 		template <typename _t>
-		vector<string> split(_t& delim) const
+		vector<string> split(const _t& delim) const
 		{
 			vector<string> tokens;
 
 			if constexpr (is_single_character<_t>()) {
-				// todo...
+				string delim_str{ delim };
+				return split(delim_str);
 			}
 			else if constexpr (is_cstring<_t>()) {
-				// todo...
+				string delim_str = delim;
+				return split(delim_str);
 			}
-			else {
+			else { 
+				// guessing here we're dealing with some string container that has a function .size()
 				size_t start = 0, end;
-				while ((end = find(delim, start)) != k_not_found)
+				while ((end = find(delim, true, start)) != k_not_found)
 				{
 					tokens.push_back(substr(start, end - start));
 					start = end + delim.size();
@@ -261,61 +361,42 @@ namespace influx
 		string insert(const uint64 target_index, const _t& value)
 		{
 			string result{};
+			on_content_change();
 			return result;
 		}
 
 		template <typename _t>
-		void add(const _t& element)
+		void append(const _t& element)
 		{
-			if constexpr (std::is_same<_t, char>() || std::is_same<_t, wchar_t>()) {
-				const uint64 new_size = m_wstr.size() + 1u;
-				m_wstr.resize(new_size);
-				m_wstr[new_size - 1u] = element;
-			}
-			else if constexpr (std::is_same<_t, cstr>() || std::is_same<_t, wcstr>()) {
-				uint64 cstr_size = 0u;
-				while (element[cstr_size] != '\0') cstr_size++;
-				const uint64 old_size = m_wstr.size();
-				const uint64 new_size = old_size + cstr_size;
-				m_wstr.resize(new_size);
-				memcpy(&m_wstr[old_size], &element, cstr_size);
-			}
-			else if constexpr (std::is_same<_t, std_str>() || std::is_same<_t, std_wstr>()) {
-				const uint64 old_size = m_wstr.size();
-				const uint64 new_size = old_size + element.size();
-				m_wstr.resize(new_size);
-				memcpy(&m_wstr[old_size], &element, sizeof(element));
-			}
-			else {
-				static_assert("unsupported!");
-			}
+			on_content_change();
+			m_wstr.append(string(element));
 		}
 
-		std_wstr& get_std_w()
-		{ return m_wstr; }
-
-		const std_wstr& get_std_w() const
-		{ return m_wstr; }
-
-		std_str get_std() const
-		{ return to_string(m_wstr); }
-
-		cstr c_str() const
-		{ return to_string(m_wstr).c_str(); }
-
-		wcstr c_wstr() const
-		{ return m_wstr.c_str(); }
+		void clear()
+		{
+			on_content_change();
+			m_wstr = {};
+		}
 
 		template <typename _t>
-		string& operator+=(const _t& element) { this->add<_t>(element); return *this; }
+		string& operator+=(const _t& element) { this->append<_t>(element); return *this; }
 	};
+	static bool operator==(const string& a, const string& b)
+	{
+		return string::is_equal(a, b, string::k_default_case_sensitive);
+	}
+	static bool operator!=(const string& a, const string& b)
+	{
+		return !(a == b);
+	}
+
 	using wstring = string;
 	
 	template <typename _t>
 	inline string operator+(const string& str, const _t& element)
 	{
 		string combined = str;
-		combined.add<_t>(element);
+		combined.append<_t>(element);
 		return combined;
 	}
 }
@@ -323,7 +404,7 @@ template <> struct std::hash<influx::string>
 {
 	inline influx::uint64 operator()(const influx::string& str) const
 	{
-		return std::hash<influx::std_wstr>()(str.get_std_w());
+		return std::hash<influx::std_wstr>()(str.get_wstd());
 	}
 };
 
@@ -331,7 +412,7 @@ template <> struct std::hash<influx::string>
 // DEBUG NAME
 // string that is only represented as string in debug
 namespace influx 
-{	
+{
 	class debug_name final
 	{
 	private:
@@ -343,22 +424,27 @@ namespace influx
 		string m_string = "";
 #endif
 		uint64 m_hash = k_invalid;
-		char m_hash_cstr[k_num_digits_per_uint64]{};
+		wchar_t m_hash_cstr[k_num_digits_per_uint64]{};
 
 		inline void format_hash()
 		{
-			int written = std::snprintf(m_hash_cstr, sizeof(m_hash_cstr), "%" PRIu64, m_hash);
+			int written = std::swprintf(m_hash_cstr, sizeof(m_hash_cstr) / sizeof(wchar_t),
+				L"%llu", static_cast<unsigned long long>(m_hash));
 			if (written < 0 || written >= sizeof(m_hash_cstr))
 			{
-				// Handle error (buffer too small or formatting failed)
+				// todo: Handle error (buffer too small or formatting failed)
 			}
 		}
 
 	public:
 		debug_name() = default;
-		debug_name(const char* cstr)
+		debug_name(cstr cstr)
 		{
 			set(cstr);
+		}
+		debug_name(wcstr wcstr)
+		{
+			set(wcstr);
 		}
 		debug_name(const string& str)
 		{
@@ -379,7 +465,7 @@ namespace influx
 			format_hash();
 		}
 
-		inline void set(const char* cstr)
+		inline void set(cstr cstr)
 		{
 			set(string(cstr));
 		}
@@ -396,23 +482,23 @@ namespace influx
 
 		inline bool is_empty() const
 		{
-#if INFLUX_DEBUG
-			return m_string.empty();
-#endif
 			return m_hash == 0u;
 		}
+		
 		inline uint64 get_hash() const
 		{
 			return m_hash;
 		}
+
 		inline string get_string() const
 		{
-			return get_cstr();
+			return m_string;
 		}
-		inline const char* get_cstr() const
+
+		inline wcstr get_wcstr() const
 		{
 #if INFLUX_DEBUG
-			return m_string.c_str();
+			return m_string.c_wstr();
 #else
 			return m_hash_cstr;
 #endif
@@ -423,9 +509,9 @@ namespace influx
 			return m_hash != k_invalid;
 		}
 
-		inline operator char const* () const
+		inline operator wchar_t const* () const
 		{ 
-			return get_cstr();
+			return get_wcstr();
 		}
 
 		debug_name(const debug_name&) = default;

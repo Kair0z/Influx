@@ -30,20 +30,13 @@ void run_profile(uint32 num_runs, _func&& func)
 	std::cout << std::to_string( time::get_ns_between<float>(after, before) ) << " ns\n";
 }
 
+cvar cv_num("num", "1", "times we run the function");
+
 int main(int argc, char* argv[])
 {
-	commandline arguments{ argc, argv };
-	uint32 num_runs = 0u;
+	cvar::parse_runargs(argc, argv);
 
-	// get all '--'arguments
-	for (const commandline::argument* arg : arguments.get_arguments(commandline::e_common_prefix::lineline))
-	{
-		string as_string = string(arg->m_cstring);
-		if (regex::has_match(as_string, "num"))
-		{
-			num_runs += std::stoi(as_string.substr(_countof("--num=") - 1));
-		}
-	}
+	uint32 num_runs = cv_num.get_value<uint32>();
 
 	std::cout << "PROFILE =================\n";
 	for (uint32 i = 0u; i < 10u; ++i)

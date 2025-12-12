@@ -13,11 +13,11 @@ namespace influx
 		template <typename _func>
 		static void for_each_match(const string& text, const string& pattern, _func&& func)
 		{
-			std::regex reg(pattern);
-			auto words_begin = std::sregex_iterator(text.begin(), text.end(), reg);
-			auto words_end = std::sregex_iterator();
+			std::wregex reg(pattern.c_wstr());
+			std::wsregex_iterator words_begin = std::wsregex_iterator( text.cbegin(), text.cend(), reg );
+			std::wsregex_iterator words_end = std::wsregex_iterator();
 
-			for (std::sregex_iterator i = words_begin; i != words_end; ++i)
+			for (std::wsregex_iterator i = words_begin; i != words_end; ++i)
 			{
 				match match = *i;
 				func(match.str());

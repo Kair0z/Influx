@@ -254,8 +254,7 @@ namespace influx::input
 		{
 		case e_key::ascii_char:
 		case e_key::ascii_num:
-			return string(1, m_ascii_char);
-
+			return string(m_ascii_char);
 		case e_key::left: return "left";
 		case e_key::right: return "right";
 		case e_key::down: return "down";

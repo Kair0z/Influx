@@ -75,7 +75,7 @@ namespace influx::engine
 		const string exe_directory = engine::get_run_argument("exe_dir");
 		const string& root = exe_directory + "/../../../";
 
-		if (str::contains(path, root))
+		if (path.contains(root))
 		{
 			return path.substr(root.size());
 		}

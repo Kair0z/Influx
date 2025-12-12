@@ -333,7 +333,7 @@ int main()
 		renderer::end_frame();
 		renderer::present_all(present_args);
 
-		std::cout << renderer::get_last_rendergraph_dotfile().c_str() << "\n";
+		std::cout << renderer::get_last_rendergraph_dotfile().get_std() << "\n";
 		std::cin.get();
 	}
 	renderer::cleanup();

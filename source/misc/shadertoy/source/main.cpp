@@ -268,7 +268,7 @@ public:
 			m_commandlist = m_device->create_graphics_commandlist();
 			
 		m_commandlist->wait_for_completion();
-		m_commandlist->start(m_device, m_pipeline);
+		m_commandlist->start_recording(m_device, m_pipeline);
 		m_commandlist->set_descriptorheap(&m_descmanager->get_heap(descriptor_manager::e_descriptorheap::srv_uav_gpu));
 		m_commandlist->set_rootsignature(m_rootsignature, graphics::e_pipeline_type::compute);
 
@@ -346,7 +346,7 @@ public:
 		cmdlist.copy_resource(target(), backbuffer());
 		backbuffer().transition(cmdlist, graphics::e_resource_state::present);
 
-		m_commandlist->end();
+		m_commandlist->end_recording();
 		m_queue->submit({ m_commandlist });
 	}
 
@@ -364,7 +364,7 @@ int main()
 	bool is_exit = false;
 	bool is_pipeline_valid = false;
 	uint64 last_shader_hash = 0u;
-	path shader_file = "C:/Users/avkerschaver/Desktop/shader.hlsl";
+	path shader_file = L"C:/Users/avkerschaver/Desktop/shader.hlsl";
 
 	auto recompile = [&is_pipeline_valid, &graphics, &shader_file]()
 	{

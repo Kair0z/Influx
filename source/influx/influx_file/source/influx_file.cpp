@@ -8,6 +8,9 @@
 
 namespace influx::files
 {
+	using ifstream = std::ifstream;
+	using ofstream = std::ofstream;
+
 	static constexpr bool k_use_binary_archive = false;
 
 	template <bool _load, bool _binary = k_use_binary_archive>
@@ -24,7 +27,7 @@ namespace influx::files
 
 	namespace detail
 	{
-		std::ofstream start_save(const path& file)
+		ofstream start_save(const path& file)
 		{
 			// make sure the file exists
 			auto res = path::create_file(file.get_full_path());
@@ -34,21 +37,19 @@ namespace influx::files
 				return {};
 			}
 
-			std::ofstream ofs{};
+			ofstream ofs{};
 			ofs.close();
-			ofs.open(file.get_full_path());
+			ofs.open(file.get_full_path().c_wstr());
 			influx_assert(ofs.is_open());
-
 			return ofs;
 		}
 
-		std::ifstream start_load(const path& file)
+		ifstream start_load(const path& file)
 		{
-			std::ifstream ifs{};
+			ifstream ifs{};
 			ifs.close();
-			ifs.open(file.get_full_path());
+			ifs.open(file.get_full_path().c_wstr());
 			influx_assert(ifs.is_open());
-
 			return ifs;
 		}
 	}

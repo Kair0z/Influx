@@ -23,20 +23,20 @@ namespace influx::imgui
 {
 	inline void transform3D(const string& title, const math::transform3D& transform)
 	{
-		ImGui::Text(title.c_str());
+		ImGui::Text( title.get_std().c_str() );
 
 		static const string kfloat_precision = "%.2f";
 		static const string ktriple_float = kfloat_precision + "," + kfloat_precision + "," + kfloat_precision;
 
 		const math::float3 position = transform.get_position();
-		ImGui::Text(("position: \t" + ktriple_float).c_str(), position.x, position.y, position.z);
+		ImGui::Text(("position: \t" + ktriple_float).get_std().c_str(), position.x, position.y, position.z);
 
 		const math::rotation rotation = transform.get_rotation();
 		const math::float3 eulers = rotation.get_euler_angles();
-		ImGui::Text(("rotation: \t" + ktriple_float).c_str(), eulers.x, eulers.y, eulers.z);
+		ImGui::Text(("rotation: \t" + ktriple_float).get_std().c_str(), eulers.x, eulers.y, eulers.z);
 
 		const math::float3 scale = transform.get_scale();
-		ImGui::Text(("scale: \t" + ktriple_float).c_str(), scale.x, scale.y, scale.z);
+		ImGui::Text(("scale: \t" + ktriple_float).get_std().c_str(), scale.x, scale.y, scale.z);
 	}
 
 	struct scoped_style_var final
@@ -62,7 +62,7 @@ namespace influx::imgui
 	{
 		enum class e_flags : uint32
 		{
-			none = 0,
+			none        = 0,
             info        = 1 << 0,
             warning     = 1 << 1,
             error       = 1 << 2,

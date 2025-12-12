@@ -28,8 +28,8 @@ namespace influx::imp
 			data,
 			(unsigned&)out_image.m_dimensions.x,
 			(unsigned&)out_image.m_dimensions.y,
-			filepath.c_str(), 
-			LCT_RGBA, 
+			filepath.get_std(), 
+			LCT_RGBA,
 			8u);
 
 		if (error)

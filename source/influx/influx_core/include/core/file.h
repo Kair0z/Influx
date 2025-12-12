@@ -40,16 +40,13 @@ namespace influx
 		inline void initialize(const str_type& str)
 		{
 			std::filesystem::path path( str );
+			const wstring extension =
 
-			const wstring filename = path.filename().wstring();
-			const wstring directory = path.parent_path().wstring() + L"/";
-			const wstring extension = path.extension().wstring();
-
-			m_filename	= filename.c_str();
-			m_directory = directory.c_str();
-			m_full_path = path.c_str();
-			m_extension = extension.c_str();
-			m_filename_without_extension = filename.substr(0u, filename.size() - extension.size()).c_str();
+			m_filename = path.filename().wstring();
+			m_directory = path.parent_path().wstring() + L"/";
+			m_full_path = path.wstring();
+			m_extension = path.extension().wstring();
+			m_filename_without_extension = m_filename.substr(0u, m_filename.size() - extension.size());
 		}
 
 	public:
@@ -159,7 +156,7 @@ namespace influx
 			// create the directory chain
 			std::filesystem::create_directories(path.parent_path());
 
-			std::ofstream fstream(in_path.get_std_w());
+			std::wofstream fstream(in_path.get_wstd());
 			if (!fstream.is_open())
 			{
 				return result<>::make_error("failed opening write filestream to path!");
@@ -192,14 +189,14 @@ namespace influx
 
 					out_files.push_back(path{});
 					path& the_file = out_files.back();
-					the_file.m_full_path = full_path.c_str();
-					the_file.m_extension = extension.c_str();
-					the_file.m_filename = filename.substr(0u, extension_start).c_str();
+					the_file.m_full_path = full_path;
+					the_file.m_extension = extension;
+					the_file.m_filename = filename.substr(0u, extension_start);
 				};
 
 			if (recursive)
 			{
-				for (const auto& entry : std::filesystem::recursive_directory_iterator(directory.get_std_w()))
+				for (const auto& entry : std::filesystem::recursive_directory_iterator(directory.get_wstd()))
 				{
 					if (entry.is_regular_file())
 					{
@@ -209,7 +206,7 @@ namespace influx
 			}
 			else
 			{
-				for (const auto& entry : std::filesystem::directory_iterator(directory.get_std_w()))
+				for (const auto& entry : std::filesystem::directory_iterator(directory.get_wstd()))
 				{
 					push_file(entry);
 				}
@@ -225,18 +222,18 @@ namespace influx
 			if (exists(dest_path) == false)
 				return result<>::make_error("dest_path is not valid!");
 
-			std::wifstream ifs(src_path.get_std_w());
+			std::wifstream ifs(src_path.get_wstd());
 			if (!ifs.is_open())
 				return result<>::make_error("failed opening wifstream!");
 
-			std::ofstream ofs(dest_path.get_std_w());
+			std::wofstream ofs(dest_path.get_wstd());
 			if (!ofs.is_open())
 				return result<>::make_error("failed opening ofstream!");
 
 			string line = "";
-			while (std::getline(ifs, line.get_std_w()))
+			while (std::getline(ifs, line.get_wstd()))
 			{
-				ofs << line.get_std() << "\n";
+				ofs << line.get_wstd() << "\n";
 			}
 			return {};
 		}
@@ -244,14 +241,14 @@ namespace influx
 		inline static result<uint32> get_num_lines_in_file(const str_type& src_path)
 		{
 			using result_type = result<uint32>;
-			std::ifstream file(src_path.get_std_w(), std::ios::binary);
+			std::wifstream file(src_path.get_wstd(), std::ios::binary);
 			if (!file.is_open())
 			{
 				return result_type::make_error("failed opening ifstream for path!");
 			}
 
-			return (uint32)std::count(std::istreambuf_iterator<char>(file),
-				std::istreambuf_iterator<char>(), '\n');
+			return (uint32)std::count(std::istreambuf_iterator<wchar_t>(file),
+				std::istreambuf_iterator<wchar_t>(), '\n');
 		}
 
 		inline static result<string> read_all_to_string(const str_type& path)
@@ -279,7 +276,7 @@ namespace influx
 
 			size_t insert_point = filename.find_last_of('.');
 			uint32 count = 0u; str_type new_name = filename;
-			while (exists((directory + new_name).c_str()) && count < 1000)
+			while (exists(string(directory + new_name)) && count < 1000)
 			{
 				uint64 found = new_name.find_last_of('_');
 				if (found < new_name.size())
@@ -300,13 +297,13 @@ namespace influx
 			const str_type new_path = directory + new_name;
 
 			// create new file with new path, and copy old contents
-			auto create_res = create_file(new_path.c_str());
+			auto create_res = create_file(new_path);
 			if (create_res.is_fail())
 			{
 				return result<>::make_error("failed creating a new file!");
 			}
 
-			auto copy_res = copy_file_contents(src_path, new_path.c_str());
+			auto copy_res = copy_file_contents(src_path, new_path);
 			if (copy_res.is_fail())
 			{
 				return result<>::make_error("failed copying file contents!");
@@ -325,7 +322,7 @@ namespace influx
 			vector<string> result_lines{};
 			uint32 index = 0u;
 			string line = "";
-			while (index < max_index && std::getline(file, line.get_std_w()))
+			while (index < max_index && std::getline(file, line.get_wstd()))
 			{
 				if (index >= start_index)
 				{
@@ -364,7 +361,7 @@ namespace influx
 		
 		inline static result<> clear_content(const str_type& path)
 		{
-			if (exists(path.c_str()))
+			if (exists(path))
 			{
 				std::wofstream file(path.c_wstr(), std::ios::trunc); // Open in truncation mode
 				file.close(); // Closing the file ensures changes are save
@@ -381,13 +378,13 @@ namespace influx
 
 		inline static result<> push_lines(const str_type& in_path, const vector<string>& lines)
 		{
-			std::wofstream fstream(in_path.get_std_w(), std::ios::app);
+			std::wofstream fstream(in_path.get_wstd(), std::ios::app);
 			if (fstream.is_open() == false)
 				return result<>::make_error("failed opening ofstream to path!");
 
 			for (const string& str : lines)
 			{
-				fstream << str.get_std_w() << L"\n";
+				fstream << str.get_wstd() << L"\n";
 			}
 			fstream.close();
 			return {};

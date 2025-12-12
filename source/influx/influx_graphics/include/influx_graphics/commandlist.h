@@ -98,7 +98,7 @@ namespace influx::graphics
 			count
 		};
 		
-		INFLUX_GFX_API result<> start(device* device, detail::base_pipeline* init_state = nullptr);
+		INFLUX_GFX_API result<> start_recording(device* device, detail::base_pipeline* init_state = nullptr);
 
 		INFLUX_GFX_API result<> submit(queue*);
 
@@ -199,7 +199,7 @@ namespace influx::graphics
 		/* workgraphs */
 		INFLUX_GFX_API virtual result<> dispatch_workgraph(graph_pipeline* pipeline) = 0;
 
-		INFLUX_GFX_API virtual result<> end() = 0;
+		INFLUX_GFX_API virtual result<> end_recording() = 0;
 
 	private:
 		virtual result<> start_impl(device* device, detail::base_pipeline* init_state = nullptr) = 0;

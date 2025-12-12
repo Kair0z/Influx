@@ -18,7 +18,7 @@ namespace influx::engine
 			return result_type::make_error("project filepath doesn't exist!");
 
 		project out_project = {};
-		const wstring& filepath_str = filepath.get_full_path();
+		const std_str& filepath_str = filepath.get_full_path().get_std();
 		out_project.m_parsed_result = toml::parse_file(filepath_str);
 		out_project.m_is_valid = true;
 		out_project.m_filepath = filepath;
@@ -36,9 +36,9 @@ namespace influx::engine
 			}
 			else if constexpr (toml::is_string<decltype(lvalue)>)
 			{
-				if (key == lkey)
+				if (key.get_std() == lkey)
 				{
-					lvalue = value;
+					lvalue = value.get_std();
 					return;
 				}
 				else res = result<>::make_error("no key found!");
@@ -85,7 +85,7 @@ namespace influx::engine
 		const node* node = m_parsed_result.get("name");
 		if (node->is_string())
 		{
-			return node->as_string()->get();
+			return string(node->as_string()->get());
 		}
 		else return result<string>::make_error("value at key:version is not a string!");
 	}
@@ -98,7 +98,7 @@ namespace influx::engine
 		const node* node = m_parsed_result.get("version");
 		if (node->is_string())
 		{
-			return node->as_string()->get();
+			return string(node->as_string()->get());
 		}
 		else return result<string>::make_error("value at key:version is not a string!");
 	}

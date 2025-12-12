@@ -8,7 +8,7 @@ namespace influx
 #define influx_assert_msg(expr, msg) \
     do { \
         if (!(expr)) { \
-            std::cerr << "Assertion failed: " << (msg) << "\n"; \
+            std::wcerr << L"Assertion failed: " << (msg) << L"\n"; \
             assert(expr); \
         } \
     } while (0)
