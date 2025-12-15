@@ -9,10 +9,17 @@ namespace influx::async
 
 	class task_queue final
 	{
+		ringbuffer<task_data*, 4096u> m_buffer{};
+
 	public:
 		inline bool try_grab(task_data*& task)
 		{
 			return m_buffer.try_pop(task);
+		}
+
+		inline bool try_grab_lockless(task_data*& task)
+		{
+			return m_buffer.pop_lockless(task);
 		}
 
 		inline bool push(task_data* data)
@@ -29,9 +36,6 @@ namespace influx::async
 		{
 			return m_buffer.size();
 		}
-
-	private:
-		ringbuffer<task_data*, 4096u> m_buffer{};
 	};
 }
 

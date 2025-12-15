@@ -104,10 +104,16 @@ namespace influx::rendergraph
 
 		INFLUX_RG_API void build();
 
-		// execute the graph onto a single command list
-		INFLUX_RG_API result<> execute(
+		// single commandlist version
+		INFLUX_RG_API result<> write_commandlist(
 			rhi_commandlist& commandlist,
 			rhi_device& device);
+
+		INFLUX_RG_API result<uint64> get_required_num_commandlists() const;
+
+		// multi-commandlist version
+		typedef rhi_commandlist&(*commandlist_provider)(uint32 i);
+		INFLUX_RG_API result<> write_commandlists(commandlist_provider cmdlist_provider, rhi_device& device);
 
 		// adds a node outputting to root
 		INFLUX_RG_API rgpass* add_pass(e_rgpass_type type,
@@ -207,6 +213,10 @@ namespace influx::rendergraph
 		void cull_passes();
 		void calc_resource_lifetimes();
 		void depth_search(uint64 parent_idx, vector<bool>& visited_list, vector<uint64>& topo_sorted_passes);
+
+		/* executing the render graph */
+		result<> write_command_layer(const rglayer& layer, rhi_commandlist& commandlist, rhi_device& device);
+		result<> write_command_pass(const rgpass& pass, rhi_commandlist& commandlist, rhi_device& device);
 
 		/* creates views (rtv/dsv/srv/samp) based on how the resource will be used in our rendergraph */
 		result<> create_texture_views(rhi_device&, rgtexture_id);

@@ -7,9 +7,9 @@ namespace influx::async
 {
 	struct task_data final
 	{
-		task_create_args		m_args{};
-		std::atomic_uint32_t	m_refcount = 0u;
-		e_task_state			m_state{};
+		task_create_args_internal	m_create_args{};
+		std::atomic_uint32_t		m_refcount = 0u;
+		e_task_state				m_state{};
 
 #if !INFLUX_ASYNC_OMIT_STATS || 1
 		task_stats	m_stats{};
@@ -20,9 +20,8 @@ namespace influx::async
 #endif
 
 		task_data() = default;
-		task_data(const task_create_args& args)
-			: m_args{ args }
-		{
+		task_data(const task_create_args_internal& create_args)
+			: m_create_args{ create_args } {
 		}
 
 		inline void update_timings(e_task_state new_state)

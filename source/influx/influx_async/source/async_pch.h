@@ -2,6 +2,11 @@
 
 #include "influx_async.h"
 
+namespace influx::async
+{
+	using task_create_args_internal = detail::task_create_args_internal;
+}
+
 // influx core
 #include "core/singleton.h"
 #include "core/container/queue.h"

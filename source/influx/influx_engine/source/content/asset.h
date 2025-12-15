@@ -133,6 +133,7 @@ namespace influx::engine
 				if (auto res = load_scene_data(m_path, args))
 				{
 					m_resource = res.get();
+					is_load_success = true;
 				}
 			}
 			else if constexpr (_t == e_asset_type::image)
@@ -140,6 +141,7 @@ namespace influx::engine
 				if (auto res = load_image_data(m_path, args))
 				{
 					m_resource = res.get();
+					is_load_success = true;
 				}
 			}
 			else if constexpr (_t == e_asset_type::cubemap)
@@ -147,6 +149,7 @@ namespace influx::engine
 				if (auto res = load_cubemap_data(m_path, args))
 				{
 					m_resource = res.get();
+					is_load_success = true;
 				}
 			}
 			else if constexpr (_t == e_asset_type::shader)
@@ -154,6 +157,7 @@ namespace influx::engine
 				if (auto res = load_shader_data(m_path, args))
 				{
 					m_resource = res.get();
+					is_load_success = true;
 				}
 			}
 			m_time_loadend = time::get_now();

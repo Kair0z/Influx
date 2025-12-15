@@ -7,6 +7,7 @@
 #if WITH_RENDERJOBS
 // influx::async
 #include "influx_async.h"
+#else
 #endif
 
 static constexpr bool k_use_renderjobs = false;
@@ -16,6 +17,12 @@ namespace influx::renderer
 	using job_id = uint32;
 	static constexpr job_id k_job_invalid = (job_id)-1;
 	static constexpr uint32 k_jobs_capacity = 4 * 1024u;
+
+#if WITH_RENDERJOBS
+	using job_handle = async::task_handle;
+#else
+	using job_handle = job_id;
+#endif
 
 	struct job_chain final
 	{
@@ -36,18 +43,20 @@ namespace influx::renderer
 	class job_manager final
 	{
 		using graph = influx::graph<k_jobs_capacity>;
-		graph m_graph{};
-		job_id m_job_endframe = k_job_invalid;
-		async::task_handle m_tasks[k_jobs_capacity];
+		graph		m_graph{};
+		job_id		m_job_endframe = k_job_invalid;
+		job_handle	m_tasks[k_jobs_capacity];
 
 	public:
 		job_manager()
 		{
 			// initialize
+#if WITH_RENDERJOBS
 			influx::async::init_args args{};
 			args.m_num_workers = 4u;
 			args.m_log_callback = nullptr;
 			influx::async::initialize(args).get();
+#endif
 		}
 
 		template <typename _jobf>
@@ -113,7 +122,9 @@ namespace influx::renderer
 
 		virtual ~job_manager()
 		{
+#if WITH_RENDERJOBS
 			influx::async::shutdown().get();
+#endif
 		}
 	};
 }

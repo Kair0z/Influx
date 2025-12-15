@@ -23,14 +23,15 @@ influx::cvar cv_num_shaders		("cv_num", "3", "haha");
 
 enum e_result : int
 {
-	success							= 0,
+	success							= +0,
 	error_no_input_filepath			= -1,
-	error_entrypoint_not_found		= -2,
-	error_failed_parse				= -3,
-	error_parse_is_empty			= -4,
-	error_compile_error				= -5,
-	error_no_output_filepath		= -6,
-	error_output_write_failed		= -7
+	error_input_filepath_nfound		= -2,
+	error_entrypoint_not_found		= -3,
+	error_failed_parse				= -4,
+	error_parse_is_empty			= -5,
+	error_compile_error				= -6,
+	error_no_output_filepath		= -7,
+	error_output_write_failed		= -8
 };
 
 int main(int argc, char** argv)

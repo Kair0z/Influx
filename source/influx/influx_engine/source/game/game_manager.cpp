@@ -22,7 +22,7 @@ namespace influx::engine
 {
 	game_manager::game_manager()
 	{
-		wstring path_to_dll = get_engine_directory(engine_directory::binaries).get_full_path() + L"/debug-windows-x86_64/pong/pong.dll";
+		const string path_to_dll = get_engine_directory(engine_directory::binaries).get_full_path() + L"/debug-windows-x86_64/pong/pong.dll";
 		m_game_library.load(to_string(path_to_dll)).get();
 		m_game_library.call_engine_init();
 	}

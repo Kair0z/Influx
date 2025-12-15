@@ -6,6 +6,8 @@
 
 namespace influx::async
 {
+	thread_local async_manager::worker_state* g_threadstate{};
+
 	result<> async_manager::initialize(const init_args& args)
 	{
 		m_is_initialized = true;
@@ -18,9 +20,12 @@ namespace influx::async
 		// spin worker threads:
 		for (uint64 i = 0u; i < args.m_num_workers; ++i)
 		{
+			m_thread_queues[i] = new task_queue();
+
 			m_worker_threads.push_back({i});
-			m_worker_threads.back().m_thread_obj = 
+			m_worker_threads.back().m_thread_obj =
 				std::thread(&async_manager::worker_thread_method, std::ref(m_worker_threads[i]));
+			m_worker_threads.back().m_queue = m_thread_queues[i];
 		}
 
 #if _DEBUG
@@ -53,21 +58,26 @@ namespace influx::async
 		return m_is_initialized == false;
 	}
 
+	// worker thread routine:
+	// 1. check if manager is still active
+	// 2. grab/process a task, 
+	// 3. if no task was processed, try cleaning one up instead
 	void async_manager::worker_thread_method(worker_state& state)
 	{
-		// routine:
-		// 1. check if manager is still active
-		// 2. grab/process a task, 
-		// 3. if no task was processed, try cleaning one up instead
+		g_threadstate = &state;
 
 		async_manager& manager = async_manager::get_instance();
 		while (manager.is_shutdown() == false)
 		{
-			const bool processed_task = manager.try_grab_and_process_a_task(manager.get_global_queue()).get();
-			if (!processed_task)
-			{
+			// first, pop the thread local queue
+			bool did_process_task =
+				manager.try_grab_and_process_task_lockless(*g_threadstate->m_queue);
+
+			if (did_process_task == false) 
+				did_process_task = manager.try_grab_and_process_a_task(manager.get_global_queue()).get();
+
+			if (did_process_task == false)
 				manager.try_grab_and_clean_a_task();
-			}
 		}
 	}
 
@@ -109,7 +119,24 @@ namespace influx::async
 		return false;
 	}
 
-	result<task_handle> async_manager::create_task(const task_create_args& args)
+	result<bool> async_manager::try_grab_and_process_task_lockless(task_queue& queue)
+	{
+		using result_type = result<bool>;
+		task_data* task = nullptr;
+		if (queue.try_grab_lockless(task))
+		{
+			auto process_res = do_process_task(task);
+			if (process_res.is_unex())
+				return result_type::make_error("do_process_task failed!");
+
+			return true;
+		}
+
+		// failed to grab a task, still result::success though!
+		return false;
+	}
+
+	result<task_handle> async_manager::create_task(const task_create_args_internal& args)
 	{
 		using result_type = result<task_handle>;
 
@@ -125,7 +152,7 @@ namespace influx::async
 		}
 	}
 
-	result<vector<task_handle>> async_manager::create_tasks(const std::vector<task_create_args>& args)
+	result<vector<task_handle>> async_manager::create_tasks(const std::vector<task_create_args_internal>& args)
 	{
 		using result_type = result<std::vector<task_handle>>;
 
@@ -148,7 +175,7 @@ namespace influx::async
 
 			// initialize the allocated task
 			new_task_data->reset(e_task_state::allocated);
-			new_task_data->m_args = args[i];
+			new_task_data->m_create_args = args[i];
 
 			// push handle to data
 			result.push_back(task_handle(mp_taskpool->get_index(new_task_data)));
@@ -156,6 +183,7 @@ namespace influx::async
 
 		return result;
 	}
+
 
 	result<> async_manager::do_process_task(task_data* data)
 	{
@@ -165,10 +193,8 @@ namespace influx::async
 		data->m_time_started = time::get_now();
 #endif
 		{
-			if (data->m_args.m_func_execute)
-			{
-				data->m_args.m_func_execute();
-			}
+			if (data->m_create_args.m_entrypoint)
+				data->m_create_args.m_entrypoint(data->m_create_args.m_data);
 		}
 #if !INFLUX_ASYNC_OMIT_STATS
 		data->m_time_finished = time::get_now();
@@ -176,7 +202,7 @@ namespace influx::async
 		m_num_processing--;
 		data->m_state = e_task_state::finished;
 
-		// move to the cleanup queue
+		// throw the task on the cleanup queue
 		mp_global_cleanup_queue->push(data);
 
 		return {};
@@ -204,6 +230,7 @@ namespace influx::async
 
 		return do_cleanup_task(get_data_res.get());
 	}
+
 
 	result<task_data*> async_manager::get_task_data(const task_handle& handle)
 	{
@@ -349,10 +376,14 @@ namespace influx::async
 	{
 		return async_manager::get_instance().initialize(args);
 	}
-	result<task_handle> create_task(const task_create_args& args)
-	{
-		return async_manager::get_instance().create_task(args);
+
+	namespace detail {
+		result<task_handle> create_task(const task_create_args_internal& args)
+		{
+			return async_manager::get_instance().create_task(args);
+		}
 	}
+
 	result<> dispatch(const task_handle& handle)
 	{
 		return async_manager::get_instance().dispatch(handle);
@@ -459,6 +490,9 @@ namespace influx::async
 
 		return found_data.get()->m_state;
 	}
+
+	INFLUX_ASYNC_API
+		result<task_handle> create_task(const task_create_args_internal& args);
 
 	result<task_stats> task_handle::get_stats() const
 	{

@@ -40,7 +40,7 @@ namespace influx
 		inline void initialize(const str_type& str)
 		{
 			std::filesystem::path path( str );
-			const wstring extension =
+			const string extension = path.extension().wstring();
 
 			m_filename = path.filename().wstring();
 			m_directory = path.parent_path().wstring() + L"/";
@@ -187,11 +187,7 @@ namespace influx
 
 					auto extension_start = filename.find(extension);
 
-					out_files.push_back(path{});
-					path& the_file = out_files.back();
-					the_file.m_full_path = full_path;
-					the_file.m_extension = extension;
-					the_file.m_filename = filename.substr(0u, extension_start);
+					out_files.push_back(path{ full_path });
 				};
 
 			if (recursive)
@@ -264,7 +260,7 @@ namespace influx
 			return result_type::make_error("failed opening file at path!");
 		}
 
-		// creates a duplicate file with number appended
+		// creates a duplicate file with appended number
 		inline static result<> duplicate_file(const str_type& src_path, const str_type& dup_extension = {})
 		{
 			if (!exists(src_path))
@@ -276,7 +272,7 @@ namespace influx
 
 			size_t insert_point = filename.find_last_of('.');
 			uint32 count = 0u; str_type new_name = filename;
-			while (exists(string(directory + new_name)) && count < 1000)
+			while (exists(directory + new_name) && count < 1000)
 			{
 				uint64 found = new_name.find_last_of('_');
 				if (found < new_name.size())
@@ -290,7 +286,7 @@ namespace influx
 				{
 					// if path doesnt have a version number yet...
 					// "file" -> "file_0"
-					new_name = new_name.insert(insert_point, L"_" + to_wstring(count++));
+					new_name.append( "_" + string(count++) );
 				}
 			}
 

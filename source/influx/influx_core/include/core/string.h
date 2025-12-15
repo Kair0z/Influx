@@ -11,6 +11,7 @@
 
 #include "core/container/vector.h"
 #include "core/basetypes.h"
+#include "core/debug.h"
 
 // influx string
 namespace influx
@@ -64,8 +65,15 @@ namespace influx
 		return std::to_string(i);
 	}
 
-	inline std_wstr to_wstring(uint32 i)
-	{
+	inline std_wstr to_wstring(int i) {
+		return std::to_wstring(i);
+	}
+
+	inline std_wstr to_wstring(uint32 i) {
+		return std::to_wstring(i);
+	}
+
+	inline std_wstr to_wstring(uint64 i) {
 		return std::to_wstring(i);
 	}
 
@@ -164,6 +172,15 @@ namespace influx
 		{ 
 			m_wstr = std_wstr; 
 		}
+		string(const int value) {
+			m_wstr = to_wstring(value);
+		}
+		string(const uint32 value) {
+			m_wstr = to_wstring(value);
+		}
+		string(const uint64 value) {
+			m_wstr = to_wstring(value);
+		}
 		virtual ~string() = default;
 
 		// access
@@ -258,6 +275,25 @@ namespace influx
 			}
 		}
 
+		static constexpr uint64 get_size(cstr s) {
+			return s ? std::strlen(s) : 0u;
+		}
+		static constexpr uint64 get_size(wcstr s) {
+			return s ? std::wcslen(s) : 0u;
+		}
+		static constexpr uint64 get_size(const std_str& str) {
+			return str.size();
+		}
+		static constexpr uint64 get_size(const std_wstr& str) {
+			return str.size();
+		}
+		static constexpr uint64 get_size(const chr chr) {
+			return 1u;
+		}
+		static constexpr uint64 get_size(const wchr chr) {
+			return 1u;
+		}
+
 		template <typename _t>
 		uint64 find(const _t& value, bool case_sensitive = k_default_case_sensitive, uint64 range_begin = 0u) const
 		{
@@ -274,7 +310,7 @@ namespace influx
 		template <typename _t>
 		uint64 find_last_of(const _t& value, uint64 range_begin = 0u) const
 		{
-			return k_not_found;
+			return m_wstr.find_last_of(value, range_begin);
 		}
 
 		string substr(const uint64 range_begin, const uint64 range_length = k_max_length) const
@@ -313,6 +349,9 @@ namespace influx
 
 		static bool is_equal(const string& a, const string& b, const bool case_sensitive = k_default_case_sensitive)
 		{
+			if (get_size(a) != get_size(b))
+				return false;
+
 			return compare(a, b, case_sensitive) == 0;
 		}
 
@@ -358,11 +397,19 @@ namespace influx
 		}
 
 		template <typename _t>
-		string insert(const uint64 target_index, const _t& value)
+		string& insert(const uint64 target_index, const _t& value)
 		{
-			string result{};
+			const uint64 size_before = this->size();
+			influx_assert(target_index < size_before);
+
+			const string prefix = substr(0u, target_index);
+			const string postfix = substr(target_index, size_before - target_index);
+			*this = prefix;
+			this->append(value);
+			this->append(postfix);
+
 			on_content_change();
-			return result;
+			return *this;
 		}
 
 		template <typename _t>
@@ -389,8 +436,6 @@ namespace influx
 	{
 		return !(a == b);
 	}
-
-	using wstring = string;
 	
 	template <typename _t>
 	inline string operator+(const string& str, const _t& element)
@@ -428,12 +473,13 @@ namespace influx
 	}
 #endif
 
+#define OMIT_STRINGS 1
 	class debug_name final
 	{
 	private:
 		static constexpr uint64 k_invalid = (uint64)-1;
 		uint64 m_hash = k_invalid;
-#if INFLUX_DEBUG
+#if !OMIT_STRINGS
 		string m_string = "";
 #endif
 
@@ -460,7 +506,7 @@ namespace influx
 		inline void set(uint64 hash)
 		{
 			m_hash = hash;
-#if INFLUX_DEBUG
+#if !OMIT_STRINGS
 			m_string = to_string(hash);
 #endif
 		}
@@ -474,7 +520,7 @@ namespace influx
 		inline void set(const string& str)
 		{
 			m_hash = std::hash<string>()(str);
-#if INFLUX_DEBUG
+#if !OMIT_STRINGS
 			m_string = str;
 #endif
 		}
@@ -491,7 +537,7 @@ namespace influx
 
 		inline string get_string() const
 		{
-#if INFLUX_DEBUG
+#if !OMIT_STRINGS
 			return m_string;
 #else
 			return "";
@@ -500,7 +546,7 @@ namespace influx
 
 		inline wcstr get_wcstr() const
 		{
-#if INFLUX_DEBUG
+#if !OMIT_STRINGS
 			return m_string.c_wstr();
 #else
 			return L"";

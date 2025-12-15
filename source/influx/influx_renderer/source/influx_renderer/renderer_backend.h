@@ -139,6 +139,7 @@ namespace influx::renderer
 		static graphics::queue& get_copy_queue();
 		static graphics::device& get_device();
 		static job_manager& get_jobs();
+
 		static submit_manager& get_submit_manager();
 
 		void load(const mesh_id& id, const mesh_data<vertex_data>& data, bool reload = false);

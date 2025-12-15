@@ -19,6 +19,7 @@ namespace influx::async
 			const uint64 m_worker_id = 0u;
 
 			std::thread m_thread_obj{};
+			task_queue*	m_queue;
 		};
 
 	public:
@@ -26,8 +27,8 @@ namespace influx::async
 		result<> shutdown();
 		bool is_shutdown();
 
-		result<task_handle> create_task(const task_create_args& args = {});
-		result<vector<task_handle>> create_tasks(const vector<task_create_args>& args);
+		result<task_handle> create_task(const task_create_args_internal& args = {});
+		result<vector<task_handle>> create_tasks(const vector<task_create_args_internal>& args);
 
 		result<> dispatch(const task_handle& handle);
 		result<> dispatch(const vector<task_handle>& handles);
@@ -55,6 +56,7 @@ namespace influx::async
 		vector<worker_state> m_worker_threads{};
 
 		task_pool* mp_taskpool{};
+		task_queue* m_thread_queues[k_max_num_threads]{};
 		task_queue* mp_global_queue = nullptr;
 		task_queue* mp_global_cleanup_queue = nullptr;
 
@@ -67,6 +69,8 @@ namespace influx::async
 		// result only errors if something unexpected happens,
 		// the result boolean is whether we in fact DID end up processing a task
 		result<bool> try_grab_and_process_a_task(task_queue& queue);
+
+		result<bool> try_grab_and_process_task_lockless(task_queue& queue);
 
 		result<> do_cleanup_task(const task_handle& handle);
 		result<> do_process_task(task_data* data);

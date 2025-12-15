@@ -4,7 +4,7 @@ new_influx_library("influx_renderer")
     pchheader "renderer_pch.h"
     pchsource "source/renderer_pch.cpp"
 
-    g_userenderjobs = true
+    g_userenderjobs = false
     local dependencies =
     {
         "influx_core",
@@ -13,9 +13,15 @@ new_influx_library("influx_renderer")
         "influx_rhi",
         "influx_rendergraph",
         "influx_imgui",
-        "influx_shader",
-        iif(g_userenderjobs ~= true, "", "influx_async")
+        "influx_shader"
     }
+
+    if g_userenderjobs then
+        dependencies {
+            "influx_async"
+        }
+    end
+
     set_influx_includes(dependencies)
     set_influx_links(dependencies)
 

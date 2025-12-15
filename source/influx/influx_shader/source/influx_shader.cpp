@@ -297,12 +297,12 @@ namespace influx::shader
 		return result;
 	}
 
-	inline static wstring make_shader_name_string(
+	inline static string make_shader_name_string(
 		const shader_signature& signature,
 		const compile_args& args)
 	{
-		wstring type = to_wstring(build_shader_target_string(signature.m_type, args.m_target));
-		wstring entry = to_wstring(signature.m_entrypoint);
+		string type = build_shader_target_string(signature.m_type, args.m_target);
+		string entry = signature.m_entrypoint;
 		return type + entry;
 	}
 
@@ -452,7 +452,7 @@ namespace influx::shader
 		
 		// convert arguments to warguments (i hate this i hate this i hate this)
 		vector<string> arguments = make_compile_args_strings(signature, args);
-		vector<wstring> warguments{}; warguments.resize(arguments.size());
+		vector<string> warguments{}; warguments.resize(arguments.size());
 		vector<LPCWSTR> lwarguments{}; lwarguments.resize(arguments.size());
 		for (uint64 i = 0u; i < arguments.size(); ++i)
 		{
@@ -533,9 +533,9 @@ namespace influx::shader
 			hres = pCompileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugData), &pDebugDataPath);
 			if (hres == S_OK && pDebugData != nullptr)
 			{
-				wstring foldername = args.m_pdb_folder;
-				wstring filename = args.m_pdb_filename + make_shader_name_string(signature, args);
-				wstring filepath = foldername + L"/" + filename + L".pdb";
+				string foldername = args.m_pdb_folder;
+				string filename = args.m_pdb_filename + make_shader_name_string(signature, args);
+				string filepath = foldername + L"/" + filename + L".pdb";
 
 				hres = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData,
 					filepath.c_wstr(), true);
@@ -600,7 +600,7 @@ namespace influx::shader
 		if (!path::exists(filepath)) return result_type::make_error("error: non-exist filepath!");
 
 		// load the file
-		wstring wfilepath = to_wstring(filepath);
+		string wfilepath = filepath;
 		IDxcBlobEncoding* pShaderSourceFile;
 		HRESULT
 		hresult = get_utils()->LoadFile(wfilepath.c_wstr(), nullptr, &pShaderSourceFile);
@@ -809,11 +809,11 @@ namespace influx::shader
 		// setup the arguments
 		vector<LPCWSTR> warguments{};
 		const string target = build_shaderlib_target_string(args.m_target);
-		const wstring wtarget = to_wstring(target);
+		const string wtarget = target;
 		warguments.push_back(L"-T ");
 		warguments.push_back(wtarget.c_wstr());
 
-		const wstring wentrypoint = to_wstring(args.m_entrypoint);
+		const string wentrypoint = args.m_entrypoint;
 		warguments.push_back(L"-E ");
 		warguments.push_back(wentrypoint.c_wstr());
 

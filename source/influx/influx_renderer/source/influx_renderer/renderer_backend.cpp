@@ -164,7 +164,7 @@ namespace influx::renderer
         }
 
         // wait for last gpu frame
-        // (strict, ideally we let CPU get on with some of the work already)
+        // (too strict, ideally we let CPU get on with some the next frame's work already)
         submit_manager& submanager = get_submit_manager();
         {
             influx_scope("renderer::wait_for_gpu_frame");
@@ -172,26 +172,36 @@ namespace influx::renderer
         }
 
         // here the rendergraph populates the main render command submission with GPU commands
-        gpu_submission& submission = submanager.get_submission(e_gpusubmit::render);
-        graphics::commandlist& cmdlist = submission.get_commandlist();
-        cmdlist.start_recording(&get_device(), nullptr);
+        const uint64 num_commandlists = m_rendergraph->get_required_num_commandlists().get();
+        if (num_commandlists > 0u && num_commandlists < k_num_child_submissions)
         {
+            descriptor_manager* descman = get_descriptor_manager();
+
             // reset & rebind the gpu heaps (of this frame)
+            descman->reset_gpu_heaps();
+
             {
                 influx_scope("renderer::bind_gpu_heaps");
-                descriptor_manager* descman = get_descriptor_manager();
-                descman->reset_gpu_heaps();
-                descman->bind_gpu_heaps(cmdlist);
+                for (uint32 i = 0u; i < num_commandlists; ++i)
+                {
+                    gpu_submission& submission = submanager.get_submission(e_gpusubmit::render, i);
+                    graphics::commandlist& cmdlist = submission.get_commandlist();
+                    cmdlist.start_recording(&get_device(), nullptr);
+                    descman->bind_gpu_heaps(cmdlist);
+                }
             }
-            // let the rendergraph fill up the render commandlist
             {
-                influx_scope("renderer::rendergraph_execute");
-                auto res = m_rendergraph->execute(cmdlist, *mp_device);
-                if (res.is_fail())
-                    log(e_log::warning, "rendergraph execute failed!");
+                influx_scope("renderer::rg_write_commandlists");
+                m_rendergraph->write_commandlists([](const uint32 index) -> graphics::commandlist& 
+                {
+                    submit_manager& submanager = get_submit_manager();
+                    gpu_submission& submission = submanager.get_submission(e_gpusubmit::render, index);
+                    return submission.get_commandlist();
+
+                }, *mp_device);
             }
         }
-        
+
         // finally, submit all work to the GPU
         {
             influx_scope("submit_manager::submit_gpu_frame");
@@ -203,7 +213,7 @@ namespace influx::renderer
     {
         // populate the pre-present commandlist which copies target proxy -> backbuffer
         submit_manager& subman = get_submit_manager();
-        gpu_submission& submission = subman.get_submission(e_gpusubmit::pre_present);
+        gpu_submission& submission = subman.get_submission(e_gpusubmit::pre_present, 0u);
         graphics::commandlist* cmdlist = submission.m_commandlist;
         
         vector<platform::window const*> window_handles{};
@@ -243,7 +253,7 @@ namespace influx::renderer
                 // transition to present the backbuffer
                 backbuffer->transition(cmdlist, graphics::e_resource_state::present);
             }
-            subman.submit(e_gpusubmit::pre_present);
+            subman.submit(e_gpusubmit::pre_present, 0u);
         }
         
         for (const auto& swapchain : m_swapchains)
@@ -266,7 +276,7 @@ namespace influx::renderer
 
         // transition the backbuffer to present state
         submit_manager& subman = get_submit_manager();
-        gpu_submission& endframe_submission = subman.get_submission(e_gpusubmit::frame_end);
+        gpu_submission& endframe_submission = subman.get_submission(e_gpusubmit::frame_end, 0u);
         graphics::commandlist* cmdlist = endframe_submission.m_commandlist;
         graphics::resource* backbuffer = backbuffer_res.get();
         backbuffer->transition(cmdlist, graphics::e_resource_state::present);
@@ -387,7 +397,7 @@ namespace influx::renderer
         {
             // wait for the last present to be finished
             submit_manager& subman = get_submit_manager();
-            subman.wait_until_complete(subman.get_submission(e_gpusubmit::pre_present));
+            subman.wait_until_complete(subman.get_submission(e_gpusubmit::pre_present, 0u));
 
             swapchain.mp_swapchain->resize(mp_device, window);
             recreate_backbuffer_finaltarget(swapchain);

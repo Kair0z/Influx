@@ -45,6 +45,7 @@ namespace influx
 
 		ex_type m_expected = {};
 		unex_type m_unexpected = {};
+		bool m_is_unex = false;
 
 		// warnings carry a valid result,
 		// AND an unexpected result,
@@ -56,7 +57,7 @@ namespace influx
 		result() : m_expected{}, m_unexpected{} {}
 		result(_t&& value) : m_expected{ value }, m_unexpected{} {}
 		result(const _t& value) { m_expected = value; }
-		result(const _e& error) { m_unexpected = error; }
+		result(const _e& error) { m_unexpected = error; m_is_unex = true; }
 
 		// forbid implicit conversion!
 		template <typename = std::enable_if_t<!std::is_same_v<_t, bool>>>
@@ -83,6 +84,7 @@ namespace influx
 			result res{};
 			res.m_expected = value;
 			res.m_unexpected = warning;
+			res.m_is_unex = true;
 			res.m_is_warning = true;
 			return res;
 		}

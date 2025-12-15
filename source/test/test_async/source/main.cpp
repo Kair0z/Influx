@@ -1,6 +1,7 @@
 #include "core/basetypes.h"
 #include "core/time.h"
 #include "core/math/math.h"
+#include "core/scope.h"
 #include "influx_async.h"
 
 #include <iostream>
@@ -28,20 +29,36 @@ void test_sums()
 {
 	std::cout << "-- testing sums... \n";
 
-	uint32 num_iterations = 1024u * 4u;
+	struct task_data final
+	{
+		uint32 i = 0u;
+	};
+
+	task_data* data = new task_data();
+	auto task_func = [](task_data* data) {
+		// scoped_event add{ "add" };
+			data->i += 1u;
+			data->i /= 4u;
+			data->i = std::sqrt(data->i);
+		};
+
+	static constexpr uint32 k_num = 64 * 10u;
+	async::task_handle tasks[k_num];
+	for (uint32 i = 0u; i < k_num; ++i)
+	{
+		tasks[i] = async::create_task<task_data>({ task_func, data }).get();
+	}
 
 	double async_time_in_seconds{};
 	uint32 async_sum = 0u;
 	{
 		time::point before = time::get_now();
 		std::mutex mutex{};
-		auto tasks = async::dispatch_for(num_iterations, [&mutex, &async_sum](uint64 i)
+		for (uint32 i = 0u; i < k_num; ++i)
 		{
-			// mutex.lock();
-			async_sum += (i + 1u) * 2u;
-			// mutex.unlock();
-		});
-		async::wait_for(tasks.get());
+			async::dispatch(tasks[i]);
+		}
+		async::wait_for_all();
 		async_time_in_seconds = time::get_ms_between<double>(time::get_now(), before) * 0.001;
 	}
 
@@ -49,9 +66,9 @@ void test_sums()
 	uint32 sync_sum = 0u;
 	{
 		time::point before = time::get_now();
-		for (uint32 i = 0u; i < num_iterations; ++i)
+		for (uint32 i = 0u; i < k_num; ++i)
 		{
-			sync_sum += (i + 1) * 2;
+			task_func(data);
 		}
 		sync_time_in_seconds = time::get_ms_between<double>(time::get_now(), before) * 0.001;
 	}
@@ -65,7 +82,7 @@ int main()
 	static uint32 counter = 0u;
 
 	async::init_args init_args{};
-	init_args.m_num_workers = 16u;
+	init_args.m_num_workers = 8u;
 	init_args.m_log_callback = nullptr;
 
 	async::initialize(init_args).get();

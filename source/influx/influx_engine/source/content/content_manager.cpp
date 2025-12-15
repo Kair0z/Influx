@@ -20,8 +20,27 @@
 // influx::shader
 #include "influx_shader.h"
 
+#define USE_ASYNC_LOADING 0
+
 namespace influx::engine
 {
+	template <typename _t, typename _func>
+	inline result<> dispatch_for(const vector<_t>& vector, _func&& func)
+	{
+#if USE_ASYNC_LOADING
+		auto dispatch_res = async::dispatch_for<_t>(vector, func);
+		if (dispatch_res.is_success() == false)
+			return result<>::make_error("async error!");
+		
+		return {};
+#else
+		for (uint64 i = 0u; i < vector.size(); ++i) {
+			func(vector[i]);
+		}
+		return {};
+#endif
+	}
+
 	class content_ui final : public editor::editor_window
 	{
 	public:
@@ -123,7 +142,7 @@ namespace influx::engine
 	content_manager::content_manager()
 	{
 		// immediately start kicking engine loading (may as well)
-		// load_engine_assets();
+		load_engine_assets();
 
 		editor::editor_manager::static_window<content_ui>("content");
 	}
@@ -215,7 +234,7 @@ namespace influx::engine
 		const vector<path> png_files = path::get_files_in_directory(root_path_str, true, ".png").get();
 		
 		// load fbxs & objs
-		async::dispatch_for<path>(obj_files, [this](const path& file)
+		dispatch_for<path>(obj_files, [this](const path& file)
 		{
 			imp::scene_load_args args{};
 			args.m_bake_transforms = true;
@@ -224,7 +243,7 @@ namespace influx::engine
 			scene_asset& item = m_scenes[to_string(file.get_filename(without_extension))];
 			item.load(file, args);
 		});
-		async::dispatch_for<path>(fbx_files, [this](const path& file)
+		dispatch_for<path>(fbx_files, [this](const path& file)
 		{
 			imp::scene_load_args args{};
 			args.m_bake_transforms = true;
@@ -234,17 +253,17 @@ namespace influx::engine
 			item.load(file, args);
 		});
 
-		load_shaders(origin, root);
+		// load_shaders(origin, root);
 
 		// load pngs
-		async::dispatch_for<path>(png_files, [this](const path& file)
+		dispatch_for<path>(png_files, [this](const path& file)
 		{
 			const bool without_extension = false;
 			const string& filename = to_string(file.get_filename(without_extension));
 
 			imp::image_load_args args{};
 			image_asset& item = m_images[filename];
-			item.load(file, args);
+			item.load(file, args, true);
 		});
 	}
 	void content_manager::load_shaders(e_asset_origin origin, const path& root)
@@ -270,7 +289,7 @@ namespace influx::engine
 		compile_args.m_pbd = false;
 #endif
 
-		async::dispatch_for<path>(hlsl_files, [this, root](const path& file)
+		dispatch_for<path>(hlsl_files, [this, root](const path& file)
 		{
 			const auto parse_result = shader::parse_shaders_in_file(to_string(file.get_full_path()));
 			if (!parse_result.is_success()) 

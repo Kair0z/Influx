@@ -143,8 +143,6 @@ namespace influx::engine
 			}
 
 			view.m_target->resize(view.m_dimensions);
-
-			// render view
 			if (view.is_valid())
 			{
 				const auto& view_camera_settings = view.get_camera_settings();

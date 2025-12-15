@@ -203,7 +203,7 @@ namespace influx::platform
 		influx_assert(desc.m_name.empty() == false);
 		::HINSTANCE instance = (::HINSTANCE)platform::get_current_instance();
 
-		const wstring wname = to_wstring(desc.m_name);
+		const string& name = desc.m_name;
 		const uint32 width = desc.m_dimensions.x;
 		const uint32 height = desc.m_dimensions.y;
 
@@ -228,7 +228,7 @@ namespace influx::platform
 			windowClassExtended.hCursor = ::LoadCursor(NULL, IDC_ARROW);
 			windowClassExtended.hbrBackground = classBackgroundBrush;
 			windowClassExtended.lpszMenuName = NULL;
-			windowClassExtended.lpszClassName = wname.c_wstr();
+			windowClassExtended.lpszClassName = name.c_wstr();
 			windowClassExtended.hIconSm = ::LoadIcon(NULL, IDI_APPLICATION);
 
 			auto res = ::RegisterClassEx(&windowClassExtended);
@@ -263,8 +263,8 @@ namespace influx::platform
 
 			newWindowHandle = ::CreateWindowEx(
 				extendedWindowStyle,
-				wname.c_wstr(),
-				wname.c_wstr(),
+				name.c_wstr(),
+				name.c_wstr(),
 				windowStyle,
 				xPos, yPos, width, height,
 				parentWindow, parentMenu, instance, NULL);
@@ -365,9 +365,6 @@ namespace influx::platform
 	{
 		using result_type = result<e_messagebox_result>;
 
-		const wstring wcaption = to_wstring(caption);
-		const wstring wmessage = to_wstring(message);
-
 		// figure out the buttons
 		long winflags = MB_RETRYCANCEL;
 		if (has_flag(flags, e_messagebox_flags::button_ok))
@@ -394,8 +391,8 @@ namespace influx::platform
 
 		int winresult = MessageBox(
 			NULL,
-			wmessage.c_wstr(),
-			wcaption.c_wstr(),
+			message.c_wstr(),
+			caption.c_wstr(),
 			winflags
 		);
 
@@ -497,8 +494,7 @@ namespace influx::platform
 
 	void win32_window::set_title(const string& new_title)
 	{
-		wstring wtitle = to_wstring(new_title);
-		::SetWindowTextW((HWND)m_handle, wtitle.c_wstr());
+		::SetWindowTextW((HWND)m_handle, new_title.c_wstr());
 	}
 	bool win32_window::is_foreground() const
 	{
