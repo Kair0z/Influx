@@ -59,5 +59,4 @@ namespace influx
 	}
 
 #define logonce(cat, format, ...) { static bool once = true; if (once == true) { once = false; log(cat, format, __VA_ARGS__); } }
-	
 }

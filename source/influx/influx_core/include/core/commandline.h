@@ -20,17 +20,15 @@ namespace influx
 		};
 
 		using cstr = const char*;
-		using str = string;
-
 		using cvar_map = umap<string, cvar*>;
 		using cvar_vector = vector<cvar*>;
 		inline static cvar_map g_all_cvars_map{};
 		inline static cvar_vector g_all_cvars{};
 
-		cstr m_title;
-		cstr m_value_default;
-		cstr m_description;
-		cstr m_value;
+		cstr	m_title;
+		cstr	m_value_default;
+		cstr	m_description;
+		string	m_value;
 		e_setlevel m_value_setlevel = e_setlevel::none;
 
 	public:
@@ -62,7 +60,7 @@ namespace influx
 		{
 			// todo... string -> _t
 			_t result{};
-			from_string<_t>(m_value, result);
+			from_string<_t>(m_value.get_std(), result);
 			return result;
 		}
 
@@ -94,35 +92,52 @@ namespace influx
 			for (int i = k_args_begin; i < argc; ++i)
 			{
 				char* arg = argv[i];
-				str arg_str = arg;
+				string arg_str = arg;
 
-				// register the found cvar as 'set' (by runargs)
+				// find an prefix marked arg
 				uint64 prefix_loc = arg_str.find(k_prefix, 0u);
-				str cvar_title = arg_str.substr(prefix_loc + 1);
+				if (prefix_loc == string::k_npos)
+					continue;
+
+				// check if arg has a space
+				uint64 next_space_index = arg_str.find(' ', prefix_loc);
+				const bool has_internal_parm = next_space_index != string::k_npos;
+				
+				string cvar_title = arg_str.substr(prefix_loc + 1, next_space_index - 1 - prefix_loc);
 				cvar* var = find_cvar(cvar_title.c_str());
 				if (var)
 				{
 					var->m_value = var->m_value_default;
 					var->m_value_setlevel = e_setlevel(var->m_value_setlevel | e_setlevel::runargs);
 				}
-				else continue; // this argument is not a cvar
+				else 
+					continue; // this argument is not a valid registered cvar
 
-				// check if the next argument is a non-prefix str.
-				// if it isn't, that means the next argument is the parameter
-				// multiple parameters are (for now) not supported
-				const bool is_last_arg = i + 1 >= argc;
-				if (!is_last_arg)
+				// now we check for a sequent parameter
+				string parameter_value = "";
+				if (has_internal_parm)
 				{
-					const char* next_arg = argv[i + 1];
-					const str next_arg_str = next_arg;
-					const bool next_has_prefix = next_arg_str.find(k_prefix, 0u) != std::string::npos; // next_arg_str.size();
-					const bool next_is_parameter = !next_has_prefix;
-					if (next_is_parameter)
+					parameter_value = arg_str.substr(next_space_index + 1, arg_str.size() - next_space_index);
+				}
+				else
+				{
+					// check if the next argument is a non-prefix str.
+					// if it isn't, that means the next argument is the parameter
+					// multiple parameters are (for now) not supported
+					const bool is_last_arg = i + 1 >= argc;
+					if (!is_last_arg)
 					{
-						var->m_value = next_arg;
-						i++; // skip past this parsed parameter argument
+						const string next_arg_str = argv[i + 1];
+						const bool next_has_prefix = next_arg_str.find(k_prefix, 0u) != std::string::npos; // next_arg_str.size();
+						if (!next_has_prefix)
+						{
+							parameter_value = next_arg_str;
+							i++; // skip past this parsed parameter argument
+						}
 					}
 				}
+
+				var->m_value = parameter_value;
 			}
 		}
 	};

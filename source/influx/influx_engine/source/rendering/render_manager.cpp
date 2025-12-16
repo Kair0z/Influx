@@ -147,13 +147,16 @@ namespace influx::engine
 			{
 				const auto& view_camera_settings = view.get_camera_settings();
 				const auto& view_camera_transform = view.get_camera_transform().get_matrix();
-				view.get_scene().set_camera(view_camera_settings, view_camera_transform);
+
+				renderer::worldview& worldview = view.get_renderworld_view();
+				worldview.m_camera_settings = view_camera_settings;
+				worldview.m_world = &view.get_renderworld();
 				
+				// clear the target
 				renderer::clear_target(view.get_target(), { .m_colour = view.m_clear_colour });
 
-				renderer::scene& view_scene = view.get_scene();
-				view_scene.set_debug_render_enabled(true);
-				renderer::draw_scene(view_scene, view.get_target());
+				// renderer::draw_scene(view_scene, view.get_target());
+				renderer::draw_world(view.get_renderworld_view(), view.get_target());
 
 				++view.m_frame_counter;
 			}
@@ -242,5 +245,15 @@ namespace influx::engine
 		}
 
 		return m_views[id];
+	}
+
+	bool render_manager::has_texture(const string& name) const
+	{
+		return renderer::has_texture(name);
+	}
+
+	cptr<render_texture2D> render_manager::get_texture2D(const string& name) const
+	{
+		return &renderer::get_texture2D(name);
 	}
 }

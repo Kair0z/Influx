@@ -74,140 +74,6 @@ namespace influx::engine
         update_rigidbody_system();
     }
 
-    void world::build_renderscene(renderer::scene& scene, renderer::scene2D& scene2D) const
-    {
-        const float delta_time = get_engine()->get_time().get_delta_seconds();
-
-        // choose camera
-        {
-            influx_scope("build_camera");
-            float priority = 0.0f;
-            for (auto [entity, transform_comp, camera_comp] 
-                : m_registry.view<const transform_component, camera_component>().each())
-            {
-                if (camera_comp.get_priority() > priority)
-                {
-                    renderer::camera render_camera{};
-                    math::transform3D transform = transform_comp.get_transform();
-                    render_camera = camera_comp.get_camera();
-                    scene.set_camera(render_camera, transform.get_matrix());
-
-                    priority = camera_comp.get_priority();
-                }
-            }
-        }
-
-        // render sprites
-        {
-            influx_scope("build_sprites");
-            auto view = m_registry.view<const transform_component, sprite_component>();
-            for (auto [entity, transform_comp, sprite] : view.each())
-            {
-                math::transform3D transform = transform_comp.get_transform();
-                math::vectorf2 position2D = { transform.get_position().x, transform.get_position().y };
-
-                renderer::sprite2D render_sprite{};
-                render_sprite.m_texture = sprite.get_texture_path();
-                render_sprite.m_rectangle = math::rectf::square_rect(1.0f);
-                render_sprite.m_scale_to_view = true;
-                render_sprite.m_transform.set_position(position2D);
-                scene2D.m_sprites.push_back(render_sprite);
-            }
-        }
-
-        // render meshes
-        {
-            influx_scope("build_meshes");
-            auto view = m_registry.view<transform_component, mesh_component>();
-            for (auto [entity, transform_comp, mesh_comp] : view.each())
-            {
-                math::transform3D transform = transform_comp.get_transform();
-
-                // normalize scale to bounding sphere
-                if (mesh_comp.get_use_normalized_scale() && mesh_comp.m_mesh_boundsphere.m_radius > 0.0f)
-                {
-                    transform.set_scale(1.0f / mesh_comp.m_mesh_boundsphere.m_radius);
-                    transform.update_matrix();
-                }
-                
-                // setup mesh
-                renderer::mesh_instance render_mesh{};
-                scene.add_mesh(mesh_comp.get_mesh_name(), transform.get_matrix());
-            }
-        }
-
-        // lights
-        {
-            influx_scope("build_lights");
-            auto view = m_registry.view<transform_component, light_component>();
-            for (auto [entity, transform_comp, light_comp] : view.each())
-            {
-                math::transform3D transform = transform_comp.get_transform();
-                transform.update_matrix();
-                scene.add_light(light_comp.get_light(), transform.get_matrix());
-            }
-        }
-
-        // editor render
-        const bool is_editor = get_engine()->is_editor();
-        if (is_editor)
-        {
-            influx_scope("build_gizmos");
-            scene.add_gizmo_transform(math::transform3D::identity());
-
-            // grid render
-            {
-                const uint32 num_lines = 30u;
-                const math::colour_rgba line_colour = { 0.2f, 0.2f, 0.2f };
-                const float line_distance = 1.0f;
-                const float line_length = num_lines * line_distance;
-                const float half_offset = line_length * 0.5f;
-                for (uint32 z = 0u; z < num_lines; ++z)
-                {
-                    const math::float3 basepos = math::float3{ -half_offset, 0.0f, -half_offset + (z * line_distance) };
-                    const math::float3 endpos = basepos + math::float3{ half_offset * 2, 0, 0 };
-                    if (z != num_lines / 2)
-                    {
-                        scene.add_line(basepos, endpos, line_colour);
-                    }
-                }
-                for (uint32 x = 0u; x < num_lines; ++x)
-                {
-                    const math::float3 basepos = math::float3{ -half_offset + (x * line_distance), 0.0f, -half_offset };
-                    const math::float3 endpos = basepos + math::float3{ 0, 0, half_offset * 2 };
-                    if (x != num_lines / 2)
-                    {
-                        scene.add_line(basepos, endpos, line_colour);
-                    }
-                }
-                
-                const math::float3 origin = math::float3{ 0, 0, 0 };
-                scene.add_line(origin, math::float3{ half_offset, 0, 0 }, colour::k_red);
-                scene.add_line(origin, math::float3{ 0, half_offset, 0 }, colour::k_green);
-                scene.add_line(origin, math::float3{ 0, 0, half_offset }, colour::k_blue);
-            }
-
-            // transform gizmos
-            for (auto [entity, transform_comp] : m_registry.view<transform_component>().each())
-            {
-                if (m_registry.try_get<camera_component>(entity))
-                {
-                    // cameras shouldn't here
-                    continue;
-                }
-
-                scene.add_gizmo_transform(transform_comp.get_transform());
-            }
-
-            // bounds boxes
-            for (auto [entity, transform_comp, mesh_comp] : m_registry.view<transform_component, mesh_component>().each())
-            {
-                const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_comp.get_matrix());
-                scene.add_line_box(transformed_bounds, { 1,0,0,1 });
-            }
-        }
-    }
-
     void world::build_renderviews() const
     {
         render_manager& renderman = get_engine()->get_renderer();
@@ -218,9 +84,8 @@ namespace influx::engine
             if (!render_view.should_render())
                 continue;
 
-            renderer::scene& scene = render_view.get_scene();
-            renderer::scene2D& scene2D = render_view.get_scene2D();
-            scene = {}; scene2D = {}; // reset the scenes
+            renderer::world& renderworld = render_view.get_renderworld();
+            renderworld = {}; // clear / reset... ideally, we'd update this only as things change...
 
             // gather camera
             {
@@ -260,7 +125,7 @@ namespace influx::engine
 
                     // setup mesh
                     renderer::mesh_instance render_mesh{};
-                    scene.add_mesh(mesh_comp.get_mesh_name(), transform.get_matrix());
+                    renderworld.add_mesh_instance( mesh_comp.get_mesh_name(), transform.get_matrix() );
                 }
             }
             
@@ -274,13 +139,14 @@ namespace influx::engine
 
                     math::transform3D transform = transform_comp.get_transform();
                     transform.update_matrix();
-                    scene.add_light(light_comp.get_light(), transform.get_matrix());
+                    renderworld.add_light( light_comp.get_light(), transform.get_matrix() );
                 }
             }
 
             // gather sprites
             {
                 influx_scope("gather_sprites");
+#if 0
                 auto view = m_registry.view<const render_component, const transform_component, sprite_component>();
                 for (auto [entity, render_comp, transform_comp, sprite] : view.each())
                 {
@@ -296,12 +162,14 @@ namespace influx::engine
                     render_sprite.m_transform.set_position(position2D);
                     scene2D.m_sprites.push_back(render_sprite);
                 }
+#endif
             }
 
             // gather gizmos
             {
                 influx_scope("gather_gizmos");
-                scene.add_gizmo_transform(math::transform3D::identity());
+#if 0
+                renderworld.add_gizmo_transform( math::transform3D::identity() );
 
                 // grid render
                 {
@@ -353,6 +221,7 @@ namespace influx::engine
                     const math::boxf transformed_bounds = mesh_comp.m_mesh_boundbox.get_transformed3D(transform_comp.get_matrix());
                     scene.add_line_box(transformed_bounds, { 1,0,0,1 });
                 }
+#endif
             }
         }
     }

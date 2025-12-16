@@ -299,7 +299,7 @@ namespace influx::renderer
 		uint32 num_pixels = width * height;
 
 		// setup texture data
-		texture_data tex_data{}; tex_data.m_width = width;
+		texture2D_data tex_data{}; tex_data.m_width = width;
 		constexpr uint32 k_num_channels = 4u;
 		for (uint32 i = 0u; i < num_pixels; ++i)
 		{
@@ -315,7 +315,7 @@ namespace influx::renderer
 		}
 
 		const tex_id id = make_id("imgui_font");
-		texture_resource& tex_resource = backend.get_resource_manager().load<e_resource_type::texture>(id, tex_data, false);
+		texture2D_resource& tex_resource = backend.get_resource_manager().load<e_resource_type::texture2D>(id, tex_data, false);
 		mp_fonts_texture = tex_resource.m_resource;
 	}
 

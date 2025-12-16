@@ -102,6 +102,7 @@ namespace influx
 		out_result = std::stoul(value);
 		return true;
 	}
+	
 	template <typename _t>
 	inline static bool from_string(const std_str& value, _t& out_result)
 	{
@@ -124,8 +125,10 @@ namespace influx
 	template <typename _t>
 	static string operator+(const string& str, const _t& element);
 
-	// influx string wrapper that converts each UTF8 string AND wstring
-	// and wraps it finally as a wstring.
+	// influx string wrapper
+	// it's a wstring, since that encapsulates UTF8 strings.
+	// as a consequence though, getting a UTF8 representation can come with some overhead.
+	// to combat this, we carry an additional UTF8 cache that updates when the string gets changed.
 	class string final
 	{
 		std_wstr m_wstr{};
@@ -141,6 +144,7 @@ namespace influx
 		static constexpr uint64 k_not_found = (uint64)-1;
 		static constexpr uint64 k_max_length = (uint64)-1;
 		static constexpr bool k_default_case_sensitive = true;
+		static constexpr uint64 k_npos = std::wstring::npos;
 
 		// construction (conversion from other types)
 		string() = default;

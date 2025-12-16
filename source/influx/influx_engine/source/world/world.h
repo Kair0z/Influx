@@ -39,11 +39,6 @@ namespace influx::engine
 
 		void update();
 
-		// rendering
-		void build_renderscene(
-			renderer::scene&, 
-			renderer::scene2D&) const;
-
 		void build_renderviews() const;
 
 		// entities / components

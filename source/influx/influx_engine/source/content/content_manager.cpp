@@ -10,6 +10,7 @@
 #include "engine_files.h"
 #include "editor/editor_manager.h"
 #include "imgui/imgui.h"
+#include "rendering/render_manager.h"
 
 // influx::async
 #include "influx_async.h"
@@ -49,7 +50,7 @@ namespace influx::engine
 			static content_manager& content = get_engine()->get_content();
 			static render_manager& renderer = get_engine()->get_renderer();
 
-			set_name("engine:content");
+			set_name("content");
 
 			if (ImGui::Button("recomp_shaders"))
 			{
@@ -69,7 +70,7 @@ namespace influx::engine
 						const string& name = pair.first;
 						const scene_asset& scene_asset = pair.second;
 
-						if (scene_asset.is_loaded() && scene_asset.is_engine())
+						if (scene_asset.is_loaded())
 						{
 							if (ImGui::TreeNode(name.c_str(), "scene: %s - ms : % f", name.c_str(), scene_asset.get_load_ms()))
 							{
@@ -93,7 +94,7 @@ namespace influx::engine
 					{
 						for (const auto& pair : content.get_images())
 						{
-							if (pair.second.is_loaded() && pair.second.is_engine())
+							if (pair.second.is_loaded())
 							{
 								ImGui::TableNextColumn();
 
@@ -101,6 +102,9 @@ namespace influx::engine
 								const image_asset& image = pair.second;
 								const math::vectoru2& image_dims = image.m_resource.m_dimensions;
 								ImGui::TextWrapped("%s", name.c_str());
+
+								auto render_tex = renderer.get_texture2D(name);
+								ImGui::Image( reinterpret_cast<ImTextureID>(render_tex), { 24u, 24u });
 							}
 						}
 						ImGui::EndTable();
@@ -113,7 +117,7 @@ namespace influx::engine
 				{
 					// "shader:filepath"
 					for (const auto& pair : content.get_shaders())
-						if (pair.second.is_loaded() && pair.second.is_engine())
+						if (pair.second.is_loaded())
 							ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
 					ImGui::EndTabItem();
 				}

@@ -33,30 +33,28 @@ namespace influx::renderer
 
 	class draw_batch;
 
-	class scene_renderer final
+	class world_renderer final
 	{
 	public:
-		scene_renderer();
-		~scene_renderer();
+		world_renderer();
+		~world_renderer();
 
 		/* compile & load internal shaders */
 		void load_shaders();
 
 		/* add passes to render graph */
-		void build(rendergraph::rendergraph& graph, const scene& scene, const target& target);
-
-		void build(rendergraph::rendergraph& graph, const worldview& world, const target& target);
+		void build(rendergraph::rendergraph& graph, const worldview& wv, const target& target);
 
 	private:
-		vector<draw_batch> create_batches(const scene& scene, graphics::commandlist* commandlist);
+		vector<draw_batch> create_batches(const worldview& wv, graphics::commandlist* commandlist);
 		void update_instance_buffer(const vector<draw_batch>& batches);
-		void update_line_instance_buffer(const scene& scene);
-		void update_lightbuffers(const scene& scene);
+		void update_line_instance_buffer(const worldview& wv);
+		void update_lightbuffers(const worldview& wv);
 
 		void build_basepass(rendergraph::rgpass_builder&, const target& target);
 		void build_resolvepass(rendergraph::rgpass_builder&, const target& target);
-		void execute_basepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
-		void execute_resolvepass(rendergraph::rgpass_context&, const target& target, const scene& scene);
+		void execute_basepass(rendergraph::rgpass_context&, const target& target, const worldview& wv);
+		void execute_resolvepass(rendergraph::rgpass_context&, const target& target, const worldview& wv);
 
 	private:
 		// this is the resources that could change each frame.

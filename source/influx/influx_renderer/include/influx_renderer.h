@@ -99,15 +99,9 @@ namespace influx::renderer
 	*/
 	INFLUX_RENDER_API void end_frame();
 
-	/* draw a 3D scene onto a given render target */
-	INFLUX_RENDER_API result<> draw_scene(const scene& scene, const target& target);
-
 	/* draw ImDrawData contents onto a given render target */
 	INFLUX_RENDER_API result<> draw_imgui(ImDrawData const* draw_data, const target& target);
 	INFLUX_RENDER_API result<> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
-
-	/* draw a screen-space scene onto a given render target (sprite rendering)*/
-	INFLUX_RENDER_API result<> draw_2D(const scene2D& scene, const target& target);
 
 	/* draw a post-processing stack onto a given render target*/
 	INFLUX_RENDER_API result<> draw_postprocess(const scene_postprocess& scene, const target& target);
@@ -161,7 +155,7 @@ namespace influx::renderer
 		- materials
 	*/
 	INFLUX_RENDER_API void load(const mesh_id& id, const mesh_data<vertex_data>& data, bool reload = false);
-	INFLUX_RENDER_API void load(const tex_id& id, const texture_data& data, bool reload = false);
+	INFLUX_RENDER_API void load(const tex_id& id, const texture2D_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const cubemap_id& id, const cubemap_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const mat_id& id, const material& data, bool reload = false);
@@ -178,6 +172,9 @@ namespace influx::renderer
 	INFLUX_RENDER_API bool has_cubemap(const cubemap_id& id);
 	INFLUX_RENDER_API bool has_shader(const shader::shader_signature& signature);
 	INFLUX_RENDER_API bool has_material(const mat_id& id);
+
+	INFLUX_RENDER_API const texture2D& get_texture2D(const tex_id& id);
+	INFLUX_RENDER_API const texture3D& get_texture3D(const tex_id& id);
 
 	/* returns the signature of internal meshes represented by e_mesh */
 	INFLUX_RENDER_API mesh_id get_mesh_id(e_mesh internal_mesh);
@@ -222,14 +219,13 @@ namespace influx::renderer
 	INFLUX_RENDER_API string get_last_rendergraph_dotfile();
 	INFLUX_RENDER_API string get_last_rendergraph_dump();
 
-
 	// inline helpers
 	inline mesh_id load(const string& unique_name, const mesh_data<vertex_data>& data, bool reload = false) {
 		const mesh_id id = make_mesh_id(unique_name);
 		load(id, data, reload);
 		return id;
 	}
-	inline tex_id load(const string& unique_name, const texture_data& data, bool reload = false) {
+	inline tex_id load(const string& unique_name, const texture2D_data& data, bool reload = false) {
 		const tex_id id = make_tex_id(unique_name);
 		load(id, data, reload);
 		return id;
@@ -248,5 +244,11 @@ namespace influx::renderer
 	}
 	inline bool has_cubemap(const string& unique_name) {
 		return has_cubemap(make_cubemap_id(unique_name));
+	}
+	inline const texture2D& get_texture2D(const string& unique_name) {
+		return get_texture2D(make_tex_id(unique_name));
+	}
+	inline const texture3D& get_texture3D(const string& unique_name) {
+		return get_texture3D(make_tex_id(unique_name));
 	}
 }

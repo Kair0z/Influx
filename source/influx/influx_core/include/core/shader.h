@@ -30,6 +30,10 @@ namespace influx::shader
 		as,				// amplification shader
 		ms,				// mesh shader
 
+		// misc
+		call,
+		lib,
+
 		count
 	};
 
@@ -53,7 +57,9 @@ namespace influx::shader
 		"ahs",
 		"ins",
 		"as",
-		"ms"
+		"ms",
+		"call",
+		"lib"
 	};
 
 	// "vertex", "pixel", ...
@@ -71,7 +77,9 @@ namespace influx::shader
 		"any_hit",
 		"intersection",
 		"amplification",
-		"mesh"
+		"mesh",
+		"callable",
+		"library"
 	};
 	
 	// ===========================================================
@@ -94,13 +102,16 @@ namespace influx::shader
 		ins			= 1 << static_cast<uint8>(e_shader_type::ins),
 		as			= 1 << static_cast<uint8>(e_shader_type::as),
 		ms			= 1 << static_cast<uint8>(e_shader_type::ms),
+		call		= 1 << static_cast<uint8>(e_shader_type::call),
+		lib			= 1 << static_cast<uint8>(e_shader_type::lib),
 
 		// compound flags
 		all_gfx		= vs | ps | ds | gs | hs,
 		all_cs		= cs,
 		all_ray		= rgs | mss | chs | ahs | ins,
 		all_mesh	= as | ms,
-		all = all_gfx | all_cs | all_ray | all_mesh
+		all_misc	= call | lib,
+		all = all_gfx | all_cs | all_ray | all_mesh | all_misc
 	};
 	inline static constexpr e_shader_type_flags get_shader_flag(e_shader_type type)
 	{

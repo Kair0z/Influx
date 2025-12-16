@@ -18,15 +18,16 @@ namespace influx::engine
 		return *m_target;
 	}
 
-	renderer::scene& render_view::get_scene()
+	renderer::world& render_view::get_renderworld()
 	{
-		return m_scene;
+		return m_world;
 	}
 
-	renderer::scene2D& render_view::get_scene2D()
+	renderer::worldview& render_view::get_renderworld_view()
 	{
-		return m_scene2D;
+		return m_worldview;
 	}
+
 	math::transform3D& render_view::get_camera_transform()
 	{
 		return m_camera_transform;

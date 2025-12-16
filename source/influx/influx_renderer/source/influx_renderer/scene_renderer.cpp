@@ -19,9 +19,9 @@
 // influx::shader
 #include "influx_shader.h"
 
-namespace shaders
+namespace influx::shader
 {
-#include "../shaders/compiled/basepass.cso.inc"
+#include "../shaders/embedded_shaders.h"
 }
 
 namespace influx::renderer
@@ -140,7 +140,7 @@ namespace influx::renderer
     }
 #pragma endregion
 
-    scene_renderer::scene_renderer()
+    world_renderer::world_renderer()
         : m_buffered{}
     {
         renderer_backend& backend = renderer_backend::get_instance();
@@ -239,21 +239,34 @@ namespace influx::renderer
         m_skybox_sampler = descriptor_manager.create_sampler(device);
     }
 
-    scene_renderer::~scene_renderer()
+    world_renderer::~world_renderer()
     {
         delete[] m_instance_data;
     }
 
-    void scene_renderer::load_shaders()
+    void world_renderer::load_shaders()
     {
         renderer_backend& backend = renderer_backend::get_instance();
         resource_manager& resourceman = backend.get_resource_manager();
 
-        // load into resource_manager
-        shader::compile_output compile_output{};
-        compile_output.m_bytecode.resize(shaders::basepass_cso_len);
-        memcpy(compile_output.m_bytecode.data(), shaders::basepass_cso, sizeof(shaders::basepass_cso));
-        resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+        static constexpr shader::e_shader_target k_target = shader::e_shader_target::_6_8;
+        static const auto load_shader =
+            [&resourceman](const string& shadername, const string& entrypoint, unsigned char* cso, uint64 cso_length)
+        {
+            shader::compile_output compile_output{};
+            compile_output.m_bytecode.resize(cso_length);
+            memcpy(compile_output.m_bytecode.data(), cso, cso_length);
+            shader::reflection reflection = shader::reflect_bytecode(compile_output.m_bytecode).get().m_reflection;
+            
+            compile_output.m_signature.m_entrypoint = entrypoint;
+            compile_output.m_signature.m_filename = shadername;
+            compile_output.m_signature.m_type = reflection.m_shader_type;
+            compile_output.m_signature.m_target = k_target;
+            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+        };
+
+        load_shader("basepass", "main_vs", shaders::basepass_cso, shaders::basepass_cso_len);
+        
 
 #if 0
         string base_dir = backend.get_shadersource_directory(e_shadersource_directory::base);
@@ -334,15 +347,15 @@ namespace influx::renderer
         uint64 m_base_instance{};
     };
 
-    inline frontend::per_instance translate(const mesh_instance& mesh, const scene& scene)
+    inline frontend::per_instance translate(const mesh_instance& mesh, const worldview& wv)
     {
         frontend::per_instance instance_data{};
-        instance_data.m_transform = scene.get_transform( mesh.m_transform_id );
+        instance_data.m_transform = wv.get_transform( mesh.m_transform_id ).get();
         instance_data.m_colour = mesh.m_per_instance_colour;
         return instance_data;
     }
 
-    vector<draw_batch> scene_renderer::create_batches(const scene& scene, graphics::commandlist* commandlist)
+    vector<draw_batch> world_renderer::create_batches(const worldview& wv, graphics::commandlist* commandlist)
     {
         renderer_backend& backend = renderer_backend::get_instance();
         descriptor_manager& descman = *backend.get_descriptor_manager();
@@ -386,12 +399,12 @@ namespace influx::renderer
         using mesh_to_instance_map = umap<mesh_id, vector<frontend::per_instance>>;
         mesh_to_instance_map meshid_to_instances{};
 
-        for (const mesh_instance& instance : scene.get_meshes())
+        for (const mesh_instance& instance : wv.get_mesh_instances())
         {
             graphics::resource* indexbuffer = nullptr;
             graphics::resource* vertexbuffer = nullptr;
 
-            frontend::per_instance gpu_data = translate(instance, scene);
+            frontend::per_instance gpu_data = translate(instance, wv);
 #if 0
             string diffuse_name = "";
             gpu_data.set_albedo_index( tex_to_idx[backend.find_texture(diffuse_name)] );
@@ -419,7 +432,7 @@ namespace influx::renderer
         return batches;
     }
 
-    void scene_renderer::update_instance_buffer(const vector<draw_batch>& batches)
+    void world_renderer::update_instance_buffer(const vector<draw_batch>& batches)
     {
         auto& buffered = get_buffered_current();
         buffered.m_instancebuffer->map([&batches](void* dest)
@@ -435,11 +448,11 @@ namespace influx::renderer
         });
     }
 
-    void scene_renderer::update_line_instance_buffer(const scene& scene)
+    void world_renderer::update_line_instance_buffer(const worldview& wv)
     {
         // load up the instance data
         m_line_instance_data.clear();
-        for (const line& line : scene.get_lines())
+        for (const line& line : wv.get_lines())
         {
             frontend::line_gpu_instance_data instance_data{};
             instance_data.m_colour = line.m_colour;
@@ -460,48 +473,48 @@ namespace influx::renderer
         });
     }
 
-    void scene_renderer::update_lightbuffers(const scene& scene)
+    void world_renderer::update_lightbuffers(const worldview& wv)
     {
         auto& buffered = get_buffered_current();
 
         // map lightbuffers
-        const uint32 num_lights = scene.get_num_lights();
+        const uint32 num_lights_total = wv.get_num_lights_total();
         for (uint32 i = 0u; i < k_num_light_types; ++i)
         {
             const auto current_type = static_cast<influx::e_light_type>(i);
-            buffered.m_lightbuffers[i]->map([num_lights, current_type, i, &scene](void* dest)
+            buffered.m_lightbuffers[i]->map([num_lights_total, current_type, i, &wv](void* dest)
             {
                 uint32 index = 0u;
-                for (uint32 l = 0; l < num_lights; ++l)
+                for (uint32 l = 0; l < num_lights_total; ++l)
                 {
-                    const light& light = scene.get_lights()[l];
-                    if (light.get_type() != current_type) continue;
-                    //const math::matrix4x4f light_transform = scene.get_transform(light);
-                    const matrix light_transform = matrix::identity();
+                    const light_instance& light_instance = wv.get_lights()[l];
+                    const light& light = light_instance.m_light;
+                    if (light.get_type() != current_type)
+                        continue;
+                    
+                    const matrix& light_transform = wv.get_transform(light_instance.m_transform).get();
                     switch (current_type)
                     {
                     case influx::e_light_type::directional:
                     {
                         frontend::per_dirlight* data = reinterpret_cast<frontend::per_dirlight*>(dest);
                         data[index].m_colour = light.get_colour();
-                        break;
-                    }
 
+                    } break;
                     case influx::e_light_type::point:
                     {
                         frontend::per_pointlight* data = reinterpret_cast<frontend::per_pointlight*>(dest);
                         data[index].m_attenuation = light.get_attenuation();
                         data[index].m_colour = light.get_colour();
                         data[index].m_position = light_transform.get_translation();
-                        break;
-                    }
 
+                    } break;
                     case influx::e_light_type::spot:
                     {
                         frontend::per_spotlight* data = reinterpret_cast<frontend::per_spotlight*>(dest);
                         data[index].m_position = light_transform.get_translation();
-                        break;
-                    }
+
+                    } break;
                     }
 
                     ++index;
@@ -510,7 +523,7 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::build_basepass(rendergraph::rgpass_builder& builder, const target& target)
+    void world_renderer::build_basepass(rendergraph::rgpass_builder& builder, const target& target)
     {
         rendergraph::texture_desc gbuffer_desc{};
         gbuffer_desc.m_width = target.get_width();
@@ -534,9 +547,9 @@ namespace influx::renderer
         builder.set_viewport(target.get_width(), target.get_height());
     }
 
-    void scene_renderer::execute_basepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
+    void world_renderer::execute_basepass(rendergraph::rgpass_context& context, const target& target, const worldview& wv)
     {
-        if (scene.is_empty())
+        if (wv.is_empty())
             return;
 
         renderer_backend& backend = renderer_backend::get_instance();
@@ -577,13 +590,14 @@ namespace influx::renderer
         commandlist.set_primitive_topology(graphics::e_primitive_topology::trilist);
         
         // setup draw batches & instance buffer
-        vector<draw_batch> batches = create_batches(scene, &commandlist);
+        vector<draw_batch> batches = create_batches(wv, &commandlist);
         update_instance_buffer(batches);
 
         // update constants
-        m_gpu_perscene.m_time.x = scene.m_delta_seconds;
-        m_gpu_perscene.m_time.y = scene.m_seconds;
-        m_gpu_perview.m_viewprojection = scene.get_view_matrices().m_viewprojection;
+        world_constants wconstants = wv.get_world_constants();
+        m_gpu_perscene.m_time.x = wconstants.m_delta_seconds;
+        m_gpu_perscene.m_time.y = wconstants.m_time_seconds;
+        m_gpu_perview.m_viewprojection = wv.get_view_matrices().m_viewprojection;
         pipeline.set_constants<frontend::per_scene>(commandlist, "g_perscene", m_gpu_perscene);
         pipeline.set_constants<frontend::per_view>(commandlist, "g_perview", m_gpu_perview);
 
@@ -613,7 +627,7 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target)
+    void world_renderer::build_resolvepass(rendergraph::rgpass_builder& builder, const target& target)
     {
         for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
@@ -623,7 +637,7 @@ namespace influx::renderer
         builder.set_viewport(target.get_width(), target.get_height());
     }
 
-    void scene_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const scene& scene)
+    void world_renderer::execute_resolvepass(rendergraph::rgpass_context& context, const target& target, const worldview& wv)
     {
         renderer_backend& backend           = renderer_backend::get_instance();
         rhi_device& device                  = backend.get_device();
@@ -653,15 +667,15 @@ namespace influx::renderer
             root_args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
 
             // update buffers for deferred lights
-            update_lightbuffers(scene);
+            update_lightbuffers(wv);
             for (uint32 i = 0u; i < k_num_light_types; ++i)
             {
-                root_args.num_lights[i] = scene.get_num_lights(static_cast<influx::e_light_type>(i));
+                root_args.num_lights[i] = wv.get_num_lights(static_cast<influx::e_light_type>(i));
             }
 
-            root_args.inv_viewprojection = scene.get_view_matrices().m_inv_viewprojection;
-            root_args.inv_projection = scene.get_view_matrices().m_inv_projection;
-            root_args.camera_position = scene.get_camera_transform().get().get_row(3);
+            root_args.inv_viewprojection = wv.get_view_matrices().m_inv_viewprojection;
+            root_args.inv_projection = wv.get_view_matrices().m_inv_projection;
+            root_args.camera_position = wv.get_camera_transform().get_row(3);
             root_args.camera_position.w = 1.0f;
 
             // stage the descriptors onto the gpu heap
@@ -699,9 +713,9 @@ namespace influx::renderer
         commandlist.dispatch({ {num_groups_x, num_groups_y, 1u} });
     }
 
-    void scene_renderer::build(rendergraph::rendergraph& graph, const scene& scene, const target& target)
+    void world_renderer::build(rendergraph::rendergraph& graph, const worldview& wv, const target& target)
     {
-        if (scene.is_empty())
+        if (wv.is_empty())
             return;
 
         // if target doesn't support UAV, we have a problem...
@@ -718,22 +732,22 @@ namespace influx::renderer
         {
             build_basepass(builder, target);
         },
-        [this, &scene, &target](rendergraph::rgpass_context& context)
+        [this, &wv, &target](rendergraph::rgpass_context& context)
         {
-            execute_basepass(context, target, scene);
+            execute_basepass(context, target, wv);
         });
         basepass->set_name(get_target_pass_name("basepass", target));
        
         // | RESOLVE PASS
         // | compute shader that resolves lighting into a final scene colour UAV
         auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
-        [this, &target, &scene](rendergraph::rgpass_builder& builder)
+        [this, &target, &wv](rendergraph::rgpass_builder& builder)
         {
             build_resolvepass(builder, target);
         },
-        [this, &target, &scene](rendergraph::rgpass_context& ctx)
+        [this, &target, &wv](rendergraph::rgpass_context& ctx)
         {
-            execute_resolvepass(ctx, target, scene);
+            execute_resolvepass(ctx, target, wv);
         });
         resolvepass->set_name(get_target_pass_name("resolvepass", target));
 
@@ -741,7 +755,7 @@ namespace influx::renderer
         // ...
         
         // | LINE RENDER PASS (DEBUG)
-        if (scene.has_debug_primitives() && scene.is_debug_render_enabled())
+        if (wv.has_debug_primitives() && wv.is_debug_render_enabled())
         {
             auto* pass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
             [&target](rendergraph::rgpass_builder& builder)
@@ -753,7 +767,7 @@ namespace influx::renderer
                 builder.write_rendertarget(target.get_name(), access);
                 builder.set_viewport(target.get_width(), target.get_height());
             },
-            [this, &scene, &target, &device]
+            [this, &wv, &target, &device]
             (rendergraph::rgpass_context& context)
             {
                 influx_scope("renderer_backend::draw_debug::record");
@@ -777,14 +791,14 @@ namespace influx::renderer
                 logonce(e_log_category::warning, "influx::renderer::debug_renderer: first debug render!");
 
                 // update viewprojection matrix
-                m_gpu_perview.m_viewprojection = scene.get_view_matrices().m_viewprojection;
+                m_gpu_perview.m_viewprojection = wv.get_view_matrices().m_viewprojection;
 
                 pipeline.set_state(commandlist);
                 commandlist.set_primitive_topology(graphics::e_primitive_topology::linelist);
                 pipeline.set_constants<frontend::per_view>(commandlist, "g_perview", m_gpu_perview);
                 commandlist.set_vertexbuffer(m_line_vertex_buffer);
 
-                update_line_instance_buffer(scene);
+                update_line_instance_buffer(wv);
 
                 // stage the instance buffer and set as resource table
                 const uint64 cpu_frame = backend.get_cpu_frame();
@@ -806,43 +820,7 @@ namespace influx::renderer
         }
     }
 
-    void scene_renderer::build(rendergraph::rendergraph& graph, const worldview& world, const target& target)
-    {
-        if (world.is_empty())
-            return;
-
-        // our scene renderer uses a compute shader to operate on the target.
-        // so our target is required to support uav access.
-        // (window backbuffers usually don't)
-        if (target.get_resource()->allows_uav() == false)
-            return;
-
-        renderer_backend& backend = renderer_backend::get_instance();
-        rhi_device& device = backend.get_device();
-
-        // | BASEPASS
-        // | renders a couple of deferred gbuffers
-        auto* basepass = graph.add_pass(rendergraph::e_rgpass_type::graphics,
-            [this, &target](rendergraph::rgpass_builder& builder)
-            {
-                build_basepass(builder, target);
-            },
-            nullptr);
-
-        // | RESOLVE PASS
-        // | compute shader that resolves lighting into a final scene colour UAV
-        auto* resolvepass = graph.add_pass(rendergraph::e_rgpass_type::compute,
-            [this, &target](rendergraph::rgpass_builder& builder)
-            {
-                build_resolvepass(builder, target);
-            },
-            nullptr);
-
-        // | POST PROCESSING PASS
-        // ...
-    }
-
-    scene_renderer::buffered& scene_renderer::get_buffered_current()
+    world_renderer::buffered& world_renderer::get_buffered_current()
     {
         const uint64 cpu_frame = renderer_backend::get_instance().get_cpu_frame();
         return m_buffered[cpu_frame];

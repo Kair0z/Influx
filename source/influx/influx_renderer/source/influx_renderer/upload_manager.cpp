@@ -56,7 +56,7 @@ namespace influx::renderer
 		queue->queue_signal(mp_fence, 0u);
 	}
 
-	void upload_manager::upload_texture(graphics::queue* queue, const texture_data& data, graphics::resource* target_resource)
+	void upload_manager::upload_texture(graphics::queue* queue, const texture2D_data& data, graphics::resource* target_resource)
 	{
 		const size_t texture_bytesize = data.m_pixels.size() * sizeof(pixel32);
 		static uint32 num_textures = 0u;

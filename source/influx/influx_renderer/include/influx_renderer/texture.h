@@ -26,7 +26,7 @@ namespace influx::renderer
 
 	/* input data structs */
 #pragma region raw_data
-	struct texture_data final
+	struct texture2D_data final
 	{
 		vector<pixel32> m_pixels{};
 		uint32 m_width = 0u;
@@ -191,7 +191,7 @@ namespace influx::renderer
 
 		// data_type is the struct type that contains the raw data as input for a texture
 		using data_type = std::tuple_element_t<static_cast<size_t>(_t), std::tuple<
-			texture_data,		// e_texture_type::texture2D
+			texture2D_data,		// e_texture_type::texture2D
 			texture3D_data,		// e_texture_type::texture3D
 			cubemap_data>>;		// e_texture_type::cubemap
 

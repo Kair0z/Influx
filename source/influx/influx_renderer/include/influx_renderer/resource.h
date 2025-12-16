@@ -17,10 +17,17 @@
 
 namespace influx::renderer
 {
+	struct mesh_buffers final
+	{
+		graphics::resource* m_vertexbuffer;
+		graphics::resource* m_indexbuffer;
+	};
+
 	enum class e_resource_type
 	{
 		cubemap,
-		texture,
+		texture2D,
+		texture3D,
 		shader,
 		mesh,
 		count
@@ -32,7 +39,8 @@ namespace influx::renderer
 	template <e_resource_type _t>
 	using resource_data = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		cubemap_data,
-		texture_data,
+		texture2D_data,
+		texture3D_data,
 		shader_data,
 		detail::base_mesh_data const*
 		>>;
@@ -43,7 +51,18 @@ namespace influx::renderer
 	using resource_sign = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
 		cubemap_id,
 		tex_id,
+		tex_id,
 		shader::shader_signature,
 		mesh_id
+		>>;
+
+	// resource-type: the graphics::resource objects matching the resource type
+	template <e_resource_type _t>
+	using resource_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
+		cubemap,
+		texture2D,
+		texture3D,
+		void,
+		mesh_buffers
 		>>;
 }

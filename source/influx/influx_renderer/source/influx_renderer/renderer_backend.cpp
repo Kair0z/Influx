@@ -94,7 +94,7 @@ namespace influx::renderer
             mp_upload_manager = new upload_manager(mp_device);
             m_resource_manager = new resource_manager();
             mp_imgui = new imgui_manager(mp_device);
-            mp_scene_renderer = new scene_renderer();
+            mp_scene_renderer = new world_renderer();
             mp_quad_renderer = new quad_renderer();
             m_rendergraph = new rendergraph::rendergraph({}, *mp_device);
         }
@@ -204,7 +204,7 @@ namespace influx::renderer
 
         // finally, submit all work to the GPU
         {
-            influx_scope("submit_manager::submit_gpu_frame");
+            influx_scope("submit_gpu_frame");
             submanager.submit_gpu_frame();
         }
     }
@@ -412,20 +412,6 @@ namespace influx::renderer
         swapchain.mp_swapchain->acquire_backbuffer();
     }
 
-    result<> renderer_backend::draw_scene(const scene& scene, const target& target)
-    {
-        using result_type = result<>;
-        if (scene.is_empty())
-            return result_type::make_warning({}, "warning: cannot draw an empty scene!");
-
-        auto res = import_to_graph(target);
-        if (res.is_fail())
-            return result_type::make_error("error: failed importing target!");
-
-        mp_scene_renderer->build(*m_rendergraph, scene, target);
-        return {};
-    }
-
     result<> renderer_backend::draw_imgui(ImDrawData const* draw_data, const target& target)
     {
         using result_type = result<>;
@@ -482,12 +468,6 @@ namespace influx::renderer
             pass->set_name(pass_name);
         }
 
-        return {};
-    }
-
-    result<> renderer_backend::draw_2D(const scene2D& scene, const target& target)
-    {
-        influx_scope("renderer_backend::draw2D::record");
         return {};
     }
 
@@ -638,9 +618,9 @@ namespace influx::renderer
     }
 
     // texture
-    void renderer_backend::load(const tex_id& id, const texture_data& data, bool reload)
+    void renderer_backend::load(const tex_id& id, const texture2D_data& data, bool reload)
     {
-        auto& entry = m_resource_manager->load<e_resource_type::texture>(id, data, reload);
+        auto& entry = m_resource_manager->load<e_resource_type::texture2D>(id, data, reload);
 
         // keep track in the rendergraph
         // m_rendergraph->import_texture("texture_" + title, entry.m_resource->mp_resource);
@@ -675,7 +655,7 @@ namespace influx::renderer
 
     bool renderer_backend::has_texture(const tex_id& id) const
     {
-        return m_resource_manager->contains<e_resource_type::texture>(id);
+        return m_resource_manager->contains<e_resource_type::texture2D>(id);
     }
 
     bool renderer_backend::has_cubemap(const cubemap_id& id) const
@@ -691,6 +671,16 @@ namespace influx::renderer
     bool renderer_backend::has_material(const mat_id& id) const
     {
         return true;
+    }
+
+    const texture2D& renderer_backend::get_texture2D(const tex_id& id) const
+    {
+        return *m_resource_manager->get<e_resource_type::texture2D>(id).m_resource;
+    }
+
+    const texture3D& renderer_backend::get_texture3D(const tex_id& id) const
+    {
+        return *m_resource_manager->get<e_resource_type::texture3D>(id).m_resource;
     }
 
     string renderer_backend::get_last_executed_rendergraph_dump()
@@ -713,7 +703,7 @@ namespace influx::renderer
     }
     time::point renderer_backend::get_time_loaded_texture(const tex_id& id) const
     {
-        return m_resource_manager->get_time_loaded<e_resource_type::texture>(id);
+        return m_resource_manager->get_time_loaded<e_resource_type::texture2D>(id);
     }
     time::point renderer_backend::get_time_loaded_cubemap(const cubemap_id& id) const
     {
@@ -737,10 +727,10 @@ namespace influx::renderer
     texture2D& renderer_backend::get_default_texture()
     {
         const tex_id tex_none = get_internal_texture_id(e_texture::none);
-        return *m_resource_manager->get<e_resource_type::texture>(tex_none).m_resource;
+        return *m_resource_manager->get<e_resource_type::texture2D>(tex_none).m_resource;
     }
 
-    void renderer_backend::upload_texture_data(texture2D* target_tex, const texture_data& data)
+    void renderer_backend::upload_texture_data(texture2D* target_tex, const texture2D_data& data)
     {
         mp_upload_manager->upload_texture(&get_graphics_queue(), data, target_tex->get_resource().get());
     }
@@ -885,11 +875,6 @@ namespace influx::renderer
         renderer_backend::get_instance().wait_until_gpu_idle();
     }
 
-    result<> draw_scene(const scene& scene, const target& target)
-    {
-        return renderer_backend::get_instance().draw_scene(scene, target);
-    }
-
     result<> draw_imgui(ImDrawData const* draw_data, const target& target)
     {
         return renderer_backend::get_instance().draw_imgui(draw_data, target);
@@ -898,11 +883,6 @@ namespace influx::renderer
     result<> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets)
     {
         return renderer_backend::get_instance().draw_imgui(draws, targets);
-    }
-
-    result<> draw_2D(const scene2D& scene, const target& target)
-    {
-        return renderer_backend::get_instance().draw_2D(scene, target);
     }
 
     result<> draw_postprocess(const scene_postprocess& scene, const target& target)
@@ -941,7 +921,7 @@ namespace influx::renderer
         renderer_backend::get_instance().load(id, data, reload);
     }
 
-    void load(const tex_id& id, const texture_data& data, bool reload)
+    void load(const tex_id& id, const texture2D_data& data, bool reload)
     {
         renderer_backend::get_instance().load(id, data, reload);
     }
@@ -1001,6 +981,16 @@ namespace influx::renderer
     bool has_material(const mat_id& id)
     {
         return renderer_backend::get_instance().has_material(id);
+    }
+
+    const texture2D& get_texture2D(const tex_id& id)
+    {
+        return renderer_backend::get_instance().get_texture2D(id);
+    }
+
+    const texture3D& get_texture3D(const tex_id& id)
+    {
+        return renderer_backend::get_instance().get_texture3D(id);
     }
 
     mesh_id get_mesh_id(e_mesh mesh)

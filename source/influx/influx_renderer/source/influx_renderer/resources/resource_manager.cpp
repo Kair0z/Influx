@@ -16,13 +16,24 @@ namespace influx::renderer
 		const cubemap_id tex_none = get_internal_texture_id(e_texture::none);
 		{
 			const tex_id tex_none = get_internal_texture_id(e_texture::none);
-			texture_data dummy_data{};
+			texture2D_data dummy_data{};
 			dummy_data.m_width = 256u;
 			for (size_t i = 0u; i < 256u * 256u; ++i)
 			{
 				dummy_data.m_pixels.push_back(make_pixel32(255u, 255u, 255u, 255u));
 			}
-			load<e_resource_type::texture>(tex_none, dummy_data, false);
+			load<e_resource_type::texture2D>(tex_none, dummy_data, false);
+		}
+		{
+			const tex_id tex_none = get_internal_texture_id(e_texture::none);
+			texture3D_data dummy_data{};
+			static const uint32 k_hard_dimensions = 256u;
+			dummy_data.m_width = dummy_data.m_height = k_hard_dimensions;
+			for (size_t i = 0u; i < k_hard_dimensions * k_hard_dimensions * k_hard_dimensions; ++i)
+			{
+				dummy_data.m_pixels.push_back(make_pixel32(255u, 255u, 255u, 255u));
+			}
+			load<e_resource_type::texture3D>(tex_none, dummy_data, false);
 		}
 		{
 			cubemap_data dummy_data{};
@@ -120,12 +131,12 @@ namespace influx::renderer
 			});
 		}
     }
-    void resource_manager::recreate_texture(const tex_id& id, const texture_data& data)
+    void resource_manager::recreate_texture2D(const tex_id& id, const texture2D_data& data)
     {
 		graphics::device& device = renderer_backend::get_device();
 		upload_manager& uploadman = *renderer_backend::get_upload_manager();
 		graphics::queue& queue = renderer_backend::get_graphics_queue();
-		texture2D*& resource = get_resource_map<e_resource_type::texture>()[id].m_resource;
+		texture2D*& resource = get_resource_map<e_resource_type::texture2D>()[id].m_resource;
 
 		if (resource != nullptr)
 			delete resource;
@@ -141,6 +152,9 @@ namespace influx::renderer
 		// upload to gpu
 		uploadman.upload_texture(&queue, data, resource->get_resource().get());
     }
+	void resource_manager::recreate_texture3D(const tex_id& id, const texture3D_data& data)
+	{
+	}
     void resource_manager::recreate_cubemap(const cubemap_id& id, const cubemap_data& data)
     {
 		graphics::device& device = renderer_backend::get_device();

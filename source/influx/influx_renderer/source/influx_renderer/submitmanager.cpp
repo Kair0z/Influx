@@ -102,9 +102,10 @@ namespace influx::renderer
 
 		// if the commandlist never started recording, don't submit it
 		const bool is_recording = cmdlist->is_recording();
-		if (!is_recording) 
+		if (!is_recording)
 			return;
 
+		influx_scope("submission::submit");
 		cmdlist->end_recording().get();
 		cmdlist->submit(m_graphics_queue).get();
 	}

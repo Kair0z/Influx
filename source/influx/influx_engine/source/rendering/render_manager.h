@@ -11,11 +11,20 @@
 
 // influx::renderer
 #include "influx_renderer/scene.h"
+namespace influx::renderer
+{
+	template <e_texture_type _t>
+	class texture;
+}
 
 namespace influx::engine
 {
 	class engine;
 	class content_manager;
+
+	using render_cubemap = renderer::cubemap;
+	using render_texture2D = renderer::texture2D;
+	using render_texture3D = renderer::texture3D;
 
 	/*
 		engine level manager of the renderer
@@ -45,6 +54,9 @@ namespace influx::engine
 		/* gets or (re)creates a target view that can be rendered to */
 		render_view& get_renderview(e_render_view view);
 		render_view& get_renderview(const render_view_id& id, const math::vectoru2& size);
+
+		bool has_texture(const string& name) const;
+		cptr<render_texture2D> get_texture2D(const string& name) const;
 
 	private:
 		renderer::scene_imgui m_imgui_scene;

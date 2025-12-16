@@ -3,6 +3,7 @@
 #include "core/log.h"
 #include "core/commandline.h"
 #include "core/file.h"
+#include "core/basetypes.h"
 
 // influx::shader
 #include "influx_shader.h"
@@ -12,12 +13,13 @@
 
 static const char* k_invalid_path = "";
 static const char* k_default_includes = "";
+static const char* k_invalid_entrypoint = "_";
 
 // required parameters:
-influx::cvar cv_filepath		("cv_inputpath",	k_invalid_path, "required: filepath of the shader");
-influx::cvar cv_output_filepath ("cv_outputpath",	k_invalid_path, "required: output filepath");
+influx::cvar cv_filepath		("cv_inputpath",	k_invalid_path,			"required: filepath of the shader");
+influx::cvar cv_output_filepath ("cv_outputpath",	k_invalid_path,			"required: output filepath");
+influx::cvar cv_entrypoint		("cv_entry",		k_invalid_entrypoint,	"required: entrypoint of the shader");
 // optional parameters:
-influx::cvar cv_entrypoint		("cv_entry", "main_cs", "entrypoint of the shader, if not set, we'll pick the first shader in the file...");
 influx::cvar cv_includes		("cv_includes", k_default_includes, "folder of included files");
 influx::cvar cv_num_shaders		("cv_num", "3", "haha");
 
@@ -33,6 +35,12 @@ enum e_result : int
 	error_no_output_filepath		= -7,
 	error_output_write_failed		= -8
 };
+
+void log(const influx::string& info)
+{
+	std::cout << info.c_str() << std::endl;
+	// logwar("compile shader fail: {}", first_log.c_str());
+}
 
 int main(int argc, char** argv)
 {
@@ -63,7 +71,7 @@ int main(int argc, char** argv)
 		const shader::parse_output::per_shader* found =
 			parsed_shaders.find_shader_by_entrypoint(cv_entrypoint.get_value<string>());
 
-		if (found == nullptr)
+		if (found != nullptr)
 			target_parsed_shader = found;
 		else 
 			return error_entrypoint_not_found;
@@ -78,8 +86,8 @@ int main(int argc, char** argv)
 	auto output_res = shader::compile_shader_in_file(filepath, signature, args);
 	if (!output_res.is_success() || !output_res.get().m_success)
 	{
-		const string first_log = output_res.get().m_log.front();
-		logwar("compile shader fail: {}", first_log.c_str());
+		const string first_log = output_res.get_safe().m_log.front();
+		log("compile shader fail");
 		return error_compile_error;
 	}
 
@@ -89,6 +97,6 @@ int main(int argc, char** argv)
 	std::ofstream file(output_path, std::ios::binary);
 	file.write(reinterpret_cast<const char*>(bytecode.data()), bytecode.size());
 	
-	logwar("compile shader success!");
+	log("compile shader success!");
 	return success;
 }

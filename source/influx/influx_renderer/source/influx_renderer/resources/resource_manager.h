@@ -17,21 +17,6 @@ namespace influx::graphics
 
 namespace influx::renderer
 {
-	struct mesh_buffers final
-	{
-		graphics::resource* m_vertexbuffer;
-		graphics::resource* m_indexbuffer;
-	};
-
-	// resource-type: the graphics::resource objects matching the resource type
-	template <e_resource_type _t>
-	using resource_type = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
-		cubemap,
-		texture2D,
-		void,
-		mesh_buffers
-		>>;
-
 	class resource_manager final
 	{
 	public:
@@ -59,16 +44,21 @@ namespace influx::renderer
 
 	private:
 		resource_map<e_resource_type::cubemap> m_texturecube_map;
-		resource_map<e_resource_type::texture> m_texture_map;
+		resource_map<e_resource_type::texture2D> m_texture2D_map;
+		resource_map<e_resource_type::texture3D> m_texture3D_map;
 		resource_map<e_resource_type::shader> m_shader_map;
 		resource_map<e_resource_type::mesh> m_mesh_map;
 
 		template <e_resource_type _t>
 		resource_map<_t>& get_resource_map()
 		{
-			if constexpr (_t == e_resource_type::texture)
+			if constexpr (_t == e_resource_type::texture2D)
 			{
-				return m_texture_map;
+				return m_texture2D_map;
+			}
+			else if constexpr (_t == e_resource_type::texture3D)
+			{
+				return m_texture3D_map;
 			}
 			else if constexpr (_t == e_resource_type::cubemap)
 			{
@@ -86,9 +76,13 @@ namespace influx::renderer
 		template <e_resource_type _t>
 		const resource_map<_t>& get_resource_map() const
 		{
-			if constexpr (_t == e_resource_type::texture)
+			if constexpr (_t == e_resource_type::texture2D)
 			{
-				return m_texture_map;
+				return m_texture2D_map;
+			}
+			else if constexpr (_t == e_resource_type::texture3D)
+			{
+				return m_texture3D_map;
 			}
 			else if constexpr (_t == e_resource_type::cubemap)
 			{
@@ -125,9 +119,13 @@ namespace influx::renderer
 				{
 					recreate_cubemap(signature, data);
 				}
-				else if constexpr (_t == e_resource_type::texture)
+				else if constexpr (_t == e_resource_type::texture2D)
 				{
-					recreate_texture(signature, data);
+					recreate_texture2D(signature, data);
+				}
+				else if constexpr (_t == e_resource_type::texture3D)
+				{
+					recreate_texture3D(signature, data);
 				}
 				else if constexpr (_t == e_resource_type::mesh)
 				{
@@ -227,11 +225,13 @@ namespace influx::renderer
 
 	private:
 		void recreate_mesh(const mesh_id& id, detail::base_mesh_data const* data);
-		void recreate_texture(const tex_id& id, const texture_data& data);
+		void recreate_texture2D(const tex_id& id, const texture2D_data& data);
+		void recreate_texture3D(const tex_id& id, const texture3D_data& data);
 		void recreate_cubemap(const cubemap_id& id, const cubemap_data& data);
 		void recreate_shader(const shader::shader_signature& sig, const shader_data& data);
 	};
 
 	using mesh_resource = resource_manager::entry<e_resource_type::mesh>;
-	using texture_resource = resource_manager::entry<e_resource_type::texture>;
+	using texture2D_resource = resource_manager::entry<e_resource_type::texture2D>;
+	using texture3D_resource = resource_manager::entry<e_resource_type::texture2D>;
 }

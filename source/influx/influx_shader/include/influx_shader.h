@@ -25,6 +25,8 @@ namespace influx::shader
 		num
 	};
 
+	using bytecode = vector<byte>;
+
 	/* */
 	struct compile_args final
 	{
@@ -159,6 +161,7 @@ namespace influx::shader
 			uint32 m_range_size = 0u;
 		};
 
+		e_shader_type m_shader_type = e_shader_type::count;
 		vector<io_param> m_output_params{};
 		vector<io_param> m_input_params{};
 		vector<resource> m_bound_resources{};
@@ -168,7 +171,7 @@ namespace influx::shader
 	struct compile_output final
 	{
 		shader_signature	m_signature;
-		vector<byte>		m_bytecode;
+		bytecode			m_bytecode;
 		reflection			m_reflection;
 		vector<string>		m_log;
 		bool m_success		= false;
@@ -236,6 +239,11 @@ namespace influx::shader
 		}
 	};
 
+	struct reflect_output final
+	{
+		reflection m_reflection;
+	};
+
 	static constexpr const char* k_valid_file_extensions[]
 	{
 		".hlsl",
@@ -267,6 +275,9 @@ namespace influx::shader
 		const shader_signature& signature,
 		const compile_args& args);
 	
+	INFLUX_SHADER_API
+	result<reflect_output> reflect_bytecode(const bytecode& bytecode);
+
 	/* 
 		finds & parses an .hlsl file 
 		to detect shaders it contains without compiling them

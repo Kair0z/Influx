@@ -3,6 +3,10 @@
 // influx::engine
 #include "render_common.h"
 
+// influx::core
+#include "core/string.h"
+#include "core/math/transform.h"
+
 // influx::renderer
 #include "influx_renderer.h"
 namespace influx::renderer
@@ -10,10 +14,6 @@ namespace influx::renderer
 	class target;
 	struct target_create_args;
 }
-
-// influx::core
-#include "core/string.h"
-#include "core/math/transform.h"
 
 namespace influx::engine
 {
@@ -26,13 +26,13 @@ namespace influx::engine
 		static constexpr uint32 k_minimum_height = 64u;
 
 		renderer::target*	m_target{};
-		renderer::scene		m_scene{};
-		renderer::scene2D	m_scene2D{};
+		renderer::world		m_world;
+		renderer::worldview m_worldview;
 		influx::camera		m_camera_settings{};
 		math::transform3D	m_camera_transform{};
 		math::float4		m_clear_colour = { 0,0,0,1 };
-		math::uint2 m_dimensions		= { k_minimum_width, k_minimum_height };
-		math::uint2 m_prev_dimensions	= { k_minimum_width, k_minimum_height };
+		math::uint2			m_dimensions = { k_minimum_width, k_minimum_height };
+		math::uint2			m_prev_dimensions = { k_minimum_width, k_minimum_height };
 
 		debug_name m_name;
 		uint64 m_frame_counter = 0u;
@@ -47,9 +47,9 @@ namespace influx::engine
 
 		const renderer::target& get_target() const;
 
-		renderer::scene& get_scene();
+		renderer::world& get_renderworld();
 
-		renderer::scene2D& get_scene2D();
+		renderer::worldview& get_renderworld_view();
 
 		math::transform3D& get_camera_transform();
 		

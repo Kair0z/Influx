@@ -34,12 +34,22 @@ namespace influx::renderer
 		return (uint32) m_transforms.size() - 1;
 	}
 
-	result<matrix> world::get_transform(const transform_id& id)
+	result<matrix> world::get_transform(const transform_id& id) const
 	{
 		using result_type = result<matrix>;
 		if (!in_range(id))
 			return result_type::make_error("id is out of range!");
+
 		return m_transforms[id];
+	}
+
+	result<matrix> worldview::get_transform(const transform_id& id) const
+	{
+		using result_type = result<matrix>;
+		if (m_world == nullptr)
+			return result_type::make_error("world is nullptr!");
+
+		return m_world->get_transform(id);
 	}
 
 	const world& worldview::get_world() const
@@ -50,8 +60,121 @@ namespace influx::renderer
 	{
 		return m_world == nullptr || m_world->m_meshes.size() == 0u;
 	}
+
+	const vector<mesh_instance>& world::get_mesh_instances() const
+	{
+		return m_meshes;
+	}
+
+	const vector<mesh_instance>& worldview::get_mesh_instances() const
+	{
+		if (m_world == nullptr)
+		{
+			static const vector<mesh_instance> def_meshes{};
+			return def_meshes;
+		}
+		return m_world->m_meshes;
+	}
+
+	const vector<line>& world::get_lines() const
+	{
+		return m_lines;
+	}
+
+	const vector<light_instance>& world::get_lights() const
+	{
+		return m_lights;
+	}
+
+	const vector<light_instance>& worldview::get_lights() const
+	{
+		if (m_world == nullptr)
+		{
+			static const vector<light_instance> instances{};
+			return instances;
+		}
+		return m_world->get_lights();
+	}
+
+	uint32 world::get_num_lights_total() const
+	{
+		return static_cast<uint32>(m_lights.size());
+	}
+
+	uint32 worldview::get_num_lights_total() const
+	{
+		if (m_world == nullptr)
+			return 0u;
+
+		return m_world->get_num_lights_total();
+	}
+
+	uint32 world::get_num_lights(e_light_type type) const
+	{
+		uint32 sum = 0u;
+		for (const auto& light_instance : get_lights())
+		{
+			if (light_instance.m_light.get_type() == type)
+				sum++;
+		}
+		return sum;
+	}
+
+	uint32 worldview::get_num_lights(e_light_type type) const
+	{
+		if (m_world == nullptr)
+			return {};
+
+		return m_world->get_num_lights(type);
+	}
+
+	const world_constants& world::get_world_constants() const
+	{
+		return m_constants;
+	}
+
+	const world_constants& worldview::get_world_constants() const
+	{
+		if (m_world == nullptr)
+		{
+			static const world_constants def{};
+			return def;
+		}
+		return m_world->m_constants;
+	}
+
+	const view_matrices& worldview::get_view_matrices() const
+	{
+		return m_matrices;
+	}
+
+	const matrix& worldview::get_camera_transform() const
+	{
+		return get_view_matrices().m_transform;
+	}
+
+	bool worldview::is_debug_render_enabled() const
+	{
+		return has_flag(m_renderflags, e_scene_render_flags::enable_debug);
+	}
+
+	bool worldview::has_debug_primitives() const
+	{
+		return get_lines().size() > 0u;
+	}
+
+	const vector<line>& worldview::get_lines() const
+	{
+		if (m_world == nullptr)
+		{
+			static const vector<line> lines{};
+			return lines;
+		}
+		return m_world->get_lines();
+	}
 #pragma endregion
 
+#if 0
 	bool scene::is_empty() const
 	{
 		return !has_camera();
@@ -307,4 +430,5 @@ namespace influx::renderer
 		m_inv_viewprojection = m_viewprojection.inverted();
 		m_inv_projection	= m_projection.inverted();
 	}
+#endif
 }

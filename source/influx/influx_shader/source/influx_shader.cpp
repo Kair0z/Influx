@@ -144,6 +144,29 @@ namespace influx::shader
 		return result;
 	}
 
+	static constexpr e_shader_type translate(D3D12_SHADER_VERSION_TYPE type)
+	{
+		switch (type)
+		{
+			case D3D12_SHVER_PIXEL_SHADER				: return e_shader_type::ps;
+			case D3D12_SHVER_VERTEX_SHADER				: return e_shader_type::vs;
+			case D3D12_SHVER_GEOMETRY_SHADER			: return e_shader_type::gs;
+			case D3D12_SHVER_HULL_SHADER				: return e_shader_type::hs;
+			case D3D12_SHVER_DOMAIN_SHADER				: return e_shader_type::ds;
+			case D3D12_SHVER_COMPUTE_SHADER				: return e_shader_type::cs;
+			case D3D12_SHVER_LIBRARY					: return e_shader_type::lib;
+			case D3D12_SHVER_RAY_GENERATION_SHADER		: return e_shader_type::rgs;
+			case D3D12_SHVER_INTERSECTION_SHADER		: return e_shader_type::ins;
+			case D3D12_SHVER_ANY_HIT_SHADER				: return e_shader_type::ahs;
+			case D3D12_SHVER_CLOSEST_HIT_SHADER			: return e_shader_type::chs;
+			case D3D12_SHVER_MISS_SHADER				: return e_shader_type::mss;
+			case D3D12_SHVER_CALLABLE_SHADER			: return e_shader_type::call;
+			case D3D12_SHVER_MESH_SHADER				: return e_shader_type::ms;
+			case D3D12_SHVER_AMPLIFICATION_SHADER		: return e_shader_type::as;
+		}
+		return {};
+	}
+
 	inline reflection reflect_shader(ID3D12ShaderReflection* dx12_refl)
 	{
 		reflection result{};
@@ -151,6 +174,9 @@ namespace influx::shader
 		HRESULT hres = {};
 		D3D12_SHADER_DESC shader_desc{};
 		hres = dx12_refl->GetDesc(&shader_desc);
+
+		const D3D12_SHADER_VERSION_TYPE shader_type = (D3D12_SHADER_VERSION_TYPE)D3D12_SHVER_GET_TYPE(shader_desc.Version);
+		result.m_shader_type = translate(shader_type);
 
 		// get input parameters
 		for (uint32 i = 0u; i < shader_desc.InputParameters; ++i)
@@ -499,8 +525,8 @@ namespace influx::shader
 			if (has_true_error)
 			{
 				result.get().m_success = false;
-				result.get_unex() = "";
-				return result_type::make_error("error: compile result contains errors!");
+				result.get_unex() = "error: compile result contains errors!";
+				return result;
 			}
 			else if (has_warning)
 			{
@@ -655,6 +681,22 @@ namespace influx::shader
 		return compile_shader_dxcbuffer(sourceBuffer, signature, args);
 	}
 
+	result<reflect_output> reflect_bytecode(const bytecode& bytecode)
+	{
+		using result_type = result<reflect_output>;
+
+		ID3D12ShaderReflection* reflector;
+		LPCVOID source_data = bytecode.data();
+		uint64 data_size = bytecode.size() * sizeof(bytecode[0]);
+		HRESULT hres = ::D3DReflect(source_data, data_size, IID_PPV_ARGS(&reflector));
+		if (hres != S_OK)
+			return result_type::make_error("error: D3DReflect failed!");
+
+		reflect_output result{};
+		result.m_reflection = reflect_shader(reflector);
+		return result;
+	}
+
 	// parse out potential shader types
 	static const char* type_to_signature[] =
 	{
@@ -674,6 +716,9 @@ namespace influx::shader
 
 		R"(\[shader\(\"amp\"\)\])",
 		R"(\[shader\(\"mesh\"\)\])",
+
+		R"(\[shader\(\"callable\"\)\])",
+		R"(\[shader\(\"library\"\)\])"
 	};
 	// see core::shader
 	static_assert(_countof(type_to_signature) == shader::k_num_shadertypes);

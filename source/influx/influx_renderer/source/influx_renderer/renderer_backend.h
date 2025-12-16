@@ -35,7 +35,7 @@ namespace influx::renderer
 	class upload_manager;
 	class imgui_manager;
 	class pipeline_manager;
-	class scene_renderer;
+	class world_renderer;
 	class debug_renderer;
 	class quad_renderer;
 	class target;
@@ -86,7 +86,7 @@ namespace influx::renderer
 		upload_manager*			mp_upload_manager	= nullptr;
 		pipeline_manager*		mp_pipeline_manager = nullptr;
 		imgui_manager*			mp_imgui			= nullptr;
-		scene_renderer*			mp_scene_renderer	= nullptr;
+		world_renderer*			mp_scene_renderer	= nullptr;
 		quad_renderer*			mp_quad_renderer	= nullptr;
 		resource_manager*		m_resource_manager	= nullptr;
 		submit_manager*			m_submit_manager	= nullptr;
@@ -113,10 +113,8 @@ namespace influx::renderer
 		target* get_or_create_window_target(const platform::window& window);
 		void acquire_swapchain_frame(swapchain& swapchain);
 
-		result<> draw_scene(const scene& scene, const target& target);
 		result<> draw_imgui(ImDrawData const* draw_data, const target& target);
 		result<> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
-		result<> draw_2D(const scene2D& scene, const target& target);
 		result<> draw_postprocess(const scene_postprocess& scene, const target& target);
 		result<> draw_world(const worldview& view, const target& target);
 
@@ -143,7 +141,7 @@ namespace influx::renderer
 		static submit_manager& get_submit_manager();
 
 		void load(const mesh_id& id, const mesh_data<vertex_data>& data, bool reload = false);
-		void load(const tex_id& id, const texture_data& data, bool reload = false);
+		void load(const tex_id& id, const texture2D_data& data, bool reload = false);
 		void load(const cubemap_id& id, const cubemap_data& data, bool reload = false);
 		void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
 		void load(const mat_id& id, const material& data, bool reload = false);
@@ -153,6 +151,9 @@ namespace influx::renderer
 		bool has_cubemap(const cubemap_id& id) const;
 		bool has_shader(const shader::shader_signature& signature) const;
 		bool has_material(const mat_id& id) const;
+
+		const texture2D& get_texture2D(const tex_id& id) const;
+		const texture3D& get_texture3D(const tex_id& id) const;
 
 		string get_mesh_name(const mesh_id id) const;
 		time::point get_time_loaded_shader(const shader::shader_signature& signature) const;
@@ -169,7 +170,7 @@ namespace influx::renderer
 
 		texture2D& get_default_texture(); // "none"
 
-		void upload_texture_data(texture2D* target_tex, const texture_data& data);
+		void upload_texture_data(texture2D* target_tex, const texture2D_data& data);
 
 		vector<string> get_mesh_names() const;
 		bool get_mesh_buffers(const mesh_id& id, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
