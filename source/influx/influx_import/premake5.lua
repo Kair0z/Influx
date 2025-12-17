@@ -21,7 +21,7 @@ new_influx_library("influx_import")
 
     includedirs
     {
-        g_dir_root .. "/vendor/include/assimp/"
+        g_dir_root .. "/thirdparty/include/assimp/"
     }
 
     filter "files:**/lodepng/**.cpp"

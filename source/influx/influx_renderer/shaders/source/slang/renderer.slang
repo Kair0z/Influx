@@ -1,32 +1,11 @@
-#include "frontend.h"
+// renderer.slang
+module renderer;
 
-struct per_vertex_data
-{
-    float3 position : POSITION;
-    float4 colour : COLOR;
-    float3 normal : NORMAL;
-    float2 texcoord : TEXCOORD;
-};
-struct vs_input 
-{
-    per_vertex_data m_vertex;
-};
-struct ps_input
-{
-    float4 position : SV_POSITION;
-    float3 worldPos : WORLD_POS;
-    nointerpolation float4 colour : COLOR;
-    float3 normal : NORMAL;
-    float2 texcoord : TEXCOORD;
-    nointerpolation uint texid_albedo : TEXCOORD1;
-    nointerpolation uint texid_normal : TEXCOORD2;
-};
-struct ps_output
-{
-    gbuffer gbuffer_data;
-};
+__include "renderer/renderer_common";
+__include "renderer/renderer_structs";
+__include "renderer/renderer_gbuffer";
 
-ps_input basepass_vs(
+public ps_input basepass_vs(
     vs_input input,
     uint vertex_id, 
     uint instance_id,
@@ -66,7 +45,7 @@ ps_input basepass_vs(
     return output;
 }
 
-ps_output basepass_ps(
+public ps_output basepass_ps(
     ps_input input,
     Texture2D tex_albedo,
     SamplerState samp_albedo)
@@ -82,4 +61,3 @@ ps_output basepass_ps(
     output.gbuffer_data.set_depth(input.position.z);
     return output;
 }
-

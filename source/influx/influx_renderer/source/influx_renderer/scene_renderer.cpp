@@ -19,8 +19,7 @@
 // influx::shader
 #include "influx_shader.h"
 
-namespace influx::shader
-{
+namespace emb {
 #include "../shaders/embedded_shaders.h"
 }
 
@@ -265,9 +264,11 @@ namespace influx::renderer
             resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
         };
 
-        load_shader("basepass", "main_vs", shaders::basepass_cso, shaders::basepass_cso_len);
-        
+        load_shader("basepass", "main_vs", emb::basepass_main_vs_cso, emb::basepass_main_vs_cso_len);
+        load_shader("basepass", "main_ps", emb::basepass_main_ps_cso, emb::basepass_main_ps_cso_len);
+        load_shader("resolvepass", "main_cs", emb::resolvepass_main_cs_cso, emb::resolvepass_main_cs_cso_len);
 
+        static int a = 0;
 #if 0
         string base_dir = backend.get_shadersource_directory(e_shadersource_directory::base);
         string src_dir = backend.get_shadersource_directory(e_shadersource_directory::source);

@@ -47,13 +47,18 @@ int main(int argc, char** argv)
 	using namespace influx;
 	cvar::parse_runargs(argc, argv);
 
+#if 0
 	if (!cv_filepath.is_set())
 		return error_no_input_filepath;
 	if (!cv_output_filepath.is_set())
 		return error_no_output_filepath;
+#endif
 
-	// 1. first, parse all shaders inside the filepath
 	string filepath = cv_filepath.get_value<string>();
+	
+	// 1. first, parse all shaders inside the filepath
+	shader::parse_output::per_shader* target_parsed_shader = nullptr;
+#if 0 // skip for now
 	auto parse_res = shader::parse_shaders_in_file(filepath);
 	if (parse_res.is_fail())
 		return error_failed_parse;
@@ -65,7 +70,7 @@ int main(int argc, char** argv)
 		return error_parse_is_empty;
 
 	// 2. find the shader we specifically want compiled (either by optional entrypoint, or the first one we find)
-	const shader::parse_output::per_shader* target_parsed_shader = parsed_shaders.get_first_shader();
+	target_parsed_shader = parsed_shaders.get_first_shader();
 	if (cv_entrypoint.is_set())
 	{
 		const shader::parse_output::per_shader* found =
@@ -76,15 +81,25 @@ int main(int argc, char** argv)
 		else 
 			return error_entrypoint_not_found;
 	}
+#endif
+
+	filepath = "D:/Git/Influx/source/influx/influx_renderer/shaders/source/slang/basepass.slang";
+
+	const string include_folder_path = "D:/Git/Influx/source/influx/influx_renderer/shaders/source/slang/";// cv_includes.get_value<string>();
+	const string entrypoint = "main_vs"; // cv_entrypoint
 
 	// 3. fill in the signature of the selected parsed shader, and finally compile
-	shader::shader_signature signature = target_parsed_shader->m_signature;
+	shader::shader_signature signature{};// = target_parsed_shader->m_signature;
+	signature.m_entrypoint = entrypoint;
+
 	shader::compile_args args{};
-	args.m_include_folder = cv_includes.get_value<string>();
+	args.m_source_language = shader::e_shader_language::SLANG;
+	args.m_output_format = shader::e_shader_binary_output::DXIL;
+	args.m_include_folder = include_folder_path;
 	args.m_target = shader::e_shader_target::_6_6;
 	args.m_reflection_enabled = false;
 	auto output_res = shader::compile_shader_in_file(filepath, signature, args);
-	if (!output_res.is_success() || !output_res.get().m_success)
+	if (!output_res.is_success())
 	{
 		const string first_log = output_res.get_safe().m_log.front();
 		log("compile shader fail");
@@ -94,7 +109,13 @@ int main(int argc, char** argv)
 	// 4. write to file
 	const vector<byte>& bytecode = output_res.get().m_bytecode;
 	string output_path = cv_output_filepath.get_value<string>();
+
 	std::ofstream file(output_path, std::ios::binary);
+	if (file.is_open() == false)
+	{
+		log("failed writing output file!");
+		return error_output_write_failed;
+	}
 	file.write(reinterpret_cast<const char*>(bytecode.data()), bytecode.size());
 	
 	log("compile shader success!");

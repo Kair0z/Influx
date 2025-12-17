@@ -4,7 +4,7 @@ new_influx_library("influx_renderer")
     pchheader "renderer_pch.h"
     pchsource "source/renderer_pch.cpp"
 
-    g_userenderjobs = false
+    use_renderjobs = false
     local dependencies =
     {
         "influx_core",
@@ -16,7 +16,7 @@ new_influx_library("influx_renderer")
         "influx_shader"
     }
 
-    if g_userenderjobs then
+    if use_renderjobs then
         dependencies {
             "influx_async"
         }
@@ -47,12 +47,6 @@ new_influx_library("influx_renderer")
         {
             "python.exe compile_shaders_renderer.py"
         }
-    
-        -- convert each shader.cso -> shader.h
-        -- renderer will include these headers
-        -- {
-        -- 
-        -- }
     }
 
     filter "files:**/imgui/**.cpp"

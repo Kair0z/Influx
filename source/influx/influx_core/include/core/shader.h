@@ -184,7 +184,19 @@ namespace influx::shader
 	};
 	// ===========================================================
 
-	/* supported shader targets */
+	/* supported shader targets & languages */
+	enum class e_shader_language : uint8
+	{
+		SLANG,
+		HLSL,
+		// GLSL,
+		num
+	};
+	enum class e_shader_binary_output : uint8
+	{
+		DXIL,
+		SPIRV
+	};
 	enum class e_shader_platform : uint8
 	{
 		DXIL,

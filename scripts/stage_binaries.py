@@ -31,9 +31,9 @@ for _, value in parser.parse_args()._get_kwargs():
             shutil.copytree(influx_bin + dep + '/', influx_bin_game, dirs_exist_ok=True)
 
 # staging vendor dependencies
-vendor_bin = influx_root + "/vendor/bin/"
+vendor_bin = influx_root + "/thirdparty/bin/"
 
-# append the platform ('vendor/bin/x64/...')
+# append the platform ('thirdparty/bin/x64/...')
 if "64" in args.config:
     vendor_bin += "/x64/"
 # ...

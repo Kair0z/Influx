@@ -13,9 +13,12 @@
 #include "core/container/vector.h"
 #include "core/shader.h"
 
+#define INFLUX_SHADER_BACKEND_SLANG 1
+#define INFLUX_SHADER_BACKEND_DXC 0
+
 namespace influx::shader
 {
-	template <typename _t>
+	template <typename _t = bool>
 	using result = influx::result<_t, const char*>;
 
 	enum class e_compile_debug_level : uint8
@@ -33,6 +36,8 @@ namespace influx::shader
 	public:
 		e_shader_target			m_target;
 		e_shader_platform		m_platform;
+		e_shader_language		m_source_language;
+		e_shader_binary_output	m_output_format;
 		vector<string>			m_defines;
 		vector<string>			m_add_args{};
 		string					m_pdb_folder;

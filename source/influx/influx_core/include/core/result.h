@@ -35,7 +35,7 @@ namespace influx
 	// by default, only in DEBUG when .get() is called on !result.is_success()
 	// will we assert the result is valid.
 	// with this enabled, we assert as soon as any error is made (exactly where it occured)
-#define CHECK_RESULT_IMMEDIATE 0
+#define CHECK_RESULT_IMMEDIATE 1
 
 	template <typename _t = unsigned char, typename _e = const char*>
 	class result final
@@ -93,12 +93,9 @@ namespace influx
 		inline static result make_error(const result<_ot>& other_error )
 		{
 #if CHECK_RESULT_IMMEDIATE
-			result res = result(other_error.get_unex());
-			res.get();
-			return res;
-#else
-			return result( other_error.get_unex() );
+			influx_assert_msg(other_error.is_success(), other_error.get_unex());
 #endif
+			return result(other_error.get_unex());
 		}
 
 		// if underlying _t is 'boolable', this will only return true if

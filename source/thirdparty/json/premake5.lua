@@ -1,1 +1,0 @@
-new_thirdparty_headeronly("json")

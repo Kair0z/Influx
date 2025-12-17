@@ -19,17 +19,16 @@ workspace "influx"
     g_dir_source_engine = g_dir_source .. "/influx/"
     g_dir_source_misc   = g_dir_source .. "/misc/"
     g_dir_source_test   = g_dir_source .. "/test/"
-    g_dir_source_thirdparty = g_dir_source .. "/thirdparty/"
     g_dir_source_tools  = g_dir_source .. "/tools/"
     g_dir_binaries      = g_dir_root .. "/bin/" .. g_config_string .. "/"
     g_dir_int           = g_dir_root .. "/int/" .. g_config_string .. "/"
     g_dir_scripts       = g_dir_root .. "/scripts/"
     g_dir_resources     = g_dir_root .. "/resources/"
     g_dir_assets        = g_dir_root .. "/assets/"
-    g_dir_vendor        = g_dir_root .. "/vendor/"
+    g_dir_thirdparty        = g_dir_root .. "/thirdparty/"
     g_dir_shaders_engine = g_dir_assets .. "/engine/shaders/"
     g_dir_shaders_renderer = g_dir
-    
+
     -- /influx/source/influx/<projectname>/include/...
     g_dir_core_include      = g_dir_source_engine .. "/influx_core/include/"
     g_dir_platform_include  = g_dir_source_engine .. "/influx_platform/include/"
@@ -44,13 +43,6 @@ workspace "influx"
     g_dir_imgui_include     = g_dir_source_engine .. "/influx_imgui/include/"
     g_dir_vulkan_include    = g_dir_source_engine .. "/influx_graphics/foreign/vulkan/"
     g_dir_rendergraph_include = g_dir_source_engine .. "/influx_rendergraph/include/"
-    
-    -- vendor libraries
-    g_dir_vendor_include    = g_dir_vendor .. "/include/" 
-    g_dir_vendor_source     = g_dir_vendor .. "/source/"
-    g_dir_vendor_libraries = g_dir_vendor .. "/lib/x64/"
-    libdirs{ g_dir_vendor_libraries .. "%{cfg.buildcfg}" }
-    g_dir_tracy_source = g_dir_vendor_source .. "/tracy/"
     
     -- common
     g_cpp_dialect = "C++20"

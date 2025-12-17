@@ -26,7 +26,7 @@ project "cpu_raytracer"
         "include",
         "source",
         g_dir_core_include,
-        g_dir_vendor_include
+        g_dir_thirdparty_include
     }
 
     links
