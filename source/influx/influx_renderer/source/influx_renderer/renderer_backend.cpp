@@ -9,7 +9,7 @@
 #include "influx_renderer/pipeline/pipeline_manager.h"
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
-#include "influx_renderer/scene_renderer.h"
+#include "influx_renderer/world_renderer.h"
 #include "influx_renderer/quad_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
 #include "influx_renderer/resources/resource_manager.h"

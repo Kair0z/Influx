@@ -322,26 +322,22 @@ namespace influx::renderer
 	result<> imgui_manager::create_shaders()
 	{
 		shader::compile_args args{};
-		shader::shader_signature signature{};
-
-		signature.m_entrypoint = "main";
-		signature.m_filename = "imgui_shaders";
-#if INFLUX_DEBUG
-		args.set_debug_level(true);
-#else
-		args.set_debug_level(false);
-#endif
+		args.m_output_format = shader::e_shader_binary_output::DXIL;
+		args.m_source_language = shader::e_shader_language::HLSL;
+		args.set_debug_level(INFLUX_DEBUG);
 		args.m_target = shader::e_shader_target::_6_6;
 		args.m_pbd_enabled = true;
 		args.m_reflection_enabled = true;
 
+		shader::shader_signature signature{};
+		signature.m_entrypoint = "main";
+		signature.m_filename = "imgui_shaders";
 		signature.m_type = shader::e_shader_type::vs;
 		auto res = shader::compile_shader_in_source(k_vertex_shader, signature, args);
 		if (res.is_fail())
 		{
 			return result<>::make_error("error: failed compiling vertex shader!");
 		}
-
 		m_vertex_shader = res.get();
 
 		signature.m_type = shader::e_shader_type::ps;
@@ -350,7 +346,6 @@ namespace influx::renderer
 		{
 			return result<>::make_error("error: failed compiling pixel shader!");
 		}
-		
 		m_pixel_shader = res.get();
 
 		return {};

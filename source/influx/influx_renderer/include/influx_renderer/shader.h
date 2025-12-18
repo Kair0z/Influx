@@ -30,7 +30,8 @@ namespace influx::renderer
 
 		shader::e_shader_type	m_type;
 		shader::reflection		m_reflection;
-		vector<byte>			m_bytecode;
+		shader::bytecode		m_bytecode;
+		shader::bytecode		m_rootsignature_bytecode;
 		time::point				m_time_loaded;
 		uint32					m_num_times_loaded = 0u;
 

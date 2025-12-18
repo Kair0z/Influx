@@ -1,5 +1,5 @@
 #include "renderer_pch.h"
-#include "scene_renderer.h"
+#include "world_renderer.h"
 
 // influx::core
 #include "core/math/vector.h"
@@ -94,7 +94,6 @@ namespace influx::renderer
         
         return signature;
     }
-
     static compute_pipeline_signature& get_scene_resolve_pipeline_signature()
     {
         static compute_pipeline_signature signature{};
@@ -102,7 +101,6 @@ namespace influx::renderer
         signature.set_shader_id(compute_pipeline::e_shader_slot::cs, "resolvepass::main_cs");
         return signature;
     };
-
     static graphics_pipeline_signature& get_debug_pipeline_signature()
     {
         static graphics_pipeline_signature signature{};
@@ -248,25 +246,29 @@ namespace influx::renderer
         renderer_backend& backend = renderer_backend::get_instance();
         resource_manager& resourceman = backend.get_resource_manager();
 
-        static constexpr shader::e_shader_target k_target = shader::e_shader_target::_6_8;
+        static constexpr shader::e_shader_target k_target = shader::e_shader_target::_6_7;
         static const auto load_shader =
-            [&resourceman](const string& shadername, const string& entrypoint, unsigned char* cso, uint64 cso_length)
+            [&resourceman](const string& shadername, const string& entrypoint,
+                unsigned char* cso, uint64 cso_length,
+                unsigned char* rootsig, uint64 rootsig_length)
         {
             shader::compile_output compile_output{};
             compile_output.m_bytecode.resize(cso_length);
             memcpy(compile_output.m_bytecode.data(), cso, cso_length);
-            shader::reflection reflection = shader::reflect_bytecode(compile_output.m_bytecode).get().m_reflection;
+
+            shader::reflection reflection{};
+            shader::reflection::deserialize(reflection, rootsig, rootsig_length);
             
             compile_output.m_signature.m_entrypoint = entrypoint;
             compile_output.m_signature.m_filename = shadername;
-            compile_output.m_signature.m_type = reflection.m_shader_type;
+            // compile_output.m_signature.m_type = reflection.m_shader_type;
             compile_output.m_signature.m_target = k_target;
             resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
         };
 
-        load_shader("basepass", "main_vs", emb::basepass_main_vs_cso, emb::basepass_main_vs_cso_len);
-        load_shader("basepass", "main_ps", emb::basepass_main_ps_cso, emb::basepass_main_ps_cso_len);
-        load_shader("resolvepass", "main_cs", emb::resolvepass_main_cs_cso, emb::resolvepass_main_cs_cso_len);
+        load_shader("basepass", "main_vs", emb::basepass_main_vs_cso, emb::basepass_main_vs_cso_len, emb::basepass_main_vs_refl, emb::basepass_main_vs_refl_len);
+        load_shader("basepass", "main_ps", emb::basepass_main_ps_cso, emb::basepass_main_ps_cso_len, emb::basepass_main_ps_refl, emb::basepass_main_ps_refl_len);
+        load_shader("resolvepass", "main_cs", emb::resolvepass_main_cs_cso, emb::resolvepass_main_cs_cso_len, emb::resolvepass_main_cs_refl, emb::resolvepass_main_cs_refl_len);
 
         static int a = 0;
 #if 0

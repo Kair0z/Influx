@@ -7,7 +7,9 @@ new_influx_library("influx_import")
     local dependencies =
     {
         "influx_core",
-        "influx_shader"
+        "influx_shader",
+
+        "thirdparty/assimp"
     }
 
     set_influx_includes(dependencies)
@@ -17,11 +19,6 @@ new_influx_library("influx_import")
     {
         "4244",
         "4267"
-    }
-
-    includedirs
-    {
-        g_dir_root .. "/thirdparty/include/assimp/"
     }
 
     filter "files:**/lodepng/**.cpp"

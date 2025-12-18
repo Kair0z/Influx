@@ -8,7 +8,9 @@ new_influx_library("influx_rhi")
     {
         "influx_core",
         "influx_platform",
-        "influx_shader"
+        "influx_shader",
+
+        "thirdparty/vulkan"
     }
 
     set_influx_includes(dependencies)

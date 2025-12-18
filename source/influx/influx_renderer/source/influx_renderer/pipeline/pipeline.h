@@ -352,11 +352,10 @@ namespace influx::renderer
 		time::point					m_shader_loadpoints[k_num_shaders]{};
 		bool						m_needs_rebuild = false;
 
-		// todo: fix hardcoding
+		// todo: fix this hardcoding
 		static constexpr shader::e_shader_target k_hardcoded_target = shader::e_shader_target::_6_6;
 
 	public:
-		// RUNTIME api
 		pipeline() = default;
 		pipeline(graphics::device & device, const signature_type & signature)
 			: m_signature{ signature }

@@ -12,6 +12,7 @@
 #include "core/string.h"
 #include "core/container/vector.h"
 #include "core/shader.h"
+#include "core/pointer.h"
 
 #define INFLUX_SHADER_BACKEND_SLANG 1
 #define INFLUX_SHADER_BACKEND_DXC 0
@@ -170,6 +171,10 @@ namespace influx::shader
 		vector<io_param> m_output_params{};
 		vector<io_param> m_input_params{};
 		vector<resource> m_bound_resources{};
+
+		INFLUX_SHADER_API static void serialize(const reflection& refl, std::ostream& out);
+		INFLUX_SHADER_API static void deserialize(reflection& refl, std::istream& in);
+		INFLUX_SHADER_API static void deserialize(reflection& refl, const byte* bytes, const uint64 size);
 	};
 
 	/* */
@@ -180,6 +185,21 @@ namespace influx::shader
 		reflection			m_reflection;
 		vector<string>		m_log;
 		bool m_success		= false;
+	};
+
+	/* programs are bundles of shaders */
+	struct compile_program_output final
+	{
+		vector<shader_signature> m_signatures{};
+		vector<bytecode>		 m_entrypoint_codeblobs{};
+		reflection				 m_reflection{};
+		vector<string>			 m_log{};
+		bool					 m_success = false;
+	};
+
+	struct compiled_rootsignature final
+	{
+		bytecode m_bytecode;
 	};
 
 	/* */
@@ -207,7 +227,7 @@ namespace influx::shader
 			return m_shadermap.at(type);
 		}
 
-		const per_shader* get_first_shader() const
+		cptr<per_shader> get_first_shader() const
 		{
 			for (const auto& pair : m_shadermap)
 				for (const auto& shader : pair.second)
@@ -217,7 +237,7 @@ namespace influx::shader
 			return nullptr;
 		}
 
-		const per_shader* find_shader_by_entrypoint(const string& entrypoint)
+		cptr<per_shader> find_shader_by_entrypoint(const string& entrypoint) const
 		{
 			for (const auto& pair : m_shadermap)
 				for (const auto& shader : pair.second)
@@ -254,6 +274,7 @@ namespace influx::shader
 		".hlsl",
 		".slang"
 	};
+	
 	static const bool is_file_extension_valid(const string& extension)
 	{
 		static constexpr int k_num_valid_file_extensions = _countof(k_valid_file_extensions);
@@ -279,7 +300,7 @@ namespace influx::shader
 		const string& shader_source,
 		const shader_signature& signature,
 		const compile_args& args);
-	
+
 	INFLUX_SHADER_API
 	result<reflect_output> reflect_bytecode(const bytecode& bytecode);
 

@@ -198,7 +198,7 @@ function set_influx_links(...)
             local thirdparty_libs = thirdparty_libs .. config_path
             if os.isdir(thirdparty_libs) then
                 libdirs(thirdparty_libs)
-                links(str)
+                -- links(str)
             end
         end
     end

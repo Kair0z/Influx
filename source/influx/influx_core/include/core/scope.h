@@ -11,7 +11,7 @@
 #include "core/function.h"
 
 // pix
-#if INFLUX_USE_WINPIX
+#if INFLUX_USE_WINPIX && 0
 #include <Windows.h>
 #include "pix/pix3.h"
 #endif
@@ -30,7 +30,7 @@ namespace influx
 	{
 		g_scopedata[name].m_times_ran++;
 
-#if INFLUX_USE_WINPIX
+#if INFLUX_USE_WINPIX && 0
 		PIXBeginEvent(0u, name.c_str());
 #endif
 	}
@@ -39,7 +39,7 @@ namespace influx
 	{
 		g_scopedata[name].m_durationsum += data.m_durationsum;
 
-#if INFLUX_USE_WINPIX
+#if INFLUX_USE_WINPIX && 0
 		PIXEndEvent();
 #endif
 	}

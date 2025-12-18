@@ -3,6 +3,8 @@
 #if INFLUX_SHADER_BACKEND_SLANG
 #include "slang.h"
 
+#pragma comment(lib, "slang.lib")
+
 namespace influx::shader
 {
 	using sl_result				= SlangResult;
@@ -15,34 +17,50 @@ namespace influx::shader
 	using sl_program			= slang::IComponentType;
 	using sl_program_reflection = slang::ProgramLayout;
 	using sl_layout_unit		= slang::ParameterCategory;
+	template <typename _t>
+	using sl_ptr = _t*;
+
+	struct target_info final
+	{
+		e_shader_binary_output	m_output_format;
+		e_shader_target			m_shader_level;
+	};
 
 	using rfl_varlayout = slang::VariableLayoutReflection;
 	using rfl_typelayout = slang::TypeLayoutReflection;
 
+	// reflection handles 2 units:
+	// variables: float x;
+	// types: float, myStruct, etc.
 	struct variable_reflection final {
-		slang::VariableReflection* m_reflection;
-		slang::VariableLayoutReflection* m_layout;
+		sl_ptr<slang::VariableReflection> m_reflection;
+		sl_ptr<slang::VariableLayoutReflection> m_layout;
 
 		variable_reflection() = default;
 		variable_reflection(rfl_varlayout* layout) {
 			m_layout = layout;
 			m_reflection = layout->getVariable();
 		}
+
+		void print(std::stringstream& stream) {
+
+		}
 	};
-	struct type_reflection final
-	{
-		slang::TypeReflection* m_reflection;
-		slang::TypeLayoutReflection* m_layout;
+
+	struct type_reflection final {
+		sl_ptr<slang::TypeReflection> m_reflection;
+		sl_ptr<rfl_typelayout> m_layout;
 
 		type_reflection() = default;
 		type_reflection(rfl_typelayout* layout) {
 			m_layout = layout;
 			m_reflection = layout->getType();
 		}
-	};
 
-	template <typename _t>
-	using sl_ptr				= _t*;
+		void print(std::stringstream& stream) {
+
+		}
+	};
 
 	result<sl_ptr<sl_global_session>> create_global_session()
 	{
@@ -52,8 +70,10 @@ namespace influx::shader
 		sl_result sres = slang::createGlobalSession(&sesh_desc, &sesh);
 		if (SLANG_FAILED(sres))
 			return result_type::make_error("slang::createGlobalSession failed!");
+		
 		return sesh;
 	}
+
 	result<sl_ptr<sl_session>> create_session(
 		sl_global_session& parent_sesh,
 		const vector<sl_target_desc>& targets,
@@ -84,6 +104,7 @@ namespace influx::shader
 			return result_type::make_error("slang::createSession failed!");
 		return sesh;
 	}
+	
 	result<sl_ptr<sl_compile_request>> create_compile_request(sl_session& sesh)
 	{
 		using result_type = result<sl_ptr<sl_compile_request>>;
@@ -147,6 +168,20 @@ namespace influx::shader
 		}
 		return "";
 	}
+	static const slang::TargetDesc translate(const target_info& target, sl_global_session& sesh) {
+		sl_target_desc result{};
+		const e_shader_target sh_target = target.m_shader_level;
+		const char* target_cmd_arg = make_profile_cmd_arg(sh_target);
+		result.format = translate(target.m_output_format);
+		result.profile = sesh.findProfile(target_cmd_arg);
+		result.compilerOptionEntries;
+		result.compilerOptionEntryCount;
+		result.flags;
+		result.floatingPointMode;
+		result.forceGLSLScalarBufferLayout;
+		result.lineDirectiveMode;
+		return result;
+	}
 	static result<sl_ptr<sl_global_session>> get_or_create_global_session()
 	{
 		using result_type = result<sl_ptr<sl_global_session>>;
@@ -163,77 +198,18 @@ namespace influx::shader
 		return singleton;
 	}
 
-	result<reflection> translate_reflection(sl_program_reflection& refl)
+	struct reflection_temp final
 	{
-		// https://shader-slang.org/slang/user-guide/reflection
-		using result_type = result<reflection>;
+		std::stringstream m_stream;
+	};
 
-		static const auto process_var = [](variable_reflection& variable)
-		{
-
-		};
-		static const auto process_type = [](type_reflection& type) {
-			using ekind = slang::TypeReflection::Kind;
-			const char* name = type.m_reflection->getName();
-			const ekind kind = type.m_reflection->getKind();
-			switch (kind)
-			{
-			case ekind::Scalar:
-			{
-				// "float x;"
-				// name : "float"
-				// kind : Scalar
-			}break;
-			case ekind::Array:
-			{
-
-			}break;
-			case ekind::Struct:
-			{
-				const uint32 num_fields = type.m_layout->getFieldCount();
-				for (uint32 i = 0u; i < num_fields; ++i) {
-					rfl_varlayout* field = type.m_layout->getFieldByIndex(i);
-					process_var(variable_reflection(field));
-				}
-			}break;
-			}
-		};
-
-		const int num_entrypoints = refl.getEntryPointCount();
-		static auto process_scope = [](slang::VariableLayoutReflection& scope)
-		{
-			slang::TypeLayoutReflection& type_layout = *scope.getTypeLayout();
-			const uint32 field_count = type_layout.getFieldCount();
-
-			switch (type_layout.getKind())
-			{
-			case slang::TypeReflection::Kind::Struct:
-			{
-				for (int i = 0; i < field_count; i++)
-				{
-					// print("- ");
-
-					slang::VariableLayoutReflection& field = *type_layout.getFieldByIndex(i);
-					printVarLayout(param, &scopeOffsets);
-				}
-			} break;
-
-			}
-		};
-
-		// global scope
-		slang::VariableLayoutReflection* global_scope = refl.getGlobalParamsVarLayout();
-		process_scope(*global_scope);
-
-		return {};
-	}
-
-	result<compile_output> compile_shader_in_file(
-		const string& filepath,
-		const shader_signature& signature,
-		const compile_args& args)
+	template <typename _func>
+	result<> scoped_compile_request(
+		const vector<target_info>& target_infos,
+		const vector<string>& include_folders,
+		_func&& func)
 	{
-		using result_type = result<compile_output>;
+		using result_type = result<>;
 
 		// get the global session
 		result<sl_ptr<sl_global_session>> global_sesh_res = get_or_create_global_session();
@@ -241,94 +217,206 @@ namespace influx::shader
 			return result_type::make_error(global_sesh_res);
 		sl_global_session& global_session = *global_sesh_res.get();
 
-		vector<sl_target_desc> targets{};
-		{
-			sl_target_desc target{};
-			target.format = translate(args.m_output_format);
-			const e_shader_target sh_target = signature.m_target;
-			const char* target_cmd_arg = make_profile_cmd_arg(sh_target);
-			target.profile = global_session.findProfile(target_cmd_arg);
-			targets.push_back(target);
+		// translate the target descs using the global session
+		vector<sl_target_desc> target_descs{};
+		for (const auto& info : target_infos) {
+			target_descs.push_back(translate(info, global_session));
 		}
-		const char* main_include_folder = args.m_include_folder.c_str();
-		vector<const char*> include_folders{};
-		{
-			include_folders.push_back(main_include_folder);
+		vector<const char*> include_folders_cstr{};
+		for (const auto& folder : include_folders) {
+			include_folders_cstr.push_back(folder.c_str());
 		}
 
-		// create child sesh
-		auto child_sesh_res = create_session(global_session, targets, include_folders);
+		auto child_sesh_res = create_session(global_session, target_descs, include_folders_cstr);
 		if (!child_sesh_res.is_success())
 			return result_type::make_error(child_sesh_res);
 		sl_session& child_session = *child_sesh_res.get();
 
-		// create compile request
+		// create the compile request
 		auto create_request_res = create_compile_request(child_session);
 		if (!create_request_res.is_success())
 			return result_type::make_error(create_request_res);
-
-		// 1. add our 1 translation unit (shader)
-		sl_ptr<sl_compile_request> request = create_request_res.get();
-		const e_shader_language source_lang = args.m_source_language;
-		const int trans_unit_index = request->addTranslationUnit(translate(source_lang), "no-name");
-
-#if 0
-		slang::TargetDesc target_desc{};
-		{
-			target_desc.compilerOptionEntries;
-			target_desc.compilerOptionEntryCount;
-			target_desc.flags;
-			target_desc.floatingPointMode;
-			target_desc.forceGLSLScalarBufferLayout;
-			target_desc.format;
-			target_desc.lineDirectiveMode;
-			target_desc.profile;
-			target_desc.structureSize;
-		}
-#endif	
-
-		// 2. setup inputs (source file, include folder, entrypoint)
-		request->addTranslationUnitSourceFile(trans_unit_index, filepath.c_str());
-		request->addSearchPath(main_include_folder);
-		const e_shader_type sh_type = signature.m_type;
-		const char* sh_entrypoint = signature.m_entrypoint.c_str();
-		request->addEntryPoint(trans_unit_index, sh_entrypoint, translate(sh_type));
 		
-		// finally, compile
-		sl_result compile_sres = request->compile();
-		if (SLANG_FAILED(compile_sres))
-		{
-			const char* diag_output = request->getDiagnosticOutput();
-			return result_type::make_error(diag_output);
-		}
+		// run the compile request function
+		auto request_res = func(*create_request_res.get());
 
-		const int entrypointIndex = 0;
-		uint64 out_bytecode_size = 0u;
-		const void* bytecode = request->getEntryPointCode(entrypointIndex, &out_bytecode_size);
-
-		// output: get the compiled bytecode
-		compile_output compile_result{};
-		compile_result.m_bytecode.resize(out_bytecode_size);
-		memcpy(compile_result.m_bytecode.data(), bytecode, out_bytecode_size);
-		
-		// output: get the reflection
-		if (args.m_reflection_enabled || true)
-		{
-			sl_ptr<sl_program> program = nullptr;
-			sl_result get_prgm_res = request->getProgram(&program);
-			if (SLANG_FAILED(get_prgm_res))
-				return result_type::make_error("getProgram() failed!");
-
-			auto translated_reflection = translate_reflection(*program->getLayout());
-			if (!translated_reflection.is_success())
-				return result_type::make_error(translated_reflection);
-
-			compile_result.m_reflection = translated_reflection.get();
-		}
-
-		request->release();
+		// cleanup session & request
+		create_request_res.get()->release();
 		child_session.release();
-		return compile_result;
+
+		if (!request_res.is_success())
+			return result_type::make_error(request_res);
+
+		return {};
+	}
+
+	template <typename _func>
+	void refl_process_var(rfl_varlayout& var_layout, const uint32 level, _func&& func) {
+
+		func(var_layout, level);
+
+		auto type = var_layout.getType();
+		auto type_layout = var_layout.getTypeLayout();
+		const auto kind = type_layout->getKind();
+		switch (kind)
+		{
+		case slang::TypeReflection::Kind::Struct:
+		{
+			const int field_count = type_layout->getFieldCount();
+			for (int i = 0; i < field_count; ++i) {
+				auto field_var_layout = type_layout->getFieldByIndex(i);
+				refl_process_var( *field_var_layout, level + 1, func );
+			}
+		}break;
+		}
+	}
+
+	result<reflection> translate_reflection(sl_program_reflection& refl)
+	{
+		// https://shader-slang.org/slang/user-guide/reflection
+		using result_type = result<reflection>;
+		reflection output{};
+
+		std::stringstream stream{};
+		stream << "[Reflection]";
+
+		stream << "\nGlobals: ";
+		slang::VariableLayoutReflection* global_var_layout = refl.getGlobalParamsVarLayout();
+		slang::TypeLayoutReflection* global_types = refl.getGlobalParamsTypeLayout();
+		{
+			refl_process_var(*global_var_layout, 0u, [&stream, &refl](rfl_varlayout& var_layout, const uint32 level)
+			{
+				stream << "\n";
+				for (uint32 i = 0u; i < level; ++i) {
+					stream << "  ";
+				}
+
+				auto type = var_layout.getType();
+				auto var = var_layout.getVariable();
+				const char* var_name = var ? var->getName() : "<>";
+				auto type_layout = var_layout.getTypeLayout();
+				const auto kind = type_layout->getKind();
+				switch (kind)
+				{
+				case slang::TypeReflection::Kind::ParameterBlock:
+				{
+					stream << "Paramblock ";
+					stream << var_name;
+				}break;
+				case slang::TypeReflection::Kind::Struct:
+				{
+					stream << "Struct "; 
+					stream << var_name;
+				}break;
+				case slang::TypeReflection::Kind::ConstantBuffer:
+				{
+					stream << "ConstantBuffer ";
+					stream << var_name;
+				}break;
+				case slang::TypeReflection::Kind::Resource:
+				{
+					stream << "ShaderResource ";
+					stream << var_name;
+				}break;
+				case slang::TypeReflection::Kind::SamplerState:
+				{
+					stream << "SamplerState ";
+					stream << var_name;
+				}break;
+				default:
+					influx_assert(false); // increment this clause as we go.
+				}
+			});
+		}
+		
+		stream << "\nEntrypoints: ";
+		SlangUInt entryPointCount = refl.getEntryPointCount();
+		for (int i = 0; i < entryPointCount; ++i)
+		{
+			slang::EntryPointReflection& entrypoint = *refl.getEntryPointByIndex(i);
+			stream << "\nstage: ";
+			switch (entrypoint.getStage())
+			{
+			case SlangStage::SLANG_STAGE_VERTEX: stream << "vertex"; break;
+			case SlangStage::SLANG_STAGE_PIXEL: stream << "pixel"; break;
+			case SlangStage::SLANG_STAGE_COMPUTE: stream << "compute"; break;
+			}
+		}
+
+		std::cout << stream.str() << "\n";
+		return output;
+	}
+
+	result<compile_output> compile_shader_in_file(
+		const string& filepath,
+		const shader_signature& signature,
+		const compile_args& args)
+	{
+		vector<target_info> targets{};
+		{
+			target_info info = {};
+			info.m_output_format = args.m_output_format;
+			info.m_shader_level = signature.m_target;
+			targets.push_back(info);
+		}
+		vector<string> include_folders{};
+		{
+			include_folders.push_back(args.m_include_folder);
+		}
+
+		compile_output output{};
+		auto request_res = scoped_compile_request(targets, include_folders,
+			[&args, &filepath, &signature, &output](sl_compile_request& request) -> result<> {
+
+				using result_type = result<>;
+
+				// 1. add our 1 translation unit (shader)
+				const e_shader_language source_lang = args.m_source_language;
+				const int trans_unit_index = request.addTranslationUnit(translate(source_lang), "");
+				request.addTranslationUnitSourceFile(trans_unit_index, filepath.c_str());
+				const e_shader_type sh_type = signature.m_type;
+				const char* sh_entrypoint = signature.m_entrypoint.c_str();
+				request.addEntryPoint(trans_unit_index, sh_entrypoint, translate(sh_type));
+
+				// 2. compile the shader
+				sl_result compile_sres = request.compile();
+				if (SLANG_FAILED(compile_sres))
+				{
+					const char* diag_output = request.getDiagnosticOutput();
+					return result_type::make_error(diag_output);
+				}
+
+				const int entrypointIndex = 0;
+				uint64 out_bytecode_size = 0u;
+				const void* bytecode = request.getEntryPointCode(entrypointIndex, &out_bytecode_size);
+
+				// output: get the compiled bytecode
+				output.m_bytecode.resize(out_bytecode_size);
+				memcpy(output.m_bytecode.data(), bytecode, out_bytecode_size);
+
+				// output: get the reflection
+				if (args.m_reflection_enabled || true)
+				{
+					sl_ptr<sl_program> program = nullptr;
+					sl_result get_prgm_res = request.getProgram(&program);
+					if (SLANG_FAILED(get_prgm_res))
+						return result_type::make_error("getProgram() failed!");
+
+					auto translated_reflection = translate_reflection(*program->getLayout());
+					if (!translated_reflection.is_success())
+						return result_type::make_error(translated_reflection);
+
+					output.m_reflection = translated_reflection.get();
+				}
+
+				return {};
+			});
+
+		using result_type = result<compile_output>;
+		if (!request_res.is_success())
+			return result_type::make_error(request_res);
+
+		return output;
 	}
 
 	result<compile_output> compile_shader_in_source(
@@ -337,18 +425,73 @@ namespace influx::shader
 		const compile_args& args)
 	{
 		using result_type = result<compile_output>;
-		return {};
+
+		vector<target_info> targets{}; {
+			target_info info = {};
+			info.m_output_format = args.m_output_format;
+			info.m_shader_level = signature.m_target;
+			targets.push_back(info);
+		}
+		vector<string> include_folders{}; {
+			include_folders.push_back(args.m_include_folder);
+		}
+
+		compile_output output{};
+		auto request_res = scoped_compile_request(targets, include_folders,
+			[&args, &signature, &output, &shader_source](sl_compile_request& request) -> result<> {
+				using result_type = result<>;
+
+				// 1. add our 1 translation unit (shader)
+				const e_shader_language source_lang = args.m_source_language;
+				const int trans_unit_index = request.addTranslationUnit(translate(source_lang), "");
+				request.addTranslationUnitSourceString(trans_unit_index, "", shader_source.c_str());
+				const e_shader_type sh_type = signature.m_type;
+				const char* sh_entrypoint = signature.m_entrypoint.c_str();
+				request.addEntryPoint(trans_unit_index, sh_entrypoint, translate(sh_type));
+
+				sl_result compile_sres = request.compile();
+				if (SLANG_FAILED(compile_sres))
+				{
+					const char* diag_output = request.getDiagnosticOutput();
+					return result_type::make_error(diag_output);
+				}
+
+				const int entrypointIndex = 0;
+				uint64 out_bytecode_size = 0u;
+				const void* bytecode = request.getEntryPointCode(entrypointIndex, &out_bytecode_size);
+
+				// output: get the compiled bytecode
+				output.m_bytecode.resize(out_bytecode_size);
+				memcpy(output.m_bytecode.data(), bytecode, out_bytecode_size);
+
+				// output: get the reflection
+				if (args.m_reflection_enabled)
+				{
+					sl_ptr<sl_program> program = nullptr;
+					sl_result get_prgm_res = request.getProgram(&program);
+					if (SLANG_FAILED(get_prgm_res))
+						return result_type::make_error("getProgram() failed!");
+
+					auto translated_reflection = translate_reflection(*program->getLayout());
+					if (!translated_reflection.is_success())
+						return result_type::make_error(translated_reflection);
+
+					output.m_reflection = translated_reflection.get();
+				}
+
+				return {};
+			});
+
+		using result_type = result<compile_output>;
+		if (!request_res.is_success())
+			return result_type::make_error(request_res);
+
+		return output;
 	}
 
 	result<reflect_output> reflect_bytecode(const bytecode& bytecode)
 	{
 		using result_type = result<reflect_output>;
-		return {};
-	}
-
-	result<parse_output> parse_shaders_in_file(const string& filepath)
-	{
-		using result_type = result<parse_output>;
 		return {};
 	}
 }

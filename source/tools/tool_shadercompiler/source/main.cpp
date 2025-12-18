@@ -18,10 +18,10 @@ static const char* k_invalid_entrypoint = "_";
 // required parameters:
 influx::cvar cv_filepath		("cv_inputpath",	k_invalid_path,			"required: filepath of the shader");
 influx::cvar cv_output_filepath ("cv_outputpath",	k_invalid_path,			"required: output filepath");
-influx::cvar cv_entrypoint		("cv_entry",		k_invalid_entrypoint,	"required: entrypoint of the shader");
+influx::cvar cv_output_refl		("cv_reflpath",		k_invalid_path,			"required: output filepath for the binary reflection output");
 // optional parameters:
-influx::cvar cv_includes		("cv_includes", k_default_includes, "folder of included files");
-influx::cvar cv_num_shaders		("cv_num", "3", "haha");
+influx::cvar cv_entrypoint		("cv_entry",		k_invalid_entrypoint,	"entrypoint of the shader");
+influx::cvar cv_includes		("cv_includes",		k_default_includes,		"folder of included files");
 
 enum e_result : int
 {
@@ -33,7 +33,8 @@ enum e_result : int
 	error_parse_is_empty			= -5,
 	error_compile_error				= -6,
 	error_no_output_filepath		= -7,
-	error_output_write_failed		= -8
+	error_output_write_failed		= -8,
+	error_no_output_reflection_filepath = -9
 };
 
 void log(const influx::string& info)
@@ -47,49 +48,55 @@ int main(int argc, char** argv)
 	using namespace influx;
 	cvar::parse_runargs(argc, argv);
 
-#if 0
-	if (!cv_filepath.is_set())
+	const string input_filepath = cv_filepath.get_value<string>(); // input_filepath = "D:/Git/Influx/source/influx/influx_renderer/shaders/source/slang/basepass.slang";
+	const string output_filepath = cv_output_filepath.get_value<string>();
+	if (input_filepath == k_invalid_path)
+	{
 		return error_no_input_filepath;
-	if (!cv_output_filepath.is_set())
+	}
+	if (output_filepath == k_invalid_path)
+	{
 		return error_no_output_filepath;
-#endif
+	}
+	const string refl_filepath = cv_output_refl.get_value<string>();
+	if (refl_filepath == k_invalid_path)
+	{
+		return error_no_output_reflection_filepath;
+	}
 
-	string filepath = cv_filepath.get_value<string>();
-	
 	// 1. first, parse all shaders inside the filepath
-	shader::parse_output::per_shader* target_parsed_shader = nullptr;
-#if 0 // skip for now
-	auto parse_res = shader::parse_shaders_in_file(filepath);
+	cptr<shader::parse_output::per_shader> target_parsed_shader = nullptr;
+	auto parse_res = shader::parse_shaders_in_file(input_filepath);
 	if (parse_res.is_fail())
+	{
 		return error_failed_parse;
-
+	}
 	shader::parse_output& parsed_shaders = parse_res.get();
 	shader::parse_output::shadermap& parsed_shadermap = parsed_shaders.m_shadermap;
 	const int num_parsed_shaders = parsed_shaders.get_total_num_shaders();
 	if (num_parsed_shaders <= 0)
+	{
 		return error_parse_is_empty;
+	}
 
 	// 2. find the shader we specifically want compiled (either by optional entrypoint, or the first one we find)
-	target_parsed_shader = parsed_shaders.get_first_shader();
 	if (cv_entrypoint.is_set())
 	{
-		const shader::parse_output::per_shader* found =
+		const shader::parse_output::per_shader* shader_found_in_parse =
 			parsed_shaders.find_shader_by_entrypoint(cv_entrypoint.get_value<string>());
 
-		if (found != nullptr)
-			target_parsed_shader = found;
-		else 
+		if (shader_found_in_parse != nullptr)
+			target_parsed_shader = shader_found_in_parse;
+		else
 			return error_entrypoint_not_found;
 	}
-#endif
+	else target_parsed_shader = parsed_shaders.get_first_shader();
 
-	filepath = "D:/Git/Influx/source/influx/influx_renderer/shaders/source/slang/basepass.slang";
-
-	const string include_folder_path = "D:/Git/Influx/source/influx/influx_renderer/shaders/source/slang/";// cv_includes.get_value<string>();
-	const string entrypoint = "main_vs"; // cv_entrypoint
-
-	// 3. fill in the signature of the selected parsed shader, and finally compile
-	shader::shader_signature signature{};// = target_parsed_shader->m_signature;
+	// 3. fill in the signature of the selected parsed shader, 
+	// and finally compile
+	const string include_folder_path = cv_includes.get_value<string>(); // "D:/Git/Influx/source/influx/influx_renderer/shaders/source/slang/";
+	const string entrypoint = cv_entrypoint.get_value<string>(); // "main_vs"
+	shader::shader_signature signature = target_parsed_shader->m_signature;
 	signature.m_entrypoint = entrypoint;
 
 	shader::compile_args args{};
@@ -97,26 +104,38 @@ int main(int argc, char** argv)
 	args.m_output_format = shader::e_shader_binary_output::DXIL;
 	args.m_include_folder = include_folder_path;
 	args.m_target = shader::e_shader_target::_6_6;
-	args.m_reflection_enabled = false;
-	auto output_res = shader::compile_shader_in_file(filepath, signature, args);
-	if (!output_res.is_success())
+	args.m_reflection_enabled = true;
+	auto output_res = shader::compile_shader_in_file(input_filepath, signature, args);
+	if (!output_res.is_success() || output_res.get().m_bytecode.empty())
 	{
 		const string first_log = output_res.get_safe().m_log.front();
 		log("compile shader fail");
 		return error_compile_error;
 	}
 
-	// 4. write to file
-	const vector<byte>& bytecode = output_res.get().m_bytecode;
-	string output_path = cv_output_filepath.get_value<string>();
-
-	std::ofstream file(output_path, std::ios::binary);
-	if (file.is_open() == false)
+	// 4. write to output file (.cso)
 	{
-		log("failed writing output file!");
-		return error_output_write_failed;
+		const vector<byte>& bytecode = output_res.get().m_bytecode;
+		string output_path = cv_output_filepath.get_value<string>();
+		std::ofstream file(output_path, std::ios::binary);
+		if (file.is_open() == false)
+		{
+			log("failed writing output file!");
+			return error_output_write_failed;
+		}
+		file.write(reinterpret_cast<const char*>(bytecode.data()), bytecode.size());
 	}
-	file.write(reinterpret_cast<const char*>(bytecode.data()), bytecode.size());
+	// 5. write to refl file (.refl)
+	{
+		const shader::reflection& reflection = output_res.get().m_reflection;
+		std::ofstream file(refl_filepath, std::ios::binary);
+		if (file.is_open() == false)
+		{
+			log("failed writing reflection file!");
+			return error_no_output_reflection_filepath;
+		}
+		shader::reflection::serialize(reflection, file);
+	}
 	
 	log("compile shader success!");
 	return success;

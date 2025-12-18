@@ -331,7 +331,7 @@ namespace influx::rendergraph
 				// load:clear info
 				if (rtv.m_access.m_load == e_rg_load::clear)
 				{
-					memcpy(attachment.m_clear.m_data, rtv.m_access.m_load_clear.m_colour.m_data, sizeof(FLOAT[4]));
+					memcpy(attachment.m_clear.m_data, rtv.m_access.m_load_clear.m_colour.m_data, sizeof(float[4]));
 				}
 
 				// store:resolve info
