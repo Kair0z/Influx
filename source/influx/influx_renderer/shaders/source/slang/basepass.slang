@@ -10,10 +10,6 @@ struct view_block
     float3 m_value;
     per_view m_other_constants;
 }
-ParameterBlock<view_block> g_view_block;
-
-
-
 struct draw_block
 {
     ConstantBuffer<per_draw>        m_constants;
@@ -24,6 +20,7 @@ struct mat_block
     ConstantBuffer<per_material> m_constants;
 }
 
+ParameterBlock<view_block> g_view_block;
 ParameterBlock<draw_block> g_draw_block;
 ParameterBlock<mat_block> g_mat_block;
 

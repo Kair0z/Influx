@@ -105,33 +105,35 @@ namespace influx::shader
 			feedback_rw,		// D3D_SIT_UAV_FEEDBACKTEXTURE
 			count
 		};
+		enum class e_component_type : uint8
+		{
+			unknown,
+			f16,
+			f32,
+			u16,
+			u32,
+			num
+		};
+		enum class e_system_name : uint8
+		{
+			unknown,
+			target,			// D3D_NAME_TARGET (SV_TARGET)
+			position,		// D3D_NAME_POSITION (SV_POSITION)
+			num
+		};
 
 		using parmblock_id = uint32;
+		using ioparam_id = uint32;
+		using entrypoint_id = uint32;
+
 		static const uint32 k_name_fixed_length = 64u;
 		static const uint32 k_parmblock_invalid = (uint32)-1;
+		using name = char[k_name_fixed_length];
 
-		// inputs & outputs
 		struct io_param final
 		{
-			enum class e_component_type : uint8
-			{
-				unknown,
-				f16,
-				f32,
-				u16,
-				u32,
-				num
-			};
-
-			enum class e_system_name : uint8
-			{
-				unknown,
-				target,			// D3D_NAME_TARGET (SV_TARGET)
-				position,		// D3D_NAME_POSITION (SV_POSITION)
-				num
-			};
-
-			uint64				m_semantic_name_id;
+			name				m_typename;
+			name				m_name;
 			uint32				m_semantic_index;
 			e_system_name		m_system_name;
 			e_component_type	m_component_type;
@@ -140,7 +142,7 @@ namespace influx::shader
 		};
 		struct resource final
 		{
-			char	m_name[k_name_fixed_length];
+			name	m_name;
 			uint32	m_register_index; // shader register
 			uint32	m_register_space;
 			uint32	m_arraysize;
@@ -168,31 +170,26 @@ namespace influx::shader
 					|| m_type == e_resource_type::byteaddress
 					|| m_type == e_resource_type::byteaddress_rw;
 			}
-			void set_name(const string& name) {
-				strnset(m_name, 0, k_name_fixed_length);
-				strncpy(m_name, name.c_str(), k_name_fixed_length);
-			}
 		};
 		struct parmblock final
 		{
-			char	m_name[k_name_fixed_length];
+			name	m_name;
 			uint32	m_resource_start_index;
 			uint32	m_resource_num;
 			uint32	m_parent_block_index = k_parmblock_invalid;
-
-			void set_name(const string& name) {
-				strnset(m_name, 0, k_name_fixed_length);
-				strncpy(m_name, name.c_str(), k_name_fixed_length);
-			}
 		};
 
 		e_shader_type m_shader_type = e_shader_type::count;
-		vector<io_param> m_output_params{};
-		vector<io_param> m_input_params{};
+		vector<io_param> m_ioparams{};
 		vector<resource> m_bound_resources{};
 		vector<resource> m_resources;
 		vector<parmblock> m_parmblocks;
 		vector<string> m_names;
+
+		static void set_name(name old, const string& new_name) {
+			strnset(old, 0, k_name_fixed_length);
+			strncpy(old, new_name.c_str(), new_name.size());
+		}
 
 		parmblock& add_parmblock() {
 			m_parmblocks.push_back({});
@@ -202,6 +199,10 @@ namespace influx::shader
 			m_parmblocks[parmblock_id].m_resource_num++;
 			m_resources.push_back({});
 			return m_resources.back();
+		}
+		io_param& add_ioparam(entrypoint_id entry_id = k_parmblock_invalid) {
+			m_ioparams.push_back({});
+			return m_ioparams.back();
 		}
 
 		INFLUX_SHADER_API static void serialize(const reflection& refl, std::ostream& out);

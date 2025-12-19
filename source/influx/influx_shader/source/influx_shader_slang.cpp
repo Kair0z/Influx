@@ -288,10 +288,60 @@ namespace influx::shader
 
 		uint32 current_parmblock = reflection::k_parmblock_invalid;
 		uint32 current_resource = reflection::k_parmblock_invalid;
+		static const char* k_no_name = "none";
+		static const auto print_var = [&stream](slang::TypeReflection::Kind kind, const char* var_name) {
+			switch (kind)
+			{
+			case slang::TypeReflection::Kind::ParameterBlock:
+			{
+				stream << "Paramblock ";
+				stream << var_name;
+			}break;
+			case slang::TypeReflection::Kind::Struct:
+			{
+				stream << "Struct ";
+				stream << var_name;
+			}break;
+			case slang::TypeReflection::Kind::ConstantBuffer:
+			{
+				stream << "ConstantBuffer ";
+				stream << var_name;
+			}break;
+			case slang::TypeReflection::Kind::Resource:
+			{
+				stream << "ShaderResource ";
+				stream << var_name;
+			}break;
+			case slang::TypeReflection::Kind::SamplerState:
+			{
+				stream << "SamplerState ";
+				stream << var_name;
+			}break;
+			case slang::TypeReflection::Kind::Matrix:
+			{
+				stream << "Matrix ";
+				stream << var_name;
+			}break;
+			case slang::TypeReflection::Kind::None:
+			{
+				stream << "none ";
+			}break;
+			case slang::TypeReflection::Kind::Vector:
+			{
+				stream << "vector ";
+				stream << var_name;
+			}break;
+			case slang::TypeReflection::Kind::Scalar:
+			{
+				stream << "scalar ";
+				stream << var_name;
+			}break;
+			default:
+				influx_assert(false); // increment this clause as we go.
+			}
+		};
 
-		stream << "\nGlobals: ";
-		slang::VariableLayoutReflection* global_var_layout = refl.getGlobalParamsVarLayout();
-		traverse_variable_layout(*global_var_layout, 0u, [&stream, &refl, &output, &current_parmblock, &current_resource]
+		static auto traverse_func = [&stream, &refl, &output, &current_parmblock, &current_resource]
 		(rfl_varlayout& var_layout, const uint32 level)
 		{
 			// add nested print
@@ -302,7 +352,7 @@ namespace influx::shader
 
 			auto type = var_layout.getType();
 			auto var = var_layout.getVariable();
-			const char* var_name = var ? var->getName() : "<>";
+			const char* var_name = var ? var->getName() : k_no_name;
 			auto type_layout = var_layout.getTypeLayout();
 			const auto kind = type_layout->getKind();
 
@@ -327,7 +377,7 @@ namespace influx::shader
 				current_resource = output.m_resources.size() - 1u;
 				resource->m_arraysize;
 				resource->m_bytesize;
-				resource->set_name(var_name);
+				reflection::set_name(resource->m_name, var_name);
 				resource->m_nested_block_index;
 				resource->m_parent_block_index = current_parmblock;
 				resource->m_register_index;
@@ -336,62 +386,94 @@ namespace influx::shader
 			if (is_paramblock_kind)
 			{
 				parmblock = &output.add_parmblock();
+				reflection::set_name(parmblock->m_name, var_name);
 				current_parmblock = output.m_parmblocks.size() - 1u;
 			}
 				
 			switch (kind)
 			{
-			case slang::TypeReflection::Kind::ParameterBlock:
-			{
-				stream << "Paramblock ";
-				stream << var_name;
-			}break;
-			case slang::TypeReflection::Kind::Struct:
-			{
-				stream << "Struct ";
-				stream << var_name;
-			}break;
 			case slang::TypeReflection::Kind::ConstantBuffer:
 			{
-				stream << "ConstantBuffer ";
-				stream << var_name;
 				if (resource) resource->m_type = reflection::e_resource_type::constbuffer;
 			}break;
 			case slang::TypeReflection::Kind::Resource:
 			{
-				stream << "ShaderResource ";
-				stream << var_name;
 				if (resource) resource->m_type = reflection::e_resource_type::structbuff;
 			}break;
 			case slang::TypeReflection::Kind::SamplerState:
 			{
-				stream << "SamplerState ";
-				stream << var_name;
 				if (resource) resource->m_type = reflection::e_resource_type::sampler;
 			}break;
-			case slang::TypeReflection::Kind::Matrix:
-			{
-				stream << "Matrix ";
-				stream << var_name;
-			}break;
-			case slang::TypeReflection::Kind::None:
-			{
-				stream << "none ";
-			}break;
-			case slang::TypeReflection::Kind::Vector:
-			{
-				stream << "vector ";
-				stream << var_name;
-			}break;
-			case slang::TypeReflection::Kind::Scalar:
-			{
-				stream << "scalar ";
-				stream << var_name;
-			}break;
-			default:
-				influx_assert(false); // increment this clause as we go.
 			}
-		});
+
+			print_var(kind, var_name);
+		};
+
+		stream << "\nGlobals: ";
+		slang::VariableLayoutReflection* global_var_layout = refl.getGlobalParamsVarLayout();
+		traverse_variable_layout(*global_var_layout, 0u, traverse_func);
+
+		static auto entrypoint_input_traverse_func = [&output, &stream](rfl_varlayout& var_layout, const uint32 level) {
+			// add nested print
+			stream << "\n";
+			for (uint32 i = 0u; i < level; ++i) {
+				stream << "  ";
+			}
+
+			auto type = var_layout.getType();
+			auto var = var_layout.getVariable();
+			const char* var_name = var ? var->getName() : k_no_name;
+			auto type_layout = var_layout.getTypeLayout();
+			const auto kind = type_layout->getKind();
+			const char* varlayout_name = var_layout.getName();
+			const char* type_name = type ? type->getName() : k_no_name;
+			const char* typelayout_name = type_layout ? type_layout->getName() : k_no_name;
+			const bool is_field_kind =
+				kind == slang::TypeReflection::Kind::Matrix ||
+				kind == slang::TypeReflection::Kind::Scalar ||
+				kind == slang::TypeReflection::Kind::Vector;
+			
+			if (is_field_kind)
+			{
+				auto& newparam = output.add_ioparam(0u);
+				newparam.m_is_input = true;
+				reflection::set_name(newparam.m_name, var_name);
+				reflection::set_name(newparam.m_typename, type_name);
+			}
+
+			print_var(kind, var_name);
+		};
+		static auto entrypoint_output_traverse_func = [&output, &stream](rfl_varlayout& var_layout, const uint32 level) {
+			// add nested print
+			stream << "\n";
+			for (uint32 i = 0u; i < level; ++i) {
+				stream << "  ";
+			}
+
+			auto type = var_layout.getType();
+			auto var = var_layout.getVariable();
+			const char* var_name = var ? var->getName() : k_no_name;
+			auto type_layout = var_layout.getTypeLayout();
+			const auto kind = type_layout->getKind();
+			const char* varlayout_name = var_layout.getName();
+			const char* type_name = type ? type->getName() : k_no_name;
+			const char* typelayout_name = type_layout ? type_layout->getName() : k_no_name;
+			
+			const bool is_field_kind =
+				kind == slang::TypeReflection::Kind::Matrix ||
+				kind == slang::TypeReflection::Kind::Scalar ||
+				kind == slang::TypeReflection::Kind::Vector;
+
+			if (is_field_kind)
+			{
+				auto& newparam = output.add_ioparam(0u);
+				newparam.m_is_input = false;
+				reflection::set_name(newparam.m_name, var_name);
+				reflection::set_name(newparam.m_typename, typelayout_name);
+			}
+
+			print_var(kind, var_name);
+		};
 
 		stream << "\nEntrypoints: ";
 		SlangUInt entryPointCount = refl.getEntryPointCount();
@@ -405,6 +487,11 @@ namespace influx::shader
 			case SlangStage::SLANG_STAGE_PIXEL: stream << "pixel"; break;
 			case SlangStage::SLANG_STAGE_COMPUTE: stream << "compute"; break;
 			}
+
+			stream << "\ninputs: ";
+			traverse_variable_layout(*entrypoint.getVarLayout(), 0u, entrypoint_input_traverse_func);
+			stream << "\noutputs: ";
+			traverse_variable_layout(*entrypoint.getResultVarLayout(), 0u, entrypoint_output_traverse_func);
 		}
 
 		std::cout << stream.str() << "\n";
@@ -436,11 +523,17 @@ namespace influx::shader
 
 				// 1. add our 1 translation unit (shader)
 				const e_shader_language source_lang = args.m_source_language;
-				const int trans_unit_index = request.addTranslationUnit(translate(source_lang), "");
+				const int trans_unit_index = request.addTranslationUnit(translate(source_lang), "shader");
 				request.addTranslationUnitSourceFile(trans_unit_index, filepath.c_str());
 				const e_shader_type sh_type = signature.m_type;
 				const char* sh_entrypoint = signature.m_entrypoint.c_str();
 				request.addEntryPoint(trans_unit_index, sh_entrypoint, translate(sh_type));
+				
+				// add commandline
+				{
+					vector<const char*> args;
+					request.processCommandLineArguments(args.data(), (uint32)args.size());
+				}
 
 				// 2. compile the shader
 				sl_result compile_sres = request.compile();
@@ -462,7 +555,7 @@ namespace influx::shader
 				if (args.m_reflection_enabled || true)
 				{
 					sl_ptr<sl_program> program = nullptr;
-					sl_result get_prgm_res = request.getProgram(&program);
+					sl_result get_prgm_res = request.getProgramWithEntryPoints(&program);
 					if (SLANG_FAILED(get_prgm_res))
 						return result_type::make_error("getProgram() failed!");
 

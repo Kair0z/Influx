@@ -157,12 +157,14 @@ namespace influx::shader
 	{
 		serialize_type(refl.m_shader_type, out);
 		serialize_vector_type(refl.m_resources, out);
+		serialize_vector_type(refl.m_ioparams, out);
 	}
 
 	void reflection::deserialize(reflection& refl, std::istream& in)
 	{
 		deserialize_type(refl.m_shader_type, in);
 		deserialize_vector_type(refl.m_resources, in);
+		deserialize_vector_type(refl.m_ioparams, in);
 	}
 
 	void reflection::deserialize(reflection& refl, const byte* bytes, const uint64 size)

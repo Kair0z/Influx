@@ -497,7 +497,7 @@ namespace influx::renderer
 			const shader::reflection::resource& resource, 
 			const e_shader_slot shaderslot)
 		{
-			const string& resource_name = reflection.get_resource_name(resource);
+			const string resource_name = resource.m_name;
 			if (!resource_name.empty())
 				m_name_to_register[resource_name] = resource.m_shader_register;
 
@@ -521,23 +521,23 @@ namespace influx::renderer
 
 			switch (resource.m_type)
 			{
-			case shader::reflection::resource::e_type::constbuffer:
+			case shader::reflection::e_resource_type::constbuffer:
 				rootsig_desc.add_root_constants((uint32)resource.m_bytesize / sizeof(uint32), resource.m_shader_register, resource.m_register_space, shader_vis);
 				rootsig_desc.name_last_constants(resource_name);
 				break;
 
-			case shader::reflection::resource::e_type::texture_rw:
-				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+			case shader::reflection::e_resource_type::texture_rw:
+				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::uav, resource.m_arraysize, resource.m_shader_register, resource.m_register_space, shader_vis);
 				rootsig_desc.name_last_resource_table(resource_name);
 				break;
 
-			case shader::reflection::resource::e_type::structbuff:
-			case shader::reflection::resource::e_type::texture:
-				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv, resource.m_range_size, resource.m_shader_register, resource.m_register_space, shader_vis);
+			case shader::reflection::e_resource_type::structbuff:
+			case shader::reflection::e_resource_type::texture:
+				rootsig_desc.add_root_range(graphics::root_param_resource_range::e_type::srv, resource.m_arraysize, resource.m_shader_register, resource.m_register_space, shader_vis);
 				rootsig_desc.name_last_resource_table(resource_name);
 				break;
 
-			case shader::reflection::resource::e_type::sampler:
+			case shader::reflection::e_resource_type::sampler:
 				rootsig_desc.add_root_sampler(resource.m_shader_register, resource.m_register_space, shader_vis);
 				rootsig_desc.name_last_sampler(resource_name);
 				break;
@@ -600,10 +600,13 @@ namespace influx::renderer
 				constexpr uint8 vertex_shader_idx = static_cast<uint8>(graphics::e_graphics_shader_slots::vs);
 				const shader_data& vertex_shader = *m_shaders[vertex_shader_idx];
 				const shader::reflection& vertex_reflection = m_shaders[vertex_shader_idx]->m_reflection;
-				for (uint32 i = 0u; i < vertex_reflection.m_input_params.size(); ++i)
+				for (uint32 i = 0u; i < vertex_reflection.m_ioparams.size(); ++i)
 				{
-					const shader::reflection::io_param& in_param = vertex_reflection.m_input_params[i];
-					const string& param_name = vertex_reflection.get_semantic_name(in_param);
+					const shader::reflection::io_param& in_param = vertex_reflection.m_ioparams[i];
+					if (in_param.m_is_input == false)
+						continue;
+
+					const string param_name = in_param.m_name;
 
 					// derive the format
 					graphics::e_format format;

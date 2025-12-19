@@ -1058,17 +1058,20 @@ namespace influx::rhi
 		inline void reflect_input_elements(const shader::reflection& reflection)
 		{
 			uint32 index = 0u;
-			for (const auto& element : reflection.m_input_params)
+			for (const auto& element : reflection.m_ioparams)
 			{
+				if (element.m_is_input == false)
+					continue;
+
 				bufferformat format{};
 				switch (element.m_component_type)
 				{
-				case shader::reflection::io_param::e_component_type::f32: format = bufferformat::make_uint32(element.m_num_floats);
-				case shader::reflection::io_param::e_component_type::u32: format = bufferformat::make_f32(element.m_num_floats);
+				case shader::reflection::e_component_type::f32: format = bufferformat::make_uint32(element.m_num_floats);
+				case shader::reflection::e_component_type::u32: format = bufferformat::make_f32(element.m_num_floats);
 				}
 
 				add_input_element(
-					reflection.get_semantic_name(element),
+					element.m_name,
 					element.m_semantic_index,
 					format,
 					index,
@@ -1080,16 +1083,19 @@ namespace influx::rhi
 		}
 		inline void reflect_pixelshader(const shader::reflection& reflection)
 		{
-			for (const auto& output : reflection.m_output_params)
+			for (const auto& param : reflection.m_ioparams)
 			{
-				const uint32 index = output.m_semantic_index;
+				if (param.m_is_input == true)
+					continue;
+
+				const uint32 index = param.m_semantic_index;
 				if (index >= k_max_num_rendertargets_per_draw)
 					continue;
 				
 				auto& target = m_output_merger.m_rendertargets[index];
 				target.m_blend;
 				target.m_enabled = true;
-				target.m_format = pixelformat::make_f32(output.m_num_floats);
+				target.m_format = pixelformat::make_f32(param.m_num_floats);
 			}
 		}
 	};
@@ -1560,7 +1566,7 @@ namespace influx::rhi
 
 			for (const shader::reflection::resource& resource : reflection.m_bound_resources)
 			{
-				const string& resource_name = reflection.get_resource_name(resource);
+				const string resource_name = resource.m_name;
 				if (m_name_to_register.contains(resource_name))
 					continue;
 
@@ -1570,35 +1576,35 @@ namespace influx::rhi
 				switch (resource.m_type)
 				{
 				// BUFFERS can EITHER be root descriptors, or referenced through a resource table
-				case shader::reflection::resource::e_type::constbuffer:
+				case shader::reflection::e_resource_type::constbuffer:
 					add_root_resources(resource_name, root_param_resource::e_type::cbv,
-						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
+						resource.m_arraysize, resource.m_shader_register, resource.m_register_space);
 					break;
-				case shader::reflection::resource::e_type::structbuff:
+				case shader::reflection::e_resource_type::structbuff:
 					add_root_resources(resource_name, root_param_resource::e_type::srv,
-						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
+						resource.m_arraysize, resource.m_shader_register, resource.m_register_space);
 					break;
-				case shader::reflection::resource::e_type::structbuff_rw:
+				case shader::reflection::e_resource_type::structbuff_rw:
 					add_root_resources(resource_name, root_param_resource::e_type::uav,
-						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
+						resource.m_arraysize, resource.m_shader_register, resource.m_register_space);
 					break;
 
 				// TEXTURES can ONLY be accessed through resource tables
-				case shader::reflection::resource::e_type::texture:
+				case shader::reflection::e_resource_type::texture:
 					add_root_range(root_param_resource_range::e_type::srv,
-						resource.m_range_size, resource.m_shader_register,
+						resource.m_arraysize, resource.m_shader_register,
 						resource.m_register_space, shader_vis);
 					name_last_resource_table(resource_name);
 					break;
-				case shader::reflection::resource::e_type::texture_rw:
+				case shader::reflection::e_resource_type::texture_rw:
 					add_root_range(root_param_resource_range::e_type::uav,
-						resource.m_range_size, resource.m_shader_register,
+						resource.m_arraysize, resource.m_shader_register,
 						resource.m_register_space, shader_vis);
 					name_last_resource_table(resource_name);
 					break;
-				case shader::reflection::resource::e_type::sampler:
+				case shader::reflection::e_resource_type::sampler:
 					add_root_range(root_param_resource_range::e_type::sampler,
-						resource.m_range_size, resource.m_shader_register,
+						resource.m_arraysize, resource.m_shader_register,
 						resource.m_register_space, shader_vis);
 					name_last_resource_table(resource_name);
 					break;

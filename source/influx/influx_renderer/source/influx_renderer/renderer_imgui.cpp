@@ -327,7 +327,7 @@ namespace influx::renderer
 		args.set_debug_level(INFLUX_DEBUG);
 		args.m_target = shader::e_shader_target::_6_6;
 		args.m_pbd_enabled = true;
-		args.m_reflection_enabled = true;
+		args.m_reflection_enabled = false;
 
 		shader::shader_signature signature{};
 		signature.m_entrypoint = "main";
