@@ -156,21 +156,31 @@ namespace influx::shader
 	void reflection::serialize(const reflection& refl, std::ostream& out)
 	{
 		serialize_type(refl.m_shader_type, out);
-		serialize_vector_type(refl.m_bound_resources, out);
-		serialize_vector_type(refl.m_input_params, out);
-		serialize_vector_type(refl.m_output_params, out);
+		serialize_vector_type(refl.m_resources, out);
 	}
 
 	void reflection::deserialize(reflection& refl, std::istream& in)
 	{
 		deserialize_type(refl.m_shader_type, in);
-		deserialize_vector_type(refl.m_bound_resources, in);
-		deserialize_vector_type(refl.m_input_params, in);
-		deserialize_vector_type(refl.m_output_params, in);
+		deserialize_vector_type(refl.m_resources, in);
 	}
 
 	void reflection::deserialize(reflection& refl, const byte* bytes, const uint64 size)
 	{
+		class memory_istreambuf : public std::streambuf {
+		public:
+			memory_istreambuf(const char* data, size_t size) {
+				char* p = const_cast<char*>(data);
+				setg(p, p, p + size);
+			}
+		};
 
+		memory_istreambuf buf(
+			reinterpret_cast<const char*>(bytes),
+			size
+		);
+
+		std::istream in(&buf);
+		return deserialize(refl, in);
 	}
 }

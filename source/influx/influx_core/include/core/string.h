@@ -193,8 +193,11 @@ namespace influx
 			return m_wstr[i];
 		}
 		const wchr& operator[](uint64 i) const
-		{ 
+		{
 			return m_wstr[i]; 
+		}
+		const wchr* data() const {
+			return m_wstr.data();
 		}
 
 		// implicit conversions
@@ -414,6 +417,11 @@ namespace influx
 
 			on_content_change();
 			return *this;
+		}
+
+		void resize(const uint64 new_size) {
+			on_content_change();
+			m_wstr.resize(new_size);
 		}
 
 		template <typename _t>

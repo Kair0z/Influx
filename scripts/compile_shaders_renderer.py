@@ -77,13 +77,13 @@ def main():
             influx_shadercompiler_exe,
             "+cv_inputpath " + shader_input_file,
             "+cv_outputpath " + shader_output_file,
-            "+cv_reflpath" + shader_refl_file,
+            "+cv_reflpath " + shader_refl_file,
             "+cv_entry " + entrypoint,
             "+cv_includes " + influx_renderer_shader_source
         ]
 
         # print(" ".join(f'"{c}"' if " " in c else c for c in args))
-        # print(" ".join(args))
+        print(" ".join(args))
         proc = subprocess.Popen(
             args,
             stdout=subprocess.PIPE,
@@ -102,7 +102,7 @@ def main():
             out_include_file = shader_output_file + ".inc" # .cso.inc
             out_refl_file = shader_refl_file + ".inc" ## .rootsignature.inc
             make_includable_file(shader_output_file, Path(out_include_file), filename, entrypoint, "_cso")
-            make_includable_file(shader_output_file, Path(out_refl_file), filename, entrypoint, "_refl")
+            make_includable_file(shader_refl_file, Path(out_refl_file), filename, entrypoint, "_refl")
             merge_files(Path(out_include_file), Path(out_refl_file))
 
 if __name__ == "__main__":

@@ -2,24 +2,28 @@
 module basepass;
 import renderer;
 
-// parameter blocks
+struct view_block
+{
+    ConstantBuffer<per_view> m_constants;
+    Texture2D m_tex_albedo;
+    SamplerState m_samp_albedo;
+    float3 m_value;
+    per_view m_other_constants;
+}
+ParameterBlock<view_block> g_view_block;
+
+
+
 struct draw_block
 {
     ConstantBuffer<per_draw>        m_constants;
     StructuredBuffer<per_instance>  m_instance_buffer;
-
-    Texture2D m_tex_albedo;
-    SamplerState m_samp_albedo;
-}
-struct view_block
-{
-    ConstantBuffer<per_view> m_constants;
 }
 struct mat_block
 {
     ConstantBuffer<per_material> m_constants;
 }
-ParameterBlock<view_block> g_view_block;
+
 ParameterBlock<draw_block> g_draw_block;
 ParameterBlock<mat_block> g_mat_block;
 
@@ -42,6 +46,6 @@ ps_output main_ps(ps_input input)
 {
     return basepass_ps(
         input,
-        g_draw_block.m_tex_albedo,
-        g_draw_block.m_samp_albedo);
+        g_view_block.m_tex_albedo,
+        g_view_block.m_samp_albedo);
 }

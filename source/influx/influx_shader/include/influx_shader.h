@@ -86,6 +86,30 @@ namespace influx::shader
 	/* */
 	struct reflection final
 	{
+		enum class e_resource_type : uint8
+		{
+			unknown,
+			rootconstants,
+			constbuffer,
+			structbuff,
+			structbuff_rw,
+			structbuff_append,
+			structbuff_consume,
+			structbuff_wcounter,
+			byteaddress,
+			byteaddress_rw,
+			texture_rw,
+			texture,
+			sampler,
+			accstruct,
+			feedback_rw,		// D3D_SIT_UAV_FEEDBACKTEXTURE
+			count
+		};
+
+		using parmblock_id = uint32;
+		static const uint32 k_name_fixed_length = 64u;
+		static const uint32 k_parmblock_invalid = (uint32)-1;
+
 		// inputs & outputs
 		struct io_param final
 		{
@@ -102,75 +126,83 @@ namespace influx::shader
 			enum class e_system_name : uint8
 			{
 				unknown,
-				target,			// D3D_NAME_TARGEt (SV_TARGET)
+				target,			// D3D_NAME_TARGET (SV_TARGET)
 				position,		// D3D_NAME_POSITION (SV_POSITION)
 				num
 			};
 
-			string				m_semantic_name;
+			uint64				m_semantic_name_id;
 			uint32				m_semantic_index;
 			e_system_name		m_system_name;
 			e_component_type	m_component_type;
 			uint32				m_num_floats;
 			bool				m_is_input;
 		};
-
 		struct resource final
 		{
-			enum class e_type : uint8
-			{
-				unknown,
-				rootconstants,
-				constbuffer,
-				structbuff,
-				structbuff_rw,
-				structbuff_append,
-				structbuff_consume,
-				structbuff_wcounter,
-				byteaddress,
-				byteaddress_rw,
-				texture_rw,
-				texture,
-				sampler,
-				accstruct,
-				feedback_rw,		// D3D_SIT_UAV_FEEDBACKTEXTURE
-				count
-			};
+			char	m_name[k_name_fixed_length];
+			uint32	m_register_index; // shader register
+			uint32	m_register_space;
+			uint32	m_arraysize;
+			uint32	m_parent_block_index = k_parmblock_invalid;
+			uint32	m_nested_block_index = k_parmblock_invalid;
 
-			string m_name{};
-			e_type m_type{};
+			e_resource_type m_type{};
 			uint32 m_shader_register{};
-			uint32 m_register_space{};
-
+			uint64 m_bytesize{};
+			
 			inline bool is_texture() const
 			{
-				return m_type == e_type::texture
-					|| m_type == e_type::texture_rw;
+				return m_type == e_resource_type::texture
+					|| m_type == e_resource_type::texture_rw;
 			}
 			inline bool is_buffer() const
 			{
-				return m_type == e_type::constbuffer
-					|| m_type == e_type::rootconstants
-					|| m_type == e_type::structbuff
-					|| m_type == e_type::structbuff_rw
-					|| m_type == e_type::structbuff_append
-					|| m_type == e_type::structbuff_consume
-					|| m_type == e_type::structbuff_wcounter
-					|| m_type == e_type::byteaddress
-					|| m_type == e_type::byteaddress_rw;
+				return m_type == e_resource_type::constbuffer
+					|| m_type == e_resource_type::rootconstants
+					|| m_type == e_resource_type::structbuff
+					|| m_type == e_resource_type::structbuff_rw
+					|| m_type == e_resource_type::structbuff_append
+					|| m_type == e_resource_type::structbuff_consume
+					|| m_type == e_resource_type::structbuff_wcounter
+					|| m_type == e_resource_type::byteaddress
+					|| m_type == e_resource_type::byteaddress_rw;
 			}
+			void set_name(const string& name) {
+				strnset(m_name, 0, k_name_fixed_length);
+				strncpy(m_name, name.c_str(), k_name_fixed_length);
+			}
+		};
+		struct parmblock final
+		{
+			char	m_name[k_name_fixed_length];
+			uint32	m_resource_start_index;
+			uint32	m_resource_num;
+			uint32	m_parent_block_index = k_parmblock_invalid;
 
-			// if cbv
-			uint64 m_bytesize{};
-
-			// if srv / sampler, this is the number of descriptors possibly used
-			uint32 m_range_size = 0u;
+			void set_name(const string& name) {
+				strnset(m_name, 0, k_name_fixed_length);
+				strncpy(m_name, name.c_str(), k_name_fixed_length);
+			}
 		};
 
 		e_shader_type m_shader_type = e_shader_type::count;
 		vector<io_param> m_output_params{};
 		vector<io_param> m_input_params{};
 		vector<resource> m_bound_resources{};
+		vector<resource> m_resources;
+		vector<parmblock> m_parmblocks;
+		vector<string> m_names;
+
+		parmblock& add_parmblock() {
+			m_parmblocks.push_back({});
+			return m_parmblocks.back();
+		}
+		resource& add_resource(parmblock_id parmblock_id = k_parmblock_invalid)  {
+			m_parmblocks[parmblock_id].m_resource_num++;
+			m_resources.push_back({});
+			return m_resources.back();
+		}
 
 		INFLUX_SHADER_API static void serialize(const reflection& refl, std::ostream& out);
 		INFLUX_SHADER_API static void deserialize(reflection& refl, std::istream& in);

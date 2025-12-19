@@ -1068,7 +1068,7 @@ namespace influx::rhi
 				}
 
 				add_input_element(
-					element.m_semantic_name,
+					reflection.get_semantic_name(element),
 					element.m_semantic_index,
 					format,
 					index,
@@ -1560,25 +1560,26 @@ namespace influx::rhi
 
 			for (const shader::reflection::resource& resource : reflection.m_bound_resources)
 			{
-				if (m_name_to_register.contains(resource.m_name))
+				const string& resource_name = reflection.get_resource_name(resource);
+				if (m_name_to_register.contains(resource_name))
 					continue;
 
-				if (!resource.m_name.empty())
-					m_name_to_register[resource.m_name] = resource.m_shader_register;
+				if (!resource_name.empty())
+					m_name_to_register[resource_name] = resource.m_shader_register;
 
 				switch (resource.m_type)
 				{
 				// BUFFERS can EITHER be root descriptors, or referenced through a resource table
 				case shader::reflection::resource::e_type::constbuffer:
-					add_root_resources(resource.m_name, root_param_resource::e_type::cbv,
+					add_root_resources(resource_name, root_param_resource::e_type::cbv,
 						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
 					break;
 				case shader::reflection::resource::e_type::structbuff:
-					add_root_resources(resource.m_name, root_param_resource::e_type::srv,
+					add_root_resources(resource_name, root_param_resource::e_type::srv,
 						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
 					break;
 				case shader::reflection::resource::e_type::structbuff_rw:
-					add_root_resources(resource.m_name, root_param_resource::e_type::uav,
+					add_root_resources(resource_name, root_param_resource::e_type::uav,
 						resource.m_range_size, resource.m_shader_register, resource.m_register_space);
 					break;
 
@@ -1587,19 +1588,19 @@ namespace influx::rhi
 					add_root_range(root_param_resource_range::e_type::srv,
 						resource.m_range_size, resource.m_shader_register,
 						resource.m_register_space, shader_vis);
-					name_last_resource_table(resource.m_name);
+					name_last_resource_table(resource_name);
 					break;
 				case shader::reflection::resource::e_type::texture_rw:
 					add_root_range(root_param_resource_range::e_type::uav,
 						resource.m_range_size, resource.m_shader_register,
 						resource.m_register_space, shader_vis);
-					name_last_resource_table(resource.m_name);
+					name_last_resource_table(resource_name);
 					break;
 				case shader::reflection::resource::e_type::sampler:
 					add_root_range(root_param_resource_range::e_type::sampler,
 						resource.m_range_size, resource.m_shader_register,
 						resource.m_register_space, shader_vis);
-					name_last_resource_table(resource.m_name);
+					name_last_resource_table(resource_name);
 					break;
 				}
 			}
