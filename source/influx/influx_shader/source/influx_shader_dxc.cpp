@@ -114,9 +114,9 @@ namespace influx::shader
 	{
 		switch (type)
 		{
-		case D3D_REGISTER_COMPONENT_FLOAT16: return reflection::io_param::e_component_type::f16;
+		// case D3D_REGISTER_COMPONENT_FLOAT16: return reflection::io_param::e_component_type::f16;
 		case D3D_REGISTER_COMPONENT_FLOAT32: return reflection::io_param::e_component_type::f32;
-		case D3D_REGISTER_COMPONENT_UINT16:	 return reflection::io_param::e_component_type::u16;
+		// case D3D_REGISTER_COMPONENT_UINT16:	 return reflection::io_param::e_component_type::u16;
 		case D3D_REGISTER_COMPONENT_UINT32:	 return reflection::io_param::e_component_type::u32;
 		}
 		return reflection::io_param::e_component_type::unknown;
