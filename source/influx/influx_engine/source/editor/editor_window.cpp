@@ -5,7 +5,7 @@
 #include "influx_imgui/imgui_translation.h"
 
 // imgui
-#include "imgui/imgui.h"
+#include "imgui.h"
 
 namespace influx::engine::editor
 {

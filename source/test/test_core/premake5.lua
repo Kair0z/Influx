@@ -4,5 +4,6 @@ new_influx_test("test_core")
     {
         "influx_core"
     }
-    set_influx_app_dependencies(dependencies)
+    add_compile_dependencies(dependencies)
+    add_runtime_dependencies(dependencies)
     staticruntime "off"

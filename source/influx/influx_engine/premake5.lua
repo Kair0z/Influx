@@ -15,17 +15,20 @@ new_influx_dll("influx_engine")
         "influx_renderer",
         "influx_graphics",
         "influx_imgui",
-        "influx_file",
-
-        -- thirdparty
-        "thirdparty/json",
-        "thirdparty/tom++",
-        "thirdparty/entt",
-        "thirdparty/imgui"
+        "influx_file"
     }
 
     set_influx_includes(dependencies)
     set_influx_links(dependencies)
+
+    local tp_sources = 
+    {
+        "thirdparty/imgui",
+        "thirdparty/json",
+        "thirdparty/tom++",
+        "thirdparty/entt"
+    }
+    add_thirdparty_source(tp_sources)
 
     -- remove imgui pch
     filter "files:**/imgui/**.cpp"

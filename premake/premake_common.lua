@@ -117,26 +117,26 @@ function new_influx_library(name)
 end
 
 -- helpers
-function set_influx_app_dependencies(...)
 
+function add_compile_dependencies(...)
     local dependency_list = ...
-    if g_compile_mono_engine then
-        -- mono engine only results in 2 dependencies
-        dependency_list = {"influx_core", "influx_engine"}
-    end
-    
+
     -- add include dependency includes
     set_influx_includes(dependency_list)
-
     -- add static lib links
     set_influx_links(dependency_list)
+end
 
-    -- make a string listing all dependencies (EXCEPT core)
-    local copylist = table.concat(dependency_list, " ")
-    copylist = string.gsub(copylist, "influx_core", "")
+function add_runtime_dependencies(...)
+    local dependency_list = ...
 
-    -- copy dependencies script setup
-    postbuildmessage "Copying dependencies..."
+    -- make a string listing all dependencies
+    local deplist_string = table.concat(dependency_list, " ")
+    
+    -- remove CORE from dependency list (header only means no runtime dependency!)
+    deplist_string = string.gsub(deplist_string, "influx_core", "")
+
+    postbuildmessage "staging dependencies..."
     postbuildcommands
     {
         {"cd " .. g_dir_root .. "/scripts/"},
@@ -144,21 +144,19 @@ function set_influx_app_dependencies(...)
             "python.exe stage.py " 
                 .. " --config=" .. g_config_string 
                 .. " --game=" .. "%{prj.name}"
-                .. " --deps " .. copylist
+                .. " --deps " .. deplist_string
         }
     }
 end
 
 function set_influx_includes(...)
-   
     local influx_base = path.getabsolute("../../..")
     local influx_source = influx_base .. "/source/"
-    local thirdparty_prefix = "thirdparty/"
     local thirdparty_includes = influx_base .. "/thirdparty/include/"
 
     -- first do the non-third-party include files in /source/influx/...
     for i, dep in ipairs(...) do
-        local is_third_party = string.find(dep, thirdparty_prefix)
+        local is_third_party = string.find(dep, g_thirdparty_prefix)
         local found_incdir = influx_source .. "/influx/" .. dep .. "/include/"
         if not is_third_party and os.isdir(found_incdir) then
             -- print(found_incdir)
@@ -168,7 +166,7 @@ function set_influx_includes(...)
 
     -- then do the "thirdparty/" ones in /thirdparty/include/
     for i, dep in ipairs(...) do
-        local prefix_start, prefix_end = string.find(dep, thirdparty_prefix)
+        local prefix_start, prefix_end = string.find(dep, g_thirdparty_prefix)
         if prefix_end then
             dep = string.sub(dep, prefix_end + 1)
             local found_incdir = thirdparty_includes .. dep .. "/"
@@ -183,13 +181,12 @@ end
 function add_thirdparty_source(...)
     local influx_base = path.getabsolute("../../..")
     local influx_source = influx_base .. "/source/"
-    local thirdparty_prefix = "thirdparty/"
     local thirdparty_source = influx_base .. "/thirdparty/source/"
 
     -- FOR NOW, only allow thirdparty source to be included
     -- then do the "thirdparty/" ones in /thirdparty/include/
     for i, dep in ipairs(...) do
-        local prefix_start, prefix_end = string.find(dep, thirdparty_prefix)
+        local prefix_start, prefix_end = string.find(dep, g_thirdparty_prefix)
         if prefix_end then
             dep = string.sub(dep, prefix_end + 1)
             local found_srcdir = thirdparty_source .. dep .. "/"
@@ -214,27 +211,27 @@ end
 
 function set_influx_links(...)
     local influx_base = path.getabsolute("../../..")
-    local thirdparty_prefix = "thirdparty/"
-    local thirdparty_libs = influx_base .. "/thirdparty/lib/"
-    local config_path = "/x64/debug/"
+    local thirdparty_libs = influx_base .. "/thirdparty/lib/x64/debug/"
 
     -- non-third party ones (uses link())
     for i, str in ipairs(...) do
-        local is_third_party = string.find(str, thirdparty_prefix)
+        local is_third_party = string.find(str, g_thirdparty_prefix)
         if not is_third_party and str ~= "influx_core" then
             links(str)
         end
     end
 
-    -- third-party ones
+    -- third-party ones (requires manual in-source linking...)
     for i, str in ipairs(...) do
-        local prefix_start, prefix_end = string.find(str, thirdparty_prefix)
+        local prefix_start, prefix_end = string.find(str, g_thirdparty_prefix)
         if prefix_end then
             -- found the prefix, so it's a thirdparty lib
             str = string.sub(str, prefix_end + 1)
-            local thirdparty_libs = thirdparty_libs .. config_path
-            if os.isdir(thirdparty_libs) then
-                libdirs(thirdparty_libs)
+            
+            local dep_folder = thirdparty_libs .. str
+            -- print(dep_folder)
+            if os.isdir(dep_folder) then
+                libdirs(dep_folder)
                 -- links(str)
             end
         end

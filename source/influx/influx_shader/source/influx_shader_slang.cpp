@@ -3,7 +3,7 @@
 #if INFLUX_SHADER_BACKEND_SLANG
 #include "slang.h"
 
-#pragma comment(lib, "slang.lib")
+#pragma comment(lib, "slang-compiler.lib")
 
 namespace influx::shader
 {
@@ -552,7 +552,7 @@ namespace influx::shader
 				memcpy(output.m_bytecode.data(), bytecode, out_bytecode_size);
 
 				// output: get the reflection
-				if (args.m_reflection_enabled || true)
+				if (args.m_reflection_enabled)
 				{
 					sl_ptr<sl_program> program = nullptr;
 					sl_result get_prgm_res = request.getProgramWithEntryPoints(&program);
@@ -566,6 +566,7 @@ namespace influx::shader
 					output.m_reflection = translated_reflection.get();
 				}
 
+				output.m_signature = signature;
 				return {};
 			});
 
@@ -600,8 +601,8 @@ namespace influx::shader
 
 				// 1. add our 1 translation unit (shader)
 				const e_shader_language source_lang = args.m_source_language;
-				const int trans_unit_index = request.addTranslationUnit(translate(source_lang), "");
-				request.addTranslationUnitSourceString(trans_unit_index, "", shader_source.c_str());
+				const int trans_unit_index = request.addTranslationUnit(translate(source_lang), "shader");
+				request.addTranslationUnitSourceString(trans_unit_index, ".", shader_source.c_str());
 				const e_shader_type sh_type = signature.m_type;
 				const char* sh_entrypoint = signature.m_entrypoint.c_str();
 				request.addEntryPoint(trans_unit_index, sh_entrypoint, translate(sh_type));
@@ -636,6 +637,8 @@ namespace influx::shader
 					output.m_reflection = translated_reflection.get();
 				}
 
+				output.m_success = true;
+				output.m_signature = signature;
 				return {};
 			});
 
@@ -644,12 +647,6 @@ namespace influx::shader
 			return result_type::make_error(request_res);
 
 		return output;
-	}
-
-	result<reflect_output> reflect_bytecode(const bytecode& bytecode)
-	{
-		using result_type = result<reflect_output>;
-		return {};
 	}
 }
 

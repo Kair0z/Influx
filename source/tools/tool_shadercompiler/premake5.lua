@@ -5,5 +5,6 @@ new_influx_tool("tool_shadercompiler")
         "influx_platform",
         "influx_shader"
     }
-    set_influx_app_dependencies(dependencies)
+    add_compile_dependencies(dependencies)
+    add_runtime_dependencies(dependencies)
     staticruntime "off"

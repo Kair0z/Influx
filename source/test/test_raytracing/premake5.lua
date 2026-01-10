@@ -10,5 +10,6 @@ new_influx_test("test_raytracing")
         "influx_rendergraph",
         "influx_import"
     }
-    set_influx_app_dependencies(dependencies)
+    add_compile_dependencies(dependencies)
+    add_runtime_dependencies(dependencies)
     staticruntime "off"

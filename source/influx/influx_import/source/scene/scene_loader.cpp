@@ -7,9 +7,9 @@
 
 // We're using Assimp libary for loading .FBX files...
 #if INFLUX_DEBUG
-#pragma comment(lib, "assimp-vc142-mtd.lib")
+#pragma comment(lib, "assimp-vc143-mtd.lib")
 #else
-#pragma comment(lib, "assimp-vc142-mt.lib")
+#pragma comment(lib, "assimp-vc143-mt.lib")
 #endif
 
 #include "assimp/importer.hpp" // C++ importer interface

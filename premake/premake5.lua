@@ -8,6 +8,7 @@ workspace "influx"
     
     g_compile_mono_engine   = false
     g_use_pix               = true
+    g_thirdparty_prefix     = "thirdparty/"
     
     -- /influx/
     g_dir_root      = "%{wks.location}/../../"

@@ -25,7 +25,7 @@ namespace influx::renderer
 #pragma endregion
 
 // entt
-#include "entt/entt.hpp"
+#include "entt.hpp"
 
 namespace influx::engine
 {

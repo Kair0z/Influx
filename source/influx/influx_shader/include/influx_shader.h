@@ -14,8 +14,8 @@
 #include "core/shader.h"
 #include "core/pointer.h"
 
-#define INFLUX_SHADER_BACKEND_SLANG 1
-#define INFLUX_SHADER_BACKEND_DXC 0
+#define INFLUX_SHADER_BACKEND_SLANG 0
+#define INFLUX_SHADER_BACKEND_DXC 1
 
 namespace influx::shader
 {
@@ -333,9 +333,6 @@ namespace influx::shader
 		const string& shader_source,
 		const shader_signature& signature,
 		const compile_args& args);
-
-	INFLUX_SHADER_API
-	result<reflect_output> reflect_bytecode(const bytecode& bytecode);
 
 	/* 
 		finds & parses an .hlsl file 

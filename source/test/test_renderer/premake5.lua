@@ -11,6 +11,7 @@ new_influx_test("test_renderer")
         "influx_import",
         "influx_async"
     }
-    set_influx_app_dependencies(dependencies)
+    add_compile_dependencies(dependencies)
+    add_runtime_dependencies(dependencies)
     staticruntime "off"
 

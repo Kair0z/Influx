@@ -4,7 +4,8 @@ new_influx_library("influx_shader")
     local dependencies =
     {
         "influx_core",
-        "thirdparty/slang"
+        "thirdparty/slang",
+
+        "thirdparty/dxc"
     }
-    set_influx_includes(dependencies)
-    set_influx_links(dependencies)
+    add_compile_dependencies(dependencies)

@@ -3,24 +3,19 @@
 
 // influx::core
 #include "core/string.h"
-
 // influx::engine
 #include "window/window_manager.h"
 #include "input/input_manager.h"
-
 // influx::input
 #include "influx_input.h"
-
 // influx::platform
 #include "influx_platform/window.h"
 #include "influx_platform/platform.h"
-
 // influx::renderer
 #include "influx_renderer.h"
-
 // imgui
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_win32.h"
+#include "imgui.h"
+#include "imgui_impl_win32.h"
 
 namespace influx::engine
 {

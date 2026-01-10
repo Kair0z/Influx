@@ -322,11 +322,11 @@ namespace influx::renderer
 	result<> imgui_manager::create_shaders()
 	{
 		shader::compile_args args{};
-		args.m_output_format = shader::e_shader_binary_output::DXIL;
 		args.m_source_language = shader::e_shader_language::HLSL;
+		args.m_output_format = shader::e_shader_binary_output::DXIL;
 		args.set_debug_level(INFLUX_DEBUG);
-		args.m_target = shader::e_shader_target::_6_6;
-		args.m_pbd_enabled = true;
+		args.m_target = shader::e_shader_target::_6_2;
+		args.m_pbd_enabled = false;
 		args.m_reflection_enabled = false;
 
 		shader::shader_signature signature{};

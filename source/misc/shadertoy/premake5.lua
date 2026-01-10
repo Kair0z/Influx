@@ -7,5 +7,6 @@ new_influx_misc("shadertoy")
         "influx_shader",
         "influx_rendergraph"
     }
-    set_influx_app_dependencies(dependencies)
+    add_compile_dependencies(dependencies)
+    add_runtime_dependencies(dependencies)
     staticruntime "off"

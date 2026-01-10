@@ -250,14 +250,14 @@ namespace influx::renderer
         static const auto load_shader =
             [&resourceman](const string& shadername, const string& entrypoint,
                 unsigned char* cso, uint64 cso_length,
-                unsigned char* rootsig, uint64 rootsig_length)
+                unsigned char* refl_blob, uint64 refl_blob_length)
         {
             shader::compile_output compile_output{};
             compile_output.m_bytecode.resize(cso_length);
             memcpy(compile_output.m_bytecode.data(), cso, cso_length);
 
             shader::reflection reflection{};
-            shader::reflection::deserialize(reflection, rootsig, rootsig_length);
+            shader::reflection::deserialize(reflection, refl_blob, refl_blob_length);
             
             compile_output.m_signature.m_entrypoint = entrypoint;
             compile_output.m_signature.m_filename = shadername;

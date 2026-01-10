@@ -3,7 +3,6 @@
 
 // influx::core
 #include "core/log.h"
-
 // influx::engine
 #include "engine.h"
 #include "engine_files.h"
@@ -11,16 +10,13 @@
 #include "world/world.h"
 #include "game/game_manager.h"
 #include "input/input_manager.h"
-
 // influx::platform
 #include "influx_platform/window.h"
-
 // influx::imgui
 #include "influx_imgui/imgui_translation.h"
 #include "influx_imgui/imgui_widgets.h"
-
 // imgui
-#include "imgui/imgui.h"
+#include "imgui.h"
 
 namespace influx::engine::editor
 {

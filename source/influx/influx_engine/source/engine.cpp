@@ -115,8 +115,9 @@ namespace influx::engine
 	{
 		m_runtype = type;
 
-		auto process_run_args = process_runarguments(argc, argv);
-		if (!process_run_args) return process_run_args;
+		auto process_run_args_res = process_runarguments(argc, argv);
+		if (!process_run_args_res)
+			return process_run_args_res;
 
 		initialize();
 

@@ -49,7 +49,7 @@ namespace influx::engine
 		template <e_component _t>
 		class tcomponent : public component
 		{
-		protected:
+		public:
 			tcomponent() = default;
 		};
 	}

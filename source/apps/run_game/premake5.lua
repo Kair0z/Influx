@@ -1,11 +1,18 @@
 new_influx_app("run_game")
 
-    local dependencies =
+    -- these are the dependencies we link against
+    local compile_deps = 
     {
         "influx_core",
+        "influx_engine"
+    }
+    add_compile_dependencies(compile_deps)
+    
+    -- these are the dependencies not linked against,
+    -- but their .dlls will be staged into this project's working dir
+    local runtime_deps = 
+    {
         "influx_engine",
-
-        -- non-mono-engine dependencies
         "influx_platform",
         "influx_input",
         "influx_async",
@@ -16,5 +23,6 @@ new_influx_app("run_game")
         "influx_graphics",
         "influx_file"
     }
-    set_influx_app_dependencies(dependencies)
+    add_runtime_dependencies(runtime_deps)
+
     staticruntime "off"

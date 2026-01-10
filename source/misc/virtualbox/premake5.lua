@@ -7,5 +7,6 @@ new_influx_misc("virtualbox")
         "influx_shader",
         "influx_import"
     }
-    set_influx_app_dependencies(dependencies)
+    add_compile_dependencies(dependencies)
+    add_runtime_dependencies(dependencies)
     staticruntime "off"

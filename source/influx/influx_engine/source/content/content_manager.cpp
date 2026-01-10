@@ -1,25 +1,21 @@
 #include "engine_pch.h"
 #include "content_manager.h"
-
 // influx::core
 #include "core/log.h"
 #include "core/time.h"
 #include "core/file.h"
-
 // influx::engine
 #include "engine_files.h"
 #include "editor/editor_manager.h"
-#include "imgui/imgui.h"
 #include "rendering/render_manager.h"
-
 // influx::async
 #include "influx_async.h"
-
 // influx::import
 #include "influx_import.h"
-
 // influx::shader
 #include "influx_shader.h"
+// imgui
+#include "imgui.h"
 
 #define USE_ASYNC_LOADING 0
 
@@ -146,7 +142,7 @@ namespace influx::engine
 	content_manager::content_manager()
 	{
 		// immediately start kicking engine loading (may as well)
-		load_engine_assets();
+		// load_engine_assets();
 
 		editor::editor_manager::static_window<content_ui>("content");
 	}

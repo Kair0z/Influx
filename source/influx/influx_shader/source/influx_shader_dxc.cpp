@@ -7,10 +7,12 @@
 
 // https://strontic.github.io/xcyclopedia/library/dxc.exe-0C1709D4E1787E3EB3E6A35C85714824.html
 // dx12 compiler
-#include <d3dcompiler.h>
-#include <dxcapi.h>
-#pragma comment (lib, "d3dcompiler.lib")
+// #include "dxc/d3dcompiler.h"
+#include <Windows.h>
+#include "dxc/dxcapi.h"
+#include "dxc/d3d12shader.h"
 #pragma comment (lib, "dxcompiler.lib")
+#pragma comment (lib, "dxil.lib")
 
 // global dxc utils
 static inline IDxcUtils* get_utils()
@@ -110,33 +112,33 @@ namespace influx::shader
 		return num_floats;
 	}
 
-	inline reflection::io_param::e_component_type get_component_type(D3D_REGISTER_COMPONENT_TYPE type)
+	inline reflection::e_component_type get_component_type(D3D_REGISTER_COMPONENT_TYPE type)
 	{
 		switch (type)
 		{
 		// case D3D_REGISTER_COMPONENT_FLOAT16: return reflection::io_param::e_component_type::f16;
-		case D3D_REGISTER_COMPONENT_FLOAT32: return reflection::io_param::e_component_type::f32;
+		case D3D_REGISTER_COMPONENT_FLOAT32: return reflection::e_component_type::f32;
 		// case D3D_REGISTER_COMPONENT_UINT16:	 return reflection::io_param::e_component_type::u16;
-		case D3D_REGISTER_COMPONENT_UINT32:	 return reflection::io_param::e_component_type::u32;
+		case D3D_REGISTER_COMPONENT_UINT32:	 return reflection::e_component_type::u32;
 		}
-		return reflection::io_param::e_component_type::unknown;
+		return reflection::e_component_type::unknown;
 	}
 
-	inline reflection::io_param::e_system_name get_system_name(D3D_NAME name)
+	inline reflection::e_system_name get_system_name(D3D_NAME name)
 	{
 		switch (name)
 		{
-		case D3D_NAME_TARGET: return reflection::io_param::e_system_name::target;
-		case D3D_NAME_POSITION: return reflection::io_param::e_system_name::position;
+		case D3D_NAME_TARGET: return reflection::e_system_name::target;
+		case D3D_NAME_POSITION: return reflection::e_system_name::position;
 		default:
-			return reflection::io_param::e_system_name::unknown;
+			return reflection::e_system_name::unknown;
 		}
 	}
 
 	inline reflection::io_param translate(const D3D12_SIGNATURE_PARAMETER_DESC& desc)
 	{
 		reflection::io_param result{};
-		result.m_semantic_name = desc.SemanticName;
+		reflection::set_name(result.m_name, desc.SemanticName);
 		result.m_semantic_index = desc.SemanticIndex;
 		result.m_component_type = get_component_type(desc.ComponentType);
 		result.m_num_floats = calc_num_floats_from_mask(desc.Mask);
@@ -184,9 +186,11 @@ namespace influx::shader
 			D3D12_SIGNATURE_PARAMETER_DESC signatureParameterDesc{};
 			hres = dx12_refl->GetInputParameterDesc(i, &signatureParameterDesc);
 
-			reflection::io_param param = translate(signatureParameterDesc);
-			param.m_is_input = true;
-			result.m_input_params.push_back(param);
+			const uint32 entrypoint_index = 0u;
+			auto& new_param = result.add_ioparam(entrypoint_index);
+			new_param = translate(signatureParameterDesc);
+			new_param.m_is_input = true;
+			
 		}
 		// get output parameters
 		for (uint32 i = 0u; i < shader_desc.OutputParameters; ++i)
@@ -194,9 +198,10 @@ namespace influx::shader
 			D3D12_SIGNATURE_PARAMETER_DESC desc{};
 			hres = dx12_refl->GetOutputParameterDesc(i, &desc);
 
-			reflection::io_param param = translate(desc);
-			param.m_is_input = false;
-			result.m_output_params.push_back(param);
+			const uint32 entrypoint_index = 0u;
+			auto& new_param = result.add_ioparam(entrypoint_index);
+			new_param = translate(desc);
+			new_param.m_is_input = false;
 		}
 
 		// get bound resources
@@ -208,8 +213,8 @@ namespace influx::shader
 			hres = dx12_refl->GetResourceBindingDesc(i, &shaderInputBindDesc);
 			resource.m_shader_register = shaderInputBindDesc.BindPoint;
 			resource.m_register_space = shaderInputBindDesc.Space;
-			resource.m_range_size = shaderInputBindDesc.BindCount;
-			resource.m_name = string(shaderInputBindDesc.Name);
+			resource.m_arraysize = shaderInputBindDesc.BindCount;
+			reflection::set_name(resource.m_name, string(shaderInputBindDesc.Name));
 
 			// get variable info
 			D3D12_SHADER_VARIABLE_DESC variable_desc{};
@@ -221,20 +226,20 @@ namespace influx::shader
 			{
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_STRUCTURED:
 			{
-				resource.m_type = reflection::resource::e_type::structbuff;
+				resource.m_type = reflection::e_resource_type::structbuff;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWSTRUCTURED:
 			{
-				resource.m_type = reflection::resource::e_type::structbuff_rw;
+				resource.m_type = reflection::e_resource_type::structbuff_rw;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_TEXTURE:
 			{
-				resource.m_type = reflection::resource::e_type::texture;
+				resource.m_type = reflection::e_resource_type::texture;
 				// ...
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWTYPED:
 			{
-				resource.m_type = reflection::resource::e_type::texture_rw;
+				resource.m_type = reflection::e_resource_type::texture_rw;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_CBUFFER:
 			{
@@ -251,7 +256,7 @@ namespace influx::shader
 					for (uint32 i = 0u; i < constantBufferDesc.Variables; ++i)
 					{
 						reflection::resource rootvar_resource{};
-						rootvar_resource.m_type = reflection::resource::e_type::rootconstants;
+						rootvar_resource.m_type = reflection::e_resource_type::rootconstants;
 						ID3D12ShaderReflectionVariable* cbuffer_var = cbuffer_refl->GetVariableByIndex(i);
 						if (cbuffer_var)
 						{
@@ -263,7 +268,7 @@ namespace influx::shader
 							const uint32 implicit_register = var_desc.StartOffset / k_bytes_per_register;
 
 							rootvar_resource.m_bytesize = var_desc.Size;
-							rootvar_resource.m_name = var_desc.Name;
+							reflection::set_name(rootvar_resource.m_name, var_desc.Name);
 							rootvar_resource.m_register_space = 0;
 							rootvar_resource.m_shader_register = implicit_register;
 							result.m_bound_resources.push_back(rootvar_resource);
@@ -273,45 +278,45 @@ namespace influx::shader
 				}
 				else // or CBV resource
 				{
-					resource.m_type = reflection::resource::e_type::constbuffer;
+					resource.m_type = reflection::e_resource_type::constbuffer;
 					resource.m_bytesize = constantBufferDesc.Size;
 				}
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_BYTEADDRESS:
 			{
-				resource.m_type = reflection::resource::e_type::byteaddress;
+				resource.m_type = reflection::e_resource_type::byteaddress;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWBYTEADDRESS:
 			{
-				resource.m_type = reflection::resource::e_type::byteaddress_rw;
+				resource.m_type = reflection::e_resource_type::byteaddress_rw;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_APPEND_STRUCTURED:
 			{
-				resource.m_type = reflection::resource::e_type::structbuff_append;
+				resource.m_type = reflection::e_resource_type::structbuff_append;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_CONSUME_STRUCTURED:
 			{
-				resource.m_type = reflection::resource::e_type::structbuff_consume;
+				resource.m_type = reflection::e_resource_type::structbuff_consume;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER:
 			{
-				resource.m_type = reflection::resource::e_type::structbuff_wcounter;
+				resource.m_type = reflection::e_resource_type::structbuff_wcounter;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_RTACCELERATIONSTRUCTURE:
 			{
-				resource.m_type = reflection::resource::e_type::accstruct;
+				resource.m_type = reflection::e_resource_type::accstruct;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_FEEDBACKTEXTURE:
 			{
-				resource.m_type = reflection::resource::e_type::feedback_rw;
+				resource.m_type = reflection::e_resource_type::feedback_rw;
 			}break;
 			case D3D_SHADER_INPUT_TYPE::D3D_SIT_SAMPLER:
 			{
-				resource.m_type = reflection::resource::e_type::sampler;
+				resource.m_type = reflection::e_resource_type::sampler;
 				// ...
 			}break;
 			default:
-				resource.m_type = reflection::resource::e_type::unknown;
+				resource.m_type = reflection::e_resource_type::unknown;
 				// ...
 				break;
 			}
@@ -459,6 +464,23 @@ namespace influx::shader
 		}
 	}
 
+	bool WriteBlobToFile(ID3DBlob* blob, const wchar_t* filename)
+	{
+		if (!blob || !filename)
+			return false;
+
+		// Open file in binary mode
+		std::ofstream file(filename, std::ios::binary);
+		if (!file)
+			return false;
+
+		// Write the blob contents
+		file.write(static_cast<const char*>(blob->GetBufferPointer()), blob->GetBufferSize());
+		file.close();
+
+		return true;
+	}
+
 	inline result<compile_output> compile_shader_dxcbuffer(
 		const DxcBuffer& buffer, 
 		const shader_signature& signature, 
@@ -563,8 +585,8 @@ namespace influx::shader
 				string filename = args.m_pdb_filename + make_shader_name_string(signature, args);
 				string filepath = foldername + L"/" + filename + L".pdb";
 
-				hres = ::D3DWriteBlobToFile((ID3DBlob*)pDebugData,
-					filepath.c_wstr(), true);
+				hres = WriteBlobToFile((ID3DBlob*)pDebugData,
+					filepath.c_wstr());
 			}
 			else
 			{
@@ -679,22 +701,6 @@ namespace influx::shader
 		sourceBuffer.Encoding = 0u; // ANSI
 
 		return compile_shader_dxcbuffer(sourceBuffer, signature, args);
-	}
-
-	result<reflect_output> reflect_bytecode(const bytecode& bytecode)
-	{
-		using result_type = result<reflect_output>;
-
-		ID3D12ShaderReflection* reflector = nullptr;
-		LPCVOID source_data = reinterpret_cast<void const*>(bytecode.data());
-		uint64 data_size = bytecode.size() * sizeof(bytecode[0]);
-		HRESULT hres = ::D3DReflect(source_data, data_size, IID_ID3D12ShaderReflection, (void**)&reflector);
-		if (hres != S_OK)
-			return result_type::make_error("error: D3DReflect failed!");
-
-		reflect_output result{};
-		result.m_reflection = reflect_shader(reflector);
-		return result;
 	}
 
 	result<shader_library> compile_shader_library(const string& filepath, const shader_library_compile_args& args)

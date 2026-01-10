@@ -6,5 +6,6 @@ new_influx_misc("sandbox")
         "influx_rhi",
         "influx_shader"
     }
-    set_influx_app_dependencies(dependencies)
+    add_compile_dependencies(dependencies)
+    add_runtime_dependencies(dependencies)
     staticruntime "off"
