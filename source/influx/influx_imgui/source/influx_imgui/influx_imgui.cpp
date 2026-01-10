@@ -273,20 +273,20 @@ namespace influx::imgui
 	{
 		shader::compile_args args{};
 		shader::shader_signature signature{};
-		signature.m_entrypoint = "main";
+		signature.set_entrypoint("main");
 #if INFLUX_DEBUG
 		args.set_debug_level(true);
 #else
 		args.set_debug_level(false);
 #endif
-		signature.m_target = shader::e_shader_target::_6_2;
+		signature.set_target(shader::e_shader_target::_6_2);
 		args.set_pdb_enabled(true);
 		args.set_reflection_enabled(true);
 
-		signature.m_type = shader::e_shader_type::vs;
+		signature.set_type(shader::e_shader_type::vs);
 		get_vertex_shader() = shader::compile_shader_in_source(k_vertex_shader, signature, args).get();
 
-		signature.m_type = shader::e_shader_type::ps;
+		signature.set_type(shader::e_shader_type::ps);
 		get_pixel_shader() = shader::compile_shader_in_source(k_pixel_shader, signature, args).get();
 	}
 

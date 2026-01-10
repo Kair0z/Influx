@@ -6,5 +6,14 @@ new_influx_tool("tool_shadercompiler")
         "influx_shader"
     }
     add_compile_dependencies(dependencies)
-    add_runtime_dependencies(dependencies)
+
+    local runtime_deps = 
+    {
+        "influx_core",
+        "influx_platform",
+        "influx_shader",
+
+        "thirdparty/DXC/"
+    }
+    add_runtime_dependencies(runtime_deps)
     staticruntime "off"

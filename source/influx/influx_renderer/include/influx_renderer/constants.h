@@ -20,6 +20,8 @@ namespace influx::renderer
 	// stats
 	constexpr static uint32 k_num_statframes_max = 2048u;
 
+	static constexpr shader::e_shader_target k_shader_target = shader::e_shader_target::_6_6;
+
 	enum class e_internal_texture : uint8
 	{
 		none,

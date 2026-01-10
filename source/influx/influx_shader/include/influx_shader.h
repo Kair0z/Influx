@@ -184,7 +184,6 @@ namespace influx::shader
 		vector<resource> m_bound_resources{};
 		vector<resource> m_resources;
 		vector<parmblock> m_parmblocks;
-		vector<string> m_names;
 
 		static void set_name(name old, const string& new_name) {
 			_strnset_s(old, sizeof(name), 0, k_name_fixed_length);
@@ -275,7 +274,7 @@ namespace influx::shader
 			for (const auto& pair : m_shadermap)
 				for (const auto& shader : pair.second)
 				{
-					if (shader.m_signature.m_entrypoint == entrypoint)
+					if (shader.m_signature.get_entrypoint() == entrypoint)
 						return &shader;
 				}
 			return nullptr;

@@ -130,15 +130,14 @@ namespace influx::renderer
 		inline static shader::shader_signature make_shader_signature(const shader::e_shader_type type, const shader::e_shader_target target, const string& identifier)
 		{
 			shader::shader_signature shader_signature{};
-			shader_signature.m_type = type;
-			shader_signature.m_target = target;
+			shader_signature.set_type(type);
+			shader_signature.set_target(target);
 
 			if (!identifier.empty())
 			{
 				vector<string> split = identifier.split("::");
-				shader_signature.m_entrypoint = split[1];
-				shader_signature.m_filename = split[0];
-				shader_signature.cache_id();
+				shader_signature.set_entrypoint(split[1]);
+				shader_signature.set_filename(split[0]);
 			}
 
 			return shader_signature;
@@ -352,9 +351,6 @@ namespace influx::renderer
 		time::point					m_shader_loadpoints[k_num_shaders]{};
 		bool						m_needs_rebuild = false;
 
-		// todo: fix this hardcoding
-		static constexpr shader::e_shader_target k_hardcoded_target = shader::e_shader_target::_6_6;
-
 	public:
 		pipeline() = default;
 		pipeline(graphics::device & device, const signature_type & signature)
@@ -399,7 +395,7 @@ namespace influx::renderer
 
 				// gather the shader signature based off the pipeline signature
 				const shader::shader_signature shader_signature 
-					= m_signature.make_shader_signature(shader_type, k_hardcoded_target, m_signature.m_shader_identifiers[i]);
+					= m_signature.make_shader_signature(shader_type, k_shader_target, m_signature.m_shader_identifiers[i]);
 
 				const shader_data& new_shader = resourceman.get<e_resource_type::shader>(shader_signature).m_data;
 				const bool is_optional = m_signature.is_shader_optional(shader_type);

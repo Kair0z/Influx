@@ -1,6 +1,8 @@
 #ifndef _INFLUX_COMMON_HF
 #define _INFLUX_COMMON_HF
 
+#include "../../frontend.h"
+
 // quad rendering
 float4 make_quad_ndc_pos(float2 uv)
 {
@@ -22,7 +24,6 @@ float3 hash(uint3 x)
 
     return (float3(x) * (1.0 / float(0xffffffffU)));
 }
-
 // snap the very low normal values (packing could otherwise mess them up)
 float3 snap_normal(float3 normal)
 {
@@ -32,7 +33,6 @@ float3 snap_normal(float3 normal)
     if (abs(normal.z) < epsilon) normal.z = 0;
     return normalize(normal);
 }
-
 // lights
 struct pointlight_data
 {

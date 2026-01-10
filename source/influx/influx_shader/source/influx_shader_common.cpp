@@ -5,10 +5,10 @@
 namespace influx::shader
 {
 	// parse out potential shader types
-	static const char* k_type_to_signature[] =
+	static const char* k_type_to_signature[shader::k_num_shadertypes] =
 	{
 		R"(\[shader\(\"vertex\"\)\])",
-		R"(\[shader\(\"fragment\"\)\])",
+		R"(\[shader\(\"pixel\"\)\])",
 		R"(\[shader\(\"domain\"\)\])",
 		R"(\[shader\(\"geometry\"\)\])",
 		R"(\[shader\(\"hull\"\)\])",
@@ -29,6 +29,12 @@ namespace influx::shader
 	};
 	// see core::shader
 	static_assert(_countof(k_type_to_signature) == shader::k_num_shadertypes);
+
+	static const char* k_type_to_signature_ps_alt[] =
+	{
+		R"(\[shader\(\"pixel\"\)\])",
+		R"(\[shader\(\"fragment\"\)\])"
+	};
 
 	result<parse_output> parse_shaders_in_file(const string& filepath)
 	{
@@ -52,8 +58,8 @@ namespace influx::shader
 			for (auto& shader : pair.second)
 			{
 				path as_file = path(filepath); const bool without_extension = true;
-				shader.m_signature.m_filename = to_string(as_file.get_filename(without_extension));
-				shader.m_signature.cache_id();
+				const string& filename = to_string(as_file.get_filename(without_extension));
+				shader.m_signature.set_filename(filename);
 			}
 		}
 
@@ -91,54 +97,68 @@ namespace influx::shader
 		}
 
 		parse_output result_parse{};
-
 		vector<string> source_lines = shader_source.split("\n");
-		for (uint32 i = 0u; i < shader::k_num_shadertypes; ++i)
+
+		static auto parse_match = [&source_lines, &result_parse](
+			shader::e_shader_type shader_type, uint32 line_index, const char* pattern) 
 		{
-			for (uint32 l = 0u; l < source_lines.size(); ++l)
-			{
-				const string& line = source_lines[l];
+			const string& line = source_lines[line_index];
 
-				// search each line for the current type's signature ([shader("vertex")])
-				influx::regex::for_each_match(line, k_type_to_signature[i],
-					[i, &source_lines, l, &result_parse](const string& str)
+			// search each line for the current type's signature ([shader("vertex")])
+			influx::regex::for_each_match(line, pattern,
+				[line_index, &source_lines, shader_type, &result_parse](const string& str)
+				{
+					// now figure out the function entrypoint name:
+					// todo: make this a bit more error-proof
+					uint32 next_idx = line_index + 1;
+					string next_line = source_lines[next_idx];
+					static uint32 max_it = line_index + 100;
+					while ((next_line.empty() || next_line[0] == '[') && next_idx < max_it) next_line = source_lines[next_idx++];
+
+					// found the entrypoint line, parse the entrypoint
+					vector<string> entrypoints = regex::get_all_matches(next_line, R"(\b\w+\s+(\w+)\()");
+					if (entrypoints.size() > 0 && entrypoints[0].empty() == false)
 					{
-						// now figure out the function entrypoint name:
-						// todo: make this a bit more error-proof
-						uint32 next_idx = l + 1;
-						string next_line = source_lines[next_idx];
-						static uint32 max_it = l + 100;
-						while ((next_line.empty() || next_line[0] == '[') && next_idx < max_it) next_line = source_lines[next_idx++];
+						const string& entrypoint = entrypoints[0];
 
-						// found the entrypoint line, parse the entrypoint
-						vector<string> entrypoints = regex::get_all_matches(next_line, R"(\b\w+\s+(\w+)\()");
-						if (entrypoints.size() > 0 && entrypoints[0].empty() == false)
-						{
-							const string& entrypoint = entrypoints[0];
-							const e_shader_type current_shader_type = static_cast<shader::e_shader_type>(i);
+						parse_output::per_shader shader_parse{};
+						shader_parse.m_signature.set_type(shader_type);
+						shader_parse.m_signature.set_entrypoint(entrypoint);
 
-							parse_output::per_shader shader_parse{};
-							shader_parse.m_signature.m_type = current_shader_type;
-							shader_parse.m_signature.m_entrypoint = entrypoint;
+						// flag this type as found
+						result_parse.m_found_types |= get_shader_flag(shader_type);
+						result_parse.m_shadermap[shader_type].push_back(shader_parse);
+					}
+				});
+		};
 
-							// flag this type as found
-							result_parse.m_found_types |= get_shader_flag(current_shader_type);
-							result_parse.m_shadermap[current_shader_type].push_back(shader_parse);
-						}
-					});
+		for (uint32 l = 0u; l < source_lines.size(); ++l)
+		{
+			for (uint32 i = 0u; i < shader::k_num_shadertypes; ++i)
+			{
+				if (i == (uint32)e_shader_type::ps)
+				{
+					for (uint32 a = 0u; a < _countof(k_type_to_signature_ps_alt); ++a)
+						parse_match((e_shader_type)i, l, k_type_to_signature_ps_alt[a]);
+				}
+				else
+				{
+					parse_match((e_shader_type)i, l, k_type_to_signature[i]);
+				}
 			}
 		}
 
 		return result_parse;
 	}
 
-	static void serialize_type(shader::e_shader_type type, std::ostream& out) {
-
+	template <typename _t>
+	static void serialize_type(const _t& type, std::ostream& out) {
+		out.write(reinterpret_cast<const char*>(&type), sizeof(type));
 	}
-	static void deserialize_type(shader::e_shader_type& type, std::istream& in) {
-
+	template <typename _t>
+	static void deserialize_type(_t& type, std::istream& in) {
+		in.read(reinterpret_cast<char*>(&type), sizeof(type));
 	}
-
 	template <typename _t>
 	static void serialize_vector_type(const vector<_t>& vec, std::ostream& out) {
 		const uint64 size = vec.size();
@@ -150,12 +170,14 @@ namespace influx::shader
 		size_t size;
 		is.read(reinterpret_cast<char*>(&size), sizeof(size));
 		vec.resize(size);
-		is.read(reinterpret_cast<char*>(vec.data()), size * sizeof(sizeof(_t)));
+		is.read(reinterpret_cast<char*>(vec.data()), size * sizeof(_t));
 	}
 
 	void reflection::serialize(const reflection& refl, std::ostream& out)
 	{
 		serialize_type(refl.m_shader_type, out);
+		serialize_vector_type(refl.m_bound_resources, out);
+		serialize_vector_type(refl.m_parmblocks, out);
 		serialize_vector_type(refl.m_resources, out);
 		serialize_vector_type(refl.m_ioparams, out);
 	}
@@ -163,6 +185,8 @@ namespace influx::shader
 	void reflection::deserialize(reflection& refl, std::istream& in)
 	{
 		deserialize_type(refl.m_shader_type, in);
+		deserialize_vector_type(refl.m_bound_resources, in);
+		deserialize_vector_type(refl.m_parmblocks, in);
 		deserialize_vector_type(refl.m_resources, in);
 		deserialize_vector_type(refl.m_ioparams, in);
 	}

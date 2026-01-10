@@ -41,7 +41,7 @@ namespace influx::imp
 				shader_data data{};
 				data.m_compile_result = new_shader_data.get();
 				data.m_signature = data.m_compile_result.m_signature;
-				data.m_type = parsed_shader.m_signature.m_type;
+				data.m_type = parsed_shader.m_signature.get_shader_type();
 				out_shaders.push_back(data);
 			}
 

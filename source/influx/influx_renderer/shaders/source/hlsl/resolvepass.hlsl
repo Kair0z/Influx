@@ -1,5 +1,4 @@
 #include "include/common.hlsli"
-#include "frontend.h"
 
 // root constants
 struct resolve_args

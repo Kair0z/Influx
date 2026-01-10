@@ -9,9 +9,11 @@ influx_source = influx_root + "/source/"
 influx_source_renderer = influx_source + "/influx/influx_renderer/"
 influx_renderer_shaders = influx_source_renderer + "/shaders/"
 influx_renderer_shader_manifest = influx_renderer_shaders + "/embedded_shaders.h"
-influx_renderer_shader_source = influx_renderer_shaders + "/source/slang/"
+influx_renderer_shader_source = influx_renderer_shaders + "/source/hlsl/"
 influx_renderer_shader_compiled = influx_renderer_shaders + "/compiled/"
 influx_shadercompiler_exe = influx_bin + "/tool_shadercompiler/tool_shadercompiler.exe"
+
+xxd_path = influx_root + "/thirdparty/bin/x64/debug/XXD/xxd.exe"
 
 def merge_files(file_a, file_b):
     with open(file_a, "a") as f1, open(file_b, "r") as f2:
@@ -22,7 +24,7 @@ def merge_files(file_a, file_b):
 
 def make_includable_file(source_bin_filepath, dest_inc_filepath, filename, entrypoint, postfix):
     with dest_inc_filepath.open("w", encoding="utf-8", newline="\n") as out:
-        xxdcmd = [ "xxd", "-i", str(source_bin_filepath) ]
+        xxdcmd = [ xxd_path, "-i", str(source_bin_filepath) ]
         # print(" ".join(xxdcmd))
         subprocess.run(
             xxdcmd,
@@ -65,9 +67,9 @@ def main():
         output_filename = filename + full_suffix + ".cso"
         entrypoint, shader_type = shader_descriptor.rsplit("-", 1)
 
-        # input: shader.slang
+        # input: shader.hlsl
         # output: /compiled/shader_vs
-        shader_input_file = influx_renderer_shader_source + filename + ".slang"
+        shader_input_file = influx_renderer_shader_source + filename + ".hlsl"
         shader_output_file = influx_renderer_shader_compiled + output_filename
         shader_refl_file = shader_output_file + ".refl" 
         print("compiling:" + shader_descriptor + " -> /compiled/" + output_filename)

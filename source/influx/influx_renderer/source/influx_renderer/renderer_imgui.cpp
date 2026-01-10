@@ -330,9 +330,9 @@ namespace influx::renderer
 		args.m_reflection_enabled = false;
 
 		shader::shader_signature signature{};
-		signature.m_entrypoint = "main";
-		signature.m_filename = "imgui_shaders";
-		signature.m_type = shader::e_shader_type::vs;
+		signature.set_entrypoint("main");
+		signature.set_filename("imgui_shaders");
+		signature.set_type(shader::e_shader_type::vs);
 		auto res = shader::compile_shader_in_source(k_vertex_shader, signature, args);
 		if (res.is_fail())
 		{
@@ -340,7 +340,7 @@ namespace influx::renderer
 		}
 		m_vertex_shader = res.get();
 
-		signature.m_type = shader::e_shader_type::ps;
+		signature.set_type(shader::e_shader_type::ps);
 		res = shader::compile_shader_in_source(k_pixel_shader, signature, args);
 		if (res.is_fail())
 		{

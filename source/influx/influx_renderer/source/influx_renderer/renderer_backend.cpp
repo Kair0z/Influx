@@ -27,7 +27,7 @@ namespace influx::renderer
         shader_data result{};
         result.m_bytecode = compile_output.m_bytecode;
         result.m_reflection = compile_output.m_reflection;
-        result.m_type = compile_output.m_signature.m_type;
+        result.m_type = compile_output.m_signature.get_shader_type();
         return result;
     }
 

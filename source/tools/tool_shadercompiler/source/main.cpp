@@ -100,7 +100,7 @@ int main(int argc, char** argv)
 	signature.m_entrypoint = entrypoint;
 
 	shader::compile_args args{};
-	args.m_source_language = shader::e_shader_language::SLANG;
+	args.m_source_language = shader::e_shader_language::HLSL;
 	args.m_output_format = shader::e_shader_binary_output::DXIL;
 	args.m_include_folder = include_folder_path;
 	args.m_target = shader::e_shader_target::_6_6;

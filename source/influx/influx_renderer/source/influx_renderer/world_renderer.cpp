@@ -246,7 +246,6 @@ namespace influx::renderer
         renderer_backend& backend = renderer_backend::get_instance();
         resource_manager& resourceman = backend.get_resource_manager();
 
-        static constexpr shader::e_shader_target k_target = shader::e_shader_target::_6_7;
         static const auto load_shader =
             [&resourceman](const string& shadername, const string& entrypoint,
                 unsigned char* cso, uint64 cso_length,
@@ -259,10 +258,10 @@ namespace influx::renderer
             shader::reflection reflection{};
             shader::reflection::deserialize(reflection, refl_blob, refl_blob_length);
             
-            compile_output.m_signature.m_entrypoint = entrypoint;
-            compile_output.m_signature.m_filename = shadername;
-            // compile_output.m_signature.m_type = reflection.m_shader_type;
-            compile_output.m_signature.m_target = k_target;
+            compile_output.m_signature.set_entrypoint(entrypoint);
+            compile_output.m_signature.set_filename(shadername);
+            compile_output.m_signature.set_type(reflection.m_shader_type);
+            compile_output.m_signature.set_target(k_shader_target);
             resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
         };
 

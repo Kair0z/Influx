@@ -332,8 +332,8 @@ namespace influx::shader
 		const shader_signature& signature,
 		const compile_args& args)
 	{
-		string type = build_shader_target_string(signature.m_type, args.m_target);
-		string entry = signature.m_entrypoint;
+		string type = build_shader_target_string(signature.get_shader_type(), args.m_target);
+		string entry = signature.get_entrypoint();
 		return type + entry;
 	}
 
@@ -344,14 +344,14 @@ namespace influx::shader
 		vector<string> result{};
 
 		// entrypoint (-E)
-		const string& entrypoint = signature.m_entrypoint;
+		const string& entrypoint = signature.get_entrypoint();
 		result.push_back( "-E ");
 		result.push_back( entrypoint );
 		result.push_back( " ");
 
 		// exports (-exports)
 		// (in case of raytracing, we compile a single shader as a shader lib and so declare a single export)
-		const bool compile_as_shaderlib = shader::is_raytracing_shader(signature.m_type);
+		const bool compile_as_shaderlib = shader::is_raytracing_shader(signature.get_shader_type());
 		if (compile_as_shaderlib)
 		{
 			result.push_back( "-exports ");
@@ -360,7 +360,7 @@ namespace influx::shader
 		}
 
 		// target (-T) (eg. ps_6_2)
-		string profile = build_shader_target_string(signature.m_type, args.m_target);
+		string profile = build_shader_target_string(signature.get_shader_type(), args.m_target);
 		result.push_back( "-T ");
 		result.push_back( profile );
 		result.push_back( " ");
@@ -634,7 +634,7 @@ namespace influx::shader
 
 		// ULTIMATE SUCCESS
 		result.get().m_signature = signature;
-		result.get().m_signature.m_target = args.m_target;
+		result.get().m_signature.set_target(args.m_target);
 		result.get().m_signature.cache_id();
 		result.get().m_success = true;
 		return result;

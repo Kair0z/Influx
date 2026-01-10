@@ -222,15 +222,47 @@ namespace influx::shader
 	using shader_id = uint64;
 	struct shader_signature final
 	{
-		/* tag & id are derived */
-		string			m_tag;
-		shader_id		m_id;
-
+	private:
 		/* these 4 components make the identifier */
 		e_shader_type		m_type;
 		e_shader_target		m_target;
 		string				m_entrypoint;
 		string				m_filename;
+
+		/* tag & id are cached*/
+		string			m_tag;
+		shader_id		m_id;
+		bool m_dirty = true;
+
+	public:
+		void set_type(e_shader_type type)
+		{
+			m_type = type;
+			m_dirty = true;
+			cache_id();
+		}
+		void set_target(e_shader_target target)
+		{
+			m_target = target;
+			m_dirty = true;
+			cache_id();
+		}
+		void set_entrypoint(const string& entrypoint)
+		{
+			m_entrypoint = entrypoint;
+			m_dirty = true;
+			cache_id();
+		}
+		void set_filename(const string& filename)
+		{
+			m_filename = filename;
+			m_dirty = true;
+			cache_id();
+		}
+		e_shader_type get_shader_type() const { return  m_type; }
+		e_shader_target get_shader_target() const { return  m_target; }
+		const string& get_filename() const { return  m_filename; }
+		const string& get_entrypoint() const { return  m_entrypoint; }
 
 		bool is_valid() const
 		{
@@ -244,7 +276,6 @@ namespace influx::shader
 		{
 			return m_tag;
 		}
-
 		shader_id get_id() const
 		{
 			return m_id;
@@ -259,6 +290,7 @@ namespace influx::shader
 			// filename::entrypoint::vs6_6
 			m_tag = m_filename + "::" + m_entrypoint + "::" + type_str + targ_str;
 			m_id = std::hash<string>{}(m_tag);
+			m_dirty = false;
 		}
 
 		bool operator==(const shader_signature& other) const

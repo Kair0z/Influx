@@ -97,7 +97,7 @@ namespace influx::engine
 		m_renderman = new render_manager();
 
 		// set to selected monitor
-		const math::vectoru2 monitor_center = monitors[2].get_rect().get_mid();
+		const math::vectoru2 monitor_center = monitors[0].get_rect().get_mid();
 		m_windowman->get_main_window().set_position(monitor_center);
 
 		/* create world & scene_manager */

@@ -131,7 +131,7 @@ namespace influx::engine
 			out_data.m_bytecode[i] = shader_data.m_bytecode[i];
 		}
 
-		out_data.m_type = shader_data.m_signature.m_type;
+		out_data.m_type = shader_data.m_signature.get_shader_type();
 		out_data.m_reflection = shader_data.m_reflection;
 	}
 #pragma endregion
