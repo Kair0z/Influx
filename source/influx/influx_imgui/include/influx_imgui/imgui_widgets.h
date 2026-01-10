@@ -10,8 +10,8 @@
 #include "core/enum.h"
 
 // imgui
-#include "imgui/imgui.h"
-#include "imgui/imgui_internal.h"
+#include "imgui.h"
+#include "imgui_internal.h"
 
 // influx::imgui
 #include "influx_imgui/imgui_translation.h"

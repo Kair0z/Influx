@@ -4,7 +4,7 @@
 #include "core/math/vector.h"
 
 // imgui
-#include "imgui/imgui.h"
+#include "imgui.h"
 
 namespace influx::imgui
 {

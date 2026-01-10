@@ -18,8 +18,10 @@ new_influx_dll("influx_engine")
         "influx_file",
 
         -- thirdparty
-        "json",
-        "tom++"
+        "thirdparty/json",
+        "thirdparty/tom++",
+        "thirdparty/entt",
+        "thirdparty/imgui"
     }
 
     set_influx_includes(dependencies)

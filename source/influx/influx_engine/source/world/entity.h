@@ -1,7 +1,7 @@
 #pragma once
 
 // entt
-#include "entt/entt.hpp"
+#include "entt.hpp"
 
 // influx::core
 #include "core/enum.h"

@@ -374,7 +374,7 @@ namespace influx::shader
 			if (is_resource_kind)
 			{
 				resource = &output.add_resource(current_parmblock);
-				current_resource = output.m_resources.size() - 1u;
+				current_resource = static_cast<uint32>(output.m_resources.size() - 1u);
 				resource->m_arraysize;
 				resource->m_bytesize;
 				reflection::set_name(resource->m_name, var_name);
@@ -387,7 +387,7 @@ namespace influx::shader
 			{
 				parmblock = &output.add_parmblock();
 				reflection::set_name(parmblock->m_name, var_name);
-				current_parmblock = output.m_parmblocks.size() - 1u;
+				current_parmblock = static_cast<uint32>(output.m_parmblocks.size() - 1u);
 			}
 				
 			switch (kind)

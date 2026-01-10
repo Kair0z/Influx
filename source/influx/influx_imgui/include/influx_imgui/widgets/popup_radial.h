@@ -7,8 +7,8 @@
 #include "influx_imgui/imgui_translation.h"
 
 // imgui
-#include "imgui/imgui.h"
-#include "imgui/imgui_internal.h"
+#include "imgui.h"
+#include "imgui_internal.h"
 
 namespace influx::imgui
 {

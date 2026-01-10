@@ -4,7 +4,7 @@
 #include "core/file.h"
 
 // tom++
-#include "toml.h"
+#include "toml.hpp"
 
 namespace influx::engine
 {

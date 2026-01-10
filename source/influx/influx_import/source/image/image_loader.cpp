@@ -1,7 +1,7 @@
 #include "import_pch.h"
 #include "influx_import.h"
 
-#include "lodepng/lodepng.h"
+#include "lodepng.h"
 
 namespace influx::imp
 {

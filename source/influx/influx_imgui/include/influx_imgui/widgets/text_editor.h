@@ -12,9 +12,8 @@
 #include <map>
 #include <regex>
 #include <chrono>
-
 // Imgui
-#include "imgui/imgui.h"
+#include "imgui.h"
 
 namespace influx::imgui
 {

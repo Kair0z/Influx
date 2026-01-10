@@ -26,11 +26,10 @@
 #include "log/log_manager.h"
 #include "scene/scene.h"
 #include "project/project.h"
-
 // influx::core
 #include "core/math/vectortools.h"
 #include "core/math/random.h"
-
+#include "core/commandline.h"
 // tom++
 #include "toml.h"
 
@@ -38,6 +37,8 @@ namespace influx::engine
 {
 	result<> engine::process_runarguments(int argc, char* argv[])
 	{
+		cvar::parse_runargs(argc, argv);
+
 		for (int i = 0u; i < argc; ++i)
 		{
 			const string& argument = argv[i];
@@ -58,7 +59,6 @@ namespace influx::engine
 
 				m_project = load_project.get();
 			}
-
 			m_run_args.push_back(argv[i]);
 		}
 		return {};

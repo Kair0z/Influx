@@ -187,8 +187,8 @@ namespace influx::shader
 		vector<string> m_names;
 
 		static void set_name(name old, const string& new_name) {
-			strnset(old, 0, k_name_fixed_length);
-			strncpy(old, new_name.c_str(), new_name.size());
+			_strnset_s(old, sizeof(name), 0, k_name_fixed_length);
+			strncpy_s(old, sizeof(name), new_name.c_str(), new_name.size());
 		}
 
 		parmblock& add_parmblock() {

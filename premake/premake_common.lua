@@ -5,23 +5,28 @@ function new_influx_project(_name, _kind, _language)
         cppdialect(g_cpp_dialect)
         targetdir(g_dir_binaries .. "/%{prj.name}/")
         objdir(g_dir_int .. "/%{prj.name}/")
-        files
-        {
-            project_dir .. "**.h",
-            project_dir .. "**.cpp",
-            project_dir .. "**.hpp",
-            project_dir .. "**.lua",
-            project_dir .. "**.hlsli",
-            project_dir .. "**.flx"
-        }
 
+        basedir(project_dir)
+        _files = 
+        {
+            "**.h",
+            "**.cpp",
+            "**.hpp",
+            "**.lua",
+            "**.hlsli",
+            "**.flx"
+        }
+        vpaths
+        {
+            ["source/*"] = _files
+        }
+        files(_files)
         
-        -- common includes for each project
+         
         includedirs
         {
             "source",
-            "include",
-            "vendor"
+            "include"
         }
 
         -- common defines for each project
@@ -126,7 +131,7 @@ function set_influx_app_dependencies(...)
     -- add static lib links
     set_influx_links(dependency_list)
 
-    -- make a string listing all dependencies (except core)
+    -- make a string listing all dependencies (EXCEPT core)
     local copylist = table.concat(dependency_list, " ")
     copylist = string.gsub(copylist, "influx_core", "")
 
@@ -170,6 +175,38 @@ function set_influx_includes(...)
             -- print(found_incdir)
             if os.isdir(found_incdir) then
                 includedirs(found_incdir)
+            end
+        end
+    end
+end
+
+function add_thirdparty_source(...)
+    local influx_base = path.getabsolute("../../..")
+    local influx_source = influx_base .. "/source/"
+    local thirdparty_prefix = "thirdparty/"
+    local thirdparty_source = influx_base .. "/thirdparty/source/"
+
+    -- FOR NOW, only allow thirdparty source to be included
+    -- then do the "thirdparty/" ones in /thirdparty/include/
+    for i, dep in ipairs(...) do
+        local prefix_start, prefix_end = string.find(dep, thirdparty_prefix)
+        if prefix_end then
+            dep = string.sub(dep, prefix_end + 1)
+            local found_srcdir = thirdparty_source .. dep .. "/"
+            -- print("TP SOURCE:" .. found_srcdir)
+            if os.isdir(found_srcdir) then
+                tp_files = 
+                {
+                    found_srcdir .. "**.h",
+                    found_srcdir .. "**.cpp",
+                    found_srcdir .. "**.hpp",
+                }
+                files(tp_files)
+                includedirs(found_srcdir)
+                vpaths
+                {
+                    ["tpsource/" .. dep] = tp_files
+                }
             end
         end
     end

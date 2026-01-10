@@ -1,7 +1,7 @@
 #include "renderer_pch.h"
 #include "renderer_imgui.h"
 
-#include "imgui/imgui.h"
+#include "imgui.h"
 
 // influx::renderer
 #include "influx_renderer/renderer_backend.h"

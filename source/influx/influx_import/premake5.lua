@@ -11,9 +11,15 @@ new_influx_library("influx_import")
 
         "thirdparty/assimp"
     }
-
     set_influx_includes(dependencies)
     set_influx_links(dependencies)
+
+    local tp_sources = 
+    {
+        "thirdparty/lodepng",
+        "thirdparty/cereal"
+    }
+    add_thirdparty_source(tp_sources)
 
     disablewarnings 
     {

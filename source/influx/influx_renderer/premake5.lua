@@ -21,9 +21,15 @@ new_influx_library("influx_renderer")
             "influx_async"
         }
     end
-
     set_influx_includes(dependencies)
     set_influx_links(dependencies)
+
+    local tp_sources = 
+    {
+        "thirdparty/imgui",
+        "thirdparty/D3DX12"
+    }
+    add_thirdparty_source(tp_sources)
 
     includedirs
     {
