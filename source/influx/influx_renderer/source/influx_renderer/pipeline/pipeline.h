@@ -364,14 +364,13 @@ namespace influx::renderer
 			}
 
 			m_needs_rebuild = true;
-			reload_shaders(device);
+			rebuild(device);
 		}
 
 		// call this to re-fetch shaders from resource_manager and possibly rebuild the pipeline
-		void reload_shaders(graphics::device& device)
+		void rebuild(graphics::device& device)
 		{
 			update_shaders();
-
 			if (m_needs_rebuild && are_required_shaders_valid())
 			{
 				rebuild_rootsignature(device, m_signature);
@@ -380,30 +379,30 @@ namespace influx::renderer
 			}
 		}
 
+		// fetches the shaders this pipeline requests from the resourceman
+		// if any required shaders are missing, m_needs_rebuild will be flaged true and thus is_valid() will be false
 		void update_shaders()
 		{
-			static renderer_backend& backend = renderer_backend::get_instance();
-			static resource_manager& resourceman = backend.get_resource_manager();
-
 			influx_assert(m_signature.is_valid());
 
+			static renderer_backend& backend = renderer_backend::get_instance();
+			static resource_manager& resourceman = backend.get_resource_manager();
+			
 			// update shader in each slot
 			for (uint32 i = 0u; i < m_signature.get_num_shaderslots(); ++i)
 			{
 				const e_shader_slot slot = index_to_slot<_t>(i);
 				const shader::e_shader_type shader_type = slot_to_type<_t>(slot);
 
-				// gather the shader signature based off the pipeline signature
-				const shader::shader_signature shader_signature 
-					= m_signature.make_shader_signature(shader_type, k_shader_target, m_signature.m_shader_identifiers[i]);
+				// make the shader signature based off the pipeline signature
+				const shader::shader_signature shader_signature = 
+					m_signature.make_shader_signature(shader_type, k_shader_target, m_signature.m_shader_identifiers[i]);
+				const shader_id id = make_shader_id(shader_signature);
 
-				const shader_data& new_shader = resourceman.get<e_resource_type::shader>(shader_signature).m_data;
+				// check if the resourceman has the shader we require
+				const shader_data& new_shader = resourceman.get<e_resource_type::shader>(id).m_data;
 				const bool is_optional = m_signature.is_shader_optional(shader_type);
-				if (new_shader.is_valid() == false)
-				{
-					m_needs_rebuild = true;
-				}
-				else
+				if (new_shader.is_valid())
 				{
 					// if new data is newer than previous loadpoint, flag a rebuild
 					if (new_shader.is_newer_than(m_shader_loadpoints[i]))
@@ -414,6 +413,10 @@ namespace influx::renderer
 					// re-store the pointer & update the loadpoint
 					m_shaders[i] = &new_shader;
 					m_shader_loadpoints[i] = time::get_now();
+				}
+				else
+				{
+					m_needs_rebuild = true;
 				}
 			}
 		}
@@ -482,7 +485,6 @@ namespace influx::renderer
 		bool is_valid() const
 		{
 			const bool are_graphics_objects_valid = m_pipeline != nullptr && m_rootsig != nullptr;
-
 			return are_graphics_objects_valid && are_required_shaders_valid() && m_needs_rebuild == false;
 		}
 

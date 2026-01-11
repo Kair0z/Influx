@@ -21,19 +21,19 @@ namespace influx::renderer
 	}
 
 	// the renderer backend stores shaders as slimmed down versions of shader::compile_output
-	using shader_signature = shader::shader_signature;
 	struct shader_data final
 	{
 		// convert shader::compile_output to renderer::shader_data
 		INFLUX_RENDER_API
 		static shader_data translate(const shader::compile_output& compile_output);
 
-		shader::e_shader_type	m_type;
-		shader::reflection		m_reflection;
-		shader::bytecode		m_bytecode;
-		shader::bytecode		m_rootsignature_bytecode;
-		time::point				m_time_loaded;
-		uint32					m_num_times_loaded = 0u;
+		shader::shader_signature	m_signature;
+		shader::e_shader_type		m_type;
+		shader::reflection			m_reflection;
+		shader::bytecode			m_bytecode;
+		shader::bytecode			m_rootsignature_bytecode;
+		time::point					m_time_loaded;
+		uint32						m_num_times_loaded = 0u;
 
 		inline bool is_newer_than(const time::point& timepoint) const
 		{

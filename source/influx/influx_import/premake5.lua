@@ -11,8 +11,7 @@ new_influx_library("influx_import")
 
         "thirdparty/assimp"
     }
-    set_influx_includes(dependencies)
-    set_influx_links(dependencies)
+    add_compile_dependencies(dependencies)
 
     local tp_sources = 
     {

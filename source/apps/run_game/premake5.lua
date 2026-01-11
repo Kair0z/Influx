@@ -7,7 +7,7 @@ new_influx_app("run_game")
         "influx_engine"
     }
     add_compile_dependencies(compile_deps)
-    
+
     -- these are the dependencies not linked against,
     -- but their .dlls will be staged into this project's working dir
     local runtime_deps = 

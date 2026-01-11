@@ -30,9 +30,9 @@ namespace influx::renderer
 		texture3D,
 		shader,
 		mesh,
-		count
+		num
 	};
-	static constexpr uint32 k_num_resource_types = static_cast<uint32>(e_resource_type::count);
+	static constexpr uint32 k_num_resource_types = static_cast<uint32>(e_resource_type::num);
 
 	// resource-data: 
 	// the struct type the user inputs into the backend::load functions (raw data)
@@ -52,7 +52,7 @@ namespace influx::renderer
 		cubemap_id,
 		tex_id,
 		tex_id,
-		shader::shader_signature,
+		shader_id,
 		mesh_id
 		>>;
 

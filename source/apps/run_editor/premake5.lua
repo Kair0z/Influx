@@ -1,7 +1,7 @@
 new_influx_app("run_editor")
 
     -- these are the dependencies we link against
-    local compile_deps = 
+    local compile_deps =
     {
         "influx_core",
         "influx_engine"

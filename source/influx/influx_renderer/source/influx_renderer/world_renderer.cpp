@@ -251,90 +251,27 @@ namespace influx::renderer
                 unsigned char* cso, uint64 cso_length,
                 unsigned char* refl_blob, uint64 refl_blob_length)
         {
+            // get the shader bytecode
             shader::compile_output compile_output{};
             compile_output.m_bytecode.resize(cso_length);
             memcpy(compile_output.m_bytecode.data(), cso, cso_length);
 
-            shader::reflection reflection{};
+            // deserialize the reflection data
+            shader::reflection& reflection = compile_output.m_reflection;
             shader::reflection::deserialize(reflection, refl_blob, refl_blob_length);
             
-            compile_output.m_signature.set_entrypoint(entrypoint);
-            compile_output.m_signature.set_filename(shadername);
-            compile_output.m_signature.set_type(reflection.m_shader_type);
-            compile_output.m_signature.set_target(k_shader_target);
-            resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
+            shader::shader_signature& signature = compile_output.m_signature;
+            signature.set_entrypoint(entrypoint);
+            signature.set_filename(shadername);
+            signature.set_type(reflection.m_shader_type);
+            signature.set_target(k_shader_target);
+            const shader_id id = make_shader_id(signature);
+            resourceman.load<e_resource_type::shader>(id, shader_data::translate(compile_output), true);
         };
 
         load_shader("basepass", "main_vs", emb::basepass_main_vs_cso, emb::basepass_main_vs_cso_len, emb::basepass_main_vs_refl, emb::basepass_main_vs_refl_len);
         load_shader("basepass", "main_ps", emb::basepass_main_ps_cso, emb::basepass_main_ps_cso_len, emb::basepass_main_ps_refl, emb::basepass_main_ps_refl_len);
         load_shader("resolvepass", "main_cs", emb::resolvepass_main_cs_cso, emb::resolvepass_main_cs_cso_len, emb::resolvepass_main_cs_refl, emb::resolvepass_main_cs_refl_len);
-
-        static int a = 0;
-#if 0
-        string base_dir = backend.get_shadersource_directory(e_shadersource_directory::base);
-        string src_dir = backend.get_shadersource_directory(e_shadersource_directory::source);
-        string inc_dir = backend.get_shadersource_directory(e_shadersource_directory::include);
-
-        string basepass_sourcefile_path = src_dir + "/basepass.hlsl";
-        string resolvepass_sourcefile_path = src_dir + "/resolvepass.hlsl";
-        string debugpass_sourcefile_path = src_dir + "/debug_shaders.hlsl";
-
-        // parse the shader files for their necessary shaders
-        shader::compile_args compile_args{};
-        compile_args.m_include_folder = base_dir;
-        compile_args.m_target = shader::e_shader_target::_6_6;;
-        compile_args.m_reflection_enabled = true;
-        compile_args.m_defines = {};
-        compile_args.set_debug_level(false);
-        compile_args.m_pbd_enabled = false;
-
-        // 1. parse each shader from file
-        using parse_result = shader::parse_output;
-        auto basepass_parse     = shader::parse_shaders_in_file(basepass_sourcefile_path);
-        auto resolvepass_parse  = shader::parse_shaders_in_file(resolvepass_sourcefile_path);
-        auto debugpass_parse    = shader::parse_shaders_in_file(debugpass_sourcefile_path);
-        const bool all_shaders_parsed = !(basepass_parse.is_fail() || resolvepass_parse.is_fail() || debugpass_parse.is_fail());
-        influx_assert(all_shaders_parsed);
-
-        // 2. assert no missing shaders
-        auto has_all_shaders = 
-        [](const shader::parse_output& parsed_shaders, shader::e_shader_type_flags flags) -> bool
-        {
-            return has_all_flags(parsed_shaders.m_found_types, flags);
-        };
-
-        // assert required shaders are present
-        const auto& basepass_parsed_file = basepass_parse.get();
-        influx_assert(has_all_shaders(basepass_parsed_file,
-            shader::e_shader_type_flags::vs | shader::e_shader_type_flags::ps));
-        const auto& resolvepass_parsed_file = resolvepass_parse.get();
-        influx_assert(has_all_shaders(resolvepass_parsed_file,
-            shader::e_shader_type_flags::cs));
-        const auto& debugpass_parsed_file = debugpass_parse.get();
-        influx_assert(has_all_shaders(debugpass_parsed_file,
-            shader::e_shader_type_flags::vs | shader::e_shader_type_flags::ps));
-
-        // compile all shaders
-        auto compile_shaders =
-        [&resourceman](const shader::parse_output& parsed_shaders, const string& filepath, const shader::compile_args& master_args)
-        {
-            for (const auto& pair : parsed_shaders.m_shadermap)
-                for (const auto& shader_parse : pair.second)
-                {
-                    // compile
-                    auto compile_result = shader::compile_shader_in_file(filepath, shader_parse.m_signature, master_args);
-                    influx_assert(compile_result.is_success());
-
-                    // load into resource_manager
-                    shader::compile_output compile_output = compile_result.get();
-                    influx_assert(compile_output.m_success);
-                    resourceman.load<e_resource_type::shader>(compile_output.m_signature, shader_data::translate(compile_output), true);
-                }
-        };
-        compile_shaders(basepass_parsed_file, basepass_sourcefile_path, compile_args);
-        compile_shaders(resolvepass_parsed_file, resolvepass_sourcefile_path, compile_args);
-        compile_shaders(debugpass_parsed_file, debugpass_sourcefile_path, compile_args);
-#endif
     }
 
     // 1 draw-call == 1 batch
@@ -581,7 +518,7 @@ namespace influx::renderer
         static bool once = true;
         if (once)
         {
-            pipeline.reload_shaders(backend.get_device());
+            pipeline.rebuild(backend.get_device());
             influx_assert(pipeline.is_valid());
             once = false;
         }
@@ -648,7 +585,7 @@ namespace influx::renderer
         compute_pipeline& pipeline          = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
         resource_manager& resourceman       = backend.get_resource_manager();
 
-        pipeline.reload_shaders(device);
+        pipeline.rebuild(device);
 
         graphics::commandlist& commandlist = context.get_commandlist();
         pipeline.set_state(commandlist);
@@ -782,13 +719,7 @@ namespace influx::renderer
                 descriptor_manager& descriptorman = *backend.get_descriptor_manager();
 
                 // hot-reload our shaders if necessary:
-                static bool done_once = false;
-                if (!done_once)
-                {
-                    pipeline.reload_shaders(backend.get_device());
-                    influx_assert(pipeline.is_valid());
-                    done_once = true;
-                }
+                pipeline.rebuild(backend.get_device());
                 
                 logonce(e_log_category::warning, "influx::renderer::debug_renderer: first debug render!");
 

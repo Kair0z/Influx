@@ -60,20 +60,27 @@ namespace influx::engine
 			const float video_mem_budget = memory_info.m_gpu_budget / (float)(1024 * 1024 * 1024);
 			ImGui::Text("memory: %.2f/%.2fMB", video_mem_used, video_mem_budget);
 
+			// render settings
 			renderer::render_settings settings = renderer::get_settings();
-			
 			if (renderer::can_draw_scene())
 			{
 				ImGui::Checkbox("wireframe: ", &settings.m_wireframe);
 				ImGui::SliderInt("cullmode: ", (int*)&settings.m_cullmode, 0, 2);
 				ImGui::ColorEdit3("clear colour: ", &g_global_settings.m_clearcolour.r);
 			}
-
 			if (renderer::can_draw_debug())
 			{
 				ImGui::Checkbox("debug render: ", &g_global_settings.m_render_debug);
 			}
 			
+			// 
+			render_manager& renderman = engine::get_instance().get_renderer();
+			for (const auto& tex_id : renderer::get_loaded_textures())
+			{
+				ImGui::Text("texture: %s", renderer::get_resource_name(tex_id).c_str());
+			}
+
+			// update settings
 			renderer::set_settings(settings);
 		}
 

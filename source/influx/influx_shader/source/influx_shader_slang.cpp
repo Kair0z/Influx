@@ -507,7 +507,7 @@ namespace influx::shader
 		{
 			target_info info = {};
 			info.m_output_format = args.m_output_format;
-			info.m_shader_level = signature.m_target;
+			info.m_shader_level = signature.get_shader_target();
 			targets.push_back(info);
 		}
 		vector<string> include_folders{};
@@ -525,8 +525,8 @@ namespace influx::shader
 				const e_shader_language source_lang = args.m_source_language;
 				const int trans_unit_index = request.addTranslationUnit(translate(source_lang), "shader");
 				request.addTranslationUnitSourceFile(trans_unit_index, filepath.c_str());
-				const e_shader_type sh_type = signature.m_type;
-				const char* sh_entrypoint = signature.m_entrypoint.c_str();
+				const e_shader_type sh_type = signature.get_shader_type();
+				const char* sh_entrypoint = signature.get_entrypoint().c_str();
 				request.addEntryPoint(trans_unit_index, sh_entrypoint, translate(sh_type));
 				
 				// add commandline
@@ -587,7 +587,7 @@ namespace influx::shader
 		vector<target_info> targets{}; {
 			target_info info = {};
 			info.m_output_format = args.m_output_format;
-			info.m_shader_level = signature.m_target;
+			info.m_shader_level = signature.get_shader_target();
 			targets.push_back(info);
 		}
 		vector<string> include_folders{}; {
@@ -603,8 +603,8 @@ namespace influx::shader
 				const e_shader_language source_lang = args.m_source_language;
 				const int trans_unit_index = request.addTranslationUnit(translate(source_lang), "shader");
 				request.addTranslationUnitSourceString(trans_unit_index, ".", shader_source.c_str());
-				const e_shader_type sh_type = signature.m_type;
-				const char* sh_entrypoint = signature.m_entrypoint.c_str();
+				const e_shader_type sh_type = signature.get_shader_type();
+				const char* sh_entrypoint = signature.get_entrypoint().c_str();
 				request.addEntryPoint(trans_unit_index, sh_entrypoint, translate(sh_type));
 
 				sl_result compile_sres = request.compile();

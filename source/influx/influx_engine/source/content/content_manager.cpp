@@ -142,8 +142,7 @@ namespace influx::engine
 	content_manager::content_manager()
 	{
 		// immediately start kicking engine loading (may as well)
-		// load_engine_assets();
-
+		load_engine_assets();
 		editor::editor_manager::static_window<content_ui>("content");
 	}
 
@@ -234,6 +233,7 @@ namespace influx::engine
 		const vector<path> png_files = path::get_files_in_directory(root_path_str, true, ".png").get();
 		
 		// load fbxs & objs
+#if 0
 		dispatch_for<path>(obj_files, [this](const path& file)
 		{
 			imp::scene_load_args args{};
@@ -252,6 +252,7 @@ namespace influx::engine
 			scene_asset& item = m_scenes[to_string(file.get_filename(without_extension))];
 			item.load(file, args);
 		});
+#endif
 
 		// load_shaders(origin, root);
 
@@ -266,6 +267,7 @@ namespace influx::engine
 			item.load(file, args, true);
 		});
 	}
+
 	void content_manager::load_shaders(e_asset_origin origin, const path& root)
 	{
 		const string& root_path_str = to_string(root.get_full_path());

@@ -180,7 +180,7 @@ namespace influx::renderer
 		commandlist.submit(&queue);
 		commandlist.wait_for_completion();
     }
-	void resource_manager::recreate_shader(const shader::shader_signature& sig, const shader_data& data)
+	void resource_manager::recreate_shader(const shader_id& sig, const shader_data& data)
 	{
 
 	}

@@ -157,11 +157,11 @@ namespace influx::renderer
 	INFLUX_RENDER_API void load(const mesh_id& id, const mesh_data<vertex_data>& data, bool reload = false);
 	INFLUX_RENDER_API void load(const tex_id& id, const texture2D_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const cubemap_id& id, const cubemap_data& data, bool reload = false);
-	INFLUX_RENDER_API void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
+	INFLUX_RENDER_API void load(const shader_id& id, const shader_data& data, bool reload = false);
 	INFLUX_RENDER_API void load(const mat_id& id, const material& data, bool reload = false);
 
 	/* get the time at which a resource with a given signature was last loaded in (useful for hot-reloading) */
-	INFLUX_RENDER_API time::point get_time_loaded_shader(const shader::shader_signature& signature);
+	INFLUX_RENDER_API time::point get_time_loaded_shader(const shader_id& id);
 	INFLUX_RENDER_API time::point get_time_loaded_texture(const tex_id& id);
 	INFLUX_RENDER_API time::point get_time_loaded_cubemap(const cubemap& id);
 	INFLUX_RENDER_API time::point get_time_loaded_mesh(const mesh_id& id);
@@ -170,8 +170,16 @@ namespace influx::renderer
 	INFLUX_RENDER_API bool has_mesh(const mesh_id& id);
 	INFLUX_RENDER_API bool has_texture(const tex_id& id);
 	INFLUX_RENDER_API bool has_cubemap(const cubemap_id& id);
-	INFLUX_RENDER_API bool has_shader(const shader::shader_signature& signature);
+	INFLUX_RENDER_API bool has_shader(const shader_id& signature);
 	INFLUX_RENDER_API bool has_material(const mat_id& id);
+
+	INFLUX_RENDER_API vector<tex_id> get_loaded_meshes();
+	INFLUX_RENDER_API vector<tex_id> get_loaded_textures();
+	INFLUX_RENDER_API vector<tex_id> get_loaded_cubemaps();
+	INFLUX_RENDER_API vector<tex_id> get_loaded_shaders();
+	INFLUX_RENDER_API vector<tex_id> get_loaded_materials();
+
+	INFLUX_RENDER_API string get_resource_name(object_id id);
 
 	INFLUX_RENDER_API const texture2D& get_texture2D(const tex_id& id);
 	INFLUX_RENDER_API const texture3D& get_texture3D(const tex_id& id);
@@ -220,6 +228,11 @@ namespace influx::renderer
 	INFLUX_RENDER_API string get_last_rendergraph_dump();
 
 	// inline helpers
+	inline shader_id load(const shader::shader_signature& signature, const shader_data& data, bool reload = false) {
+		const shader_id id = make_shader_id(signature);
+		load(id, data, reload);
+		return id;
+	}
 	inline mesh_id load(const string& unique_name, const mesh_data<vertex_data>& data, bool reload = false) {
 		const mesh_id id = make_mesh_id(unique_name);
 		load(id, data, reload);

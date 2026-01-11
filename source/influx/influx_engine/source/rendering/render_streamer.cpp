@@ -7,6 +7,7 @@
 
 // influx::engine
 #include "content/content_manager.h"
+#include "rendering/render_manager.h"
 
 // influx::shader
 #include "influx_shader.h"
@@ -36,7 +37,7 @@ namespace influx::engine
 	}
 	bool render_streamer::has_shader_loaded(const shader::shader_signature& signature) const
 	{
-		return influx::renderer::has_shader(signature);
+		return influx::renderer::has_shader(renderer::make_shader_id(signature));
 	}
 	bool render_streamer::has_mesh_loaded(const string& name) const
 	{
@@ -154,8 +155,9 @@ namespace influx::engine
 				const imp::shader_data& shader_data = shader_datas[0];
 				const shader::shader_signature& signature = shader_data.m_signature;
 
-				const time::point render_load_time = renderer::get_time_loaded_shader(signature);
-				if (!renderer::has_shader(signature) || asset.second.m_time_loadend > render_load_time)
+				const renderer::shader_id sh_id = renderer::make_shader_id(signature);
+				const time::point render_load_time = renderer::get_time_loaded_shader(sh_id);
+				if (!renderer::has_shader(sh_id) || asset.second.m_time_loadend > render_load_time)
 				{
 					// if load time is newer than previous render load time, reload
 					influx::renderer::load(signature, translate(shader_data), true);
@@ -166,6 +168,8 @@ namespace influx::engine
 
 	void render_streamer::stream_images(const content_manager& content)
 	{
+		render_manager& renderman = engine::get_instance().get_renderer();
+
 		influx_scope("render_stream_images");
 		for (const auto& asset : content.get_images())
 		{
@@ -173,8 +177,9 @@ namespace influx::engine
 			{
 				if (asset.second.is_loaded())
 				{
+					const string& name = asset.first;
 					translate(asset.second.m_resource, m_tex_data);
-					influx::renderer::load(asset.first, m_tex_data);
+					influx::renderer::load(name, m_tex_data);
 				}
 			}
 		}

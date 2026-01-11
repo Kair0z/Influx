@@ -86,7 +86,7 @@ namespace influx::renderer
 		upload_manager*			mp_upload_manager	= nullptr;
 		pipeline_manager*		mp_pipeline_manager = nullptr;
 		imgui_manager*			mp_imgui			= nullptr;
-		world_renderer*			mp_scene_renderer	= nullptr;
+		world_renderer*			m_world_renderer	= nullptr;
 		quad_renderer*			mp_quad_renderer	= nullptr;
 		resource_manager*		m_resource_manager	= nullptr;
 		submit_manager*			m_submit_manager	= nullptr;
@@ -143,20 +143,26 @@ namespace influx::renderer
 		void load(const mesh_id& id, const mesh_data<vertex_data>& data, bool reload = false);
 		void load(const tex_id& id, const texture2D_data& data, bool reload = false);
 		void load(const cubemap_id& id, const cubemap_data& data, bool reload = false);
-		void load(const shader::shader_signature& signature, const shader_data& data, bool reload = false);
+		void load(const shader_id& id, const shader_data& data, bool reload = false);
 		void load(const mat_id& id, const material& data, bool reload = false);
 
 		bool has_mesh(const mesh_id& id) const;
 		bool has_texture(const tex_id& id) const;
 		bool has_cubemap(const cubemap_id& id) const;
-		bool has_shader(const shader::shader_signature& signature) const;
+		bool has_shader(const shader_id& id) const;
 		bool has_material(const mat_id& id) const;
+
+		vector<tex_id> get_loaded_meshes() const;
+		vector<tex_id> get_loaded_textures() const;
+		vector<tex_id> get_loaded_cubemaps() const;
+		vector<tex_id> get_loaded_shaders() const;
+		vector<tex_id> get_loaded_materials() const;
 
 		const texture2D& get_texture2D(const tex_id& id) const;
 		const texture3D& get_texture3D(const tex_id& id) const;
 
 		string get_mesh_name(const mesh_id id) const;
-		time::point get_time_loaded_shader(const shader::shader_signature& signature) const;
+		time::point get_time_loaded_shader(const shader_id& signature) const;
 		time::point get_time_loaded_texture(const tex_id& id) const;
 		time::point get_time_loaded_cubemap(const cubemap_id& id) const;
 		time::point get_time_loaded_mesh(const mesh_id& id) const;

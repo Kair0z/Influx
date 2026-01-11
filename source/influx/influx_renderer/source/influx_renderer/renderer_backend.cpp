@@ -73,6 +73,7 @@ namespace influx::renderer
         m_init_args = args;
 
         // setup the shader source directory
+#if 0
         {
             static const string k_default_shadersource_directory = "./shaderslol/";
             m_shadersource_directory = !args.m_shader_source_folder.empty() && path::is_directory(args.m_shader_source_folder)
@@ -81,6 +82,7 @@ namespace influx::renderer
             if (!path::is_directory(m_shadersource_directory))
                 path::create_directory(m_shadersource_directory);
         }
+#endif
 
         using namespace influx::graphics;
         mp_device = device::create(translate(args.m_api_type));
@@ -94,13 +96,13 @@ namespace influx::renderer
             mp_upload_manager = new upload_manager(mp_device);
             m_resource_manager = new resource_manager();
             mp_imgui = new imgui_manager(mp_device);
-            mp_scene_renderer = new world_renderer();
+            m_world_renderer = new world_renderer();
             mp_quad_renderer = new quad_renderer();
             m_rendergraph = new rendergraph::rendergraph({}, *mp_device);
         }
         
         // load internal shaders
-        mp_scene_renderer->load_shaders();
+        m_world_renderer->load_shaders();
 
         m_is_initialized = true;
     }
@@ -126,7 +128,7 @@ namespace influx::renderer
         delete mp_pipeline_manager; mp_pipeline_manager = nullptr;
         delete mp_upload_manager; mp_upload_manager = nullptr;
         delete mp_imgui; mp_imgui = nullptr;
-        delete mp_scene_renderer; mp_scene_renderer = nullptr;
+        delete m_world_renderer; m_world_renderer = nullptr;
         delete mp_quad_renderer; mp_quad_renderer = nullptr;
         delete m_resource_manager; m_resource_manager = nullptr;
         delete m_rendergraph;
@@ -486,7 +488,7 @@ namespace influx::renderer
         if (res.is_fail())
             return result_type::make_error("error: failed importing target to graph!");
 
-        mp_scene_renderer->build(*m_rendergraph, view, target);
+        m_world_renderer->build(*m_rendergraph, view, target);
         return {};
     }
 
@@ -610,11 +612,10 @@ namespace influx::renderer
             // we store mesh data as detail::base_mesh_data
             mesh_data<vertex_data>* copy = new mesh_data<vertex_data>(data);
             auto& entry = m_resource_manager->load<e_resource_type::mesh>(id, copy, reload);
-
             // m_rendergraph->import_buffer("vb_" + title, entry.m_resource->m_vertexbuffer);
             // m_rendergraph->import_buffer("ib_" + title, entry.m_resource->m_indexbuffer);
         }
-        log(renderer::e_log::info, "loaded mesh");
+        // log(renderer::e_log::info, "loaded mesh");
     }
 
     // texture
@@ -636,9 +637,9 @@ namespace influx::renderer
     }
 
     // shader
-    void renderer_backend::load(const shader::shader_signature& signature, const shader_data& data, bool reload)
+    void renderer_backend::load(const shader_id& id, const shader_data& data, bool reload)
     {
-        m_resource_manager->load<e_resource_type::shader>(signature, data, reload);
+        m_resource_manager->load<e_resource_type::shader>(id, data, reload);
         log(renderer::e_log::info, "loaded shader");
     }
 
@@ -663,14 +664,36 @@ namespace influx::renderer
         return m_resource_manager->contains<e_resource_type::cubemap>(id);
     }
 
-    bool renderer_backend::has_shader(const shader::shader_signature& signature) const
+    bool renderer_backend::has_shader(const shader_id& id) const
     {
-        return m_resource_manager->contains<e_resource_type::shader>(signature);
+        return m_resource_manager->contains<e_resource_type::shader>(id);
     }
 
     bool renderer_backend::has_material(const mat_id& id) const
     {
         return true;
+    }
+
+    vector<tex_id> renderer_backend::get_loaded_meshes() const
+    {
+        return m_resource_manager->get_all_signatures<e_resource_type::mesh>();
+    }
+    vector<tex_id> renderer_backend::get_loaded_textures() const
+    {
+        return m_resource_manager->get_all_signatures<e_resource_type::texture2D>();
+    }
+    vector<tex_id> renderer_backend::get_loaded_cubemaps() const
+    {
+        return m_resource_manager->get_all_signatures<e_resource_type::cubemap>();
+    }
+    vector<tex_id> renderer_backend::get_loaded_shaders() const
+    {
+        return m_resource_manager->get_all_signatures<e_resource_type::shader>();
+    }
+    vector<tex_id> renderer_backend::get_loaded_materials() const
+    {
+        // return m_resource_manager->get_all_signatures<e_resource_type::mate>();
+        return {};
     }
 
     const texture2D& renderer_backend::get_texture2D(const tex_id& id) const
@@ -697,7 +720,7 @@ namespace influx::renderer
         // return m_resource_manager->get_debugname(id).get_string();
     }
 
-    time::point renderer_backend::get_time_loaded_shader(const shader::shader_signature& signature) const
+    time::point renderer_backend::get_time_loaded_shader(const shader_id& signature) const
     {
         return m_resource_manager->get_time_loaded<e_resource_type::shader>(signature);
     }
@@ -811,6 +834,39 @@ namespace influx::renderer
         }
 
         return m_shadersource_directory;
+    }
+
+#if INFLUX_DEBUG
+    umap<object_id, string> g_obj_to_name{};
+#endif
+    const object_id make_id(const string& name)
+    {
+        std::hash<string> hasher;
+        object_id new_id = static_cast<object_id>(hasher(name));
+#if INFLUX_DEBUG
+        g_obj_to_name[new_id] = name;
+#endif
+        return new_id;
+    }
+    const shader_id make_shader_id(const shader::shader_signature& signature)
+    {
+        shader_id new_id = signature.get_id();
+#if INFLUX_DEBUG
+        g_obj_to_name[new_id] = signature.get_tag();
+#endif
+        return new_id;
+    }
+    const mesh_id make_mesh_id(const string& name)
+    {
+        return make_id(name);
+    }
+    const tex_id make_tex_id(const string& name)
+    {
+        return make_id(name);
+    }
+    const cubemap_id make_cubemap_id(const string& name)
+    {
+        return make_id(name);
     }
 
 #pragma region frontend_api
@@ -931,9 +987,9 @@ namespace influx::renderer
         renderer_backend::get_instance().load(id, data, reload);
     }
 
-    void load(const shader::shader_signature& signature, const shader_data& data, bool reload)
+    void load(const shader_id& id, const shader_data& data, bool reload)
     {
-        renderer_backend::get_instance().load(signature, data, reload);
+        renderer_backend::get_instance().load(id, data, reload);
     }
 
     void load(const mat_id& id, const material& data, bool reload)
@@ -941,9 +997,9 @@ namespace influx::renderer
         renderer_backend::get_instance().load(id, data, reload);
     }
 
-    time::point get_time_loaded_shader(const shader::shader_signature& signature)
+    time::point get_time_loaded_shader(const shader_id& id)
     {
-        return renderer_backend::get_instance().get_time_loaded_shader(signature);
+        return renderer_backend::get_instance().get_time_loaded_shader(id);
     }
     time::point get_time_loaded_texture(const tex_id& id)
     {
@@ -973,14 +1029,29 @@ namespace influx::renderer
         return renderer_backend::get_instance().has_cubemap(id);
     }
 
-    bool has_shader(const shader::shader_signature& signature)
+    bool has_shader(const shader_id& id)
     {
-        return renderer_backend::get_instance().has_shader(signature);
+        return renderer_backend::get_instance().has_shader(id);
     }
     
     bool has_material(const mat_id& id)
     {
         return renderer_backend::get_instance().has_material(id);
+    }
+
+    vector<mesh_id> get_loaded_meshes() { return renderer_backend::get_instance().get_loaded_meshes(); }
+    vector<tex_id> get_loaded_textures() { return renderer_backend::get_instance().get_loaded_textures(); }
+    vector<cubemap_id> get_loaded_cubemaps() { return renderer_backend::get_instance().get_loaded_cubemaps(); }
+    vector<shader_id> get_loaded_shaders() { return renderer_backend::get_instance().get_loaded_shaders(); }
+    vector<material_id> get_loaded_materials() { return renderer_backend::get_instance().get_loaded_materials(); }
+
+    string get_resource_name(object_id id)
+    {
+#if INFLUX_DEBUG
+        if (g_obj_to_name.contains(id))
+            return g_obj_to_name[id];
+#endif
+        return to_string(id);
     }
 
     const texture2D& get_texture2D(const tex_id& id)

@@ -14,8 +14,8 @@
 #include "core/shader.h"
 #include "core/pointer.h"
 
-#define INFLUX_SHADER_BACKEND_SLANG 0
-#define INFLUX_SHADER_BACKEND_DXC 1
+#define INFLUX_SHADER_BACKEND_SLANG 1
+#define INFLUX_SHADER_BACKEND_DXC	0
 
 namespace influx::shader
 {

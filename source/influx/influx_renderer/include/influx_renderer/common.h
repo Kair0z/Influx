@@ -77,24 +77,13 @@ namespace influx::renderer
 	using tex_id		= object_id;
 	using cubemap_id	= tex_id;
 	using mat_id		= object_id;
+	using shader_id		= object_id;
 
-	static const object_id make_id(const string& name)
-	{
-		std::hash<string> hasher;
-		return static_cast<uint32>(hasher(name));
-	}
-	static const mesh_id make_mesh_id(const string& name)
-	{
-		return make_id(name);
-	}
-	static const tex_id make_tex_id(const string& name)
-	{
-		return make_id(name);
-	}
-	static const cubemap_id make_cubemap_id(const string& name)
-	{
-		return make_id(name);
-	}
+	INFLUX_RENDER_API const object_id make_id(const string& name);
+	INFLUX_RENDER_API const shader_id make_shader_id(const shader::shader_signature& signature) ;
+	INFLUX_RENDER_API const mesh_id make_mesh_id(const string& name);
+	INFLUX_RENDER_API const tex_id make_tex_id(const string& name);
+	INFLUX_RENDER_API const cubemap_id make_cubemap_id(const string& name);
 
 	using camera		= influx::camera;
 	using matrix		= math::matrix4x4f;

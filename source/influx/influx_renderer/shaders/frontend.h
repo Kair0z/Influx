@@ -81,4 +81,18 @@ struct per_dirlight
 	float4 m_colour;
 };
 
+struct resolvepass_args
+{
+    uint4 texture_desc_indices;
+    uint4 buffer_desc_indices;
+    uint4 skybox_indices;
+
+    float4 screen_size;
+    float4 camera_position;
+
+    float4x4 inv_viewprojection;
+    float4x4 inv_projection;
+    uint4 num_lights;
+};
+
 #endif // SHADER_FRONTEND_H

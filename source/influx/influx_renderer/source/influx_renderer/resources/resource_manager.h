@@ -228,7 +228,7 @@ namespace influx::renderer
 		void recreate_texture2D(const tex_id& id, const texture2D_data& data);
 		void recreate_texture3D(const tex_id& id, const texture3D_data& data);
 		void recreate_cubemap(const cubemap_id& id, const cubemap_data& data);
-		void recreate_shader(const shader::shader_signature& sig, const shader_data& data);
+		void recreate_shader(const shader_id& sig, const shader_data& data);
 	};
 
 	using mesh_resource = resource_manager::entry<e_resource_type::mesh>;
