@@ -236,6 +236,7 @@ function set_influx_links(...)
             end
         end
     end
+    filter {}
 end
 
 function common_cpp_config()

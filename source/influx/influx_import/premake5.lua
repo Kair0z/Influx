@@ -8,7 +8,6 @@ new_influx_library("influx_import")
     {
         "influx_core",
         "influx_shader",
-
         "thirdparty/assimp"
     }
     add_compile_dependencies(dependencies)

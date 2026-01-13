@@ -49,8 +49,8 @@ namespace influx::engine
 
 		if (path::exists(g_filepath))
 		{
-			path::duplicate_file(g_filepath);
-			path::clear_content(g_filepath);
+			// path::duplicate_file(g_filepath);
+			// path::clear_content(g_filepath);
 		}
 		else
 		{

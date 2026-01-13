@@ -5,8 +5,8 @@
 [Gg]enerated/
 .vs
 
-!/vendor/bin/
-!/thirdparty/bin/
+# !/vendor/bin/
+# !/thirdparty/bin/
 
 # Prerequisites
 *.d

@@ -6,6 +6,9 @@
 #include "core/container/map.h"
 #include "core/debug.h"
 
+#include <type_traits>
+#include <string>
+
 namespace influx
 {
 	namespace detail
@@ -29,6 +32,29 @@ namespace influx
 		// Helper variable template
 		template <typename T>
 		inline constexpr bool is_booleable_v = is_booleable<T>::value;
+
+		template <typename T>
+		constexpr bool k_is_string_v = std::is_same_v<std::decay_t<T>, std::string>;
+
+		template <typename T>
+		struct is_vector : std::false_type {};
+
+		template <typename T, typename Alloc>
+		struct is_vector<std::vector<T, Alloc>> : std::true_type {};
+
+		template <typename T>
+		constexpr bool k_is_vector_v = is_vector<std::decay_t<T>>::value;
+
+		template <typename, typename = std::void_t<>>
+		struct has_empty : std::false_type {};
+
+		template <typename T>
+		struct has_empty<T, std::void_t<decltype(std::declval<T>().empty())>>
+			: std::true_type {
+		};
+
+		template <typename T>
+		constexpr bool k_has_empty_v = has_empty<T>::value;
 	}
 
 	// enable this to sanitize your program.
@@ -145,10 +171,13 @@ namespace influx
 			return !is_fail();
 		}
 
-		// true if unexpected value is set (can be warning!)
+		// true if unexpected value is set
 		inline bool is_unex() const
 		{
-			return m_unexpected != _e{};
+			if constexpr ( detail::k_has_empty_v<_e> )
+				return m_unexpected.empty() == false;
+			else 
+				return m_unexpected != _e{};
 		}
 
 		// true if is_fail() AND !warning
