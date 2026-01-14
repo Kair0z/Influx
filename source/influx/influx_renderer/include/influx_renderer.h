@@ -180,9 +180,10 @@ namespace influx::renderer
 	INFLUX_RENDER_API vector<tex_id> get_loaded_materials();
 
 	INFLUX_RENDER_API string get_resource_name(object_id id);
+	INFLUX_RENDER_API string get_mesh_name(const mesh_id& id);
 
-	INFLUX_RENDER_API const texture2D& get_texture2D(const tex_id& id);
-	INFLUX_RENDER_API const texture3D& get_texture3D(const tex_id& id);
+	INFLUX_RENDER_API result<cptr<texture2D>> get_texture2D(const tex_id& id);
+	INFLUX_RENDER_API result<cptr<texture3D>> get_texture3D(const tex_id& id);
 
 	/* returns the signature of internal meshes represented by e_mesh */
 	INFLUX_RENDER_API mesh_id get_mesh_id(e_mesh internal_mesh);
@@ -258,10 +259,10 @@ namespace influx::renderer
 	inline bool has_cubemap(const string& unique_name) {
 		return has_cubemap(make_cubemap_id(unique_name));
 	}
-	inline const texture2D& get_texture2D(const string& unique_name) {
+	inline result<cptr<texture2D>> get_texture2D(const string& unique_name) {
 		return get_texture2D(make_tex_id(unique_name));
 	}
-	inline const texture3D& get_texture3D(const string& unique_name) {
+	inline result<cptr<texture3D>> get_texture3D(const string& unique_name) {
 		return get_texture3D(make_tex_id(unique_name));
 	}
 }

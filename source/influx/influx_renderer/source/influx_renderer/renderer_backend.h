@@ -158,8 +158,8 @@ namespace influx::renderer
 		vector<tex_id> get_loaded_shaders() const;
 		vector<tex_id> get_loaded_materials() const;
 
-		const texture2D& get_texture2D(const tex_id& id) const;
-		const texture3D& get_texture3D(const tex_id& id) const;
+		result<cptr<texture2D>> get_texture2D(const tex_id& id) const;
+		result<cptr<texture3D>> get_texture3D(const tex_id& id) const;
 
 		string get_mesh_name(const mesh_id id) const;
 		time::point get_time_loaded_shader(const shader_id& signature) const;

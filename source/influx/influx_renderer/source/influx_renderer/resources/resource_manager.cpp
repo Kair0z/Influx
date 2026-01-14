@@ -4,6 +4,11 @@
 // influx::renderer
 #include "influx_renderer/mesh.h"
 
+// embedded shaders
+namespace emb {
+#include "../shaders/embedded_shaders.h"
+}
+
 namespace influx::renderer
 {
 	resource_manager::resource_manager()
@@ -13,6 +18,7 @@ namespace influx::renderer
 
 	void resource_manager::load_internal_resources()
 	{
+		// textures
 		const cubemap_id tex_none = get_internal_texture_id(e_texture::none);
 		{
 			const tex_id tex_none = get_internal_texture_id(e_texture::none);
@@ -45,16 +51,42 @@ namespace influx::renderer
 			}
 			load<e_resource_type::cubemap>(tex_none, dummy_data, false);
 		}
+		
+		// shaders
 		{
-			load<e_resource_type::shader>({}, {}, false);
+			static const auto load_shader = [this](
+				const string& shadername, const string& entrypoint,
+				unsigned char* bytecode, uint64 bytecode_length,
+				unsigned char* refl_blob, uint64 refl_blob_length)
+			{
+				shader::compile_output compile_output{};
+				compile_output.m_bytecode.resize(bytecode_length);
+				memcpy(compile_output.m_bytecode.data(), bytecode, bytecode_length);
+
+				shader::reflection& reflection = compile_output.m_reflection;
+				shader::reflection::deserialize(reflection, refl_blob, refl_blob_length);
+
+				shader::shader_signature& signature = compile_output.m_signature;
+				signature.set_entrypoint(entrypoint);
+				signature.set_filename(shadername);
+				signature.set_type(reflection.m_shader_type);
+				signature.set_target(k_shader_target);
+				const shader_id id = make_shader_id(signature);
+				load<e_resource_type::shader>(id, shader_data::translate(compile_output), true);
+			};
+
+			load_shader("basepass", "main_vs", emb::basepass_main_vs_cso, emb::basepass_main_vs_cso_len, emb::basepass_main_vs_refl, emb::basepass_main_vs_refl_len);
+			load_shader("basepass", "main_ps", emb::basepass_main_ps_cso, emb::basepass_main_ps_cso_len, emb::basepass_main_ps_refl, emb::basepass_main_ps_refl_len);
+			load_shader("resolvepass", "main_cs", emb::resolvepass_main_cs_cso, emb::resolvepass_main_cs_cso_len, emb::resolvepass_main_cs_refl, emb::resolvepass_main_cs_refl_len);
 		}
 
-		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::box)		, &get_inline_mesh<e_mesh::box>(), true);
-		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::plane)	, &get_inline_mesh<e_mesh::plane>(), true);
-		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::quad)		, &get_inline_mesh<e_mesh::quad>(), true);
-		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::sphere)	, &get_inline_mesh<e_mesh::sphere>(), true);
-		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::triangle)	, &get_inline_mesh<e_mesh::triangle>(), true);
-		load<e_resource_type::mesh>({}, &get_inline_mesh<e_mesh::box>(), true); // default mesh box
+		// meshes
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::placeholder)	, &get_inline_mesh<e_mesh::placeholder>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::box)			, &get_inline_mesh<e_mesh::box>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::plane)		, &get_inline_mesh<e_mesh::plane>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::quad)			, &get_inline_mesh<e_mesh::quad>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::sphere)		, &get_inline_mesh<e_mesh::sphere>(), true);
+		load<e_resource_type::mesh>( get_internal_mesh_id(e_mesh::triangle)		, &get_inline_mesh<e_mesh::triangle>(), true);
 	}
 
     void resource_manager::recreate_mesh(const mesh_id& id, detail::base_mesh_data const* data)
@@ -66,7 +98,7 @@ namespace influx::renderer
 		debug_name& name = m_mesh_map[id].m_debugname;
 		
 		if (is_internal_mesh(id))
-			name = get_internal_mesh_name(static_cast<e_mesh>(id));
+			name = get_internal_mesh_name(get_internal_mesh(id));
 
 		graphics::device& device = renderer_backend::get_device();
 		

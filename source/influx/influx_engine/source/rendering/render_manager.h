@@ -56,7 +56,7 @@ namespace influx::engine
 		render_view& get_renderview(const render_view_id& id, const math::vectoru2& size);
 
 		bool has_texture(const string& name) const;
-		cptr<render_texture2D> get_texture2D(const string& name) const;
+		result<cptr<render_texture2D>> get_texture2D(const string& name) const;
 
 	private:
 		renderer::scene_imgui m_imgui_scene;

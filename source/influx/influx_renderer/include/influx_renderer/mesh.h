@@ -20,6 +20,7 @@ namespace influx::renderer
 
 	enum class e_mesh : uint8
 	{
+		placeholder,
 		plane,
 		box,
 		sphere,
@@ -31,6 +32,7 @@ namespace influx::renderer
 	static constexpr uint8 k_num_internal_meshes = static_cast<uint32>(e_mesh::count);
 	static const char* k_internal_mesh_names[k_num_internal_meshes] =
 	{
+		"internal_placeholder",
 		"internal_plane",
 		"internal_box",
 		"internal_sphere",
@@ -43,6 +45,11 @@ namespace influx::renderer
 		return k_internal_mesh_names[static_cast<uint32>(mesh)];
 	}
 
+	static e_mesh get_internal_mesh(const mesh_id& id)
+	{
+		return (e_mesh)((uint32)id);
+	}
+
 	static mesh_id get_internal_mesh_id(const e_mesh& mesh)
 	{
 		return static_cast<uint32>(mesh);
@@ -50,7 +57,7 @@ namespace influx::renderer
 
 	static bool is_internal_mesh(const mesh_id id)
 	{
-		return static_cast<uint32>(id) < k_num_internal_meshes;
+		return (uint32)get_internal_mesh(id) < k_num_internal_meshes;
 	}
 
 	namespace detail
@@ -413,6 +420,7 @@ namespace influx::renderer
 		else if constexpr (_e == e_mesh::sphere) return get_inline_mesh_sphere();
 		else if constexpr (_e == e_mesh::triangle) return get_inline_mesh_triangle();
 		else if constexpr (_e == e_mesh::quad) return get_inline_mesh_quad();
+		else if constexpr (_e == e_mesh::placeholder) return get_inline_mesh_box();
 		else
 		{
 			static_assert(false);

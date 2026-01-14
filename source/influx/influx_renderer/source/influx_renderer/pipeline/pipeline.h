@@ -400,24 +400,30 @@ namespace influx::renderer
 				const shader_id id = make_shader_id(shader_signature);
 
 				// check if the resourceman has the shader we require
-				const shader_data& new_shader = resourceman.get<e_resource_type::shader>(id).m_data;
-				const bool is_optional = m_signature.is_shader_optional(shader_type);
-				if (new_shader.is_valid())
+				auto const* shader_entry = resourceman.get<e_resource_type::shader>(id);
+				if (shader_entry == nullptr)
 				{
-					// if new data is newer than previous loadpoint, flag a rebuild
-					if (new_shader.is_newer_than(m_shader_loadpoints[i]))
-					{
-						m_needs_rebuild = true;
-					}
-
-					// re-store the pointer & update the loadpoint
-					m_shaders[i] = &new_shader;
-					m_shader_loadpoints[i] = time::get_now();
+					m_needs_rebuild = true;
+					return;
 				}
-				else
+
+				const shader_data& shader_data = shader_entry->m_data;
+				const bool is_optional = m_signature.is_shader_optional(shader_type);
+				if (!shader_data.is_valid() && !is_optional)
+				{
+					m_needs_rebuild = true;
+					return;
+				}
+
+				// if new data is newer than previous loadpoint, flag a rebuild
+				if (shader_data.is_newer_than(m_shader_loadpoints[i]))
 				{
 					m_needs_rebuild = true;
 				}
+
+				// re-store the pointer & update the loadpoint
+				m_shaders[i] = &shader_data;
+				m_shader_loadpoints[i] = time::get_now();
 			}
 		}
 

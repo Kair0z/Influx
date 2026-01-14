@@ -19,28 +19,29 @@
 // influx::shader
 #include "influx_shader.h"
 
-namespace emb {
-#include "../shaders/embedded_shaders.h"
-}
-
 namespace influx::renderer
 {
-    static constexpr uint32 k_num_gbuffers = 3u;
-    static constexpr graphics::e_format k_gbuffer_formats[k_num_gbuffers]
+    enum class e_gbuffer
     {
+        a,
+        b,
+        c,
+        num
+    };
+    static constexpr uint32 k_num_gbuffers = static_cast<uint32>(e_gbuffer::num);
+    static constexpr graphics::e_format k_gbuffer_formats[k_num_gbuffers] {
         graphics::e_format::rgba_u32,
         graphics::e_format::u32,
         graphics::e_format::u32,
     };
-    static constexpr const char* k_gbuffer_names[k_num_gbuffers]
-    {
+    static constexpr const char* k_gbuffer_names[k_num_gbuffers] {
         "gbuffer_a",
         "gbuffer_b",
         "gbuffer_c",
     };
-    static string get_target_gbuffer_name(uint32 index, const target& target)
+    static string get_target_gbuffer_name(e_gbuffer buffer, const target& target)
     {
-        return k_gbuffer_names[index] + ("_" + target.get_name().get_string());
+        return k_gbuffer_names[static_cast<uint32>(buffer)] + ("_" + target.get_name().get_string());
     }
 
 #pragma region shaders
@@ -53,7 +54,6 @@ namespace influx::renderer
             signature.m_is_bindless = true;
             signature.set_shader_id(graphics_pipeline::e_shader_slot::vs, "basepass::main_vs");
             signature.set_shader_id(graphics_pipeline::e_shader_slot::ps, "basepass::main_ps");
-
             signature.m_primitive_type = graphics::e_primitive_topology_type::triangle;
             signature.m_cullmode = graphics::e_cull_mode::back;
             signature.m_fillmode = graphics::e_fill_mode::solid;
@@ -91,7 +91,6 @@ namespace influx::renderer
 
             once = false;
         }
-        
         return signature;
     }
     static compute_pipeline_signature& get_scene_resolve_pipeline_signature()
@@ -201,12 +200,11 @@ namespace influx::renderer
         for (uint32 i = 0u; i < k_num_inflight_max; ++i)
         {
             auto& buffered = m_buffered[i];
-
             graphics::heap_desc heap_desc{};
             heap_desc.m_type = graphics::e_heap_type::shared;
             graphics::buffer_desc desc{};
-            desc.m_bytesize = k_max_lines * sizeof(frontend::line_gpu_instance_data);
-            desc.m_bytestride = sizeof(frontend::line_gpu_instance_data);
+            desc.m_bytesize = k_max_lines * sizeof(frontend::per_line_instance);
+            desc.m_bytestride = sizeof(frontend::per_line_instance);
             desc.m_init_state = graphics::e_resource_state::gen_read;
             buffered.m_line_instance_buffer = device.create_resource(desc, heap_desc);
             buffered.m_line_instance_buffer->set_name(string("line_instance_buffer_") + to_string(i));
@@ -215,7 +213,7 @@ namespace influx::renderer
 
         // line-render: create 2-element vertexbuffer
         {
-            vector<frontend::line_vertex> vertices = {
+            vector<frontend::vtx_line> vertices = {
                 {.m_position{0.0f, 0.0f, 0.0f}, .m_colour{1,1,1,1}},
                 {.m_position{1.0f, 0.0f, 0.0f}, .m_colour{1,1,1,1}} };
 
@@ -223,12 +221,12 @@ namespace influx::renderer
             heap_desc.m_type = graphics::e_heap_type::shared;
             graphics::buffer_desc desc{};
             desc.m_init_state = graphics::e_resource_state::gen_read;
-            desc.m_bytesize = vertices.size() * sizeof(frontend::line_vertex);
-            desc.m_bytestride = sizeof(frontend::line_vertex);
+            desc.m_bytesize = vertices.size() * sizeof(frontend::vtx_line);
+            desc.m_bytestride = sizeof(frontend::vtx_line);
             m_line_vertex_buffer = device.create_resource(desc, heap_desc);
             m_line_vertex_buffer->map([&vertices](void* target)
             {
-                memcpy(target, vertices.data(), vertices.size() * sizeof(frontend::line_vertex));
+                memcpy(target, vertices.data(), vertices.size() * sizeof(frontend::vtx_line));
             });
         }
 
@@ -239,39 +237,6 @@ namespace influx::renderer
     world_renderer::~world_renderer()
     {
         delete[] m_instance_data;
-    }
-
-    void world_renderer::load_shaders()
-    {
-        renderer_backend& backend = renderer_backend::get_instance();
-        resource_manager& resourceman = backend.get_resource_manager();
-
-        static const auto load_shader =
-            [&resourceman](const string& shadername, const string& entrypoint,
-                unsigned char* cso, uint64 cso_length,
-                unsigned char* refl_blob, uint64 refl_blob_length)
-        {
-            // get the shader bytecode
-            shader::compile_output compile_output{};
-            compile_output.m_bytecode.resize(cso_length);
-            memcpy(compile_output.m_bytecode.data(), cso, cso_length);
-
-            // deserialize the reflection data
-            shader::reflection& reflection = compile_output.m_reflection;
-            shader::reflection::deserialize(reflection, refl_blob, refl_blob_length);
-            
-            shader::shader_signature& signature = compile_output.m_signature;
-            signature.set_entrypoint(entrypoint);
-            signature.set_filename(shadername);
-            signature.set_type(reflection.m_shader_type);
-            signature.set_target(k_shader_target);
-            const shader_id id = make_shader_id(signature);
-            resourceman.load<e_resource_type::shader>(id, shader_data::translate(compile_output), true);
-        };
-
-        load_shader("basepass", "main_vs", emb::basepass_main_vs_cso, emb::basepass_main_vs_cso_len, emb::basepass_main_vs_refl, emb::basepass_main_vs_refl_len);
-        load_shader("basepass", "main_ps", emb::basepass_main_ps_cso, emb::basepass_main_ps_cso_len, emb::basepass_main_ps_refl, emb::basepass_main_ps_refl_len);
-        load_shader("resolvepass", "main_cs", emb::resolvepass_main_cs_cso, emb::resolvepass_main_cs_cso_len, emb::resolvepass_main_cs_refl, emb::resolvepass_main_cs_refl_len);
     }
 
     // 1 draw-call == 1 batch
@@ -393,18 +358,18 @@ namespace influx::renderer
         m_line_instance_data.clear();
         for (const line& line : wv.get_lines())
         {
-            frontend::line_gpu_instance_data instance_data{};
-            instance_data.m_colour = line.m_colour;
-            instance_data.m_start_wp = line.m_points[0u];
-            instance_data.m_end_wp = line.m_points[1u];
-            m_line_instance_data.push_back(instance_data);
+            frontend::per_line_instance instance{};
+            instance.m_colour = line.m_colour;
+            instance.m_start_wp = line.m_points[0u];
+            instance.m_end_wp = line.m_points[1u];
+            m_line_instance_data.push_back(instance);
         }
 
         // map the cpu data to the shared gpu resource
         auto& buffered = get_buffered_current();
         buffered.m_line_instance_buffer->map([this](void* dest)
         {
-            frontend::line_gpu_instance_data* data = reinterpret_cast<frontend::line_gpu_instance_data*>(dest);
+            frontend::per_line_instance* data = reinterpret_cast<frontend::per_line_instance*>(dest);
             for (uint64 i = 0u; i < m_line_instance_data.size(); ++i)
             {
                 data[i] = m_line_instance_data[i];
@@ -473,7 +438,7 @@ namespace influx::renderer
         for (uint32 i = 0u; i < k_num_gbuffers; ++i)
         {
             gbuffer_desc.m_format = k_gbuffer_formats[i];
-            builder.write_rendertarget(get_target_gbuffer_name(i, target), gbuffer_desc, access).get();
+            builder.write_rendertarget(get_target_gbuffer_name((e_gbuffer)i, target), gbuffer_desc, access).get();
         }
 
         rendergraph::texture_desc depth_desc = gbuffer_desc;
@@ -570,7 +535,7 @@ namespace influx::renderer
     {
         for (uint32 i = 0; i < k_num_gbuffers; ++i)
         {
-            builder.read_texture(get_target_gbuffer_name(i, target)).get();
+            builder.read_texture(get_target_gbuffer_name((e_gbuffer)i, target)).get();
         }
         builder.write_texture(target.get_name()).get();
         builder.set_viewport(target.get_width(), target.get_height());
@@ -586,11 +551,9 @@ namespace influx::renderer
         resource_manager& resourceman       = backend.get_resource_manager();
 
         pipeline.rebuild(device);
-
         graphics::commandlist& commandlist = context.get_commandlist();
         pipeline.set_state(commandlist);
 
-        // build resolve args
         struct resolve_args final
         {
             int texture_indices[4u];
@@ -602,6 +565,8 @@ namespace influx::renderer
             math::matrix4x4f inv_projection;
             int num_lights[4u];
         } root_args{};
+
+        // build resolve args
         {
             root_args.screen_size = math::float4(target.get_width(), target.get_height(), 1.0f / target.get_width(), 1.0f / target.get_height());
 
@@ -646,7 +611,6 @@ namespace influx::renderer
         }
 
         pipeline.set_constants<resolve_args>(commandlist, "g_resolve_args", root_args);
-
         const uint32 num_groups_x = target.get_width() / 8u;
         const uint32 num_groups_y = target.get_height() / 8u;
         commandlist.dispatch({ {num_groups_x, num_groups_y, 1u} });

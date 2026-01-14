@@ -99,8 +99,9 @@ namespace influx::engine
 								const math::vectoru2& image_dims = image.m_resource.m_dimensions;
 								ImGui::TextWrapped("%s", name.c_str());
 
-								auto render_tex = renderer.get_texture2D(name);
-								ImGui::Image( reinterpret_cast<ImTextureID>(render_tex), { 24u, 24u });
+								auto get_texture_res = renderer.get_texture2D(name);
+								if (get_texture_res.is_success() && get_texture_res.get() != nullptr)
+									ImGui::Image( reinterpret_cast<ImTextureID>(get_texture_res.get()), { 24u, 24u });
 							}
 						}
 						ImGui::EndTable();
@@ -284,11 +285,11 @@ namespace influx::engine
 		compile_args.m_defines = {};
 #if INFLUX_DEBUG
 		compile_args.set_debug_level(true);
-		compile_args.m_pbd_enabled = true;
+		compile_args.set_pdb_enabled(true);
 		compile_args.m_pdb_folder = to_string(get_engine_directory(engine_directory::shaderpdb).get_full_path()).c_str();
 #else
-		compile_args.m_compile_debug = false;
-		compile_args.m_pbd = false;
+		compile_args.set_debug_level(false);
+		compile_args.set_pdb_enabled(false);
 #endif
 
 		dispatch_for<path>(hlsl_files, [this, root](const path& file)

@@ -100,10 +100,6 @@ namespace influx::renderer
             mp_quad_renderer = new quad_renderer();
             m_rendergraph = new rendergraph::rendergraph({}, *mp_device);
         }
-        
-        // load internal shaders
-        m_world_renderer->load_shaders();
-
         m_is_initialized = true;
     }
 
@@ -156,32 +152,38 @@ namespace influx::renderer
 
     void renderer_backend::end_frame()
     {
-        // resolve all renderjobs
-        get_jobs().endframe();
-
-        // execute the rendergraph build ( no graphics commands yet )
+        // 1. resolve all renderjobs
         {
-            influx_scope("renderer::build_rendergraph");
+            influx_scope("renderer::jobs.endframe()");
+            job_manager& jobman = get_jobs();
+            jobman.endframe();
+        }
+        
+        // 2. build the rendergraph
+        // (this only resolves builds the graph, it doesn't write any GPU commands yet)
+        {
+            influx_scope("renderer::rendergraph.build()");
             m_rendergraph->build();
         }
 
-        // wait for last gpu frame
+        // 3. wait for last gpu frame
         // (too strict, ideally we let CPU get on with some the next frame's work already)
         submit_manager& submanager = get_submit_manager();
         {
-            influx_scope("renderer::wait_for_gpu_frame");
+            influx_scope("renderer::wait_until_gpu_finished");
             submanager.wait_until_last_gpu_frame_finished();
         }
 
-        // here the rendergraph populates the main render command submission with GPU commands
+        // 4. execute the rendergraph
+        // this will write the GPU commands to a commandlist per layer in the graph
         const uint64 num_commandlists = m_rendergraph->get_required_num_commandlists().get();
         if (num_commandlists > 0u && num_commandlists < k_num_child_submissions)
         {
+            // reset (free) the gpu heaps for this frame
             descriptor_manager* descman = get_descriptor_manager();
-
-            // reset & rebind the gpu heaps (of this frame)
             descman->reset_gpu_heaps();
 
+            // bind the gpu heaps to each subcommandlist
             {
                 influx_scope("renderer::bind_gpu_heaps");
                 for (uint32 i = 0u; i < num_commandlists; ++i)
@@ -192,21 +194,24 @@ namespace influx::renderer
                     descman->bind_gpu_heaps(cmdlist);
                 }
             }
+            // render graph starts writing commands to commandlists
             {
-                influx_scope("renderer::rg_write_commandlists");
-                m_rendergraph->write_commandlists([](const uint32 index) -> graphics::commandlist& 
+                influx_scope("renderer::rg.write_commandlists");
+                auto commandlist_obtainer = [](const uint32 index) -> graphics::commandlist&
                 {
+                    // this is the functor that provides a commandlist 
+                    // for each rendergraph layer
                     submit_manager& submanager = get_submit_manager();
                     gpu_submission& submission = submanager.get_submission(e_gpusubmit::render, index);
                     return submission.get_commandlist();
-
-                }, *mp_device);
+                };
+                m_rendergraph->write_commandlists(commandlist_obtainer, *mp_device);
             }
         }
 
         // finally, submit all work to the GPU
         {
-            influx_scope("submit_gpu_frame");
+            influx_scope("renderer::submit_gpu_frame");
             submanager.submit_gpu_frame();
         }
     }
@@ -696,14 +701,22 @@ namespace influx::renderer
         return {};
     }
 
-    const texture2D& renderer_backend::get_texture2D(const tex_id& id) const
+    result<cptr<texture2D>> renderer_backend::get_texture2D(const tex_id& id) const
     {
-        return *m_resource_manager->get<e_resource_type::texture2D>(id).m_resource;
+        using result_type = result<cptr<texture2D>>;
+        if (!m_resource_manager->contains<e_resource_type::texture2D>(id))
+            return result_type::make_error("texture2D at input:id not found!");
+
+        return m_resource_manager->get<e_resource_type::texture2D>(id)->m_resource;
     }
 
-    const texture3D& renderer_backend::get_texture3D(const tex_id& id) const
+    result<cptr<texture3D>> renderer_backend::get_texture3D(const tex_id& id) const
     {
-        return *m_resource_manager->get<e_resource_type::texture3D>(id).m_resource;
+        using result_type = result<cptr<texture3D>>;
+        if (!m_resource_manager->contains<e_resource_type::texture3D>(id))
+            return result_type::make_error("texture3D at input:id not found!");
+
+        return m_resource_manager->get<e_resource_type::texture3D>(id)->m_resource;
     }
 
     string renderer_backend::get_last_executed_rendergraph_dump()
@@ -750,7 +763,7 @@ namespace influx::renderer
     texture2D& renderer_backend::get_default_texture()
     {
         const tex_id tex_none = get_internal_texture_id(e_texture::none);
-        return *m_resource_manager->get<e_resource_type::texture2D>(tex_none).m_resource;
+        return *m_resource_manager->get<e_resource_type::texture2D>(tex_none)->m_resource;
     }
 
     void renderer_backend::upload_texture_data(texture2D* target_tex, const texture2D_data& data)
@@ -770,7 +783,10 @@ namespace influx::renderer
 
     bool renderer_backend::get_mesh_buffers(const mesh_id& id, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer)
     {
-        const mesh_buffers* buffers = m_resource_manager->get<e_resource_type::mesh>(id).m_resource;
+        if (!m_resource_manager->contains<e_resource_type::mesh>(id))
+            return false;
+
+        const mesh_buffers* buffers = m_resource_manager->get<e_resource_type::mesh>(id)->m_resource;
         influx_assert(buffers != nullptr);
 
         out_vertex_buffer = buffers->m_vertexbuffer;
@@ -1054,12 +1070,25 @@ namespace influx::renderer
         return to_string(id);
     }
 
-    const texture2D& get_texture2D(const tex_id& id)
+    string get_mesh_name(const mesh_id& id)
+    {
+        if (is_internal_mesh(id))
+            return get_internal_mesh_name(get_internal_mesh(id));
+
+#if INFLUX_DEBUG
+        if (g_obj_to_name.contains(id))
+            return g_obj_to_name[id];
+#endif
+
+        return to_string(id);
+    }
+
+    result<cptr<texture2D>> get_texture2D(const tex_id& id)
     {
         return renderer_backend::get_instance().get_texture2D(id);
     }
 
-    const texture3D& get_texture3D(const tex_id& id)
+    result<cptr<texture3D>> get_texture3D(const tex_id& id)
     {
         return renderer_backend::get_instance().get_texture3D(id);
     }

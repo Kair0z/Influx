@@ -148,17 +148,14 @@ namespace influx::renderer
 		}
 
 		template <e_resource_type _t>
-		const entry<_t>& get(const resource_sign<_t>& signature) const
+		entry<_t> const* get(const resource_sign<_t>& signature) const
 		{
 			const auto& map = get_resource_map<_t>();
 			if (map.contains(signature))
 			{
-				return map.at(signature);
+				return &map.at(signature);
 			}
-			else
-			{
-				return get_default<_t>();
-			}
+			else return nullptr;
 		}
 
 		template <e_resource_type _t>

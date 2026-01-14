@@ -317,7 +317,7 @@ namespace influx
 		template <typename _t>
 		uint64 find_last_of(const _t& value, uint64 range_begin = 0u) const
 		{
-			return m_wstr.find_last_of(value, range_begin);
+			return m_wstr.find_last_of(static_cast<wchr>(value), range_begin);
 		}
 
 		string substr(const uint64 range_begin, const uint64 range_length = k_max_length) const

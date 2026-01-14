@@ -116,7 +116,7 @@ namespace influx::async
 	static constexpr uint64 k_task_data_stats_bytesize = sizeof(task_stats) + (k_num_timepoints_per_task_data * 8u);
 #endif
 	static constexpr uint64 k_task_data_bytesize = 72u + k_task_data_stats_bytesize;
-	static constexpr uint64 k_taskbuffer_capacity_bytes = 32u * 4096u * 4096u;
+	static constexpr uint64 k_taskbuffer_capacity_bytes = 32u * 4096u;
 	static constexpr uint64 k_max_num_tasks_in_flight = k_taskbuffer_capacity_bytes / k_task_data_bytesize;
 	static constexpr uint64 k_max_num_threads = 16u;
 #pragma endregion

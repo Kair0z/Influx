@@ -44,12 +44,10 @@ function new_influx_project(_name, _kind, _language)
 
         filter "configurations:debug"
             common_debug_config()
-    
         filter "configurations:release"
-           common_release_config()
-
+            common_release_config()
         filter "configurations:profile"
-           common_profile_config()
+            common_profile_config()
 
         -- ending all filters
         filter {}
@@ -211,8 +209,6 @@ end
 
 function set_influx_links(...)
     local influx_base = path.getabsolute("../../..")
-    local thirdparty_libs = influx_base .. "/thirdparty/lib/x64/debug/"
-
     -- non-third party ones (uses link())
     for i, str in ipairs(...) do
         local is_third_party = string.find(str, g_thirdparty_prefix)
@@ -221,6 +217,8 @@ function set_influx_links(...)
         end
     end
 
+    local thirdparty_libs = influx_base .. "/thirdparty/lib/x64/"
+
     -- third-party ones (requires manual in-source linking...)
     for i, str in ipairs(...) do
         local prefix_start, prefix_end = string.find(str, g_thirdparty_prefix)
@@ -228,12 +226,21 @@ function set_influx_links(...)
             -- found the prefix, so it's a thirdparty lib
             str = string.sub(str, prefix_end + 1)
             
-            local dep_folder = thirdparty_libs .. str
-            -- print(dep_folder)
-            if os.isdir(dep_folder) then
-                libdirs(dep_folder)
-                -- links(str)
-            end
+            filter "configurations:debug"
+                local dep_folder = thirdparty_libs .. "/debug/" .. str
+                if os.isdir(dep_folder) then
+                    libdirs(dep_folder)
+                end
+            filter "configurations:release"
+                local dep_folder = thirdparty_libs .. "/release/" .. str
+                if os.isdir(dep_folder) then
+                    libdirs(dep_folder)
+                end
+            filter "configurations:profile"
+                local dep_folder = thirdparty_libs .. "/profile/" .. str
+                if os.isdir(dep_folder) then
+                    libdirs(dep_folder)
+                end
         end
     end
     filter {}
@@ -244,21 +251,27 @@ function common_cpp_config()
 end
 
 function common_debug_config()
-    defines "INFLUX_DEBUG"
+    defines "INFLUX_DEBUG=1"
+    defines "INFLUX_RELEASE=0"
+    defines "INFLUX_PROFILE=0"
     runtime "Debug"
     optimize "off"
     symbols "on"
 end
 
 function common_release_config()
-    defines "INFLUX_RELEASE"
+    defines "INFLUX_DEBUG=0"
+    defines "INFLUX_RELEASE=1"
+    defines "INFLUX_PROFILE=0"
     runtime "Release"
     optimize "on"
     symbols "off"
 end
 
 function common_profile_config()
-    defines "INFLUX_PROFILE"
+    defines "INFLUX_DEBUG=0"
+    defines "INFLUX_RELEASE=0"
+    defines "INFLUX_PROFILE=1"
     runtime "Release"
     optimize "on"
     symbols "off"

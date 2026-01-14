@@ -45,6 +45,11 @@ namespace influx::engine
 		}
 	};
 
+	void render_view_editor(const render_view& view)
+	{
+
+	}
+
 	class render_editor final : public editor::editor_window
 	{
 	public:
@@ -72,12 +77,42 @@ namespace influx::engine
 			{
 				ImGui::Checkbox("debug render: ", &g_global_settings.m_render_debug);
 			}
-			
-			// 
+
 			render_manager& renderman = engine::get_instance().get_renderer();
-			for (const auto& tex_id : renderer::get_loaded_textures())
+			if (ImGui::BeginTabBar("resources"))
 			{
-				ImGui::Text("texture: %s", renderer::get_resource_name(tex_id).c_str());
+				if (ImGui::BeginTabItem("textures"))
+				{
+					for (const renderer::tex_id& tex_id : renderer::get_loaded_textures())
+					{
+						ImGui::Text("texture: %s", renderer::get_resource_name(tex_id).c_str());
+					}
+					ImGui::EndTabItem();
+				}
+				if (ImGui::BeginTabItem("meshes"))
+				{
+					for (const renderer::mesh_id& mesh_id : renderer::get_loaded_meshes())
+					{
+						ImGui::Text("mesh: %s", renderer::get_mesh_name(mesh_id).c_str());
+					}
+					ImGui::EndTabItem();
+				}
+				ImGui::EndTabBar();
+			}
+
+			if (ImGui::BeginTabBar("renderviews"))
+			{
+				for (uint32 i = 0u; i < k_num_render_views; ++i)
+				{
+					e_render_view view = (e_render_view)i;
+					const char* viewname = k_render_view_names[i];
+					const auto& viewworld = renderman.get_renderview(view).get_renderworld();
+					if (ImGui::BeginTabItem(viewname))
+					{
+						ImGui::EndTabItem();
+					}
+				}
+				ImGui::EndTabBar();
 			}
 
 			// update settings
@@ -259,8 +294,8 @@ namespace influx::engine
 		return renderer::has_texture(name);
 	}
 
-	cptr<render_texture2D> render_manager::get_texture2D(const string& name) const
+	result<cptr<render_texture2D>> render_manager::get_texture2D(const string& name) const
 	{
-		return &renderer::get_texture2D(name);
+		return renderer::get_texture2D(name);
 	}
 }

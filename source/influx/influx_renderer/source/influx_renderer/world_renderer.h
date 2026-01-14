@@ -39,10 +39,7 @@ namespace influx::renderer
 		world_renderer();
 		~world_renderer();
 
-		/* compile & load internal shaders */
-		void load_shaders();
-
-		/* add passes to render graph */
+		// add passes to rendergraph
 		void build(rendergraph::rendergraph& graph, const worldview& wv, const target& target);
 
 	private:
@@ -79,7 +76,7 @@ namespace influx::renderer
 		graphics::resource* m_line_vertex_buffer;
 
 		// this is the cached CPU-side data
-		vector<frontend::line_gpu_instance_data> m_line_instance_data;
+		vector<frontend::per_line_instance> m_line_instance_data;
 		frontend::per_scene m_gpu_perscene;
 		frontend::per_view m_gpu_perview;
 		frontend::per_material m_gpu_permaterial;

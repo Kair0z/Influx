@@ -7,7 +7,6 @@
 #include "core/basetypes.h"
 #include "core/math/vector.h"
 #include "core/math/matrix.h"
-
 typedef influx::math::matrix4x4f	float4x4;
 typedef influx::math::float4		float4;
 typedef influx::math::float3		float3;
@@ -17,7 +16,6 @@ typedef influx::math::uint3			uint3;
 typedef influx::math::uint2			uint2;
 typedef influx::uint32				uint;
 #else
-
 #endif
 
 struct per_scene
@@ -56,27 +54,6 @@ struct per_instance
 	uint4 m_texture_indices;
 };
 
-struct line_gpu_instance_data
-{
-	float3 m_start_wp;
-	float3 m_end_wp;
-	float4 m_colour;
-};
-struct line_vertex
-{
-	float3 m_position;
-	float4 m_colour;
-	uint m_id;
-};
-
-struct per_vertex
-{
-	float3 m_position;
-	float4 m_colour;
-	float3 m_normal;
-	float2 m_texcoord;
-};
-
 struct per_pointlight
 {
 	float4 m_position;
@@ -94,4 +71,25 @@ struct per_dirlight
 	float4 m_colour;
 };
 
+struct per_line_instance
+{
+	float3 m_start_wp;
+	float3 m_end_wp;
+	float4 m_colour;
+};
+
+struct vtx_line
+{
+	float3 m_position;
+	float4 m_colour;
+	uint m_id;
+};
+
+struct vtx_mesh
+{
+	float3 m_position;
+	float4 m_colour;
+	float3 m_normal;
+	float2 m_texcoord;
+};
 #endif // SHADER_FRONTEND_H
