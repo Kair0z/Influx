@@ -143,7 +143,7 @@ namespace influx::engine
 	content_manager::content_manager()
 	{
 		// immediately start kicking engine loading (may as well)
-		load_engine_assets();
+		// load_engine_assets();
 		editor::editor_manager::static_window<content_ui>("content");
 	}
 

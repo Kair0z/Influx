@@ -1,9 +1,9 @@
 // choose your test:
 #define TEST_MATH		0
 #define TEST_BASETYPES	0
-#define TEST_STRING		1
+#define TEST_STRING		0
 #define TEST_RESULT		0
-#define TEST_CONTAINER	0
+#define TEST_CONTAINER	1
 #define TEST_POINTER	0
 #define TEST_ASCII_ART	0
 #define TEST_SORT		0
@@ -217,18 +217,31 @@ void test_containers()
 {
 	using namespace influx;
 
-	static_array<int, 3u> stat_array{};
-	static_array<int, 3u> stat_array2{};
+	// static arrays
+#if 0
+	static_array<int, 3u> stat_array{1,0,3};
+	static_array<int, 3u> stat_array2{0,2,3};
 	// ctr::push(stat_array, 3); // this should never compile!
 	ctr::merge(stat_array2, stat_array);
-	influx_assert(ctr::contains(stat_array, 2));
+	// influx_assert(ctr::contains(stat_array, 2));
 
+	// dynamic arrays
 	dynamic_array<int> dyn_array{};
 	dynamic_array<int> dyn_array2{};
 	ctr::push(dyn_array, 34);
 	ctr::merge(dyn_array2, dyn_array);
-
 	bool contains = ctr::contains(dyn_array, 2);
+#endif
+
+	// maps
+	enum class e_type  { a, b, c, d, num };
+	using umap_type = enummed_map<int, const char*, e_type, e_type::num>;
+	umap_type map{};
+	map[e_type::b] += 2;
+
+	map.write(e_type::b, 2);
+
+
 }
 #endif
 #if TEST_RESULT

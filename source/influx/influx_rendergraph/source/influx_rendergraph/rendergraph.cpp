@@ -1490,9 +1490,10 @@ namespace influx::rendergraph
 		if (viewdescs[desc_type_idx].m_is_active && viewdescs[desc_type_idx] == view_desc)
 		{
 			auto readwrite_id = rgid_uav_buff(desc_type_idx, id);
-			if (auto it = m_buffer_uav_counter_map.find(readwrite_id); it != m_buffer_uav_counter_map.end())
+			if (m_buffer_uav_counter_map.contains(readwrite_id))
 			{
-				if (it->second == cnt_id) return readwrite_id;
+				auto& found = m_buffer_uav_counter_map.at(readwrite_id);
+				if (found == cnt_id) return readwrite_id;
 			}
 		}
 
@@ -1500,7 +1501,7 @@ namespace influx::rendergraph
 		viewdescs[desc_type_idx] = view_desc;
 		viewdescs[desc_type_idx].m_is_active = true;
 		auto rw_id = rgid_uav_buff(desc_type_idx, id);
-		m_buffer_uav_counter_map.insert(std::make_pair(rw_id, cnt_id));
+		m_buffer_uav_counter_map.write(rw_id, cnt_id);
 		return rw_id;
 	}
 

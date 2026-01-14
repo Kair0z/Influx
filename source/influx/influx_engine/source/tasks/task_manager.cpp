@@ -10,11 +10,11 @@ namespace influx::engine
 	{
 		async::init_args async_args{};
 		async_args.m_num_workers = 1u;
-		async::initialize(async_args);
+		// async::initialize(async_args);
 	}
 
 	task_manager::~task_manager()
 	{
-		async::shutdown();
+		// async::shutdown();
 	}
 }

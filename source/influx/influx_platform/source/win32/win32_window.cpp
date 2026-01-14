@@ -610,7 +610,7 @@ namespace influx::platform
 	win32_window::~win32_window()
 	{
 		if (g_handle_to_window_map.contains((::HWND)m_handle))
-			g_handle_to_window_map.erase((::HWND)m_handle);
+			g_handle_to_window_map.remove((::HWND)m_handle);
 
 		::DestroyWindow((::HWND)m_handle);
 	}
