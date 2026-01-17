@@ -7,6 +7,7 @@
 #include "scene/scene.h"
 #include "component/component.h"
 #include "rendering/render_manager.h"
+#include "content/content_manager.h"
 #include "editor/editor_manager.h"
 
 // influx::renderer
@@ -56,6 +57,7 @@ namespace influx::engine::editor
 		return renderman.get_renderview(e_render_view::scene_editor);
 	}
 
+	// places an object
 	void scene_editor::on_edit_place()
 	{
 		world& world = get_engine()->get_world();
@@ -65,7 +67,8 @@ namespace influx::engine::editor
 			transform.set_identity();
 
 			mesh_component& mesh = world.create_component<mesh_component>(entity);
-			mesh.set_mesh_name("sphere_0");
+			const assets::mesh_id msh_id = assets::make_mesh_id("sphere_0");
+			mesh.set_mesh_id(msh_id);
 
 			render_component& render = world.create_component<render_component>(entity);
 			render.set_view_visibility(e_view_visibility_flags::all);
@@ -99,7 +102,26 @@ namespace influx::engine::editor
 		m_edit_radial.set_item("place", scene_editor::on_edit_place);
 		m_edit_radial.set_item("remove", scene_editor::on_edit_remove);
 
-		on_edit_place();
+		// temp: auto-place an entity
+		world& world = get_engine()->get_world();
+		const asset_manager& content = get_engine()->get_assetman();
+		const assets::scene_id sc_id = assets::make_scene_id("cafeleblanc.fbx");
+		cptr<assets::scene_asset> asset = content.find_asset<assets::e_asset_type::scene>(sc_id);
+		const imp::scene_data& scene_data = asset->get_resource().m_imported_data;
+
+		for (const auto& mesh : scene_data.get_meshes())
+		{
+			auto entity = world.create_entity();
+			transform_component& transform = world.create_component<transform_component>(entity);
+			transform.set_identity();
+			mesh_component& mesh_comp = world.create_component<mesh_component>(entity);
+			const string& mesh_name = scene_data.get_name(mesh);
+			assets::mesh_id mesh_id = assets::make_mesh_id(mesh_name);
+			mesh_comp.set_mesh_id(mesh_id);
+
+			render_component& render = world.create_component<render_component>(entity);
+			render.set_view_visibility(e_view_visibility_flags::all);
+		}
 	}
 
 	scene_editor::~scene_editor()

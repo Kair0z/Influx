@@ -39,6 +39,7 @@ namespace influx::engine
 	{
 		cvar::parse_runargs(argc, argv);
 
+		// check run args
 		for (int i = 0u; i < argc; ++i)
 		{
 			const string& argument = argv[i];
@@ -61,6 +62,20 @@ namespace influx::engine
 			}
 			m_run_args.push_back(argv[i]);
 		}
+
+		// read the config.cfg as run args
+		const string config_filepath = get_engine_directory(engine_directory::config).get_full_path() + "config.cfg";
+		if (path::exists(config_filepath))
+		{
+			auto get_lines_result = path::get_lines(config_filepath, 0u);
+			const vector<string>& lines = get_lines_result.get();
+			for (const string& line : lines)
+			{
+				const char* args[]  = {line.c_str()};
+				cvar::parse_runargs(1, args, 0);
+			}
+		}
+
 		return {};
 	}
 
@@ -79,7 +94,7 @@ namespace influx::engine
 		/* make misc managers (order matters here :) )*/
 		m_taskman		= new task_manager();
 		m_inputman		= new input_manager();
-		m_contentman	= new content_manager();
+		m_contentman	= new asset_manager();
 		m_gameman		= new game_manager();
 
 		/* create window& renderer */
@@ -289,7 +304,7 @@ namespace influx::engine
 		return *get_engine()->m_logman;
 	}
 
-	content_manager& engine::get_content()
+	asset_manager& engine::get_assetman()
 	{
 		return *m_contentman;
 	}
@@ -346,6 +361,13 @@ namespace influx::engine
 			return get_engine()->m_parsed_run_args[title];
 		}
 		return "";
+	}
+	result<> engine::get_argc_argv(int& out_argc, char**& out_argv) const
+	{
+		using result_type = result<>;
+		out_argc = m_argc;
+		out_argv = m_argv;
+		return {};
 	}
 }
 

@@ -186,6 +186,7 @@ function add_thirdparty_source(...)
     for i, dep in ipairs(...) do
         local prefix_start, prefix_end = string.find(dep, g_thirdparty_prefix)
         if prefix_end then
+            print(dep)
             dep = string.sub(dep, prefix_end + 1)
             local found_srcdir = thirdparty_source .. dep .. "/"
             -- print("TP SOURCE:" .. found_srcdir)

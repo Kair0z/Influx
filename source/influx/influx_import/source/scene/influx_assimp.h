@@ -480,6 +480,12 @@ namespace influx
 					// translate mesh:
 					imp::scene_data::mesh mesh_data = translate(*mesh);
 
+					result.m_names.push_back({});
+					const uint32 new_name_index = result.m_names.size() - 1u;
+					string& new_name = result.m_names.back();
+					new_name = translate(mesh->mName);
+					mesh_data.m_name_id = new_name_index;
+					
 					// calc world matrix:
 					result.m_world_transforms.push_back({});
 					const uint32 new_matrix_index = result.m_world_transforms.size() - 1u;

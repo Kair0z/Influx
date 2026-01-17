@@ -25,6 +25,7 @@ struct ImDrawData;
 #include "core/material/material.h"
 #include "core/time.h"
 #include "core/result.h"
+#include "core/commandline.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -45,7 +46,7 @@ namespace influx::renderer
 {
 	/*
 		global render settings
-		- these can be changed at runtime anytime
+		- these can be changed at runtime at anytime
 	*/
 	struct render_settings final
 	{
@@ -56,7 +57,7 @@ namespace influx::renderer
 	INFLUX_RENDER_API void set_settings(const render_settings& settings);
 	INFLUX_RENDER_API render_settings get_settings();
 
-	/* 
+	/*
 		initialize the renderer backend 
 		- optional logger callback
 		- internal graphics API (dx12 / vulkan)
@@ -67,12 +68,11 @@ namespace influx::renderer
 
 	struct init_args final
 	{
-		log_function m_log_func			= nullptr;
-		e_render_api m_api_type			= e_render_api::dx12;
-		render_settings m_init_settings = {};
+		int m_argc; char** m_argv;
 
-		// if empty, the default source folder is used
-		string m_shader_source_folder = "";
+		log_function	m_log_func = nullptr;
+		e_render_api	m_api_type = e_render_api::dx12;
+		render_settings m_init_settings = {};
 	};
 
 	INFLUX_RENDER_API void initialize(const init_args& args);

@@ -45,6 +45,10 @@ namespace influx::imp
 
 	struct scene_data final
 	{
+		using name_id = uint64;
+		using transform_id = uint64;
+		static constexpr name_id k_invalid_id = (uint64)-1u;
+
 		struct animation final
 		{
 			struct channel final
@@ -96,18 +100,21 @@ namespace influx::imp
 
 			uint32 m_material_index{};
 			uint32 m_transform_index{};
+			name_id m_name_id = k_invalid_id;
 		};
 
 		struct camera final
 		{
-			influx::camera m_camera = {};
-			uint32 m_transform_index{};
+			influx::camera	m_camera = {};
+			transform_id	m_transform_index = k_invalid_id;
+			name_id			m_name_id = k_invalid_id;
 		};
 
 		struct light final
 		{
-			influx::light m_light = {};
-			uint32 m_transform_index{};
+			influx::light	m_light = {};
+			transform_id	m_transform_index{};
+			name_id			m_name_id = k_invalid_id;
 		};
 
 		vector<mesh>				m_meshes{};
@@ -115,6 +122,7 @@ namespace influx::imp
 		vector<camera>				m_cameras{};
 		vector<influx::material>	m_materials{};
 		vector<math::matrix4x4f>	m_world_transforms;
+		vector<string>				m_names{};
 		uint32						m_num_materials{};
 
 		/* returns identity if the index for some reason isn't sound... */
@@ -122,6 +130,9 @@ namespace influx::imp
 		INFLUX_ASSETS_API const math::matrix4x4f& get_transform(const light& light) const;
 		INFLUX_ASSETS_API const math::matrix4x4f& get_transform(const camera& camera) const;
 		
+		const string& get_name(const name_id id) const { if (id == k_invalid_id) return "noname"; else return m_names[id]; }
+		const string& get_name(const mesh& mesh) const { return get_name(mesh.m_name_id); }
+
 		inline const mesh& get_main_mesh() const { return m_meshes[0]; }
 		inline const mesh& get_mesh(const uint32 i) const { return m_meshes[i % m_meshes.size()]; }
 		inline mesh& get_mesh(const uint32 i) { return m_meshes[i % m_meshes.size()]; }

@@ -10,7 +10,6 @@
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
 #include "influx_renderer/world_renderer.h"
-#include "influx_renderer/quad_renderer.h"
 #include "influx_renderer/renderer_imgui.h"
 #include "influx_renderer/resources/resource_manager.h"
 #include "influx_renderer/submitmanager.h"
@@ -97,7 +96,6 @@ namespace influx::renderer
             m_resource_manager = new resource_manager();
             mp_imgui = new imgui_manager(mp_device);
             m_world_renderer = new world_renderer();
-            mp_quad_renderer = new quad_renderer();
             m_rendergraph = new rendergraph::rendergraph({}, *mp_device);
         }
         m_is_initialized = true;
@@ -125,7 +123,6 @@ namespace influx::renderer
         delete mp_upload_manager; mp_upload_manager = nullptr;
         delete mp_imgui; mp_imgui = nullptr;
         delete m_world_renderer; m_world_renderer = nullptr;
-        delete mp_quad_renderer; mp_quad_renderer = nullptr;
         delete m_resource_manager; m_resource_manager = nullptr;
         delete m_rendergraph;
         m_rendergraph = nullptr;
@@ -781,17 +778,23 @@ namespace influx::renderer
         return names;
     }
 
-    bool renderer_backend::get_mesh_buffers(const mesh_id& id, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer)
+    result<> renderer_backend::get_mesh_buffers(const mesh_id& id, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer)
     {
+        using result_type = result<>;
         if (!m_resource_manager->contains<e_resource_type::mesh>(id))
-            return false;
+            return result_type::make_error("resource_manager id not found!");
 
         const mesh_buffers* buffers = m_resource_manager->get<e_resource_type::mesh>(id)->m_resource;
         influx_assert(buffers != nullptr);
 
         out_vertex_buffer = buffers->m_vertexbuffer;
         out_index_buffer = buffers->m_indexbuffer;
-        return true;
+        return {};
+    }
+
+    result<> renderer_backend::get_default_mesh_buffers(graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer)
+    {
+        return get_mesh_buffers(get_internal_mesh_id(e_mesh::placeholder), out_vertex_buffer, out_index_buffer);
     }
 
     memory_info renderer_backend::get_memory_info() const

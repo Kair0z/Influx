@@ -21,6 +21,8 @@
 
 namespace influx::engine
 {
+	using namespace assets;
+
 	template <typename _t, typename _func>
 	inline result<> dispatch_for(const vector<_t>& vector, _func&& func)
 	{
@@ -43,18 +45,10 @@ namespace influx::engine
 	public:
 		virtual void on_run() override
 		{
-			static content_manager& content = get_engine()->get_content();
+			static asset_manager& content = get_engine()->get_assetman();
 			static render_manager& renderer = get_engine()->get_renderer();
 
 			set_name("content");
-
-			if (ImGui::Button("recomp_shaders"))
-			{
-				for (auto& pair : content.touch_shaders())
-				{
-					pair.second.reload();
-				}
-			}
 
 			if (ImGui::BeginTabBar("content"))
 			{
@@ -115,7 +109,7 @@ namespace influx::engine
 					// "shader:filepath"
 					for (const auto& pair : content.get_shaders())
 						if (pair.second.is_loaded())
-							ImGui::Text("shader:%s - ms:%f", pair.first.c_str(), pair.second.get_load_ms());
+							ImGui::Text("shader:%ull - ms:%f", pair.first, pair.second.get_load_ms());
 					ImGui::EndTabItem();
 				}
 
@@ -140,119 +134,122 @@ namespace influx::engine
 		
 	};
 
-	content_manager::content_manager()
+	asset_manager::asset_manager()
 	{
 		// immediately start kicking engine loading (may as well)
 		// load_engine_assets();
 		editor::editor_manager::static_window<content_ui>("content");
+
+		const path engine_assets_dir = get_engine_directory(engine_directory::assets);
+		load_file(engine_assets_dir.get_full_path() + "/meshes/cafeleblanc.fbx");
 	}
 
-	content_manager::~content_manager()
+	asset_manager::~asset_manager()
 	{
-	}
-
-	const umap<string, scene_asset>& content_manager::get_scenes() const
-	{
-		return m_scenes;
-	}
-
-	const umap<string, image_asset>& content_manager::get_images() const
-	{
-		return m_images;
-	}
-
-	const umap<string, shader_asset>& content_manager::get_shaders() const
-	{
-		return m_shaders;
-	}
-
-	const umap<string, cubemap_asset>& content_manager::get_cubemaps() const
-	{
-		return m_cubemaps;
-	}
-
-	/* get all shaders as mutable reference */
-	umap<string, shader_asset>& content_manager::touch_shaders()
-	{
-		return m_shaders;
 	}
 
 	/* loads all engine assets (/engine/assets/...) */
-	void content_manager::load_engine_assets()
+	void asset_manager::load_engine_assets()
 	{
 		const auto engine_assets_dir = get_engine_directory(engine_directory::assets);
 		load_assets(e_asset_origin::engine, engine_assets_dir);
 	}
 
 	/* loads all game assets (/game_name/assets/...) */
-	void content_manager::load_game_assets(const string& game_name)
+	void asset_manager::load_game_assets(const string& game_name)
 	{
 		const auto project_assets_dir = get_project_directory(game_name, game_directory::assets);
 		load_assets(e_asset_origin::project, project_assets_dir);
 	}
 
+	result<> asset_manager::load_fbx(const path& filepath)
+	{
+		return load_scene(filepath);
+	}
+
+	result<> asset_manager::load_obj(const path& filepath)
+	{
+		return load_scene(filepath);
+	}
+
+	result<> asset_manager::load_scene(const path& filepath)
+	{
+		using result_type = result<>;
+		const bool without_extension = false;
+		const string filename = to_string(filepath.get_filename(without_extension));
+
+		imp::scene_load_args args{};
+		args.m_bake_transforms = true;
+		args.m_pre_scale = 1;
+
+		const scene_id scene_id = make_scene_id(filename);
+		scene_asset& item = m_scenes[scene_id];
+
+		auto load_res = item.load(filepath, args);
+		if (load_res.is_fail())
+			return result_type::make_error("load scene failed!");
+
+		// get the imp::scene from the loaded scene, and load each separate mesh as an asset
+		cptr<scene_data> loaded_scene = load_res.get();
+		const imp::scene_data& imp_scene = loaded_scene->m_imported_data;
+		for (const imp::scene_data::mesh& mesh : imp_scene.get_meshes())
+		{
+			const string mesh_name = imp_scene.get_name(mesh);
+			mesh_id mesh_id = make_mesh_id(mesh_name);
+
+			mesh_data mesh_data{};
+			mesh_data.m_imported_data = mesh;
+			load_mesh(mesh_id, mesh_data).get();
+		}
+	}
+
+	result<> asset_manager::load_mesh(const mesh_id& id, const mesh_data& data)
+	{
+		using result_type = result<>;
+		mesh_asset& item = m_meshes[id];
+		item.load()
+	}
+
 	/* loads a single asset file at path into the content manager */
-	result<> content_manager::load_file(const string& path_str)
+	result<> asset_manager::load_file(const string& path_str)
 	{
 		using result_type = result<>;
 
 		if (!path::exists(path_str))
-			return result_type::make_error("file at path not found!");
+			return result_type::make_error("path_str is an invalid path!");
 
+		// query the asset type
 		const path as_path = path(path_str);
-
-		const bool without_extension = false;
-		const string& filename = to_string(as_path.get_filename(without_extension));
-
 		auto asset_type_res = get_asset_type_from_extension(to_string(as_path.get_extension()));
 		if (asset_type_res.is_fail())
 		{
 			return result_type::make_error("failed finding asset_type from file's extension!");
 		}
 
+		// handle the asset type
 		switch (asset_type_res.get())
 		{
 		default:
-		case e_asset_type::count:
-			return result_type::make_error("deducting image load args for this file extension not supported yet...");
-
 		case e_asset_type::scene:
-			m_scenes[filename].load(path_str, k_default_scene_import_args);
+			load_scene(as_path).get();
 			return {};
-			break;
 		}
 
 		return result_type::make_error("failed loading file...");
 	}
 
 	/* given an origin (category), load all assets in that category */
-	void content_manager::load_assets(e_asset_origin origin, const path& root)
+	void asset_manager::load_assets(e_asset_origin origin, const path& root)
 	{
 		const string& root_path_str = to_string(root.get_full_path());
 		const vector<path> fbx_files = path::get_files_in_directory(root_path_str, true, ".fbx").get();
 		const vector<path> obj_files = path::get_files_in_directory(root_path_str, true, ".obj").get();
 		const vector<path> png_files = path::get_files_in_directory(root_path_str, true, ".png").get();
 		
-		// load fbxs & objs
 #if 0
-		dispatch_for<path>(obj_files, [this](const path& file)
-		{
-			imp::scene_load_args args{};
-			args.m_bake_transforms = true;
-			args.m_pre_scale = 1;
-			const bool without_extension = false;
-			scene_asset& item = m_scenes[to_string(file.get_filename(without_extension))];
-			item.load(file, args);
-		});
-		dispatch_for<path>(fbx_files, [this](const path& file)
-		{
-			imp::scene_load_args args{};
-			args.m_bake_transforms = true;
-			args.m_pre_scale = 1;
-			const bool without_extension = false;
-			scene_asset& item = m_scenes[to_string(file.get_filename(without_extension))];
-			item.load(file, args);
-		});
+		// load fbxs & objs
+		dispatch_for<path>(obj_files, [this](const path& file) { load_scene(file).get(); });
+		dispatch_for<path>(fbx_files, [this](const path& file) { load_scene(file).get(); });
 #endif
 
 		// load_shaders(origin, root);
@@ -263,13 +260,14 @@ namespace influx::engine
 			const bool without_extension = false;
 			const string& filename = to_string(file.get_filename(without_extension));
 
+			const image_id img_id = make_image_id(filename);
 			imp::image_load_args args{};
-			image_asset& item = m_images[filename];
+			image_asset& item = m_images[img_id];
 			item.load(file, args, true);
 		});
 	}
 
-	void content_manager::load_shaders(e_asset_origin origin, const path& root)
+	void asset_manager::load_shaders(e_asset_origin origin, const path& root)
 	{
 		const string& root_path_str = to_string(root.get_full_path());
 		const vector<path> hlsl_files = path::get_files_in_directory(root_path_str, true, ".hlsl").get();
@@ -314,7 +312,8 @@ namespace influx::engine
 					const shader::shader_signature parsed_signature = shader.m_signature;
 					const string& parsed_tag = parsed_signature.get_tag();
 
-					shader_asset& cs_item = m_shaders[parsed_tag];
+					const shader_id sh_id = make_shader_id(parsed_tag);
+					shader_asset& cs_item = m_shaders[sh_id];
 					cs_item.load(file, load_args, true);
 				}
 		});

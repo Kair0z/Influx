@@ -322,7 +322,14 @@ namespace influx::renderer
         {
             graphics::resource* vertexbuffer = nullptr;
             graphics::resource* indexbuffer = nullptr;
-            if (backend.get_mesh_buffers(pair.first, vertexbuffer, indexbuffer))
+            
+            auto found_mesh_buffers = backend.get_mesh_buffers(pair.first, vertexbuffer, indexbuffer);
+            if (found_mesh_buffers.is_fail())
+            {
+                backend.get_default_mesh_buffers(vertexbuffer, indexbuffer).get();
+            }
+
+            if (vertexbuffer && indexbuffer)
             {
                 batches.push_back({});
                 draw_batch& batch = batches.back();

@@ -4,7 +4,7 @@
 // influx::imp
 #include "influx_import.h"
 
-namespace influx::engine
+namespace influx::engine::assets
 {
 	result<imp::scene_data> load_scene_data(const string& path, const imp::scene_load_args& args)
 	{
@@ -18,7 +18,7 @@ namespace influx::engine
 	{
 		return imp::load_cubemap(path, args);
 	}
-	result<shader_vector> load_shader_data(const string& path, const imp::shader_load_args& args)
+	result<vector<imp::shader_data>> load_shader_data(const string& path, const imp::shader_load_args& args)
 	{
 		return imp::load_shaders_in_file(path, args);
 	}

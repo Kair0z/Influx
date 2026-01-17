@@ -18,6 +18,7 @@
 // influx::engine
 #include "collision/collision.h"
 #include "rendering/render_manager.h"
+#include "content/asset.h"
 
 namespace influx::engine
 {
@@ -258,18 +259,17 @@ namespace influx::engine
 	class mesh_component final 
 		: public detail::tcomponent<e_component::mesh>
 	{
+		bool m_is_visible;
+		assets::mesh_id m_mesh_id = assets::k_invalid_id;
+
+		// -- filled in when asset is loaded
+		math::boxf m_mesh_boundbox;
+		math::spheref m_mesh_boundsphere;
+		float m_normalized_scale;
+		friend class world;
+
 	public:
 		mesh_component() = default;
-
-		void set_mesh_name(const string& path)
-		{
-			m_mesh_name = path;
-		}
-
-		const string& get_mesh_name() const
-		{
-			return m_mesh_name;
-		}
 
 		void set_visible(bool new_vis)
 		{
@@ -281,18 +281,14 @@ namespace influx::engine
 			return m_is_visible;
 		}
 
+		void set_mesh_id(const assets::mesh_id& id) {
+			m_mesh_id = id;
+		}
+		assets::mesh_id get_mesh_id() const {
+			return m_mesh_id;
+		}
 		influx_property_readwrite(bool, use_normalized_scale);
 		influx_property_readwrite(bool, invert_normals);
-
-	private:
-		string m_mesh_name;
-		bool m_is_visible;
-
-		// -- filled in when asset is loaded
-		math::boxf m_mesh_boundbox;
-		math::spheref m_mesh_boundsphere;
-		float m_normalized_scale;
-		friend class world;
 	};
 
 	class material_component final 

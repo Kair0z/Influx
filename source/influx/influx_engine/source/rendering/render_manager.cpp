@@ -126,16 +126,29 @@ namespace influx::engine
 	render_manager::render_manager()
 		: m_imgui{}
 	{
-		// create renderer
 		influx::renderer::init_args render_init_args{};
+		get_engine()->get_argc_argv(render_init_args.m_argc, render_init_args.m_argv).get();
+
+		// choose render backend
 		render_init_args.m_api_type = influx::renderer::e_render_api::dx12;
+		if (cv_ren_gfx_backend.is_set())
+		{
+			switch ((e_render_backend)cv_ren_gfx_backend.get_value<int>())
+			{
+			case e_render_backend::d3d12:
+				render_init_args.m_api_type = influx::renderer::e_render_api::dx12;
+				break;
+			case e_render_backend::vulkan:
+				render_init_args.m_api_type = influx::renderer::e_render_api::vulkan;
+				break;
+			}
+		}
+		
 		// render_init_args.m_api_type = influx::renderer::e_render_api::vulkan;
 		render_init_args.m_log_func = [](renderer::e_log, const char* message)
 		{
 			engine::log(e_log_category::info, message);
 		};
-		const string& engine_assets_directory = to_string(get_engine_directory(engine_directory::assets).get_full_path());
-		render_init_args.m_shader_source_folder = engine_assets_directory + "/engine/shaders/";
 		influx::renderer::initialize(render_init_args);
 
 		// static editor
@@ -232,7 +245,7 @@ namespace influx::engine
 		renderer::present_all({ .m_vsync = false });
 	}
 
-	void render_manager::stream_content(const content_manager& cont_man)
+	void render_manager::stream_content(const asset_manager& cont_man)
 	{
 		m_streamer.stream(cont_man);
 	}

@@ -3,7 +3,7 @@
 // influx::core
 #include "core/time.h"
 #include "core/result.h"
-
+#include "core/commandline.h"
 namespace influx::engine
 {
 	struct frame_time final
@@ -73,4 +73,13 @@ namespace influx::engine
 	{
 
 	}
+	
+	/// cvars
+	enum class e_render_backend : uint32
+	{
+		d3d12	= 0,
+		vulkan	= 1,
+		num
+	};
+	inline static cvar cv_ren_gfx_backend("cv_ren_gfx_backend", "0", "what backend to use for rendering (0=dx12, 1=vulkan)");
 }

@@ -15,6 +15,7 @@ namespace influx::engine
 	enum class engine_directory : uint8
 	{
 		root,			/* /Influx/... */
+		config,			/* /Influx/config/... */
 		assets,			/* /Influx/assets/... */
 		assets_gen,		/* /Influx/assets/generated/... */
 		staged,			/* /Influx/staged/... */
@@ -42,7 +43,8 @@ namespace influx::engine
 		switch (directory)
 		{
 			case engine_directory::root:			return root;
-			case engine_directory::assets:			return root + "/assets/";
+			case engine_directory::config:			return root + "/config/";
+			case engine_directory::assets:			return root + "/assets/engine/";
 			case engine_directory::assets_gen:		return root + "/assets/generated/";
 			case engine_directory::staged:			return root + "/staged/";
 			case engine_directory::binaries:		return root + "/bin/";

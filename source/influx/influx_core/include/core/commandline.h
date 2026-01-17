@@ -86,12 +86,11 @@ namespace influx
 			return g_all_cvars_map[title];
 		}
 
-		static void parse_runargs(int argc, char** argv)
+		static void parse_runargs(int argc, const char* const* argv, const int args_offset = 1)
 		{
-			static constexpr int k_args_begin = 1;
-			for (int i = k_args_begin; i < argc; ++i)
+			for (int i = args_offset; i < argc; ++i)
 			{
-				char* arg = argv[i];
+				char const* arg = argv[i];
 				string arg_str = arg;
 
 				// find an prefix marked arg

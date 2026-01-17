@@ -27,7 +27,7 @@ namespace influx::engine
 	void translate(const shader::compile_output& shader_data, renderer::shader_data& out_data);
 #pragma endregion
 
-	void render_streamer::stream(const content_manager& content)
+	void render_streamer::stream(const asset_manager& content)
 	{
 		influx_scope("render_stream");
 		stream_images(content);
@@ -144,7 +144,7 @@ namespace influx::engine
 	static renderer::mesh_data<renderer::vertex_data> m_mesh_data{};
 	static material m_material_data{};
 
-	void render_streamer::stream_shaders(const content_manager& content)
+	void render_streamer::stream_shaders(const asset_manager& content)
 	{
 		influx_scope("render_stream_shaders");
 		for (const auto& asset : content.get_shaders())
@@ -166,7 +166,7 @@ namespace influx::engine
 		}
 	}
 
-	void render_streamer::stream_images(const content_manager& content)
+	void render_streamer::stream_images(const asset_manager& content)
 	{
 		render_manager& renderman = engine::get_instance().get_renderer();
 
@@ -185,7 +185,7 @@ namespace influx::engine
 		}
 	}
 
-	void render_streamer::stream_cubemaps(const content_manager& content)
+	void render_streamer::stream_cubemaps(const asset_manager& content)
 	{
 		influx_scope("render_stream_cubemaps");
 		for (const auto& asset : content.get_cubemaps())
@@ -194,47 +194,35 @@ namespace influx::engine
 			{
 				if (asset.second.is_loaded())
 				{
-					translate(asset.second.m_resource, m_texcube_data);
+					translate(asset.second.m_resource.m_images, m_texcube_data);
 					influx::renderer::load(asset.first, m_texcube_data);
 				}
 			}
 		}
 	}
 
-	void render_streamer::stream_meshes(const content_manager& content)
+	void render_streamer::stream_meshes(const asset_manager& content)
 	{
 		influx_scope("render_stream_meshes");
-		// content meshes
+
 		for (const auto& asset : content.get_scenes())
 		{
 			if (asset.second.is_loaded())
 			{
-				for (uint32 i = 0u; i < asset.second.m_resource.get_num_meshes(); ++i)
+				for (uint32 i = 0u; i < asset.second.m_resource.m_imported_data.get_num_meshes(); ++i)
 				{
-					const imp::scene_data::mesh& mesh = asset.second.m_resource.get_mesh(i);
-					const string name = asset.first + "_" + std::to_string(i);
+					const imp::scene_data& scene = asset.second.m_resource.m_imported_data;
+					const imp::scene_data::mesh& mesh = scene.get_mesh(i);
+					const string& mesh_name = scene.get_name(mesh);
 
-					if (renderer::has_mesh(name) == false)
+					// const string name = asset.first + "_" + std::to_string(i);
+					if (renderer::has_mesh(mesh_name) == false)
 					{
 						translate(mesh, m_mesh_data);
-						influx::renderer::load(name, m_mesh_data);
+						influx::renderer::load(mesh_name, m_mesh_data);
 					}
 				}
 			}
-		}
-
-		// inline meshes
-		if (renderer::has_mesh("engine_plane") == false)
-		{
-			influx::renderer::load("eplane", renderer::get_inline_mesh_plane());
-		}
-		if (renderer::has_mesh("engine_box") == false)
-		{
-			influx::renderer::load("ebox", renderer::get_inline_mesh_box());
-		}
-		if (renderer::has_mesh("engine_sphere") == false)
-		{
-			influx::renderer::load("esphere", renderer::get_inline_mesh_sphere());
 		}
 	}
 }

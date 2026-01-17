@@ -270,7 +270,8 @@ namespace influx::engine
 
 			mesh_component& mesh_comp = world.create_component<mesh_component>(sword.get_handle());
 			{
-				mesh_comp.set_mesh_name("transistor_0");
+				assets::mesh_id mesh_id = assets::make_mesh_id("transistor_0");
+				mesh_comp.set_mesh_id(mesh_id);
 				mesh_comp.set_use_normalized_scale(true);
 			}
 
@@ -286,8 +287,9 @@ namespace influx::engine
 		world& world = get_engine()->get_world();
 
 		const string& scene_name = "CafeLeBlanc";
-		const content_manager& contman = get_engine()->get_content();
-		const scene_asset* leblanc_asset = contman.find<scene_asset>(scene_name);
+		const asset_manager& assetman = get_engine()->get_assetman();
+		const assets::scene_id sc_id = assets::make_scene_id(scene_name);
+		const assets::scene_asset* leblanc_asset = assetman.find_asset<assets::e_asset_type::scene>(sc_id);
 		if (leblanc_asset == nullptr)
 		{
 			return;
@@ -310,7 +312,9 @@ namespace influx::engine
 
 			mesh_component& mesh_comp = world.create_component<mesh_component>(sword.get_handle());
 			{
-				mesh_comp.set_mesh_name(scene_name + "_" + to_string(i));
+				const string mesh_name = scene_name + "_" + to_string(i);
+				const assets::mesh_id mesh_id = assets::make_mesh_id(mesh_name);
+				mesh_comp.set_mesh_id(mesh_id);
 			}
 
 			material_component& mat_comp = world.create_component<material_component>(sword.get_handle());
@@ -331,7 +335,9 @@ namespace influx::engine
 
 		mesh_component& mesh_comp = world.create_component<mesh_component>(cube.get_handle());
 		{
-			mesh_comp.set_mesh_name("box_0");
+			const string mesh_name = "box_0";
+			const assets::mesh_id mesh_id = assets::make_mesh_id(mesh_name);
+			mesh_comp.set_mesh_id(mesh_id);
 		}
 
 		material_component& mat_comp = world.create_component<material_component>(cube.get_handle());

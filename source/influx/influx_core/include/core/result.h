@@ -61,7 +61,7 @@ namespace influx
 	// by default, only in DEBUG when .get() is called on !result.is_success()
 	// will we assert the result is valid.
 	// with this enabled, we assert as soon as any error is made (exactly where it occured)
-#define CHECK_RESULT_IMMEDIATE 1
+#define CHECK_RESULT_IMMEDIATE 0
 
 	template <typename _t = unsigned char, typename _e = const char*>
 	class result final

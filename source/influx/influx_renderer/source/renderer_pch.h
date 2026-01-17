@@ -16,7 +16,6 @@ namespace influx::renderer
 	struct scene_debug;
 	class target;
 }
-
 #include "influx_renderer/rhi.h"
 
 

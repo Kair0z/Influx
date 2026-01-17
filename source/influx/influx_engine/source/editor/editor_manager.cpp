@@ -129,7 +129,7 @@ namespace influx::engine::editor
 					platform::file_dialog_result result = platform::platform::open_file_dialog("");
 					if (result.m_has_selected)
 					{
-						static content_manager& content = get_engine()->get_content();
+						static asset_manager& content = get_engine()->get_assetman();
 						content.load_file(result.m_selection);
 					}
 				}

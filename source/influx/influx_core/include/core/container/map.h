@@ -109,7 +109,6 @@ namespace influx
 
 		return result;
 	}
-#endif
 
 	template <typename _t, typename _k, typename _e, _e _max_enm>
 	class enummed_map final
@@ -197,6 +196,7 @@ namespace influx
 			return true;
 		}
 	};
+#endif
 }
 
 #endif

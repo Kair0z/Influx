@@ -54,6 +54,10 @@ namespace influx
 		inline const str_type& get_full_path() const
 		{ return m_full_path; }
 
+		inline str_type get_full_path_without_extension() const {
+			return m_directory + m_filename_without_extension;
+		}
+
 		inline const str_type& get_filename(bool without_extension) const
 		{ return without_extension ? m_filename_without_extension : m_filename; }
 
@@ -62,6 +66,16 @@ namespace influx
 
 		inline const str_type& get_directory() const
 		{ return m_directory; }
+
+		void append(const string& str)
+		{
+			(*this) = path(m_full_path + str);
+		}
+
+		path& operator+=(const string& str)
+		{
+			append(str); return *this;
+		}
 
 		inline void replace_extension(const char_type* str)
 		{
@@ -144,7 +158,7 @@ namespace influx
 			return {};
 		}
 
-		inline static result<> create_file(const str_type& in_path)
+		inline static result<> create_file(const str_type& in_path, bool binary = false)
 		{
 			if (!is_valid_filepath(in_path))
 			{
@@ -156,12 +170,18 @@ namespace influx
 			// create the directory chain
 			std::filesystem::create_directories(path.parent_path());
 
-			std::wofstream fstream(in_path.get_wstd());
-			if (!fstream.is_open())
+			if (binary)
 			{
-				return result<>::make_error("failed opening write filestream to path!");
+				std::wofstream fstream(in_path.get_wstd(), std::ios::binary);
+				if (!fstream.is_open())
+					return result<>::make_error("failed opening write filestream to path!");
 			}
-
+			else
+			{
+				std::wofstream fstream(in_path.get_wstd());
+				if (!fstream.is_open())
+					return result<>::make_error("failed opening write filestream to path!");
+			}
 			return {};
 		}
 
@@ -432,15 +452,22 @@ namespace influx
 
 		/* constructors */
 		path() = default;
-
 		inline path(const char_type* cstr)
 		{
 			initialize(str_type(cstr));
 		}
-
 		inline path(const str_type& filepath)
 		{
 			initialize(filepath);
 		}
+		inline path(const path& other)
+		{
+			initialize(other.m_full_path);
+		}
 	};
+
+	static path operator+(const path& lhs, const string& rhs)
+	{
+		return path(lhs.get_full_path() + rhs);
+	}
 }

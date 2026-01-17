@@ -20,7 +20,7 @@ namespace influx::engine
 		class editor_manager;
 	}
 	class render_manager;
-	class content_manager;
+	class asset_manager;
 	class game_manager;
 	class input_manager;
 	class task_manager;
@@ -40,7 +40,7 @@ namespace influx::engine
 		};
 		result<> run(run_type, int argc, char* argv[]);
 
-		content_manager& get_content();
+		asset_manager& get_assetman();
 		game_manager& get_game();
 		world& get_world();
 		platform::window& get_window();
@@ -63,6 +63,7 @@ namespace influx::engine
 		bool is_game() const;
 
 		static string get_run_argument(const string&);
+		result<> get_argc_argv(int& out_argc, char**& out_argv) const;
 
 	private:
 		result<> process_runarguments(int argc, char* argv[]);
@@ -80,6 +81,7 @@ namespace influx::engine
 		run_type m_runtype;
 		thread m_inputthread;
 		thread m_contentthread;
+		int m_argc; char** m_argv;
 		vector<string> m_run_args;
 		umap<string, string> m_parsed_run_args;
 		project m_project;
@@ -90,7 +92,7 @@ namespace influx::engine
 
 		scene_manager* m_sceneman = nullptr;
 		window_manager* m_windowman = nullptr;
-		content_manager* m_contentman = nullptr;
+		asset_manager* m_contentman = nullptr;
 		render_manager* m_renderman = nullptr;
 		editor::editor_manager* m_editorman = nullptr;
 		game_manager* m_gameman = nullptr;

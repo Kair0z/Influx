@@ -37,7 +37,6 @@ namespace influx::renderer
 	class pipeline_manager;
 	class world_renderer;
 	class debug_renderer;
-	class quad_renderer;
 	class target;
 	class resource_manager;
 	class submit_manager;
@@ -87,7 +86,6 @@ namespace influx::renderer
 		pipeline_manager*		mp_pipeline_manager = nullptr;
 		imgui_manager*			mp_imgui			= nullptr;
 		world_renderer*			m_world_renderer	= nullptr;
-		quad_renderer*			mp_quad_renderer	= nullptr;
 		resource_manager*		m_resource_manager	= nullptr;
 		submit_manager*			m_submit_manager	= nullptr;
 		job_manager*			m_job_manager		= nullptr;
@@ -175,11 +173,12 @@ namespace influx::renderer
 		const render_settings& get_settings() const;
 
 		texture2D& get_default_texture(); // "none"
+		result<> get_default_mesh_buffers(graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
 
 		void upload_texture_data(texture2D* target_tex, const texture2D_data& data);
 
 		vector<string> get_mesh_names() const;
-		bool get_mesh_buffers(const mesh_id& id, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
+		result<> get_mesh_buffers(const mesh_id& id, graphics::resource*& out_vertex_buffer, graphics::resource*& out_index_buffer);
 
 		memory_info get_memory_info() const;
 		pipeline_info get_pipeline_info() const;

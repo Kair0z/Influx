@@ -20,7 +20,7 @@ namespace influx::renderer
 namespace influx::engine
 {
 	class engine;
-	class content_manager;
+	class asset_manager;
 
 	using render_cubemap = renderer::cubemap;
 	using render_texture2D = renderer::texture2D;
@@ -42,7 +42,7 @@ namespace influx::engine
 		void on_window_resize(const math::vectoru2& new_dimensions);
 
 		// funnels assets from content_manager into the influx::renderer
-		void stream_content(const content_manager& cont_man);
+		void stream_content(const asset_manager& cont_man);
 
 		bool is_debug_render_enabled() const;
 		bool is_imgui_render_enabled() const;

@@ -8,12 +8,12 @@ namespace influx::shader
 
 namespace influx::engine
 {
-	class content_manager;
+	class asset_manager;
 
 	class render_streamer final
 	{
 	public:
-		void stream(const content_manager& content);
+		void stream(const asset_manager& content);
 
 		// shaders:
 		bool has_shader_loaded(const shader::shader_signature& signature) const;
@@ -27,9 +27,9 @@ namespace influx::engine
 		void* get_loaded_texture_id(const string& name) const;
 
 	private:
-		void stream_shaders(const content_manager& content);
-		void stream_images(const content_manager& content);
-		void stream_cubemaps(const content_manager& content);
-		void stream_meshes(const content_manager& content);
+		void stream_shaders(const asset_manager& content);
+		void stream_images(const asset_manager& content);
+		void stream_cubemaps(const asset_manager& content);
+		void stream_meshes(const asset_manager& content);
 	};
 }

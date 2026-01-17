@@ -12,46 +12,39 @@ namespace influx::engine
 
 namespace influx::engine
 {
-	// content in influx::engine
-	class content_manager final
+	class asset_manager final
 	{
-		umap<string, scene_asset> m_scenes;
-		umap<string, image_asset> m_images;
-		umap<string, shader_asset> m_shaders;
-		umap<string, cubemap_asset> m_cubemaps;
+		template <assets::e_asset_type _e>
+		using asset_map = umap<assets::data_id<_e>, assets::asset_item<_e>>;
 
-	public:
-		content_manager();
-		~content_manager();
-
-		/* get all shaders as mutable reference */
-		umap<string, shader_asset>& touch_shaders();
+		asset_map<assets::e_asset_type::scene> m_scenes;
+		asset_map<assets::e_asset_type::mesh> m_meshes;
+		asset_map<assets::e_asset_type::cubemap> m_cubemaps;
+		asset_map<assets::e_asset_type::image> m_images;
+		asset_map<assets::e_asset_type::shader> m_shaders;
 		
-		template <typename _t>
-		inline _t const* find(const string& asset_name) const
+	public:
+		asset_manager();
+		~asset_manager();
+
+		template <assets::e_asset_type _e>
+		const asset_map<_e>& get_asset_map() const
 		{
-			if constexpr (std::is_same_v<_t, scene_asset>)
-			{
-				if (get_scenes().contains(asset_name))
-					return { &get_scenes().at(asset_name) };
-			}
-			else if constexpr (std::is_same_v<_t, image_asset>)
-			{
-				if (get_images().contains(asset_name))
-					return { &get_images().at(asset_name) };
-			}
-			else if constexpr (std::is_same_v<_t, shader_asset>)
-			{
-				if (get_shaders().contains(asset_name))
-					return { &get_shaders().at(asset_name) };
-			}
-			else if constexpr (std::is_same_v<_t, cubemap_asset>)
-			{
-				if (get_cubemaps().contains(asset_name))
-					return { &get_cubemaps().at(asset_name) };
-			}
-			
-			return nullptr;
+			if constexpr (_e == assets::e_asset_type::scene) return m_scenes;
+			else if constexpr (_e == assets::e_asset_type::mesh) return m_meshes;
+			else if constexpr (_e == assets::e_asset_type::cubemap) return m_cubemaps;
+			else if constexpr (_e == assets::e_asset_type::image) return m_images;
+			else if constexpr (_e == assets::e_asset_type::shader) return m_shaders;
+		}
+
+		template <assets::e_asset_type _e>
+		inline assets::asset_item<_e> const* find_asset(const assets::data_id<_e>& id) const
+		{
+			const asset_map<_e>& the_map = get_asset_map<_e>();
+			if (the_map.contains(id))
+				return { &the_map.at(id) };
+			else
+				return nullptr;
 		}
 
 		/* loads a single asset file at path into the content manager */
@@ -63,6 +56,11 @@ namespace influx::engine
 		/* loads all game assets (/game_name/assets/...) */
 		void load_game_assets(const string& game_name);
 		
+		result<> load_fbx(const path& filepath);
+		result<> load_obj(const path& filepath);
+		result<> load_scene(const path& filepath);
+		result<> load_mesh(const mesh_id& id, const mesh_data& data);
+
 		/* finds a loaded mesh given a mesh_name*/
 		inline result<imp::scene_data::mesh*> find_mesh(const string& mesh_name)
 		{
@@ -82,31 +80,41 @@ namespace influx::engine
 		{
 			using result_type = result<imp::scene_data::mesh*>;
 
-			if (m_scenes.contains(scene_name))
+			const assets::scene_id id = assets::make_scene_id(scene_name);
+			if (m_scenes.contains(id))
 			{
-				return &m_scenes[scene_name].m_resource.get_mesh(mesh_idx);
+				return &m_scenes[id].m_resource.get_mesh(mesh_idx);
 			}
 
 			return result_type::make_error("could not find scene at scene_name, so a mesh was not found");
 		}
 		
 		/* given a scene_asset (fbx) and an index, returns the mesh name at that index */
-		static result<string> get_scene_mesh_name(const scene_asset& item, const uint32 idx)
+		static result<string> get_scene_mesh_name(const assets::scene_asset& item, const uint32 idx)
 		{
 			using result_type = result<string>;
-
 			return item.m_name + "_" + to_string(idx);
 		}
 
-		const umap<string, scene_asset>& get_scenes() const;
-		const umap<string, image_asset>& get_images() const;
-		const umap<string, shader_asset>& get_shaders() const;
-		const umap<string, cubemap_asset>& get_cubemaps() const;
+		umap<assets::scene_id, assets::scene_asset> get_scenes() const {
+			return get_asset_map<assets::e_asset_type::scene>();
+		}
+		umap<assets::mesh_id, assets::mesh_asset> get_meshes() const {
+			return get_asset_map<assets::e_asset_type::mesh>();
+		}
+		umap<assets::shader_id, assets::shader_asset> get_shaders() const {
+			return get_asset_map<assets::e_asset_type::shader>();
+		}
+		umap<assets::cubemap_id, assets::cubemap_asset> get_cubemaps() const {
+			return get_asset_map<assets::e_asset_type::cubemap>();
+		}
+		umap<assets::image_id, assets::image_asset> get_images() const {
+			return get_asset_map<assets::e_asset_type::image>();
+		}
 
 	private:
 		/* given an origin (category), load all assets in that category */
-		void load_assets(e_asset_origin origin, const path& root);
-		void load_shaders(e_asset_origin origin, const path& root);
-
+		void load_assets(assets::e_asset_origin origin, const path& root);
+		void load_shaders(assets::e_asset_origin origin, const path& root);
 	};
 }
