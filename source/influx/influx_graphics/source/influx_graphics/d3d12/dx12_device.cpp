@@ -429,9 +429,16 @@ namespace influx::graphics
 			}
 		}
 
-		mpdx_devices[0u]->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE,
-			&resource_desc, translate(desc.m_init_state), p_clear_val, IID_PPV_ARGS(&dxresource));
-
+		if (desc.m_common.m_reserved)
+		{
+			mpdx_devices[0u]->CreateReservedResource(
+				&resource_desc, translate(desc.m_init_state), p_clear_val, IID_PPV_ARGS(&dxresource));
+		}
+		else
+		{
+			mpdx_devices[0u]->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE,
+				&resource_desc, translate(desc.m_init_state), p_clear_val, IID_PPV_ARGS(&dxresource));
+		}
 		return new_child<dx12_resource, resource>(dxresource, desc);
 	}
 

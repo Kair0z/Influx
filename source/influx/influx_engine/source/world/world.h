@@ -9,11 +9,6 @@ namespace influx::engine
 }
 #pragma endregion
 
-// influx::files
-#pragma region influx::files
-#include "influx_file.h"
-#pragma endregion
-
 // influx::renderer
 #pragma region influx::renderer
 namespace influx::renderer
@@ -80,10 +75,6 @@ namespace influx::engine
 			cptr<entt::entity> m_entity = nullptr;
 		};
 		trace_result trace(const math::ray& ray, e_collision_layer layer = e_collision_layer::all) const;
-
-		// project file management
-		void load_project(const influx::files::projectfile& proj);
-		void save_project(influx::files::projectfile& proj);
 
 		// gets the viewmatrix of the first camera of the scene
 		result<cptr<camera_component>> get_main_scene_camera() const;

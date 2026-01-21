@@ -102,9 +102,14 @@ namespace influx
 		out_result = std::stoul(value);
 		return true;
 	}
-	
-	template <typename _t>
-	inline static bool from_string(const std_str& value, _t& out_result)
+	inline static bool str_to_uint64(const std_wstr& value, uint64& out_result)
+	{
+		out_result = std::stoull(value);
+		return true;
+	}
+
+	template <typename _t, typename _s>
+	inline static bool from_string(const _s& value, _t& out_result)
 	{
 		if constexpr (std::is_same<_t, float>())
 			return str_to_float(value, out_result);
@@ -112,12 +117,16 @@ namespace influx
 			return str_to_int(value, out_result);
 		else if constexpr (std::is_same<_t, uint32>())
 			return str_to_uint(value, out_result);
+		else if constexpr (std::is_same<_t, uint64>())
+			return str_to_uint64(value, out_result);
 		else
 		{
 			out_result = value;
 		}
 		return false;
 	}
+	
+
 #pragma endregion
 
 	class string;

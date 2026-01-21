@@ -14,7 +14,7 @@
 #include "influx_renderer/scene.h"
 
 // influx::engine
-#include "content/content_manager.h"
+#include "assets/asset_manager.h"
 #include "rendering/render_manager.h"
 #include "editor/editor_manager.h"
 #include "game/game_manager.h"
@@ -26,6 +26,7 @@
 #include "log/log_manager.h"
 #include "scene/scene.h"
 #include "project/project.h"
+#include "files/file_manager.h"
 // influx::core
 #include "core/math/vectortools.h"
 #include "core/math/random.h"
@@ -92,6 +93,7 @@ namespace influx::engine
 		m_config.m_file_influx_staged	= get_engine_directory(engine_directory::staged);
 
 		/* make misc managers (order matters here :) )*/
+		m_fileman		= new file_manager();
 		m_taskman		= new task_manager();
 		m_inputman		= new input_manager();
 		m_contentman	= new asset_manager();
@@ -292,6 +294,11 @@ namespace influx::engine
 	scene_manager& engine::get_sceneman()
 	{
 		return *get_engine()->m_sceneman;
+	}
+
+	file_manager& engine::get_fileman()
+	{
+		return *get_engine()->m_fileman;
 	}
 
 	scene& engine::get_current_scene()

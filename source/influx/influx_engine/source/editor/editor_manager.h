@@ -8,9 +8,6 @@
 // influx::input
 #include "influx_input.h"
 
-// influx::file
-#include "influx_file.h"
-
 // influx::imgui
 #include "influx_imgui/imgui_widgets.h" // imgui::popup_radial
 
@@ -37,15 +34,6 @@ namespace influx::engine::editor
 		template <typename _t>
 		static _t& static_window(const string& tag);
 
-		// files
-		bool has_project() const;
-		string get_projectname() const;
-		string get_editor_filepath() const;
-
-		void save_editor();
-		void load_editor();
-		files::editorfile& get_editorfile();
-
 		float get_mainmenu_height() const;
 
 	private:
@@ -54,9 +42,6 @@ namespace influx::engine::editor
 
 		scene_editor m_scene_editor;
 		static umap<string, editor_window*> m_static_windows;
-
-		files::projectfile m_projectfile;
-		files::editorfile m_editorfile;
 
 		void update_inputs();
 		void update_context();

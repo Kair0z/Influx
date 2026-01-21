@@ -14,6 +14,7 @@
 #include "influx_renderer/resources/resource_manager.h"
 #include "influx_renderer/submitmanager.h"
 #include "influx_renderer/renderjobs.h"
+#include "influx_renderer/memory_manager.h"
 
 // influx::rendergraph
 #include "rendergraph.h"
@@ -96,6 +97,7 @@ namespace influx::renderer
             m_resource_manager = new resource_manager();
             mp_imgui = new imgui_manager(mp_device);
             m_world_renderer = new world_renderer();
+            m_memory_manager = new memory_manager();
             m_rendergraph = new rendergraph::rendergraph({}, *mp_device);
         }
         m_is_initialized = true;
@@ -591,6 +593,11 @@ namespace influx::renderer
     graphics::device& renderer_backend::get_device()
     {
         return *get_instance().mp_device;
+    }
+
+    memory_manager& renderer_backend::get_memory_manager()
+    {
+        return *get_instance().m_memory_manager;
     }
 
     job_manager& renderer_backend::get_jobs()

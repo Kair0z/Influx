@@ -23,7 +23,7 @@ namespace influx::assets
     private:
         bool m_is_read = false;
         vector<byte> m_write_buffer;
-        const byte* m_read_buffer = nullptr;
+        byte const* m_read_buffer = nullptr;
         uint64 m_size = 0;
         uint64 m_offset = 0;
 
@@ -31,11 +31,37 @@ namespace influx::assets
         INFLUX_ASSET_API void read_bytes(void* out_data, uint64 bytesize);
 
     public:
+        archiver() = default;
+        archiver(const vector<byte>& readbuffer)
+            : m_read_buffer{ readbuffer.data() }
+            , m_size{ readbuffer.size() } {
+            m_is_read = true;
+        }
+
         template<typename _t>
         void serialize(_t& value)
         {
             if (m_is_read) read_bytes(reinterpret_cast<void*>(&value), sizeof(_t));
             else write_bytes(reinterpret_cast<const void*>(&value), sizeof(_t));
+        }
+
+        void serialize(string& str)
+        {
+            if (is_reading())
+            {
+                uint64 size = 0u;
+                serialize(size);
+                str.resize(size);
+                for (auto& value : str)
+                    serialize(value);
+            }
+            else
+            {
+                uint64 size = str.size();
+                serialize(size);
+                for (auto& value : str)
+                    serialize(value);
+            }
         }
 
         template <typename _t>

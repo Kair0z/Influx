@@ -23,6 +23,7 @@ namespace influx::engine
 		}
 		
 		// create sphere in middle
+#if 0
 		{
 			entity_id id = create_entity();
 
@@ -32,6 +33,7 @@ namespace influx::engine
 			transform.set_scale(0.01f);
 			transform.update_matrix();
 		}
+#endif
 	}
 
 	scene::~scene()

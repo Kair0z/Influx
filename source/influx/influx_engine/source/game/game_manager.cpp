@@ -10,13 +10,11 @@
 #include "editor/editor_manager.h"
 #include "world/world.h"
 #include "component/component.h"
-#include "content/content_manager.h"
+#include "assets/asset_manager.h"
+#include "engine_files.h"
 
 // influx::platform
 #include "influx_platform/window.h"
-
-// influx::file
-#include "influx_file.h"
 
 namespace influx::engine
 {
@@ -31,11 +29,8 @@ namespace influx::engine
 	{
 		if (m_state == state::idle)
 		{
-			// hardcoded layer
+			// hardcoded part:
 			setup_camera();
-			// setup_swords();
-			// setup_cafe();
-			setup_unitcube();
 
 			// enable game renderview (and set its dimensions)
 			window_manager& windowman = get_engine()->get_windowman();
@@ -70,15 +65,6 @@ namespace influx::engine
 		m_game_library.call_end();
 
 		world& world = get_engine()->get_world();
-
-		// save camera to editor
-		if (get_engine()->is_editor())
-		{
-			const entity& camera = m_entities[0];
-			transform_component* cam_transform = world.get_component<transform_component>(camera.get_handle());
-			get_engine()->get_editor().get_editorfile().m_camera_transform = cam_transform->get_matrix();
-		}
-		
 		for (const entity& e : m_entities)
 		{
 			world.destroy_entity(e.get_handle());
@@ -248,101 +234,6 @@ namespace influx::engine
 					mousepos_prev = mousepos_current;
 				};
 			}
-		}
-	}
-
-	void game_manager::setup_swords()
-	{
-		world& world = get_engine()->get_world();
-
-		// create swoards
-		const uint32 num_swords = 50u;
-		math::circlef3D circle = math::circlef3D({}, math::vectorf3::make_up(), 2.0f);
-		for (uint32 i = 0u; i < num_swords; ++i)
-		{
-			entity sword = create_entity();
-
-			const float angle = i * (360.0f / num_swords);
-			transform_component& trans_comp = world.create_component<transform_component>(sword.get_handle());
-			{
-				trans_comp.set_position(circle.get_point_at_degrees(angle));
-			}
-
-			mesh_component& mesh_comp = world.create_component<mesh_component>(sword.get_handle());
-			{
-				assets::mesh_id mesh_id = assets::make_mesh_id("transistor_0");
-				mesh_comp.set_mesh_id(mesh_id);
-				mesh_comp.set_use_normalized_scale(true);
-			}
-
-			material_component& mat_comp = world.create_component<material_component>(sword.get_handle());
-			{
-				mat_comp.set_texture(e_texture_semantic::basecolor, "T_Sword_Opaque_BC");
-			}
-		}
-	}
-
-	void game_manager::setup_cafe()
-	{
-		world& world = get_engine()->get_world();
-
-		const string& scene_name = "CafeLeBlanc";
-		const asset_manager& assetman = get_engine()->get_assetman();
-		const assets::scene_id sc_id = assets::make_scene_id(scene_name);
-		const assets::scene_asset* leblanc_asset = assetman.find_asset<assets::e_asset_type::scene>(sc_id);
-		if (leblanc_asset == nullptr)
-		{
-			return;
-		}
-
-		const imp::scene_data& scene_data = leblanc_asset->get_resource();
-		const uint32 num_meshes = scene_data.get_num_meshes();
-
-		for (uint32 i = 0u; i < num_meshes; ++i)
-		{
-			const imp::mesh_data& mesh = scene_data.get_mesh(i);
-			entity sword = create_entity();
-
-			transform_component& trans_comp = world.create_component<transform_component>(sword.get_handle());
-			{
-				const float scale_multiplier = 0.01f;
-				math::matrix4x4f copy_transform = scene_data.get_transform(mesh) * math::matrix4x4f::make_scale( math::float3{ scale_multiplier , scale_multiplier , scale_multiplier });
-				trans_comp.set_matrix(copy_transform);
-			}
-
-			mesh_component& mesh_comp = world.create_component<mesh_component>(sword.get_handle());
-			{
-				const string mesh_name = scene_name + "_" + to_string(i);
-				const assets::mesh_id mesh_id = assets::make_mesh_id(mesh_name);
-				mesh_comp.set_mesh_id(mesh_id);
-			}
-
-			material_component& mat_comp = world.create_component<material_component>(sword.get_handle());
-			{
-				mat_comp.set_texture(e_texture_semantic::diffuse, i % 2 == 0u ? "wood_albedo" : "wood_albedo");
-			}
-		}
-	}
-
-	void game_manager::setup_unitcube()
-	{
-		world& world = get_engine()->get_world();
-		entity cube = create_entity();
-
-		transform_component& trans_comp = world.create_component<transform_component>(cube.get_handle());
-		{
-		}
-
-		mesh_component& mesh_comp = world.create_component<mesh_component>(cube.get_handle());
-		{
-			const string mesh_name = "box_0";
-			const assets::mesh_id mesh_id = assets::make_mesh_id(mesh_name);
-			mesh_comp.set_mesh_id(mesh_id);
-		}
-
-		material_component& mat_comp = world.create_component<material_component>(cube.get_handle());
-		{
-			mat_comp.set_texture(e_texture_semantic::basecolor, "T_Sword_Opaque_BC");
 		}
 	}
 

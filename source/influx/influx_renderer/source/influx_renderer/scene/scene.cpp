@@ -172,6 +172,21 @@ namespace influx::renderer
 		}
 		return m_world->get_lines();
 	}
+
+	void view_matrices::update(const math::matrix4x4f& transform, const camera& camera)
+	{
+		m_transform = transform;
+		m_projection = camera.get_projection();
+		m_view = camera.get_view(transform);
+		m_viewprojection = m_view * m_projection;
+		m_inv_viewprojection = m_viewprojection.inverted();
+		m_inv_projection = m_projection.inverted();
+	}
+
+	void view_matrices::update(const camera& camera)
+	{
+		update(m_transform, camera);
+	}
 #pragma endregion
 
 #if 0
@@ -417,18 +432,6 @@ namespace influx::renderer
 	void scene::set_debug_render_enabled(bool enabled)
 	{
 		set_flag(m_renderflags, e_scene_render_flags::enable_debug, enabled);
-	}
-
-	view_matrices::view_matrices(const math::matrix4x4f& transform, const camera& camera)
-	{
-		m_transform			= transform;
-#if 0
-		m_projection		= camera.m_camera.get_projection();
-		m_view				= camera.m_camera.get_view(transform);
-#endif
-		m_viewprojection	= m_view * m_projection;
-		m_inv_viewprojection = m_viewprojection.inverted();
-		m_inv_projection	= m_projection.inverted();
 	}
 #endif
 }

@@ -41,6 +41,7 @@ namespace influx::renderer
 	class resource_manager;
 	class submit_manager;
 	class job_manager;
+	class memory_manager;
 }
 
 // influx::platform
@@ -89,6 +90,7 @@ namespace influx::renderer
 		resource_manager*		m_resource_manager	= nullptr;
 		submit_manager*			m_submit_manager	= nullptr;
 		job_manager*			m_job_manager		= nullptr;
+		memory_manager*			m_memory_manager	= nullptr;
 		render_settings			m_settings			= {};
 
 	public:
@@ -134,6 +136,7 @@ namespace influx::renderer
 		static graphics::queue& get_graphics_queue();
 		static graphics::queue& get_copy_queue();
 		static graphics::device& get_device();
+		static memory_manager& get_memory_manager();
 		static job_manager& get_jobs();
 
 		static submit_manager& get_submit_manager();

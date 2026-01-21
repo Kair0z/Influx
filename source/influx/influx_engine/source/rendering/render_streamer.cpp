@@ -6,7 +6,7 @@
 #include "core/scope.h"
 
 // influx::engine
-#include "content/content_manager.h"
+#include "assets/asset_manager.h"
 #include "rendering/render_manager.h"
 
 // influx::shader
@@ -147,23 +147,6 @@ namespace influx::engine
 	void render_streamer::stream_shaders(const asset_manager& content)
 	{
 		influx_scope("render_stream_shaders");
-		for (const auto& asset : content.get_shaders())
-		{
-			if (asset.second.is_loaded())
-			{
-				const vector<imp::shader_data>& shader_datas = asset.second.m_resource;
-				const imp::shader_data& shader_data = shader_datas[0];
-				const shader::shader_signature& signature = shader_data.m_signature;
-
-				const renderer::shader_id sh_id = renderer::make_shader_id(signature);
-				const time::point render_load_time = renderer::get_time_loaded_shader(sh_id);
-				if (!renderer::has_shader(sh_id) || asset.second.m_time_loadend > render_load_time)
-				{
-					// if load time is newer than previous render load time, reload
-					influx::renderer::load(signature, translate(shader_data), true);
-				}
-			}
-		}
 	}
 
 	void render_streamer::stream_images(const asset_manager& content)
@@ -171,58 +154,15 @@ namespace influx::engine
 		render_manager& renderman = engine::get_instance().get_renderer();
 
 		influx_scope("render_stream_images");
-		for (const auto& asset : content.get_images())
-		{
-			if (renderer::has_texture(asset.first) == false)
-			{
-				if (asset.second.is_loaded())
-				{
-					const string& name = asset.first;
-					translate(asset.second.m_resource, m_tex_data);
-					influx::renderer::load(name, m_tex_data);
-				}
-			}
-		}
 	}
 
 	void render_streamer::stream_cubemaps(const asset_manager& content)
 	{
 		influx_scope("render_stream_cubemaps");
-		for (const auto& asset : content.get_cubemaps())
-		{
-			if (renderer::has_cubemap(asset.first) == false)
-			{
-				if (asset.second.is_loaded())
-				{
-					translate(asset.second.m_resource.m_images, m_texcube_data);
-					influx::renderer::load(asset.first, m_texcube_data);
-				}
-			}
-		}
 	}
 
 	void render_streamer::stream_meshes(const asset_manager& content)
 	{
 		influx_scope("render_stream_meshes");
-
-		for (const auto& asset : content.get_scenes())
-		{
-			if (asset.second.is_loaded())
-			{
-				for (uint32 i = 0u; i < asset.second.m_resource.m_imported_data.get_num_meshes(); ++i)
-				{
-					const imp::scene_data& scene = asset.second.m_resource.m_imported_data;
-					const imp::scene_data::mesh& mesh = scene.get_mesh(i);
-					const string& mesh_name = scene.get_name(mesh);
-
-					// const string name = asset.first + "_" + std::to_string(i);
-					if (renderer::has_mesh(mesh_name) == false)
-					{
-						translate(mesh, m_mesh_data);
-						influx::renderer::load(mesh_name, m_mesh_data);
-					}
-				}
-			}
-		}
 	}
 }

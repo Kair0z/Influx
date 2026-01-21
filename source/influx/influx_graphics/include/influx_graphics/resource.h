@@ -41,6 +41,11 @@ namespace influx::graphics
 		count
 	};
 
+	struct resource_desc_common final
+	{
+		bool m_reserved = false;
+	};
+
 	struct buffer_desc final
 	{
 		uint64 m_bytesize;
@@ -60,6 +65,8 @@ namespace influx::graphics
 		e_bind_flags m_bindflags = e_bind_flags::none;
 		e_resource_state m_init_state = e_resource_state::common;
 		bool m_allow_uav = false;
+
+		resource_desc_common m_common{};
 	};
 
 	struct tex3D_desc final

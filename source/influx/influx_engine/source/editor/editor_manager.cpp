@@ -5,8 +5,7 @@
 #include "core/log.h"
 // influx::engine
 #include "engine.h"
-#include "engine_files.h"
-#include "content/content_manager.h"
+#include "assets/asset_manager.h"
 #include "world/world.h"
 #include "game/game_manager.h"
 #include "input/input_manager.h"
@@ -64,12 +63,10 @@ namespace influx::engine::editor
 
 	editor_manager::editor_manager()
 	{
-		load_editor();
 	}
 
 	editor_manager::~editor_manager()
 	{
-		save_editor();
 	}
 
 	void editor_manager::on_imgui(ImGuiContext& ctx)
@@ -122,8 +119,9 @@ namespace influx::engine::editor
 		m_is_mainmenu_active = true;
 		if (ImGui::BeginMainMenuBar())
 		{
-			if (ImGui::BeginMenu("project"))
+			if (ImGui::BeginMenu("file"))
 			{
+#if 0
 				if (ImGui::Button("import fbx"))
 				{
 					platform::file_dialog_result result = platform::platform::open_file_dialog("");
@@ -133,7 +131,7 @@ namespace influx::engine::editor
 						content.load_file(result.m_selection);
 					}
 				}
-
+#endif
 				ImGui::EndMenu();
 			}
 
@@ -191,44 +189,6 @@ namespace influx::engine::editor
 				pair.second->run({});
 			}
 		}
-	}
-
-	bool editor_manager::has_project() const
-	{
-		return m_projectfile.m_name != "";
-	}
-
-	string editor_manager::get_projectname() const
-	{
-		if (has_project())
-		{
-			return m_projectfile.m_name;
-		}
-
-		return "";
-	}
-
-	string editor_manager::get_editor_filepath() const
-	{
-		const string engine_editor_dir_str = to_string(get_engine_directory(engine_directory::editor).get_full_path());
-		return engine_editor_dir_str + "editor.flx";
-	}
-
-	void editor_manager::save_editor()
-	{
-		m_editorfile.save(get_editor_filepath());
-	}
-
-	void editor_manager::load_editor()
-	{
-		const string& filepath = get_editor_filepath();
-		if (path::exists(filepath))
-			m_editorfile.load(filepath);
-	}
-
-	files::editorfile& editor_manager::get_editorfile()
-	{
-		return m_editorfile;
 	}
 
 	float editor_manager::get_mainmenu_height() const

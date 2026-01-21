@@ -3,7 +3,7 @@
 
 // influx::engine
 #include "scene/scene.h"
-#include "content/content_manager.h"
+#include "assets/asset_manager.h"
 #include "editor/editor_manager.h"
 #include "input/input_manager.h"
 #include "editor/editor_manager.h"
@@ -124,9 +124,11 @@ namespace influx::engine
                     }
 
                     // setup mesh
+#if 0
                     renderer::mesh_instance render_mesh{};
                     const assets::mesh_id mesh_id = mesh_comp.get_mesh_id();
                     renderworld.add_mesh_instance(mesh_id, transform.get_matrix() );
+#endif
                 }
             }
             
@@ -293,31 +295,6 @@ namespace influx::engine
     void world::clear()
     {
         m_registry.clear();
-    }
-
-    void world::load_project(const influx::files::projectfile& proj)
-    {
-        clear();
-
-        for (const files::entityfile& entityfile : proj.m_entities)
-        {
-            auto new_entity = create_entity();
-
-            for (const files::componentfile& compfile : entityfile.m_components)
-            {
-                auto new_component = create_component<transform_component>(new_entity);
-            }
-        }
-    }
-
-    void world::save_project(influx::files::projectfile& proj)
-    {
-        proj.clear();
-
-        for (auto entity : m_registry.view<entt::entity>())
-        {
-            proj.m_entities.push_back({});
-        }
     }
 
     result<cptr<camera_component>> world::get_main_scene_camera() const
@@ -508,12 +485,14 @@ namespace influx::engine
             auto view = m_registry.view<sprite_component>();
             for (auto [entity, sprite] : view.each())
             {
+#if 0
                 const assets::image_id img_id = assets::make_image_id(sprite.get_texture_path());
                 assets::image_asset const* asset = contman.find_asset<assets::e_asset_type::image>(img_id);
                 if (asset && asset->is_loaded())
                 {
                     sprite.m_texture_dimensions = asset->m_resource.m_dimensions;
                 }
+#endif
             }
         }
 

@@ -16,15 +16,15 @@ namespace influx::renderer
 
 	struct view_matrices final
 	{
-		matrix m_transform;	// transform of the camera
+		matrix m_transform = matrix::identity();	// transform of the camera
 		matrix m_projection;
 		matrix m_view;				// inv transform
 		matrix m_viewprojection;
 		matrix m_inv_viewprojection;
 		matrix m_inv_projection;
 
-		view_matrices() = default;
-		explicit view_matrices(const matrix& transform, const camera& camera);
+		INFLUX_RENDER_API void update(const camera& camera);
+		INFLUX_RENDER_API void update(const math::matrix4x4f& transform, const camera& camera);
 	};
 
 	struct light_instance final

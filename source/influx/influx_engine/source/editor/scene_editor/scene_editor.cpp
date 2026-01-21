@@ -7,7 +7,7 @@
 #include "scene/scene.h"
 #include "component/component.h"
 #include "rendering/render_manager.h"
-#include "content/content_manager.h"
+#include "assets/asset_manager.h"
 #include "editor/editor_manager.h"
 
 // influx::renderer
@@ -61,6 +61,7 @@ namespace influx::engine::editor
 	void scene_editor::on_edit_place()
 	{
 		world& world = get_engine()->get_world();
+#if 0
 		auto entity = world.create_entity();
 		{
 			transform_component& transform = world.create_component<transform_component>(entity);
@@ -73,6 +74,7 @@ namespace influx::engine::editor
 			render_component& render = world.create_component<render_component>(entity);
 			render.set_view_visibility(e_view_visibility_flags::all);
 		}
+#endif
 	}
 
 	void scene_editor::on_edit_remove()
@@ -103,6 +105,7 @@ namespace influx::engine::editor
 		m_edit_radial.set_item("remove", scene_editor::on_edit_remove);
 
 		// temp: auto-place an entity
+#if 0
 		world& world = get_engine()->get_world();
 		const asset_manager& content = get_engine()->get_assetman();
 		const assets::scene_id sc_id = assets::make_scene_id("cafeleblanc.fbx");
@@ -122,6 +125,7 @@ namespace influx::engine::editor
 			render_component& render = world.create_component<render_component>(entity);
 			render.set_view_visibility(e_view_visibility_flags::all);
 		}
+#endif
 	}
 
 	scene_editor::~scene_editor()

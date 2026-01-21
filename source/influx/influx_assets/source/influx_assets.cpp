@@ -18,6 +18,13 @@ namespace influx::assets
 		m_offset += bytesize;
 	}
 
+	void serialize_header(archiver& arch, asset_header& header)
+	{
+		arch.serialize(header.m_id_str);
+		arch.serialize(header.m_type_str);
+		arch.serialize(header.m_version);
+	}
+
 	class base_asset_data
 	{
 		asset_handle m_handle = k_invalid_asset;
@@ -25,6 +32,7 @@ namespace influx::assets
 		asset_meta m_meta;
 
 		virtual void* get_data_int() = 0;
+		virtual const char* get_type_string() const = 0;
 		virtual result<> serialize(archiver&) = 0;
 
 	protected:
@@ -38,12 +46,17 @@ namespace influx::assets
 			return m_handle;
 		}
 	};
-
 	template <typename _t>
 	class asset_data final : public base_asset_data
 	{
 		_t m_data;
 		virtual void* get_data_int() override { return &m_data; }
+
+	public:
+		virtual const char* get_type_string() const override 
+		{ 
+			return _t::get_type_string();
+		}
 		virtual result<> serialize(archiver& arch) override
 		{
 			return _t::serialize(arch, m_data);
@@ -73,7 +86,26 @@ namespace influx::assets
 			_t* new_ass = new _t();
 			new_ass->m_handle = new_handle;
 			m_assets[new_handle] = new_ass;
+
+			new_ass->m_header.m_id_str = to_string(new_handle);
+			new_ass->m_header.m_type_str = new_ass->get_type_string();
+			new_ass->m_header.m_version = "1.0";
 			return *new_ass;
+		}
+
+		base_asset_data* build_asset(const string& type_str)
+		{
+			static constexpr uint64 num_types = _countof(k_asset_typenames);
+			for (uint32 i = 0u; i < num_types; ++i)
+			{
+				if (type_str == k_asset_typenames[i])
+				{
+					
+				}
+			}
+			
+			// wtf? somebody's trying to deserialize an unknown asset!
+			return nullptr;
 		}
 
 	public:
@@ -91,10 +123,44 @@ namespace influx::assets
 		{
 			using result_type = result<asset_handle>;
 
+			// ensure the file exists
 			if (!path::exists(filepath))
 				return result_type::make_error("filepath file does not exist!");
 
+			// ensure the file is .flx
+			const path as_path = path(filepath);
+			if (as_path.get_extension() != k_flx_extension)
+				return result_type::make_error("filepath is not an .flx file!");
+
 			// load file
+			{
+				std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+				size_t size = file.tellg();
+				file.seekg(0);
+
+				vector<byte> readbuffer(size);
+				file.read(reinterpret_cast<char*>(readbuffer.data()), size);
+
+				// serialize the header
+				archiver arch{ readbuffer };
+				asset_header header{};
+				serialize_header(arch, header);
+
+				uint64 out_id;
+				influx_assert(from_string<uint64>(header.m_id_str, out_id));
+				const asset_handle handle = out_id;
+				const string type = header.m_type_str;
+				const string version = header.m_version;
+
+				// setup the map entry, & deserialize the data
+				m_assets[handle] = build_asset(type);
+
+				base_asset_data& data = *m_assets[handle];
+				data.m_header = header;
+				data.m_handle = handle;
+				data.m_meta;
+				data.serialize(arch);
+			}
 
 #if 0
 			using result_type = result<scene_asset*>;
@@ -227,22 +293,24 @@ namespace influx::assets
 		{
 			using result_type = result<>;
 
+			// ensure the file exists
 			const bool file_at_path_exists = path::exists(filepath);
 			if (file_at_path_exists && !args.m_allow_overwrite)
 				return result_type::make_error("failed to write file: m_allow_overwrite is false & the file already exists!");
 
+			// ensure the file is .flx
 			const path as_path = path(filepath);
 			if (as_path.get_extension() != k_flx_extension)
 				return result_type::make_error("filepath is not an .flx file!");
 
-			// serialize the handle data
+			// serialize the asset data ( & write the header )
 			archiver arch{};
 			if (!m_assets.contains(handle))
 				return result_type::make_error("asset handle not found!");
 			{
 				base_asset_data& data = *m_assets[handle];
 				influx_assert(data.get_handle() == handle);
-
+				serialize_header(arch, data.m_header);
 				data.serialize(arch);
 			}
 

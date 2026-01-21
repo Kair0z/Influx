@@ -1,41 +1,40 @@
-
+// influx::platform
+#include "influx_platform/window.h"
+#include "influx_platform/monitor.h"
+// influx::renderer
+#include "influx_renderer.h"
+// influx::core
+#include "core/math/vectortools.h"
+#include "core/math/random.h"
+#include "core/time.h"
 #include "core/basetypes.h"
+// influx::import
+#include "influx_import.h"
+// STL
+#include <iostream>
 
 // SDK 1.614.1
 extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ""; }
 
-// influx::platform
-#include "influx_platform/window.h"
-#include "influx_platform/monitor.h"
+static const char* k_invalid_path = "";
 
-// influx::renderer
-#include "influx_renderer.h"
+// required parameters:
+influx::cvar cv_filepath("cv_fbxscene", k_invalid_path, "required: filepath of the model to render");
 
-// influx::core
-#include "core/math/vectortools.h"
-#include "core/math/random.h"
-#include "core/time.h"
-
-// influx::import
-#include "influx_import.h"
-
-#include <iostream>
-
-using namespace influx;
-
-int main()
+int main(int argc, char* argv[])
 {
 	using namespace influx;
 	using namespace influx::renderer;
+	cvar::parse_runargs(argc, argv);
 
 	// platform setup:
 	// - allocate windows
 	vector<platform::monitor> monitors = platform::monitor::query_monitors();
-	static constexpr uint32 num_windows = 16;
+	static constexpr uint32 num_windows = 1u;
 	platform::window* windows[num_windows] = {};
 	platform::window_desc window_desc{};
-	window_desc.m_dimensions = { 128u, 128u };
+	window_desc.m_dimensions = { 512u, 512u };
 	const math::vectoru2 window_half_size = window_desc.m_dimensions / 2;
 	{
 		window_desc.m_name = "renderer";
@@ -52,6 +51,41 @@ int main()
 	}
 
 	// load a triangle mesh into the renderer:
+#if 1
+	const bool filepath_set = cv_filepath.is_set();
+	const string fbx_filepath = cv_filepath.get_value<string>();
+	vector<renderer::mesh_id> mesh_ids{};
+	vector<renderer::matrix> mesh_transforms{};
+	if (filepath_set && path::exists(fbx_filepath))
+	{
+		imp::scene_load_args args{};
+		args.m_bake_transforms;
+		args.m_multithreading;
+		args.m_pre_scale;
+		auto load_res = imp::load_scene_file(fbx_filepath, args);
+		if (load_res.is_success())
+		{
+			imp::scene_data& scene = load_res.get();
+			for (const auto& mesh : scene.get_meshes())
+			{
+				const string name = "leblanc." + scene.get_name(mesh);
+				renderer::mesh_data mesh_data{};
+				mesh_data.m_indices = mesh.m_indices;
+				mesh_data.m_vertices.resize(mesh.m_positions.size());
+				for (uint32 i = 0u; i < mesh.m_positions.size(); ++i)
+				{
+					mesh_data.m_vertices[i].m_position = mesh.m_positions[i];
+					// mesh_data.m_vertices[i].m_colour = mesh.m_colours[i];
+					mesh_data.m_vertices[i].m_normal = mesh.m_normals[i];
+					mesh_data.m_vertices[i].m_texcoords = mesh.m_uvs[i];
+				}
+				const renderer::mesh_id id = renderer::load(name, mesh_data, false);
+				mesh_ids.push_back(id);
+				mesh_transforms.push_back(scene.get_transform(mesh));
+			}
+		}
+	}
+#else
 	renderer::mesh_id triangle_id = renderer::make_id("triangle");
 	{
 		using vertex = renderer::vertex_data;
@@ -59,14 +93,24 @@ int main()
 		mesh msh{};
 		renderer::load(triangle_id, msh);
 	}
-	
+#endif
+
 	// setup render world & view
 	renderer::world world{};
-	math::matrix4x4f transform{};
-	world.add_mesh_instance(triangle_id, transform);
-	world.add_mesh_instance(triangle_id, transform);
-	world.add_light(renderer::light::make_point({ 1,0,0,1 }, 1.0f), transform);
+	for (uint32 i = 0u; i < mesh_ids.size(); ++i)
+	{
+		world.add_mesh_instance(mesh_ids[i], mesh_transforms[i]);
+	}
+	world.add_light(renderer::light::make_point({ 1,0,0,1 }, 1.0f), renderer::matrix::identity());
 	renderer::worldview wview{};
+
+	renderer::camera camera{};
+	camera.set_aspect_ratio(1.0f);
+	camera.set_farplane(1000.0f);
+	camera.set_nearplane(0.001f);
+	camera.set_fov(90.0f);
+	camera.set_is_orthographic(false);
+	wview.m_matrices.update(renderer::matrix::identity(), camera);
 	wview.m_world = &world;
 	
 	// setup the render-scene
@@ -109,8 +153,7 @@ int main()
 		renderer::end_frame();
 		renderer::present_all(present_args);
 
-		std::cout << renderer::get_last_rendergraph_dotfile().get_std() << "\n";
-		std::cin.get();
+		// std::cout << renderer::get_last_rendergraph_dotfile().get_std() << "\n";
 	}
 	renderer::cleanup();
 }

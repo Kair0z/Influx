@@ -18,7 +18,7 @@
 // influx::engine
 #include "collision/collision.h"
 #include "rendering/render_manager.h"
-#include "content/asset.h"
+#include "assets/asset_manager.h"
 
 namespace influx::engine
 {
@@ -260,7 +260,7 @@ namespace influx::engine
 		: public detail::tcomponent<e_component::mesh>
 	{
 		bool m_is_visible;
-		assets::mesh_id m_mesh_id = assets::k_invalid_id;
+		asset_id m_mesh_id;
 
 		// -- filled in when asset is loaded
 		math::boxf m_mesh_boundbox;
@@ -281,12 +281,16 @@ namespace influx::engine
 			return m_is_visible;
 		}
 
-		void set_mesh_id(const assets::mesh_id& id) {
+		void set_mesh_id(const asset_id& id)
+		{
 			m_mesh_id = id;
 		}
-		assets::mesh_id get_mesh_id() const {
+
+		asset_id get_mesh_id() const 
+		{
 			return m_mesh_id;
 		}
+
 		influx_property_readwrite(bool, use_normalized_scale);
 		influx_property_readwrite(bool, invert_normals);
 	};

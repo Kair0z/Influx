@@ -26,6 +26,7 @@ namespace influx::engine
 	class task_manager;
 	class window_manager;
 	class scene_manager;
+	class file_manager;
 	class scene;
 	class world;
 
@@ -51,6 +52,7 @@ namespace influx::engine
 
 		static project& get_current_project();
 		static scene_manager& get_sceneman();
+		static file_manager& get_fileman();
 		static scene& get_current_scene();
 
 		static log_manager& get_logman();
@@ -94,6 +96,7 @@ namespace influx::engine
 		window_manager* m_windowman = nullptr;
 		asset_manager* m_contentman = nullptr;
 		render_manager* m_renderman = nullptr;
+		file_manager* m_fileman = nullptr;
 		editor::editor_manager* m_editorman = nullptr;
 		game_manager* m_gameman = nullptr;
 		input_manager* m_inputman = nullptr;

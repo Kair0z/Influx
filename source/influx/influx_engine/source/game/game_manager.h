@@ -116,8 +116,5 @@ namespace influx::engine
 		game_library m_game_library{};
 
 		void setup_camera();
-		void setup_swords();
-		void setup_cafe();
-		void setup_unitcube();
 	};
 }
