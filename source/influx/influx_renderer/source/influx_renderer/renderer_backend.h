@@ -34,7 +34,7 @@ namespace influx::renderer
 	class descriptor_manager;
 	class upload_manager;
 	class imgui_manager;
-	class pipeline_manager;
+	class pipeline_state_manager;
 	class world_renderer;
 	class debug_renderer;
 	class target;
@@ -84,7 +84,7 @@ namespace influx::renderer
 
 		descriptor_manager*		mp_desc_manager		= nullptr;
 		upload_manager*			mp_upload_manager	= nullptr;
-		pipeline_manager*		mp_pipeline_manager = nullptr;
+		pipeline_state_manager*	mp_pipeline_state_manager = nullptr;
 		imgui_manager*			mp_imgui			= nullptr;
 		world_renderer*			m_world_renderer	= nullptr;
 		resource_manager*		m_resource_manager	= nullptr;
@@ -131,7 +131,7 @@ namespace influx::renderer
 
 		static descriptor_manager* get_descriptor_manager();
 		static upload_manager* get_upload_manager();
-		static pipeline_manager* get_pipeline_manager();
+		static pipeline_state_manager* get_pipeline_state_manager();
 		static resource_manager& get_resource_manager();
 		static graphics::queue& get_graphics_queue();
 		static graphics::queue& get_copy_queue();

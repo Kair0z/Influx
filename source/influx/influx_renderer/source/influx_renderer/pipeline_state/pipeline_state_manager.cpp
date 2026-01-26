@@ -1,19 +1,19 @@
 #include "renderer_pch.h"
-#include "pipeline_manager.h"
+#include "pipeline_state_manager.h"
 
 // influx::renderer
-#include "pipeline.h"
+#include "pipeline_state.h"
 #include "influx_renderer/renderer_backend.h"
 
 namespace influx::renderer
 {
-	pipeline_manager::pipeline_manager(graphics::device* device)
+	pipeline_state_manager::pipeline_state_manager(graphics::device* device)
 		: mp_device{ device }
 	{
 
 	}
 
-	uint32 pipeline_manager::get_num_pipelines() const
+	uint32 pipeline_state_manager::get_num_pipelines() const
 	{
 		return
 			static_cast<uint32>(

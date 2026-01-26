@@ -3,16 +3,11 @@
 #include "influx_platform/monitor.h"
 // influx::renderer
 #include "influx_renderer.h"
-#include "influx_renderer/pipeline.h"
 // influx::core
 #include "core/math/vectortools.h"
 #include "core/math/random.h"
 #include "core/time.h"
 #include "core/basetypes.h"
-// influx::import
-#include "influx_import.h"
-// STL
-#include <iostream>
 
 // SDK 1.614.1
 extern "C" { __declspec(dllexport) extern const influx::uint32 D3D12SDKVersion = 614u; }
@@ -52,62 +47,23 @@ int main(int argc, char* argv[])
 	}
 
 	// load a triangle mesh into the renderer:
-#if 1
-	const bool filepath_set = cv_filepath.is_set();
-	const string fbx_filepath = cv_filepath.get_value<string>();
-	vector<renderer::mesh_id> mesh_ids{};
-	vector<renderer::matrix> mesh_transforms{};
-	if (filepath_set && path::exists(fbx_filepath))
-	{
-		imp::scene_load_args args{};
-		args.m_bake_transforms;
-		args.m_multithreading;
-		args.m_pre_scale;
-		auto load_res = imp::load_scene_file(fbx_filepath, args);
-		if (load_res.is_success())
-		{
-			imp::scene_data& scene = load_res.get();
-			for (const auto& mesh : scene.get_meshes())
-			{
-				const string name = "leblanc." + scene.get_name(mesh);
-				renderer::mesh_data mesh_data{};
-				mesh_data.m_indices = mesh.m_indices;
-				mesh_data.m_vertices.resize(mesh.m_positions.size());
-				for (uint32 i = 0u; i < mesh.m_positions.size(); ++i)
-				{
-					mesh_data.m_vertices[i].m_position = mesh.m_positions[i];
-					// mesh_data.m_vertices[i].m_colour = mesh.m_colours[i];
-					mesh_data.m_vertices[i].m_normal = mesh.m_normals[i];
-					mesh_data.m_vertices[i].m_texcoords = mesh.m_uvs[i];
-				}
-				const renderer::mesh_id id = renderer::load(name, mesh_data, false);
-				mesh_ids.push_back(id);
-				mesh_transforms.push_back(scene.get_transform(mesh));
-			}
-		}
-	}
-#else
-	renderer::mesh_id triangle_id = renderer::make_id("triangle");
+	static constexpr uint32 k_num_triangles = 1024u;
+	static const auto k_triangle_id = renderer::make_id("triangle");
 	{
 		using vertex = renderer::vertex_data;
 		using mesh = renderer::mesh_data<vertex>;
 		mesh msh{};
-		renderer::load(triangle_id, msh);
+		renderer::load(k_triangle_id, msh);
 	}
-#endif
 
 	// setup render world & view
 	renderer::world world{};
-	for (uint32 i = 0u; i < mesh_ids.size(); ++i)
+	for (uint32 i = 0u; i < k_num_triangles; ++i)
 	{
-		world.add_mesh_instance(mesh_ids[i], mesh_transforms[i]);
+		world.add_mesh_instance(k_triangle_id, math::matrix4x4f::identity());
 	}
 	world.add_light(renderer::light::make_point({ 1,0,0,1 }, 1.0f), renderer::matrix::identity());
 	renderer::worldview wview{};
-
-	// pipeline flx
-	renderer::pipeline_id pipeline = renderer::pipeline::parse("./pipeline.flx");
-
 
 	renderer::camera camera{};
 	camera.set_aspect_ratio(1.0f);
@@ -132,6 +88,7 @@ int main(int argc, char* argv[])
 		seconds += delta_seconds;
 
 		// update:
+#if 0
 		const float radius = 200;
 		for (uint32 i = 0u; i < num_windows; ++i)
 		{
@@ -143,6 +100,7 @@ int main(int argc, char* argv[])
 			windows[i]->set_position(monitor_center + math::vectoru2{ x,y } - window_half_size);
 			windows[i]->poll_events(is_quit);
 		}
+#endif
 
 		// render:
 		renderer::start_frame();

@@ -264,25 +264,25 @@ namespace influx::renderer
 #pragma endregion
 	};
 
-	using graphics_pipeline_signature = pipeline_signature<graphics::e_pipeline_type::graphics>;
-	using compute_pipeline_signature = pipeline_signature<graphics::e_pipeline_type::compute>;
-	using raytracing_pipeline_signature = pipeline_signature<graphics::e_pipeline_type::raytracing>;
+	using graphics_pipeline_state_signature = pipeline_signature<graphics::e_pipeline_type::graphics>;
+	using compute_pipeline_state_signature = pipeline_signature<graphics::e_pipeline_type::compute>;
+	using raytracing_pipeline_state_signature = pipeline_signature<graphics::e_pipeline_type::raytracing>;
 #pragma endregion
 
 #pragma region translation
-	inline graphics::compute_pipeline_desc translate(const compute_pipeline_signature& signature)
+	inline graphics::compute_pipeline_desc translate(const compute_pipeline_state_signature& signature)
 	{
 		graphics::compute_pipeline_desc result{};
 		return result;
 	}
 
-	inline graphics::raytracing_pipeline_desc translate(const raytracing_pipeline_signature& signature)
+	inline graphics::raytracing_pipeline_desc translate(const raytracing_pipeline_state_signature& signature)
 	{
 		graphics::raytracing_pipeline_desc result{};
 		return result;
 	}
 
-	inline graphics::graphics_pipeline_desc translate(const graphics_pipeline_signature& signature)
+	inline graphics::graphics_pipeline_desc translate(const graphics_pipeline_state_signature& signature)
 	{
 		graphics::graphics_pipeline_desc result{};
 		result.m_rasterizer.m_cullmode = signature.m_cullmode;
@@ -324,7 +324,7 @@ namespace influx::renderer
 
 	// templated wrapper around graphics::e_pipeline_type
 	template <graphics::e_pipeline_type _t>
-	class pipeline final
+	class pipeline_state final
 	{
 	private:
 		using shader_slots = graphics::shader_slots<_t>;
@@ -352,8 +352,8 @@ namespace influx::renderer
 		bool						m_needs_rebuild = false;
 
 	public:
-		pipeline() = default;
-		pipeline(graphics::device & device, const signature_type & signature)
+		pipeline_state() = default;
+		pipeline_state(graphics::device & device, const signature_type & signature)
 			: m_signature{ signature }
 		{
 			// setup loadpoints
@@ -653,32 +653,32 @@ namespace influx::renderer
 		}
 	};
 	
-	using graphics_pipeline		= pipeline<graphics::e_pipeline_type::graphics>;
-	using compute_pipeline		= pipeline<graphics::e_pipeline_type::compute>;
-	using raytracing_pipeline	= pipeline<graphics::e_pipeline_type::raytracing>;
+	using graphics_pipeline_state = pipeline_state<graphics::e_pipeline_type::graphics>;
+	using compute_pipeline_state = pipeline_state<graphics::e_pipeline_type::compute>;
+	using raytracing_pipeline_state	= pipeline_state<graphics::e_pipeline_type::raytracing>;
 }
 
 // Specialize std::hash for shader_signature
 namespace std {
 	template <>
-	struct hash<influx::renderer::graphics_pipeline_signature> {
-		std::size_t operator()(const influx::renderer::graphics_pipeline_signature& sig) const 
+	struct hash<influx::renderer::graphics_pipeline_state_signature> {
+		std::size_t operator()(const influx::renderer::graphics_pipeline_state_signature& sig) const 
 		{
 			return sig.get_hash();
 		}
 	};
 
 	template <>
-	struct hash<influx::renderer::compute_pipeline_signature> {
-		std::size_t operator()(const influx::renderer::compute_pipeline_signature& sig) const
+	struct hash<influx::renderer::compute_pipeline_state_signature> {
+		std::size_t operator()(const influx::renderer::compute_pipeline_state_signature& sig) const
 		{
 			return sig.get_hash();
 		}
 	};
 
 	template <>
-	struct hash<influx::renderer::raytracing_pipeline_signature> {
-		std::size_t operator()(const influx::renderer::raytracing_pipeline_signature& sig) const
+	struct hash<influx::renderer::raytracing_pipeline_state_signature> {
+		std::size_t operator()(const influx::renderer::raytracing_pipeline_state_signature& sig) const
 		{
 			return sig.get_hash();
 		}

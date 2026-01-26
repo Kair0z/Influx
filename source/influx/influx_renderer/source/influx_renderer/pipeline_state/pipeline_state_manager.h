@@ -10,22 +10,22 @@ namespace influx::graphics
 }
 
 // influx::renderer
-#include "pipeline.h"
+#include "pipeline_state.h"
 
 namespace influx::renderer
 {
-	class pipeline_manager final
+	class pipeline_state_manager final
 	{
 		graphics::device* mp_device;
 
 		template <graphics::e_pipeline_type _t>
-		using pipeline_map = umap<pipeline_signature<_t>, pipeline<_t> >;
+		using pipeline_map = umap<pipeline_signature<_t>, pipeline_state<_t> >;
 		pipeline_map<graphics::e_pipeline_type::graphics> m_graphics_map;
 		pipeline_map<graphics::e_pipeline_type::compute> m_compute_map;
 		pipeline_map<graphics::e_pipeline_type::raytracing>	m_raytracing_map;
 
 	public:
-		pipeline_manager(graphics::device* device);
+		pipeline_state_manager(graphics::device* device);
 
 		uint32 get_num_pipelines() const;
 
@@ -36,7 +36,7 @@ namespace influx::renderer
 		}
 
 		template <graphics::e_pipeline_type _t>
-		pipeline<_t>* find_pipeline(const pipeline_signature<_t>& signature)
+		pipeline_state<_t>* find_pipeline(const pipeline_signature<_t>& signature)
 		{
 			if (has_pipeline(signature))
 			{
@@ -47,7 +47,7 @@ namespace influx::renderer
 		}
 
 		template <graphics::e_pipeline_type _t>
-		pipeline<_t>& get_or_create_pipeline(const pipeline_signature<_t>& signature)
+		pipeline_state<_t>& get_or_create_pipeline(const pipeline_signature<_t>& signature)
 		{
 			influx_assert(mp_device != nullptr);
 			influx_assert(signature.is_valid());
@@ -55,23 +55,23 @@ namespace influx::renderer
 			pipeline_map<_t>& map = get_map<_t>();
 			if (!has_pipeline<_t>(signature))
 			{
-				map[signature] = pipeline<_t>(*mp_device, signature);
+				map[signature] = pipeline_state<_t>(*mp_device, signature);
 			}
 
 			return map[signature];
 		}
 
-		graphics_pipeline& get_or_create_pipeline(const graphics_pipeline_signature& signature)
+		graphics_pipeline_state& get_or_create_pipeline(const graphics_pipeline_state_signature& signature)
 		{
 			return get_or_create_pipeline<graphics::e_pipeline_type::graphics>(signature);
 		}
 
-		compute_pipeline& get_or_create_pipeline(const compute_pipeline_signature& signature)
+		compute_pipeline_state& get_or_create_pipeline(const compute_pipeline_state_signature& signature)
 		{
 			return get_or_create_pipeline<graphics::e_pipeline_type::compute>(signature);
 		}
 
-		raytracing_pipeline& get_or_create_pipeline(const raytracing_pipeline_signature& signature)
+		raytracing_pipeline_state& get_or_create_pipeline(const raytracing_pipeline_state_signature& signature)
 		{
 			return get_or_create_pipeline<graphics::e_pipeline_type::raytracing>(signature);
 		}

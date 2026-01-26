@@ -6,7 +6,7 @@
 #include "core/file.h"
 
 // influx::renderer
-#include "influx_renderer/pipeline/pipeline_manager.h"
+#include "influx_renderer/pipeline_state/pipeline_state_manager.h"
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/upload_manager.h"
 #include "influx_renderer/world_renderer.h"
@@ -92,7 +92,7 @@ namespace influx::renderer
             m_job_manager = new job_manager();
             m_submit_manager = new submit_manager(*mp_device);
             mp_desc_manager = new descriptor_manager(*mp_device);
-            mp_pipeline_manager = new pipeline_manager(mp_device);
+            mp_pipeline_state_manager = new pipeline_state_manager(mp_device);
             mp_upload_manager = new upload_manager(mp_device);
             m_resource_manager = new resource_manager();
             mp_imgui = new imgui_manager(mp_device);
@@ -121,7 +121,7 @@ namespace influx::renderer
         delete m_submit_manager; m_submit_manager = nullptr;
         delete m_job_manager; m_job_manager = nullptr;
         delete mp_desc_manager; mp_desc_manager = nullptr;
-        delete mp_pipeline_manager; mp_pipeline_manager = nullptr;
+        delete mp_pipeline_state_manager; mp_pipeline_state_manager = nullptr;
         delete mp_upload_manager; mp_upload_manager = nullptr;
         delete mp_imgui; mp_imgui = nullptr;
         delete m_world_renderer; m_world_renderer = nullptr;
@@ -570,9 +570,9 @@ namespace influx::renderer
         return get_instance().mp_upload_manager;
     }
 
-    pipeline_manager* renderer_backend::get_pipeline_manager()
+    pipeline_state_manager* renderer_backend::get_pipeline_state_manager()
     {
-        return get_instance().mp_pipeline_manager;
+        return get_instance().mp_pipeline_state_manager;
     }
 
     resource_manager& renderer_backend::get_resource_manager()
@@ -818,7 +818,7 @@ namespace influx::renderer
     pipeline_info renderer_backend::get_pipeline_info() const
     {
         pipeline_info info{};
-        info.m_num_pipelines = mp_pipeline_manager->get_num_pipelines();
+        info.m_num_pipelines = mp_pipeline_state_manager->get_num_pipelines();
         return info;
     }
 

@@ -9,7 +9,7 @@
 
 // influx::renderer
 #include "influx_renderer.h"
-#include "influx_renderer/pipeline/pipeline.h"
+#include "influx_renderer/pipeline_state/pipeline_state.h"
 namespace influx::renderer
 {
 	class renderer_backend;

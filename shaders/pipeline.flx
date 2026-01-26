@@ -1,0 +1,29 @@
+pass("gbuffer", function(p)
+    p:read("geometry")
+    p:write("albedo")
+    p:write("normal")
+end)
+
+pass("lighting0", function(p)
+    p:read("albedo")
+    p:read("normal")
+    p:write("lit_color")
+end)
+
+// both lighting passes write to the same output 
+// in this case order of the file dictates lighting0 happens first
+pass("lighting1", function(p)
+    p:read("albedo")
+    p:read("normal")
+    p:write("lit_color")
+end)
+
+// this bloom pass reads lit-color,
+// but since it's positioned AFTER lighting1, it will read THAT version of the output resource.
+rg:pass("bloom", function(p)
+    p:compute_shader("shaders/shader.hlsl", "cs_main")
+    p:read("lit_color")
+    p:write(<output0>)
+    p:dispatch(ceil(width/8), ceil(height/8), 1)
+end)
+

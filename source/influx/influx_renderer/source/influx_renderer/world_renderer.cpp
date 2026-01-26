@@ -6,8 +6,8 @@
 
 // influx::renderer
 #include "influx_renderer/target.h"
-#include "influx_renderer/pipeline/pipeline.h"
-#include "influx_renderer/pipeline/pipeline_manager.h"
+#include "influx_renderer/pipeline_state/pipeline_state.h"
+#include "influx_renderer/pipeline_state/pipeline_state_manager.h"
 #include "influx_renderer/renderer_backend.h"
 #include "influx_renderer/descriptor_manager.h"
 #include "influx_renderer/renderer_common.h"
@@ -45,15 +45,15 @@ namespace influx::renderer
     }
 
 #pragma region shaders
-    static graphics_pipeline_signature& get_scene_basepass_pipeline_signature()
+    static graphics_pipeline_state_signature& get_scene_basepass_pipeline_signature()
     {
-        static graphics_pipeline_signature signature{};
+        static graphics_pipeline_state_signature signature{};
         static bool once = true;
         if (once)
         {
             signature.m_is_bindless = true;
-            signature.set_shader_id(graphics_pipeline::e_shader_slot::vs, "basepass::main_vs");
-            signature.set_shader_id(graphics_pipeline::e_shader_slot::ps, "basepass::main_ps");
+            signature.set_shader_id(graphics_pipeline_state::e_shader_slot::vs, "basepass::main_vs");
+            signature.set_shader_id(graphics_pipeline_state::e_shader_slot::ps, "basepass::main_ps");
             signature.m_primitive_type = graphics::e_primitive_topology_type::triangle;
             signature.m_cullmode = graphics::e_cull_mode::back;
             signature.m_fillmode = graphics::e_fill_mode::solid;
@@ -93,19 +93,19 @@ namespace influx::renderer
         }
         return signature;
     }
-    static compute_pipeline_signature& get_scene_resolve_pipeline_signature()
+    static compute_pipeline_state_signature& get_scene_resolve_pipeline_signature()
     {
-        static compute_pipeline_signature signature{};
+        static compute_pipeline_state_signature signature{};
         signature.m_is_bindless = true;
-        signature.set_shader_id(compute_pipeline::e_shader_slot::cs, "resolvepass::main_cs");
+        signature.set_shader_id(compute_pipeline_state::e_shader_slot::cs, "resolvepass::main_cs");
         return signature;
     };
-    static graphics_pipeline_signature& get_debug_pipeline_signature()
+    static graphics_pipeline_state_signature& get_debug_pipeline_signature()
     {
-        static graphics_pipeline_signature signature{};
+        static graphics_pipeline_state_signature signature{};
         {
-            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::vs] = "debug_shaders::main_vs";
-            signature.m_shader_identifiers[(uint8)graphics_pipeline::e_shader_slot::ps] = "debug_shaders::main_ps";
+            signature.m_shader_identifiers[(uint8)graphics_pipeline_state::e_shader_slot::vs] = "debug_shaders::main_vs";
+            signature.m_shader_identifiers[(uint8)graphics_pipeline_state::e_shader_slot::ps] = "debug_shaders::main_ps";
 
             signature.m_primitive_type = graphics::e_primitive_topology_type::line;
             signature.m_cullmode = graphics::e_cull_mode::nocull;
@@ -464,14 +464,14 @@ namespace influx::renderer
             return;
 
         renderer_backend& backend = renderer_backend::get_instance();
-        pipeline_manager& pipeline_man = *backend.get_pipeline_manager();
+        pipeline_state_manager& pipeline_man = *backend.get_pipeline_state_manager();
         descriptor_manager& descman = *backend.get_descriptor_manager();
 
         influx_scope("renderer_backend::draw_scene::record");
         logonce(e_log_category::warning, "influx::renderer::scene_renderer: first scene render!");
 
         // apply render global settings to the pipeline signature
-        graphics_pipeline_signature& pipeline_sig = get_scene_basepass_pipeline_signature();
+        graphics_pipeline_state_signature& pipeline_sig = get_scene_basepass_pipeline_signature();
         {
             const render_settings&          settings = renderer_backend::get_instance().get_settings();
             pipeline_sig.m_depth_enable = target.has_depth_stencil();
@@ -486,7 +486,7 @@ namespace influx::renderer
         }
 
         // load the pipeline signature
-        graphics_pipeline& pipeline = pipeline_man.get_or_create_pipeline(pipeline_sig);
+        graphics_pipeline_state& pipeline = pipeline_man.get_or_create_pipeline(pipeline_sig);
         static bool once = true;
         if (once)
         {
@@ -552,9 +552,9 @@ namespace influx::renderer
     {
         renderer_backend& backend           = renderer_backend::get_instance();
         rhi_device& device                  = backend.get_device();
-        pipeline_manager& pipeline_man      = *backend.get_pipeline_manager();
+        pipeline_state_manager& pipeline_man      = *backend.get_pipeline_state_manager();
         descriptor_manager& descriptor_man  = *backend.get_descriptor_manager();
-        compute_pipeline& pipeline          = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
+        compute_pipeline_state& pipeline          = pipeline_man.get_or_create_pipeline(get_scene_resolve_pipeline_signature());
         resource_manager& resourceman       = backend.get_resource_manager();
 
         pipeline.rebuild(device);
@@ -685,8 +685,8 @@ namespace influx::renderer
                 
                 // get the pipeline
                 renderer_backend& backend = renderer_backend::get_instance();
-                pipeline_manager& pipelineman = *backend.get_pipeline_manager();
-                graphics_pipeline& pipeline = pipelineman.get_or_create_pipeline(get_debug_pipeline_signature());
+                pipeline_state_manager& pipelineman = *backend.get_pipeline_state_manager();
+                graphics_pipeline_state& pipeline = pipelineman.get_or_create_pipeline(get_debug_pipeline_signature());
                 descriptor_manager& descriptorman = *backend.get_descriptor_manager();
 
                 // hot-reload our shaders if necessary:
