@@ -87,10 +87,17 @@ function new_influx_misc(name)
     fastuptodate(false)
 end
 
+-- declares a 'runnable' project into /source/tools/...
+function new_influx_runnable(name)
+    project_dir = g_dir_source_tools .. "/%{prj.name}/"
+    new_influx_project(name, "ConsoleApp")
+    fastuptodate(false)
+end
+
 -- declares a 'tool' project into /source/tools/...
 function new_influx_tool(name)
     project_dir = g_dir_source_tools .. "/%{prj.name}/"
-    new_influx_project(name, "ConsoleApp")
+    new_influx_project(name, "SharedLib")
     fastuptodate(false)
 end
 
@@ -196,6 +203,7 @@ function add_thirdparty_source(...)
                     found_srcdir .. "**.h",
                     found_srcdir .. "**.cpp",
                     found_srcdir .. "**.hpp",
+                    found_srcdir .. "**.c"
                 }
                 files(tp_files)
                 includedirs(found_srcdir)

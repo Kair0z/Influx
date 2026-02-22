@@ -26,6 +26,7 @@ struct ImDrawData;
 #include "core/time.h"
 #include "core/result.h"
 #include "core/commandline.h"
+#include "core/plugin.h"
 
 // influx::platform
 #include "influx_platform/window.h"
@@ -79,8 +80,8 @@ namespace influx::renderer
 	INFLUX_RENDER_API bool is_initialized();
 
 	/* 
-		cleanup your resources!
-		past this point it's unsafe to call any of the rest of the API! 
+		releases all resources
+		past calling this, it's unsafe to call any of the rest of the API! 
 	*/
 	INFLUX_RENDER_API void cleanup();
 
@@ -108,6 +109,9 @@ namespace influx::renderer
 
 	/* draw a world onto a given render target */
 	INFLUX_RENDER_API result<> draw_world(const worldview& view, const target& target);
+
+	/* draw using a parsed pipeline at filepath, using world as input data */
+	INFLUX_RENDER_API result<> draw_world_with_pipeline(const char* pipeline_filepath, const worldview& world);
 
 	/* query whether the internal shaders & resources required for render-operations are available */
 	INFLUX_RENDER_API bool can_draw_postprocess();
@@ -265,4 +269,12 @@ namespace influx::renderer
 	inline result<cptr<texture3D>> get_texture3D(const string& unique_name) {
 		return get_texture3D(make_tex_id(unique_name));
 	}
+
+
+	// define the plugin interface
+	class INFLUX_RENDER_API plugin final : plugin_interface
+	{
+	public:
+
+	};
 }

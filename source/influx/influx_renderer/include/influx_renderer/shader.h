@@ -45,5 +45,4 @@ namespace influx::renderer
 			return m_bytecode.empty() == false;
 		}
 	};
-
 }

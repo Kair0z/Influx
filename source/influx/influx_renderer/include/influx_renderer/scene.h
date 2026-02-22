@@ -50,13 +50,6 @@ namespace influx::renderer
 			, m_colour{ colour } {}
 	};
 
-	enum class e_scene_render_flags : uint8
-	{
-		none = 0,
-		enable_debug = 1 << 0,
-		enable_all = enable_debug
-	};
-
 	struct world_constants final
 	{
 		float m_delta_seconds;
@@ -167,7 +160,6 @@ namespace influx::renderer
 	public:
 		camera					m_camera_settings;
 		view_matrices			m_matrices;
-		e_scene_render_flags	m_renderflags;
 		world*					m_world;
 
 		INFLUX_RENDER_API const world& get_world() const;
@@ -218,4 +210,3 @@ namespace influx::renderer
 		vector<function<void(ImGuiContext&)>> m_imgui_stacks{};
 	};
 }
-ENABLE_ENUM_BIT_OPERATORS(influx::renderer::e_scene_render_flags);

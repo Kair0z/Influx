@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 	const string include_folder_path = cv_includes.get_value<string>(); // "D:/Git/Influx/source/influx/influx_renderer/shaders/source/slang/";
 	const string entrypoint = cv_entrypoint.get_value<string>(); // "main_vs"
 	shader::shader_signature signature = target_parsed_shader->m_signature;
-	signature.m_entrypoint = entrypoint;
+	signature.set_entrypoint(entrypoint);
 
 	shader::compile_args args{};
 	args.m_source_language = shader::e_shader_language::HLSL;

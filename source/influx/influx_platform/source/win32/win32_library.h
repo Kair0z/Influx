@@ -5,6 +5,8 @@ namespace influx::platform
 {
 	class win32_library final : public library
 	{
+		void* m_instance = nullptr;
+		void* m_module = nullptr;
 	public:
 		win32_library(const string& path);
 		~win32_library();

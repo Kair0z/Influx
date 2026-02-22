@@ -117,6 +117,7 @@ namespace influx::renderer
 		result<> draw_imgui(const vector<ImDrawData const*>& draws, const vector<target const*>& targets);
 		result<> draw_postprocess(const scene_postprocess& scene, const target& target);
 		result<> draw_world(const worldview& view, const target& target);
+		result<> draw_world_with_pipeline(const char* pipeline_filepath, const worldview& world);
 
 		bool can_draw_postprocess() const;
 		bool can_draw_imgui() const;

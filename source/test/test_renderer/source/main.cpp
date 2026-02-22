@@ -29,8 +29,7 @@ int main(int argc, char* argv[])
 	using namespace influx::renderer;
 	cvar::parse_runargs(argc, argv);
 
-	// platform setup:
-	// - allocate windows
+	// create windows
 	vector<platform::monitor> monitors = platform::monitor::query_monitors();
 	static constexpr uint32 num_windows = 1u;
 	platform::window* windows[num_windows] = {};
@@ -105,10 +104,6 @@ int main(int argc, char* argv[])
 	world.add_light(renderer::light::make_point({ 1,0,0,1 }, 1.0f), renderer::matrix::identity());
 	renderer::worldview wview{};
 
-	// pipeline flx
-	renderer::pipeline_id pipeline = renderer::pipeline::parse("./pipeline.flx");
-
-
 	renderer::camera camera{};
 	camera.set_aspect_ratio(1.0f);
 	camera.set_farplane(1000.0f);
@@ -153,7 +148,8 @@ int main(int argc, char* argv[])
 			renderer::clear_args clear{ .m_colour = clear_colours[ i % 3 ] };
 
 			renderer::clear_target(*window_target, clear);
-			renderer::draw_world(wview, *window_target);
+			// renderer::draw_world(wview, *window_target);
+			renderer::draw_world_with_pipeline("pipeline.lua", wview);
 		}
 		renderer::end_frame();
 		renderer::present_all(present_args);

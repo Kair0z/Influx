@@ -13,7 +13,6 @@
 #include "core/basetypes.h"
 #include "core/debug.h"
 
-// influx string
 namespace influx
 {
 	using std_str	= std::string;
@@ -125,19 +124,17 @@ namespace influx
 		}
 		return false;
 	}
-	
-
 #pragma endregion
 
-	class string;
 
+	class string;
 	template <typename _t>
 	static string operator+(const string& str, const _t& element);
 
-	// influx string wrapper
-	// it's a wstring, since that encapsulates UTF8 strings.
-	// as a consequence though, getting a UTF8 representation can come with some overhead.
-	// to combat this, we carry an additional UTF8 cache that updates when the string gets changed.
+	// [influx] string wrapper
+	// Underneath this is a wstring so we can support any characters.
+	// As a consequence though, getting specificaly the UTF8 version may come with some overhead.
+	// To handle this, it contains a UTF8 cache that updates whenever get_<utf8> format is called.
 	class string final
 	{
 		std_wstr m_wstr{};
@@ -157,6 +154,14 @@ namespace influx
 
 		// construction (conversion from other types)
 		string() = default;
+		string(const string& str)
+		{
+			m_wstr = str.m_wstr;
+		}
+		string(string&& str) noexcept
+		{
+			m_wstr = str.m_wstr;
+		}
 		string(const std_str& std_str)
 		{
 			m_wstr = to_wstring(std_str);
@@ -195,6 +200,17 @@ namespace influx
 			m_wstr = to_wstring(value);
 		}
 		virtual ~string() = default;
+
+		string& operator=(const string& other)
+		{
+			m_wstr = other.m_wstr;
+			return *this;
+		}
+		string& operator=(string&& other)
+		{
+			m_wstr = other.m_wstr;
+			return *this;
+		}
 
 		// access
 		wchr& operator[](uint64 i)
@@ -248,6 +264,18 @@ namespace influx
 
 		uint64 size() const
 		{ return m_wstr.size(); }
+		uint64 capacity() const 
+		{ return m_wstr.capacity(); }
+
+		void resize(uint64 new_size)
+		{ 
+			m_wstr.resize(new_size);
+			on_content_change();
+		}
+		void reserve(uint64 new_capacity)
+		{
+			m_wstr.reserve(new_capacity);
+		}
 
 		bool empty() const
 		{ return size() == 0u; }
@@ -428,11 +456,6 @@ namespace influx
 			return *this;
 		}
 
-		void resize(const uint64 new_size) {
-			on_content_change();
-			m_wstr.resize(new_size);
-		}
-
 		template <typename _t>
 		void append(const _t& element)
 		{
@@ -449,6 +472,7 @@ namespace influx
 		template <typename _t>
 		string& operator+=(const _t& element) { this->append<_t>(element); return *this; }
 	};
+
 	static bool operator==(const string& a, const string& b)
 	{
 		return string::is_equal(a, b, string::k_default_case_sensitive);
@@ -465,6 +489,25 @@ namespace influx
 		combined.append<_t>(element);
 		return combined;
 	}
+
+	// [influx] static string
+	template <uint64 _s>
+	class static_string final
+	{
+		string m_str;
+	public:
+		static constexpr uint64 capacity() { return _s; }
+		uint64 size() const { return m_str.size(); }
+
+		static_string() { m_str.reserve(capacity()); }
+		static_string(const std_str& std_str) {}
+		static_string(const std_wstr& std_wstr) {}
+		static_string(const cstr& cstr) {}
+		static_string(const wcstr& wcstr) {}
+		virtual ~static_string() = default;
+
+		const string& get_string() const { return m_str; }
+	};
 }
 template <> struct std::hash<influx::string>
 {

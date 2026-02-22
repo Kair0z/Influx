@@ -155,7 +155,7 @@ namespace influx::renderer
 
 	bool worldview::is_debug_render_enabled() const
 	{
-		return has_flag(m_renderflags, e_scene_render_flags::enable_debug);
+		return true;
 	}
 
 	bool worldview::has_debug_primitives() const

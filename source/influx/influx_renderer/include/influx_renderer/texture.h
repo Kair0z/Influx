@@ -332,5 +332,4 @@ namespace influx::renderer
 	{
 		return static_cast<uint32>(id) < k_num_internal_textures;
 	}
-
 }

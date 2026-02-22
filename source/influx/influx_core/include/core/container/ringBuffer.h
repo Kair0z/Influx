@@ -63,6 +63,12 @@ namespace influx
 		constexpr static size_t capacity();
 		bool is_full() const;
 		bool is_empty() const;
+		
+		void clear_lockless()
+		{
+			m_head = m_tail = 0u;
+			memset(m_data, 0, sizeof(m_data));
+		}
 
 		template <class _func>
 		void for_each_lockless(_func&& func, const size_t max_num = -1);
@@ -81,7 +87,8 @@ namespace influx
 
 		_t m_cached_sum{};
 	};
-
+	
+	// this is the main push
 	template<typename _t, size_t _c>
 	inline bool ringbuffer<_t, _c>::push_lockless(const _t& value)
 	{
@@ -139,7 +146,7 @@ namespace influx
 		return result;
 	}
 
-
+	// this is the main pop
 	template<typename _t, size_t _c>
 	inline bool ringbuffer<_t, _c>::pop_lockless(_t& value)
 	{
@@ -163,7 +170,9 @@ namespace influx
 	template<typename _t, size_t _c>
 	inline bool ringbuffer<_t, _c>::try_pop(_t& value)
 	{
-		if (!m_lock.try_lock()) return false;
+		if (!m_lock.try_lock()) 
+			return false;
+
 		bool result = pop_lockless(value);
 		m_lock.unlock();
 		return result;
@@ -315,7 +324,7 @@ namespace influx
 	{
 		const size_t num = math::minimum(max_num, size());
 		const size_t tail = (m_head - num) % _c;
-		for (size_t i = m_head; i != tail; i = (i - 1u) % _c)
+		for (size_t i = tail; i != m_head; i = ((i + 1) % _c))
 		{
 			func(m_data[i]);
 		}

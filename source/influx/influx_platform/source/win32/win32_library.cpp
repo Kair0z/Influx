@@ -9,9 +9,6 @@
 #include <Windows.h>
 #include <windowsx.h> // GET_X_LPARAM(), GET_Y_LPARAM()
 
-::HINSTANCE m_instance;
-::HMODULE m_module;
-
 namespace influx::platform
 {
 	library* library::load(const string& path)
@@ -28,9 +25,10 @@ namespace influx::platform
 	win32_library::win32_library(const string& path)
 	{
 		m_instance = ::LoadLibrary(path.c_wstr());
-		if (!m_instance)
+		if (m_instance == nullptr)
 		{
-			// error!
+			// error
+			return;
 		}
 
 		// enumerate functions
@@ -61,14 +59,14 @@ namespace influx::platform
 	{
 		auto contains = [&func_name](const string& str) -> bool
 		{
-			return (str.find(func_name) != std::string::npos);
+			return strstr(str.c_str(), func_name.c_str()) != nullptr;
 		};
 		auto found = std::find_if(m_functions.cbegin(), m_functions.cend(), contains);
 
 		if (found != m_functions.cend())
 		{
 			const std_str found_std = found->get_std();
-			::FARPROC func_address = GetProcAddress(m_instance, found_std.c_str());
+			::FARPROC func_address = GetProcAddress((HINSTANCE)m_instance, found_std.c_str());
 			if (func_address)
 			{
 				return func_address;
@@ -90,7 +88,7 @@ namespace influx::platform
 
 	win32_library::~win32_library()
 	{
-		::FreeLibrary(m_instance);
-		::FreeLibrary(m_module);
+		::FreeLibrary((HINSTANCE)m_instance);
+		::FreeLibrary((HMODULE)m_module);
 	}
 }

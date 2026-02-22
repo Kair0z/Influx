@@ -43,7 +43,7 @@ namespace influx
 		_t& at(const key_type& key)						{ return m_std_umap.at(key); }
 		const _t& at(const key_type& key) const			{ return m_std_umap.at(key); }
 		_t& operator[](const key_type& key)				{ return m_std_umap[key]; }
-		const _t& operator[](const key_type& key) const { return m_std_umap[key]; }
+		const _t& operator[](const key_type& key) const { return m_std_umap.at(key); }
 		void write(const key_type& key, const value_type& value) { at(key) = value; }
 		const value_type& read(const key_type& key) const { return at(key); }
 

@@ -6,7 +6,6 @@
 
 // influx::engine
 #include "editor/editor_manager.h"
-#include "engine_files.h"
 #include "window/window_manager.h"
 
 // influx::platform

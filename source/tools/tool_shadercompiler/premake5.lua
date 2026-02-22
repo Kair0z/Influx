@@ -1,4 +1,4 @@
-new_influx_tool("tool_shadercompiler")
+new_influx_runnable("tool_shadercompiler")
     local dependencies =
     {
         "influx_core",

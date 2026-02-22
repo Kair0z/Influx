@@ -15,6 +15,7 @@
 #include "influx_renderer/submitmanager.h"
 #include "influx_renderer/renderjobs.h"
 #include "influx_renderer/memory_manager.h"
+#include "influx_renderer/pipeline.h"
 
 // influx::rendergraph
 #include "rendergraph.h"
@@ -51,6 +52,16 @@ namespace influx::renderer
         default:
         case e_render_api::unsupported: return graphics::e_api_type::unsupported;
         }
+    }
+
+    static rendergraph::buffer_desc translate(const buffer_desc& desc)
+    {
+        return {};
+    }
+
+    static rendergraph::texture_desc translate_to_rg(const texture_desc& desc)
+    {
+        return {};
     }
 #pragma endregion
 
@@ -493,6 +504,74 @@ namespace influx::renderer
             return result_type::make_error("error: failed importing target to graph!");
 
         m_world_renderer->build(*m_rendergraph, view, target);
+        return {};
+    }
+
+    result<> renderer_backend::draw_world_with_pipeline(const char* pipeline_filepath, const worldview& world)
+    {
+        using result_type = result<>;
+
+        // if (world.is_empty())
+        //     return result_type::make_warning({}, "warning: view.m_world is nullptr!");
+
+        pipeline pipeline{};
+        if (!pipeline.parse(pipeline_filepath).is_success())
+            return result_type::make_error("error: failed parsing pipeline at filepath!");
+
+        for (const pipeline::pass_desc& pass : pipeline.get_passes())
+        {
+            m_rendergraph->add_graphics_pass(
+                [pipeline, pass](rendergraph::rgpass_builder& builder)
+                {
+                    for (const pipeline::buffer_id id : pass.get_buffer_reads()) 
+                    {
+                        auto buffer_res = pipeline.get_buffer(id);
+                        if (buffer_res.is_success())
+                        {
+                            const buffer_desc& buffer = *buffer_res.get();
+                            builder.read_buffer(rendergraph::rgname(id), translate(buffer)).get();
+                        }
+                    }
+                    for (const pipeline::buffer_id id : pass.get_buffer_writes())
+                    {
+                        auto buffer_res = pipeline.get_buffer(id);
+                        if (buffer_res.is_success())
+                        {
+                            const buffer_desc& buffer = *buffer_res.get();
+                            // builder.write_buffer(" ", translate(buffer));
+                        }
+                    }
+                    for (const pipeline::texture_id id : pass.get_texture_reads())
+                    {
+                        auto texture_res = pipeline.get_texture(id);
+                        if (texture_res.is_success())
+                        {
+                            const rendergraph::rgname rgname = rendergraph::rgname(id);
+                            const texture_desc& texture = *texture_res.get();
+                            const rendergraph::texture_desc desc = translate_to_rg(texture);
+                            builder.declare_texture(rgname, desc).get();
+                            builder.read_texture(rgname, desc).get();
+                        }
+                    }
+                    for (const pipeline::texture_id id : pass.get_texture_writes())
+                    {
+                        auto texture_res = pipeline.get_texture(id);
+                        if (texture_res.is_success())
+                        {
+                            const rendergraph::rgname rgname = rendergraph::rgname(id);
+                            const texture_desc& texture = *texture_res.get();
+                            const rendergraph::texture_desc desc = translate_to_rg(texture);
+                            builder.declare_texture(rgname, desc);
+                            builder.write_texture(rgname, {});
+                        }
+                    }
+                },
+                [pass](rendergraph::rgpass_context& context)
+                {
+                    
+                });
+        }
+
         return {};
     }
 
@@ -975,6 +1054,11 @@ namespace influx::renderer
     result<> draw_world(const worldview& view, const target& target)
     {
         return renderer_backend::get_instance().draw_world(view, target);
+    }
+
+    result<> draw_world_with_pipeline(const char* pipeline_filepath, const worldview& world)
+    {
+        return renderer_backend::get_instance().draw_world_with_pipeline(pipeline_filepath, world);
     }
 
     bool can_draw_postprocess()

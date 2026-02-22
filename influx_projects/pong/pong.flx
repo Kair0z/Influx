@@ -1,6 +1,0 @@
-[project]
-name = 'pong'
-version = '0.0.1'
-
-[graphics]
-empty = 'yeah'

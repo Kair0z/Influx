@@ -13,94 +13,97 @@
 #include "core/threading/thread.h"
 #include "core/math/vector.h"
 
+// STL
 #include <tuple>
 
-namespace influx
+namespace influx::app
 {
+	class plugin_manager;
+	class window_manager;
+	class console_manager;
+	class command_manager;
+	class editor_manager;
+	class file_manager;
+	class render_manager;
+
 	class app final
 	{
 	public:
-		enum class e_settings
+		enum class component
 		{
-			window,
-			console
+			window = 0,
+			console = 1,
+			plugins = 2,
+			editor = 3,
+			num
 		};
 
-		struct window_settings final
-		{
-			string m_title = "influx app";
-			math::uint2 m_dimensions = { 640u, 480u };
-		};
-		struct console_settings final
-		{
-			
-		};
-		template <e_settings _t>
-		using settings_t = std::tuple_element_t<static_cast<uint32>(_t), std::tuple<
-			window_settings,
-			console_settings>>;
-		
 		template <typename _t = bool>
 		using result = result<_t, const char*>;
 
-		enum class e_component_flags : uint8
+		enum class component_flags : uint8
 		{
 			none		= 0,
-			console		= 1 << 0,
-			window		= 1 << 1
+			console		= 1 << static_cast<uint32>(component::console),
+			window		= 1 << static_cast<uint32>(component::window),
+			plugins		= 1 << static_cast<uint32>(component::plugins),
+			editor		= 1 << static_cast<uint32>(component::editor),
+			all			= console | window | plugins | editor
 		};
+		static component_flags make_flag(const component comp)
+		{
+			return (component_flags)(1u << static_cast<uint32>(comp));
+		}
 
-		INFLUX_APP_API app(e_component_flags flags);
+		INFLUX_APP_API app(component_flags components = component_flags::none);
 
-		INFLUX_APP_API bool has_console() const;
-
-		INFLUX_APP_API bool has_window() const;
-
+		INFLUX_APP_API bool is_enabled(component comp) const;
+		INFLUX_APP_API bool is_initialized(component comp) const;
 		INFLUX_APP_API bool is_running() const;
-
 		INFLUX_APP_API void quit();
-
 		INFLUX_APP_API ~app();
 
-		enum class e_runmode
+		struct run_args final
 		{
-			run_here,
-			run_on_thread
+			int m_argc;
+			char** m_argv;
+			bool m_run_async = false;
+		};
+		INFLUX_APP_API app::result<> run(const run_args& args);
+
+		INFLUX_APP_API void set_enabled(component_flags components);
+		
+		struct window_settings final
+		{
+
+		};
+		struct console_settings final
+		{
+
+		};
+		struct plugin_settings final
+		{
+
 		};
 
-		INFLUX_APP_API app::result<> run(e_runmode mode);
-
-		// settings
-		template <e_settings _t>
-		void set_settings(const settings_t<_t>& settings);
-
-		template <e_settings _t>
-		const settings_t<_t>& get_settings() const;
-
 	private:
-		settings_t<e_settings::window> m_window_settings;
-		settings_t<e_settings::console> m_console_settings;
+		component_flags		m_active_components = component_flags::none;
+		thread				m_thread;
+		bool				m_is_running = false;
+		bool				m_is_quit_requested = false;
+		
+		plugin_manager*		m_plugin_man = nullptr;
+		window_manager*		m_window_man = nullptr;
+		console_manager*	m_console_man = nullptr;
+		command_manager*	m_command_man = nullptr;
+		file_manager*		m_file_man = nullptr;
+		editor_manager*		m_editor_man = nullptr;
+		render_manager*		m_render_man = nullptr;
 
-		e_component_flags m_flags = e_component_flags::none;
-		thread m_thread;
-		bool m_is_running = false;
-		bool m_is_quit_requested = false;
-		app::result<> run_impl();
+		void create_and_destroy_components();
+		void create_or_destroy(component comp, bool create);
+
+		result<> run_impl();
 	};
-
-	template <app::e_settings _t>
-	void app::set_settings(const app::settings_t<_t>& settings)
-	{
-		if constexpr (_t == e_settings::window) m_window_settings = settings;
-		if constexpr (_t == e_settings::console) m_console_settings = settings;
-	}
-
-	template <app::e_settings _t>
-	const app::settings_t<_t>& app::get_settings() const
-	{
-		if constexpr (_t == e_settings::window) return m_window_settings;
-		else if constexpr (_t == e_settings::console) return m_console_settings;
-		else static_assert(false);
-	}
 }
-ENABLE_ENUM_BIT_OPERATORS(influx::app::e_component_flags);
+ENABLE_ENUM_BIT_OPERATORS(influx::app::app::component_flags);

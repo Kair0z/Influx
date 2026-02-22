@@ -12,6 +12,7 @@
 #include "core/container/map.h"
 #include "core/result.h"
 #include "core/pointer.h"
+#include "core/plugin.h"
 
 // influx::rendergraph
 #include "rgcommon.h"
@@ -262,6 +263,13 @@ namespace influx::rendergraph
 		buffer_desc get_buffer_desc(const rgname& name) const;
 
 		bool execute_validation_checks() const;
+	};
+
+	class INFLUX_RG_API plugin final : plugin_interface
+	{
+	public:
+		virtual void load(const plugin_load_args& args) override;
+		virtual void unload() override;
 	};
 }
 

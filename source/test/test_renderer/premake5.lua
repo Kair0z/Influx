@@ -1,6 +1,6 @@
 new_influx_test("test_renderer")
 
-    local dependencies =
+    local compile_deps =
     {
         "influx_core",
         "influx_platform",
@@ -11,7 +11,7 @@ new_influx_test("test_renderer")
         "influx_import",
         "influx_async"
     }
-    add_compile_dependencies(dependencies)
+    add_compile_dependencies(compile_deps)
 
     local runtime_deps =
     {

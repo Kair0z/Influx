@@ -7,10 +7,8 @@
 #endif
 
 #include "core/result.h"
+#include "core/plugin.h"
 
-// =============================================================================
-// Engine application frontend
-// =============================================================================
 namespace influx::engine
 {
 	template <typename _t = char>
@@ -19,4 +17,15 @@ namespace influx::engine
 	INFLUX_ENGINE_API result<> run_editor(int argc = 0, char* argv[] = nullptr);
 
 	INFLUX_ENGINE_API result<> run_game(int argc = 0, char* argv[] = nullptr);
+
+	class INFLUX_ENGINE_API plugin final : plugin_interface
+	{
+	public:
+		virtual void load(const plugin_load_args& args)
+		{
+			run_game();
+		}
+
+		virtual void unload() {}
+	};
 }
